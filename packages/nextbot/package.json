@@ -1,0 +1,45 @@
+{
+  "name": "nextbot",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "nextbot": "dist/cli/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "dev": "tsx src/cli/index.ts",
+    "build": "tsup src/index.ts src/cli/index.ts --format esm --dts --out-dir dist",
+    "start": "node dist/cli.js",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "cron-parser": "^4.9.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.74.0",
+    "pino": "^9.4.0",
+    "undici": "^6.21.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  }
+}

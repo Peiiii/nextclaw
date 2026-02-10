@@ -1,0 +1,15 @@
+{
+  "name": "nextbot-workspace",
+  "private": true,
+  "packageManager": "pnpm@9.15.1",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "pnpm -C packages/nextbot build",
+    "lint": "pnpm -C packages/nextbot lint",
+    "tsc": "pnpm -C packages/nextbot tsc",
+    "dev": "pnpm -C packages/nextbot dev",
+    "start": "pnpm -C packages/nextbot start"
+  }
+}
