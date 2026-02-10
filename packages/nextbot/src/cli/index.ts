@@ -8,7 +8,7 @@ import { ConfigSchema, getApiBase, getProvider, getProviderName } from "../confi
 import { getWorkspacePath } from "../utils/helpers.js";
 import { MessageBus } from "../bus/queue.js";
 import { AgentLoop } from "../agent/loop.js";
-import { OpenAICompatibleProvider } from "../providers/openai_provider.js";
+import { LiteLLMProvider } from "../providers/litellm_provider.js";
 import { ChannelManager } from "../channels/manager.js";
 import { SessionManager } from "../session/manager.js";
 import { CronService } from "../cron/service.js";
@@ -334,7 +334,7 @@ function makeProvider(config: ReturnType<typeof loadConfig>) {
     console.error("Set one in ~/.nextbot/config.json under providers section");
     process.exit(1);
   }
-  return new OpenAICompatibleProvider({
+  return new LiteLLMProvider({
     apiKey: provider?.apiKey ?? null,
     apiBase: getApiBase(config),
     defaultModel: model,

@@ -198,6 +198,38 @@ export function findProviderByName(name: string): ProviderSpec | undefined {
   return PROVIDERS.find((spec) => spec.name === name);
 }
 
+export function findProviderByModel(model: string): ProviderSpec | undefined {
+  const modelLower = model.toLowerCase();
+  return PROVIDERS.find((spec) => {
+    if (spec.isGateway || spec.isLocal) {
+      return false;
+    }
+    return spec.keywords.some((keyword) => modelLower.includes(keyword));
+  });
+}
+
+export function findGateway(
+  providerName?: string | null,
+  apiKey?: string | null,
+  apiBase?: string | null
+): ProviderSpec | undefined {
+  if (providerName) {
+    const spec = findProviderByName(providerName);
+    if (spec && (spec.isGateway || spec.isLocal)) {
+      return spec;
+    }
+  }
+  for (const spec of PROVIDERS) {
+    if (spec.detectByKeyPrefix && apiKey && apiKey.startsWith(spec.detectByKeyPrefix)) {
+      return spec;
+    }
+    if (spec.detectByBaseKeyword && apiBase && apiBase.includes(spec.detectByBaseKeyword)) {
+      return spec;
+    }
+  }
+  return undefined;
+}
+
 export function providerLabel(spec: ProviderSpec): string {
   return spec.displayName || spec.name;
 }
