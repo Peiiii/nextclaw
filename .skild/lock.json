@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-02-10T17:36:54.400Z",
+  "entries": {
+    "project-os": {
+      "name": "project-os",
+      "platform": "codex",
+      "scope": "project",
+      "source": "peiiii/skild/skills/project-os",
+      "sourceType": "degit-shorthand",
+      "installedAt": "2026-02-10T17:36:54.400Z",
+      "contentHash": "04ae43acc291c80e157d8f11968fd49821abf87a499c50e7cfe8b5d20dd47751"
+    }
+  }
+}
