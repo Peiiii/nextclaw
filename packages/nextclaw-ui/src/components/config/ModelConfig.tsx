@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2, Cpu, Save } from 'lucide-react';
 
 export function ModelConfig() {
@@ -31,11 +32,36 @@ export function ModelConfig() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="flex gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
-          <span className="text-slate-400">加载中...</span>
+      <div className="max-w-2xl space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-48" />
         </div>
+        <Card className="p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-24" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+          <Skeleton className="h-4 w-20 mb-2" />
+          <Skeleton className="h-10 w-full" />
+        </Card>
+        <Card className="p-6">
+          <Skeleton className="h-5 w-24 mb-2" />
+          <Skeleton className="h-3 w-40 mb-6" />
+          <div className="space-y-4">
+            <div>
+              <Skeleton className="h-4 w-28 mb-2" />
+              <Skeleton className="h-2 w-full" />
+            </div>
+            <div>
+              <Skeleton className="h-4 w-32 mb-2" />
+              <Skeleton className="h-2 w-full" />
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }

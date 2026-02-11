@@ -1,6 +1,7 @@
 import { useConfig, useConfigMeta } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MessageCircle, Settings2, Check } from 'lucide-react';
 import { useState } from 'react';
 import { ChannelForm } from './ChannelForm';
@@ -15,10 +16,25 @@ export function ChannelsList() {
 
   if (!config || !meta) {
     return (
-      <div className="flex items-center justify-center p-12">
-        <div className="flex gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
-          <span className="text-slate-400">加载中...</span>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="p-6">
+              <div className="flex items-start gap-3">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-24" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-full mt-4" />
+              <Skeleton className="h-9 w-full mt-4" />
+            </Card>
+          ))}
         </div>
       </div>
     );
