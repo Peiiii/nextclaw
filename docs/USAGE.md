@@ -112,6 +112,25 @@ Status:
 pnpm -C packages/nextclaw dev status
 ```
 
+UI (gateway + config UI):
+
+```bash
+pnpm -C packages/nextclaw dev ui
+```
+
+UI config (optional):
+
+```json
+{
+  "ui": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 18791,
+    "open": false
+  }
+}
+```
+
 Background (nohup):
 
 ```bash

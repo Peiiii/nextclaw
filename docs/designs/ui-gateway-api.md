@@ -336,6 +336,10 @@ ApiResponse<UiConfigView>
 ApiResponse<{ status: "reloading" | "ok" }>
 ```
 
+说明：
+
+- Phase 1 为 best-effort，可能仍需要重启 gateway 才完全生效。
+
 ## WebSocket 事件（Phase 1）
 
 连接：`ws://127.0.0.1:<ui.port>/ws`

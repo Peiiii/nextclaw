@@ -2,11 +2,11 @@
 import { Command } from "commander";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { loadConfig, saveConfig, getConfigPath, getDataDir } from "../config/loader.js";
-import { ConfigSchema, getApiBase, getProvider, getProviderName } from "../config/schema.js";
+import { ConfigSchema, getApiBase, getProvider, getProviderName, type Config } from "../config/schema.js";
 import { getWorkspacePath } from "../utils/helpers.js";
 import { MessageBus } from "../bus/queue.js";
 import { AgentLoop } from "../agent/loop.js";
@@ -16,6 +16,7 @@ import { SessionManager } from "../session/manager.js";
 import { CronService } from "../cron/service.js";
 import { HeartbeatService } from "../heartbeat/service.js";
 import { PROVIDERS } from "../providers/registry.js";
+import { startUiServer } from "../ui/server.js";
 import { APP_NAME, APP_TAGLINE } from "../config/brand.js";
 
 const LOGO = "🤖";
@@ -55,71 +56,45 @@ program
   .description(`Start the ${APP_NAME} gateway`)
   .option("-p, --port <port>", "Gateway port", "18790")
   .option("-v, --verbose", "Verbose output", false)
-  .action(async (_opts) => {
-    const config = loadConfig();
-    const bus = new MessageBus();
-    const provider = makeProvider(config);
-    const sessionManager = new SessionManager(getWorkspacePath(config.agents.defaults.workspace));
+  .option("--ui", "Enable UI server", false)
+  .option("--ui-host <host>", "UI host")
+  .option("--ui-port <port>", "UI port")
+  .option("--ui-open", "Open browser when UI starts", false)
+  .action(async (opts) => {
+    const uiOverrides: Partial<Config["ui"]> = {};
+    if (opts.ui) {
+      uiOverrides.enabled = true;
+    }
+    if (opts.uiHost) {
+      uiOverrides.host = String(opts.uiHost);
+    }
+    if (opts.uiPort) {
+      uiOverrides.port = Number(opts.uiPort);
+    }
+    if (opts.uiOpen) {
+      uiOverrides.open = true;
+    }
+    await startGateway({ uiOverrides });
+  });
 
-    const cronStorePath = join(getDataDir(), "cron", "jobs.json");
-    const cron = new CronService(cronStorePath);
-
-    const agent = new AgentLoop({
-      bus,
-      provider,
-      workspace: getWorkspacePath(config.agents.defaults.workspace),
-      model: config.agents.defaults.model,
-      maxIterations: config.agents.defaults.maxToolIterations,
-      braveApiKey: config.tools.web.search.apiKey || undefined,
-      execConfig: config.tools.exec,
-      cronService: cron,
-      restrictToWorkspace: config.tools.restrictToWorkspace,
-      sessionManager
-    });
-
-    cron.onJob = async (job) => {
-      const response = await agent.processDirect({
-        content: job.payload.message,
-        sessionKey: `cron:${job.id}`,
-        channel: job.payload.channel ?? "cli",
-        chatId: job.payload.to ?? "direct"
-      });
-      if (job.payload.deliver && job.payload.to) {
-        await bus.publishOutbound({
-          channel: job.payload.channel ?? "cli",
-          chatId: job.payload.to,
-          content: response,
-          media: [],
-          metadata: {}
-        });
-      }
-      return response;
+program
+  .command("ui")
+  .description(`Start the ${APP_NAME} UI with gateway`)
+  .option("--host <host>", "UI host")
+  .option("--port <port>", "UI port")
+  .option("--no-open", "Disable opening browser")
+  .action(async (opts) => {
+    const uiOverrides: Partial<Config["ui"]> = {
+      enabled: true,
+      open: Boolean(opts.open)
     };
-
-    const heartbeat = new HeartbeatService(
-      getWorkspacePath(config.agents.defaults.workspace),
-      async (prompt) => agent.processDirect({ content: prompt, sessionKey: "heartbeat" }),
-      30 * 60,
-      true
-    );
-
-    const channels = new ChannelManager(config, bus, sessionManager);
-    if (channels.enabledChannels.length) {
-      console.log(`✓ Channels enabled: ${channels.enabledChannels.join(", ")}`);
-    } else {
-      console.log("Warning: No channels enabled");
+    if (opts.host) {
+      uiOverrides.host = String(opts.host);
     }
-
-    const cronStatus = cron.status();
-    if (cronStatus.jobs > 0) {
-      console.log(`✓ Cron: ${cronStatus.jobs} scheduled jobs`);
+    if (opts.port) {
+      uiOverrides.port = Number(opts.port);
     }
-    console.log("✓ Heartbeat: every 30m");
-
-    await cron.start();
-    await heartbeat.start();
-
-    await Promise.allSettled([agent.run(), channels.startAll()]);
+    await startGateway({ uiOverrides, allowMissingProvider: true });
   });
 
 program
@@ -336,10 +311,148 @@ program
 
 program.parseAsync(process.argv);
 
-function makeProvider(config: ReturnType<typeof loadConfig>) {
+async function startGateway(
+  options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean } = {}
+): Promise<void> {
+  const config = loadConfig();
+  const bus = new MessageBus();
+  const provider =
+    options.allowMissingProvider === true
+      ? makeProvider(config, { allowMissing: true })
+      : makeProvider(config);
+  const sessionManager = new SessionManager(getWorkspacePath(config.agents.defaults.workspace));
+
+  const cronStorePath = join(getDataDir(), "cron", "jobs.json");
+  const cron = new CronService(cronStorePath);
+
+  const uiConfig = resolveUiConfig(config, options.uiOverrides);
+  if (!provider) {
+    if (uiConfig.enabled) {
+      const uiServer = startUiServer({
+        host: uiConfig.host,
+        port: uiConfig.port,
+        configPath: getConfigPath(),
+        onReload: async () => {
+          return;
+        }
+      });
+      const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
+      console.log(`✓ UI: ${uiUrl}`);
+      if (uiConfig.open) {
+        openBrowser(uiUrl);
+      }
+    }
+    console.log("Warning: No API key configured. UI server only.");
+    await new Promise(() => {});
+    return;
+  }
+
+  const agent = new AgentLoop({
+    bus,
+    provider,
+    workspace: getWorkspacePath(config.agents.defaults.workspace),
+    model: config.agents.defaults.model,
+    maxIterations: config.agents.defaults.maxToolIterations,
+    braveApiKey: config.tools.web.search.apiKey || undefined,
+    execConfig: config.tools.exec,
+    cronService: cron,
+    restrictToWorkspace: config.tools.restrictToWorkspace,
+    sessionManager
+  });
+
+  cron.onJob = async (job) => {
+    const response = await agent.processDirect({
+      content: job.payload.message,
+      sessionKey: `cron:${job.id}`,
+      channel: job.payload.channel ?? "cli",
+      chatId: job.payload.to ?? "direct"
+    });
+    if (job.payload.deliver && job.payload.to) {
+      await bus.publishOutbound({
+        channel: job.payload.channel ?? "cli",
+        chatId: job.payload.to,
+        content: response,
+        media: [],
+        metadata: {}
+      });
+    }
+    return response;
+  };
+
+  const heartbeat = new HeartbeatService(
+    getWorkspacePath(config.agents.defaults.workspace),
+    async (prompt) => agent.processDirect({ content: prompt, sessionKey: "heartbeat" }),
+    30 * 60,
+    true
+  );
+
+  const channels = new ChannelManager(config, bus, sessionManager);
+  if (channels.enabledChannels.length) {
+    console.log(`✓ Channels enabled: ${channels.enabledChannels.join(", ")}`);
+  } else {
+    console.log("Warning: No channels enabled");
+  }
+
+  if (uiConfig.enabled) {
+    const uiServer = startUiServer({
+      host: uiConfig.host,
+      port: uiConfig.port,
+      configPath: getConfigPath(),
+      onReload: async () => {
+        return;
+      }
+    });
+    const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
+    console.log(`✓ UI: ${uiUrl}`);
+    if (uiConfig.open) {
+      openBrowser(uiUrl);
+    }
+  }
+
+  const cronStatus = cron.status();
+  if (cronStatus.jobs > 0) {
+    console.log(`✓ Cron: ${cronStatus.jobs} scheduled jobs`);
+  }
+  console.log("✓ Heartbeat: every 30m");
+
+  await cron.start();
+  await heartbeat.start();
+
+  await Promise.allSettled([agent.run(), channels.startAll()]);
+}
+
+function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]>): Config["ui"] {
+  const base = config.ui ?? { enabled: false, host: "127.0.0.1", port: 18791, open: false };
+  return { ...base, ...(overrides ?? {}) };
+}
+
+function openBrowser(url: string): void {
+  const platform = process.platform;
+  let command: string;
+  let args: string[];
+  if (platform === "darwin") {
+    command = "open";
+    args = [url];
+  } else if (platform === "win32") {
+    command = "cmd";
+    args = ["/c", "start", "", url];
+  } else {
+    command = "xdg-open";
+    args = [url];
+  }
+  const child = spawn(command, args, { stdio: "ignore", detached: true });
+  child.unref();
+}
+
+function makeProvider(config: ReturnType<typeof loadConfig>, options: { allowMissing: true }): LiteLLMProvider | null;
+function makeProvider(config: ReturnType<typeof loadConfig>, options?: { allowMissing?: false }): LiteLLMProvider;
+function makeProvider(config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }) {
   const provider = getProvider(config);
   const model = config.agents.defaults.model;
   if (!provider?.apiKey && !model.startsWith("bedrock/")) {
+    if (options?.allowMissing) {
+      return null;
+    }
     console.error("Error: No API key configured.");
     console.error(`Set one in ${getConfigPath()} under providers section`);
     process.exit(1);

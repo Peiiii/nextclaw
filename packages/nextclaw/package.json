@@ -42,6 +42,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.3",
     "@larksuiteoapi/node-sdk": "^1.58.0",
     "@slack/socket-mode": "^1.3.3",
     "@slack/web-api": "^7.6.0",
@@ -50,6 +51,7 @@
     "dingtalk-stream": "^2.1.4",
     "dotenv": "^16.4.5",
     "discord.js": "^14.16.3",
+    "hono": "^4.6.2",
     "imapflow": "^1.0.214",
     "mailparser": "^3.7.1",
     "node-telegram-bot-api": "^0.66.0",

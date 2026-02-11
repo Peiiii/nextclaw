@@ -174,6 +174,13 @@ export const GatewayConfigSchema = z.object({
   port: z.number().int().default(18790)
 });
 
+export const UiConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  host: z.string().default("127.0.0.1"),
+  port: z.number().int().default(18791),
+  open: z.boolean().default(false)
+});
+
 export const WebSearchConfigSchema = z.object({
   apiKey: z.string().default(""),
   maxResults: z.number().int().default(5)
@@ -198,6 +205,7 @@ export const ConfigSchema = z.object({
   channels: ChannelsConfigSchema.default({}),
   providers: ProvidersConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),
+  ui: UiConfigSchema.default({}),
   tools: ToolsConfigSchema.default({})
 });
 
