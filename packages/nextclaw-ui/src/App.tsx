@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useUiStore } from '@/stores/ui.store';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ModelConfig } from '@/components/config/ModelConfig';
@@ -19,7 +19,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { activeTab } = useUiStore();
-  useWebSocket(); // Initialize WebSocket connection
+  useWebSocket(queryClient); // Initialize WebSocket connection
 
   const renderContent = () => {
     switch (activeTab) {
