@@ -12,7 +12,7 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "bridge"],
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "build": "tsup src/index.ts src/cli/index.ts --format esm --dts --out-dir dist",
@@ -31,18 +31,24 @@
     "dotenv": "^16.4.5",
     "discord.js": "^14.16.3",
     "imapflow": "^1.0.214",
+    "mailparser": "^3.7.1",
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^6.9.15",
     "openai": "^4.74.0",
     "pino": "^9.4.0",
     "qq-bot-sdk": "^1.9.1",
     "socket.io-client": "^4.7.5",
+    "socket.io-msgpack-parser": "^3.0.2",
     "undici": "^6.21.0",
     "ws": "^8.18.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
+    "@types/mailparser": "^3.4.6",
+    "@types/node-telegram-bot-api": "^0.64.8",
+    "@types/nodemailer": "^6.4.17",
+    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",

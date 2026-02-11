@@ -2,7 +2,14 @@ import { BaseChannel } from "./base.js";
 import type { MessageBus } from "../bus/queue.js";
 import type { OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
-import { Client, GatewayIntentBits, Partials, type Message as DiscordMessage, type TextBasedChannel } from "discord.js";
+import {
+  Client,
+  GatewayIntentBits,
+  Partials,
+  type Message as DiscordMessage,
+  type TextBasedChannel,
+  type TextBasedChannelFields
+} from "discord.js";
 import { fetch } from "undici";
 import { join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -62,13 +69,14 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
       return;
     }
     this.stopTyping(msg.chatId);
+    const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
     const payload: { content: string; reply?: { messageReference: string } } = {
       content: msg.content ?? ""
     };
     if (msg.replyTo) {
       payload.reply = { messageReference: msg.replyTo };
     }
-    await (channel as TextBasedChannel).send(payload);
+    await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
   }
 
   private async handleIncoming(message: DiscordMessage): Promise<void> {
@@ -137,8 +145,9 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     if (!channel || !channel.isTextBased()) {
       return;
     }
+    const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
     const task = setInterval(() => {
-      void (channel as TextBasedChannel).sendTyping();
+      void textChannel.sendTyping();
     }, 8000);
     this.typingTasks.set(channelId, task);
   }

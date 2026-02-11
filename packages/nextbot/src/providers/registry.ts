@@ -191,6 +191,22 @@ export const PROVIDERS: ProviderSpec[] = [
     defaultApiBase: "",
     stripModelPrefix: false,
     modelOverrides: []
+  },
+  {
+    name: "groq",
+    keywords: ["groq"],
+    envKey: "GROQ_API_KEY",
+    displayName: "Groq",
+    litellmPrefix: "groq",
+    skipPrefixes: ["groq/"],
+    envExtras: [],
+    isGateway: false,
+    isLocal: false,
+    detectByKeyPrefix: "",
+    detectByBaseKeyword: "",
+    defaultApiBase: "",
+    stripModelPrefix: false,
+    modelOverrides: []
   }
 ];
 

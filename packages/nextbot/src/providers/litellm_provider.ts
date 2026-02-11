@@ -76,9 +76,9 @@ export class LiteLLMProvider extends LLMProvider {
     }
 
     if (spec.litellmPrefix) {
-      const prefix = `${spec.litellmPrefix}/`;
-      if (model.startsWith(prefix)) {
-        return model.slice(prefix.length);
+      const skipPrefixes = spec.skipPrefixes ?? [];
+      if (!skipPrefixes.some((prefix) => model.startsWith(prefix))) {
+        return `${spec.litellmPrefix}/${model}`;
       }
     }
 

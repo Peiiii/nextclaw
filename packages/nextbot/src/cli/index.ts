@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { fileURLToPath } from "node:url";
 import { loadConfig, saveConfig, getConfigPath, getDataDir } from "../config/loader.js";
 import { ConfigSchema, getApiBase, getProvider, getProviderName } from "../config/schema.js";
 import { getWorkspacePath } from "../utils/helpers.js";
@@ -199,7 +201,13 @@ channels
   .command("login")
   .description("Link device via QR code")
   .action(() => {
-    console.log("Bridge login not yet implemented in TS version.");
+    const bridgeDir = getBridgeDir();
+    console.log(`${LOGO} Starting bridge...`);
+    console.log("Scan the QR code to connect.\n");
+    const result = spawnSync("npm", ["start"], { cwd: bridgeDir, stdio: "inherit" });
+    if (result.status !== 0) {
+      console.error(`Bridge failed: ${result.status ?? 1}`);
+    }
   });
 
 const cron = program.command("cron").description("Manage scheduled tasks");
@@ -381,4 +389,75 @@ async function prompt(rl: ReturnType<typeof createInterface>, question: string):
   return new Promise((resolve) => {
     rl.once("line", (line) => resolve(line));
   });
+}
+
+function getBridgeDir(): string {
+  const userBridge = join(getDataDir(), "bridge");
+  if (existsSync(join(userBridge, "dist", "index.js"))) {
+    return userBridge;
+  }
+
+  if (!which("npm")) {
+    console.error("npm not found. Please install Node.js >= 18.");
+    process.exit(1);
+  }
+
+  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+  const pkgRoot = resolve(cliDir, "..", "..");
+  const pkgBridge = join(pkgRoot, "bridge");
+  const srcBridge = join(pkgRoot, "..", "..", "bridge");
+
+  let source: string | null = null;
+  if (existsSync(join(pkgBridge, "package.json"))) {
+    source = pkgBridge;
+  } else if (existsSync(join(srcBridge, "package.json"))) {
+    source = srcBridge;
+  }
+
+  if (!source) {
+    console.error("Bridge source not found. Try reinstalling nextbot.");
+    process.exit(1);
+  }
+
+  console.log(`${LOGO} Setting up bridge...`);
+  mkdirSync(resolve(userBridge, ".."), { recursive: true });
+  if (existsSync(userBridge)) {
+    rmSync(userBridge, { recursive: true, force: true });
+  }
+  cpSync(source, userBridge, {
+    recursive: true,
+    filter: (src) => !src.includes("node_modules") && !src.includes("dist")
+  });
+
+  const install = spawnSync("npm", ["install"], { cwd: userBridge, stdio: "pipe" });
+  if (install.status !== 0) {
+    console.error(`Bridge install failed: ${install.status ?? 1}`);
+    if (install.stderr) {
+      console.error(String(install.stderr).slice(0, 500));
+    }
+    process.exit(1);
+  }
+
+  const build = spawnSync("npm", ["run", "build"], { cwd: userBridge, stdio: "pipe" });
+  if (build.status !== 0) {
+    console.error(`Bridge build failed: ${build.status ?? 1}`);
+    if (build.stderr) {
+      console.error(String(build.stderr).slice(0, 500));
+    }
+    process.exit(1);
+  }
+
+  console.log("✓ Bridge ready\n");
+  return userBridge;
+}
+
+function which(binary: string): boolean {
+  const paths = (process.env.PATH ?? "").split(":");
+  for (const dir of paths) {
+    const full = join(dir, binary);
+    if (existsSync(full)) {
+      return true;
+    }
+  }
+  return false;
 }

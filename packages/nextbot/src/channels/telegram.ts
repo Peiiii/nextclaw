@@ -38,16 +38,20 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     }
 
     this.running = true;
-    this.bot = new TelegramBot(this.config.token, { polling: true });
+    const options: TelegramBot.ConstructorOptions = { polling: true };
+    if (this.config.proxy) {
+      options.request = { proxy: this.config.proxy } as TelegramBot.ConstructorOptions["request"];
+    }
+    this.bot = new TelegramBot(this.config.token, options);
 
-    this.bot.onText(/^\/start$/, async (msg) => {
+    this.bot.onText(/^\/start$/, async (msg: Message) => {
       await this.bot?.sendMessage(
         msg.chat.id,
         `👋 Hi ${msg.from?.first_name ?? ""}! I'm nextbot.\n\nSend me a message and I'll respond!\nType /help to see available commands.`
       );
     });
 
-    this.bot.onText(/^\/help$/, async (msg) => {
+    this.bot.onText(/^\/help$/, async (msg: Message) => {
       const helpText =
         "🤖 <b>nextbot commands</b>\n\n" +
         "/start — Start the bot\n" +
@@ -57,7 +61,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       await this.bot?.sendMessage(msg.chat.id, helpText, { parse_mode: "HTML" });
     });
 
-    this.bot.onText(/^\/reset$/, async (msg) => {
+    this.bot.onText(/^\/reset$/, async (msg: Message) => {
       const chatId = String(msg.chat.id);
       if (!this.sessionManager) {
         await this.bot?.sendMessage(msg.chat.id, "⚠️ Session management is not available.");
@@ -71,7 +75,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       await this.bot?.sendMessage(msg.chat.id, `🔄 Conversation history cleared (${count} messages).`);
     });
 
-    this.bot.on("message", async (msg) => {
+    this.bot.on("message", async (msg: Message) => {
       if (!msg.text && !msg.caption && !msg.photo && !msg.voice && !msg.audio && !msg.document) {
         return;
       }
