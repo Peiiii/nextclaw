@@ -44,14 +44,15 @@ export class LiteLLMProvider extends LLMProvider {
   }): Promise<LLMResponse> {
     const requestedModel = params.model ?? this.defaultModel;
     const resolvedModel = this.resolveModel(requestedModel);
+    const apiModel = this.stripRoutingPrefix(resolvedModel);
     const temperature = params.temperature ?? 0.7;
     const maxTokens = params.maxTokens ?? 4096;
-    const overrides = this.applyModelOverrides(resolvedModel, { temperature, maxTokens });
+    const overrides = this.applyModelOverrides(apiModel, { temperature, maxTokens });
 
     return this.client.chat({
       messages: params.messages,
       tools: params.tools,
-      model: resolvedModel,
+      model: apiModel,
       temperature: overrides.temperature,
       maxTokens: overrides.maxTokens
     });
@@ -82,6 +83,21 @@ export class LiteLLMProvider extends LLMProvider {
       }
     }
 
+    return model;
+  }
+
+  private stripRoutingPrefix(model: string): string {
+    if (this.gatewaySpec) {
+      return model;
+    }
+    const spec = this.getStandardSpec(model);
+    if (!spec?.litellmPrefix) {
+      return model;
+    }
+    const prefix = `${spec.litellmPrefix}/`;
+    if (model.startsWith(prefix)) {
+      return model.slice(prefix.length);
+    }
     return model;
   }
 
