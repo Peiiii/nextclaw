@@ -78,6 +78,7 @@ export type UiServerOptions = {
   configPath: string;
   onReload?: () => Promise<void> | void;
   corsOrigins?: string[] | "*";
+  staticDir?: string;
 };
 
 export type UiServerHandle = {

@@ -98,6 +98,57 @@ program
   });
 
 program
+  .command("start")
+  .description(`Start the ${APP_NAME} gateway + UI (backend + frontend)`)
+  .option("--ui-host <host>", "UI host")
+  .option("--ui-port <port>", "UI port")
+  .option("--frontend-port <port>", "UI frontend dev server port")
+  .option("--no-frontend", "Disable UI frontend dev server")
+  .option("--no-open", "Disable opening browser")
+  .action(async (opts) => {
+    const uiOverrides: Partial<Config["ui"]> = {
+      enabled: true,
+      open: false
+    };
+    if (opts.uiHost) {
+      uiOverrides.host = String(opts.uiHost);
+    }
+    if (opts.uiPort) {
+      uiOverrides.port = Number(opts.uiPort);
+    }
+
+    const config = loadConfig();
+    const uiConfig = resolveUiConfig(config, uiOverrides);
+    const staticDir = resolveUiStaticDir();
+    const frontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5173;
+    const shouldStartFrontend = opts.frontend !== false;
+    const frontendDir = shouldStartFrontend ? resolveUiFrontendDir() : null;
+
+    let frontendUrl: string | null = null;
+    if (shouldStartFrontend && frontendDir) {
+      const frontend = startUiFrontend({
+        apiBase: resolveUiApiBase(uiConfig.host, uiConfig.port),
+        port: frontendPort,
+        dir: frontendDir
+      });
+      frontendUrl = frontend?.url ?? null;
+    } else if (shouldStartFrontend && !frontendDir && !staticDir) {
+      console.log("Warning: UI frontend not found. Start it separately.");
+    }
+    if (!frontendUrl && staticDir) {
+      frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
+    }
+
+    if (opts.open && frontendUrl) {
+      openBrowser(frontendUrl);
+    } else if (opts.open && !frontendUrl) {
+      console.log("Warning: UI frontend not started. Browser not opened.");
+    }
+
+    await startGateway({ uiOverrides, allowMissingProvider: true, uiStaticDir: staticDir ?? undefined });
+  });
+
+program
   .command("agent")
   .description("Interact with the agent directly")
   .option("-m, --message <message>", "Message to send to the agent")
@@ -312,7 +363,7 @@ program
 program.parseAsync(process.argv);
 
 async function startGateway(
-  options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean } = {}
+  options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string } = {}
 ): Promise<void> {
   const config = loadConfig();
   const bus = new MessageBus();
@@ -326,18 +377,23 @@ async function startGateway(
   const cron = new CronService(cronStorePath);
 
   const uiConfig = resolveUiConfig(config, options.uiOverrides);
+  const uiStaticDir = options.uiStaticDir ?? resolveUiStaticDir();
   if (!provider) {
     if (uiConfig.enabled) {
       const uiServer = startUiServer({
         host: uiConfig.host,
         port: uiConfig.port,
         configPath: getConfigPath(),
+        staticDir: uiStaticDir ?? undefined,
         onReload: async () => {
           return;
         }
       });
       const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
-      console.log(`✓ UI: ${uiUrl}`);
+      console.log(`✓ UI API: ${uiUrl}/api`);
+      if (uiStaticDir) {
+        console.log(`✓ UI frontend: ${uiUrl}`);
+      }
       if (uiConfig.open) {
         openBrowser(uiUrl);
       }
@@ -398,12 +454,16 @@ async function startGateway(
       host: uiConfig.host,
       port: uiConfig.port,
       configPath: getConfigPath(),
+      staticDir: uiStaticDir ?? undefined,
       onReload: async () => {
         return;
       }
     });
     const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
-    console.log(`✓ UI: ${uiUrl}`);
+    console.log(`✓ UI API: ${uiUrl}/api`);
+    if (uiStaticDir) {
+      console.log(`✓ UI frontend: ${uiUrl}`);
+    }
     if (uiConfig.open) {
       openBrowser(uiUrl);
     }
@@ -424,6 +484,40 @@ async function startGateway(
 function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]>): Config["ui"] {
   const base = config.ui ?? { enabled: false, host: "127.0.0.1", port: 18791, open: false };
   return { ...base, ...(overrides ?? {}) };
+}
+
+function resolveUiApiBase(host: string, port: number): string {
+  const normalizedHost = host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+  return `http://${normalizedHost}:${port}`;
+}
+
+function resolveUiStaticDir(): string | null {
+  const candidates: string[] = [];
+  const envDir = process.env.NEXTCLAW_UI_STATIC_DIR;
+  if (envDir) {
+    candidates.push(envDir);
+  }
+
+  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+  const pkgRoot = resolve(cliDir, "..", "..");
+  candidates.push(join(pkgRoot, "ui-dist"));
+  candidates.push(join(pkgRoot, "ui"));
+  candidates.push(join(pkgRoot, "..", "ui-dist"));
+  candidates.push(join(pkgRoot, "..", "ui"));
+
+  const cwd = process.cwd();
+  candidates.push(join(cwd, "packages", "nextclaw-ui", "dist"));
+  candidates.push(join(cwd, "nextclaw-ui", "dist"));
+  candidates.push(join(pkgRoot, "..", "nextclaw-ui", "dist"));
+  candidates.push(join(pkgRoot, "..", "..", "packages", "nextclaw-ui", "dist"));
+  candidates.push(join(pkgRoot, "..", "..", "nextclaw-ui", "dist"));
+
+  for (const dir of candidates) {
+    if (existsSync(join(dir, "index.html"))) {
+      return dir;
+    }
+  }
+  return null;
 }
 
 function openBrowser(url: string): void {
@@ -587,4 +681,67 @@ function which(binary: string): boolean {
     }
   }
   return false;
+}
+
+function startUiFrontend(options: { apiBase: string; port: number; dir?: string }): { url: string; dir: string } | null {
+  const uiDir = options.dir ?? resolveUiFrontendDir();
+  if (!uiDir) {
+    return null;
+  }
+  const runner = resolveUiFrontendRunner();
+  if (!runner) {
+    console.log("Warning: pnpm/npm not found. Skipping UI frontend.");
+    return null;
+  }
+
+  const args = [...runner.args];
+  if (options.port) {
+    args.push("--", "--port", String(options.port));
+  }
+  const env = { ...process.env, VITE_API_BASE: options.apiBase };
+  const child = spawn(runner.cmd, args, { cwd: uiDir, stdio: "inherit", env });
+  child.on("exit", (code) => {
+    if (code && code !== 0) {
+      console.log(`UI frontend exited with code ${code}`);
+    }
+  });
+
+  const url = `http://127.0.0.1:${options.port}`;
+  console.log(`✓ UI frontend: ${url}`);
+  return { url, dir: uiDir };
+}
+
+function resolveUiFrontendRunner(): { cmd: string; args: string[] } | null {
+  if (which("pnpm")) {
+    return { cmd: "pnpm", args: ["dev"] };
+  }
+  if (which("npm")) {
+    return { cmd: "npm", args: ["run", "dev"] };
+  }
+  return null;
+}
+
+function resolveUiFrontendDir(): string | null {
+  const candidates: string[] = [];
+  const envDir = process.env.NEXTCLAW_UI_DIR;
+  if (envDir) {
+    candidates.push(envDir);
+  }
+
+  const cwd = process.cwd();
+  candidates.push(join(cwd, "packages", "nextclaw-ui"));
+  candidates.push(join(cwd, "nextclaw-ui"));
+
+  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+  const pkgRoot = resolve(cliDir, "..", "..");
+  candidates.push(join(pkgRoot, "..", "nextclaw-ui"));
+  candidates.push(join(pkgRoot, "..", "..", "packages", "nextclaw-ui"));
+  candidates.push(join(pkgRoot, "..", "..", "nextclaw-ui"));
+
+  for (const dir of candidates) {
+    if (existsSync(join(dir, "package.json"))) {
+      return dir;
+    }
+  }
+  return null;
 }

@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -C packages/nextclaw build",
+    "build": "pnpm -C packages/nextclaw-ui build && pnpm -C packages/nextclaw build",
     "build:ui": "pnpm -C packages/nextclaw-ui build",
     "lint": "pnpm -C packages/nextclaw lint",
     "lint:ui": "pnpm -C packages/nextclaw-ui lint",
