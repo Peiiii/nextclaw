@@ -1,13 +1,41 @@
 import { useEffect, useState } from 'react';
 import { useConfig, useUpdateChannel } from '@/hooks/useConfig';
 import { useUiStore } from '@/stores/ui.store';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { TagInput } from '@/components/common/TagInput';
 import { t } from '@/lib/i18n';
+import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from 'lucide-react';
+
+// Field icon mapping
+const getFieldIcon = (fieldName: string) => {
+  if (fieldName.includes('token') || fieldName.includes('secret') || fieldName.includes('password')) {
+    return <KeyRound className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  }
+  if (fieldName.includes('url') || fieldName.includes('host')) {
+    return <Globe className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  }
+  if (fieldName.includes('email') || fieldName.includes('mail')) {
+    return <Mail className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  }
+  if (fieldName.includes('id') || fieldName.includes('from')) {
+    return <Hash className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  }
+  if (fieldName === 'enabled' || fieldName === 'consentGranted') {
+    return <ToggleLeft className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  }
+  return <Settings className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+};
 
 // Channel field definitions
 const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: string }>> = {
@@ -74,6 +102,20 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
   ]
 };
 
+const channelIcons: Record<string, typeof MessageCircle> = {
+  telegram: MessageCircle,
+  slack: MessageCircle,
+  email: Mail,
+  default: MessageCircle
+};
+
+const channelColors: Record<string, string> = {
+  telegram: 'from-sky-400 to-blue-500',
+  slack: 'from-purple-400 to-indigo-500',
+  email: 'from-rose-400 to-pink-500',
+  default: 'from-slate-400 to-gray-500'
+};
+
 export function ChannelForm() {
   const { channelModal, closeChannelModal } = useUiStore();
   const { data: config } = useConfig();
@@ -108,35 +150,57 @@ export function ChannelForm() {
     );
   };
 
-  if (!channelModal.open || !channelName) return null;
+  const Icon = channelIcons[channelName || ''] || channelIcons.default;
+  const gradientClass = channelColors[channelName || ''] || channelColors.default;
 
   return (
     <Dialog open={channelModal.open} onOpenChange={closeChannelModal}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle className="capitalize">{channelName}</DialogTitle>
+          <div className="flex items-center gap-3">
+            <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${gradientClass} flex items-center justify-center`}>
+              <Icon className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <DialogTitle className="capitalize">{channelName}</DialogTitle>
+              <DialogDescription>配置消息渠道参数</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-4 pr-2">
+        <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
+          <form onSubmit={handleSubmit} className="space-y-5 pr-2">
             {fields.map((field) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>{field.label}</Label>
+              <div key={field.name} className="space-y-2.5">
+                <Label 
+                  htmlFor={field.name}
+                  className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2"
+                >
+                  {getFieldIcon(field.name)}
+                  {field.label}
+                </Label>
 
                 {field.type === 'boolean' && (
-                  <Switch
-                    id={field.name}
-                    checked={(formData[field.name] as boolean) || false}
-                    onCheckedChange={(checked) => updateField(field.name, checked)}
-                  />
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-[hsl(40,20%,96%)]">
+                    <span className="text-sm text-[hsl(30,8%,45%)]">
+                      {(formData[field.name] as boolean) ? '已启用' : '已禁用'}
+                    </span>
+                    <Switch
+                      id={field.name}
+                      checked={(formData[field.name] as boolean) || false}
+                      onCheckedChange={(checked) => updateField(field.name, checked)}
+                      className="data-[state=checked]:bg-emerald-500"
+                    />
+                  </div>
                 )}
 
-                {field.type === 'text' && (
+                {(field.type === 'text' || field.type === 'email') && (
                   <Input
                     id={field.name}
-                    type="text"
+                    type={field.type}
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
+                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
                   />
                 )}
 
@@ -147,6 +211,7 @@ export function ChannelForm() {
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
                     placeholder="留空保持不变"
+                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
                   />
                 )}
 
@@ -156,15 +221,7 @@ export function ChannelForm() {
                     type="number"
                     value={(formData[field.name] as number) || 0}
                     onChange={(e) => updateField(field.name, parseInt(e.target.value) || 0)}
-                  />
-                )}
-
-                {field.type === 'email' && (
-                  <Input
-                    id={field.name}
-                    type="email"
-                    value={(formData[field.name] as string) || ''}
-                    onChange={(e) => updateField(field.name, e.target.value)}
+                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
                   />
                 )}
 
@@ -177,12 +234,21 @@ export function ChannelForm() {
               </div>
             ))}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={closeChannelModal}>
+            <DialogFooter className="pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeChannelModal}
+                className="rounded-xl border-[hsl(40,20%,90%)] bg-white hover:bg-[hsl(40,20%,96%)]"
+              >
                 {t('cancel')}
               </Button>
-              <Button type="submit" disabled={updateChannel.isPending}>
-                {t('save')}
+              <Button
+                type="submit"
+                disabled={updateChannel.isPending}
+                className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
+              >
+                {updateChannel.isPending ? '保存中...' : t('save')}
               </Button>
             </DialogFooter>
           </form>

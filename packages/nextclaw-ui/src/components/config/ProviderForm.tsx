@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useConfig, useConfigMeta, useUpdateProvider } from '@/hooks/useConfig';
 import { useUiStore } from '@/stores/ui.store';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +16,7 @@ import { MaskedInput } from '@/components/common/MaskedInput';
 import { KeyValueEditor } from '@/components/common/KeyValueEditor';
 import { t } from '@/lib/i18n';
 import type { ProviderConfigUpdate } from '@/api/types';
+import { KeyRound, Globe, Hash } from 'lucide-react';
 
 export function ProviderForm() {
   const { providerModal, closeProviderModal } = useUiStore();
@@ -32,8 +40,6 @@ export function ProviderForm() {
     }
   }, [providerConfig, providerSpec]);
 
-  if (!providerModal.open || !providerName) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -52,6 +58,8 @@ export function ProviderForm() {
       payload.extraHeaders = extraHeaders;
     }
 
+    if (!providerName) return;
+
     updateProvider.mutate(
       { provider: providerName, data: payload },
       { onSuccess: () => closeProviderModal() }
@@ -60,48 +68,76 @@ export function ProviderForm() {
 
   return (
     <Dialog open={providerModal.open} onOpenChange={closeProviderModal}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{providerSpec?.displayName || providerName}</DialogTitle>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center">
+              <KeyRound className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <DialogTitle>{providerSpec?.displayName || providerName}</DialogTitle>
+              <DialogDescription>配置 AI 提供商的 API 密钥和参数</DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="apiKey">{t('apiKey')}</Label>
+        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
+          <div className="space-y-2.5">
+            <Label htmlFor="apiKey" className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
+              <KeyRound className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+              {t('apiKey')}
+            </Label>
             <MaskedInput
               id="apiKey"
               value={apiKey}
               isSet={providerConfig?.apiKeySet}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={providerConfig?.apiKeySet ? t('apiKeySet') : ''}
+              placeholder={providerConfig?.apiKeySet ? t('apiKeySet') : '输入 API 密钥'}
+              className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="apiBase">{t('apiBase')}</Label>
+          <div className="space-y-2.5">
+            <Label htmlFor="apiBase" className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+              {t('apiBase')}
+            </Label>
             <Input
               id="apiBase"
               type="text"
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
-              placeholder={providerSpec?.defaultApiBase}
+              placeholder={providerSpec?.defaultApiBase || 'https://api.example.com'}
+              className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>{t('extraHeaders')}</Label>
+          <div className="space-y-2.5">
+            <Label className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
+              <Hash className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+              {t('extraHeaders')}
+            </Label>
             <KeyValueEditor
               value={extraHeaders}
               onChange={setExtraHeaders}
             />
           </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeProviderModal}>
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeProviderModal}
+              className="rounded-xl border-[hsl(40,20%,90%)] bg-white hover:bg-[hsl(40,20%,96%)]"
+            >
               {t('cancel')}
             </Button>
-            <Button type="submit" disabled={updateProvider.isPending}>
-              {t('save')}
+            <Button
+              type="submit"
+              disabled={updateProvider.isPending}
+              className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
+            >
+              {updateProvider.isPending ? '保存中...' : t('save')}
             </Button>
           </DialogFooter>
         </form>
