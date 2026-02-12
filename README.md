@@ -8,8 +8,6 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)
-
 [Quick Start](#quick-start) · [Features](#features) · [Channels](#channels) · [Docs](docs/USAGE.md)
 
 </div>
@@ -135,6 +133,8 @@ pnpm -C packages/nextclaw dev serve --frontend
 ---
 
 <div align="center">
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)
 
 **License** [MIT](LICENSE)
 
