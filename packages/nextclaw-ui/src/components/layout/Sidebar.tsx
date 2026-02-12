@@ -77,27 +77,6 @@ export function Sidebar() {
         </ul>
 
       </nav>
-
-      {/* Bottom Profile Section */}
-      <div className="mt-auto px-1 pt-4">
-        <div className="flex items-center gap-2 mb-4 px-2">
-          <div className="flex gap-1.5 items-center">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
-            <span className="text-[11px] text-[hsl(30,8%,65%)]">Starting...</span>
-          </div>
-        </div>
-
-        <button className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-[hsl(40,10%,94%)] transition-all group">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold shadow-sm group-hover:scale-105 transition-transform">
-            WX
-          </div>
-          <div className="flex-1 text-left min-w-0">
-            <p className="text-[13px] font-semibold text-[hsl(30,15%,10%)] truncate">Wang Xiaotiao</p>
-            <p className="text-[11px] text-[hsl(30,8%,55%)] truncate">Free plan</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-[hsl(30,8%,65%)] group-hover:translate-x-0.5 transition-transform" />
-        </button>
-      </div>
     </aside>
   );
 }

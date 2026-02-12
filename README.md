@@ -121,6 +121,10 @@ nextclaw stop   # stop service
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
 
+## Screenshots
+
+![Config UI](images/screenshots/nextclaw-ui-screenshot.png)
+
 ## From source
 
 ```bash
