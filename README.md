@@ -2,7 +2,7 @@
 
 # nextclaw
 
-**Lightweight OpenClaw · UI-first agent runtime · One command to run**
+**A lighter, easier-to-use OpenClaw — one command, built-in UI.**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
@@ -22,7 +22,7 @@
 |---------|-------------|
 | **One-command start** | `nextclaw start` — background service + config UI |
 | **Built-in config UI** | No extra setup after `npm i -g nextclaw` |
-| **Multi-provider** | OpenRouter, OpenAI, MiniMax, vLLM, etc. (OpenAI-compatible) |
+| **Multi-provider** | First-class OpenAI-compatible routing across OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more |
 | **Channels** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
 | **Local tools** | Web search, command execution |
