@@ -1,119 +1,105 @@
 <div align="center">
-  <h1>nextclaw</h1>
-  <p>
-    An easy-to-install, UI-first, OpenClaw-inspired agent runtime.
-  </p>
-  <p>
-    <a href="https://www.npmjs.com/package/nextclaw"><img src="https://img.shields.io/npm/v/nextclaw" alt="npm"></a>
-    <img src="https://img.shields.io/badge/node-\u226518-blue" alt="Node.js">
-    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  </p>
+
+# nextclaw
+
+**Lightweight OpenClaw · UI-first agent runtime · One command to run**
+
+[![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+[Quick Start](#quick-start) · [Features](#features) · [Channels](#channels) · [Docs](docs/USAGE.md)
+
 </div>
 
-nextclaw focuses on the best possible installation and usage experience for an OpenClaw-style assistant.
-It ships with a single-command startup flow, a built-in configuration UI, and a clean CLI for
-multi-provider routing, channel integrations, and scheduled automation.
+---
 
-## Highlights
+## Features
 
-- One command to start everything: `nextclaw start` (background service + UI)
-- Built-in configuration UI (no extra setup required after npm install)
-- OpenAI-compatible provider routing (OpenRouter, OpenAI, MiniMax, etc.)
-- Channel integrations: Telegram, Discord, WhatsApp, Feishu, Mochat, DingTalk, Slack, Email, QQ
-- Scheduled automation with Cron + Heartbeat
-- Local tools: web search and command execution
+| | |
+|---|---|
+| **One-command start** | `nextclaw start` — background service + config UI |
+| **Built-in config UI** | No extra setup after `npm i -g nextclaw` |
+| **Multi-provider** | OpenRouter, OpenAI, MiniMax, vLLM, etc. (OpenAI-compatible) |
+| **Channels** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat |
+| **Automation** | Cron + Heartbeat for scheduled tasks |
+| **Local tools** | Web search, command execution |
 
-## Install
-
-```bash
-npm i -g nextclaw
-```
+---
 
 ## Quick Start
 
-1) Start everything (runs in background)
-
 ```bash
+npm i -g nextclaw
 nextclaw start
 ```
 
-2) Open the UI
-
-```
-http://127.0.0.1:18791
-```
-
-3) Configure your provider and model in the UI
-
-The config file is stored at:
-
-```
-~/.nextclaw/config.json
-```
-
-Stop the service:
+Open **http://127.0.0.1:18791** → configure provider & model in the UI. Config: `~/.nextclaw/config.json`.
 
 ```bash
-nextclaw stop
+nextclaw stop   # stop service
 ```
 
-## Provider Examples
+---
 
-OpenRouter (recommended for global users):
+## Provider examples
+
+<details>
+<summary>OpenRouter (recommended)</summary>
+
+```json
+{
+  "providers": { "openrouter": { "apiKey": "sk-or-v1-xxx" } },
+  "agents": { "defaults": { "model": "anthropic/claude-opus-4-5" } }
+}
+```
+
+</details>
+
+<details>
+<summary>MiniMax (Mainland China)</summary>
 
 ```json
 {
   "providers": {
-    "openrouter": { "apiKey": "sk-or-v1-xxx" }
+    "minimax": { "apiKey": "sk-api-xxx", "apiBase": "https://api.minimaxi.com/v1" }
   },
-  "agents": {
-    "defaults": { "model": "anthropic/claude-opus-4-5" }
-  }
+  "agents": { "defaults": { "model": "minimax/MiniMax-M2.1" } }
 }
 ```
 
-MiniMax (Mainland China):
+</details>
+
+<details>
+<summary>Local vLLM</summary>
 
 ```json
 {
   "providers": {
-    "minimax": {
-      "apiKey": "sk-api-xxx",
-      "apiBase": "https://api.minimaxi.com/v1"
-    }
+    "vllm": { "apiKey": "dummy", "apiBase": "http://localhost:8000/v1" }
   },
-  "agents": {
-    "defaults": { "model": "minimax/MiniMax-M2.1" }
-  }
+  "agents": { "defaults": { "model": "meta-llama/Llama-3.1-8B-Instruct" } }
 }
 ```
 
-Local vLLM:
+</details>
 
-```json
-{
-  "providers": {
-    "vllm": {
-      "apiKey": "dummy",
-      "apiBase": "http://localhost:8000/v1"
-    }
-  },
-  "agents": {
-    "defaults": { "model": "meta-llama/Llama-3.1-8B-Instruct" }
-  }
-}
-```
+---
 
 ## Commands
 
-- `nextclaw start` - start background service (gateway + UI)
-- `nextclaw stop` - stop background service
-- `nextclaw ui` - start UI backend + gateway
-- `nextclaw gateway` - start gateway only (for channels)
-- `nextclaw agent -m "hello"` - chat in CLI
-- `nextclaw status` - show config + provider status
-- `nextclaw channels status` - show enabled channels
-- `nextclaw channels login` - QR login for supported channels
+| Command | Description |
+|---------|-------------|
+| `nextclaw start` | Start background service (gateway + UI) |
+| `nextclaw stop` | Stop background service |
+| `nextclaw ui` | Start UI backend + gateway (foreground) |
+| `nextclaw gateway` | Start gateway only (for channels) |
+| `nextclaw agent -m "hello"` | Chat in CLI |
+| `nextclaw status` | Show config + provider status |
+| `nextclaw channels status` | Show enabled channels |
+| `nextclaw channels login` | QR login for supported channels |
+
+---
 
 ## Channels
 
@@ -129,22 +115,26 @@ Local vLLM:
 | Email | Medium (IMAP/SMTP) |
 | QQ | Easy (app credentials) |
 
+---
+
 ## Docs
 
-- `docs/USAGE.md` - configuration, providers, channels, cron, troubleshooting
-- `docs/logs/` - iteration logs
+- [Configuration, providers, channels, cron](docs/USAGE.md)
+- [Iteration logs](docs/logs/)
 
-## From Source
+## From source
 
 ```bash
 git clone https://github.com/Peiiii/nextclaw.git
 cd nextclaw
 pnpm install
-
-# run in foreground (dev)
 pnpm -C packages/nextclaw dev serve --frontend
 ```
 
-## License
+---
 
-MIT
+<div align="center">
+
+**License** [MIT](LICENSE)
+
+</div>
