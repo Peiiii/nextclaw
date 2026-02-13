@@ -16,7 +16,21 @@ async function apiRequest<T>(
     ...options
   });
 
-  const data = await response.json();
+  const text = await response.text();
+  let data: ApiResponse<T> | null = null;
+  if (text) {
+    try {
+      data = JSON.parse(text) as ApiResponse<T>;
+    } catch {
+      // fall through to build a synthetic error response
+    }
+  }
+
+  if (!data) {
+    const snippet = text ? text.slice(0, 200) : '';
+    const message = `Non-JSON response (${response.status} ${response.statusText})${snippet ? `: ${snippet}` : ''}`;
+    return { ok: false, error: { code: 'INVALID_RESPONSE', message } };
+  }
 
   if (!response.ok) {
     return data as ApiResponse<T>;

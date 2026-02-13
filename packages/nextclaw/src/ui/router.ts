@@ -37,6 +37,8 @@ async function readJson<T>(req: Request): Promise<{ ok: true; data: T } | { ok: 
 export function createUiRouter(options: UiRouterOptions): Hono {
   const app = new Hono();
 
+  app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
+
   app.get("/api/health", (c) => c.json(ok({ status: "ok" })));
 
   app.get("/api/config", (c) => {
