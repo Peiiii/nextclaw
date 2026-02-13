@@ -86,6 +86,14 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
+    try {
+      await options.onReload?.();
+    } catch (error) {
+      options.publish({
+        type: "error",
+        payload: { message: "reload failed after channel update", code: "RELOAD_FAILED" }
+      });
+    }
     return c.json(ok(result));
   });
 

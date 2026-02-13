@@ -59,7 +59,7 @@ export function useUpdateChannel() {
       updateChannel(channel, data as Parameters<typeof updateChannel>[1]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config'] });
-      toast.success(t('configSaved'));
+      toast.success(t('configSavedApplied'));
     },
     onError: (error: Error) => {
       toast.error(t('configSaveFailed') + ': ' + error.message);

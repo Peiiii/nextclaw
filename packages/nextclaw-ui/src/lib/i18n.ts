@@ -108,6 +108,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
 
   // Messages
   configSaved: { zh: '配置已保存', en: 'Configuration saved' },
+  configSavedApplied: { zh: '配置已保存并已应用', en: 'Configuration saved and applied' },
   configSaveFailed: { zh: '保存配置失败', en: 'Failed to save configuration' },
   configReloaded: { zh: '配置已重载', en: 'Configuration reloaded' },
   configReloadFailed: { zh: '重载配置失败', en: 'Failed to reload configuration' },
