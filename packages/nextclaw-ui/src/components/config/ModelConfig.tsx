@@ -90,9 +90,10 @@ export function ModelConfig() {
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="e.g. gpt-4, claude-3"
+                placeholder="minimax/MiniMax-M2.1"
                 className="h-12 px-4 rounded-xl border-[hsl(40,10%,92%)] bg-white focus:ring-1 focus:ring-[hsl(30,15%,10%)] transition-all"
               />
+              <p className="text-[12px] text-[hsl(30,8%,55%)]">Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5</p>
             </div>
           </div>
 

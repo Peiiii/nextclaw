@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.2.4
+
+### Patch Changes
+
+- Republish UI updates and refresh bundled UI assets.
+
 ## 0.2.3
 
 ### Patch Changes

@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.3.9-ui-model-examples/README.md`
+- `docs/logs/v0.3.8-frontend-release/README.md`
 - `docs/logs/v0.3.7-readme-docs/README.md`
 - `docs/logs/v0.3.6-commands-doc-cleanup/README.md`
 - `docs/logs/v0.3.5-service-manager/README.md`
