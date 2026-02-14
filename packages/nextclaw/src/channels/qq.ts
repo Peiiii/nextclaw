@@ -68,28 +68,31 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
 
     const qqMeta = (msg.metadata?.qq as Record<string, unknown> | undefined) ?? {};
     const messageType = (qqMeta.messageType as QQMessageType | undefined) ?? "private";
-    const source = msg.replyTo ? { id: msg.replyTo } : undefined;
+    const metadataMessageId = (msg.metadata?.message_id as string | undefined) ?? null;
+    const sourceId = msg.replyTo ?? metadataMessageId ?? undefined;
+    const source = sourceId ? { id: sourceId } : undefined;
+    const content = this.normalizeContent(msg.content ?? "");
 
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
-      await this.bot.sendGroupMessage(groupId, msg.content ?? "", source);
+      await this.bot.sendGroupMessage(groupId, content, source);
       return;
     }
 
     if (messageType === "direct") {
       const guildId = (qqMeta.guildId as string | undefined) ?? msg.chatId;
-      await this.bot.sendDirectMessage(guildId, msg.content ?? "", source);
+      await this.bot.sendDirectMessage(guildId, content, source);
       return;
     }
 
     if (messageType === "guild") {
       const channelId = (qqMeta.channelId as string | undefined) ?? msg.chatId;
-      await this.bot.sendGuildMessage(channelId, msg.content ?? "", source);
+      await this.bot.sendGuildMessage(channelId, content, source);
       return;
     }
 
     const userId = (qqMeta.userId as string | undefined) ?? msg.chatId;
-    await this.bot.sendPrivateMessage(userId, msg.content ?? "", source);
+    await this.bot.sendPrivateMessage(userId, content, source);
   }
 
   private async handleIncoming(event: QQMessageEvent): Promise<void> {
@@ -102,33 +105,46 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       return;
     }
 
-    const content = event.raw_message?.trim() ?? "";
-    if (!event.user_id || !content) {
+    const rawEvent = event as unknown as {
+      sender?: { user_openid?: string; member_openid?: string; user_id?: string };
+      group_openid?: string;
+    };
+    const senderId =
+      event.user_id ||
+      rawEvent.sender?.member_openid ||
+      rawEvent.sender?.user_openid ||
+      rawEvent.sender?.user_id ||
+      "";
+    if (!senderId) {
       return;
     }
 
-    let chatId = event.user_id;
+    const content = event.raw_message?.trim() ?? "";
+    const safeContent = content || "[empty message]";
+
+    let chatId = senderId;
     let messageType: QQMessageType = "private";
     const qqMeta: Record<string, unknown> = {};
 
     if (event.message_type === "group") {
       messageType = "group";
-      chatId = event.group_id ?? "";
-      qqMeta.groupId = chatId;
-      qqMeta.userId = event.user_id;
+      const groupId = event.group_id || rawEvent.group_openid || "";
+      chatId = groupId;
+      qqMeta.groupId = groupId;
+      qqMeta.userId = senderId;
     } else if (event.message_type === "guild") {
       messageType = "guild";
       chatId = event.channel_id ?? "";
       qqMeta.guildId = event.guild_id;
       qqMeta.channelId = event.channel_id;
-      qqMeta.userId = event.user_id;
+      qqMeta.userId = senderId;
     } else if (event.sub_type === "direct") {
       messageType = "direct";
       chatId = event.guild_id ?? "";
       qqMeta.guildId = event.guild_id;
-      qqMeta.userId = event.user_id;
+      qqMeta.userId = senderId;
     } else {
-      qqMeta.userId = event.user_id;
+      qqMeta.userId = senderId;
     }
 
     qqMeta.messageType = messageType;
@@ -137,14 +153,14 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       return;
     }
 
-    if (!this.isAllowed(event.user_id)) {
+    if (!this.isAllowed(senderId)) {
       return;
     }
 
     await this.handleMessage({
-      senderId: event.user_id,
+      senderId,
       chatId,
-      content,
+      content: safeContent,
       media: [],
       metadata: {
         message_id: messageId,
@@ -166,5 +182,11 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       }
     }
     return false;
+  }
+
+  private normalizeContent(content: string): string {
+    const withoutThink = content.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<\/?think>/gi, "");
+    const cleaned = withoutThink.trim();
+    return cleaned || "[empty message]";
   }
 }
