@@ -22,21 +22,21 @@ import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from
 // Field icon mapping
 const getFieldIcon = (fieldName: string) => {
   if (fieldName.includes('token') || fieldName.includes('secret') || fieldName.includes('password')) {
-    return <KeyRound className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+    return <KeyRound className="h-3.5 w-3.5 text-gray-500" />;
   }
   if (fieldName.includes('url') || fieldName.includes('host')) {
-    return <Globe className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+    return <Globe className="h-3.5 w-3.5 text-gray-500" />;
   }
   if (fieldName.includes('email') || fieldName.includes('mail')) {
-    return <Mail className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+    return <Mail className="h-3.5 w-3.5 text-gray-500" />;
   }
   if (fieldName.includes('id') || fieldName.includes('from')) {
-    return <Hash className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+    return <Hash className="h-3.5 w-3.5 text-gray-500" />;
   }
   if (fieldName === 'enabled' || fieldName === 'consentGranted') {
-    return <ToggleLeft className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+    return <ToggleLeft className="h-3.5 w-3.5 text-gray-500" />;
   }
-  return <Settings className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />;
+  return <Settings className="h-3.5 w-3.5 text-gray-500" />;
 };
 
 // Channel field definitions
@@ -198,15 +198,15 @@ export function ChannelForm() {
               <div key={field.name} className="space-y-2.5">
                 <Label
                   htmlFor={field.name}
-                  className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2"
+                  className="text-sm font-medium text-gray-900 flex items-center gap-2"
                 >
                   {getFieldIcon(field.name)}
                   {field.label}
                 </Label>
 
                 {field.type === 'boolean' && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-[hsl(40,20%,96%)]">
-                    <span className="text-sm text-[hsl(30,8%,45%)]">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+                    <span className="text-sm text-gray-500">
                       {(formData[field.name] as boolean) ? t('enabled') : t('disabled')}
                     </span>
                     <Switch
@@ -224,7 +224,7 @@ export function ChannelForm() {
                     type={field.type}
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
-                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
+                    className="rounded-xl"
                   />
                 )}
 
@@ -235,7 +235,7 @@ export function ChannelForm() {
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
                     placeholder="Leave blank to keep unchanged"
-                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
+                    className="rounded-xl"
                   />
                 )}
 
@@ -245,7 +245,7 @@ export function ChannelForm() {
                     type="number"
                     value={(formData[field.name] as number) || 0}
                     onChange={(e) => updateField(field.name, parseInt(e.target.value) || 0)}
-                    className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
+                    className="rounded-xl"
                   />
                 )}
 
@@ -263,14 +263,12 @@ export function ChannelForm() {
                 type="button"
                 variant="outline"
                 onClick={closeChannelModal}
-                className="rounded-xl border-[hsl(40,20%,90%)] bg-white hover:bg-[hsl(40,20%,96%)]"
               >
                 {t('cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={updateChannel.isPending || isConnecting}
-                className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
               >
                 {updateChannel.isPending ? 'Saving...' : t('save')}
               </Button>
@@ -279,7 +277,7 @@ export function ChannelForm() {
                   type="button"
                   onClick={handleVerifyConnect}
                   disabled={updateChannel.isPending || isConnecting}
-                  className="rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white border-0"
+                  variant="secondary"
                 >
                   {isConnecting ? t('feishuConnecting') : t('saveVerifyConnect')}
                 </Button>

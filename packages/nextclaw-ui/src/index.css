@@ -1,55 +1,67 @@
+/* Import Design System - must be first */
+@import './styles/design-system.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* HappyCapy-inspired cleaner "Milk/Cream" palette */
-    --background: 40 20% 98%;
-    /* Very light cream #F9F9F7 */
-    --foreground: 30 15% 10%;
-    /* Very dark brown/gray */
+    /* ========================================
+       CORE VARIABLES (Mapped to Design System)
+       ======================================== */
+    --background: 210 20% 98%;
+    --foreground: 221 39% 11%;
+
     --card: 0 0% 100%;
-    /* Pure white cards */
-    --card-foreground: 30 15% 10%;
+    --card-foreground: 221 39% 11%;
+
     --popover: 0 0% 100%;
-    --popover-foreground: 30 15% 10%;
-    --primary: 30 15% 10%;
-    /* Dark active states */
+    --popover-foreground: 221 39% 11%;
+
+    /* Primary: Brand Blue */
+    --primary: 217 80% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 10% 94%;
-    /* Neutral light gray */
-    --secondary-foreground: 30 15% 10%;
-    --muted: 40 10% 94%;
-    --muted-foreground: 30 8% 45%;
-    --accent: 40 10% 92%;
-    /* Light pill background */
-    --accent-foreground: 30 15% 10%;
+
+    /* Secondary: Light Gray */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 215 28% 17%;
+
+    /* Muted */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Accent */
+    --accent: 217 100% 97%;
+    --accent-foreground: 217 70% 40%;
+
+    /* Destructive */
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 10% 92%;
-    --input: 40 10% 92%;
-    --ring: 30 15% 10%;
-    --radius: 1.25rem;
-    /* Large rounded corners (20px) */
 
-    /* HappyCapy Neutrals */
-    --milk-50: 40 20% 98%;
-    --milk-100: 40 15% 96%;
-    --milk-200: 40 12% 92%;
-    --milk-300: 40 10% 88%;
-    --milk-400: 40 8% 70%;
-    --milk-500: 30 8% 45%;
-    --milk-600: 30 10% 35%;
-    --milk-700: 30 12% 25%;
-    --milk-800: 30 15% 15%;
-    --milk-900: 30 20% 8%;
+    /* UI Elements */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 80% 55%;
+    --radius: 0.75rem;
+
+    /* Legacy compatibility */
+    --milk-50: 210 20% 98%;
+    --milk-100: 220 14% 96%;
+    --milk-200: 220 13% 91%;
+    --milk-300: 216 12% 84%;
+    --milk-400: 218 11% 65%;
+    --milk-500: 220 9% 46%;
+    --milk-600: 215 14% 34%;
+    --milk-700: 217 19% 27%;
+    --milk-800: 215 28% 17%;
+    --milk-900: 221 39% 11%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border outline-none transition-colors duration-200;
+    @apply border-border;
   }
 
   html {
@@ -60,20 +72,21 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--font-sans);
     overflow: hidden;
   }
 
-  /* Smooth scrolling for the whole page if needed */
+  /* Smooth scrolling */
   * {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--warm-gray-300)) transparent;
+    scrollbar-color: hsl(var(--gray-300)) transparent;
   }
 }
 
 @layer utilities {
-
-  /* Custom scrollbar */
+  /* ========================================
+     SCROLLBAR
+     ======================================== */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -84,24 +97,42 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--warm-gray-300));
+    background: hsl(var(--gray-300));
     border-radius: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--warm-gray-400));
+    background: hsl(var(--gray-400));
   }
 
-  /* Glassmorphism */
+  /* ========================================
+     GLASSMORPHISM
+     ======================================== */
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/20;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .glass-dark {
-    @apply bg-black/10 backdrop-blur-md border border-white/10;
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
-  /* Premium Shadows */
+  /* ========================================
+     SHADOWS
+     ======================================== */
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 1px 2px -1px rgb(0 0 0 / 0.05);
+  }
+
+  .shadow-card-hover {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  }
+
   .shadow-premium {
     box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 10px -4px rgba(0, 0, 0, 0.04);
   }
@@ -109,15 +140,36 @@
   .shadow-premium-hover {
     box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12), 0 8px 15px -6px rgba(0, 0, 0, 0.06);
   }
+
+  /* ========================================
+     GRADIENTS
+     ======================================== */
+  .bg-gradient-hero {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--gray-50)) 100%);
+  }
+
+  .bg-gradient-subtle {
+    background: linear-gradient(180deg, hsl(var(--gray-50)) 0%, hsl(var(--background)) 100%);
+  }
+
+  /* ========================================
+     FOCUS STATES
+     ======================================== */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+    --tw-ring-color: hsl(var(--ring));
+    --tw-ring-offset-color: hsl(var(--ring-offset));
+  }
 }
 
-/* Animation keyframes */
+/* ========================================
+   ANIMATIONS
+   ======================================== */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(12px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -129,7 +181,6 @@
     opacity: 0;
     transform: translateX(-12px);
   }
-
   to {
     opacity: 1;
     transform: translateX(0);
@@ -141,7 +192,6 @@
     opacity: 0;
     transform: scale(0.97);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
@@ -149,12 +199,9 @@
 }
 
 @keyframes pulse-soft {
-
-  0%,
-  100% {
+  0%, 100% {
     opacity: 1;
   }
-
   50% {
     opacity: 0.8;
   }

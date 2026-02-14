@@ -33,7 +33,7 @@ export function ChannelsList() {
   const [activeTab, setActiveTab] = useState('active');
 
   if (!config || !meta) {
-    return <div className="p-8 text-[hsl(30,8%,55%)]">Loading channels...</div>;
+    return <div className="p-8 text-gray-400">Loading channels...</div>;
   }
 
   const tabs = [
@@ -49,7 +49,7 @@ export function ChannelsList() {
   return (
     <div className="animate-fade-in pb-20">
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-[hsl(30,15%,10%)]">Message Channels</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Message Channels</h2>
       </div>
 
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
@@ -65,11 +65,11 @@ export function ChannelsList() {
             <div
               key={channel.name}
               className={cn(
-                'group relative flex flex-col p-5 rounded-2xl border transition-all duration-300 cursor-pointer',
-                'hover:shadow-lg hover:-translate-y-0.5',
+                'group relative flex flex-col p-5 rounded-2xl border transition-all duration-base cursor-pointer',
+                'hover:shadow-card-hover hover:-translate-y-0.5',
                 enabled
-                  ? 'bg-white border-[hsl(40,10%,90%)] hover:border-[hsl(40,10%,80%)]'
-                  : 'bg-[hsl(40,10%,98%)] border-[hsl(40,10%,92%)] hover:border-[hsl(40,10%,85%)] hover:bg-white'
+                  ? 'bg-white border-gray-200 hover:border-gray-300'
+                  : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-white'
               )}
               onClick={() => openChannelModal(channel.name)}
             >
@@ -81,8 +81,8 @@ export function ChannelsList() {
                   className={cn(
                     'h-12 w-12 rounded-xl border transition-all',
                     enabled
-                      ? 'bg-white border-[hsl(30,15%,10%)]'
-                      : 'bg-white border-[hsl(40,10%,88%)] group-hover:border-[hsl(40,10%,80%)]'
+                      ? 'bg-white border-primary'
+                      : 'bg-white border-gray-200 group-hover:border-gray-300'
                   )}
                   imgClassName="h-6 w-6"
                   fallback={<Icon className="h-6 w-6" />}
@@ -95,7 +95,7 @@ export function ChannelsList() {
                     <span className="text-[11px] font-bold">Active</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[hsl(40,10%,94%)] text-[hsl(30,8%,55%)]">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
                     <Radio className="h-3.5 w-3.5" />
                     <span className="text-[11px] font-bold">Inactive</span>
                   </div>
@@ -104,37 +104,32 @@ export function ChannelsList() {
 
               {/* Channel Info */}
               <div className="flex-1">
-                <h3 className="text-[15px] font-bold text-[hsl(30,15%,10%)] mb-1">
+                <h3 className="text-[15px] font-bold text-gray-900 mb-1">
                   {channel.displayName || channel.name}
                 </h3>
-                <p className="text-[12px] text-[hsl(30,8%,55%)] leading-relaxed line-clamp-2">
+                <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-2">
                   {channelDescriptions[channel.name] || 'Configure this communication channel'}
                 </p>
               </div>
 
               {/* Footer with Actions */}
-              <div className="mt-4 pt-4 border-t border-[hsl(40,10%,94%)] flex items-center gap-2">
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
                 {channel.tutorialUrl && (
                   <a
                     href={channel.tutorialUrl}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-[hsl(40,10%,96%)] hover:bg-[hsl(40,10%,92%)] text-[hsl(30,10%,35%)] transition-colors"
+                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
                     title="View Guide"
                   >
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
                 <Button
-                  variant="ghost"
+                  variant={enabled ? 'ghost' : 'default'}
                   size="sm"
-                  className={cn(
-                    'flex-1 rounded-xl text-[12px] font-bold h-9 transition-all',
-                    enabled
-                      ? 'bg-[hsl(40,10%,96%)] hover:bg-[hsl(40,10%,92%)] text-[hsl(30,15%,10%)]'
-                      : 'bg-[hsl(30,15%,10%)] hover:bg-[hsl(30,15%,20%)] text-white'
-                  )}
+                  className="flex-1 rounded-xl text-xs font-semibold h-9"
                   onClick={(e) => {
                     e.stopPropagation();
                     openChannelModal(channel.name);
@@ -151,13 +146,13 @@ export function ChannelsList() {
       {/* Empty State */}
       {filteredChannels.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-[hsl(40,10%,96%)] mb-4">
-            <MessageSquare className="h-8 w-8 text-[hsl(30,8%,55%)]" />
+          <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-gray-100 mb-4">
+            <MessageSquare className="h-8 w-8 text-gray-400" />
           </div>
-          <h3 className="text-[15px] font-bold text-[hsl(30,15%,10%)] mb-2">
+          <h3 className="text-[15px] font-bold text-gray-900 mb-2">
             No channels enabled
           </h3>
-          <p className="text-[13px] text-[hsl(30,8%,55%)] max-w-sm">
+          <p className="text-[13px] text-gray-500 max-w-sm">
             Enable a messaging channel to start receiving messages. Click on any channel to configure it.
           </p>
         </div>

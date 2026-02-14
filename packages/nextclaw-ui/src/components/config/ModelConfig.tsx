@@ -37,7 +37,7 @@ export function ModelConfig() {
           <Skeleton className="h-8 w-32" />
           <Skeleton className="h-4 w-48" />
         </div>
-        <Card className="rounded-2xl border-[hsl(40,20%,90%)] p-6">
+        <Card className="rounded-2xl border-gray-200 p-6">
           <div className="flex items-center gap-4 mb-6">
             <Skeleton className="h-12 w-12 rounded-xl" />
             <div className="space-y-2">
@@ -48,7 +48,7 @@ export function ModelConfig() {
           <Skeleton className="h-4 w-20 mb-2" />
           <Skeleton className="h-10 w-full rounded-xl" />
         </Card>
-        <Card className="rounded-2xl border-[hsl(40,20%,90%)] p-6">
+        <Card className="rounded-2xl border-gray-200 p-6">
           <Skeleton className="h-5 w-24 mb-2" />
           <Skeleton className="h-3 w-40 mb-6" />
           <div className="space-y-6">
@@ -69,70 +69,70 @@ export function ModelConfig() {
   return (
     <div className="max-w-4xl animate-fade-in pb-20">
       <div className="mb-10">
-        <h2 className="text-2xl font-bold text-[hsl(30,15%,10%)]">Model Configuration</h2>
-        <p className="text-[14px] text-[hsl(30,8%,55%)] mt-1">Configure default AI model and behavior parameters</p>
+        <h2 className="text-2xl font-bold text-gray-900">Model Configuration</h2>
+        <p className="text-sm text-gray-500 mt-1">Configure default AI model and behavior parameters</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Model Card */}
-          <div className="p-8 rounded-[2rem] bg-[hsl(40,10%,98%)] border border-[hsl(40,10%,94%)]">
+          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-200">
             <div className="flex items-center gap-4 mb-8">
-              <div className="h-10 w-10 rounded-xl bg-[hsl(30,15%,10%)] flex items-center justify-center text-white">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
                 <Sparkles className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold text-[hsl(30,15%,10%)]">Default Model</h3>
+              <h3 className="text-lg font-bold text-gray-900">Default Model</h3>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="model" className="text-[12px] font-bold text-[hsl(30,8%,45%)] uppercase tracking-wider">Model Name</Label>
+              <Label htmlFor="model" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model Name</Label>
               <Input
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 placeholder="minimax/MiniMax-M2.1"
-                className="h-12 px-4 rounded-xl border-[hsl(40,10%,92%)] bg-white focus:ring-1 focus:ring-[hsl(30,15%,10%)] transition-all"
+                className="h-12 px-4 rounded-xl"
               />
-              <p className="text-[12px] text-[hsl(30,8%,55%)]">Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5</p>
+              <p className="text-xs text-gray-400">Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5</p>
             </div>
           </div>
 
           {/* Workspace Card */}
-          <div className="p-8 rounded-[2rem] bg-[hsl(40,10%,98%)] border border-[hsl(40,10%,94%)]">
+          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-200">
             <div className="flex items-center gap-4 mb-8">
-              <div className="h-10 w-10 rounded-xl bg-[hsl(30,15%,10%)] flex items-center justify-center text-white">
+              <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
                 <Folder className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold text-[hsl(30,15%,10%)]">Workspace</h3>
+              <h3 className="text-lg font-bold text-gray-900">Workspace</h3>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="workspace" className="text-[12px] font-bold text-[hsl(30,8%,45%)] uppercase tracking-wider">Default Path</Label>
+              <Label htmlFor="workspace" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Default Path</Label>
               <Input
                 id="workspace"
                 value={workspace}
                 onChange={(e) => setWorkspace(e.target.value)}
                 placeholder="/path/to/workspace"
-                className="h-12 px-4 rounded-xl border-[hsl(40,10%,92%)] bg-white focus:ring-1 focus:ring-[hsl(30,15%,10%)] transition-all"
+                className="h-12 px-4 rounded-xl"
               />
             </div>
           </div>
         </div>
 
         {/* Parameters Section */}
-        <div className="p-8 rounded-[2.5rem] bg-white border border-[hsl(40,10%,94%)] shadow-sm">
+        <div className="p-8 rounded-2xl bg-white border border-gray-200 shadow-card">
           <div className="flex items-center gap-4 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-[hsl(30,15%,10%)] flex items-center justify-center text-white">
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
               <Sliders className="h-5 w-5" />
             </div>
-            <h3 className="text-lg font-bold text-[hsl(30,15%,10%)]">Generation Parameters</h3>
+            <h3 className="text-lg font-bold text-gray-900">Generation Parameters</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <Label className="text-[12px] font-bold text-[hsl(30,8%,45%)] uppercase tracking-wider">Max Tokens</Label>
-                <span className="text-[13px] font-bold text-[hsl(30,15%,10%)]">{maxTokens.toLocaleString()}</span>
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Max Tokens</Label>
+                <span className="text-sm font-semibold text-gray-900">{maxTokens.toLocaleString()}</span>
               </div>
               <input
                 type="range"
@@ -141,14 +141,14 @@ export function ModelConfig() {
                 step="1000"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                className="w-full h-1 bg-[hsl(40,10%,92%)] rounded-full appearance-none cursor-pointer accent-[hsl(30,15%,10%)]"
+                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary"
               />
             </div>
 
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <Label className="text-[12px] font-bold text-[hsl(30,8%,45%)] uppercase tracking-wider">Temperature</Label>
-                <span className="text-[13px] font-bold text-[hsl(30,15%,10%)]">{temperature}</span>
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Temperature</Label>
+                <span className="text-sm font-semibold text-gray-900">{temperature}</span>
               </div>
               <input
                 type="range"
@@ -157,7 +157,7 @@ export function ModelConfig() {
                 step="0.1"
                 value={temperature}
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                className="w-full h-1 bg-[hsl(40,10%,92%)] rounded-full appearance-none cursor-pointer accent-[hsl(30,15%,10%)]"
+                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary"
               />
             </div>
           </div>
@@ -167,7 +167,7 @@ export function ModelConfig() {
           <Button
             type="submit"
             disabled={updateModel.isPending}
-            className="h-12 px-8 rounded-2xl bg-[hsl(30,15%,10%)] text-white hover:bg-[hsl(30,15%,20%)] transition-all font-bold shadow-md active:scale-95"
+            size="lg"
           >
             {updateModel.isPending ? (
               <Loader2 className="h-5 w-5 animate-spin" />

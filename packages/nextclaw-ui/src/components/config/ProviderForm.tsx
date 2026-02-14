@@ -71,7 +71,7 @@ export function ProviderForm() {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center">
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
               <KeyRound className="h-5 w-5 text-white" />
             </div>
             <div>
@@ -83,8 +83,8 @@ export function ProviderForm() {
 
         <form onSubmit={handleSubmit} className="space-y-5 pt-2">
           <div className="space-y-2.5">
-            <Label htmlFor="apiKey" className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
-              <KeyRound className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+            <Label htmlFor="apiKey" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+              <KeyRound className="h-3.5 w-3.5 text-gray-500" />
               {t('apiKey')}
             </Label>
             <MaskedInput
@@ -93,13 +93,13 @@ export function ProviderForm() {
               isSet={providerConfig?.apiKeySet}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={providerConfig?.apiKeySet ? t('apiKeySet') : 'Enter API Key'}
-              className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
+              className="rounded-xl"
             />
           </div>
 
           <div className="space-y-2.5">
-            <Label htmlFor="apiBase" className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
-              <Globe className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+            <Label htmlFor="apiBase" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+              <Globe className="h-3.5 w-3.5 text-gray-500" />
               {t('apiBase')}
             </Label>
             <Input
@@ -108,13 +108,13 @@ export function ProviderForm() {
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
               placeholder={providerSpec?.defaultApiBase || 'https://api.example.com'}
-              className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
+              className="rounded-xl"
             />
           </div>
 
           <div className="space-y-2.5">
-            <Label className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2">
-              <Hash className="h-3.5 w-3.5 text-[hsl(30,8%,45%)]" />
+            <Label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+              <Hash className="h-3.5 w-3.5 text-gray-500" />
               {t('extraHeaders')}
             </Label>
             <KeyValueEditor
@@ -128,14 +128,12 @@ export function ProviderForm() {
               type="button"
               variant="outline"
               onClick={closeProviderModal}
-              className="rounded-xl border-[hsl(40,20%,90%)] bg-white hover:bg-[hsl(40,20%,96%)]"
             >
               {t('cancel')}
             </Button>
             <Button
               type="submit"
               disabled={updateProvider.isPending}
-              className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
             >
               {updateProvider.isPending ? 'Saving...' : t('save')}
             </Button>

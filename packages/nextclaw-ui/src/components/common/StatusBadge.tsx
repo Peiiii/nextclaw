@@ -22,9 +22,9 @@ const statusConfig: Record<
   },
   disconnected: {
     label: t('disconnected'),
-    dotClass: 'bg-[hsl(30,8%,55%)]',
-    textClass: 'text-[hsl(30,8%,45%)]',
-    bgClass: 'bg-[hsl(40,20%,96%)]',
+    dotClass: 'bg-gray-400',
+    textClass: 'text-gray-500',
+    bgClass: 'bg-gray-100',
     icon: X
   },
   connecting: {
@@ -48,8 +48,8 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
     )}>
       <div className={cn('h-2 w-2 rounded-full', config.dotClass)} />
       <span className={cn('text-xs font-medium flex items-center gap-1', config.textClass)}>
-        <Icon className={cn('h-3 w-3', status === 'connecting' && 'animate-spin')} />
         {config.label}
+        {status === 'connecting' && <Icon className="h-3 w-3 animate-spin" />}
       </span>
     </div>
   );
