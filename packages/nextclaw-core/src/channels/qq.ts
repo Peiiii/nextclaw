@@ -199,11 +199,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       if (!this.isTokenExpiredError(error) || !this.bot) {
         throw error;
       }
-      try {
-        await this.bot.sessionManager.getAccessToken();
-      } catch (refreshError) {
-        throw refreshError;
-      }
+      await this.bot.sessionManager.getAccessToken();
       await send();
     }
   }

@@ -1,0 +1,61 @@
+{
+  "name": "nextclaw-core",
+  "version": "0.2.8",
+  "private": false,
+  "description": "Nextclaw runtime core (agent, channels, providers, config).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.58.0",
+    "@slack/socket-mode": "^1.3.3",
+    "@slack/web-api": "^7.6.0",
+    "chokidar": "^3.6.0",
+    "commander": "^12.1.0",
+    "cron-parser": "^4.9.0",
+    "dingtalk-stream": "^2.1.4",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5",
+    "imapflow": "^1.0.214",
+    "mailparser": "^3.7.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemailer": "^6.9.15",
+    "openai": "^4.74.0",
+    "pino": "^9.4.0",
+    "qq-official-bot": "^1.0.12",
+    "socket.io-client": "^4.7.5",
+    "socket.io-msgpack-parser": "^3.0.2",
+    "undici": "^6.21.0",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.4.6",
+    "@types/node": "^20.17.6",
+    "@types/node-telegram-bot-api": "^0.64.8",
+    "@types/nodemailer": "^6.4.17",
+    "@types/ws": "^8.5.14",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  }
+}

@@ -1,6 +1,4 @@
-import { loadConfig, saveConfig } from "../config/loader.js";
-import { ConfigSchema, type Config, type ProviderConfig } from "../config/schema.js";
-import { PROVIDERS } from "../providers/registry.js";
+import { loadConfig, saveConfig, ConfigSchema, type Config, type ProviderConfig, PROVIDERS } from "nextclaw-core";
 import type {
   ConfigMetaView,
   ConfigView,

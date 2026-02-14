@@ -5,8 +5,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "nextclaw-core": ["../nextclaw-core/src/index.ts"],
-      "nextclaw-server": ["../nextclaw-server/src/index.ts"]
+      "nextclaw-core": ["../nextclaw-core/src/index.ts"]
     }
   },
   "include": ["src"]

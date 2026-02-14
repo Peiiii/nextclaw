@@ -16,20 +16,31 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
 import chokidar from "chokidar";
-import { loadConfig, saveConfig, getConfigPath, getDataDir } from "../config/loader.js";
-import { ConfigSchema, getApiBase, getProvider, getProviderName, type Config } from "../config/schema.js";
-import { buildReloadPlan, diffConfigPaths } from "../config/reload.js";
-import { getWorkspacePath } from "../utils/helpers.js";
-import { MessageBus } from "../bus/queue.js";
-import { AgentLoop } from "../agent/loop.js";
-import { LiteLLMProvider } from "../providers/litellm_provider.js";
-import { ChannelManager } from "../channels/manager.js";
-import { SessionManager } from "../session/manager.js";
-import { CronService } from "../cron/service.js";
-import { HeartbeatService } from "../heartbeat/service.js";
-import { PROVIDERS } from "../providers/registry.js";
-import { startUiServer } from "../ui/server.js";
-import { APP_NAME, APP_TAGLINE } from "../config/brand.js";
+import {
+  loadConfig,
+  saveConfig,
+  getConfigPath,
+  getDataDir,
+  ConfigSchema,
+  getApiBase,
+  getProvider,
+  getProviderName,
+  type Config,
+  buildReloadPlan,
+  diffConfigPaths,
+  getWorkspacePath,
+  MessageBus,
+  AgentLoop,
+  LiteLLMProvider,
+  ChannelManager,
+  SessionManager,
+  CronService,
+  HeartbeatService,
+  PROVIDERS,
+  APP_NAME,
+  APP_TAGLINE
+} from "nextclaw-core";
+import { startUiServer } from "nextclaw-server";
 
 const LOGO = "🤖";
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);

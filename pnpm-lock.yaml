@@ -14,9 +14,52 @@ importers:
 
   packages/nextclaw:
     dependencies:
-      '@hono/node-server':
-        specifier: ^1.13.3
-        version: 1.19.9(hono@4.11.9)
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+      nextclaw-core:
+        specifier: ^0.2.8
+        version: link:../nextclaw-core
+      nextclaw-server:
+        specifier: ^0.2.8
+        version: link:../nextclaw-server
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.18.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.18.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.33)
+
+  packages/nextclaw-core:
+    dependencies:
       '@larksuiteoapi/node-sdk':
         specifier: ^1.58.0
         version: 1.58.0
@@ -44,9 +87,6 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
-      hono:
-        specifier: ^4.6.2
-        version: 4.11.9
       imapflow:
         specifier: ^1.0.214
         version: 1.2.9
@@ -96,6 +136,55 @@ importers:
       '@types/nodemailer':
         specifier: ^6.4.17
         version: 6.4.22
+      '@types/ws':
+        specifier: ^8.5.14
+        version: 8.18.1
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.18.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.18.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.33)
+
+  packages/nextclaw-server:
+    dependencies:
+      '@hono/node-server':
+        specifier: ^1.13.3
+        version: 1.19.9(hono@4.11.9)
+      hono:
+        specifier: ^4.6.2
+        version: 4.11.9
+      nextclaw-core:
+        specifier: workspace:*
+        version: link:../nextclaw-core
+      ws:
+        specifier: ^8.18.0
+        version: 8.19.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
       '@types/ws':
         specifier: ^8.5.14
         version: 8.18.1
