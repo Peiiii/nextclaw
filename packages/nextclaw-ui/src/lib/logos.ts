@@ -9,7 +9,7 @@ const PROVIDER_LOGOS: LogoMap = {
   deepseek: "deepseek.png",
   zhipu: "zhipu.svg",
   dashscope: "dashscope.png",
-  moonshot: "moonshot.svg",
+  moonshot: "moonshot.png",
   minimax: "minimax.svg",
   vllm: "vllm.svg",
   groq: "groq.svg"
