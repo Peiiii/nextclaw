@@ -176,7 +176,7 @@ importers:
         specifier: ^4.6.2
         version: 4.11.9
       nextclaw-core:
-        specifier: workspace:*
+        specifier: ^0.2.8
         version: link:../nextclaw-core
       ws:
         specifier: ^8.18.0

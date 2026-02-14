@@ -6,6 +6,8 @@ import { ChannelForm } from './ChannelForm';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
+import { LogoBadge } from '@/components/common/LogoBadge';
+import { getChannelLogo } from '@/lib/logos';
 
 const channelIcons: Record<string, typeof MessageCircle> = {
   telegram: MessageCircle,
@@ -73,14 +75,18 @@ export function ChannelsList() {
             >
               {/* Header with Icon and Status */}
               <div className="flex items-start justify-between mb-4">
-                <div className={cn(
-                  'h-12 w-12 flex items-center justify-center rounded-xl transition-all',
-                  enabled
-                    ? 'bg-[hsl(30,15%,10%)] text-white'
-                    : 'bg-[hsl(40,10%,92%)] text-[hsl(30,8%,55%)] group-hover:bg-[hsl(40,10%,88%)]'
-                )}>
-                  <Icon className="h-6 w-6" />
-                </div>
+                <LogoBadge
+                  name={channel.name}
+                  src={getChannelLogo(channel.name)}
+                  className={cn(
+                    'h-12 w-12 rounded-xl border transition-all',
+                    enabled
+                      ? 'bg-white border-[hsl(30,15%,10%)]'
+                      : 'bg-white border-[hsl(40,10%,88%)] group-hover:border-[hsl(40,10%,80%)]'
+                  )}
+                  imgClassName="h-6 w-6"
+                  fallback={<Icon className="h-6 w-6" />}
+                />
                 
                 {/* Status Badge */}
                 {enabled ? (

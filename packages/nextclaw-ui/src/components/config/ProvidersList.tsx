@@ -6,6 +6,8 @@ import { ProviderForm } from './ProviderForm';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
+import { LogoBadge } from '@/components/common/LogoBadge';
+import { getProviderLogo } from '@/lib/logos';
 
 export function ProvidersList() {
   const { data: config } = useConfig();
@@ -54,14 +56,25 @@ export function ProvidersList() {
             >
               {/* Header with Logo and Status */}
               <div className="flex items-start justify-between mb-4">
-                <div className={cn(
-                  'h-12 w-12 flex items-center justify-center rounded-xl text-lg font-bold uppercase transition-all',
-                  hasConfig
-                    ? 'bg-[hsl(30,15%,10%)] text-white'
-                    : 'bg-[hsl(40,10%,92%)] text-[hsl(30,8%,55%)] group-hover:bg-[hsl(40,10%,88%)]'
-                )}>
-                  {provider.name[0]}
-                </div>
+                <LogoBadge
+                  name={provider.name}
+                  src={getProviderLogo(provider.name)}
+                  className={cn(
+                    'h-12 w-12 rounded-xl border transition-all',
+                    hasConfig
+                      ? 'bg-white border-[hsl(30,15%,10%)]'
+                      : 'bg-white border-[hsl(40,10%,88%)] group-hover:border-[hsl(40,10%,80%)]'
+                  )}
+                  imgClassName="h-7 w-7"
+                  fallback={(
+                    <span className={cn(
+                      'text-lg font-bold uppercase',
+                      hasConfig ? 'text-[hsl(30,15%,10%)]' : 'text-[hsl(30,8%,55%)]'
+                    )}>
+                      {provider.name[0]}
+                    </span>
+                  )}
+                />
                 
                 {/* Status Badge */}
                 {hasConfig ? (
