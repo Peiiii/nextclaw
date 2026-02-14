@@ -75,24 +75,24 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
 
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
-      await this.bot.sendGroupMessage(groupId, content, source);
+      await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, content, source));
       return;
     }
 
     if (messageType === "direct") {
       const guildId = (qqMeta.guildId as string | undefined) ?? msg.chatId;
-      await this.bot.sendDirectMessage(guildId, content, source);
+      await this.sendWithTokenRetry(() => this.bot?.sendDirectMessage(guildId, content, source));
       return;
     }
 
     if (messageType === "guild") {
       const channelId = (qqMeta.channelId as string | undefined) ?? msg.chatId;
-      await this.bot.sendGuildMessage(channelId, content, source);
+      await this.sendWithTokenRetry(() => this.bot?.sendGuildMessage(channelId, content, source));
       return;
     }
 
     const userId = (qqMeta.userId as string | undefined) ?? msg.chatId;
-    await this.bot.sendPrivateMessage(userId, content, source);
+    await this.sendWithTokenRetry(() => this.bot?.sendPrivateMessage(userId, content, source));
   }
 
   private async handleIncoming(event: QQMessageEvent): Promise<void> {
@@ -188,5 +188,26 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     const withoutThink = content.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<\/?think>/gi, "");
     const cleaned = withoutThink.trim();
     return cleaned || "[empty message]";
+  }
+
+  private async sendWithTokenRetry(send: () => Promise<unknown> | undefined): Promise<void> {
+    try {
+      await send();
+    } catch (error) {
+      if (!this.isTokenExpiredError(error) || !this.bot) {
+        throw error;
+      }
+      try {
+        await this.bot.sessionManager.getAccessToken();
+      } catch (refreshError) {
+        throw refreshError;
+      }
+      await send();
+    }
+  }
+
+  private isTokenExpiredError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes("code(11244)") || message.toLowerCase().includes("token not exist or expire");
   }
 }
