@@ -8,6 +8,7 @@ export type LiteLLMProviderOptions = {
   defaultModel: string;
   extraHeaders?: Record<string, string> | null;
   providerName?: string | null;
+  wireApi?: "auto" | "chat" | "responses" | null;
 };
 
 export class LiteLLMProvider extends LLMProvider {
@@ -23,11 +24,16 @@ export class LiteLLMProvider extends LLMProvider {
     this.extraHeaders = options.extraHeaders ?? null;
     this.providerName = options.providerName ?? null;
     this.gatewaySpec = findGateway(this.providerName, options.apiKey ?? null, options.apiBase ?? null) ?? undefined;
+    const providerSpec = this.providerName ? findProviderByName(this.providerName) : undefined;
+    const wireApi = providerSpec?.supportsWireApi
+      ? options.wireApi ?? providerSpec.defaultWireApi ?? "auto"
+      : undefined;
     this.client = new OpenAICompatibleProvider({
       apiKey: options.apiKey ?? null,
       apiBase: options.apiBase ?? null,
       defaultModel: options.defaultModel,
-      extraHeaders: options.extraHeaders ?? null
+      extraHeaders: options.extraHeaders ?? null,
+      wireApi
     });
   }
 

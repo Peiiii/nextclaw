@@ -1,4 +1,13 @@
-import { loadConfig, saveConfig, ConfigSchema, type Config, type ProviderConfig, PROVIDERS } from "nextclaw-core";
+import {
+  loadConfig,
+  saveConfig,
+  ConfigSchema,
+  type Config,
+  type ProviderConfig,
+  PROVIDERS,
+  findProviderByName,
+  type ProviderSpec
+} from "nextclaw-core";
 import type {
   ConfigMetaView,
   ConfigView,
@@ -21,20 +30,25 @@ function maskApiKey(value: string): { apiKeySet: boolean; apiKeyMasked?: string 
   };
 }
 
-function toProviderView(provider: ProviderConfig): ProviderConfigView {
+function toProviderView(provider: ProviderConfig, spec?: ProviderSpec): ProviderConfigView {
   const masked = maskApiKey(provider.apiKey);
-  return {
+  const view: ProviderConfigView = {
     apiKeySet: masked.apiKeySet,
     apiKeyMasked: masked.apiKeyMasked,
     apiBase: provider.apiBase ?? null,
     extraHeaders: provider.extraHeaders ?? null
   };
+  if (spec?.supportsWireApi) {
+    view.wireApi = provider.wireApi ?? spec.defaultWireApi ?? "auto";
+  }
+  return view;
 }
 
 export function buildConfigView(config: Config): ConfigView {
   const providers: Record<string, ProviderConfigView> = {};
   for (const [name, provider] of Object.entries(config.providers)) {
-    providers[name] = toProviderView(provider as ProviderConfig);
+    const spec = findProviderByName(name);
+    providers[name] = toProviderView(provider as ProviderConfig, spec);
   }
   return {
     agents: config.agents,
@@ -53,7 +67,10 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
     envKey: spec.envKey,
     isGateway: spec.isGateway,
     isLocal: spec.isLocal,
-    defaultApiBase: spec.defaultApiBase
+    defaultApiBase: spec.defaultApiBase,
+    supportsWireApi: spec.supportsWireApi,
+    wireApiOptions: spec.wireApiOptions,
+    defaultWireApi: spec.defaultWireApi
   }));
   const channels = Object.keys(config.channels).map((name) => ({
     name,
@@ -85,6 +102,7 @@ export function updateProvider(
   if (!provider) {
     return null;
   }
+  const spec = findProviderByName(providerName);
   if (Object.prototype.hasOwnProperty.call(patch, "apiKey")) {
     provider.apiKey = patch.apiKey ?? "";
   }
@@ -94,10 +112,13 @@ export function updateProvider(
   if (Object.prototype.hasOwnProperty.call(patch, "extraHeaders")) {
     provider.extraHeaders = patch.extraHeaders ?? null;
   }
+  if (Object.prototype.hasOwnProperty.call(patch, "wireApi") && spec?.supportsWireApi) {
+    provider.wireApi = patch.wireApi ?? spec.defaultWireApi ?? "auto";
+  }
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   const updated = (next.providers as Record<string, ProviderConfig>)[providerName];
-  return toProviderView(updated);
+  return toProviderView(updated, spec ?? undefined);
 }
 
 export function updateChannel(

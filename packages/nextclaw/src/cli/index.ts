@@ -991,7 +991,8 @@ function makeProvider(config: ReturnType<typeof loadConfig>, options?: { allowMi
     apiBase: getApiBase(config),
     defaultModel: model,
     extraHeaders: provider?.extraHeaders ?? null,
-    providerName: getProviderName(config)
+    providerName: getProviderName(config),
+    wireApi: provider?.wireApi ?? null
   });
 }
 

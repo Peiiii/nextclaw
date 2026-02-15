@@ -152,7 +152,8 @@ export const AgentsConfigSchema = z.object({
 export const ProviderConfigSchema = z.object({
   apiKey: z.string().default(""),
   apiBase: z.string().nullable().default(null),
-  extraHeaders: z.record(z.string()).nullable().default(null)
+  extraHeaders: z.record(z.string()).nullable().default(null),
+  wireApi: z.enum(["auto", "chat", "responses"]).default("auto")
 });
 
 export const ProvidersConfigSchema = z.object({

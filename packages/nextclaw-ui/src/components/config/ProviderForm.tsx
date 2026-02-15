@@ -27,6 +27,7 @@ export function ProviderForm() {
   const [apiKey, setApiKey] = useState('');
   const [apiBase, setApiBase] = useState('');
   const [extraHeaders, setExtraHeaders] = useState<Record<string, string> | null>(null);
+  const [wireApi, setWireApi] = useState<'auto' | 'chat' | 'responses'>('auto');
 
   const providerName = providerModal.provider;
   const providerSpec = meta?.providers.find((p) => p.name === providerName);
@@ -37,6 +38,9 @@ export function ProviderForm() {
       setApiBase(providerConfig.apiBase || providerSpec?.defaultApiBase || '');
       setExtraHeaders(providerConfig.extraHeaders || null);
       setApiKey(''); // Always start with empty for security
+      const nextWireApi =
+        providerConfig.wireApi || providerSpec?.defaultWireApi || 'auto';
+      setWireApi(nextWireApi as 'auto' | 'chat' | 'responses');
     }
   }, [providerConfig, providerSpec]);
 
@@ -56,6 +60,14 @@ export function ProviderForm() {
 
     if (extraHeaders && Object.keys(extraHeaders).length > 0) {
       payload.extraHeaders = extraHeaders;
+    }
+
+    if (providerSpec?.supportsWireApi) {
+      const currentWireApi =
+        providerConfig?.wireApi || providerSpec.defaultWireApi || 'auto';
+      if (wireApi !== currentWireApi) {
+        payload.wireApi = wireApi;
+      }
     }
 
     if (!providerName) return;
@@ -111,6 +123,31 @@ export function ProviderForm() {
               className="rounded-xl"
             />
           </div>
+
+          {providerSpec?.supportsWireApi && (
+            <div className="space-y-2.5">
+              <Label htmlFor="wireApi" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <Hash className="h-3.5 w-3.5 text-gray-500" />
+                {t('wireApi')}
+              </Label>
+              <select
+                id="wireApi"
+                value={wireApi}
+                onChange={(e) => setWireApi(e.target.value as 'auto' | 'chat' | 'responses')}
+                className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {(providerSpec.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => (
+                  <option key={option} value={option}>
+                    {option === 'chat'
+                      ? t('wireApiChat')
+                      : option === 'responses'
+                        ? t('wireApiResponses')
+                        : t('wireApiAuto')}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="space-y-2.5">
             <Label className="text-sm font-medium text-gray-900 flex items-center gap-2">

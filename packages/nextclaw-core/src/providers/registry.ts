@@ -1,3 +1,5 @@
+export type WireApiMode = "auto" | "chat" | "responses";
+
 export type ProviderSpec = {
   name: string;
   keywords: string[];
@@ -13,6 +15,9 @@ export type ProviderSpec = {
   defaultApiBase?: string;
   stripModelPrefix?: boolean;
   modelOverrides?: Array<[string, Record<string, unknown>]>;
+  supportsWireApi?: boolean;
+  wireApiOptions?: WireApiMode[];
+  defaultWireApi?: WireApiMode;
 };
 
 export const PROVIDERS: ProviderSpec[] = [
@@ -78,7 +83,10 @@ export const PROVIDERS: ProviderSpec[] = [
     detectByBaseKeyword: "",
     defaultApiBase: "",
     stripModelPrefix: false,
-    modelOverrides: []
+    modelOverrides: [],
+    supportsWireApi: true,
+    wireApiOptions: ["auto", "chat", "responses"],
+    defaultWireApi: "auto"
   },
   {
     name: "deepseek",

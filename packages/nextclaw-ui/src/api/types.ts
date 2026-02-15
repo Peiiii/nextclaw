@@ -14,12 +14,14 @@ export type ProviderConfigView = {
   apiKeyMasked?: string;
   apiBase?: string | null;
   extraHeaders?: Record<string, string> | null;
+  wireApi?: "auto" | "chat" | "responses" | null;
 };
 
 export type ProviderConfigUpdate = {
   apiKey?: string | null;
   apiBase?: string | null;
   extraHeaders?: Record<string, string> | null;
+  wireApi?: "auto" | "chat" | "responses" | null;
 };
 
 export type ChannelConfigUpdate = Record<string, unknown>;
@@ -48,6 +50,9 @@ export type ProviderSpecView = {
   isGateway?: boolean;
   isLocal?: boolean;
   defaultApiBase?: string;
+  supportsWireApi?: boolean;
+  wireApiOptions?: Array<"auto" | "chat" | "responses">;
+  defaultWireApi?: "auto" | "chat" | "responses";
 };
 
 export type ChannelSpecView = {

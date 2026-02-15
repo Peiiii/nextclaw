@@ -2,47 +2,65 @@
 
 # nextclaw
 
-**A lighter, easier-to-use OpenClaw — one command, built-in UI.**
+**One command. Built-in UI. Same channels & models — no wizard, no extra setup.**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[Quick Start](#quick-start) · [Features](#features) · [Channels](#channels) · [Docs](docs/USAGE.md)
+[Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Channels](#-channels) · [Docs](docs/USAGE.md)
 
 </div>
 
 ---
 
-## Features
+Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **nextclaw** is a **lighter, UI-first** personal AI gateway: install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
+
+**Best for:** quick trials, secondary machines, or anyone who wants OpenClaw-style multi-channel + multi-provider without the full platform.
+
+---
+
+## ✨ Features
 
 | Feature | Description |
 |---------|-------------|
-| **One-command start** | `nextclaw start` — background service + config UI |
-| **Built-in config UI** | No extra setup after `npm i -g nextclaw` |
-| **Multi-provider** | First-class OpenAI-compatible routing across OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more |
-| **Channels** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat |
+| **One-command start** | `nextclaw start` — background gateway + config UI, no extra steps |
+| **Built-in config UI** | Models, providers, and channels in one place; config in `~/.nextclaw/config.json` |
+| **Multi-provider** | OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more (OpenAI-compatible) |
+| **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
 | **Local tools** | Web search, command execution |
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 npm i -g nextclaw
 nextclaw start
 ```
 
-Open **http://127.0.0.1:18791** → configure provider & model in the UI. Config: `~/.nextclaw/config.json`.
+Open **http://127.0.0.1:18791** → set your provider (e.g. OpenRouter) and model in the UI. You're done.
 
 ```bash
-nextclaw stop   # stop service
+nextclaw stop   # stop the service
 ```
 
 ---
 
-## Provider examples
+## 📸 Screenshots
+
+**Config UI** — providers, models, and defaults in one screen:
+
+![Config UI](images/screenshots/nextclaw-ui-screenshot.png)
+
+**Message Channels** — enable and configure Discord, Feishu, QQ, and more:
+
+![Message Channels](images/screenshots/nextclaw-channels-page.png)
+
+---
+
+## 🔌 Provider examples
 
 <details>
 <summary>OpenRouter (recommended)</summary>
@@ -86,7 +104,7 @@ nextclaw stop   # stop service
 
 ---
 
-## Commands
+## 📋 Commands
 
 | Command | Description |
 |---------|-------------|
@@ -101,7 +119,7 @@ nextclaw stop   # stop service
 
 ---
 
-## Channels
+## 💬 Channels
 
 | Channel | Setup |
 |---------|-------|
@@ -117,17 +135,13 @@ nextclaw stop   # stop service
 
 ---
 
-## Docs
+## 📚 Docs
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
 
-## Screenshots
+---
 
-![Config UI](images/screenshots/nextclaw-ui-screenshot.png)
-
-![Message Channels](images/screenshots/nextclaw-channels-page.png)
-
-## From source
+## 🔧 From source
 
 ```bash
 git clone https://github.com/Peiiii/nextclaw.git
