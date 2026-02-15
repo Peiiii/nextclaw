@@ -1,6 +1,5 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join, extname } from "node:path";
-import { fileURLToPath } from "node:url";
 import { MemoryStore } from "./memory.js";
 import { SkillsLoader } from "./skills.js";
 import { APP_NAME } from "../config/brand.js";
@@ -31,7 +30,7 @@ export class ContextBuilder {
 
   constructor(private workspace: string, contextConfig?: ContextConfig) {
     this.memory = new MemoryStore(workspace);
-    this.skills = new SkillsLoader(workspace, join(fileURLToPath(new URL("..", import.meta.url)), "skills"));
+    this.skills = new SkillsLoader(workspace);
     this.contextConfig = {
       bootstrap: {
         ...DEFAULT_CONTEXT_CONFIG.bootstrap,

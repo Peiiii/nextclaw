@@ -1,6 +1,8 @@
 # Logs
 
 - `docs/logs/v0.4.2-remove-guide-links/README.md`
+- `docs/logs/v0.5.10-init-seed-skills/README.md`
+- `docs/logs/v0.5.9-core-skills-bundled/README.md`
 - `docs/logs/v0.5.8-eslint-line-limits-tighten/README.md`
 - `docs/logs/v0.5.7-eslint-line-limits/README.md`
 - `docs/logs/v0.5.6-gateway-controller-extract/README.md`

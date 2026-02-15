@@ -14,7 +14,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts --out-dir dist",
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist && node scripts/copy-skills.mjs",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
     "test": "vitest"
