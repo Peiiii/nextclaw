@@ -18,6 +18,11 @@ program
   .action(async () => runtime.onboard());
 
 program
+  .command("init")
+  .description(`Initialize ${APP_NAME} configuration and workspace`)
+  .action(async () => runtime.init());
+
+program
   .command("gateway")
   .description(`Start the ${APP_NAME} gateway`)
   .option("-p, --port <port>", "Gateway port", "18790")

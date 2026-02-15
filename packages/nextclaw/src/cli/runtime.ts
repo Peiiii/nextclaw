@@ -11,6 +11,7 @@ import {
   buildReloadPlan,
   diffConfigPaths,
   getWorkspacePath,
+  expandHome,
   MessageBus,
   AgentLoop,
   LiteLLMProvider,
@@ -20,7 +21,9 @@ import {
   CronService,
   HeartbeatService,
   PROVIDERS,
-  APP_NAME
+  APP_NAME,
+  DEFAULT_WORKSPACE_DIR,
+  DEFAULT_WORKSPACE_PATH
 } from "nextclaw-core";
 import { startUiServer } from "nextclaw-server";
 import {
@@ -33,7 +36,7 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -115,22 +118,53 @@ export class CliRuntime {
   }
 
   async onboard(): Promise<void> {
+    console.warn(`Warning: ${APP_NAME} onboard is deprecated. Use "${APP_NAME} init" instead.`);
+    await this.init({ source: "onboard" });
+  }
+
+  async init(options: { source?: string; auto?: boolean } = {}): Promise<void> {
+    const source = options.source ?? "init";
+    const prefix = options.auto ? "Auto init" : "Init";
+
     const configPath = getConfigPath();
-    if (existsSync(configPath)) {
-      console.log(`Config already exists at ${configPath}`);
+    let createdConfig = false;
+    if (!existsSync(configPath)) {
+      const config = ConfigSchema.parse({});
+      saveConfig(config);
+      createdConfig = true;
     }
-    const config = ConfigSchema.parse({});
-    saveConfig(config);
-    console.log(`✓ Created config at ${configPath}`);
 
-    const workspace = getWorkspacePath();
-    console.log(`✓ Created workspace at ${workspace}`);
-    this.createWorkspaceTemplates(workspace);
+    const config = loadConfig();
+    const workspaceSetting = config.agents.defaults.workspace;
+    const workspacePath =
+      !workspaceSetting || workspaceSetting === DEFAULT_WORKSPACE_PATH
+        ? join(getDataDir(), DEFAULT_WORKSPACE_DIR)
+        : expandHome(workspaceSetting);
+    const workspaceExisted = existsSync(workspacePath);
+    mkdirSync(workspacePath, { recursive: true });
+    const templateResult = this.createWorkspaceTemplates(workspacePath);
 
-    console.log(`\n${this.logo} ${APP_NAME} is ready!`);
-    console.log("\nNext steps:");
-    console.log(`  1. Add your API key to ${configPath}`);
-    console.log(`  2. Chat: ${APP_NAME} agent -m "Hello!"`);
+    if (createdConfig) {
+      console.log(`✓ ${prefix}: created config at ${configPath}`);
+    }
+    if (!workspaceExisted) {
+      console.log(`✓ ${prefix}: created workspace at ${workspacePath}`);
+    }
+    for (const file of templateResult.created) {
+      console.log(`✓ ${prefix}: created ${file}`);
+    }
+    if (!createdConfig && workspaceExisted && templateResult.created.length === 0) {
+      console.log(`${prefix}: already initialized.`);
+    }
+
+    if (!options.auto) {
+      console.log(`\n${this.logo} ${APP_NAME} is ready! (${source})`);
+      console.log("\nNext steps:");
+      console.log(`  1. Add your API key to ${configPath}`);
+      console.log(`  2. Chat: ${APP_NAME} agent -m "Hello!"`);
+    } else {
+      console.log(`Tip: Run "${APP_NAME} init" to re-run initialization if needed.`);
+    }
   }
 
   async gateway(opts: GatewayCommandOptions): Promise<void> {
@@ -165,6 +199,7 @@ export class CliRuntime {
   }
 
   async start(opts: StartCommandOptions): Promise<void> {
+    await this.init({ source: "start", auto: true });
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,
       open: false
@@ -822,32 +857,59 @@ export class CliRuntime {
     });
   }
 
-  private createWorkspaceTemplates(workspace: string): void {
-    const templates: Record<string, string> = {
-      "AGENTS.md": "# Agent Instructions\n\nYou are a helpful AI assistant. Be concise, accurate, and friendly.\n\n## Guidelines\n\n- Always explain what you're doing before taking actions\n- Ask for clarification when the request is ambiguous\n- Use tools to help accomplish tasks\n- Remember important information in your memory files\n",
-      "SOUL.md": `# Soul\n\nI am ${APP_NAME}, a lightweight AI assistant.\n\n## Personality\n\n- Helpful and friendly\n- Concise and to the point\n- Curious and eager to learn\n\n## Values\n\n- Accuracy over speed\n- User privacy and safety\n- Transparency in actions\n\n`,
-      "USER.md": "# User\n\nInformation about the user goes here.\n\n## Preferences\n\n- Communication style: (casual/formal)\n- Timezone: (your timezone)\n- Language: (your preferred language)\n"
-    };
-
-    for (const [filename, content] of Object.entries(templates)) {
-      const filePath = join(workspace, filename);
-      if (!existsSync(filePath)) {
-        writeFileSync(filePath, content);
-      }
+  private createWorkspaceTemplates(workspace: string): { created: string[] } {
+    const created: string[] = [];
+    const templateDir = this.resolveTemplateDir();
+    if (!templateDir) {
+      console.warn("Warning: Template directory not found. Skipping workspace templates.");
+      return { created };
     }
+    const templateFiles = [
+      { source: "AGENTS.md", target: "AGENTS.md" },
+      { source: "SOUL.md", target: "SOUL.md" },
+      { source: "USER.md", target: "USER.md" },
+      { source: join("memory", "MEMORY.md"), target: join("memory", "MEMORY.md") }
+    ];
 
-    const memoryDir = join(workspace, "memory");
-    mkdirSync(memoryDir, { recursive: true });
-    const memoryFile = join(memoryDir, "MEMORY.md");
-    if (!existsSync(memoryFile)) {
-      writeFileSync(
-        memoryFile,
-        "# Long-term Memory\n\nThis file stores important information that should persist across sessions.\n\n## User Information\n\n(Important facts about the user)\n\n## Preferences\n\n(User preferences learned over time)\n\n## Important Notes\n\n(Things to remember)\n"
-      );
+    for (const entry of templateFiles) {
+      const filePath = join(workspace, entry.target);
+      if (existsSync(filePath)) {
+        continue;
+      }
+      const templatePath = join(templateDir, entry.source);
+      if (!existsSync(templatePath)) {
+        console.warn(`Warning: Template file missing: ${templatePath}`);
+        continue;
+      }
+      const raw = readFileSync(templatePath, "utf-8");
+      const content = raw.replace(/\$\{APP_NAME\}/g, APP_NAME);
+      mkdirSync(dirname(filePath), { recursive: true });
+      writeFileSync(filePath, content);
+      created.push(entry.target);
     }
 
     const skillsDir = join(workspace, "skills");
-    mkdirSync(skillsDir, { recursive: true });
+    if (!existsSync(skillsDir)) {
+      mkdirSync(skillsDir, { recursive: true });
+      created.push(join("skills", ""));
+    }
+    return { created };
+  }
+
+  private resolveTemplateDir(): string | null {
+    const override = process.env.NEXTCLAW_TEMPLATE_DIR?.trim();
+    if (override) {
+      return override;
+    }
+    const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+    const pkgRoot = resolve(cliDir, "..", "..");
+    const candidates = [join(pkgRoot, "templates")];
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   private getBridgeDir(): string {

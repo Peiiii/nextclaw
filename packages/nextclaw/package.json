@@ -32,7 +32,8 @@
   "files": [
     "dist",
     "bridge",
-    "ui-dist"
+    "ui-dist",
+    "templates"
   ],
   "scripts": {
     "dev": "pnpm -C ../nextclaw-core build && pnpm -C ../nextclaw-server build && tsx src/cli/index.ts",
