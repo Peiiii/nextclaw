@@ -1,9 +1,15 @@
-# User
+# USER.md - About Your Human
 
-Information about the user goes here.
+Learn about the person you are helping. Update this as you go.
 
-## Preferences
+- Name:
+- What to call them:
+- Pronouns: (optional)
+- Timezone:
+- Notes:
 
-- Communication style: (casual/formal)
-- Timezone: (your timezone)
-- Language: (your preferred language)
+## Context
+
+What do they care about? What projects are they working on? What annoys them? What makes them laugh? Build this over time.
+
+The more you know, the better you can help. Respect the difference between helpful context and a dossier.

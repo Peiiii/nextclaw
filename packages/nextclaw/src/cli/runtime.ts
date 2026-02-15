@@ -122,9 +122,10 @@ export class CliRuntime {
     await this.init({ source: "onboard" });
   }
 
-  async init(options: { source?: string; auto?: boolean } = {}): Promise<void> {
+  async init(options: { source?: string; auto?: boolean; force?: boolean } = {}): Promise<void> {
     const source = options.source ?? "init";
     const prefix = options.auto ? "Auto init" : "Init";
+    const force = Boolean(options.force);
 
     const configPath = getConfigPath();
     let createdConfig = false;
@@ -142,7 +143,7 @@ export class CliRuntime {
         : expandHome(workspaceSetting);
     const workspaceExisted = existsSync(workspacePath);
     mkdirSync(workspacePath, { recursive: true });
-    const templateResult = this.createWorkspaceTemplates(workspacePath);
+    const templateResult = this.createWorkspaceTemplates(workspacePath, { force });
 
     if (createdConfig) {
       console.log(`✓ ${prefix}: created config at ${configPath}`);
@@ -163,7 +164,7 @@ export class CliRuntime {
       console.log(`  1. Add your API key to ${configPath}`);
       console.log(`  2. Chat: ${APP_NAME} agent -m "Hello!"`);
     } else {
-      console.log(`Tip: Run "${APP_NAME} init" to re-run initialization if needed.`);
+      console.log(`Tip: Run "${APP_NAME} init${force ? " --force" : ""}" to re-run initialization if needed.`);
     }
   }
 
@@ -857,8 +858,9 @@ export class CliRuntime {
     });
   }
 
-  private createWorkspaceTemplates(workspace: string): { created: string[] } {
+  private createWorkspaceTemplates(workspace: string, options: { force?: boolean } = {}): { created: string[] } {
     const created: string[] = [];
+    const force = Boolean(options.force);
     const templateDir = this.resolveTemplateDir();
     if (!templateDir) {
       console.warn("Warning: Template directory not found. Skipping workspace templates.");
@@ -868,12 +870,17 @@ export class CliRuntime {
       { source: "AGENTS.md", target: "AGENTS.md" },
       { source: "SOUL.md", target: "SOUL.md" },
       { source: "USER.md", target: "USER.md" },
-      { source: join("memory", "MEMORY.md"), target: join("memory", "MEMORY.md") }
+      { source: "IDENTITY.md", target: "IDENTITY.md" },
+      { source: "TOOLS.md", target: "TOOLS.md" },
+      { source: "BOOT.md", target: "BOOT.md" },
+      { source: "BOOTSTRAP.md", target: "BOOTSTRAP.md" },
+      { source: "HEARTBEAT.md", target: "HEARTBEAT.md" },
+      { source: "MEMORY.md", target: "MEMORY.md" }
     ];
 
     for (const entry of templateFiles) {
       const filePath = join(workspace, entry.target);
-      if (existsSync(filePath)) {
+      if (!force && existsSync(filePath)) {
         continue;
       }
       const templatePath = join(templateDir, entry.source);
@@ -886,6 +893,12 @@ export class CliRuntime {
       mkdirSync(dirname(filePath), { recursive: true });
       writeFileSync(filePath, content);
       created.push(entry.target);
+    }
+
+    const memoryDir = join(workspace, "memory");
+    if (!existsSync(memoryDir)) {
+      mkdirSync(memoryDir, { recursive: true });
+      created.push(join("memory", ""));
     }
 
     const skillsDir = join(workspace, "skills");

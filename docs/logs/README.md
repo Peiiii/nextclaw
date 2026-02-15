@@ -1,6 +1,7 @@
 # Logs
 
 - `docs/logs/v0.4.2-remove-guide-links/README.md`
+- `docs/logs/v0.5.1-full-templates/README.md`
 - `docs/logs/v0.4.9-init-command/README.md`
 - `docs/logs/v0.4.8-template-files/README.md`
 - `docs/logs/v0.4.6-ui-api-base-dynamic/README.md`
