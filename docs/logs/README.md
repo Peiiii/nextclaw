@@ -1,6 +1,7 @@
 # Logs
 
 - `docs/logs/v0.4.2-remove-guide-links/README.md`
+- `docs/logs/v0.5.7-eslint-line-limits/README.md`
 - `docs/logs/v0.5.6-gateway-controller-extract/README.md`
 - `docs/logs/v0.5.5-gateway-reloader-refactor/README.md`
 - `docs/logs/v0.5.4-openclaw-gateway-sessions-align/README.md`

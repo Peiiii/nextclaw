@@ -23,6 +23,8 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
-    "react-hooks/set-state-in-effect": "off"
+    "react-hooks/set-state-in-effect": "off",
+    "max-lines": ["warn", { "max": 800, "skipBlankLines": true, "skipComments": true }],
+    "max-lines-per-function": ["warn", { "max": 150, "skipBlankLines": true, "skipComments": true, "IIFEs": true }]
   }
 };

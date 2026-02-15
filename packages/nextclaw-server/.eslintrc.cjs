@@ -10,6 +10,8 @@ module.exports = {
   ignorePatterns: ["dist", "node_modules"],
   rules: {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
-    "@typescript-eslint/consistent-type-imports": "error"
+    "@typescript-eslint/consistent-type-imports": "error",
+    "max-lines": ["warn", { "max": 800, "skipBlankLines": true, "skipComments": true }],
+    "max-lines-per-function": ["warn", { "max": 150, "skipBlankLines": true, "skipComments": true, "IIFEs": true }]
   }
 };
