@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.3.3
+
+### Patch Changes
+
+- Add `nextclaw init` and run init automatically on start to prepare workspace templates.
+
 ## 0.3.2
 
 ### Patch Changes
