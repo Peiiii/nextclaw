@@ -47,7 +47,7 @@ export class MemorySearchTool extends Tool {
   }
 
   get description(): string {
-    return "Search memory files (MEMORY.md and memory/*.md) for a query string";
+    return "Mandatory recall step: search MEMORY.md + memory/*.md; returns snippets with path + lines.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -55,8 +55,8 @@ export class MemorySearchTool extends Tool {
       type: "object",
       properties: {
         query: { type: "string", description: "Search query" },
-        limit: { type: "integer", minimum: 1, description: "Maximum number of matches to return" },
-        contextLines: { type: "integer", minimum: 0, description: "Number of surrounding lines to include" }
+        maxResults: { type: "integer", minimum: 1, description: "Maximum number of matches to return" },
+        minScore: { type: "number", description: "Minimum score (ignored for local search)" }
       },
       required: ["query"]
     };
@@ -67,10 +67,10 @@ export class MemorySearchTool extends Tool {
     if (!query) {
       return "Error: query is required";
     }
-    const limit = toInt(params.limit, DEFAULT_LIMIT);
+    const limit = toInt(params.maxResults ?? params.limit, DEFAULT_LIMIT);
     const contextLines = toInt(params.contextLines, DEFAULT_CONTEXT_LINES);
     const lowerQuery = query.toLowerCase();
-    const results: Array<{ path: string; line: number; text: string }> = [];
+    const results: Array<{ path: string; line: number; text: string; score: number }> = [];
     const files = getMemoryFiles(this.workspace);
     for (const filePath of files) {
       const content = readFileSync(filePath, "utf-8");
@@ -80,14 +80,22 @@ export class MemorySearchTool extends Tool {
           const start = Math.max(0, i - contextLines);
           const end = Math.min(lines.length, i + contextLines + 1);
           const snippet = lines.slice(start, end).join("\n");
-          results.push({ path: filePath, line: i + 1, text: snippet });
+          results.push({ path: filePath, line: i + 1, text: snippet, score: 1 });
           if (results.length >= limit) {
-            return JSON.stringify({ query, results }, null, 2);
+            return JSON.stringify(
+              { results, provider: "local", model: "regex", fallback: false, citations: "off" },
+              null,
+              2
+            );
           }
         }
       }
     }
-    return JSON.stringify({ query, results }, null, 2);
+    return JSON.stringify(
+      { results, provider: "local", model: "regex", fallback: false, citations: "off" },
+      null,
+      2
+    );
   }
 }
 
@@ -101,7 +109,7 @@ export class MemoryGetTool extends Tool {
   }
 
   get description(): string {
-    return "Read specific lines from a memory file";
+    return "Safe snippet read from MEMORY.md or memory/*.md; use after memory_search.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -109,8 +117,8 @@ export class MemoryGetTool extends Tool {
       type: "object",
       properties: {
         path: { type: "string", description: "Path to memory file (relative or absolute)" },
-        startLine: { type: "integer", minimum: 1, description: "Start line (1-based)" },
-        endLine: { type: "integer", minimum: 1, description: "End line (1-based, inclusive)" }
+        from: { type: "integer", minimum: 1, description: "Start line (1-based)" },
+        lines: { type: "integer", minimum: 1, description: "Number of lines to read" }
       },
       required: ["path"]
     };
@@ -135,12 +143,17 @@ export class MemoryGetTool extends Tool {
     }
     const content = readFileSync(resolvedPath, "utf-8");
     const lines = content.split("\n");
-    const startLine = toInt(params.startLine, 1);
-    const endLine = toInt(params.endLine, lines.length || 1);
+    const startLine = toInt(params.from ?? params.startLine, 1);
+    const requestedLines = toInt(params.lines ?? params.endLine, Math.max(lines.length - startLine + 1, 1));
+    const endLine = Math.min(lines.length, startLine + requestedLines - 1);
     const startIdx = Math.max(0, startLine - 1);
     const endIdx = Math.min(lines.length, endLine);
     const selected = lines.slice(startIdx, endIdx);
     const numbered = selected.map((line, idx) => `${startIdx + idx + 1}: ${line}`);
-    return numbered.join("\n");
+    return JSON.stringify(
+      { path: pathParam, from: startLine, lines: endIdx - startIdx, text: numbered.join("\n") },
+      null,
+      2
+    );
   }
 }

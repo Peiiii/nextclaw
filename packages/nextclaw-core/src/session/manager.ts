@@ -158,7 +158,8 @@ export class SessionManager {
             key: entry.name.replace(/\.jsonl$/, "").replace(/_/g, ":"),
             created_at: data.created_at,
             updated_at: data.updated_at,
-            path
+            path,
+            metadata: data.metadata ?? {}
           });
         }
       } catch {

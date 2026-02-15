@@ -107,10 +107,20 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     }
     this.stopTyping(msg.chatId);
     const htmlContent = markdownToTelegramHtml(msg.content ?? "");
+    const silent = msg.metadata?.silent === true;
+    const replyTo = msg.replyTo ? Number(msg.replyTo) : undefined;
+    const options = {
+      parse_mode: "HTML" as const,
+      ...(replyTo ? { reply_to_message_id: replyTo } : {}),
+      ...(silent ? { disable_notification: true } : {})
+    };
     try {
-      await this.bot.sendMessage(Number(msg.chatId), htmlContent, { parse_mode: "HTML" });
+      await this.bot.sendMessage(Number(msg.chatId), htmlContent, options);
     } catch {
-      await this.bot.sendMessage(Number(msg.chatId), msg.content ?? "");
+      await this.bot.sendMessage(Number(msg.chatId), msg.content ?? "", {
+        ...(replyTo ? { reply_to_message_id: replyTo } : {}),
+        ...(silent ? { disable_notification: true } : {})
+      });
     }
   }
 

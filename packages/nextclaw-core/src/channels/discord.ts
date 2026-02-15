@@ -6,6 +6,7 @@ import {
   Client,
   GatewayIntentBits,
   Partials,
+  MessageFlags,
   type Message as DiscordMessage,
   type TextBasedChannel,
   type TextBasedChannelFields
@@ -70,11 +71,18 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     }
     this.stopTyping(msg.chatId);
     const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
-    const payload: { content: string; reply?: { messageReference: string } } = {
+    const payload: {
+      content: string;
+      reply?: { messageReference: string };
+      flags?: number;
+    } = {
       content: msg.content ?? ""
     };
     if (msg.replyTo) {
       payload.reply = { messageReference: msg.replyTo };
+    }
+    if (msg.metadata?.silent === true) {
+      payload.flags = MessageFlags.SuppressNotifications;
     }
     await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
   }

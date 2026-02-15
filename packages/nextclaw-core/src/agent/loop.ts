@@ -153,6 +153,18 @@ export class AgentLoop {
     if (messageId) {
       session.metadata.last_message_id = messageId;
     }
+    const sessionLabel = msg.metadata?.session_label as string | undefined;
+    if (sessionLabel) {
+      session.metadata.label = sessionLabel;
+    }
+    session.metadata.last_channel = msg.channel;
+    session.metadata.last_to = msg.chatId;
+    const accountId =
+      (msg.metadata?.account_id as string | undefined) ??
+      (msg.metadata?.accountId as string | undefined);
+    if (accountId) {
+      session.metadata.last_account_id = accountId;
+    }
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {

@@ -23,12 +23,14 @@ export class MessageTool extends Tool {
       properties: {
         action: { type: "string", enum: ["send"], description: "Action to perform" },
         content: { type: "string", description: "Message to send" },
+        message: { type: "string", description: "Alias for content" },
         channel: { type: "string", description: "Channel name" },
         chatId: { type: "string", description: "Chat ID" },
+        to: { type: "string", description: "Alias for chatId" },
         replyTo: { type: "string", description: "Message ID to reply to" },
         silent: { type: "boolean", description: "Send without notification where supported" }
       },
-      required: ["content"]
+      required: []
     };
   }
 
@@ -42,9 +44,12 @@ export class MessageTool extends Tool {
     if (action !== "send") {
       return `Error: Unsupported action '${action}'`;
     }
-    const content = String(params.content ?? "");
+    const content = String(params.content ?? params.message ?? "");
+    if (!content) {
+      return "Error: content/message is required";
+    }
     const channel = String(params.channel ?? this.channel);
-    const chatId = String(params.chatId ?? this.chatId);
+    const chatId = String(params.chatId ?? params.to ?? this.chatId);
     const replyTo = params.replyTo ? String(params.replyTo) : undefined;
     const silent = typeof params.silent === "boolean" ? params.silent : undefined;
     await this.sendCallback({
