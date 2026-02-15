@@ -20,7 +20,8 @@ program
 program
   .command("init")
   .description(`Initialize ${APP_NAME} configuration and workspace`)
-  .action(async () => runtime.init());
+  .option("-f, --force", "Overwrite existing template files")
+  .action(async (opts) => runtime.init({ force: Boolean(opts.force) }));
 
 program
   .command("gateway")
