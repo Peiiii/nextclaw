@@ -788,7 +788,9 @@ export class CliRuntime {
     }
 
     const install = config.plugins.installs?.[pluginId];
-    const isLinked = install?.source === "path";
+    const isLinked =
+      install?.source === "path" &&
+      (!install.installPath || !install.sourcePath || resolve(install.installPath) === resolve(install.sourcePath));
 
     const preview: string[] = [];
     if (hasEntry) {

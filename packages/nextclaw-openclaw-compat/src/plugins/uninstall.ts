@@ -13,6 +13,16 @@ export type UninstallActions = {
 
 type PluginInstallRecord = NonNullable<Config["plugins"]["installs"]>[string];
 
+function isLinkedPathInstall(record: PluginInstallRecord | undefined): boolean {
+  if (!record || record.source !== "path") {
+    return false;
+  }
+  if (!record.sourcePath || !record.installPath) {
+    return true;
+  }
+  return path.resolve(record.sourcePath) === path.resolve(record.installPath);
+}
+
 export type UninstallPluginResult =
   | {
       ok: true;
@@ -33,7 +43,7 @@ export function resolveUninstallDirectoryTarget(params: {
     return null;
   }
 
-  if (params.installRecord?.source === "path") {
+  if (isLinkedPathInstall(params.installRecord)) {
     return null;
   }
 
@@ -159,7 +169,7 @@ export async function uninstallPlugin(params: {
   }
 
   const installRecord = config.plugins.installs?.[pluginId];
-  const isLinked = installRecord?.source === "path";
+  const isLinked = isLinkedPathInstall(installRecord);
 
   const { config: nextConfig, actions: configActions } = removePluginFromConfig(config, pluginId);
 
