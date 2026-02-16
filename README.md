@@ -114,6 +114,7 @@ nextclaw stop   # stop the service
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw agent -m "hello"` | Chat in CLI |
 | `nextclaw status` | Show config + provider status |
+| `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels |
 | `nextclaw channels login` | QR login for supported channels |
 

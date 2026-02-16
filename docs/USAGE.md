@@ -178,6 +178,24 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 
 ---
 
+## Self-update
+
+Use the built-in updater:
+
+```bash
+nextclaw update
+```
+
+Behavior:
+
+- If `NEXTCLAW_UPDATE_COMMAND` is set, the CLI executes it (useful for custom update flows).
+- Otherwise it falls back to `npm i -g nextclaw`.
+- If the background service is running, restart it after the update to apply changes.
+
+If the gateway is running, you can also ask the agent to update; the agent will call the gateway update tool only when you explicitly request it, and a restart will be scheduled afterward.
+
+---
+
 ## Channels
 
 All message channels use a common **allowFrom** rule:
