@@ -1,5 +1,8 @@
 # Logs
 
+- `docs/logs/v0.5.21-minimax-api-hint-display/README.md`
+- `docs/logs/v0.5.20-minimax-api-base-hint/README.md`
+- `docs/logs/v0.5.19-ui-hints-list-descriptions/README.md`
 - `docs/logs/v0.5.18-config-schema-hints-align/README.md`
 - `docs/logs/v0.4.2-remove-guide-links/README.md`
 - `docs/logs/v0.5.16-self-update-command/README.md`

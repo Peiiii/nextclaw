@@ -14,6 +14,7 @@ export const FIELD_HELP: Record<string, string> = {
   "providers.*": "Configure credentials and endpoints for this provider.",
   "providers.openai": "Leading AI models including GPT-4 and GPT-3.5.",
   "providers.*.apiKey": "API key for this provider.",
+  "providers.minimax.apiBase": "China: https://api.minimaxi.com/v1. Overseas: https://api.minimax.io/v1. Pick the base URL that matches your account region.",
   "providers.*.apiBase": "Override the provider API base URL if needed.",
   "providers.*.extraHeaders": "Extra headers to send to the provider.",
   "providers.*.wireApi": "Select API mode (auto/chat/responses) for providers that support it.",

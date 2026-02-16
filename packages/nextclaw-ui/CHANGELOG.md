@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.3.4
+
+### Patch Changes
+
+- Show MiniMax API base hints in UI and extend config schema hints/help.
+
+## 0.3.3
+
+### Patch Changes
+
+- Align provider/channel list descriptions with config UI hints and extend schema help entries.
+
 ## 0.3.2
 
 ### Patch Changes

@@ -137,6 +137,9 @@ export function ProviderForm() {
               }
               className="rounded-xl"
             />
+            {apiBaseHint?.help && (
+              <p className="text-xs text-gray-500">{apiBaseHint.help}</p>
+            )}
           </div>
 
           {providerSpec?.supportsWireApi && (
