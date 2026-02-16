@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useConfig, useUpdateChannel } from '@/hooks/useConfig';
+import { useConfig, useConfigSchema, useUpdateChannel } from '@/hooks/useConfig';
 import { probeFeishu } from '@/api/config';
 import { useUiStore } from '@/stores/ui.store';
 import {
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { TagInput } from '@/components/common/TagInput';
 import { t } from '@/lib/i18n';
+import { hintForPath } from '@/lib/config-hints';
 import { toast } from 'sonner';
 import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from 'lucide-react';
 
@@ -122,6 +123,7 @@ const channelColors: Record<string, string> = {
 export function ChannelForm() {
   const { channelModal, closeChannelModal } = useUiStore();
   const { data: config } = useConfig();
+  const { data: schema } = useConfigSchema();
   const updateChannel = useUpdateChannel();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -130,6 +132,10 @@ export function ChannelForm() {
   const channelName = channelModal.channel;
   const channelConfig = channelName ? config?.channels[channelName] : null;
   const fields = channelName ? CHANNEL_FIELDS[channelName] : [];
+  const uiHints = schema?.uiHints;
+  const channelLabel = channelName
+    ? hintForPath(`channels.${channelName}`, uiHints)?.label ?? channelName
+    : channelName;
 
   useEffect(() => {
     if (channelConfig) {
@@ -186,7 +192,7 @@ export function ChannelForm() {
               <Icon className="h-5 w-5 text-white" />
             </div>
             <div>
-              <DialogTitle className="capitalize">{channelName}</DialogTitle>
+              <DialogTitle className="capitalize">{channelLabel}</DialogTitle>
               <DialogDescription>Configure message channel parameters</DialogDescription>
             </div>
           </div>
@@ -194,14 +200,21 @@ export function ChannelForm() {
 
         <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
           <form onSubmit={handleSubmit} className="space-y-5 pr-2">
-            {fields.map((field) => (
-              <div key={field.name} className="space-y-2.5">
+            {fields.map((field) => {
+              const hint = channelName
+                ? hintForPath(`channels.${channelName}.${field.name}`, uiHints)
+                : undefined;
+              const label = hint?.label ?? field.label;
+              const placeholder = hint?.placeholder;
+
+              return (
+                <div key={field.name} className="space-y-2.5">
                 <Label
                   htmlFor={field.name}
                   className="text-sm font-medium text-gray-900 flex items-center gap-2"
                 >
                   {getFieldIcon(field.name)}
-                  {field.label}
+                  {label}
                 </Label>
 
                 {field.type === 'boolean' && (
@@ -224,6 +237,7 @@ export function ChannelForm() {
                     type={field.type}
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
+                    placeholder={placeholder}
                     className="rounded-xl"
                   />
                 )}
@@ -234,7 +248,7 @@ export function ChannelForm() {
                     type="password"
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder="Leave blank to keep unchanged"
+                    placeholder={placeholder ?? 'Leave blank to keep unchanged'}
                     className="rounded-xl"
                   />
                 )}
@@ -245,6 +259,7 @@ export function ChannelForm() {
                     type="number"
                     value={(formData[field.name] as number) || 0}
                     onChange={(e) => updateField(field.name, parseInt(e.target.value) || 0)}
+                    placeholder={placeholder}
                     className="rounded-xl"
                   />
                 )}
@@ -255,8 +270,9 @@ export function ChannelForm() {
                     onChange={(tags) => updateField(field.name, tags)}
                   />
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
 
             <DialogFooter className="pt-4">
               <Button

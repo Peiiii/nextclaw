@@ -80,6 +80,25 @@ export type ConfigMetaView = {
   channels: ChannelSpecView[];
 };
 
+export type ConfigUiHint = {
+  label?: string;
+  help?: string;
+  group?: string;
+  order?: number;
+  advanced?: boolean;
+  sensitive?: boolean;
+  placeholder?: string;
+};
+
+export type ConfigUiHints = Record<string, ConfigUiHint>;
+
+export type ConfigSchemaResponse = {
+  schema: Record<string, unknown>;
+  uiHints: ConfigUiHints;
+  version: string;
+  generatedAt: string;
+};
+
 export type FeishuProbeView = {
   appId: string;
   botName?: string | null;

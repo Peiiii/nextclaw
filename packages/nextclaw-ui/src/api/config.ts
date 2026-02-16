@@ -2,6 +2,7 @@ import { api } from './client';
 import type {
   ConfigView,
   ConfigMetaView,
+  ConfigSchemaResponse,
   ProviderConfigView,
   ChannelConfigUpdate,
   ProviderConfigUpdate,
@@ -20,6 +21,15 @@ export async function fetchConfig(): Promise<ConfigView> {
 // GET /api/config/meta
 export async function fetchConfigMeta(): Promise<ConfigMetaView> {
   const response = await api.get<ConfigMetaView>('/api/config/meta');
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// GET /api/config/schema
+export async function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
+  const response = await api.get<ConfigSchemaResponse>('/api/config/schema');
   if (!response.ok) {
     throw new Error(response.error.message);
   }

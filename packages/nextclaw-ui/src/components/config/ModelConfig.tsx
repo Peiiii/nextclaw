@@ -3,18 +3,25 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useConfig, useUpdateModel } from '@/hooks/useConfig';
+import { useConfig, useConfigSchema, useUpdateModel } from '@/hooks/useConfig';
+import { hintForPath } from '@/lib/config-hints';
 import { Folder, Loader2, Sliders, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export function ModelConfig() {
   const { data: config, isLoading } = useConfig();
+  const { data: schema } = useConfigSchema();
   const updateModel = useUpdateModel();
 
   const [model, setModel] = useState('');
   const [workspace, setWorkspace] = useState('');
   const [maxTokens, setMaxTokens] = useState(8192);
   const [temperature, setTemperature] = useState(0.7);
+  const uiHints = schema?.uiHints;
+  const modelHint = hintForPath('agents.defaults.model', uiHints);
+  const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
+  const maxTokensHint = hintForPath('agents.defaults.maxTokens', uiHints);
+  const temperatureHint = hintForPath('agents.defaults.temperature', uiHints);
 
   useEffect(() => {
     if (config?.agents?.defaults) {
@@ -85,15 +92,19 @@ export function ModelConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="model" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Model Name</Label>
+              <Label htmlFor="model" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {modelHint?.label ?? 'Model Name'}
+              </Label>
               <Input
                 id="model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="minimax/MiniMax-M2.1"
+                placeholder={modelHint?.placeholder ?? 'minimax/MiniMax-M2.1'}
                 className="h-12 px-4 rounded-xl"
               />
-              <p className="text-xs text-gray-400">Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5</p>
+              <p className="text-xs text-gray-400">
+                {modelHint?.help ?? 'Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5'}
+              </p>
             </div>
           </div>
 
@@ -107,12 +118,14 @@ export function ModelConfig() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="workspace" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Default Path</Label>
+              <Label htmlFor="workspace" className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                {workspaceHint?.label ?? 'Default Path'}
+              </Label>
               <Input
                 id="workspace"
                 value={workspace}
                 onChange={(e) => setWorkspace(e.target.value)}
-                placeholder="/path/to/workspace"
+                placeholder={workspaceHint?.placeholder ?? '/path/to/workspace'}
                 className="h-12 px-4 rounded-xl"
               />
             </div>
@@ -131,7 +144,9 @@ export function ModelConfig() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Max Tokens</Label>
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {maxTokensHint?.label ?? 'Max Tokens'}
+                </Label>
                 <span className="text-sm font-semibold text-gray-900">{maxTokens.toLocaleString()}</span>
               </div>
               <input
@@ -147,7 +162,9 @@ export function ModelConfig() {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
-                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Temperature</Label>
+                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  {temperatureHint?.label ?? 'Temperature'}
+                </Label>
                 <span className="text-sm font-semibold text-gray-900">{temperature}</span>
               </div>
               <input

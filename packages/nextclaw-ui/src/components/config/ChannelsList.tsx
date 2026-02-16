@@ -1,4 +1,4 @@
-import { useConfig, useConfigMeta } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Mail, MessageSquare, Slack, ExternalLink, Bell, Zap, Radio } from 'lucide-react';
 import { useState } from 'react';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { getChannelLogo } from '@/lib/logos';
+import { hintForPath } from '@/lib/config-hints';
 
 const channelIcons: Record<string, typeof MessageCircle> = {
   telegram: MessageCircle,
@@ -29,8 +30,10 @@ const channelDescriptions: Record<string, string> = {
 export function ChannelsList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
+  const { data: schema } = useConfigSchema();
   const { openChannelModal } = useUiStore();
   const [activeTab, setActiveTab] = useState('active');
+  const uiHints = schema?.uiHints;
 
   if (!config || !meta) {
     return <div className="p-8 text-gray-400">Loading channels...</div>;
@@ -60,6 +63,11 @@ export function ChannelsList() {
           const channelConfig = config.channels[channel.name];
           const enabled = channelConfig?.enabled || false;
           const Icon = channelIcons[channel.name] || channelIcons.default;
+          const channelHint = hintForPath(`channels.${channel.name}`, uiHints);
+          const description =
+            channelHint?.help ||
+            channelDescriptions[channel.name] ||
+            'Configure this communication channel';
 
           return (
             <div
@@ -108,7 +116,7 @@ export function ChannelsList() {
                   {channel.displayName || channel.name}
                 </h3>
                 <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-2">
-                  {channelDescriptions[channel.name] || 'Configure this communication channel'}
+                  {description}
                 </p>
               </div>
 

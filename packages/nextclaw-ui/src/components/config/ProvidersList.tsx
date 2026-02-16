@@ -1,4 +1,4 @@
-import { useConfig, useConfigMeta } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { KeyRound, Check, Settings } from 'lucide-react';
 import { useState } from 'react';
@@ -8,12 +8,15 @@ import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { getProviderLogo } from '@/lib/logos';
+import { hintForPath } from '@/lib/config-hints';
 
 export function ProvidersList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
+  const { data: schema } = useConfigSchema();
   const { openProviderModal } = useUiStore();
   const [activeTab, setActiveTab] = useState('installed');
+  const uiHints = schema?.uiHints;
 
   if (!config || !meta) {
     return <div className="p-8">Loading...</div>;
@@ -41,6 +44,8 @@ export function ProvidersList() {
         {filteredProviders.map((provider) => {
           const providerConfig = config.providers[provider.name];
           const hasConfig = providerConfig?.apiKeySet;
+          const providerHint = hintForPath(`providers.${provider.name}`, uiHints);
+          const description = providerHint?.help || 'Configure AI services for your agents';
 
           return (
             <div
@@ -96,9 +101,7 @@ export function ProvidersList() {
                   {provider.displayName || provider.name}
                 </h3>
                 <p className="text-[12px] text-gray-500 leading-relaxed line-clamp-2">
-                  {provider.name === 'openai' 
-                    ? 'Leading AI models including GPT-4 and GPT-3.5' 
-                    : 'Configure AI services for your agents'}
+                  {description}
                 </p>
               </div>
 

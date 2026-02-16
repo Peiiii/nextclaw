@@ -1,5 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchConfig, fetchConfigMeta, updateModel, updateProvider, updateChannel } from '@/api/config';
+import {
+  fetchConfig,
+  fetchConfigMeta,
+  fetchConfigSchema,
+  updateModel,
+  updateProvider,
+  updateChannel
+} from '@/api/config';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
 
@@ -16,6 +23,14 @@ export function useConfigMeta() {
   return useQuery({
     queryKey: ['config-meta'],
     queryFn: fetchConfigMeta,
+    staleTime: Infinity
+  });
+}
+
+export function useConfigSchema() {
+  return useQuery({
+    queryKey: ['config-schema'],
+    queryFn: fetchConfigSchema,
     staleTime: Infinity
   });
 }
