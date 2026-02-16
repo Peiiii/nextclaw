@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.4.6
+
+### Patch Changes
+
+- Remove source-install docs and simplify self-update to npm-only.
+
 ## 0.4.5
 
 ### Patch Changes

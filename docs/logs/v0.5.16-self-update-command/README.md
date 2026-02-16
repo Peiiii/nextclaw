@@ -19,4 +19,8 @@
   - 预期：输出 `✓ Update complete (command)`
 
 ## 发布/部署
-- 如需发布 npm：按 `docs/workflows/npm-release-process.md` 走完整流程。
+- 已按 `docs/workflows/npm-release-process.md` 发布 npm：
+  - `pnpm changeset`（手工创建 changeset）
+  - `pnpm release:version`
+  - `pnpm release:publish`
+  - 发布结果：`nextclaw@0.4.6`（其余包版本未变，跳过发布）
