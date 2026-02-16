@@ -297,20 +297,24 @@ async function installPluginFromPackageDir(params: {
   logger.info?.(`Installing to ${targetDir}...`);
   await fs.cp(packageDir, targetDir, { recursive: true, force: true });
 
-  for (const extensionPath of extensions) {
-    const resolved = path.resolve(targetDir, extensionPath);
-    if (!resolved.startsWith(path.resolve(targetDir) + path.sep) && resolved !== path.resolve(targetDir)) {
-      return { ok: false, error: `extension entry escapes plugin directory: ${extensionPath}` };
-    }
-    if (!(await exists(resolved))) {
-      logger.warn?.(`extension entry not found: ${extensionPath}`);
-    }
-  }
-
   try {
+    for (const extensionPath of extensions) {
+      const resolved = path.resolve(targetDir, extensionPath);
+      if (!resolved.startsWith(path.resolve(targetDir) + path.sep) && resolved !== path.resolve(targetDir)) {
+        throw new Error(`extension entry escapes plugin directory: ${extensionPath}`);
+      }
+      if (!(await exists(resolved))) {
+        throw new Error(`extension entry not found after install: ${extensionPath}`);
+      }
+    }
+
     await installDependenciesIfNeeded(targetDir, packageManifest, logger);
   } catch (err) {
-    return { ok: false, error: `failed to install dependencies: ${String(err)}` };
+    await fs.rm(targetDir, { recursive: true, force: true }).catch(() => undefined);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : `failed to install dependencies: ${String(err)}`
+    };
   }
 
   return {
@@ -361,7 +365,7 @@ export async function installPluginFromArchive(params: {
       return { ok: false, error: String(err) };
     }
 
-    return installPluginFromPackageDir({
+    return await installPluginFromPackageDir({
       packageDir,
       extensionsDir: params.extensionsDir,
       logger,
@@ -513,7 +517,7 @@ export async function installPluginFromNpmSpec(params: {
     }
 
     const archivePath = path.join(tempDir, archiveName);
-    return installPluginFromArchive({
+    return await installPluginFromArchive({
       archivePath,
       extensionsDir: params.extensionsDir,
       logger,

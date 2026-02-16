@@ -118,6 +118,7 @@ nextclaw stop   # stop the service
 | `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels |
 | `nextclaw channels login` | QR login for supported channels |
+| `nextclaw channels add --channel <id> [--code/--token/...]` | Configure plugin channels with OpenClaw-style setup |
 | `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
 | `nextclaw plugins install <path-or-spec>` | Install plugin from path/archive/npm |
 | `nextclaw plugins info <id>` | Show plugin details |
@@ -140,6 +141,7 @@ nextclaw plugins list
 nextclaw plugins install ./my-plugin
 nextclaw plugins info my-plugin
 nextclaw plugins disable my-plugin
+nextclaw channels add --channel clawbay --code AB12CD
 nextclaw plugins uninstall my-plugin --dry-run
 ```
 

@@ -66,10 +66,69 @@ export type OpenClawProviderPlugin = {
   auth?: Array<Record<string, unknown>>;
 };
 
+export type OpenClawChannelConfigSchema = {
+  schema: Record<string, unknown>;
+  uiHints?: Record<string, PluginConfigUiHint>;
+};
+
+export type OpenClawChannelSetup = {
+  validateInput?: (params: {
+    cfg: Record<string, unknown>;
+    input: unknown;
+    accountId?: string | null;
+  }) => string | null;
+  applyAccountConfig?: (params: {
+    cfg: Record<string, unknown>;
+    input: unknown;
+    accountId?: string | null;
+  }) => Record<string, unknown>;
+};
+
+export type OpenClawChannelGatewayStartContext = {
+  accountId?: string | null;
+  log?: {
+    debug?: (message: string) => void;
+    info?: (message: string) => void;
+    warn?: (message: string) => void;
+    error?: (message: string) => void;
+  };
+};
+
+export type OpenClawChannelGateway = {
+  startAccount?: (
+    ctx: OpenClawChannelGatewayStartContext,
+  ) =>
+    | Promise<
+        | void
+        | {
+            stop?: () => void | Promise<void>;
+          }
+      >
+    | void
+    | {
+        stop?: () => void | Promise<void>;
+      };
+};
+
+export type OpenClawChannelConfigAdapter = {
+  listAccountIds?: (cfg?: Record<string, unknown>) => string[];
+  defaultAccountId?: (cfg?: Record<string, unknown>) => string;
+};
+
+export type OpenClawChannelAgentPrompt = {
+  messageToolHints?: (params: { cfg: Config; accountId?: string | null }) => string[];
+};
+
 export type OpenClawChannelPlugin = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  configSchema?: OpenClawChannelConfigSchema;
+  config?: OpenClawChannelConfigAdapter;
+  setup?: OpenClawChannelSetup;
+  gateway?: OpenClawChannelGateway;
+  agentTools?: OpenClawPluginTool[] | (() => OpenClawPluginTool | OpenClawPluginTool[] | null | undefined);
+  agentPrompt?: OpenClawChannelAgentPrompt;
   outbound?: {
     sendText?: (ctx: {
       cfg: Config;
@@ -163,8 +222,35 @@ export type PluginProviderRegistration = {
   source: string;
 };
 
+export type PluginReplyDispatchParams = {
+  ctx: {
+    Body?: string;
+    BodyForAgent?: string;
+    BodyForCommands?: string;
+    ChatType?: string;
+    SenderId?: string;
+    SenderName?: string;
+    SessionKey?: string;
+    AccountId?: string;
+    OriginatingChannel?: string;
+    OriginatingTo?: string;
+    Provider?: string;
+    Surface?: string;
+    [key: string]: unknown;
+  };
+  cfg?: unknown;
+  dispatcherOptions: {
+    deliver: (replyPayload: { text?: string }, info: { kind: string }) => Promise<void> | void;
+    onError?: (error: unknown) => void;
+  };
+};
+
 export type PluginRuntime = {
   version: string;
+  config: {
+    loadConfig: () => Record<string, unknown>;
+    writeConfigFile: (next: Record<string, unknown>) => Promise<void>;
+  };
   tools: {
     createMemorySearchTool: (params: {
       config?: Config;
@@ -174,6 +260,11 @@ export type PluginRuntime = {
       config?: Config;
       agentSessionKey?: string;
     }) => OpenClawPluginTool | null;
+  };
+  channel: {
+    reply: {
+      dispatchReplyWithBufferedBlockDispatcher: (params: PluginReplyDispatchParams) => Promise<void>;
+    };
   };
 };
 

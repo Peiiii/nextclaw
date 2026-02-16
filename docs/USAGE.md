@@ -163,6 +163,7 @@ Created under the workspace:
 | `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw channels login` | Open QR login for supported channels |
+| `nextclaw channels add --channel <id> [--code/--token/...]` | Run plugin channel setup (OpenClaw-compatible) and write config |
 | `nextclaw cron list` | List scheduled jobs |
 | `nextclaw cron add ...` | Add a cron job (see [Cron](#cron--heartbeat)) |
 | `nextclaw cron remove <jobId>` | Remove a job |

@@ -21,6 +21,13 @@ import { SILENT_REPLY_TOKEN, isSilentReplyText } from "./tokens.js";
 import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
 
+type MessageToolHintsResolver = (params: {
+  sessionKey: string;
+  channel: string;
+  chatId: string;
+  accountId?: string | null;
+}) => string[];
+
 export class AgentLoop {
   private context: ContextBuilder;
   private sessions: SessionManager;
@@ -45,6 +52,7 @@ export class AgentLoop {
       gatewayController?: GatewayController;
       config?: Config;
       extensionRegistry?: ExtensionRegistry;
+      resolveMessageToolHints?: MessageToolHintsResolver;
     }
   ) {
     this.context = new ContextBuilder(options.workspace, options.contextConfig);
@@ -173,6 +181,7 @@ export class AgentLoop {
     sessionKey?: string;
     channel?: string;
     chatId?: string;
+    metadata?: Record<string, unknown>;
   }): Promise<string> {
     const msg: InboundMessage = {
       channel: params.channel ?? "cli",
@@ -181,7 +190,7 @@ export class AgentLoop {
       content: params.content,
       timestamp: new Date(),
       media: [],
-      metadata: {}
+      metadata: params.metadata ?? {}
     };
     const response = await this.processMessage(msg, params.sessionKey);
     return response?.content ?? "";
@@ -205,9 +214,15 @@ export class AgentLoop {
     }
     session.metadata.last_channel = msg.channel;
     session.metadata.last_to = msg.chatId;
-    const accountId =
+    const inboundAccountId =
       (msg.metadata?.account_id as string | undefined) ??
       (msg.metadata?.accountId as string | undefined);
+    const accountId =
+      inboundAccountId && inboundAccountId.trim().length > 0
+        ? inboundAccountId
+        : typeof session.metadata.last_account_id === "string" && session.metadata.last_account_id.trim().length > 0
+          ? (session.metadata.last_account_id as string)
+          : undefined;
     if (accountId) {
       session.metadata.last_account_id = accountId;
     }
@@ -225,13 +240,21 @@ export class AgentLoop {
       cronTool.setContext(msg.channel, msg.chatId);
     }
 
+    const messageToolHints = this.options.resolveMessageToolHints?.({
+      sessionKey,
+      channel: msg.channel,
+      chatId: msg.chatId,
+      accountId: accountId ?? null
+    });
+
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
       currentMessage: msg.content,
       media: msg.media,
       channel: msg.channel,
       chatId: msg.chatId,
-      sessionKey
+      sessionKey,
+      messageToolHints
     });
     this.sessions.addMessage(session, "user", msg.content);
 
@@ -321,12 +344,28 @@ export class AgentLoop {
       cronTool.setContext(originChannel, originChatId);
     }
 
+    const accountId =
+      (msg.metadata?.account_id as string | undefined) ??
+      (msg.metadata?.accountId as string | undefined) ??
+      (typeof session.metadata.last_account_id === "string" ? (session.metadata.last_account_id as string) : undefined);
+    if (accountId) {
+      session.metadata.last_account_id = accountId;
+    }
+
+    const messageToolHints = this.options.resolveMessageToolHints?.({
+      sessionKey,
+      channel: originChannel,
+      chatId: originChatId,
+      accountId: accountId ?? null
+    });
+
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
       currentMessage: msg.content,
       channel: originChannel,
       chatId: originChatId,
-      sessionKey
+      sessionKey,
+      messageToolHints
     });
     this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`);
 
@@ -389,7 +428,7 @@ export class AgentLoop {
       content: finalContent,
       replyTo,
       media: [],
-      metadata: {}
+      metadata: msg.metadata ?? {}
     };
   }
 }

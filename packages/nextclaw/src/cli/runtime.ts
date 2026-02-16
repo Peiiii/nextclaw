@@ -37,7 +37,13 @@ import {
   installPluginFromNpmSpec,
   uninstallPlugin,
   resolveUninstallDirectoryTarget,
-  loadPluginUiMetadata,
+  setPluginRuntimeBridge,
+  getPluginChannelBindings,
+  getPluginUiMetadataFromRegistry,
+  resolvePluginChannelMessageToolHints,
+  startPluginChannelGateways,
+  stopPluginChannelGateways,
+  type PluginChannelBinding,
   type PluginRegistry
 } from "@nextclaw/openclaw-compat";
 import { startUiServer } from "@nextclaw/server";
@@ -138,6 +144,15 @@ type PluginsUninstallOptions = {
   keepConfig?: boolean;
   force?: boolean;
   dryRun?: boolean;
+};
+
+type ChannelsAddOptions = {
+  channel: string;
+  code?: string;
+  token?: string;
+  name?: string;
+  url?: string;
+  httpUrl?: string;
 };
 
 type CronAddOptions = {
@@ -491,7 +506,14 @@ export class CliRuntime {
       restrictToWorkspace: config.tools.restrictToWorkspace,
       contextConfig: config.agents.context,
       config,
-      extensionRegistry
+      extensionRegistry,
+      resolveMessageToolHints: ({ channel, accountId }) =>
+        resolvePluginChannelMessageToolHints({
+          registry: pluginRegistry,
+          channel,
+          cfg: loadConfig(),
+          accountId
+        })
     });
 
     if (opts.message) {
@@ -1024,6 +1046,23 @@ export class CliRuntime {
     console.log(`Telegram: ${config.channels.telegram.enabled ? "✓" : "✗"}`);
     console.log(`Slack: ${config.channels.slack.enabled ? "✓" : "✗"}`);
     console.log(`QQ: ${config.channels.qq.enabled ? "✓" : "✗"}`);
+
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const report = buildPluginStatusReport({
+      config,
+      workspaceDir,
+      reservedChannelIds: Object.keys(config.channels),
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+    });
+
+    const pluginChannels = report.plugins.filter((plugin) => plugin.status === "loaded" && plugin.channelIds.length > 0);
+    if (pluginChannels.length > 0) {
+      console.log("Plugin Channels:");
+      for (const plugin of pluginChannels) {
+        const channels = plugin.channelIds.join(", ");
+        console.log(`- ${channels} (plugin: ${plugin.id})`);
+      }
+    }
   }
 
   channelsLogin(): void {
@@ -1034,6 +1073,126 @@ export class CliRuntime {
     if (result.status !== 0) {
       console.error(`Bridge failed: ${result.status ?? 1}`);
     }
+  }
+
+  channelsAdd(opts: ChannelsAddOptions): void {
+    const channelId = opts.channel?.trim();
+    if (!channelId) {
+      console.error("--channel is required");
+      process.exit(1);
+    }
+
+    const config = loadConfig();
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = this.loadPluginRegistry(config, workspaceDir);
+    const bindings = getPluginChannelBindings(pluginRegistry);
+
+    const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
+    if (!binding) {
+      console.error(`No plugin channel found for: ${channelId}`);
+      process.exit(1);
+    }
+
+    const setup = binding.channel.setup;
+    if (!setup?.applyAccountConfig) {
+      console.error(`Channel "${binding.channelId}" does not support setup.`);
+      process.exit(1);
+    }
+
+    const input = {
+      name: opts.name,
+      token: opts.token,
+      code: opts.code,
+      url: opts.url,
+      httpUrl: opts.httpUrl
+    };
+
+    const currentView = this.toPluginConfigView(config, bindings);
+    const accountId = binding.channel.config?.defaultAccountId?.(currentView) ?? "default";
+
+    const validateError = setup.validateInput?.({
+      cfg: currentView,
+      input,
+      accountId
+    });
+    if (validateError) {
+      console.error(`Channel setup validation failed: ${validateError}`);
+      process.exit(1);
+    }
+
+    const nextView = setup.applyAccountConfig({
+      cfg: currentView,
+      input,
+      accountId
+    });
+
+    if (!nextView || typeof nextView !== "object" || Array.isArray(nextView)) {
+      console.error("Channel setup returned invalid config payload.");
+      process.exit(1);
+    }
+
+    let next = this.mergePluginConfigView(config, nextView as Record<string, unknown>, bindings);
+    next = enablePluginInConfig(next, binding.pluginId);
+    saveConfig(next);
+
+    console.log(`Configured channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
+    console.log("Restart the gateway to apply changes.");
+  }
+
+  private toPluginConfigView(config: Config, bindings: PluginChannelBinding[]): Record<string, unknown> {
+    const view = JSON.parse(JSON.stringify(config)) as Record<string, unknown>;
+    const channels =
+      view.channels && typeof view.channels === "object" && !Array.isArray(view.channels)
+        ? ({ ...(view.channels as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+
+    for (const binding of bindings) {
+      const pluginConfig = config.plugins.entries?.[binding.pluginId]?.config;
+      if (!pluginConfig || typeof pluginConfig !== "object" || Array.isArray(pluginConfig)) {
+        continue;
+      }
+      channels[binding.channelId] = JSON.parse(JSON.stringify(pluginConfig)) as Record<string, unknown>;
+    }
+
+    view.channels = channels;
+    return view;
+  }
+
+  private mergePluginConfigView(
+    baseConfig: Config,
+    pluginViewConfig: Record<string, unknown>,
+    bindings: PluginChannelBinding[]
+  ): Config {
+    const next = JSON.parse(JSON.stringify(baseConfig)) as Config;
+    const pluginChannels =
+      pluginViewConfig.channels && typeof pluginViewConfig.channels === "object" && !Array.isArray(pluginViewConfig.channels)
+        ? (pluginViewConfig.channels as Record<string, unknown>)
+        : {};
+
+    const entries = { ...(next.plugins.entries ?? {}) };
+
+    for (const binding of bindings) {
+      if (!Object.prototype.hasOwnProperty.call(pluginChannels, binding.channelId)) {
+        continue;
+      }
+
+      const channelConfig = pluginChannels[binding.channelId];
+      if (!channelConfig || typeof channelConfig !== "object" || Array.isArray(channelConfig)) {
+        continue;
+      }
+
+      entries[binding.pluginId] = {
+        ...(entries[binding.pluginId] ?? {}),
+        config: channelConfig as Record<string, unknown>
+      };
+    }
+
+    next.plugins = {
+      ...next.plugins,
+      entries
+    };
+
+    return next;
   }
 
   cronList(opts: { all?: boolean }): void {
@@ -1219,7 +1378,7 @@ export class CliRuntime {
     const cronStorePath = join(getDataDir(), "cron", "jobs.json");
     const cron = new CronService(cronStorePath);
 
-    const pluginUiMetadata = loadPluginUiMetadata({ config, workspaceDir: workspace });
+    const pluginUiMetadata = getPluginUiMetadataFromRegistry(pluginRegistry);
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
     if (!provider) {
@@ -1265,7 +1424,70 @@ export class CliRuntime {
       contextConfig: config.agents.context,
       gatewayController,
       config,
-      extensionRegistry
+      extensionRegistry,
+      resolveMessageToolHints: ({ channel, accountId }) =>
+        resolvePluginChannelMessageToolHints({
+          registry: pluginRegistry,
+          channel,
+          cfg: loadConfig(),
+          accountId
+        })
+    });
+
+    const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
+    setPluginRuntimeBridge({
+      loadConfig: () => this.toPluginConfigView(loadConfig(), pluginChannelBindings),
+      writeConfigFile: async (nextConfigView) => {
+        if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
+          throw new Error("plugin runtime writeConfigFile expects an object config");
+        }
+        const current = loadConfig();
+        const next = this.mergePluginConfigView(current, nextConfigView, pluginChannelBindings);
+        saveConfig(next);
+      },
+      dispatchReplyWithBufferedBlockDispatcher: async ({ ctx, dispatcherOptions }) => {
+        const bodyForAgent = typeof ctx.BodyForAgent === "string" ? ctx.BodyForAgent : "";
+        const body = typeof ctx.Body === "string" ? ctx.Body : "";
+        const content = (bodyForAgent || body).trim();
+        if (!content) {
+          return;
+        }
+
+        const sessionKey =
+          typeof ctx.SessionKey === "string" && ctx.SessionKey.trim().length > 0
+            ? ctx.SessionKey
+            : `plugin:${typeof ctx.OriginatingChannel === "string" ? ctx.OriginatingChannel : "channel"}:${typeof ctx.SenderId === "string" ? ctx.SenderId : "unknown"}`;
+        const channel =
+          typeof ctx.OriginatingChannel === "string" && ctx.OriginatingChannel.trim().length > 0
+            ? ctx.OriginatingChannel
+            : "cli";
+        const chatId =
+          typeof ctx.OriginatingTo === "string" && ctx.OriginatingTo.trim().length > 0
+            ? ctx.OriginatingTo
+            : typeof ctx.SenderId === "string" && ctx.SenderId.trim().length > 0
+              ? ctx.SenderId
+              : "direct";
+
+        try {
+          const response = await agent.processDirect({
+            content,
+            sessionKey,
+            channel,
+            chatId,
+            metadata:
+              typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0
+                ? { account_id: ctx.AccountId }
+                : {}
+          });
+          const replyText = typeof response === "string" ? response : String(response ?? "");
+          if (replyText.trim()) {
+            await dispatcherOptions.deliver({ text: replyText }, { kind: "final" });
+          }
+        } catch (error) {
+          dispatcherOptions.onError?.(error);
+          throw error;
+        }
+      }
     });
 
     cron.onJob = async (job) => {
@@ -1319,7 +1541,33 @@ export class CliRuntime {
     await cron.start();
     await heartbeat.start();
 
-    await Promise.allSettled([agent.run(), reloader.getChannels().startAll()]);
+    let pluginGatewayHandles: Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"] = [];
+    try {
+      const startedPluginGateways = await startPluginChannelGateways({
+        registry: pluginRegistry,
+        logger: {
+          info: (message) => console.log(`[plugins] ${message}`),
+          warn: (message) => console.warn(`[plugins] ${message}`),
+          error: (message) => console.error(`[plugins] ${message}`),
+          debug: (message) => console.debug(`[plugins] ${message}`)
+        }
+      });
+      pluginGatewayHandles = startedPluginGateways.handles;
+      for (const diag of startedPluginGateways.diagnostics) {
+        const prefix = diag.pluginId ? `${diag.pluginId}: ` : "";
+        const text = `${prefix}${diag.message}`;
+        if (diag.level === "error") {
+          console.error(`[plugins] ${text}`);
+        } else {
+          console.warn(`[plugins] ${text}`);
+        }
+      }
+
+      await Promise.allSettled([agent.run(), reloader.getChannels().startAll()]);
+    } finally {
+      await stopPluginChannelGateways(pluginGatewayHandles);
+      setPluginRuntimeBridge(null);
+    }
   }
 
   private startUiIfEnabled(uiConfig: Config["ui"], uiStaticDir: string | null): void {

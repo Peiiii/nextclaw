@@ -11,7 +11,7 @@ import {
   type ProviderSpec,
   getWorkspacePathFromConfig
 } from "@nextclaw/core";
-import { loadPluginUiMetadata } from "@nextclaw/openclaw-compat";
+import { loadOpenClawPlugins, getPluginUiMetadataFromRegistry } from "@nextclaw/openclaw-compat";
 import type {
   ConfigMetaView,
   ConfigSchemaResponse,
@@ -89,7 +89,14 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
 
 export function buildConfigSchemaView(config: Config): ConfigSchemaResponse {
   const workspaceDir = getWorkspacePathFromConfig(config);
-  const plugins = loadPluginUiMetadata({ config, workspaceDir });
+  const registry = loadOpenClawPlugins({
+    config,
+    workspaceDir,
+    mode: "full",
+    reservedChannelIds: Object.keys(config.channels),
+    reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+  });
+  const plugins = getPluginUiMetadataFromRegistry(registry);
   return buildConfigSchema({ version: getPackageVersion(), plugins });
 }
 

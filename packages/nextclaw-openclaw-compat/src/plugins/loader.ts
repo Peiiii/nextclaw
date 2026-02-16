@@ -207,12 +207,28 @@ function ensureUniqueNames(params: {
   return accepted;
 }
 
+function isPlaceholderConfigSchema(schema: Record<string, unknown> | undefined): boolean {
+  if (!schema || typeof schema !== "object") {
+    return false;
+  }
+  const type = schema.type;
+  const isObjectType = type === "object" || (Array.isArray(type) && type.includes("object"));
+  if (!isObjectType) {
+    return false;
+  }
+  const properties = schema.properties;
+  const noProperties =
+    !properties ||
+    (typeof properties === "object" && !Array.isArray(properties) && Object.keys(properties as Record<string, unknown>).length === 0);
+  return noProperties && schema.additionalProperties === false;
+}
+
 function validatePluginConfig(params: {
   schema?: Record<string, unknown>;
   cacheKey?: string;
   value?: unknown;
 }): { ok: true; value?: Record<string, unknown> } | { ok: false; errors: string[] } {
-  if (!params.schema) {
+  if (!params.schema || isPlaceholderConfigSchema(params.schema)) {
     return { ok: true, value: params.value as Record<string, unknown> | undefined };
   }
 
@@ -550,12 +566,109 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
           return;
         }
 
+        const channelPlugin = normalizedChannel as PluginRegistry["channels"][number]["channel"];
         registry.channels.push({
           pluginId,
-          channel: normalizedChannel as PluginRegistry["channels"][number]["channel"],
+          channel: channelPlugin,
           source: candidate.source
         });
-        record.channelIds.push(accepted[0]);
+        const channelId = accepted[0];
+        record.channelIds.push(channelId);
+
+        const configSchema = (channelPlugin as { configSchema?: { schema?: unknown; uiHints?: unknown } }).configSchema;
+        if (configSchema && typeof configSchema === "object") {
+          const schema = configSchema.schema;
+          if (schema && typeof schema === "object" && !Array.isArray(schema)) {
+            record.configJsonSchema = schema as Record<string, unknown>;
+            record.configSchema = true;
+          }
+          const uiHints = configSchema.uiHints;
+          if (uiHints && typeof uiHints === "object" && !Array.isArray(uiHints)) {
+            record.configUiHints = {
+              ...(record.configUiHints ?? {}),
+              ...(uiHints as NonNullable<PluginRecord["configUiHints"]>)
+            };
+          }
+        }
+
+        const pushChannelTools = (
+          value: unknown,
+          optional: boolean,
+          sourceLabel: string,
+          resolveValue: (ctx: OpenClawPluginToolContext) => unknown
+        ) => {
+          const previewTools = normalizeToolList(value);
+          if (previewTools.length === 0) {
+            return;
+          }
+
+          const declaredNames = previewTools.map((tool) => tool.name);
+          const acceptedNames = ensureUniqueNames({
+            names: declaredNames,
+            pluginId,
+            diagnostics: registry.diagnostics,
+            source: candidate.source,
+            owners: toolNameOwners,
+            reserved: reservedToolNames,
+            kind: "tool"
+          });
+          if (acceptedNames.length === 0) {
+            return;
+          }
+
+          const factory: OpenClawPluginToolFactory = (ctx: OpenClawPluginToolContext) => {
+            const tools = normalizeToolList(resolveValue(ctx));
+            if (tools.length === 0) {
+              return [];
+            }
+            const byName = new Map(tools.map((tool) => [tool.name, tool]));
+            return acceptedNames.map((name) => byName.get(name)).filter(Boolean) as OpenClawPluginTool[];
+          };
+
+          registry.tools.push({
+            pluginId,
+            factory,
+            names: acceptedNames,
+            optional,
+            source: candidate.source
+          });
+          record.toolNames.push(...acceptedNames);
+
+          const previewByName = new Map(previewTools.map((tool) => [tool.name, tool]));
+          for (const name of acceptedNames) {
+            const resolvedTool = previewByName.get(name);
+            if (!resolvedTool || resolvedToolNames.has(resolvedTool.name)) {
+              continue;
+            }
+            resolvedToolNames.add(resolvedTool.name);
+            registry.resolvedTools.push(resolvedTool);
+          }
+
+          registry.diagnostics.push({
+            level: "warn",
+            pluginId,
+            source: candidate.source,
+            message: `${sourceLabel} registered channel-owned tools: ${acceptedNames.join(", ")}`
+          });
+        };
+
+        const agentTools = (channelPlugin as { agentTools?: unknown }).agentTools;
+        if (typeof agentTools === "function") {
+          pushChannelTools(
+            normalizeToolList((agentTools as () => unknown)()),
+            false,
+            `channel "${channelId}"`,
+            () => (agentTools as () => unknown)()
+          );
+        } else if (agentTools) {
+          pushChannelTools(
+            normalizeToolList(agentTools),
+            false,
+            `channel "${channelId}"`,
+            () => agentTools
+          );
+        }
+
       },
       registerProvider: (provider) => {
         const accepted = ensureUniqueNames({

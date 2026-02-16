@@ -148,6 +148,17 @@ plugins
 const channels = program.command("channels").description("Manage channels");
 
 channels
+  .command("add")
+  .description("Configure a plugin channel (OpenClaw-compatible setup)")
+  .requiredOption("--channel <id>", "Plugin channel id")
+  .option("--code <code>", "Pairing code")
+  .option("--token <token>", "Connector token")
+  .option("--name <name>", "Display name")
+  .option("--url <url>", "API base URL")
+  .option("--http-url <url>", "Alias for --url")
+  .action((opts) => runtime.channelsAdd(opts));
+
+channels
   .command("status")
   .description("Show channel status")
   .action(() => runtime.channelsStatus());
