@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.5.23-claw-landscape-report-v2/README.md`
 - `docs/logs/v0.5.22-claw-landscape-report/README.md`
 - `docs/logs/v0.5.21-minimax-api-hint-display/README.md`
 - `docs/logs/v0.5.20-minimax-api-base-hint/README.md`
