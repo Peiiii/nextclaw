@@ -36,7 +36,8 @@
     "templates"
   ],
   "scripts": {
-    "dev": "pnpm -C ../nextclaw-core build && pnpm -C ../nextclaw-server build && tsx src/cli/index.ts",
+    "dev": "tsx watch --tsconfig tsconfig.json src/cli/index.ts",
+    "dev:build": "pnpm -C ../nextclaw-core build && pnpm -C ../nextclaw-server build && tsx src/cli/index.ts",
     "build": "pnpm -C ../nextclaw-core build && pnpm -C ../nextclaw-server build && tsup src/index.ts src/cli/index.ts --format esm --dts --out-dir dist && node scripts/copy-ui-dist.mjs",
     "start": "node dist/cli.js",
     "lint": "eslint .",

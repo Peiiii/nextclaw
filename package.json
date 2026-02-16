@@ -15,7 +15,6 @@
     "dev": "pnpm -C packages/nextclaw dev",
     "dev:ui": "pnpm -C packages/nextclaw-ui dev",
     "start": "pnpm -C packages/nextclaw start",
-    "nextclaw": "pnpm -C packages/nextclaw dev",
     "changeset": "changeset",
     "release:check": "pnpm build && pnpm lint && pnpm tsc",
     "release:version": "pnpm changeset version",
