@@ -73,14 +73,38 @@ export function expandHome(value: string): string {
   return value;
 }
 
-export function getPackageVersion(): string {
-  try {
-    const dir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-    const pkgPath = resolve(dir, "..", "..", "package.json");
-    const raw = readFileSync(pkgPath, "utf-8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    return typeof parsed.version === "string" ? parsed.version : "0.0.0";
-  } catch {
-    return "0.0.0";
+function resolveVersionFromPackageTree(startDir: string, expectedName?: string): string | null {
+  let current = resolve(startDir);
+  while (current.length > 0) {
+    const pkgPath = resolve(current, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const raw = readFileSync(pkgPath, "utf-8");
+        const parsed = JSON.parse(raw) as { name?: string; version?: string };
+        if (typeof parsed.version === "string") {
+          if (!expectedName || parsed.name === expectedName) {
+            return parsed.version;
+          }
+        }
+      } catch {
+        // Ignore malformed package.json and continue searching upwards.
+      }
+    }
+
+    const parent = resolve(current, "..");
+    if (parent === current) {
+      break;
+    }
+    current = parent;
   }
+  return null;
+}
+
+export function getPackageVersion(): string {
+  const dir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+  return (
+    resolveVersionFromPackageTree(dir, "@nextclaw/core") ??
+    resolveVersionFromPackageTree(dir) ??
+    "0.0.0"
+  );
 }

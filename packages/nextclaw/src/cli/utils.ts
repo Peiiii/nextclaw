@@ -5,7 +5,7 @@ import { createServer } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Config } from "@nextclaw/core";
-import { getDataDir, getPackageVersion } from "@nextclaw/core";
+import { getDataDir, getPackageVersion as getCorePackageVersion } from "@nextclaw/core";
 
 export type ServiceState = {
   pid: number;
@@ -191,7 +191,41 @@ export function which(binary: string): boolean {
   return false;
 }
 
-export { getPackageVersion };
+function resolveVersionFromPackageTree(startDir: string, expectedName?: string): string | null {
+  let current = resolve(startDir);
+  while (current.length > 0) {
+    const pkgPath = join(current, "package.json");
+    if (existsSync(pkgPath)) {
+      try {
+        const raw = readFileSync(pkgPath, "utf-8");
+        const parsed = JSON.parse(raw) as { name?: string; version?: string };
+        if (typeof parsed.version === "string") {
+          if (!expectedName || parsed.name === expectedName) {
+            return parsed.version;
+          }
+        }
+      } catch {
+        // Ignore malformed package.json and continue searching upwards.
+      }
+    }
+
+    const parent = resolve(current, "..");
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  return null;
+}
+
+export function getPackageVersion(): string {
+  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+  return (
+    resolveVersionFromPackageTree(cliDir, "nextclaw") ??
+    resolveVersionFromPackageTree(cliDir) ??
+    getCorePackageVersion()
+  );
+}
 
 export function startUiFrontend(options: { apiBase: string; port: number; dir?: string }): { url: string; dir: string } | null {
   const uiDir = options.dir ?? resolveUiFrontendDir();

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/openclaw-compat",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "OpenClaw plugin compatibility layer for NextClaw.",
   "type": "module",
@@ -24,7 +24,7 @@
     "jiti": "^1.21.7",
     "jszip": "^3.10.1",
     "tar": "^7.4.3",
-    "@nextclaw/core": "^0.4.8"
+    "@nextclaw/core": "^0.4.9"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

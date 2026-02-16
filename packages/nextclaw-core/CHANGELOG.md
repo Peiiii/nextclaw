@@ -1,5 +1,22 @@
 # nextclaw-core
 
+## 0.4.10
+
+### Patch Changes
+
+- Fix packaged version resolution so `nextclaw --version` and runtime version APIs no longer fall back to `0.0.0`.
+  - Resolve package versions by walking up to the correct package root at runtime.
+  - Prioritize the `nextclaw` package version in CLI utilities with safe fallback to core version resolution.
+
+## 0.4.9
+
+### Patch Changes
+
+- Align OpenClaw plugin compatibility for channel runtime behavior.
+  - Add channel messageToolHints resolution and inject hints into agent system prompt messaging guidance.
+  - Forward plugin AccountId context through runtime bridge so channel/account-specific hints can resolve.
+  - Improve OpenClaw channel integration path for ClawBay-compatible plugins and update docs/logs.
+
 ## 0.4.8
 
 ### Patch Changes
