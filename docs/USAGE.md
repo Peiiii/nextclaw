@@ -173,6 +173,9 @@ Created under the workspace:
 | `nextclaw clawhub install <slug>` | Same as `skills install` |
 | `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
 | `nextclaw plugins info <id>` | Show details of a plugin |
+| `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
+| `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
+| `nextclaw config unset <path>` | Remove config value by path |
 | `nextclaw plugins install <path-or-spec>` | Install from local path, archive, or npm package |
 | `nextclaw plugins enable <id>` | Enable a plugin in config |
 | `nextclaw plugins disable <id>` | Disable a plugin in config |
@@ -204,6 +207,7 @@ nextclaw plugins install @scope/openclaw-plugin
 
 # 3) Inspect and toggle
 nextclaw plugins info my-plugin
+nextclaw config get plugins.entries.my-plugin.config --json
 nextclaw plugins disable my-plugin
 nextclaw plugins enable my-plugin
 

@@ -122,6 +122,9 @@ nextclaw stop   # stop the service
 | `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
 | `nextclaw plugins install <path-or-spec>` | Install plugin from path/archive/npm |
 | `nextclaw plugins info <id>` | Show plugin details |
+| `nextclaw config get <path>` | Get config value by path (`--json` for structured output) |
+| `nextclaw config set <path> <value>` | Set config value by path (`--json` to parse value as JSON) |
+| `nextclaw config unset <path>` | Remove config value by path |
 | `nextclaw plugins enable <id>` / `disable <id>` | Enable or disable plugin in config |
 | `nextclaw plugins uninstall <id>` | Uninstall plugin (supports `--dry-run`, `--force`) |
 
@@ -140,6 +143,7 @@ Quick examples:
 nextclaw plugins list
 nextclaw plugins install ./my-plugin
 nextclaw plugins info my-plugin
+nextclaw config get plugins.entries.my-plugin.config --json
 nextclaw plugins disable my-plugin
 nextclaw channels add --channel clawbay --code AB12CD
 nextclaw plugins uninstall my-plugin --dry-run

@@ -145,6 +145,25 @@ plugins
   .description("Report plugin load issues")
   .action(() => runtime.pluginsDoctor());
 
+const config = program.command("config").description("Manage config values");
+
+config
+  .command("get <path>")
+  .description("Get a config value by dot path")
+  .option("--json", "Output JSON", false)
+  .action((path, opts) => runtime.configGet(path, opts));
+
+config
+  .command("set <path> <value>")
+  .description("Set a config value by dot path")
+  .option("--json", "Parse value as JSON", false)
+  .action((path, value, opts) => runtime.configSet(path, value, opts));
+
+config
+  .command("unset <path>")
+  .description("Remove a config value by dot path")
+  .action((path) => runtime.configUnset(path));
+
 const channels = program.command("channels").description("Manage channels");
 
 channels

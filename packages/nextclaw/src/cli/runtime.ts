@@ -155,6 +155,14 @@ type ChannelsAddOptions = {
   httpUrl?: string;
 };
 
+type ConfigGetOptions = {
+  json?: boolean;
+};
+
+type ConfigSetOptions = {
+  json?: boolean;
+};
+
 type CronAddOptions = {
   name: string;
   message: string;
@@ -165,6 +173,218 @@ type CronAddOptions = {
   to?: string;
   channel?: string;
 };
+
+function isIndexSegment(raw: string): boolean {
+  return /^[0-9]+$/.test(raw);
+}
+
+function parseConfigPath(raw: string): string[] {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const parts: string[] = [];
+  let current = "";
+  let i = 0;
+
+  while (i < trimmed.length) {
+    const ch = trimmed[i];
+    if (ch === "\\") {
+      const next = trimmed[i + 1];
+      if (next) {
+        current += next;
+      }
+      i += 2;
+      continue;
+    }
+    if (ch === ".") {
+      if (current) {
+        parts.push(current);
+      }
+      current = "";
+      i += 1;
+      continue;
+    }
+    if (ch === "[") {
+      if (current) {
+        parts.push(current);
+      }
+      current = "";
+      const close = trimmed.indexOf("]", i);
+      if (close === -1) {
+        throw new Error(`Invalid path (missing "]"): ${raw}`);
+      }
+      const inside = trimmed.slice(i + 1, close).trim();
+      if (!inside) {
+        throw new Error(`Invalid path (empty "[]"): ${raw}`);
+      }
+      parts.push(inside);
+      i = close + 1;
+      continue;
+    }
+    current += ch;
+    i += 1;
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+function parseRequiredConfigPath(raw: string): string[] {
+  const parsedPath = parseConfigPath(raw);
+  if (parsedPath.length === 0) {
+    throw new Error("Path is empty.");
+  }
+  return parsedPath;
+}
+
+function parseConfigSetValue(raw: string, opts: ConfigSetOptions): unknown {
+  const trimmed = raw.trim();
+  if (opts.json) {
+    return JSON.parse(trimmed);
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return raw;
+  }
+}
+
+function getAtConfigPath(root: unknown, pathSegments: string[]): { found: boolean; value?: unknown } {
+  let current: unknown = root;
+  for (const segment of pathSegments) {
+    if (!current || typeof current !== "object") {
+      return { found: false };
+    }
+
+    if (Array.isArray(current)) {
+      if (!isIndexSegment(segment)) {
+        return { found: false };
+      }
+      const index = Number.parseInt(segment, 10);
+      if (!Number.isFinite(index) || index < 0 || index >= current.length) {
+        return { found: false };
+      }
+      current = current[index];
+      continue;
+    }
+
+    const record = current as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(record, segment)) {
+      return { found: false };
+    }
+    current = record[segment];
+  }
+
+  return { found: true, value: current };
+}
+
+function setAtConfigPath(root: Record<string, unknown>, pathSegments: string[], value: unknown): void {
+  let current: unknown = root;
+
+  for (let i = 0; i < pathSegments.length - 1; i += 1) {
+    const segment = pathSegments[i];
+    const next = pathSegments[i + 1];
+    const nextIsIndex = Boolean(next && isIndexSegment(next));
+
+    if (Array.isArray(current)) {
+      if (!isIndexSegment(segment)) {
+        throw new Error(`Expected numeric index for array segment "${segment}"`);
+      }
+      const index = Number.parseInt(segment, 10);
+      const existing = current[index];
+      if (!existing || typeof existing !== "object") {
+        current[index] = nextIsIndex ? [] : {};
+      }
+      current = current[index];
+      continue;
+    }
+
+    if (!current || typeof current !== "object") {
+      throw new Error(`Cannot traverse into "${segment}" (not an object)`);
+    }
+
+    const record = current as Record<string, unknown>;
+    const existing = record[segment];
+    if (!existing || typeof existing !== "object") {
+      record[segment] = nextIsIndex ? [] : {};
+    }
+    current = record[segment];
+  }
+
+  const last = pathSegments[pathSegments.length - 1];
+  if (Array.isArray(current)) {
+    if (!isIndexSegment(last)) {
+      throw new Error(`Expected numeric index for array segment "${last}"`);
+    }
+    const index = Number.parseInt(last, 10);
+    current[index] = value;
+    return;
+  }
+
+  if (!current || typeof current !== "object") {
+    throw new Error(`Cannot set "${last}" (parent is not an object)`);
+  }
+
+  (current as Record<string, unknown>)[last] = value;
+}
+
+function unsetAtConfigPath(root: Record<string, unknown>, pathSegments: string[]): boolean {
+  let current: unknown = root;
+
+  for (let i = 0; i < pathSegments.length - 1; i += 1) {
+    const segment = pathSegments[i];
+    if (!current || typeof current !== "object") {
+      return false;
+    }
+
+    if (Array.isArray(current)) {
+      if (!isIndexSegment(segment)) {
+        return false;
+      }
+      const index = Number.parseInt(segment, 10);
+      if (!Number.isFinite(index) || index < 0 || index >= current.length) {
+        return false;
+      }
+      current = current[index];
+      continue;
+    }
+
+    const record = current as Record<string, unknown>;
+    if (!Object.prototype.hasOwnProperty.call(record, segment)) {
+      return false;
+    }
+    current = record[segment];
+  }
+
+  const last = pathSegments[pathSegments.length - 1];
+  if (Array.isArray(current)) {
+    if (!isIndexSegment(last)) {
+      return false;
+    }
+    const index = Number.parseInt(last, 10);
+    if (!Number.isFinite(index) || index < 0 || index >= current.length) {
+      return false;
+    }
+    current.splice(index, 1);
+    return true;
+  }
+
+  if (!current || typeof current !== "object") {
+    return false;
+  }
+
+  const record = current as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(record, last)) {
+    return false;
+  }
+  delete record[last];
+  return true;
+}
 
 class ConfigReloader {
   private currentConfig: Config;
@@ -739,6 +959,96 @@ export class CliRuntime {
     }
 
     console.log(lines.join("\n"));
+  }
+
+  configGet(pathExpr: string, opts: ConfigGetOptions = {}): void {
+    const config = loadConfig() as unknown as Record<string, unknown>;
+
+    let parsedPath: string[];
+    try {
+      parsedPath = parseRequiredConfigPath(pathExpr);
+    } catch (error) {
+      console.error(String(error));
+      process.exit(1);
+      return;
+    }
+
+    const result = getAtConfigPath(config, parsedPath);
+    if (!result.found) {
+      console.error(`Config path not found: ${pathExpr}`);
+      process.exit(1);
+      return;
+    }
+
+    if (opts.json) {
+      console.log(JSON.stringify(result.value ?? null, null, 2));
+      return;
+    }
+
+    if (
+      typeof result.value === "string" ||
+      typeof result.value === "number" ||
+      typeof result.value === "boolean"
+    ) {
+      console.log(String(result.value));
+      return;
+    }
+
+    console.log(JSON.stringify(result.value ?? null, null, 2));
+  }
+
+  configSet(pathExpr: string, value: string, opts: ConfigSetOptions = {}): void {
+    let parsedPath: string[];
+    try {
+      parsedPath = parseRequiredConfigPath(pathExpr);
+    } catch (error) {
+      console.error(String(error));
+      process.exit(1);
+      return;
+    }
+
+    let parsedValue: unknown;
+    try {
+      parsedValue = parseConfigSetValue(value, opts);
+    } catch (error) {
+      console.error(`Failed to parse config value: ${String(error)}`);
+      process.exit(1);
+      return;
+    }
+
+    const config = loadConfig() as unknown as Record<string, unknown>;
+    try {
+      setAtConfigPath(config, parsedPath, parsedValue);
+    } catch (error) {
+      console.error(String(error));
+      process.exit(1);
+      return;
+    }
+
+    saveConfig(config as Config);
+    console.log(`Updated ${pathExpr}. Restart the gateway to apply.`);
+  }
+
+  configUnset(pathExpr: string): void {
+    let parsedPath: string[];
+    try {
+      parsedPath = parseRequiredConfigPath(pathExpr);
+    } catch (error) {
+      console.error(String(error));
+      process.exit(1);
+      return;
+    }
+
+    const config = loadConfig() as unknown as Record<string, unknown>;
+    const removed = unsetAtConfigPath(config, parsedPath);
+    if (!removed) {
+      console.error(`Config path not found: ${pathExpr}`);
+      process.exit(1);
+      return;
+    }
+
+    saveConfig(config as Config);
+    console.log(`Removed ${pathExpr}. Restart the gateway to apply.`);
   }
 
   pluginsEnable(id: string): void {
