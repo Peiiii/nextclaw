@@ -151,6 +151,7 @@ Created under the workspace:
 | Command | Description |
 |---------|-------------|
 | `nextclaw start` | Start gateway + UI in the background |
+| `nextclaw restart` | Restart the background service with optional start flags |
 | `nextclaw stop` | Stop the background service |
 | `nextclaw ui` | Start UI and gateway in the foreground |
 | `nextclaw gateway` | Start gateway only (for channels) |
@@ -436,7 +437,7 @@ Mochat uses a claw token and optional socket URL. Configure base URL, socket, an
 }
 ```
 
-After changing channel config, restart the gateway (e.g. `nextclaw stop` then `nextclaw start`) or use the UI if it supports reload.
+After changing channel config, restart the gateway (e.g. `nextclaw restart`) or use the UI if it supports reload.
 
 ---
 

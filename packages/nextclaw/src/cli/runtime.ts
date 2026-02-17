@@ -660,6 +660,21 @@ export class CliRuntime {
     });
   }
 
+  async restart(opts: StartCommandOptions): Promise<void> {
+    const state = readServiceState();
+    if (state && isProcessRunning(state.pid)) {
+      console.log(`Restarting ${APP_NAME}...`);
+      await this.stopService();
+    } else if (state) {
+      clearServiceState();
+      console.log("Service state was stale and has been cleaned up.");
+    } else {
+      console.log("No running service found. Starting a new service.");
+    }
+
+    await this.start(opts);
+  }
+
   async serve(opts: StartCommandOptions): Promise<void> {
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,

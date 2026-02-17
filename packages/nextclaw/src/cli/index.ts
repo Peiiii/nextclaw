@@ -53,6 +53,16 @@ program
   .action(async (opts) => runtime.start(opts));
 
 program
+  .command("restart")
+  .description(`Restart the ${APP_NAME} background service`)
+  .option("--ui-host <host>", "UI host")
+  .option("--ui-port <port>", "UI port")
+  .option("--frontend", "Start UI frontend dev server")
+  .option("--frontend-port <port>", "UI frontend dev server port")
+  .option("--open", "Open browser after restart", false)
+  .action(async (opts) => runtime.restart(opts));
+
+program
   .command("serve")
   .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
   .option("--ui-host <host>", "UI host")

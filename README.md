@@ -118,6 +118,7 @@ nextclaw stop   # stop the service
 | Command | Description |
 |---------|-------------|
 | `nextclaw start` | Start background service (gateway + UI) |
+| `nextclaw restart` | Restart background service without manual stop/start |
 | `nextclaw stop` | Stop background service |
 | `nextclaw ui` | Start UI backend + gateway (foreground) |
 | `nextclaw gateway` | Start gateway only (for channels) |

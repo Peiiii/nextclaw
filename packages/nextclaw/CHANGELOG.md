@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.4.14
+
+### Patch Changes
+
+- Add a `nextclaw restart` command to restart the background service without manual stop/start, and document the new command in README and USAGE.
+
 ## 0.4.13
 
 ### Patch Changes
