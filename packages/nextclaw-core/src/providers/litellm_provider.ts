@@ -94,6 +94,10 @@ export class LiteLLMProvider extends LLMProvider {
 
   private stripRoutingPrefix(model: string): string {
     if (this.gatewaySpec) {
+      const prefix = this.gatewaySpec.litellmPrefix ?? "";
+      if (prefix && model.startsWith(`${prefix}/`)) {
+        return model.slice(prefix.length + 1);
+      }
       return model;
     }
     const spec = this.getStandardSpec(model);

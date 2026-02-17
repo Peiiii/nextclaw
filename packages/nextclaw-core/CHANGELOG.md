@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.4.11
+
+### Patch Changes
+
+- Fix LiteLLM gateway model normalization to strip routing prefixes (such as `openrouter/`) before API calls, so OpenRouter receives valid model IDs.
+
 ## 0.4.10
 
 ### Patch Changes
