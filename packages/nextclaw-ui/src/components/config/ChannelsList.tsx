@@ -1,6 +1,5 @@
 import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
-import { Button } from '@/components/ui/button';
-import { MessageCircle, Mail, MessageSquare, Slack, ExternalLink, Bell, Zap, Radio } from 'lucide-react';
+import { MessageCircle, Mail, MessageSquare, Slack, ExternalLink, Bell, Zap, Radio, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { ChannelForm } from './ChannelForm';
 import { useUiStore } from '@/stores/ui.store';
@@ -95,7 +94,7 @@ export function ChannelsList() {
                   imgClassName="h-6 w-6"
                   fallback={<Icon className="h-6 w-6" />}
                 />
-                
+
                 {/* Status Badge */}
                 {enabled ? (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
@@ -121,30 +120,23 @@ export function ChannelsList() {
               </div>
 
               {/* Footer with Actions */}
-              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
+              <div className="mt-4 pt-3 flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 group-hover:text-primary transition-colors cursor-pointer">
+                  {enabled ? 'Configure' : 'Enable'}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
                 {channel.tutorialUrl && (
                   <a
                     href={channel.tutorialUrl}
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center h-9 w-9 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                    className="flex items-center justify-center h-7 w-7 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
                     title="View Guide"
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
-                <Button
-                  variant={enabled ? 'ghost' : 'default'}
-                  size="sm"
-                  className="flex-1 rounded-xl text-xs font-semibold h-9"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openChannelModal(channel.name);
-                  }}
-                >
-                  {enabled ? 'Configure' : 'Enable'}
-                </Button>
               </div>
             </div>
           );

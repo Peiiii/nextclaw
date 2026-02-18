@@ -1,6 +1,5 @@
 import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
-import { Button } from '@/components/ui/button';
-import { KeyRound, Check, Settings } from 'lucide-react';
+import { KeyRound, Check, Settings, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderForm } from './ProviderForm';
 import { useUiStore } from '@/stores/ui.store';
@@ -80,7 +79,7 @@ export function ProvidersList() {
                     </span>
                   )}
                 />
-                
+
                 {/* Status Badge */}
                 {hasConfig ? (
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
@@ -106,18 +105,11 @@ export function ProvidersList() {
               </div>
 
               {/* Footer with Action */}
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <Button
-                  variant={hasConfig ? 'ghost' : 'default'}
-                  size="sm"
-                  className="w-full rounded-xl text-xs font-semibold h-9"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openProviderModal(provider.name);
-                  }}
-                >
+              <div className="mt-4 pt-3">
+                <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-gray-600 group-hover:text-primary transition-colors cursor-pointer">
                   {hasConfig ? 'Configure' : 'Add Provider'}
-                </Button>
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
               </div>
             </div>
           );
