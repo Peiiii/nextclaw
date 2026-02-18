@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.5.2
+
+### Patch Changes
+
+- Close the self-management loop around USAGE-based operations:
+  - Add always-on built-in skill `nextclaw-self-manage` to guide runtime self-management flows.
+  - Inject self-management guidance into core system prompt, anchored on workspace `USAGE.md`.
+  - Treat `docs/USAGE.md` as single source of truth and sync it into `nextclaw` workspace templates.
+  - Seed `USAGE.md` into newly initialized workspaces and backfill missing built-in skills even when `skills/` is non-empty.
+
 ## 0.5.1
 
 ### Patch Changes

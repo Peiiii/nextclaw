@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/core",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": false,
   "description": "Nextclaw runtime core (agent, channels, providers, config).",
   "type": "module",
