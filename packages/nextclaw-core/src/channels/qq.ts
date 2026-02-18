@@ -72,8 +72,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     const metadataMessageId = (msg.metadata?.message_id as string | undefined) ?? null;
     const sourceId = msg.replyTo ?? metadataMessageId ?? undefined;
     const source = sourceId ? { id: sourceId } : undefined;
-    const content = this.normalizeContent(msg.content ?? "");
-    const payload = this.config.markdownSupport ? segment.markdown(content) : content;
+    const payload = this.config.markdownSupport ? segment.markdown(msg.content ?? "") : (msg.content ?? "");
 
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
@@ -184,12 +183,6 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       }
     }
     return false;
-  }
-
-  private normalizeContent(content: string): string {
-    const withoutThink = content.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<\/?think>/gi, "");
-    const cleaned = withoutThink.trim();
-    return cleaned || "[empty message]";
   }
 
   private async sendWithTokenRetry(send: () => Promise<unknown> | undefined): Promise<void> {

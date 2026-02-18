@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.4.12
+
+### Patch Changes
+
+- Normalize assistant outbound text through a single dispatch-layer sanitizer to strip reasoning tags (`<think>`/`<final>`) before channel delivery, and remove duplicate channel-specific cleanup logic.
+
 ## 0.4.11
 
 ### Patch Changes

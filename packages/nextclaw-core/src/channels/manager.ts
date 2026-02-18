@@ -3,6 +3,7 @@ import type { OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
 import type { BaseChannel } from "./base.js";
 import type { SessionManager } from "../session/manager.js";
+import { sanitizeOutboundAssistantContent } from "../utils/reasoning-tags.js";
 import { TelegramChannel } from "./telegram.js";
 import { WhatsAppChannel } from "./whatsapp.js";
 import { DiscordChannel } from "./discord.js";
@@ -143,8 +144,21 @@ export class ChannelManager {
       if (!channel) {
         continue;
       }
+      const sanitizedContent = sanitizeOutboundAssistantContent(msg.content ?? "");
+      if (!sanitizedContent.trim() && msg.media.length === 0) {
+        continue;
+      }
+
+      const outbound =
+        sanitizedContent === msg.content
+          ? msg
+          : {
+              ...msg,
+              content: sanitizedContent
+            };
+
       try {
-        await channel.send(msg as OutboundMessage);
+        await channel.send(outbound as OutboundMessage);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(`Error sending to ${msg.channel}: ${String(err)}`);
