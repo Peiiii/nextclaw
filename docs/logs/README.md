@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.5.30-release-v0.5.2/README.md`
 - `docs/logs/v0.5.30-start-service-readiness-guard/README.md`
 - `docs/logs/v0.5.30-ui-host-readonly-semantics/README.md`
 - `docs/logs/v0.5.29-release-v0.5.0/README.md`
