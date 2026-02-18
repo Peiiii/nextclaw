@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.3.5
+
+### Patch Changes
+
+- Fix session history trimming to keep tool-call / tool-result pairs consistent, reducing intermittent provider tool-call ID errors.
+
+  Improve providers/channels config list rendering in the UI.
+
 ## 0.3.4
 
 ### Patch Changes
