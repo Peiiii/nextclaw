@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.5.38-release-v0.5.6/README.md`
 - `docs/logs/v0.5.37-runtime-god-class-refactor/README.md`
 - `docs/logs/v0.5.34-gateway-update-self-relaunch/README.md`
 - `docs/logs/v0.5.33-release-v0.5.4/README.md`

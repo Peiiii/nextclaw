@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.5.6
+
+### Patch Changes
+
+- Refactor CLI runtime by splitting the previous God-class `runtime.ts` into focused modules (`commands/*`, `config-path`, `config-reloader`, `workspace`, and shared `types`) while preserving command behavior.
+
 ## 0.5.5
 
 ### Patch Changes
