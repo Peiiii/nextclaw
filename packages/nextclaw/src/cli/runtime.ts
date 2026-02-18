@@ -2790,6 +2790,7 @@ export class CliRuntime {
       { source: "USER.md", target: "USER.md" },
       { source: "IDENTITY.md", target: "IDENTITY.md" },
       { source: "TOOLS.md", target: "TOOLS.md" },
+      { source: "USAGE.md", target: "USAGE.md" },
       { source: "BOOT.md", target: "BOOT.md" },
       { source: "BOOTSTRAP.md", target: "BOOTSTRAP.md" },
       { source: "HEARTBEAT.md", target: "HEARTBEAT.md" },
@@ -2838,10 +2839,6 @@ export class CliRuntime {
       return 0;
     }
     const force = Boolean(options.force);
-    const existing = readdirSync(targetDir, { withFileTypes: true }).filter((entry) => !entry.name.startsWith("."));
-    if (!force && existing.length > 0) {
-      return 0;
-    }
     let seeded = 0;
     for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) {

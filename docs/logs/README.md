@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.5.32-usage-skill-self-management/README.md`
 - `docs/logs/v0.5.31-release-v0.5.3/README.md`
 - `docs/logs/v0.5.31-runtime-status-doctor/README.md`
 - `docs/logs/v0.5.30-release-v0.5.2/README.md`
