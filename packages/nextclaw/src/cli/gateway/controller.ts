@@ -24,6 +24,7 @@ type ControllerDeps = {
   getConfigPath: () => string;
   saveConfig: (config: Config) => void;
   getPluginUiMetadata?: () => PluginUiMetadata[];
+  requestRestart?: (options?: { delayMs?: number; reason?: string }) => Promise<void> | void;
 };
 
 const hashRaw = (raw: string): string => createHash("sha256").update(raw).digest("hex");
@@ -85,16 +86,21 @@ const mergeDeep = (base: Record<string, unknown>, patch: Record<string, unknown>
   return next;
 };
 
-const scheduleRestart = (delayMs?: number, reason?: string): void => {
-  const delay = typeof delayMs === "number" && Number.isFinite(delayMs) ? Math.max(0, delayMs) : 100;
-  console.log(`Gateway restart requested via tool${reason ? ` (${reason})` : ""}.`);
-  setTimeout(() => {
-    process.exit(0);
-  }, delay);
-};
-
 export class GatewayControllerImpl implements GatewayController {
   constructor(private deps: ControllerDeps) {}
+
+  private async requestRestart(options?: { delayMs?: number; reason?: string }): Promise<void> {
+    if (this.deps.requestRestart) {
+      await this.deps.requestRestart(options);
+      return;
+    }
+    const delay =
+      typeof options?.delayMs === "number" && Number.isFinite(options.delayMs) ? Math.max(0, options.delayMs) : 100;
+    console.log(`Gateway restart requested via tool${options?.reason ? ` (${options.reason})` : ""}.`);
+    setTimeout(() => {
+      process.exit(0);
+    }, delay);
+  }
 
   status(): Record<string, unknown> {
     return {
@@ -109,7 +115,7 @@ export class GatewayControllerImpl implements GatewayController {
   }
 
   async restart(options?: { delayMs?: number; reason?: string }): Promise<string> {
-    scheduleRestart(options?.delayMs, options?.reason);
+    await this.requestRestart(options);
     return "Restart scheduled";
   }
 
@@ -163,7 +169,7 @@ export class GatewayControllerImpl implements GatewayController {
     }
     this.deps.saveConfig(validated);
     const delayMs = params.restartDelayMs ?? 0;
-    scheduleRestart(delayMs, "config.apply");
+    await this.requestRestart({ delayMs, reason: "config.apply" });
     return {
       ok: true,
       note: params.note ?? null,
@@ -206,7 +212,7 @@ export class GatewayControllerImpl implements GatewayController {
     }
     this.deps.saveConfig(validated);
     const delayMs = params.restartDelayMs ?? 0;
-    scheduleRestart(delayMs, "config.patch");
+    await this.requestRestart({ delayMs, reason: "config.patch" });
     return {
       ok: true,
       note: params.note ?? null,
@@ -228,7 +234,7 @@ export class GatewayControllerImpl implements GatewayController {
     }
 
     const delayMs = params.restartDelayMs ?? 0;
-    scheduleRestart(delayMs, "update.run");
+    await this.requestRestart({ delayMs, reason: "update.run" });
     return {
       ok: true,
       note: params.note ?? null,

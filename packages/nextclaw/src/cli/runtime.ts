@@ -66,15 +66,14 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { GatewayControllerImpl } from "./gateway/controller.js";
+import { RestartCoordinator, type RestartStrategy } from "./restart-coordinator.js";
 import { installClawHubSkill } from "./skills/clawhub.js";
 import { runSelfUpdate } from "./update/runner.js";
 import type { ServiceState } from "./utils.js";
 import {
   buildServeArgs,
   clearServiceState,
-  findAvailablePort,
   getPackageVersion,
-  isDevRuntime,
   isProcessRunning,
   openBrowser,
   printAgentResponse,
@@ -83,11 +82,9 @@ import {
   resolveServiceLogPath,
   resolveUiApiBase,
   resolveUiConfig,
-  resolveUiFrontendDir,
   resolveUiStaticDir,
   resolvePublicIp,
   isLoopbackHost,
-  startUiFrontend,
   waitForExit,
   which,
   writeServiceState
@@ -115,8 +112,6 @@ type UiCommandOptions = {
 type StartCommandOptions = {
   uiHost?: string;
   uiPort?: string | number;
-  frontend?: boolean;
-  frontendPort?: string | number;
   open?: boolean;
   public?: boolean;
 };
@@ -555,13 +550,92 @@ class ConfigReloader {
 
 export class CliRuntime {
   private logo: string;
+  private restartCoordinator: RestartCoordinator;
+  private serviceRestartTask: Promise<boolean> | null = null;
 
   constructor(options: { logo?: string } = {}) {
     this.logo = options.logo ?? LOGO;
+    this.restartCoordinator = new RestartCoordinator({
+      readServiceState,
+      isProcessRunning,
+      currentPid: () => process.pid,
+      restartBackgroundService: async (reason) => this.restartBackgroundService(reason),
+      scheduleProcessExit: (delayMs, reason) => this.scheduleProcessExit(delayMs, reason)
+    });
   }
 
   get version(): string {
     return getPackageVersion();
+  }
+
+  private scheduleProcessExit(delayMs: number, reason: string): void {
+    console.warn(`Gateway restart requested (${reason}).`);
+    setTimeout(() => {
+      process.exit(0);
+    }, delayMs);
+  }
+
+  private async restartBackgroundService(reason: string): Promise<boolean> {
+    if (this.serviceRestartTask) {
+      return this.serviceRestartTask;
+    }
+
+    this.serviceRestartTask = (async () => {
+      const state = readServiceState();
+      if (!state || !isProcessRunning(state.pid) || state.pid === process.pid) {
+        return false;
+      }
+
+      const uiHost = state.uiHost ?? "127.0.0.1";
+      const uiPort = typeof state.uiPort === "number" && Number.isFinite(state.uiPort) ? state.uiPort : 18791;
+
+      console.log(`Applying changes (${reason}): restarting ${APP_NAME} background service...`);
+      await this.stopService();
+      await this.startService({
+        uiOverrides: {
+          enabled: true,
+          host: uiHost,
+          port: uiPort
+        },
+        open: false
+      });
+      return true;
+    })();
+
+    try {
+      return await this.serviceRestartTask;
+    } finally {
+      this.serviceRestartTask = null;
+    }
+  }
+
+  private async requestRestart(params: {
+    reason: string;
+    manualMessage: string;
+    strategy?: RestartStrategy;
+    delayMs?: number;
+    silentOnServiceRestart?: boolean;
+  }): Promise<void> {
+    const result = await this.restartCoordinator.requestRestart({
+      reason: params.reason,
+      strategy: params.strategy,
+      delayMs: params.delayMs,
+      manualMessage: params.manualMessage
+    });
+
+    if (result.status === "manual-required" || result.status === "restart-in-progress") {
+      console.log(result.message);
+      return;
+    }
+
+    if (result.status === "service-restarted") {
+      if (!params.silentOnServiceRestart) {
+        console.log(result.message);
+      }
+      return;
+    }
+
+    console.warn(result.message);
   }
 
   async onboard(): Promise<void> {
@@ -671,38 +745,8 @@ export class CliRuntime {
       uiOverrides.host = "0.0.0.0";
     }
 
-    const devMode = isDevRuntime();
-    if (devMode) {
-      const requestedUiPort = Number.isFinite(Number(opts.uiPort)) ? Number(opts.uiPort) : 18792;
-      const requestedFrontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5174;
-      const uiHost = uiOverrides.host ?? "127.0.0.1";
-      const devUiPort = await findAvailablePort(requestedUiPort, uiHost);
-      const shouldStartFrontend = opts.frontend === undefined ? true : Boolean(opts.frontend);
-      const devFrontendPort = shouldStartFrontend
-        ? await findAvailablePort(requestedFrontendPort, "127.0.0.1")
-        : requestedFrontendPort;
-      uiOverrides.port = devUiPort;
-      if (requestedUiPort !== devUiPort) {
-        console.log(`Dev mode: UI port ${requestedUiPort} is in use, switched to ${devUiPort}.`);
-      }
-      if (shouldStartFrontend && requestedFrontendPort !== devFrontendPort) {
-        console.log(`Dev mode: Frontend port ${requestedFrontendPort} is in use, switched to ${devFrontendPort}.`);
-      }
-      console.log(`Dev mode: UI ${devUiPort}, Frontend ${devFrontendPort}`);
-      console.log("Dev mode runs in the foreground (Ctrl+C to stop).");
-      await this.runForeground({
-        uiOverrides,
-        frontend: shouldStartFrontend,
-        frontendPort: devFrontendPort,
-        open: Boolean(opts.open)
-      });
-      return;
-    }
-
     await this.startService({
       uiOverrides,
-      frontend: Boolean(opts.frontend),
-      frontendPort: Number(opts.frontendPort),
       open: Boolean(opts.open)
     });
   }
@@ -737,33 +781,8 @@ export class CliRuntime {
       uiOverrides.host = "0.0.0.0";
     }
 
-    const devMode = isDevRuntime();
-    if (devMode && uiOverrides.port === undefined) {
-      uiOverrides.port = 18792;
-    }
-
-    const shouldStartFrontend = Boolean(opts.frontend);
-    const defaultFrontendPort = devMode ? 5174 : 5173;
-    const requestedFrontendPort = Number.isFinite(Number(opts.frontendPort))
-      ? Number(opts.frontendPort)
-      : defaultFrontendPort;
-    if (devMode && uiOverrides.port !== undefined) {
-      const uiHost = uiOverrides.host ?? "127.0.0.1";
-      const uiPort = await findAvailablePort(uiOverrides.port, uiHost);
-      if (uiPort !== uiOverrides.port) {
-        console.log(`Dev mode: UI port ${uiOverrides.port} is in use, switched to ${uiPort}.`);
-        uiOverrides.port = uiPort;
-      }
-    }
-    const frontendPort =
-      devMode && shouldStartFrontend ? await findAvailablePort(requestedFrontendPort, "127.0.0.1") : requestedFrontendPort;
-    if (devMode && shouldStartFrontend && frontendPort !== requestedFrontendPort) {
-      console.log(`Dev mode: Frontend port ${requestedFrontendPort} is in use, switched to ${frontendPort}.`);
-    }
     await this.runForeground({
       uiOverrides,
-      frontend: shouldStartFrontend,
-      frontendPort,
       open: Boolean(opts.open)
     });
   }
@@ -1062,7 +1081,7 @@ export class CliRuntime {
     console.log(JSON.stringify(result.value ?? null, null, 2));
   }
 
-  configSet(pathExpr: string, value: string, opts: ConfigSetOptions = {}): void {
+  async configSet(pathExpr: string, value: string, opts: ConfigSetOptions = {}): Promise<void> {
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -1091,10 +1110,13 @@ export class CliRuntime {
     }
 
     saveConfig(config as Config);
-    console.log(`Updated ${pathExpr}. Restart the gateway to apply.`);
+    await this.requestRestart({
+      reason: `config.set ${pathExpr}`,
+      manualMessage: `Updated ${pathExpr}. Restart the gateway to apply.`
+    });
   }
 
-  configUnset(pathExpr: string): void {
+  async configUnset(pathExpr: string): Promise<void> {
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -1113,21 +1135,30 @@ export class CliRuntime {
     }
 
     saveConfig(config as Config);
-    console.log(`Removed ${pathExpr}. Restart the gateway to apply.`);
+    await this.requestRestart({
+      reason: `config.unset ${pathExpr}`,
+      manualMessage: `Removed ${pathExpr}. Restart the gateway to apply.`
+    });
   }
 
-  pluginsEnable(id: string): void {
+  async pluginsEnable(id: string): Promise<void> {
     const config = loadConfig();
     const next = enablePluginInConfig(config, id);
     saveConfig(next);
-    console.log(`Enabled plugin "${id}". Restart the gateway to apply.`);
+    await this.requestRestart({
+      reason: `plugin enabled: ${id}`,
+      manualMessage: `Enabled plugin "${id}". Restart the gateway to apply.`
+    });
   }
 
-  pluginsDisable(id: string): void {
+  async pluginsDisable(id: string): Promise<void> {
     const config = loadConfig();
     const next = disablePluginInConfig(config, id);
     saveConfig(next);
-    console.log(`Disabled plugin "${id}". Restart the gateway to apply.`);
+    await this.requestRestart({
+      reason: `plugin disabled: ${id}`,
+      manualMessage: `Disabled plugin "${id}". Restart the gateway to apply.`
+    });
   }
 
   async pluginsUninstall(id: string, opts: PluginsUninstallOptions = {}): Promise<void> {
@@ -1246,7 +1277,10 @@ export class CliRuntime {
     }
 
     console.log(`Uninstalled plugin "${pluginId}". Removed: ${removed.length > 0 ? removed.join(", ") : "nothing"}.`);
-    console.log("Restart the gateway to apply changes.");
+    await this.requestRestart({
+      reason: `plugin uninstalled: ${pluginId}`,
+      manualMessage: "Restart the gateway to apply changes."
+    });
   }
 
   async pluginsInstall(pathOrSpec: string, opts: PluginsInstallOptions = {}): Promise<void> {
@@ -1279,7 +1313,10 @@ export class CliRuntime {
 
         saveConfig(next);
         console.log(`Linked plugin path: ${resolved}`);
-        console.log("Restart the gateway to load plugins.");
+        await this.requestRestart({
+          reason: `plugin linked: ${probe.pluginId}`,
+          manualMessage: "Restart the gateway to load plugins."
+        });
         return;
       }
 
@@ -1306,7 +1343,10 @@ export class CliRuntime {
       });
       saveConfig(next);
       console.log(`Installed plugin: ${result.pluginId}`);
-      console.log("Restart the gateway to load plugins.");
+      await this.requestRestart({
+        reason: `plugin installed: ${result.pluginId}`,
+        manualMessage: "Restart the gateway to load plugins."
+      });
       return;
     }
 
@@ -1343,7 +1383,10 @@ export class CliRuntime {
     });
     saveConfig(next);
     console.log(`Installed plugin: ${result.pluginId}`);
-    console.log("Restart the gateway to load plugins.");
+    await this.requestRestart({
+      reason: `plugin installed: ${result.pluginId}`,
+      manualMessage: "Restart the gateway to load plugins."
+    });
   }
 
   pluginsDoctor(): void {
@@ -1452,7 +1495,7 @@ export class CliRuntime {
     }
   }
 
-  channelsAdd(opts: ChannelsAddOptions): void {
+  async channelsAdd(opts: ChannelsAddOptions): Promise<void> {
     const channelId = opts.channel?.trim();
     if (!channelId) {
       console.error("--channel is required");
@@ -1513,7 +1556,10 @@ export class CliRuntime {
     saveConfig(next);
 
     console.log(`Configured channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
-    console.log("Restart the gateway to apply changes.");
+    await this.requestRestart({
+      reason: `channel configured via plugin: ${binding.pluginId}`,
+      manualMessage: "Restart the gateway to apply changes."
+    });
   }
 
   private toPluginConfigView(config: Config, bindings: PluginChannelBinding[]): Record<string, unknown> {
@@ -1773,7 +1819,11 @@ export class CliRuntime {
       loadConfig,
       getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
-        console.warn(`Config changes require restart: ${paths.join(", ")}`);
+        void this.requestRestart({
+          reason: `config reload requires restart: ${paths.join(", ")}`,
+          manualMessage: `Config changes require restart: ${paths.join(", ")}`,
+          strategy: "background-service-or-manual"
+        });
       }
     });
     const gatewayController = new GatewayControllerImpl({
@@ -1781,7 +1831,16 @@ export class CliRuntime {
       cron,
       getConfigPath,
       saveConfig,
-      getPluginUiMetadata: () => pluginUiMetadata
+      getPluginUiMetadata: () => pluginUiMetadata,
+      requestRestart: async (options) => {
+        await this.requestRestart({
+          reason: options?.reason ?? "gateway tool restart",
+          manualMessage: "Restart the gateway to apply changes.",
+          strategy: "background-service-or-exit",
+          delayMs: options?.delayMs,
+          silentOnServiceRestart: true
+        });
+      }
     });
 
     const agent = new AgentLoop({
@@ -1986,50 +2045,25 @@ export class CliRuntime {
 
   private async runForeground(options: {
     uiOverrides: Partial<Config["ui"]>;
-    frontend: boolean;
-    frontendPort: number;
     open: boolean;
   }): Promise<void> {
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
-    const shouldStartFrontend = options.frontend;
-    const frontendPort = Number.isFinite(options.frontendPort) ? options.frontendPort : 5173;
-    const frontendDir = shouldStartFrontend ? resolveUiFrontendDir() : null;
-    const staticDir = resolveUiStaticDir();
+    const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
 
-    let frontendUrl: string | null = null;
-    if (shouldStartFrontend && frontendDir) {
-      const frontend = startUiFrontend({
-        apiBase: resolveUiApiBase(uiConfig.host, uiConfig.port),
-        port: frontendPort,
-        dir: frontendDir
-      });
-      frontendUrl = frontend?.url ?? null;
-    } else if (shouldStartFrontend && !frontendDir) {
-      console.log("Warning: UI frontend not found. Start it separately.");
-    }
-    if (!frontendUrl && staticDir) {
-      frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
+    if (options.open) {
+      openBrowser(uiUrl);
     }
 
-    if (options.open && frontendUrl) {
-      openBrowser(frontendUrl);
-    } else if (options.open && !frontendUrl) {
-      console.log("Warning: UI frontend not started. Browser not opened.");
-    }
-
-    const uiStaticDir = shouldStartFrontend && frontendDir ? null : staticDir;
     await this.startGateway({
       uiOverrides: options.uiOverrides,
       allowMissingProvider: true,
-      uiStaticDir
+      uiStaticDir: resolveUiStaticDir()
     });
   }
 
   private async startService(options: {
     uiOverrides: Partial<Config["ui"]>;
-    frontend: boolean;
-    frontendPort: number;
     open: boolean;
   }): Promise<void> {
     const config = loadConfig();
@@ -2076,8 +2110,8 @@ export class CliRuntime {
       clearServiceState();
     }
 
-    if (!staticDir && !options.frontend) {
-      console.log("Warning: UI frontend not found. Use --frontend to start the dev server.");
+    if (!staticDir) {
+      console.log("Warning: UI frontend not found in package assets.");
     }
 
     const logPath = resolveServiceLogPath();
@@ -2088,8 +2122,6 @@ export class CliRuntime {
     const serveArgs = buildServeArgs({
       uiHost: uiConfig.host,
       uiPort: uiConfig.port,
-      frontend: options.frontend,
-      frontendPort: options.frontendPort
     });
     const child = spawn(process.execPath, [...process.execArgv, ...serveArgs], {
       env: process.env,

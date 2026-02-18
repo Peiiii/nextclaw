@@ -49,8 +49,6 @@ program
   .description(`Start the ${APP_NAME} gateway + UI in the background`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
-  .option("--frontend", "Start UI frontend dev server")
-  .option("--frontend-port <port>", "UI frontend dev server port")
   .option("--open", "Open browser after start", false)
   .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.start(opts));
@@ -60,8 +58,6 @@ program
   .description(`Restart the ${APP_NAME} background service`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
-  .option("--frontend", "Start UI frontend dev server")
-  .option("--frontend-port <port>", "UI frontend dev server port")
   .option("--open", "Open browser after restart", false)
   .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.restart(opts));
@@ -71,8 +67,6 @@ program
   .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
-  .option("--frontend", "Start UI frontend dev server")
-  .option("--frontend-port <port>", "UI frontend dev server port")
   .option("--open", "Open browser after start", false)
   .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.serve(opts));

@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.3.7
+
+### Patch Changes
+
+- Decouple dev orchestration from CLI runtime by moving `pnpm dev start` into a dedicated repo-level dev runner and Vite config, while keeping production CLI startup paths free of dev-only port/frontend handling.
+
+  Also remove `--frontend` and `--frontend-port` from `start`/`restart`/`serve` command options.
+
 ## 0.3.6
 
 ### Patch Changes

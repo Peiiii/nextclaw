@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { createServer, isIP } from "node:net";
+import { isIP } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Config } from "@nextclaw/core";
@@ -66,58 +66,9 @@ export async function resolvePublicIp(timeoutMs = 1500): Promise<string | null> 
   return null;
 }
 
-export function isDevRuntime(): boolean {
-  return import.meta.url.includes("/src/cli/") || process.env.NEXTCLAW_DEV === "1";
-}
-
-export function normalizeHostForPortCheck(host: string): string {
-  return host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
-}
-
-export async function findAvailablePort(port: number, host: string, attempts = 20): Promise<number> {
-  const basePort = Number.isFinite(port) ? port : 0;
-  let candidate = basePort;
-  for (let i = 0; i < attempts; i += 1) {
-    const ok = await isPortAvailable(candidate, host);
-    if (ok) {
-      return candidate;
-    }
-    candidate += 1;
-  }
-  return basePort;
-}
-
-export async function isPortAvailable(port: number, host: string): Promise<boolean> {
-  const checkHost = normalizeHostForPortCheck(host);
-  return await canBindPort(port, checkHost);
-}
-
-export async function canBindPort(port: number, host: string): Promise<boolean> {
-  return await new Promise((resolve) => {
-    const server = createServer();
-    server.unref();
-    server.once("error", () => resolve(false));
-    server.listen({ port, host }, () => {
-      server.close(() => resolve(true));
-    });
-  });
-}
-
-export function buildServeArgs(options: {
-  uiHost: string;
-  uiPort: number;
-  frontend: boolean;
-  frontendPort: number;
-}): string[] {
+export function buildServeArgs(options: { uiHost: string; uiPort: number }): string[] {
   const cliPath = fileURLToPath(new URL("./index.js", import.meta.url));
-  const args = [cliPath, "serve", "--ui-host", options.uiHost, "--ui-port", String(options.uiPort)];
-  if (options.frontend) {
-    args.push("--frontend");
-  }
-  if (Number.isFinite(options.frontendPort)) {
-    args.push("--frontend-port", String(options.frontendPort));
-  }
-  return args;
+  return [cliPath, "serve", "--ui-host", options.uiHost, "--ui-port", String(options.uiPort)];
 }
 
 export function readServiceState(): ServiceState | null {
@@ -266,72 +217,6 @@ export function getPackageVersion(): string {
     resolveVersionFromPackageTree(cliDir) ??
     getCorePackageVersion()
   );
-}
-
-export function startUiFrontend(options: { apiBase: string; port: number; dir?: string }): { url: string; dir: string } | null {
-  const uiDir = options.dir ?? resolveUiFrontendDir();
-  if (!uiDir) {
-    return null;
-  }
-  const runner = resolveUiFrontendRunner();
-  if (!runner) {
-    console.log("Warning: pnpm/npm not found. Skipping UI frontend.");
-    return null;
-  }
-
-  const args = [...runner.args];
-  if (options.port) {
-    if (runner.useArgSeparator) {
-      args.push("--");
-    }
-    args.push("--port", String(options.port));
-  }
-  const env = { ...process.env, VITE_API_BASE: options.apiBase };
-  const child = spawn(runner.cmd, args, { cwd: uiDir, stdio: "inherit", env });
-  child.on("exit", (code) => {
-    if (code && code !== 0) {
-      console.log(`UI frontend exited with code ${code}`);
-    }
-  });
-
-  const url = `http://127.0.0.1:${options.port}`;
-  console.log(`✓ UI frontend: ${url}`);
-  return { url, dir: uiDir };
-}
-
-export function resolveUiFrontendRunner(): { cmd: string; args: string[]; useArgSeparator: boolean } | null {
-  if (which("pnpm")) {
-    return { cmd: "pnpm", args: ["dev"], useArgSeparator: false };
-  }
-  if (which("npm")) {
-    return { cmd: "npm", args: ["run", "dev"], useArgSeparator: true };
-  }
-  return null;
-}
-
-export function resolveUiFrontendDir(): string | null {
-  const candidates: string[] = [];
-  const envDir = process.env.NEXTCLAW_UI_DIR;
-  if (envDir) {
-    candidates.push(envDir);
-  }
-
-  const cwd = process.cwd();
-  candidates.push(join(cwd, "packages", "nextclaw-ui"));
-  candidates.push(join(cwd, "nextclaw-ui"));
-
-  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-  const pkgRoot = resolve(cliDir, "..", "..");
-  candidates.push(join(pkgRoot, "..", "nextclaw-ui"));
-  candidates.push(join(pkgRoot, "..", "..", "packages", "nextclaw-ui"));
-  candidates.push(join(pkgRoot, "..", "..", "nextclaw-ui"));
-
-  for (const dir of candidates) {
-    if (existsSync(join(dir, "package.json"))) {
-      return dir;
-    }
-  }
-  return null;
 }
 
 export function printAgentResponse(response: string): void {
