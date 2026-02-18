@@ -51,6 +51,8 @@ nextclaw start
 
 Open **http://127.0.0.1:18791** → set your provider (e.g. OpenRouter) and model in the UI. You're done.
 
+Need internet access? Run `nextclaw start --public` to bind on `0.0.0.0`; startup logs will print detected public URLs.
+
 ```bash
 nextclaw stop   # stop the service
 ```
@@ -117,7 +119,7 @@ nextclaw stop   # stop the service
 
 | Command | Description |
 |---------|-------------|
-| `nextclaw start` | Start background service (gateway + UI) |
+| `nextclaw start` | Start background service (gateway + UI, add `--public` for internet access) |
 | `nextclaw restart` | Restart background service without manual stop/start |
 | `nextclaw stop` | Stop background service |
 | `nextclaw ui` | Start UI backend + gateway (foreground) |

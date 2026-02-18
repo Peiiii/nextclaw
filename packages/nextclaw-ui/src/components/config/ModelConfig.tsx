@@ -103,7 +103,8 @@ export function ModelConfig() {
                 className="h-12 px-4 rounded-xl"
               />
               <p className="text-xs text-gray-400">
-                {modelHint?.help ?? 'Examples: minimax/MiniMax-M2.1 · anthropic/claude-opus-4-5'}
+                {modelHint?.help ??
+                  'Examples: minimax/MiniMax-M2.5 · minimax/MiniMax-M2.1 · openrouter/anthropic/claude-3.5-sonnet · openrouter/openai/gpt-4o-mini'}
               </p>
             </div>
           </div>

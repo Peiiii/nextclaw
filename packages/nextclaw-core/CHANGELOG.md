@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.4.14
+
+### Patch Changes
+
+- Apply running config changes without manual restart for provider/channel/agent defaults, add missing-provider runtime fallback for smoother first-time setup, and document the new live-apply behavior.
+
 ## 0.4.13
 
 ### Patch Changes

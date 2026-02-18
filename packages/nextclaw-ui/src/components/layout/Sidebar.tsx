@@ -27,11 +27,11 @@ export function Sidebar() {
     <aside className="w-[240px] bg-transparent flex flex-col h-full py-6 px-4">
       {/* Logo Area */}
       <div className="px-3 mb-8">
-        <div className="flex items-center gap-2 group cursor-pointer">
+        <div className="flex items-center gap-2.5 group cursor-pointer">
           <div className="h-7 w-7 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-fast group-hover:scale-110">
-            <img src="/logo.svg" alt="NextClaw Logo" className="h-full w-full object-contain" />
+            <img src="/logo.svg" alt="NextClaw" className="h-full w-full object-contain" />
           </div>
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">nextclaw</h1>
+          <span className="text-[15px] font-bold bg-gradient-to-r from-primary to-indigo-500 bg-clip-text text-transparent tracking-[-0.02em]">NextClaw</span>
         </div>
       </div>
 

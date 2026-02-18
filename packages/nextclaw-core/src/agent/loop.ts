@@ -176,6 +176,24 @@ export class AgentLoop {
     this.running = false;
   }
 
+  applyRuntimeConfig(config: Config): void {
+    this.options.config = config;
+    this.options.model = config.agents.defaults.model;
+    this.options.maxIterations = config.agents.defaults.maxToolIterations;
+    this.options.contextConfig = config.agents.context;
+    this.options.braveApiKey = config.tools.web.search.apiKey || undefined;
+    this.options.execConfig = config.tools.exec;
+    this.options.restrictToWorkspace = config.tools.restrictToWorkspace;
+
+    this.context.setContextConfig(config.agents.context);
+    this.subagents.updateRuntimeOptions({
+      model: config.agents.defaults.model,
+      braveApiKey: config.tools.web.search.apiKey || undefined,
+      execConfig: config.tools.exec,
+      restrictToWorkspace: config.tools.restrictToWorkspace
+    });
+  }
+
   async processDirect(params: {
     content: string;
     sessionKey?: string;

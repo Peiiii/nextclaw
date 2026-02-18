@@ -23,6 +23,19 @@ const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
   }
 };
 
+function mergeContextConfig(contextConfig?: ContextConfig): ContextConfig {
+  return {
+    bootstrap: {
+      ...DEFAULT_CONTEXT_CONFIG.bootstrap,
+      ...(contextConfig?.bootstrap ?? {})
+    },
+    memory: {
+      ...DEFAULT_CONTEXT_CONFIG.memory,
+      ...(contextConfig?.memory ?? {})
+    }
+  };
+}
+
 export class ContextBuilder {
   private memory: MemoryStore;
   private skills: SkillsLoader;
@@ -31,16 +44,11 @@ export class ContextBuilder {
   constructor(private workspace: string, contextConfig?: ContextConfig) {
     this.memory = new MemoryStore(workspace);
     this.skills = new SkillsLoader(workspace);
-    this.contextConfig = {
-      bootstrap: {
-        ...DEFAULT_CONTEXT_CONFIG.bootstrap,
-        ...(contextConfig?.bootstrap ?? {})
-      },
-      memory: {
-        ...DEFAULT_CONTEXT_CONFIG.memory,
-        ...(contextConfig?.memory ?? {})
-      }
-    };
+    this.contextConfig = mergeContextConfig(contextConfig);
+  }
+
+  setContextConfig(contextConfig?: ContextConfig): void {
+    this.contextConfig = mergeContextConfig(contextConfig);
   }
 
   buildSystemPrompt(skillNames?: string[], sessionKey?: string, messageToolHints?: string[]): string {

@@ -13,22 +13,24 @@ export type ReloadPlan = {
   changedPaths: string[];
   restartChannels: boolean;
   reloadProviders: boolean;
+  reloadAgent: boolean;
   restartRequired: string[];
   noopPaths: string[];
 };
 
 type ReloadRule = {
   prefix: string;
-  kind: "restart-channels" | "reload-providers" | "restart-required" | "none";
+  kind: "restart-channels" | "reload-providers" | "reload-agent" | "restart-required" | "none";
 };
 
 const RELOAD_RULES: ReloadRule[] = [
   { prefix: "channels", kind: "restart-channels" },
   { prefix: "providers", kind: "reload-providers" },
-  { prefix: "agents.defaults.model", kind: "restart-required" },
+  { prefix: "agents.defaults.model", kind: "reload-agent" },
+  { prefix: "agents.defaults.maxToolIterations", kind: "reload-agent" },
+  { prefix: "agents.context", kind: "reload-agent" },
   { prefix: "agents.defaults.maxTokens", kind: "restart-required" },
   { prefix: "agents.defaults.temperature", kind: "restart-required" },
-  { prefix: "agents.defaults.maxToolIterations", kind: "restart-required" },
   { prefix: "tools", kind: "restart-required" },
   { prefix: "plugins", kind: "restart-required" },
   { prefix: "gateway", kind: "none" },
@@ -78,6 +80,7 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     changedPaths,
     restartChannels: false,
     reloadProviders: false,
+    reloadAgent: false,
     restartRequired: [],
     noopPaths: []
   };
@@ -94,6 +97,10 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     }
     if (rule.kind === "reload-providers") {
       plan.reloadProviders = true;
+      continue;
+    }
+    if (rule.kind === "reload-agent") {
+      plan.reloadAgent = true;
       continue;
     }
     if (rule.kind === "restart-required") {

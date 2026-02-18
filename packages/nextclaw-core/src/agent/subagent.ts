@@ -36,6 +36,26 @@ export class SubagentManager {
     }
   ) {}
 
+  updateRuntimeOptions(options: {
+    model?: string;
+    braveApiKey?: string | null;
+    execConfig?: { timeout: number };
+    restrictToWorkspace?: boolean;
+  }): void {
+    if (Object.prototype.hasOwnProperty.call(options, "model")) {
+      this.options.model = options.model;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "braveApiKey")) {
+      this.options.braveApiKey = options.braveApiKey;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "execConfig")) {
+      this.options.execConfig = options.execConfig;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "restrictToWorkspace")) {
+      this.options.restrictToWorkspace = options.restrictToWorkspace;
+    }
+  }
+
   async spawn(params: {
     task: string;
     label?: string;

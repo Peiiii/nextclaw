@@ -16,6 +16,7 @@ import {
   MessageBus,
   AgentLoop,
   LiteLLMProvider,
+  LLMProvider,
   ProviderManager,
   ChannelManager,
   SessionManager,
@@ -84,6 +85,8 @@ import {
   resolveUiConfig,
   resolveUiFrontendDir,
   resolveUiStaticDir,
+  resolvePublicIp,
+  isLoopbackHost,
   startUiFrontend,
   waitForExit,
   which,
@@ -99,12 +102,14 @@ type GatewayCommandOptions = {
   uiHost?: string;
   uiPort?: string | number;
   uiOpen?: boolean;
+  public?: boolean;
 };
 
 type UiCommandOptions = {
   host?: string;
   port?: string | number;
   open?: boolean;
+  public?: boolean;
 };
 
 type StartCommandOptions = {
@@ -113,6 +118,7 @@ type StartCommandOptions = {
   frontend?: boolean;
   frontendPort?: string | number;
   open?: boolean;
+  public?: boolean;
 };
 
 type AgentCommandOptions = {
@@ -386,6 +392,24 @@ function unsetAtConfigPath(root: Record<string, unknown>, pathSegments: string[]
   return true;
 }
 
+class MissingProvider extends LLMProvider {
+  constructor(private defaultModel: string) {
+    super(null, null);
+  }
+
+  setDefaultModel(model: string): void {
+    this.defaultModel = model;
+  }
+
+  async chat(): Promise<never> {
+    throw new Error("No API key configured yet. Configure provider credentials in UI and retry.");
+  }
+
+  getDefaultModel(): string {
+    return this.defaultModel;
+  }
+}
+
 class ConfigReloader {
   private currentConfig: Config;
   private channels: ChannelManager;
@@ -402,9 +426,10 @@ class ConfigReloader {
       bus: MessageBus;
       sessionManager: SessionManager;
       providerManager: ProviderManager | null;
-      makeProvider: (config: Config) => LiteLLMProvider | null;
+      makeProvider: (config: Config) => LLMProvider | null;
       loadConfig: () => Config;
       getExtensionChannels?: () => ExtensionRegistry["channels"];
+      applyAgentRuntimeConfig?: (config: Config) => void;
       onRestartRequired: (paths: string[]) => void;
     }
   ) {
@@ -416,6 +441,10 @@ class ConfigReloader {
     return this.channels;
   }
 
+  setApplyAgentRuntimeConfig(callback: ((config: Config) => void) | undefined): void {
+    this.options.applyAgentRuntimeConfig = callback;
+  }
+
   async applyReloadPlan(nextConfig: Config): Promise<void> {
     const changedPaths = diffConfigPaths(this.currentConfig, nextConfig);
     if (!changedPaths.length) {
@@ -425,9 +454,15 @@ class ConfigReloader {
     const plan = buildReloadPlan(changedPaths);
     if (plan.restartChannels) {
       await this.reloadChannels(nextConfig);
+      console.log("Config reload: channels restarted.");
     }
     if (plan.reloadProviders) {
       await this.reloadProvider(nextConfig);
+      console.log("Config reload: provider settings applied.");
+    }
+    if (plan.reloadAgent) {
+      this.options.applyAgentRuntimeConfig?.(nextConfig);
+      console.log("Config reload: agent defaults applied.");
     }
     if (plan.restartRequired.length > 0) {
       this.options.onRestartRequired(plan.restartRequired);
@@ -594,6 +629,12 @@ export class CliRuntime {
     if (opts.uiOpen) {
       uiOverrides.open = true;
     }
+    if (opts.public) {
+      uiOverrides.enabled = true;
+      if (!opts.uiHost) {
+        uiOverrides.host = "0.0.0.0";
+      }
+    }
     await this.startGateway({ uiOverrides });
   }
 
@@ -607,6 +648,9 @@ export class CliRuntime {
     }
     if (opts.port) {
       uiOverrides.port = Number(opts.port);
+    }
+    if (opts.public && !opts.host) {
+      uiOverrides.host = "0.0.0.0";
     }
     await this.startGateway({ uiOverrides, allowMissingProvider: true });
   }
@@ -622,6 +666,9 @@ export class CliRuntime {
     }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
+    }
+    if (opts.public && !opts.uiHost) {
+      uiOverrides.host = "0.0.0.0";
     }
 
     const devMode = isDevRuntime();
@@ -685,6 +732,9 @@ export class CliRuntime {
     }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
+    }
+    if (opts.public && !opts.uiHost) {
+      uiOverrides.host = "0.0.0.0";
     }
 
     const devMode = isDevRuntime();
@@ -1699,7 +1749,7 @@ export class CliRuntime {
     const bus = new MessageBus();
     const provider =
       options.allowMissingProvider === true ? this.makeProvider(config, { allowMissing: true }) : this.makeProvider(config);
-    const providerManager = provider ? new ProviderManager(provider) : null;
+    const providerManager = new ProviderManager(provider ?? this.makeMissingProvider(config));
     const sessionManager = new SessionManager(workspace);
 
     const cronStorePath = join(getDataDir(), "cron", "jobs.json");
@@ -1709,10 +1759,7 @@ export class CliRuntime {
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
     if (!provider) {
-      this.startUiIfEnabled(uiConfig, uiStaticDir);
-      console.log("Warning: No API key configured. UI server only.");
-      await new Promise(() => {});
-      return;
+      console.warn("Warning: No API key configured. The gateway is running, but agent replies are disabled until provider config is set.");
     }
 
     const channels = new ChannelManager(config, bus, sessionManager, extensionRegistry.channels);
@@ -1722,7 +1769,7 @@ export class CliRuntime {
       bus,
       sessionManager,
       providerManager,
-      makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }),
+      makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }) ?? this.makeMissingProvider(nextConfig),
       loadConfig,
       getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
@@ -1739,7 +1786,7 @@ export class CliRuntime {
 
     const agent = new AgentLoop({
       bus,
-      providerManager: providerManager ?? new ProviderManager(provider),
+      providerManager,
       workspace,
       model: config.agents.defaults.model,
       maxIterations: config.agents.defaults.maxToolIterations,
@@ -1760,6 +1807,8 @@ export class CliRuntime {
           accountId
         })
     });
+
+    reloader.setApplyAgentRuntimeConfig((nextConfig) => agent.applyRuntimeConfig(nextConfig));
 
     const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     setPluginRuntimeBridge({
@@ -1897,6 +1946,23 @@ export class CliRuntime {
     }
   }
 
+  private async printPublicUiUrls(host: string, port: number): Promise<void> {
+    if (isLoopbackHost(host)) {
+      console.log('Public URL: disabled (UI host is loopback). Use "--public" or "--ui-host 0.0.0.0" to expose it.');
+      return;
+    }
+
+    const publicIp = await resolvePublicIp();
+    if (!publicIp) {
+      console.log("Public URL: UI is exposed, but automatic public IP detection failed.");
+      return;
+    }
+
+    const publicBase = `http://${publicIp}:${port}`;
+    console.log(`Public UI (if firewall/NAT allows): ${publicBase}`);
+    console.log(`Public API (if firewall/NAT allows): ${publicBase}/api`);
+  }
+
   private startUiIfEnabled(uiConfig: Config["ui"], uiStaticDir: string | null): void {
     if (!uiConfig.enabled) {
       return;
@@ -1912,6 +1978,7 @@ export class CliRuntime {
     if (uiStaticDir) {
       console.log(`✓ UI frontend: ${uiUrl}`);
     }
+    void this.printPublicUiUrls(uiServer.host, uiServer.port);
     if (uiConfig.open) {
       openBrowser(uiUrl);
     }
@@ -1976,6 +2043,31 @@ export class CliRuntime {
       console.log(`✓ ${APP_NAME} is already running (PID ${existing.pid})`);
       console.log(`UI: ${existing.uiUrl}`);
       console.log(`API: ${existing.apiUrl}`);
+
+      const parsedUi = (() => {
+        try {
+          const parsed = new URL(existing.uiUrl);
+          const port = Number(parsed.port || 80);
+          return {
+            host: existing.uiHost ?? parsed.hostname,
+            port: Number.isFinite(port) ? port : existing.uiPort ?? 18791
+          };
+        } catch {
+          return {
+            host: existing.uiHost ?? "127.0.0.1",
+            port: existing.uiPort ?? 18791
+          };
+        }
+      })();
+
+      await this.printPublicUiUrls(parsedUi.host, parsedUi.port);
+      if (parsedUi.host !== uiConfig.host || parsedUi.port !== uiConfig.port) {
+        console.log(
+          `Note: requested UI bind (${uiConfig.host}:${uiConfig.port}) differs from running service (${parsedUi.host}:${parsedUi.port}).`
+        );
+        console.log(`Run: ${APP_NAME} restart${uiConfig.host === "0.0.0.0" ? " --public" : ""}`);
+      }
+
       console.log(`Logs: ${existing.logPath}`);
       console.log(`Stop: ${APP_NAME} stop`);
       return;
@@ -2016,6 +2108,8 @@ export class CliRuntime {
       startedAt: new Date().toISOString(),
       uiUrl,
       apiUrl,
+      uiHost: uiConfig.host,
+      uiPort: uiConfig.port,
       logPath
     };
     writeServiceState(state);
@@ -2023,6 +2117,7 @@ export class CliRuntime {
     console.log(`✓ ${APP_NAME} started in background (PID ${state.pid})`);
     console.log(`UI: ${uiUrl}`);
     console.log(`API: ${apiUrl}`);
+    await this.printPublicUiUrls(uiConfig.host, uiConfig.port);
     console.log(`Logs: ${logPath}`);
     console.log(`Stop: ${APP_NAME} stop`);
 
@@ -2079,6 +2174,10 @@ export class CliRuntime {
     rl.close();
     const normalized = answer.trim().toLowerCase();
     return normalized === "y" || normalized === "yes";
+  }
+
+  private makeMissingProvider(config: ReturnType<typeof loadConfig>): LLMProvider {
+    return new MissingProvider(config.agents.defaults.model);
   }
 
   private makeProvider(config: ReturnType<typeof loadConfig>, options: { allowMissing: true }): LiteLLMProvider | null;

@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.4.16
+
+### Patch Changes
+
+- Apply running config changes without manual restart for provider/channel/agent defaults, add missing-provider runtime fallback for smoother first-time setup, and document the new live-apply behavior.
+- Updated dependencies
+  - @nextclaw/core@0.4.14
+
+## 0.4.15
+
+### Patch Changes
+
+- Add `--public` support for `start`, `restart`, `serve`, `gateway`, and `ui` commands so NextClaw can bind UI on `0.0.0.0` and print detected public URLs at startup.
+
 ## 0.4.14
 
 ### Patch Changes

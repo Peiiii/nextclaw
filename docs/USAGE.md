@@ -107,6 +107,26 @@ This guide covers installation, configuration, channels, tools, automation, and 
 
 Supported providers include OpenRouter, OpenAI, Anthropic, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and AiHubMix. You can configure them in the UI or by editing `config.json`.
 
+### Runtime config apply behavior (no restart)
+
+When the gateway is already running, config changes from the UI or `nextclaw config set` are hot-applied for these paths:
+
+- `providers.*`
+- `channels.*`
+- `agents.defaults.model`
+- `agents.defaults.maxToolIterations`
+- `agents.context.*`
+
+Restart is still required for:
+
+- `tools.*`
+- `plugins.*`
+- `agents.defaults.maxTokens`
+- `agents.defaults.temperature`
+- UI bind flags (`--host`, `--port`, `--ui-host`, `--ui-port`, `--public`)
+
+To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
+
 ---
 
 ## Workspace
@@ -188,6 +208,9 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 - `--ui` — enable the UI server with the gateway
 - `--ui-port <port>` — UI port (default 18791 for start)
 - `--ui-open` — open the browser when the UI starts
+- `--public` — bind UI to `0.0.0.0` and print detected public URLs
+
+If service is already running, new host/port flags do not hot-apply; use `nextclaw restart ...` to apply them.
 
 ---
 
@@ -437,7 +460,7 @@ Mochat uses a claw token and optional socket URL. Configure base URL, socket, an
 }
 ```
 
-After changing channel config, restart the gateway (e.g. `nextclaw restart`) or use the UI if it supports reload.
+After changing channel config, NextClaw hot-reloads channel runtime automatically when the gateway is running.
 
 ---
 
@@ -551,6 +574,9 @@ You can tune the UI server in config:
 - `open`: open the default browser when the UI starts.
 
 Default URL when using `nextclaw start`: **http://127.0.0.1:18791**.
+
+If you need public access, run `nextclaw start --public` (or set `ui.host` to `0.0.0.0`).
+NextClaw will also attempt to detect and print a public IP-based URL at startup.
 
 ---
 

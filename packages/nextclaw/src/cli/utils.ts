@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { createServer } from "node:net";
+import { createServer, isIP } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Config } from "@nextclaw/core";
@@ -12,6 +12,8 @@ export type ServiceState = {
   startedAt: string;
   uiUrl: string;
   apiUrl: string;
+  uiHost?: string;
+  uiPort?: number;
   logPath: string;
 };
 
@@ -23,6 +25,45 @@ export function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]
 export function resolveUiApiBase(host: string, port: number): string {
   const normalizedHost = host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
   return `http://${normalizedHost}:${port}`;
+}
+
+export function isLoopbackHost(host: string): boolean {
+  const normalized = host.trim().toLowerCase();
+  return normalized === "127.0.0.1" || normalized === "localhost" || normalized === "::1";
+}
+
+const PUBLIC_IP_CHECK_URLS = ["https://api.ipify.org", "https://ifconfig.me/ip"];
+
+async function fetchPublicIpFrom(url: string, timeoutMs: number): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        Accept: "text/plain"
+      }
+    });
+    if (!response.ok) {
+      return null;
+    }
+    const text = (await response.text()).trim();
+    return isIP(text) ? text : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function resolvePublicIp(timeoutMs = 1500): Promise<string | null> {
+  for (const endpoint of PUBLIC_IP_CHECK_URLS) {
+    const candidate = await fetchPublicIpFrom(endpoint, timeoutMs);
+    if (candidate) {
+      return candidate;
+    }
+  }
+  return null;
 }
 
 export function isDevRuntime(): boolean {
