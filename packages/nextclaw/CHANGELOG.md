@@ -1,5 +1,14 @@
 # nextclaw
 
+## 0.6.11
+
+### Patch Changes
+
+- Harden restart sentinel delivery for Discord and long-running sessions:
+  - trim oversized restart reason/note/system message to avoid channel hard-limit failures;
+  - fallback to the most recent routable non-CLI session when `sessionKey` is missing;
+  - keep deterministic post-restart notice behavior with the existing pending-system-event fallback.
+
 ## 0.6.10
 
 ### Patch Changes

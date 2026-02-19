@@ -31,6 +31,25 @@ type RestartSentinelFile = {
 
 const RESTART_SENTINEL_FILENAME = "restart-sentinel.json";
 const PENDING_SYSTEM_EVENTS_KEY = "pending_system_events";
+const RESTART_REASON_MAX_CHARS = 240;
+const RESTART_NOTE_MAX_CHARS = 600;
+const RESTART_OUTBOUND_MAX_CHARS = 1200;
+
+function trimTo(value: string, maxChars: number): string {
+  const text = value.trim();
+  if (!text) {
+    return "";
+  }
+  if (text.length <= maxChars) {
+    return text;
+  }
+  return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
+}
+
+function normalizeLine(value: string, maxChars: number): string | null {
+  const trimmed = trimTo(value, maxChars);
+  return trimmed ? trimmed : null;
+}
 
 export function resolveRestartSentinelPath(): string {
   return resolve(getDataDir(), "run", RESTART_SENTINEL_FILENAME);
@@ -68,7 +87,7 @@ export async function consumeRestartSentinel(): Promise<RestartSentinelFile | nu
 }
 
 export function summarizeRestartSentinel(payload: RestartSentinelPayload): string {
-  const reason = payload.stats?.reason?.trim();
+  const reason = normalizeLine(payload.stats?.reason ?? "", RESTART_REASON_MAX_CHARS);
   if (payload.kind === "update.run") {
     return payload.status === "ok"
       ? "✅ NextClaw update completed and service restarted."
@@ -87,15 +106,17 @@ export function summarizeRestartSentinel(payload: RestartSentinelPayload): strin
 
 export function formatRestartSentinelMessage(payload: RestartSentinelPayload): string {
   const lines = [summarizeRestartSentinel(payload)];
-  const note = payload.message?.trim();
+  const note = normalizeLine(payload.message ?? "", RESTART_NOTE_MAX_CHARS);
   if (note) {
     lines.push(note);
   }
-  const reason = payload.stats?.reason?.trim();
+  const reason = normalizeLine(payload.stats?.reason ?? "", RESTART_REASON_MAX_CHARS);
   if (reason && !lines.some((line) => line.includes(reason))) {
     lines.push(`Reason: ${reason}`);
   }
-  return lines.join("\n");
+
+  const message = lines.join("\n").trim();
+  return trimTo(message, RESTART_OUTBOUND_MAX_CHARS);
 }
 
 export function parseSessionKey(

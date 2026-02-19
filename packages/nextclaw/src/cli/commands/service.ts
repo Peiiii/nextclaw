@@ -321,6 +321,45 @@ export class ServiceCommands {
     await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  private resolveMostRecentRoutableSessionKey(sessionManager: SessionManager): string | undefined {
+    const sessions = sessionManager.listSessions();
+    let best: { key: string; updatedAt: number } | null = null;
+
+    for (const session of sessions) {
+      const key = this.normalizeOptionalString((session as Record<string, unknown>).key);
+      if (!key || key.startsWith("cli:")) {
+        continue;
+      }
+
+      const metadataRaw = (session as Record<string, unknown>).metadata;
+      const metadata =
+        metadataRaw && typeof metadataRaw === "object" && !Array.isArray(metadataRaw)
+          ? (metadataRaw as Record<string, unknown>)
+          : {};
+      const contextRaw = metadata.last_delivery_context;
+      const context =
+        contextRaw && typeof contextRaw === "object" && !Array.isArray(contextRaw)
+          ? (contextRaw as Record<string, unknown>)
+          : {};
+      const hasRoute =
+        Boolean(this.normalizeOptionalString(context.channel)) && Boolean(this.normalizeOptionalString(context.chatId));
+      const hasFallbackRoute =
+        Boolean(this.normalizeOptionalString(metadata.last_channel)) && Boolean(this.normalizeOptionalString(metadata.last_to));
+      if (!hasRoute && !hasFallbackRoute) {
+        continue;
+      }
+
+      const updatedAtRaw = this.normalizeOptionalString((session as Record<string, unknown>).updated_at);
+      const updatedAt = updatedAtRaw ? Date.parse(updatedAtRaw) : Number.NaN;
+      const score = Number.isFinite(updatedAt) ? updatedAt : 0;
+      if (!best || score >= best.updatedAt) {
+        best = { key, updatedAt: score };
+      }
+    }
+
+    return best?.key;
+  }
+
   private async sendRestartSentinelNotice(params: {
     channels: ChannelManager;
     channel: string;
@@ -385,7 +424,12 @@ export class ServiceCommands {
 
     const payload = sentinel.payload;
     const message = formatRestartSentinelMessage(payload);
-    const sessionKey = this.normalizeOptionalString(payload.sessionKey) ?? "cli:default";
+    const sentinelSessionKey = this.normalizeOptionalString(payload.sessionKey);
+    const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey(params.sessionManager);
+    if (!sentinelSessionKey && fallbackSessionKey) {
+      console.warn(`Warning: restart sentinel missing sessionKey; fallback to ${fallbackSessionKey}.`);
+    }
+    const sessionKey = sentinelSessionKey ?? fallbackSessionKey ?? "cli:default";
     const parsedSession = parseSessionKey(sessionKey);
 
     const context = payload.deliveryContext;
