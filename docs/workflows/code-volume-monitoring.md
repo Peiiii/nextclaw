@@ -19,6 +19,12 @@
 pnpm metrics:loc
 ```
 
+仅看本地结果输出（仅 NextClaw，不写回文件）：
+
+```bash
+pnpm metrics:local
+```
+
 默认输出：
 
 - `docs/metrics/code-volume/latest.json`
@@ -26,6 +32,8 @@ pnpm metrics:loc
 可选参数：
 
 - `--append-history`：追加到 `history.jsonl`
+- `--no-write`：只计算不写 `latest.json/history.jsonl/comparison.json`
+- `--print-summary`：将完整统计摘要打印到终端
 - `--summary-file <path>`：输出 Markdown 摘要（适合 CI）
 - `--max-growth-percent <n>`：当 LOC 相比上次快照增长超过阈值时返回非 0
 - `--benchmark-name <name>`：设置对比仓库名称（例如 `openclaw`）

@@ -19,6 +19,7 @@
     "start": "pnpm -C packages/nextclaw start",
     "changeset": "changeset",
     "metrics:loc": "node scripts/code-volume-metrics.mjs",
+    "metrics:local": "node scripts/code-volume-metrics.mjs --no-write --print-summary",
     "release:check": "pnpm build && pnpm lint && pnpm tsc",
     "release:version": "pnpm changeset version",
     "release:publish": "pnpm release:check && pnpm changeset publish && pnpm changeset tag"

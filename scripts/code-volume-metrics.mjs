@@ -32,6 +32,8 @@ const options = {
   outputPath: resolve(rootDir, "docs/metrics/code-volume/latest.json"),
   summaryPath: "",
   appendHistory: false,
+  noWrite: false,
+  printSummary: false,
   maxGrowthPercent: null,
   benchmarkName: "",
   benchmarkRoot: "",
@@ -53,6 +55,14 @@ for (let index = 0; index < args.length; index += 1) {
   }
   if (arg === "--append-history") {
     options.appendHistory = true;
+    continue;
+  }
+  if (arg === "--no-write") {
+    options.noWrite = true;
+    continue;
+  }
+  if (arg === "--print-summary") {
+    options.printSummary = true;
     continue;
   }
   if (arg === "--max-growth-percent") {
@@ -320,10 +330,12 @@ const snapshotWithDelta = {
   }
 };
 
-mkdirSync(dirname(options.outputPath), { recursive: true });
-writeFileSync(options.outputPath, `${JSON.stringify(snapshotWithDelta, null, 2)}\n`, "utf8");
+if (!options.noWrite) {
+  mkdirSync(dirname(options.outputPath), { recursive: true });
+  writeFileSync(options.outputPath, `${JSON.stringify(snapshotWithDelta, null, 2)}\n`, "utf8");
+}
 
-if (options.appendHistory) {
+if (options.appendHistory && !options.noWrite) {
   const historyPath = resolve(dirname(options.outputPath), "history.jsonl");
   const historyEntry = {
     generatedAt: snapshotWithDelta.generatedAt,
@@ -394,8 +406,10 @@ if (options.benchmarkRoot) {
     }
   };
 
-  mkdirSync(dirname(options.benchmarkOutputPath), { recursive: true });
-  writeFileSync(options.benchmarkOutputPath, `${JSON.stringify(comparisonReport, null, 2)}\n`, "utf8");
+  if (!options.noWrite) {
+    mkdirSync(dirname(options.benchmarkOutputPath), { recursive: true });
+    writeFileSync(options.benchmarkOutputPath, `${JSON.stringify(comparisonReport, null, 2)}\n`, "utf8");
+  }
 
   benchmarkSummaryLines = [
     "",
@@ -408,9 +422,11 @@ if (options.benchmarkRoot) {
     `- NextClaw lighter by: ${baseIsLighterByPercent === null ? "N/A" : `${baseIsLighterByPercent}%`}`
   ];
 
-  console.log(
-    `Benchmark snapshot saved: ${toPosixPath(relative(rootDir, options.benchmarkOutputPath))}`
-  );
+  if (!options.noWrite) {
+    console.log(
+      `Benchmark snapshot saved: ${toPosixPath(relative(rootDir, options.benchmarkOutputPath))}`
+    );
+  }
   if (basePercentOfBenchmark !== null && benchmarkMultipleOfBase !== null) {
     console.log(
       `Vs ${benchmarkName}: ${basePercentOfBenchmark}% size (${benchmarkName} is ${benchmarkMultipleOfBase}x of NextClaw)`
@@ -446,7 +462,13 @@ if (options.summaryPath) {
   writeFileSync(options.summaryPath, `${summary}\n`, "utf8");
 }
 
-console.log(`Code volume snapshot saved: ${toPosixPath(relative(rootDir, options.outputPath))}`);
+if (options.printSummary) {
+  console.log(`\n${summary}`);
+}
+
+if (!options.noWrite) {
+  console.log(`Code volume snapshot saved: ${toPosixPath(relative(rootDir, options.outputPath))}`);
+}
 console.log(`Tracked files: ${totals.files}`);
 console.log(`Code lines (LOC): ${totals.codeLines}`);
 if (hasPrevious) {

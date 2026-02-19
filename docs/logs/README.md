@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.6.32-local-loc-output/README.md`
 - `docs/logs/v0.6.28-release-channel-runtime-typing-class-fix/README.md`
 - `docs/logs/v0.6.27-typing-controller-class-align/README.md`
 - `docs/logs/v0.6.26-openclaw-final-oneshot-complete/README.md`
