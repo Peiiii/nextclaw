@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.6.20
+
+### Patch Changes
+
+- Adopt `<noreply/>` as the silent marker and stop reply/output processing when the marker appears. Cascade release all direct dependents of `@nextclaw/core` to keep internal versions aligned.
+
 ## 0.6.19
 
 ### Patch Changes

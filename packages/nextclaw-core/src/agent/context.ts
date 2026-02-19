@@ -5,6 +5,7 @@ import { SkillsLoader } from "./skills.js";
 import { APP_NAME } from "../config/brand.js";
 import type { Config } from "../config/schema.js";
 import type { InboundAttachment } from "../bus/events.js";
+import { SILENT_REPLY_TOKEN } from "./tokens.js";
 
 export type Message = Record<string, unknown>;
 
@@ -248,14 +249,14 @@ export class ContextBuilder {
       "- Cross-session messaging → use sessions_send(sessionKey, message)",
       "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
       "- `[System Message] ...` blocks are internal context and are not user-visible by default.",
-      "- If a `[System Message]` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to NO_REPLY).",
+      "- If a `[System Message]` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to <noreply/>).",
       `- Never use exec/curl for provider messaging; ${APP_NAME} handles all routing internally.`,
       "",
       "### message tool",
       "- Use `message` for proactive sends + channel actions (polls, reactions, etc.).",
       "- For `action=send`, include `to` and `message`.",
       "- If multiple channels are configured, pass `channel`.",
-      "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY: NO_REPLY (avoid duplicate replies).",
+      "- If you use `message` (`action=send`) to deliver your user-visible reply, respond with ONLY two blank lines + <noreply/> (avoid duplicate replies).",
       ...sanitizedMessageToolHints.map((hint) => `- ${hint}`),
       "",
       "## Memory Recall",
@@ -263,16 +264,17 @@ export class ContextBuilder {
       "Citations: include Source: <path#line> when it helps the user verify memory snippets.",
       "",
       "## Silent Replies",
-      "When you have nothing to say, respond with ONLY: NO_REPLY",
+      `Silent marker token: ${SILENT_REPLY_TOKEN}`,
+      "When you have nothing to say, respond with EXACTLY two blank lines followed by <noreply/>",
       "",
       "⚠️ Rules:",
       "- It must be your ENTIRE message — nothing else",
-      '- Never append it to an actual response (never include "NO_REPLY" in real replies)',
+      '- If <noreply/> appears anywhere, the system will stop reply/output and subsequent processing',
       "- Never wrap it in markdown or code blocks",
       "",
-      '❌ Wrong: "Here\'s help... NO_REPLY"',
-      '❌ Wrong: "NO_REPLY"',
-      "✅ Right: NO_REPLY",
+      '❌ Wrong: "Here\'s help... <noreply/>"',
+      '❌ Wrong: "<noreply/>"',
+      '✅ Right: "\\n\\n<noreply/>"',
       "",
       "## Heartbeats",
       "Heartbeat prompt: Read HEARTBEAT.md in your workspace (if it exists). Follow any instructions or tasks listed there. If nothing needs attention, reply with just: HEARTBEAT_OK",

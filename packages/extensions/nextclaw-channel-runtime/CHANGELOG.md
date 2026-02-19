@@ -1,5 +1,13 @@
 # @nextclaw/channel-runtime
 
+## 0.1.4
+
+### Patch Changes
+
+- Adopt `<noreply/>` as the silent marker and stop reply/output processing when the marker appears. Cascade release all direct dependents of `@nextclaw/core` to keep internal versions aligned.
+- Updated dependencies
+  - @nextclaw/core@0.6.20
+
 ## 0.1.3
 
 ### Patch Changes

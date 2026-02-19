@@ -1,17 +1,25 @@
 export const HEARTBEAT_TOKEN = "HEARTBEAT_OK";
-export const SILENT_REPLY_TOKEN = "NO_REPLY";
+export const SILENT_REPLY_TOKEN = "<noreply/>";
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const SILENT_REPLY_MARKER_PATTERN = /<\s*noreply\s*\/\s*>/i;
+
+export function containsSilentReplyMarker(text: string | null | undefined): boolean {
+  if (!text) {
+    return false;
+  }
+  return SILENT_REPLY_MARKER_PATTERN.test(text);
+}
 
 export function isSilentReplyText(text: string | undefined, token: string = SILENT_REPLY_TOKEN): boolean {
   if (!text) {
     return false;
   }
-  const escaped = escapeRegExp(token);
-  const prefix = new RegExp(`^\\s*${escaped}(?=$|\\W)`);
-  if (prefix.test(text)) {
-    return true;
+  if (token === SILENT_REPLY_TOKEN) {
+    return containsSilentReplyMarker(text);
   }
-  const suffix = new RegExp(`\\b${escaped}\\b\\W*$`);
-  return suffix.test(text);
+  const escaped = escapeRegExp(token);
+  const pattern = new RegExp(escaped, "i");
+  return pattern.test(text);
 }
