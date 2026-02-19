@@ -66,14 +66,16 @@ export class OpenAICompatibleProvider extends LLMProvider {
     const temperature = params.temperature ?? 0.7;
     const maxTokens = params.maxTokens ?? 4096;
 
-    const response = await this.client.chat.completions.create({
-      model,
-      messages: params.messages as unknown as ChatCompletionMessageParam[],
-      tools: params.tools as ChatCompletionTool[] | undefined,
-      tool_choice: params.tools?.length ? "auto" : undefined,
-      temperature,
-      max_tokens: maxTokens
-    });
+    const response = await this.withRetry(async () =>
+      this.client.chat.completions.create({
+        model,
+        messages: params.messages as unknown as ChatCompletionMessageParam[],
+        tools: params.tools as ChatCompletionTool[] | undefined,
+        tool_choice: params.tools?.length ? "auto" : undefined,
+        temperature,
+        max_tokens: maxTokens
+      })
+    );
 
     const choice = response.choices[0];
     const message = choice?.message;
@@ -132,20 +134,31 @@ export class OpenAICompatibleProvider extends LLMProvider {
 
     const base = this.apiBase ?? "https://api.openai.com/v1";
     const responseUrl = new URL("responses", base.endsWith("/") ? base : `${base}/`);
-    const response = await fetch(responseUrl.toString(), {
-      method: "POST",
-      headers: {
-        "Authorization": this.apiKey ? `Bearer ${this.apiKey}` : "",
-        "Content-Type": "application/json",
-        ...(this.extraHeaders ?? {})
-      },
-      body: JSON.stringify(body)
-    });
+    const response = await this.withRetry(async () => {
+      const attempt = await fetch(responseUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Authorization": this.apiKey ? `Bearer ${this.apiKey}` : "",
+          "Content-Type": "application/json",
+          ...(this.extraHeaders ?? {})
+        },
+        body: JSON.stringify(body)
+      });
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Responses API failed (${response.status}): ${text.slice(0, 200)}`);
-    }
+      if (!attempt.ok) {
+        const text = await attempt.text();
+        const preview = text.slice(0, 200);
+        const error = new Error(
+          `Responses API failed (${attempt.status}): ${preview}`
+        ) as Error & { status?: number; responseUrl?: string; bodyPreview?: string };
+        error.status = attempt.status;
+        error.responseUrl = responseUrl.toString();
+        error.bodyPreview = preview;
+        throw error;
+      }
+
+      return attempt;
+    });
 
     const rawText = await response.text();
     const responseAny = this.parseResponsesPayload(rawText) as {
@@ -341,6 +354,55 @@ export class OpenAICompatibleProvider extends LLMProvider {
       return true;
     }
     return false;
+  }
+
+  private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+    const maxAttempts = 3;
+    let attempt = 0;
+
+    while (attempt < maxAttempts) {
+      attempt += 1;
+      try {
+        return await operation();
+      } catch (error) {
+        if (attempt >= maxAttempts || !this.isTransientError(error)) {
+          throw error;
+        }
+        await this.sleep(250 * attempt);
+      }
+    }
+
+    throw new Error("Retry attempts exhausted");
+  }
+
+  private isTransientError(error: unknown): boolean {
+    const err = error as {
+      status?: number;
+      code?: string;
+      message?: string;
+      cause?: { code?: string; message?: string };
+    };
+    const status = err?.status;
+    if (typeof status === "number" && (status === 429 || status >= 500)) {
+      return true;
+    }
+
+    const code = `${err?.code ?? err?.cause?.code ?? ""}`.toUpperCase();
+    if (code && ["ECONNRESET", "ETIMEDOUT", "EAI_AGAIN", "ENOTFOUND", "UND_ERR_SOCKET"].includes(code)) {
+      return true;
+    }
+
+    const message = `${err?.message ?? err?.cause?.message ?? ""}`.toLowerCase();
+    return (
+      message.includes("fetch failed") ||
+      message.includes("socket hang up") ||
+      message.includes("timed out") ||
+      message.includes("temporarily unavailable")
+    );
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private toResponsesInput(messages: Array<Record<string, unknown>>): Array<Record<string, unknown>> {

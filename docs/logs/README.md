@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.6.15-openai-wireapi-transient-retry/README.md`
+- `docs/logs/v0.6.14-release-v0.6.14/README.md`
 - `docs/logs/v0.6.14-release-core-v0.6.13/README.md`
 - `docs/logs/v0.6.14-restore-current-time-prompt/README.md`
 - `docs/logs/v0.6.14-release-core-v0.6.12/README.md`
