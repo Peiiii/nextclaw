@@ -1,11 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { loadConfig } from "@nextclaw/core";
+import { getWorkspacePath, loadConfig, saveConfig, PROVIDERS } from "@nextclaw/core";
+import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
+import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
+import type { ChannelsAddOptions, RequestRestartParams } from "../types.js";
 
 export class ChannelCommands {
   constructor(
     private deps: {
       logo: string;
       getBridgeDir: () => string;
+      requestRestart: (params: RequestRestartParams) => Promise<void>;
     }
   ) {}
 
@@ -19,6 +23,23 @@ export class ChannelCommands {
     console.log(`Telegram: ${config.channels.telegram.enabled ? "✓" : "✗"}`);
     console.log(`Slack: ${config.channels.slack.enabled ? "✓" : "✗"}`);
     console.log(`QQ: ${config.channels.qq.enabled ? "✓" : "✗"}`);
+
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const report = buildPluginStatusReport({
+      config,
+      workspaceDir,
+      reservedChannelIds: Object.keys(config.channels),
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+    });
+
+    const pluginChannels = report.plugins.filter((plugin) => plugin.status === "loaded" && plugin.channelIds.length > 0);
+    if (pluginChannels.length > 0) {
+      console.log("Plugin Channels:");
+      for (const plugin of pluginChannels) {
+        const channels = plugin.channelIds.join(", ");
+        console.log(`- ${channels} (plugin: ${plugin.id})`);
+      }
+    }
   }
 
   channelsLogin(): void {
@@ -29,5 +50,72 @@ export class ChannelCommands {
     if (result.status !== 0) {
       console.error(`Bridge failed: ${result.status ?? 1}`);
     }
+  }
+
+  async channelsAdd(opts: ChannelsAddOptions): Promise<void> {
+    const channelId = opts.channel?.trim();
+    if (!channelId) {
+      console.error("--channel is required");
+      process.exit(1);
+    }
+
+    const config = loadConfig();
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
+    const bindings = getPluginChannelBindings(pluginRegistry);
+
+    const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
+    if (!binding) {
+      console.error(`No plugin channel found for: ${channelId}`);
+      process.exit(1);
+    }
+
+    const setup = binding.channel.setup;
+    if (!setup?.applyAccountConfig) {
+      console.error(`Channel "${binding.channelId}" does not support setup.`);
+      process.exit(1);
+    }
+
+    const input = {
+      name: opts.name,
+      token: opts.token,
+      code: opts.code,
+      url: opts.url,
+      httpUrl: opts.httpUrl
+    };
+
+    const currentView = toPluginConfigView(config, bindings);
+    const accountId = binding.channel.config?.defaultAccountId?.(currentView) ?? "default";
+
+    const validateError = setup.validateInput?.({
+      cfg: currentView,
+      input,
+      accountId
+    });
+    if (validateError) {
+      console.error(`Channel setup validation failed: ${validateError}`);
+      process.exit(1);
+    }
+
+    const nextView = setup.applyAccountConfig({
+      cfg: currentView,
+      input,
+      accountId
+    });
+
+    if (!nextView || typeof nextView !== "object" || Array.isArray(nextView)) {
+      console.error("Channel setup returned invalid config payload.");
+      process.exit(1);
+    }
+
+    let next = mergePluginConfigView(config, nextView as Record<string, unknown>, bindings);
+    next = enablePluginInConfig(next, binding.pluginId);
+    saveConfig(next);
+
+    console.log(`Configured channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
+    await this.deps.requestRestart({
+      reason: `channel configured via plugin: ${binding.pluginId}`,
+      manualMessage: "Restart the gateway to apply changes."
+    });
   }
 }

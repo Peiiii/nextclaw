@@ -9,12 +9,6 @@
     "paths": {
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
-      ],
-      "@nextclaw/server": [
-        "../nextclaw-server/src/index.ts"
-      ],
-      "@nextclaw/openclaw-compat": [
-        "../nextclaw-openclaw-compat/src/index.ts"
       ]
     }
   },

@@ -48,7 +48,8 @@
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
     "@nextclaw/core": "^0.6.1",
-    "@nextclaw/server": "^0.4.1"
+    "@nextclaw/server": "^0.4.1",
+    "@nextclaw/openclaw-compat": "^0.1.4"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

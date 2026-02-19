@@ -26,6 +26,36 @@ export type UpdateCommandOptions = {
   timeout?: string | number;
 };
 
+export type PluginsListOptions = {
+  json?: boolean;
+  enabled?: boolean;
+  verbose?: boolean;
+};
+
+export type PluginsInfoOptions = {
+  json?: boolean;
+};
+
+export type PluginsInstallOptions = {
+  link?: boolean;
+};
+
+export type PluginsUninstallOptions = {
+  keepFiles?: boolean;
+  keepConfig?: boolean;
+  force?: boolean;
+  dryRun?: boolean;
+};
+
+export type ChannelsAddOptions = {
+  channel: string;
+  code?: string;
+  token?: string;
+  name?: string;
+  url?: string;
+  httpUrl?: string;
+};
+
 export type ConfigGetOptions = {
   json?: boolean;
 };

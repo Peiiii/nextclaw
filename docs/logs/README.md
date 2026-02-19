@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.6.2-restore-openclaw-plugin-compat/README.md`
 - `docs/logs/v0.6.1-release-v0.6.1/README.md`
 - `docs/logs/v0.6.0-release-v0.6.0/README.md`
 - `docs/logs/v0.5.39-remove-openclaw-plugin-system/README.md`

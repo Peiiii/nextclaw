@@ -14,6 +14,7 @@ import {
   DEFAULT_WORKSPACE_DIR,
   DEFAULT_WORKSPACE_PATH
 } from "@nextclaw/core";
+import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -30,6 +31,12 @@ import {
   prompt,
   readServiceState
 } from "./utils.js";
+import {
+  loadPluginRegistry,
+  logPluginDiagnostics,
+  toExtensionRegistry,
+  PluginCommands
+} from "./commands/plugins.js";
 import { ConfigCommands } from "./commands/config.js";
 import { ChannelCommands } from "./commands/channels.js";
 import { CronCommands } from "./commands/cron.js";
@@ -38,11 +45,16 @@ import { ServiceCommands } from "./commands/service.js";
 import { WorkspaceManager } from "./workspace.js";
 import type {
   AgentCommandOptions,
+  ChannelsAddOptions,
   ConfigGetOptions,
   ConfigSetOptions,
   CronAddOptions,
   DoctorCommandOptions,
   GatewayCommandOptions,
+  PluginsInfoOptions,
+  PluginsInstallOptions,
+  PluginsListOptions,
+  PluginsUninstallOptions,
   RequestRestartParams,
   StartCommandOptions,
   StatusCommandOptions,
@@ -64,6 +76,7 @@ export class CliRuntime {
   private workspaceManager: WorkspaceManager;
   private serviceCommands: ServiceCommands;
   private configCommands: ConfigCommands;
+  private pluginCommands: PluginCommands;
   private channelCommands: ChannelCommands;
   private cronCommands: CronCommands;
   private diagnosticsCommands: DiagnosticsCommands;
@@ -78,10 +91,13 @@ export class CliRuntime {
     this.configCommands = new ConfigCommands({
       requestRestart: (params) => this.requestRestart(params)
     });
-
+    this.pluginCommands = new PluginCommands({
+      requestRestart: (params) => this.requestRestart(params)
+    });
     this.channelCommands = new ChannelCommands({
       logo: this.logo,
-      getBridgeDir: () => this.workspaceManager.getBridgeDir()
+      getBridgeDir: () => this.workspaceManager.getBridgeDir(),
+      requestRestart: (params) => this.requestRestart(params)
     });
     this.cronCommands = new CronCommands();
     this.diagnosticsCommands = new DiagnosticsCommands({ logo: this.logo });
@@ -399,6 +415,9 @@ export class CliRuntime {
   async agent(opts: AgentCommandOptions): Promise<void> {
     const config = loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = loadPluginRegistry(config, workspace);
+    const extensionRegistry = toExtensionRegistry(pluginRegistry);
+    logPluginDiagnostics(pluginRegistry);
 
     const bus = new MessageBus();
     const provider = this.serviceCommands.createProvider(config) ?? this.serviceCommands.createMissingProvider(config);
@@ -415,7 +434,15 @@ export class CliRuntime {
       execConfig: config.tools.exec,
       restrictToWorkspace: config.tools.restrictToWorkspace,
       contextConfig: config.agents.context,
-      config
+      config,
+      extensionRegistry,
+      resolveMessageToolHints: ({ channel, accountId }) =>
+        resolvePluginChannelMessageToolHints({
+          registry: pluginRegistry,
+          channel,
+          cfg: loadConfig(),
+          accountId
+        })
     });
 
     if (opts.message) {
@@ -503,6 +530,34 @@ export class CliRuntime {
     }
   }
 
+  pluginsList(opts: PluginsListOptions = {}): void {
+    this.pluginCommands.pluginsList(opts);
+  }
+
+  pluginsInfo(id: string, opts: PluginsInfoOptions = {}): void {
+    this.pluginCommands.pluginsInfo(id, opts);
+  }
+
+  async pluginsEnable(id: string): Promise<void> {
+    await this.pluginCommands.pluginsEnable(id);
+  }
+
+  async pluginsDisable(id: string): Promise<void> {
+    await this.pluginCommands.pluginsDisable(id);
+  }
+
+  async pluginsUninstall(id: string, opts: PluginsUninstallOptions = {}): Promise<void> {
+    await this.pluginCommands.pluginsUninstall(id, opts);
+  }
+
+  async pluginsInstall(pathOrSpec: string, opts: PluginsInstallOptions = {}): Promise<void> {
+    await this.pluginCommands.pluginsInstall(pathOrSpec, opts);
+  }
+
+  pluginsDoctor(): void {
+    this.pluginCommands.pluginsDoctor();
+  }
+
   configGet(pathExpr: string, opts: ConfigGetOptions = {}): void {
     this.configCommands.configGet(pathExpr, opts);
   }
@@ -521,6 +576,10 @@ export class CliRuntime {
 
   channelsLogin(): void {
     this.channelCommands.channelsLogin();
+  }
+
+  async channelsAdd(opts: ChannelsAddOptions): Promise<void> {
+    await this.channelCommands.channelsAdd(opts);
   }
 
   cronList(opts: { all?: boolean }): void {

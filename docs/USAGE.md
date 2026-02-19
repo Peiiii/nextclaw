@@ -135,6 +135,7 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 Restart is still required for:
 
 - UI bind port (`--port` / `--ui-port`)
+- `plugins.*`
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
 
@@ -194,9 +195,17 @@ Created under the workspace:
 | `nextclaw init` | Initialize workspace and template files |
 | `nextclaw init --force` | Re-run init and overwrite templates |
 | `nextclaw update` | Self-update the CLI |
+| `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
+| `nextclaw plugins info <id>` | Show plugin details |
+| `nextclaw plugins install <path-or-spec>` | Install plugin from local path/archive or npm spec |
+| `nextclaw plugins uninstall <id>` | Uninstall plugin (with optional `--dry-run`) |
+| `nextclaw plugins enable <id>` | Enable plugin in config |
+| `nextclaw plugins disable <id>` | Disable plugin in config |
+| `nextclaw plugins doctor` | Diagnose plugin loading issues |
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
 | `nextclaw channels login` | Open QR login for supported channels |
+| `nextclaw channels add --channel <id> ...` | Configure plugin channel via setup adapter |
 | `nextclaw cron list` | List scheduled jobs |
 | `nextclaw cron add ...` | Add a cron job (see [Cron](#cron--heartbeat)) |
 | `nextclaw cron remove <jobId>` | Remove a job |
@@ -222,6 +231,14 @@ Status/diagnostics tips:
 - `nextclaw status --json` outputs machine-readable status and sets exit code (`0` healthy, `1` degraded, `2` stopped).
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
 - `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
+
+OpenClaw-compatible plugin discovery paths:
+
+- `${NEXTCLAW_HOME:-~/.nextclaw}/extensions`
+- `<workspace>/.nextclaw/extensions`
+- `plugins.load.paths` entries in config
+
+Legacy OpenClaw directories are not scanned by default (`~/.openclaw/extensions`, `<workspace>/.openclaw/extensions`).
 
 ---
 
