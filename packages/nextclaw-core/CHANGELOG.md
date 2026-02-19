@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.6.13
+
+### Patch Changes
+
+- Restore explicit current-time line in agent system prompt runtime section while keeping OpenClaw-aligned prompt structure.
+
+## 0.6.12
+
+### Patch Changes
+
+- Align agent system prompt structure and wording with OpenClaw baseline while preserving NextClaw-specific runtime/tooling details.
+
 ## 0.6.11
 
 ### Patch Changes

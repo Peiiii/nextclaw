@@ -58,7 +58,19 @@ export class ContextBuilder {
 
     const bootstrap = this.loadBootstrapFiles(sessionKey);
     if (bootstrap) {
-      parts.push(`# Workspace Context\n\n${bootstrap}`);
+      const hasSoulFile = /##\s+SOUL\.md\b/i.test(bootstrap);
+      const contextLines = [
+        "# Project Context",
+        "",
+        "The following project context files have been loaded:"
+      ];
+      if (hasSoulFile) {
+        contextLines.push(
+          "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it."
+        );
+      }
+      contextLines.push("", bootstrap);
+      parts.push(contextLines.join("\n"));
     }
 
     const memory = this.buildMemorySection();
@@ -83,10 +95,23 @@ export class ContextBuilder {
 
     const skillsSummary = this.skills.buildSkillsSummary();
     if (skillsSummary) {
-      parts.push(`# Skills\n\nThe following skills extend your capabilities. To use a skill, read its SKILL.md file using the read_file tool.\nSkills with available="false" need dependencies installed first - you can try installing them with apt/brew.\n\n${skillsSummary}`);
+      parts.push(
+        [
+          "## Skills (mandatory)",
+          "Before replying: scan <available_skills> <description> entries.",
+          "- If exactly one skill clearly applies: read its SKILL.md at <location> with `read_file`, then follow it.",
+          "- If multiple could apply: choose the most specific one, then read/follow it.",
+          "- If none clearly apply: do not read any SKILL.md.",
+          "Constraints: never read more than one skill up front; only read after selecting.",
+          "",
+          "<available_skills>",
+          skillsSummary,
+          "</available_skills>"
+        ].join("\n")
+      );
     }
 
-    return parts.join("\n\n---\n\n");
+    return parts.join("\n\n");
   }
 
   buildMessages(params: {
@@ -264,12 +289,7 @@ export class ContextBuilder {
       `- For ${APP_NAME} runtime operations (status/doctor/channels/config/cron), read \`${this.workspace}/USAGE.md\` first.`,
       `- If \`${this.workspace}/USAGE.md\` is missing, fall back to \`docs/USAGE.md\` in repo dev runs or command help output.`,
       `- After mutating operations, validate with \`${appLower} status --json\` (and \`${appLower} doctor --json\` when needed).`,
-      "",
-      "## Behavior",
-      "- For normal conversation, respond with plain text; do not call the message tool.",
-      "- Use the message tool only when you need to send a reply to a specific chat channel.",
-      "- When using tools, briefly explain what you're doing.",
-      `- When remembering something, write to ${this.workspace}/memory/MEMORY.md`
+      ""
     ];
     return lines.join("\n");
   }

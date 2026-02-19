@@ -1,5 +1,8 @@
 # Logs
 
+- `docs/logs/v0.6.14-release-core-v0.6.13/README.md`
+- `docs/logs/v0.6.14-restore-current-time-prompt/README.md`
+- `docs/logs/v0.6.14-release-core-v0.6.12/README.md`
 - `docs/logs/v0.6.14-openclaw-system-prompt-parity/README.md`
 - `docs/logs/v0.6.13-release-v0.6.13/README.md`
 - `docs/logs/v0.6.13-ai-generated-restart-reply/README.md`

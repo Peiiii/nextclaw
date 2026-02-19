@@ -18,6 +18,16 @@
     - Tooling / Tool Call Style / Safety / CLI Quick Reference / Workspace / Reply Tags / Messaging / Memory Recall / Silent Replies / Heartbeats / Runtime。
   - 文案层面与 OpenClaw保持同语义、同规则表达；仅替换 NextClaw 项目专有名词与路径。
   - `message tool hints` 继续保留注入能力，但挂接到 OpenClaw 风格的 `### message tool` 段落中。
+  - `buildSystemPrompt()` 对齐 OpenClaw 的上下文拼装风格：
+    - 将 `# Workspace Context` 收敛为 `# Project Context`，并补充 SOUL 提示语句；
+    - 增加 `## Skills (mandatory)` 指引与 `<available_skills>` 块；
+    - 移除旧的分隔符拼接（`---`），改为 OpenClaw 风格的连续段落拼装。
+
+## 保留差异（判定为 NextClaw 特有能力）
+
+- 保留 `nextclaw` CLI 子命令与 `USAGE.md` 自管理指引（OpenClaw 对应路径/命令不同）。
+- 保留 NextClaw 实际工具集合命名（如 `read_file`/`write_file`/`list_dir`）。
+- 未引入 OpenClaw 中依赖其运行时能力的专属段落（如 sandbox/browser/nodes/session_status/model alias 等）。
 
 ## 验证（怎么确认符合预期）
 
@@ -43,4 +53,3 @@ pnpm tsc
 - 影响范围：仅提示词文本。
 - 风险：模型行为会随提示词更贴近 OpenClaw 习惯，属于预期变化。
 - Breaking change：否。
-
