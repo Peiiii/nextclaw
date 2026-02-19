@@ -1,5 +1,11 @@
 # nextclaw-server
 
+## 0.4.3
+
+### Patch Changes
+
+- Align internal dependency on `@nextclaw/core@^0.6.18` and publish dependent packages together.
+
 ## 0.4.2
 
 ### Patch Changes

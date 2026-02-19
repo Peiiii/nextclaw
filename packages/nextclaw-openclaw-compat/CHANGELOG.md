@@ -1,5 +1,13 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.10
+
+### Patch Changes
+
+- Align internal dependency on `@nextclaw/core@^0.6.18` and publish dependent packages together.
+- Updated dependencies
+  - @nextclaw/channel-runtime@0.1.3
+
 ## 0.1.9
 
 ### Patch Changes
