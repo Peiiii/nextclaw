@@ -68,8 +68,6 @@ spawnProcess(
     "tsconfig.json",
     "src/cli/index.ts",
     "serve",
-    "--ui-host",
-    "127.0.0.1",
     "--ui-port",
     "18792"
   ],

@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.6.6
+
+### Patch Changes
+
+- Fix local development startup by removing deprecated `--ui-host` usage from workspace dev orchestration scripts.
+
 ## 0.6.5
 
 ### Patch Changes

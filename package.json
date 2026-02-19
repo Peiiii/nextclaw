@@ -13,7 +13,7 @@
     "tsc": "pnpm -C packages/nextclaw-core tsc && pnpm -C packages/nextclaw-openclaw-compat tsc && pnpm -C packages/nextclaw-server tsc && pnpm -C packages/nextclaw tsc",
     "tsc:ui": "pnpm -C packages/nextclaw-ui tsc",
     "dev": "node scripts/dev-runner.mjs",
-    "dev:backend": "pnpm -C packages/nextclaw dev serve --ui-host 127.0.0.1 --ui-port 18792",
+    "dev:backend": "pnpm -C packages/nextclaw dev serve --ui-port 18792",
     "dev:frontend": "pnpm -C packages/nextclaw-ui dev --host 127.0.0.1 --port 5174 --strictPort",
     "start": "pnpm -C packages/nextclaw start",
     "changeset": "changeset",
