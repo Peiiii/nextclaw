@@ -17,6 +17,7 @@
     "dev:frontend": "pnpm -C packages/nextclaw-ui dev --host 127.0.0.1 --port 5174 --strictPort",
     "start": "pnpm -C packages/nextclaw start",
     "changeset": "changeset",
+    "metrics:loc": "node scripts/code-volume-metrics.mjs",
     "release:check": "pnpm build && pnpm lint && pnpm tsc",
     "release:version": "pnpm changeset version",
     "release:publish": "pnpm release:check && pnpm changeset publish && pnpm changeset tag"

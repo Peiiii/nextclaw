@@ -1,0 +1,45 @@
+name: Code Volume Metrics
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  code-volume:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate code volume metrics
+        run: pnpm metrics:loc -- --append-history --summary-file "$RUNNER_TEMP/code-volume-summary.md"
+
+      - name: Append workflow summary
+        run: cat "$RUNNER_TEMP/code-volume-summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-volume-metrics-${{ github.run_id }}
+          path: |
+            docs/metrics/code-volume/latest.json
+            docs/metrics/code-volume/history.jsonl

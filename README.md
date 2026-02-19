@@ -155,6 +155,7 @@ nextclaw stop   # stop the service
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
 - [RFC: Action Schema v1](docs/rfcs/action-schema-v1.md)
+- [Code volume monitoring workflow](docs/workflows/code-volume-monitoring.md)
 
 ---
 
