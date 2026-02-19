@@ -4,7 +4,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.workspace": "Workspace",
   "agents.defaults.model": "Default Model",
   "agents.defaults.maxTokens": "Max Tokens",
-  "agents.defaults.temperature": "Temperature",
   "agents.defaults.maxToolIterations": "Max Tool Iterations",
   "agents.context": "Context",
   "agents.context.bootstrap": "Bootstrap Files",

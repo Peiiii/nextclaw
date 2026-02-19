@@ -2,7 +2,6 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.workspace": "Workspace directory for agent context files and memory.",
   "agents.defaults.model": "Default model identifier used by the agent. Examples: minimax/MiniMax-M2.5 · minimax/MiniMax-M2.1 · openrouter/anthropic/claude-3.5-sonnet · openrouter/openai/gpt-4o-mini.",
   "agents.defaults.maxTokens": "Maximum tokens per response.",
-  "agents.defaults.temperature": "Sampling temperature for model responses.",
   "agents.defaults.maxToolIterations": "Maximum tool calls per turn.",
   "agents.context.bootstrap.files": "Files injected into the system prompt at startup.",
   "agents.context.bootstrap.minimalFiles": "Minimal file set used for low-context runs.",

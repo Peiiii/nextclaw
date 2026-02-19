@@ -55,7 +55,6 @@ export type ConfigView = {
       model: string;
       workspace?: string;
       maxTokens?: number;
-      temperature?: number;
       maxToolIterations?: number;
     };
   };
@@ -98,7 +97,6 @@ export type AgentDefaults = {
   workspace: string;
   model: string;
   maxTokens: number;
-  temperature: number;
   maxToolIterations: number;
 };
 

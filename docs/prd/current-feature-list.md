@@ -96,6 +96,5 @@
 - `agents.defaults.model`：运行时应用
 - `agents.defaults.maxToolIterations`：运行时应用
 - `agents.defaults.maxTokens`：运行时应用
-- `agents.defaults.temperature`：运行时应用
 - `agents.context.*`：运行时应用
 - `tools.*`：运行时应用

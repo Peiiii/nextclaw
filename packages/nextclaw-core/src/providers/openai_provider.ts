@@ -37,7 +37,6 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
-    temperature?: number;
   }): Promise<LLMResponse> {
     if (this.wireApi === "chat") {
       return this.chatCompletions(params);
@@ -60,10 +59,8 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
-    temperature?: number;
   }): Promise<LLMResponse> {
     const model = params.model ?? this.defaultModel;
-    const temperature = params.temperature ?? 0.7;
     const maxTokens = params.maxTokens ?? 4096;
 
     const response = await this.withRetry(async () =>
@@ -72,7 +69,6 @@ export class OpenAICompatibleProvider extends LLMProvider {
         messages: params.messages as unknown as ChatCompletionMessageParam[],
         tools: params.tools as ChatCompletionTool[] | undefined,
         tool_choice: params.tools?.length ? "auto" : undefined,
-        temperature,
         max_tokens: maxTokens
       })
     );
@@ -128,7 +124,6 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
-    temperature?: number;
   }): Promise<LLMResponse> {
     const model = params.model ?? this.defaultModel;
     const input = this.toResponsesInput(params.messages);

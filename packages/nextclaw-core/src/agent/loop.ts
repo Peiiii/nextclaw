@@ -18,6 +18,7 @@ import { SessionManager } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { Config } from "../config/schema.js";
 import { evaluateSilentReply } from "./silent-reply-policy.js";
+import { containsSilentReplyMarker } from "./tokens.js";
 import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
 
@@ -44,7 +45,6 @@ export class AgentLoop {
       model?: string | null;
       maxIterations?: number;
       maxTokens?: number;
-      temperature?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
       cronService?: CronService | null;
@@ -66,7 +66,6 @@ export class AgentLoop {
       bus: options.bus,
       model: options.model ?? options.providerManager.get().getDefaultModel(),
       maxTokens: options.maxTokens,
-      temperature: options.temperature,
       braveApiKey: options.braveApiKey ?? undefined,
       execConfig: options.execConfig ?? { timeout: 60 },
       restrictToWorkspace: options.restrictToWorkspace ?? false
@@ -186,7 +185,6 @@ export class AgentLoop {
     this.options.model = config.agents.defaults.model;
     this.options.maxIterations = config.agents.defaults.maxToolIterations;
     this.options.maxTokens = config.agents.defaults.maxTokens;
-    this.options.temperature = config.agents.defaults.temperature;
     this.options.contextConfig = config.agents.context;
     this.options.braveApiKey = config.tools.web.search.apiKey || undefined;
     this.options.execConfig = config.tools.exec;
@@ -196,7 +194,6 @@ export class AgentLoop {
     this.subagents.updateRuntimeOptions({
       model: config.agents.defaults.model,
       maxTokens: config.agents.defaults.maxTokens,
-      temperature: config.agents.defaults.temperature,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
       restrictToWorkspace: config.tools.restrictToWorkspace
@@ -450,9 +447,14 @@ export class AgentLoop {
         messages,
         tools: this.tools.getDefinitions(),
         model: runtimeModel,
-        maxTokens: this.options.maxTokens,
-        temperature: this.options.temperature
+        maxTokens: this.options.maxTokens
       });
+
+      if (containsSilentReplyMarker(response.content)) {
+        this.sessions.addMessage(session, "assistant", response.content ?? "");
+        this.sessions.save(session);
+        return null;
+      }
 
       if (response.toolCalls.length) {
         const toolCallDicts = response.toolCalls.map((call) => ({
@@ -578,9 +580,14 @@ export class AgentLoop {
         messages,
         tools: this.tools.getDefinitions(),
         model: runtimeModel,
-        maxTokens: this.options.maxTokens,
-        temperature: this.options.temperature
+        maxTokens: this.options.maxTokens
       });
+
+      if (containsSilentReplyMarker(response.content)) {
+        this.sessions.addMessage(session, "assistant", response.content ?? "");
+        this.sessions.save(session);
+        return null;
+      }
 
       if (response.toolCalls.length) {
         const toolCallDicts = response.toolCalls.map((call) => ({

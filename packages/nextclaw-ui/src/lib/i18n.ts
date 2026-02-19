@@ -21,7 +21,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   modelName: { zh: '模型', en: 'Model' },
   workspace: { zh: '工作空间', en: 'Workspace' },
   maxTokens: { zh: '最大 Token 数', en: 'Max Tokens' },
-  temperature: { zh: '温度', en: 'Temperature' },
   maxToolIterations: { zh: '最大工具迭代次数', en: 'Max Tool Iterations' },
 
   // Provider

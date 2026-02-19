@@ -46,20 +46,17 @@ export class LiteLLMProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
-    temperature?: number;
   }): Promise<LLMResponse> {
     const requestedModel = params.model ?? this.defaultModel;
     const resolvedModel = this.resolveModel(requestedModel);
     const apiModel = this.stripRoutingPrefix(resolvedModel);
-    const temperature = params.temperature ?? 0.7;
     const maxTokens = params.maxTokens ?? 4096;
-    const overrides = this.applyModelOverrides(apiModel, { temperature, maxTokens });
+    const overrides = this.applyModelOverrides(apiModel, { maxTokens });
 
     return this.client.chat({
       messages: params.messages,
       tools: params.tools,
       model: apiModel,
-      temperature: overrides.temperature,
       maxTokens: overrides.maxTokens
     });
   }
@@ -111,7 +108,7 @@ export class LiteLLMProvider extends LLMProvider {
     return model;
   }
 
-  private applyModelOverrides(model: string, params: { temperature: number; maxTokens: number }) {
+  private applyModelOverrides(model: string, params: { maxTokens: number }) {
     const spec = this.getStandardSpec(model);
     if (!spec?.modelOverrides?.length) {
       return params;
@@ -122,7 +119,6 @@ export class LiteLLMProvider extends LLMProvider {
     }
     const overrides = match[1];
     return {
-      temperature: typeof overrides.temperature === "number" ? overrides.temperature : params.temperature,
       maxTokens: typeof overrides.max_tokens === "number" ? overrides.max_tokens : params.maxTokens
     };
   }

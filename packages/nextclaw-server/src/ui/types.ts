@@ -29,7 +29,6 @@ export type ConfigView = {
       model: string;
       workspace?: string;
       maxTokens?: number;
-      temperature?: number;
       maxToolIterations?: number;
     };
     context?: {

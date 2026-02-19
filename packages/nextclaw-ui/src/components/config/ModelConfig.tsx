@@ -16,19 +16,16 @@ export function ModelConfig() {
   const [model, setModel] = useState('');
   const [workspace, setWorkspace] = useState('');
   const [maxTokens, setMaxTokens] = useState(8192);
-  const [temperature, setTemperature] = useState(0.7);
   const uiHints = schema?.uiHints;
   const modelHint = hintForPath('agents.defaults.model', uiHints);
   const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
   const maxTokensHint = hintForPath('agents.defaults.maxTokens', uiHints);
-  const temperatureHint = hintForPath('agents.defaults.temperature', uiHints);
 
   useEffect(() => {
     if (config?.agents?.defaults) {
       setModel(config.agents.defaults.model || '');
       setWorkspace(config.agents.defaults.workspace || '');
       setMaxTokens(config.agents.defaults.maxTokens || 8192);
-      setTemperature(config.agents.defaults.temperature || 0.7);
     }
   }, [config]);
 
@@ -63,10 +60,6 @@ export function ModelConfig() {
               <Skeleton className="h-4 w-28 mb-3" />
               <Skeleton className="h-2 w-full rounded-full" />
             </div>
-            <div>
-              <Skeleton className="h-4 w-32 mb-3" />
-              <Skeleton className="h-2 w-full rounded-full" />
-            </div>
           </div>
         </Card>
       </div>
@@ -77,7 +70,7 @@ export function ModelConfig() {
     <div className="max-w-4xl animate-fade-in pb-20">
       <div className="mb-10">
         <h2 className="text-2xl font-bold text-gray-900">Model Configuration</h2>
-        <p className="text-sm text-gray-500 mt-1">Configure default AI model and behavior parameters</p>
+        <p className="text-sm text-gray-500 mt-1">Configure default AI model and runtime limits</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -142,7 +135,7 @@ export function ModelConfig() {
             <h3 className="text-lg font-bold text-gray-900">Generation Parameters</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 gap-12">
             <div className="space-y-4">
               <div className="flex justify-between items-center mb-2">
                 <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -157,24 +150,6 @@ export function ModelConfig() {
                 step="1000"
                 value={maxTokens}
                 onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {temperatureHint?.label ?? 'Temperature'}
-                </Label>
-                <span className="text-sm font-semibold text-gray-900">{temperature}</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                value={temperature}
-                onChange={(e) => setTemperature(parseFloat(e.target.value))}
                 className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary"
               />
             </div>

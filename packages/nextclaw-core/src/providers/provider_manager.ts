@@ -20,7 +20,6 @@ type ProviderChatParams = {
   tools?: Array<Record<string, unknown>>;
   model?: string | null;
   maxTokens?: number;
-  temperature?: number;
 };
 
 const normalizedModel = (value: string | null | undefined): string | null => {

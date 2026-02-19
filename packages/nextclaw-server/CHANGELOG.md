@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.4.4
+
+### Patch Changes
+
+- Remove configurable temperature and stop forwarding temperature in runtime provider requests.
+  - Remove `agents.defaults.temperature` from config schema and reload rules.
+  - Remove temperature propagation across agent loop, subagent manager, and provider manager.
+  - Stop sending `temperature` to OpenAI-compatible provider payloads.
+  - Remove temperature field/control from UI model configuration and API types.
+
+- Updated dependencies
+  - @nextclaw/core@0.6.19
+
 ## 0.4.3
 
 ### Patch Changes

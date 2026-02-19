@@ -148,7 +148,6 @@ export const AgentDefaultsSchema = z.object({
   workspace: z.string().default(DEFAULT_WORKSPACE_PATH),
   model: z.string().default("anthropic/claude-opus-4-5"),
   maxTokens: z.number().int().default(8192),
-  temperature: z.number().default(0.7),
   maxToolIterations: z.number().int().default(20)
 });
 

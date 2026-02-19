@@ -166,7 +166,7 @@ export const PROVIDERS: ProviderSpec[] = [
     detectByBaseKeyword: "",
     defaultApiBase: "https://api.moonshot.ai/v1",
     stripModelPrefix: false,
-    modelOverrides: [["kimi-k2.5", { temperature: 1.0 }]]
+    modelOverrides: []
   },
   {
     name: "minimax",

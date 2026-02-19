@@ -26,7 +26,6 @@ export abstract class LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
-    temperature?: number;
   }): Promise<LLMResponse>;
 
   abstract getDefaultModel(): string;
