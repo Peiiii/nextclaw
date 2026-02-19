@@ -28,6 +28,10 @@ pnpm metrics:loc
 - `--append-history`：追加到 `history.jsonl`
 - `--summary-file <path>`：输出 Markdown 摘要（适合 CI）
 - `--max-growth-percent <n>`：当 LOC 相比上次快照增长超过阈值时返回非 0
+- `--benchmark-name <name>`：设置对比仓库名称（例如 `openclaw`）
+- `--benchmark-root <path>`：对比仓库本地路径（例如 `../openclaw`）
+- `--benchmark-include-dirs <csv>`：对比仓库统计目录（例如 `src,extensions,scripts`）
+- `--benchmark-output <path>`：输出对比 JSON（默认 `docs/metrics/code-volume/comparison.json`）
 
 ## CI 持续监控
 
@@ -37,14 +41,18 @@ pnpm metrics:loc
 - 产物：
   - `docs/metrics/code-volume/latest.json`
   - `docs/metrics/code-volume/history.jsonl`
+  - `docs/metrics/code-volume/comparison.json`
 - 结果展示：自动写入 GitHub Actions Job Summary
 - 自动回写：在 `master/main` 分支由 workflow 自动提交快照更新（提交信息包含 `[skip ci]`，避免循环触发）
+- 对比来源：workflow 会自动 checkout `openclaw/openclaw`，并按 `src,extensions,scripts` 做 LOC 基准对比
 
 ## README 实时展示
 
 - README 徽章通过 `shields.io` 的 dynamic JSON 模式读取：
   - `docs/metrics/code-volume/latest.json` 中的 `$.totals.codeLines`
-- 因为主分支快照会被 workflow 自动回写，所以徽章会持续展示最新 LOC。
+  - `docs/metrics/code-volume/comparison.json` 中的 `$.benchmark.totals.codeLines`
+  - `docs/metrics/code-volume/comparison.json` 中的 `$.comparison.basePercentOfBenchmark`
+- 因为主分支快照与对比结果会被 workflow 自动回写，所以徽章会持续展示最新 LOC 与 OpenClaw 对比值。
 
 ## 解释建议
 

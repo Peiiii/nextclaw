@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-02-19T07:19:37.501Z",
+  "base": {
+    "name": "nextclaw",
+    "projectRoot": "/Users/peiwang/Projects/nextbot",
+    "scope": {
+      "includeDirs": [
+        "packages",
+        "bridge",
+        "scripts"
+      ],
+      "includeExtensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".sh",
+        ".yml",
+        ".yaml"
+      ],
+      "excludeDirs": [
+        ".git",
+        ".changeset",
+        "node_modules",
+        "dist",
+        "coverage",
+        "build",
+        "ui-dist",
+        ".turbo"
+      ]
+    },
+    "totals": {
+      "files": 159,
+      "totalLines": 23301,
+      "blankLines": 2553,
+      "commentLines": 157,
+      "codeLines": 20591
+    }
+  },
+  "benchmark": {
+    "name": "openclaw",
+    "projectRoot": "/Users/peiwang/Projects/openclaw",
+    "scope": {
+      "includeDirs": [
+        "src",
+        "extensions",
+        "scripts"
+      ],
+      "includeExtensions": [
+        ".ts",
+        ".tsx",
+        ".js",
+        ".jsx",
+        ".mjs",
+        ".cjs",
+        ".sh",
+        ".yml",
+        ".yaml"
+      ],
+      "excludeDirs": [
+        ".git",
+        ".changeset",
+        "node_modules",
+        "dist",
+        "coverage",
+        "build",
+        "ui-dist",
+        ".turbo"
+      ]
+    },
+    "totals": {
+      "files": 3844,
+      "totalLines": 683398,
+      "blankLines": 66059,
+      "commentLines": 17434,
+      "codeLines": 599905
+    }
+  },
+  "comparison": {
+    "baseMinusBenchmarkLines": -579314,
+    "basePercentOfBenchmark": 3.43,
+    "benchmarkMultipleOfBase": 29.13,
+    "baseIsLighterByPercent": 96.57
+  }
+}

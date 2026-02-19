@@ -8,6 +8,8 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![LOC](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FPeiiii%2Fnextclaw%2Fmaster%2Fdocs%2Fmetrics%2Fcode-volume%2Flatest.json&query=%24.totals.codeLines&label=LOC&suffix=%20lines&color=7A4DFF)](docs/workflows/code-volume-monitoring.md)
+[![OpenClaw LOC](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FPeiiii%2Fnextclaw%2Fmaster%2Fdocs%2Fmetrics%2Fcode-volume%2Fcomparison.json&query=%24.benchmark.totals.codeLines&label=OpenClaw%20LOC&suffix=%20lines&color=6B7280)](docs/workflows/code-volume-monitoring.md)
+[![NextClaw vs OpenClaw](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FPeiiii%2Fnextclaw%2Fmaster%2Fdocs%2Fmetrics%2Fcode-volume%2Fcomparison.json&query=%24.comparison.basePercentOfBenchmark&label=NextClaw%20vs%20OpenClaw&suffix=%25&color=0EA5E9)](docs/workflows/code-volume-monitoring.md)
 
 [Why NextClaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Commands](#-commands) · [Channels](#-channels) · [Docs](docs/USAGE.md)
 
@@ -26,6 +28,7 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 | **Easier to use** | No complex CLI workflows — one command (`nextclaw start`), then configure everything in the built-in UI. |
 | **Maintainable by design** | Keep runtime capabilities focused on built-ins, reducing hidden coupling and long-term maintenance cost. |
 | **Lightweight** | Evolved from [nanobot](https://github.com/HKUDS/nanobot); minimal codebase, fast to run and maintain. |
+| **Measured lightweight** | Daily CI auto-benchmarks LOC against [OpenClaw](https://github.com/openclaw/openclaw), and updates README badges from tracked metrics. |
 
 ---
 

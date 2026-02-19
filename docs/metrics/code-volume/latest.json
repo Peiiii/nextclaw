@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-19T07:02:54.132Z",
+  "generatedAt": "2026-02-19T07:19:37.501Z",
   "projectRoot": "/Users/peiwang/Projects/nextbot",
   "git": {
     "sha": "",
@@ -35,15 +35,10 @@
   },
   "totals": {
     "files": 159,
-    "totalLines": 23157,
-    "blankLines": 2544,
+    "totalLines": 23301,
+    "blankLines": 2553,
     "commentLines": 157,
-    "codeLines": 20456
-  },
-  "delta": {
-    "previousCodeLines": 20459,
-    "codeLines": -3,
-    "percent": -0.01
+    "codeLines": 20591
   },
   "byLanguage": [
     {
@@ -65,10 +60,10 @@
     {
       "name": "MJS",
       "files": 5,
-      "totalLines": 495,
-      "blankLines": 72,
+      "totalLines": 639,
+      "blankLines": 81,
       "commentLines": 0,
-      "codeLines": 423
+      "codeLines": 558
     },
     {
       "name": "Shell",
@@ -139,10 +134,10 @@
     {
       "name": "scripts",
       "files": 2,
-      "totalLines": 435,
-      "blankLines": 59,
+      "totalLines": 579,
+      "blankLines": 68,
       "commentLines": 0,
-      "codeLines": 376
+      "codeLines": 511
     },
     {
       "name": "bridge",
@@ -152,5 +147,10 @@
       "commentLines": 45,
       "codeLines": 249
     }
-  ]
+  ],
+  "delta": {
+    "previousCodeLines": 20456,
+    "codeLines": 135,
+    "percent": 0.66
+  }
 }

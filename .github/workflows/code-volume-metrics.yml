@@ -34,15 +34,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Checkout OpenClaw benchmark repo
+        uses: actions/checkout@v4
+        with:
+          repository: openclaw/openclaw
+          path: external/openclaw
+          fetch-depth: 1
+
       - name: Generate code volume metrics
-        run: pnpm metrics:loc -- --append-history --summary-file "$RUNNER_TEMP/code-volume-summary.md"
+        run: |
+          pnpm metrics:loc -- \
+            --append-history \
+            --summary-file "$RUNNER_TEMP/code-volume-summary.md" \
+            --benchmark-name openclaw \
+            --benchmark-root external/openclaw \
+            --benchmark-include-dirs src,extensions,scripts \
+            --benchmark-output docs/metrics/code-volume/comparison.json
 
       - name: Commit metrics snapshot
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(metrics): update code volume snapshot [skip ci]"
-          file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl
+          file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl docs/metrics/code-volume/comparison.json
 
       - name: Append workflow summary
         run: cat "$RUNNER_TEMP/code-volume-summary.md" >> "$GITHUB_STEP_SUMMARY"
@@ -54,3 +68,4 @@ jobs:
           path: |
             docs/metrics/code-volume/latest.json
             docs/metrics/code-volume/history.jsonl
+            docs/metrics/code-volume/comparison.json

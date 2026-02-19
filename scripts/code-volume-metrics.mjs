@@ -13,9 +13,10 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const INCLUDE_DIRS = ["packages", "bridge", "scripts"];
-const INCLUDE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".sh", ".yml", ".yaml"]);
-const EXCLUDE_DIRS = new Set([
+const PRIMARY_INCLUDE_DIRS = ["packages", "bridge", "scripts"];
+const DEFAULT_BENCHMARK_INCLUDE_DIRS = ["src", "extensions", "scripts"];
+const INCLUDE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".sh", ".yml", ".yaml"];
+const EXCLUDE_DIRS = [
   ".git",
   ".changeset",
   "node_modules",
@@ -24,14 +25,18 @@ const EXCLUDE_DIRS = new Set([
   "build",
   "ui-dist",
   ".turbo"
-]);
+];
 
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const options = {
   outputPath: resolve(rootDir, "docs/metrics/code-volume/latest.json"),
   summaryPath: "",
   appendHistory: false,
-  maxGrowthPercent: null
+  maxGrowthPercent: null,
+  benchmarkName: "",
+  benchmarkRoot: "",
+  benchmarkIncludeDirs: "",
+  benchmarkOutputPath: resolve(rootDir, "docs/metrics/code-volume/comparison.json")
 };
 
 for (let index = 0; index < args.length; index += 1) {
@@ -54,10 +59,36 @@ for (let index = 0; index < args.length; index += 1) {
     const value = Number(args[index + 1]);
     options.maxGrowthPercent = Number.isFinite(value) ? value : null;
     index += 1;
+    continue;
+  }
+  if (arg === "--benchmark-name") {
+    options.benchmarkName = args[index + 1] ?? "";
+    index += 1;
+    continue;
+  }
+  if (arg === "--benchmark-root") {
+    options.benchmarkRoot = args[index + 1] ?? "";
+    index += 1;
+    continue;
+  }
+  if (arg === "--benchmark-include-dirs") {
+    options.benchmarkIncludeDirs = args[index + 1] ?? "";
+    index += 1;
+    continue;
+  }
+  if (arg === "--benchmark-output") {
+    options.benchmarkOutputPath = resolve(rootDir, args[index + 1] ?? "");
+    index += 1;
   }
 }
 
 const toPosixPath = (input) => input.split("\\").join("/");
+const toPrecisionNumber = (value) => Number(value.toFixed(2));
+const parseCsv = (value) =>
+  value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
 
 const detectLanguage = (extension) => {
   if (extension === ".ts") return "TypeScript";
@@ -73,8 +104,8 @@ const detectLanguage = (extension) => {
 
 const detectScope = (relativePath) => {
   const segments = relativePath.split("/");
-  if (segments[0] === "packages" && segments[1]) {
-    return `packages/${segments[1]}`;
+  if ((segments[0] === "packages" || segments[0] === "extensions") && segments[1]) {
+    return `${segments[0]}/${segments[1]}`;
   }
   if (segments[0]) {
     return segments[0];
@@ -136,15 +167,17 @@ const countLines = (content, extension) => {
   };
 };
 
-const listTrackedFiles = () => {
+const listTrackedFiles = (repoRoot, includeDirs, includeExtensions, excludeDirs) => {
   const files = [];
+  const includeExtensionSet = new Set(includeExtensions);
+  const excludeDirSet = new Set(excludeDirs);
 
   const walk = (directory) => {
     const entries = readdirSync(directory, { withFileTypes: true });
     for (const entry of entries) {
       const absolutePath = resolve(directory, entry.name);
       if (entry.isDirectory()) {
-        if (EXCLUDE_DIRS.has(entry.name)) {
+        if (excludeDirSet.has(entry.name)) {
           continue;
         }
         walk(absolutePath);
@@ -156,7 +189,7 @@ const listTrackedFiles = () => {
       }
 
       const extension = extname(entry.name).toLowerCase();
-      if (!INCLUDE_EXTENSIONS.has(extension)) {
+      if (!includeExtensionSet.has(extension)) {
         continue;
       }
 
@@ -164,8 +197,8 @@ const listTrackedFiles = () => {
     }
   };
 
-  for (const includeDir of INCLUDE_DIRS) {
-    const absoluteDir = resolve(rootDir, includeDir);
+  for (const includeDir of includeDirs) {
+    const absoluteDir = resolve(repoRoot, includeDir);
     if (!existsSync(absoluteDir) || !statSync(absoluteDir).isDirectory()) {
       continue;
     }
@@ -188,38 +221,69 @@ const toSortedArray = (map) =>
     .map(([name, metrics]) => ({ name, ...metrics }))
     .sort((left, right) => right.codeLines - left.codeLines || right.files - left.files || left.name.localeCompare(right.name));
 
-const trackedFiles = listTrackedFiles();
-const totals = { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 };
-const byLanguage = new Map();
-const byScope = new Map();
+const collectSnapshot = ({
+  repoRoot,
+  includeDirs,
+  includeExtensions,
+  excludeDirs,
+  gitSha,
+  gitRef,
+  generatedAt
+}) => {
+  const trackedFiles = listTrackedFiles(repoRoot, includeDirs, includeExtensions, excludeDirs);
+  const totals = { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 };
+  const byLanguage = new Map();
+  const byScope = new Map();
 
-for (const filePath of trackedFiles) {
-  const extension = extname(filePath).toLowerCase();
-  const language = detectLanguage(extension);
-  const relativePath = toPosixPath(relative(rootDir, filePath));
-  const scope = detectScope(relativePath);
-  const content = readFileSync(filePath, "utf8");
-  const lineMetrics = countLines(content, extension);
-  const increment = {
-    files: 1,
-    totalLines: lineMetrics.totalLines,
-    blankLines: lineMetrics.blankLines,
-    commentLines: lineMetrics.commentLines,
-    codeLines: lineMetrics.codeLines
+  for (const filePath of trackedFiles) {
+    const extension = extname(filePath).toLowerCase();
+    const language = detectLanguage(extension);
+    const relativePath = toPosixPath(relative(repoRoot, filePath));
+    const scope = detectScope(relativePath);
+    const content = readFileSync(filePath, "utf8");
+    const lineMetrics = countLines(content, extension);
+    const increment = {
+      files: 1,
+      totalLines: lineMetrics.totalLines,
+      blankLines: lineMetrics.blankLines,
+      commentLines: lineMetrics.commentLines,
+      codeLines: lineMetrics.codeLines
+    };
+
+    mergeMetrics(totals, increment);
+
+    if (!byLanguage.has(language)) {
+      byLanguage.set(language, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
+    }
+    mergeMetrics(byLanguage.get(language), increment);
+
+    if (!byScope.has(scope)) {
+      byScope.set(scope, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
+    }
+    mergeMetrics(byScope.get(scope), increment);
+  }
+
+  return {
+    generatedAt,
+    projectRoot: repoRoot,
+    git: {
+      sha: gitSha,
+      ref: gitRef
+    },
+    scope: {
+      includeDirs,
+      includeExtensions,
+      excludeDirs
+    },
+    totals,
+    byLanguage: toSortedArray(byLanguage),
+    byScope: toSortedArray(byScope)
   };
+};
 
-  mergeMetrics(totals, increment);
-
-  if (!byLanguage.has(language)) {
-    byLanguage.set(language, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-  }
-  mergeMetrics(byLanguage.get(language), increment);
-
-  if (!byScope.has(scope)) {
-    byScope.set(scope, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-  }
-  mergeMetrics(byScope.get(scope), increment);
-}
+const generatedAt = new Date().toISOString();
+const gitSha = process.env.GITHUB_SHA ?? "";
+const gitRef = process.env.GITHUB_REF_NAME ?? "";
 
 let previousSnapshot = null;
 if (existsSync(options.outputPath)) {
@@ -230,55 +294,135 @@ if (existsSync(options.outputPath)) {
   }
 }
 
+const snapshot = collectSnapshot({
+  repoRoot: rootDir,
+  includeDirs: PRIMARY_INCLUDE_DIRS,
+  includeExtensions: INCLUDE_EXTENSIONS,
+  excludeDirs: EXCLUDE_DIRS,
+  gitSha,
+  gitRef,
+  generatedAt
+});
+
+const totals = snapshot.totals;
 const currentCodeLines = totals.codeLines;
 const previousCodeLines = previousSnapshot?.totals?.codeLines;
 const hasPrevious = typeof previousCodeLines === "number";
 const deltaCodeLines = hasPrevious ? currentCodeLines - previousCodeLines : null;
 const deltaPercent = hasPrevious && previousCodeLines !== 0 ? Number(((deltaCodeLines / previousCodeLines) * 100).toFixed(2)) : null;
 
-const snapshot = {
-  generatedAt: new Date().toISOString(),
-  projectRoot: rootDir,
-  git: {
-    sha: process.env.GITHUB_SHA ?? "",
-    ref: process.env.GITHUB_REF_NAME ?? ""
-  },
-  scope: {
-    includeDirs: INCLUDE_DIRS,
-    includeExtensions: [...INCLUDE_EXTENSIONS],
-    excludeDirs: [...EXCLUDE_DIRS]
-  },
-  totals,
+const snapshotWithDelta = {
+  ...snapshot,
   delta: {
     previousCodeLines: hasPrevious ? previousCodeLines : null,
     codeLines: deltaCodeLines,
     percent: deltaPercent
-  },
-  byLanguage: toSortedArray(byLanguage),
-  byScope: toSortedArray(byScope)
+  }
 };
 
 mkdirSync(dirname(options.outputPath), { recursive: true });
-writeFileSync(options.outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+writeFileSync(options.outputPath, `${JSON.stringify(snapshotWithDelta, null, 2)}\n`, "utf8");
 
 if (options.appendHistory) {
   const historyPath = resolve(dirname(options.outputPath), "history.jsonl");
   const historyEntry = {
-    generatedAt: snapshot.generatedAt,
+    generatedAt: snapshotWithDelta.generatedAt,
     codeLines: totals.codeLines,
     totalLines: totals.totalLines,
     files: totals.files,
-    sha: snapshot.git.sha,
-    ref: snapshot.git.ref
+    sha: snapshotWithDelta.git.sha,
+    ref: snapshotWithDelta.git.ref
   };
   appendFileSync(historyPath, `${JSON.stringify(historyEntry)}\n`, "utf8");
 }
 
-const topScopes = snapshot.byScope.slice(0, 6);
+let benchmarkSummaryLines = [];
+if (options.benchmarkRoot) {
+  const benchmarkName = options.benchmarkName.trim() || "benchmark";
+  const benchmarkRoot = resolve(rootDir, options.benchmarkRoot);
+  if (!existsSync(benchmarkRoot) || !statSync(benchmarkRoot).isDirectory()) {
+    console.error(`Benchmark repository not found: ${benchmarkRoot}`);
+    process.exit(1);
+  }
+
+  const benchmarkIncludeDirs =
+    options.benchmarkIncludeDirs.trim().length > 0 ? parseCsv(options.benchmarkIncludeDirs) : DEFAULT_BENCHMARK_INCLUDE_DIRS;
+
+  const benchmarkSnapshot = collectSnapshot({
+    repoRoot: benchmarkRoot,
+    includeDirs: benchmarkIncludeDirs,
+    includeExtensions: INCLUDE_EXTENSIONS,
+    excludeDirs: EXCLUDE_DIRS,
+    gitSha,
+    gitRef,
+    generatedAt
+  });
+
+  const baseCodeLines = totals.codeLines;
+  const benchmarkCodeLines = benchmarkSnapshot.totals.codeLines;
+  const benchmarkMultipleOfBase = baseCodeLines > 0 ? toPrecisionNumber(benchmarkCodeLines / baseCodeLines) : null;
+  const basePercentOfBenchmark = benchmarkCodeLines > 0 ? toPrecisionNumber((baseCodeLines / benchmarkCodeLines) * 100) : null;
+  const baseIsLighterByPercent =
+    benchmarkCodeLines > 0 ? toPrecisionNumber((1 - baseCodeLines / benchmarkCodeLines) * 100) : null;
+  const comparisonReport = {
+    generatedAt,
+    base: {
+      name: "nextclaw",
+      projectRoot: rootDir,
+      scope: {
+        includeDirs: PRIMARY_INCLUDE_DIRS,
+        includeExtensions: INCLUDE_EXTENSIONS,
+        excludeDirs: EXCLUDE_DIRS
+      },
+      totals
+    },
+    benchmark: {
+      name: benchmarkName,
+      projectRoot: benchmarkRoot,
+      scope: {
+        includeDirs: benchmarkIncludeDirs,
+        includeExtensions: INCLUDE_EXTENSIONS,
+        excludeDirs: EXCLUDE_DIRS
+      },
+      totals: benchmarkSnapshot.totals
+    },
+    comparison: {
+      baseMinusBenchmarkLines: baseCodeLines - benchmarkCodeLines,
+      basePercentOfBenchmark,
+      benchmarkMultipleOfBase,
+      baseIsLighterByPercent
+    }
+  };
+
+  mkdirSync(dirname(options.benchmarkOutputPath), { recursive: true });
+  writeFileSync(options.benchmarkOutputPath, `${JSON.stringify(comparisonReport, null, 2)}\n`, "utf8");
+
+  benchmarkSummaryLines = [
+    "",
+    `## Benchmark vs ${benchmarkName}`,
+    "",
+    `- Base (nextclaw) LOC: ${baseCodeLines}`,
+    `- Benchmark (${benchmarkName}) LOC: ${benchmarkCodeLines}`,
+    `- NextClaw LOC / ${benchmarkName}: ${basePercentOfBenchmark === null ? "N/A" : `${basePercentOfBenchmark}%`}`,
+    `- ${benchmarkName} / NextClaw: ${benchmarkMultipleOfBase === null ? "N/A" : `${benchmarkMultipleOfBase}x`}`,
+    `- NextClaw lighter by: ${baseIsLighterByPercent === null ? "N/A" : `${baseIsLighterByPercent}%`}`
+  ];
+
+  console.log(
+    `Benchmark snapshot saved: ${toPosixPath(relative(rootDir, options.benchmarkOutputPath))}`
+  );
+  if (basePercentOfBenchmark !== null && benchmarkMultipleOfBase !== null) {
+    console.log(
+      `Vs ${benchmarkName}: ${basePercentOfBenchmark}% size (${benchmarkName} is ${benchmarkMultipleOfBase}x of NextClaw)`
+    );
+  }
+}
+
+const topScopes = snapshotWithDelta.byScope.slice(0, 6);
 const summaryLines = [
   "# Code Volume Snapshot",
   "",
-  `- Generated at: ${snapshot.generatedAt}`,
+  `- Generated at: ${snapshotWithDelta.generatedAt}`,
   `- Tracked files: ${totals.files}`,
   `- Code lines (LOC): ${totals.codeLines}`,
   `- Total lines: ${totals.totalLines}`,
@@ -292,7 +436,8 @@ const summaryLines = [
   "",
   "| Scope | Files | LOC | Total lines |",
   "| --- | ---: | ---: | ---: |",
-  ...topScopes.map((item) => `| ${item.name} | ${item.files} | ${item.codeLines} | ${item.totalLines} |`)
+  ...topScopes.map((item) => `| ${item.name} | ${item.files} | ${item.codeLines} | ${item.totalLines} |`),
+  ...benchmarkSummaryLines
 ];
 const summary = summaryLines.join("\n");
 
@@ -314,4 +459,3 @@ if (typeof options.maxGrowthPercent === "number" && hasPrevious && deltaPercent 
   );
   process.exit(1);
 }
-
