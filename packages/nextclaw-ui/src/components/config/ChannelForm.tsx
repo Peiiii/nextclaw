@@ -269,8 +269,8 @@ export function ChannelForm() {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar py-2">
-          <form onSubmit={handleSubmit} className="space-y-5 pr-2">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto custom-scrollbar py-2 pr-2 space-y-5">
             {fields.map((field) => {
               const hint = channelName
                 ? hintForPath(`channels.${channelName}.${field.name}`, uiHints)
@@ -280,88 +280,89 @@ export function ChannelForm() {
 
               return (
                 <div key={field.name} className="space-y-2.5">
-                <Label
-                  htmlFor={field.name}
-                  className="text-sm font-medium text-gray-900 flex items-center gap-2"
-                >
-                  {getFieldIcon(field.name)}
-                  {label}
-                </Label>
+                  <Label
+                    htmlFor={field.name}
+                    className="text-sm font-medium text-gray-900 flex items-center gap-2"
+                  >
+                    {getFieldIcon(field.name)}
+                    {label}
+                  </Label>
 
-                {field.type === 'boolean' && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-                    <span className="text-sm text-gray-500">
-                      {(formData[field.name] as boolean) ? t('enabled') : t('disabled')}
-                    </span>
-                    <Switch
+                  {field.type === 'boolean' && (
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+                      <span className="text-sm text-gray-500">
+                        {(formData[field.name] as boolean) ? t('enabled') : t('disabled')}
+                      </span>
+                      <Switch
+                        id={field.name}
+                        checked={(formData[field.name] as boolean) || false}
+                        onCheckedChange={(checked) => updateField(field.name, checked)}
+                        className="data-[state=checked]:bg-emerald-500"
+                      />
+                    </div>
+                  )}
+
+                  {(field.type === 'text' || field.type === 'email') && (
+                    <Input
                       id={field.name}
-                      checked={(formData[field.name] as boolean) || false}
-                      onCheckedChange={(checked) => updateField(field.name, checked)}
-                      className="data-[state=checked]:bg-emerald-500"
+                      type={field.type}
+                      value={(formData[field.name] as string) || ''}
+                      onChange={(e) => updateField(field.name, e.target.value)}
+                      placeholder={placeholder}
+                      className="rounded-xl"
                     />
-                  </div>
-                )}
+                  )}
 
-                {(field.type === 'text' || field.type === 'email') && (
-                  <Input
-                    id={field.name}
-                    type={field.type}
-                    value={(formData[field.name] as string) || ''}
-                    onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder={placeholder}
-                    className="rounded-xl"
-                  />
-                )}
+                  {field.type === 'password' && (
+                    <Input
+                      id={field.name}
+                      type="password"
+                      value={(formData[field.name] as string) || ''}
+                      onChange={(e) => updateField(field.name, e.target.value)}
+                      placeholder={placeholder ?? 'Leave blank to keep unchanged'}
+                      className="rounded-xl"
+                    />
+                  )}
 
-                {field.type === 'password' && (
-                  <Input
-                    id={field.name}
-                    type="password"
-                    value={(formData[field.name] as string) || ''}
-                    onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder={placeholder ?? 'Leave blank to keep unchanged'}
-                    className="rounded-xl"
-                  />
-                )}
+                  {field.type === 'number' && (
+                    <Input
+                      id={field.name}
+                      type="number"
+                      value={(formData[field.name] as number) || 0}
+                      onChange={(e) => updateField(field.name, parseInt(e.target.value) || 0)}
+                      placeholder={placeholder}
+                      className="rounded-xl"
+                    />
+                  )}
 
-                {field.type === 'number' && (
-                  <Input
-                    id={field.name}
-                    type="number"
-                    value={(formData[field.name] as number) || 0}
-                    onChange={(e) => updateField(field.name, parseInt(e.target.value) || 0)}
-                    placeholder={placeholder}
-                    className="rounded-xl"
-                  />
-                )}
-
-                {field.type === 'tags' && (
-                  <TagInput
-                    value={(formData[field.name] as string[]) || []}
-                    onChange={(tags) => updateField(field.name, tags)}
-                  />
-                )}
+                  {field.type === 'tags' && (
+                    <TagInput
+                      value={(formData[field.name] as string[]) || []}
+                      onChange={(tags) => updateField(field.name, tags)}
+                    />
+                  )}
                 </div>
               );
             })}
+          </div>
 
-            <DialogFooter className="pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={closeChannelModal}
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                type="submit"
-                disabled={updateChannel.isPending || Boolean(runningActionId)}
-              >
-                {updateChannel.isPending ? 'Saving...' : t('save')}
-              </Button>
-              {actions
-                .filter((action) => action.trigger === 'manual')
-                .map((action) => (
+          <DialogFooter className="pt-4 flex-shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={closeChannelModal}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="submit"
+              disabled={updateChannel.isPending || Boolean(runningActionId)}
+            >
+              {updateChannel.isPending ? 'Saving...' : t('save')}
+            </Button>
+            {actions
+              .filter((action) => action.trigger === 'manual')
+              .map((action) => (
                 <Button
                   key={action.id}
                   type="button"
@@ -371,10 +372,9 @@ export function ChannelForm() {
                 >
                   {runningActionId === action.id ? t('connecting') : action.title}
                 </Button>
-                ))}
-            </DialogFooter>
-          </form>
-        </div>
+              ))}
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

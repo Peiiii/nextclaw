@@ -100,85 +100,87 @@ export function ProviderForm() {
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 pt-2">
-          <div className="space-y-2.5">
-            <Label htmlFor="apiKey" className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              <KeyRound className="h-3.5 w-3.5 text-gray-500" />
-              {apiKeyHint?.label ?? t('apiKey')}
-            </Label>
-            <MaskedInput
-              id="apiKey"
-              value={apiKey}
-              isSet={providerConfig?.apiKeySet}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={
-                providerConfig?.apiKeySet
-                  ? t('apiKeySet')
-                  : apiKeyHint?.placeholder ?? 'Enter API Key'
-              }
-              className="rounded-xl"
-            />
-          </div>
-
-          <div className="space-y-2.5">
-            <Label htmlFor="apiBase" className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              <Globe className="h-3.5 w-3.5 text-gray-500" />
-              {apiBaseHint?.label ?? t('apiBase')}
-            </Label>
-            <Input
-              id="apiBase"
-              type="text"
-              value={apiBase}
-              onChange={(e) => setApiBase(e.target.value)}
-              placeholder={
-                providerSpec?.defaultApiBase ||
-                apiBaseHint?.placeholder ||
-                'https://api.example.com'
-              }
-              className="rounded-xl"
-            />
-            {apiBaseHint?.help && (
-              <p className="text-xs text-gray-500">{apiBaseHint.help}</p>
-            )}
-          </div>
-
-          {providerSpec?.supportsWireApi && (
+        <form onSubmit={handleSubmit} className="flex flex-col pt-2">
+          <div className="space-y-5 max-h-[60vh] overflow-y-auto pr-1">
             <div className="space-y-2.5">
-            <Label htmlFor="wireApi" className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              <Hash className="h-3.5 w-3.5 text-gray-500" />
-              {wireApiHint?.label ?? t('wireApi')}
-            </Label>
-              <select
-                id="wireApi"
-                value={wireApi}
-                onChange={(e) => setWireApi(e.target.value as 'auto' | 'chat' | 'responses')}
-                className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {(providerSpec.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => (
-                  <option key={option} value={option}>
-                    {option === 'chat'
-                      ? t('wireApiChat')
-                      : option === 'responses'
-                        ? t('wireApiResponses')
-                        : t('wireApiAuto')}
-                  </option>
-                ))}
-              </select>
+              <Label htmlFor="apiKey" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <KeyRound className="h-3.5 w-3.5 text-gray-500" />
+                {apiKeyHint?.label ?? t('apiKey')}
+              </Label>
+              <MaskedInput
+                id="apiKey"
+                value={apiKey}
+                isSet={providerConfig?.apiKeySet}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder={
+                  providerConfig?.apiKeySet
+                    ? t('apiKeySet')
+                    : apiKeyHint?.placeholder ?? 'Enter API Key'
+                }
+                className="rounded-xl"
+              />
             </div>
-          )}
 
-          <div className="space-y-2.5">
-            <Label className="text-sm font-medium text-gray-900 flex items-center gap-2">
-              <Hash className="h-3.5 w-3.5 text-gray-500" />
-              {extraHeadersHint?.label ?? t('extraHeaders')}
-            </Label>
-            <KeyValueEditor
-              value={extraHeaders}
-              onChange={setExtraHeaders}
-            />
+            <div className="space-y-2.5">
+              <Label htmlFor="apiBase" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <Globe className="h-3.5 w-3.5 text-gray-500" />
+                {apiBaseHint?.label ?? t('apiBase')}
+              </Label>
+              <Input
+                id="apiBase"
+                type="text"
+                value={apiBase}
+                onChange={(e) => setApiBase(e.target.value)}
+                placeholder={
+                  providerSpec?.defaultApiBase ||
+                  apiBaseHint?.placeholder ||
+                  'https://api.example.com'
+                }
+                className="rounded-xl"
+              />
+              {apiBaseHint?.help && (
+                <p className="text-xs text-gray-500">{apiBaseHint.help}</p>
+              )}
+            </div>
+
+            {providerSpec?.supportsWireApi && (
+              <div className="space-y-2.5">
+                <Label htmlFor="wireApi" className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                  <Hash className="h-3.5 w-3.5 text-gray-500" />
+                  {wireApiHint?.label ?? t('wireApi')}
+                </Label>
+                <select
+                  id="wireApi"
+                  value={wireApi}
+                  onChange={(e) => setWireApi(e.target.value as 'auto' | 'chat' | 'responses')}
+                  className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {(providerSpec.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => (
+                    <option key={option} value={option}>
+                      {option === 'chat'
+                        ? t('wireApiChat')
+                        : option === 'responses'
+                          ? t('wireApiResponses')
+                          : t('wireApiAuto')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="space-y-2.5">
+              <Label className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                <Hash className="h-3.5 w-3.5 text-gray-500" />
+                {extraHeadersHint?.label ?? t('extraHeaders')}
+              </Label>
+              <KeyValueEditor
+                value={extraHeaders}
+                onChange={setExtraHeaders}
+              />
+            </div>
           </div>
 
-          <DialogFooter className="pt-4">
+          <DialogFooter className="pt-4 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
