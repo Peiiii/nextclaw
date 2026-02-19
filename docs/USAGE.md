@@ -191,6 +191,7 @@ Created under the workspace:
 | `nextclaw serve` | Run gateway + UI in the foreground (no background) |
 | `nextclaw agent -m "message"` | Send a one-off message to the agent |
 | `nextclaw agent` | Interactive chat in the terminal |
+| `nextclaw agent --session <id> --model <model>` | Use a session-specific model/provider route (sticky for that session) |
 | `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
 | `nextclaw init` | Initialize workspace and template files |
 | `nextclaw init --force` | Re-run init and overwrite templates |

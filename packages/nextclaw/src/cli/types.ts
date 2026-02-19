@@ -20,6 +20,7 @@ export type AgentCommandOptions = {
   message?: string;
   session?: string;
   markdown?: boolean;
+  model?: string;
 };
 
 export type UpdateCommandOptions = {

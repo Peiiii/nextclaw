@@ -421,7 +421,10 @@ export class CliRuntime {
 
     const bus = new MessageBus();
     const provider = this.serviceCommands.createProvider(config) ?? this.serviceCommands.createMissingProvider(config);
-    const providerManager = new ProviderManager(provider);
+    const providerManager = new ProviderManager({
+      defaultProvider: provider,
+      config
+    });
     const agentLoop = new AgentLoop({
       bus,
       providerManager,
@@ -450,7 +453,8 @@ export class CliRuntime {
         content: opts.message,
         sessionKey: opts.session ?? "cli:default",
         channel: "cli",
-        chatId: "direct"
+        chatId: "direct",
+        metadata: typeof opts.model === "string" && opts.model.trim() ? { model: opts.model.trim() } : {}
       });
       printAgentResponse(response);
       return;
@@ -483,7 +487,8 @@ export class CliRuntime {
       }
       const response = await agentLoop.processDirect({
         content: trimmed,
-        sessionKey: opts.session ?? "cli:default"
+        sessionKey: opts.session ?? "cli:default",
+        metadata: typeof opts.model === "string" && opts.model.trim() ? { model: opts.model.trim() } : {}
       });
       printAgentResponse(response);
     }

@@ -152,7 +152,7 @@ export class SubagentManager {
             messages.push({ role: "user", content: `Steer: ${note}` });
           }
         }
-        const response = await this.options.providerManager.get().chat({
+        const response = await this.options.providerManager.chat({
           messages,
           tools: tools.getDefinitions(),
           model: this.options.model,

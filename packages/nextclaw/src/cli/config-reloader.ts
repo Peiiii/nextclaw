@@ -51,6 +51,7 @@ export class ConfigReloader {
       return;
     }
     this.currentConfig = nextConfig;
+    this.options.providerManager?.setConfig(nextConfig);
     const plan = buildReloadPlan(changedPaths);
     if (plan.restartChannels) {
       await this.reloadChannels(nextConfig);
@@ -143,6 +144,7 @@ export class ConfigReloader {
         console.warn("Provider reload skipped: missing API key.");
         return;
       }
+      this.options.providerManager?.setConfig(nextConfig);
       this.options.providerManager?.set(nextProvider);
     })();
     try {

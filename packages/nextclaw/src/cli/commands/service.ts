@@ -78,7 +78,10 @@ export class ServiceCommands {
     const bus = new MessageBus();
     const provider =
       options.allowMissingProvider === true ? this.makeProvider(config, { allowMissing: true }) : this.makeProvider(config);
-    const providerManager = new ProviderManager(provider ?? this.makeMissingProvider(config));
+    const providerManager = new ProviderManager({
+      defaultProvider: provider ?? this.makeMissingProvider(config),
+      config
+    });
     const sessionManager = new SessionManager(workspace);
 
     const cronStorePath = join(getDataDir(), "cron", "jobs.json");
@@ -185,6 +188,13 @@ export class ServiceCommands {
             : typeof ctx.SenderId === "string" && ctx.SenderId.trim().length > 0
               ? ctx.SenderId
               : "direct";
+        const modelOverride =
+          typeof (ctx as { Model?: unknown }).Model === "string" && (ctx as { Model?: string }).Model?.trim().length
+            ? (ctx as { Model: string }).Model.trim()
+            : typeof (ctx as { AgentModel?: unknown }).AgentModel === "string" &&
+                (ctx as { AgentModel?: string }).AgentModel?.trim().length
+              ? (ctx as { AgentModel: string }).AgentModel.trim()
+              : undefined;
 
         try {
           const response = await agent.processDirect({
@@ -192,10 +202,12 @@ export class ServiceCommands {
             sessionKey,
             channel,
             chatId,
-            metadata:
-              typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0
+            metadata: {
+              ...(typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0
                 ? { account_id: ctx.AccountId }
-                : {}
+                : {}),
+              ...(modelOverride ? { model: modelOverride } : {})
+            }
           });
           const replyText = typeof response === "string" ? response : String(response ?? "");
           if (replyText.trim()) {

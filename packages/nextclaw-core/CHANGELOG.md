@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.6.4
+
+### Patch Changes
+
+- Refactor provider runtime to support dynamic provider routing per request model with pooled provider instances.
+
+  Add session-level model override support (via inbound metadata and CLI `nextclaw agent --model`), enabling different sessions to run different model/provider routes without restarting.
+
+  Keep config reload hot behavior by refreshing provider routing config on runtime reload.
+
 ## 0.6.3
 
 ### Patch Changes

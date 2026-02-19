@@ -71,6 +71,7 @@ program
   .description("Interact with the agent directly")
   .option("-m, --message <message>", "Message to send to the agent")
   .option("-s, --session <session>", "Session ID", "cli:default")
+  .option("--model <model>", "Session model override for this run")
   .option("--no-markdown", "Disable Markdown rendering")
   .action(async (opts) => runtime.agent(opts));
 

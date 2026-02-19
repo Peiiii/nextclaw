@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.6.4-release-v0.6.4/README.md`
+- `docs/logs/v0.6.3-release-v0.6.3/README.md`
 - `docs/logs/v0.6.2-release-v0.6.2/README.md`
 - `docs/logs/v0.6.2-restore-openclaw-plugin-compat/README.md`
 - `docs/logs/v0.6.1-release-v0.6.1/README.md`

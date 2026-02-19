@@ -182,6 +182,7 @@ export class AgentLoop {
 
   applyRuntimeConfig(config: Config): void {
     this.options.config = config;
+    this.options.providerManager.setConfig(config);
     this.options.model = config.agents.defaults.model;
     this.options.maxIterations = config.agents.defaults.maxToolIterations;
     this.options.maxTokens = config.agents.defaults.maxTokens;
@@ -229,6 +230,40 @@ export class AgentLoop {
     return response?.content ?? "";
   }
 
+  private resolveSessionModel(session: { metadata: Record<string, unknown> }, metadata: Record<string, unknown>): string {
+    const clearModel = metadata.clear_model === true || metadata.reset_model === true;
+    if (clearModel) {
+      delete session.metadata.preferred_model;
+    }
+
+    const inboundModel = this.readMetadataModel(metadata);
+    if (inboundModel) {
+      session.metadata.preferred_model = inboundModel;
+    }
+
+    const sessionModel =
+      typeof session.metadata.preferred_model === "string" ? session.metadata.preferred_model.trim() : "";
+    if (sessionModel) {
+      return sessionModel;
+    }
+
+    return this.options.model ?? this.options.providerManager.get().getDefaultModel();
+  }
+
+  private readMetadataModel(metadata: Record<string, unknown>): string | null {
+    const candidates = [metadata.model, metadata.llm_model, metadata.agent_model, metadata.session_model];
+    for (const candidate of candidates) {
+      if (typeof candidate !== "string") {
+        continue;
+      }
+      const trimmed = candidate.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+    return null;
+  }
+
   private async processMessage(msg: InboundMessage, sessionKeyOverride?: string): Promise<OutboundMessage | null> {
     if (msg.channel === "system") {
       return this.processSystemMessage(msg);
@@ -237,6 +272,7 @@ export class AgentLoop {
     const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
     this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+    const runtimeModel = this.resolveSessionModel(session, msg.metadata);
     const messageId = msg.metadata?.message_id as string | undefined;
     if (messageId) {
       session.metadata.last_message_id = messageId;
@@ -297,10 +333,10 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
-      const response = await this.options.providerManager.get().chat({
+      const response = await this.options.providerManager.chat({
         messages,
         tools: this.tools.getDefinitions(),
-        model: this.options.model ?? undefined,
+        model: runtimeModel,
         maxTokens: this.options.maxTokens,
         temperature: this.options.temperature
       });
@@ -365,6 +401,7 @@ export class AgentLoop {
     const sessionKey = `${originChannel}:${originChatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
     this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+    const runtimeModel = this.resolveSessionModel(session, msg.metadata);
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
@@ -410,10 +447,10 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
-      const response = await this.options.providerManager.get().chat({
+      const response = await this.options.providerManager.chat({
         messages,
         tools: this.tools.getDefinitions(),
-        model: this.options.model ?? undefined,
+        model: runtimeModel,
         maxTokens: this.options.maxTokens,
         temperature: this.options.temperature
       });
