@@ -22,6 +22,16 @@ const DEFAULT_MEDIA_MAX_MB = 8;
 const MEDIA_FETCH_TIMEOUT_MS = 15000;
 const TYPING_HEARTBEAT_MS = 8000;
 const TYPING_AUTO_STOP_MS = 45000;
+const DISCORD_TEXT_LIMIT = 2000;
+const DISCORD_MAX_LINES_PER_MESSAGE = 17;
+const FENCE_RE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
+
+type OpenFence = {
+  indent: string;
+  markerChar: string;
+  markerLen: number;
+  openLine: string;
+};
 
 type AttachmentIssue = {
   id?: string;
@@ -96,20 +106,28 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     }
     this.stopTyping(msg.chatId);
     const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
-    const payload: {
-      content: string;
-      reply?: { messageReference: string };
-      flags?: number;
-    } = {
-      content: msg.content ?? ""
-    };
-    if (msg.replyTo) {
-      payload.reply = { messageReference: msg.replyTo };
+    const chunks = chunkDiscordText(msg.content ?? "");
+    if (chunks.length === 0) {
+      return;
     }
-    if (msg.metadata?.silent === true) {
-      payload.flags = MessageFlags.SuppressNotifications;
+
+    const flags = msg.metadata?.silent === true ? MessageFlags.SuppressNotifications : undefined;
+    for (const chunk of chunks) {
+      const payload: {
+        content: string;
+        reply?: { messageReference: string };
+        flags?: number;
+      } = {
+        content: chunk
+      };
+      if (msg.replyTo) {
+        payload.reply = { messageReference: msg.replyTo };
+      }
+      if (flags !== undefined) {
+        payload.flags = flags;
+      }
+      await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
     }
-    await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
   }
 
   private async handleIncoming(message: DiscordMessage): Promise<void> {
@@ -373,4 +391,180 @@ function buildAttachmentSummary(attachments: InboundAttachment[]): string {
     return `<media:image> (${count} ${count === 1 ? "image" : "images"})`;
   }
   return `<media:document> (${count} ${count === 1 ? "file" : "files"})`;
+}
+
+function countLines(text: string): number {
+  if (!text) {
+    return 0;
+  }
+  return text.split("\n").length;
+}
+
+function parseFenceLine(line: string): OpenFence | null {
+  const match = line.match(FENCE_RE);
+  if (!match) {
+    return null;
+  }
+  const indent = match[1] ?? "";
+  const marker = match[2] ?? "";
+  return {
+    indent,
+    markerChar: marker[0] ?? "`",
+    markerLen: marker.length,
+    openLine: line
+  };
+}
+
+function closeFenceLine(openFence: OpenFence): string {
+  return `${openFence.indent}${openFence.markerChar.repeat(openFence.markerLen)}`;
+}
+
+function closeFenceIfNeeded(text: string, openFence: OpenFence | null): string {
+  if (!openFence) {
+    return text;
+  }
+  const closeLine = closeFenceLine(openFence);
+  if (!text) {
+    return closeLine;
+  }
+  if (!text.endsWith("\n")) {
+    return `${text}\n${closeLine}`;
+  }
+  return `${text}${closeLine}`;
+}
+
+function splitLongLine(line: string, maxChars: number, opts: { preserveWhitespace: boolean }): string[] {
+  const limit = Math.max(1, Math.floor(maxChars));
+  if (line.length <= limit) {
+    return [line];
+  }
+
+  const chunks: string[] = [];
+  let remaining = line;
+  while (remaining.length > limit) {
+    if (opts.preserveWhitespace) {
+      chunks.push(remaining.slice(0, limit));
+      remaining = remaining.slice(limit);
+      continue;
+    }
+
+    const window = remaining.slice(0, limit);
+    let breakIndex = -1;
+    for (let index = window.length - 1; index >= 0; index -= 1) {
+      if (/\s/.test(window[index])) {
+        breakIndex = index;
+        break;
+      }
+    }
+    if (breakIndex <= 0) {
+      breakIndex = limit;
+    }
+
+    chunks.push(remaining.slice(0, breakIndex));
+    remaining = remaining.slice(breakIndex);
+  }
+
+  if (remaining.length) {
+    chunks.push(remaining);
+  }
+  return chunks;
+}
+
+function chunkDiscordText(
+  text: string,
+  opts: { maxChars?: number; maxLines?: number } = {}
+): string[] {
+  const maxChars = Math.max(1, Math.floor(opts.maxChars ?? DISCORD_TEXT_LIMIT));
+  const maxLines = Math.max(1, Math.floor(opts.maxLines ?? DISCORD_MAX_LINES_PER_MESSAGE));
+  const body = text ?? "";
+  if (!body) {
+    return [];
+  }
+
+  if (body.length <= maxChars && countLines(body) <= maxLines) {
+    return [body];
+  }
+
+  const lines = body.split("\n");
+  const chunks: string[] = [];
+  let current = "";
+  let currentLines = 0;
+  let openFence: OpenFence | null = null;
+
+  const flush = (): void => {
+    if (!current) {
+      return;
+    }
+    const payload = closeFenceIfNeeded(current, openFence);
+    if (payload.trim().length) {
+      chunks.push(payload);
+    }
+    current = "";
+    currentLines = 0;
+    if (openFence) {
+      current = openFence.openLine;
+      currentLines = 1;
+    }
+  };
+
+  for (const line of lines) {
+    const fenceInfo = parseFenceLine(line);
+    const wasInsideFence = openFence !== null;
+    let nextOpenFence: OpenFence | null = openFence;
+    if (fenceInfo) {
+      if (!openFence) {
+        nextOpenFence = fenceInfo;
+      } else if (openFence.markerChar === fenceInfo.markerChar && fenceInfo.markerLen >= openFence.markerLen) {
+        nextOpenFence = null;
+      }
+    }
+
+    const reserveChars = nextOpenFence ? closeFenceLine(nextOpenFence).length + 1 : 0;
+    const reserveLines = nextOpenFence ? 1 : 0;
+    const effectiveMaxChars = maxChars - reserveChars;
+    const effectiveMaxLines = maxLines - reserveLines;
+    const charLimit = effectiveMaxChars > 0 ? effectiveMaxChars : maxChars;
+    const lineLimit = effectiveMaxLines > 0 ? effectiveMaxLines : maxLines;
+    const prefixLength = current.length > 0 ? current.length + 1 : 0;
+    const segmentLimit = Math.max(1, charLimit - prefixLength);
+    const segments = splitLongLine(line, segmentLimit, {
+      preserveWhitespace: wasInsideFence
+    });
+
+    for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex += 1) {
+      const segment = segments[segmentIndex];
+      const isContinuation = segmentIndex > 0;
+      const delimiter = isContinuation ? "" : current.length > 0 ? "\n" : "";
+      const addition = `${delimiter}${segment}`;
+      const nextLength = current.length + addition.length;
+      const nextLineCount = currentLines + (isContinuation ? 0 : 1);
+
+      const exceedsChars = nextLength > charLimit;
+      const exceedsLines = nextLineCount > lineLimit;
+      if ((exceedsChars || exceedsLines) && current.length > 0) {
+        flush();
+      }
+
+      if (current.length > 0) {
+        current += addition;
+        if (!isContinuation) {
+          currentLines += 1;
+        }
+      } else {
+        current = segment;
+        currentLines = 1;
+      }
+    }
+
+    openFence = nextOpenFence;
+  }
+
+  if (current.length) {
+    const payload = closeFenceIfNeeded(current, openFence);
+    if (payload.trim().length) {
+      chunks.push(payload);
+    }
+  }
+
+  return chunks;
 }

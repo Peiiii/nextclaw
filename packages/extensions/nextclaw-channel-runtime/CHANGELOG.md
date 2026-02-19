@@ -1,5 +1,11 @@
 # @nextclaw/channel-runtime
 
+## 0.1.5
+
+### Patch Changes
+
+- Align Discord outbound sending with OpenClaw-style chunking so long replies are split safely and no longer fail with Invalid Form Body.
+
 ## 0.1.4
 
 ### Patch Changes
