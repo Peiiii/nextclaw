@@ -137,28 +137,38 @@ export class ChannelManager {
     await Promise.allSettled(tasks);
   }
 
+  private normalizeOutbound(msg: OutboundMessage): OutboundMessage | null {
+    const sanitizedContent = sanitizeOutboundAssistantContent(msg.content ?? "");
+    if (!sanitizedContent.trim() && msg.media.length === 0) {
+      return null;
+    }
+    if (sanitizedContent === msg.content) {
+      return msg;
+    }
+    return {
+      ...msg,
+      content: sanitizedContent
+    };
+  }
+
+  async deliver(msg: OutboundMessage): Promise<boolean> {
+    const outbound = this.normalizeOutbound(msg);
+    if (!outbound) {
+      return true;
+    }
+    const channel = this.channels[outbound.channel];
+    if (!channel) {
+      return false;
+    }
+    await channel.send(outbound);
+    return true;
+  }
+
   private async dispatchOutbound(): Promise<void> {
     while (this.dispatching) {
       const msg = await this.bus.consumeOutbound();
-      const channel = this.channels[msg.channel];
-      if (!channel) {
-        continue;
-      }
-      const sanitizedContent = sanitizeOutboundAssistantContent(msg.content ?? "");
-      if (!sanitizedContent.trim() && msg.media.length === 0) {
-        continue;
-      }
-
-      const outbound =
-        sanitizedContent === msg.content
-          ? msg
-          : {
-              ...msg,
-              content: sanitizedContent
-            };
-
       try {
-        await channel.send(outbound as OutboundMessage);
+        await this.deliver(msg);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(`Error sending to ${msg.channel}: ${String(err)}`);
@@ -166,9 +176,6 @@ export class ChannelManager {
     }
   }
 
-  getChannel(name: string): BaseChannel<Record<string, unknown>> | undefined {
-    return this.channels[name];
-  }
 
   getStatus(): Record<string, { enabled: boolean; running: boolean }> {
     return Object.fromEntries(

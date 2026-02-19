@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.6.10-release-v0.6.10/README.md`
+- `docs/logs/v0.6.9-restart-notify-delivery-align/README.md`
 - `docs/logs/v0.6.9-release-v0.6.9/README.md`
 - `docs/logs/v0.6.9-restart-sentinel-auto-ping/README.md`
 - `docs/logs/v0.6.8-release-v0.6.8/README.md`

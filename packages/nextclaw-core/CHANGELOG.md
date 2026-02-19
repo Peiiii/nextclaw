@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.6.9
+
+### Patch Changes
+
+- Align restart-sentinel notification delivery with the unified channel dispatch path.
+  - add `ChannelManager.deliver()` for observable one-shot outbound delivery
+  - make restart wake notification use `channels.deliver()` instead of queue-only enqueue
+  - keep retry + reply fallback (drop reply target when platform rejects it)
+  - preserve `pending_system_events` fallback when delivery remains unavailable
+
 ## 0.6.8
 
 ### Patch Changes

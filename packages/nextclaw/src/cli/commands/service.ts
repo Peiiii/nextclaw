@@ -301,7 +301,7 @@ export class ServiceCommands {
       }
 
       await reloader.getChannels().startAll();
-      await this.wakeFromRestartSentinel({ bus, sessionManager });
+      await this.wakeFromRestartSentinel({ channels: reloader.getChannels(), sessionManager });
       await agent.run();
     } finally {
       await stopPluginChannelGateways(pluginGatewayHandles);
@@ -317,8 +317,63 @@ export class ServiceCommands {
     return trimmed || undefined;
   }
 
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async sendRestartSentinelNotice(params: {
+    channels: ChannelManager;
+    channel: string;
+    chatId: string;
+    content: string;
+    replyTo?: string;
+    metadata: Record<string, unknown>;
+  }): Promise<boolean> {
+    const outboundBase = {
+      channel: params.channel,
+      chatId: params.chatId,
+      content: params.content,
+      media: [],
+      metadata: params.metadata
+    };
+    const variants = params.replyTo
+      ? [
+          { ...outboundBase, replyTo: params.replyTo },
+          { ...outboundBase }
+        ]
+      : [{ ...outboundBase }];
+
+    for (let variantIndex = 0; variantIndex < variants.length; variantIndex += 1) {
+      const outbound = variants[variantIndex];
+      const isLastVariant = variantIndex === variants.length - 1;
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          const delivered = await params.channels.deliver(outbound);
+          if (delivered) {
+            return true;
+          }
+          return false;
+        } catch (error) {
+          if (attempt < 3) {
+            await this.sleep(attempt * 500);
+            continue;
+          }
+          if (isLastVariant) {
+            console.warn(
+              "Warning: restart sentinel notify failed for " +
+                `${params.channel}:${params.chatId}` +
+                ` (attempt ${attempt}): ${String(error)}`
+            );
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
   private async wakeFromRestartSentinel(params: {
-    bus: MessageBus;
+    channels: ChannelManager;
     sessionManager: SessionManager;
   }): Promise<void> {
     const sentinel = await consumeRestartSentinel();
@@ -358,16 +413,15 @@ export class ServiceCommands {
       return;
     }
 
-    try {
-      await params.bus.publishOutbound({
-        channel,
-        chatId,
-        content: message,
-        ...(replyTo ? { replyTo } : {}),
-        media: [],
-        metadata
-      });
-    } catch {
+    const delivered = await this.sendRestartSentinelNotice({
+      channels: params.channels,
+      channel,
+      chatId,
+      content: message,
+      ...(replyTo ? { replyTo } : {}),
+      metadata
+    });
+    if (!delivered) {
       enqueuePendingSystemEvent(params.sessionManager, sessionKey, message);
     }
   }
