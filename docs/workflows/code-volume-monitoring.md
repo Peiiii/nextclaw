@@ -43,7 +43,7 @@ pnpm metrics:loc
   - `docs/metrics/code-volume/history.jsonl`
   - `docs/metrics/code-volume/comparison.json`
 - 结果展示：自动写入 GitHub Actions Job Summary
-- 自动回写：在 `master/main` 分支由 workflow 自动提交快照更新（提交信息包含 `[skip ci]`，避免循环触发）
+- 自动回写：仅在 `schedule` / `workflow_dispatch` 且位于 `master/main` 时提交快照更新；`push`/`pull_request` 只做统计与展示，不写回分支，避免干扰日常推送
 - 对比来源：workflow 会自动 checkout `openclaw/openclaw`，并按 `src,extensions,scripts` 做 LOC 基准对比
 
 ## README 实时展示
