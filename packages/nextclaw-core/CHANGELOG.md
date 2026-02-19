@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.6.17
+
+### Patch Changes
+
+- Complete final OpenClaw alignment by fully externalizing builtin channel runtime from core, moving extension packages into a dedicated extensions workspace path, and wiring channel plugins directly to runtime package.
+
+## 0.6.16
+
+### Patch Changes
+
+- Align built-in channel loading with OpenClaw-style plugin registration by splitting bundled channel definitions, routing bundled channels through register(api), and keeping channel runtime purely plugin-registry driven.
+
 ## 0.6.15
 
 ### Patch Changes

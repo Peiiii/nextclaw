@@ -1,5 +1,43 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.9
+
+### Patch Changes
+
+- Complete final OpenClaw alignment by fully externalizing builtin channel runtime from core, moving extension packages into a dedicated extensions workspace path, and wiring channel plugins directly to runtime package.
+- Updated dependencies
+  - @nextclaw/core@0.6.17
+  - @nextclaw/channel-runtime@0.1.1
+  - @nextclaw/channel-plugin-telegram@0.1.1
+  - @nextclaw/channel-plugin-whatsapp@0.1.1
+  - @nextclaw/channel-plugin-discord@0.1.1
+  - @nextclaw/channel-plugin-feishu@0.1.1
+  - @nextclaw/channel-plugin-mochat@0.1.1
+  - @nextclaw/channel-plugin-dingtalk@0.1.1
+  - @nextclaw/channel-plugin-email@0.1.1
+  - @nextclaw/channel-plugin-slack@0.1.1
+  - @nextclaw/channel-plugin-qq@0.1.1
+
+## 0.1.8
+
+### Patch Changes
+
+- Externalize bundled channel implementations into independent installable channel plugin packages and make compat loader resolve bundled channels from those package entries.
+
+## 0.1.7
+
+### Patch Changes
+
+- Align plugin registration architecture with OpenClaw by introducing a dedicated registry module and routing bundled/external plugin registration through a unified API registration path.
+
+## 0.1.6
+
+### Patch Changes
+
+- Align built-in channel loading with OpenClaw-style plugin registration by splitting bundled channel definitions, routing bundled channels through register(api), and keeping channel runtime purely plugin-registry driven.
+- Updated dependencies
+  - @nextclaw/core@0.6.16
+
 ## 0.1.5
 
 ### Patch Changes

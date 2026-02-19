@@ -55,7 +55,7 @@ export function loadPluginRegistry(config: Config, workspaceDir: string): Plugin
       "gateway",
       "cron"
     ],
-    reservedChannelIds: Object.keys(config.channels),
+    reservedChannelIds: [],
     reservedProviderIds: PROVIDERS.map((provider) => provider.name),
     logger: {
       info: (message) => console.log(message),
@@ -170,7 +170,7 @@ export class PluginCommands {
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
-      reservedChannelIds: Object.keys(config.channels),
+      reservedChannelIds: [],
       reservedProviderIds: PROVIDERS.map((provider) => provider.name)
     });
 
@@ -237,7 +237,7 @@ export class PluginCommands {
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
-      reservedChannelIds: Object.keys(config.channels),
+      reservedChannelIds: [],
       reservedProviderIds: PROVIDERS.map((provider) => provider.name)
     });
 
@@ -330,7 +330,7 @@ export class PluginCommands {
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
-      reservedChannelIds: Object.keys(config.channels),
+      reservedChannelIds: [],
       reservedProviderIds: PROVIDERS.map((provider) => provider.name)
     });
 
@@ -558,7 +558,7 @@ export class PluginCommands {
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
-      reservedChannelIds: Object.keys(config.channels),
+      reservedChannelIds: [],
       reservedProviderIds: PROVIDERS.map((provider) => provider.name)
     });
 

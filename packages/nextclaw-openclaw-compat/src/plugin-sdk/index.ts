@@ -1,3 +1,4 @@
+import { resolveBuiltinChannelRuntime } from "@nextclaw/channel-runtime";
 import type { OpenClawPluginApi } from "../plugins/types.js";
 
 export type { OpenClawPluginApi } from "../plugins/types.js";
@@ -71,6 +72,29 @@ export const DEFAULT_ACCOUNT_ID = "default";
 export function normalizeAccountId(accountId?: string | null): string {
   const trimmed = accountId?.trim();
   return trimmed || DEFAULT_ACCOUNT_ID;
+}
+
+
+
+export function createNextclawBuiltinChannelPlugin(channelId: string): {
+  id: string;
+  nextclaw: {
+    isEnabled: (cfg: import("@nextclaw/core").Config) => boolean;
+    createChannel: (ctx: {
+      config: import("@nextclaw/core").Config;
+      bus: import("@nextclaw/core").MessageBus;
+      sessionManager?: import("@nextclaw/core").SessionManager;
+    }) => unknown;
+  };
+} {
+  const runtime = resolveBuiltinChannelRuntime(channelId);
+  return {
+    id: channelId,
+    nextclaw: {
+      isEnabled: runtime.isEnabled,
+      createChannel: runtime.createChannel
+    }
+  };
 }
 
 // Re-exporting this marker keeps plugins that only import types from failing at runtime.

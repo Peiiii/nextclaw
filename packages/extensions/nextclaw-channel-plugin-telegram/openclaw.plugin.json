@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-telegram",
+  "name": "Builtin Telegram Channel",
+  "description": "Builtin NextClaw channel plugin for telegram",
+  "version": "0.1.0",
+  "channels": [
+    "telegram"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

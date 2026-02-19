@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-whatsapp",
+  "name": "Builtin WhatsApp Channel",
+  "description": "Builtin NextClaw channel plugin for whatsapp",
+  "version": "0.1.0",
+  "channels": [
+    "whatsapp"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-slack",
+  "name": "Builtin Slack Channel",
+  "description": "Builtin NextClaw channel plugin for slack",
+  "version": "0.1.0",
+  "channels": [
+    "slack"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

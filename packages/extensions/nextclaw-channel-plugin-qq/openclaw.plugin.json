@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-qq",
+  "name": "Builtin QQ Channel",
+  "description": "Builtin NextClaw channel plugin for qq",
+  "version": "0.1.0",
+  "channels": [
+    "qq"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

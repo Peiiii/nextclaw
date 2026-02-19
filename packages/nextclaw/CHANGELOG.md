@@ -1,5 +1,14 @@
 # nextclaw
 
+## 0.6.16
+
+### Patch Changes
+
+- Align built-in channel loading with OpenClaw-style plugin registration by splitting bundled channel definitions, routing bundled channels through register(api), and keeping channel runtime purely plugin-registry driven.
+- Updated dependencies
+  - @nextclaw/core@0.6.16
+  - @nextclaw/openclaw-compat@0.1.6
+
 ## 0.6.15
 
 ### Patch Changes

@@ -1,0 +1,25 @@
+{
+  "name": "@nextclaw/channel-plugin-feishu",
+  "version": "0.1.1",
+  "private": false,
+  "description": "NextClaw Feishu channel plugin (OpenClaw-compatible)",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    }
+  },
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "openclaw": {
+    "extensions": [
+      "index.js"
+    ]
+  },
+  "dependencies": {
+    "@nextclaw/channel-runtime": "^0.1.1"
+  }
+}

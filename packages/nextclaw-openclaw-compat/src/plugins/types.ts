@@ -1,4 +1,4 @@
-import type { Config } from "@nextclaw/core";
+import type { Config, ExtensionChannel } from "@nextclaw/core";
 
 export type PluginConfigUiHint = {
   label?: string;
@@ -123,6 +123,7 @@ export type OpenClawChannelPlugin = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  nextclaw?: ExtensionChannel["nextclaw"];
   configSchema?: OpenClawChannelConfigSchema;
   config?: OpenClawChannelConfigAdapter;
   setup?: OpenClawChannelSetup;
@@ -158,6 +159,7 @@ export type OpenClawPluginDefinition = {
   description?: string;
   version?: string;
   kind?: PluginKind;
+  configSchema?: Record<string, unknown>;
   register?: (api: OpenClawPluginApi) => void | Promise<void>;
   activate?: (api: OpenClawPluginApi) => void | Promise<void>;
 };

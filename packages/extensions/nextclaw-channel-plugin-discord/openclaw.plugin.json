@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-discord",
+  "name": "Builtin Discord Channel",
+  "description": "Builtin NextClaw channel plugin for discord",
+  "version": "0.1.0",
+  "channels": [
+    "discord"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

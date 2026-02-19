@@ -4,6 +4,7 @@ export * from "./agent/tools/memory.js";
 export * from "./bus/queue.js";
 export * from "./channels/feishu-probe.js";
 export * from "./channels/manager.js";
+export * from "./channels/plugins/index.js";
 export * from "./config/brand.js";
 export * from "./config/actions.js";
 export * from "./config/loader.js";

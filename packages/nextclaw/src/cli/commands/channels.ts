@@ -1,8 +1,20 @@
 import { spawnSync } from "node:child_process";
-import { getWorkspacePath, loadConfig, saveConfig, PROVIDERS } from "@nextclaw/core";
+import { BUILTIN_CHANNEL_PLUGIN_IDS, getWorkspacePath, loadConfig, saveConfig, PROVIDERS } from "@nextclaw/core";
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
 import type { ChannelsAddOptions, RequestRestartParams } from "../types.js";
+
+const CHANNEL_LABELS: Record<string, string> = {
+  telegram: "Telegram",
+  whatsapp: "WhatsApp",
+  discord: "Discord",
+  feishu: "Feishu",
+  mochat: "Mochat",
+  dingtalk: "DingTalk",
+  email: "Email",
+  slack: "Slack",
+  qq: "QQ"
+};
 
 export class ChannelCommands {
   constructor(
@@ -16,19 +28,18 @@ export class ChannelCommands {
   channelsStatus(): void {
     const config = loadConfig();
     console.log("Channel Status");
-    console.log(`WhatsApp: ${config.channels.whatsapp.enabled ? "✓" : "✗"}`);
-    console.log(`Discord: ${config.channels.discord.enabled ? "✓" : "✗"}`);
-    console.log(`Feishu: ${config.channels.feishu.enabled ? "✓" : "✗"}`);
-    console.log(`Mochat: ${config.channels.mochat.enabled ? "✓" : "✗"}`);
-    console.log(`Telegram: ${config.channels.telegram.enabled ? "✓" : "✗"}`);
-    console.log(`Slack: ${config.channels.slack.enabled ? "✓" : "✗"}`);
-    console.log(`QQ: ${config.channels.qq.enabled ? "✓" : "✗"}`);
+    const channelConfig = config.channels as Record<string, { enabled?: boolean }>;
+    for (const channelId of BUILTIN_CHANNEL_PLUGIN_IDS) {
+      const label = CHANNEL_LABELS[channelId] ?? channelId;
+      const enabled = channelConfig[channelId]?.enabled === true;
+      console.log(`${label}: ${enabled ? "✓" : "✗"}`);
+    }
 
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
-      reservedChannelIds: Object.keys(config.channels),
+      reservedChannelIds: [],
       reservedProviderIds: PROVIDERS.map((provider) => provider.name)
     });
 

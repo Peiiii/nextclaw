@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-mochat",
+  "name": "Builtin Mochat Channel",
+  "description": "Builtin NextClaw channel plugin for mochat",
+  "version": "0.1.0",
+  "channels": [
+    "mochat"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

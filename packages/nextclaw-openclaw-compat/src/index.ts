@@ -7,6 +7,7 @@ export * from "./plugins/loader.js";
 export * from "./plugins/manifest-registry.js";
 export * from "./plugins/manifest.js";
 export * from "./plugins/runtime.js";
+export * from "./plugins/registry.js";
 export * from "./plugins/schema-validator.js";
 export * from "./plugins/status.js";
 export * from "./plugins/types.js";

@@ -1,24 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import createJitiImport from "jiti";
 import type { Config } from "@nextclaw/core";
 import { getWorkspacePathFromConfig } from "@nextclaw/core";
-import { expandHome } from "@nextclaw/core";
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
 import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-import { createPluginRuntime } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
+import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./registry.js";
 import type {
-  OpenClawPluginApi,
-  OpenClawPluginChannelRegistration,
   OpenClawPluginDefinition,
   OpenClawPluginModule,
-  OpenClawPluginTool,
-  OpenClawPluginToolContext,
-  OpenClawPluginToolFactory,
-  PluginDiagnostic,
   PluginLogger,
   PluginRecord,
   PluginRegistry
@@ -47,6 +41,36 @@ const defaultLogger: PluginLogger = {
   error: (message: string) => console.error(message),
   debug: (message: string) => console.debug(message)
 };
+
+const BUNDLED_CHANNEL_PLUGIN_PACKAGES = [
+  "@nextclaw/channel-plugin-telegram",
+  "@nextclaw/channel-plugin-whatsapp",
+  "@nextclaw/channel-plugin-discord",
+  "@nextclaw/channel-plugin-feishu",
+  "@nextclaw/channel-plugin-mochat",
+  "@nextclaw/channel-plugin-dingtalk",
+  "@nextclaw/channel-plugin-email",
+  "@nextclaw/channel-plugin-slack",
+  "@nextclaw/channel-plugin-qq"
+] as const;
+
+
+
+function resolvePackageRootFromEntry(entryFile: string): string {
+  let cursor = path.dirname(entryFile);
+  for (let i = 0; i < 8; i += 1) {
+    const candidate = path.join(cursor, "package.json");
+    if (fs.existsSync(candidate)) {
+      return cursor;
+    }
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      break;
+    }
+    cursor = parent;
+  }
+  return path.dirname(entryFile);
+}
 
 function resolvePluginSdkAliasFile(params: { srcFile: string; distFile: string }): string | null {
   try {
@@ -104,25 +128,6 @@ function resolvePluginModuleExport(moduleExport: unknown): {
   return {};
 }
 
-function normalizeToolList(value: unknown): OpenClawPluginTool[] {
-  if (!value) {
-    return [];
-  }
-  const list = Array.isArray(value) ? value : [value];
-  return list.filter((entry): entry is OpenClawPluginTool => {
-    if (!entry || typeof entry !== "object") {
-      return false;
-    }
-    const candidate = entry as OpenClawPluginTool;
-    return (
-      typeof candidate.name === "string" &&
-      candidate.name.trim().length > 0 &&
-      candidate.parameters !== undefined &&
-      typeof candidate.execute === "function"
-    );
-  });
-}
-
 function createPluginRecord(params: {
   id: string;
   name?: string;
@@ -155,56 +160,6 @@ function createPluginRecord(params: {
     configUiHints: params.configUiHints,
     configJsonSchema: params.configJsonSchema
   };
-}
-
-function buildPluginLogger(base: PluginLogger, pluginId: string): PluginLogger {
-  const withPrefix = (message: string) => `[plugins:${pluginId}] ${message}`;
-  return {
-    info: (message: string) => base.info(withPrefix(message)),
-    warn: (message: string) => base.warn(withPrefix(message)),
-    error: (message: string) => base.error(withPrefix(message)),
-    debug: base.debug ? (message: string) => base.debug?.(withPrefix(message)) : undefined
-  };
-}
-
-function ensureUniqueNames(params: {
-  names: string[];
-  pluginId: string;
-  diagnostics: PluginDiagnostic[];
-  source: string;
-  owners: Map<string, string>;
-  reserved: Set<string>;
-  kind: "tool" | "channel" | "provider";
-}): string[] {
-  const accepted: string[] = [];
-  for (const rawName of params.names) {
-    const name = rawName.trim();
-    if (!name) {
-      continue;
-    }
-    if (params.reserved.has(name)) {
-      params.diagnostics.push({
-        level: "error",
-        pluginId: params.pluginId,
-        source: params.source,
-        message: `${params.kind} already registered by core: ${name}`
-      });
-      continue;
-    }
-    const owner = params.owners.get(name);
-    if (owner && owner !== params.pluginId) {
-      params.diagnostics.push({
-        level: "error",
-        pluginId: params.pluginId,
-        source: params.source,
-        message: `${params.kind} already registered: ${name} (${owner})`
-      });
-      continue;
-    }
-    params.owners.set(name, params.pluginId);
-    accepted.push(name);
-  }
-  return accepted;
 }
 
 function isPlaceholderConfigSchema(schema: Record<string, unknown> | undefined): boolean {
@@ -246,17 +201,110 @@ function validatePluginConfig(params: {
   return { ok: false, errors: result.errors };
 }
 
-export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
-  if (process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS === "0") {
-    return {
-      plugins: [],
-      tools: [],
-      channels: [],
-      providers: [],
-      diagnostics: [],
-      resolvedTools: []
-    };
+function appendBundledChannelPlugins(params: {
+  runtime: PluginRegisterRuntime;
+  registry: PluginRegistry;
+  jiti: ReturnType<JitiFactory>;
+}): void {
+  const require = createRequire(import.meta.url);
+
+  for (const packageName of BUNDLED_CHANNEL_PLUGIN_PACKAGES) {
+    let entryFile = "";
+    let rootDir = "";
+
+    try {
+      entryFile = require.resolve(packageName);
+      rootDir = resolvePackageRootFromEntry(entryFile);
+    } catch (err) {
+      params.registry.diagnostics.push({
+        level: "error",
+        source: packageName,
+        message: `bundled plugin package not resolvable: ${String(err)}`
+      });
+      continue;
+    }
+
+    let moduleExport: OpenClawPluginModule | null = null;
+    try {
+      moduleExport = params.jiti(entryFile) as OpenClawPluginModule;
+    } catch (err) {
+      params.registry.diagnostics.push({
+        level: "error",
+        source: entryFile,
+        message: `failed to load bundled plugin: ${String(err)}`
+      });
+      continue;
+    }
+
+    const resolved = resolvePluginModuleExport(moduleExport);
+    const definition = resolved.definition;
+    const register = resolved.register;
+
+    const pluginId = typeof definition?.id === "string" ? definition.id.trim() : "";
+    const source = entryFile;
+    if (!pluginId) {
+      params.registry.diagnostics.push({
+        level: "error",
+        source,
+        message: "bundled plugin definition missing id"
+      });
+      continue;
+    }
+
+    const record = createPluginRecord({
+      id: pluginId,
+      name: definition?.name ?? pluginId,
+      description: definition?.description,
+      version: definition?.version,
+      kind: definition?.kind,
+      source,
+      origin: "bundled",
+      workspaceDir: params.runtime.workspaceDir,
+      enabled: true,
+      configSchema: Boolean(definition?.configSchema),
+      configJsonSchema: definition?.configSchema
+    });
+
+    if (typeof register !== "function") {
+      record.status = "error";
+      record.error = "plugin export missing register/activate";
+      params.registry.plugins.push(record);
+      params.registry.diagnostics.push({
+        level: "error",
+        pluginId,
+        source,
+        message: record.error
+      });
+      continue;
+    }
+
+    const result = registerPluginWithApi({
+      runtime: params.runtime,
+      record,
+      pluginId,
+      source,
+      rootDir,
+      register,
+      pluginConfig: undefined
+    });
+
+    if (!result.ok) {
+      record.status = "error";
+      record.error = result.error;
+      params.registry.diagnostics.push({
+        level: "error",
+        pluginId,
+        source,
+        message: result.error
+      });
+    }
+
+    params.registry.plugins.push(record);
   }
+}
+
+export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
+  const loadExternalPlugins = process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "0";
 
   const logger = options.logger ?? defaultLogger;
 
@@ -273,14 +321,42 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     resolvedTools: []
   };
 
-  const toolNameOwners = new Map<string, string>();
-  const channelIdOwners = new Map<string, string>();
-  const providerIdOwners = new Map<string, string>();
-  const resolvedToolNames = new Set<string>();
-
   const reservedToolNames = new Set(options.reservedToolNames ?? []);
   const reservedChannelIds = new Set(options.reservedChannelIds ?? []);
   const reservedProviderIds = new Set(options.reservedProviderIds ?? []);
+
+  const registerRuntime = createPluginRegisterRuntime({
+    config: options.config,
+    workspaceDir,
+    logger,
+    registry,
+    reservedToolNames,
+    reservedChannelIds,
+    reservedProviderIds
+  });
+
+  const pluginSdkAlias = resolvePluginSdkAlias();
+  const jiti = createJiti(import.meta.url, {
+    interopDefault: true,
+    extensions: [".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"],
+    ...(pluginSdkAlias
+      ? {
+          alias: {
+            "openclaw/plugin-sdk": pluginSdkAlias
+          }
+        }
+      : {})
+  });
+
+  appendBundledChannelPlugins({
+    registry,
+    runtime: registerRuntime,
+    jiti
+  });
+
+  if (!loadExternalPlugins) {
+    return registry;
+  }
 
   const discovery = discoverOpenClawPlugins({
     config: options.config,
@@ -297,20 +373,9 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
   registry.diagnostics.push(...manifestRegistry.diagnostics);
 
   const manifestByRoot = new Map(manifestRegistry.plugins.map((entry) => [entry.rootDir, entry]));
-  const seenIds = new Map<string, PluginRecord["origin"]>();
-
-  const pluginSdkAlias = resolvePluginSdkAlias();
-  const jiti = createJiti(import.meta.url, {
-    interopDefault: true,
-    extensions: [".ts", ".tsx", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"],
-    ...(pluginSdkAlias
-      ? {
-          alias: {
-            "openclaw/plugin-sdk": pluginSdkAlias
-          }
-        }
-      : {})
-  });
+  const seenIds = new Map<string, PluginRecord["origin"]>(
+    registry.plugins.map((entry) => [entry.id, entry.origin])
+  );
 
   for (const candidate of discovery.candidates) {
     const manifest = manifestByRoot.get(candidate.rootDir);
@@ -456,295 +521,32 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
       continue;
     }
 
-    const pluginRuntime = createPluginRuntime({ workspace: workspaceDir, config: options.config });
-
-    const pluginLogger = buildPluginLogger(logger, pluginId);
-
-    const pushUnsupported = (capability: string) => {
-      registry.diagnostics.push({
-        level: "warn",
-        pluginId,
-        source: candidate.source,
-        message: `${capability} is not supported by nextclaw compat layer yet`
-      });
-      pluginLogger.warn(`${capability} is ignored (not supported yet)`);
-    };
-
-    const api: OpenClawPluginApi = {
-      id: pluginId,
-      name: record.name,
-      version: record.version,
-      description: record.description,
+    const registerResult = registerPluginWithApi({
+      runtime: registerRuntime,
+      record,
+      pluginId,
       source: candidate.source,
-      config: options.config,
-      pluginConfig: validatedConfig.value,
-      runtime: pluginRuntime,
-      logger: pluginLogger,
-      registerTool: (tool, opts) => {
-        const declaredNames = opts && Array.isArray(opts.names) ? opts.names : [];
-        const names = [...declaredNames, ...(opts && opts.name ? [opts.name] : [])];
-        if (typeof tool !== "function" && typeof tool.name === "string") {
-          names.push(tool.name);
-        }
-        const uniqueNames = Array.from(new Set(names.map((name) => name.trim()).filter(Boolean)));
-        const acceptedNames = ensureUniqueNames({
-          names: uniqueNames,
-          pluginId,
-          diagnostics: registry.diagnostics,
-          source: candidate.source,
-          owners: toolNameOwners,
-          reserved: reservedToolNames,
-          kind: "tool"
-        });
-        if (acceptedNames.length === 0) {
-          registry.diagnostics.push({
-            level: "warn",
-            pluginId,
-            source: candidate.source,
-            message: "tool registration skipped: no available tool names"
-          });
-          return;
-        }
+      rootDir: candidate.rootDir,
+      register,
+      pluginConfig: validatedConfig.value
+    });
 
-        const factory: OpenClawPluginToolFactory =
-          typeof tool === "function" ? tool : (_ctx: OpenClawPluginToolContext) => tool;
-
-        registry.tools.push({
-          pluginId,
-          factory,
-          names: acceptedNames,
-          optional: opts?.optional === true,
-          source: candidate.source
-        });
-        record.toolNames.push(...acceptedNames);
-
-        try {
-          const previewTools = normalizeToolList(
-            factory({
-              config: options.config,
-              workspaceDir,
-              sandboxed: false
-            })
-          );
-          const byName = new Map(previewTools.map((entry) => [entry.name, entry]));
-          for (const name of acceptedNames) {
-            const resolvedTool = byName.get(name);
-            if (!resolvedTool || resolvedToolNames.has(resolvedTool.name)) {
-              continue;
-            }
-            resolvedToolNames.add(resolvedTool.name);
-            registry.resolvedTools.push(resolvedTool);
-          }
-        } catch (err) {
-          registry.diagnostics.push({
-            level: "warn",
-            pluginId,
-            source: candidate.source,
-            message: `tool preview failed: ${String(err)}`
-          });
-        }
-      },
-      registerChannel: (registration: OpenClawPluginChannelRegistration) => {
-        const normalizedChannel =
-          registration &&
-          typeof registration === "object" &&
-          "plugin" in (registration as Record<string, unknown>)
-            ? (registration as { plugin: unknown }).plugin
-            : registration;
-
-        if (!normalizedChannel || typeof normalizedChannel !== "object") {
-          registry.diagnostics.push({
-            level: "error",
-            pluginId,
-            source: candidate.source,
-            message: "channel registration missing plugin object"
-          });
-          return;
-        }
-
-        const channelObj = normalizedChannel as { id?: unknown };
-        const rawId = typeof channelObj.id === "string" ? channelObj.id : String(channelObj.id ?? "");
-        const accepted = ensureUniqueNames({
-          names: [rawId],
-          pluginId,
-          diagnostics: registry.diagnostics,
-          source: candidate.source,
-          owners: channelIdOwners,
-          reserved: reservedChannelIds,
-          kind: "channel"
-        });
-
-        if (accepted.length === 0) {
-          return;
-        }
-
-        const channelPlugin = normalizedChannel as PluginRegistry["channels"][number]["channel"];
-        registry.channels.push({
-          pluginId,
-          channel: channelPlugin,
-          source: candidate.source
-        });
-        const channelId = accepted[0];
-        record.channelIds.push(channelId);
-
-        const configSchema = (channelPlugin as { configSchema?: { schema?: unknown; uiHints?: unknown } }).configSchema;
-        if (configSchema && typeof configSchema === "object") {
-          const schema = configSchema.schema;
-          if (schema && typeof schema === "object" && !Array.isArray(schema)) {
-            record.configJsonSchema = schema as Record<string, unknown>;
-            record.configSchema = true;
-          }
-          const uiHints = configSchema.uiHints;
-          if (uiHints && typeof uiHints === "object" && !Array.isArray(uiHints)) {
-            record.configUiHints = {
-              ...(record.configUiHints ?? {}),
-              ...(uiHints as NonNullable<PluginRecord["configUiHints"]>)
-            };
-          }
-        }
-
-        const pushChannelTools = (
-          value: unknown,
-          optional: boolean,
-          sourceLabel: string,
-          resolveValue: (ctx: OpenClawPluginToolContext) => unknown
-        ) => {
-          const previewTools = normalizeToolList(value);
-          if (previewTools.length === 0) {
-            return;
-          }
-
-          const declaredNames = previewTools.map((tool) => tool.name);
-          const acceptedNames = ensureUniqueNames({
-            names: declaredNames,
-            pluginId,
-            diagnostics: registry.diagnostics,
-            source: candidate.source,
-            owners: toolNameOwners,
-            reserved: reservedToolNames,
-            kind: "tool"
-          });
-          if (acceptedNames.length === 0) {
-            return;
-          }
-
-          const factory: OpenClawPluginToolFactory = (ctx: OpenClawPluginToolContext) => {
-            const tools = normalizeToolList(resolveValue(ctx));
-            if (tools.length === 0) {
-              return [];
-            }
-            const byName = new Map(tools.map((tool) => [tool.name, tool]));
-            return acceptedNames.map((name) => byName.get(name)).filter(Boolean) as OpenClawPluginTool[];
-          };
-
-          registry.tools.push({
-            pluginId,
-            factory,
-            names: acceptedNames,
-            optional,
-            source: candidate.source
-          });
-          record.toolNames.push(...acceptedNames);
-
-          const previewByName = new Map(previewTools.map((tool) => [tool.name, tool]));
-          for (const name of acceptedNames) {
-            const resolvedTool = previewByName.get(name);
-            if (!resolvedTool || resolvedToolNames.has(resolvedTool.name)) {
-              continue;
-            }
-            resolvedToolNames.add(resolvedTool.name);
-            registry.resolvedTools.push(resolvedTool);
-          }
-
-          registry.diagnostics.push({
-            level: "warn",
-            pluginId,
-            source: candidate.source,
-            message: `${sourceLabel} registered channel-owned tools: ${acceptedNames.join(", ")}`
-          });
-        };
-
-        const agentTools = (channelPlugin as { agentTools?: unknown }).agentTools;
-        if (typeof agentTools === "function") {
-          pushChannelTools(
-            normalizeToolList((agentTools as () => unknown)()),
-            false,
-            `channel "${channelId}"`,
-            () => (agentTools as () => unknown)()
-          );
-        } else if (agentTools) {
-          pushChannelTools(
-            normalizeToolList(agentTools),
-            false,
-            `channel "${channelId}"`,
-            () => agentTools
-          );
-        }
-
-      },
-      registerProvider: (provider) => {
-        const accepted = ensureUniqueNames({
-          names: [provider.id],
-          pluginId,
-          diagnostics: registry.diagnostics,
-          source: candidate.source,
-          owners: providerIdOwners,
-          reserved: reservedProviderIds,
-          kind: "provider"
-        });
-        if (accepted.length === 0) {
-          return;
-        }
-        registry.providers.push({
-          pluginId,
-          provider,
-          source: candidate.source
-        });
-        record.providerIds.push(accepted[0]);
-      },
-      registerHook: () => pushUnsupported("registerHook"),
-      registerGatewayMethod: () => pushUnsupported("registerGatewayMethod"),
-      registerCli: () => pushUnsupported("registerCli"),
-      registerService: () => pushUnsupported("registerService"),
-      registerCommand: () => pushUnsupported("registerCommand"),
-      registerHttpHandler: () => pushUnsupported("registerHttpHandler"),
-      registerHttpRoute: () => pushUnsupported("registerHttpRoute"),
-      resolvePath: (input: string) => {
-        const trimmed = input.trim();
-        if (!trimmed) {
-          return candidate.rootDir;
-        }
-        if (path.isAbsolute(trimmed)) {
-          return path.resolve(expandHome(trimmed));
-        }
-        return path.resolve(candidate.rootDir, trimmed);
-      }
-    };
-
-    try {
-      const result = register(api);
-      if (result && typeof result === "object" && "then" in result) {
-        registry.diagnostics.push({
-          level: "warn",
-          pluginId,
-          source: candidate.source,
-          message: "plugin register returned a promise; async registration is ignored"
-        });
-      }
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-    } catch (err) {
+    if (!registerResult.ok) {
       record.status = "error";
-      record.error = `plugin failed during register: ${String(err)}`;
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
+      record.error = registerResult.error;
       registry.diagnostics.push({
         level: "error",
         pluginId,
         source: candidate.source,
-        message: record.error
+        message: registerResult.error
       });
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
+      continue;
     }
+
+    registry.plugins.push(record);
+    seenIds.set(pluginId, candidate.origin);
   }
 
   return registry;

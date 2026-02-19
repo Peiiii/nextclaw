@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-dingtalk",
+  "name": "Builtin DingTalk Channel",
+  "description": "Builtin NextClaw channel plugin for dingtalk",
+  "version": "0.1.0",
+  "channels": [
+    "dingtalk"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

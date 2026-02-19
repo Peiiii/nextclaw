@@ -1,6 +1,6 @@
 # NPM Package Release Process
 
-Scope: publish npm packages in `packages/*`.
+Scope: publish npm packages in `packages/*` and `packages/extensions/*`.
 This does NOT cover registry/console deployment.
 
 ## Prereqs

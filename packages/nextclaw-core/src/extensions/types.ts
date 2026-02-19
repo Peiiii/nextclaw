@@ -1,4 +1,7 @@
 import type { Config } from "../config/schema.js";
+import type { MessageBus } from "../bus/queue.js";
+import type { SessionManager } from "../session/manager.js";
+import type { BaseChannel } from "../channels/base.js";
 
 export type ExtensionDiagnostic = {
   level: "warn" | "error";
@@ -42,6 +45,14 @@ export type ExtensionChannel = {
   id: string;
   meta?: Record<string, unknown>;
   capabilities?: Record<string, unknown>;
+  nextclaw?: {
+    isEnabled?: (cfg: Config) => boolean;
+    createChannel?: (ctx: {
+      config: Config;
+      bus: MessageBus;
+      sessionManager?: SessionManager;
+    }) => BaseChannel<Record<string, unknown>>;
+  };
   outbound?: {
     sendText?: (ctx: {
       cfg: Config;

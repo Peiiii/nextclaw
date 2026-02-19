@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-email",
+  "name": "Builtin Email Channel",
+  "description": "Builtin NextClaw channel plugin for email",
+  "version": "0.1.0",
+  "channels": [
+    "email"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

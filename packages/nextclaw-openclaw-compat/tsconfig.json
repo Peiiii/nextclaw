@@ -9,6 +9,9 @@
     "paths": {
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
+      ],
+      "@nextclaw/channel-runtime": [
+        "../extensions/nextclaw-channel-runtime/src/index.ts"
       ]
     }
   },

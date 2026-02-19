@@ -1,0 +1,14 @@
+{
+  "id": "builtin-channel-feishu",
+  "name": "Builtin Feishu Channel",
+  "description": "Builtin NextClaw channel plugin for feishu",
+  "version": "0.1.0",
+  "channels": [
+    "feishu"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

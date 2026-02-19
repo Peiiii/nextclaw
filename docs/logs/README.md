@@ -1,5 +1,14 @@
 # Logs
 
+- `docs/logs/v0.6.26-openclaw-final-oneshot-complete/README.md`
+- `docs/logs/v0.6.25-channel-runtime-hard-split/README.md`
+- `docs/logs/v0.6.24-openclaw-final-align-public-release/README.md`
+- `docs/logs/v0.6.23-channel-independent-plugin-packages/README.md`
+- `docs/logs/v0.6.22-openclaw-registry-final-align/README.md`
+- `docs/logs/v0.6.21-openclaw-bundled-channel-register-align/README.md`
+- `docs/logs/v0.6.20-channel-bundled-plugin-injection/README.md`
+- `docs/logs/v0.6.19-all-channels-pluginized-openclaw-align/README.md`
+- `docs/logs/v0.6.17-discord-think-tag-session-sanitize/README.md`
 - `docs/logs/v0.6.15-release-v0.6.15/README.md`
 - `docs/logs/v0.6.16-qwen-tool-call-parser-hardening/README.md`
 - `docs/logs/v0.6.16-config-meta-ai-verifiable-automation/README.md`
