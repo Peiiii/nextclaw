@@ -1,5 +1,14 @@
 # nextclaw
 
+## 0.6.25
+
+### Patch Changes
+
+- Improve `nextclaw update` UX by showing explicit version progress.
+  - Print current version before running update.
+  - Print either `Version updated: <from> -> <to>` or `Version unchanged: <version>` after update.
+  - Include `version.before/after/changed` in gateway `update.run` results.
+
 ## 0.6.24
 
 ### Patch Changes

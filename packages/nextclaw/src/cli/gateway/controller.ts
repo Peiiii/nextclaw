@@ -334,11 +334,22 @@ export class GatewayControllerImpl implements GatewayController {
     timeoutMs?: number;
     sessionKey?: string;
   }): Promise<Record<string, unknown>> {
+    const versionBefore = getPackageVersion();
     const result = runSelfUpdate({ timeoutMs: params.timeoutMs });
     if (!result.ok) {
-      return { ok: false, error: result.error ?? "update failed", steps: result.steps };
+      return {
+        ok: false,
+        error: result.error ?? "update failed",
+        steps: result.steps,
+        version: {
+          before: versionBefore,
+          after: getPackageVersion(),
+          changed: false
+        }
+      };
     }
 
+    const versionAfter = getPackageVersion();
     const delayMs = params.restartDelayMs ?? 0;
     const sentinelPath = await this.writeRestartSentinelPayload({
       kind: "update.run",
@@ -355,6 +366,11 @@ export class GatewayControllerImpl implements GatewayController {
       restart: { scheduled: true, delayMs },
       strategy: result.strategy,
       steps: result.steps,
+      version: {
+        before: versionBefore,
+        after: versionAfter,
+        changed: versionBefore !== versionAfter
+      },
       sentinel: sentinelPath ? { path: sentinelPath } : null
     };
   }

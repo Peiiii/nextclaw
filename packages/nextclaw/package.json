@@ -1,6 +1,6 @@
 {
   "name": "nextclaw",
-  "version": "0.6.24",
+  "version": "0.6.25",
   "description": "Lightweight personal AI assistant with CLI, multi-provider routing, and channel integrations.",
   "private": false,
   "type": "module",

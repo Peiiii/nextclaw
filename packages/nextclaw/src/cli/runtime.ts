@@ -530,6 +530,9 @@ export class CliRuntime {
       timeoutMs = parsed;
     }
 
+    const versionBefore = getPackageVersion();
+    console.log(`Current version: ${versionBefore}`);
+
     const result = runSelfUpdate({ timeoutMs, cwd: process.cwd() });
 
     const printSteps = () => {
@@ -552,7 +555,13 @@ export class CliRuntime {
       process.exit(1);
     }
 
+    const versionAfter = getPackageVersion();
     console.log(`✓ Update complete (${result.strategy})`);
+    if (versionAfter === versionBefore) {
+      console.log(`Version unchanged: ${versionBefore}`);
+    } else {
+      console.log(`Version updated: ${versionBefore} -> ${versionAfter}`);
+    }
 
     const state = readServiceState();
     if (state && isProcessRunning(state.pid)) {
