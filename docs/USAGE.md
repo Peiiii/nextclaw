@@ -21,6 +21,7 @@ When NextClaw AI needs to operate the product itself (status/doctor/channels/con
 - [AI Self-Management Contract](#ai-self-management-contract)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
+- [Multi-agent routing & session isolation](#multi-agent-routing--session-isolation-openclaw-aligned)
 - [Workspace](#workspace)
 - [Commands](#commands)
 - [Channels](#channels)
@@ -137,6 +138,64 @@ Restart is still required for:
 - `plugins.*`
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
+
+### Multi-agent routing & session isolation (OpenClaw-aligned)
+
+You can now configure OpenClaw-style multi-agent runtime behavior directly in the UI (**Routing & Runtime**) or in `config.json`:
+
+- `agents.list`: run multiple resident agent roles in one gateway process
+- `bindings`: route inbound messages by `channel + accountId (+peer)` to a target `agentId`
+- `session.dmScope`: DM isolation strategy (`main` / `per-peer` / `per-channel-peer` / `per-account-channel-peer`)
+- `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops (`0` means block auto ping-pong)
+
+Example:
+
+```json
+{
+  "agents": {
+    "defaults": { "model": "openai/gpt-5.2-codex" },
+    "list": [
+      { "id": "main", "default": true },
+      {
+        "id": "engineer",
+        "workspace": "~/workspace-engineer",
+        "model": "openai/gpt-5.2-codex",
+        "maxTokens": 12000,
+        "maxToolIterations": 24
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "agentId": "engineer",
+      "match": {
+        "channel": "discord",
+        "accountId": "zongzhihui",
+        "peer": { "kind": "channel", "id": "dev-room" }
+      }
+    }
+  ],
+  "session": {
+    "dmScope": "per-account-channel-peer",
+    "agentToAgent": { "maxPingPongTurns": 0 }
+  }
+}
+```
+
+CLI equivalents:
+
+```bash
+nextclaw config set agents.list '[{"id":"main","default":true},{"id":"engineer"}]' --json
+nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui"}}]' --json
+nextclaw config set session.dmScope '"per-account-channel-peer"' --json
+nextclaw config set session.agentToAgent.maxPingPongTurns 0 --json
+```
+
+For internal AI operations (same as other built-in capabilities):
+
+- Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
+- The AI can use it to manage the same config surface when you explicitly ask.
+- As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
 
 ---
 
@@ -290,7 +349,19 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
       "enabled": true,
       "token": "YOUR_BOT_TOKEN",
       "allowBots": false,
-      "allowFrom": []
+      "allowFrom": [],
+      "accountId": "zongzhihui",
+      "dmPolicy": "open",
+      "groupPolicy": "allowlist",
+      "groupAllowFrom": ["dev-room"],
+      "requireMention": true,
+      "mentionPatterns": ["@工程师", "@engineer"],
+      "groups": {
+        "dev-room": {
+          "requireMention": true,
+          "mentionPatterns": ["@engineer"]
+        }
+      }
     }
   }
 }
@@ -310,7 +381,19 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
     "telegram": {
       "enabled": true,
       "token": "YOUR_BOT_TOKEN",
-      "allowFrom": ["YOUR_USER_ID"]
+      "allowFrom": ["YOUR_USER_ID"],
+      "accountId": "zongzhihui",
+      "dmPolicy": "open",
+      "groupPolicy": "allowlist",
+      "groupAllowFrom": ["GROUP_ID"],
+      "requireMention": true,
+      "mentionPatterns": ["@工程师", "@engineer"],
+      "groups": {
+        "GROUP_ID": {
+          "requireMention": true,
+          "mentionPatterns": ["@engineer"]
+        }
+      }
     }
   }
 }

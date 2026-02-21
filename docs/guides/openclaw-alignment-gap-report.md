@@ -19,6 +19,9 @@
 - 新增 `Routing & Runtime` 页面，支持编辑 `agents.list`、`bindings`、`session.dmScope`、`session.agentToAgent.maxPingPongTurns`
 - ChannelForm 已补齐 Discord/Telegram 的 `accountId/dmPolicy/groupPolicy/groupAllowFrom/requireMention/mentionPatterns/groups`
 
+> 注：本文后续“对比矩阵/结论摘要”保留了早期差距分析上下文，作为历史基线参考；
+> 最新可用能力与实际使用方式以 `docs/USAGE.md` 与 `docs/guides/multi-agent-architecture.md` 为准。
+
 ## 结论摘要
 
 - **已对齐（2项）**：
