@@ -51,6 +51,17 @@
   - metadata 包含 `account_id`、`peer_kind`
 - 输出：`SMOKE_OK { routeAgent: 'engineer', discordPeerKind: 'channel', telegramPeerKind: 'group' }`
 
+### 4) 用户/产品视角验收步骤
+
+1. 在配置中准备至少 2 个 agent（如 `main`、`engineer`）并设置 `bindings`（例如 Discord 某 channel/account 路由到 `engineer`）。
+2. 从用户视角发送真实消息，确认命中绑定角色（不是随机角色回复），并且回复内容符合该角色职责。
+3. 在 Discord 与 Telegram 分别进行群聊测试：
+   - 未 `@` 时（启用 `requireMention`）不应触发回复；
+   - `@` 后应正常触发回复。
+4. 在私聊场景验证会话隔离：同一用户跨渠道对话不串上下文，不同用户同渠道不串上下文。
+5. 在多角色协作场景验证防循环：当设置 `session.agentToAgent.maxPingPongTurns=0` 时，跨 agent 往返应被阻断并给出可理解结果。
+6. 产品验收通过标准：路由稳定、会话不串、群聊触发可预测、错误可解释。
+
 ## 发布 / 部署方式
 
 已执行发布闭环：
