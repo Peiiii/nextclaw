@@ -24,6 +24,44 @@ export type ProviderConfigUpdate = {
   wireApi?: "auto" | "chat" | "responses" | null;
 };
 
+export type AgentProfileView = {
+  id: string;
+  default?: boolean;
+  workspace?: string;
+  model?: string;
+  maxTokens?: number;
+  maxToolIterations?: number;
+};
+
+export type BindingPeerView = {
+  kind: "direct" | "group" | "channel";
+  id: string;
+};
+
+export type AgentBindingView = {
+  agentId: string;
+  match: {
+    channel: string;
+    accountId?: string;
+    peer?: BindingPeerView;
+  };
+};
+
+export type SessionConfigView = {
+  dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
+  agentToAgent?: {
+    maxPingPongTurns?: number;
+  };
+};
+
+export type RuntimeConfigUpdate = {
+  agents?: {
+    list?: AgentProfileView[];
+  };
+  bindings?: AgentBindingView[];
+  session?: SessionConfigView;
+};
+
 export type ChannelConfigUpdate = Record<string, unknown>;
 
 export type ConfigView = {
@@ -34,6 +72,7 @@ export type ConfigView = {
       maxTokens?: number;
       maxToolIterations?: number;
     };
+    list?: AgentProfileView[];
     context?: {
       bootstrap?: {
         files?: string[];
@@ -50,6 +89,8 @@ export type ConfigView = {
   };
   providers: Record<string, ProviderConfigView>;
   channels: Record<string, Record<string, unknown>>;
+  bindings?: AgentBindingView[];
+  session?: SessionConfigView;
   tools?: Record<string, unknown>;
   gateway?: Record<string, unknown>;
 };

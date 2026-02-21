@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useConfig, useConfigSchema, useUpdateChannel, useExecuteConfigAction } from '@/hooks/useConfig';
 import { useUiStore } from '@/stores/ui.store';
 import {
@@ -19,6 +19,23 @@ import { hintForPath } from '@/lib/config-hints';
 import { toast } from 'sonner';
 import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from 'lucide-react';
 import type { ConfigActionManifest } from '@/api/types';
+
+type ChannelFieldType = 'boolean' | 'text' | 'email' | 'password' | 'number' | 'tags' | 'select' | 'json';
+type ChannelOption = { value: string; label: string };
+type ChannelField = { name: string; type: ChannelFieldType; label: string; options?: ChannelOption[] };
+
+const DM_POLICY_OPTIONS: ChannelOption[] = [
+  { value: 'pairing', label: 'pairing' },
+  { value: 'allowlist', label: 'allowlist' },
+  { value: 'open', label: 'open' },
+  { value: 'disabled', label: 'disabled' }
+];
+
+const GROUP_POLICY_OPTIONS: ChannelOption[] = [
+  { value: 'open', label: 'open' },
+  { value: 'allowlist', label: 'allowlist' },
+  { value: 'disabled', label: 'disabled' }
+];
 
 // Field icon mapping
 const getFieldIcon = (fieldName: string) => {
@@ -41,12 +58,19 @@ const getFieldIcon = (fieldName: string) => {
 };
 
 // Channel field definitions
-const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: string }>> = {
+const CHANNEL_FIELDS: Record<string, ChannelField[]> = {
   telegram: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
     { name: 'token', type: 'password', label: t('botToken') },
     { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
-    { name: 'proxy', type: 'text', label: t('proxy') }
+    { name: 'proxy', type: 'text', label: t('proxy') },
+    { name: 'accountId', type: 'text', label: 'Account ID' },
+    { name: 'dmPolicy', type: 'select', label: 'DM Policy', options: DM_POLICY_OPTIONS },
+    { name: 'groupPolicy', type: 'select', label: 'Group Policy', options: GROUP_POLICY_OPTIONS },
+    { name: 'groupAllowFrom', type: 'tags', label: 'Group Allow From' },
+    { name: 'requireMention', type: 'boolean', label: 'Require Mention' },
+    { name: 'mentionPatterns', type: 'tags', label: 'Mention Patterns' },
+    { name: 'groups', type: 'json', label: 'Group Rules (JSON)' }
   ],
   discord: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
@@ -54,7 +78,16 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
     { name: 'allowBots', type: 'boolean', label: 'Allow Bot Messages' },
     { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
     { name: 'gatewayUrl', type: 'text', label: t('gatewayUrl') },
-    { name: 'intents', type: 'number', label: t('intents') }
+    { name: 'intents', type: 'number', label: t('intents') },
+    { name: 'proxy', type: 'text', label: t('proxy') },
+    { name: 'mediaMaxMb', type: 'number', label: 'Attachment Max Size (MB)' },
+    { name: 'accountId', type: 'text', label: 'Account ID' },
+    { name: 'dmPolicy', type: 'select', label: 'DM Policy', options: DM_POLICY_OPTIONS },
+    { name: 'groupPolicy', type: 'select', label: 'Group Policy', options: GROUP_POLICY_OPTIONS },
+    { name: 'groupAllowFrom', type: 'tags', label: 'Group Allow From' },
+    { name: 'requireMention', type: 'boolean', label: 'Require Mention' },
+    { name: 'mentionPatterns', type: 'tags', label: 'Mention Patterns' },
+    { name: 'groups', type: 'json', label: 'Group Rules (JSON)' }
   ],
   whatsapp: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
@@ -170,11 +203,12 @@ export function ChannelForm() {
   const executeAction = useExecuteConfigAction();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
 
   const channelName = channelModal.channel;
   const channelConfig = channelName ? config?.channels[channelName] : null;
-  const fields = channelName ? CHANNEL_FIELDS[channelName] : [];
+  const fields = useMemo(() => (channelName ? CHANNEL_FIELDS[channelName] : []), [channelName]);
   const uiHints = schema?.uiHints;
   const scope = channelName ? `channels.${channelName}` : null;
   const actions = schema?.actions?.filter((action) => action.scope === scope) ?? [];
@@ -185,10 +219,19 @@ export function ChannelForm() {
   useEffect(() => {
     if (channelConfig) {
       setFormData({ ...channelConfig });
+      const nextDrafts: Record<string, string> = {};
+      fields
+        .filter((field) => field.type === 'json')
+        .forEach((field) => {
+          const value = channelConfig[field.name];
+          nextDrafts[field.name] = JSON.stringify(value ?? {}, null, 2);
+        });
+      setJsonDrafts(nextDrafts);
     } else {
       setFormData({});
+      setJsonDrafts({});
     }
-  }, [channelConfig, channelName]);
+  }, [channelConfig, channelName, fields]);
 
   const updateField = (name: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -199,8 +242,22 @@ export function ChannelForm() {
 
     if (!channelName) return;
 
+    const payload: Record<string, unknown> = { ...formData };
+    for (const field of fields) {
+      if (field.type !== 'json') {
+        continue;
+      }
+      const raw = jsonDrafts[field.name] ?? '';
+      try {
+        payload[field.name] = raw.trim() ? JSON.parse(raw) : {};
+      } catch {
+        toast.error(`Invalid JSON for ${field.name}`);
+        return;
+      }
+    }
+
     updateChannel.mutate(
-      { channel: channelName, data: formData },
+      { channel: channelName, data: payload },
       { onSuccess: () => closeChannelModal() }
     );
   };
@@ -349,6 +406,35 @@ export function ChannelForm() {
                     <TagInput
                       value={(formData[field.name] as string[]) || []}
                       onChange={(tags) => updateField(field.name, tags)}
+                    />
+                  )}
+
+                  {field.type === 'select' && (
+                    <select
+                      id={field.name}
+                      value={(formData[field.name] as string) || ''}
+                      onChange={(e) => updateField(field.name, e.target.value)}
+                      className="flex h-10 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+                    >
+                      {(field.options ?? []).map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {field.type === 'json' && (
+                    <textarea
+                      id={field.name}
+                      value={jsonDrafts[field.name] ?? '{}'}
+                      onChange={(event) =>
+                        setJsonDrafts((prev) => ({
+                          ...prev,
+                          [field.name]: event.target.value
+                        }))
+                      }
+                      className="min-h-[120px] w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-mono"
                     />
                   )}
                 </div>

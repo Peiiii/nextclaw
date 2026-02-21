@@ -1,5 +1,14 @@
 # @nextclaw/ui
 
+## 0.3.12
+
+### Patch Changes
+
+- Align UI routing/runtime configuration with OpenClaw capabilities.
+  - Add runtime config API and editor for `agents.list`, `bindings`, and `session` controls.
+  - Add ChannelForm fields for Discord/Telegram routing and mention policy settings.
+  - Expose runtime settings safely in public config view and wire UI navigation for runtime management.
+
 ## 0.3.11
 
 ### Patch Changes

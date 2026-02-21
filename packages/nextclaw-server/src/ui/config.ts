@@ -19,6 +19,7 @@ import {
 } from "@nextclaw/core";
 import type {
   ConfigMetaView,
+  RuntimeConfigUpdate,
   ConfigSchemaResponse,
   ConfigView,
   ProviderConfigUpdate,
@@ -40,6 +41,9 @@ type ActionHandler = (
 ) => Promise<ConfigActionExecuteResult>;
 
 function matchesExtraSensitivePath(path: string): boolean {
+  if (path === "session" || path.startsWith("session.")) {
+    return false;
+  }
   return EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
 }
 
@@ -308,6 +312,8 @@ export function buildConfigView(config: Config): ConfigView {
       "channels",
       uiHints
     ),
+    bindings: sanitizePublicConfigValue(config.bindings, "bindings", uiHints),
+    session: sanitizePublicConfigValue(config.session, "session", uiHints),
     tools: sanitizePublicConfigValue(config.tools, "tools", uiHints),
     gateway: sanitizePublicConfigValue(config.gateway, "gateway", uiHints),
     ui: sanitizePublicConfigValue(config.ui, "ui", uiHints)
@@ -463,4 +469,45 @@ export function updateChannel(
     `channels.${channelName}`,
     uiHints
   );
+}
+
+export function updateRuntime(
+  configPath: string,
+  patch: RuntimeConfigUpdate
+): Pick<ConfigView, "agents" | "bindings" | "session"> {
+  const config = loadConfigOrDefault(configPath);
+
+  if (patch.agents && Object.prototype.hasOwnProperty.call(patch.agents, "list")) {
+    config.agents.list = (patch.agents.list ?? []).map((entry) => ({
+      ...entry,
+      default: Boolean(entry.default)
+    }));
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {
+    config.bindings = patch.bindings ?? [];
+  }
+
+  if (patch.session) {
+    const nextAgentToAgent = {
+      ...config.session.agentToAgent,
+      ...(patch.session.agentToAgent ?? {})
+    };
+
+    config.session = {
+      ...config.session,
+      ...patch.session,
+      agentToAgent: nextAgentToAgent
+    };
+  }
+
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  const view = buildConfigView(next);
+
+  return {
+    agents: view.agents,
+    bindings: view.bindings ?? [],
+    session: view.session ?? {}
+  };
 }

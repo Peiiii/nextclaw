@@ -1,6 +1,6 @@
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
-import { Cpu, MessageSquare, Sparkles } from 'lucide-react';
+import { Cpu, GitBranch, MessageSquare, Sparkles } from 'lucide-react';
 
 const navItems = [
   {
@@ -17,6 +17,11 @@ const navItems = [
     id: 'channels' as const,
     label: 'Channels',
     icon: MessageSquare,
+  },
+  {
+    id: 'runtime' as const,
+    label: 'Routing & Runtime',
+    icon: GitBranch,
   }
 ];
 

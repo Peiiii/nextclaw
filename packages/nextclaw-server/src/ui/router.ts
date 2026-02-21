@@ -7,9 +7,15 @@ import {
   loadConfigOrDefault,
   updateChannel,
   updateModel,
-  updateProvider
+  updateProvider,
+  updateRuntime
 } from "./config.js";
-import type { ConfigActionExecuteRequest, ProviderConfigUpdate, UiServerEvent } from "./types.js";
+import type {
+  ConfigActionExecuteRequest,
+  ProviderConfigUpdate,
+  RuntimeConfigUpdate,
+  UiServerEvent
+} from "./types.js";
 
 type UiRouterOptions = {
   configPath: string;
@@ -90,6 +96,18 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
+    return c.json(ok(result));
+  });
+
+  app.put("/api/config/runtime", async (c) => {
+    const body = await readJson<RuntimeConfigUpdate>(c.req.raw);
+    if (!body.ok || !body.data || typeof body.data !== "object") {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const result = updateRuntime(options.configPath, body.data);
+    options.publish({ type: "config.updated", payload: { path: "agents.list" } });
+    options.publish({ type: "config.updated", payload: { path: "bindings" } });
+    options.publish({ type: "config.updated", payload: { path: "session" } });
     return c.json(ok(result));
   });
 

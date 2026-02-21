@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { ModelConfig } from '@/components/config/ModelConfig';
 import { ProvidersList } from '@/components/config/ProvidersList';
 import { ChannelsList } from '@/components/config/ChannelsList';
+import { RuntimeConfig } from '@/components/config/RuntimeConfig';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Toaster } from 'sonner';
 
@@ -28,6 +29,8 @@ function AppContent() {
         return <ProvidersList />;
       case 'channels':
         return <ChannelsList />;
+      case 'runtime':
+        return <RuntimeConfig />;
       default:
         return <ModelConfig />;
     }

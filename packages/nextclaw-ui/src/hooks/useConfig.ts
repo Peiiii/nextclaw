@@ -6,6 +6,7 @@ import {
   updateModel,
   updateProvider,
   updateChannel,
+  updateRuntime,
   executeConfigAction
 } from '@/api/config';
 import { toast } from 'sonner';
@@ -73,6 +74,22 @@ export function useUpdateChannel() {
   return useMutation({
     mutationFn: ({ channel, data }: { channel: string; data: unknown }) =>
       updateChannel(channel, data as Parameters<typeof updateChannel>[1]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useUpdateRuntime() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ data }: { data: unknown }) =>
+      updateRuntime(data as Parameters<typeof updateRuntime>[0]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config'] });
       toast.success(t('configSavedApplied'));

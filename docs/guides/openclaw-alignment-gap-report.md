@@ -14,6 +14,11 @@
 
 另：Discord/Telegram 的 `dmPolicy/groupPolicy/requireMention/mentionPatterns/groups` 也已补齐平台级策略实现。
 
+前端配置面（UI）新增对齐：
+
+- 新增 `Routing & Runtime` 页面，支持编辑 `agents.list`、`bindings`、`session.dmScope`、`session.agentToAgent.maxPingPongTurns`
+- ChannelForm 已补齐 Discord/Telegram 的 `accountId/dmPolicy/groupPolicy/groupAllowFrom/requireMention/mentionPatterns/groups`
+
 ## 结论摘要
 
 - **已对齐（2项）**：

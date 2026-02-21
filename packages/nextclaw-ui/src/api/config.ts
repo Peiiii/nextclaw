@@ -6,6 +6,7 @@ import type {
   ProviderConfigView,
   ChannelConfigUpdate,
   ProviderConfigUpdate,
+  RuntimeConfigUpdate,
   ConfigActionExecuteRequest,
   ConfigActionExecuteResult
 } from './types';
@@ -70,6 +71,20 @@ export async function updateChannel(
 ): Promise<Record<string, unknown>> {
   const response = await api.put<Record<string, unknown>>(
     `/api/config/channels/${channel}`,
+    data
+  );
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// PUT /api/config/runtime
+export async function updateRuntime(
+  data: RuntimeConfigUpdate
+): Promise<Pick<ConfigView, 'agents' | 'bindings' | 'session'>> {
+  const response = await api.put<Pick<ConfigView, 'agents' | 'bindings' | 'session'>>(
+    '/api/config/runtime',
     data
   );
   if (!response.ok) {
