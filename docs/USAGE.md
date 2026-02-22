@@ -153,6 +153,9 @@ You can now configure OpenClaw-style multi-agent runtime behavior directly in th
 - `session.dmScope`: DM isolation strategy (`main` / `per-peer` / `per-channel-peer` / `per-account-channel-peer`)
 - `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops (`0` means block auto ping-pong)
 
+> ⚠️ **Strict enum guard (OpenClaw-aligned):** `session.dmScope` accepts **only** these 4 values: `main`, `per-peer`, `per-channel-peer`, `per-account-channel-peer`.
+> Any other value (for example `per-account-channel-peer-agent`) is invalid and must not be written.
+
 See full architecture details in [Multi-Agent Architecture](guides/multi-agent-architecture.md).
 
 Example:
@@ -325,6 +328,11 @@ For internal AI operations (same as other built-in capabilities):
 - Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
 - The AI can use it to manage the same config surface when you explicitly ask.
 - As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
+- **Required safe flow for AI config writes:**
+  1. run `config.get` to read current config + hash;
+  2. run `config.schema` and copy enum values exactly (no invented suffixes/variants);
+  3. run `config.patch` with minimal patch;
+  4. run `config.get` again to verify persisted value.
 
 ---
 

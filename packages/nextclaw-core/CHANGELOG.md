@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.6.25
+
+### Patch Changes
+
+- Add strict dmScope enum guardrails in docs and runtime context prompts, and align AI config-write flow with schema-first patching.
+
 ## 0.6.24
 
 ### Patch Changes

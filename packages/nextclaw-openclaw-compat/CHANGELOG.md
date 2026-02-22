@@ -1,5 +1,14 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.18
+
+### Patch Changes
+
+- Add strict dmScope enum guardrails in docs and runtime context prompts, and align AI config-write flow with schema-first patching.
+- Updated dependencies
+  - @nextclaw/core@0.6.25
+  - @nextclaw/channel-runtime@0.1.11
+
 ## 0.1.17
 
 ### Patch Changes
