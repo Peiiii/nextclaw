@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.6.30
+
+### Patch Changes
+
+- Add session channel grouping modes (all/by-channel) and complete Sessions i18n labels.
+
 ## 0.6.29
 
 ### Patch Changes

@@ -333,10 +333,12 @@ For internal AI operations (same as other built-in capabilities):
 NextClaw UI now provides an OpenClaw-aligned session operations panel (**Sessions** tab) with additional runtime controls:
 
 - list sessions with search + active window filters
+- switch grouping mode: all sessions (no grouping) or grouped by channel
 - inspect session history (latest window)
 - patch per-session metadata (`label`, `preferredModel`)
 - clear one session history
 - delete one session
+- localized Sessions UI copy (i18n labels for the panel)
 
 This is useful when running multi-agent routing and channel operations long term, because you can clean or retarget problematic sessions without hand-editing files.
 

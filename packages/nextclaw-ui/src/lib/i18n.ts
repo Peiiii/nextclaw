@@ -100,6 +100,43 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   replyDelayMs: { zh: '回复延迟(ms)', en: 'Reply Delay (ms)' },
   secret: { zh: '密钥', en: 'Secret' },
 
+  // Sessions
+  sessionsPageTitle: { zh: '会话管理', en: 'Sessions' },
+  sessionsPageDescription: {
+    zh: '管理会话：筛选、按渠道分组、查看历史、改标签/偏好模型、清空和删除。',
+    en: 'Manage sessions: filter, group by channel, inspect history, edit metadata, clear, and delete.'
+  },
+  sessionsFiltersTitle: { zh: '筛选', en: 'Filters' },
+  sessionsFiltersDescription: { zh: '按关键词、活跃窗口和分组方式筛选会话。', en: 'Filter sessions by query, activity window, and grouping mode.' },
+  sessionsSearchPlaceholder: { zh: '搜索 key 或标签', en: 'Search session key or label' },
+  sessionsActiveMinutesPlaceholder: { zh: '活跃分钟（0=不限）', en: 'Active minutes (0 = no limit)' },
+  sessionsLimitPlaceholder: { zh: '展示上限', en: 'Limit' },
+  sessionsGroupModeLabel: { zh: '分组方式', en: 'Grouping' },
+  sessionsGroupModeAll: { zh: '不分组 / 全部', en: 'All (No grouping)' },
+  sessionsGroupModeByChannel: { zh: '按渠道分组', en: 'Group by channel' },
+  sessionsListTitle: { zh: '会话列表', en: 'Session list' },
+  sessionsTotalLabel: { zh: '总数', en: 'Total' },
+  sessionsCurrentLabel: { zh: '当前展示', en: 'Showing' },
+  sessionsLoading: { zh: '加载会话中...', en: 'Loading sessions...' },
+  sessionsEmpty: { zh: '暂无会话。', en: 'No sessions yet.' },
+  sessionsKeyLabel: { zh: '键', en: 'Key' },
+  sessionsChannelLabel: { zh: '渠道', en: 'Channel' },
+  sessionsMessagesLabel: { zh: '消息数', en: 'Messages' },
+  sessionsUpdatedLabel: { zh: '更新时间', en: 'Updated' },
+  sessionsLastRoleLabel: { zh: '最后角色', en: 'Last Role' },
+  sessionsLabelPlaceholder: { zh: '会话标签（可选）', en: 'Session label (optional)' },
+  sessionsModelPlaceholder: { zh: '偏好模型（可选）', en: 'Preferred model (optional)' },
+  sessionsShowHistory: { zh: '查看历史', en: 'View history' },
+  sessionsHideHistory: { zh: '隐藏历史', en: 'Hide history' },
+  sessionsSaveMeta: { zh: '保存元信息', en: 'Save metadata' },
+  sessionsClearHistory: { zh: '清空历史', en: 'Clear history' },
+  sessionsDeleteConfirm: { zh: '确认删除会话', en: 'Delete session' },
+  sessionsHistoryTitle: { zh: '历史', en: 'History' },
+  sessionsHistoryDescription: { zh: '最近 200 条消息（展示窗口）。', en: 'Latest 200 messages (display window).' },
+  sessionsHistoryLoading: { zh: '加载历史中...', en: 'Loading history...' },
+  sessionsApplyingChanges: { zh: '正在应用会话变更...', en: 'Applying session changes...' },
+  sessionsUnknownChannel: { zh: '未知渠道', en: 'Unknown channel' },
+
   // UI
   saveVerifyConnect: { zh: '保存并验证 / 连接', en: 'Save & Verify / Connect' },
 

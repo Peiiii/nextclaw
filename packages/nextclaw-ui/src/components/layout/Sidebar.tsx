@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 import { Cpu, GitBranch, History, MessageSquare, Sparkles } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
@@ -25,7 +26,7 @@ const navItems = [
   },
   {
     target: '/sessions',
-    label: 'Sessions',
+    label: t('sessions'),
     icon: History,
   }
 ];
