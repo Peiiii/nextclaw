@@ -23,6 +23,7 @@ When NextClaw AI needs to operate the product itself (status/doctor/channels/con
 - [AI Self-Management Contract](#ai-self-management-contract)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
+- [Input context budget](#input-context-budget)
 - [Multi-agent routing & session isolation](#multi-agent-routing--session-isolation-openclaw-aligned)
 - [Workspace](#workspace)
 - [Commands](#commands)
@@ -131,6 +132,7 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `agents.defaults.model`
 - `agents.defaults.maxToolIterations`
 - `agents.defaults.maxTokens`
+- `agents.defaults.contextTokens`
 - `agents.context.*`
 - `tools.*`
 
@@ -150,6 +152,8 @@ You can now configure OpenClaw-style multi-agent runtime behavior directly in th
 - `session.dmScope`: DM isolation strategy (`main` / `per-peer` / `per-channel-peer` / `per-account-channel-peer`)
 - `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops (`0` means block auto ping-pong)
 
+See full architecture details in [Multi-Agent Architecture](guides/multi-agent-architecture.md).
+
 Example:
 
 ```json
@@ -163,6 +167,7 @@ Example:
         "workspace": "~/workspace-engineer",
         "model": "openai/gpt-5.2-codex",
         "maxTokens": 12000,
+        "contextTokens": 200000,
         "maxToolIterations": 24
       }
     ]
@@ -191,6 +196,123 @@ nextclaw config set agents.list '[{"id":"main","default":true},{"id":"engineer"}
 nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui"}}]' --json
 nextclaw config set session.dmScope '"per-account-channel-peer"' --json
 nextclaw config set session.agentToAgent.maxPingPongTurns 0 --json
+```
+
+### Multi-agent collaboration playbook (recommended)
+
+Use this baseline for predictable team-style collaboration:
+
+1. Keep `main` as the default fallback role.
+2. Add specialist agents in `agents.list` (for example `engineer`, `ops`, `support`).
+3. Route stable traffic classes with `bindings` (channel/account/peer based).
+4. Use `session.dmScope="per-account-channel-peer"` for multi-account + multi-channel isolation.
+5. Set `session.agentToAgent.maxPingPongTurns=0` first, then increase only when you explicitly want cross-agent relay.
+
+Suggested role split:
+
+- `main`: default reception, broad Q&A, fallback when no binding matches.
+- `engineer`: technical channels / dev rooms.
+- `ops`: deployment/monitoring channels.
+- `support`: customer-facing groups.
+
+### Binding match semantics (deterministic)
+
+`bindings` are processed in array order, and the **first matching rule wins**.
+
+- `match.channel` is required for a valid match.
+- `match.accountId`:
+  - omitted/empty => matches only account `default`
+  - `"*"` => matches all accounts
+  - specific value => matches that normalized account id
+- `match.peer` omitted => matches all peers under the selected channel/account scope.
+- if no binding matches, routing falls back to the default agent (`agents.list[].default`, otherwise first agent, otherwise `main`).
+
+Example with explicit precedence (more specific rule first):
+
+```json
+{
+  "bindings": [
+    {
+      "agentId": "engineer",
+      "match": {
+        "channel": "discord",
+        "accountId": "zongzhihui",
+        "peer": { "kind": "channel", "id": "dev-room" }
+      }
+    },
+    {
+      "agentId": "support",
+      "match": {
+        "channel": "discord",
+        "accountId": "*"
+      }
+    }
+  ]
+}
+```
+
+### Collaboration recipes
+
+Recipe A — default + specialist routing:
+
+```bash
+nextclaw config set agents.list '[{"id":"main","default":true},{"id":"engineer"}]' --json
+nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui","peer":{"kind":"channel","id":"dev-room"}}}]' --json
+```
+
+Recipe B — multi-account safe isolation:
+
+```bash
+nextclaw config set session.dmScope '"per-account-channel-peer"' --json
+```
+
+Recipe C — reduce noisy group triggering:
+
+```bash
+nextclaw config set channels.discord.requireMention true --json
+nextclaw config set channels.discord.groupPolicy '"allowlist"' --json
+nextclaw config set channels.discord.groupAllowFrom '["dev-room"]' --json
+```
+
+### Multi-agent acceptance checklist
+
+1. Prepare at least two agents (`main` + one specialist).
+2. Add at least one binding and verify inbound messages hit the expected role.
+3. Verify DM isolation across user/channel/account boundaries under the selected `dmScope`.
+4. If Discord/Telegram group collaboration is enabled, verify mention gating (`requireMention` / `mentionPatterns`) behavior.
+5. Verify auto ping-pong policy with `session.agentToAgent.maxPingPongTurns` (set `0` to block).
+
+Pass criteria: stable routing, no cross-session context leakage, predictable group triggering, explainable fallback behavior.
+
+### Multi-agent troubleshooting quick map
+
+- Routed to wrong agent:
+  - check binding order (specific rules must be before broad rules)
+  - confirm `match.accountId` and `match.peer` actually match inbound metadata
+- Always falls back to `main`:
+  - verify `bindings` is not empty and `match.channel` is correct
+  - verify target `agentId` exists in `agents.list`
+- Group messages not triggering:
+  - check `groupPolicy`, `groupAllowFrom`, and `requireMention`
+  - confirm message text matches configured `mentionPatterns` if enabled
+- DM context looks mixed:
+  - switch to `session.dmScope="per-account-channel-peer"`
+  - re-test across two users/channels/accounts and compare outcomes
+
+### Input context budget
+
+NextClaw now applies a token-budget input pruner before each model call.
+
+- `agents.defaults.contextTokens`: model input context budget (default `200000`)
+- reserve floor: `20000` tokens
+- soft threshold: `4000` tokens
+- when over budget: trim tool results first, then drop oldest history, then trim oversized prompt/user tail as final fallback
+
+CLI examples:
+
+```bash
+nextclaw config set agents.defaults.contextTokens 200000 --json
+nextclaw config set agents.list '[{"id":"engineer","contextTokens":160000}]' --json
 ```
 
 For internal AI operations (same as other built-in capabilities):
