@@ -78,7 +78,7 @@ importers:
         specifier: ^1.58.0
         version: 1.58.0
       '@nextclaw/core':
-        specifier: ^0.6.24
+        specifier: ^0.6.25
         version: link:../../nextclaw-core
       '@slack/socket-mode':
         specifier: ^1.3.3
@@ -160,16 +160,40 @@ importers:
         specifier: ^5.6.3
         version: 5.9.3
 
+  packages/landing:
+    devDependencies:
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.4.24(postcss@8.5.6)
+      lucide:
+        specifier: ^0.462.0
+        version: 0.462.0
+      postcss:
+        specifier: ^8.4.49
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^3.4.15
+        version: 3.4.19(tsx@4.21.0)
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@3.4.19(tsx@4.21.0))
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vite:
+        specifier: ^6.0.1
+        version: 6.4.1(@types/node@20.19.33)(jiti@1.21.7)(tsx@4.21.0)
+
   packages/nextclaw:
     dependencies:
       '@nextclaw/core':
-        specifier: ^0.6.24
+        specifier: ^0.6.25
         version: link:../nextclaw-core
       '@nextclaw/openclaw-compat':
-        specifier: ^0.1.17
+        specifier: ^0.1.18
         version: link:../nextclaw-openclaw-compat
       '@nextclaw/server':
-        specifier: ^0.4.12
+        specifier: ^0.4.14
         version: link:../nextclaw-server
       chokidar:
         specifier: ^3.6.0
@@ -309,10 +333,10 @@ importers:
         specifier: ^0.1.2
         version: link:../extensions/nextclaw-channel-plugin-whatsapp
       '@nextclaw/channel-runtime':
-        specifier: ^0.1.10
+        specifier: ^0.1.11
         version: link:../extensions/nextclaw-channel-runtime
       '@nextclaw/core':
-        specifier: ^0.6.24
+        specifier: ^0.6.25
         version: link:../nextclaw-core
       ajv:
         specifier: ^8.17.1
@@ -364,7 +388,7 @@ importers:
         specifier: ^1.13.3
         version: 1.19.9(hono@4.11.9)
       '@nextclaw/core':
-        specifier: ^0.6.24
+        specifier: ^0.6.25
         version: link:../nextclaw-core
       hono:
         specifier: ^4.6.2
@@ -3151,6 +3175,9 @@ packages:
     resolution: {integrity: sha512-NTL7EbAao9IFtuSivSZgrAh4fZd09Lr+6MTkqIxuHaH2nnYiYIzXPo06cOxHg9wKLdj6LL8TByG4qpePqwgx/g==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+
+  lucide@0.462.0:
+    resolution: {integrity: sha512-mu9dpNXnonG2e2jO3jS8PCXwT0yNo8qyEOtEfcTIfbyRYgDa6Br81lP0eJRCcXUEvaGekw2h1diAvgL+l1M+GA==}
 
   luxon@3.7.2:
     resolution: {integrity: sha512-vtEhXh/gNjI9Yg1u4jX/0YVPMvxzHuGgCm6tC5kZyb08yjGWGnqAjGJvcXbqQR2P3MyMEFnRbpcdFS6PBcLqew==}
@@ -7169,6 +7196,8 @@ snapshots:
   lucide-react@0.462.0(react@18.3.1):
     dependencies:
       react: 18.3.1
+
+  lucide@0.462.0: {}
 
   luxon@3.7.2: {}
 

@@ -22,7 +22,8 @@
     "metrics:local": "node scripts/code-volume-metrics.mjs --no-write --print-summary",
     "release:check": "pnpm build && pnpm lint && pnpm tsc",
     "release:version": "pnpm changeset version",
-    "release:publish": "pnpm release:check && pnpm changeset publish && pnpm changeset tag"
+    "release:publish": "pnpm release:check && pnpm changeset publish && pnpm changeset tag",
+    "deploy:pages": "pnpm --filter @nextclaw/landing build && npx wrangler pages deploy packages/landing/dist --project-name nextclaw-landing --branch master"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8"

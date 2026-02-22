@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Eco-Modern Palette */
+    --background: 210 20% 98%;      /* Very light zinc/gray */
+    --foreground: 221 39% 11%;      /* Deep slate */
+    
+    /* Primary: Sage Green / Emerald */
+    --primary: 154 50% 45%; 
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 215 28% 17%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --border: 220 13% 91%;
+    --radius: 1rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply antialiased scroll-smooth;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+  
+  .glass-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.03);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--muted-foreground)) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .bg-gradient-radial {
+    background: radial-gradient(circle at top right, rgba(82, 196, 148, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(82, 196, 148, 0.05) 0%, transparent 40%);
+  }
+}
