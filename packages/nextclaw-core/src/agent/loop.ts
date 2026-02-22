@@ -22,6 +22,7 @@ import { containsSilentReplyMarker } from "./tokens.js";
 import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
 import { createTypingStopControlMessage } from "../bus/control.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
+import { InputBudgetPruner } from "./input-budget-pruner.js";
 
 type MessageToolHintsResolver = (params: {
   sessionKey: string;
@@ -35,6 +36,7 @@ export class AgentLoop {
   private sessions: SessionManager;
   private tools: ToolRegistry;
   private subagents: SubagentManager;
+  private inputBudgetPruner = new InputBudgetPruner();
   private running = false;
   private currentExtensionToolContext: ExtensionToolContext = {};
   private readonly agentId: string;
@@ -47,6 +49,7 @@ export class AgentLoop {
       model?: string | null;
       maxIterations?: number;
       maxTokens?: number;
+      contextTokens?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
       cronService?: CronService | null;
@@ -69,6 +72,7 @@ export class AgentLoop {
       bus: options.bus,
       model: options.model ?? options.providerManager.get().getDefaultModel(),
       maxTokens: options.maxTokens,
+      contextTokens: options.contextTokens,
       braveApiKey: options.braveApiKey ?? undefined,
       execConfig: options.execConfig ?? { timeout: 60 },
       restrictToWorkspace: options.restrictToWorkspace ?? false
@@ -230,6 +234,7 @@ export class AgentLoop {
     this.options.model = config.agents.defaults.model;
     this.options.maxIterations = config.agents.defaults.maxToolIterations;
     this.options.maxTokens = config.agents.defaults.maxTokens;
+    this.options.contextTokens = config.agents.defaults.contextTokens;
     this.options.contextConfig = config.agents.context;
     this.options.braveApiKey = config.tools.web.search.apiKey || undefined;
     this.options.execConfig = config.tools.exec;
@@ -239,6 +244,7 @@ export class AgentLoop {
     this.subagents.updateRuntimeOptions({
       model: config.agents.defaults.model,
       maxTokens: config.agents.defaults.maxTokens,
+      contextTokens: config.agents.defaults.contextTokens,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
       restrictToWorkspace: config.tools.restrictToWorkspace
@@ -402,6 +408,14 @@ export class AgentLoop {
     return `${block}\n\n${content}`;
   }
 
+  private pruneMessagesForInputBudget(messages: Array<Record<string, unknown>>): void {
+    const result = this.inputBudgetPruner.prune({
+      messages,
+      contextTokens: this.options.contextTokens
+    });
+    messages.splice(0, messages.length, ...result.messages);
+  }
+
   private async processMessage(msg: InboundMessage, sessionKeyOverride?: string): Promise<OutboundMessage | null> {
     if (msg.channel === "system") {
       return this.processSystemMessage(msg, sessionKeyOverride);
@@ -494,6 +508,7 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
+      this.pruneMessagesForInputBudget(messages);
       const response = await this.options.providerManager.chat({
         messages,
         tools: this.tools.getDefinitions(),
@@ -636,6 +651,7 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
+      this.pruneMessagesForInputBudget(messages);
       const response = await this.options.providerManager.chat({
         messages,
         tools: this.tools.getDefinitions(),

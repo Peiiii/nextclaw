@@ -182,6 +182,7 @@ export const AgentDefaultsSchema = z.object({
   workspace: z.string().default(DEFAULT_WORKSPACE_PATH),
   model: z.string().default("anthropic/claude-opus-4-5"),
   maxTokens: z.number().int().default(8192),
+  contextTokens: z.number().int().min(1000).default(200000),
   maxToolIterations: z.number().int().default(20)
 });
 
@@ -191,6 +192,7 @@ export const AgentProfileSchema = z.object({
   workspace: z.string().optional(),
   model: z.string().optional(),
   maxTokens: z.number().int().optional(),
+  contextTokens: z.number().int().min(1000).optional(),
   maxToolIterations: z.number().int().optional()
 });
 

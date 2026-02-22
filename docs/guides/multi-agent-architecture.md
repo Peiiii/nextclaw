@@ -95,3 +95,25 @@ Yes — NextClaw internal AI can manage this config surface through the built-in
 5. Set `maxPingPongTurns=0` and confirm auto ping-pong is blocked.
 
 Pass criteria: stable routing, no context leakage, predictable group triggering, explainable failures.
+
+## 8) Input budget alignment (OpenClaw-style)
+
+NextClaw now includes a unified input-budget pruner before each provider call:
+
+- `agents.defaults.contextTokens` (default `200000`)
+- optional per-agent override: `agents.list[*].contextTokens`
+- budget strategy:
+  - reserve floor `20000`
+  - soft threshold `4000`
+  - trim order: tool result truncation → oldest-history drop → oversized system/user fallback trim
+
+Example:
+
+```json
+{
+  "agents": {
+    "defaults": { "contextTokens": 200000 },
+    "list": [{ "id": "engineer", "contextTokens": 160000 }]
+  }
+}
+```

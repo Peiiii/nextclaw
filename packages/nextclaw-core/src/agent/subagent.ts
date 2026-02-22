@@ -6,8 +6,10 @@ import { ToolRegistry } from "./tools/registry.js";
 import { ReadFileTool, WriteFileTool, ListDirTool } from "./tools/filesystem.js";
 import { ExecTool } from "./tools/shell.js";
 import { WebSearchTool, WebFetchTool } from "./tools/web.js";
+import { InputBudgetPruner } from "./input-budget-pruner.js";
 
 export class SubagentManager {
+  private inputBudgetPruner = new InputBudgetPruner();
   private runningTasks = new Map<string, Promise<void>>();
   private runs = new Map<
     string,
@@ -31,6 +33,7 @@ export class SubagentManager {
       bus: MessageBus;
       model?: string;
       maxTokens?: number;
+      contextTokens?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
       restrictToWorkspace?: boolean;
@@ -40,6 +43,7 @@ export class SubagentManager {
   updateRuntimeOptions(options: {
     model?: string;
     maxTokens?: number;
+    contextTokens?: number;
     braveApiKey?: string | null;
     execConfig?: { timeout: number };
     restrictToWorkspace?: boolean;
@@ -49,6 +53,9 @@ export class SubagentManager {
     }
     if (Object.prototype.hasOwnProperty.call(options, "maxTokens")) {
       this.options.maxTokens = options.maxTokens;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "contextTokens")) {
+      this.options.contextTokens = options.contextTokens;
     }
     if (Object.prototype.hasOwnProperty.call(options, "braveApiKey")) {
       this.options.braveApiKey = options.braveApiKey;
@@ -147,6 +154,11 @@ export class SubagentManager {
             messages.push({ role: "user", content: `Steer: ${note}` });
           }
         }
+        const pruned = this.inputBudgetPruner.prune({
+          messages,
+          contextTokens: this.options.contextTokens
+        });
+        messages.splice(0, messages.length, ...pruned.messages);
         const response = await this.options.providerManager.chat({
           messages,
           tools: tools.getDefinitions(),

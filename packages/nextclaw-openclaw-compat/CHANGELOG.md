@@ -1,5 +1,19 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.17
+
+### Patch Changes
+
+- Align input-context handling with an OpenClaw-style token-budget pruner.
+  - add unified input budget pruning in agent and subagent loops
+  - support `agents.defaults.contextTokens` and per-agent `contextTokens` overrides
+  - hot-reload context token budget updates
+  - document configuration and multi-agent usage updates
+
+- Updated dependencies
+  - @nextclaw/core@0.6.24
+  - @nextclaw/channel-runtime@0.1.10
+
 ## 0.1.16
 
 ### Patch Changes

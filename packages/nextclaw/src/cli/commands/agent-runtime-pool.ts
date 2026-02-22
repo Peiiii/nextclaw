@@ -36,6 +36,7 @@ function resolveAgentProfiles(config: Config): Array<{
   model: string;
   maxIterations: number;
   maxTokens: number;
+  contextTokens: number;
 }> {
   const defaults = config.agents.defaults;
   type ListedAgentProfile = {
@@ -45,6 +46,7 @@ function resolveAgentProfiles(config: Config): Array<{
     model?: string;
     maxToolIterations?: number;
     maxTokens?: number;
+    contextTokens?: number;
   };
   const listed = Array.isArray(config.agents.list)
     ? config.agents.list
@@ -54,7 +56,8 @@ function resolveAgentProfiles(config: Config): Array<{
           workspace: entry.workspace,
           model: entry.model,
           maxToolIterations: entry.maxToolIterations,
-          maxTokens: entry.maxTokens
+          maxTokens: entry.maxTokens,
+          contextTokens: entry.contextTokens
         }))
         .filter((entry) => Boolean(entry.id))
     : [];
@@ -77,7 +80,8 @@ function resolveAgentProfiles(config: Config): Array<{
     workspace: getWorkspacePath(entry.workspace ?? defaults.workspace),
     model: entry.model ?? defaults.model,
     maxIterations: entry.maxToolIterations ?? defaults.maxToolIterations,
-    maxTokens: entry.maxTokens ?? defaults.maxTokens
+    maxTokens: entry.maxTokens ?? defaults.maxTokens,
+    contextTokens: entry.contextTokens ?? defaults.contextTokens
   }));
 }
 
@@ -220,6 +224,7 @@ export class GatewayAgentRuntimePool {
         model: profile.model,
         maxIterations: profile.maxIterations,
         maxTokens: profile.maxTokens,
+        contextTokens: profile.contextTokens,
         braveApiKey: this.options.braveApiKey,
         execConfig: this.options.execConfig,
         cronService: this.options.cronService,
