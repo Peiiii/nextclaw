@@ -3,6 +3,7 @@ export * from "./agent/route-resolver.js";
 export * from "./agent/tools/gateway.js";
 export * from "./agent/tools/memory.js";
 export * from "./bus/events.js";
+export * from "./bus/control.js";
 export * from "./bus/queue.js";
 export * from "./channels/feishu-probe.js";
 export * from "./channels/manager.js";

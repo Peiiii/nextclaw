@@ -7,6 +7,7 @@ import { sanitizeOutboundAssistantContent } from "../utils/reasoning-tags.js";
 import { ExtensionChannelAdapter } from "./extension_channel.js";
 import type { ExtensionChannelRegistration } from "../extensions/types.js";
 import { evaluateSilentReply } from "../agent/silent-reply-policy.js";
+import { isTypingStopControlMessage } from "../bus/control.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};
@@ -111,13 +112,19 @@ export class ChannelManager {
   }
 
   async deliver(msg: OutboundMessage): Promise<boolean> {
+    const channel = this.channels[msg.channel];
+    if (!channel) {
+      return false;
+    }
+
+    if (isTypingStopControlMessage(msg)) {
+      await channel.handleControlMessage(msg);
+      return true;
+    }
+
     const outbound = this.normalizeOutbound(msg);
     if (!outbound) {
       return true;
-    }
-    const channel = this.channels[outbound.channel];
-    if (!channel) {
-      return false;
     }
     await channel.send(outbound);
     return true;

@@ -1,5 +1,18 @@
 # @nextclaw/channel-runtime
 
+## 0.1.9
+
+### Patch Changes
+
+- Align Discord/Telegram typing lifecycle with OpenClaw-style run completion cleanup.
+  - Add typing-stop control message in core bus for no-reply paths.
+  - Route control messages through ChannelManager without normal outbound delivery.
+  - Keep typing active during agent processing and stop via outbound/control events.
+  - Improve typing heartbeat/TTL defaults for long-running replies.
+
+- Updated dependencies
+  - @nextclaw/core@0.6.23
+
 ## 0.1.8
 
 ### Patch Changes

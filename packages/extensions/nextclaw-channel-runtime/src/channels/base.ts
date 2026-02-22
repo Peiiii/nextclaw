@@ -11,6 +11,10 @@ export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
   abstract stop(): Promise<void>;
   abstract send(msg: OutboundMessage): Promise<void>;
 
+  async handleControlMessage(_msg: OutboundMessage): Promise<boolean> {
+    return false;
+  }
+
   isAllowed(senderId: string): boolean {
     const allowList = (this.config as { allowFrom?: string[] }).allowFrom ?? [];
     if (!allowList.length) {
