@@ -17,11 +17,12 @@ import { join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { getDataPath } from "../utils/helpers.js";
 import { ChannelTypingController } from "./typing-controller.js";
+import { isTypingStopControlMessage } from "@nextclaw/core";
 
 const DEFAULT_MEDIA_MAX_MB = 8;
 const MEDIA_FETCH_TIMEOUT_MS = 15000;
-const TYPING_HEARTBEAT_MS = 8000;
-const TYPING_AUTO_STOP_MS = 45000;
+const TYPING_HEARTBEAT_MS = 6000;
+const TYPING_AUTO_STOP_MS = 120000;
 const DISCORD_TEXT_LIMIT = 2000;
 const DISCORD_MAX_LINES_PER_MESSAGE = 17;
 const FENCE_RE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
@@ -96,7 +97,19 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     }
   }
 
+  async handleControlMessage(msg: OutboundMessage): Promise<boolean> {
+    if (!isTypingStopControlMessage(msg)) {
+      return false;
+    }
+    this.stopTyping(msg.chatId);
+    return true;
+  }
+
   async send(msg: OutboundMessage): Promise<void> {
+    if (isTypingStopControlMessage(msg)) {
+      this.stopTyping(msg.chatId);
+      return;
+    }
     if (!this.client) {
       return;
     }
@@ -206,8 +219,9 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
           ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
         }
       });
-    } finally {
+    } catch (error) {
       this.stopTyping(channelId);
+      throw error;
     }
   }
 

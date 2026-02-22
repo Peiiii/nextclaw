@@ -20,6 +20,7 @@ import type { Config } from "../config/schema.js";
 import { evaluateSilentReply } from "./silent-reply-policy.js";
 import { containsSilentReplyMarker } from "./tokens.js";
 import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
+import { createTypingStopControlMessage } from "../bus/control.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
 
 type MessageToolHintsResolver = (params: {
@@ -191,8 +192,12 @@ export class AgentLoop {
     publishResponse?: boolean;
   }): Promise<OutboundMessage | null> {
     const response = await this.processMessage(params.message, params.sessionKey);
-    if (response && (params.publishResponse ?? true)) {
+    const shouldPublish = params.publishResponse ?? true;
+    if (response && shouldPublish) {
       await this.options.bus.publishOutbound(response);
+    }
+    if (!response && shouldPublish && params.message.channel !== "system") {
+      await this.options.bus.publishOutbound(createTypingStopControlMessage(params.message));
     }
     return response;
   }

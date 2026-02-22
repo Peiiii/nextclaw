@@ -10,9 +10,10 @@ import { APP_NAME } from "../config/brand.js";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { ChannelTypingController } from "./typing-controller.js";
+import { isTypingStopControlMessage } from "@nextclaw/core";
 
-const TYPING_HEARTBEAT_MS = 4000;
-const TYPING_AUTO_STOP_MS = 45000;
+const TYPING_HEARTBEAT_MS = 6000;
+const TYPING_AUTO_STOP_MS = 120000;
 
 const BOT_COMMANDS: BotCommand[] = [
   { command: "start", description: "Start the bot" },
@@ -160,7 +161,19 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     }
   }
 
+  async handleControlMessage(msg: OutboundMessage): Promise<boolean> {
+    if (!isTypingStopControlMessage(msg)) {
+      return false;
+    }
+    this.stopTyping(msg.chatId);
+    return true;
+  }
+
   async send(msg: OutboundMessage): Promise<void> {
+    if (isTypingStopControlMessage(msg)) {
+      this.stopTyping(msg.chatId);
+      return;
+    }
     if (!this.bot) {
       return;
     }
@@ -262,8 +275,9 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         was_mentioned: mentionState.wasMentioned,
         require_mention: mentionState.requireMention
       });
-    } finally {
+    } catch (error) {
       this.stopTyping(chatId);
+      throw error;
     }
   }
 
