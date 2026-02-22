@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/server",
-  "version": "0.4.14",
+  "version": "0.4.15",
   "private": false,
   "description": "Nextclaw UI/API server.",
   "type": "module",
@@ -23,7 +23,7 @@
     "@hono/node-server": "^1.13.3",
     "hono": "^4.6.2",
     "ws": "^8.18.0",
-    "@nextclaw/core": "^0.6.25"
+    "@nextclaw/core": "^0.6.26"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

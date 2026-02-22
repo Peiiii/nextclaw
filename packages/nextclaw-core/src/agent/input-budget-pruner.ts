@@ -57,7 +57,10 @@ export class InputBudgetPruner {
       truncatedToolResultCount += 1;
     }
 
-    let droppedHistoryCount = 0;
+    const normalized = sanitizeHistoricalToolProtocol(work);
+    let droppedHistoryCount = work.length - normalized.length;
+    work.splice(0, work.length, ...normalized);
+
     while (estimateTokens(work) > budgetTokens && work.length > 2) {
       work.splice(1, 1);
       droppedHistoryCount += 1;
@@ -146,6 +149,73 @@ function deepCloneValue(value: unknown): unknown {
     return cloned;
   }
   return value;
+}
+
+function sanitizeHistoricalToolProtocol(messages: RuntimeMessage[]): RuntimeMessage[] {
+  const activeToolChainStart = findActiveToolChainStart(messages);
+  const sanitized: RuntimeMessage[] = [];
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
+    if (activeToolChainStart >= 0 && index >= activeToolChainStart) {
+      sanitized.push(message);
+      continue;
+    }
+
+    if (message.role === "tool") {
+      continue;
+    }
+
+    if (message.role === "assistant" && hasToolCalls(message)) {
+      const stripped = stripAssistantToolCallFields(message);
+      if (hasRenderableContent(stripped.content)) {
+        sanitized.push(stripped);
+      }
+      continue;
+    }
+
+    sanitized.push(message);
+  }
+
+  return sanitized;
+}
+
+function findActiveToolChainStart(messages: RuntimeMessage[]): number {
+  let index = messages.length - 1;
+  while (index >= 0 && messages[index].role === "tool") {
+    index -= 1;
+  }
+  if (index < 0) {
+    return -1;
+  }
+  const candidate = messages[index];
+  if (candidate.role === "assistant" && hasToolCalls(candidate)) {
+    return index;
+  }
+  return -1;
+}
+
+function hasToolCalls(message: RuntimeMessage): boolean {
+  const toolCalls = message.tool_calls;
+  return Array.isArray(toolCalls) && toolCalls.length > 0;
+}
+
+function stripAssistantToolCallFields(message: RuntimeMessage): RuntimeMessage {
+  const stripped: RuntimeMessage = {};
+  for (const [key, value] of Object.entries(message)) {
+    if (key === "tool_calls" || key === "reasoning_content") {
+      continue;
+    }
+    stripped[key] = value;
+  }
+  return stripped;
+}
+
+function hasRenderableContent(content: unknown): boolean {
+  if (typeof content === "string") {
+    return content.trim().length > 0;
+  }
+  return estimateChars(content) > 0;
 }
 
 function estimateTokens(messages: RuntimeMessage[]): number {

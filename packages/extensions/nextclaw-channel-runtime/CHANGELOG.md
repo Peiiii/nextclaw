@@ -1,5 +1,17 @@
 # @nextclaw/channel-runtime
 
+## 0.1.12
+
+### Patch Changes
+
+- fix: prevent broken historical tool-call chains from causing provider 400 in long-running Discord multi-agent sessions.
+  - sanitize stale `assistant(tool_calls)` + `tool` history pairs before provider requests
+  - preserve active trailing tool-call chain semantics
+  - reduce INVALID_ARGUMENT failures after context-budget pruning
+
+- Updated dependencies
+  - @nextclaw/core@0.6.26
+
 ## 0.1.11
 
 ### Patch Changes
