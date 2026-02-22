@@ -1,5 +1,15 @@
 # nextclaw-server
 
+## 0.4.11
+
+### Patch Changes
+
+- Add full UI/runtime API support for configuring input context token budgets.
+  - Runtime page supports `agents.defaults.contextTokens`
+  - Runtime page supports per-agent `agents.list[*].contextTokens`
+  - Runtime API persists default context token budget updates
+  - Usage docs updated for UI configuration path
+
 ## 0.4.10
 
 ### Patch Changes
