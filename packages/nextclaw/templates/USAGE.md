@@ -144,6 +144,8 @@ Restart is still required for:
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
 
+UI note: **Model** page save now persists both `agents.defaults.model` and `agents.defaults.maxTokens` (refresh should keep the updated max token value).
+
 ### Multi-agent routing & session isolation (OpenClaw-aligned)
 
 You can now configure OpenClaw-style multi-agent runtime behavior directly in the UI (**Routing & Runtime**) or in `config.json`:

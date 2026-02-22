@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.3.16
+
+### Patch Changes
+
+- Fix Model page maxTokens persistence by wiring maxTokens through UI save API and server config update.
+
 ## 0.3.15
 
 ### Patch Changes

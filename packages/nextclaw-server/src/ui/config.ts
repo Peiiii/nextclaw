@@ -417,9 +417,22 @@ export function loadConfigOrDefault(configPath: string): Config {
   return loadConfig(configPath);
 }
 
-export function updateModel(configPath: string, model: string): ConfigView {
+export function updateModel(
+  configPath: string,
+  patch: {
+    model?: string;
+    maxTokens?: number;
+  }
+): ConfigView {
   const config = loadConfigOrDefault(configPath);
-  config.agents.defaults.model = model;
+
+  if (typeof patch.model === "string") {
+    config.agents.defaults.model = patch.model;
+  }
+  if (typeof patch.maxTokens === "number" && Number.isFinite(patch.maxTokens)) {
+    config.agents.defaults.maxTokens = Math.max(1, Math.trunc(patch.maxTokens));
+  }
+
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   return buildConfigView(next);

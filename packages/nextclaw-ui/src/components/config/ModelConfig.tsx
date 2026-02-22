@@ -31,7 +31,7 @@ export function ModelConfig() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateModel.mutate({ model });
+    updateModel.mutate({ model, maxTokens });
   };
 
   if (isLoading) {
