@@ -40,11 +40,125 @@ type UiRouterOptions = {
   marketplace?: MarketplaceApiConfig;
 };
 
-const DEFAULT_MARKETPLACE_API_BASE = "https://nextclaw-marketplace-api.15353764479037.workers.dev";
+const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
 
 const NEXTCLAW_PLUGIN_NPM_PREFIX = "@nextclaw/channel-plugin-";
+const BUILTIN_CHANNEL_PLUGIN_ID_PREFIX = "builtin-channel-";
 const MARKETPLACE_REMOTE_PAGE_SIZE = 100;
 const MARKETPLACE_REMOTE_MAX_PAGES = 20;
+
+function normalizeChannelPluginNpmSpec(rawSpec: string): string {
+  const spec = rawSpec.trim();
+  if (!spec.startsWith(NEXTCLAW_PLUGIN_NPM_PREFIX)) {
+    return spec;
+  }
+
+  const versionDelimiterIndex = spec.lastIndexOf("@");
+  if (versionDelimiterIndex <= 0) {
+    return spec;
+  }
+
+  const packageName = spec.slice(0, versionDelimiterIndex).trim();
+  return packageName.startsWith(NEXTCLAW_PLUGIN_NPM_PREFIX) ? packageName : spec;
+}
+
+function resolvePluginCanonicalSpec(params: {
+  pluginId: string;
+  installSpec?: string;
+}): string {
+  const rawInstallSpec = typeof params.installSpec === "string" ? params.installSpec.trim() : "";
+  if (rawInstallSpec.length > 0) {
+    return normalizeChannelPluginNpmSpec(rawInstallSpec);
+  }
+
+  if (params.pluginId.startsWith(BUILTIN_CHANNEL_PLUGIN_ID_PREFIX)) {
+    const channelSlug = params.pluginId.slice(BUILTIN_CHANNEL_PLUGIN_ID_PREFIX.length).trim();
+    if (channelSlug.length > 0) {
+      return `${NEXTCLAW_PLUGIN_NPM_PREFIX}${channelSlug}`;
+    }
+  }
+
+  return params.pluginId;
+}
+
+function readPluginRuntimeStatusPriority(status: string | undefined): number {
+  if (status === "loaded") {
+    return 400;
+  }
+  if (status === "disabled") {
+    return 300;
+  }
+  if (status === "unresolved") {
+    return 200;
+  }
+  return 100;
+}
+
+function readPluginOriginPriority(origin: string | undefined): number {
+  if (origin === "bundled") {
+    return 80;
+  }
+  if (origin === "workspace") {
+    return 70;
+  }
+  if (origin === "global") {
+    return 60;
+  }
+  if (origin === "config") {
+    return 50;
+  }
+  return 10;
+}
+
+function readInstalledPluginRecordPriority(record: MarketplaceInstalledRecord): number {
+  const installScore = record.installPath ? 20 : 0;
+  const timestampScore = record.installedAt ? 10 : 0;
+  return readPluginRuntimeStatusPriority(record.runtimeStatus) + readPluginOriginPriority(record.origin) + installScore + timestampScore;
+}
+
+function mergeInstalledPluginRecords(primary: MarketplaceInstalledRecord, secondary: MarketplaceInstalledRecord): MarketplaceInstalledRecord {
+  return {
+    ...primary,
+    id: primary.id ?? secondary.id,
+    label: primary.label ?? secondary.label,
+    source: primary.source ?? secondary.source,
+    installedAt: primary.installedAt ?? secondary.installedAt,
+    enabled: primary.enabled ?? secondary.enabled,
+    runtimeStatus: primary.runtimeStatus ?? secondary.runtimeStatus,
+    origin: primary.origin ?? secondary.origin,
+    installPath: primary.installPath ?? secondary.installPath
+  };
+}
+
+function dedupeInstalledPluginRecordsByCanonicalSpec(records: MarketplaceInstalledRecord[]): MarketplaceInstalledRecord[] {
+  const deduped = new Map<string, MarketplaceInstalledRecord>();
+
+  for (const record of records) {
+    const canonicalSpec = normalizeChannelPluginNpmSpec(record.spec).trim();
+    if (!canonicalSpec) {
+      continue;
+    }
+
+    const key = canonicalSpec.toLowerCase();
+    const normalizedRecord = { ...record, spec: canonicalSpec };
+    const existing = deduped.get(key);
+    if (!existing) {
+      deduped.set(key, normalizedRecord);
+      continue;
+    }
+
+    const normalizedScore = readInstalledPluginRecordPriority(normalizedRecord);
+    const existingScore = readInstalledPluginRecordPriority(existing);
+    if (normalizedScore > existingScore) {
+      deduped.set(key, mergeInstalledPluginRecords(normalizedRecord, existing));
+      continue;
+    }
+
+    deduped.set(key, mergeInstalledPluginRecords(existing, normalizedRecord));
+  }
+
+  return Array.from(deduped.values());
+}
 
 function ok<T>(data: T) {
   return { ok: true, data };
@@ -155,7 +269,6 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
   const pluginRecordsMap = config.plugins.installs ?? {};
   const pluginEntries = config.plugins.entries ?? {};
   const pluginRecords: MarketplaceInstalledRecord[] = [];
-  const pluginSpecSet = new Set<string>();
   const seenPluginIds = new Set<string>();
 
   let discoveredPlugins: ReturnType<typeof buildPluginStatusReport>["plugins"] = [];
@@ -216,9 +329,10 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
   for (const plugin of discoveredById.values()) {
     const installRecord = pluginRecordsMap[plugin.id];
     const entry = pluginEntries[plugin.id];
-    const normalizedSpec = typeof installRecord?.spec === "string" && installRecord.spec.trim().length > 0
-      ? installRecord.spec.trim()
-      : plugin.id;
+    const normalizedSpec = resolvePluginCanonicalSpec({
+      pluginId: plugin.id,
+      installSpec: installRecord?.spec
+    });
     const enabled = entry?.enabled === false ? false : plugin.enabled;
     const runtimeStatus = entry?.enabled === false ? "disabled" : plugin.status;
 
@@ -234,7 +348,6 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
       origin: plugin.origin,
       installPath: installRecord?.installPath
     });
-    pluginSpecSet.add(normalizedSpec);
     seenPluginIds.add(plugin.id);
   }
 
@@ -243,9 +356,10 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
       continue;
     }
 
-    const normalizedSpec = typeof installRecord.spec === "string" && installRecord.spec.trim().length > 0
-      ? installRecord.spec.trim()
-      : pluginId;
+    const normalizedSpec = resolvePluginCanonicalSpec({
+      pluginId,
+      installSpec: installRecord.spec
+    });
     const entry = pluginEntries[pluginId];
     pluginRecords.push({
       type: "plugin",
@@ -258,25 +372,27 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
       runtimeStatus: entry?.enabled === false ? "disabled" : "unresolved",
       installPath: installRecord.installPath
     });
-    pluginSpecSet.add(normalizedSpec);
     seenPluginIds.add(pluginId);
   }
 
   for (const [pluginId, entry] of Object.entries(pluginEntries)) {
     if (!seenPluginIds.has(pluginId)) {
+      const normalizedSpec = resolvePluginCanonicalSpec({ pluginId });
       pluginRecords.push({
         type: "plugin",
         id: pluginId,
-        spec: pluginId,
+        spec: normalizedSpec,
         label: pluginId,
         source: "config",
         enabled: entry?.enabled !== false,
         runtimeStatus: entry?.enabled === false ? "disabled" : "unresolved"
       });
-      pluginSpecSet.add(pluginId);
       seenPluginIds.add(pluginId);
     }
   }
+
+  const dedupedPluginRecords = dedupeInstalledPluginRecordsByCanonicalSpec(pluginRecords);
+  const pluginSpecSet = new Set(dedupedPluginRecords.map((record) => record.spec));
 
   const workspacePath = getWorkspacePathFromConfig(config);
   const skillsLoader = new SkillsLoader(workspacePath);
@@ -297,7 +413,7 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
     };
   });
 
-  const records: MarketplaceInstalledRecord[] = [...pluginRecords, ...skillRecords].sort((left, right) => {
+  const records: MarketplaceInstalledRecord[] = [...dedupedPluginRecords, ...skillRecords].sort((left, right) => {
     if (left.type !== right.type) {
       return left.type.localeCompare(right.type);
     }

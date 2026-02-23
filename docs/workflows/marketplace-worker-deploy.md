@@ -30,8 +30,8 @@ pnpm -C workers/marketplace-api run deploy
 部署完成后至少验证：
 
 ```bash
-curl -sS https://nextclaw-marketplace-api.15353764479037.workers.dev/health
-curl -sS 'https://nextclaw-marketplace-api.15353764479037.workers.dev/api/v1/items?page=1&pageSize=5'
+curl -sS https://marketplace-api.nextclaw.io/health
+curl -sS 'https://marketplace-api.nextclaw.io/api/v1/items?page=1&pageSize=5'
 ```
 
 预期：

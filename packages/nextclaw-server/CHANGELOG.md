@@ -1,5 +1,11 @@
 # nextclaw-server
 
+## 0.5.1
+
+### Patch Changes
+
+- unify marketplace plugin identity to canonical channel npm specs and switch default marketplace api base to marketplace-api.nextclaw.io
+
 ## 0.5.0
 
 ### Minor Changes
