@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.8.6-nextclaw-ui-dist-sync/README.md`
 - `docs/logs/v0.5.3-ui-tooltip-marketplace-fix/README.md`
 - `docs/logs/v0.8.9-skills-loader-import-hardening/README.md`
 - `docs/logs/v0.6.32-local-loc-output/README.md`

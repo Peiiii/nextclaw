@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.8.6
+
+### Patch Changes
+
+- - refresh bundled ui-dist for tooltip portal and marketplace card polish
+
 ## 0.8.5
 
 ### Patch Changes
