@@ -206,6 +206,7 @@ function appendBundledChannelPlugins(params: {
   runtime: PluginRegisterRuntime;
   registry: PluginRegistry;
   jiti: ReturnType<JitiFactory>;
+  normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
 }): void {
   const require = createRequire(import.meta.url);
 
@@ -252,6 +253,8 @@ function appendBundledChannelPlugins(params: {
       continue;
     }
 
+    const enableState = resolveEnableState(pluginId, params.normalizedConfig);
+
     const record = createPluginRecord({
       id: pluginId,
       name: definition?.name ?? pluginId,
@@ -261,10 +264,17 @@ function appendBundledChannelPlugins(params: {
       source,
       origin: "bundled",
       workspaceDir: params.runtime.workspaceDir,
-      enabled: true,
+      enabled: enableState.enabled,
       configSchema: Boolean(definition?.configSchema),
       configJsonSchema: definition?.configSchema
     });
+
+    if (!enableState.enabled) {
+      record.status = "disabled";
+      record.error = enableState.reason;
+      params.registry.plugins.push(record);
+      continue;
+    }
 
     if (typeof register !== "function") {
       record.status = "error";
@@ -352,7 +362,8 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
   appendBundledChannelPlugins({
     registry,
     runtime: registerRuntime,
-    jiti
+    jiti,
+    normalizedConfig: normalized
   });
 
   if (!loadExternalPlugins) {

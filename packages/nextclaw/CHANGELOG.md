@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.8.5
+
+### Patch Changes
+
+- Fix plugin hot-plug behavior so disabling bundled channel plugins (like Discord) takes effect immediately and enabling restores runtime behavior.
+
+  Also normalize marketplace manage targets from canonical npm specs to real plugin IDs and harden config reload watching for first-time config file creation.
+
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.1.21
+  - @nextclaw/server@0.5.3
+
 ## 0.8.4
 
 ### Patch Changes

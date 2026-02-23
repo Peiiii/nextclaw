@@ -331,14 +331,27 @@ export class ServiceCommands {
     }
     console.log("✓ Heartbeat: every 30m");
 
-    const configPath = getConfigPath();
-    const watcher = chokidar.watch(configPath, {
+    const configPath = resolve(getConfigPath());
+    const watcher = chokidar.watch(dirname(configPath), {
       ignoreInitial: true,
       awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
     });
-    watcher.on("add", () => reloader.scheduleReload("config add"));
-    watcher.on("change", () => reloader.scheduleReload("config change"));
-    watcher.on("unlink", () => reloader.scheduleReload("config unlink"));
+    watcher.on("all", (event, changedPath) => {
+      if (resolve(changedPath) !== configPath) {
+        return;
+      }
+      if (event === "add") {
+        reloader.scheduleReload("config add");
+        return;
+      }
+      if (event === "change") {
+        reloader.scheduleReload("config change");
+        return;
+      }
+      if (event === "unlink") {
+        reloader.scheduleReload("config unlink");
+      }
+    });
 
     await cron.start();
     await heartbeat.start();

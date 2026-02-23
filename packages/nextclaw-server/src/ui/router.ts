@@ -459,6 +459,34 @@ function collectMarketplaceInstalledView(options: UiRouterOptions): MarketplaceI
   };
 }
 
+function resolvePluginManageTargetId(options: UiRouterOptions, rawTargetId: string): string {
+  const targetId = rawTargetId.trim();
+  if (!targetId) {
+    return rawTargetId;
+  }
+
+  const normalizedTarget = normalizePluginNpmSpec(targetId).toLowerCase();
+  const installed = collectMarketplaceInstalledView(options);
+  const pluginRecords = installed.records.filter((record) => record.type === "plugin");
+  const lowerTargetId = targetId.toLowerCase();
+
+  for (const record of pluginRecords) {
+    const recordId = record.id?.trim();
+    if (recordId && recordId.toLowerCase() === lowerTargetId) {
+      return recordId;
+    }
+  }
+
+  for (const record of pluginRecords) {
+    const normalizedSpec = normalizePluginNpmSpec(record.spec).toLowerCase();
+    if (normalizedSpec === normalizedTarget && record.id && record.id.trim().length > 0) {
+      return record.id;
+    }
+  }
+
+  return targetId;
+}
+
 function sanitizeMarketplaceItem<T extends Record<string, unknown>>(item: T): T {
   const next = { ...item } as T & { metrics?: unknown };
   delete next.metrics;
@@ -589,11 +617,15 @@ async function manageMarketplaceItem(params: {
 }): Promise<MarketplaceManageResult> {
   const type = params.body.type;
   const action = params.body.action;
-  const targetId = typeof params.body.id === "string" && params.body.id.trim().length > 0
+  const requestedTargetId = typeof params.body.id === "string" && params.body.id.trim().length > 0
     ? params.body.id.trim()
     : typeof params.body.spec === "string" && params.body.spec.trim().length > 0
       ? params.body.spec.trim()
       : "";
+
+  const targetId = type === "plugin"
+    ? resolvePluginManageTargetId(params.options, requestedTargetId)
+    : requestedTargetId;
 
   if ((type !== "plugin" && type !== "skill") || (action !== "enable" && action !== "disable" && action !== "uninstall") || !targetId) {
     throw new Error("INVALID_BODY:type, action and non-empty id/spec are required");
