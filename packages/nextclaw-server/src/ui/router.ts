@@ -28,6 +28,10 @@ import type {
   MarketplaceItemView,
   MarketplaceListView,
   MarketplaceRecommendationView,
+  CronEnableRequest,
+  CronRunRequest,
+  CronActionResult,
+  CronJobView,
   ProviderConfigUpdate,
   RuntimeConfigUpdate,
   SessionPatchUpdate,
@@ -38,6 +42,36 @@ type UiRouterOptions = {
   configPath: string;
   publish: (event: UiServerEvent) => void;
   marketplace?: MarketplaceApiConfig;
+  cronService?: InstanceType<typeof NextclawCore.CronService>;
+};
+
+type CronJobEntry = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: {
+    kind: "at" | "every" | "cron";
+    atMs?: number | null;
+    everyMs?: number | null;
+    expr?: string | null;
+    tz?: string | null;
+  };
+  payload: {
+    kind?: "system_event" | "agent_turn";
+    message: string;
+    deliver?: boolean;
+    channel?: string | null;
+    to?: string | null;
+  };
+  state: {
+    nextRunAtMs?: number | null;
+    lastRunAtMs?: number | null;
+    lastStatus?: "ok" | "error" | "skipped" | null;
+    lastError?: string | null;
+  };
+  createdAtMs: number;
+  updatedAtMs: number;
+  deleteAfterRun: boolean;
 };
 
 type SkillInfo = {
@@ -197,6 +231,41 @@ function ok<T>(data: T) {
 
 function err(code: string, message: string, details?: Record<string, unknown>) {
   return { ok: false, error: { code, message, details } };
+}
+
+function toIsoTime(value?: number | null): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return null;
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString();
+}
+
+function buildCronJobView(job: CronJobEntry): CronJobView {
+  return {
+    id: job.id,
+    name: job.name,
+    enabled: job.enabled,
+    schedule: job.schedule,
+    payload: job.payload,
+    state: {
+      nextRunAt: toIsoTime(job.state.nextRunAtMs),
+      lastRunAt: toIsoTime(job.state.lastRunAtMs),
+      lastStatus: job.state.lastStatus ?? null,
+      lastError: job.state.lastError ?? null
+    },
+    createdAt: new Date(job.createdAtMs).toISOString(),
+    updatedAt: new Date(job.updatedAtMs).toISOString(),
+    deleteAfterRun: job.deleteAfterRun
+  };
+}
+
+function findCronJob(service: InstanceType<typeof NextclawCore.CronService>, id: string): CronJobEntry | null {
+  const jobs = service.listJobs(true) as CronJobEntry[];
+  return jobs.find((job) => job.id === id) ?? null;
 }
 
 async function readJson<T>(req: Request): Promise<{ ok: true; data: T } | { ok: false }> {
@@ -953,6 +1022,70 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     }
     options.publish({ type: "config.updated", payload: { path: "session" } });
     return c.json(ok({ deleted: true }));
+  });
+
+  app.get("/api/cron", (c) => {
+    if (!options.cronService) {
+      return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
+    }
+    const query = c.req.query();
+    const includeDisabled = query.all === "1" || query.all === "true" || query.all === "yes";
+    const jobs = options.cronService.listJobs(includeDisabled).map((job) => buildCronJobView(job as CronJobEntry));
+    return c.json(ok({ jobs, total: jobs.length }));
+  });
+
+  app.delete("/api/cron/:id", (c) => {
+    if (!options.cronService) {
+      return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
+    }
+    const id = decodeURIComponent(c.req.param("id"));
+    const deleted = options.cronService.removeJob(id);
+    if (!deleted) {
+      return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
+    }
+    return c.json(ok({ deleted: true }));
+  });
+
+  app.put("/api/cron/:id/enable", async (c) => {
+    if (!options.cronService) {
+      return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
+    }
+    const id = decodeURIComponent(c.req.param("id"));
+    const body = await readJson<CronEnableRequest>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    if (typeof body.data.enabled !== "boolean") {
+      return c.json(err("INVALID_BODY", "enabled must be boolean"), 400);
+    }
+    const job = options.cronService.enableJob(id, body.data.enabled);
+    if (!job) {
+      return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
+    }
+    const data: CronActionResult = { job: buildCronJobView(job as CronJobEntry) };
+    return c.json(ok(data));
+  });
+
+  app.post("/api/cron/:id/run", async (c) => {
+    if (!options.cronService) {
+      return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
+    }
+    const id = decodeURIComponent(c.req.param("id"));
+    const body = await readJson<CronRunRequest>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const existing = findCronJob(options.cronService, id);
+    if (!existing) {
+      return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
+    }
+    const executed = await options.cronService.runJob(id, Boolean(body.data.force));
+    const after = findCronJob(options.cronService, id);
+    const data: CronActionResult = {
+      job: after ? buildCronJobView(after) : null,
+      executed
+    };
+    return c.json(ok(data));
   });
 
   app.put("/api/config/runtime", async (c) => {

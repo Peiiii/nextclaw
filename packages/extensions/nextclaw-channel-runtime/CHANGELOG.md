@@ -1,5 +1,21 @@
 # @nextclaw/channel-runtime
 
+## 0.1.15
+
+### Patch Changes
+
+- Add Discord preview streaming config and runtime support while keeping channel plugin compatibility.
+- Updated dependencies
+  - @nextclaw/core@0.6.30
+
+## 0.1.14
+
+### Patch Changes
+
+- Fix agent tool-loop stalls by emitting a fallback reply after the max tool-iteration limit.
+- Updated dependencies
+  - @nextclaw/core@0.6.29
+
 ## 0.1.13
 
 ### Patch Changes

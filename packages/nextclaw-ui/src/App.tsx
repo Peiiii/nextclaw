@@ -5,6 +5,7 @@ import { ProvidersList } from '@/components/config/ProvidersList';
 import { ChannelsList } from '@/components/config/ChannelsList';
 import { RuntimeConfig } from '@/components/config/RuntimeConfig';
 import { SessionsConfig } from '@/components/config/SessionsConfig';
+import { CronConfig } from '@/components/config/CronConfig';
 import { MarketplacePage } from '@/components/marketplace/MarketplacePage';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Toaster } from 'sonner';
@@ -33,6 +34,7 @@ function AppContent() {
             <Route path="/channels" element={<ChannelsList />} />
             <Route path="/runtime" element={<RuntimeConfig />} />
             <Route path="/sessions" element={<SessionsConfig />} />
+            <Route path="/cron" element={<CronConfig />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/" element={<Navigate to="/model" replace />} />
             <Route path="*" element={<Navigate to="/model" replace />} />

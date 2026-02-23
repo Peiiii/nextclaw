@@ -1,10 +1,17 @@
 # @nextclaw/ui
 
+## 0.5.6
+
+### Patch Changes
+
+- Add cron management UI with list/enable/disable/run/delete actions and corresponding server API endpoints.
+
 ## 0.5.5
 
 ### Patch Changes
 
 - UI: add confirm dialog flow for destructive actions; Server: allow marketplace manage to resolve plugin id from spec fallback.
+- UI: add cron management page with view/enable/disable/run/delete actions.
 
 ## 0.5.4
 

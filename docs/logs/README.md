@@ -1,5 +1,8 @@
 # Logs
 
+- [docs/logs/2026-02-23-discord-streaming-preview/v0.8.15-discord-streaming-preview/README.md](docs/logs/2026-02-23-discord-streaming-preview/v0.8.15-discord-streaming-preview/README.md)
+- [docs/logs/2026-02-23-cron-ui/v0.8.14-cron-ui/README.md](docs/logs/2026-02-23-cron-ui/v0.8.14-cron-ui/README.md)
+- [docs/logs/2026-02-23-weather-query-stall-fix/v0.8.10-weather-query-stall-fix/README.md](docs/logs/2026-02-23-weather-query-stall-fix/v0.8.10-weather-query-stall-fix/README.md)
 - [docs/logs/2026-02-23-ui-confirm-dialog-release/v0.8.9-ui-confirm-dialog-release/README.md](docs/logs/2026-02-23-ui-confirm-dialog-release/v0.8.9-ui-confirm-dialog-release/README.md)
 - [docs/logs/v0.8.13-marketplace-uninstall-fix/README.md](docs/logs/v0.8.13-marketplace-uninstall-fix/README.md)
 - [docs/logs/v0.8.12-marketplace-toggle-state-sync/README.md](docs/logs/v0.8.12-marketplace-toggle-state-sync/README.md)

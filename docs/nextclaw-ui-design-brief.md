@@ -159,7 +159,7 @@ Page title “Model Configuration” and short description; then a form with:
 **Fields per channel (must be supported; types and labels below):**
 
 - **telegram:** enabled (boolean), token (password), allowFrom (tags), proxy (text).  
-- **discord:** enabled (boolean), token (password), allowFrom (tags), gatewayUrl (text), intents (number).  
+- **discord:** enabled (boolean), token (password), allowFrom (tags), gatewayUrl (text), intents (number), streaming (select), draftChunk (min/max/break).  
 - **whatsapp:** enabled (boolean), bridgeUrl (text), allowFrom (tags).  
 - **feishu:** enabled (boolean), appId (text), appSecret (password), encryptKey (password), verificationToken (password), allowFrom (tags).  
 - **dingtalk:** enabled (boolean), clientId (text), clientSecret (password), allowFrom (tags).  

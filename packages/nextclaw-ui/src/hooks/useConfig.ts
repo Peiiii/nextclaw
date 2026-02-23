@@ -11,7 +11,11 @@ import {
   fetchSessions,
   fetchSessionHistory,
   updateSession,
-  deleteSession
+  deleteSession,
+  fetchCronJobs,
+  deleteCronJob,
+  setCronJobEnabled,
+  runCronJob
 } from '@/api/config';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
@@ -157,6 +161,59 @@ export function useDeleteSession() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
       queryClient.invalidateQueries({ queryKey: ['session-history'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useCronJobs(params: { all?: boolean } = { all: true }) {
+  return useQuery({
+    queryKey: ['cron', params],
+    queryFn: () => fetchCronJobs(params),
+    staleTime: 10_000
+  });
+}
+
+export function useDeleteCronJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id }: { id: string }) => deleteCronJob(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cron'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useToggleCronJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, enabled }: { id: string; enabled: boolean }) => setCronJobEnabled(id, { enabled }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cron'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useRunCronJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, force }: { id: string; force?: boolean }) => runCronJob(id, { force }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cron'] });
       toast.success(t('configSavedApplied'));
     },
     onError: (error: Error) => {

@@ -92,6 +92,56 @@ export type SessionPatchUpdate = {
   clearHistory?: boolean;
 };
 
+export type CronScheduleView =
+  | { kind: "at"; atMs?: number | null }
+  | { kind: "every"; everyMs?: number | null }
+  | { kind: "cron"; expr?: string | null; tz?: string | null };
+
+export type CronPayloadView = {
+  kind?: "system_event" | "agent_turn";
+  message: string;
+  deliver?: boolean;
+  channel?: string | null;
+  to?: string | null;
+};
+
+export type CronJobStateView = {
+  nextRunAt?: string | null;
+  lastRunAt?: string | null;
+  lastStatus?: "ok" | "error" | "skipped" | null;
+  lastError?: string | null;
+};
+
+export type CronJobView = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: CronScheduleView;
+  payload: CronPayloadView;
+  state: CronJobStateView;
+  createdAt: string;
+  updatedAt: string;
+  deleteAfterRun: boolean;
+};
+
+export type CronListView = {
+  jobs: CronJobView[];
+  total: number;
+};
+
+export type CronEnableRequest = {
+  enabled: boolean;
+};
+
+export type CronRunRequest = {
+  force?: boolean;
+};
+
+export type CronActionResult = {
+  job: CronJobView | null;
+  executed?: boolean;
+};
+
 export type RuntimeConfigUpdate = {
   agents?: {
     defaults?: {

@@ -1,5 +1,43 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.23
+
+### Patch Changes
+
+- Add Discord preview streaming config and runtime support while keeping channel plugin compatibility.
+- Updated dependencies
+  - @nextclaw/core@0.6.30
+  - @nextclaw/channel-runtime@0.1.15
+  - @nextclaw/channel-plugin-discord@0.1.4
+  - @nextclaw/channel-plugin-telegram@0.1.4
+  - @nextclaw/channel-plugin-whatsapp@0.1.4
+  - @nextclaw/channel-plugin-feishu@0.1.4
+  - @nextclaw/channel-plugin-mochat@0.1.4
+  - @nextclaw/channel-plugin-dingtalk@0.1.4
+  - @nextclaw/channel-plugin-wecom@0.1.4
+  - @nextclaw/channel-plugin-email@0.1.4
+  - @nextclaw/channel-plugin-slack@0.1.4
+  - @nextclaw/channel-plugin-qq@0.1.4
+
+## 0.1.22
+
+### Patch Changes
+
+- Fix agent tool-loop stalls by emitting a fallback reply after the max tool-iteration limit.
+- Updated dependencies
+  - @nextclaw/core@0.6.29
+  - @nextclaw/channel-runtime@0.1.14
+  - @nextclaw/channel-plugin-dingtalk@0.1.3
+  - @nextclaw/channel-plugin-discord@0.1.3
+  - @nextclaw/channel-plugin-email@0.1.3
+  - @nextclaw/channel-plugin-feishu@0.1.3
+  - @nextclaw/channel-plugin-mochat@0.1.3
+  - @nextclaw/channel-plugin-qq@0.1.3
+  - @nextclaw/channel-plugin-slack@0.1.3
+  - @nextclaw/channel-plugin-telegram@0.1.3
+  - @nextclaw/channel-plugin-wecom@0.1.3
+  - @nextclaw/channel-plugin-whatsapp@0.1.3
+
 ## 0.1.21
 
 ### Patch Changes

@@ -1,5 +1,25 @@
 # nextclaw-server
 
+## 0.5.6
+
+### Patch Changes
+
+- Add cron management UI with list/enable/disable/run/delete actions and corresponding server API endpoints.
+- Add Discord preview streaming config and runtime support while keeping channel plugin compatibility.
+- Updated dependencies
+  - @nextclaw/core@0.6.30
+  - @nextclaw/openclaw-compat@0.1.23
+
+## 0.5.5
+
+### Patch Changes
+
+- Fix agent tool-loop stalls by emitting a fallback reply after the max tool-iteration limit.
+- Add cron management API endpoints for list/remove/enable/run to support the UI.
+- Updated dependencies
+  - @nextclaw/core@0.6.29
+  - @nextclaw/openclaw-compat@0.1.22
+
 ## 0.5.4
 
 ### Patch Changes

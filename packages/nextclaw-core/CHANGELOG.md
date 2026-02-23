@@ -1,5 +1,17 @@
 # nextclaw-core
 
+## 0.6.30
+
+### Patch Changes
+
+- Add Discord preview streaming config and runtime support while keeping channel plugin compatibility.
+
+## 0.6.29
+
+### Patch Changes
+
+- Fix agent tool-loop stalls by emitting a fallback reply after the max tool-iteration limit.
+
 ## 0.6.28
 
 ### Patch Changes

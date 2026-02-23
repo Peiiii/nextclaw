@@ -1,3 +1,5 @@
+import type { CronService } from "@nextclaw/core";
+
 export type ApiError = {
   code: string;
   message: string;
@@ -89,6 +91,56 @@ export type SessionPatchUpdate = {
   label?: string | null;
   preferredModel?: string | null;
   clearHistory?: boolean;
+};
+
+export type CronScheduleView =
+  | { kind: "at"; atMs?: number | null }
+  | { kind: "every"; everyMs?: number | null }
+  | { kind: "cron"; expr?: string | null; tz?: string | null };
+
+export type CronPayloadView = {
+  kind?: "system_event" | "agent_turn";
+  message: string;
+  deliver?: boolean;
+  channel?: string | null;
+  to?: string | null;
+};
+
+export type CronJobStateView = {
+  nextRunAt?: string | null;
+  lastRunAt?: string | null;
+  lastStatus?: "ok" | "error" | "skipped" | null;
+  lastError?: string | null;
+};
+
+export type CronJobView = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: CronScheduleView;
+  payload: CronPayloadView;
+  state: CronJobStateView;
+  createdAt: string;
+  updatedAt: string;
+  deleteAfterRun: boolean;
+};
+
+export type CronListView = {
+  jobs: CronJobView[];
+  total: number;
+};
+
+export type CronEnableRequest = {
+  enabled: boolean;
+};
+
+export type CronRunRequest = {
+  force?: boolean;
+};
+
+export type CronActionResult = {
+  job: CronJobView | null;
+  executed?: boolean;
 };
 
 export type RuntimeConfigUpdate = {
@@ -369,6 +421,7 @@ export type UiServerOptions = {
   corsOrigins?: string[] | "*";
   staticDir?: string;
   marketplace?: MarketplaceApiConfig;
+  cronService?: CronService;
 };
 
 export type UiServerHandle = {

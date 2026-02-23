@@ -323,7 +323,7 @@ export class ServiceCommands {
       console.log("Warning: No channels enabled");
     }
 
-    this.startUiIfEnabled(uiConfig, uiStaticDir);
+    this.startUiIfEnabled(uiConfig, uiStaticDir, cron);
 
     const cronStatus = cron.status();
     if (cronStatus.jobs > 0) {
@@ -787,7 +787,11 @@ export class ServiceCommands {
     console.log(`Public API (if firewall/NAT allows): ${publicBase}/api`);
   }
 
-  private startUiIfEnabled(uiConfig: Config["ui"], uiStaticDir: string | null): void {
+  private startUiIfEnabled(
+    uiConfig: Config["ui"],
+    uiStaticDir: string | null,
+    cronService: NextclawCore.CronService
+  ): void {
     if (!uiConfig.enabled) {
       return;
     }
@@ -796,6 +800,7 @@ export class ServiceCommands {
       port: uiConfig.port,
       configPath: getConfigPath(),
       staticDir: uiStaticDir ?? undefined,
+      cronService,
       marketplace: {
         apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE,
         installer: {

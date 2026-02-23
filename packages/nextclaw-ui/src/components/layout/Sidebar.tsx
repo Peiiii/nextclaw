@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
-import { Cpu, GitBranch, History, MessageSquare, Sparkles, BookOpen, Store } from 'lucide-react';
+import { Cpu, GitBranch, History, MessageSquare, Sparkles, BookOpen, Store, AlarmClock } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useDocBrowser } from '@/components/doc-browser';
 
@@ -29,6 +29,11 @@ const navItems = [
     target: '/sessions',
     label: t('sessions'),
     icon: History,
+  },
+  {
+    target: '/cron',
+    label: t('cron'),
+    icon: AlarmClock,
   },
   {
     target: '/marketplace',

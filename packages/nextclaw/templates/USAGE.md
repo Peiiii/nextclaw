@@ -507,6 +507,12 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
       "allowBots": false,
       "allowFrom": [],
       "accountId": "zongzhihui",
+      "streaming": "partial",
+      "draftChunk": {
+        "minChars": 200,
+        "maxChars": 800,
+        "breakPreference": "paragraph"
+      },
       "dmPolicy": "open",
       "groupPolicy": "allowlist",
       "groupAllowFrom": ["dev-room"],
@@ -524,6 +530,9 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
 ```
 
 - `allowBots` (default `false`): whether to accept bot-authored messages. Keep it `false` unless you explicitly need bot-to-bot flows.
+- `streaming` (default `off`): Discord preview streaming mode (`off` | `partial` | `block` | `progress`). `progress` maps to `partial`.
+- `draftChunk`: controls preview streaming chunk size and break style; larger values reduce edit frequency.
+- `textChunkLimit` (default `2000`): outbound Discord message max chars per send/edit.
 
 ### Telegram
 

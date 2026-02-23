@@ -10,6 +10,14 @@ const allowFrom = z.array(z.string()).default([]);
 const groupPolicySchema = z.enum(["open", "allowlist", "disabled"]);
 const dmPolicySchema = z.enum(["pairing", "allowlist", "open", "disabled"]);
 const sessionDmScopeSchema = z.enum(["main", "per-peer", "per-channel-peer", "per-account-channel-peer"]);
+const streamingModeSchema = z.union([z.boolean(), z.enum(["off", "partial", "block", "progress"])]).default("off");
+const discordDraftChunkSchema = z
+  .object({
+    minChars: z.number().int().default(200),
+    maxChars: z.number().int().default(800),
+    breakPreference: z.enum(["paragraph", "line", "none"]).default("paragraph")
+  })
+  .default({});
 
 export const GroupRuleSchema = z.object({
   requireMention: z.boolean().default(false),
@@ -72,6 +80,9 @@ export const DiscordConfigSchema = z.object({
   intents: z.number().int().default(37377),
   proxy: z.string().nullable().default(null),
   mediaMaxMb: z.number().int().default(8),
+  streaming: streamingModeSchema,
+  draftChunk: discordDraftChunkSchema,
+  textChunkLimit: z.number().int().default(2000),
   accountId: z.string().default("default"),
   dmPolicy: dmPolicySchema.default("open"),
   groupPolicy: groupPolicySchema.default("open"),

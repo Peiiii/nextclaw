@@ -82,6 +82,17 @@ export const FIELD_HELP: Record<string, string> = {
   "channels.discord.intents": "Gateway intents bitmask.",
   "channels.discord.proxy": "Optional HTTP(S) proxy for Discord attachment downloads.",
   "channels.discord.mediaMaxMb": "Maximum inbound Discord attachment size in MB.",
+  "channels.discord.streaming":
+    "Discord preview streaming mode (off/partial/block/progress). Boolean true maps to partial, false maps to off.",
+  "channels.discord.draftChunk":
+    "Chunking options for Discord preview streaming (min/max chars and break preference).",
+  "channels.discord.draftChunk.minChars":
+    "Minimum chars before emitting a Discord stream preview update (default: 200).",
+  "channels.discord.draftChunk.maxChars":
+    "Target max size for a Discord stream preview chunk (default: 800; clamped to textChunkLimit).",
+  "channels.discord.draftChunk.breakPreference":
+    "Discord stream preview break preference (paragraph/line/none).",
+  "channels.discord.textChunkLimit": "Maximum outbound Discord text size per message (default: 2000).",
   "channels.discord.accountId": "Logical account id for routing bindings.",
   "channels.discord.dmPolicy": "DM policy for Discord (pairing/allowlist/open/disabled).",
   "channels.discord.groupPolicy": "Guild/channel policy for Discord (open/allowlist/disabled).",

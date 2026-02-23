@@ -11,7 +11,11 @@ import type {
   ConfigActionExecuteResult,
   SessionsListView,
   SessionHistoryView,
-  SessionPatchUpdate
+  SessionPatchUpdate,
+  CronListView,
+  CronEnableRequest,
+  CronRunRequest,
+  CronActionResult
 } from './types';
 
 // GET /api/config
@@ -157,6 +161,47 @@ export async function updateSession(
 // DELETE /api/sessions/:key
 export async function deleteSession(key: string): Promise<{ deleted: boolean }> {
   const response = await api.delete<{ deleted: boolean }>(`/api/sessions/${encodeURIComponent(key)}`);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// GET /api/cron
+export async function fetchCronJobs(params?: { all?: boolean }): Promise<CronListView> {
+  const query = new URLSearchParams();
+  if (params?.all) {
+    query.set('all', '1');
+  }
+  const suffix = query.toString();
+  const response = await api.get<CronListView>(suffix ? '/api/cron?' + suffix : '/api/cron');
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// DELETE /api/cron/:id
+export async function deleteCronJob(id: string): Promise<{ deleted: boolean }> {
+  const response = await api.delete<{ deleted: boolean }>(`/api/cron/${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// PUT /api/cron/:id/enable
+export async function setCronJobEnabled(id: string, data: CronEnableRequest): Promise<CronActionResult> {
+  const response = await api.put<CronActionResult>(`/api/cron/${encodeURIComponent(id)}/enable`, data);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// POST /api/cron/:id/run
+export async function runCronJob(id: string, data: CronRunRequest): Promise<CronActionResult> {
+  const response = await api.post<CronActionResult>(`/api/cron/${encodeURIComponent(id)}/run`, data);
   if (!response.ok) {
     throw new Error(response.error.message);
   }

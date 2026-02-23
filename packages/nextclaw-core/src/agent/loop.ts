@@ -504,6 +504,8 @@ export class AgentLoop {
 
     let iteration = 0;
     let finalContent: string | null = null;
+    let lastToolName: string | null = null;
+    let lastToolResult: string | null = null;
     const maxIterations = this.options.maxIterations ?? 20;
 
     while (iteration < maxIterations) {
@@ -538,6 +540,8 @@ export class AgentLoop {
         });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments, call.id);
+          lastToolName = call.name;
+          lastToolResult = result;
           this.context.addToolResult(messages, call.id, call.name, result);
           this.sessions.addMessage(session, "tool", result, {
             tool_call_id: call.id,
@@ -551,8 +555,11 @@ export class AgentLoop {
     }
 
     if (typeof finalContent !== "string") {
-      this.sessions.save(session);
-      return null;
+      finalContent = buildToolLoopFallback({
+        maxIterations,
+        lastToolName,
+        lastToolResult
+      });
     }
 
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
@@ -647,6 +654,8 @@ export class AgentLoop {
 
     let iteration = 0;
     let finalContent: string | null = null;
+    let lastToolName: string | null = null;
+    let lastToolResult: string | null = null;
     const maxIterations = this.options.maxIterations ?? 20;
 
     while (iteration < maxIterations) {
@@ -681,6 +690,8 @@ export class AgentLoop {
         });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments, call.id);
+          lastToolName = call.name;
+          lastToolResult = result;
           this.context.addToolResult(messages, call.id, call.name, result);
           this.sessions.addMessage(session, "tool", result, {
             tool_call_id: call.id,
@@ -694,8 +705,11 @@ export class AgentLoop {
     }
 
     if (typeof finalContent !== "string") {
-      this.sessions.save(session);
-      return null;
+      finalContent = buildToolLoopFallback({
+        maxIterations,
+        lastToolName,
+        lastToolResult
+      });
     }
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
     finalContent = cleanedContent;
@@ -745,4 +759,38 @@ function parseReplyTags(
 function normalizeAgentId(value: string | undefined): string {
   const text = (value ?? "").trim().toLowerCase();
   return text || "main";
+}
+
+function buildToolLoopFallback(params: {
+  maxIterations: number;
+  lastToolName: string | null;
+  lastToolResult: string | null;
+}): string {
+  const { maxIterations, lastToolName, lastToolResult } = params;
+  const base = `Sorry, tool calls did not converge after ${maxIterations} iterations. Please retry or rephrase.`;
+
+  const toolLabel = lastToolName?.trim();
+  const rawResult = lastToolResult?.trim() ?? "";
+  if (!toolLabel && !rawResult) {
+    return base;
+  }
+
+  const snippet = rawResult
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(0, 2)
+    .join(" ");
+  const clipped = snippet.length > 180 ? `${snippet.slice(0, 180)}...` : snippet;
+  const isError = clipped.startsWith("Error:");
+
+  const detailParts: string[] = [];
+  if (toolLabel) {
+    detailParts.push(`Last tool: ${toolLabel}`);
+  }
+  if (clipped) {
+    detailParts.push(`${isError ? "Last error" : "Last result"}: ${clipped}`);
+  }
+
+  return detailParts.length ? `${base} ${detailParts.join(". ")}` : base;
 }

@@ -25,6 +25,8 @@ const TYPING_HEARTBEAT_MS = 6000;
 const TYPING_AUTO_STOP_MS = 120000;
 const DISCORD_TEXT_LIMIT = 2000;
 const DISCORD_MAX_LINES_PER_MESSAGE = 17;
+const STREAM_EDIT_MIN_INTERVAL_MS = 600;
+const STREAM_MAX_UPDATES_PER_MESSAGE = 40;
 const FENCE_RE = /^( {0,3})(`{3,}|~{3,})(.*)$/;
 
 type OpenFence = {
@@ -40,6 +42,14 @@ type AttachmentIssue = {
   url?: string;
   code: InboundAttachmentErrorCode;
   message: string;
+};
+
+type DiscordStreamMode = "off" | "partial" | "block";
+
+type DraftChunkConfig = {
+  minChars: number;
+  maxChars: number;
+  breakPreference: "paragraph" | "line" | "none";
 };
 
 export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
@@ -119,28 +129,36 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     }
     this.stopTyping(msg.chatId);
     const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
-    const chunks = chunkDiscordText(msg.content ?? "");
+    const content = msg.content ?? "";
+    const textChunkLimit = resolveTextChunkLimit(this.config);
+    const chunks = chunkDiscordText(content, {
+      maxChars: textChunkLimit,
+      maxLines: DISCORD_MAX_LINES_PER_MESSAGE
+    });
     if (chunks.length === 0) {
       return;
     }
 
     const flags = msg.metadata?.silent === true ? MessageFlags.SuppressNotifications : undefined;
-    for (const chunk of chunks) {
-      const payload: {
-        content: string;
-        reply?: { messageReference: string };
-        flags?: number;
-      } = {
-        content: chunk
-      };
-      if (msg.replyTo) {
-        payload.reply = { messageReference: msg.replyTo };
-      }
-      if (flags !== undefined) {
-        payload.flags = flags;
-      }
-      await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
+    const streamingMode = resolveDiscordStreamingMode(this.config);
+    if (streamingMode === "off") {
+      await sendDiscordChunks({
+        textChannel,
+        chunks,
+        replyTo: msg.replyTo ?? undefined,
+        flags
+      });
+      return;
     }
+
+    await sendDiscordDraftStreaming({
+      textChannel,
+      chunks,
+      replyTo: msg.replyTo ?? undefined,
+      flags,
+      draftChunk: resolveDraftChunkConfig(this.config, textChunkLimit),
+      streamingMode
+    });
   }
 
   private async handleIncoming(message: DiscordMessage): Promise<void> {
@@ -664,4 +682,221 @@ function chunkDiscordText(
   }
 
   return chunks;
+}
+
+function clampInt(value: number, min: number, max: number): number {
+  if (Number.isNaN(value)) {
+    return min;
+  }
+  return Math.min(max, Math.max(min, Math.floor(value)));
+}
+
+function resolveTextChunkLimit(config: Config["channels"]["discord"]): number {
+  const configured = typeof config.textChunkLimit === "number" ? config.textChunkLimit : DISCORD_TEXT_LIMIT;
+  return clampInt(configured, 1, DISCORD_TEXT_LIMIT);
+}
+
+function resolveDiscordStreamingMode(config: Config["channels"]["discord"]): DiscordStreamMode {
+  const raw = config.streaming;
+  if (raw === true) {
+    return "partial";
+  }
+  if (raw === false || raw === undefined || raw === null) {
+    return "off";
+  }
+  if (raw === "progress") {
+    return "partial";
+  }
+  if (raw === "partial" || raw === "block" || raw === "off") {
+    return raw;
+  }
+  return "off";
+}
+
+function resolveDraftChunkConfig(config: Config["channels"]["discord"], textChunkLimit: number): DraftChunkConfig {
+  const raw = config.draftChunk ?? {};
+  const minChars = clampInt((raw as DraftChunkConfig).minChars ?? 200, 1, textChunkLimit);
+  const maxChars = clampInt((raw as DraftChunkConfig).maxChars ?? 800, minChars, textChunkLimit);
+  const breakPreference =
+    (raw as DraftChunkConfig).breakPreference === "line" || (raw as DraftChunkConfig).breakPreference === "none"
+      ? (raw as DraftChunkConfig).breakPreference
+      : "paragraph";
+  return {
+    minChars,
+    maxChars,
+    breakPreference
+  };
+}
+
+function findDraftBreakIndex(
+  text: string,
+  start: number,
+  end: number,
+  preference: DraftChunkConfig["breakPreference"]
+): number | null {
+  const slice = text.slice(start, end);
+  if (slice.length === 0) {
+    return null;
+  }
+  if (preference === "paragraph") {
+    const idx = slice.lastIndexOf("\n\n");
+    if (idx >= 0) {
+      return start + idx + 2;
+    }
+  }
+  if (preference === "paragraph" || preference === "line") {
+    const idx = slice.lastIndexOf("\n");
+    if (idx >= 0) {
+      return start + idx + 1;
+    }
+  }
+  for (let i = slice.length - 1; i >= 0; i -= 1) {
+    if (/\s/.test(slice[i])) {
+      return start + i + 1;
+    }
+  }
+  return null;
+}
+
+function splitDraftChunks(text: string, config: DraftChunkConfig): string[] {
+  const chunks: string[] = [];
+  if (!text) {
+    return chunks;
+  }
+  let cursor = 0;
+  const length = text.length;
+  while (cursor < length) {
+    const remaining = length - cursor;
+    if (remaining <= config.maxChars) {
+      chunks.push(text.slice(cursor));
+      break;
+    }
+    const minEnd = Math.min(length, cursor + config.minChars);
+    const maxEnd = Math.min(length, cursor + config.maxChars);
+    let nextEnd = maxEnd;
+    const breakIndex = findDraftBreakIndex(text, minEnd, maxEnd, config.breakPreference);
+    if (breakIndex !== null && breakIndex > cursor) {
+      nextEnd = breakIndex;
+    }
+    if (nextEnd <= cursor) {
+      nextEnd = maxEnd;
+    }
+    chunks.push(text.slice(cursor, nextEnd));
+    cursor = nextEnd;
+  }
+  return chunks;
+}
+
+async function sleep(ms: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));
+}
+
+async function sendDiscordChunks(params: {
+  textChannel: TextBasedChannel & TextBasedChannelFields;
+  chunks: string[];
+  replyTo?: string;
+  flags?: number;
+}): Promise<void> {
+  const { textChannel, chunks, replyTo, flags } = params;
+  let first = true;
+  for (const chunk of chunks) {
+    const payload: {
+      content: string;
+      reply?: { messageReference: string };
+      flags?: number;
+    } = {
+      content: chunk
+    };
+    if (first && replyTo) {
+      payload.reply = { messageReference: replyTo };
+    }
+    if (flags !== undefined) {
+      payload.flags = flags;
+    }
+    await textChannel.send(payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]);
+    first = false;
+  }
+}
+
+async function sendDiscordDraftStreaming(params: {
+  textChannel: TextBasedChannel & TextBasedChannelFields;
+  chunks: string[];
+  replyTo?: string;
+  flags?: number;
+  draftChunk: DraftChunkConfig;
+  streamingMode: DiscordStreamMode;
+}): Promise<void> {
+  const { textChannel, chunks, replyTo, flags, draftChunk, streamingMode } = params;
+  let first = true;
+  const effectiveDraftChunk: DraftChunkConfig =
+    streamingMode === "block"
+      ? draftChunk
+      : {
+          ...draftChunk,
+          minChars: Math.max(1, Math.floor(draftChunk.minChars / 2)),
+          maxChars: Math.max(draftChunk.minChars, Math.floor(draftChunk.maxChars / 2))
+        };
+
+  for (const chunk of chunks) {
+    const draftChunks = splitDraftChunks(chunk, effectiveDraftChunk);
+    if (draftChunks.length === 0) {
+      continue;
+    }
+    if (draftChunks.length > STREAM_MAX_UPDATES_PER_MESSAGE) {
+      await sendDiscordChunks({
+        textChannel,
+        chunks: [chunk],
+        replyTo: first ? replyTo : undefined,
+        flags
+      });
+      first = false;
+      continue;
+    }
+
+    let draftMessage: DiscordMessage | null = null;
+    let current = "";
+    let lastEditAt = 0;
+    for (const draftPart of draftChunks) {
+      current += draftPart;
+      if (!draftMessage) {
+        const payload: {
+          content: string;
+          reply?: { messageReference: string };
+          flags?: number;
+        } = {
+          content: current
+        };
+        if (first && replyTo) {
+          payload.reply = { messageReference: replyTo };
+        }
+        if (flags !== undefined) {
+          payload.flags = flags;
+        }
+        draftMessage = (await textChannel.send(
+          payload as unknown as Parameters<TextBasedChannelFields["send"]>[0]
+        )) as DiscordMessage;
+        first = false;
+        lastEditAt = Date.now();
+        continue;
+      }
+
+      const waitMs = Math.max(0, lastEditAt + STREAM_EDIT_MIN_INTERVAL_MS - Date.now());
+      if (waitMs > 0) {
+        await sleep(waitMs);
+      }
+      try {
+        await draftMessage.edit({ content: current });
+      } catch {
+        await sendDiscordChunks({
+          textChannel,
+          chunks: [chunk],
+          replyTo: undefined,
+          flags
+        });
+        draftMessage = null;
+        break;
+      }
+      lastEditAt = Date.now();
+    }
+  }
 }
