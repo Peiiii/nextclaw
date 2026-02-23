@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.7.0
+
+### Minor Changes
+
+- feat(release): promote marketplace milestone to minor version bump
+  - reclassify the recent marketplace integration as feature-level release
+  - align package versions with semver minor progression
+  - keep release coverage across cli, server and ui packages
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/server@0.5.0
+
 ## 0.6.36
 
 ### Patch Changes

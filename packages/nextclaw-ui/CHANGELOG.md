@@ -1,5 +1,14 @@
 # @nextclaw/ui
 
+## 0.4.0
+
+### Minor Changes
+
+- feat(release): promote marketplace milestone to minor version bump
+  - reclassify the recent marketplace integration as feature-level release
+  - align package versions with semver minor progression
+  - keep release coverage across cli, server and ui packages
+
 ## 0.3.17
 
 ### Patch Changes
