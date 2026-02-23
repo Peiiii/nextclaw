@@ -50,11 +50,11 @@ export function ProvidersList() {
             <div
               key={provider.name}
               className={cn(
-                'group relative flex flex-col p-5 rounded-2xl border transition-all duration-base cursor-pointer',
+                'group relative flex-col p-5 rounded-2xl border transition-all duration-base cursor-pointer',
                 'hover:shadow-card-hover hover:-translate-y-0.5',
                 hasConfig
-                  ? 'bg-white border-gray-200 hover:border-gray-300'
-                  : 'bg-gray-50 border-gray-200 hover:border-gray-300 hover:bg-white'
+                  ? 'bg-white border-gray-200 shadow-sm'
+                  : 'bg-white border-transparent shadow-sm hover:border-gray-200'
               )}
               onClick={() => openProviderModal(provider.name)}
             >

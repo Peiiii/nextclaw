@@ -33,7 +33,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="w-[240px] bg-transparent flex flex-col h-full py-6 px-4">
+    <aside className="w-[240px] bg-white border-r border-gray-200 flex flex-col h-full py-6 px-4">
       {/* Logo Area */}
       <div className="px-3 mb-8">
         <div className="flex items-center gap-2.5 group cursor-pointer">
@@ -55,10 +55,10 @@ export function Sidebar() {
                 <NavLink
                   to={item.target}
                   className={({ isActive }) => cn(
-                    'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-fast',
+                    'group w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-base',
                     isActive
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-brand-50 text-brand-700'
+                      : 'text-gray-600 hover:bg-gray-100/80 hover:text-gray-900'
                   )}
                 >
                   {({ isActive }) => (

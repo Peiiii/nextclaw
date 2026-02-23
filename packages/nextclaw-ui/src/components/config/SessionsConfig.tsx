@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
-import { RefreshCw, Search, Clock, Inbox, Hash, Bot, User, MessageCircle } from 'lucide-react';
+import { RefreshCw, Search, Clock, Inbox, Hash, Bot, User, MessageCircle, Settings as SettingsIcon } from 'lucide-react';
 
 const UNKNOWN_CHANNEL_KEY = '__unknown_channel__';
 
@@ -56,26 +56,28 @@ function SessionListItem({ session, channel, isSelected, onSelect }: SessionList
     <button
       onClick={onSelect}
       className={cn(
-        "w-full text-left p-3 rounded-xl border transition-all duration-200 focus:outline-none",
+        "w-full text-left p-3.5 rounded-xl transition-all duration-200 outline-none focus:outline-none focus:ring-0 group",
         isSelected
-          ? "bg-primary-50 border-primary-200 shadow-sm"
-          : "bg-white border-transparent hover:border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+          ? "bg-brand-50 border border-brand-100/50"
+          : "bg-transparent border border-transparent hover:bg-gray-50/80"
       )}
     >
       <div className="flex items-start justify-between mb-1.5">
-        <div className="font-medium text-gray-900 truncate pr-2 flex-1 text-sm">{displayName}</div>
-        <div className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 shrink-0 capitalize">
+        <div className={cn("font-semibold truncate pr-2 flex-1 text-sm", isSelected ? "text-brand-800" : "text-gray-900")}>
+          {displayName}
+        </div>
+        <div className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 capitalize", isSelected ? "bg-white text-brand-600 shadow-[0_1px_2px_rgba(0,0,0,0.02)]" : "bg-gray-100 text-gray-500")}>
           {channelDisplay}
         </div>
       </div>
 
-      <div className="flex items-center text-xs text-gray-500 justify-between">
+      <div className={cn("flex items-center text-xs justify-between mt-2 font-medium", isSelected ? "text-brand-600/80" : "text-gray-400")}>
         <div className="flex items-center gap-1.5">
-          <Clock className="w-3.5 h-3.5" />
+          <Clock className="w-3.5 h-3.5 opacity-70" />
           <span className="truncate max-w-[100px]">{formatDate(session.updatedAt).split(' ')[0]}</span>
         </div>
         <div className="flex items-center gap-1">
-          <MessageCircle className="w-3.5 h-3.5" />
+          <MessageCircle className="w-3.5 h-3.5 opacity-70" />
           <span>{session.messageCount}</span>
         </div>
       </div>
@@ -91,12 +93,12 @@ function SessionMessageBubble({ message }: { message: SessionMessageView }) {
   const isUser = message.role.toLowerCase() === 'user';
 
   return (
-    <div className={cn("flex w-full mb-4", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full mb-6", isUser ? "justify-end" : "justify-start")}>
       <div className={cn(
-        "max-w-[85%] rounded-2xl p-4 flex gap-3 text-sm",
+        "max-w-[85%] rounded-[1.25rem] p-5 flex gap-3 text-sm",
         isUser
-          ? "bg-primary text-white rounded-tr-sm shadow-sm"
-          : "bg-white border border-gray-100 text-gray-800 rounded-tl-sm shadow-card-sm"
+          ? "bg-primary text-white rounded-tr-sm"
+          : "bg-gray-50 text-gray-800 rounded-tl-sm border border-gray-100/50"
       )}>
         <div className="shrink-0 pt-0.5">
           {isUser ? <User className="w-4 h-4 text-primary-100" /> : <Bot className="w-4 h-4 text-gray-400" />}
@@ -110,7 +112,7 @@ function SessionMessageBubble({ message }: { message: SessionMessageView }) {
               {formatDate(message.timestamp)}
             </span>
           </div>
-          <div className="whitespace-pre-wrap break-words leading-relaxed">
+          <div className="whitespace-pre-wrap break-words leading-relaxed text-[15px]">
             {message.content}
           </div>
         </div>
@@ -133,6 +135,7 @@ export function SessionsConfig() {
   // Local state drafts for editing the currently selected session
   const [draftLabel, setDraftLabel] = useState('');
   const [draftModel, setDraftModel] = useState('');
+  const [isEditingMeta, setIsEditingMeta] = useState(false);
 
   const sessionsParams = useMemo(() => ({ q: query.trim() || undefined, limit, activeMinutes }), [query, limit, activeMinutes]);
   const sessionsQuery = useSessions(sessionsParams);
@@ -170,6 +173,7 @@ export function SessionsConfig() {
       setDraftLabel('');
       setDraftModel('');
     }
+    setIsEditingMeta(false); // Reset editing state when switching sessions
   }, [selectedSession]);
 
   const handleSaveMeta = () => {
@@ -181,6 +185,7 @@ export function SessionsConfig() {
         preferredModel: draftModel.trim() || null
       }
     });
+    setIsEditingMeta(false); // Close editor on save
   };
 
   const handleClearHistory = () => {
@@ -205,53 +210,54 @@ export function SessionsConfig() {
   return (
     <div className="h-[calc(100vh-80px)] w-full max-w-[1400px] mx-auto animate-fade-in flex flex-col pt-6 pb-2">
 
-      {/* Header */}
       <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{t('sessionsPageTitle')}</h2>
           <p className="text-sm text-gray-500 mt-1">{t('sessionsPageDescription')}</p>
-        </div>
-
-        {/* Global Toolbar */}
-        <div className="flex items-center gap-3">
-          <Select value={selectedChannel} onValueChange={setSelectedChannel}>
-            <SelectTrigger className="w-[180px] h-9 rounded-full bg-gray-50/50 hover:bg-gray-100 border-gray-200 focus:ring-0 shadow-none font-medium text-gray-700">
-              <SelectValue placeholder="All Channels" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl shadow-lg border-gray-100">
-              <SelectItem value="all" className="rounded-lg">All Channels</SelectItem>
-              {channels.map(c => (
-                <SelectItem key={c} value={c} className="rounded-lg">{displayChannelName(c)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="relative w-64">
-            <Search className="h-4 w-4 absolute left-3 top-2.5 text-gray-400" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('sessionsSearchPlaceholder')}
-              className="pl-9 h-9 rounded-full bg-gray-50/50 border-gray-200 focus-visible:bg-white"
-            />
-          </div>
-          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full text-gray-500" onClick={() => sessionsQuery.refetch()}>
-            <RefreshCw className={cn("h-4 w-4", sessionsQuery.isFetching && "animate-spin")} />
-          </Button>
         </div>
       </div>
 
       {/* Main Mailbox Layout */}
       <div className="flex-1 flex gap-6 min-h-0 relative">
 
-        {/* LEFT COLUMN: List */}
-        <div className="w-[320px] flex flex-col shrink-0">
-          <div className="flex items-center justify-between px-1 mb-3 text-xs font-medium text-gray-500">
-            <span>{sessions.length} {t('sessionsListTitle')}</span>
+        {/* LEFT COLUMN: List Card */}
+        <div className="w-[320px] flex flex-col shrink-0 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+
+          {/* List Card Header & Toolbar */}
+          <div className="px-4 py-4 border-b border-gray-100 bg-white z-10 shrink-0 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+                {sessions.length} {t('sessionsListTitle')}
+              </span>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100" onClick={() => sessionsQuery.refetch()}>
+                <RefreshCw className={cn("h-3.5 w-3.5", sessionsQuery.isFetching && "animate-spin")} />
+              </Button>
+            </div>
+
+            <Select value={selectedChannel} onValueChange={setSelectedChannel}>
+              <SelectTrigger className="w-full h-8.5 rounded-lg bg-gray-50/50 hover:bg-gray-100 border-gray-200 focus:ring-0 shadow-none text-xs font-medium text-gray-700">
+                <SelectValue placeholder="All Channels" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl shadow-lg border-gray-100 max-w-[280px]">
+                <SelectItem value="all" className="rounded-lg text-xs">All Channels</SelectItem>
+                {channels.map(c => (
+                  <SelectItem key={c} value={c} className="rounded-lg text-xs truncate pr-6">{displayChannelName(c)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="relative w-full">
+              <Search className="h-3.5 w-3.5 absolute left-3 top-2.5 text-gray-400" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('sessionsSearchPlaceholder')}
+                className="pl-8 h-8.5 rounded-lg bg-gray-50/50 border-gray-200 focus-visible:bg-white text-xs"
+              />
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-1.5 -mx-1.5 pt-1.5 -mt-1.5 space-y-2 pb-10 
-            [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gray-300">
+          <div className="flex-1 overflow-y-auto p-3 space-y-1 pb-10 custom-scrollbar relative">
             {sessionsQuery.isLoading ? (
               <div className="text-sm text-gray-400 p-4 text-center">{t('sessionsLoading')}</div>
             ) : filteredSessions.length === 0 ? (
@@ -273,11 +279,11 @@ export function SessionsConfig() {
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Detail View */}
-        <div className="flex-1 min-w-0 bg-gray-50/50 rounded-2xl border border-gray-200 flex flex-col overflow-hidden shadow-sm relative">
+        {/* RIGHT COLUMN: Detail View Card */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden relative bg-white rounded-2xl shadow-sm border border-gray-200">
 
           {(updateSession.isPending || deleteSession.isPending) && (
-            <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 overflow-hidden z-10">
+            <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 overflow-hidden z-20">
               <div className="h-full bg-primary animate-pulse w-1/3 rounded-r-full" />
             </div>
           )}
@@ -285,53 +291,59 @@ export function SessionsConfig() {
           {selectedKey && selectedSession ? (
             <>
               {/* Detail Header / Metdata Editor */}
-              <div className="shrink-0 bg-white border-b border-gray-200 p-5 shadow-sm z-10 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-primary-50 flex items-center justify-center text-primary shrink-0">
-                      <Hash className="h-5 w-5" />
+              <div className="shrink-0 border-b border-gray-100 bg-white px-8 py-5 z-10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-[14px] bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                      <Hash className="h-6 w-6" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-base font-bold text-gray-900 leading-none">
+                      <div className="flex items-center gap-2.5 mb-1.5">
+                        <h3 className="text-lg font-bold text-gray-900 tracking-tight">
                           {selectedSession.label || selectedSession.key.split(':').pop() || selectedSession.key}
                         </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 uppercase tracking-wide">
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 uppercase tracking-widest">
                           {displayChannelName(resolveChannelFromSessionKey(selectedSession.key))}
                         </span>
                       </div>
-                      <div className="text-xs text-gray-500 font-mono break-all line-clamp-1" title={selectedKey}>
+                      <div className="text-xs text-gray-500 font-mono break-all line-clamp-1 opacity-70" title={selectedKey}>
                         {selectedKey}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <Button variant="outline" size="sm" onClick={handleClearHistory} className="h-8 shadow-none hover:bg-gray-100/50 hover:text-gray-900 border-gray-200">
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingMeta(!isEditingMeta)} className={cn("h-8.5 rounded-lg shadow-none border-gray-200 transition-all text-xs font-semibold", isEditingMeta ? "bg-gray-100 text-gray-900" : "hover:bg-gray-50 hover:text-gray-900")}>
+                      <SettingsIcon className="w-3.5 h-3.5 mr-1.5" />
+                      Metadata
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleClearHistory} className="h-8.5 rounded-lg shadow-none hover:bg-gray-50 hover:text-gray-900 border-gray-200 text-xs font-semibold text-gray-500">
                       {t('sessionsClearHistory')}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={handleDeleteSession} className="h-8 shadow-none hover:bg-red-50 hover:text-red-600 hover:border-red-200 border-gray-200">
+                    <Button variant="outline" size="sm" onClick={handleDeleteSession} className="h-8.5 rounded-lg shadow-none hover:bg-red-50 hover:text-red-600 hover:border-red-200 border-gray-200 text-xs font-semibold text-red-500">
                       {t('delete')}
                     </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-lg border border-gray-100">
-                  <Input
-                    placeholder={t('sessionsLabelPlaceholder')}
-                    value={draftLabel}
-                    onChange={e => setDraftLabel(e.target.value)}
-                    className="h-8 text-sm bg-white"
-                  />
-                  <Input
-                    placeholder={t('sessionsModelPlaceholder')}
-                    value={draftModel}
-                    onChange={e => setDraftModel(e.target.value)}
-                    className="h-8 text-sm bg-white"
-                  />
-                  <Button size="sm" onClick={handleSaveMeta} className="h-8 px-4 shrink-0 shadow-none" disabled={updateSession.isPending}>
-                    {t('sessionsSaveMeta')}
-                  </Button>
-                </div>
+                {isEditingMeta && (
+                  <div className="flex items-center gap-3 bg-gray-50/50 p-3 rounded-lg border border-gray-100 animate-slide-in">
+                    <Input
+                      placeholder={t('sessionsLabelPlaceholder')}
+                      value={draftLabel}
+                      onChange={e => setDraftLabel(e.target.value)}
+                      className="h-8 text-sm bg-white"
+                    />
+                    <Input
+                      placeholder={t('sessionsModelPlaceholder')}
+                      value={draftModel}
+                      onChange={e => setDraftModel(e.target.value)}
+                      className="h-8 text-sm bg-white"
+                    />
+                    <Button size="sm" onClick={handleSaveMeta} className="h-8 px-4 shrink-0 shadow-none" disabled={updateSession.isPending}>
+                      {t('sessionsSaveMeta')}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Chat History Area */}
@@ -370,7 +382,7 @@ export function SessionsConfig() {
           ) : (
             /* Empty State */
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8 h-full bg-white">
-              <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-6 border border-gray-100 shadow-sm rotate-3">
+              <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-6 border border-gray-100 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.02)] rotate-3">
                 <Inbox className="h-8 w-8 text-gray-300 -rotate-3" />
               </div>
               <h3 className="text-lg font-bold text-gray-900 mb-2">No Session Selected</h3>

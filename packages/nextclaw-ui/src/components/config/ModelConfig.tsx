@@ -76,7 +76,7 @@ export function ModelConfig() {
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Model Card */}
-          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-200">
+          <div className="p-8 rounded-2xl bg-white border border-gray-200 shadow-card">
             <div className="flex items-center gap-4 mb-8">
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
                 <Sparkles className="h-5 w-5" />
@@ -103,7 +103,7 @@ export function ModelConfig() {
           </div>
 
           {/* Workspace Card */}
-          <div className="p-8 rounded-2xl bg-gray-50 border border-gray-200">
+          <div className="p-8 rounded-2xl bg-white border border-gray-200 shadow-card">
             <div className="flex items-center gap-4 mb-8">
               <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
                 <Folder className="h-5 w-5" />
