@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Download, PackageSearch } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Tabs } from '@/components/ui/tabs-custom';
+/* eslint-disable max-lines-per-function */
+import type { MarketplaceInstalledRecord, MarketplaceItemSummary, MarketplaceManageAction, MarketplaceSort } from '@/api/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs } from '@/components/ui/tabs-custom';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useInstallMarketplaceItem,
   useManageMarketplaceItem,
   useMarketplaceInstalled,
   useMarketplaceItems
 } from '@/hooks/useMarketplace';
-import type { MarketplaceInstalledRecord, MarketplaceItemSummary, MarketplaceManageAction, MarketplaceSort } from '@/api/types';
+import { cn } from '@/lib/utils';
+import { PackageSearch } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 const PAGE_SIZE = 12;
 
@@ -32,8 +34,6 @@ type InstalledRenderEntry = {
   record: MarketplaceInstalledRecord;
   item?: MarketplaceItemSummary;
 };
-
-type CardStatus = 'available' | 'installed' | 'enabled' | 'disabled';
 
 function normalizeMarketplaceKey(value: string | undefined): string {
   return (value ?? '').trim().toLowerCase();
@@ -139,45 +139,26 @@ function matchInstalledSearch(
     .some((value) => value.includes(normalizedQuery));
 }
 
-function resolveCardStatus(record: MarketplaceInstalledRecord | undefined): CardStatus {
-  if (!record) {
-    return 'available';
+function getAvatarColor(text: string) {
+  const colors = [
+    'bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-pink-500',
+    'bg-rose-500', 'bg-orange-500', 'bg-emerald-500', 'bg-teal-500', 'bg-cyan-500'
+  ];
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
   }
-  if (record.enabled === false) {
-    return 'disabled';
-  }
-  if (record.enabled === true) {
-    return 'enabled';
-  }
-  return 'installed';
+  return colors[Math.abs(hash) % colors.length];
 }
 
-function StatusBadge(props: { status: CardStatus }) {
-  if (props.status === 'enabled') {
-    return <span className="text-[11px] px-2 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-600">Enabled</span>;
-  }
-
-  if (props.status === 'disabled') {
-    return <span className="text-[11px] px-2 py-1 rounded-full font-semibold bg-amber-50 text-amber-700">Disabled</span>;
-  }
-
-  if (props.status === 'installed') {
-    return <span className="text-[11px] px-2 py-1 rounded-full font-semibold bg-indigo-50 text-indigo-600">Installed</span>;
-  }
-
-  return <span className="text-[11px] px-2 py-1 rounded-full font-semibold bg-gray-100 text-gray-600">Available</span>;
-}
-
-function TypeBadge(props: { type: MarketplaceItemSummary['type'] }) {
+function ItemIcon({ name, fallback }: { name?: string; fallback: string }) {
+  const displayName = name || fallback;
+  const letters = displayName.substring(0, 2).toUpperCase();
+  const colorClass = getAvatarColor(displayName);
   return (
-    <span
-      className={cn(
-        'text-[10px] uppercase px-2 py-1 rounded-full font-semibold tracking-wide',
-        props.type === 'plugin' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
-      )}
-    >
-      {props.type}
-    </span>
+    <div className={cn("flex items-center justify-center w-11 h-11 rounded-2xl text-white font-bold text-base shrink-0 shadow-sm", colorClass)}>
+      {letters}
+    </div>
   );
 }
 
@@ -251,7 +232,6 @@ function MarketplaceListCard(props: {
 }) {
   const record = props.record;
   const type = props.item?.type ?? record?.type;
-  const status = resolveCardStatus(record);
   const title = props.item?.name ?? record?.label ?? record?.id ?? record?.spec ?? 'Unknown Item';
   const summary = props.item?.summary ?? (record ? 'Installed locally. Details are currently unavailable from marketplace.' : '');
   const spec = props.item?.install.spec ?? record?.spec ?? '';
@@ -266,58 +246,86 @@ function MarketplaceListCard(props: {
 
   const isInstalling = props.installState.isPending && props.item && props.installState.installingSpec === props.item.install.spec;
 
+  const displayType = type === 'plugin' ? 'Plugin' : type === 'skill' ? 'Skill' : 'Extension';
+
   return (
-    <article className="bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-300 transition-colors">
-      <div className="flex items-start gap-3 justify-between">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            {type && <TypeBadge type={type} />}
-            <StatusBadge status={status} />
-          </div>
+    <article className="group bg-white border border-transparent hover:border-gray-200 rounded-xl px-4 py-3 hover:shadow-sm transition-all flex items-start gap-4 justify-between cursor-default h-[90px]">
+      <div className="flex gap-3 min-w-0 flex-1 h-full items-start">
+        <ItemIcon name={title} fallback={spec || 'Ext'} />
+        <div className="min-w-0 flex-1 flex flex-col justify-center h-full">
+          <TooltipProvider delayDuration={400}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-[14px] font-semibold text-gray-900 truncate leading-tight cursor-default">{title}</div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-[300px] text-xs">
+                {title}
+              </TooltipContent>
+            </Tooltip>
 
-          <div className="text-[15px] font-semibold text-gray-900 truncate">{title}</div>
-          <p className="text-[12px] text-gray-500 mt-1 line-clamp-2">{summary}</p>
-          {spec && (
-            <code className="inline-flex mt-2 text-[11px] text-gray-500 bg-gray-100 rounded px-2 py-1 max-w-full truncate">
-              {spec}
-            </code>
-          )}
+            <div className="flex items-center gap-1.5 mt-0.5 mb-1.5">
+              <span className="text-[11px] text-gray-500 font-medium">{displayType}</span>
+              {spec && (
+                <>
+                  <span className="text-[10px] text-gray-300">•</span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-[11px] text-gray-400 truncate max-w-full font-mono cursor-default">{spec}</span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[300px] text-xs font-mono break-all">
+                      {spec}
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+            </div>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-[12px] text-gray-500/90 line-clamp-1 transition-colors leading-relaxed text-left cursor-default">{summary}</p>
+              </TooltipTrigger>
+              {summary && (
+                <TooltipContent className="max-w-[400px] text-xs leading-relaxed">
+                  {summary}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         </div>
+      </div>
 
-        <div className="shrink-0 flex items-center gap-2">
-          {props.item && !record && (
-            <button
-              onClick={() => props.onInstall(props.item as MarketplaceItemSummary)}
-              disabled={props.installState.isPending}
-              className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-semibold bg-gray-900 text-white hover:bg-black disabled:opacity-50"
-            >
-              <Download className="h-3.5 w-3.5" />
-              {isInstalling ? 'Installing...' : 'Install'}
-            </button>
-          )}
+      <div className="shrink-0 flex items-center h-full">
+        {props.item && !record && (
+          <button
+            onClick={() => props.onInstall(props.item as MarketplaceItemSummary)}
+            disabled={props.installState.isPending}
+            className="inline-flex items-center gap-1.5 h-8 px-4 rounded-full text-xs font-semibold bg-gray-900 text-white hover:bg-black disabled:opacity-50 transition-colors"
+          >
+            {isInstalling ? 'Installing...' : 'Install'}
+          </button>
+        )}
 
-          {record && canToggle && (
-            <button
-              disabled={props.manageState.isPending}
-              onClick={() => props.onManage(record.enabled === false ? 'enable' : 'disable', record)}
-              className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              {busyForRecord && props.manageState.action !== 'uninstall'
-                ? (props.manageState.action === 'enable' ? 'Enabling...' : 'Disabling...')
-                : (record.enabled === false ? 'Enable' : 'Disable')}
-            </button>
-          )}
+        {record && canToggle && (
+          <button
+            disabled={props.manageState.isPending}
+            onClick={() => props.onManage(record.enabled === false ? 'enable' : 'disable', record)}
+            className="inline-flex items-center h-8 px-4 rounded-full text-xs font-semibold border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 transition-colors"
+          >
+            {busyForRecord && props.manageState.action !== 'uninstall'
+              ? (props.manageState.action === 'enable' ? 'Enabling...' : 'Disabling...')
+              : (record.enabled === false ? 'Enable' : 'Disable')}
+          </button>
+        )}
 
-          {record && canUninstall && (
-            <button
-              disabled={props.manageState.isPending}
-              onClick={() => props.onManage('uninstall', record)}
-              className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-semibold border border-rose-200 text-rose-600 bg-white hover:bg-rose-50 disabled:opacity-50"
-            >
-              {busyForRecord && props.manageState.action === 'uninstall' ? 'Removing...' : 'Uninstall'}
-            </button>
-          )}
-        </div>
+        {record && canUninstall && (
+          <button
+            disabled={props.manageState.isPending}
+            onClick={() => props.onManage('uninstall', record)}
+            className="inline-flex items-center h-8 px-4 rounded-full text-xs font-semibold border border-rose-100 text-rose-600 bg-white hover:bg-rose-50 hover:border-rose-200 disabled:opacity-50 transition-colors"
+          >
+            {busyForRecord && props.manageState.action === 'uninstall' ? 'Removing...' : 'Uninstall'}
+          </button>
+        )}
       </div>
     </article>
   );
@@ -544,7 +552,7 @@ export function MarketplacePage() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-3">
           {scope === 'all' && allItems.map((item) => (
             <MarketplaceListCard
               key={item.id}

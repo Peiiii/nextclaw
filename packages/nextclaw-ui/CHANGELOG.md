@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.5.3
+
+### Patch Changes
+
+- - render tooltips in a portal with design-system z-index
+  - refresh marketplace cards with avatar + tooltip details
+
 ## 0.5.2
 
 ### Patch Changes
