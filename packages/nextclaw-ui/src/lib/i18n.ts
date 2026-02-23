@@ -164,6 +164,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   // Doc Browser
   docBrowserTitle: { zh: '帮助文档', en: 'Help Docs' },
   docBrowserSearchPlaceholder: { zh: '搜索，也可以输入文档地址直接打开', en: 'Search, or enter a doc URL to open' },
+  docBrowserUrlPlaceholder: { zh: '输入文档路径，如 /guide/channels', en: 'Enter a doc path, e.g. /guide/channels' },
   docBrowserOpenExternal: { zh: '文档中心打开', en: 'Open in Docs' },
   docBrowserFloatMode: { zh: '悬浮窗口', en: 'Float Window' },
   docBrowserDockMode: { zh: '固定到侧栏', en: 'Dock to Sidebar' },

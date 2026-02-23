@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.8.0
+
+### Minor Changes
+
+- feat(ui): improve embedded docs browser route sync and link handling
+  - sync DocBrowser URL with in-iframe docs route changes
+  - avoid intercepting explicitly external doc links
+  - refine doc browser URL input UX and labels
+  - refresh bundled `nextclaw` ui-dist with latest UI behavior
+
 ## 0.7.0
 
 ### Minor Changes

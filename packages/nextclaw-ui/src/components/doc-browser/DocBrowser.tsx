@@ -31,6 +31,7 @@ export function DocBrowser() {
 
     const [urlInput, setUrlInput] = useState('');
     const [isDragging, setIsDragging] = useState(false);
+    const [isResizing, setIsResizing] = useState(false);
     const [floatPos, setFloatPos] = useState({ x: 120, y: 80 });
     const [floatSize, setFloatSize] = useState({ w: 480, h: 600 });
     const [dockedWidth, setDockedWidth] = useState(420);
@@ -47,6 +48,17 @@ export function DocBrowser() {
             setUrlInput(currentUrl);
         }
     }, [currentUrl]);
+
+    // Listen for route changes from the iframe via postMessage
+    useEffect(() => {
+        const handler = (e: MessageEvent) => {
+            if (e.data?.type === 'docs-route-change' && typeof e.data.url === 'string') {
+                navigate(e.data.url);
+            }
+        };
+        window.addEventListener('message', handler);
+        return () => window.removeEventListener('message', handler);
+    }, [navigate]);
 
     const handleUrlSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
@@ -98,6 +110,7 @@ export function DocBrowser() {
     const onResizeStart = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setIsResizing(true);
         resizeRef.current = {
             startX: e.clientX,
             startY: e.clientY,
@@ -112,6 +125,7 @@ export function DocBrowser() {
             });
         };
         const onUp = () => {
+            setIsResizing(false);
             resizeRef.current = null;
             window.removeEventListener('mousemove', onMove);
             window.removeEventListener('mouseup', onUp);
@@ -124,14 +138,15 @@ export function DocBrowser() {
     const onDockResizeStart = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        setIsResizing(true);
         dockResizeRef.current = { startX: e.clientX, startW: dockedWidth };
         const onMove = (ev: MouseEvent) => {
             if (!dockResizeRef.current) return;
-            // Dragging left should increase width (since resize handle is on the left edge)
             const delta = dockResizeRef.current.startX - ev.clientX;
             setDockedWidth(Math.max(320, Math.min(800, dockResizeRef.current.startW + delta)));
         };
         const onUp = () => {
+            setIsResizing(false);
             dockResizeRef.current = null;
             window.removeEventListener('mousemove', onMove);
             window.removeEventListener('mouseup', onUp);
@@ -235,12 +250,17 @@ export function DocBrowser() {
             {/* Iframe Content */}
             <div className="flex-1 relative overflow-hidden">
                 <iframe
+                    key={currentUrl}
                     src={currentUrl}
                     className="absolute inset-0 w-full h-full border-0"
                     title="NextClaw Documentation"
                     sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
                     allow="clipboard-read; clipboard-write"
                 />
+                {/* Transparent overlay during resize to prevent iframe from stealing mouse events */}
+                {(isResizing || isDragging) && (
+                    <div className="absolute inset-0 z-10" />
+                )}
             </div>
 
             {/* Footer */}
@@ -256,14 +276,21 @@ export function DocBrowser() {
                 </a>
             </div>
 
-            {/* Resize Handle (floating only — bottom-right corner) */}
+            {/* Resize Handles (floating only) */}
             {!isDocked && (
-                <div
-                    className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
-                    onMouseDown={onResizeStart}
-                >
-                    <GripVertical className="w-3 h-3 rotate-[-45deg]" />
-                </div>
+                <>
+                    {/* Right edge */}
+                    <div className="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onResizeStart} data-axis="x" />
+                    {/* Bottom edge */}
+                    <div className="absolute bottom-0 left-0 h-1.5 w-full cursor-ns-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onResizeStart} data-axis="y" />
+                    {/* Bottom-right corner */}
+                    <div
+                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-30 flex items-center justify-center text-gray-300 hover:text-gray-500 transition-colors"
+                        onMouseDown={onResizeStart}
+                    >
+                        <GripVertical className="w-3 h-3 rotate-[-45deg]" />
+                    </div>
+                </>
             )}
         </div>
     );

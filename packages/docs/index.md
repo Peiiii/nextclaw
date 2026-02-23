@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/nicepkg/nextclaw
+      link: https://github.com/Peiiii/nextclaw
 
 features:
   - title: 🔌 Multi-Channel

@@ -86,12 +86,20 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const navigate = useCallback((url: string) => {
-        setState(prev => ({
-            ...prev,
-            currentUrl: url,
-            history: [...prev.history.slice(0, prev.historyIndex + 1), url],
-            historyIndex: prev.historyIndex + 1,
-        }));
+        setState(prev => {
+            // Normalize URLs for comparison (strip trailing slash, .html suffix)
+            const normalize = (u: string) => {
+                try { return new URL(u).pathname.replace(/\.html$/, '').replace(/\/$/, ''); } catch { return u; }
+            };
+            // Skip if same as current URL (prevents loop from postMessage echo)
+            if (normalize(url) === normalize(prev.currentUrl)) return prev;
+            return {
+                ...prev,
+                currentUrl: url,
+                history: [...prev.history.slice(0, prev.historyIndex + 1), url],
+                historyIndex: prev.historyIndex + 1,
+            };
+        });
     }, []);
 
     const goBack = useCallback(() => {

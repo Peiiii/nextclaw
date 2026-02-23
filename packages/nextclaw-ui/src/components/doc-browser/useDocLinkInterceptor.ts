@@ -18,6 +18,9 @@ export function useDocLinkInterceptor() {
             const href = anchor.getAttribute('href') || '';
             if (!isDocsUrl(href)) return;
 
+            // Don't intercept links explicitly marked for external opening
+            if (anchor.hasAttribute('data-doc-external')) return;
+
             // Don't intercept if modifier keys are held (user wants new tab behavior)
             if (e.ctrlKey || e.metaKey || e.shiftKey) return;
 

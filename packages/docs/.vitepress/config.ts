@@ -6,6 +6,28 @@ export default defineConfig({
 
     head: [
         ['link', { rel: 'icon', href: '/logo.svg' }],
+        // Notify parent window (DocBrowser) of route changes via postMessage
+        ['script', {}, `
+            (function() {
+                function notify() {
+                    if (window.parent !== window) {
+                        window.parent.postMessage({ type: 'docs-route-change', url: location.href }, '*');
+                    }
+                }
+                // Notify on initial load
+                notify();
+                // Watch for SPA navigation (VitePress uses client-side routing)
+                let lastUrl = location.href;
+                new MutationObserver(function() {
+                    if (location.href !== lastUrl) {
+                        lastUrl = location.href;
+                        notify();
+                    }
+                }).observe(document, { subtree: true, childList: true });
+                // Also listen for popstate (back/forward within iframe)
+                window.addEventListener('popstate', notify);
+            })();
+        `],
     ],
 
     themeConfig: {
@@ -14,7 +36,7 @@ export default defineConfig({
         nav: [
             { text: 'Guide', link: '/guide/getting-started' },
             { text: 'Channels', link: '/guide/channels' },
-            { text: 'GitHub', link: 'https://github.com/nicepkg/nextclaw' },
+            { text: 'GitHub', link: 'https://github.com/Peiiii/nextclaw' },
         ],
 
         sidebar: {
@@ -47,7 +69,7 @@ export default defineConfig({
         },
 
         socialLinks: [
-            { icon: 'github', link: 'https://github.com/nicepkg/nextclaw' }
+            { icon: 'github', link: 'https://github.com/Peiiii/nextclaw' }
         ],
 
         search: {
