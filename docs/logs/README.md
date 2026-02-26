@@ -1,5 +1,6 @@
 # Logs
 
+- [docs/logs/2026-02-26-docs-language-nav-dedup/v0.0.1-docs-language-nav-dedup/README.md](docs/logs/2026-02-26-docs-language-nav-dedup/v0.0.1-docs-language-nav-dedup/README.md)
 - [docs/logs/2026-02-26-docs-readme-i18n/v0.0.1-docs-readme-i18n/README.md](docs/logs/2026-02-26-docs-readme-i18n/v0.0.1-docs-readme-i18n/README.md)
 - [docs/logs/2026-02-26-ui-theme-switcher/v0.0.1-ui-theme-switcher/README.md](docs/logs/2026-02-26-ui-theme-switcher/v0.0.1-ui-theme-switcher/README.md)
 - [docs/logs/2026-02-26-landing-seo-optimization/v0.0.1-landing-seo-optimization/README.md](docs/logs/2026-02-26-landing-seo-optimization/v0.0.1-landing-seo-optimization/README.md)

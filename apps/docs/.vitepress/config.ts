@@ -99,11 +99,7 @@ export default defineConfig({
   ],
   themeConfig: {
     logo: '/logo.svg',
-    nav: [
-      { text: 'English', link: '/en/' },
-      { text: '简体中文', link: '/zh/' },
-      { text: 'GitHub', link: 'https://github.com/Peiiii/nextclaw' }
-    ],
+    nav: [{ text: 'GitHub', link: 'https://github.com/Peiiii/nextclaw' }],
     sidebar: {},
     socialLinks: [{ icon: 'github', link: 'https://github.com/Peiiii/nextclaw' }],
     search: { provider: 'local' },
@@ -125,7 +121,6 @@ export default defineConfig({
           { text: 'Guide', link: '/en/guide/getting-started' },
           { text: 'Roadmap', link: '/en/guide/roadmap' },
           { text: 'Channels', link: '/en/guide/channels' },
-          { text: '简体中文', link: '/zh/' },
           { text: 'GitHub', link: 'https://github.com/Peiiii/nextclaw' }
         ],
         sidebar: {
@@ -149,7 +144,6 @@ export default defineConfig({
           { text: '指南', link: '/zh/guide/getting-started' },
           { text: '路线图', link: '/zh/guide/roadmap' },
           { text: '渠道', link: '/zh/guide/channels' },
-          { text: 'English', link: '/en/' },
           { text: 'GitHub', link: 'https://github.com/Peiiii/nextclaw' }
         ],
         sidebar: {
