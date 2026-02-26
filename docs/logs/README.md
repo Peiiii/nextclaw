@@ -1,5 +1,6 @@
 # Logs
 
+- [docs/logs/2026-02-27-marketplace-workflow-install-fix/v0.0.1-marketplace-workflow-install-fix/README.md](docs/logs/2026-02-27-marketplace-workflow-install-fix/v0.0.1-marketplace-workflow-install-fix/README.md)
 - [docs/logs/2026-02-27-doc-browser-locale-sync/v0.0.1-doc-browser-locale-sync/README.md](docs/logs/2026-02-27-doc-browser-locale-sync/v0.0.1-doc-browser-locale-sync/README.md)
 - [docs/logs/2026-02-27-marketplace-full-layer-split/v0.0.1-marketplace-full-layer-split/README.md](docs/logs/2026-02-27-marketplace-full-layer-split/v0.0.1-marketplace-full-layer-split/README.md)
 - [docs/logs/2026-02-27-marketplace-copy-alignment/v0.0.1-marketplace-copy-alignment/README.md](docs/logs/2026-02-27-marketplace-copy-alignment/v0.0.1-marketplace-copy-alignment/README.md)

@@ -37,15 +37,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.1
-
-      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Verify pnpm
+        run: pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,15 +75,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.1
-
-      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Verify pnpm
+        run: pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -94,4 +100,5 @@ jobs:
       - name: Smoke check
         run: |
           curl -fsS https://marketplace-api.nextclaw.io/health
-          curl -fsS 'https://marketplace-api.nextclaw.io/api/v1/items?page=1&pageSize=5' > /dev/null
+          curl -fsS 'https://marketplace-api.nextclaw.io/api/v1/plugins/items?page=1&pageSize=5' > /dev/null
+          curl -fsS 'https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSize=5' > /dev/null
