@@ -1,10 +1,15 @@
 import { Hono } from "hono";
 import { DomainValidationError, ResourceNotFoundError } from "../../domain/errors";
+import type { MarketplaceItemType } from "../../domain/model";
 import type { MarketplaceController } from "./marketplace-controller";
 import type { ApiResponseFactory } from "./response";
 
 export class MarketplaceRouter {
   private readonly app = new Hono();
+  private readonly typedRoutes: ReadonlyArray<{ segment: "plugins" | "skills"; type: MarketplaceItemType }> = [
+    { segment: "plugins", type: "plugin" },
+    { segment: "skills", type: "skill" }
+  ];
 
   constructor(
     private readonly controller: MarketplaceController,
@@ -35,9 +40,11 @@ export class MarketplaceRouter {
     });
 
     this.app.get("/health", (c) => this.controller.health(c));
-    this.app.get("/api/v1/items", (c) => this.controller.listItems(c));
-    this.app.get("/api/v1/items/:slug", (c) => this.controller.getItem(c));
-    this.app.get("/api/v1/recommendations", (c) => this.controller.listRecommendations(c));
+    for (const route of this.typedRoutes) {
+      this.app.get(`/api/v1/${route.segment}/items`, (c) => this.controller.listItems(c, route.type));
+      this.app.get(`/api/v1/${route.segment}/items/:slug`, (c) => this.controller.getItem(c, route.type));
+      this.app.get(`/api/v1/${route.segment}/recommendations`, (c) => this.controller.listRecommendations(c, route.type));
+    }
 
     return this.app;
   }

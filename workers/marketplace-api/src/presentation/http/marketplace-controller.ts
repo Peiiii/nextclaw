@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import type { GetMarketplaceItemUseCase } from "../../application/get-item.usecase";
 import type { ListMarketplaceItemsUseCase } from "../../application/list-items.usecase";
 import type { ListMarketplaceRecommendationsUseCase } from "../../application/list-recommendations.usecase";
+import type { MarketplaceItemType } from "../../domain/model";
 import type { MarketplaceQueryParser } from "./query-parser";
 import type { ApiResponseFactory } from "./response";
 
@@ -21,23 +22,22 @@ export class MarketplaceController {
     });
   }
 
-  async listItems(c: Context) {
+  async listItems(c: Context, type: MarketplaceItemType) {
     const query = this.parser.parseListQuery(c);
-    const data = await this.listItemsUseCase.execute(query);
+    const data = await this.listItemsUseCase.execute(type, query);
     return this.responses.ok(c, data);
   }
 
-  async getItem(c: Context) {
+  async getItem(c: Context, type: MarketplaceItemType) {
     const slug = c.req.param("slug");
-    const type = this.parser.parseItemType(c);
-    const data = await this.getItemUseCase.execute(slug, type);
+    const data = await this.getItemUseCase.execute(type, slug);
     return this.responses.ok(c, data);
   }
 
-  async listRecommendations(c: Context) {
+  async listRecommendations(c: Context, type: MarketplaceItemType) {
     const sceneId = this.parser.parseRecommendationScene(c);
     const limit = this.parser.parseRecommendationLimit(c);
-    const data = await this.listRecommendationsUseCase.execute(sceneId, limit);
+    const data = await this.listRecommendationsUseCase.execute(type, sceneId, limit);
     return this.responses.ok(c, data);
   }
 }

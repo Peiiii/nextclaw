@@ -68,11 +68,15 @@ export async function fetchMarketplaceItem(slug: string, type: MarketplaceItemTy
   return response.data;
 }
 
-export async function fetchMarketplaceRecommendations(params: {
-  scene?: string;
-  limit?: number;
-} = {}): Promise<MarketplaceRecommendationView> {
+export async function fetchMarketplaceRecommendations(
+  type: MarketplaceItemType,
+  params: {
+    scene?: string;
+    limit?: number;
+  } = {}
+): Promise<MarketplaceRecommendationView> {
   const query = new URLSearchParams();
+  const segment = toMarketplaceTypeSegment(type);
   if (params.scene?.trim()) {
     query.set('scene', params.scene.trim());
   }
@@ -82,7 +86,9 @@ export async function fetchMarketplaceRecommendations(params: {
 
   const suffix = query.toString();
   const response = await api.get<MarketplaceRecommendationView>(
-    suffix ? `/api/marketplace/recommendations?${suffix}` : '/api/marketplace/recommendations'
+    suffix
+      ? `/api/marketplace/${segment}/recommendations?${suffix}`
+      : `/api/marketplace/${segment}/recommendations`
   );
   if (!response.ok) {
     throw new Error(response.error.message);

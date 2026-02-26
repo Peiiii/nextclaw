@@ -12,7 +12,7 @@ export type MarketplaceDataSource = {
 };
 
 export interface MarketplaceRepository {
-  listItems(query: MarketplaceListQuery): Promise<MarketplaceListResult>;
-  getItemBySlug(slug: string, type?: MarketplaceItemType): Promise<MarketplaceItem | null>;
-  listRecommendations(sceneId: string | undefined, limit: number): Promise<MarketplaceRecommendationResult>;
+  listItems(type: MarketplaceItemType, query: MarketplaceListQuery): Promise<MarketplaceListResult>;
+  getItemBySlug(type: MarketplaceItemType, slug: string): Promise<MarketplaceItem | null>;
+  listRecommendations(type: MarketplaceItemType, sceneId: string | undefined, limit: number): Promise<MarketplaceRecommendationResult>;
 }

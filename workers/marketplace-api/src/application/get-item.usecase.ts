@@ -5,8 +5,8 @@ import type { MarketplaceRepository } from "../domain/repository";
 export class GetMarketplaceItemUseCase {
   constructor(private readonly repository: MarketplaceRepository) {}
 
-  async execute(slug: string, type?: MarketplaceItemType): Promise<MarketplaceItem> {
-    const item = await this.repository.getItemBySlug(slug, type);
+  async execute(type: MarketplaceItemType, slug: string): Promise<MarketplaceItem> {
+    const item = await this.repository.getItemBySlug(type, slug);
     if (!item) {
       throw new ResourceNotFoundError(`marketplace item not found: ${slug}`);
     }

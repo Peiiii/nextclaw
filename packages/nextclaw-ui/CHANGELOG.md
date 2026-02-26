@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.5.17
+
+### Patch Changes
+
+- Split marketplace plugins and skills across all layers, including typed worker routes, typed server proxy routes, and typed UI API clients.
+
 ## 0.5.16
 
 ### Patch Changes

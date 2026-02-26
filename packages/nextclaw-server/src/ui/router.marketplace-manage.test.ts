@@ -20,6 +20,7 @@ afterEach(() => {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+  vi.restoreAllMocks();
 });
 
 describe("marketplace manage plugin id resolution", () => {
@@ -120,5 +121,89 @@ describe("marketplace manage plugin id resolution", () => {
 
     expect(payload.ok).toBe(false);
     expect(payload.error.code).toBe("INVALID_BODY");
+  });
+
+  it("does not expose shared recommendations route", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          entries: {}
+        }
+      }),
+      configPath
+    );
+
+    const app = createUiRouter({
+      configPath,
+      publish: () => {}
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/recommendations");
+    expect(response.status).toBe(404);
+  });
+
+  it("proxies typed recommendations route to typed worker endpoint", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          entries: {}
+        }
+      }),
+      configPath
+    );
+
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            type: "plugin",
+            sceneId: "default",
+            title: "Default Picks",
+            total: 0,
+            items: []
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = createUiRouter({
+      configPath,
+      publish: () => {},
+      marketplace: {
+        apiBaseUrl: "http://marketplace.example"
+      }
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/plugins/recommendations?scene=default&limit=3");
+    expect(response.status).toBe(200);
+
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        type: string;
+      };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.type).toBe("plugin");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const firstCall = fetchMock.mock.calls.at(0);
+    if (!firstCall) {
+      throw new Error("fetch was not called");
+    }
+    const [target] = firstCall as unknown as [Request | string];
+    const url = typeof target === "string" ? target : target.url;
+    expect(url).toContain("/api/v1/plugins/recommendations");
+    expect(url).not.toContain("/api/v1/recommendations?");
   });
 });

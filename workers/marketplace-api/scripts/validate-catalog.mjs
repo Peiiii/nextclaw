@@ -20,14 +20,19 @@ function expectStringArray(value, path) {
   return value.map((entry, index) => expectNonEmptyString(entry, `${path}[${index}]`));
 }
 
+function expectObject(value, path) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    fail(`${path} must be an object`);
+  }
+  return value;
+}
+
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const catalogPath = resolve(scriptDir, "../data/catalog.json");
 const raw = readFileSync(catalogPath, "utf8");
 const catalog = JSON.parse(raw);
 
-if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) {
-  fail("catalog root must be an object");
-}
+expectObject(catalog, "catalog");
 
 const version = expectNonEmptyString(catalog.version, "catalog.version");
 const generatedAt = expectNonEmptyString(catalog.generatedAt, "catalog.generatedAt");
@@ -35,85 +40,99 @@ if (Number.isNaN(Date.parse(generatedAt))) {
   fail("catalog.generatedAt must be a valid datetime string");
 }
 
-if (!Array.isArray(catalog.items)) {
-  fail("catalog.items must be an array");
-}
-if (!Array.isArray(catalog.recommendations)) {
-  fail("catalog.recommendations must be an array");
-}
-
 const supportedKinds = new Set(["npm", "clawhub", "git", "builtin"]);
-const supportedTypes = new Set(["plugin", "skill"]);
-const seenIds = new Set();
-const seenSlugs = new Set();
-const seenSpecs = new Set();
+const seenGlobalIds = new Set();
+const seenGlobalSlugs = new Set();
+const seenGlobalSpecs = new Set();
 
-for (let index = 0; index < catalog.items.length; index += 1) {
-  const item = catalog.items[index];
-  const path = `catalog.items[${index}]`;
-  if (!item || typeof item !== "object" || Array.isArray(item)) {
-    fail(`${path} must be an object`);
+function validateSection(sectionName, expectedType) {
+  const section = expectObject(catalog[sectionName], `catalog.${sectionName}`);
+
+  if (!Array.isArray(section.items)) {
+    fail(`catalog.${sectionName}.items must be an array`);
+  }
+  if (!Array.isArray(section.recommendations)) {
+    fail(`catalog.${sectionName}.recommendations must be an array`);
   }
 
-  const id = expectNonEmptyString(item.id, `${path}.id`);
-  const slug = expectNonEmptyString(item.slug, `${path}.slug`);
-  const type = expectNonEmptyString(item.type, `${path}.type`);
-  if (!supportedTypes.has(type)) {
-    fail(`${path}.type is invalid`);
+  const sectionItemIds = new Set();
+  const sectionRecommendationIds = new Set();
+
+  for (let index = 0; index < section.items.length; index += 1) {
+    const item = section.items[index];
+    const path = `catalog.${sectionName}.items[${index}]`;
+    expectObject(item, path);
+
+    const id = expectNonEmptyString(item.id, `${path}.id`);
+    const slug = expectNonEmptyString(item.slug, `${path}.slug`);
+    const type = expectNonEmptyString(item.type, `${path}.type`);
+    if (type !== expectedType) {
+      fail(`${path}.type must be ${expectedType}`);
+    }
+
+    expectNonEmptyString(item.name, `${path}.name`);
+    expectNonEmptyString(item.summary, `${path}.summary`);
+    expectStringArray(item.tags, `${path}.tags`);
+    expectNonEmptyString(item.author, `${path}.author`);
+    expectNonEmptyString(item.publishedAt, `${path}.publishedAt`);
+    expectNonEmptyString(item.updatedAt, `${path}.updatedAt`);
+
+    if (seenGlobalIds.has(id)) {
+      fail(`${path}.id duplicates with ${id}`);
+    }
+    seenGlobalIds.add(id);
+    sectionItemIds.add(id);
+
+    if (seenGlobalSlugs.has(slug)) {
+      fail(`${path}.slug duplicates with ${slug}`);
+    }
+    seenGlobalSlugs.add(slug);
+
+    const install = expectObject(item.install, `${path}.install`);
+    const kind = expectNonEmptyString(install.kind, `${path}.install.kind`);
+    if (!supportedKinds.has(kind)) {
+      fail(`${path}.install.kind is invalid`);
+    }
+
+    const spec = expectNonEmptyString(install.spec, `${path}.install.spec`);
+    expectNonEmptyString(install.command, `${path}.install.command`);
+
+    const specKey = `${type}:${kind}:${spec}`.toLowerCase();
+    if (seenGlobalSpecs.has(specKey)) {
+      fail(`${path}.install.spec duplicates with ${type}/${kind}/${spec}`);
+    }
+    seenGlobalSpecs.add(specKey);
   }
 
-  expectNonEmptyString(item.name, `${path}.name`);
-  expectNonEmptyString(item.summary, `${path}.summary`);
-  expectStringArray(item.tags, `${path}.tags`);
-  expectNonEmptyString(item.author, `${path}.author`);
-  expectNonEmptyString(item.publishedAt, `${path}.publishedAt`);
-  expectNonEmptyString(item.updatedAt, `${path}.updatedAt`);
+  for (let index = 0; index < section.recommendations.length; index += 1) {
+    const recommendation = section.recommendations[index];
+    const path = `catalog.${sectionName}.recommendations[${index}]`;
+    expectObject(recommendation, path);
 
-  if (seenIds.has(id)) {
-    fail(`${path}.id duplicates with ${id}`);
-  }
-  seenIds.add(id);
+    const recommendationId = expectNonEmptyString(recommendation.id, `${path}.id`);
+    if (sectionRecommendationIds.has(recommendationId)) {
+      fail(`${path}.id duplicates with ${recommendationId}`);
+    }
+    sectionRecommendationIds.add(recommendationId);
 
-  if (seenSlugs.has(slug)) {
-    fail(`${path}.slug duplicates with ${slug}`);
-  }
-  seenSlugs.add(slug);
-
-  const install = item.install;
-  if (!install || typeof install !== "object" || Array.isArray(install)) {
-    fail(`${path}.install must be an object`);
-  }
-
-  const kind = expectNonEmptyString(install.kind, `${path}.install.kind`);
-  if (!supportedKinds.has(kind)) {
-    fail(`${path}.install.kind is invalid`);
-  }
-
-  const spec = expectNonEmptyString(install.spec, `${path}.install.spec`);
-  expectNonEmptyString(install.command, `${path}.install.command`);
-
-  const specKey = `${type}:${kind}:${spec}`.toLowerCase();
-  if (seenSpecs.has(specKey)) {
-    fail(`${path}.install.spec duplicates with ${type}/${kind}/${spec}`);
-  }
-  seenSpecs.add(specKey);
-}
-
-for (let index = 0; index < catalog.recommendations.length; index += 1) {
-  const recommendation = catalog.recommendations[index];
-  const path = `catalog.recommendations[${index}]`;
-  if (!recommendation || typeof recommendation !== "object" || Array.isArray(recommendation)) {
-    fail(`${path} must be an object`);
-  }
-
-  expectNonEmptyString(recommendation.id, `${path}.id`);
-  expectNonEmptyString(recommendation.title, `${path}.title`);
-  const itemIds = expectStringArray(recommendation.itemIds, `${path}.itemIds`);
-  for (const itemId of itemIds) {
-    if (!seenIds.has(itemId)) {
-      fail(`${path}.itemIds contains unknown item id: ${itemId}`);
+    expectNonEmptyString(recommendation.title, `${path}.title`);
+    const itemIds = expectStringArray(recommendation.itemIds, `${path}.itemIds`);
+    for (const itemId of itemIds) {
+      if (!sectionItemIds.has(itemId)) {
+        fail(`${path}.itemIds contains unknown ${expectedType} item id: ${itemId}`);
+      }
     }
   }
+
+  return {
+    items: section.items.length,
+    recommendations: section.recommendations.length
+  };
 }
 
-console.log(`catalog validation passed: version=${version}, items=${catalog.items.length}, recommendations=${catalog.recommendations.length}`);
+const pluginStats = validateSection("plugins", "plugin");
+const skillStats = validateSection("skills", "skill");
+
+console.log(
+  `catalog validation passed: version=${version}, plugins=${pluginStats.items}/${pluginStats.recommendations}, skills=${skillStats.items}/${skillStats.recommendations}`
+);

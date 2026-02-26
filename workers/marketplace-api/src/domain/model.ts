@@ -35,16 +35,20 @@ export type MarketplaceRecommendationScene = {
   itemIds: string[];
 };
 
-export type MarketplaceCatalogSnapshot = {
-  version: string;
-  generatedAt: string;
+export type MarketplaceCatalogSection = {
   items: MarketplaceItem[];
   recommendations: MarketplaceRecommendationScene[];
 };
 
+export type MarketplaceCatalogSnapshot = {
+  version: string;
+  generatedAt: string;
+  plugins: MarketplaceCatalogSection;
+  skills: MarketplaceCatalogSection;
+};
+
 export type MarketplaceListQuery = {
   q?: string;
-  type?: MarketplaceItemType;
   tag?: string;
   page: number;
   pageSize: number;
@@ -74,6 +78,7 @@ export type MarketplaceListResult = {
 };
 
 export type MarketplaceRecommendationResult = {
+  type: MarketplaceItemType;
   sceneId: string;
   title: string;
   description?: string;

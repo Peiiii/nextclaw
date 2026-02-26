@@ -1,12 +1,13 @@
 import catalog from "../../data/catalog.json";
 import { DomainValidationError } from "../domain/errors";
 import type {
+  MarketplaceCatalogSection,
   MarketplaceCatalogSnapshot,
   MarketplaceInstallSpec,
   MarketplaceItem,
+  MarketplaceItemType,
   MarketplaceRecommendationScene
 } from "../domain/model";
-import { MARKETPLACE_ITEM_TYPES } from "../domain/model";
 import { BaseMarketplaceDataSource } from "./data-source";
 
 type RawRecord = Record<string, unknown>;
@@ -23,87 +24,123 @@ export class BundledMarketplaceDataSource extends BaseMarketplaceDataSource {
 
     const version = this.readString(raw.version, "catalog.version");
     const generatedAt = this.readString(raw.generatedAt, "catalog.generatedAt");
-    const items = this.parseItems(raw.items);
-    const recommendations = this.parseRecommendations(raw.recommendations);
+    const plugins = this.parseSection(raw.plugins, "catalog.plugins", "plugin");
+    const skills = this.parseSection(raw.skills, "catalog.skills", "skill");
 
     return {
       version,
       generatedAt,
+      plugins,
+      skills
+    };
+  }
+
+  private parseSection(
+    value: unknown,
+    path: string,
+    expectedType: MarketplaceItemType
+  ): MarketplaceCatalogSection {
+    if (!this.isRawRecord(value)) {
+      throw new DomainValidationError(`${path} must be an object`);
+    }
+
+    const items = this.parseItems(value.items, `${path}.items`, expectedType);
+    const itemIds = new Set(items.map((item) => item.id));
+    const recommendations = this.parseRecommendations(value.recommendations, `${path}.recommendations`, itemIds);
+
+    return {
       items,
       recommendations
     };
   }
 
-  private parseItems(value: unknown): MarketplaceItem[] {
+  private parseItems(value: unknown, path: string, expectedType: MarketplaceItemType): MarketplaceItem[] {
     if (!Array.isArray(value)) {
-      throw new DomainValidationError("catalog.items must be an array");
+      throw new DomainValidationError(`${path} must be an array`);
     }
 
-    return value.map((entry, index) => this.parseItem(entry, index));
+    return value.map((entry, index) => this.parseItem(entry, `${path}[${index}]`, expectedType));
   }
 
-  private parseItem(raw: unknown, index: number): MarketplaceItem {
+  private parseItem(raw: unknown, path: string, expectedType: MarketplaceItemType): MarketplaceItem {
     if (!this.isRawRecord(raw)) {
-      throw new DomainValidationError(`catalog.items[${index}] must be an object`);
+      throw new DomainValidationError(`${path} must be an object`);
     }
 
-    const rawType = this.readString(raw.type, `catalog.items[${index}].type`);
-    if (!MARKETPLACE_ITEM_TYPES.includes(rawType as (typeof MARKETPLACE_ITEM_TYPES)[number])) {
-      throw new DomainValidationError(`catalog.items[${index}].type is invalid`);
+    const rawType = this.readString(raw.type, `${path}.type`);
+    if (rawType !== expectedType) {
+      throw new DomainValidationError(`${path}.type must be ${expectedType}`);
     }
-    const type = rawType as (typeof MARKETPLACE_ITEM_TYPES)[number];
+    const type = expectedType;
 
     return {
-      id: this.readString(raw.id, `catalog.items[${index}].id`),
-      slug: this.readString(raw.slug, `catalog.items[${index}].slug`),
+      id: this.readString(raw.id, `${path}.id`),
+      slug: this.readString(raw.slug, `${path}.slug`),
       type,
-      name: this.readString(raw.name, `catalog.items[${index}].name`),
-      summary: this.readString(raw.summary, `catalog.items[${index}].summary`),
-      description: this.readOptionalString(raw.description, `catalog.items[${index}].description`),
-      tags: this.readStringArray(raw.tags, `catalog.items[${index}].tags`),
-      author: this.readString(raw.author, `catalog.items[${index}].author`),
-      sourceRepo: this.readOptionalString(raw.sourceRepo, `catalog.items[${index}].sourceRepo`),
-      homepage: this.readOptionalString(raw.homepage, `catalog.items[${index}].homepage`),
-      install: this.parseInstallSpec(raw.install, index),
-      publishedAt: this.readString(raw.publishedAt, `catalog.items[${index}].publishedAt`),
-      updatedAt: this.readString(raw.updatedAt, `catalog.items[${index}].updatedAt`)
+      name: this.readString(raw.name, `${path}.name`),
+      summary: this.readString(raw.summary, `${path}.summary`),
+      description: this.readOptionalString(raw.description, `${path}.description`),
+      tags: this.readStringArray(raw.tags, `${path}.tags`),
+      author: this.readString(raw.author, `${path}.author`),
+      sourceRepo: this.readOptionalString(raw.sourceRepo, `${path}.sourceRepo`),
+      homepage: this.readOptionalString(raw.homepage, `${path}.homepage`),
+      install: this.parseInstallSpec(raw.install, `${path}.install`),
+      publishedAt: this.readString(raw.publishedAt, `${path}.publishedAt`),
+      updatedAt: this.readString(raw.updatedAt, `${path}.updatedAt`)
     };
   }
 
-  private parseInstallSpec(value: unknown, index: number): MarketplaceInstallSpec {
+  private parseInstallSpec(value: unknown, path: string): MarketplaceInstallSpec {
     if (!this.isRawRecord(value)) {
-      throw new DomainValidationError(`catalog.items[${index}].install must be an object`);
+      throw new DomainValidationError(`${path} must be an object`);
     }
 
-    const rawKind = this.readString(value.kind, `catalog.items[${index}].install.kind`);
-    if (!["npm", "clawhub", "git", "builtin"].includes(rawKind)) {
-      throw new DomainValidationError(`catalog.items[${index}].install.kind is invalid`);
+    const rawKind = this.readString(value.kind, `${path}.kind`);
+    if (![
+      "npm",
+      "clawhub",
+      "git",
+      "builtin"
+    ].includes(rawKind)) {
+      throw new DomainValidationError(`${path}.kind is invalid`);
     }
     const kind = rawKind as "npm" | "clawhub" | "git" | "builtin";
 
     return {
       kind,
-      spec: this.readString(value.spec, `catalog.items[${index}].install.spec`),
-      command: this.readString(value.command, `catalog.items[${index}].install.command`)
+      spec: this.readString(value.spec, `${path}.spec`),
+      command: this.readString(value.command, `${path}.command`)
     };
   }
 
-  private parseRecommendations(value: unknown): MarketplaceRecommendationScene[] {
+  private parseRecommendations(
+    value: unknown,
+    path: string,
+    itemIds: Set<string>
+  ): MarketplaceRecommendationScene[] {
     if (!Array.isArray(value)) {
-      throw new DomainValidationError("catalog.recommendations must be an array");
+      throw new DomainValidationError(`${path} must be an array`);
     }
 
     return value.map((entry, index) => {
       if (!this.isRawRecord(entry)) {
-        throw new DomainValidationError(`catalog.recommendations[${index}] must be an object`);
+        throw new DomainValidationError(`${path}[${index}] must be an object`);
       }
 
-      return {
-        id: this.readString(entry.id, `catalog.recommendations[${index}].id`),
-        title: this.readString(entry.title, `catalog.recommendations[${index}].title`),
-        description: this.readOptionalString(entry.description, `catalog.recommendations[${index}].description`),
-        itemIds: this.readStringArray(entry.itemIds, `catalog.recommendations[${index}].itemIds`)
+      const recommendation = {
+        id: this.readString(entry.id, `${path}[${index}].id`),
+        title: this.readString(entry.title, `${path}[${index}].title`),
+        description: this.readOptionalString(entry.description, `${path}[${index}].description`),
+        itemIds: this.readStringArray(entry.itemIds, `${path}[${index}].itemIds`)
       };
+
+      for (const itemId of recommendation.itemIds) {
+        if (!itemIds.has(itemId)) {
+          throw new DomainValidationError(`${path}[${index}].itemIds contains unknown item id: ${itemId}`);
+        }
+      }
+
+      return recommendation;
     });
   }
 

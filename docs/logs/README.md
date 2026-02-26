@@ -1,5 +1,6 @@
 # Logs
 
+- [docs/logs/2026-02-27-marketplace-full-layer-split/v0.0.1-marketplace-full-layer-split/README.md](docs/logs/2026-02-27-marketplace-full-layer-split/v0.0.1-marketplace-full-layer-split/README.md)
 - [docs/logs/2026-02-27-marketplace-copy-alignment/v0.0.1-marketplace-copy-alignment/README.md](docs/logs/2026-02-27-marketplace-copy-alignment/v0.0.1-marketplace-copy-alignment/README.md)
 - [docs/logs/2026-02-27-marketplace-no-cross-type-switch/v0.0.1-marketplace-no-cross-type-switch/README.md](docs/logs/2026-02-27-marketplace-no-cross-type-switch/v0.0.1-marketplace-no-cross-type-switch/README.md)
 - [docs/logs/2026-02-27-marketplace-data-split/v0.0.1-marketplace-data-split/README.md](docs/logs/2026-02-27-marketplace-data-split/v0.0.1-marketplace-data-split/README.md)

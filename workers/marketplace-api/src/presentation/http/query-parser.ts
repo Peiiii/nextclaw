@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { DomainValidationError } from "../../domain/errors";
-import { MARKETPLACE_ITEM_TYPES, type MarketplaceItemType, type MarketplaceListQuery, type MarketplaceSort } from "../../domain/model";
+import type { MarketplaceListQuery, MarketplaceSort } from "../../domain/model";
 
 const SORT_VALUES: MarketplaceSort[] = ["relevance", "updated"];
 
@@ -10,21 +10,14 @@ export class MarketplaceQueryParser {
     const page = this.readPage(query.page);
     const pageSize = this.readPageSize(query.pageSize);
     const sort = this.readSort(query.sort);
-    const type = this.readType(query.type);
 
     return {
       q: this.readOptionalString(query.q),
       tag: this.readOptionalString(query.tag),
-      type,
       page,
       pageSize,
       sort
     };
-  }
-
-  parseItemType(c: Context): MarketplaceItemType | undefined {
-    const query = c.req.query();
-    return this.readType(query.type);
   }
 
   parseRecommendationScene(c: Context): string | undefined {
@@ -81,18 +74,6 @@ export class MarketplaceQueryParser {
     }
 
     return rawSort as MarketplaceSort;
-  }
-
-  private readType(rawType: string | undefined): MarketplaceItemType | undefined {
-    if (!rawType) {
-      return undefined;
-    }
-
-    if (!MARKETPLACE_ITEM_TYPES.includes(rawType as MarketplaceItemType)) {
-      throw new DomainValidationError("query.type is invalid");
-    }
-
-    return rawType as MarketplaceItemType;
   }
 
   private readOptionalString(value: string | undefined): string | undefined {

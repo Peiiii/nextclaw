@@ -1,4 +1,5 @@
 import type {
+  MarketplaceCatalogSection,
   MarketplaceCatalogSnapshot,
   MarketplaceItem,
   MarketplaceItemSummary,
@@ -35,9 +36,10 @@ export class InMemoryMarketplaceRepository implements MarketplaceRepository {
     this.cacheTtlMs = options.cacheTtlMs ?? 120_000;
   }
 
-  async listItems(query: MarketplaceListQuery): Promise<MarketplaceListResult> {
+  async listItems(type: MarketplaceItemType, query: MarketplaceListQuery): Promise<MarketplaceListResult> {
     const snapshot = await this.loadSnapshot();
-    const filtered = this.filterItems(snapshot.items, query);
+    const section = this.selectSection(snapshot, type);
+    const filtered = this.filterItems(section.items, query);
     const sorted = this.sortItems(filtered, query.sort, query.q);
 
     const total = sorted.length;
@@ -56,31 +58,30 @@ export class InMemoryMarketplaceRepository implements MarketplaceRepository {
     };
   }
 
-  async getItemBySlug(slug: string, type?: MarketplaceItemType): Promise<MarketplaceItem | null> {
+  async getItemBySlug(type: MarketplaceItemType, slug: string): Promise<MarketplaceItem | null> {
     const snapshot = await this.loadSnapshot();
-    const item = snapshot.items.find((entry) => {
-      if (entry.slug !== slug) {
-        return false;
-      }
-      if (type && entry.type !== type) {
-        return false;
-      }
-      return true;
-    });
+    const section = this.selectSection(snapshot, type);
+    const item = section.items.find((entry) => entry.slug === slug);
 
     return item ?? null;
   }
 
-  async listRecommendations(sceneId: string | undefined, limit: number): Promise<MarketplaceRecommendationResult> {
+  async listRecommendations(
+    type: MarketplaceItemType,
+    sceneId: string | undefined,
+    limit: number
+  ): Promise<MarketplaceRecommendationResult> {
     const snapshot = await this.loadSnapshot();
-    const selectedScene = this.selectScene(snapshot, sceneId);
+    const section = this.selectSection(snapshot, type);
+    const selectedScene = this.selectScene(section, sceneId);
     const selectedItems = selectedScene.itemIds
-      .map((itemId) => snapshot.items.find((entry) => entry.id === itemId))
+      .map((itemId) => section.items.find((entry) => entry.id === itemId))
       .filter((entry): entry is MarketplaceItem => Boolean(entry))
       .slice(0, limit)
       .map((entry) => this.toSummary(entry));
 
     return {
+      type,
       sceneId: selectedScene.id,
       title: selectedScene.title,
       description: selectedScene.description,
@@ -105,20 +106,12 @@ export class InMemoryMarketplaceRepository implements MarketplaceRepository {
 
   private filterItems(items: MarketplaceItem[], query: MarketplaceListQuery): ScoreEntry[] {
     return items
-      .filter((item) => this.matchesType(item, query.type))
       .filter((item) => this.matchesTag(item, query.tag))
       .map((item) => ({
         item,
         score: this.computeScore(item, query.q)
       }))
       .filter((entry) => this.matchesQuery(entry.score, query.q));
-  }
-
-  private matchesType(item: MarketplaceItem, type: MarketplaceItemType | undefined): boolean {
-    if (!type) {
-      return true;
-    }
-    return item.type === type;
   }
 
   private matchesTag(item: MarketplaceItem, tag: string | undefined): boolean {
@@ -206,9 +199,13 @@ export class InMemoryMarketplaceRepository implements MarketplaceRepository {
     return rightTs - leftTs;
   }
 
-  private selectScene(snapshot: MarketplaceCatalogSnapshot, sceneId?: string) {
+  private selectSection(snapshot: MarketplaceCatalogSnapshot, type: MarketplaceItemType): MarketplaceCatalogSection {
+    return type === "plugin" ? snapshot.plugins : snapshot.skills;
+  }
+
+  private selectScene(section: MarketplaceCatalogSection, sceneId?: string) {
     if (!sceneId) {
-      return snapshot.recommendations[0] ?? {
+      return section.recommendations[0] ?? {
         id: "default",
         title: "Recommendations",
         itemIds: []
@@ -216,7 +213,7 @@ export class InMemoryMarketplaceRepository implements MarketplaceRepository {
     }
 
     return (
-      snapshot.recommendations.find((scene) => scene.id === sceneId) ?? {
+      section.recommendations.find((scene) => scene.id === sceneId) ?? {
         id: sceneId,
         title: sceneId,
         itemIds: []

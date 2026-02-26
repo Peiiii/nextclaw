@@ -326,6 +326,7 @@ export type MarketplaceListView = {
 };
 
 export type MarketplaceRecommendationView = {
+  type: MarketplaceItemType;
   sceneId: string;
   title: string;
   description?: string;

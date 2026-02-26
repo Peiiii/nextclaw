@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.8.26
+
+### Patch Changes
+
+- Split marketplace plugins and skills across all layers, including typed worker routes, typed server proxy routes, and typed UI API clients.
+- Updated dependencies
+  - @nextclaw/server@0.5.12
+
 ## 0.8.25
 
 ### Patch Changes

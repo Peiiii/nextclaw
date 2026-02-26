@@ -20,10 +20,10 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
   });
 }
 
-export function useMarketplaceRecommendations(params: { scene?: string; limit?: number }) {
+export function useMarketplaceRecommendations(type: MarketplaceItemType, params: { scene?: string; limit?: number }) {
   return useQuery({
-    queryKey: ['marketplace-recommendations', params],
-    queryFn: () => fetchMarketplaceRecommendations(params),
+    queryKey: ['marketplace-recommendations', type, params],
+    queryFn: () => fetchMarketplaceRecommendations(type, params),
     staleTime: 30_000
   });
 }

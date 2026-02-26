@@ -1,269 +1,332 @@
 {
   "version": "2026.02.23",
   "generatedAt": "2026-02-23T22:40:00.000Z",
-  "items": [
-    {
-      "id": "plugin-channel-discord",
-      "slug": "channel-plugin-discord",
-      "type": "plugin",
-      "name": "Discord Channel Plugin",
-      "summary": "Official NextClaw plugin for Discord channel integration.",
-      "description": "Provides Discord inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "discord", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-discord",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-discord"
+  "plugins": {
+    "items": [
+      {
+        "id": "plugin-channel-discord",
+        "slug": "channel-plugin-discord",
+        "type": "plugin",
+        "name": "Discord Channel Plugin",
+        "summary": "Official NextClaw plugin for Discord channel integration.",
+        "description": "Provides Discord inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "discord",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-discord",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-discord"
+        },
+        "publishedAt": "2025-12-10T10:00:00.000Z",
+        "updatedAt": "2026-02-22T09:40:00.000Z"
       },
-      "publishedAt": "2025-12-10T10:00:00.000Z",
-      "updatedAt": "2026-02-22T09:40:00.000Z"
-    },
-    {
-      "id": "plugin-channel-telegram",
-      "slug": "channel-plugin-telegram",
-      "type": "plugin",
-      "name": "Telegram Channel Plugin",
-      "summary": "Official NextClaw plugin for Telegram channel integration.",
-      "description": "Provides Telegram inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "telegram", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-telegram",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-telegram"
+      {
+        "id": "plugin-channel-telegram",
+        "slug": "channel-plugin-telegram",
+        "type": "plugin",
+        "name": "Telegram Channel Plugin",
+        "summary": "Official NextClaw plugin for Telegram channel integration.",
+        "description": "Provides Telegram inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "telegram",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-telegram",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-telegram"
+        },
+        "publishedAt": "2025-11-18T10:00:00.000Z",
+        "updatedAt": "2026-02-21T13:21:00.000Z"
       },
-      "publishedAt": "2025-11-18T10:00:00.000Z",
-      "updatedAt": "2026-02-21T13:21:00.000Z"
-    },
-    {
-      "id": "plugin-channel-slack",
-      "slug": "channel-plugin-slack",
-      "type": "plugin",
-      "name": "Slack Channel Plugin",
-      "summary": "Official NextClaw plugin for Slack channel integration.",
-      "description": "Provides Slack inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "slack", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-slack",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-slack"
+      {
+        "id": "plugin-channel-slack",
+        "slug": "channel-plugin-slack",
+        "type": "plugin",
+        "name": "Slack Channel Plugin",
+        "summary": "Official NextClaw plugin for Slack channel integration.",
+        "description": "Provides Slack inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "slack",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-slack",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-slack"
+        },
+        "publishedAt": "2025-10-11T10:00:00.000Z",
+        "updatedAt": "2026-02-20T15:15:00.000Z"
       },
-      "publishedAt": "2025-10-11T10:00:00.000Z",
-      "updatedAt": "2026-02-20T15:15:00.000Z"
-    },
-    {
-      "id": "plugin-channel-wecom",
-      "slug": "channel-plugin-wecom",
-      "type": "plugin",
-      "name": "WeCom Channel Plugin",
-      "summary": "Official NextClaw plugin for WeCom channel integration.",
-      "description": "Provides WeCom inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "wecom", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-wecom",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-wecom"
+      {
+        "id": "plugin-channel-wecom",
+        "slug": "channel-plugin-wecom",
+        "type": "plugin",
+        "name": "WeCom Channel Plugin",
+        "summary": "Official NextClaw plugin for WeCom channel integration.",
+        "description": "Provides WeCom inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "wecom",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-wecom",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-wecom"
+        },
+        "publishedAt": "2025-09-16T10:00:00.000Z",
+        "updatedAt": "2026-02-19T07:10:00.000Z"
       },
-      "publishedAt": "2025-09-16T10:00:00.000Z",
-      "updatedAt": "2026-02-19T07:10:00.000Z"
-    },
-    {
-      "id": "plugin-channel-email",
-      "slug": "channel-plugin-email",
-      "type": "plugin",
-      "name": "Email Channel Plugin",
-      "summary": "Official NextClaw plugin for Email channel integration.",
-      "description": "Provides Email inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "email", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-email",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-email"
+      {
+        "id": "plugin-channel-email",
+        "slug": "channel-plugin-email",
+        "type": "plugin",
+        "name": "Email Channel Plugin",
+        "summary": "Official NextClaw plugin for Email channel integration.",
+        "description": "Provides Email inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "email",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-email",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-email"
+        },
+        "publishedAt": "2025-08-08T10:00:00.000Z",
+        "updatedAt": "2026-02-18T07:12:00.000Z"
       },
-      "publishedAt": "2025-08-08T10:00:00.000Z",
-      "updatedAt": "2026-02-18T07:12:00.000Z"
-    },
-    {
-      "id": "plugin-channel-whatsapp",
-      "slug": "channel-plugin-whatsapp",
-      "type": "plugin",
-      "name": "WhatsApp Channel Plugin",
-      "summary": "Official NextClaw plugin for WhatsApp channel integration.",
-      "description": "Provides WhatsApp inbound/outbound channel support via NextClaw plugin runtime.",
-      "tags": ["plugin", "whatsapp", "channel"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "npm",
-        "spec": "@nextclaw/channel-plugin-whatsapp",
-        "command": "nextclaw plugins install @nextclaw/channel-plugin-whatsapp"
+      {
+        "id": "plugin-channel-whatsapp",
+        "slug": "channel-plugin-whatsapp",
+        "type": "plugin",
+        "name": "WhatsApp Channel Plugin",
+        "summary": "Official NextClaw plugin for WhatsApp channel integration.",
+        "description": "Provides WhatsApp inbound/outbound channel support via NextClaw plugin runtime.",
+        "tags": [
+          "plugin",
+          "whatsapp",
+          "channel"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "npm",
+          "spec": "@nextclaw/channel-plugin-whatsapp",
+          "command": "nextclaw plugins install @nextclaw/channel-plugin-whatsapp"
+        },
+        "publishedAt": "2025-07-30T10:00:00.000Z",
+        "updatedAt": "2026-02-17T11:55:00.000Z"
       },
-      "publishedAt": "2025-07-30T10:00:00.000Z",
-      "updatedAt": "2026-02-17T11:55:00.000Z"
-    },
-    {
-      "id": "plugin-channel-clawbay",
-      "slug": "channel-plugin-clawbay",
-      "type": "plugin",
-      "name": "Clawbay Channel Plugin",
-      "summary": "Official Clawbay channel plugin for NextClaw integration.",
-      "description": "Provides Clawbay channel capabilities in NextClaw via plugin runtime.",
-      "tags": ["plugin", "clawbay", "channel"],
-      "author": "Clawbay",
-      "homepage": "https://www.npmjs.com/package/@clawbay/clawbay-channel",
-      "install": {
-        "kind": "npm",
-        "spec": "@clawbay/clawbay-channel",
-        "command": "nextclaw plugins install @clawbay/clawbay-channel"
+      {
+        "id": "plugin-channel-clawbay",
+        "slug": "channel-plugin-clawbay",
+        "type": "plugin",
+        "name": "Clawbay Channel Plugin",
+        "summary": "Official Clawbay channel plugin for NextClaw integration.",
+        "description": "Provides Clawbay channel capabilities in NextClaw via plugin runtime.",
+        "tags": [
+          "plugin",
+          "clawbay",
+          "channel"
+        ],
+        "author": "Clawbay",
+        "homepage": "https://www.npmjs.com/package/@clawbay/clawbay-channel",
+        "install": {
+          "kind": "npm",
+          "spec": "@clawbay/clawbay-channel",
+          "command": "nextclaw plugins install @clawbay/clawbay-channel"
+        },
+        "publishedAt": "2025-07-01T10:00:00.000Z",
+        "updatedAt": "2026-02-23T22:40:00.000Z"
+      }
+    ],
+    "recommendations": [
+      {
+        "id": "default",
+        "title": "Default Picks",
+        "description": "Reliable plugins and skills for most NextClaw setups.",
+        "itemIds": [
+          "plugin-channel-discord",
+          "plugin-channel-telegram"
+        ]
       },
-      "publishedAt": "2025-07-01T10:00:00.000Z",
-      "updatedAt": "2026-02-23T22:40:00.000Z"
-    },
-    {
-      "id": "skill-weather",
-      "slug": "weather",
-      "type": "skill",
-      "name": "Weather",
-      "summary": "Builtin NextClaw skill for weather lookup workflows.",
-      "description": "Provides quick weather investigation workflow in NextClaw.",
-      "tags": ["skill", "builtin", "weather"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "builtin",
-        "spec": "weather",
-        "command": "nextclaw skills install weather"
+      {
+        "id": "channels",
+        "title": "Channel Integration",
+        "description": "Recommended channel plugin stack.",
+        "itemIds": [
+          "plugin-channel-discord",
+          "plugin-channel-slack",
+          "plugin-channel-clawbay",
+          "plugin-channel-whatsapp",
+          "plugin-channel-wecom"
+        ]
+      }
+    ]
+  },
+  "skills": {
+    "items": [
+      {
+        "id": "skill-weather",
+        "slug": "weather",
+        "type": "skill",
+        "name": "Weather",
+        "summary": "Builtin NextClaw skill for weather lookup workflows.",
+        "description": "Provides quick weather investigation workflow in NextClaw.",
+        "tags": [
+          "skill",
+          "builtin",
+          "weather"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "builtin",
+          "spec": "weather",
+          "command": "nextclaw skills install weather"
+        },
+        "publishedAt": "2025-07-10T10:00:00.000Z",
+        "updatedAt": "2026-02-16T09:10:00.000Z"
       },
-      "publishedAt": "2025-07-10T10:00:00.000Z",
-      "updatedAt": "2026-02-16T09:10:00.000Z"
-    },
-    {
-      "id": "skill-summarize",
-      "slug": "summarize",
-      "type": "skill",
-      "name": "Summarize",
-      "summary": "Builtin NextClaw skill for structured summarization.",
-      "description": "Provides summarization workflow for files and long texts in NextClaw.",
-      "tags": ["skill", "builtin", "summary"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "builtin",
-        "spec": "summarize",
-        "command": "nextclaw skills install summarize"
+      {
+        "id": "skill-summarize",
+        "slug": "summarize",
+        "type": "skill",
+        "name": "Summarize",
+        "summary": "Builtin NextClaw skill for structured summarization.",
+        "description": "Provides summarization workflow for files and long texts in NextClaw.",
+        "tags": [
+          "skill",
+          "builtin",
+          "summary"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "builtin",
+          "spec": "summarize",
+          "command": "nextclaw skills install summarize"
+        },
+        "publishedAt": "2025-07-01T10:00:00.000Z",
+        "updatedAt": "2026-02-15T07:30:00.000Z"
       },
-      "publishedAt": "2025-07-01T10:00:00.000Z",
-      "updatedAt": "2026-02-15T07:30:00.000Z"
-    },
-    {
-      "id": "skill-github",
-      "slug": "github",
-      "type": "skill",
-      "name": "GitHub",
-      "summary": "Builtin NextClaw skill for GitHub-oriented workflows.",
-      "description": "Provides issue, PR and repository workflow guidance in NextClaw.",
-      "tags": ["skill", "builtin", "github"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "builtin",
-        "spec": "github",
-        "command": "nextclaw skills install github"
+      {
+        "id": "skill-github",
+        "slug": "github",
+        "type": "skill",
+        "name": "GitHub",
+        "summary": "Builtin NextClaw skill for GitHub-oriented workflows.",
+        "description": "Provides issue, PR and repository workflow guidance in NextClaw.",
+        "tags": [
+          "skill",
+          "builtin",
+          "github"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "builtin",
+          "spec": "github",
+          "command": "nextclaw skills install github"
+        },
+        "publishedAt": "2025-06-20T10:00:00.000Z",
+        "updatedAt": "2026-02-14T07:15:00.000Z"
       },
-      "publishedAt": "2025-06-20T10:00:00.000Z",
-      "updatedAt": "2026-02-14T07:15:00.000Z"
-    },
-    {
-      "id": "skill-tmux",
-      "slug": "tmux",
-      "type": "skill",
-      "name": "Tmux",
-      "summary": "Builtin NextClaw skill for terminal/tmux collaboration workflows.",
-      "description": "Provides tmux-based task execution workflow guidance in NextClaw.",
-      "tags": ["skill", "builtin", "terminal"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "builtin",
-        "spec": "tmux",
-        "command": "nextclaw skills install tmux"
+      {
+        "id": "skill-tmux",
+        "slug": "tmux",
+        "type": "skill",
+        "name": "Tmux",
+        "summary": "Builtin NextClaw skill for terminal/tmux collaboration workflows.",
+        "description": "Provides tmux-based task execution workflow guidance in NextClaw.",
+        "tags": [
+          "skill",
+          "builtin",
+          "terminal"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "builtin",
+          "spec": "tmux",
+          "command": "nextclaw skills install tmux"
+        },
+        "publishedAt": "2025-06-10T10:00:00.000Z",
+        "updatedAt": "2026-02-13T11:40:00.000Z"
       },
-      "publishedAt": "2025-06-10T10:00:00.000Z",
-      "updatedAt": "2026-02-13T11:40:00.000Z"
-    },
-    {
-      "id": "skill-gog",
-      "slug": "gog",
-      "type": "skill",
-      "name": "GoG",
-      "summary": "Builtin NextClaw skill for graph-oriented generation workflows.",
-      "description": "Provides graph and planning oriented workflow guidance in NextClaw.",
-      "tags": ["skill", "builtin", "workflow"],
-      "author": "NextClaw",
-      "sourceRepo": "https://github.com/nextclaw/nextclaw",
-      "homepage": "https://github.com/nextclaw/nextclaw",
-      "install": {
-        "kind": "builtin",
-        "spec": "gog",
-        "command": "nextclaw skills install gog"
+      {
+        "id": "skill-gog",
+        "slug": "gog",
+        "type": "skill",
+        "name": "GoG",
+        "summary": "Builtin NextClaw skill for graph-oriented generation workflows.",
+        "description": "Provides graph and planning oriented workflow guidance in NextClaw.",
+        "tags": [
+          "skill",
+          "builtin",
+          "workflow"
+        ],
+        "author": "NextClaw",
+        "sourceRepo": "https://github.com/nextclaw/nextclaw",
+        "homepage": "https://github.com/nextclaw/nextclaw",
+        "install": {
+          "kind": "builtin",
+          "spec": "gog",
+          "command": "nextclaw skills install gog"
+        },
+        "publishedAt": "2025-06-01T10:00:00.000Z",
+        "updatedAt": "2026-02-12T11:00:00.000Z"
+      }
+    ],
+    "recommendations": [
+      {
+        "id": "default",
+        "title": "Default Picks",
+        "description": "Reliable plugins and skills for most NextClaw setups.",
+        "itemIds": [
+          "skill-weather",
+          "skill-summarize"
+        ]
       },
-      "publishedAt": "2025-06-01T10:00:00.000Z",
-      "updatedAt": "2026-02-12T11:00:00.000Z"
-    }
-  ],
-  "recommendations": [
-    {
-      "id": "default",
-      "title": "Default Picks",
-      "description": "Reliable plugins and skills for most NextClaw setups.",
-      "itemIds": [
-        "plugin-channel-discord",
-        "plugin-channel-telegram",
-        "skill-weather",
-        "skill-summarize"
-      ]
-    },
-    {
-      "id": "channels",
-      "title": "Channel Integration",
-      "description": "Recommended channel plugin stack.",
-      "itemIds": [
-        "plugin-channel-discord",
-        "plugin-channel-slack",
-        "plugin-channel-clawbay",
-        "plugin-channel-whatsapp",
-        "plugin-channel-wecom"
-      ]
-    },
-    {
-      "id": "workflow",
-      "title": "Workflow Skills",
-      "description": "Useful builtin skills for daily delivery.",
-      "itemIds": [
-        "skill-weather",
-        "skill-github",
-        "skill-tmux",
-        "skill-gog"
-      ]
-    }
-  ]
+      {
+        "id": "workflow",
+        "title": "Workflow Skills",
+        "description": "Useful builtin skills for daily delivery.",
+        "itemIds": [
+          "skill-weather",
+          "skill-github",
+          "skill-tmux",
+          "skill-gog"
+        ]
+      }
+    ]
+  }
 }

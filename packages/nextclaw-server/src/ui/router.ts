@@ -627,7 +627,7 @@ function isSupportedMarketplaceItem(
 
 async function fetchAllMarketplaceItems(params: {
   baseUrl: string;
-  type: MarketplaceItemType;
+  segment: "plugins" | "skills";
   query: Record<string, string | undefined>;
 }): Promise<
   | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
@@ -642,10 +642,9 @@ async function fetchAllMarketplaceItems(params: {
   while (remotePage <= remoteTotalPages && remotePage <= MARKETPLACE_REMOTE_MAX_PAGES) {
     const result = await fetchMarketplaceData<MarketplaceListView>({
       baseUrl: params.baseUrl,
-      path: "/api/v1/items",
+      path: `/api/v1/${params.segment}/items`,
       query: {
         ...params.query,
-        type: params.type,
         page: String(remotePage),
         pageSize: String(MARKETPLACE_REMOTE_PAGE_SIZE)
       }
@@ -796,7 +795,7 @@ function registerMarketplaceRoutes(app: Hono, options: UiRouterOptions, marketpl
       const query = c.req.query();
       const result = await fetchAllMarketplaceItems({
         baseUrl: marketplaceBaseUrl,
-        type: route.type,
+        segment: route.segment,
         query: {
           q: query.q,
           tag: query.tag,
@@ -835,10 +834,7 @@ function registerMarketplaceRoutes(app: Hono, options: UiRouterOptions, marketpl
       const slug = encodeURIComponent(c.req.param("slug"));
       const result = await fetchMarketplaceData<MarketplaceItemView>({
         baseUrl: marketplaceBaseUrl,
-        path: `/api/v1/items/${slug}`,
-        query: {
-          type: route.type
-        }
+        path: `/api/v1/${route.segment}/items/${slug}`
       });
 
       if (!result.ok) {
@@ -915,35 +911,34 @@ function registerMarketplaceRoutes(app: Hono, options: UiRouterOptions, marketpl
         return c.json(err("MANAGE_FAILED", message), 400);
       }
     });
-  }
 
-  app.get("/api/marketplace/recommendations", async (c) => {
-    const query = c.req.query();
-    const result = await fetchMarketplaceData<MarketplaceRecommendationView>({
-      baseUrl: marketplaceBaseUrl,
-      path: "/api/v1/recommendations",
-      query: {
-        scene: query.scene,
-        limit: query.limit
+    app.get(`/api/marketplace/${route.segment}/recommendations`, async (c) => {
+      const query = c.req.query();
+      const result = await fetchMarketplaceData<MarketplaceRecommendationView>({
+        baseUrl: marketplaceBaseUrl,
+        path: `/api/v1/${route.segment}/recommendations`,
+        query: {
+          scene: query.scene,
+          limit: query.limit
+        }
+      });
+
+      if (!result.ok) {
+        return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
       }
+
+      const knownSkillNames = collectKnownSkillNames(options);
+      const filteredItems = result.data.items
+        .map((item) => sanitizeMarketplaceItem(item))
+        .filter((item) => isSupportedMarketplaceItem(item, knownSkillNames));
+
+      return c.json(ok({
+        ...result.data,
+        total: filteredItems.length,
+        items: filteredItems
+      }));
     });
-
-    if (!result.ok) {
-      return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
-    }
-
-    const knownSkillNames = collectKnownSkillNames(options);
-    const filteredItems = result.data.items
-      .map((item) => sanitizeMarketplaceItem(item))
-      .filter((item) => isSupportedMarketplaceItem(item, knownSkillNames));
-
-    return c.json(ok({
-      ...result.data,
-      total: filteredItems.length,
-      items: filteredItems
-    }));
-  });
-
+  }
 }
 
 export function createUiRouter(options: UiRouterOptions): Hono {
