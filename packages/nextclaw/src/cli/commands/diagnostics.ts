@@ -6,6 +6,7 @@ import {
   getConfigPath,
   getDataDir,
   getWorkspacePath,
+  hasSecretRef,
   loadConfig,
   PROVIDERS
 } from "@nextclaw/core";
@@ -256,6 +257,7 @@ export class DiagnosticsCommands {
 
     const providers = PROVIDERS.map((spec) => {
       const provider = (config.providers as Record<string, { apiKey?: string; apiBase?: string } | undefined>)[spec.name];
+      const apiKeyRefSet = hasSecretRef(config, `providers.${spec.name}.apiKey`);
       if (!provider) {
         return { name: spec.displayName ?? spec.name, configured: false, detail: "missing config" };
       }
@@ -268,8 +270,8 @@ export class DiagnosticsCommands {
       }
       return {
         name: spec.displayName ?? spec.name,
-        configured: Boolean(provider.apiKey),
-        detail: provider.apiKey ? "apiKey set" : "apiKey not set"
+        configured: Boolean(provider.apiKey) || apiKeyRefSet,
+        detail: provider.apiKey ? "apiKey set" : apiKeyRefSet ? "apiKey ref set" : "apiKey not set"
       };
     });
 

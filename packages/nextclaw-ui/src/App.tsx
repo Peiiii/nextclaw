@@ -21,6 +21,7 @@ const ChannelsListPage = lazy(async () => ({ default: (await import('@/component
 const RuntimeConfigPage = lazy(async () => ({ default: (await import('@/components/config/RuntimeConfig')).RuntimeConfig }));
 const SessionsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SessionsConfig')).SessionsConfig }));
 const CronConfigPage = lazy(async () => ({ default: (await import('@/components/config/CronConfig')).CronConfig }));
+const SecretsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SecretsConfig')).SecretsConfig }));
 const MarketplacePage = lazy(async () => ({ default: (await import('@/components/marketplace/MarketplacePage')).MarketplacePage }));
 
 function RouteFallback() {
@@ -47,6 +48,7 @@ function AppContent() {
             <Route path="/runtime" element={<LazyRoute><RuntimeConfigPage /></LazyRoute>} />
             <Route path="/sessions" element={<LazyRoute><SessionsConfigPage /></LazyRoute>} />
             <Route path="/cron" element={<LazyRoute><CronConfigPage /></LazyRoute>} />
+            <Route path="/secrets" element={<LazyRoute><SecretsConfigPage /></LazyRoute>} />
             <Route path="/marketplace" element={<Navigate to="/marketplace/plugins" replace />} />
             <Route path="/marketplace/:type" element={<LazyRoute><MarketplacePage /></LazyRoute>} />
             <Route path="/" element={<Navigate to="/chat" replace />} />

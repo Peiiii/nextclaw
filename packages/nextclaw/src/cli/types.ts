@@ -65,6 +65,41 @@ export type ConfigSetOptions = {
   json?: boolean;
 };
 
+export type SecretsAuditOptions = {
+  json?: boolean;
+  strict?: boolean;
+};
+
+export type SecretsConfigureOptions = {
+  provider?: string;
+  source?: string;
+  prefix?: string;
+  path?: string;
+  command?: string;
+  arg?: string[];
+  cwd?: string;
+  timeoutMs?: string | number;
+  setDefault?: boolean;
+  remove?: boolean;
+  json?: boolean;
+};
+
+export type SecretsApplyOptions = {
+  path?: string;
+  source?: string;
+  id?: string;
+  provider?: string;
+  file?: string;
+  remove?: boolean;
+  enable?: boolean;
+  disable?: boolean;
+  json?: boolean;
+};
+
+export type SecretsReloadOptions = {
+  json?: boolean;
+};
+
 export type CronAddOptions = {
   name: string;
   message: string;

@@ -347,6 +347,52 @@ export const ToolsConfigSchema = z.object({
   restrictToWorkspace: z.boolean().default(false)
 });
 
+export const SecretSourceSchema = z.enum(["env", "file", "exec"]);
+
+export const SecretRefSchema = z.object({
+  source: SecretSourceSchema,
+  provider: z.string().optional(),
+  id: z.string().min(1)
+});
+
+export const SecretProviderEnvSchema = z.object({
+  source: z.literal("env"),
+  prefix: z.string().optional()
+});
+
+export const SecretProviderFileSchema = z.object({
+  source: z.literal("file"),
+  path: z.string(),
+  format: z.enum(["json"]).default("json")
+});
+
+export const SecretProviderExecSchema = z.object({
+  source: z.literal("exec"),
+  command: z.string(),
+  args: z.array(z.string()).default([]),
+  cwd: z.string().optional(),
+  timeoutMs: z.number().int().min(1).max(60000).default(5000)
+});
+
+export const SecretProviderSchema = z.discriminatedUnion("source", [
+  SecretProviderEnvSchema,
+  SecretProviderFileSchema,
+  SecretProviderExecSchema
+]);
+
+export const SecretDefaultsSchema = z.object({
+  env: z.string().optional(),
+  file: z.string().optional(),
+  exec: z.string().optional()
+});
+
+export const SecretsConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  defaults: SecretDefaultsSchema.default({}),
+  providers: z.record(SecretProviderSchema).default({}),
+  refs: z.record(SecretRefSchema).default({})
+});
+
 export const ConfigSchema = z.object({
   agents: AgentsConfigSchema.default({}),
   channels: ChannelsConfigSchema.default({}),
@@ -356,7 +402,8 @@ export const ConfigSchema = z.object({
   session: SessionConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),
   ui: UiConfigSchema.default({}),
-  tools: ToolsConfigSchema.default({})
+  tools: ToolsConfigSchema.default({}),
+  secrets: SecretsConfigSchema.default({})
 });
 
 export type ConfigSchemaJson = Record<string, unknown>;
@@ -371,6 +418,10 @@ export type ConfigSchemaResponse = {
 
 export type Config = z.infer<typeof ConfigSchema>;
 export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
+export type SecretRef = z.infer<typeof SecretRefSchema>;
+export type SecretSource = z.infer<typeof SecretSourceSchema>;
+export type SecretProviderConfig = z.infer<typeof SecretProviderSchema>;
+export type SecretsConfig = z.infer<typeof SecretsConfigSchema>;
 
 export function getWorkspacePathFromConfig(config: Config): string {
   return expandHome(config.agents.defaults.workspace);

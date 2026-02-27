@@ -257,6 +257,15 @@ export function ChannelForm() {
 
     const payload: Record<string, unknown> = { ...formData };
     for (const field of fields) {
+      if (field.type !== 'password') {
+        continue;
+      }
+      const value = payload[field.name];
+      if (typeof value !== 'string' || value.length === 0) {
+        delete payload[field.name];
+      }
+    }
+    for (const field of fields) {
       if (field.type !== 'json') {
         continue;
       }

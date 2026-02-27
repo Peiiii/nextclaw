@@ -61,6 +61,7 @@ const {
   loadConfig,
   MessageBus,
   ProviderManager,
+  resolveConfigSecrets,
   saveConfig,
   SessionManager,
   parseAgentScopedSessionKey
@@ -99,7 +100,8 @@ export class ServiceCommands {
   async startGateway(
     options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}
   ): Promise<void> {
-    const config = loadConfig();
+    const runtimeConfigPath = getConfigPath();
+    const config = resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath });
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     let pluginRegistry = loadPluginRegistry(config, workspace);
     let extensionRegistry = toExtensionRegistry(pluginRegistry);
@@ -152,7 +154,7 @@ export class ServiceCommands {
       sessionManager,
       providerManager,
       makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }) ?? this.makeMissingProvider(nextConfig),
-      loadConfig,
+      loadConfig: () => resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }),
       getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({
@@ -195,7 +197,7 @@ export class ServiceCommands {
         resolvePluginChannelMessageToolHints({
           registry: pluginRegistry,
           channel,
-          cfg: loadConfig(),
+          cfg: resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }),
           accountId
         })
     });
@@ -225,7 +227,8 @@ export class ServiceCommands {
 
     let pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     setPluginRuntimeBridge({
-      loadConfig: () => toPluginConfigView(loadConfig(), pluginChannelBindings),
+      loadConfig: () =>
+        toPluginConfigView(resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }), pluginChannelBindings),
       writeConfigFile: async (nextConfigView) => {
         if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
           throw new Error("plugin runtime writeConfigFile expects an object config");

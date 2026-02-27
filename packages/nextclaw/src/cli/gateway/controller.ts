@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import {
   buildConfigSchema,
   ConfigSchema,
+  normalizeInlineSecretRefs,
   redactConfigObject,
   type Config,
   type GatewayController,
@@ -55,7 +56,7 @@ const readConfigSnapshot = (getConfigPath: () => string): {
   let config: Config;
   let valid = true;
   try {
-    config = ConfigSchema.parse(parsed);
+    config = ConfigSchema.parse(normalizeInlineSecretRefs(parsed));
   } catch {
     config = ConfigSchema.parse({});
     valid = false;
@@ -254,7 +255,7 @@ export class GatewayControllerImpl implements GatewayController {
     }
     let validated: Config;
     try {
-      validated = ConfigSchema.parse(parsedRaw);
+      validated = ConfigSchema.parse(normalizeInlineSecretRefs(parsedRaw));
     } catch (err) {
       return { ok: false, error: `invalid config: ${String(err)}` };
     }
@@ -304,7 +305,7 @@ export class GatewayControllerImpl implements GatewayController {
     const merged = mergeDeep(snapshot.config as Record<string, unknown>, patch);
     let validated: Config;
     try {
-      validated = ConfigSchema.parse(merged);
+      validated = ConfigSchema.parse(normalizeInlineSecretRefs(merged));
     } catch (err) {
       return { ok: false, error: `invalid config: ${String(err)}` };
     }

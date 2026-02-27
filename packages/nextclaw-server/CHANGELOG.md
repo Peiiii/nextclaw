@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.5.18
+
+### Patch Changes
+
+- feat: add secrets command suite and ui management panel
+  - add `nextclaw secrets audit/configure/apply/reload` with config-aware validation and reload planning
+  - add ui secrets panel for editing `secrets.enabled/defaults/providers/refs`
+  - add ui api endpoint `PUT /api/config/secrets` and full client hook/types integration
+  - document secrets commands in en/zh command guides
+
+- Updated dependencies
+  - @nextclaw/core@0.6.35
+
 ## 0.5.17
 
 ### Patch Changes

@@ -20,6 +20,7 @@ const GROUP_LABELS: Record<string, string> = {
   providers: "Providers",
   channels: "Channels",
   tools: "Tools",
+  secrets: "Secrets",
   plugins: "Plugins",
   gateway: "Gateway",
   ui: "UI"
@@ -30,6 +31,7 @@ const GROUP_ORDER: Record<string, number> = {
   providers: 30,
   channels: 40,
   tools: 50,
+  secrets: 53,
   plugins: 55,
   gateway: 60,
   ui: 70

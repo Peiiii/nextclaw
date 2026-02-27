@@ -42,6 +42,7 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 | **OpenClaw compatible** | Same plugin SDK and channel plugin format; use OpenClaw-style plugins and config. |
 | **One-command start** | `nextclaw start` — background gateway + config UI, no extra steps |
 | **Built-in chat + config UI** | Chat with agent (Markdown rendering, tool trace cards, grouped messages), then tune models/providers/channels in one place; config in `~/.nextclaw/config.json` |
+| **Secrets support** | OpenClaw-style secret refs (`env` / `file` / `exec`) via `secrets.refs`, without storing plaintext keys in config |
 | **Multi-provider** | OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more (OpenAI-compatible) |
 | **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, WeCom, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |

@@ -10,6 +10,7 @@ import {
   updateChannel,
   updateModel,
   updateProvider,
+  updateSecrets,
   updateRuntime,
   listSessions,
   getSessionHistory,
@@ -39,6 +40,7 @@ import type {
   CronActionResult,
   CronJobView,
   ProviderConfigUpdate,
+  SecretsConfigUpdate,
   RuntimeConfigUpdate,
   SessionPatchUpdate,
   UiChatRuntime,
@@ -1251,6 +1253,16 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
+    return c.json(ok(result));
+  });
+
+  app.put("/api/config/secrets", async (c) => {
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const result = updateSecrets(options.configPath, body.data as SecretsConfigUpdate);
+    options.publish({ type: "config.updated", payload: { path: "secrets" } });
     return c.json(ok(result));
   });
 

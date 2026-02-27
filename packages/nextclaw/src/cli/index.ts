@@ -164,6 +164,56 @@ config
   .description("Remove a config value by dot path")
   .action((path) => runtime.configUnset(path));
 
+const secrets = program.command("secrets").description("Manage secrets refs/providers");
+
+secrets
+  .command("audit")
+  .description("Audit secret refs resolution status")
+  .option("--json", "Output JSON", false)
+  .option("--strict", "Exit non-zero when unresolved refs exist", false)
+  .action((opts) => runtime.secretsAudit(opts));
+
+secrets
+  .command("configure")
+  .description("Configure a secret provider alias")
+  .requiredOption("--provider <alias>", "Provider alias")
+  .option("--source <source>", "Provider source (env|file|exec)")
+  .option("--prefix <prefix>", "Env key prefix (env source)")
+  .option("--path <path>", "Secret JSON file path (file source)")
+  .option("--command <command>", "Command for exec source")
+  .option(
+    "--arg <value>",
+    "Exec argument (repeatable)",
+    (value: string, previous: string[] = []) => [...previous, value],
+    []
+  )
+  .option("--cwd <dir>", "Exec working directory")
+  .option("--timeout-ms <ms>", "Exec timeout in milliseconds")
+  .option("--set-default", "Set as default alias for this source", false)
+  .option("--remove", "Remove provider alias", false)
+  .option("--json", "Output JSON", false)
+  .action((opts) => runtime.secretsConfigure(opts));
+
+secrets
+  .command("apply")
+  .description("Apply secret refs/providers/defaults patch")
+  .option("--file <path>", "Apply patch from JSON file")
+  .option("--path <config-path>", "Single ref target config path")
+  .option("--source <source>", "Single ref source (env|file|exec)")
+  .option("--id <secret-id>", "Single ref secret id")
+  .option("--provider <alias>", "Single ref provider alias")
+  .option("--remove", "Remove single ref (--path required)", false)
+  .option("--enable", "Enable secrets resolution", false)
+  .option("--disable", "Disable secrets resolution", false)
+  .option("--json", "Output JSON", false)
+  .action((opts) => runtime.secretsApply(opts));
+
+secrets
+  .command("reload")
+  .description("Trigger runtime secrets reload signal")
+  .option("--json", "Output JSON", false)
+  .action((opts) => runtime.secretsReload(opts));
+
 const channels = program.command("channels").description("Manage channels");
 
 channels

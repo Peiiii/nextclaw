@@ -156,6 +156,57 @@ export type RuntimeConfigUpdate = {
   session?: SessionConfigView;
 };
 
+export type SecretSourceView = "env" | "file" | "exec";
+
+export type SecretRefView = {
+  source: SecretSourceView;
+  provider?: string;
+  id: string;
+};
+
+export type SecretProviderEnvView = {
+  source: "env";
+  prefix?: string;
+};
+
+export type SecretProviderFileView = {
+  source: "file";
+  path: string;
+  format?: "json";
+};
+
+export type SecretProviderExecView = {
+  source: "exec";
+  command: string;
+  args?: string[];
+  cwd?: string;
+  timeoutMs?: number;
+};
+
+export type SecretProviderView = SecretProviderEnvView | SecretProviderFileView | SecretProviderExecView;
+
+export type SecretsView = {
+  enabled: boolean;
+  defaults: {
+    env?: string;
+    file?: string;
+    exec?: string;
+  };
+  providers: Record<string, SecretProviderView>;
+  refs: Record<string, SecretRefView>;
+};
+
+export type SecretsConfigUpdate = {
+  enabled?: boolean;
+  defaults?: {
+    env?: string | null;
+    file?: string | null;
+    exec?: string | null;
+  };
+  providers?: Record<string, SecretProviderView> | null;
+  refs?: Record<string, SecretRefView> | null;
+};
+
 export type ChatTurnRequest = {
   message: string;
   sessionKey?: string;
@@ -219,6 +270,7 @@ export type ConfigView = {
   tools?: Record<string, unknown>;
   gateway?: Record<string, unknown>;
   ui?: Record<string, unknown>;
+  secrets?: SecretsView;
 };
 
 export type ProviderSpecView = {

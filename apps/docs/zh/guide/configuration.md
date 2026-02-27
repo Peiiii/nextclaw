@@ -18,6 +18,44 @@
 }
 ```
 
+## Secrets（OpenClaw 风格）
+
+NextClaw 已支持 `openclaw secrets` 风格的秘密引用，支持 `env` / `file` / `exec` 三类来源。
+
+推荐使用 `secrets.refs` 将“配置路径”映射到“secret ref”：
+
+```json
+{
+  "providers": {
+    "openai": { "apiKey": "" }
+  },
+  "secrets": {
+    "providers": {
+      "env-main": { "source": "env" },
+      "file-main": { "source": "file", "path": "~/.nextclaw/secrets.json" },
+      "exec-main": {
+        "source": "exec",
+        "command": "node",
+        "args": ["scripts/secret-snapshot.mjs"],
+        "timeoutMs": 5000
+      }
+    },
+    "refs": {
+      "providers.openai.apiKey": {
+        "source": "env",
+        "provider": "env-main",
+        "id": "OPENAI_API_KEY"
+      }
+    }
+  }
+}
+```
+
+兼容说明：
+- 也支持把 ref 直接写在敏感字段里，例如：
+  `{ "providers": { "openai": { "apiKey": { "source": "env", "id": "OPENAI_API_KEY" } } } }`
+- NextClaw 在加载配置时会自动将这种写法归一化到 `secrets.refs`。
+
 ## Provider 示例
 
 ### OpenRouter（推荐）

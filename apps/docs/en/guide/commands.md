@@ -31,6 +31,15 @@
 | `nextclaw config unset <path>` | Remove config value |
 | `nextclaw init` | Initialize workspace templates |
 
+## Secrets Commands
+
+| Command | Description |
+|---------|-------------|
+| `nextclaw secrets audit` | Audit configured refs and resolution status (`--strict`, `--json`) |
+| `nextclaw secrets configure --provider <alias> ...` | Create/update/remove a provider alias (`env/file/exec`) |
+| `nextclaw secrets apply ...` | Apply refs/defaults/providers patch (`--file` or single `--path`) |
+| `nextclaw secrets reload` | Trigger runtime secrets reload |
+
 ## Channel Commands
 
 | Command | Description |

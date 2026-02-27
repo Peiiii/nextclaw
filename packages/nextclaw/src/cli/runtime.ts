@@ -10,6 +10,7 @@ import {
   MessageBus,
   AgentLoop,
   ProviderManager,
+  resolveConfigSecrets,
   APP_NAME,
   DEFAULT_WORKSPACE_DIR,
   DEFAULT_WORKSPACE_PATH,
@@ -48,6 +49,7 @@ import {
   PluginCommands,
 } from "./commands/plugins.js";
 import { ConfigCommands } from "./commands/config.js";
+import { SecretsCommands } from "./commands/secrets.js";
 import { ChannelCommands } from "./commands/channels.js";
 import { CronCommands } from "./commands/cron.js";
 import { DiagnosticsCommands } from "./commands/diagnostics.js";
@@ -57,6 +59,10 @@ import type {
   AgentCommandOptions,
   ChannelsAddOptions,
   ConfigGetOptions,
+  SecretsApplyOptions,
+  SecretsAuditOptions,
+  SecretsConfigureOptions,
+  SecretsReloadOptions,
   ConfigSetOptions,
   CronAddOptions,
   DoctorCommandOptions,
@@ -86,6 +92,7 @@ export class CliRuntime {
   private workspaceManager: WorkspaceManager;
   private serviceCommands: ServiceCommands;
   private configCommands: ConfigCommands;
+  private secretsCommands: SecretsCommands;
   private pluginCommands: PluginCommands;
   private channelCommands: ChannelCommands;
   private cronCommands: CronCommands;
@@ -99,6 +106,9 @@ export class CliRuntime {
       requestRestart: (params) => this.requestRestart(params),
     });
     this.configCommands = new ConfigCommands({
+      requestRestart: (params) => this.requestRestart(params),
+    });
+    this.secretsCommands = new SecretsCommands({
       requestRestart: (params) => this.requestRestart(params),
     });
     this.pluginCommands = new PluginCommands();
@@ -487,7 +497,8 @@ export class CliRuntime {
   }
 
   async agent(opts: AgentCommandOptions): Promise<void> {
-    const config = loadConfig();
+    const configPath = getConfigPath();
+    const config = resolveConfigSecrets(loadConfig(), { configPath });
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = loadPluginRegistry(config, workspace);
     const extensionRegistry = toExtensionRegistry(pluginRegistry);
@@ -495,7 +506,11 @@ export class CliRuntime {
 
     const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     setPluginRuntimeBridge({
-      loadConfig: () => toPluginConfigView(loadConfig(), pluginChannelBindings),
+      loadConfig: () =>
+        toPluginConfigView(
+          resolveConfigSecrets(loadConfig(), { configPath }),
+          pluginChannelBindings,
+        ),
       writeConfigFile: async (nextConfigView) => {
         if (
           !nextConfigView ||
@@ -543,7 +558,7 @@ export class CliRuntime {
           resolvePluginChannelMessageToolHints({
             registry: pluginRegistry,
             channel,
-            cfg: loadConfig(),
+            cfg: resolveConfigSecrets(loadConfig(), { configPath }),
             accountId,
           }),
       });
@@ -714,6 +729,22 @@ export class CliRuntime {
 
   async configUnset(pathExpr: string): Promise<void> {
     await this.configCommands.configUnset(pathExpr);
+  }
+
+  secretsAudit(opts: SecretsAuditOptions = {}): void {
+    this.secretsCommands.secretsAudit(opts);
+  }
+
+  async secretsConfigure(opts: SecretsConfigureOptions): Promise<void> {
+    await this.secretsCommands.secretsConfigure(opts);
+  }
+
+  async secretsApply(opts: SecretsApplyOptions): Promise<void> {
+    await this.secretsCommands.secretsApply(opts);
+  }
+
+  async secretsReload(opts: SecretsReloadOptions = {}): Promise<void> {
+    await this.secretsCommands.secretsReload(opts);
   }
 
   channelsStatus(): void {

@@ -33,6 +33,7 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "agents.defaults.maxTokens", kind: "reload-agent" },
   { prefix: "agents.defaults.contextTokens", kind: "reload-agent" },
   { prefix: "tools", kind: "reload-agent" },
+  { prefix: "secrets", kind: "none" },
   { prefix: "plugins", kind: "reload-plugins" },
   { prefix: "gateway", kind: "none" },
   { prefix: "ui", kind: "none" }

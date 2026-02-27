@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/lib/theme';
-import { Cpu, GitBranch, History, MessageCircle, MessageSquare, Sparkles, BookOpen, Plug, BrainCircuit, AlarmClock, Languages, Palette } from 'lucide-react';
+import { Cpu, GitBranch, History, MessageCircle, MessageSquare, Sparkles, BookOpen, Plug, BrainCircuit, AlarmClock, Languages, Palette, KeyRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useDocBrowser } from '@/components/doc-browser';
 import { useI18n } from '@/components/providers/I18nProvider';
@@ -65,6 +65,11 @@ export function Sidebar() {
       target: '/cron',
       label: t('cron'),
       icon: AlarmClock,
+    },
+    {
+      target: '/secrets',
+      label: t('secrets'),
+      icon: KeyRound,
     },
     {
       target: '/marketplace/plugins',

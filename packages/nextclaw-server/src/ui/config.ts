@@ -14,6 +14,7 @@ import {
   buildConfigSchema,
   findProviderByName,
   getPackageVersion,
+  hasSecretRef,
   isSensitiveConfigPath,
   type ProviderSpec,
   SessionManager,
@@ -26,6 +27,8 @@ import type {
   ConfigView,
   ProviderConfigUpdate,
   ProviderConfigView,
+  SecretsConfigUpdate,
+  SecretsView,
   SessionsListView,
   SessionHistoryView,
   SessionPatchUpdate
@@ -276,11 +279,14 @@ function maskApiKey(value: string): { apiKeySet: boolean; apiKeyMasked?: string 
 }
 
 function toProviderView(
+  config: Config,
   provider: ProviderConfig,
   providerName: string,
   uiHints: ConfigUiHints,
   spec?: ProviderSpec
 ): ProviderConfigView {
+  const apiKeyPath = `providers.${providerName}.apiKey`;
+  const apiKeyRefSet = hasSecretRef(config, apiKeyPath);
   const masked = maskApiKey(provider.apiKey);
   const extraHeaders =
     provider.extraHeaders && Object.keys(provider.extraHeaders).length > 0
@@ -291,8 +297,8 @@ function toProviderView(
         ) as Record<string, string>)
       : null;
   const view: ProviderConfigView = {
-    apiKeySet: masked.apiKeySet,
-    apiKeyMasked: masked.apiKeyMasked,
+    apiKeySet: masked.apiKeySet || apiKeyRefSet,
+    apiKeyMasked: masked.apiKeyMasked ?? (apiKeyRefSet ? "****" : undefined),
     apiBase: provider.apiBase ?? null,
     extraHeaders: extraHeaders && Object.keys(extraHeaders).length > 0 ? extraHeaders : null
   };
@@ -307,7 +313,7 @@ export function buildConfigView(config: Config): ConfigView {
   const providers: Record<string, ProviderConfigView> = {};
   for (const [name, provider] of Object.entries(config.providers)) {
     const spec = findProviderByName(name);
-    providers[name] = toProviderView(provider as ProviderConfig, name, uiHints, spec);
+    providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
   }
   return {
     agents: config.agents,
@@ -321,8 +327,20 @@ export function buildConfigView(config: Config): ConfigView {
     session: sanitizePublicConfigValue(config.session, "session", uiHints),
     tools: sanitizePublicConfigValue(config.tools, "tools", uiHints),
     gateway: sanitizePublicConfigValue(config.gateway, "gateway", uiHints),
-    ui: sanitizePublicConfigValue(config.ui, "ui", uiHints)
+    ui: sanitizePublicConfigValue(config.ui, "ui", uiHints),
+    secrets: {
+      enabled: config.secrets.enabled,
+      defaults: { ...config.secrets.defaults },
+      providers: { ...config.secrets.providers },
+      refs: { ...config.secrets.refs }
+    } satisfies SecretsView
   };
+}
+
+function clearSecretRef(config: Config, path: string): void {
+  if (config.secrets.refs[path]) {
+    delete config.secrets.refs[path];
+  }
 }
 
 export function buildConfigMeta(config: Config): ConfigMetaView {
@@ -451,6 +469,7 @@ export function updateProvider(
   const spec = findProviderByName(providerName);
   if (Object.prototype.hasOwnProperty.call(patch, "apiKey")) {
     provider.apiKey = patch.apiKey ?? "";
+    clearSecretRef(config, `providers.${providerName}.apiKey`);
   }
   if (Object.prototype.hasOwnProperty.call(patch, "apiBase")) {
     provider.apiBase = patch.apiBase ?? null;
@@ -465,7 +484,7 @@ export function updateProvider(
   saveConfig(next, configPath);
   const uiHints = buildUiHints(next);
   const updated = (next.providers as Record<string, ProviderConfig>)[providerName];
-  return toProviderView(updated, providerName, uiHints, spec ?? undefined);
+  return toProviderView(next, updated, providerName, uiHints, spec ?? undefined);
 }
 
 export function updateChannel(
@@ -477,6 +496,12 @@ export function updateChannel(
   const channel = (config.channels as Record<string, Record<string, unknown>>)[channelName];
   if (!channel) {
     return null;
+  }
+  for (const key of Object.keys(patch)) {
+    const path = `channels.${channelName}.${key}`;
+    if (isSensitivePath(path)) {
+      clearSecretRef(config, path);
+    }
   }
   (config.channels as Record<string, Record<string, unknown>>)[channelName] = { ...channel, ...patch };
   const next = ConfigSchema.parse(config);
@@ -693,5 +718,49 @@ export function updateRuntime(
     agents: view.agents,
     bindings: view.bindings ?? [],
     session: view.session ?? {}
+  };
+}
+
+export function updateSecrets(
+  configPath: string,
+  patch: SecretsConfigUpdate
+): SecretsView {
+  const config = loadConfigOrDefault(configPath);
+
+  if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
+    config.secrets.enabled = Boolean(patch.enabled);
+  }
+
+  if (patch.defaults) {
+    const nextDefaults = { ...config.secrets.defaults };
+    for (const source of ["env", "file", "exec"] as const) {
+      if (!Object.prototype.hasOwnProperty.call(patch.defaults, source)) {
+        continue;
+      }
+      const value = patch.defaults[source];
+      if (typeof value === "string" && value.trim()) {
+        nextDefaults[source] = value.trim();
+      } else {
+        delete nextDefaults[source];
+      }
+    }
+    config.secrets.defaults = nextDefaults;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "providers")) {
+    config.secrets.providers = (patch.providers ?? {}) as Config["secrets"]["providers"];
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "refs")) {
+    config.secrets.refs = (patch.refs ?? {}) as Config["secrets"]["refs"];
+  }
+
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return {
+    enabled: next.secrets.enabled,
+    defaults: { ...next.secrets.defaults },
+    providers: { ...next.secrets.providers },
+    refs: { ...next.secrets.refs }
   };
 }

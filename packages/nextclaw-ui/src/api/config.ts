@@ -7,6 +7,8 @@ import type {
   ChannelConfigUpdate,
   ProviderConfigUpdate,
   RuntimeConfigUpdate,
+  SecretsConfigUpdate,
+  SecretsView,
   ConfigActionExecuteRequest,
   ConfigActionExecuteResult,
   SessionsListView,
@@ -95,6 +97,20 @@ export async function updateRuntime(
 ): Promise<Pick<ConfigView, 'agents' | 'bindings' | 'session'>> {
   const response = await api.put<Pick<ConfigView, 'agents' | 'bindings' | 'session'>>(
     '/api/config/runtime',
+    data
+  );
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// PUT /api/config/secrets
+export async function updateSecrets(
+  data: SecretsConfigUpdate
+): Promise<SecretsView> {
+  const response = await api.put<SecretsView>(
+    '/api/config/secrets',
     data
   );
   if (!response.ok) {

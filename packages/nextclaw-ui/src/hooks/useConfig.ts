@@ -7,6 +7,7 @@ import {
   updateProvider,
   updateChannel,
   updateRuntime,
+  updateSecrets,
   executeConfigAction,
   fetchSessions,
   fetchSessionHistory,
@@ -99,6 +100,22 @@ export function useUpdateRuntime() {
   return useMutation({
     mutationFn: ({ data }: { data: unknown }) =>
       updateRuntime(data as Parameters<typeof updateRuntime>[0]),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useUpdateSecrets() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ data }: { data: unknown }) =>
+      updateSecrets(data as Parameters<typeof updateSecrets>[0]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['config'] });
       toast.success(t('configSavedApplied'));

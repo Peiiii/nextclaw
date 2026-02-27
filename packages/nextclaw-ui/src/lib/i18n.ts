@@ -128,6 +128,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providers: { zh: '提供商', en: 'Providers' },
   channels: { zh: '渠道', en: 'Channels' },
   cron: { zh: '定时任务', en: 'Cron Jobs' },
+  secrets: { zh: '密钥管理', en: 'Secrets' },
   runtime: { zh: '路由与运行时', en: 'Routing & Runtime' },
   marketplace: { zh: '市场', en: 'Marketplace' },
 
@@ -149,10 +150,14 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   all: { zh: '全部', en: 'All' },
   prev: { zh: '上一页', en: 'Prev' },
   next: { zh: '下一页', en: 'Next' },
+  noneOption: { zh: '无', en: 'None' },
   language: { zh: '语言', en: 'Language' },
   theme: { zh: '主题', en: 'Theme' },
   themeWarm: { zh: '暖色', en: 'Warm' },
   themeCool: { zh: '冷色', en: 'Cool' },
+  isRequired: { zh: '必填', en: 'is required' },
+  duplicate: { zh: '重复', en: 'duplicate' },
+  notFound: { zh: '未找到', en: 'not found' },
 
   // Model
   modelPageTitle: { zh: '模型配置', en: 'Model Configuration' },
@@ -314,6 +319,43 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   peerIdPlaceholder: { zh: '对端 ID（需先设置对端类型）', en: 'Peer ID (requires peer kind)' },
   addBinding: { zh: '添加绑定', en: 'Add Binding' },
   saveRuntimeSettings: { zh: '保存运行时设置', en: 'Save Runtime Settings' },
+
+  // Secrets
+  secretsPageTitle: { zh: '密钥管理', en: 'Secrets Management' },
+  secretsPageDescription: {
+    zh: '集中管理 secrets.providers、secrets.defaults 与 secrets.refs。',
+    en: 'Manage secrets.providers, secrets.defaults, and secrets.refs in one place.'
+  },
+  secretsEnabledHelp: {
+    zh: '关闭后不会解析 `{{secret:*}}` 引用。',
+    en: 'When disabled, `{{secret:*}}` refs are not resolved.'
+  },
+  defaultEnvProvider: { zh: '默认 Env 提供器', en: 'Default Env Provider' },
+  defaultFileProvider: { zh: '默认 File 提供器', en: 'Default File Provider' },
+  defaultExecProvider: { zh: '默认 Exec 提供器', en: 'Default Exec Provider' },
+  secretProvidersTitle: { zh: 'Secret Providers', en: 'Secret Providers' },
+  secretProvidersDescription: {
+    zh: '定义可复用的 secrets provider（env/file/exec）。',
+    en: 'Define reusable secret providers (env/file/exec).'
+  },
+  providerAlias: { zh: '提供器别名', en: 'Provider Alias' },
+  removeProvider: { zh: '移除提供器', en: 'Remove Provider' },
+  envPrefix: { zh: '环境变量前缀', en: 'Environment Prefix' },
+  secretFilePath: { zh: 'Secrets 文件路径', en: 'Secrets File Path' },
+  secretExecCommand: { zh: '执行命令', en: 'Exec Command' },
+  secretExecArgs: { zh: '命令参数（每行一个）', en: 'Exec Args (one per line)' },
+  secretExecCwd: { zh: '执行目录（可选）', en: 'Exec Working Directory (optional)' },
+  secretExecTimeoutMs: { zh: '超时（毫秒）', en: 'Timeout (ms)' },
+  addSecretProvider: { zh: '添加 Provider', en: 'Add Provider' },
+  secretRefsTitle: { zh: 'Secret Refs', en: 'Secret Refs' },
+  secretRefsDescription: {
+    zh: '把配置路径映射到 secret 引用（source/provider/id）。',
+    en: 'Map config paths to secret refs (source/provider/id).'
+  },
+  secretConfigPath: { zh: '配置路径', en: 'Config Path' },
+  secretId: { zh: 'Secret ID', en: 'Secret ID' },
+  secretProviderAlias: { zh: 'Provider 别名', en: 'Provider Alias' },
+  addSecretRef: { zh: '添加 Ref', en: 'Add Ref' },
 
   // Sessions
   sessionsPageTitle: { zh: '会话管理', en: 'Sessions' },

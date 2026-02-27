@@ -6,6 +6,7 @@ import {
   type Config
 } from "./schema.js";
 import { getDataPath } from "../utils/helpers.js";
+import { normalizeInlineSecretRefs } from "./secrets.js";
 
 export function getConfigPath(): string {
   return resolve(getDataPath(), "config.json");
@@ -44,5 +45,5 @@ function migrateConfig(data: Record<string, unknown>): Record<string, unknown> {
   if (execConfig.restrictToWorkspace !== undefined && tools.restrictToWorkspace === undefined) {
     tools.restrictToWorkspace = execConfig.restrictToWorkspace;
   }
-  return { ...data, tools };
+  return normalizeInlineSecretRefs({ ...data, tools });
 }

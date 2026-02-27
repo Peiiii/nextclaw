@@ -31,6 +31,15 @@
 | `nextclaw config unset <path>` | 删除配置 |
 | `nextclaw init` | 初始化工作区模板 |
 
+## Secrets 命令
+
+| 命令 | 说明 |
+|------|------|
+| `nextclaw secrets audit` | 审计 refs 解析状态（支持 `--strict`、`--json`） |
+| `nextclaw secrets configure --provider <alias> ...` | 新增/更新/删除 provider 别名（`env/file/exec`） |
+| `nextclaw secrets apply ...` | 应用 refs/defaults/providers 补丁（`--file` 或单条 `--path`） |
+| `nextclaw secrets reload` | 触发运行时 secrets 重载 |
+
 ## 渠道命令
 
 | 命令 | 说明 |

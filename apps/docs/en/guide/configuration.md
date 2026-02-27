@@ -18,6 +18,44 @@
 }
 ```
 
+## Secrets (OpenClaw-style)
+
+NextClaw supports `openclaw secrets`-style secret references with `env` / `file` / `exec` sources.
+
+Use `secrets.refs` to map config paths to secret refs:
+
+```json
+{
+  "providers": {
+    "openai": { "apiKey": "" }
+  },
+  "secrets": {
+    "providers": {
+      "env-main": { "source": "env" },
+      "file-main": { "source": "file", "path": "~/.nextclaw/secrets.json" },
+      "exec-main": {
+        "source": "exec",
+        "command": "node",
+        "args": ["scripts/secret-snapshot.mjs"],
+        "timeoutMs": 5000
+      }
+    },
+    "refs": {
+      "providers.openai.apiKey": {
+        "source": "env",
+        "provider": "env-main",
+        "id": "OPENAI_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Compatibility note:
+- Inline refs are also accepted on sensitive fields, for example:
+  `{ "providers": { "openai": { "apiKey": { "source": "env", "id": "OPENAI_API_KEY" } } } }`
+- NextClaw normalizes inline refs into `secrets.refs` when loading config.
+
 ## Provider Examples
 
 ### OpenRouter (recommended)

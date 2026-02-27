@@ -42,6 +42,7 @@
 | **OpenClaw 兼容** | 相同插件 SDK 与渠道插件格式；可使用 OpenClaw 风格插件与配置。 |
 | **一键启动** | `nextclaw start` — 后台网关 + 配置 UI，无需额外步骤 |
 | **内置对话 + 配置 UI** | 先在 UI 内对话（Markdown 渲染、工具轨迹卡片、消息分组合并），再配置模型、Provider、渠道；配置文件位于 `~/.nextclaw/config.json` |
+| **Secrets 支持** | 支持 OpenClaw 风格 secret ref（`env` / `file` / `exec`），通过 `secrets.refs` 引用，避免在配置中保存明文密钥 |
 | **多 Provider** | OpenRouter、OpenAI、MiniMax、Moonshot、Gemini、DeepSeek、DashScope、智谱、Groq、vLLM 等（OpenAI 兼容） |
 | **多渠道** | Telegram、Discord、WhatsApp、飞书、钉钉、企业微信、Slack、Email、QQ、Mochat — 在 UI 中启用与配置 |
 | **自动化** | Cron + Heartbeat 定时任务 |
