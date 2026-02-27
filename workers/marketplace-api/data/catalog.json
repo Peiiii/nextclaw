@@ -1,6 +1,6 @@
 {
   "version": "2026.02.27",
-  "generatedAt": "2026-02-27T15:23:30.000Z",
+  "generatedAt": "2026-02-27T15:36:10.000Z",
   "plugins": {
     "items": [
       {
@@ -402,10 +402,10 @@
         "updatedAt": "2026-02-27T23:05:50.000Z"
       },
       {
-        "id": "skill-bird-su-openclaw",
-        "slug": "bird-su",
+        "id": "skill-bird-openclaw",
+        "slug": "bird",
         "type": "skill",
-        "name": "Bird SU",
+        "name": "bird",
         "summary": "OpenClaw community skill for X/Twitter read/search/post workflows.",
         "description": "Use bird CLI to read threads, search posts, and draft tweets/replies in agent workflows.",
         "tags": [
@@ -421,7 +421,7 @@
         "install": {
           "kind": "git",
           "spec": "openclaw/skills/skills/iqbalnaveliano/bird-su",
-          "command": "npx skild install openclaw/skills/skills/iqbalnaveliano/bird-su --target agents --local --skill bird-su"
+          "command": "npx skild install openclaw/skills/skills/iqbalnaveliano/bird-su --target agents --local --skill bird"
         },
         "publishedAt": "2026-02-05T13:02:45.000Z",
         "updatedAt": "2026-02-05T13:02:45.000Z"
