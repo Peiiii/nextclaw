@@ -182,3 +182,72 @@
 .animate-pulse-soft {
   animation: pulse-soft 3s ease-in-out infinite;
 }
+
+.chat-markdown {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.chat-markdown > * + * {
+  margin-top: 0.5rem;
+}
+
+.chat-markdown h1,
+.chat-markdown h2,
+.chat-markdown h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.chat-markdown ul,
+.chat-markdown ol {
+  padding-left: 1.1rem;
+}
+
+.chat-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+}
+
+.chat-markdown :not(pre) > code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.35rem;
+  background: rgba(148, 163, 184, 0.18);
+}
+
+.chat-markdown pre {
+  overflow-x: auto;
+  border-radius: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(15, 23, 42, 0.9);
+  color: #e2e8f0;
+}
+
+.chat-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.chat-markdown th,
+.chat-markdown td {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 0.35rem 0.45rem;
+}
+
+.chat-markdown blockquote {
+  border-left: 3px solid rgba(148, 163, 184, 0.55);
+  padding-left: 0.65rem;
+  color: rgba(30, 41, 59, 0.85);
+}
+
+.chat-markdown-user a {
+  color: #dbeafe;
+  text-decoration: underline;
+}
+
+.chat-markdown-assistant a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}

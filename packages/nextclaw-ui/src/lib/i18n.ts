@@ -383,6 +383,16 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   chatDeleteSession: { zh: '删除会话', en: 'Delete Session' },
   chatDeleteSessionConfirm: { zh: '确认删除当前会话？', en: 'Delete the current session?' },
   chatSendFailed: { zh: '发送消息失败', en: 'Failed to send message' },
+  chatRoleUser: { zh: '你', en: 'You' },
+  chatRoleAssistant: { zh: '助手', en: 'Assistant' },
+  chatRoleTool: { zh: '工具', en: 'Tool' },
+  chatRoleSystem: { zh: '系统', en: 'System' },
+  chatRoleMessage: { zh: '消息', en: 'Message' },
+  chatToolCall: { zh: '工具调用', en: 'Tool Call' },
+  chatToolResult: { zh: '工具结果', en: 'Tool Result' },
+  chatToolOutput: { zh: '查看输出', en: 'View Output' },
+  chatToolNoOutput: { zh: '无输出（执行完成）', en: 'No output (completed)' },
+  chatReasoning: { zh: '查看推理内容', en: 'Show reasoning' },
 
   // Cron
   cronPageTitle: { zh: '定时任务', en: 'Cron Jobs' },

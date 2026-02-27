@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PageHeader, PageLayout } from '@/components/layout/page-layout';
+import { ChatThread } from '@/components/chat/ChatThread';
 import { cn } from '@/lib/utils';
 import { formatDateTime, t } from '@/lib/i18n';
-import { Bot, MessageSquareText, Plus, RefreshCw, Search, Send, Trash2, User } from 'lucide-react';
+import { MessageSquareText, Plus, RefreshCw, Search, Send, Trash2 } from 'lucide-react';
 
 const CHAT_SESSION_STORAGE_KEY = 'nextclaw.ui.chat.activeSession';
 
@@ -59,30 +60,6 @@ function sessionDisplayName(session: SessionEntryView): string {
   }
   const chunks = session.key.split(':');
   return chunks[chunks.length - 1] || session.key;
-}
-
-function MessageBubble({ message }: { message: SessionMessageView }) {
-  const role = message.role.toLowerCase();
-  const isUser = role === 'user';
-  return (
-    <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
-      <div
-        className={cn(
-          'max-w-[88%] rounded-2xl px-4 py-3 shadow-sm border',
-          isUser
-            ? 'bg-primary text-white border-primary rounded-br-md'
-            : 'bg-white text-gray-800 border-gray-200 rounded-bl-md'
-        )}
-      >
-        <div className="mb-1 flex items-center gap-2 text-[11px] opacity-80">
-          {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5" />}
-          <span className="font-semibold">{message.role}</span>
-          <span>{formatDateTime(message.timestamp)}</span>
-        </div>
-        <div className="whitespace-pre-wrap break-words text-sm leading-relaxed">{message.content}</div>
-      </div>
-    </div>
-  );
 }
 
 export function ChatPage() {
@@ -342,7 +319,7 @@ export function ChatPage() {
             </Button>
           </div>
 
-          <div ref={threadRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5 py-5 space-y-3">
+          <div ref={threadRef} className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-5 py-5">
             {!selectedSessionKey ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center text-gray-500">
@@ -358,19 +335,7 @@ export function ChatPage() {
                 {mergedMessages.length === 0 ? (
                   <div className="text-sm text-gray-500">{t('chatNoMessages')}</div>
                 ) : (
-                  mergedMessages.map((message, index) => (
-                    <MessageBubble
-                      key={`${message.timestamp}-${message.role}-${index}`}
-                      message={message}
-                    />
-                  ))
-                )}
-                {sendChatTurn.isPending && (
-                  <div className="flex justify-start">
-                    <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
-                      {t('chatTyping')}
-                    </div>
-                  </div>
+                  <ChatThread messages={mergedMessages} isSending={sendChatTurn.isPending} />
                 )}
               </>
             )}

@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.5.21
+
+### Patch Changes
+
+- Upgrade UI chat experience with markdown rendering, structured tool cards, and grouped message display.
+
 ## 0.5.20
 
 ### Patch Changes

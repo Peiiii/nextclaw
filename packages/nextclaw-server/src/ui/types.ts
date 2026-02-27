@@ -74,10 +74,12 @@ export type SessionsListView = {
 
 export type SessionMessageView = {
   role: string;
-  content: string;
+  content: unknown;
   timestamp: string;
   name?: string;
   tool_call_id?: string;
+  tool_calls?: Array<Record<string, unknown>>;
+  reasoning_content?: string;
 };
 
 export type SessionHistoryView = {
