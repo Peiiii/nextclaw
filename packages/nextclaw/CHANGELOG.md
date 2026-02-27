@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.8.29
+
+### Patch Changes
+
+- fix marketplace skill reinstall flow when skild --json returns null after prior local install state; add force retry and uninstall cleanup for .agents mirror.
+
 ## 0.8.28
 
 ### Patch Changes

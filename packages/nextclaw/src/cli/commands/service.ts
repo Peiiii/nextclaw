@@ -914,7 +914,7 @@ export class ServiceCommands {
       skildArgs.push("--force");
     }
 
-    const result = await this.runCommandWithFallback(
+    let result = await this.runCommandWithFallback(
       ["npx", "/opt/homebrew/bin/npx", "/usr/local/bin/npx"],
       skildArgs,
       {
@@ -922,7 +922,25 @@ export class ServiceCommands {
         timeoutMs: 180_000
       }
     );
-    const payload = this.parseSkildJsonOutput(result.stdout);
+
+    let payload = this.parseSkildJsonOutput(result.stdout);
+    if (!payload) {
+      const forceArgs = skildArgs.includes("--force") ? skildArgs : [...skildArgs, "--force"];
+      result = await this.runCommandWithFallback(
+        ["npx", "/opt/homebrew/bin/npx", "/usr/local/bin/npx"],
+        forceArgs,
+        {
+          cwd: workspace,
+          timeoutMs: 180_000
+        }
+      );
+      payload = this.parseSkildJsonOutput(result.stdout);
+    }
+
+    if (!payload) {
+      throw new Error("skild returned null json payload even after force reinstall");
+    }
+
     const installDir = typeof payload.installDir === "string" ? payload.installDir.trim() : "";
     const installSkillFile = installDir ? join(installDir, "SKILL.md") : "";
     if (!installDir || !existsSync(installSkillFile)) {
@@ -965,14 +983,20 @@ export class ServiceCommands {
   private async uninstallMarketplaceSkill(slug: string): Promise<{ message: string; output?: string }> {
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
     const targetDir = join(workspace, "skills", slug);
-    if (!existsSync(targetDir)) {
+    const skildDir = join(workspace, ".agents", "skills", slug);
+    const existingTargets = [targetDir, skildDir].filter((path) => existsSync(path));
+
+    if (existingTargets.length === 0) {
       throw new Error(`Skill not installed in workspace: ${slug}`);
     }
 
-    rmSync(targetDir, { recursive: true, force: true });
+    for (const path of existingTargets) {
+      rmSync(path, { recursive: true, force: true });
+    }
+
     return {
       message: `Uninstalled skill: ${slug}`,
-      output: `Removed ${targetDir}`
+      output: existingTargets.map((path) => `Removed ${path}`).join("\n")
     };
   }
 
@@ -1050,7 +1074,7 @@ export class ServiceCommands {
     return destination;
   }
 
-  private parseSkildJsonOutput(stdout: string): Record<string, unknown> {
+  private parseSkildJsonOutput(stdout: string): Record<string, unknown> | null {
     const trimmed = stdout.trim();
     if (!trimmed) {
       throw new Error("skild returned empty output");
@@ -1067,7 +1091,17 @@ export class ServiceCommands {
 
     try {
       const parsed = JSON.parse(maybeJson);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      if (parsed === null) {
+        return null;
+      }
+      if (Array.isArray(parsed)) {
+        const firstObject = parsed.find((item) => item && typeof item === "object" && !Array.isArray(item));
+        if (firstObject) {
+          return firstObject as Record<string, unknown>;
+        }
+        throw new Error("skild json output array does not contain an object");
+      }
+      if (typeof parsed !== "object") {
         throw new Error("skild json output is not an object");
       }
       return parsed as Record<string, unknown>;
