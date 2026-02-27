@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { formatDateShort, formatDateTime, t } from '@/lib/i18n';
+import { extractMessageText } from '@/lib/chat-message';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { RefreshCw, Search, Clock, Inbox, Hash, Bot, User, MessageCircle, Settings as SettingsIcon } from 'lucide-react';
 
@@ -86,6 +87,7 @@ function SessionListItem({ session, channel, isSelected, onSelect }: SessionList
 
 function SessionMessageBubble({ message }: { message: SessionMessageView }) {
   const isUser = message.role.toLowerCase() === 'user';
+  const content = extractMessageText(message.content).trim();
 
   return (
     <div className={cn("flex w-full mb-6", isUser ? "justify-end" : "justify-start")}>
@@ -108,7 +110,7 @@ function SessionMessageBubble({ message }: { message: SessionMessageView }) {
             </span>
           </div>
           <div className="whitespace-pre-wrap break-words leading-relaxed text-[15px]">
-            {message.content}
+            {content || '-'}
           </div>
         </div>
       </div>

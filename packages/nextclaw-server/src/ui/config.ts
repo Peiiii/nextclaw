@@ -588,6 +588,12 @@ export function getSessionHistory(configPath: string, key: string, limit?: numbe
       if (typeof message.tool_call_id === "string") {
         entry.tool_call_id = message.tool_call_id;
       }
+      if (Array.isArray(message.tool_calls)) {
+        entry.tool_calls = message.tool_calls;
+      }
+      if (typeof message.reasoning_content === "string") {
+        entry.reasoning_content = message.reasoning_content;
+      }
       return entry as SessionHistoryView["messages"][number];
     })
   };
