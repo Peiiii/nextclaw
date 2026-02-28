@@ -7,6 +7,9 @@
   - 触发条件改为 `release.published`（发布 Release 后自动运行）。
   - `workflow_dispatch` 新增 `release_tag` 输入，支持对已存在 Release 手动补传安装器。
   - 安装器构建改为直接使用 `nextclaw@<version>`（npm registry）作为输入，不再依赖仓库内 `pnpm install + pnpm build`，降低 CI 失败面并显著缩短时长。
+- 调整安装器脚本 `scripts/installer/build-installer.mjs`：
+  - Windows 默认临时工作目录改为短路径（`C:\nci-<timestamp>`），降低长路径导致的依赖安装失败概率。
+  - Windows 解压 Runtime 时优先 `pwsh`，失败再回退 `powershell`，提高 runner 兼容性。
   - 权限改为 `contents: write`，允许写入 Release Assets。
   - 在矩阵任务中新增 `asset_glob`，按平台/架构匹配产物。
   - 新增 `softprops/action-gh-release@v2` 上传步骤，将安装器和 manifest 直接上传到当前 Release。

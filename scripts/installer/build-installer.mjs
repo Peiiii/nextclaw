@@ -200,7 +200,7 @@ class InstallerBuilder {
         `$ErrorActionPreference = 'Stop'`,
         `Expand-Archive -Path '${this.escapePowerShell(this.runtimeArchive.path)}' -DestinationPath '${this.escapePowerShell(extractedRoot)}' -Force`
       ].join("; ");
-      this.runner.run("powershell", ["-NoProfile", "-Command", script]);
+      this.runPowerShellScript(script);
     }
 
     const entries = readdirSync(extractedRoot, { withFileTypes: true });
@@ -414,6 +414,14 @@ class InstallerBuilder {
     return input.replace(/'/g, "''");
   }
 
+  runPowerShellScript(script) {
+    try {
+      this.runner.run("pwsh", ["-NoProfile", "-Command", script]);
+    } catch {
+      this.runner.run("powershell", ["-NoProfile", "-Command", script]);
+    }
+  }
+
   computeDirectorySize(target) {
     let total = 0;
     const entries = readdirSync(target, { withFileTypes: true });
@@ -496,10 +504,15 @@ function parseArgs(argv) {
   }
 
   if (!options.workdir) {
-    options.workdir = resolve(
-      tmpdir(),
-      `nextclaw-installer-${options.platform}-${options.arch}-${Date.now()}`
-    );
+    if (options.platform === "win32") {
+      const systemDrive = process.env.SYSTEMDRIVE ?? "C:";
+      options.workdir = `${systemDrive}\\nci-${Date.now()}`;
+    } else {
+      options.workdir = resolve(
+        tmpdir(),
+        `nextclaw-installer-${options.platform}-${options.arch}-${Date.now()}`
+      );
+    }
   }
 
   return options;
