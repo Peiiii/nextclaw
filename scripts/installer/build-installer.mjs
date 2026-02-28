@@ -39,9 +39,13 @@ class CommandRunner {
       encoding: "utf8"
     });
     if (result.status !== 0) {
+      const stdout = (result.stdout ?? "").toString().trim();
       const stderr = (result.stderr ?? "").toString().trim();
+      const details = [stdout ? `stdout:\n${stdout}` : "", stderr ? `stderr:\n${stderr}` : ""]
+        .filter(Boolean)
+        .join("\n");
       throw new Error(
-        `Command failed: ${command} ${args.join(" ")}${stderr ? `\n${stderr}` : ""}`
+        `Command failed: ${command} ${args.join(" ")}${details ? `\n${details}` : ""}`
       );
     }
     return (result.stdout ?? "").toString();
@@ -273,7 +277,7 @@ class InstallerBuilder {
       JSON.stringify({ name: "nextclaw-app-bundle", private: true }, null, 2),
       "utf8"
     );
-    this.runner.run(
+    this.runner.capture(
       "npm",
       ["install", "--omit=dev", "--no-audit", "--no-fund", this.packedTgzPath],
       { cwd: appDir }

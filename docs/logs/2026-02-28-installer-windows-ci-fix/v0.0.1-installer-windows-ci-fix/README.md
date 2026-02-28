@@ -8,6 +8,7 @@
   - NSIS 参数 `APP_NAME` 改为无空格值（`NextClaw-Beta`），避免 Windows 下参数分词差异导致编译失败。
   - 对 `--package-spec=nextclaw@x.y.z` 的版本读取改为优先本地解析，并优先从 npm registry tarball URL 直接下载包，绕开 Windows runner 上 `npm view / npm pack` 的非确定性失败。
   - Windows 默认临时目录前缀从 `nci-` 改为 `zci-`，规避路径中 `\\n` 片段对 npm 命令参数解析的潜在干扰。
+  - 命令失败日志增强：安装依赖失败时同时输出 stdout/stderr，保证 CI 能直接看到 npm 错误根因而不是只有 exit code。
 - 改造 CI 工作流 `.github/workflows/installer-build.yml`：
   - Windows 安装 NSIS 后记录 `makensis` 路径状态（PATH 命中或绝对路径候选），不再因 PATH 未刷新而提前失败。
   - Windows 构建步骤改为 `continue-on-error: true` + 日志落盘（`build-installer-windows.log`），失败时也会上传日志 artifact。
