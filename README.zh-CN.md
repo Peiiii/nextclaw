@@ -13,7 +13,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-[为什么选择 NextClaw？](#为什么选择-nextclaw) · [快速开始](#-快速开始) · [功能](#-功能) · [截图](#-截图) · [命令](#-命令) · [渠道](#-渠道) · [文档](https://docs.nextclaw.io/zh/)
+[为什么选择 NextClaw？](#为什么选择-nextclaw) · [快速开始](#-快速开始) · [功能](#-功能) · [架构](#-架构) · [截图](#-截图) · [命令](#-命令) · [渠道](#-渠道) · [文档](https://docs.nextclaw.io/zh/)
 
 </div>
 
@@ -47,6 +47,24 @@
 | **多渠道** | Telegram、Discord、WhatsApp、飞书、钉钉、企业微信、Slack、Email、QQ、Mochat — 在 UI 中启用与配置 |
 | **自动化** | Cron + Heartbeat 定时任务 |
 | **本地工具** | 网页搜索、命令执行、记忆、子 Agent |
+
+---
+
+## 🏗 架构
+
+NextClaw 采用 **pnpm monorepo**。执行 `nextclaw start` 时，同一进程内会同时运行 **网关**（渠道 + Agent 循环）与 **UI 服务**（API + 前端静态资源）。
+
+| 层级 | 包 | 职责 |
+|------|-----|------|
+| **CLI** | `nextclaw` | 用户入口：`start` / `serve` / `gateway` / `ui` / `stop`；加载配置并启动网关与 UI 服务。 |
+| **核心** | `@nextclaw/core` | Agent 循环、多 Provider 路由、配置加载/热重载、Cron/Heartbeat、会话、渠道插件接口、技能与工具。 |
+| **渠道** | `@nextclaw/channel-runtime` | 内置渠道实现（Telegram、Discord、飞书、Slack 等）。 |
+| **兼容层** | `@nextclaw/openclaw-compat` | OpenClaw 风格插件加载：按配置安装/加载渠道与 Provider 插件。 |
+| **服务端** | `@nextclaw/server` | Hono HTTP + WebSocket；托管 `@nextclaw/ui` 构建产物并提供 REST API（配置、渠道、Provider、Cron、Marketplace 代理等）。 |
+| **前端** | `@nextclaw/ui` | React SPA：对话、配置、Provider、渠道、插件、技能、Marketplace。 |
+| **Worker** | `workers/marketplace-api` | Cloudflare Worker：提供 Marketplace 目录 API；前端通过 NextClaw 服务端代理访问。 |
+
+配置位于 `~/.nextclaw/config.json`，网关与服务端共用并支持热重载。消息流：渠道 → 网关（core + channel-runtime）→ Provider（如 OpenRouter）→ 回复回渠道。
 
 ---
 

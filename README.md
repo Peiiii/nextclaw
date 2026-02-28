@@ -13,7 +13,7 @@
 
 [English](README.md) | [简体中文](README.zh-CN.md)
 
-[Why NextClaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Commands](#-commands) · [Channels](#-channels) · [Docs](https://docs.nextclaw.io/en/)
+[Why NextClaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Architecture](#-architecture) · [Screenshots](#-screenshots) · [Commands](#-commands) · [Channels](#-channels) · [Docs](https://docs.nextclaw.io/en/)
 
 </div>
 
@@ -47,6 +47,24 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 | **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, WeCom, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
 | **Local tools** | Web search, command execution, memory, subagents |
+
+---
+
+## 🏗 Architecture
+
+NextClaw is a **pnpm monorepo**. When you run `nextclaw start`, one process runs both the **gateway** (channels + agent loop) and the **UI server** (API + static frontend).
+
+| Layer | Package | Role |
+|-------|---------|------|
+| **CLI** | `nextclaw` | User entry: `start` / `serve` / `gateway` / `ui` / `stop`; loads config and starts gateway + UI server. |
+| **Core** | `@nextclaw/core` | Agent loop, multi-provider routing, config load/reload, cron/heartbeat, session, channel plugin API, skills, tools. |
+| **Channels** | `@nextclaw/channel-runtime` | Built-in channel implementations (Telegram, Discord, Feishu, Slack, etc.). |
+| **Compat** | `@nextclaw/openclaw-compat` | OpenClaw-style plugin loader: install/load channel and provider plugins from config. |
+| **Server** | `@nextclaw/server` | Hono HTTP + WebSocket; serves `@nextclaw/ui` build and REST API (config, channels, providers, cron, marketplace proxy). |
+| **UI** | `@nextclaw/ui` | React SPA: chat, config, providers, channels, plugins, skills, marketplace. |
+| **Worker** | `workers/marketplace-api` | Cloudflare Worker: catalog API for marketplace; UI talks to it via NextClaw server proxy. |
+
+Config lives in `~/.nextclaw/config.json`; gateway and server both use it (with hot reload). Message flow: channel → gateway (core + channel-runtime) → provider (e.g. OpenRouter) → reply back to channel.
 
 ---
 
