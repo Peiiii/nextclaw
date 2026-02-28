@@ -11,8 +11,8 @@
 - 改造 CI 工作流 `.github/workflows/installer-build.yml`：
   - Windows 安装 NSIS 后记录 `makensis` 路径状态（PATH 命中或绝对路径候选），不再因 PATH 未刷新而提前失败。
   - Windows 构建步骤改为 `continue-on-error: true` + 日志落盘（`build-installer-windows.log`），失败时也会上传日志 artifact。
-  - Windows 产物上传仅在构建成功时执行，避免因产物缺失导致二次报错。
-  - 增加失败收敛步骤：Windows 构建失败时显式 fail job，并提示查看上传日志。
+  - Windows 产物上传仅在 `steps.build_windows.outcome == success` 时执行，避免构建失败后上传空产物。
+  - 增加失败收敛步骤：`steps.build_windows.outcome == failure` 时显式 fail job，并提示查看上传日志。
 
 关键文件：
 

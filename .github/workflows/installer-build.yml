@@ -118,7 +118,7 @@ jobs:
             dist/installers/manifest-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload installer artifacts (Windows)
-        if: matrix.platform == 'win32' && steps.build_windows.conclusion == 'success'
+        if: matrix.platform == 'win32' && steps.build_windows.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: nextclaw-installer-${{ matrix.platform }}-${{ matrix.arch }}
@@ -127,7 +127,7 @@ jobs:
             dist/installers/manifest-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Fail when Windows installer build failed
-        if: runner.os == 'Windows' && steps.build_windows.conclusion == 'failure'
+        if: runner.os == 'Windows' && steps.build_windows.outcome == 'failure'
         shell: pwsh
         run: |
           throw "Build installer (Windows) failed. See uploaded log artifact."
