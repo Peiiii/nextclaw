@@ -1,5 +1,6 @@
 # Logs
 
+- [docs/logs/2026-02-28-claw-competition-analysis/v0.0.1-claw-competition-analysis/README.md](docs/logs/2026-02-28-claw-competition-analysis/v0.0.1-claw-competition-analysis/README.md)
 - [docs/logs/2026-02-28-provider-models-combobox/v0.0.1-provider-models-combobox/README.md](docs/logs/2026-02-28-provider-models-combobox/v0.0.1-provider-models-combobox/README.md)
 - [docs/logs/2026-02-28-provider-test-error-details/v0.0.1-provider-test-error-details/README.md](docs/logs/2026-02-28-provider-test-error-details/v0.0.1-provider-test-error-details/README.md)
 - [docs/logs/2026-02-28-provider-test-route-hotfix/v0.0.1-provider-test-route-hotfix/README.md](docs/logs/2026-02-28-provider-test-route-hotfix/v0.0.1-provider-test-route-hotfix/README.md)
