@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="g" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#FFB800"/>
+      <stop offset="100%" stop-color="#CC2200"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Leg — thinner -->
+  <path d="M31 4 C30.5 8, 30.5 14, 31 20 L35 20 C35.5 14, 35.5 8, 35 4Z" fill="url(#g)"/>
+
+  <!-- Palm — smaller, subtler -->
+  <ellipse cx="33" cy="23" rx="7" ry="4" fill="url(#g)"/>
+
+  <!-- Left talon — thinner taper -->
+  <path d="M27 25 C20 32, 10 44, 4 54 C3 56, 5 56, 6 54 C12 45, 22 34, 29 27Z" fill="url(#g)"/>
+
+  <!-- Center talon — thinner -->
+  <path d="M32 27 C32 38, 32 50, 32 58 C32 60, 34 60, 34 58 C34 50, 34 38, 34 27Z" fill="url(#g)"/>
+
+  <!-- Right talon — thinner taper -->
+  <path d="M39 25 C46 32, 56 44, 62 54 C63 56, 61 56, 60 54 C54 45, 44 34, 37 27Z" fill="url(#g)"/>
+</svg>

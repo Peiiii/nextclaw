@@ -465,9 +465,7 @@ class LandingPage {
         <header class="fixed top-0 w-full z-50 glass border-b transition-all duration-300">
           <div class="container mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2 group cursor-pointer">
-              <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold shadow-sm transition-transform group-hover:scale-105">
-                N
-              </div>
+              <img src="/logo-phoenix.svg" alt="NextClaw" class="w-8 h-8 transition-transform group-hover:scale-105" />
               <span class="font-semibold text-lg tracking-tight">NextClaw</span>
             </div>
             <nav class="hidden md:flex gap-8 text-sm font-medium">
@@ -718,7 +716,7 @@ class LandingPage {
         <footer class="w-full border-t border-border/40 py-10 z-10 bg-background/50 backdrop-blur-sm mt-auto">
           <div class="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
             <div class="flex items-center gap-2 opacity-80">
-              <div class="w-6 h-6 rounded bg-foreground flex items-center justify-center text-background font-bold text-xs">N</div>
+              <img src="/logo-phoenix.svg" alt="NextClaw" class="w-6 h-6" />
               <span class="font-medium text-sm">${this.copy.footerProject}</span>
             </div>
             <div class="text-sm text-muted-foreground">${this.copy.footerLicense}</div>

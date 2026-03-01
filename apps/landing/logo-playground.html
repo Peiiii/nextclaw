@@ -1,13 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NextClaw Logo Options</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: '#677656',
+            phoenix: {
+              red: '#EF4444',
+              orange: '#F97316',
+              yellow: '#EAB308',
+              gold: '#F59E0B'
+            }
+          },
+          animation: {
+            'spin-slow': 'spin 8s linear infinite',
+            'spin-reverse': 'spin 6s linear infinite reverse',
+            'float': 'float 3s ease-in-out infinite'
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0)' },
+              '50%': { transform: 'translateY(-5px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <title>NextClaw Logo Options - Phoenix Edition</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .fire-gradient {
+      background: linear-gradient(135deg, #EF4444, #F97316, #EAB308);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+  </style>
 </head>
+
 <body class="bg-gray-50 dark:bg-[#1a1b1a] text-gray-900 dark:text-gray-100 min-h-screen">
-  <div id="playground-root"></div>
-  <script type="module" src="/src/logo-playground.ts"></script>
+  <div class="max-w-5xl mx-auto px-6 py-12">
+    <header class="mb-12 border-b border-gray-200 dark:border-gray-800 pb-6">
+      <h1 class="text-4xl font-black font-sans tracking-tight">NextClaw Logos: <span class="fire-gradient">Phoenix
+          Edition</span></h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">Explorations of the "Phoenix Claw" (凤爪) mark, utilizing fire
+        gradients and dynamic forms.</p>
+    </header>
+
+    <div class="space-y-12">
+
+      <!-- Option 1: The Wheel of Wind and Fire (风火轮) -->
+      <section>
+        <h2 class="text-[13px] font-bold text-gray-400 mb-4 uppercase tracking-[0.2em] relative inline-block">
+          <span class="absolute -left-3 -top-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+          Option 1: The Wheel of Wind & Fire (风火轮 + 凤爪)
+        </h2>
+        <p class="text-sm text-gray-500 mb-6 max-w-2xl">A striking emblem. The spinning fiery rim (风火轮) represents
+          non-stop, background continuous operation (like an AI agent server), while the claw inside grasps the core
+          logic.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Light Theme -->
+          <div
+            class="p-10 bg-white rounded-2xl border border-gray-200 flex flex-col items-center justify-center shadow-sm relative overflow-hidden group">
+            <div
+              class="absolute inset-0 bg-gradient-to-tr from-orange-50 to-red-50 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+            </div>
+            <div class="relative flex items-center space-x-4">
+              <div class="relative w-16 h-16 flex items-center justify-center">
+                <!-- Outer Fire Wheel -->
+                <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full text-orange-500 animate-spin-slow">
+                  <!-- Flame trails making a ring -->
+                  <path
+                    d="M50 10C72 10 90 28 90 50C90 72 72 90 50 90C28 90 10 72 10 50C10 28 28 10 50 10ZM50 20C33.4 20 20 33.4 20 50C20 66.6 33.4 80 50 80C66.6 80 80 66.6 80 50C80 33.4 66.6 20 50 20Z"
+                    fill="url(#wheel-grad-1)" opacity="0.3" />
+                  <!-- Spin blades/flames -->
+                  <path
+                    d="M50 0 C60 20 60 20 70 15 C60 30 65 30 85 30 C70 40 70 45 85 60 C65 55 60 60 60 75 C50 60 50 60 40 75 C45 60 40 55 15 60 C30 45 30 40 15 30 C35 30 40 30 30 15 C40 20 40 20 50 0"
+                    fill="url(#wheel-grad-1)" />
+                  <defs>
+                    <linearGradient id="wheel-grad-1" x1="0" y1="0" x2="100" y2="100">
+                      <stop offset="0%" stop-color="#EF4444" />
+                      <stop offset="50%" stop-color="#F97316" />
+                      <stop offset="100%" stop-color="#EAB308" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <!-- Inner Claw (Static but feels dynamic) -->
+                <svg viewBox="0 0 100 100" class="relative z-10 w-10 h-10 text-gray-900 drop-shadow-md">
+                  <path d="M30 20 C40 40 50 60 50 80 M50 15 C50 40 50 60 50 80 M70 20 C60 40 50 60 50 80"
+                    stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <span class="text-4xl font-black tracking-tight text-gray-900">NextClaw</span>
+            </div>
+          </div>
+
+          <!-- Dark Theme -->
+          <div
+            class="p-10 bg-gray-950 rounded-2xl border border-gray-800 flex flex-col items-center justify-center shadow-2xl relative overflow-hidden">
+            <div
+              class="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(249,115,22,0.1)_0%,transparent_60%)]">
+            </div>
+            <div class="relative flex items-center space-x-4">
+              <div
+                class="relative w-16 h-16 flex items-center justify-center shadow-[0_0_30px_rgba(249,115,22,0.4)] rounded-full">
+                <!-- Outer Fire Wheel -->
+                <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full animate-spin-reverse">
+                  <!-- Flame trails making a ring -->
+                  <path
+                    d="M50 0 C60 20 60 20 70 15 C60 30 65 30 85 30 C70 40 70 45 85 60 C65 55 60 60 60 75 C50 60 50 60 40 75 C45 60 40 55 15 60 C30 45 30 40 15 30 C35 30 40 30 30 15 C40 20 40 20 50 0"
+                    fill="url(#wheel-grad-2)" />
+                  <defs>
+                    <linearGradient id="wheel-grad-2" x1="100" y1="100" x2="0" y2="0">
+                      <stop offset="0%" stop-color="#EF4444" />
+                      <stop offset="50%" stop-color="#F97316" />
+                      <stop offset="100%" stop-color="#FDE047" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <!-- Inner Claw -->
+                <svg viewBox="0 0 100 100" class="relative z-10 w-9 h-9 text-white drop-shadow-lg">
+                  <path d="M25 25 C40 45 50 60 50 90 M50 15 C50 40 50 60 50 90 M75 25 C60 45 50 60 50 90"
+                    stroke="currentColor" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <span class="text-4xl font-black tracking-tight text-white drop-shadow-md">NextClaw</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Option 2: The Firebird Strike (Minimalist) -->
+      <section>
+        <h2 class="text-[13px] font-bold text-gray-400 mb-4 uppercase tracking-[0.2em]">Option 2: The Firebird Strike
+          (Abstract Sweep)</h2>
+        <p class="text-sm text-gray-500 mb-6 max-w-2xl">A cleaner, logo-mark approach. Three aggressive swoops of fire
+          that form both a claw marking and the tail feathers of a phoenix.</p>
+
+        <div class="p-10 bg-[#1c1917] rounded-2xl border border-stone-800 flex items-center shadow-lg">
+          <div class="flex items-center space-x-5">
+            <svg width="48" height="48" viewBox="0 0 100 100" fill="none" class="animate-float">
+              <!-- Three slashes of varying thickness and length -->
+              <path d="M20 10 Q 30 50, 50 90" stroke="url(#strike-grad)" stroke-width="8" stroke-linecap="round" />
+              <path d="M50 5 Q 55 45, 65 90" stroke="url(#strike-grad)" stroke-width="14" stroke-linecap="round" />
+              <path d="M80 15 Q 75 40, 80 80" stroke="url(#strike-grad)" stroke-width="8" stroke-linecap="round" />
+              <defs>
+                <linearGradient id="strike-grad" x1="50" y1="0" x2="50" y2="100" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#FCD34D" />
+                  <stop offset="40%" stop-color="#F97316" />
+                  <stop offset="100%" stop-color="#B91C1C" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="flex flex-col">
+              <span class="text-4xl font-black text-white tracking-widest uppercase"
+                style="font-family: 'Inter', sans-serif;">NextClaw</span>
+              <span class="text-xs text-orange-500 tracking-[0.4em] font-semibold mt-1">Agent Platform</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Option 3: Molten Core (Tech & Fire) -->
+      <section>
+        <h2 class="text-[13px] font-bold text-gray-400 mb-4 uppercase tracking-[0.2em]">Option 3: Molten Core (Tech +
+          Fire Integration)</h2>
+        <p class="text-sm text-gray-500 mb-6 max-w-2xl">Blends a dark brutalist tech aesthetic with the burning energy
+          of a phoenix claw. The "claw" grips a glowing core (your local environment).</p>
+
+        <div class="p-10 bg-black rounded-2xl border-4 border-gray-900 flex items-center shadow-sm">
+          <div class="flex items-center space-x-4">
+            <div
+              class="relative w-14 h-14 bg-gray-900 rounded-xl border-2 border-gray-800 flex items-center justify-center overflow-hidden">
+              <!-- The Core -->
+              <div class="absolute bottom-2 w-6 h-6 rounded-full bg-orange-500 shadow-[0_0_20px_#F97316] animate-pulse">
+              </div>
+              <!-- The Claws coming down to grab the core -->
+              <svg viewBox="0 0 100 100"
+                class="absolute inset-0 w-full h-full text-white mix-blend-overlay z-10 opacity-90">
+                <path d="M20 -10 V 40 C 20 60, 40 70, 40 80" fill="none" stroke="currentColor" stroke-width="10"
+                  stroke-linecap="round" />
+                <path d="M50 -10 V 35 C 50 65, 50 75, 50 80" fill="none" stroke="currentColor" stroke-width="12"
+                  stroke-linecap="round" />
+                <path d="M80 -10 V 40 C 80 60, 60 70, 60 80" fill="none" stroke="currentColor" stroke-width="10"
+                  stroke-linecap="round" />
+              </svg>
+            </div>
+            <span class="text-3xl font-extrabold tracking-tight text-white mb-1">
+              Next<span class="fire-gradient">Claw</span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Option 4: The Origami Phoenix (Polygonal) -->
+      <section>
+        <h2 class="text-[13px] font-bold text-gray-400 mb-4 uppercase tracking-[0.2em]">Option 4: Polygon / Origami
+          Phoenix Claw</h2>
+        <p class="text-sm text-gray-500 mb-6 max-w-2xl">Constructed from sharp, angled polygons. Gives a sense of
+          structure, mathematics, and code, while retaining the fiery aura.</p>
+
+        <div
+          class="p-10 bg-white dark:bg-[#1f1f1f] rounded-2xl border border-gray-200 dark:border-gray-800 flex items-center shadow-lg">
+          <div class="flex items-center space-x-3">
+            <svg width="44" height="44" viewBox="0 0 100 100" fill="none">
+              <!-- Left Talons -->
+              <polygon points="10,10 30,50 40,85 25,60" fill="url(#poly-grad-1)" />
+              <polygon points="10,10 25,60 15,35" fill="url(#poly-grad-2)" opacity="0.8" />
+              <!-- Center Talon -->
+              <polygon points="45,5 50,55 50,95 40,85" fill="url(#poly-grad-1)" />
+              <polygon points="45,5 55,5 60,85 50,95" fill="url(#poly-grad-3)" />
+              <!-- Right Talons -->
+              <polygon points="90,10 70,50 60,85 75,60" fill="url(#poly-grad-2)" />
+              <polygon points="90,10 75,60 85,35" fill="url(#poly-grad-3)" opacity="0.8" />
+
+              <defs>
+                <linearGradient id="poly-grad-1" x1="0" y1="0" x2="100" y2="100">
+                  <stop stop-color="#FCD34D" />
+                  <stop offset="1" stop-color="#F97316" />
+                </linearGradient>
+                <linearGradient id="poly-grad-2" x1="0" y1="100" x2="100" y2="0">
+                  <stop stop-color="#DC2626" />
+                  <stop offset="1" stop-color="#F97316" />
+                </linearGradient>
+                <linearGradient id="poly-grad-3" x1="50" y1="0" x2="50" y2="100">
+                  <stop stop-color="#B91C1C" />
+                  <stop offset="1" stop-color="#EA580C" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="text-3xl font-black text-gray-800 dark:text-gray-100 font-sans pl-2">
+              NextClaw
+            </span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
 </body>
+
 </html>

@@ -1,68 +1,82 @@
 # NextClaw Roadmap
 
-This document describes NextClaw's direction and current priorities for users and contributors. Iteration history: [docs/logs](https://github.com/Peiiii/nextclaw/blob/master/docs/logs/README.md).
+This document describes NextClaw's current priorities and execution plan. All work serves the four core pillars defined in the [Product Vision](./vision.md). Iteration history: [docs/logs](https://github.com/Peiiii/nextclaw/blob/master/docs/logs/README.md).
 
 ---
 
-## Current priorities (by order)
+## Current Stage Priorities
 
-### 1. Full i18n / multi-language support
+### 1. Self-Awareness (The Agent Knows Itself)
 
-- i18n coverage for UI, CLI, and docs (e.g. English, Chinese).
-- Language switching and persistence; consistent localization for copy, dates, and numbers.
+> Serves: Self-Aware & Self-Governing
 
-### 2. Landing page improvements
+- The agent can query its own version, configuration, runtime state, health, capability boundaries, and documentation.
+- Covers static information (config, version) and dynamic information (runtime state, session context).
+- Answers questions like "What channels do I have?", "What model am I using?", "Am I healthy?" in conversation.
 
-- Clearer product overview and value proposition.
-- Curated key links: quick start, docs, GitHub, configuration, example scenarios — to reduce onboarding and navigation friction.
+### 2. Self-Governance (The Agent Manages Itself)
 
-### 3. In-app chat (core product feature)
+> Serves: Self-Aware & Self-Governing
 
-- Support direct conversation with the AI in the UI; config UI remains, chat becomes a first-class surface alongside channels and CLI.
-- Enables try-before-connect and quick testing without leaving the browser.
+- The agent can perform management actions via tools: modify config, enable/disable channels, add/remove cron jobs, install/uninstall plugins, trigger diagnostics/restarts, etc.
+- Destructive operations require confirmation.
+- Users accomplish through natural language what previously required UI or CLI.
 
-### 4. Self-awareness and self-management (自知与自治)
+### 3. Plugin SDK and Development Workflow
 
-- **Self-awareness**: The agent has a complete, queryable view of itself — what it is (NextClaw), version, config (providers, models, channels, cron, plugins), runtime state, health, capabilities, and relevant docs. It can answer "what channels do I have?", "what's my current model?", "am I healthy?" from conversation.
-- **Self-management**: The agent can perform management actions on itself via tools (e.g. change config, enable/disable channels, add/remove cron jobs, trigger doctor/restart) so users can operate NextClaw through natural language as well as UI/CLI. Requires clear safety and confirmation for destructive or sensitive operations.
-- Complements in-app chat: the same chat surface becomes a "self-managing system" that both knows and can act on its own state.
+> Serves: Plugin-Based Extensibility & Ecosystem Growth
 
-### 5. UI and experience
+- Stabilize the plugin SDK and OpenClaw-compatible development workflow.
+- Define clear boundaries between core and plugins; converge core APIs.
+- Support install, enable, configure, and uninstall plugins from the UI.
 
-- Ongoing config UI improvements: layout, interactions, feedback.
-- Information architecture and flows for Sessions, Routing & Runtime, Cron, Marketplace, etc.
-- Consistent, friendly experience for loading, saving, and error states.
+### 4. Out-of-the-Box Experience
 
-### 6. Multi-agent and multi-instance
+> Serves: Out-of-the-Box Experience
 
-- Multi-agent: session isolation, bindings, routing and runtime behavior with clear verification.
-- Multi-instance: deployment model, config boundaries, and best practices for single- and multi-machine setups.
-- Documentation and automated checks (including smoke tests) to ensure expected behavior.
-
-### 7. Ecosystem: skills & plugins + quick onboarding
-
-- Skills and plugins: OpenClaw-compatible plugin/skill flow; install, enable, and configure from the UI.
-- "Quick start" path in docs: from install to first chat, first cron job, first multi-channel setup so every user can quickly get value from classic NextClaw scenarios.
-- Discoverable, reusable examples and templates (reminders, queries, multi-channel, etc.).
-
-### 8. Documentation: tutorials and examples
-
-- Getting started: step-by-step guides for install, config, first bot, first cron, etc.
-- Use cases: example scenarios (reminders, Q&A, cross-channel, multi-model) with config and setup notes.
-- Tie into landing page and in-app help so users follow: intro → tutorial → examples.
+- Showcase core capabilities and typical scenarios on first launch.
+- Pre-built scenario templates with one-click activation.
+- Optimize the path from installation to first working scenario.
 
 ---
 
-## Ongoing focus
+## Next Stage Directions
 
-- **OpenClaw compatibility**: Track plugin SDK and channel protocols; fix compatibility issues.
+### Marketplace Ecosystem
+
+> Serves: Plugin-Based Extensibility & Ecosystem Growth
+
+- Plugin/skill publishing and discovery workflow.
+- Infrastructure for ratings, version management, and dependency resolution.
+- Close the loop: use → build → share → discover.
+
+### Host System and Data Capabilities
+
+> Serves: Infrastructure for Digital Omnipotence
+
+- Expand tool system: file management, process management, system monitoring, and other host operations.
+- Internet data access: search, scraping, API calls, information aggregation.
+- User data integration: connect data scattered across apps and platforms.
+
+### Multi-Agent and Multi-Instance
+
+- Multi-agent: session isolation, bindings, routing and runtime semantics.
+- Multi-instance: deployment model, config boundaries, and best practices.
+
+---
+
+## Ongoing Focus
+
+- **Landing page**: Product value proposition and key entry point optimization.
+- **UI and interaction**: Config UI, information architecture, consistent experience.
+- **OpenClaw compatibility**: Track plugin SDK and channel protocols.
 - **Cron / Heartbeat**: Harden automation and docs.
-- **Marketplace**: Install/uninstall, state sync, and Worker experience.
-- **Observability and ops**: `doctor`, `status`, config hot-reload, and deployment docs.
+- **Observability and ops**: `doctor`, `status`, config hot-reload, deployment docs.
+- **Documentation and tutorials**: Complete path for install, config, first bot, first cron.
 
 ---
 
-## How to contribute
+## How to Contribute
 
 - Feature ideas and bugs: GitHub Issues.
 - Releases and changes: per-package `CHANGELOG.md` and [docs/logs](https://github.com/Peiiii/nextclaw/blob/master/docs/logs/README.md).

@@ -115,7 +115,10 @@ const enSidebar = [
   },
   {
     text: 'Project',
-    items: [{ text: 'Roadmap', link: '/en/guide/roadmap' }]
+    items: [
+      { text: 'Vision', link: '/en/guide/vision' },
+      { text: 'Roadmap', link: '/en/guide/roadmap' }
+    ]
   }
 ]
 
@@ -156,7 +159,10 @@ const zhSidebar = [
   },
   {
     text: '项目',
-    items: [{ text: '路线图', link: '/zh/guide/roadmap' }]
+    items: [
+      { text: '愿景', link: '/zh/guide/vision' },
+      { text: '路线图', link: '/zh/guide/roadmap' }
+    ]
   }
 ]
 
