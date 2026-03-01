@@ -42,7 +42,7 @@ const MASK_MIN_LENGTH = 8;
 const EXTRA_SENSITIVE_PATH_PATTERNS = [/authorization/i, /cookie/i, /session/i, /bearer/i];
 const PROVIDER_TEST_MODEL_FALLBACKS: Record<string, string> = {
   openai: "gpt-5-mini",
-  deepseek: "deepseek-v3.2",
+  deepseek: "deepseek-chat",
   gemini: "gemini-3-flash-preview",
   zhipu: "glm-5",
   dashscope: "qwen3.5-flash",

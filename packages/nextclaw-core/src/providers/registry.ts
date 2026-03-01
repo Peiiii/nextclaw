@@ -123,7 +123,7 @@ export const PROVIDERS: ProviderSpec[] = [
     detectByKeyPrefix: "",
     detectByBaseKeyword: "",
     defaultApiBase: "https://api.deepseek.com",
-    defaultModels: ["deepseek/deepseek-v3.2", "deepseek/deepseek-r1"],
+    defaultModels: ["deepseek/deepseek-chat", "deepseek/deepseek-reasoner"],
     stripModelPrefix: false,
     modelOverrides: []
   },
