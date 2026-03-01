@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.8.55
+
+### Patch Changes
+
+- release all pending changes including dynamic custom provider management, custom provider model prefix stripping before upstream calls, and marketplace source link wrapping fix in detail cards.
+- Updated dependencies
+  - @nextclaw/core@0.6.44
+  - @nextclaw/server@0.5.28
+  - @nextclaw/openclaw-compat@0.1.33
+
 ## 0.8.54
 
 ### Patch Changes

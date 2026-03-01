@@ -271,7 +271,7 @@ function buildGenericDetailDataUrl(params: {
       .wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 40px; }
       .hero { border: 1px solid #dbeafe; border-radius: 16px; background: linear-gradient(180deg, #eff6ff, #ffffff); padding: 20px; box-shadow: 0 6px 20px rgba(30, 64, 175, 0.08); }
       .hero h1 { margin: 0; font-size: 26px; }
-      .meta { margin-top: 8px; color: #475569; font-size: 13px; }
+      .meta { margin-top: 8px; color: #475569; font-size: 13px; overflow-wrap: anywhere; word-break: break-word; }
       .summary { margin-top: 14px; font-size: 14px; line-height: 1.7; color: #334155; }
       .grid { display: grid; grid-template-columns: 260px 1fr; gap: 14px; margin-top: 16px; }
       .card { border: 1px solid #e2e8f0; background: #fff; border-radius: 14px; overflow: hidden; }
@@ -280,7 +280,7 @@ function buildGenericDetailDataUrl(params: {
       .code { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.6; margin: 0; }
       .tags { margin-top: 10px; }
       .tag { display: inline-block; margin: 0 6px 6px 0; padding: 4px 9px; border-radius: 999px; background: #e0e7ff; color: #3730a3; font-size: 11px; }
-      .source { color: #2563eb; text-decoration: none; }
+      .source { color: #2563eb; text-decoration: none; overflow-wrap: anywhere; word-break: break-all; }
       @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
     </style>
   </head>

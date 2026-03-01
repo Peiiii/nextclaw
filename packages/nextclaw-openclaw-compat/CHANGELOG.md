@@ -1,5 +1,14 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.33
+
+### Patch Changes
+
+- release all pending changes including dynamic custom provider management, custom provider model prefix stripping before upstream calls, and marketplace source link wrapping fix in detail cards.
+- Updated dependencies
+  - @nextclaw/core@0.6.44
+  - @nextclaw/channel-runtime@0.1.27
+
 ## 0.1.32
 
 ### Patch Changes

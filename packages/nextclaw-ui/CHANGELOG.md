@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.5.41
+
+### Patch Changes
+
+- release all pending changes including dynamic custom provider management, custom provider model prefix stripping before upstream calls, and marketplace source link wrapping fix in detail cards.
+
 ## 0.5.40
 
 ### Patch Changes

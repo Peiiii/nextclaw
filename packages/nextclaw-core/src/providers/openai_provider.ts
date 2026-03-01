@@ -6,6 +6,10 @@ import {
   type LLMStreamEvent,
   type ToolCallRequest
 } from "./base.js";
+import {
+  ChatCompletionsPayloadError,
+  normalizeChatCompletionsResponse
+} from "./chat-completions-normalizer.js";
 
 export type OpenAIProviderOptions = {
   apiKey?: string | null;
@@ -108,50 +112,10 @@ export class OpenAICompatibleProvider extends LLMProvider {
       })
     );
 
-    const choice = response.choices[0];
-    const message = choice?.message;
-
-    const toolCalls: ToolCallRequest[] = [];
-    if (message?.tool_calls) {
-      for (const toolCall of message.tool_calls) {
-        if (toolCall.type !== "function") {
-          continue;
-        }
-        const args = this.parseToolCallArguments(toolCall.function.arguments);
-        toolCalls.push({
-          id: toolCall.id,
-          name: toolCall.function.name,
-          arguments: args
-        });
-      }
-    }
-
-    const legacyFunctionCall = (message as { function_call?: { name?: string; arguments?: unknown } } | undefined)
-      ?.function_call;
-    if (legacyFunctionCall?.name) {
-      toolCalls.push({
-        id: `legacy-fn-${toolCalls.length}`,
-        name: legacyFunctionCall.name,
-        arguments: this.parseToolCallArguments(legacyFunctionCall.arguments)
-      });
-    }
-
-    const reasoningContent =
-      (message as { reasoning_content?: string } | undefined)?.reasoning_content ??
-      (message as { reasoning?: string } | undefined)?.reasoning ??
-      null;
-
-    return {
-      content: message?.content ?? null,
-      toolCalls,
-      finishReason: choice?.finish_reason ?? "stop",
-      usage: {
-        prompt_tokens: response.usage?.prompt_tokens ?? 0,
-        completion_tokens: response.usage?.completion_tokens ?? 0,
-        total_tokens: response.usage?.total_tokens ?? 0
-      },
-      reasoningContent
-    };
+    return normalizeChatCompletionsResponse(
+      response,
+      (raw) => this.parseToolCallArguments(raw)
+    );
   }
 
   private async *chatCompletionsStream(params: {
@@ -520,10 +484,14 @@ export class OpenAICompatibleProvider extends LLMProvider {
   }
 
   private shouldFallbackToResponses(error: unknown): boolean {
-    const err = error as { status?: number; message?: string };
+    const err = error as { status?: number; message?: string; code?: string };
     const status = err?.status;
     const message = err?.message ?? "";
+    const code = err?.code ?? (error instanceof ChatCompletionsPayloadError ? error.code : "");
     if (status === 404) {
+      return true;
+    }
+    if (code === "INVALID_CHAT_COMPLETIONS_PAYLOAD") {
       return true;
     }
     if (message.includes("Cannot POST") && message.includes("chat/completions")) {

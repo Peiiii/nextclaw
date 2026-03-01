@@ -6,7 +6,6 @@ import {
   Bot,
   ReceiverMode,
   SessionEvents,
-  segment,
   type GroupMessageEvent,
   type GuildMessageEvent,
   type PrivateMessageEvent
@@ -20,6 +19,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   private bot: Bot | null = null;
   private processedIds: string[] = [];
   private processedSet: Set<string> = new Set();
+  private senderNameCache: Map<string, string> = new Map();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private connectTask: Promise<void> | null = null;
   private reconnectAttempt = 0;
@@ -62,8 +62,28 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     const metadataMessageId = (msg.metadata?.message_id as string | undefined) ?? null;
     const sourceId = msg.replyTo ?? metadataMessageId ?? undefined;
     const source = sourceId ? { id: sourceId } : undefined;
-    const payload = this.config.markdownSupport ? segment.markdown(msg.content ?? "") : (msg.content ?? "");
+    const rawContent = msg.content ?? "";
+    const payload = rawContent;
 
+    try {
+      await this.sendByMessageType({ messageType, qqMeta, msg, payload, source });
+    } catch (error) {
+      if (!this.isDisallowedUrlParamError(error)) {
+        throw error;
+      }
+      const safeText = this.toQqSafeText(rawContent, error);
+      await this.sendByMessageType({ messageType, qqMeta, msg, payload: safeText, source });
+    }
+  }
+
+  private async sendByMessageType(params: {
+    messageType: QQMessageType;
+    qqMeta: Record<string, unknown>;
+    msg: OutboundMessage;
+    payload: unknown;
+    source: { id: string } | undefined;
+  }): Promise<void> {
+    const { messageType, qqMeta, msg, payload, source } = params;
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
       await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, payload, source));
@@ -105,6 +125,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
         nick?: string;
         card?: string;
         username?: string;
+        user_name?: string;
       };
       group_openid?: string;
     };
@@ -120,7 +141,15 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
 
     const content = event.raw_message?.trim() ?? "";
     const normalizedContent = content || "[empty message]";
-    const senderName = this.resolveSenderName(rawEvent);
+    const eventSenderName = this.resolveSenderName(rawEvent);
+    if (eventSenderName) {
+      this.senderNameCache.set(senderId, eventSenderName);
+    }
+    const declaredName = this.extractDeclaredName(normalizedContent);
+    if (declaredName) {
+      this.senderNameCache.set(senderId, declaredName);
+    }
+    const senderName = declaredName ?? eventSenderName ?? this.senderNameCache.get(senderId) ?? null;
 
     let chatId = senderId;
     let messageType: QQMessageType = "private";
@@ -154,6 +183,9 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       }
     } else {
       qqMeta.userId = senderId;
+      if (senderName) {
+        qqMeta.userName = senderName;
+      }
     }
 
     qqMeta.messageType = messageType;
@@ -191,13 +223,15 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       nick?: string;
       card?: string;
       username?: string;
+      user_name?: string;
     };
   }): string | null {
     const candidates = [
       rawEvent.sender?.card,
       rawEvent.sender?.nickname,
       rawEvent.sender?.nick,
-      rawEvent.sender?.username
+      rawEvent.sender?.username,
+      rawEvent.sender?.user_name
     ];
     for (const value of candidates) {
       if (typeof value !== "string") {
@@ -217,10 +251,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     senderId: string;
     senderName: string | null;
   }): string {
-    // Group-like QQ sessions share one chat history; inject speaker identity per message.
-    if (params.messageType !== "group" && params.messageType !== "guild") {
-      return params.content;
-    }
+    // Always inject sender identity so both group and private QQ sessions can resolve user identity.
     const userId = this.sanitizeSpeakerToken(params.senderId);
     if (!userId) {
       return params.content;
@@ -235,6 +266,26 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
 
   private sanitizeSpeakerToken(value: string): string {
     return value.replace(/[\r\n;\]]/g, " ").trim();
+  }
+
+  private extractDeclaredName(content: string): string | null {
+    const trimmed = content.trim();
+    const patterns = [
+      /^我的昵称是\s*([^\s，。！？!?,]{1,24})$/u,
+      /^我叫\s*([^\s，。！？!?,]{1,24})$/u,
+      /^叫我\s*([^\s，。！？!?,]{1,24})$/u
+    ];
+    for (const pattern of patterns) {
+      const match = trimmed.match(pattern);
+      if (!match) {
+        continue;
+      }
+      const candidate = this.sanitizeSpeakerToken(match[1] ?? "");
+      if (candidate) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   private isDuplicate(messageId: string): boolean {
@@ -267,6 +318,35 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   private isTokenExpiredError(error: unknown): boolean {
     const message = error instanceof Error ? error.message : String(error);
     return message.includes("code(11244)") || message.toLowerCase().includes("token not exist or expire");
+  }
+
+  private isDisallowedUrlParamError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.includes("code(40034028)") || message.includes("请求参数不允许包含url");
+  }
+
+  private toQqSafeText(content: string, error: unknown): string {
+    let safe = content
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1")
+      .replace(/https?:\/\/\S+/gi, "[link]")
+      .replace(/www\.\S+/gi, "[link]")
+      .replace(/\b[a-z0-9._/-]+\.md\b/gi, "[file]");
+
+    const blocked = this.extractBlockedUrlToken(error);
+    if (blocked) {
+      safe = safe.replaceAll(blocked, "[link]");
+    }
+    return safe;
+  }
+
+  private extractBlockedUrlToken(error: unknown): string | null {
+    const message = error instanceof Error ? error.message : String(error);
+    const match = message.match(/包含url\s+([^\s]+)/);
+    if (!match) {
+      return null;
+    }
+    const token = match[1].trim();
+    return token.length > 0 ? token : null;
   }
 
   private tryConnect(trigger: string): void {

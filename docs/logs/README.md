@@ -1,5 +1,6 @@
 # Logs
 
+- [docs/logs/2026-03-01-marketplace-source-link-wrap/v0.0.1-marketplace-source-link-wrap/README.md](docs/logs/2026-03-01-marketplace-source-link-wrap/v0.0.1-marketplace-source-link-wrap/README.md)
 - [docs/logs/2026-03-01-dynamic-custom-provider/v0.0.1-dynamic-custom-provider/README.md](docs/logs/2026-03-01-dynamic-custom-provider/v0.0.1-dynamic-custom-provider/README.md)
 - [docs/logs/2026-03-01-openai-chat-payload-guard/v0.0.1-openai-chat-payload-guard/CHANGELOG.md](docs/logs/2026-03-01-openai-chat-payload-guard/v0.0.1-openai-chat-payload-guard/CHANGELOG.md)
 - [docs/logs/2026-03-01-qq-sender-user-name-fallback/v0.0.1-qq-sender-user-name-fallback/CHANGELOG.md](docs/logs/2026-03-01-qq-sender-user-name-fallback/v0.0.1-qq-sender-user-name-fallback/CHANGELOG.md)
