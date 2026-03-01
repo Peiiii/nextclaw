@@ -16,6 +16,10 @@
   !define APP_ARCH "x64"
 !endif
 
+!ifndef APP_NODE_VERSION
+  !define APP_NODE_VERSION "22.20.0"
+!endif
+
 !ifndef APP_SOURCE_DIR
   !error "APP_SOURCE_DIR is required"
 !endif
@@ -42,6 +46,12 @@ Unicode true
 Section "Install"
   SetOutPath "$INSTDIR"
   File /r "${APP_SOURCE_DIR}\*"
+
+  DetailPrint "Checking Node.js runtime..."
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference=''Stop''; if (Get-Command node -ErrorAction SilentlyContinue) { exit 0 }; $version=''${APP_NODE_VERSION}''; $arch=''${APP_ARCH}''; $runtimeRoot=Join-Path $env:LOCALAPPDATA ''NextClaw\runtime''; New-Item -ItemType Directory -Path $runtimeRoot -Force | Out-Null; $zip=Join-Path $env:TEMP (''node-v'' + $version + ''-win-'' + $arch + ''.zip''); $mirrors=@(''https://npmmirror.com/mirrors/node'',''https://nodejs.org/dist''); if ($env:NEXTCLAW_NODE_DIST_BASES) { $custom=$env:NEXTCLAW_NODE_DIST_BASES.Split('','') | ForEach-Object { $_.Trim().TrimEnd(''/'') } | Where-Object { $_ }; if ($custom.Count -gt 0) { $mirrors=@($custom + $mirrors) } }; $ok=$false; foreach ($mirror in $mirrors) { $url=$mirror.TrimEnd(''/'') + ''/v'' + $version + ''/node-v'' + $version + ''-win-'' + $arch + ''.zip''; try { Invoke-WebRequest -Uri $url -OutFile $zip -TimeoutSec 20; $ok=$true; break } catch { } }; if (-not $ok) { throw ''Failed to download Node.js runtime from configured mirrors.'' }; Expand-Archive -Path $zip -DestinationPath $runtimeRoot -Force; Remove-Item $zip -Force; exit 0"'
+  Pop $0
+  StrCmp $0 "0" +2
+  DetailPrint "Warning: Node.js auto-install failed. NextClaw will retry on first launch."
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 

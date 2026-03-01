@@ -212,36 +212,64 @@ class InstallerBuilder {
   }
 
   getNodeArchiveInfo() {
+    const distBases = this.getNodeDistBases();
     if (this.platform === "darwin") {
       const filename = `node-v${this.nodeVersion}-darwin-${this.arch}.tar.gz`;
       return {
         filename,
-        url: `https://nodejs.org/dist/v${this.nodeVersion}/${filename}`,
+        urls: distBases.map((base) => `${base}/v${this.nodeVersion}/${filename}`),
         format: "tar.gz"
       };
     }
     const filename = `node-v${this.nodeVersion}-win-${this.arch}.zip`;
     return {
       filename,
-      url: `https://nodejs.org/dist/v${this.nodeVersion}/${filename}`,
+      urls: distBases.map((base) => `${base}/v${this.nodeVersion}/${filename}`),
       format: "zip"
     };
+  }
+
+  getNodeDistBases() {
+    const defaults = ["https://npmmirror.com/mirrors/node", "https://nodejs.org/dist"];
+    const fromEnv = (process.env.NEXTCLAW_NODE_DIST_BASES ?? "")
+      .split(",")
+      .map((entry) => entry.trim().replace(/\/+$/, ""))
+      .filter(Boolean);
+    const ordered = [...fromEnv, ...defaults];
+    return [...new Set(ordered)];
+  }
+
+  toBashArray(items) {
+    return items.map((item) => `"${item.replace(/"/g, '\\"')}"`).join(" ");
   }
 
   async downloadRuntime() {
     const archive = this.getNodeArchiveInfo();
     const archivePath = resolve(this.downloadDir, archive.filename);
-    const response = await fetch(archive.url);
-    if (!response.ok || !response.body) {
-      throw new Error(`Failed to download runtime: ${archive.url} (status=${response.status})`);
+    const errors = [];
+
+    for (const url of archive.urls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok || !response.body) {
+          errors.push(`${url} (status=${response.status})`);
+          continue;
+        }
+        await pipeline(Readable.fromWeb(response.body), createWriteStream(archivePath));
+        this.runtimeArchive = { ...archive, path: archivePath, sourceUrl: url };
+        this.manifest.runtimeArchive = {
+          sourceUrl: url,
+          candidates: archive.urls,
+          path: archivePath,
+          sizeBytes: statSync(archivePath).size
+        };
+        return;
+      } catch (error) {
+        errors.push(`${url} (${error instanceof Error ? error.message : String(error)})`);
+      }
     }
-    await pipeline(Readable.fromWeb(response.body), createWriteStream(archivePath));
-    this.runtimeArchive = { ...archive, path: archivePath };
-    this.manifest.runtimeArchive = {
-      url: archive.url,
-      path: archivePath,
-      sizeBytes: statSync(archivePath).size
-    };
+
+    throw new Error(`Failed to download runtime from all mirrors: ${errors.join(" | ")}`);
   }
 
   extractRuntime() {
@@ -264,9 +292,7 @@ class InstallerBuilder {
       throw new Error(`Unable to locate extracted node directory in ${extractedRoot}`);
     }
     const extractedRuntimeDir = resolve(extractedRoot, nodeDirEntry.name);
-    const runtimeTarget = resolve(this.bundleDir, "runtime");
-    cpSync(extractedRuntimeDir, runtimeTarget, { recursive: true });
-    this.runtimeDir = runtimeTarget;
+    this.runtimeDir = extractedRuntimeDir;
   }
 
   installApplicationPayload() {
@@ -278,11 +304,12 @@ class InstallerBuilder {
       "utf8"
     );
     try {
-      const installTarget = process.platform === "win32"
+      const installTarget = this.platform === "win32"
         ? this.packedTgzPath.replace(/\\/g, "/")
         : this.packedTgzPath;
+      const npmCommand = this.resolveRuntimeNpmCommand();
       this.runner.capture(
-        "npm",
+        npmCommand,
         ["install", "--omit=dev", "--no-audit", "--no-fund", installTarget],
         { cwd: appDir }
       );
@@ -295,6 +322,19 @@ class InstallerBuilder {
     }
     this.removeSourceMapFiles(appDir);
     this.appDir = appDir;
+  }
+
+  resolveRuntimeNpmCommand() {
+    if (!this.runtimeDir || !existsSync(this.runtimeDir)) {
+      throw new Error("Runtime directory is not ready before npm install.");
+    }
+    const npmCommand = this.platform === "win32"
+      ? resolve(this.runtimeDir, "npm.cmd")
+      : resolve(this.runtimeDir, "bin", "npm");
+    if (!existsSync(npmCommand)) {
+      throw new Error(`Bundled npm command not found: ${npmCommand}`);
+    }
+    return npmCommand;
   }
 
   readLatestNpmDebugLog() {
@@ -350,61 +390,13 @@ class InstallerBuilder {
     const readmePath = resolve(this.bundleDir, "README.txt");
 
     if (this.platform === "darwin") {
-      writeFileSync(
-        startPath,
-        [
-          "#!/bin/bash",
-          "set -euo pipefail",
-          'BASE_DIR="$(cd "$(dirname "$0")" && pwd)"',
-          'NODE_BIN="$BASE_DIR/runtime/bin/node"',
-          'CLI_JS="$BASE_DIR/app/node_modules/nextclaw/dist/cli/index.js"',
-          'exec "$NODE_BIN" "$CLI_JS" start --ui-open "$@"',
-          ""
-        ].join("\n"),
-        "utf8"
-      );
-      writeFileSync(
-        cliShimPath,
-        [
-          "#!/bin/bash",
-          "set -euo pipefail",
-          'BASE_DIR="$(cd "$(dirname "$0")" && pwd)"',
-          'NODE_BIN="$BASE_DIR/runtime/bin/node"',
-          'CLI_JS="$BASE_DIR/app/node_modules/nextclaw/dist/cli/index.js"',
-          'exec "$NODE_BIN" "$CLI_JS" "$@"',
-          ""
-        ].join("\n"),
-        "utf8"
-      );
+      writeFileSync(startPath, `${this.renderMacLauncherScript("start --ui-open \"$@\"")}\n`, "utf8");
+      writeFileSync(cliShimPath, `${this.renderMacLauncherScript("\"$@\"")}\n`, "utf8");
       chmodSync(startPath, 0o755);
       chmodSync(cliShimPath, 0o755);
     } else {
-      writeFileSync(
-        startPath,
-        [
-          "@echo off",
-          "setlocal",
-          "set \"BASE_DIR=%~dp0\"",
-          "set \"NODE_BIN=%BASE_DIR%runtime\\node.exe\"",
-          "set \"CLI_JS=%BASE_DIR%app\\node_modules\\nextclaw\\dist\\cli\\index.js\"",
-          "\"%NODE_BIN%\" \"%CLI_JS%\" start --ui-open %*",
-          ""
-        ].join("\r\n"),
-        "utf8"
-      );
-      writeFileSync(
-        cliShimPath,
-        [
-          "@echo off",
-          "setlocal",
-          "set \"BASE_DIR=%~dp0\"",
-          "set \"NODE_BIN=%BASE_DIR%runtime\\node.exe\"",
-          "set \"CLI_JS=%BASE_DIR%app\\node_modules\\nextclaw\\dist\\cli\\index.js\"",
-          "\"%NODE_BIN%\" \"%CLI_JS%\" %*",
-          ""
-        ].join("\r\n"),
-        "utf8"
-      );
+      writeFileSync(startPath, `${this.renderWindowsLauncherScript("start --ui-open %*")}\r\n`, "utf8");
+      writeFileSync(cliShimPath, `${this.renderWindowsLauncherScript("%*")}\r\n`, "utf8");
     }
 
     writeFileSync(
@@ -415,6 +407,7 @@ class InstallerBuilder {
         "1. Double-click \"Start NextClaw\" to launch.",
         "2. A browser tab will open to http://127.0.0.1:18791.",
         "3. To stop service, run: nextclaw stop (from the launcher directory).",
+        `4. If Node.js is missing, NextClaw will auto-install Node.js v${this.nodeVersion}.`,
         "",
         "Beta notice: desktop installer is beta and may have issues.",
         "",
@@ -423,6 +416,102 @@ class InstallerBuilder {
       ].join("\n"),
       "utf8"
     );
+  }
+
+  renderMacLauncherScript(commandSuffix) {
+    const nodeDistBases = this.toBashArray(this.getNodeDistBases());
+    return [
+      "#!/bin/bash",
+      "set -euo pipefail",
+      'BASE_DIR="$(cd "$(dirname "$0")" && pwd)"',
+      `NODE_VERSION="${this.nodeVersion}"`,
+      `NODE_ARCH="${this.arch}"`,
+      `NODE_DIST_BASES=(${nodeDistBases})`,
+      'if [ -n "${NEXTCLAW_NODE_DIST_BASES:-}" ]; then',
+      '  NODE_DIST_BASES=()',
+      '  IFS="," read -r -a OVERRIDE_BASES <<< "${NEXTCLAW_NODE_DIST_BASES}"',
+      '  for BASE in "${OVERRIDE_BASES[@]}"; do',
+      '    CLEAN="$(echo "$BASE" | xargs)"',
+      '    if [ -n "$CLEAN" ]; then',
+      '      NODE_DIST_BASES+=("${CLEAN%/}")',
+      "    fi",
+      "  done",
+      "fi",
+      'RUNTIME_ROOT="$HOME/Library/Application Support/NextClaw/runtime"',
+      'NODE_DIR="$RUNTIME_ROOT/node-v${NODE_VERSION}-darwin-${NODE_ARCH}"',
+      'NODE_BIN="$NODE_DIR/bin/node"',
+      "ensure_node() {",
+      "  if command -v node >/dev/null 2>&1; then",
+      "    command -v node",
+      "    return 0",
+      "  fi",
+      "  if [ -x \"$NODE_BIN\" ]; then",
+      "    echo \"$NODE_BIN\"",
+      "    return 0",
+      "  fi",
+      "  echo \"Node.js not found. Installing Node.js v${NODE_VERSION} for NextClaw...\"",
+      "  mkdir -p \"$RUNTIME_ROOT\"",
+      "  ARCHIVE=\"$RUNTIME_ROOT/node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz\"",
+      "  DOWNLOADED=0",
+      "  for BASE in \"${NODE_DIST_BASES[@]}\"; do",
+      "    URL=\"${BASE%/}/v${NODE_VERSION}/node-v${NODE_VERSION}-darwin-${NODE_ARCH}.tar.gz\"",
+      "    if curl -fL --connect-timeout 8 --max-time 180 \"$URL\" -o \"$ARCHIVE\"; then",
+      "      DOWNLOADED=1",
+      "      break",
+      "    fi",
+      "  done",
+      "  if [ \"$DOWNLOADED\" -ne 1 ]; then",
+      "    echo \"Failed to download Node.js runtime from configured mirrors.\" >&2",
+      "    exit 1",
+      "  fi",
+      "  tar -xzf \"$ARCHIVE\" -C \"$RUNTIME_ROOT\"",
+      "  rm -f \"$ARCHIVE\"",
+      "  if [ ! -x \"$NODE_BIN\" ]; then",
+      "    echo \"Failed to install Node.js runtime.\" >&2",
+      "    exit 1",
+      "  fi",
+      "  echo \"$NODE_BIN\"",
+      "}",
+      'NODE_CMD="$(ensure_node)"',
+      'export PATH="$(dirname "$NODE_CMD"):$PATH"',
+      'CLI_JS="$BASE_DIR/app/node_modules/nextclaw/dist/cli/index.js"',
+      `exec "$NODE_CMD" "$CLI_JS" ${commandSuffix}`,
+      ""
+    ].join("\n");
+  }
+
+  renderWindowsLauncherScript(commandSuffix) {
+    return [
+      "@echo off",
+      "setlocal",
+      "set \"BASE_DIR=%~dp0\"",
+      `set "NODE_VERSION=${this.nodeVersion}"`,
+      `set "NODE_ARCH=${this.arch}"`,
+      "set \"NODE_DIR=%LOCALAPPDATA%\\NextClaw\\runtime\\node-v%NODE_VERSION%-win-%NODE_ARCH%\"",
+      "set \"NODE_EXE=%NODE_DIR%\\node.exe\"",
+      "if exist \"%NODE_EXE%\" goto node_ready",
+      "where node >nul 2>nul",
+      "if not errorlevel 1 (",
+      "  for /f \"delims=\" %%i in ('where node') do (",
+      "    set \"NODE_EXE=%%i\"",
+      "    goto node_ready",
+      "  )",
+      ")",
+      "echo Node.js not found. Installing Node.js v%NODE_VERSION% for NextClaw...",
+      "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ErrorActionPreference='Stop'; $version='%NODE_VERSION%'; $arch='%NODE_ARCH%'; $base=Join-Path $env:LOCALAPPDATA 'NextClaw\\\\runtime'; New-Item -ItemType Directory -Path $base -Force | Out-Null; $zip=Join-Path $env:TEMP ('node-v' + $version + '-win-' + $arch + '.zip'); $mirrors=@('https://npmmirror.com/mirrors/node','https://nodejs.org/dist'); if ($env:NEXTCLAW_NODE_DIST_BASES) { $custom=$env:NEXTCLAW_NODE_DIST_BASES.Split(',') | ForEach-Object { $_.Trim().TrimEnd('/') } | Where-Object { $_ }; if ($custom.Count -gt 0) { $mirrors=@($custom + $mirrors) } }; $ok=$false; foreach ($mirror in $mirrors) { $url=$mirror.TrimEnd('/') + '/v' + $version + '/node-v' + $version + '-win-' + $arch + '.zip'; try { Invoke-WebRequest -Uri $url -OutFile $zip -TimeoutSec 20; $ok=$true; break } catch { } }; if (-not $ok) { throw 'Failed to download Node.js runtime from configured mirrors.' }; Expand-Archive -Path $zip -DestinationPath $base -Force; Remove-Item $zip -Force\"",
+      "if errorlevel 1 goto node_install_failed",
+      "if not exist \"%NODE_EXE%\" goto node_install_failed",
+      ":node_ready",
+      "for %%i in (\"%NODE_EXE%\") do set \"NODE_BIN_DIR=%%~dpi\"",
+      "set \"PATH=%NODE_BIN_DIR%;%NODE_BIN_DIR%node_modules\\npm\\bin;%PATH%\"",
+      "set \"CLI_JS=%BASE_DIR%app\\node_modules\\nextclaw\\dist\\cli\\index.js\"",
+      `"%NODE_EXE%" "%CLI_JS%" ${commandSuffix}`,
+      "exit /b %ERRORLEVEL%",
+      ":node_install_failed",
+      "echo Failed to auto-install Node.js. Please install from https://nodejs.org/ and retry.",
+      "exit /b 1",
+      ""
+    ].join("\r\n");
   }
 
   buildInstallerArtifact() {
@@ -436,7 +525,10 @@ class InstallerBuilder {
   buildMacInstaller() {
     const payloadRoot = resolve(this.stageDir, "pkg-root");
     const appInstallPath = resolve(payloadRoot, "Applications", "NextClaw");
+    const scriptRoot = resolve(this.stageDir, "pkg-scripts");
     mkdirSync(appInstallPath, { recursive: true });
+    mkdirSync(scriptRoot, { recursive: true });
+    this.writeMacPostinstallScript(scriptRoot);
     cpSync(this.bundleDir, appInstallPath, { recursive: true });
     const outFile = resolve(
       this.outputDir,
@@ -449,6 +541,8 @@ class InstallerBuilder {
       "io.nextclaw.installer",
       "--version",
       this.version,
+      "--scripts",
+      scriptRoot,
       "--install-location",
       "/",
       outFile
@@ -472,11 +566,61 @@ class InstallerBuilder {
       "/DAPP_NAME=NextClaw-Beta",
       `/DAPP_VERSION=${this.version}`,
       `/DAPP_ARCH=${this.arch}`,
+      `/DAPP_NODE_VERSION=${this.nodeVersion}`,
       `/DAPP_SOURCE_DIR=${this.toWindowsPath(sourceDir)}`,
       `/DAPP_OUT_FILE=${this.toWindowsPath(outFile)}`,
       this.toWindowsPath(nsisTemplate)
     ]);
     this.installerPath = outFile;
+  }
+
+  writeMacPostinstallScript(scriptRoot) {
+    const nodeDistBases = this.toBashArray(this.getNodeDistBases());
+    const postinstallPath = resolve(scriptRoot, "postinstall");
+    const script = [
+      "#!/bin/bash",
+      "set -u",
+      `NODE_VERSION="${this.nodeVersion}"`,
+      `NODE_DIST_BASES=(${nodeDistBases})`,
+      'if [ -n "${NEXTCLAW_NODE_DIST_BASES:-}" ]; then',
+      '  NODE_DIST_BASES=()',
+      '  IFS="," read -r -a OVERRIDE_BASES <<< "${NEXTCLAW_NODE_DIST_BASES}"',
+      '  for BASE in "${OVERRIDE_BASES[@]}"; do',
+      '    CLEAN="$(echo "$BASE" | xargs)"',
+      '    if [ -n "$CLEAN" ]; then',
+      '      NODE_DIST_BASES+=("${CLEAN%/}")',
+      "    fi",
+      "  done",
+      "fi",
+      "if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 && command -v npx >/dev/null 2>&1; then",
+      "  exit 0",
+      "fi",
+      "echo \"[NextClaw] Node.js is missing. Attempting automatic install...\"",
+      "PKG_FILE=\"/tmp/nextclaw-node-v${NODE_VERSION}.pkg\"",
+      "DOWNLOADED=0",
+      "for BASE in \"${NODE_DIST_BASES[@]}\"; do",
+      "  PKG_URL=\"${BASE%/}/v${NODE_VERSION}/node-v${NODE_VERSION}.pkg\"",
+      "  if /usr/bin/curl -fL --connect-timeout 8 --max-time 180 \"$PKG_URL\" -o \"$PKG_FILE\"; then",
+      "    DOWNLOADED=1",
+      "    break",
+      "  fi",
+      "done",
+      "if [ \"$DOWNLOADED\" -ne 1 ]; then",
+      "  echo \"[NextClaw] Warning: failed to download Node.js package from configured mirrors\" >&2",
+      "  exit 0",
+      "fi",
+      "if ! /usr/sbin/installer -pkg \"$PKG_FILE\" -target /; then",
+      "  echo \"[NextClaw] Warning: Node.js installer failed. You can install Node.js manually from https://nodejs.org/\" >&2",
+      "  rm -f \"$PKG_FILE\"",
+      "  exit 0",
+      "fi",
+      "rm -f \"$PKG_FILE\"",
+      "echo \"[NextClaw] Node.js installation completed.\"",
+      "exit 0",
+      ""
+    ].join("\n");
+    writeFileSync(postinstallPath, script, "utf8");
+    chmodSync(postinstallPath, 0o755);
   }
 
   resolveMakensisBinary() {
