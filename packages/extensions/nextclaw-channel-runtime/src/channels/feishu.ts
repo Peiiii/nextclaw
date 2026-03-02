@@ -13,6 +13,10 @@ const MSG_TYPE_MAP: Record<string, string> = {
 
 const TABLE_RE = /((?:^[ \t]*\|.+\|[ \t]*\n)(?:^[ \t]*\|[-:\s|]+\|[ \t]*\n)(?:^[ \t]*\|.+\|[ \t]*\n?)+)/gm;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
   name = "feishu";
   private client: Lark.Client | null = null;
@@ -80,15 +84,20 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
   }
 
   private async handleIncoming(data: Record<string, unknown>): Promise<void> {
-    const message = (data.message ?? {}) as Record<string, unknown>;
-    const sender = (message.sender ?? data.sender ?? {}) as Record<string, unknown>;
+    const root = isRecord(data.event) ? data.event : data;
+    const message = (root.message ?? data.message ?? {}) as Record<string, unknown>;
+    const sender = (root.sender ?? message.sender ?? data.sender ?? {}) as Record<string, unknown>;
     const senderIdObj = (sender.sender_id as Record<string, unknown> | undefined) ?? {};
+    const senderOpenId =
+      (senderIdObj.open_id as string | undefined) || (sender.open_id as string | undefined) || "";
+    const senderUserId =
+      (senderIdObj.user_id as string | undefined) || (sender.user_id as string | undefined) || "";
+    const senderUnionId =
+      (senderIdObj.union_id as string | undefined) || (sender.union_id as string | undefined) || "";
     const senderId =
-      (senderIdObj.open_id as string | undefined) ||
-      (senderIdObj.user_id as string | undefined) ||
-      (senderIdObj.union_id as string | undefined) ||
-      (sender.open_id as string | undefined) ||
-      (sender.user_id as string | undefined) ||
+      senderOpenId ||
+      senderUserId ||
+      senderUnionId ||
       "";
 
     const senderType = (sender.sender_type as string | undefined) ?? (sender.senderType as string | undefined);
@@ -98,6 +107,7 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
 
     const chatId = (message.chat_id as string | undefined) ?? "";
     const chatType = (message.chat_type as string | undefined) ?? "";
+    const isGroup = chatType === "group";
     const msgType = (message.msg_type as string | undefined) ?? (message.message_type as string | undefined) ?? "";
     const messageId = (message.message_id as string | undefined) ?? "";
 
@@ -134,17 +144,23 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
       return;
     }
 
-    const replyTo = chatType === "group" ? chatId : String(senderId);
-
     await this.handleMessage({
       senderId: String(senderId),
-      chatId: replyTo,
+      // Always route by Feishu chat_id so DM/group sessions are stable.
+      chatId,
       content,
       attachments: [],
       metadata: {
         message_id: messageId,
+        chat_id: chatId,
         chat_type: chatType,
-        msg_type: msgType
+        msg_type: msgType,
+        is_group: isGroup,
+        peer_kind: isGroup ? "group" : "direct",
+        peer_id: chatId,
+        sender_open_id: senderOpenId || undefined,
+        sender_user_id: senderUserId || undefined,
+        sender_union_id: senderUnionId || undefined
       }
     });
   }

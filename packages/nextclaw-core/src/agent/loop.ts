@@ -15,7 +15,7 @@ import { MemorySearchTool, MemoryGetTool } from "./tools/memory.js";
 import { GatewayTool, type GatewayController } from "./tools/gateway.js";
 import { SubagentsTool } from "./tools/subagents.js";
 import { SubagentManager } from "./subagent.js";
-import { SessionManager, type SessionEvent } from "../session/manager.js";
+import { SessionManager, type Session, type SessionEvent } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { Config } from "../config/schema.js";
 import { evaluateSilentReply } from "./silent-reply-policy.js";
@@ -52,7 +52,6 @@ export class AgentLoop {
       workspace: string;
       model?: string | null;
       maxIterations?: number;
-      maxTokens?: number;
       contextTokens?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
@@ -75,7 +74,6 @@ export class AgentLoop {
       workspace: options.workspace,
       bus: options.bus,
       model: options.model ?? options.providerManager.get().getDefaultModel(),
-      maxTokens: options.maxTokens,
       contextTokens: options.contextTokens,
       braveApiKey: options.braveApiKey ?? undefined,
       execConfig: options.execConfig ?? { timeout: 60 },
@@ -237,7 +235,6 @@ export class AgentLoop {
     this.options.providerManager.setConfig(config);
     this.options.model = config.agents.defaults.model;
     this.options.maxIterations = config.agents.defaults.maxToolIterations;
-    this.options.maxTokens = config.agents.defaults.maxTokens;
     this.options.contextTokens = config.agents.defaults.contextTokens;
     this.options.contextConfig = config.agents.context;
     this.options.braveApiKey = config.tools.web.search.apiKey || undefined;
@@ -247,7 +244,6 @@ export class AgentLoop {
     this.context.setContextConfig(config.agents.context);
     this.subagents.updateRuntimeOptions({
       model: config.agents.defaults.model,
-      maxTokens: config.agents.defaults.maxTokens,
       contextTokens: config.agents.defaults.contextTokens,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
@@ -425,6 +421,17 @@ export class AgentLoop {
     messages.splice(0, messages.length, ...result.messages);
   }
 
+  private recordSessionMessage(params: {
+    session: Session;
+    role: string;
+    content: unknown;
+    extra?: Record<string, unknown>;
+    onSessionEvent?: SessionEventHandler;
+  }): void {
+    const event = this.sessions.addMessage(params.session, params.role, params.content, params.extra ?? {});
+    params.onSessionEvent?.(event);
+  }
+
   private async processMessage(
     msg: InboundMessage,
     sessionKeyOverride?: string,
@@ -513,7 +520,12 @@ export class AgentLoop {
       sessionKey,
       messageToolHints
     });
-    options?.onSessionEvent?.(this.sessions.addMessage(session, "user", msg.content));
+    this.recordSessionMessage({
+      session,
+      role: "user",
+      content: msg.content,
+      onSessionEvent: options?.onSessionEvent
+    });
 
     let iteration = 0;
     let finalContent: string | null = null;
@@ -527,12 +539,16 @@ export class AgentLoop {
       const response = await this.chatWithOptionalStreaming({
         messages,
         tools: this.tools.getDefinitions(),
-        model: runtimeModel,
-        maxTokens: this.options.maxTokens
+        model: runtimeModel
       }, options?.onAssistantDelta);
 
       if (containsSilentReplyMarker(response.content)) {
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? ""));
+        this.recordSessionMessage({
+          session,
+          role: "assistant",
+          content: response.content ?? "",
+          onSessionEvent: options?.onSessionEvent
+        });
         this.sessions.save(session);
         return null;
       }
@@ -547,19 +563,31 @@ export class AgentLoop {
           }
         }));
         this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? "", {
-          tool_calls: toolCallDicts,
-          reasoning_content: response.reasoningContent ?? null
-        }));
+        this.recordSessionMessage({
+          session,
+          role: "assistant",
+          content: response.content ?? "",
+          extra: {
+            tool_calls: toolCallDicts,
+            reasoning_content: response.reasoningContent ?? null
+          },
+          onSessionEvent: options?.onSessionEvent
+        });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments, call.id);
           lastToolName = call.name;
           lastToolResult = result;
           this.context.addToolResult(messages, call.id, call.name, result);
-          options?.onSessionEvent?.(this.sessions.addMessage(session, "tool", result, {
-            tool_call_id: call.id,
-            name: call.name
-          }));
+          this.recordSessionMessage({
+            session,
+            role: "tool",
+            content: result,
+            extra: {
+              tool_call_id: call.id,
+              name: call.name
+            },
+            onSessionEvent: options?.onSessionEvent
+          });
         }
       } else {
         finalContent = response.content;
@@ -587,7 +615,12 @@ export class AgentLoop {
     }
     finalContent = finalReplyDecision.content;
 
-    options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", finalContent));
+    this.recordSessionMessage({
+      session,
+      role: "assistant",
+      content: finalContent,
+      onSessionEvent: options?.onSessionEvent
+    });
     this.sessions.save(session);
 
     return {
@@ -664,9 +697,12 @@ export class AgentLoop {
       sessionKey,
       messageToolHints
     });
-    options?.onSessionEvent?.(
-      this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`)
-    );
+    this.recordSessionMessage({
+      session,
+      role: "user",
+      content: `[System: ${msg.senderId}] ${msg.content}`,
+      onSessionEvent: options?.onSessionEvent
+    });
 
     let iteration = 0;
     let finalContent: string | null = null;
@@ -680,12 +716,16 @@ export class AgentLoop {
       const response = await this.chatWithOptionalStreaming({
         messages,
         tools: this.tools.getDefinitions(),
-        model: runtimeModel,
-        maxTokens: this.options.maxTokens
+        model: runtimeModel
       }, options?.onAssistantDelta);
 
       if (containsSilentReplyMarker(response.content)) {
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? ""));
+        this.recordSessionMessage({
+          session,
+          role: "assistant",
+          content: response.content ?? "",
+          onSessionEvent: options?.onSessionEvent
+        });
         this.sessions.save(session);
         return null;
       }
@@ -700,19 +740,31 @@ export class AgentLoop {
           }
         }));
         this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? "", {
-          tool_calls: toolCallDicts,
-          reasoning_content: response.reasoningContent ?? null
-        }));
+        this.recordSessionMessage({
+          session,
+          role: "assistant",
+          content: response.content ?? "",
+          extra: {
+            tool_calls: toolCallDicts,
+            reasoning_content: response.reasoningContent ?? null
+          },
+          onSessionEvent: options?.onSessionEvent
+        });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments, call.id);
           lastToolName = call.name;
           lastToolResult = result;
           this.context.addToolResult(messages, call.id, call.name, result);
-          options?.onSessionEvent?.(this.sessions.addMessage(session, "tool", result, {
-            tool_call_id: call.id,
-            name: call.name
-          }));
+          this.recordSessionMessage({
+            session,
+            role: "tool",
+            content: result,
+            extra: {
+              tool_call_id: call.id,
+              name: call.name
+            },
+            onSessionEvent: options?.onSessionEvent
+          });
         }
       } else {
         finalContent = response.content;
@@ -739,7 +791,12 @@ export class AgentLoop {
     }
     finalContent = finalReplyDecision.content;
 
-    options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", finalContent));
+    this.recordSessionMessage({
+      session,
+      role: "assistant",
+      content: finalContent,
+      onSessionEvent: options?.onSessionEvent
+    });
     this.sessions.save(session);
 
     return {
