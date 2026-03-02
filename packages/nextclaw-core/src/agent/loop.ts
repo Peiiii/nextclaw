@@ -15,7 +15,7 @@ import { MemorySearchTool, MemoryGetTool } from "./tools/memory.js";
 import { GatewayTool, type GatewayController } from "./tools/gateway.js";
 import { SubagentsTool } from "./tools/subagents.js";
 import { SubagentManager } from "./subagent.js";
-import { SessionManager, type SessionEvent } from "../session/manager.js";
+import { SessionManager, type SessionEvent, type Session } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { Config } from "../config/schema.js";
 import { evaluateSilentReply } from "./silent-reply-policy.js";
@@ -34,6 +34,17 @@ type MessageToolHintsResolver = (params: {
 
 type AssistantDeltaHandler = (delta: string) => void;
 type SessionEventHandler = (event: SessionEvent) => void;
+
+interface MessageContext {
+  channel: string;
+  chatId: string;
+  sessionKey: string;
+  accountId: string | undefined;
+  currentMessage: string;
+  historyLabel: string;
+  messageId: string | undefined;
+  attachments?: InboundMessage["attachments"];
+}
 
 export class AgentLoop {
   private context: ContextBuilder;
@@ -425,25 +436,40 @@ export class AgentLoop {
     messages.splice(0, messages.length, ...result.messages);
   }
 
-  private async processMessage(
+  private resolveMessageContext(
     msg: InboundMessage,
-    sessionKeyOverride?: string,
-    options?: { onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
-  ): Promise<OutboundMessage | null> {
-    if (msg.channel === "system") {
-      return this.processSystemMessage(msg, sessionKeyOverride, options);
+    session: Session,
+    sessionKey: string,
+    isSystem: boolean
+  ): MessageContext {
+    if (isSystem) {
+      const separator = msg.chatId.indexOf(":");
+      const channel = separator > 0 ? msg.chatId.slice(0, separator) : "cli";
+      const chatId = separator > 0 ? msg.chatId.slice(separator + 1) : msg.chatId;
+
+      const accountId =
+        (msg.metadata?.account_id as string | undefined) ??
+        (msg.metadata?.accountId as string | undefined) ??
+        (typeof session.metadata.last_account_id === "string" ? (session.metadata.last_account_id as string) : undefined);
+      if (accountId) {
+        session.metadata.last_account_id = accountId;
+      }
+
+      return {
+        channel,
+        chatId,
+        sessionKey,
+        accountId,
+        currentMessage: msg.content,
+        historyLabel: `[System: ${msg.senderId}] ${msg.content}`,
+        messageId: undefined,
+        attachments: undefined
+      };
     }
 
-    const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
-    const session = this.sessions.getOrCreate(sessionKey);
-    this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
-    this.setSessionsSendToolContext({
-      sessionKey,
-      channel: msg.channel,
-      chatId: msg.chatId,
-      handoffDepth: this.resolveHandoffDepth(msg.metadata)
-    });
-    const runtimeModel = this.resolveSessionModel(session, msg.metadata);
+    const channel = msg.channel;
+    const chatId = msg.chatId;
+
     const messageId = msg.metadata?.message_id as string | undefined;
     if (messageId) {
       session.metadata.last_message_id = messageId;
@@ -452,8 +478,9 @@ export class AgentLoop {
     if (sessionLabel) {
       session.metadata.label = sessionLabel;
     }
-    session.metadata.last_channel = msg.channel;
-    session.metadata.last_to = msg.chatId;
+    session.metadata.last_channel = channel;
+    session.metadata.last_to = chatId;
+
     const inboundAccountId =
       (msg.metadata?.account_id as string | undefined) ??
       (msg.metadata?.accountId as string | undefined);
@@ -467,8 +494,8 @@ export class AgentLoop {
       session.metadata.last_account_id = accountId;
     }
     session.metadata.last_delivery_context = this.buildDeliveryContext({
-      channel: msg.channel,
-      chatId: msg.chatId,
+      channel,
+      chatId,
       metadata: msg.metadata,
       accountId
     });
@@ -476,44 +503,68 @@ export class AgentLoop {
     const pendingSystemEvents = this.drainPendingSystemEvents(session);
     const currentMessage = this.prependSystemEvents(msg.content, pendingSystemEvents);
 
+    return {
+      channel,
+      chatId,
+      sessionKey,
+      accountId,
+      currentMessage,
+      historyLabel: msg.content,
+      messageId,
+      attachments: msg.attachments
+    };
+  }
+
+  private setToolContexts(params: { sessionKey: string; channel: string; chatId: string; handoffDepth: number }): void {
+    this.setExtensionToolContext({ sessionKey: params.sessionKey, channel: params.channel, chatId: params.chatId });
+    this.setSessionsSendToolContext(params);
+
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
-      messageTool.setContext(msg.channel, msg.chatId);
+      messageTool.setContext(params.channel, params.chatId);
     }
     const execTool = this.tools.get("exec");
     if (execTool instanceof ExecTool) {
-      execTool.setContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+      execTool.setContext({ sessionKey: params.sessionKey, channel: params.channel, chatId: params.chatId });
     }
     const spawnTool = this.tools.get("spawn");
     if (spawnTool instanceof SpawnTool) {
-      spawnTool.setContext(msg.channel, msg.chatId);
+      spawnTool.setContext(params.channel, params.chatId);
     }
     const cronTool = this.tools.get("cron");
     if (cronTool instanceof CronTool) {
-      cronTool.setContext(msg.channel, msg.chatId);
+      cronTool.setContext(params.channel, params.chatId);
     }
     const gatewayTool = this.tools.get("gateway");
     if (gatewayTool instanceof GatewayTool) {
-      gatewayTool.setContext({ sessionKey });
+      gatewayTool.setContext({ sessionKey: params.sessionKey });
     }
+  }
 
+  private async runAgentLoop(
+    ctx: MessageContext,
+    session: Session,
+    runtimeModel: string,
+    msg: InboundMessage,
+    options?: { onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
+  ): Promise<OutboundMessage | null> {
     const messageToolHints = this.options.resolveMessageToolHints?.({
-      sessionKey,
-      channel: msg.channel,
-      chatId: msg.chatId,
-      accountId: accountId ?? null
+      sessionKey: ctx.sessionKey,
+      channel: ctx.channel,
+      chatId: ctx.chatId,
+      accountId: ctx.accountId ?? null
     });
 
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
-      currentMessage,
-      attachments: msg.attachments,
-      channel: msg.channel,
-      chatId: msg.chatId,
-      sessionKey,
+      currentMessage: ctx.currentMessage,
+      attachments: ctx.attachments,
+      channel: ctx.channel,
+      chatId: ctx.chatId,
+      sessionKey: ctx.sessionKey,
       messageToolHints
     });
-    options?.onSessionEvent?.(this.sessions.addMessage(session, "user", msg.content));
+    options?.onSessionEvent?.(this.sessions.addMessage(session, "user", ctx.historyLabel));
 
     let iteration = 0;
     let finalContent: string | null = null;
@@ -575,7 +626,7 @@ export class AgentLoop {
       });
     }
 
-    const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
+    const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, ctx.messageId);
     finalContent = cleanedContent;
     const finalReplyDecision = evaluateSilentReply({
       content: finalContent,
@@ -591,8 +642,8 @@ export class AgentLoop {
     this.sessions.save(session);
 
     return {
-      channel: msg.channel,
-      chatId: msg.chatId,
+      channel: ctx.channel,
+      chatId: ctx.chatId,
       content: finalContent,
       replyTo,
       media: [],
@@ -600,156 +651,35 @@ export class AgentLoop {
     };
   }
 
-  private async processSystemMessage(
+  private async processMessage(
     msg: InboundMessage,
     sessionKeyOverride?: string,
     options?: { onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
   ): Promise<OutboundMessage | null> {
-    const separator = msg.chatId.indexOf(":");
-    const originChannel = separator > 0 ? msg.chatId.slice(0, separator) : "cli";
-    const originChatId = separator > 0 ? msg.chatId.slice(separator + 1) : msg.chatId;
-
-    const sessionKey = sessionKeyOverride ?? `${originChannel}:${originChatId}`;
+    const isSystem = msg.channel === "system";
+    const defaultSessionKey = isSystem
+      ? (() => {
+          const sep = msg.chatId.indexOf(":");
+          const ch = sep > 0 ? msg.chatId.slice(0, sep) : "cli";
+          const id = sep > 0 ? msg.chatId.slice(sep + 1) : msg.chatId;
+          return `${ch}:${id}`;
+        })()
+      : `${msg.channel}:${msg.chatId}`;
+    const sessionKey = sessionKeyOverride ?? defaultSessionKey;
     const session = this.sessions.getOrCreate(sessionKey);
-    this.setExtensionToolContext({ sessionKey, channel: originChannel, chatId: originChatId });
-    this.setSessionsSendToolContext({
+
+    const ctx = this.resolveMessageContext(msg, session, sessionKey, isSystem);
+
+    this.setToolContexts({
       sessionKey,
-      channel: originChannel,
-      chatId: originChatId,
+      channel: ctx.channel,
+      chatId: ctx.chatId,
       handoffDepth: this.resolveHandoffDepth(msg.metadata)
     });
+
     const runtimeModel = this.resolveSessionModel(session, msg.metadata);
 
-    const messageTool = this.tools.get("message");
-    if (messageTool instanceof MessageTool) {
-      messageTool.setContext(originChannel, originChatId);
-    }
-    const execTool = this.tools.get("exec");
-    if (execTool instanceof ExecTool) {
-      execTool.setContext({ sessionKey, channel: originChannel, chatId: originChatId });
-    }
-    const spawnTool = this.tools.get("spawn");
-    if (spawnTool instanceof SpawnTool) {
-      spawnTool.setContext(originChannel, originChatId);
-    }
-    const cronTool = this.tools.get("cron");
-    if (cronTool instanceof CronTool) {
-      cronTool.setContext(originChannel, originChatId);
-    }
-    const gatewayTool = this.tools.get("gateway");
-    if (gatewayTool instanceof GatewayTool) {
-      gatewayTool.setContext({ sessionKey });
-    }
-
-    const accountId =
-      (msg.metadata?.account_id as string | undefined) ??
-      (msg.metadata?.accountId as string | undefined) ??
-      (typeof session.metadata.last_account_id === "string" ? (session.metadata.last_account_id as string) : undefined);
-    if (accountId) {
-      session.metadata.last_account_id = accountId;
-    }
-
-    const messageToolHints = this.options.resolveMessageToolHints?.({
-      sessionKey,
-      channel: originChannel,
-      chatId: originChatId,
-      accountId: accountId ?? null
-    });
-
-    const messages = this.context.buildMessages({
-      history: this.sessions.getHistory(session),
-      currentMessage: msg.content,
-      channel: originChannel,
-      chatId: originChatId,
-      sessionKey,
-      messageToolHints
-    });
-    options?.onSessionEvent?.(
-      this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`)
-    );
-
-    let iteration = 0;
-    let finalContent: string | null = null;
-    let lastToolName: string | null = null;
-    let lastToolResult: string | null = null;
-    const maxIterations = this.options.maxIterations ?? 20;
-
-    while (iteration < maxIterations) {
-      iteration += 1;
-      this.pruneMessagesForInputBudget(messages);
-      const response = await this.chatWithOptionalStreaming({
-        messages,
-        tools: this.tools.getDefinitions(),
-        model: runtimeModel,
-        maxTokens: this.options.maxTokens
-      }, options?.onAssistantDelta);
-
-      if (containsSilentReplyMarker(response.content)) {
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? ""));
-        this.sessions.save(session);
-        return null;
-      }
-
-      if (response.toolCalls.length) {
-        const toolCallDicts = response.toolCalls.map((call) => ({
-          id: call.id,
-          type: "function",
-          function: {
-            name: call.name,
-            arguments: JSON.stringify(call.arguments)
-          }
-        }));
-        this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
-        options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", response.content ?? "", {
-          tool_calls: toolCallDicts,
-          reasoning_content: response.reasoningContent ?? null
-        }));
-        for (const call of response.toolCalls) {
-          const result = await this.tools.execute(call.name, call.arguments, call.id);
-          lastToolName = call.name;
-          lastToolResult = result;
-          this.context.addToolResult(messages, call.id, call.name, result);
-          options?.onSessionEvent?.(this.sessions.addMessage(session, "tool", result, {
-            tool_call_id: call.id,
-            name: call.name
-          }));
-        }
-      } else {
-        finalContent = response.content;
-        break;
-      }
-    }
-
-    if (typeof finalContent !== "string") {
-      finalContent = buildToolLoopFallback({
-        maxIterations,
-        lastToolName,
-        lastToolResult
-      });
-    }
-    const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
-    finalContent = cleanedContent;
-    const finalReplyDecision = evaluateSilentReply({
-      content: finalContent,
-      media: []
-    });
-    if (finalReplyDecision.shouldDrop) {
-      this.sessions.save(session);
-      return null;
-    }
-    finalContent = finalReplyDecision.content;
-
-    options?.onSessionEvent?.(this.sessions.addMessage(session, "assistant", finalContent));
-    this.sessions.save(session);
-
-    return {
-      channel: originChannel,
-      chatId: originChatId,
-      content: finalContent,
-      replyTo,
-      media: [],
-      metadata: msg.metadata ?? {}
-    };
+    return this.runAgentLoop(ctx, session, runtimeModel, msg, options);
   }
 
   private async chatWithOptionalStreaming(
