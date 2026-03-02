@@ -27,14 +27,14 @@
 ## 3. 功能模块
 
 系统仅包含 3 个一级模块：
-1. Models：默认模型与生成参数配置
+1. Models：默认模型配置
 2. Providers：AI Provider 连接配置
 3. Channels：消息渠道配置与启用
 
 ## 4. 功能需求
 
 ### 4.1 Models（默认模型）
-**目的**：设置默认模型名与基础生成参数
+**目的**：设置默认模型名
 
 **功能**
 - 读取当前配置并展示
@@ -43,7 +43,6 @@
 **字段**
 - model（文本）
 - workspace（文本，当前不持久化）
-- maxTokens（数值，当前不持久化）
 
 **保存行为**
 - 调用 `PUT /api/config/model`
@@ -188,7 +187,7 @@
 
 ## 8. 约束与已知限制
 
-- Model 页面的 workspace / maxTokens 不持久化
+- Model 页面仅提交 `model`；workspace 为展示字段（当前不持久化）
 - 渠道字段定义为前端硬编码，不基于动态 schema
 - WebSocket 连接状态未在 UI 中显式展示
 

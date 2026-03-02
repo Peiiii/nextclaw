@@ -200,4 +200,9 @@
   - 维护责任人：当前助手。
 ## Project Rulebook
 
-- （当前为空）
+- **prefer-local-openclaw-sibling-source**：
+  - 约束/适用范围：当需要查看 OpenClaw 源码时，优先在本项目根目录的同级兄弟目录查找本地 `openclaw` 仓库；若存在，必须优先读取本地源码；仅在本地不存在时才允许使用其它方式（如远程仓库/网络检索）。
+  - 示例：在 `/Users/peiwang/Projects/nextbot` 需要核对 OpenClaw 实现时，先检查 `/Users/peiwang/Projects/openclaw` 并直接读取对应文件。
+  - 反例：本地已有兄弟目录 `openclaw`，但仍直接去网页搜索或查看远程仓库代码。
+  - 执行方式：每次涉及 OpenClaw 对比前，先执行兄弟目录存在性检查；存在则本地检索/读取，不存在再切换远程方案。
+  - 维护责任人：当前助手。

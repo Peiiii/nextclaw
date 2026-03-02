@@ -612,16 +612,12 @@ export function updateModel(
   configPath: string,
   patch: {
     model?: string;
-    maxTokens?: number;
   }
 ): ConfigView {
   const config = loadConfigOrDefault(configPath);
 
   if (typeof patch.model === "string") {
     config.agents.defaults.model = patch.model;
-  }
-  if (typeof patch.maxTokens === "number" && Number.isFinite(patch.maxTokens)) {
-    config.agents.defaults.maxTokens = Math.max(1, Math.trunc(patch.maxTokens));
   }
 
   const next = ConfigSchema.parse(config);

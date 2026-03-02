@@ -50,8 +50,7 @@ export class LiteLLMProvider extends LLMProvider {
     const requestedModel = this.stripCustomProviderPrefix(params.model ?? this.defaultModel);
     const resolvedModel = this.resolveModel(requestedModel);
     const apiModel = this.stripRoutingPrefix(resolvedModel);
-    const maxTokens = params.maxTokens ?? 4096;
-    const overrides = this.applyModelOverrides(apiModel, { maxTokens });
+    const overrides = this.applyModelOverrides(apiModel, { maxTokens: params.maxTokens });
 
     return this.client.chat({
       messages: params.messages,
@@ -70,8 +69,7 @@ export class LiteLLMProvider extends LLMProvider {
     const requestedModel = this.stripCustomProviderPrefix(params.model ?? this.defaultModel);
     const resolvedModel = this.resolveModel(requestedModel);
     const apiModel = this.stripRoutingPrefix(resolvedModel);
-    const maxTokens = params.maxTokens ?? 4096;
-    const overrides = this.applyModelOverrides(apiModel, { maxTokens });
+    const overrides = this.applyModelOverrides(apiModel, { maxTokens: params.maxTokens });
 
     for await (const event of this.client.chatStream({
       messages: params.messages,
@@ -130,7 +128,7 @@ export class LiteLLMProvider extends LLMProvider {
     return model;
   }
 
-  private applyModelOverrides(model: string, params: { maxTokens: number }) {
+  private applyModelOverrides(model: string, params: { maxTokens?: number }) {
     const spec = this.getStandardSpec(model);
     if (!spec?.modelOverrides?.length) {
       return params;

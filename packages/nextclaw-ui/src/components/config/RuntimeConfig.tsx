@@ -28,7 +28,6 @@ function createEmptyAgent(): AgentProfileView {
     default: false,
     workspace: '',
     model: '',
-    maxTokens: undefined,
     contextTokens: undefined,
     maxToolIterations: undefined
   };
@@ -74,7 +73,6 @@ export function RuntimeConfig() {
         default: Boolean(agent.default),
         workspace: agent.workspace ?? '',
         model: agent.model ?? '',
-        maxTokens: agent.maxTokens,
         contextTokens: agent.contextTokens,
         maxToolIterations: agent.maxToolIterations
       }))
@@ -142,9 +140,6 @@ export function RuntimeConfig() {
         }
         if (agent.model?.trim()) {
           normalized.model = agent.model.trim();
-        }
-        if (typeof agent.maxTokens === 'number') {
-          normalized.maxTokens = agent.maxTokens;
         }
         if (typeof agent.contextTokens === 'number') {
           normalized.contextTokens = Math.max(1000, agent.contextTokens);
@@ -313,18 +308,7 @@ export function RuntimeConfig() {
                   onChange={(event) => updateAgent(index, { model: event.target.value })}
                   placeholder={t('modelOverridePlaceholder')}
                 />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                  <Input
-                    type="number"
-                    min={1}
-                    value={agent.maxTokens ?? ''}
-                    onChange={(event) =>
-                      updateAgent(index, {
-                        maxTokens: parseOptionalInt(event.target.value)
-                      })
-                    }
-                    placeholder={t('maxTokensPlaceholder')}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <Input
                     type="number"
                     min={1000}

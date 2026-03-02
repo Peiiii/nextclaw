@@ -126,7 +126,6 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `channels.*`
 - `agents.defaults.model`
 - `agents.defaults.maxToolIterations`
-- `agents.defaults.maxTokens`
 - `agents.defaults.contextTokens`
 - `agents.context.*`
 - `tools.*`

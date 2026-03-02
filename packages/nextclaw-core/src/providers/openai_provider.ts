@@ -100,7 +100,6 @@ export class OpenAICompatibleProvider extends LLMProvider {
     maxTokens?: number;
   }): Promise<LLMResponse> {
     const model = params.model ?? this.defaultModel;
-    const maxTokens = params.maxTokens ?? 4096;
 
     const response = await this.withRetry(async () =>
       this.client.chat.completions.create({
@@ -108,7 +107,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
         messages: params.messages as unknown as ChatCompletionMessageParam[],
         tools: params.tools as ChatCompletionTool[] | undefined,
         tool_choice: params.tools?.length ? "auto" : undefined,
-        max_tokens: maxTokens
+        ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {})
       })
     );
 
@@ -125,14 +124,13 @@ export class OpenAICompatibleProvider extends LLMProvider {
     maxTokens?: number;
   }): AsyncGenerator<LLMStreamEvent> {
     const model = params.model ?? this.defaultModel;
-    const maxTokens = params.maxTokens ?? 4096;
     const stream = await this.withRetry(async () =>
       this.client.chat.completions.create({
         model,
         messages: params.messages as unknown as ChatCompletionMessageParam[],
         tools: params.tools as ChatCompletionTool[] | undefined,
         tool_choice: params.tools?.length ? "auto" : undefined,
-        max_tokens: maxTokens,
+        ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {}),
         stream: true,
         stream_options: {
           include_usage: true

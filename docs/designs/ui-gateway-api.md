@@ -54,7 +54,6 @@ export type ConfigView = {
     defaults: {
       model: string;
       workspace?: string;
-      maxTokens?: number;
       maxToolIterations?: number;
     };
   };
@@ -96,7 +95,6 @@ export type ConfigMetaView = {
 export type AgentDefaults = {
   workspace: string;
   model: string;
-  maxTokens: number;
   maxToolIterations: number;
 };
 

@@ -58,7 +58,6 @@ export type AgentProfileView = {
   default?: boolean;
   workspace?: string;
   model?: string;
-  maxTokens?: number;
   contextTokens?: number;
   maxToolIterations?: number;
 };
@@ -300,7 +299,6 @@ export type ConfigView = {
     defaults: {
       model: string;
       workspace?: string;
-      maxTokens?: number;
       contextTokens?: number;
       maxToolIterations?: number;
     };
