@@ -130,7 +130,6 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `channels.*`
 - `agents.defaults.model`
 - `agents.defaults.maxToolIterations`
-- `agents.defaults.maxTokens`
 - `agents.defaults.contextTokens`
 - `agents.context.*`
 - `tools.*`
@@ -142,7 +141,7 @@ Restart is still required for:
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: plugins reloaded.` / `Config reload: plugin channel gateways restarted.` / `Config reload: channels restarted.`
 
-UI note: **Model** page save now persists both `agents.defaults.model` and `agents.defaults.maxTokens` (refresh should keep the updated max token value).
+UI note: **Model** page save persists `agents.defaults.model` only.
 
 ### Multi-agent routing & session isolation (OpenClaw-aligned)
 
@@ -170,7 +169,6 @@ Example:
         "id": "engineer",
         "workspace": "~/workspace-engineer",
         "model": "openai/gpt-5.2-codex",
-        "maxTokens": 12000,
         "contextTokens": 200000,
         "maxToolIterations": 24
       }

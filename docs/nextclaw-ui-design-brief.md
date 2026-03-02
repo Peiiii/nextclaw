@@ -49,13 +49,12 @@ No login/auth, no chat interface, no message history, no status/monitoring dashb
 
 ## 4. Page 1 — Models (Model configuration)
 
-**Purpose:** Set the default AI model and show (optionally editable but not persisted) workspace and generation parameters.
+**Purpose:** Set the default AI model and show workspace.
 
 **Data shown and editable:**
 
 - **model** (string) — **Persisted.** Default model name, e.g. `minimax/MiniMax-M2.5`.  
 - **workspace** (string) — Shown and editable in UI but **not persisted** in this app (backend may have its own default).  
-- **maxTokens** (number) — Shown and editable (e.g. slider 1000–32000). **Not persisted** from this UI.  
 
 **Actions:**
 
@@ -66,7 +65,6 @@ No login/auth, no chat interface, no message history, no status/monitoring dashb
 Page title “Model Configuration” and short description; then a form with:  
 - A “Default Model” block: model name input + short hint (examples).  
 - A “Workspace” block: workspace path input.  
-- A “Generation Parameters” block: Max Tokens slider.  
 - A single submit button at the end.
 
 **Designer freedom:** Grouping, order, visual hierarchy, and layout can change; the above **data and single save action** must remain.
@@ -184,7 +182,7 @@ boolean → toggle/switch; password → masked input (optional “show”); text
 ## 9. APIs and data (summary)
 
 - **Base URL:** `http://127.0.0.1:18791` (overridable via env for the app).  
-- **GET /api/config** — Full config: `agents.defaults` (model, workspace, maxTokens, …), `providers` (per-provider: apiKeySet, apiBase, extraHeaders, wireApi), `channels` (per-channel key-value).  
+- **GET /api/config** — Full config: `agents.defaults` (model, workspace, ...), `providers` (per-provider: apiKeySet, apiBase, extraHeaders, wireApi), `channels` (per-channel key-value).  
 - **GET /api/config/meta** — Lists: `providers[]` (name, displayName, defaultApiBase, supportsWireApi, …), `channels[]` (name, displayName, enabled, tutorialUrl).  
 - **PUT /api/config/model** — Body: `{ model: string }`.  
 - **PUT /api/config/providers/:provider** — Body: optional apiKey, apiBase, extraHeaders, wireApi.  

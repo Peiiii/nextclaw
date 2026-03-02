@@ -126,7 +126,6 @@ NextClaw 已支持 `openclaw secrets` 风格的秘密引用，支持 `env` / `fi
 - `channels.*`
 - `agents.defaults.model`
 - `agents.defaults.maxToolIterations`
-- `agents.defaults.maxTokens`
 - `agents.defaults.contextTokens`
 - `agents.context.*`
 - `tools.*`

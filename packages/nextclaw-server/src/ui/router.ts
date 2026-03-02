@@ -1648,32 +1648,26 @@ export function createUiRouter(options: UiRouterOptions): Hono {
   });
 
   app.put("/api/config/model", async (c) => {
-    const body = await readJson<{ model?: string; maxTokens?: number }>(c.req.raw);
+    const body = await readJson<{ model?: string }>(c.req.raw);
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
 
     const hasModel = typeof body.data.model === "string";
-    const hasMaxTokens = typeof body.data.maxTokens === "number";
-    if (!hasModel && !hasMaxTokens) {
-      return c.json(err("INVALID_BODY", "model or maxTokens is required"), 400);
+    if (!hasModel) {
+      return c.json(err("INVALID_BODY", "model is required"), 400);
     }
 
     const view = updateModel(options.configPath, {
-      model: hasModel ? body.data.model : undefined,
-      maxTokens: hasMaxTokens ? body.data.maxTokens : undefined
+      model: body.data.model
     });
 
     if (hasModel) {
       options.publish({ type: "config.updated", payload: { path: "agents.defaults.model" } });
     }
-    if (hasMaxTokens) {
-      options.publish({ type: "config.updated", payload: { path: "agents.defaults.maxTokens" } });
-    }
 
     return c.json(ok({
-      model: view.agents.defaults.model,
-      maxTokens: view.agents.defaults.maxTokens
+      model: view.agents.defaults.model
     }));
   });
 

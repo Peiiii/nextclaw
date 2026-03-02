@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { SearchableModelInput } from '@/components/common/SearchableModelInput';
 import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/hooks/useConfig';
 import { hintForPath } from '@/lib/config-hints';
-import { formatNumber, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { DOCS_DEFAULT_BASE_URL } from '@/components/doc-browser/DocBrowserContext';
-import { BookOpen, Folder, Loader2, Sliders, Sparkles } from 'lucide-react';
+import { BookOpen, Folder, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 function normalizeStringList(input: string[] | null | undefined): string[] {
@@ -85,11 +85,9 @@ export function ModelConfig() {
   const [providerName, setProviderName] = useState('');
   const [modelId, setModelId] = useState('');
   const [workspace, setWorkspace] = useState('');
-  const [maxTokens, setMaxTokens] = useState(8192);
   const uiHints = schema?.uiHints;
   const modelHint = hintForPath('agents.defaults.model', uiHints);
   const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
-  const maxTokensHint = hintForPath('agents.defaults.maxTokens', uiHints);
 
   const providerCatalog = useMemo(() => {
     return (meta?.providers ?? []).map((provider) => {
@@ -135,7 +133,6 @@ export function ModelConfig() {
     setProviderName(effectiveProvider);
     setModelId(toProviderLocalModel(currentModel, aliases));
     setWorkspace(config.agents.defaults.workspace || '');
-    setMaxTokens(config.agents.defaults.maxTokens || 8192);
   }, [config, providerCatalog, providerMap]);
 
   const modelOptions = useMemo(() => {
@@ -176,7 +173,7 @@ export function ModelConfig() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateModel.mutate({ model: composedModel, maxTokens });
+    updateModel.mutate({ model: composedModel });
   };
 
   if (isLoading) {
@@ -199,13 +196,7 @@ export function ModelConfig() {
         </Card>
         <Card className="rounded-2xl border-gray-200 p-6">
           <Skeleton className="h-5 w-24 mb-2" />
-          <Skeleton className="h-3 w-40 mb-6" />
-          <div className="space-y-6">
-            <div>
-              <Skeleton className="h-4 w-28 mb-3" />
-              <Skeleton className="h-2 w-full rounded-full" />
-            </div>
-          </div>
+          <Skeleton className="h-10 w-full rounded-xl" />
         </Card>
       </div>
     );
@@ -290,36 +281,6 @@ export function ModelConfig() {
                 onChange={(e) => setWorkspace(e.target.value)}
                 placeholder={workspaceHint?.placeholder ?? '/path/to/workspace'}
                 className="rounded-xl"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Parameters Section */}
-        <div className="p-8 rounded-2xl bg-white border border-gray-200 shadow-card">
-          <div className="flex items-center gap-4 mb-10">
-            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white">
-              <Sliders className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900">{t('generationParameters')}</h3>
-          </div>
-
-          <div className="grid grid-cols-1 gap-12">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center mb-2">
-                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  {maxTokensHint?.label ?? t('maxTokens')}
-                </Label>
-                <span className="text-sm font-semibold text-gray-900">{formatNumber(maxTokens)}</span>
-              </div>
-              <input
-                type="range"
-                min="1000"
-                max="32000"
-                step="1000"
-                value={maxTokens}
-                onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                className="w-full h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-primary"
               />
             </div>
           </div>

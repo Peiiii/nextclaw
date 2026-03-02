@@ -60,9 +60,8 @@ export async function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
 // PUT /api/config/model
 export async function updateModel(data: {
   model: string;
-  maxTokens?: number;
-}): Promise<{ model: string; maxTokens?: number }> {
-  const response = await api.put<{ model: string; maxTokens?: number }>('/api/config/model', data);
+}): Promise<{ model: string }> {
+  const response = await api.put<{ model: string }>('/api/config/model', data);
   if (!response.ok) {
     throw new Error(response.error.message);
   }

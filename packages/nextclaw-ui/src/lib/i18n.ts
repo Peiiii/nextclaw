@@ -161,10 +161,9 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
 
   // Model
   modelPageTitle: { zh: '模型配置', en: 'Model Configuration' },
-  modelPageDescription: { zh: '配置默认 AI 模型和运行参数限制', en: 'Configure default AI model and runtime limits' },
+  modelPageDescription: { zh: '配置默认 AI 模型选择', en: 'Configure default AI model selection' },
   defaultModel: { zh: '默认模型', en: 'Default Model' },
   workspace: { zh: '工作空间', en: 'Workspace' },
-  generationParameters: { zh: '生成参数', en: 'Generation Parameters' },
   modelName: { zh: '模型', en: 'Model' },
   modelPickerNoOptions: { zh: '暂无可选模型', en: 'No model options available' },
   modelPickerUseCustom: { zh: '使用自定义模型：{value}', en: 'Use custom model: {value}' },
@@ -172,7 +171,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
     zh: '如果列表里没有目标模型，可直接输入自定义模型 ID。',
     en: 'If the model is not listed, type a custom model ID directly.'
   },
-  maxTokens: { zh: '最大 Token 数', en: 'Max Tokens' },
   maxToolIterations: { zh: '最大工具迭代次数', en: 'Max Tool Iterations' },
   saveChanges: { zh: '保存变更', en: 'Save Changes' },
 
@@ -372,7 +370,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   agentIdPlaceholder: { zh: 'Agent ID（例如 engineer）', en: 'Agent ID (e.g. engineer)' },
   workspaceOverridePlaceholder: { zh: '工作空间覆盖（可选）', en: 'Workspace override (optional)' },
   modelOverridePlaceholder: { zh: '模型覆盖（可选）', en: 'Model override (optional)' },
-  maxTokensPlaceholder: { zh: '最大 tokens', en: 'Max tokens' },
   contextTokensPlaceholder: { zh: '上下文 tokens', en: 'Context tokens' },
   maxToolsPlaceholder: { zh: '最大工具次数', en: 'Max tools' },
   defaultAgent: { zh: '默认 Agent', en: 'Default agent' },

@@ -36,7 +36,6 @@ function resolveAgentProfiles(config: Config): Array<{
   workspace: string;
   model: string;
   maxIterations: number;
-  maxTokens: number;
   contextTokens: number;
 }> {
   const defaults = config.agents.defaults;
@@ -46,7 +45,6 @@ function resolveAgentProfiles(config: Config): Array<{
     workspace?: string;
     model?: string;
     maxToolIterations?: number;
-    maxTokens?: number;
     contextTokens?: number;
   };
   const listed = Array.isArray(config.agents.list)
@@ -57,7 +55,6 @@ function resolveAgentProfiles(config: Config): Array<{
           workspace: entry.workspace,
           model: entry.model,
           maxToolIterations: entry.maxToolIterations,
-          maxTokens: entry.maxTokens,
           contextTokens: entry.contextTokens
         }))
         .filter((entry) => Boolean(entry.id))
@@ -81,7 +78,6 @@ function resolveAgentProfiles(config: Config): Array<{
     workspace: getWorkspacePath(entry.workspace ?? defaults.workspace),
     model: entry.model ?? defaults.model,
     maxIterations: entry.maxToolIterations ?? defaults.maxToolIterations,
-    maxTokens: entry.maxTokens ?? defaults.maxTokens,
     contextTokens: entry.contextTokens ?? defaults.contextTokens
   }));
 }
@@ -233,7 +229,6 @@ export class GatewayAgentRuntimePool {
         workspace: profile.workspace,
         model: profile.model,
         maxIterations: profile.maxIterations,
-        maxTokens: profile.maxTokens,
         contextTokens: profile.contextTokens,
         braveApiKey: this.options.braveApiKey,
         execConfig: this.options.execConfig,
