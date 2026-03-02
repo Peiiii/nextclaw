@@ -13,6 +13,7 @@ Electron desktop shell for NextClaw.
 
 - `build:main` uses `tsc` emit (no bundling). This avoids bundling Electron's runtime loader into `dist/main.js`.
 - `dev` will auto-check `nextclaw/dist`. If missing, it auto-runs `pnpm -C packages/nextclaw build`.
+- `pack` / `dist` will auto-ensure `nextclaw-ui` + `nextclaw` runtime artifacts before packaging.
 - If you see `Electron failed to install correctly`, first run:
   - `PATH=/opt/homebrew/bin:$PATH pnpm install`
   - `PATH=/opt/homebrew/bin:$PATH pnpm -C apps/desktop build`

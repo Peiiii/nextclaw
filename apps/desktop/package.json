@@ -12,8 +12,8 @@
     "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
     "lint": "eslint \"src/**/*.ts\"",
     "tsc": "tsc -p tsconfig.json --noEmit",
-    "pack": "pnpm build:main && electron-builder --dir",
-    "dist": "pnpm build:main && electron-builder",
+    "pack": "node scripts/ensure-runtime.mjs && pnpm build:main && electron-builder --dir",
+    "dist": "node scripts/ensure-runtime.mjs && pnpm build:main && electron-builder",
     "smoke": "pnpm build:main && node scripts/smoke-runtime.mjs"
   },
   "dependencies": {

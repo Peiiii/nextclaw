@@ -63,6 +63,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          node apps/desktop/scripts/ensure-runtime.mjs
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
 
