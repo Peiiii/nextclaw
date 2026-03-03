@@ -1,12 +1,13 @@
 {
   "name": "@nextclaw/desktop",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": true,
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
   "main": "dist/main.js",
   "license": "MIT",
   "scripts": {
+    "icons:generate": "node scripts/generate-icons.mjs",
     "dev": "node scripts/ensure-runtime.mjs && pnpm build:main && env -u ELECTRON_RUN_AS_NODE electron .",
     "build": "pnpm build:main",
     "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
@@ -49,7 +50,8 @@
     "appId": "io.nextclaw.desktop",
     "productName": "NextClaw Desktop",
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "files": [
       "dist/**/*",
@@ -58,6 +60,7 @@
     "npmRebuild": false,
     "asar": true,
     "mac": {
+      "icon": "build/icons/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -65,6 +68,7 @@
       "category": "public.app-category.productivity"
     },
     "win": {
+      "icon": "build/icons/icon.ico",
       "target": [
         {
           "target": "nsis",
