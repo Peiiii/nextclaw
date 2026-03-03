@@ -1,0 +1,43 @@
+{
+  "name": "@nextclaw/nextclaw-engine-claude-agent-sdk",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NextClaw Claude Agent SDK engine plugin backed by Anthropic official SDK.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "files": [
+    "dist",
+    "claude-agent-sdk-loader.cjs",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "openclaw": {
+    "extensions": [
+      "dist/index.js"
+    ]
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.63",
+    "@nextclaw/core": "^0.6.45",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}

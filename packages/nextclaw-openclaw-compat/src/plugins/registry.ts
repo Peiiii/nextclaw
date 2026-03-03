@@ -31,7 +31,7 @@ function ensureUniqueNames(params: {
   source: string;
   owners: Map<string, string>;
   reserved: Set<string>;
-  kind: "tool" | "channel" | "provider";
+  kind: "tool" | "channel" | "provider" | "engine";
 }): string[] {
   const accepted: string[] = [];
   for (const rawName of params.names) {
@@ -91,10 +91,12 @@ export type PluginRegisterRuntime = {
   toolNameOwners: Map<string, string>;
   channelIdOwners: Map<string, string>;
   providerIdOwners: Map<string, string>;
+  engineKindOwners: Map<string, string>;
   resolvedToolNames: Set<string>;
   reservedToolNames: Set<string>;
   reservedChannelIds: Set<string>;
   reservedProviderIds: Set<string>;
+  reservedEngineKinds: Set<string>;
 };
 
 export function createPluginRegisterRuntime(params: {
@@ -105,6 +107,7 @@ export function createPluginRegisterRuntime(params: {
   reservedToolNames: Set<string>;
   reservedChannelIds: Set<string>;
   reservedProviderIds: Set<string>;
+  reservedEngineKinds: Set<string>;
 }): PluginRegisterRuntime {
   return {
     config: params.config,
@@ -114,10 +117,12 @@ export function createPluginRegisterRuntime(params: {
     toolNameOwners: new Map<string, string>(),
     channelIdOwners: new Map<string, string>(),
     providerIdOwners: new Map<string, string>(),
+    engineKindOwners: new Map<string, string>(),
     resolvedToolNames: new Set<string>(),
     reservedToolNames: params.reservedToolNames,
     reservedChannelIds: params.reservedChannelIds,
-    reservedProviderIds: params.reservedProviderIds
+    reservedProviderIds: params.reservedProviderIds,
+    reservedEngineKinds: params.reservedEngineKinds
   };
 }
 
@@ -355,6 +360,35 @@ function registerPluginProvider(params: {
   params.record.providerIds.push(accepted[0]);
 }
 
+function registerPluginEngine(params: {
+  runtime: PluginRegisterRuntime;
+  record: PluginRecord;
+  pluginId: string;
+  source: string;
+  kind: string;
+  factory: PluginRegistry["engines"][number]["factory"];
+}): void {
+  const accepted = ensureUniqueNames({
+    names: [params.kind],
+    pluginId: params.pluginId,
+    diagnostics: params.runtime.registry.diagnostics,
+    source: params.source,
+    owners: params.runtime.engineKindOwners,
+    reserved: params.runtime.reservedEngineKinds,
+    kind: "engine"
+  });
+  if (accepted.length === 0) {
+    return;
+  }
+  params.runtime.registry.engines.push({
+    pluginId: params.pluginId,
+    kind: accepted[0],
+    factory: params.factory,
+    source: params.source
+  });
+  params.record.engineKinds.push(accepted[0]);
+}
+
 export function registerPluginWithApi(params: {
   runtime: PluginRegisterRuntime;
   record: PluginRecord;
@@ -413,6 +447,26 @@ export function registerPluginWithApi(params: {
         pluginId: params.pluginId,
         source: params.source,
         provider
+      });
+    },
+    registerEngine: (factory, opts) => {
+      const kind = opts?.kind?.trim().toLowerCase();
+      if (!kind) {
+        params.runtime.registry.diagnostics.push({
+          level: "error",
+          pluginId: params.pluginId,
+          source: params.source,
+          message: "registerEngine requires opts.kind"
+        });
+        return;
+      }
+      registerPluginEngine({
+        runtime: params.runtime,
+        record: params.record,
+        pluginId: params.pluginId,
+        source: params.source,
+        kind,
+        factory
       });
     },
     registerHook: () => pushUnsupported("registerHook"),

@@ -195,6 +195,8 @@ export const ChannelsConfigSchema = z.object({
 export const AgentDefaultsSchema = z.object({
   workspace: z.string().default(DEFAULT_WORKSPACE_PATH),
   model: z.string().default("anthropic/claude-opus-4-5"),
+  engine: z.string().default("native"),
+  engineConfig: z.record(z.unknown()).default({}),
   contextTokens: z.number().int().min(1000).default(200000),
   maxToolIterations: z.number().int().default(1000)
 });
@@ -204,6 +206,8 @@ export const AgentProfileSchema = z.object({
   default: z.boolean().default(false),
   workspace: z.string().optional(),
   model: z.string().optional(),
+  engine: z.string().optional(),
+  engineConfig: z.record(z.unknown()).optional(),
   contextTokens: z.number().int().min(1000).optional(),
   maxToolIterations: z.number().int().optional()
 });

@@ -1,0 +1,11 @@
+{
+  "id": "nextclaw-engine-claude-agent-sdk",
+  "name": "NextClaw Claude Agent SDK Engine",
+  "description": "Registers engine kind `claude-agent-sdk` backed by Anthropic Claude Agent SDK.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {}
+  }
+}

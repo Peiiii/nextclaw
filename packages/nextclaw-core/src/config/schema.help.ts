@@ -2,6 +2,8 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.defaults.workspace": "Workspace directory for agent context files and memory.",
   "agents.defaults.model":
     "Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.",
+  "agents.defaults.engine": "Default agent engine kind. Built-in: native. Plugin engines can register additional kinds.",
+  "agents.defaults.engineConfig": "Default engine config payload passed to the selected agent engine.",
   "agents.defaults.contextTokens": "Maximum model input context budget (used for token-budget pruning before provider calls).",
   "agents.defaults.maxToolIterations": "Maximum tool calls per turn.",
   "agents.list": "List of agent runtimes hosted by one gateway process.",
@@ -9,6 +11,8 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.list.*.default": "Mark this agent as the default routing target.",
   "agents.list.*.workspace": "Optional per-agent workspace override.",
   "agents.list.*.model": "Optional per-agent model override.",
+  "agents.list.*.engine": "Optional per-agent engine override.",
+  "agents.list.*.engineConfig": "Optional per-agent engine config override.",
   "agents.list.*.contextTokens": "Optional per-agent input context budget override.",
   "agents.list.*.maxToolIterations": "Optional per-agent max tool iterations.",
   "agents.context.bootstrap.files": "Files injected into the system prompt at startup.",

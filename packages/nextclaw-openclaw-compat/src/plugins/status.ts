@@ -14,6 +14,7 @@ export function buildPluginStatusReport(params: {
   reservedToolNames?: string[];
   reservedChannelIds?: string[];
   reservedProviderIds?: string[];
+  reservedEngineKinds?: string[];
 }): PluginStatusReport {
   const workspaceDir = params.workspaceDir?.trim() || getWorkspacePathFromConfig(params.config);
   const registry = loadOpenClawPlugins({
@@ -22,7 +23,8 @@ export function buildPluginStatusReport(params: {
     logger: params.logger,
     reservedToolNames: params.reservedToolNames,
     reservedChannelIds: params.reservedChannelIds,
-    reservedProviderIds: params.reservedProviderIds
+    reservedProviderIds: params.reservedProviderIds,
+    reservedEngineKinds: params.reservedEngineKinds
   });
 
   return {

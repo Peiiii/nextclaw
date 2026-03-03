@@ -56,6 +56,7 @@ export function loadPluginRegistry(config: Config, workspaceDir: string): Plugin
     ],
     reservedChannelIds: [],
     reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+    reservedEngineKinds: ["native"],
     logger: {
       info: (message) => console.log(message),
       warn: (message) => console.warn(message),
@@ -78,6 +79,12 @@ export function toExtensionRegistry(pluginRegistry: PluginRegistry): ExtensionRe
       extensionId: channel.pluginId,
       channel: channel.channel,
       source: channel.source
+    })),
+    engines: pluginRegistry.engines.map((engine) => ({
+      extensionId: engine.pluginId,
+      kind: engine.kind,
+      factory: engine.factory,
+      source: engine.source
     })),
     diagnostics: pluginRegistry.diagnostics.map((diag) => ({
       level: diag.level,
@@ -166,7 +173,8 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedEngineKinds: ["native"]
     });
 
     const list = opts.enabled ? report.plugins.filter((plugin) => plugin.status === "loaded") : report.plugins;
@@ -219,6 +227,9 @@ export class PluginCommands {
       if (plugin.providerIds.length > 0) {
         console.log(`  providers: ${plugin.providerIds.join(", ")}`);
       }
+      if (plugin.engineKinds.length > 0) {
+        console.log(`  engines: ${plugin.engineKinds.join(", ")}`);
+      }
       if (plugin.error) {
         console.log(`  error: ${plugin.error}`);
       }
@@ -233,7 +244,8 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedEngineKinds: ["native"]
     });
 
     const plugin = report.plugins.find((entry) => entry.id === id || entry.name === id);
@@ -271,6 +283,9 @@ export class PluginCommands {
     }
     if (plugin.providerIds.length > 0) {
       lines.push(`Providers: ${plugin.providerIds.join(", ")}`);
+    }
+    if (plugin.engineKinds.length > 0) {
+      lines.push(`Engines: ${plugin.engineKinds.join(", ")}`);
     }
     if (plugin.error) {
       lines.push(`Error: ${plugin.error}`);
@@ -322,7 +337,8 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedEngineKinds: ["native"]
     });
 
     const keepFiles = Boolean(opts.keepFiles || opts.keepConfig);
@@ -538,7 +554,8 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedEngineKinds: ["native"]
     });
 
     const pluginErrors = report.plugins.filter((plugin) => plugin.status === "error");

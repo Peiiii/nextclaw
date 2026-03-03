@@ -8,12 +8,16 @@ type PendingChatMessage = {
   message: string;
   sessionKey: string;
   agentId: string;
+  model?: string;
+  requestedSkills?: string[];
 };
 
 type SendMessageParams = {
   message: string;
   sessionKey: string;
   agentId: string;
+  model?: string;
+  requestedSkills?: string[];
   restoreDraftOnError?: boolean;
 };
 
@@ -42,6 +46,20 @@ function clearStreamingState(setters: StreamSetters) {
   setters.setStreamingAssistantText('');
   setters.setStreamingAssistantTimestamp(null);
   setters.setIsAwaitingAssistantOutput(false);
+}
+
+function normalizeRequestedSkills(value: string[] | undefined): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const deduped = new Set<string>();
+  for (const item of value) {
+    const trimmed = item.trim();
+    if (trimmed) {
+      deduped.add(trimmed);
+    }
+  }
+  return [...deduped];
 }
 
 async function executeSendRun(params: {
@@ -92,10 +110,19 @@ async function executeSendRun(params: {
     const streamTimestamp = new Date().toISOString();
     setters.setStreamingAssistantTimestamp(streamTimestamp);
 
+    const requestedSkills = normalizeRequestedSkills(item.requestedSkills);
     const result = await sendChatTurnStream({
       message: item.message,
       sessionKey: item.sessionKey,
       agentId: item.agentId,
+      ...(item.model ? { model: item.model } : {}),
+      ...(requestedSkills.length > 0
+        ? {
+            metadata: {
+              requested_skills: requestedSkills
+            }
+          }
+        : {}),
       channel: 'ui',
       chatId: 'web-ui'
     }, {
@@ -243,7 +270,11 @@ export function useChatStreamController(params: UseChatStreamControllerParams) {
         id: queueIdRef.current,
         message: payload.message,
         sessionKey: payload.sessionKey,
-        agentId: payload.agentId
+        agentId: payload.agentId,
+        ...(payload.model ? { model: payload.model } : {}),
+        ...(payload.requestedSkills && payload.requestedSkills.length > 0
+          ? { requestedSkills: payload.requestedSkills }
+          : {})
       };
       if (isSending) {
         setQueuedMessages((prev) => [...prev, item]);

@@ -1,0 +1,11 @@
+{
+  "id": "nextclaw-engine-codex-sdk",
+  "name": "NextClaw Codex SDK Engine",
+  "description": "Registers engine kind `codex-sdk` backed by OpenAI Codex SDK.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": true,
+    "properties": {}
+  }
+}

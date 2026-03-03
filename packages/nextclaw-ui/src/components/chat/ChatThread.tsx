@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import type { SessionEventView, SessionMessageView } from '@/api/types';
 import { cn } from '@/lib/utils';
 import {
@@ -24,6 +24,10 @@ type ChatThreadProps = {
 
 const MARKDOWN_MAX_CHARS = 140_000;
 const TOOL_OUTPUT_PREVIEW_MAX = 220;
+
+type WorkflowToolCard = ToolCard & {
+  _workflowStep?: number;
+};
 
 function trimMarkdown(value: string): string {
   if (value.length <= MARKDOWN_MAX_CHARS) {
@@ -104,7 +108,7 @@ function MarkdownBlock({ text, role }: { text: string; role: ChatRole }) {
   );
 }
 
-function ToolCardView({ card }: { card: ToolCard }) {
+function ToolCardView({ card }: { card: WorkflowToolCard }) {
   const title = card.kind === 'call' ? t('chatToolCall') : t('chatToolResult');
   const output = card.text?.trim() ?? '';
   const showDetails = output.length > TOOL_OUTPUT_PREVIEW_MAX || output.includes('\n');
@@ -113,9 +117,12 @@ function ToolCardView({ card }: { card: ToolCard }) {
 
   return (
     <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2.5">
-      <div className="flex items-center gap-2 text-xs text-amber-800 font-semibold">
+      <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 font-semibold">
         {renderToolIcon(card.name)}
         <span>{title}</span>
+        {typeof card._workflowStep === 'number' && (
+          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">#{card._workflowStep + 1}</span>
+        )}
         <span className="font-mono text-[11px] text-amber-900/80">{card.name}</span>
       </div>
       {card.detail && (
@@ -140,6 +147,35 @@ function ToolCardView({ card }: { card: ToolCard }) {
         </div>
       )}
     </div>
+  );
+}
+
+function ToolWorkflowCard({ cards }: { cards: WorkflowToolCard[] }) {
+  const chain = cards
+    .map((card) => card.name.trim())
+    .filter((name) => name.length > 0)
+    .join(' \u2192 ');
+
+  return (
+    <details className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-3">
+      <summary className="cursor-pointer list-none">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 font-semibold">
+          <Wrench className="h-3.5 w-3.5" />
+          <span>{t('chatToolWorkflow')}</span>
+          <span className="font-mono text-[11px] text-amber-900/90">{chain || 'tool'}</span>
+          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{cards.length}</span>
+          <span className="text-[11px] font-normal text-amber-700/90">{t('chatToolWorkflowDetails')}</span>
+        </div>
+      </summary>
+      <div className="mt-3 space-y-2">
+        {cards.map((card, index) => (
+          <ToolCardView
+            key={`${card.kind}-${card.callId ?? card.name}-${index}`}
+            card={{ ...card, _workflowStep: index }}
+          />
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -179,9 +215,16 @@ function MessageCard({ message }: { message: SessionMessageView }) {
       {primaryReasoning && <ReasoningBlock reasoning={primaryReasoning} isUser={isUser} />}
       {toolCards.length > 0 && (
         <div className={cn('space-y-2', (shouldRenderPrimaryText || primaryReasoning) && 'mt-3')}>
-          {toolCards.map((card, index) => (
-            <ToolCardView key={`${card.kind}-${card.name}-${card.callId ?? index}`} card={card} />
-          ))}
+          {toolCards.length > 1 ? (
+            <ToolWorkflowCard cards={toolCards} />
+          ) : (
+            toolCards.map((card, index) => (
+              <ToolCardView
+                key={`${card.kind}-${card.name}-${card.callId ?? index}`}
+                card={{ ...card }}
+              />
+            ))
+          )}
         </div>
       )}
     </div>
@@ -189,26 +232,50 @@ function MessageCard({ message }: { message: SessionMessageView }) {
 }
 
 function AssistantTurnCard({ item }: { item: ChatTimelineAssistantTurnItem }) {
+  const renderedSegments: ReactNode[] = [];
+  let index = 0;
+  while (index < item.segments.length) {
+    const segment = item.segments[index];
+    if (!segment) {
+      index += 1;
+      continue;
+    }
+    if (segment.kind === 'assistant_message') {
+      const hasText = Boolean(segment.text);
+      const hasReasoning = Boolean(segment.reasoning);
+      if (hasText || hasReasoning) {
+        renderedSegments.push(
+          <div key={`${segment.key}-${index}`}>
+            {hasText && <MarkdownBlock text={segment.text} role="assistant" />}
+            {hasReasoning && <ReasoningBlock reasoning={segment.reasoning} isUser={false} />}
+          </div>
+        );
+      }
+      index += 1;
+      continue;
+    }
+
+    const groupedCards: WorkflowToolCard[] = [];
+    let cursor = index;
+    while (cursor < item.segments.length) {
+      const current = item.segments[cursor];
+      if (!current || current.kind !== 'tool_card') {
+        break;
+      }
+      groupedCards.push(current.card);
+      cursor += 1;
+    }
+    if (groupedCards.length > 1) {
+      renderedSegments.push(<ToolWorkflowCard key={`workflow-${segment.key}-${index}`} cards={groupedCards} />);
+    } else if (groupedCards.length === 1) {
+      renderedSegments.push(<ToolCardView key={`${segment.key}-${index}`} card={groupedCards[0]} />);
+    }
+    index = cursor;
+  }
+
   return (
     <div className="rounded-2xl border px-4 py-3 shadow-sm bg-white text-gray-900 border-gray-200">
-      <div className="space-y-3">
-        {item.segments.map((segment, index) => {
-          if (segment.kind === 'assistant_message') {
-            const hasText = Boolean(segment.text);
-            const hasReasoning = Boolean(segment.reasoning);
-            if (!hasText && !hasReasoning) {
-              return null;
-            }
-            return (
-              <div key={`${segment.key}-${index}`}>
-                {hasText && <MarkdownBlock text={segment.text} role="assistant" />}
-                {hasReasoning && <ReasoningBlock reasoning={segment.reasoning} isUser={false} />}
-              </div>
-            );
-          }
-          return <ToolCardView key={`${segment.key}-${index}`} card={segment.card} />;
-        })}
-      </div>
+      <div className="space-y-3">{renderedSegments}</div>
     </div>
   );
 }
@@ -224,7 +291,7 @@ export function ChatThread({ events, isSending, className }: ChatThreadProps) {
         return (
           <div key={item.key} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
             {!isUser && <RoleAvatar role={role} />}
-            <div className={cn('max-w-[88%] min-w-[280px] space-y-2', isUser && 'flex flex-col items-end')}>
+            <div className={cn('max-w-[92%] min-w-[280px] space-y-2', isUser && 'flex flex-col items-end')}>
               {item.kind === 'assistant_turn' ? (
                 <AssistantTurnCard item={item} />
               ) : (

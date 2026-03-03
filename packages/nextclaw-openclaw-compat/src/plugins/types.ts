@@ -1,4 +1,4 @@
-import type { Config, ExtensionChannel } from "@nextclaw/core";
+import type { AgentEngineFactory, Config, ExtensionChannel } from "@nextclaw/core";
 
 export type PluginConfigUiHint = {
   label?: string;
@@ -54,6 +54,10 @@ export type OpenClawPluginToolOptions = {
   name?: string;
   names?: string[];
   optional?: boolean;
+};
+
+export type OpenClawPluginEngineOptions = {
+  kind: string;
 };
 
 export type OpenClawProviderPlugin = {
@@ -199,6 +203,7 @@ export type PluginRecord = {
   toolNames: string[];
   channelIds: string[];
   providerIds: string[];
+  engineKinds: string[];
   configSchema: boolean;
   configUiHints?: Record<string, PluginConfigUiHint>;
   configJsonSchema?: Record<string, unknown>;
@@ -221,6 +226,13 @@ export type PluginChannelRegistration = {
 export type PluginProviderRegistration = {
   pluginId: string;
   provider: OpenClawProviderPlugin;
+  source: string;
+};
+
+export type PluginEngineRegistration = {
+  pluginId: string;
+  kind: string;
+  factory: AgentEngineFactory;
   source: string;
 };
 
@@ -286,6 +298,7 @@ export type OpenClawPluginApi = {
   ) => void;
   registerChannel: (registration: OpenClawPluginChannelRegistration) => void;
   registerProvider: (provider: OpenClawProviderPlugin) => void;
+  registerEngine: (factory: AgentEngineFactory, opts: OpenClawPluginEngineOptions) => void;
   registerHook: (_events: string | string[], _handler: unknown, _opts?: unknown) => void;
   registerGatewayMethod: (_method: string, _handler: unknown) => void;
   registerCli: (_registrar: unknown, _opts?: unknown) => void;
@@ -301,6 +314,7 @@ export type PluginRegistry = {
   tools: PluginToolRegistration[];
   channels: PluginChannelRegistration[];
   providers: PluginProviderRegistration[];
+  engines: PluginEngineRegistration[];
   diagnostics: PluginDiagnostic[];
   resolvedTools: OpenClawPluginTool[];
 };

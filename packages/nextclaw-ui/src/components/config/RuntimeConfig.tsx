@@ -28,6 +28,7 @@ function createEmptyAgent(): AgentProfileView {
     default: false,
     workspace: '',
     model: '',
+    engine: '',
     contextTokens: undefined,
     maxToolIterations: undefined
   };
@@ -62,6 +63,7 @@ export function RuntimeConfig() {
   const [dmScope, setDmScope] = useState<DmScope>('per-channel-peer');
   const [maxPingPongTurns, setMaxPingPongTurns] = useState(0);
   const [defaultContextTokens, setDefaultContextTokens] = useState(200000);
+  const [defaultEngine, setDefaultEngine] = useState('native');
 
   useEffect(() => {
     if (!config) {
@@ -73,6 +75,7 @@ export function RuntimeConfig() {
         default: Boolean(agent.default),
         workspace: agent.workspace ?? '',
         model: agent.model ?? '',
+        engine: agent.engine ?? '',
         contextTokens: agent.contextTokens,
         maxToolIterations: agent.maxToolIterations
       }))
@@ -95,13 +98,16 @@ export function RuntimeConfig() {
     setDmScope((config.session?.dmScope as DmScope) ?? 'per-channel-peer');
     setMaxPingPongTurns(config.session?.agentToAgent?.maxPingPongTurns ?? 0);
     setDefaultContextTokens(config.agents.defaults.contextTokens ?? 200000);
+    setDefaultEngine(config.agents.defaults.engine ?? 'native');
   }, [config]);
 
   const uiHints = schema?.uiHints;
   const dmScopeHint = hintForPath('session.dmScope', uiHints);
   const maxPingHint = hintForPath('session.agentToAgent.maxPingPongTurns', uiHints);
   const defaultContextTokensHint = hintForPath('agents.defaults.contextTokens', uiHints);
+  const defaultEngineHint = hintForPath('agents.defaults.engine', uiHints);
   const agentContextTokensHint = hintForPath('agents.list.*.contextTokens', uiHints);
+  const agentEngineHint = hintForPath('agents.list.*.engine', uiHints);
   const agentsHint = hintForPath('agents.list', uiHints);
   const bindingsHint = hintForPath('bindings', uiHints);
 
@@ -140,6 +146,9 @@ export function RuntimeConfig() {
         }
         if (agent.model?.trim()) {
           normalized.model = agent.model.trim();
+        }
+        if (agent.engine?.trim()) {
+          normalized.engine = agent.engine.trim();
         }
         if (typeof agent.contextTokens === 'number') {
           normalized.contextTokens = Math.max(1000, agent.contextTokens);
@@ -203,7 +212,8 @@ export function RuntimeConfig() {
         data: {
           agents: {
             defaults: {
-              contextTokens: Math.max(1000, defaultContextTokens)
+              contextTokens: Math.max(1000, defaultContextTokens),
+              engine: defaultEngine.trim() || 'native'
             },
             list: normalizedAgents
           },
@@ -249,6 +259,19 @@ export function RuntimeConfig() {
             />
             <p className="text-xs text-gray-500">
               {defaultContextTokensHint?.help ?? t('defaultContextTokensHelp')}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-800">
+              {defaultEngineHint?.label ?? t('defaultEngine')}
+            </label>
+            <Input
+              value={defaultEngine}
+              onChange={(event) => setDefaultEngine(event.target.value)}
+              placeholder={t('defaultEnginePlaceholder')}
+            />
+            <p className="text-xs text-gray-500">
+              {defaultEngineHint?.help ?? t('defaultEngineHelp')}
             </p>
           </div>
           <div className="space-y-2">
@@ -307,6 +330,11 @@ export function RuntimeConfig() {
                   value={agent.model ?? ''}
                   onChange={(event) => updateAgent(index, { model: event.target.value })}
                   placeholder={t('modelOverridePlaceholder')}
+                />
+                <Input
+                  value={agent.engine ?? ''}
+                  onChange={(event) => updateAgent(index, { engine: event.target.value })}
+                  placeholder={agentEngineHint?.label ?? t('engineOverridePlaceholder')}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <Input

@@ -1098,18 +1098,37 @@ export function updateRuntime(
 ): Pick<ConfigView, "agents" | "bindings" | "session"> {
   const config = loadConfigOrDefault(configPath);
 
-  if (patch.agents?.defaults && Object.prototype.hasOwnProperty.call(patch.agents.defaults, "contextTokens")) {
-    const nextContextTokens = patch.agents.defaults.contextTokens;
+  const defaultsPatch = patch.agents?.defaults;
+  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "contextTokens")) {
+    const nextContextTokens = defaultsPatch.contextTokens;
     if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) {
       config.agents.defaults.contextTokens = Math.max(1000, Math.trunc(nextContextTokens));
     }
   }
+  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "engine")) {
+    config.agents.defaults.engine = normalizeOptionalString(defaultsPatch.engine) ?? "native";
+  }
+  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "engineConfig")) {
+    const nextEngineConfig = defaultsPatch.engineConfig;
+    if (nextEngineConfig && typeof nextEngineConfig === "object" && !Array.isArray(nextEngineConfig)) {
+      config.agents.defaults.engineConfig = { ...nextEngineConfig };
+    }
+  }
 
   if (patch.agents && Object.prototype.hasOwnProperty.call(patch.agents, "list")) {
-    config.agents.list = (patch.agents.list ?? []).map((entry) => ({
-      ...entry,
-      default: Boolean(entry.default)
-    }));
+    config.agents.list = (patch.agents.list ?? []).map((entry) => {
+      const normalizedEngine = normalizeOptionalString(entry.engine);
+      const hasEngineConfig =
+        entry.engineConfig &&
+        typeof entry.engineConfig === "object" &&
+        !Array.isArray(entry.engineConfig);
+      return {
+        ...entry,
+        default: Boolean(entry.default),
+        ...(normalizedEngine ? { engine: normalizedEngine } : {}),
+        ...(hasEngineConfig ? { engineConfig: { ...entry.engineConfig } } : {})
+      };
+    });
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {

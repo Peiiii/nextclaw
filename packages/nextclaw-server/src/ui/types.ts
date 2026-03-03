@@ -58,6 +58,8 @@ export type AgentProfileView = {
   default?: boolean;
   workspace?: string;
   model?: string;
+  engine?: string;
+  engineConfig?: Record<string, unknown>;
   contextTokens?: number;
   maxToolIterations?: number;
 };
@@ -185,6 +187,8 @@ export type RuntimeConfigUpdate = {
   agents?: {
     defaults?: {
       contextTokens?: number;
+      engine?: string;
+      engineConfig?: Record<string, unknown>;
     };
     list?: AgentProfileView[];
   };
@@ -299,6 +303,8 @@ export type ConfigView = {
     defaults: {
       model: string;
       workspace?: string;
+      engine?: string;
+      engineConfig?: Record<string, unknown>;
       contextTokens?: number;
       maxToolIterations?: number;
     };
@@ -515,6 +521,8 @@ export type MarketplaceInstalledRecord = {
   id?: string;
   spec: string;
   label?: string;
+  description?: string;
+  descriptionZh?: string;
   source?: string;
   installedAt?: string;
   enabled?: boolean;

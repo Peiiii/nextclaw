@@ -317,6 +317,35 @@ export class AgentLoop {
     return null;
   }
 
+  private resolveRequestedSkillNames(metadata: Record<string, unknown>): string[] {
+    const rawValue = metadata.requested_skills ?? metadata.requestedSkills;
+    const values: string[] = [];
+    if (Array.isArray(rawValue)) {
+      for (const item of rawValue) {
+        if (typeof item !== "string") {
+          continue;
+        }
+        const trimmed = item.trim();
+        if (trimmed) {
+          values.push(trimmed);
+        }
+      }
+    } else if (typeof rawValue === "string") {
+      values.push(
+        ...rawValue
+          .split(/[,\s]+/g)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      );
+    }
+
+    if (values.length === 0) {
+      return [];
+    }
+
+    return Array.from(new Set(values)).slice(0, 8);
+  }
+
   private normalizeOptionalString(value: unknown): string | undefined {
     if (typeof value !== "string") {
       return undefined;
@@ -510,6 +539,7 @@ export class AgentLoop {
       chatId: msg.chatId,
       accountId: accountId ?? null
     });
+    const requestedSkillNames = this.resolveRequestedSkillNames(msg.metadata);
 
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
@@ -518,6 +548,7 @@ export class AgentLoop {
       channel: msg.channel,
       chatId: msg.chatId,
       sessionKey,
+      skillNames: requestedSkillNames,
       messageToolHints
     });
     this.recordSessionMessage({
@@ -688,6 +719,7 @@ export class AgentLoop {
       chatId: originChatId,
       accountId: accountId ?? null
     });
+    const requestedSkillNames = this.resolveRequestedSkillNames(msg.metadata);
 
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
@@ -695,6 +727,7 @@ export class AgentLoop {
       channel: originChannel,
       chatId: originChatId,
       sessionKey,
+      skillNames: requestedSkillNames,
       messageToolHints
     });
     this.recordSessionMessage({

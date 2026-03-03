@@ -1,5 +1,9 @@
 import {
-  AgentLoop,
+  NativeAgentEngine,
+  type AgentEngine,
+  type AgentEngineFactory,
+  type AgentEngineFactoryContext,
+  type AgentEngineMessageToolHintsResolver,
   AgentRouteResolver,
   getWorkspacePath,
   parseAgentScopedSessionKey,
@@ -14,16 +18,19 @@ import {
   type SessionManager
 } from "@nextclaw/core";
 
-type MessageToolHintsResolver = (params: {
-  sessionKey: string;
-  channel: string;
-  chatId: string;
-  accountId?: string | null;
-}) => string[];
-
 type AgentProfileRuntime = {
   id: string;
-  loop: AgentLoop;
+  engine: AgentEngine;
+};
+
+type ResolvedAgentProfile = {
+  id: string;
+  workspace: string;
+  model: string;
+  maxIterations: number;
+  contextTokens: number;
+  engine: string;
+  engineConfig: Record<string, unknown> | undefined;
 };
 
 function normalizeAgentId(value: string | undefined): string {
@@ -31,19 +38,30 @@ function normalizeAgentId(value: string | undefined): string {
   return text || "main";
 }
 
-function resolveAgentProfiles(config: Config): Array<{
-  id: string;
-  workspace: string;
-  model: string;
-  maxIterations: number;
-  contextTokens: number;
-}> {
+function normalizeEngineKind(value: unknown): string {
+  if (typeof value !== "string") {
+    return "native";
+  }
+  const kind = value.trim().toLowerCase();
+  return kind || "native";
+}
+
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
+}
+
+function resolveAgentProfiles(config: Config): ResolvedAgentProfile[] {
   const defaults = config.agents.defaults;
   type ListedAgentProfile = {
     id: string;
     default?: boolean;
     workspace?: string;
     model?: string;
+    engine?: string;
+    engineConfig?: Record<string, unknown>;
     maxToolIterations?: number;
     contextTokens?: number;
   };
@@ -54,6 +72,8 @@ function resolveAgentProfiles(config: Config): Array<{
           default: entry.default,
           workspace: entry.workspace,
           model: entry.model,
+          engine: entry.engine,
+          engineConfig: toRecord(entry.engineConfig),
           maxToolIterations: entry.maxToolIterations,
           contextTokens: entry.contextTokens
         }))
@@ -77,6 +97,8 @@ function resolveAgentProfiles(config: Config): Array<{
     id: entry.id,
     workspace: getWorkspacePath(entry.workspace ?? defaults.workspace),
     model: entry.model ?? defaults.model,
+    engine: normalizeEngineKind(entry.engine ?? defaults.engine),
+    engineConfig: entry.engineConfig ?? toRecord(defaults.engineConfig),
     maxIterations: entry.maxToolIterations ?? defaults.maxToolIterations,
     contextTokens: entry.contextTokens ?? defaults.contextTokens
   }));
@@ -100,7 +122,7 @@ export class GatewayAgentRuntimePool {
       contextConfig: Config["agents"]["context"];
       gatewayController?: GatewayController;
       extensionRegistry?: ExtensionRegistry;
-      resolveMessageToolHints?: MessageToolHintsResolver;
+      resolveMessageToolHints?: AgentEngineMessageToolHintsResolver;
       config: Config;
     }
   ) {
@@ -154,7 +176,7 @@ export class GatewayAgentRuntimePool {
       sessionKeyOverride: params.sessionKey
     });
     const runtime = this.resolveRuntime(route.agentId);
-    return runtime.loop.processDirect({
+    return runtime.engine.processDirect({
       content: params.content,
       sessionKey: route.sessionKey,
       channel: message.channel,
@@ -178,7 +200,7 @@ export class GatewayAgentRuntimePool {
           sessionKeyOverride: explicitSessionKey
         });
         const runtime = this.resolveRuntime(route.agentId);
-        await runtime.loop.handleInbound({
+        await runtime.engine.handleInbound({
           message,
           sessionKey: route.sessionKey,
           publishResponse: true
@@ -216,6 +238,76 @@ export class GatewayAgentRuntimePool {
     throw new Error("No agent runtime available");
   }
 
+  private createNativeEngineFactory(): AgentEngineFactory {
+    return (context: AgentEngineFactoryContext) =>
+      new NativeAgentEngine({
+        bus: context.bus,
+        providerManager: context.providerManager,
+        workspace: context.workspace,
+        model: context.model,
+        maxIterations: context.maxIterations,
+        contextTokens: context.contextTokens,
+        braveApiKey: context.braveApiKey,
+        execConfig: context.execConfig,
+        cronService: context.cronService,
+        restrictToWorkspace: context.restrictToWorkspace,
+        sessionManager: context.sessionManager,
+        contextConfig: context.contextConfig,
+        gatewayController: context.gatewayController,
+        config: context.config,
+        extensionRegistry: context.extensionRegistry,
+        resolveMessageToolHints: context.resolveMessageToolHints,
+        agentId: context.agentId
+      });
+  }
+
+  private resolveEngineFactory(kind: string): AgentEngineFactory {
+    if (kind === "native") {
+      return this.createNativeEngineFactory();
+    }
+    const registrations = this.options.extensionRegistry?.engines ?? [];
+    const matched = registrations.find((entry) => normalizeEngineKind(entry.kind) === kind);
+    if (matched) {
+      return matched.factory;
+    }
+    console.warn(`[engine] unknown engine "${kind}", fallback to "native"`);
+    return this.createNativeEngineFactory();
+  }
+
+  private createEngine(profile: ResolvedAgentProfile, config: Config): AgentEngine {
+    const kind = normalizeEngineKind(profile.engine);
+    const factory = this.resolveEngineFactory(kind);
+    const context: AgentEngineFactoryContext = {
+      agentId: profile.id,
+      workspace: profile.workspace,
+      model: profile.model,
+      maxIterations: profile.maxIterations,
+      contextTokens: profile.contextTokens,
+      engineConfig: profile.engineConfig,
+      bus: this.options.bus,
+      providerManager: this.options.providerManager,
+      sessionManager: this.options.sessionManager,
+      cronService: this.options.cronService,
+      restrictToWorkspace: this.options.restrictToWorkspace,
+      braveApiKey: this.options.braveApiKey,
+      execConfig: this.options.execConfig,
+      contextConfig: this.options.contextConfig,
+      gatewayController: this.options.gatewayController,
+      config,
+      extensionRegistry: this.options.extensionRegistry,
+      resolveMessageToolHints: this.options.resolveMessageToolHints
+    };
+    try {
+      return factory(context);
+    } catch (error) {
+      if (kind === "native") {
+        throw error;
+      }
+      console.warn(`[engine] failed to create "${kind}" for agent "${profile.id}": ${String(error)}`);
+      return this.createNativeEngineFactory()(context);
+    }
+  }
+
   private rebuild(config: Config): void {
     const profiles = resolveAgentProfiles(config);
     const configuredDefault = this.readString(config.agents.list.find((entry) => entry.default)?.id);
@@ -223,28 +315,10 @@ export class GatewayAgentRuntimePool {
 
     const nextRuntimes = new Map<string, AgentProfileRuntime>();
     for (const profile of profiles) {
-      const loop = new AgentLoop({
-        bus: this.options.bus,
-        providerManager: this.options.providerManager,
-        workspace: profile.workspace,
-        model: profile.model,
-        maxIterations: profile.maxIterations,
-        contextTokens: profile.contextTokens,
-        braveApiKey: this.options.braveApiKey,
-        execConfig: this.options.execConfig,
-        cronService: this.options.cronService,
-        restrictToWorkspace: this.options.restrictToWorkspace,
-        sessionManager: this.options.sessionManager,
-        contextConfig: this.options.contextConfig,
-        gatewayController: this.options.gatewayController,
-        config,
-        extensionRegistry: this.options.extensionRegistry,
-        resolveMessageToolHints: this.options.resolveMessageToolHints,
-        agentId: profile.id
-      });
+      const engine = this.createEngine(profile, config);
       nextRuntimes.set(profile.id, {
         id: profile.id,
-        loop
+        engine
       });
     }
     this.runtimes = nextRuntimes;

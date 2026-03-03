@@ -8,73 +8,16 @@ import { SearchableModelInput } from '@/components/common/SearchableModelInput';
 import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/hooks/useConfig';
 import { hintForPath } from '@/lib/config-hints';
 import { t } from '@/lib/i18n';
+import {
+  buildProviderModelCatalog,
+  composeProviderModel,
+  findProviderByModel,
+  toProviderLocalModel
+} from '@/lib/provider-models';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { DOCS_DEFAULT_BASE_URL } from '@/components/doc-browser/DocBrowserContext';
 import { BookOpen, Folder, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-
-function normalizeStringList(input: string[] | null | undefined): string[] {
-  if (!input || input.length === 0) {
-    return [];
-  }
-  const deduped = new Set<string>();
-  for (const item of input) {
-    const trimmed = item.trim();
-    if (trimmed) {
-      deduped.add(trimmed);
-    }
-  }
-  return [...deduped];
-}
-
-function stripProviderPrefix(model: string, prefix: string): string {
-  const trimmed = model.trim();
-  const cleanPrefix = prefix.trim();
-  if (!trimmed || !cleanPrefix) {
-    return trimmed;
-  }
-  const withSlash = `${cleanPrefix}/`;
-  if (trimmed.startsWith(withSlash)) {
-    return trimmed.slice(withSlash.length);
-  }
-  return trimmed;
-}
-
-function toProviderLocalModel(model: string, aliases: string[]): string {
-  let normalized = model.trim();
-  if (!normalized) {
-    return '';
-  }
-  for (const alias of aliases) {
-    normalized = stripProviderPrefix(normalized, alias);
-  }
-  return normalized.trim();
-}
-
-function findProviderByModel(
-  model: string,
-  providerCatalog: Array<{ name: string; aliases: string[] }>
-): string | null {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return null;
-  }
-  let bestMatch: { name: string; score: number } | null = null;
-  for (const provider of providerCatalog) {
-    for (const alias of provider.aliases) {
-      const cleanAlias = alias.trim();
-      if (!cleanAlias) {
-        continue;
-      }
-      if (trimmed === cleanAlias || trimmed.startsWith(`${cleanAlias}/`)) {
-        if (!bestMatch || cleanAlias.length > bestMatch.score) {
-          bestMatch = { name: provider.name, score: cleanAlias.length };
-        }
-      }
-    }
-  }
-  return bestMatch?.name ?? null;
-}
 
 export function ModelConfig() {
   const { data: config, isLoading } = useConfig();
@@ -89,25 +32,10 @@ export function ModelConfig() {
   const modelHint = hintForPath('agents.defaults.model', uiHints);
   const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
 
-  const providerCatalog = useMemo(() => {
-    return (meta?.providers ?? []).map((provider) => {
-      const prefix = (provider.modelPrefix || provider.name || '').trim();
-      const aliases = normalizeStringList([provider.modelPrefix || '', provider.name || '']);
-      const defaultModels = normalizeStringList((provider.defaultModels ?? []).map((model) => toProviderLocalModel(model, aliases)));
-      const customModels = normalizeStringList(
-        (config?.providers?.[provider.name]?.models ?? []).map((model) => toProviderLocalModel(model, aliases))
-      );
-      const allModels = normalizeStringList([...defaultModels, ...customModels]);
-      const configDisplayName = config?.providers?.[provider.name]?.displayName?.trim();
-      return {
-        name: provider.name,
-        displayName: configDisplayName || provider.displayName || provider.name,
-        prefix,
-        aliases,
-        models: allModels
-      };
-    });
-  }, [meta, config]);
+  const providerCatalog = useMemo(
+    () => buildProviderModelCatalog({ meta, config }),
+    [config, meta]
+  );
 
   const providerMap = useMemo(() => new Map(providerCatalog.map((provider) => [provider.name, provider])), [providerCatalog]);
   const selectedProvider = providerMap.get(providerName) ?? providerCatalog[0];
@@ -151,13 +79,7 @@ export function ModelConfig() {
     if (!normalizedModelId) {
       return '';
     }
-    if (!selectedProvider) {
-      return normalizedModelId;
-    }
-    if (!selectedProvider.prefix) {
-      return normalizedModelId;
-    }
-    return `${selectedProvider.prefix}/${normalizedModelId}`;
+    return composeProviderModel(selectedProvider?.prefix ?? '', normalizedModelId);
   }, [modelId, selectedProvider, selectedProviderAliases]);
 
   const modelHelpText = t('modelIdentifierHelp') || modelHint?.help || '';

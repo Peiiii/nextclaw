@@ -57,6 +57,28 @@ export class ContextBuilder {
     const parts: string[] = [];
     parts.push(this.getIdentity(messageToolHints));
 
+    if (skillNames && skillNames.length) {
+      const requestedContent = this.skills.loadSkillsForContext(skillNames);
+      if (requestedContent) {
+        const requestedNames = skillNames
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .join(", ");
+        parts.push(
+          [
+            "# Requested Skills",
+            "The user explicitly selected the following skills for this turn.",
+            requestedNames ? `Selected skill names: ${requestedNames}` : "",
+            "You MUST apply these skill instructions in this turn unless higher-priority safety/system instructions conflict.",
+            "",
+            requestedContent
+          ]
+            .filter(Boolean)
+            .join("\n\n")
+        );
+      }
+    }
+
     const bootstrap = this.loadBootstrapFiles(sessionKey);
     if (bootstrap) {
       const hasSoulFile = /##\s+SOUL\.md\b/i.test(bootstrap);
@@ -84,13 +106,6 @@ export class ContextBuilder {
       const alwaysContent = this.skills.loadSkillsForContext(alwaysSkills);
       if (alwaysContent) {
         parts.push(`# Active Skills\n\n${alwaysContent}`);
-      }
-    }
-
-    if (skillNames && skillNames.length) {
-      const requestedContent = this.skills.loadSkillsForContext(skillNames);
-      if (requestedContent) {
-        parts.push(`# Requested Skills\n\n${requestedContent}`);
       }
     }
 

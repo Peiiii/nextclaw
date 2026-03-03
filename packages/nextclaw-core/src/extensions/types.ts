@@ -2,6 +2,7 @@ import type { Config } from "../config/schema.js";
 import type { MessageBus } from "../bus/queue.js";
 import type { SessionManager } from "../session/manager.js";
 import type { BaseChannel } from "../channels/base.js";
+import type { AgentEngineFactory } from "../engine/types.js";
 
 export type ExtensionDiagnostic = {
   level: "warn" | "error";
@@ -76,8 +77,16 @@ export type ExtensionChannelRegistration = {
   source: string;
 };
 
+export type ExtensionEngineRegistration = {
+  extensionId: string;
+  kind: string;
+  factory: AgentEngineFactory;
+  source: string;
+};
+
 export type ExtensionRegistry = {
   tools: ExtensionToolRegistration[];
   channels: ExtensionChannelRegistration[];
+  engines: ExtensionEngineRegistration[];
   diagnostics: ExtensionDiagnostic[];
 };

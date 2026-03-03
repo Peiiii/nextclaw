@@ -1,19 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SessionEntryView } from '@/api/types';
-import { useConfig, useDeleteSession, useSessionHistory, useSessions } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useDeleteSession, useSessionHistory, useSessions } from '@/hooks/useConfig';
+import { useMarketplaceInstalled } from '@/hooks/useMarketplace';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import { Button } from '@/components/ui/button';
-import { PageHeader, PageLayout } from '@/components/layout/page-layout';
-import { ChatSessionsSidebar } from '@/components/chat/ChatSessionsSidebar';
+import type { ChatModelOption } from '@/components/chat/ChatInputBar';
+import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversationPanel } from '@/components/chat/ChatConversationPanel';
 import { useChatStreamController } from '@/components/chat/useChatStreamController';
-import { cn } from '@/lib/utils';
 import { buildFallbackEventsFromMessages } from '@/lib/chat-message';
+import { buildProviderModelCatalog, composeProviderModel } from '@/lib/provider-models';
 import { t } from '@/lib/i18n';
-import { Plus, RefreshCw } from 'lucide-react';
 
 const CHAT_SESSION_STORAGE_KEY = 'nextclaw.ui.chat.activeSession';
-const UNKNOWN_CHAT_CHANNEL_KEY = '__unknown_channel__';
 
 function readStoredSessionKey(): string | null {
   if (typeof window === 'undefined') {
@@ -64,28 +62,13 @@ function sessionDisplayName(session: SessionEntryView): string {
   return chunks[chunks.length - 1] || session.key;
 }
 
-function resolveChannelFromSessionKey(key: string): string {
-  const separator = key.indexOf(':');
-  if (separator <= 0) {
-    return UNKNOWN_CHAT_CHANNEL_KEY;
-  }
-  const channel = key.slice(0, separator).trim();
-  return channel || UNKNOWN_CHAT_CHANNEL_KEY;
-}
-
-function displayChannelName(channel: string): string {
-  if (channel === UNKNOWN_CHAT_CHANNEL_KEY) {
-    return t('sessionsUnknownChannel');
-  }
-  return channel;
-}
-
 export function ChatPage() {
   const [query, setQuery] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('all');
   const [draft, setDraft] = useState('');
   const [selectedSessionKey, setSelectedSessionKey] = useState<string | null>(() => readStoredSessionKey());
   const [selectedAgentId, setSelectedAgentId] = useState('main');
+  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const threadRef = useRef<HTMLDivElement | null>(null);
@@ -93,43 +76,71 @@ export function ChatPage() {
   const selectedSessionKeyRef = useRef<string | null>(selectedSessionKey);
 
   const configQuery = useConfig();
+  const configMetaQuery = useConfigMeta();
   const sessionsQuery = useSessions({ q: query.trim() || undefined, limit: 120, activeMinutes: 0 });
+  const installedSkillsQuery = useMarketplaceInstalled('skill');
   const historyQuery = useSessionHistory(selectedSessionKey, 300);
   const deleteSession = useDeleteSession();
 
-  const agentOptions = useMemo(() => {
-    const list = configQuery.data?.agents.list ?? [];
-    const unique = new Set<string>(['main']);
-    for (const item of list) {
-      if (typeof item.id === 'string' && item.id.trim().length > 0) {
-        unique.add(item.id.trim().toLowerCase());
+  const modelOptions = useMemo<ChatModelOption[]>(() => {
+    const providers = buildProviderModelCatalog({
+      meta: configMetaQuery.data,
+      config: configQuery.data,
+      onlyConfigured: true
+    });
+    const seen = new Set<string>();
+    const options: ChatModelOption[] = [];
+    for (const provider of providers) {
+      for (const localModel of provider.models) {
+        const value = composeProviderModel(provider.prefix, localModel);
+        if (!value || seen.has(value)) {
+          continue;
+        }
+        seen.add(value);
+        options.push({
+          value,
+          modelLabel: localModel,
+          providerLabel: provider.displayName
+        });
       }
     }
-    return Array.from(unique);
-  }, [configQuery.data?.agents.list]);
+    return options.sort((left, right) => {
+      const providerCompare = left.providerLabel.localeCompare(right.providerLabel);
+      if (providerCompare !== 0) {
+        return providerCompare;
+      }
+      return left.modelLabel.localeCompare(right.modelLabel);
+    });
+  }, [configMetaQuery.data, configQuery.data]);
 
   const sessions = useMemo(() => sessionsQuery.data?.sessions ?? [], [sessionsQuery.data?.sessions]);
-  const channelOptions = useMemo(() => {
-    const unique = new Set<string>();
-    for (const session of sessions) {
-      unique.add(resolveChannelFromSessionKey(session.key));
-    }
-    return Array.from(unique).sort((a, b) => {
-      if (a === UNKNOWN_CHAT_CHANNEL_KEY) return 1;
-      if (b === UNKNOWN_CHAT_CHANNEL_KEY) return -1;
-      return a.localeCompare(b);
-    });
-  }, [sessions]);
-  const filteredSessions = useMemo(() => {
-    if (selectedChannel === 'all') {
-      return sessions;
-    }
-    return sessions.filter((session) => resolveChannelFromSessionKey(session.key) === selectedChannel);
-  }, [selectedChannel, sessions]);
+  const skillRecords = useMemo(() => installedSkillsQuery.data?.records ?? [], [installedSkillsQuery.data?.records]);
+
   const selectedSession = useMemo(
     () => sessions.find((session) => session.key === selectedSessionKey) ?? null,
     [selectedSessionKey, sessions]
   );
+
+  useEffect(() => {
+    if (modelOptions.length === 0) {
+      setSelectedModel('');
+      return;
+    }
+    setSelectedModel((prev) => {
+      if (modelOptions.some((option) => option.value === prev)) {
+        return prev;
+      }
+      const sessionPreferred = selectedSession?.preferredModel?.trim();
+      if (sessionPreferred && modelOptions.some((option) => option.value === sessionPreferred)) {
+        return sessionPreferred;
+      }
+      const fallback = configQuery.data?.agents.defaults.model?.trim();
+      if (fallback && modelOptions.some((option) => option.value === fallback)) {
+        return fallback;
+      }
+      return modelOptions[0]?.value ?? '';
+    });
+  }, [configQuery.data?.agents.defaults.model, modelOptions, selectedSession?.preferredModel]);
 
   const historyData = historyQuery.data;
   const historyMessages = historyData?.messages ?? [];
@@ -187,10 +198,10 @@ export function ChatPage() {
   }, [historyEvents, optimisticUserEvent, streamingAssistantText, streamingAssistantTimestamp, streamingSessionEvents]);
 
   useEffect(() => {
-    if (!selectedSessionKey && filteredSessions.length > 0) {
-      setSelectedSessionKey(filteredSessions[0].key);
+    if (!selectedSessionKey && sessions.length > 0) {
+      setSelectedSessionKey(sessions[0].key);
     }
-  }, [filteredSessions, selectedSessionKey]);
+  }, [sessions, selectedSessionKey]);
 
   useEffect(() => {
     writeStoredSessionKey(selectedSessionKey);
@@ -269,83 +280,71 @@ export function ChatPage() {
     if (!message) {
       return;
     }
+    const requestedSkills = selectedSkills;
 
     const sessionKey = selectedSessionKey ?? buildNewSessionKey(selectedAgentId);
     if (!selectedSessionKey) {
       setSelectedSessionKey(sessionKey);
     }
     setDraft('');
+    setSelectedSkills([]);
     await sendMessage({
       message,
       sessionKey,
       agentId: selectedAgentId,
+      model: selectedModel || undefined,
+      requestedSkills,
       restoreDraftOnError: true
     });
-  }, [draft, selectedSessionKey, selectedAgentId, sendMessage]);
+  }, [draft, selectedAgentId, selectedModel, selectedSessionKey, selectedSkills, sendMessage]);
+
+  const currentSessionDisplayName = selectedSession ? sessionDisplayName(selectedSession) : undefined;
 
   return (
-    <PageLayout fullHeight>
-      <PageHeader
-        title={t('chatPageTitle')}
-        description={t('chatPageDescription')}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => historyQuery.refetch()} className="rounded-lg">
-              <RefreshCw className={cn('h-3.5 w-3.5 mr-1.5', historyQuery.isFetching && 'animate-spin')} />
-              {t('chatRefresh')}
-            </Button>
-            <Button variant="primary" size="sm" onClick={createNewSession} className="rounded-lg">
-              <Plus className="h-3.5 w-3.5 mr-1.5" />
-              {t('chatNewSession')}
-            </Button>
-          </div>
-        }
+    <div className="h-full flex">
+      {/* Unified Chat Sidebar */}
+      <ChatSidebar
+        sessions={sessions}
+        selectedSessionKey={selectedSessionKey}
+        onSelectSession={setSelectedSessionKey}
+        onCreateSession={createNewSession}
+        sessionTitle={sessionDisplayName}
+        isLoading={sessionsQuery.isLoading}
+        query={query}
+        onQueryChange={setQuery}
       />
 
-      <div className="flex-1 min-h-0 flex gap-4 max-lg:flex-col">
-        <ChatSessionsSidebar
-          query={query}
-          onQueryChange={setQuery}
-          selectedChannel={selectedChannel}
-          onSelectedChannelChange={setSelectedChannel}
-          channelOptions={channelOptions}
-          channelLabel={displayChannelName}
-          isLoading={sessionsQuery.isLoading}
-          isRefreshing={sessionsQuery.isFetching}
-          sessions={filteredSessions}
-          selectedSessionKey={selectedSessionKey}
-          onSelectSession={setSelectedSessionKey}
-          sessionTitle={sessionDisplayName}
-          onRefresh={() => {
-            void sessionsQuery.refetch();
-          }}
-          onCreateSession={createNewSession}
-        />
+      {/* Main conversation area */}
+      <ChatConversationPanel
+        modelOptions={modelOptions}
+        selectedModel={selectedModel}
+        onSelectedModelChange={setSelectedModel}
+        skillRecords={skillRecords}
+        isSkillsLoading={installedSkillsQuery.isLoading}
+        selectedSkills={selectedSkills}
+        onSelectedSkillsChange={setSelectedSkills}
+        selectedSessionKey={selectedSessionKey}
+        sessionDisplayName={currentSessionDisplayName}
+        canDeleteSession={Boolean(selectedSession)}
+        isDeletePending={deleteSession.isPending}
+        onDeleteSession={() => {
+          void handleDeleteSession();
+        }}
+        onCreateSession={createNewSession}
+        threadRef={threadRef}
+        onThreadScroll={handleScroll}
+        isHistoryLoading={historyQuery.isLoading}
+        mergedEvents={mergedEvents}
+        isSending={isSending}
+        isAwaitingAssistantOutput={isAwaitingAssistantOutput}
+        streamingAssistantText={streamingAssistantText}
+        draft={draft}
+        onDraftChange={setDraft}
+        onSend={handleSend}
+        queuedCount={queuedCount}
+      />
 
-        <ChatConversationPanel
-          agentOptions={agentOptions}
-          selectedAgentId={selectedAgentId}
-          onSelectedAgentIdChange={setSelectedAgentId}
-          selectedSessionKey={selectedSessionKey}
-          canDeleteSession={Boolean(selectedSession)}
-          isDeletePending={deleteSession.isPending}
-          onDeleteSession={() => {
-            void handleDeleteSession();
-          }}
-          threadRef={threadRef}
-          onThreadScroll={handleScroll}
-          isHistoryLoading={historyQuery.isLoading}
-          mergedEvents={mergedEvents}
-          isSending={isSending}
-          isAwaitingAssistantOutput={isAwaitingAssistantOutput}
-          streamingAssistantText={streamingAssistantText}
-          draft={draft}
-          onDraftChange={setDraft}
-          onSend={handleSend}
-          queuedCount={queuedCount}
-        />
-      </div>
       <ConfirmDialog />
-    </PageLayout>
+    </div>
   );
 }

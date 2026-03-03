@@ -103,6 +103,7 @@ type SkillInfo = {
 
 type SkillsLoaderInstance = {
   listSkills: (filterUnavailable?: boolean) => SkillInfo[];
+  getSkillMetadata?: (name: string) => Record<string, string> | null;
 };
 
 type SkillsLoaderConstructor = new (workspace: string, builtinSkillsDir?: string) => SkillsLoaderInstance;
@@ -586,11 +587,19 @@ function collectInstalledSkillRecords(options: UiRouterOptions): {
   const records = listedSkills
     .map((skill) => {
       const enabled = availableSkillSet.has(skill.name);
+      const metadata = skillsLoader?.getSkillMetadata?.(skill.name);
+      const description = readNonEmptyString(metadata?.description);
+      const descriptionZh =
+        readNonEmptyString(metadata?.description_zh) ??
+        readNonEmptyString(metadata?.descriptionZh) ??
+        readNonEmptyString(MARKETPLACE_ZH_COPY_BY_SLUG[skill.name]?.description);
       return {
         type: "skill",
         id: skill.name,
         spec: skill.name,
         label: skill.name,
+        ...(description ? { description } : {}),
+        ...(descriptionZh ? { descriptionZh } : {}),
         source: skill.source,
         enabled,
         runtimeStatus: enabled ? "enabled" : "disabled"
@@ -2058,6 +2067,12 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     const result = updateRuntime(options.configPath, body.data);
     if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "contextTokens")) {
       options.publish({ type: "config.updated", payload: { path: "agents.defaults.contextTokens" } });
+    }
+    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engine")) {
+      options.publish({ type: "config.updated", payload: { path: "agents.defaults.engine" } });
+    }
+    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engineConfig")) {
+      options.publish({ type: "config.updated", payload: { path: "agents.defaults.engineConfig" } });
     }
     options.publish({ type: "config.updated", payload: { path: "agents.list" } });
     options.publish({ type: "config.updated", payload: { path: "bindings" } });

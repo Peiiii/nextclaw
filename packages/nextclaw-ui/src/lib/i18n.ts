@@ -360,6 +360,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   dmScopeHelp: { zh: '控制私聊会话如何隔离。', en: 'Control how direct-message sessions are isolated.' },
   defaultContextTokens: { zh: '默认上下文 Token', en: 'Default Context Tokens' },
   defaultContextTokensHelp: { zh: '当 Agent 未设置单独值时使用该上下文预算。', en: 'Input context budget for agents when no per-agent override is set.' },
+  defaultEngine: { zh: '默认引擎', en: 'Default Engine' },
+  defaultEngineHelp: { zh: '默认使用的 Agent 引擎类型，例如 native 或 codex-sdk。', en: 'Default agent engine kind, for example native or codex-sdk.' },
   maxPingPongTurns: { zh: '最大乒乓轮次', en: 'Max Ping-Pong Turns' },
   maxPingPongTurnsHelp: { zh: '设为 0 可阻止 Agent 间自动 ping-pong。', en: 'Set to 0 to block automatic agent-to-agent ping-pong loops.' },
   agentList: { zh: 'Agent 列表', en: 'Agent List' },
@@ -375,6 +377,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   agentIdPlaceholder: { zh: 'Agent ID（例如 engineer）', en: 'Agent ID (e.g. engineer)' },
   workspaceOverridePlaceholder: { zh: '工作空间覆盖（可选）', en: 'Workspace override (optional)' },
   modelOverridePlaceholder: { zh: '模型覆盖（可选）', en: 'Model override (optional)' },
+  defaultEnginePlaceholder: { zh: '默认引擎（如 native 或 codex-sdk）', en: 'Default engine (e.g. native or codex-sdk)' },
+  engineOverridePlaceholder: { zh: '引擎覆盖（可选）', en: 'Engine override (optional)' },
   contextTokensPlaceholder: { zh: '上下文 tokens', en: 'Context tokens' },
   maxToolsPlaceholder: { zh: '最大工具次数', en: 'Max tools' },
   defaultAgent: { zh: '默认 Agent', en: 'Default agent' },
@@ -479,6 +483,9 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   chatSearchSessionPlaceholder: { zh: '搜索会话 key / 标签', en: 'Search session key / label' },
   chatAgentLabel: { zh: '目标 Agent', en: 'Target Agent' },
   chatSelectAgent: { zh: '选择 Agent', en: 'Select Agent' },
+  chatModelLabel: { zh: '对话模型', en: 'Chat Model' },
+  chatSelectModel: { zh: '选择模型', en: 'Select model' },
+  chatModelNoOptions: { zh: '暂无可用模型，请先配置 Provider。', en: 'No available models. Configure a provider first.' },
   chatSessionLabel: { zh: '当前会话', en: 'Current Session' },
   chatNoSession: { zh: '未选择会话', en: 'No session selected' },
   chatNoSessionHint: { zh: '创建一个会话并发送第一条消息。', en: 'Create a session and send your first message.' },
@@ -502,9 +509,44 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   chatRoleMessage: { zh: '消息', en: 'Message' },
   chatToolCall: { zh: '工具调用', en: 'Tool Call' },
   chatToolResult: { zh: '工具结果', en: 'Tool Result' },
+  chatToolWorkflow: { zh: '工具工作流', en: 'Tool Workflow' },
+  chatToolWorkflowDetails: { zh: '展开查看参数和结果', en: 'Expand to view params and results' },
   chatToolOutput: { zh: '查看输出', en: 'View Output' },
   chatToolNoOutput: { zh: '无输出（执行完成）', en: 'No output (completed)' },
   chatReasoning: { zh: '查看推理内容', en: 'Show reasoning' },
+
+  // Chat Sidebar (unified)
+  chatSidebarNewTask: { zh: '新任务', en: 'New Task' },
+  chatSidebarSearchPlaceholder: { zh: '搜索对话...', en: 'Search conversations...' },
+  chatSidebarScheduledTasks: { zh: '定时任务', en: 'Scheduled Tasks' },
+  chatSidebarSkills: { zh: '技能', en: 'Skills' },
+  chatSidebarTaskRecords: { zh: '会话记录', en: 'Sessions' },
+  chatSidebarToday: { zh: '今天', en: 'Today' },
+  chatSidebarYesterday: { zh: '昨天', en: 'Yesterday' },
+  chatSidebarPrevious7Days: { zh: '近 7 天', en: 'Previous 7 Days' },
+  chatSidebarOlder: { zh: '更早', en: 'Older' },
+
+  // Welcome page
+  chatWelcomeTitle: { zh: '你好，有什么可以帮你的吗？', en: 'Hello, how can I help you?' },
+  chatWelcomeSubtitle: { zh: '开始一个新任务或选择已有对话', en: 'Start a new task or select an existing conversation' },
+  chatWelcomeCapability1Title: { zh: '智能对话', en: 'Smart Conversations' },
+  chatWelcomeCapability1Desc: { zh: '多轮上下文对话，支持多种 AI 模型', en: 'Multi-turn context conversations with multiple AI models' },
+  chatWelcomeCapability2Title: { zh: '技能扩展', en: 'Skill Extensions' },
+  chatWelcomeCapability2Desc: { zh: '通过安装技能扩展 Agent 能力', en: 'Extend Agent capabilities by installing skills' },
+  chatWelcomeCapability3Title: { zh: '定时任务', en: 'Scheduled Tasks' },
+  chatWelcomeCapability3Desc: { zh: '设置定时执行的自动化任务', en: 'Set up scheduled automated tasks' },
+
+  // Skills picker
+  chatSkillsPickerTitle: { zh: '技能', en: 'Skills' },
+  chatSkillsPickerEmpty: { zh: '暂无已安装技能', en: 'No skills installed' },
+  chatSkillsPickerSearchPlaceholder: { zh: '搜索技能', en: 'Search skills' },
+  chatSkillsPickerNoDescription: { zh: '暂无描述', en: 'No description' },
+  chatSkillsPickerOfficial: { zh: '官方', en: 'Official' },
+  chatSkillsPickerManage: { zh: '管理技能', en: 'Manage Skills' },
+
+  // Input bar
+  chatInputAttach: { zh: '添加附件', en: 'Attach file' },
+  chatInputAttachComingSoon: { zh: '即将支持', en: 'Coming soon' },
 
   // Cron
   cronPageTitle: { zh: '定时任务', en: 'Cron Jobs' },

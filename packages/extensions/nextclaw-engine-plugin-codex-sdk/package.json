@@ -1,0 +1,42 @@
+{
+  "name": "@nextclaw/nextclaw-engine-codex-sdk",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NextClaw Codex engine plugin backed by OpenAI Codex SDK.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup --config tsup.config.ts",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "files": [
+    "dist",
+    "codex-sdk-loader.cjs",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "openclaw": {
+    "extensions": [
+      "dist/index.js"
+    ]
+  },
+  "dependencies": {
+    "@nextclaw/core": "^0.6.45",
+    "@openai/codex-sdk": "^0.107.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}
