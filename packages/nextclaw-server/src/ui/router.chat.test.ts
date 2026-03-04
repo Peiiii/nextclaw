@@ -70,6 +70,45 @@ describe("chat turn route", () => {
     expect(payload.error.code).toBe("NOT_AVAILABLE");
   });
 
+  it("returns chat capabilities from runtime", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const getCapabilities = vi.fn(async () => ({
+      stopSupported: false,
+      stopReason: "engine does not support stop"
+    }));
+    const app = createUiRouter({
+      configPath,
+      publish: () => {},
+      chatRuntime: {
+        processTurn: vi.fn(async () => ({
+          reply: "ok",
+          sessionKey: "agent:main:ui:direct:web-test"
+        })),
+        getCapabilities
+      }
+    });
+
+    const response = await app.request("http://localhost/api/chat/capabilities?agentId=main&sessionKey=agent:main:ui:test", {
+      method: "GET"
+    });
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        stopSupported: boolean;
+        stopReason?: string;
+      };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.stopSupported).toBe(false);
+    expect(payload.data.stopReason).toContain("support");
+    expect(getCapabilities).toHaveBeenCalledWith({
+      agentId: "main",
+      sessionKey: "agent:main:ui:test"
+    });
+  });
+
   it("returns 400 when message is missing", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
@@ -102,6 +141,55 @@ describe("chat turn route", () => {
     };
     expect(payload.ok).toBe(false);
     expect(payload.error.code).toBe("INVALID_BODY");
+  });
+
+  it("stops a running chat turn when stop endpoint is called", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const stopTurn = vi.fn(async () => ({
+      stopped: true,
+      runId: "run-test",
+      sessionKey: "agent:main:ui:direct:web-123"
+    }));
+    const app = createUiRouter({
+      configPath,
+      publish: () => {},
+      chatRuntime: {
+        processTurn: vi.fn(async () => ({
+          reply: "ok",
+          sessionKey: "agent:main:ui:direct:web-123"
+        })),
+        stopTurn
+      }
+    });
+
+    const response = await app.request("http://localhost/api/chat/turn/stop", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        runId: "run-test",
+        sessionKey: "agent:main:ui:direct:web-123",
+        agentId: "main"
+      })
+    });
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        stopped: boolean;
+        runId: string;
+      };
+    };
+    expect(payload.ok).toBe(true);
+    expect(payload.data.stopped).toBe(true);
+    expect(payload.data.runId).toBe("run-test");
+    expect(stopTurn).toHaveBeenCalledWith({
+      runId: "run-test",
+      sessionKey: "agent:main:ui:direct:web-123",
+      agentId: "main"
+    });
   });
 
   it("calls runtime and returns normalized chat turn response", async () => {
@@ -260,6 +348,14 @@ describe("chat turn route", () => {
       "hel",
       "lo"
     ]);
+    const readyEvent = events.find((event) => event.event === "ready");
+    expect(readyEvent).toBeTruthy();
+    const readyData = JSON.parse(readyEvent!.data) as {
+      runId?: string;
+      stopSupported?: boolean;
+    };
+    expect(typeof readyData.runId).toBe("string");
+    expect(readyData.stopSupported).toBe(false);
 
     const finalEvent = events.find((event) => event.event === "final");
     expect(finalEvent).toBeTruthy();
@@ -275,6 +371,9 @@ describe("chat turn route", () => {
     expect(finalData.model).toBe("openai/gpt-5");
 
     expect(processTurnStream).toHaveBeenCalledTimes(1);
+    expect(processTurnStream).toHaveBeenCalledWith(expect.objectContaining({
+      runId: expect.any(String)
+    }));
     expect(processTurn).not.toHaveBeenCalled();
     expect(publish).toHaveBeenCalledWith({
       type: "config.updated",

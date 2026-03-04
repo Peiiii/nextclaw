@@ -22,7 +22,10 @@ import {
   deleteSession
 } from "./config.js";
 import type {
+  ChatCapabilitiesView,
   ChatTurnRequest,
+  ChatTurnStopRequest,
+  ChatTurnStopResult,
   ChatTurnView,
   ConfigActionExecuteRequest,
   MarketplaceApiConfig,
@@ -330,6 +333,12 @@ function resolveAgentIdFromSessionKey(sessionKey?: string): string | undefined {
   const parsed = NextclawCore.parseAgentScopedSessionKey(sessionKey);
   const agentId = readNonEmptyString(parsed?.agentId);
   return agentId;
+}
+
+function createChatRunId(): string {
+  const now = Date.now().toString(36);
+  const rand = Math.random().toString(36).slice(2, 10);
+  return `run-${now}-${rand}`;
 }
 
 function buildChatTurnView(params: {
@@ -1764,6 +1773,26 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     return c.json(ok(result));
   });
 
+  app.get("/api/chat/capabilities", async (c) => {
+    const chatRuntime = options.chatRuntime;
+    if (!chatRuntime) {
+      return c.json(err("NOT_AVAILABLE", "chat runtime unavailable"), 503);
+    }
+    const query = c.req.query();
+    const params = {
+      sessionKey: readNonEmptyString(query.sessionKey),
+      agentId: readNonEmptyString(query.agentId)
+    };
+    try {
+      const capabilities: ChatCapabilitiesView = chatRuntime.getCapabilities
+        ? await chatRuntime.getCapabilities(params)
+        : { stopSupported: Boolean(chatRuntime.stopTurn) };
+      return c.json(ok(capabilities));
+    } catch (error) {
+      return c.json(err("CHAT_RUNTIME_FAILED", String(error)), 500);
+    }
+  });
+
   app.post("/api/chat/turn", async (c) => {
     if (!options.chatRuntime) {
       return c.json(err("NOT_AVAILABLE", "chat runtime unavailable"), 503);
@@ -1815,6 +1844,36 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     }
   });
 
+  app.post("/api/chat/turn/stop", async (c) => {
+    const chatRuntime = options.chatRuntime;
+    if (!chatRuntime?.stopTurn) {
+      return c.json(err("NOT_AVAILABLE", "chat turn stop is not supported by runtime"), 503);
+    }
+
+    const body = await readJson<ChatTurnStopRequest>(c.req.raw);
+    if (!body.ok || !body.data || typeof body.data !== "object") {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+
+    const runId = readNonEmptyString(body.data.runId);
+    if (!runId) {
+      return c.json(err("INVALID_BODY", "runId is required"), 400);
+    }
+
+    const request: ChatTurnStopRequest = {
+      runId,
+      ...(readNonEmptyString(body.data.sessionKey) ? { sessionKey: readNonEmptyString(body.data.sessionKey) } : {}),
+      ...(readNonEmptyString(body.data.agentId) ? { agentId: readNonEmptyString(body.data.agentId) } : {})
+    };
+
+    try {
+      const result: ChatTurnStopResult = await chatRuntime.stopTurn(request);
+      return c.json(ok(result));
+    } catch (error) {
+      return c.json(err("CHAT_TURN_STOP_FAILED", String(error)), 500);
+    }
+  });
+
   app.post("/api/chat/turn/stream", async (c) => {
     const chatRuntime = options.chatRuntime;
     if (!chatRuntime) {
@@ -1839,11 +1898,27 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     const metadata = isRecord(body.data.metadata) ? body.data.metadata : undefined;
     const requestedAgentId = readNonEmptyString(body.data.agentId) ?? resolveAgentIdFromSessionKey(sessionKey);
     const requestedModel = readNonEmptyString(body.data.model);
+    const runId = createChatRunId();
+    let stopCapabilities: ChatCapabilitiesView = { stopSupported: Boolean(chatRuntime.stopTurn) };
+    if (chatRuntime.getCapabilities) {
+      try {
+        stopCapabilities = await chatRuntime.getCapabilities({
+          sessionKey,
+          ...(requestedAgentId ? { agentId: requestedAgentId } : {})
+        });
+      } catch {
+        stopCapabilities = {
+          stopSupported: false,
+          stopReason: "failed to resolve runtime stop capability"
+        };
+      }
+    }
     const request: ChatTurnRequest = {
       message,
       sessionKey,
       channel: readNonEmptyString(body.data.channel) ?? "ui",
       chatId: readNonEmptyString(body.data.chatId) ?? "web-ui",
+      runId,
       ...(requestedAgentId ? { agentId: requestedAgentId } : {}),
       ...(requestedModel ? { model: requestedModel } : {}),
       ...(metadata ? { metadata } : {})
@@ -1859,7 +1934,12 @@ export function createUiRouter(options: UiRouterOptions): Hono {
         try {
           push("ready", {
             sessionKey,
-            requestedAt: requestedAt.toISOString()
+            requestedAt: requestedAt.toISOString(),
+            runId,
+            stopSupported: stopCapabilities.stopSupported,
+            ...(readNonEmptyString(stopCapabilities.stopReason)
+              ? { stopReason: readNonEmptyString(stopCapabilities.stopReason) }
+              : {})
           });
 
           const streamTurn = chatRuntime.processTurnStream;

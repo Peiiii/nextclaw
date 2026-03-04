@@ -31,6 +31,10 @@ type ChatConversationPanelProps = {
   draft: string;
   onDraftChange: (value: string) => void;
   onSend: () => Promise<void> | void;
+  onStop: () => Promise<void> | void;
+  canStopGeneration: boolean;
+  stopDisabledReason?: string | null;
+  sendError?: string | null;
   queuedCount: number;
 };
 
@@ -58,6 +62,10 @@ export function ChatConversationPanel({
   draft,
   onDraftChange,
   onSend,
+  onStop,
+  canStopGeneration,
+  stopDisabledReason,
+  sendError,
   queuedCount,
 }: ChatConversationPanelProps) {
   const showHistoryLoading =
@@ -111,6 +119,10 @@ export function ChatConversationPanel({
         draft={draft}
         onDraftChange={onDraftChange}
         onSend={onSend}
+        onStop={onStop}
+        canStopGeneration={canStopGeneration}
+        stopDisabledReason={stopDisabledReason}
+        sendError={sendError}
         isSending={isSending}
         queuedCount={queuedCount}
         modelOptions={modelOptions}

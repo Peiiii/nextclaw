@@ -264,6 +264,7 @@ export class AgentLoop {
     channel?: string;
     chatId?: string;
     metadata?: Record<string, unknown>;
+    abortSignal?: AbortSignal;
     onAssistantDelta?: AssistantDeltaHandler;
     onSessionEvent?: SessionEventHandler;
   }): Promise<string> {
@@ -277,6 +278,7 @@ export class AgentLoop {
       metadata: params.metadata ?? {}
     };
     const response = await this.processMessage(msg, params.sessionKey, {
+      abortSignal: params.abortSignal,
       onAssistantDelta: params.onAssistantDelta,
       onSessionEvent: params.onSessionEvent
     });
@@ -472,7 +474,7 @@ export class AgentLoop {
   private async processMessage(
     msg: InboundMessage,
     sessionKeyOverride?: string,
-    options?: { onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
+    options?: { abortSignal?: AbortSignal; onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
   ): Promise<OutboundMessage | null> {
     if (msg.channel === "system") {
       return this.processSystemMessage(msg, sessionKeyOverride, options);
@@ -574,69 +576,81 @@ export class AgentLoop {
     let lastToolName: string | null = null;
     let lastToolResult: string | null = null;
     const maxIterations = this.options.maxIterations ?? 20;
+    try {
+      while (iteration < maxIterations) {
+        throwIfAborted(options?.abortSignal);
+        iteration += 1;
+        this.pruneMessagesForInputBudget(messages);
+        const response = await this.chatWithOptionalStreaming({
+          messages,
+          tools: this.tools.getDefinitions(),
+          model: runtimeModel,
+          signal: options?.abortSignal
+        }, options?.onAssistantDelta);
+        throwIfAborted(options?.abortSignal);
 
-    while (iteration < maxIterations) {
-      iteration += 1;
-      this.pruneMessagesForInputBudget(messages);
-      const response = await this.chatWithOptionalStreaming({
-        messages,
-        tools: this.tools.getDefinitions(),
-        model: runtimeModel
-      }, options?.onAssistantDelta);
-
-      if (containsSilentReplyMarker(response.content)) {
-        this.recordSessionMessage({
-          session,
-          role: "assistant",
-          content: response.content ?? "",
-          onSessionEvent: options?.onSessionEvent
-        });
-        this.sessions.save(session);
-        return null;
-      }
-
-      if (response.toolCalls.length) {
-        const toolCallDicts = response.toolCalls.map((call) => ({
-          id: call.id,
-          type: "function",
-          function: {
-            name: call.name,
-            arguments: JSON.stringify(call.arguments)
-          }
-        }));
-        this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
-        this.recordSessionMessage({
-          session,
-          role: "assistant",
-          content: response.content ?? "",
-          extra: {
-            tool_calls: toolCallDicts,
-            reasoning_content: response.reasoningContent ?? null
-          },
-          onSessionEvent: options?.onSessionEvent
-        });
-        for (const call of response.toolCalls) {
-          const result = await this.tools.execute(call.name, call.arguments, call.id);
-          lastToolName = call.name;
-          lastToolResult = result;
-          this.context.addToolResult(messages, call.id, call.name, result);
+        if (containsSilentReplyMarker(response.content)) {
           this.recordSessionMessage({
             session,
-            role: "tool",
-            content: result,
+            role: "assistant",
+            content: response.content ?? "",
+            onSessionEvent: options?.onSessionEvent
+          });
+          this.sessions.save(session);
+          return null;
+        }
+
+        if (response.toolCalls.length) {
+          const toolCallDicts = response.toolCalls.map((call) => ({
+            id: call.id,
+            type: "function",
+            function: {
+              name: call.name,
+              arguments: JSON.stringify(call.arguments)
+            }
+          }));
+          this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
+          this.recordSessionMessage({
+            session,
+            role: "assistant",
+            content: response.content ?? "",
             extra: {
-              tool_call_id: call.id,
-              name: call.name
+              tool_calls: toolCallDicts,
+              reasoning_content: response.reasoningContent ?? null
             },
             onSessionEvent: options?.onSessionEvent
           });
+          for (const call of response.toolCalls) {
+            throwIfAborted(options?.abortSignal);
+            const result = await this.tools.execute(call.name, call.arguments, call.id);
+            throwIfAborted(options?.abortSignal);
+            lastToolName = call.name;
+            lastToolResult = result;
+            this.context.addToolResult(messages, call.id, call.name, result);
+            this.recordSessionMessage({
+              session,
+              role: "tool",
+              content: result,
+              extra: {
+                tool_call_id: call.id,
+                name: call.name
+              },
+              onSessionEvent: options?.onSessionEvent
+            });
+          }
+        } else {
+          finalContent = response.content;
+          break;
         }
-      } else {
-        finalContent = response.content;
-        break;
       }
+    } catch (error) {
+      if (isAbortError(error)) {
+        this.sessions.save(session);
+      }
+      throw error;
     }
 
+    throwIfAborted(options?.abortSignal);
     if (typeof finalContent !== "string") {
       finalContent = buildToolLoopFallback({
         maxIterations,
@@ -678,7 +692,7 @@ export class AgentLoop {
   private async processSystemMessage(
     msg: InboundMessage,
     sessionKeyOverride?: string,
-    options?: { onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
+    options?: { abortSignal?: AbortSignal; onAssistantDelta?: AssistantDeltaHandler; onSessionEvent?: SessionEventHandler }
   ): Promise<OutboundMessage | null> {
     const separator = msg.chatId.indexOf(":");
     const originChannel = separator > 0 ? msg.chatId.slice(0, separator) : "cli";
@@ -754,69 +768,81 @@ export class AgentLoop {
     let lastToolName: string | null = null;
     let lastToolResult: string | null = null;
     const maxIterations = this.options.maxIterations ?? 20;
+    try {
+      while (iteration < maxIterations) {
+        throwIfAborted(options?.abortSignal);
+        iteration += 1;
+        this.pruneMessagesForInputBudget(messages);
+        const response = await this.chatWithOptionalStreaming({
+          messages,
+          tools: this.tools.getDefinitions(),
+          model: runtimeModel,
+          signal: options?.abortSignal
+        }, options?.onAssistantDelta);
+        throwIfAborted(options?.abortSignal);
 
-    while (iteration < maxIterations) {
-      iteration += 1;
-      this.pruneMessagesForInputBudget(messages);
-      const response = await this.chatWithOptionalStreaming({
-        messages,
-        tools: this.tools.getDefinitions(),
-        model: runtimeModel
-      }, options?.onAssistantDelta);
-
-      if (containsSilentReplyMarker(response.content)) {
-        this.recordSessionMessage({
-          session,
-          role: "assistant",
-          content: response.content ?? "",
-          onSessionEvent: options?.onSessionEvent
-        });
-        this.sessions.save(session);
-        return null;
-      }
-
-      if (response.toolCalls.length) {
-        const toolCallDicts = response.toolCalls.map((call) => ({
-          id: call.id,
-          type: "function",
-          function: {
-            name: call.name,
-            arguments: JSON.stringify(call.arguments)
-          }
-        }));
-        this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
-        this.recordSessionMessage({
-          session,
-          role: "assistant",
-          content: response.content ?? "",
-          extra: {
-            tool_calls: toolCallDicts,
-            reasoning_content: response.reasoningContent ?? null
-          },
-          onSessionEvent: options?.onSessionEvent
-        });
-        for (const call of response.toolCalls) {
-          const result = await this.tools.execute(call.name, call.arguments, call.id);
-          lastToolName = call.name;
-          lastToolResult = result;
-          this.context.addToolResult(messages, call.id, call.name, result);
+        if (containsSilentReplyMarker(response.content)) {
           this.recordSessionMessage({
             session,
-            role: "tool",
-            content: result,
+            role: "assistant",
+            content: response.content ?? "",
+            onSessionEvent: options?.onSessionEvent
+          });
+          this.sessions.save(session);
+          return null;
+        }
+
+        if (response.toolCalls.length) {
+          const toolCallDicts = response.toolCalls.map((call) => ({
+            id: call.id,
+            type: "function",
+            function: {
+              name: call.name,
+              arguments: JSON.stringify(call.arguments)
+            }
+          }));
+          this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
+          this.recordSessionMessage({
+            session,
+            role: "assistant",
+            content: response.content ?? "",
             extra: {
-              tool_call_id: call.id,
-              name: call.name
+              tool_calls: toolCallDicts,
+              reasoning_content: response.reasoningContent ?? null
             },
             onSessionEvent: options?.onSessionEvent
           });
+          for (const call of response.toolCalls) {
+            throwIfAborted(options?.abortSignal);
+            const result = await this.tools.execute(call.name, call.arguments, call.id);
+            throwIfAborted(options?.abortSignal);
+            lastToolName = call.name;
+            lastToolResult = result;
+            this.context.addToolResult(messages, call.id, call.name, result);
+            this.recordSessionMessage({
+              session,
+              role: "tool",
+              content: result,
+              extra: {
+                tool_call_id: call.id,
+                name: call.name
+              },
+              onSessionEvent: options?.onSessionEvent
+            });
+          }
+        } else {
+          finalContent = response.content;
+          break;
         }
-      } else {
-        finalContent = response.content;
-        break;
       }
+    } catch (error) {
+      if (isAbortError(error)) {
+        this.sessions.save(session);
+      }
+      throw error;
     }
 
+    throwIfAborted(options?.abortSignal);
     if (typeof finalContent !== "string") {
       finalContent = buildToolLoopFallback({
         maxIterations,
@@ -860,6 +886,7 @@ export class AgentLoop {
       tools?: Array<Record<string, unknown>>;
       model?: string | null;
       maxTokens?: number;
+      signal?: AbortSignal;
     },
     onAssistantDelta?: AssistantDeltaHandler
   ): Promise<LLMResponse> {
@@ -906,6 +933,42 @@ function parseReplyTags(
 function normalizeAgentId(value: string | undefined): string {
   const text = (value ?? "").trim().toLowerCase();
   return text || "main";
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) {
+    return;
+  }
+  const reason = signal.reason;
+  if (reason instanceof Error) {
+    if (reason.name === "AbortError") {
+      throw reason;
+    }
+    const error = new Error(reason.message || "The operation was aborted.");
+    error.name = "AbortError";
+    throw error;
+  }
+  const message =
+    typeof reason === "string" && reason.trim().length > 0 ? reason.trim() : "The operation was aborted.";
+  const error = new Error(message);
+  error.name = "AbortError";
+  throw error;
+}
+
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return true;
+  }
+  if (error instanceof Error) {
+    if (error.name === "AbortError") {
+      return true;
+    }
+    const message = error.message.toLowerCase();
+    if (message.includes("aborted") || message.includes("abort")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function buildToolLoopFallback(params: {

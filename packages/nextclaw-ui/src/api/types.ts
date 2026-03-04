@@ -169,10 +169,31 @@ export type ChatTurnView = {
   durationMs: number;
 };
 
+export type ChatCapabilitiesView = {
+  stopSupported: boolean;
+  stopReason?: string;
+};
+
+export type ChatTurnStopRequest = {
+  runId: string;
+  sessionKey?: string;
+  agentId?: string;
+};
+
+export type ChatTurnStopResult = {
+  stopped: boolean;
+  runId: string;
+  sessionKey?: string;
+  reason?: string;
+};
+
 export type ChatTurnStreamReadyEvent = {
   event: "ready";
   sessionKey: string;
   requestedAt: string;
+  runId?: string;
+  stopSupported?: boolean;
+  stopReason?: string;
 };
 
 export type ChatTurnStreamDeltaEvent = {

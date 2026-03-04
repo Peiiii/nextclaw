@@ -9,7 +9,13 @@ export class MissingProvider extends LLMProvider {
     this.defaultModel = model;
   }
 
-  async chat(): Promise<never> {
+  async chat(_params: {
+    messages: Array<Record<string, unknown>>;
+    tools?: Array<Record<string, unknown>>;
+    model?: string | null;
+    maxTokens?: number;
+    signal?: AbortSignal;
+  }): Promise<never> {
     throw new Error("No API key configured yet. Configure provider credentials in UI and retry.");
   }
 

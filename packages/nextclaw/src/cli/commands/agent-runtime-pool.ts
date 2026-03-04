@@ -156,24 +156,17 @@ export class GatewayAgentRuntimePool {
     chatId?: string;
     metadata?: Record<string, unknown>;
     agentId?: string;
+    abortSignal?: AbortSignal;
     onAssistantDelta?: (delta: string) => void;
     onSessionEvent?: (event: SessionEvent) => void;
   }): Promise<string> {
-    const message: InboundMessage = {
-      channel: params.channel ?? "cli",
-      senderId: "user",
-      chatId: params.chatId ?? "direct",
+    const { message, route } = this.resolveDirectRoute({
       content: params.content,
-      timestamp: new Date(),
-      attachments: [],
-      metadata: params.metadata ?? {}
-    };
-    const forcedAgentId =
-      this.readString(params.agentId) ?? parseAgentScopedSessionKey(params.sessionKey)?.agentId ?? undefined;
-    const route = this.routeResolver.resolveInbound({
-      message,
-      forcedAgentId,
-      sessionKeyOverride: params.sessionKey
+      sessionKey: params.sessionKey,
+      channel: params.channel,
+      chatId: params.chatId,
+      metadata: params.metadata,
+      agentId: params.agentId
     });
     const runtime = this.resolveRuntime(route.agentId);
     return runtime.engine.processDirect({
@@ -182,9 +175,39 @@ export class GatewayAgentRuntimePool {
       channel: message.channel,
       chatId: message.chatId,
       metadata: message.metadata,
+      abortSignal: params.abortSignal,
       onAssistantDelta: params.onAssistantDelta,
       onSessionEvent: params.onSessionEvent
     });
+  }
+
+  supportsTurnAbort(params: {
+    sessionKey?: string;
+    channel?: string;
+    chatId?: string;
+    metadata?: Record<string, unknown>;
+    agentId?: string;
+  }): { supported: boolean; agentId: string; reason?: string } {
+    const { route } = this.resolveDirectRoute({
+      content: "",
+      sessionKey: params.sessionKey,
+      channel: params.channel,
+      chatId: params.chatId,
+      metadata: params.metadata,
+      agentId: params.agentId
+    });
+    const runtime = this.resolveRuntime(route.agentId);
+    if (runtime.engine.kind !== "native") {
+      return {
+        supported: false,
+        agentId: route.agentId,
+        reason: `engine "${runtime.engine.kind}" does not support server-side stop yet`
+      };
+    }
+    return {
+      supported: true,
+      agentId: route.agentId
+    };
   }
 
   async run(): Promise<void> {
@@ -223,6 +246,39 @@ export class GatewayAgentRuntimePool {
     }
     const trimmed = value.trim();
     return trimmed || undefined;
+  }
+
+  private resolveDirectRoute(params: {
+    content: string;
+    sessionKey?: string;
+    channel?: string;
+    chatId?: string;
+    metadata?: Record<string, unknown>;
+    agentId?: string;
+  }): {
+    message: InboundMessage;
+    route: ReturnType<AgentRouteResolver["resolveInbound"]>;
+  } {
+    const message: InboundMessage = {
+      channel: params.channel ?? "cli",
+      senderId: "user",
+      chatId: params.chatId ?? "direct",
+      content: params.content,
+      timestamp: new Date(),
+      attachments: [],
+      metadata: params.metadata ?? {}
+    };
+    const forcedAgentId =
+      this.readString(params.agentId) ?? parseAgentScopedSessionKey(params.sessionKey)?.agentId ?? undefined;
+    const route = this.routeResolver.resolveInbound({
+      message,
+      forcedAgentId,
+      sessionKeyOverride: params.sessionKey
+    });
+    return {
+      message,
+      route
+    };
   }
 
   private resolveRuntime(agentId: string): AgentProfileRuntime {

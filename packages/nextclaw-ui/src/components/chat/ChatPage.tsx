@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SessionEntryView } from '@/api/types';
-import { useConfig, useConfigMeta, useDeleteSession, useSessionHistory, useSessions } from '@/hooks/useConfig';
+import {
+  useChatCapabilities,
+  useConfig,
+  useConfigMeta,
+  useDeleteSession,
+  useSessionHistory,
+  useSessions
+} from '@/hooks/useConfig';
 import { useMarketplaceInstalled } from '@/hooks/useMarketplace';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { ChatModelOption } from '@/components/chat/ChatInputBar';
@@ -79,6 +86,10 @@ export function ChatPage() {
   const configMetaQuery = useConfigMeta();
   const sessionsQuery = useSessions({ q: query.trim() || undefined, limit: 120, activeMinutes: 0 });
   const installedSkillsQuery = useMarketplaceInstalled('skill');
+  const chatCapabilitiesQuery = useChatCapabilities({
+    sessionKey: selectedSessionKey,
+    agentId: selectedAgentId
+  });
   const historyQuery = useSessionHistory(selectedSessionKey, 300);
   const deleteSession = useDeleteSession();
 
@@ -161,7 +172,11 @@ export function ChatPage() {
     isSending,
     isAwaitingAssistantOutput,
     queuedCount,
+    canStopCurrentRun,
+    stopDisabledReason,
+    lastSendError,
     sendMessage,
+    stopCurrentRun,
     resetStreamState
   } = useChatStreamController({
     nextOptimisticUserSeq,
@@ -293,10 +308,21 @@ export function ChatPage() {
       sessionKey,
       agentId: selectedAgentId,
       model: selectedModel || undefined,
+      stopSupported: chatCapabilitiesQuery.data?.stopSupported ?? false,
+      stopReason: chatCapabilitiesQuery.data?.stopReason,
       requestedSkills,
       restoreDraftOnError: true
     });
-  }, [draft, selectedAgentId, selectedModel, selectedSessionKey, selectedSkills, sendMessage]);
+  }, [
+    chatCapabilitiesQuery.data?.stopReason,
+    chatCapabilitiesQuery.data?.stopSupported,
+    draft,
+    selectedAgentId,
+    selectedModel,
+    selectedSessionKey,
+    selectedSkills,
+    sendMessage
+  ]);
 
   const currentSessionDisplayName = selectedSession ? sessionDisplayName(selectedSession) : undefined;
 
@@ -341,6 +367,12 @@ export function ChatPage() {
         draft={draft}
         onDraftChange={setDraft}
         onSend={handleSend}
+        onStop={() => {
+          void stopCurrentRun();
+        }}
+        canStopGeneration={canStopCurrentRun}
+        stopDisabledReason={stopDisabledReason}
+        sendError={lastSendError}
         queuedCount={queuedCount}
       />
 

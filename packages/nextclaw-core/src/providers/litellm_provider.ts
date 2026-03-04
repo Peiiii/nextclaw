@@ -46,6 +46,7 @@ export class LiteLLMProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): Promise<LLMResponse> {
     const requestedModel = this.stripCustomProviderPrefix(params.model ?? this.defaultModel);
     const resolvedModel = this.resolveModel(requestedModel);
@@ -56,7 +57,8 @@ export class LiteLLMProvider extends LLMProvider {
       messages: params.messages,
       tools: params.tools,
       model: apiModel,
-      maxTokens: overrides.maxTokens
+      maxTokens: overrides.maxTokens,
+      signal: params.signal
     });
   }
 
@@ -65,6 +67,7 @@ export class LiteLLMProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<LLMStreamEvent> {
     const requestedModel = this.stripCustomProviderPrefix(params.model ?? this.defaultModel);
     const resolvedModel = this.resolveModel(requestedModel);
@@ -75,7 +78,8 @@ export class LiteLLMProvider extends LLMProvider {
       messages: params.messages,
       tools: params.tools,
       model: apiModel,
-      maxTokens: overrides.maxTokens
+      maxTokens: overrides.maxTokens,
+      signal: params.signal
     })) {
       yield event;
     }

@@ -92,6 +92,22 @@ function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   return new ctor(workspace);
 }
 
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return true;
+  }
+  if (error instanceof Error) {
+    if (error.name === "AbortError") {
+      return true;
+    }
+    const message = error.message.toLowerCase();
+    if (message.includes("aborted") || message.includes("abort")) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export class ServiceCommands {
   constructor(
     private deps: {
@@ -879,6 +895,27 @@ export class ServiceCommands {
     if (!uiConfig.enabled) {
       return;
     }
+    const activeTurnRuns = new Map<
+      string,
+      {
+        controller: AbortController;
+        sessionKey: string;
+        agentId?: string;
+      }
+    >();
+    const resolveStopCapability = (params: {
+      sessionKey?: string;
+      agentId?: string;
+      channel?: string;
+      chatId?: string;
+      metadata?: Record<string, unknown>;
+    }) => runtimePool.supportsTurnAbort({
+      sessionKey: params.sessionKey,
+      agentId: params.agentId,
+      channel: params.channel,
+      chatId: params.chatId,
+      metadata: params.metadata
+    });
     const resolveChatTurnParams = (params: {
       message: string;
       sessionKey?: string;
@@ -887,6 +924,7 @@ export class ServiceCommands {
       chatId?: string;
       model?: string;
       metadata?: Record<string, unknown>;
+      runId?: string;
     }) => {
       const sessionKey =
         typeof params.sessionKey === "string" && params.sessionKey.trim().length > 0
@@ -904,7 +942,11 @@ export class ServiceCommands {
       if (model) {
         metadata.model = model;
       }
+      const runId = typeof params.runId === "string" && params.runId.trim().length > 0
+        ? params.runId.trim()
+        : undefined;
       return {
+        runId,
         sessionKey,
         inferredAgentId,
         model,
@@ -944,6 +986,23 @@ export class ServiceCommands {
         }
       },
       chatRuntime: {
+        getCapabilities: async (params) => {
+          const sessionKey =
+            typeof params.sessionKey === "string" && params.sessionKey.trim().length > 0
+              ? params.sessionKey.trim()
+              : `ui:capability:${Date.now().toString(36)}`;
+          const capability = resolveStopCapability({
+            sessionKey,
+            agentId: typeof params.agentId === "string" ? params.agentId : undefined,
+            channel: "ui",
+            chatId: "web-ui",
+            metadata: {}
+          });
+          return {
+            stopSupported: capability.supported,
+            ...(capability.reason ? { stopReason: capability.reason } : {})
+          };
+        },
         processTurn: async (params) => {
           const resolved = resolveChatTurnParams(params);
 
@@ -963,8 +1022,60 @@ export class ServiceCommands {
             model: resolved.model
           });
         },
+        stopTurn: async (params) => {
+          const runId = typeof params.runId === "string" ? params.runId.trim() : "";
+          if (!runId) {
+            return {
+              stopped: false,
+              runId: "",
+              reason: "runId is required"
+            };
+          }
+          const active = activeTurnRuns.get(runId);
+          if (!active) {
+            return {
+              stopped: false,
+              runId,
+              ...(typeof params.sessionKey === "string" && params.sessionKey.trim().length > 0
+                ? { sessionKey: params.sessionKey.trim() }
+                : {}),
+              reason: "run not found or already completed"
+            };
+          }
+          const requestedSessionKey = typeof params.sessionKey === "string" ? params.sessionKey.trim() : "";
+          if (requestedSessionKey && requestedSessionKey !== active.sessionKey) {
+            return {
+              stopped: false,
+              runId,
+              sessionKey: active.sessionKey,
+              reason: "session key mismatch"
+            };
+          }
+          active.controller.abort(new Error("chat turn stopped by user"));
+          return {
+            stopped: true,
+            runId,
+            sessionKey: active.sessionKey
+          };
+        },
         processTurnStream: async function* (params) {
           const resolved = resolveChatTurnParams(params);
+          const runId = resolved.runId ?? `run-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+          const stopCapability = resolveStopCapability({
+            sessionKey: resolved.sessionKey,
+            agentId: resolved.inferredAgentId,
+            channel: resolved.channel,
+            chatId: resolved.chatId,
+            metadata: resolved.metadata
+          });
+          const controller = stopCapability.supported ? new AbortController() : null;
+          if (controller) {
+            activeTurnRuns.set(runId, {
+              controller,
+              sessionKey: resolved.sessionKey,
+              ...(resolved.inferredAgentId ? { agentId: resolved.inferredAgentId } : {})
+            });
+          }
           type StreamEvent =
             | { type: "delta"; delta: string }
             | {
@@ -987,6 +1098,7 @@ export class ServiceCommands {
             | { type: "final"; result: ReturnType<typeof buildTurnResult> }
             | { type: "error"; error: string };
           const queue: StreamEvent[] = [];
+          const assistantDeltaParts: string[] = [];
           let waiter: (() => void) | null = null;
           const push = (event: StreamEvent) => {
             queue.push(event);
@@ -1003,10 +1115,12 @@ export class ServiceCommands {
               chatId: resolved.chatId,
               agentId: resolved.inferredAgentId,
               metadata: resolved.metadata,
+              ...(controller ? { abortSignal: controller.signal } : {}),
               onAssistantDelta: (delta) => {
                 if (typeof delta !== "string" || delta.length === 0) {
                   return;
                 }
+                assistantDeltaParts.push(delta);
                 push({ type: "delta", delta });
               },
               onSessionEvent: (event) => {
@@ -1059,7 +1173,23 @@ export class ServiceCommands {
               });
             })
             .catch((error) => {
+              if ((controller?.signal.aborted ?? false) || isAbortError(error)) {
+                const partialReply = assistantDeltaParts.join("");
+                push({
+                  type: "final",
+                  result: buildTurnResult({
+                    reply: partialReply,
+                    sessionKey: resolved.sessionKey,
+                    inferredAgentId: resolved.inferredAgentId,
+                    model: resolved.model
+                  })
+                });
+                return;
+              }
               push({ type: "error", error: String(error) });
+            })
+            .finally(() => {
+              activeTurnRuns.delete(runId);
             });
 
           while (true) {

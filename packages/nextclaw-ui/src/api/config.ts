@@ -21,6 +21,9 @@ import type {
   SessionPatchUpdate,
   ChatTurnRequest,
   ChatTurnView,
+  ChatCapabilitiesView,
+  ChatTurnStopRequest,
+  ChatTurnStopResult,
   CronListView,
   CronEnableRequest,
   CronRunRequest,
@@ -241,6 +244,32 @@ export async function sendChatTurn(data: ChatTurnRequest): Promise<ChatTurnView>
   return response.data;
 }
 
+// GET /api/chat/capabilities
+export async function fetchChatCapabilities(params?: { sessionKey?: string; agentId?: string }): Promise<ChatCapabilitiesView> {
+  const query = new URLSearchParams();
+  if (params?.sessionKey?.trim()) {
+    query.set('sessionKey', params.sessionKey.trim());
+  }
+  if (params?.agentId?.trim()) {
+    query.set('agentId', params.agentId.trim());
+  }
+  const suffix = query.toString();
+  const response = await api.get<ChatCapabilitiesView>(suffix ? `/api/chat/capabilities?${suffix}` : '/api/chat/capabilities');
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// POST /api/chat/turn/stop
+export async function stopChatTurn(data: ChatTurnStopRequest): Promise<ChatTurnStopResult> {
+  const response = await api.post<ChatTurnStopResult>('/api/chat/turn/stop', data);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
 type ChatTurnStreamOptions = {
   signal?: AbortSignal;
   onReady?: (event: ChatTurnStreamReadyEvent) => void;
@@ -324,11 +353,23 @@ export async function sendChatTurnStream(
         const readyPayload = JSON.parse(parsed.data) as {
           sessionKey?: string;
           requestedAt?: string;
+          runId?: string;
+          stopSupported?: boolean;
+          stopReason?: string;
         };
         options.onReady?.({
           event: 'ready',
           sessionKey: String(readyPayload.sessionKey ?? ''),
-          requestedAt: String(readyPayload.requestedAt ?? '')
+          requestedAt: String(readyPayload.requestedAt ?? ''),
+          ...(typeof readyPayload.runId === 'string' && readyPayload.runId.trim().length > 0
+            ? { runId: readyPayload.runId.trim() }
+            : {}),
+          ...(typeof readyPayload.stopSupported === 'boolean'
+            ? { stopSupported: readyPayload.stopSupported }
+            : {}),
+          ...(typeof readyPayload.stopReason === 'string' && readyPayload.stopReason.trim().length > 0
+            ? { stopReason: readyPayload.stopReason.trim() }
+            : {})
         });
       } catch {
         // ignore malformed ready event payload

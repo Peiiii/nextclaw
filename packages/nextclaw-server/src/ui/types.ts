@@ -255,6 +255,7 @@ export type ChatTurnRequest = {
   chatId?: string;
   model?: string;
   metadata?: Record<string, unknown>;
+  runId?: string;
 };
 
 export type ChatTurnResult = {
@@ -293,9 +294,31 @@ export type ChatTurnView = {
   durationMs: number;
 };
 
+export type ChatCapabilitiesView = {
+  stopSupported: boolean;
+  stopReason?: string;
+};
+
+export type ChatTurnStopRequest = {
+  runId: string;
+  sessionKey?: string;
+  agentId?: string;
+};
+
+export type ChatTurnStopResult = {
+  stopped: boolean;
+  runId: string;
+  sessionKey?: string;
+  reason?: string;
+};
+
 export type UiChatRuntime = {
   processTurn: (params: ChatTurnRequest) => Promise<ChatTurnResult>;
   processTurnStream?: (params: ChatTurnRequest) => AsyncGenerator<ChatTurnStreamEvent>;
+  getCapabilities?: (
+    params: Pick<ChatTurnRequest, "sessionKey" | "agentId">
+  ) => Promise<ChatCapabilitiesView> | ChatCapabilitiesView;
+  stopTurn?: (params: ChatTurnStopRequest) => Promise<ChatTurnStopResult> | ChatTurnStopResult;
 };
 
 export type ConfigView = {

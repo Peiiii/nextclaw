@@ -17,6 +17,7 @@ export type AgentEngineDirectRequest = {
   channel?: string;
   chatId?: string;
   metadata?: Record<string, unknown>;
+  abortSignal?: AbortSignal;
   onAssistantDelta?: AssistantDeltaHandler;
   onSessionEvent?: SessionEventHandler;
 };

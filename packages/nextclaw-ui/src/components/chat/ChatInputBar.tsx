@@ -4,7 +4,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { SkillsPicker } from '@/components/chat/SkillsPicker';
 import type { MarketplaceInstalledRecord } from '@/api/types';
 import { t } from '@/lib/i18n';
-import { Paperclip, Send, Sparkles, X } from 'lucide-react';
+import { Paperclip, Send, Sparkles, Square, X } from 'lucide-react';
 
 export type ChatModelOption = {
   value: string;
@@ -16,6 +16,10 @@ type ChatInputBarProps = {
   draft: string;
   onDraftChange: (value: string) => void;
   onSend: () => Promise<void> | void;
+  onStop: () => Promise<void> | void;
+  canStopGeneration: boolean;
+  stopDisabledReason?: string | null;
+  sendError?: string | null;
   isSending: boolean;
   queuedCount: number;
   modelOptions: ChatModelOption[];
@@ -31,6 +35,10 @@ export function ChatInputBar({
   draft,
   onDraftChange,
   onSend,
+  onStop,
+  canStopGeneration,
+  stopDisabledReason = null,
+  sendError = null,
   isSending,
   queuedCount,
   modelOptions,
@@ -42,6 +50,10 @@ export function ChatInputBar({
   onSelectedSkillsChange
 }: ChatInputBarProps) {
   const selectedModelOption = modelOptions.find((option) => option.value === selectedModel);
+  const resolvedStopHint =
+    stopDisabledReason === '__preparing__'
+      ? t('chatStopPreparing')
+      : stopDisabledReason?.trim() || t('chatStopUnavailable');
   const selectedSkillRecords = selectedSkills.map((spec) => {
     const matched = skillRecords.find((record) => record.spec === spec);
     return {
@@ -59,6 +71,11 @@ export function ChatInputBar({
             value={draft}
             onChange={(e) => onDraftChange(e.target.value)}
             onKeyDown={(e) => {
+              if (e.key === 'Escape' && isSending && canStopGeneration) {
+                e.preventDefault();
+                void onStop();
+                return;
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 void onSend();
@@ -150,21 +167,56 @@ export function ChatInputBar({
             </div>
 
             {/* Right group */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col items-end gap-1">
+              {sendError?.trim() && (
+                <div className="max-w-[420px] text-right text-[11px] text-red-600">{sendError}</div>
+              )}
+              <div className="flex items-center gap-2">
               {isSending && queuedCount > 0 && (
                 <span className="text-[11px] text-gray-400">
                   {t('chatQueuedHintPrefix')} {queuedCount} {t('chatQueuedHintSuffix')}
                 </span>
               )}
-              <Button
-                size="sm"
-                className="rounded-lg"
-                onClick={() => void onSend()}
-                disabled={draft.trim().length === 0}
-              >
-                <Send className="h-3.5 w-3.5 mr-1.5" />
-                {isSending ? t('chatQueueSend') : t('chatSend')}
-              </Button>
+              {isSending ? (
+                canStopGeneration ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="rounded-lg"
+                    onClick={() => void onStop()}
+                  >
+                    <Square className="h-3.5 w-3.5 mr-1.5" />
+                    {t('chatStop')}
+                  </Button>
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>
+                          <Button size="sm" className="rounded-lg" disabled>
+                            <Square className="h-3.5 w-3.5 mr-1.5" />
+                            {t('chatStop')}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p className="text-xs">{resolvedStopHint}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              ) : (
+                <Button
+                  size="sm"
+                  className="rounded-lg"
+                  onClick={() => void onSend()}
+                  disabled={draft.trim().length === 0}
+                >
+                  <Send className="h-3.5 w-3.5 mr-1.5" />
+                  {t('chatSend')}
+                </Button>
+              )}
+              </div>
             </div>
           </div>
         </div>

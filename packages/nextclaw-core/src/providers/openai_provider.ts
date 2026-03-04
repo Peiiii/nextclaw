@@ -46,6 +46,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): Promise<LLMResponse> {
     if (this.wireApi === "chat") {
       return this.chatCompletions(params);
@@ -68,6 +69,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<LLMStreamEvent> {
     if (this.wireApi === "chat") {
       for await (const event of this.chatCompletionsStream(params)) {
@@ -98,6 +100,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): Promise<LLMResponse> {
     const model = params.model ?? this.defaultModel;
 
@@ -108,7 +111,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
         tools: params.tools as ChatCompletionTool[] | undefined,
         tool_choice: params.tools?.length ? "auto" : undefined,
         ...(typeof params.maxTokens === "number" ? { max_tokens: params.maxTokens } : {})
-      })
+      }, params.signal ? { signal: params.signal } : undefined)
     );
 
     return normalizeChatCompletionsResponse(
@@ -122,6 +125,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<LLMStreamEvent> {
     const model = params.model ?? this.defaultModel;
     const stream = await this.withRetry(async () =>
@@ -135,7 +139,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
         stream_options: {
           include_usage: true
         }
-      })
+      }, params.signal ? { signal: params.signal } : undefined)
     );
 
     type ToolCallBuffer = {
@@ -265,6 +269,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): Promise<LLMResponse> {
     const model = params.model ?? this.defaultModel;
     const input = this.toResponsesInput(params.messages);
@@ -283,7 +288,8 @@ export class OpenAICompatibleProvider extends LLMProvider {
           "Content-Type": "application/json",
           ...(this.extraHeaders ?? {})
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
+        signal: params.signal
       });
 
       if (!attempt.ok) {

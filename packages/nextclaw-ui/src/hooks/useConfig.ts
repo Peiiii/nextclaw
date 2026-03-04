@@ -17,6 +17,7 @@ import {
   updateSession,
   deleteSession,
   sendChatTurn,
+  fetchChatCapabilities,
   fetchCronJobs,
   deleteCronJob,
   setCronJobEnabled,
@@ -239,6 +240,23 @@ export function useSendChatTurn() {
     onError: (error: Error) => {
       toast.error(t('chatSendFailed') + ': ' + error.message);
     }
+  });
+}
+
+export function useChatCapabilities(params?: { sessionKey?: string | null; agentId?: string | null }) {
+  const sessionKey = params?.sessionKey?.trim() || undefined;
+  const agentId = params?.agentId?.trim() || undefined;
+  return useQuery({
+    queryKey: ['chat-capabilities', sessionKey ?? null, agentId ?? null],
+    queryFn: async () => {
+      try {
+        return await fetchChatCapabilities({ sessionKey, agentId });
+      } catch {
+        return { stopSupported: false };
+      }
+    },
+    staleTime: 10_000,
+    retry: false
   });
 }
 

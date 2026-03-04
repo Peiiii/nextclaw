@@ -20,6 +20,7 @@ type ProviderChatParams = {
   tools?: Array<Record<string, unknown>>;
   model?: string | null;
   maxTokens?: number;
+  signal?: AbortSignal;
 };
 
 const normalizedModel = (value: string | null | undefined): string | null => {

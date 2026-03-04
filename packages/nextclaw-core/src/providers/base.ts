@@ -38,6 +38,7 @@ export abstract class LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): Promise<LLMResponse>;
 
   async *chatStream(params: {
@@ -45,6 +46,7 @@ export abstract class LLMProvider {
     tools?: Array<Record<string, unknown>>;
     model?: string | null;
     maxTokens?: number;
+    signal?: AbortSignal;
   }): AsyncGenerator<LLMStreamEvent> {
     const response = await this.chat(params);
     yield { type: "done", response };
