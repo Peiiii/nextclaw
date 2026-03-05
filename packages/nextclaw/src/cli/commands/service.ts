@@ -645,12 +645,15 @@ export class ServiceCommands {
       timeoutMs: 8000
     });
 
-    if (!readiness.ready && process.platform === "win32" && isProcessRunning(child.pid)) {
-      console.warn("Warning: Background service is still running but not ready after 8s; waiting up to 20s more on Windows.");
+    if (!readiness.ready && isProcessRunning(child.pid)) {
+      const extendedTimeoutMs = process.platform === "win32" ? 20000 : 25000;
+      console.warn(
+        `Warning: Background service is still running but not ready after 8s; waiting up to ${Math.ceil(extendedTimeoutMs / 1000)}s more.`
+      );
       readiness = await this.waitForBackgroundServiceReady({
         pid: child.pid,
         healthUrl,
-        timeoutMs: 20000
+        timeoutMs: extendedTimeoutMs
       });
     }
 

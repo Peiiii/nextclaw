@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.9.2
+
+### Patch Changes
+
+- fix(start): avoid premature background service failure on slow startup by extending readiness wait across platforms
+
 ## 0.9.1
 
 ### Patch Changes
