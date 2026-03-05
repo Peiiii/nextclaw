@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-03-04T03:09:14.165Z",
+  "generatedAt": "2026-03-05T03:11:20.475Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "5e1696c5bd62cc2d9971cf59cd995411cae01799",
+    "sha": "81c993b3e6f61c64774b3dee0201e5295d2644e7",
     "ref": "master"
   },
   "scope": {
@@ -37,27 +37,27 @@
   },
   "totals": {
     "files": 303,
-    "totalLines": 51114,
-    "blankLines": 5321,
-    "commentLines": 278,
-    "codeLines": 45515
+    "totalLines": 52315,
+    "blankLines": 5380,
+    "commentLines": 277,
+    "codeLines": 46658
   },
   "byLanguage": [
     {
       "name": "TypeScript",
       "files": 203,
-      "totalLines": 38929,
-      "blankLines": 4121,
-      "commentLines": 193,
-      "codeLines": 34615
+      "totalLines": 39771,
+      "blankLines": 4163,
+      "commentLines": 194,
+      "codeLines": 35414
     },
     {
       "name": "TSX",
       "files": 53,
-      "totalLines": 8738,
-      "blankLines": 786,
-      "commentLines": 58,
-      "codeLines": 7894
+      "totalLines": 9097,
+      "blankLines": 803,
+      "commentLines": 56,
+      "codeLines": 8238
     },
     {
       "name": "MJS",
@@ -96,26 +96,26 @@
     {
       "name": "packages/nextclaw-ui",
       "files": 79,
-      "totalLines": 12600,
-      "blankLines": 1182,
+      "totalLines": 13250,
+      "blankLines": 1217,
       "commentLines": 135,
-      "codeLines": 11283
+      "codeLines": 11898
     },
     {
       "name": "packages/nextclaw-core",
       "files": 70,
-      "totalLines": 10796,
+      "totalLines": 10873,
       "blankLines": 1093,
       "commentLines": 16,
-      "codeLines": 9687
+      "codeLines": 9764
     },
     {
       "name": "packages/nextclaw",
       "files": 31,
-      "totalLines": 7037,
-      "blankLines": 766,
-      "commentLines": 48,
-      "codeLines": 6223
+      "totalLines": 7309,
+      "blankLines": 776,
+      "commentLines": 47,
+      "codeLines": 6486
     },
     {
       "name": "packages/extensions",
@@ -128,10 +128,10 @@
     {
       "name": "packages/nextclaw-server",
       "files": 10,
-      "totalLines": 5147,
-      "blankLines": 547,
+      "totalLines": 5349,
+      "blankLines": 561,
       "commentLines": 1,
-      "codeLines": 4599
+      "codeLines": 4787
     },
     {
       "name": "packages/nextclaw-openclaw-compat",
@@ -191,8 +191,8 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 43234,
-    "codeLines": 2281,
-    "percent": 5.28
+    "previousCodeLines": 45515,
+    "codeLines": 1143,
+    "percent": 2.51
   }
 }
