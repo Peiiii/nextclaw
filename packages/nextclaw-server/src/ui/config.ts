@@ -474,7 +474,8 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
         ? {
             kind: spec.auth.kind,
             displayName: spec.auth.displayName,
-            note: spec.auth.note
+            note: spec.auth.note,
+            supportsCliImport: Boolean(spec.auth.cliCredential)
           }
         : undefined,
       defaultModels: normalizeModelList(spec.defaultModels ?? []),

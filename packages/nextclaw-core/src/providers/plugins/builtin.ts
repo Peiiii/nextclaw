@@ -223,6 +223,12 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = {
         scope: "openid profile email model.completion",
         grantType: "urn:ietf:params:oauth:grant-type:device_code",
         usePkce: true,
+        cliCredential: {
+          path: "~/.qwen/oauth_creds.json",
+          accessTokenField: "access_token",
+          refreshTokenField: "refresh_token",
+          expiresAtField: "expiry_date"
+        },
         note: {
           zh: "通过浏览器登录 Qwen 后即可在 NextClaw 中使用该 Provider。",
           en: "Log in to Qwen in your browser, then use this provider in NextClaw."

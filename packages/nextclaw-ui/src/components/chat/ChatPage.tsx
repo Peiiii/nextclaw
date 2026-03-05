@@ -20,6 +20,7 @@ import { MarketplacePage } from '@/components/marketplace/MarketplacePage';
 import { useChatStreamController } from '@/components/chat/useChatStreamController';
 import { buildFallbackEventsFromMessages } from '@/lib/chat-message';
 import { buildProviderModelCatalog, composeProviderModel } from '@/lib/provider-models';
+import { buildActiveRunBySessionKey, buildSessionRunStatusByKey } from '@/lib/session-run-status';
 import { t } from '@/lib/i18n';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
@@ -351,22 +352,28 @@ export function ChatPage({ view }: ChatPageProps) {
     refetchHistory: historyQuery.refetch
   });
 
-  const activeRunsQuery = useChatRuns(
-    selectedSessionKey
+  const sessionStatusRunsQuery = useChatRuns(
+    view === 'chat'
       ? {
-          sessionKey: selectedSessionKey,
           states: ['queued', 'running'],
-          limit: 5
+          limit: 200
         }
       : undefined
   );
+  const activeRunBySessionKey = useMemo(
+    () => buildActiveRunBySessionKey(sessionStatusRunsQuery.data?.runs ?? []),
+    [sessionStatusRunsQuery.data?.runs]
+  );
+  const sessionRunStatusByKey = useMemo(
+    () => buildSessionRunStatusByKey(activeRunBySessionKey),
+    [activeRunBySessionKey]
+  );
   const activeRun = useMemo(() => {
-    const candidates = activeRunsQuery.data?.runs ?? [];
     if (!selectedSessionKey) {
       return null;
     }
-    return candidates.find((entry) => entry.sessionKey === selectedSessionKey) ?? null;
-  }, [activeRunsQuery.data?.runs, selectedSessionKey]);
+    return activeRunBySessionKey.get(selectedSessionKey) ?? null;
+  }, [activeRunBySessionKey, selectedSessionKey]);
 
   useEffect(() => {
     if (view !== 'chat' || !selectedSessionKey || !activeRun) {
@@ -513,6 +520,7 @@ export function ChatPage({ view }: ChatPageProps) {
 
   const sidebarProps: ComponentProps<typeof ChatSidebar> = {
     sessions,
+    sessionRunStatusByKey,
     selectedSessionKey,
     onSelectSession: handleSelectSession,
     onCreateSession: createNewSession,

@@ -16,6 +16,12 @@ export type ProviderDeviceCodeAuthSpec = {
   grantType: string;
   usePkce?: boolean;
   note?: LocalizedText;
+  cliCredential?: {
+    path: string;
+    accessTokenField: string;
+    refreshTokenField?: string;
+    expiresAtField?: string;
+  };
 };
 
 export type ProviderAuthSpec = ProviderDeviceCodeAuthSpec;

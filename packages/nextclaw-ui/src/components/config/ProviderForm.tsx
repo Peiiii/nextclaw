@@ -5,6 +5,7 @@ import {
   useConfigMeta,
   useConfigSchema,
   useDeleteProvider,
+  useImportProviderAuthFromCli,
   usePollProviderAuth,
   useStartProviderAuth,
   useTestProviderConnection,
@@ -150,6 +151,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const testProviderConnection = useTestProviderConnection();
   const startProviderAuth = useStartProviderAuth();
   const pollProviderAuth = usePollProviderAuth();
+  const importProviderAuthFromCli = useImportProviderAuthFromCli();
 
   const [apiKey, setApiKey] = useState('');
   const [apiBase, setApiBase] = useState('');
@@ -238,15 +240,15 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             data: { sessionId }
           });
           if (result.status === 'pending') {
-            setAuthStatusMessage('Waiting for browser authorization...');
+            setAuthStatusMessage(t('providerAuthWaitingBrowser'));
             scheduleProviderAuthPoll(sessionId, result.nextPollMs ?? delayMs);
             return;
           }
           if (result.status === 'authorized') {
             setAuthSessionId(null);
             clearAuthPollTimer();
-            setAuthStatusMessage('Authorization completed.');
-            toast.success('Provider authorization completed.');
+            setAuthStatusMessage(t('providerAuthCompleted'));
+            toast.success(t('providerAuthCompleted'));
             queryClient.invalidateQueries({ queryKey: ['config'] });
             queryClient.invalidateQueries({ queryKey: ['config-meta'] });
             return;
@@ -442,10 +444,10 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setAuthStatusMessage('');
       const result = await startProviderAuth.mutateAsync({ provider: providerName });
       if (!result.sessionId || !result.verificationUri) {
-        throw new Error('Provider did not return a valid auth session.');
+        throw new Error(t('providerAuthStartFailed'));
       }
       setAuthSessionId(result.sessionId);
-      setAuthStatusMessage(`Open browser and complete authorization (code: ${result.userCode}).`);
+      setAuthStatusMessage(`${t('providerAuthOpenPrompt')}${result.userCode}${t('providerAuthOpenPromptSuffix')}`);
       window.open(result.verificationUri, '_blank', 'noopener,noreferrer');
       scheduleProviderAuthPoll(result.sessionId, result.intervalMs);
     } catch (error) {
@@ -453,7 +455,27 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setAuthSessionId(null);
       clearAuthPollTimer();
       setAuthStatusMessage(message);
-      toast.error(`Failed to start authorization: ${message}`);
+      toast.error(`${t('providerAuthStartFailed')}: ${message}`);
+    }
+  };
+
+  const handleImportProviderAuthFromCli = async () => {
+    if (!providerName || providerAuth?.kind !== 'device_code') {
+      return;
+    }
+    try {
+      clearAuthPollTimer();
+      setAuthSessionId(null);
+      const result = await importProviderAuthFromCli.mutateAsync({ provider: providerName });
+      const expiresText = result.expiresAt ? ` (expires: ${result.expiresAt})` : '';
+      setAuthStatusMessage(`${t('providerAuthImportStatusPrefix')}${expiresText}`);
+      toast.success(t('providerAuthImportSuccess'));
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+      queryClient.invalidateQueries({ queryKey: ['config-meta'] });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setAuthStatusMessage(message);
+      toast.error(`${t('providerAuthImportFailed')}: ${message}`);
     }
   };
 
@@ -529,7 +551,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
           {providerAuth?.kind === 'device_code' && (
             <div className="space-y-2 rounded-xl border border-primary/20 bg-primary-50/50 p-3">
               <Label className="text-sm font-medium text-gray-900">
-                {providerAuth.displayName || 'Provider Authorization'}
+                {providerAuth.displayName || t('providerAuthSectionTitle')}
               </Label>
               {providerAuthNote ? (
                 <p className="text-xs text-gray-600">{providerAuthNote}</p>
@@ -543,13 +565,24 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
                   disabled={startProviderAuth.isPending || Boolean(authSessionId)}
                 >
                   {startProviderAuth.isPending
-                    ? 'Starting...'
+                    ? t('providerAuthStarting')
                     : authSessionId
-                      ? 'Authorizing...'
-                      : 'Authorize in Browser'}
+                      ? t('providerAuthAuthorizing')
+                      : t('providerAuthAuthorizeInBrowser')}
                 </Button>
+                {providerAuth.supportsCliImport ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleImportProviderAuthFromCli}
+                    disabled={importProviderAuthFromCli.isPending}
+                  >
+                    {importProviderAuthFromCli.isPending ? t('providerAuthImporting') : t('providerAuthImportFromCli')}
+                  </Button>
+                ) : null}
                 {authSessionId ? (
-                  <span className="text-xs text-gray-500">Session: {authSessionId.slice(0, 8)}…</span>
+                  <span className="text-xs text-gray-500">{t('providerAuthSessionLabel')}: {authSessionId.slice(0, 8)}…</span>
                 ) : null}
               </div>
               {authStatusMessage ? (

@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SessionEntryView, SessionMessageView } from '@/api/types';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import { useDeleteSession, useSessionHistory, useSessions, useUpdateSession } from '@/hooks/useConfig';
+import { useChatRuns, useDeleteSession, useSessionHistory, useSessions, useUpdateSession } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SessionRunBadge } from '@/components/common/SessionRunBadge';
 import { cn } from '@/lib/utils';
 import { formatDateShort, formatDateTime, t } from '@/lib/i18n';
 import { extractMessageText } from '@/lib/chat-message';
+import {
+  buildActiveRunBySessionKey,
+  buildSessionRunStatusByKey,
+  type SessionRunStatus
+} from '@/lib/session-run-status';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { RefreshCw, Search, Clock, Inbox, Hash, Bot, User, MessageCircle, Settings as SettingsIcon } from 'lucide-react';
 
@@ -40,11 +46,12 @@ function displayChannelName(channel: string): string {
 type SessionListItemProps = {
   session: SessionEntryView;
   channel: string;
+  runStatus?: SessionRunStatus;
   isSelected: boolean;
   onSelect: () => void;
 };
 
-function SessionListItem({ session, channel, isSelected, onSelect }: SessionListItemProps) {
+function SessionListItem({ session, channel, runStatus, isSelected, onSelect }: SessionListItemProps) {
   const channelDisplay = displayChannelName(channel);
   const displayName = session.label || session.key.split(':').pop() || session.key;
 
@@ -69,6 +76,9 @@ function SessionListItem({ session, channel, isSelected, onSelect }: SessionList
 
       <div className={cn("flex items-center text-xs justify-between mt-2 font-medium", isSelected ? "text-brand-600/80" : "text-gray-400")}>
         <div className="flex items-center gap-1.5">
+          <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+            {runStatus ? <SessionRunBadge status={runStatus} /> : null}
+          </span>
           <Clock className="w-3.5 h-3.5 opacity-70" />
           <span className="truncate max-w-[100px]">{formatDateShort(session.updatedAt)}</span>
         </div>
@@ -136,6 +146,7 @@ export function SessionsConfig() {
 
   const sessionsParams = useMemo(() => ({ q: query.trim() || undefined, limit, activeMinutes }), [query, limit, activeMinutes]);
   const sessionsQuery = useSessions(sessionsParams);
+  const activeRunsQuery = useChatRuns({ states: ['queued', 'running'], limit: 200 });
   const historyQuery = useSessionHistory(selectedKey, 200);
 
   const updateSession = useUpdateSession();
@@ -143,6 +154,14 @@ export function SessionsConfig() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   const sessions = useMemo(() => sessionsQuery.data?.sessions ?? [], [sessionsQuery.data?.sessions]);
+  const activeRunBySessionKey = useMemo(
+    () => buildActiveRunBySessionKey(activeRunsQuery.data?.runs ?? []),
+    [activeRunsQuery.data?.runs]
+  );
+  const sessionRunStatusByKey = useMemo(
+    () => buildSessionRunStatusByKey(activeRunBySessionKey),
+    [activeRunBySessionKey]
+  );
   const selectedSession = useMemo(() => sessions.find(s => s.key === selectedKey), [sessions, selectedKey]);
 
   const channels = useMemo(() => {
@@ -273,6 +292,7 @@ export function SessionsConfig() {
                   key={session.key}
                   session={session}
                   channel={resolveChannelFromSessionKey(session.key)}
+                  runStatus={sessionRunStatusByKey.get(session.key)}
                   isSelected={selectedKey === session.key}
                   onSelect={() => setSelectedKey(session.key)}
                 />

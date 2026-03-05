@@ -21,7 +21,7 @@ import {
   patchSession,
   deleteSession
 } from "./config.js";
-import { pollProviderAuth, startProviderAuth } from "./provider-auth.js";
+import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "./provider-auth.js";
 import type {
   ChatRunListView,
   ChatRunState,
@@ -54,6 +54,7 @@ import type {
   CronJobView,
   ProviderConnectionTestRequest,
   ProviderAuthPollResult,
+  ProviderAuthImportResult,
   ProviderAuthStartResult,
   ProviderCreateRequest,
   ProviderCreateResult,
@@ -1839,6 +1840,21 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       options.publish({ type: "config.updated", payload: { path: `providers.${provider}` } });
     }
     return c.json(ok(result satisfies ProviderAuthPollResult));
+  });
+
+  app.post("/api/config/providers/:provider/auth/import-cli", async (c) => {
+    const provider = c.req.param("provider");
+    try {
+      const result = await importProviderAuthFromCli(options.configPath, provider);
+      if (!result) {
+        return c.json(err("NOT_SUPPORTED", `provider cli auth import is not supported: ${provider}`), 404);
+      }
+      options.publish({ type: "config.updated", payload: { path: `providers.${provider}` } });
+      return c.json(ok(result satisfies ProviderAuthImportResult));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return c.json(err("AUTH_IMPORT_FAILED", message), 400);
+    }
   });
 
   app.put("/api/config/channels/:channel", async (c) => {

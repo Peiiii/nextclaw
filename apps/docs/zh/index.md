@@ -4,7 +4,7 @@ layout: home
 hero:
   name: NextClaw
   text: 个人 AI 助手文档
-  tagline: 你的专属神级管家。在你自己的机器上调度互联网与算力。
+  tagline: 你的数字世界全能管家。在你自己的机器上调度互联网与算力。
   actions:
     - theme: brand
       text: 快速开始

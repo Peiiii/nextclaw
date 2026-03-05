@@ -91,6 +91,13 @@ export type ProviderAuthPollResult = {
   nextPollMs?: number;
 };
 
+export type ProviderAuthImportResult = {
+  provider: string;
+  status: "imported";
+  source: "cli";
+  expiresAt?: string;
+};
+
 export type AgentProfileView = {
   id: string;
   default?: boolean;
@@ -428,6 +435,7 @@ export type ProviderSpecView = {
       en?: string;
       zh?: string;
     };
+    supportsCliImport?: boolean;
   };
   defaultModels?: string[];
   supportsWireApi?: boolean;

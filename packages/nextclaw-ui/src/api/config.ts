@@ -11,6 +11,7 @@ import type {
   ProviderAuthStartResult,
   ProviderAuthPollRequest,
   ProviderAuthPollResult,
+  ProviderAuthImportResult,
   ProviderCreateRequest,
   ProviderCreateResult,
   ProviderDeleteResult,
@@ -152,6 +153,18 @@ export async function pollProviderAuth(
   const response = await api.post<ProviderAuthPollResult>(
     `/api/config/providers/${provider}/auth/poll`,
     data
+  );
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// POST /api/config/providers/:provider/auth/import-cli
+export async function importProviderAuthFromCli(provider: string): Promise<ProviderAuthImportResult> {
+  const response = await api.post<ProviderAuthImportResult>(
+    `/api/config/providers/${provider}/auth/import-cli`,
+    {}
   );
   if (!response.ok) {
     throw new Error(response.error.message);

@@ -3,8 +3,10 @@ import type { SessionEntryView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { SessionRunBadge } from '@/components/common/SessionRunBadge';
 import { cn } from '@/lib/utils';
 import { LANGUAGE_OPTIONS, formatDateTime, t, type I18nLanguage } from '@/lib/i18n';
+import type { SessionRunStatus } from '@/lib/session-run-status';
 import { THEME_OPTIONS, type UiTheme } from '@/lib/theme';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
@@ -13,6 +15,7 @@ import { AlarmClock, BrainCircuit, Languages, MessageSquareText, Palette, Plus, 
 
 type ChatSidebarProps = {
   sessions: SessionEntryView[];
+  sessionRunStatusByKey: ReadonlyMap<string, SessionRunStatus>;
   selectedSessionKey: string | null;
   onSelectSession: (key: string) => void;
   onCreateSession: () => void;
@@ -165,6 +168,7 @@ export function ChatSidebar(props: ChatSidebarProps) {
                 <div className="space-y-0.5">
                   {group.sessions.map((session) => {
                     const active = props.selectedSessionKey === session.key;
+                    const runStatus = props.sessionRunStatusByKey.get(session.key);
                     return (
                       <button
                         key={session.key}
@@ -176,7 +180,12 @@ export function ChatSidebar(props: ChatSidebarProps) {
                             : 'text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'
                         )}
                       >
-                        <div className="truncate font-medium">{props.sessionTitle(session)}</div>
+                        <div className="grid grid-cols-[minmax(0,1fr)_0.875rem] items-center gap-1.5">
+                          <span className="truncate font-medium">{props.sessionTitle(session)}</span>
+                          <span className="inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                            {runStatus ? <SessionRunBadge status={runStatus} /> : null}
+                          </span>
+                        </div>
                         <div className="mt-0.5 text-[11px] text-gray-400 truncate">
                           {session.messageCount} · {formatDateTime(session.updatedAt)}
                         </div>

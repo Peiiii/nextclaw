@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -282,6 +282,7 @@ describe("provider connection test route", () => {
           name: string;
           auth?: {
             kind: string;
+            supportsCliImport?: boolean;
           };
         }>;
       };
@@ -289,6 +290,7 @@ describe("provider connection test route", () => {
     const qwenPortal = metaPayload.data.providers.find((provider) => provider.name === "qwen-portal");
     expect(qwenPortal).toBeDefined();
     expect(qwenPortal?.auth?.kind).toBe("device_code");
+    expect(qwenPortal?.auth?.supportsCliImport).toBe(true);
   });
 
   it("completes qwen-portal device auth and stores access token", async () => {
@@ -372,5 +374,142 @@ describe("provider connection test route", () => {
     expect(configPayload.data.providers["qwen-portal"]?.apiBase).toBe("https://portal.qwen.ai/v1");
 
     expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("imports qwen-portal access token from qwen cli credentials", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-"));
+    tempDirs.push(fakeHome);
+    const qwenDir = join(fakeHome, ".qwen");
+    mkdirSync(qwenDir, { recursive: true });
+    writeFileSync(
+      join(qwenDir, "oauth_creds.json"),
+      JSON.stringify({
+        access_token: "qwen-cli-access-token",
+        refresh_token: "qwen-cli-refresh-token",
+        expiry_date: Date.now() + 3600 * 1000
+      })
+    );
+
+    const originalHome = process.env.HOME;
+    process.env.HOME = fakeHome;
+    try {
+      const app = createUiRouter({
+        configPath,
+        publish: () => {}
+      });
+
+      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      expect(importResponse.status).toBe(200);
+      const importPayload = await importResponse.json() as {
+        ok: true;
+        data: {
+          status: string;
+        };
+      };
+      expect(importPayload.data.status).toBe("imported");
+
+      const configResponse = await app.request("http://localhost/api/config");
+      expect(configResponse.status).toBe(200);
+      const configPayload = await configResponse.json() as {
+        ok: true;
+        data: {
+          providers: Record<string, { apiKeySet: boolean; apiBase?: string | null }>;
+        };
+      };
+      expect(configPayload.data.providers["qwen-portal"]?.apiKeySet).toBe(true);
+      expect(configPayload.data.providers["qwen-portal"]?.apiBase).toBe("https://portal.qwen.ai/v1");
+    } finally {
+      process.env.HOME = originalHome;
+    }
+  });
+
+  it("returns 400 when qwen cli credentials file is missing", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-missing-"));
+    tempDirs.push(fakeHome);
+
+    const originalHome = process.env.HOME;
+    process.env.HOME = fakeHome;
+    try {
+      const app = createUiRouter({
+        configPath,
+        publish: () => {}
+      });
+
+      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      expect(importResponse.status).toBe(400);
+      const payload = await importResponse.json() as {
+        ok: false;
+        error: {
+          code: string;
+          message: string;
+        };
+      };
+      expect(payload.error.code).toBe("AUTH_IMPORT_FAILED");
+      expect(payload.error.message).toContain("failed to read CLI credential");
+    } finally {
+      process.env.HOME = originalHome;
+    }
+  });
+
+  it("returns 400 when imported qwen cli credential is expired", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const fakeHome = mkdtempSync(join(tmpdir(), "nextclaw-qwen-home-expired-"));
+    tempDirs.push(fakeHome);
+    const qwenDir = join(fakeHome, ".qwen");
+    mkdirSync(qwenDir, { recursive: true });
+    writeFileSync(
+      join(qwenDir, "oauth_creds.json"),
+      JSON.stringify({
+        access_token: "expired-qwen-access-token",
+        refresh_token: "expired-qwen-refresh-token",
+        expiry_date: Date.now() - 1000
+      })
+    );
+
+    const originalHome = process.env.HOME;
+    process.env.HOME = fakeHome;
+    try {
+      const app = createUiRouter({
+        configPath,
+        publish: () => {}
+      });
+
+      const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+      expect(importResponse.status).toBe(400);
+      const payload = await importResponse.json() as {
+        ok: false;
+        error: {
+          code: string;
+          message: string;
+        };
+      };
+      expect(payload.error.code).toBe("AUTH_IMPORT_FAILED");
+      expect(payload.error.message).toContain("expired");
+    } finally {
+      process.env.HOME = originalHome;
+    }
   });
 });

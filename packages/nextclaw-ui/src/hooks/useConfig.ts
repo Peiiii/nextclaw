@@ -10,6 +10,7 @@ import {
   testProviderConnection,
   startProviderAuth,
   pollProviderAuth,
+  importProviderAuthFromCli,
   updateChannel,
   updateRuntime,
   updateSecrets,
@@ -137,6 +138,12 @@ export function usePollProviderAuth() {
   return useMutation({
     mutationFn: ({ provider, data }: { provider: string; data: unknown }) =>
       pollProviderAuth(provider, data as Parameters<typeof pollProviderAuth>[1])
+  });
+}
+
+export function useImportProviderAuthFromCli() {
+  return useMutation({
+    mutationFn: ({ provider }: { provider: string }) => importProviderAuthFromCli(provider)
   });
 }
 

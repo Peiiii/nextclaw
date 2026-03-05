@@ -1,4 +1,7 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { isAbsolute, resolve } from "node:path";
 import {
   ConfigSchema,
   findProviderByName,
@@ -6,7 +9,7 @@ import {
   saveConfig,
   type ProviderConfig
 } from "@nextclaw/core";
-import type { ProviderAuthPollResult, ProviderAuthStartResult } from "./types.js";
+import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "./types.js";
 
 type DeviceCodeSession = {
   sessionId: string;
@@ -87,6 +90,52 @@ function resolveAuthNote(params: {
   en?: string;
 }): string | undefined {
   return params.zh ?? params.en;
+}
+
+function resolveHomePath(inputPath: string): string {
+  const trimmed = inputPath.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  if (trimmed === "~") {
+    return homedir();
+  }
+  if (trimmed.startsWith("~/")) {
+    return resolve(homedir(), trimmed.slice(2));
+  }
+  if (isAbsolute(trimmed)) {
+    return trimmed;
+  }
+  return resolve(trimmed);
+}
+
+function normalizeExpiresAt(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim()) {
+    const asNumber = Number(value);
+    if (Number.isFinite(asNumber) && asNumber > 0) {
+      return Math.floor(asNumber);
+    }
+    const parsedTime = Date.parse(value);
+    if (Number.isFinite(parsedTime) && parsedTime > 0) {
+      return parsedTime;
+    }
+  }
+  return null;
+}
+
+function readFieldAsString(source: Record<string, unknown>, fieldName: string | undefined): string | null {
+  if (!fieldName) {
+    return null;
+  }
+  const rawValue = source[fieldName];
+  if (typeof rawValue !== "string") {
+    return null;
+  }
+  const trimmed = rawValue.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function setProviderApiKey(params: {
@@ -306,5 +355,70 @@ export async function pollProviderAuth(params: {
   return {
     provider: params.providerName,
     status: "authorized"
+  };
+}
+
+export async function importProviderAuthFromCli(
+  configPath: string,
+  providerName: string
+): Promise<ProviderAuthImportResult | null> {
+  const spec = findProviderByName(providerName);
+  if (!spec?.auth || spec.auth.kind !== "device_code" || !spec.auth.cliCredential) {
+    return null;
+  }
+
+  const credentialPath = resolveHomePath(spec.auth.cliCredential.path);
+  if (!credentialPath) {
+    throw new Error("provider cli credential path is empty");
+  }
+
+  let rawContent = "";
+  try {
+    rawContent = await readFile(credentialPath, "utf8");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`failed to read CLI credential: ${message}`);
+  }
+
+  let payload: Record<string, unknown>;
+  try {
+    const parsed = JSON.parse(rawContent) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("credential payload is not an object");
+    }
+    payload = parsed as Record<string, unknown>;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`invalid CLI credential JSON: ${message}`);
+  }
+
+  const accessToken = readFieldAsString(payload, spec.auth.cliCredential.accessTokenField);
+  if (!accessToken) {
+    throw new Error(
+      `CLI credential missing access token field: ${spec.auth.cliCredential.accessTokenField}`
+    );
+  }
+
+  const expiresAtMs = normalizeExpiresAt(
+    spec.auth.cliCredential.expiresAtField
+      ? payload[spec.auth.cliCredential.expiresAtField]
+      : undefined
+  );
+  if (typeof expiresAtMs === "number" && expiresAtMs <= Date.now()) {
+    throw new Error("CLI credential has expired, please login again");
+  }
+
+  setProviderApiKey({
+    configPath,
+    provider: providerName,
+    accessToken,
+    defaultApiBase: spec.defaultApiBase
+  });
+
+  return {
+    provider: providerName,
+    status: "imported",
+    source: "cli",
+    expiresAt: expiresAtMs ? new Date(expiresAtMs).toISOString() : undefined
   };
 }
