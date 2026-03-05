@@ -10,7 +10,7 @@
 
 # NextClaw
 
-**凌驾于数字穹顶之上的专属神级管家。一条命令，完全本地运行。**
+**你的数字世界全能管家。一条命令，完全本地运行。**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -78,6 +78,16 @@ nextclaw stop    # 停止服务
 
 ## 截图
 
+一键刷新全部产品截图（官网 + GitHub 资源图）：
+
+```bash
+pnpm screenshots:refresh
+```
+
+**Agent 对话** — 在一个页面中发起任务并查看多轮对话：
+
+![Agent 对话](images/screenshots/nextclaw-chat-page-cn.png)
+
 **AI 提供商** — 在 UI 中配置与切换提供商：
 
 ![AI 提供商](images/screenshots/nextclaw-providers-page-cn.png)
@@ -85,10 +95,6 @@ nextclaw stop    # 停止服务
 **消息渠道** — 启用 Discord、Telegram、飞书、QQ 等：
 
 ![消息渠道](images/screenshots/nextclaw-channels-page-cn.png)
-
-**Micro Browser** — 轻量 Web 面板，用于预览和交互网页内容：
-
-![微浏览器](images/screenshots/nextclaw-micro-browser-dock-cn.jpg)
 
 ## 文档
 

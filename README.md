@@ -78,6 +78,16 @@ If `npm` is not found, install/reinstall Node.js and reopen your terminal.
 
 ## Screenshots
 
+Refresh all product screenshots (website + GitHub assets):
+
+```bash
+pnpm screenshots:refresh
+```
+
+**Agent Chat** — send tasks and review multi-turn conversations in one place:
+
+![Agent Chat](images/screenshots/nextclaw-chat-page-en.png)
+
 **AI Providers** — configure and switch between providers in the UI:
 
 ![AI Providers](images/screenshots/nextclaw-providers-page-en.png)
@@ -85,10 +95,6 @@ If `npm` is not found, install/reinstall Node.js and reopen your terminal.
 **Message Channels** — enable Discord, Telegram, Feishu, QQ, and more:
 
 ![Message Channels](images/screenshots/nextclaw-channels-page-en.png)
-
-**Micro Browser** — lightweight web panel for previewing and interacting with web content:
-
-![Micro Browser](images/screenshots/nextclaw-micro-browser-dock-en.png)
 
 ## Documentation
 

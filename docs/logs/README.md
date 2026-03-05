@@ -1,5 +1,7 @@
 # Logs
 
+- [docs/logs/2026-03-05-product-screenshot-automation/v0.0.1-product-screenshot-automation/ITERATION.md](docs/logs/2026-03-05-product-screenshot-automation/v0.0.1-product-screenshot-automation/ITERATION.md)
+- [docs/logs/2026-03-05-brand-copy-tone-adjust/v0.0.1-brand-copy-tone-adjust/ITERATION.md](docs/logs/2026-03-05-brand-copy-tone-adjust/v0.0.1-brand-copy-tone-adjust/ITERATION.md)
 - [docs/logs/2026-03-05-openclaw-link-prune/v0.0.1-openclaw-link-prune/ITERATION.md](docs/logs/2026-03-05-openclaw-link-prune/v0.0.1-openclaw-link-prune/ITERATION.md)
 - [docs/logs/2026-03-05-after-setup-openclaw-community/v0.0.1-after-setup-openclaw-community/ITERATION.md](docs/logs/2026-03-05-after-setup-openclaw-community/v0.0.1-after-setup-openclaw-community/ITERATION.md)
 - [docs/logs/2026-03-05-skills-resource-hub-update/v0.0.1-skills-repo-only-update/ITERATION.md](docs/logs/2026-03-05-skills-resource-hub-update/v0.0.1-skills-repo-only-update/ITERATION.md)

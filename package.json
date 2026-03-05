@@ -47,9 +47,11 @@
     "deploy:landing": "pnpm --filter @nextclaw/landing build && pnpm dlx wrangler pages deploy apps/landing/dist --project-name nextclaw-landing --branch master",
     "deploy:docs": "pnpm --filter @nextclaw/docs build && pnpm dlx wrangler pages deploy apps/docs/.vitepress/dist --project-name nextclaw-docs --branch master",
     "deploy:llm-api-worker": "node scripts/deploy-llm-api-worker.mjs",
-    "deploy:workers": "pnpm -r --filter \"./workers/*\" run deploy"
+    "deploy:workers": "pnpm -r --filter \"./workers/*\" run deploy",
+    "screenshots:refresh": "node scripts/refresh-product-screenshots.mjs"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.8"
+    "@changesets/cli": "^2.29.8",
+    "playwright": "^1.52.0"
   }
 }
