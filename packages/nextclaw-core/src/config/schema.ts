@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-import { findProviderByName, PROVIDERS } from "../providers/registry.js";
+import { findProviderByName, listProviderSpecs } from "../providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
 import { expandHome, getPackageVersion } from "../utils/helpers.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
@@ -281,11 +281,7 @@ export const ProviderConfigSchema = z.object({
   models: z.array(z.string().trim().min(1)).default([])
 });
 
-const builtinProviderSchemaShape = Object.fromEntries(
-  PROVIDERS.map((spec) => [spec.name, ProviderConfigSchema.default({})])
-) as Record<string, z.ZodTypeAny>;
-
-export const ProvidersConfigSchema = z.object(builtinProviderSchemaShape).catchall(ProviderConfigSchema);
+export const ProvidersConfigSchema = z.record(ProviderConfigSchema).default({});
 
 export const PluginEntrySchema = z.object({
   enabled: z.boolean().optional(),
@@ -427,6 +423,7 @@ export function getWorkspacePathFromConfig(config: Config): string {
 
 export function matchProvider(config: Config, model?: string): { provider: ProviderConfig | null; name: string | null } {
   const providers = config.providers as Record<string, ProviderConfig>;
+  const providerSpecs = listProviderSpecs();
   const rawModel = String(model ?? config.agents.defaults.model ?? "").trim();
   const modelLower = rawModel.toLowerCase();
   const slashIndex = modelLower.indexOf("/");
@@ -444,14 +441,14 @@ export function matchProvider(config: Config, model?: string): { provider: Provi
     }
   }
 
-  const builtinProviderNames = new Set(PROVIDERS.map((spec) => spec.name));
-  for (const spec of PROVIDERS) {
+  const builtinProviderNames = new Set(providerSpecs.map((spec) => spec.name));
+  for (const spec of providerSpecs) {
     const provider = providers[spec.name];
     if (provider && provider.apiKey && spec.keywords.some((kw) => modelLower.includes(kw))) {
       return { provider, name: spec.name };
     }
   }
-  for (const spec of PROVIDERS) {
+  for (const spec of providerSpecs) {
     const provider = providers[spec.name];
     if (provider && provider.apiKey) {
       return { provider, name: spec.name };

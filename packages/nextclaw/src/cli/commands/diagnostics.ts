@@ -7,9 +7,9 @@ import {
   getDataDir,
   getWorkspacePath,
   hasSecretRef,
-  loadConfig,
-  PROVIDERS
+  loadConfig
 } from "@nextclaw/core";
+import { listBuiltinProviders } from "@nextclaw/runtime";
 import {
   clearServiceState,
   isProcessRunning,
@@ -255,7 +255,7 @@ export class DiagnosticsCommands {
 
     const orphanSuspected = !running && configuredHealth.state === "ok";
 
-    const providers = PROVIDERS.map((spec) => {
+    const providers = listBuiltinProviders().map((spec) => {
       const provider = (config.providers as Record<string, { apiKey?: string; apiBase?: string } | undefined>)[spec.name];
       const apiKeyRefSet = hasSecretRef(config, `providers.${spec.name}.apiKey`);
       if (!provider) {

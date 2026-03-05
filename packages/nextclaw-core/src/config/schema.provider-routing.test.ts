@@ -1,7 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { configureProviderCatalog } from "../providers/registry.js";
 import { ConfigSchema, getApiBase, getProviderName } from "./schema.js";
 
 describe("provider apiBase routing", () => {
+  beforeEach(() => {
+    configureProviderCatalog([
+      {
+        id: "test-builtin-providers",
+        providers: [
+          {
+            name: "nextclaw",
+            keywords: ["nextclaw", "dashscope/", "qwen3.5", "qwen"],
+            envKey: "NEXTCLAW_API_KEY",
+            defaultApiBase: "https://ai-gateway-api.nextclaw.io/v1",
+            isGateway: true,
+            isLocal: false
+          },
+          {
+            name: "deepseek",
+            keywords: ["deepseek"],
+            envKey: "DEEPSEEK_API_KEY",
+            defaultApiBase: "https://api.deepseek.com",
+            isGateway: false,
+            isLocal: false
+          }
+        ]
+      }
+    ]);
+  });
+
+  afterEach(() => {
+    configureProviderCatalog([]);
+  });
+
   it("uses built-in nextclaw provider when prefixed provider has no apiKey", () => {
     const config = ConfigSchema.parse({
       providers: {

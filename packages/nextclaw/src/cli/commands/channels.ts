@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
-import { BUILTIN_CHANNEL_PLUGIN_IDS, getWorkspacePath, loadConfig, saveConfig, PROVIDERS } from "@nextclaw/core";
+import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
+import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtime";
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
 import type { ChannelsAddOptions, RequestRestartParams } from "../types.js";
@@ -16,6 +17,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   slack: "Slack",
   qq: "QQ"
 };
+const RESERVED_PROVIDER_IDS = builtinProviderIds();
 
 export class ChannelCommands {
   constructor(
@@ -41,7 +43,7 @@ export class ChannelCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name)
+      reservedProviderIds: RESERVED_PROVIDER_IDS
     });
 
     const pluginChannels = report.plugins.filter((plugin) => plugin.status === "loaded" && plugin.channelIds.length > 0);

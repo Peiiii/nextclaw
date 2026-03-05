@@ -348,6 +348,9 @@ importers:
       '@nextclaw/openclaw-compat':
         specifier: ^0.2.0
         version: link:../nextclaw-openclaw-compat
+      '@nextclaw/runtime':
+        specifier: ^0.1.0
+        version: link:../nextclaw-runtime
       '@nextclaw/server':
         specifier: ^0.6.2
         version: link:../nextclaw-server
@@ -544,6 +547,37 @@ importers:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.33)
 
+  packages/nextclaw-runtime:
+    dependencies:
+      '@nextclaw/core':
+        specifier: ^0.7.0
+        version: link:../nextclaw-core
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.18.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.18.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+
   packages/nextclaw-server:
     dependencies:
       '@hono/node-server':
@@ -555,6 +589,9 @@ importers:
       '@nextclaw/openclaw-compat':
         specifier: ^0.2.0
         version: link:../nextclaw-openclaw-compat
+      '@nextclaw/runtime':
+        specifier: ^0.1.0
+        version: link:../nextclaw-runtime
       hono:
         specifier: ^4.6.2
         version: 4.11.9

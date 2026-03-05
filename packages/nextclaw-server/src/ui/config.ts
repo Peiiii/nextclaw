@@ -11,9 +11,7 @@ import {
   type ConfigUiHint,
   type ConfigUiHints,
   type ProviderConfig,
-  PROVIDERS,
   buildConfigSchema,
-  findProviderByName,
   getProviderName,
   getPackageVersion,
   hasSecretRef,
@@ -22,6 +20,7 @@ import {
   SessionManager,
   getWorkspacePathFromConfig
 } from "@nextclaw/core";
+import { findBuiltinProviderByName, listBuiltinProviders } from "@nextclaw/runtime";
 import type {
   ConfigMetaView,
   RuntimeConfigUpdate,
@@ -56,7 +55,8 @@ const PREFERRED_PROVIDER_ORDER = [
 const PREFERRED_PROVIDER_ORDER_INDEX: Map<string, number> = new Map(
   PREFERRED_PROVIDER_ORDER.map((name, index) => [name, index])
 );
-const BUILTIN_PROVIDER_NAMES = new Set(PROVIDERS.map((spec) => spec.name));
+const BUILTIN_PROVIDERS = listBuiltinProviders();
+const BUILTIN_PROVIDER_NAMES = new Set(BUILTIN_PROVIDERS.map((spec) => spec.name));
 const CUSTOM_PROVIDER_WIRE_API_OPTIONS: Array<"auto" | "chat" | "responses"> = ["auto", "chat", "responses"];
 const CUSTOM_PROVIDER_PREFIX = "custom-";
 const PROVIDER_TEST_MAX_TOKENS = 16;
@@ -106,6 +106,35 @@ function findNextCustomProviderName(config: Config): string {
     index += 1;
   }
   return `${CUSTOM_PROVIDER_PREFIX}${index}`;
+}
+
+function createDefaultProviderConfig(defaultWireApi: "auto" | "chat" | "responses" = "auto"): ProviderConfig {
+  return {
+    displayName: "",
+    apiKey: "",
+    apiBase: null,
+    extraHeaders: null,
+    wireApi: defaultWireApi,
+    models: []
+  };
+}
+
+function ensureProviderConfig(config: Config, providerName: string): ProviderConfig | null {
+  const providers = config.providers as Record<string, ProviderConfig>;
+  const existing = providers[providerName];
+  if (existing) {
+    return existing;
+  }
+  if (isCustomProviderName(providerName)) {
+    return null;
+  }
+  const spec = findBuiltinProviderByName(providerName);
+  if (!spec) {
+    return null;
+  }
+  const created = createDefaultProviderConfig(spec.defaultWireApi ?? "auto");
+  providers[providerName] = created;
+  return created;
 }
 
 function clearSecretRefsByPrefix(config: Config, pathPrefix: string): void {
@@ -423,7 +452,7 @@ export function buildConfigView(config: Config): ConfigView {
   const uiHints = buildUiHints(config);
   const providers: Record<string, ProviderConfigView> = {};
   for (const [name, provider] of Object.entries(config.providers)) {
-    const spec = findProviderByName(name);
+    const spec = findBuiltinProviderByName(name);
     providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
   }
   return {
@@ -456,7 +485,7 @@ function clearSecretRef(config: Config, path: string): void {
 
 export function buildConfigMeta(config: Config): ConfigMetaView {
   const configProviders = config.providers as Record<string, ProviderConfig>;
-  const builtinProviders = PROVIDERS.map((spec) => {
+  const builtinProviders = BUILTIN_PROVIDERS.map((spec) => {
     const providerConfig = configProviders[spec.name];
     return {
       name: spec.name,
@@ -631,11 +660,11 @@ export function updateProvider(
   patch: ProviderConfigUpdate
 ): ProviderConfigView | null {
   const config = loadConfigOrDefault(configPath);
-  const provider = (config.providers as Record<string, ProviderConfig>)[providerName];
+  const provider = ensureProviderConfig(config, providerName);
   if (!provider) {
     return null;
   }
-  const spec = findProviderByName(providerName);
+  const spec = findBuiltinProviderByName(providerName);
   const isCustom = isCustomProviderName(providerName);
   if (Object.prototype.hasOwnProperty.call(patch, "displayName") && isCustom) {
     provider.displayName = normalizeOptionalDisplayName(patch.displayName) ?? "";
@@ -798,12 +827,12 @@ export async function testProviderConnection(
   patch: ProviderConnectionTestRequest
 ): Promise<ProviderConnectionTestResult | null> {
   const config = loadConfigOrDefault(configPath);
-  const provider = (config.providers as Record<string, ProviderConfig>)[providerName];
+  const provider = ensureProviderConfig(config, providerName);
   if (!provider) {
     return null;
   }
 
-  const spec = findProviderByName(providerName);
+  const spec = findBuiltinProviderByName(providerName);
   const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
   const providedApiKey = normalizeOptionalString(patch.apiKey);
   const currentApiKey = normalizeOptionalString(provider.apiKey);

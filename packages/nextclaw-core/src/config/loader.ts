@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import {
   ConfigSchema,
-  type Config
+  type Config,
+  type ProviderConfig
 } from "./schema.js";
 import { getDataPath } from "../utils/helpers.js";
 import { normalizeInlineSecretRefs } from "./secrets.js";
@@ -75,13 +76,25 @@ function migrateConfig(data: Record<string, unknown>): Record<string, unknown> {
 }
 
 function ensureBuiltinNextclawKey(config: Config): boolean {
-  const provider = config.providers.nextclaw;
+  const providers = config.providers as Record<string, ProviderConfig>;
+  let changed = false;
+  let provider = providers.nextclaw;
+
   if (!provider) {
-    return false;
+    provider = {
+      displayName: "",
+      apiKey: "",
+      apiBase: null,
+      extraHeaders: null,
+      wireApi: "auto",
+      models: []
+    };
+    providers.nextclaw = provider;
+    changed = true;
   }
   const current = typeof provider.apiKey === "string" ? provider.apiKey.trim() : "";
   if (current.length > 0) {
-    return false;
+    return changed;
   }
   provider.apiKey = `nc_free_${randomBytes(24).toString("base64url")}`;
   return true;

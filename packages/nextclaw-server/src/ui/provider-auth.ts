@@ -4,11 +4,11 @@ import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
 import {
   ConfigSchema,
-  findProviderByName,
   loadConfig,
   saveConfig,
   type ProviderConfig
 } from "@nextclaw/core";
+import { findBuiltinProviderByName } from "@nextclaw/runtime";
 import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "./types.js";
 
 type DeviceCodeSession = {
@@ -173,7 +173,7 @@ export async function startProviderAuth(
 ): Promise<ProviderAuthStartResult | null> {
   cleanupExpiredAuthSessions();
 
-  const spec = findProviderByName(providerName);
+  const spec = findBuiltinProviderByName(providerName);
   if (!spec?.auth || spec.auth.kind !== "device_code") {
     return null;
   }
@@ -343,7 +343,7 @@ export async function pollProviderAuth(params: {
     };
   }
 
-  const spec = findProviderByName(params.providerName);
+  const spec = findBuiltinProviderByName(params.providerName);
   setProviderApiKey({
     configPath: params.configPath,
     provider: params.providerName,
@@ -362,7 +362,7 @@ export async function importProviderAuthFromCli(
   configPath: string,
   providerName: string
 ): Promise<ProviderAuthImportResult | null> {
-  const spec = findProviderByName(providerName);
+  const spec = findBuiltinProviderByName(providerName);
   if (!spec?.auth || spec.auth.kind !== "device_code" || !spec.auth.cliCredential) {
     return null;
   }

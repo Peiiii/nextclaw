@@ -9,6 +9,9 @@
     "paths": {
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
+      ],
+      "@nextclaw/runtime": [
+        "../nextclaw-runtime/src/index.ts"
       ]
     }
   },

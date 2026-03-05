@@ -18,9 +18,9 @@ import {
   type Config,
   type ExtensionRegistry,
   getWorkspacePath,
-  PROVIDERS,
   expandHome
 } from "@nextclaw/core";
+import { builtinProviderIds } from "@nextclaw/runtime";
 import { createInterface } from "node:readline";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -30,6 +30,8 @@ import type {
   PluginsListOptions,
   PluginsUninstallOptions
 } from "../types.js";
+
+const RESERVED_PROVIDER_IDS = builtinProviderIds();
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {
   return loadOpenClawPlugins({
@@ -55,7 +57,7 @@ export function loadPluginRegistry(config: Config, workspaceDir: string): Plugin
       "cron"
     ],
     reservedChannelIds: [],
-    reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+    reservedProviderIds: RESERVED_PROVIDER_IDS,
     reservedEngineKinds: ["native"],
     logger: {
       info: (message) => console.log(message),
@@ -173,7 +175,7 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedProviderIds: RESERVED_PROVIDER_IDS,
       reservedEngineKinds: ["native"]
     });
 
@@ -244,7 +246,7 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedProviderIds: RESERVED_PROVIDER_IDS,
       reservedEngineKinds: ["native"]
     });
 
@@ -337,7 +339,7 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedProviderIds: RESERVED_PROVIDER_IDS,
       reservedEngineKinds: ["native"]
     });
 
@@ -554,7 +556,7 @@ export class PluginCommands {
       config,
       workspaceDir,
       reservedChannelIds: [],
-      reservedProviderIds: PROVIDERS.map((provider) => provider.name),
+      reservedProviderIds: RESERVED_PROVIDER_IDS,
       reservedEngineKinds: ["native"]
     });
 

@@ -1,7 +1,7 @@
-import type { ProviderCatalogPlugin } from "../types.js";
+import type { ProviderCatalogPlugin } from "@nextclaw/core";
 
 export const builtinProviderPlugin: ProviderCatalogPlugin = {
-  id: "builtin-core-providers",
+  id: "builtin-runtime-providers",
   providers: [
     {
       name: "nextclaw",
