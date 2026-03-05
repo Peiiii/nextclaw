@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MaskedInput } from '@/components/common/MaskedInput';
 import { KeyValueEditor } from '@/components/common/KeyValueEditor';
 import { StatusDot } from '@/components/ui/status-dot';
-import { t } from '@/lib/i18n';
+import { getLanguage, t } from '@/lib/i18n';
 import { hintForPath } from '@/lib/config-hints';
 import type { ProviderConfigUpdate, ProviderConnectionTestRequest } from '@/api/types';
 import { CircleDotDashed, Plus, X, Trash2, ChevronDown, Settings2 } from 'lucide-react';
@@ -196,9 +196,12 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     () => resolveEditableModels(defaultModels, currentModels),
     [defaultModels, currentModels]
   );
-  const apiBaseHelpText = providerName === 'minimax'
-    ? t('providerApiBaseHelpMinimax')
-    : (apiBaseHint?.help || t('providerApiBaseHelp'));
+  const language = getLanguage();
+  const apiBaseHelpText =
+    providerSpec?.apiBaseHelp?.[language] ||
+    providerSpec?.apiBaseHelp?.en ||
+    apiBaseHint?.help ||
+    t('providerApiBaseHelp');
 
   useEffect(() => {
     if (!providerName) {
@@ -251,16 +254,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     models,
     currentEditableModels
   ]);
-
-  const resetToDefault = () => {
-    setApiKey('');
-    setApiBase(defaultApiBase);
-    setExtraHeaders(null);
-    setWireApi((providerSpec?.defaultWireApi || 'auto') as WireApiType);
-    setModels(defaultModels);
-    setModelDraft('');
-    setProviderDisplayName(defaultDisplayName);
-  };
 
   const handleAddModel = () => {
     const next = toProviderLocalModelId(modelDraft, providerModelAliases);
@@ -450,7 +443,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
               placeholder={defaultApiBase || apiBaseHint?.placeholder || 'https://api.example.com'}
               className="rounded-xl"
             />
-            <p className="text-xs text-gray-500">{t('providerApiBaseHelpShort')}</p>
+            <p className="text-xs text-gray-500">{apiBaseHelpText}</p>
           </div>
 
           <div className="space-y-2">

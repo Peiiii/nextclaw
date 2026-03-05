@@ -5,7 +5,6 @@ import { ProviderForm } from './ProviderForm';
 import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
 import { LogoBadge } from '@/components/common/LogoBadge';
-import { getProviderLogo } from '@/lib/logos';
 import { hintForPath } from '@/lib/config-hints';
 import { StatusDot } from '@/components/ui/status-dot';
 import { t } from '@/lib/i18n';
@@ -156,7 +155,7 @@ export function ProvidersList() {
                     <div className="flex min-w-0 items-center gap-3">
                       <LogoBadge
                         name={provider.name}
-                        src={getProviderLogo(provider.name)}
+                        src={provider.logo ? `/logos/${provider.logo}` : null}
                         className={cn(
                           'h-10 w-10 rounded-lg border',
                           isReady ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white'

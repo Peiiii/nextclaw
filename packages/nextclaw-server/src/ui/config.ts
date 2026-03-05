@@ -40,21 +40,6 @@ import type {
 
 const MASK_MIN_LENGTH = 8;
 const EXTRA_SENSITIVE_PATH_PATTERNS = [/authorization/i, /cookie/i, /session/i, /bearer/i];
-const PROVIDER_TEST_MODEL_FALLBACKS: Record<string, string> = {
-  nextclaw: "dashscope/qwen3.5-flash",
-  openai: "gpt-5-mini",
-  deepseek: "deepseek-chat",
-  gemini: "gemini-3-flash-preview",
-  zhipu: "glm-5",
-  dashscope: "qwen3.5-flash",
-  moonshot: "kimi-k2.5",
-  minimax: "MiniMax-M2.5",
-  groq: "llama-3.1-8b-instant",
-  openrouter: "openai/gpt-5.3-codex",
-  aihubmix: "gpt-5.3-codex",
-  anthropic: "claude-opus-4-6"
-};
-
 const PREFERRED_PROVIDER_ORDER = [
   "nextclaw",
   "openai",
@@ -483,6 +468,8 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
       isGateway: spec.isGateway,
       isLocal: spec.isLocal,
       defaultApiBase: spec.defaultApiBase,
+      logo: spec.logo,
+      apiBaseHelp: spec.apiBaseHelp,
       defaultModels: normalizeModelList(spec.defaultModels ?? []),
       supportsWireApi: spec.supportsWireApi,
       wireApiOptions: spec.wireApiOptions,
@@ -518,6 +505,8 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
         isGateway: false,
         isLocal: false,
         defaultApiBase: undefined,
+        logo: undefined,
+        apiBaseHelp: undefined,
         defaultModels: [],
         supportsWireApi: true,
         wireApiOptions: CUSTOM_PROVIDER_WIRE_API_OPTIONS,
@@ -785,7 +774,8 @@ function resolveTestModel(
   if (isCustomProviderName(providerName)) {
     return null;
   }
-  return PROVIDER_TEST_MODEL_FALLBACKS[providerName] ?? defaultModel ?? null;
+  const specDefaultModel = normalizeModelList(spec?.defaultModels ?? [])[0] ?? null;
+  return specDefaultModel ?? defaultModel ?? null;
 }
 
 function stringifyError(error: unknown): string {

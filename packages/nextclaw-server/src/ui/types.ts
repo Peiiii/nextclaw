@@ -397,6 +397,11 @@ export type ProviderSpecView = {
   isGateway?: boolean;
   isLocal?: boolean;
   defaultApiBase?: string;
+  logo?: string;
+  apiBaseHelp?: {
+    en?: string;
+    zh?: string;
+  };
   defaultModels?: string[];
   supportsWireApi?: boolean;
   wireApiOptions?: Array<"auto" | "chat" | "responses">;

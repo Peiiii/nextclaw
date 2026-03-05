@@ -281,21 +281,11 @@ export const ProviderConfigSchema = z.object({
   models: z.array(z.string().trim().min(1)).default([])
 });
 
-export const ProvidersConfigSchema = z.object({
-  nextclaw: ProviderConfigSchema.default({}),
-  anthropic: ProviderConfigSchema.default({}),
-  openai: ProviderConfigSchema.default({}),
-  openrouter: ProviderConfigSchema.default({}),
-  deepseek: ProviderConfigSchema.default({}),
-  groq: ProviderConfigSchema.default({}),
-  zhipu: ProviderConfigSchema.default({}),
-  dashscope: ProviderConfigSchema.default({}),
-  vllm: ProviderConfigSchema.default({}),
-  gemini: ProviderConfigSchema.default({}),
-  moonshot: ProviderConfigSchema.default({}),
-  minimax: ProviderConfigSchema.default({}),
-  aihubmix: ProviderConfigSchema.default({})
-}).catchall(ProviderConfigSchema);
+const builtinProviderSchemaShape = Object.fromEntries(
+  PROVIDERS.map((spec) => [spec.name, ProviderConfigSchema.default({})])
+) as Record<string, z.ZodTypeAny>;
+
+export const ProvidersConfigSchema = z.object(builtinProviderSchemaShape).catchall(ProviderConfigSchema);
 
 export const PluginEntrySchema = z.object({
   enabled: z.boolean().optional(),
