@@ -1,6 +1,9 @@
 name = "nextclaw-provider-gateway-api"
 main = "src/main.ts"
 compatibility_date = "2026-03-07"
+routes = [
+  { pattern = "ai-gateway-api.nextclaw.io", custom_domain = true }
+]
 
 [observability]
 enabled = true

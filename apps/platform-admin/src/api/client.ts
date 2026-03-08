@@ -10,6 +10,19 @@ import type {
   UserView
 } from '@/api/types';
 
+const rawApiBase = (import.meta.env.VITE_PLATFORM_API_BASE ?? '').trim();
+const apiBase = rawApiBase.replace(/\/+$/, '');
+
+function toApiUrl(path: string): string {
+  if (/^https?:\/\//i.test(path)) {
+    return path;
+  }
+  if (!apiBase) {
+    return path;
+  }
+  return path.startsWith('/') ? `${apiBase}${path}` : `${apiBase}/${path}`;
+}
+
 async function request<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
   const headers = new Headers(options.headers ?? {});
   headers.set('Content-Type', 'application/json');
@@ -17,7 +30,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(toApiUrl(path), {
     ...options,
     headers
   });

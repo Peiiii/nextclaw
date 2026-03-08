@@ -1,6 +1,6 @@
 # NextClaw Platform Console
 
-用户前端 + 管理后台统一控制台。
+用户前端站点（独立于管理后台）。
 
 技术栈：
 - React + TypeScript
@@ -25,6 +25,15 @@ pnpm -C apps/platform-console dev
 ```bash
 VITE_PLATFORM_API_BASE=http://127.0.0.1:8790 pnpm -C apps/platform-console dev
 ```
+
+生产构建默认 API 域名：`https://ai-gateway-api.nextclaw.io`（见 `.env.production`）。
+发布命令（根目录）：
+
+```bash
+pnpm deploy:platform:console
+```
+
+管理后台独立站点请使用：`apps/platform-admin`。
 
 ## 构建与检查
 

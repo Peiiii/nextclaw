@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createServer as createNetServer, Socket } from "node:net";
 
 const argv = new Set(process.argv.slice(2));
-const shouldMigrate = argv.has("--migrate");
+const shouldMigrate = !argv.has("--no-migrate");
 const checkOnly = argv.has("--check");
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");

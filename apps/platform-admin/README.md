@@ -26,6 +26,13 @@ pnpm -C apps/platform-admin dev
 VITE_PLATFORM_API_BASE=http://127.0.0.1:8790 pnpm -C apps/platform-admin dev
 ```
 
+生产构建默认 API 域名：`https://ai-gateway-api.nextclaw.io`（见 `.env.production`）。
+发布命令（根目录）：
+
+```bash
+pnpm deploy:platform:admin
+```
+
 ## 构建与检查
 
 ```bash
