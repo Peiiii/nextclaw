@@ -59,6 +59,7 @@
     ],
     "npmRebuild": false,
     "asar": false,
+    "afterPack": "./scripts/electron-after-pack.cjs",
     "mac": {
       "icon": "build/icons/icon.icns",
       "target": [

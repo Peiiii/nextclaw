@@ -56,11 +56,6 @@ const BUNDLED_CHANNEL_PLUGIN_PACKAGES = [
   "@nextclaw/channel-plugin-qq"
 ] as const;
 
-const BUNDLED_RUNTIME_PLUGIN_PACKAGES = [
-  "@nextclaw/nextclaw-engine-codex-sdk",
-  "@nextclaw/nextclaw-engine-claude-agent-sdk"
-] as const;
-
 function resolvePackageRootFromEntry(entryFile: string): string {
   let cursor = path.dirname(entryFile);
   for (let i = 0; i < 8; i += 1) {
@@ -319,118 +314,6 @@ function appendBundledChannelPlugins(params: {
   }
 }
 
-function appendBundledRuntimePlugins(params: {
-  runtime: PluginRegisterRuntime;
-  registry: PluginRegistry;
-  jiti: ReturnType<JitiFactory>;
-  normalizedConfig: ReturnType<typeof normalizePluginsConfig>;
-}): void {
-  const require = createRequire(import.meta.url);
-
-  for (const packageName of BUNDLED_RUNTIME_PLUGIN_PACKAGES) {
-    let entryFile = "";
-    let rootDir = "";
-
-    try {
-      entryFile = require.resolve(packageName);
-      rootDir = resolvePackageRootFromEntry(entryFile);
-    } catch (err) {
-      params.registry.diagnostics.push({
-        level: "error",
-        source: packageName,
-        message: `bundled runtime plugin package not resolvable: ${String(err)}`
-      });
-      continue;
-    }
-
-    let moduleExport: OpenClawPluginModule | null = null;
-    try {
-      moduleExport = params.jiti(entryFile) as OpenClawPluginModule;
-    } catch (err) {
-      params.registry.diagnostics.push({
-        level: "error",
-        source: entryFile,
-        message: `failed to load bundled runtime plugin: ${String(err)}`
-      });
-      continue;
-    }
-
-    const resolved = resolvePluginModuleExport(moduleExport);
-    const definition = resolved.definition;
-    const register = resolved.register;
-
-    const pluginId = typeof definition?.id === "string" ? definition.id.trim() : "";
-    const source = entryFile;
-    if (!pluginId) {
-      params.registry.diagnostics.push({
-        level: "error",
-        source,
-        message: "bundled runtime plugin definition missing id"
-      });
-      continue;
-    }
-
-    const enableState = resolveEnableState(pluginId, params.normalizedConfig);
-
-    const record = createPluginRecord({
-      id: pluginId,
-      name: definition?.name ?? pluginId,
-      description: definition?.description,
-      version: definition?.version,
-      kind: definition?.kind,
-      source,
-      origin: "bundled",
-      workspaceDir: params.runtime.workspaceDir,
-      enabled: enableState.enabled,
-      configSchema: Boolean(definition?.configSchema),
-      configJsonSchema: definition?.configSchema
-    });
-
-    if (!enableState.enabled) {
-      record.status = "disabled";
-      record.error = enableState.reason;
-      params.registry.plugins.push(record);
-      continue;
-    }
-
-    if (typeof register !== "function") {
-      record.status = "error";
-      record.error = "plugin export missing register/activate";
-      params.registry.plugins.push(record);
-      params.registry.diagnostics.push({
-        level: "error",
-        pluginId,
-        source,
-        message: record.error
-      });
-      continue;
-    }
-
-    const result = registerPluginWithApi({
-      runtime: params.runtime,
-      record,
-      pluginId,
-      source,
-      rootDir,
-      register,
-      pluginConfig: undefined
-    });
-
-    if (!result.ok) {
-      record.status = "error";
-      record.error = result.error;
-      params.registry.diagnostics.push({
-        level: "error",
-        pluginId,
-        source,
-        message: result.error
-      });
-    }
-
-    params.registry.plugins.push(record);
-  }
-}
-
 export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
   const loadExternalPlugins = process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "0";
 
@@ -480,12 +363,6 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
   });
 
   appendBundledChannelPlugins({
-    registry,
-    runtime: registerRuntime,
-    jiti,
-    normalizedConfig: normalized
-  });
-  appendBundledRuntimePlugins({
     registry,
     runtime: registerRuntime,
     jiti,

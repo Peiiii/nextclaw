@@ -54,6 +54,8 @@ function packageForCurrentPlatform() {
   rmSync(releaseDir, { recursive: true, force: true });
 
   run(binName("pnpm"), ["-C", "packages/nextclaw-ui", "build"]);
+  run(binName("pnpm"), ["-C", "packages/nextclaw-openclaw-compat", "build"]);
+  run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw", "build"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], { env });
 

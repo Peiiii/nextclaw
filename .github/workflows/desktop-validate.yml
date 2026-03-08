@@ -95,6 +95,8 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
           pnpm -C packages/nextclaw build
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
@@ -160,6 +162,8 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
           pnpm -C packages/nextclaw build
 
       - name: Build Windows installer

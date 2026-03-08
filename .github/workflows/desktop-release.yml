@@ -51,6 +51,8 @@ jobs:
         run: |
           set -euo pipefail
           pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
           pnpm -C packages/nextclaw build
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --publish never
@@ -74,6 +76,8 @@ jobs:
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
           pnpm -C packages/nextclaw build
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never

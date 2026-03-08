@@ -49,8 +49,8 @@
     "commander": "^12.1.0",
     "@nextclaw/core": "^0.7.2",
     "@nextclaw/runtime": "^0.1.1",
-    "@nextclaw/server": "^0.6.5",
-    "@nextclaw/openclaw-compat": "^0.2.0"
+    "@nextclaw/server": "workspace:*",
+    "@nextclaw/openclaw-compat": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

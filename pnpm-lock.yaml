@@ -462,14 +462,14 @@ importers:
         specifier: ^0.7.2
         version: 0.7.2(ws@8.19.0)
       '@nextclaw/openclaw-compat':
-        specifier: ^0.2.0
-        version: 0.2.0(ws@8.19.0)
+        specifier: workspace:*
+        version: link:../nextclaw-openclaw-compat
       '@nextclaw/runtime':
         specifier: ^0.1.1
         version: 0.1.1(ws@8.19.0)
       '@nextclaw/server':
-        specifier: ^0.6.5
-        version: 0.6.5
+        specifier: workspace:*
+        version: link:../nextclaw-server
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -613,12 +613,6 @@ importers:
       '@nextclaw/core':
         specifier: ^0.7.0
         version: 0.7.1(ws@8.19.0)
-      '@nextclaw/nextclaw-engine-claude-agent-sdk':
-        specifier: ^0.2.0
-        version: 0.2.0(ws@8.19.0)
-      '@nextclaw/nextclaw-engine-codex-sdk':
-        specifier: ^0.2.0
-        version: 0.2.0(ws@8.19.0)
       ajv:
         specifier: ^8.17.1
         version: 8.18.0
@@ -703,8 +697,8 @@ importers:
         specifier: ^0.7.2
         version: 0.7.2(ws@8.19.0)
       '@nextclaw/openclaw-compat':
-        specifier: ^0.2.0
-        version: 0.2.0(ws@8.19.0)
+        specifier: workspace:*
+        version: link:../nextclaw-openclaw-compat
       '@nextclaw/runtime':
         specifier: ^0.1.1
         version: 0.1.1(ws@8.19.0)
@@ -2075,20 +2069,8 @@ packages:
   '@nextclaw/core@0.7.2':
     resolution: {integrity: sha512-PVqwvxWf0eWBt3pPiLU+TbLrmoilOE8w0/21TTIS+C2L8U0KY8Na0CoK/jL0OvPJ+WhwZurinHpsAfykh3umaQ==}
 
-  '@nextclaw/nextclaw-engine-claude-agent-sdk@0.2.0':
-    resolution: {integrity: sha512-E9xKbx5+cHb2h274ov6+wsrN4JjVArRJQ9fc/P08EamkKH32D+MRmHcUOexNDNMYt2nMU4ADreHJBH7ebAuqDg==}
-
-  '@nextclaw/nextclaw-engine-codex-sdk@0.2.0':
-    resolution: {integrity: sha512-HVHxg6a+bsu3wbIKzCxCotoxjnR1/hI3CBHDg1F28AtqtyjGPsyZh11JElCyuGBbQm1mfPLGG3zNxKp4EyeDqw==}
-
-  '@nextclaw/openclaw-compat@0.2.0':
-    resolution: {integrity: sha512-j80bz70pi1ehIuMvZiVfzzJaWCay1Bly6l34aCbTX7fADOBrmoejIhMXiRgMTOUCIdTb0E2ul09IXqzOnd2IAw==}
-
   '@nextclaw/runtime@0.1.1':
     resolution: {integrity: sha512-orJKcFvSH+OhATHIPwZmq8o+xgx4yZAadmF6b/77p2suFKSzg2YMtQnlUEO6j8V9e967E/kv/83fJfO6xaWK7Q==}
-
-  '@nextclaw/server@0.6.5':
-    resolution: {integrity: sha512-g6HRsYwGt1n3TKxpcUs42afV/O3guPyxhJdFWc5i2JP2fINvzQqUasQjEZLqAiHTls+umkpjZFGy7aaOzRN4DQ==}
 
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
@@ -8254,58 +8236,6 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@nextclaw/nextclaw-engine-claude-agent-sdk@0.2.0(ws@8.19.0)':
-    dependencies:
-      '@anthropic-ai/claude-agent-sdk': 0.2.63(zod@4.3.6)
-      '@nextclaw/core': 0.7.2(ws@8.19.0)
-      zod: 4.3.6
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - utf-8-validate
-      - ws
-
-  '@nextclaw/nextclaw-engine-codex-sdk@0.2.0(ws@8.19.0)':
-    dependencies:
-      '@nextclaw/core': 0.7.2(ws@8.19.0)
-      '@openai/codex-sdk': 0.107.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - utf-8-validate
-      - ws
-
-  '@nextclaw/openclaw-compat@0.2.0(ws@8.19.0)':
-    dependencies:
-      '@nextclaw/channel-plugin-dingtalk': 0.1.6
-      '@nextclaw/channel-plugin-discord': 0.1.7
-      '@nextclaw/channel-plugin-email': 0.1.6
-      '@nextclaw/channel-plugin-feishu': 0.1.6
-      '@nextclaw/channel-plugin-mochat': 0.1.6
-      '@nextclaw/channel-plugin-qq': 0.1.6
-      '@nextclaw/channel-plugin-slack': 0.1.6
-      '@nextclaw/channel-plugin-telegram': 0.1.6
-      '@nextclaw/channel-plugin-wecom': 0.1.6
-      '@nextclaw/channel-plugin-whatsapp': 0.1.6
-      '@nextclaw/channel-runtime': 0.1.29
-      '@nextclaw/core': 0.7.2(ws@8.19.0)
-      '@nextclaw/nextclaw-engine-claude-agent-sdk': 0.2.0(ws@8.19.0)
-      '@nextclaw/nextclaw-engine-codex-sdk': 0.2.0(ws@8.19.0)
-      ajv: 8.18.0
-      jiti: 1.21.7
-      jszip: 3.10.1
-      tar: 7.5.9
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - request
-      - supports-color
-      - utf-8-validate
-      - ws
-
   '@nextclaw/runtime@0.1.1(ws@8.19.0)':
     dependencies:
       '@nextclaw/core': 0.7.2(ws@8.19.0)
@@ -8315,22 +8245,6 @@ snapshots:
       - encoding
       - utf-8-validate
       - ws
-
-  '@nextclaw/server@0.6.5':
-    dependencies:
-      '@hono/node-server': 1.19.9(hono@4.11.9)
-      '@nextclaw/core': 0.7.2(ws@8.19.0)
-      '@nextclaw/openclaw-compat': 0.2.0(ws@8.19.0)
-      '@nextclaw/runtime': 0.1.1(ws@8.19.0)
-      hono: 4.11.9
-      ws: 8.19.0
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - request
-      - supports-color
-      - utf-8-validate
 
   '@noble/curves@1.9.7':
     dependencies:
