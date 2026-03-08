@@ -15,6 +15,7 @@ import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { formatUsd } from '@/lib/utils';
+import { GatewayBusinessLoopSection } from '@/pages/admin-gateway-business-loop';
 
 type Props = {
   token: string;
@@ -163,6 +164,8 @@ export function AdminDashboardPage({ token }: Props): JSX.Element {
         onGlobalLimitInputChange={setGlobalLimitInput}
         onSubmit={() => setGlobalLimitMutation.mutate()}
       />
+
+      <GatewayBusinessLoopSection token={token} />
 
       <UserQuotaManagementCard
         users={users}

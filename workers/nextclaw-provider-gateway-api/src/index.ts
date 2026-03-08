@@ -9,7 +9,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.use("/platform/*", cors({
   origin: "*",
   allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
-  allowMethods: ["GET", "POST", "PATCH", "OPTIONS"]
+  allowMethods: ["GET", "POST", "PUT", "PATCH", "OPTIONS"]
 }));
 
 app.use("/v1/*", cors({

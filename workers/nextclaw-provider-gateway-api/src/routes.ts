@@ -1,11 +1,17 @@
 import type { Hono } from "hono";
 import {
   adminOverviewHandler,
+  adminProfitOverviewHandler,
+  adminProvidersHandler,
   adminRechargeIntentsHandler,
   adminUsersHandler,
+  adminModelsHandler,
   confirmRechargeIntentHandler,
+  createAdminProviderHandler,
   patchAdminSettingsHandler,
+  patchAdminProviderHandler,
   patchAdminUserHandler,
+  putAdminModelHandler,
   rejectRechargeIntentHandler
 } from "./controllers/admin-controller";
 import { loginHandler, meHandler, registerHandler } from "./controllers/auth-controller";
@@ -35,8 +41,14 @@ export function registerRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/platform/billing/recharge-intents", createRechargeIntentHandler);
 
   app.get("/platform/admin/overview", adminOverviewHandler);
+  app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
   app.get("/platform/admin/users", adminUsersHandler);
   app.patch("/platform/admin/users/:userId", patchAdminUserHandler);
+  app.get("/platform/admin/providers", adminProvidersHandler);
+  app.post("/platform/admin/providers", createAdminProviderHandler);
+  app.patch("/platform/admin/providers/:providerId", patchAdminProviderHandler);
+  app.get("/platform/admin/models", adminModelsHandler);
+  app.put("/platform/admin/models/:publicModelId", putAdminModelHandler);
   app.get("/platform/admin/recharge-intents", adminRechargeIntentsHandler);
   app.post("/platform/admin/recharge-intents/:intentId/confirm", confirmRechargeIntentHandler);
   app.post("/platform/admin/recharge-intents/:intentId/reject", rejectRechargeIntentHandler);

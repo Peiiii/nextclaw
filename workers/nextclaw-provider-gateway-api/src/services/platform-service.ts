@@ -115,6 +115,7 @@ export async function chargeFromStream(params: {
   stream: ReadableStream;
   fallback: UsageCounters;
   requestId: string;
+  onSettled?: (payload: { usage: UsageCounters; result: ChargeResult }) => Promise<void> | void;
 }): Promise<void> {
   const decoder = new TextDecoder();
   const reader = params.stream.getReader();
@@ -155,7 +156,11 @@ export async function chargeFromStream(params: {
     }
   }
 
-  await chargeUsage(params.env, params.userId, params.modelSpec, usage ?? params.fallback, params.requestId);
+  const settledUsage = usage ?? params.fallback;
+  const result = await chargeUsage(params.env, params.userId, params.modelSpec, settledUsage, params.requestId);
+  if (params.onSettled) {
+    await params.onSettled({ usage: settledUsage, result });
+  }
 }
 
 export async function chargeUsage(

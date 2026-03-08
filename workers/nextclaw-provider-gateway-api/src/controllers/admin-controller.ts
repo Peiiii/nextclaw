@@ -3,13 +3,22 @@ import type { Env, RechargeIntentRow, UserRow } from "../types/platform";
 import {
   appendAuditLog,
   appendLedger,
+  createProviderAccount,
   countRechargeIntentsByStatus,
   countUsers,
   getRechargeIntentById,
+  getProviderAccountById,
   getUserById,
+  listModelCatalog,
+  listProviderAccounts,
+  patchProviderAccount,
   readPlatformNumberSetting,
+  readProfitOverview,
+  toModelCatalogView,
+  toProviderAccountView,
   toRechargeIntentView,
   toUserPublicView,
+  upsertModelCatalog,
   writePlatformNumberSetting
 } from "../repositories/platform-repository";
 import { ensurePlatformBootstrap, requireAdminUser } from "../services/platform-service";
@@ -46,6 +55,283 @@ export async function adminOverviewHandler(c: Context<{ Bindings: Env }>): Promi
       globalFreeRemainingUsd: roundUsd(Math.max(0, globalFreeLimitUsd - globalFreeUsedUsd)),
       userCount,
       pendingRechargeIntents
+    }
+  });
+}
+
+export async function adminProvidersHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const rows = await listProviderAccounts(c.env.NEXTCLAW_PLATFORM_DB);
+  return c.json({
+    ok: true,
+    data: {
+      items: rows.map(toProviderAccountView)
+    }
+  });
+}
+
+export async function createAdminProviderHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const body = await readJson(c);
+  const providerRaw = readUnknown(body, "provider");
+  const authTypeRaw = readUnknown(body, "authType");
+  const apiBaseRaw = readUnknown(body, "apiBase");
+  const accessTokenRaw = readUnknown(body, "accessToken");
+  const displayNameRaw = readUnknown(body, "displayName");
+  const enabledRaw = readUnknown(body, "enabled");
+  const priorityRaw = readUnknown(body, "priority");
+
+  const provider = typeof providerRaw === "string" ? providerRaw.trim() : "";
+  const authType = authTypeRaw === "api_key" ? "api_key" : "oauth";
+  const apiBase = typeof apiBaseRaw === "string" ? apiBaseRaw.trim() : "";
+  const accessToken = typeof accessTokenRaw === "string" ? accessTokenRaw.trim() : "";
+  const displayName = typeof displayNameRaw === "string" ? displayNameRaw.trim() : "";
+  const enabled = typeof enabledRaw === "boolean" ? enabledRaw : true;
+  const priority = typeof priorityRaw === "number" && Number.isFinite(priorityRaw)
+    ? Math.max(0, Math.floor(priorityRaw))
+    : 100;
+
+  if (!provider) {
+    return apiError(c, 400, "INVALID_PROVIDER", "provider is required.");
+  }
+  if (!apiBase) {
+    return apiError(c, 400, "INVALID_API_BASE", "apiBase is required.");
+  }
+  if (!accessToken) {
+    return apiError(c, 400, "INVALID_ACCESS_TOKEN", "accessToken is required.");
+  }
+
+  const providerId = crypto.randomUUID();
+  await createProviderAccount(c.env.NEXTCLAW_PLATFORM_DB, {
+    id: providerId,
+    provider,
+    displayName: displayName.length > 0 ? displayName : null,
+    authType,
+    apiBase,
+    accessToken,
+    enabled,
+    priority
+  });
+
+  const created = await getProviderAccountById(c.env.NEXTCLAW_PLATFORM_DB, providerId);
+  if (!created) {
+    return apiError(c, 500, "PROVIDER_CREATE_FAILED", "Provider created but cannot be loaded.");
+  }
+
+  await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
+    actorUserId: admin.user.id,
+    action: "admin.provider.create",
+    targetType: "provider_account",
+    targetId: providerId,
+    beforeJson: null,
+    afterJson: JSON.stringify(toProviderAccountView(created)),
+    metadataJson: JSON.stringify({ provider, authType })
+  });
+
+  return c.json({
+    ok: true,
+    data: {
+      provider: toProviderAccountView(created)
+    }
+  }, 201);
+}
+
+export async function patchAdminProviderHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const providerId = c.req.param("providerId");
+  const before = await getProviderAccountById(c.env.NEXTCLAW_PLATFORM_DB, providerId);
+  if (!before) {
+    return apiError(c, 404, "PROVIDER_NOT_FOUND", "Provider account not found.");
+  }
+
+  const body = await readJson(c);
+  const displayNameRaw = readUnknown(body, "displayName");
+  const authTypeRaw = readUnknown(body, "authType");
+  const apiBaseRaw = readUnknown(body, "apiBase");
+  const accessTokenRaw = readUnknown(body, "accessToken");
+  const enabledRaw = readUnknown(body, "enabled");
+  const priorityRaw = readUnknown(body, "priority");
+
+  const changed = await patchProviderAccount(c.env.NEXTCLAW_PLATFORM_DB, providerId, {
+    ...(typeof displayNameRaw === "string" ? { displayName: displayNameRaw.trim() || null } : {}),
+    ...((authTypeRaw === "oauth" || authTypeRaw === "api_key") ? { authType: authTypeRaw } : {}),
+    ...(typeof apiBaseRaw === "string" && apiBaseRaw.trim().length > 0 ? { apiBase: apiBaseRaw.trim() } : {}),
+    ...(typeof accessTokenRaw === "string" && accessTokenRaw.trim().length > 0 ? { accessToken: accessTokenRaw.trim() } : {}),
+    ...(typeof enabledRaw === "boolean" ? { enabled: enabledRaw } : {}),
+    ...(typeof priorityRaw === "number" && Number.isFinite(priorityRaw)
+      ? { priority: Math.max(0, Math.floor(priorityRaw)) }
+      : {})
+  });
+
+  const after = await getProviderAccountById(c.env.NEXTCLAW_PLATFORM_DB, providerId);
+  if (!after) {
+    return apiError(c, 500, "PROVIDER_NOT_FOUND_AFTER_UPDATE", "Provider cannot be loaded after update.");
+  }
+
+  if (changed) {
+    await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
+      actorUserId: admin.user.id,
+      action: "admin.provider.update",
+      targetType: "provider_account",
+      targetId: providerId,
+      beforeJson: JSON.stringify(toProviderAccountView(before)),
+      afterJson: JSON.stringify(toProviderAccountView(after)),
+      metadataJson: null
+    });
+  }
+
+  return c.json({
+    ok: true,
+    data: {
+      changed,
+      provider: toProviderAccountView(after)
+    }
+  });
+}
+
+export async function adminModelsHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const [models, providers] = await Promise.all([
+    listModelCatalog(c.env.NEXTCLAW_PLATFORM_DB),
+    listProviderAccounts(c.env.NEXTCLAW_PLATFORM_DB)
+  ]);
+
+  return c.json({
+    ok: true,
+    data: {
+      items: models.map(toModelCatalogView),
+      providers: providers.map(toProviderAccountView)
+    }
+  });
+}
+
+export async function putAdminModelHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const publicModelId = c.req.param("publicModelId").trim();
+  if (publicModelId.length === 0) {
+    return apiError(c, 400, "INVALID_MODEL_ID", "publicModelId is required.");
+  }
+
+  const body = await readJson(c);
+  const providerAccountIdRaw = readUnknown(body, "providerAccountId");
+  const upstreamModelRaw = readUnknown(body, "upstreamModel");
+  const displayNameRaw = readUnknown(body, "displayName");
+  const enabledRaw = readUnknown(body, "enabled");
+  const sellInputRaw = readUnknown(body, "sellInputUsdPer1M");
+  const sellOutputRaw = readUnknown(body, "sellOutputUsdPer1M");
+  const upstreamInputRaw = readUnknown(body, "upstreamInputUsdPer1M");
+  const upstreamOutputRaw = readUnknown(body, "upstreamOutputUsdPer1M");
+
+  const providerAccountId = typeof providerAccountIdRaw === "string" ? providerAccountIdRaw.trim() : "";
+  const upstreamModel = typeof upstreamModelRaw === "string" ? upstreamModelRaw.trim() : "";
+  const displayName = typeof displayNameRaw === "string" ? displayNameRaw.trim() : "";
+  const enabled = typeof enabledRaw === "boolean" ? enabledRaw : true;
+  const sellInputUsdPer1M = typeof sellInputRaw === "number" && Number.isFinite(sellInputRaw) ? roundUsd(Math.max(0, sellInputRaw)) : Number.NaN;
+  const sellOutputUsdPer1M = typeof sellOutputRaw === "number" && Number.isFinite(sellOutputRaw) ? roundUsd(Math.max(0, sellOutputRaw)) : Number.NaN;
+  const upstreamInputUsdPer1M = typeof upstreamInputRaw === "number" && Number.isFinite(upstreamInputRaw) ? roundUsd(Math.max(0, upstreamInputRaw)) : Number.NaN;
+  const upstreamOutputUsdPer1M = typeof upstreamOutputRaw === "number" && Number.isFinite(upstreamOutputRaw) ? roundUsd(Math.max(0, upstreamOutputRaw)) : Number.NaN;
+
+  if (!providerAccountId) {
+    return apiError(c, 400, "INVALID_PROVIDER_ACCOUNT", "providerAccountId is required.");
+  }
+  if (!upstreamModel) {
+    return apiError(c, 400, "INVALID_UPSTREAM_MODEL", "upstreamModel is required.");
+  }
+  if (!Number.isFinite(sellInputUsdPer1M) || !Number.isFinite(sellOutputUsdPer1M) ||
+    !Number.isFinite(upstreamInputUsdPer1M) || !Number.isFinite(upstreamOutputUsdPer1M)) {
+    return apiError(c, 400, "INVALID_PRICING", "sell/upstream input and output prices must be non-negative numbers.");
+  }
+
+  const provider = await getProviderAccountById(c.env.NEXTCLAW_PLATFORM_DB, providerAccountId);
+  if (!provider) {
+    return apiError(c, 404, "PROVIDER_NOT_FOUND", "providerAccountId does not exist.");
+  }
+
+  await upsertModelCatalog(c.env.NEXTCLAW_PLATFORM_DB, {
+    publicModelId,
+    providerAccountId,
+    upstreamModel,
+    displayName: displayName.length > 0 ? displayName : null,
+    enabled,
+    sellInputUsdPer1M,
+    sellOutputUsdPer1M,
+    upstreamInputUsdPer1M,
+    upstreamOutputUsdPer1M
+  });
+
+  const current = await listModelCatalog(c.env.NEXTCLAW_PLATFORM_DB);
+  const model = current.find((item) => item.public_model_id === publicModelId);
+  if (!model) {
+    return apiError(c, 500, "MODEL_NOT_FOUND_AFTER_UPSERT", "Model cannot be loaded after upsert.");
+  }
+
+  await appendAuditLog(c.env.NEXTCLAW_PLATFORM_DB, {
+    actorUserId: admin.user.id,
+    action: "admin.model.upsert",
+    targetType: "model_catalog",
+    targetId: publicModelId,
+    beforeJson: null,
+    afterJson: JSON.stringify(toModelCatalogView(model)),
+    metadataJson: JSON.stringify({ providerAccountId, upstreamModel })
+  });
+
+  return c.json({
+    ok: true,
+    data: {
+      model: toModelCatalogView(model)
+    }
+  });
+}
+
+export async function adminProfitOverviewHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
+  await ensurePlatformBootstrap(c.env);
+  const admin = await requireAdminUser(c);
+  if (!admin.ok) {
+    return admin.response;
+  }
+
+  const days = parseBoundedInt(c.req.query("days"), 1, 1, 90);
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const overview = await readProfitOverview(c.env.NEXTCLAW_PLATFORM_DB, since);
+  const grossMarginRate = overview.totalChargeUsd > 0
+    ? roundUsd(overview.totalGrossMarginUsd / overview.totalChargeUsd)
+    : 0;
+
+  return c.json({
+    ok: true,
+    data: {
+      days,
+      since,
+      requests: overview.requests,
+      totalChargeUsd: overview.totalChargeUsd,
+      totalUpstreamCostUsd: overview.totalUpstreamCostUsd,
+      totalGrossMarginUsd: overview.totalGrossMarginUsd,
+      grossMarginRate
     }
   });
 }

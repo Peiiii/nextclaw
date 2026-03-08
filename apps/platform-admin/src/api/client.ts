@@ -1,4 +1,5 @@
 import type {
+  AdminProfitOverview,
   AdminOverview,
   ApiEnvelope,
   ApiFailure,
@@ -6,6 +7,8 @@ import type {
   BillingOverview,
   CursorPage,
   LedgerItem,
+  ModelCatalogView,
+  ProviderAccountView,
   RechargeIntentItem,
   UserView
 } from '@/api/types';
@@ -101,6 +104,13 @@ export async function fetchAdminOverview(token: string): Promise<AdminOverview> 
   return unwrap(data);
 }
 
+export async function fetchAdminProfitOverview(token: string, days = 7): Promise<AdminProfitOverview> {
+  const params = new URLSearchParams();
+  params.set('days', String(days));
+  const data = await request<ApiEnvelope<AdminProfitOverview>>(`/platform/admin/profit/overview?${params.toString()}`, {}, token);
+  return unwrap(data);
+}
+
 export async function fetchAdminUsers(
   token: string,
   options: { limit?: number; q?: string; cursor?: string | null } = {}
@@ -164,4 +174,81 @@ export async function updateGlobalFreeLimit(token: string, globalFreeLimitUsd: n
     method: 'PATCH',
     body: JSON.stringify({ globalFreeLimitUsd })
   }, token);
+}
+
+export async function fetchAdminProviders(token: string): Promise<{ items: ProviderAccountView[] }> {
+  const data = await request<ApiEnvelope<{ items: ProviderAccountView[] }>>('/platform/admin/providers', {}, token);
+  return unwrap(data);
+}
+
+export async function createAdminProvider(
+  token: string,
+  payload: {
+    provider: string;
+    authType: 'oauth' | 'api_key';
+    apiBase: string;
+    accessToken: string;
+    displayName?: string;
+    enabled?: boolean;
+    priority?: number;
+  }
+): Promise<{ provider: ProviderAccountView }> {
+  const data = await request<ApiEnvelope<{ provider: ProviderAccountView }>>('/platform/admin/providers', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, token);
+  return unwrap(data);
+}
+
+export async function updateAdminProvider(
+  token: string,
+  providerId: string,
+  payload: {
+    authType?: 'oauth' | 'api_key';
+    apiBase?: string;
+    accessToken?: string;
+    displayName?: string;
+    enabled?: boolean;
+    priority?: number;
+  }
+): Promise<{ changed: boolean; provider: ProviderAccountView }> {
+  const data = await request<ApiEnvelope<{ changed: boolean; provider: ProviderAccountView }>>(
+    `/platform/admin/providers/${encodeURIComponent(providerId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload)
+    },
+    token
+  );
+  return unwrap(data);
+}
+
+export async function fetchAdminModels(token: string): Promise<{ items: ModelCatalogView[]; providers: ProviderAccountView[] }> {
+  const data = await request<ApiEnvelope<{ items: ModelCatalogView[]; providers: ProviderAccountView[] }>>('/platform/admin/models', {}, token);
+  return unwrap(data);
+}
+
+export async function upsertAdminModel(
+  token: string,
+  publicModelId: string,
+  payload: {
+    providerAccountId: string;
+    upstreamModel: string;
+    displayName?: string;
+    enabled?: boolean;
+    sellInputUsdPer1M: number;
+    sellOutputUsdPer1M: number;
+    upstreamInputUsdPer1M: number;
+    upstreamOutputUsdPer1M: number;
+  }
+): Promise<{ model: ModelCatalogView }> {
+  const data = await request<ApiEnvelope<{ model: ModelCatalogView }>>(
+    `/platform/admin/models/${encodeURIComponent(publicModelId)}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    },
+    token
+  );
+  return unwrap(data);
 }

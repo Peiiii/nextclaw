@@ -61,6 +61,45 @@ export type AdminOverview = {
   pendingRechargeIntents: number;
 };
 
+export type ProviderAuthType = 'oauth' | 'api_key';
+
+export type ProviderAccountView = {
+  id: string;
+  provider: string;
+  displayName: string | null;
+  authType: ProviderAuthType;
+  apiBase: string;
+  tokenSet: boolean;
+  enabled: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ModelCatalogView = {
+  publicModelId: string;
+  providerAccountId: string;
+  upstreamModel: string;
+  displayName: string | null;
+  enabled: boolean;
+  sellInputUsdPer1M: number;
+  sellOutputUsdPer1M: number;
+  upstreamInputUsdPer1M: number;
+  upstreamOutputUsdPer1M: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminProfitOverview = {
+  days: number;
+  since: string;
+  requests: number;
+  totalChargeUsd: number;
+  totalUpstreamCostUsd: number;
+  totalGrossMarginUsd: number;
+  grossMarginRate: number;
+};
+
 export type CursorPage<T> = {
   items: T[];
   nextCursor: string | null;

@@ -2,7 +2,12 @@ import {
   DEFAULT_GLOBAL_FREE_USD_LIMIT,
   type BillingSnapshot,
   type LedgerRow,
+  type ModelCatalogRow,
+  type ModelCatalogView,
+  type ProviderAccountRow,
+  type ProviderAccountView,
   type RechargeIntentRow,
+  type RuntimeModelSpec,
   type UserPublicView,
   type UserRow,
   type UserSecurityRow
@@ -264,6 +269,297 @@ export async function countRecentFailedLoginsByIp(db: D1Database, ip: string, si
   return normalizeNonNegativeInteger(row?.count ?? 0);
 }
 
+export async function listProviderAccounts(db: D1Database): Promise<ProviderAccountRow[]> {
+  const rows = await db.prepare(
+    `SELECT id, provider, display_name, auth_type, api_base, access_token,
+            enabled, priority, created_at, updated_at
+       FROM provider_accounts
+      ORDER BY priority ASC, created_at ASC`
+  ).all<ProviderAccountRow>();
+  return rows.results ?? [];
+}
+
+export async function getProviderAccountById(db: D1Database, id: string): Promise<ProviderAccountRow | null> {
+  const row = await db.prepare(
+    `SELECT id, provider, display_name, auth_type, api_base, access_token,
+            enabled, priority, created_at, updated_at
+       FROM provider_accounts
+      WHERE id = ?`
+  )
+    .bind(id)
+    .first<ProviderAccountRow>();
+  return row ?? null;
+}
+
+export async function createProviderAccount(
+  db: D1Database,
+  payload: {
+    id: string;
+    provider: string;
+    displayName: string | null;
+    authType: "oauth" | "api_key";
+    apiBase: string;
+    accessToken: string;
+    enabled: boolean;
+    priority: number;
+  }
+): Promise<void> {
+  const now = new Date().toISOString();
+  const result = await db.prepare(
+    `INSERT INTO provider_accounts (
+      id, provider, display_name, auth_type, api_base, access_token,
+      enabled, priority, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      payload.id,
+      payload.provider,
+      payload.displayName,
+      payload.authType,
+      payload.apiBase,
+      payload.accessToken,
+      payload.enabled ? 1 : 0,
+      payload.priority,
+      now,
+      now
+    )
+    .run();
+  if (!result.success || (result.meta.changes ?? 0) !== 1) {
+    throw new Error("CREATE_PROVIDER_ACCOUNT_FAILED");
+  }
+}
+
+export async function patchProviderAccount(
+  db: D1Database,
+  id: string,
+  payload: {
+    displayName?: string | null;
+    authType?: "oauth" | "api_key";
+    apiBase?: string;
+    accessToken?: string;
+    enabled?: boolean;
+    priority?: number;
+  }
+): Promise<boolean> {
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if (payload.displayName !== undefined) {
+    sets.push("display_name = ?");
+    binds.push(payload.displayName);
+  }
+  if (payload.authType !== undefined) {
+    sets.push("auth_type = ?");
+    binds.push(payload.authType);
+  }
+  if (payload.apiBase !== undefined) {
+    sets.push("api_base = ?");
+    binds.push(payload.apiBase);
+  }
+  if (payload.accessToken !== undefined) {
+    sets.push("access_token = ?");
+    binds.push(payload.accessToken);
+  }
+  if (payload.enabled !== undefined) {
+    sets.push("enabled = ?");
+    binds.push(payload.enabled ? 1 : 0);
+  }
+  if (payload.priority !== undefined) {
+    sets.push("priority = ?");
+    binds.push(payload.priority);
+  }
+  if (sets.length === 0) {
+    return false;
+  }
+  sets.push("updated_at = ?");
+  binds.push(new Date().toISOString(), id);
+  const result = await db.prepare(
+    `UPDATE provider_accounts
+        SET ${sets.join(", ")}
+      WHERE id = ?`
+  )
+    .bind(...binds)
+    .run();
+  return result.success && (result.meta.changes ?? 0) > 0;
+}
+
+export async function listModelCatalog(db: D1Database): Promise<ModelCatalogRow[]> {
+  const rows = await db.prepare(
+    `SELECT public_model_id, provider_account_id, upstream_model, display_name, enabled,
+            sell_input_usd_per_1m, sell_output_usd_per_1m,
+            upstream_input_usd_per_1m, upstream_output_usd_per_1m,
+            created_at, updated_at
+       FROM model_catalog
+      ORDER BY public_model_id ASC`
+  ).all<ModelCatalogRow>();
+  return rows.results ?? [];
+}
+
+export async function getModelCatalogByPublicModelId(
+  db: D1Database,
+  publicModelId: string
+): Promise<ModelCatalogRow | null> {
+  const row = await db.prepare(
+    `SELECT public_model_id, provider_account_id, upstream_model, display_name, enabled,
+            sell_input_usd_per_1m, sell_output_usd_per_1m,
+            upstream_input_usd_per_1m, upstream_output_usd_per_1m,
+            created_at, updated_at
+       FROM model_catalog
+      WHERE public_model_id = ?`
+  )
+    .bind(publicModelId)
+    .first<ModelCatalogRow>();
+  return row ?? null;
+}
+
+export async function upsertModelCatalog(
+  db: D1Database,
+  payload: {
+    publicModelId: string;
+    providerAccountId: string;
+    upstreamModel: string;
+    displayName: string | null;
+    enabled: boolean;
+    sellInputUsdPer1M: number;
+    sellOutputUsdPer1M: number;
+    upstreamInputUsdPer1M: number;
+    upstreamOutputUsdPer1M: number;
+  }
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db.prepare(
+    `INSERT INTO model_catalog (
+      public_model_id, provider_account_id, upstream_model, display_name, enabled,
+      sell_input_usd_per_1m, sell_output_usd_per_1m,
+      upstream_input_usd_per_1m, upstream_output_usd_per_1m,
+      created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(public_model_id) DO UPDATE SET
+      provider_account_id = excluded.provider_account_id,
+      upstream_model = excluded.upstream_model,
+      display_name = excluded.display_name,
+      enabled = excluded.enabled,
+      sell_input_usd_per_1m = excluded.sell_input_usd_per_1m,
+      sell_output_usd_per_1m = excluded.sell_output_usd_per_1m,
+      upstream_input_usd_per_1m = excluded.upstream_input_usd_per_1m,
+      upstream_output_usd_per_1m = excluded.upstream_output_usd_per_1m,
+      updated_at = excluded.updated_at`
+  )
+    .bind(
+      payload.publicModelId,
+      payload.providerAccountId,
+      payload.upstreamModel,
+      payload.displayName,
+      payload.enabled ? 1 : 0,
+      payload.sellInputUsdPer1M,
+      payload.sellOutputUsdPer1M,
+      payload.upstreamInputUsdPer1M,
+      payload.upstreamOutputUsdPer1M,
+      now,
+      now
+    )
+    .run();
+}
+
+export async function listRuntimeModelSpecs(db: D1Database): Promise<RuntimeModelSpec[]> {
+  const rows = await db.prepare(
+    `SELECT m.public_model_id, m.upstream_model, m.display_name,
+            m.sell_input_usd_per_1m, m.sell_output_usd_per_1m,
+            m.upstream_input_usd_per_1m, m.upstream_output_usd_per_1m,
+            p.id AS provider_account_id, p.api_base, p.access_token
+       FROM model_catalog m
+       JOIN provider_accounts p ON p.id = m.provider_account_id
+      WHERE m.enabled = 1
+        AND p.enabled = 1
+      ORDER BY p.priority ASC, m.public_model_id ASC`
+  ).all<{
+    public_model_id: string;
+    upstream_model: string;
+    display_name: string | null;
+    sell_input_usd_per_1m: number;
+    sell_output_usd_per_1m: number;
+    upstream_input_usd_per_1m: number;
+    upstream_output_usd_per_1m: number;
+    provider_account_id: string;
+    api_base: string;
+    access_token: string;
+  }>();
+  return (rows.results ?? []).map((row) => ({
+    id: row.public_model_id,
+    displayName: row.display_name ?? row.public_model_id,
+    upstreamModel: row.upstream_model,
+    apiBase: row.api_base,
+    accessToken: row.access_token,
+    providerAccountId: row.provider_account_id,
+    sellInputUsdPer1M: roundUsd(row.sell_input_usd_per_1m),
+    sellOutputUsdPer1M: roundUsd(row.sell_output_usd_per_1m),
+    upstreamInputUsdPer1M: roundUsd(row.upstream_input_usd_per_1m),
+    upstreamOutputUsdPer1M: roundUsd(row.upstream_output_usd_per_1m)
+  }));
+}
+
+export async function appendProfitLedger(
+  db: D1Database,
+  payload: {
+    requestId: string;
+    userId: string;
+    publicModelId: string;
+    providerAccountId: string | null;
+    upstreamModel: string;
+    chargeUsd: number;
+    upstreamCostUsd: number;
+    grossMarginUsd: number;
+  }
+): Promise<void> {
+  const now = new Date().toISOString();
+  await db.prepare(
+    `INSERT OR REPLACE INTO request_profit_ledger (
+      id, request_id, user_id, public_model_id, provider_account_id,
+      upstream_model, charge_usd, upstream_cost_usd, gross_margin_usd, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(
+      crypto.randomUUID(),
+      payload.requestId,
+      payload.userId,
+      payload.publicModelId,
+      payload.providerAccountId,
+      payload.upstreamModel,
+      roundUsd(payload.chargeUsd),
+      roundUsd(payload.upstreamCostUsd),
+      roundUsd(payload.grossMarginUsd),
+      now
+    )
+    .run();
+}
+
+export async function readProfitOverview(
+  db: D1Database,
+  sinceIso: string
+): Promise<{ totalChargeUsd: number; totalUpstreamCostUsd: number; totalGrossMarginUsd: number; requests: number }> {
+  const row = await db.prepare(
+    `SELECT
+       COALESCE(SUM(charge_usd), 0) AS total_charge_usd,
+       COALESCE(SUM(upstream_cost_usd), 0) AS total_upstream_cost_usd,
+       COALESCE(SUM(gross_margin_usd), 0) AS total_gross_margin_usd,
+       COUNT(1) AS requests
+     FROM request_profit_ledger
+     WHERE created_at >= ?`
+  )
+    .bind(sinceIso)
+    .first<{
+      total_charge_usd: number;
+      total_upstream_cost_usd: number;
+      total_gross_margin_usd: number;
+      requests: number;
+    }>();
+  return {
+    totalChargeUsd: roundUsd(row?.total_charge_usd ?? 0),
+    totalUpstreamCostUsd: roundUsd(row?.total_upstream_cost_usd ?? 0),
+    totalGrossMarginUsd: roundUsd(row?.total_gross_margin_usd ?? 0),
+    requests: normalizeNonNegativeInteger(row?.requests ?? 0)
+  };
+}
+
 export async function writePlatformNumberSetting(db: D1Database, key: string, value: number): Promise<void> {
   const now = new Date().toISOString();
   await db.prepare(
@@ -383,5 +679,36 @@ export function toRechargeIntentView(row: RechargeIntentRow): {
     confirmedByUserId: row.confirmed_by_user_id,
     rejectedAt: row.rejected_at,
     rejectedByUserId: row.rejected_by_user_id
+  };
+}
+
+export function toProviderAccountView(row: ProviderAccountRow): ProviderAccountView {
+  return {
+    id: row.id,
+    provider: row.provider,
+    displayName: row.display_name,
+    authType: row.auth_type,
+    apiBase: row.api_base,
+    tokenSet: row.access_token.trim().length > 0,
+    enabled: row.enabled === 1,
+    priority: row.priority,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+export function toModelCatalogView(row: ModelCatalogRow): ModelCatalogView {
+  return {
+    publicModelId: row.public_model_id,
+    providerAccountId: row.provider_account_id,
+    upstreamModel: row.upstream_model,
+    displayName: row.display_name,
+    enabled: row.enabled === 1,
+    sellInputUsdPer1M: roundUsd(row.sell_input_usd_per_1m),
+    sellOutputUsdPer1M: roundUsd(row.sell_output_usd_per_1m),
+    upstreamInputUsdPer1M: roundUsd(row.upstream_input_usd_per_1m),
+    upstreamOutputUsdPer1M: roundUsd(row.upstream_output_usd_per_1m),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
   };
 }

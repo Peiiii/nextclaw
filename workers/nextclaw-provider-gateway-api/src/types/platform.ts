@@ -30,6 +30,8 @@ export type UsageCounters = {
   completionTokens: number;
 };
 
+export type ProviderAuthType = "oauth" | "api_key";
+
 export type UserRole = "admin" | "user";
 
 export type SessionTokenPayload = {
@@ -99,6 +101,86 @@ export type LedgerRow = {
   request_id: string | null;
   note: string | null;
   created_at: string;
+};
+
+export type ProviderAccountRow = {
+  id: string;
+  provider: string;
+  display_name: string | null;
+  auth_type: ProviderAuthType;
+  api_base: string;
+  access_token: string;
+  enabled: number;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ModelCatalogRow = {
+  public_model_id: string;
+  provider_account_id: string;
+  upstream_model: string;
+  display_name: string | null;
+  enabled: number;
+  sell_input_usd_per_1m: number;
+  sell_output_usd_per_1m: number;
+  upstream_input_usd_per_1m: number;
+  upstream_output_usd_per_1m: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProfitLedgerRow = {
+  id: string;
+  request_id: string;
+  user_id: string;
+  public_model_id: string;
+  provider_account_id: string | null;
+  upstream_model: string;
+  charge_usd: number;
+  upstream_cost_usd: number;
+  gross_margin_usd: number;
+  created_at: string;
+};
+
+export type ProviderAccountView = {
+  id: string;
+  provider: string;
+  displayName: string | null;
+  authType: ProviderAuthType;
+  apiBase: string;
+  tokenSet: boolean;
+  enabled: boolean;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ModelCatalogView = {
+  publicModelId: string;
+  providerAccountId: string;
+  upstreamModel: string;
+  displayName: string | null;
+  enabled: boolean;
+  sellInputUsdPer1M: number;
+  sellOutputUsdPer1M: number;
+  upstreamInputUsdPer1M: number;
+  upstreamOutputUsdPer1M: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RuntimeModelSpec = {
+  id: string;
+  displayName: string;
+  upstreamModel: string;
+  apiBase: string;
+  accessToken: string;
+  providerAccountId: string | null;
+  sellInputUsdPer1M: number;
+  sellOutputUsdPer1M: number;
+  upstreamInputUsdPer1M: number;
+  upstreamOutputUsdPer1M: number;
 };
 
 export type BillingSnapshot = {
