@@ -231,3 +231,9 @@
   - 反例：新增子项目后只有 `build/tsc`，没有 ESLint 配置；或配置了 ESLint 但遗漏 `max-lines` 与 `max-lines-per-function`。
   - 执行方式：创建子项目时用清单检查 `package.json` 是否有 `lint`、是否存在 ESLint 配置文件、是否包含 `max-lines` 与 `max-lines-per-function` 规则，并在迭代日志记录检查结果。
   - 维护责任人：当前助手。
+- **workspace-star-for-internal-packages**：
+  - 约束/适用范围：在本仓库内，凡 `@nextclaw/*` 内部包之间的依赖（含 `packages/*`、`packages/extensions/*`、`apps/*` 中用于构建/打包链路的内部依赖）默认必须使用 `workspace:*`，禁止使用 `^x.y.z` 指向已发布旧版本，除非用户明确要求做对外兼容实验。
+  - 示例：`packages/nextclaw` 依赖 `@nextclaw/core`、`@nextclaw/runtime` 时使用 `workspace:*`；`packages/nextclaw-openclaw-compat` 对 channel plugin/runtime/core 使用 `workspace:*`。
+  - 反例：将 `@nextclaw/core` 写成 `^0.7.1` 导致 desktop 打包混入旧版依赖，运行时出现导出不匹配并启动失败。
+  - 执行方式：改动内部依赖后必须执行 `pnpm install` 更新锁文件；验证按影响范围最小化选择，至少覆盖受影响包的 `build`、`lint`、`tsc`。仅当改动触达 desktop 打包链路时，才要求执行 `pnpm desktop:package` 与 `pnpm desktop:package:verify`（或等效三平台验证）。
+  - 维护责任人：当前助手。
