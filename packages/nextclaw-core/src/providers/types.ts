@@ -5,8 +5,25 @@ export type LocalizedText = {
   zh?: string;
 };
 
+export type ProviderDeviceCodeAuthProtocol = "rfc8628" | "minimax_user_code";
+
+export type ProviderDeviceCodeAuthMethodSpec = {
+  id: string;
+  label?: LocalizedText;
+  hint?: LocalizedText;
+  baseUrl?: string;
+  deviceCodePath?: string;
+  tokenPath?: string;
+  clientId?: string;
+  scope?: string;
+  grantType?: string;
+  usePkce?: boolean;
+  defaultApiBase?: string;
+};
+
 export type ProviderDeviceCodeAuthSpec = {
   kind: "device_code";
+  protocol?: ProviderDeviceCodeAuthProtocol;
   displayName?: string;
   baseUrl: string;
   deviceCodePath: string;
@@ -15,6 +32,8 @@ export type ProviderDeviceCodeAuthSpec = {
   scope: string;
   grantType: string;
   usePkce?: boolean;
+  methods?: ProviderDeviceCodeAuthMethodSpec[];
+  defaultMethodId?: string;
   note?: LocalizedText;
   cliCredential?: {
     path: string;

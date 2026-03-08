@@ -1,6 +1,14 @@
 import type { ProviderCatalogPlugin, ProviderSpec } from "./types.js";
 
-export type { LocalizedText, ProviderCatalogPlugin, ProviderSpec, WireApiMode } from "./types.js";
+export type {
+  LocalizedText,
+  ProviderCatalogPlugin,
+  ProviderSpec,
+  ProviderDeviceCodeAuthMethodSpec,
+  ProviderDeviceCodeAuthProtocol,
+  ProviderDeviceCodeAuthSpec,
+  WireApiMode
+} from "./types.js";
 
 function mergeProviderSpecs(plugins: readonly ProviderCatalogPlugin[]): ProviderSpec[] {
   const deduped = new Map<string, ProviderSpec>();

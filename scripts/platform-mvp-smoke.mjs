@@ -219,7 +219,6 @@ async function main() {
     const seedSqlFile = resolve(persistDir, "seed-users.sql");
     writeFileSync(seedSqlFile, buildSeedUserSql([
       { email: adminEmail, password, role: "admin", freeLimitUsd: 2, paidBalanceUsd: 0 },
-      { email: userEmail, password, role: "user", freeLimitUsd: 2, paidBalanceUsd: 0 },
       { email: lockUserEmail, password, role: "user", freeLimitUsd: 2, paidBalanceUsd: 0 }
     ]), "utf-8");
 
@@ -271,7 +270,7 @@ async function main() {
 
     await waitForHealth(`${base}/health`);
 
-    console.log("[platform-smoke] login admin + user...");
+    console.log("[platform-smoke] login admin + register user...");
     const adminLogin = await requestJson({
       method: "POST",
       url: `${base}/platform/auth/login`,
@@ -285,6 +284,22 @@ async function main() {
     if (!adminToken) {
       throw new Error("Missing admin token after login.");
     }
+
+    const userRegister = await requestJson({
+      method: "POST",
+      url: `${base}/platform/auth/register`,
+      body: { email: userEmail, password },
+      expectedStatus: 201
+    });
+    if (userRegister.body?.data?.user?.role !== "user") {
+      throw new Error(`Expected registered role user, got: ${JSON.stringify(userRegister.body)}`);
+    }
+    await requestJson({
+      method: "POST",
+      url: `${base}/platform/auth/register`,
+      body: { email: userEmail, password },
+      expectedStatus: 409
+    });
 
     const userLogin = await requestJson({
       method: "POST",

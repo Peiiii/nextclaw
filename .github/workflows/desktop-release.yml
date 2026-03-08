@@ -55,6 +55,18 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --publish never
 
+      - name: Smoke Desktop Install (macOS DMG)
+        if: matrix.platform == 'darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          if [ -z "${DMG_PATH}" ]; then
+            echo "macOS dmg not found in apps/desktop/release"
+            exit 1
+          fi
+          apps/desktop/scripts/smoke-macos-dmg.sh "${DMG_PATH}" 120
+
       - name: Build Desktop (Windows)
         if: matrix.platform == 'win32'
         shell: pwsh
@@ -76,6 +88,17 @@ jobs:
             throw "Windows installer not found in apps/desktop/release"
           }
           & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installer -StartupTimeoutSec 90
+
+      - name: Upload Smoke Logs (macOS)
+        if: matrix.platform == 'darwin' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-smoke-logs-darwin-arm64
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
+            ~/Library/Logs/NextClaw Desktop/**
 
       - name: Upload Smoke Logs (Windows)
         if: matrix.platform == 'win32' && always()

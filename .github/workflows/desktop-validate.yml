@@ -1,0 +1,204 @@
+name: desktop-validate
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/**"
+      - "packages/nextclaw/**"
+      - "packages/nextclaw-ui/**"
+      - "packages/nextclaw-server/**"
+      - "packages/nextclaw-openclaw-compat/**"
+      - "packages/nextclaw-core/**"
+      - "packages/nextclaw-runtime/**"
+      - "packages/extensions/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/desktop-validate.yml"
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "apps/desktop/**"
+      - "packages/nextclaw/**"
+      - "packages/nextclaw-ui/**"
+      - "packages/nextclaw-server/**"
+      - "packages/nextclaw-openclaw-compat/**"
+      - "packages/nextclaw-core/**"
+      - "packages/nextclaw-runtime/**"
+      - "packages/extensions/**"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "package.json"
+      - ".github/workflows/desktop-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop-runtime-smoke:
+    name: desktop-runtime-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint / Typecheck / Runtime Smoke
+        run: |
+          pnpm -C apps/desktop lint
+          pnpm -C apps/desktop tsc
+          pnpm -C apps/desktop smoke
+
+  desktop-macos-dmg-install-smoke:
+    name: desktop-macos-dmg-install-smoke
+    runs-on: macos-14
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build macOS DMG
+        run: |
+          set -euo pipefail
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw build
+          pnpm -C apps/desktop lint
+          pnpm -C apps/desktop tsc
+          pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop exec electron-builder --mac dmg --arm64 --publish never
+
+      - name: Smoke test macOS DMG install
+        run: |
+          set -euo pipefail
+          DMG_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          if [ -z "${DMG_PATH}" ]; then
+            echo "macOS dmg not found in apps/desktop/release"
+            exit 1
+          fi
+          apps/desktop/scripts/smoke-macos-dmg.sh "${DMG_PATH}" 120
+
+      - name: Upload macOS smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-smoke-logs-macos-arm64
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
+            ~/Library/Logs/NextClaw Desktop/**
+
+      - name: Upload macOS DMG artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-macos-arm64
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/latest-mac.yml
+            apps/desktop/release/*.blockmap
+
+  desktop-windows-installer-install-smoke:
+    name: desktop-windows-installer-install-smoke
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        shell: pwsh
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop runtime dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw build
+
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          pnpm -C apps/desktop lint
+          pnpm -C apps/desktop tsc
+          pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
+
+      - name: Smoke test Windows install + runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installer = (Get-ChildItem "apps/desktop/release/*Setup*.exe" | Select-Object -First 1).FullName
+          if (-not $installer) {
+            throw "Windows installer not found in apps/desktop/release"
+          }
+          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installer -StartupTimeoutSec 120
+
+      - name: Upload Windows smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-smoke-logs-win32-x64
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
+            ~\AppData\Roaming\NextClaw Desktop\logs\**
+
+      - name: Upload Windows installer artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-win32-x64
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/*Setup*.exe
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.exe.blockmap

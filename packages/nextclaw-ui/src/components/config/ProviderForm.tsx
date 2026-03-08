@@ -32,6 +32,15 @@ type ProviderFormProps = {
   onProviderDeleted?: (providerName: string) => void;
 };
 
+type ProviderAuthMethodOption = {
+  id: string;
+};
+
+type PillSelectOption = {
+  value: string;
+  label: string;
+};
+
 const EMPTY_PROVIDER_CONFIG: ProviderConfigView = {
   displayName: '',
   apiKeySet: false,
@@ -151,6 +160,101 @@ function serializeModelsForSave(models: string[], defaultModels: string[]): stri
   return models;
 }
 
+function resolvePreferredAuthMethodId(params: {
+  providerName?: string;
+  methods: ProviderAuthMethodOption[];
+  defaultMethodId?: string;
+  language: 'zh' | 'en';
+}): string {
+  const { providerName, methods, defaultMethodId, language } = params;
+  if (methods.length === 0) {
+    return '';
+  }
+
+  const methodIdMap = new Map<string, string>();
+  for (const method of methods) {
+    const methodId = method.id.trim();
+    if (methodId) {
+      methodIdMap.set(methodId.toLowerCase(), methodId);
+    }
+  }
+
+  const pick = (...candidates: string[]): string | undefined => {
+    for (const candidate of candidates) {
+      const resolved = methodIdMap.get(candidate.toLowerCase());
+      if (resolved) {
+        return resolved;
+      }
+    }
+    return undefined;
+  };
+
+  const normalizedDefault = defaultMethodId?.trim();
+  if (providerName === 'minimax-portal') {
+    if (language === 'zh') {
+      return pick('cn', 'china-mainland') ?? pick(normalizedDefault ?? '') ?? methods[0]?.id ?? '';
+    }
+    if (language === 'en') {
+      return pick('global', 'intl', 'international') ?? pick(normalizedDefault ?? '') ?? methods[0]?.id ?? '';
+    }
+  }
+
+  if (normalizedDefault) {
+    const matchedDefault = pick(normalizedDefault);
+    if (matchedDefault) {
+      return matchedDefault;
+    }
+  }
+
+  if (language === 'zh') {
+    return pick('cn') ?? methods[0]?.id ?? '';
+  }
+  if (language === 'en') {
+    return pick('global') ?? methods[0]?.id ?? '';
+  }
+
+  return methods[0]?.id ?? '';
+}
+
+function shouldUsePillSelector(params: {
+  required: boolean;
+  hasDefault: boolean;
+  optionCount: number;
+}): boolean {
+  return params.required && params.hasDefault && params.optionCount > 1 && params.optionCount <= 3;
+}
+
+function PillSelector(props: {
+  value: string;
+  onChange: (value: string) => void;
+  options: PillSelectOption[];
+}) {
+  const { value, onChange, options } = props;
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            aria-pressed={selected}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              selected
+                ? 'border-primary bg-primary text-white shadow-sm'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-primary/40 hover:text-primary'
+            }`}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormProps) {
   const queryClient = useQueryClient();
   const { data: config } = useConfig();
@@ -174,6 +278,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const [showModelInput, setShowModelInput] = useState(false);
   const [authSessionId, setAuthSessionId] = useState<string | null>(null);
   const [authStatusMessage, setAuthStatusMessage] = useState('');
+  const [authMethodId, setAuthMethodId] = useState('');
   const authPollTimerRef = useRef<number | null>(null);
 
   const providerSpec = meta?.providers.find((p) => p.name === providerName);
@@ -225,11 +330,63 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     apiBaseHint?.help ||
     t('providerApiBaseHelp');
   const providerAuth = providerSpec?.auth;
+  const providerAuthMethods = useMemo(
+    () => providerAuth?.methods ?? [],
+    [providerAuth?.methods]
+  );
+  const providerAuthMethodOptions = useMemo(
+    () =>
+      providerAuthMethods.map((method) => ({
+        value: method.id,
+        label: method.label?.[language] || method.label?.en || method.id
+      })),
+    [providerAuthMethods, language]
+  );
+  const preferredAuthMethodId = useMemo(
+    () => resolvePreferredAuthMethodId({
+      providerName,
+      methods: providerAuthMethods,
+      defaultMethodId: providerAuth?.defaultMethodId,
+      language
+    }),
+    [providerName, providerAuth?.defaultMethodId, providerAuthMethods, language]
+  );
+  const resolvedAuthMethodId = useMemo(() => {
+    if (!providerAuthMethods.length) {
+      return '';
+    }
+    const normalizedCurrent = authMethodId.trim();
+    if (normalizedCurrent && providerAuthMethods.some((method) => method.id === normalizedCurrent)) {
+      return normalizedCurrent;
+    }
+    return preferredAuthMethodId || providerAuthMethods[0]?.id || '';
+  }, [authMethodId, preferredAuthMethodId, providerAuthMethods]);
+  const selectedAuthMethod = useMemo(
+    () => providerAuthMethods.find((method) => method.id === resolvedAuthMethodId),
+    [providerAuthMethods, resolvedAuthMethodId]
+  );
+  const selectedAuthMethodHint =
+    selectedAuthMethod?.hint?.[language] || selectedAuthMethod?.hint?.en || '';
+  const shouldUseAuthMethodPills = shouldUsePillSelector({
+    required: providerAuth?.kind === 'device_code',
+    hasDefault: Boolean(providerAuth?.defaultMethodId?.trim()),
+    optionCount: providerAuthMethods.length
+  });
   const providerAuthNote =
     providerAuth?.note?.[language] ||
     providerAuth?.note?.en ||
     providerAuth?.displayName ||
     '';
+  const wireApiOptions = providerSpec?.wireApiOptions || ['auto', 'chat', 'responses'];
+  const wireApiSelectOptions: PillSelectOption[] = wireApiOptions.map((option) => ({
+    value: option,
+    label: option === 'chat' ? t('wireApiChat') : option === 'responses' ? t('wireApiResponses') : t('wireApiAuto')
+  }));
+  const shouldUseWireApiPills = shouldUsePillSelector({
+    required: Boolean(providerSpec?.supportsWireApi),
+    hasDefault: typeof providerSpec?.defaultWireApi === 'string' && providerSpec.defaultWireApi.length > 0,
+    optionCount: wireApiSelectOptions.length
+  });
 
   const clearAuthPollTimer = useCallback(() => {
     if (authPollTimerRef.current !== null) {
@@ -290,6 +447,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       setProviderDisplayName('');
       setAuthSessionId(null);
       setAuthStatusMessage('');
+      setAuthMethodId('');
       clearAuthPollTimer();
       return;
     }
@@ -303,8 +461,18 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     setProviderDisplayName(effectiveDisplayName);
     setAuthSessionId(null);
     setAuthStatusMessage('');
+    setAuthMethodId(preferredAuthMethodId);
     clearAuthPollTimer();
-  }, [providerName, currentApiBase, resolvedProviderConfig.extraHeaders, currentWireApi, currentEditableModels, effectiveDisplayName, clearAuthPollTimer]);
+  }, [
+    providerName,
+    currentApiBase,
+    resolvedProviderConfig.extraHeaders,
+    currentWireApi,
+    currentEditableModels,
+    effectiveDisplayName,
+    preferredAuthMethodId,
+    clearAuthPollTimer
+  ]);
 
   useEffect(() => () => clearAuthPollTimer(), [clearAuthPollTimer]);
 
@@ -453,7 +621,10 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
     try {
       setAuthStatusMessage('');
-      const result = await startProviderAuth.mutateAsync({ provider: providerName });
+      const result = await startProviderAuth.mutateAsync({
+        provider: providerName,
+        data: resolvedAuthMethodId ? { methodId: resolvedAuthMethodId } : {}
+      });
       if (!result.sessionId || !result.verificationUri) {
         throw new Error(t('providerAuthStartFailed'));
       }
@@ -566,6 +737,34 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
               </Label>
               {providerAuthNote ? (
                 <p className="text-xs text-gray-600">{providerAuthNote}</p>
+              ) : null}
+              {providerAuthMethods.length > 1 ? (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-gray-700">{t('providerAuthMethodLabel')}</Label>
+                  {shouldUseAuthMethodPills ? (
+                    <PillSelector
+                      value={resolvedAuthMethodId}
+                      onChange={setAuthMethodId}
+                      options={providerAuthMethodOptions}
+                    />
+                  ) : (
+                    <Select value={resolvedAuthMethodId} onValueChange={setAuthMethodId}>
+                      <SelectTrigger className="h-8 rounded-lg bg-white">
+                        <SelectValue placeholder={t('providerAuthMethodPlaceholder')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {providerAuthMethodOptions.map((method) => (
+                          <SelectItem key={method.value} value={method.value}>
+                            {method.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {selectedAuthMethodHint ? (
+                    <p className="text-xs text-gray-500">{selectedAuthMethodHint}</p>
+                  ) : null}
+                </div>
               ) : null}
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -718,18 +917,26 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
                     <Label htmlFor="wireApi" className="text-sm font-medium text-gray-900">
                       {wireApiHint?.label ?? t('wireApi')}
                     </Label>
-                    <Select value={wireApi} onValueChange={(v) => setWireApi(v as WireApiType)}>
-                      <SelectTrigger className="rounded-xl">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(providerSpec.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => (
-                          <SelectItem key={option} value={option}>
-                            {option === 'chat' ? t('wireApiChat') : option === 'responses' ? t('wireApiResponses') : t('wireApiAuto')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {shouldUseWireApiPills ? (
+                      <PillSelector
+                        value={wireApi}
+                        onChange={(v) => setWireApi(v as WireApiType)}
+                        options={wireApiSelectOptions}
+                      />
+                    ) : (
+                      <Select value={wireApi} onValueChange={(v) => setWireApi(v as WireApiType)}>
+                        <SelectTrigger className="rounded-xl">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {wireApiSelectOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 )}
 

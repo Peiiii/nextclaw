@@ -15,12 +15,12 @@ function Get-DescendantPids {
   $queue.Enqueue($RootPid)
 
   while ($queue.Count -gt 0) {
-    $pid = $queue.Dequeue()
-    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $pid" | Select-Object -ExpandProperty ProcessId)
-    foreach ($child in $children) {
-      if (-not $allPids.Contains($child)) {
-        $allPids.Add($child)
-        $queue.Enqueue($child)
+    $currentPid = $queue.Dequeue()
+    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $currentPid" | Select-Object -ExpandProperty ProcessId)
+    foreach ($childPid in $children) {
+      if (-not $allPids.Contains($childPid)) {
+        $allPids.Add($childPid)
+        $queue.Enqueue($childPid)
       }
     }
   }
@@ -32,21 +32,66 @@ function Stop-ProcessTree {
   param([int]$RootPid)
 
   $pids = @(Get-DescendantPids -RootPid $RootPid | Sort-Object -Descending)
-  foreach ($pid in $pids) {
+  foreach ($targetPid in $pids) {
     try {
-      Stop-Process -Id $pid -Force -ErrorAction Stop
+      Stop-Process -Id $targetPid -Force -ErrorAction Stop
     } catch {
       # Ignore already-exited processes.
     }
   }
 }
 
+function Get-SmokeTempRoot {
+  if ($env:RUNNER_TEMP) { return $env:RUNNER_TEMP }
+  if ($env:TEMP) { return $env:TEMP }
+  if ($env:TMP) { return $env:TMP }
+  return [System.IO.Path]::GetTempPath()
+}
+
+function Get-CandidatePorts {
+  param([int[]]$ProcessIds)
+
+  $ports = New-Object System.Collections.Generic.List[int]
+  $seedPorts = New-Object System.Collections.Generic.List[int]
+  foreach ($name in @("NEXTCLAW_UI_PORT", "NEXTCLAW_PORT", "PORT")) {
+    $raw = [Environment]::GetEnvironmentVariable($name)
+    $parsed = 0
+    if ([int]::TryParse($raw, [ref]$parsed) -and $parsed -gt 0) {
+      $seedPorts.Add($parsed)
+    }
+  }
+  $seedPorts.Add(18791)
+
+  foreach ($port in $seedPorts) {
+    if (-not $ports.Contains($port)) {
+      $ports.Add($port)
+    }
+  }
+
+  try {
+    $runtimePorts = @(Get-NetTCPConnection -State Listen -ErrorAction Stop |
+      Where-Object { $ProcessIds -contains $_.OwningProcess } |
+      Select-Object -ExpandProperty LocalPort -Unique)
+    foreach ($port in $runtimePorts) {
+      if (-not $ports.Contains($port)) {
+        $ports.Add($port)
+      }
+    }
+  } catch {
+    Write-Host "[desktop-smoke] Get-NetTCPConnection unavailable, fallback to default ports."
+  }
+
+  return @($ports)
+}
+
 $resolvedInstaller = (Resolve-Path $InstallerPath).Path
 $installedDir = Join-Path $env:LOCALAPPDATA "Programs\NextClaw Desktop"
 $installedExe = Join-Path $installedDir "NextClaw Desktop.exe"
-$smokeHome = Join-Path $env:RUNNER_TEMP "nextclaw-desktop-smoke-home"
+$tempRoot = Get-SmokeTempRoot
+$smokeHome = Join-Path $tempRoot "nextclaw-desktop-smoke-home"
 
 Write-Host "[desktop-smoke] installer: $resolvedInstaller"
+Write-Host "[desktop-smoke] temp root: $tempRoot"
 Write-Host "[desktop-smoke] smoke home: $smokeHome"
 
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $smokeHome
@@ -81,9 +126,7 @@ try {
     }
 
     $candidatePids = @(Get-DescendantPids -RootPid $appProc.Id)
-    $ports = @(Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue |
-      Where-Object { $candidatePids -contains $_.OwningProcess } |
-      Select-Object -ExpandProperty LocalPort -Unique)
+    $ports = @(Get-CandidatePorts -ProcessIds $candidatePids)
 
     foreach ($port in $ports) {
       $url = "http://127.0.0.1:$port/api/health"

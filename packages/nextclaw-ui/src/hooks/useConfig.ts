@@ -139,7 +139,8 @@ export function useTestProviderConnection() {
 
 export function useStartProviderAuth() {
   return useMutation({
-    mutationFn: ({ provider }: { provider: string }) => startProviderAuth(provider)
+    mutationFn: ({ provider, data }: { provider: string; data?: unknown }) =>
+      startProviderAuth(provider, data as Parameters<typeof startProviderAuth>[1])
   });
 }
 

@@ -8,13 +8,17 @@ import { createServer as createNetServer, Socket } from "node:net";
 const argv = new Set(process.argv.slice(2));
 const shouldMigrate = !argv.has("--no-migrate");
 const checkOnly = argv.has("--check");
+const useAdminFrontend = argv.has("--admin");
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workerDir = resolve(rootDir, "workers/nextclaw-provider-gateway-api");
-const frontendDir = resolve(rootDir, "apps/platform-console");
+const frontendDir = resolve(
+  rootDir,
+  useAdminFrontend ? "apps/platform-admin" : "apps/platform-console"
+);
 
 const DEFAULT_BACKEND_PORT = 8787;
-const DEFAULT_FRONTEND_PORT = 5176;
+const DEFAULT_FRONTEND_PORT = useAdminFrontend ? 5177 : 5176;
 const PORT_SCAN_LIMIT = 20;
 
 const binName = process.platform === "win32" ? (name) => `${name}.cmd` : (name) => name;
@@ -90,7 +94,10 @@ async function resolveFreePort(startPort, host) {
 }
 
 const preferredBackendPort = toPort(process.env.NEXTCLAW_PLATFORM_BACKEND_PORT, DEFAULT_BACKEND_PORT);
-const preferredFrontendPort = toPort(process.env.NEXTCLAW_PLATFORM_FRONTEND_PORT, DEFAULT_FRONTEND_PORT);
+const preferredFrontendPort = toPort(
+  process.env.NEXTCLAW_PLATFORM_FRONTEND_PORT,
+  DEFAULT_FRONTEND_PORT
+);
 const wranglerPersistPath = typeof process.env.NEXTCLAW_PLATFORM_WRANGLER_PERSIST_TO === "string"
   ? process.env.NEXTCLAW_PLATFORM_WRANGLER_PERSIST_TO.trim()
   : "";
@@ -106,7 +113,9 @@ if (frontendPort !== preferredFrontendPort) {
 }
 
 console.log(`[platform] API: http://127.0.0.1:${backendPort}`);
-console.log(`[platform] Frontend: http://127.0.0.1:${frontendPort}`);
+console.log(
+  `[platform] Frontend (${useAdminFrontend ? "admin" : "user"}): http://127.0.0.1:${frontendPort}`
+);
 
 if (checkOnly) {
   console.log("[platform] Check mode passed.");

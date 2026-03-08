@@ -263,6 +263,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providerAuthOpenPrompt: { zh: '请在浏览器完成授权，验证码：', en: 'Open browser and complete authorization (code: ' },
   providerAuthOpenPromptSuffix: { zh: '', en: ')' },
   providerAuthStartFailed: { zh: '启动授权失败', en: 'Failed to start authorization' },
+  providerAuthMethodLabel: { zh: '授权区域', en: 'Authorization Region' },
+  providerAuthMethodPlaceholder: { zh: '请选择授权方式', en: 'Select authorization method' },
   providerAuthImportFromCli: { zh: '从 Qwen CLI 导入', en: 'Import From Qwen CLI' },
   providerAuthImporting: { zh: '导入中...', en: 'Importing...' },
   providerAuthImportSuccess: { zh: '已从 CLI 导入凭证。', en: 'Imported provider credentials from CLI.' },

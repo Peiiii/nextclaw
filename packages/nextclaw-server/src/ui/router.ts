@@ -54,6 +54,7 @@ import type {
   CronActionResult,
   CronJobView,
   ProviderConnectionTestRequest,
+  ProviderAuthStartRequest,
   ProviderAuthPollResult,
   ProviderAuthImportResult,
   ProviderAuthStartResult,
@@ -1718,8 +1719,22 @@ export function createUiRouter(options: UiRouterOptions): Hono {
 
   app.post("/api/config/providers/:provider/auth/start", async (c) => {
     const provider = c.req.param("provider");
+    let payload: Record<string, unknown> = {};
+    const rawBody = await c.req.raw.text();
+    if (rawBody.trim().length > 0) {
+      try {
+        payload = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        return c.json(err("INVALID_BODY", "invalid json body"), 400);
+      }
+    }
+    const methodId = typeof payload.methodId === "string"
+      ? payload.methodId.trim()
+      : undefined;
     try {
-      const result = await startProviderAuth(options.configPath, provider);
+      const result = await startProviderAuth(options.configPath, provider, {
+        methodId
+      } satisfies ProviderAuthStartRequest);
       if (!result) {
         return c.json(err("NOT_SUPPORTED", `provider auth is not supported: ${provider}`), 404);
       }

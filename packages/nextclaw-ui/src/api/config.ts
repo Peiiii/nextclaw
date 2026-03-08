@@ -9,6 +9,7 @@ import type {
   ProviderConfigUpdate,
   ProviderConnectionTestRequest,
   ProviderConnectionTestResult,
+  ProviderAuthStartRequest,
   ProviderAuthStartResult,
   ProviderAuthPollRequest,
   ProviderAuthPollResult,
@@ -144,10 +145,13 @@ export async function testProviderConnection(
 }
 
 // POST /api/config/providers/:provider/auth/start
-export async function startProviderAuth(provider: string): Promise<ProviderAuthStartResult> {
+export async function startProviderAuth(
+  provider: string,
+  data: ProviderAuthStartRequest = {}
+): Promise<ProviderAuthStartResult> {
   const response = await api.post<ProviderAuthStartResult>(
     `/api/config/providers/${provider}/auth/start`,
-    {}
+    data
   );
   if (!response.ok) {
     throw new Error(response.error.message);

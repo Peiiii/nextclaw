@@ -69,6 +69,14 @@ export async function login(email: string, password: string): Promise<AuthResult
   return unwrap(data);
 }
 
+export async function register(email: string, password: string): Promise<AuthResult> {
+  const data = await request<ApiEnvelope<AuthResult>>('/platform/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  return unwrap(data);
+}
+
 export async function fetchMe(token: string): Promise<{ user: UserView }> {
   const data = await request<ApiEnvelope<{ user: UserView }>>('/platform/auth/me', {}, token);
   return unwrap(data);

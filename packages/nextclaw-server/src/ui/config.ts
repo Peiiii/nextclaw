@@ -20,7 +20,7 @@ import {
   SessionManager,
   getWorkspacePathFromConfig
 } from "@nextclaw/core";
-import { findBuiltinProviderByName, listBuiltinProviders } from "@nextclaw/runtime";
+import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "./provider-overrides.js";
 import type {
   ConfigMetaView,
   RuntimeConfigUpdate,
@@ -55,7 +55,7 @@ const PREFERRED_PROVIDER_ORDER = [
 const PREFERRED_PROVIDER_ORDER_INDEX: Map<string, number> = new Map(
   PREFERRED_PROVIDER_ORDER.map((name, index) => [name, index])
 );
-const BUILTIN_PROVIDERS = listBuiltinProviders();
+const BUILTIN_PROVIDERS = listServerBuiltinProviders();
 const BUILTIN_PROVIDER_NAMES = new Set(BUILTIN_PROVIDERS.map((spec) => spec.name));
 const CUSTOM_PROVIDER_WIRE_API_OPTIONS: Array<"auto" | "chat" | "responses"> = ["auto", "chat", "responses"];
 const CUSTOM_PROVIDER_PREFIX = "custom-";
@@ -128,7 +128,7 @@ function ensureProviderConfig(config: Config, providerName: string): ProviderCon
   if (isCustomProviderName(providerName)) {
     return null;
   }
-  const spec = findBuiltinProviderByName(providerName);
+  const spec = findServerBuiltinProviderByName(providerName);
   if (!spec) {
     return null;
   }
@@ -452,7 +452,7 @@ export function buildConfigView(config: Config): ConfigView {
   const uiHints = buildUiHints(config);
   const providers: Record<string, ProviderConfigView> = {};
   for (const [name, provider] of Object.entries(config.providers)) {
-    const spec = findBuiltinProviderByName(name);
+    const spec = findServerBuiltinProviderByName(name);
     providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
   }
   return {
@@ -504,6 +504,12 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
             kind: spec.auth.kind,
             displayName: spec.auth.displayName,
             note: spec.auth.note,
+            methods: spec.auth.methods?.map((method) => ({
+              id: method.id,
+              label: method.label,
+              hint: method.hint
+            })),
+            defaultMethodId: spec.auth.defaultMethodId,
             supportsCliImport: Boolean(spec.auth.cliCredential)
           }
         : undefined,
@@ -664,7 +670,7 @@ export function updateProvider(
   if (!provider) {
     return null;
   }
-  const spec = findBuiltinProviderByName(providerName);
+  const spec = findServerBuiltinProviderByName(providerName);
   const isCustom = isCustomProviderName(providerName);
   if (Object.prototype.hasOwnProperty.call(patch, "displayName") && isCustom) {
     provider.displayName = normalizeOptionalDisplayName(patch.displayName) ?? "";
@@ -832,7 +838,7 @@ export async function testProviderConnection(
     return null;
   }
 
-  const spec = findBuiltinProviderByName(providerName);
+  const spec = findServerBuiltinProviderByName(providerName);
   const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
   const providedApiKey = normalizeOptionalString(patch.apiKey);
   const currentApiKey = normalizeOptionalString(provider.apiKey);

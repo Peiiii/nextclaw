@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchMe } from '@/api/client';
 import { Button } from '@/components/ui/button';
 import { LoginPage } from '@/pages/LoginPage';
-import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { UserDashboardPage } from '@/pages/UserDashboardPage';
 import { useAuthStore } from '@/store/auth';
 
@@ -12,7 +11,6 @@ export default function App(): JSX.Element {
   const logout = useAuthStore((state) => state.logout);
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
-  const [tab, setTab] = useState<'user' | 'admin'>('user');
 
   const meQuery = useQuery({
     queryKey: ['me', token],
@@ -54,19 +52,11 @@ export default function App(): JSX.Element {
             <p className="text-sm text-slate-500">{user?.email ?? ''}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant={tab === 'user' ? 'primary' : 'secondary'} onClick={() => setTab('user')}>用户前端</Button>
-            {user?.role === 'admin' ? (
-              <Button variant={tab === 'admin' ? 'primary' : 'secondary'} onClick={() => setTab('admin')}>管理后台</Button>
-            ) : null}
             <Button variant="ghost" onClick={() => logout()}>退出</Button>
           </div>
         </header>
 
-        {tab === 'admin' && user?.role === 'admin' ? (
-          <AdminDashboardPage token={token} />
-        ) : (
-          <UserDashboardPage token={token} />
-        )}
+        <UserDashboardPage token={token} />
       </div>
     </main>
   );

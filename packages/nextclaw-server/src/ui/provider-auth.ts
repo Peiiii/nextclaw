@@ -6,20 +6,27 @@ import {
   ConfigSchema,
   loadConfig,
   saveConfig,
-  type ProviderConfig
+  type ProviderConfig,
+  type ProviderDeviceCodeAuthMethodSpec,
+  type ProviderDeviceCodeAuthProtocol,
+  type ProviderDeviceCodeAuthSpec
 } from "@nextclaw/core";
-import { findBuiltinProviderByName } from "@nextclaw/runtime";
 import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "./types.js";
+import { findServerBuiltinProviderByName } from "./provider-overrides.js";
 
 type DeviceCodeSession = {
   sessionId: string;
   provider: string;
   configPath: string;
-  deviceCode: string;
+  authorizationCode: string;
+  tokenCodeField: "device_code" | "user_code";
+  protocol: ProviderDeviceCodeAuthProtocol;
+  methodId?: string;
   codeVerifier?: string;
   tokenEndpoint: string;
   clientId: string;
   grantType: string;
+  defaultApiBase?: string;
   expiresAtMs: number;
   intervalMs: number;
 };
@@ -35,12 +42,48 @@ type DeviceCodePayload = {
   error_description?: string;
 };
 
+type MiniMaxCodePayload = {
+  user_code?: string;
+  verification_uri?: string;
+  expired_in?: number;
+  interval?: number;
+  state?: string;
+  base_resp?: {
+    status_code?: number;
+    status_msg?: string;
+  };
+};
+
 type TokenPayload = {
   access_token?: string;
   refresh_token?: string;
   expires_in?: number;
   error?: string;
   error_description?: string;
+};
+
+type MiniMaxTokenPayload = {
+  status?: string;
+  access_token?: string | null;
+  refresh_token?: string | null;
+  expired_in?: number | null;
+  base_resp?: {
+    status_code?: number;
+    status_msg?: string;
+  };
+};
+
+type ResolvedAuthMethod = {
+  id?: string;
+  protocol: ProviderDeviceCodeAuthProtocol;
+  baseUrl: string;
+  deviceCodePath: string;
+  tokenPath: string;
+  clientId: string;
+  scope: string;
+  grantType: string;
+  usePkce: boolean;
+  defaultApiBase?: string;
 };
 
 const authSessions = new Map<string, DeviceCodeSession>();
@@ -52,6 +95,13 @@ function normalizePositiveInt(value: unknown, fallback: number): number {
     return fallback;
   }
   return Math.floor(value);
+}
+
+function normalizePositiveFloat(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return value;
 }
 
 function toBase64Url(buffer: Buffer): string {
@@ -90,6 +140,134 @@ function resolveAuthNote(params: {
   en?: string;
 }): string | undefined {
   return params.zh ?? params.en;
+}
+
+function resolveLocalizedMethodLabel(
+  method: ProviderDeviceCodeAuthMethodSpec,
+  fallbackId: string
+): string | undefined {
+  return method.label?.zh ?? method.label?.en ?? fallbackId;
+}
+
+function resolveLocalizedMethodHint(method: ProviderDeviceCodeAuthMethodSpec): string | undefined {
+  return method.hint?.zh ?? method.hint?.en;
+}
+
+function normalizeMethodId(value: string | undefined): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function resolveAuthMethod(auth: ProviderDeviceCodeAuthSpec, requestedMethodId?: string): ResolvedAuthMethod {
+  const protocol = auth.protocol ?? "rfc8628";
+  const methods = (auth.methods ?? []).filter((entry) => normalizeMethodId(entry.id));
+  const cleanRequestedMethodId = normalizeMethodId(requestedMethodId);
+
+  if (methods.length === 0) {
+    if (cleanRequestedMethodId) {
+      throw new Error(`provider auth method is not supported: ${cleanRequestedMethodId}`);
+    }
+    return {
+      protocol,
+      baseUrl: auth.baseUrl,
+      deviceCodePath: auth.deviceCodePath,
+      tokenPath: auth.tokenPath,
+      clientId: auth.clientId,
+      scope: auth.scope,
+      grantType: auth.grantType,
+      usePkce: Boolean(auth.usePkce)
+    };
+  }
+
+  let selectedMethod = methods.find((entry) => normalizeMethodId(entry.id) === cleanRequestedMethodId);
+  if (!selectedMethod) {
+    const fallbackMethodId = normalizeMethodId(auth.defaultMethodId) ?? normalizeMethodId(methods[0]?.id);
+    selectedMethod = methods.find((entry) => normalizeMethodId(entry.id) === fallbackMethodId) ?? methods[0];
+  }
+  const methodId = normalizeMethodId(selectedMethod?.id);
+  if (!selectedMethod || !methodId) {
+    throw new Error("provider auth method is not configured");
+  }
+  if (cleanRequestedMethodId && methodId !== cleanRequestedMethodId) {
+    throw new Error(`provider auth method is not supported: ${cleanRequestedMethodId}`);
+  }
+
+  return {
+    id: methodId,
+    protocol,
+    baseUrl: selectedMethod.baseUrl ?? auth.baseUrl,
+    deviceCodePath: selectedMethod.deviceCodePath ?? auth.deviceCodePath,
+    tokenPath: selectedMethod.tokenPath ?? auth.tokenPath,
+    clientId: selectedMethod.clientId ?? auth.clientId,
+    scope: selectedMethod.scope ?? auth.scope,
+    grantType: selectedMethod.grantType ?? auth.grantType,
+    usePkce: selectedMethod.usePkce ?? Boolean(auth.usePkce),
+    defaultApiBase: selectedMethod.defaultApiBase
+  };
+}
+
+function parseExpiresAtMs(
+  value: unknown,
+  fallbackFromNowMs: number
+): number {
+  const normalized = normalizePositiveFloat(value);
+  if (normalized === null) {
+    return Date.now() + fallbackFromNowMs;
+  }
+  if (normalized >= 1_000_000_000_000) {
+    return Math.floor(normalized);
+  }
+  if (normalized >= 1_000_000_000) {
+    return Math.floor(normalized * 1000);
+  }
+  return Date.now() + Math.floor(normalized * 1000);
+}
+
+function parsePollIntervalMs(value: unknown, fallbackMs: number): number {
+  const normalized = normalizePositiveFloat(value);
+  if (normalized === null) {
+    return fallbackMs;
+  }
+  if (normalized <= 30) {
+    return Math.floor(normalized * 1000);
+  }
+  return Math.floor(normalized);
+}
+
+function buildMinimaxErrorMessage(payload: unknown, fallback: string): string {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return fallback;
+  }
+  const record = payload as {
+    base_resp?: { status_msg?: unknown };
+    error?: unknown;
+    error_description?: unknown;
+  };
+  if (typeof record.error_description === "string" && record.error_description.trim()) {
+    return record.error_description.trim();
+  }
+  if (typeof record.error === "string" && record.error.trim()) {
+    return record.error.trim();
+  }
+  const baseMessage = record.base_resp?.status_msg;
+  if (typeof baseMessage === "string" && baseMessage.trim()) {
+    return baseMessage.trim();
+  }
+  return fallback;
+}
+
+function classifyMiniMaxErrorStatus(message: string): "denied" | "expired" | "error" {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("deny") || normalized.includes("rejected")) {
+    return "denied";
+  }
+  if (normalized.includes("expired") || normalized.includes("timeout") || normalized.includes("timed out")) {
+    return "expired";
+  }
+  return "error";
 }
 
 function resolveHomePath(inputPath: string): string {
@@ -169,82 +347,140 @@ function setProviderApiKey(params: {
 
 export async function startProviderAuth(
   configPath: string,
-  providerName: string
+  providerName: string,
+  options?: {
+    methodId?: string;
+  }
 ): Promise<ProviderAuthStartResult | null> {
   cleanupExpiredAuthSessions();
 
-  const spec = findBuiltinProviderByName(providerName);
+  const spec = findServerBuiltinProviderByName(providerName);
   if (!spec?.auth || spec.auth.kind !== "device_code") {
     return null;
   }
+  const resolvedMethod = resolveAuthMethod(spec.auth, options?.methodId);
 
   const { deviceCodeEndpoint, tokenEndpoint } = resolveDeviceCodeEndpoints(
-    spec.auth.baseUrl,
-    spec.auth.deviceCodePath,
-    spec.auth.tokenPath
+    resolvedMethod.baseUrl,
+    resolvedMethod.deviceCodePath,
+    resolvedMethod.tokenPath
   );
+  const pkce = resolvedMethod.usePkce ? buildPkce() : null;
 
-  const pkce = spec.auth.usePkce ? buildPkce() : null;
-  const body = new URLSearchParams({
-    client_id: spec.auth.clientId,
-    scope: spec.auth.scope
-  });
-  if (pkce) {
-    body.set("code_challenge", pkce.challenge);
-    body.set("code_challenge_method", "S256");
+  let authorizationCode = "";
+  let tokenCodeField: "device_code" | "user_code" = "device_code";
+  let userCode = "";
+  let verificationUri = "";
+  let intervalMs = DEFAULT_AUTH_INTERVAL_MS;
+  let expiresAtMs = Date.now() + 600_000;
+
+  if (resolvedMethod.protocol === "minimax_user_code") {
+    if (!pkce) {
+      throw new Error("MiniMax OAuth requires PKCE");
+    }
+    const state = toBase64Url(randomBytes(16));
+    const body = new URLSearchParams({
+      response_type: "code",
+      client_id: resolvedMethod.clientId,
+      scope: resolvedMethod.scope,
+      code_challenge: pkce.challenge,
+      code_challenge_method: "S256",
+      state
+    });
+    const response = await fetch(deviceCodeEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+        "x-request-id": randomUUID()
+      },
+      body
+    });
+    const payload = (await response.json().catch(() => ({}))) as MiniMaxCodePayload;
+    if (!response.ok) {
+      throw new Error(buildMinimaxErrorMessage(payload, response.statusText || "MiniMax OAuth start failed"));
+    }
+    if (payload.state && payload.state !== state) {
+      throw new Error("MiniMax OAuth state mismatch");
+    }
+    authorizationCode = payload.user_code?.trim() ?? "";
+    userCode = authorizationCode;
+    verificationUri = payload.verification_uri?.trim() ?? "";
+    if (!authorizationCode || !verificationUri) {
+      throw new Error("provider auth payload is incomplete");
+    }
+    tokenCodeField = "user_code";
+    intervalMs = Math.min(parsePollIntervalMs(payload.interval, DEFAULT_AUTH_INTERVAL_MS), MAX_AUTH_INTERVAL_MS);
+    expiresAtMs = parseExpiresAtMs(payload.expired_in, 600_000);
+  } else {
+    const body = new URLSearchParams({
+      client_id: resolvedMethod.clientId,
+      scope: resolvedMethod.scope
+    });
+    if (pkce) {
+      body.set("code_challenge", pkce.challenge);
+      body.set("code_challenge_method", "S256");
+    }
+    const response = await fetch(deviceCodeEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json"
+      },
+      body
+    });
+    const payload = (await response.json().catch(() => ({}))) as DeviceCodePayload;
+    if (!response.ok) {
+      const message = payload.error_description || payload.error || response.statusText || "device code auth failed";
+      throw new Error(message);
+    }
+
+    authorizationCode = payload.device_code?.trim() ?? "";
+    userCode = payload.user_code?.trim() ?? "";
+    verificationUri = payload.verification_uri_complete?.trim() || payload.verification_uri?.trim() || "";
+
+    if (!authorizationCode || !userCode || !verificationUri) {
+      throw new Error("provider auth payload is incomplete");
+    }
+
+    intervalMs = normalizePositiveInt(payload.interval, DEFAULT_AUTH_INTERVAL_MS / 1000) * 1000;
+    const expiresInSec = normalizePositiveInt(payload.expires_in, 600);
+    expiresAtMs = Date.now() + expiresInSec * 1000;
   }
 
-  const response = await fetch(deviceCodeEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-      Accept: "application/json"
-    },
-    body
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as DeviceCodePayload;
-  if (!response.ok) {
-    const message = payload.error_description || payload.error || response.statusText || "device code auth failed";
-    throw new Error(message);
-  }
-
-  const deviceCode = payload.device_code?.trim() ?? "";
-  const userCode = payload.user_code?.trim() ?? "";
-  const verificationUri =
-    payload.verification_uri_complete?.trim() || payload.verification_uri?.trim() || "";
-
-  if (!deviceCode || !userCode || !verificationUri) {
-    throw new Error("provider auth payload is incomplete");
-  }
-
-  const intervalMs = normalizePositiveInt(payload.interval, DEFAULT_AUTH_INTERVAL_MS / 1000) * 1000;
-  const expiresInSec = normalizePositiveInt(payload.expires_in, 600);
-  const expiresAtMs = Date.now() + expiresInSec * 1000;
   const sessionId = randomUUID();
 
   authSessions.set(sessionId, {
     sessionId,
     provider: providerName,
     configPath,
-    deviceCode,
+    authorizationCode,
+    tokenCodeField,
+    protocol: resolvedMethod.protocol,
+    methodId: resolvedMethod.id,
     codeVerifier: pkce?.verifier,
     tokenEndpoint,
-    clientId: spec.auth.clientId,
-    grantType: spec.auth.grantType,
+    clientId: resolvedMethod.clientId,
+    grantType: resolvedMethod.grantType,
+    defaultApiBase: resolvedMethod.defaultApiBase ?? spec.defaultApiBase,
     expiresAtMs,
     intervalMs
   });
 
+  const methodConfig = (spec.auth.methods ?? []).find((entry) => normalizeMethodId(entry.id) === resolvedMethod.id);
+  const methodLabel = methodConfig ? resolveLocalizedMethodLabel(methodConfig, resolvedMethod.id ?? "") : undefined;
+  const methodHint = methodConfig ? resolveLocalizedMethodHint(methodConfig) : undefined;
+
   return {
     provider: providerName,
     kind: "device_code",
+    methodId: resolvedMethod.id,
     sessionId,
     verificationUri,
     userCode,
     expiresAt: new Date(expiresAtMs).toISOString(),
     intervalMs,
-    note: resolveAuthNote(spec.auth.note ?? {})
+    note: methodHint ?? methodLabel ?? resolveAuthNote(spec.auth.note ?? {})
   };
 }
 
@@ -271,9 +507,9 @@ export async function pollProviderAuth(params: {
 
   const body = new URLSearchParams({
     grant_type: session.grantType,
-    client_id: session.clientId,
-    device_code: session.deviceCode
+    client_id: session.clientId
   });
+  body.set(session.tokenCodeField, session.authorizationCode);
   if (session.codeVerifier) {
     body.set("code_verifier", session.codeVerifier);
   }
@@ -286,19 +522,49 @@ export async function pollProviderAuth(params: {
     },
     body
   });
+  let accessToken = "";
 
-  const payload = (await response.json().catch(() => ({}))) as TokenPayload;
-  if (!response.ok) {
-    const errorCode = payload.error?.trim().toLowerCase();
-    if (errorCode === "authorization_pending") {
+  if (session.protocol === "minimax_user_code") {
+    const raw = await response.text();
+    let payload: MiniMaxTokenPayload = {};
+    if (raw) {
+      try {
+        payload = JSON.parse(raw) as MiniMaxTokenPayload;
+      } catch {
+        payload = {};
+      }
+    }
+    if (!response.ok) {
+      const message = buildMinimaxErrorMessage(payload, raw || response.statusText || "authorization failed");
       return {
         provider: params.providerName,
-        status: "pending",
-        nextPollMs: session.intervalMs
+        status: "error",
+        message
       };
     }
 
-    if (errorCode === "slow_down") {
+    const status = payload.status?.trim().toLowerCase();
+    if (status === "success") {
+      accessToken = payload.access_token?.trim() ?? "";
+      if (!accessToken) {
+        return {
+          provider: params.providerName,
+          status: "error",
+          message: "provider token response missing access token"
+        };
+      }
+    } else if (status === "error") {
+      const message = buildMinimaxErrorMessage(payload, "authorization failed");
+      const classified = classifyMiniMaxErrorStatus(message);
+      if (classified === "denied" || classified === "expired") {
+        authSessions.delete(params.sessionId);
+      }
+      return {
+        provider: params.providerName,
+        status: classified,
+        message
+      };
+    } else {
       const nextPollMs = Math.min(Math.floor(session.intervalMs * 1.5), MAX_AUTH_INTERVAL_MS);
       session.intervalMs = nextPollMs;
       authSessions.set(params.sessionId, session);
@@ -308,47 +574,69 @@ export async function pollProviderAuth(params: {
         nextPollMs
       };
     }
+  } else {
+    const payload = (await response.json().catch(() => ({}))) as TokenPayload;
+    if (!response.ok) {
+      const errorCode = payload.error?.trim().toLowerCase();
+      if (errorCode === "authorization_pending") {
+        return {
+          provider: params.providerName,
+          status: "pending",
+          nextPollMs: session.intervalMs
+        };
+      }
 
-    if (errorCode === "access_denied") {
-      authSessions.delete(params.sessionId);
+      if (errorCode === "slow_down") {
+        const nextPollMs = Math.min(Math.floor(session.intervalMs * 1.5), MAX_AUTH_INTERVAL_MS);
+        session.intervalMs = nextPollMs;
+        authSessions.set(params.sessionId, session);
+        return {
+          provider: params.providerName,
+          status: "pending",
+          nextPollMs
+        };
+      }
+
+      if (errorCode === "access_denied") {
+        authSessions.delete(params.sessionId);
+        return {
+          provider: params.providerName,
+          status: "denied",
+          message: payload.error_description || "authorization denied"
+        };
+      }
+
+      if (errorCode === "expired_token") {
+        authSessions.delete(params.sessionId);
+        return {
+          provider: params.providerName,
+          status: "expired",
+          message: payload.error_description || "authorization session expired"
+        };
+      }
+
       return {
         provider: params.providerName,
-        status: "denied",
-        message: payload.error_description || "authorization denied"
+        status: "error",
+        message: payload.error_description || payload.error || response.statusText || "authorization failed"
       };
     }
 
-    if (errorCode === "expired_token") {
-      authSessions.delete(params.sessionId);
+    accessToken = payload.access_token?.trim() ?? "";
+    if (!accessToken) {
       return {
         provider: params.providerName,
-        status: "expired",
-        message: payload.error_description || "authorization session expired"
+        status: "error",
+        message: "provider token response missing access token"
       };
     }
-
-    return {
-      provider: params.providerName,
-      status: "error",
-      message: payload.error_description || payload.error || response.statusText || "authorization failed"
-    };
   }
 
-  const accessToken = payload.access_token?.trim();
-  if (!accessToken) {
-    return {
-      provider: params.providerName,
-      status: "error",
-      message: "provider token response missing access token"
-    };
-  }
-
-  const spec = findBuiltinProviderByName(params.providerName);
   setProviderApiKey({
     configPath: params.configPath,
     provider: params.providerName,
     accessToken,
-    defaultApiBase: spec?.defaultApiBase
+    defaultApiBase: session.defaultApiBase
   });
 
   authSessions.delete(params.sessionId);
@@ -362,7 +650,7 @@ export async function importProviderAuthFromCli(
   configPath: string,
   providerName: string
 ): Promise<ProviderAuthImportResult | null> {
-  const spec = findBuiltinProviderByName(providerName);
+  const spec = findServerBuiltinProviderByName(providerName);
   if (!spec?.auth || spec.auth.kind !== "device_code" || !spec.auth.cliCredential) {
     return null;
   }

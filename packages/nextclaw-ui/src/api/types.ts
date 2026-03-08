@@ -77,12 +77,17 @@ export type ProviderConnectionTestResult = {
 export type ProviderAuthStartResult = {
   provider: string;
   kind: "device_code";
+  methodId?: string;
   sessionId: string;
   verificationUri: string;
   userCode: string;
   expiresAt: string;
   intervalMs: number;
   note?: string;
+};
+
+export type ProviderAuthStartRequest = {
+  methodId?: string;
 };
 
 export type ProviderAuthPollRequest = {
@@ -458,6 +463,18 @@ export type ProviderSpecView = {
       en?: string;
       zh?: string;
     };
+    methods?: Array<{
+      id: string;
+      label?: {
+        en?: string;
+        zh?: string;
+      };
+      hint?: {
+        en?: string;
+        zh?: string;
+      };
+    }>;
+    defaultMethodId?: string;
     supportsCliImport?: boolean;
   };
   defaultModels?: string[];

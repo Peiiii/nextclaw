@@ -25,6 +25,12 @@ jobs:
           - os: macos-14
             platform: darwin
             arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: arm64
 
     steps:
       - name: Checkout
