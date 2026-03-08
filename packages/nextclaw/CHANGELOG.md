@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.9.19
+
+### Patch Changes
+
+- Improve CLI start diagnostics by surfacing startup failure context and richer health probe error details.
+
 ## 0.9.18
 
 ### Patch Changes
