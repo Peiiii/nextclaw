@@ -25,7 +25,7 @@
   - `/check-meta`：检查 AGENTS.md 机制问题（自相矛盾/未遵循规范等）
   - `/new-rule`：创建新规则条目（按 Rulebook 模板）
   - `/commit`：进行提交操作（提交信息需使用英文）
-  - `/validate`：运行项目验证，至少包含 `build`、`lint`、`tsc`，必要时冒烟测试
+  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试
   - `/release-frontend`：前端一键发布（仅 UI 变更场景）
   - `nextclaw skills install`：从 NextClaw marketplace 安装 skill
   - `nextclaw skills publish`：上传/创建 marketplace skill（upsert）
@@ -55,10 +55,10 @@
 ## Rulebook
 
 - **post-dev-stage-validation**：
-  - 约束/适用范围：每个开发阶段结束必须做验证，至少运行 `build`、`lint`、`tsc`；如确认无关可说明理由并省略；如涉及可运行/用户可见改动需补冒烟测试。
-  - 示例：完成一轮功能改动后执行 `pnpm build && pnpm lint && pnpm tsc`，并补一条 CLI 冒烟。
-  - 反例：只修改代码但不做任何验证就汇报完成。
-  - 执行方式：按阶段执行 `build/lint/tsc`，必要时追加真实命令/请求冒烟并记录结果。
+  - 约束/适用范围：每个开发阶段结束必须做“与改动相关”的验证，按影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，才要求执行 `build`、`lint`、`tsc` 的相关项（可全量或受影响子集）。纯文档/文案/注释等不触发代码路径的改动，可不执行 `build`、`lint`、`tsc`，但必须在结果中明确“不适用”与理由；如涉及可运行/用户可见行为改动需补冒烟测试。
+  - 示例：功能代码改动后执行受影响包的 `build/lint/tsc` 并补一条冒烟；仅文档改动时记录“`build/lint/tsc` 不适用（未触达代码路径）”并做文档链接与结构检查。
+  - 反例：代码改动后不做任何验证；或仅文档改动虽跳过 `build/lint/tsc` 但未说明不适用理由。
+  - 执行方式：先做影响面判定（文档/配置/代码/发布链路），再选择最小验证集并记录命令与结果；跳过项必须写明“不适用 + 判定依据”。
   - 维护责任人：当次交付 owner。
 - **no-self-commit-without-request**：
   - 约束/适用范围：除非用户明确要求，否则禁止擅自提交/推送代码。

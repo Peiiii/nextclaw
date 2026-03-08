@@ -1,0 +1,56 @@
+name: Task
+description: Track engineering tasks, refactors, and maintenance work.
+title: "[Task] "
+labels:
+  - type: chore
+  - status: needs-triage
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why is this task needed now?
+      placeholder: Background and trigger.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included and excluded?
+      placeholder: |
+        In scope:
+        Out of scope:
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Task Checklist
+      description: Split into small, verifiable steps.
+      placeholder: |
+        - [ ] Step 1
+        - [ ] Step 2
+        - [ ] Step 3
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Commands, assertions, and smoke checks.
+      placeholder: |
+        - pnpm build
+        - pnpm lint
+        - pnpm tsc
+        - smoke test:
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risks / Rollback
+      description: Key risks and rollback strategy.
+      placeholder: Main risks, fallback path, and rollback trigger.
+    validations:
+      required: false

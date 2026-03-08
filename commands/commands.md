@@ -5,7 +5,7 @@
 - `/check-meta`: 检查 `AGENTS.md` 机制是否自洽、是否符合自身规范的指令。输出需包含发现的问题与修复建议（若无问题需明确说明）。
 - `/new-rule`: 创建新规则条目的指令，必须按 Rulebook 模板写全字段并更新 `AGENTS.md` 规则区。
 - `/commit`: 进行提交操作（提交信息需使用英文）。
-- `/validate`: 对项目进行验证，至少运行 `build`、`lint`、`tsc`，必要时补充冒烟测试。执行前需确认验证范围和可跳过项。
+- `/validate`: 对项目进行验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补充冒烟测试。执行前需确认验证范围和可跳过项。
 - `/release-frontend`: 前端一键发布（仅 UI 变更场景）。输入：`/release-frontend`。输出：生成 UI changeset，并执行 `pnpm release:version` + `pnpm release:publish`，最终发布 `@nextclaw/ui` 与 `nextclaw`。
 - `pnpm deploy:llm-api-worker`: LLM API Worker 一键部署命令。输入：`DASHSCOPE_API_KEY=*** pnpm deploy:llm-api-worker`（或 `pnpm deploy:llm-api-worker -- --api-key ***`）。输出：自动更新 Cloudflare secret `DASHSCOPE_API_KEY` 并部署 `nextclaw-provider-gateway-api`。
 - `nextclaw skills install <slug>`：从 NextClaw marketplace 安装 skill。输入：`nextclaw skills install demo --api-base <url>`。输出：下载并落盘 skill 文件到工作区 `skills/<slug>`。

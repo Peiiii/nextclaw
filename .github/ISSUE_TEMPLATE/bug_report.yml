@@ -1,0 +1,96 @@
+name: Bug Report
+description: Report a reproducible bug.
+title: "[Bug] "
+labels:
+  - type: bug
+  - status: needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please provide a minimal reproducible case.
+  - type: textarea
+    id: bug_summary
+    attributes:
+      label: Bug Summary
+      description: What is wrong right now?
+      placeholder: A short and clear description of the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: repro_steps
+    attributes:
+      label: Reproduction Steps
+      description: List exact steps so maintainers can reproduce quickly.
+      placeholder: |
+        1. Run ...
+        2. Open ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected_result
+    attributes:
+      label: Expected Result
+      description: What should happen?
+      placeholder: Describe expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: actual_result
+    attributes:
+      label: Actual Result
+      description: What happened instead?
+      placeholder: Include error message and user-facing impact.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which area is affected most?
+      options:
+        - cli
+        - ui
+        - docs
+        - build/release
+        - other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: nextclaw version or commit SHA.
+      placeholder: e.g. nextclaw 0.9.17 / commit abc1234
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS / Node / pnpm and any relevant runtime details.
+      placeholder: |
+        OS:
+        Node:
+        pnpm:
+        Browser (if UI):
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Screenshots
+      description: Paste key logs or screenshots.
+      placeholder: Paste stack traces, command output, or screenshots.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Preflight Checklist
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I can reproduce this on the latest main branch or latest release.
+          required: true
