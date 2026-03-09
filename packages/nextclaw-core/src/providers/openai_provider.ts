@@ -160,11 +160,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
 
     for await (const chunk of stream) {
       if (chunk.usage) {
-        usage = {
-          prompt_tokens: chunk.usage.prompt_tokens ?? usage.prompt_tokens ?? 0,
-          completion_tokens: chunk.usage.completion_tokens ?? usage.completion_tokens ?? 0,
-          total_tokens: chunk.usage.total_tokens ?? usage.total_tokens ?? 0
-        };
+        usage = this.mergeUsageCounters(usage, chunk.usage as unknown as Record<string, unknown>);
       }
 
       const choice = chunk.choices?.[0];
@@ -363,15 +359,19 @@ export class OpenAICompatibleProvider extends LLMProvider {
       }
     }
 
-    const usage = responseAny.usage ?? {};
+    const usage = this.normalizeUsageCounters(responseAny.usage as Record<string, unknown> | undefined);
+    const promptTokens = usage.input_tokens ?? usage.prompt_tokens ?? 0;
+    const completionTokens = usage.output_tokens ?? usage.completion_tokens ?? 0;
+    const totalTokens = usage.total_tokens ?? promptTokens + completionTokens;
     return {
       content: contentParts.join("") || null,
       toolCalls,
       finishReason: responseAny.status ?? "stop",
       usage: {
-        prompt_tokens: usage.input_tokens ?? usage.prompt_tokens ?? 0,
-        completion_tokens: usage.output_tokens ?? usage.completion_tokens ?? 0,
-        total_tokens: usage.total_tokens ?? 0
+        ...usage,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: totalTokens
       },
       reasoningContent
     };
@@ -542,6 +542,47 @@ export class OpenAICompatibleProvider extends LLMProvider {
   private stripCodeFence(text: string): string {
     const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
     return fence?.[1]?.trim() ?? text;
+  }
+
+  private normalizeUsageCounters(raw: Record<string, unknown> | undefined): Record<string, number> {
+    const usage: Record<string, number> = {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    };
+    if (!raw) {
+      return usage;
+    }
+    for (const [key, value] of Object.entries(raw)) {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        continue;
+      }
+      usage[key] = Math.floor(value);
+    }
+    return usage;
+  }
+
+  private mergeUsageCounters(
+    current: Record<string, number>,
+    incoming: Record<string, unknown>
+  ): Record<string, number> {
+    const next = { ...current };
+    for (const [key, value] of Object.entries(incoming)) {
+      if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        continue;
+      }
+      next[key] = Math.floor(value);
+    }
+    if (typeof next.prompt_tokens !== "number") {
+      next.prompt_tokens = 0;
+    }
+    if (typeof next.completion_tokens !== "number") {
+      next.completion_tokens = 0;
+    }
+    if (typeof next.total_tokens !== "number") {
+      next.total_tokens = 0;
+    }
+    return next;
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {

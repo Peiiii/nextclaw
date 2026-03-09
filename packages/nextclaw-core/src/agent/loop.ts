@@ -35,6 +35,11 @@ type MessageToolHintsResolver = (params: {
 type AssistantDeltaHandler = (delta: string) => void;
 type SessionEventHandler = (event: SessionEvent) => void;
 
+const TIME_HINT_TRIGGER_PATTERNS = [
+  /\b(now|right now|current time|what time|today|tonight|tomorrow|yesterday|this morning|this afternoon|this evening|date)\b/i,
+  /(现在|此刻|当前时间|现在几点|几点了|今天|今晚|今早|今晨|明天|昨天|日期)/
+];
+
 export class AgentLoop {
   private context: ContextBuilder;
   private sessions: SessionManager;
@@ -455,6 +460,38 @@ export class AgentLoop {
     return `[Requested skills for this turn: ${names}]\n\n${content}`;
   }
 
+  private appendTimeHintForPrompt(content: string, timestamp: Date): string {
+    if (!this.shouldAppendTimeHint(content)) {
+      return content;
+    }
+    const date = Number.isNaN(timestamp.getTime()) ? new Date() : timestamp;
+    const timeHint = this.buildMinutePrecisionTimeHint(date);
+    return `${content}\n\n[time_hint_local_minute] ${timeHint}`;
+  }
+
+  private shouldAppendTimeHint(content: string): boolean {
+    const normalized = content.trim();
+    if (!normalized) {
+      return false;
+    }
+    return TIME_HINT_TRIGGER_PATTERNS.some((pattern) => pattern.test(normalized));
+  }
+
+  private buildMinutePrecisionTimeHint(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hour = String(date.getHours()).padStart(2, "0");
+    const minute = String(date.getMinutes()).padStart(2, "0");
+    const offsetMinutes = -date.getTimezoneOffset();
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const absMinutes = Math.abs(offsetMinutes);
+    const offsetHour = String(Math.floor(absMinutes / 60)).padStart(2, "0");
+    const offsetMinute = String(absMinutes % 60).padStart(2, "0");
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "local";
+    return `${year}-${month}-${day} ${hour}:${minute} ${sign}${offsetHour}:${offsetMinute} (${timezone})`;
+  }
+
   private formatSystemMessageForPrompt(msg: InboundMessage): string {
     const sender = this.normalizeOptionalString(msg.senderId) ?? "system";
     const content = msg.content.trim();
@@ -578,10 +615,11 @@ export class AgentLoop {
 
     const pendingSystemEvents = this.drainPendingSystemEvents(session);
     const requestedSkillNames = this.resolveRequestedSkillNames(msg.metadata);
-    const currentMessage = this.prependRequestedSkills(
+    let currentMessage = this.prependRequestedSkills(
       this.prependSystemEvents(msg.content, pendingSystemEvents),
       requestedSkillNames
     );
+    currentMessage = this.appendTimeHintForPrompt(currentMessage, msg.timestamp);
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {

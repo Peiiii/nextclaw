@@ -15,7 +15,7 @@ type ChatCompletionsChoice = {
 
 type ChatCompletionsResponseLike = {
   choices?: ChatCompletionsChoice[];
-  usage?: {
+  usage?: Record<string, unknown> & {
     prompt_tokens?: number;
     completion_tokens?: number;
     total_tokens?: number;
@@ -68,13 +68,36 @@ export function normalizeChatCompletionsResponse(
     content: message?.content ?? null,
     toolCalls,
     finishReason: choice?.finish_reason ?? "stop",
-    usage: {
-      prompt_tokens: responseAny.usage?.prompt_tokens ?? 0,
-      completion_tokens: responseAny.usage?.completion_tokens ?? 0,
-      total_tokens: responseAny.usage?.total_tokens ?? 0
-    },
+    usage: normalizeUsageCounters(responseAny.usage),
     reasoningContent
   };
+}
+
+function normalizeUsageCounters(raw: Record<string, unknown> | undefined): Record<string, number> {
+  const usage: Record<string, number> = {
+    prompt_tokens: normalizeUsageValue(raw?.prompt_tokens),
+    completion_tokens: normalizeUsageValue(raw?.completion_tokens),
+    total_tokens: normalizeUsageValue(raw?.total_tokens)
+  };
+
+  if (!raw) {
+    return usage;
+  }
+
+  for (const [key, value] of Object.entries(raw)) {
+    if (!(key in usage)) {
+      usage[key] = normalizeUsageValue(value);
+    }
+  }
+
+  return usage;
+}
+
+function normalizeUsageValue(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    return 0;
+  }
+  return Math.floor(value);
 }
 
 function toToolCalls(

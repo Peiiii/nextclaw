@@ -185,7 +185,6 @@ export class ContextBuilder {
   }
 
   private getIdentity(messageToolHints?: string[]): string {
-    const now = new Date().toLocaleString();
     const sanitizedMessageToolHints = (messageToolHints ?? [])
       .map((hint) => hint.trim())
       .filter(Boolean);
@@ -303,7 +302,8 @@ export class ContextBuilder {
       "",
       "## Runtime",
       `Runtime: ${process.platform} ${process.arch}, Node ${process.version}`,
-      `Current time: ${now}`,
+      "Time handling: do not assume exact minute/second unless the user/tool explicitly provides it.",
+      "When a turn includes a time hint, treat it as context for relative-time interpretation in that turn.",
       "",
       `## ${APP_NAME} Self-Management Guide`,
       `- For ${APP_NAME} runtime operations (version/status/doctor/channels/config/cron), read \`${this.workspace}/USAGE.md\` first.`,
