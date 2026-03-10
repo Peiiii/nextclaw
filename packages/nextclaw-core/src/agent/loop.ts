@@ -696,6 +696,7 @@ export class AgentLoop {
         }
 
         if (response.toolCalls.length) {
+          throwIfAborted(options?.abortSignal);
           const toolCallDicts = response.toolCalls.map((call) => ({
             id: call.id,
             type: "function",
@@ -891,6 +892,7 @@ export class AgentLoop {
         }
 
         if (response.toolCalls.length) {
+          throwIfAborted(options?.abortSignal);
           const toolCallDicts = response.toolCalls.map((call) => ({
             id: call.id,
             type: "function",

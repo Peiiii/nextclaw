@@ -147,6 +147,16 @@ function readPermissionMode(
   return undefined;
 }
 
+function toAbortError(reason: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+  const message = typeof reason === "string" && reason.trim() ? reason.trim() : "operation aborted";
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
 function readSettingSources(input: Record<string, unknown>, key: string): Array<"user" | "project" | "local"> | undefined {
   const list = readStringArray(input, key);
   if (!list) {
@@ -210,6 +220,7 @@ const claudeAgentLoader = require("../claude-agent-sdk-loader.cjs") as ClaudeAge
 
 class PluginClaudeAgentSdkEngine implements AgentEngine {
   readonly kind = "claude-agent-sdk";
+  readonly supportsAbort = true;
 
   private sdkModulePromise: Promise<ClaudeAgentSdkModule> | null = null;
   private sessionIdsByKey = new Map<string, string>();
@@ -264,6 +275,16 @@ class PluginClaudeAgentSdkEngine implements AgentEngine {
 
     const sdk = await this.getSdkModule();
     const abortController = new AbortController();
+    const onExternalAbort = () => {
+      if (!abortController.signal.aborted) {
+        abortController.abort(params.abortSignal?.reason);
+      }
+    };
+    if (params.abortSignal?.aborted) {
+      onExternalAbort();
+    } else {
+      params.abortSignal?.addEventListener("abort", onExternalAbort, { once: true });
+    }
     const timeout = this.createRequestTimeout(abortController);
     const queryOptions = this.buildQueryOptions(sessionKey, model, abortController);
     const requestedSkillsContent = this.skillsLoader.loadSkillsForContext(requestedSkills);
@@ -317,10 +338,14 @@ class PluginClaudeAgentSdkEngine implements AgentEngine {
         resultReply = result.text;
       }
     } finally {
+      params.abortSignal?.removeEventListener("abort", onExternalAbort);
       if (timeout !== null) {
         clearTimeout(timeout);
       }
       query.close();
+    }
+    if (abortController.signal.aborted) {
+      throw toAbortError(abortController.signal.reason);
     }
 
     const assistantReply = assistantMessages.join("\n").trim();

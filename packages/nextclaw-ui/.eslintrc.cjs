@@ -24,6 +24,16 @@ module.exports = {
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
     "react-hooks/set-state-in-effect": "off",
+    "prefer-destructuring": ["warn", {
+      "VariableDeclarator": {
+        "array": false,
+        "object": true
+      },
+      "AssignmentExpression": {
+        "array": false,
+        "object": false
+      }
+    }],
     "max-lines": ["warn", { "max": 800, "skipBlankLines": true, "skipComments": true }],
     "max-lines-per-function": ["warn", { "max": 150, "skipBlankLines": true, "skipComments": true, "IIFEs": true }]
   },

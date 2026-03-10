@@ -1,46 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ChatRunView, SessionEventView } from '@/api/types';
+import type { ChatRunView } from '@/api/types';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { useChatRuns } from '@/hooks/useConfig';
 import { buildActiveRunBySessionKey, buildSessionRunStatusByKey } from '@/lib/session-run-status';
 
 export type ChatMainPanelView = 'chat' | 'cron' | 'skills';
-
-function hasRenderableMessage(message: SessionEventView['message'] | undefined): boolean {
-  if (!message) {
-    return false;
-  }
-  if (Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
-    return true;
-  }
-  if (typeof message.reasoning_content === 'string' && message.reasoning_content.trim()) {
-    return true;
-  }
-  const content = message.content;
-  if (typeof content === 'string') {
-    return content.trim().length > 0;
-  }
-  if (Array.isArray(content)) {
-    return content.some((item) => {
-      if (typeof item === 'string') {
-        return item.trim().length > 0;
-      }
-      if (item && typeof item === 'object') {
-        const text = (item as { text?: unknown }).text;
-        const nested = (item as { content?: unknown }).content;
-        if (typeof text === 'string' && text.trim().length > 0) {
-          return true;
-        }
-        if (typeof nested === 'string' && nested.trim().length > 0) {
-          return true;
-        }
-      }
-      return false;
-    });
-  }
-  return content != null;
-}
 
 export function useSyncSelectedModel(params: {
   modelOptions: ChatModelOption[];
@@ -71,72 +36,6 @@ export function useSyncSelectedModel(params: {
   }, [defaultModel, modelOptions, selectedSessionPreferredModel, setSelectedModel]);
 }
 
-export function useMergedEvents(params: {
-  historyEvents: SessionEventView[];
-  optimisticUserEvent: SessionEventView | null;
-  streamingSessionEvents: SessionEventView[];
-  streamingAssistantText: string;
-  streamingAssistantTimestamp: string | null;
-}) {
-  return useMemo(() => {
-    const bySeq = new Map<number, SessionEventView>();
-    const mergeEventBySeq = (incoming: SessionEventView) => {
-      if (!Number.isFinite(incoming.seq)) {
-        return;
-      }
-      const current = bySeq.get(incoming.seq);
-      if (!current) {
-        bySeq.set(incoming.seq, incoming);
-        return;
-      }
-      const currentHasRenderableMessage = hasRenderableMessage(current.message);
-      const incomingHasRenderableMessage = hasRenderableMessage(incoming.message);
-      // Preserve richer message event when same-seq incoming event has no renderable content.
-      if (currentHasRenderableMessage && !incomingHasRenderableMessage) {
-        return;
-      }
-      bySeq.set(incoming.seq, incoming);
-    };
-    const append = (event: SessionEventView) => {
-      mergeEventBySeq(event);
-    };
-
-    params.historyEvents.forEach(append);
-    if (params.optimisticUserEvent) {
-      append(params.optimisticUserEvent);
-    }
-    params.streamingSessionEvents.forEach((event) => {
-      // Do not let backend streamed user events affect user-message rendering.
-      if (event.message?.role === 'user' && event.type !== 'message.user.optimistic') {
-        return;
-      }
-      append(event);
-    });
-
-    const next = [...bySeq.values()].sort((left, right) => left.seq - right.seq);
-    if (params.streamingAssistantText.trim()) {
-      const maxSeq = next.reduce((max, event) => (event.seq > max ? event.seq : max), 0);
-      next.push({
-        seq: maxSeq + 1,
-        type: 'stream.assistant_delta',
-        timestamp: params.streamingAssistantTimestamp ?? new Date().toISOString(),
-        message: {
-          role: 'assistant',
-          content: params.streamingAssistantText,
-          timestamp: params.streamingAssistantTimestamp ?? new Date().toISOString()
-        }
-      });
-    }
-    return next;
-  }, [
-    params.historyEvents,
-    params.optimisticUserEvent,
-    params.streamingAssistantText,
-    params.streamingAssistantTimestamp,
-    params.streamingSessionEvents
-  ]);
-}
-
 export function useSessionRunStatus(params: {
   view: ChatMainPanelView;
   selectedSessionKey: string | null;
@@ -147,9 +46,30 @@ export function useSessionRunStatus(params: {
   const { view, selectedSessionKey, activeBackendRunId, isLocallyRunning, resumeRun } = params;
   const [suppressedSessionState, setSuppressedSessionState] = useState<{
     sessionKey: string;
-    expireAt: number;
+    runId?: string;
   } | null>(null);
   const wasLocallyRunningRef = useRef(false);
+  const resumedRunBySessionRef = useRef(new Map<string, string>());
+  const completedRunBySessionRef = useRef(new Map<string, string>());
+  const locallySettledAtBySessionRef = useRef(new Map<string, number>());
+  const latestBackendRunIdRef = useRef<string | null>(activeBackendRunId);
+  const autoResumeEligibleSessionsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!selectedSessionKey) {
+      return;
+    }
+    autoResumeEligibleSessionsRef.current.add(selectedSessionKey);
+  }, [selectedSessionKey]);
+
+  useEffect(() => {
+    if (!selectedSessionKey) {
+      return;
+    }
+    if (isLocallyRunning) {
+      autoResumeEligibleSessionsRef.current.delete(selectedSessionKey);
+    }
+  }, [isLocallyRunning, selectedSessionKey]);
 
   const sessionStatusRunsQuery = useChatRuns(
     view === 'chat'
@@ -168,7 +88,10 @@ export function useSessionRunStatus(params: {
   const sessionRunStatusByKey = useMemo(() => {
     const next = buildSessionRunStatusByKey(activeRunBySessionKey);
     if (suppressedSessionState) {
-      next.delete(suppressedSessionState.sessionKey);
+      const activeRun = activeRunBySessionKey.get(suppressedSessionState.sessionKey) ?? null;
+      if (activeRun && (!suppressedSessionState.runId || activeRun.runId === suppressedSessionState.runId)) {
+        next.delete(suppressedSessionState.sessionKey);
+      }
     }
     return next;
   }, [activeRunBySessionKey, suppressedSessionState]);
@@ -176,18 +99,80 @@ export function useSessionRunStatus(params: {
     if (!selectedSessionKey) {
       return null;
     }
-    return activeRunBySessionKey.get(selectedSessionKey) ?? null;
-  }, [activeRunBySessionKey, selectedSessionKey]);
+    const run = activeRunBySessionKey.get(selectedSessionKey) ?? null;
+    const shouldSuppress = (() => {
+      if (!run || !suppressedSessionState) {
+        return false;
+      }
+      if (suppressedSessionState.sessionKey !== selectedSessionKey) {
+        return false;
+      }
+      return !suppressedSessionState.runId || run.runId === suppressedSessionState.runId;
+    })();
+    if (shouldSuppress) {
+      return null;
+    }
+    return run;
+  }, [activeRunBySessionKey, selectedSessionKey, suppressedSessionState]);
+
+  useEffect(() => {
+    if (!activeBackendRunId) {
+      return;
+    }
+    latestBackendRunIdRef.current = activeBackendRunId;
+  }, [activeBackendRunId]);
 
   useEffect(() => {
     if (view !== 'chat' || !selectedSessionKey || !activeRun) {
       return;
     }
+    if (!autoResumeEligibleSessionsRef.current.has(selectedSessionKey)) {
+      return;
+    }
+    if (isLocallyRunning) {
+      return;
+    }
     if (activeBackendRunId === activeRun.runId) {
       return;
     }
+    const resumedRunId = resumedRunBySessionRef.current.get(selectedSessionKey);
+    if (resumedRunId === activeRun.runId) {
+      return;
+    }
+    const completedRunId = completedRunBySessionRef.current.get(selectedSessionKey);
+    if (completedRunId && completedRunId === activeRun.runId) {
+      return;
+    }
+    const locallySettledAt = locallySettledAtBySessionRef.current.get(selectedSessionKey);
+    if (typeof locallySettledAt === 'number') {
+      const requestedAt = Date.parse(activeRun.requestedAt ?? '');
+      if (Number.isFinite(requestedAt)) {
+        if (requestedAt <= locallySettledAt + 2_000) {
+          return;
+        }
+      } else if (Date.now() - locallySettledAt <= 8_000) {
+        return;
+      }
+    }
+    resumedRunBySessionRef.current.set(selectedSessionKey, activeRun.runId);
+    autoResumeEligibleSessionsRef.current.delete(selectedSessionKey);
     void resumeRun(activeRun);
-  }, [activeBackendRunId, activeRun, resumeRun, selectedSessionKey, view]);
+  }, [activeBackendRunId, activeRun, isLocallyRunning, resumeRun, selectedSessionKey, view]);
+
+  useEffect(() => {
+    if (!selectedSessionKey) {
+      resumedRunBySessionRef.current.clear();
+      completedRunBySessionRef.current.clear();
+      locallySettledAtBySessionRef.current.clear();
+      autoResumeEligibleSessionsRef.current.clear();
+      return;
+    }
+    if (!activeRunBySessionKey.has(selectedSessionKey)) {
+      resumedRunBySessionRef.current.delete(selectedSessionKey);
+      completedRunBySessionRef.current.delete(selectedSessionKey);
+      locallySettledAtBySessionRef.current.delete(selectedSessionKey);
+    }
+  }, [activeRunBySessionKey, selectedSessionKey]);
 
   useEffect(() => {
     const wasRunning = wasLocallyRunningRef.current;
@@ -196,34 +181,41 @@ export function useSessionRunStatus(params: {
       return;
     }
     if (wasRunning && selectedSessionKey) {
+      const completedRunId = latestBackendRunIdRef.current?.trim() || activeRunBySessionKey.get(selectedSessionKey)?.runId?.trim();
+      if (completedRunId) {
+        completedRunBySessionRef.current.set(selectedSessionKey, completedRunId);
+      }
+      locallySettledAtBySessionRef.current.set(selectedSessionKey, Date.now());
       setSuppressedSessionState({
         sessionKey: selectedSessionKey,
-        expireAt: Date.now() + 2_500
+        ...(completedRunId ? { runId: completedRunId } : {})
       });
+      void sessionStatusRunsQuery.refetch();
     }
-  }, [isLocallyRunning, selectedSessionKey]);
+  }, [activeRunBySessionKey, isLocallyRunning, selectedSessionKey, sessionStatusRunsQuery]);
 
   useEffect(() => {
     if (!suppressedSessionState) {
       return;
     }
-    const stillActive = activeRunBySessionKey.has(suppressedSessionState.sessionKey);
-    if (!stillActive) {
+    const activeRun = activeRunBySessionKey.get(suppressedSessionState.sessionKey) ?? null;
+    if (!activeRun) {
       setSuppressedSessionState(null);
       return;
     }
-    const remaining = suppressedSessionState.expireAt - Date.now();
-    if (remaining <= 0) {
+    if (suppressedSessionState.runId && activeRun.runId !== suppressedSessionState.runId) {
       setSuppressedSessionState(null);
-      return;
     }
-    const timer = window.setTimeout(() => {
-      setSuppressedSessionState(null);
-    }, remaining);
-    return () => {
-      window.clearTimeout(timer);
-    };
   }, [activeRunBySessionKey, suppressedSessionState]);
+
+  useEffect(() => {
+    if (!isLocallyRunning) {
+      return;
+    }
+    if (suppressedSessionState?.sessionKey === selectedSessionKey) {
+      setSuppressedSessionState(null);
+    }
+  }, [isLocallyRunning, selectedSessionKey, suppressedSessionState]);
 
   return { sessionRunStatusByKey };
 }

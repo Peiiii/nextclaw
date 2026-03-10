@@ -11,7 +11,8 @@
     "types": ["vite/client"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@nextclaw/agent-chat": ["../nextclaw-agent-chat/src/index.ts"]
     }
   },
   "include": ["src"]

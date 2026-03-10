@@ -101,6 +101,26 @@ function cloneEvent<T>(event: T): T {
   return JSON.parse(JSON.stringify(event)) as T;
 }
 
+function hasToolSessionEvent(run: ChatRunRecord): boolean {
+  for (const item of run.events) {
+    if (item.type !== "session_event") {
+      continue;
+    }
+    const message = item.event?.message;
+    if (!message || typeof message.role !== "string") {
+      continue;
+    }
+    const role = message.role.trim().toLowerCase();
+    if (role === "tool" || role === "tool_result" || role === "toolresult" || role === "function") {
+      return true;
+    }
+    if (role === "assistant" && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export class UiChatRunCoordinator {
   private runs = new Map<string, ChatRunRecord>();
   private sessionRuns = new Map<string, Set<string>>();
@@ -252,6 +272,7 @@ export class UiChatRunCoordinator {
     }
 
     run.cancelRequested = true;
+    this.finalizeRunAsStopped(run);
     if (run.abortController) {
       run.abortController.abort(new Error("chat turn stopped by user"));
     }
@@ -352,7 +373,7 @@ export class UiChatRunCoordinator {
 
   private async executeRun(run: ChatRunRecord, request: ResolvedTurnRequest): Promise<void> {
     if (run.cancelRequested) {
-      this.transitionState(run, "aborted");
+      this.finalizeRunAsStopped(run);
       return;
     }
 
@@ -371,6 +392,9 @@ export class UiChatRunCoordinator {
         metadata: request.metadata,
         ...(abortController ? { abortSignal: abortController.signal } : {}),
         onAssistantDelta: (delta) => {
+          if (run.cancelRequested) {
+            return;
+          }
           if (typeof delta !== "string" || delta.length === 0) {
             return;
           }
@@ -378,12 +402,20 @@ export class UiChatRunCoordinator {
           this.pushStreamEvent(run, { type: "delta", delta });
         },
         onSessionEvent: (event) => {
+          if (run.cancelRequested) {
+            return;
+          }
           this.pushStreamEvent(run, {
             type: "session_event",
             event: this.mapSessionEvent(event)
           });
         }
       });
+
+      if (run.cancelRequested) {
+        this.finalizeRunAsStopped(run);
+        return;
+      }
 
       this.pushStreamEvent(run, {
         type: "final",
@@ -399,8 +431,13 @@ export class UiChatRunCoordinator {
     } catch (error) {
       const aborted = (abortController?.signal.aborted ?? false) || isAbortError(error);
       if (aborted) {
+        if (run.cancelRequested) {
+          this.finalizeRunAsStopped(run);
+          return;
+        }
         const partialReply = assistantDeltaParts.join("");
-        if (partialReply.trim().length > 0) {
+        const shouldPersistPartialReply = partialReply.trim().length > 0 && !hasToolSessionEvent(run);
+        if (shouldPersistPartialReply) {
           this.persistAbortedAssistantReply(run.sessionKey, partialReply);
         }
         this.pushStreamEvent(run, {
@@ -453,6 +490,45 @@ export class UiChatRunCoordinator {
     this.persistRun(run);
     this.emitRunUpdated(run);
     this.notifyRunWaiters(run);
+  }
+
+  private finalizeRunAsStopped(run: ChatRunRecord): void {
+    const partialReply = this.collectAssistantReplyFromEvents(run.events);
+    if (!this.hasFinalStreamEvent(run.events)) {
+      this.pushStreamEvent(run, {
+        type: "final",
+        result: {
+          reply: partialReply,
+          sessionKey: run.sessionKey,
+          ...(run.agentId ? { agentId: run.agentId } : {}),
+          ...(run.model ? { model: run.model } : {})
+        }
+      });
+    }
+    run.reply = partialReply;
+    const shouldPersistPartialReply = partialReply.trim().length > 0 && !hasToolSessionEvent(run);
+    if (shouldPersistPartialReply) {
+      this.persistAbortedAssistantReply(run.sessionKey, partialReply);
+    }
+    if (run.state !== "aborted") {
+      this.transitionState(run, "aborted", {
+        error: "chat turn stopped by user"
+      });
+    }
+  }
+
+  private hasFinalStreamEvent(events: ChatTurnStreamEvent[]): boolean {
+    return events.some((event) => event.type === "final");
+  }
+
+  private collectAssistantReplyFromEvents(events: ChatTurnStreamEvent[]): string {
+    const chunks: string[] = [];
+    for (const event of events) {
+      if (event.type === "delta" && event.delta.length > 0) {
+        chunks.push(event.delta);
+      }
+    }
+    return chunks.join("");
   }
 
   private pushStreamEvent(run: ChatRunRecord, event: ChatTurnStreamEvent): void {

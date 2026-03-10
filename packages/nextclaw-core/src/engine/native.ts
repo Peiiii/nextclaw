@@ -6,6 +6,7 @@ type AgentLoopOptions = ConstructorParameters<typeof AgentLoop>[0];
 
 export class NativeAgentEngine implements AgentEngine {
   readonly kind = "native";
+  readonly supportsAbort = true;
 
   private loop: AgentLoop;
 

@@ -304,7 +304,8 @@ export class GatewayAgentRuntimePool {
         reason: error instanceof Error ? error.message : String(error)
       };
     }
-    if (runtime.engine.kind !== "native") {
+    const supportsAbort = runtime.engine.supportsAbort ?? runtime.engine.kind === "native";
+    if (!supportsAbort) {
       return {
         supported: false,
         agentId: route.agentId,

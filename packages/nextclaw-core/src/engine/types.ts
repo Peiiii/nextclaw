@@ -61,6 +61,7 @@ export type AgentEngineFactory = (context: AgentEngineFactoryContext) => AgentEn
 
 export interface AgentEngine {
   readonly kind: string;
+  readonly supportsAbort?: boolean;
   handleInbound(params: AgentEngineInboundRequest): Promise<OutboundMessage | null>;
   processDirect(params: AgentEngineDirectRequest): Promise<string>;
   applyRuntimeConfig(config: Config): void;

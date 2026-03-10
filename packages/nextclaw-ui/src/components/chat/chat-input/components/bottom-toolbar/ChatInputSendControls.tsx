@@ -1,7 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { t } from '@/lib/i18n';
-import { Send, Square } from 'lucide-react';
+import { ArrowUp, Square } from 'lucide-react';
 
 type ChatInputSendControlsProps = {
   sendError?: string | null;
@@ -20,29 +19,18 @@ export function ChatInputSendControls(props: ChatInputSendControlsProps) {
     <div className="flex flex-col items-end gap-1">
       {props.sendError?.trim() && <div className="max-w-[420px] text-right text-[11px] text-red-600">{props.sendError}</div>}
       <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          className="rounded-lg"
-          onClick={() => void props.onSend()}
-          disabled={props.draft.trim().length === 0 || !props.hasModelOptions || props.sessionTypeUnavailable}
-        >
-          <Send className="h-3.5 w-3.5 mr-1.5" />
-          {t('chatSend')}
-        </Button>
-        {props.isSending &&
-          (props.canStopGeneration ? (
-            <Button size="sm" variant="destructive" className="rounded-lg" onClick={() => void props.onStop()}>
-              <Square className="h-3.5 w-3.5 mr-1.5" />
-              {t('chatStop')}
+        {props.isSending ? (
+          props.canStopGeneration ? (
+            <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" onClick={() => void props.onStop()}>
+              <Square className="h-3 w-3 fill-current" />
             </Button>
           ) : (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span>
-                    <Button size="sm" className="rounded-lg" disabled>
-                      <Square className="h-3.5 w-3.5 mr-1.5" />
-                      {t('chatStop')}
+                    <Button size="icon" variant="outline" className="h-8 w-8 rounded-full" disabled>
+                      <Square className="h-3 w-3 fill-current" />
                     </Button>
                   </span>
                 </TooltipTrigger>
@@ -51,7 +39,17 @@ export function ChatInputSendControls(props: ChatInputSendControlsProps) {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          ))}
+          )
+        ) : (
+          <Button
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onClick={() => void props.onSend()}
+            disabled={props.draft.trim().length === 0 || !props.hasModelOptions || props.sessionTypeUnavailable}
+          >
+            <ArrowUp className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     </div>
   );

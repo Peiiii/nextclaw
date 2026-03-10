@@ -1,15 +1,25 @@
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import type { ChatStreamManager } from '@/components/chat/managers/chat-stream.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { ChatSessionListSnapshot } from '@/components/chat/stores/chat-session-list.store';
 import type { SetStateAction } from 'react';
+import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,
-    private streamManager: ChatStreamManager
+    private streamActionsManager: ChatStreamActionsManager
   ) {}
+
+  private hasSnapshotChanges = (patch: Partial<ChatSessionListSnapshot>): boolean => {
+    const current = useChatSessionListStore.getState().snapshot;
+    for (const [key, value] of Object.entries(patch) as Array<[keyof ChatSessionListSnapshot, ChatSessionListSnapshot[keyof ChatSessionListSnapshot]]>) {
+      if (!Object.is(current[key], value)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   private resolveUpdateValue = <T>(prev: T, next: SetStateAction<T>): T => {
     if (typeof next === 'function') {
@@ -19,24 +29,33 @@ export class ChatSessionListManager {
   };
 
   syncSnapshot = (patch: Partial<ChatSessionListSnapshot>) => {
+    if (!this.hasSnapshotChanges(patch)) {
+      return;
+    }
     useChatSessionListStore.getState().setSnapshot(patch);
   };
 
   setSelectedAgentId = (next: SetStateAction<string>) => {
     const prev = useChatSessionListStore.getState().snapshot.selectedAgentId;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatSessionListStore.getState().setSnapshot({ selectedAgentId: value });
   };
 
   setSelectedSessionKey = (next: SetStateAction<string | null>) => {
     const prev = useChatSessionListStore.getState().snapshot.selectedSessionKey;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: value });
   };
 
   createSession = () => {
     const defaultSessionType = useChatInputStore.getState().snapshot.defaultSessionType || 'native';
-    this.streamManager.resetStreamState();
+    this.streamActionsManager.resetStreamState();
     this.setSelectedSessionKey(null);
     useChatInputStore.getState().setSnapshot({ pendingSessionType: defaultSessionType });
     this.uiManager.goToChatRoot();
@@ -50,6 +69,9 @@ export class ChatSessionListManager {
   setQuery = (next: SetStateAction<string>) => {
     const prev = useChatSessionListStore.getState().snapshot.query;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatSessionListStore.getState().setSnapshot({ query: value });
   };
 }

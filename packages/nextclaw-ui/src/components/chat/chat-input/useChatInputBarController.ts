@@ -19,7 +19,6 @@ type UseChatInputBarControllerParams = {
   onStop: () => Promise<void> | void;
   canStopGeneration: boolean;
   isSending: boolean;
-  queuedMessages: Array<{ id: number; message: string }>;
   skillRecords: MarketplaceInstalledRecord[];
   isSkillsLoading: boolean;
   selectedSkills: string[];
@@ -37,7 +36,6 @@ type SlashPanelControllerParams = {
   selectedSkills: string[];
   onSelectedSkillsChange: (next: string[]) => void;
   skillRecords: MarketplaceInstalledRecord[];
-  queuedMessagesCount: number;
 };
 
 function resolveSlashQuery(draft: string): string | null {
@@ -148,7 +146,6 @@ function useSlashPanelController(params: SlashPanelControllerParams) {
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
   const [dismissedSlashPanel, setDismissedSlashPanel] = useState(false);
   const [slashPanelWidth, setSlashPanelWidth] = useState<number | null>(null);
-  const [isQueueExpanded, setIsQueueExpanded] = useState(true);
 
   const slashAnchorRef = useRef<HTMLDivElement | null>(null);
   const slashListRef = useRef<HTMLDivElement | null>(null);
@@ -202,12 +199,6 @@ function useSlashPanelController(params: SlashPanelControllerParams) {
       setDismissedSlashPanel(false);
     }
   }, [dismissedSlashPanel, startsWithSlash]);
-
-  useEffect(() => {
-    if (params.queuedMessagesCount === 0) {
-      setIsQueueExpanded(true);
-    }
-  }, [params.queuedMessagesCount]);
 
   useEffect(() => {
     if (!isSlashPanelOpen || isSlashPanelLoading || slashItems.length === 0) {
@@ -274,8 +265,6 @@ function useSlashPanelController(params: SlashPanelControllerParams) {
   }, [activeSlashIndex, handleSelectSlashItem, isSlashPanelOpen, params, slashItems]);
 
   return {
-    isQueueExpanded,
-    onToggleQueueExpanded: () => setIsQueueExpanded((prev) => !prev),
     slashAnchorRef,
     slashListRef,
     isSlashPanelOpen,
@@ -314,12 +303,11 @@ export function useChatInputBarController(params: UseChatInputBarControllerParam
     isSkillsLoading: params.isSkillsLoading,
     selectedSkills: params.selectedSkills,
     onSelectedSkillsChange: params.onSelectedSkillsChange,
-    skillRecords: params.skillRecords,
-    queuedMessagesCount: params.queuedMessages.length,
+    skillRecords: params.skillRecords
   });
 
   return {
     selectedSkillRecords,
-    ...slashController,
+    ...slashController
   };
 }

@@ -9,7 +9,7 @@ interface MaskedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   isSet?: boolean;
 }
 
-export function MaskedInput({ maskedValue, isSet, className, value, onChange, placeholder, ...props }: MaskedInputProps) {
+export function MaskedInput({ isSet, className, value, onChange, placeholder, ...props }: MaskedInputProps) {
   const [showKey, setShowKey] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const hasUserInput = typeof value === 'string' && value.length > 0;

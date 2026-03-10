@@ -5,8 +5,8 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversationPanel } from '@/components/chat/ChatConversationPanel';
 import { CronConfig } from '@/components/config/CronConfig';
 import { MarketplacePage } from '@/components/marketplace/MarketplacePage';
-import { useMergedEvents, useSessionRunStatus } from '@/components/chat/chat-page-runtime';
-import { useChatStreamController } from '@/components/chat/useChatStreamController';
+import { useSessionRunStatus } from '@/components/chat/chat-page-runtime';
+import { useChatRuntimeController } from '@/components/chat/useChatRuntimeController';
 import { parseSessionKeyFromRoute, resolveAgentIdFromSessionKey } from '@/components/chat/chat-session-route';
 import { useChatPageData, sessionDisplayName } from '@/components/chat/chat-page-data';
 import { ChatPresenterProvider } from '@/components/chat/presenter/chat-presenter-context';
@@ -136,8 +136,7 @@ export function ChatPage({ view }: ChatPageProps) {
     sessions,
     skillRecords,
     selectedSession,
-    historyEvents,
-    nextOptimisticUserSeq,
+    historyMessages,
     sessionTypeOptions,
     defaultSessionType,
     selectedSessionType,
@@ -153,43 +152,48 @@ export function ChatPage({ view }: ChatPageProps) {
     setSelectedModel: presenter.chatInputManager.setSelectedModel
   });
   const {
-    optimisticUserEvent,
-    streamingSessionEvents,
-    streamingAssistantText,
-    streamingAssistantTimestamp,
+    uiMessages,
     isSending,
     isAwaitingAssistantOutput,
-    queuedCount,
-    queuedMessages,
     canStopCurrentRun,
     stopDisabledReason,
     lastSendError,
-    activeBackendRunId
-  } = useChatStreamController(
+    activeBackendRunId,
+    sendMessage,
+    stopCurrentRun,
+    resumeRun,
+    resetStreamState,
+    applyHistoryMessages
+  } = useChatRuntimeController(
     {
-      nextOptimisticUserSeq,
       selectedSessionKeyRef,
       setSelectedSessionKey: presenter.chatSessionListManager.setSelectedSessionKey,
       setDraft: presenter.chatInputManager.setDraft,
       refetchSessions: sessionsQuery.refetch,
       refetchHistory: historyQuery.refetch
     },
-    presenter.chatStreamManager
+    presenter.chatController
   );
+
+  console.log('[ChatPage] uiMessages', { uiMessages, historyMessages });
+  useEffect(() => {
+    presenter.chatStreamActionsManager.bind({
+      sendMessage,
+      stopCurrentRun,
+      resumeRun,
+      resetStreamState,
+      applyHistoryMessages
+    });
+  }, [applyHistoryMessages, presenter, resetStreamState, resumeRun, sendMessage, stopCurrentRun]);
+
   const { sessionRunStatusByKey } = useSessionRunStatus({
     view,
     selectedSessionKey,
     activeBackendRunId,
     isLocallyRunning: isSending || Boolean(activeBackendRunId),
-    resumeRun: presenter.chatStreamManager.resumeRun
+    resumeRun: presenter.chatStreamActionsManager.resumeRun
   });
-  const mergedEvents = useMergedEvents({
-    historyEvents,
-    optimisticUserEvent,
-    streamingSessionEvents,
-    streamingAssistantText,
-    streamingAssistantTimestamp
-  });
+
   useChatSessionSync({
     view,
     routeSessionKey,
@@ -198,8 +202,14 @@ export function ChatPage({ view }: ChatPageProps) {
     setSelectedSessionKey: presenter.chatSessionListManager.setSelectedSessionKey,
     setSelectedAgentId: presenter.chatSessionListManager.setSelectedAgentId,
     selectedSessionKeyRef,
-    resetStreamState: presenter.chatStreamManager.resetStreamState
+    resetStreamState: presenter.chatStreamActionsManager.resetStreamState
   });
+
+  useEffect(() => {
+    presenter.chatStreamActionsManager.applyHistoryMessages(historyMessages, {
+      isLoading: historyQuery.isLoading
+    });
+  }, [historyMessages, historyQuery.isLoading, presenter]);
 
   useEffect(() => {
     presenter.chatUiManager.syncState({
@@ -231,8 +241,6 @@ export function ChatPage({ view }: ChatPageProps) {
       stopReason: chatCapabilitiesQuery.data?.stopReason,
       sendError: lastSendError,
       isSending,
-      queuedCount,
-      queuedMessages,
       modelOptions,
       sessionTypeOptions,
       selectedSessionType,
@@ -243,8 +251,6 @@ export function ChatPage({ view }: ChatPageProps) {
     });
     presenter.chatSessionListManager.syncSnapshot({
       sessions,
-      selectedSessionKey,
-      selectedAgentId,
       query,
       isLoading: sessionsQuery.isLoading
     });
@@ -263,10 +269,9 @@ export function ChatPage({ view }: ChatPageProps) {
       canDeleteSession: Boolean(selectedSession),
       threadRef,
       isHistoryLoading: historyQuery.isLoading,
-      mergedEvents,
+      uiMessages,
       isSending,
-      isAwaitingAssistantOutput,
-      streamingAssistantText
+      isAwaitingAssistantOutput
     });
   }, [
     activeBackendRunId,
@@ -282,12 +287,10 @@ export function ChatPage({ view }: ChatPageProps) {
     isProviderStateResolved,
     isSending,
     lastSendError,
-    mergedEvents,
+    uiMessages,
     modelOptions,
     presenter,
     query,
-    queuedCount,
-    queuedMessages,
     selectedSession,
     selectedSessionKey,
     selectedAgentId,
@@ -299,7 +302,6 @@ export function ChatPage({ view }: ChatPageProps) {
     sessions,
     sessionsQuery.isLoading,
     stopDisabledReason,
-    streamingAssistantText,
     threadRef,
     skillRecords
   ]);

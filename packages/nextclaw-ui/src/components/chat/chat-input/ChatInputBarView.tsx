@@ -1,7 +1,6 @@
 import { useChatInputBarController } from '@/components/chat/chat-input/useChatInputBarController';
 import { ChatInputBottomToolbar } from '@/components/chat/chat-input/ChatInputBottomToolbar';
 import { ChatInputModelStateHint } from '@/components/chat/chat-input/components/ChatInputModelStateHint';
-import { ChatInputQueueSection } from '@/components/chat/chat-input/components/ChatInputQueueSection';
 import { ChatInputSelectedSkillsSection } from '@/components/chat/chat-input/components/ChatInputSelectedSkillsSection';
 import { ChatInputSlashPanelSection } from '@/components/chat/chat-input/components/ChatInputSlashPanelSection';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
@@ -29,7 +28,6 @@ export function ChatInputBarView() {
     onStop: presenter.chatInputManager.stop,
     canStopGeneration: snapshot.canStopGeneration,
     isSending: snapshot.isSending,
-    queuedMessages: snapshot.queuedMessages,
     skillRecords: snapshot.skillRecords,
     isSkillsLoading: snapshot.isSkillsLoading,
     selectedSkills: snapshot.selectedSkills,
@@ -40,16 +38,6 @@ export function ChatInputBarView() {
     <div className="border-t border-gray-200/80 bg-white p-4">
       <div className="mx-auto w-full max-w-[min(1120px,100%)]">
         <div className="rounded-2xl border border-gray-200 bg-white shadow-card overflow-hidden">
-          <ChatInputQueueSection
-            queuedCount={snapshot.queuedCount}
-            queuedMessages={snapshot.queuedMessages}
-            isQueueExpanded={controller.isQueueExpanded}
-            onToggleQueueExpanded={controller.onToggleQueueExpanded}
-            onEditQueuedMessage={presenter.chatInputManager.editQueuedMessage}
-            onPromoteQueuedMessage={presenter.chatInputManager.promoteQueuedMessage}
-            onRemoveQueuedMessage={presenter.chatInputManager.removeQueuedMessage}
-          />
-
           <div className="relative">
             <textarea
               value={snapshot.draft}

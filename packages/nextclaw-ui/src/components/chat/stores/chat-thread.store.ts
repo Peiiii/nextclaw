@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { MutableRefObject } from 'react';
-import type { SessionEventView } from '@/api/types';
+import type { UiMessage } from '@nextclaw/agent-chat';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 
 export type ChatThreadSnapshot = {
@@ -14,10 +14,9 @@ export type ChatThreadSnapshot = {
   isDeletePending: boolean;
   threadRef: MutableRefObject<HTMLDivElement | null> | null;
   isHistoryLoading: boolean;
-  mergedEvents: SessionEventView[];
+  uiMessages: UiMessage[];
   isSending: boolean;
   isAwaitingAssistantOutput: boolean;
-  streamingAssistantText: string;
 };
 
 type ChatThreadStore = {
@@ -36,10 +35,9 @@ const initialSnapshot: ChatThreadSnapshot = {
   isDeletePending: false,
   threadRef: null,
   isHistoryLoading: false,
-  mergedEvents: [],
+  uiMessages: [],
   isSending: false,
-  isAwaitingAssistantOutput: false,
-  streamingAssistantText: ''
+  isAwaitingAssistantOutput: false
 };
 
 export const useChatThreadStore = create<ChatThreadStore>((set) => ({

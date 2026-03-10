@@ -213,6 +213,27 @@ export type ChatTurnView = {
   durationMs: number;
 };
 
+export type ChatTurnStreamReadyEvent = {
+  sessionKey: string;
+  requestedAt?: string;
+  runId?: string;
+  stopSupported?: boolean;
+  stopReason?: string;
+};
+
+export type ChatTurnStreamDeltaEvent = {
+  delta: string;
+};
+
+export type ChatTurnStreamSessionEvent = {
+  data: SessionEventView;
+};
+
+export type ChatTurnStreamErrorEvent = {
+  code?: string;
+  message?: string;
+};
+
 export type ChatCapabilitiesView = {
   stopSupported: boolean;
   stopReason?: string;
@@ -280,30 +301,6 @@ export type ChatRunView = {
 export type ChatRunListView = {
   runs: ChatRunView[];
   total: number;
-};
-
-export type ChatTurnStreamReadyEvent = {
-  event: "ready";
-  sessionKey: string;
-  requestedAt: string;
-  runId?: string;
-  stopSupported?: boolean;
-  stopReason?: string;
-};
-
-export type ChatTurnStreamDeltaEvent = {
-  event: "delta";
-  delta: string;
-};
-
-export type ChatTurnStreamSessionEvent = {
-  event: "session_event";
-  data: SessionEventView;
-};
-
-export type ChatTurnStreamFinalEvent = {
-  event: "final";
-  data: ChatTurnView;
 };
 
 export type CronScheduleView =

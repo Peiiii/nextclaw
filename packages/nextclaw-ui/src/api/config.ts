@@ -27,6 +27,10 @@ import type {
   SessionPatchUpdate,
   ChatTurnRequest,
   ChatTurnView,
+  ChatTurnStreamDeltaEvent,
+  ChatTurnStreamErrorEvent,
+  ChatTurnStreamReadyEvent,
+  ChatTurnStreamSessionEvent,
   ChatCapabilitiesView,
   ChatSessionTypesView,
   ChatTurnStopRequest,
@@ -37,10 +41,7 @@ import type {
   CronListView,
   CronEnableRequest,
   CronRunRequest,
-  CronActionResult,
-  ChatTurnStreamReadyEvent,
-  ChatTurnStreamDeltaEvent,
-  ChatTurnStreamSessionEvent
+  CronActionResult
 } from './types';
 
 // GET /api/app/meta
@@ -305,6 +306,202 @@ export async function sendChatTurn(data: ChatTurnRequest): Promise<ChatTurnView>
   return response.data;
 }
 
+function parseSseFrame(frame: string): { event: string; data: string } | null {
+  const lines = frame.split('\n');
+  let event = '';
+  const dataLines: string[] = [];
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line || line.startsWith(':')) {
+      continue;
+    }
+    if (line.startsWith('event:')) {
+      event = line.slice(6).trim();
+      continue;
+    }
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice(5).trimStart());
+    }
+  }
+  if (!event) {
+    return null;
+  }
+  return {
+    event,
+    data: dataLines.join('\n')
+  };
+}
+
+async function readSseStream(params: {
+  path: string;
+  method: 'GET' | 'POST';
+  body?: unknown;
+  signal?: AbortSignal;
+  onReady: (event: ChatTurnStreamReadyEvent) => void;
+  onDelta: (event: ChatTurnStreamDeltaEvent) => void;
+  onSessionEvent: (event: ChatTurnStreamSessionEvent) => void;
+}): Promise<{ sessionKey: string; reply: string }> {
+  const response = await fetch(`${API_BASE}${params.path}`, {
+    method: params.method,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'text/event-stream'
+    },
+    ...(params.body !== undefined ? { body: JSON.stringify(params.body) } : {}),
+    ...(params.signal ? { signal: params.signal } : {})
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    const fallback = `HTTP ${response.status}`;
+    const trimmed = text.trim();
+    throw new Error(trimmed || fallback);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('SSE response body unavailable');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finalResult: { sessionKey: string; reply: string } | null = null;
+  let readySessionKey: string | null = null;
+
+  const consumeFrame = (frame: string) => {
+    const parsed = parseSseFrame(frame);
+    if (!parsed) {
+      return;
+    }
+
+    let payload: unknown = undefined;
+    if (parsed.data) {
+      try {
+        payload = JSON.parse(parsed.data);
+      } catch {
+        payload = undefined;
+      }
+    }
+
+    if (parsed.event === 'ready') {
+      const ready = (payload ?? {}) as ChatTurnStreamReadyEvent;
+      readySessionKey = typeof ready.sessionKey === 'string' && ready.sessionKey.trim() ? ready.sessionKey : readySessionKey;
+      params.onReady(ready);
+      return;
+    }
+
+    if (parsed.event === 'delta') {
+      params.onDelta((payload ?? { delta: '' }) as ChatTurnStreamDeltaEvent);
+      return;
+    }
+
+    if (parsed.event === 'session_event') {
+      params.onSessionEvent({ data: payload as ChatTurnStreamSessionEvent['data'] });
+      return;
+    }
+
+    if (parsed.event === 'final') {
+      const result = payload as ChatTurnView;
+      finalResult = {
+        sessionKey: typeof result?.sessionKey === 'string' && result.sessionKey.trim()
+          ? result.sessionKey
+          : (readySessionKey ?? ''),
+        reply: typeof result?.reply === 'string' ? result.reply : ''
+      };
+      return;
+    }
+
+    if (parsed.event === 'error') {
+      const errorPayload = (payload ?? {}) as ChatTurnStreamErrorEvent;
+      throw new Error((errorPayload.message ?? '').trim() || 'chat stream failed');
+    }
+  };
+
+  try {
+    let isReading = true;
+    while (isReading) {
+      const { value, done } = await reader.read();
+      if (done) {
+        isReading = false;
+        continue;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      let boundary = buffer.indexOf('\n\n');
+      while (boundary !== -1) {
+        const frame = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        consumeFrame(frame);
+        boundary = buffer.indexOf('\n\n');
+      }
+    }
+    if (buffer.trim()) {
+      consumeFrame(buffer);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (finalResult) {
+    return finalResult;
+  }
+
+  if (readySessionKey) {
+    return { sessionKey: readySessionKey, reply: '' };
+  }
+
+  throw new Error('chat stream ended without final event');
+}
+
+// POST /api/chat/turn/stream
+export async function sendChatTurnStream(
+  data: ChatTurnRequest,
+  params: {
+    signal?: AbortSignal;
+    onReady: (event: ChatTurnStreamReadyEvent) => void;
+    onDelta: (event: ChatTurnStreamDeltaEvent) => void;
+    onSessionEvent: (event: ChatTurnStreamSessionEvent) => void;
+  }
+): Promise<{ sessionKey: string; reply: string }> {
+  return readSseStream({
+    path: '/api/chat/turn/stream',
+    method: 'POST',
+    body: data,
+    signal: params.signal,
+    onReady: params.onReady,
+    onDelta: params.onDelta,
+    onSessionEvent: params.onSessionEvent
+  });
+}
+
+// GET /api/chat/runs/:runId/stream
+export async function streamChatRun(
+  data: {
+    runId: string;
+    fromEventIndex?: number;
+  },
+  params: {
+    signal?: AbortSignal;
+    onReady: (event: ChatTurnStreamReadyEvent) => void;
+    onDelta: (event: ChatTurnStreamDeltaEvent) => void;
+    onSessionEvent: (event: ChatTurnStreamSessionEvent) => void;
+  }
+): Promise<{ sessionKey: string; reply: string }> {
+  const query = new URLSearchParams();
+  if (typeof data.fromEventIndex === 'number' && Number.isFinite(data.fromEventIndex)) {
+    query.set('fromEventIndex', String(Math.max(0, Math.trunc(data.fromEventIndex))));
+  }
+  const suffix = query.toString();
+  const path = `/api/chat/runs/${encodeURIComponent(data.runId)}/stream${suffix ? `?${suffix}` : ''}`;
+  return readSseStream({
+    path,
+    method: 'GET',
+    signal: params.signal,
+    onReady: params.onReady,
+    onDelta: params.onDelta,
+    onSessionEvent: params.onSessionEvent
+  });
+}
+
 // GET /api/chat/capabilities
 export async function fetchChatCapabilities(params?: { sessionKey?: string; agentId?: string }): Promise<ChatCapabilitiesView> {
   const query = new URLSearchParams();
@@ -371,214 +568,6 @@ export async function fetchChatRun(runId: string): Promise<ChatRunView> {
     throw new Error(response.error.message);
   }
   return response.data;
-}
-
-type ChatTurnStreamOptions = {
-  signal?: AbortSignal;
-  onReady?: (event: ChatTurnStreamReadyEvent) => void;
-  onDelta?: (event: ChatTurnStreamDeltaEvent) => void;
-  onSessionEvent?: (event: ChatTurnStreamSessionEvent) => void;
-};
-
-type SseParsedEvent = {
-  event: string;
-  data: string;
-};
-
-function parseSseFrame(frame: string): SseParsedEvent | null {
-  const lines = frame.split(/\r?\n/);
-  let event = 'message';
-  const dataLines: string[] = [];
-  for (const line of lines) {
-    if (line.startsWith('event:')) {
-      event = line.slice('event:'.length).trim() || 'message';
-      continue;
-    }
-    if (line.startsWith('data:')) {
-      dataLines.push(line.slice('data:'.length).trimStart());
-    }
-  }
-  if (dataLines.length === 0) {
-    return null;
-  }
-  return {
-    event,
-    data: dataLines.join('\n')
-  };
-}
-
-async function consumeChatTurnSseStream(
-  response: Response,
-  options: ChatTurnStreamOptions = {}
-): Promise<ChatTurnView> {
-  if (!response.ok) {
-    let message = `chat stream failed (${response.status} ${response.statusText})`;
-    try {
-      const payload = await response.json() as { ok?: boolean; error?: { message?: string } };
-      if (payload?.error?.message) {
-        message = payload.error.message;
-      }
-    } catch {
-      const text = await response.text().catch(() => '');
-      if (text.trim()) {
-        message = text.trim();
-      }
-    }
-    throw new Error(message);
-  }
-
-  if (!response.body) {
-    throw new Error('chat stream is not readable');
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finalView: ChatTurnView | null = null;
-
-  const handleFrame = (frame: string) => {
-    const parsed = parseSseFrame(frame);
-    if (!parsed) {
-      return;
-    }
-    if (parsed.event === 'ready') {
-      try {
-        const readyPayload = JSON.parse(parsed.data) as {
-          sessionKey?: string;
-          requestedAt?: string;
-          runId?: string;
-          stopSupported?: boolean;
-          stopReason?: string;
-        };
-        options.onReady?.({
-          event: 'ready',
-          sessionKey: String(readyPayload.sessionKey ?? ''),
-          requestedAt: String(readyPayload.requestedAt ?? ''),
-          ...(typeof readyPayload.runId === 'string' && readyPayload.runId.trim().length > 0
-            ? { runId: readyPayload.runId.trim() }
-            : {}),
-          ...(typeof readyPayload.stopSupported === 'boolean'
-            ? { stopSupported: readyPayload.stopSupported }
-            : {}),
-          ...(typeof readyPayload.stopReason === 'string' && readyPayload.stopReason.trim().length > 0
-            ? { stopReason: readyPayload.stopReason.trim() }
-            : {})
-        });
-      } catch {
-        // ignore malformed ready event payload
-      }
-      return;
-    }
-    if (parsed.event === 'delta') {
-      try {
-        const deltaPayload = JSON.parse(parsed.data) as { delta?: string };
-        if (typeof deltaPayload.delta === 'string' && deltaPayload.delta.length > 0) {
-          options.onDelta?.({
-            event: 'delta',
-            delta: deltaPayload.delta
-          });
-        }
-      } catch {
-        // ignore malformed delta event payload
-      }
-      return;
-    }
-    if (parsed.event === 'session_event') {
-      try {
-        options.onSessionEvent?.({
-          event: 'session_event',
-          data: JSON.parse(parsed.data)
-        });
-      } catch {
-        // ignore malformed session_event payload
-      }
-      return;
-    }
-    if (parsed.event === 'final') {
-      finalView = JSON.parse(parsed.data) as ChatTurnView;
-      return;
-    }
-    if (parsed.event === 'error') {
-      try {
-        const errPayload = JSON.parse(parsed.data) as { message?: string };
-        throw new Error(typeof errPayload.message === 'string' && errPayload.message ? errPayload.message : 'chat stream failed');
-      } catch (error) {
-        if (error instanceof Error) {
-          throw error;
-        }
-        throw new Error('chat stream failed');
-      }
-    }
-  };
-
-  let streamDone = false;
-  while (!streamDone) {
-    const { done, value } = await reader.read();
-    if (done) {
-      streamDone = true;
-      continue;
-    }
-    buffer += decoder.decode(value, { stream: true });
-
-    let boundary = buffer.indexOf('\n\n');
-    while (boundary !== -1) {
-      const frame = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + 2);
-      if (frame) {
-        handleFrame(frame);
-      }
-      boundary = buffer.indexOf('\n\n');
-    }
-  }
-
-  const trailing = buffer.trim();
-  if (trailing) {
-    handleFrame(trailing);
-  }
-
-  if (!finalView) {
-    throw new Error('chat stream ended without final result');
-  }
-  return finalView;
-}
-
-export async function sendChatTurnStream(
-  data: ChatTurnRequest,
-  options: ChatTurnStreamOptions = {}
-): Promise<ChatTurnView> {
-  const response = await fetch(`${API_BASE}/api/chat/turn/stream`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream'
-    },
-    body: JSON.stringify(data),
-    signal: options.signal
-  });
-  return consumeChatTurnSseStream(response, options);
-}
-
-export async function streamChatRun(
-  params: {
-    runId: string;
-    fromEventIndex?: number;
-  },
-  options: ChatTurnStreamOptions = {}
-): Promise<ChatTurnView> {
-  const query = new URLSearchParams();
-  if (typeof params.fromEventIndex === 'number' && Number.isFinite(params.fromEventIndex)) {
-    query.set('fromEventIndex', String(Math.max(0, Math.trunc(params.fromEventIndex))));
-  }
-  const suffix = query.toString();
-  const url = `${API_BASE}/api/chat/runs/${encodeURIComponent(params.runId)}/stream${suffix ? `?${suffix}` : ''}`;
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      Accept: 'text/event-stream'
-    },
-    signal: options.signal
-  });
-  return consumeChatTurnSseStream(response, options);
 }
 
 // GET /api/cron

@@ -125,6 +125,46 @@ describe("GatewayAgentRuntimePool slash commands", () => {
     expect(processDirect).toHaveBeenCalledTimes(1);
   });
 
+  it("marks non-native engine without supportsAbort as unsupported for stop", () => {
+    const workspace = createWorkspace();
+    const engine: AgentEngine = {
+      kind: "mock",
+      handleInbound: vi.fn(async () => null),
+      processDirect: vi.fn(async () => "engine-reply"),
+      applyRuntimeConfig: vi.fn()
+    };
+    const { runtimePool } = createRuntimePool({ workspace, engine });
+
+    const capability = runtimePool.supportsTurnAbort({
+      sessionKey: "agent:main:ui:direct:web-ui",
+      channel: "ui",
+      chatId: "web-ui"
+    });
+
+    expect(capability.supported).toBe(false);
+    expect(capability.reason).toContain("does not support");
+  });
+
+  it("marks engine with supportsAbort=true as supported for stop", () => {
+    const workspace = createWorkspace();
+    const engine: AgentEngine = {
+      kind: "mock",
+      supportsAbort: true,
+      handleInbound: vi.fn(async () => null),
+      processDirect: vi.fn(async () => "engine-reply"),
+      applyRuntimeConfig: vi.fn()
+    };
+    const { runtimePool } = createRuntimePool({ workspace, engine });
+
+    const capability = runtimePool.supportsTurnAbort({
+      sessionKey: "agent:main:ui:direct:web-ui",
+      channel: "ui",
+      chatId: "web-ui"
+    });
+
+    expect(capability.supported).toBe(true);
+  });
+
   it("routes system messages back to session_key_override and emits session update hook", async () => {
     const workspace = createWorkspace();
     const handleInbound = vi.fn(async () => null);

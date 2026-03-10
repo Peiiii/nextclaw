@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { SessionEventView, SessionMessageView } from '@/api/types';
+import { type UiMessage, type UiMessageRole } from '@nextclaw/agent-chat';
 import { cn } from '@/lib/utils';
 import {
-  buildChatTimeline,
-  extractMessageText,
-  extractToolCards,
-  normalizeChatRole,
-  type ChatRole,
-  type ChatTimelineAssistantTurnItem,
+  stringifyUnknown,
+  summarizeToolArgs,
   type ToolCard
 } from '@/lib/chat-message';
 import { formatDateTime, t } from '@/lib/i18n';
@@ -16,7 +12,7 @@ import remarkGfm from 'remark-gfm';
 import { Bot, Check, Clock3, Copy, FileSearch, Globe, Search, SendHorizontal, Terminal, User, Wrench } from 'lucide-react';
 
 type ChatThreadProps = {
-  events: SessionEventView[];
+  uiMessages: UiMessage[];
   isSending: boolean;
   className?: string;
 };
@@ -26,9 +22,7 @@ const TOOL_OUTPUT_PREVIEW_MAX = 220;
 const CODE_LANGUAGE_REGEX = /language-([a-z0-9-]+)/i;
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 
-type WorkflowToolCard = ToolCard & {
-  _workflowStep?: number;
-};
+type WorkflowToolCard = ToolCard;
 
 function trimMarkdown(value: string): string {
   if (value.length <= MARKDOWN_MAX_CHARS) {
@@ -122,7 +116,7 @@ function MarkdownCodeBlock({ className, children }: { className?: string; childr
   );
 }
 
-function roleTitle(role: ChatRole): string {
+function roleTitle(role: UiMessageRole): string {
   if (role === 'user') return t('chatRoleUser');
   if (role === 'assistant') return t('chatRoleAssistant');
   if (role === 'tool') return t('chatRoleTool');
@@ -153,7 +147,7 @@ function renderToolIcon(name: string) {
   return <Wrench className="h-3.5 w-3.5" />;
 }
 
-function RoleAvatar({ role }: { role: ChatRole }) {
+function RoleAvatar({ role }: { role: UiMessageRole }) {
   if (role === 'user') {
     return (
       <div className="h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center shadow-sm">
@@ -175,7 +169,7 @@ function RoleAvatar({ role }: { role: ChatRole }) {
   );
 }
 
-function MarkdownBlock({ text, role }: { text: string; role: ChatRole }) {
+function MarkdownBlock({ text, role }: { text: string; role: UiMessageRole }) {
   const isUser = role === 'user';
   const markdownComponents = useMemo<Components>(() => ({
     a: ({ href, children, ...props }) => {
@@ -261,9 +255,6 @@ function ToolCardView({ card }: { card: WorkflowToolCard }) {
       <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 font-semibold">
         {renderToolIcon(card.name)}
         <span>{title}</span>
-        {typeof card._workflowStep === 'number' && (
-          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">#{card._workflowStep + 1}</span>
-        )}
         <span className="font-mono text-[11px] text-amber-900/80">{card.name}</span>
       </div>
       {card.detail && (
@@ -291,35 +282,6 @@ function ToolCardView({ card }: { card: WorkflowToolCard }) {
   );
 }
 
-function ToolWorkflowCard({ cards }: { cards: WorkflowToolCard[] }) {
-  const chain = cards
-    .map((card) => card.name.trim())
-    .filter((name) => name.length > 0)
-    .join(' \u2192 ');
-
-  return (
-    <details className="rounded-xl border border-amber-200/80 bg-amber-50/50 p-3">
-      <summary className="cursor-pointer list-none">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 font-semibold">
-          <Wrench className="h-3.5 w-3.5" />
-          <span>{t('chatToolWorkflow')}</span>
-          <span className="font-mono text-[11px] text-amber-900/90">{chain || 'tool'}</span>
-          <span className="rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-700">{cards.length}</span>
-          <span className="text-[11px] font-normal text-amber-700/90">{t('chatToolWorkflowDetails')}</span>
-        </div>
-      </summary>
-      <div className="mt-3 space-y-2">
-        {cards.map((card, index) => (
-          <ToolCardView
-            key={`${card.kind}-${card.callId ?? card.name}-${index}`}
-            card={{ ...card, _workflowStep: index }}
-          />
-        ))}
-      </div>
-    </details>
-  );
-}
-
 function ReasoningBlock({ reasoning, isUser }: { reasoning: string; isUser: boolean }) {
   return (
     <details className="mt-3">
@@ -333,18 +295,65 @@ function ReasoningBlock({ reasoning, isUser }: { reasoning: string; isUser: bool
   );
 }
 
-function MessageCard({ message }: { message: SessionMessageView }) {
-  const role = normalizeChatRole(message);
-  const primaryText = extractMessageText(message.content).trim();
-  const primaryReasoning = typeof message.reasoning_content === 'string' ? message.reasoning_content.trim() : '';
-  const toolCards = extractToolCards(message);
+function resolveUiMessageTimestamp(message: UiMessage): string {
+  const candidate = message.meta?.timestamp;
+  if (candidate && Number.isFinite(Date.parse(candidate))) {
+    return candidate;
+  }
+  return new Date().toISOString();
+}
+
+function MessageCard({ message }: { message: UiMessage }) {
+  const role = message.role;
   const isUser = role === 'user';
-  const shouldRenderPrimaryText = Boolean(primaryText) && !(role === 'tool' && toolCards.length > 0);
+  const renderedParts = message.parts
+    .map((part, index) => {
+      if (part.type === 'text') {
+        const text = part.text.trim();
+        if (!text) {
+          return null;
+        }
+        return <MarkdownBlock key={`text-${index}`} text={text} role={role} />;
+      }
+      if (part.type === 'reasoning') {
+        const reasoning = part.reasoning.trim();
+        if (!reasoning) {
+          return null;
+        }
+        return <ReasoningBlock key={`reasoning-${index}`} reasoning={reasoning} isUser={isUser} />;
+      }
+      if (part.type === 'tool-invocation') {
+        const invocation = part.toolInvocation;
+        const detail = summarizeToolArgs(invocation.parsedArgs ?? invocation.args);
+        const rawResult = typeof invocation.error === 'string' && invocation.error.trim()
+          ? invocation.error.trim()
+          : invocation.result != null
+            ? stringifyUnknown(invocation.result).trim()
+            : '';
+        const hasResult =
+          invocation.status === 'result' || invocation.status === 'error' || invocation.status === 'cancelled';
+        const card: ToolCard = {
+          kind: invocation.status === 'result' && !invocation.args ? 'result' : 'call',
+          name: invocation.toolName,
+          detail,
+          text: rawResult || undefined,
+          callId: invocation.toolCallId || undefined,
+          hasResult
+        };
+        return (
+          <div key={`tool-${invocation.toolCallId || index}`} className="mt-0.5">
+            <ToolCardView card={card} />
+          </div>
+        );
+      }
+      return null;
+    })
+    .filter((node) => node !== null);
 
   return (
     <div
       className={cn(
-        'rounded-2xl border px-4 py-3 shadow-sm',
+        'inline-block w-fit max-w-full rounded-2xl border px-4 py-3 shadow-sm',
         isUser
           ? 'bg-primary text-white border-primary'
           : role === 'assistant'
@@ -352,94 +361,27 @@ function MessageCard({ message }: { message: SessionMessageView }) {
             : 'bg-orange-50/70 text-gray-900 border-orange-200/80'
       )}
     >
-      {shouldRenderPrimaryText && <MarkdownBlock text={primaryText} role={role} />}
-      {primaryReasoning && <ReasoningBlock reasoning={primaryReasoning} isUser={isUser} />}
-      {toolCards.length > 0 && (
-        <div className={cn('space-y-2', (shouldRenderPrimaryText || primaryReasoning) && 'mt-3')}>
-          {toolCards.length > 1 ? (
-            <ToolWorkflowCard cards={toolCards} />
-          ) : (
-            toolCards.map((card, index) => (
-              <ToolCardView
-                key={`${card.kind}-${card.name}-${card.callId ?? index}`}
-                card={{ ...card }}
-              />
-            ))
-          )}
-        </div>
-      )}
+      <div className="space-y-2">{renderedParts}</div>
     </div>
   );
 }
 
-function AssistantTurnCard({ item }: { item: ChatTimelineAssistantTurnItem }) {
-  const renderedSegments: ReactNode[] = [];
-  let index = 0;
-  while (index < item.segments.length) {
-    const segment = item.segments[index];
-    if (!segment) {
-      index += 1;
-      continue;
-    }
-    if (segment.kind === 'assistant_message') {
-      const hasText = Boolean(segment.text);
-      const hasReasoning = Boolean(segment.reasoning);
-      if (hasText || hasReasoning) {
-        renderedSegments.push(
-          <div key={`${segment.key}-${index}`}>
-            {hasText && <MarkdownBlock text={segment.text} role="assistant" />}
-            {hasReasoning && <ReasoningBlock reasoning={segment.reasoning} isUser={false} />}
-          </div>
-        );
-      }
-      index += 1;
-      continue;
-    }
-
-    const groupedCards: WorkflowToolCard[] = [];
-    let cursor = index;
-    while (cursor < item.segments.length) {
-      const current = item.segments[cursor];
-      if (!current || current.kind !== 'tool_card') {
-        break;
-      }
-      groupedCards.push(current.card);
-      cursor += 1;
-    }
-    if (groupedCards.length > 1) {
-      renderedSegments.push(<ToolWorkflowCard key={`workflow-${segment.key}-${index}`} cards={groupedCards} />);
-    } else if (groupedCards.length === 1) {
-      renderedSegments.push(<ToolCardView key={`${segment.key}-${index}`} card={groupedCards[0]} />);
-    }
-    index = cursor;
-  }
-
-  return (
-    <div className="rounded-2xl border px-4 py-3 shadow-sm bg-white text-gray-900 border-gray-200">
-      <div className="space-y-3">{renderedSegments}</div>
-    </div>
-  );
-}
-
-export function ChatThread({ events, isSending, className }: ChatThreadProps) {
-  const timeline = useMemo(() => buildChatTimeline(events), [events]);
+export function ChatThread({ uiMessages, isSending, className }: ChatThreadProps) {
+  const hasStreamingDraft = uiMessages.some((message) => message.meta?.status === 'streaming');
 
   return (
     <div className={cn('space-y-5', className)}>
-      {timeline.map((item) => {
-        const role = item.kind === 'assistant_turn' ? 'assistant' : item.role;
+      {uiMessages.map((message) => {
+        const {role} = message;
         const isUser = role === 'user';
+        const timestamp = resolveUiMessageTimestamp(message);
         return (
-          <div key={item.key} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
+          <div key={message.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
             {!isUser && <RoleAvatar role={role} />}
-            <div className={cn('max-w-[92%] min-w-[280px] space-y-2', isUser && 'flex flex-col items-end')}>
-              {item.kind === 'assistant_turn' ? (
-                <AssistantTurnCard item={item} />
-              ) : (
-                <MessageCard message={item.message} />
-              )}
+            <div className={cn('max-w-[92%] w-fit space-y-2', isUser && 'flex flex-col items-end')}>
+              <MessageCard message={message} />
               <div className={cn('text-[11px] px-1', isUser ? 'text-primary-300' : 'text-gray-400')}>
-                {roleTitle(role)} · {formatDateTime(item.timestamp)}
+                {roleTitle(role)} · {formatDateTime(timestamp)}
               </div>
             </div>
             {isUser && <RoleAvatar role={role} />}
@@ -447,7 +389,7 @@ export function ChatThread({ events, isSending, className }: ChatThreadProps) {
         );
       })}
 
-      {isSending && (
+      {isSending && !hasStreamingDraft && (
         <div className="flex gap-3 justify-start">
           <RoleAvatar role="assistant" />
           <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">

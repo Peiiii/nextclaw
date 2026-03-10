@@ -119,6 +119,16 @@ function readSandboxMode(
   return undefined;
 }
 
+function toAbortError(reason: unknown): Error {
+  if (reason instanceof Error) {
+    return reason;
+  }
+  const message = typeof reason === "string" && reason.trim() ? reason.trim() : "operation aborted";
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
 function readApprovalPolicy(
   input: Record<string, unknown>,
   key: string
@@ -169,6 +179,7 @@ const codexLoader = require("../codex-sdk-loader.cjs") as CodexLoader;
 
 class PluginCodexSdkEngine implements AgentEngine {
   readonly kind = "codex-sdk";
+  readonly supportsAbort = true;
 
   private codexPromise: Promise<CodexClient> | null = null;
   private threads = new Map<string, Thread>();
@@ -234,7 +245,9 @@ class PluginCodexSdkEngine implements AgentEngine {
         : params.content;
 
     const thread = await this.resolveThread(sessionKey, model);
-    const streamed = await thread.runStreamed(prompt);
+    const streamed = await thread.runStreamed(prompt, {
+      ...(params.abortSignal ? { signal: params.abortSignal } : {})
+    });
     const itemTextById = new Map<string, string>();
     const completedAgentMessages: string[] = [];
 
@@ -259,6 +272,9 @@ class PluginCodexSdkEngine implements AgentEngine {
       if (event.type === "error") {
         throw new Error(event.message);
       }
+    }
+    if (params.abortSignal?.aborted) {
+      throw toAbortError(params.abortSignal.reason);
     }
 
     const reply = completedAgentMessages.join("\n").trim();

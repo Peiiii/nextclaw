@@ -9,7 +9,8 @@ export default defineConfig({
   plugins: [react(), splitVendorChunkPlugin()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts')
     }
   },
   server: {

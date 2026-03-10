@@ -13,7 +13,6 @@ import {
   useSessions,
 } from '@/hooks/useConfig';
 import { useMarketplaceInstalled } from '@/hooks/useMarketplace';
-import { buildFallbackEventsFromMessages } from '@/lib/chat-message';
 import { buildProviderModelCatalog, composeProviderModel } from '@/lib/provider-models';
 
 type UseChatPageDataParams = {
@@ -93,16 +92,7 @@ export function useChatPageData(params: UseChatPageDataParams) {
     setSelectedModel: params.setSelectedModel
   });
 
-  const historyData = historyQuery.data;
-  const historyMessages = historyData?.messages ?? [];
-  const historyEvents =
-    historyData?.events && historyData.events.length > 0
-      ? historyData.events
-      : buildFallbackEventsFromMessages(historyMessages);
-  const nextOptimisticUserSeq = useMemo(
-    () => historyEvents.reduce((max, event) => (Number.isFinite(event.seq) ? Math.max(max, event.seq) : max), 0) + 1,
-    [historyEvents]
-  );
+  const historyMessages = useMemo(() => historyQuery.data?.messages ?? [], [historyQuery.data?.messages]);
 
   return {
     configQuery,
@@ -117,8 +107,7 @@ export function useChatPageData(params: UseChatPageDataParams) {
     sessions,
     skillRecords,
     selectedSession,
-    historyEvents,
-    nextOptimisticUserSeq,
+    historyMessages,
     ...sessionTypeState
   };
 }

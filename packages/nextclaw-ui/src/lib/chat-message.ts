@@ -11,37 +11,6 @@ export type ToolCard = {
   hasResult?: boolean;
 };
 
-export type ChatTimelineMessageItem = {
-  kind: 'message';
-  key: string;
-  role: ChatRole;
-  timestamp: string;
-  message: SessionMessageView;
-};
-
-export type ChatTimelineAssistantTurnSegment =
-  | {
-      kind: 'assistant_message';
-      key: string;
-      text: string;
-      reasoning: string;
-    }
-  | {
-      kind: 'tool_card';
-      key: string;
-      card: ToolCard;
-    };
-
-export type ChatTimelineAssistantTurnItem = {
-  kind: 'assistant_turn';
-  key: string;
-  role: 'assistant';
-  timestamp: string;
-  segments: ChatTimelineAssistantTurnSegment[];
-};
-
-export type ChatTimelineItem = ChatTimelineMessageItem | ChatTimelineAssistantTurnItem;
-
 const TOOL_DETAIL_FIELDS = ['cmd', 'command', 'query', 'q', 'path', 'url', 'to', 'channel', 'agentId', 'sessionKey'];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -55,7 +24,7 @@ function truncateText(value: string, maxChars = 2400): string {
   return `${value.slice(0, maxChars)}\n…`;
 }
 
-function stringifyUnknown(value: unknown): string {
+export function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
     return value;
   }
@@ -91,7 +60,7 @@ function parseArgsObject(value: unknown): Record<string, unknown> | null {
   }
 }
 
-function summarizeToolArgs(args: unknown): string | undefined {
+export function summarizeToolArgs(args: unknown): string | undefined {
   const parsed = parseArgsObject(args);
   if (!parsed) {
     const text = stringifyUnknown(args).trim();
@@ -212,20 +181,6 @@ export function extractToolCards(message: SessionMessageView): ToolCard[] {
   return cards;
 }
 
-function normalizeEvent(event: SessionEventView, index: number): SessionEventView & { _idx: number; _seq: number } {
-  const seq = Number.isFinite(event.seq) && event.seq > 0 ? Math.trunc(event.seq) : index + 1;
-  const timestamp =
-    typeof event.timestamp === 'string' && event.timestamp
-      ? event.timestamp
-      : event.message?.timestamp ?? new Date().toISOString();
-  return {
-    ...event,
-    timestamp,
-    _idx: index,
-    _seq: seq
-  };
-}
-
 function inferEventTypeFromMessage(message: SessionMessageView): string {
   const role = normalizeChatRole(message);
   if (role === 'assistant' && hasToolCalls(message)) {
@@ -244,159 +199,4 @@ export function buildFallbackEventsFromMessages(messages: SessionMessageView[]):
     timestamp: message.timestamp,
     message
   }));
-}
-
-function appendText(base: string, next: string): string {
-  if (!next) {
-    return base;
-  }
-  if (!base) {
-    return next;
-  }
-  return `${base}\n\n${next}`;
-}
-
-export function buildChatTimeline(events: SessionEventView[]): ChatTimelineItem[] {
-  const normalized = events
-    .map((event, index) => normalizeEvent(event, index))
-    .sort((left, right) => {
-      if (left._seq !== right._seq) {
-        return left._seq - right._seq;
-      }
-      const leftTs = Date.parse(left.timestamp);
-      const rightTs = Date.parse(right.timestamp);
-      if (Number.isFinite(leftTs) && Number.isFinite(rightTs) && leftTs !== rightTs) {
-        return leftTs - rightTs;
-      }
-      return left._idx - right._idx;
-    });
-
-  const timeline: ChatTimelineItem[] = [];
-  let activeTurn:
-    | {
-        item: ChatTimelineAssistantTurnItem;
-        cardByCallId: Map<string, ToolCard>;
-      }
-    | null = null;
-
-  const closeActiveTurn = () => {
-    activeTurn = null;
-  };
-
-  const ensureActiveTurn = (eventKey: string, timestamp: string) => {
-    if (activeTurn) {
-      activeTurn.item.timestamp = timestamp;
-      return activeTurn;
-    }
-    const item: ChatTimelineAssistantTurnItem = {
-      kind: 'assistant_turn',
-      key: `turn-${eventKey}`,
-      role: 'assistant',
-      timestamp,
-      segments: []
-    };
-    timeline.push(item);
-    activeTurn = {
-      item,
-      cardByCallId: new Map<string, ToolCard>()
-    };
-    return activeTurn;
-  };
-
-  const pushAssistantMessageSegment = (
-    target: { item: ChatTimelineAssistantTurnItem },
-    eventKey: string,
-    message: SessionMessageView
-  ) => {
-    const text = extractMessageText(message.content).trim();
-    const reasoning =
-      typeof message.reasoning_content === 'string' ? message.reasoning_content.trim() : '';
-    if (!text && !reasoning) {
-      return;
-    }
-    target.item.segments.push({
-      kind: 'assistant_message',
-      key: `assistant-${eventKey}-${target.item.segments.length}`,
-      text,
-      reasoning
-    });
-  };
-
-  for (const event of normalized) {
-    const message = event.message;
-    if (!message) {
-      continue;
-    }
-
-    const role = normalizeChatRole(message);
-    const timestamp =
-      typeof message.timestamp === 'string' && message.timestamp
-        ? message.timestamp
-        : event.timestamp;
-    const eventKey = `${event._seq}-${event._idx}`;
-
-    if (role === 'assistant') {
-      const turn = ensureActiveTurn(eventKey, timestamp);
-      pushAssistantMessageSegment(turn, eventKey, message);
-      if (!hasToolCalls(message)) {
-        continue;
-      }
-
-      const toolCards = buildToolCallCards(message);
-      for (const card of toolCards) {
-        turn.item.segments.push({
-          kind: 'tool_card',
-          key: `tool-call-${eventKey}-${turn.item.segments.length}`,
-          card
-        });
-        if (typeof card.callId === 'string' && card.callId.trim()) {
-          turn.cardByCallId.set(card.callId, card);
-        }
-      }
-      continue;
-    }
-
-    if (role === 'tool') {
-      const turn = ensureActiveTurn(eventKey, timestamp);
-      const callId =
-        typeof message.tool_call_id === 'string' && message.tool_call_id.trim()
-          ? message.tool_call_id.trim()
-          : undefined;
-      if (callId && turn.cardByCallId.has(callId)) {
-        const card = turn.cardByCallId.get(callId)!;
-        const resultText = extractMessageText(message.content).trim();
-        card.text = appendText(card.text ?? '', resultText);
-        card.hasResult = true;
-        if (typeof message.name === 'string' && message.name.trim()) {
-          card.name = message.name.trim();
-        }
-        turn.item.timestamp = timestamp;
-        continue;
-      }
-
-      turn.item.segments.push({
-        kind: 'tool_card',
-        key: `tool-result-${eventKey}-${turn.item.segments.length}`,
-        card: {
-          kind: 'result',
-          name: toToolName(message.name),
-          text: extractMessageText(message.content).trim(),
-          callId,
-          hasResult: true
-        }
-      });
-      continue;
-    }
-
-    timeline.push({
-      kind: 'message',
-      key: `message-${event._seq}-${event._idx}`,
-      role,
-      timestamp,
-      message
-    });
-    closeActiveTurn();
-  }
-
-  return timeline;
 }

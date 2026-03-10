@@ -1,11 +1,11 @@
 import { deleteSession as deleteSessionApi } from '@/api/config';
-import type { ChatStreamManager } from '@/components/chat/managers/chat-stream.manager';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { ChatThreadSnapshot } from '@/components/chat/stores/chat-thread.store';
 import { t } from '@/lib/i18n';
+import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 
 export type ChatThreadManagerActions = {
   refetchSessions: () => Promise<unknown>;
@@ -17,12 +17,10 @@ export class ChatThreadManager {
     refetchSessions: noopAsync
   };
 
-  private isUserScrolling = false;
-
   constructor(
     private uiManager: ChatUiManager,
     private sessionListManager: ChatSessionListManager,
-    private streamManager: ChatStreamManager
+    private streamActionsManager: ChatStreamActionsManager
   ) {}
 
   bindActions = (patch: Partial<ChatThreadManagerActions>) => {
@@ -32,9 +30,21 @@ export class ChatThreadManager {
     };
   };
 
+  private hasSnapshotChanges = (patch: Partial<ChatThreadSnapshot>): boolean => {
+    const current = useChatThreadStore.getState().snapshot;
+    for (const [key, value] of Object.entries(patch) as Array<[keyof ChatThreadSnapshot, ChatThreadSnapshot[keyof ChatThreadSnapshot]]>) {
+      if (!Object.is(current[key], value)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   syncSnapshot = (patch: Partial<ChatThreadSnapshot>) => {
+    if (!this.hasSnapshotChanges(patch)) {
+      return;
+    }
     useChatThreadStore.getState().setSnapshot(patch);
-    this.tryAutoScroll();
   };
 
   deleteSession = () => {
@@ -47,26 +57,6 @@ export class ChatThreadManager {
 
   goToProviders = () => {
     this.uiManager.goToProviders();
-  };
-
-  handleThreadScroll = () => {
-    const element = useChatThreadStore.getState().snapshot.threadRef?.current;
-    if (!element) {
-      this.isUserScrolling = false;
-      return;
-    }
-    const threshold = 50;
-    const isNearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < threshold;
-    this.isUserScrolling = !isNearBottom;
-  };
-
-  private tryAutoScroll = () => {
-    const snapshot = useChatThreadStore.getState().snapshot;
-    const element = snapshot.threadRef?.current;
-    if (!element || this.isUserScrolling) {
-      return;
-    }
-    element.scrollTop = element.scrollHeight;
   };
 
   private deleteCurrentSession = async () => {
@@ -85,7 +75,7 @@ export class ChatThreadManager {
     useChatThreadStore.getState().setSnapshot({ isDeletePending: true });
     try {
       await deleteSessionApi(selectedSessionKey);
-      this.streamManager.resetStreamState();
+      this.streamActionsManager.resetStreamState();
       useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: null });
       this.uiManager.goToChatRoot({ replace: true });
       await this.actions.refetchSessions();

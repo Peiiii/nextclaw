@@ -1,7 +1,7 @@
-import { sendChatTurnStream, stopChatTurn, streamChatRun } from '@/api/config';
-import type { ActiveRunState, PendingChatMessage, StreamDeltaEvent, StreamReadyEvent, StreamSessionEvent } from './types';
+import { fetchChatRuns, sendChatTurnStream, stopChatTurn, streamChatRun } from '@/api/config';
+import type { ActiveRunState, SendMessageParams, StreamDeltaEvent, StreamReadyEvent, StreamSessionEvent } from './types';
 
-function buildSendTurnPayload(item: PendingChatMessage, requestedSkills: string[]) {
+function buildSendTurnPayload(item: SendMessageParams, requestedSkills: string[]) {
   const metadata: Record<string, unknown> = {};
   if (item.sessionType) {
     metadata.session_type = item.sessionType;
@@ -11,6 +11,7 @@ function buildSendTurnPayload(item: PendingChatMessage, requestedSkills: string[
   }
   return {
     message: item.message,
+    ...(item.runId ? { runId: item.runId } : {}),
     sessionKey: item.sessionKey,
     agentId: item.agentId,
     ...(item.model ? { model: item.model } : {}),
@@ -21,7 +22,7 @@ function buildSendTurnPayload(item: PendingChatMessage, requestedSkills: string[
 }
 
 export async function openSendTurnStream(params: {
-  item: PendingChatMessage;
+  item: SendMessageParams;
   requestedSkills: string[];
   signal: AbortSignal;
   onReady: (event: StreamReadyEvent) => void;
@@ -38,6 +39,7 @@ export async function openSendTurnStream(params: {
 
 export async function openResumeRunStream(params: {
   runId: string;
+  fromEventIndex?: number;
   signal: AbortSignal;
   onReady: (event: StreamReadyEvent) => void;
   onDelta: (event: StreamDeltaEvent) => void;
@@ -45,7 +47,8 @@ export async function openResumeRunStream(params: {
 }) {
   return streamChatRun(
     {
-      runId: params.runId
+      runId: params.runId,
+      ...(typeof params.fromEventIndex === 'number' ? { fromEventIndex: params.fromEventIndex } : {})
     },
     {
       signal: params.signal,
@@ -57,17 +60,100 @@ export async function openResumeRunStream(params: {
 }
 
 export async function requestStopRun(activeRun: ActiveRunState): Promise<void> {
-  if (!activeRun.backendRunId) {
+  if (!activeRun.backendStopSupported) {
     return;
   }
 
   try {
-    await stopChatTurn({
-      runId: activeRun.backendRunId,
-      sessionKey: activeRun.sessionKey,
-      ...(activeRun.agentId ? { agentId: activeRun.agentId } : {})
-    });
+    const attemptedRunIds = new Set<string>();
+    const knownRunId = activeRun.backendRunId?.trim();
+    if (knownRunId) {
+      attemptedRunIds.add(knownRunId);
+      const stopped = await stopRunById(knownRunId);
+      if (stopped) {
+        return;
+      }
+    }
+
+    const candidateRunIds = await resolveStopCandidateRunIds(activeRun);
+    for (const runId of candidateRunIds) {
+      if (attemptedRunIds.has(runId)) {
+        continue;
+      }
+      attemptedRunIds.add(runId);
+      const stopped = await stopRunById(runId);
+      if (stopped) {
+        return;
+      }
+    }
+    if (knownRunId) {
+      const stopped = await stopRunById(knownRunId);
+      if (stopped) {
+        return;
+      }
+    }
   } catch {
     // Keep local abort as fallback even if stop API fails.
   }
+}
+
+async function stopRunById(runId: string): Promise<boolean> {
+  const normalizedRunId = runId.trim();
+  if (!normalizedRunId) {
+    return false;
+  }
+  try {
+    const result = await stopChatTurn({
+      runId: normalizedRunId
+    });
+    return result.stopped === true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveStopCandidateRunIds(activeRun: ActiveRunState): Promise<string[]> {
+  const sessionKey = activeRun.sessionKey?.trim();
+  if (!sessionKey) {
+    return [];
+  }
+  const attempts = 8;
+  const delayMs = 120;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const runIds = await listActiveRunIdsBySession(activeRun, sessionKey);
+    if (runIds.length > 0) {
+      return runIds;
+    }
+    if (attempt < attempts - 1) {
+      await sleep(delayMs);
+    }
+  }
+  return [];
+}
+
+async function listActiveRunIdsBySession(activeRun: ActiveRunState, sessionKey: string): Promise<string[]> {
+  try {
+    const response = await fetchChatRuns({
+      sessionKey,
+      states: ['queued', 'running'],
+      limit: 50
+    });
+    const primary = response.runs
+      .filter((run) => run.runId?.trim() && run.sessionKey === sessionKey && run.agentId === activeRun.agentId)
+      .map((run) => run.runId.trim());
+    if (primary.length > 0) {
+      return primary;
+    }
+    return response.runs
+      .filter((run) => run.runId?.trim() && run.sessionKey === sessionKey)
+      .map((run) => run.runId.trim());
+  } catch {
+    return [];
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }

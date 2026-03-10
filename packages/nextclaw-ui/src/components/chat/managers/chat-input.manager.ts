@@ -1,18 +1,28 @@
 import { updateSession } from '@/api/config';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { buildNewSessionKey } from '@/components/chat/chat-session-route';
-import type { ChatStreamManager } from '@/components/chat/managers/chat-stream.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState';
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 import type { SetStateAction } from 'react';
+import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 
 export class ChatInputManager {
   constructor(
     private uiManager: ChatUiManager,
-    private streamManager: ChatStreamManager
+    private streamActionsManager: ChatStreamActionsManager
   ) {}
+
+  private hasSnapshotChanges = (patch: Partial<ChatInputSnapshot>): boolean => {
+    const current = useChatInputStore.getState().snapshot;
+    for (const [key, value] of Object.entries(patch) as Array<[keyof ChatInputSnapshot, ChatInputSnapshot[keyof ChatInputSnapshot]]>) {
+      if (!Object.is(current[key], value)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   private resolveUpdateValue = <T>(prev: T, next: SetStateAction<T>): T => {
     if (typeof next === 'function') {
@@ -22,18 +32,27 @@ export class ChatInputManager {
   };
 
   syncSnapshot = (patch: Partial<ChatInputSnapshot>) => {
+    if (!this.hasSnapshotChanges(patch)) {
+      return;
+    }
     useChatInputStore.getState().setSnapshot(patch);
   };
 
   setDraft = (next: SetStateAction<string>) => {
     const prev = useChatInputStore.getState().snapshot.draft;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatInputStore.getState().setSnapshot({ draft: value });
   };
 
   setPendingSessionType = (next: SetStateAction<string>) => {
     const prev = useChatInputStore.getState().snapshot.pendingSessionType;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatInputStore.getState().setSnapshot({ pendingSessionType: value });
   };
 
@@ -52,7 +71,7 @@ export class ChatInputManager {
     }
     this.setDraft('');
     this.setSelectedSkills([]);
-    await this.streamManager.sendMessage({
+    await this.streamActionsManager.sendMessage({
       message,
       sessionKey,
       agentId: sessionSnapshot.selectedAgentId,
@@ -61,35 +80,24 @@ export class ChatInputManager {
       stopSupported: inputSnapshot.stopSupported,
       stopReason: inputSnapshot.stopReason,
       requestedSkills,
-      restoreDraftOnError: true,
-      sendPolicy: inputSnapshot.isSending ? 'interrupt-and-send' : undefined
+      restoreDraftOnError: true
     });
   };
 
   stop = async () => {
-    await this.streamManager.stopCurrentRun();
+    await this.streamActionsManager.stopCurrentRun();
   };
 
   goToProviders = () => {
     this.uiManager.goToProviders();
   };
 
-  editQueuedMessage = (messageId: number, message: string) => {
-    this.setDraft(message);
-    this.streamManager.removeQueuedMessage(messageId);
-  };
-
-  promoteQueuedMessage = (messageId: number) => {
-    this.streamManager.promoteQueuedMessage(messageId);
-  };
-
-  removeQueuedMessage = (messageId: number) => {
-    this.streamManager.removeQueuedMessage(messageId);
-  };
-
   setSelectedModel = (next: SetStateAction<string>) => {
     const prev = useChatInputStore.getState().snapshot.selectedModel;
     const value = this.resolveUpdateValue(prev, next);
+    if (value === prev) {
+      return;
+    }
     useChatInputStore.getState().setSnapshot({ selectedModel: value });
   };
 
@@ -102,6 +110,9 @@ export class ChatInputManager {
   setSelectedSkills = (next: SetStateAction<string[]>) => {
     const prev = useChatInputStore.getState().snapshot.selectedSkills;
     const value = this.resolveUpdateValue(prev, next);
+    if (Object.is(value, prev)) {
+      return;
+    }
     useChatInputStore.getState().setSnapshot({ selectedSkills: value });
   };
 
