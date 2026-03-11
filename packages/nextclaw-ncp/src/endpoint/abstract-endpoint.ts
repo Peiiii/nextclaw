@@ -7,6 +7,9 @@ import type {
 } from "../types/endpoint.js";
 import type { EndpointManifest } from "../types/manifest.js";
 
+// Draft-level skeleton:
+// - Provides the minimal shared lifecycle + subscription layer for endpoints.
+// - Concrete transport/auth/send behavior is implemented by subclasses.
 export abstract class AbstractEndpoint implements Endpoint {
   abstract readonly manifest: EndpointManifest;
 
@@ -52,6 +55,7 @@ export abstract class AbstractEndpoint implements Endpoint {
     }
   }
 
+  // Lifecycle/send hooks to be implemented in concrete endpoint adapters.
   protected abstract onStart(): Promise<void>;
   protected abstract onStop(): Promise<void>;
   protected abstract onSend(message: OutboundEnvelope): Promise<SendReceipt>;
