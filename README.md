@@ -72,6 +72,24 @@ nextclaw stop    # stop the service
 
 If `npm` is not found, install/reinstall Node.js and reopen your terminal.
 
+### Run The Development Server
+
+For local development in this repository, use the built-in dev runner from the repo root:
+
+```bash
+pnpm install
+pnpm dev
+```
+
+This starts the NextClaw development stack and prints the local URLs in the terminal.
+
+If you only need one side, you can run them separately:
+
+```bash
+pnpm dev:backend   # backend on 127.0.0.1:18792
+pnpm dev:frontend  # frontend on 127.0.0.1:5174
+```
+
 > Full configuration guide: [docs.nextclaw.io](https://docs.nextclaw.io/en/guide/configuration)
 >
 > Beginner step-by-step guide (with troubleshooting): [Getting Started](https://docs.nextclaw.io/en/guide/getting-started)
