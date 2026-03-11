@@ -15,13 +15,13 @@
 ## macOS 验证步骤
 
 1. 双击打开 `.dmg`，拖拽 `NextClaw Desktop.app` 到 `Applications`。
-2. 从 `Applications` 启动应用。
-3. 若提示“无法验证开发者”，进入 `系统设置 -> 隐私与安全性`，点击“仍要打开”。
-4. 若仍被拦截，使用右键（Control + 点击）`NextClaw Desktop.app`，选择“打开”。
+2. 从 `Applications` 里直接双击应用，系统若弹出拦截提示，先点击“完成”关闭提示窗。
+3. 打开 `系统设置 -> 隐私与安全性`，在页面底部点击“仍要打开”，按系统提示确认。
+4. 回到 `Applications`，再次启动应用；若仍被拦截，再使用右键（Control + 点击）`NextClaw Desktop.app`，选择“打开”。
 5. 若提示“已损坏”，执行：
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/NextClaw Desktop.app"
+xattr -cr "/Applications/NextClaw Desktop.app"
 open -a "NextClaw Desktop"
 ```
 
