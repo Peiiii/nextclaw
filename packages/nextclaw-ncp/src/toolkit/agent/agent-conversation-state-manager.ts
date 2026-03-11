@@ -3,6 +3,7 @@ import type {
   NcpFailedEnvelope,
   NcpMessageAbortPayload,
   NcpMessageAcceptedPayload,
+  NcpMessageSentPayload,
   NcpRequestEnvelope,
   NcpResponseEnvelope,
   NcpRunErrorPayload,
@@ -33,6 +34,8 @@ import type { NcpConversationStateManager } from "../conversation-state.js";
  */
 export interface NcpAgentConversationStateManager extends NcpConversationStateManager {
   handleMessageRequest(payload: NcpRequestEnvelope): void;
+  /** Local peer sent a message (outbound); typically non-streaming. Add to messages. */
+  handleMessageSent(payload: NcpMessageSentPayload): void;
   handleMessageAccepted(payload: NcpMessageAcceptedPayload): void;
   handleMessageIncoming(payload: NcpResponseEnvelope): void;
   handleMessageCompleted(payload: NcpCompletedEnvelope): void;

@@ -54,6 +54,16 @@ export type NcpMessageAbortPayload = {
   correlationId?: string;
 };
 
+/**
+ * Payload for message.sent: the local peer has sent a message (outbound).
+ * Typically non-streaming; add the message to the local conversation state.
+ */
+export type NcpMessageSentPayload = {
+  sessionKey: string;
+  message: NcpMessage;
+  metadata?: Record<string, unknown>;
+};
+
 // ---------------------------------------------------------------------------
 // IM: typing indicator (user or bot)
 // ---------------------------------------------------------------------------
@@ -229,6 +239,7 @@ export type NcpToolCallResultPayload = {
 export type NcpEndpointEvent =
   | { type: "endpoint.ready" }
   | { type: "message.request"; payload: NcpRequestEnvelope }
+  | { type: "message.sent"; payload: NcpMessageSentPayload }
   | { type: "message.accepted"; payload: NcpMessageAcceptedPayload }
   | { type: "message.incoming"; payload: NcpResponseEnvelope }
   | { type: "message.completed"; payload: NcpCompletedEnvelope }
