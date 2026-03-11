@@ -22,6 +22,9 @@ jobs:
           - os: macos-14
             platform: darwin
             arch: arm64
+          - os: macos-13
+            platform: darwin
+            arch: x64
           - os: windows-latest
             platform: win32
             arch: x64
@@ -58,16 +61,25 @@ jobs:
           pnpm -C packages/nextclaw-server build
           pnpm -C packages/nextclaw build
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
-          CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --publish never
+          CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
+
+      - name: Normalize latest-mac metadata filename
+        if: matrix.platform == 'darwin'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "apps/desktop/release/latest-mac.yml" ]; then
+            cp "apps/desktop/release/latest-mac.yml" "apps/desktop/release/latest-mac-${{ matrix.arch }}.yml"
+          fi
 
       - name: Smoke Desktop Install (macOS DMG)
         if: matrix.platform == 'darwin'
         shell: bash
         run: |
           set -euo pipefail
-          DMG_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.dmg' | head -n 1)"
+          DMG_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name "*-${{ matrix.arch }}.dmg" | head -n 1)"
           if [ -z "${DMG_PATH}" ]; then
-            echo "macOS dmg not found in apps/desktop/release"
+            echo "macOS dmg for arch ${{ matrix.arch }} not found in apps/desktop/release"
             exit 1
           fi
           apps/desktop/scripts/smoke-macos-dmg.sh "${DMG_PATH}" 240
@@ -117,7 +129,7 @@ jobs:
         if: matrix.platform == 'darwin' && always()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-smoke-logs-darwin-arm64
+          name: desktop-smoke-logs-darwin-${{ matrix.arch }}
           if-no-files-found: warn
           path: |
             ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
@@ -139,10 +151,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: warn
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*-mac.zip
-            apps/desktop/release/latest-mac.yml
+            apps/desktop/release/latest-mac-${{ matrix.arch }}.yml
             apps/desktop/release/*.blockmap
 
       - name: Upload desktop artifacts (Windows)
