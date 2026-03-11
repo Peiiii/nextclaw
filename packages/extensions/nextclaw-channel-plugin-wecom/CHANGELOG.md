@@ -1,5 +1,14 @@
 # @nextclaw/channel-plugin-wecom
 
+## 0.1.9
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+- Updated dependencies
+  - @nextclaw/channel-runtime@0.1.33
+
 ## 0.1.8
 
 ### Patch Changes

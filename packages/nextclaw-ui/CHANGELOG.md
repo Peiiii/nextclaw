@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.6.12
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+
 ## 0.6.11
 
 ### Patch Changes

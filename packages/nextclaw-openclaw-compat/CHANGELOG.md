@@ -1,5 +1,25 @@
 # @nextclaw/openclaw-compat
 
+## 0.2.4
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+- Updated dependencies
+  - @nextclaw/core@0.7.5
+  - @nextclaw/channel-runtime@0.1.33
+  - @nextclaw/channel-plugin-dingtalk@0.1.9
+  - @nextclaw/channel-plugin-discord@0.1.10
+  - @nextclaw/channel-plugin-email@0.1.9
+  - @nextclaw/channel-plugin-feishu@0.1.9
+  - @nextclaw/channel-plugin-mochat@0.1.9
+  - @nextclaw/channel-plugin-qq@0.1.9
+  - @nextclaw/channel-plugin-slack@0.1.9
+  - @nextclaw/channel-plugin-telegram@0.1.9
+  - @nextclaw/channel-plugin-wecom@0.1.9
+  - @nextclaw/channel-plugin-whatsapp@0.1.9
+
 ## 0.2.3
 
 ### Patch Changes

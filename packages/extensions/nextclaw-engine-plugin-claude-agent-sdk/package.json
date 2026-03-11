@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-engine-claude-agent-sdk",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": false,
   "description": "NextClaw Claude Agent SDK engine plugin backed by Anthropic official SDK.",
   "type": "module",
@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.63",
-    "@nextclaw/core": "^0.7.4",
+    "@nextclaw/core": "^0.7.5",
     "zod": "^4.0.0"
   },
   "devDependencies": {

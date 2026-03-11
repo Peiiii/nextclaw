@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-engine-claude-agent-sdk
 
+## 0.2.2
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+- Updated dependencies
+  - @nextclaw/core@0.7.5
+
 ## 0.2.1
 
 ### Patch Changes

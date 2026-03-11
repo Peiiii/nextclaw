@@ -1,5 +1,26 @@
 # @nextclaw/desktop
 
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.7.5
+  - @nextclaw/channel-runtime@0.1.33
+  - @nextclaw/channel-plugin-dingtalk@0.1.9
+  - @nextclaw/channel-plugin-discord@0.1.10
+  - @nextclaw/channel-plugin-email@0.1.9
+  - @nextclaw/channel-plugin-feishu@0.1.9
+  - @nextclaw/channel-plugin-mochat@0.1.9
+  - @nextclaw/channel-plugin-qq@0.1.9
+  - @nextclaw/channel-plugin-slack@0.1.9
+  - @nextclaw/channel-plugin-telegram@0.1.9
+  - @nextclaw/channel-plugin-wecom@0.1.9
+  - @nextclaw/channel-plugin-whatsapp@0.1.9
+  - @nextclaw/openclaw-compat@0.2.4
+  - @nextclaw/server@0.6.9
+  - nextclaw@0.9.22
+
 ## 0.0.25
 
 ### Patch Changes

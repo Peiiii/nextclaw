@@ -1,5 +1,16 @@
 # nextclaw-server
 
+## 0.6.9
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+- Updated dependencies
+  - @nextclaw/core@0.7.5
+  - @nextclaw/runtime@0.1.4
+  - @nextclaw/openclaw-compat@0.2.4
+
 ## 0.6.8
 
 ### Patch Changes

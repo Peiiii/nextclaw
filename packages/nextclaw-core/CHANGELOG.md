@@ -1,5 +1,12 @@
 # nextclaw-core
 
+## 0.7.5
+
+### Patch Changes
+
+- Publish merged PR changes and synchronize the runtime dependency chain for npm consumption.
+  This release includes configurable search provider support and workspace development export alignment.
+
 ## 0.7.4
 
 ### Patch Changes
