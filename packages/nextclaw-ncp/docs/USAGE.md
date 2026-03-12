@@ -12,12 +12,12 @@
 
 ## 1. 后端：Agent 端点 + HTTP/SSE
 
-后端有一个实现 `NcpAgentEndpoint` 的端点，用 `broadcast` 注入请求，用 `emit` 把事件推给所有订阅者（其中一个是 SSE 写出器）。
+后端有一个实现 `NcpAgentServerEndpoint` 的端点，用 `broadcast` 注入请求，用 `emit` 把事件推给所有订阅者（其中一个是 SSE 写出器）。
 
 ```typescript
 // ---------- 后端：Server 端 NCP 端点 ----------
 import {
-  type NcpAgentEndpoint,
+  type NcpAgentServerEndpoint,
   type NcpEndpointEvent,
   type NcpEndpointManifest,
   type NcpEndpointSubscriber,
@@ -26,7 +26,7 @@ import {
   type NcpError,
 } from "@nextclaw/ncp";
 
-export class ServerAgentEndpoint implements NcpAgentEndpoint {
+export class ServerAgentEndpoint implements NcpAgentServerEndpoint {
   readonly manifest: NcpEndpointManifest & { endpointKind: "agent" } = {
     endpointId: "server-agent",
     endpointKind: "agent",
@@ -289,7 +289,7 @@ function showError(msg: string): void {
 
 | 角色 | 做什么 |
 |------|--------|
-| **后端** | 持有一个 `ServerAgentEndpoint`（实现 `NcpAgentEndpoint`），`injectRequest(envelope)` 把 POST body 转成 `message.request` 并 emit；一个订阅者跑 Agent 并 `emit` accepted/delta/completed/failed，另一个订阅者把事件写成 SSE 发给前端。 |
+| **后端** | 持有一个 `ServerAgentEndpoint`（实现 `NcpAgentServerEndpoint`），`injectRequest(envelope)` 把 POST body 转成 `message.request` 并 emit；一个订阅者跑 Agent 并 `emit` accepted/delta/completed/failed，另一个订阅者把事件写成 SSE 发给前端。 |
 | **前端** | POST 发送 `NcpRequestEnvelope`，读取响应 body 为 SSE 流，按行解析 JSON 得到 `NcpEndpointEvent`，根据 `message.accepted` / `message.text-*` / `message.completed` / `message.failed` 等更新 UI。 |
 | **协议** | 请求 = `message.request`（POST body）；响应 = 同一 SSE 流上的 NCP 事件，无需再定义一套「chat API」格式。 |
 

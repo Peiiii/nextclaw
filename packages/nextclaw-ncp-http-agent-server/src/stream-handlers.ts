@@ -1,5 +1,5 @@
 import type {
-  NcpAgentEndpoint,
+  NcpAgentServerEndpoint,
   NcpEndpointEvent,
   NcpResumeRequestPayload,
 } from "@nextclaw/ncp";
@@ -19,7 +19,7 @@ import { createAsyncQueue } from "./async-queue.js";
 import { errorMessage } from "./utils.js";
 
 export type ForwardResponseOptions = {
-  endpoint: NcpAgentEndpoint;
+  endpoint: NcpAgentServerEndpoint;
   requestEvent: NcpEndpointEvent;
   requestSignal: AbortSignal;
   timeoutMs: number;

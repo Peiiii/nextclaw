@@ -22,7 +22,7 @@ export type ListMessagesOptions = {
 
 /**
  * Optional API for querying session list and message history.
- * Implementations that support persistence can provide this alongside NcpClientEndpoint.
+ * Implementations that support persistence can provide this alongside NcpAgentClientEndpoint.
  */
 export interface NcpSessionQueryApi {
   listSessions(options?: ListSessionsOptions): Promise<NcpSessionSummary[]>;

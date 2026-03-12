@@ -1,6 +1,6 @@
 # @nextclaw/ncp-http-agent-client
 
-HTTP/SSE transport adapter implementing `NcpClientEndpoint` for agent scenarios.
+HTTP/SSE transport adapter implementing `NcpAgentClientEndpoint` for agent scenarios.
 
 ## Build
 

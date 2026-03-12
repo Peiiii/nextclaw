@@ -1,2 +1,2 @@
-export type { NcpAgentEndpoint } from "./agent-endpoint.js";
-export type { NcpClientEndpoint } from "./client-endpoint.js";
+export type { NcpAgentClientEndpoint } from "./agent-client-endpoint.js";
+export type { NcpAgentServerEndpoint } from "./agent-server-endpoint.js";

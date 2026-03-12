@@ -11,7 +11,7 @@ import type { NcpEndpoint } from "../types/endpoint.js";
  * Extends `NcpEndpoint` with role-specific methods. Use this on the caller side
  * (e.g. frontend, CLI) that sends user messages and receives agent responses.
  */
-export interface NcpClientEndpoint extends NcpEndpoint {
+export interface NcpAgentClientEndpoint extends NcpEndpoint {
   /** Sends a new message request to the agent. Emits `message.request`. */
   send(envelope: NcpRequestEnvelope): Promise<void>;
 

@@ -1,6 +1,6 @@
 # @nextclaw/ncp-http-agent-server
 
-HTTP/SSE transport adapter for exposing an `NcpAgentEndpoint` over Hono routes.
+HTTP/SSE transport adapter for exposing an `NcpAgentServerEndpoint` over Hono routes.
 
 ## Build
 

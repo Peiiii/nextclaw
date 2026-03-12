@@ -1,5 +1,5 @@
 import type {
-  NcpAgentEndpoint,
+  NcpAgentServerEndpoint,
   NcpEndpointEvent,
   NcpResumeRequestPayload,
 } from "@nextclaw/ncp";
@@ -21,7 +21,7 @@ export type NcpHttpAgentReplayProvider = {
 };
 
 export type NcpHttpAgentServerOptions = {
-  agentEndpoint: NcpAgentEndpoint;
+  agentEndpoint: NcpAgentServerEndpoint;
   basePath?: string;
   requestTimeoutMs?: number;
   replayProvider?: NcpHttpAgentReplayProvider;

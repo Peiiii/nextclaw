@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type {
-  NcpAgentEndpoint,
+  NcpAgentServerEndpoint,
   NcpEndpointEvent,
   NcpEndpointManifest,
   NcpEndpointSubscriber,
@@ -104,7 +104,7 @@ describe("createNcpHttpAgentRouter", () => {
   });
 });
 
-class FakeAgentEndpoint implements NcpAgentEndpoint {
+class FakeAgentEndpoint implements NcpAgentServerEndpoint {
   readonly manifest: NcpEndpointManifest & { endpointKind: "agent" } = {
     endpointKind: "agent",
     endpointId: "fake-agent",

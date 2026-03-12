@@ -1,5 +1,5 @@
 import type {
-  NcpClientEndpoint,
+  NcpAgentClientEndpoint,
   NcpEndpointEvent,
   NcpEndpointManifest,
   NcpEndpointSubscriber,
@@ -48,7 +48,7 @@ type StreamRequestOptions = {
   body?: unknown;
 };
 
-export class NcpHttpAgentClientEndpoint implements NcpClientEndpoint {
+export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
   readonly manifest: NcpEndpointManifest;
 
   private readonly baseUrl: URL;
@@ -265,6 +265,6 @@ export class NcpHttpAgentClientEndpoint implements NcpClientEndpoint {
   }
 }
 
-export function createNcpHttpAgentClient(options: NcpHttpAgentClientOptions): NcpClientEndpoint {
+export function createNcpHttpAgentClient(options: NcpHttpAgentClientOptions): NcpAgentClientEndpoint {
   return new NcpHttpAgentClientEndpoint(options);
 }

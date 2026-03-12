@@ -1,4 +1,4 @@
-import type { NcpAgentEndpoint } from "@nextclaw/ncp";
+import type { NcpAgentServerEndpoint } from "@nextclaw/ncp";
 import type { NcpHttpAgentReplayProvider } from "./types.js";
 
 export interface NcpHttpAgentHandler {
@@ -8,7 +8,7 @@ export interface NcpHttpAgentHandler {
 }
 
 export type NcpHttpAgentHandlerOptions = {
-  agentEndpoint: NcpAgentEndpoint;
+  agentEndpoint: NcpAgentServerEndpoint;
   replayProvider?: NcpHttpAgentReplayProvider;
   timeoutMs: number;
 };
