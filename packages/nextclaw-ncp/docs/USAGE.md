@@ -12,21 +12,22 @@
 
 ## 1. 后端：Agent 端点 + HTTP/SSE
 
-后端有一个继承 `AbstractEndpoint` 的端点，用 `broadcast` 注入请求，用 `emit` 把事件推给所有订阅者（其中一个是 SSE 写出器）。
+后端有一个实现 `NcpAgentEndpoint` 的端点，用 `broadcast` 注入请求，用 `emit` 把事件推给所有订阅者（其中一个是 SSE 写出器）。
 
 ```typescript
 // ---------- 后端：Server 端 NCP 端点 ----------
 import {
-  AbstractEndpoint,
+  type NcpAgentEndpoint,
   type NcpEndpointEvent,
   type NcpEndpointManifest,
+  type NcpEndpointSubscriber,
   type NcpRequestEnvelope,
   type NcpMessage,
   type NcpError,
 } from "@nextclaw/ncp";
 
-export class ServerAgentEndpoint extends AbstractEndpoint {
-  readonly manifest: NcpEndpointManifest = {
+export class ServerAgentEndpoint implements NcpAgentEndpoint {
+  readonly manifest: NcpEndpointManifest & { endpointKind: "agent" } = {
     endpointId: "server-agent",
     endpointKind: "agent",
     version: "0.1.0",
@@ -38,17 +39,34 @@ export class ServerAgentEndpoint extends AbstractEndpoint {
     expectedLatency: "seconds",
   };
 
-  emit(event: NcpEndpointEvent): void {
-    this.broadcast(event);
+  private started = false;
+  private readonly listeners = new Set<NcpEndpointSubscriber>();
+
+  async start(): Promise<void> {
+    if (this.started) return;
+    this.started = true;
+  }
+
+  async stop(): Promise<void> {
+    if (!this.started) return;
+    this.started = false;
+  }
+
+  async emit(event: NcpEndpointEvent): Promise<void> {
+    for (const listener of this.listeners) {
+      listener(event);
+    }
+  }
+
+  subscribe(listener: NcpEndpointSubscriber): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   /** HTTP 层收到 POST body 后调用，把前端请求注入为 message.request */
   injectRequest(envelope: NcpRequestEnvelope): void {
-    this.broadcast({ type: "message.request", payload: envelope });
+    this.emit({ type: "message.request", payload: envelope });
   }
-
-  protected async onStart(): Promise<void> {}
-  protected async onStop(): Promise<void> {}
 }
 ```
 
@@ -271,7 +289,7 @@ function showError(msg: string): void {
 
 | 角色 | 做什么 |
 |------|--------|
-| **后端** | 持有一个 `ServerAgentEndpoint`（继承 `AbstractEndpoint`），`injectRequest(envelope)` 把 POST body 转成 `message.request` 并 broadcast；一个订阅者跑 Agent 并 `emit` accepted/delta/completed/failed，另一个订阅者把事件写成 SSE 发给前端。 |
+| **后端** | 持有一个 `ServerAgentEndpoint`（实现 `NcpAgentEndpoint`），`injectRequest(envelope)` 把 POST body 转成 `message.request` 并 emit；一个订阅者跑 Agent 并 `emit` accepted/delta/completed/failed，另一个订阅者把事件写成 SSE 发给前端。 |
 | **前端** | POST 发送 `NcpRequestEnvelope`，读取响应 body 为 SSE 流，按行解析 JSON 得到 `NcpEndpointEvent`，根据 `message.accepted` / `message.text-*` / `message.completed` / `message.failed` 等更新 UI。 |
 | **协议** | 请求 = `message.request`（POST body）；响应 = 同一 SSE 流上的 NCP 事件，无需再定义一套「chat API」格式。 |
 

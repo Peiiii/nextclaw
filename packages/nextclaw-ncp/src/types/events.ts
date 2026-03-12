@@ -49,9 +49,22 @@ export type NcpMessageAcceptedPayload = {
   transportId?: string;
 };
 
+/** Payload for message.abort: identifies which request or run to cancel. */
 export type NcpMessageAbortPayload = {
   messageId?: string;
   correlationId?: string;
+  runId?: string;
+};
+
+/**
+ * Payload for message.resume-request: resume an existing run by its remote id.
+ * Used when reconnecting to a stream (e.g. after page refresh).
+ */
+export type NcpResumeRequestPayload = {
+  sessionKey: string;
+  remoteRunId: string;
+  fromEventIndex?: number;
+  metadata?: Record<string, unknown>;
 };
 
 /**
@@ -239,6 +252,7 @@ export type NcpToolCallResultPayload = {
 export type NcpEndpointEvent =
   | { type: "endpoint.ready" }
   | { type: "message.request"; payload: NcpRequestEnvelope }
+  | { type: "message.resume-request"; payload: NcpResumeRequestPayload }
   | { type: "message.sent"; payload: NcpMessageSentPayload }
   | { type: "message.accepted"; payload: NcpMessageAcceptedPayload }
   | { type: "message.incoming"; payload: NcpResponseEnvelope }

@@ -79,11 +79,13 @@ export class DefaultNcpAgentConversationStateManager
     return () => this.listeners.delete(listener);
   }
 
-  dispatch(event: NcpEndpointEvent): void {
+  async dispatch(event: NcpEndpointEvent): Promise<void> {
     const versionBeforeDispatch = this.stateVersion;
     switch (event.type) {
       case "message.request":
         this.handleMessageRequest(event.payload);
+        break;
+      case "message.resume-request":
         break;
       case "message.sent":
         this.handleMessageSent(event.payload);

@@ -11,7 +11,7 @@ pnpm -C packages/nextclaw-ncp build
 ## Scope
 
 - NCP manifest, message, session, and error definitions
-- Generic endpoint base class (`AbstractEndpoint`)
+- Endpoint interfaces (`NcpEndpoint`, `NcpClientEndpoint`, `NcpAgentEndpoint`)
 
 ## Usage
 

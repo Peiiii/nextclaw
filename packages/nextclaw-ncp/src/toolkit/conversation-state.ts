@@ -35,7 +35,7 @@ export interface NcpConversationStateManager {
    * Applies an NCP event to internal state (messages, streamingMessage, error).
    * Notifies subscribers after the update.
    */
-  dispatch(event: NcpEndpointEvent): void;
+  dispatch(event: NcpEndpointEvent): Promise<void>;
 
   /**
    * Subscribes to state changes. Listener is called after each dispatch that mutates state.
