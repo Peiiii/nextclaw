@@ -908,30 +908,7 @@ class LandingPage {
           ` : ''}
 
           ${this.route === 'home' ? `
-          <div class="w-full max-w-2xl mx-auto mb-10 text-left animate-slide-up opacity-0" style="animation-delay: 0.4s">
-            <div class="rounded-2xl overflow-hidden bg-[#332c28] shadow-2xl border border-white/5">
-              <div class="flex items-center justify-between px-4 py-3 bg-[#2c2522]">
-                <div class="flex gap-2">
-                  <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
-                  <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
-                  <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
-                </div>
-                <div class="text-xs text-[#a0938a] font-mono">${this.copy.terminalHeader}</div>
-                <button id="copy-btn" class="text-[#a0938a] hover:text-white transition-colors" title="${this.copy.copyTitle}">
-                  <i data-lucide="copy" class="w-4 h-4"></i>
-                </button>
-              </div>
-              <div id="terminal-content" class="p-6 font-mono text-sm sm:text-base leading-relaxed">
-                <div class="flex items-center text-[#d4c8be]">
-                  <span class="text-[#8eb079] mr-2">~</span>
-                  <span class="text-[#e29e57] mr-2 font-bold">$</span>
-                  <span id="install-cmd"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-col items-center gap-4 mb-6 animate-slide-up opacity-0" style="animation-delay: 0.5s">
+          <div class="flex flex-col items-center gap-4 mb-6 animate-slide-up opacity-0" style="animation-delay: 0.4s">
             <div class="inline-flex flex-wrap justify-center rounded-full border border-border bg-background/80 p-1 shadow-sm">
               <a href="${downloadRoute}" class="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-full font-semibold bg-foreground text-background hover:bg-foreground/90 transition-colors text-sm sm:text-base">
                 <i data-lucide="download" class="w-4 h-4"></i>
@@ -954,17 +931,42 @@ class LandingPage {
                 ${this.copy.installOptionDocker}
               </button>
             </div>
-            <div class="flex flex-col sm:flex-row flex-wrap justify-center gap-4">
-              <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105 shadow-md shadow-primary/25 focus:ring-2 focus:ring-primary focus:outline-none text-base">
-                <i data-lucide="book-open" class="w-5 h-5"></i>
-                ${this.copy.docsButton}
-              </a>
-              <a href="${LINKS.github}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full font-medium bg-background text-foreground border border-border hover:bg-secondary transition-all hover:scale-105 shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
-                <i data-lucide="github" class="w-5 h-5"></i>
-                ${this.copy.githubButton}
-              </a>
+          </div>
+
+          <div class="w-full max-w-2xl mx-auto mb-10 text-left animate-slide-up opacity-0" style="animation-delay: 0.5s">
+            <div class="rounded-2xl overflow-hidden bg-[#332c28] shadow-2xl border border-white/5">
+              <div class="flex items-center justify-between px-4 py-3 bg-[#2c2522]">
+                <div class="flex gap-2">
+                  <div class="w-3 h-3 rounded-full bg-[#ff5f56]"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#ffbd2e]"></div>
+                  <div class="w-3 h-3 rounded-full bg-[#27c93f]"></div>
+                </div>
+                <div class="text-xs text-[#a0938a] font-mono">${this.copy.terminalHeader}</div>
+                <button id="copy-btn" class="text-[#a0938a] hover:text-white transition-colors" title="${this.copy.copyTitle}">
+                  <i data-lucide="copy" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div id="terminal-content" class="p-6 font-mono text-sm sm:text-base leading-relaxed">
+                <div class="flex items-center text-[#d4c8be]">
+                  <span class="text-[#8eb079] mr-2">~</span>
+                  <span class="text-[#e29e57] mr-2 font-bold">$</span>
+                  <span id="install-cmd"></span>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div class="flex flex-col sm:flex-row flex-wrap justify-center gap-4 mb-6 animate-slide-up opacity-0" style="animation-delay: 0.53s">
+            <a href="${docsLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-105 shadow-md shadow-primary/25 focus:ring-2 focus:ring-primary focus:outline-none text-base">
+              <i data-lucide="book-open" class="w-5 h-5"></i>
+              ${this.copy.docsButton}
+            </a>
+            <a href="${LINKS.github}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full font-medium bg-background text-foreground border border-border hover:bg-secondary transition-all hover:scale-105 shadow-sm focus:ring-2 focus:ring-foreground focus:outline-none text-base">
+              <i data-lucide="github" class="w-5 h-5"></i>
+              ${this.copy.githubButton}
+            </a>
+          </div>
+
           <div class="flex flex-row flex-wrap justify-center gap-4 mb-20 animate-slide-up opacity-0" style="animation-delay: 0.55s">
             <button id="community-qr-btn" type="button" class="inline-flex items-center justify-center gap-2 h-12 w-48 rounded-full font-medium bg-[#07C160] text-white hover:bg-[#06AD56] transition-all hover:scale-105 shadow-sm focus:ring-2 focus:ring-[#07C160] focus:outline-none text-base cursor-pointer">
               <i data-lucide="message-circle" class="w-5 h-5"></i>
