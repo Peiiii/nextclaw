@@ -5,6 +5,7 @@
 ## 当前教程
 
 - [安装后第一步：先选接入方式（Qwen Portal 或 API Key）](/zh/guide/tutorials/provider-options)
+- [Docker 一键部署教程](/zh/guide/tutorials/docker-one-click)
 - [Qwen Portal 免费配置教程（小白版）](/zh/guide/tutorials/qwen-portal)
 - [飞书配置教程](/zh/guide/tutorials/feishu)
 - [Skills 教程（安装 + 使用）](/zh/guide/tutorials/skills)

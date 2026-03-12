@@ -105,6 +105,7 @@ const enSidebar = [
     items: [
       { text: 'Tutorial Hub', link: '/en/guide/tutorials' },
       { text: 'First Step: Pick Provider Path', link: '/en/guide/tutorials/provider-options' },
+      { text: 'Docker One-Click Deployment', link: '/en/guide/tutorials/docker-one-click' },
       { text: 'Qwen Portal Setup', link: '/en/guide/tutorials/qwen-portal' },
       { text: 'Feishu Setup', link: '/en/guide/tutorials/feishu' },
       { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
@@ -173,6 +174,7 @@ const zhSidebar = [
     items: [
       { text: '教程总览', link: '/zh/guide/tutorials' },
       { text: '安装后第一步：先选接入方式', link: '/zh/guide/tutorials/provider-options' },
+      { text: 'Docker 一键部署教程', link: '/zh/guide/tutorials/docker-one-click' },
       { text: 'Qwen Portal 免费配置教程', link: '/zh/guide/tutorials/qwen-portal' },
       { text: '飞书配置教程', link: '/zh/guide/tutorials/feishu' },
       { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
