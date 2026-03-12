@@ -132,6 +132,33 @@ function verifyWindowsDesktopPackage() {
   console.log(`[desktop-verify] Windows desktop executable verified: ${desktopExePath}`);
 }
 
+function verifyLinuxDesktopPackage() {
+  cleanReleaseDir();
+  if (process.arch !== "x64") {
+    throw new Error("Linux package verification currently supports x64 only.");
+  }
+  run(binName("pnpm"), [
+    "-C",
+    "apps/desktop",
+    "exec",
+    "electron-builder",
+    "--linux",
+    "AppImage",
+    "--x64",
+    "--publish",
+    "never"
+  ], {
+    env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+  });
+
+  const appImagePath = findLatestReleaseFile((name) => name.endsWith(".AppImage"));
+  if (!appImagePath) {
+    throw new Error("No Linux AppImage artifact found in apps/desktop/release");
+  }
+  run("bash", ["apps/desktop/scripts/smoke-linux-appimage.sh", appImagePath, "120"]);
+  console.log(`[desktop-verify] Linux AppImage verified: ${appImagePath}`);
+}
+
 function main() {
   console.log(`[desktop-verify] platform=${process.platform} arch=${process.arch}`);
   runCommonBuildSteps();
@@ -144,9 +171,13 @@ function main() {
     verifyWindowsDesktopPackage();
     return;
   }
+  if (process.platform === "linux") {
+    verifyLinuxDesktopPackage();
+    return;
+  }
 
   throw new Error(
-    "Unsupported platform for local desktop package verification. Use macOS or Windows."
+    "Unsupported platform for local desktop package verification. Use macOS, Windows, or Linux."
   );
 }
 

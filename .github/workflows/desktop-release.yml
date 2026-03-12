@@ -25,6 +25,9 @@ jobs:
           - os: macos-13
             platform: darwin
             arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
           - os: windows-latest
             platform: win32
             arch: x64
@@ -100,6 +103,47 @@ jobs:
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never
 
+      - name: Build Desktop (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          pnpm -C packages/nextclaw-core build
+          pnpm -C packages/nextclaw-runtime build
+          pnpm -C packages/extensions/nextclaw-channel-runtime build
+          pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
+          pnpm -C packages/nextclaw build
+          pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop exec electron-builder --linux AppImage --x64 --publish never
+
+      - name: Normalize Linux AppImage filename
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
+          if [ -z "${APPIMAGE_PATH}" ]; then
+            echo "Linux AppImage not found in apps/desktop/release"
+            exit 1
+          fi
+
+          BASE_NAME="$(basename "${APPIMAGE_PATH}")"
+          VERSION="$(echo "${BASE_NAME}" | sed -E 's/.*-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
+          if ! echo "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Failed to parse version from Linux AppImage filename: ${BASE_NAME}"
+            exit 1
+          fi
+
+          TARGET_APPIMAGE="apps/desktop/release/NextClaw.Desktop-${VERSION}-linux-x64.AppImage"
+          mv "${APPIMAGE_PATH}" "${TARGET_APPIMAGE}"
+
+          if [ -f "${APPIMAGE_PATH}.blockmap" ]; then
+            mv "${APPIMAGE_PATH}.blockmap" "${TARGET_APPIMAGE}.blockmap"
+          fi
+
       - name: Smoke Desktop (Windows)
         if: matrix.platform == 'win32'
         shell: pwsh
@@ -110,6 +154,18 @@ jobs:
           }
           $desktopExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
           & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 180
+
+      - name: Smoke Desktop (Linux AppImage)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name 'NextClaw.Desktop-*-linux-x64.AppImage' | head -n 1)"
+          if [ -z "${APPIMAGE_PATH}" ]; then
+            echo "Linux AppImage not found in apps/desktop/release"
+            exit 1
+          fi
+          apps/desktop/scripts/smoke-linux-appimage.sh "${APPIMAGE_PATH}" 240
 
       - name: Archive desktop artifacts (Windows)
         if: matrix.platform == 'win32'
@@ -146,6 +202,16 @@ jobs:
             ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
             ~\AppData\Roaming\NextClaw Desktop\logs\**
 
+      - name: Upload Smoke Logs (Linux)
+        if: matrix.platform == 'linux' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-smoke-logs-linux-x64
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
+
       - name: Upload desktop artifacts (macOS)
         if: matrix.platform == 'darwin'
         uses: actions/upload-artifact@v4
@@ -165,6 +231,16 @@ jobs:
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             apps/desktop/release/NextClaw Desktop-win32-x64-unpacked.zip
+
+      - name: Upload desktop artifacts (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage
+            apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage.blockmap
 
   publish-release-assets:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
@@ -189,4 +265,6 @@ jobs:
             dist/desktop-release/*.dmg
             dist/desktop-release/*-mac.zip
             dist/desktop-release/*-win32-*-unpacked.zip
+            dist/desktop-release/*.AppImage
+            dist/desktop-release/*.AppImage.blockmap
             dist/desktop-release/*.blockmap

@@ -110,7 +110,36 @@ function packageForCurrentPlatform() {
     return;
   }
 
-  throw new Error("Unsupported platform. Run this command on macOS or Windows.");
+  if (process.platform === "linux") {
+    if (arch !== "x64") {
+      throw new Error("Linux packaging currently supports x64 only.");
+    }
+    run(
+      binName("pnpm"),
+      [
+        "-C",
+        "apps/desktop",
+        "exec",
+        "electron-builder",
+        "--linux",
+        "AppImage",
+        "--x64",
+        "--publish",
+        "never"
+      ],
+      { env }
+    );
+    printArtifacts(
+      readArtifacts().filter((path) =>
+        path.endsWith(".AppImage") ||
+        path.endsWith(".AppImage.blockmap") ||
+        path.endsWith("latest-linux.yml")
+      )
+    );
+    return;
+  }
+
+  throw new Error("Unsupported platform. Run this command on macOS, Windows, or Linux.");
 }
 
 packageForCurrentPlatform();

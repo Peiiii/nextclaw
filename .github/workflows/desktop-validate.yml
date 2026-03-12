@@ -210,3 +210,77 @@ jobs:
           if-no-files-found: warn
           path: |
             apps/desktop/release/win-unpacked/**
+
+  desktop-linux-appimage-smoke:
+    name: desktop-linux-appimage-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm -C packages/nextclaw-core build
+          pnpm -C packages/nextclaw-runtime build
+          pnpm -C packages/extensions/nextclaw-channel-runtime build
+          pnpm -C packages/nextclaw-ui build
+          pnpm -C packages/nextclaw-openclaw-compat build
+          pnpm -C packages/nextclaw-server build
+          pnpm -C packages/nextclaw build
+
+      - name: Build Linux AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          pnpm -C apps/desktop lint
+          pnpm -C apps/desktop tsc
+          pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop exec electron-builder --linux AppImage --x64 --publish never
+
+      - name: Smoke test Linux AppImage
+        shell: bash
+        run: |
+          set -euo pipefail
+          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
+          if [ -z "${APPIMAGE_PATH}" ]; then
+            echo "Linux AppImage not found in apps/desktop/release"
+            exit 1
+          fi
+          apps/desktop/scripts/smoke-linux-appimage.sh "${APPIMAGE_PATH}" 120
+
+      - name: Upload Linux smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-smoke-logs-linux-x64
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
+            ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
+
+      - name: Upload Linux AppImage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-linux-x64-appimage
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.AppImage.blockmap
