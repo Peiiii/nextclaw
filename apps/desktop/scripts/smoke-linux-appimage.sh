@@ -14,6 +14,11 @@ if [[ ! -f "${APPIMAGE_PATH}" ]]; then
   exit 1
 fi
 
+# Resolve AppImage path before changing directory during extraction.
+APPIMAGE_DIR="$(cd "$(dirname "${APPIMAGE_PATH}")" && pwd)"
+APPIMAGE_NAME="$(basename "${APPIMAGE_PATH}")"
+APPIMAGE_PATH="${APPIMAGE_DIR}/${APPIMAGE_NAME}"
+
 if ! [[ "${STARTUP_TIMEOUT_SEC}" =~ ^[0-9]+$ ]]; then
   echo "[desktop-smoke] invalid startup timeout: ${STARTUP_TIMEOUT_SEC}" >&2
   exit 1
