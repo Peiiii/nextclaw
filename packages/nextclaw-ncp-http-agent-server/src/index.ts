@@ -1,7 +1,7 @@
 export {
   createNcpHttpAgentRouter,
   mountNcpHttpAgentRoutes,
-} from "./routes.js";
+} from "./router.js";
 export type {
   NcpHttpAgentReplayProvider,
   NcpHttpAgentServerOptions,
