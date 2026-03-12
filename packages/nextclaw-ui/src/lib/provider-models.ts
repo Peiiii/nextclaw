@@ -61,7 +61,7 @@ export function composeProviderModel(prefix: string, localModel: string): string
 
 export function findProviderByModel(
   model: string,
-  providerCatalog: Array<{ name: string; aliases: string[] }>
+  providerCatalog: Array<{ name: string; aliases: string[]; models?: string[] }>
 ): string | null {
   const trimmed = model.trim();
   if (!trimmed) {
@@ -81,7 +81,20 @@ export function findProviderByModel(
       }
     }
   }
-  return bestMatch?.name ?? null;
+  if (bestMatch) {
+    return bestMatch.name;
+  }
+  for (const provider of providerCatalog) {
+    const normalizedModel = toProviderLocalModel(trimmed, provider.aliases);
+    if (!normalizedModel) {
+      continue;
+    }
+    const models = normalizeStringList(provider.models ?? []);
+    if (models.some((modelId) => modelId === normalizedModel)) {
+      return provider.name;
+    }
+  }
+  return null;
 }
 
 function isProviderConfigured(provider: ProviderConfigView | undefined): boolean {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronsUpDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,7 @@ type SearchableModelInputProps = {
   value: string;
   onChange: (value: string) => void;
   options: string[];
+  disabled?: boolean;
   placeholder?: string;
   className?: string;
   inputClassName?: string;
@@ -33,6 +34,7 @@ export function SearchableModelInput({
   value,
   onChange,
   options,
+  disabled = false,
   placeholder,
   className,
   inputClassName,
@@ -42,6 +44,12 @@ export function SearchableModelInput({
   onEnter
 }: SearchableModelInputProps) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (disabled && open) {
+      setOpen(false);
+    }
+  }, [disabled, open]);
 
   const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
   const query = value.trim().toLowerCase();
@@ -80,10 +88,15 @@ export function SearchableModelInput({
       <Input
         id={id}
         value={value}
-        onFocus={() => setOpen(true)}
+        disabled={disabled}
+        onFocus={() => {
+          if (!disabled) {
+            setOpen(true);
+          }
+        }}
         onChange={(event) => {
           onChange(event.target.value);
-          if (!open) {
+          if (!open && !disabled) {
             setOpen(true);
           }
         }}
@@ -103,13 +116,17 @@ export function SearchableModelInput({
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={() => setOpen((prev) => !prev)}
-        className="absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-gray-400 hover:text-gray-600"
+        disabled={disabled}
+        className={cn(
+          'absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center',
+          disabled ? 'cursor-not-allowed text-gray-300' : 'text-gray-400 hover:text-gray-600'
+        )}
         aria-label="toggle model options"
       >
         <ChevronsUpDown className="h-4 w-4" />
       </button>
 
-      {open && (
+      {open && !disabled && (
         <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
           <div className="max-h-60 overflow-y-auto py-1">
             {!hasExactMatch && value.trim().length > 0 && (

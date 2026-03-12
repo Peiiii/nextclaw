@@ -33,22 +33,15 @@ export function ModelConfig() {
   const workspaceHint = hintForPath('agents.defaults.workspace', uiHints);
 
   const providerCatalog = useMemo(
-    () => buildProviderModelCatalog({ meta, config }),
+    () => buildProviderModelCatalog({ meta, config, onlyConfigured: true }),
     [config, meta]
   );
 
   const providerMap = useMemo(() => new Map(providerCatalog.map((provider) => [provider.name, provider])), [providerCatalog]);
-  const selectedProvider = providerMap.get(providerName) ?? providerCatalog[0];
+  const selectedProvider = providerMap.get(providerName);
   const selectedProviderName = selectedProvider?.name ?? '';
   const selectedProviderAliases = useMemo(() => selectedProvider?.aliases ?? [], [selectedProvider]);
   const selectedProviderModels = useMemo(() => selectedProvider?.models ?? [], [selectedProvider]);
-
-  useEffect(() => {
-    if (providerName || providerCatalog.length === 0) {
-      return;
-    }
-    setProviderName(providerCatalog[0].name);
-  }, [providerName, providerCatalog]);
 
   useEffect(() => {
     if (!config?.agents?.defaults) {
@@ -56,10 +49,10 @@ export function ModelConfig() {
     }
     const currentModel = (config.agents.defaults.model || '').trim();
     const matchedProvider = findProviderByModel(currentModel, providerCatalog);
-    const effectiveProvider = matchedProvider ?? providerCatalog[0]?.name ?? '';
+    const effectiveProvider = matchedProvider ?? '';
     const aliases = providerMap.get(effectiveProvider)?.aliases ?? [];
     setProviderName(effectiveProvider);
-    setModelId(toProviderLocalModel(currentModel, aliases));
+    setModelId(effectiveProvider ? toProviderLocalModel(currentModel, aliases) : '');
     setWorkspace(config.agents.defaults.workspace || '');
   }, [config, providerCatalog, providerMap]);
 
@@ -75,11 +68,14 @@ export function ModelConfig() {
   }, [selectedProviderModels]);
 
   const composedModel = useMemo(() => {
+    if (!selectedProvider) {
+      return '';
+    }
     const normalizedModelId = toProviderLocalModel(modelId, selectedProviderAliases);
     if (!normalizedModelId) {
       return '';
     }
-    return composeProviderModel(selectedProvider?.prefix ?? '', normalizedModelId);
+    return composeProviderModel(selectedProvider.prefix, normalizedModelId);
   }, [modelId, selectedProvider, selectedProviderAliases]);
 
   const modelHelpText = t('modelIdentifierHelp') || modelHint?.help || '';
@@ -90,6 +86,10 @@ export function ModelConfig() {
   };
 
   const handleModelChange = (nextModelId: string) => {
+    if (!selectedProvider) {
+      setModelId('');
+      return;
+    }
     setModelId(toProviderLocalModel(nextModelId, selectedProviderAliases));
   };
 
@@ -165,6 +165,7 @@ export function ModelConfig() {
                   value={modelId}
                   onChange={handleModelChange}
                   options={modelOptions}
+                  disabled={!selectedProviderName}
                   placeholder={modelHint?.placeholder ?? 'gpt-5.1'}
                   className="sm:flex-1"
                   inputClassName="h-10 rounded-xl"
