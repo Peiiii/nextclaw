@@ -1,5 +1,5 @@
 import type {
-  NcpAgentServerEndpoint,
+  NcpAgentClientEndpoint,
   NcpEndpointEvent,
   NcpResumeRequestPayload,
 } from "@nextclaw/ncp";
@@ -18,8 +18,9 @@ import type {
 import { createAsyncQueue } from "./async-queue.js";
 import { errorMessage } from "./utils.js";
 
+/** Options for streaming a live response from the agent (forward path). */
 export type ForwardResponseOptions = {
-  endpoint: NcpAgentServerEndpoint;
+  endpoint: NcpAgentClientEndpoint;
   requestEvent: NcpEndpointEvent;
   requestSignal: AbortSignal;
   timeoutMs: number;
@@ -93,6 +94,7 @@ async function* createForwardSseEvents(options: ForwardResponseOptions): AsyncGe
   }
 }
 
+/** Replay path: stream stored events from replayProvider, no live agent call. */
 export type ReplayResponseOptions = {
   replayProvider: NcpHttpAgentReplayProvider;
   payload: NcpResumeRequestPayload;

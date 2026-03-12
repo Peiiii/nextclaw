@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type {
-  NcpAgentServerEndpoint,
+  NcpAgentClientEndpoint,
   NcpEndpointEvent,
   NcpEndpointManifest,
   NcpEndpointSubscriber,
+  NcpMessageAbortPayload,
   NcpRequestEnvelope,
+  NcpResumeRequestPayload,
 } from "@nextclaw/ncp";
 import { createNcpHttpAgentRouter } from "./index.js";
 
@@ -13,7 +15,7 @@ const now = "2026-03-12T00:00:00.000Z";
 describe("createNcpHttpAgentRouter", () => {
   it("forwards /send request to endpoint and streams scoped events", async () => {
     const endpoint = new FakeAgentEndpoint();
-    const app = createNcpHttpAgentRouter({ agentEndpoint: endpoint });
+    const app = createNcpHttpAgentRouter({ agentClientEndpoint: endpoint });
 
     endpoint.setEmitHandler((event) => {
       if (event.type !== "message.request") {
@@ -77,7 +79,7 @@ describe("createNcpHttpAgentRouter", () => {
 
   it("returns 400 when reconnect query is missing required fields", async () => {
     const endpoint = new FakeAgentEndpoint();
-    const app = createNcpHttpAgentRouter({ agentEndpoint: endpoint });
+    const app = createNcpHttpAgentRouter({ agentClientEndpoint: endpoint });
 
     const response = await app.request("http://localhost/ncp/agent/reconnect?sessionId=session-1", {
       method: "GET",
@@ -87,7 +89,7 @@ describe("createNcpHttpAgentRouter", () => {
 
   it("forwards /abort payload to endpoint", async () => {
     const endpoint = new FakeAgentEndpoint();
-    const app = createNcpHttpAgentRouter({ agentEndpoint: endpoint });
+    const app = createNcpHttpAgentRouter({ agentClientEndpoint: endpoint });
 
     const response = await app.request("http://localhost/ncp/agent/abort", {
       method: "POST",
@@ -104,8 +106,8 @@ describe("createNcpHttpAgentRouter", () => {
   });
 });
 
-class FakeAgentEndpoint implements NcpAgentServerEndpoint {
-  readonly manifest: NcpEndpointManifest & { endpointKind: "agent" } = {
+class FakeAgentEndpoint implements NcpAgentClientEndpoint {
+  readonly manifest: NcpEndpointManifest = {
     endpointKind: "agent",
     endpointId: "fake-agent",
     version: "0.1.0",
@@ -137,6 +139,18 @@ class FakeAgentEndpoint implements NcpAgentServerEndpoint {
     return () => {
       this.listeners.delete(listener);
     };
+  }
+
+  async send(envelope: NcpRequestEnvelope): Promise<void> {
+    await this.emit({ type: "message.request", payload: envelope });
+  }
+
+  async resume(payload: NcpResumeRequestPayload): Promise<void> {
+    await this.emit({ type: "message.resume-request", payload });
+  }
+
+  async abort(payload?: NcpMessageAbortPayload): Promise<void> {
+    await this.emit({ type: "message.abort", payload: payload ?? {} });
   }
 
   setEmitHandler(handler: (event: NcpEndpointEvent) => void): void {

@@ -10,10 +10,10 @@ export function createNcpHttpAgentRouter(options: NcpHttpAgentServerOptions): Ho
 }
 
 export function mountNcpHttpAgentRoutes(app: Hono, options: NcpHttpAgentServerOptions): void {
-  const { basePath: rawBasePath, agentEndpoint, replayProvider, requestTimeoutMs } = options;
+  const { basePath: rawBasePath, agentClientEndpoint, replayProvider, requestTimeoutMs } = options;
   const basePath = normalizeBasePath(rawBasePath);
   const controller = new NcpHttpAgentController({
-    agentEndpoint,
+    agentClientEndpoint,
     replayProvider,
     timeoutMs: sanitizeTimeout(requestTimeoutMs),
   });

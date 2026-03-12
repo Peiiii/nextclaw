@@ -1,6 +1,7 @@
-import type { NcpAgentServerEndpoint } from "@nextclaw/ncp";
+import type { NcpAgentClientEndpoint } from "@nextclaw/ncp";
 import type { NcpHttpAgentReplayProvider } from "./types.js";
 
+/** Framework-agnostic HTTP handler interface for NCP agent routes. */
 export interface NcpHttpAgentHandler {
   handleSend(request: Request): Promise<Response>;
   handleReconnect(request: Request): Promise<Response>;
@@ -8,7 +9,11 @@ export interface NcpHttpAgentHandler {
 }
 
 export type NcpHttpAgentHandlerOptions = {
-  agentEndpoint: NcpAgentServerEndpoint;
+  agentClientEndpoint: NcpAgentClientEndpoint;
+  /**
+   * Optional. When set, `/reconnect` replays stored events instead of forwarding to the agent.
+   * See NcpHttpAgentReplayProvider for details.
+   */
   replayProvider?: NcpHttpAgentReplayProvider;
   timeoutMs: number;
 };

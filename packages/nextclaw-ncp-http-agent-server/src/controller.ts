@@ -7,11 +7,15 @@ import { createForwardResponse, createReplayResponse } from "./stream-handlers.j
 import { jsonResponse } from "./utils.js";
 import type { NcpHttpAgentHandler, NcpHttpAgentHandlerOptions } from "./handler-interface.js";
 
+/**
+ * Framework-agnostic controller for NCP agent HTTP routes.
+ * Forwards /send and /reconnect to agentClientEndpoint; /reconnect uses replayProvider when set.
+ */
 export class NcpHttpAgentController implements NcpHttpAgentHandler {
   constructor(private readonly options: NcpHttpAgentHandlerOptions) {}
 
   async handleSend(request: Request): Promise<Response> {
-    const { agentEndpoint, timeoutMs } = this.options;
+    const { agentClientEndpoint, timeoutMs } = this.options;
     const envelope = await parseRequestEnvelope(request);
     if (!envelope) {
       return jsonResponse(
@@ -21,7 +25,7 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
     }
 
     return createForwardResponse({
-      endpoint: agentEndpoint,
+      endpoint: agentClientEndpoint,
       requestEvent: { type: "message.request", payload: envelope },
       requestSignal: request.signal,
       timeoutMs,
@@ -33,7 +37,7 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
   }
 
   async handleReconnect(request: Request): Promise<Response> {
-    const { agentEndpoint, replayProvider, timeoutMs } = this.options;
+    const { agentClientEndpoint, replayProvider, timeoutMs } = this.options;
     const resumePayload = parseResumePayloadFromUrl(request.url);
     if (!resumePayload) {
       return jsonResponse(
@@ -51,7 +55,7 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
     }
 
     return createForwardResponse({
-      endpoint: agentEndpoint,
+      endpoint: agentClientEndpoint,
       requestEvent: { type: "message.resume-request", payload: resumePayload },
       requestSignal: request.signal,
       timeoutMs,
@@ -63,9 +67,9 @@ export class NcpHttpAgentController implements NcpHttpAgentHandler {
   }
 
   async handleAbort(request: Request): Promise<Response> {
-    const { agentEndpoint } = this.options;
+    const { agentClientEndpoint } = this.options;
     const payload = await parseAbortPayload(request);
-    await agentEndpoint.emit({ type: "message.abort", payload });
+    await agentClientEndpoint.abort(payload);
     return jsonResponse({ ok: true });
   }
 }
