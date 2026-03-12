@@ -35,7 +35,7 @@ Options:
   --container-name <name>   Docker container name (default: nextclaw)
   --image <image>           Docker image for runtime bootstrap (default: node:22-bookworm-slim)
   --target <pkg>            npm package target inside container (default: nextclaw@latest)
-  --health-timeout <sec>    Max seconds waiting for /api/health (default: 180)
+  --health-timeout <sec>    Max seconds waiting for service readiness (default: 180)
   --dry-run                 Print docker command only
   -h, --help                Show help
 EOF
@@ -73,6 +73,8 @@ container_exists() {
 
 wait_for_health() {
   local health_url="http://127.0.0.1:${UI_PORT}/api/health"
+  local root_url="http://127.0.0.1:${UI_PORT}/"
+  local status=""
   local started_at now elapsed
   started_at="$(date +%s)"
 
@@ -82,9 +84,16 @@ wait_for_health() {
   fi
 
   while true; do
-    if curl --fail --silent --show-error --max-time 2 "${health_url}" >/dev/null 2>&1; then
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 2 "${health_url}" 2>/dev/null || true)"
+    if [[ "${status}" =~ ^[0-9]{3}$ ]] && (( status >= 200 && status < 500 )); then
       return 0
     fi
+
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 2 "${root_url}" 2>/dev/null || true)"
+    if [[ "${status}" =~ ^[0-9]{3}$ ]] && (( status >= 200 && status < 500 )); then
+      return 0
+    fi
+
     now="$(date +%s)"
     elapsed=$(( now - started_at ))
     if (( elapsed >= HEALTH_TIMEOUT_SEC )); then
@@ -205,13 +214,13 @@ log "Starting ${APP_NAME} docker container..."
 "${run_cmd[@]}" >/dev/null
 
 if ! wait_for_health; then
-  warn "Health check timeout after ${HEALTH_TIMEOUT_SEC}s: http://127.0.0.1:${UI_PORT}/api/health"
+  warn "Health check timeout after ${HEALTH_TIMEOUT_SEC}s: tried http://127.0.0.1:${UI_PORT}/api/health and http://127.0.0.1:${UI_PORT}/"
   warn "Recent logs:"
   docker logs --tail 120 "${CONTAINER_NAME}" || true
   exit 1
 fi
 
-log "Health check passed: http://127.0.0.1:${UI_PORT}/api/health"
+log "Health check passed: UI/API is reachable on port ${UI_PORT}"
 echo "UI: http://127.0.0.1:${UI_PORT}"
 echo "API: http://127.0.0.1:${UI_PORT}/api"
 echo "Gateway (direct): http://127.0.0.1:${API_PORT}"
