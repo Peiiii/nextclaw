@@ -34,6 +34,14 @@ Container: nextclaw
 
 与 `nextclaw start` 一样，你可以直接打开 UI 链接访问。
 
+## 脚本实际做了什么
+
+- 容器镜像默认使用 `node:22-bookworm-slim`，并优先启用 `docker run --init`（若当前 Docker 版本支持）。
+- 容器内启动链路是：
+  - `npm i -g nextclaw@latest`（或你通过 `NEXTCLAW_DOCKER_INSTALL_TARGET` 指定的版本）
+  - `nextclaw init`（确保配置与工作区初始化）
+  - `exec nextclaw serve --ui-port <port>`（以前台进程方式运行，符合容器常驻模型）
+
 ## 常用运维命令
 
 查看日志：
@@ -121,6 +129,7 @@ docker logs --tail 120 nextclaw
 常见原因：
 
 - 拉取镜像/安装 npm 包较慢（网络问题）
+- 首次执行 `nextclaw init` 需要初始化配置/模板
 - 端口冲突导致服务没起来
 
 ### 端口冲突

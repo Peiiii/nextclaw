@@ -67,6 +67,10 @@ has_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+docker_supports_init() {
+  docker run --help 2>/dev/null | grep -q -- '--init'
+}
+
 container_exists() {
   docker ps -a --format '{{.Names}}' | grep -Fxq "${CONTAINER_NAME}"
 }
@@ -177,7 +181,21 @@ fi
 
 DATA_DIR="$(resolve_abs_path "${DATA_DIR}")"
 
-run_cmd=(
+run_cmd_with_init=(
+  docker run -d
+  --name "${CONTAINER_NAME}"
+  --restart unless-stopped
+  --init
+  -e NEXTCLAW_HOME=/data
+  -e NEXTCLAW_UI_PORT="${UI_PORT}"
+  -p "${UI_PORT}:${UI_PORT}"
+  -p "${API_PORT}:18790"
+  -v "${DATA_DIR}:/data"
+  "${DOCKER_IMAGE}"
+  sh -lc "npm i -g ${INSTALL_TARGET} && nextclaw init && exec nextclaw serve --ui-port ${UI_PORT}"
+)
+
+run_cmd_without_init=(
   docker run -d
   --name "${CONTAINER_NAME}"
   --restart unless-stopped
@@ -187,7 +205,7 @@ run_cmd=(
   -p "${API_PORT}:18790"
   -v "${DATA_DIR}:/data"
   "${DOCKER_IMAGE}"
-  sh -lc "npm i -g ${INSTALL_TARGET} && nextclaw serve --ui-port ${UI_PORT}"
+  sh -lc "npm i -g ${INSTALL_TARGET} && nextclaw init && exec nextclaw serve --ui-port ${UI_PORT}"
 )
 
 if (( DRY_RUN == 1 )); then
@@ -197,7 +215,7 @@ if (( DRY_RUN == 1 )); then
   log "Image: ${DOCKER_IMAGE}"
   log "Target: ${INSTALL_TARGET}"
   log "Command:"
-  printf '  %q' "${run_cmd[@]}"
+  printf '  %q' "${run_cmd_with_init[@]}"
   echo
   exit 0
 fi
@@ -210,6 +228,14 @@ if ! docker version >/dev/null 2>&1; then
   fail "docker daemon is not reachable. Start docker service first."
 fi
 
+run_cmd=()
+if docker_supports_init; then
+  run_cmd=("${run_cmd_with_init[@]}")
+else
+  warn "docker runtime does not support '--init'; continuing without init process."
+  run_cmd=("${run_cmd_without_init[@]}")
+fi
+
 if container_exists; then
   log "Container '${CONTAINER_NAME}' already exists. Recreating..."
   docker rm -f "${CONTAINER_NAME}" >/dev/null
@@ -217,7 +243,7 @@ fi
 
 log "Starting ${APP_NAME} docker container..."
 "${run_cmd[@]}" >/dev/null
-log "Bootstrapping runtime inside container (npm install + first start). This may take 10-120s depending on network."
+log "Bootstrapping runtime inside container (npm install + nextclaw init + first start). This may take 10-120s depending on network."
 
 if ! wait_for_health; then
   warn "Health check timeout after ${HEALTH_TIMEOUT_SEC}s: tried http://127.0.0.1:${UI_PORT}/api/health and http://127.0.0.1:${UI_PORT}/"

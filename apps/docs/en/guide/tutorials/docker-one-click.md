@@ -34,6 +34,14 @@ Container: nextclaw
 
 Like `nextclaw start`, you can open the UI URL directly.
 
+## What The Script Actually Does
+
+- The runtime image defaults to `node:22-bookworm-slim`, and the script uses `docker run --init` when supported by your Docker runtime.
+- Inside the container, startup flow is:
+  - `npm i -g nextclaw@latest` (or the version set by `NEXTCLAW_DOCKER_INSTALL_TARGET`)
+  - `nextclaw init` (ensures config/workspace initialization)
+  - `exec nextclaw serve --ui-port <port>` (foreground process, container-friendly)
+
 ## Useful Operations
 
 View logs:
@@ -121,6 +129,7 @@ docker logs --tail 120 nextclaw
 Common reasons:
 
 - slow network while pulling image/installing npm package
+- first-run `nextclaw init` work (config/template initialization)
 - port conflict prevented service startup
 
 ### Port Conflict
