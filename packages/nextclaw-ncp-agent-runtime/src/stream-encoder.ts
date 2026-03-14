@@ -13,12 +13,16 @@ type ToolCallBuffer = {
   emittedStart?: boolean;
 };
 
+/**
+ * Converts LLM stream chunks to NCP events (text, reasoning, tool calls).
+ * Does not emit RunFinished; that is the runtime's responsibility after the loop completes.
+ */
 export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
   encode = async function* (
     stream: AsyncIterable<OpenAIChatChunk>,
     context: NcpEncodeContext,
   ): AsyncGenerator<NcpEndpointEvent> {
-    const { sessionId, messageId, runId } = context;
+    const { sessionId, messageId } = context;
     let textStarted = false;
     const toolCallBuffers = new Map<number, ToolCallBuffer>();
 
@@ -101,17 +105,6 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
         }
         if (textStarted) {
           yield { type: NcpEventType.MessageTextEnd, payload: { sessionId, messageId } };
-        }
-        if (
-          finishReason === "stop" ||
-          finishReason === "length" ||
-          finishReason === "tool_calls" ||
-          finishReason === "content_filter"
-        ) {
-          yield {
-            type: NcpEventType.RunFinished,
-            payload: { sessionId, messageId, runId },
-          };
         }
       }
     }

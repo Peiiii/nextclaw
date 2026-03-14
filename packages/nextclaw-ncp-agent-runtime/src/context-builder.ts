@@ -97,8 +97,8 @@ export class DefaultNcpContextBuilder implements NcpContextBuilder {
       messages.push(...messageToOpenAI(msg));
     }
 
-    if (input.kind === "request") {
-      messages.push(...messageToOpenAI(input.payload.message));
+    for (const msg of input.messages) {
+      messages.push(...messageToOpenAI(msg));
     }
 
     const tools: OpenAITool[] | undefined = this.toolRegistry

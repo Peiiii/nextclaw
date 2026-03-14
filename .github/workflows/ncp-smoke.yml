@@ -1,0 +1,135 @@
+name: ncp-smoke
+
+on:
+  pull_request:
+    paths:
+      - "packages/nextclaw-ncp/**"
+      - "packages/nextclaw-ncp-agent-runtime/**"
+      - "packages/nextclaw-ncp-http-agent-server/**"
+      - "packages/nextclaw-ncp-http-agent-client/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ncp-smoke.yml"
+  push:
+    branches:
+      - master
+      - main
+    paths:
+      - "packages/nextclaw-ncp/**"
+      - "packages/nextclaw-ncp-agent-runtime/**"
+      - "packages/nextclaw-ncp-http-agent-server/**"
+      - "packages/nextclaw-ncp-http-agent-client/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ncp-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ncp-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ncp-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint affected NCP packages
+        run: |
+          set -euo pipefail
+          pnpm -C packages/nextclaw-ncp lint
+          pnpm -C packages/nextclaw-ncp-agent-runtime lint
+          pnpm -C packages/nextclaw-ncp-http-agent-server lint
+          pnpm -C packages/nextclaw-ncp-http-agent-client lint
+
+      - name: Typecheck affected NCP packages
+        run: |
+          set -euo pipefail
+          pnpm -C packages/nextclaw-ncp tsc
+          pnpm -C packages/nextclaw-ncp-agent-runtime tsc
+          pnpm -C packages/nextclaw-ncp-http-agent-server tsc
+          pnpm -C packages/nextclaw-ncp-http-agent-client tsc
+
+      - name: Build affected NCP packages
+        run: |
+          set -euo pipefail
+          pnpm -C packages/nextclaw-ncp build
+          pnpm -C packages/nextclaw-ncp-toolkit build
+          pnpm -C packages/nextclaw-ncp-agent-runtime build
+          pnpm -C packages/nextclaw-ncp-http-agent-server build
+          pnpm -C packages/nextclaw-ncp-http-agent-client build
+
+      - name: Run NCP package tests
+        run: |
+          set -euo pipefail
+          pnpm -C packages/nextclaw-ncp-http-agent-server test
+          pnpm -C packages/nextclaw-ncp-http-agent-client test
+
+      - name: Runtime smoke (event loop end-to-end)
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'EOF'
+          import {
+            DefaultNcpAgentRuntime,
+            DefaultNcpContextBuilder,
+            EchoNcpLLMApi,
+            DefaultNcpToolRegistry,
+          } from "./packages/nextclaw-ncp-agent-runtime/dist/index.js";
+          import { DefaultNcpAgentConversationStateManager } from "./packages/nextclaw-ncp-toolkit/dist/index.js";
+
+          const stateManager = new DefaultNcpAgentConversationStateManager();
+          const runtime = new DefaultNcpAgentRuntime({
+            contextBuilder: new DefaultNcpContextBuilder(),
+            llmApi: new EchoNcpLLMApi(),
+            toolRegistry: new DefaultNcpToolRegistry(),
+            stateManager,
+          });
+
+          const input = {
+            sessionId: "gha-ncp-smoke-session",
+            messages: [
+              {
+                id: "msg-1",
+                sessionId: "gha-ncp-smoke-session",
+                role: "user",
+                status: "final",
+                parts: [{ type: "text", text: "ok" }],
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          };
+
+          const eventTypes = [];
+          for await (const event of runtime.run(input)) {
+            eventTypes.push(event.type);
+          }
+
+          if (!eventTypes.includes("run.started")) {
+            throw new Error("missing run.started event");
+          }
+          if (!eventTypes.includes("run.finished")) {
+            throw new Error("missing run.finished event");
+          }
+
+          console.log("ncp smoke passed:", eventTypes.join(","));
+          EOF
