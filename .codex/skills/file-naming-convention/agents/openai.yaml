@@ -1,0 +1,4 @@
+interface:
+  display_name: "File Naming Convention"
+  short_description: "Enforce consistent file naming with role-based suffixes"
+  default_prompt: "Enforce repository file naming conventions using kebab-case and role suffixes (controller/manager/store/service/etc.), and provide concrete rename plans, anti-pattern checks, and migration steps."
