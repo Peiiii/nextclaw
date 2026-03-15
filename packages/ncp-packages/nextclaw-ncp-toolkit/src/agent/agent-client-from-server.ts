@@ -1,11 +1,13 @@
 import {
+  type NcpAgentClientEndpoint,
+  type NcpAgentServerEndpoint,
+  type NcpEndpointEvent,
+  type NcpEndpointSubscriber,
   type NcpMessageAbortPayload,
   type NcpRequestEnvelope,
   type NcpStreamRequestPayload,
   NcpEventType,
-} from "../types/events.js";
-import type { NcpAgentClientEndpoint } from "./agent-client-endpoint.js";
-import type { NcpAgentServerEndpoint } from "./agent-server-endpoint.js";
+} from "@nextclaw/ncp";
 
 /**
  * Creates an NcpAgentClientEndpoint that forwards to an in-process NcpAgentServerEndpoint.
@@ -15,7 +17,21 @@ export function createAgentClientFromServer(
   server: NcpAgentServerEndpoint,
 ): NcpAgentClientEndpoint {
   return {
-    ...server,
+    get manifest() {
+      return server.manifest;
+    },
+    async start(): Promise<void> {
+      await server.start();
+    },
+    async stop(): Promise<void> {
+      await server.stop();
+    },
+    async emit(event: NcpEndpointEvent): Promise<void> {
+      await server.emit(event);
+    },
+    subscribe(listener: NcpEndpointSubscriber) {
+      return server.subscribe(listener);
+    },
     async send(envelope: NcpRequestEnvelope): Promise<void> {
       await server.emit({ type: NcpEventType.MessageRequest, payload: envelope });
     },

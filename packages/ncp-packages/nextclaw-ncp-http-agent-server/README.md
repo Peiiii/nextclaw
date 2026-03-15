@@ -18,4 +18,4 @@ pnpm -C packages/ncp-packages/nextclaw-ncp-http-agent-server build
 - `streamProvider` (optional) — When set, `/stream` serves stored events instead of forwarding to the agent. Scenario: user reconnects after network drop and wants to continue watching the previous reply; with `streamProvider` we stream from persistence, without it we forward to the agent.
 - `basePath`, `requestTimeoutMs` — path and timeout
 
-For in-process agent (`NcpAgentServerEndpoint`), use `createAgentClientFromServer` from `@nextclaw/ncp` to wrap it.
+For in-process agent (`NcpAgentServerEndpoint`), use `createAgentClientFromServer` from `@nextclaw/ncp-toolkit` to wrap it.

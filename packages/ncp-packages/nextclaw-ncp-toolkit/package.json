@@ -24,6 +24,7 @@
     "@nextclaw/ncp": "workspace:*"
   },
   "devDependencies": {
+    "@nextclaw/ncp-agent-runtime": "workspace:*",
     "@types/node": "^20.17.6",
     "prettier": "^3.3.3",
     "tsup": "^8.3.5",

@@ -40,6 +40,7 @@ async function* createForwardSseEvents(options: ForwardResponseOptions): AsyncGe
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   let unsubscribe: (() => void) | null = null;
   let stopped = false;
+  let terminalStopScheduled = false;
 
   const push = (frame: SseEventFrame) => {
     if (!stopped) {
@@ -76,7 +77,10 @@ async function* createForwardSseEvents(options: ForwardResponseOptions): AsyncGe
     }
     push(toNcpEventFrame(event));
     if (isTerminalEvent(event)) {
-      stop();
+      if (!terminalStopScheduled) {
+        terminalStopScheduled = true;
+        queueMicrotask(stop);
+      }
     }
   });
 
@@ -118,7 +122,9 @@ async function* createStoredStreamSseEvents(
         break;
       }
       yield toNcpEventFrame(event);
-      if (isTerminalEvent(event)) {
+      // Stored replay can include both message.completed and run.finished.
+      // Keep streaming past message.completed so clients can see full run lifecycle.
+      if (isTerminalEvent(event) && event.type !== "message.completed") {
         break;
       }
     }

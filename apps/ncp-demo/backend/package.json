@@ -1,0 +1,26 @@
+{
+  "name": "@nextclaw/ncp-demo-backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --tsconfig tsconfig.json server/index.ts",
+    "start": "tsx --tsconfig tsconfig.json server/index.ts",
+    "build": "tsc -p tsconfig.json --noEmit false --outDir dist",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.3",
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-http-agent-server": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*",
+    "hono": "^4.9.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

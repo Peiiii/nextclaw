@@ -4,6 +4,7 @@
   "packageManager": "pnpm@9.15.1",
   "workspaces": [
     "apps/*",
+    "apps/ncp-demo/*",
     "packages/*",
     "packages/extensions/*",
     "packages/ncp-packages/*",
@@ -22,6 +23,7 @@
     "tsc:ui": "pnpm -C packages/nextclaw-ui tsc",
     "tsc:desktop": "pnpm -C apps/desktop tsc",
     "dev": "node scripts/dev-runner.mjs",
+    "dev:ncp-demo": "pnpm -C apps/ncp-demo dev",
     "dev:backend": "pnpm -C packages/nextclaw dev serve --ui-port 18792",
     "dev:frontend": "pnpm -C packages/nextclaw-ui dev --host 127.0.0.1 --port 5174 --strictPort",
     "dev:platform": "pnpm -C apps/platform-console dev --host 127.0.0.1 --port 5176 --strictPort",
@@ -35,6 +37,7 @@
     "platform:db:migrate:local": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:local",
     "platform:db:migrate:remote": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:remote",
     "smoke:platform:mvp": "node scripts/platform-mvp-smoke.mjs",
+    "smoke:ncp-demo": "pnpm -C apps/ncp-demo smoke",
     "validate:platform:mvp": "pnpm -C workers/nextclaw-provider-gateway-api build && pnpm -C workers/nextclaw-provider-gateway-api lint && pnpm -C workers/nextclaw-provider-gateway-api tsc && pnpm -C apps/platform-console build && pnpm -C apps/platform-console lint && pnpm -C apps/platform-console tsc && pnpm -C apps/platform-admin build && pnpm -C apps/platform-admin lint && pnpm -C apps/platform-admin tsc && pnpm smoke:platform:mvp",
     "dev:desktop": "pnpm -C apps/desktop dev",
     "dev:docs": "pnpm --filter @nextclaw/docs dev",
