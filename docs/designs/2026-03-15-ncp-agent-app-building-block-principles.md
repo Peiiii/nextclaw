@@ -1,5 +1,7 @@
 # NCP Agent 应用积木化原则
 
+> 上位定位文档见：[NCP 定位与愿景](./2026-03-17-ncp-positioning-and-vision.md)
+
 ## 1. 目标定义
 
 本方向只做一件事：

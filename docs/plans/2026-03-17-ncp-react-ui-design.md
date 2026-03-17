@@ -10,6 +10,7 @@
 
 本设计基于并进一步收窄以下两份设计文档的分层约束：
 
+- [NCP 定位与愿景](../designs/2026-03-17-ncp-positioning-and-vision.md)
 - [NCP Agent 应用积木化原则](../designs/2026-03-15-ncp-agent-app-building-block-principles.md)
 - [Create Agent UI with NCP Client and Toolkit](../designs/2026-03-23-create-agent-ui-with-ncp-client-and-toolkit.md)
 
