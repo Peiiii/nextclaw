@@ -35,3 +35,7 @@
 
 如果你希望通过配置文件精细控制工具参数（如 `timeout`、`restrictToWorkspace`），
 可参考：[配置](/zh/guide/configuration) 与 [命令](/zh/guide/commands)。
+
+如果你是第一次接触 MCP，建议先看：
+
+- [MCP 教程（不碰命令行）](/zh/guide/tutorials/mcp-marketplace)

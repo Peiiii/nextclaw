@@ -9,4 +9,5 @@
 - [Qwen Portal 免费配置教程（小白版）](/zh/guide/tutorials/qwen-portal)
 - [飞书配置教程](/zh/guide/tutorials/feishu)
 - [Skills 教程（安装 + 使用）](/zh/guide/tutorials/skills)
+- [MCP 教程（不碰命令行）](/zh/guide/tutorials/mcp-marketplace)
 - [本地 Ollama + Qwen3 教程（macOS）](/zh/guide/tutorials/local-ollama-qwen3)

@@ -35,3 +35,7 @@ Best for: repetitive workflows and operational automation.
 
 For fine-grained parameters (for example `timeout`, `restrictToWorkspace`),
 see [Configuration](/en/guide/configuration) and [Commands](/en/guide/commands).
+
+If MCP is new to you, start here:
+
+- [MCP Tutorial (No Command Line)](/en/guide/tutorials/mcp-marketplace)

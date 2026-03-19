@@ -109,6 +109,7 @@ const enSidebar = [
       { text: 'Qwen Portal Setup', link: '/en/guide/tutorials/qwen-portal' },
       { text: 'Feishu Setup', link: '/en/guide/tutorials/feishu' },
       { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
+      { text: 'MCP Tutorial', link: '/en/guide/tutorials/mcp-marketplace' },
       { text: 'Local Ollama + Qwen3 (macOS)', link: '/en/guide/tutorials/local-ollama-qwen3' },
       { text: 'Unsigned Desktop Install', link: '/en/guide/tutorials/desktop-install-unsigned' },
       { text: 'Resource Hub', link: '/en/guide/resources' }
@@ -178,6 +179,7 @@ const zhSidebar = [
       { text: 'Qwen Portal 免费配置教程', link: '/zh/guide/tutorials/qwen-portal' },
       { text: '飞书配置教程', link: '/zh/guide/tutorials/feishu' },
       { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
+      { text: 'MCP 教程', link: '/zh/guide/tutorials/mcp-marketplace' },
       { text: '本地 Ollama + Qwen3 教程（macOS）', link: '/zh/guide/tutorials/local-ollama-qwen3' },
       { text: '桌面端无签名安装教程', link: '/zh/guide/tutorials/desktop-install-unsigned' },
       { text: '生态资源', link: '/zh/guide/resources' }
