@@ -76,6 +76,32 @@ describe('ChatInputBar', () => {
     expect(onRemove).toHaveBeenCalledWith('skill:web-search');
   });
 
+  it('removes the last selected chip when backspace is pressed on an empty draft', () => {
+    const onRemove = vi.fn();
+    const onKeyDown = vi.fn();
+
+    render(
+      <ChatInputBar
+        {...createInputBarProps({
+          value: '',
+          onKeyDown,
+          selectedItems: {
+            items: [
+              { key: 'skill:web-search', label: 'Web Search' },
+              { key: 'skill:docs', label: 'Docs' }
+            ],
+            onRemove
+          }
+        })}
+      />
+    );
+
+    fireEvent.keyDown(screen.getByPlaceholderText('Type a message'), { key: 'Backspace' });
+
+    expect(onRemove).toHaveBeenCalledWith('skill:docs');
+    expect(onKeyDown).not.toHaveBeenCalled();
+  });
+
   it('switches between send and stop controls', () => {
     const onSend = vi.fn();
     const onStop = vi.fn();
