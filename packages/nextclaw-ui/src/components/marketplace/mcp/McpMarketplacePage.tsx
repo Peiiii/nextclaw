@@ -41,6 +41,45 @@ type ScopeType = 'catalog' | 'installed';
 
 const PAGE_SIZE = 12;
 
+function normalizeMarketplaceKey(value: string | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+function buildInstalledRecordLookup(records: MarketplaceInstalledRecord[]): Map<string, MarketplaceInstalledRecord> {
+  const lookup = new Map<string, MarketplaceInstalledRecord>();
+
+  for (const record of records) {
+    const candidates = [record.catalogSlug, record.spec, record.id, record.label];
+    for (const candidate of candidates) {
+      const normalized = normalizeMarketplaceKey(candidate);
+      if (!normalized || lookup.has(normalized)) {
+        continue;
+      }
+      lookup.set(normalized, record);
+    }
+  }
+
+  return lookup;
+}
+
+function findInstalledRecordForItem(
+  item: MarketplaceItemSummary,
+  installedRecordLookup: Map<string, MarketplaceInstalledRecord>
+): MarketplaceInstalledRecord | undefined {
+  const candidates = [item.slug, item.install.spec, item.id, item.name];
+  for (const candidate of candidates) {
+    const normalized = normalizeMarketplaceKey(candidate);
+    if (!normalized) {
+      continue;
+    }
+    const record = installedRecordLookup.get(normalized);
+    if (record) {
+      return record;
+    }
+  }
+  return undefined;
+}
+
 function buildDocDataUrl(title: string, metadata: string, content: string, sourceUrl?: string, summary?: string): string {
   const escape = (value: string) =>
     value
@@ -252,14 +291,8 @@ export function McpMarketplacePage() {
     }
   });
 
-  const installedByCatalogSlug = useMemo(() => {
-    const map = new Map<string, MarketplaceInstalledRecord>();
-    for (const record of installedQuery.data?.records ?? []) {
-      if (record.catalogSlug) {
-        map.set(record.catalogSlug, record);
-      }
-    }
-    return map;
+  const installedRecordLookup = useMemo(() => {
+    return buildInstalledRecordLookup(installedQuery.data?.records ?? []);
   }, [installedQuery.data?.records]);
 
   const installedRecords = useMemo(() => {
@@ -349,7 +382,7 @@ export function McpMarketplacePage() {
   };
 
   const renderCard = (item?: MarketplaceItemSummary, record?: MarketplaceInstalledRecord) => {
-    const installed = record ?? (item ? installedByCatalogSlug.get(item.slug) : undefined);
+    const installed = record ?? (item ? findInstalledRecordForItem(item, installedRecordLookup) : undefined);
     const name = item?.name ?? record?.label ?? record?.id ?? 'MCP';
     const summary = readSummary(localeFallbacks, item, record);
     const transport = readTransportLabel(item, record);

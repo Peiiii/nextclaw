@@ -145,4 +145,64 @@ describe('McpMarketplacePage', () => {
 
     expect(screen.getByText('把 MCP 客户端接入 Chrome DevTools，用于浏览器检查与自动化。')).toBeTruthy();
   });
+
+  it('hides install button when an installed record matches by spec without catalog slug', () => {
+    mocks.itemsQuery = createItemsQuery({
+      data: {
+        total: 1,
+        page: 1,
+        pageSize: 12,
+        totalPages: 1,
+        sort: 'relevance',
+        items: [
+          {
+            id: 'mcp-chrome-devtools',
+            slug: 'chrome-devtools',
+            type: 'mcp',
+            name: 'Chrome DevTools MCP',
+            summary: 'Connect MCP clients to Chrome DevTools for browser inspection and automation.',
+            summaryI18n: {
+              en: 'Connect MCP clients to Chrome DevTools for browser inspection and automation.',
+              zh: '把 MCP 客户端接入 Chrome DevTools，用于浏览器检查与自动化。'
+            },
+            tags: ['mcp', 'browser'],
+            author: 'Chrome DevTools',
+            install: {
+              kind: 'template',
+              spec: 'chrome-devtools',
+              command: 'nextclaw mcp add chrome-devtools -- npx -y chrome-devtools-mcp@latest'
+            },
+            updatedAt: '2026-03-19T00:00:00.000Z'
+          }
+        ]
+      }
+    });
+    mocks.installedQuery = createInstalledQuery({
+      data: {
+        type: 'mcp',
+        total: 1,
+        specs: ['chrome-devtools'],
+        records: [
+          {
+            type: 'mcp',
+            id: 'chrome-devtools',
+            spec: 'chrome-devtools',
+            label: 'Chrome DevTools MCP',
+            enabled: true,
+            runtimeStatus: 'enabled',
+            transport: 'stdio',
+            scope: {
+              allAgents: true,
+              agents: []
+            }
+          }
+        ]
+      }
+    });
+
+    render(<McpMarketplacePage />);
+
+    expect(screen.queryByText('Install')).toBeNull();
+    expect(screen.getByText('Disable')).toBeTruthy();
+  });
 });
