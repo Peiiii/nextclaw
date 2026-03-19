@@ -15,6 +15,7 @@ import {
   DEFAULT_WORKSPACE_DIR,
   DEFAULT_WORKSPACE_PATH,
 } from "@nextclaw/core";
+import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
   resolvePluginChannelMessageToolHints,
@@ -25,10 +26,7 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import {
-  RestartCoordinator,
-  type RestartStrategy,
-} from "./restart-coordinator.js";
+import { RestartCoordinator, type RestartStrategy } from "./restart-coordinator.js";
 import { writeRestartSentinel } from "./restart-sentinel.js";
 import { installMarketplaceSkill, publishMarketplaceSkill } from "./skills/marketplace.js";
 import { runSelfUpdate } from "./update/runner.js";
@@ -49,8 +47,8 @@ import { CronCommands } from "./commands/cron.js";
 import { PlatformAuthCommands } from "./commands/platform-auth.js";
 import { RemoteCommands } from "./commands/remote.js";
 import { DiagnosticsCommands } from "./commands/diagnostics.js";
+import { hasRunningNextclawManagedService } from "./commands/remote-runtime-support.js";
 import { ServiceCommands } from "./commands/service.js";
-import { RemoteRuntimeActions } from "./remote/remote-runtime-actions.js";
 import { WorkspaceManager } from "./workspace.js";
 import type {
   AgentCommandOptions,
@@ -135,9 +133,11 @@ export class CliRuntime {
     this.platformAuthCommands = new PlatformAuthCommands();
     this.remoteCommands = new RemoteCommands();
     this.remote = new RemoteRuntimeActions({
+      appName: APP_NAME,
       initAuto: (source) => this.init({ source, auto: true }),
       remoteCommands: this.remoteCommands,
       restartBackgroundService: (reason) => this.restartBackgroundService(reason),
+      hasRunningManagedService: hasRunningNextclawManagedService
     });
     this.diagnosticsCommands = new DiagnosticsCommands({ logo: this.logo });
 

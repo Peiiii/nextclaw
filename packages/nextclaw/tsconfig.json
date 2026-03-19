@@ -16,6 +16,9 @@
       "@nextclaw/runtime": [
         "../nextclaw-runtime/src/index.ts"
       ],
+      "@nextclaw/remote": [
+        "../nextclaw-remote/src/index.ts"
+      ],
       "@nextclaw/server": [
         "../nextclaw-server/src/index.ts"
       ],

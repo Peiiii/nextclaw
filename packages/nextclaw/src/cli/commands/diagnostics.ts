@@ -19,7 +19,7 @@ import {
   resolveUiConfig
 } from "../utils.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "./diagnostics-render.js";
-import { resolveRemoteStatusSnapshot } from "../remote/remote-status-store.js";
+import { resolveNextclawRemoteStatusSnapshot } from "./remote-runtime-support.js";
 import type {
   DoctorCommandOptions,
   HealthProbe,
@@ -173,7 +173,7 @@ export class DiagnosticsCommands {
       : { state: "unreachable", detail: "service not running" };
 
     const configuredHealth = await this.probeApiHealth(`${configuredApiUrl}/health`, 900);
-    const remote = resolveRemoteStatusSnapshot(config);
+    const remote = resolveNextclawRemoteStatusSnapshot(config);
     const orphanSuspected = !running && configuredHealth.state === "ok";
     const providers = this.listProviderStatuses(config);
 

@@ -1,0 +1,47 @@
+{
+  "name": "@nextclaw/remote",
+  "version": "0.1.3",
+  "private": false,
+  "description": "Remote access runtime for NextClaw device registration, relay bridging, and service-managed connectivity.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Peiiii/nextclaw.git",
+    "directory": "packages/nextclaw-remote"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-remote",
+  "keywords": [
+    "nextclaw",
+    "remote",
+    "relay",
+    "cli"
+  ],
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --out-dir dist",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/server": "workspace:*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "prettier": "^3.3.3",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  }
+}

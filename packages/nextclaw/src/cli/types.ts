@@ -1,5 +1,12 @@
 import type { RestartStrategy } from "./restart-coordinator.js";
-import type { RemoteRuntimeState } from "./utils.js";
+import type { RemoteRuntimeState } from "@nextclaw/remote";
+
+export type {
+  RemoteConnectCommandOptions,
+  RemoteDoctorCommandOptions,
+  RemoteEnableCommandOptions,
+  RemoteStatusCommandOptions
+} from "@nextclaw/remote";
 
 export type GatewayCommandOptions = {
   ui?: boolean;
@@ -34,26 +41,6 @@ export type LoginCommandOptions = {
   email?: string;
   password?: string;
   register?: boolean;
-};
-
-export type RemoteConnectCommandOptions = {
-  apiBase?: string;
-  localOrigin?: string;
-  name?: string;
-  once?: boolean;
-};
-
-export type RemoteEnableCommandOptions = {
-  apiBase?: string;
-  name?: string;
-};
-
-export type RemoteStatusCommandOptions = {
-  json?: boolean;
-};
-
-export type RemoteDoctorCommandOptions = {
-  json?: boolean;
 };
 
 export type PluginsListOptions = {

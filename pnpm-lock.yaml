@@ -783,6 +783,9 @@ importers:
       '@nextclaw/openclaw-compat':
         specifier: workspace:*
         version: link:../nextclaw-openclaw-compat
+      '@nextclaw/remote':
+        specifier: workspace:*
+        version: link:../nextclaw-remote
       '@nextclaw/runtime':
         specifier: workspace:*
         version: link:../nextclaw-runtime
@@ -1074,6 +1077,31 @@ importers:
       vitest:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.33)(jsdom@25.0.1)
+
+  packages/nextclaw-remote:
+    dependencies:
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../nextclaw-core
+      '@nextclaw/server':
+        specifier: workspace:*
+        version: link:../nextclaw-server
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
 
   packages/nextclaw-runtime:
     dependencies:

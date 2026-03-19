@@ -1,14 +1,8 @@
 import { getConfigPath, loadConfig, saveConfig, type Config } from "@nextclaw/core";
+import { type RemoteConnectCommandOptions, type RemoteDoctorCommandOptions, type RemoteEnableCommandOptions, type RemoteStatusCommandOptions } from "@nextclaw/remote";
 import { hostname } from "node:os";
-import type {
-  RemoteConnectCommandOptions,
-  RemoteDoctorCommandOptions,
-  RemoteEnableCommandOptions,
-  RemoteStatusCommandOptions
-} from "../types.js";
 import { isProcessRunning, readServiceState } from "../utils.js";
-import { RemoteConnector } from "../remote/remote-connector.js";
-import { resolveRemoteStatusSnapshot } from "../remote/remote-status-store.js";
+import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./remote-runtime-support.js";
 
 type RemoteConfigChange = {
   changed: boolean;
@@ -86,7 +80,7 @@ export class RemoteCommands {
   }
 
   async connect(opts: RemoteConnectCommandOptions = {}): Promise<void> {
-    const connector = new RemoteConnector();
+    const connector = createNextclawRemoteConnector();
     await connector.run({
       ...opts,
       mode: "foreground"
@@ -95,7 +89,7 @@ export class RemoteCommands {
 
   async status(opts: RemoteStatusCommandOptions = {}): Promise<void> {
     const config = loadConfig(getConfigPath());
-    const snapshot = resolveRemoteStatusSnapshot(config);
+    const snapshot = resolveNextclawRemoteStatusSnapshot(config);
 
     if (opts.json) {
       console.log(JSON.stringify(snapshot, null, 2));
@@ -125,7 +119,7 @@ export class RemoteCommands {
 
   async doctor(opts: RemoteDoctorCommandOptions = {}): Promise<void> {
     const config = loadConfig(getConfigPath());
-    const snapshot = resolveRemoteStatusSnapshot(config);
+    const snapshot = resolveNextclawRemoteStatusSnapshot(config);
     const localOrigin = resolveConfiguredLocalOrigin(config);
     const localUi = await probeLocalUi(localOrigin);
     const token = normalizeOptionalString(config.providers.nextclaw?.apiKey);

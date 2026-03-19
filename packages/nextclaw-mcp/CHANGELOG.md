@@ -1,5 +1,23 @@
 # @nextclaw/mcp
 
+## 0.1.7
+
+### Patch Changes
+
+- Publish the final host-adapter cleanup for the remote package split so the released nextclaw version matches the finalized repository state.
+
+## 0.1.6
+
+### Patch Changes
+
+- Publish the remote runtime package split through fresh npm versions after the previously generated versions were already occupied on npm.
+
+## 0.1.5
+
+### Patch Changes
+
+- Split the remote access runtime into a standalone `@nextclaw/remote` package and make `nextclaw` consume it through a thin host adapter.
+
 ## 0.1.4
 
 ### Patch Changes

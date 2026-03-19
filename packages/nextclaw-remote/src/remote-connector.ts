@@ -1,18 +1,24 @@
 import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.js";
-import {
-  RemotePlatformClient,
-  delay,
-  redactWsUrl,
-  type RegisteredRemoteDevice,
-  type RemoteConnectorRunOptions,
-  type RemoteLogger,
-  type RemoteRunContext
-} from "./remote-platform-client.js";
+import { RemotePlatformClient, delay, redactWsUrl } from "./remote-platform-client.js";
+import type {
+  RegisteredRemoteDevice,
+  RemoteConnectorRunOptions,
+  RemoteLogger,
+  RemoteRunContext
+} from "./types.js";
 
 export class RemoteConnector {
-  private readonly platformClient = new RemotePlatformClient();
+  constructor(
+    private readonly deps: {
+      platformClient: RemotePlatformClient;
+      relayBridgeFactory?: (localOrigin: string) => RemoteRelayBridge;
+      logger?: RemoteLogger;
+    }
+  ) {}
 
-  constructor(private readonly logger: RemoteLogger = console) {}
+  private get logger(): RemoteLogger {
+    return this.deps.logger ?? console;
+  }
 
   private async connectOnce(params: {
     wsUrl: string;
@@ -144,7 +150,7 @@ export class RemoteConnector {
     if (params.device) {
       return params.device;
     }
-    const device = await this.platformClient.registerDevice({
+    const device = await this.deps.platformClient.registerDevice({
       platformBase: params.context.platformBase,
       token: params.context.token,
       deviceInstallId: params.context.deviceInstallId,
@@ -223,8 +229,10 @@ export class RemoteConnector {
   }
 
   async run(opts: RemoteConnectorRunOptions = {}): Promise<void> {
-    const context = this.platformClient.resolveRunContext(opts);
-    const relayBridge = new RemoteRelayBridge(context.localOrigin);
+    const context = this.deps.platformClient.resolveRunContext(opts);
+    const relayBridge = (this.deps.relayBridgeFactory ?? ((localOrigin) => new RemoteRelayBridge(localOrigin)))(
+      context.localOrigin
+    );
     await relayBridge.ensureLocalUiHealthy();
     let device: RegisteredRemoteDevice | null = null;
 

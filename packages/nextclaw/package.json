@@ -1,6 +1,6 @@
 {
   "name": "nextclaw",
-  "version": "0.13.4",
+  "version": "0.13.7",
   "description": "Lightweight personal AI assistant with CLI, multi-provider routing, and channel integrations.",
   "private": false,
   "type": "module",
@@ -55,6 +55,7 @@
     "@nextclaw/ncp-agent-runtime": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
+    "@nextclaw/remote": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/server": "workspace:*",
     "@nextclaw/openclaw-compat": "workspace:*"

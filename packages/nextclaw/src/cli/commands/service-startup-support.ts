@@ -1,5 +1,5 @@
 import type { startPluginChannelGateways } from "@nextclaw/openclaw-compat";
-import type { RemoteServiceModule } from "../remote/remote-service-module.js";
+import type { RemoteServiceModule } from "@nextclaw/remote";
 
 export const pluginGatewayLogger = {
   info: (message: string) => console.log(`[plugins] ${message}`),

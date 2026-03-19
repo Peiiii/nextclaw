@@ -88,7 +88,7 @@ export class RemoteRelayBridge {
         "x-nextclaw-ui-bridge-secret": ensureUiBridgeSecret()
       }
     });
-    const payload = await response.json() as { ok?: boolean; data?: { cookie?: string | null }; error?: { message?: string } };
+    const payload = (await response.json()) as { ok?: boolean; data?: { cookie?: string | null }; error?: { message?: string } };
     if (!response.ok || !payload.ok) {
       throw new Error(payload.error?.message ?? `Failed to request local auth bridge (${response.status}).`);
     }

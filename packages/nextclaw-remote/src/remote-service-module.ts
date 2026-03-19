@@ -1,29 +1,24 @@
 import type { Config } from "@nextclaw/core";
 import { RemoteConnector } from "./remote-connector.js";
-import { RemoteStatusStore } from "./remote-status-store.js";
-
-type RemoteServiceLogger = {
-  info: (message: string) => void;
-  warn: (message: string) => void;
-  error: (message: string) => void;
-};
+import type { RemoteLogger, RemoteStatusWriter } from "./types.js";
 
 export class RemoteServiceModule {
   private abortController: AbortController | null = null;
   private runTask: Promise<void> | null = null;
-  private readonly statusStore = new RemoteStatusStore("service");
 
   constructor(
     private readonly deps: {
       config: Config;
       localOrigin: string;
-      logger?: RemoteServiceLogger;
+      statusStore: RemoteStatusWriter;
+      createConnector: (logger: RemoteLogger) => RemoteConnector;
+      logger?: RemoteLogger;
     }
   ) {}
 
   start(): Promise<void> | null {
     if (!this.deps.config.remote.enabled) {
-      this.statusStore.write({
+      this.deps.statusStore.write({
         enabled: false,
         state: "disabled",
         deviceName: undefined,
@@ -43,18 +38,18 @@ export class RemoteServiceModule {
     };
 
     this.abortController = new AbortController();
-    const connector = new RemoteConnector(logger);
+    const connector = this.deps.createConnector(logger);
     this.runTask = connector.run({
       mode: "service",
       signal: this.abortController.signal,
       autoReconnect: this.deps.config.remote.autoReconnect,
       localOrigin: this.deps.localOrigin,
-      statusStore: this.statusStore
+      statusStore: this.deps.statusStore
     });
 
     void this.runTask.catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
-      this.statusStore.write({
+      this.deps.statusStore.write({
         enabled: true,
         state: "error",
         deviceName: this.deps.config.remote.deviceName || undefined,

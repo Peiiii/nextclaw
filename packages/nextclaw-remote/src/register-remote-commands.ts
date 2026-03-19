@@ -1,7 +1,20 @@
 import type { Command } from "commander";
-import type { RemoteRuntimeActions } from "./remote-runtime-actions.js";
+import type {
+  RemoteConnectCommandOptions,
+  RemoteDoctorCommandOptions,
+  RemoteEnableCommandOptions,
+  RemoteStatusCommandOptions
+} from "./types.js";
 
-export function registerRemoteCommands(program: Command, runtime: RemoteRuntimeActions): void {
+type RemoteCommandRuntime = {
+  enable: (opts?: RemoteEnableCommandOptions) => Promise<void>;
+  disable: () => Promise<void>;
+  status: (opts?: RemoteStatusCommandOptions) => Promise<void>;
+  doctor: (opts?: RemoteDoctorCommandOptions) => Promise<void>;
+  connect: (opts?: RemoteConnectCommandOptions) => Promise<void>;
+};
+
+export function registerRemoteCommands(program: Command, runtime: RemoteCommandRuntime): void {
   const remote = program.command("remote").description("Manage remote access");
 
   remote

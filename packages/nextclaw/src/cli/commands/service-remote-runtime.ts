@@ -1,7 +1,11 @@
 import type { Config } from "@nextclaw/core";
+import { RemoteServiceModule } from "@nextclaw/remote";
 import { readServiceState, writeServiceState, type ServiceState } from "../utils.js";
-import { RemoteServiceModule } from "../remote/remote-service-module.js";
-import { buildConfiguredRemoteState } from "../remote/remote-status-store.js";
+import {
+  buildNextclawConfiguredRemoteState,
+  createNextclawRemoteConnector,
+  createNextclawRemoteStatusStore
+} from "./remote-runtime-support.js";
 
 type ManagedServiceSnapshot = {
   pid: number;
@@ -22,6 +26,8 @@ export function createManagedRemoteModule(params: {
   return new RemoteServiceModule({
     config: params.config,
     localOrigin: params.localOrigin,
+    statusStore: createNextclawRemoteStatusStore("service"),
+    createConnector: (logger) => createNextclawRemoteConnector({ logger }),
     logger: {
       info: (message) => console.log(`[remote] ${message}`),
       warn: (message) => console.warn(`[remote] ${message}`),
@@ -46,7 +52,7 @@ export function writeInitialManagedServiceState(params: {
     startupLastProbeError: null,
     startupTimeoutMs: params.readinessTimeoutMs,
     startupCheckedAt: new Date().toISOString(),
-    ...(params.config.remote.enabled ? { remote: buildConfiguredRemoteState(params.config) } : {})
+    ...(params.config.remote.enabled ? { remote: buildNextclawConfiguredRemoteState(params.config) } : {})
   });
 }
 

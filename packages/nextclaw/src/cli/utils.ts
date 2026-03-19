@@ -5,6 +5,7 @@ import { isIP } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Config } from "@nextclaw/core";
+import type { RemoteRuntimeState } from "@nextclaw/remote";
 import { getDataDir, getPackageVersion as getCorePackageVersion } from "@nextclaw/core";
 
 export type ServiceState = {
@@ -20,19 +21,6 @@ export type ServiceState = {
   startupTimeoutMs?: number;
   startupCheckedAt?: string;
   remote?: RemoteRuntimeState;
-};
-
-export type RemoteRuntimeState = {
-  enabled: boolean;
-  mode: "service" | "foreground";
-  state: "disabled" | "connecting" | "connected" | "disconnected" | "error";
-  deviceId?: string;
-  deviceName?: string;
-  platformBase?: string;
-  localOrigin?: string;
-  lastConnectedAt?: string | null;
-  lastError?: string | null;
-  updatedAt: string;
 };
 
 export function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]>): Config["ui"] {

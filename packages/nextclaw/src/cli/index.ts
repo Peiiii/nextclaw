@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
+import { registerRemoteCommands } from "@nextclaw/remote";
 import { CliRuntime, LOGO } from "./runtime.js";
-import { registerRemoteCommands } from "./remote/register-remote-commands.js";
 import { getPackageVersion } from "./utils.js";
 
 const program = new Command();
