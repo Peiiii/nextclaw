@@ -253,7 +253,7 @@ function resolveBaseQueryOptions(params: {
 const plugin: PluginDefinition = {
   id: PLUGIN_ID,
   name: "NextClaw Claude NCP Runtime",
-  description: "Registers NCP session type `claude` backed by Anthropic Claude Code SDK.",
+  description: "Registers NCP session type `claude` backed by Anthropic Claude Agent SDK.",
   configSchema: {
     type: "object",
     additionalProperties: true,

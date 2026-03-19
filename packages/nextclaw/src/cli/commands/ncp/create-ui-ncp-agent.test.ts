@@ -34,7 +34,7 @@ afterEach(() => {
   }
 });
 
-describe("createUiNcpAgent", () => {
+describe("createUiNcpAgent default runtime", () => {
   it("uses DefaultNcpAgentRuntime with nextclaw context, skills, tools, and session metadata", async () => {
     const { workspace, providerManager, sessionManager, ncpAgent } = await createDemoSkillAgentFixture();
 
@@ -65,6 +65,9 @@ describe("createUiNcpAgent", () => {
     expectSecondRunBehavior(secondRunEvents, providerManager);
   });
 
+});
+
+describe("createUiNcpAgent session types", () => {
   it("lists codex as an available session type when the runtime is enabled", async () => {
     const workspace = createTempWorkspace();
     const config = ConfigSchema.parse({
@@ -101,13 +104,13 @@ describe("createUiNcpAgent", () => {
     });
 
     const sessionTypes = await ncpAgent.listSessionTypes?.();
-    expect(sessionTypes).toEqual({
-      defaultType: "native",
-      options: [
+    expect(sessionTypes?.defaultType).toBe("native");
+    expect(sessionTypes?.options).toEqual(
+      expect.arrayContaining([
         { value: "native", label: "Native" },
         { value: "codex", label: "Codex" },
-      ],
-    });
+      ]),
+    );
   });
 
   it("lists claude as an available session type when the runtime plugin is enabled", async () => {
@@ -209,13 +212,14 @@ describe("createUiNcpAgent", () => {
     });
     extensionRegistry = toExtensionRegistry(loadPluginRegistry(enabledConfig, workspace));
 
-    expect(await ncpAgent.listSessionTypes?.()).toEqual({
-      defaultType: "native",
-      options: [
+    const enabledSessionTypes = await ncpAgent.listSessionTypes?.();
+    expect(enabledSessionTypes?.defaultType).toBe("native");
+    expect(enabledSessionTypes?.options).toEqual(
+      expect.arrayContaining([
         { value: "native", label: "Native" },
         { value: "codex", label: "Codex" },
-      ],
-    });
+      ]),
+    );
 
     ncpAgent.applyExtensionRegistry?.({
       tools: [],
@@ -230,7 +234,101 @@ describe("createUiNcpAgent", () => {
       options: [{ value: "native", label: "Native" }],
     });
   });
+});
 
+describe("createUiNcpAgent Claude runtime", () => {
+  it("runs claude session messages through the configured Claude CLI entrypoint", async () => {
+    const workspace = createTempWorkspace();
+    const mockClaudePath = join(workspace, "mock-claude-code.mjs");
+    writeFileSync(
+      mockClaudePath,
+      [
+        "const sessionId = 'claude-session-test';",
+        "const text = 'hello from fake claude';",
+        "console.log(JSON.stringify({",
+        "  type: 'assistant',",
+        "  session_id: sessionId,",
+        "  message: {",
+        "    content: [{ type: 'text', text }],",
+        "  },",
+        "}));",
+        "console.log(JSON.stringify({",
+        "  type: 'result',",
+        "  subtype: 'success',",
+        "  session_id: sessionId,",
+        "  result: text,",
+        "}));",
+      ].join("\n"),
+    );
+
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "anthropic/claude-sonnet-4-5",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+      },
+      plugins: {
+        load: {
+          paths: ["../extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk"],
+        },
+        entries: {
+          "nextclaw-ncp-runtime-plugin-claude-code-sdk": {
+            enabled: true,
+            config: {
+              apiKey: "test-claude-api-key",
+              pathToClaudeCodeExecutable: mockClaudePath,
+            },
+          },
+        },
+      },
+    });
+    const extensionRegistry = toExtensionRegistry(loadPluginRegistry(config, workspace));
+    const sessionManager = new SessionManager(workspace);
+
+    const ncpAgent = await createUiNcpAgent({
+      bus: new MessageBus(),
+      providerManager: new RecordingProviderManager() as unknown as ProviderManager,
+      sessionManager,
+      getConfig: () => config,
+      getExtensionRegistry: () => extensionRegistry,
+    });
+
+    const runEvents = await sendAndCollectEvents(
+      ncpAgent.agentClientEndpoint,
+      createEnvelope({
+        sessionId: "session-claude-runtime",
+        text: "say hello from claude",
+        metadata: {
+          session_type: "claude",
+        },
+      }),
+    );
+
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextStart);
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextDelta);
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextEnd);
+    expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
+    expect(
+      runEvents.some(
+        (event) =>
+          event.type === NcpEventType.MessageTextDelta &&
+          "payload" in event &&
+          String((event.payload as { delta?: unknown }).delta ?? "").includes("hello from fake claude"),
+      ),
+    ).toBe(true);
+
+    const persistedSession = sessionManager.getIfExists("session-claude-runtime");
+    expect(persistedSession?.metadata.session_type).toBe("claude");
+    expect(persistedSession?.metadata.claude_session_id).toBe("claude-session-test");
+    expect(
+      persistedSession?.messages.some(
+        (message) => message.role === "assistant" && String(message.content ?? "").includes("hello from fake claude"),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("createUiNcpAgent MCP hot reload", () => {

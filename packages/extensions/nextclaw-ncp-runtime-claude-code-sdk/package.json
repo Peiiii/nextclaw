@@ -2,7 +2,7 @@
   "name": "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk",
   "version": "0.1.1",
   "private": false,
-  "description": "Optional NCP runtime adapter backed by Anthropic Claude Code SDK.",
+  "description": "Optional NCP runtime adapter backed by Anthropic Claude Agent SDK.",
   "type": "module",
   "exports": {
     ".": {
@@ -22,7 +22,7 @@
   ],
   "dependencies": {
     "@nextclaw/ncp": "workspace:*",
-    "@anthropic-ai/claude-code": "^2.1.79"
+    "@anthropic-ai/claude-agent-sdk": "^0.2.63"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

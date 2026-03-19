@@ -1,9 +1,15 @@
+let cachedModule = null;
+
 async function loadClaudeCodeSdkModule() {
-  const mod = await import("@anthropic-ai/claude-code");
-  if (!mod || typeof mod.query !== "function") {
-    throw new Error("[claude-ncp-runtime] failed to load query() from @anthropic-ai/claude-code");
+  if (cachedModule) {
+    return cachedModule;
   }
-  return mod;
+  const mod = await import("@anthropic-ai/claude-agent-sdk");
+  if (!mod || typeof mod.query !== "function") {
+    throw new Error("[claude-agent-sdk] failed to load query() from @anthropic-ai/claude-agent-sdk");
+  }
+  cachedModule = mod;
+  return cachedModule;
 }
 
 module.exports = {

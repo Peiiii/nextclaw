@@ -2,7 +2,7 @@
   "name": "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
   "version": "0.1.2",
   "private": false,
-  "description": "NextClaw plugin that registers Claude Code SDK as an optional NCP runtime.",
+  "description": "NextClaw plugin that registers Claude Agent SDK as an optional NCP runtime.",
   "type": "module",
   "exports": {
     ".": {

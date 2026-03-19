@@ -2,7 +2,7 @@
   "id": "nextclaw-ncp-runtime-plugin-claude-code-sdk",
   "kind": "agent-runtime",
   "name": "NextClaw Claude NCP Runtime",
-  "description": "Registers NCP session type `claude` backed by Anthropic Claude Code SDK.",
+  "description": "Registers NCP session type `claude` backed by Anthropic Claude Agent SDK.",
   "version": "0.1.2",
   "configSchema": {
     "type": "object",
