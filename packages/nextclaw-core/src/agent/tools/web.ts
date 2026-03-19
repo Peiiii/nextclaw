@@ -125,6 +125,34 @@ function normalizeBochaResults(payload: unknown): SearchResultItem[] {
   return results;
 }
 
+function normalizeTavilyResults(payload: unknown): SearchResultItem[] {
+  if (!isRecord(payload) || !Array.isArray(payload.results)) {
+    return [];
+  }
+  const results: SearchResultItem[] = [];
+  for (const entry of payload.results) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+    const title = getStringByKeys(entry, ["title"]);
+    const url = getStringByKeys(entry, ["url"]);
+    if (!title || !url) {
+      continue;
+    }
+    const item: SearchResultItem = {
+      title,
+      url,
+      summary: getStringByKeys(entry, ["content", "snippet"]) ?? ""
+    };
+    const publishedAt = getStringByKeys(entry, ["published_date"]);
+    if (publishedAt) {
+      item.publishedAt = publishedAt;
+    }
+    results.push(item);
+  }
+  return results;
+}
+
 function formatResults(results: SearchResultItem[]): string {
   return results
     .map((item) => {
@@ -197,7 +225,12 @@ export class WebSearchTool extends Tool {
       return `Error: ${provider} search request failed (${response.status})${details}`;
     }
     const payload = (await response.json()) as unknown;
-    const results = provider === "bocha" ? normalizeBochaResults(payload) : normalizeBraveResults(payload);
+    const results =
+      provider === "bocha"
+        ? normalizeBochaResults(payload)
+        : provider === "tavily"
+          ? normalizeTavilyResults(payload)
+          : normalizeBraveResults(payload);
     if (!results.length) {
       return "No results found.";
     }
@@ -226,6 +259,26 @@ export class WebSearchTool extends Tool {
           summary: bocha.summary,
           freshness: bocha.freshness,
           count: maxResults
+        })
+      });
+    }
+    if (provider === "tavily") {
+      const tavily = this.config?.providers.tavily;
+      if (!tavily?.apiKey) {
+        throw new Error("Tavily API key not configured");
+      }
+      return fetch(tavily.baseUrl, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${tavily.apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          query,
+          max_results: maxResults,
+          search_depth: tavily.searchDepth ?? "basic",
+          include_answer: tavily.includeAnswer ?? false
         })
       });
     }
