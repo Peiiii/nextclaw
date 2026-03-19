@@ -11,11 +11,35 @@
       "apiKey": {
         "type": "string"
       },
+      "authToken": {
+        "type": "string"
+      },
       "apiBase": {
         "type": "string"
       },
       "model": {
         "type": "string"
+      },
+      "supportedModels": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "useProviderCredentials": {
+        "type": "boolean"
+      },
+      "anthropicCompatibleProviderNames": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "gatewayProviderNames": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       },
       "workingDirectory": {
         "type": "string"
@@ -38,6 +62,21 @@
       },
       "requestTimeoutMs": {
         "type": "number"
+      },
+      "capabilityProbe": {
+        "type": "boolean"
+      },
+      "capabilityCacheTtlMs": {
+        "type": "number"
+      },
+      "probeTimeoutMs": {
+        "type": "number"
+      },
+      "executionProbeTimeoutMs": {
+        "type": "number"
+      },
+      "verifyExecution": {
+        "type": "boolean"
       },
       "additionalDirectories": {
         "type": "array",
@@ -109,14 +148,36 @@
   "uiHints": {
     "apiKey": {
       "label": "Claude API Key",
-      "help": "Optional. Falls back to the selected provider API key when omitted.",
+      "help": "Optional explicit fallback. Prefer configuring a Claude-compatible provider/model in NextClaw.",
+      "sensitive": true
+    },
+    "authToken": {
+      "label": "Claude Auth Token",
+      "help": "Optional explicit fallback for Anthropic-compatible gateways.",
       "sensitive": true
     },
     "apiBase": {
-      "label": "Claude API Base"
+      "label": "Claude API Base",
+      "help": "Optional explicit fallback. Anthropic-compatible provider routes should usually come from Providers."
     },
     "model": {
       "label": "Default Model"
+    },
+    "supportedModels": {
+      "label": "Supported Models",
+      "advanced": true
+    },
+    "useProviderCredentials": {
+      "label": "Force Current Provider Credentials",
+      "advanced": true
+    },
+    "anthropicCompatibleProviderNames": {
+      "label": "Anthropic-Compatible Providers",
+      "advanced": true
+    },
+    "gatewayProviderNames": {
+      "label": "Claude Gateway Providers",
+      "advanced": true
     },
     "workingDirectory": {
       "label": "Working Directory",
@@ -132,6 +193,14 @@
     },
     "requestTimeoutMs": {
       "label": "Request Timeout (ms)",
+      "advanced": true
+    },
+    "capabilityProbe": {
+      "label": "Capability Probe",
+      "advanced": true
+    },
+    "verifyExecution": {
+      "label": "Verify Execution",
       "advanced": true
     },
     "allowedTools": {

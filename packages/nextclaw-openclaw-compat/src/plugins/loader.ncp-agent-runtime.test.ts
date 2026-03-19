@@ -229,6 +229,39 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
     expect(plugin?.ncpAgentRuntimeKinds).toEqual(["test-runtime"]);
   });
 
+  it("discovers installed runtime plugins from plugins.installs.installPath without extra load paths", () => {
+    const pluginDir = createTempPluginDir();
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-ncp-runtime-plugin"],
+        installs: {
+          "test-ncp-runtime-plugin": {
+            source: "npm",
+            spec: "@test/ncp-runtime-plugin",
+            installPath: pluginDir,
+          },
+        },
+        entries: {
+          "test-ncp-runtime-plugin": {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.ncpAgentRuntimes).toHaveLength(1);
+    expect(registry.ncpAgentRuntimes[0]).toMatchObject({
+      pluginId: "test-ncp-runtime-plugin",
+      kind: "test-runtime",
+      label: "Test Runtime",
+    });
+  });
+
   it("reloads updated runtime plugin code from the same path without reusing stale module cache", () => {
     const pluginDir = createTempPluginDir();
     const config = ConfigSchema.parse({

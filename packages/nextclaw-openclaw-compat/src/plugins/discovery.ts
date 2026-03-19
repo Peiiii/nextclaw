@@ -24,6 +24,26 @@ export type PluginDiscoveryResult = {
   diagnostics: PluginDiagnostic[];
 };
 
+function collectConfiguredInstallPaths(config?: Config): string[] {
+  if (!config?.plugins?.installs) {
+    return [];
+  }
+
+  const paths: string[] = [];
+  for (const installRecord of Object.values(config.plugins.installs)) {
+    if (!installRecord || typeof installRecord !== "object") {
+      continue;
+    }
+    const installPath = typeof installRecord.installPath === "string" ? installRecord.installPath.trim() : "";
+    if (!installPath || paths.includes(installPath)) {
+      continue;
+    }
+    paths.push(installPath);
+  }
+
+  return paths;
+}
+
 function resolveUserPath(input: string): string {
   return path.resolve(expandHome(input));
 }
@@ -290,7 +310,8 @@ export function discoverOpenClawPlugins(params: {
   const seen = new Set<string>();
 
   const workspaceDir = params.workspaceDir?.trim();
-  const loadPaths = params.extraPaths ?? params.config?.plugins?.load?.paths ?? [];
+  const configuredLoadPaths = params.extraPaths ?? params.config?.plugins?.load?.paths ?? [];
+  const loadPaths = [...configuredLoadPaths, ...collectConfiguredInstallPaths(params.config)];
 
   for (const rawPath of loadPaths) {
     if (typeof rawPath !== "string") {

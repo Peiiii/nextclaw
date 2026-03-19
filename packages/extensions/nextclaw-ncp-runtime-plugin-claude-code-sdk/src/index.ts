@@ -9,14 +9,16 @@ import {
 import {
   buildClaudeInputBuilder,
   intersectSdkModelsWithConfiguredModels,
+  resolveClaudeRuntimeContext,
+  resolveRecommendedClaudeModel,
+} from "./claude-runtime-context.js";
+import {
   normalizeClaudeModel,
   readBoolean,
   readNumber,
   readRecord,
   readString,
-  resolveClaudeRuntimeContext,
-  resolveRecommendedClaudeModel,
-} from "./claude-runtime-context.js";
+} from "./claude-runtime-shared.js";
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-claude-code-sdk";
 const CLAUDE_RUNTIME_KIND = "claude";
@@ -93,9 +95,10 @@ function createDescribeClaudeSessionType(params: {
       ) {
         return {
           ready: false,
-          reason: "api_key_missing",
+          reason: runtimeContext.reason ?? "api_key_missing",
           reasonMessage:
-            "Configure Claude auth, Claude user settings, or an explicit gateway credential before starting a Claude session.",
+            runtimeContext.reasonMessage ??
+            "Configure Claude auth, Claude user settings, or an explicit Anthropic-compatible gateway credential before starting a Claude session.",
           supportedModels: runtimeContext.configuredModels,
           recommendedModel: runtimeContext.recommendedModel,
           cta: {
@@ -211,7 +214,7 @@ const plugin: PluginDefinition = {
           !runtimeContext.allowsClaudeManagedAuth
         ) {
           throw new Error(
-            `[claude] missing auth. Configure Claude user settings, plugins.entries.${PLUGIN_ID}.config.authToken/apiKey, enable providers-based credentials with useProviderCredentials=true, or enable CLAUDE_CODE_USE_BEDROCK / CLAUDE_CODE_USE_VERTEX / CLAUDE_CODE_USE_FOUNDRY in plugin env.`,
+            `[claude] ${runtimeContext.reasonMessage ?? `missing auth. Configure Claude user settings, plugins.entries.${PLUGIN_ID}.config.authToken/apiKey, switch to a Claude-compatible provider/model, enable providers-based credentials with useProviderCredentials=true, or enable CLAUDE_CODE_USE_BEDROCK / CLAUDE_CODE_USE_VERTEX / CLAUDE_CODE_USE_FOUNDRY in plugin env.`}`,
           );
         }
 

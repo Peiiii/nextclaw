@@ -7,80 +7,22 @@ import {
   type Config,
 } from "@nextclaw/core";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
+import { resolveClaudeProviderRouting } from "./claude-provider-routing.js";
+import {
+  dedupeStrings,
+  normalizeClaudeModel,
+  readBoolean,
+  readNumber,
+  readRecord,
+  readString,
+  readStringArray,
+  readStringOrNullRecord,
+  readStringRecord,
+} from "./claude-runtime-shared.js";
 
 type ClaudePermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
 type ClaudeSettingSource = "user" | "project" | "local";
 type ClaudeExecutable = "node" | "bun" | "deno";
-
-export function readString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-export function readBoolean(value: unknown): boolean | undefined {
-  return typeof value === "boolean" ? value : undefined;
-}
-
-export function readNumber(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-export function readRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-  return value as Record<string, unknown>;
-}
-
-function readStringArray(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const values = value
-    .map((entry) => readString(entry))
-    .filter((entry): entry is string => Boolean(entry));
-  return values.length > 0 ? values : undefined;
-}
-
-function readStringRecord(value: unknown): Record<string, string> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-
-  const out: Record<string, string> = {};
-  for (const [entryKey, entryValue] of Object.entries(value)) {
-    if (typeof entryValue !== "string") {
-      continue;
-    }
-    const normalized = entryValue.trim();
-    if (!normalized) {
-      continue;
-    }
-    out[entryKey] = normalized;
-  }
-  return Object.keys(out).length > 0 ? out : undefined;
-}
-
-function readStringOrNullRecord(value: unknown): Record<string, string | null> | undefined {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return undefined;
-  }
-
-  const out: Record<string, string | null> = {};
-  for (const [entryKey, entryValue] of Object.entries(value)) {
-    if (typeof entryValue === "string") {
-      out[entryKey] = entryValue.trim();
-      continue;
-    }
-    if (entryValue === null) {
-      out[entryKey] = null;
-    }
-  }
-  return Object.keys(out).length > 0 ? out : undefined;
-}
 
 function readRequestedSkills(metadata: Record<string, unknown>): string[] {
   const raw = metadata.requested_skills ?? metadata.requestedSkills;
@@ -129,29 +71,6 @@ function readExecutable(value: unknown): ClaudeExecutable | undefined {
     return value;
   }
   return undefined;
-}
-
-export function normalizeClaudeModel(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed.includes("/")) {
-    return trimmed;
-  }
-  const parts = trimmed.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? trimmed;
-}
-
-function dedupeStrings(values: string[]): string[] {
-  const seen = new Set<string>();
-  const output: string[] = [];
-  for (const value of values) {
-    const normalized = readString(value);
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-    seen.add(normalized);
-    output.push(normalized);
-  }
-  return output;
 }
 
 function readUserText(input: NcpAgentRunInput): string {
@@ -212,7 +131,7 @@ function resolveBaseQueryOptions(params: {
     additionalDirectories: readStringArray(params.pluginConfig.additionalDirectories),
     allowedTools: readStringArray(params.pluginConfig.allowedTools),
     disallowedTools: readStringArray(params.pluginConfig.disallowedTools),
-    settingSources: readSettingSources(params.pluginConfig.settingSources) ?? ["user"],
+    settingSources: readSettingSources(params.pluginConfig.settingSources),
     pathToClaudeCodeExecutable:
       readString(params.pluginConfig.pathToClaudeCodeExecutable) ?? readString(params.pluginConfig.claudeCodePath),
     executable: readExecutable(params.pluginConfig.executable),
@@ -335,7 +254,17 @@ export function resolveClaudeRuntimeContext(params: {
   pluginConfig: Record<string, unknown>;
   sessionMetadata: Record<string, unknown>;
 }) {
-  const modelInput = resolveClaudeModel(params);
+  const requestedModelInput = resolveClaudeModel(params);
+  const hasExplicitSessionModel = Boolean(
+    readString(params.sessionMetadata.preferred_model) ?? readString(params.sessionMetadata.model),
+  );
+  const providerRouting = resolveClaudeProviderRouting({
+    config: params.config,
+    pluginConfig: params.pluginConfig,
+    modelInput: requestedModelInput,
+    allowRecommendedFallback: !hasExplicitSessionModel,
+  });
+  const modelInput = providerRouting.modelInput;
   const provider = getProvider(params.config, modelInput);
   const env = readStringRecord(params.pluginConfig.env);
   const workingDirectory = resolveClaudeWorkingDirectory({
@@ -350,33 +279,54 @@ export function resolveClaudeRuntimeContext(params: {
   const explicitPluginAuthToken = readString(params.pluginConfig.authToken);
   const explicitPluginApiBase = readString(params.pluginConfig.apiBase);
   const useProviderCredentials = readBoolean(params.pluginConfig.useProviderCredentials) === true;
+  const providerApiKey = provider?.apiKey?.trim() || undefined;
+  const providerApiBase = getApiBase(params.config, modelInput) ?? undefined;
   const settingSources = readBaseQuerySettingSources(baseQueryOptions);
+  const shouldUseProviderRoute = providerRouting.route !== null;
+  const shouldUseExplicitFallback =
+    !shouldUseProviderRoute &&
+    (Boolean(explicitPluginApiKey) ||
+      Boolean(explicitPluginAuthToken) ||
+      Boolean(explicitPluginApiBase) ||
+      (useProviderCredentials && Boolean(providerApiKey)));
   const prefersClaudeManagedConnection =
-    !useProviderCredentials &&
+    !shouldUseProviderRoute &&
+    !shouldUseExplicitFallback &&
     !explicitPluginApiKey &&
     !explicitPluginAuthToken &&
     !explicitPluginApiBase &&
     !hasClaudeAuthEnv(env) &&
     !hasClaudeBaseUrlEnv(env) &&
     settingSources.length > 0;
-  const apiKey = prefersClaudeManagedConnection
-    ? undefined
-    : explicitPluginApiKey ?? provider?.apiKey ?? undefined;
-  const authToken = explicitPluginAuthToken ?? undefined;
-  const apiBase = prefersClaudeManagedConnection
-    ? undefined
-    : explicitPluginApiBase ?? getApiBase(params.config, modelInput) ?? undefined;
+  const apiKey = shouldUseProviderRoute
+    ? providerRouting.route?.apiKey
+    : prefersClaudeManagedConnection
+      ? undefined
+      : explicitPluginApiKey ?? (useProviderCredentials ? providerApiKey : undefined);
+  const authToken = shouldUseProviderRoute
+    ? providerRouting.route?.authToken
+    : prefersClaudeManagedConnection
+      ? undefined
+      : explicitPluginAuthToken ?? (useProviderCredentials ? providerApiKey : undefined);
+  const apiBase = shouldUseProviderRoute
+    ? providerRouting.route?.apiBase
+    : prefersClaudeManagedConnection
+      ? undefined
+      : explicitPluginApiBase ?? (useProviderCredentials ? providerApiBase : undefined);
   const usesExternalAuth =
     env?.CLAUDE_CODE_USE_BEDROCK === "1" ||
     env?.CLAUDE_CODE_USE_VERTEX === "1" ||
     env?.CLAUDE_CODE_USE_FOUNDRY === "1";
   const allowsClaudeManagedAuth =
     prefersClaudeManagedConnection || hasClaudeAuthEnv(env) || hasClaudeBaseUrlEnv(env) || settingSources.length > 0;
-  const configuredModels = resolveConfiguredClaudeModels({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
-    modelInput,
-  });
+  const configuredModels =
+    providerRouting.configuredModels.length > 0
+      ? providerRouting.configuredModels
+      : resolveConfiguredClaudeModels({
+          config: params.config,
+          pluginConfig: params.pluginConfig,
+          modelInput,
+        });
 
   return {
     modelInput,
@@ -389,10 +339,14 @@ export function resolveClaudeRuntimeContext(params: {
     workingDirectory,
     baseQueryOptions,
     configuredModels,
-    recommendedModel: resolveRecommendedClaudeModel({
-      configuredModels,
-      modelInput,
-      pluginConfig: params.pluginConfig,
-    }),
+    routeKind: providerRouting.route?.kind ?? null,
+    reason: providerRouting.reason,
+    reasonMessage: providerRouting.reasonMessage,
+    recommendedModel:
+      resolveRecommendedClaudeModel({
+        configuredModels,
+        modelInput,
+        pluginConfig: params.pluginConfig,
+      }) ?? providerRouting.recommendedModel,
   };
 }
