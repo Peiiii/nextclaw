@@ -13,6 +13,14 @@ type NextclawProviderConfig = {
   models?: string[];
 };
 
+export type PlatformLoginResult = {
+  token: string;
+  role: string;
+  email: string;
+  platformBase: string;
+  v1Base: string;
+};
+
 function resolveProviderConfig(opts: LoginCommandOptions): {
   configPath: string;
   config: ReturnType<typeof loadConfig>;
@@ -112,7 +120,7 @@ function readLoginPayload(raw: string): { token: string; role: string } {
 }
 
 export class PlatformAuthCommands {
-  async login(opts: LoginCommandOptions = {}): Promise<void> {
+  async loginResult(opts: LoginCommandOptions = {}): Promise<PlatformLoginResult> {
     const { configPath, config, providers, nextclawProvider, platformBase, v1Base, inputApiBase } = resolveProviderConfig(opts);
     const { email, password } = await resolveCredentials(opts);
     const endpoint = opts.register
@@ -150,8 +158,29 @@ export class PlatformAuthCommands {
     providers.nextclaw = nextclawProvider;
     saveConfig(config, configPath);
 
-    console.log(`✓ Logged in to NextClaw platform (${platformBase})`);
-    console.log(`✓ Account: ${email} (${role})`);
+    return {
+      token,
+      role,
+      email,
+      platformBase,
+      v1Base
+    };
+  }
+
+  async login(opts: LoginCommandOptions = {}): Promise<void> {
+    const result = await this.loginResult(opts);
+
+    console.log(`✓ Logged in to NextClaw platform (${result.platformBase})`);
+    console.log(`✓ Account: ${result.email} (${result.role})`);
     console.log(`✓ Token saved into providers.nextclaw.apiKey`);
+  }
+
+  logout(): { cleared: boolean } {
+    const { configPath, config, providers, nextclawProvider } = resolveProviderConfig({});
+    const cleared = Boolean(nextclawProvider.apiKey?.trim());
+    nextclawProvider.apiKey = "";
+    providers.nextclaw = nextclawProvider;
+    saveConfig(config, configPath);
+    return { cleared };
   }
 }

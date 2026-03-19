@@ -25,6 +25,7 @@ const RuntimeConfigPage = lazy(async () => ({ default: (await import('@/componen
 const SecurityConfigPage = lazy(async () => ({ default: (await import('@/components/config/security-config')).SecurityConfig }));
 const SessionsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SessionsConfig')).SessionsConfig }));
 const SecretsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SecretsConfig')).SecretsConfig }));
+const RemoteAccessPage = lazy(async () => ({ default: (await import('@/components/remote/RemoteAccessPage')).RemoteAccessPage }));
 const MarketplacePage = lazy(async () => ({ default: (await import('@/components/marketplace/MarketplacePage')).MarketplacePage }));
 const McpMarketplacePage = lazy(async () => ({ default: (await import('@/components/marketplace/mcp/McpMarketplacePage')).McpMarketplacePage }));
 
@@ -53,6 +54,7 @@ function ProtectedApp() {
           <Route path="/providers" element={<LazyRoute><ProvidersListPage /></LazyRoute>} />
           <Route path="/channels" element={<LazyRoute><ChannelsListPage /></LazyRoute>} />
           <Route path="/runtime" element={<LazyRoute><RuntimeConfigPage /></LazyRoute>} />
+          <Route path="/remote" element={<LazyRoute><RemoteAccessPage /></LazyRoute>} />
           <Route path="/security" element={<LazyRoute><SecurityConfigPage /></LazyRoute>} />
           <Route path="/sessions" element={<LazyRoute><SessionsConfigPage /></LazyRoute>} />
           <Route path="/secrets" element={<LazyRoute><SecretsConfigPage /></LazyRoute>} />

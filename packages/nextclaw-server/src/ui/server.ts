@@ -50,7 +50,8 @@ export function startUiServer(options: UiServerOptions): UiServerHandle {
       cronService: options.cronService,
       chatRuntime: options.chatRuntime,
       ncpAgent: options.ncpAgent,
-      authService
+      authService,
+      remoteAccess: options.remoteAccess
     })
   );
 

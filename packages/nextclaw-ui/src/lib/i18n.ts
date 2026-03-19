@@ -1,4 +1,5 @@
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
+import { REMOTE_LABELS } from './i18n.remote';
 
 export type I18nLanguage = 'zh' | 'en';
 
@@ -133,6 +134,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   cron: { zh: '定时任务', en: 'Cron Jobs' },
   secrets: { zh: '密钥管理', en: 'Secrets' },
   runtime: { zh: '路由与运行时', en: 'Routing & Runtime' },
+  remote: { zh: '远程访问', en: 'Remote Access' },
   marketplace: { zh: '市场', en: 'Marketplace' },
   advanced: { zh: '高级', en: 'Advanced' },
   settings: { zh: '设置', en: 'Settings' },
@@ -155,6 +157,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   saving: { zh: '保存中...', en: 'Saving...' },
   remove: { zh: '移除', en: 'Remove' },
   all: { zh: '全部', en: 'All' },
+  yes: { zh: '是', en: 'Yes' },
+  no: { zh: '否', en: 'No' },
   prev: { zh: '上一页', en: 'Prev' },
   next: { zh: '下一页', en: 'Next' },
   noneOption: { zh: '无', en: 'None' },
@@ -739,15 +743,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   // Marketplace
   ...MARKETPLACE_LABELS,
 
-  // Status
-  connected: { zh: '已连接', en: 'Connected' },
-  disconnected: { zh: '未连接', en: 'Disconnected' },
-  connecting: { zh: '连接中...', en: 'Connecting...' },
-  feishuConnecting: { zh: '验证 / 连接中...', en: 'Verifying / connecting...' },
-  statusReady: { zh: '就绪', en: 'Ready' },
-  statusSetup: { zh: '待配置', en: 'Setup' },
-  statusActive: { zh: '活跃', en: 'Active' },
-  statusInactive: { zh: '未启用', en: 'Inactive' },
+  // Remote & Status
+  ...REMOTE_LABELS,
 
   // Action labels
   actionConfigure: { zh: '配置', en: 'Configure' },

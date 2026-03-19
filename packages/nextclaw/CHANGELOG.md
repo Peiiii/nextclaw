@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.13.9
+
+### Patch Changes
+
+- Productize remote access in the built-in UI by shipping a dedicated Remote Access page, exposing the supporting server APIs, routing in-page managed-service restart through the shared self-restart coordinator so restart reliably relaunches the service instead of only stopping it, and keeping the required `@nextclaw/mcp` release group aligned with the updated server and CLI packages.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.9
+  - @nextclaw/server@0.10.9
+  - @nextclaw/ncp-mcp@0.1.9
+  - @nextclaw/remote@0.1.5
+
 ## 0.13.8
 
 ### Patch Changes

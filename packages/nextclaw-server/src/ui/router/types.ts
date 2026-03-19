@@ -1,6 +1,17 @@
 import type * as NextclawCore from "@nextclaw/core";
 import type { UiAuthService } from "../auth.service.js";
-import type { MarketplaceApiConfig, UiChatRuntime, UiNcpAgent, UiServerEvent } from "../types.js";
+import type {
+  MarketplaceApiConfig,
+  RemoteAccessView,
+  RemoteDoctorView,
+  RemoteLoginRequest,
+  RemoteServiceAction,
+  RemoteServiceActionResult,
+  RemoteSettingsUpdateRequest,
+  UiChatRuntime,
+  UiNcpAgent,
+  UiServerEvent
+} from "../types.js";
 
 export type UiRouterOptions = {
   configPath: string;
@@ -11,6 +22,16 @@ export type UiRouterOptions = {
   chatRuntime?: UiChatRuntime;
   ncpAgent?: UiNcpAgent;
   authService?: UiAuthService;
+  remoteAccess?: UiRemoteAccessHost;
+};
+
+export type UiRemoteAccessHost = {
+  getStatus: () => Promise<RemoteAccessView> | RemoteAccessView;
+  login: (input: RemoteLoginRequest) => Promise<RemoteAccessView>;
+  logout: () => Promise<RemoteAccessView> | RemoteAccessView;
+  updateSettings: (input: RemoteSettingsUpdateRequest) => Promise<RemoteAccessView> | RemoteAccessView;
+  runDoctor: () => Promise<RemoteDoctorView>;
+  controlService: (action: RemoteServiceAction) => Promise<RemoteServiceActionResult>;
 };
 
 export type CronJobEntry = {

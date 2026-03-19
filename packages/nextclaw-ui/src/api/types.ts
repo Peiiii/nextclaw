@@ -160,30 +160,27 @@ export type ProviderAuthImportResult = {
   expiresAt?: string;
 };
 
-export type AuthStatusView = {
-  enabled: boolean;
-  configured: boolean;
-  authenticated: boolean;
-  username?: string;
-};
+export type {
+  AuthEnabledUpdateRequest,
+  AuthLoginRequest,
+  AuthPasswordUpdateRequest,
+  AuthSetupRequest,
+  AuthStatusView
+} from './auth.types';
 
-export type AuthSetupRequest = {
-  username: string;
-  password: string;
-};
-
-export type AuthLoginRequest = {
-  username: string;
-  password: string;
-};
-
-export type AuthPasswordUpdateRequest = {
-  password: string;
-};
-
-export type AuthEnabledUpdateRequest = {
-  enabled: boolean;
-};
+export type {
+  RemoteAccessView,
+  RemoteAccountView,
+  RemoteDoctorCheckView,
+  RemoteDoctorView,
+  RemoteLoginRequest,
+  RemoteRuntimeView,
+  RemoteServiceAction,
+  RemoteServiceActionResult,
+  RemoteServiceView,
+  RemoteSettingsUpdateRequest,
+  RemoteSettingsView
+} from './remote.types';
 
 export type AgentProfileView = {
   id: string;

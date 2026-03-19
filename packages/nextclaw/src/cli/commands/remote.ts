@@ -1,5 +1,11 @@
 import { getConfigPath, loadConfig, saveConfig, type Config } from "@nextclaw/core";
-import { type RemoteConnectCommandOptions, type RemoteDoctorCommandOptions, type RemoteEnableCommandOptions, type RemoteStatusCommandOptions } from "@nextclaw/remote";
+import {
+  type RemoteConnectCommandOptions,
+  type RemoteDoctorCommandOptions,
+  type RemoteEnableCommandOptions,
+  type RemoteStatusCommandOptions,
+  type RemoteStatusSnapshot
+} from "@nextclaw/remote";
 import { hostname } from "node:os";
 import { isProcessRunning, readServiceState } from "../utils.js";
 import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./remote-runtime-support.js";
@@ -7,6 +13,26 @@ import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } fr
 type RemoteConfigChange = {
   changed: boolean;
   config: Config;
+};
+
+export type RemoteCommandStatusView = {
+  configuredEnabled: boolean;
+  runtime: RemoteStatusSnapshot["runtime"];
+  localOrigin: string;
+  deviceName: string;
+  platformBase: string | null;
+};
+
+export type RemoteCommandDoctorCheck = {
+  name: string;
+  ok: boolean;
+  detail: string;
+};
+
+export type RemoteCommandDoctorView = {
+  generatedAt: string;
+  checks: RemoteCommandDoctorCheck[];
+  snapshot: RemoteStatusSnapshot;
 };
 
 function normalizeOptionalString(value: unknown): string | undefined {
@@ -42,15 +68,24 @@ async function probeLocalUi(localOrigin: string): Promise<{ ok: boolean; detail:
 }
 
 export class RemoteCommands {
-  enableConfig(opts: RemoteEnableCommandOptions = {}): RemoteConfigChange {
+  updateConfig(params: {
+    enabled?: boolean;
+    apiBase?: string;
+    name?: string;
+  } = {}): RemoteConfigChange {
     const config = loadConfig(getConfigPath());
+    const nextEnabled = typeof params.enabled === "boolean" ? params.enabled : config.remote.enabled;
+    const nextPlatformApiBase =
+      typeof params.apiBase === "string" ? params.apiBase.trim() : config.remote.platformApiBase;
+    const nextDeviceName =
+      typeof params.name === "string" ? params.name.trim() : config.remote.deviceName;
     const next: Config = {
       ...config,
       remote: {
         ...config.remote,
-        enabled: true,
-        ...(normalizeOptionalString(opts.apiBase) ? { platformApiBase: normalizeOptionalString(opts.apiBase) ?? "" } : {}),
-        ...(normalizeOptionalString(opts.name) ? { deviceName: normalizeOptionalString(opts.name) ?? "" } : {})
+        enabled: nextEnabled,
+        platformApiBase: nextPlatformApiBase,
+        deviceName: nextDeviceName
       }
     };
     saveConfig(next);
@@ -63,20 +98,16 @@ export class RemoteCommands {
     };
   }
 
+  enableConfig(opts: RemoteEnableCommandOptions = {}): RemoteConfigChange {
+    return this.updateConfig({
+      enabled: true,
+      apiBase: typeof opts.apiBase === "string" ? opts.apiBase : undefined,
+      name: typeof opts.name === "string" ? opts.name : undefined
+    });
+  }
+
   disableConfig(): RemoteConfigChange {
-    const config = loadConfig(getConfigPath());
-    const next: Config = {
-      ...config,
-      remote: {
-        ...config.remote,
-        enabled: false
-      }
-    };
-    saveConfig(next);
-    return {
-      changed: config.remote.enabled !== next.remote.enabled,
-      config: next
-    };
+    return this.updateConfig({ enabled: false });
   }
 
   async connect(opts: RemoteConnectCommandOptions = {}): Promise<void> {
@@ -87,25 +118,38 @@ export class RemoteCommands {
     });
   }
 
-  async status(opts: RemoteStatusCommandOptions = {}): Promise<void> {
+  getStatusView(): RemoteCommandStatusView {
     const config = loadConfig(getConfigPath());
     const snapshot = resolveNextclawRemoteStatusSnapshot(config);
+    return {
+      configuredEnabled: snapshot.configuredEnabled,
+      runtime: snapshot.runtime,
+      localOrigin: resolveConfiguredLocalOrigin(config),
+      deviceName: snapshot.runtime?.deviceName ?? normalizeOptionalString(config.remote.deviceName) ?? hostname(),
+      platformBase:
+        snapshot.runtime?.platformBase ??
+        normalizeOptionalString(config.remote.platformApiBase) ??
+        normalizeOptionalString(config.providers.nextclaw?.apiBase) ??
+        null
+    };
+  }
+
+  async status(opts: RemoteStatusCommandOptions = {}): Promise<void> {
+    const view = this.getStatusView();
 
     if (opts.json) {
-      console.log(JSON.stringify(snapshot, null, 2));
+      console.log(JSON.stringify(view, null, 2));
       return;
     }
 
-    const runtime = snapshot.runtime;
+    const runtime = view.runtime;
     console.log("NextClaw Remote Status");
-    console.log(`Enabled: ${snapshot.configuredEnabled ? "yes" : "no"}`);
+    console.log(`Enabled: ${view.configuredEnabled ? "yes" : "no"}`);
     console.log(`Mode: ${runtime?.mode ?? "service"}`);
     console.log(`State: ${runtime?.state ?? "disabled"}`);
-    console.log(`Device: ${runtime?.deviceName ?? normalizeOptionalString(config.remote.deviceName) ?? hostname()}`);
-    console.log(
-      `Platform: ${runtime?.platformBase ?? normalizeOptionalString(config.remote.platformApiBase) ?? normalizeOptionalString(config.providers.nextclaw?.apiBase) ?? "not set"}`
-    );
-    console.log(`Local origin: ${runtime?.localOrigin ?? resolveConfiguredLocalOrigin(config)}`);
+    console.log(`Device: ${view.deviceName}`);
+    console.log(`Platform: ${view.platformBase ?? "not set"}`);
+    console.log(`Local origin: ${runtime?.localOrigin ?? view.localOrigin}`);
     if (runtime?.deviceId) {
       console.log(`Device ID: ${runtime.deviceId}`);
     }
@@ -117,7 +161,7 @@ export class RemoteCommands {
     }
   }
 
-  async doctor(opts: RemoteDoctorCommandOptions = {}): Promise<void> {
+  async getDoctorView(): Promise<RemoteCommandDoctorView> {
     const config = loadConfig(getConfigPath());
     const snapshot = resolveNextclawRemoteStatusSnapshot(config);
     const localOrigin = resolveConfiguredLocalOrigin(config);
@@ -153,14 +197,23 @@ export class RemoteCommands {
         detail: snapshot.runtime ? snapshot.runtime.state : "no managed remote runtime detected"
       }
     ];
+    return {
+      generatedAt: new Date().toISOString(),
+      checks,
+      snapshot
+    };
+  }
+
+  async doctor(opts: RemoteDoctorCommandOptions = {}): Promise<void> {
+    const report = await this.getDoctorView();
 
     if (opts.json) {
-      console.log(JSON.stringify({ generatedAt: new Date().toISOString(), checks, snapshot }, null, 2));
+      console.log(JSON.stringify(report, null, 2));
       return;
     }
 
     console.log("NextClaw Remote Doctor");
-    for (const check of checks) {
+    for (const check of report.checks) {
       console.log(`${check.ok ? "✓" : "✗"} ${check.name}: ${check.detail}`);
     }
   }

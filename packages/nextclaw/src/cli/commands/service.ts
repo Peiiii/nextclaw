@@ -58,6 +58,7 @@ import {
   writeInitialManagedServiceState,
   writeReadyManagedServiceState
 } from "./service-remote-runtime.js";
+import { createRemoteAccessHost } from "./service-remote-access.js";
 import { UiChatRunCoordinator } from "./ui-chat-run-coordinator.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-marketplace-helpers.js";
@@ -1225,20 +1226,14 @@ export class ServiceCommands {
       gatewayController,
       getConfig,
       getExtensionRegistry,
-      resolveMessageToolHints: ({ channel, accountId }) =>
-        resolveMessageToolHints({
-          channel,
-          accountId,
-        }),
+      resolveMessageToolHints: ({ channel, accountId }) => resolveMessageToolHints({ channel, accountId }),
     });
     this.liveUiNcpAgent = ncpAgent;
-
     const marketplaceInstaller = new ServiceMarketplaceInstaller({
-      applyLiveConfigReload: this.applyLiveConfigReload ?? undefined,
-      runCliSubcommand: (args) => this.runCliSubcommand(args),
+      applyLiveConfigReload: this.applyLiveConfigReload ?? undefined, runCliSubcommand: (args) => this.runCliSubcommand(args),
       installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force)
     }).createInstaller();
-
+    const remoteAccess = createRemoteAccessHost({ serviceCommands: this, requestRestart: this.deps.requestRestart });
     const uiServer = startUiServer({
       host: uiConfig.host,
       port: uiConfig.port,
@@ -1250,6 +1245,7 @@ export class ServiceCommands {
         apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE,
         installer: marketplaceInstaller
       },
+      remoteAccess,
       ncpAgent,
       chatRuntime: {
         listSessionTypes: async () => {

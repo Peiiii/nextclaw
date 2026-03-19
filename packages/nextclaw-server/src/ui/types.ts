@@ -2,6 +2,7 @@ import type { CronService, ThinkingLevel } from "@nextclaw/core";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionSummary } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import type { MarketplaceApiConfig } from "./marketplace.types.js";
+import type { UiRemoteAccessHost } from "./router/types.js";
 export type * from "./marketplace.types.js";
 export type ApiError = {
   code: string;
@@ -166,6 +167,87 @@ export type AuthPasswordUpdateRequest = {
 
 export type AuthEnabledUpdateRequest = {
   enabled: boolean;
+};
+
+export type RemoteAccountView = {
+  loggedIn: boolean;
+  email?: string;
+  role?: string;
+  platformBase?: string | null;
+  apiBase?: string | null;
+};
+
+export type RemoteRuntimeView = {
+  enabled: boolean;
+  mode: "service" | "foreground";
+  state: "disabled" | "connecting" | "connected" | "disconnected" | "error";
+  deviceId?: string;
+  deviceName?: string;
+  platformBase?: string;
+  localOrigin?: string;
+  lastConnectedAt?: string | null;
+  lastError?: string | null;
+  updatedAt: string;
+};
+
+export type RemoteServiceView = {
+  running: boolean;
+  pid?: number;
+  uiUrl?: string;
+  uiPort?: number;
+  currentProcess: boolean;
+};
+
+export type RemoteSettingsView = {
+  enabled: boolean;
+  deviceName: string;
+  platformApiBase: string;
+};
+
+export type RemoteAccessView = {
+  account: RemoteAccountView;
+  settings: RemoteSettingsView;
+  service: RemoteServiceView;
+  localOrigin: string;
+  configuredEnabled: boolean;
+  platformBase?: string | null;
+  runtime: RemoteRuntimeView | null;
+};
+
+export type RemoteDoctorCheckView = {
+  name: string;
+  ok: boolean;
+  detail: string;
+};
+
+export type RemoteDoctorView = {
+  generatedAt: string;
+  checks: RemoteDoctorCheckView[];
+  snapshot: {
+    configuredEnabled: boolean;
+    runtime: RemoteRuntimeView | null;
+  };
+};
+
+export type RemoteLoginRequest = {
+  email: string;
+  password: string;
+  apiBase?: string;
+  register?: boolean;
+};
+
+export type RemoteSettingsUpdateRequest = {
+  enabled?: boolean;
+  deviceName?: string;
+  platformApiBase?: string;
+};
+
+export type RemoteServiceAction = "start" | "restart" | "stop";
+
+export type RemoteServiceActionResult = {
+  accepted: boolean;
+  action: RemoteServiceAction;
+  message: string;
 };
 
 export type AgentProfileView = {
@@ -714,6 +796,7 @@ export type UiServerOptions = {
   cronService?: CronService;
   chatRuntime?: UiChatRuntime;
   ncpAgent?: UiNcpAgent;
+  remoteAccess?: UiRemoteAccessHost;
 };
 
 export type UiServerHandle = {
