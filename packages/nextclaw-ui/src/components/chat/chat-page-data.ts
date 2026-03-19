@@ -4,6 +4,7 @@ import type { SessionEntryView, ThinkingLevel } from '@/api/types';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { useChatSessionTypeState } from '@/components/chat/useChatSessionTypeState';
 import {
+  resolveSelectedModelValue,
   resolveRecentSessionPreferredModel,
   useSyncSelectedModel
 } from '@/components/chat/chat-page-runtime';
@@ -120,6 +121,19 @@ export function useChatPageData(params: UseChatPageDataParams) {
     setSelectedModel: params.setSelectedModel
   });
 
+  const hydratedSessionModel = useMemo(
+    () =>
+      resolveSelectedModelValue({
+        currentSelectedModel: '',
+        modelOptions,
+        selectedSessionPreferredModel: selectedSession?.preferredModel,
+        fallbackPreferredModel: recentSessionPreferredModel,
+        defaultModel: configQuery.data?.agents.defaults.model,
+        preferSessionPreferredModel: true
+      }),
+    [configQuery.data?.agents.defaults.model, modelOptions, recentSessionPreferredModel, selectedSession?.preferredModel]
+  );
+
   const historyMessages = useMemo(() => historyQuery.data?.messages ?? [], [historyQuery.data?.messages]);
   const selectedSessionThinkingLevel = useMemo(() => {
     if (!params.selectedSessionKey) {
@@ -157,6 +171,7 @@ export function useChatPageData(params: UseChatPageDataParams) {
     sessions,
     skillRecords,
     selectedSession,
+    hydratedSessionModel,
     historyMessages,
     selectedSessionThinkingLevel,
     ...sessionTypeState

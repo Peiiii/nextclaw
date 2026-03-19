@@ -8,6 +8,7 @@ import {
 } from '@/components/chat/ncp/ncp-session-adapter';
 import { useChatSessionTypeState } from '@/components/chat/useChatSessionTypeState';
 import {
+  resolveSelectedModelValue,
   resolveRecentSessionPreferredModel,
   useSyncSelectedModel
 } from '@/components/chat/chat-page-runtime';
@@ -133,6 +134,19 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     setSelectedModel: params.setSelectedModel
   });
 
+  const hydratedSessionModel = useMemo(
+    () =>
+      resolveSelectedModelValue({
+        currentSelectedModel: '',
+        modelOptions,
+        selectedSessionPreferredModel: selectedSession?.preferredModel,
+        fallbackPreferredModel: recentSessionPreferredModel,
+        defaultModel: configQuery.data?.agents.defaults.model,
+        preferSessionPreferredModel: true
+      }),
+    [configQuery.data?.agents.defaults.model, modelOptions, recentSessionPreferredModel, selectedSession?.preferredModel]
+  );
+
   return {
     configQuery,
     configMetaQuery,
@@ -145,6 +159,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     sessions,
     skillRecords,
     selectedSession,
+    hydratedSessionModel,
     selectedSessionThinkingLevel,
     ...sessionTypeState
   };
