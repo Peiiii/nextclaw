@@ -36,6 +36,45 @@ codex mcp add chrome-devtools -- npx chrome-devtools-mcp@latest
 
 所以当前状态不是“完全没有 MCP”，而是“只有局部 runtime 痕迹，没有平台级 MCP 集成面”。
 
+## 结合当前非 Legacy 主链路后的调整
+
+在这份方案最初成稿之后，项目的非 legacy 主链路又继续做了一轮结构收敛。
+
+结合当前代码，下面这些判断需要明确写进方案：
+
+1. 非 legacy 主链路的真正执行核心，已经更明确地下沉到 `NCP toolkit / agent backend / agent runtime / tool registry` 这一层，而不是 UI controller 或前端页面层。
+2. `DefaultNcpAgentBackend`、`AgentLiveSessionRegistry`、`RuntimeFactoryParams` 这些结构，已经把 session、runtime、metadata 的责任边界收得比较清楚。
+3. native 主链路里的工具能力，当前是通过 `NextclawNcpToolRegistry` 汇总进 `DefaultNcpAgentRuntime`，因此 MCP 的第一个消费点不应被笼统描述为“某个 runtime”，而应更准确地描述为“native 的 tool assembly 边界”。
+4. `/api/ncp/session-types`、`NcpSessionRoutesController`、`NcpChatPage` 这些层负责会话类型与界面消费，但它们不是 MCP 首期的正确接入点。
+
+这意味着：
+
+- 我们原方案的大方向是对的，不需要推翻。
+- 但“首个 consumer 的接入位置”和“新代码的包边界”需要更贴近当前重构后的主链路。
+
+## 调整后的核心判断
+
+在当前结构下，MCP 首期不应该接进：
+
+- UI session type controller
+- 前端 session type state
+- `DefaultNcpAgentBackend` 的 session/runtime 生命周期
+- `AgentLiveSessionRegistry` 的持久化与 hydration 逻辑
+
+这些层目前已经比较纯粹，继续把 MCP 塞进去只会把生命周期复杂度扩散出去。
+
+更合理的首个消费位置应是：
+
+- native 主链路的 tool assembly 边界
+- 也就是 `NcpToolRegistry` / `NextclawNcpToolRegistry` 一侧
+
+原因很简单：
+
+1. `DefaultNcpAgentRuntime` 只认 `NcpToolRegistry`。
+2. 当前 native 工具能力已经在 `NextclawNcpToolRegistry` 统一组装。
+3. MCP server 暴露出来的本质也是“工具集合”，因此首期最自然的接缝就是“把 MCP tool catalog 适配为 `NcpTool`”。
+4. 这样能保持 `DefaultNcpAgentBackend`、session store、UI session type 等层继续纯粹，不被 transport/lifecycle 污染。
+
 ## 核心判断
 
 MCP 必须被定义为平台级能力，而不是某个 runtime 的附属配置。
@@ -293,6 +332,28 @@ MCP server 不能只是配置对象，还必须有运行时生命周期管理层
 - registry 与 transport manager 是平台能力
 - runtime adapter 只是消费层
 
+结合当前非 legacy 主链路，这里还要补一条更精确的说明：
+
+- 对 native 而言，首个 adapter 更准确地说不是“替换 runtime”，而是“把 MCP catalog 适配进 `NcpToolRegistry`”
+
+也就是说，native 的第一阶段接法应该接近：
+
+```text
+McpRegistry / Lifecycle / Catalog
+  -> McpNcpToolAdapter
+  -> NextclawNcpToolRegistry (or composite registry)
+  -> DefaultNcpAgentRuntime
+```
+
+而不是：
+
+```text
+McpRegistry
+  -> directly alters agent backend / session registry / router
+```
+
+这条边界非常重要，因为它决定了 MCP 复杂度是否会污染 session/runtime 主链路。
+
 ## 代码组织与解耦边界
 
 如果这件事要保持长期可维护，最重要的不是先写哪段代码，而是先锁死依赖方向。
@@ -313,6 +374,25 @@ packages/nextclaw-mcp
 
 它应作为 MCP 领域能力的唯一拥有者。
 
+但结合当前重构后的代码结构，方案需要再补一个更准确的建议：
+
+- 平台级 MCP domain 仍然应该独立
+- 但 native 主链路的第一个消费 adapter 不应直接塞进 `packages/nextclaw`
+- 更合理的放置方式，是单独做一个 NCP-facing adapter 层，避免 CLI 组合层反向拥有 tool assembly 逻辑
+
+推荐结构调整为：
+
+```text
+packages/nextclaw-mcp
+  -> 平台级 MCP domain
+
+packages/ncp-packages/nextclaw-ncp-mcp
+  -> NCP-facing adapter
+  -> 把 MCP catalog 转成 NcpTool / NcpToolRegistry 可消费形式
+```
+
+如果后续确认这个 adapter 只服务 NCP-native，这样的分层会比把适配器塞进 CLI command 目录更清晰。
+
 不建议把 MCP 核心逻辑放进这些位置：
 
 - `packages/nextclaw-core`
@@ -326,6 +406,12 @@ packages/nextclaw-mcp
 - `nextclaw` 是 CLI 应用层，不应拥有 MCP 业务核心。
 - `nextclaw-server` 是服务承载层，不应反向拥有平台级工具治理逻辑。
 - `packages/extensions/*` 更适合具体 runtime/channel/plugin 扩展，不适合承载跨 runtime 的平台基础设施。
+
+同时也不建议把 native 的 MCP tool adapter 长期放在：
+
+- `packages/nextclaw/src/cli/commands/ncp/*`
+
+这里当前更适合应用装配，不适合持续承载可复用的 NCP-facing adapter。
 
 ### 2. 各层职责分工
 
@@ -386,7 +472,7 @@ packages/nextclaw-mcp
 
 位置：
 
-- 当前先预留给未来 `native` consumer
+- 当前先预留给 `native` consumer
 - 未来 `codex`、其它 runtime 再各自实现薄 adapter
 
 职责：
@@ -400,6 +486,13 @@ packages/nextclaw-mcp
 - 自己实现 transport 生命周期
 - 自己保存 enable/disable 状态
 
+结合当前代码，这层对 native 的具体落点应该写得更明确：
+
+- native consumer 首期应实现为 `NcpTool` 适配层
+- 它消费 `McpCatalogView`
+- 它向 `NextclawNcpToolRegistry` 或其组合注册表注入 MCP tools
+- 它不改写 `DefaultNcpAgentBackend`、`AgentLiveSessionRegistry`、`NcpSessionRoutesController`
+
 ### 3. 依赖方向必须固定
 
 推荐依赖图：
@@ -411,6 +504,10 @@ nextclaw-core
 nextclaw-mcp
   -> depends on nextclaw-core types/schema only
 
+nextclaw-ncp-mcp
+  -> depends on nextclaw-mcp
+  -> depends on @nextclaw/ncp
+
 nextclaw / nextclaw-server / future runtime consumers
   -> depend on nextclaw-mcp
 ```
@@ -420,6 +517,7 @@ nextclaw / nextclaw-server / future runtime consumers
 - `nextclaw-core -> nextclaw-mcp`
 - `nextclaw-mcp -> nextclaw-server`
 - `nextclaw-mcp -> specific runtime package`
+- `nextclaw-mcp -> nextclaw-ncp-toolkit`（除非未来明确决定 MCP 只服务 NCP）
 
 否则后面一定会出现循环依赖和职责混乱。
 
@@ -463,6 +561,24 @@ src/
 - `transport/stdio/http/sse` 分目录，防止一个 transport 文件越长越难拆。
 - `registry/` 与 `lifecycle/` 分开，避免“读配置”和“管理运行时状态”搅在一起。
 
+如果新增 `packages/ncp-packages/nextclaw-ncp-mcp`，建议保持极薄：
+
+```text
+src/
+  mcp-ncp-tool.ts
+  mcp-ncp-tool-registry-adapter.ts
+  index.ts
+```
+
+这个包不应再拥有：
+
+- MCP 配置存储
+- transport 生命周期
+- doctor
+- config schema
+
+它只做 NCP-facing adapter。
+
 ### 5. 最小公开接口
 
 为了减少后续扩散，`nextclaw-mcp` 对外只推荐暴露少量稳定接口：
@@ -486,8 +602,12 @@ src/
   - 新增 `mcp` 命令组
 - `packages/nextclaw/src/cli/...`
   - 新增 MCP CLI handler 文件
-- 未来 `native` consumer 的组合点
-  - 在 runtime 装配阶段读取 `McpCatalogView`
+- `packages/ncp-packages/nextclaw-ncp-mcp/*`
+  - 新增 native 首期 consumer adapter
+- `packages/nextclaw/src/cli/commands/ncp/create-ui-ncp-agent.ts`
+  - 只增加一处薄组合，把 MCP tool adapter 接入 native tool assembly
+- `packages/nextclaw/src/cli/commands/ncp/nextclaw-ncp-tool-registry.ts`
+  - 只在必要时提供组合入口，不承接 MCP domain 逻辑
 
 不应首期就把 MCP 改动散落到：
 
@@ -495,6 +615,8 @@ src/
 - 各个 runtime 包
 - `nextclaw-server` 的多个 controller
 - 各种已有 plugin 模块
+- `DefaultNcpAgentBackend`
+- `AgentLiveSessionRegistry`
 
 ### 7. 为什么不建议直接写进现有模块
 
@@ -562,11 +684,12 @@ src/
 
 写集：
 
-- 未来 `native` runtime 的装配点
+- `packages/ncp-packages/nextclaw-ncp-mcp/*`
+- native tool assembly 的薄组合点
 
 目标：
 
-- 验证“平台级 MCP registry -> runtime consumer”这条主链路是成立的
+- 验证“平台级 MCP registry -> MCP catalog -> NcpTool adapter -> native tool registry”这条主链路是成立的
 
 这样拆的意义是：
 
@@ -777,7 +900,7 @@ MCP 失败如果只表现为“工具没出现”，用户会非常困惑。
 
 交付内容：
 
-- 先接 `native` runtime 的 MCP 消费能力
+- 先接 `native` 主链路的 MCP 工具消费能力
 
 注意：
 
@@ -789,6 +912,7 @@ MCP 失败如果只表现为“工具没出现”，用户会非常困惑。
 - `native` consumer 不拥有 registry
 - consumer 只读取 `McpCatalogView`
 - transport/lifecycle 复杂度仍留在 `nextclaw-mcp`
+- native 首期接缝位于 `NcpToolRegistry` / `NextclawNcpToolRegistry` 一侧，而不是 backend/session/router 层
 
 ### Phase 4: UI 与 Marketplace
 
