@@ -276,6 +276,12 @@
   - 反例：代码改完只跑功能验证，不做任何可维护性自检；或发现超长文件继续增长却不提示风险和拆分缝。
   - 执行方式：默认在收尾阶段运行 `node .codex/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`；如只需检查特定文件，可加 `--paths <file...>`；结果除文件级/函数级预算外，还要关注 diff-only 的命名职责一致性告警；若出现阻塞项，优先继续拆分或更名，否则需在结果中明确债务、原因与下一步拆分位点。
   - 维护责任人：当前助手。
+- **hotspot-touch-must-record-debt-status**：
+  - 约束/适用范围：凡触达仓库红区文件（以 [`scripts/maintainability-hotspots.mjs`](scripts/maintainability-hotspots.mjs) 为准），本次 `docs/logs/v<semver>-<slug>/README.md` 必须新增 `## 红区触达与减债记录`，并为每个红区文件单独记录“本次是否减债 / 说明 / 下一步拆分缝”。
+  - 示例：修改 `packages/nextclaw/src/cli/commands/diagnostics.ts` 后，在本次迭代 README 中增加 `### packages/nextclaw/src/cli/commands/diagnostics.ts`，并填写 `- 本次是否减债：否`、`- 说明：...`、`- 下一步拆分缝：...`。
+  - 反例：触达红区文件却不留下减债状态；或只写“已修改 diagnostics.ts”而没有明确是否减债和下一步拆分缝。
+  - 执行方式：收尾阶段通过 `post-edit-maintainability-guard` 自动检查 changed hotspot files 与 changed iteration README 的对应关系；缺失日志或字段不完整视为阻塞项。具体格式遵循 [`docs/workflows/maintainability-hotspot-freeze.md`](docs/workflows/maintainability-hotspot-freeze.md)。
+  - 维护责任人：当前助手。
 - **legacy-freeze-before-removal**：
   - 约束/适用范围：凡涉及 `nextclaw` chat 链路演进，默认停止给 legacy 链路新增任何功能、适配或产品增强；legacy 只允许做三类改动：阻塞 NCP 迁移的必要修复、删除 legacy 前必须完成的兼容性清理、以及用户明确要求的临时回滚保障。
   - 示例：新能力只落在 `NcpChatPage` / NCP runtime / NCP tool/context 装配链路；若 legacy 发生阻塞迁移的关键 bug，仅做最小修复并注明其过渡性质。

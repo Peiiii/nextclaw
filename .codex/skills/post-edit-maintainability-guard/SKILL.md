@@ -44,6 +44,7 @@ node .codex/skills/post-edit-maintainability-guard/scripts/check-maintainability
 - 文件级预算检查：比较当前文件与 `HEAD` 的行数变化
 - 函数级规则检查：复用仓库 ESLint 结果，关注 `max-lines-per-function`、`max-statements`、`max-depth`、`sonarjs/cognitive-complexity`
 - 命名职责一致性检查：按 diff-only 原则检查文件名是否与实现主职责明显冲突；当前优先覆盖高置信度场景，例如文件名声明 `cache`，但内容只呈现纯映射 / updater 逻辑且缺少缓存协调信号
+- 红区治理检查：若本次触达仓库红区文件，则校验当前迭代 `README.md` 是否包含 `## 红区触达与减债记录`，并为每个红区文件提供 `### <repo-path>` + `本次是否减债 / 说明 / 下一步拆分缝`
 
 5. 以下情况默认视为阻塞项：
 - 新文件直接超出预算。
@@ -55,12 +56,15 @@ node .codex/skills/post-edit-maintainability-guard/scripts/check-maintainability
 - 新文件名与主职责明显不一致。
 - 本次改动引入新的文件名-职责错配。
 - 本次新增了针对 `max-lines` / `max-lines-per-function` / 复杂度规则的 `eslint-disable` 注释。
+- 本次触达红区文件，但未在本次迭代日志里记录红区触达与减债状态。
+- 本次触达红区文件，但日志块缺少 `本次是否减债`、`说明` 或 `下一步拆分缝`。
 
 6. 以下情况默认视为警告：
 - 文件已经逼近预算线，进入预算的 80% 以上。
 - 文件本次增长明显，但尚未超预算。
 - 你触达了一个原本就超限的函数，但本次没有继续把它变得更糟。
 - 你触达了一个原本就存在文件名-职责错配的文件，但本次没有继续恶化。
+- 你触达了红区文件，并已留下完整的减债记录；这类任务仍应在结果中明确“本次是否减债”。
 
 7. 出现阻塞项时，默认应继续拆分后再结束任务；除非用户明确接受这笔债务。若保留债务，必须说明原因、指出下一步拆分缝，并在最终回复中写明风险。
 
@@ -98,13 +102,17 @@ node .codex/skills/post-edit-maintainability-guard/scripts/check-maintainability
 - 是否存在值得跟踪的警告
 - 文件级风险与函数级风险的区分
 - 命名职责风险与文件级 / 函数级风险的区分
+- 红区治理风险与其它风险的区分
 - 若命中函数级风险，命中的规则名、函数/方法名（若能识别）、以及位置
 - 若命中命名职责风险，需指出角色名、错配原因，以及推荐的重命名或拆分方向
+- 若命中红区治理风险，需指出红区文件路径、缺失的日志字段，以及应该补到哪个 `docs/logs/.../README.md`
 - 每个风险文件的下一步拆分位点
 
 ## 资源
 
 - `scripts/check-maintainability.mjs`：Node 版入口脚本
 - `scripts/maintainability-guard-core.mjs`：结果组装与 diff-only 判定
+- `scripts/maintainability-guard-hotspots.mjs`：红区触达与迭代日志校验
 - `scripts/maintainability-guard-lint.mjs`：ESLint 结果解析
 - `scripts/maintainability-guard-support.mjs`：git / 文件 / 预算辅助函数
+- `../../../../scripts/maintainability-hotspots.mjs`：仓库红区清单与日志格式约定

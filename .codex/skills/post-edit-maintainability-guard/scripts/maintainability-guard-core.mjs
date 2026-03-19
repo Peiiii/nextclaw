@@ -11,6 +11,7 @@ import {
   readFileText,
   suggestSeam
 } from "./maintainability-guard-support.mjs";
+import { collectHotspotGovernanceFindings } from "./maintainability-guard-hotspots.mjs";
 import { buildSignature, lintContent } from "./maintainability-guard-lint.mjs";
 
 function toPayload(item) {
@@ -224,6 +225,23 @@ export function inspectPaths(paths) {
     return left.message.localeCompare(right.message);
   });
 
+  findings.push(...collectHotspotGovernanceFindings(inspectedPaths));
+  findings.sort((left, right) => {
+    if ((left.level === "error") !== (right.level === "error")) {
+      return left.level === "error" ? -1 : 1;
+    }
+    if (left.path !== right.path) {
+      return left.path.localeCompare(right.path);
+    }
+    if ((left.line ?? 0) !== (right.line ?? 0)) {
+      return (left.line ?? 0) - (right.line ?? 0);
+    }
+    if ((left.rule_id ?? "") !== (right.rule_id ?? "")) {
+      return (left.rule_id ?? "").localeCompare(right.rule_id ?? "");
+    }
+    return left.message.localeCompare(right.message);
+  });
+
   return {
     applicable: inspectedPaths.length > 0,
     inspected_paths: inspectedPaths,
@@ -234,7 +252,8 @@ export function inspectPaths(paths) {
     findings: findings.map(toPayload),
     file_findings: findings.filter((item) => item.source === "file-budget").map(toPayload),
     function_findings: findings.filter((item) => item.source === "eslint-function-budget" || item.source === "disable-comment").map(toPayload),
-    naming_findings: findings.filter((item) => item.source === "filename-role").map(toPayload)
+    naming_findings: findings.filter((item) => item.source === "filename-role").map(toPayload),
+    hotspot_findings: findings.filter((item) => item.source === "hotspot-governance").map(toPayload)
   };
 }
 
