@@ -1,15 +1,57 @@
 {
-  "generatedAt": "2026-03-19T03:17:49.058Z",
+  "generatedAt": "2026-03-19T14:57:10.815Z",
   "base": {
     "name": "nextclaw",
-    "projectRoot": "/home/runner/work/nextclaw/nextclaw",
+    "projectRoot": "/Users/peiwang/Projects/nextbot",
     "scope": {
-      "includeDirs": [
-        "apps",
-        "packages",
-        "workers",
-        "bridge",
-        "scripts"
+      "profile": "source",
+      "title": "Source LOC",
+      "includePaths": [
+        "apps/desktop/src",
+        "apps/docs/.vitepress",
+        "apps/landing/src",
+        "apps/ncp-demo/backend/src",
+        "apps/ncp-demo/frontend/src",
+        "apps/platform-admin/src",
+        "apps/platform-console/src",
+        "bridge/src",
+        "packages/extensions/nextclaw-channel-plugin-dingtalk/index.js",
+        "packages/extensions/nextclaw-channel-plugin-discord/index.js",
+        "packages/extensions/nextclaw-channel-plugin-email/index.js",
+        "packages/extensions/nextclaw-channel-plugin-feishu/index.js",
+        "packages/extensions/nextclaw-channel-plugin-mochat/index.js",
+        "packages/extensions/nextclaw-channel-plugin-qq/index.js",
+        "packages/extensions/nextclaw-channel-plugin-slack/index.js",
+        "packages/extensions/nextclaw-channel-plugin-telegram/index.js",
+        "packages/extensions/nextclaw-channel-plugin-wecom/index.js",
+        "packages/extensions/nextclaw-channel-plugin-whatsapp/index.js",
+        "packages/extensions/nextclaw-channel-runtime/src",
+        "packages/extensions/nextclaw-engine-plugin-claude-agent-sdk/src",
+        "packages/extensions/nextclaw-engine-plugin-codex-sdk/src",
+        "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src",
+        "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src",
+        "packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk/src",
+        "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src",
+        "packages/ncp-packages/nextclaw-ncp-agent-runtime/src",
+        "packages/ncp-packages/nextclaw-ncp-http-agent-client/src",
+        "packages/ncp-packages/nextclaw-ncp-http-agent-server/src",
+        "packages/ncp-packages/nextclaw-ncp-mcp/src",
+        "packages/ncp-packages/nextclaw-ncp-react-ui/src",
+        "packages/ncp-packages/nextclaw-ncp-react/src",
+        "packages/ncp-packages/nextclaw-ncp-toolkit/src",
+        "packages/ncp-packages/nextclaw-ncp/src",
+        "packages/nextclaw-agent-chat-ui/src",
+        "packages/nextclaw-agent-chat/src",
+        "packages/nextclaw-core/src",
+        "packages/nextclaw-mcp/src",
+        "packages/nextclaw-openclaw-compat/src",
+        "packages/nextclaw-runtime/src",
+        "packages/nextclaw-server/src",
+        "packages/nextclaw-ui/src",
+        "packages/nextclaw/bridge/src",
+        "packages/nextclaw/src",
+        "workers/marketplace-api/src",
+        "workers/nextclaw-provider-gateway-api/src"
       ],
       "includeExtensions": [
         ".ts",
@@ -17,10 +59,7 @@
         ".js",
         ".jsx",
         ".mjs",
-        ".cjs",
-        ".sh",
-        ".yml",
-        ".yaml"
+        ".cjs"
       ],
       "excludeDirs": [
         ".git",
@@ -30,25 +69,30 @@
         "coverage",
         "build",
         "ui-dist",
-        ".turbo"
+        ".turbo",
+        "release",
+        "out",
+        ".next",
+        ".wrangler",
+        ".temp"
       ]
     },
     "totals": {
-      "files": 658,
-      "totalLines": 99110,
-      "blankLines": 10069,
-      "commentLines": 691,
-      "codeLines": 88350
+      "files": 685,
+      "totalLines": 137461,
+      "blankLines": 10472,
+      "commentLines": 2734,
+      "codeLines": 124255
     }
   },
   "benchmark": {
     "name": "openclaw",
-    "projectRoot": "/home/runner/work/nextclaw/nextclaw/external/openclaw",
+    "projectRoot": "/Users/peiwang/Projects/openclaw",
     "scope": {
-      "includeDirs": [
+      "profile": "source",
+      "includePaths": [
         "src",
-        "extensions",
-        "scripts"
+        "extensions"
       ],
       "includeExtensions": [
         ".ts",
@@ -56,10 +100,7 @@
         ".js",
         ".jsx",
         ".mjs",
-        ".cjs",
-        ".sh",
-        ".yml",
-        ".yaml"
+        ".cjs"
       ],
       "excludeDirs": [
         ".git",
@@ -69,21 +110,26 @@
         "coverage",
         "build",
         "ui-dist",
-        ".turbo"
+        ".turbo",
+        "release",
+        "out",
+        ".next",
+        ".wrangler",
+        ".temp"
       ]
     },
     "totals": {
-      "files": 6831,
-      "totalLines": 1283603,
-      "blankLines": 119369,
-      "commentLines": 26159,
-      "codeLines": 1138075
+      "files": 6374,
+      "totalLines": 1208348,
+      "blankLines": 113013,
+      "commentLines": 25258,
+      "codeLines": 1070077
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -1049725,
-    "basePercentOfBenchmark": 7.76,
-    "benchmarkMultipleOfBase": 12.88,
-    "baseIsLighterByPercent": 92.24
+    "baseMinusBenchmarkLines": -945822,
+    "basePercentOfBenchmark": 11.61,
+    "benchmarkMultipleOfBase": 8.61,
+    "baseIsLighterByPercent": 88.39
   }
 }

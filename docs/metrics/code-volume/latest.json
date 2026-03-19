@@ -1,17 +1,58 @@
 {
-  "generatedAt": "2026-03-19T03:17:49.058Z",
-  "projectRoot": "/home/runner/work/nextclaw/nextclaw",
+  "generatedAt": "2026-03-19T14:57:10.815Z",
+  "projectRoot": "/Users/peiwang/Projects/nextbot",
   "git": {
-    "sha": "42bd5772d3d9eab865e264f5b481c37382472304",
-    "ref": "master"
+    "sha": "",
+    "ref": ""
   },
   "scope": {
-    "includeDirs": [
-      "apps",
-      "packages",
-      "workers",
-      "bridge",
-      "scripts"
+    "profile": "source",
+    "includePaths": [
+      "apps/desktop/src",
+      "apps/docs/.vitepress",
+      "apps/landing/src",
+      "apps/ncp-demo/backend/src",
+      "apps/ncp-demo/frontend/src",
+      "apps/platform-admin/src",
+      "apps/platform-console/src",
+      "bridge/src",
+      "packages/extensions/nextclaw-channel-plugin-dingtalk/index.js",
+      "packages/extensions/nextclaw-channel-plugin-discord/index.js",
+      "packages/extensions/nextclaw-channel-plugin-email/index.js",
+      "packages/extensions/nextclaw-channel-plugin-feishu/index.js",
+      "packages/extensions/nextclaw-channel-plugin-mochat/index.js",
+      "packages/extensions/nextclaw-channel-plugin-qq/index.js",
+      "packages/extensions/nextclaw-channel-plugin-slack/index.js",
+      "packages/extensions/nextclaw-channel-plugin-telegram/index.js",
+      "packages/extensions/nextclaw-channel-plugin-wecom/index.js",
+      "packages/extensions/nextclaw-channel-plugin-whatsapp/index.js",
+      "packages/extensions/nextclaw-channel-runtime/src",
+      "packages/extensions/nextclaw-engine-plugin-claude-agent-sdk/src",
+      "packages/extensions/nextclaw-engine-plugin-codex-sdk/src",
+      "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src",
+      "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src",
+      "packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk/src",
+      "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src",
+      "packages/ncp-packages/nextclaw-ncp-agent-runtime/src",
+      "packages/ncp-packages/nextclaw-ncp-http-agent-client/src",
+      "packages/ncp-packages/nextclaw-ncp-http-agent-server/src",
+      "packages/ncp-packages/nextclaw-ncp-mcp/src",
+      "packages/ncp-packages/nextclaw-ncp-react-ui/src",
+      "packages/ncp-packages/nextclaw-ncp-react/src",
+      "packages/ncp-packages/nextclaw-ncp-toolkit/src",
+      "packages/ncp-packages/nextclaw-ncp/src",
+      "packages/nextclaw-agent-chat-ui/src",
+      "packages/nextclaw-agent-chat/src",
+      "packages/nextclaw-core/src",
+      "packages/nextclaw-mcp/src",
+      "packages/nextclaw-openclaw-compat/src",
+      "packages/nextclaw-runtime/src",
+      "packages/nextclaw-server/src",
+      "packages/nextclaw-ui/src",
+      "packages/nextclaw/bridge/src",
+      "packages/nextclaw/src",
+      "workers/marketplace-api/src",
+      "workers/nextclaw-provider-gateway-api/src"
     ],
     "includeExtensions": [
       ".ts",
@@ -19,10 +60,7 @@
       ".js",
       ".jsx",
       ".mjs",
-      ".cjs",
-      ".sh",
-      ".yml",
-      ".yaml"
+      ".cjs"
     ],
     "excludeDirs": [
       ".git",
@@ -32,186 +70,151 @@
       "coverage",
       "build",
       "ui-dist",
-      ".turbo"
+      ".turbo",
+      "release",
+      "out",
+      ".next",
+      ".wrangler",
+      ".temp"
     ]
   },
   "totals": {
-    "files": 658,
-    "totalLines": 99110,
-    "blankLines": 10069,
-    "commentLines": 691,
-    "codeLines": 88350
+    "files": 685,
+    "totalLines": 137461,
+    "blankLines": 10472,
+    "commentLines": 2734,
+    "codeLines": 124255
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 478,
-      "totalLines": 77012,
-      "blankLines": 7961,
-      "commentLines": 597,
-      "codeLines": 68454
-    },
-    {
-      "name": "TSX",
-      "files": 123,
-      "totalLines": 15433,
-      "blankLines": 1349,
-      "commentLines": 64,
-      "codeLines": 14020
-    },
-    {
-      "name": "MJS",
-      "files": 28,
-      "totalLines": 4518,
-      "blankLines": 484,
-      "commentLines": 5,
-      "codeLines": 4029
-    },
-    {
-      "name": "Shell",
-      "files": 6,
-      "totalLines": 1235,
-      "blankLines": 173,
-      "commentLines": 9,
-      "codeLines": 1053
+      "files": 539,
+      "totalLines": 87220,
+      "blankLines": 8925,
+      "commentLines": 601,
+      "codeLines": 77694
     },
     {
       "name": "JavaScript",
-      "files": 18,
-      "totalLines": 577,
-      "blankLines": 64,
-      "commentLines": 14,
-      "codeLines": 499
+      "files": 19,
+      "totalLines": 33413,
+      "blankLines": 86,
+      "commentLines": 2068,
+      "codeLines": 31259
     },
     {
-      "name": "CJS",
-      "files": 5,
-      "totalLines": 335,
-      "blankLines": 38,
-      "commentLines": 2,
-      "codeLines": 295
+      "name": "TSX",
+      "files": 127,
+      "totalLines": 16828,
+      "blankLines": 1461,
+      "commentLines": 65,
+      "codeLines": 15302
     }
   ],
   "byScope": [
     {
+      "name": "apps/docs",
+      "files": 10,
+      "totalLines": 33428,
+      "blankLines": 61,
+      "commentLines": 2068,
+      "codeLines": 31299
+    },
+    {
       "name": "packages/nextclaw-ui",
-      "files": 140,
-      "totalLines": 20564,
-      "blankLines": 1879,
-      "commentLines": 163,
-      "codeLines": 18522
+      "files": 149,
+      "totalLines": 22591,
+      "blankLines": 2038,
+      "commentLines": 153,
+      "codeLines": 20400
     },
     {
       "name": "packages/nextclaw",
-      "files": 64,
-      "totalLines": 13528,
-      "blankLines": 1405,
+      "files": 71,
+      "totalLines": 15342,
+      "blankLines": 1553,
       "commentLines": 47,
-      "codeLines": 12076
+      "codeLines": 13742
     },
     {
       "name": "packages/nextclaw-core",
-      "files": 83,
-      "totalLines": 13236,
-      "blankLines": 1327,
-      "commentLines": 18,
-      "codeLines": 11891
+      "files": 81,
+      "totalLines": 13174,
+      "blankLines": 1308,
+      "commentLines": 14,
+      "codeLines": 11852
     },
     {
       "name": "packages/nextclaw-server",
-      "files": 33,
-      "totalLines": 9902,
-      "blankLines": 976,
+      "files": 39,
+      "totalLines": 10519,
+      "blankLines": 1035,
       "commentLines": 1,
-      "codeLines": 8925
+      "codeLines": 9483
     },
     {
-      "name": "packages/ncp-packages",
-      "files": 96,
-      "totalLines": 8243,
-      "blankLines": 922,
-      "commentLines": 372,
-      "codeLines": 6949
-    },
-    {
-      "name": "packages/extensions",
-      "files": 42,
-      "totalLines": 7427,
-      "blankLines": 763,
+      "name": "packages/extensions/nextclaw-channel-runtime",
+      "files": 20,
+      "totalLines": 5143,
+      "blankLines": 540,
       "commentLines": 16,
-      "codeLines": 6648
-    },
-    {
-      "name": "packages/nextclaw-openclaw-compat",
-      "files": 21,
-      "totalLines": 4116,
-      "blankLines": 433,
-      "commentLines": 5,
-      "codeLines": 3678
-    },
-    {
-      "name": "scripts",
-      "files": 13,
-      "totalLines": 3624,
-      "blankLines": 363,
-      "commentLines": 4,
-      "codeLines": 3257
+      "codeLines": 4587
     },
     {
       "name": "workers/nextclaw-provider-gateway-api",
-      "files": 11,
-      "totalLines": 3417,
-      "blankLines": 322,
-      "commentLines": 1,
-      "codeLines": 3094
+      "files": 14,
+      "totalLines": 4358,
+      "blankLines": 393,
+      "commentLines": 2,
+      "codeLines": 3963
     },
     {
       "name": "packages/nextclaw-agent-chat-ui",
-      "files": 35,
-      "totalLines": 2385,
-      "blankLines": 250,
+      "files": 46,
+      "totalLines": 4267,
+      "blankLines": 460,
       "commentLines": 1,
-      "codeLines": 2134
+      "codeLines": 3806
     },
     {
-      "name": "apps/landing",
-      "files": 6,
-      "totalLines": 2064,
-      "blankLines": 157,
-      "commentLines": 4,
-      "codeLines": 1903
+      "name": "packages/nextclaw-openclaw-compat",
+      "files": 22,
+      "totalLines": 4191,
+      "blankLines": 440,
+      "commentLines": 8,
+      "codeLines": 3743
     },
     {
-      "name": "apps/platform-admin",
-      "files": 17,
-      "totalLines": 1863,
-      "blankLines": 166,
-      "commentLines": 1,
-      "codeLines": 1696
+      "name": "packages/ncp-packages/nextclaw-ncp-toolkit",
+      "files": 22,
+      "totalLines": 3162,
+      "blankLines": 321,
+      "commentLines": 9,
+      "codeLines": 2832
     },
     {
       "name": "workers/marketplace-api",
-      "files": 23,
-      "totalLines": 1876,
-      "blankLines": 279,
+      "files": 29,
+      "totalLines": 2364,
+      "blankLines": 331,
       "commentLines": 0,
-      "codeLines": 1597
+      "codeLines": 2033
     },
     {
-      "name": "apps/desktop",
-      "files": 12,
-      "totalLines": 1718,
-      "blankLines": 216,
-      "commentLines": 7,
-      "codeLines": 1495
+      "name": "apps/platform-admin",
+      "files": 14,
+      "totalLines": 1796,
+      "blankLines": 161,
+      "commentLines": 0,
+      "codeLines": 1635
     },
     {
-      "name": "apps/ncp-demo",
-      "files": 22,
-      "totalLines": 1509,
-      "blankLines": 203,
-      "commentLines": 0,
-      "codeLines": 1306
+      "name": "apps/landing",
+      "files": 2,
+      "totalLines": 1700,
+      "blankLines": 123,
+      "commentLines": 2,
+      "codeLines": 1575
     },
     {
       "name": "packages/nextclaw-agent-chat",
@@ -222,28 +225,140 @@
       "codeLines": 1301
     },
     {
+      "name": "packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk",
+      "files": 4,
+      "totalLines": 1156,
+      "blankLines": 94,
+      "commentLines": 0,
+      "codeLines": 1062
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp",
+      "files": 27,
+      "totalLines": 1567,
+      "blankLines": 205,
+      "commentLines": 316,
+      "codeLines": 1046
+    },
+    {
+      "name": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
+      "files": 6,
+      "totalLines": 1154,
+      "blankLines": 109,
+      "commentLines": 0,
+      "codeLines": 1045
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-agent-runtime",
+      "files": 10,
+      "totalLines": 1125,
+      "blankLines": 123,
+      "commentLines": 9,
+      "codeLines": 993
+    },
+    {
       "name": "apps/platform-console",
-      "files": 16,
-      "totalLines": 1017,
+      "files": 13,
+      "totalLines": 1080,
+      "blankLines": 121,
+      "commentLines": 0,
+      "codeLines": 959
+    },
+    {
+      "name": "packages/nextclaw-mcp",
+      "files": 11,
+      "totalLines": 1027,
+      "blankLines": 115,
+      "commentLines": 0,
+      "codeLines": 912
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-http-agent-client",
+      "files": 6,
+      "totalLines": 831,
+      "blankLines": 92,
+      "commentLines": 0,
+      "codeLines": 739
+    },
+    {
+      "name": "apps/ncp-demo",
+      "files": 14,
+      "totalLines": 830,
       "blankLines": 117,
-      "commentLines": 1,
-      "codeLines": 899
+      "commentLines": 0,
+      "codeLines": 713
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-http-agent-server",
+      "files": 12,
+      "totalLines": 844,
+      "blankLines": 98,
+      "commentLines": 38,
+      "codeLines": 708
+    },
+    {
+      "name": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
+      "files": 2,
+      "totalLines": 594,
+      "blankLines": 49,
+      "commentLines": 0,
+      "codeLines": 545
+    },
+    {
+      "name": "packages/extensions/nextclaw-engine-plugin-claude-agent-sdk",
+      "files": 1,
+      "totalLines": 570,
+      "blankLines": 55,
+      "commentLines": 0,
+      "codeLines": 515
+    },
+    {
+      "name": "apps/desktop",
+      "files": 5,
+      "totalLines": 544,
+      "blankLines": 62,
+      "commentLines": 0,
+      "codeLines": 482
     },
     {
       "name": "packages/nextclaw-runtime",
       "files": 5,
-      "totalLines": 469,
+      "totalLines": 470,
       "blankLines": 19,
       "commentLines": 0,
-      "codeLines": 450
+      "codeLines": 451
     },
     {
-      "name": "apps/docs",
+      "name": "packages/extensions/nextclaw-engine-plugin-codex-sdk",
       "files": 1,
-      "totalLines": 295,
-      "blankLines": 15,
+      "totalLines": 402,
+      "blankLines": 36,
       "commentLines": 0,
-      "codeLines": 280
+      "codeLines": 366
+    },
+    {
+      "name": "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk",
+      "files": 1,
+      "totalLines": 336,
+      "blankLines": 26,
+      "commentLines": 0,
+      "codeLines": 310
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-react",
+      "files": 5,
+      "totalLines": 347,
+      "blankLines": 46,
+      "commentLines": 0,
+      "codeLines": 301
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-react-ui",
+      "files": 11,
+      "totalLines": 300,
+      "blankLines": 29,
+      "commentLines": 0,
+      "codeLines": 271
     },
     {
       "name": "bridge",
@@ -252,11 +367,99 @@
       "blankLines": 65,
       "commentLines": 45,
       "codeLines": 249
+    },
+    {
+      "name": "packages/ncp-packages/nextclaw-ncp-mcp",
+      "files": 4,
+      "totalLines": 112,
+      "blankLines": 15,
+      "commentLines": 0,
+      "codeLines": 97
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-dingtalk",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-discord",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-email",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-feishu",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-mochat",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-qq",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-slack",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-telegram",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-wecom",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
+    },
+    {
+      "name": "packages/extensions/nextclaw-channel-plugin-whatsapp",
+      "files": 1,
+      "totalLines": 28,
+      "blankLines": 4,
+      "commentLines": 0,
+      "codeLines": 24
     }
   ],
   "delta": {
-    "previousCodeLines": 81612,
-    "codeLines": 6738,
-    "percent": 8.26
+    "previousCodeLines": null,
+    "codeLines": null,
+    "percent": null
   }
 }

@@ -4,31 +4,24 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   statSync,
   writeFileSync
 } from "node:fs";
-import { dirname, extname, relative, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  createBaseScanConfig,
+  createBenchmarkScanConfig,
+  DEFAULT_SCOPE_PROFILE,
+  SUPPORTED_SCOPE_PROFILES
+} from "./code-volume-metrics-profile.mjs";
+import { collectSnapshot } from "./code-volume-metrics-snapshot.mjs";
 
 const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const PRIMARY_INCLUDE_DIRS = ["apps", "packages", "workers", "bridge", "scripts"];
-const DEFAULT_BENCHMARK_INCLUDE_DIRS = ["src", "extensions", "scripts"];
-const INCLUDE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".sh", ".yml", ".yaml"];
-const EXCLUDE_DIRS = [
-  ".git",
-  ".changeset",
-  "node_modules",
-  "dist",
-  "coverage",
-  "build",
-  "ui-dist",
-  ".turbo"
-];
-
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const options = {
+  scopeProfile: DEFAULT_SCOPE_PROFILE,
   outputPath: resolve(rootDir, "docs/metrics/code-volume/latest.json"),
   summaryPath: "",
   appendHistory: false,
@@ -45,6 +38,11 @@ for (let index = 0; index < args.length; index += 1) {
   const arg = args[index];
   if (arg === "--output") {
     options.outputPath = resolve(rootDir, args[index + 1] ?? "");
+    index += 1;
+    continue;
+  }
+  if (arg === "--scope-profile") {
+    options.scopeProfile = args[index + 1] ?? DEFAULT_SCOPE_PROFILE;
     index += 1;
     continue;
   }
@@ -100,200 +98,11 @@ const parseCsv = (value) =>
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 
-const detectLanguage = (extension) => {
-  if (extension === ".ts") return "TypeScript";
-  if (extension === ".tsx") return "TSX";
-  if (extension === ".js") return "JavaScript";
-  if (extension === ".jsx") return "JSX";
-  if (extension === ".mjs") return "MJS";
-  if (extension === ".cjs") return "CJS";
-  if (extension === ".sh") return "Shell";
-  if (extension === ".yml" || extension === ".yaml") return "YAML";
-  return extension.slice(1).toUpperCase();
-};
-
-const detectScope = (relativePath) => {
-  const segments = relativePath.split("/");
-  if ((segments[0] === "packages" || segments[0] === "extensions" || segments[0] === "apps" || segments[0] === "workers") && segments[1]) {
-    return `${segments[0]}/${segments[1]}`;
-  }
-  if (segments[0]) {
-    return segments[0];
-  }
-  return "root";
-};
-
-const countLines = (content, extension) => {
-  const lines = content.split(/\r?\n/);
-  let blankLines = 0;
-  let commentLines = 0;
-  let codeLines = 0;
-
-  const lineCommentPrefixes = extension === ".sh" || extension === ".yml" || extension === ".yaml" ? ["#"] : ["//"];
-  const supportsBlockComment = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"].includes(extension);
-  let inBlockComment = false;
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (line.length === 0) {
-      blankLines += 1;
-      continue;
-    }
-
-    if (supportsBlockComment && inBlockComment) {
-      commentLines += 1;
-      if (line.includes("*/")) {
-        inBlockComment = false;
-      }
-      continue;
-    }
-
-    if (supportsBlockComment && line.startsWith("/*")) {
-      commentLines += 1;
-      if (!line.includes("*/")) {
-        inBlockComment = true;
-      }
-      continue;
-    }
-
-    if (supportsBlockComment && line.startsWith("*")) {
-      commentLines += 1;
-      continue;
-    }
-
-    if (lineCommentPrefixes.some((prefix) => line.startsWith(prefix))) {
-      commentLines += 1;
-      continue;
-    }
-
-    codeLines += 1;
-  }
-
-  return {
-    totalLines: lines.length,
-    blankLines,
-    commentLines,
-    codeLines
-  };
-};
-
-const listTrackedFiles = (repoRoot, includeDirs, includeExtensions, excludeDirs) => {
-  const files = [];
-  const includeExtensionSet = new Set(includeExtensions);
-  const excludeDirSet = new Set(excludeDirs);
-
-  const walk = (directory) => {
-    const entries = readdirSync(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      const absolutePath = resolve(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (excludeDirSet.has(entry.name)) {
-          continue;
-        }
-        walk(absolutePath);
-        continue;
-      }
-
-      if (!entry.isFile()) {
-        continue;
-      }
-
-      const extension = extname(entry.name).toLowerCase();
-      if (!includeExtensionSet.has(extension)) {
-        continue;
-      }
-
-      files.push(absolutePath);
-    }
-  };
-
-  for (const includeDir of includeDirs) {
-    const absoluteDir = resolve(repoRoot, includeDir);
-    if (!existsSync(absoluteDir) || !statSync(absoluteDir).isDirectory()) {
-      continue;
-    }
-    walk(absoluteDir);
-  }
-
-  return files.sort();
-};
-
-const mergeMetrics = (target, increment) => {
-  target.files += increment.files;
-  target.totalLines += increment.totalLines;
-  target.blankLines += increment.blankLines;
-  target.commentLines += increment.commentLines;
-  target.codeLines += increment.codeLines;
-};
-
-const toSortedArray = (map) =>
-  [...map.entries()]
-    .map(([name, metrics]) => ({ name, ...metrics }))
-    .sort((left, right) => right.codeLines - left.codeLines || right.files - left.files || left.name.localeCompare(right.name));
-
-const collectSnapshot = ({
-  repoRoot,
-  includeDirs,
-  includeExtensions,
-  excludeDirs,
-  gitSha,
-  gitRef,
-  generatedAt
-}) => {
-  const trackedFiles = listTrackedFiles(repoRoot, includeDirs, includeExtensions, excludeDirs);
-  const totals = { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 };
-  const byLanguage = new Map();
-  const byScope = new Map();
-
-  for (const filePath of trackedFiles) {
-    const extension = extname(filePath).toLowerCase();
-    const language = detectLanguage(extension);
-    const relativePath = toPosixPath(relative(repoRoot, filePath));
-    const scope = detectScope(relativePath);
-    const content = readFileSync(filePath, "utf8");
-    const lineMetrics = countLines(content, extension);
-    const increment = {
-      files: 1,
-      totalLines: lineMetrics.totalLines,
-      blankLines: lineMetrics.blankLines,
-      commentLines: lineMetrics.commentLines,
-      codeLines: lineMetrics.codeLines
-    };
-
-    mergeMetrics(totals, increment);
-
-    if (!byLanguage.has(language)) {
-      byLanguage.set(language, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-    }
-    mergeMetrics(byLanguage.get(language), increment);
-
-    if (!byScope.has(scope)) {
-      byScope.set(scope, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-    }
-    mergeMetrics(byScope.get(scope), increment);
-  }
-
-  return {
-    generatedAt,
-    projectRoot: repoRoot,
-    git: {
-      sha: gitSha,
-      ref: gitRef
-    },
-    scope: {
-      includeDirs,
-      includeExtensions,
-      excludeDirs
-    },
-    totals,
-    byLanguage: toSortedArray(byLanguage),
-    byScope: toSortedArray(byScope)
-  };
-};
-
 const generatedAt = new Date().toISOString();
 const gitSha = process.env.GITHUB_SHA ?? "";
 const gitRef = process.env.GITHUB_REF_NAME ?? "";
+const scopeProfile = SUPPORTED_SCOPE_PROFILES.has(options.scopeProfile) ? options.scopeProfile : DEFAULT_SCOPE_PROFILE;
+const baseScanConfig = createBaseScanConfig({ repoRoot: rootDir, scopeProfile });
 
 let previousSnapshot = null;
 if (existsSync(options.outputPath)) {
@@ -306,9 +115,10 @@ if (existsSync(options.outputPath)) {
 
 const snapshot = collectSnapshot({
   repoRoot: rootDir,
-  includeDirs: PRIMARY_INCLUDE_DIRS,
-  includeExtensions: INCLUDE_EXTENSIONS,
-  excludeDirs: EXCLUDE_DIRS,
+  scopeProfile,
+  includePaths: baseScanConfig.includePaths,
+  includeExtensions: baseScanConfig.includeExtensions,
+  excludeDirs: baseScanConfig.excludeDirs,
   gitSha,
   gitRef,
   generatedAt
@@ -317,7 +127,7 @@ const snapshot = collectSnapshot({
 const totals = snapshot.totals;
 const currentCodeLines = totals.codeLines;
 const previousCodeLines = previousSnapshot?.totals?.codeLines;
-const hasPrevious = typeof previousCodeLines === "number";
+const hasPrevious = typeof previousCodeLines === "number" && previousSnapshot?.scope?.profile === scopeProfile;
 const deltaCodeLines = hasPrevious ? currentCodeLines - previousCodeLines : null;
 const deltaPercent = hasPrevious && previousCodeLines !== 0 ? Number(((deltaCodeLines / previousCodeLines) * 100).toFixed(2)) : null;
 
@@ -358,13 +168,17 @@ if (options.benchmarkRoot) {
   }
 
   const benchmarkIncludeDirs =
-    options.benchmarkIncludeDirs.trim().length > 0 ? parseCsv(options.benchmarkIncludeDirs) : DEFAULT_BENCHMARK_INCLUDE_DIRS;
+    options.benchmarkIncludeDirs.trim().length > 0 ? parseCsv(options.benchmarkIncludeDirs) : [];
+  const benchmarkScanConfig = createBenchmarkScanConfig({
+    benchmarkIncludePaths: benchmarkIncludeDirs
+  });
 
   const benchmarkSnapshot = collectSnapshot({
     repoRoot: benchmarkRoot,
-    includeDirs: benchmarkIncludeDirs,
-    includeExtensions: INCLUDE_EXTENSIONS,
-    excludeDirs: EXCLUDE_DIRS,
+    scopeProfile: "source",
+    includePaths: benchmarkScanConfig.includePaths,
+    includeExtensions: benchmarkScanConfig.includeExtensions,
+    excludeDirs: benchmarkScanConfig.excludeDirs,
     gitSha,
     gitRef,
     generatedAt
@@ -382,9 +196,11 @@ if (options.benchmarkRoot) {
       name: "nextclaw",
       projectRoot: rootDir,
       scope: {
-        includeDirs: PRIMARY_INCLUDE_DIRS,
-        includeExtensions: INCLUDE_EXTENSIONS,
-        excludeDirs: EXCLUDE_DIRS
+        profile: scopeProfile,
+        title: baseScanConfig.title,
+        includePaths: baseScanConfig.includePaths,
+        includeExtensions: baseScanConfig.includeExtensions,
+        excludeDirs: baseScanConfig.excludeDirs
       },
       totals
     },
@@ -392,9 +208,10 @@ if (options.benchmarkRoot) {
       name: benchmarkName,
       projectRoot: benchmarkRoot,
       scope: {
-        includeDirs: benchmarkIncludeDirs,
-        includeExtensions: INCLUDE_EXTENSIONS,
-        excludeDirs: EXCLUDE_DIRS
+        profile: "source",
+        includePaths: benchmarkScanConfig.includePaths,
+        includeExtensions: benchmarkScanConfig.includeExtensions,
+        excludeDirs: benchmarkScanConfig.excludeDirs
       },
       totals: benchmarkSnapshot.totals
     },
@@ -415,9 +232,9 @@ if (options.benchmarkRoot) {
     "",
     `## Benchmark vs ${benchmarkName}`,
     "",
-    `- Base (nextclaw) LOC: ${baseCodeLines}`,
+    `- Base (${baseScanConfig.title}) LOC: ${baseCodeLines}`,
     `- Benchmark (${benchmarkName}) LOC: ${benchmarkCodeLines}`,
-    `- NextClaw LOC / ${benchmarkName}: ${basePercentOfBenchmark === null ? "N/A" : `${basePercentOfBenchmark}%`}`,
+    `- NextClaw ${baseScanConfig.title} / ${benchmarkName}: ${basePercentOfBenchmark === null ? "N/A" : `${basePercentOfBenchmark}%`}`,
     `- ${benchmarkName} / NextClaw: ${benchmarkMultipleOfBase === null ? "N/A" : `${benchmarkMultipleOfBase}x`}`,
     `- NextClaw lighter by: ${baseIsLighterByPercent === null ? "N/A" : `${baseIsLighterByPercent}%`}`
   ];
@@ -436,8 +253,9 @@ if (options.benchmarkRoot) {
 
 const topScopes = snapshotWithDelta.byScope.slice(0, 6);
 const summaryLines = [
-  "# Code Volume Snapshot",
+  `# ${baseScanConfig.title} Snapshot`,
   "",
+  `- Profile: ${scopeProfile}`,
   `- Generated at: ${snapshotWithDelta.generatedAt}`,
   `- Tracked files: ${totals.files}`,
   `- Code lines (LOC): ${totals.codeLines}`,
@@ -446,7 +264,7 @@ const summaryLines = [
     ? `- Delta vs previous: ${deltaCodeLines >= 0 ? "+" : ""}${deltaCodeLines} LOC${
         deltaPercent === null ? "" : ` (${deltaPercent >= 0 ? "+" : ""}${deltaPercent}%)`
       }`
-    : "- Delta vs previous: N/A (no baseline)",
+    : "- Delta vs previous: N/A (no comparable baseline)",
   "",
   "## Top scopes by LOC",
   "",
@@ -467,8 +285,9 @@ if (options.printSummary) {
 }
 
 if (!options.noWrite) {
-  console.log(`Code volume snapshot saved: ${toPosixPath(relative(rootDir, options.outputPath))}`);
+  console.log(`${baseScanConfig.title} snapshot saved: ${toPosixPath(relative(rootDir, options.outputPath))}`);
 }
+console.log(`Profile: ${scopeProfile}`);
 console.log(`Tracked files: ${totals.files}`);
 console.log(`Code lines (LOC): ${totals.codeLines}`);
 if (hasPrevious) {

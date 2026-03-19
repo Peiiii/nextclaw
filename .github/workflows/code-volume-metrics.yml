@@ -1,4 +1,4 @@
-name: Code Volume Metrics
+name: Source LOC Metrics
 
 on:
   push:
@@ -32,21 +32,21 @@ jobs:
           path: external/openclaw
           fetch-depth: 1
 
-      - name: Generate code volume metrics
+      - name: Generate source LOC metrics
         run: |
           node scripts/code-volume-metrics.mjs \
             --append-history \
             --summary-file "$RUNNER_TEMP/code-volume-summary.md" \
             --benchmark-name openclaw \
             --benchmark-root external/openclaw \
-            --benchmark-include-dirs src,extensions,scripts \
+            --benchmark-include-dirs src,extensions \
             --benchmark-output docs/metrics/code-volume/comparison.json
 
-      - name: Commit metrics snapshot
+      - name: Commit source LOC snapshot
         if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(metrics): update code volume snapshot [skip ci]"
+          commit_message: "chore(metrics): update source loc snapshot [skip ci]"
           file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl docs/metrics/code-volume/comparison.json
 
       - name: Append workflow summary
@@ -55,7 +55,7 @@ jobs:
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v4
         with:
-          name: code-volume-metrics-${{ github.run_id }}
+          name: source-loc-metrics-${{ github.run_id }}
           path: |
             docs/metrics/code-volume/latest.json
             docs/metrics/code-volume/history.jsonl

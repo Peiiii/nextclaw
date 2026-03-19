@@ -51,6 +51,8 @@
     "changeset": "changeset",
     "metrics:loc": "node scripts/code-volume-metrics.mjs",
     "metrics:local": "node scripts/code-volume-metrics.mjs --no-write --print-summary",
+    "metrics:repo": "node scripts/code-volume-metrics.mjs --scope-profile repo-volume",
+    "metrics:repo:local": "node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --print-summary",
     "release:sync-readmes": "node scripts/sync-npm-readmes.mjs",
     "release:check-readmes": "node scripts/sync-npm-readmes.mjs --check",
     "release:check": "pnpm build && pnpm lint && pnpm tsc",
