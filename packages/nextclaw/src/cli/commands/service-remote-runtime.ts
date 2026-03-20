@@ -14,13 +14,15 @@ type ManagedServiceSnapshot = {
   uiHost: string;
   uiPort: number;
   logPath: string;
+  uiStaticDir?: string | null;
 };
 
 export function createManagedRemoteModule(params: {
   config: Config;
+  uiEnabled: boolean;
   localOrigin: string;
 }): RemoteServiceModule | null {
-  if (!params.config.ui.enabled) {
+  if (!params.uiEnabled) {
     return null;
   }
   return new RemoteServiceModule({
@@ -49,6 +51,7 @@ export function writeInitialManagedServiceState(params: {
     uiHost: params.snapshot.uiHost,
     uiPort: params.snapshot.uiPort,
     logPath: params.snapshot.logPath,
+    uiStaticDir: params.snapshot.uiStaticDir ?? null,
     startupLastProbeError: null,
     startupTimeoutMs: params.readinessTimeoutMs,
     startupCheckedAt: new Date().toISOString(),
@@ -70,6 +73,7 @@ export function writeReadyManagedServiceState(params: {
     uiHost: params.snapshot.uiHost,
     uiPort: params.snapshot.uiPort,
     logPath: params.snapshot.logPath,
+    uiStaticDir: params.snapshot.uiStaticDir ?? currentState?.uiStaticDir ?? null,
     startupState: params.readiness.ready ? "ready" : "degraded",
     startupLastProbeError: params.readiness.lastProbeError,
     startupTimeoutMs: params.readinessTimeoutMs,

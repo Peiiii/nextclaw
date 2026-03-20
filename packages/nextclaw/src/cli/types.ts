@@ -177,6 +177,10 @@ export type RuntimeStatusReport = {
   providers: Array<{ name: string; configured: boolean; detail: string }>;
   serviceStatePath: string;
   serviceStateExists: boolean;
+  uiAssets: {
+    resolvedStaticDir: string | null;
+    indexHtmlPresent: boolean;
+  };
   fixActions: string[];
   process: {
     managedByState: boolean;

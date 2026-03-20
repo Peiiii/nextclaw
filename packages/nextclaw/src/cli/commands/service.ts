@@ -352,7 +352,7 @@ export class ServiceCommands {
         }),
     );
 
-    const remoteModule = createManagedRemoteModule({ config, localOrigin });
+    const remoteModule = createManagedRemoteModule({ config, uiEnabled: uiConfig.enabled, localOrigin });
     await startGatewaySupportServices({
       cronJobs: cron.status().jobs,
       remoteModule,
@@ -627,6 +627,8 @@ export class ServiceCommands {
       clearServiceState();
     }
 
+    const staticDirDescription = staticDir ? `staticDir=${staticDir}` : "staticDir=<missing>";
+    this.appendStartupStage(logPath, `ui asset resolution: ${staticDirDescription}`);
     if (!staticDir) {
       console.log("Warning: UI frontend not found in package assets.");
     }
@@ -681,7 +683,7 @@ export class ServiceCommands {
     writeInitialManagedServiceState({
       config,
       readinessTimeoutMs,
-      snapshot: { pid: child.pid, uiUrl, apiUrl, uiHost: uiConfig.host, uiPort: uiConfig.port, logPath }
+      snapshot: { pid: child.pid, uiUrl, apiUrl, uiHost: uiConfig.host, uiPort: uiConfig.port, logPath, uiStaticDir: staticDir }
     });
 
     this.appendStartupStage(logPath, `health probe started: ${healthUrl} (phase=quick, timeoutMs=${quickPhaseTimeoutMs})`);

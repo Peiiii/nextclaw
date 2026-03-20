@@ -16,6 +16,7 @@ export type ServiceState = {
   uiHost?: string;
   uiPort?: number;
   logPath: string;
+  uiStaticDir?: string | null;
   startupState?: "ready" | "degraded";
   startupLastProbeError?: string | null;
   startupTimeoutMs?: number;

@@ -1,6 +1,6 @@
 import { createServer as createNetServer } from "node:net";
 import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import {
   APP_NAME,
   getConfigPath,
@@ -16,7 +16,8 @@ import {
   readServiceState,
   resolveServiceLogPath,
   resolveUiApiBase,
-  resolveUiConfig
+  resolveUiConfig,
+  resolveUiStaticDir
 } from "../utils.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "./diagnostics-render.js";
 import { resolveNextclawRemoteStatusSnapshot } from "./remote-runtime-support.js";
@@ -75,6 +76,13 @@ export class DiagnosticsCommands {
         name: "workspace-dir",
         status: report.workspaceExists ? "pass" : "warn",
         detail: report.workspacePath
+      },
+      {
+        name: "ui-assets",
+        status: report.uiAssets.indexHtmlPresent ? "pass" : "fail",
+        detail: report.uiAssets.resolvedStaticDir
+          ? `${report.uiAssets.resolvedStaticDir} (${report.uiAssets.indexHtmlPresent ? "index.html found" : "index.html missing"})`
+          : "no UI static directory resolved"
       },
       {
         name: "service-state",
@@ -164,6 +172,8 @@ export class DiagnosticsCommands {
     const configuredUi = resolveUiConfig(config, { enabled: true, host: config.ui.host, port: config.ui.port });
     const configuredUiUrl = resolveUiApiBase(configuredUi.host, configuredUi.port);
     const configuredApiUrl = `${configuredUiUrl}/api`;
+    const resolvedStaticDir = serviceState?.uiStaticDir ?? resolveUiStaticDir();
+    const indexHtmlPresent = Boolean(resolvedStaticDir && existsSync(join(resolvedStaticDir, "index.html")));
 
     const managedUiUrl = serviceState?.uiUrl ?? null;
     const managedApiUrl = serviceState?.apiUrl ?? null;
@@ -217,6 +227,10 @@ export class DiagnosticsCommands {
       providers,
       serviceStatePath,
       serviceStateExists: existsSync(serviceStatePath),
+      uiAssets: {
+        resolvedStaticDir,
+        indexHtmlPresent
+      },
       fixActions,
       process: {
         managedByState,
@@ -330,7 +344,11 @@ export class DiagnosticsCommands {
       params.issues.push("A service appears healthy on configured API endpoint, but state is missing/stale.");
       params.recommendations.push("Another process may be occupying the UI port; stop it or use --ui-port with a free port.");
     }
-    if (!params.providers.some((provider) => provider.configured)) {
+    if (params.running && !params.serviceState?.uiStaticDir) {
+      params.issues.push("Managed service did not record a resolved UI static asset directory.");
+      params.recommendations.push(`Check logs at ${params.serviceState?.logPath ?? resolveServiceLogPath()} and verify packaged ui-dist assets exist.`);
+    }
+    if (!params.running && !params.providers.some((provider) => provider.configured)) {
       params.recommendations.push("Configure at least one provider API key in UI or config before expecting agent replies.");
     }
   }
