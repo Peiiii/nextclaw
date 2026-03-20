@@ -628,7 +628,7 @@ export class ServiceCommands {
     }
 
     if (!staticDir) {
-      console.log("Warning: UI frontend not found in package assets.");
+      return void console.error(`Error: ${APP_NAME} UI frontend bundle not found. Reinstall or rebuild ${APP_NAME}.`);
     }
 
     const healthUrl = `${apiUrl}/health`;

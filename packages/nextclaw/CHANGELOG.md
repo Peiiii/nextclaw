@@ -1,5 +1,12 @@
 # nextclaw
 
+## 0.13.14
+
+### Patch Changes
+
+- Fix npm packaging for the built-in UI so published tarballs always include `ui-dist/index.html` and the generated `ui-dist/assets/*` bundle instead of silently shipping a partial frontend that renders `404 not found` after `nextclaw start`.
+- Fail fast when the installed package does not contain the built-in UI bundle, so `nextclaw start` prints a clear recovery hint instead of starting a service that can only return a frontend 404.
+
 ## 0.13.10
 
 ### Patch Changes
