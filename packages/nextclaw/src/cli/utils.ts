@@ -142,32 +142,15 @@ export async function waitForExit(pid: number, timeoutMs: number): Promise<boole
 }
 
 export function resolveUiStaticDir(): string | null {
-  const candidates: string[] = [];
   const envDir = process.env.NEXTCLAW_UI_STATIC_DIR;
   if (envDir) {
-    candidates.push(envDir);
+    return existsSync(join(envDir, "index.html")) ? envDir : null;
   }
 
   const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
   const pkgRoot = resolve(cliDir, "..", "..");
-  candidates.push(join(pkgRoot, "ui-dist"));
-  candidates.push(join(pkgRoot, "ui"));
-  candidates.push(join(pkgRoot, "..", "ui-dist"));
-  candidates.push(join(pkgRoot, "..", "ui"));
-
-  const cwd = process.cwd();
-  candidates.push(join(cwd, "packages", "nextclaw-ui", "dist"));
-  candidates.push(join(cwd, "nextclaw-ui", "dist"));
-  candidates.push(join(pkgRoot, "..", "nextclaw-ui", "dist"));
-  candidates.push(join(pkgRoot, "..", "..", "packages", "nextclaw-ui", "dist"));
-  candidates.push(join(pkgRoot, "..", "..", "nextclaw-ui", "dist"));
-
-  for (const dir of candidates) {
-    if (existsSync(join(dir, "index.html"))) {
-      return dir;
-    }
-  }
-  return null;
+  const bundledDir = join(pkgRoot, "ui-dist");
+  return existsSync(join(bundledDir, "index.html")) ? bundledDir : null;
 }
 
 export function openBrowser(url: string): void {

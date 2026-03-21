@@ -1,5 +1,17 @@
 # nextclaw-server
 
+## 0.10.11
+
+### Patch Changes
+
+- Keep the `@nextclaw/mcp` / `@nextclaw/server` / `nextclaw` release group aligned while shipping the `nextclaw` UI static directory contract tightening.
+  - `nextclaw`: remove implicit UI static directory fallbacks so the published CLI only serves the bundled `ui-dist` or an explicit `NEXTCLAW_UI_STATIC_DIR` override. Invalid overrides now fail fast with a non-zero exit instead of silently borrowing repo-local frontend artifacts from `cwd`.
+  - `@nextclaw/mcp`: version-only companion release for release-group alignment.
+  - `@nextclaw/server`: version-only companion release for release-group alignment.
+
+- Updated dependencies
+  - @nextclaw/mcp@0.1.11
+
 ## 0.10.10
 
 ### Patch Changes

@@ -628,7 +628,7 @@ export class ServiceCommands {
     }
 
     if (!staticDir) {
-      return void console.error(`Error: ${APP_NAME} UI frontend bundle not found. Reinstall or rebuild ${APP_NAME}.`);
+      return void (process.exitCode = 1, console.error(`Error: ${APP_NAME} UI frontend bundle not found. Reinstall or rebuild ${APP_NAME}. For dev-only overrides, set NEXTCLAW_UI_STATIC_DIR to a built frontend directory.`));
     }
 
     const healthUrl = `${apiUrl}/health`;
