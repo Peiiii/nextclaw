@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-whatsapp",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": false,
   "description": "NextClaw WhatsApp channel plugin (OpenClaw-compatible)",
   "type": "module",

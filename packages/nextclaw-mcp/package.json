@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/mcp",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "private": false,
   "description": "Platform-level MCP registry, lifecycle, and diagnostics for NextClaw.",
   "type": "module",

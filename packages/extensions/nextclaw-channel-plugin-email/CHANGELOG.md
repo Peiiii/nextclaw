@@ -1,5 +1,11 @@
 # @nextclaw/channel-plugin-email
 
+## 0.2.7
+
+### Patch Changes
+
+- @nextclaw/channel-runtime@0.2.7
+
 ## 0.2.6
 
 ### Patch Changes

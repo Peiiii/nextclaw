@@ -127,7 +127,7 @@ function migrateConfig(data: Record<string, unknown>): { config: Record<string, 
     },
     providers: {
       ...providers,
-      nextclaw: nextclawProvider
+      ...(providers.nextclaw ? { nextclaw: nextclawProvider } : {})
     }
   });
   return {
@@ -143,7 +143,7 @@ function ensureBuiltinNextclawKey(config: Config): boolean {
 
   if (!provider) {
     provider = {
-      enabled: true,
+      enabled: false,
       displayName: "",
       apiKey: "",
       apiBase: null,

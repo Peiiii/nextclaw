@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": false,
   "description": "NextClaw plugin that registers Codex SDK as an optional NCP runtime.",
   "type": "module",

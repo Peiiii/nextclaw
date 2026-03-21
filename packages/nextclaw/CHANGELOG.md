@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.13.21
+
+### Patch Changes
+
+- Disable the built-in NextClaw provider by default on fresh installs so the seeded provider remains present but no longer starts in an enabled state before it is ready.
+- Updated dependencies
+  - @nextclaw/core@0.9.7
+  - @nextclaw/mcp@0.1.17
+  - @nextclaw/server@0.10.17
+  - @nextclaw/openclaw-compat@0.3.10
+  - @nextclaw/remote@0.1.13
+  - @nextclaw/runtime@0.2.7
+  - @nextclaw/ncp-mcp@0.1.17
+
 ## 0.13.20
 
 ### Patch Changes

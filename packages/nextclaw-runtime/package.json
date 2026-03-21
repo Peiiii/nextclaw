@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/runtime",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": false,
   "description": "NextClaw runtime assembly for builtin providers and channels.",
   "type": "module",

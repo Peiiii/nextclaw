@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-email",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": false,
   "description": "NextClaw Email channel plugin (OpenClaw-compatible)",
   "type": "module",

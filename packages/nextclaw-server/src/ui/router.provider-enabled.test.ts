@@ -23,6 +23,28 @@ afterEach(() => {
 });
 
 describe("provider enabled state route", () => {
+  it("exposes built-in nextclaw provider as disabled by default for empty config", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+
+    const app = createUiRouter({
+      configPath,
+      publish: () => {}
+    });
+
+    const configResponse = await app.request("http://localhost/api/config");
+    expect(configResponse.status).toBe(200);
+
+    const configPayload = await configResponse.json() as {
+      ok: true;
+      data: {
+        providers: Record<string, { enabled: boolean; apiKeySet: boolean }>;
+      };
+    };
+    expect(configPayload.data.providers.nextclaw.enabled).toBe(false);
+    expect(configPayload.data.providers.nextclaw.apiKeySet).toBe(true);
+  });
+
   it("persists provider enabled state and exposes it in config view", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);

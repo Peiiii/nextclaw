@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.9.7
+
+### Patch Changes
+
+- Disable the built-in NextClaw provider by default on fresh installs so the seeded provider remains present but no longer starts in an enabled state before it is ready.
+
 ## 0.9.6
 
 ### Patch Changes
