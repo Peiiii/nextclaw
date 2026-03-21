@@ -14,11 +14,38 @@ import {
 import fs from "node:fs";
 import path from "node:path";
 
-export function listChangedIterationReadmes() {
-  const output = runGit(["status", "--porcelain"]);
+const ITERATION_README_PATTERN = /^docs\/logs\/v\d+\.\d+\.\d+-[^/]+\/README\.md$/;
+const ITERATION_DIR_PATTERN = /^docs\/logs\/v\d+\.\d+\.\d+-[^/]+\/?$/;
+
+function resolveIterationReadmes(pathText, fileExists) {
+  const normalizedPath = normalizePath(pathText);
+  if (!normalizedPath) {
+    return [];
+  }
+  if (ITERATION_README_PATTERN.test(normalizedPath)) {
+    return fileExists(normalizedPath) ? [normalizedPath] : [];
+  }
+  if (!ITERATION_DIR_PATTERN.test(normalizedPath)) {
+    return [];
+  }
+  const readmePath = normalizedPath.endsWith("/README.md")
+    ? normalizedPath
+    : `${normalizedPath.replace(/\/$/, "")}/README.md`;
+  return fileExists(readmePath) ? [readmePath] : [];
+}
+
+export function extractChangedIterationReadmes({ candidatePaths = [], statusOutput = "", fileExists } = {}) {
+  const pathExists = fileExists ?? ((pathText) => {
+    const absolutePath = path.resolve(ROOT, pathText);
+    return fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile();
+  });
   const readmes = [];
 
-  for (const line of output.split(/\r?\n/)) {
+  for (const candidatePath of candidatePaths) {
+    readmes.push(...resolveIterationReadmes(candidatePath, pathExists));
+  }
+
+  for (const line of statusOutput.split(/\r?\n/)) {
     if (!line) {
       continue;
     }
@@ -26,26 +53,26 @@ export function listChangedIterationReadmes() {
     if (payload.includes(" -> ")) {
       payload = payload.split(" -> ", 2)[1];
     }
-    const pathText = normalizePath(payload);
-    if (!/^docs\/logs\/v\d+\.\d+\.\d+-[^/]+\/README\.md$/.test(pathText)) {
-      continue;
-    }
-    const absolutePath = path.resolve(ROOT, pathText);
-    if (fs.existsSync(absolutePath) && fs.statSync(absolutePath).isFile()) {
-      readmes.push(pathText);
-    }
+    readmes.push(...resolveIterationReadmes(payload, pathExists));
   }
 
   return [...new Set(readmes)];
 }
 
-export function collectHotspotGovernanceFindings(inspectedPaths) {
+export function listChangedIterationReadmes(candidatePaths = []) {
+  return extractChangedIterationReadmes({
+    candidatePaths,
+    statusOutput: runGit(["status", "--porcelain"])
+  });
+}
+
+export function collectHotspotGovernanceFindings(inspectedPaths, candidatePaths = []) {
   const hotspots = listTouchedMaintainabilityHotspots(inspectedPaths);
   if (hotspots.length === 0) {
     return [];
   }
 
-  const readmePaths = listChangedIterationReadmes();
+  const readmePaths = listChangedIterationReadmes(candidatePaths);
   const readmes = readmePaths.map((readmePath) => ({
     path: readmePath,
     text: readFileText(readmePath)

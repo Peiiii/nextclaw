@@ -225,7 +225,7 @@ export function inspectPaths(paths) {
     return left.message.localeCompare(right.message);
   });
 
-  findings.push(...collectHotspotGovernanceFindings(inspectedPaths));
+  findings.push(...collectHotspotGovernanceFindings(inspectedPaths, paths));
   findings.sort((left, right) => {
     if ((left.level === "error") !== (right.level === "error")) {
       return left.level === "error" ? -1 : 1;
