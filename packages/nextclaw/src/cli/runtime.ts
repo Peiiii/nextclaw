@@ -3,7 +3,6 @@ import {
   saveConfig,
   getConfigPath,
   getDataDir,
-  ConfigSchema,
   type Config,
   getWorkspacePath,
   expandHome,
@@ -27,6 +26,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { RestartCoordinator, type RestartStrategy } from "./restart-coordinator.js";
+import { initializeConfigIfMissing } from "./runtime-config-init.js";
 import { writeRestartSentinel } from "./restart-sentinel.js";
 import { installMarketplaceSkill, publishMarketplaceSkill } from "./skills/marketplace.js";
 import { runSelfUpdate } from "./update/runner.js";
@@ -383,12 +383,7 @@ export class CliRuntime {
     const force = Boolean(options.force);
 
     const configPath = getConfigPath();
-    let createdConfig = false;
-    if (!existsSync(configPath)) {
-      const config = ConfigSchema.parse({});
-      saveConfig(config);
-      createdConfig = true;
-    }
+    const createdConfig = initializeConfigIfMissing(configPath);
 
     const config = loadConfig();
     const workspaceSetting = config.agents.defaults.workspace;

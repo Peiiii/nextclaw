@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.13.22
+
+### Patch Changes
+
+- Fix the first-run CLI init path so the built-in NextClaw provider stays disabled by default for fresh installs.
+- Updated dependencies
+  - @nextclaw/server@0.10.18
+  - @nextclaw/mcp@0.1.18
+  - @nextclaw/remote@0.1.14
+  - @nextclaw/ncp-mcp@0.1.18
+
 ## 0.13.21
 
 ### Patch Changes

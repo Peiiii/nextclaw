@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-mcp",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "private": false,
   "description": "Thin NCP adapter for exposing platform MCP tools inside NextClaw NCP runtimes.",
   "type": "module",
