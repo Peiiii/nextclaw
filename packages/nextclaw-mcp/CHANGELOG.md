@@ -1,5 +1,11 @@
 # @nextclaw/mcp
 
+## 0.1.13
+
+### Patch Changes
+
+- Refine remote access into a user-first NextClaw account flow, simplify the remote access page, and align the web console device copy with the new product path.
+
 ## 0.1.12
 
 ### Patch Changes

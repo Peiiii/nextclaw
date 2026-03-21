@@ -8,6 +8,8 @@ import { BrandHeader } from '@/components/common/BrandHeader';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { useRemoteStatus } from '@/hooks/useRemoteAccess';
+import { useAppPresenter } from '@/presenter/app-presenter-context';
 
 type SidebarMode = 'main' | 'settings';
 
@@ -16,11 +18,15 @@ type SidebarProps = {
 };
 
 export function Sidebar({ mode }: SidebarProps) {
+  const presenter = useAppPresenter();
   const docBrowser = useDocBrowser();
+  const remoteStatus = useRemoteStatus();
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
   const currentLanguageLabel = LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ?? language;
   const currentThemeLabel = t(THEME_OPTIONS.find((option) => option.value === theme)?.labelKey ?? 'themeWarm');
+  const accountEmail = remoteStatus.data?.account.email?.trim();
+  const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
 
   const handleLanguageSwitch = (nextLanguage: I18nLanguage) => {
     if (language === nextLanguage) {
@@ -174,6 +180,24 @@ export function Sidebar({ mode }: SidebarProps) {
 
       {/* Help Button */}
       <div className="pt-3 border-t border-[#dde0ea] mt-3">
+        {mode === 'settings' ? (
+          <button
+            onClick={() => presenter.accountManager.openAccountPanel()}
+            className="mb-2 w-full rounded-2xl border border-gray-200 bg-white px-3 py-3 text-left transition-colors hover:bg-gray-50"
+          >
+            <div className="flex items-start gap-3">
+              <div className={cn('mt-0.5 rounded-full p-2', accountConnected ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600')}>
+                <KeyRound className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900">{accountEmail || t('remoteAccountEntryTitle')}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {accountConnected ? t('remoteAccountEntryConnected') : t('remoteAccountEntryDisconnected')}
+                </p>
+              </div>
+            </div>
+          </button>
+        ) : null}
         {mode === 'main' && (
           <div className="mb-2">
             <NavLink

@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.9.6
+
+### Patch Changes
+
+- Publish the user-first NextClaw account and remote access UI changes under a fresh npm version so the registry matches the repo state.
+
+## 0.9.5
+
+### Patch Changes
+
+- Refine remote access into a user-first NextClaw account flow, simplify the remote access page, and align the web console device copy with the new product path.
+
 ## 0.9.4
 
 ### Patch Changes

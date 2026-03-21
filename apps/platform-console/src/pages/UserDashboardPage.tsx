@@ -38,9 +38,9 @@ function RemoteDevicesCard({ token }: RemoteDevicesCardProps): JSX.Element {
 
   return (
     <Card className="space-y-3">
-      <CardTitle>我的设备</CardTitle>
+      <CardTitle>NextClaw Web 设备</CardTitle>
       <p className="text-sm text-slate-500">
-        在你的设备上执行 <code>nextclaw login</code> 和 <code>nextclaw remote connect</code> 后，设备会出现在这里。
+        在桌面端开启远程访问后，这台设备会自动出现在这里。你可以直接在网页中打开它，继续使用同一条 Agent 链路。
       </p>
       <TableWrap>
         <table className="w-full text-left text-sm">
@@ -72,7 +72,7 @@ function RemoteDevicesCard({ token }: RemoteDevicesCardProps): JSX.Element {
                     onClick={() => openRemoteMutation.mutate(device.id)}
                     disabled={device.status !== 'online' || openRemoteMutation.isPending}
                   >
-                    Open
+                    在网页中打开
                   </Button>
                 </td>
               </tr>
@@ -80,7 +80,7 @@ function RemoteDevicesCard({ token }: RemoteDevicesCardProps): JSX.Element {
             {!remoteDevicesQuery.isLoading && (remoteDevicesQuery.data?.items?.length ?? 0) === 0 ? (
               <tr>
                 <td colSpan={5} className="px-3 py-4 text-sm text-slate-500">
-                  暂无在线设备。
+                  还没有可用设备。先回到桌面端登录 NextClaw 并开启远程访问。
                 </td>
               </tr>
             ) : null}

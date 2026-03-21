@@ -10,11 +10,12 @@ import {
   updateRemoteSettings
 } from '@/api/remote';
 import { t } from '@/lib/i18n';
+import { REMOTE_STATUS_QUERY_KEY } from '@/remote/remote-access.query';
 import { toast } from 'sonner';
 
 export function useRemoteStatus() {
   return useQuery({
-    queryKey: ['remote-status'],
+    queryKey: REMOTE_STATUS_QUERY_KEY,
     queryFn: fetchRemoteStatus,
     staleTime: 5000,
     refetchOnWindowFocus: true
@@ -27,7 +28,7 @@ export function useRemoteLogin() {
   return useMutation({
     mutationFn: loginRemote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['remote-status'] });
+      queryClient.invalidateQueries({ queryKey: REMOTE_STATUS_QUERY_KEY });
       toast.success(t('remoteLoginSuccess'));
     },
     onError: (error: Error) => {
@@ -52,7 +53,7 @@ export function useRemoteBrowserAuthPoll() {
     mutationFn: pollRemoteBrowserAuth,
     onSuccess: (result) => {
       if (result.status === 'authorized') {
-        queryClient.invalidateQueries({ queryKey: ['remote-status'] });
+        queryClient.invalidateQueries({ queryKey: REMOTE_STATUS_QUERY_KEY });
         toast.success(t('remoteLoginSuccess'));
       }
     },
@@ -68,7 +69,7 @@ export function useRemoteLogout() {
   return useMutation({
     mutationFn: logoutRemote,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['remote-status'] });
+      queryClient.invalidateQueries({ queryKey: REMOTE_STATUS_QUERY_KEY });
       toast.success(t('remoteLogoutSuccess'));
     },
     onError: (error: Error) => {
@@ -83,7 +84,7 @@ export function useRemoteSettings() {
   return useMutation({
     mutationFn: updateRemoteSettings,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['remote-status'] });
+      queryClient.invalidateQueries({ queryKey: REMOTE_STATUS_QUERY_KEY });
       toast.success(t('remoteSettingsSaved'));
     },
     onError: (error: Error) => {
@@ -110,7 +111,7 @@ export function useRemoteServiceControl() {
   return useMutation({
     mutationFn: controlRemoteService,
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['remote-status'] });
+      queryClient.invalidateQueries({ queryKey: REMOTE_STATUS_QUERY_KEY });
       toast.success(result.message);
     },
     onError: (error: Error) => {
