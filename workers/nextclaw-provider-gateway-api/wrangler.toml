@@ -23,6 +23,7 @@ new_sqlite_classes = ["NextclawRemoteRelayDurableObject"]
 
 [vars]
 DASHSCOPE_API_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-AUTH_TOKEN_SECRET = "dev-only-change-me-and-make-it-very-long-32+"
+PLATFORM_AUTH_EMAIL_PROVIDER = "resend"
+PLATFORM_AUTH_EMAIL_FROM = "NextClaw <no-reply@mail.nextclaw.io>"
 GLOBAL_FREE_USD_LIMIT = "20"
 REQUEST_FLAT_USD_PER_REQUEST = "0.0002"

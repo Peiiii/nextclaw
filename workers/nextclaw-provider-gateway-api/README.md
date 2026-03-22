@@ -44,6 +44,7 @@ pnpm -C workers/nextclaw-provider-gateway-api dev
 生产环境要求：
 - 不要使用 `console` 邮件模式。
 - 若前端已切到验证码登录，则生产必须先配置 `PLATFORM_AUTH_EMAIL_PROVIDER=resend`、`PLATFORM_AUTH_EMAIL_FROM`、`RESEND_API_KEY`，否则用户无法完成登录。
+- 当前线上还必须确保 `mail.nextclaw.io` 在 Resend 中变为 `verified`，否则验证码发送接口会返回 `EMAIL_DELIVERY_FAILED`。
 
 ## 4. 主要接口
 
