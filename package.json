@@ -41,6 +41,7 @@
     "platform:db:migrate:local": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:local",
     "platform:db:migrate:remote": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:remote",
     "smoke:platform:mvp": "node scripts/platform-mvp-smoke.mjs",
+    "smoke:platform:console": "node scripts/platform-console-smoke.mjs",
     "smoke:remote-relay": "node scripts/remote-relay-hibernation-smoke.mjs",
     "smoke:ncp-chat": "node scripts/chat-capability-smoke.mjs",
     "smoke:ncp-demo": "pnpm -C apps/ncp-demo smoke",

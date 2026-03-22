@@ -1,0 +1,156 @@
+{
+  "common": {
+    "logout": "退出",
+    "retry": "重试",
+    "openNow": "立即打开",
+    "copyLink": "复制链接",
+    "openLink": "打开链接",
+    "revoke": "撤销",
+    "languageLabel": "语言",
+    "languages": {
+      "zh-CN": "中文",
+      "en-US": "English"
+    }
+  },
+  "app": {
+    "brand": "NextClaw Platform",
+    "loadingAccount": "加载 NextClaw Account...",
+    "roles": {
+      "user": "用户",
+      "admin": "管理员"
+    }
+  },
+  "login": {
+    "platformTag": "NextClaw Platform",
+    "heroTitle": "一个 NextClaw Account，连接你的实例和 Agent 工作流。",
+    "heroDescription": "这是 NextClaw 的统一账号入口。平台登录、实例授权、远程访问和未来账号能力，都基于同一套账号模型。",
+    "highlights": {
+      "password": {
+        "title": "登录使用密码",
+        "description": "已有账号直接输入邮箱和密码登录，这是平台的标准入口。"
+      },
+      "register": {
+        "title": "注册先验证邮箱",
+        "description": "新账号必须先收验证码验证邮箱，再设置密码完成注册。"
+      },
+      "instance": {
+        "title": "实例授权同一套账号",
+        "description": "远程访问、实例列表和后续 token 能力都统一依赖同一个 NextClaw Account。"
+      }
+    },
+    "accountTag": "NextClaw Account",
+    "modes": {
+      "login": {
+        "label": "登录",
+        "title": "邮箱 + 密码登录",
+        "subtitle": "已有 NextClaw Account 直接用密码登录。注册和找回密码在旁边两个入口。"
+      },
+      "register": {
+        "label": "注册",
+        "title": "先验证邮箱，再设置密码",
+        "subtitle": "新账号必须先通过邮箱验证码验证归属，再设置密码完成注册。"
+      },
+      "reset_password": {
+        "label": "忘记密码",
+        "title": "验证码验证后重置密码",
+        "subtitle": "我们会先验证邮箱归属，确认后允许设置新密码。"
+      }
+    },
+    "fields": {
+      "email": "邮箱",
+      "password": "密码",
+      "code": "验证码",
+      "setPassword": "设置密码",
+      "newPassword": "新密码"
+    },
+    "placeholders": {
+      "email": "name@example.com",
+      "password": "请输入你的密码",
+      "code": "123456",
+      "passwordMin": "至少 8 位"
+    },
+    "notices": {
+      "codeSent": "验证码已发送至 {email}",
+      "codeExpiresAt": "当前验证码过期时间：{expiresAt}。",
+      "devCode": "Dev code: {code}"
+    },
+    "actions": {
+      "login": "登录",
+      "loggingIn": "登录中...",
+      "sendCode": "发送验证码",
+      "sendingCode": "发送中...",
+      "completeRegister": "完成注册",
+      "registering": "注册中...",
+      "resetPassword": "重置密码",
+      "resettingPassword": "重置中...",
+      "resendCode": "重新发送",
+      "changeEmail": "更换邮箱"
+    },
+    "errors": {
+      "loginFailed": "登录失败",
+      "sendRegisterCodeFailed": "发送注册验证码失败",
+      "registerFailed": "注册失败",
+      "sendResetCodeFailed": "发送重置验证码失败",
+      "resetPasswordFailed": "重置密码失败"
+    }
+  },
+  "remote": {
+    "title": "我的实例",
+    "description": "在桌面端登录 NextClaw Account 并开启远程访问后，实例会出现在这里。你可以直接在网页里打开它，也可以生成可撤销的分享链接给其他人访问。",
+    "table": {
+      "instance": "实例",
+      "platform": "平台",
+      "status": "状态",
+      "lastSeenAt": "最近在线",
+      "actions": "操作"
+    },
+    "actions": {
+      "createShare": "创建分享链接",
+      "viewShare": "查看分享",
+      "openInWeb": "在网页中打开",
+      "createAnotherShare": "再创建一个"
+    },
+    "status": {
+      "online": "在线",
+      "offline": "离线",
+      "shareActive": "可用分享",
+      "shareRevoked": "已撤销分享",
+      "shareExpired": "已过期分享"
+    },
+    "messages": {
+      "empty": "还没有可用实例。先回到桌面端登录 NextClaw 并开启远程访问。",
+      "loadingShares": "加载分享链接中...",
+      "loadInstancesFailed": "实例加载失败",
+      "openInstanceFailed": "打开实例失败",
+      "createShareFailed": "创建分享失败",
+      "revokeShareFailed": "撤销分享失败",
+      "loadSharesFailed": "加载分享失败",
+      "shareCopied": "分享链接已复制到剪贴板。",
+      "shareCopyManual": "复制失败，请手动复制链接。",
+      "newShareCopied": "新分享链接已复制到剪贴板。",
+      "newShareCreated": "新分享链接已创建，请手动复制。",
+      "shareRevoked": "分享链接已撤销，已打开的分享会话会立即失效。",
+      "noShares": "当前实例还没有分享链接。"
+    },
+    "sharePanel": {
+      "title": "分享链接",
+      "description": "撤销后，已经打开的分享会话也会立即失效。",
+      "meta": "创建于 {createdAt}，失效于 {expiresAt}",
+      "activeSessions": "当前活跃分享会话：{count}"
+    }
+  },
+  "billing": {
+    "title": "用量与充值",
+    "description": "该模块正在收敛和准备中，当前平台首页先聚焦实例访问与分享能力。",
+    "badge": "即将上线"
+  },
+  "share": {
+    "tag": "NextClaw Share",
+    "title": "正在打开共享实例",
+    "description": "分享链接每次打开都会创建一个新的访问会话。刷新当前页面后，系统会重新创建会话并继续跳转。",
+    "loading": "正在校验分享链接并建立访问会话...",
+    "unavailableTitle": "分享链接当前不可用",
+    "unavailableFallback": "无法打开分享链接",
+    "sessionCreated": "访问会话已创建"
+  }
+}

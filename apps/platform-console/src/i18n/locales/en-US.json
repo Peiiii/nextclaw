@@ -1,0 +1,156 @@
+{
+  "common": {
+    "logout": "Logout",
+    "retry": "Retry",
+    "openNow": "Open now",
+    "copyLink": "Copy link",
+    "openLink": "Open link",
+    "revoke": "Revoke",
+    "languageLabel": "Language",
+    "languages": {
+      "zh-CN": "中文",
+      "en-US": "English"
+    }
+  },
+  "app": {
+    "brand": "NextClaw Platform",
+    "loadingAccount": "Loading NextClaw Account...",
+    "roles": {
+      "user": "User",
+      "admin": "Admin"
+    }
+  },
+  "login": {
+    "platformTag": "NextClaw Platform",
+    "heroTitle": "One NextClaw Account for your instances and agent workflows.",
+    "heroDescription": "This is the unified account entry for NextClaw. Platform login, instance authorization, remote access, and future account capabilities all rely on the same account model.",
+    "highlights": {
+      "password": {
+        "title": "Password-based sign-in",
+        "description": "If you already have an account, sign in directly with your email and password."
+      },
+      "register": {
+        "title": "Verify email before sign-up",
+        "description": "New accounts must verify email ownership with a code before setting a password."
+      },
+      "instance": {
+        "title": "Instances use the same account",
+        "description": "Remote access, instance listing, and future token capabilities all depend on the same NextClaw Account."
+      }
+    },
+    "accountTag": "NextClaw Account",
+    "modes": {
+      "login": {
+        "label": "Login",
+        "title": "Email + password",
+        "subtitle": "Use your existing NextClaw Account password to sign in. Register and password reset are available in the other tabs."
+      },
+      "register": {
+        "label": "Sign up",
+        "title": "Verify email, then set password",
+        "subtitle": "New accounts must verify email ownership with a code before setting a password."
+      },
+      "reset_password": {
+        "label": "Reset",
+        "title": "Reset password after verification",
+        "subtitle": "We verify email ownership first, then allow you to set a new password."
+      }
+    },
+    "fields": {
+      "email": "Email",
+      "password": "Password",
+      "code": "Verification code",
+      "setPassword": "Set password",
+      "newPassword": "New password"
+    },
+    "placeholders": {
+      "email": "name@example.com",
+      "password": "Enter your password",
+      "code": "123456",
+      "passwordMin": "At least 8 characters"
+    },
+    "notices": {
+      "codeSent": "Verification code sent to {email}",
+      "codeExpiresAt": "This code expires at {expiresAt}.",
+      "devCode": "Dev code: {code}"
+    },
+    "actions": {
+      "login": "Login",
+      "loggingIn": "Logging in...",
+      "sendCode": "Send code",
+      "sendingCode": "Sending...",
+      "completeRegister": "Complete sign up",
+      "registering": "Creating account...",
+      "resetPassword": "Reset password",
+      "resettingPassword": "Resetting...",
+      "resendCode": "Resend",
+      "changeEmail": "Change email"
+    },
+    "errors": {
+      "loginFailed": "Login failed",
+      "sendRegisterCodeFailed": "Failed to send registration code",
+      "registerFailed": "Registration failed",
+      "sendResetCodeFailed": "Failed to send reset code",
+      "resetPasswordFailed": "Password reset failed"
+    }
+  },
+  "remote": {
+    "title": "My Instances",
+    "description": "After you sign in on desktop and enable remote access, your instances appear here. You can open them directly in the browser or create revocable share links for others.",
+    "table": {
+      "instance": "Instance",
+      "platform": "Platform",
+      "status": "Status",
+      "lastSeenAt": "Last seen",
+      "actions": "Actions"
+    },
+    "actions": {
+      "createShare": "Create share link",
+      "viewShare": "View shares",
+      "openInWeb": "Open in browser",
+      "createAnotherShare": "Create another"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "shareActive": "Active share",
+      "shareRevoked": "Revoked share",
+      "shareExpired": "Expired share"
+    },
+    "messages": {
+      "empty": "No instances yet. Go back to the desktop app, sign in, and enable remote access first.",
+      "loadingShares": "Loading share links...",
+      "loadInstancesFailed": "Failed to load instances",
+      "openInstanceFailed": "Failed to open instance",
+      "createShareFailed": "Failed to create share link",
+      "revokeShareFailed": "Failed to revoke share link",
+      "loadSharesFailed": "Failed to load shares",
+      "shareCopied": "Share link copied to clipboard.",
+      "shareCopyManual": "Copy failed. Please copy the link manually.",
+      "newShareCopied": "New share link copied to clipboard.",
+      "newShareCreated": "New share link created. Please copy it manually.",
+      "shareRevoked": "Share link revoked. Existing shared sessions will stop working immediately.",
+      "noShares": "No share links for this instance yet."
+    },
+    "sharePanel": {
+      "title": "Share links",
+      "description": "Once revoked, already-open shared sessions stop working immediately.",
+      "meta": "Created {createdAt}, expires {expiresAt}",
+      "activeSessions": "Active shared sessions: {count}"
+    }
+  },
+  "billing": {
+    "title": "Usage & Billing",
+    "description": "This module is still being prepared. For now, the platform homepage stays focused on instance access and sharing.",
+    "badge": "Coming soon"
+  },
+  "share": {
+    "tag": "NextClaw Share",
+    "title": "Opening shared instance",
+    "description": "Each open of a share link creates a new access session. Refreshing this page creates a fresh session and continues the redirect.",
+    "loading": "Validating share link and creating access session...",
+    "unavailableTitle": "This share link is unavailable",
+    "unavailableFallback": "Unable to open share link",
+    "sessionCreated": "Access session created"
+  }
+}

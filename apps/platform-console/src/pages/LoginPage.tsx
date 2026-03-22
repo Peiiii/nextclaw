@@ -7,45 +7,22 @@ import {
   sendPasswordResetCode,
   sendRegisterCode
 } from '@/api/client';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { createTranslator, formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
+import { useLocaleStore } from '@/i18n/locale.store';
 import { useAuthStore } from '@/store/auth';
 
 type AuthMode = 'login' | 'register' | 'reset_password';
+type Translate = (key: string, params?: Record<string, string | number>) => string;
 
-const highlights = [
-  {
-    title: '登录使用密码',
-    description: '已有账号直接输入邮箱和密码登录，这是平台的标准入口。'
-  },
-  {
-    title: '注册先验证邮箱',
-    description: '新账号必须先收验证码验证邮箱，再设置密码完成注册。'
-  },
-  {
-    title: '设备授权同一套账号',
-    description: '远程访问、设备列表和后续 token 能力都统一依赖同一个 NextClaw Account。'
-  }
+const highlightKeys = [
+  'login.highlights.password',
+  'login.highlights.register',
+  'login.highlights.instance'
 ] as const;
-
-const modeMeta: Record<AuthMode, { label: string; title: string; subtitle: string }> = {
-  login: {
-    label: '登录',
-    title: '邮箱 + 密码登录',
-    subtitle: '已有 NextClaw Account 直接用密码登录。注册和找回密码在旁边两个入口。'
-  },
-  register: {
-    label: '注册',
-    title: '先验证邮箱，再设置密码',
-    subtitle: '新账号必须先通过邮箱验证码验证归属，再设置密码完成注册。'
-  },
-  reset_password: {
-    label: '忘记密码',
-    title: '验证码验证后重置密码',
-    subtitle: '我们会先验证邮箱归属，确认后允许设置新密码。'
-  }
-};
 
 type CodeFlowState = {
   mode: 'register' | 'reset_password';
@@ -55,39 +32,9 @@ type CodeFlowState = {
   debugCode: string | null;
 };
 
-function LoginHighlights(): JSX.Element {
-  return (
-    <section className="flex items-center">
-      <div className="w-full rounded-[32px] border border-white/60 bg-white/70 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur md:p-10">
-        <div className="max-w-xl space-y-6">
-          <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-brand-700">NextClaw Platform</p>
-            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
-              一个 NextClaw Account，连接你的设备和 Agent 工作流。
-            </h1>
-            <p className="max-w-lg text-base leading-7 text-slate-600 md:text-lg">
-              这是 NextClaw 的统一账号入口。平台登录、设备授权、远程访问和未来账号能力，都基于同一套账号模型。
-            </p>
-          </div>
-
-          <div className="grid gap-4">
-            {highlights.map((item) => (
-              <div
-                key={item.title}
-                className="rounded-3xl border border-slate-200/80 bg-slate-50/90 px-5 py-4"
-              >
-                <p className="text-sm font-semibold text-slate-950">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 type AuthCardProps = {
+  locale: LocaleCode;
+  t: Translate;
   mode: AuthMode;
   email: string;
   password: string;
@@ -110,13 +57,49 @@ type AuthCardProps = {
   onResetCodeFlow: () => void;
 };
 
-function AuthModeTabs(props: {
-  mode: AuthMode;
-  onModeChange: (mode: AuthMode) => void;
+function LoginHighlights(props: {
+  t: Translate;
 }): JSX.Element {
   return (
+    <section className="flex items-center">
+      <div className="w-full rounded-[32px] border border-white/60 bg-white/70 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur md:p-10">
+        <div className="max-w-xl space-y-6">
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-brand-700">{props.t('login.platformTag')}</p>
+            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
+              {props.t('login.heroTitle')}
+            </h1>
+            <p className="max-w-lg text-base leading-7 text-slate-600 md:text-lg">
+              {props.t('login.heroDescription')}
+            </p>
+          </div>
+
+          <div className="grid gap-4">
+            {highlightKeys.map((prefix) => (
+              <div
+                key={prefix}
+                className="rounded-3xl border border-slate-200/80 bg-slate-50/90 px-5 py-4"
+              >
+                <p className="text-sm font-semibold text-slate-950">{props.t(`${prefix}.title`)}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{props.t(`${prefix}.description`)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function AuthModeTabs(props: {
+  mode: AuthMode;
+  t: Translate;
+  onModeChange: (mode: AuthMode) => void;
+}): JSX.Element {
+  const modes: AuthMode[] = ['login', 'register', 'reset_password'];
+  return (
     <div className="grid grid-cols-3 gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-1">
-      {(Object.keys(modeMeta) as AuthMode[]).map((mode) => (
+      {modes.map((mode) => (
         <button
           key={mode}
           type="button"
@@ -126,7 +109,7 @@ function AuthModeTabs(props: {
             props.mode === mode ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600'
           ].join(' ')}
         >
-          {modeMeta[mode].label}
+          {props.t(`login.modes.${mode}.label`)}
         </button>
       ))}
     </div>
@@ -134,18 +117,23 @@ function AuthModeTabs(props: {
 }
 
 function CodeFlowNotice(props: {
+  t: Translate;
   codeFlow: CodeFlowState;
   expiresAtText: string;
 }): JSX.Element {
   return (
     <div className="rounded-3xl border border-brand-100 bg-brand-50/70 px-4 py-4">
       <p className="text-sm font-medium text-slate-900">
-        验证码已发送至 {props.codeFlow.maskedEmail || props.codeFlow.email}
+        {props.t('login.notices.codeSent', {
+          email: props.codeFlow.maskedEmail || props.codeFlow.email
+        })}
       </p>
-      <p className="mt-1 text-sm leading-6 text-slate-600">当前验证码过期时间：{props.expiresAtText || '-'}。</p>
+      <p className="mt-1 text-sm leading-6 text-slate-600">
+        {props.t('login.notices.codeExpiresAt', { expiresAt: props.expiresAtText || '-' })}
+      </p>
       {props.codeFlow.debugCode ? (
         <p className="mt-3 rounded-2xl border border-dashed border-brand-300 bg-white px-3 py-2 text-sm text-brand-700">
-          Dev code: <span className="font-semibold tracking-[0.22em]">{props.codeFlow.debugCode}</span>
+          {props.t('login.notices.devCode', { code: props.codeFlow.debugCode })}
         </p>
       ) : null}
     </div>
@@ -154,6 +142,7 @@ function CodeFlowNotice(props: {
 
 function AuthActionBlock(props: {
   mode: AuthMode;
+  t: Translate;
   codeStepActive: boolean;
   loginPending: boolean;
   sendCodePending: boolean;
@@ -173,7 +162,7 @@ function AuthActionBlock(props: {
         onClick={props.onLogin}
         disabled={!props.canLogin}
       >
-        {props.loginPending ? '登录中...' : '登录'}
+        {props.loginPending ? props.t('login.actions.loggingIn') : props.t('login.actions.login')}
       </Button>
     );
   }
@@ -185,7 +174,7 @@ function AuthActionBlock(props: {
         onClick={props.onSendCode}
         disabled={!props.canSendCode}
       >
-        {props.sendCodePending ? '发送中...' : '发送验证码'}
+        {props.sendCodePending ? props.t('login.actions.sendingCode') : props.t('login.actions.sendCode')}
       </Button>
     );
   }
@@ -199,11 +188,11 @@ function AuthActionBlock(props: {
       >
         {props.completePending
           ? props.mode === 'register'
-            ? '注册中...'
-            : '重置中...'
+            ? props.t('login.actions.registering')
+            : props.t('login.actions.resettingPassword')
           : props.mode === 'register'
-            ? '完成注册'
-            : '重置密码'}
+            ? props.t('login.actions.completeRegister')
+            : props.t('login.actions.resetPassword')}
       </Button>
       <div className="grid grid-cols-2 gap-3">
         <Button
@@ -212,14 +201,14 @@ function AuthActionBlock(props: {
           onClick={props.onSendCode}
           disabled={props.sendCodePending}
         >
-          {props.sendCodePending ? '发送中...' : '重新发送'}
+          {props.sendCodePending ? props.t('login.actions.sendingCode') : props.t('login.actions.resendCode')}
         </Button>
         <Button
           variant="ghost"
           className="h-11 rounded-2xl border border-slate-200"
           onClick={props.onResetCodeFlow}
         >
-          更换邮箱
+          {props.t('login.actions.changeEmail')}
         </Button>
       </div>
     </>
@@ -227,37 +216,38 @@ function AuthActionBlock(props: {
 }
 
 function LoginAuthCard(props: AuthCardProps): JSX.Element {
-  const currentMeta = modeMeta[props.mode];
   const codeStepActive = props.codeFlow?.mode === props.mode;
+  const currentTitle = props.t(`login.modes.${props.mode}.title`);
+  const currentSubtitle = props.t(`login.modes.${props.mode}.subtitle`);
   const expiresAtText = useMemo(() => {
     if (!props.codeFlow?.expiresAt) {
       return '';
     }
-    return new Date(props.codeFlow.expiresAt).toLocaleString();
-  }, [props.codeFlow]);
+    return formatDateTime(props.locale, props.codeFlow.expiresAt);
+  }, [props.codeFlow, props.locale]);
 
   return (
     <section className="flex items-center">
       <Card className="w-full rounded-[32px] border-slate-200/80 bg-white/92 p-7 shadow-[0_24px_72px_rgba(15,23,42,0.12)] md:p-8">
         <div className="space-y-4">
-          <AuthModeTabs mode={props.mode} onModeChange={props.onModeChange} />
+          <AuthModeTabs mode={props.mode} t={props.t} onModeChange={props.onModeChange} />
 
           <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">NextClaw Account</p>
-            <CardTitle className="text-[28px] leading-tight tracking-[-0.03em]">{currentMeta.title}</CardTitle>
-            <p className="text-sm leading-6 text-slate-500">{currentMeta.subtitle}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">{props.t('login.accountTag')}</p>
+            <CardTitle className="text-[28px] leading-tight tracking-[-0.03em]">{currentTitle}</CardTitle>
+            <p className="text-sm leading-6 text-slate-500">{currentSubtitle}</p>
           </div>
         </div>
 
         <div className="mt-6 space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700" htmlFor="email">
-              邮箱
+              {props.t('login.fields.email')}
             </label>
             <Input
               id="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder={props.t('login.placeholders.email')}
               value={props.email}
               onChange={(event) => props.onEmailChange(event.target.value)}
               disabled={Boolean(codeStepActive)}
@@ -268,12 +258,12 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
           {props.mode === 'login' ? (
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                密码
+                {props.t('login.fields.password')}
               </label>
               <Input
                 id="password"
                 type="password"
-                placeholder="请输入你的密码"
+                placeholder={props.t('login.placeholders.password')}
                 value={props.password}
                 onChange={(event) => props.onPasswordChange(event.target.value)}
                 className="h-12 rounded-2xl px-4 text-[15px]"
@@ -282,19 +272,19 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
           ) : null}
 
           {props.mode !== 'login' && codeStepActive && props.codeFlow ? (
-            <CodeFlowNotice codeFlow={props.codeFlow} expiresAtText={expiresAtText} />
+            <CodeFlowNotice t={props.t} codeFlow={props.codeFlow} expiresAtText={expiresAtText} />
           ) : null}
 
           {props.mode !== 'login' && codeStepActive ? (
             <>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700" htmlFor="code">
-                  验证码
+                  {props.t('login.fields.code')}
                 </label>
                 <Input
                   id="code"
                   inputMode="numeric"
-                  placeholder="123456"
+                  placeholder={props.t('login.placeholders.code')}
                   value={props.code}
                   onChange={(event) => props.onCodeChange(event.target.value.replace(/\D/g, '').slice(0, 6))}
                   className="h-12 rounded-2xl px-4 text-[18px] tracking-[0.28em]"
@@ -303,12 +293,12 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-700" htmlFor="password-action">
-                  {props.mode === 'register' ? '设置密码' : '新密码'}
+                  {props.mode === 'register' ? props.t('login.fields.setPassword') : props.t('login.fields.newPassword')}
                 </label>
                 <Input
                   id="password-action"
                   type="password"
-                  placeholder="至少 8 位"
+                  placeholder={props.t('login.placeholders.passwordMin')}
                   value={props.password}
                   onChange={(event) => props.onPasswordChange(event.target.value)}
                   className="h-12 rounded-2xl px-4 text-[15px]"
@@ -323,6 +313,7 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
         <div className="mt-6 space-y-3">
           <AuthActionBlock
             mode={props.mode}
+            t={props.t}
             codeStepActive={Boolean(codeStepActive)}
             loginPending={props.loginPending}
             sendCodePending={props.sendCodePending}
@@ -341,7 +332,7 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
   );
 }
 
-export function LoginPage(): JSX.Element {
+function useLoginPageManager(t: Translate) {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -360,7 +351,7 @@ export function LoginPage(): JSX.Element {
       setError(null);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : '登录失败');
+      setError(err instanceof Error ? err.message : t('login.errors.loginFailed'));
     }
   });
 
@@ -380,7 +371,7 @@ export function LoginPage(): JSX.Element {
       setError(null);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : '发送注册验证码失败');
+      setError(err instanceof Error ? err.message : t('login.errors.sendRegisterCodeFailed'));
     }
   });
 
@@ -392,7 +383,7 @@ export function LoginPage(): JSX.Element {
       setError(null);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : '注册失败');
+      setError(err instanceof Error ? err.message : t('login.errors.registerFailed'));
     }
   });
 
@@ -412,7 +403,7 @@ export function LoginPage(): JSX.Element {
       setError(null);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : '发送重置验证码失败');
+      setError(err instanceof Error ? err.message : t('login.errors.sendResetCodeFailed'));
     }
   });
 
@@ -424,7 +415,7 @@ export function LoginPage(): JSX.Element {
       setError(null);
     },
     onError: (err) => {
-      setError(err instanceof Error ? err.message : '重置密码失败');
+      setError(err instanceof Error ? err.message : t('login.errors.resetPasswordFailed'));
     }
   });
 
@@ -435,7 +426,7 @@ export function LoginPage(): JSX.Element {
     if (codeFlow?.mode !== mode) {
       setCodeFlow(null);
     }
-  }, [mode]);
+  }, [mode, codeFlow?.mode]);
 
   const codeStepActive = codeFlow?.mode === mode;
   const canLogin = email.trim().length > 0 && password.length > 0 && !loginMutation.isPending;
@@ -447,48 +438,81 @@ export function LoginPage(): JSX.Element {
     && password.trim().length >= 8
     && !(mode === 'register' ? completeRegisterMutation.isPending : completeResetMutation.isPending);
 
+  return {
+    mode,
+    email,
+    password,
+    code,
+    codeFlow,
+    error,
+    loginMutation,
+    sendRegisterCodeMutation,
+    completeRegisterMutation,
+    sendResetCodeMutation,
+    completeResetMutation,
+    canLogin,
+    canSendCode,
+    canComplete,
+    setMode,
+    setEmail,
+    setPassword,
+    setCode,
+    clearCodeFlow: () => {
+      setCodeFlow(null);
+      setCode('');
+      setPassword('');
+      setError(null);
+    }
+  };
+}
+
+export function LoginPage(): JSX.Element {
+  const locale = useLocaleStore((state) => state.locale);
+  const t = useMemo(() => createTranslator(locale), [locale]);
+  const manager = useLoginPageManager(t);
+
   return (
     <main className="min-h-screen bg-transparent text-slate-950">
-      <div className="mx-auto grid min-h-screen w-full max-w-6xl gap-8 px-6 py-10 lg:grid-cols-[1.08fr_0.92fr] lg:px-10">
-        <LoginHighlights />
+      <div className="mx-auto flex w-full max-w-6xl justify-end px-6 pt-6 lg:px-10">
+        <LocaleSwitcher />
+      </div>
+      <div className="mx-auto grid min-h-[calc(100vh-72px)] w-full max-w-6xl gap-8 px-6 py-6 lg:grid-cols-[1.08fr_0.92fr] lg:px-10">
+        <LoginHighlights t={t} />
         <LoginAuthCard
-          mode={mode}
-          email={email}
-          password={password}
-          code={code}
-          codeFlow={codeFlow}
-          error={error}
-          loginPending={loginMutation.isPending}
-          sendCodePending={mode === 'register' ? sendRegisterCodeMutation.isPending : sendResetCodeMutation.isPending}
-          completePending={mode === 'register' ? completeRegisterMutation.isPending : completeResetMutation.isPending}
-          canLogin={canLogin}
-          canSendCode={canSendCode}
-          canComplete={canComplete}
-          onModeChange={(nextMode) => setMode(nextMode)}
-          onEmailChange={setEmail}
-          onPasswordChange={setPassword}
-          onCodeChange={setCode}
-          onLogin={() => loginMutation.mutate()}
+          locale={locale}
+          t={t}
+          mode={manager.mode}
+          email={manager.email}
+          password={manager.password}
+          code={manager.code}
+          codeFlow={manager.codeFlow}
+          error={manager.error}
+          loginPending={manager.loginMutation.isPending}
+          sendCodePending={manager.mode === 'register' ? manager.sendRegisterCodeMutation.isPending : manager.sendResetCodeMutation.isPending}
+          completePending={manager.mode === 'register' ? manager.completeRegisterMutation.isPending : manager.completeResetMutation.isPending}
+          canLogin={manager.canLogin}
+          canSendCode={manager.canSendCode}
+          canComplete={manager.canComplete}
+          onModeChange={manager.setMode}
+          onEmailChange={manager.setEmail}
+          onPasswordChange={manager.setPassword}
+          onCodeChange={manager.setCode}
+          onLogin={() => manager.loginMutation.mutate()}
           onSendCode={() => {
-            if (mode === 'register') {
-              sendRegisterCodeMutation.mutate();
+            if (manager.mode === 'register') {
+              manager.sendRegisterCodeMutation.mutate();
               return;
             }
-            sendResetCodeMutation.mutate();
+            manager.sendResetCodeMutation.mutate();
           }}
           onComplete={() => {
-            if (mode === 'register') {
-              completeRegisterMutation.mutate();
+            if (manager.mode === 'register') {
+              manager.completeRegisterMutation.mutate();
               return;
             }
-            completeResetMutation.mutate();
+            manager.completeResetMutation.mutate();
           }}
-          onResetCodeFlow={() => {
-            setCodeFlow(null);
-            setCode('');
-            setPassword('');
-            setError(null);
-          }}
+          onResetCodeFlow={manager.clearCodeFlow}
         />
       </div>
     </main>
