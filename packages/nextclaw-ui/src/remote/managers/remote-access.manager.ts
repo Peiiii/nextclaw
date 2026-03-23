@@ -79,6 +79,15 @@ export class RemoteAccessManager {
     });
   };
 
+  reauthorizeRemoteAccess = async (status: RemoteAccessView | undefined) => {
+    const currentStatus = status ?? (await refreshRemoteStatus());
+    await this.accountManager?.startBrowserSignIn({
+      status: currentStatus,
+      apiBase: useRemoteAccessStore.getState().platformApiBase,
+      pendingAction: { type: 'repair-remote' }
+    });
+  };
+
   saveAdvancedSettings = async (status: RemoteAccessView | undefined) => {
     const currentStatus = status ?? (await refreshRemoteStatus());
     const draft = useRemoteAccessStore.getState();
@@ -126,6 +135,10 @@ export class RemoteAccessManager {
     }
     if (action.type === 'enable-remote') {
       await this.applyEnabledState(true, status);
+      return;
+    }
+    if (action.type === 'repair-remote') {
+      await this.repairRemoteAccess(status);
     }
   };
 

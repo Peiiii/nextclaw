@@ -4,6 +4,9 @@ export type AccountPendingAction =
   | {
       type: 'enable-remote';
     }
+  | {
+      type: 'repair-remote';
+    }
   | null;
 
 type AccountStoreState = {

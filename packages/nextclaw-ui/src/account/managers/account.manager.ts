@@ -51,9 +51,16 @@ export class AccountManager {
     return false;
   };
 
-  startBrowserSignIn = async (params?: { apiBase?: string; status?: RemoteAccessView }) => {
+  startBrowserSignIn = async (params?: {
+    apiBase?: string;
+    status?: RemoteAccessView;
+    pendingAction?: AccountPendingAction;
+  }) => {
     try {
       const status = params?.status ?? (await ensureRemoteStatus());
+      if (params?.pendingAction) {
+        useAccountStore.getState().setPendingAction(params.pendingAction);
+      }
       const result = await startRemoteBrowserAuth({
         apiBase: resolveRemotePlatformApiBase(status, params?.apiBase)
       });

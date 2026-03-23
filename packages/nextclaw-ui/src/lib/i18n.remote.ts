@@ -40,23 +40,34 @@ export const REMOTE_LABELS: Record<string, { zh: string; en: string }> = {
     zh: '远程访问已经开启，但后台服务没有运行。拉起后才会真正连到网页版。',
     en: 'Remote access is enabled, but the managed service is not running yet. Start it to connect to the web app.'
   },
-  remoteStatusIssueTitle: { zh: '远程连接当前有异常', en: 'The remote connection needs attention' },
-  remoteStatusIssueDescription: {
-    zh: '账号和设备配置都还在，但当前没有稳定连上平台。你可以重新连接，或先去设备列表确认这台设备的状态。',
-    en: 'Your account and device settings are still there, but this device is not stably connected to the platform right now. Reconnect it or check the device list first.'
+  remoteStatusReauthorizationTitle: { zh: '登录已过期，请重新登录 NextClaw', en: 'Your sign-in expired. Sign in to NextClaw again.' },
+  remoteStatusReauthorizationDescription: {
+    zh: '为了保护你的账号安全，远程访问已暂停。重新登录后会自动恢复，不需要重新配置设备。',
+    en: 'Remote access is paused to protect your account. Sign in again and it will recover automatically without reconfiguring this device.'
   },
-  remoteStatusIssueDetailTitle: { zh: '当前提示', en: 'Current Hint' },
+  remoteStatusIssueTitle: { zh: '远程访问暂时没有连上', en: 'Remote access is temporarily offline' },
+  remoteStatusIssueDescription: {
+    zh: '设备配置还在，但当前没有稳定连上平台。你可以先重新连接；如果问题持续，再重新登录或稍后再试。',
+    en: 'Your device settings are still there, but this device is not stably connected to the platform right now. Reconnect first, then sign in again or try later if it keeps happening.'
+  },
+  remoteStatusIssueDetailTitle: { zh: '下一步', en: 'Next Step' },
+  remoteStatusRecoveryTitle: { zh: '推荐操作', en: 'Recommended Next Step' },
   remoteStatusIssueDetailGeneric: {
-    zh: '连接曾经建立，但随后被平台侧主动关闭。常见原因包括登录态失效、平台侧中继不可用，或云端配额暂时触顶。',
-    en: 'The connection was established and then closed by the platform. Common causes include an expired session, an unavailable relay, or a temporary cloud quota limit.'
+    zh: '远程访问暂时不可用。你可以先重新连接；如果问题持续，再重新登录或稍后再试。',
+    en: 'Remote access is temporarily unavailable. Reconnect first, then sign in again or try later if the issue continues.'
   },
   remoteStatusIssueDetailServiceStopped: {
-    zh: '本地托管服务没有在运行，所以远程连接不会保持在线。',
-    en: 'The local managed service is not running, so the remote connection cannot stay online.'
+    zh: '后台服务当前没有运行。启动后，这台设备才会重新出现在网页版设备列表里。',
+    en: 'The managed service is not running right now. Start it so this device can show up in the web device list again.'
+  },
+  remoteStatusReauthorizationHint: {
+    zh: '点击下方按钮后会打开登录页。完成登录后，这台设备会自动恢复远程访问，不需要重新配置。',
+    en: 'Use the button below to open the sign-in page. Once you finish signing in, this device will recover remote access automatically.'
   },
   remoteSignInAndEnable: { zh: '登录并开启远程访问', en: 'Sign In and Enable Remote Access' },
   remoteEnableNow: { zh: '开启远程访问', en: 'Enable Remote Access' },
   remoteReconnectNow: { zh: '重新连接', en: 'Reconnect' },
+  remoteReauthorizeNow: { zh: '重新登录并恢复远程访问', en: 'Sign In Again and Restore Remote Access' },
   remoteDisable: { zh: '关闭远程访问', en: 'Disable Remote Access' },
   remoteDeviceSummaryTitle: { zh: '当前设备', en: 'This Device' },
   remoteDeviceSummaryDescription: {
@@ -114,6 +125,7 @@ export const REMOTE_LABELS: Record<string, { zh: string; en: string }> = {
   remoteStateError: { zh: '连接异常', en: 'Error' },
   remoteStateDisconnected: { zh: '已断开', en: 'Disconnected' },
   remoteStateDisabled: { zh: '未启用', en: 'Disabled' },
+  remoteStateReauthorizationRequired: { zh: '需要重新登录', en: 'Sign-In Required' },
   remoteLocalOrigin: { zh: '本地服务地址', en: 'Local Origin' },
   remotePublicPlatform: { zh: '平台地址', en: 'Platform Base' },
   remoteDeviceId: { zh: '设备 ID', en: 'Device ID' },
