@@ -95,7 +95,10 @@ export function ModelConfig() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateModel.mutate({ model: composedModel });
+    updateModel.mutate({
+      model: composedModel,
+      workspace
+    });
   };
 
   if (isLoading) {

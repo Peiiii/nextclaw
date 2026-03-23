@@ -1,4 +1,5 @@
 import { RemoteAppAdapter } from "./remote-app.adapter.js";
+import { isTerminalRemoteConnectorError } from "./remote-connector-error.js";
 import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.js";
 import { RemotePlatformClient, delay, redactWsUrl } from "./remote-platform-client.js";
 import type {
@@ -241,7 +242,7 @@ export class RemoteConnector {
     context: RemoteRunContext;
     relayBridge: RemoteRelayBridge;
     opts: RemoteConnectorRunOptions;
-  }): Promise<{ device: RegisteredRemoteDevice | null; aborted: boolean }> {
+  }): Promise<{ device: RegisteredRemoteDevice | null; outcome: "aborted" | "retry" | "stop" }> {
     try {
       this.writeRemoteState(params.opts.statusStore, {
         enabled: true,
@@ -277,7 +278,7 @@ export class RemoteConnector {
           lastError: null
         });
       }
-      return { device, aborted: outcome === "aborted" };
+      return { device, outcome: outcome === "aborted" ? "aborted" : "retry" };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.writeRemoteState(params.opts.statusStore, {
@@ -290,7 +291,10 @@ export class RemoteConnector {
         lastError: message
       });
       this.logger.error(`Remote connector error: ${message}`);
-      return { device: params.device, aborted: false };
+      return {
+        device: params.device,
+        outcome: isTerminalRemoteConnectorError(error) ? "stop" : "retry"
+      };
     }
   }
 
@@ -301,11 +305,16 @@ export class RemoteConnector {
     );
     await relayBridge.ensureLocalUiHealthy();
     let device: RegisteredRemoteDevice | null = null;
+    let preserveRuntimeError = false;
 
     while (!opts.signal?.aborted) {
       const cycle = await this.runCycle({ device, context, relayBridge, opts });
       device = cycle.device;
-      if (cycle.aborted || !context.autoReconnect || opts.signal?.aborted) {
+      if (cycle.outcome === "stop") {
+        preserveRuntimeError = true;
+        break;
+      }
+      if (cycle.outcome === "aborted" || !context.autoReconnect || opts.signal?.aborted) {
         break;
       }
       this.logger.warn("Remote connector disconnected. Reconnecting in 3s...");
@@ -314,6 +323,10 @@ export class RemoteConnector {
       } catch {
         break;
       }
+    }
+
+    if (preserveRuntimeError) {
+      return;
     }
 
     this.writeRemoteState(opts.statusStore, {

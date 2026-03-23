@@ -323,7 +323,12 @@ channels
 channels
   .command("login")
   .description("Link device via QR code")
-  .action(() => runtime.channelsLogin());
+  .option("--channel <id>", "Plugin channel id")
+  .option("--account <id>", "Channel account id")
+  .option("--url <url>", "Channel API base URL")
+  .option("--http-url <url>", "Alias for --url")
+  .option("-v, --verbose", "Verbose output", false)
+  .action(async (opts) => runtime.channelsLogin(opts));
 
 const cron = program.command("cron").description("Manage scheduled tasks");
 
@@ -342,6 +347,7 @@ cron
   .option("-d, --deliver", "Deliver response to channel")
   .option("--to <recipient>", "Recipient for delivery")
   .option("--channel <channel>", "Channel for delivery")
+  .option("--account <id>", "Account id for channel delivery")
   .action((opts) => runtime.cronAdd(opts));
 
 cron

@@ -43,6 +43,8 @@ function registerConfigRoutes(app: Hono, configController: ConfigRoutesControlle
   app.post("/api/config/providers/:provider/auth/poll", configController.pollProviderAuth);
   app.post("/api/config/providers/:provider/auth/import-cli", configController.importProviderAuthFromCli);
   app.put("/api/config/channels/:channel", configController.updateChannel);
+  app.post("/api/config/channels/:channel/auth/start", configController.startChannelAuth);
+  app.post("/api/config/channels/:channel/auth/poll", configController.pollChannelAuth);
   app.put("/api/config/secrets", configController.updateSecrets);
   app.put("/api/config/runtime", configController.updateRuntime);
   app.post("/api/config/actions/:actionId/execute", configController.executeAction);

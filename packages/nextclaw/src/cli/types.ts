@@ -72,6 +72,14 @@ export type ChannelsAddOptions = {
   httpUrl?: string;
 };
 
+export type ChannelsLoginOptions = {
+  channel?: string;
+  account?: string;
+  url?: string;
+  httpUrl?: string;
+  verbose?: boolean;
+};
+
 export type ConfigGetOptions = {
   json?: boolean;
 };
@@ -146,6 +154,7 @@ export type CronAddOptions = {
   deliver?: boolean;
   to?: string;
   channel?: string;
+  account?: string;
 };
 
 export type StatusCommandOptions = {

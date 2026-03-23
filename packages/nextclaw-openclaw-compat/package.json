@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/openclaw-compat",
-  "version": "0.3.15",
+  "version": "0.3.16",
   "private": false,
   "description": "OpenClaw plugin compatibility layer for NextClaw.",
   "type": "module",

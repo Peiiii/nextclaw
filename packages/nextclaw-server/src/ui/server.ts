@@ -164,7 +164,7 @@ export function startUiServer(options: UiServerOptions): UiServerHandle {
     );
     app.get("*", (c) => {
       const path = c.req.path;
-      if (path.startsWith("/api") || path.startsWith("/ws")) {
+      if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote")) {
         return c.notFound();
       }
       return c.html(indexHtml);

@@ -143,10 +143,8 @@ export async function fetchConfigSchema(): Promise<ConfigSchemaResponse> {
 }
 
 // PUT /api/config/model
-export async function updateModel(data: {
-  model: string;
-}): Promise<{ model: string }> {
-  const response = await api.put<{ model: string }>('/api/config/model', data);
+export async function updateModel(data: { model: string; workspace?: string }): Promise<{ model: string; workspace?: string }> {
+  const response = await api.put<{ model: string; workspace?: string }>('/api/config/model', data);
   if (!response.ok) {
     throw new Error(response.error.message);
   }

@@ -4,6 +4,11 @@ import { RemoteSessionMultiplexTransport } from './remote.transport';
 import type { AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 
 const REMOTE_RUNTIME_PATH = '/_remote/runtime';
+const DEFAULT_REMOTE_RUNTIME: RemoteRuntimeInfo = {
+  mode: 'remote',
+  protocolVersion: 1,
+  wsPath: '/_remote/ws'
+};
 
 async function resolveRuntime(apiBase: string): Promise<AppTransport> {
   const runtimeUrl = `${apiBase.replace(/\/$/, '')}${REMOTE_RUNTIME_PATH}`;
@@ -22,17 +27,28 @@ async function resolveRuntime(apiBase: string): Promise<AppTransport> {
     return new LocalAppTransport({ apiBase });
   }
 
-  const payload = await response.json() as { ok?: boolean; data?: RemoteRuntimeInfo };
+  const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
+  if (!contentType.includes('application/json')) {
+    return response.status >= 400
+      ? new RemoteSessionMultiplexTransport(DEFAULT_REMOTE_RUNTIME, apiBase)
+      : new LocalAppTransport({ apiBase });
+  }
+
+  let payload: { ok?: boolean; data?: RemoteRuntimeInfo } | null = null;
+  try {
+    payload = await response.json() as { ok?: boolean; data?: RemoteRuntimeInfo };
+  } catch {
+    return response.status >= 400
+      ? new RemoteSessionMultiplexTransport(DEFAULT_REMOTE_RUNTIME, apiBase)
+      : new LocalAppTransport({ apiBase });
+  }
+
   if (response.ok && payload.ok && payload.data?.mode === 'remote') {
     return new RemoteSessionMultiplexTransport(payload.data, apiBase);
   }
 
   if (response.status >= 400) {
-    return new RemoteSessionMultiplexTransport({
-      mode: 'remote',
-      protocolVersion: 1,
-      wsPath: '/_remote/ws'
-    }, apiBase);
+    return new RemoteSessionMultiplexTransport(DEFAULT_REMOTE_RUNTIME, apiBase);
   }
 
   return new LocalAppTransport({ apiBase });

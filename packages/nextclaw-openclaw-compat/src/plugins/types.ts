@@ -164,6 +164,27 @@ export type OpenClawChannelAuthLoginResult = {
   notes?: string[];
 };
 
+export type OpenClawChannelAuthStartResult = {
+  channel: string;
+  kind: "qr_code";
+  sessionId: string;
+  qrCode: string;
+  qrCodeUrl: string;
+  expiresAt: string;
+  intervalMs: number;
+  note?: string;
+};
+
+export type OpenClawChannelAuthPollResult = {
+  channel: string;
+  status: "pending" | "scanned" | "authorized" | "expired" | "error";
+  message?: string;
+  nextPollMs?: number;
+  accountId?: string | null;
+  notes?: string[];
+  pluginConfig?: Record<string, unknown>;
+};
+
 export type OpenClawChannelAuth = {
   login?: (params: {
     cfg: Config;
@@ -173,9 +194,29 @@ export type OpenClawChannelAuth = {
     accountId?: string | null;
     baseUrl?: string | null;
     verbose?: boolean;
-  }) =>
+    }) =>
     | Promise<OpenClawChannelAuthLoginResult>
     | OpenClawChannelAuthLoginResult;
+  start?: (params: {
+    cfg: Config;
+    pluginId: string;
+    channelId: string;
+    pluginConfig?: Record<string, unknown>;
+    accountId?: string | null;
+    baseUrl?: string | null;
+  }) =>
+    | Promise<OpenClawChannelAuthStartResult>
+    | OpenClawChannelAuthStartResult;
+  poll?: (params: {
+    cfg: Config;
+    pluginId: string;
+    channelId: string;
+    pluginConfig?: Record<string, unknown>;
+    sessionId: string;
+  }) =>
+    | Promise<OpenClawChannelAuthPollResult | null>
+    | OpenClawChannelAuthPollResult
+    | null;
 };
 
 export type OpenClawChannelPlugin = {

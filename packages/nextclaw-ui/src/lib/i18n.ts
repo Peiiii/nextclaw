@@ -1,16 +1,13 @@
 import { CHANNEL_LABELS } from './i18n.channels';
+import { CHANNEL_AUTH_LABELS } from './i18n.channel-auth';
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
 import { REMOTE_LABELS } from './i18n.remote';
-
 export type I18nLanguage = 'zh' | 'en';
-
 const I18N_STORAGE_KEY = 'nextclaw.ui.language';
-
 export const LANGUAGE_OPTIONS: Array<{ value: I18nLanguage; label: string }> = [
   { value: 'en', label: 'English' },
   { value: 'zh', label: '中文' }
 ];
-
 const LANGUAGE_TO_LOCALE: Record<I18nLanguage, string> = {
   en: 'en-US',
   zh: 'zh-CN'
@@ -737,6 +734,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
   docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
+  ...CHANNEL_AUTH_LABELS,
 };
 
 export function t(key: string, lang: I18nLanguage = getLanguage()): string {

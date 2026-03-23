@@ -11,10 +11,7 @@ export type ApiResponse<T> =
   | { ok: true; data: T }
   | { ok: false; error: ApiError };
 
-export type AppMetaView = {
-  name: string;
-  productVersion: string;
-};
+export type AppMetaView = { name: string; productVersion: string };
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "adaptive" | "xhigh";
 
@@ -47,15 +44,8 @@ export type ProviderConnectionTestRequest = ProviderConfigUpdate & {
 
 export type ProviderCreateRequest = ProviderConfigUpdate;
 
-export type ProviderCreateResult = {
-  name: string;
-  provider: ProviderConfigView;
-};
-
-export type ProviderDeleteResult = {
-  deleted: boolean;
-  provider: string;
-};
+export type ProviderCreateResult = { name: string; provider: ProviderConfigView };
+export type ProviderDeleteResult = { deleted: boolean; provider: string };
 
 export type ProviderConnectionTestErrorCode =
   | 'API_KEY_REQUIRED'
@@ -140,13 +130,8 @@ export type ProviderAuthStartResult = {
   note?: string;
 };
 
-export type ProviderAuthStartRequest = {
-  methodId?: string;
-};
-
-export type ProviderAuthPollRequest = {
-  sessionId: string;
-};
+export type ProviderAuthStartRequest = { methodId?: string };
+export type ProviderAuthPollRequest = { sessionId: string };
 
 export type ProviderAuthPollResult = {
   provider: string;
@@ -155,12 +140,7 @@ export type ProviderAuthPollResult = {
   nextPollMs?: number;
 };
 
-export type ProviderAuthImportResult = {
-  provider: string;
-  status: "imported";
-  source: "cli";
-  expiresAt?: string;
-};
+export type ProviderAuthImportResult = { provider: string; status: "imported"; source: "cli"; expiresAt?: string };
 
 export type {
   AuthEnabledUpdateRequest,
@@ -169,6 +149,7 @@ export type {
   AuthSetupRequest,
   AuthStatusView
 } from './auth.types';
+export type { ChannelAuthPollRequest, ChannelAuthPollResult, ChannelAuthStartRequest, ChannelAuthStartResult } from './channel-auth.types';
 
 export type {
   RemoteAccessView,

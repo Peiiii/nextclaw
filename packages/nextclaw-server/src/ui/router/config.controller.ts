@@ -3,8 +3,8 @@ import {
   buildConfigSchemaView,
   buildConfigMeta,
   buildConfigView,
-  executeConfigAction,
   loadConfigOrDefault,
+  executeConfigAction,
   updateChannel,
   updateModel,
   updateSearch,
@@ -15,8 +15,13 @@ import {
   updateSecrets,
   updateRuntime
 } from "../config.js";
+import { pollChannelAuth, startChannelAuth } from "../channel-auth.js";
 import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "../provider-auth.js";
 import type {
+  ChannelAuthPollRequest,
+  ChannelAuthPollResult,
+  ChannelAuthStartRequest,
+  ChannelAuthStartResult,
   ConfigActionExecuteRequest,
   ProviderConnectionTestRequest,
   ProviderAuthStartRequest,
@@ -238,6 +243,64 @@ export class ConfigRoutesController {
     }
     this.options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
     return c.json(ok(result));
+  };
+
+  readonly startChannelAuth = async (c: Context) => {
+    const channel = c.req.param("channel");
+    let payload: Record<string, unknown> = {};
+    const rawBody = await c.req.raw.text();
+    if (rawBody.trim().length > 0) {
+      try {
+        payload = JSON.parse(rawBody) as Record<string, unknown>;
+      } catch {
+        return c.json(err("INVALID_BODY", "invalid json body"), 400);
+      }
+    }
+
+    try {
+      const result = await startChannelAuth({
+        configPath: this.options.configPath,
+        channelId: channel,
+        request: {
+          accountId: typeof payload.accountId === "string" ? payload.accountId : undefined,
+          baseUrl: typeof payload.baseUrl === "string" ? payload.baseUrl : undefined
+        } satisfies ChannelAuthStartRequest,
+        bindings: this.options.getPluginChannelBindings?.() ?? []
+      });
+      if (!result) {
+        return c.json(err("NOT_SUPPORTED", `channel auth is not supported: ${channel}`), 404);
+      }
+      return c.json(ok(result satisfies ChannelAuthStartResult));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return c.json(err("AUTH_START_FAILED", message), 400);
+    }
+  };
+
+  readonly pollChannelAuth = async (c: Context) => {
+    const channel = c.req.param("channel");
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const sessionId = typeof body.data.sessionId === "string" ? body.data.sessionId.trim() : "";
+    if (!sessionId) {
+      return c.json(err("INVALID_BODY", "sessionId is required"), 400);
+    }
+
+    const result = await pollChannelAuth({
+      configPath: this.options.configPath,
+      channelId: channel,
+      sessionId,
+      bindings: this.options.getPluginChannelBindings?.() ?? []
+    });
+    if (!result) {
+      return c.json(err("NOT_FOUND", "channel auth session not found"), 404);
+    }
+    if (result.status === "authorized") {
+      this.options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
+    }
+    return c.json(ok(result satisfies ChannelAuthPollResult));
   };
 
   readonly updateSecrets = async (c: Context) => {

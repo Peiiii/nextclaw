@@ -1,5 +1,13 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.16
+
+### Patch Changes
+
+- Ship the Weixin QR auth flow in the UI, including plugin-backed channel auth sessions and the dedicated scan-first configuration experience.
+- Updated dependencies
+  - @nextclaw/channel-plugin-weixin@0.1.4
+
 ## 0.3.15
 
 ### Patch Changes

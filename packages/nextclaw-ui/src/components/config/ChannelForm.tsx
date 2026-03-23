@@ -1,45 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useConfig, useConfigMeta, useConfigSchema, useUpdateChannel, useExecuteConfigAction } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TagInput } from '@/components/common/TagInput';
 import { StatusDot } from '@/components/ui/status-dot';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { t } from '@/lib/i18n';
 import { hintForPath } from '@/lib/config-hints';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Settings, ToggleLeft, Hash, Mail, Globe, KeyRound, BookOpen } from 'lucide-react';
+import { BookOpen, ChevronDown } from 'lucide-react';
 import type { ConfigActionManifest } from '@/api/types';
 import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
 import { getChannelLogo } from '@/lib/logos';
 import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS } from './config-layout';
+import { ChannelFormFieldsSection } from './channel-form-fields-section';
 import { buildChannelFields } from './channel-form-fields';
+import { WeixinChannelAuthSection } from './weixin-channel-auth-section';
 
 type ChannelFormProps = {
   channelName?: string;
-};
-
-const getFieldIcon = (fieldName: string) => {
-  if (fieldName.includes('token') || fieldName.includes('secret') || fieldName.includes('password')) {
-    return <KeyRound className="h-3.5 w-3.5 text-gray-500" />;
-  }
-  if (fieldName.includes('url') || fieldName.includes('host')) {
-    return <Globe className="h-3.5 w-3.5 text-gray-500" />;
-  }
-  if (fieldName.includes('email') || fieldName.includes('mail')) {
-    return <Mail className="h-3.5 w-3.5 text-gray-500" />;
-  }
-  if (fieldName.includes('id') || fieldName.includes('from')) {
-    return <Hash className="h-3.5 w-3.5 text-gray-500" />;
-  }
-  if (fieldName === 'enabled' || fieldName === 'consentGranted') {
-    return <ToggleLeft className="h-3.5 w-3.5 text-gray-500" />;
-  }
-  return <Settings className="h-3.5 w-3.5 text-gray-500" />;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -93,6 +71,7 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
     : channelName;
   const channelMeta = meta?.channels.find((item) => item.name === channelName);
   const tutorialUrl = channelMeta ? resolveChannelTutorialUrl(channelMeta) : undefined;
+  const isWeixinChannel = channelName === 'weixin';
 
   useEffect(() => {
     if (channelConfig) {
@@ -251,111 +230,45 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-5">
-          {fields.map((field) => {
-            const hint = channelName
-              ? hintForPath(`channels.${channelName}.${field.name}`, uiHints)
-              : undefined;
-            const label = hint?.label ?? field.label;
-            const placeholder = hint?.placeholder;
-
-            return (
-              <div key={field.name} className="space-y-2.5">
-                <Label
-                  htmlFor={field.name}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-900"
-                >
-                  {getFieldIcon(field.name)}
-                  {label}
-                </Label>
-
-                {field.type === 'boolean' && (
-                  <div className="flex items-center justify-between rounded-xl bg-gray-50 p-3">
-                    <span className="text-sm text-gray-500">
-                      {(formData[field.name] as boolean) ? t('enabled') : t('disabled')}
-                    </span>
-                    <Switch
-                      id={field.name}
-                      checked={(formData[field.name] as boolean) || false}
-                      onCheckedChange={(checked) => updateField(field.name, checked)}
-                      className="data-[state=checked]:bg-emerald-500"
-                    />
+          {isWeixinChannel ? (
+            <>
+              <WeixinChannelAuthSection
+                channelConfig={channelConfig}
+                formData={formData}
+                disabled={updateChannel.isPending || Boolean(runningActionId)}
+              />
+              <details className="group rounded-2xl border border-gray-200/80 bg-white">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-gray-900">
+                  <div>
+                    <p>{t('weixinAuthAdvancedTitle')}</p>
+                    <p className="mt-1 text-xs font-normal text-gray-500">{t('weixinAuthAdvancedDescription')}</p>
                   </div>
-                )}
-
-                {(field.type === 'text' || field.type === 'email') && (
-                  <Input
-                    id={field.name}
-                    type={field.type}
-                    value={(formData[field.name] as string) || ''}
-                    onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder={placeholder}
-                    className="rounded-xl"
+                  <ChevronDown className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="space-y-6 border-t border-gray-100 px-5 py-5">
+                  <ChannelFormFieldsSection
+                    channelName={channelName}
+                    fields={fields}
+                    formData={formData}
+                    jsonDrafts={jsonDrafts}
+                    setJsonDrafts={setJsonDrafts}
+                    updateField={updateField}
+                    uiHints={uiHints}
                   />
-                )}
-
-                {field.type === 'password' && (
-                  <Input
-                    id={field.name}
-                    type="password"
-                    value={(formData[field.name] as string) || ''}
-                    onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder={placeholder ?? t('leaveBlankToKeepUnchanged')}
-                    className="rounded-xl"
-                  />
-                )}
-
-                {field.type === 'number' && (
-                  <Input
-                    id={field.name}
-                    type="number"
-                    value={(formData[field.name] as number) || 0}
-                    onChange={(e) => updateField(field.name, parseInt(e.target.value, 10) || 0)}
-                    placeholder={placeholder}
-                    className="rounded-xl"
-                  />
-                )}
-
-                {field.type === 'tags' && (
-                  <TagInput
-                    value={(formData[field.name] as string[]) || []}
-                    onChange={(tags) => updateField(field.name, tags)}
-                  />
-                )}
-
-                {field.type === 'select' && (
-                  <Select
-                    value={(formData[field.name] as string) || ''}
-                    onValueChange={(v) => updateField(field.name, v)}
-                  >
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(field.options ?? []).map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-
-                {field.type === 'json' && (
-                  <textarea
-                    id={field.name}
-                    value={jsonDrafts[field.name] ?? '{}'}
-                    onChange={(event) =>
-                      setJsonDrafts((prev) => ({
-                        ...prev,
-                        [field.name]: event.target.value
-                      }))
-                    }
-                    className="min-h-[120px] w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-mono"
-                  />
-                )}
-              </div>
-            );
-          })}
+                </div>
+              </details>
+            </>
+          ) : (
+            <ChannelFormFieldsSection
+              channelName={channelName}
+              fields={fields}
+              formData={formData}
+              jsonDrafts={jsonDrafts}
+              setJsonDrafts={setJsonDrafts}
+              updateField={updateField}
+              uiHints={uiHints}
+            />
+          )}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">

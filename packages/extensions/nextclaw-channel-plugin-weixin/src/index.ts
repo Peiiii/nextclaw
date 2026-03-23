@@ -1,5 +1,9 @@
 import type { Config, MessageBus } from "@nextclaw/core";
-import { loginWeixinChannel } from "./weixin-login.service.js";
+import {
+  loginWeixinChannel,
+  pollWeixinLoginSession,
+  startWeixinLoginSession
+} from "./weixin-login.service.js";
 import { WeixinChannel } from "./weixin-channel.js";
 import {
   isWeixinPluginEnabled,
@@ -53,6 +57,29 @@ function createWeixinChannelPlugin(pluginId: string) {
           requestedAccountId: params.accountId,
           baseUrl: params.baseUrl,
           verbose: params.verbose,
+        }),
+      start: async (params: {
+        cfg: Config;
+        pluginId: string;
+        channelId: string;
+        pluginConfig?: Record<string, unknown>;
+        accountId?: string | null;
+        baseUrl?: string | null;
+      }) =>
+        await startWeixinLoginSession({
+          pluginConfig: params.pluginConfig,
+          requestedAccountId: params.accountId,
+          baseUrl: params.baseUrl,
+        }),
+      poll: async (params: {
+        cfg: Config;
+        pluginId: string;
+        channelId: string;
+        pluginConfig?: Record<string, unknown>;
+        sessionId: string;
+      }) =>
+        await pollWeixinLoginSession({
+          sessionId: params.sessionId,
         }),
     },
     nextclaw: {
