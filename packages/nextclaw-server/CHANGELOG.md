@@ -1,5 +1,14 @@
 # nextclaw-server
 
+## 0.10.25
+
+### Patch Changes
+
+- Unify controlled UI requests under appClient, ship the updated built-in UI bundle,
+  and keep the CLI release group aligned.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.25
+
 ## 0.10.24
 
 ### Patch Changes

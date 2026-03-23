@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.13.29
+
+### Patch Changes
+
+- Unify controlled UI requests under appClient, ship the updated built-in UI bundle,
+  and keep the CLI release group aligned.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.25
+  - @nextclaw/server@0.10.25
+  - @nextclaw/ncp-mcp@0.1.25
+  - @nextclaw/remote@0.1.21
+
 ## 0.13.28
 
 ### Patch Changes

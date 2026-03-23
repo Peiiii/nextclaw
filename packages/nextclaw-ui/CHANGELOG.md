@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.9.12
+
+### Patch Changes
+
+- Unify controlled UI requests under appClient, ship the updated built-in UI bundle,
+  and keep the CLI release group aligned.
+
 ## 0.9.11
 
 ### Patch Changes

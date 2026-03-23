@@ -1,4 +1,4 @@
-import { API_BASE } from '@/api/client';
+import { API_BASE } from '@/api/api-base';
 import type { ApiError } from '@/api/types';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url';
@@ -350,7 +350,12 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
       return;
     }
     if (frame.type === 'stream.event') {
-      pending.onEvent({ name: frame.event, payload: frame.payload });
+      try {
+        pending.onEvent({ name: frame.event, payload: frame.payload });
+      } catch (error) {
+        this.pendingStreams.delete(frame.streamId);
+        pending.reject(error instanceof Error ? error : new Error(String(error)));
+      }
       return;
     }
     this.pendingStreams.delete(frame.streamId);

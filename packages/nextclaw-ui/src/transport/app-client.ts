@@ -1,4 +1,4 @@
-import { API_BASE } from '@/api/client';
+import { API_BASE } from '@/api/api-base';
 import { LocalAppTransport } from './local.transport';
 import { RemoteSessionMultiplexTransport } from './remote.transport';
 import type { AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';

@@ -1,4 +1,5 @@
-import { API_BASE, requestApiResponse } from '@/api/client';
+import { API_BASE } from '@/api/api-base';
+import { requestRawApiResponse } from '@/api/raw-client';
 import type { ApiResponse } from '@/api/types';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { readSseStreamResult } from './sse-stream';
@@ -112,7 +113,7 @@ export class LocalAppTransport implements AppTransport {
   }
 
   async request<T>(input: RequestInput): Promise<T> {
-    const response = await requestApiResponse<T>(input.path, {
+    const response = await requestRawApiResponse<T>(input.path, {
       method: input.method,
       ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {})
     });

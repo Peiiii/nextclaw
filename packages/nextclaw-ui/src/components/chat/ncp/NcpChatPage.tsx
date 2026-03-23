@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NcpHttpAgentClientEndpoint } from '@nextclaw/ncp-http-agent-client';
 import { useHydratedNcpAgent, type NcpConversationSeed } from '@nextclaw/ncp-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { API_BASE } from '@/api/client';
+import { API_BASE } from '@/api/api-base';
 import { fetchNcpSessionMessages } from '@/api/ncp-session';
 import type { ChatRunView } from '@/api/types';
 import { sessionDisplayName } from '@/components/chat/chat-page-data';
 import { ChatPageLayout, type ChatPageProps, useChatSessionSync } from '@/components/chat/chat-page-shell';
+import { createNcpAppClientFetch } from '@/components/chat/ncp/ncp-app-client-fetch';
 import { parseSessionKeyFromRoute, resolveAgentIdFromSessionKey } from '@/components/chat/chat-session-route';
 import { useNcpChatPageData } from '@/components/chat/ncp/ncp-chat-page-data';
 import { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter';
@@ -17,14 +18,6 @@ import { useChatSessionListStore } from '@/components/chat/stores/chat-session-l
 import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { normalizeRequestedSkills } from '@/lib/chat-runtime-utils';
-
-function createFetchWithCredentials(): typeof fetch {
-  return (input, init) =>
-    fetch(input, {
-      credentials: 'include',
-      ...init
-    });
-}
 
 function buildNcpSendMetadata(payload: {
   model?: string;
@@ -113,7 +106,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
       new NcpHttpAgentClientEndpoint({
       baseUrl: API_BASE,
       basePath: '/api/ncp/agent',
-      fetchImpl: createFetchWithCredentials()
+      fetchImpl: createNcpAppClientFetch()
       })
   );
 

@@ -1,4 +1,5 @@
-import { api, API_BASE } from './client';
+import { api } from './client';
+import { appClient } from '@/transport';
 import type {
   AuthEnabledUpdateRequest,
   AuthLoginRequest,
@@ -378,32 +379,6 @@ export async function sendChatTurn(data: ChatTurnRequest): Promise<ChatTurnView>
   return response.data;
 }
 
-function parseSseFrame(frame: string): { event: string; data: string } | null {
-  const lines = frame.split('\n');
-  let event = '';
-  const dataLines: string[] = [];
-  for (const raw of lines) {
-    const line = raw.trimEnd();
-    if (!line || line.startsWith(':')) {
-      continue;
-    }
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim();
-      continue;
-    }
-    if (line.startsWith('data:')) {
-      dataLines.push(line.slice(5).trimStart());
-    }
-  }
-  if (!event) {
-    return null;
-  }
-  return {
-    event,
-    data: dataLines.join('\n')
-  };
-}
-
 async function readSseStream(params: {
   path: string;
   method: 'GET' | 'POST';
@@ -413,115 +388,68 @@ async function readSseStream(params: {
   onDelta: (event: ChatTurnStreamDeltaEvent) => void;
   onSessionEvent: (event: ChatTurnStreamSessionEvent) => void;
 }): Promise<{ sessionKey: string; reply: string }> {
-  const response = await fetch(`${API_BASE}${params.path}`, {
+  let finalResult: { sessionKey: string; reply: string } | null = null;
+  let readySessionKey = '';
+
+  const session = appClient.openStream<ChatTurnView>({
     method: params.method,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream'
-    },
-    ...(params.body !== undefined ? { body: JSON.stringify(params.body) } : {}),
-    ...(params.signal ? { signal: params.signal } : {})
+    path: params.path,
+    ...(params.body !== undefined ? { body: params.body } : {}),
+    signal: params.signal,
+    onEvent: (event) => {
+      if (event.name === 'ready') {
+        const ready = (event.payload ?? {}) as ChatTurnStreamReadyEvent;
+        if (typeof ready.sessionKey === 'string' && ready.sessionKey.trim()) {
+          readySessionKey = ready.sessionKey;
+        }
+        params.onReady(ready);
+        return;
+      }
+
+      if (event.name === 'delta') {
+        params.onDelta((event.payload ?? { delta: '' }) as ChatTurnStreamDeltaEvent);
+        return;
+      }
+
+      if (event.name === 'session_event') {
+        params.onSessionEvent({ data: event.payload as ChatTurnStreamSessionEvent['data'] });
+        return;
+      }
+
+      if (event.name === 'final') {
+        const result = event.payload as ChatTurnView;
+        finalResult = {
+          sessionKey: typeof result?.sessionKey === 'string' && result.sessionKey.trim()
+            ? result.sessionKey
+            : readySessionKey,
+          reply: typeof result?.reply === 'string' ? result.reply : ''
+        };
+        return;
+      }
+
+      if (event.name === 'error') {
+        const errorPayload = (event.payload ?? {}) as ChatTurnStreamErrorEvent;
+        throw new Error((errorPayload.message ?? '').trim() || 'chat stream failed');
+      }
+    }
   });
 
-  if (!response.ok) {
-    const text = await response.text();
-    const fallback = `HTTP ${response.status}`;
-    const trimmed = text.trim();
-    throw new Error(trimmed || fallback);
-  }
-
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error('SSE response body unavailable');
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let finalResult: { sessionKey: string; reply: string } | null = null;
-  let readySessionKey: string | null = null;
-
-  const consumeFrame = (frame: string) => {
-    const parsed = parseSseFrame(frame);
-    if (!parsed) {
-      return;
-    }
-
-    let payload: unknown = undefined;
-    if (parsed.data) {
-      try {
-        payload = JSON.parse(parsed.data);
-      } catch {
-        payload = undefined;
-      }
-    }
-
-    if (parsed.event === 'ready') {
-      const ready = (payload ?? {}) as ChatTurnStreamReadyEvent;
-      readySessionKey = typeof ready.sessionKey === 'string' && ready.sessionKey.trim() ? ready.sessionKey : readySessionKey;
-      params.onReady(ready);
-      return;
-    }
-
-    if (parsed.event === 'delta') {
-      params.onDelta((payload ?? { delta: '' }) as ChatTurnStreamDeltaEvent);
-      return;
-    }
-
-    if (parsed.event === 'session_event') {
-      params.onSessionEvent({ data: payload as ChatTurnStreamSessionEvent['data'] });
-      return;
-    }
-
-    if (parsed.event === 'final') {
-      const result = payload as ChatTurnView;
-      finalResult = {
-        sessionKey: typeof result?.sessionKey === 'string' && result.sessionKey.trim()
-          ? result.sessionKey
-          : (readySessionKey ?? ''),
-        reply: typeof result?.reply === 'string' ? result.reply : ''
-      };
-      return;
-    }
-
-    if (parsed.event === 'error') {
-      const errorPayload = (payload ?? {}) as ChatTurnStreamErrorEvent;
-      throw new Error((errorPayload.message ?? '').trim() || 'chat stream failed');
-    }
-  };
-
-  try {
-    let isReading = true;
-    while (isReading) {
-      const { value, done } = await reader.read();
-      if (done) {
-        isReading = false;
-        continue;
-      }
-      buffer += decoder.decode(value, { stream: true });
-      let boundary = buffer.indexOf('\n\n');
-      while (boundary !== -1) {
-        const frame = buffer.slice(0, boundary);
-        buffer = buffer.slice(boundary + 2);
-        consumeFrame(frame);
-        boundary = buffer.indexOf('\n\n');
-      }
-    }
-    if (buffer.trim()) {
-      consumeFrame(buffer);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
+  const result = await session.finished;
   if (finalResult) {
     return finalResult;
   }
-
   if (readySessionKey) {
-    return { sessionKey: readySessionKey, reply: '' };
+    return {
+      sessionKey: readySessionKey,
+      reply: typeof result?.reply === 'string' ? result.reply : ''
+    };
   }
-
+  if (typeof result?.sessionKey === 'string' && result.sessionKey.trim()) {
+    return {
+      sessionKey: result.sessionKey,
+      reply: typeof result?.reply === 'string' ? result.reply : ''
+    };
+  }
   throw new Error('chat stream ended without final event');
 }
 
