@@ -2,9 +2,7 @@ import { RemoteAppAdapter } from "./remote-app.adapter.js";
 import { isTerminalRemoteConnectorError } from "./remote-connector-error.js";
 import { RemoteRelayBridge, type RelayRequestFrame } from "./remote-relay-bridge.js";
 import {
-  buildReconnectHaltedMessage,
   formatReconnectDelay,
-  MAX_CONSECUTIVE_RECONNECT_FAILURES,
   resolveReconnectDelayMs
 } from "./remote-connector-retry.utils.js";
 import { readRemoteConnectorSocketErrorMessage } from "./remote-connector-websocket-error.utils.js";
@@ -352,23 +350,6 @@ export class RemoteConnector {
         break;
       }
       if (cycle.outcome === "aborted" || !context.autoReconnect || opts.signal?.aborted) {
-        break;
-      }
-      if (cycle.retryFailure && consecutiveReconnectFailures >= MAX_CONSECUTIVE_RECONNECT_FAILURES) {
-        const haltedMessage = buildReconnectHaltedMessage(
-          cycle.lastError ?? "Remote connector websocket failed."
-        );
-        this.writeRemoteState(opts.statusStore, {
-          enabled: true,
-          state: "error",
-          deviceId: device?.id,
-          deviceName: context.displayName,
-          platformBase: context.platformBase,
-          localOrigin: context.localOrigin,
-          lastError: haltedMessage
-        });
-        this.logger.error(`Remote connector error: ${haltedMessage}`);
-        preserveRuntimeError = true;
         break;
       }
       const reconnectDelayMs = resolveReconnectDelayMs(cycle.retryFailure ? consecutiveReconnectFailures : 1, this.random);

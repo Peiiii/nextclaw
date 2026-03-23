@@ -103,10 +103,11 @@ describe("RemoteConnector runtime policy", () => {
     });
   });
 
-  it("backs off and halts auto-reconnect after repeated websocket failures", async () => {
+  it("keeps backing off transient websocket failures until the 30 minute cap", async () => {
     const statusWrites: Array<Omit<RemoteRuntimeState, "mode" | "updatedAt">> = [];
     const logger = createLogger();
     const delayCalls: number[] = [];
+    const abortController = new AbortController();
     const platformClient = {
       resolveRunContext: vi.fn().mockReturnValue(createRunContext()),
       registerDevice: vi.fn<() => Promise<RegisteredRemoteDevice>>().mockResolvedValue(createDevice())
@@ -120,6 +121,9 @@ describe("RemoteConnector runtime policy", () => {
       logger,
       delayFn: vi.fn(async (delayMs: number) => {
         delayCalls.push(delayMs);
+        if (delayCalls.length >= 11) {
+          abortController.abort();
+        }
       }),
       random: () => 0.5,
       createSocket: () => {
@@ -136,20 +140,18 @@ describe("RemoteConnector runtime policy", () => {
     await connector.run({
       mode: "service",
       autoReconnect: true,
+      signal: abortController.signal,
       statusStore: createStatusWriter(statusWrites)
     });
 
     expect(platformClient.registerDevice).toHaveBeenCalledTimes(1);
-    expect(delayCalls).toEqual([3_000, 6_000, 12_000, 24_000, 48_000]);
-    expect(logger.warn).toHaveBeenCalledTimes(5);
-    expect(logger.error).toHaveBeenLastCalledWith(
-      "Remote connector error: connect ECONNREFUSED 127.0.0.1:443 Auto-reconnect stopped after 6 consecutive failures to avoid wasting remote requests. Use Remote Access repair or restart the service after checking platform/network availability."
-    );
+    expect(delayCalls).toEqual([3_000, 6_000, 12_000, 24_000, 48_000, 96_000, 192_000, 384_000, 768_000, 1_536_000, 1_800_000]);
+    expect(logger.warn).toHaveBeenCalledTimes(11);
+    expect(logger.error).toHaveBeenLastCalledWith("Remote connector error: connect ECONNREFUSED 127.0.0.1:443");
     expect(statusWrites.at(-1)).toMatchObject({
       enabled: true,
-      state: "error",
-      lastError:
-        "connect ECONNREFUSED 127.0.0.1:443 Auto-reconnect stopped after 6 consecutive failures to avoid wasting remote requests. Use Remote Access repair or restart the service after checking platform/network availability."
+      state: "disconnected",
+      lastError: null
     });
   });
 

@@ -1,8 +1,6 @@
 const BASE_RECONNECT_DELAY_MS = 3_000;
-const MAX_RECONNECT_DELAY_MS = 60_000;
+const MAX_RECONNECT_DELAY_MS = 30 * 60_000;
 const RECONNECT_JITTER_RATIO = 0.2;
-
-export const MAX_CONSECUTIVE_RECONNECT_FAILURES = 6;
 
 export function resolveReconnectDelayMs(attempt: number, random: () => number): number {
   const exponentialDelayMs = Math.min(
@@ -19,8 +17,4 @@ export function resolveReconnectDelayMs(attempt: number, random: () => number): 
 export function formatReconnectDelay(delayMs: number): string {
   const seconds = delayMs / 1000;
   return Number.isInteger(seconds) ? `${seconds}s` : `${seconds.toFixed(1)}s`;
-}
-
-export function buildReconnectHaltedMessage(message: string): string {
-  return `${message} Auto-reconnect stopped after ${MAX_CONSECUTIVE_RECONNECT_FAILURES} consecutive failures to avoid wasting remote requests. Use Remote Access repair or restart the service after checking platform/network availability.`;
 }

@@ -1,5 +1,13 @@
 # @nextclaw/remote
 
+## 0.1.30
+
+### Patch Changes
+
+- Raise remote connector exponential backoff to a 30 minute cap for non-terminal websocket failures so long outages generate fewer reconnect requests while terminal auth and configuration errors still stop immediately.
+- Updated dependencies
+  - @nextclaw/server@0.10.36
+
 ## 0.1.29
 
 ### Patch Changes
