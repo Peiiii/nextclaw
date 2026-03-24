@@ -47,7 +47,9 @@ export function ChatInputBar(props: ChatInputBarProps) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
-  const isSlashPanelOpen = slashQuery !== null;
+  const [activeSlashTriggerStart, setActiveSlashTriggerStart] = useState<number | null>(null);
+  const [dismissedSlashTriggerStart, setDismissedSlashTriggerStart] = useState<number | null>(null);
+  const isSlashPanelOpen = activeSlashTriggerStart !== null && dismissedSlashTriggerStart !== activeSlashTriggerStart;
   const activeSlashItem = props.slashMenu.items[activeSlashIndex] ?? null;
 
   useEffect(() => {
@@ -64,6 +66,12 @@ export function ChatInputBar(props: ChatInputBarProps) {
       setActiveSlashIndex(0);
     }
   }, [slashQuery]);
+
+  useEffect(() => {
+    if (activeSlashTriggerStart === null && dismissedSlashTriggerStart !== null) {
+      setDismissedSlashTriggerStart(null);
+    }
+  }, [activeSlashTriggerStart, dismissedSlashTriggerStart]);
 
   const toolbar = useMemo(() => {
     if (!props.toolbar.skillPicker) {
@@ -98,9 +106,12 @@ export function ChatInputBar(props: ChatInputBarProps) {
                 setSlashQuery(query);
                 props.composer.onSlashQueryChange?.(query);
               }}
+              onSlashTriggerChange={(trigger) => {
+                setActiveSlashTriggerStart(trigger?.start ?? null);
+              }}
               onSlashOpenChange={(open) => {
-                if (!open) {
-                  setSlashQuery(null);
+                if (!open && activeSlashTriggerStart !== null) {
+                  setDismissedSlashTriggerStart(activeSlashTriggerStart);
                 }
               }}
               onSlashActiveIndexChange={setActiveSlashIndex}
@@ -113,11 +124,12 @@ export function ChatInputBar(props: ChatInputBarProps) {
               activeItem={activeSlashItem}
               texts={props.slashMenu.texts}
               onSelectItem={(item) => {
+                setDismissedSlashTriggerStart(null);
                 composerRef.current?.insertSlashItem(item);
               }}
               onOpenChange={(open) => {
-                if (!open) {
-                  setSlashQuery(null);
+                if (!open && activeSlashTriggerStart !== null) {
+                  setDismissedSlashTriggerStart(activeSlashTriggerStart);
                 }
               }}
               onSetActiveIndex={setActiveSlashIndex}

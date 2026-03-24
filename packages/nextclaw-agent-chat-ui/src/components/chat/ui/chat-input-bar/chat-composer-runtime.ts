@@ -23,6 +23,7 @@ type ChatComposerRuntimeConfig = {
   actions: ComposerActions;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
   onSlashQueryChange?: (query: string | null) => void;
+  onSlashTriggerChange?: (trigger: { query: string; start: number; end: number } | null) => void;
   onSlashOpenChange: (open: boolean) => void;
   onSlashActiveIndexChange: (index: number) => void;
   activeSlashIndex: number;
@@ -152,6 +153,12 @@ export class ChatComposerRuntime {
 
   readonly handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const config = this.requireConfig();
+    if (this.rootElement && !this.isComposing) {
+      const nextSnapshot = this.viewController.syncSelectionFromRoot(this.rootElement);
+      this.selection = nextSnapshot.selection;
+      this.selectedRange = nextSnapshot.selection;
+      this.snapshot = nextSnapshot;
+    }
     const activeSlashItem = config.slashItems[config.activeSlashIndex] ?? null;
     this.viewController.handleKeyDown({
       event,
@@ -205,6 +212,7 @@ export class ChatComposerRuntime {
 
   private readonly syncSlashState = (nextSnapshot: ChatComposerControllerSnapshot): void => {
     const config = this.requireConfig();
+    config.onSlashTriggerChange?.(nextSnapshot.slashTrigger);
     config.onSlashQueryChange?.(nextSnapshot.slashTrigger?.query ?? null);
     config.onSlashOpenChange(nextSnapshot.slashTrigger !== null);
   };

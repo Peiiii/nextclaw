@@ -4,6 +4,20 @@ import { ChatInputBar } from './chat-input-bar';
 import type { ChatComposerNode, ChatInputBarProps } from '../../view-models/chat-ui.types';
 import { createChatComposerTextNode, createChatComposerTokenNode } from './chat-composer.utils';
 
+function setCursorToEnd(element: HTMLElement, text: string) {
+  const textNode = element.firstChild;
+  if (!textNode) {
+    return;
+  }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  const offset = Math.min(text.length, textNode.textContent?.length ?? 0);
+  range.setStart(textNode, offset);
+  range.setEnd(textNode, offset);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
 function createInputBarProps(overrides?: Partial<ChatInputBarProps>): ChatInputBarProps {
   return {
     composer: {
@@ -85,9 +99,75 @@ describe('ChatInputBar', () => {
     const textbox = screen.getByRole('textbox');
     fireEvent.focus(textbox);
     textbox.textContent = '/';
+    setCursorToEnd(textbox, '/');
     fireEvent.input(textbox);
 
     expect(textbox.textContent).toBe('/');
+  });
+
+  it('keeps the slash menu dismissed after escape until slash mode exits', () => {
+    function Harness() {
+      const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('')]);
+
+      return (
+        <ChatInputBar
+          {...createInputBarProps({
+            composer: {
+              nodes,
+              placeholder: 'Type a message',
+              disabled: false,
+              onNodesChange: setNodes
+            },
+            slashMenu: {
+              isLoading: false,
+              items: [
+                {
+                  key: 'web-search',
+                  title: 'Web Search',
+                  subtitle: 'Skill',
+                  description: 'Search the web',
+                  detailLines: []
+                }
+              ],
+              texts: {
+                slashLoadingLabel: 'Loading',
+                slashSectionLabel: 'Skills',
+                slashEmptyLabel: 'No result',
+                slashHintLabel: 'Type /',
+                slashSkillHintLabel: 'Enter to add'
+              }
+            }
+          })}
+        />
+      );
+    }
+
+    render(<Harness />);
+
+    const textbox = screen.getByRole('textbox');
+    fireEvent.focus(textbox);
+
+    textbox.textContent = '/';
+    setCursorToEnd(textbox, '/');
+    fireEvent.input(textbox);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+
+    fireEvent.keyDown(textbox, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    textbox.textContent = '/a';
+    setCursorToEnd(textbox, '/a');
+    fireEvent.input(textbox);
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    textbox.textContent = 'plain text';
+    setCursorToEnd(textbox, 'plain text');
+    fireEvent.input(textbox);
+
+    textbox.textContent = '/b';
+    setCursorToEnd(textbox, '/b');
+    fireEvent.input(textbox);
+    expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
   it('renders inline skill tokens inside the composer surface', () => {

@@ -20,6 +20,7 @@ type ChatInputBarTokenizedComposerProps = {
   actions: Pick<ChatInputBarActionsProps, 'onSend' | 'onStop' | 'isSending' | 'canStopGeneration'>;
   onNodesChange: (nodes: ChatComposerNode[]) => void;
   onSlashQueryChange?: (query: string | null) => void;
+  onSlashTriggerChange?: (trigger: { query: string; start: number; end: number } | null) => void;
   onSlashOpenChange: (open: boolean) => void;
   onSlashActiveIndexChange: (index: number) => void;
   activeSlashIndex: number;
@@ -37,6 +38,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     actions,
     onNodesChange,
     onSlashQueryChange,
+    onSlashTriggerChange,
     onSlashOpenChange,
     onSlashActiveIndexChange,
     activeSlashIndex
@@ -62,6 +64,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
     actions,
     onNodesChange,
     onSlashQueryChange,
+    onSlashTriggerChange,
     onSlashOpenChange,
     onSlashActiveIndexChange,
     activeSlashIndex,
