@@ -294,7 +294,7 @@ export class ServiceCommands {
     try {
       const startedPluginGateways = await startPluginChannelGateways({
         registry: pluginRegistry,
-        logger: pluginGatewayLogger
+        config, logger: pluginGatewayLogger
       });
       pluginGatewayHandles = startedPluginGateways.handles;
       logPluginGatewayDiagnostics(startedPluginGateways.diagnostics);
