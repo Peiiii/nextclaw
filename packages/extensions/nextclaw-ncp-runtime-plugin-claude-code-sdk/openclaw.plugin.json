@@ -20,12 +20,6 @@
       "model": {
         "type": "string"
       },
-      "supportedModels": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      },
       "useProviderCredentials": {
         "type": "boolean"
       },
@@ -162,10 +156,6 @@
     },
     "model": {
       "label": "Default Model"
-    },
-    "supportedModels": {
-      "label": "Supported Models",
-      "advanced": true
     },
     "useProviderCredentials": {
       "label": "Force Current Provider Credentials",

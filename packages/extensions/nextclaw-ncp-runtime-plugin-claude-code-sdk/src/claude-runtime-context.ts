@@ -198,11 +198,6 @@ function resolveConfiguredClaudeModels(params: {
   pluginConfig: Record<string, unknown>;
   modelInput: string;
 }): string[] {
-  const explicitSupportedModels = readStringArray(params.pluginConfig.supportedModels);
-  if (explicitSupportedModels) {
-    return dedupeStrings(explicitSupportedModels);
-  }
-
   const configuredProviders =
     params.config.providers && typeof params.config.providers === "object" && !Array.isArray(params.config.providers)
       ? (params.config.providers as Record<string, { models?: string[] | null }>)

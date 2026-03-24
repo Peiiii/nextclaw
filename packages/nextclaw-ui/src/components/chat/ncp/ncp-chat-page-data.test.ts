@@ -16,6 +16,14 @@ const modelOptions: ChatModelOption[] = [
 ];
 
 describe('filterModelOptionsBySessionType', () => {
+  it('keeps the full model catalog when the session type does not publish a supportedModels whitelist', () => {
+    expect(
+      filterModelOptionsBySessionType({
+        modelOptions
+      })
+    ).toEqual(modelOptions);
+  });
+
   it('keeps only session-type-supported models when the runtime publishes a filtered list', () => {
     expect(
       filterModelOptionsBySessionType({

@@ -9,13 +9,11 @@ import {
 import {
   type ClaudeCodeLoader,
   type ClaudeCodeMessage,
-  type ClaudeCodeQueryOptions,
   type ClaudeCodeSdkModule,
   type ClaudeCodeSdkNcpAgentRuntimeConfig,
   type TextStreamState,
 } from "./claude-code-sdk-types.js";
 import {
-  buildQueryEnv,
   createId,
   extractAssistantDelta,
   extractAssistantSnapshot,
@@ -23,6 +21,13 @@ import {
   readUserText,
   toAbortError,
 } from "./claude-code-runtime-utils.js";
+import {
+  buildClaudeQueryOptions,
+  createAbortBridge,
+  createRequestTimeout,
+  prepareClaudeGatewayAccess,
+  type ClaudePreparedGatewayAccess,
+} from "./claude-code-query-runtime.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
@@ -38,9 +43,11 @@ export {
   type ClaudeCodeSdkCapabilityProbeConfig,
   type ClaudeCodeSdkCapabilityProbeResult,
 } from "./claude-code-capability-probe.js";
+export { DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS } from "./claude-code-runtime-utils.js";
 
 export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private sdkModulePromise: Promise<ClaudeCodeSdkModule> | null = null;
+  private preparedAccessPromise: Promise<ClaudePreparedGatewayAccess> | null = null;
   private sessionRuntimeId: string | null;
   private readonly sessionMetadata: Record<string, unknown>;
   private readonly bundledCliPath = resolveBundledClaudeAgentSdkCliPath();
@@ -67,15 +74,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
 
     yield* this.emitReadyEvents(input.sessionId, messageId, runId);
 
-    const sdk = await this.getSdkModule();
-    const abortBridge = this.createAbortBridge(options);
-    const { abortController } = abortBridge;
-
-    const query = sdk.query({
-      prompt: await this.buildTurnInput(input),
-      options: this.buildQueryOptions(abortController),
-    });
-    const timeout = this.createRequestTimeout(abortController);
+    const { query, abortBridge, abortController, timeout } = await this.createQueryRun(input, options);
 
     try {
       for await (const message of query) {
@@ -123,64 +122,38 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     return this.sdkModulePromise;
   }
 
-  private buildQueryOptions(abortController: AbortController): ClaudeCodeQueryOptions {
-    const baseQueryOptions = this.config.baseQueryOptions ?? {};
-    const resolvedCliPath =
-      typeof baseQueryOptions.pathToClaudeCodeExecutable === "string"
-        ? baseQueryOptions.pathToClaudeCodeExecutable
-        : this.bundledCliPath;
-    const resolvedExecutable =
-      typeof baseQueryOptions.executable === "string"
-        ? baseQueryOptions.executable
-        : this.currentProcessExecutable;
-
-    return {
-      ...baseQueryOptions,
-      abortController,
-      cwd: this.config.workingDirectory,
-      model: this.config.model,
-      env: buildQueryEnv(this.config),
-      ...(resolvedCliPath ? { pathToClaudeCodeExecutable: resolvedCliPath } : {}),
-      ...(resolvedExecutable ? { executable: resolvedExecutable } : {}),
-      ...(this.sessionRuntimeId ? { resume: this.sessionRuntimeId } : {}),
-    };
-  }
-
-  private createRequestTimeout(abortController: AbortController): ReturnType<typeof setTimeout> | null {
-    const timeoutMs = Math.max(0, Math.trunc(this.config.requestTimeoutMs ?? 30000));
-    if (timeoutMs <= 0) {
-      return null;
+  private async getPreparedAccess(): Promise<ClaudePreparedGatewayAccess> {
+    if (!this.preparedAccessPromise) {
+      this.preparedAccessPromise = prepareClaudeGatewayAccess(this.config);
     }
-
-    const timeout = setTimeout(() => {
-      abortController.abort("claude request timed out");
-    }, timeoutMs);
-    timeout.unref?.();
-    return timeout;
+    return await this.preparedAccessPromise;
   }
 
-  private createAbortBridge(options?: NcpAgentRunOptions): {
+  private async createQueryRun(input: NcpAgentRunInput, options?: NcpAgentRunOptions): Promise<{
+    query: ReturnType<ClaudeCodeSdkModule["query"]>;
+    abortBridge: ReturnType<typeof createAbortBridge>;
     abortController: AbortController;
-    dispose: () => void;
-  } {
-    const abortController = new AbortController();
-    const onExternalAbort = () => {
-      if (!abortController.signal.aborted) {
-        abortController.abort(options?.signal?.reason);
-      }
-    };
-
-    if (options?.signal?.aborted) {
-      onExternalAbort();
-    } else {
-      options?.signal?.addEventListener("abort", onExternalAbort, { once: true });
-    }
+    timeout: ReturnType<typeof setTimeout> | null;
+  }> {
+    const sdk = await this.getSdkModule();
+    const preparedAccess = await this.getPreparedAccess();
+    const abortBridge = createAbortBridge(options);
 
     return {
-      abortController,
-      dispose: () => {
-        options?.signal?.removeEventListener("abort", onExternalAbort);
-      },
+      query: sdk.query({
+        prompt: await this.buildTurnInput(input),
+        options: buildClaudeQueryOptions({
+          config: this.config,
+          abortController: abortBridge.abortController,
+          preparedAccess,
+          bundledCliPath: this.bundledCliPath,
+          currentProcessExecutable: this.currentProcessExecutable,
+          sessionRuntimeId: this.sessionRuntimeId,
+        }),
+      }),
+      abortBridge,
+      abortController: abortBridge.abortController,
+      timeout: createRequestTimeout(this.config.requestTimeoutMs, abortBridge.abortController),
     };
   }
 

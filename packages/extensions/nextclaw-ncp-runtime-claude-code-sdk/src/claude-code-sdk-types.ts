@@ -75,6 +75,11 @@ export type ClaudeCodeLoader = {
   loadClaudeCodeSdkModule: () => Promise<ClaudeCodeSdkModule>;
 };
 
+export type ClaudeCodeSdkAnthropicGatewayConfig = {
+  upstreamApiBase: string;
+  upstreamApiKey?: string;
+};
+
 export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   sessionId: string;
   apiKey: string;
@@ -90,4 +95,5 @@ export type ClaudeCodeSdkNcpAgentRuntimeConfig = {
   setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void;
   inputBuilder?: (input: NcpAgentRunInput) => Promise<string> | string;
   stateManager?: NcpAgentConversationStateManager;
+  anthropicGateway?: ClaudeCodeSdkAnthropicGatewayConfig;
 };

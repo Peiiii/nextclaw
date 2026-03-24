@@ -2,13 +2,16 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
+import { ensureAnthropicOpenAiBridge } from "./anthropic-openai-bridge.js";
 import type {
   ClaudeCodeMessage,
+  ClaudeCodeSdkAnthropicGatewayConfig,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
 } from "./claude-code-sdk-types.js";
 
 const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
 const NEXTCLAW_DEFAULT_HOME_DIR = ".nextclaw";
+export const DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS = 30_000;
 
 function readEnvString(value: string | undefined): string | undefined {
   if (typeof value !== "string") {
@@ -100,6 +103,37 @@ export function buildQueryEnv(
   }
 
   return env;
+}
+
+export async function resolveClaudeGatewayAccess(params: {
+  apiKey: string;
+  authToken?: string;
+  apiBase?: string;
+  anthropicGateway?: ClaudeCodeSdkAnthropicGatewayConfig;
+}): Promise<{
+  apiKey: string;
+  authToken?: string;
+  apiBase?: string;
+}> {
+  if (!params.anthropicGateway) {
+    return {
+      apiKey: params.apiKey,
+      authToken: params.authToken,
+      apiBase: params.apiBase,
+    };
+  }
+
+  const bridge = await ensureAnthropicOpenAiBridge(params.anthropicGateway);
+  const fallbackCredential =
+    readEnvString(params.apiKey) ??
+    readEnvString(params.authToken) ??
+    "nextclaw-local-claude-gateway";
+
+  return {
+    apiKey: fallbackCredential,
+    authToken: undefined,
+    apiBase: bridge.baseUrl,
+  };
 }
 
 function readTextFromContent(content: unknown): string {

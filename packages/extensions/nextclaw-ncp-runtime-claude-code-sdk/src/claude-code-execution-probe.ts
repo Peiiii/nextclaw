@@ -5,6 +5,7 @@ import type {
 } from "./claude-code-sdk-types.js";
 import {
   buildQueryEnv,
+  DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS,
   extractAssistantSnapshot,
   extractFailureMessage,
 } from "./claude-code-runtime-utils.js";
@@ -151,7 +152,10 @@ export async function probeClaudeCodeSdkExecution(params: {
   };
 
   try {
-    const timeoutMs = Math.max(1000, Math.trunc(params.config.executionProbeTimeoutMs ?? 8000));
+    const timeoutMs = Math.max(
+      1000,
+      Math.trunc(params.config.executionProbeTimeoutMs ?? DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS),
+    );
     return await params.withTimeout(executeProbe(), timeoutMs);
   } catch (error) {
     const reasonMessage = error instanceof Error ? error.message : "claude execution probe failed";
