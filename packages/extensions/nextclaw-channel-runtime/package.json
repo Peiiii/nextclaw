@@ -22,8 +22,8 @@
     "prepublishOnly": "node ../../../scripts/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@larksuiteoapi/node-sdk": "^1.58.0",
     "@nextclaw/core": "workspace:*",
+    "@nextclaw/feishu-core": "workspace:*",
     "@slack/socket-mode": "^1.3.3",
     "@slack/web-api": "^7.6.0",
     "dingtalk-stream": "^2.1.4",

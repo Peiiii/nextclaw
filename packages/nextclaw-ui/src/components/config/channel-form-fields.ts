@@ -70,7 +70,15 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'appSecret', type: 'password', label: t('appSecret') },
       { name: 'encryptKey', type: 'password', label: t('encryptKey') },
       { name: 'verificationToken', type: 'password', label: t('verificationToken') },
-      { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
+      { name: 'domain', type: 'text', label: 'Domain' },
+      { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
+      { name: 'dmPolicy', type: 'select', label: t('dmPolicy'), options: DM_POLICY_OPTIONS },
+      { name: 'groupPolicy', type: 'select', label: t('groupPolicy'), options: GROUP_POLICY_OPTIONS },
+      { name: 'groupAllowFrom', type: 'tags', label: t('groupAllowFrom') },
+      { name: 'requireMention', type: 'boolean', label: t('requireMention') },
+      { name: 'mentionPatterns', type: 'tags', label: t('mentionPatterns') },
+      { name: 'groups', type: 'json', label: t('groupRulesJson') },
+      { name: 'accounts', type: 'json', label: t('accountsJson') }
     ],
     dingtalk: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },

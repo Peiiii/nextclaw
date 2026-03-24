@@ -1,10 +1,30 @@
 # @nextclaw/mcp
 
+## 0.1.36
+
+### Patch Changes
+
+- Publish a follow-up patch so the published `nextclaw` and `@nextclaw/server` packages depend on the corrected `@nextclaw/openclaw-compat` release instead of the previously published `0.3.20`.
+
+## 0.1.35
+
+### Patch Changes
+
+- Remove the Feishu plugin's runtime dependency on `openclaw/plugin-sdk/*` by switching it to a bundled NextClaw thin compatibility layer. Remove the accidental `openclaw` package dependency and delete the `pi-coding-agent` shim that slipped into the previous release.
+
+## 0.1.34
+
+### Patch Changes
+
+- Align bundled Feishu support with the official OpenClaw plugin by vendoring the upstream Feishu plugin into NextClaw, teaching the compat loader to prefer plugin-local OpenClaw SDK resolution, and adding the minimal loader shims needed for the official Feishu tools to register inside NextClaw.
+
 ## 0.1.33
 
 ### Patch Changes
 
-- Fix Claude NCP runtime model routing by bridging Anthropic Messages to OpenAI-compatible providers, remove the Claude model whitelist concept, and keep the Claude model selector stable when the previously selected model is missing.
+- Add the Phase 1 Feishu platform foundation for NextClaw, including shared Feishu core primitives, richer message conversion, multi-account routing, and the aligned config UI/runtime release chain.
+- Updated dependencies
+  - @nextclaw/core@0.10.0
 
 ## 0.1.32
 

@@ -29,6 +29,7 @@ export const CHANNEL_LABELS: Record<string, { zh: string; en: string }> = {
   botToken: { zh: 'Bot Token', en: 'Bot Token' },
   appToken: { zh: 'App Token', en: 'App Token' },
   appId: { zh: 'App ID', en: 'App ID' },
+  domain: { zh: '域名', en: 'Domain' },
   corpId: { zh: '企业 ID', en: 'Corp ID' },
   agentId: { zh: '应用 Agent ID', en: 'Agent ID' },
   appSecret: { zh: 'App Secret', en: 'App Secret' },

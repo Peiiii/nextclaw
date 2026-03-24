@@ -23,7 +23,7 @@
     "prepublishOnly": "node ../../scripts/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@larksuiteoapi/node-sdk": "^1.58.0",
+    "@nextclaw/feishu-core": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
     "cron-parser": "^4.9.0",

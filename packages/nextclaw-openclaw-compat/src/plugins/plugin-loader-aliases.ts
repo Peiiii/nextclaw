@@ -154,7 +154,8 @@ function buildScopedPackageAliases(scope: string, pluginRoot?: string): Record<s
 export function buildPluginLoaderAliases(pluginRoot?: string): Record<string, string> {
   const aliases = buildScopedPackageAliases("@nextclaw", pluginRoot);
   const pluginSdkAlias = resolvePluginSdkAlias();
-  if (pluginSdkAlias) {
+  const shouldUseCompatPluginSdkAlias = shouldAliasHostPackage(pluginRoot, "openclaw");
+  if (pluginSdkAlias && shouldUseCompatPluginSdkAlias) {
     aliases["openclaw/plugin-sdk"] = pluginSdkAlias;
   }
   return aliases;

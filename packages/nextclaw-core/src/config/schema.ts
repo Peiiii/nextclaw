@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
 import { findProviderByName, listProviderSpecs } from "../providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
 import { expandHome, getPackageVersion } from "../utils/helpers.js";
@@ -56,14 +57,7 @@ export const TelegramConfigSchema = z.object({
   groups: z.record(GroupRuleSchema).default({})
 });
 
-export const FeishuConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  appId: z.string().default(""),
-  appSecret: z.string().default(""),
-  encryptKey: z.string().default(""),
-  verificationToken: z.string().default(""),
-  allowFrom: allowFrom
-});
+export const FeishuConfigSchema = NextClawFeishuConfigSchema;
 
 export const DingTalkConfigSchema = z.object({
   enabled: z.boolean().default(false),

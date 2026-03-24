@@ -331,9 +331,18 @@ importers:
 
   packages/extensions/nextclaw-channel-plugin-feishu:
     dependencies:
-      '@nextclaw/channel-runtime':
-        specifier: workspace:*
-        version: link:../nextclaw-channel-runtime
+      '@larksuiteoapi/node-sdk':
+        specifier: ^1.59.0
+        version: 1.59.0
+      '@sinclair/typebox':
+        specifier: 0.34.48
+        version: 0.34.48
+      https-proxy-agent:
+        specifier: ^8.0.0
+        version: 8.0.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
   packages/extensions/nextclaw-channel-plugin-mochat:
     dependencies:
@@ -389,12 +398,12 @@ importers:
 
   packages/extensions/nextclaw-channel-runtime:
     dependencies:
-      '@larksuiteoapi/node-sdk':
-        specifier: ^1.58.0
-        version: 1.58.0
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../../nextclaw-core
+      '@nextclaw/feishu-core':
+        specifier: workspace:*
+        version: link:../nextclaw-feishu-core
       '@slack/socket-mode':
         specifier: ^1.3.3
         version: 1.3.6
@@ -469,8 +478,8 @@ importers:
         specifier: ^0.2.63
         version: 0.2.63(zod@4.3.6)
       '@nextclaw/core':
-        specifier: ^0.9.1
-        version: 0.9.8(ws@8.19.0)
+        specifier: ^0.9.12
+        version: link:../../nextclaw-core
       zod:
         specifier: ^4.0.0
         version: 4.3.6
@@ -488,8 +497,8 @@ importers:
   packages/extensions/nextclaw-engine-plugin-codex-sdk:
     dependencies:
       '@nextclaw/core':
-        specifier: ^0.9.1
-        version: 0.9.8(ws@8.19.0)
+        specifier: ^0.9.12
+        version: link:../../nextclaw-core
       '@openai/codex-sdk':
         specifier: ^0.107.0
         version: 0.107.0
@@ -503,6 +512,34 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/extensions/nextclaw-feishu-core:
+    dependencies:
+      '@larksuiteoapi/node-sdk':
+        specifier: ^1.58.0
+        version: 1.58.0
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.33)(jsdom@25.0.1)
 
   packages/extensions/nextclaw-ncp-runtime-claude-code-sdk:
     dependencies:
@@ -940,9 +977,9 @@ importers:
 
   packages/nextclaw-core:
     dependencies:
-      '@larksuiteoapi/node-sdk':
-        specifier: ^1.58.0
-        version: 1.58.0
+      '@nextclaw/feishu-core':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-feishu-core
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -2494,6 +2531,9 @@ packages:
   '@larksuiteoapi/node-sdk@1.58.0':
     resolution: {integrity: sha512-NcQNHdGuHOxOWY3bRGS9WldwpbR6+k7Fi0H1IJXDNNmbSrEB/8rLwqHRC8tAbbj/Mp8TWH/v1O+p487m6xskxw==}
 
+  '@larksuiteoapi/node-sdk@1.59.0':
+    resolution: {integrity: sha512-sBpkruTvZDOxnVtoTbepWKRX0j1Y1ZElQYu0x7+v088sI9pcpbVp6ZzCGn62dhrKPatzNyCJyzYCPXPYQWccrA==}
+
   '@malept/cross-spawn-promise@2.0.0':
     resolution: {integrity: sha512-1DpKU0Z5ThltBwjNySMC14g0CkbyhCaz9FkhxqNsZI6uAPJXFS8cMXlBKo26FJ8ZuW6S9GCMcR9IO5k2X5/9Fg==}
     engines: {node: '>= 12.13.0'}
@@ -2517,9 +2557,6 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
-
-  '@nextclaw/core@0.9.8':
-    resolution: {integrity: sha512-vLy5DYXyvV7uBNJ0m3yW4PVjsGGCAhyMfwIVmtAtwqguc0POWXuqiSX9+700wcAFILRE82VXyvCq5K44It50CA==}
 
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
@@ -3186,6 +3223,9 @@ packages:
   '@shikijs/vscode-textmate@10.0.2':
     resolution: {integrity: sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg==}
 
+  '@sinclair/typebox@0.34.48':
+    resolution: {integrity: sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA==}
+
   '@sindresorhus/is@4.6.0':
     resolution: {integrity: sha512-t09vSN3MdfsyCHoFcTRCH/iUtG7OJ0CsjzB8cjAmKc/va/kIgeDI/TxsigdncE/4be734m0cvIYwNaV4i2XqAw==}
     engines: {node: '>=10'}
@@ -3626,6 +3666,10 @@ packages:
 
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
+    engines: {node: '>= 14'}
+
+  agent-base@8.0.0:
+    resolution: {integrity: sha512-QT8i0hCz6C/KQ+KTAbSNwCHDGdmUJl2tp2ZpNlGSWCfhUNVbYG2WLE3MdZGBAgXPV4GAvjGMxo+C1hroyxmZEg==}
     engines: {node: '>= 14'}
 
   agentkeepalive@4.6.0:
@@ -5080,6 +5124,10 @@ packages:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
 
+  https-proxy-agent@8.0.0:
+    resolution: {integrity: sha512-YYeW+iCnAS3xhvj2dvVoWgsbca3RfQy/IlaNHHOtDmU0jMqPI9euIq3Y9BJETdxk16h9NHHCKqp/KB9nIMStCQ==}
+    engines: {node: '>= 14'}
+
   human-id@4.1.3:
     resolution: {integrity: sha512-tsYlhAYpjCKa//8rXZ9DqKEawhPoSytweBC2eNvcaDK+57RZLHGqNs3PZTQO6yekLFSuvA6AlnAfrw1uBvtb+Q==}
     hasBin: true
@@ -6392,6 +6440,10 @@ packages:
 
   qs@6.14.1:
     resolution: {integrity: sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==}
+    engines: {node: '>=0.6'}
+
+  qs@6.15.0:
+    resolution: {integrity: sha512-mAZTtNCeetKMH+pSjrb76NAM8V9a05I9aBZOHztWy/UqcJdQYNsf59vrRKWnojAT9Y+GbIvoTBC++CPHqpDBhQ==}
     engines: {node: '>=0.6'}
 
   qs@6.5.3:
@@ -8842,6 +8894,20 @@ snapshots:
       - debug
       - utf-8-validate
 
+  '@larksuiteoapi/node-sdk@1.59.0':
+    dependencies:
+      axios: 1.13.5(debug@4.4.3)
+      lodash.identity: 3.0.0
+      lodash.merge: 4.6.2
+      lodash.pickby: 4.6.0
+      protobufjs: 7.5.4
+      qs: 6.15.0
+      ws: 8.19.0
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
+
   '@malept/cross-spawn-promise@2.0.0':
     dependencies:
       cross-spawn: 7.0.6
@@ -8892,26 +8958,6 @@ snapshots:
       zod-to-json-schema: 3.25.1(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
-
-  '@nextclaw/core@0.9.8(ws@8.19.0)':
-    dependencies:
-      '@larksuiteoapi/node-sdk': 1.58.0
-      chokidar: 3.6.0
-      commander: 12.1.0
-      cron-parser: 4.9.0
-      dotenv: 16.6.1
-      openai: 4.104.0(encoding@0.1.13)(ws@8.19.0)(zod@3.25.76)
-      pino: 9.14.0
-      socket.io-msgpack-parser: 3.0.2
-      undici: 6.23.0
-      zod: 3.25.76
-      zod-to-json-schema: 3.25.1(zod@3.25.76)
-    transitivePeerDependencies:
-      - bufferutil
-      - debug
-      - encoding
-      - utf-8-validate
-      - ws
 
   '@noble/curves@1.9.7':
     dependencies:
@@ -9509,6 +9555,8 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.0.2': {}
 
+  '@sinclair/typebox@0.34.48': {}
+
   '@sindresorhus/is@4.6.0': {}
 
   '@sindresorhus/is@7.2.0': {}
@@ -10058,6 +10106,8 @@ snapshots:
       - supports-color
 
   agent-base@7.1.4: {}
+
+  agent-base@8.0.0: {}
 
   agentkeepalive@4.6.0:
     dependencies:
@@ -11925,6 +11975,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  https-proxy-agent@8.0.0:
+    dependencies:
+      agent-base: 8.0.0
+      debug: 4.4.3
+    transitivePeerDependencies:
+      - supports-color
+
   human-id@4.1.3: {}
 
   humanize-ms@1.2.1:
@@ -13423,6 +13480,10 @@ snapshots:
       yargs: 15.4.1
 
   qs@6.14.1:
+    dependencies:
+      side-channel: 1.1.0
+
+  qs@6.15.0:
     dependencies:
       side-channel: 1.1.0
 

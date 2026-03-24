@@ -1,17 +1,29 @@
 import { BaseChannel } from "./base.js";
 import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
+import type { InboundAttachment, OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
-import * as Lark from "@larksuiteoapi/node-sdk";
+import {
+  buildFeishuCardElements,
+  buildInboundMetadata,
+  extractMessageInfo,
+  extractMentions,
+  extractSenderInfo,
+  inferFeishuResourceMimeType
+} from "./feishu-message-support.js";
+import {
+  buildFeishuConvertContext,
+  convertFeishuMessageContent,
+  getDefaultFeishuAccountId,
+  getEnabledFeishuAccounts,
+  LarkClient
+} from "@nextclaw/feishu-core";
 
-const MSG_TYPE_MAP: Record<string, string> = {
-  image: "[image]",
-  audio: "[audio]",
-  file: "[file]",
-  sticker: "[sticker]"
+type ActiveFeishuAccount = {
+  accountId: string;
+  client: LarkClient;
+  botOpenId?: string;
+  botName?: string;
 };
-
-const TABLE_RE = /((?:^[ \t]*\|.+\|[ \t]*\n)(?:^[ \t]*\|[-:\s|]+\|[ \t]*\n)(?:^[ \t]*\|.+\|[ \t]*\n?)+)/gm;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -19,8 +31,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
   name = "feishu";
-  private client: Lark.Client | null = null;
-  private wsClient: Lark.WSClient | null = null;
+  private clients = new Map<string, ActiveFeishuAccount>();
   private processedMessageIds: string[] = [];
   private processedSet: Set<string> = new Set();
 
@@ -29,139 +40,108 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
   }
 
   async start(): Promise<void> {
-    if (!this.config.appId || !this.config.appSecret) {
+    const accounts = getEnabledFeishuAccounts(this.config);
+    if (accounts.length === 0) {
       throw new Error("Feishu appId/appSecret not configured");
     }
-
     this.running = true;
-    this.client = new Lark.Client({ appId: this.config.appId, appSecret: this.config.appSecret });
-
-    const dispatcher = new Lark.EventDispatcher({
-      encryptKey: this.config.encryptKey || undefined,
-      verificationToken: this.config.verificationToken || undefined
-    }).register({
-      "im.message.receive_v1": async (data: Record<string, unknown>) => {
-        await this.handleIncoming(data);
+    for (const account of accounts) {
+      const client = LarkClient.fromAccount(account);
+      const activeAccount: ActiveFeishuAccount = {
+        accountId: account.accountId,
+        client
+      };
+      const probe = await client.probe();
+      if (probe.ok) {
+        activeAccount.botOpenId = probe.botOpenId;
+        activeAccount.botName = probe.botName;
       }
-    });
-
-    this.wsClient = new Lark.WSClient({
-      appId: this.config.appId,
-      appSecret: this.config.appSecret,
-      loggerLevel: Lark.LoggerLevel.info
-    });
-
-    this.wsClient.start({ eventDispatcher: dispatcher });
+      client.startWebsocket(async (data) => {
+        await this.handleIncoming(account.accountId, data);
+      });
+      this.clients.set(account.accountId, activeAccount);
+    }
   }
 
   async stop(): Promise<void> {
     this.running = false;
-    if (this.wsClient) {
-      this.wsClient.close();
-      this.wsClient = null;
+    for (const account of this.clients.values()) {
+      account.client.closeWebsocket();
     }
+    this.clients.clear();
   }
 
   async send(msg: OutboundMessage): Promise<void> {
-    if (!this.client) {
+    const account = this.resolveOutboundAccount(msg.metadata);
+    if (!account) {
       return;
     }
     const receiveIdType = msg.chatId.startsWith("oc_") ? "chat_id" : "open_id";
-    const elements = buildCardElements(msg.content ?? "");
+    const elements = buildFeishuCardElements(msg.content ?? "");
     const card = {
       config: { wide_screen_mode: true },
       elements
     };
     const content = JSON.stringify(card);
-    await this.client.im.message.create({
-      params: { receive_id_type: receiveIdType },
-      data: {
-        receive_id: msg.chatId,
-        msg_type: "interactive",
-        content
-      }
+    await account.client.sendInteractiveCard({
+      receiveId: msg.chatId,
+      receiveIdType,
+      content
     });
   }
 
-  private async handleIncoming(data: Record<string, unknown>): Promise<void> {
+  private async handleIncoming(accountId: string, data: Record<string, unknown>): Promise<void> {
+    const account = this.clients.get(accountId);
+    if (!account) {
+      return;
+    }
     const root = isRecord(data.event) ? data.event : data;
     const message = (root.message ?? data.message ?? {}) as Record<string, unknown>;
     const sender = (root.sender ?? message.sender ?? data.sender ?? {}) as Record<string, unknown>;
-    const senderIdObj = (sender.sender_id as Record<string, unknown> | undefined) ?? {};
-    const senderOpenId =
-      (senderIdObj.open_id as string | undefined) || (sender.open_id as string | undefined) || "";
-    const senderUserId =
-      (senderIdObj.user_id as string | undefined) || (sender.user_id as string | undefined) || "";
-    const senderUnionId =
-      (senderIdObj.union_id as string | undefined) || (sender.union_id as string | undefined) || "";
-    const senderId =
-      senderOpenId ||
-      senderUserId ||
-      senderUnionId ||
-      "";
-
-    const senderType = (sender.sender_type as string | undefined) ?? (sender.senderType as string | undefined);
-    if (senderType === "bot") {
+    const senderInfo = extractSenderInfo(sender);
+    if (senderInfo.senderType === "bot") {
       return;
     }
-
-    const chatId = (message.chat_id as string | undefined) ?? "";
-    const chatType = (message.chat_type as string | undefined) ?? "";
-    const isGroup = chatType === "group";
-    const msgType = (message.msg_type as string | undefined) ?? (message.message_type as string | undefined) ?? "";
-    const messageId = (message.message_id as string | undefined) ?? "";
-
-    if (!senderId || !chatId) {
+    const messageInfo = extractMessageInfo(message);
+    if (!senderInfo.senderId || !messageInfo.chatId) {
       return;
     }
-    if (!this.isAllowed(String(senderId))) {
+    if (!this.isAllowedByPolicy({ senderId: senderInfo.senderId, chatId: messageInfo.chatId, isGroup: messageInfo.isGroup })) {
       return;
     }
-
-    if (messageId && this.isDuplicate(messageId)) {
+    if (messageInfo.messageId && this.isDuplicate(`${accountId}:${messageInfo.messageId}`)) {
       return;
     }
-
-    if (messageId) {
-      await this.addReaction(messageId, "THUMBSUP");
+    if (messageInfo.messageId) {
+      await this.addReaction(account, messageInfo.messageId, "THUMBSUP");
     }
-
-    let content = "";
-    if (message.content) {
-      try {
-        const parsed = JSON.parse(String(message.content));
-        content = String(parsed.text ?? parsed.content ?? "");
-      } catch {
-        content = String(message.content);
-      }
-    }
-
-    if (!content && MSG_TYPE_MAP[msgType]) {
-      content = MSG_TYPE_MAP[msgType];
-    }
-
-    if (!content) {
+    const mentions = extractMentions(root, message);
+    const mentionState = this.resolveMentionState({
+      account,
+      mentions,
+      chatId: messageInfo.chatId,
+      isGroup: messageInfo.isGroup,
+      rawContent: messageInfo.rawContent
+    });
+    if (mentionState.requireMention && !mentionState.wasMentioned) {
       return;
     }
-
+    const payload = this.buildInboundPayload(account, messageInfo, mentions);
+    if (!payload) {
+      return;
+    }
     await this.handleMessage({
-      senderId: String(senderId),
+      senderId: senderInfo.senderId,
       // Always route by Feishu chat_id so DM/group sessions are stable.
-      chatId,
-      content,
-      attachments: [],
-      metadata: {
-        message_id: messageId,
-        chat_id: chatId,
-        chat_type: chatType,
-        msg_type: msgType,
-        is_group: isGroup,
-        peer_kind: isGroup ? "group" : "direct",
-        peer_id: chatId,
-        sender_open_id: senderOpenId || undefined,
-        sender_user_id: senderUserId || undefined,
-        sender_union_id: senderUnionId || undefined
-      }
+      chatId: messageInfo.chatId,
+      content: payload.content,
+      attachments: payload.attachments,
+      metadata: buildInboundMetadata({
+        accountId,
+        messageInfo,
+        senderInfo,
+        mentionState
+      })
     });
   }
 
@@ -180,73 +160,133 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
     return false;
   }
 
-  private async addReaction(messageId: string, emojiType: string): Promise<void> {
-    if (!this.client) {
-      return;
-    }
+  private async addReaction(account: ActiveFeishuAccount, messageId: string, emojiType: string): Promise<void> {
     try {
-      await this.client.im.messageReaction.create({
-        path: { message_id: messageId },
-        data: { reaction_type: { emoji_type: emojiType } }
-      });
+      await account.client.addReaction(messageId, emojiType);
     } catch {
       // ignore reaction errors
     }
   }
-}
 
-function buildCardElements(content: string): Array<Record<string, unknown>> {
-  const elements: Array<Record<string, unknown>> = [];
-  let lastEnd = 0;
-  for (const match of content.matchAll(TABLE_RE)) {
-    const start = match.index ?? 0;
-    const tableText = match[1] ?? "";
-    const before = content.slice(lastEnd, start).trim();
-    if (before) {
-      elements.push({ tag: "markdown", content: before });
+  private resolveOutboundAccount(metadata: Record<string, unknown> | undefined): ActiveFeishuAccount | null {
+    const accountId =
+      typeof metadata?.accountId === "string"
+        ? metadata.accountId
+        : typeof metadata?.account_id === "string"
+          ? metadata.account_id
+          : getDefaultFeishuAccountId(this.config);
+    return this.clients.get(accountId) ?? this.clients.get(getDefaultFeishuAccountId(this.config)) ?? null;
+  }
+
+  private isAllowedByPolicy(params: { senderId: string; chatId: string; isGroup: boolean }): boolean {
+    if (!params.isGroup) {
+      if (this.config.dmPolicy === "disabled") {
+        return false;
+      }
+      if (this.config.dmPolicy === "allowlist" || this.config.dmPolicy === "pairing") {
+        return this.isAllowed(params.senderId);
+      }
+      const allowFrom = this.config.allowFrom ?? [];
+      return allowFrom.length === 0 || allowFrom.includes("*") || this.isAllowed(params.senderId);
     }
-    elements.push(parseMdTable(tableText) ?? { tag: "markdown", content: tableText });
-    lastEnd = start + tableText.length;
+    if (this.config.groupPolicy === "disabled") {
+      return false;
+    }
+    if (this.config.groupPolicy === "allowlist") {
+      const allowFrom = this.config.groupAllowFrom ?? [];
+      return allowFrom.includes("*") || allowFrom.includes(params.chatId);
+    }
+    return true;
   }
-  const remaining = content.slice(lastEnd).trim();
-  if (remaining) {
-    elements.push({ tag: "markdown", content: remaining });
-  }
-  if (!elements.length) {
-    elements.push({ tag: "markdown", content });
-  }
-  return elements;
-}
 
-function parseMdTable(tableText: string): Record<string, unknown> | null {
-  const lines = tableText
-    .trim()
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  if (lines.length < 3) {
-    return null;
-  }
-  const split = (line: string) => line.replace(/^\|+|\|+$/g, "").split("|").map((item) => item.trim());
-  const headers = split(lines[0]);
-  const rows = lines.slice(2).map(split);
-  const columns = headers.map((header, index) => ({
-    tag: "column",
-    name: `c${index}`,
-    display_name: header,
-    width: "auto"
-  }));
-  const tableRows = rows.map((row) => {
-    const values: Record<string, string> = {};
-    headers.forEach((_, index) => {
-      values[`c${index}`] = row[index] ?? "";
+  private resolveMentionState(params: {
+    account: ActiveFeishuAccount;
+    mentions: unknown[];
+    chatId: string;
+    isGroup: boolean;
+    rawContent: string;
+  }): { wasMentioned: boolean; requireMention: boolean } {
+    if (!params.isGroup) {
+      return { wasMentioned: false, requireMention: false };
+    }
+    const groupRule = this.config.groups?.[params.chatId] ?? this.config.groups?.["*"];
+    const requireMention = groupRule?.requireMention ?? this.config.requireMention ?? false;
+    if (!requireMention) {
+      return { wasMentioned: false, requireMention: false };
+    }
+    const patterns = [...(this.config.mentionPatterns ?? []), ...(groupRule?.mentionPatterns ?? [])]
+      .map((pattern) => pattern.trim())
+      .filter(Boolean);
+    const rawText = params.rawContent.toLowerCase();
+    const mentionedByPattern = patterns.some((pattern) => {
+      try {
+        return new RegExp(pattern, "i").test(rawText);
+      } catch {
+        return rawText.includes(pattern.toLowerCase());
+      }
     });
-    return values;
-  });
-  return {
-    tag: "table",
-    page_size: rows.length + 1,
-    columns,
-    rows: tableRows
-  };
+    const mentionedByIds = params.mentions.some((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return false;
+      }
+      const mention = entry as { id?: unknown; name?: unknown; open_id?: unknown };
+      const openId =
+        (typeof mention.open_id === "string" ? mention.open_id : "") ||
+        (mention.id && typeof mention.id === "object" && "open_id" in mention.id
+          ? ((mention.id as { open_id?: unknown }).open_id as string | undefined) ?? ""
+          : typeof mention.id === "string"
+            ? mention.id
+            : "");
+      const name = typeof mention.name === "string" ? mention.name : "";
+      return openId === params.account.botOpenId || (params.account.botName ? name === params.account.botName : false);
+    });
+    return {
+      wasMentioned: mentionedByPattern || mentionedByIds,
+      requireMention
+    };
+  }
+
+  private convertResource(resource: {
+    type: "audio" | "file" | "image" | "sticker";
+    fileKey: string;
+    fileName?: string;
+    duration?: number;
+  }): InboundAttachment {
+    return {
+      id: resource.fileKey,
+      name: resource.fileName,
+      source: "feishu",
+      status: "remote-only",
+      mimeType: inferFeishuResourceMimeType(resource.type),
+      url: resource.fileKey
+    };
+  }
+
+  private buildInboundPayload(
+    account: ActiveFeishuAccount,
+    messageInfo: {
+      rawContent: string;
+      msgType: string;
+    },
+    mentions: unknown[]
+  ): { content: string; attachments: InboundAttachment[] } | null {
+    const converted = convertFeishuMessageContent(
+      messageInfo.rawContent,
+      messageInfo.msgType,
+      buildFeishuConvertContext({
+        mentions,
+        stripBotMentions: true,
+        botOpenId: account.botOpenId,
+        botName: account.botName
+      })
+    );
+    const content = converted.content.trim();
+    if (!content) {
+      return null;
+    }
+    return {
+      content,
+      attachments: converted.resources.map((resource) => this.convertResource(resource))
+    };
+  }
 }

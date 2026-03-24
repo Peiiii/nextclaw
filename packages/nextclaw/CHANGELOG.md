@@ -1,15 +1,57 @@
 # nextclaw
 
-## 0.13.41
+## 0.14.3
 
 ### Patch Changes
 
-- Fix Claude NCP runtime model routing by bridging Anthropic Messages to OpenAI-compatible providers, remove the Claude model whitelist concept, and keep the Claude model selector stable when the previously selected model is missing.
+- Publish a follow-up patch so the published `nextclaw` and `@nextclaw/server` packages depend on the corrected `@nextclaw/openclaw-compat` release instead of the previously published `0.3.20`.
 - Updated dependencies
+  - @nextclaw/mcp@0.1.36
+  - @nextclaw/openclaw-compat@0.3.22
+  - @nextclaw/server@0.10.40
+  - @nextclaw/ncp-mcp@0.1.35
+  - @nextclaw/remote@0.1.34
+
+## 0.14.2
+
+### Patch Changes
+
+- Remove the Feishu plugin's runtime dependency on `openclaw/plugin-sdk/*` by switching it to a bundled NextClaw thin compatibility layer. Remove the accidental `openclaw` package dependency and delete the `pi-coding-agent` shim that slipped into the previous release.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.35
+  - @nextclaw/openclaw-compat@0.3.21
+  - @nextclaw/server@0.10.39
+  - @nextclaw/ncp-mcp@0.1.34
+  - @nextclaw/remote@0.1.33
+
+## 0.14.1
+
+### Patch Changes
+
+- Align bundled Feishu support with the official OpenClaw plugin by vendoring the upstream Feishu plugin into NextClaw, teaching the compat loader to prefer plugin-local OpenClaw SDK resolution, and adding the minimal loader shims needed for the official Feishu tools to register inside NextClaw.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.20
+  - @nextclaw/mcp@0.1.34
+  - @nextclaw/server@0.10.38
+  - @nextclaw/ncp-mcp@0.1.33
+  - @nextclaw/remote@0.1.32
+
+## 0.14.0
+
+### Minor Changes
+
+- Add the Phase 1 Feishu platform foundation for NextClaw, including shared Feishu core primitives, richer message conversion, multi-account routing, and the aligned config UI/runtime release chain.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.10.0
+  - @nextclaw/openclaw-compat@0.3.19
   - @nextclaw/mcp@0.1.33
   - @nextclaw/server@0.10.37
-  - @nextclaw/ncp-mcp@0.1.32
   - @nextclaw/remote@0.1.31
+  - @nextclaw/runtime@0.2.13
+  - @nextclaw/ncp-mcp@0.1.32
 
 ## 0.13.40
 

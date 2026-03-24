@@ -1,5 +1,25 @@
 # @nextclaw/channel-plugin-feishu
 
+## 0.2.15
+
+### Patch Changes
+
+- Remove the Feishu plugin's runtime dependency on `openclaw/plugin-sdk/*` by switching it to a bundled NextClaw thin compatibility layer. Remove the accidental `openclaw` package dependency and delete the `pi-coding-agent` shim that slipped into the previous release.
+
+## 0.2.14
+
+### Patch Changes
+
+- Align bundled Feishu support with the official OpenClaw plugin by vendoring the upstream Feishu plugin into NextClaw, teaching the compat loader to prefer plugin-local OpenClaw SDK resolution, and adding the minimal loader shims needed for the official Feishu tools to register inside NextClaw.
+
+## 0.2.13
+
+### Patch Changes
+
+- Add the Phase 1 Feishu platform foundation for NextClaw, including shared Feishu core primitives, richer message conversion, multi-account routing, and the aligned config UI/runtime release chain.
+- Updated dependencies
+  - @nextclaw/channel-runtime@0.3.0
+
 ## 0.2.12
 
 ### Patch Changes
