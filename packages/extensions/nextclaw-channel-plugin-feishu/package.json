@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-feishu",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "private": false,
   "description": "NextClaw Feishu/Lark channel plugin with doc/wiki/drive tools.",
   "type": "module",
@@ -47,7 +47,6 @@
     "@larksuiteoapi/node-sdk": "^1.59.0",
     "@sinclair/typebox": "0.34.48",
     "https-proxy-agent": "^8.0.0",
-    "openclaw": "2026.3.13",
     "zod": "^4.3.6"
   }
 }

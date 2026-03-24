@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import type { ClawdbotConfig } from "openclaw/plugin-sdk/feishu";
+import type { ClawdbotConfig } from "./nextclaw-sdk/feishu.js";
 import { vi } from "vitest";
 import type { monitorFeishuProvider } from "./monitor.js";
 

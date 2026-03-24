@@ -1,4 +1,4 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk/feishu";
+import type { OpenClawConfig } from "./nextclaw-sdk/feishu.js";
 import { describe, expect, it } from "vitest";
 import { feishuOnboardingAdapter } from "./onboarding.js";
 

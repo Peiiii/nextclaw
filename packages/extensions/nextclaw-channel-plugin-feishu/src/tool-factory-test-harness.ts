@@ -1,4 +1,4 @@
-import type { AnyAgentTool, OpenClawPluginApi } from "openclaw/plugin-sdk/feishu";
+import type { AnyAgentTool, OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
 
 type ToolContextLike = {
   agentAccountId?: string;

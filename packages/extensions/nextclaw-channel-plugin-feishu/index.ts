@@ -1,5 +1,5 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/feishu";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk/feishu";
+import type { OpenClawPluginApi } from "./src/nextclaw-sdk/feishu.js";
+import { emptyPluginConfigSchema } from "./src/nextclaw-sdk/feishu.js";
 import { registerFeishuBitableTools } from "./src/bitable.js";
 import { feishuPlugin } from "./src/channel.js";
 import { registerFeishuChatTools } from "./src/chat.js";

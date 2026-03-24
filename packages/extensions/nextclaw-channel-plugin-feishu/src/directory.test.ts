@@ -1,4 +1,4 @@
-import type { ClawdbotConfig } from "openclaw/plugin-sdk/feishu";
+import type { ClawdbotConfig } from "./nextclaw-sdk/feishu.js";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("./accounts.js", () => ({

@@ -1,5 +1,13 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.21
+
+### Patch Changes
+
+- Remove the Feishu plugin's runtime dependency on `openclaw/plugin-sdk/*` by switching it to a bundled NextClaw thin compatibility layer. Remove the accidental `openclaw` package dependency and delete the `pi-coding-agent` shim that slipped into the previous release.
+- Updated dependencies
+  - @nextclaw/channel-plugin-feishu@0.2.15
+
 ## 0.3.20
 
 ### Patch Changes

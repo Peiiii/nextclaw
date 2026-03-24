@@ -2,15 +2,15 @@ import {
   collectAllowlistProviderRestrictSendersWarnings,
   formatAllowFromLowercase,
   mapAllowFromEntries,
-} from "openclaw/plugin-sdk/compat";
-import type { ChannelMeta, ChannelPlugin, ClawdbotConfig } from "openclaw/plugin-sdk/feishu";
+} from "./nextclaw-sdk/compat.js";
+import type { ChannelMeta, ChannelPlugin, ClawdbotConfig } from "./nextclaw-sdk/feishu.js";
 import {
   buildProbeChannelStatusSummary,
   buildRuntimeAccountStatusSnapshot,
   createDefaultChannelRuntimeState,
   DEFAULT_ACCOUNT_ID,
   PAIRING_APPROVED_MESSAGE,
-} from "openclaw/plugin-sdk/feishu";
+} from "./nextclaw-sdk/feishu.js";
 import {
   resolveFeishuAccount,
   resolveFeishuCredentials,
