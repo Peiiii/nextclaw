@@ -253,7 +253,7 @@ describe("createUiNcpAgent session types refresh", () => {
 });
 
 describe("createUiNcpAgent codex native routing", () => {
-  it("routes codex sessions with non-Codex model families through the native runtime", async () => {
+  it("keeps codex sessions on the codex runtime for non-GPT OpenAI-compatible models", async () => {
     const workspace = createTempWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -273,18 +273,59 @@ describe("createUiNcpAgent codex native routing", () => {
         },
       },
       plugins: {
-        load: {
-          paths: ["../extensions/nextclaw-ncp-runtime-plugin-codex-sdk"],
-        },
         entries: {
-          "nextclaw-ncp-runtime-plugin-codex-sdk": {
+          "fake-codex-runtime": {
             enabled: true,
             config: {},
           },
         },
       },
     });
-    const extensionRegistry = toExtensionRegistry(loadPluginRegistry(config, workspace));
+    const extensionRegistry: NextclawExtensionRegistry = {
+      tools: [],
+      channels: [],
+      engines: [],
+      diagnostics: [],
+      ncpAgentRuntimes: [
+        {
+          pluginId: "fake-codex-runtime",
+          kind: "codex",
+          label: "Codex",
+          source: "test:fake-codex-runtime",
+          createRuntime: () => ({
+            async *run(input) {
+              yield {
+                type: NcpEventType.RunStarted,
+                payload: {
+                  sessionId: input.sessionId,
+                  messageId: "codex-run-message",
+                  runId: "codex-run-id",
+                },
+              };
+              yield {
+                type: NcpEventType.RunMetadata,
+                payload: {
+                  sessionId: input.sessionId,
+                  messageId: "codex-run-message",
+                  runId: "codex-run-id",
+                  metadata: {
+                    kind: "final",
+                  },
+                },
+              };
+              yield {
+                type: NcpEventType.RunFinished,
+                payload: {
+                  sessionId: input.sessionId,
+                  messageId: "codex-run-message",
+                  runId: "codex-run-id",
+                },
+              };
+            },
+          }),
+        },
+      ],
+    };
     const providerManager = new RecordingProviderManager();
     const sessionManager = new SessionManager(workspace);
 
@@ -309,12 +350,11 @@ describe("createUiNcpAgent codex native routing", () => {
     );
 
     expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
-    expect(providerManager.calls).toHaveLength(2);
-    expect(providerManager.calls[0]?.model).toBe("dashscope/qwen3-coder-next");
+    expect(providerManager.calls).toHaveLength(0);
 
     const persistedSession = sessionManager.getIfExists("codex-native-fallback");
     expect(persistedSession?.metadata.session_type).toBe("codex");
-    expect(persistedSession?.metadata.codex_runtime_backend).toBe("native-openai-compatible");
+    expect(persistedSession?.metadata.codex_runtime_backend).toBe("codex-sdk");
   });
 });
 

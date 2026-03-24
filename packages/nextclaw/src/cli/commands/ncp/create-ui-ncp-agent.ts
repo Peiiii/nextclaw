@@ -5,7 +5,6 @@ import {
   type GatewayController,
   type MessageBus,
   type ProviderManager,
-  resolveProviderRuntime,
   type SessionManager,
 } from "@nextclaw/core";
 import { McpRegistryService, McpServerLifecycleManager } from "@nextclaw/mcp";
@@ -33,7 +32,6 @@ import { UiNcpRuntimeRegistry } from "./ui-ncp-runtime-registry.js";
 
 const CODEX_RUNTIME_KIND = "codex";
 const CODEX_DIRECT_RUNTIME_BACKEND = "codex-sdk";
-const CODEX_NATIVE_RUNTIME_BACKEND = "native-openai-compatible";
 export type UiNcpAgentHandle = UiNcpAgent & {
   applyExtensionRegistry?: (extensionRegistry?: NextclawExtensionRegistry) => void;
   applyMcpConfig?: (config: Config) => Promise<void>;
@@ -57,52 +55,6 @@ type CreateUiNcpAgentParams = {
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-function readOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function resolveCodexRequestedModel(params: {
-  config: Config;
-  sessionMetadata: Record<string, unknown>;
-}): string {
-  return (
-    readOptionalString(params.sessionMetadata.preferred_model) ??
-    readOptionalString(params.sessionMetadata.model) ??
-    params.config.agents.defaults.model
-  );
-}
-
-function isCodexDirectModelFamily(model: string): boolean {
-  const normalized = model.trim().toLowerCase();
-  return (
-    normalized.startsWith("gpt-") ||
-    normalized.startsWith("chatgpt-") ||
-    normalized.startsWith("codex-") ||
-    normalized.startsWith("o1") ||
-    normalized.startsWith("o3") ||
-    normalized.startsWith("o4")
-  );
-}
-
-function shouldRouteCodexSessionToNativeRuntime(params: {
-  config: Config;
-  sessionMetadata: Record<string, unknown>;
-}): boolean {
-  const requestedModel = resolveCodexRequestedModel(params);
-  try {
-    const resolvedProviderRuntime = resolveProviderRuntime(params.config, requestedModel);
-    if (resolvedProviderRuntime.providerName === "openai") {
-      return false;
-    }
-    return !isCodexDirectModelFamily(resolvedProviderRuntime.providerLocalModel);
-  } catch {
-    return false;
-  }
 }
 
 function decorateCodexRuntimeFactoryParams(
@@ -250,30 +202,18 @@ function createNativeRuntimeFactory(
 }
 
 function createCodexAwareRuntimeFactory(params: {
-  getConfig: () => Config;
-  createNativeRuntime: RuntimeFactory;
   registration: NextclawExtensionRegistry["ncpAgentRuntimes"][number];
 }): RuntimeFactory {
   return (runtimeParams) => {
-    const backend = shouldRouteCodexSessionToNativeRuntime({
-      config: params.getConfig(),
-      sessionMetadata: runtimeParams.sessionMetadata,
-    })
-      ? CODEX_NATIVE_RUNTIME_BACKEND
-      : CODEX_DIRECT_RUNTIME_BACKEND;
     const decoratedRuntimeParams = decorateCodexRuntimeFactoryParams(
       runtimeParams,
-      backend,
+      CODEX_DIRECT_RUNTIME_BACKEND,
     );
-    return backend === CODEX_NATIVE_RUNTIME_BACKEND
-      ? params.createNativeRuntime(decoratedRuntimeParams)
-      : params.registration.createRuntime(decoratedRuntimeParams);
+    return params.registration.createRuntime(decoratedRuntimeParams);
   };
 }
 
 function resolveRegisteredRuntimeFactory(params: {
-  getConfig: () => Config;
-  createNativeRuntime: RuntimeFactory;
   registration: NextclawExtensionRegistry["ncpAgentRuntimes"][number];
 }): RuntimeFactory {
   return params.registration.kind === CODEX_RUNTIME_KIND
@@ -311,8 +251,6 @@ function createPluginRuntimeRegistrationController(params: {
         kind: registration.kind,
         label: registration.label,
         createRuntime: resolveRegisteredRuntimeFactory({
-          getConfig: params.getConfig,
-          createNativeRuntime: params.createNativeRuntime,
           registration,
         }),
         describeSessionType: registration.describeSessionType,

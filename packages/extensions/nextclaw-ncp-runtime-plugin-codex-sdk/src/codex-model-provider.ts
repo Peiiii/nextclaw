@@ -48,3 +48,13 @@ export function buildUserFacingModelRoute(params: {
   }
   return `${params.externalModelProvider}/${providerLocalModel}`;
 }
+
+export function buildCodexBridgeModelProviderId(
+  externalModelProvider: string,
+): string {
+  const normalized = externalModelProvider.trim();
+  if (!normalized) {
+    return "nextclaw-codex-bridge";
+  }
+  return `nextclaw-codex-bridge-${normalized}`;
+}
