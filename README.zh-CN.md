@@ -17,7 +17,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![Discord](https://img.shields.io/badge/Discord-NextClaw-5865F2?logo=discord&logoColor=white)](https://discord.gg/j4Skbgye)
 
-[文档](https://docs.nextclaw.io/zh/) · [规划](docs/ROADMAP.md) · [Discord](https://discord.gg/j4Skbgye) · [微信群](images/contact/nextclaw-contact-wechat-group.jpg) · [Issues](https://github.com/Peiiii/nextclaw/issues) · [路线图](https://docs.nextclaw.io/zh/guide/roadmap)
+[文档](https://docs.nextclaw.io/zh/) · [规划](docs/ROADMAP.md) · [Discord](https://discord.gg/j4Skbgye) · [微信群](images/contact/nextclaw-contact-wechat-group.png) · [Issues](https://github.com/Peiiii/nextclaw/issues) · [路线图](https://docs.nextclaw.io/zh/guide/roadmap)
 
 <p>
   <img src="https://img.shields.io/badge/Windows-0078D6?style=flat-square&logo=windows&logoColor=white" alt="Windows" />
@@ -112,7 +112,7 @@ pnpm screenshots:refresh
 
 - **微信群** — 扫码加群：
 
-  <img src="images/contact/nextclaw-contact-wechat-group.jpg" width="180" alt="微信群二维码" />
+  <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="微信群二维码" />
 
 - **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
 
