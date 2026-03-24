@@ -185,20 +185,25 @@ export function mergePluginConfigView(
 
 export async function startPluginChannelGateways(params: {
   registry: PluginRegistry;
+  config?: Config;
   logger?: PluginLogger;
 }): Promise<{ handles: PluginChannelGatewayHandle[]; diagnostics: PluginDiagnostic[] }> {
   const logger = params.logger;
   const diagnostics: PluginDiagnostic[] = [];
   const handles: PluginChannelGatewayHandle[] = [];
+  const bindings = getPluginChannelBindings(params.registry);
+  const configView = params.config ? toPluginConfigView(params.config, bindings) : undefined;
 
-  for (const binding of getPluginChannelBindings(params.registry)) {
+  for (const binding of bindings) {
     const gateway = binding.channel.gateway;
     if (!gateway?.startAccount) {
       continue;
     }
 
     const accountIdsRaw =
-      binding.channel.config?.listAccountIds?.() ?? [binding.channel.config?.defaultAccountId?.() ?? "default"];
+      binding.channel.config?.listAccountIds?.(configView) ?? [
+        binding.channel.config?.defaultAccountId?.(configView) ?? "default",
+      ];
     const accountIds = Array.from(
       new Set(accountIdsRaw.map((id) => (typeof id === "string" ? id.trim() : "")).filter(Boolean))
     );

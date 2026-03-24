@@ -1,5 +1,14 @@
 # nextclaw-server
 
+## 0.10.41
+
+### Patch Changes
+
+- Fix the Feishu plugin startup regression where plugin channel gateways enumerated accounts without receiving runtime config, causing nextclaw service startup to fail after update.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.23
+  - @nextclaw/mcp@0.1.37
+
 ## 0.10.40
 
 ### Patch Changes

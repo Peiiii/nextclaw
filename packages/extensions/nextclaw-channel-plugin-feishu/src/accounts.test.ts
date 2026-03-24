@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  listFeishuAccountIds,
   resolveDefaultFeishuAccountId,
   resolveDefaultFeishuAccountSelection,
   resolveFeishuAccount,
@@ -56,6 +57,15 @@ function expectUnresolvedEnvSecretRefError(key: string) {
 }
 
 describe("resolveDefaultFeishuAccountId", () => {
+  it("falls back safely when channel config is missing", () => {
+    expect(listFeishuAccountIds(undefined)).toEqual(["default"]);
+    expect(resolveDefaultFeishuAccountId(undefined)).toBe("default");
+    expect(resolveDefaultFeishuAccountSelection(undefined)).toEqual({
+      accountId: "default",
+      source: "mapped-default",
+    });
+  });
+
   it("prefers channels.feishu.defaultAccount when configured", () => {
     const cfg = {
       channels: {

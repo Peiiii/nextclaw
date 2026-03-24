@@ -56,6 +56,7 @@ export async function reloadServicePlugins(params: {
     await stopPluginChannelGateways(pluginGatewayHandles);
     const startedPluginGateways = await startPluginChannelGateways({
       registry: nextPluginRegistry,
+      config: params.nextConfig,
       logger: params.pluginGatewayLogger,
     });
     pluginGatewayHandles = startedPluginGateways.handles;
