@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.14.2
+
+### Patch Changes
+
+- Release the codex bridge fix so codex sessions can keep using the codex-sdk runtime with OpenAI-compatible models that only expose chat completions, including DashScope `qwen3-coder-next`.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.35
+  - @nextclaw/server@0.10.39
+  - @nextclaw/ncp-mcp@0.1.34
+  - @nextclaw/remote@0.1.33
+
 ## 0.14.1
 
 ### Patch Changes
