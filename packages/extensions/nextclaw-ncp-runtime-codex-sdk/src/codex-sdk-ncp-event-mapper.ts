@@ -3,7 +3,7 @@ import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
 
 type ToolLikeItem = Extract<
   ThreadItem,
-  { type: "mcp_tool_call" | "command_execution" | "web_search" | "file_change" | "todo_list" | "error" }
+  { type: "mcp_tool_call" | "command_execution" | "web_search" | "file_change" | "todo_list" }
 >;
 
 export type ItemTextSnapshot = {
@@ -52,13 +52,6 @@ function buildToolDescriptor(item: ToolLikeItem): { toolName: string; args: unkn
           items: item.items,
         },
       };
-    case "error":
-      return {
-        toolName: "error",
-        args: {
-          message: item.message,
-        },
-      };
   }
 }
 
@@ -94,13 +87,6 @@ function buildToolResult(item: ToolLikeItem): unknown {
         status: "completed",
         items: item.items,
       };
-    case "error":
-      return {
-        ok: false,
-        error: {
-          message: item.message,
-        },
-      };
   }
 }
 
@@ -120,8 +106,7 @@ function isToolLikeItem(item: ThreadItem): item is ToolLikeItem {
     item.type === "command_execution" ||
     item.type === "web_search" ||
     item.type === "file_change" ||
-    item.type === "todo_list" ||
-    item.type === "error"
+    item.type === "todo_list"
   );
 }
 
