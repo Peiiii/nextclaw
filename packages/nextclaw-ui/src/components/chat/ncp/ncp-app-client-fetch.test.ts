@@ -1,25 +1,25 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createNcpAppClientFetch } from '@/components/chat/ncp/ncp-app-client-fetch';
 
-const mocks = vi.hoisted(() => ({
-  request: vi.fn(),
-  openStream: vi.fn()
-}));
-
-vi.mock('@/transport', () => ({
-  appClient: {
-    request: mocks.request,
-    openStream: mocks.openStream
-  }
-}));
+const fetchMock = vi.fn<typeof fetch>();
 
 describe('ncp-app-client-fetch', () => {
   beforeEach(() => {
-    mocks.request.mockReset();
-    mocks.openStream.mockReset();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('routes JSON requests through appClient.request', async () => {
-    mocks.request.mockResolvedValue({ stopped: true });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps native fetch semantics and only injects credentials', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/json'
+      }
+    }));
     const fetchImpl = createNcpAppClientFetch();
 
     const response = await fetchImpl('http://127.0.0.1:55667/api/ncp/agent/abort', {
@@ -31,22 +31,40 @@ describe('ncp-app-client-fetch', () => {
       body: JSON.stringify({ sessionId: 's1' })
     });
 
-    expect(mocks.request).toHaveBeenCalledWith({
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:55667/api/ncp/agent/abort', {
       method: 'POST',
-      path: '/api/ncp/agent/abort',
-      body: { sessionId: 's1' }
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ sessionId: 's1' }),
+      credentials: 'include'
     });
     expect(response.ok).toBe(true);
+    expect(await response.json()).toEqual({ ok: true });
   });
 
-  it('re-encodes appClient stream events as SSE frames', async () => {
-    mocks.openStream.mockImplementation(({ onEvent }) => {
-      onEvent({ name: 'ncp-event', payload: { type: 'message.chunk', payload: { text: 'hello' } } });
-      return {
-        finished: Promise.resolve(undefined),
-        cancel: vi.fn()
-      };
-    });
+  it('does not synthesize fake HTTP 500 responses for fetch failures', async () => {
+    fetchMock.mockRejectedValue(new Error('Failed to fetch'));
+    const fetchImpl = createNcpAppClientFetch();
+
+    await expect(fetchImpl('http://127.0.0.1:55667/api/ncp/agent/abort', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ sessionId: 's1' })
+    })).rejects.toThrow('Failed to fetch');
+  });
+
+  it('preserves native SSE request headers', async () => {
+    fetchMock.mockResolvedValue(new Response('event: ncp-event\ndata: {"ok":true}\n\n', {
+      status: 200,
+      headers: {
+        'content-type': 'text/event-stream'
+      }
+    }));
     const fetchImpl = createNcpAppClientFetch();
 
     const response = await fetchImpl('http://127.0.0.1:55667/api/ncp/agent/stream?sessionId=s1', {
@@ -55,15 +73,14 @@ describe('ncp-app-client-fetch', () => {
         accept: 'text/event-stream'
       }
     });
-    const text = await response.text();
 
-    expect(mocks.openStream).toHaveBeenCalledWith({
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:55667/api/ncp/agent/stream?sessionId=s1', {
       method: 'GET',
-      path: '/api/ncp/agent/stream?sessionId=s1',
-      signal: undefined,
-      onEvent: expect.any(Function)
+      headers: {
+        accept: 'text/event-stream'
+      },
+      credentials: 'include'
     });
-    expect(text).toContain('event: ncp-event');
-    expect(text).toContain('"text":"hello"');
+    expect(await response.text()).toContain('event: ncp-event');
   });
 });
