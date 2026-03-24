@@ -6,6 +6,11 @@ routes = [
   "*.claw.cool/*"
 ]
 
+[assets]
+directory = "../../packages/nextclaw/ui-dist"
+binding = "ASSETS"
+run_worker_first = true
+
 [observability]
 enabled = true
 

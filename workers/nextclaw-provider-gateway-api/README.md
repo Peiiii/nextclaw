@@ -88,6 +88,10 @@ pnpm -C workers/nextclaw-provider-gateway-api dev
 - `GET /platform/remote/open`
 - `GET /platform/remote/connect`
 
+Remote 首屏成本治理说明：
+- remote 页面壳与 `ui-dist` 静态资源现在由 gateway worker 直接从打包资产提供，不再经过 relay DO 代理。
+- 这样首屏冷打开只保留真正需要 remote 链路的成本点，例如 `/_remote/runtime`、`/_remote/ws` 与后续 WS 消息租约。
+
 ### 管理后台
 - `GET /platform/admin/overview`
 - `GET /platform/admin/remote/quota`

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { remoteProxyHandler } from "./controllers/remote-controller";
+import { remoteStaticAssetMiddleware } from "./controllers/remote-static-assets-controller";
 import { NextclawRemoteQuotaDurableObject } from "./remote-quota-do";
 import { NextclawRemoteRelayDurableObject } from "./remote-relay-do";
 import { registerAppRoutes } from "./register-app-routes";
@@ -20,6 +21,8 @@ app.use("/v1/*", cors({
   allowHeaders: ["Authorization", "Content-Type", "X-Idempotency-Key"],
   allowMethods: ["GET", "POST", "OPTIONS"]
 }));
+
+app.use("*", remoteStaticAssetMiddleware);
 
 registerAppRoutes(app);
 
