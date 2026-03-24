@@ -62,13 +62,11 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     this.streamActionsManager.resetStreamState();
-    this.setSelectedSessionKey(null);
     useChatInputStore.getState().setSnapshot({ pendingSessionType: nextSessionType });
     this.uiManager.goToChatRoot();
   };
 
   selectSession = (sessionKey: string) => {
-    this.setSelectedSessionKey(sessionKey);
     this.uiManager.goToSession(sessionKey);
   };
 

@@ -78,7 +78,6 @@ export class ChatThreadManager {
     try {
       await deleteSessionApi(selectedSessionKey);
       this.streamActionsManager.resetStreamState();
-      useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: null });
       this.uiManager.goToChatRoot({ replace: true });
       await this.actions.refetchSessions();
     } finally {
