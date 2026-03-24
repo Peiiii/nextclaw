@@ -1,5 +1,11 @@
 # @nextclaw/mcp
 
+## 0.1.36
+
+### Patch Changes
+
+- Publish a follow-up patch so the published `nextclaw` and `@nextclaw/server` packages depend on the corrected `@nextclaw/openclaw-compat` release instead of the previously published `0.3.20`.
+
 ## 0.1.35
 
 ### Patch Changes

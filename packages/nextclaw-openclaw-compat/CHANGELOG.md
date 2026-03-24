@@ -1,5 +1,11 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.22
+
+### Patch Changes
+
+- Publish a follow-up patch so the published `nextclaw` and `@nextclaw/server` packages depend on the corrected `@nextclaw/openclaw-compat` release instead of the previously published `0.3.20`.
+
 ## 0.3.21
 
 ### Patch Changes
