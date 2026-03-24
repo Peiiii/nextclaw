@@ -238,13 +238,16 @@ export function buildModelToolbarSelect(params: {
   texts: Pick<ChatInputBarAdapterTexts, 'modelSelectPlaceholder' | 'modelNoOptionsLabel'>;
 }): ChatToolbarSelect {
   const selectedModelOption = params.modelOptions.find((option) => option.value === params.selectedModel);
+  const fallbackModelOption = params.modelOptions[0];
+  const resolvedModelOption = selectedModelOption ?? fallbackModelOption;
+  const resolvedValue = params.hasModelOptions ? resolvedModelOption?.value : undefined;
 
   return {
     key: 'model',
-    value: params.hasModelOptions ? params.selectedModel : undefined,
+    value: resolvedValue,
     placeholder: params.texts.modelSelectPlaceholder,
-    selectedLabel: selectedModelOption
-      ? `${selectedModelOption.providerLabel}/${selectedModelOption.modelLabel}`
+    selectedLabel: resolvedModelOption
+      ? `${resolvedModelOption.providerLabel}/${resolvedModelOption.modelLabel}`
       : undefined,
     icon: 'sparkles',
     options: params.modelOptions.map((option) => ({

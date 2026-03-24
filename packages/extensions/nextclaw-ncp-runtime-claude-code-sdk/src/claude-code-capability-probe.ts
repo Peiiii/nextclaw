@@ -5,7 +5,7 @@ import type {
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
 } from "./claude-code-sdk-types.js";
-import { buildQueryEnv } from "./claude-code-runtime-utils.js";
+import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime-utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
@@ -17,7 +17,14 @@ const claudeCodeLoader = require("../claude-code-loader.cjs") as ClaudeCodeLoade
 
 export type ClaudeCodeSdkCapabilityProbeConfig = Pick<
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-  "apiKey" | "authToken" | "apiBase" | "env" | "workingDirectory" | "model" | "baseQueryOptions"
+  | "apiKey"
+  | "authToken"
+  | "apiBase"
+  | "env"
+  | "workingDirectory"
+  | "model"
+  | "baseQueryOptions"
+  | "anthropicGateway"
 > & {
   configuredModels?: string[];
   probeTimeoutMs?: number;
@@ -224,14 +231,21 @@ export async function probeClaudeCodeSdkCapability(
     };
   }
 
+  const preparedAccess = await resolveClaudeGatewayAccess({
+    apiKey: apiKey ?? "",
+    authToken,
+    apiBase: config.apiBase,
+    anthropicGateway: config.anthropicGateway,
+  });
+
   const session = createSession({
     model: seedModel,
     cwd: config.workingDirectory,
     env: buildQueryEnv({
       sessionId: "claude-capability-probe",
-      apiKey: apiKey ?? "",
-      authToken,
-      apiBase: config.apiBase,
+      apiKey: preparedAccess.apiKey,
+      authToken: preparedAccess.authToken,
+      apiBase: preparedAccess.apiBase,
       model: seedModel,
       workingDirectory: config.workingDirectory,
       env: config.env,
@@ -268,7 +282,12 @@ export async function probeClaudeCodeSdkCapability(
     if (config.verifyExecution !== false) {
       const executionProbe = await probeClaudeCodeSdkExecution({
         sdk,
-        config,
+        config: {
+          ...config,
+          apiKey: preparedAccess.apiKey,
+          authToken: preparedAccess.authToken,
+          apiBase: preparedAccess.apiBase,
+        },
         cliConfig,
         model: normalizeRecommendedModel({
           supportedModels,

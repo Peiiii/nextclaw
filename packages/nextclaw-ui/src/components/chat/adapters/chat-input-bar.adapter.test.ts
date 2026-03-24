@@ -1,4 +1,9 @@
-import { buildChatSlashItems, buildSelectedSkillItems, buildSkillPickerModel } from '@/components/chat/adapters/chat-input-bar.adapter';
+import {
+  buildChatSlashItems,
+  buildModelToolbarSelect,
+  buildSelectedSkillItems,
+  buildSkillPickerModel
+} from '@/components/chat/adapters/chat-input-bar.adapter';
 import type { ChatSkillRecord } from '@/components/chat/adapters/chat-input-bar.adapter';
 
 function createSkillRecord(partial: Partial<ChatSkillRecord>): ChatSkillRecord {
@@ -76,5 +81,31 @@ describe('buildSkillPickerModel', () => {
       key: 'web-search',
       label: 'Web Search'
     });
+  });
+});
+
+describe('buildModelToolbarSelect', () => {
+  it('falls back to the first available option when the selected model is missing', () => {
+    const onValueChange = vi.fn();
+    const select = buildModelToolbarSelect({
+      modelOptions: [
+        {
+          value: 'minimax/MiniMax-M2.7',
+          modelLabel: 'MiniMax-M2.7',
+          providerLabel: 'MiniMax'
+        }
+      ],
+      selectedModel: 'dashscope/qwen3-coder-next',
+      isModelOptionsLoading: false,
+      hasModelOptions: true,
+      onValueChange,
+      texts: {
+        modelSelectPlaceholder: 'Select model',
+        modelNoOptionsLabel: 'No models'
+      }
+    });
+
+    expect(select.value).toBe('minimax/MiniMax-M2.7');
+    expect(select.selectedLabel).toBe('MiniMax/MiniMax-M2.7');
   });
 });

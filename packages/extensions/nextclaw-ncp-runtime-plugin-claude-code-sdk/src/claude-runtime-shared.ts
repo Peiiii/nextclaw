@@ -14,6 +14,12 @@ export function readNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+const DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS = 30_000;
+
+export function resolveClaudeExecutionProbeTimeoutMs(value: unknown): number {
+  return Math.max(1000, Math.trunc(readNumber(value) ?? DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS));
+}
+
 export function readRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;

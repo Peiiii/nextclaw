@@ -81,7 +81,7 @@ describe("createUiNcpAgent Claude session types", () => {
     );
   });
 
-  it("falls back to a configured Claude-compatible provider when the default model is not Claude-compatible", async () => {
+  it("does not publish a Claude-only supportedModels whitelist when provider routing is available", async () => {
     const workspace = createTempWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -132,19 +132,14 @@ describe("createUiNcpAgent Claude session types", () => {
           value: "claude",
           label: "Claude",
           ready: true,
-          recommendedModel: "minimax/MiniMax-M2.7",
-          supportedModels: expect.arrayContaining(["minimax/MiniMax-M2.7"]),
+          recommendedModel: "dashscope/qwen3-coder-next",
         }),
       ]),
     );
-    expect(
-      sessionTypes?.options.find((option) => option.value === "claude")?.supportedModels?.includes(
-        "dashscope/qwen3-coder-next",
-      ),
-    ).toBe(false);
+    expect(sessionTypes?.options.find((option) => option.value === "claude")?.supportedModels).toBeUndefined();
   });
 
-  it("marks claude as setup required when no Claude-compatible provider is configured", async () => {
+  it("treats a credentialed provider as Claude-ready by default even without an explicit compatibility whitelist", async () => {
     const workspace = createTempWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -191,11 +186,12 @@ describe("createUiNcpAgent Claude session types", () => {
         expect.objectContaining({
           value: "claude",
           label: "Claude",
-          ready: false,
-          reason: "provider_unsupported",
+          ready: true,
+          recommendedModel: "dashscope/qwen3-coder-next",
         }),
       ]),
     );
+    expect(sessionTypes?.options.find((option) => option.value === "claude")?.supportedModels).toBeUndefined();
   });
 });
 

@@ -30,6 +30,8 @@ export type ClaudeProviderRoutingResult = {
   reasonMessage?: string;
 };
 
+export type ClaudeProviderRouteCandidate = ClaudeProviderRoute;
+
 type ProviderCandidate = {
   routeKind: ClaudeProviderRouteKind;
   providerName: string;
@@ -49,11 +51,31 @@ const BUILTIN_ANTHROPIC_COMPATIBLE_PROVIDER_NAMES = new Set([
 ]);
 
 const FALLBACK_PROVIDER_SPECS: Record<string, Partial<ProviderSpec>> = {
+  aihubmix: {
+    displayName: "AiHubMix",
+    modelPrefix: "aihubmix",
+    defaultApiBase: "https://aihubmix.com/v1",
+  },
   anthropic: {
     displayName: "Anthropic",
     modelPrefix: "anthropic",
     defaultApiBase: "https://api.anthropic.com",
     defaultModels: ["anthropic/claude-opus-4-6", "anthropic/claude-sonnet-4-6"],
+  },
+  dashscope: {
+    displayName: "DashScope",
+    modelPrefix: "dashscope",
+    defaultApiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  },
+  deepseek: {
+    displayName: "DeepSeek",
+    modelPrefix: "deepseek",
+    defaultApiBase: "https://api.deepseek.com",
+  },
+  gemini: {
+    displayName: "Gemini",
+    modelPrefix: "gemini",
+    defaultApiBase: "https://generativelanguage.googleapis.com/v1beta/openai",
   },
   minimax: {
     displayName: "MiniMax",
@@ -71,6 +93,26 @@ const FALLBACK_PROVIDER_SPECS: Record<string, Partial<ProviderSpec>> = {
     modelPrefix: "minimax-portal",
     defaultApiBase: "https://api.minimaxi.com/v1",
     defaultModels: ["minimax-portal/MiniMax-M2.5", "minimax-portal/MiniMax-M2.5-highspeed"],
+  },
+  moonshot: {
+    displayName: "Moonshot",
+    modelPrefix: "moonshot",
+    defaultApiBase: "https://api.moonshot.ai/v1",
+  },
+  openai: {
+    displayName: "OpenAI",
+    modelPrefix: "openai",
+    defaultApiBase: "https://api.openai.com/v1",
+  },
+  openrouter: {
+    displayName: "OpenRouter",
+    modelPrefix: "openrouter",
+    defaultApiBase: "https://openrouter.ai/api/v1",
+  },
+  "qwen-portal": {
+    displayName: "Qwen Portal",
+    modelPrefix: "qwen-portal",
+    defaultApiBase: "https://portal.qwen.ai/v1",
   },
   zhipu: {
     displayName: "Zhipu AI",
@@ -297,14 +339,12 @@ function findCompatibleProviderCandidates(params: {
   for (const providerName of Object.keys(configuredProviders)) {
     const provider = configuredProviders[providerName];
     const providerSpec = resolveProviderSpec(providerName);
-    const routeKind = anthropicCompatibleProviderNames.has(providerName)
-      ? "anthropic-direct"
-      : gatewayProviderNames.has(providerName)
-        ? "anthropic-gateway"
-        : null;
-    if (!routeKind) {
-      continue;
-    }
+    const routeKind =
+      providerName === "anthropic" || anthropicCompatibleProviderNames.has(providerName)
+        ? "anthropic-direct"
+        : gatewayProviderNames.has(providerName)
+          ? "anthropic-gateway"
+          : "anthropic-gateway";
     const candidate = createProviderCandidate({
       providerName,
       provider,
@@ -380,12 +420,12 @@ function resolveUnsupportedReason(params: {
       ? {
           reason: "model_unsupported",
           reasonMessage:
-            "The current Claude model selection is not on a confirmed Claude-compatible provider. Switch to one of the recommended Claude models first.",
+            "The current Claude model selection does not resolve to a configured provider/model pair. Switch to one of the configured Claude models first.",
         }
       : {
-          reason: "provider_unsupported",
+          reason: "api_key_missing",
           reasonMessage:
-            "Claude in NextClaw currently requires Anthropic, MiniMax, Zhipu, or a provider explicitly marked as Anthropic-compatible/LiteLLM gateway.",
+            "Claude in NextClaw requires either Claude auth or at least one configured provider credential that can be routed as an Anthropic-compatible gateway.",
         };
   }
 
@@ -396,9 +436,23 @@ function resolveUnsupportedReason(params: {
     };
   }
 
+  const providerSpec = resolveProviderSpec(providerName);
+  const inferredApiBase = toAnthropicCompatibleApiBase({
+    providerName,
+    apiBase:
+      normalizeApiBase(readString(provider?.apiBase)) ??
+      normalizeApiBase(readString(providerSpec?.defaultApiBase)),
+  });
+  if (!inferredApiBase && providerName !== "anthropic") {
+    return {
+      reason: "api_base_missing",
+      reasonMessage: `Provider "${providerName}" has a credential, but Claude routing cannot infer an Anthropic-compatible API base for it yet. Configure providers.${providerName}.apiBase explicitly first.`,
+    };
+  }
+
   return {
     reason: "provider_unsupported",
-    reasonMessage: `Provider "${providerName}" is not on a confirmed Claude-compatible route yet. Use Anthropic, MiniMax, Zhipu, or declare this provider in anthropicCompatibleProviderNames/gatewayProviderNames.`,
+    reasonMessage: `Provider "${providerName}" could not be routed for Claude yet. Verify its credential and Anthropic-compatible API base configuration.`,
   };
 }
 
@@ -433,18 +487,26 @@ export function resolveClaudeProviderRouting(params: {
         })
       : null;
   const route = selectedRoute ?? recommendedRoute;
-  const configuredModels =
-    route?.configuredModels ??
-    recommendedRoute?.configuredModels ??
-    [];
-  const recommendedModel = route?.configuredModels[0] ?? null;
+  const configuredModels = dedupeStrings([
+    ...candidates.flatMap((candidate) => candidate.configuredModels),
+    ...(selectedRoute?.configuredModels ?? []),
+    ...(recommendedRoute?.configuredModels ?? []),
+  ]);
+  const recommendedModel = selectedRoute?.configuredModels.includes(modelInput)
+    ? modelInput
+    : selectedRoute?.configuredModels[0] ??
+      recommendedRoute?.configuredModels[0] ??
+      configuredModels[0] ??
+      null;
 
   if (route) {
     return {
       route,
-      modelInput: selectedRoute?.configuredModels.includes(modelInput) ? modelInput : route.configuredModels[0] ?? modelInput,
+      modelInput: selectedRoute?.configuredModels.includes(modelInput)
+        ? modelInput
+        : route.configuredModels[0] ?? modelInput,
       configuredModels,
-      recommendedModel: selectedRoute?.configuredModels.includes(modelInput) ? modelInput : recommendedModel,
+      recommendedModel,
     };
   }
 
@@ -461,4 +523,21 @@ export function resolveClaudeProviderRouting(params: {
     recommendedModel,
     ...unsupportedReason,
   };
+}
+
+export function listClaudeProviderRouteCandidates(params: {
+  config: Config;
+  pluginConfig: Record<string, unknown>;
+}): ClaudeProviderRouteCandidate[] {
+  const candidates = findCompatibleProviderCandidates({
+    config: params.config,
+    pluginConfig: params.pluginConfig,
+  });
+
+  return candidates.map((candidate) =>
+    buildRouteFromCandidate({
+      candidate,
+      modelInput: candidate.configuredModels[0] ?? candidate.providerName,
+    }),
+  );
 }

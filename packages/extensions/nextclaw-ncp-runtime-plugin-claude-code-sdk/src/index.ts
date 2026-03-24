@@ -8,16 +8,19 @@ import {
 } from "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk";
 import {
   buildClaudeInputBuilder,
-  intersectSdkModelsWithConfiguredModels,
   resolveClaudeRuntimeContext,
-  resolveRecommendedClaudeModel,
 } from "./claude-runtime-context.js";
+import {
+  buildClaudeGatewayConfig,
+  isHardClaudeSetupFailure,
+} from "./claude-route-probe.js";
 import {
   normalizeClaudeModel,
   readBoolean,
   readNumber,
   readRecord,
   readString,
+  resolveClaudeExecutionProbeTimeoutMs,
 } from "./claude-runtime-shared.js";
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-claude-code-sdk";
@@ -99,7 +102,6 @@ function createDescribeClaudeSessionType(params: {
           reasonMessage:
             runtimeContext.reasonMessage ??
             "Configure Claude auth, Claude user settings, or an explicit Anthropic-compatible gateway credential before starting a Claude session.",
-          supportedModels: runtimeContext.configuredModels,
           recommendedModel: runtimeContext.recommendedModel,
           cta: {
             kind: "providers",
@@ -113,16 +115,20 @@ function createDescribeClaudeSessionType(params: {
           ready: true,
           reason: null,
           reasonMessage: null,
-          supportedModels: runtimeContext.configuredModels,
           recommendedModel: runtimeContext.recommendedModel,
           cta: null,
         };
       }
-
       const capability = await loadAndProbeClaudeCodeSdkCapability({
         apiKey: runtimeContext.apiKey ?? "",
         authToken: runtimeContext.authToken,
         apiBase: runtimeContext.apiBase,
+        anthropicGateway: buildClaudeGatewayConfig({
+          routeKind: runtimeContext.routeKind,
+          apiBase: runtimeContext.apiBase,
+          apiKey: runtimeContext.apiKey,
+          authToken: runtimeContext.authToken,
+        }),
         env: runtimeContext.env,
         workingDirectory: runtimeContext.workingDirectory,
         model: normalizeClaudeModel(runtimeContext.modelInput),
@@ -130,40 +136,26 @@ function createDescribeClaudeSessionType(params: {
         configuredModels: runtimeContext.configuredModels,
         recommendedModel: normalizeClaudeModel(runtimeContext.recommendedModel ?? runtimeContext.modelInput),
         probeTimeoutMs: Math.max(1000, Math.trunc(readNumber(params.pluginConfig.probeTimeoutMs) ?? 5000)),
-        executionProbeTimeoutMs: Math.max(
-          1000,
-          Math.trunc(readNumber(params.pluginConfig.executionProbeTimeoutMs) ?? 8000),
-        ),
-        verifyExecution: readBoolean(params.pluginConfig.verifyExecution) ?? true,
+        executionProbeTimeoutMs: resolveClaudeExecutionProbeTimeoutMs(params.pluginConfig.executionProbeTimeoutMs),
+        verifyExecution: false,
         allowMissingApiKey:
           runtimeContext.usesExternalAuth ||
           runtimeContext.allowsClaudeManagedAuth ||
           Boolean(runtimeContext.authToken),
       });
-
-      const supportedModels = intersectSdkModelsWithConfiguredModels({
-        configuredModels: runtimeContext.configuredModels,
-        sdkModels: capability.supportedModels,
-      });
-      const recommendedModel =
-        resolveRecommendedClaudeModel({
-          configuredModels: supportedModels ?? runtimeContext.configuredModels,
-          modelInput: runtimeContext.modelInput,
-          pluginConfig: params.pluginConfig,
-        }) ?? runtimeContext.recommendedModel;
+      const shouldTreatCapabilityFailureAsHardBlock = !capability.ready && isHardClaudeSetupFailure(capability.reason);
 
       return {
-        ready: capability.ready,
-        reason: capability.reason ?? null,
-        reasonMessage: capability.reasonMessage ?? null,
-        supportedModels,
-        recommendedModel,
-        cta: capability.ready
-          ? null
-          : {
+        ready: !shouldTreatCapabilityFailureAsHardBlock,
+        reason: shouldTreatCapabilityFailureAsHardBlock ? capability.reason ?? null : null,
+        reasonMessage: shouldTreatCapabilityFailureAsHardBlock ? capability.reasonMessage ?? null : null,
+        recommendedModel: runtimeContext.recommendedModel,
+        cta: shouldTreatCapabilityFailureAsHardBlock
+          ? {
               kind: "providers",
               label: "Fix Claude Setup",
-            },
+            }
+          : null,
       };
     })();
 
@@ -214,7 +206,7 @@ const plugin: PluginDefinition = {
           !runtimeContext.allowsClaudeManagedAuth
         ) {
           throw new Error(
-            `[claude] ${runtimeContext.reasonMessage ?? `missing auth. Configure Claude user settings, plugins.entries.${PLUGIN_ID}.config.authToken/apiKey, switch to a Claude-compatible provider/model, enable providers-based credentials with useProviderCredentials=true, or enable CLAUDE_CODE_USE_BEDROCK / CLAUDE_CODE_USE_VERTEX / CLAUDE_CODE_USE_FOUNDRY in plugin env.`}`,
+            `[claude] ${runtimeContext.reasonMessage ?? `missing auth. Configure Claude user settings, plugins.entries.${PLUGIN_ID}.config.authToken/apiKey, point Claude at a provider/model with working gateway credentials, enable providers-based credentials with useProviderCredentials=true, or enable CLAUDE_CODE_USE_BEDROCK / CLAUDE_CODE_USE_VERTEX / CLAUDE_CODE_USE_FOUNDRY in plugin env.`}`,
           );
         }
 
@@ -223,6 +215,12 @@ const plugin: PluginDefinition = {
           apiKey: runtimeContext.apiKey ?? "",
           authToken: runtimeContext.authToken,
           apiBase: runtimeContext.apiBase,
+          anthropicGateway: buildClaudeGatewayConfig({
+            routeKind: runtimeContext.routeKind,
+            apiBase: runtimeContext.apiBase,
+            apiKey: runtimeContext.apiKey,
+            authToken: runtimeContext.authToken,
+          }),
           model: normalizeClaudeModel(runtimeContext.modelInput),
           workingDirectory: runtimeContext.workingDirectory,
           sessionRuntimeId: readString(runtimeParams.sessionMetadata.claude_session_id) ?? null,
