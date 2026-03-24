@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.13.41
+
+### Patch Changes
+
+- Fix Claude NCP runtime model routing by bridging Anthropic Messages to OpenAI-compatible providers, remove the Claude model whitelist concept, and keep the Claude model selector stable when the previously selected model is missing.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.33
+  - @nextclaw/server@0.10.37
+  - @nextclaw/ncp-mcp@0.1.32
+  - @nextclaw/remote@0.1.31
+
 ## 0.13.40
 
 ### Patch Changes
