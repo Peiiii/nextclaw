@@ -1,7 +1,7 @@
 import type { Config } from "@nextclaw/core";
 import { loadAndProbeClaudeCodeSdkCapability } from "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk";
 import { listClaudeProviderRouteCandidates } from "./claude-provider-routing.js";
-import { resolveClaudeRuntimeContext } from "./claude-runtime-context.js";
+import type { resolveClaudeRuntimeContext } from "./claude-runtime-context.js";
 import {
   dedupeStrings,
   normalizeClaudeModel,
