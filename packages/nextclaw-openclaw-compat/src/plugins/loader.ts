@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { getWorkspacePathFromConfig, type Config } from "@nextclaw/core";
 import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "./bundled-channel-plugin-packages.constants.js";
@@ -8,6 +7,7 @@ import { filterPluginCandidatesByExcludedRoots } from "./candidate-filter.js";
 import { normalizePluginsConfig, resolveEnableState } from "./config-state.js";
 import { discoverOpenClawPlugins } from "./discovery.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
 import { createPluginJiti } from "./plugin-loader-jiti.js";
 import { createPluginRecord, validatePluginConfig } from "./plugin-loader-utils.js";
 import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./registry.js";
@@ -49,82 +49,7 @@ function resolvePackageRootFromEntry(entryFile: string): string {
   return path.dirname(entryFile);
 }
 
-function resolvePluginSdkAliasFile(params: { srcFile: string; distFile: string }): string | null {
-  try {
-    const modulePath = fileURLToPath(import.meta.url);
-    const isProduction = process.env.NODE_ENV === "production";
-    let cursor = path.dirname(modulePath);
-    for (let i = 0; i < 6; i += 1) {
-      const srcCandidate = path.join(cursor, "src", "plugin-sdk", params.srcFile);
-      const distCandidate = path.join(cursor, "dist", "plugin-sdk", params.distFile);
-      const candidates = isProduction ? [distCandidate, srcCandidate] : [srcCandidate, distCandidate];
-      for (const candidate of candidates) {
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-      }
-      const parent = path.dirname(cursor);
-      if (parent === cursor) {
-        break;
-      }
-      cursor = parent;
-    }
-  } catch {
-    return null;
-  }
-  return null;
-}
-
-function resolvePluginSdkAlias(): string | null {
-  return resolvePluginSdkAliasFile({ srcFile: "index.ts", distFile: "index.js" });
-}
-
-function buildScopedPackageAliases(scope: string): Record<string, string> {
-  const aliases: Record<string, string> = {};
-  const require = createRequire(import.meta.url);
-  let cursor = path.dirname(fileURLToPath(import.meta.url));
-
-  for (let i = 0; i < 8; i += 1) {
-    const scopeDir = path.join(cursor, "node_modules", scope);
-    if (fs.existsSync(scopeDir)) {
-      let entries: fs.Dirent[] = [];
-      try {
-        entries = fs.readdirSync(scopeDir, { withFileTypes: true });
-      } catch {
-        entries = [];
-      }
-
-      for (const entry of entries) {
-        if (!entry.isDirectory() && !entry.isSymbolicLink()) {
-          continue;
-        }
-        const packageName = `${scope}/${entry.name}`;
-        try {
-          aliases[packageName] = require.resolve(packageName);
-        } catch {
-          // Ignore packages that are not resolvable from the current host runtime.
-        }
-      }
-    }
-
-    const parent = path.dirname(cursor);
-    if (parent === cursor) {
-      break;
-    }
-    cursor = parent;
-  }
-
-  return aliases;
-}
-
-export function buildPluginLoaderAliases(): Record<string, string> {
-  const aliases = buildScopedPackageAliases("@nextclaw");
-  const pluginSdkAlias = resolvePluginSdkAlias();
-  if (pluginSdkAlias) {
-    aliases["openclaw/plugin-sdk"] = pluginSdkAlias;
-  }
-  return aliases;
-}
+export { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
 
 function resolvePluginModuleExport(moduleExport: unknown): {
   definition?: OpenClawPluginDefinition;
@@ -264,6 +189,11 @@ function appendBundledChannelPlugins(params: {
   }
 }
 
+function loadExternalPluginModule(candidateSource: string, pluginRoot: string): OpenClawPluginModule {
+  const pluginJiti = createPluginJiti(buildPluginLoaderAliases(pluginRoot));
+  return pluginJiti(candidateSource) as OpenClawPluginModule;
+}
+
 export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
   const loadExternalPlugins = process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "0";
 
@@ -304,12 +234,12 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     reservedNcpAgentRuntimeKinds
   });
 
-  const jiti = createPluginJiti(buildPluginLoaderAliases());
+  const bundledPluginJiti = createPluginJiti(buildPluginLoaderAliases());
 
   appendBundledChannelPlugins({
     registry,
     runtime: registerRuntime,
-    jiti,
+    jiti: bundledPluginJiti,
     normalizedConfig: normalized
   });
 
@@ -434,7 +364,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
 
     let moduleExport: OpenClawPluginModule | null = null;
     try {
-      moduleExport = jiti(candidate.source) as OpenClawPluginModule;
+      moduleExport = loadExternalPluginModule(candidate.source, candidate.rootDir);
     } catch (err) {
       record.status = "error";
       record.error = `failed to load plugin: ${String(err)}`;

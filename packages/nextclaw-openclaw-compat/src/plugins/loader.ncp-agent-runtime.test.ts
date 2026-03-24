@@ -157,6 +157,90 @@ function createAliasDependentPluginDir(): string {
   return rootDir;
 }
 
+function createLocalDependencyPluginDir(): string {
+  const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-local-dependency-"));
+  tempDirs.push(rootDir);
+  mkdirSync(join(rootDir, "dist"), { recursive: true });
+  mkdirSync(join(rootDir, "node_modules", "@nextclaw", "ncp", "dist"), { recursive: true });
+  writeFileSync(
+    join(rootDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "@test/local-dependency-plugin",
+        version: "0.0.1",
+        type: "module",
+        openclaw: {
+          extensions: ["dist/index.js"],
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(rootDir, "openclaw.plugin.json"),
+    JSON.stringify(
+      {
+        id: "test-local-dependency-plugin",
+        kind: "agent-runtime",
+        name: "Local Dependency Plugin",
+        description: "Uses plugin-local @nextclaw dependencies when they are runnable.",
+        version: "0.0.1",
+        configSchema: {
+          type: "object",
+          additionalProperties: true,
+          properties: {},
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(rootDir, "node_modules", "@nextclaw", "ncp", "package.json"),
+    JSON.stringify(
+      {
+        name: "@nextclaw/ncp",
+        version: "0.0.0-local",
+        type: "module",
+        exports: "./dist/index.js",
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(rootDir, "node_modules", "@nextclaw", "ncp", "dist", "index.js"),
+    "export const LOCAL_MARKER = 'plugin-local';\n",
+  );
+  writeFileSync(
+    join(rootDir, "dist", "index.js"),
+    [
+      "import { LOCAL_MARKER } from '@nextclaw/ncp';",
+      "const plugin = {",
+      "  id: 'test-local-dependency-plugin',",
+      "  name: 'Local Dependency Plugin',",
+      "  description: 'Uses plugin-local @nextclaw dependencies when they are runnable.',",
+      "  configSchema: { type: 'object', additionalProperties: true, properties: {} },",
+      "  register(api) {",
+      "    if (LOCAL_MARKER !== 'plugin-local') {",
+      "      throw new Error('expected plugin-local dependency');",
+      "    }",
+      "    api.registerNcpAgentRuntime({",
+      "      kind: 'local-dependency-runtime',",
+      "      label: 'Local Dependency Runtime',",
+      "      createRuntime() {",
+      "        return { async *run() {} };",
+      "      }",
+      "    });",
+      "  }",
+      "};",
+      "export default plugin;",
+    ].join("\n"),
+  );
+  return rootDir;
+}
+
 afterEach(() => {
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
@@ -167,6 +251,35 @@ afterEach(() => {
 });
 
 describe("loadOpenClawPlugins ncp agent runtime registration", () => {
+  it("prefers runnable plugin-local @nextclaw packages over host aliases", () => {
+    const pluginDir = createLocalDependencyPluginDir();
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-local-dependency-plugin"],
+        load: {
+          paths: [pluginDir],
+        },
+        entries: {
+          "test-local-dependency-plugin": {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.ncpAgentRuntimes).toHaveLength(1);
+    expect(registry.ncpAgentRuntimes[0]).toMatchObject({
+      pluginId: "test-local-dependency-plugin",
+      kind: "local-dependency-runtime",
+      label: "Local Dependency Runtime",
+    });
+  });
+
   it("aliases host @nextclaw packages when external plugin-local copies are not runnable", () => {
     const pluginDir = createAliasDependentPluginDir();
     const config = ConfigSchema.parse({
