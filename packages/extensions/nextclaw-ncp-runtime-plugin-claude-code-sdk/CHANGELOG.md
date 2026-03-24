@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.16
+
+### Patch Changes
+
+- Republish the Claude NCP runtime plugin so npm-installed environments get the open model routing fix, the removed supported-model whitelist, and the stable Claude model selection behavior.
+
 ## 0.1.15
 
 ### Patch Changes
