@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import type {
+  MarketplaceListView,
   MarketplaceItemView,
   MarketplacePluginContentView,
   MarketplacePluginInstallRequest,
@@ -11,12 +12,10 @@ import type {
 import { err, isRecord, ok, readJson } from "../response.js";
 import type { UiRouterOptions } from "../types.js";
 import {
-  fetchAllPluginMarketplaceItems,
   fetchMarketplaceData,
   normalizeMarketplaceItemForUi,
   sanitizeMarketplaceItemView,
-  sanitizeMarketplaceListItems,
-  toPositiveInt
+  sanitizeMarketplaceListItems
 } from "./catalog.js";
 import {
   collectPluginMarketplaceInstalledView,
@@ -190,8 +189,9 @@ export class PluginMarketplaceController {
 
   readonly listItems = async (c: Context) => {
     const query = c.req.query();
-    const result = await fetchAllPluginMarketplaceItems({
+    const result = await fetchMarketplaceData<MarketplaceListView>({
       baseUrl: this.marketplaceBaseUrl,
+      path: "/api/v1/plugins/items",
       query: {
         q: query.q,
         tag: query.tag,
@@ -205,23 +205,18 @@ export class PluginMarketplaceController {
       return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
     }
 
-    const filteredItems = sanitizeMarketplaceListItems(result.data.items)
+    const items = sanitizeMarketplaceListItems(result.data.items)
       .map((item) => normalizeMarketplaceItemForUi(item))
       .filter((item) => isSupportedMarketplacePluginItem(item));
 
-    const pageSize = Math.min(100, toPositiveInt(query.pageSize, 20));
-    const requestedPage = toPositiveInt(query.page, 1);
-    const totalPages = filteredItems.length === 0 ? 0 : Math.ceil(filteredItems.length / pageSize);
-    const currentPage = totalPages === 0 ? 1 : Math.min(requestedPage, totalPages);
-
     return c.json(ok({
-      total: filteredItems.length,
-      page: currentPage,
-      pageSize,
-      totalPages,
+      total: result.data.total,
+      page: result.data.page,
+      pageSize: result.data.pageSize,
+      totalPages: result.data.totalPages,
       sort: result.data.sort,
       query: result.data.query,
-      items: filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      items
     }));
   };
 

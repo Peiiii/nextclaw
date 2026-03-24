@@ -575,4 +575,99 @@ describe("marketplace content routes", () => {
     expect(payload.data.items[0]?.slug).toBe("ncp-runtime-plugin-claude-code-sdk");
     expect(payload.data.items[0]?.install.spec).toBe("@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk");
   });
+
+  it("forwards plugin catalog pagination without fetching the entire remote catalog", async () => {
+    const workspaceDir = createTempDir("nextclaw-ui-plugin-list-paging-");
+    const configPath = join(workspaceDir, "config.json");
+
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace: workspaceDir
+          }
+        }
+      }),
+      configPath
+    );
+
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 24,
+            page: 2,
+            pageSize: 12,
+            totalPages: 2,
+            sort: "relevance",
+            items: [
+              {
+                id: "plugin-channel-discord",
+                slug: "channel-plugin-discord",
+                type: "plugin",
+                name: "Discord Channel Plugin",
+                summary: "English summary",
+                tags: ["plugin", "discord"],
+                author: "NextClaw",
+                install: {
+                  kind: "npm",
+                  spec: "@nextclaw/channel-plugin-discord",
+                  command: "nextclaw plugins install @nextclaw/channel-plugin-discord"
+                },
+                updatedAt: "2026-02-22T09:40:00.000Z",
+                publishedAt: "2025-12-10T10:00:00.000Z"
+              }
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = createUiRouter({
+      configPath,
+      publish: () => {},
+      marketplace: {
+        apiBaseUrl: "http://marketplace.example"
+      }
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/plugins/items?page=2&pageSize=12");
+    expect(response.status).toBe(200);
+
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.data.total).toBe(24);
+    expect(payload.data.page).toBe(2);
+    expect(payload.data.pageSize).toBe(12);
+    expect(payload.data.totalPages).toBe(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const firstCall = fetchMock.mock.calls.at(0);
+    if (!firstCall) {
+      throw new Error("fetch was not called");
+    }
+    const [target] = firstCall as unknown as [Request | string];
+    const url = typeof target === "string" ? target : target.url;
+    expect(url).toContain("/api/v1/plugins/items");
+    expect(url).toContain("page=2");
+    expect(url).toContain("pageSize=12");
+    expect(url).not.toContain("pageSize=100");
+  });
 });
