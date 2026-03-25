@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.11.1
+
+### Patch Changes
+
+- Unify channel configuration around `channels.*` and stop writing channel runtime state back into plugin config entries.
+
+  Preserve plugin-channel config keys in the core schema, route CLI and UI channel reads and writes through the projected channel view, and ensure plugin channel gateways honor the projected `channels.<id>.enabled` state.
+
 ## 0.11.0
 
 ### Minor Changes
@@ -156,6 +164,7 @@
 - Switch skill distribution to marketplace-first flow and remove GitHub-based skill install paths.
 
   This release includes:
+
   - skill/plugin model clean split (skill: `builtin` + `marketplace` only)
   - marketplace API migration from bundled JSON to D1-backed source
   - CLI support for marketplace skill upload/update/install
@@ -178,6 +187,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements
@@ -576,10 +586,12 @@
 - Add live apply support for `agents.defaults.maxTokens`, `agents.defaults.temperature`, and `tools.*` without gateway restart.
 
   Improve runtime restart boundaries:
+
   - `config set/unset` now triggers restart only for `restart-required` paths.
   - Keep `plugins.*` as restart-required for maintainability.
 
   Refine CLI/UI startup behavior and docs:
+
   - Default UI host behavior is public (`0.0.0.0`) on start/restart/serve/ui/gateway UI mode.
   - Remove redundant `--public`/`--ui-host` options from relevant commands and update usage docs.
 

@@ -6,6 +6,7 @@ import {
   type PluginChannelBinding
 } from "@nextclaw/openclaw-compat";
 import { loadConfigOrDefault } from "./config.js";
+import { getProjectedConfigView } from "./plugin-channel-config.projection.js";
 import type {
   ChannelAuthPollResult,
   ChannelAuthStartRequest,
@@ -48,15 +49,9 @@ function applyAuthorizedChannelAuthResult(params: {
   const nextConfig = enablePluginInConfig(
     {
       ...currentConfig,
-      plugins: {
-        ...currentConfig.plugins,
-        entries: {
-          ...(currentConfig.plugins.entries ?? {}),
-          [params.binding.pluginId]: {
-            ...(currentConfig.plugins.entries?.[params.binding.pluginId] ?? {}),
-            config: params.result.pluginConfig
-          }
-        }
+      channels: {
+        ...currentConfig.channels,
+        [params.binding.channelId]: params.result.pluginConfig as typeof currentConfig.channels[keyof typeof currentConfig.channels]
       }
     },
     params.binding.pluginId
@@ -77,11 +72,14 @@ export async function startChannelAuth(params: {
   }
 
   const config = loadConfigOrDefault(params.configPath);
+  const configView = getProjectedConfigView(config, {
+    pluginChannelBindings: params.bindings
+  }) as typeof config;
   const result = await start({
-    cfg: config,
+    cfg: configView,
     pluginId: binding.pluginId,
     channelId: binding.channelId,
-    pluginConfig: clonePluginConfig(config.plugins.entries?.[binding.pluginId]?.config),
+    pluginConfig: clonePluginConfig(configView.channels?.[binding.channelId]),
     accountId: params.request.accountId?.trim() || null,
     baseUrl: params.request.baseUrl?.trim() || null
   });
@@ -102,11 +100,14 @@ export async function pollChannelAuth(params: {
   }
 
   const config = loadConfigOrDefault(params.configPath);
+  const configView = getProjectedConfigView(config, {
+    pluginChannelBindings: params.bindings
+  }) as typeof config;
   const result = await poll({
-    cfg: config,
+    cfg: configView,
     pluginId: binding.pluginId,
     channelId: binding.channelId,
-    pluginConfig: clonePluginConfig(config.plugins.entries?.[binding.pluginId]?.config),
+    pluginConfig: clonePluginConfig(configView.channels?.[binding.channelId]),
     sessionId: params.sessionId
   });
   if (!result) {

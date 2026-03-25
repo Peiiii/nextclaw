@@ -1,5 +1,16 @@
 # @nextclaw/mcp
 
+## 0.1.46
+
+### Patch Changes
+
+- Unify channel configuration around `channels.*` and stop writing channel runtime state back into plugin config entries.
+
+  Preserve plugin-channel config keys in the core schema, route CLI and UI channel reads and writes through the projected channel view, and ensure plugin channel gateways honor the projected `channels.<id>.enabled` state.
+
+- Updated dependencies
+  - @nextclaw/core@0.11.1
+
 ## 0.1.45
 
 ### Patch Changes

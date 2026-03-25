@@ -182,6 +182,8 @@ export const QQConfigSchema = z.object({
   allowFrom: allowFrom
 });
 
+const PluginChannelConfigSchema = z.object({}).catchall(z.unknown());
+
 export const ChannelsConfigSchema = z.object({
   whatsapp: WhatsAppConfigSchema.default({}),
   telegram: TelegramConfigSchema.default({}),
@@ -193,7 +195,7 @@ export const ChannelsConfigSchema = z.object({
   email: EmailConfigSchema.default({}),
   slack: SlackConfigSchema.default({}),
   qq: QQConfigSchema.default({})
-});
+}).catchall(PluginChannelConfigSchema);
 
 export const AgentDefaultsSchema = z.object({
   workspace: z.string().default(DEFAULT_WORKSPACE_PATH),

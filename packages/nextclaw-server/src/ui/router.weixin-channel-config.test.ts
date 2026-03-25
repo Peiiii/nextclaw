@@ -129,15 +129,15 @@ describe("weixin plugin channel config route", () => {
     });
 
     const saved = loadConfig(configPath);
-    expect(saved.plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
+    expect(saved.channels.weixin).toEqual({
       enabled: true,
-      config: {
-        enabled: true,
-        defaultAccountId: "1344b2b24720@im.bot",
-        baseUrl: "https://ilinkai.weixin.qq.com",
-        pollTimeoutMs: 35000,
-        allowFrom: ["o9cq804svxfyCCTIqzddDqRBeMC0@im.wechat"]
-      }
+      defaultAccountId: "1344b2b24720@im.bot",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      pollTimeoutMs: 35000,
+      allowFrom: ["o9cq804svxfyCCTIqzddDqRBeMC0@im.wechat"]
+    });
+    expect(saved.plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
+      enabled: true
     });
     expect(publish).toHaveBeenCalledWith({
       type: "config.updated",

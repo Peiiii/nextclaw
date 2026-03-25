@@ -87,8 +87,9 @@ export function normalizeWeixinPluginConfig(value: unknown): WeixinPluginConfig 
   };
 }
 
-export function readWeixinPluginConfigFromConfig(config: Config, pluginId = WEIXIN_PLUGIN_ID): WeixinPluginConfig {
-  return normalizeWeixinPluginConfig(config.plugins.entries?.[pluginId]?.config);
+export function readWeixinPluginConfigFromConfig(config: Config, _pluginId = WEIXIN_PLUGIN_ID): WeixinPluginConfig {
+  const channelConfig = config.channels?.[WEIXIN_CHANNEL_ID];
+  return normalizeWeixinPluginConfig(channelConfig);
 }
 
 export function isWeixinPluginEnabled(config: Config, pluginId = WEIXIN_PLUGIN_ID): boolean {
@@ -96,7 +97,7 @@ export function isWeixinPluginEnabled(config: Config, pluginId = WEIXIN_PLUGIN_I
   if (pluginEntry?.enabled === false) {
     return false;
   }
-  return normalizeWeixinPluginConfig(pluginEntry?.config).enabled !== false;
+  return readWeixinPluginConfigFromConfig(config, pluginId).enabled !== false;
 }
 
 export function resolveConfiguredWeixinAccountIds(pluginConfig: WeixinPluginConfig): string[] {

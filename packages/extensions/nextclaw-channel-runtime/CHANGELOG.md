@@ -1,5 +1,12 @@
 # @nextclaw/channel-runtime
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.11.1
+
 ## 0.4.0
 
 ### Minor Changes
@@ -189,6 +196,7 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
+
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -313,6 +321,7 @@
 ### Patch Changes
 
 - feat: hot-apply plugin config changes without restarting the gateway process.
+
   - treat `plugins.*` as reloadable config paths
   - hot-reload plugin registry / plugin channel gateways / channel manager in-place
   - apply plugin extension registry updates to agent runtime pool
@@ -327,6 +336,7 @@
 ### Patch Changes
 
 - fix: prevent broken historical tool-call chains from causing provider 400 in long-running Discord multi-agent sessions.
+
   - sanitize stale `assistant(tool_calls)` + `tool` history pairs before provider requests
   - preserve active trailing tool-call chain semantics
   - reduce INVALID_ARGUMENT failures after context-budget pruning
@@ -347,6 +357,7 @@
 ### Patch Changes
 
 - Align input-context handling with an OpenClaw-style token-budget pruner.
+
   - add unified input budget pruning in agent and subagent loops
   - support `agents.defaults.contextTokens` and per-agent `contextTokens` overrides
   - hot-reload context token budget updates
@@ -360,6 +371,7 @@
 ### Patch Changes
 
 - Align Discord/Telegram typing lifecycle with OpenClaw-style run completion cleanup.
+
   - Add typing-stop control message in core bus for no-reply paths.
   - Route control messages through ChannelManager without normal outbound delivery.
   - Keep typing active during agent processing and stop via outbound/control events.
@@ -373,6 +385,7 @@
 ### Patch Changes
 
 - Align multi-agent gateway capabilities with OpenClaw:
+
   - add bindings-based route resolver and agent runtime pool
   - add agents.list multi-runtime support in gateway service
   - add session.dmScope based session key isolation (including per-account-channel-peer)
@@ -387,6 +400,7 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
+
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment

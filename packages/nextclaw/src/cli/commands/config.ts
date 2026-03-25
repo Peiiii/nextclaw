@@ -1,4 +1,5 @@
-import { buildReloadPlan, diffConfigPaths, loadConfig, saveConfig, type Config } from "@nextclaw/core";
+import { buildReloadPlan, diffConfigPaths, getWorkspacePath, loadConfig, saveConfig, type Config } from "@nextclaw/core";
+import { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import {
   getAtConfigPath,
   parseConfigSetValue,
@@ -6,6 +7,8 @@ import {
   setAtConfigPath,
   unsetAtConfigPath
 } from "../config-path.js";
+import { resolveChannelConfigView } from "./channel-config-view.js";
+import { loadPluginRegistry, mergePluginConfigView } from "./plugins.js";
 import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "../types.js";
 
 export class ConfigCommands {
@@ -16,8 +19,6 @@ export class ConfigCommands {
   ) {}
 
   configGet(pathExpr: string, opts: ConfigGetOptions = {}): void {
-    const config = loadConfig() as unknown as Record<string, unknown>;
-
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -27,7 +28,9 @@ export class ConfigCommands {
       return;
     }
 
-    const result = getAtConfigPath(config, parsedPath);
+    const config = loadConfig();
+    const resolvedConfig = this.resolveReadConfigView(config, parsedPath) as unknown as Record<string, unknown>;
+    const result = getAtConfigPath(resolvedConfig, parsedPath);
     if (!result.found) {
       console.error(`Config path not found: ${pathExpr}`);
       process.exit(1);
@@ -71,15 +74,21 @@ export class ConfigCommands {
     }
 
     const prevConfig = loadConfig();
-    const nextConfig = structuredClone(prevConfig) as unknown as Record<string, unknown>;
+    const projectedContext = this.resolveProjectedChannelContext(prevConfig, parsedPath);
+    const nextConfigTarget = projectedContext
+      ? structuredClone(projectedContext.view) as unknown as Record<string, unknown>
+      : structuredClone(prevConfig) as unknown as Record<string, unknown>;
     try {
-      setAtConfigPath(nextConfig, parsedPath, parsedValue);
+      setAtConfigPath(nextConfigTarget, parsedPath, parsedValue);
     } catch (error) {
       console.error(String(error));
       process.exit(1);
       return;
     }
 
+    const nextConfig = projectedContext
+      ? mergePluginConfigView(prevConfig, nextConfigTarget, projectedContext.bindings)
+      : nextConfigTarget as Config;
     saveConfig(nextConfig as Config);
     await this.requestRestartForConfigDiff({
       prevConfig,
@@ -100,14 +109,20 @@ export class ConfigCommands {
     }
 
     const prevConfig = loadConfig();
-    const nextConfig = structuredClone(prevConfig) as unknown as Record<string, unknown>;
-    const removed = unsetAtConfigPath(nextConfig, parsedPath);
+    const projectedContext = this.resolveProjectedChannelContext(prevConfig, parsedPath);
+    const nextConfigTarget = projectedContext
+      ? structuredClone(projectedContext.view) as unknown as Record<string, unknown>
+      : structuredClone(prevConfig) as unknown as Record<string, unknown>;
+    const removed = unsetAtConfigPath(nextConfigTarget, parsedPath);
     if (!removed) {
       console.error(`Config path not found: ${pathExpr}`);
       process.exit(1);
       return;
     }
 
+    const nextConfig = projectedContext
+      ? mergePluginConfigView(prevConfig, nextConfigTarget, projectedContext.bindings)
+      : nextConfigTarget as Config;
     saveConfig(nextConfig as Config);
     await this.requestRestartForConfigDiff({
       prevConfig,
@@ -115,6 +130,44 @@ export class ConfigCommands {
       reason: `config.unset ${pathExpr}`,
       manualMessage: `Removed ${pathExpr}. Restart the gateway to apply.`
     });
+  }
+
+  private resolveReadConfigView(config: Config, parsedPath: string[]): Config {
+    if (parsedPath[0] !== "channels") {
+      return config;
+    }
+    const { bindings } = this.loadPluginChannelBindings(config);
+    return resolveChannelConfigView(config, bindings);
+  }
+
+  private resolveProjectedChannelContext(config: Config, parsedPath: string[]): {
+    bindings: ReturnType<typeof getPluginChannelBindings>;
+    view: Config;
+  } | null {
+    if (parsedPath[0] !== "channels" || parsedPath.length < 2) {
+      return null;
+    }
+
+    const channelId = parsedPath[1];
+    const { bindings } = this.loadPluginChannelBindings(config);
+    if (!bindings.some((binding) => binding.channelId === channelId)) {
+      return null;
+    }
+
+    return {
+      bindings,
+      view: resolveChannelConfigView(config, bindings)
+    };
+  }
+
+  private loadPluginChannelBindings(config: Config): {
+    bindings: ReturnType<typeof getPluginChannelBindings>;
+  } {
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
+    return {
+      bindings: getPluginChannelBindings(pluginRegistry)
+    };
   }
 
   private async requestRestartForConfigDiff(params: {

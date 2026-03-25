@@ -70,7 +70,7 @@ function createWeixinPluginBinding() {
 }
 
 describe("weixin plugin channel auth route", () => {
-  it("starts qr auth and persists authorized plugin config", async () => {
+  it("starts qr auth and persists authorized channel config under channels.weixin", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
     const publish = vi.fn();
@@ -131,20 +131,20 @@ describe("weixin plugin channel auth route", () => {
         notes: ["Authorized initial user: user-1@im.wechat"]
       }
     });
-
     expect(poll).toHaveBeenCalledTimes(1);
-    expect(loadConfig(configPath).plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
+    const saved = loadConfig(configPath);
+    expect(saved.channels.weixin).toEqual({
       enabled: true,
-      config: {
-        enabled: true,
-        defaultAccountId: "bot-1@im.bot",
-        baseUrl: "https://ilinkai.weixin.qq.com",
-        accounts: {
-          "bot-1@im.bot": {
-            enabled: true
-          }
+      defaultAccountId: "bot-1@im.bot",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      accounts: {
+        "bot-1@im.bot": {
+          enabled: true
         }
       }
+    });
+    expect(saved.plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
+      enabled: true
     });
     expect(publish).toHaveBeenCalledWith({
       type: "config.updated",

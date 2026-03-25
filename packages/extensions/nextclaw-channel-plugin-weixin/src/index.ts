@@ -17,6 +17,7 @@ import {
 
 type NextclawWeixinPluginApi = {
   id: string;
+  config: Config;
   pluginConfig?: Record<string, unknown>;
   registerChannel: (registration: { plugin: Record<string, unknown> }) => void;
 };
@@ -96,7 +97,9 @@ const plugin = {
   description: "Weixin channel plugin for NextClaw.",
   configSchema: WEIXIN_PLUGIN_CONFIG_SCHEMA,
   register(api: NextclawWeixinPluginApi) {
-    const pluginConfig = normalizeWeixinPluginConfig(api.pluginConfig);
+    const pluginConfig = normalizeWeixinPluginConfig(
+      readWeixinPluginConfigFromConfig(api.config as Config, api.id || WEIXIN_PLUGIN_ID)
+    );
     api.registerChannel({
       plugin: {
         ...createWeixinChannelPlugin(api.id || WEIXIN_PLUGIN_ID),

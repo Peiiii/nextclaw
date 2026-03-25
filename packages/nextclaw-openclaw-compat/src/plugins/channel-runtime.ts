@@ -1,4 +1,4 @@
-import type { Config } from "@nextclaw/core";
+import { ConfigSchema, type Config } from "@nextclaw/core";
 import type {
   OpenClawChannelPlugin,
   PluginChannelRegistration,
@@ -18,6 +18,7 @@ export type PluginChannelGatewayHandle = {
   pluginId: string;
   channelId: string;
   accountId: string;
+  abort?: () => void;
   stop?: () => void | Promise<void>;
 };
 
@@ -102,6 +103,33 @@ function cloneConfig<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+const DEFAULT_CONFIG = ConfigSchema.parse({});
+
+function cloneRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return cloneConfig(value) as Record<string, unknown>;
+}
+
+function hasExplicitChannelConfig(channelId: string, config: Record<string, unknown>): boolean {
+  const defaultChannelConfig = cloneRecord(
+    (DEFAULT_CONFIG.channels as Record<string, unknown>)[channelId]
+  );
+  return JSON.stringify(config) !== JSON.stringify(defaultChannelConfig);
+}
+
+function resolveProjectedChannelConfig(params: {
+  channelId: string;
+  rawChannelConfig: Record<string, unknown>;
+  pluginConfig: Record<string, unknown>;
+}): Record<string, unknown> {
+  if (hasExplicitChannelConfig(params.channelId, params.rawChannelConfig)) {
+    return cloneConfig(params.rawChannelConfig);
+  }
+  return cloneConfig(params.pluginConfig);
+}
+
 function resolveProjectedPluginChannelEnabled(params: {
   entryEnabled?: boolean;
   channelConfig?: Record<string, unknown>;
@@ -110,6 +138,18 @@ function resolveProjectedPluginChannelEnabled(params: {
     ? params.channelConfig.enabled
     : false;
   return params.entryEnabled !== false && channelEnabled;
+}
+
+function isProjectedChannelEnabled(channelId: string, configView?: Record<string, unknown>): boolean {
+  const channels =
+    configView?.channels && typeof configView.channels === "object" && !Array.isArray(configView.channels)
+      ? (configView.channels as Record<string, unknown>)
+      : {};
+  const channelConfig = channels[channelId];
+  if (!channelConfig || typeof channelConfig !== "object" || Array.isArray(channelConfig)) {
+    return false;
+  }
+  return (channelConfig as { enabled?: unknown }).enabled === true;
 }
 
 export function toPluginConfigView(config: Config, bindings: PluginChannelBinding[]): Record<string, unknown> {
@@ -121,11 +161,13 @@ export function toPluginConfigView(config: Config, bindings: PluginChannelBindin
 
   for (const binding of bindings) {
     const pluginEntry = config.plugins.entries?.[binding.pluginId];
-    const pluginConfig = pluginEntry?.config;
-    const normalizedChannelConfig =
-      pluginConfig && typeof pluginConfig === "object" && !Array.isArray(pluginConfig)
-        ? cloneConfig(pluginConfig) as Record<string, unknown>
-        : {};
+    const pluginConfig = cloneRecord(pluginEntry?.config);
+    const rawChannelConfig = cloneRecord(config.channels?.[binding.channelId]);
+    const normalizedChannelConfig = resolveProjectedChannelConfig({
+      channelId: binding.channelId,
+      rawChannelConfig,
+      pluginConfig
+    });
     channels[binding.channelId] = {
       ...normalizedChannelConfig,
       enabled: resolveProjectedPluginChannelEnabled({
@@ -167,11 +209,16 @@ export function mergePluginConfigView(
       ? normalizedChannelConfig.enabled
       : undefined;
     const currentEntry = entries[binding.pluginId] ?? {};
+    const { config: _legacyChannelConfig, ...currentEntryWithoutLegacyConfig } =
+      currentEntry as Record<string, unknown>;
 
     entries[binding.pluginId] = {
-      ...currentEntry,
-      ...(projectedEnabled === true ? { enabled: true } : {}),
-      config: normalizedChannelConfig
+      ...currentEntryWithoutLegacyConfig,
+      ...(projectedEnabled === true ? { enabled: true } : {})
+    };
+    next.channels = {
+      ...next.channels,
+      [binding.channelId]: cloneConfig(normalizedChannelConfig) as Config["channels"][keyof Config["channels"]]
     };
   }
 
@@ -199,6 +246,9 @@ export async function startPluginChannelGateways(params: {
     if (!gateway?.startAccount) {
       continue;
     }
+    if (!isProjectedChannelEnabled(binding.channelId, configView)) {
+      continue;
+    }
 
     const accountIdsRaw =
       binding.channel.config?.listAccountIds?.(configView) ?? [
@@ -211,18 +261,36 @@ export async function startPluginChannelGateways(params: {
 
     for (const accountId of finalAccountIds) {
       try {
+        const abortController = new AbortController();
         const started = await gateway.startAccount({
           accountId,
+          channelId: binding.channelId,
+          cfg: configView as Config | undefined,
+          abortSignal: abortController.signal,
+          runtime: logger
+            ? {
+                log: logger.info,
+                info: logger.info,
+                warn: logger.warn,
+                error: logger.error,
+                debug: logger.debug
+              }
+            : undefined,
+          setStatus: () => undefined,
           log: logger
         });
         handles.push({
           pluginId: binding.pluginId,
           channelId: binding.channelId,
           accountId,
+          abort: () => abortController.abort(),
           stop:
-            started && typeof started === "object" && "stop" in started && typeof started.stop === "function"
-              ? started.stop
-              : undefined
+            async () => {
+              abortController.abort();
+              if (started && typeof started === "object" && "stop" in started && typeof started.stop === "function") {
+                await started.stop();
+              }
+            }
         });
       } catch (error) {
         const raw = String(error);
@@ -249,11 +317,9 @@ export async function startPluginChannelGateways(params: {
 
 export async function stopPluginChannelGateways(handles: PluginChannelGatewayHandle[]): Promise<void> {
   for (const handle of handles) {
-    if (!handle.stop) {
-      continue;
-    }
     try {
-      await handle.stop();
+      handle.abort?.();
+      await handle.stop?.();
     } catch {
       // Ignore stop failures during shutdown.
     }

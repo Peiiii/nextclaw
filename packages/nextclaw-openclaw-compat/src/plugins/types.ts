@@ -124,7 +124,12 @@ export type OpenClawChannelSetup = {
 };
 
 export type OpenClawChannelGatewayStartContext = {
+  cfg?: Config;
   accountId?: string | null;
+  channelId?: string;
+  abortSignal?: AbortSignal;
+  runtime?: Record<string, unknown>;
+  setStatus?: (status: Record<string, unknown>) => void;
   log?: {
     debug?: (message: string) => void;
     info?: (message: string) => void;

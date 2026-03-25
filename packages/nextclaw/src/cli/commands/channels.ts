@@ -3,6 +3,7 @@ import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
 import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtime";
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
+import { resolveChannelConfigView } from "./channel-config-view.js";
 import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../types.js";
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -26,6 +27,11 @@ type PluginLoginResult = {
   notes?: string[];
 };
 
+type PluginChannelContext = {
+  binding: PluginChannelBinding;
+  bindings: PluginChannelBinding[];
+};
+
 export class ChannelCommands {
   constructor(
     private deps: {
@@ -37,15 +43,18 @@ export class ChannelCommands {
 
   channelsStatus(): void {
     const config = loadConfig();
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    const pluginRegistry = loadPluginRegistry(config, workspaceDir);
+    const channelConfig = resolveChannelConfigView(config, getPluginChannelBindings(pluginRegistry));
+
     console.log("Channel Status");
-    const channelConfig = config.channels as Record<string, { enabled?: boolean }>;
+    const channels = channelConfig.channels as Record<string, { enabled?: boolean }>;
     for (const channelId of BUILTIN_CHANNEL_PLUGIN_IDS) {
       const label = CHANNEL_LABELS[channelId] ?? channelId;
-      const enabled = channelConfig[channelId]?.enabled === true;
+      const enabled = channels[channelId]?.enabled === true;
       console.log(`${label}: ${enabled ? "✓" : "✗"}`);
     }
 
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
     const report = buildPluginStatusReport({
       config,
       workspaceDir,
@@ -71,21 +80,21 @@ export class ChannelCommands {
     }
 
     const config = loadConfig();
-    const binding = this.resolvePluginChannelBinding(config, channelId);
-    if (!binding) {
+    const channelContext = this.resolvePluginChannelContext(config, channelId);
+    if (!channelContext) {
       console.error(`No plugin channel found for: ${channelId}`);
       process.exit(1);
     }
 
-    const result = await this.loginPluginChannel(config, binding, opts);
+    const result = await this.loginPluginChannel(config, channelContext, opts);
     if (!result) {
       return;
     }
 
-    saveConfig(this.buildNextConfigAfterChannelLogin(config, binding, result));
-    this.printPluginChannelLoginResult(binding, result);
+    saveConfig(this.buildNextConfigAfterChannelLogin(config, channelContext.binding, result));
+    this.printPluginChannelLoginResult(channelContext.binding, result);
     await this.deps.requestRestart({
-      reason: `channel login via plugin: ${binding.pluginId}`,
+      reason: `channel login via plugin: ${channelContext.binding.pluginId}`,
       manualMessage: "Restart the gateway to apply changes."
     });
   }
@@ -100,18 +109,23 @@ export class ChannelCommands {
     }
   }
 
-  private resolvePluginChannelBinding(config: ReturnType<typeof loadConfig>, channelId: string): PluginChannelBinding | undefined {
+  private resolvePluginChannelContext(config: ReturnType<typeof loadConfig>, channelId: string): PluginChannelContext | null {
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = loadPluginRegistry(config, workspaceDir);
     const bindings = getPluginChannelBindings(pluginRegistry);
-    return bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
+    const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
+    if (!binding) {
+      return null;
+    }
+    return { binding, bindings };
   }
 
   private async loginPluginChannel(
     config: ReturnType<typeof loadConfig>,
-    binding: PluginChannelBinding,
+    channelContext: PluginChannelContext,
     opts: ChannelsLoginOptions,
   ): Promise<PluginLoginResult | null> {
+    const { binding, bindings } = channelContext;
     const login = binding.channel.auth?.login;
     if (!login) {
       if (binding.channelId === "whatsapp") {
@@ -122,11 +136,12 @@ export class ChannelCommands {
       process.exit(1);
     }
 
+    const configView = resolveChannelConfigView(config, bindings);
     const result = await login({
-      cfg: config,
+      cfg: configView,
       pluginId: binding.pluginId,
       channelId: binding.channelId,
-      pluginConfig: this.clonePluginConfig(config.plugins.entries?.[binding.pluginId]?.config),
+      pluginConfig: this.clonePluginConfig(configView.channels?.[binding.channelId]),
       accountId: opts.account?.trim() || null,
       baseUrl: opts.url?.trim() || opts.httpUrl?.trim() || null,
       verbose: Boolean(opts.verbose)
@@ -159,22 +174,14 @@ export class ChannelCommands {
     binding: PluginChannelBinding,
     result: PluginLoginResult,
   ): ReturnType<typeof loadConfig> {
-    return enablePluginInConfig(
-      {
-        ...config,
-        plugins: {
-          ...config.plugins,
-          entries: {
-            ...(config.plugins.entries ?? {}),
-            [binding.pluginId]: {
-              ...(config.plugins.entries?.[binding.pluginId] ?? {}),
-              config: result.pluginConfig
-            }
-          }
-        }
-      },
-      binding.pluginId
-    );
+    const nextConfig = {
+      ...config,
+      channels: {
+        ...config.channels,
+        [binding.channelId]: result.pluginConfig as ReturnType<typeof loadConfig>["channels"][keyof ReturnType<typeof loadConfig>["channels"]]
+      }
+    };
+    return enablePluginInConfig(nextConfig, binding.pluginId);
   }
 
   private printPluginChannelLoginResult(binding: PluginChannelBinding, result: PluginLoginResult): void {

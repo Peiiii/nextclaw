@@ -28,6 +28,7 @@ export class ConfigReloader {
       providerManager: ProviderManager | null;
       makeProvider: (config: Config) => LLMProvider | null;
       loadConfig: () => Config;
+      resolveChannelConfig?: (config: Config) => Config;
       getExtensionChannels?: () => ExtensionRegistry["channels"];
       applyAgentRuntimeConfig?: (config: Config) => void;
       reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
@@ -149,8 +150,9 @@ export class ConfigReloader {
     }
     this.reloadTask = (async () => {
       await this.channels.stopAll();
+      const channelConfig = this.options.resolveChannelConfig?.(nextConfig) ?? nextConfig;
       this.channels = new ChannelManager(
-        nextConfig,
+        channelConfig,
         this.options.bus,
         this.options.sessionManager,
         this.options.getExtensionChannels?.() ?? []

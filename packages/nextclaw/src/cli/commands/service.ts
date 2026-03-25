@@ -43,6 +43,7 @@ import {
   type NextclawExtensionRegistry,
   toExtensionRegistry,
 } from "./plugins.js";
+import { resolveChannelConfigView } from "./channel-config-view.js";
 import { ServiceMarketplaceInstaller } from "./service-marketplace-installer.js";
 import { createCronJobHandler } from "./service-cron-job-handler.js";
 import { installPluginRuntimeBridge } from "./service-plugin-runtime-bridge.js";
@@ -127,9 +128,9 @@ export class ServiceCommands {
     const config = resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath });
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     let pluginRegistry = loadPluginRegistry(config, workspace);
+    let pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     let extensionRegistry = toExtensionRegistry(pluginRegistry);
     logPluginDiagnostics(pluginRegistry);
-
     const bus = new MessageBus();
     const provider =
       options.allowMissingProvider === true ? this.makeProvider(config, { allowMissing: true }) : this.makeProvider(config);
@@ -138,12 +139,9 @@ export class ServiceCommands {
       config
     });
     const sessionManager = new SessionManager(workspace);
-
     let pluginGatewayHandles: Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"] = [];
-
     const cronStorePath = join(getDataDir(), "cron", "jobs.json");
     const cron = new CronService(cronStorePath);
-
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
     const remoteModule = createManagedRemoteModuleForUi({
@@ -153,8 +151,7 @@ export class ServiceCommands {
     if (!provider) {
       console.warn("Warning: No API key configured. The gateway is running, but agent replies are disabled until provider config is set.");
     }
-
-    const channels = new ChannelManager(config, bus, sessionManager, extensionRegistry.channels);
+    const channels = new ChannelManager(resolveChannelConfigView(config, pluginChannelBindings), bus, sessionManager, extensionRegistry.channels);
     const reloader = new ConfigReloader({
       initialConfig: config,
       channels,
@@ -163,6 +160,7 @@ export class ServiceCommands {
       providerManager,
       makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }) ?? this.makeMissingProvider(nextConfig),
       loadConfig: () => resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }),
+      resolveChannelConfig: (nextConfig) => resolveChannelConfigView(nextConfig, pluginChannelBindings),
       getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({
@@ -172,9 +170,7 @@ export class ServiceCommands {
         });
       }
     });
-    this.applyLiveConfigReload = async () => {
-      await reloader.applyReloadPlan(resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }));
-    };
+    this.applyLiveConfigReload = async () => { await reloader.applyReloadPlan(resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath })); };
     const gatewayController = new GatewayControllerImpl({
       reloader,
       cron,
@@ -239,7 +235,6 @@ export class ServiceCommands {
     });
     reloader.setReloadMcp(async ({ config: nextConfig }) => { await this.liveUiNcpAgent?.applyMcpConfig?.(nextConfig); });
 
-    let pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     installPluginRuntimeBridge({
       runtimePool,
       runtimeConfigPath,
