@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
 
+## 0.1.20
+
+### Patch Changes
+
+- Republish the Codex NCP runtime plugin so attachment-backed file parts land in the published runtime prompt builder.
+
 ## 0.1.19
 
 ### Patch Changes
