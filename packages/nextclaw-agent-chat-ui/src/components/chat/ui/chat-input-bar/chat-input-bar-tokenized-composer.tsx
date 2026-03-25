@@ -10,6 +10,8 @@ import { ChatComposerRuntime } from './chat-composer-runtime';
 export type ChatInputBarTokenizedComposerHandle = {
   insertSlashItem: (item: ChatSlashItem) => void;
   insertFileToken: (tokenKey: string, label: string) => void;
+  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
+  focusComposer: () => void;
   syncSelectedSkills: (nextKeys: string[], options: ChatSkillPickerOption[]) => void;
 };
 

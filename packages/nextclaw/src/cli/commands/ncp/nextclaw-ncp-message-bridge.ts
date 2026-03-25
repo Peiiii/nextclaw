@@ -188,7 +188,7 @@ function resolveImageUrl(part: Extract<NcpMessagePart, { type: "file" }>): strin
   return `data:${mimeType};base64,${contentBase64}`;
 }
 
-function buildLegacyUserContent(parts: NcpMessagePart[]): unknown {
+export function buildLegacyUserContent(parts: NcpMessagePart[]): unknown {
   const blocks: Array<Record<string, unknown>> = [];
 
   for (const part of parts) {

@@ -129,6 +129,37 @@ async function fetchSessionSeed(sessionId) {
   return response.json();
 }
 
+function countAssistantReplies(seed) {
+  return Array.isArray(seed?.messages)
+    ? seed.messages.filter((message) => message?.role === "assistant").length
+    : 0;
+}
+
+async function waitForAssistantReplyMarker(sessionId, marker, baselineAssistantCount = 0) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const latestSeed = await fetchSessionSeed(sessionId);
+    const assistantMessages = Array.isArray(latestSeed?.messages)
+      ? latestSeed.messages.filter((message) => message?.role === "assistant")
+      : [];
+    const newAssistantMessages = assistantMessages.slice(baselineAssistantCount);
+    const assistantReply = newAssistantMessages.find((message) =>
+      Array.isArray(message.parts) &&
+      message.parts.some(
+        (part) =>
+          part?.type === "text" &&
+          typeof part.text === "string" &&
+          part.text.toLowerCase().includes(marker),
+      )
+    );
+    if (assistantReply) {
+      return latestSeed;
+    }
+    await sleep(500);
+  }
+
+  throw new Error(`UI smoke did not observe an assistant reply containing ${marker}.`);
+}
+
 function attachPageDiagnostics(page) {
   page.on("console", (message) => {
     if (message.type() === "error") {
@@ -170,6 +201,15 @@ async function assertImageAttachmentFlow(page, placeholder, imagePrompt, session
   if (!attachmentMessage) {
     throw new Error("UI smoke did not persist the uploaded image as an NCP file part.");
   }
+  const firstReplySeed = await waitForAssistantReplyMarker(sessionId, "image-received");
+  const followupAssistantCount = countAssistantReplies(firstReplySeed);
+  const followupPrompt =
+    "If you can still see the image from my previous message, reply exactly with image-still-visible.";
+
+  await page.getByPlaceholder(placeholder).fill(followupPrompt);
+  await page.getByRole("button", { name: "send" }).click();
+  await page.locator(".message.user", { hasText: followupPrompt }).waitFor();
+  await waitForAssistantReplyMarker(sessionId, "image-still-visible", followupAssistantCount);
 }
 
 async function assertSessionHydrationAfterReload(page, placeholder, sessionId, firstPrompt, longRunningPrompt) {
@@ -244,7 +284,8 @@ async function main() {
   const context = await browser.newContext();
   const page = await context.newPage();
   const firstPrompt = "remember-alpha";
-  const imagePrompt = "reply only with image-received";
+  const imagePrompt =
+    "If and only if this turn includes a visible uploaded image, reply exactly with image-received.";
   const longRunningPrompt = "Call the sleep tool with durationMs 10000 right now, then reply only with done.";
   const placeholder = "Ask for the time, or ask the agent to sleep for 2 seconds.";
 

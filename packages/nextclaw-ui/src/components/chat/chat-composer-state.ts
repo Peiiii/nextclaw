@@ -1,4 +1,5 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
+import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import {
   createChatComposerTokenNode,
@@ -62,24 +63,10 @@ export function syncComposerAttachments(
   attachments: readonly NcpDraftAttachment[]
 ): ChatComposerNode[] {
   const nextAttachmentIds = new Set(attachments.map((attachment) => attachment.id));
-  const prunedNodes = removeChatComposerTokenNodes(
+  return removeChatComposerTokenNodes(
     nodes,
     (node) => node.tokenKind === 'file' && !nextAttachmentIds.has(node.tokenKey)
   );
-  const existingAttachmentIds = extractChatComposerTokenKeys(prunedNodes, 'file');
-  const appendedNodes = attachments
-    .filter((attachment) => !existingAttachmentIds.includes(attachment.id))
-    .map((attachment) =>
-      createChatComposerTokenNode({
-        tokenKind: 'file',
-        tokenKey: attachment.id,
-        label: attachment.name
-      })
-    );
-
-  return appendedNodes.length === 0
-    ? prunedNodes
-    : normalizeChatComposerNodes([...prunedNodes, ...appendedNodes]);
 }
 
 export function pruneComposerAttachments(
@@ -88,4 +75,43 @@ export function pruneComposerAttachments(
 ): NcpDraftAttachment[] {
   const selectedIds = new Set(deriveSelectedAttachmentIdsFromComposer(nodes));
   return attachments.filter((attachment) => selectedIds.has(attachment.id));
+}
+
+export function deriveNcpMessagePartsFromComposer(
+  nodes: ChatComposerNode[],
+  attachments: readonly NcpDraftAttachment[]
+): NcpMessagePart[] {
+  const attachmentById = new Map(attachments.map((attachment) => [attachment.id, attachment]));
+  const parts: NcpMessagePart[] = [];
+
+  for (const node of nodes) {
+    if (node.type === 'text') {
+      if (node.text.length > 0) {
+        parts.push({
+          type: 'text',
+          text: node.text
+        });
+      }
+      continue;
+    }
+
+    if (node.tokenKind !== 'file') {
+      continue;
+    }
+
+    const attachment = attachmentById.get(node.tokenKey);
+    if (!attachment) {
+      continue;
+    }
+
+    parts.push({
+      type: 'file',
+      name: attachment.name,
+      mimeType: attachment.mimeType,
+      contentBase64: attachment.contentBase64,
+      sizeBytes: attachment.sizeBytes
+    });
+  }
+
+  return parts;
 }

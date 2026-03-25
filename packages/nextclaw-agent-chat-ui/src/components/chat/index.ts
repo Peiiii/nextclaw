@@ -1,4 +1,5 @@
 export { ChatInputBar } from './ui/chat-input-bar/chat-input-bar';
+export type { ChatInputBarHandle } from './ui/chat-input-bar/chat-input-bar';
 export { ChatMessageList } from './ui/chat-message-list/chat-message-list';
 
 export { useActiveItemScroll } from './hooks/use-active-item-scroll';

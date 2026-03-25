@@ -14,7 +14,7 @@ export type ChatInputManagerLike = {
   syncSnapshot: (patch: Record<string, unknown>) => void;
   setDraft: (next: SetStateAction<string>) => void;
   setComposerNodes: (next: SetStateAction<ChatComposerNode[]>) => void;
-  addAttachments?: (attachments: NcpDraftAttachment[]) => void;
+  addAttachments?: (attachments: NcpDraftAttachment[]) => NcpDraftAttachment[];
   restoreComposerState?: (
     nodes: ChatComposerNode[],
     attachments: NcpDraftAttachment[]

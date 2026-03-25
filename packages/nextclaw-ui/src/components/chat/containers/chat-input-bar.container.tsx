@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { ChatInputBar } from '@nextclaw/agent-chat-ui';
+import { ChatInputBar, type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import {
   DEFAULT_NCP_IMAGE_ATTACHMENT_ACCEPT,
   DEFAULT_NCP_IMAGE_ATTACHMENT_MAX_BYTES,
@@ -76,6 +76,7 @@ export function ChatInputBarContainer() {
   const { language } = useI18n();
   const snapshot = useChatInputStore((state) => state.snapshot);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const officialSkillBadgeLabel = useMemo(() => {
@@ -150,7 +151,15 @@ export function ChatInputBarContainer() {
     }
     const result = await readFilesAsNcpDraftAttachments(files);
     if (result.attachments.length > 0) {
-      presenter.chatInputManager.addAttachments?.(result.attachments);
+      const insertedAttachments = presenter.chatInputManager.addAttachments?.(result.attachments) ?? [];
+      if (insertedAttachments.length > 0) {
+        inputBarRef.current?.insertFileTokens(
+          insertedAttachments.map((attachment) => ({
+            tokenKey: attachment.id,
+            label: attachment.name
+          }))
+        );
+      }
     }
     if (result.rejected.length > 0) {
       showAttachmentError(result.rejected[0].reason);
@@ -197,6 +206,7 @@ export function ChatInputBarContainer() {
   return (
     <>
       <ChatInputBar
+        ref={inputBarRef}
         composer={{
           nodes: snapshot.composerNodes,
           placeholder: textareaPlaceholder,

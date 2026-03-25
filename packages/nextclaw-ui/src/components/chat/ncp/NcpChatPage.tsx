@@ -194,6 +194,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
           sessionId: payload.sessionKey,
           text: payload.message,
           attachments: payload.attachments,
+          parts: payload.parts,
           metadata
         });
         if (!envelope) {

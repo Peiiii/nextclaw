@@ -225,12 +225,12 @@ export class ChatComposerViewController {
   };
 
   handleBlur = (params: {
-    setSelectedRange: (selection: ChatComposerSelection | null) => void;
+    clearSelectedRange: () => void;
     onSlashQueryChange?: (query: string | null) => void;
     onSlashOpenChange: (open: boolean) => void;
   }): void => {
-    const { setSelectedRange, onSlashQueryChange, onSlashOpenChange } = params;
-    setSelectedRange(null);
+    const { clearSelectedRange, onSlashQueryChange, onSlashOpenChange } = params;
+    clearSelectedRange();
     onSlashQueryChange?.(null);
     onSlashOpenChange(false);
   };

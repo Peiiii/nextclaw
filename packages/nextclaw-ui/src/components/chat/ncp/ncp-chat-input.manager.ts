@@ -7,6 +7,7 @@ import {
   createChatComposerNodesFromDraft,
   createInitialChatComposerNodes,
   deriveChatComposerDraft,
+  deriveNcpMessagePartsFromComposer,
   deriveSelectedSkillsFromComposer,
   pruneComposerAttachments,
   syncComposerAttachments,
@@ -23,6 +24,14 @@ import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState'
 
 export class NcpChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);
+
+  private buildAttachmentSignature = (attachment: NcpDraftAttachment): string =>
+    [
+      attachment.name,
+      attachment.mimeType,
+      String(attachment.sizeBytes),
+      attachment.contentBase64,
+    ].join(':');
 
   constructor(
     private uiManager: ChatUiManager,
@@ -77,12 +86,7 @@ export class NcpChatInputManager {
     const seen = new Set<string>();
     const output: NcpDraftAttachment[] = [];
     for (const attachment of attachments) {
-      const signature = [
-        attachment.name,
-        attachment.mimeType,
-        String(attachment.sizeBytes),
-        attachment.contentBase64,
-      ].join(':');
+      const signature = this.buildAttachmentSignature(attachment);
       if (seen.has(signature)) {
         continue;
       }
@@ -125,14 +129,22 @@ export class NcpChatInputManager {
     this.syncComposerSnapshot(value);
   };
 
-  addAttachments = (attachments: NcpDraftAttachment[]) => {
+  addAttachments = (attachments: NcpDraftAttachment[]): NcpDraftAttachment[] => {
     if (attachments.length === 0) {
-      return;
+      return [];
     }
     const snapshot = useChatInputStore.getState().snapshot;
+    const existingSignatures = new Set(snapshot.attachments.map(this.buildAttachmentSignature));
     const nextAttachments = this.dedupeAttachments([...snapshot.attachments, ...attachments]);
+    const insertedAttachments = nextAttachments.filter(
+      (attachment) => !existingSignatures.has(this.buildAttachmentSignature(attachment))
+    );
+    if (insertedAttachments.length === 0) {
+      return [];
+    }
     const nextNodes = syncComposerAttachments(snapshot.composerNodes, nextAttachments);
     this.syncComposerSnapshotWithAttachments(nextNodes, nextAttachments);
+    return insertedAttachments;
   };
 
   restoreComposerState = (nodes: ChatComposerNode[], attachments: NcpDraftAttachment[]) => {
@@ -155,7 +167,11 @@ export class NcpChatInputManager {
     const sessionSnapshot = useChatSessionListStore.getState().snapshot;
     const message = inputSnapshot.draft.trim();
     const attachments = inputSnapshot.attachments;
-    if (!message && attachments.length === 0) {
+    const parts = deriveNcpMessagePartsFromComposer(inputSnapshot.composerNodes, attachments);
+    const hasSendableContent = parts.some(
+      (part) => part.type !== 'text' || part.text.trim().length > 0
+    );
+    if (!hasSendableContent) {
       return;
     }
     const { selectedSkills: requestedSkills, composerNodes } = inputSnapshot;
@@ -174,6 +190,7 @@ export class NcpChatInputManager {
       stopSupported: true,
       requestedSkills,
       attachments,
+      parts,
       restoreDraftOnError: true,
       composerNodes
     });

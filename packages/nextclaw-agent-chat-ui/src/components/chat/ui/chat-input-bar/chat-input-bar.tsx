@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import type { ChatInputBarProps } from '../../view-models/chat-ui.types';
 import { ChatSlashMenu } from './chat-slash-menu';
 import { ChatInputBarToolbar } from './chat-input-bar-toolbar';
@@ -43,7 +43,13 @@ function InputBarHint({ hint }: { hint: ChatInputBarProps['hint'] }) {
   );
 }
 
-export function ChatInputBar(props: ChatInputBarProps) {
+export type ChatInputBarHandle = {
+  insertFileToken: (tokenKey: string, label: string) => void;
+  insertFileTokens: (tokens: Array<{ tokenKey: string; label: string }>) => void;
+  focusComposer: () => void;
+};
+
+export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(props, ref) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
@@ -87,6 +93,12 @@ export function ChatInputBar(props: ChatInputBarProps) {
       }
     };
   }, [props.toolbar]);
+
+  useImperativeHandle(ref, () => ({
+    insertFileToken: (tokenKey, label) => composerRef.current?.insertFileToken(tokenKey, label),
+    insertFileTokens: (tokens) => composerRef.current?.insertFileTokens(tokens),
+    focusComposer: () => composerRef.current?.focusComposer(),
+  }), []);
 
   return (
     <div className="border-t border-gray-200/80 bg-white p-4">
@@ -143,4 +155,6 @@ export function ChatInputBar(props: ChatInputBarProps) {
       </div>
     </div>
   );
-}
+});
+
+ChatInputBar.displayName = 'ChatInputBar';

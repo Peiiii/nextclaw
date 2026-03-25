@@ -7,7 +7,6 @@ import {
   resolveThinkingLevel,
   type Config,
   type SessionManager,
-  type ThinkingLevel,
 } from "@nextclaw/core";
 import type {
   NcpAgentRunInput,
@@ -22,6 +21,11 @@ import {
   normalizeString,
   toLegacyMessages,
 } from "./nextclaw-ncp-message-bridge.js";
+import {
+  resolveEffectiveModel,
+  resolveSessionChannelContext,
+  syncSessionThinkingPreference,
+} from "./nextclaw-ncp-session-preferences.js";
 import { buildCurrentTurnState } from "./nextclaw-ncp-current-turn.js";
 import {
   readAccountIdForHints,
@@ -108,48 +112,6 @@ function resolveRequestedToolNames(metadata: Record<string, unknown>): string[] 
         .filter((item): item is string => Boolean(item)),
     ),
   );
-}
-
-function normalizeOptionalString(value: unknown): string | undefined {
-  return normalizeString(value) ?? undefined;
-}
-
-function readMetadataModel(metadata: Record<string, unknown>): string | null {
-  const candidates = [metadata.model, metadata.llm_model, metadata.agent_model, metadata.session_model];
-  for (const candidate of candidates) {
-    const normalized = normalizeString(candidate);
-    if (normalized) {
-      return normalized;
-    }
-  }
-  return null;
-}
-
-function readMetadataThinking(metadata: Record<string, unknown>): ThinkingLevel | "__clear__" | null {
-  const candidates = [
-    metadata.thinking,
-    metadata.thinking_level,
-    metadata.thinkingLevel,
-    metadata.thinking_effort,
-    metadata.thinkingEffort,
-  ];
-  for (const candidate of candidates) {
-    if (typeof candidate !== "string") {
-      continue;
-    }
-    const normalized = candidate.trim().toLowerCase();
-    if (!normalized) {
-      continue;
-    }
-    if (normalized === "clear" || normalized === "reset" || normalized === "off!") {
-      return "__clear__";
-    }
-    const level = parseThinkingLevel(normalized);
-    if (level) {
-      return level;
-    }
-  }
-  return null;
 }
 
 function resolvePrimaryAgentProfile(config: Config): ResolvedAgentProfile {
@@ -252,48 +214,22 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     const profile = resolvePrimaryAgentProfile(config);
     const requestMetadata = mergeInputMetadata(input);
     const session = this.options.sessionManager.getOrCreate(input.sessionId);
-
-    const clearModel = requestMetadata.clear_model === true || requestMetadata.reset_model === true;
-    if (clearModel) {
-      delete session.metadata.preferred_model;
-    }
-    const inboundModel = readMetadataModel(requestMetadata);
-    if (inboundModel) {
-      session.metadata.preferred_model = inboundModel;
-    }
-    let effectiveModel =
-      normalizeOptionalString(session.metadata.preferred_model) ??
-      profile.model;
-
-    const clearThinking = requestMetadata.clear_thinking === true || requestMetadata.reset_thinking === true;
-    if (clearThinking) {
-      delete session.metadata.preferred_thinking;
-    }
-    const inboundThinking = readMetadataThinking(requestMetadata);
-    if (inboundThinking === "__clear__") {
-      delete session.metadata.preferred_thinking;
-    } else if (inboundThinking) {
-      session.metadata.preferred_thinking = inboundThinking;
-    }
-
-    const channel =
-      normalizeOptionalString(requestMetadata.channel) ??
-      normalizeOptionalString(session.metadata.last_channel) ??
-      "ui";
-    const chatId =
-      normalizeOptionalString(requestMetadata.chatId) ??
-      normalizeOptionalString(requestMetadata.chat_id) ??
-      normalizeOptionalString(session.metadata.last_to) ??
-      "web-ui";
-    session.metadata.last_channel = channel;
-    session.metadata.last_to = chatId;
+    let effectiveModel = resolveEffectiveModel({
+      session,
+      requestMetadata,
+      fallbackModel: profile.model,
+    });
+    syncSessionThinkingPreference({ session, requestMetadata });
+    const { channel, chatId } = resolveSessionChannelContext({
+      session,
+      requestMetadata,
+    });
 
     const requestedSkillNames = resolveRequestedSkillNames(requestMetadata);
     const requestedToolNames = resolveRequestedToolNames(requestMetadata);
     const currentTurn = buildCurrentTurnState({
       input,
       currentModel: effectiveModel,
-      config,
       formatPrompt: ({ text, timestamp }) =>
         appendTimeHintForPrompt(
           prependRequestedSkills(text, requestedSkillNames),
@@ -338,8 +274,8 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     const sessionMessages = _options?.sessionMessages ?? [];
     const messages = contextBuilder.buildMessages({
       history: toLegacyMessages([...sessionMessages]),
-      currentMessage: currentTurn.currentMessage,
-      attachments: currentTurn.currentAttachments,
+      currentMessage: "",
+      attachments: [],
       channel,
       chatId,
       sessionKey: input.sessionId,
@@ -348,6 +284,10 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       messageToolHints,
       availableTools: buildToolCatalogEntries(toolDefinitions),
     });
+    messages[messages.length - 1] = {
+      role: "user",
+      content: currentTurn.currentUserContent,
+    };
     const pruned = this.inputBudgetPruner.prune({
       messages,
       contextTokens: profile.contextTokens,

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { ChatInputBar } from './chat-input-bar';
+import { ChatInputBar, type ChatInputBarHandle } from './chat-input-bar';
 import type { ChatComposerNode, ChatInputBarProps } from '../../view-models/chat-ui.types';
 import { createChatComposerTextNode, createChatComposerTokenNode } from './chat-composer.utils';
 
@@ -14,6 +14,21 @@ function setCursorToEnd(element: HTMLElement, text: string) {
   const offset = Math.min(text.length, textNode.textContent?.length ?? 0);
   range.setStart(textNode, offset);
   range.setEnd(textNode, offset);
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+}
+
+function setCursorOffset(element: HTMLElement, offset: number) {
+  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+  const textNode = walker.nextNode();
+  if (!textNode) {
+    return;
+  }
+  const selection = window.getSelection();
+  const range = document.createRange();
+  const boundedOffset = Math.min(offset, textNode.textContent?.length ?? 0);
+  range.setStart(textNode, boundedOffset);
+  range.setEnd(textNode, boundedOffset);
   selection?.removeAllRanges();
   selection?.addRange(range);
 }
@@ -109,6 +124,33 @@ function ExistingSkillTokenHarness() {
         }
       })}
     />
+  );
+}
+
+function FileTokenInsertionHarness() {
+  const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('Hello')]);
+  const inputRef = useRef<ChatInputBarHandle | null>(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.insertFileToken('sample-image', 'sample.png')}
+      >
+        Insert image
+      </button>
+      <ChatInputBar
+        ref={inputRef}
+        {...createInputBarProps({
+          composer: {
+            nodes,
+            placeholder: 'Type a message',
+            disabled: false,
+            onNodesChange: setNodes
+          }
+        })}
+      />
+    </>
   );
 }
 
@@ -214,6 +256,22 @@ it('forwards pasted files to the attachment handler', () => {
   });
 
   expect(onFilesAdd).toHaveBeenCalledWith([file]);
+});
+
+it('inserts a file token at the saved caret position', () => {
+  render(<FileTokenInsertionHarness />);
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+  setCursorOffset(textbox, 2);
+  fireEvent.mouseUp(textbox);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
+
+  const token = textbox.querySelector('[data-composer-token-key="sample-image"]');
+  expect(token).toBeTruthy();
+  expect(token?.previousSibling?.textContent).toBe('He');
+  expect(token?.nextSibling?.textContent).toBe('llo');
 });
 
 it('does not commit intermediate IME composition text before composition ends', () => {

@@ -1,4 +1,4 @@
-import type { NcpRequestEnvelope } from "@nextclaw/ncp";
+import type { NcpMessagePart, NcpRequestEnvelope } from "@nextclaw/ncp";
 
 export const DEFAULT_NCP_IMAGE_ATTACHMENT_ACCEPT =
   "image/png,image/jpeg,image/webp,image/gif";
@@ -69,22 +69,26 @@ export function buildNcpRequestEnvelope(params: {
   sessionId: string;
   text?: string;
   attachments?: readonly NcpDraftAttachment[];
+  parts?: readonly NcpMessagePart[];
   metadata?: Record<string, unknown>;
   messageId?: string;
   timestamp?: string;
 }): NcpRequestEnvelope | null {
-  const trimmedText = params.text?.trim() ?? "";
-  const attachments = params.attachments ?? [];
-  const parts = [
-    ...(trimmedText ? [{ type: "text" as const, text: trimmedText }] : []),
-    ...attachments.map((attachment) => ({
-      type: "file" as const,
-      name: attachment.name,
-      mimeType: attachment.mimeType,
-      contentBase64: attachment.contentBase64,
-      sizeBytes: attachment.sizeBytes,
-    })),
-  ];
+  const parts =
+    params.parts && params.parts.length > 0
+      ? params.parts.map((part) => structuredClone(part))
+      : [
+          ...((params.text?.trim() ?? "")
+            ? [{ type: "text" as const, text: params.text!.trim() }]
+            : []),
+          ...(params.attachments ?? []).map((attachment) => ({
+            type: "file" as const,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            contentBase64: attachment.contentBase64,
+            sizeBytes: attachment.sizeBytes,
+          })),
+        ];
 
   if (parts.length === 0) {
     return null;

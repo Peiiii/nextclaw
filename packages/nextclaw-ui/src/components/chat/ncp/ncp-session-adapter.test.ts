@@ -1,4 +1,5 @@
 import {
+  adaptNcpMessageToUiMessage,
   adaptNcpSessionSummary,
   buildNcpSessionRunStatusByKey,
   readNcpSessionPreferredThinking
@@ -37,6 +38,45 @@ describe('adaptNcpSessionSummary', () => {
       sessionTypeMutable: false,
       messageCount: 3
     });
+  });
+});
+
+describe('adaptNcpMessageToUiMessage', () => {
+  it('preserves mixed text and image part order for message rendering', () => {
+    const adapted = adaptNcpMessageToUiMessage({
+      id: 'ncp-message-1',
+      sessionId: 'ncp-session-1',
+      role: 'user',
+      status: 'final',
+      timestamp: '2026-03-25T00:00:00.000Z',
+      parts: [
+        { type: 'text', text: 'before ' },
+        {
+          type: 'file',
+          name: 'sample.png',
+          mimeType: 'image/png',
+          contentBase64: 'ZmFrZS1pbWFnZQ==',
+          sizeBytes: 10
+        },
+        { type: 'text', text: ' after' }
+      ]
+    });
+
+    expect(adapted.parts).toEqual([
+      {
+        type: 'text',
+        text: 'before '
+      },
+      {
+        type: 'file',
+        mimeType: 'image/png',
+        data: 'ZmFrZS1pbWFnZQ=='
+      },
+      {
+        type: 'text',
+        text: ' after'
+      }
+    ]);
   });
 });
 

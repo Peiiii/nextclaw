@@ -92,7 +92,7 @@ describe("NextclawNcpContextBuilder tool catalog", () => {
     expect(prepareForRun).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps NCP image file parts in the current user model input", () => {
+  it("keeps current-turn text and image parts in composer order", () => {
     const { workspace } = createWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -131,7 +131,7 @@ describe("NextclawNcpContextBuilder tool catalog", () => {
           status: "final",
           timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
           parts: [
-            { type: "text", text: "describe this image" },
+            { type: "text", text: "before " },
             {
               type: "file",
               name: "sample.png",
@@ -139,6 +139,7 @@ describe("NextclawNcpContextBuilder tool catalog", () => {
               contentBase64: "ZmFrZS1pbWFnZQ==",
               sizeBytes: 10,
             },
+            { type: "text", text: " after" },
           ],
         },
       ],
@@ -149,6 +150,10 @@ describe("NextclawNcpContextBuilder tool catalog", () => {
       role: "user",
       content: [
         {
+          type: "text",
+          text: "before ",
+        },
+        {
           type: "image_url",
           image_url: {
             url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
@@ -156,10 +161,101 @@ describe("NextclawNcpContextBuilder tool catalog", () => {
         },
         {
           type: "text",
-          text: "describe this image",
+          text: " after",
         },
       ],
     });
-    expect(prepared.model).toBe("openai/gpt-5.4");
+    expect(prepared.model).toBe("dashscope/qwen3.5-plus");
+  });
+
+  it("keeps historical image context without changing the selected model", () => {
+    const { workspace } = createWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "dashscope/qwen3.5-plus",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager: new SessionManager(workspace),
+      toolRegistry: {
+        prepareForRun: vi.fn(),
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+    });
+
+    const sessionId = `session-${randomUUID()}`;
+    const prepared = builder.prepare(
+      {
+        sessionId,
+        messages: [
+          {
+            id: "user-2",
+            sessionId,
+            role: "user",
+            status: "final",
+            timestamp: new Date("2026-03-25T10:05:00.000Z").toISOString(),
+            parts: [{ type: "text", text: "what is in that image?" }],
+          },
+        ],
+        metadata: {},
+      } as never,
+      {
+        sessionMessages: [
+          {
+            id: "history-user-image-1",
+            sessionId,
+            role: "user",
+            status: "final",
+            timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+            parts: [
+              { type: "text", text: "remember this image" },
+              {
+                type: "file",
+                name: "sample.png",
+                mimeType: "image/png",
+                contentBase64: "ZmFrZS1pbWFnZQ==",
+                sizeBytes: 10,
+              },
+            ],
+          },
+        ],
+      } as never,
+    );
+
+    expect(prepared.model).toBe("dashscope/qwen3.5-plus");
+    expect(prepared.messages).toContainEqual(
+      expect.objectContaining({
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "remember this image",
+          },
+          {
+            type: "image_url",
+            image_url: {
+              url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+            },
+          },
+        ],
+      }),
+    );
+    expect(prepared.messages.at(-1)).toEqual({
+      role: "user",
+      content: "what is in that image?",
+    });
   });
 });

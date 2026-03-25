@@ -86,6 +86,20 @@ export class ChatComposerRuntime {
       },
       insertFileToken: (tokenKey, label) => {
         this.commitSnapshot(this.controller.insertFileToken(tokenKey, label));
+        this.focusComposerSoon();
+      },
+      insertFileTokens: (tokens) => {
+        let nextSnapshot: ChatComposerControllerSnapshot | null = null;
+        for (const token of tokens) {
+          nextSnapshot = this.controller.insertFileToken(token.tokenKey, token.label);
+        }
+        if (nextSnapshot) {
+          this.commitSnapshot(nextSnapshot);
+          this.focusComposerSoon();
+        }
+      },
+      focusComposer: () => {
+        this.focusComposer();
       },
       syncSelectedSkills: (nextKeys, options) => {
         this.viewController.syncSelectedSkills(nextKeys, options, this.commitSnapshot);
@@ -190,7 +204,7 @@ export class ChatComposerRuntime {
     const config = this.requireConfig();
     this.isComposing = false;
     this.viewController.handleBlur({
-      setSelectedRange: this.setSelectedRange,
+      clearSelectedRange: this.clearSelectedRange,
       onSlashQueryChange: config.onSlashQueryChange,
       onSlashOpenChange: config.onSlashOpenChange
     });
@@ -199,6 +213,11 @@ export class ChatComposerRuntime {
   private readonly setSelectedRange = (selection: ChatComposerSelection | null): void => {
     this.selectedRange = selection;
     this.selection = selection;
+    this.requestRender();
+  };
+
+  private readonly clearSelectedRange = (): void => {
+    this.selectedRange = null;
     this.requestRender();
   };
 
@@ -224,6 +243,22 @@ export class ChatComposerRuntime {
 
   private readonly requestRender = (): void => {
     this.requireConfig().requestRender();
+  };
+
+  private readonly focusComposerSoon = (): void => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => this.focusComposer());
+      return;
+    }
+    this.focusComposer();
+  };
+
+  private readonly focusComposer = (): void => {
+    if (!this.rootElement) {
+      return;
+    }
+    this.rootElement.focus();
+    this.viewController.restoreSelectionIfFocused(this.rootElement, this.selection);
   };
 
   private readonly requireConfig = (): ChatComposerRuntimeConfig => {

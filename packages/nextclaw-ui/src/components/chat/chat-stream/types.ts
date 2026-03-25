@@ -1,4 +1,5 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
+import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type {
@@ -20,6 +21,7 @@ export type SendMessageParams = {
   thinkingLevel?: ThinkingLevel;
   requestedSkills?: string[];
   attachments?: NcpDraftAttachment[];
+  parts?: NcpMessagePart[];
   stopSupported?: boolean;
   stopReason?: string;
   restoreDraftOnError?: boolean;
