@@ -1,4 +1,4 @@
-import { loadConfig, resolveConfigSecrets, saveConfig } from "@nextclaw/core";
+import { loadConfig, resolveConfigSecrets, saveConfig, type InboundAttachment } from "@nextclaw/core";
 import { setPluginRuntimeBridge } from "@nextclaw/openclaw-compat";
 import type { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import type { GatewayAgentRuntimePool } from "./agent-runtime-pool.js";
@@ -21,6 +21,12 @@ type PluginRuntimeDispatchContext = {
   AgentId?: unknown;
   Model?: unknown;
   AgentModel?: unknown;
+  MediaPath?: unknown;
+  MediaPaths?: unknown;
+  MediaUrl?: unknown;
+  MediaUrls?: unknown;
+  MediaType?: unknown;
+  MediaTypes?: unknown;
 };
 
 export function installPluginRuntimeBridge(params: InstallPluginRuntimeBridgeParams): void {
@@ -79,6 +85,7 @@ function resolvePluginRuntimeRequest(ctx: PluginRuntimeDispatchContext) {
   const agentId = typeof ctx.AgentId === "string" ? ctx.AgentId : undefined;
   const modelOverride = resolveModelOverride(ctx);
   const accountId = typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0 ? ctx.AccountId : undefined;
+  const attachments = resolvePluginRuntimeAttachments(ctx);
 
   return {
     content,
@@ -86,6 +93,7 @@ function resolvePluginRuntimeRequest(ctx: PluginRuntimeDispatchContext) {
     channel,
     chatId,
     agentId,
+    attachments,
     metadata: {
       ...(accountId ? { account_id: accountId } : {}),
       ...(modelOverride ? { model: modelOverride } : {})
@@ -101,4 +109,56 @@ function resolveModelOverride(ctx: PluginRuntimeDispatchContext): string | undef
     return ctx.AgentModel.trim();
   }
   return undefined;
+}
+
+function readStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+    .filter(Boolean);
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function resolvePluginRuntimeAttachments(ctx: PluginRuntimeDispatchContext): InboundAttachment[] {
+  const mediaPaths = readStringList(ctx.MediaPaths);
+  const mediaUrls = readStringList(ctx.MediaUrls);
+  const fallbackPath = readOptionalString(ctx.MediaPath);
+  const fallbackUrl = readOptionalString(ctx.MediaUrl);
+  const mediaTypes = readStringList(ctx.MediaTypes);
+  const fallbackType = readOptionalString(ctx.MediaType);
+  const entryCount = Math.max(
+    mediaPaths.length,
+    mediaUrls.length,
+    fallbackPath ? 1 : 0,
+    fallbackUrl ? 1 : 0,
+  );
+
+  const attachments: InboundAttachment[] = [];
+  for (let index = 0; index < entryCount; index += 1) {
+    const path = mediaPaths[index] ?? (index === 0 ? fallbackPath : undefined);
+    const rawUrl = mediaUrls[index] ?? (index === 0 ? fallbackUrl : undefined);
+    const url = rawUrl && rawUrl !== path ? rawUrl : undefined;
+    const mimeType = mediaTypes[index] ?? fallbackType;
+    if (!path && !url) {
+      continue;
+    }
+    attachments.push({
+      path,
+      url,
+      mimeType,
+      source: "plugin-runtime",
+      status: path ? "ready" : "remote-only",
+    });
+  }
+
+  return attachments;
 }

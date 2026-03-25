@@ -186,14 +186,9 @@ export class GatewayAgentRuntimePool {
   }
 
   async processDirect(params: {
-    content: string;
-    sessionKey?: string;
-    channel?: string;
-    chatId?: string;
-    metadata?: Record<string, unknown>;
-    agentId?: string;
-    abortSignal?: AbortSignal;
-    onAssistantDelta?: (delta: string) => void;
+      content: string; sessionKey?: string; channel?: string; chatId?: string;
+      attachments?: InboundMessage["attachments"]; metadata?: Record<string, unknown>;
+      agentId?: string; abortSignal?: AbortSignal; onAssistantDelta?: (delta: string) => void;
     onSessionEvent?: (event: SessionEvent) => void;
   }): Promise<string> {
     const { message, route } = this.resolveDirectRoute({
@@ -201,6 +196,7 @@ export class GatewayAgentRuntimePool {
       sessionKey: params.sessionKey,
       channel: params.channel,
       chatId: params.chatId,
+      attachments: params.attachments,
       metadata: params.metadata,
       agentId: params.agentId
     });
@@ -210,12 +206,12 @@ export class GatewayAgentRuntimePool {
       chatId: message.chatId,
       sessionKey: route.sessionKey
     });
-    if (commandResult) {
-      return commandResult;
+    if (commandResult) return commandResult;
+    const runtime = forcedEngineKind ? this.resolveRuntimeForEngineKind(forcedEngineKind, route.agentId) : this.resolveRuntime(route.agentId);
+    if (message.attachments.length > 0) {
+      const outbound = await runtime.engine.handleInbound({ message, sessionKey: route.sessionKey, publishResponse: false, onAssistantDelta: params.onAssistantDelta });
+      return outbound?.content ?? "";
     }
-    const runtime = forcedEngineKind
-      ? this.resolveRuntimeForEngineKind(forcedEngineKind, route.agentId)
-      : this.resolveRuntime(route.agentId);
     return runtime.engine.processDirect({
       content: params.content,
       sessionKey: route.sessionKey,
@@ -378,10 +374,8 @@ export class GatewayAgentRuntimePool {
   private resolveDirectRoute(params: {
     content: string;
     sessionKey?: string;
-    channel?: string;
-    chatId?: string;
-    metadata?: Record<string, unknown>;
-    agentId?: string;
+    channel?: string; chatId?: string;
+    attachments?: InboundMessage["attachments"]; metadata?: Record<string, unknown>; agentId?: string;
   }): {
     message: InboundMessage;
     route: ReturnType<AgentRouteResolver["resolveInbound"]>;
@@ -392,7 +386,7 @@ export class GatewayAgentRuntimePool {
       chatId: params.chatId ?? "direct",
       content: params.content,
       timestamp: new Date(),
-      attachments: [],
+      attachments: params.attachments ?? [],
       metadata: params.metadata ?? {}
     };
     const forcedAgentId =

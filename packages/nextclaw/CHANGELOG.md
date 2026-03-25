@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.15.3
+
+### Patch Changes
+
+- Fix Feishu/OpenClaw plugin runtime image attachments so MediaPaths and MediaUrls reach the NextClaw runtime as inbound attachments during direct dispatch, and republish the aligned NextClaw CLI release group for version consistency.
+- Updated dependencies
+  - @nextclaw/mcp@0.1.41
+  - @nextclaw/server@0.10.45
+  - @nextclaw/ncp-mcp@0.1.40
+  - @nextclaw/remote@0.1.39
+
 ## 0.15.2
 
 ### Patch Changes

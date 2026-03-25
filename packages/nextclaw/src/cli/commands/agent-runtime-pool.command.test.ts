@@ -126,6 +126,52 @@ describe("GatewayAgentRuntimePool slash commands", () => {
     expect(processDirect).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards direct attachments to the engine runtime", async () => {
+    const workspace = createWorkspace();
+    const processDirect = vi.fn(async () => "engine-reply");
+    const handleInbound = vi.fn(async () => ({
+      channel: "feishu",
+      chatId: "oc-chat",
+      content: "image reply",
+      media: [],
+      metadata: {}
+    }));
+    const engine: AgentEngine = {
+      kind: "mock",
+      handleInbound,
+      processDirect,
+      applyRuntimeConfig: vi.fn()
+    };
+    const { runtimePool } = createRuntimePool({ workspace, engine });
+
+    const attachments = [
+      {
+        path: "/tmp/inbound-image.png",
+        mimeType: "image/png",
+        status: "ready" as const
+      }
+    ];
+
+    const result = await runtimePool.processDirect({
+      content: "describe image",
+      sessionKey: "agent:main:feishu:direct:oc-chat",
+      channel: "feishu",
+      chatId: "oc-chat",
+      attachments
+    });
+
+    expect(result).toBe("image reply");
+    expect(handleInbound).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.objectContaining({
+          attachments
+        }),
+        publishResponse: false
+      })
+    );
+    expect(processDirect).not.toHaveBeenCalled();
+  });
+
   it("marks non-native engine without supportsAbort as unsupported for stop", () => {
     const workspace = createWorkspace();
     const engine: AgentEngine = {
