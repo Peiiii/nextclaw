@@ -32,3 +32,6 @@ Add plugin load path to config:
   }
 }
 ```
+
+`engineConfig.requestTimeoutMs` is optional and disabled by default.
+Set it explicitly only when you want a hard timeout for each Claude request.

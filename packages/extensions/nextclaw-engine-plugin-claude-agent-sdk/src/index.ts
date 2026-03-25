@@ -524,7 +524,7 @@ const plugin: PluginDefinition = {
         const includePartialMessages = readBoolean(engineConfig, "includePartialMessages") ?? true;
         const maxTurns = readNumber(engineConfig, "maxTurns") ?? context.maxIterations;
         const maxThinkingTokens = readNumber(engineConfig, "maxThinkingTokens");
-        const requestTimeoutMs = Math.max(0, Math.trunc(readNumber(engineConfig, "requestTimeoutMs") ?? 30000));
+        const requestTimeoutMs = Math.max(0, Math.trunc(readNumber(engineConfig, "requestTimeoutMs") ?? 0));
 
         const baseQueryOptions: Partial<ClaudeAgentOptions> = {
           permissionMode,

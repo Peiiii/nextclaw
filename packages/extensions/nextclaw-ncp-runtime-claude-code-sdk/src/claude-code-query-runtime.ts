@@ -83,7 +83,7 @@ export function createRequestTimeout(
   requestTimeoutMs: number | undefined,
   abortController: AbortController,
 ): ReturnType<typeof setTimeout> | null {
-  const timeoutMs = Math.max(0, Math.trunc(requestTimeoutMs ?? 30000));
+  const timeoutMs = Math.max(0, Math.trunc(requestTimeoutMs ?? 0));
   if (timeoutMs <= 0) {
     return null;
   }

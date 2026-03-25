@@ -9,3 +9,8 @@ It composes the pure runtime library from `@nextclaw/nextclaw-ncp-runtime-claude
 ```bash
 pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk build
 ```
+
+## Request timeout
+
+`requestTimeoutMs` is optional and disabled by default for real Claude chat turns.
+Set it explicitly only when you need a hard per-request timeout.

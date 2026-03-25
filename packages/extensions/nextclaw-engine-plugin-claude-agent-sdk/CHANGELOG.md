@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-engine-claude-agent-sdk
 
+## 0.3.5
+
+### Patch Changes
+
+- Disable the default 30s Claude request timeout for real chat turns so long-running Claude sessions are only stopped by explicit aborts or an explicitly configured `requestTimeoutMs`.
+
 ## 0.3.4
 
 ### Patch Changes
@@ -74,6 +80,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements

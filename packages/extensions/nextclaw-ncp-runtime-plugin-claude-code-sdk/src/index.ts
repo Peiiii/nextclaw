@@ -21,6 +21,7 @@ import {
   readRecord,
   readString,
   resolveClaudeExecutionProbeTimeoutMs,
+  resolveClaudeRequestTimeoutMs,
 } from "./claude-runtime-shared.js";
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-claude-code-sdk";
@@ -226,7 +227,7 @@ const plugin: PluginDefinition = {
           sessionRuntimeId: readString(runtimeParams.sessionMetadata.claude_session_id) ?? null,
           env: runtimeContext.env,
           baseQueryOptions: runtimeContext.baseQueryOptions,
-          requestTimeoutMs: Math.max(0, Math.trunc(readNumber(pluginConfig.requestTimeoutMs) ?? 30000)),
+          requestTimeoutMs: resolveClaudeRequestTimeoutMs(pluginConfig.requestTimeoutMs),
           sessionMetadata: runtimeParams.sessionMetadata,
           setSessionMetadata: runtimeParams.setSessionMetadata,
           inputBuilder: buildClaudeInputBuilder(runtimeContext.workingDirectory),

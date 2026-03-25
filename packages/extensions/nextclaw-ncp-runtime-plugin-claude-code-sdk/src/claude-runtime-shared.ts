@@ -20,6 +20,14 @@ export function resolveClaudeExecutionProbeTimeoutMs(value: unknown): number {
   return Math.max(1000, Math.trunc(readNumber(value) ?? DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS));
 }
 
+export function resolveClaudeRequestTimeoutMs(value: unknown): number | undefined {
+  const timeoutMs = readNumber(value);
+  if (typeof timeoutMs !== "number") {
+    return undefined;
+  }
+  return Math.max(0, Math.trunc(timeoutMs));
+}
+
 export function readRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;

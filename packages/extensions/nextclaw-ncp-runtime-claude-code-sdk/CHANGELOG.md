@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
 
+## 0.1.6
+
+### Patch Changes
+
+- Disable the default 30s Claude request timeout for real chat turns so long-running Claude sessions are only stopped by explicit aborts or an explicitly configured `requestTimeoutMs`.
+
 ## 0.1.5
 
 ### Patch Changes
