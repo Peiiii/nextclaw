@@ -10,10 +10,11 @@ type ChatMessageFileProps = {
 export function ChatMessageFile({ file }: ChatMessageFileProps) {
   if (file.isImage && file.dataUrl) {
     return (
-      <figure className="overflow-hidden rounded-2xl border border-black/8 bg-black/6">
-        <img src={file.dataUrl} alt={file.label} className="block max-h-80 w-full object-contain" />
-        <figcaption className="border-t border-black/8 px-3 py-2 text-xs opacity-80">{file.label}</figcaption>
-      </figure>
+      <img
+        src={file.dataUrl}
+        alt={file.label}
+        className="block max-h-80 max-w-full rounded-2xl object-contain"
+      />
     );
   }
 

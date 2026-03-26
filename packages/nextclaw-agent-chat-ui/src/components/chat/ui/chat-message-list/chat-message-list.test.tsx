@@ -198,7 +198,7 @@ describe("ChatMessageList", () => {
   });
 
   it("renders image attachments inline", () => {
-    render(
+    const { container } = render(
       <ChatMessageList
         messages={[
           {
@@ -229,7 +229,9 @@ describe("ChatMessageList", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: "Image attachment" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: "Image attachment" }).className).toContain("rounded-2xl");
+    expect(container.querySelector("figure")).toBeNull();
+    expect(container.querySelector("figcaption")).toBeNull();
   });
 
   it("treats whitespace-only and zero-width markdown drafts as loading instead of visible bubbles", () => {
