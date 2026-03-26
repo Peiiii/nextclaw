@@ -647,11 +647,15 @@ export type UiNcpSessionMessagesView = {
   total: number;
 };
 
+export type SessionTypeDescribeParams = {
+  describeMode?: "observation" | "probe";
+};
+
 export type UiNcpAgent = {
   agentClientEndpoint: NcpAgentClientEndpoint;
   streamProvider?: NcpHttpAgentStreamProvider;
   sessionApi?: NcpSessionApi;
-  listSessionTypes?: () => Promise<ChatSessionTypesView> | ChatSessionTypesView;
+  listSessionTypes?: (params?: SessionTypeDescribeParams) => Promise<ChatSessionTypesView> | ChatSessionTypesView;
   basePath?: string;
 };
 

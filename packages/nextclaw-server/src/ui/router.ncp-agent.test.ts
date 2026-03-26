@@ -59,6 +59,7 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
 
   private readonly listeners = new Set<(event: NcpEndpointEvent) => void>();
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
+  readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
 
   async start(): Promise<void> {}
 
@@ -153,7 +154,8 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
 
   async deleteSession(): Promise<void> {}
 
-  async listSessionTypes() {
+  async listSessionTypes(params?: { describeMode?: "observation" | "probe" }) {
+    this.sessionTypeListCalls.push(params);
     return {
       defaultType: "native",
       options: [
@@ -195,7 +197,7 @@ describe("ncp ui routes", () => {
         agentClientEndpoint: agent,
         streamProvider,
         sessionApi: agent,
-        listSessionTypes: () => agent.listSessionTypes(),
+        listSessionTypes: (params) => agent.listSessionTypes(params),
       }
     });
 
@@ -242,6 +244,7 @@ describe("ncp ui routes", () => {
         { value: "codex", label: "Codex" },
       ],
     });
+    expect(agent.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
 
     const patchResponse = await app.request("http://localhost/api/ncp/sessions/session-1", {
       method: "PUT",

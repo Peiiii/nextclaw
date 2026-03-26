@@ -28,7 +28,10 @@ import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "./nextclaw-agent-session-store.js";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
-import { UiNcpRuntimeRegistry } from "./ui-ncp-runtime-registry.js";
+import {
+  UiNcpRuntimeRegistry,
+  type UiNcpSessionTypeDescribeParams,
+} from "./ui-ncp-runtime-registry.js";
 
 const CODEX_RUNTIME_KIND = "codex";
 const CODEX_DIRECT_RUNTIME_BACKEND = "codex-sdk";
@@ -284,9 +287,9 @@ function createUiNcpAgentHandle(params: {
     agentClientEndpoint: createAgentClientFromServer(params.backend),
     streamProvider: params.backend,
     sessionApi: params.backend,
-    listSessionTypes: () => {
+    listSessionTypes: (describeParams?: UiNcpSessionTypeDescribeParams) => {
       params.refreshPluginRuntimeRegistrations();
-      return params.runtimeRegistry.listSessionTypes();
+      return params.runtimeRegistry.listSessionTypes(describeParams);
     },
     applyExtensionRegistry: params.applyExtensionRegistry,
     applyMcpConfig: params.applyMcpConfig,

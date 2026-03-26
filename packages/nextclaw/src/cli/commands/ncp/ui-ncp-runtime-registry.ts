@@ -19,11 +19,15 @@ export type UiNcpSessionTypeOption = {
   } | null;
 };
 
+export type UiNcpSessionTypeDescribeParams = {
+  describeMode?: "observation" | "probe";
+};
+
 export type UiNcpRuntimeRegistration = {
   kind: string;
   label: string;
   createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-  describeSessionType?: () => Promise<Omit<UiNcpSessionTypeOption, "value" | "label"> | null | undefined>
+  describeSessionType?: (params?: UiNcpSessionTypeDescribeParams) => Promise<Omit<UiNcpSessionTypeOption, "value" | "label"> | null | undefined>
     | Omit<UiNcpSessionTypeOption, "value" | "label">
     | null
     | undefined;
@@ -94,13 +98,13 @@ export class UiNcpRuntimeRegistry {
     });
   }
 
-  async listSessionTypes(): Promise<{
+  async listSessionTypes(params?: UiNcpSessionTypeDescribeParams): Promise<{
     defaultType: string;
     options: UiNcpSessionTypeOption[];
   }> {
     const options = await Promise.all(
       [...this.registrations.values()].map(async (registration) => {
-        const descriptor = await registration.describeSessionType?.();
+        const descriptor = await registration.describeSessionType?.(params);
         return {
           value: registration.kind,
           label: registration.label,

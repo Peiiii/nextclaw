@@ -66,7 +66,9 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
   kind: string;
   label?: string;
   createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-  describeSessionType?: () =>
+  describeSessionType?: (params?: {
+    describeMode?: "observation" | "probe";
+  }) =>
     | Promise<{
         ready?: boolean;
         reason?: string | null;

@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.15.11
+
+### Patch Changes
+
+- Fix NCP session type observation so reading available session types no longer triggers Claude capability probes. Split observation and probe semantics for session-type descriptors and isolate Claude descriptor caching per mode. Republish the linked `@nextclaw/mcp` / `@nextclaw/server` / `nextclaw` release group in one batch for version alignment.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.30
+  - @nextclaw/mcp@0.1.49
+  - @nextclaw/server@0.10.53
+  - @nextclaw/ncp-mcp@0.1.48
+  - @nextclaw/remote@0.1.47
+
 ## 0.15.10
 
 ### Patch Changes

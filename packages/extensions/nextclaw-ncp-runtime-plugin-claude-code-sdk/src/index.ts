@@ -40,6 +40,12 @@ type SessionTypeDescriptor = {
   } | null;
 };
 
+type SessionTypeDescribeParams = {
+  describeMode?: "observation" | "probe";
+};
+
+type ClaudeSessionTypeCapabilityProbe = typeof loadAndProbeClaudeCodeSdkCapability;
+
 type PluginApi = {
   config: Config;
   pluginConfig?: Record<string, unknown>;
@@ -47,7 +53,7 @@ type PluginApi = {
     kind: string;
     label?: string;
     createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-    describeSessionType?: () => Promise<SessionTypeDescriptor | null | undefined>;
+    describeSessionType?: (params?: SessionTypeDescribeParams) => Promise<SessionTypeDescriptor | null | undefined>;
   }) => void;
 };
 
@@ -59,32 +65,38 @@ type PluginDefinition = {
   register: (api: PluginApi) => void;
 };
 
-function createDescribeClaudeSessionType(params: {
+export function createDescribeClaudeSessionType(params: {
   config: Config;
   pluginConfig: Record<string, unknown>;
-}): () => Promise<SessionTypeDescriptor> {
+  probeCapability?: ClaudeSessionTypeCapabilityProbe;
+}): (describeParams?: SessionTypeDescribeParams) => Promise<SessionTypeDescriptor> {
   const shouldProbeCapability = readBoolean(params.pluginConfig.capabilityProbe) ?? true;
+  const probeCapability = params.probeCapability ?? loadAndProbeClaudeCodeSdkCapability;
   const capabilityCacheTtlMs = Math.max(
     0,
     Math.trunc(readNumber(params.pluginConfig.capabilityCacheTtlMs) ?? 30000),
   );
-  let capabilityCache:
-    | {
-        expiresAt: number;
-        value: SessionTypeDescriptor;
-      }
-    | null = null;
-  let capabilityProbePromise: Promise<SessionTypeDescriptor> | null = null;
-
-  return async () => {
-    if (capabilityCache && capabilityCache.expiresAt > Date.now()) {
-      return capabilityCache.value;
+  const capabilityCacheByMode = new Map<
+    "observation" | "probe",
+    {
+      expiresAt: number;
+      value: SessionTypeDescriptor;
     }
-    if (capabilityProbePromise) {
-      return await capabilityProbePromise;
+  >();
+  const capabilityProbePromiseByMode = new Map<"observation" | "probe", Promise<SessionTypeDescriptor>>();
+
+  return async (describeParams?: SessionTypeDescribeParams) => {
+    const describeMode = describeParams?.describeMode === "probe" ? "probe" : "observation";
+    const cachedValue = capabilityCacheByMode.get(describeMode);
+    if (cachedValue && cachedValue.expiresAt > Date.now()) {
+      return cachedValue.value;
+    }
+    const pendingProbe = capabilityProbePromiseByMode.get(describeMode);
+    if (pendingProbe) {
+      return await pendingProbe;
     }
 
-    capabilityProbePromise = (async () => {
+    const capabilityProbePromise = (async () => {
       const runtimeContext = resolveClaudeRuntimeContext({
         config: params.config,
         pluginConfig: params.pluginConfig,
@@ -111,7 +123,9 @@ function createDescribeClaudeSessionType(params: {
         };
       }
 
-      if (!shouldProbeCapability) {
+      const shouldRunCapabilityProbe = shouldProbeCapability && describeMode === "probe";
+
+      if (!shouldRunCapabilityProbe) {
         return {
           ready: true,
           reason: null,
@@ -120,7 +134,7 @@ function createDescribeClaudeSessionType(params: {
           cta: null,
         };
       }
-      const capability = await loadAndProbeClaudeCodeSdkCapability({
+      const capability = await probeCapability({
         apiKey: runtimeContext.apiKey ?? "",
         authToken: runtimeContext.authToken,
         apiBase: runtimeContext.apiBase,
@@ -159,16 +173,17 @@ function createDescribeClaudeSessionType(params: {
           : null,
       };
     })();
+    capabilityProbePromiseByMode.set(describeMode, capabilityProbePromise);
 
     try {
       const value = await capabilityProbePromise;
-      capabilityCache = {
+      capabilityCacheByMode.set(describeMode, {
         expiresAt: Date.now() + capabilityCacheTtlMs,
         value,
-      };
+      });
       return value;
     } finally {
-      capabilityProbePromise = null;
+      capabilityProbePromiseByMode.delete(describeMode);
     }
   };
 }

@@ -26,7 +26,7 @@ export class NcpSessionRoutesController {
   readonly getSessionTypes = async (c: Context) => {
     const listSessionTypes = this.options.ncpAgent?.listSessionTypes;
     const payload: ChatSessionTypesView = listSessionTypes
-      ? await listSessionTypes()
+      ? await listSessionTypes({ describeMode: "observation" })
       : {
           defaultType: "native",
           options: [{ value: "native", label: "Native" }],
