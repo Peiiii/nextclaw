@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/server",
-  "version": "0.10.55",
+  "version": "0.10.56",
   "private": false,
   "description": "Nextclaw UI/API server.",
   "type": "module",

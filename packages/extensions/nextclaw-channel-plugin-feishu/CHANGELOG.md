@@ -1,5 +1,13 @@
 # @nextclaw/channel-plugin-feishu
 
+## 0.2.21
+
+### Patch Changes
+
+- Fix channel startup so a long-running plugin gateway no longer blocks the rest of the channel runtime from starting.
+
+  This release hardens the host-side gateway startup contract and updates the Feishu gateway to run its long-lived monitor in the background, allowing QQ, Discord, Weixin, and other channels to continue starting normally.
+
 ## 0.2.20
 
 ### Patch Changes

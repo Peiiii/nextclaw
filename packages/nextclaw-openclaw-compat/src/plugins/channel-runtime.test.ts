@@ -5,7 +5,7 @@ import type { PluginRegistry } from "./types.js";
 
 function createRegistry(
   listAccountIds?: (cfg?: Record<string, unknown>) => string[],
-  startAccount = vi.fn(async () => undefined)
+  startAccount: (...args: any[]) => any = vi.fn(async () => undefined)
 ): PluginRegistry {
   return {
     plugins: [],
@@ -169,6 +169,49 @@ describe("startPluginChannelGateways", () => {
 
     expect(startAccount).not.toHaveBeenCalled();
     expect(result.handles).toEqual([]);
+  });
+});
+
+describe("startPluginChannelGateways resilience", () => {
+  it("does not let a long-running gateway startup block the rest of service startup", async () => {
+    const startAccount = vi.fn(
+      ({ abortSignal }: { abortSignal?: AbortSignal }) =>
+        new Promise<{ stop: () => void }>((resolve) => {
+          abortSignal?.addEventListener(
+            "abort",
+            () => resolve({ stop: vi.fn() }),
+            { once: true },
+          );
+        }),
+    );
+    const registry = createRegistry(() => ["default"], startAccount);
+    const config = ConfigSchema.parse({
+      channels: {
+        feishu: {
+          enabled: true,
+        },
+      },
+    });
+    const timeoutToken = Symbol("timeout");
+
+    const result = await Promise.race([
+      startPluginChannelGateways({
+        registry,
+        config,
+        logger: {
+          info: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+        },
+      }),
+      new Promise<symbol>((resolve) => setTimeout(() => resolve(timeoutToken), 20)),
+    ]);
+
+    expect(result).not.toBe(timeoutToken);
+    expect(startAccount).toHaveBeenCalledTimes(1);
+    expect((result as Awaited<ReturnType<typeof startPluginChannelGateways>>).handles).toHaveLength(1);
+
+    await (result as Awaited<ReturnType<typeof startPluginChannelGateways>>).handles[0]?.stop?.();
   });
 });
 

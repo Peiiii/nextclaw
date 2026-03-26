@@ -260,55 +260,69 @@ export async function startPluginChannelGateways(params: {
     const finalAccountIds = accountIds.length > 0 ? accountIds : ["default"];
 
     for (const accountId of finalAccountIds) {
-      try {
-        const abortController = new AbortController();
-        const started = await gateway.startAccount({
-          accountId,
-          channelId: binding.channelId,
-          cfg: configView as Config | undefined,
-          abortSignal: abortController.signal,
-          runtime: logger
-            ? {
-                log: logger.info,
-                info: logger.info,
-                warn: logger.warn,
-                error: logger.error,
-                debug: logger.debug
-              }
-            : undefined,
-          setStatus: () => undefined,
-          log: logger
+      const abortController = new AbortController();
+      let stopGateway:
+        | (() => void | Promise<void>)
+        | undefined;
+      const startTask = Promise.resolve()
+        .then(async () =>
+          await gateway.startAccount?.({
+            accountId,
+            channelId: binding.channelId,
+            cfg: configView as Config | undefined,
+            abortSignal: abortController.signal,
+            runtime: logger
+              ? {
+                  log: logger.info,
+                  info: logger.info,
+                  warn: logger.warn,
+                  error: logger.error,
+                  debug: logger.debug
+                }
+              : undefined,
+            setStatus: () => undefined,
+            log: logger
+          })
+        )
+        .then((started) => {
+          if (started && typeof started === "object" && "stop" in started && typeof started.stop === "function") {
+            stopGateway = started.stop.bind(started);
+          }
+        })
+        .catch((error) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+          const raw = String(error);
+          const lower = raw.toLowerCase();
+          const level =
+            lower.includes("required") || lower.includes("not configured") || lower.includes("missing")
+              ? "warn"
+              : "error";
+          const message = `failed to start channel gateway for ${binding.channelId}/${accountId}: ${raw}`;
+          diagnostics.push({
+            level,
+            pluginId: binding.pluginId,
+            message
+          });
+          if (level === "error") {
+            logger?.error(message);
+          } else {
+            logger?.warn(message);
+          }
         });
-        handles.push({
-          pluginId: binding.pluginId,
-          channelId: binding.channelId,
-          accountId,
-          abort: () => abortController.abort(),
-          stop:
-            async () => {
-              abortController.abort();
-              if (started && typeof started === "object" && "stop" in started && typeof started.stop === "function") {
-                await started.stop();
-              }
-            }
-        });
-      } catch (error) {
-        const raw = String(error);
-        const lower = raw.toLowerCase();
-        const level =
-          lower.includes("required") || lower.includes("not configured") || lower.includes("missing") ? "warn" : "error";
-        const message = `failed to start channel gateway for ${binding.channelId}/${accountId}: ${raw}`;
-        diagnostics.push({
-          level,
-          pluginId: binding.pluginId,
-          message
-        });
-        if (level === "error") {
-          logger?.error(message);
-        } else {
-          logger?.warn(message);
+
+      handles.push({
+        pluginId: binding.pluginId,
+        channelId: binding.channelId,
+        accountId,
+        abort: () => abortController.abort(),
+        stop: async () => {
+          abortController.abort();
+          await startTask;
+          await stopGateway?.();
         }
-      }
+      });
     }
   }
 

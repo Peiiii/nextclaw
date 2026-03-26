@@ -82,7 +82,7 @@ export class NcpAttachmentRoutesController {
     return c.json(ok(payload));
   };
 
-  readonly getAttachmentContent = async (c: Context) => {
+  readonly getAttachmentContent = async (c: Context): Promise<Response> => {
     const attachmentApi = this.options.ncpAgent?.attachmentApi;
     if (!attachmentApi) {
       return c.json(err("NOT_AVAILABLE", "ncp attachment api unavailable"), 503);

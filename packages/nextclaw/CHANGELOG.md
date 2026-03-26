@@ -1,5 +1,18 @@
 # nextclaw
 
+## 0.15.14
+
+### Patch Changes
+
+- Fix channel startup so a long-running plugin gateway no longer blocks the rest of the channel runtime from starting.
+
+  This release hardens the host-side gateway startup contract and updates the Feishu gateway to run its long-lived monitor in the background, allowing QQ, Discord, Weixin, and other channels to continue starting normally.
+
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.32
+  - @nextclaw/server@0.10.56
+  - @nextclaw/remote@0.1.50
+
 ## 0.15.13
 
 ### Patch Changes

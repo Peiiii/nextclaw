@@ -351,19 +351,40 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
   },
   gateway: {
     startAccount: async (ctx) => {
-      const { monitorFeishuProvider } = await import("./monitor.js");
+      const { monitorFeishuProvider, stopFeishuMonitor } = await import("./monitor.js");
       const account = resolveFeishuAccount({ cfg: ctx.cfg, accountId: ctx.accountId });
+      const accountId = account.accountId;
       const port = account.config?.webhookPort ?? null;
-      ctx.setStatus({ accountId: ctx.accountId, port });
+      ctx.setStatus({ accountId, port });
       ctx.log?.info(
-        `starting feishu[${ctx.accountId}] (mode: ${account.config?.connectionMode ?? "websocket"})`,
+        `starting feishu[${accountId}] (mode: ${account.config?.connectionMode ?? "websocket"})`,
       );
-      return monitorFeishuProvider({
-        config: ctx.cfg,
-        runtime: ctx.runtime,
-        abortSignal: ctx.abortSignal,
-        accountId: ctx.accountId,
-      });
+
+      // Start the long-running monitor in the background so service startup can continue
+      // into ChannelManager.startAll() for other channels.
+      const monitorTask = (async () => {
+        try {
+          await monitorFeishuProvider({
+            config: ctx.cfg,
+            runtime: ctx.runtime,
+            abortSignal: ctx.abortSignal,
+            accountId,
+          });
+        } catch (error) {
+          if (ctx.abortSignal?.aborted) {
+            return;
+          }
+          const message = error instanceof Error ? error.stack ?? error.message : String(error);
+          ctx.log?.error?.(`feishu[${accountId}]: gateway monitor stopped unexpectedly: ${message}`);
+        }
+      })();
+
+      return {
+        stop: async () => {
+          stopFeishuMonitor(accountId);
+          await monitorTask;
+        },
+      };
     },
   },
 };
