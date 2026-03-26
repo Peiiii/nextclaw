@@ -1,8 +1,10 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { DocBrowserProvider, useDocBrowser } from '@/components/doc-browser/DocBrowserContext';
 import { useDocLinkInterceptor } from '@/components/doc-browser/useDocLinkInterceptor';
+import { useI18n } from '@/components/providers/I18nProvider';
+import { resolveUiDocumentTitle } from '@/lib/ui-document-title';
 import { cn } from '@/lib/utils';
 
 const DocBrowser = lazy(async () => ({ default: (await import('@/components/doc-browser/DocBrowser')).DocBrowser }));
@@ -32,8 +34,13 @@ function AppLayoutInner({ children }: AppLayoutProps) {
   const { isOpen, mode } = useDocBrowser();
   useDocLinkInterceptor();
   const { pathname } = useLocation();
+  const { language } = useI18n();
   const isMainRoute = isMainWorkspaceRoute(pathname);
   const lockPageScroll = isChannelsRoute(pathname);
+
+  useEffect(() => {
+    document.title = resolveUiDocumentTitle(pathname);
+  }, [pathname, language]);
 
   return (
     <div className="h-screen flex bg-background font-sans text-foreground">
