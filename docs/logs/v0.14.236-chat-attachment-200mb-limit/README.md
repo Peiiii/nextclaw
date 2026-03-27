@@ -14,6 +14,9 @@
 - 定向验证：
   - `pnpm -C packages/nextclaw-ui exec vitest run src/components/chat/chat-attachment-upload-limit.test.ts`
   - `pnpm -C packages/ncp-packages/nextclaw-ncp-react tsc`
+- 冒烟验证：
+  - `pnpm -C packages/nextclaw exec tsx --eval "import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '../../packages/ncp-packages/nextclaw-ncp-react/src/attachments/ncp-attachments.ts'; void (async () => { const file = new File([new Uint8Array(12 * 1024 * 1024)], 'smoke-large-image.png', { type: 'image/png' }); const result = await uploadFilesAsNcpDraftAttachments([file], { uploadBatch: async (files) => files.map((entry) => ({ id: entry.name, name: entry.name, mimeType: entry.type, sizeBytes: entry.size, assetUri: 'asset://store/' + entry.name })) }); console.log(JSON.stringify({ maxBytes: DEFAULT_NCP_ATTACHMENT_MAX_BYTES, attachments: result.attachments.length, rejected: result.rejected.length, firstAttachmentSize: result.attachments[0]?.sizeBytes ?? null })); })();"`
+  - 结果：`{"maxBytes":209715200,"attachments":1,"rejected":0,"firstAttachmentSize":12582912}`
 - 仓库级发布验证：
   - `pnpm release:version`
   - `pnpm release:publish`
