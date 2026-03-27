@@ -8,7 +8,12 @@ export type ClaudeCodeMessage = {
   subtype?: string;
   is_error?: boolean;
   session_id?: string;
+  parent_tool_use_id?: string | null;
+  tool_use_id?: string;
+  tool_name?: string;
+  tool_use_result?: unknown;
   message?: {
+    role?: unknown;
     content?: unknown;
   };
   event?: unknown;
@@ -64,11 +69,6 @@ export type ClaudeCodeSdkModule = {
       supportedModels?: ClaudeCodeQuery["supportedModels"];
     };
   };
-};
-
-export type TextStreamState = {
-  emittedText: string;
-  textStarted: boolean;
 };
 
 export type ClaudeCodeLoader = {

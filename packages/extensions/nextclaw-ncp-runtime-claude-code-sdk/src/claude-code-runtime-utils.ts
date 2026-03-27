@@ -176,33 +176,6 @@ export function extractAssistantSnapshot(message: ClaudeCodeMessage): string {
   return "";
 }
 
-export function extractAssistantDelta(message: ClaudeCodeMessage): string {
-  if (message.type !== "stream_event" || !message.event || typeof message.event !== "object") {
-    return "";
-  }
-
-  const event = message.event as {
-    type?: unknown;
-    delta?: unknown;
-    text?: unknown;
-    content?: unknown;
-  };
-
-  if (event.type === "content_block_delta") {
-    const delta = event.delta as { type?: unknown; text?: unknown } | undefined;
-    if (delta?.type === "text_delta" && typeof delta.text === "string") {
-      return delta.text;
-    }
-  }
-  if (typeof event.text === "string") {
-    return event.text;
-  }
-  if (typeof event.content === "string") {
-    return event.content;
-  }
-  return "";
-}
-
 export function extractFailureMessage(message: ClaudeCodeMessage): string | null {
   if (message.type === "result") {
     if (message.is_error === true) {

@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.23
+
+### Patch Changes
+
+- Expose Claude reasoning, tool call, and tool result events through the shared NCP event stream so NextClaw chat renders Claude sessions like other runtimes.
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.9
+
 ## 0.1.22
 
 ### Patch Changes

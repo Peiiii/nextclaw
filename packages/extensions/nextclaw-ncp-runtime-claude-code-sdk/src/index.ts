@@ -11,12 +11,15 @@ import {
   type ClaudeCodeMessage,
   type ClaudeCodeSdkModule,
   type ClaudeCodeSdkNcpAgentRuntimeConfig,
-  type TextStreamState,
 } from "./claude-code-sdk-types.js";
 import {
+  createClaudeSdkEventMapperState,
+  flushClaudeSdkMessageEventState,
+  mapClaudeMessageEvent,
+  type ClaudeSdkEventMapperState,
+} from "./claude-sdk-ncp-event-mapper.js";
+import {
   createId,
-  extractAssistantDelta,
-  extractAssistantSnapshot,
   extractFailureMessage,
   readUserText,
   toAbortError,
@@ -66,10 +69,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   ): AsyncGenerator<NcpEndpointEvent> {
     const messageId = createId("claude-message");
     const runId = createId("claude-run");
-    const textState: TextStreamState = {
-      emittedText: "",
-      textStarted: false,
-    };
+    const eventState = createClaudeSdkEventMapperState();
     let finished = false;
 
     yield* this.emitReadyEvents(input.sessionId, messageId, runId);
@@ -86,7 +86,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
           messageId,
           runId,
           message,
-          textState,
+          eventState,
         });
         if (shouldStop) {
           finished = true;
@@ -94,7 +94,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
         }
       }
 
-      yield* this.emitTextEnd(input.sessionId, messageId, textState);
+      yield* this.emitTextEnd(input.sessionId, messageId, eventState);
       yield* this.emitFinalEvents(input.sessionId, messageId, runId);
       finished = true;
     } catch (error) {
@@ -110,7 +110,8 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
       query.close?.();
 
       if (!finished) {
-        yield* this.emitTextEnd(input.sessionId, messageId, textState);
+        yield* this.emitClaudeFlushEvents(input.sessionId, messageId, eventState);
+        yield* this.emitTextEnd(input.sessionId, messageId, eventState);
       }
     }
   }
@@ -174,9 +175,9 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
     messageId: string;
     runId: string;
     message: ClaudeCodeMessage;
-    textState: TextStreamState;
+    eventState: ClaudeSdkEventMapperState;
   }): AsyncGenerator<NcpEndpointEvent, boolean> {
-    const { sessionId, messageId, runId, message, textState } = params;
+    const { sessionId, messageId, runId, message, eventState } = params;
 
     if (typeof message.session_id === "string" && message.session_id.trim()) {
       this.updateSessionRuntimeId(message.session_id);
@@ -188,16 +189,13 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
       return true;
     }
 
-    const delta = extractAssistantDelta(message);
-    if (delta) {
-      yield* this.emitTextDelta(sessionId, messageId, textState, delta);
-    }
-
-    const snapshot = extractAssistantSnapshot(message);
-    if (snapshot.length > textState.emittedText.length) {
-      const nextDelta = snapshot.slice(textState.emittedText.length);
-      yield* this.emitTextDelta(sessionId, messageId, textState, nextDelta);
-      textState.emittedText = snapshot;
+    for await (const event of mapClaudeMessageEvent({
+      sessionId,
+      messageId,
+      message,
+      state: eventState,
+    })) {
+      yield* this.emitEvent(event);
     }
 
     return false;
@@ -252,7 +250,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private async *emitTextDelta(
     sessionId: string,
     messageId: string,
-    state: TextStreamState,
+    state: ClaudeSdkEventMapperState,
     delta: string,
   ): AsyncGenerator<NcpEndpointEvent> {
     if (!delta) {
@@ -284,7 +282,7 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private async *emitTextEnd(
     sessionId: string,
     messageId: string,
-    state: TextStreamState,
+    state: ClaudeSdkEventMapperState,
   ): AsyncGenerator<NcpEndpointEvent> {
     if (!state.textStarted) {
       return;
@@ -298,6 +296,22 @@ export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
       },
     });
     state.textStarted = false;
+  }
+
+  private async *emitClaudeFlushEvents(
+    sessionId: string,
+    messageId: string,
+    state: ClaudeSdkEventMapperState,
+  ): AsyncGenerator<NcpEndpointEvent> {
+    const events = flushClaudeSdkMessageEventState({
+      sessionId,
+      messageId,
+      state,
+    });
+
+    for (const event of events) {
+      yield* this.emitEvent(event);
+    }
   }
 
   private async *emitFinalEvents(
