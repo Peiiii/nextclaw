@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.11.1
+
+### Patch Changes
+
+- Raise the frontend NCP attachment upload limit from 10MB to 200MB.
+- Updated dependencies
+  - @nextclaw/ncp-react@0.4.1
+
 ## 0.11.0
 
 ### Minor Changes
@@ -275,7 +283,6 @@
 - Switch skill distribution to marketplace-first flow and remove GitHub-based skill install paths.
 
   This release includes:
-
   - skill/plugin model clean split (skill: `builtin` + `marketplace` only)
   - marketplace API migration from bundled JSON to D1-backed source
   - CLI support for marketplace skill upload/update/install
@@ -336,7 +343,6 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
-
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements

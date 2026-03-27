@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.16.1
+
+### Patch Changes
+
+- Raise the frontend NCP attachment upload limit from 10MB to 200MB.
+
 ## 0.16.0
 
 ### Minor Changes
@@ -354,7 +360,6 @@
 ### Patch Changes
 
 - Publish the transparent app transport boundary fix so local and remote streaming remain a true transport-only replacement.
-
   - keep SSE and multiplex adapters transport-only instead of interpreting upper-layer terminal events
   - preserve `final` as a normal streamed event while keeping `openStream().finished` stable
   - ship the repaired local chat UX and remote request-multiplex behavior in the released CLI/UI/runtime chain
@@ -615,7 +620,6 @@
 ### Patch Changes
 
 - Keep the `@nextclaw/mcp` / `@nextclaw/server` / `nextclaw` release group aligned while shipping the `nextclaw` UI static directory contract tightening.
-
   - `nextclaw`: remove implicit UI static directory fallbacks so the published CLI only serves the bundled `ui-dist` or an explicit `NEXTCLAW_UI_STATIC_DIR` override. Invalid overrides now fail fast with a non-zero exit instead of silently borrowing repo-local frontend artifacts from `cwd`.
   - `@nextclaw/mcp`: version-only companion release for release-group alignment.
   - `@nextclaw/server`: version-only companion release for release-group alignment.
@@ -704,13 +708,11 @@
 ### Patch Changes
 
 - Fix Codex chat startup and plugin resolution when running NextClaw from source in dev mode.
-
   - prefer repo-local first-party plugins from `packages/extensions` when `NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR` is unset
   - avoid loading stale installed Codex runtime plugins from `~/.nextclaw/extensions` during source-mode smoke tests
   - keep the release group for `@nextclaw/mcp`, `@nextclaw/server`, and `nextclaw` in sync while shipping the Codex chat fix
 
 - Add service-managed remote access configuration and CLI commands for NextClaw.
-
   - add `remote.enabled`, `remote.deviceName`, `remote.platformApiBase`, and `remote.autoReconnect` to the shared config schema
   - add `nextclaw remote enable|disable|status|doctor` and keep `remote connect` as foreground debug mode
   - run the remote connector inside the managed service lifecycle and surface remote state in `nextclaw status`
@@ -1001,7 +1003,6 @@
 - Switch skill distribution to marketplace-first flow and remove GitHub-based skill install paths.
 
   This release includes:
-
   - skill/plugin model clean split (skill: `builtin` + `marketplace` only)
   - marketplace API migration from bundled JSON to D1-backed source
   - CLI support for marketplace skill upload/update/install
@@ -1051,7 +1052,6 @@
 ### Patch Changes
 
 - Refactor provider and channel architecture with core registry mechanism and runtime assembly.
-
   - Move builtin provider catalog and builtin channel IDs out of core into `@nextclaw/runtime`.
   - Keep provider registry mechanisms in `@nextclaw/core` with injectable catalog support.
   - Update server/CLI to consume runtime-provided builtin provider/channel metadata.
@@ -1121,7 +1121,6 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
-
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements
@@ -1163,7 +1162,6 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
-
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -1247,7 +1245,6 @@
 ### Patch Changes
 
 - Align channel configuration UX with provider page paradigm and fix logo badge consistency.
-
   - Switch Channels page to a provider-style two-pane workflow with list/filter on the left and persistent form on the right.
   - Fix hook ordering in `ChannelsList` to avoid render-time hook count mismatch.
   - Enforce stable logo badge sizing (`shrink-0`, overflow handling) so provider/channel icons keep consistent frame size.
@@ -1261,7 +1258,6 @@
 ### Patch Changes
 
 - Add channel tutorial metadata and expose in the UI with localized links.
-
   - Add a Tutorials module to docs (EN/ZH) and include a dedicated Feishu setup page.
   - Extend config meta channel spec with `tutorialUrls` (`default/en/zh`) while keeping `tutorialUrl` for compatibility.
   - Resolve localized tutorial URLs in UI and show guide entry points on channel cards and channel config modal headers.
@@ -1326,7 +1322,6 @@
 ### Patch Changes
 
 - Introduce event-backed chat storage and event-sequence rendering for UI chat:
-
   - persist session events (single-write) and project legacy messages from events
   - stream `session_event` frames alongside text deltas in chat SSE
   - render chat by ordered event timeline, merging tool call/result/follow-up in one assistant flow card
@@ -1374,7 +1369,6 @@
 ### Patch Changes
 
 - feat: add secrets command suite and ui management panel
-
   - add `nextclaw secrets audit/configure/apply/reload` with config-aware validation and reload planning
   - add ui secrets panel for editing `secrets.enabled/defaults/providers/refs`
   - add ui api endpoint `PUT /api/config/secrets` and full client hook/types integration
@@ -1431,7 +1425,6 @@
 ### Patch Changes
 
 - feat(marketplace): support git skill install via skild with explicit skill/path parameters
-
   - route marketplace git skills through `npx skild install`
   - pass `skill` and `installPath` from UI -> server -> installer
   - allow git-type skills in marketplace skills list
@@ -1617,7 +1610,6 @@
 ### Patch Changes
 
 - fix SkillsLoader import crash during update/restart startup.
-
   - avoid static named import of `SkillsLoader` in runtime-critical paths
   - gracefully handle missing runtime export to prevent ESM load-time crash
   - make core export of `SkillsLoader` explicit for release safety
@@ -1678,7 +1670,6 @@
 ### Patch Changes
 
 - feat(marketplace): add VSCode-style marketplace with installed state and install integration
-
   - add marketplace query/install API on UI server
   - connect install actions to existing CLI plugin/skill install commands
   - add marketplace frontend page with search, filters, recommendations, and installed tab
@@ -1698,7 +1689,6 @@
 ### Patch Changes
 
 - feat: hot-apply plugin config changes without restarting the gateway process.
-
   - treat `plugins.*` as reloadable config paths
   - hot-reload plugin registry / plugin channel gateways / channel manager in-place
   - apply plugin extension registry updates to agent runtime pool
@@ -1715,7 +1705,6 @@
 ### Patch Changes
 
 - fix: prevent broken historical tool-call chains from causing provider 400 in long-running Discord multi-agent sessions.
-
   - sanitize stale `assistant(tool_calls)` + `tool` history pairs before provider requests
   - preserve active trailing tool-call chain semantics
   - reduce INVALID_ARGUMENT failures after context-budget pruning
@@ -1754,7 +1743,6 @@
 ### Patch Changes
 
 - Add full session management in NextClaw UI with OpenClaw-aligned capabilities.
-
   - add Sessions tab with filtering, history inspection, metadata patching, clear, and delete
   - add UI API endpoints for sessions list/history/patch/delete
   - sync frontend/server types and hooks for session operations
@@ -1768,7 +1756,6 @@
 ### Patch Changes
 
 - Add full UI/runtime API support for configuring input context token budgets.
-
   - Runtime page supports `agents.defaults.contextTokens`
   - Runtime page supports per-agent `agents.list[*].contextTokens`
   - Runtime API persists default context token budget updates
@@ -1782,7 +1769,6 @@
 ### Patch Changes
 
 - Align input-context handling with an OpenClaw-style token-budget pruner.
-
   - add unified input budget pruning in agent and subagent loops
   - support `agents.defaults.contextTokens` and per-agent `contextTokens` overrides
   - hot-reload context token budget updates
@@ -1798,7 +1784,6 @@
 ### Patch Changes
 
 - Align Discord/Telegram typing lifecycle with OpenClaw-style run completion cleanup.
-
   - Add typing-stop control message in core bus for no-reply paths.
   - Route control messages through ChannelManager without normal outbound delivery.
   - Keep typing active during agent processing and stop via outbound/control events.
@@ -1823,7 +1808,6 @@
 ### Patch Changes
 
 - Align UI routing/runtime configuration with OpenClaw capabilities.
-
   - Add runtime config API and editor for `agents.list`, `bindings`, and `session` controls.
   - Add ChannelForm fields for Discord/Telegram routing and mention policy settings.
   - Expose runtime settings safely in public config view and wire UI navigation for runtime management.
@@ -1836,7 +1820,6 @@
 ### Patch Changes
 
 - Align multi-agent gateway capabilities with OpenClaw:
-
   - add bindings-based route resolver and agent runtime pool
   - add agents.list multi-runtime support in gateway service
   - add session.dmScope based session key isolation (including per-account-channel-peer)
@@ -1853,7 +1836,6 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
-
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment
@@ -1894,7 +1876,6 @@
 ### Patch Changes
 
 - Remove configurable temperature and stop forwarding temperature in runtime provider requests.
-
   - Remove `agents.defaults.temperature` from config schema and reload rules.
   - Remove temperature propagation across agent loop, subagent manager, and provider manager.
   - Stop sending `temperature` to OpenAI-compatible provider payloads.
@@ -1974,7 +1955,6 @@
 ### Patch Changes
 
 - Align restart-sentinel notification delivery with the unified channel dispatch path.
-
   - add `ChannelManager.deliver()` for observable one-shot outbound delivery
   - make restart wake notification use `channels.deliver()` instead of queue-only enqueue
   - keep retry + reply fallback (drop reply target when platform rejects it)
@@ -1988,7 +1968,6 @@
 ### Patch Changes
 
 - Add OpenClaw-parity restart sentinel flow for gateway-triggered restarts:
-
   - persist restart sentinel before `config.apply`, `config.patch`, and `update.run`
   - auto-ping the last active session after restart using captured delivery context
   - fallback to queued session system events when immediate delivery is unavailable
@@ -2002,7 +1981,6 @@
 ### Patch Changes
 
 - Align media ingress protocol with OpenClaw-style structured attachments while keeping NextClaw internals decoupled.
-
   - Replace inbound `media: string[]` with structured `attachments[]` contract.
   - Upgrade Discord attachment ingestion to local-first with remote URL fallback, typed ingress error codes, and no user-facing `download failed` noise.
   - Add Discord config semantics: `channels.discord.mediaMaxMb` and `channels.discord.proxy`.
@@ -2031,7 +2009,6 @@
 ### Patch Changes
 
 - Introduce Action Schema v1 end-to-end:
-
   - add schema-driven `actions` metadata in config schema response
   - add unified action execute API (`POST /api/config/actions/:actionId/execute`)
   - migrate Feishu verify flow to generic action runner in UI
@@ -2070,7 +2047,6 @@
 ### Patch Changes
 
 - Restore OpenClaw-compatible plugin support in NextClaw with a NextClaw-only discovery policy.
-
   - Restore plugin CLI and runtime integration (`plugins *`, `channels add`, runtime loading bridge).
   - Restore `plugins.*` config schema and reload semantics.
   - Keep OpenClaw plugin compatibility while only scanning NextClaw plugin directories.
@@ -2085,7 +2061,6 @@
 ### Patch Changes
 
 - Align channel inbound behavior with OpenClaw for bot-aware flows and improve release docs consistency.
-
   - add `channels.discord.allowBots` and `channels.slack.allowBots` (default `false`) to safely allow bot-authored inbound messages when explicitly enabled
   - process Telegram `channel_post` updates and normalize `sender_chat` metadata for channel bot-to-bot scenarios
   - refresh user guides/templates and channel command surfaces to match current runtime behavior
@@ -2130,7 +2105,6 @@
 ### Patch Changes
 
 - Close the self-management loop around USAGE-based operations:
-
   - Add always-on built-in skill `nextclaw-self-manage` to guide runtime self-management flows.
   - Inject self-management guidance into core system prompt, anchored on workspace `USAGE.md`.
   - Treat `docs/USAGE.md` as single source of truth and sync it into `nextclaw` workspace templates.
@@ -2144,13 +2118,11 @@
 ### Patch Changes
 
 - Upgrade `nextclaw status` to runtime-aware diagnostics:
-
   - process/runtime health/state coherence checks
   - `--json`, `--verbose`, `--fix` support
   - meaningful exit codes for automation (`0/1/2`)
 
   Add top-level `nextclaw doctor` command for operational diagnostics:
-
   - config/workspace/service-state/service-health checks
   - UI port availability checks
   - provider readiness checks
@@ -2169,7 +2141,6 @@
 ### Patch Changes
 
 - Align UI host semantics with always-public runtime behavior.
-
   - Treat `ui.host` as read-only in config metadata/hints.
   - Set UI host schema default/placeholder to `0.0.0.0`.
   - Add `readOnly` field to UI hint typings in core/server/ui packages.
@@ -2186,12 +2157,10 @@
 - Add live apply support for `agents.defaults.maxTokens`, `agents.defaults.temperature`, and `tools.*` without gateway restart.
 
   Improve runtime restart boundaries:
-
   - `config set/unset` now triggers restart only for `restart-required` paths.
   - Keep `plugins.*` as restart-required for maintainability.
 
   Refine CLI/UI startup behavior and docs:
-
   - Default UI host behavior is public (`0.0.0.0`) on start/restart/serve/ui/gateway UI mode.
   - Remove redundant `--public`/`--ui-host` options from relevant commands and update usage docs.
 
@@ -2241,7 +2210,6 @@
 ### Patch Changes
 
 - Fix packaged version resolution so `nextclaw --version` and runtime version APIs no longer fall back to `0.0.0`.
-
   - Resolve package versions by walking up to the correct package root at runtime.
   - Prioritize the `nextclaw` package version in CLI utilities with safe fallback to core version resolution.
 
@@ -2253,7 +2221,6 @@
 ### Patch Changes
 
 - Align OpenClaw plugin compatibility for channel runtime behavior.
-
   - Add channel messageToolHints resolution and inject hints into agent system prompt messaging guidance.
   - Forward plugin AccountId context through runtime bridge so channel/account-specific hints can resolve.
   - Improve OpenClaw channel integration path for ClawBay-compatible plugins and update docs/logs.
@@ -2268,7 +2235,6 @@
 ### Patch Changes
 
 - Unify internal package names under the `@nextclaw` scope while keeping the CLI package name as `nextclaw`.
-
   - Rename packages to `@nextclaw/core`, `@nextclaw/server`, and `@nextclaw/openclaw-compat`.
   - Update all workspace imports, dependency declarations, and TypeScript path aliases.
   - Keep plugin compatibility behavior and CLI user experience unchanged.

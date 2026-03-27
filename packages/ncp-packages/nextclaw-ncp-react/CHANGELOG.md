@@ -1,5 +1,11 @@
 # @nextclaw/ncp-react
 
+## 0.4.1
+
+### Patch Changes
+
+- Raise the frontend NCP attachment upload limit from 10MB to 200MB.
+
 ## 0.4.0
 
 ### Minor Changes
@@ -60,7 +66,6 @@
 ### Patch Changes
 
 - Unify the latest NCP native chat chain improvements into a single release batch:
-
   - fix NCP streaming/state-manager promotion so tool-first assistant streams do not lose parts
   - align session type handling to stay generic outside the built-in native type
   - remove runtime-specific default-model branching and use a generic session-scoped fallback strategy
