@@ -175,11 +175,8 @@ export type ChatToolPartViewModel = {
   statusTone: "running" | "success" | "error" | "cancelled";
   statusLabel: string;
   titleLabel: string;
-  inputLabel: string;
   outputLabel: string;
   emptyLabel: string;
-  callIdLabel: string;
-  callId?: string;
 };
 
 export type ChatMessagePartViewModel =

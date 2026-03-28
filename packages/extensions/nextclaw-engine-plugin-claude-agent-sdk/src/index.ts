@@ -6,8 +6,9 @@ import type {
 } from "@anthropic-ai/claude-agent-sdk";
 import {
   getApiBase,
-  buildRequestedSkillsUserPrompt,
+  buildBootstrapAwareUserPrompt,
   getProvider,
+  readRequestedSkillsFromMetadata,
   SkillsLoader,
   type AgentEngine,
   type AgentEngineDirectRequest,
@@ -104,33 +105,6 @@ function readStringArray(input: Record<string, unknown>, key: string): string[] 
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function readRequestedSkills(metadata: Record<string, unknown> | undefined): string[] {
-  if (!metadata) {
-    return [];
-  }
-  const raw = metadata.requested_skills ?? metadata.requestedSkills;
-  const values: string[] = [];
-  if (Array.isArray(raw)) {
-    for (const entry of raw) {
-      if (typeof entry !== "string") {
-        continue;
-      }
-      const trimmed = entry.trim();
-      if (trimmed) {
-        values.push(trimmed);
-      }
-    }
-  } else if (typeof raw === "string") {
-    values.push(
-      ...raw
-        .split(/[,\s]+/g)
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    );
-  }
-  return Array.from(new Set(values)).slice(0, 8);
-}
-
 function readPermissionMode(
   input: Record<string, unknown>,
   key: string
@@ -201,6 +175,7 @@ type PluginClaudeAgentSdkEngineOptions = {
   sessionManager: SessionManager;
   model: string;
   workspace: string;
+  contextConfig?: Config["agents"]["context"];
   apiKey?: string;
   apiBase?: string;
   env?: Record<string, string>;
@@ -265,7 +240,7 @@ class PluginClaudeAgentSdkEngine implements AgentEngine {
     const session = this.options.sessionManager.getOrCreate(sessionKey);
     const modelInput = readString(params.metadata ?? {}, "model") ?? this.defaultModel;
     const model = normalizeClaudeModel(modelInput);
-    const requestedSkills = readRequestedSkills(params.metadata ?? {});
+    const requestedSkills = readRequestedSkillsFromMetadata(params.metadata ?? {});
 
     const userExtra: Record<string, unknown> = { channel, chatId };
     if (requestedSkills.length > 0) {
@@ -288,7 +263,14 @@ class PluginClaudeAgentSdkEngine implements AgentEngine {
     }
     const timeout = this.createRequestTimeout(abortController);
     const queryOptions = this.buildQueryOptions(sessionKey, model, abortController);
-    const prompt = buildRequestedSkillsUserPrompt(this.skillsLoader, requestedSkills, params.content);
+    const prompt = buildBootstrapAwareUserPrompt({
+      workspace: this.options.workspace,
+      contextConfig: this.options.contextConfig,
+      sessionKey,
+      skills: this.skillsLoader,
+      skillNames: requestedSkills,
+      userMessage: params.content,
+    });
 
     const query = sdk.query({
       prompt,
@@ -554,6 +536,7 @@ const plugin: PluginDefinition = {
           sessionManager: context.sessionManager,
           model,
           workspace: readString(engineConfig, "workingDirectory") ?? context.workspace,
+          contextConfig: context.config.agents.context,
           apiKey: resolved.apiKey,
           apiBase: resolved.apiBase,
           env: readStringRecord(engineConfig, "env"),

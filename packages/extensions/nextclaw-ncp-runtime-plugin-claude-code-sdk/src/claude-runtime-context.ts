@@ -1,8 +1,9 @@
 import {
   getApiBase,
-  buildRequestedSkillsUserPrompt,
+  buildBootstrapAwareUserPrompt,
   getProvider,
   getWorkspacePath,
+  readRequestedSkillsFromMetadata,
   SkillsLoader,
   type Config,
 } from "@nextclaw/core";
@@ -23,17 +24,6 @@ import {
 type ClaudePermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
 type ClaudeSettingSource = "user" | "project" | "local";
 type ClaudeExecutable = "node" | "bun" | "deno";
-
-function readRequestedSkills(metadata: Record<string, unknown>): string[] {
-  const raw = metadata.requested_skills ?? metadata.requestedSkills;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw
-    .map((entry) => readString(entry))
-    .filter((entry): entry is string => Boolean(entry))
-    .slice(0, 8);
-}
 
 function readPermissionMode(value: unknown): ClaudePermissionMode | undefined {
   if (typeof value !== "string") {
@@ -91,7 +81,10 @@ function readUserText(input: NcpAgentRunInput): string {
   return "";
 }
 
-export function buildClaudeInputBuilder(workspace: string) {
+export function buildClaudeInputBuilder(
+  workspace: string,
+  contextConfig?: Config["agents"]["context"],
+) {
   const skillsLoader = new SkillsLoader(workspace);
   return async (input: NcpAgentRunInput): Promise<string> => {
     const userText = readUserText(input);
@@ -99,8 +92,15 @@ export function buildClaudeInputBuilder(workspace: string) {
       input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)
         ? (input.metadata as Record<string, unknown>)
         : {};
-    const requestedSkills = readRequestedSkills(metadata);
-    return buildRequestedSkillsUserPrompt(skillsLoader, requestedSkills, userText);
+    const requestedSkills = readRequestedSkillsFromMetadata(metadata);
+    return buildBootstrapAwareUserPrompt({
+      workspace,
+      contextConfig,
+      sessionKey: input.sessionId,
+      skills: skillsLoader,
+      skillNames: requestedSkills,
+      userMessage: userText,
+    });
   };
 }
 

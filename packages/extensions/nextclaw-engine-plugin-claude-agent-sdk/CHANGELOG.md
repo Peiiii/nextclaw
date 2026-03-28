@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-engine-claude-agent-sdk
 
+## 0.3.7
+
+### Patch Changes
+
+- Make Claude engine and NCP runtime prompts bootstrap-aware so workspace context and requested skills are injected consistently, and refresh the shared chat UI tool/file cards to match the current tool lifecycle presentation.
+
 ## 0.3.6
 
 ### Patch Changes
@@ -88,7 +94,6 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
-
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements

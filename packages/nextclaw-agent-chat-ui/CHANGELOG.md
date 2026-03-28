@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.2.8
+
+### Patch Changes
+
+- Make Claude engine and NCP runtime prompts bootstrap-aware so workspace context and requested skills are injected consistently, and refresh the shared chat UI tool/file cards to match the current tool lifecycle presentation.
+
 ## 0.2.7
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/agent-chat-ui",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "private": false,
   "description": "Reusable Nextclaw agent chat UI primitives and default skin.",
   "type": "module",

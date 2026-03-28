@@ -41,11 +41,8 @@ it("renders user, assistant, and tool content and supports code copy", async () 
                 statusTone: "success",
                 statusLabel: "Completed",
                 titleLabel: "Tool Result",
-                inputLabel: "Input Summary",
                 outputLabel: "View Output",
                 emptyLabel: "No output",
-                callIdLabel: "Call ID",
-                callId: "call-1",
                 output: "done",
               },
             },
@@ -66,6 +63,8 @@ it("renders user, assistant, and tool content and supports code copy", async () 
   expect(screen.getByText("Assistant · 10:01")).toBeTruthy();
   expect(screen.getByText("Tool Result")).toBeTruthy();
   expect(screen.queryByText("Completed")).toBeNull();
+  expect(screen.queryByText("Input Summary")).toBeNull();
+  expect(screen.queryByText("Call ID")).toBeNull();
   expect(screen.getByText("Typing...")).toBeTruthy();
   expect(screen.getByTestId("chat-message-avatar-user")).toBeTruthy();
   expect(
@@ -130,11 +129,8 @@ it("renders running tool cards with live status feedback", () => {
                 statusTone: "running",
                 statusLabel: "Running",
                 titleLabel: "Tool Call",
-                inputLabel: "Input Summary",
                 outputLabel: "View Output",
                 emptyLabel: "No output",
-                callIdLabel: "Call ID",
-                callId: "call-running-1",
               },
             },
           ],
@@ -151,9 +147,9 @@ it("renders running tool cards with live status feedback", () => {
   );
 
   expect(screen.getByText("Running")).toBeTruthy();
-  expect(screen.getByText("Input Summary")).toBeTruthy();
   expect(screen.getByText("cmd: npm test")).toBeTruthy();
-  expect(screen.getByText("Call ID")).toBeTruthy();
+  expect(screen.queryByText("Input Summary")).toBeNull();
+  expect(screen.queryByText("Call ID")).toBeNull();
   expect(screen.queryByText("View Output")).toBeNull();
 });
 

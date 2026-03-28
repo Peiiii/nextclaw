@@ -245,7 +245,10 @@ const plugin: PluginDefinition = {
           requestTimeoutMs: resolveClaudeRequestTimeoutMs(pluginConfig.requestTimeoutMs),
           sessionMetadata: runtimeParams.sessionMetadata,
           setSessionMetadata: runtimeParams.setSessionMetadata,
-          inputBuilder: buildClaudeInputBuilder(runtimeContext.workingDirectory),
+          inputBuilder: buildClaudeInputBuilder(
+            runtimeContext.workingDirectory,
+            api.config.agents.context,
+          ),
           stateManager: runtimeParams.stateManager,
         };
 

@@ -3,7 +3,6 @@ import { AlertCircle, CheckCircle2, CircleSlash, Clock3, FileSearch, Globe, Load
 import { cn } from '../../internal/cn';
 
 const TOOL_OUTPUT_PREVIEW_MAX = 220;
-const TOOL_CALL_ID_PREVIEW_MAX = 18;
 
 const STATUS_STYLES: Record<
   ChatToolPartViewModel['statusTone'],
@@ -48,15 +47,6 @@ function renderToolIcon(toolName: string) {
   return <Wrench className="h-3.5 w-3.5" />;
 }
 
-function truncateMiddle(value: string, maxLength = TOOL_CALL_ID_PREVIEW_MAX) {
-  if (value.length <= maxLength) {
-    return value;
-  }
-  const head = Math.ceil((maxLength - 1) / 2);
-  const tail = Math.floor((maxLength - 1) / 2);
-  return `${value.slice(0, head)}…${value.slice(value.length - tail)}`;
-}
-
 function renderStatusMeta(card: ChatToolPartViewModel) {
   const style = STATUS_STYLES[card.statusTone];
   if (card.statusTone === 'running') {
@@ -88,7 +78,6 @@ export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
   const showDetails = output.length > TOOL_OUTPUT_PREVIEW_MAX || output.includes('\n');
   const preview = showDetails ? `${output.slice(0, TOOL_OUTPUT_PREVIEW_MAX)}...` : output;
   const showOutputSection = card.kind === 'result' || card.hasResult;
-  const statusStyle = STATUS_STYLES[card.statusTone];
 
   return (
     <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2.5">
@@ -100,18 +89,7 @@ export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
       </div>
 
       {card.summary ? (
-        <div className="mt-1">
-          <div className="text-[10px] text-amber-700/75">{card.inputLabel}</div>
-          <div className="break-words font-mono text-[11px] text-amber-800/90">{card.summary}</div>
-        </div>
-      ) : null}
-
-      {card.callId ? (
-        <div className={cn('mt-1 text-[10px]', statusStyle.text)}>
-          <span>{card.callIdLabel}</span>
-          <span>: </span>
-          <span className="font-mono">{truncateMiddle(card.callId)}</span>
-        </div>
+        <div className="mt-1 break-words font-mono text-[11px] text-amber-800/90">{card.summary}</div>
       ) : null}
 
       {showOutputSection ? (

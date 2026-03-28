@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.26
+
+### Patch Changes
+
+- Make Claude engine and NCP runtime prompts bootstrap-aware so workspace context and requested skills are injected consistently, and refresh the shared chat UI tool/file cards to match the current tool lifecycle presentation.
+
 ## 0.1.25
 
 ### Patch Changes
