@@ -1,10 +1,3 @@
-import {
-  findProviderByModel,
-  findProviderByName,
-  resolveProviderRuntime,
-  getWorkspacePath,
-  type Config,
-} from "@nextclaw/core";
 import type {
   NcpAgentRunInput,
   NcpAgentRunOptions,
@@ -33,32 +26,17 @@ import {
   createDescribeCodexSessionType,
   type SessionTypeDescriptor,
 } from "./codex-session-type.js";
+import type {
+  AgentRuntimeApi,
+  CodexReasoningEffort,
+  PluginApi,
+  PluginDefinition,
+  ResolvedProviderRuntime,
+  ResolvedProviderSpec,
+} from "./codex-runtime-plugin-types.js";
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-codex-sdk";
 const CODEX_RUNTIME_KIND = "codex";
-
-type CodexReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh";
-
-type PluginApi = {
-  config: Config;
-  pluginConfig?: Record<string, unknown>;
-  registerNcpAgentRuntime: (registration: {
-    kind: string;
-    label?: string;
-    createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
-    describeSessionType?:
-      | (() => Promise<SessionTypeDescriptor | null | undefined>)
-      | (() => SessionTypeDescriptor | null | undefined);
-  }) => void;
-};
-
-type PluginDefinition = {
-  id: string;
-  name: string;
-  description: string;
-  configSchema: Record<string, unknown>;
-  register: (api: PluginApi) => void;
-};
 
 class DeferredCodexSdkNcpAgentRuntime implements NcpAgentRuntime {
   private runtimePromise: Promise<NcpAgentRuntime> | null = null;
@@ -116,15 +94,6 @@ function readStringArray(value: unknown): string[] | undefined {
   return values.length > 0 ? values : undefined;
 }
 
-function resolveCodexCapabilitySpec(params: {
-  model?: string;
-  providerName?: string | null;
-}) {
-  const providerSpec = params.providerName ? findProviderByName(params.providerName) : undefined;
-  const modelSpec = params.model ? findProviderByModel(params.model) : undefined;
-  return providerSpec?.isGateway ? modelSpec ?? providerSpec : providerSpec ?? modelSpec;
-}
-
 function readStringRecord(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return undefined;
@@ -161,15 +130,15 @@ function readThinkingLevel(value: unknown): CodexReasoningEffort | undefined {
 }
 
 function resolveCodexExecutionOptions(params: {
-  config: Config;
+  runtimeAgent: AgentRuntimeApi;
   pluginConfig: Record<string, unknown>;
 }): {
   workingDirectory: string;
   skipGitRepoCheck: boolean;
 } {
   const configuredWorkingDirectory = readString(params.pluginConfig.workingDirectory);
-  const workspace = getWorkspacePath(
-    configuredWorkingDirectory ?? params.config.agents.defaults.workspace,
+  const workspace = params.runtimeAgent.resolveWorkspacePath(
+    configuredWorkingDirectory ?? params.runtimeAgent.defaults.workspace,
   );
 
   return {
@@ -221,7 +190,7 @@ function resolveCodexCliConfig(
 }
 
 function resolveCodexModel(params: {
-  config: Config;
+  runtimeAgent: AgentRuntimeApi;
   pluginConfig: Record<string, unknown>;
   sessionMetadata: Record<string, unknown>;
 }): string {
@@ -229,7 +198,8 @@ function resolveCodexModel(params: {
     readString(params.sessionMetadata.preferred_model) ??
     readString(params.sessionMetadata.model) ??
     readString(params.pluginConfig.model) ??
-    params.config.agents.defaults.model
+    params.runtimeAgent.defaults.model ??
+    ""
   );
 }
 
@@ -245,7 +215,7 @@ const plugin: PluginDefinition = {
   register(api) {
     const pluginConfig = readRecord(api.pluginConfig) ?? {};
     const describeCodexSessionType = createDescribeCodexSessionType({
-      config: api.config,
+      defaultModel: readString(api.runtime.agent.defaults.model),
       pluginConfig,
     });
 
@@ -255,22 +225,19 @@ const plugin: PluginDefinition = {
       describeSessionType: describeCodexSessionType,
       createRuntime: (runtimeParams) => {
         return new DeferredCodexSdkNcpAgentRuntime(async () => {
-          const nextConfig = api.config;
           const model = resolveCodexModel({
-            config: nextConfig,
+            runtimeAgent: api.runtime.agent,
             pluginConfig,
             sessionMetadata: runtimeParams.sessionMetadata,
           });
-          const resolvedProviderRuntime = resolveProviderRuntime(nextConfig, model);
+          const resolvedProviderRuntime = api.runtime.agent.resolveProviderRuntime(model);
           const providerName = resolvedProviderRuntime.providerName;
-          const capabilitySpec = resolveCodexCapabilitySpec({
-            model,
-            providerName,
-          });
+          const capabilitySpec = resolvedProviderRuntime.providerSpec ?? null;
+          const providerDisplayName = resolvedProviderRuntime.providerDisplayName;
           const externalModelProvider = resolveExternalModelProvider({
             explicitModelProvider: pluginConfig.modelProvider,
             providerName,
-            providerDisplayName: resolvedProviderRuntime.providerDisplayName,
+            providerDisplayName,
             pluginId: PLUGIN_ID,
           });
           const userFacingModelRoute = buildUserFacingModelRoute({
@@ -279,7 +246,9 @@ const plugin: PluginDefinition = {
             resolvedModel: resolvedProviderRuntime.resolvedModel,
           });
           const upstreamApiBase =
-            readString(pluginConfig.apiBase) ?? resolvedProviderRuntime.apiBase ?? undefined;
+            readString(pluginConfig.apiBase) ??
+            resolvedProviderRuntime.apiBase ??
+            undefined;
           const apiKey =
             readString(pluginConfig.apiKey) ?? resolvedProviderRuntime.apiKey ?? undefined;
           if (!apiKey) {
@@ -322,7 +291,7 @@ const plugin: PluginDefinition = {
           }
 
           const executionOptions = resolveCodexExecutionOptions({
-            config: nextConfig,
+            runtimeAgent: api.runtime.agent,
             pluginConfig,
           });
           const accessMode = resolveCodexAccessMode(pluginConfig);
@@ -342,14 +311,17 @@ const plugin: PluginDefinition = {
             cliConfig: resolveCodexCliConfig({
               pluginConfig,
               providerName,
-              providerDisplayName: resolvedProviderRuntime.providerDisplayName,
+              providerDisplayName,
               apiBase: codexApiBase,
               modelProviderOverride: codexModelProviderOverride,
             }),
             stateManager: runtimeParams.stateManager,
             sessionMetadata: runtimeParams.sessionMetadata,
             setSessionMetadata: runtimeParams.setSessionMetadata,
-            inputBuilder: buildCodexInputBuilder(executionOptions.workingDirectory),
+            inputBuilder: buildCodexInputBuilder(
+              api.runtime.agent,
+              executionOptions.workingDirectory,
+            ),
             threadOptions: {
               model,
               sandboxMode: mapAccessModeToSandboxMode(accessMode),

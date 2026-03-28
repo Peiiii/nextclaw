@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
 
+## 0.1.10
+
+### Patch Changes
+
+- Publish the pending branch changes for Claude NCP event visibility and chat tool status feedback. Claude runtime now exposes richer reasoning and tool-call events to the NCP layer, and the shared chat UI surfaces clearer tool lifecycle states, call IDs, and output labels.
+
 ## 0.1.9
 
 ### Patch Changes

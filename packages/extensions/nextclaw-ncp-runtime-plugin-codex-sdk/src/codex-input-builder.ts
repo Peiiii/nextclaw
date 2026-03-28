@@ -1,27 +1,13 @@
-import {
-  buildRequestedSkillsUserPrompt,
-  SkillsLoader,
-} from "@nextclaw/core";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
 
-function readString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
-}
-
-function readRequestedSkills(metadata: Record<string, unknown>): string[] {
-  const raw = metadata.requested_skills ?? metadata.requestedSkills;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw
-    .map((entry) => readString(entry))
-    .filter((entry): entry is string => Boolean(entry))
-    .slice(0, 8);
-}
+type RuntimeAgentPromptBuilder = {
+  buildRuntimeUserPrompt: (params: {
+    workspace?: string;
+    sessionKey?: string;
+    metadata?: Record<string, unknown>;
+    userMessage: string;
+  }) => string;
+};
 
 function readUserText(input: NcpAgentRunInput): string {
   for (let index = input.messages.length - 1; index >= 0; index -= 1) {
@@ -41,15 +27,21 @@ function readUserText(input: NcpAgentRunInput): string {
   return "";
 }
 
-export function buildCodexInputBuilder(workspace: string) {
-  const skillsLoader = new SkillsLoader(workspace);
+export function buildCodexInputBuilder(
+  runtimeAgent: RuntimeAgentPromptBuilder,
+  workspace: string,
+) {
   return async (input: NcpAgentRunInput): Promise<string> => {
     const userText = readUserText(input);
     const metadata =
       input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)
         ? (input.metadata as Record<string, unknown>)
         : {};
-    const requestedSkills = readRequestedSkills(metadata);
-    return buildRequestedSkillsUserPrompt(skillsLoader, requestedSkills, userText);
+    return runtimeAgent.buildRuntimeUserPrompt({
+      workspace,
+      sessionKey: input.sessionId,
+      metadata,
+      userMessage: userText,
+    });
   };
 }

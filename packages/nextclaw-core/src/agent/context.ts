@@ -1,6 +1,10 @@
-import { readFileSync, existsSync } from "node:fs";
-import { join, extname } from "node:path";
+import { readFileSync } from "node:fs";
+import { extname } from "node:path";
 import { MemoryStore } from "./memory.js";
+import {
+  buildWorkspaceProjectContextSection,
+  DEFAULT_BOOTSTRAP_CONTEXT_CONFIG,
+} from "./bootstrap-context.js";
 import {
   buildActiveSkillsSystemSection,
   buildAvailableSkillsSystemSection,
@@ -20,11 +24,7 @@ type ContextConfig = Config["agents"]["context"];
 
 const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
   bootstrap: {
-    files: ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "TOOLS.md", "BOOT.md", "BOOTSTRAP.md", "HEARTBEAT.md"],
-    minimalFiles: ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"],
-    heartbeatFiles: ["HEARTBEAT.md"],
-    perFileChars: 4000,
-    totalChars: 12000
+    ...DEFAULT_BOOTSTRAP_CONTEXT_CONFIG,
   },
   memory: {
     enabled: true,
@@ -71,21 +71,13 @@ export class ContextBuilder {
       }
     }
 
-    const bootstrap = this.loadBootstrapFiles(sessionKey);
-    if (bootstrap) {
-      const hasSoulFile = /##\s+SOUL\.md\b/i.test(bootstrap);
-      const contextLines = [
-        "# Project Context",
-        "",
-        "The following project context files have been loaded:"
-      ];
-      if (hasSoulFile) {
-        contextLines.push(
-          "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it."
-        );
-      }
-      contextLines.push("", bootstrap);
-      parts.push(contextLines.join("\n"));
+    const projectContext = buildWorkspaceProjectContextSection({
+      workspace: this.workspace,
+      contextConfig: this.contextConfig,
+      sessionKey,
+    });
+    if (projectContext) {
+      parts.push(projectContext);
     }
 
     const memory = this.buildMemorySection();
@@ -288,50 +280,6 @@ export class ContextBuilder {
     return lines.join("\n");
   }
 
-  private loadBootstrapFiles(sessionKey?: string): string {
-    const parts: string[] = [];
-    const { perFileChars, totalChars } = this.contextConfig.bootstrap;
-    const fileList = this.selectBootstrapFiles(sessionKey);
-    const totalLimit = totalChars > 0 ? totalChars : Number.POSITIVE_INFINITY;
-    let remaining = totalLimit;
-
-    for (const filename of fileList) {
-      const filePath = join(this.workspace, filename);
-      if (existsSync(filePath)) {
-        const raw = readFileSync(filePath, "utf-8").trim();
-        if (!raw) {
-          continue;
-        }
-        const perFileLimit = perFileChars > 0 ? perFileChars : raw.length;
-        const allowed = Math.min(perFileLimit, remaining);
-        if (allowed <= 0) {
-          break;
-        }
-        const content = this.truncateText(raw, allowed);
-        parts.push(`## ${filename}\n\n${content}`);
-        remaining -= content.length;
-        if (remaining <= 0) {
-          break;
-        }
-      }
-    }
-    return parts.join("\n\n");
-  }
-
-  private selectBootstrapFiles(sessionKey?: string): string[] {
-    const { files, minimalFiles, heartbeatFiles } = this.contextConfig.bootstrap;
-    if (!sessionKey) {
-      return files;
-    }
-    if (sessionKey === "heartbeat") {
-      return dedupeStrings([...minimalFiles, ...heartbeatFiles]);
-    }
-    if (sessionKey.startsWith("cron:") || sessionKey.startsWith("subagent:")) {
-      return minimalFiles;
-    }
-    return files;
-  }
-
   private buildMemorySection(): string {
     const memoryConfig = this.contextConfig.memory;
     if (!memoryConfig.enabled) {
@@ -399,17 +347,4 @@ function guessImageMime(pathOrUrl: string): string | null {
   if (ext === ".bmp") return "image/bmp";
   if (ext === ".tif" || ext === ".tiff") return "image/tiff";
   return null;
-}
-
-function dedupeStrings(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values) {
-    if (seen.has(value)) {
-      continue;
-    }
-    seen.add(value);
-    result.push(value);
-  }
-  return result;
 }

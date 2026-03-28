@@ -476,7 +476,7 @@ importers:
         version: 0.2.63(zod@4.3.6)
       '@nextclaw/core':
         specifier: ^0.11.2
-        version: 0.11.2(encoding@0.1.13)(ws@8.19.0)
+        version: 0.11.2(ws@8.19.0)
       zod:
         specifier: ^4.0.0
         version: 4.3.6
@@ -495,7 +495,7 @@ importers:
     dependencies:
       '@nextclaw/core':
         specifier: ^0.11.2
-        version: 0.11.2(encoding@0.1.13)(ws@8.19.0)
+        version: 0.11.2(ws@8.19.0)
       '@openai/codex-sdk':
         specifier: ^0.107.0
         version: 0.107.0
@@ -615,6 +615,9 @@ importers:
       '@nextclaw/nextclaw-ncp-runtime-codex-sdk':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-codex-sdk
+      '@nextclaw/runtime':
+        specifier: workspace:*
+        version: link:../../nextclaw-runtime
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
@@ -8975,7 +8978,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@nextclaw/core@0.11.2(encoding@0.1.13)(ws@8.19.0)':
+  '@nextclaw/core@0.11.2(ws@8.19.0)':
     dependencies:
       '@nextclaw/feishu-core': 0.2.1
       chokidar: 3.6.0

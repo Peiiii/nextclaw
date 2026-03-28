@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.16.2
+
+### Patch Changes
+
+- Align the Codex NCP runtime plugin with host runtime injection instead of relying on a forced `@nextclaw/core` singleton alias. The plugin now resolves provider runtime, workspace, and bootstrap-aware prompts through the host plugin runtime API, and no longer ships a direct runtime dependency on `@nextclaw/core`.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.35
+  - @nextclaw/server@0.11.1
+  - @nextclaw/remote@0.1.53
+
 ## 0.16.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { Config } from "@nextclaw/core";
+import {
+  buildBootstrapAwareUserPrompt,
+  getWorkspacePath,
+  readRequestedSkillsFromMetadata,
+  resolveProviderRuntime,
+  SkillsLoader,
+} from "@nextclaw/core";
 import { getPackageVersion } from "@nextclaw/core";
 import { MemoryGetTool, MemorySearchTool } from "@nextclaw/core";
 import type { OpenClawPluginTool, PluginReplyDispatchParams, PluginRuntime } from "./types.js";
@@ -73,9 +80,60 @@ async function dispatchReplyWithFallback(params: PluginReplyDispatchParams): Pro
   await bridge.dispatchReplyWithBufferedBlockDispatcher(params);
 }
 
+function createRuntimeUserPromptBuilder(params: {
+  config?: Config;
+  defaultWorkspace: string;
+}): PluginRuntime["agent"]["buildRuntimeUserPrompt"] {
+  const skillLoaders = new Map<string, SkillsLoader>();
+
+  return ({ workspace, sessionKey, metadata, userMessage }) => {
+    const resolvedWorkspace = getWorkspacePath(workspace ?? params.defaultWorkspace);
+    let skills = skillLoaders.get(resolvedWorkspace);
+    if (!skills) {
+      skills = new SkillsLoader(resolvedWorkspace);
+      skillLoaders.set(resolvedWorkspace, skills);
+    }
+
+    return buildBootstrapAwareUserPrompt({
+      workspace: resolvedWorkspace,
+      contextConfig: params.config?.agents?.context,
+      sessionKey,
+      skills,
+      skillNames: readRequestedSkillsFromMetadata(metadata),
+      userMessage,
+    });
+  };
+}
+
 export function createPluginRuntime(params: { workspace: string; config?: Config }): PluginRuntime {
+  const defaultModel = params.config?.agents?.defaults?.model ?? "";
+  const maxToolIterations = Math.max(
+    0,
+    Math.trunc(params.config?.agents?.defaults?.maxToolIterations ?? 0),
+  );
+  const buildRuntimeUserPrompt = createRuntimeUserPromptBuilder({
+    config: params.config,
+    defaultWorkspace: params.workspace,
+  });
+
   return {
     version: getPackageVersion(),
+    agent: {
+      defaults: {
+        model: defaultModel,
+        workspace: params.workspace,
+        maxToolIterations,
+      },
+      resolveWorkspacePath: (workspace?: string) =>
+        getWorkspacePath(workspace ?? params.workspace),
+      resolveProviderRuntime: (model?: string) => {
+        if (!params.config) {
+          throw new Error("plugin runtime agent.resolveProviderRuntime requires host config");
+        }
+        return resolveProviderRuntime(params.config, model);
+      },
+      buildRuntimeUserPrompt,
+    },
     config: {
       loadConfig: () => loadConfigWithFallback(params.config),
       writeConfigFile: async (next: Record<string, unknown>) => writeConfigWithFallback(next),

@@ -11,6 +11,7 @@ import {
   type ProviderManager,
 } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent, type NcpRequestEnvelope } from "@nextclaw/ncp";
+import { createPluginRuntime } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, toExtensionRegistry, type NextclawExtensionRegistry } from "../plugins.js";
 import codexRuntimePlugin from "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/index.js";
 import { createUiNcpAgent } from "./create-ui-ncp-agent.js";
@@ -747,6 +748,10 @@ function createCodexExtensionRegistryFromSource(config: Config): NextclawExtensi
     config,
     pluginConfig:
       config.plugins.entries?.["nextclaw-ncp-runtime-plugin-codex-sdk"]?.config ?? {},
+    runtime: createPluginRuntime({
+      workspace: config.agents.defaults.workspace,
+      config,
+    }),
     registerNcpAgentRuntime(registration) {
       ncpAgentRuntimes.push({
         pluginId: "nextclaw-ncp-runtime-plugin-codex-sdk",
