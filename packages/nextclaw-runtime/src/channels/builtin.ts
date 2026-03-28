@@ -8,7 +8,8 @@ export const BUILTIN_CHANNEL_PLUGIN_IDS = [
   "wecom",
   "email",
   "slack",
-  "qq"
+  "qq",
+  "weixin"
 ] as const;
 
 export type BuiltinChannelPluginId = (typeof BUILTIN_CHANNEL_PLUGIN_IDS)[number];

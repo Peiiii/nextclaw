@@ -194,7 +194,10 @@ export const ChannelsConfigSchema = z.object({
   wecom: WeComConfigSchema.default({}),
   email: EmailConfigSchema.default({}),
   slack: SlackConfigSchema.default({}),
-  qq: QQConfigSchema.default({})
+  qq: QQConfigSchema.default({}),
+  weixin: PluginChannelConfigSchema.default({
+    enabled: false
+  })
 }).catchall(PluginChannelConfigSchema);
 
 export const AgentDefaultsSchema = z.object({
