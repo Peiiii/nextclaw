@@ -17,7 +17,7 @@ export function ToolCardRoot({ children, className }: { children: ReactNode; cla
 
 export function ToolCardContent({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("border-t border-amber-200/15 bg-amber-50/50 p-3 w-full overflow-hidden", className)}>
+    <div className={cn("border-t border-amber-200/15 bg-amber-50/50 px-3 pt-1 pb-2 w-full overflow-hidden", className)}>
       {children}
     </div>
   );

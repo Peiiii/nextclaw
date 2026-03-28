@@ -49,23 +49,26 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
       />
       {expanded && (
         <>
-          <div className="px-3 pb-0.5 font-mono w-full max-h-48 overflow-y-auto custom-scrollbar-amber min-h-0 text-[12px]">
+          <div className="px-3 pb-2 font-mono w-full max-h-48 overflow-y-auto custom-scrollbar-amber min-h-0 text-[12px]">
             <div className="flex items-start gap-2 leading-relaxed">
               <span className="text-amber-500/50 font-medium shrink-0 select-none mt-[1px]">$</span>
               <div className="flex-1 min-w-0">
                 {commandPart ? (
-                  <span className="text-amber-950/80 break-words whitespace-pre-wrap tracking-tight font-medium">
+                  <div className="text-amber-950/80 break-words whitespace-pre-wrap tracking-tight font-medium inline-block">
                     {commandPart}
-                  </span>
+                    {isRunning && !output && (
+                      <span className="inline-block w-1.5 h-3 ml-1 bg-amber-500/60 animate-pulse align-middle" />
+                    )}
+                  </div>
                 ) : (
                   <div className="h-3 w-32 bg-amber-200/30 rounded animate-pulse mt-2" />
                 )}
               </div>
             </div>
           </div>
-          {(output || (isRunning && hasContent)) && (
-            <ToolCardContent className="mt-2">
-              <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber leading-relaxed">
+          {output && (
+            <ToolCardContent>
+              <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber leading-relaxed px-0">
                 {output}
                 {isRunning && <span className="inline-block w-1.5 h-3 ml-1 bg-amber-500/60 animate-pulse align-middle" />}
               </pre>
@@ -110,7 +113,7 @@ export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
         return <div key={idx} className="bg-rose-500/10 text-rose-700 px-2 py-0.5 w-full break-all whitespace-pre-wrap"><span className="select-none opacity-40 mr-2 w-3 inline-block shrink-0">-</span><span className="line-through decoration-rose-400/50">{line.slice(1)}</span></div>;
       }
     }
-    return <div key={idx} className="px-2 py-0.5 text-amber-950/80 w-full break-all whitespace-pre-wrap"><span className="select-none opacity-0 mr-2 w-3 inline-block shrink-0"> </span><span>{line}</span></div>;
+    return <div key={idx} className="py-0.5 text-amber-950/80 w-full break-all whitespace-pre-wrap"><span>{line}</span></div>;
   };
 
   const lines = output.split('\n');
@@ -129,7 +132,7 @@ export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
       />
       {expanded && output && (
         <ToolCardContent>
-          <div className="font-mono text-[12px] leading-relaxed py-2 max-h-48 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber text-amber-950/80 w-full px-1">
+          <div className="font-mono text-[12px] leading-relaxed max-h-48 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber text-amber-950/80 w-full">
             {displayLines.map(renderLine)}
           </div>
         </ToolCardContent>
@@ -172,7 +175,7 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
       />
       {expanded && output && (
         <ToolCardContent>
-           <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber py-2 leading-relaxed">
+           <pre className="font-mono text-[12px] text-amber-950/70 whitespace-pre-wrap break-all w-full max-w-full max-h-64 overflow-y-auto overflow-x-hidden min-w-0 custom-scrollbar-amber leading-relaxed">
              {output}
            </pre>
         </ToolCardContent>
@@ -216,7 +219,7 @@ export function GenericToolCard({ card }: { card: ChatToolPartViewModel }) {
       />
       {expanded && output && (
         <ToolCardContent>
-          <pre className="mt-1 text-amber-950/80 whitespace-pre-wrap break-all overflow-y-auto overflow-x-hidden max-h-64 custom-scrollbar-amber py-1 w-full min-w-0 max-w-full leading-relaxed">
+          <pre className="text-amber-950/80 whitespace-pre-wrap break-all overflow-y-auto overflow-x-hidden max-h-64 custom-scrollbar-amber w-full min-w-0 max-w-full leading-relaxed">
             {output}
           </pre>
         </ToolCardContent>
