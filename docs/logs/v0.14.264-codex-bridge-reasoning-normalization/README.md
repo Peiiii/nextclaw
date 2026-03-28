@@ -27,13 +27,24 @@
   - `pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk build`
 - 可维护性自检：
   - `node .codex/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge-stream.ts packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge-assistant-output.ts packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge-shared.ts packages/nextclaw/src/cli/commands/ncp/codex-openai-responses-bridge.test.ts`
+- 发布后验收：
+  - `pnpm smoke:ncp-chat -- --session-type codex --model minimax/MiniMax-M2.7 --thinking high --prompt "Solve 13*17 mentally, show your reasoning if supported, then end with FINAL=221" --base-url http://127.0.0.1:18794 --json`
+  - 结果：`PASS`
+  - 观察到 `assistantText` 为干净正文 `13 × 17 ... FINAL=221`
+  - 观察到 `reasoningText` 为空，`eventTypes` 未出现 `message.reasoning-*`
+  - 进一步查询 `GET /api/ncp/sessions/smoke-codex-mn9y6t3z-0ysrw7g1/messages`，历史消息里 assistant `parts` 仅包含可见 `text`，没有 `<think>` 泄漏
 
 ## 发布/部署方式
 
-- 本次未执行正式发布。
-- 若要让本地运行中的 Codex 会话实际生效，需要让加载 `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk` 的 NextClaw 进程重新加载新代码：
-  - 源码运行场景：重启对应 NextClaw 服务
-  - 已安装包场景：发布并升级该插件链路后重启服务
+- 本次已执行正式发布与打 tag。
+- 已发布版本：
+  - `@nextclaw/nextclaw-engine-codex-sdk@0.3.7`
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.28`
+  - `nextclaw@0.16.8`
+  - `@nextclaw/openclaw-compat@0.3.39`
+  - `@nextclaw/remote@0.1.56`
+  - `@nextclaw/server@0.11.4`
+- 对于本地运行中的 Codex 会话，要让新行为生效，需要重启加载 `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk` 的 NextClaw 进程；已安装包环境则需升级到上述版本后重启服务。
 
 ## 用户/产品视角的验收步骤
 
