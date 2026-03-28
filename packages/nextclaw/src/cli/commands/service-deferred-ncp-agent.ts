@@ -82,7 +82,6 @@ export function createDeferredUiNcpAgent(basePath = DEFAULT_BASE_PATH): Deferred
     activeAgent = null;
     agent.basePath = basePath;
     agent.streamProvider = undefined;
-    agent.sessionApi = undefined;
     agent.listSessionTypes = undefined;
     agent.assetApi = undefined;
   };
@@ -93,7 +92,6 @@ export function createDeferredUiNcpAgent(basePath = DEFAULT_BASE_PATH): Deferred
       activeAgent = nextAgent;
       agent.basePath = nextAgent.basePath ?? basePath;
       agent.streamProvider = nextAgent.streamProvider;
-      agent.sessionApi = nextAgent.sessionApi;
       agent.listSessionTypes = nextAgent.listSessionTypes;
       agent.assetApi = nextAgent.assetApi;
     },

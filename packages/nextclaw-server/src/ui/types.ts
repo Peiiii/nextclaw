@@ -22,6 +22,40 @@ export type AppMetaView = {
   productVersion: string;
 };
 
+export type BootstrapPhase =
+  | "kernel-starting"
+  | "shell-ready"
+  | "hydrating-capabilities"
+  | "ready"
+  | "error";
+
+export type BootstrapStageState = "pending" | "running" | "ready" | "error";
+
+export type BootstrapRemoteState = "pending" | "ready" | "conflict" | "disabled" | "error";
+
+export type BootstrapStatusView = {
+  phase: BootstrapPhase;
+  shellReadyAt?: string;
+  pluginHydration: {
+    state: BootstrapStageState;
+    loadedPluginCount: number;
+    totalPluginCount: number;
+    startedAt?: string;
+    completedAt?: string;
+    error?: string;
+  };
+  channels: {
+    state: BootstrapStageState;
+    enabled: string[];
+    error?: string;
+  };
+  remote: {
+    state: BootstrapRemoteState;
+    message?: string;
+  };
+  lastError?: string;
+};
+
 export type ProviderConfigView = {
   enabled: boolean;
   displayName?: string;
@@ -531,10 +565,11 @@ export type SessionTypeDescribeParams = {
   describeMode?: "observation" | "probe";
 };
 
+export type UiNcpSessionService = NcpSessionApi;
+
 export type UiNcpAgent = {
   agentClientEndpoint: NcpAgentClientEndpoint;
   streamProvider?: NcpHttpAgentStreamProvider;
-  sessionApi?: NcpSessionApi;
   listSessionTypes?: (params?: SessionTypeDescribeParams) => Promise<ChatSessionTypesView> | ChatSessionTypesView;
   assetApi?: {
     put: (input: {
@@ -743,7 +778,9 @@ export type UiServerOptions = {
   marketplace?: MarketplaceApiConfig;
   cronService?: CronService;
   ncpAgent?: UiNcpAgent;
+  ncpSessionService?: UiNcpSessionService;
   remoteAccess?: UiRemoteAccessHost;
+  getBootstrapStatus?: () => BootstrapStatusView;
   getPluginChannelBindings?: () => PluginChannelBinding[];
   getPluginUiMetadata?: () => PluginUiMetadata[];
 };

@@ -244,10 +244,10 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
     app: createUiRouter({
       configPath,
       publish: () => {},
+      ncpSessionService: agent,
       ncpAgent: {
         agentClientEndpoint: agent,
         streamProvider,
-        sessionApi: agent,
         listSessionTypes: (params) => agent.listSessionTypes(params),
         assetApi: agent.assetApi,
       }
@@ -302,6 +302,46 @@ it("mounts parallel ncp agent and session routes", async () => {
     ],
   });
   expect(agent.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
+});
+
+it("keeps session routes readable before the runtime agent is mounted", async () => {
+  useIsolatedHome();
+  const configPath = createTempConfigPath();
+  saveConfig(ConfigSchema.parse({}), configPath);
+  const sessionService = new StubNcpAgent();
+  const app = createUiRouter({
+    configPath,
+    publish: () => {},
+    ncpSessionService: sessionService
+  });
+
+  const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
+  expect(sessionsResponse.status).toBe(200);
+  const sessionsPayload = await sessionsResponse.json() as {
+    ok: boolean;
+    data: {
+      total: number;
+      sessions: Array<{ sessionId: string }>;
+    };
+  };
+  expect(sessionsPayload.ok).toBe(true);
+  expect(sessionsPayload.data.sessions[0]?.sessionId).toBe("session-1");
+
+  const sessionTypesResponse = await app.request("http://localhost/api/ncp/session-types");
+  expect(sessionTypesResponse.status).toBe(200);
+  const sessionTypesPayload = await sessionTypesResponse.json() as {
+    ok: boolean;
+    data: {
+      defaultType: string;
+      options: Array<{ value: string; label: string }>;
+    };
+  };
+  expect(sessionTypesPayload.ok).toBe(true);
+  expect(sessionTypesPayload.data).toEqual({
+    defaultType: "native",
+    options: [{ value: "native", label: "Native" }],
+  });
+  expect(sessionService.sessionTypeListCalls).toEqual([]);
 });
 
 it("stores uploaded ncp assets and serves their content back", async () => {

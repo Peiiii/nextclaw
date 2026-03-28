@@ -135,8 +135,10 @@ export function startUiServer(options: UiServerStartOptions): UiServerHandle {
       marketplace: options.marketplace,
       cronService: options.cronService,
       ncpAgent: options.ncpAgent,
+      ncpSessionService: options.ncpSessionService,
       authService,
       remoteAccess: options.remoteAccess,
+      getBootstrapStatus: options.getBootstrapStatus,
       getPluginChannelBindings: options.getPluginChannelBindings,
       getPluginUiMetadata: options.getPluginUiMetadata
     })

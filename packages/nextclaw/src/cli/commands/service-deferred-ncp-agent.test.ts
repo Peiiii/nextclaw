@@ -12,13 +12,6 @@ function createAgentHandle(): UiNcpAgentHandle {
     defaultType: "native",
     options: [{ value: "native", label: "Native" }],
   }));
-  const sessionApi = {
-    listSessions: vi.fn(async () => []),
-    getSession: vi.fn(async () => null),
-    listSessionMessages: vi.fn(async () => []),
-    updateSession: vi.fn(async () => null),
-    deleteSession: vi.fn(async () => undefined),
-  };
   const assetApi = {
     put: vi.fn(async () => ({
       id: "asset-1",
@@ -62,7 +55,6 @@ function createAgentHandle(): UiNcpAgentHandle {
         yield* [];
       }),
     },
-    sessionApi,
     listSessionTypes,
     assetApi,
     applyExtensionRegistry: vi.fn(),
@@ -89,7 +81,6 @@ describe("createDeferredUiNcpAgent", () => {
       }),
     ).rejects.toThrow("ncp agent unavailable during startup");
 
-    expect(deferred.agent.sessionApi).toBeUndefined();
     expect(deferred.agent.listSessionTypes).toBeUndefined();
     expect(deferred.isReady()).toBe(false);
   });
@@ -101,7 +92,6 @@ describe("createDeferredUiNcpAgent", () => {
     deferred.activate(handle);
 
     expect(deferred.isReady()).toBe(true);
-    expect(deferred.agent.sessionApi).toBe(handle.sessionApi);
     expect(deferred.agent.listSessionTypes).toBe(handle.listSessionTypes);
     expect(deferred.agent.assetApi).toBe(handle.assetApi);
 
@@ -123,7 +113,6 @@ describe("createDeferredUiNcpAgent", () => {
     await deferred.close();
 
     expect(handle.agentClientEndpoint.stop).toHaveBeenCalledTimes(1);
-    expect(deferred.agent.sessionApi).toBeUndefined();
     expect(deferred.agent.listSessionTypes).toBeUndefined();
     expect(deferred.agent.assetApi).toBeUndefined();
     expect(deferred.isReady()).toBe(false);

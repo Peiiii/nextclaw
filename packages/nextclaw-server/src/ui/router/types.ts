@@ -2,6 +2,7 @@ import type * as NextclawCore from "@nextclaw/core";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { UiAuthService } from "../auth.service.js";
 import type {
+  BootstrapStatusView,
   MarketplaceApiConfig,
   RemoteBrowserAuthPollRequest,
   RemoteBrowserAuthPollResult,
@@ -14,6 +15,7 @@ import type {
   RemoteServiceActionResult,
   RemoteSettingsUpdateRequest,
   UiNcpAgent,
+  UiNcpSessionService,
   UiServerEvent
 } from "../types.js";
 
@@ -25,8 +27,10 @@ export type UiRouterOptions = {
   marketplace?: MarketplaceApiConfig;
   cronService?: InstanceType<typeof NextclawCore.CronService>;
   ncpAgent?: UiNcpAgent;
+  ncpSessionService?: UiNcpSessionService;
   authService?: UiAuthService;
   remoteAccess?: UiRemoteAccessHost;
+  getBootstrapStatus?: () => BootstrapStatusView;
   getPluginChannelBindings?: () => PluginChannelBinding[];
   getPluginUiMetadata?: () => PluginUiMetadata[];
 };
