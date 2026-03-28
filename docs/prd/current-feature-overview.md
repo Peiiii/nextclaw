@@ -55,7 +55,7 @@
 
 ### E. 多渠道接入能力
 
-- 内置渠道：Telegram、Discord、WhatsApp、Feishu、DingTalk、Slack、Email、QQ、Mochat
+- 内置渠道：Telegram、Discord、WhatsApp、Feishu、DingTalk、Slack、Email、QQ、Weixin、Mochat
 - 渠道启停与参数集中在 `channels.*`
 - `allowFrom` 白名单机制（渠道级访问控制）
 - `channels status` / `channels login` 形成基础运维闭环

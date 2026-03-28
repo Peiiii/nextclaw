@@ -16,7 +16,8 @@ const CHANNEL_LABELS: Record<string, string> = {
   wecom: "WeCom",
   email: "Email",
   slack: "Slack",
-  qq: "QQ"
+  qq: "QQ",
+  weixin: "Weixin"
 };
 const RESERVED_PROVIDER_IDS = builtinProviderIds();
 

@@ -22,7 +22,7 @@
 | `nextclaw-ui` | 配置 Web UI（模型 / Provider / 渠道 / 路由与运行时） |
 | `nextclaw-openclaw-compat` | OpenClaw 插件 SDK 与兼容层 |
 | `nextclaw-channel-runtime` | 渠道运行时（加载、注册、消息入站/出站） |
-| `nextclaw-channel-plugin-*` | 各渠道插件：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, mochat |
+| `nextclaw-channel-plugin-*` | 各渠道插件：telegram, discord, slack, feishu, dingtalk, wecom, whatsapp, email, qq, weixin, mochat |
 
 ---
 

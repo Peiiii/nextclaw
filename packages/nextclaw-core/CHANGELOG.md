@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.11.5
+
+### Patch Changes
+
+- Promote Weixin to the same builtin channel surface as the other first-party messaging channels. Reserve `channels.weixin` in the default config, include Weixin in the builtin channel list, and expose Weixin in CLI status and product documentation for fresh installs.
+
 ## 0.11.3
 
 ### Patch Changes
