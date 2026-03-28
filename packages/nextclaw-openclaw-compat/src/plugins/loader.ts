@@ -62,9 +62,9 @@ function resolvePackageRootFromEntry(entryFile: string): string {
   }
   return path.dirname(entryFile);
 }
-
 export { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
-
+export { loadOpenClawPluginsProgressively } from "./loader/progressive-plugin-loader.js";
+export type { ProgressivePluginLoadOptions } from "./loader/progressive-plugin-loader.js";
 function resolvePluginModuleExport(moduleExport: unknown): {
   definition?: OpenClawPluginDefinition;
   register?: OpenClawPluginDefinition["register"];

@@ -32,7 +32,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
     installPluginRuntimeBridge({
       runtimePool: { processDirect } as never,
       runtimeConfigPath: "/tmp/config.json",
-      pluginChannelBindings: [],
+      getPluginChannelBindings: () => [],
     });
 
     const bridge = setPluginRuntimeBridgeMock.mock.calls[0]?.[0] as {
@@ -81,7 +81,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
     installPluginRuntimeBridge({
       runtimePool: { processDirect } as never,
       runtimeConfigPath: "/tmp/config.json",
-      pluginChannelBindings: [],
+      getPluginChannelBindings: () => [],
     });
 
     const bridge = setPluginRuntimeBridgeMock.mock.calls[0]?.[0] as {
@@ -121,7 +121,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
     installPluginRuntimeBridge({
       runtimePool: { processDirect } as never,
       runtimeConfigPath: "/tmp/config.json",
-      pluginChannelBindings: [],
+      getPluginChannelBindings: () => [],
     });
 
     const bridge = setPluginRuntimeBridgeMock.mock.calls[0]?.[0] as {
@@ -170,7 +170,7 @@ describe("installPluginRuntimeBridge media attachment forwarding", () => {
     installPluginRuntimeBridge({
       runtimePool: { processDirect } as never,
       runtimeConfigPath: "/tmp/config.json",
-      pluginChannelBindings: [],
+      getPluginChannelBindings: () => [],
     });
 
     const bridge = setPluginRuntimeBridgeMock.mock.calls[0]?.[0] as {

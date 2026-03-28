@@ -7,7 +7,7 @@ import { mergePluginConfigView, toPluginConfigView } from "./plugins.js";
 type InstallPluginRuntimeBridgeParams = {
   runtimePool: GatewayAgentRuntimePool;
   runtimeConfigPath: string;
-  pluginChannelBindings: ReturnType<typeof getPluginChannelBindings>;
+  getPluginChannelBindings: () => ReturnType<typeof getPluginChannelBindings>;
 };
 
 type PluginRuntimeDispatchContext = {
@@ -30,17 +30,17 @@ type PluginRuntimeDispatchContext = {
 };
 
 export function installPluginRuntimeBridge(params: InstallPluginRuntimeBridgeParams): void {
-  const { runtimePool, runtimeConfigPath, pluginChannelBindings } = params;
+  const { runtimePool, runtimeConfigPath, getPluginChannelBindings } = params;
 
   setPluginRuntimeBridge({
     loadConfig: () =>
-      toPluginConfigView(resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }), pluginChannelBindings),
+      toPluginConfigView(resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath }), getPluginChannelBindings()),
     writeConfigFile: async (nextConfigView) => {
       if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
         throw new Error("plugin runtime writeConfigFile expects an object config");
       }
       const current = loadConfig();
-      const next = mergePluginConfigView(current, nextConfigView, pluginChannelBindings);
+      const next = mergePluginConfigView(current, nextConfigView, getPluginChannelBindings());
       saveConfig(next);
     },
     dispatchReplyWithBufferedBlockDispatcher: async ({ ctx, dispatcherOptions }) => {

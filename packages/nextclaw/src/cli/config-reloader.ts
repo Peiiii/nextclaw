@@ -89,7 +89,7 @@ export class ConfigReloader {
       console.log("Config reload: MCP servers reloaded.");
     }
     if (plan.restartChannels || reloadPluginsResult?.restartChannels) {
-      await this.reloadChannels(nextConfig);
+      await this.reloadChannels(nextConfig, { start: true });
       console.log("Config reload: channels restarted.");
     }
     if (plan.reloadProviders) {
@@ -143,7 +143,11 @@ export class ConfigReloader {
     return "Config reload triggered";
   }
 
-  private async reloadChannels(nextConfig: Config): Promise<void> {
+  async rebuildChannels(nextConfig: Config, options: { start?: boolean } = {}): Promise<void> {
+    await this.reloadChannels(nextConfig, { start: options.start ?? true });
+  }
+
+  private async reloadChannels(nextConfig: Config, options: { start: boolean }): Promise<void> {
     if (this.reloadTask) {
       await this.reloadTask;
       return;
@@ -157,7 +161,9 @@ export class ConfigReloader {
         this.options.sessionManager,
         this.options.getExtensionChannels?.() ?? []
       );
-      await this.channels.startAll();
+      if (options.start) {
+        await this.channels.startAll();
+      }
     })();
     try {
       await this.reloadTask;
