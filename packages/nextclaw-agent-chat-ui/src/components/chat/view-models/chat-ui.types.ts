@@ -22,17 +22,17 @@ export type ChatSelectedItem = {
   label: string;
 };
 
-export type ChatComposerTokenKind = 'skill' | 'file';
+export type ChatComposerTokenKind = "skill" | "file";
 
 export type ChatComposerTextNode = {
   id: string;
-  type: 'text';
+  type: "text";
   text: string;
 };
 
 export type ChatComposerTokenNode = {
   id: string;
-  type: 'token';
+  type: "token";
   tokenKind: ChatComposerTokenKind;
   tokenKey: string;
   label: string;
@@ -45,9 +45,9 @@ export type ChatComposerSelection = {
   end: number;
 };
 
-export type ChatToolbarIcon = 'sparkles' | 'brain';
+export type ChatToolbarIcon = "sparkles" | "brain";
 
-export type ChatToolbarAccessoryIcon = ChatToolbarIcon | 'paperclip';
+export type ChatToolbarAccessoryIcon = ChatToolbarIcon | "paperclip";
 
 export type ChatToolbarSelectOption = {
   value: string;
@@ -119,7 +119,7 @@ export type ChatInputBarToolbarProps = {
 };
 
 export type ChatInlineHint = {
-  tone: 'neutral' | 'warning';
+  tone: "neutral" | "warning";
   loading?: boolean;
   text?: string;
   actionLabel?: string;
@@ -134,7 +134,11 @@ export type ChatSlashMenuProps = {
   activeItem: ChatSlashItem | null;
   texts: Pick<
     ChatTexts,
-    'slashLoadingLabel' | 'slashSectionLabel' | 'slashEmptyLabel' | 'slashHintLabel' | 'slashSkillHintLabel'
+    | "slashLoadingLabel"
+    | "slashSectionLabel"
+    | "slashEmptyLabel"
+    | "slashHintLabel"
+    | "slashSkillHintLabel"
   >;
   onSelectItem: (item: ChatSlashItem) => void;
   onOpenChange: (open: boolean) => void;
@@ -150,49 +154,60 @@ export type ChatInputBarProps = {
     onFilesAdd?: (files: File[]) => Promise<void> | void;
     onSlashQueryChange?: (query: string | null) => void;
   };
-  slashMenu: Pick<ChatSlashMenuProps, 'isLoading' | 'items' | 'texts'>;
+  slashMenu: Pick<ChatSlashMenuProps, "isLoading" | "items" | "texts">;
   hint?: ChatInlineHint | null;
   toolbar: ChatInputBarToolbarProps;
 };
 
-export type ChatMessageRole = 'user' | 'assistant' | 'tool' | 'system' | 'message';
+export type ChatMessageRole =
+  | "user"
+  | "assistant"
+  | "tool"
+  | "system"
+  | "message";
 
 export type ChatToolPartViewModel = {
-  kind: 'call' | 'result';
+  kind: "call" | "result";
   toolName: string;
   summary?: string;
   output?: string;
   hasResult: boolean;
+  statusTone: "running" | "success" | "error" | "cancelled";
+  statusLabel: string;
   titleLabel: string;
+  inputLabel: string;
   outputLabel: string;
   emptyLabel: string;
+  callIdLabel: string;
+  callId?: string;
 };
 
 export type ChatMessagePartViewModel =
   | {
-      type: 'markdown';
+      type: "markdown";
       text: string;
     }
   | {
-      type: 'reasoning';
+      type: "reasoning";
       text: string;
       label: string;
     }
   | {
-      type: 'tool-card';
+      type: "tool-card";
       card: ChatToolPartViewModel;
     }
   | {
-      type: 'file';
+      type: "file";
       file: {
         label: string;
         mimeType: string;
         dataUrl?: string;
+        sizeBytes?: number;
         isImage: boolean;
       };
     }
   | {
-      type: 'unknown';
+      type: "unknown";
       label: string;
       rawType: string;
       text?: string;

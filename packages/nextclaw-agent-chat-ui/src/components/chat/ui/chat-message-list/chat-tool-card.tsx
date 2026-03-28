@@ -1,7 +1,29 @@
 import type { ChatToolPartViewModel } from '../../view-models/chat-ui.types';
-import { Clock3, FileSearch, Globe, Search, SendHorizontal, Terminal, Wrench } from 'lucide-react';
+import { AlertCircle, CheckCircle2, CircleSlash, Clock3, FileSearch, Globe, Loader2, Search, SendHorizontal, Terminal, Wrench } from 'lucide-react';
+import { cn } from '../../internal/cn';
 
 const TOOL_OUTPUT_PREVIEW_MAX = 220;
+const TOOL_CALL_ID_PREVIEW_MAX = 18;
+
+const STATUS_STYLES: Record<
+  ChatToolPartViewModel['statusTone'],
+  {
+    text: string;
+  }
+> = {
+  running: {
+    text: 'text-amber-700/80',
+  },
+  success: {
+    text: 'text-amber-700/80',
+  },
+  error: {
+    text: 'text-amber-700/80',
+  },
+  cancelled: {
+    text: 'text-amber-700/80',
+  },
+};
 
 function renderToolIcon(toolName: string) {
   const lowered = toolName.toLowerCase();
@@ -26,11 +48,47 @@ function renderToolIcon(toolName: string) {
   return <Wrench className="h-3.5 w-3.5" />;
 }
 
+function truncateMiddle(value: string, maxLength = TOOL_CALL_ID_PREVIEW_MAX) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  const head = Math.ceil((maxLength - 1) / 2);
+  const tail = Math.floor((maxLength - 1) / 2);
+  return `${value.slice(0, head)}…${value.slice(value.length - tail)}`;
+}
+
+function renderStatusMeta(card: ChatToolPartViewModel) {
+  const style = STATUS_STYLES[card.statusTone];
+  if (card.statusTone === 'running') {
+    return (
+      <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium leading-none', style.text)}>
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        {card.statusLabel}
+      </span>
+    );
+  }
+  const icon =
+    card.statusTone === 'success' ? (
+      <CheckCircle2 className="h-3.5 w-3.5" />
+    ) : card.statusTone === 'error' ? (
+      <AlertCircle className="h-3.5 w-3.5" />
+    ) : (
+      <CircleSlash className="h-3.5 w-3.5" />
+    );
+  return (
+    <span className={cn('inline-flex items-center gap-1 text-[11px] font-medium leading-none', style.text)}>
+      {icon}
+      {card.statusTone === 'success' ? null : card.statusLabel}
+    </span>
+  );
+}
+
 export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
   const output = card.output?.trim() ?? '';
   const showDetails = output.length > TOOL_OUTPUT_PREVIEW_MAX || output.includes('\n');
   const preview = showDetails ? `${output.slice(0, TOOL_OUTPUT_PREVIEW_MAX)}...` : output;
   const showOutputSection = card.kind === 'result' || card.hasResult;
+  const statusStyle = STATUS_STYLES[card.statusTone];
 
   return (
     <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 px-3 py-2.5">
@@ -38,10 +96,24 @@ export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
         {renderToolIcon(card.toolName)}
         <span>{card.titleLabel}</span>
         <span className="font-mono text-[11px] text-amber-900/80">{card.toolName}</span>
+        {renderStatusMeta(card)}
       </div>
+
       {card.summary ? (
-        <div className="mt-1 break-words font-mono text-[11px] text-amber-800/90">{card.summary}</div>
+        <div className="mt-1">
+          <div className="text-[10px] text-amber-700/75">{card.inputLabel}</div>
+          <div className="break-words font-mono text-[11px] text-amber-800/90">{card.summary}</div>
+        </div>
       ) : null}
+
+      {card.callId ? (
+        <div className={cn('mt-1 text-[10px]', statusStyle.text)}>
+          <span>{card.callIdLabel}</span>
+          <span>: </span>
+          <span className="font-mono">{truncateMiddle(card.callId)}</span>
+        </div>
+      ) : null}
+
       {showOutputSection ? (
         <div className="mt-2">
           {!output ? (
