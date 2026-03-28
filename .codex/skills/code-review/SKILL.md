@@ -1,57 +1,57 @@
 ---
 name: code-review
-description: Review code, diffs, pull requests, or proposed fixes for bugs, regressions, behavior risks, missing test coverage, and maintainability drift. Use when the user asks for a code review, PR review, risk scan, findings-first audit, or wants feedback on whether a fix is safe and appropriately simplified.
+description: 审查代码、diff、pull request 或拟议修复，重点识别缺陷、回归风险、行为漂移、测试缺口与可维护性压力。适用于用户提出代码 review、PR review、风险扫描、findings-first 审计，或希望判断某个修复是否足够安全且是否应先删减/简化再新增逻辑的场景。
 ---
 
-# Code Review
+# 代码评审
 
-## Overview
+## 概述
 
-Use this skill to review changes with a bug-finding mindset.
+使用这个 skill 时，默认采用“找问题优先”的评审视角。
 
-Optimize for correctness, regression detection, contract clarity, and maintainability pressure instead of style-only commentary.
+优先关注正确性、回归风险、契约清晰度和可维护性压力，而不是停留在样式层面的评论。
 
-## Workflow
+## 工作流
 
-1. Establish the scope.
-   Identify the diff, touched files, adjacent contracts, and affected tests.
-2. Reconstruct behavior.
-   Determine what the code did before, what it does after, and what a real caller or user now observes.
-3. Check high-risk surfaces first.
-   Review correctness, edge cases, state transitions, async behavior, data flow, API or UI contract changes, and operational failure modes.
-4. Check tests against external contracts.
-   Look for missing coverage only when a real regression path or user-visible contract is left unprotected.
-5. Apply simplification pressure.
-   Before recommending a fix, ask whether the problem should be solved by deletion or simplification rather than another layer of logic.
-6. Produce findings-first output.
-   List findings ordered by severity with concrete file references, the risk, and the smallest credible fix direction.
-7. End with uncertainty, not fluff.
-   After findings, note open questions or assumptions, then give a brief summary only if it adds value.
+1. 明确范围。
+   识别 diff、触达文件、相邻契约以及受影响测试。
+2. 重建行为变化。
+   判断代码改动前做什么、改动后做什么，以及真实调用方或用户现在会观察到什么。
+3. 先看高风险表面。
+   优先检查正确性、边界条件、状态迁移、异步行为、数据流、API/UI 契约变化以及运行失败模式。
+4. 用外部契约视角检查测试。
+   只有在真实回归路径或用户可见契约缺少保护时，才把“缺测试”作为问题提出。
+5. 对复杂度施加收敛压力。
+   在建议修复方案前，先问这个问题是否应通过删除或简化解决，而不是再叠一层逻辑。
+6. 输出 findings-first 结果。
+   按严重级别列出问题，并附上具体文件引用、风险说明和最小可信修复方向。
+7. 以不确定性收尾，而不是堆废话。
+   在 findings 之后补充开放问题或前提假设；只有确实有价值时才给简短总结。
 
-## Review Questions
+## 评审问题
 
-- What can break for a real user, caller, or operator?
-- Which state transition, branch, or input now violates the intended contract?
-- Does the change create duplicate logic or multiple sources of truth?
-- Does it add hidden fallback behavior that masks a deeper defect?
-- Are tests protecting stable behavior or only pinning implementation details?
-- Would deletion or path unification solve the issue more safely than another branch, flag, or adapter?
+- 对真实用户、调用方或运维方来说，什么会坏？
+- 哪个状态迁移、分支或输入现在违反了预期契约？
+- 这次改动是否制造了重复逻辑或多份真相来源？
+- 它是否加入了掩盖更深层缺陷的隐藏兜底行为？
+- 测试是在保护稳定外部行为，还是只是在钉死实现细节？
+- 相比再加一个分支、开关或适配层，直接删除或收敛路径是否更安全？
 
-## Review Rules
+## 评审规则
 
-- Findings first. Summaries are secondary.
-- Distinguish confirmed findings from assumptions and follow-up questions.
-- Prioritize correctness, regressions, data loss, security/privacy exposure, and operational failure over style nits.
-- Cite concrete file references for every finding when possible.
-- Prefer external-contract reasoning over internal implementation preference.
-- Flag missing tests only when an external contract or high-risk regression lacks protection.
-- `delete-simplify-before-add`: when reviewing a change or a proposed fix, first ask whether the problem can be solved by deleting code, deleting a branch, or removing a compatibility path; if not, ask whether multiple paths can be simplified into one explicit path; only after both fail should you recommend adding new logic. Treat “just add another flag/branch/fallback” as a last resort.
-- If no findings remain, state that explicitly and mention residual risks or validation gaps.
+- findings 优先，总结靠后。
+- 明确区分已确认问题、假设判断和后续待确认问题。
+- 正确性、回归风险、数据丢失、安全/隐私暴露和运行失败，优先级高于样式细节。
+- 只要可能，每条问题都给出具体文件引用。
+- 优先基于外部契约推理，而不是基于个人实现偏好下判断。
+- 只有当外部契约或高风险回归缺少保护时，才把“缺测试”列为问题。
+- `delete-simplify-before-add`：评审改动或拟议修复时，先判断能否通过删除代码、删除分支或移除兼容路径来解决；如果不能，再判断能否把多条路径简化为一条显式主路径；只有前两步都不足以解决问题时，才建议新增逻辑。把“再加一个开关/分支/兜底”视为最后手段。
+- 如果没有发现问题，必须明确写出 `no findings`，同时注明剩余风险或验证缺口。
 
-## Output Requirements
+## 输出要求
 
-When using this skill, structure the response in this order:
+使用这个 skill 时，回复顺序固定为：
 
-1. Findings ordered by severity, each with file reference, risk, and reasoning.
-2. Open questions or assumptions.
-3. Brief change summary, or an explicit `no findings` conclusion with residual risks.
+1. 按严重级别排序的问题列表，每条都包含文件引用、风险和理由。
+2. 开放问题或前提假设。
+3. 简短变更总结，或者明确写出 `no findings` 并说明剩余风险。

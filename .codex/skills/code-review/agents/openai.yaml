@@ -1,4 +1,4 @@
 interface:
-  display_name: "Code Review"
-  short_description: "Review diffs for bugs, risk, and simplification"
-  default_prompt: "Review the requested code or diff with a findings-first mindset. Focus on bugs, regressions, contract risks, missing tests, hidden complexity, and whether the safest fix is to delete or simplify before adding new logic."
+  display_name: "代码评审"
+  short_description: "以 findings-first 方式检查缺陷、回归风险与简化机会"
+  default_prompt: "以 findings-first 的方式评审给定代码或 diff。重点检查缺陷、回归风险、契约问题、测试缺口和隐藏复杂度，并优先判断最安全的修复是否应先删除或简化，而不是继续新增逻辑。"
