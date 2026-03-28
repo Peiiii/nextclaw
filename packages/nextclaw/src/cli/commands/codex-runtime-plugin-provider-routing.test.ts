@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { createPluginRuntime } from "@nextclaw/openclaw-compat";
 import { ConfigSchema, type Config } from "@nextclaw/core";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
@@ -41,6 +42,12 @@ async function createRuntimeConfig(params?: {
   codexRuntimePlugin.register({
     config: params?.config ?? createConfig({}),
     pluginConfig: params?.pluginConfig,
+    runtime: createPluginRuntime({
+      workspace:
+        params?.config?.agents.defaults.workspace ??
+        "/tmp/nextclaw-codex-runtime-plugin-provider-routing",
+      config: params?.config ?? createConfig({}),
+    }),
     registerNcpAgentRuntime(registration) {
       createRuntime = registration.createRuntime;
     },

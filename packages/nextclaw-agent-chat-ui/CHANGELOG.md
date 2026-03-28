@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.2.6
+
+### Patch Changes
+
+- Publish the pending branch changes for Claude NCP event visibility and chat tool status feedback. Claude runtime now exposes richer reasoning and tool-call events to the NCP layer, and the shared chat UI surfaces clearer tool lifecycle states, call IDs, and output labels.
+
 ## 0.2.5
 
 ### Patch Changes

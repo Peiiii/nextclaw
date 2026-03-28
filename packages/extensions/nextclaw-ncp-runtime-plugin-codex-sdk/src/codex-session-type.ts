@@ -1,5 +1,3 @@
-import type { Config } from "@nextclaw/core";
-
 export type SessionTypeDescriptor = {
   ready?: boolean;
   reason?: string | null;
@@ -50,11 +48,14 @@ function resolveConfiguredCodexModels(
 }
 
 function resolveRecommendedCodexModel(params: {
-  config: Config;
+  defaultModel?: string;
   pluginConfig: Record<string, unknown>;
   supportedModels?: string[];
 }): string | null {
-  const configuredModel = readString(params.pluginConfig.model) ?? params.config.agents.defaults.model;
+  const configuredModel = readString(params.pluginConfig.model) ?? params.defaultModel;
+  if (!configuredModel) {
+    return params.supportedModels?.[0] ?? null;
+  }
   if (!params.supportedModels || params.supportedModels.includes(configuredModel)) {
     return configuredModel;
   }
@@ -62,7 +63,7 @@ function resolveRecommendedCodexModel(params: {
 }
 
 export function createDescribeCodexSessionType(params: {
-  config: Config;
+  defaultModel?: string;
   pluginConfig: Record<string, unknown>;
 }): () => SessionTypeDescriptor {
   return () => {
@@ -72,7 +73,7 @@ export function createDescribeCodexSessionType(params: {
       reason: null,
       reasonMessage: null,
       recommendedModel: resolveRecommendedCodexModel({
-        config: params.config,
+        defaultModel: params.defaultModel,
         pluginConfig: params.pluginConfig,
         supportedModels,
       }),

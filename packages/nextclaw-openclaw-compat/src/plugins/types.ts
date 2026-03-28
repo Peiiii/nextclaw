@@ -1,4 +1,9 @@
-import type { AgentEngineFactory, Config, ExtensionChannel } from "@nextclaw/core";
+import type {
+  AgentEngineFactory,
+  Config,
+  ExtensionChannel,
+  ProviderRuntimeResolution,
+} from "@nextclaw/core";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 
@@ -376,6 +381,21 @@ export type PluginReplyDispatchParams = {
 
 export type PluginRuntime = {
   version: string;
+  agent: {
+    defaults: {
+      model: string;
+      workspace: string;
+      maxToolIterations: number;
+    };
+    resolveWorkspacePath: (workspace?: string) => string;
+    resolveProviderRuntime: (model?: string) => ProviderRuntimeResolution;
+    buildRuntimeUserPrompt: (params: {
+      workspace?: string;
+      sessionKey?: string;
+      metadata?: Record<string, unknown>;
+      userMessage: string;
+    }) => string;
+  };
   config: {
     loadConfig: () => Record<string, unknown>;
     writeConfigFile: (next: Record<string, unknown>) => Promise<void>;
