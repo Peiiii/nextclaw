@@ -57,6 +57,7 @@ type CreateUiNcpAgentParams = {
   getConfig: () => Config;
   getExtensionRegistry?: () => NextclawExtensionRegistry | undefined;
   resolveMessageToolHints?: MessageToolHintsResolver;
+  onSessionUpdated?: (sessionKey: string) => void;
 };
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -317,7 +318,9 @@ function createUiNcpAgentHandle(params: {
 }
 
 export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
-  const sessionStore = new NextclawAgentSessionStore(params.sessionManager);
+  const sessionStore = new NextclawAgentSessionStore(params.sessionManager, {
+    onSessionUpdated: params.onSessionUpdated,
+  });
   const runtimeRegistry = new UiNcpRuntimeRegistry();
   const { toolRegistryAdapter, applyMcpConfig } = await createMcpRuntimeSupport(params.getConfig);
   const assetStore = new LocalAssetStore({

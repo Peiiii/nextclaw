@@ -1,5 +1,11 @@
 # @nextclaw/ncp-toolkit
 
+## 0.4.5
+
+### Patch Changes
+
+- 1ce3d58: Improve chat stream rendering performance by preserving stable message identities for unchanged messages and batching sticky autoscroll work with requestAnimationFrame.
+
 ## 0.4.4
 
 ### Patch Changes

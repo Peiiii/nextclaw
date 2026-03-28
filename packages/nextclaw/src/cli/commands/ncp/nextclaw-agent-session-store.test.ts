@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SessionManager } from "@nextclaw/core";
 import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
 import { NextclawAgentSessionStore } from "./nextclaw-agent-session-store.js";
@@ -84,6 +84,39 @@ describe("NextclawAgentSessionStore", () => {
       "text",
       "tool-invocation",
     ]);
+  });
+
+  it("notifies when a session is saved or deleted", async () => {
+    const workspace = createTempWorkspace();
+    const sessionManager = new SessionManager(workspace);
+    const onSessionUpdated = vi.fn();
+    const store = new NextclawAgentSessionStore(sessionManager, {
+      onSessionUpdated,
+    });
+    const sessionId = `session-${randomUUID()}`;
+
+    await store.saveSession({
+      sessionId,
+      updatedAt: new Date().toISOString(),
+      messages: [
+        {
+          id: "assistant-1",
+          sessionId,
+          role: "assistant",
+          status: "final",
+          timestamp: new Date().toISOString(),
+          parts: [{ type: "text", text: "done" }],
+        },
+      ],
+      metadata: {},
+    });
+
+    expect(onSessionUpdated).toHaveBeenCalledWith(sessionId);
+    onSessionUpdated.mockClear();
+
+    await store.deleteSession(sessionId);
+
+    expect(onSessionUpdated).toHaveBeenCalledWith(sessionId);
   });
 
   it("strips leaked reply tags when saving and loading assistant history", async () => {

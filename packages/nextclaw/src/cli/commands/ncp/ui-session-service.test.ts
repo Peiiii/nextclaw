@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SessionManager } from "@nextclaw/core";
 import { UiSessionService } from "./ui-session-service.js";
 
@@ -77,7 +77,10 @@ describe("UiSessionService", () => {
     sessionManager.addMessage(session, "user", "hello");
     sessionManager.save(session);
 
-    const sessionService = new UiSessionService(sessionManager);
+    const onSessionUpdated = vi.fn();
+    const sessionService = new UiSessionService(sessionManager, {
+      onSessionUpdated,
+    });
     const updated = await sessionService.updateSession(sessionId, {
       metadata: {
         session_type: "native",
@@ -92,9 +95,11 @@ describe("UiSessionService", () => {
         label: "After update",
       },
     });
+    expect(onSessionUpdated).toHaveBeenCalledWith(sessionId);
 
     await sessionService.deleteSession(sessionId);
 
+    expect(onSessionUpdated).toHaveBeenLastCalledWith(sessionId);
     expect(await sessionService.getSession(sessionId)).toBeNull();
   });
 });

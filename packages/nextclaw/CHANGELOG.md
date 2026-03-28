@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.16.12
+
+### Patch Changes
+
+- Updated dependencies [1ce3d58]
+  - @nextclaw/ncp-toolkit@0.4.5
+  - @nextclaw/openclaw-compat@0.3.42
+  - @nextclaw/server@0.11.7
+  - @nextclaw/remote@0.1.59
+
 ## 0.16.11
 
 ### Patch Changes

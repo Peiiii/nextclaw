@@ -291,6 +291,7 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
     private readonly sessionManager: SessionManager,
     private readonly options: {
       writeMode?: "ncp-state" | "runtime-owned";
+      onSessionUpdated?: (sessionKey: string) => void;
     } = {},
   ) {}
 
@@ -360,6 +361,7 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
     }
 
     this.sessionManager.save(session);
+    this.options.onSessionUpdated?.(sessionRecord.sessionId);
   }
 
   async deleteSession(sessionId: string): Promise<AgentSessionRecord | null> {
@@ -368,6 +370,7 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
       return null;
     }
     this.sessionManager.delete(sessionId);
+    this.options.onSessionUpdated?.(sessionId);
     return existing;
   }
 }

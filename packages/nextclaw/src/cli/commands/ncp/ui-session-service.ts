@@ -51,8 +51,15 @@ function buildUpdatedMetadata(params: {
 export class UiSessionService implements NcpSessionApi {
   private readonly sessionStore: NextclawAgentSessionStore;
 
-  constructor(sessionManager: SessionManager) {
-    this.sessionStore = new NextclawAgentSessionStore(sessionManager);
+  constructor(
+    sessionManager: SessionManager,
+    options: {
+      onSessionUpdated?: (sessionKey: string) => void;
+    } = {},
+  ) {
+    this.sessionStore = new NextclawAgentSessionStore(sessionManager, {
+      onSessionUpdated: options.onSessionUpdated,
+    });
   }
 
   async listSessions(options?: ListSessionsOptions): Promise<NcpSessionSummary[]> {

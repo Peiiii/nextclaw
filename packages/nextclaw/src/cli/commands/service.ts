@@ -40,7 +40,12 @@ import { createRemoteAccessHost } from "./service-remote-access.js";
 import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.js";
 import { UiSessionService } from "./ncp/ui-session-service.js";
 import { createGatewayShellContext, createGatewayStartupContext } from "./service-gateway-context.js";
-import { runGatewayRuntimeLoop, startDeferredGatewayStartup, startUiShell } from "./service-gateway-startup.js";
+import {
+  runGatewayRuntimeLoop,
+  startDeferredGatewayStartup,
+  startUiShell,
+  wireSystemSessionUpdatedPublisher
+} from "./service-gateway-startup.js";
 import { createEmptyPluginRegistry } from "./plugin-registry-loader.js";
 import {
   configureGatewayPluginRuntime,
@@ -109,16 +114,10 @@ export class ServiceCommands {
     const applyLiveConfigReload = async () => { await this.applyLiveConfigReload?.(); };
     let runtimeState: GatewayRuntimeState | null = null;
     const bootstrapStatus = createBootstrapStatus(shellContext.config.remote.enabled);
-    const ncpSessionService = new UiSessionService(shellContext.sessionManager);
+    const ncpSessionService = new UiSessionService(shellContext.sessionManager, { onSessionUpdated: (sessionKey) => uiStartup?.publish({ type: "session.updated", payload: { sessionKey } }) });
 
-    const marketplaceInstaller = new ServiceMarketplaceInstaller({
-      applyLiveConfigReload,
-      runCliSubcommand: (args) => this.runCliSubcommand(args),
-      installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force)
-    }).createInstaller();
-    const remoteAccess = createRemoteAccessHost({
-      serviceCommands: this, requestRestart: this.deps.requestRestart, uiConfig: shellContext.uiConfig, remoteModule: shellContext.remoteModule
-    });
+    const marketplaceInstaller = new ServiceMarketplaceInstaller({ applyLiveConfigReload, runCliSubcommand: (args) => this.runCliSubcommand(args), installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force) }).createInstaller();
+    const remoteAccess = createRemoteAccessHost({ serviceCommands: this, requestRestart: this.deps.requestRestart, uiConfig: shellContext.uiConfig, remoteModule: shellContext.remoteModule });
     const uiStartup = await measureStartupAsync("service.start_ui_shell", async () =>
       await startUiShell({
         uiConfig: shellContext.uiConfig,
@@ -159,10 +158,10 @@ export class ServiceCommands {
     runtimeState = gatewayRuntimeState;
     uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
     uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    configureGatewayPluginRuntime({
-      gateway,
-      state: gatewayRuntimeState,
-      getLiveUiNcpAgent: () => this.liveUiNcpAgent
+    configureGatewayPluginRuntime({ gateway, state: gatewayRuntimeState, getLiveUiNcpAgent: () => this.liveUiNcpAgent });
+    wireSystemSessionUpdatedPublisher({
+      runtimePool: gateway.runtimePool,
+      publishUiEvent: uiStartup?.publish
     });
     console.log("✓ Capability hydration: scheduled in background");
     await measureStartupAsync("service.start_gateway_support_services", async () =>

@@ -1,5 +1,11 @@
 # nextclaw-server
 
+## 0.11.7
+
+### Patch Changes
+
+- @nextclaw/openclaw-compat@0.3.42
+
 ## 0.11.6
 
 ### Patch Changes

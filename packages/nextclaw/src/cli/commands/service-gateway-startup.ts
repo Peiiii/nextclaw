@@ -27,6 +27,18 @@ export type UiStartupHandle = {
   publish: (event: UiServerEvent) => void;
 };
 
+export function wireSystemSessionUpdatedPublisher(params: {
+  runtimePool: Pick<GatewayAgentRuntimePool, "setSystemSessionUpdatedHandler">;
+  publishUiEvent?: (event: UiServerEvent) => void;
+}): void {
+  params.runtimePool.setSystemSessionUpdatedHandler(({ sessionKey }) => {
+    params.publishUiEvent?.({
+      type: "session.updated",
+      payload: { sessionKey }
+    });
+  });
+}
+
 export async function startUiShell(params: {
   uiConfig: Config["ui"];
   uiStaticDir: string | null;
@@ -117,6 +129,7 @@ export async function startDeferredGatewayStartup(params: {
           gatewayController: params.gatewayController,
           getConfig: params.getConfig,
           getExtensionRegistry: params.getExtensionRegistry,
+          onSessionUpdated: (sessionKey) => params.uiStartup?.publish({ type: "session.updated", payload: { sessionKey } }),
           resolveMessageToolHints: ({ channel, accountId }) =>
             params.resolveMessageToolHints({ channel, accountId }),
         })

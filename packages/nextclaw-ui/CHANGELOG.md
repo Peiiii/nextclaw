@@ -1,5 +1,14 @@
 # @nextclaw/ui
 
+## 0.11.9
+
+### Patch Changes
+
+- 1ce3d58: Improve chat stream rendering performance by preserving stable message identities for unchanged messages and batching sticky autoscroll work with requestAnimationFrame.
+- Updated dependencies [1ce3d58]
+  - @nextclaw/agent-chat-ui@0.2.12
+  - @nextclaw/ncp-react@0.4.2
+
 ## 0.11.8
 
 ### Patch Changes
