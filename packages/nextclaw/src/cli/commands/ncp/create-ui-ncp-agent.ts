@@ -296,7 +296,6 @@ function createUiNcpAgentHandle(params: {
     basePath: "/api/ncp/agent",
     agentClientEndpoint: createAgentClientFromServer(params.backend),
     streamProvider: params.backend,
-    sessionApi: params.backend,
     listSessionTypes: (describeParams?: UiNcpSessionTypeDescribeParams) => {
       params.refreshPluginRuntimeRegistrations();
       return params.runtimeRegistry.listSessionTypes(describeParams);

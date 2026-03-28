@@ -1,6 +1,13 @@
 import type * as NextclawCore from "@nextclaw/core";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
-import { startUiServer, type MarketplaceApiConfig, type UiServerEvent, type UiRemoteAccessHost } from "@nextclaw/server";
+import {
+  startUiServer,
+  type BootstrapStatusView,
+  type MarketplaceApiConfig,
+  type UiNcpSessionService,
+  type UiServerEvent,
+  type UiRemoteAccessHost
+} from "@nextclaw/server";
 import { openBrowser } from "../utils.js";
 import type { GatewayControllerImpl } from "../gateway/controller.js";
 import type { GatewayAgentRuntimePool } from "./agent-runtime-pool.js";
@@ -31,8 +38,10 @@ export async function startUiShell(params: {
   getPluginUiMetadata: () => PluginUiMetadata[];
   marketplace: MarketplaceApiConfig;
   remoteAccess: UiRemoteAccessHost;
+  getBootstrapStatus?: () => BootstrapStatusView;
   openBrowserWindow: boolean;
   applyLiveConfigReload?: () => Promise<void>;
+  ncpSessionService?: UiNcpSessionService;
 }): Promise<UiStartupHandle | null> {
   logStartupTrace("service.start_ui_shell.begin");
   if (!params.uiConfig.enabled) {
@@ -51,8 +60,10 @@ export async function startUiShell(params: {
     cronService: params.cronService,
     marketplace: params.marketplace,
     remoteAccess: params.remoteAccess,
+    getBootstrapStatus: params.getBootstrapStatus,
     getPluginChannelBindings: params.getPluginChannelBindings,
     getPluginUiMetadata: params.getPluginUiMetadata,
+    ncpSessionService: params.ncpSessionService,
     ncpAgent: deferredNcpAgent.agent,
   });
   publishUiEvent = uiServer.publish;
@@ -88,6 +99,7 @@ export async function startDeferredGatewayStartup(params: {
   getConfig: () => Config;
   getExtensionRegistry: () => NextclawExtensionRegistry | undefined;
   resolveMessageToolHints: (params: { channel: string; accountId?: string | null }) => string[];
+  hydrateCapabilities?: () => Promise<void>;
   startPluginGateways: () => Promise<void>;
   startChannels: () => Promise<void>;
   wakeFromRestartSentinel: () => Promise<void>;
@@ -117,6 +129,9 @@ export async function startDeferredGatewayStartup(params: {
     }
   }
 
+  if (params.hydrateCapabilities) {
+    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", params.hydrateCapabilities);
+  }
   await measureStartupAsync("service.deferred_startup.start_plugin_gateways", params.startPluginGateways);
   await measureStartupAsync("service.deferred_startup.start_channels", params.startChannels);
   await measureStartupAsync("service.deferred_startup.wake_restart_sentinel", params.wakeFromRestartSentinel);

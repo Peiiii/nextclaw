@@ -54,7 +54,7 @@ export type GatewayStartupContext = {
 
 export type GatewayShellContext = Pick<
   GatewayStartupContext,
-  "runtimeConfigPath" | "config" | "workspace" | "cron" | "uiConfig" | "uiStaticDir" | "remoteModule"
+  "runtimeConfigPath" | "config" | "workspace" | "sessionManager" | "cron" | "uiConfig" | "uiStaticDir" | "remoteModule"
 >;
 
 export function createGatewayShellContext(params: {
@@ -65,6 +65,10 @@ export function createGatewayShellContext(params: {
   const config = resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath });
   const workspace = getWorkspacePath(config.agents.defaults.workspace);
   const cronStorePath = join(getDataDir(), "cron", "jobs.json");
+  const sessionManager = measureStartupSync(
+    "service.gateway_shell_context.session_manager",
+    () => new SessionManager(workspace)
+  );
   const cron = new CronService(cronStorePath);
   const uiConfig = resolveUiConfig(config, params.uiOverrides);
   const uiStaticDir = params.uiStaticDir === undefined ? resolveUiStaticDir() : params.uiStaticDir;
@@ -77,6 +81,7 @@ export function createGatewayShellContext(params: {
     runtimeConfigPath,
     config,
     workspace,
+    sessionManager,
     cron,
     uiConfig,
     uiStaticDir,
@@ -89,6 +94,7 @@ export function createGatewayStartupContext(params: {
   uiOverrides?: Partial<Config["ui"]>;
   allowMissingProvider?: boolean;
   uiStaticDir?: string | null;
+  initialPluginRegistry?: PluginRegistry;
   makeProvider: (config: Config, options?: { allowMissing?: boolean }) => NextclawCore.LLMProvider | null;
   makeMissingProvider: (config: Config) => NextclawCore.LLMProvider;
   requestRestart: (params: RequestRestartParams) => Promise<void>;
@@ -101,11 +107,12 @@ export function createGatewayStartupContext(params: {
   state.runtimeConfigPath = shellContext.runtimeConfigPath;
   state.config = shellContext.config;
   state.workspace = shellContext.workspace;
+  state.sessionManager = shellContext.sessionManager;
   state.cron = shellContext.cron;
   state.uiConfig = shellContext.uiConfig;
   state.uiStaticDir = shellContext.uiStaticDir;
   state.remoteModule = shellContext.remoteModule;
-  state.pluginRegistry = measureStartupSync(
+  state.pluginRegistry = params.initialPluginRegistry ?? measureStartupSync(
     "service.gateway_context.load_plugin_registry",
     () => loadPluginRegistry(state.config, state.workspace)
   );
@@ -131,11 +138,6 @@ export function createGatewayStartupContext(params: {
       config: state.config,
     })
   );
-  state.sessionManager = measureStartupSync(
-    "service.gateway_context.session_manager",
-    () => new SessionManager(state.workspace)
-  );
-
   if (!provider) {
     console.warn(
       "Warning: No API key configured. The gateway is running, but agent replies are disabled until provider config is set.",

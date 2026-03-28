@@ -49,10 +49,18 @@ function registerConfigRoutes(app: Hono, configController: ConfigRoutesControlle
   app.post("/api/config/actions/:actionId/execute", configController.executeAction);
 }
 
-function registerNcpRoutes(
+function registerNcpSessionRoutes(app: Hono, ncpSessionController: NcpSessionRoutesController): void {
+  app.get("/api/ncp/session-types", ncpSessionController.getSessionTypes);
+  app.get("/api/ncp/sessions", ncpSessionController.listSessions);
+  app.get("/api/ncp/sessions/:sessionId", ncpSessionController.getSession);
+  app.put("/api/ncp/sessions/:sessionId", ncpSessionController.patchSession);
+  app.get("/api/ncp/sessions/:sessionId/messages", ncpSessionController.listSessionMessages);
+  app.delete("/api/ncp/sessions/:sessionId", ncpSessionController.deleteSession);
+}
+
+function registerNcpRuntimeRoutes(
   app: Hono,
   options: UiRouterOptions,
-  ncpSessionController: NcpSessionRoutesController,
   ncpAssetController: NcpAssetRoutesController,
 ): void {
   if (!options.ncpAgent) {
@@ -64,12 +72,6 @@ function registerNcpRoutes(
     agentClientEndpoint: options.ncpAgent.agentClientEndpoint,
     streamProvider: options.ncpAgent.streamProvider
   });
-  app.get("/api/ncp/session-types", ncpSessionController.getSessionTypes);
-  app.get("/api/ncp/sessions", ncpSessionController.listSessions);
-  app.get("/api/ncp/sessions/:sessionId", ncpSessionController.getSession);
-  app.put("/api/ncp/sessions/:sessionId", ncpSessionController.patchSession);
-  app.get("/api/ncp/sessions/:sessionId/messages", ncpSessionController.listSessionMessages);
-  app.delete("/api/ncp/sessions/:sessionId", ncpSessionController.deleteSession);
   app.post("/api/ncp/assets", ncpAssetController.putAssets);
   app.get("/api/ncp/assets/content", ncpAssetController.getAssetContent);
 }
@@ -116,7 +118,7 @@ export function createUiRouter(options: UiRouterOptions): Hono {
 
   app.use("/api/*", async (c, next) => {
     const path = c.req.path;
-    if (path === "/api/health" || path.startsWith("/api/auth/")) {
+    if (path === "/api/health" || path === "/api/runtime/bootstrap-status" || path.startsWith("/api/auth/")) {
       await next();
       return;
     }
@@ -130,9 +132,11 @@ export function createUiRouter(options: UiRouterOptions): Hono {
 
   app.get("/api/health", appController.health);
   app.get("/api/app/meta", appController.appMeta);
+  app.get("/api/runtime/bootstrap-status", appController.bootstrapStatus);
   registerAuthRoutes(app, authController);
   registerConfigRoutes(app, configController);
-  registerNcpRoutes(app, options, ncpSessionController, ncpAssetController);
+  registerNcpSessionRoutes(app, ncpSessionController);
+  registerNcpRuntimeRoutes(app, options, ncpAssetController);
   registerCronRoutes(app, cronController);
   registerRemoteRoutes(app, remoteController);
 
