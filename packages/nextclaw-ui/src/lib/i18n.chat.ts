@@ -70,8 +70,6 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatRoleMessage: { zh: '消息', en: 'Message' },
   chatToolCall: { zh: '工具调用', en: 'Tool Call' },
   chatToolResult: { zh: '工具结果', en: 'Tool Result' },
-  chatToolInput: { zh: '输入摘要', en: 'Input Summary' },
-  chatToolCallId: { zh: '调用 ID', en: 'Call ID' },
   chatToolWorkflow: { zh: '工具工作流', en: 'Tool Workflow' },
   chatToolWorkflowDetails: { zh: '展开查看参数和结果', en: 'Expand to view params and results' },
   chatToolOutput: { zh: '查看输出', en: 'View Output' },

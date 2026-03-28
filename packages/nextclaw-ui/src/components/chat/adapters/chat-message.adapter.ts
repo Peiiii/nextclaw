@@ -65,8 +65,6 @@ export type ChatMessageAdapterTexts = {
   reasoningLabel: string;
   toolCallLabel: string;
   toolResultLabel: string;
-  toolInputLabel: string;
-  toolCallIdLabel: string;
   toolNoOutputLabel: string;
   toolOutputLabel: string;
   toolStatusPreparingLabel: string;
@@ -245,11 +243,8 @@ function buildToolCard(
     statusLabel: toolCard.statusLabel,
     titleLabel:
       toolCard.kind === "call" ? texts.toolCallLabel : texts.toolResultLabel,
-    inputLabel: texts.toolInputLabel,
     outputLabel: texts.toolOutputLabel,
     emptyLabel: texts.toolNoOutputLabel,
-    callIdLabel: texts.toolCallIdLabel,
-    callId: toolCard.callId,
   };
 }
 

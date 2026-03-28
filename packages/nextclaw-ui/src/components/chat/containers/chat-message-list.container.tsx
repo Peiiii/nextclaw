@@ -46,8 +46,6 @@ export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
           reasoningLabel: t("chatReasoning"),
           toolCallLabel: t("chatToolCall"),
           toolResultLabel: t("chatToolResult"),
-          toolInputLabel: t("chatToolInput"),
-          toolCallIdLabel: t("chatToolCallId"),
           toolNoOutputLabel: t("chatToolNoOutput"),
           toolOutputLabel: t("chatToolOutput"),
           toolStatusPreparingLabel: t("chatToolStatusPreparing"),

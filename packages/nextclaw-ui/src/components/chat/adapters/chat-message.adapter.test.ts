@@ -17,8 +17,6 @@ const defaultTexts = {
   reasoningLabel: "Reasoning",
   toolCallLabel: "Tool Call",
   toolResultLabel: "Tool Result",
-  toolInputLabel: "Input Summary",
-  toolCallIdLabel: "Call ID",
   toolNoOutputLabel: "No output",
   toolOutputLabel: "View Output",
   toolStatusPreparingLabel: "Preparing",
@@ -87,9 +85,6 @@ it("maps markdown, reasoning, and tool parts into UI view models", () => {
   expect(adapted[0]?.parts[2]).toMatchObject({
     type: "tool-card",
     card: {
-      callId: "call-1",
-      callIdLabel: "Call ID",
-      inputLabel: "Input Summary",
       statusLabel: "Completed",
       statusTone: "success",
       titleLabel: "Tool Result",
@@ -133,7 +128,6 @@ it("maps tool lifecycle statuses into visible card state feedback", () => {
       statusTone: "running",
       statusLabel: "Preparing",
       titleLabel: "Tool Call",
-      callId: "call-prep",
     },
   });
   expect(adapted[0]?.parts[1]).toMatchObject({
@@ -143,7 +137,6 @@ it("maps tool lifecycle statuses into visible card state feedback", () => {
       statusLabel: "Failed",
       titleLabel: "Tool Result",
       output: "Command failed",
-      callId: "call-error",
     },
   });
 });
