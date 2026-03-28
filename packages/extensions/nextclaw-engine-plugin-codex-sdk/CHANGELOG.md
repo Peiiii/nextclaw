@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-engine-codex-sdk
 
+## 0.3.9
+
+### Patch Changes
+
+- Release the accumulated public workspace drift together with the Codex Responses contract fix. This batch includes the new stream-completion probe, the Codex runtime bundle entry alignment, and the already-unpublished package changes that the release guard requires to be versioned before publish.
+
 ## 0.3.8
 
 ### Patch Changes

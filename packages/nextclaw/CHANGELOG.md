@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.16.10
+
+### Patch Changes
+
+- Release the accumulated public workspace drift together with the Codex Responses contract fix. This batch includes the new stream-completion probe, the Codex runtime bundle entry alignment, and the already-unpublished package changes that the release guard requires to be versioned before publish.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.3.41
+  - @nextclaw/remote@0.1.58
+  - @nextclaw/server@0.11.6
+
 ## 0.16.9
 
 ### Patch Changes

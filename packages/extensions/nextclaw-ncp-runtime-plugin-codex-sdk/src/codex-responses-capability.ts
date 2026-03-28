@@ -17,6 +17,22 @@ function readErrorMessage(value: unknown): string {
   return readString(record.message) ?? readString(record.error) ?? "";
 }
 
+function didReceiveResponseCompleted(rawText: string): boolean {
+  for (const block of rawText.split(/\r?\n\r?\n/g)) {
+    const trimmedBlock = block.trim();
+    if (!trimmedBlock) {
+      continue;
+    }
+    const eventLine = trimmedBlock
+      .split(/\r?\n/g)
+      .find((line) => line.startsWith("event:"));
+    if (eventLine?.slice("event:".length).trim() === "response.completed") {
+      return true;
+    }
+  }
+  return false;
+}
+
 function shouldTreatResponsesProbeFailureAsUnsupported(params: {
   status: number;
   message: string;
@@ -68,7 +84,7 @@ async function probeCodexResponsesApiSupport(params: {
         model: params.model,
         input: "ping",
         max_output_tokens: 1,
-        stream: false,
+        stream: true,
       }),
     });
     const rawText = await response.text();
@@ -89,8 +105,11 @@ async function probeCodexResponsesApiSupport(params: {
     const responseFailed =
       readString(parsedRecord?.status)?.toLowerCase() === "failed" ||
       Boolean(parsedRecord?.error);
-    if (response.ok && !responseFailed) {
-      return true;
+    if (!response.ok || responseFailed) {
+      return false;
+    }
+    if (!didReceiveResponseCompleted(rawText)) {
+      return false;
     }
     return !shouldTreatResponsesProbeFailureAsUnsupported({
       status: response.status,
