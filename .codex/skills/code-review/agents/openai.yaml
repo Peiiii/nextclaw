@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Review diffs for bugs, risk, and simplification"
+  default_prompt: "Review the requested code or diff with a findings-first mindset. Focus on bugs, regressions, contract risks, missing tests, hidden complexity, and whether the safest fix is to delete or simplify before adding new logic."
