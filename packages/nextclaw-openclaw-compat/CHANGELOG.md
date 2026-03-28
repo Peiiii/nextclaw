@@ -1,5 +1,24 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.36
+
+### Patch Changes
+
+- Publish the current committed runtime and UI startup fixes as one aligned patch batch. This release moves the Codex runtime plugin onto host-injected agent runtime APIs, splits UI session reads from the deferred NCP runtime so `/api/ncp/sessions` is available before the runtime agent is ready, and republishes the linked public packages above the currently published tags so the shipped dependency chain stays version-consistent.
+- Updated dependencies
+  - @nextclaw/core@0.11.3
+  - @nextclaw/channel-plugin-weixin@0.1.11
+  - @nextclaw/channel-runtime@0.4.4
+  - @nextclaw/channel-plugin-dingtalk@0.2.18
+  - @nextclaw/channel-plugin-discord@0.2.18
+  - @nextclaw/channel-plugin-email@0.2.18
+  - @nextclaw/channel-plugin-mochat@0.2.18
+  - @nextclaw/channel-plugin-qq@0.2.18
+  - @nextclaw/channel-plugin-slack@0.2.18
+  - @nextclaw/channel-plugin-telegram@0.2.18
+  - @nextclaw/channel-plugin-wecom@0.2.18
+  - @nextclaw/channel-plugin-whatsapp@0.2.18
+
 ## 0.3.35
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @nextclaw/runtime
 
+## 0.2.17
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.11.3
+
 ## 0.2.16
 
 ### Patch Changes
@@ -182,7 +189,6 @@
 ### Patch Changes
 
 - Refactor provider and channel architecture with core registry mechanism and runtime assembly.
-
   - Move builtin provider catalog and builtin channel IDs out of core into `@nextclaw/runtime`.
   - Keep provider registry mechanisms in `@nextclaw/core` with injectable catalog support.
   - Update server/CLI to consume runtime-provided builtin provider/channel metadata.

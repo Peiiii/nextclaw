@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-discord",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "private": false,
   "description": "NextClaw Discord channel plugin (OpenClaw-compatible)",
   "type": "module",

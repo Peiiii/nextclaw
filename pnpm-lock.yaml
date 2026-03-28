@@ -603,9 +603,6 @@ importers:
 
   packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk:
     dependencies:
-      '@nextclaw/core':
-        specifier: workspace:*
-        version: link:../../nextclaw-core
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../../ncp-packages/nextclaw-ncp
@@ -615,9 +612,6 @@ importers:
       '@nextclaw/nextclaw-ncp-runtime-codex-sdk':
         specifier: workspace:*
         version: link:../nextclaw-ncp-runtime-codex-sdk
-      '@nextclaw/runtime':
-        specifier: workspace:*
-        version: link:../../nextclaw-runtime
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
