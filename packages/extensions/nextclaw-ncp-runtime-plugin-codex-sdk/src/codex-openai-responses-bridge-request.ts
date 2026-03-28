@@ -9,6 +9,13 @@ import {
   type OpenAiChatCompletionResponse,
   type OpenResponsesItemRecord,
 } from "./codex-openai-responses-bridge-shared.js";
+import {
+  buildChatContent,
+  mergeChatContent,
+  normalizeToolOutput,
+  readAssistantMessageText,
+  type OpenAiChatContent,
+} from "./codex-openai-responses-bridge-message-content.js";
 function stripModelPrefix(model: string, prefixes: string[]): string {
   const normalizedModel = model.trim();
   for (const prefix of prefixes) {
@@ -36,119 +43,14 @@ function resolveUpstreamModel(
   }
   return model;
 }
-function normalizeTextPart(value: unknown): string {
-  const record = readRecord(value);
-  if (!record) {
-    return "";
-  }
-  const type = readString(record.type);
-  if (type !== "input_text" && type !== "output_text") {
-    return "";
-  }
-  return readString(record.text) ?? "";
-}
-function normalizeImageUrl(value: unknown): string | null {
-  const record = readRecord(value);
-  if (!record || readString(record.type) !== "input_image") {
-    return null;
-  }
-  const source = readRecord(record.source);
-  if (!source) {
-    return null;
-  }
-  if (readString(source.type) === "url") {
-    return readString(source.url) ?? null;
-  }
-  if (readString(source.type) === "base64") {
-    const mediaType = readString(source.media_type) ?? "application/octet-stream";
-    const data = readString(source.data);
-    if (!data) {
-      return null;
-    }
-    return `data:${mediaType};base64,${data}`;
-  }
-  return null;
-}
-function normalizeToolOutput(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    const text = value.map((entry) => normalizeTextPart(entry)).filter(Boolean).join("");
-    if (text) {
-      return text;
-    }
-  }
-  try {
-    return JSON.stringify(value ?? "");
-  } catch {
-    return String(value ?? "");
-  }
-}
-function buildChatContent(
-  content: unknown,
-): string | Array<Record<string, unknown>> | null {
-  if (typeof content === "string") {
-    return content;
-  }
-  if (!Array.isArray(content)) {
-    return null;
-  }
-
-  const chatContent: Array<Record<string, unknown>> = [];
-  for (const entry of content) {
-    const text = normalizeTextPart(entry);
-    if (text) {
-      chatContent.push({
-        type: "text",
-        text,
-      });
-      continue;
-    }
-
-    const imageUrl = normalizeImageUrl(entry);
-    if (imageUrl) {
-      chatContent.push({
-        type: "image_url",
-        image_url: {
-          url: imageUrl,
-        },
-      });
-    }
-  }
-
-  if (chatContent.length === 0) {
-    return null;
-  }
-  const textOnly = chatContent.every((entry) => entry.type === "text");
-  if (textOnly) {
-    return chatContent
-      .map((entry) => readString(entry.text) ?? "")
-      .join("\n");
-  }
-  return chatContent;
-}
-function readAssistantMessageText(
-  content: string | Array<Record<string, unknown>> | null,
-): string {
-  if (typeof content === "string") {
-    return content;
-  }
-  if (!Array.isArray(content)) {
-    return "";
-  }
-  return content
-    .filter((entry) => entry.type === "text")
-    .map((entry) => readString(entry.text) ?? "")
-    .join("\n");
-}
 function appendMessageInputItem(params: {
   messages: Array<Record<string, unknown>>;
+  systemContent: OpenAiChatContent;
   assistantTextParts: string[];
   assistantToolCalls: Array<Record<string, unknown>>;
   item: OpenResponsesItemRecord;
   flushAssistant: () => void;
-}): void {
+}): OpenAiChatContent {
   const role = readString(params.item.role);
   const content = buildChatContent(params.item.content);
   if (role === "assistant") {
@@ -156,17 +58,21 @@ function appendMessageInputItem(params: {
     if (text.trim()) {
       params.assistantTextParts.push(text);
     }
-    return;
+    return params.systemContent;
   }
 
   params.flushAssistant();
   const normalizedRole = role === "developer" ? "system" : role;
-  if ((normalizedRole === "system" || normalizedRole === "user") && content !== null) {
+  if (normalizedRole === "system") {
+    return mergeChatContent(params.systemContent, content);
+  }
+  if (normalizedRole === "user" && content !== null) {
     params.messages.push({
-      role: normalizedRole,
+      role: "user",
       content,
     });
   }
+  return params.systemContent;
 }
 function appendFunctionCallItem(params: {
   assistantToolCalls: Array<Record<string, unknown>>;
@@ -208,22 +114,22 @@ function appendFunctionCallOutputItem(params: {
 }
 function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Record<string, unknown>> {
   const messages: Array<Record<string, unknown>> = [];
-  const instructionText = readString(instructions);
-  if (instructionText) {
-    messages.push({
-      role: "system",
-      content: instructionText,
-    });
-  }
+  let systemContent: OpenAiChatContent = readString(instructions) ?? null;
 
   if (typeof input === "string") {
-    return [
-      ...messages,
-      {
-        role: "user",
-        content: input,
-      },
-    ];
+    messages.push({
+      role: "user",
+      content: input,
+    });
+    return systemContent === null
+      ? messages
+      : [
+          {
+            role: "system",
+            content: systemContent,
+          },
+          ...messages,
+        ];
   }
 
   const assistantTextParts: string[] = [];
@@ -252,8 +158,9 @@ function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Recor
     }
     const type = readString(item.type);
     if (type === "message") {
-      appendMessageInputItem({
+      systemContent = appendMessageInputItem({
         messages,
+        systemContent,
         assistantTextParts,
         assistantToolCalls,
         item,
@@ -280,7 +187,15 @@ function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Recor
   }
 
   flushAssistant();
-  return messages;
+  return systemContent === null
+    ? messages
+    : [
+        {
+          role: "system",
+          content: systemContent,
+        },
+        ...messages,
+      ];
 }
 
 function toOpenAiTools(value: unknown): Array<Record<string, unknown>> | undefined {

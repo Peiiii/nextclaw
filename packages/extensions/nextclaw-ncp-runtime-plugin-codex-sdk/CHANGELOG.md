@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
 
+## 0.1.27
+
+### Patch Changes
+
+- Fix Codex OpenAI-compatible bridge system prompt normalization for MiniMax routing.
+
 ## 0.1.26
 
 ### Patch Changes
