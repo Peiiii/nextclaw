@@ -22,7 +22,7 @@ export function resolveExternalModelProvider(params: {
   }
 
   const providerName = readOptionalString(params.providerName);
-  if (providerName && !providerName.startsWith("custom-")) {
+  if (providerName) {
     return providerName;
   }
 
