@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-engine-claude-agent-sdk",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "private": false,
   "description": "NextClaw Claude Agent SDK engine plugin backed by Anthropic official SDK.",
   "type": "module",

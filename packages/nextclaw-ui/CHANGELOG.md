@@ -1,5 +1,13 @@
 # @nextclaw/ui
 
+## 0.11.5
+
+### Patch Changes
+
+- Publish the pending frontend UI batch together with the already-drifted public packages required by release guards.
+- Updated dependencies
+  - @nextclaw/agent-chat-ui@0.2.9
+
 ## 0.11.4
 
 ### Patch Changes

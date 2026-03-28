@@ -169,6 +169,9 @@ describe("ui auth protection flows", () => {
     const healthResponse = await app.request("http://localhost/api/health");
     expect(healthResponse.status).toBe(200);
 
+    const bootstrapStatusResponse = await app.request("http://localhost/api/runtime/bootstrap-status");
+    expect(bootstrapStatusResponse.status).toBe(200);
+
     const statusResponse = await app.request("http://localhost/api/auth/status");
     expect(statusResponse.status).toBe(200);
     const statusPayload = await statusResponse.json() as {

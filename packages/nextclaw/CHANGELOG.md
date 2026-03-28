@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.16.6
+
+### Patch Changes
+
+- Publish the pending frontend UI batch together with the already-drifted public packages required by release guards.
+
 ## 0.16.5
 
 ### Patch Changes

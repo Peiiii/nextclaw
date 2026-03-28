@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-engine-claude-agent-sdk
 
+## 0.3.8
+
+### Patch Changes
+
+- Publish the pending frontend UI batch together with the already-drifted public packages required by release guards.
+
 ## 0.3.7
 
 ### Patch Changes

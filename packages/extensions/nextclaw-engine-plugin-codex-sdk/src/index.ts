@@ -1,7 +1,8 @@
 import { createRequire } from "node:module";
 import type { Codex as CodexClient, CodexOptions, Thread, ThreadEvent, ThreadOptions } from "@openai/codex-sdk";
 import {
-  buildRequestedSkillsUserPrompt,
+  buildBootstrapAwareUserPrompt,
+  readRequestedSkillsFromMetadata,
   resolveProviderRuntime,
   SkillsLoader,
   type AgentEngine,
@@ -70,33 +71,6 @@ function readStringArray(input: Record<string, unknown>, key: string): string[] 
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function readRequestedSkills(metadata: Record<string, unknown> | undefined): string[] {
-  if (!metadata) {
-    return [];
-  }
-  const raw = metadata.requested_skills ?? metadata.requestedSkills;
-  const values: string[] = [];
-  if (Array.isArray(raw)) {
-    for (const entry of raw) {
-      if (typeof entry !== "string") {
-        continue;
-      }
-      const trimmed = entry.trim();
-      if (trimmed) {
-        values.push(trimmed);
-      }
-    }
-  } else if (typeof raw === "string") {
-    values.push(
-      ...raw
-        .split(/[,\s]+/g)
-        .map((entry) => entry.trim())
-        .filter(Boolean)
-    );
-  }
-  return Array.from(new Set(values)).slice(0, 8);
-}
-
 function readReasoningEffort(
   input: Record<string, unknown>,
   key: string
@@ -160,6 +134,7 @@ type PluginCodexSdkEngineOptions = {
   sessionManager: SessionManager;
   model: string;
   workspace: string;
+  contextConfig?: Config["agents"]["context"];
   apiKey: string;
   apiBase?: string;
   codexPathOverride?: string;
@@ -222,7 +197,7 @@ class PluginCodexSdkEngine implements AgentEngine {
     const channel = typeof params.channel === "string" && params.channel.trim() ? params.channel : "cli";
     const chatId = typeof params.chatId === "string" && params.chatId.trim() ? params.chatId : "direct";
     const model = readString(params.metadata ?? {}, "model") ?? this.defaultModel;
-    const requestedSkills = readRequestedSkills(params.metadata ?? {});
+    const requestedSkills = readRequestedSkillsFromMetadata(params.metadata ?? {});
     const session = this.options.sessionManager.getOrCreate(sessionKey);
 
     const userExtra: Record<string, unknown> = { channel, chatId };
@@ -232,7 +207,14 @@ class PluginCodexSdkEngine implements AgentEngine {
     const userEvent = this.options.sessionManager.addMessage(session, "user", params.content, userExtra);
     params.onSessionEvent?.(userEvent);
 
-    const prompt = buildRequestedSkillsUserPrompt(this.skillsLoader, requestedSkills, params.content);
+    const prompt = buildBootstrapAwareUserPrompt({
+      workspace: this.options.workspace,
+      contextConfig: this.options.contextConfig,
+      sessionKey,
+      skills: this.skillsLoader,
+      skillNames: requestedSkills,
+      userMessage: params.content,
+    });
 
     const thread = await this.resolveThread(sessionKey, model);
     const streamed = await thread.runStreamed(prompt, {
@@ -373,6 +355,7 @@ const plugin: PluginDefinition = {
           sessionManager: context.sessionManager,
           model,
           workspace: context.workspace,
+          contextConfig: context.config.agents.context,
           apiKey: resolved.apiKey,
           apiBase: resolved.apiBase,
           codexPathOverride: readString(engineConfig, "codexPathOverride"),

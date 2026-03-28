@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.27
+
+### Patch Changes
+
+- Publish the pending frontend UI batch together with the already-drifted public packages required by release guards.
+
 ## 0.1.26
 
 ### Patch Changes
