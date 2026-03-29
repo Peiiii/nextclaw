@@ -1,5 +1,18 @@
 # nextclaw
 
+## 0.16.16
+
+### Patch Changes
+
+- 2a5f94e: Recover the Weixin self-notify release path after a published version collision on `@nextclaw/channel-plugin-weixin`.
+
+  The previous batch released the main packages successfully, but `@nextclaw/channel-plugin-weixin@0.1.12` already existed on npm and was skipped. This recovery release publishes the actual Weixin route-hint changes under a new version and realigns `@nextclaw/openclaw-compat`, `@nextclaw/server`, and `nextclaw` onto that published dependency.
+
+- Updated dependencies [2a5f94e]
+  - @nextclaw/openclaw-compat@0.3.44
+  - @nextclaw/server@0.11.10
+  - @nextclaw/remote@0.1.62
+
 ## 0.16.15
 
 ### Patch Changes
