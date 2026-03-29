@@ -26,6 +26,46 @@ function normalizeChannelId(channel: string | null | undefined): string {
   return (channel ?? "").trim().toLowerCase();
 }
 
+function isChannelEnabledInConfig(channelId: string, cfg?: Config): boolean {
+  const channels = cfg?.channels;
+  if (!channels || typeof channels !== "object" || Array.isArray(channels)) {
+    return false;
+  }
+  const channelConfig = (channels as Record<string, unknown>)[channelId];
+  if (!channelConfig || typeof channelConfig !== "object" || Array.isArray(channelConfig)) {
+    return false;
+  }
+  return (channelConfig as { enabled?: unknown }).enabled === true;
+}
+
+function readChannelMessageToolHints(params: {
+  binding: PluginChannelBinding;
+  cfg?: Config;
+  accountId?: string | null;
+}): string[] {
+  const resolveHints = params.binding.channel.agentPrompt?.messageToolHints;
+  if (typeof resolveHints !== "function") {
+    return [];
+  }
+
+  try {
+    const hinted = (
+      resolveHints as unknown as (args: { cfg: Config; accountId?: string | null }) => unknown
+    )({
+      cfg: params.cfg ?? ({} as Config),
+      accountId: params.accountId,
+    });
+    if (!Array.isArray(hinted)) {
+      return [];
+    }
+    return hinted
+      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 function toBinding(registration: PluginChannelRegistration): PluginChannelBinding | null {
   const channelId = registration.channel.id?.trim();
   if (!channelId) {
@@ -65,30 +105,22 @@ export function resolvePluginChannelMessageToolHints(params: {
     (entry) => normalizeChannelId(entry.channelId) === channelId
   );
   if (!binding) {
-    return [];
+    const globalHints = getPluginChannelBindings(params.registry)
+      .filter((entry) => isChannelEnabledInConfig(entry.channelId, params.cfg))
+      .flatMap((entry) =>
+        readChannelMessageToolHints({
+          binding: entry,
+          cfg: params.cfg,
+          accountId: null,
+        }),
+      );
+    return Array.from(new Set(globalHints));
   }
-
-  const resolveHints = binding.channel.agentPrompt?.messageToolHints;
-  if (typeof resolveHints !== "function") {
-    return [];
-  }
-
-  try {
-    const hinted = (
-      resolveHints as unknown as (args: { cfg: Config; accountId?: string | null }) => unknown
-    )({
-      cfg: params.cfg ?? ({} as Config),
-      accountId: params.accountId
-    });
-    if (!Array.isArray(hinted)) {
-      return [];
-    }
-    return hinted
-      .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-      .filter(Boolean);
-  } catch {
-    return [];
-  }
+  return readChannelMessageToolHints({
+    binding,
+    cfg: params.cfg,
+    accountId: params.accountId,
+  });
 }
 
 export function getPluginUiMetadataFromRegistry(registry: PluginRegistry): PluginUiMetadata[] {

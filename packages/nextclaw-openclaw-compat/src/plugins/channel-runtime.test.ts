@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
-import { mergePluginConfigView, startPluginChannelGateways, toPluginConfigView, type PluginChannelBinding } from "./channel-runtime.js";
+import {
+  mergePluginConfigView,
+  resolvePluginChannelMessageToolHints,
+  startPluginChannelGateways,
+  toPluginConfigView,
+  type PluginChannelBinding,
+} from "./channel-runtime.js";
 import type { PluginRegistry } from "./types.js";
 
 function createRegistry(
@@ -282,5 +288,47 @@ describe("plugin channel config projection", () => {
     expect(next.plugins.entries?.["builtin-channel-feishu"]).toEqual({
       enabled: true
     });
+  });
+});
+
+describe("resolvePluginChannelMessageToolHints", () => {
+  it("falls back to enabled plugin channel hints when the current session channel is not plugin-backed", () => {
+    const registry: PluginRegistry = {
+      plugins: [],
+      tools: [],
+      channels: [
+        {
+          pluginId: "builtin-channel-weixin",
+          source: "bundled",
+          channel: {
+            id: "weixin",
+            agentPrompt: {
+              messageToolHints: () => ["Known Weixin self-notify route: channel='weixin', to='user-1@im.wechat'."],
+            },
+          },
+        },
+      ],
+      providers: [],
+      engines: [],
+      ncpAgentRuntimes: [],
+      diagnostics: [],
+      resolvedTools: [],
+    };
+    const config = ConfigSchema.parse({
+      channels: {
+        weixin: {
+          enabled: true,
+        },
+      },
+    });
+
+    const hints = resolvePluginChannelMessageToolHints({
+      registry,
+      channel: "ui",
+      cfg: config,
+      accountId: null,
+    });
+
+    expect(hints).toEqual(["Known Weixin self-notify route: channel='weixin', to='user-1@im.wechat'."]);
   });
 });

@@ -4,10 +4,12 @@ import {
   pollWeixinLoginSession,
   startWeixinLoginSession
 } from "./weixin-login.service.js";
+import { loadWeixinAccount, listStoredWeixinAccountIds } from "./weixin-account.store.js";
 import { WeixinChannel } from "./weixin-channel.js";
 import {
   isWeixinPluginEnabled,
   normalizeWeixinPluginConfig,
+  resolveConfiguredWeixinAccountIds,
   readWeixinPluginConfigFromConfig,
   WEIXIN_CHANNEL_ID,
   WEIXIN_PLUGIN_CONFIG_SCHEMA,
@@ -21,6 +23,71 @@ type NextclawWeixinPluginApi = {
   pluginConfig?: Record<string, unknown>;
   registerChannel: (registration: { plugin: Record<string, unknown> }) => void;
 };
+
+function readKnownWeixinRoutes(cfg: Config): Array<{ accountId: string; userId: string }> {
+  const pluginConfig = readWeixinPluginConfigFromConfig(cfg, WEIXIN_PLUGIN_ID);
+  const knownAccountIds = new Set<string>([
+    ...resolveConfiguredWeixinAccountIds(pluginConfig),
+    ...listStoredWeixinAccountIds(),
+  ]);
+  const routes: Array<{ accountId: string; userId: string }> = [];
+  const seen = new Set<string>();
+
+  for (const accountId of knownAccountIds) {
+    const configuredAllowFrom = pluginConfig.accounts?.[accountId]?.allowFrom ?? [];
+    const globalAllowFrom = pluginConfig.allowFrom ?? [];
+    const storedUserId = loadWeixinAccount(accountId)?.userId?.trim();
+    const candidateUserIds = new Set<string>([...configuredAllowFrom, ...globalAllowFrom]);
+    if (storedUserId) {
+      candidateUserIds.add(storedUserId);
+    }
+    for (const userId of candidateUserIds) {
+      const normalizedUserId = userId.trim();
+      if (!normalizedUserId) {
+        continue;
+      }
+      const key = `${accountId}:${normalizedUserId}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      routes.push({ accountId, userId: normalizedUserId });
+    }
+  }
+
+  return routes;
+}
+
+export function buildWeixinMessageToolHints(params: { cfg: Config; accountId?: string | null }): string[] {
+  const pluginConfig = readWeixinPluginConfigFromConfig(params.cfg, WEIXIN_PLUGIN_ID);
+  const knownRoutes = readKnownWeixinRoutes(params.cfg);
+  const hints: string[] = [
+    "To proactively message a Weixin user, use the message tool with channel='weixin' and to='<user_id@im.wechat>'.",
+  ];
+
+  if (params.accountId) {
+    hints.push(
+      `Current Weixin accountId is '${params.accountId}'. You usually do not need to set accountId unless you want another account.`,
+    );
+  } else if (pluginConfig.defaultAccountId) {
+    hints.push(`Default Weixin accountId is '${pluginConfig.defaultAccountId}'.`);
+  } else if (resolveConfiguredWeixinAccountIds(pluginConfig).length > 1 || listStoredWeixinAccountIds().length > 1) {
+    hints.push("If multiple Weixin accounts are configured, set accountId explicitly when sending a proactive message.");
+  }
+
+  if (knownRoutes.length === 1) {
+    const route = knownRoutes[0];
+    hints.push(
+      `Known Weixin self-notify route: channel='weixin', accountId='${route.accountId}', to='${route.userId}'. If the user says "notify me on Weixin" and there is no conflicting target, you may use this route directly.`,
+    );
+  } else if (knownRoutes.length > 1) {
+    hints.push(
+      `Known Weixin proactive routes: ${knownRoutes.map((route) => `${route.accountId} -> ${route.userId}`).join("; ")}. If the user says "notify me on Weixin", confirm which route to use when the target is ambiguous.`,
+    );
+  }
+
+  return hints;
+}
 
 function createWeixinChannelPlugin(pluginId: string) {
   return {
@@ -36,12 +103,8 @@ function createWeixinChannelPlugin(pluginId: string) {
       uiHints: WEIXIN_PLUGIN_CONFIG_UI_HINTS,
     },
     agentPrompt: {
-      messageToolHints: ({ accountId }: { cfg: Config; accountId?: string | null }) => [
-        "To proactively message a Weixin user, use the message tool with channel='weixin' and to='<user_id@im.wechat>'.",
-        accountId
-          ? `Current Weixin accountId is '${accountId}'. You usually do not need to set accountId unless you want another account.`
-          : "If multiple Weixin accounts are configured, set accountId explicitly when sending a proactive message.",
-      ],
+      messageToolHints: ({ cfg, accountId }: { cfg: Config; accountId?: string | null }) =>
+        buildWeixinMessageToolHints({ cfg, accountId }),
     },
     auth: {
       login: async (params: {
