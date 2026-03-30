@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export const DIRECTORY_BUDGET_WARNING_COUNT = 12;
-export const DIRECTORY_BUDGET_ERROR_COUNT = 20;
+export const DIRECTORY_BUDGET_ERROR_COUNT = 12;
 export const DIRECTORY_BUDGET_EXCEPTION_SECTION_TITLE = "## 目录预算豁免";
 export const DIRECTORY_BUDGET_EXCEPTION_REQUIRED_FIELDS = ["原因"];
 
@@ -190,7 +190,9 @@ function createDirectoryBudgetEntry(params) {
     path: normalized,
     scope,
     category: "directory",
-    budget: `${DIRECTORY_BUDGET_WARNING_COUNT}/${DIRECTORY_BUDGET_ERROR_COUNT}`,
+    budget: DIRECTORY_BUDGET_WARNING_COUNT === DIRECTORY_BUDGET_ERROR_COUNT
+      ? `${DIRECTORY_BUDGET_ERROR_COUNT}`
+      : `${DIRECTORY_BUDGET_WARNING_COUNT}/${DIRECTORY_BUDGET_ERROR_COUNT}`,
     message,
     suggested_seam: "split the directory by responsibility (for example components/store/service) before adding more direct files",
     current_count: currentCount,
@@ -210,14 +212,14 @@ export function evaluateDirectoryBudget(params) {
     exception
   } = params;
 
-  if (currentCount < DIRECTORY_BUDGET_WARNING_COUNT) {
+  if (currentCount < Math.min(DIRECTORY_BUDGET_WARNING_COUNT, DIRECTORY_BUDGET_ERROR_COUNT)) {
     return null;
   }
 
   const previous = previousCount ?? 0;
   const hasCompleteException = Boolean(exception?.found) && (exception?.missingFields?.length ?? 0) === 0;
 
-  if (currentCount > DIRECTORY_BUDGET_ERROR_COUNT) {
+  if (currentCount >= DIRECTORY_BUDGET_ERROR_COUNT) {
     if (hasCompleteException) {
       return createDirectoryBudgetEntry({
         level: "warn",
@@ -242,10 +244,10 @@ export function evaluateDirectoryBudget(params) {
       });
     }
 
-    if (previous <= DIRECTORY_BUDGET_ERROR_COUNT) {
+    if (previous < DIRECTORY_BUDGET_ERROR_COUNT) {
       return createDirectoryBudgetEntry({
         level: "error",
-        message: "directory crossed from within budget to over the hard file-count limit without a recorded exception",
+        message: "directory crossed from within budget to at or over the hard file-count limit without a recorded exception",
         directoryPath,
         currentCount,
         previousCount,
@@ -256,13 +258,17 @@ export function evaluateDirectoryBudget(params) {
 
     return createDirectoryBudgetEntry({
       level: "warn",
-      message: "directory remains over the hard file-count limit without a recorded exception",
+      message: "directory remains at or over the hard file-count limit without a recorded exception",
       directoryPath,
       currentCount,
       previousCount,
       exception,
       scope: "diff"
     });
+  }
+
+  if (DIRECTORY_BUDGET_WARNING_COUNT >= DIRECTORY_BUDGET_ERROR_COUNT) {
+    return null;
   }
 
   if (previousCount == null) {
@@ -318,12 +324,12 @@ function createDirectoryBudgetSnapshotEntry(params) {
     currentCount,
     exception
   } = params;
-  if (currentCount < DIRECTORY_BUDGET_WARNING_COUNT) {
+  if (currentCount < Math.min(DIRECTORY_BUDGET_WARNING_COUNT, DIRECTORY_BUDGET_ERROR_COUNT)) {
     return null;
   }
 
   const hasCompleteException = Boolean(exception?.found) && (exception?.missingFields?.length ?? 0) === 0;
-  if (currentCount > DIRECTORY_BUDGET_ERROR_COUNT) {
+  if (currentCount >= DIRECTORY_BUDGET_ERROR_COUNT) {
     if (hasCompleteException) {
       return createDirectoryBudgetEntry({
         level: "warn",
@@ -354,6 +360,10 @@ function createDirectoryBudgetSnapshotEntry(params) {
       exception,
       scope: "report"
     });
+  }
+
+  if (DIRECTORY_BUDGET_WARNING_COUNT >= DIRECTORY_BUDGET_ERROR_COUNT) {
+    return null;
   }
 
   return createDirectoryBudgetEntry({

@@ -30,11 +30,11 @@ test("inspectDirectoryBudgetExceptionText reports missing reason", () => {
   assert.equal(coverage.reason, null);
 });
 
-test("evaluateDirectoryBudget blocks a directory that crosses the hard limit without an exception", () => {
+test("evaluateDirectoryBudget blocks a directory that reaches the hard limit without an exception", () => {
   const finding = evaluateDirectoryBudget({
     directoryPath: "packages/demo/src/components",
-    currentCount: 21,
-    previousCount: 20,
+    currentCount: 12,
+    previousCount: 11,
     exception: {
       readmePath: "packages/demo/src/components/README.md",
       found: false,
@@ -50,8 +50,8 @@ test("evaluateDirectoryBudget blocks a directory that crosses the hard limit wit
 test("evaluateDirectoryBudget downgrades to warn when a complete exception is recorded", () => {
   const finding = evaluateDirectoryBudget({
     directoryPath: "packages/demo/src/pages",
-    currentCount: 24,
-    previousCount: 24,
+    currentCount: 12,
+    previousCount: 11,
     exception: {
       readmePath: "packages/demo/src/pages/README.md",
       found: true,
@@ -64,19 +64,19 @@ test("evaluateDirectoryBudget downgrades to warn when a complete exception is re
   assert.equal(finding?.exception_reason, "目录由框架路由约束，保留扁平页面文件结构。");
 });
 
-test("evaluateDirectoryBudget warns when a directory reaches the review budget", () => {
+test("evaluateDirectoryBudget keeps warning when a touched over-limit directory has a complete exception", () => {
   const finding = evaluateDirectoryBudget({
     directoryPath: "packages/demo/src/services",
     currentCount: 12,
     previousCount: 11,
     exception: {
       readmePath: "packages/demo/src/services/README.md",
-      found: false,
-      missingFields: ["原因"],
-      reason: null
+      found: true,
+      missingFields: [],
+      reason: "目录受装配边界约束，短期内需要保留扁平文件集合。"
     }
   });
 
   assert.equal(finding?.level, "warn");
-  assert.match(finding?.message ?? "", /review file-count budget/);
+  assert.match(finding?.message ?? "", /hard file-count budget/);
 });

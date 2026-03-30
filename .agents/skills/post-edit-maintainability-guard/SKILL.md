@@ -98,7 +98,7 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 
 ### 2. 目录级预算
 
-- 比较被触达目录的“直接手写代码文件数”是否进入 `12/20` 双阈值区间
+- 比较被触达目录的“直接手写代码文件数”是否达到 `12` 个硬限制
 - 按 diff-only 原则判断目录是否继续膨胀
 
 ### 3. 函数级规则
@@ -160,8 +160,8 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - 已存在的函数级违规在本次改动后进一步恶化
 - 新文件名与主职责明显不一致
 - 本次改动引入新的文件名-职责错配
-- 目录从 `<=20` 个直接手写代码文件增长到 `>20`，且目录内没有明确记录的“目录预算豁免”说明
-- 目录超过 `20` 个直接手写代码文件，但目录 `README.md` 中的“目录预算豁免”块缺失或不完整
+- 目录从 `<12` 个直接手写代码文件增长到 `>=12`，且目录内没有明确记录的“目录预算豁免”说明
+- 目录达到或超过 `12` 个直接手写代码文件，但目录 `README.md` 中的“目录预算豁免”块缺失或不完整
 - 本次新增了针对 `max-lines` / `max-lines-per-function` / 复杂度规则的 `eslint-disable` 注释
 - 本次触达红区文件，但未在本次迭代日志里记录红区触达与减债状态
 - 本次触达红区文件，但日志块缺少 `本次是否减债`、`说明` 或 `下一步拆分缝`
@@ -171,8 +171,8 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 以下情况默认视为警告：
 
 - 文件已经逼近预算线，进入预算的 80% 以上
-- 目录达到或停留在 `12-20` 个直接手写代码文件的 review 区间
-- 目录超过 `20` 个直接手写代码文件，但已在目录 `README.md` 中留下完整的“目录预算豁免”说明
+- 目录达到或超过 `12` 个直接手写代码文件，但已在目录 `README.md` 中留下完整的“目录预算豁免”说明
+- 已经达到或超过 `12` 个直接手写代码文件的历史目录，本次触达但未继续恶化，且仍未补豁免说明
 - 文件本次增长明显，但尚未超预算
 - 你触达了一个原本就超限的函数，但本次没有继续把它变得更糟
 - 你触达了一个原本就存在文件名-职责错配的文件，但本次没有继续恶化
@@ -184,7 +184,7 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 ## 预算规则
 
 - 默认源码文件：400 行
-- 默认目录文件预算：`12` 个直接手写代码文件开始告警，`20` 个以上默认禁止
+- 默认目录文件预算：`12` 个直接手写代码文件起默认禁止
 - 目录级预算统计口径：只看当前目录的直接代码文件，不递归子目录
 - 目录级预算默认排除：`__tests__`、`tests`、`__fixtures__`、`fixtures`、`generated`、`migrations`
 - `service` / `controller` / `manager` / `runtime` / `loop` / `router` / `provider`：600 行
@@ -193,7 +193,7 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - 测试文件：900 行
 - `types` / `schema` / `constants` / 明确的纯配置文件：900 行
 
-若目录确实必须超过 `20` 个直接手写代码文件，需在该目录的 `README.md` 中显式加入以下块：
+若目录确实必须达到或超过 `12` 个直接手写代码文件，需在该目录的 `README.md` 中显式加入以下块：
 
 ```md
 ## 目录预算豁免

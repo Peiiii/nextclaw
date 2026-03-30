@@ -58,7 +58,7 @@
 如果本次触达以下区域，AI 应默认更积极地寻找一个 micro-paydown：
 
 - maintainability hotspot 文件
-- 目录预算进入 review / hard limit 的目录
+- 目录预算达到或超过硬限制的目录
 - 当前 maintainability report 里的高违规文件
 - 已经多次被触达但持续膨胀的编排层文件
 

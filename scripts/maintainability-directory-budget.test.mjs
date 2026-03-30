@@ -54,11 +54,11 @@ test("inspectDirectoryBudgetExceptionText reports missing reason", () => {
   assert.equal(coverage.reason, null);
 });
 
-test("evaluateDirectoryBudget blocks a directory that crosses the hard limit without an exception", () => {
+test("evaluateDirectoryBudget blocks a directory that reaches the hard limit without an exception", () => {
   const finding = evaluateDirectoryBudget({
     directoryPath: "packages/demo/src/components",
-    currentCount: 21,
-    previousCount: 20,
+    currentCount: 12,
+    previousCount: 11,
     exception: {
       readmePath: "packages/demo/src/components/README.md",
       found: false,
@@ -74,8 +74,8 @@ test("evaluateDirectoryBudget blocks a directory that crosses the hard limit wit
 test("evaluateDirectoryBudget downgrades to warn when a complete exception is recorded", () => {
   const finding = evaluateDirectoryBudget({
     directoryPath: "packages/demo/src/pages",
-    currentCount: 24,
-    previousCount: 24,
+    currentCount: 12,
+    previousCount: 11,
     exception: {
       readmePath: "packages/demo/src/pages/README.md",
       found: true,
@@ -91,8 +91,8 @@ test("evaluateDirectoryBudget downgrades to warn when a complete exception is re
 
 test("collectDirectoryBudgetHotspots reports real hotspots and ignores generated directories", () => {
   withTempRoot((rootDir) => {
-    writeCodeFiles(path.join(rootDir, "packages/demo/src/components"), 21, ".ts");
-    writeCodeFiles(path.join(rootDir, "packages/demo/src/pages"), 24, ".tsx");
+    writeCodeFiles(path.join(rootDir, "packages/demo/src/components"), 12, ".ts");
+    writeCodeFiles(path.join(rootDir, "packages/demo/src/pages"), 12, ".tsx");
     writeFile(
       path.join(rootDir, "packages/demo/src/pages/README.md"),
       "## 目录预算豁免\n- 原因：该目录受文件系统路由约束，必须保留扁平页面文件集合。\n"
@@ -106,8 +106,8 @@ test("collectDirectoryBudgetHotspots reports real hotspots and ignores generated
     });
 
     assert.deepEqual(report.scannedRoots, ["packages/demo", "scripts"]);
-    assert.equal(report.countsByLevel.error, 1);
-    assert.equal(report.countsByLevel.warn, 2);
+    assert.equal(report.countsByLevel.error, 2);
+    assert.equal(report.countsByLevel.warn, 1);
     assert.equal(
       report.hotspots.some((entry) => entry.path === "packages/demo/ui-dist/assets"),
       false
@@ -122,6 +122,10 @@ test("collectDirectoryBudgetHotspots reports real hotspots and ignores generated
     );
     assert.equal(
       report.hotspots.some((entry) => entry.path === "scripts/tools" && entry.level === "warn"),
+      false
+    );
+    assert.equal(
+      report.hotspots.some((entry) => entry.path === "scripts/tools" && entry.level === "error"),
       true
     );
   });
