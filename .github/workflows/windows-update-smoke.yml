@@ -46,9 +46,10 @@ jobs:
           $ErrorActionPreference = "Stop"
           $output = nextclaw update --timeout 120000
           $output | Out-Host
+          $joinedOutput = ($output | Out-String)
           if ($LASTEXITCODE -ne 0) {
             throw "nextclaw update failed with exit code $LASTEXITCODE"
           }
-          if ($output -notmatch "Update complete") {
+          if ($joinedOutput -notmatch "Update complete") {
             throw "nextclaw update output missing success marker"
           }
