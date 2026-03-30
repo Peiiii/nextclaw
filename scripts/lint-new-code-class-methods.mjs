@@ -303,6 +303,7 @@ if (violations.length === 0) {
 
 console.error("Class arrow-method diff check failed.");
 console.error("Use class fields for new instance methods: methodName = () => {}");
+console.error("Preferred remediation: if one touched class trips this rule, convert that class's eligible instance methods in the same pass instead of fixing only the reported method.");
 console.error("Ignored by design: constructor/get/set/static/abstract/override/decorated methods.");
 for (const violation of violations) {
   console.error(`- ${violation.filePath}:${violation.line}:${violation.column} ${violation.methodName} should be an arrow-function class field`);

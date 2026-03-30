@@ -319,6 +319,12 @@
   - 反例：每次只完成字面需求，对同一链路里明显可顺手清理的死代码、重复逻辑、命名错配、目录膨胀完全不处理；或打着“减债”名义把任务扩成跨模块大重构，反而拖慢主任务并提高风险。
   - 执行方式：先完成主需求，再按 `能删什么 → 能简化什么 → 能顺手拆出什么` 的顺序寻找一个最小减债动作；优先选择删除死代码、消除重复、提取 pure helper、收窄职责边界、补目录预算说明等低风险动作。若最终未做减债，必须在结果中明确“不做减债”的原因和下一步拆分缝；若触达 hotspot 文件，还必须同时遵循 [`docs/workflows/incremental-maintainability-paydown.md`](docs/workflows/incremental-maintainability-paydown.md) 与 [`docs/workflows/maintainability-hotspot-freeze.md`](docs/workflows/maintainability-hotspot-freeze.md) 的要求。
   - 维护责任人：当前助手。
+- **class-arrow-method-fix-by-class-boundary**：
+  - 约束/适用范围：当 `pnpm lint:new-code:governance`、`pnpm lint:maintainability:guard` 或相关增量治理流程命中“class 方法必须使用箭头函数 class field”问题时，只要当前任务已经触达该 class，默认必须以 class 为边界统一修复同类实例方法；禁止只修单个报错方法后结束，除非存在明确语义风险或用户要求缩小范围。`constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法按既有豁免处理。
+  - 示例：某次修改触达 `FooManager` 的 `load()` 后触发 class arrow-method 检查，则在同一改动里把 `FooManager` 内其它符合条件的普通实例方法也统一改为 `methodName = () => {}`，一次性清掉同类债务。
+  - 反例：只把本次 diff 中新增的 `load()` 改成箭头函数，却保留同一个 class 里其它同类普通实例方法不动，导致下次再次触达时继续重复报同类问题。
+  - 执行方式：命中该类告警时，先扫描当前 class 内所有可治理的实例方法，再优先做整类批量修复；若因为继承语义、测试成本或局部高风险无法整类处理，必须在结果中明确说明阻断原因、剩余债务和下一步处理位点。
+  - 维护责任人：当前助手。
 - **legacy-freeze-before-removal**：
   - 约束/适用范围：凡涉及 `nextclaw` chat 链路演进，默认停止给 legacy 链路新增任何功能、适配或产品增强；legacy 只允许做三类改动：阻塞 NCP 迁移的必要修复、删除 legacy 前必须完成的兼容性清理、以及用户明确要求的临时回滚保障。
   - 示例：新能力只落在 `NcpChatPage` / NCP runtime / NCP tool/context 装配链路；若 legacy 发生阻塞迁移的关键 bug，仅做最小修复并注明其过渡性质。

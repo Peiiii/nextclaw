@@ -110,6 +110,13 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - `max-depth`
 - `sonarjs/cognitive-complexity`
 
+同时要注意与增量治理脚本的联动：`pnpm lint:new-code:governance` 当前还会检查“新增或增量修改里的 class 实例方法是否使用箭头函数 class field”。这条规则虽然不由本 skill 直接计算阈值，但收尾时若命中该问题，默认修复策略应是：
+
+- 以当前触达的 class 为边界，统一检查该 class 内所有可治理的实例方法
+- 优先一次性把同类普通实例方法一起改成 `methodName = () => {}`
+- 不要只修当前报错的那一个方法，避免同一个 class 在后续改动里重复触发同类治理噪音
+- `constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法仍按既有豁免处理
+
 ### 4. 命名职责一致性
 
 按 diff-only 原则检查文件名是否与实现主职责明显冲突。当前优先覆盖高置信度场景，例如：
@@ -221,6 +228,7 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - 红区治理风险与其它风险的区分
 - 若命中目录级风险，需指出目录路径、当前文件数、变更前文件数、是否存在豁免说明，以及推荐的拆分方向
 - 若命中函数级风险，命中的规则名、函数/方法名、以及位置
+- 若命中 class 方法箭头函数治理问题，需额外给出“当前 class 是否已整类修复”与“若未整类修复，原因是什么”
 - 若命中命名职责风险，需指出角色名、错配原因，以及推荐的重命名或拆分方向
 - 若命中红区治理风险，需指出红区文件路径、缺失的日志字段，以及应该补到哪个 `docs/logs/.../README.md`
 - 若补充了代码体积统计，需单独列出 `TypeScript`、`TSX`、`TS + TSX` 的文件数 / 代码行数 / 增量
