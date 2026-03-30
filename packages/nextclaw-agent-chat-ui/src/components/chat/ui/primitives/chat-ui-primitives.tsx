@@ -8,7 +8,10 @@ import {
 import {
   ChatSelect as DefaultSelect,
   ChatSelectContent as DefaultSelectContent,
+  ChatSelectGroup as DefaultSelectGroup,
   ChatSelectItem as DefaultSelectItem,
+  ChatSelectLabel as DefaultSelectLabel,
+  ChatSelectSeparator as DefaultSelectSeparator,
   ChatSelectTrigger as DefaultSelectTrigger,
   ChatSelectValue as DefaultSelectValue
 } from '../../default-skin/select';
@@ -28,7 +31,10 @@ export const ChatUiPrimitives = {
   Input: DefaultInput,
   Select: DefaultSelect,
   SelectContent: DefaultSelectContent,
+  SelectGroup: DefaultSelectGroup,
   SelectItem: DefaultSelectItem,
+  SelectLabel: DefaultSelectLabel,
+  SelectSeparator: DefaultSelectSeparator,
   SelectTrigger: DefaultSelectTrigger,
   SelectValue: DefaultSelectValue,
   Tooltip: DefaultTooltip,

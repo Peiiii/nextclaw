@@ -18,7 +18,6 @@ import {
 import { NcpErrorException } from "../../errors/ncp-error-exception.js";
 import { AgentLiveSessionRegistry } from "./agent-live-session-registry.js";
 import { AgentRunExecutor } from "./agent-run-executor.js";
-import { createAsyncQueue } from "./async-queue.js";
 import type {
   AgentSessionStore,
   CreateRuntimeFn,
@@ -26,7 +25,6 @@ import type {
   LiveSessionState,
 } from "./agent-backend-types.js";
 import {
-  isTerminalEvent,
   now,
   readMessages,
   toLiveSessionSummary,
@@ -36,6 +34,8 @@ import {
   buildPersistedLiveSessionRecord,
   buildUpdatedSessionRecord,
 } from "./agent-backend-session-persistence.js";
+import { appendAgentBackendMessage } from "./agent-backend-append-message.js";
+import { streamAgentBackendExecution } from "./agent-backend-stream.js";
 import { EventPublisher } from "./event-publisher.js";
 
 const DEFAULT_SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = [
@@ -180,57 +180,17 @@ export class DefaultNcpAgentBackend
     await this.handleAbort(payload);
   }
 
-  async *stream(
+  stream = (
     payloadOrParams:
       | NcpStreamRequestPayload
       | { payload: NcpStreamRequestPayload; signal: AbortSignal },
     opts?: NcpAgentRunStreamOptions,
-  ): AsyncIterable<NcpEndpointEvent> {
-    const payload =
-      "payload" in payloadOrParams && "signal" in payloadOrParams
-        ? payloadOrParams.payload
-        : payloadOrParams;
-    const signal =
-      "payload" in payloadOrParams && "signal" in payloadOrParams
-        ? payloadOrParams.signal
-        : opts?.signal ?? new AbortController().signal;
-
-    const session = this.sessionRegistry.getSession(payload.sessionId);
-    const execution = session?.activeExecution;
-    if (!session || !execution || execution.closed) {
-      return;
-    }
-
-    const queue = createAsyncQueue<NcpEndpointEvent>();
-    const unsubscribe = execution.publisher.subscribe((event) => {
-      queue.push(event);
+  ): AsyncIterable<NcpEndpointEvent> =>
+    streamAgentBackendExecution({
+      payloadOrParams,
+      opts,
+      sessionRegistry: this.sessionRegistry,
     });
-    const unsubscribeClose = execution.publisher.onClose(() => {
-      queue.close();
-    });
-    const stop = () => {
-      unsubscribe();
-      unsubscribeClose();
-      queue.close();
-      signal.removeEventListener("abort", stop);
-    };
-
-    signal.addEventListener("abort", stop, { once: true });
-
-    try {
-      for await (const event of queue.iterable) {
-        if (signal.aborted) {
-          break;
-        }
-        yield event;
-        if (isTerminalEvent(event)) {
-          break;
-        }
-      }
-    } finally {
-      stop();
-    }
-  }
 
   async listSessions(): Promise<NcpSessionSummary[]> {
     const storedSessions = await this.sessionStore.listSessions();
@@ -264,6 +224,19 @@ export class DefaultNcpAgentBackend
         ? toLiveSessionSummary(liveSession)
         : null;
   }
+
+  appendMessage = async (sessionId: string, message: NcpMessage): Promise<NcpSessionSummary | null> => {
+    await this.ensureStarted();
+    return appendAgentBackendMessage({
+      sessionId,
+      message,
+      sessionRegistry: this.sessionRegistry,
+      sessionStore: this.sessionStore,
+      publisher: this.publisher,
+      persistSession: async (nextSessionId) => this.persistSession(nextSessionId),
+      getSession: async (nextSessionId) => this.getSession(nextSessionId),
+    });
+  };
 
   async updateSession(sessionId: string, patch: NcpSessionPatch): Promise<NcpSessionSummary | null> {
     const liveSession = this.sessionRegistry.getSession(sessionId);

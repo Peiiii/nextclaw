@@ -46,11 +46,19 @@ export type ChatInputBarAdapterTexts = {
   noSkillDescription: string;
   modelSelectPlaceholder: string;
   modelNoOptionsLabel: string;
+  recentModelsLabel: string;
+  allModelsLabel: string;
   sessionTypePlaceholder: string;
   thinkingLabels: Record<ChatThinkingLevel, string>;
   noModelOptionsLabel: string;
   configureProviderLabel: string;
 };
+
+function formatModelOptionLabel(option: ChatModelRecord): string {
+  const modelLabel = option.modelLabel.trim();
+  const providerLabel = option.providerLabel.trim();
+  return providerLabel ? `${providerLabel}/${modelLabel}` : modelLabel;
+}
 
 export function resolveSlashQuery(draft: string): string | null {
   const match = /^\/([^\s]*)$/.exec(draft);
@@ -231,30 +239,53 @@ export function buildModelStateHint(params: {
 
 export function buildModelToolbarSelect(params: {
   modelOptions: ChatModelRecord[];
+  recentModelValues?: string[];
   selectedModel: string;
   isModelOptionsLoading: boolean;
   hasModelOptions: boolean;
   onValueChange: (value: string) => void;
-  texts: Pick<ChatInputBarAdapterTexts, 'modelSelectPlaceholder' | 'modelNoOptionsLabel'>;
+  texts: Pick<ChatInputBarAdapterTexts, 'modelSelectPlaceholder' | 'modelNoOptionsLabel' | 'recentModelsLabel' | 'allModelsLabel'>;
 }): ChatToolbarSelect {
   const selectedModelOption = params.modelOptions.find((option) => option.value === params.selectedModel);
   const fallbackModelOption = params.modelOptions[0];
   const resolvedModelOption = selectedModelOption ?? fallbackModelOption;
   const resolvedValue = params.hasModelOptions ? resolvedModelOption?.value : undefined;
+  const recentValueSet = new Set(params.recentModelValues ?? []);
+  const recentOptions = params.modelOptions.filter((option) => recentValueSet.has(option.value));
+  const remainingOptions = params.modelOptions.filter((option) => !recentValueSet.has(option.value));
+  const optionGroups =
+    recentOptions.length > 0
+      ? [
+          {
+            key: 'recent-models',
+            label: params.texts.recentModelsLabel,
+            options: recentOptions.map((option) => ({
+              value: option.value,
+              label: formatModelOptionLabel(option)
+            }))
+          },
+          {
+            key: 'all-models',
+            label: params.texts.allModelsLabel,
+            options: remainingOptions.map((option) => ({
+              value: option.value,
+              label: formatModelOptionLabel(option)
+            }))
+          }
+        ].filter((group) => group.options.length > 0)
+      : undefined;
 
   return {
     key: 'model',
     value: resolvedValue,
     placeholder: params.texts.modelSelectPlaceholder,
-    selectedLabel: resolvedModelOption
-      ? `${resolvedModelOption.providerLabel}/${resolvedModelOption.modelLabel}`
-      : undefined,
+    selectedLabel: resolvedModelOption ? formatModelOptionLabel(resolvedModelOption) : undefined,
     icon: 'sparkles',
     options: params.modelOptions.map((option) => ({
       value: option.value,
-      label: option.modelLabel,
-      description: option.providerLabel
+      label: formatModelOptionLabel(option)
     })),
+    groups: optionGroups,
     disabled: !params.hasModelOptions,
     loading: params.isModelOptionsLoading,
     emptyLabel: params.texts.modelNoOptionsLabel,

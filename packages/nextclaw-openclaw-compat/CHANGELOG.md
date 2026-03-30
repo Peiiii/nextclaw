@@ -1,5 +1,24 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.49
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.11.10
+  - @nextclaw/ncp-toolkit@0.4.8
+  - @nextclaw/channel-plugin-weixin@0.1.17
+  - @nextclaw/channel-runtime@0.4.9
+  - @nextclaw/channel-plugin-dingtalk@0.2.23
+  - @nextclaw/channel-plugin-discord@0.2.23
+  - @nextclaw/channel-plugin-email@0.2.23
+  - @nextclaw/channel-plugin-mochat@0.2.23
+  - @nextclaw/channel-plugin-qq@0.2.23
+  - @nextclaw/channel-plugin-slack@0.2.23
+  - @nextclaw/channel-plugin-telegram@0.2.23
+  - @nextclaw/channel-plugin-wecom@0.2.23
+  - @nextclaw/channel-plugin-whatsapp@0.2.23
+
 ## 0.3.48
 
 ### Patch Changes

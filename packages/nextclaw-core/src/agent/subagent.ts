@@ -39,6 +39,13 @@ export class SubagentManager {
       searchConfig?: SearchConfig;
       execConfig?: { timeout: number };
       restrictToWorkspace?: boolean;
+      completionSink?: (params: {
+        label: string;
+        task: string;
+        result: string;
+        origin: { channel: string; chatId: string; sessionKey?: string; agentId?: string };
+        status: "ok" | "error";
+      }) => Promise<void>;
     }
   ) {}
 
@@ -244,6 +251,11 @@ export class SubagentManager {
     origin: { channel: string; chatId: string; sessionKey?: string; agentId?: string };
     status: "ok" | "error";
   }): Promise<void> {
+    if (params.origin.sessionKey?.trim() && this.options.completionSink) {
+      await this.options.completionSink(params);
+      return;
+    }
+
     const statusText = params.status === "ok" ? "completed successfully" : "failed";
     const announceContent = `[Subagent '${params.label}' ${statusText}]\n\nTask: ${params.task}\n\nResult:\n${params.result}\n\nSummarize this naturally for the user. Keep it brief (1-2 sentences). Do not mention technical details like "subagent" or task IDs.`;
 

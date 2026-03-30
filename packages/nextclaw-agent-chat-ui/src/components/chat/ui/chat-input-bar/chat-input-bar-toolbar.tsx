@@ -53,7 +53,13 @@ function resolveContentWidth(key: string): string {
 }
 
 function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
-  const { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } = ChatUiPrimitives;
+  const { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } =
+    ChatUiPrimitives;
+  const groups =
+    item.groups?.filter((group) => group.options.length > 0) ??
+    (item.options.length > 0 ? [{ key: `${item.key}-default`, options: item.options }] : []);
+  const hasOptions = groups.some((group) => group.options.length > 0);
+
   return (
     <Select value={item.value} onValueChange={item.onValueChange} disabled={item.disabled}>
       <SelectTrigger
@@ -71,7 +77,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
         )}
       </SelectTrigger>
       <SelectContent className={resolveContentWidth(item.key)}>
-        {item.options.length === 0 ? (
+        {!hasOptions ? (
           item.loading ? (
             <div className="space-y-2 px-3 py-2">
               <div className="h-3 w-36 animate-pulse rounded bg-gray-200" />
@@ -82,17 +88,25 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
             <div className="px-3 py-2 text-xs text-gray-500">{item.emptyLabel}</div>
           ) : null
         ) : null}
-        {item.options.map((option) => (
-          <SelectItem key={option.value} value={option.value} className="py-2">
-            {option.description ? (
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
-                <span className="truncate text-[11px] text-gray-500">{option.description}</span>
-              </div>
-            ) : (
-              <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
-            )}
-          </SelectItem>
+        {groups.map((group, groupIndex) => (
+          <div key={group.key}>
+            {groupIndex > 0 ? <SelectSeparator /> : null}
+            <SelectGroup>
+              {group.label ? <SelectLabel>{group.label}</SelectLabel> : null}
+              {group.options.map((option) => (
+                <SelectItem key={option.value} value={option.value} className="py-2">
+                  {option.description ? (
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
+                      <span className="truncate text-[11px] text-gray-500">{option.description}</span>
+                    </div>
+                  ) : (
+                    <span className="truncate text-xs font-semibold text-gray-800">{option.label}</span>
+                  )}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </div>
         ))}
       </SelectContent>
     </Select>

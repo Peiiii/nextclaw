@@ -22,6 +22,7 @@ import { useChatSessionListStore } from '@/components/chat/stores/chat-session-l
 import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { normalizeRequestedSkills } from '@/lib/chat-runtime-utils';
+import { appClient } from '@/transport';
 
 function buildNcpSendMetadata(payload: {
   model?: string;
@@ -69,6 +70,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const { sessionId: routeSessionIdParam } = useParams<{ sessionId?: string }>();
   const threadRef = useRef<HTMLDivElement | null>(null);
   const selectedSessionKeyRef = useRef<string | null>(selectedSessionKey);
+  const pendingRealtimeReloadRef = useRef(false);
   const routeSessionKey = useMemo(
     () => parseSessionKeyFromRoute(routeSessionIdParam),
     [routeSessionIdParam]
@@ -153,6 +155,41 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const canStopCurrentRun = agent.isRunning;
   const stopDisabledReason = agent.isRunning ? null : '__preparing__';
   const lastSendError = agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
+
+  useEffect(() => {
+    const flushRealtimeReload = () => {
+      if (agent.isHydrating || agent.isRunning || agent.isSending) {
+        pendingRealtimeReloadRef.current = true;
+        return;
+      }
+      pendingRealtimeReloadRef.current = false;
+      void agent.reloadSeed();
+    };
+
+    return appClient.subscribe((event) => {
+      if (event.type === 'session.summary.upsert') {
+        if (event.payload.summary.sessionId !== activeSessionId) {
+          return;
+        }
+        flushRealtimeReload();
+        return;
+      }
+      if (event.type === 'session.updated' && event.payload.sessionKey === activeSessionId) {
+        flushRealtimeReload();
+      }
+    });
+  }, [activeSessionId, agent.isHydrating, agent.isRunning, agent.isSending, agent.reloadSeed]);
+
+  useEffect(() => {
+    if (!pendingRealtimeReloadRef.current) {
+      return;
+    }
+    if (agent.isHydrating || agent.isRunning || agent.isSending) {
+      return;
+    }
+    pendingRealtimeReloadRef.current = false;
+    void agent.reloadSeed();
+  }, [agent.isHydrating, agent.isRunning, agent.isSending, agent.reloadSeed]);
 
   useEffect(() => {
     presenter.chatStreamActionsManager.bind({

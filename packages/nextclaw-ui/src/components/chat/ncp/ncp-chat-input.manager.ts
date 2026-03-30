@@ -19,6 +19,7 @@ import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.stor
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import { ChatSessionPreferenceSync } from '@/components/chat/chat-session-preference-sync';
+import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.manager';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState';
 
@@ -242,6 +243,7 @@ export class NcpChatInputManager {
 
   selectModel = (value: string) => {
     this.setSelectedModel(value);
+    chatRecentModelsManager.remember(value);
     this.sessionPreferenceSync.syncSelectedSessionPreferences();
   };
 

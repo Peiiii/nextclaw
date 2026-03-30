@@ -1,5 +1,11 @@
 # @nextclaw/ncp-toolkit
 
+## 0.4.8
+
+### Patch Changes
+
+- Fix NCP subagent completion so results persist back into the originating session, become visible in chat after realtime refresh, and no longer depend on the legacy system-message relay.
+
 ## 0.4.7
 
 ### Patch Changes

@@ -33,6 +33,7 @@ export type {
   ChatToolbarIcon,
   ChatToolbarAccessoryIcon,
   ChatToolbarSelectOption,
+  ChatToolbarSelectGroup,
   ChatToolbarSelect,
   ChatToolbarAccessory,
   ChatSkillPickerOption,

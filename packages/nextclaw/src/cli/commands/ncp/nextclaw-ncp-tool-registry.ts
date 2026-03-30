@@ -41,6 +41,13 @@ type NextclawNcpToolRegistryOptions = {
   getConfig: () => Config;
   getExtensionRegistry?: () => ExtensionRegistry | undefined;
   getAdditionalTools?: (context: PreparedRunContext) => ReadonlyArray<NcpTool>;
+  writeSubagentCompletionToSession?: (params: {
+    sessionId: string;
+    label: string;
+    task: string;
+    result: string;
+    status: "ok" | "error";
+  }) => Promise<void>;
 };
 
 type PreparedRunContext = {
@@ -142,6 +149,19 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
       searchConfig: initialConfig.search,
       execConfig: initialConfig.tools.exec,
       restrictToWorkspace: initialConfig.tools.restrictToWorkspace,
+      completionSink: async (params) => {
+        const sessionId = params.origin.sessionKey?.trim();
+        if (!sessionId || !this.options.writeSubagentCompletionToSession) {
+          return;
+        }
+        await this.options.writeSubagentCompletionToSession({
+          sessionId,
+          label: params.label,
+          task: params.task,
+          result: params.result,
+          status: params.status,
+        });
+      },
     });
   }
 

@@ -185,6 +185,8 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
     zh: 'Agent 默认模型标识，使用带 provider 前缀的格式。例如：openai/gpt-5.1、anthropic/claude-opus-4-1、deepseek/deepseek-chat、minimax/MiniMax-M2.5、openrouter/openai/gpt-5.3-codex。',
     en: 'Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.'
   },
+  chatRecentModels: { zh: '最近选择', en: 'Recent' },
+  chatAllModels: { zh: '全部模型', en: 'All models' },
   maxToolIterations: { zh: '最大工具迭代次数', en: 'Max Tool Iterations' },
   saveChanges: { zh: '保存变更', en: 'Save Changes' },
 

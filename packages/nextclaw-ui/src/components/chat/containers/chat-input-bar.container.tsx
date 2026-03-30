@@ -16,6 +16,10 @@ import {
   type ChatThinkingLevel
 } from '@/components/chat/adapters/chat-input-bar.adapter';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
+import {
+  CHAT_RECENT_MODELS_MIN_OPTIONS,
+  chatRecentModelsManager
+} from '@/components/chat/chat-recent-models.manager';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { t } from '@/lib/i18n';
@@ -104,6 +108,10 @@ export function ChatInputBarContainer() {
     [snapshot.skillRecords, officialSkillBadgeLabel]
   );
   const modelRecords = useMemo(() => toModelRecords(snapshot.modelOptions), [snapshot.modelOptions]);
+  const recentModelValues = chatRecentModelsManager.resolveVisible({
+    availableValues: modelRecords.map((option) => option.value),
+    minAvailableCount: CHAT_RECENT_MODELS_MIN_OPTIONS
+  });
 
   const hasModelOptions = modelRecords.length > 0;
   const isModelOptionsLoading = !snapshot.isProviderStateResolved && !hasModelOptions;
@@ -171,13 +179,16 @@ export function ChatInputBarContainer() {
   const toolbarSelects = [
     buildModelToolbarSelect({
       modelOptions: modelRecords,
+      recentModelValues,
       selectedModel: snapshot.selectedModel,
       isModelOptionsLoading,
       hasModelOptions,
       onValueChange: presenter.chatInputManager.selectModel,
       texts: {
         modelSelectPlaceholder: t('chatSelectModel'),
-        modelNoOptionsLabel: t('chatModelNoOptions')
+        modelNoOptionsLabel: t('chatModelNoOptions'),
+        recentModelsLabel: t('chatRecentModels'),
+        allModelsLabel: t('chatAllModels')
       }
     }),
     buildThinkingToolbarSelect({

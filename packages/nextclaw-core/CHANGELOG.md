@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.11.10
+
+### Patch Changes
+
+- Fix NCP subagent completion so results persist back into the originating session, become visible in chat after realtime refresh, and no longer depend on the legacy system-message relay.
+
 ## 0.11.9
 
 ### Patch Changes

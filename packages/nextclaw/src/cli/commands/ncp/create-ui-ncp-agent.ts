@@ -29,6 +29,7 @@ import type { NextclawExtensionRegistry } from "../plugins.js";
 import { createAssetTools } from "./ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "./nextclaw-agent-session-store.js";
+import { buildSubagentCompletionMessage } from "./ncp-subagent-completion-message.js";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
 import {
@@ -161,6 +162,7 @@ function createNativeRuntimeFactory(
   params: CreateUiNcpAgentParams,
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter,
   assetStore: LocalAssetStore,
+  resolveBackend: () => DefaultNcpAgentBackend | null,
 ): RuntimeFactory {
   return ({
     stateManager,
@@ -191,6 +193,22 @@ function createNativeRuntimeFactory(
       gatewayController: params.gatewayController,
       getConfig: params.getConfig,
       getExtensionRegistry: params.getExtensionRegistry,
+      writeSubagentCompletionToSession: async (completion) => {
+        const backend = resolveBackend();
+        if (!backend) {
+          throw new Error("NCP backend is not ready for subagent completion persistence.");
+        }
+        await backend.appendMessage(
+          completion.sessionId,
+          buildSubagentCompletionMessage({
+            sessionId: completion.sessionId,
+            label: completion.label,
+            task: completion.task,
+            result: completion.result,
+            status: completion.status,
+          }),
+        );
+      },
       getAdditionalTools: (context) => [
         ...createAssetTools({
           assetStore,
@@ -329,7 +347,13 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
   const assetStore = new LocalAssetStore({
     rootDir: join(getDataDir(), "assets"),
   });
-  const createNativeRuntime = createNativeRuntimeFactory(params, toolRegistryAdapter, assetStore);
+  let backend: DefaultNcpAgentBackend | null = null;
+  const createNativeRuntime = createNativeRuntimeFactory(
+    params,
+    toolRegistryAdapter,
+    assetStore,
+    () => backend,
+  );
 
   runtimeRegistry.register({
     kind: "native",
@@ -345,7 +369,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
   });
   pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
 
-  const backend = new DefaultNcpAgentBackend({
+  backend = new DefaultNcpAgentBackend({
     endpointId: "nextclaw-ui-agent",
     sessionStore,
     createRuntime: (runtimeParams) => {

@@ -95,17 +95,84 @@ describe('buildModelToolbarSelect', () => {
           providerLabel: 'MiniMax'
         }
       ],
+      recentModelValues: [],
       selectedModel: 'dashscope/qwen3-coder-next',
       isModelOptionsLoading: false,
       hasModelOptions: true,
       onValueChange,
       texts: {
         modelSelectPlaceholder: 'Select model',
-        modelNoOptionsLabel: 'No models'
+        modelNoOptionsLabel: 'No models',
+        recentModelsLabel: 'Recent',
+        allModelsLabel: 'All models'
       }
     });
 
     expect(select.value).toBe('minimax/MiniMax-M2.7');
     expect(select.selectedLabel).toBe('MiniMax/MiniMax-M2.7');
+    expect(select.options[0]).toEqual({
+      value: 'minimax/MiniMax-M2.7',
+      label: 'MiniMax/MiniMax-M2.7'
+    });
+  });
+
+  it('groups recent models ahead of the remaining catalog', () => {
+    const select = buildModelToolbarSelect({
+      modelOptions: [
+        {
+          value: 'openai/gpt-5',
+          modelLabel: 'gpt-5',
+          providerLabel: 'OpenAI'
+        },
+        {
+          value: 'anthropic/claude-sonnet-4',
+          modelLabel: 'claude-sonnet-4',
+          providerLabel: 'Anthropic'
+        },
+        {
+          value: 'minimax/MiniMax-M2.7',
+          modelLabel: 'MiniMax-M2.7',
+          providerLabel: 'MiniMax'
+        }
+      ],
+      recentModelValues: ['anthropic/claude-sonnet-4', 'missing/model'],
+      selectedModel: 'openai/gpt-5',
+      isModelOptionsLoading: false,
+      hasModelOptions: true,
+      onValueChange: vi.fn(),
+      texts: {
+        modelSelectPlaceholder: 'Select model',
+        modelNoOptionsLabel: 'No models',
+        recentModelsLabel: 'Recent',
+        allModelsLabel: 'All models'
+      }
+    });
+
+    expect(select.groups).toEqual([
+      {
+        key: 'recent-models',
+        label: 'Recent',
+        options: [
+          {
+            value: 'anthropic/claude-sonnet-4',
+            label: 'Anthropic/claude-sonnet-4'
+          }
+        ]
+      },
+      {
+        key: 'all-models',
+        label: 'All models',
+        options: [
+          {
+            value: 'openai/gpt-5',
+            label: 'OpenAI/gpt-5'
+          },
+          {
+            value: 'minimax/MiniMax-M2.7',
+            label: 'MiniMax/MiniMax-M2.7'
+          }
+        ]
+      }
+    ]);
   });
 });

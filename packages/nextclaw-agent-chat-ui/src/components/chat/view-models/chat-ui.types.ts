@@ -55,6 +55,12 @@ export type ChatToolbarSelectOption = {
   description?: string;
 };
 
+export type ChatToolbarSelectGroup = {
+  key: string;
+  label?: string;
+  options: ChatToolbarSelectOption[];
+};
+
 export type ChatToolbarSelect = {
   key: string;
   value?: string;
@@ -62,6 +68,7 @@ export type ChatToolbarSelect = {
   selectedLabel?: string;
   icon?: ChatToolbarIcon;
   options: ChatToolbarSelectOption[];
+  groups?: ChatToolbarSelectGroup[];
   disabled?: boolean;
   loading?: boolean;
   emptyLabel?: string;

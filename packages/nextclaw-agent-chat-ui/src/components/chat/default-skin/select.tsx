@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '../internal/cn';
 
 const ChatSelect = SelectPrimitive.Root;
+const ChatSelectGroup = SelectPrimitive.Group;
 const ChatSelectValue = SelectPrimitive.Value;
 
 const ChatSelectTrigger = React.forwardRef<
@@ -78,6 +79,15 @@ const ChatSelectContent = React.forwardRef<
 
 ChatSelectContent.displayName = SelectPrimitive.Content.displayName;
 
+const ChatSelectLabel = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Label>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Label>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Label ref={ref} className={cn('px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-gray-500', className)} {...props} />
+));
+
+ChatSelectLabel.displayName = SelectPrimitive.Label.displayName;
+
 const ChatSelectItem = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Item>
@@ -101,4 +111,22 @@ const ChatSelectItem = React.forwardRef<
 
 ChatSelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export { ChatSelect, ChatSelectContent, ChatSelectItem, ChatSelectTrigger, ChatSelectValue };
+const ChatSelectSeparator = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Separator>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Separator>
+>(({ className, ...props }, ref) => (
+  <SelectPrimitive.Separator ref={ref} className={cn('-mx-1 my-1 h-px bg-gray-100', className)} {...props} />
+));
+
+ChatSelectSeparator.displayName = SelectPrimitive.Separator.displayName;
+
+export {
+  ChatSelect,
+  ChatSelectContent,
+  ChatSelectGroup,
+  ChatSelectItem,
+  ChatSelectLabel,
+  ChatSelectSeparator,
+  ChatSelectTrigger,
+  ChatSelectValue
+};
