@@ -34,14 +34,9 @@ jobs:
         with:
           node-version: 22
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.1
-
-      - name: Install dependencies
+      - name: Install released nextclaw CLI
         shell: pwsh
-        run: pnpm install --no-frozen-lockfile
+        run: npm install -g nextclaw
 
       - name: Run nextclaw update on Windows
         shell: pwsh
@@ -49,7 +44,7 @@ jobs:
           NEXTCLAW_UPDATE_COMMAND: 'node -e "process.exit(0)"'
         run: |
           $ErrorActionPreference = "Stop"
-          $output = pnpm -C packages/nextclaw exec tsx src/cli/index.ts update --timeout 120000
+          $output = nextclaw update --timeout 120000
           $output | Out-Host
           if ($LASTEXITCODE -ne 0) {
             throw "nextclaw update failed with exit code $LASTEXITCODE"
