@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.11.18
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+- Updated dependencies [9a336f2]
+  - @nextclaw/agent-chat@0.1.5
+  - @nextclaw/agent-chat-ui@0.2.16
+  - @nextclaw/ncp@0.4.3
+  - @nextclaw/ncp-http-agent-client@0.3.7
+  - @nextclaw/ncp-react@0.4.9
+
 ## 0.11.17
 
 ### Patch Changes

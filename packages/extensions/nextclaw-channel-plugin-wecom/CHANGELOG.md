@@ -1,5 +1,13 @@
 # @nextclaw/channel-plugin-wecom
 
+## 0.2.26
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+- Updated dependencies [9a336f2]
+  - @nextclaw/channel-runtime@0.4.12
+
 ## 0.2.25
 
 ### Patch Changes

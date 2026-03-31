@@ -1,11 +1,16 @@
 # @nextclaw/channel-plugin-feishu
 
+## 0.2.23
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+
 ## 0.2.22
 
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
-
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -206,7 +211,6 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
-
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -244,7 +248,6 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
-
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment

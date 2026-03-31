@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.11.13
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+- Updated dependencies [9a336f2]
+  - @nextclaw/feishu-core@0.2.2
+
 ## 0.11.12
 
 ### Patch Changes
