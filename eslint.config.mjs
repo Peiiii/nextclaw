@@ -4,6 +4,7 @@ import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
+import reactComponentPropsDestructuringRule from "./scripts/eslint-rules/react-component-props-destructuring-rule.mjs";
 
 const jsWorkspaceFiles = ["apps/**/*.{js,jsx,mjs}", "packages/**/*.{js,jsx,mjs}", "workers/**/*.{js,jsx,mjs}"];
 const commonJsWorkspaceFiles = ["apps/**/*.cjs", "packages/**/*.cjs", "workers/**/*.cjs"];
@@ -233,11 +234,17 @@ export default [
   {
     files: ["packages/nextclaw-ui/**/*.{ts,tsx,mts,cts}", "packages/nextclaw-agent-chat-ui/**/*.{ts,tsx,mts,cts}"],
     plugins: {
-      "react-hooks": reactHooks
+      "react-hooks": reactHooks,
+      nextclaw: {
+        rules: {
+          "react-component-props-destructuring": reactComponentPropsDestructuringRule
+        }
+      }
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-hooks/set-state-in-effect": "off",
+      "nextclaw/react-component-props-destructuring": "warn",
       "prefer-destructuring": [
         "warn",
         {
