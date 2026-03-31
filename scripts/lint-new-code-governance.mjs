@@ -17,6 +17,21 @@ const checks = [
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-object-methods.mjs")],
   },
+  {
+    name: "closure-objects-owner",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-closure-objects.mjs")],
+  },
+  {
+    name: "flat-directories-subtree",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-flat-directories.mjs")],
+  },
+  {
+    name: "stateful-orchestrators-owner",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-stateful-orchestrators.mjs")],
+  },
 ];
 
 for (const check of checks) {

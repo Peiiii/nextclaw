@@ -9,7 +9,7 @@
 - `/check-meta`: 检查 `AGENTS.md` 机制是否自洽、是否符合自身规范的指令。输出需包含发现的问题与修复建议（若无问题需明确说明）。
 - `/new-rule`: 创建新规则条目的指令。执行时必须先判断该规则属于可跨项目复用的通用规则，还是依赖本项目路径/工具链/发布方式的项目规则；随后按 Rulebook 模板写全字段并更新 `AGENTS.md` 规则区。若规则本质是在约束系统行为原则，应优先固化“行为明确、清晰、可预测，不依赖隐藏兜底或环境状态制造 surprise success / surprise failure”这类高层约束，而不是只记录单次问题的表层补丁。
 - `/commit`: 进行提交操作（提交信息需使用英文）。
-- `/validate`: 对项目进行验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补充冒烟测试。代码改动收尾默认执行 `pnpm lint:maintainability:guard`，并通过统一入口 `pnpm lint:new-code:governance` 运行新改动治理规则（当前包含 class 方法箭头函数检查，可持续扩展）。执行前需确认验证范围和可跳过项。
+- `/validate`: 对项目进行验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补充冒烟测试。代码改动收尾默认执行 `pnpm lint:maintainability:guard`，并通过统一入口 `pnpm lint:new-code:governance` 运行新改动治理规则（当前包含 touched class / touched object 箭头函数治理、closure-object-to-class、flat-directory-needs-subtree、stateful-orchestrator-must-have-owner）。执行前需确认验证范围和可跳过项。
 - `/release-frontend`: 前端一键发布（仅 UI 变更场景）。输入：`/release-frontend`。输出：生成 UI changeset，并执行 `pnpm release:version` + `pnpm release:publish`，最终发布 `@nextclaw/ui` 与 `nextclaw`。
 
 （后续指令在此追加，保持格式一致。） 
