@@ -33,6 +33,31 @@ afterEach(() => {
 });
 
 describe("UiSessionService", () => {
+  it("keeps ui session history in the shared NEXTCLAW_HOME sessions store", async () => {
+    const root = createTempWorkspace();
+    const workspaceA = join(root, "workspace-a");
+    const workspaceB = join(root, "workspace-b");
+    mkdirSync(workspaceA, { recursive: true });
+    mkdirSync(workspaceB, { recursive: true });
+
+    const sessionId = `ncp-${randomUUID()}`;
+    const writer = new SessionManager(workspaceA);
+    const session = writer.getOrCreate(sessionId);
+    writer.addMessage(session, "user", "hello from shared store");
+    writer.save(session);
+
+    const reader = new SessionManager(workspaceB);
+    const sessionService = new UiSessionService(reader);
+    const sessions = await sessionService.listSessions({ limit: 200 });
+
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0]).toMatchObject({
+      sessionId,
+      messageCount: 1,
+      status: "idle",
+    });
+  });
+
   it("lists persisted sessions and messages before the runtime agent is ready", async () => {
     const workspace = createTempWorkspace();
     const sessionManager = new SessionManager(workspace);

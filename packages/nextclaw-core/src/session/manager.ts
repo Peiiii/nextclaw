@@ -41,6 +41,213 @@ function toIsoString(value: unknown, fallback: string): string {
   return new Date(parsed).toISOString();
 }
 
+type PendingToolCalls = {
+  expectedIds: Set<string>;
+  blockStart: number;
+};
+
+type SessionLoadState = {
+  events: SessionEvent[];
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  fallbackSeq: number;
+};
+
+function collectExpectedToolCallIds(message: SessionMessage): Set<string> {
+  const expectedIds = new Set<string>();
+  if (!Array.isArray(message.tool_calls)) {
+    return expectedIds;
+  }
+  for (const call of message.tool_calls as Array<Record<string, unknown>>) {
+    const callId = typeof call.id === "string" ? call.id.trim() : "";
+    if (callId) {
+      expectedIds.add(callId);
+    }
+  }
+  return expectedIds;
+}
+
+function resetPendingToolCalls(
+  normalized: SessionMessage[],
+  pendingToolCalls: PendingToolCalls | null,
+  role: string,
+): PendingToolCalls | null {
+  if (!pendingToolCalls || role === "tool") {
+    return pendingToolCalls;
+  }
+  if (pendingToolCalls.expectedIds.size > 0) {
+    normalized.splice(pendingToolCalls.blockStart);
+  }
+  return null;
+}
+
+function appendAssistantMessage(
+  normalized: SessionMessage[],
+  message: SessionMessage,
+): PendingToolCalls | null {
+  normalized.push(message);
+  const expectedIds = collectExpectedToolCallIds(message);
+  if (expectedIds.size === 0) {
+    return null;
+  }
+  return {
+    expectedIds,
+    blockStart: normalized.length - 1,
+  };
+}
+
+function appendToolMessage(
+  normalized: SessionMessage[],
+  message: SessionMessage,
+  pendingToolCalls: PendingToolCalls | null,
+): PendingToolCalls | null {
+  if (!pendingToolCalls) {
+    return null;
+  }
+  const callId = typeof message.tool_call_id === "string" ? message.tool_call_id.trim() : "";
+  if (!callId || !pendingToolCalls.expectedIds.has(callId)) {
+    return pendingToolCalls;
+  }
+  normalized.push(message);
+  pendingToolCalls.expectedIds.delete(callId);
+  return pendingToolCalls.expectedIds.size > 0 ? pendingToolCalls : null;
+}
+
+function finalizePendingToolCalls(normalized: SessionMessage[], pendingToolCalls: PendingToolCalls | null): void {
+  if (pendingToolCalls && pendingToolCalls.expectedIds.size > 0) {
+    normalized.splice(pendingToolCalls.blockStart);
+  }
+}
+
+function normalizeSessionHistoryWindow(messages: SessionMessage[]): SessionMessage[] {
+  const normalized: SessionMessage[] = [];
+  let pendingToolCalls: PendingToolCalls | null = null;
+
+  for (const message of messages) {
+    const role = typeof message.role === "string" ? message.role : "";
+    pendingToolCalls = resetPendingToolCalls(normalized, pendingToolCalls, role);
+
+    if (role === "assistant") {
+      pendingToolCalls = appendAssistantMessage(normalized, message);
+      continue;
+    }
+
+    if (role === "tool") {
+      pendingToolCalls = appendToolMessage(normalized, message, pendingToolCalls);
+      continue;
+    }
+
+    normalized.push(message);
+  }
+
+  finalizePendingToolCalls(normalized, pendingToolCalls);
+  return normalized;
+}
+
+function createSessionLoadState(): SessionLoadState {
+  return {
+    events: [],
+    metadata: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    fallbackSeq: 1,
+  };
+}
+
+function appendSessionEvent(state: SessionLoadState, event: SessionEvent): void {
+  state.events.push(event);
+  state.fallbackSeq = Math.max(state.fallbackSeq, event.seq + 1);
+}
+
+function applyMetadataLine(state: SessionLoadState, data: Record<string, unknown>): boolean {
+  if (data._type !== "metadata") {
+    return false;
+  }
+  state.metadata = (data.metadata as Record<string, unknown>) ?? {};
+  if (data.created_at) {
+    state.createdAt = new Date(String(data.created_at));
+  }
+  if (data.updated_at) {
+    state.updatedAt = new Date(String(data.updated_at));
+  }
+  return true;
+}
+
+function applyEventLine(state: SessionLoadState, data: Record<string, unknown>): boolean {
+  if (data._type !== "event") {
+    return false;
+  }
+  const rawSeq = Number(data.seq);
+  const seq = Number.isFinite(rawSeq) && rawSeq > 0 ? Math.trunc(rawSeq) : state.fallbackSeq;
+  const timestamp = toIsoString(data.timestamp, new Date().toISOString());
+  const type = typeof data.type === "string" && data.type.trim() ? data.type.trim() : "message.other";
+  const payload = isRecord(data.data) ? data.data : {};
+  appendSessionEvent(state, { seq, type, timestamp, data: payload });
+  return true;
+}
+
+function createLegacyMessage(data: Record<string, unknown>): SessionMessage {
+  const legacyRole = typeof data.role === "string" ? data.role : "assistant";
+  const legacyTimestamp = toIsoString(data.timestamp, new Date().toISOString());
+  return {
+    ...data,
+    role: legacyRole,
+    timestamp: legacyTimestamp,
+    content: Object.prototype.hasOwnProperty.call(data, "content") ? data.content : "",
+  } as SessionMessage;
+}
+
+function applyLegacyLine(
+  state: SessionLoadState,
+  data: Record<string, unknown>,
+  resolveMessageEventType: (message: SessionMessage) => string,
+): void {
+  const message = createLegacyMessage(data);
+  appendSessionEvent(state, {
+    seq: state.fallbackSeq,
+    type: resolveMessageEventType(message),
+    timestamp: message.timestamp,
+    data: { message },
+  });
+}
+
+function sortSessionEvents(events: SessionEvent[]): void {
+  events.sort((left, right) => {
+    if (left.seq !== right.seq) {
+      return left.seq - right.seq;
+    }
+    return Date.parse(left.timestamp) - Date.parse(right.timestamp);
+  });
+}
+
+function buildLoadedSession(params: {
+  key: string;
+  state: SessionLoadState;
+  projectMessageFromEvent: (event: SessionEvent) => SessionMessage | null;
+}): Session {
+  sortSessionEvents(params.state.events);
+  const messages = params.state.events
+    .map((event) => params.projectMessageFromEvent(event))
+    .filter((message): message is SessionMessage => Boolean(message));
+  const latestTs =
+    params.state.events.length > 0 ? params.state.events[params.state.events.length - 1]?.timestamp : null;
+  if (latestTs) {
+    params.state.updatedAt = new Date(latestTs);
+  }
+  const nextSeq = params.state.events.reduce((maxSeq, event) => Math.max(maxSeq, event.seq), 0) + 1;
+
+  return {
+    key: params.key,
+    messages,
+    events: params.state.events,
+    nextSeq,
+    createdAt: params.state.createdAt,
+    updatedAt: params.state.updatedAt,
+    metadata: params.state.metadata,
+  };
+}
+
 export class SessionManager {
   private sessionsDir: string;
   private cache: Map<string, Session> = new Map();
@@ -49,12 +256,12 @@ export class SessionManager {
     this.sessionsDir = getSessionsPath();
   }
 
-  private getSessionPath(key: string): string {
+  private getSessionPath = (key: string): string => {
     const safeKey = safeFilename(key.replace(/:/g, "_"));
     return join(this.sessionsDir, `${safeKey}.jsonl`);
-  }
+  };
 
-  getOrCreate(key: string): Session {
+  getOrCreate = (key: string): Session => {
     const cached = this.cache.get(key);
     if (cached) {
       return cached;
@@ -71,9 +278,9 @@ export class SessionManager {
     };
     this.cache.set(key, session);
     return session;
-  }
+  };
 
-  getIfExists(key: string): Session | null {
+  getIfExists = (key: string): Session | null => {
     const cached = this.cache.get(key);
     if (cached) {
       return cached;
@@ -83,16 +290,16 @@ export class SessionManager {
       this.cache.set(key, loaded);
     }
     return loaded;
-  }
+  };
 
-  appendEvent(
+  appendEvent = (
     session: Session,
     params: {
       type: string;
       data?: Record<string, unknown>;
       timestamp?: string;
     }
-  ): SessionEvent {
+  ): SessionEvent => {
     const timestamp = toIsoString(params.timestamp, new Date().toISOString());
     const event: SessionEvent = {
       seq: session.nextSeq,
@@ -110,9 +317,9 @@ export class SessionManager {
 
     session.updatedAt = new Date(timestamp);
     return event;
-  }
+  };
 
-  addMessage(session: Session, role: string, content: unknown, extra: Record<string, unknown> = {}): SessionEvent {
+  addMessage = (session: Session, role: string, content: unknown, extra: Record<string, unknown> = {}): SessionEvent => {
     const msg: SessionMessage = {
       role,
       content,
@@ -126,9 +333,9 @@ export class SessionManager {
       timestamp: msg.timestamp,
       data: { message: msg }
     });
-  }
+  };
 
-  getHistory(session: Session, maxMessages = 50): Array<Record<string, unknown>> {
+  getHistory = (session: Session, maxMessages = 50): Array<Record<string, unknown>> => {
     const recent = session.messages.length > maxMessages ? session.messages.slice(-maxMessages) : session.messages;
     const normalized = this.normalizeHistoryWindow(recent);
     return normalized.map((msg) => {
@@ -150,78 +357,18 @@ export class SessionManager {
       }
       return entry;
     });
-  }
+  };
 
-  private normalizeHistoryWindow(messages: SessionMessage[]): SessionMessage[] {
-    const normalized: SessionMessage[] = [];
-    let pendingToolCalls: { expectedIds: Set<string>; blockStart: number } | null = null;
+  private normalizeHistoryWindow = (messages: SessionMessage[]): SessionMessage[] => normalizeSessionHistoryWindow(messages);
 
-    for (const msg of messages) {
-      const role = typeof msg.role === "string" ? msg.role : "";
-
-      if (pendingToolCalls && role !== "tool") {
-        if (pendingToolCalls.expectedIds.size > 0) {
-          normalized.splice(pendingToolCalls.blockStart);
-        }
-        pendingToolCalls = null;
-      }
-
-      if (role === "assistant") {
-        normalized.push(msg);
-
-        const expectedIds = new Set<string>();
-        if (Array.isArray(msg.tool_calls)) {
-          for (const call of msg.tool_calls as Array<Record<string, unknown>>) {
-            const callId = typeof call.id === "string" ? call.id.trim() : "";
-            if (callId) {
-              expectedIds.add(callId);
-            }
-          }
-        }
-
-        if (expectedIds.size > 0) {
-          pendingToolCalls = {
-            expectedIds,
-            blockStart: normalized.length - 1
-          };
-        }
-        continue;
-      }
-
-      if (role === "tool") {
-        if (!pendingToolCalls) {
-          continue;
-        }
-        const callId = typeof msg.tool_call_id === "string" ? msg.tool_call_id.trim() : "";
-        if (!callId || !pendingToolCalls.expectedIds.has(callId)) {
-          continue;
-        }
-        normalized.push(msg);
-        pendingToolCalls.expectedIds.delete(callId);
-        if (pendingToolCalls.expectedIds.size === 0) {
-          pendingToolCalls = null;
-        }
-        continue;
-      }
-
-      normalized.push(msg);
-    }
-
-    if (pendingToolCalls && pendingToolCalls.expectedIds.size > 0) {
-      normalized.splice(pendingToolCalls.blockStart);
-    }
-
-    return normalized;
-  }
-
-  clear(session: Session): void {
+  clear = (session: Session): void => {
     session.events = [];
     session.messages = [];
     session.nextSeq = 1;
     session.updatedAt = new Date();
-  }
+  };
 
-  private projectMessageFromEvent(event: SessionEvent): SessionMessage | null {
+  private projectMessageFromEvent = (event: SessionEvent): SessionMessage | null => {
     const source = isRecord(event.data.message)
       ? event.data.message
       : isRecord(event.data)
@@ -243,9 +390,9 @@ export class SessionManager {
       timestamp,
       content: Object.prototype.hasOwnProperty.call(source, "content") ? source.content : ""
     };
-  }
+  };
 
-  private resolveMessageEventType(message: SessionMessage): string {
+  private resolveMessageEventType = (message: SessionMessage): string => {
     const role = typeof message.role === "string" ? message.role.trim().toLowerCase() : "";
     if (role === "assistant" && Array.isArray(message.tool_calls) && message.tool_calls.length > 0) {
       return "assistant.tool_call";
@@ -263,96 +410,35 @@ export class SessionManager {
       return "message.system";
     }
     return `message.${role || "other"}`;
-  }
+  };
 
-  private load(key: string): Session | null {
+  private load = (key: string): Session | null => {
     const path = this.getSessionPath(key);
     if (!existsSync(path)) {
       return null;
     }
     try {
       const lines = readFileSync(path, "utf-8").split("\n").filter(Boolean);
-      const events: SessionEvent[] = [];
-      let metadata: Record<string, unknown> = {};
-      let createdAt = new Date();
-      let updatedAt = new Date();
-      let fallbackSeq = 1;
+      const state = createSessionLoadState();
 
       for (const line of lines) {
         const data = JSON.parse(line) as Record<string, unknown>;
-        if (data._type === "metadata") {
-          metadata = (data.metadata as Record<string, unknown>) ?? {};
-          if (data.created_at) {
-            createdAt = new Date(String(data.created_at));
-          }
-          if (data.updated_at) {
-            updatedAt = new Date(String(data.updated_at));
-          }
+        if (applyMetadataLine(state, data) || applyEventLine(state, data)) {
           continue;
         }
-
-        if (data._type === "event") {
-          const rawSeq = Number(data.seq);
-          const seq = Number.isFinite(rawSeq) && rawSeq > 0 ? Math.trunc(rawSeq) : fallbackSeq;
-          const timestamp = toIsoString(data.timestamp, new Date().toISOString());
-          const type = typeof data.type === "string" && data.type.trim() ? data.type.trim() : "message.other";
-          const payload = isRecord(data.data) ? data.data : {};
-          events.push({ seq, type, timestamp, data: payload });
-          fallbackSeq = Math.max(fallbackSeq, seq + 1);
-          continue;
-        }
-
-        // Legacy transcript line (message-only): migrate in-memory to event format.
-        const legacyRole = typeof data.role === "string" ? data.role : "assistant";
-        const legacyTimestamp = toIsoString(data.timestamp, new Date().toISOString());
-        const message = {
-          ...data,
-          role: legacyRole,
-          timestamp: legacyTimestamp,
-          content: Object.prototype.hasOwnProperty.call(data, "content") ? data.content : ""
-        } as SessionMessage;
-        const type = this.resolveMessageEventType(message);
-        events.push({
-          seq: fallbackSeq,
-          type,
-          timestamp: legacyTimestamp,
-          data: { message }
-        });
-        fallbackSeq += 1;
+        applyLegacyLine(state, data, this.resolveMessageEventType);
       }
-
-      events.sort((left, right) => {
-        if (left.seq !== right.seq) {
-          return left.seq - right.seq;
-        }
-        return Date.parse(left.timestamp) - Date.parse(right.timestamp);
-      });
-
-      const messages = events
-        .map((event) => this.projectMessageFromEvent(event))
-        .filter((message): message is SessionMessage => Boolean(message));
-
-      const latestTs = events.length > 0 ? events[events.length - 1]?.timestamp : null;
-      if (latestTs) {
-        updatedAt = new Date(latestTs);
-      }
-      const nextSeq = events.reduce((maxSeq, event) => Math.max(maxSeq, event.seq), 0) + 1;
-
-      return {
+      return buildLoadedSession({
         key,
-        messages,
-        events,
-        nextSeq,
-        createdAt,
-        updatedAt,
-        metadata
-      };
+        state,
+        projectMessageFromEvent: this.projectMessageFromEvent,
+      });
     } catch {
       return null;
     }
-  }
+  };
 
-  save(session: Session): void {
+  save = (session: Session): void => {
     const path = this.getSessionPath(session.key);
     const metadataLine = {
       _type: "metadata",
@@ -372,9 +458,9 @@ export class SessionManager {
     const lines = [JSON.stringify(metadataLine), ...eventLines].join("\n");
     writeFileSync(path, `${lines}\n`);
     this.cache.set(session.key, session);
-  }
+  };
 
-  delete(key: string): boolean {
+  delete = (key: string): boolean => {
     this.cache.delete(key);
     const path = this.getSessionPath(key);
     if (existsSync(path)) {
@@ -382,9 +468,9 @@ export class SessionManager {
       return true;
     }
     return false;
-  }
+  };
 
-  listSessions(): Array<Record<string, unknown>> {
+  listSessions = (): Array<Record<string, unknown>> => {
     const sessions: Array<Record<string, unknown>> = [];
     for (const entry of readdirSync(this.sessionsDir, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith(".jsonl")) {
@@ -411,5 +497,5 @@ export class SessionManager {
       }
     }
     return sessions;
-  }
+  };
 }
