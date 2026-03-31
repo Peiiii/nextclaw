@@ -15,11 +15,11 @@ const usage = `Usage:
   node scripts/lint-new-code-class-methods.mjs --base origin/main
   node scripts/lint-new-code-class-methods.mjs -- packages/nextclaw/src
 
-Checks only newly added class method definitions in changed TypeScript workspace files.
-Violations are instance methods declared as foo() {} instead of foo = () => {}.
+Checks every touched class in changed TypeScript workspace files.
+Once a class is touched by the diff, all eligible instance methods in that class must use foo = () => {}.
 Ignored by design: constructor/get/set/static/abstract/override/decorated methods.`;
 
-const parseArgs = (argv) => {
+export const parseArgs = (argv) => {
   const options = {
     baseRef: null,
     staged: false,
@@ -59,8 +59,6 @@ const parseArgs = (argv) => {
   return options;
 };
 
-const options = parseArgs(process.argv.slice(2));
-
 const toPosixPath = (input) => input.split(sep).join("/");
 
 const isWorkspaceTsFile = (filePath) => {
@@ -93,7 +91,7 @@ const runGit = (args, { allowFailure = false } = {}) => {
   }
 };
 
-const collectUntrackedFiles = (pathArgs) => {
+const collectUntrackedFiles = (pathArgs, options) => {
   if (options.staged) {
     return [];
   }
@@ -109,7 +107,7 @@ const collectUntrackedFiles = (pathArgs) => {
     .filter(isWorkspaceTsFile);
 };
 
-const getDiffCommandArgs = (mode, pathArgs) => {
+const getDiffCommandArgs = (mode, pathArgs, options) => {
   if (mode === "names") {
     if (options.baseRef) {
       return ["diff", "--name-only", "--diff-filter=AM", options.baseRef, "--", ...pathArgs];
@@ -129,71 +127,6 @@ const getDiffCommandArgs = (mode, pathArgs) => {
   return ["diff", "--no-color", "--unified=0", "--diff-filter=AM", "HEAD", "--", ...pathArgs];
 };
 
-const pathArgs = options.paths.length > 0 ? options.paths : ["apps", "packages", "workers"];
-
-const changedTrackedFiles = runGit(getDiffCommandArgs("names", pathArgs), { allowFailure: true })
-  .split("\n")
-  .map((line) => line.trim())
-  .filter(Boolean)
-  .filter(isWorkspaceTsFile);
-
-const changedFiles = Array.from(new Set([...changedTrackedFiles, ...collectUntrackedFiles(pathArgs)])).sort((left, right) =>
-  left.localeCompare(right)
-);
-
-if (changedFiles.length === 0) {
-  console.log("No changed TypeScript workspace files to check.");
-  process.exit(0);
-}
-
-const addedLinesByFile = new Map();
-
-for (const filePath of collectUntrackedFiles(pathArgs)) {
-  const source = readFileSync(resolve(rootDir, filePath), "utf8");
-  const totalLines = source === "" ? 0 : source.split(/\r?\n/).length;
-  addedLinesByFile.set(
-    filePath,
-    new Set(Array.from({ length: totalLines }, (_, index) => index + 1))
-  );
-}
-
-const patchText = runGit(getDiffCommandArgs("patch", pathArgs), { allowFailure: true });
-const patchLines = patchText.split("\n");
-let currentFile = null;
-let currentNewLine = 0;
-
-for (const line of patchLines) {
-  if (line.startsWith("+++ b/")) {
-    const nextFile = line.slice("+++ b/".length).trim();
-    currentFile = isWorkspaceTsFile(nextFile) ? nextFile : null;
-    continue;
-  }
-
-  const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/);
-  if (hunkMatch) {
-    currentNewLine = Number(hunkMatch[1]);
-    continue;
-  }
-
-  if (!currentFile || line.startsWith("diff --git ") || line.startsWith("--- ")) {
-    continue;
-  }
-
-  if (line.startsWith("+") && !line.startsWith("+++")) {
-    const currentLines = addedLinesByFile.get(currentFile) ?? new Set();
-    currentLines.add(currentNewLine);
-    addedLinesByFile.set(currentFile, currentLines);
-    currentNewLine += 1;
-    continue;
-  }
-
-  if (line.startsWith("-")) {
-    continue;
-  }
-
-  currentNewLine += 1;
-}
-
 const getMethodName = (node) => {
   const key = node.key;
   if (!key) {
@@ -211,12 +144,12 @@ const getMethodName = (node) => {
   return "<computed>";
 };
 
-const walk = (node, visit) => {
+const walk = (node, visit, parent = null) => {
   if (!node || typeof node !== "object") {
     return;
   }
 
-  visit(node);
+  visit(node, parent);
 
   for (const value of Object.values(node)) {
     if (!value) {
@@ -224,26 +157,65 @@ const walk = (node, visit) => {
     }
     if (Array.isArray(value)) {
       for (const item of value) {
-        walk(item, visit);
+        walk(item, visit, node);
       }
       continue;
     }
     if (typeof value.type === "string") {
-      walk(value, visit);
+      walk(value, visit, node);
     }
   }
 };
 
-const violations = [];
+const hasAddedLineInRange = (addedLines, startLine, endLine) => {
+  for (const line of addedLines) {
+    if (line >= startLine && line <= endLine) {
+      return true;
+    }
+  }
+  return false;
+};
 
-for (const filePath of changedFiles) {
-  const addedLines = addedLinesByFile.get(filePath);
+const getClassName = (node, parent) => {
+  if (node.id?.type === "Identifier") {
+    return node.id.name;
+  }
+  if (parent?.type === "VariableDeclarator" && parent.id?.type === "Identifier") {
+    return parent.id.name;
+  }
+  if (parent?.type === "PropertyDefinition" && parent.key?.type === "Identifier") {
+    return parent.key.name;
+  }
+  return "<anonymous class>";
+};
+
+const isEligibleInstanceMethod = (node) => {
+  if (node.type !== "MethodDefinition") {
+    return false;
+  }
+  if (node.kind !== "method") {
+    return false;
+  }
+  if (node.static) {
+    return false;
+  }
+  if (node.override === true || node.value?.override === true) {
+    return false;
+  }
+  if (node.abstract === true || node.value?.type === "TSEmptyBodyFunctionExpression") {
+    return false;
+  }
+  if (Array.isArray(node.decorators) && node.decorators.length > 0) {
+    return false;
+  }
+  return Boolean(node.loc);
+};
+
+export const collectViolationsForTouchedClasses = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
-    continue;
+    return [];
   }
 
-  const absoluteFilePath = resolve(rootDir, filePath);
-  const source = readFileSync(absoluteFilePath, "utf8");
   const ast = parser.parse(source, {
     ecmaVersion: "latest",
     sourceType: "module",
@@ -254,41 +226,40 @@ for (const filePath of changedFiles) {
     }
   });
 
-  walk(ast, (node) => {
-    if (node.type !== "MethodDefinition") {
+  const violations = [];
+  walk(ast, (node, parent) => {
+    if (node.type !== "ClassDeclaration" && node.type !== "ClassExpression") {
       return;
     }
-    if (node.kind !== "method") {
-      return;
-    }
-    if (node.static) {
-      return;
-    }
-    if (!node.loc || !addedLines.has(node.loc.start.line)) {
-      return;
-    }
-    if (node.override === true || node.value?.override === true) {
-      return;
-    }
-    if (node.abstract === true || node.value?.type === "TSEmptyBodyFunctionExpression") {
-      return;
-    }
-    if (Array.isArray(node.decorators) && node.decorators.length > 0) {
+    if (!node.loc || !hasAddedLineInRange(addedLines, node.loc.start.line, node.loc.end.line)) {
       return;
     }
 
-    violations.push({
-      filePath,
-      line: node.loc.start.line,
-      column: node.loc.start.column + 1,
-      methodName: getMethodName(node)
-    });
+    const className = getClassName(node, parent);
+    for (const member of node.body.body) {
+      if (!isEligibleInstanceMethod(member)) {
+        continue;
+      }
+      violations.push({
+        filePath,
+        className,
+        line: member.loc.start.line,
+        column: member.loc.start.column + 1,
+        methodName: getMethodName(member),
+        classStartLine: node.loc.start.line
+      });
+    }
   });
-}
 
-violations.sort((left, right) => {
+  return violations;
+};
+
+const sortViolations = (violations) => violations.sort((left, right) => {
   if (left.filePath !== right.filePath) {
     return left.filePath.localeCompare(right.filePath);
+  }
+  if (left.classStartLine !== right.classStartLine) {
+    return left.classStartLine - right.classStartLine;
   }
   if (left.line !== right.line) {
     return left.line - right.line;
@@ -296,17 +267,133 @@ violations.sort((left, right) => {
   return left.column - right.column;
 });
 
-if (violations.length === 0) {
-  console.log(`Class arrow-method diff check passed for ${changedFiles.length} changed file(s).`);
-  process.exit(0);
-}
+const collectChangedFiles = (options) => {
+  const pathArgs = options.paths.length > 0 ? options.paths : ["apps", "packages", "workers"];
+  const changedTrackedFiles = runGit(getDiffCommandArgs("names", pathArgs, options), { allowFailure: true })
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter(isWorkspaceTsFile);
+  const untrackedFiles = collectUntrackedFiles(pathArgs, options);
 
-console.error("Class arrow-method diff check failed.");
-console.error("Use class fields for new instance methods: methodName = () => {}");
-console.error("Preferred remediation: if one touched class trips this rule, convert that class's eligible instance methods in the same pass instead of fixing only the reported method.");
-console.error("Ignored by design: constructor/get/set/static/abstract/override/decorated methods.");
-for (const violation of violations) {
-  console.error(`- ${violation.filePath}:${violation.line}:${violation.column} ${violation.methodName} should be an arrow-function class field`);
+  return {
+    pathArgs,
+    changedFiles: Array.from(new Set([...changedTrackedFiles, ...untrackedFiles])).sort((left, right) => left.localeCompare(right)),
+    untrackedFiles
+  };
+};
+
+const collectAddedLinesByFile = (pathArgs, untrackedFiles, options) => {
+  const addedLinesByFile = new Map();
+
+  for (const filePath of untrackedFiles) {
+    const source = readFileSync(resolve(rootDir, filePath), "utf8");
+    const totalLines = source === "" ? 0 : source.split(/\r?\n/).length;
+    addedLinesByFile.set(
+      filePath,
+      new Set(Array.from({ length: totalLines }, (_, index) => index + 1))
+    );
+  }
+
+  const patchText = runGit(getDiffCommandArgs("patch", pathArgs, options), { allowFailure: true });
+  const patchLines = patchText.split("\n");
+  let currentFile = null;
+  let currentNewLine = 0;
+
+  for (const line of patchLines) {
+    if (line.startsWith("+++ b/")) {
+      const nextFile = line.slice("+++ b/".length).trim();
+      currentFile = isWorkspaceTsFile(nextFile) ? nextFile : null;
+      continue;
+    }
+
+    const hunkMatch = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/);
+    if (hunkMatch) {
+      currentNewLine = Number(hunkMatch[1]);
+      continue;
+    }
+
+    if (!currentFile || line.startsWith("diff --git ") || line.startsWith("--- ")) {
+      continue;
+    }
+
+    if (line.startsWith("+") && !line.startsWith("+++")) {
+      const currentLines = addedLinesByFile.get(currentFile) ?? new Set();
+      currentLines.add(currentNewLine);
+      addedLinesByFile.set(currentFile, currentLines);
+      currentNewLine += 1;
+      continue;
+    }
+
+    if (line.startsWith("-")) {
+      continue;
+    }
+
+    currentNewLine += 1;
+  }
+
+  return addedLinesByFile;
+};
+
+export const runClassMethodArrowCheck = (options) => {
+  const { pathArgs, changedFiles, untrackedFiles } = collectChangedFiles(options);
+  if (changedFiles.length === 0) {
+    return {
+      changedFiles,
+      violations: []
+    };
+  }
+
+  const addedLinesByFile = collectAddedLinesByFile(pathArgs, untrackedFiles, options);
+  const violations = [];
+
+  for (const filePath of changedFiles) {
+    const addedLines = addedLinesByFile.get(filePath);
+    if (!addedLines || addedLines.size === 0) {
+      continue;
+    }
+    const source = readFileSync(resolve(rootDir, filePath), "utf8");
+    violations.push(...collectViolationsForTouchedClasses({ filePath, source, addedLines }));
+  }
+
+  return {
+    changedFiles,
+    violations: sortViolations(violations)
+  };
+};
+
+export const printViolations = ({ changedFiles, violations }) => {
+  if (changedFiles.length === 0) {
+    console.log("No changed TypeScript workspace files to check.");
+    return 0;
+  }
+
+  if (violations.length === 0) {
+    console.log(`Class arrow-method diff check passed for ${changedFiles.length} changed file(s).`);
+    return 0;
+  }
+
+  console.error("Class arrow-method diff check failed.");
+  console.error("Use class fields for touched-class instance methods: methodName = () => {}");
+  console.error("Once a class is touched, every eligible instance method in that class must use an arrow-function class field.");
+  console.error("Ignored by design: constructor/get/set/static/abstract/override/decorated methods.");
+  for (const violation of violations) {
+    console.error(
+      `- ${violation.filePath}:${violation.line}:${violation.column} ${violation.className}.${violation.methodName} should be an arrow-function class field`
+    );
+  }
+  console.error(
+    `Found ${violations.length} violation(s) across ${new Set(violations.map((item) => `${item.filePath}:${item.classStartLine}`)).size} touched class(es).`
+  );
+  return 1;
+};
+
+const main = () => {
+  const options = parseArgs(process.argv.slice(2));
+  const exitCode = printViolations(runClassMethodArrowCheck(options));
+  process.exit(exitCode);
+};
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
 }
-console.error(`Found ${violations.length} violation(s) across ${new Set(violations.map((item) => item.filePath)).size} file(s).`);
-process.exit(1);

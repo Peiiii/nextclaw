@@ -12,6 +12,11 @@ const checks = [
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-class-methods.mjs")],
   },
+  {
+    name: "object-methods-arrow",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-object-methods.mjs")],
+  },
 ];
 
 for (const check of checks) {

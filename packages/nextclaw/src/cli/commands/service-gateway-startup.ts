@@ -133,6 +133,12 @@ export async function startDeferredGatewayStartup(params: {
           getConfig: params.getConfig,
           getExtensionRegistry: params.getExtensionRegistry,
           onSessionUpdated: params.publishSessionChange,
+          onSessionRunStatusChanged: (payload) => {
+            params.uiStartup?.publish({
+              type: "session.run-status",
+              payload,
+            });
+          },
           resolveMessageToolHints: ({ channel, accountId }) =>
             params.resolveMessageToolHints({ channel, accountId }),
         })

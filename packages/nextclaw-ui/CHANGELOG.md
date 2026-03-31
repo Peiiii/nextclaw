@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.11.16
+
+### Patch Changes
+
+- Align NCP chat session run status with direct realtime events so parent replies, sidebar spinners, and chat completion state settle without refresh after sub-agent runs finish.
+  - @nextclaw/ncp-react@0.4.7
+
 ## 0.11.15
 
 ### Patch Changes

@@ -175,11 +175,11 @@ export function NcpChatPage({ view }: ChatPageProps) {
     };
 
     return appClient.subscribe((event) => {
-      if (event.type === 'session.updated' && event.payload.sessionKey === activeSessionId) {
-        attachRealtimeSessionStream();
-        return;
-      }
-      if (event.type === 'session.summary.upsert' && event.payload.summary.sessionId === activeSessionId) {
+      if (
+        event.type === 'session.run-status' &&
+        event.payload.sessionKey === activeSessionId &&
+        event.payload.status === 'running'
+      ) {
         attachRealtimeSessionStream();
       }
     });

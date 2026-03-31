@@ -569,6 +569,7 @@ export type ConfigActionExecuteResult = {
 export type WsEvent =
   | { type: 'config.updated'; payload: { path: string } }
   | { type: 'session.updated'; payload: { sessionKey: string } }
+  | { type: 'session.run-status'; payload: { sessionKey: string; status: 'running' | 'idle' } }
   | { type: 'session.summary.upsert'; payload: { summary: NcpSessionSummaryView } }
   | { type: 'session.summary.delete'; payload: { sessionKey: string } }
   | { type: 'config.reload.started'; payload?: Record<string, unknown> }

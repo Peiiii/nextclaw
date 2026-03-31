@@ -110,7 +110,7 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - `max-depth`
 - `sonarjs/cognitive-complexity`
 
-同时要注意与增量治理脚本的联动：`pnpm lint:new-code:governance` 当前还会检查“新增或增量修改里的 class 实例方法是否使用箭头函数 class field”。这条规则虽然不由本 skill 直接计算阈值，但收尾时若命中该问题，默认修复策略应是：
+同时要注意与增量治理脚本的联动：`pnpm lint:new-code:governance` 当前会按 touched class 边界检查“被触达 class 内所有可治理实例方法是否使用箭头函数 class field”。这条规则虽然不由本 skill 直接计算阈值，但收尾时若命中该问题，默认修复策略应是：
 
 - 以当前触达的 class 为边界，统一检查该 class 内所有可治理的实例方法
 - 优先一次性把同类普通实例方法一起改成 `methodName = () => {}`

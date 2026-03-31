@@ -28,19 +28,8 @@ import {
   type NcpToolCallStartPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
-import {
-  cloneConversationMessage,
-  normalizeConversationMessage,
-} from "./agent-conversation-message-normalizer.js";
-import {
-  buildRuntimeError,
-  clearToolCallTrackingByMessageId,
-  findToolInvocationPart,
-  findToolNameByCallId,
-  remapTrackedToolCallsToMessageId,
-  shouldPromoteStreamingMessageId,
-  upsertToolInvocationPart,
-} from "./agent-conversation-state-manager.utils.js";
+import { cloneConversationMessage, normalizeConversationMessage } from "./agent-conversation-message-normalizer.js";
+import { buildRuntimeError, clearToolCallTrackingByMessageId, findToolInvocationPart, findToolNameByCallId, remapTrackedToolCallsToMessageId, shouldPromoteStreamingMessageId, upsertToolInvocationPart } from "./agent-conversation-state-manager.utils.js";
 
 const DEFAULT_ASSISTANT_ROLE: NcpMessageRole = "assistant";
 
@@ -55,11 +44,12 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
 
   private readonly toolCallMessageIdByCallId = new Map<string, string>();
   private readonly toolCallArgsRawByCallId = new Map<string, string>();
+  private lastSettledRunId: string | null = null;
   private snapshotCache: NcpAgentConversationSnapshot | null = null;
   private snapshotVersion = -1;
   private stateVersion = 0;
 
-  getSnapshot(): NcpAgentConversationSnapshot {
+  getSnapshot = (): NcpAgentConversationSnapshot => {
     if (this.snapshotCache && this.snapshotVersion === this.stateVersion) {
       return this.snapshotCache;
     }
@@ -78,14 +68,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.snapshotCache = snapshot;
     this.snapshotVersion = this.stateVersion;
     return snapshot;
-  }
+  };
 
-  subscribe(listener: (snapshot: NcpAgentConversationSnapshot) => void) {
+  subscribe = (listener: (snapshot: NcpAgentConversationSnapshot) => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
-  }
+  };
 
-  reset(): void {
+  reset = (): void => {
     if (
       this.messages.length === 0 &&
       !this.streamingMessage &&
@@ -103,11 +93,12 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.activeRun = null;
     this.toolCallMessageIdByCallId.clear();
     this.toolCallArgsRawByCallId.clear();
+    this.lastSettledRunId = null;
     this.stateVersion += 1;
     this.notifyListeners();
-  }
+  };
 
-  hydrate(payload: NcpAgentConversationHydrationParams): void {
+  hydrate = (payload: NcpAgentConversationHydrationParams): void => {
     this.messages = payload.messages.map((message: NcpMessage) =>
       normalizeConversationMessage(message),
     );
@@ -122,11 +113,12 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       : null;
     this.toolCallMessageIdByCallId.clear();
     this.toolCallArgsRawByCallId.clear();
+    this.lastSettledRunId = null;
     this.stateVersion += 1;
     this.notifyListeners();
-  }
+  };
 
-  async dispatch(event: NcpEndpointEvent): Promise<void> {
+  dispatch = async (event: NcpEndpointEvent): Promise<void> => {
     const versionBeforeDispatch = this.stateVersion;
     switch (event.type) {
       case NcpEventType.MessageSent:
@@ -190,14 +182,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     if (this.stateVersion !== versionBeforeDispatch) {
       this.notifyListeners();
     }
-  }
+  };
 
-  handleMessageSent(payload: NcpMessageSentPayload): void {
+  handleMessageSent = (payload: NcpMessageSentPayload): void => {
     this.upsertMessage(payload.message);
     this.setError(null);
-  }
+  };
 
-  handleMessageAbort(payload: NcpMessageAbortPayload): void {
+  handleMessageAbort = (payload: NcpMessageAbortPayload): void => {
     const targetMessageId = payload.messageId?.trim();
     this.clearActiveRun();
     this.setError(null);
@@ -226,18 +218,18 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         );
       }
     }
-  }
+  };
 
-  handleMessageTextStart(payload: NcpTextStartPayload): void {
+  handleMessageTextStart = (payload: NcpTextStartPayload): void => {
     this.ensureStreamingMessage(
       payload.sessionId,
       payload.messageId,
       "streaming",
     );
     this.setError(null);
-  }
+  };
 
-  handleMessageTextDelta(payload: NcpTextDeltaPayload): void {
+  handleMessageTextDelta = (payload: NcpTextDeltaPayload): void => {
     if (!payload.delta) {
       return;
     }
@@ -263,9 +255,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       parts: nextParts,
       status: "streaming",
     });
-  }
+  };
 
-  handleMessageTextEnd(payload: NcpTextEndPayload): void {
+  handleMessageTextEnd = (payload: NcpTextEndPayload): void => {
     if (this.streamingMessage?.id !== payload.messageId) {
       return;
     }
@@ -276,17 +268,17 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       ...this.streamingMessage,
       status: "pending",
     });
-  }
+  };
 
-  handleMessageReasoningStart(payload: NcpReasoningStartPayload): void {
+  handleMessageReasoningStart = (payload: NcpReasoningStartPayload): void => {
     this.ensureStreamingMessage(
       payload.sessionId,
       payload.messageId,
       "streaming",
     );
-  }
+  };
 
-  handleMessageReasoningDelta(payload: NcpReasoningDeltaPayload): void {
+  handleMessageReasoningDelta = (payload: NcpReasoningDeltaPayload): void => {
     if (!payload.delta) {
       return;
     }
@@ -313,16 +305,16 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       parts: nextParts,
       status: "streaming",
     });
-  }
+  };
 
-  handleMessageReasoningEnd(payload: NcpReasoningEndPayload): void {
+  handleMessageReasoningEnd = (payload: NcpReasoningEndPayload): void => {
     if (this.streamingMessage?.id !== payload.messageId) {
       return;
     }
     // End is an event boundary; no snapshot mutation required.
-  }
+  };
 
-  handleMessageToolCallStart(payload: NcpToolCallStartPayload): void {
+  handleMessageToolCallStart = (payload: NcpToolCallStartPayload): void => {
     const targetMessage = this.resolveToolCallTargetMessage(
       payload.sessionId,
       payload.toolCallId,
@@ -344,14 +336,14 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       status: "streaming",
     });
     this.setError(null);
-  }
+  };
 
-  handleMessageToolCallArgs(payload: NcpToolCallArgsPayload): void {
+  handleMessageToolCallArgs = (payload: NcpToolCallArgsPayload): void => {
     this.toolCallArgsRawByCallId.set(payload.toolCallId, payload.args);
     this.applyToolCallArgs(payload.sessionId, payload.toolCallId, payload.args);
-  }
+  };
 
-  handleMessageToolCallArgsDelta(payload: NcpToolCallArgsDeltaPayload): void {
+  handleMessageToolCallArgsDelta = (payload: NcpToolCallArgsDeltaPayload): void => {
     const currentArgs =
       this.toolCallArgsRawByCallId.get(payload.toolCallId) ?? "";
     const nextArgs = `${currentArgs}${payload.delta}`;
@@ -362,9 +354,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       nextArgs,
       payload.messageId,
     );
-  }
+  };
 
-  handleMessageToolCallEnd(payload: NcpToolCallEndPayload): void {
+  handleMessageToolCallEnd = (payload: NcpToolCallEndPayload): void => {
     const targetMessage = this.resolveToolCallTargetMessage(
       payload.sessionId,
       payload.toolCallId,
@@ -385,9 +377,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       parts: nextParts,
       status: "streaming",
     });
-  }
+  };
 
-  handleMessageToolCallResult(payload: NcpToolCallResultPayload): void {
+  handleMessageToolCallResult = (payload: NcpToolCallResultPayload): void => {
     const updated = this.updateMessageContainingToolCall(
       payload.toolCallId,
       (targetMessage, existingPart) => {
@@ -421,69 +413,65 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         status: "streaming",
       });
     }
-  }
+  };
 
-  handleRunStarted(payload: NcpRunStartedPayload): void {
+  handleRunStarted = (payload: NcpRunStartedPayload): void => {
+    if (this.isSettledRunId(payload.runId)) return;
     this.setError(null);
-    this.activeRun = {
-      runId: payload.runId ?? null,
-      sessionId: payload.sessionId,
-    };
+    this.activeRun = { runId: payload.runId ?? null, sessionId: payload.sessionId };
     this.stateVersion += 1;
-  }
+  };
 
-  handleRunFinished(_payload: NcpRunFinishedPayload): void {
+  handleRunFinished = (payload: NcpRunFinishedPayload): void => {
+    this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
     this.settleStreamingMessage("final");
     this.setError(null);
     this.clearActiveRun();
-  }
+  };
 
-  handleRunError(payload: NcpRunErrorPayload): void {
+  handleRunError = (payload: NcpRunErrorPayload): void => {
+    this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
     this.settleStreamingMessage("error");
     this.setError(buildRuntimeError(payload));
     this.clearActiveRun();
-  }
+  };
 
-  handleRunMetadata(payload: NcpRunMetadataPayload): void {
+  handleRunMetadata = (payload: NcpRunMetadataPayload): void => {
     const m = payload.metadata as Record<string, unknown>;
     if (m?.kind === "ready") {
       const ready = m as NcpRunReadyMetadata;
+      if (this.isSettledRunId(ready.runId)) return;
       this.activeRun = {
         runId: ready.runId ?? this.activeRun?.runId ?? null,
         sessionId: ready.sessionId ?? this.activeRun?.sessionId,
-        abortDisabledReason:
-          ready.supportsAbort === false
-            ? (ready.abortDisabledReason ?? "Unsupported")
-            : null,
+        abortDisabledReason: ready.supportsAbort === false ? (ready.abortDisabledReason ?? "Unsupported") : null,
       };
       this.stateVersion += 1;
     } else if (m?.kind === "final") {
+      this.markRunAsSettled(payload.runId ?? this.activeRun?.runId ?? null);
       this.clearActiveRun();
     }
-  }
+  };
 
-  handleEndpointError(payload: NcpError): void {
+  handleEndpointError = (payload: NcpError): void => {
     if (payload.code === "abort-error") {
       this.handleMessageAbort({
-        sessionId:
-          this.activeRun?.sessionId ?? this.streamingMessage?.sessionId ?? "",
-        ...(this.streamingMessage?.id
-          ? { messageId: this.streamingMessage.id }
-          : {}),
+        sessionId: this.activeRun?.sessionId ?? this.streamingMessage?.sessionId ?? "",
+        ...(this.streamingMessage?.id ? { messageId: this.streamingMessage.id } : {}),
       });
       return;
     }
     this.settleStreamingMessage("error");
     this.clearActiveRun();
     this.setError(payload);
-  }
+  };
 
-  private applyToolCallArgs(
+  private applyToolCallArgs = (
     sessionId: string,
     toolCallId: string,
     args: string,
     messageId?: string,
-  ): void {
+  ): void => {
     const targetMessage = this.resolveToolCallTargetMessage(
       sessionId,
       toolCallId,
@@ -504,13 +492,13 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       parts: nextParts,
       status: "streaming",
     });
-  }
+  };
 
-  private ensureStreamingMessage(
+  private ensureStreamingMessage = (
     sessionId: string,
     messageId: string,
     status: NcpMessageStatus,
-  ): NcpMessage {
+  ): NcpMessage => {
     if (this.streamingMessage?.id === messageId) {
       if (this.streamingMessage.status === status) {
         return this.streamingMessage;
@@ -575,13 +563,13 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     };
     this.replaceStreamingMessage(nextStreamingMessage);
     return nextStreamingMessage;
-  }
+  };
 
-  private resolveToolCallTargetMessage(
+  private resolveToolCallTargetMessage = (
     sessionId: string,
     toolCallId: string,
     messageId?: string,
-  ): NcpMessage {
+  ): NcpMessage => {
     const preferredMessageId =
       messageId?.trim() ||
       this.toolCallMessageIdByCallId.get(toolCallId) ||
@@ -594,9 +582,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       preferredMessageId,
       "streaming",
     );
-  }
+  };
 
-  private updateMessageContainingToolCall(
+  private updateMessageContainingToolCall = (
     toolCallId: string,
     updater: (
       targetMessage: NcpMessage,
@@ -605,7 +593,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         { type: "tool-invocation" }
       >,
     ) => NcpMessage["parts"],
-  ): boolean {
+  ): boolean => {
     if (this.streamingMessage) {
       const part = findToolInvocationPart(
         this.streamingMessage.parts,
@@ -638,9 +626,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     }
 
     return false;
-  }
+  };
 
-  private upsertMessage(message: NcpMessage): void {
+  private upsertMessage = (message: NcpMessage): void => {
     const normalizedMessage = normalizeConversationMessage(message);
     const messageIndex = this.messages.findIndex(
       (item) => item.id === normalizedMessage.id,
@@ -655,11 +643,11 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     nextMessages[messageIndex] = normalizedMessage;
     this.messages = nextMessages;
     this.stateVersion += 1;
-  }
+  };
 
-  private replaceStreamingMessage(
+  private replaceStreamingMessage = (
     nextStreamingMessage: NcpMessage | null,
-  ): void {
+  ): void => {
     if (!nextStreamingMessage && !this.streamingMessage) {
       return;
     }
@@ -667,9 +655,9 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       ? normalizeConversationMessage(nextStreamingMessage)
       : null;
     this.stateVersion += 1;
-  }
+  };
 
-  private setError(nextError: NcpError | null): void {
+  private setError = (nextError: NcpError | null): void => {
     const hasSameError =
       this.error?.code === nextError?.code &&
       this.error?.message === nextError?.message &&
@@ -686,18 +674,25 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         }
       : null;
     this.stateVersion += 1;
-  }
+  };
 
-  private clearActiveRun(): void {
-    if (!this.activeRun) {
-      return;
-    }
+  private clearActiveRun = (): void => {
+    if (!this.activeRun) return;
     this.activeRun = null;
     this.stateVersion += 1;
-  }
-  private settleStreamingMessage(
+  };
+
+  private isSettledRunId = (runId: string | null | undefined): boolean => {
+    return Boolean(runId?.trim()) && runId === this.lastSettledRunId;
+  };
+
+  private markRunAsSettled = (runId: string | null | undefined): void => {
+    this.lastSettledRunId = runId?.trim() || null;
+  };
+
+  private settleStreamingMessage = (
     status: Extract<NcpMessageStatus, "final" | "error">,
-  ): void {
+  ): void => {
     if (!this.streamingMessage) {
       return;
     }
@@ -712,12 +707,10 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       this.toolCallArgsRawByCallId,
       settledMessage.id,
     );
-  }
+  };
 
-  private notifyListeners(): void {
+  private notifyListeners = (): void => {
     const snapshot: NcpAgentConversationSnapshot = this.getSnapshot();
-    for (const listener of this.listeners) {
-      listener(snapshot);
-    }
-  }
+    for (const listener of this.listeners) listener(snapshot);
+  };
 }

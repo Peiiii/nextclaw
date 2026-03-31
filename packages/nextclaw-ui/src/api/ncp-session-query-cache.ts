@@ -5,6 +5,25 @@ function sortSessionSummaries(summaries: readonly NcpSessionSummaryView[]): NcpS
   return [...summaries].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 }
 
+function shouldReplaceSessionSummary(
+  current: NcpSessionSummaryView,
+  next: NcpSessionSummaryView
+): boolean {
+  const timeOrder = next.updatedAt.localeCompare(current.updatedAt);
+  if (timeOrder > 0) {
+    return true;
+  }
+  if (timeOrder < 0) {
+    return false;
+  }
+
+  if (current.status === next.status) {
+    return true;
+  }
+
+  return next.status === 'idle';
+}
+
 export function upsertNcpSessionSummaryList(
   current: NcpSessionsListView | undefined,
   summary: NcpSessionSummaryView
@@ -16,7 +35,9 @@ export function upsertNcpSessionSummaryList(
   const existingIndex = current.sessions.findIndex((session) => session.sessionId === summary.sessionId);
   const nextSessions =
     existingIndex >= 0
-      ? current.sessions.map((session, index) => (index === existingIndex ? summary : session))
+      ? current.sessions.map((session, index) =>
+          index === existingIndex && shouldReplaceSessionSummary(session, summary) ? summary : session
+        )
       : [...current.sessions, summary];
   const sortedSessions = sortSessionSummaries(nextSessions);
 
@@ -62,6 +83,51 @@ export function upsertNcpSessionSummaryInQueryClient(
   );
 }
 
+export function updateNcpSessionRunStatusList(
+  current: NcpSessionsListView | undefined,
+  payload: { sessionKey: string; status: 'running' | 'idle' }
+): NcpSessionsListView | undefined {
+  if (!current) {
+    return current;
+  }
+
+  const normalizedSessionKey = payload.sessionKey.trim();
+  if (!normalizedSessionKey) {
+    return current;
+  }
+
+  let changed = false;
+  const nextSessions = current.sessions.map((session) => {
+    if (session.sessionId !== normalizedSessionKey || session.status === payload.status) {
+      return session;
+    }
+    changed = true;
+    return {
+      ...session,
+      status: payload.status
+    };
+  });
+
+  if (!changed) {
+    return current;
+  }
+
+  return {
+    ...current,
+    sessions: nextSessions
+  };
+}
+
+export function updateNcpSessionRunStatusInQueryClient(
+  queryClient: QueryClient | undefined,
+  payload: { sessionKey: string; status: 'running' | 'idle' }
+): void {
+  queryClient?.setQueriesData<NcpSessionsListView>(
+    { queryKey: ['ncp-sessions'] },
+    (current) => updateNcpSessionRunStatusList(current, payload)
+  );
+}
+
 export function deleteNcpSessionSummaryInQueryClient(
   queryClient: QueryClient | undefined,
   sessionKey: string
@@ -74,8 +140,12 @@ export function deleteNcpSessionSummaryInQueryClient(
 
 export function applyNcpSessionRealtimeEvent(
   queryClient: QueryClient | undefined,
-  event: Extract<WsEvent, { type: 'session.summary.upsert' | 'session.summary.delete' }>
+  event: Extract<WsEvent, { type: 'session.run-status' | 'session.summary.upsert' | 'session.summary.delete' }>
 ): void {
+  if (event.type === 'session.run-status') {
+    updateNcpSessionRunStatusInQueryClient(queryClient, event.payload);
+    return;
+  }
   if (event.type === 'session.summary.upsert') {
     upsertNcpSessionSummaryInQueryClient(queryClient, event.payload.summary);
     return;

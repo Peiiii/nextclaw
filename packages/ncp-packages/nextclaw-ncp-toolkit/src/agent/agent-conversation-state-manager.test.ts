@@ -247,6 +247,70 @@ describe("DefaultNcpAgentConversationStateManager streaming", () => {
   });
 });
 
+describe("DefaultNcpAgentConversationStateManager late run guards", () => {
+  it("ignores a late run.started for a run that already finished", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+
+    manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+
+    expect(manager.getSnapshot().activeRun).toBeNull();
+  });
+
+  it("ignores a late ready metadata event for a run that already finished", () => {
+    const manager = new DefaultNcpAgentConversationStateManager();
+
+    manager.dispatch({
+      type: NcpEventType.RunStarted,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+      },
+    });
+    manager.dispatch({
+      type: NcpEventType.RunMetadata,
+      payload: {
+        sessionId: "session-1",
+        runId: "run-1",
+        metadata: {
+          kind: "ready",
+          runId: "run-1",
+          sessionId: "session-1",
+          supportsAbort: true,
+        },
+      },
+    });
+
+    expect(manager.getSnapshot().activeRun).toBeNull();
+  });
+});
+
 describe("DefaultNcpAgentConversationStateManager reasoning boundaries", () => {
   it("keeps a new reasoning segment after tool invocation as a separate part", () => {
     const manager = new DefaultNcpAgentConversationStateManager();

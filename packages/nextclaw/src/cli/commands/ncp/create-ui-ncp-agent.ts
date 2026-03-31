@@ -61,6 +61,10 @@ type CreateUiNcpAgentParams = {
   getExtensionRegistry?: () => NextclawExtensionRegistry | undefined;
   resolveMessageToolHints?: MessageToolHintsResolver;
   onSessionUpdated?: (sessionKey: string) => void;
+  onSessionRunStatusChanged?: (payload: {
+    sessionKey: string;
+    status: "running" | "idle";
+  }) => void;
 };
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -374,6 +378,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
   backend = new DefaultNcpAgentBackend({
     endpointId: "nextclaw-ui-agent",
     sessionStore,
+    onSessionRunStatusChanged: params.onSessionRunStatusChanged,
     createRuntime: (runtimeParams) => {
       pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
       return runtimeRegistry.createRuntime(runtimeParams);

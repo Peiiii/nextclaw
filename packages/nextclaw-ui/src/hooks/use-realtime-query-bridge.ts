@@ -62,7 +62,11 @@ function handleRealtimeEvent(
     handleConfigUpdatedEvent(queryClient, configPath);
     return;
   }
-  if (event.type === 'session.summary.upsert' || event.type === 'session.summary.delete') {
+  if (
+    event.type === 'session.run-status' ||
+    event.type === 'session.summary.upsert' ||
+    event.type === 'session.summary.delete'
+  ) {
     applyNcpSessionRealtimeEvent(queryClient, event);
     return;
   }

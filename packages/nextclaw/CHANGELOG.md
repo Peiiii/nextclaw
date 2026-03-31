@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.16.26
+
+### Patch Changes
+
+- Align NCP chat session run status with direct realtime events so parent replies, sidebar spinners, and chat completion state settle without refresh after sub-agent runs finish.
+- Updated dependencies
+  - @nextclaw/ncp-toolkit@0.4.10
+  - @nextclaw/server@0.11.17
+  - @nextclaw/openclaw-compat@0.3.51
+  - @nextclaw/remote@0.1.69
+
 ## 0.16.25
 
 ### Patch Changes

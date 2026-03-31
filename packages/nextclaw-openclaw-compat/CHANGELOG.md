@@ -1,5 +1,12 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.51
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp-toolkit@0.4.10
+
 ## 0.3.50
 
 ### Patch Changes
