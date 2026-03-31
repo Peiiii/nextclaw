@@ -3,6 +3,7 @@ import {
   adaptNcpSessionSummary,
   readNcpSessionPreferredThinking
 } from '@/components/chat/ncp/ncp-session-adapter';
+import { adaptChatMessage } from '@/components/chat/adapters/chat-message.adapter';
 import type { NcpSessionSummaryView } from '@/api/types';
 
 function createSummary(partial: Partial<NcpSessionSummaryView> = {}): NcpSessionSummaryView {
@@ -78,6 +79,92 @@ describe('adaptNcpMessageToUiMessage', () => {
         text: ' after'
       }
     ]);
+  });
+
+  it('keeps streamed native file tool args renderable as a preview before the tool result arrives', () => {
+    const uiMessage = adaptNcpMessageToUiMessage({
+      id: 'ncp-message-tool-1',
+      sessionId: 'ncp-session-1',
+      role: 'assistant',
+      status: 'streaming',
+      timestamp: '2026-04-01T00:00:00.000Z',
+      parts: [
+        {
+          type: 'tool-invocation',
+          toolCallId: 'tool-edit-1',
+          toolName: 'edit_file',
+          state: 'partial-call',
+          args: JSON.stringify({
+            path: 'src/app.ts',
+            oldText: 'const count = 1;',
+            newText: 'const count = 2;',
+          }),
+        },
+      ],
+    });
+
+    const adapted = adaptChatMessage(
+      {
+        id: uiMessage.id,
+        role: uiMessage.role,
+        meta: {
+          timestamp: uiMessage.meta?.timestamp,
+          status: uiMessage.meta?.status,
+        },
+        parts: uiMessage.parts as never,
+      },
+      {
+        formatTimestamp: (value) => value ?? '',
+        texts: {
+          roleLabels: {
+            user: 'User',
+            assistant: 'Assistant',
+            tool: 'Tool',
+            system: 'System',
+            fallback: 'Message',
+          },
+          reasoningLabel: 'Reasoning',
+          toolCallLabel: 'Tool Call',
+          toolResultLabel: 'Tool Result',
+          toolNoOutputLabel: 'No output',
+          toolOutputLabel: 'Output',
+          toolStatusPreparingLabel: 'Preparing',
+          toolStatusRunningLabel: 'Running',
+          toolStatusCompletedLabel: 'Completed',
+          toolStatusFailedLabel: 'Failed',
+          toolStatusCancelledLabel: 'Cancelled',
+          imageAttachmentLabel: 'Image',
+          fileAttachmentLabel: 'File',
+          unknownPartLabel: 'Unknown',
+        },
+      },
+    );
+
+    expect(adapted.parts[0]).toMatchObject({
+      type: 'tool-card',
+      card: {
+        toolName: 'edit_file',
+        summary: 'src/app.ts',
+        statusTone: 'running',
+        fileOperation: {
+          blocks: [
+            {
+              path: 'src/app.ts',
+              lines: [
+                {
+                  kind: 'remove',
+                  text: 'const count = 1;',
+                },
+                {
+                  kind: 'add',
+                  text: 'const count = 2;',
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
   });
 });
 

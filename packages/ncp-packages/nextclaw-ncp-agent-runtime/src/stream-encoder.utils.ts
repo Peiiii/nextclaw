@@ -10,6 +10,8 @@ export type ToolCallBuffer = {
   name?: string;
   argumentsText: string;
   emittedStart?: boolean;
+  emittedArgsDelta?: boolean;
+  pendingArgumentDeltas?: string[];
 };
 
 export type ToolCallDelta = {
@@ -153,18 +155,61 @@ export function* emitToolCallDeltas(
 
   for (const toolDelta of toolDeltas) {
     const index = getToolCallIndex(toolDelta, buffers.size);
-    const prev = buffers.get(index) ?? { argumentsText: "" };
+    const prev = buffers.get(index) ?? {
+      argumentsText: "",
+      pendingArgumentDeltas: [],
+    };
     const current = applyToolDelta(prev, toolDelta);
-
-    if (current.id && current.name && !current.emittedStart) {
+    const argsDelta =
+      typeof toolDelta.function?.arguments === "string" &&
+      toolDelta.function.arguments.length > 0
+        ? toolDelta.function.arguments
+        : null;
+    const toolCallId = current.id;
+    const toolName = current.name;
+    if (toolCallId && toolName && !current.emittedStart) {
       yield {
         type: NcpEventType.MessageToolCallStart,
-        payload: { ...ctx, toolCallId: current.id, toolName: current.name },
+        payload: { ...ctx, toolCallId, toolName },
       };
-      buffers.set(index, { ...current, emittedStart: true });
-    } else {
-      buffers.set(index, current);
+      current.emittedStart = true;
     }
+
+    if (argsDelta) {
+      if (current.emittedStart && current.id) {
+        yield {
+          type: NcpEventType.MessageToolCallArgsDelta,
+          payload: {
+            ...ctx,
+            toolCallId: current.id,
+            delta: argsDelta,
+          },
+        };
+        current.emittedArgsDelta = true;
+      } else {
+        current.pendingArgumentDeltas = [
+          ...(current.pendingArgumentDeltas ?? []),
+          argsDelta,
+        ];
+      }
+    }
+
+    if (current.emittedStart && current.id && (current.pendingArgumentDeltas?.length ?? 0) > 0) {
+      for (const pendingDelta of current.pendingArgumentDeltas ?? []) {
+        yield {
+          type: NcpEventType.MessageToolCallArgsDelta,
+          payload: {
+            ...ctx,
+            toolCallId: current.id,
+            delta: pendingDelta,
+          },
+        };
+      }
+      current.emittedArgsDelta = true;
+      current.pendingArgumentDeltas = [];
+    }
+
+    buffers.set(index, current);
   }
 }
 
@@ -175,10 +220,12 @@ export function* flushToolCalls(
   const ordered = Array.from(buffers.entries()).sort(([a], [b]) => a - b);
   for (const [, buf] of ordered) {
     if (!buf.id || !buf.name) continue;
-    yield {
-      type: NcpEventType.MessageToolCallArgs,
-      payload: { ...ctx, toolCallId: buf.id, args: buf.argumentsText },
-    };
+    if (!buf.emittedArgsDelta) {
+      yield {
+        type: NcpEventType.MessageToolCallArgs,
+        payload: { ...ctx, toolCallId: buf.id, args: buf.argumentsText },
+      };
+    }
     yield {
       type: NcpEventType.MessageToolCallEnd,
       payload: { ...ctx, toolCallId: buf.id },
