@@ -57,6 +57,47 @@ function readSubagentRunResult(value: unknown): SubagentRunResult | null {
   return null;
 }
 
+function buildSubagentDetail(subagentRun: SubagentRunResult, fallbackArgs: unknown): string | undefined {
+  const detailParts = [
+    readOptionalString(subagentRun.label)
+      ? `label: ${subagentRun.label?.trim()}`
+      : null,
+    readOptionalString(subagentRun.runId)
+      ? `run: ${subagentRun.runId?.trim()}`
+      : null,
+    readOptionalString(subagentRun.task)
+      ? `task: ${subagentRun.task?.trim()}`
+      : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return detailParts.join(" · ") || summarizeToolArgs(fallbackArgs);
+}
+
+function buildSubagentOutput(subagentRun: SubagentRunResult): string | undefined {
+  const runId = readOptionalString(subagentRun.runId);
+  const label = readOptionalString(subagentRun.label);
+  const task = readOptionalString(subagentRun.task);
+  const status = readOptionalString(subagentRun.status)?.toLowerCase();
+  const resultText =
+    typeof subagentRun.result !== "undefined"
+      ? stringifyUnknown(subagentRun.result).trim()
+      : "";
+  const messageText = readOptionalString(subagentRun.message);
+
+  const sections = [
+    runId ? `Run ID: ${runId}` : null,
+    label ? `Label: ${label}` : null,
+    task ? `Task:\n${task}` : null,
+    resultText
+      ? `${status === "failed" ? "Error" : "Result"}:\n${resultText}`
+      : messageText
+        ? `Status:\n${messageText}`
+        : null,
+  ].filter((value): value is string => Boolean(value));
+
+  return sections.length > 0 ? sections.join("\n\n") : undefined;
+}
+
 export function buildSubagentToolCard(params: {
   invocation: SpawnToolInvocation;
   texts: SubagentToolCardTexts;
@@ -70,27 +111,15 @@ export function buildSubagentToolCard(params: {
     return null;
   }
 
-  const detailParts = [
-    readOptionalString(subagentRun.label)
-      ? `label: ${subagentRun.label?.trim()}`
-      : null,
-    readOptionalString(subagentRun.task)
-      ? `task: ${subagentRun.task?.trim()}`
-      : null,
-  ].filter((value): value is string => Boolean(value));
   const normalizedStatus = readOptionalString(subagentRun.status)?.toLowerCase();
-  const output =
-    (typeof subagentRun.result !== "undefined"
-      ? stringifyUnknown(subagentRun.result).trim()
-      : "") ||
-    readOptionalString(subagentRun.message) ||
-    undefined;
+  const detail = buildSubagentDetail(subagentRun, params.invocation.args);
+  const output = buildSubagentOutput(subagentRun);
 
   if (normalizedStatus === "failed") {
     return {
       kind: "result",
       name: params.invocation.toolName,
-      detail: detailParts.join(" · ") || summarizeToolArgs(params.invocation.args),
+      detail,
       text: output,
       callId: params.invocation.toolCallId || undefined,
       hasResult: Boolean(output),
@@ -103,7 +132,7 @@ export function buildSubagentToolCard(params: {
     return {
       kind: "result",
       name: params.invocation.toolName,
-      detail: detailParts.join(" · ") || summarizeToolArgs(params.invocation.args),
+      detail,
       text: output,
       callId: params.invocation.toolCallId || undefined,
       hasResult: Boolean(output),
@@ -115,7 +144,7 @@ export function buildSubagentToolCard(params: {
   return {
     kind: "result",
     name: params.invocation.toolName,
-    detail: detailParts.join(" · ") || summarizeToolArgs(params.invocation.args),
+    detail,
     text: output,
     callId: params.invocation.toolCallId || undefined,
     hasResult: Boolean(output),

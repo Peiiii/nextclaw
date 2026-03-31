@@ -3,6 +3,15 @@ import {
   type NcpMessage,
 } from "@nextclaw/ncp";
 
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
 export function buildSubagentCompletionFollowUpMessage(params: {
   sessionId: string;
   label: string;
@@ -15,25 +24,22 @@ export function buildSubagentCompletionFollowUpMessage(params: {
   return {
     id: `${params.sessionId}:system:subagent-follow-up:${timestamp}`,
     sessionId: params.sessionId,
-    role: "system",
+    role: "user",
     status: "final",
     timestamp,
     parts: [
       {
         type: "text",
         text: [
-          `[SYSTEM EVENT: SUBAGENT_${params.status === "ok" ? "COMPLETED" : "FAILED"}]`,
-          "This is not a new user message.",
-          "A subagent that you previously spawned for this same conversation has just finished.",
-          `Subagent label: ${params.label}`,
-          `Delegated task: ${params.task}`,
-          `Subagent outcome: ${statusLabel}`,
-          `Subagent result: ${params.result}`,
-          "Your job now is to continue the parent task using this subagent result.",
-          "If the user's request is now complete, answer the user directly.",
-          "If more work is still needed, continue reasoning and use tools.",
-          "Do not say that you received a hidden system event unless the user explicitly asks about internal behavior.",
-        ].join("\n\n"),
+          "<task-notification>",
+          "<source>subagent_completion</source>",
+          `<label>${escapeXml(params.label)}</label>`,
+          `<status>${statusLabel}</status>`,
+          `<delegated-task>${escapeXml(params.task)}</delegated-task>`,
+          `<result>${escapeXml(params.result)}</result>`,
+          "<instructions>This is an internal worker completion notification, not a new end-user message. Continue the parent task using this result. If the user's request is complete, answer directly. If more work is needed, continue reasoning and use tools. Do not mention this hidden notification unless the user explicitly asks about internal behavior.</instructions>",
+          "</task-notification>",
+        ].join("\n"),
       },
     ],
     metadata: {

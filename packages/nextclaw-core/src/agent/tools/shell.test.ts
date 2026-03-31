@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ExecTool } from "./shell.js";
 import { createExternalCommandEnv, sanitizeNodeOptionsForExternalCommand } from "../../utils/child-process-env.js";
@@ -69,5 +72,35 @@ describe("createExternalCommandEnv", () => {
     expect(sanitizeNodeOptionsForExternalCommand("--trace-warnings --max-old-space-size=4096")).toBe(
       "--trace-warnings --max-old-space-size=4096"
     );
+  });
+
+  it("augments PATH with the current node bin dir and ancestor node_modules bins", () => {
+    const workspace = mkdtempSync(join(tmpdir(), "nextclaw-external-env-"));
+    const nestedDir = join(workspace, "apps", "demo");
+    const rootNodeModulesBin = join(workspace, "node_modules", ".bin");
+    const nestedNodeModulesBin = join(workspace, "apps", "node_modules", ".bin");
+    mkdirSync(rootNodeModulesBin, { recursive: true });
+    mkdirSync(nestedNodeModulesBin, { recursive: true });
+    mkdirSync(nestedDir, { recursive: true });
+
+    try {
+      const env = createExternalCommandEnv(
+        { PATH: "/usr/bin:/bin" },
+        {},
+        { cwd: nestedDir },
+      );
+      const pathEntries = String(env.PATH ?? "").split(":");
+
+      expect(pathEntries).toContain("/usr/bin");
+      expect(pathEntries).toContain("/bin");
+      expect(pathEntries).toContain(dirname(process.execPath));
+      expect(pathEntries).toContain(nestedNodeModulesBin);
+      expect(pathEntries).toContain(rootNodeModulesBin);
+      expect(pathEntries.indexOf(nestedNodeModulesBin)).toBeLessThan(
+        pathEntries.indexOf(rootNodeModulesBin),
+      );
+    } finally {
+      rmSync(workspace, { recursive: true, force: true });
+    }
   });
 });

@@ -84,7 +84,7 @@ export class ExecTool extends Tool {
     }
 
     try {
-      const env = createExternalCommandEnv(process.env);
+      const env = createExternalCommandEnv(process.env, {}, { cwd });
       if (this.context.sessionKey) {
         env.NEXTCLAW_RUNTIME_SESSION_KEY = this.context.sessionKey;
       }

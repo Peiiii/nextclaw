@@ -164,9 +164,10 @@ class SubagentCompletionProviderManager {
     );
     const hasHiddenFollowUp = params.messages.some(
       (message) =>
-        message.role === "system" &&
-        String(message.content ?? "").includes("[SYSTEM EVENT: SUBAGENT_COMPLETED]") &&
-        String(message.content ?? "").includes("you previously spawned") &&
+        message.role === "user" &&
+        String(message.content ?? "").includes("<task-notification>") &&
+        String(message.content ?? "").includes("<source>subagent_completion</source>") &&
+        String(message.content ?? "").includes("<status>completed</status>") &&
         String(message.content ?? "").includes("Verified 1+1=2"),
     );
 
