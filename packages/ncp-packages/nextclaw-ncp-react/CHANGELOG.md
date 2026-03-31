@@ -1,5 +1,14 @@
 # @nextclaw/ncp-react
 
+## 0.4.11
+
+### Patch Changes
+
+- f65c1f5: Republish Nextclaw UI with upstream frontend dependency chain.
+- Updated dependencies [f65c1f5]
+  - @nextclaw/ncp@0.4.5
+  - @nextclaw/ncp-toolkit@0.4.14
+
 ## 0.4.10
 
 ### Patch Changes

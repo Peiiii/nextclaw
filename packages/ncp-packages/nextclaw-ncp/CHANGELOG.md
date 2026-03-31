@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.4.5
+
+### Patch Changes
+
+- f65c1f5: Republish Nextclaw UI with upstream frontend dependency chain.
+
 ## 0.4.4
 
 ### Patch Changes

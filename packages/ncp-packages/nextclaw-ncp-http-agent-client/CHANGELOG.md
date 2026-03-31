@@ -1,5 +1,13 @@
 # @nextclaw/ncp-http-agent-client
 
+## 0.3.9
+
+### Patch Changes
+
+- f65c1f5: Republish Nextclaw UI with upstream frontend dependency chain.
+- Updated dependencies [f65c1f5]
+  - @nextclaw/ncp@0.4.5
+
 ## 0.3.8
 
 ### Patch Changes

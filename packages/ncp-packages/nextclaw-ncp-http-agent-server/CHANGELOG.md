@@ -1,5 +1,12 @@
 # @nextclaw/ncp-http-agent-server
 
+## 0.3.9
+
+### Patch Changes
+
+- Updated dependencies [f65c1f5]
+  - @nextclaw/ncp@0.4.5
+
 ## 0.3.8
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.13
+
+### Patch Changes
+
+- Updated dependencies [f65c1f5]
+  - @nextclaw/ncp@0.4.5
+
 ## 0.1.12
 
 ### Patch Changes

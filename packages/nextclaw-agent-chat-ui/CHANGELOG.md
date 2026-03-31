@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.2.18
+
+### Patch Changes
+
+- f65c1f5: Republish Nextclaw UI with upstream frontend dependency chain.
+
 ## 0.2.17
 
 ### Patch Changes

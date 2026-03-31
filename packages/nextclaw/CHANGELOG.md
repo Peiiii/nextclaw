@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.16.30
+
+### Patch Changes
+
+- f65c1f5: Republish Nextclaw UI with upstream frontend dependency chain.
+- Updated dependencies [f65c1f5]
+  - @nextclaw/ncp@0.4.5
+  - @nextclaw/ncp-agent-runtime@0.3.5
+  - @nextclaw/ncp-mcp@0.1.63
+  - @nextclaw/ncp-toolkit@0.4.14
+  - @nextclaw/openclaw-compat@0.3.55
+  - @nextclaw/server@0.11.21
+  - @nextclaw/remote@0.1.73
+
 ## 0.16.29
 
 ### Patch Changes
