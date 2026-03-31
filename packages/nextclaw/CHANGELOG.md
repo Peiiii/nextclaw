@@ -1,5 +1,22 @@
 # nextclaw
 
+## 0.16.28
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+- Updated dependencies [9a336f2]
+  - @nextclaw/core@0.11.13
+  - @nextclaw/mcp@0.1.60
+  - @nextclaw/ncp@0.4.3
+  - @nextclaw/ncp-agent-runtime@0.3.3
+  - @nextclaw/ncp-mcp@0.1.61
+  - @nextclaw/ncp-toolkit@0.4.12
+  - @nextclaw/openclaw-compat@0.3.53
+  - @nextclaw/remote@0.1.71
+  - @nextclaw/runtime@0.2.27
+  - @nextclaw/server@0.11.19
+
 ## 0.16.27
 
 ### Patch Changes

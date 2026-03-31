@@ -1,5 +1,27 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.53
+
+### Patch Changes
+
+- 9a336f2: Publish the remaining public-package drift from today's commits as one unified patch batch, including the channel enable/disable fixes, declarative channel form layout, subagent follow-up/runtime fixes, and the landing asset updates that landed after the last tagged release.
+- Updated dependencies [9a336f2]
+  - @nextclaw/channel-plugin-dingtalk@0.2.26
+  - @nextclaw/channel-plugin-discord@0.2.26
+  - @nextclaw/channel-plugin-email@0.2.26
+  - @nextclaw/channel-plugin-feishu@0.2.23
+  - @nextclaw/channel-plugin-mochat@0.2.26
+  - @nextclaw/channel-plugin-qq@0.2.26
+  - @nextclaw/channel-plugin-slack@0.2.26
+  - @nextclaw/channel-plugin-telegram@0.2.26
+  - @nextclaw/channel-plugin-wecom@0.2.26
+  - @nextclaw/channel-plugin-weixin@0.1.20
+  - @nextclaw/channel-plugin-whatsapp@0.2.26
+  - @nextclaw/channel-runtime@0.4.12
+  - @nextclaw/core@0.11.13
+  - @nextclaw/ncp@0.4.3
+  - @nextclaw/ncp-toolkit@0.4.12
+
 ## 0.3.52
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @nextclaw/ncp-demo-backend
 
+## 0.0.16
+
+### Patch Changes
+
+- Updated dependencies [9a336f2]
+  - @nextclaw/ncp@0.4.3
+  - @nextclaw/ncp-agent-runtime@0.3.3
+  - @nextclaw/ncp-http-agent-server@0.3.7
+  - @nextclaw/ncp-toolkit@0.4.12
+
 ## 0.0.15
 
 ### Patch Changes
