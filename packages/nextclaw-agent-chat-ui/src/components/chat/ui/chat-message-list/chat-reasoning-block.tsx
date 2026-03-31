@@ -23,7 +23,7 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
       </summary>
       <pre
         className={cn(
-          "mt-2 whitespace-pre-wrap break-words rounded-lg p-2 text-[11px]",
+          "mt-2 w-fit max-w-[500px] whitespace-pre-wrap break-all rounded-lg p-2 text-[11px]",
           isUser ? "bg-primary-700/60" : "bg-gray-100"
         )}
       >
