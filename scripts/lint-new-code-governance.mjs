@@ -28,6 +28,11 @@ const checks = [
     args: [path.join(scriptDir, "lint-new-code-flat-directories.mjs")],
   },
   {
+    name: "frozen-directories",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-frozen-directories.mjs")],
+  },
+  {
     name: "stateful-orchestrators-owner",
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-stateful-orchestrators.mjs")],

@@ -24,6 +24,7 @@
     "lint:new-code:object-methods": "node scripts/lint-new-code-object-methods.mjs",
     "lint:new-code:closure-objects": "node scripts/lint-new-code-closure-objects.mjs",
     "lint:new-code:flat-directories": "node scripts/lint-new-code-flat-directories.mjs",
+    "lint:new-code:frozen-directories": "node scripts/lint-new-code-frozen-directories.mjs",
     "lint:new-code:stateful-orchestrators": "node scripts/lint-new-code-stateful-orchestrators.mjs",
     "lint:new-code:governance": "node scripts/lint-new-code-governance.mjs",
     "lint:maintainability": "pnpm lint:maintainability:guard && pnpm lint:maintainability:report && pnpm lint:maintainability:hotspots",
