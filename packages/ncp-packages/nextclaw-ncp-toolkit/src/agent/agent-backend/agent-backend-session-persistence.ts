@@ -1,6 +1,6 @@
 import type { NcpSessionPatch } from "@nextclaw/ncp";
 import type { AgentSessionRecord, LiveSessionState } from "./agent-backend-types.js";
-import { readMessages } from "./agent-backend-session-utils.js";
+import { readMessages, withAutoSessionLabel } from "./agent-backend-session-utils.js";
 
 export function buildUpdatedSessionRecord(params: {
   sessionId: string;
@@ -35,15 +35,20 @@ export function buildPersistedLiveSessionRecord(params: {
   session: LiveSessionState;
   updatedAt: string;
 }): AgentSessionRecord {
-  return {
-    sessionId: params.sessionId,
-    messages: readMessages(params.session.stateManager.getSnapshot()),
-    updatedAt: params.updatedAt,
+  const messages = readMessages(params.session.stateManager.getSnapshot());
+  const metadata = withAutoSessionLabel({
     metadata: {
       ...(params.session.metadata ? structuredClone(params.session.metadata) : {}),
       ...(params.session.activeExecution?.requestEnvelope.metadata
         ? structuredClone(params.session.activeExecution.requestEnvelope.metadata)
         : {}),
     },
+    messages,
+  });
+  return {
+    sessionId: params.sessionId,
+    messages,
+    updatedAt: params.updatedAt,
+    metadata,
   };
 }
