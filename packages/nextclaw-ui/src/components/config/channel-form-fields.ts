@@ -9,6 +9,24 @@ export type ChannelField = {
   options?: ChannelOption[];
   section?: 'primary' | 'advanced';
 };
+export type ChannelFormFieldSection = 'all' | 'primary' | 'advanced';
+export type ChannelFormBlock =
+  | {
+    type: 'fields';
+    section: ChannelFormFieldSection;
+    collapsible?: {
+      title: string;
+      description?: string;
+    };
+  }
+  | {
+    type: 'custom';
+    sectionId: string;
+  };
+export type ChannelFormDefinition = {
+  fields: ChannelField[];
+  layout?: ChannelFormBlock[];
+};
 
 const DM_POLICY_OPTIONS: ChannelOption[] = [
   { value: 'pairing', label: 'pairing' },
@@ -30,9 +48,10 @@ const STREAMING_MODE_OPTIONS: ChannelOption[] = [
   { value: 'progress', label: 'progress' }
 ];
 
-export function buildChannelFields(): Record<string, ChannelField[]> {
+export function buildChannelFormDefinitions(): Record<string, ChannelFormDefinition> {
   return {
-    telegram: [
+    telegram: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'token', type: 'password', label: t('botToken') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
@@ -44,8 +63,10 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'requireMention', type: 'boolean', label: t('requireMention') },
       { name: 'mentionPatterns', type: 'tags', label: t('mentionPatterns') },
       { name: 'groups', type: 'json', label: t('groupRulesJson') }
-    ],
-    discord: [
+      ]
+    },
+    discord: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'token', type: 'password', label: t('botToken') },
       { name: 'allowBots', type: 'boolean', label: t('allowBotMessages') },
@@ -64,13 +85,17 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'requireMention', type: 'boolean', label: t('requireMention') },
       { name: 'mentionPatterns', type: 'tags', label: t('mentionPatterns') },
       { name: 'groups', type: 'json', label: t('groupRulesJson') }
-    ],
-    whatsapp: [
+      ]
+    },
+    whatsapp: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'bridgeUrl', type: 'text', label: t('bridgeUrl') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-    ],
-    feishu: [
+      ]
+    },
+    feishu: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'appId', type: 'text', label: t('appId') },
       { name: 'appSecret', type: 'password', label: t('appSecret') },
@@ -85,14 +110,18 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'mentionPatterns', type: 'tags', label: t('mentionPatterns') },
       { name: 'groups', type: 'json', label: t('groupRulesJson') },
       { name: 'accounts', type: 'json', label: t('accountsJson') }
-    ],
-    dingtalk: [
+      ]
+    },
+    dingtalk: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'clientId', type: 'text', label: t('clientId') },
       { name: 'clientSecret', type: 'password', label: t('clientSecret') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-    ],
-    wecom: [
+      ]
+    },
+    wecom: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'corpId', type: 'text', label: t('corpId') },
       { name: 'agentId', type: 'text', label: t('agentId') },
@@ -101,24 +130,42 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'callbackPort', type: 'number', label: t('callbackPort') },
       { name: 'callbackPath', type: 'text', label: t('callbackPath') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-    ],
-    weixin: [
-      { name: 'enabled', type: 'boolean', label: t('enabled'), section: 'primary' },
-      { name: 'defaultAccountId', type: 'text', label: t('defaultAccountId') },
-      { name: 'baseUrl', type: 'text', label: t('baseUrl') },
-      { name: 'pollTimeoutMs', type: 'number', label: t('pollTimeoutMs') },
-      { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
-      { name: 'accounts', type: 'json', label: t('accountsJson') }
-    ],
-    slack: [
+      ]
+    },
+    weixin: {
+      fields: [
+        { name: 'enabled', type: 'boolean', label: t('enabled'), section: 'primary' },
+        { name: 'defaultAccountId', type: 'text', label: t('defaultAccountId') },
+        { name: 'baseUrl', type: 'text', label: t('baseUrl') },
+        { name: 'pollTimeoutMs', type: 'number', label: t('pollTimeoutMs') },
+        { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
+        { name: 'accounts', type: 'json', label: t('accountsJson') }
+      ],
+      layout: [
+        { type: 'fields', section: 'primary' },
+        { type: 'custom', sectionId: 'weixin-auth' },
+        {
+          type: 'fields',
+          section: 'advanced',
+          collapsible: {
+            title: t('weixinAuthAdvancedTitle'),
+            description: t('weixinAuthAdvancedDescription')
+          }
+        }
+      ]
+    },
+    slack: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'mode', type: 'text', label: t('mode') },
       { name: 'webhookPath', type: 'text', label: t('webhookPath') },
       { name: 'allowBots', type: 'boolean', label: t('allowBotMessages') },
       { name: 'botToken', type: 'password', label: t('botToken') },
       { name: 'appToken', type: 'password', label: t('appToken') }
-    ],
-    email: [
+      ]
+    },
+    email: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'consentGranted', type: 'boolean', label: t('consentGranted') },
       { name: 'imapHost', type: 'text', label: t('imapHost') },
@@ -126,20 +173,32 @@ export function buildChannelFields(): Record<string, ChannelField[]> {
       { name: 'imapUsername', type: 'text', label: t('imapUsername') },
       { name: 'imapPassword', type: 'password', label: t('imapPassword') },
       { name: 'fromAddress', type: 'email', label: t('fromAddress') }
-    ],
-    mochat: [
+      ]
+    },
+    mochat: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'baseUrl', type: 'text', label: t('baseUrl') },
       { name: 'clawToken', type: 'password', label: t('clawToken') },
       { name: 'agentUserId', type: 'text', label: t('agentUserId') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-    ],
-    qq: [
+      ]
+    },
+    qq: {
+      fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },
       { name: 'appId', type: 'text', label: t('appId') },
       { name: 'secret', type: 'password', label: t('appSecret') },
       { name: 'markdownSupport', type: 'boolean', label: t('markdownSupport') },
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
-    ]
+      ]
+    }
   };
+}
+
+export function buildChannelFields(): Record<string, ChannelField[]> {
+  const definitions = buildChannelFormDefinitions();
+  return Object.fromEntries(
+    Object.entries(definitions).map(([channelName, definition]) => [channelName, definition.fields])
+  );
 }

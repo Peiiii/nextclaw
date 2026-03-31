@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useConfig, useConfigMeta, useConfigSchema, useUpdateChannel, useExecuteConfigAction } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { StatusDot } from '@/components/ui/status-dot';
@@ -13,7 +13,7 @@ import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
 import { getChannelLogo } from '@/lib/logos';
 import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS } from './config-layout';
 import { ChannelFormFieldsSection } from './channel-form-fields-section';
-import { buildChannelFields } from './channel-form-fields';
+import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from './channel-form-fields';
 import { WeixinChannelAuthSection } from './weixin-channel-auth-section';
 
 type ChannelFormProps = {
@@ -50,6 +50,16 @@ function buildScopeDraft(scope: string, value: Record<string, unknown>): Record<
   return output;
 }
 
+function resolveFieldsForSection(fields: ChannelField[], section: ChannelFormFieldSection): ChannelField[] {
+  if (section === 'all') {
+    return fields;
+  }
+  if (section === 'primary') {
+    return fields.filter((field) => field.section === 'primary');
+  }
+  return fields.filter((field) => field.section !== 'primary');
+}
+
 export function ChannelForm({ channelName }: ChannelFormProps) {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
@@ -62,7 +72,10 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
 
   const channelConfig = channelName ? config?.channels[channelName] : null;
-  const fields = channelName ? buildChannelFields()[channelName] ?? [] : [];
+  const channelDefinitions = useMemo(() => buildChannelFormDefinitions(), []);
+  const channelDefinition = channelName ? channelDefinitions[channelName] : undefined;
+  const fields = channelDefinition?.fields ?? [];
+  const layoutBlocks = channelDefinition?.layout ?? [{ type: 'fields', section: 'all' } satisfies ChannelFormBlock];
   const uiHints = schema?.uiHints;
   const scope = channelName ? `channels.${channelName}` : null;
   const actions = schema?.actions?.filter((action) => action.scope === scope) ?? [];
@@ -71,17 +84,12 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
     : channelName;
   const channelMeta = meta?.channels.find((item) => item.name === channelName);
   const tutorialUrl = channelMeta ? resolveChannelTutorialUrl(channelMeta) : undefined;
-  const isWeixinChannel = channelName === 'weixin';
-  const hasInlineAuthSection = isWeixinChannel;
-  const primaryFields = fields.filter((field) => field.section === 'primary');
-  const advancedFields = fields.filter((field) => field.section !== 'primary');
 
   useEffect(() => {
     if (channelConfig) {
       setFormData({ ...channelConfig });
       const nextDrafts: Record<string, string> = {};
-      const currentFields = channelName ? buildChannelFields()[channelName] ?? [] : [];
-      currentFields
+      fields
         .filter((field) => field.type === 'json')
         .forEach((field) => {
           const value = channelConfig[field.name];
@@ -92,7 +100,7 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
       setFormData({});
       setJsonDrafts({});
     }
-  }, [channelConfig, channelName]);
+  }, [channelConfig, fields]);
 
   const updateField = (name: string, value: unknown) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -233,57 +241,66 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-5">
-          {hasInlineAuthSection ? (
-            <>
-              {primaryFields.length > 0 ? (
-                <ChannelFormFieldsSection
-                  channelName={channelName}
-                  fields={primaryFields}
-                  formData={formData}
-                  jsonDrafts={jsonDrafts}
-                  setJsonDrafts={setJsonDrafts}
-                  updateField={updateField}
-                  uiHints={uiHints}
-                />
-              ) : null}
-              <WeixinChannelAuthSection
-                channelConfig={channelConfig}
-                formData={formData}
-                channelEnabled={enabled}
-                disabled={updateChannel.isPending || Boolean(runningActionId)}
-              />
-              <details className="group rounded-2xl border border-gray-200/80 bg-white">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-gray-900">
-                  <div>
-                    <p>{t('weixinAuthAdvancedTitle')}</p>
-                    <p className="mt-1 text-xs font-normal text-gray-500">{t('weixinAuthAdvancedDescription')}</p>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" />
-                </summary>
-                <div className="space-y-6 border-t border-gray-100 px-5 py-5">
+          {layoutBlocks.map((block, index) => {
+            if (block.type === 'fields') {
+              const blockFields = resolveFieldsForSection(fields, block.section);
+              if (blockFields.length === 0) {
+                return null;
+              }
+              if (!block.collapsible) {
+                return (
                   <ChannelFormFieldsSection
+                    key={`${block.type}-${block.section}-${index}`}
                     channelName={channelName}
-                    fields={advancedFields}
+                    fields={blockFields}
                     formData={formData}
                     jsonDrafts={jsonDrafts}
                     setJsonDrafts={setJsonDrafts}
                     updateField={updateField}
                     uiHints={uiHints}
                   />
-                </div>
-              </details>
-            </>
-          ) : (
-            <ChannelFormFieldsSection
-              channelName={channelName}
-              fields={fields}
-              formData={formData}
-              jsonDrafts={jsonDrafts}
-              setJsonDrafts={setJsonDrafts}
-              updateField={updateField}
-              uiHints={uiHints}
-            />
-          )}
+                );
+              }
+              return (
+                <details key={`${block.type}-${block.section}-${index}`} className="group rounded-2xl border border-gray-200/80 bg-white">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium text-gray-900">
+                    <div>
+                      <p>{block.collapsible.title}</p>
+                      {block.collapsible.description ? (
+                        <p className="mt-1 text-xs font-normal text-gray-500">{block.collapsible.description}</p>
+                      ) : null}
+                    </div>
+                    <ChevronDown className="h-4 w-4 text-gray-400 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="space-y-6 border-t border-gray-100 px-5 py-5">
+                    <ChannelFormFieldsSection
+                      channelName={channelName}
+                      fields={blockFields}
+                      formData={formData}
+                      jsonDrafts={jsonDrafts}
+                      setJsonDrafts={setJsonDrafts}
+                      updateField={updateField}
+                      uiHints={uiHints}
+                    />
+                  </div>
+                </details>
+              );
+            }
+
+            if (block.sectionId === 'weixin-auth') {
+              return (
+                <WeixinChannelAuthSection
+                  key={`${block.type}-${block.sectionId}-${index}`}
+                  channelConfig={channelConfig}
+                  formData={formData}
+                  channelEnabled={enabled}
+                  disabled={updateChannel.isPending || Boolean(runningActionId)}
+                />
+              );
+            }
+
+            return null;
+          })}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-6 py-4">
