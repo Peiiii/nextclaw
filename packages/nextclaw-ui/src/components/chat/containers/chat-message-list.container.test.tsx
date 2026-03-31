@@ -99,3 +99,48 @@ it("keeps historical adapted message references stable when only the streaming m
   expect(secondMessages[0]).toBe(firstMessages[0]);
   expect(secondMessages[1]).not.toBe(firstMessages[1]);
 });
+
+it("adapts persisted inline token metadata into rich message parts", () => {
+  const message = {
+    id: "user-inline-token",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-03-31T10:00:00.000Z",
+    metadata: {
+      ui_inline_tokens: [
+        {
+          kind: "skill",
+          key: "weather",
+          label: "Weather",
+          rawText: "$weather",
+        },
+      ],
+    },
+    parts: [{ type: "text", text: "please use $weather now" }],
+  } satisfies NcpMessage;
+
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+
+  const renderedMessages =
+    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  expect(renderedMessages[0]).toMatchObject({
+    parts: [
+      {
+        type: "inline-content",
+        segments: [
+          { type: "markdown", text: "please use " },
+          {
+            type: "token",
+            token: {
+              kind: "skill",
+              key: "weather",
+              label: "Weather",
+            },
+          },
+          { type: "markdown", text: " now" },
+        ],
+      },
+    ],
+  });
+});

@@ -297,7 +297,11 @@ export function ChatInputBarContainer() {
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
             sendDisabled:
-              (snapshot.draft.trim().length === 0 && snapshot.attachments.length === 0) ||
+              (
+                snapshot.draft.trim().length === 0 &&
+                snapshot.attachments.length === 0 &&
+                snapshot.selectedSkills.length === 0
+              ) ||
               !hasModelOptions ||
               snapshot.sessionTypeUnavailable,
             stopDisabled: !snapshot.canStopGeneration,

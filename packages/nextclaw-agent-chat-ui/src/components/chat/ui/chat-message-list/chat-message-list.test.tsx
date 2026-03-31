@@ -141,6 +141,46 @@ it("renders unknown parts with fallback label", () => {
   expect(screen.getByText("Unknown Part: step-start")).toBeTruthy();
 });
 
+it("renders inline token content inside a user message bubble", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "user-inline-token",
+          role: "user",
+          roleLabel: "You",
+          timestampLabel: "10:05",
+          parts: [
+            {
+              type: "inline-content",
+              segments: [
+                { type: "markdown", text: "please use " },
+                {
+                  type: "token",
+                  token: {
+                    kind: "skill",
+                    key: "weather",
+                    label: "Weather",
+                    rawText: "$weather",
+                  },
+                },
+                { type: "markdown", text: " now" },
+              ],
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByText("please use", { exact: false })).toBeTruthy();
+  expect(screen.getByText("Weather")).toBeTruthy();
+  expect(screen.getByText("now", { exact: false })).toBeTruthy();
+});
+
 it("renders running tool cards with live status feedback", () => {
   render(
     <ChatMessageList

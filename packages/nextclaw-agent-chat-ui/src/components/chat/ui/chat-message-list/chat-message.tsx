@@ -5,6 +5,7 @@ import type {
 } from "../../view-models/chat-ui.types";
 import { cn } from "../../internal/cn";
 import { ChatMessageMarkdown } from "./chat-message-markdown";
+import { ChatMessageInlineContent } from "./chat-message-inline-content";
 import { ChatMessageFile } from "./chat-message-file";
 import { ChatReasoningBlock } from "./chat-reasoning-block";
 import { ChatToolCard } from "./chat-tool-card";
@@ -35,7 +36,9 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
     >
       <div className="space-y-2">
         {message.parts.map((part, index) => {
-          if (part.type === "markdown") {
+          const { type } = part;
+
+          if (type === "markdown") {
             return (
               <ChatMessageMarkdown
                 key={`markdown-${index}`}
@@ -45,7 +48,17 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
               />
             );
           }
-          if (part.type === "reasoning") {
+          if (type === "inline-content") {
+            return (
+              <ChatMessageInlineContent
+                key={`inline-content-${index}`}
+                segments={part.segments}
+                role={role}
+                texts={texts}
+              />
+            );
+          }
+          if (type === "reasoning") {
             return (
               <ChatReasoningBlock
                 key={`reasoning-${index}`}
@@ -58,14 +71,14 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
               />
             );
           }
-          if (part.type === "tool-card") {
+          if (type === "tool-card") {
             return (
               <div key={`tool-${index}`} className="mt-0.5">
                 <ChatToolCard card={part.card} />
               </div>
             );
           }
-          if (part.type === "file") {
+          if (type === "file") {
             return (
               <ChatMessageFile
                 key={`file-${index}`}
@@ -74,7 +87,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
               />
             );
           }
-          if (part.type === "unknown") {
+          if (type === "unknown") {
             return (
               <ChatUnknownPart
                 key={`unknown-${index}`}

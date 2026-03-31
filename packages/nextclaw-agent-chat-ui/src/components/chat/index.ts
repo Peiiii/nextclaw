@@ -44,6 +44,8 @@ export type {
   ChatSlashMenuProps,
   ChatInputBarProps,
   ChatMessageRole,
+  ChatInlineTokenViewModel,
+  ChatInlineContentSegmentViewModel,
   ChatToolPartViewModel,
   ChatMessagePartViewModel,
   ChatMessageViewModel,

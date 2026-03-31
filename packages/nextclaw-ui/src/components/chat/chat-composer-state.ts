@@ -11,6 +11,27 @@ import {
   serializeChatComposerPlainText
 } from '@nextclaw/agent-chat-ui';
 
+const CHAT_SKILL_TOKEN_PREFIX = '$';
+
+function serializeSkillTokenText(skillSpec: string): string {
+  return `${CHAT_SKILL_TOKEN_PREFIX}${skillSpec}`;
+}
+
+function appendTextPart(parts: NcpMessagePart[], text: string): void {
+  if (text.length === 0) {
+    return;
+  }
+  const previous = parts[parts.length - 1];
+  if (previous?.type === 'text') {
+    previous.text += text;
+    return;
+  }
+  parts.push({
+    type: 'text',
+    text
+  });
+}
+
 export function createInitialChatComposerNodes(): ChatComposerNode[] {
   return createEmptyChatComposerNodes();
 }
@@ -86,12 +107,12 @@ export function deriveNcpMessagePartsFromComposer(
 
   for (const node of nodes) {
     if (node.type === 'text') {
-      if (node.text.length > 0) {
-        parts.push({
-          type: 'text',
-          text: node.text
-        });
-      }
+      appendTextPart(parts, node.text);
+      continue;
+    }
+
+    if (node.tokenKind === 'skill') {
+      appendTextPart(parts, serializeSkillTokenText(node.tokenKey));
       continue;
     }
 

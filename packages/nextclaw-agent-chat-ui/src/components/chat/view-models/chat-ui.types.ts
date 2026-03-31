@@ -195,10 +195,31 @@ export type ChatToolPartViewModel = {
   emptyLabel: string;
 };
 
+export type ChatInlineTokenViewModel = {
+  kind: string;
+  key: string;
+  label: string;
+  rawText: string;
+};
+
+export type ChatInlineContentSegmentViewModel =
+  | {
+      type: "markdown";
+      text: string;
+    }
+  | {
+      type: "token";
+      token: ChatInlineTokenViewModel;
+    };
+
 export type ChatMessagePartViewModel =
   | {
       type: "markdown";
       text: string;
+    }
+  | {
+      type: "inline-content";
+      segments: ChatInlineContentSegmentViewModel[];
     }
   | {
       type: "reasoning";

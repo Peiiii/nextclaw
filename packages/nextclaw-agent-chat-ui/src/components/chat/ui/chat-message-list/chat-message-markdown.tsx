@@ -39,11 +39,18 @@ type ChatMessageMarkdownProps = {
   text: string;
   role: ChatMessageRole;
   texts: Pick<ChatMessageTexts, 'copyCodeLabel' | 'copiedCodeLabel'>;
+  inline?: boolean;
 };
 
-export function ChatMessageMarkdown(props: ChatMessageMarkdownProps) {
-  const isUser = props.role === 'user';
+export function ChatMessageMarkdown({
+  text,
+  role,
+  texts,
+  inline = false
+}: ChatMessageMarkdownProps) {
+  const isUser = role === 'user';
   const markdownComponents = useMemo<Components>(() => ({
+    p: ({ children }) => (inline ? <>{children}</> : <p>{children}</p>),
     a: ({ href, children, ...rest }) => {
       const safeHref = resolveSafeHref(href);
       if (!safeHref) {
@@ -90,18 +97,20 @@ export function ChatMessageMarkdown(props: ChatMessageMarkdownProps) {
         );
       }
       return (
-        <ChatCodeBlock className={className} texts={props.texts}>
+        <ChatCodeBlock className={className} texts={texts}>
           {children as ReactNode}
         </ChatCodeBlock>
       );
     }
-  }), [props.texts]);
+  }), [inline, texts]);
+
+  const WrapperTag = inline ? 'span' : 'div';
 
   return (
-    <div className={cn('chat-markdown', isUser ? 'chat-markdown-user' : 'chat-markdown-assistant')}>
+    <WrapperTag className={cn('chat-markdown', isUser ? 'chat-markdown-user' : 'chat-markdown-assistant')}>
       <ReactMarkdown skipHtml remarkPlugins={[remarkGfm]} components={markdownComponents}>
-        {trimMarkdown(props.text)}
+        {trimMarkdown(text)}
       </ReactMarkdown>
-    </div>
+    </WrapperTag>
   );
 }

@@ -270,6 +270,43 @@ it("maps file parts into previewable attachment view models", () => {
   });
 });
 
+it("renders inline skill tokens as structured inline content parts", () => {
+  const adapted = adapt([
+    {
+      id: "user-inline-skill",
+      role: "user",
+      meta: {
+        inlineTokens: [
+          {
+            kind: "skill",
+            key: "weather",
+            label: "Weather",
+            rawText: "$weather",
+          },
+        ],
+      },
+      parts: [{ type: "text", text: "please use $weather now" }],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toEqual({
+    type: "inline-content",
+    segments: [
+      { type: "markdown", text: "please use " },
+      {
+        type: "token",
+        token: {
+          kind: "skill",
+          key: "weather",
+          label: "Weather",
+          rawText: "$weather",
+        },
+      },
+      { type: "markdown", text: " now" },
+    ],
+  });
+});
+
 it("keeps named non-image files as downloadable attachments", () => {
   const adapted = adapt([
     {

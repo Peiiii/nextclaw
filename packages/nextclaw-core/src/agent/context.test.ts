@@ -71,4 +71,15 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("first check the current local time");
     expect(prompt).toContain("Do not guess.");
   });
+
+  it("explains inline skill tokens from the chat composer", () => {
+    const workspace = createWorkspace();
+    const builder = new ContextBuilder(workspace);
+
+    const prompt = builder.buildSystemPrompt();
+
+    expect(prompt).toContain("## Chat Composer Tokens");
+    expect(prompt).toContain("`$weather`");
+    expect(prompt).toContain("explicitly selected in the chat composer");
+  });
 });

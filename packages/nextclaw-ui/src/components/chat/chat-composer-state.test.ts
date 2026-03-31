@@ -2,7 +2,7 @@ import { createChatComposerTextNode, createChatComposerTokenNode } from '@nextcl
 import { deriveNcpMessagePartsFromComposer } from '@/components/chat/chat-composer-state';
 
 describe('deriveNcpMessagePartsFromComposer', () => {
-  it('preserves interleaved text and image token order while skipping skill tokens', () => {
+  it('preserves interleaved text and image token order while serializing skill tokens inline', () => {
     const parts = deriveNcpMessagePartsFromComposer(
       [
         createChatComposerTextNode('before '),
@@ -56,11 +56,7 @@ describe('deriveNcpMessagePartsFromComposer', () => {
       },
       {
         type: 'text',
-        text: ' between '
-      },
-      {
-        type: 'text',
-        text: 'after'
+        text: ' between $web-searchafter'
       },
       {
         type: 'file',

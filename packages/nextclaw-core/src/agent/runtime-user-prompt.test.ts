@@ -56,6 +56,7 @@ describe("buildBootstrapAwareUserPrompt", () => {
     expect(prompt).toContain("Warm, direct tone.");
     expect(prompt).toContain("If SOUL.md is present");
     expect(prompt).toContain("<name>demo-skill</name>");
+    expect(prompt).toContain("`$weather`");
     expect(prompt).toContain("## User Message");
     expect(prompt).toContain("hello");
     expect(prompt).not.toContain("Use the demo skill instructions.");

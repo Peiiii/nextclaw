@@ -12,6 +12,7 @@ function buildSelectedSkillsBlock(skills: SkillsLoader, skillNames: string[]): s
   return [
     "## Requested Skills",
     "The user explicitly selected the following skills for this turn.",
+    "In user-visible chat text, tokens like `$weather` or `$web-search` are explicit skill-selection markers authored by the user.",
     "Only skill names and paths are included here.",
     "If you need a skill's instructions, read the corresponding SKILL.md from <location>.",
     "You MUST prioritize these selected skills in this turn unless higher-priority safety/system instructions conflict.",

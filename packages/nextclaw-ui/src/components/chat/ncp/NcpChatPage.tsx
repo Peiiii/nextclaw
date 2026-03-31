@@ -10,6 +10,7 @@ import { API_BASE } from '@/api/api-base';
 import { fetchNcpSessionMessages } from '@/api/ncp-session';
 import { ChatPageLayout, type ChatPageProps, useChatSessionSync } from '@/components/chat/chat-page-shell';
 import { sessionDisplayName } from '@/components/chat/chat-session-display';
+import { buildInlineSkillTokensFromComposer, CHAT_UI_INLINE_TOKENS_METADATA_KEY } from '@/components/chat/chat-inline-token.utils';
 import { createNcpAppClientFetch } from '@/components/chat/ncp/ncp-app-client-fetch';
 import { parseSessionKeyFromRoute, resolveAgentIdFromSessionKey } from '@/components/chat/chat-session-route';
 import { useNcpChatPageData } from '@/components/chat/ncp/ncp-chat-page-data';
@@ -29,6 +30,7 @@ function buildNcpSendMetadata(payload: {
   thinkingLevel?: string;
   sessionType?: string;
   requestedSkills?: string[];
+  composerNodes?: Parameters<typeof buildInlineSkillTokensFromComposer>[0];
 }): Record<string, unknown> {
   const metadata: Record<string, unknown> = {};
   if (payload.model?.trim()) {
@@ -45,6 +47,12 @@ function buildNcpSendMetadata(payload: {
   const requestedSkills = normalizeRequestedSkills(payload.requestedSkills);
   if (requestedSkills.length > 0) {
     metadata.requested_skills = requestedSkills;
+  }
+  const inlineSkillTokens = payload.composerNodes
+    ? buildInlineSkillTokensFromComposer(payload.composerNodes)
+    : [];
+  if (inlineSkillTokens.length > 0) {
+    metadata[CHAT_UI_INLINE_TOKENS_METADATA_KEY] = inlineSkillTokens;
   }
   return metadata;
 }
@@ -195,7 +203,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
           model: payload.model,
           thinkingLevel: payload.thinkingLevel,
           sessionType: payload.sessionType,
-          requestedSkills: payload.requestedSkills
+          requestedSkills: payload.requestedSkills,
+          composerNodes: payload.composerNodes
         });
         const envelope = buildNcpRequestEnvelope({
           sessionId: payload.sessionKey,

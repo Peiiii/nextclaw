@@ -9,6 +9,7 @@ import {
   type ChatMessageAdapterTexts,
   type ChatMessageSource,
 } from "@/components/chat/adapters/chat-message.adapter";
+import { readInlineTokensFromMetadata } from "@/components/chat/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/components/chat/ncp/ncp-session-adapter";
 import { useI18n } from "@/components/providers/I18nProvider";
 import { formatDateTime, t } from "@/lib/i18n";
@@ -63,7 +64,11 @@ function buildChatMessageTexts(language: string) {
   };
 }
 
-export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
+export function ChatMessageListContainer({
+  messages: rawMessages,
+  isSending,
+  className,
+}: ChatMessageListContainerProps) {
   const { language } = useI18n();
   const texts = useMemo<ChatMessageAdapterTexts>(
     () => buildChatMessageAdapterTexts(language),
@@ -71,7 +76,7 @@ export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
   );
 
   const messages = useMemo(() => {
-    return props.messages.map((message) => {
+    return rawMessages.map((message) => {
       const cached = messageViewModelCache.get(message);
       if (cached && cached.language === language) {
         return cached.viewModel;
@@ -84,6 +89,7 @@ export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
         meta: {
           timestamp: uiMessage.meta?.timestamp,
           status: uiMessage.meta?.status,
+          inlineTokens: readInlineTokensFromMetadata(message.metadata),
         },
         parts: uiMessage.parts as unknown as ChatMessageSource["parts"],
       };
@@ -95,7 +101,7 @@ export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
       messageViewModelCache.set(message, { language, viewModel });
       return viewModel;
     });
-  }, [language, props.messages, texts]);
+  }, [language, rawMessages, texts]);
 
   const hasAssistantDraft = useMemo(
     () =>
@@ -114,9 +120,9 @@ export function ChatMessageListContainer(props: ChatMessageListContainerProps) {
   return (
     <ChatMessageList
       messages={messages}
-      isSending={props.isSending}
+      isSending={isSending}
       hasAssistantDraft={hasAssistantDraft}
-      className={props.className}
+      className={className}
       texts={messageTexts}
     />
   );
