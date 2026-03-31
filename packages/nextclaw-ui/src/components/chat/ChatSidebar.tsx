@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SelectItem } from '@/components/ui/select';
 import { ChatSidebarSessionItem } from '@/components/chat/chat-sidebar-session-item';
+import { resolveSessionContextView } from '@/lib/session-context.utils';
 import { useChatSessionLabelService } from '@/components/chat/chat-session-label.service';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
@@ -77,25 +78,6 @@ function sessionTitle(session: SessionEntryView): string {
   }
   const chunks = session.key.split(':');
   return chunks[chunks.length - 1] || session.key;
-}
-
-function resolveSessionTypeLabel(
-  sessionType: string,
-  options: Array<{ value: string; label: string }>
-): string | null {
-  const normalized = sessionType.trim().toLowerCase();
-  if (!normalized || normalized === 'native') {
-    return null;
-  }
-  const matchedOption = options.find((option) => option.value.trim().toLowerCase() === normalized);
-  if (matchedOption?.label.trim()) {
-    return matchedOption.label.trim();
-  }
-  return normalized
-    .split(/[-_]+/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 function resolveSessionTypeStatusText(option: {
@@ -300,7 +282,7 @@ export function ChatSidebar() {
                 <div className="space-y-0.5">
                   {group.items.map(({ session, runStatus }) => {
                     const active = listSnapshot.selectedSessionKey === session.key;
-                    const sessionTypeLabel = resolveSessionTypeLabel(session.sessionType, inputSnapshot.sessionTypeOptions);
+                    const context = resolveSessionContextView(session, inputSnapshot.sessionTypeOptions);
                     const isEditing = editingSessionKey === session.key;
                     const isSaving = savingSessionKey === session.key;
                     return (
@@ -309,7 +291,7 @@ export function ChatSidebar() {
                         session={session}
                         active={active}
                         runStatus={runStatus}
-                        sessionTypeLabel={sessionTypeLabel}
+                        context={context}
                         title={sessionTitle(session)}
                         isEditing={isEditing}
                         draftLabel={draftLabel}

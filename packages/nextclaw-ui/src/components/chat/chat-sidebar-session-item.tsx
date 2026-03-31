@@ -1,7 +1,9 @@
 import type { SessionEntryView } from '@/api/types';
+import { SessionContextIconNode } from '@/components/common/session-context-icon';
 import { SessionRunBadge } from '@/components/common/SessionRunBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { type SessionContextView } from '@/lib/session-context.utils';
 import type { SessionRunStatus } from '@/lib/session-run-status';
 import { cn } from '@/lib/utils';
 import { formatDateTime, t } from '@/lib/i18n';
@@ -11,7 +13,7 @@ type ChatSidebarSessionItemProps = {
   session: SessionEntryView;
   active: boolean;
   runStatus?: SessionRunStatus;
-  sessionTypeLabel: string | null;
+  context: SessionContextView;
   title: string;
   isEditing: boolean;
   draftLabel: string;
@@ -28,7 +30,7 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
     session,
     active,
     runStatus,
-    sessionTypeLabel,
+    context,
     title,
     isEditing,
     draftLabel,
@@ -39,6 +41,8 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
     onSave,
     onCancel
   } = props;
+
+  const iconTone = active ? 'text-gray-700' : 'text-gray-500';
 
   return (
     <div
@@ -102,7 +106,7 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
             <div className="grid grid-cols-[minmax(0,1fr)_0.875rem] items-center gap-1.5 pr-8">
               <span className="flex min-w-0 items-center gap-1.5">
                 <span className="truncate font-medium">{title}</span>
-                {sessionTypeLabel ? (
+                {context.label ? (
                   <span
                     className={cn(
                       'shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold leading-none',
@@ -111,7 +115,12 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
                         : 'border-gray-200 bg-gray-100 text-gray-500'
                     )}
                   >
-                    {sessionTypeLabel}
+                    {context.label}
+                  </span>
+                ) : null}
+                {context.icon ? (
+                  <span className="inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
+                    <SessionContextIconNode icon={context.icon} className={iconTone} />
                   </span>
                 ) : null}
               </span>

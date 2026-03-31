@@ -202,6 +202,8 @@ export type SessionEntryView = {
   createdAt: string;
   updatedAt: string;
   label?: string;
+  channel?: string;
+  type?: string;
   preferredModel?: string;
   preferredThinking?: ThinkingLevel | null;
   sessionType: string;

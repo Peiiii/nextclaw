@@ -76,6 +76,25 @@ function readNcpSessionType(summary: NcpSessionSummaryView): string {
   return readOptionalString(metadata.session_type) ?? readOptionalString(metadata.sessionType) ?? 'native';
 }
 
+function parseSessionContext(sessionKey: string): { channel?: string; type?: string } {
+  if (sessionKey === 'heartbeat') {
+    return { type: 'heartbeat' };
+  }
+  if (sessionKey.startsWith('cron:')) {
+    return { type: 'cron' };
+  }
+  if (sessionKey.startsWith('agent:')) {
+    const parts = sessionKey.split(':');
+    if (parts.length >= 3) {
+      const channel = parts[2];
+      if (channel && channel !== 'main' && channel !== 'direct') {
+        return { channel };
+      }
+    }
+  }
+  return {};
+}
+
 function mapToolStatus(part: Extract<NcpMessagePart, { type: 'tool-invocation' }>): ToolInvocationStatus {
   if (part.state === 'result') {
     return ToolInvocationStatus.RESULT;
@@ -188,11 +207,13 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const label = readNcpSessionLabel(summary);
   const preferredModel = readNcpSessionPreferredModel(summary);
   const preferredThinking = readNcpSessionPreferredThinking(summary);
+  const context = parseSessionContext(summary.sessionId);
   return {
     key: summary.sessionId,
     createdAt: summary.updatedAt,
     updatedAt: summary.updatedAt,
     ...(label ? { label } : {}),
+    ...context,
     ...(preferredModel ? { preferredModel } : {}),
     ...(preferredThinking ? { preferredThinking } : {}),
     sessionType: readNcpSessionType(summary),
