@@ -15,6 +15,7 @@ import {
   type ChatSkillRecord,
   type ChatThinkingLevel
 } from '@/components/chat/adapters/chat-input-bar.adapter';
+import { deriveSelectedSkillsFromComposer } from '@/components/chat/chat-composer-state';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
 import {
   CHAT_RECENT_MODELS_MIN_OPTIONS,
@@ -236,6 +237,12 @@ export function ChatInputBarContainer() {
     }
   });
 
+  const composerSelectedSkillCount = deriveSelectedSkillsFromComposer(snapshot.composerNodes).length;
+  const hasSendableDraft =
+    snapshot.draft.trim().length > 0 ||
+    snapshot.attachments.length > 0 ||
+    composerSelectedSkillCount > 0;
+
   return (
     <>
       <ChatInputBar
@@ -296,14 +303,7 @@ export function ChatInputBarContainer() {
             sendError: snapshot.sendError,
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
-            sendDisabled:
-              (
-                snapshot.draft.trim().length === 0 &&
-                snapshot.attachments.length === 0 &&
-                snapshot.selectedSkills.length === 0
-              ) ||
-              !hasModelOptions ||
-              snapshot.sessionTypeUnavailable,
+            sendDisabled: !hasSendableDraft || !hasModelOptions || snapshot.sessionTypeUnavailable,
             stopDisabled: !snapshot.canStopGeneration,
             stopHint: resolvedStopHint,
             sendButtonLabel: t('chatSend'),

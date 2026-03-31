@@ -59,14 +59,14 @@ function ChatInlineTokenBadge({
   return (
     <span
       className={cn(
-        "mx-[2px] inline-flex h-7 max-w-full items-center gap-1.5 rounded-lg border px-2 align-baseline text-[11px] font-medium",
+        "mx-[2px] inline-flex h-7 max-w-full items-center gap-1.5 rounded-xl border px-2.5 align-baseline text-[11px] font-medium shadow-[0_0_0_1px_rgba(15,23,42,0.06)]",
         isSkill
           ? isUser
-            ? "border-white/25 bg-white/16 text-white"
-            : "border-primary/12 bg-primary/8 text-primary"
+            ? "border-emerald-200/60 bg-emerald-500/35 text-emerald-50"
+            : "border-emerald-200 bg-emerald-100 text-emerald-800"
           : isUser
-            ? "border-white/20 bg-white/12 text-white"
-            : "border-slate-200/80 bg-slate-50 text-slate-700",
+            ? "border-white/30 bg-white/18 text-white"
+            : "border-slate-200/80 bg-slate-100 text-slate-700",
       )}
       title={label}
     >
@@ -75,8 +75,8 @@ function ChatInlineTokenBadge({
           "inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center",
           isSkill
             ? isUser
-              ? "text-white/75"
-              : "text-primary/70"
+              ? "text-emerald-100"
+              : "text-emerald-700"
             : isUser
               ? "text-white/70"
               : "text-slate-500",
