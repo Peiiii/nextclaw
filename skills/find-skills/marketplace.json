@@ -1,0 +1,26 @@
+{
+  "slug": "find-skills",
+  "name": "Find Skills",
+  "summary": "Discover and evaluate external agent skills through the open skills ecosystem, with Vercel-style search and install guidance for NextClaw users.",
+  "summaryI18n": {
+    "en": "Discover and evaluate external agent skills through the open skills ecosystem, with Vercel-style search and install guidance for NextClaw users.",
+    "zh": "帮助 NextClaw 用户通过开放技能生态发现、评估并安装外部 agent skills，提供类似 Vercel Skills 的搜索与安装引导。"
+  },
+  "description": "Use this skill when the user wants to find reusable capabilities in the open agent skills ecosystem. It guides search, quality checks, recommendation, and installation commands through the upstream Skills CLI while keeping the boundary between NextClaw marketplace and external skill ecosystems explicit.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to find reusable capabilities in the open agent skills ecosystem. It guides search, quality checks, recommendation, and installation commands through the upstream Skills CLI while keeping the boundary between NextClaw marketplace and external skill ecosystems explicit.",
+    "zh": "当用户希望在开放 agent skills 生态中寻找可复用能力时使用此技能。它会引导搜索、质量判断、推荐与安装命令，并明确区分 NextClaw marketplace 与外部技能生态的边界。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "skills-cli",
+    "skills.sh",
+    "vercel",
+    "discovery",
+    "marketplace",
+    "external-tool"
+  ],
+  "sourceRepo": "https://github.com/vercel-labs/skills",
+  "homepage": "https://skills.sh/"
+}

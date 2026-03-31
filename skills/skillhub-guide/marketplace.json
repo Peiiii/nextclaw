@@ -1,0 +1,28 @@
+{
+  "slug": "skillhub-guide",
+  "name": "Skillhub 指南",
+  "summary": "Guide NextClaw users through Tencent Skillhub with CLI-only install, readiness checks, search, and safe skill installation guidance.",
+  "summaryI18n": {
+    "en": "Guide NextClaw users through Tencent Skillhub with CLI-only install, readiness checks, search, and safe skill installation guidance.",
+    "zh": "帮助 NextClaw 用户接入腾讯 Skillhub，覆盖 CLI-only 安装、就绪检查、搜索发现与安全安装指引。"
+  },
+  "description": "Use this skill when the user wants to understand, install, or use Tencent Skillhub from inside NextClaw. It keeps NextClaw marketplace and Skillhub boundaries explicit, defaults to the less surprising CLI-only install path, and guides readiness checks, search, installation, and troubleshooting.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to understand, install, or use Tencent Skillhub from inside NextClaw. It keeps NextClaw marketplace and Skillhub boundaries explicit, defaults to the less surprising CLI-only install path, and guides readiness checks, search, installation, and troubleshooting.",
+    "zh": "当用户希望在 NextClaw 中了解、安装或使用腾讯 Skillhub 时使用此技能。它会明确区分 NextClaw marketplace 与 Skillhub，默认优先更可预测的 CLI-only 安装路径，并覆盖就绪检查、搜索、安装与排障。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "skillhub",
+    "tencent",
+    "cli",
+    "marketplace",
+    "onboarding",
+    "external-tool"
+  ],
+  "homepage": "https://skillhub-1388575217.cos.ap-guangzhou.myqcloud.com/install/skillhub.md",
+  "install": {
+    "kind": "marketplace"
+  }
+}
