@@ -342,6 +342,51 @@ describe("handleFeishuMessage command authorization", () => {
     expect(mockCreateFeishuClient).not.toHaveBeenCalled();
   });
 
+  it("does not block reply dispatch when sender-name lookup hangs", async () => {
+    vi.useFakeTimers();
+    try {
+      mockCreateFeishuClient.mockReturnValue({
+        contact: {
+          user: {
+            get: vi.fn(() => new Promise(() => undefined)),
+          },
+        },
+      });
+
+      const cfg: ClawdbotConfig = {
+        channels: {
+          feishu: {
+            dmPolicy: "open",
+            allowFrom: ["*"],
+          },
+        },
+      } as ClawdbotConfig;
+
+      const event: FeishuMessageEvent = {
+        sender: {
+          sender_id: {
+            open_id: "ou-attacker",
+          },
+        },
+        message: {
+          message_id: "msg-slow-sender-lookup",
+          chat_id: "oc-dm",
+          chat_type: "p2p",
+          message_type: "text",
+          content: JSON.stringify({ text: "hello" }),
+        },
+      };
+
+      const dispatchPromise = dispatchMessage({ cfg, event });
+      await vi.advanceTimersByTimeAsync(1_500);
+      await dispatchPromise;
+
+      expect(mockDispatchReplyFromConfig).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("propagates parent/root message ids into inbound context for reply reconstruction", async () => {
     mockGetMessageFeishu.mockResolvedValueOnce({
       messageId: "om_parent_001",

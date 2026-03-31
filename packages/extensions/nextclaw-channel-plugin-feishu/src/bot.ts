@@ -14,6 +14,7 @@ import {
   warnMissingProviderGroupPolicyFallbackOnce,
 } from "./nextclaw-sdk/feishu.js";
 import { resolveFeishuAccount } from "./accounts.js";
+import { raceWithTimeoutAndAbort } from "./async.js";
 import { createFeishuClient } from "./client.js";
 import { finalizeFeishuMessageProcessing, tryRecordMessagePersistent } from "./dedup.js";
 import { maybeCreateDynamicAgent } from "./dynamic-agent.js";
@@ -96,6 +97,7 @@ function extractPermissionError(err: unknown): PermissionError | null {
 // --- Sender name resolution (so the agent can distinguish who is speaking in group chats) ---
 // Cache display names by sender id (open_id/user_id) to avoid an API call on every message.
 const SENDER_NAME_TTL_MS = 10 * 60 * 1000;
+const SENDER_NAME_LOOKUP_BUDGET_MS = 1_500;
 const senderNameCache = new Map<string, { name: string; expireAt: number }>();
 
 // Cache permission errors to avoid spamming the user with repeated notifications.
@@ -107,6 +109,20 @@ type SenderNameResult = {
   name?: string;
   permissionError?: PermissionError;
 };
+
+function getCachedSenderName(senderId: string): string | undefined {
+  const normalizedSenderId = senderId.trim();
+  if (!normalizedSenderId) {
+    return undefined;
+  }
+
+  const cached = senderNameCache.get(normalizedSenderId);
+  const now = Date.now();
+  if (!cached || cached.expireAt <= now) {
+    return undefined;
+  }
+  return cached.name;
+}
 
 function resolveSenderLookupIdType(senderId: string): "open_id" | "user_id" | "union_id" {
   const trimmed = senderId.trim();
@@ -172,6 +188,32 @@ async function resolveFeishuSenderName(params: {
     log(`feishu: failed to resolve sender name for ${normalizedSenderId}: ${String(err)}`);
     return {};
   }
+}
+
+async function resolveFeishuSenderNameWithinBudget(params: {
+  account: ResolvedFeishuAccount;
+  senderId: string;
+  log: (...args: any[]) => void;
+  timeoutMs?: number;
+}): Promise<SenderNameResult> {
+  const cachedName = getCachedSenderName(params.senderId);
+  if (cachedName) {
+    return { name: cachedName };
+  }
+
+  const timeoutMs = params.timeoutMs ?? SENDER_NAME_LOOKUP_BUDGET_MS;
+  const lookupPromise = resolveFeishuSenderName(params);
+  const lookupResult = await raceWithTimeoutAndAbort(lookupPromise, { timeoutMs });
+  if (lookupResult.status === "resolved") {
+    return lookupResult.value;
+  }
+
+  params.log(
+    `feishu[${params.account.accountId}]: sender-name lookup exceeded ${timeoutMs}ms; ` +
+      "continuing without blocking reply",
+  );
+  void lookupPromise.catch(() => undefined);
+  return {};
 }
 
 export type FeishuMessageEvent = {
@@ -941,7 +983,7 @@ export async function handleFeishuMessage(params: {
   // Optimization: skip if disabled to save API quota (Feishu free tier limit).
   let permissionErrorForAgent: PermissionError | undefined;
   if (feishuCfg?.resolveSenderNames ?? true) {
-    const senderResult = await resolveFeishuSenderName({
+    const senderResult = await resolveFeishuSenderNameWithinBudget({
       account,
       senderId: ctx.senderOpenId,
       log,
