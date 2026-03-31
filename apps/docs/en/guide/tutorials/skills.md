@@ -16,7 +16,19 @@ nextclaw skills install weather
 
 If this slug is unavailable in your registry, replace it with any installable skill.
 
+NextClaw only loads skills from the workspace `skills/` directory.
+
+- Default workspace: `~/.nextclaw/workspace`
+- Default install target: `~/.nextclaw/workspace/skills/<slug>/SKILL.md`
+- If you need a project-specific workspace, pass:
+
+```bash
+nextclaw skills install <slug> --workdir <workspace>
+```
+
 After install, you should see `skills/<slug>/SKILL.md` in your workspace.
+
+Note: upstream global commands such as `npx skills add ... -g` do not install the skill into the NextClaw workspace, so they do not make it selectable in NextClaw by themselves.
 
 ## 2) Select the skill in UI
 

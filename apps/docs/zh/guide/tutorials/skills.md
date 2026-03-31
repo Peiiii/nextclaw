@@ -16,7 +16,19 @@ nextclaw skills install weather
 
 如果该 slug 在当前源不可用，替换为任意可安装的 skill 即可。
 
+NextClaw 只会从“工作区”的 `skills/` 目录加载 skill。
+
+- 默认工作区：`~/.nextclaw/workspace`
+- 默认安装目标：`~/.nextclaw/workspace/skills/<slug>/SKILL.md`
+- 如果你要装到某个项目专用工作区，必须显式传：
+
+```bash
+nextclaw skills install <slug> --workdir <workspace>
+```
+
 安装后可在工作区 `skills/<slug>/SKILL.md` 看到文件。
+
+注意：像 `npx skills add ... -g` 这类上游全局安装命令，不会把 skill 装进 NextClaw 的工作区，因此不会自动让它出现在 NextClaw 里可选。
 
 ## 2）在 UI 里选择 Skill
 

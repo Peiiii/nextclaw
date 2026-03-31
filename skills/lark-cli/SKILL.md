@@ -24,6 +24,223 @@ From the user’s point of view, the experience should feel complete:
 Do not pretend the environment is ready when it is not.
 Treat browser completion, terminal success text, and real readiness as three separate things. Only observable CLI checks count as success.
 
+## Install Boundary: Upstream CLI vs NextClaw Skill
+
+Always distinguish these three things before taking action:
+
+- `@larksuite/cli` / `lark-cli` binary install:
+  `npm install -g @larksuite/cli`
+- NextClaw runtime skill install:
+  the selectable skill must exist at `<workspace>/skills/lark-cli/SKILL.md`
+- This repo's source skill:
+  `skills/lark-cli/SKILL.md` inside the NextClaw repository
+
+NextClaw loads skills from the workspace `skills/` directory, not from npm global Agent Skill locations.
+
+Default NextClaw workspace:
+
+```bash
+~/.nextclaw/workspace
+```
+
+So the default installed skill path is:
+
+```bash
+~/.nextclaw/workspace/skills/lark-cli/SKILL.md
+```
+
+If the user wants the skill installed into a specific project or workspace, install it with an explicit workdir:
+
+```bash
+nextclaw skills install lark-cli --workdir <workspace>
+```
+
+Do not treat this upstream command as a NextClaw skill install:
+
+```bash
+npx skills add larksuite/cli -y -g
+```
+
+That upstream command installs upstream Agent Skill assets globally. It does not put the skill into NextClaw's `<workspace>/skills/` directory, so it does not make the skill selectable inside NextClaw by itself.
+
+## Deterministic Integration Recipe
+
+When the user says "help me connect Feishu/Lark in NextClaw" or "make this skill actually work", follow this exact order and do not skip steps.
+
+### Step 0: Verify the NextClaw side first
+
+Check the real NextClaw workspace path before touching `lark-cli`.
+
+- Default workspace: `~/.nextclaw/workspace`
+- Expected installed skill file:
+  `<workspace>/skills/lark-cli/SKILL.md`
+
+If the user says they already installed the skill, verify that file exists.
+If it does not exist, install it with:
+
+```bash
+nextclaw skills install lark-cli --workdir <workspace>
+```
+
+Do not start debugging Feishu OAuth before this NextClaw-side path is confirmed.
+
+### Step 1: Verify the upstream CLI binary
+
+Run:
+
+```bash
+command -v lark-cli
+```
+
+If it fails, check common Node bin locations before claiming the CLI is missing:
+
+- `~/.nvm/versions/node/*/bin`
+- `/opt/homebrew/bin`
+- `/usr/local/bin`
+
+If `lark-cli` exists in one of those directories but is not on `PATH`, use a one-off PATH prefix for the current command session, for example:
+
+```bash
+PATH=$HOME/.nvm/versions/node/v22.16.0/bin:$PATH lark-cli --help
+```
+
+Only if the binary truly does not exist should you install it:
+
+```bash
+npm install -g @larksuite/cli
+```
+
+### Step 2: Check current readiness before starting new flows
+
+Run these first:
+
+```bash
+lark-cli config show
+lark-cli auth status
+lark-cli doctor
+```
+
+Interpret them in this order:
+
+- `config show` says "Not configured yet" or `doctor` shows `config_file=fail`
+  -> configuration is missing; go to Step 3
+- `auth status` shows `identity: "bot"` and "No user logged in"
+  -> config exists but user login is missing; go to Step 4
+- `auth status` shows `identity: "user"` and `doctor` is all pass
+  -> environment is ready; go to Step 5
+
+Do not start `config init` or `auth login` blindly before checking current state.
+
+### Step 3: Configure the app exactly once
+
+Use the browser-based config flow:
+
+```bash
+lark-cli config init --new
+```
+
+For agent-style execution:
+
+- run it once,
+- capture the printed browser URL,
+- send that URL to the user,
+- keep the same process alive until it exits,
+- then verify with `config show` and `doctor`.
+
+Success means all of these are true:
+
+- the original `config init --new` process exits with code `0`
+- `lark-cli config show` displays a concrete `appId`
+- `lark-cli doctor` reports `config_file=pass`
+- `lark-cli doctor` reports `app_resolved=pass`
+
+Do not rerun `config init --new` just because the terminal is still waiting.
+Do not treat "the user opened the page" as success.
+
+### Step 4: Log in as a user exactly once
+
+Prefer the two-stage device flow:
+
+```bash
+lark-cli auth login --recommend --no-wait --json
+```
+
+This returns:
+
+- `verification_url`
+- `device_code`
+
+Then immediately start the single polling process:
+
+```bash
+lark-cli auth login --device-code <DEVICE_CODE>
+```
+
+Agent behavior must be:
+
+- show `verification_url` to the user
+- start exactly one `--device-code` polling process
+- wait for that same process to finish
+- then verify with `auth status` and `doctor`
+
+Success means all of these are true:
+
+- the `--device-code` process exits with code `0`
+- `lark-cli auth status` shows `identity: "user"`
+- `lark-cli auth status` includes user info such as `userName` / `userOpenId`
+- `lark-cli doctor` reports `token_exists=pass`
+- `lark-cli doctor` reports `token_local=pass`
+- ideally `lark-cli doctor` reports `token_verified=pass`
+
+If `identity` is still `bot`, the login is not done.
+Do not launch multiple concurrent `auth login` sessions.
+
+### Step 5: Run one real read-only smoke command
+
+After login succeeds, run at least one real API-backed read command before claiming the environment is usable.
+
+Safe default:
+
+```bash
+lark-cli contact +get-user --format json
+```
+
+Success means:
+
+- command exits `0`
+- output contains `"ok": true`
+- output contains `"identity": "user"`
+- output includes a real `open_id` or user object
+
+Only after this smoke step should the agent proceed to task-specific operations such as task/calendar/docs/mail/im/base actions.
+
+## One-Pass Checklist For Agents
+
+Use this checklist literally:
+
+1. Confirm `<workspace>/skills/lark-cli/SKILL.md` exists.
+2. Confirm `command -v lark-cli` works.
+3. If not, repair PATH or install `@larksuite/cli`.
+4. Run `lark-cli config show`.
+5. Run `lark-cli auth status`.
+6. Run `lark-cli doctor`.
+7. If config missing, run one `lark-cli config init --new` flow and wait.
+8. If config exists but identity is `bot`, run one `auth login --recommend --no-wait --json` flow and one `--device-code` polling process.
+9. Verify `identity: "user"` with `auth status`.
+10. Verify token checks with `doctor`.
+11. Run `lark-cli contact +get-user --format json`.
+12. Only then execute the user’s actual Feishu/Lark task.
+
+## Do Not Do These Things
+
+- Do not confuse "skill installed into NextClaw workspace" with "`lark-cli` binary installed globally".
+- Do not use `npx skills add larksuite/cli -y -g` as a NextClaw skill install step.
+- Do not start a second `config init --new` while the first one is still waiting.
+- Do not start repeated `auth login` commands when one `--device-code` polling process is already active.
+- Do not declare success from browser completion alone.
+- Do not declare success from token existence alone if no read command has been tested.
+- Do not skip `auth status` and `doctor`.
+
 ## What This Skill Covers
 
 - Installation paths documented upstream (for example global npm install of `@larksuite/cli`).
@@ -81,6 +298,7 @@ npm install -g @larksuite/cli
 ```
 
 After installation, continue with configuration and auth instead of jumping straight into the user task.
+This step installs the upstream `lark-cli` binary only. It does not install the NextClaw `lark-cli` skill into the workspace.
 
 ### 3. Optional upstream skill bundle
 
@@ -91,6 +309,7 @@ npx skills add larksuite/cli -y -g
 ```
 
 Treat this as optional unless the user is following upstream tutorials that assume those files exist, or the CLI reports missing skill assets. Do not present it as a NextClaw marketplace replacement; it is an upstream packaging choice.
+If the user's goal is "make `lark-cli` selectable in NextClaw", use `nextclaw skills install lark-cli` and verify `<workspace>/skills/lark-cli/SKILL.md` exists.
 
 ### 4. Configure app credentials
 
@@ -223,6 +442,18 @@ When the user is unsure, default to smaller scope, fewer recipients, and read-on
 
 - Explain that Node/npm global install may be missing or not on `PATH`.
 - Re-check with `command -v lark-cli` after install.
+
+### Skill installed to the wrong place
+
+- If the user installed an upstream skill globally but NextClaw still cannot select it, verify the real NextClaw workspace path first.
+- The success check is the file `<workspace>/skills/lark-cli/SKILL.md`.
+- If the user is working in a project-specific workspace, reinstall with:
+
+```bash
+nextclaw skills install lark-cli --workdir <workspace>
+```
+
+- Do not claim success just because `npx skills add larksuite/cli -y -g` finished.
 
 ### Config or auth errors
 

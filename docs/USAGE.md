@@ -461,6 +461,14 @@ Created under the workspace:
 | `memory/MEMORY.md` | Long-term notes                |
 | `skills/`       | Custom skills                     |
 
+Skill loading contract:
+
+- NextClaw only auto-loads skills from `<workspace>/skills/`.
+- With the default workspace, the default skill directory is `~/.nextclaw/workspace/skills/`.
+- `nextclaw skills install <slug>` installs into that directory.
+- If you want to install into a specific project workspace, pass `--workdir <workspace>`.
+- Upstream commands such as `npx skills add ... -g` do not install a skill into NextClaw's workspace and do not make it selectable in NextClaw by themselves.
+
 **Heartbeat:** When the gateway is running, `HEARTBEAT.md` in the workspace is checked every 30 minutes. If it contains actionable tasks, the agent will process them.
 
 ---
@@ -506,7 +514,7 @@ Created under the workspace:
 | `nextclaw cron enable <jobId>` | Enable a disabled job |
 | `nextclaw cron disable <jobId>` | Disable a job without deleting it |
 | `nextclaw cron run <jobId>` | Run a job once (optionally with `--force` if disabled) |
-| `nextclaw skills install <slug>` | Install a skill from NextClaw marketplace |
+| `nextclaw skills install <slug>` | Install a skill from NextClaw marketplace into `<workspace>/skills/<slug>` |
 | `nextclaw skills publish <dir>` | Upload/create a skill to marketplace |
 | `nextclaw skills update <dir>` | Update an existing marketplace skill |
 | `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
