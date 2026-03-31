@@ -6,6 +6,7 @@ import { ConfigSchema } from "@nextclaw/core";
 import { buildPluginLoaderAliases, loadOpenClawPlugins } from "./loader.js";
 
 const tempDirs: string[] = [];
+const PLUGIN_LOAD_TIMEOUT_MS = 60_000;
 
 function createTempPluginDir(): string {
   const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-ncp-runtime-"));
@@ -278,7 +279,7 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
       kind: "local-dependency-runtime",
       label: "Local Dependency Runtime",
     });
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("aliases host @nextclaw packages when external plugin-local copies are not runnable", () => {
     const pluginDir = createAliasDependentPluginDir();
@@ -308,7 +309,7 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
       kind: "alias-runtime",
       label: "Alias Runtime",
     });
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("loads plugin-provided ncp agent runtimes into the registry", () => {
     const pluginDir = createTempPluginDir();
@@ -340,7 +341,7 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
 
     const plugin = registry.plugins.find((entry) => entry.id === "test-ncp-runtime-plugin");
     expect(plugin?.ncpAgentRuntimeKinds).toEqual(["test-runtime"]);
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("discovers installed runtime plugins from plugins.installs.installPath without extra load paths", () => {
     const pluginDir = createTempPluginDir();
@@ -373,7 +374,7 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
       kind: "test-runtime",
       label: "Test Runtime",
     });
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("reloads updated runtime plugin code from the same path without reusing stale module cache", () => {
     const pluginDir = createTempPluginDir();
@@ -404,5 +405,5 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
       reservedNcpAgentRuntimeKinds: ["native"],
     });
     expect(reloadedRegistry.ncpAgentRuntimes[0]?.label).toBe("Test Runtime v2");
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 });

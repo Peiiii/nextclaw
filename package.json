@@ -2,6 +2,9 @@
   "name": "nextclaw-workspace",
   "private": true,
   "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "workspaces": [
     "apps/*",
     "apps/ncp-demo/*",
@@ -18,13 +21,13 @@
     "desktop:package:verify": "node scripts/desktop-package-verify.mjs",
     "lint": "pnpm -C packages/extensions/nextclaw-feishu-core lint && pnpm -C packages/nextclaw-core lint && pnpm -C packages/nextclaw-mcp lint && pnpm -C packages/ncp-packages/nextclaw-ncp lint && pnpm -C packages/ncp-packages/nextclaw-ncp-mcp lint && pnpm -C packages/ncp-packages/nextclaw-ncp-toolkit lint && pnpm -C packages/ncp-packages/nextclaw-ncp-http-agent-server lint && pnpm -C packages/ncp-packages/nextclaw-ncp-http-agent-client lint && pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime lint && pnpm -C packages/ncp-packages/nextclaw-ncp-react lint && pnpm -C packages/ncp-packages/nextclaw-ncp-react-ui lint && pnpm -C packages/nextclaw-runtime lint && pnpm -C packages/nextclaw-remote lint && pnpm -C packages/extensions/nextclaw-channel-runtime lint && pnpm -C packages/extensions/nextclaw-channel-plugin-dingtalk lint && pnpm -C packages/extensions/nextclaw-channel-plugin-discord lint && pnpm -C packages/extensions/nextclaw-channel-plugin-email lint && pnpm -C packages/extensions/nextclaw-channel-plugin-feishu lint && pnpm -C packages/extensions/nextclaw-channel-plugin-mochat lint && pnpm -C packages/extensions/nextclaw-channel-plugin-qq lint && pnpm -C packages/extensions/nextclaw-channel-plugin-slack lint && pnpm -C packages/extensions/nextclaw-channel-plugin-telegram lint && pnpm -C packages/extensions/nextclaw-channel-plugin-wecom lint && pnpm -C packages/extensions/nextclaw-channel-plugin-weixin lint && pnpm -C packages/extensions/nextclaw-channel-plugin-whatsapp lint && pnpm -C packages/extensions/nextclaw-engine-plugin-codex-sdk lint && pnpm -C packages/extensions/nextclaw-engine-plugin-claude-agent-sdk lint && pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk lint && pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk lint && pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk lint && pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk lint && pnpm -C packages/nextclaw-openclaw-compat lint && pnpm -C packages/nextclaw-server lint && pnpm -C packages/nextclaw-agent-chat-ui lint && pnpm -C apps/platform-console lint && pnpm -C apps/platform-admin lint && pnpm -C apps/desktop lint && pnpm -C apps/landing lint && pnpm -C packages/nextclaw lint && pnpm -C workers/marketplace-api lint && pnpm -C workers/nextclaw-provider-gateway-api lint",
     "lint:new-code:class-methods": "node scripts/lint-new-code-class-methods.mjs",
-    "lint:new-code:governance": "node scripts/lint-new-code-governance.mjs",
-    "lint:maintainability": "pnpm lint:maintainability:guard && pnpm lint:maintainability:report && pnpm lint:maintainability:hotspots",
-    "lint:maintainability:guard": "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs && pnpm lint:new-code:governance",
     "lint:new-code:object-methods": "node scripts/lint-new-code-object-methods.mjs",
     "lint:new-code:closure-objects": "node scripts/lint-new-code-closure-objects.mjs",
     "lint:new-code:flat-directories": "node scripts/lint-new-code-flat-directories.mjs",
     "lint:new-code:stateful-orchestrators": "node scripts/lint-new-code-stateful-orchestrators.mjs",
+    "lint:new-code:governance": "node scripts/lint-new-code-governance.mjs",
+    "lint:maintainability": "pnpm lint:maintainability:guard && pnpm lint:maintainability:report && pnpm lint:maintainability:hotspots",
+    "lint:maintainability:guard": "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs && pnpm lint:new-code:governance",
     "lint:maintainability:hotspots": "node scripts/maintainability-hotspots.mjs",
     "lint:maintainability:report": "node scripts/eslint-maintainability-report.mjs --fail-on-coverage-gaps",
     "lint:ui": "pnpm -C packages/nextclaw-ui lint",

@@ -1,6 +1,29 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ChatMessageList } from "./chat-message-list";
 
+const defaultTexts = {
+  copyCodeLabel: "Copy",
+  copiedCodeLabel: "Copied",
+  typingLabel: "Typing...",
+};
+
+function createReasoningMessage(status?: "pending" | "streaming" | "completed") {
+  return {
+    id: "assistant-reasoning",
+    role: "assistant" as const,
+    roleLabel: "Assistant",
+    timestampLabel: "10:04",
+    status,
+    parts: [
+      {
+        type: "reasoning" as const,
+        label: "Reasoning",
+        text: "This is the full reasoning content.\nIt spans multiple lines for inspection.",
+      },
+    ],
+  };
+}
+
 it("renders user, assistant, and tool content and supports code copy", async () => {
   const writeText = vi.fn().mockResolvedValue(undefined);
   Object.assign(navigator, {
@@ -61,7 +84,7 @@ it("renders user, assistant, and tool content and supports code copy", async () 
 
   expect(screen.getByText("You · 10:00")).toBeTruthy();
   expect(screen.getByText("Assistant · 10:01")).toBeTruthy();
-  expect(screen.getByText("Tool Result")).toBeTruthy();
+  expect(screen.getByText("Tool · 10:02")).toBeTruthy();
   expect(screen.queryByText("Completed")).toBeNull();
   expect(screen.queryByText("Input Summary")).toBeNull();
   expect(screen.queryByText("Call ID")).toBeNull();
@@ -153,38 +176,114 @@ it("renders running tool cards with live status feedback", () => {
   expect(screen.queryByText("View Output")).toBeNull();
 });
 
-it("renders reasoning expanded by default while keeping the original details layout", () => {
+it("renders completed reasoning collapsed by default while keeping the original details layout", () => {
   render(
+    <ChatMessageList
+      messages={[createReasoningMessage()]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByText("Reasoning")).toBeTruthy();
+  const details = document.querySelector("details");
+  expect(details?.hasAttribute("open")).toBe(false);
+  expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
+});
+
+it("auto-collapses reasoning after the current streaming queue finishes", () => {
+  const { container, rerender } = render(
+    <ChatMessageList
+      messages={[createReasoningMessage("streaming")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  const details = () => container.querySelector("details");
+  expect(details()?.hasAttribute("open")).toBe(true);
+
+  rerender(
+    <ChatMessageList
+      messages={[createReasoningMessage("completed")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(details()?.hasAttribute("open")).toBe(false);
+});
+
+it("keeps earlier reasoning queues collapsed while only the current queue stays expanded", () => {
+  const { container } = render(
     <ChatMessageList
       messages={[
         {
-          id: "assistant-3",
+          id: "assistant-reasoning-multi",
           role: "assistant",
           roleLabel: "Assistant",
-          timestampLabel: "10:04",
+          timestampLabel: "10:05",
+          status: "streaming",
           parts: [
             {
               type: "reasoning",
               label: "Reasoning",
-              text: "This is the full reasoning content.\nIt spans multiple lines for inspection.",
+              text: "Finished queue",
+            },
+            {
+              type: "reasoning",
+              label: "Reasoning",
+              text: "Current queue",
             },
           ],
         },
       ]}
       isSending={false}
       hasAssistantDraft={false}
-      texts={{
-        copyCodeLabel: "Copy",
-        copiedCodeLabel: "Copied",
-        typingLabel: "Typing...",
-      }}
+      texts={defaultTexts}
     />,
   );
 
-  expect(screen.getByText("Reasoning")).toBeTruthy();
-  const details = document.querySelector("details");
-  expect(details?.hasAttribute("open")).toBe(true);
-  expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
+  const detailsList = Array.from(container.querySelectorAll("details"));
+  expect(detailsList).toHaveLength(2);
+  expect(detailsList[0]?.hasAttribute("open")).toBe(false);
+  expect(detailsList[1]?.hasAttribute("open")).toBe(true);
+});
+
+it("keeps reasoning expanded after completion when the user manually re-opens it", () => {
+  const { container, rerender } = render(
+    <ChatMessageList
+      messages={[createReasoningMessage("streaming")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  const details = () => container.querySelector("details");
+  const summary = screen.getByText("Reasoning");
+
+  expect(details()?.hasAttribute("open")).toBe(true);
+
+  fireEvent.click(summary);
+  expect(details()?.hasAttribute("open")).toBe(false);
+
+  fireEvent.click(summary);
+  expect(details()?.hasAttribute("open")).toBe(true);
+
+  rerender(
+    <ChatMessageList
+      messages={[createReasoningMessage("completed")]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(details()?.hasAttribute("open")).toBe(true);
 });
 
 it("does not render the typing placeholder after assistant output has started but is still pending", () => {

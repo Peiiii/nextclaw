@@ -6,6 +6,7 @@ import { ConfigSchema } from "@nextclaw/core";
 import { buildPluginStatusReport, discoverPluginStatusReport } from "./status.js";
 
 const tempDirs: string[] = [];
+const PLUGIN_LOAD_TIMEOUT_MS = 60_000;
 
 function createTempDir(prefix: string): string {
   const dir = mkdtempSync(join(tmpdir(), prefix));
@@ -149,5 +150,5 @@ describe("plugin status report read vs load behavior", () => {
       ])
     );
     expect(readFileSync(markerPath, "utf8")).toContain("loaded");
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 });

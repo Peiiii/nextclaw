@@ -1,4 +1,4 @@
-import { defineConfig, splitVendorChunkPlugin } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
@@ -6,7 +6,7 @@ const devProxyApiBase = process.env.VITE_DEV_PROXY_API_BASE ?? 'http://127.0.0.1
 const devProxyWsBase = devProxyApiBase.replace(/^http/i, 'ws');
 
 export default defineConfig({
-  plugins: [react(), splitVendorChunkPlugin()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

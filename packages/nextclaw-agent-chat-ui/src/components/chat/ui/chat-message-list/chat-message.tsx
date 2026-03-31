@@ -19,6 +19,8 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
   const { message, texts } = props;
   const { role } = message;
   const isUser = role === "user";
+  const isMessageInProgress =
+    message.status === "pending" || message.status === "streaming";
 
   return (
     <div
@@ -50,6 +52,9 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
                 label={part.label}
                 text={part.text}
                 isUser={isUser}
+                isInProgress={
+                  isMessageInProgress && index === message.parts.length - 1
+                }
               />
             );
           }

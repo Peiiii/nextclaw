@@ -24,14 +24,14 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.13.3",
+    "@nextclaw/core": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-http-agent-server": "workspace:*",
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "hono": "^4.6.2",
-    "ws": "^8.18.0",
-    "@nextclaw/core": "workspace:*"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
@@ -40,6 +40,6 @@
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.2"
+    "vitest": "^4.1.2"
   }
 }

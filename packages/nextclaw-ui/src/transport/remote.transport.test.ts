@@ -45,7 +45,7 @@ class MockWebSocket {
 }
 
 function lastSentRequestFrame(socket: MockWebSocket): { type: 'request'; id: string } {
-  const raw = socket.sent.at(-1);
+  const raw = socket.sent[socket.sent.length - 1];
   if (!raw) {
     throw new Error('Expected a sent request frame.');
   }

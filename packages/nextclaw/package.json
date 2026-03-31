@@ -47,19 +47,19 @@
     "prepublishOnly": "node ../../scripts/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "chokidar": "^3.6.0",
-    "commander": "^12.1.0",
-    "yaml": "^2.8.1",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
+    "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/remote": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/server": "workspace:*",
-    "@nextclaw/openclaw-compat": "workspace:*"
+    "chokidar": "^3.6.0",
+    "commander": "^12.1.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@nextclaw/ui": "workspace:*",
@@ -68,6 +68,6 @@
     "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.2"
+    "vitest": "^4.1.2"
   }
 }

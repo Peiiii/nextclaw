@@ -317,7 +317,7 @@ it('does not commit intermediate IME composition text before composition ends', 
   fireEvent.compositionEnd(textbox, { data: '你' });
 
   expect(onNodesChange).toHaveBeenCalled();
-  expect(onNodesChange.mock.calls.at(-1)?.[0]).toEqual([
+  expect(onNodesChange.mock.calls[onNodesChange.mock.calls.length - 1]?.[0]).toEqual([
     expect.objectContaining({ type: 'text', text: '你' })
   ]);
 });
@@ -347,7 +347,7 @@ it('removes the last selected chip when backspace is pressed on an empty draft',
   fireEvent.keyDown(textbox, { key: 'Backspace' });
 
   expect(onNodesChange).toHaveBeenCalled();
-  const lastCall = onNodesChange.mock.calls.at(-1)?.[0];
+  const lastCall = onNodesChange.mock.calls[onNodesChange.mock.calls.length - 1]?.[0];
   expect(lastCall).toEqual([
     expect.objectContaining({ type: 'token', tokenKey: 'web-search' })
   ]);

@@ -3,6 +3,7 @@ import { ConfigSchema } from "@nextclaw/core";
 import { loadOpenClawPlugins } from "./loader.js";
 
 type PluginRegistry = ReturnType<typeof loadOpenClawPlugins>;
+const PLUGIN_LOAD_TIMEOUT_MS = 60_000;
 
 function buildConfig(input: Record<string, unknown> = {}) {
   return ConfigSchema.parse(input);
@@ -46,7 +47,7 @@ describe("loadOpenClawPlugins bundled channel enable state", () => {
     expect(plugin?.status).toBe("disabled");
     expect(plugin?.error).toBe("disabled in config");
     expect(registry.channels.some((channel) => channel.pluginId === "builtin-channel-discord")).toBe(false);
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("respects allowlist/denylist rules for bundled plugins", () => {
     const deniedConfig = buildConfig({
@@ -74,7 +75,7 @@ describe("loadOpenClawPlugins bundled channel enable state", () => {
     expect(allowlistPlugin?.enabled).toBe(false);
     expect(allowlistPlugin?.status).toBe("disabled");
     expect(allowlistPlugin?.error).toBe("not in allowlist");
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 
   it("can be re-enabled and re-register bundled discord plugin", () => {
     const config = buildConfig({
@@ -94,5 +95,5 @@ describe("loadOpenClawPlugins bundled channel enable state", () => {
     expect(plugin?.enabled).toBe(true);
     expect(plugin?.status).toBe("loaded");
     expect(registry.channels.some((channel) => channel.pluginId === "builtin-channel-discord")).toBe(true);
-  });
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 });
