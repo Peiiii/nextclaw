@@ -462,6 +462,7 @@ it("builds write-file previews from partial native args before the JSON is compl
       fileOperation: {
         blocks: [
           {
+            display: "preview",
             path: "games/snake.html",
             lines: expect.arrayContaining([
               expect.objectContaining({
@@ -476,6 +477,65 @@ it("builds write-file previews from partial native args before the JSON is compl
           },
         ],
       },
+    },
+  });
+});
+
+it("keeps completed write-file cards in preview mode instead of falling back to raw byte summaries", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-write-result",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "write-result-1",
+            toolName: "write_file",
+            args: JSON.stringify({
+              path: "games/snake.html",
+              content: "<!DOCTYPE html>\n<canvas id=\"game\"></canvas>",
+            }),
+            result: "Wrote 3906 bytes to games/snake.html",
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "write_file",
+      summary: "games/snake.html",
+      statusTone: "success",
+      fileOperation: {
+        blocks: [
+          {
+            display: "preview",
+            path: "games/snake.html",
+            lines: [
+              {
+                kind: "add",
+                text: "<!DOCTYPE html>",
+                newLineNumber: 1,
+              },
+              {
+                kind: "add",
+                text: "<canvas id=\"game\"></canvas>",
+                newLineNumber: 2,
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  expect(adapted[0]?.parts[0]).not.toMatchObject({
+    type: "tool-card",
+    card: {
+      output: "Wrote 3906 bytes to games/snake.html",
     },
   });
 });

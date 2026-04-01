@@ -399,6 +399,54 @@ it("renders completed terminal tool cards collapsed by default on initial mount"
   expect(screen.queryByText("short finished output")).toBeNull();
 });
 
+it("renders structured terminal payloads as terminal output instead of raw json", () => {
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-tool-json-output",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:13",
+          parts: [
+            {
+              type: "tool-card",
+              card: {
+                kind: "result",
+                toolName: "exec_command",
+                summary: "command: pnpm test",
+                output: JSON.stringify({
+                  ok: true,
+                  command: "pnpm test",
+                  stdout: "\u001b[32mfirst line\u001b[39m\nsecond line",
+                  stderr: "warning line",
+                  exitCode: 0,
+                }),
+                hasResult: true,
+                statusTone: "success",
+                statusLabel: "Completed",
+                titleLabel: "Tool Result",
+                outputLabel: "View Output",
+                emptyLabel: "No output",
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getByText("pnpm test"));
+
+  expect(screen.getByText(/first line/)).toBeTruthy();
+  expect(screen.getByText(/second line/)).toBeTruthy();
+  expect(screen.getByText(/warning line/)).toBeTruthy();
+  expect(screen.queryByText(/"stdout":/)).toBeNull();
+});
+
 it("resets completed terminal tool cards to collapsed when the message list remounts", () => {
   const message = {
     id: "assistant-tool-remount",

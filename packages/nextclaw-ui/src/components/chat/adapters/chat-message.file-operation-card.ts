@@ -33,8 +33,6 @@ const FILE_TOOL_NAMES = new Set([
   "apply_patch",
 ]);
 
-const MAX_STREAMING_PREVIEW_FIELD_CHARS = 4_000;
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -98,25 +96,21 @@ function readPartialRecordPayload(value: unknown): Record<string, unknown> | nul
     readPartialJsonStringField(
       trimmed,
       ["content", "text", "afterText", "after_text"],
-      MAX_STREAMING_PREVIEW_FIELD_CHARS,
     )?.value ?? null;
   const oldText =
     readPartialJsonStringField(
       trimmed,
       ["oldText", "beforeText", "before_text"],
-      MAX_STREAMING_PREVIEW_FIELD_CHARS,
     )?.value ?? null;
   const newText =
     readPartialJsonStringField(
       trimmed,
       ["newText", "afterText", "after_text"],
-      MAX_STREAMING_PREVIEW_FIELD_CHARS,
     )?.value ?? null;
   const patch =
     readPartialJsonStringField(
       trimmed,
       ["patch", "diff", "unifiedDiff", "unified_diff"],
-      MAX_STREAMING_PREVIEW_FIELD_CHARS,
     )?.value ?? null;
 
   const partialRecord: Record<string, unknown> = {};
@@ -204,6 +198,7 @@ function finalizeParsedBlocks(blocks: ParsedBlock[]): FileOperationCardData | nu
     .map((block, index) => ({
       key: `${block.path}-${index + 1}`,
       path: block.path,
+      display: block.display,
       ...(block.caption ? { caption: block.caption } : {}),
       lines: block.lines,
       ...(block.rawText ? { rawText: block.rawText } : {}),
@@ -342,7 +337,6 @@ function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperation
     const contentField = readPartialJsonStringField(
       invocation.args,
       ["content", "text", "afterText", "after_text"],
-      MAX_STREAMING_PREVIEW_FIELD_CHARS,
     );
     if (pathField?.value && contentField?.value) {
       const previewBlock = buildRawPreviewBlock({
@@ -351,9 +345,6 @@ function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperation
         operation: "write",
       });
       if (previewBlock) {
-        if (contentField.truncated) {
-          previewBlock.truncated = true;
-        }
         return finalizeParsedBlocks([previewBlock]);
       }
     }
@@ -373,9 +364,9 @@ function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperation
   }
   return finalizeParsedBlocks(
     [
-      buildFullReplaceBlock({
+      buildRawPreviewBlock({
         path,
-        afterText: content,
+        text: content,
         operation: "write",
       }),
     ].filter((block): block is ParsedBlock => Boolean(block)),

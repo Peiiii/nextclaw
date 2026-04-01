@@ -192,6 +192,7 @@ export type ChatFileOperationLineViewModel = {
 export type ChatFileOperationBlockViewModel = {
   key: string;
   path: string;
+  display?: "preview" | "diff";
   caption?: string;
   lines: ChatFileOperationLineViewModel[];
   rawText?: string;

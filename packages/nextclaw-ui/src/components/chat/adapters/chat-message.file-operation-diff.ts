@@ -2,6 +2,7 @@ import type { ChatFileOperationLineViewModel } from "@nextclaw/agent-chat-ui";
 
 export type ParsedBlock = {
   path: string;
+  display: "preview" | "diff";
   caption?: string;
   lines: ChatFileOperationLineViewModel[];
   rawText?: string;
@@ -57,21 +58,29 @@ export function buildRawPreviewBlock(params: {
   if (!previewText) {
     return null;
   }
-  const allLines = splitLines(previewText);
-  const lines = allLines.slice(0, MAX_VISIBLE_DIFF_LINES).map((line, index) => ({
-    kind: "context" as const,
-    text: line,
-    oldLineNumber: index + 1,
-    newLineNumber: index + 1,
-  }));
+  const previewKind = params.operation?.trim().toLowerCase() === "write" ? "add" : "context";
+  const lines = splitLines(previewText).map((line, index) =>
+    previewKind === "add"
+      ? {
+          kind: "add" as const,
+          text: line,
+          newLineNumber: index + 1,
+        }
+      : {
+          kind: "context" as const,
+          text: line,
+          oldLineNumber: index + 1,
+          newLineNumber: index + 1,
+        },
+  );
   return {
     path: params.path,
+    display: "preview",
     caption: buildCaption({
       operation: params.operation,
       lines,
     }),
     lines,
-    truncated: allLines.length > MAX_VISIBLE_DIFF_LINES,
   };
 }
 
@@ -224,6 +233,7 @@ export function buildFullReplaceBlock(params: {
   }
   return {
     path: params.path,
+    display: "diff",
     caption: buildCaption({
       operation: params.operation,
       lines,
@@ -241,6 +251,7 @@ function buildParsedPatchBlock(params: {
   const limited = limitLines(params.lines);
   return {
     path: params.path,
+    display: "diff",
     caption: buildCaption({
       operation: params.operation,
       lines: params.lines,

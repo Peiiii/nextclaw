@@ -71,7 +71,7 @@ it("reveals running file edit previews after the auto-expand delay", () => {
       vi.advanceTimersByTime(200);
     });
 
-    expect(screen.getAllByText("src/app.ts")).toHaveLength(2);
+    expect(screen.getAllByText("src/app.ts")).toHaveLength(1);
     expect(screen.getByText("const color = 'red';")).toBeTruthy();
     expect(screen.getByText("const color = 'blue';")).toBeTruthy();
   } finally {
@@ -140,6 +140,9 @@ it("renders completed file-change cards with an expandable diff view", () => {
 
   expect(screen.getByText("console.log('old');")).toBeTruthy();
   expect(screen.getByText("console.log('new');")).toBeTruthy();
+  expect(screen.getByText("+1").className).toContain("emerald");
+  expect(screen.getByText("+1").className).not.toContain("rounded");
+  expect(screen.getByText("-1").className).toContain("rose");
 });
 
 it("keeps large running write previews collapsed until the user asks to inspect them", () => {
@@ -172,11 +175,10 @@ it("keeps large running write previews collapsed until the user asks to inspect 
                       {
                         key: "src/game.html-1",
                         path: "src/game.html",
-                        truncated: true,
+                        display: "preview",
                         lines: Array.from({ length: 40 }, (_, index) => ({
-                          kind: "context" as const,
+                          kind: "add" as const,
                           text: `line ${index + 1}`,
-                          oldLineNumber: index + 1,
                           newLineNumber: index + 1,
                         })),
                       },
@@ -202,8 +204,76 @@ it("keeps large running write previews collapsed until the user asks to inspect 
     fireEvent.click(screen.getByText("src/game.html"));
 
     expect(screen.getByText("line 1")).toBeTruthy();
-    expect(screen.getByText("Preview truncated for streaming performance.")).toBeTruthy();
+    expect(screen.queryByText("Showing a shortened diff preview.")).toBeNull();
   } finally {
     vi.useRealTimers();
   }
+});
+
+it("renders write previews with a single gutter and without repeating the file path", () => {
+  const longLine = "const_super_long_editor_line = window.__NEXTCLAW_PREVIEW_SHOULD_SCROLL_HORIZONTALLY__;";
+
+  render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-write-preview-compact",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:22",
+          parts: [
+            {
+              type: "tool-card",
+              card: {
+                kind: "call",
+                toolName: "write_file",
+                summary: "src/game.html",
+                hasResult: false,
+                statusTone: "running",
+                statusLabel: "Running",
+                titleLabel: "Tool Call",
+                outputLabel: "View Output",
+                emptyLabel: "No output",
+                fileOperation: {
+                  blocks: [
+                    {
+                      key: "src/game.html-1",
+                      path: "src/game.html",
+                      display: "preview",
+                      caption: "write · +2",
+                      lines: [
+                        {
+                          kind: "add",
+                          text: longLine,
+                          newLineNumber: 109,
+                        },
+                        {
+                          kind: "add",
+                          text: "<script>start()</script>",
+                          newLineNumber: 110,
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  fireEvent.click(screen.getByText("src/game.html"));
+
+  expect(screen.getAllByText("src/game.html")).toHaveLength(1);
+  const lineNumber = screen.getByText("109");
+  expect(lineNumber.className).toContain("bg-stone-100");
+  expect(screen.getByText("+2").className).toContain("emerald");
+  expect(screen.getByText("+2").className).not.toContain("rounded");
+  expect(screen.getByText(longLine).className).toContain("whitespace-pre");
+  expect(screen.queryByText("Showing a shortened diff preview.")).toBeNull();
 });

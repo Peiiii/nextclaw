@@ -6,6 +6,58 @@ import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
+const ANSI_ESCAPE_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/g;
+
+function readNonEmptyString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  return value.length > 0 ? value : null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function stripAnsi(value: string): string {
+  return value.replace(ANSI_ESCAPE_PATTERN, '');
+}
+
+function extractTerminalOutputFromRecord(record: Record<string, unknown>): string | null {
+  const aggregatedOutput =
+    readNonEmptyString(record.aggregated_output) ??
+    readNonEmptyString(record.combinedOutput) ??
+    readNonEmptyString(record.output);
+  if (aggregatedOutput) {
+    return aggregatedOutput;
+  }
+
+  const stdout = readNonEmptyString(record.stdout);
+  const stderr = readNonEmptyString(record.stderr);
+  if (!stdout && !stderr) {
+    return null;
+  }
+  return [stdout, stderr].filter((value): value is string => Boolean(value)).join('\n');
+}
+
+function normalizeTerminalOutput(rawOutput?: string): string {
+  if (!rawOutput) {
+    return '';
+  }
+  const trimmed = rawOutput.trim();
+  if (!trimmed.startsWith('{')) {
+    return stripAnsi(rawOutput);
+  }
+  try {
+    const parsed = JSON.parse(trimmed) as unknown;
+    if (!isRecord(parsed)) {
+      return stripAnsi(rawOutput);
+    }
+    return stripAnsi(extractTerminalOutputFromRecord(parsed) ?? rawOutput);
+  } catch {
+    return stripAnsi(rawOutput);
+  }
+}
 
 function useToolCardExpandedState({
   canExpand,
@@ -93,11 +145,11 @@ function useToolCardExpandedState({
 // 1. Terminal View
 // -------------------------------------------------------------
 export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel }) {
-  const output = card.output?.trim() ?? '';
+  const output = normalizeTerminalOutput(card.output);
   const isRunning = card.statusTone === 'running';
-  const hasContent = !!(card.summary?.trim() || output.length > 0);
+  const hasContent = !!(card.summary?.trim() || output.trim().length > 0);
   const { expanded, onToggle } = useToolCardExpandedState({
-    canExpand: !!output || isRunning,
+    canExpand: output.trim().length > 0 || isRunning,
     isRunning,
     expandOnError: hasContent,
     statusTone: card.statusTone,
@@ -111,7 +163,7 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
         card={card} 
         icon={Terminal} 
         expanded={expanded} 
-        canExpand={!!output || isRunning} 
+        canExpand={output.trim().length > 0 || isRunning} 
         onToggle={onToggle} 
       />
       {expanded && (
