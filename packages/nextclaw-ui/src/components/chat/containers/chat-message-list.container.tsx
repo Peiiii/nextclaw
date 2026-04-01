@@ -40,6 +40,7 @@ function buildChatMessageAdapterTexts(
     reasoningLabel: t("chatReasoning"),
     toolCallLabel: t("chatToolCall"),
     toolResultLabel: t("chatToolResult"),
+    toolInputLabel: t("chatToolInput"),
     toolNoOutputLabel: t("chatToolNoOutput"),
     toolOutputLabel: t("chatToolOutput"),
     toolStatusPreparingLabel: t("chatToolStatusPreparing"),

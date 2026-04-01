@@ -224,3 +224,86 @@ describe("NextclawAgentSessionStore", () => {
     });
   });
 });
+
+describe("NextclawAgentSessionStore legacy tool result hydration", () => {
+  it("does not let duplicated legacy tool.result json overwrite structured assistant tool results", async () => {
+    const workspace = createTempWorkspace();
+    const sessionManager = new SessionManager(workspace);
+    const store = new NextclawAgentSessionStore(sessionManager);
+    const sessionId = `session-${randomUUID()}`;
+    const timestamp = new Date().toISOString();
+
+    await store.saveSession({
+      sessionId,
+      updatedAt: timestamp,
+      messages: [
+        {
+          id: "assistant-tool-1",
+          sessionId,
+          role: "assistant",
+          status: "final",
+          timestamp,
+          parts: [
+            { type: "text", text: "writing file" },
+            {
+              type: "tool-invocation",
+              toolCallId: "call-1",
+              toolName: "command_execution",
+              state: "result",
+              args: {
+                command: "echo done",
+              },
+              result: {
+                status: "completed",
+                command: "echo done",
+                aggregated_output: "Done!\n",
+                exit_code: 0,
+              },
+            },
+          ],
+        },
+      ],
+      metadata: {},
+    });
+
+    const session = sessionManager.getIfExists(sessionId);
+    if (!session) {
+      throw new Error("expected saved session");
+    }
+    session.events.push({
+      seq: session.nextSeq,
+      type: "tool.result",
+      timestamp,
+      data: {
+        message: {
+          role: "tool",
+          name: "command_execution",
+          tool_call_id: "call-1",
+          content:
+            "{\"status\":\"completed\",\"command\":\"echo done\",\"aggregated_output\":\"Done!\\n\",\"exit_code\":0}",
+          timestamp,
+        },
+      },
+    });
+    session.updatedAt = new Date(timestamp);
+    sessionManager.save(session);
+
+    const loaded = await store.getSession(sessionId);
+    const assistantMessage = loaded?.messages.find((message) => message.role === "assistant");
+    const toolPart = assistantMessage?.parts.find(
+      (part) => part.type === "tool-invocation" && part.toolCallId === "call-1",
+    );
+
+    expect(toolPart).toMatchObject({
+      type: "tool-invocation",
+      toolName: "command_execution",
+      state: "result",
+      result: {
+        status: "completed",
+        command: "echo done",
+        aggregated_output: "Done!\n",
+        exit_code: 0,
+      },
+    });
+  });
+});

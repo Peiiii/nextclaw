@@ -17,8 +17,9 @@ const defaultTexts = {
   reasoningLabel: "Reasoning",
   toolCallLabel: "Tool Call",
   toolResultLabel: "Tool Result",
+  toolInputLabel: "Input",
   toolNoOutputLabel: "No output",
-  toolOutputLabel: "View Output",
+  toolOutputLabel: "Output",
   toolStatusPreparingLabel: "Preparing",
   toolStatusRunningLabel: "Running",
   toolStatusCompletedLabel: "Completed",
@@ -88,7 +89,7 @@ it("maps markdown, reasoning, and tool parts into UI view models", () => {
       statusLabel: "Completed",
       statusTone: "success",
       titleLabel: "Tool Result",
-      outputLabel: "View Output",
+      outputLabel: "Output",
     },
   });
 });
@@ -137,6 +138,87 @@ it("maps tool lifecycle statuses into visible card state feedback", () => {
       statusLabel: "Failed",
       titleLabel: "Tool Result",
       output: "Command failed",
+    },
+  });
+});
+
+it("preserves full generic tool args for the expanded body while keeping the header summary short", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-generic-tool-input",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.PARTIAL_CALL,
+            toolCallId: "call-generic-input",
+            toolName: "open_url",
+            args: JSON.stringify({
+              url: "https://example.com/really/long/path",
+              headers: {
+                authorization: "Bearer secret-token",
+              },
+              mode: "reader",
+            }),
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "open_url",
+      statusTone: "running",
+      summary: "url: https://example.com/really/long/path",
+      input: `{
+  "url": "https://example.com/really/long/path",
+  "headers": {
+    "authorization": "Bearer secret-token"
+  },
+  "mode": "reader"
+}`,
+    },
+  });
+});
+
+it("keeps structured terminal results as structured data instead of raw json output", () => {
+  const terminalResult = {
+    status: "completed",
+    command: "python3 -m http.server 8765",
+    aggregated_output: "",
+    exit_code: 0,
+  };
+
+  const adapted = adapt([
+    {
+      id: "assistant-terminal-result",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "call-terminal-result",
+            toolName: "command_execution",
+            args: '{"command":"python3 -m http.server 8765"}',
+            result: terminalResult,
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "command_execution",
+      summary: "command: python3 -m http.server 8765",
+      output: undefined,
+      outputData: terminalResult,
+      statusTone: "success",
     },
   });
 });

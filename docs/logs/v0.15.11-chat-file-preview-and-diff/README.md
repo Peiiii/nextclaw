@@ -39,6 +39,22 @@
   - 终端卡片继续保留“上方命令、下方输出”的结构，但在展示层专门解析结构化结果，优先提取 `aggregated_output / stdout / stderr / output`，避免把整个结果对象直接渲染成 JSON。
   - 终端输出在展示层顺手去掉 ANSI 颜色控制字符，确保卡片里看到的是干净的人类可读终端文本，而不是终端协议残留。
   - 针对“命令执行成功但本身没有任何终端输出”的结构化结果（例如后台启动服务），终端卡片不再回退显示整段 JSON 结果对象，而是按真正的“无输出结果”处理。
+- 同批次补齐普通 generic 工具卡片的展开正文：
+  - 之前普通工具调用只有 header 摘要，没有“完整参数正文”字段，长参数一旦被 header 截断，展开后也看不全。
+  - 现在适配层会为非文件预览类的普通工具调用保留完整 `input` 文本；header 继续只显示短摘要，展开区则显示完整参数正文。
+  - 这样普通工具调用不再把完整参数挤在 header 一行里，展开卡片后可以稳定查看完整 args，而不是只能看到截断摘要。
+- 同批次继续修正本地开发态历史会话里的终端 JSON 泄露问题：
+  - 根因不在终端卡片渲染本身，而在历史会话恢复层会把独立 `tool.result` 里的 legacy JSON 字符串，再次覆盖掉 `assistant.tool_call.ncp_parts` 中已经存在的结构化 `tool-invocation.result`。
+  - 现在恢复层会优先保留更高质量的结构化结果；只有在工具调用本身还没有结果时，才会补挂来自 legacy `tool.result` 的结果。
+  - 同时，补挂 legacy tool result 时会优先尝试把 JSON 字符串解析回对象，避免会话恢复链路把更丰富的结构再次降级成纯字符串。
+- 同批次继续把终端工具结果的语义修回正确层级：
+  - 之前前端适配层会先把结构化 `command_execution` 结果整体 `stringify` 成文本，再让终端卡片在展示层反向猜它是不是 JSON；这条链路本质上是在主动丢失语义。
+  - 现在工具卡片 view model 会显式保留 `outputData`，终端卡片优先直接读取结构化结果对象里的 `aggregated_output / stdout / stderr / output`，只有 legacy 纯文本结果才走字符串兜底。
+  - 对于“命令执行成功但没有任何输出”的结构化结果，前端适配层也不再额外塞回整段 JSON 文本，因此本地开发态历史会话和新会话都会稳定落到“命令可见、输出为空”的真实展示，而不是再次泄露结果对象。
+- 同批次继续收敛 generic 工具卡片的信息层次：
+  - 之前普通工具卡片展开后只是两段长得几乎一样的浅色文本块，输入和输出缺少明确语义边界，失败结果也没有足够直观的视觉反馈。
+  - 现在 generic 工具卡片改成更接近 IDE / DevTools 的“双面板”结构：输入使用更轻的中性色面板，输出使用更主体的结果面板，失败输出则切到更明确的错误色层级。
+  - 面板顶部补上 `输入 / 输出` 语义标签，正文改为更接近代码查看器的 `whitespace-pre + 横向滚动` 形式，不再把长 JSON/长路径强行换行成一整块难读文本。
 - 补充前端回归测试，覆盖：
   - 运行中 `edit_file` 自动展开预览
   - 高频原生事件会被批量派发，不再每个 delta 立刻触发 manager 更新
@@ -55,19 +71,31 @@
   - 统计文案中的 `+N / -N` 使用统一红绿语义且保持纯文本
   - 终端卡片会把结构化结果渲染为真实终端输出，而不是直接显示 JSON
   - 结构化终端结果若 `stdout/stderr` 为空，不会再把整个 JSON 对象泄露到输出区
+  - 结构化终端结果会以结构化数据形式保留到工具卡片 view model，而不是在适配阶段先降级成字符串
+  - 终端卡片直接消费结构化结果对象时，不会再显示原始 JSON 载荷
+  - generic 工具卡片展开后会明确区分输入面板和输出面板，而不是继续复用同一块样式堆叠两段内容
+  - 普通 generic 工具卡片展开后会显示完整参数正文，而不是只在 header 中保留被截断的参数摘要
+  - 历史会话恢复时，不会再让重复的 legacy `tool.result` JSON 覆盖已有的结构化工具结果
 
 ## 测试/验证/验收方式
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui exec vitest run src/components/chat/adapters/chat-message.adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec vitest run src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec vitest run src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.terminal.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.generic-tool.test.tsx`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw exec vitest run src/cli/commands/ncp/nextclaw-agent-session-store.test.ts`
+- 已执行：`curl -s "http://127.0.0.1:5174/api/ncp/sessions/ncp-mng3yilf-ikyeqi9s/messages?limit=5"`，确认本地开发页实际 API 已返回结构化 `tool-invocation.result`，问题点不在“后端没发”，而在前端适配/展示链路
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui tsc`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui tsc`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui exec eslint src/components/chat/adapters/chat-message.file-operation-card.ts src/components/chat/adapters/chat-message.file-operation-diff.ts src/components/chat/adapters/chat-message-part.adapter.ts src/components/chat/adapters/chat-message.adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec eslint src/components/chat/view-models/chat-ui.types.ts src/components/chat/index.ts src/components/chat/ui/chat-message-list/chat-tool-card.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-views.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-file-operation.tsx src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui exec eslint src/components/chat/adapters/chat-message-part.adapter.ts src/components/chat/adapters/chat-message.adapter.test.ts src/components/chat/containers/chat-message-list.container.tsx src/components/chat/ncp/ncp-session-adapter.test.ts src/lib/i18n.chat.ts`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec eslint src/components/chat/ui/chat-message-list/tool-card/tool-card-views.tsx src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.terminal.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.generic-tool.test.tsx src/components/chat/view-models/chat-ui.types.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw test -- src/cli/commands/ncp/stream-encoder-order.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/ncp/ncp-session-adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/useNcpAgentRuntime.test.tsx src/components/chat/ncp/ncp-session-adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/adapters/chat-message.adapter.test.ts src/components/chat/ncp/ncp-session-adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/adapters/chat-message.adapter.test.ts`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec vitest run src/components/chat/ui/chat-message-list/chat-message-list.test.tsx`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui exec vitest run src/components/chat/adapters/chat-message.adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui test -- src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-toolkit test -- src/agent/agent-conversation-state-manager.test.ts src/agent/__tests__/agent-conversation-state-manager.batch.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime tsc`
@@ -100,3 +128,5 @@
 5. 水平滚动预览区，确认真正发生横向滚动的只有代码区，左侧行号 gutter 始终固定，不会在拖到边界时被带动或出现回弹错位。
 6. 等工具完成后，确认 `write_file` 仍保留内容预览，不会退回成只有 `Wrote xxxx bytes` 这类摘要；`edit_file / apply_patch / file_change` 仍保留结构化 diff 视图，且 `+N / -N` 计数与新增/删除行本身使用同一套红绿语义。
 7. 触发一次 `command_execution` 或 `exec_command`，确认卡片顶部仍显示命令摘要，展开后的正文展示真实终端输出，而不是一整段 JSON 结果对象。
+8. 触发一次普通工具调用（例如不属于 terminal/file/search 专用卡片的 generic 工具），确认 header 仍显示精简摘要；点击展开后，正文区域可以看到完整参数，而不是只能看到 header 里那段被截断的摘要。
+9. 刷新并重新打开一个已经保存过的本地开发态会话，确认历史里的 `command_execution` 卡片仍然展示结构化终端结果，而不是退回显示整段 legacy JSON。

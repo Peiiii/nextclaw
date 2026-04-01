@@ -59,6 +59,20 @@ function contentToParts(content: unknown): NcpMessagePart[] {
   return [];
 }
 
+function normalizeToolResultPayload(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return structuredClone(value);
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return value;
+  }
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return value;
+  }
+  return tryParseJson(trimmed);
+}
+
 function parseLegacyToolCalls(value: unknown): LegacyToolCall[] {
   if (!Array.isArray(value)) {
     return [];
@@ -197,15 +211,24 @@ function buildGenericMessage(params: {
 }
 
 function attachToolResult(target: NcpMessage, toolCallId: string, result: unknown, toolName?: string): void {
+  const normalizedResult = normalizeToolResultPayload(result);
   target.parts = target.parts.map((part) => {
     if (part.type !== "tool-invocation" || part.toolCallId !== toolCallId) {
       return part;
+    }
+    const alreadyHasResolvedResult =
+      part.state === "result" && Object.prototype.hasOwnProperty.call(part, "result");
+    if (alreadyHasResolvedResult) {
+      return {
+        ...part,
+        ...(toolName ? { toolName } : {}),
+      };
     }
     return {
       ...part,
       toolName: toolName ?? part.toolName,
       state: "result",
-      result
+      result: normalizedResult
     };
   });
 }

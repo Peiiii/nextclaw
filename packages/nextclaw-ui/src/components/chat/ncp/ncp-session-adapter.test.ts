@@ -126,6 +126,7 @@ describe('adaptNcpMessageToUiMessage', () => {
           reasoningLabel: 'Reasoning',
           toolCallLabel: 'Tool Call',
           toolResultLabel: 'Tool Result',
+          toolInputLabel: 'Input',
           toolNoOutputLabel: 'No output',
           toolOutputLabel: 'Output',
           toolStatusPreparingLabel: 'Preparing',
@@ -212,6 +213,7 @@ describe('adaptNcpMessageToUiMessage', () => {
           reasoningLabel: 'Reasoning',
           toolCallLabel: 'Tool Call',
           toolResultLabel: 'Tool Result',
+          toolInputLabel: 'Input',
           toolNoOutputLabel: 'No output',
           toolOutputLabel: 'Output',
           toolStatusPreparingLabel: 'Preparing',
@@ -236,11 +238,12 @@ describe('adaptNcpMessageToUiMessage', () => {
           blocks: expect.arrayContaining([
             expect.objectContaining({
               path: 'src/game.html',
-              truncated: true,
+              display: 'preview',
               lines: expect.arrayContaining([
                 expect.objectContaining({
-                  kind: 'context',
+                  kind: 'add',
                   text: 'line 1',
+                  newLineNumber: 1,
                 }),
               ]),
             }),

@@ -203,7 +203,10 @@ export type ChatToolPartViewModel = {
   kind: "call" | "result";
   toolName: string;
   summary?: string;
+  inputLabel?: string;
+  input?: string;
   output?: string;
+  outputData?: unknown;
   hasResult: boolean;
   statusTone: "running" | "success" | "error" | "cancelled";
   statusLabel: string;

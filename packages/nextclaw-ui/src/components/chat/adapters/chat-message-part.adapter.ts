@@ -28,6 +28,7 @@ export type ChatMessageAdapterTexts = {
   reasoningLabel: string;
   toolCallLabel: string;
   toolResultLabel: string;
+  toolInputLabel: string;
   toolNoOutputLabel: string;
   toolOutputLabel: string;
   toolStatusPreparingLabel: string;
@@ -79,6 +80,7 @@ type ToolCardViewSource = ToolCard & {
   statusTone: ChatToolPartViewModel["statusTone"];
   statusLabel: string;
   fileOperation?: ChatToolPartViewModel["fileOperation"];
+  outputData?: unknown;
 };
 
 type ChatMessagePartAdapterParams = {
@@ -112,6 +114,21 @@ function readOptionalNumber(value: unknown): number | null {
   }
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+}
+
+function isTerminalResultRecord(value: unknown): value is Record<string, unknown> {
+  if (!isRecord(value)) {
+    return false;
+  }
+  return (
+    "command" in value ||
+    "workingDir" in value ||
+    "exitCode" in value ||
+    "stdout" in value ||
+    "stderr" in value ||
+    "aggregated_output" in value ||
+    "combinedOutput" in value
+  );
 }
 
 function extractAssetFileView(
@@ -163,7 +180,12 @@ function buildToolCard(
     kind: toolCard.kind,
     toolName: toolCard.name,
     summary: toolCard.detail,
+    inputLabel: texts.toolInputLabel,
+    input: "input" in toolCard && typeof toolCard.input === "string"
+      ? toolCard.input
+      : undefined,
     output: toolCard.text,
+    outputData: toolCard.outputData,
     hasResult: Boolean(toolCard.hasResult),
     statusTone: toolCard.statusTone,
     statusLabel: toolCard.statusLabel,
@@ -230,6 +252,27 @@ function resolveToolCardStatus(params: {
     statusTone: "running",
     statusLabel: params.texts.toolStatusRunningLabel,
   };
+}
+
+function parseStructuredValue(value: unknown): unknown {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return value;
+  }
+  try {
+    return JSON.parse(trimmed) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+function buildToolInvocationInput(args?: unknown, parsedArgs?: unknown): string | undefined {
+  const source = parsedArgs ?? parseStructuredValue(args);
+  const text = stringifyUnknown(source).trim();
+  return text || undefined;
 }
 
 function buildReasoningPart(
@@ -312,19 +355,27 @@ function buildToolInvocationPart(
   const detail =
     fileOperationCardData?.summary ??
     summarizeToolArgs(invocation.parsedArgs ?? invocation.args);
+  const input = fileOperationCardData
+    ? undefined
+    : buildToolInvocationInput(invocation.args, invocation.parsedArgs);
   const rawResult =
     typeof invocation.error === "string" && invocation.error.trim()
       ? invocation.error.trim()
       : invocation.result != null
         ? stringifyUnknown(invocation.result).trim()
         : "";
+  const shouldHideStructuredTerminalJson =
+    !invocation.error && isTerminalResultRecord(invocation.result);
   const shouldShowRawResult =
-    !fileOperationCardData?.fileOperation || Boolean(invocation.error);
+    (!fileOperationCardData?.fileOperation || Boolean(invocation.error)) &&
+    !shouldHideStructuredTerminalJson;
   const card: ToolCardViewSource = {
     kind: statusView.kind,
     name: invocation.toolName,
     detail,
+    ...(input ? { input } : {}),
     text: shouldShowRawResult && rawResult ? rawResult : undefined,
+    outputData: invocation.result,
     callId: invocation.toolCallId || undefined,
     hasResult: statusView.hasResult,
     statusTone: statusView.statusTone,

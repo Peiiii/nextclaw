@@ -1,12 +1,14 @@
 import { Terminal, FileText, Code2, Search, Globe } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import type { ChatToolPartViewModel } from '../../../view-models/chat-ui.types';
 import { ToolCardRoot, ToolCardContent } from './tool-card-root';
 import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
+import { cn } from '../../../internal/cn';
 
 const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
-const ANSI_ESCAPE_PATTERN = /\u001b\[[0-?]*[ -/]*[@-~]/g;
+const ANSI_ESCAPE_PREFIX = String.fromCharCode(27);
+const ANSI_ESCAPE_PATTERN = new RegExp(`${ANSI_ESCAPE_PREFIX}\\[[0-?]*[ -/]*[@-~]`, 'g');
 
 function readNonEmptyString(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -53,7 +55,16 @@ function extractTerminalOutputFromRecord(record: Record<string, unknown>): strin
   return [stdout, stderr].filter((value): value is string => Boolean(value)).join('\n');
 }
 
-function normalizeTerminalOutput(rawOutput?: string): string {
+function normalizeTerminalOutput(rawOutput?: string, structuredOutput?: unknown): string {
+  if (isRecord(structuredOutput)) {
+    const terminalOutput = extractTerminalOutputFromRecord(structuredOutput);
+    if (terminalOutput) {
+      return stripAnsi(terminalOutput);
+    }
+    if (isStructuredTerminalRecord(structuredOutput)) {
+      return '';
+    }
+  }
   if (!rawOutput) {
     return '';
   }
@@ -161,11 +172,72 @@ function useToolCardExpandedState({
   return { expanded, onToggle };
 }
 
+function GenericToolSection({
+  label,
+  tone,
+  children,
+}: {
+  label: string;
+  tone: 'input' | 'output' | 'error';
+  children: ReactNode;
+}) {
+  const tones = {
+    input: {
+      shell: 'border-stone-200/80 bg-stone-50/90',
+      header: 'border-stone-200/80 bg-stone-100/85 text-stone-500',
+      dot: 'bg-stone-400/80',
+      body: 'text-stone-700',
+    },
+    output: {
+      shell: 'border-amber-200/70 bg-white/90',
+      header: 'border-amber-200/70 bg-amber-50/90 text-amber-700',
+      dot: 'bg-amber-500/80',
+      body: 'text-amber-950/80',
+    },
+    error: {
+      shell: 'border-rose-200/80 bg-rose-50/85',
+      header: 'border-rose-200/80 bg-rose-100/80 text-rose-700',
+      dot: 'bg-rose-500/80',
+      body: 'text-rose-950/85',
+    },
+  } as const;
+  const style = tones[tone];
+
+  return (
+    <section
+      className={cn(
+        'overflow-hidden rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]',
+        style.shell,
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center gap-2 border-b px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em]',
+          style.header,
+        )}
+      >
+        <span className={cn('h-1.5 w-1.5 rounded-full', style.dot)} />
+        <span>{label}</span>
+      </div>
+      <div className="w-full overflow-hidden">
+        <pre
+          className={cn(
+            'w-full max-w-full min-w-0 max-h-64 overflow-x-auto overflow-y-auto px-3 py-2.5 font-mono text-[12px] leading-relaxed whitespace-pre custom-scrollbar-amber',
+            style.body,
+          )}
+        >
+          {children}
+        </pre>
+      </div>
+    </section>
+  );
+}
+
 // -------------------------------------------------------------
 // 1. Terminal View
 // -------------------------------------------------------------
 export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel }) {
-  const output = normalizeTerminalOutput(card.output);
+  const output = normalizeTerminalOutput(card.output, card.outputData);
   const isRunning = card.statusTone === 'running';
   const hasContent = !!(card.summary?.trim() || output.trim().length > 0);
   const { expanded, onToggle } = useToolCardExpandedState({
@@ -306,11 +378,16 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
 // 4. Generic View
 // -------------------------------------------------------------
 export function GenericToolCard({ card }: { card: ChatToolPartViewModel }) {
+  const input = card.input?.trim() ?? '';
   const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
-  const showOutputSection = card.kind === 'result' || card.hasResult;
+  const hasInputSection = input.length > 0;
+  const hasOutputSection = output.length > 0;
+  const hasContent = hasInputSection || hasOutputSection;
+  const inputLabel = card.inputLabel?.trim() || 'Input';
+  const outputLabel = card.outputLabel?.trim() || 'Output';
   const { expanded, onToggle } = useToolCardExpandedState({
-    canExpand: showOutputSection || isRunning,
+    canExpand: hasContent || isRunning,
     isRunning,
     statusTone: card.statusTone,
   });
@@ -321,14 +398,27 @@ export function GenericToolCard({ card }: { card: ChatToolPartViewModel }) {
         card={card} 
         icon={Globe} 
         expanded={expanded} 
-        canExpand={showOutputSection} 
+        canExpand={hasContent || isRunning} 
         onToggle={onToggle} 
       />
-      {expanded && output && (
-        <ToolCardContent>
-          <pre className="text-amber-950/80 whitespace-pre-wrap break-all overflow-y-auto overflow-x-hidden max-h-64 custom-scrollbar-amber w-full min-w-0 max-w-full leading-relaxed">
-            {output}
-          </pre>
+      {expanded && hasContent && (
+        <ToolCardContent className="bg-transparent px-2.5 py-2.5">
+          {hasInputSection && (
+            <GenericToolSection label={inputLabel} tone="input">
+              {input}
+            </GenericToolSection>
+          )}
+          {hasInputSection && hasOutputSection && (
+            <div className="h-2" />
+          )}
+          {hasOutputSection && (
+            <GenericToolSection
+              label={outputLabel}
+              tone={card.statusTone === 'error' ? 'error' : 'output'}
+            >
+              {output}
+            </GenericToolSection>
+          )}
         </ToolCardContent>
       )}
     </ToolCardRoot>
