@@ -1,5 +1,13 @@
 # @nextclaw/channel-plugin-whatsapp
 
+## 0.2.28
+
+### Patch Changes
+
+- Publish the remaining unpublished workspace drift from March 31 and April 1 as one aligned patch batch, including the native file preview pipeline updates, structured terminal tool result rendering, and the recent tool card UX refinements.
+- Updated dependencies
+  - @nextclaw/channel-runtime@0.4.14
+
 ## 0.2.27
 
 ### Patch Changes

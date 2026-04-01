@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.2.19
+
+### Patch Changes
+
+- Publish the remaining unpublished workspace drift from March 31 and April 1 as one aligned patch batch, including the native file preview pipeline updates, structured terminal tool result rendering, and the recent tool card UX refinements.
+
 ## 0.2.18
 
 ### Patch Changes

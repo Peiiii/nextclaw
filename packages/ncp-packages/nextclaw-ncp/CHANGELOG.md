@@ -1,5 +1,11 @@
 # @nextclaw/ncp
 
+## 0.4.6
+
+### Patch Changes
+
+- Publish the remaining unpublished workspace drift from March 31 and April 1 as one aligned patch batch, including the native file preview pipeline updates, structured terminal tool result rendering, and the recent tool card UX refinements.
+
 ## 0.4.5
 
 ### Patch Changes

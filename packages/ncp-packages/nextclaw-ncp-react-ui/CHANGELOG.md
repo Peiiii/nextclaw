@@ -1,5 +1,12 @@
 # @nextclaw/ncp-react-ui
 
+## 0.2.11
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.4.6
+
 ## 0.2.10
 
 ### Patch Changes

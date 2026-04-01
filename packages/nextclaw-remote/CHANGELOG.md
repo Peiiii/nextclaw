@@ -1,5 +1,14 @@
 # @nextclaw/remote
 
+## 0.1.74
+
+### Patch Changes
+
+- Publish the remaining unpublished workspace drift from March 31 and April 1 as one aligned patch batch, including the native file preview pipeline updates, structured terminal tool result rendering, and the recent tool card UX refinements.
+- Updated dependencies
+  - @nextclaw/core@0.11.15
+  - @nextclaw/server@0.11.22
+
 ## 0.1.73
 
 ### Patch Changes

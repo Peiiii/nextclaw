@@ -1,5 +1,13 @@
 # @nextclaw/channel-plugin-weixin
 
+## 0.1.22
+
+### Patch Changes
+
+- Publish the remaining unpublished workspace drift from March 31 and April 1 as one aligned patch batch, including the native file preview pipeline updates, structured terminal tool result rendering, and the recent tool card UX refinements.
+- Updated dependencies
+  - @nextclaw/core@0.11.15
+
 ## 0.1.21
 
 ### Patch Changes

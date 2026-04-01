@@ -1,5 +1,17 @@
 # nextclaw-server
 
+## 0.11.22
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.4.6
+  - @nextclaw/core@0.11.15
+  - @nextclaw/mcp@0.1.62
+  - @nextclaw/runtime@0.2.29
+  - @nextclaw/openclaw-compat@0.3.56
+  - @nextclaw/ncp-http-agent-server@0.3.10
+
 ## 0.11.21
 
 ### Patch Changes

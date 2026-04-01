@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-slack",
-  "version": "0.2.27",
+  "version": "0.2.28",
   "private": false,
   "description": "NextClaw Slack channel plugin (OpenClaw-compatible)",
   "type": "module",
