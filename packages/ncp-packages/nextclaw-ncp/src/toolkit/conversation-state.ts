@@ -47,6 +47,12 @@ export interface NcpConversationStateManager {
   dispatch(event: NcpEndpointEvent): Promise<void>;
 
   /**
+   * Applies multiple NCP events in order and notifies subscribers once after
+   * the batch finishes mutating state.
+   */
+  dispatchBatch(events: readonly NcpEndpointEvent[]): Promise<void>;
+
+  /**
    * Subscribes to state changes. Listener is called after each dispatch that mutates state.
    * Returns an unsubscribe function.
    */

@@ -73,6 +73,12 @@ function FileOperationBlock({
           {block.rawText}
         </pre>
       ) : null}
+
+      {block.truncated ? (
+        <div className="border-t border-amber-200/30 bg-amber-50/60 px-3 py-2 text-[10px] text-amber-700/80">
+          Preview truncated for streaming performance.
+        </div>
+      ) : null}
     </section>
   );
 }

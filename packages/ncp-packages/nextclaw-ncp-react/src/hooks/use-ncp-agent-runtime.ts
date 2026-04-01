@@ -33,6 +33,84 @@ type ScopedManagerRef = {
   manager: DefaultNcpAgentConversationStateManager;
 };
 
+const EVENT_BATCH_DELAY_MS = 16;
+
+class NcpEventDispatchBatcher {
+  private readonly queue: NcpEndpointEvent[] = [];
+  private flushTimerId: number | null = null;
+  private isFlushing = false;
+  private isDisposed = false;
+
+  constructor(
+    private readonly dispatchBatch: (
+      events: readonly NcpEndpointEvent[],
+    ) => Promise<void>,
+  ) {}
+
+  enqueue = (event: NcpEndpointEvent): void => {
+    if (this.isDisposed) {
+      return;
+    }
+    this.queue.push(event);
+    this.scheduleFlush();
+  };
+
+  dispose = (): void => {
+    this.isDisposed = true;
+    if (this.flushTimerId !== null) {
+      window.clearTimeout(this.flushTimerId);
+      this.flushTimerId = null;
+    }
+    this.queue.length = 0;
+  };
+
+  private scheduleFlush = (): void => {
+    if (this.flushTimerId !== null || this.isFlushing || this.queue.length === 0) {
+      return;
+    }
+    this.flushTimerId = window.setTimeout(() => {
+      this.flushTimerId = null;
+      void this.flush();
+    }, EVENT_BATCH_DELAY_MS);
+  };
+
+  private flush = async (): Promise<void> => {
+    if (this.isDisposed || this.isFlushing || this.queue.length === 0) {
+      return;
+    }
+
+    this.isFlushing = true;
+    try {
+      while (this.queue.length > 0) {
+        const batch = this.queue.splice(0);
+        await this.dispatchBatch(batch);
+      }
+    } finally {
+      this.isFlushing = false;
+      this.scheduleFlush();
+    }
+  };
+}
+
+function dispatchEventsToManager(
+  manager: DefaultNcpAgentConversationStateManager,
+  events: readonly NcpEndpointEvent[],
+): Promise<void> {
+  const batchDispatch = (
+    manager as DefaultNcpAgentConversationStateManager & {
+      dispatchBatch?: (batch: readonly NcpEndpointEvent[]) => Promise<void>;
+    }
+  ).dispatchBatch;
+  if (typeof batchDispatch === "function") {
+    return batchDispatch.call(manager, events);
+  }
+
+  return events.reduce<Promise<void>>(
+    (chain, event) => chain.then(() => manager.dispatch(event)),
+    Promise.resolve(),
+  );
+}
+
 function shouldDispatchEventToSession(event: NcpEndpointEvent, sessionId: string): boolean {
   const payload = "payload" in event ? event.payload : null;
   if (!payload || typeof payload !== "object") {
@@ -114,15 +192,19 @@ export function useNcpAgentRuntime({
   }, [sessionId]);
 
   useEffect(() => {
+    const eventBatcher = new NcpEventDispatchBatcher((events) =>
+      dispatchEventsToManager(manager, events),
+    );
     const unsubscribeClient = client.subscribe((event) => {
       if (!shouldDispatchEventToSession(event, sessionId)) {
         return;
       }
-      void manager.dispatch(event);
+      eventBatcher.enqueue(event);
     });
 
     return () => {
       unsubscribeClient();
+      eventBatcher.dispose();
       void client.stop();
     };
   }, [client, manager, sessionId]);

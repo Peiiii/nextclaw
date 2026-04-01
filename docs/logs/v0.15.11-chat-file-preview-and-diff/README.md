@@ -15,8 +15,17 @@
   - 现在文件工具卡片会对不完整但已具备关键信息的 JSON 参数做渐进式字段提取，优先抽取 `path`、`content`、`oldText`、`newText`、`patch`。
   - `write_file` 这类大文本写入场景在 JSON 尚未闭合时，也能提前显示目标文件和已生成的部分内容预览。
   - `partial-call` 状态文案从“准备中”调整为“运行中”，更贴近真实工具执行阶段，减少用户误判为卡死。
+- 同批次继续做根因级性能修复，解决“写入文件一开始界面几乎卡死”：
+  - 在 `ncp-react` 里把高频 `message.tool-call-args-delta` 先按 16ms 小窗口批量合并，再统一交给 conversation state manager，避免每个增量都触发一次完整 UI 链路。
+  - conversation state manager 新增批量分发入口，确保一帧内的多条事件只通知订阅者一次，而不是“攒了一批再连发多次通知”。
+  - `write_file` 的流式阶段不再每次都尝试构造完整替换 diff，而是改为轻量预览模式：只读取有限长度的 `content` 前缀并生成结构化预览块，既保留实时感，也避免长文本把主线程打满。
+  - 大体积流式 `write_file` 预览不再默认自动展开，用户仍可点开查看，但默认不会在工具刚开始时把大量内容直接塞进 DOM。
+  - 把 partial JSON 字段读取逻辑拆到了独立 helper，避免继续把 `chat-message.file-operation-card.ts` 堆胖。
 - 补充前端回归测试，覆盖：
   - 运行中 `edit_file` 自动展开预览
+  - 高频原生事件会被批量派发，不再每个 delta 立刻触发 manager 更新
+  - 大型 `write_file` 流式参数会降级成轻量 preview block，并带截断标记
+  - 大型流式 `write_file` 卡片默认保持折叠，用户点击后再展开查看
   - 完成后的 `file_change` diff 展开渲染
   - 适配层把文件类工具调用转换成结构化卡片数据
   - native NCP `tool-invocation` 流式参数在 result 前即可被适配成文件预览卡片
@@ -32,19 +41,26 @@
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec eslint src/components/chat/view-models/chat-ui.types.ts src/components/chat/index.ts src/components/chat/ui/chat-message-list/chat-tool-card.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-views.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-file-operation.tsx src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw test -- src/cli/commands/ncp/stream-encoder-order.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/ncp/ncp-session-adapter.test.ts`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/useNcpAgentRuntime.test.tsx src/components/chat/ncp/ncp-session-adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/adapters/chat-message.adapter.test.ts src/components/chat/ncp/ncp-session-adapter.test.ts`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-toolkit test -- src/agent/agent-conversation-state-manager.test.ts src/agent/__tests__/agent-conversation-state-manager.batch.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime tsc`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp tsc`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-react tsc`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-toolkit tsc`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui tsc`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui tsc`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`
   - 结果：本次改动文件无 error，保留 3 条 warning：
     - `packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list` 目录历史上仍在预算线以上
     - `packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list/chat-message-list.test.tsx` 接近测试文件预算
     - `packages/nextclaw-ui/src/components/chat/adapters/chat-message.adapter.test.ts` 本次增长较明显，后续可再拆 fixture / builder
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm lint:maintainability:guard`
-  - 结果：通过；仅保留历史目录预算 warning，不阻塞本次交付：
-    - `packages/ncp-packages/nextclaw-ncp-agent-runtime/src`
-    - `packages/nextclaw/src/cli/commands/ncp`
-    - `packages/nextclaw-ui/src/components/chat/ncp`
+  - 结果：通过；当前仅保留 warning，不阻塞本次交付：
+    - `packages/ncp-packages/nextclaw-ncp-toolkit/src/agent` 中的 `agent-conversation-state-manager.ts` 仍是历史超预算文件，但本次已较上一版缩小 1 行，未继续膨胀
+    - `packages/nextclaw-ui/src/components/chat` 目录有既有 exception，仍提示目录偏平
+    - `packages/nextclaw-ui/src/components/chat/adapters/chat-message-part.adapter.ts` 接近预算线
+    - `packages/nextclaw-ui/src/components/chat/adapters/chat-message.file-operation-card.ts` 接近预算线，但已较上一版减少 18 行
 
 ## 发布/部署方式
 - 本次仅涉及聊天前端工具卡片与适配层体验升级，未执行发布。
@@ -53,6 +69,7 @@
 ## 用户/产品视角的验收步骤
 1. 在聊天页触发一次会修改文件的工具调用，例如 `edit_file` 或 Codex `file_change`。
 2. 在 native 原生会话里观察工具调用开始后的中间阶段，确认不再只是长时间转圈；当工具参数逐步成形时，文件卡片会提前出现目标文件路径与预期改动。
-3. 等工具完成后，确认卡片仍保留结构化 diff 视图，可清晰区分新增行和删除行。
-4. 再触发一次 `apply_patch` 或 `write_file`，确认多种文件修改工具都走同一套结构化文件卡片体验，而不是退回普通文本日志。
-5. 触发一次 `command_execution`，确认 Codex 命令执行不再误落到 generic 卡片，而是进入终端卡片视图。
+3. 再触发一次较大的 `write_file`，确认界面不会在“准备中/运行中”阶段明显卡住；大体积预览默认保持折叠，点开后能看到截断预览和提示。
+4. 等工具完成后，确认卡片仍保留结构化 diff 视图，可清晰区分新增行和删除行。
+5. 再触发一次 `apply_patch` 或 `write_file`，确认多种文件修改工具都走同一套结构化文件卡片体验，而不是退回普通文本日志。
+6. 触发一次 `command_execution`，确认 Codex 命令执行不再误落到 generic 卡片，而是进入终端卡片视图。

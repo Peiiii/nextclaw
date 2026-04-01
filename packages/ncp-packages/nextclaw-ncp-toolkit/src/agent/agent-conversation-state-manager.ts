@@ -38,10 +38,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
   private streamingMessage: NcpMessage | null = null;
   private error: NcpError | null = null;
   private activeRun: NcpRunContext | null = null;
-  private readonly listeners = new Set<
-    (snapshot: NcpAgentConversationSnapshot) => void
-  >();
-
+  private readonly listeners = new Set<(snapshot: NcpAgentConversationSnapshot) => void>();
   private readonly toolCallMessageIdByCallId = new Map<string, string>();
   private readonly toolCallArgsRawByCallId = new Map<string, string>();
   private lastSettledRunId: string | null = null;
@@ -53,7 +50,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     if (this.snapshotCache && this.snapshotVersion === this.stateVersion) {
       return this.snapshotCache;
     }
-
     const snapshot: NcpAgentConversationSnapshot = {
       messages: this.messages,
       streamingMessage: this.streamingMessage,
@@ -86,7 +82,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     ) {
       return;
     }
-
     this.messages = [];
     this.streamingMessage = null;
     this.error = null;
@@ -118,8 +113,16 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
     this.notifyListeners();
   };
 
-  dispatch = async (event: NcpEndpointEvent): Promise<void> => {
+  dispatch = (event: NcpEndpointEvent): Promise<void> => this.dispatchBatch([event]);
+
+  dispatchBatch = async (events: readonly NcpEndpointEvent[]): Promise<void> => {
+    if (!events.length) return;
     const versionBeforeDispatch = this.stateVersion;
+    events.forEach(this.applyEvent);
+    if (this.stateVersion !== versionBeforeDispatch) this.notifyListeners();
+  };
+
+  private applyEvent = (event: NcpEndpointEvent): void => {
     switch (event.type) {
       case NcpEventType.MessageSent:
         this.handleMessageSent(event.payload);
@@ -177,10 +180,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         break;
       default:
         break;
-    }
-
-    if (this.stateVersion !== versionBeforeDispatch) {
-      this.notifyListeners();
     }
   };
 

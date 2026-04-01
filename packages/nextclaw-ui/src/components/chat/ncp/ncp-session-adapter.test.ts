@@ -166,6 +166,89 @@ describe('adaptNcpMessageToUiMessage', () => {
       },
     });
   });
+
+  it('downgrades large streamed write_file payloads into a lightweight preview block', () => {
+    const largeContent = Array.from({ length: 300 }, (_, index) => `line ${index + 1}`).join('\n');
+    const uiMessage = adaptNcpMessageToUiMessage({
+      id: 'ncp-message-tool-write-1',
+      sessionId: 'ncp-session-1',
+      role: 'assistant',
+      status: 'streaming',
+      timestamp: '2026-04-01T00:00:00.000Z',
+      parts: [
+        {
+          type: 'tool-invocation',
+          toolCallId: 'tool-write-1',
+          toolName: 'write_file',
+          state: 'partial-call',
+          args: JSON.stringify({
+            path: 'src/game.html',
+            content: largeContent,
+          }),
+        },
+      ],
+    });
+
+    const adapted = adaptChatMessage(
+      {
+        id: uiMessage.id,
+        role: uiMessage.role,
+        meta: {
+          timestamp: uiMessage.meta?.timestamp,
+          status: uiMessage.meta?.status,
+        },
+        parts: uiMessage.parts as never,
+      },
+      {
+        formatTimestamp: (value) => value ?? '',
+        texts: {
+          roleLabels: {
+            user: 'User',
+            assistant: 'Assistant',
+            tool: 'Tool',
+            system: 'System',
+            fallback: 'Message',
+          },
+          reasoningLabel: 'Reasoning',
+          toolCallLabel: 'Tool Call',
+          toolResultLabel: 'Tool Result',
+          toolNoOutputLabel: 'No output',
+          toolOutputLabel: 'Output',
+          toolStatusPreparingLabel: 'Preparing',
+          toolStatusRunningLabel: 'Running',
+          toolStatusCompletedLabel: 'Completed',
+          toolStatusFailedLabel: 'Failed',
+          toolStatusCancelledLabel: 'Cancelled',
+          imageAttachmentLabel: 'Image',
+          fileAttachmentLabel: 'File',
+          unknownPartLabel: 'Unknown',
+        },
+      },
+    );
+
+    expect(adapted.parts[0]).toMatchObject({
+      type: 'tool-card',
+      card: {
+        toolName: 'write_file',
+        summary: 'src/game.html',
+        statusTone: 'running',
+        fileOperation: {
+          blocks: expect.arrayContaining([
+            expect.objectContaining({
+              path: 'src/game.html',
+              truncated: true,
+              lines: expect.arrayContaining([
+                expect.objectContaining({
+                  kind: 'context',
+                  text: 'line 1',
+                }),
+              ]),
+            }),
+          ]),
+        },
+      },
+    });
+  });
 });
 
 describe('readNcpSessionPreferredThinking', () => {

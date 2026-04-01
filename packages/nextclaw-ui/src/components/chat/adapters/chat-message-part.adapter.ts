@@ -301,7 +301,14 @@ function buildToolInvocationPart(
     result: invocation.result,
     texts,
   });
-  const fileOperationCardData = buildFileOperationCardData(invocation);
+  const fileOperationCardData = buildFileOperationCardData({
+    toolName: invocation.toolName,
+    status: invocation.status,
+    toolCallId: invocation.toolCallId,
+    args: invocation.args,
+    parsedArgs: invocation.parsedArgs,
+    result: invocation.result,
+  });
   const detail =
     fileOperationCardData?.summary ??
     summarizeToolArgs(invocation.parsedArgs ?? invocation.args);

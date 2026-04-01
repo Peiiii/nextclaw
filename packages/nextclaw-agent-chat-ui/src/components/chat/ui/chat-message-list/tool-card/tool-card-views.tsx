@@ -10,11 +10,13 @@ const TOOL_CARD_AUTO_EXPAND_DELAY_MS = 200;
 function useToolCardExpandedState({
   canExpand,
   isRunning,
+  autoExpandWhileRunning = true,
   expandOnError = false,
   statusTone,
 }: {
   canExpand: boolean;
   isRunning: boolean;
+  autoExpandWhileRunning?: boolean;
   expandOnError?: boolean;
   statusTone: ChatToolPartViewModel['statusTone'];
 }) {
@@ -44,7 +46,14 @@ function useToolCardExpandedState({
       return;
     }
 
-    if (isRunning && canExpand && !hasUserToggled && !expanded && (isFirstRenderRef.current || !prevRunningRef.current)) {
+    if (
+      autoExpandWhileRunning &&
+      isRunning &&
+      canExpand &&
+      !hasUserToggled &&
+      !expanded &&
+      (isFirstRenderRef.current || !prevRunningRef.current)
+    ) {
       expandTimerRef.current = window.setTimeout(() => {
         setExpanded(true);
         expandTimerRef.current = null;
@@ -63,7 +72,7 @@ function useToolCardExpandedState({
 
     prevRunningRef.current = isRunning;
     isFirstRenderRef.current = false;
-  }, [canExpand, expandOnError, expanded, hasUserToggled, isRunning, statusTone]);
+  }, [autoExpandWhileRunning, canExpand, expandOnError, expanded, hasUserToggled, isRunning, statusTone]);
 
   const onToggle = () => {
     if (!canExpand) {
@@ -146,9 +155,24 @@ export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
   const isRunning = card.statusTone === 'running';
   const hasStructuredPreview = Boolean(card.fileOperation?.blocks.length);
   const hasContent = hasStructuredPreview || Boolean(output);
+  const previewBlocks = card.fileOperation?.blocks ?? [];
+  const previewLineCount = previewBlocks.reduce((count, block) => count + block.lines.length, 0);
+  const previewCharCount = previewBlocks.reduce((count, block) => {
+    if (block.rawText) {
+      return count + block.rawText.length;
+    }
+    return count + block.lines.reduce((lineCount, line) => lineCount + line.text.length + 1, 0);
+  }, 0);
+  const shouldAutoExpandWhileRunning =
+    !(
+      isRunning &&
+      card.toolName === 'write_file' &&
+      (previewLineCount > 24 || previewCharCount > 1_200)
+    );
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand: hasContent || isRunning,
     isRunning,
+    autoExpandWhileRunning: shouldAutoExpandWhileRunning,
     expandOnError: hasContent,
     statusTone: card.statusTone,
   });

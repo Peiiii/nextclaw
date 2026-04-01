@@ -7,9 +7,12 @@ import {
   parsePatchBlocks,
   type ParsedBlock,
 } from "@/components/chat/adapters/chat-message.file-operation-diff";
+import { readPartialJsonStringField } from "@/components/chat/adapters/chat-message.partial-json";
 
 type ToolInvocationSource = {
   toolName: string;
+  status?: string;
+  toolCallId?: string;
   args?: unknown;
   parsedArgs?: unknown;
   result?: unknown;
@@ -29,6 +32,8 @@ const FILE_TOOL_NAMES = new Set([
   "edit_file",
   "apply_patch",
 ]);
+
+const MAX_STREAMING_PREVIEW_FIELD_CHARS = 4_000;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -68,80 +73,6 @@ function readRecordPayload(value: unknown): Record<string, unknown> | null {
   }
 }
 
-function decodeJsonStringChar(value: string): string {
-  switch (value) {
-    case '"':
-    case "\\":
-    case "/":
-      return value;
-    case "b":
-      return "\b";
-    case "f":
-      return "\f";
-    case "n":
-      return "\n";
-    case "r":
-      return "\r";
-    case "t":
-      return "\t";
-    default:
-      return value;
-  }
-}
-
-function locatePartialJsonStringValueStart(raw: string, fieldName: string): number | null {
-  const marker = `"${fieldName}"`;
-  const markerIndex = raw.indexOf(marker);
-  if (markerIndex < 0) {
-    return null;
-  }
-  const colonIndex = raw.indexOf(":", markerIndex + marker.length);
-  if (colonIndex < 0) {
-    return null;
-  }
-  let valueStart = colonIndex + 1;
-  while (valueStart < raw.length && /\s/.test(raw[valueStart] ?? "")) {
-    valueStart += 1;
-  }
-  return raw[valueStart] === '"' ? valueStart + 1 : null;
-}
-
-function consumePartialJsonStringValue(raw: string, valueStart: number): string | null {
-  let output = "";
-  let escaped = false;
-  for (let index = valueStart; index < raw.length; index += 1) {
-    const current = raw[index];
-    if (current == null) {
-      break;
-    }
-    if (escaped) {
-      output += decodeJsonStringChar(current);
-      escaped = false;
-      continue;
-    }
-    if (current === "\\") {
-      escaped = true;
-      continue;
-    }
-    if (current === '"') {
-      return output;
-    }
-    output += current;
-  }
-  return output.length > 0 ? output : null;
-}
-
-function readPartialJsonStringField(raw: string, fieldNames: readonly string[]): string | null {
-  for (const fieldName of fieldNames) {
-    const valueStart = locatePartialJsonStringValueStart(raw, fieldName);
-    if (valueStart == null) {
-      continue;
-    }
-    return consumePartialJsonStringValue(raw, valueStart);
-  }
-  return null;
-}
-
 function readPartialRecordPayload(value: unknown): Record<string, unknown> | null {
   if (isRecord(value)) {
     return value;
@@ -162,11 +93,31 @@ function readPartialRecordPayload(value: unknown): Record<string, unknown> | nul
       "target_path",
       "filename",
       "name",
-    ]) ?? null;
-  const content = readPartialJsonStringField(trimmed, ["content", "text", "afterText", "after_text"]);
-  const oldText = readPartialJsonStringField(trimmed, ["oldText", "beforeText", "before_text"]);
-  const newText = readPartialJsonStringField(trimmed, ["newText", "afterText", "after_text"]);
-  const patch = readPartialJsonStringField(trimmed, ["patch", "diff", "unifiedDiff", "unified_diff"]);
+    ])?.value ?? null;
+  const content =
+    readPartialJsonStringField(
+      trimmed,
+      ["content", "text", "afterText", "after_text"],
+      MAX_STREAMING_PREVIEW_FIELD_CHARS,
+    )?.value ?? null;
+  const oldText =
+    readPartialJsonStringField(
+      trimmed,
+      ["oldText", "beforeText", "before_text"],
+      MAX_STREAMING_PREVIEW_FIELD_CHARS,
+    )?.value ?? null;
+  const newText =
+    readPartialJsonStringField(
+      trimmed,
+      ["newText", "afterText", "after_text"],
+      MAX_STREAMING_PREVIEW_FIELD_CHARS,
+    )?.value ?? null;
+  const patch =
+    readPartialJsonStringField(
+      trimmed,
+      ["patch", "diff", "unifiedDiff", "unified_diff"],
+      MAX_STREAMING_PREVIEW_FIELD_CHARS,
+    )?.value ?? null;
 
   const partialRecord: Record<string, unknown> = {};
   if (path) {
@@ -377,6 +328,37 @@ function buildReadFileCardData(invocation: ToolInvocationSource): FileOperationC
 }
 
 function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperationCardData | null {
+  const isStreamingPartialCall = invocation.status === "partial-call";
+  if (isStreamingPartialCall && typeof invocation.args === "string") {
+    const pathField = readPartialJsonStringField(invocation.args, [
+      "path",
+      "filePath",
+      "file_path",
+      "targetPath",
+      "target_path",
+      "filename",
+      "name",
+    ]);
+    const contentField = readPartialJsonStringField(
+      invocation.args,
+      ["content", "text", "afterText", "after_text"],
+      MAX_STREAMING_PREVIEW_FIELD_CHARS,
+    );
+    if (pathField?.value && contentField?.value) {
+      const previewBlock = buildRawPreviewBlock({
+        path: pathField.value,
+        text: contentField.value,
+        operation: "write",
+      });
+      if (previewBlock) {
+        if (contentField.truncated) {
+          previewBlock.truncated = true;
+        }
+        return finalizeParsedBlocks([previewBlock]);
+      }
+    }
+  }
+
   const argsRecord =
     readRecordPayload(invocation.parsedArgs) ??
     readRecordPayload(invocation.args) ??
