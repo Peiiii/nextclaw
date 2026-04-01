@@ -127,4 +127,60 @@ describe("UiSessionService", () => {
     expect(onSessionUpdated).toHaveBeenLastCalledWith(sessionId);
     expect(await sessionService.getSession(sessionId)).toBeNull();
   });
+
+  it("upserts a draft session when patching before the first message", async () => {
+    const workspace = createTempWorkspace();
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `ncp-${randomUUID()}`;
+    const sessionService = new UiSessionService(sessionManager);
+
+    const updated = await sessionService.updateSession(sessionId, {
+      metadata: {
+        session_type: "codex",
+        project_root: "/tmp/project-alpha",
+      }
+    });
+
+    expect(updated).toMatchObject({
+      sessionId,
+      messageCount: 0,
+      metadata: {
+        session_type: "codex",
+        project_root: "/tmp/project-alpha",
+      },
+    });
+  });
+
+  it("clears removed metadata keys instead of merging old values back", async () => {
+    const workspace = createTempWorkspace();
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `ncp-${randomUUID()}`;
+    const session = sessionManager.getOrCreate(sessionId);
+
+    session.metadata = {
+      session_type: "codex",
+      project_root: "/tmp/project-alpha",
+      projectRoot: "/tmp/project-alpha",
+      label: "Project session",
+    };
+    sessionManager.save(session);
+
+    const sessionService = new UiSessionService(sessionManager);
+    const updated = await sessionService.updateSession(sessionId, {
+      metadata: {
+        session_type: "codex",
+        label: "Project session",
+      }
+    });
+
+    expect(updated).toMatchObject({
+      sessionId,
+      metadata: {
+        session_type: "codex",
+        label: "Project session",
+      },
+    });
+    expect(updated?.metadata).not.toHaveProperty("project_root");
+    expect(updated?.metadata).not.toHaveProperty("projectRoot");
+  });
 });

@@ -16,6 +16,7 @@ import {
 } from "./router/marketplace/index.js";
 import { RemoteRoutesController } from "./router/remote.controller.js";
 import { err } from "./router/response.js";
+import { ServerPathRoutesController } from "./router/server-path.controller.js";
 import type { UiRouterOptions } from "./router/types.js";
 
 function registerAuthRoutes(app: Hono, authController: AuthRoutesController): void {
@@ -56,6 +57,10 @@ function registerNcpSessionRoutes(app: Hono, ncpSessionController: NcpSessionRou
   app.put("/api/ncp/sessions/:sessionId", ncpSessionController.patchSession);
   app.get("/api/ncp/sessions/:sessionId/messages", ncpSessionController.listSessionMessages);
   app.delete("/api/ncp/sessions/:sessionId", ncpSessionController.deleteSession);
+}
+
+function registerServerPathRoutes(app: Hono, serverPathController: ServerPathRoutesController): void {
+  app.get("/api/server-paths/browse", serverPathController.browse);
 }
 
 function registerNcpRuntimeRoutes(
@@ -109,6 +114,7 @@ export function createUiRouter(options: UiRouterOptions): Hono {
   const cronController = new CronRoutesController(options);
   const ncpSessionController = new NcpSessionRoutesController(options);
   const ncpAssetController = new NcpAssetRoutesController(options);
+  const serverPathController = new ServerPathRoutesController();
   const remoteController = options.remoteAccess ? new RemoteRoutesController(options.remoteAccess) : null;
   const pluginMarketplaceController = new PluginMarketplaceController(options, marketplaceBaseUrl);
   const skillMarketplaceController = new SkillMarketplaceController(options, marketplaceBaseUrl);
@@ -136,6 +142,7 @@ export function createUiRouter(options: UiRouterOptions): Hono {
   registerAuthRoutes(app, authController);
   registerConfigRoutes(app, configController);
   registerNcpSessionRoutes(app, ncpSessionController);
+  registerServerPathRoutes(app, serverPathController);
   registerNcpRuntimeRoutes(app, options, ncpAssetController);
   registerCronRoutes(app, cronController);
   registerRemoteRoutes(app, remoteController);

@@ -36,8 +36,8 @@ vi.mock('@/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/components/chat/chat-session-label.service', () => ({
-  useChatSessionLabelService: () => async (params: {
+vi.mock('@/components/chat/hooks/use-chat-session-label', () => ({
+  useChatSessionLabel: () => async (params: {
     sessionKey: string;
     label: string | null;
   }) => {

@@ -1,14 +1,12 @@
-import type { SessionManager, SessionMessage } from "@nextclaw/core";
+import type { SessionManager } from "@nextclaw/core";
 import type { AgentSessionRecord, AgentSessionStore } from "@nextclaw/ncp-toolkit";
 import { type NcpMessage, type NcpMessagePart, sanitizeAssistantReplyTags } from "@nextclaw/ncp";
 import {
-  cloneMetadata,
   ensureIsoTimestamp,
-  extractMessageMetadata,
-  mergeSessionMetadata,
   normalizeString,
   toLegacyMessages,
 } from "./nextclaw-ncp-message-bridge.js";
+import { resolvePersistedSessionMetadata } from "./nextclaw-agent-session-metadata.utils.js";
 
 type LegacyToolCall = {
   id: string;
@@ -107,8 +105,7 @@ function parseLegacyToolCalls(value: unknown): LegacyToolCall[] {
 }
 
 function createMessageId(sessionId: string, index: number, role: string, timestamp: string): string {
-  const safeRole = role.trim().toLowerCase() || "message";
-  return `${sessionId}:${safeRole}:${index}:${timestamp}`;
+  return `${sessionId}:${role.trim().toLowerCase() || "message"}:${index}:${timestamp}`;
 }
 
 function isNcpMessagePart(value: unknown): value is NcpMessagePart {
@@ -127,11 +124,7 @@ function readStoredNcpParts(message: SessionMessage): NcpMessagePart[] | null {
   return structuredClone(parts);
 }
 
-function buildAssistantMessage(params: {
-  sessionId: string;
-  index: number;
-  message: SessionMessage;
-}): NcpMessage {
+function buildAssistantMessage(params: { sessionId: string; index: number; message: SessionMessage }): NcpMessage {
   const timestamp = ensureIsoTimestamp(params.message.timestamp, new Date().toISOString());
   const replyTo =
     typeof params.message.reply_to === "string" && params.message.reply_to.trim().length > 0
@@ -182,12 +175,9 @@ function buildAssistantMessage(params: {
   });
 }
 
-function buildGenericMessage(params: {
-  sessionId: string;
-  index: number;
-  role: NcpMessage["role"];
-  message: SessionMessage;
-}): NcpMessage {
+function buildGenericMessage(
+  params: { sessionId: string; index: number; role: NcpMessage["role"]; message: SessionMessage },
+): NcpMessage {
   const timestamp = ensureIsoTimestamp(params.message.timestamp, new Date().toISOString());
   const storedParts = readStoredNcpParts(params.message);
   if (storedParts) {
@@ -318,20 +308,15 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
     } = {},
   ) {}
 
-  async getSession(sessionId: string): Promise<AgentSessionRecord | null> {
+  getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
     const session = this.sessionManager.getIfExists(sessionId);
     if (!session) {
       return null;
     }
-    return {
-      sessionId,
-      messages: toNcpMessages(sessionId, session.messages),
-      updatedAt: session.updatedAt.toISOString(),
-      metadata: structuredClone(session.metadata),
-    };
-  }
+    return { sessionId, messages: toNcpMessages(sessionId, session.messages), updatedAt: session.updatedAt.toISOString(), metadata: structuredClone(session.metadata) };
+  };
 
-  async listSessions(): Promise<AgentSessionRecord[]> {
+  listSessions = async (): Promise<AgentSessionRecord[]> => {
     const records = this.sessionManager.listSessions();
     const sessions: AgentSessionRecord[] = [];
     for (const record of records) {
@@ -343,30 +328,29 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
       if (!session) {
         continue;
       }
-      sessions.push({
-        sessionId,
-        messages: toNcpMessages(sessionId, session.messages),
-        updatedAt: session.updatedAt.toISOString(),
-        metadata: structuredClone(session.metadata),
-      });
+      sessions.push({ sessionId, messages: toNcpMessages(sessionId, session.messages), updatedAt: session.updatedAt.toISOString(), metadata: structuredClone(session.metadata) });
     }
 
     sessions.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
     return sessions;
-  }
+  };
 
-  async saveSession(sessionRecord: AgentSessionRecord): Promise<void> {
+  private persistSession = async (
+    sessionRecord: AgentSessionRecord,
+    options: {
+      preserveExistingMetadata: boolean;
+    },
+  ): Promise<void> => {
     if (this.options.writeMode === "runtime-owned") {
       return;
     }
-    const session =
-      this.sessionManager.getIfExists(sessionRecord.sessionId) ?? this.sessionManager.getOrCreate(sessionRecord.sessionId);
+    const session = this.sessionManager.getIfExists(sessionRecord.sessionId) ?? this.sessionManager.getOrCreate(sessionRecord.sessionId);
     const legacyMessages = toLegacyMessages(sessionRecord.messages);
-    const nextMetadata = mergeSessionMetadata(
-      session.metadata,
-      extractMessageMetadata(sessionRecord.messages),
-    );
-    session.metadata = mergeSessionMetadata(nextMetadata, cloneMetadata(sessionRecord.metadata));
+    session.metadata = resolvePersistedSessionMetadata({
+      currentMetadata: session.metadata,
+      sessionRecord,
+      preserveExistingMetadata: options.preserveExistingMetadata,
+    });
 
     this.sessionManager.clear(session);
     for (const message of legacyMessages) {
@@ -385,9 +369,21 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
 
     this.sessionManager.save(session);
     this.options.onSessionUpdated?.(sessionRecord.sessionId);
-  }
+  };
 
-  async deleteSession(sessionId: string): Promise<AgentSessionRecord | null> {
+  saveSession = async (sessionRecord: AgentSessionRecord): Promise<void> => {
+    await this.persistSession(sessionRecord, {
+      preserveExistingMetadata: true,
+    });
+  };
+
+  replaceSession = async (sessionRecord: AgentSessionRecord): Promise<void> => {
+    await this.persistSession(sessionRecord, {
+      preserveExistingMetadata: false,
+    });
+  };
+
+  deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
     const existing = await this.getSession(sessionId);
     if (!existing) {
       return null;
@@ -395,5 +391,5 @@ export class NextclawAgentSessionStore implements AgentSessionStore {
     this.sessionManager.delete(sessionId);
     this.options.onSessionUpdated?.(sessionId);
     return existing;
-  }
+  };
 }

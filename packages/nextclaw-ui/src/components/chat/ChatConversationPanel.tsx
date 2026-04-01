@@ -1,16 +1,16 @@
 import { useRef } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
-import { Button } from "@/components/ui/button";
 import {
   ChatInputBarContainer,
   ChatMessageListContainer,
 } from "@/components/chat/nextclaw";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
+import { ChatSessionHeaderActions } from "@/components/chat/session-header/chat-session-header-actions";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Trash2 } from "lucide-react";
+import { FolderOpen } from "lucide-react";
 
 function ChatConversationSkeleton() {
   return (
@@ -46,15 +46,15 @@ export function ChatConversationPanel() {
   const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
   const threadRef = snapshot.threadRef ?? fallbackThreadRef;
   const shouldShowSessionHeader = Boolean(
-    snapshot.selectedSessionKey || snapshot.sessionTypeLabel,
+    snapshot.sessionKey || snapshot.sessionTypeLabel,
   );
   const sessionHeaderTitle =
     snapshot.sessionDisplayName ||
-    snapshot.selectedSessionKey ||
+    (snapshot.canDeleteSession && snapshot.sessionKey ? snapshot.sessionKey : null) ||
     t("chatSidebarNewTask");
 
   const showWelcome =
-    !snapshot.selectedSessionKey &&
+    !snapshot.canDeleteSession &&
     snapshot.messages.length === 0 &&
     !snapshot.isSending;
   const hasConfiguredModel = snapshot.modelOptions.length > 0;
@@ -68,7 +68,7 @@ export function ChatConversationPanel() {
 
   const { onScroll: handleScroll } = useStickyBottomScroll({
     scrollRef: threadRef,
-    resetKey: snapshot.selectedSessionKey,
+    resetKey: snapshot.sessionKey,
     isLoading: snapshot.isHistoryLoading,
     hasContent: snapshot.messages.length > 0,
     contentVersion: snapshot.messages[snapshot.messages.length - 1] ?? null,
@@ -97,17 +97,27 @@ export function ChatConversationPanel() {
               {snapshot.sessionTypeLabel}
             </span>
           ) : null}
+          {snapshot.sessionProjectName ? (
+            <span
+              title={snapshot.sessionProjectRoot ?? undefined}
+              className="min-w-0 max-w-[280px] shrink rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
+            >
+              <span className="flex min-w-0 items-center gap-1.5">
+                <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{snapshot.sessionProjectName}</span>
+              </span>
+            </span>
+          ) : null}
         </div>
-        {snapshot.selectedSessionKey ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-lg shrink-0 text-gray-400 hover:text-destructive"
-            onClick={presenter.chatThreadManager.deleteSession}
-            disabled={!snapshot.canDeleteSession || snapshot.isDeletePending}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+        {snapshot.sessionKey ? (
+          <ChatSessionHeaderActions
+            sessionKey={snapshot.sessionKey}
+            canDeleteSession={snapshot.canDeleteSession}
+            isDeletePending={snapshot.isDeletePending}
+            projectRoot={snapshot.sessionProjectRoot}
+            onDeleteSession={presenter.chatThreadManager.deleteSession}
+            onPromoteDraftSession={presenter.chatSessionListManager.selectSession}
+          />
         ) : null}
       </div>
 
@@ -153,7 +163,7 @@ export function ChatConversationPanel() {
         ) : (
           <div className="mx-auto w-full max-w-[min(1120px,100%)] px-6 py-5">
             <ChatMessageListContainer
-              key={snapshot.selectedSessionKey ?? "draft"}
+              key={snapshot.sessionKey ?? "draft"}
               messages={snapshot.messages}
               isSending={
                 snapshot.isSending && snapshot.isAwaitingAssistantOutput

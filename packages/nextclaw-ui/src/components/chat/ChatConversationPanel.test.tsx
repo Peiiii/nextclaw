@@ -29,8 +29,15 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
       createSession: vi.fn()
+    },
+    chatSessionListManager: {
+      selectSession: vi.fn()
     }
   })
+}));
+
+vi.mock('@/components/chat/session-header/chat-session-header-actions', () => ({
+  ChatSessionHeaderActions: () => <button aria-label="More actions" />
 }));
 
 describe('ChatConversationPanel', () => {
@@ -43,8 +50,10 @@ describe('ChatConversationPanel', () => {
         isProviderStateResolved: true,
         modelOptions: [{ value: 'openai/gpt-5.1', modelLabel: 'gpt-5.1', providerLabel: 'OpenAI' } as never],
         sessionTypeLabel: 'Codex',
-        selectedSessionKey: null,
+        sessionKey: 'draft-session-1',
         sessionDisplayName: undefined,
+        sessionProjectRoot: null,
+        sessionProjectName: null,
         canDeleteSession: false,
         isDeletePending: false,
         isHistoryLoading: false,
@@ -60,6 +69,25 @@ describe('ChatConversationPanel', () => {
 
     expect(screen.getByText('New Task')).toBeTruthy();
     expect(screen.getByText('Codex')).toBeTruthy();
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.getByLabelText('More actions')).toBeTruthy();
+  });
+
+  it('shows the selected session project badge and more actions trigger', () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: 'session-1',
+        sessionDisplayName: 'Project Thread',
+        sessionProjectRoot: '/Users/demo/workspace/project-alpha',
+        sessionProjectName: 'project-alpha',
+        canDeleteSession: true,
+      }
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.getByText('Project Thread')).toBeTruthy();
+    expect(screen.getByText('project-alpha')).toBeTruthy();
+    expect(screen.getByLabelText('More actions')).toBeTruthy();
   });
 });

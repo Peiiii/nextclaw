@@ -22,7 +22,7 @@ import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCa
 
 type UseNcpChatPageDataParams = {
   query: string;
-  selectedSessionKey: string | null;
+  sessionKey: string;
   currentSelectedModel: string;
   pendingSessionType: string;
   setPendingSessionType: Dispatch<SetStateAction<string>>;
@@ -101,8 +101,8 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     [allSessions, params.query]
   );
   const selectedSession = useMemo(
-    () => allSessions.find((session) => session.key === params.selectedSessionKey) ?? null,
-    [allSessions, params.selectedSessionKey]
+    () => allSessions.find((session) => session.key === params.sessionKey) ?? null,
+    [allSessions, params.sessionKey]
   );
   const skillRecords = useMemo(
     () => installedSkillsQuery.data?.records ?? [],
@@ -110,7 +110,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   );
   const sessionTypeState = useChatSessionTypeState({
     selectedSession,
-    selectedSessionKey: params.selectedSessionKey,
+    selectedSessionKey: params.sessionKey,
     pendingSessionType: params.pendingSessionType,
     setPendingSessionType: params.setPendingSessionType,
     sessionTypesData: sessionTypesQuery.data
@@ -127,10 +127,10 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     () =>
       resolveRecentSessionPreferredModel({
         sessions: allSessions,
-        selectedSessionKey: params.selectedSessionKey,
+        selectedSessionKey: params.sessionKey,
         sessionType: sessionTypeState.selectedSessionType
       }),
-    [allSessions, params.selectedSessionKey, sessionTypeState.selectedSessionType]
+    [allSessions, params.sessionKey, sessionTypeState.selectedSessionType]
   );
   const currentModelOption = useMemo(
     () => filteredModelOptions.find((option) => option.value === params.currentSelectedModel),
@@ -148,15 +148,15 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
     () =>
       resolveRecentSessionPreferredThinking({
         sessions: allSessions,
-        selectedSessionKey: params.selectedSessionKey,
+        selectedSessionKey: params.sessionKey,
         sessionType: sessionTypeState.selectedSessionType
       }),
-    [allSessions, params.selectedSessionKey, sessionTypeState.selectedSessionType]
+    [allSessions, params.sessionKey, sessionTypeState.selectedSessionType]
   );
 
   useSyncSelectedModel({
     modelOptions: filteredModelOptions,
-    selectedSessionKey: params.selectedSessionKey,
+    selectedSessionKey: params.sessionKey,
     selectedSessionExists: Boolean(selectedSession),
     selectedSessionPreferredModel: selectedSession?.preferredModel,
     fallbackPreferredModel: sessionTypeState.selectedSessionTypeOption?.recommendedModel ?? recentSessionPreferredModel,
@@ -165,7 +165,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   });
   useSyncSelectedThinking({
     supportedThinkingLevels,
-    selectedSessionKey: params.selectedSessionKey,
+    selectedSessionKey: params.sessionKey,
     selectedSessionExists: Boolean(selectedSession),
     selectedSessionPreferredThinking: selectedSession?.preferredThinking ?? null,
     fallbackPreferredThinking: recentSessionPreferredThinking ?? null,

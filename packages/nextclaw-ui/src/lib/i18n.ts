@@ -1,93 +1,29 @@
 import { CHANNEL_LABELS } from './i18n.channels';
 import { CHANNEL_AUTH_LABELS } from './i18n.channel-auth';
 import { CHAT_LABELS } from './i18n.chat';
+import {
+  getLanguage,
+  getLocale,
+  initializeI18n,
+  LANGUAGE_OPTIONS,
+  resolveInitialLanguage,
+  setLanguage,
+  subscribeLanguageChange,
+  type I18nLanguage
+} from './i18n/i18n-language-owner';
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
+import { PATH_PICKER_LABELS } from './i18n/i18n.path-picker';
 import { REMOTE_LABELS } from './i18n.remote';
-export type I18nLanguage = 'zh' | 'en';
-const I18N_STORAGE_KEY = 'nextclaw.ui.language';
-export const LANGUAGE_OPTIONS: Array<{ value: I18nLanguage; label: string }> = [
-  { value: 'en', label: 'English' },
-  { value: 'zh', label: '中文' }
-];
-const LANGUAGE_TO_LOCALE: Record<I18nLanguage, string> = {
-  en: 'en-US',
-  zh: 'zh-CN'
+export type { I18nLanguage };
+export {
+  getLanguage,
+  getLocale,
+  initializeI18n,
+  LANGUAGE_OPTIONS,
+  resolveInitialLanguage,
+  setLanguage,
+  subscribeLanguageChange
 };
-
-let activeLanguage: I18nLanguage = 'en';
-let initialized = false;
-const listeners = new Set<(lang: I18nLanguage) => void>();
-
-function isLanguage(value: unknown): value is I18nLanguage {
-  return value === 'en' || value === 'zh';
-}
-
-function detectBrowserLanguage(): I18nLanguage {
-  if (typeof navigator === 'undefined') {
-    return 'en';
-  }
-  const preferred = navigator.language?.toLowerCase() ?? 'en';
-  return preferred.startsWith('zh') ? 'zh' : 'en';
-}
-
-export function resolveInitialLanguage(): I18nLanguage {
-  if (typeof window === 'undefined') {
-    return 'en';
-  }
-
-  try {
-    const saved = window.localStorage.getItem(I18N_STORAGE_KEY);
-    if (isLanguage(saved)) {
-      return saved;
-    }
-  } catch {
-    // ignore storage failures
-  }
-
-  return detectBrowserLanguage();
-}
-
-export function initializeI18n(): I18nLanguage {
-  if (!initialized) {
-    activeLanguage = resolveInitialLanguage();
-    initialized = true;
-  }
-  return activeLanguage;
-}
-
-export function getLanguage(): I18nLanguage {
-  return initialized ? activeLanguage : initializeI18n();
-}
-
-export function setLanguage(lang: I18nLanguage): void {
-  initializeI18n();
-  if (activeLanguage === lang) {
-    return;
-  }
-
-  activeLanguage = lang;
-
-  if (typeof window !== 'undefined') {
-    try {
-      window.localStorage.setItem(I18N_STORAGE_KEY, lang);
-    } catch {
-      // ignore storage failures
-    }
-  }
-
-  listeners.forEach((listener) => listener(lang));
-}
-
-export function subscribeLanguageChange(listener: (lang: I18nLanguage) => void): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-export function getLocale(lang: I18nLanguage = getLanguage()): string {
-  return LANGUAGE_TO_LOCALE[lang];
-}
 
 export function formatDateTime(value?: string | Date, lang: I18nLanguage = getLanguage()): string {
   if (!value) {
@@ -624,6 +560,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   docBrowserNewTab: { zh: '新建标签', en: 'New Tab' },
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
   docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
+  ...PATH_PICKER_LABELS,
   ...CHANNEL_AUTH_LABELS,
 };
 

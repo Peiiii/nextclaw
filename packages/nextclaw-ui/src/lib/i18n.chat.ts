@@ -66,6 +66,22 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatQueueMoveFirst: { zh: '置顶到下一条', en: 'Move to Next' },
   chatDeleteSession: { zh: '删除会话', en: 'Delete Session' },
   chatDeleteSessionConfirm: { zh: '确认删除当前会话？', en: 'Delete the current session?' },
+  chatSessionMoreActions: { zh: '更多操作', en: 'More actions' },
+  chatSessionSetProject: { zh: '设置项目目录', en: 'Set Project Directory' },
+  chatSessionClearProject: { zh: '清除项目目录', en: 'Clear Project Directory' },
+  chatSessionProjectDialogTitle: { zh: '设置项目目录', en: 'Set Project Directory' },
+  chatSessionProjectDialogDescription: {
+    zh: '把当前会话绑定到运行 NextClaw 服务的那台机器上的一个目录，让后续消息和工具执行围绕这个目录展开。',
+    en: 'Bind this session to a directory on the machine running the NextClaw service so future messages and tool runs work around that directory.'
+  },
+  chatSessionProjectPathLabel: { zh: '项目目录路径', en: 'Project Directory Path' },
+  chatSessionProjectPathPlaceholder: { zh: '/path/to/project', en: '/path/to/project' },
+  chatSessionProjectUpdateHint: {
+    zh: '这里浏览和选择的是服务端机器上的目录。修改项目目录只影响后续消息和后续工具执行，不会改写历史会话。',
+    en: 'The browser lists directories from the server machine. Changing the project directory only affects future messages and tool runs. History stays unchanged.'
+  },
+  chatSessionProjectUpdated: { zh: '项目目录已更新', en: 'Project directory updated' },
+  chatSessionProjectCleared: { zh: '项目目录已清除', en: 'Project directory cleared' },
   chatSendFailed: { zh: '发送消息失败', en: 'Failed to send message' },
   chatRoleUser: { zh: '你', en: 'You' },
   chatRoleAssistant: { zh: '助手', en: 'Assistant' },

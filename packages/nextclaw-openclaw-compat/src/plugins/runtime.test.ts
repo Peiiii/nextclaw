@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { createPluginRuntime, setPluginRuntimeBridge } from "./runtime.js";
 
@@ -39,6 +41,13 @@ describe("createPluginRuntime", () => {
       maxToolIterations: 12,
     });
     expect(runtime.agent.resolveWorkspacePath()).toBe("/tmp/nextclaw-plugin-runtime");
+    expect(
+      runtime.agent.resolveSessionWorkspacePath({
+        sessionMetadata: {
+          project_root: "~/workspace/project-alpha",
+        },
+      }),
+    ).toBe(resolve(homedir(), "workspace/project-alpha"));
     expect(runtime.agent.resolveProviderRuntime("custom-1/gpt-5.4")).toEqual(
       expect.objectContaining({
         providerName: "custom-1",
@@ -46,12 +55,17 @@ describe("createPluginRuntime", () => {
         apiBase: "https://yunyi.example.com/v1",
       }),
     );
-    expect(
-      runtime.agent.buildRuntimeUserPrompt({
-        userMessage: "Reply exactly OK",
-        metadata: { requested_skills: ["missing-skill"] },
-      }),
-    ).toContain("Reply exactly OK");
+    const prompt = runtime.agent.buildRuntimeUserPrompt({
+      userMessage: "Reply exactly OK",
+      metadata: {
+        requested_skills: ["missing-skill"],
+        project_root: "/tmp/project-alpha",
+      },
+    });
+
+    expect(prompt).toContain("Reply exactly OK");
+    expect(prompt).toContain("Current project directory: /tmp/project-alpha");
+    expect(prompt).toContain("NextClaw workspace directory: /tmp/nextclaw-plugin-runtime");
   });
 
   it("exposes debounce helpers required by channel gateways", async () => {

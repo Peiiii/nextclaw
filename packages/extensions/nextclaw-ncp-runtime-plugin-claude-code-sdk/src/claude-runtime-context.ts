@@ -2,8 +2,8 @@ import {
   getApiBase,
   buildBootstrapAwareUserPrompt,
   getProvider,
-  getWorkspacePath,
   readRequestedSkillsFromMetadata,
+  resolveSessionWorkspacePath,
   SkillsLoader,
   type Config,
 } from "@nextclaw/core";
@@ -81,22 +81,35 @@ function readUserText(input: NcpAgentRunInput): string {
   return "";
 }
 
+function readMetadata(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
 export function buildClaudeInputBuilder(
-  workspace: string,
-  contextConfig?: Config["agents"]["context"],
+  params: {
+    workspace: string;
+    hostWorkspace?: string;
+    sessionMetadata?: Record<string, unknown>;
+    contextConfig?: Config["agents"]["context"];
+  },
 ) {
-  const skillsLoader = new SkillsLoader(workspace);
+  const skillsLoader = new SkillsLoader(params.workspace);
   return async (input: NcpAgentRunInput): Promise<string> => {
     const userText = readUserText(input);
-    const metadata =
-      input.metadata && typeof input.metadata === "object" && !Array.isArray(input.metadata)
-        ? (input.metadata as Record<string, unknown>)
-        : {};
+    const metadata = {
+      ...readMetadata(params.sessionMetadata),
+      ...readMetadata(input.metadata),
+    };
     const requestedSkills = readRequestedSkillsFromMetadata(metadata);
     return buildBootstrapAwareUserPrompt({
-      workspace,
-      contextConfig,
+      workspace: params.workspace,
+      hostWorkspace: params.hostWorkspace,
+      contextConfig: params.contextConfig,
       sessionKey: input.sessionId,
+      metadata,
       skills: skillsLoader,
       skillNames: requestedSkills,
       userMessage: userText,
@@ -187,10 +200,14 @@ function hasClaudeBaseUrlEnv(env: Record<string, string> | undefined): boolean {
 function resolveClaudeWorkingDirectory(params: {
   config: Config;
   pluginConfig: Record<string, unknown>;
+  sessionMetadata: Record<string, unknown>;
 }): string {
-  return getWorkspacePath(
-    readString(params.pluginConfig.workingDirectory) ?? params.config.agents.defaults.workspace,
-  );
+  return resolveSessionWorkspacePath({
+    sessionMetadata: params.sessionMetadata,
+    workspace:
+      readString(params.pluginConfig.workingDirectory) ??
+      params.config.agents.defaults.workspace,
+  });
 }
 
 function resolveConfiguredClaudeModels(params: {
@@ -265,6 +282,7 @@ export function resolveClaudeRuntimeContext(params: {
   const workingDirectory = resolveClaudeWorkingDirectory({
     config: params.config,
     pluginConfig: params.pluginConfig,
+    sessionMetadata: params.sessionMetadata,
   });
   const baseQueryOptions = resolveBaseQueryOptions({
     config: params.config,

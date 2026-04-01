@@ -9,8 +9,10 @@ export type ChatThreadSnapshot = {
   sessionTypeUnavailable: boolean;
   sessionTypeUnavailableMessage?: string | null;
   sessionTypeLabel?: string | null;
-  selectedSessionKey: string | null;
+  sessionKey: string | null;
   sessionDisplayName?: string;
+  sessionProjectRoot?: string | null;
+  sessionProjectName?: string | null;
   canDeleteSession: boolean;
   isDeletePending: boolean;
   threadRef: MutableRefObject<HTMLDivElement | null> | null;
@@ -31,8 +33,10 @@ const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeUnavailable: false,
   sessionTypeUnavailableMessage: null,
   sessionTypeLabel: null,
-  selectedSessionKey: null,
+  sessionKey: null,
   sessionDisplayName: undefined,
+  sessionProjectRoot: null,
+  sessionProjectName: null,
   canDeleteSession: false,
   isDeletePending: false,
   threadRef: null,

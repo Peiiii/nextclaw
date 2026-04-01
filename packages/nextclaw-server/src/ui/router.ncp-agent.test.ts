@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it } from "vitest";
@@ -76,6 +76,7 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
   >();
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
+  readonly sessionMetadata = new Map<string, Record<string, unknown>>();
   readonly assetApi = {
     put: async (input: { fileName: string; mimeType?: string | null; bytes: Uint8Array }) => {
       const id = `asset_${this.assets.size + 1}`;
@@ -111,16 +112,16 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     resolveContentPath: (uri: string) => this.assets.get(uri)?.filePath ?? null,
   };
 
-  async start(): Promise<void> {}
+  start = async (): Promise<void> => {};
 
-  async stop(): Promise<void> {}
+  stop = async (): Promise<void> => {};
 
-  subscribe(listener: (event: NcpEndpointEvent) => void): () => void {
+  subscribe = (listener: (event: NcpEndpointEvent) => void): () => void => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
-  }
+  };
 
-  async emit(event: NcpEndpointEvent): Promise<void> {
+  emit = async (event: NcpEndpointEvent): Promise<void> => {
     if (event.type === NcpEventType.MessageRequest) {
       this.publish({
         type: NcpEventType.RunStarted,
@@ -143,28 +144,31 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
     if (event.type === NcpEventType.MessageAbort) {
       await this.abort(event.payload);
     }
-  }
+  };
 
-  async send(): Promise<void> {}
+  send = async (): Promise<void> => {};
 
-  async stream(): Promise<void> {}
+  stream = async (): Promise<void> => {};
 
-  async abort(payload: { sessionId: string; messageId?: string }): Promise<void> {
+  abort = async (payload: { sessionId: string; messageId?: string }): Promise<void> => {
     this.abortCalls.push(payload);
-  }
+  };
 
-  async listSessions() {
+  listSessions = async () => {
     return [
       {
         sessionId: "session-1",
         messageCount: 2,
         updatedAt: "2026-03-17T00:00:00.000Z",
-        status: "idle" as const
+        status: "idle" as const,
+        ...(this.sessionMetadata.has("session-1")
+          ? { metadata: this.sessionMetadata.get("session-1") }
+          : {}),
       }
     ];
-  }
+  };
 
-  async listSessionMessages() {
+  listSessionMessages = async () => {
     return [
       {
         id: "msg-1",
@@ -175,21 +179,9 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
         parts: [{ type: "text" as const, text: "hello" }]
       }
     ];
-  }
+  };
 
-  async getSession(sessionId: string) {
-    if (sessionId !== "session-1") {
-      return null;
-    }
-    return {
-      sessionId,
-      messageCount: 2,
-      updatedAt: "2026-03-17T00:00:00.000Z",
-      status: "idle" as const
-    };
-  }
-
-  async updateSession(sessionId: string, patch: { metadata?: Record<string, unknown> | null }) {
+  getSession = async (sessionId: string) => {
     if (sessionId !== "session-1") {
       return null;
     }
@@ -198,13 +190,33 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
       messageCount: 2,
       updatedAt: "2026-03-17T00:00:00.000Z",
       status: "idle" as const,
+      ...(this.sessionMetadata.has(sessionId)
+        ? { metadata: this.sessionMetadata.get(sessionId) }
+        : {}),
+    };
+  };
+
+  updateSession = async (
+    sessionId: string,
+    patch: { metadata?: Record<string, unknown> | null },
+  ) => {
+    if (patch.metadata) {
+      this.sessionMetadata.set(sessionId, patch.metadata);
+    } else {
+      this.sessionMetadata.delete(sessionId);
+    }
+    return {
+      sessionId,
+      messageCount: sessionId === "session-1" ? 2 : 0,
+      updatedAt: "2026-03-17T00:00:00.000Z",
+      status: "idle" as const,
       ...(patch.metadata ? { metadata: patch.metadata } : {})
     };
-  }
+  };
 
-  async deleteSession(): Promise<void> {}
+  deleteSession = async (): Promise<void> => {};
 
-  async listSessionTypes(params?: { describeMode?: "observation" | "probe" }) {
+  listSessionTypes = async (params?: { describeMode?: "observation" | "probe" }) => {
     this.sessionTypeListCalls.push(params);
     return {
       defaultType: "native",
@@ -213,13 +225,13 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
         { value: "codex", label: "Codex" },
       ],
     };
-  }
+  };
 
-  private publish(event: NcpEndpointEvent): void {
+  private publish = (event: NcpEndpointEvent): void => {
     for (const listener of this.listeners) {
       listener(event);
     }
-  }
+  };
 }
 
 function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubNcpAgent } {
@@ -377,6 +389,7 @@ it("stores uploaded ncp assets and serves their content back", async () => {
 
 it("proxies ncp send, patch, and abort flows", async () => {
   const { app, agent } = createTestApp();
+  const validProjectRoot = realpathSync(createTempDir("nextclaw-ui-ncp-project-root-"));
 
   const patchResponse = await app.request("http://localhost/api/ncp/sessions/session-1", {
     method: "PUT",
@@ -385,7 +398,8 @@ it("proxies ncp send, patch, and abort flows", async () => {
     },
     body: JSON.stringify({
       preferredModel: "openai/gpt-5",
-      preferredThinking: "medium"
+      preferredThinking: "medium",
+      projectRoot: validProjectRoot,
     })
   });
   expect(patchResponse.status).toBe(200);
@@ -398,7 +412,8 @@ it("proxies ncp send, patch, and abort flows", async () => {
   expect(patchPayload.ok).toBe(true);
   expect(patchPayload.data.metadata).toMatchObject({
     preferred_model: "openai/gpt-5",
-    preferred_thinking: "medium"
+    preferred_thinking: "medium",
+    project_root: validProjectRoot,
   });
 
   const sendResponse = await app.request("http://localhost/api/ncp/agent/send", {
@@ -435,4 +450,96 @@ it("proxies ncp send, patch, and abort flows", async () => {
   });
   expect(abortResponse.status).toBe(200);
   expect(agent.abortCalls).toEqual([{ sessionId: "session-1" }]);
+});
+
+it("rejects invalid session project roots during patch", async () => {
+  const { app } = createTestApp();
+
+  const patchResponse = await app.request("http://localhost/api/ncp/sessions/session-1", {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      projectRoot: "/path/that/does/not/exist"
+    })
+  });
+
+  expect(patchResponse.status).toBe(400);
+  const patchPayload = await patchResponse.json() as {
+    ok: boolean;
+    error: {
+      code: string;
+      message: string;
+    };
+  };
+  expect(patchPayload.ok).toBe(false);
+  expect(patchPayload.error).toEqual({
+    code: "PROJECT_ROOT_NOT_FOUND",
+    message: "projectRoot directory does not exist"
+  });
+});
+
+it("clears both canonical and legacy project root metadata keys", async () => {
+  const { app, agent } = createTestApp();
+  agent.sessionMetadata.set("session-1", {
+    project_root: "/tmp/project-alpha",
+    projectRoot: "/tmp/project-alpha",
+  });
+
+  const patchResponse = await app.request("http://localhost/api/ncp/sessions/session-1", {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      projectRoot: null
+    })
+  });
+
+  expect(patchResponse.status).toBe(200);
+  const patchPayload = await patchResponse.json() as {
+    ok: boolean;
+    data: {
+      metadata?: Record<string, unknown>;
+    };
+  };
+  expect(patchPayload.ok).toBe(true);
+  expect(patchPayload.data.metadata).toEqual({});
+  expect(agent.sessionMetadata.get("session-1")).toEqual({});
+});
+
+it("creates a lightweight session when patching a draft session", async () => {
+  const { app } = createTestApp();
+  const validProjectRoot = realpathSync(createTempDir("nextclaw-ui-draft-project-root-"));
+
+  const patchResponse = await app.request("http://localhost/api/ncp/sessions/draft-session-1", {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      projectRoot: validProjectRoot,
+      sessionType: "codex"
+    })
+  });
+
+  expect(patchResponse.status).toBe(200);
+  const patchPayload = await patchResponse.json() as {
+    ok: boolean;
+    data: {
+      sessionId: string;
+      messageCount: number;
+      metadata?: Record<string, unknown>;
+    };
+  };
+  expect(patchPayload.ok).toBe(true);
+  expect(patchPayload.data).toMatchObject({
+    sessionId: "draft-session-1",
+    messageCount: 0,
+    metadata: {
+      project_root: validProjectRoot,
+      session_type: "codex",
+    },
+  });
 });

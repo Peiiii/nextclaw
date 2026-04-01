@@ -27,6 +27,27 @@ describe('chat-session-display', () => {
     expect(sessionMatchesQuery(createSession({ label: 'VIP Alpha Thread' }), 'alpha')).toBe(true);
   });
 
+  it('matches the search query against the project name and path', () => {
+    expect(
+      sessionMatchesQuery(
+        createSession({
+          projectRoot: '/Users/demo/workspace/project-apollo',
+          projectName: 'project-apollo'
+        }),
+        'apollo'
+      )
+    ).toBe(true);
+    expect(
+      sessionMatchesQuery(
+        createSession({
+          projectRoot: '/Users/demo/workspace/project-apollo',
+          projectName: 'project-apollo'
+        }),
+        'workspace/project'
+      )
+    ).toBe(true);
+  });
+
   it('treats an empty query as a match', () => {
     expect(sessionMatchesQuery(createSession({ label: 'Anything' }), '   ')).toBe(true);
   });

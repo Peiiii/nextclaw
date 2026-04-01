@@ -24,6 +24,7 @@ describe('adaptNcpSessionSummary', () => {
           label: 'NCP Planning Thread',
           model: 'openai/gpt-5',
           preferred_thinking: 'medium',
+          project_root: '/Users/demo/workspace/project-alpha',
           session_type: 'native'
         }
       })
@@ -34,6 +35,8 @@ describe('adaptNcpSessionSummary', () => {
       label: 'NCP Planning Thread',
       preferredModel: 'openai/gpt-5',
       preferredThinking: 'medium',
+      projectRoot: '/Users/demo/workspace/project-alpha',
+      projectName: 'project-alpha',
       sessionType: 'native',
       sessionTypeMutable: false,
       messageCount: 3

@@ -4,6 +4,7 @@ import {
   buildBootstrapAwareUserPrompt,
   getWorkspacePath,
   readRequestedSkillsFromMetadata,
+  resolveSessionWorkspacePath,
   resolveProviderRuntime,
   SkillsLoader,
 } from "@nextclaw/core";
@@ -87,7 +88,12 @@ function createRuntimeUserPromptBuilder(params: {
   const skillLoaders = new Map<string, SkillsLoader>();
 
   return ({ workspace, sessionKey, metadata, userMessage }) => {
-    const resolvedWorkspace = getWorkspacePath(workspace ?? params.defaultWorkspace);
+    const hostWorkspace = getWorkspacePath(params.defaultWorkspace);
+    const resolvedWorkspace = resolveSessionWorkspacePath({
+      sessionMetadata: metadata,
+      workspace: workspace ?? params.defaultWorkspace,
+      defaultWorkspace: params.defaultWorkspace,
+    });
     let skills = skillLoaders.get(resolvedWorkspace);
     if (!skills) {
       skills = new SkillsLoader(resolvedWorkspace);
@@ -96,8 +102,10 @@ function createRuntimeUserPromptBuilder(params: {
 
     return buildBootstrapAwareUserPrompt({
       workspace: resolvedWorkspace,
+      hostWorkspace,
       contextConfig: params.config?.agents?.context,
       sessionKey,
+      metadata,
       skills,
       skillNames: readRequestedSkillsFromMetadata(metadata),
       userMessage,
@@ -105,39 +113,173 @@ function createRuntimeUserPromptBuilder(params: {
   };
 }
 
-export function createPluginRuntime(params: { workspace: string; config?: Config }): PluginRuntime {
-  const defaultModel = params.config?.agents?.defaults?.model ?? "";
-  const maxToolIterations = Math.max(
-    0,
-    Math.trunc(params.config?.agents?.defaults?.maxToolIterations ?? 0),
-  );
-  const buildRuntimeUserPrompt = createRuntimeUserPromptBuilder({
-    config: params.config,
-    defaultWorkspace: params.workspace,
-  });
+type CreatePluginRuntimeParams = {
+  workspace: string;
+  config?: Config;
+};
 
+type PluginRuntimeAgent = PluginRuntime["agent"];
+
+class PluginRuntimeAgentSection implements PluginRuntimeAgent {
+  readonly defaults: PluginRuntimeAgent["defaults"];
+  readonly buildRuntimeUserPrompt: PluginRuntimeAgent["buildRuntimeUserPrompt"];
+
+  constructor(private readonly params: CreatePluginRuntimeParams) {
+    this.defaults = {
+      model: params.config?.agents?.defaults?.model ?? "",
+      workspace: params.workspace,
+      maxToolIterations: Math.max(
+        0,
+        Math.trunc(params.config?.agents?.defaults?.maxToolIterations ?? 0),
+      ),
+    };
+    this.buildRuntimeUserPrompt = createRuntimeUserPromptBuilder({
+      config: params.config,
+      defaultWorkspace: params.workspace,
+    });
+  }
+
+  resolveWorkspacePath = (workspace?: string) =>
+    getWorkspacePath(workspace ?? this.params.workspace);
+
+  resolveSessionWorkspacePath: PluginRuntimeAgent["resolveSessionWorkspacePath"] = (input) =>
+    resolveSessionWorkspacePath({
+      sessionMetadata: input.sessionMetadata,
+      workspace: input.workspace,
+      defaultWorkspace: this.params.workspace,
+    });
+
+  resolveProviderRuntime = (model?: string) => {
+    if (!this.params.config) {
+      throw new Error("plugin runtime agent.resolveProviderRuntime requires host config");
+    }
+    return resolveProviderRuntime(this.params.config, model);
+  };
+}
+
+function createRuntimeConfigSection(
+  params: CreatePluginRuntimeParams,
+): PluginRuntime["config"] {
+  return {
+    loadConfig: () => loadConfigWithFallback(params.config),
+    writeConfigFile: async (next: Record<string, unknown>) => writeConfigWithFallback(next),
+  };
+}
+
+function createRuntimeReplySection(): PluginRuntime["channel"]["reply"] {
+  return {
+    resolveEnvelopeFormatOptions,
+    formatAgentEnvelope,
+    finalizeInboundContext,
+    withReplyDispatcher: async (input) =>
+      withReplyDispatcher({
+        dispatcher: input.dispatcher as ReplyDispatcher,
+        run: input.run as () => Promise<Record<string, unknown>>,
+        onSettled:
+          typeof input.onSettled === "function"
+            ? (input.onSettled as () => void | Promise<void>)
+            : undefined,
+      }),
+    dispatchReplyFromConfig: async (input) =>
+      dispatchReplyFromConfig({
+        ctx: asRecord(input.ctx),
+        cfg: input.cfg,
+        dispatcher: input.dispatcher as ReplyDispatcher,
+        bridgeDispatch: dispatchReplyWithFallback,
+        replyOptions: asRecord(input.replyOptions),
+      }),
+    createReplyDispatcherWithTyping: (input) =>
+      createReplyDispatcherWithTyping({
+        deliver: input.deliver as (payload: Record<string, unknown>, info: { kind: "tool" | "block" | "final" }) => Promise<void>,
+        onError:
+          typeof input.onError === "function"
+            ? (input.onError as (error: unknown, info: { kind: "tool" | "block" | "final" }) => void)
+            : undefined,
+        onIdle:
+          typeof input.onIdle === "function"
+            ? (input.onIdle as () => void)
+            : undefined,
+        onReplyStart:
+          typeof input.onReplyStart === "function"
+            ? (input.onReplyStart as () => void | Promise<void>)
+            : undefined,
+      }),
+    resolveHumanDelayConfig,
+    dispatchReplyWithBufferedBlockDispatcher: async (dispatchParams) =>
+      dispatchReplyWithFallback(dispatchParams),
+  };
+}
+
+function createRuntimeChannelSection(): PluginRuntime["channel"] {
+  return {
+    media: {
+      fetchRemoteMedia: async (input) =>
+        fetchRemoteMedia({
+          url: asString(input.url) ?? "",
+          maxBytes: asNumber(input.maxBytes),
+        }),
+      saveMediaBuffer: async (buffer, contentType, direction, maxBytes, fileName) =>
+        saveMediaBuffer(buffer, contentType, direction, maxBytes, fileName),
+    },
+    text: {
+      chunkMarkdownText: (text, limit) => splitTextIntoChunks(text, limit),
+      resolveMarkdownTableMode: () => "preserve",
+      convertMarkdownTables: (text) => text,
+      resolveTextChunkLimit,
+      resolveChunkMode: () => "length",
+      chunkTextWithMode: (text, limit) => splitTextIntoChunks(text, limit),
+      hasControlCommand: (text) => hasControlCommand(text),
+    },
+    reply: createRuntimeReplySection(),
+    routing: {
+      resolveAgentRoute,
+    },
+    pairing: {
+      readAllowFromStore: async () => [],
+      upsertPairingRequest: async () => ({
+        code: randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase(),
+        created: true,
+      }),
+    },
+    commands: {
+      shouldComputeCommandAuthorized: (text) => hasControlCommand(text),
+      resolveCommandAuthorizedFromAuthorizers,
+    },
+    debounce: {
+      resolveInboundDebounceMs,
+      createInboundDebouncer: <T>(input: Record<string, unknown>) =>
+        createInboundDebouncer<T>({
+          debounceMs: asNumber(input.debounceMs),
+          buildKey:
+            typeof input.buildKey === "function"
+              ? (input.buildKey as (item: T) => string | null | undefined)
+              : undefined,
+          shouldDebounce:
+            typeof input.shouldDebounce === "function"
+              ? (input.shouldDebounce as (item: T) => boolean)
+              : undefined,
+          resolveDebounceMs:
+            typeof input.resolveDebounceMs === "function"
+              ? (input.resolveDebounceMs as (item: T) => number | undefined)
+              : undefined,
+          onFlush:
+            typeof input.onFlush === "function"
+              ? (input.onFlush as (items: T[]) => Promise<void>)
+              : undefined,
+          onError:
+            typeof input.onError === "function"
+              ? (input.onError as (error: unknown, items: T[]) => void)
+              : undefined,
+        }),
+    },
+  };
+}
+
+export function createPluginRuntime(params: CreatePluginRuntimeParams): PluginRuntime {
   return {
     version: getPackageVersion(),
-    agent: {
-      defaults: {
-        model: defaultModel,
-        workspace: params.workspace,
-        maxToolIterations,
-      },
-      resolveWorkspacePath: (workspace?: string) =>
-        getWorkspacePath(workspace ?? params.workspace),
-      resolveProviderRuntime: (model?: string) => {
-        if (!params.config) {
-          throw new Error("plugin runtime agent.resolveProviderRuntime requires host config");
-        }
-        return resolveProviderRuntime(params.config, model);
-      },
-      buildRuntimeUserPrompt,
-    },
-    config: {
-      loadConfig: () => loadConfigWithFallback(params.config),
-      writeConfigFile: async (next: Record<string, unknown>) => writeConfigWithFallback(next),
-    },
+    agent: new PluginRuntimeAgentSection(params),
+    config: createRuntimeConfigSection(params),
     logging: {
       shouldLogVerbose: () => false,
     },
@@ -149,107 +291,6 @@ export function createPluginRuntime(params: { workspace: string; config?: Config
       createMemorySearchTool: () => toPluginTool(new MemorySearchTool(params.workspace)),
       createMemoryGetTool: () => toPluginTool(new MemoryGetTool(params.workspace)),
     },
-    channel: {
-      media: {
-        fetchRemoteMedia: async (input) =>
-          fetchRemoteMedia({
-            url: asString(input.url) ?? "",
-            maxBytes: asNumber(input.maxBytes),
-          }),
-        saveMediaBuffer: async (buffer, contentType, direction, maxBytes, fileName) =>
-          saveMediaBuffer(buffer, contentType, direction, maxBytes, fileName),
-      },
-      text: {
-        chunkMarkdownText: (text, limit) => splitTextIntoChunks(text, limit),
-        resolveMarkdownTableMode: () => "preserve",
-        convertMarkdownTables: (text) => text,
-        resolveTextChunkLimit,
-        resolveChunkMode: () => "length",
-        chunkTextWithMode: (text, limit) => splitTextIntoChunks(text, limit),
-        hasControlCommand: (text) => hasControlCommand(text),
-      },
-      reply: {
-        resolveEnvelopeFormatOptions,
-        formatAgentEnvelope,
-        finalizeInboundContext,
-        withReplyDispatcher: async (input) =>
-          withReplyDispatcher({
-            dispatcher: input.dispatcher as ReplyDispatcher,
-            run: input.run as () => Promise<Record<string, unknown>>,
-            onSettled:
-              typeof input.onSettled === "function"
-                ? (input.onSettled as () => void | Promise<void>)
-                : undefined,
-          }),
-        dispatchReplyFromConfig: async (input) =>
-          dispatchReplyFromConfig({
-            ctx: asRecord(input.ctx),
-            cfg: input.cfg,
-            dispatcher: input.dispatcher as ReplyDispatcher,
-            bridgeDispatch: dispatchReplyWithFallback,
-            replyOptions: asRecord(input.replyOptions),
-          }),
-        createReplyDispatcherWithTyping: (input) =>
-          createReplyDispatcherWithTyping({
-            deliver: input.deliver as (payload: Record<string, unknown>, info: { kind: "tool" | "block" | "final" }) => Promise<void>,
-            onError:
-              typeof input.onError === "function"
-                ? (input.onError as (error: unknown, info: { kind: "tool" | "block" | "final" }) => void)
-                : undefined,
-            onIdle:
-              typeof input.onIdle === "function"
-                ? (input.onIdle as () => void)
-                : undefined,
-            onReplyStart:
-              typeof input.onReplyStart === "function"
-                ? (input.onReplyStart as () => void | Promise<void>)
-                : undefined,
-          }),
-        resolveHumanDelayConfig,
-        dispatchReplyWithBufferedBlockDispatcher: async (dispatchParams) =>
-          dispatchReplyWithFallback(dispatchParams),
-      },
-      routing: {
-        resolveAgentRoute,
-      },
-      pairing: {
-        readAllowFromStore: async () => [],
-        upsertPairingRequest: async () => ({
-          code: randomUUID().replace(/-/g, "").slice(0, 8).toUpperCase(),
-          created: true,
-        }),
-      },
-      commands: {
-        shouldComputeCommandAuthorized: (text) => hasControlCommand(text),
-        resolveCommandAuthorizedFromAuthorizers,
-      },
-      debounce: {
-        resolveInboundDebounceMs,
-        createInboundDebouncer: <T>(input: Record<string, unknown>) =>
-          createInboundDebouncer<T>({
-            debounceMs: asNumber(input.debounceMs),
-            buildKey:
-              typeof input.buildKey === "function"
-                ? (input.buildKey as (item: T) => string | null | undefined)
-                : undefined,
-            shouldDebounce:
-              typeof input.shouldDebounce === "function"
-                ? (input.shouldDebounce as (item: T) => boolean)
-                : undefined,
-            resolveDebounceMs:
-              typeof input.resolveDebounceMs === "function"
-                ? (input.resolveDebounceMs as (item: T) => number | undefined)
-                : undefined,
-            onFlush:
-              typeof input.onFlush === "function"
-                ? (input.onFlush as (items: T[]) => Promise<void>)
-                : undefined,
-            onError:
-              typeof input.onError === "function"
-                ? (input.onError as (error: unknown, items: T[]) => void)
-                : undefined,
-          }),
-      },
-    },
+    channel: createRuntimeChannelSection(),
   };
 }

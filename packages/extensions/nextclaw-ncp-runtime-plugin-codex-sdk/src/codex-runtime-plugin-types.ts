@@ -34,9 +34,14 @@ export type AgentRuntimeApi = {
     model?: string;
   };
   resolveWorkspacePath: (workspace?: string) => string;
+  resolveSessionWorkspacePath: (params: {
+    sessionMetadata?: Record<string, unknown>;
+    workspace?: string;
+  }) => string;
   resolveProviderRuntime: (model?: string) => ResolvedProviderRuntime;
   buildRuntimeUserPrompt: (params: {
     workspace?: string;
+    hostWorkspace?: string;
     sessionKey?: string;
     metadata?: Record<string, unknown>;
     userMessage: string;

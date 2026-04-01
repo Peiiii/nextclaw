@@ -4,6 +4,7 @@ import {
   InputBudgetPruner,
   getWorkspacePath,
   parseThinkingLevel,
+  resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
   type SessionManager,
@@ -211,7 +212,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     private readonly options: NextclawNcpContextBuilderOptions,
   ) {}
 
-  prepare(input: NcpAgentRunInput, _options?: NcpContextPrepareOptions): NcpLLMApiInput {
+  prepare = (input: NcpAgentRunInput, _options?: NcpContextPrepareOptions): NcpLLMApiInput => {
     const config = this.options.getConfig();
     const profile = resolvePrimaryAgentProfile(config);
     const requestMetadata = mergeInputMetadata(input);
@@ -220,6 +221,10 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       session,
       requestMetadata,
       fallbackModel: profile.model,
+    });
+    const effectiveWorkspace = resolveSessionWorkspacePath({
+      sessionMetadata: session.metadata,
+      workspace: profile.workspace,
     });
     syncSessionThinkingPreference({ session, requestMetadata });
     const { channel, chatId } = resolveSessionChannelContext({
@@ -261,7 +266,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       model: effectiveModel,
       restrictToWorkspace: profile.restrictToWorkspace,
       searchConfig: profile.searchConfig,
-      workspace: profile.workspace,
+      workspace: effectiveWorkspace,
     });
 
     const accountId = readAccountIdForHints(requestMetadata, session.metadata);
@@ -273,7 +278,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     });
     const toolDefinitions = this.options.toolRegistry.getToolDefinitions();
 
-    const contextBuilder = new ContextBuilder(profile.workspace, config.agents.context);
+    const contextBuilder = new ContextBuilder(effectiveWorkspace, config.agents.context);
     const sessionMessages = _options?.sessionMessages ?? [];
     const messages = contextBuilder.buildMessages({
       history: toLegacyMessages([...sessionMessages], {
@@ -304,5 +309,5 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       model: effectiveModel,
       thinkingLevel: runtimeThinking,
     };
-  }
+  };
 }

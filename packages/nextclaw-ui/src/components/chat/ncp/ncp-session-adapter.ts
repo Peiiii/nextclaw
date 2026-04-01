@@ -1,6 +1,10 @@
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView, ThinkingLevel } from '@/api/types';
+import {
+  getSessionProjectName,
+  normalizeSessionProjectRootValue,
+} from '@/lib/session-project/session-project.utils';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
 
@@ -66,6 +70,14 @@ function readNcpSessionLabel(summary: NcpSessionSummaryView): string | null {
     return null;
   }
   return readOptionalString(metadata.label);
+}
+
+function readNcpSessionProjectRoot(summary: NcpSessionSummaryView): string | null {
+  const metadata = readMetadata(summary);
+  if (!metadata) {
+    return null;
+  }
+  return normalizeSessionProjectRootValue(metadata.project_root ?? metadata.projectRoot);
 }
 
 function readNcpSessionType(summary: NcpSessionSummaryView): string {
@@ -207,6 +219,8 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const label = readNcpSessionLabel(summary);
   const preferredModel = readNcpSessionPreferredModel(summary);
   const preferredThinking = readNcpSessionPreferredThinking(summary);
+  const projectRoot = readNcpSessionProjectRoot(summary);
+  const projectName = getSessionProjectName(projectRoot);
   const context = parseSessionContext(summary.sessionId);
   return {
     key: summary.sessionId,
@@ -216,6 +230,8 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...context,
     ...(preferredModel ? { preferredModel } : {}),
     ...(preferredThinking ? { preferredThinking } : {}),
+    ...(projectRoot ? { projectRoot } : {}),
+    ...(projectName ? { projectName } : {}),
     sessionType: readNcpSessionType(summary),
     sessionTypeMutable: false,
     messageCount: summary.messageCount

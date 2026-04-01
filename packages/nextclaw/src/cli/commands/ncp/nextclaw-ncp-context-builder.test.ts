@@ -98,6 +98,59 @@ it("injects runtime tool definitions into the system prompt", () => {
     expect(prepareForRun).toHaveBeenCalledTimes(1);
 });
 
+it("prefers session project_root over the default workspace for tool context", () => {
+    const { workspace } = createWorkspace();
+    const projectRoot = join(workspace, "project-alpha");
+    mkdirSync(projectRoot, { recursive: true });
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "dashscope/qwen3.5-plus",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `session-${randomUUID()}`;
+    sessionManager.getOrCreate(sessionId).metadata.project_root = projectRoot;
+    const prepareForRun = vi.fn();
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager,
+      toolRegistry: {
+        prepareForRun,
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+    });
+
+    builder.prepare({
+      sessionId,
+      messages: [
+        {
+          role: "user",
+          timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+          parts: [{ type: "text", text: "inspect the project" }],
+        },
+      ],
+      metadata: {},
+    } as never);
+
+    expect(prepareForRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspace: projectRoot,
+      }),
+    );
+});
+
 it("keeps current-turn text and asset reference parts in composer order", () => {
     const { workspace } = createWorkspace();
     const config = ConfigSchema.parse({

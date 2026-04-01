@@ -388,9 +388,14 @@ export type PluginRuntime = {
       maxToolIterations: number;
     };
     resolveWorkspacePath: (workspace?: string) => string;
+    resolveSessionWorkspacePath: (params: {
+      sessionMetadata?: Record<string, unknown>;
+      workspace?: string;
+    }) => string;
     resolveProviderRuntime: (model?: string) => ProviderRuntimeResolution;
     buildRuntimeUserPrompt: (params: {
       workspace?: string;
+      hostWorkspace?: string;
       sessionKey?: string;
       metadata?: Record<string, unknown>;
       userMessage: string;

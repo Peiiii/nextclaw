@@ -1,8 +1,8 @@
 export * from "./agent/loop.js";
 export * from "./agent/route-resolver.js";
-export * from "./agent/bootstrap-context.js";
 export * from "./agent/context.js";
-export * from "./agent/runtime-user-prompt.js";
+export * from "./runtime-context/bootstrap-context.js";
+export * from "./runtime-context/runtime-user-prompt.js";
 export * from "./agent/tool-catalog.utils.js";
 export * from "./agent/skill-context.js";
 export { SkillsLoader } from "./agent/skills.js";
@@ -50,6 +50,7 @@ export * from "./providers/litellm_provider.js";
 export * from "./providers/provider_manager.js";
 export * from "./providers/registry.js";
 export * from "./session/manager.js";
+export * from "./session/project-root.js";
 export * from "./utils/disposable.js";
 export * from "./utils/child-process-env.js";
 export * from "./utils/helpers.js";

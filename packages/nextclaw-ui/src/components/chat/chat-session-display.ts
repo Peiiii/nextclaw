@@ -18,7 +18,12 @@ export function sessionMatchesQuery(session: SessionEntryView, query: string): b
     return true;
   }
 
-  return [session.key, sessionDisplayName(session)]
+  return [
+    session.key,
+    sessionDisplayName(session),
+    session.projectRoot ?? '',
+    session.projectName ?? '',
+  ]
     .map(normalizeSessionSearchValue)
     .some((value) => value.includes(normalizedQuery));
 }

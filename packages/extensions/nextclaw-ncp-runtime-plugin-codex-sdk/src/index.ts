@@ -125,14 +125,16 @@ function readThinkingLevel(value: unknown): CodexReasoningEffort | undefined {
 function resolveCodexExecutionOptions(params: {
   runtimeAgent: AgentRuntimeApi;
   pluginConfig: Record<string, unknown>;
+  sessionMetadata: Record<string, unknown>;
 }): {
   workingDirectory: string;
   skipGitRepoCheck: boolean;
 } {
   const configuredWorkingDirectory = readString(params.pluginConfig.workingDirectory);
-  const workspace = params.runtimeAgent.resolveWorkspacePath(
-    configuredWorkingDirectory ?? params.runtimeAgent.defaults.workspace,
-  );
+  const workspace = params.runtimeAgent.resolveSessionWorkspacePath({
+    sessionMetadata: params.sessionMetadata,
+    workspace: configuredWorkingDirectory ?? params.runtimeAgent.defaults.workspace,
+  });
 
   return {
     workingDirectory: workspace,
@@ -205,7 +207,7 @@ const plugin: PluginDefinition = {
     additionalProperties: true,
     properties: {},
   },
-  register(api) {
+  register: (api) => {
     const pluginConfig = readRecord(api.pluginConfig) ?? {};
     const describeCodexSessionType = createDescribeCodexSessionType({
       defaultModel: readString(api.runtime.agent.defaults.model),
@@ -286,6 +288,7 @@ const plugin: PluginDefinition = {
           const executionOptions = resolveCodexExecutionOptions({
             runtimeAgent: api.runtime.agent,
             pluginConfig,
+            sessionMetadata: runtimeParams.sessionMetadata,
           });
           const accessMode = resolveCodexAccessMode(pluginConfig);
           const thinkingLevel =
@@ -313,7 +316,13 @@ const plugin: PluginDefinition = {
             setSessionMetadata: runtimeParams.setSessionMetadata,
             inputBuilder: buildCodexInputBuilder(
               api.runtime.agent,
-              executionOptions.workingDirectory,
+              {
+                workspace: executionOptions.workingDirectory,
+                hostWorkspace: api.runtime.agent.resolveWorkspacePath(
+                  api.runtime.agent.defaults.workspace,
+                ),
+                sessionMetadata: runtimeParams.sessionMetadata,
+              },
             ),
             threadOptions: {
               model,

@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SelectItem } from '@/components/ui/select';
 import { ChatSidebarSessionItem } from '@/components/chat/chat-sidebar-session-item';
 import { resolveSessionContextView } from '@/lib/session-context.utils';
-import { useChatSessionLabelService } from '@/components/chat/chat-session-label.service';
+import { useChatSessionLabel } from '@/components/chat/hooks/use-chat-session-label';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
@@ -108,7 +108,7 @@ export function ChatSidebar() {
   const { isLoading, items } = useNcpSessionListView();
   const { language, setLanguage } = useI18n();
   const { theme, setTheme } = useTheme();
-  const updateSessionLabel = useChatSessionLabelService();
+  const updateSessionLabel = useChatSessionLabel();
   const currentThemeLabel = t(THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? 'themeWarm');
   const currentLanguageLabel = LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
 

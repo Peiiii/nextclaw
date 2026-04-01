@@ -6,6 +6,10 @@ import type {
   UiNcpSessionMessagesView
 } from "../types.js";
 import { applySessionPreferencePatch } from "../session-preference-patch.js";
+import {
+  isSessionProjectRootValidationError,
+  normalizeSessionProjectRoot,
+} from "../session-project/session-project-root.js";
 import { err, ok, readJson } from "./response.js";
 import type { UiRouterOptions } from "./types.js";
 
@@ -18,6 +22,63 @@ function readPositiveInt(value: string | undefined): number | undefined {
     return undefined;
   }
   return parsed;
+}
+
+function readSessionMetadata(
+  metadata: unknown,
+): Record<string, unknown> {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return {};
+  }
+  return metadata as Record<string, unknown>;
+}
+
+function applySessionTypePatch(
+  metadata: Record<string, unknown>,
+  patch: SessionPatchUpdate,
+): void {
+  if (!Object.prototype.hasOwnProperty.call(patch, "sessionType")) {
+    return;
+  }
+  const sessionType = typeof patch.sessionType === "string" ? patch.sessionType.trim() : "";
+  if (sessionType) {
+    metadata.session_type = sessionType;
+    delete metadata.sessionType;
+    return;
+  }
+  delete metadata.session_type;
+  delete metadata.sessionType;
+}
+
+async function applyProjectRootPatch(
+  metadata: Record<string, unknown>,
+  patch: SessionPatchUpdate,
+): Promise<void> {
+  if (!Object.prototype.hasOwnProperty.call(patch, "projectRoot")) {
+    return;
+  }
+  const projectRoot = await normalizeSessionProjectRoot(patch.projectRoot);
+  if (projectRoot) {
+    metadata.project_root = projectRoot;
+    delete metadata.projectRoot;
+    return;
+  }
+  delete metadata.project_root;
+  delete metadata.projectRoot;
+}
+
+async function buildPatchedSessionMetadata(params: {
+  metadata: Record<string, unknown>;
+  patch: SessionPatchUpdate;
+}): Promise<Record<string, unknown>> {
+  const nextMetadata = applySessionPreferencePatch({
+    metadata: structuredClone(params.metadata),
+    patch: params.patch,
+    createInvalidThinkingError: () => new Error("PREFERRED_THINKING_INVALID")
+  });
+  applySessionTypePatch(nextMetadata, params.patch);
+  await applyProjectRootPatch(nextMetadata, params.patch);
+  return nextMetadata;
 }
 
 export class NcpSessionRoutesController {
@@ -105,36 +166,23 @@ export class NcpSessionRoutesController {
     }
 
     const existing = await sessionApi.getSession(sessionId);
-    if (!existing) {
-      return c.json(err("NOT_FOUND", `ncp session not found: ${sessionId}`), 404);
-    }
-
-    const metadata =
-      existing.metadata && typeof existing.metadata === "object" && !Array.isArray(existing.metadata)
-        ? (existing.metadata as Record<string, unknown>)
-        : {};
+    const metadata = readSessionMetadata(existing?.metadata);
 
     let updated;
     try {
-      const nextMetadata = applySessionPreferencePatch({
-        metadata: structuredClone(metadata),
-        patch,
-        createInvalidThinkingError: () => new Error("PREFERRED_THINKING_INVALID")
+      const nextMetadata = await buildPatchedSessionMetadata({
+        metadata,
+        patch
       });
-      if (Object.prototype.hasOwnProperty.call(patch, "sessionType")) {
-        const sessionType = typeof patch.sessionType === "string" ? patch.sessionType.trim() : "";
-        if (sessionType) {
-          nextMetadata.session_type = sessionType;
-        } else {
-          delete nextMetadata.session_type;
-        }
-      }
       updated = await sessionApi.updateSession(sessionId, {
         metadata: nextMetadata
       });
     } catch (error) {
       if (error instanceof Error && error.message === "PREFERRED_THINKING_INVALID") {
         return c.json(err("PREFERRED_THINKING_INVALID", "preferredThinking must be a supported thinking level"), 400);
+      }
+      if (isSessionProjectRootValidationError(error)) {
+        return c.json(err(error.code, error.message), 400);
       }
       throw error;
     }

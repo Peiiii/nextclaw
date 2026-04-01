@@ -50,10 +50,14 @@
   - `设置项目目录`
   - `清除项目目录`
   - `删除会话`
+- `设置项目目录` 使用服务端驱动的目录选择器，浏览的是运行 NextClaw 服务的那台机器上的目录，而不是浏览器本机目录
 - 用户可以在会话创建后的任意时刻设置或清除项目目录
 - 设置成功后，header 显示轻量 project badge
 - `project_root` 通过现有 session metadata 持久化
 - `project_root` 真正接入 `native / codex / claude` 的有效工作目录解析
+- runtime prompt 会显式区分：
+  - `Current project directory`
+  - `NextClaw workspace directory`（仅辅助背景）
 
 本次明确不做：
 
@@ -263,6 +267,14 @@ effective_working_directory =
 
 都自然围绕该目录运行，而不是继续围绕全局 workspace。
 
+除此之外，prompt 暴露给模型的语义也必须调整：
+
+- `project_root` 存在时，它应成为“当前项目”的主语
+- `NextClaw workspace` 仍可提供给模型，但只能作为宿主环境背景，不得替代当前项目语义
+- 即使当前项目目录下没有 `AGENTS.md` / `SOUL.md` 等 bootstrap 文件，也必须显式告诉模型当前项目目录是什么，避免模型退回到“只看见 workspace”的状态
+
+换句话说，不能只把 `cwd` 设对，还要把“你现在围绕哪个项目工作”说清楚。
+
 ### 7.3 多 runtime 一致性
 
 `native / codex / claude / future runtimes` 都只消费：
@@ -355,8 +367,8 @@ v1 应新增：
 
 新建会话时提供一个轻量的 project picker：
 
-- 可手动输入本地目录
-- 或通过后续目录选择器选择
+- 可手动输入服务端目录
+- 或通过目录选择器浏览服务端机器目录
 
 如果用户不选：
 
@@ -371,11 +383,13 @@ v1 应新增：
 
 ### 10.3 已开始会话
 
-对已经有首条用户消息的会话：
+当前轻量版对已经有首条用户消息的会话仍然允许修改或清除 `project_root`，但语义必须明确：
 
-- 只展示当前 project
-- 不允许直接修改
-- 可在未来提供“以该目录新建会话”快捷入口
+- 只影响后续消息与后续工具执行
+- 不追溯改写历史消息语义
+- 不尝试重放历史 run
+
+未来如果这条路径在真实使用中产生明显歧义，再考虑升级为“已开始会话只允许克隆新会话再切目录”。
 
 ## 11. 目录失效与异常处理
 
@@ -428,9 +442,28 @@ v1 应新增：
 
 - [`packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/index.ts`](../../packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/index.ts)
 - [`packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-input-builder.ts`](../../packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-input-builder.ts)
+- [`packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk/src/claude-runtime-context.ts`](../../packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk/src/claude-runtime-context.ts)
 - [`packages/nextclaw-openclaw-compat/src/plugins/runtime.ts`](../../packages/nextclaw-openclaw-compat/src/plugins/runtime.ts)
+- [`packages/nextclaw-core/src/agent/bootstrap-context.ts`](../../packages/nextclaw-core/src/agent/bootstrap-context.ts)
+- [`packages/nextclaw-core/src/agent/runtime-user-prompt.ts`](../../packages/nextclaw-core/src/agent/runtime-user-prompt.ts)
 
 后续 `claude` 与 `native` runtime 也应消费相同字段，但不需要新抽象层。
+
+## 12.4 Remote-aware Path Picker
+
+由于 NextClaw 可能部署在远程机器上，前端页面所在设备与服务端文件系统并不一定是同一台机器，所以项目目录选择不能依赖浏览器或桌面本地文件选择器。
+
+本方案补充一条全局能力：
+
+- 服务端提供纯读的路径浏览接口
+- 前端复用统一的路径选择对话框
+- 当前先以“目录选择”为目标，未来可以自然扩展到文件选择
+
+这样做的好处是：
+
+- 产品语义正确，避免“UI 选了本机目录，但 runtime 实际跑在远程服务器”
+- 能被会话项目目录之外的其他场景复用
+- 保持抽象足够小，不引入新的 Project 模型
 
 ## 13. v1 不做什么
 

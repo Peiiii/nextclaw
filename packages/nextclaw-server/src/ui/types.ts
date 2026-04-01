@@ -433,7 +433,28 @@ export type SessionPatchUpdate = {
   preferredModel?: string | null;
   preferredThinking?: ThinkingLevel | null;
   sessionType?: string | null;
+  projectRoot?: string | null;
   clearHistory?: boolean;
+};
+
+export type ServerPathEntryView = {
+  name: string;
+  path: string;
+  kind: "directory" | "file";
+  hidden: boolean;
+};
+
+export type ServerPathBreadcrumbView = {
+  label: string;
+  path: string;
+};
+
+export type ServerPathBrowseView = {
+  currentPath: string;
+  parentPath: string | null;
+  homePath: string;
+  breadcrumbs: ServerPathBreadcrumbView[];
+  entries: ServerPathEntryView[];
 };
 
 export type CronScheduleView =

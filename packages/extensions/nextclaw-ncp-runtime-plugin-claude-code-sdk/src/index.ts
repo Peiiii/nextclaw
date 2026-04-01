@@ -197,7 +197,7 @@ const plugin: PluginDefinition = {
     additionalProperties: true,
     properties: {},
   },
-  register(api) {
+  register: (api) => {
     const pluginConfig = readRecord(api.pluginConfig) ?? {};
     const describeClaudeSessionType = createDescribeClaudeSessionType({
       config: api.config,
@@ -245,10 +245,12 @@ const plugin: PluginDefinition = {
           requestTimeoutMs: resolveClaudeRequestTimeoutMs(pluginConfig.requestTimeoutMs),
           sessionMetadata: runtimeParams.sessionMetadata,
           setSessionMetadata: runtimeParams.setSessionMetadata,
-          inputBuilder: buildClaudeInputBuilder(
-            runtimeContext.workingDirectory,
-            api.config.agents.context,
-          ),
+          inputBuilder: buildClaudeInputBuilder({
+            workspace: runtimeContext.workingDirectory,
+            hostWorkspace: api.config.agents.defaults.workspace,
+            sessionMetadata: runtimeParams.sessionMetadata,
+            contextConfig: api.config.agents.context,
+          }),
           stateManager: runtimeParams.stateManager,
         };
 

@@ -48,7 +48,7 @@ export class UiSessionService implements NcpSessionApi {
     });
   }
 
-  async listSessions(options?: ListSessionsOptions): Promise<NcpSessionSummary[]> {
+  listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
     const sessions = await this.sessionStore.listSessions();
     return applyLimit(
       sessions.map((session) =>
@@ -62,17 +62,20 @@ export class UiSessionService implements NcpSessionApi {
       ),
       options?.limit
     );
-  }
+  };
 
-  async listSessionMessages(sessionId: string, options?: ListMessagesOptions): Promise<NcpMessage[]> {
+  listSessionMessages = async (
+    sessionId: string,
+    options?: ListMessagesOptions,
+  ): Promise<NcpMessage[]> => {
     const session = await this.sessionStore.getSession(sessionId);
     if (!session) {
       return [];
     }
     return applyLimit(session.messages.map((message) => structuredClone(message)), options?.limit);
-  }
+  };
 
-  async getSession(sessionId: string): Promise<NcpSessionSummary | null> {
+  getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const session = await this.sessionStore.getSession(sessionId);
     if (!session) {
       return null;
@@ -84,26 +87,28 @@ export class UiSessionService implements NcpSessionApi {
       status: "idle",
       metadata: session.metadata
     });
-  }
+  };
 
-  async updateSession(sessionId: string, patch: NcpSessionPatch): Promise<NcpSessionSummary | null> {
+  updateSession = async (
+    sessionId: string,
+    patch: NcpSessionPatch,
+  ): Promise<NcpSessionSummary | null> => {
     const session = await this.sessionStore.getSession(sessionId);
-    if (!session) {
-      return null;
-    }
-    await this.sessionStore.saveSession({
+    await this.sessionStore.replaceSession({
       sessionId,
-      messages: session.messages.map((message) => structuredClone(message)),
+      messages: session
+        ? session.messages.map((message) => structuredClone(message))
+        : [],
       updatedAt: now(),
       metadata: buildUpdatedMetadata({
-        existingMetadata: session.metadata,
+        existingMetadata: session?.metadata,
         patch
       })
     });
     return await this.getSession(sessionId);
-  }
+  };
 
-  async deleteSession(sessionId: string): Promise<void> {
+  deleteSession = async (sessionId: string): Promise<void> => {
     await this.sessionStore.deleteSession(sessionId);
-  }
+  };
 }
