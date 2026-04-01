@@ -11,12 +11,17 @@
 - native 侧文件预览现在不再只依赖“工具调用结束后的一次性完整 args”：
   - 当模型正在逐步生成 `edit_file / write_file / apply_patch` 参数时，NCP conversation state 会跟随 `args delta` 累积工具参数。
   - 一旦参数文本已经足够形成可解析的文件操作数据，现有文件卡片就能提前展开预览，而不用等工具结果返回。
+- 同批次再次续修前端后半段链路：确认浏览器侧已经能收到 `message.tool-call-args-delta`，但 UI 之前仍然只在 `args` 成为完整 JSON 后才提取 `path/content/oldText/newText/patch`，导致长时间只显示“准备中/转圈”而没有预览。
+  - 现在文件工具卡片会对不完整但已具备关键信息的 JSON 参数做渐进式字段提取，优先抽取 `path`、`content`、`oldText`、`newText`、`patch`。
+  - `write_file` 这类大文本写入场景在 JSON 尚未闭合时，也能提前显示目标文件和已生成的部分内容预览。
+  - `partial-call` 状态文案从“准备中”调整为“运行中”，更贴近真实工具执行阶段，减少用户误判为卡死。
 - 补充前端回归测试，覆盖：
   - 运行中 `edit_file` 自动展开预览
   - 完成后的 `file_change` diff 展开渲染
   - 适配层把文件类工具调用转换成结构化卡片数据
   - native NCP `tool-invocation` 流式参数在 result 前即可被适配成文件预览卡片
   - NCP stream encoder 会先发 `tool-call-start / tool-call-args-delta`，再发 `tool-call-end`
+  - 不完整的 `write_file` 原生参数也能提前生成结构化预览
 
 ## 测试/验证/验收方式
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui exec vitest run src/components/chat/adapters/chat-message.adapter.test.ts`
@@ -27,7 +32,9 @@
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-agent-chat-ui exec eslint src/components/chat/view-models/chat-ui.types.ts src/components/chat/index.ts src/components/chat/ui/chat-message-list/chat-tool-card.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-views.tsx src/components/chat/ui/chat-message-list/tool-card/tool-card-file-operation.tsx src/components/chat/ui/chat-message-list/chat-message-list.test.tsx src/components/chat/ui/chat-message-list/__tests__/chat-message-list.file-operation.test.tsx`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw test -- src/cli/commands/ncp/stream-encoder-order.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/ncp/ncp-session-adapter.test.ts`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/adapters/chat-message.adapter.test.ts src/components/chat/ncp/ncp-session-adapter.test.ts`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/ncp-packages/nextclaw-ncp-agent-runtime tsc`
+- 已执行：`PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui tsc`
 - 已执行：`PATH=/opt/homebrew/bin:$PATH node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`
   - 结果：本次改动文件无 error，保留 3 条 warning：
     - `packages/nextclaw-agent-chat-ui/src/components/chat/ui/chat-message-list` 目录历史上仍在预算线以上

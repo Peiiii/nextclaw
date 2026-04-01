@@ -221,7 +221,7 @@ function resolveToolCardStatus(params: {
       kind: "call",
       hasResult: false,
       statusTone: "running",
-      statusLabel: params.texts.toolStatusPreparingLabel,
+      statusLabel: params.texts.toolStatusRunningLabel,
     };
   }
   return {

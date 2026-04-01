@@ -68,6 +68,126 @@ function readRecordPayload(value: unknown): Record<string, unknown> | null {
   }
 }
 
+function decodeJsonStringChar(value: string): string {
+  switch (value) {
+    case '"':
+    case "\\":
+    case "/":
+      return value;
+    case "b":
+      return "\b";
+    case "f":
+      return "\f";
+    case "n":
+      return "\n";
+    case "r":
+      return "\r";
+    case "t":
+      return "\t";
+    default:
+      return value;
+  }
+}
+
+function locatePartialJsonStringValueStart(raw: string, fieldName: string): number | null {
+  const marker = `"${fieldName}"`;
+  const markerIndex = raw.indexOf(marker);
+  if (markerIndex < 0) {
+    return null;
+  }
+  const colonIndex = raw.indexOf(":", markerIndex + marker.length);
+  if (colonIndex < 0) {
+    return null;
+  }
+  let valueStart = colonIndex + 1;
+  while (valueStart < raw.length && /\s/.test(raw[valueStart] ?? "")) {
+    valueStart += 1;
+  }
+  return raw[valueStart] === '"' ? valueStart + 1 : null;
+}
+
+function consumePartialJsonStringValue(raw: string, valueStart: number): string | null {
+  let output = "";
+  let escaped = false;
+  for (let index = valueStart; index < raw.length; index += 1) {
+    const current = raw[index];
+    if (current == null) {
+      break;
+    }
+    if (escaped) {
+      output += decodeJsonStringChar(current);
+      escaped = false;
+      continue;
+    }
+    if (current === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (current === '"') {
+      return output;
+    }
+    output += current;
+  }
+  return output.length > 0 ? output : null;
+}
+
+function readPartialJsonStringField(raw: string, fieldNames: readonly string[]): string | null {
+  for (const fieldName of fieldNames) {
+    const valueStart = locatePartialJsonStringValueStart(raw, fieldName);
+    if (valueStart == null) {
+      continue;
+    }
+    return consumePartialJsonStringValue(raw, valueStart);
+  }
+  return null;
+}
+
+function readPartialRecordPayload(value: unknown): Record<string, unknown> | null {
+  if (isRecord(value)) {
+    return value;
+  }
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{")) {
+    return null;
+  }
+  const path =
+    readPartialJsonStringField(trimmed, [
+      "path",
+      "filePath",
+      "file_path",
+      "targetPath",
+      "target_path",
+      "filename",
+      "name",
+    ]) ?? null;
+  const content = readPartialJsonStringField(trimmed, ["content", "text", "afterText", "after_text"]);
+  const oldText = readPartialJsonStringField(trimmed, ["oldText", "beforeText", "before_text"]);
+  const newText = readPartialJsonStringField(trimmed, ["newText", "afterText", "after_text"]);
+  const patch = readPartialJsonStringField(trimmed, ["patch", "diff", "unifiedDiff", "unified_diff"]);
+
+  const partialRecord: Record<string, unknown> = {};
+  if (path) {
+    partialRecord.path = path;
+  }
+  if (content) {
+    partialRecord.content = content;
+  }
+  if (oldText) {
+    partialRecord.oldText = oldText;
+  }
+  if (newText) {
+    partialRecord.newText = newText;
+  }
+  if (patch) {
+    partialRecord.patch = patch;
+  }
+
+  return Object.keys(partialRecord).length > 0 ? partialRecord : null;
+}
+
 function readPath(record: Record<string, unknown>): string | null {
   return (
     normalizePath(record.path) ??
@@ -237,7 +357,9 @@ function buildFileChangeCardData(invocation: ToolInvocationSource): FileOperatio
 
 function buildReadFileCardData(invocation: ToolInvocationSource): FileOperationCardData | null {
   const argsRecord =
-    readRecordPayload(invocation.parsedArgs) ?? readRecordPayload(invocation.args);
+    readRecordPayload(invocation.parsedArgs) ??
+    readRecordPayload(invocation.args) ??
+    readPartialRecordPayload(invocation.args);
   const path = argsRecord && readPath(argsRecord);
   const content = readNonEmptyString(invocation.result);
   if (!path || !content) {
@@ -256,7 +378,9 @@ function buildReadFileCardData(invocation: ToolInvocationSource): FileOperationC
 
 function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperationCardData | null {
   const argsRecord =
-    readRecordPayload(invocation.parsedArgs) ?? readRecordPayload(invocation.args);
+    readRecordPayload(invocation.parsedArgs) ??
+    readRecordPayload(invocation.args) ??
+    readPartialRecordPayload(invocation.args);
   if (!argsRecord) {
     return null;
   }
@@ -278,7 +402,9 @@ function buildWriteFileCardData(invocation: ToolInvocationSource): FileOperation
 
 function buildEditFileCardData(invocation: ToolInvocationSource): FileOperationCardData | null {
   const argsRecord =
-    readRecordPayload(invocation.parsedArgs) ?? readRecordPayload(invocation.args);
+    readRecordPayload(invocation.parsedArgs) ??
+    readRecordPayload(invocation.args) ??
+    readPartialRecordPayload(invocation.args);
   if (!argsRecord) {
     return null;
   }
@@ -302,7 +428,7 @@ function buildEditFileCardData(invocation: ToolInvocationSource): FileOperationC
 
 function buildApplyPatchCardData(invocation: ToolInvocationSource): FileOperationCardData | null {
   const parsedArgsRecord = readRecordPayload(invocation.parsedArgs);
-  const argsRecord = readRecordPayload(invocation.args);
+  const argsRecord = readRecordPayload(invocation.args) ?? readPartialRecordPayload(invocation.args);
   const patchText =
     readNonEmptyString(invocation.args) ??
     (parsedArgsRecord ? readNonEmptyString(parsedArgsRecord.patch) : null) ??

@@ -126,7 +126,7 @@ it("maps tool lifecycle statuses into visible card state feedback", () => {
     type: "tool-card",
     card: {
       statusTone: "running",
-      statusLabel: "Preparing",
+      statusLabel: "Running",
       titleLabel: "Tool Call",
     },
   });
@@ -426,6 +426,53 @@ it("builds edit-file previews from structured args before the tool finishes", ()
                 text: "const color = 'blue';",
               },
             ],
+          },
+        ],
+      },
+    },
+  });
+});
+
+it("builds write-file previews from partial native args before the JSON is complete", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-write-preview",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.PARTIAL_CALL,
+            toolCallId: "write-call-1",
+            toolName: "write_file",
+            args: '{"path":"games/snake.html","content":"<!DOCTYPE html>\\n<canvas id=\\"game\\"></canvas>\\n<script>const score = 1;',
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "write_file",
+      summary: "games/snake.html",
+      statusTone: "running",
+      statusLabel: "Running",
+      fileOperation: {
+        blocks: [
+          {
+            path: "games/snake.html",
+            lines: expect.arrayContaining([
+              expect.objectContaining({
+                kind: "add",
+                text: "<!DOCTYPE html>",
+              }),
+              expect.objectContaining({
+                kind: "add",
+                text: '<canvas id="game"></canvas>',
+              }),
+            ]),
           },
         ],
       },
