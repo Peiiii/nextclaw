@@ -217,10 +217,10 @@
   - 执行方式：识别关键词后自动执行全流程闭环。
   - 维护责任人：当前助手。
 - **no-duplicate-functionality**：
-  - 约束/适用范围：同一功能不得重复实现，保持唯一性。
-  - 示例：统一入口复用同一实现。
-  - 反例：同一逻辑在多个文件重复实现。
-  - 执行方式：抽象复用、删除重复实现。
+  - 约束/适用范围：同一功能、同一职责链路、同一业务规则、同一数据变换、同一交互结构或同一组件表面，不得以平行实现的方式重复存在。默认必须先评估“是否已有可复用的 class / helper / service / store / hook / component / primitive”，再决定是直接复用、抽取稳定共享核心、还是保留独立实现。本规则同时覆盖代码复用与组件复用。复用不等于过度抽象：若两个实现的职责、生命周期、演进方向或交互契约已明显分叉，可以保留独立实现，但必须说明为什么不应强行合并。
+  - 示例：统一入口复用同一实现；已有 `FileOperationCard` 能满足新场景时直接复用，而不是复制一份 `FileOperationCardV2`；两个页面共享相同筛选条结构时提取共享组件或共享 primitive + wrapper，而不是各自复制同一套 JSX 和状态接线；同一归一化逻辑集中到单一 helper / service，而不是在多个 adapter 中重复写一遍。
+  - 反例：同一逻辑在多个文件重复实现；只因为赶时间就复制现有组件并改几行 className / 文案；已有稳定共享核心却继续新增 `XxxNew` / `XxxV2` / `useXxx2` 之类平行实现；为了“统一”而把两个已明显分叉的组件硬塞进一个巨大且难理解的万能组件，反而让复用变成新的复杂度来源。
+  - 执行方式：新增逻辑、helper 或组件前，至少先回答三个问题：`仓库里是否已有可直接复用的实现？`、`若不能直接复用，是否应先抽取一个稳定的共享核心再由薄封装承接差异？`、`如果最终仍保留独立实现，为什么这不是一次应该合并的重复实现？`。若当前任务已触达重复实现，默认优先删除、合并、抽共享核心或收敛到单一入口；若暂时不能处理，必须在结果中说明原因、风险与下一步合并位点。
   - 维护责任人：当前助手。
 - **ui-no-business-logic**：
   - 约束/适用范围：UI 组件禁止依赖业务逻辑。前端中的复杂业务逻辑、状态编排、领域规则与副作用治理，默认必须下沉到 class 边界，而不是停留在组件、hook 或零散 store action 中。
@@ -353,9 +353,9 @@
   - 维护责任人：当前助手。
 - **post-edit-maintainability-review-required**：
   - 约束/适用范围：凡本次任务触达项目源码、脚本、测试或影响运行链路的配置，在 `post-edit-maintainability-guard` 之后、最终回复或提交之前，必须再执行一轮独立于实现阶段的主观可维护性复核；纯文档、措辞或元信息微调不适用，但必须明确说明“不适用”。
-  - 示例：修完 `packages/nextclaw-core/src/agent/loop.ts` 后，不只看 guard 是否通过，还要再用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 的问题集复核：`这段代码还能删什么？`、`是否只是把复杂度换个位置？`、`这次增长是否属于最小必要？`、`抽象边界是否更清晰？`，并在结果中明确写出 `可维护性复核结论：通过/需继续修改/保留债务经说明接受`。
+  - 示例：修完 `packages/nextclaw-core/src/agent/loop.ts` 后，不只看 guard 是否通过，还要再用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 的问题集复核：`这段代码还能删什么？`、`是否只是把复杂度换个位置？`、`这次增长是否属于最小必要？`、`抽象边界是否更清晰？`，并在最终回复中明确写出 `可维护性复核结论：通过/需继续修改/保留债务经说明接受`、`本次顺手减债：是/否`，以及一段简短的 `可维护性总结`。
   - 反例：代码通过了 lint 和 maintainability guard，就直接结束任务；或只是重复“guard 无报错”，却不判断是否仍然留了重复分支、多余 helper、补丁式抽象、伪简化或非功能改动导致的无谓膨胀。
-  - 执行方式：默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md)，并采用 `code-review` 的 findings-first 视角专门检查非指标型可维护性问题。复核时至少必须回答以下问题：`还能删什么？`、`删不掉的部分还能如何简化？`、`这次是否让总代码量/分支/函数/文件继续膨胀？`、`如果是非新增用户能力，增长是否属于最小必要？`、`抽象、模块边界、class/helper/service/store 的职责划分是否更清晰？`、`是否只是把复杂度换个名字或换个位置继续保留？`。若答案显示存在更优的删减/简化方案，默认应继续修改；若因风险、时效或联动成本保留债务，必须明确原因、风险与下一步拆分缝。
+  - 执行方式：默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md)，并采用 `code-review` 的 findings-first 视角专门检查非指标型可维护性问题。复核时至少必须回答以下问题：`还能删什么？`、`删不掉的部分还能如何简化？`、`这次是否让总代码量/分支/函数/文件继续膨胀？`、`如果是非新增用户能力，增长是否属于最小必要？`、`抽象、模块边界、class/helper/service/store 的职责划分是否更清晰？`、`是否只是把复杂度换个名字或换个位置继续保留？`。若答案显示存在更优的删减/简化方案，默认应继续修改；若因风险、时效或联动成本保留债务，必须明确原因、风险与下一步拆分缝。代码任务最终回复默认还必须包含一段简短的 `可维护性总结`，用 1-3 句概括：这次是否让代码更少/更清晰、是否存在保留债务、以及下一步拆分缝或观察点。
   - 维护责任人：当前助手。
 - **hotspot-touch-must-record-debt-status**：
   - 约束/适用范围：凡触达仓库红区文件（以 [`scripts/maintainability-hotspots.mjs`](scripts/maintainability-hotspots.mjs) 为准），本次 `docs/logs/v<semver>-<slug>/README.md` 必须新增 `## 红区触达与减债记录`，并为每个红区文件单独记录“本次是否减债 / 说明 / 下一步拆分缝”。
