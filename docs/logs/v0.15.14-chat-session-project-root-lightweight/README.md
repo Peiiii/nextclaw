@@ -9,6 +9,10 @@
   - `GET /api/server-paths/browse`
   - 前端通用 `ServerPathPickerDialog`
   - 会话项目目录改为浏览“运行 NextClaw 服务的那台机器上的目录”，兼容远程部署语义。
+- 继续收敛目录选择器交互：
+  - 弹框主体改为固定尺寸，目录切换时不再因条目数量变化导致整体抖动
+  - 滚动被限制在目录列表内部，header / path input / footer 保持稳定
+  - 新增“当前目录内搜索”，先做纯前端过滤，不引入新的后端协议与状态复杂度
 - 前端会话 header 从单一删除按钮升级为“更多操作”菜单，支持：
   - 设置项目目录
   - 清除项目目录
@@ -37,6 +41,7 @@
 
 ```bash
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/chat/chat-session-display.test.ts src/components/chat/ncp/ncp-session-adapter.test.ts src/components/chat/ChatConversationPanel.test.tsx
+PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/path-picker/server-path-picker-dialog.test.tsx
 ```
 
 - Nextclaw session/runtime 定向测试：
@@ -66,6 +71,7 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextc
 - 受影响包类型检查：
 
 ```bash
+PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui build
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextclaw-ui exec tsc -p tsconfig.json --noEmit
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk exec tsc -p tsconfig.json --noEmit
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk exec tsc -p tsconfig.json --noEmit
@@ -88,6 +94,8 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm lint:maintainabil
 - `project_root` 清除后，header、刷新后的列表、以及 runtime 上下文都不再残留旧目录。
 - 对真实运行中的 `/api/ncp/sessions/:id` 发 `PUT { "projectRoot": null }` 后，返回 payload 里不再包含 `project_root`。
 - 路径选择器浏览的是服务端机器目录，而不是浏览器当前机器目录。
+- 路径选择器弹框在切换目录时高度保持稳定，滚动只发生在目录列表内部。
+- 在搜索框输入关键字后，只过滤当前目录内的条目；清空关键字后恢复完整列表。
 - maintainability guard 无新增阻塞错误；仅保留仓库历史目录预算类 warning。
 
 ## 红区触达与减债记录
@@ -117,6 +125,8 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextc
 2. 选择“设置项目目录”，在弹窗里输入路径，或通过目录浏览器选择一个真实存在的服务端目录。
 3. 验收点：
    - header 出现项目 badge
+   - 目录浏览弹窗不会因文件数变化而整体抖动
+   - 可在弹窗内直接搜索当前目录下的子目录名/路径片段
    - 会话再次打开后项目目录仍然保留
    - sidebar 搜索项目名时能命中该会话
    - 问 `Codex`“当前项目目录是什么”时，回答应优先围绕绑定目录，而不是把 `NextClaw workspace` 当成当前项目

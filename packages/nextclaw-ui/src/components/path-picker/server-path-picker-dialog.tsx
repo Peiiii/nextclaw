@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Folder, FolderUp, Home, RefreshCcw } from 'lucide-react';
+import { ChevronRight, Folder, FolderUp, Home, RefreshCcw, Search } from 'lucide-react';
 import { useServerPathBrowse } from '@/hooks/server-path/use-server-path-browse';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,6 +44,7 @@ export function ServerPathPickerDialog({
 }: ServerPathPickerDialogProps) {
   const [draftPath, setDraftPath] = useState('');
   const [browsePath, setBrowsePath] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState('');
 
   useEffect(() => {
     if (!open) {
@@ -52,6 +53,7 @@ export function ServerPathPickerDialog({
     const nextPath = currentPath?.trim() || null;
     setDraftPath(nextPath ?? '');
     setBrowsePath(nextPath);
+    setSearchText('');
   }, [currentPath, open]);
 
   const browseQuery = useServerPathBrowse({
@@ -79,8 +81,25 @@ export function ServerPathPickerDialog({
       : String(browseQuery.error);
   }, [browseQuery.error]);
 
+  const normalizedSearchText = searchText.trim().toLowerCase();
+  const filteredEntries = useMemo(() => {
+    const entries = browseQuery.data?.entries ?? [];
+    if (normalizedSearchText.length === 0) {
+      return entries;
+    }
+    return entries.filter((entry) => {
+      const normalizedName = entry.name.toLowerCase();
+      const normalizedPath = entry.path.toLowerCase();
+      return (
+        normalizedName.includes(normalizedSearchText) ||
+        normalizedPath.includes(normalizedSearchText)
+      );
+    });
+  }, [browseQuery.data?.entries, normalizedSearchText]);
+
   const navigateTo = (path: string | null) => {
     setBrowsePath(path);
+    setSearchText('');
     if (path) {
       setDraftPath(path);
     }
@@ -96,7 +115,7 @@ export function ServerPathPickerDialog({
         onOpenChange(nextOpen);
       }}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-h-[85vh] overflow-hidden sm:h-[42rem] sm:max-w-2xl sm:grid-rows-[auto_minmax(0,1fr)]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? (
@@ -104,7 +123,7 @@ export function ServerPathPickerDialog({
           ) : null}
         </DialogHeader>
         <form
-          className="space-y-4"
+          className="flex min-h-0 flex-col gap-4"
           onSubmit={(event) => {
             event.preventDefault();
             if (submitDisabled) {
@@ -127,7 +146,7 @@ export function ServerPathPickerDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setBrowsePath(normalizedDraftPath || null)}
+                onClick={() => navigateTo(normalizedDraftPath || null)}
                 disabled={isSaving}
               >
                 {t('openPath')}
@@ -135,7 +154,7 @@ export function ServerPathPickerDialog({
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-gray-50/70">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-gray-50/70">
             <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 px-3 py-2">
               <Button
                 type="button"
@@ -194,16 +213,29 @@ export function ServerPathPickerDialog({
               </div>
             </div>
 
-            <ScrollArea className="max-h-72 px-2 py-2">
+            <div className="border-b border-gray-200 px-3 py-2">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder={t('pathPickerSearchPlaceholder')}
+                  disabled={isSaving || browseQuery.isLoading}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <ScrollArea className="min-h-0 flex-1 px-2 py-2">
               {browseQuery.isLoading ? (
                 <div className="px-2 py-6 text-sm text-gray-500">{t('loading')}</div>
               ) : errorMessage ? (
                 <div className="px-2 py-4 text-sm text-destructive">
                   {t('pathBrowseFailed')}: {errorMessage}
                 </div>
-              ) : browseQuery.data && browseQuery.data.entries.length > 0 ? (
+              ) : browseQuery.data && filteredEntries.length > 0 ? (
                 <div className="space-y-1">
-                  {browseQuery.data.entries.map((entry) => (
+                  {filteredEntries.map((entry) => (
                     <button
                       key={entry.path}
                       type="button"
@@ -215,6 +247,10 @@ export function ServerPathPickerDialog({
                       <span className="truncate">{entry.name}</span>
                     </button>
                   ))}
+                </div>
+              ) : browseQuery.data && browseQuery.data.entries.length > 0 ? (
+                <div className="px-2 py-6 text-sm text-gray-500">
+                  {t('pathPickerSearchEmpty')}
                 </div>
               ) : (
                 <div className="px-2 py-6 text-sm text-gray-500">{t('emptyDirectory')}</div>
