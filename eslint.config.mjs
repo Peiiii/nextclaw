@@ -4,6 +4,7 @@ import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
+import preferTopLevelContextDestructuringRule from "./scripts/eslint-rules/prefer-top-level-context-destructuring-rule.mjs";
 import reactComponentPropsDestructuringRule from "./scripts/eslint-rules/react-component-props-destructuring-rule.mjs";
 
 const jsWorkspaceFiles = ["apps/**/*.{js,jsx,mjs}", "packages/**/*.{js,jsx,mjs}", "workers/**/*.{js,jsx,mjs}"];
@@ -118,6 +119,21 @@ const baseRules = {
   "no-param-reassign": ["warn", { props: false }]
 };
 
+const nextclawPlugin = {
+  rules: {
+    "prefer-top-level-context-destructuring": preferTopLevelContextDestructuringRule,
+    "react-component-props-destructuring": reactComponentPropsDestructuringRule
+  }
+};
+
+const nextclawContextDestructuringRule = [
+  "warn",
+  {
+    objectNames: ["params", "options", "context"],
+    minAccesses: 4
+  }
+];
+
 export default [
   {
     ignores: [
@@ -186,9 +202,13 @@ export default [
       }
     },
     plugins: {
-      "@typescript-eslint": tsEslintPlugin
+      "@typescript-eslint": tsEslintPlugin,
+      nextclaw: nextclawPlugin
     },
-    rules: baseRules
+    rules: {
+      ...baseRules,
+      "nextclaw/prefer-top-level-context-destructuring": nextclawContextDestructuringRule
+    }
   },
   {
     files: testFiles,
@@ -235,11 +255,7 @@ export default [
     files: ["packages/nextclaw-ui/**/*.{ts,tsx,mts,cts}", "packages/nextclaw-agent-chat-ui/**/*.{ts,tsx,mts,cts}"],
     plugins: {
       "react-hooks": reactHooks,
-      nextclaw: {
-        rules: {
-          "react-component-props-destructuring": reactComponentPropsDestructuringRule
-        }
-      }
+      nextclaw: nextclawPlugin
     },
     rules: {
       ...reactHooks.configs.recommended.rules,

@@ -1,9 +1,10 @@
 import {
   getApiBase,
+  RequestedSkillsMetadataReader,
+  SessionProjectContextResolver,
+  SkillsLoader,
   buildBootstrapAwareUserPrompt,
   getProvider,
-  LayeredSkillsLoader,
-  readRequestedSkillsFromMetadata,
   resolveSessionWorkspacePath,
   type Config,
 } from "@nextclaw/core";
@@ -96,31 +97,34 @@ export function buildClaudeInputBuilder(
     contextConfig?: Config["agents"]["context"];
   },
 ) {
-  const supportingSkillWorkspaces =
-    typeof params.hostWorkspace === "string" &&
-    params.hostWorkspace.trim().length > 0 &&
-    params.hostWorkspace.trim() !== params.workspace
-      ? [params.hostWorkspace.trim()]
-      : [];
-  const skillsLoader = new LayeredSkillsLoader(
-    params.workspace,
-    supportingSkillWorkspaces,
-  );
+  const { contextConfig, hostWorkspace, sessionMetadata, workspace } = params;
+  const requestedSkillsReader = new RequestedSkillsMetadataReader();
+  const projectContextResolver = new SessionProjectContextResolver();
+
   return async (input: NcpAgentRunInput): Promise<string> => {
     const userText = readUserText(input);
     const metadata = {
-      ...readMetadata(params.sessionMetadata),
+      ...readMetadata(sessionMetadata),
       ...readMetadata(input.metadata),
     };
-    const requestedSkills = readRequestedSkillsFromMetadata(metadata);
+    const projectContext = projectContextResolver.resolve({
+      sessionMetadata: metadata,
+      workspace: hostWorkspace ?? workspace,
+      defaultWorkspace: workspace,
+    });
+    const skillsLoader = new SkillsLoader({
+      workspace: projectContext.hostWorkspace,
+      projectRoot: projectContext.projectRoot,
+    });
+
     return buildBootstrapAwareUserPrompt({
-      workspace: params.workspace,
-      hostWorkspace: params.hostWorkspace,
-      contextConfig: params.contextConfig,
+      workspace: projectContext.effectiveWorkspace,
+      hostWorkspace: projectContext.hostWorkspace,
+      contextConfig,
       sessionKey: input.sessionId,
       metadata,
       skills: skillsLoader,
-      skillNames: requestedSkills,
+      skillSelectors: requestedSkillsReader.readSelectors(metadata),
       userMessage: userText,
     });
   };
@@ -131,11 +135,12 @@ function resolveClaudeModel(params: {
   pluginConfig: Record<string, unknown>;
   sessionMetadata: Record<string, unknown>;
 }): string {
+  const { config, pluginConfig, sessionMetadata } = params;
   return (
-    readString(params.sessionMetadata.preferred_model) ??
-    readString(params.sessionMetadata.model) ??
-    readString(params.pluginConfig.model) ??
-    params.config.agents.defaults.model
+    readString(sessionMetadata.preferred_model) ??
+    readString(sessionMetadata.model) ??
+    readString(pluginConfig.model) ??
+    config.agents.defaults.model
   );
 }
 
@@ -143,33 +148,33 @@ function resolveBaseQueryOptions(params: {
   config: Config;
   pluginConfig: Record<string, unknown>;
 }): Record<string, unknown> {
-  const explicitConfig = readRecord(params.pluginConfig.config);
-  const maxTurns =
-    readNumber(params.pluginConfig.maxTurns) ?? Math.max(1, Math.trunc(params.config.agents.defaults.maxToolIterations));
+  const { config, pluginConfig } = params;
+  const explicitConfig = readRecord(pluginConfig.config);
+  const maxTurns = readNumber(pluginConfig.maxTurns) ?? Math.max(1, Math.trunc(config.agents.defaults.maxToolIterations));
   const baseOptions: Record<string, unknown> = {
-    permissionMode: readPermissionMode(params.pluginConfig.permissionMode) ?? "bypassPermissions",
-    includePartialMessages: readBoolean(params.pluginConfig.includePartialMessages) ?? true,
+    permissionMode: readPermissionMode(pluginConfig.permissionMode) ?? "bypassPermissions",
+    includePartialMessages: readBoolean(pluginConfig.includePartialMessages) ?? true,
     maxTurns,
-    additionalDirectories: readStringArray(params.pluginConfig.additionalDirectories),
-    allowedTools: readStringArray(params.pluginConfig.allowedTools),
-    disallowedTools: readStringArray(params.pluginConfig.disallowedTools),
-    settingSources: readSettingSources(params.pluginConfig.settingSources),
+    additionalDirectories: readStringArray(pluginConfig.additionalDirectories),
+    allowedTools: readStringArray(pluginConfig.allowedTools),
+    disallowedTools: readStringArray(pluginConfig.disallowedTools),
+    settingSources: readSettingSources(pluginConfig.settingSources),
     pathToClaudeCodeExecutable:
-      readString(params.pluginConfig.pathToClaudeCodeExecutable) ?? readString(params.pluginConfig.claudeCodePath),
-    executable: readExecutable(params.pluginConfig.executable),
-    executableArgs: readStringArray(params.pluginConfig.executableArgs),
-    extraArgs: readStringOrNullRecord(params.pluginConfig.extraArgs),
-    sandbox: readRecord(params.pluginConfig.sandbox),
-    persistSession: readBoolean(params.pluginConfig.persistSession),
-    continue: readBoolean(params.pluginConfig.continue),
+      readString(pluginConfig.pathToClaudeCodeExecutable) ?? readString(pluginConfig.claudeCodePath),
+    executable: readExecutable(pluginConfig.executable),
+    executableArgs: readStringArray(pluginConfig.executableArgs),
+    extraArgs: readStringOrNullRecord(pluginConfig.extraArgs),
+    sandbox: readRecord(pluginConfig.sandbox),
+    persistSession: readBoolean(pluginConfig.persistSession),
+    continue: readBoolean(pluginConfig.continue),
   };
 
-  const maxThinkingTokens = readNumber(params.pluginConfig.maxThinkingTokens);
+  const maxThinkingTokens = readNumber(pluginConfig.maxThinkingTokens);
   if (typeof maxThinkingTokens === "number") {
     baseOptions.maxThinkingTokens = maxThinkingTokens;
   }
 
-  const allowDangerouslySkipPermissions = readBoolean(params.pluginConfig.allowDangerouslySkipPermissions);
+  const allowDangerouslySkipPermissions = readBoolean(pluginConfig.allowDangerouslySkipPermissions);
   if (typeof allowDangerouslySkipPermissions === "boolean") {
     baseOptions.allowDangerouslySkipPermissions = allowDangerouslySkipPermissions;
   }
@@ -211,22 +216,21 @@ function resolveClaudeWorkingDirectory(params: {
   pluginConfig: Record<string, unknown>;
   sessionMetadata: Record<string, unknown>;
 }): string {
+  const { config, pluginConfig, sessionMetadata } = params;
   return resolveSessionWorkspacePath({
-    sessionMetadata: params.sessionMetadata,
-    workspace:
-      readString(params.pluginConfig.workingDirectory) ??
-      params.config.agents.defaults.workspace,
+    sessionMetadata,
+    workspace: readString(pluginConfig.workingDirectory) ?? config.agents.defaults.workspace,
   });
 }
 
 function resolveConfiguredClaudeModels(params: {
   config: Config;
-  pluginConfig: Record<string, unknown>;
   modelInput: string;
 }): string[] {
+  const { config, modelInput } = params;
   const configuredProviders =
-    params.config.providers && typeof params.config.providers === "object" && !Array.isArray(params.config.providers)
-      ? (params.config.providers as Record<string, { models?: string[] | null }>)
+    config.providers && typeof config.providers === "object" && !Array.isArray(config.providers)
+      ? (config.providers as Record<string, { models?: string[] | null }>)
       : {};
   const configuredModels = Object.entries(configuredProviders).flatMap(([providerName, provider]) =>
     (provider.models ?? [])
@@ -235,7 +239,7 @@ function resolveConfiguredClaudeModels(params: {
       .map((modelName) => `${providerName}/${modelName}`),
   );
 
-  const fallbackModels = configuredModels.length > 0 ? configuredModels : [params.modelInput];
+  const fallbackModels = configuredModels.length > 0 ? configuredModels : [modelInput];
   return dedupeStrings(fallbackModels);
 }
 
@@ -243,19 +247,18 @@ export function intersectSdkModelsWithConfiguredModels(params: {
   configuredModels: string[];
   sdkModels?: string[];
 }): string[] | undefined {
-  if (!params.sdkModels || params.sdkModels.length === 0) {
-    return params.configuredModels.length > 0 ? params.configuredModels : undefined;
+  const { configuredModels, sdkModels } = params;
+  if (!sdkModels || sdkModels.length === 0) {
+    return configuredModels.length > 0 ? configuredModels : undefined;
   }
 
-  const rawSdkModelSet = new Set(params.sdkModels.map((model) => normalizeClaudeModel(model)));
-  const matchedConfiguredModels = params.configuredModels.filter((model) =>
-    rawSdkModelSet.has(normalizeClaudeModel(model)),
-  );
+  const rawSdkModelSet = new Set(sdkModels.map((model) => normalizeClaudeModel(model)));
+  const matchedConfiguredModels = configuredModels.filter((model) => rawSdkModelSet.has(normalizeClaudeModel(model)));
 
   if (matchedConfiguredModels.length > 0) {
     return dedupeStrings(matchedConfiguredModels);
   }
-  return params.configuredModels.length > 0 ? params.configuredModels : undefined;
+  return configuredModels.length > 0 ? configuredModels : undefined;
 }
 
 export function resolveRecommendedClaudeModel(params: {
@@ -263,11 +266,12 @@ export function resolveRecommendedClaudeModel(params: {
   modelInput: string;
   pluginConfig: Record<string, unknown>;
 }): string | null {
-  const configuredModel = readString(params.pluginConfig.model) ?? params.modelInput;
-  if (params.configuredModels.includes(configuredModel)) {
+  const { configuredModels, modelInput, pluginConfig } = params;
+  const configuredModel = readString(pluginConfig.model) ?? modelInput;
+  if (configuredModels.includes(configuredModel)) {
     return configuredModel;
   }
-  return params.configuredModels[0] ?? configuredModel ?? null;
+  return configuredModels[0] ?? configuredModel ?? null;
 }
 
 export function resolveClaudeRuntimeContext(params: {
@@ -275,34 +279,33 @@ export function resolveClaudeRuntimeContext(params: {
   pluginConfig: Record<string, unknown>;
   sessionMetadata: Record<string, unknown>;
 }) {
+  const { config, pluginConfig, sessionMetadata } = params;
   const requestedModelInput = resolveClaudeModel(params);
-  const hasExplicitSessionModel = Boolean(
-    readString(params.sessionMetadata.preferred_model) ?? readString(params.sessionMetadata.model),
-  );
+  const hasExplicitSessionModel = Boolean(readString(sessionMetadata.preferred_model) ?? readString(sessionMetadata.model));
   const providerRouting = resolveClaudeProviderRouting({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
+    config,
+    pluginConfig,
     modelInput: requestedModelInput,
     allowRecommendedFallback: !hasExplicitSessionModel,
   });
   const modelInput = providerRouting.modelInput;
-  const provider = getProvider(params.config, modelInput);
-  const env = readStringRecord(params.pluginConfig.env);
+  const provider = getProvider(config, modelInput);
+  const env = readStringRecord(pluginConfig.env);
   const workingDirectory = resolveClaudeWorkingDirectory({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
-    sessionMetadata: params.sessionMetadata,
+    config,
+    pluginConfig,
+    sessionMetadata,
   });
   const baseQueryOptions = resolveBaseQueryOptions({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
+    config,
+    pluginConfig,
   });
-  const explicitPluginApiKey = readString(params.pluginConfig.apiKey);
-  const explicitPluginAuthToken = readString(params.pluginConfig.authToken);
-  const explicitPluginApiBase = readString(params.pluginConfig.apiBase);
-  const useProviderCredentials = readBoolean(params.pluginConfig.useProviderCredentials) === true;
+  const explicitPluginApiKey = readString(pluginConfig.apiKey);
+  const explicitPluginAuthToken = readString(pluginConfig.authToken);
+  const explicitPluginApiBase = readString(pluginConfig.apiBase);
+  const useProviderCredentials = readBoolean(pluginConfig.useProviderCredentials) === true;
   const providerApiKey = provider?.apiKey?.trim() || undefined;
-  const providerApiBase = getApiBase(params.config, modelInput) ?? undefined;
+  const providerApiBase = getApiBase(config, modelInput) ?? undefined;
   const settingSources = readBaseQuerySettingSources(baseQueryOptions);
   const shouldUseProviderRoute = providerRouting.route !== null;
   const shouldUseExplicitFallback =
@@ -345,8 +348,7 @@ export function resolveClaudeRuntimeContext(params: {
     providerRouting.configuredModels.length > 0
       ? providerRouting.configuredModels
       : resolveConfiguredClaudeModels({
-          config: params.config,
-          pluginConfig: params.pluginConfig,
+          config,
           modelInput,
         });
 
@@ -368,7 +370,7 @@ export function resolveClaudeRuntimeContext(params: {
       resolveRecommendedClaudeModel({
         configuredModels,
         modelInput,
-        pluginConfig: params.pluginConfig,
+        pluginConfig,
       }) ?? providerRouting.recommendedModel,
   };
 }
