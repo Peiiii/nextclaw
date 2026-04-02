@@ -11,7 +11,7 @@
     - AI 不回复场景下由 `autoStop` 自动回收 typing，避免一直显示 `xxx is typing`。
     - 入站分发异常时主动 `stopTyping`，避免异常路径残留 typing。
   - Telegram 同步接入相同 class 控制器，避免同类问题在其他渠道重复出现。
-  - 执行 config-meta：在 `AGENTS.md` 的 Rulebook 新增 `class-over-create-function` 规则，明确默认偏好 class 方案。
+  - 执行 config-meta：在 `AGENTS.md` 的 Rulebook 固化 class 方案偏好（现规则名为 `class-over-function-sprawl`），明确默认偏好 class 方案并禁止同职责逻辑长期平铺为一排函数。
 
 ## 测试 / 验证 / 验收方式
 
