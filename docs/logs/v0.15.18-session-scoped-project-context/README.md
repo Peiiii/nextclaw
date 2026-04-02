@@ -39,9 +39,17 @@
   - [`packages/nextclaw-ui/src/components/chat/ncp/NcpChatPage.tsx`](../../../packages/nextclaw-ui/src/components/chat/ncp/NcpChatPage.tsx)
   - [`packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.ts`](../../../packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.ts)
   - [`packages/nextclaw-ui/src/components/chat/adapters/chat-input-bar.adapter.ts`](../../../packages/nextclaw-ui/src/components/chat/adapters/chat-input-bar.adapter.ts)
+- 在同批次续改中，把会话 header 里的项目 tag 升级成统一交互入口：
+  - 新增 [`packages/nextclaw-ui/src/components/chat/session-header/chat-session-project-badge.tsx`](../../../packages/nextclaw-ui/src/components/chat/session-header/chat-session-project-badge.tsx)
+  - 点击项目 tag 会打开统一的 `Popover` 菜单，直接承载“设置项目目录 / 清除项目目录”
+  - 右上角 [`packages/nextclaw-ui/src/components/chat/session-header/chat-session-header-actions.tsx`](../../../packages/nextclaw-ui/src/components/chat/session-header/chat-session-header-actions.tsx) 收缩为不重复的动作；保留“设置项目目录”作为常驻入口，但移除重复的“清除项目目录”
+  - 为避免继续散落重复菜单样式，抽出轻量展示组件 [`packages/nextclaw-ui/src/components/chat/session-header/chat-session-header-menu-item.tsx`](../../../packages/nextclaw-ui/src/components/chat/session-header/chat-session-header-menu-item.tsx)
 - 在同批次续改中继续修正了两个真实验收问题：
   - skills 请求链路原本会把空 `projectRoot` query 当成 override，导致 session 的持久化 `project_root` 虽然仍在，但本次 `/skills` 响应临时丢掉 project context，从而漏掉项目 `.agents/skills`
   - persisted session 更新项目目录后，前端原本不会主动让 `ncp-session-skills` 查询失效重拉，UI 可能继续展示旧的 skills 列表
+- 在本轮 UI 收尾修正中，继续补齐了 session project header 的两个验收细节：
+  - 右上角 more actions 保留“设置项目目录”，只移除重复的“清除项目目录”
+  - 对 draft 与 persisted session 统一采用 session-scoped project override 语义；清除项目目录后，header tag 与 skills 请求都会立即按清空后的状态收敛，不再短暂或持续回退到旧项目
 - 按本次产品决策，删除了 session skill 加载链路里的 builtin 概念，不再额外统计 core 内建 skills；session-scoped skills 现在只保留两个来源：
   - `project`
   - `workspace`
@@ -76,6 +84,8 @@
   - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/chat/adapters/chat-input-bar.adapter.test.ts src/components/chat/ncp/ncp-chat-page-data.test.ts`
 - UI 续改验证：
   - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/api/ncp-session.test.ts src/components/chat/ncp/ncp-chat-page-data.test.ts src/components/chat/adapters/chat-input-bar.adapter.test.ts`
+- Header 交互验证：
+  - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/chat/hooks/use-chat-session-project.test.tsx src/components/chat/session-header/chat-session-project-badge.test.tsx src/components/chat/session-header/chat-session-header-actions.test.tsx src/components/chat/ChatConversationPanel.test.tsx`
 - 可维护性守卫：
   - `PATH=/opt/homebrew/bin:$PATH pnpm lint:maintainability:guard`
 - 验证结果：
@@ -108,6 +118,9 @@
 7. 对一个已经持久化、并且 metadata 里已有 `project_root` 的 session，直接打开技能选择器，确认无需额外 override，也能返回项目 `.agents/skills`。
 8. 修改一个 persisted session 的项目目录后，确认技能选择器会自动重拉 session skills，而不是继续停留在旧列表。
 9. 检查同一个 session 的 skills 列表，确认来源只剩 `project` 与 `workspace`，不再出现额外的 `builtin`。
+10. 对一个已绑定项目目录的会话，点击 header 里的项目 tag，确认会出现 `Popover` 菜单，并且可以直接执行“设置项目目录 / 清除项目目录”。
+11. 确认右上角 more actions 无论是否已有项目目录，都保留“设置项目目录”入口，但不再重复展示“清除项目目录”。
+12. 点击 tag 菜单中的“清除项目目录”后，确认成功提示出现，同时 header 里的项目 tag 立即消失，skills 列表也按无项目目录状态重新加载。
 
 ## 可维护性总结汇总
 
@@ -120,6 +133,9 @@
   - 为什么伤害长期维护：Claude engine 入口仍同时承载配置解析、会话事件写入、SDK query 生命周期与 runtime orchestration，未来若继续往里叠逻辑，重新膨胀的风险最高。
   - 更小更简单的修正方向：如果后续继续触达 Claude engine 链路，应优先把“Claude engine config -> ClaudeAgentOptions”的构造再收敛成单一职责边界，而不是继续往 `processDirect` 里堆条件。
 - 可维护性总结：这次改动的核心价值不是单点补丁，而是把 session project context、scoped skills、runtime prompt 装配、UI/server 技能真相源收回到一条统一主链路里，并在续改中继续删掉了 `builtin` 这层重复统计语义。虽然当前总 diff 仍是净增，但这部分增长对应的是一项真实的新会话能力与跨层统一抽象，不是给旧复杂度再套一层；同时 builtin skills 的重复枚举已经被删除，session 更新后的 skills 失效也被补齐。
+- no maintainability findings
+- 可维护性总结：本轮收尾没有再新增一层 project 同步通道，而是把已有 `pendingProjectRoot + pendingProjectRootSessionKey` 明确定义成统一的 session override 语义，顺手还删掉了 more-actions 里的重复清除入口与局部重复按钮样式。当前这组续改相对 `HEAD` 为 `53 insertions / 60 deletions`，属于净减代码；遗留观察点仍是 [`packages/nextclaw-ui/src/components/chat/ncp/NcpChatPage.tsx`](../../../packages/nextclaw-ui/src/components/chat/ncp/NcpChatPage.tsx) 这个页面壳本身偏长，后续若继续触达聊天页编排，优先把与 session project 无关的派生段落继续抽回既有 manager / data hook，而不是再往页面函数里堆。
+- 目录结构与文件组织是否满足当前项目治理要求：基本满足。此次 UI 续改没有把 tag 交互和菜单样式继续塞回既有 header 文件，而是把项目 tag 交互入口与菜单项展示下沉到 `session-header/` 子目录中的独立组件，避免 `ChatConversationPanel` 和 `chat-session-header-actions` 继续横向膨胀。
 - 本次是否已尽最大努力优化可维护性：是。实现中没有继续新增平行 loader 或平行 prompt 构建器，而是优先改造既有 `SkillsLoader`、`runtime-user-prompt`、`project-root` 相关抽象，并把多个 runtime 消费方的重复逻辑回收到 core。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。最关键的删减包括：不再让 UI 自己猜 skills、把 layered skills 逻辑收敛回既有 `SkillsLoader`、把多 runtime 重复的 session prompt context 装配回收到一个 core class；没有再补一套新的 project context 体系。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：未完全做到总代码量净下降，本次 `git diff --shortstat` 为 `28 files changed, 1154 insertions(+), 762 deletions(-)`，属于净增。这部分增长的最小必要性在于：新增了 session-scoped project context、project skills、draft session skills API、skill ref 协议与相应测试；同时同步偿还了“多 runtime 各自拼 project context / skills”的维护性债务，并把 Claude engine 主文件与 `processDirect` 都做了明显收缩。

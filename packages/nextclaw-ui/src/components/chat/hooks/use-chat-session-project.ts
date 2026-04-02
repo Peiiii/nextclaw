@@ -20,7 +20,7 @@ export function useChatSessionProject() {
     if (!params.persistToServer) {
       useChatInputStore.getState().setSnapshot({
         pendingProjectRoot: params.projectRoot,
-        pendingProjectRootSessionKey: params.projectRoot ? params.sessionKey : null
+        pendingProjectRootSessionKey: params.sessionKey
       });
       toast.success(successMessage);
       return;
@@ -30,6 +30,11 @@ export function useChatSessionProject() {
       sessionKey: params.sessionKey,
       patch: { projectRoot: params.projectRoot },
       successMessage,
+    });
+
+    useChatInputStore.getState().setSnapshot({
+      pendingProjectRoot: params.projectRoot,
+      pendingProjectRootSessionKey: params.sessionKey,
     });
   };
 }

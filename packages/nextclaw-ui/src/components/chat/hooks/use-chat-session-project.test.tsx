@@ -52,7 +52,26 @@ describe('useChatSessionProject', () => {
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 
-  it('persists to the server for an existing session', async () => {
+  it('keeps an explicit draft override when clearing the project root locally', async () => {
+    const { result } = renderHook(() => useChatSessionProject());
+
+    await act(async () => {
+      await result.current({
+        sessionKey: 'draft-session-1',
+        projectRoot: null,
+        persistToServer: false,
+      });
+    });
+
+    expect(mocks.updateSession).not.toHaveBeenCalled();
+    expect(useChatInputStore.getState().snapshot).toMatchObject({
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: 'draft-session-1',
+    });
+    expect(toast.success).toHaveBeenCalledTimes(1);
+  });
+
+  it('persists to the server and mirrors the updated project override locally for an existing session', async () => {
     const { result } = renderHook(() => useChatSessionProject());
 
     await act(async () => {
@@ -69,8 +88,30 @@ describe('useChatSessionProject', () => {
       successMessage: 'Project directory updated',
     });
     expect(useChatInputStore.getState().snapshot).toMatchObject({
+      pendingProjectRoot: '/tmp/project-beta',
+      pendingProjectRootSessionKey: 'session-1',
+    });
+  });
+
+  it('persists clearing to the server and keeps the cleared override until session state catches up', async () => {
+    const { result } = renderHook(() => useChatSessionProject());
+
+    await act(async () => {
+      await result.current({
+        sessionKey: 'session-1',
+        projectRoot: null,
+        persistToServer: true,
+      });
+    });
+
+    expect(mocks.updateSession).toHaveBeenCalledWith({
+      sessionKey: 'session-1',
+      patch: { projectRoot: null },
+      successMessage: 'Project directory cleared',
+    });
+    expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: null,
-      pendingProjectRootSessionKey: null,
+      pendingProjectRootSessionKey: 'session-1',
     });
   });
 });

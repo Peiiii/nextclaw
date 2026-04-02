@@ -7,10 +7,10 @@ import {
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
 import { ChatSessionHeaderActions } from "@/components/chat/session-header/chat-session-header-actions";
+import { ChatSessionProjectBadge } from "@/components/chat/session-header/chat-session-project-badge";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { FolderOpen } from "lucide-react";
 
 function ChatConversationSkeleton() {
   return (
@@ -98,15 +98,12 @@ export function ChatConversationPanel() {
             </span>
           ) : null}
           {snapshot.sessionProjectName ? (
-            <span
-              title={snapshot.sessionProjectRoot ?? undefined}
-              className="min-w-0 max-w-[280px] shrink rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700"
-            >
-              <span className="flex min-w-0 items-center gap-1.5">
-                <FolderOpen className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{snapshot.sessionProjectName}</span>
-              </span>
-            </span>
+            <ChatSessionProjectBadge
+              sessionKey={snapshot.sessionKey ?? "draft"}
+              projectName={snapshot.sessionProjectName}
+              projectRoot={snapshot.sessionProjectRoot}
+              persistToServer={snapshot.canDeleteSession}
+            />
           ) : null}
         </div>
         {snapshot.sessionKey ? (

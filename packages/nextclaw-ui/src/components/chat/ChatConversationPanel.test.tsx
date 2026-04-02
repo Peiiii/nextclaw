@@ -8,11 +8,15 @@ const mocks = vi.hoisted(() => ({
   goToProviders: vi.fn()
 }));
 
-vi.mock('@nextclaw/agent-chat-ui', () => ({
-  useStickyBottomScroll: () => ({
-    onScroll: vi.fn()
-  })
-}));
+vi.mock('@nextclaw/agent-chat-ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@nextclaw/agent-chat-ui')>();
+  return {
+    ...actual,
+    useStickyBottomScroll: () => ({
+      onScroll: vi.fn()
+    })
+  };
+});
 
 vi.mock('@/components/chat/nextclaw', () => ({
   ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
@@ -38,6 +42,10 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
 
 vi.mock('@/components/chat/session-header/chat-session-header-actions', () => ({
   ChatSessionHeaderActions: () => <button aria-label="More actions" />
+}));
+
+vi.mock('@/components/chat/session-header/chat-session-project-badge', () => ({
+  ChatSessionProjectBadge: ({ projectName }: { projectName: string }) => <button>{projectName}</button>
 }));
 
 describe('ChatConversationPanel', () => {

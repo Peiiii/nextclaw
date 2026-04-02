@@ -92,8 +92,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
     [routeSessionIdParam]
   );
   const sessionKey = selectedSessionKey ?? draftSessionId;
-  const sessionProjectRootOverride =
-    pendingProjectRootSessionKey === sessionKey ? pendingProjectRoot : undefined;
+  const hasSessionProjectRootOverride = pendingProjectRootSessionKey === sessionKey;
+  const sessionProjectRootOverride = hasSessionProjectRootOverride ? pendingProjectRoot : undefined;
   const {
     sessionSkillsQuery,
     isProviderStateResolved,
@@ -169,11 +169,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
     }
   }, [presenter, selectedSessionKey]);
 
-  const draftProjectRoot =
-    !selectedSession && pendingProjectRootSessionKey === sessionKey ? pendingProjectRoot : null;
-  const effectiveSessionProjectRoot = selectedSession?.projectRoot ?? draftProjectRoot ?? null;
-  const effectiveSessionProjectName =
-    selectedSession?.projectName ?? getSessionProjectName(effectiveSessionProjectRoot);
+  const effectiveSessionProjectRoot = hasSessionProjectRootOverride ? pendingProjectRoot : selectedSession?.projectRoot ?? null;
+  const effectiveSessionProjectName = hasSessionProjectRootOverride ? getSessionProjectName(effectiveSessionProjectRoot) : selectedSession?.projectName ?? getSessionProjectName(effectiveSessionProjectRoot);
 
   const isSending = agent.isSending || agent.isRunning;
   const isAwaitingAssistantOutput = agent.isRunning;
@@ -279,18 +276,14 @@ export function NcpChatPage({ view }: ChatPageProps) {
   ]);
 
   useEffect(() => {
-    if (
-      !selectedSession ||
-      !selectedSession.projectRoot ||
-      pendingProjectRootSessionKey !== selectedSession.key
-    ) {
+    if (!selectedSession || pendingProjectRootSessionKey !== selectedSession.key || (selectedSession.projectRoot ?? null) !== pendingProjectRoot) {
       return;
     }
     useChatInputStore.getState().setSnapshot({
       pendingProjectRoot: null,
       pendingProjectRootSessionKey: null
     });
-  }, [pendingProjectRootSessionKey, selectedSession]);
+  }, [pendingProjectRoot, pendingProjectRootSessionKey, selectedSession]);
 
   useChatSessionSync({
     view,

@@ -1,35 +1,30 @@
 import { useState } from 'react';
-import { FolderOpen, MoreHorizontal, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronDown, FolderOpen, FolderX, Pencil } from 'lucide-react';
 import { useChatSessionProject } from '@/components/chat/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from '@/components/chat/session-header/chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from '@/components/chat/session-header/chat-session-project-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { t } from '@/lib/i18n';
 
-type ChatSessionHeaderActionsProps = {
+type ChatSessionProjectBadgeProps = {
   sessionKey: string;
-  canDeleteSession: boolean;
-  isDeletePending: boolean;
+  projectName: string;
   projectRoot?: string | null;
-  onDeleteSession: () => void;
+  persistToServer: boolean;
 };
 
-export function ChatSessionHeaderActions({
+export function ChatSessionProjectBadge({
   sessionKey,
-  canDeleteSession,
-  isDeletePending,
+  projectName,
   projectRoot,
-  onDeleteSession,
-}: ChatSessionHeaderActionsProps) {
+  persistToServer,
+}: ChatSessionProjectBadgeProps) {
   const updateSessionProject = useChatSessionProject();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProjectPending, setIsProjectPending] = useState(false);
-  const isBusy = isDeletePending || isProjectPending;
 
   const runProjectUpdate = async (nextProjectRoot: string | null) => {
-    const persistToServer = canDeleteSession;
     setIsProjectPending(true);
     try {
       await updateSessionProject({
@@ -48,36 +43,48 @@ export function ChatSessionHeaderActions({
     <>
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-lg shrink-0 text-gray-400 hover:text-gray-700"
-            aria-label={t('chatSessionMoreActions')}
-            disabled={isBusy}
+          <button
+            type="button"
+            title={projectRoot ?? undefined}
+            className="min-w-0 max-w-[320px] shrink rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={t('chatSessionSetProject')}
+            disabled={isProjectPending}
           >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+            <span className="flex min-w-0 items-center gap-1.5">
+              <FolderOpen className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{projectName}</span>
+              <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+            </span>
+          </button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-56 p-2">
+        <PopoverContent align="start" className="w-72 p-2">
+          <div className="px-3 pb-2 pt-1">
+            <div className="text-[11px] font-medium uppercase tracking-wider text-emerald-700/80">
+              {projectName}
+            </div>
+            {projectRoot ? (
+              <div className="mt-1 break-all text-xs text-gray-500">
+                {projectRoot}
+              </div>
+            ) : null}
+          </div>
           <div className="space-y-1">
             <ChatSessionHeaderMenuItem
-              icon={FolderOpen}
+              icon={Pencil}
               label={t('chatSessionSetProject')}
               onClick={() => {
                 setIsMenuOpen(false);
                 setIsDialogOpen(true);
               }}
-              disabled={isBusy}
+              disabled={isProjectPending}
             />
             <ChatSessionHeaderMenuItem
-              icon={Trash2}
-              label={t('chatDeleteSession')}
+              icon={FolderX}
+              label={t('chatSessionClearProject')}
               onClick={() => {
-                setIsMenuOpen(false);
-                onDeleteSession();
+                void runProjectUpdate(null);
               }}
-              disabled={!canDeleteSession || isBusy}
-              destructive
+              disabled={isProjectPending}
             />
           </div>
         </PopoverContent>
