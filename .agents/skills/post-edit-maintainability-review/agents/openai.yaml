@@ -1,0 +1,7 @@
+interface:
+  display_name: "改后可维护性复核"
+  short_description: "在守卫之后再做一轮删减优先、简化优先的主观可维护性二审"
+  default_prompt: "使用 $post-edit-maintainability-review 对当前改动做一轮独立于实现阶段的可维护性复核。重点检查还能删什么、还能如何简化、非功能改动的增长是否最小必要、以及抽象与职责边界是否真的更清晰。"
+
+policy:
+  allow_implicit_invocation: true
