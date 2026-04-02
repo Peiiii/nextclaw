@@ -64,7 +64,7 @@
   - `/new-rule`：创建新规则条目（按 Rulebook 模板）。执行时必须先判断应写入 Rulebook 还是 Project Rulebook；若规则本质是在约束系统行为原则，应优先固化“行为明确、清晰、可预测，不依赖隐藏兜底或环境状态制造 surprise success / surprise failure”这类可复用高层约束，而不是只记录单次问题的表层补丁。
   - `/commit`：进行提交操作（提交信息需使用英文）
   - `/maintainability-review`：对本次改动执行一轮独立于实现阶段的可维护性复核，重点检查“能否删减/简化、是否让代码继续膨胀、抽象与职责边界是否更清晰、非功能改动的增长是否最小必要、是否只是把复杂度换个位置保留”；默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 执行
-  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试；代码改动收尾默认包含 `pnpm lint:maintainability:guard`，其内统一调用 `pnpm lint:new-code:governance`（当前含 class 方法箭头函数检查，可扩展），并在守卫后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核
+  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试。代码改动在动手前，默认先按 Rulebook 的 `business-logic-class-first`、`stateless-utility-first`、`class-arrow-methods-by-default` 做一次结构自检：先判断业务逻辑是否应落到 class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、若采用 class 则实例方法是否从第一版起就使用箭头函数。代码改动收尾默认包含 `pnpm lint:maintainability:guard`，其内统一调用 `pnpm lint:new-code:governance`（当前含 class 方法箭头函数检查，可扩展），并在守卫后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核
   - `/release-frontend`：前端一键发布（仅 UI 变更场景）
 
 ## 规则/Rule 机制
@@ -254,10 +254,16 @@
   - 维护责任人：当前助手。
 
 - **business-logic-class-first**：
-  - 约束/适用范围：除少数明确适合保持为纯函数/常量/类型声明的简单场景外，业务代码默认必须以 class 作为主要组织单元，优先采用面向对象方式收敛状态、上下文、生命周期、规则与行为。该要求同时适用于后端、CLI、脚本、服务层、领域层，以及前端中的复杂业务逻辑；前端组件、hooks、stores 默认不应承载持续增长的业务编排，而应把复杂业务逻辑下沉到清晰的 class（如 manager / service / controller / presenter）中。
+  - 约束/适用范围：除少数明确适合保持为纯函数/常量/类型声明的简单场景外，业务代码默认必须以 class 作为主要组织单元，优先采用面向对象方式收敛状态、上下文、生命周期、规则与行为。普通函数只留给纯工具、纯无状态、纯业务无关的辅助能力。该要求同时适用于后端、CLI、脚本、服务层、领域层，以及前端中的复杂业务逻辑；前端组件、hooks、stores 默认不应承载持续增长的业务编排，而应把复杂业务逻辑下沉到清晰的 class（如 manager / service / controller / presenter）中。
   - 示例：把 agent/session 编排、配置解析与校验、任务调度、provider 调用策略、运行时上下文管理封装进 class；前端把复杂交互流程、状态迁移、请求编排、副作用治理、领域规则判断收敛到 `XxxManager`、`XxxPresenter` 或同等职责明确的 class，组件和 hook 只负责绑定展示与调用。
-  - 反例：同一业务职责以多个平铺函数、多个 hook、多个零散 helper、多个 store action 拼起来；前端为了“写起来快”把复杂业务逻辑塞进组件、hook 或一排 util；明明已经存在状态、缓存、重试、清理、编排，却仍拒绝抽成 class。
-  - 执行方式：开始实现业务逻辑时，先回答三个问题：`这段逻辑是否属于业务规则/业务编排，而不是纯展示或纯数据变换？`、`它是否会增长或携带状态/上下文/生命周期？`、`是否应该先设计一个职责单一的 class 边界？`。只要前两个问题任一答案为“是”，默认就必须先评估并优先采用 class。若最终不采用 class，必须在结果中明确说明其为何仍可安全保持为纯函数集合（如逻辑极小、纯计算、稳定且无状态），否则视为不符合规范。
+  - 反例：同一业务职责以多个平铺函数、多个 hook、多个零散 helper、多个 store action 拼起来；前端为了“写起来快”把复杂业务逻辑塞进组件、hook 或一排 util；把带业务语义的编排函数伪装成“utils”；明明已经存在状态、缓存、重试、清理、编排，却仍拒绝抽成 class。
+  - 执行方式：开始实现业务逻辑时，先回答四个问题：`这段逻辑是否属于业务规则/业务编排，而不是纯展示或纯数据变换？`、`它是否会增长或携带状态/上下文/生命周期？`、`普通函数是否真的只会承担纯工具/纯无状态/纯业务无关辅助能力？`、`是否应该先设计一个职责单一的 class 边界？`。只要前两个问题任一答案为“是”，或第三个问题答案为“否”，默认就必须先评估并优先采用 class。若最终不采用 class，必须在结果中明确说明其为何仍可安全保持为纯函数集合（如逻辑极小、纯计算、稳定且无状态），否则视为不符合规范。
+  - 维护责任人：当前助手。
+- **class-arrow-methods-by-default**：
+  - 约束/适用范围：一旦决定使用 class 来承载业务逻辑、状态 owner、生命周期治理、副作用编排、前端 manager / presenter / service / controller 等职责，新增或修改的实例方法默认必须从第一版起直接写成箭头函数 class field（如 `load = () => {}`），而不是先写普通方法再等后置 lint/guard 纠正。`constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法按既有豁免处理。
+  - 示例：新增 `ChatStreamManager` 时，把 `load`、`retry`、`dispose` 都直接写成 `load = async () => {}`、`retry = () => {}`、`dispose = () => {}`；重构已有 `SessionManager` 时，触达到的普通实例方法默认一并改成箭头函数写法。
+  - 反例：已经决定采用 class 边界，却仍把实例方法写成 `load() {}`、`retry() {}`，等 `pnpm lint:new-code:governance` 或 review 再返工；或只把新增的一个方法写成箭头函数，同一个已触达 class 里其它同类方法继续保留普通写法。
+  - 执行方式：一旦确定“这段逻辑要落到 class”，在写第一个实例方法前先完成一次方法形态检查：`这个行为是否属于实例方法？`、`若属于实例方法，是否应直接写成箭头函数 class field？`。收尾前还要按“已触达 class 为边界”再扫一遍同类实例方法，避免把后置治理当成默认纠偏流程。若最终没有采用箭头函数，必须明确说明语义约束、继承要求或其它阻断原因。
   - 维护责任人：当前助手。
 - **class-over-function-sprawl**：
   - 约束/适用范围：这是 `business-logic-class-first` 的收敛规则。默认优先使用 class 组织可复用、有状态、具生命周期、或同一职责会持续增长的逻辑。本规则不只针对 `createXxx` 工厂函数；凡同一职责被拆成多个彼此耦合、共享上下文/配置/缓存/清理流程的平铺函数时，都必须优先评估是否应收敛为 class 或清晰模块边界。仅当逻辑确实简单、无状态、纯数据变换且边界稳定时，才允许继续保持普通函数集合。
@@ -266,10 +272,10 @@
   - 执行方式：当同一职责出现第 `2/3` 个相关函数，或多个函数共享状态、配置、上下文、缓存、重试/清理生命周期时，必须触发 class 方案评估；若当前任务已触达该函数簇，默认应顺手收敛，或至少在结果中明确为何暂不收敛。若最终不采用 class，必须说明其仍应保持为纯函数集合的理由（如无状态、职责稳定、不会继续增长）。
   - 维护责任人：当前助手。
 - **stateless-utility-first**：
-  - 约束/适用范围：工具函数默认必须无状态、输入输出可预测；应优先通过普通数据参数完成职责，尽量避免将函数作为入参传入工具函数。
-  - 示例：`normalizeProviderConfig(rawConfig)` 只依赖输入并返回新结果，不读写外部可变状态，也不要求回调入参。
-  - 反例：`processConfig(input, onSuccess, onError)` 通过回调驱动分支且隐式依赖外部状态，导致行为难追踪与复用困难。
-  - 执行方式：拆分工具函数时先检查“是否无状态 + 是否可纯数据调用”；若必须传入函数参数，需在变更说明中写明必要性、边界与替代方案为何不可行。
+  - 约束/适用范围：工具函数默认必须无状态、输入输出可预测，且不承载业务规则、业务编排或业务生命周期；普通函数只应用于纯工具、纯无状态、纯业务无关的辅助能力。应优先通过普通数据参数完成职责，尽量避免将函数作为入参传入工具函数。
+  - 示例：`normalizeProviderConfig(rawConfig)` 只依赖输入并返回新结果，不读写外部可变状态，也不要求回调入参；`pickVisibleTabs(allTabs, role)` 仅做纯展示辅助判断，不承载业务状态迁移。
+  - 反例：`processConfig(input, onSuccess, onError)` 通过回调驱动分支且隐式依赖外部状态，导致行为难追踪与复用困难；把带有重试、缓存、副作用编排、状态迁移的业务逻辑继续塞进 `utils.ts` 里的普通函数。
+  - 执行方式：拆分工具函数时先检查“是否无状态 + 是否可纯数据调用 + 是否纯业务无关”；若任何一项不满足，默认回到 `business-logic-class-first` 重新评估 class 边界。若必须传入函数参数，需在变更说明中写明必要性、边界与替代方案为何不可行。
   - 维护责任人：当前助手。
 - **root-cause-fix-over-band-aid**：
   - 约束/适用范围：修复缺陷时必须先定位深层根因；若问题反映架构边界不清、职责耦合、模型设计缺陷，或本质属于发布/构建/部署/配置事故，必须优先给出源头修正，禁止仅做表层补丁即结束。禁止把一次性事故知识、当前坏版本特征、stderr 文案匹配、外部故障签名等硬编码进运行时代码，伪装成“更友好提示”或“兼容修复”。同样禁止为了通过某个边界校验、接口限制或上游约束，直接篡改领域语义、数据语义或角色语义来“绕过去”。
