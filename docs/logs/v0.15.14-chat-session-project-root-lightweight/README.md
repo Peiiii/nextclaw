@@ -22,6 +22,11 @@
 - 修复清除项目目录的持久化缺陷：
   - 真实 API 更新链路改为走 `replaceSession`，不再把旧 session metadata 保留回显式 patch 结果里
   - 路由 patch 时会同时清理历史兼容键 `projectRoot`，避免“提示清除成功但刷新后还在”
+- 继续收敛草稿会话设置项目目录的链路：
+  - 新会话在首条消息前不再强依赖先创建轻量后端 session 才能保存项目目录
+  - 前端会把草稿态 `projectRoot` 与当前 `draft sessionKey` 绑定暂存，避免串到别的新会话
+  - 首条消息发出时会把该目录一并写入消息 metadata 的 `project_root`，让正式会话从第一轮开始就继承正确工作目录
+  - 当服务端 session summary 回流后，前端会自动清理对应的草稿暂存状态，避免本地残留
 - 调整 runtime 项目语义暴露：
   - prompt 里始终显式写出 `Current project directory`
   - 若存在宿主 workspace，则同时显式写出 `NextClaw host workspace directory`
@@ -42,6 +47,7 @@
 ```bash
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/chat/chat-session-display.test.ts src/components/chat/ncp/ncp-session-adapter.test.ts src/components/chat/ChatConversationPanel.test.tsx
 PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- --run src/components/path-picker/server-path-picker-dialog.test.tsx
+PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/chat/hooks/use-chat-session-project.test.tsx src/components/chat/ncp/ncp-chat-page-data.test.ts
 ```
 
 - Nextclaw session/runtime 定向测试：
@@ -73,6 +79,7 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextc
 ```bash
 PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui build
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextclaw-ui exec tsc -p tsconfig.json --noEmit
+PATH=/opt/homebrew/bin:$PATH pnpm tsc:ui
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk exec tsc -p tsconfig.json --noEmit
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk exec tsc -p tsconfig.json --noEmit
 PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextclaw-openclaw-compat exec tsc -p tsconfig.json --noEmit
@@ -88,6 +95,7 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm lint:maintainabil
 观察点：
 - 会话可写入合法的 `project_root`，非法路径会被明确拒绝。
 - 草稿会话可先 patch `projectRoot` / `sessionType`，再被提升为正式会话。
+- 草稿会话在不创建后端 session 的前提下，也能先暂存项目目录；首条消息发出后仍会带着同一个目录进入正式会话。
 - header 在草稿态显示 `New Task`，在正式会话态显示真实标题与 project badge。
 - Codex / Claude / native runtime 都通过会话级目录解析得到一致工作目录。
 - 即使项目目录下没有 `AGENTS.md` / `SOUL.md`，runtime prompt 里也会明确暴露当前项目目录。
@@ -141,4 +149,19 @@ PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm -C packages/nextc
 6. 新建一个草稿会话，不先发送消息，直接在“更多操作”里设置项目目录。
 7. 验收点：
    - 设置成功后不会报错
+   - header 会立即显示项目 badge，即使该会话还没有真正落库
    - 后续发送第一条消息时，该会话仍携带已设置的项目目录与会话类型
+   - 第一条消息完成后刷新页面，项目 badge 仍然存在，不会因为草稿态转正式态而丢失
+
+## 可维护性总结汇总
+
+- 本次是否已尽最大努力优化可维护性：是。本次没有继续沿着“为草稿态额外创建一个轻量 session”去叠加前后端耦合，而是把问题收敛为前端 draft 状态与首条消息 metadata 透传，保持真实会话的创建时机仍然只有发送消息这一条主链路。
+- 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。相比继续扩张后端草稿 upsert 语义，这次选择复用已有 `draftSessionId + message metadata` 机制，只新增最小必要的两个前端状态字段来表达“这个草稿目录属于哪个 draft 会话”。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：基本做到没有继续恶化。中途新增的 `packages/nextclaw-ui/src/components/chat/ncp/NcpChatPage.test.ts` 已在收尾时删除并并回现有测试文件，避免把 `ncp/` 目录推过治理阈值；最终只保留最小必要的状态接线与测试补强。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。目录暂存落在 `chat-input.store`，服务端持久化仍走既有 `use-chat-session-update`，首条消息透传集中在 `NcpChatPage` 的 send metadata 组装处，没有再新增一层临时 manager / service。
+- 目录结构与文件组织是否满足当前项目治理要求；若未满足，必须记录具体现状、为何本次未处理、以及下一步整理入口：部分满足。`packages/nextclaw-ui/src/components/chat/ncp/` 仍是一个已被治理 warning 标记的混合职责目录，但这次没有继续新增直系文件；下一步整理入口仍是把 `ncp/` 下的页面壳、manager、adapter、tests 按职责拆成更明确的子边界。
+- 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。独立复核结论如下：
+  - 可维护性复核结论：保留债务经说明接受
+  - 本次顺手减债：是
+  - no maintainability findings
+  - 可维护性总结：这次改动让“草稿会话设置项目目录”回到单一路径，避免为了新会话再提前制造一个伪正式 session。残留债务主要是 `chat/ncp` 目录本身仍偏平，但本次已经通过合并测试文件避免继续恶化，后续应再按职责拆子目录。

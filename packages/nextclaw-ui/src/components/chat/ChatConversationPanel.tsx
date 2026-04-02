@@ -116,7 +116,6 @@ export function ChatConversationPanel() {
             isDeletePending={snapshot.isDeletePending}
             projectRoot={snapshot.sessionProjectRoot}
             onDeleteSession={presenter.chatThreadManager.deleteSession}
-            onPromoteDraftSession={presenter.chatSessionListManager.selectSession}
           />
         ) : null}
       </div>

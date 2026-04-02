@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildNcpSendMetadata } from '@/components/chat/ncp/NcpChatPage';
 import { filterModelOptionsBySessionType } from '@/components/chat/ncp/ncp-chat-page-data';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 
@@ -40,5 +41,27 @@ describe('filterModelOptionsBySessionType', () => {
         supportedModels: ['unknown/model']
       })
     ).toEqual(modelOptions);
+  });
+});
+
+describe('buildNcpSendMetadata', () => {
+  it('includes the project root in the first-message metadata when present', () => {
+    expect(
+      buildNcpSendMetadata({
+        sessionType: 'codex',
+        projectRoot: ' /tmp/project-alpha ',
+      }),
+    ).toMatchObject({
+      session_type: 'codex',
+      project_root: '/tmp/project-alpha',
+    });
+  });
+
+  it('omits project_root when the input is blank', () => {
+    expect(
+      buildNcpSendMetadata({
+        projectRoot: '   ',
+      }),
+    ).not.toHaveProperty('project_root');
   });
 });

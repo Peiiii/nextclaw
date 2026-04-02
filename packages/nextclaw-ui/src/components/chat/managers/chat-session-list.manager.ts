@@ -44,7 +44,11 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     this.streamActionsManager.resetStreamState();
-    useChatInputStore.getState().setSnapshot({ pendingSessionType: nextSessionType });
+    useChatInputStore.getState().setSnapshot({
+      pendingSessionType: nextSessionType,
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null
+    });
     this.uiManager.goToChatRoot();
   };
 

@@ -23,12 +23,14 @@ import { useChatSessionListStore } from '@/components/chat/stores/chat-session-l
 import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { normalizeRequestedSkills } from '@/lib/chat-runtime-utils';
+import { getSessionProjectName, normalizeSessionProjectRootValue } from '@/lib/session-project/session-project.utils';
 import { appClient } from '@/transport';
 
-function buildNcpSendMetadata(payload: {
+export function buildNcpSendMetadata(payload: {
   model?: string;
   thinkingLevel?: string;
   sessionType?: string;
+  projectRoot?: string | null;
   requestedSkills?: string[];
   composerNodes?: Parameters<typeof buildInlineSkillTokensFromComposer>[0];
 }): Record<string, unknown> {
@@ -43,6 +45,10 @@ function buildNcpSendMetadata(payload: {
   }
   if (payload.sessionType?.trim()) {
     metadata.session_type = payload.sessionType.trim();
+  }
+  const projectRoot = normalizeSessionProjectRootValue(payload.projectRoot);
+  if (projectRoot) {
+    metadata.project_root = projectRoot;
   }
   const requestedSkills = normalizeRequestedSkills(payload.requestedSkills);
   if (requestedSkills.length > 0) {
@@ -71,6 +77,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const selectedSessionKey = useChatSessionListStore((state) => state.snapshot.selectedSessionKey);
   const selectedAgentId = useChatSessionListStore((state) => state.snapshot.selectedAgentId);
   const pendingSessionType = useChatInputStore((state) => state.snapshot.pendingSessionType);
+  const pendingProjectRoot = useChatInputStore((state) => state.snapshot.pendingProjectRoot);
+  const pendingProjectRootSessionKey = useChatInputStore((state) => state.snapshot.pendingProjectRootSessionKey);
   const currentSelectedModel = useChatInputStore((state) => state.snapshot.selectedModel);
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const location = useLocation();
@@ -158,6 +166,12 @@ export function NcpChatPage({ view }: ChatPageProps) {
     }
   }, [presenter, selectedSessionKey]);
 
+  const draftProjectRoot =
+    !selectedSession && pendingProjectRootSessionKey === sessionKey ? pendingProjectRoot : null;
+  const effectiveSessionProjectRoot = selectedSession?.projectRoot ?? draftProjectRoot ?? null;
+  const effectiveSessionProjectName =
+    selectedSession?.projectName ?? getSessionProjectName(effectiveSessionProjectRoot);
+
   const isSending = agent.isSending || agent.isRunning;
   const isAwaitingAssistantOutput = agent.isRunning;
   const canStopCurrentRun = agent.isRunning;
@@ -203,6 +217,10 @@ export function NcpChatPage({ view }: ChatPageProps) {
           model: payload.model,
           thinkingLevel: payload.thinkingLevel,
           sessionType: payload.sessionType,
+          projectRoot:
+            payload.sessionKey === pendingProjectRootSessionKey
+              ? pendingProjectRoot
+              : selectedSession?.projectRoot ?? null,
           requestedSkills: payload.requestedSkills,
           composerNodes: payload.composerNodes
         });
@@ -248,7 +266,28 @@ export function NcpChatPage({ view }: ChatPageProps) {
       },
       applyHistoryMessages: () => {}
     });
-  }, [agent, presenter, sessionKey]);
+  }, [
+    agent,
+    pendingProjectRoot,
+    pendingProjectRootSessionKey,
+    presenter,
+    selectedSession?.projectRoot,
+    sessionKey
+  ]);
+
+  useEffect(() => {
+    if (
+      !selectedSession ||
+      !selectedSession.projectRoot ||
+      pendingProjectRootSessionKey !== selectedSession.key
+    ) {
+      return;
+    }
+    useChatInputStore.getState().setSnapshot({
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null
+    });
+  }, [pendingProjectRootSessionKey, selectedSession]);
 
   useChatSessionSync({
     view,
@@ -303,8 +342,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
       sessionTypeLabel: currentSessionTypeLabel,
       sessionKey,
       sessionDisplayName: currentSessionDisplayName,
-      sessionProjectRoot: selectedSession?.projectRoot ?? null,
-      sessionProjectName: selectedSession?.projectName ?? null,
+      sessionProjectRoot: effectiveSessionProjectRoot,
+      sessionProjectName: effectiveSessionProjectName,
       canDeleteSession: Boolean(selectedSession),
       threadRef,
       isHistoryLoading: agent.isHydrating,
@@ -327,6 +366,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
     modelOptions.length,
     modelOptions,
     presenter,
+    effectiveSessionProjectName,
+    effectiveSessionProjectRoot,
     selectedSession,
     sessionKey,
     selectedSessionType,

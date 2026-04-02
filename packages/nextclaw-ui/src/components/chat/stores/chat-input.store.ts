@@ -12,6 +12,8 @@ export type ChatInputSnapshot = {
   attachments: NcpDraftAttachment[];
   draft: string;
   pendingSessionType: string;
+  pendingProjectRoot: string | null;
+  pendingProjectRootSessionKey: string | null;
   defaultSessionType: string;
   canStopGeneration: boolean;
   stopDisabledReason: string | null;
@@ -55,6 +57,8 @@ const initialSnapshot: ChatInputSnapshot = {
   attachments: [],
   draft: '',
   pendingSessionType: 'native',
+  pendingProjectRoot: null,
+  pendingProjectRootSessionKey: null,
   defaultSessionType: 'native',
   canStopGeneration: false,
   stopDisabledReason: null,

@@ -12,7 +12,6 @@ type ChatSessionHeaderActionsProps = {
   isDeletePending: boolean;
   projectRoot?: string | null;
   onDeleteSession: () => void;
-  onPromoteDraftSession?: (sessionKey: string) => void;
 };
 
 const menuItemClassName =
@@ -24,7 +23,6 @@ export function ChatSessionHeaderActions({
   isDeletePending,
   projectRoot,
   onDeleteSession,
-  onPromoteDraftSession,
 }: ChatSessionHeaderActionsProps) {
   const updateSessionProject = useChatSessionProject();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,14 +31,18 @@ export function ChatSessionHeaderActions({
   const isBusy = isDeletePending || isProjectPending;
 
   const runProjectUpdate = async (nextProjectRoot: string | null) => {
+    const persistToServer = canDeleteSession;
     setIsProjectPending(true);
     try {
       await updateSessionProject({
         sessionKey,
         projectRoot: nextProjectRoot,
+        persistToServer,
       });
-      if (!canDeleteSession) {
-        onPromoteDraftSession?.(sessionKey);
+      if (!persistToServer) {
+        setIsDialogOpen(false);
+        setIsMenuOpen(false);
+        return;
       }
       setIsDialogOpen(false);
       setIsMenuOpen(false);
