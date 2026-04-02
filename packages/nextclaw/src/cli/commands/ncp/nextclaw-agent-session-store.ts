@@ -1,4 +1,4 @@
-import type { SessionManager } from "@nextclaw/core";
+import type { SessionManager, SessionMessage } from "@nextclaw/core";
 import type { AgentSessionRecord, AgentSessionStore } from "@nextclaw/ncp-toolkit";
 import { type NcpMessage, type NcpMessagePart, sanitizeAssistantReplyTags } from "@nextclaw/ncp";
 import {

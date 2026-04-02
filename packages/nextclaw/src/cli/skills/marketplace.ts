@@ -313,12 +313,11 @@ function collectFiles(rootDir: string): Array<{ path: string; contentBase64: str
 
 function installBuiltinSkill(workdir: string, destinationDir: string, skillName: string): void {
   const loader = new SkillsLoader(workdir);
-  const builtin = loader.listSkills(false).find((skill) => skill.name === skillName && skill.source === "builtin");
-  if (!builtin) {
-    throw new Error(`Builtin skill not found in local core bundle: ${skillName}`);
+  const workspaceSkill = loader.listSkills(false).find((skill) => skill.name === skillName && skill.source === "workspace");
+  if (!workspaceSkill) {
+    throw new Error(`Workspace skill not found in local installation: ${skillName}`);
   }
-
-  cpSync(dirname(builtin.path), destinationDir, { recursive: true, force: true });
+  cpSync(dirname(workspaceSkill.path), destinationDir, { recursive: true, force: true });
 }
 
 async function fetchMarketplaceSkillItem(

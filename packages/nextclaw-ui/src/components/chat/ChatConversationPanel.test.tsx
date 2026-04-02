@@ -9,9 +9,9 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@nextclaw/agent-chat-ui', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@nextclaw/agent-chat-ui')>();
+  const actual = await importOriginal();
   return {
-    ...actual,
+    ...(actual as object),
     useStickyBottomScroll: () => ({
       onScroll: vi.fn()
     })

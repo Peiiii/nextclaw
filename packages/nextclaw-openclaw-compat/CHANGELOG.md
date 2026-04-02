@@ -1,5 +1,30 @@
 # @nextclaw/openclaw-compat
 
+## 0.3.57
+
+### Patch Changes
+
+- Publish the full April 2 to April 3 public package drift as one aligned patch batch.
+
+  This release includes the session-scoped project context chain, project-aware skill loading, chat header project interactions, server path picker improvements, file operation card rendering refinements, and the aligned runtime or engine updates behind them.
+
+  It also republishes the affected direct dependents so workspace dependency versions stay aligned for downstream installs.
+
+- Updated dependencies
+  - @nextclaw/channel-plugin-dingtalk@0.2.29
+  - @nextclaw/channel-plugin-discord@0.2.29
+  - @nextclaw/channel-plugin-email@0.2.29
+  - @nextclaw/channel-plugin-mochat@0.2.29
+  - @nextclaw/channel-plugin-qq@0.2.29
+  - @nextclaw/channel-plugin-slack@0.2.29
+  - @nextclaw/channel-plugin-telegram@0.2.29
+  - @nextclaw/channel-plugin-wecom@0.2.29
+  - @nextclaw/channel-plugin-weixin@0.1.23
+  - @nextclaw/channel-plugin-whatsapp@0.2.29
+  - @nextclaw/channel-runtime@0.4.15
+  - @nextclaw/core@0.11.16
+  - @nextclaw/ncp-toolkit@0.4.16
+
 ## 0.3.56
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # @nextclaw/remote
 
+## 0.1.75
+
+### Patch Changes
+
+- Publish the full April 2 to April 3 public package drift as one aligned patch batch.
+
+  This release includes the session-scoped project context chain, project-aware skill loading, chat header project interactions, server path picker improvements, file operation card rendering refinements, and the aligned runtime or engine updates behind them.
+
+  It also republishes the affected direct dependents so workspace dependency versions stay aligned for downstream installs.
+
+- Updated dependencies
+  - @nextclaw/core@0.11.16
+  - @nextclaw/server@0.11.23
+
 ## 0.1.74
 
 ### Patch Changes

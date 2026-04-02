@@ -1,7 +1,4 @@
-import {
-  readSessionProjectRoot,
-  resolveSessionProjectContext,
-} from "./session-project-context.js";
+import { resolveSessionProjectContext } from "./session-project-context.js";
 
 export { readSessionProjectRoot } from "./session-project-context.js";
 

@@ -13,6 +13,6 @@ export function resolvePersistedSessionMetadata(params: {
   const messageMetadata = extractMessageMetadata(params.sessionRecord.messages);
   const nextMetadata = params.preserveExistingMetadata
     ? mergeSessionMetadata(params.currentMetadata, messageMetadata)
-    : messageMetadata;
+    : mergeSessionMetadata({}, messageMetadata);
   return mergeSessionMetadata(nextMetadata, cloneMetadata(params.sessionRecord.metadata));
 }

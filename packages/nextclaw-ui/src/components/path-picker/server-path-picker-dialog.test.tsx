@@ -63,7 +63,7 @@ describe('ServerPathPickerDialog', () => {
 
   it('shows the empty-search hint and keeps the list region scroll-contained', async () => {
     const user = userEvent.setup();
-    const { container } = render(
+    render(
       <ServerPathPickerDialog
         open
         currentPath="/workspace"

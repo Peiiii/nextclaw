@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-qq",
-  "version": "0.2.28",
+  "version": "0.2.29",
   "private": false,
   "description": "NextClaw QQ channel plugin (OpenClaw-compatible)",
   "type": "module",
