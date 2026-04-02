@@ -4,6 +4,7 @@ import {
   InputBudgetPruner,
   getWorkspacePath,
   parseThinkingLevel,
+  readSessionProjectRoot,
   resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
@@ -278,7 +279,14 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     });
     const toolDefinitions = this.options.toolRegistry.getToolDefinitions();
 
-    const contextBuilder = new ContextBuilder(effectiveWorkspace, config.agents.context);
+    const contextBuilder = new ContextBuilder(
+      effectiveWorkspace,
+      config.agents.context,
+      {
+        hostWorkspace: profile.workspace,
+        sessionProjectRoot: readSessionProjectRoot(session.metadata),
+      },
+    );
     const sessionMessages = _options?.sessionMessages ?? [];
     const messages = contextBuilder.buildMessages({
       history: toLegacyMessages([...sessionMessages], {

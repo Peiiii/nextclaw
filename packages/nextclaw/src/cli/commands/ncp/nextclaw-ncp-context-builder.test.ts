@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it, vi } from "vitest";
@@ -150,6 +150,84 @@ it("prefers session project_root over the default workspace for tool context", (
       }),
     );
 });
+
+it("keeps host workspace context and skills when a session is bound to a project root", () => {
+    const { workspace } = createWorkspace();
+    const projectRoot = join(workspace, "project-alpha");
+    mkdirSync(projectRoot, { recursive: true });
+    writeFileSync(join(workspace, "AGENTS.md"), "Host workspace guidance.\n");
+    writeFileSync(join(projectRoot, "AGENTS.md"), "Project workspace guidance.\n");
+    mkdirSync(join(workspace, "skills", "host-helper"), { recursive: true });
+    writeFileSync(
+      join(workspace, "skills", "host-helper", "SKILL.md"),
+      [
+        "---",
+        "name: host-helper",
+        "description: Host workspace helper",
+        "---",
+        "",
+        "Use the host workspace helper instructions.",
+      ].join("\n"),
+    );
+
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "dashscope/qwen3.5-plus",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+        context: {
+          bootstrap: {
+            files: ["AGENTS.md"],
+            minimalFiles: ["AGENTS.md"],
+            heartbeatFiles: [],
+            perFileChars: 1000,
+            totalChars: 3000,
+          },
+        },
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `session-${randomUUID()}`;
+    sessionManager.getOrCreate(sessionId).metadata.project_root = projectRoot;
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager,
+      toolRegistry: {
+        prepareForRun: vi.fn(),
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+    });
+
+    const prepared = builder.prepare({
+      sessionId,
+      messages: [
+        {
+          role: "user",
+          timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+          parts: [{ type: "text", text: "inspect the project" }],
+        },
+      ],
+      metadata: {},
+    } as never);
+
+    const systemPrompt = String(prepared.messages[0]?.content ?? "");
+    expect(systemPrompt).toContain(`Current project directory: ${projectRoot}`);
+    expect(systemPrompt).toContain(`NextClaw host workspace directory: ${workspace}`);
+    expect(systemPrompt).toContain("Project workspace guidance.");
+    expect(systemPrompt).toContain("Host workspace guidance.");
+    expect(systemPrompt).toContain("<name>host-helper</name>");
+  });
 
 it("keeps current-turn text and asset reference parts in composer order", () => {
     const { workspace } = createWorkspace();

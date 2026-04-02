@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { extname } from "node:path";
 import { MemoryStore } from "./memory/memory-store.js";
+import { LayeredSkillsLoader } from "../runtime-context/layered-skills-loader.js";
 import {
   buildWorkspaceProjectContextSection,
   DEFAULT_BOOTSTRAP_CONTEXT_CONFIG,
@@ -21,6 +22,10 @@ import type { ThinkingLevel } from "../utils/thinking.js";
 export type Message = Record<string, unknown>;
 
 type ContextConfig = Config["agents"]["context"];
+type ContextBuilderOptions = {
+  hostWorkspace?: string;
+  sessionProjectRoot?: string | null;
+};
 
 const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
   bootstrap: {
@@ -49,10 +54,27 @@ export class ContextBuilder {
   private memory: MemoryStore;
   private skills: SkillsLoader;
   private contextConfig: ContextConfig;
+  private hostWorkspace: string | null;
+  private sessionProjectRoot: string | null;
 
-  constructor(private workspace: string, contextConfig?: ContextConfig) {
-    this.memory = new MemoryStore(workspace);
-    this.skills = new SkillsLoader(workspace);
+  constructor(
+    private workspace: string,
+    contextConfig?: ContextConfig,
+    options: ContextBuilderOptions = {},
+  ) {
+    this.hostWorkspace =
+      typeof options.hostWorkspace === "string" && options.hostWorkspace.trim().length > 0
+        ? options.hostWorkspace.trim()
+        : null;
+    this.sessionProjectRoot =
+      typeof options.sessionProjectRoot === "string" && options.sessionProjectRoot.trim().length > 0
+        ? options.sessionProjectRoot.trim()
+        : null;
+    this.memory = new MemoryStore(this.hostWorkspace ?? workspace);
+    this.skills = new LayeredSkillsLoader(
+      workspace,
+      this.hostWorkspace && this.hostWorkspace !== workspace ? [this.hostWorkspace] : [],
+    );
     this.contextConfig = mergeContextConfig(contextConfig);
   }
 
@@ -78,6 +100,8 @@ export class ContextBuilder {
 
     const projectContext = buildWorkspaceProjectContextSection({
       workspace: this.workspace,
+      hostWorkspace: this.hostWorkspace ?? undefined,
+      projectRoot: this.sessionProjectRoot,
       contextConfig: this.contextConfig,
       sessionKey,
     });
