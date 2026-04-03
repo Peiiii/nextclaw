@@ -17,10 +17,11 @@ export type DeferredUiNcpAgentController = {
   isReady: () => boolean;
 };
 
-export function createDeferredUiNcpAgent(basePath = DEFAULT_BASE_PATH): DeferredUiNcpAgentController {
-  let activeAgent: UiNcpAgentHandle | null = null;
+class DeferredUiNcpAgentControllerOwner implements DeferredUiNcpAgentController {
+  agent: UiNcpAgent;
+  private activeAgent: UiNcpAgentHandle | null = null;
 
-  const endpoint: NcpAgentClientEndpoint = {
+  private readonly endpoint: NcpAgentClientEndpoint = {
     manifest: {
       endpointKind: "agent",
       endpointId: "nextclaw-ui-agent-deferred",
@@ -35,74 +36,79 @@ export function createDeferredUiNcpAgent(basePath = DEFAULT_BASE_PATH): Deferred
         deferred: true,
       },
     },
-    async start() {
-      await activeAgent?.agentClientEndpoint.start();
+    start: async () => {
+      await this.activeAgent?.agentClientEndpoint.start();
     },
-    async stop() {
-      await activeAgent?.agentClientEndpoint.stop();
+    stop: async () => {
+      await this.activeAgent?.agentClientEndpoint.stop();
     },
-    async emit(event) {
-      if (!activeAgent) {
+    emit: async (event) => {
+      if (!this.activeAgent) {
         throw createUnavailableError();
       }
-      await activeAgent.agentClientEndpoint.emit(event);
+      await this.activeAgent.agentClientEndpoint.emit(event);
     },
-    subscribe(listener) {
-      if (!activeAgent) {
+    subscribe: (listener) => {
+      if (!this.activeAgent) {
         return () => undefined;
       }
-      return activeAgent.agentClientEndpoint.subscribe(listener);
+      return this.activeAgent.agentClientEndpoint.subscribe(listener);
     },
-    async send(envelope) {
-      if (!activeAgent) {
+    send: async (envelope) => {
+      if (!this.activeAgent) {
         throw createUnavailableError();
       }
-      await activeAgent.agentClientEndpoint.send(envelope);
+      await this.activeAgent.agentClientEndpoint.send(envelope);
     },
-    async stream(payload) {
-      if (!activeAgent) {
+    stream: async (payload) => {
+      if (!this.activeAgent) {
         throw createUnavailableError();
       }
-      await activeAgent.agentClientEndpoint.stream(payload);
+      await this.activeAgent.agentClientEndpoint.stream(payload);
     },
-    async abort(payload) {
-      if (!activeAgent) {
+    abort: async (payload) => {
+      if (!this.activeAgent) {
         throw createUnavailableError();
       }
-      await activeAgent.agentClientEndpoint.abort(payload);
+      await this.activeAgent.agentClientEndpoint.abort(payload);
     },
   };
 
-  const agent: UiNcpAgent = {
-    basePath,
-    agentClientEndpoint: endpoint,
+  constructor(private readonly basePath: string) {
+    this.agent = {
+      basePath,
+      agentClientEndpoint: this.endpoint,
+    };
+  }
+
+  activate = (nextAgent: UiNcpAgentHandle): void => {
+    this.activeAgent = nextAgent;
+    this.agent.basePath = nextAgent.basePath ?? this.basePath;
+    this.agent.streamProvider = nextAgent.streamProvider;
+    this.agent.listSessionTypes = nextAgent.listSessionTypes;
+    this.agent.assetApi = nextAgent.assetApi;
   };
 
-  const clear = () => {
-    activeAgent = null;
-    agent.basePath = basePath;
-    agent.streamProvider = undefined;
-    agent.listSessionTypes = undefined;
-    agent.assetApi = undefined;
+  clear = (): void => {
+    this.activeAgent = null;
+    this.agent.basePath = this.basePath;
+    this.agent.streamProvider = undefined;
+    this.agent.listSessionTypes = undefined;
+    this.agent.assetApi = undefined;
   };
 
-  return {
-    agent,
-    activate(nextAgent) {
-      activeAgent = nextAgent;
-      agent.basePath = nextAgent.basePath ?? basePath;
-      agent.streamProvider = nextAgent.streamProvider;
-      agent.listSessionTypes = nextAgent.listSessionTypes;
-      agent.assetApi = nextAgent.assetApi;
-    },
-    clear,
-    async close() {
-      const current = activeAgent;
-      clear();
-      await current?.agentClientEndpoint.stop();
-    },
-    isReady() {
-      return activeAgent !== null;
-    },
+  close = async (): Promise<void> => {
+    const current = this.activeAgent;
+    this.clear();
+    await current?.agentClientEndpoint.stop();
+    await current?.dispose?.();
   };
+
+  isReady = (): boolean => {
+    return this.activeAgent !== null;
+  };
+}
+
+export function createDeferredUiNcpAgent(basePath = DEFAULT_BASE_PATH): DeferredUiNcpAgentController {
+  return new DeferredUiNcpAgentControllerOwner(basePath);
 }

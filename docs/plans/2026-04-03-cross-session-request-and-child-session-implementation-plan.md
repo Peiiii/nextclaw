@@ -154,7 +154,6 @@ type SessionRequestAwaitMode = "none" | "final_reply";
 
 type SessionRequestDeliveryMode =
   | "none"
-  | "append_event"
   | "resume_source";
 
 type SessionRequestRecord = {

@@ -1,4 +1,7 @@
-import type { ChatToolPartViewModel } from '../../view-models/chat-ui.types';
+import type {
+  ChatToolActionViewModel,
+  ChatToolPartViewModel,
+} from '../../view-models/chat-ui.types';
 import { TerminalExecutionView, FileOperationView, SearchSnippetView, GenericToolCard } from './chat-tool-specialized';
 
 function isTerminalTool(name: string) {
@@ -16,7 +19,13 @@ function isSearchTool(name: string) {
   return lowered === 'grep_search' || lowered === 'find_files' || lowered.includes('search');
 }
 
-export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
+export function ChatToolCard({
+  card,
+  onToolAction,
+}: {
+  card: ChatToolPartViewModel;
+  onToolAction?: (action: ChatToolActionViewModel) => void;
+}) {
   if (isTerminalTool(card.toolName)) {
     return <TerminalExecutionView card={card} />;
   }
@@ -28,5 +37,5 @@ export function ChatToolCard({ card }: { card: ChatToolPartViewModel }) {
   }
 
   // Fallback minimalist card for read_url_content, multi_replace, etc.
-  return <GenericToolCard card={card} />;
+  return <GenericToolCard card={card} onToolAction={onToolAction} />;
 }

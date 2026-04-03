@@ -39,7 +39,28 @@ describe('adaptNcpSessionSummary', () => {
       projectName: 'project-alpha',
       sessionType: 'native',
       sessionTypeMutable: false,
+      isChildSession: false,
       messageCount: 3
+    });
+  });
+
+  it('marks child sessions from parent_session_id metadata and keeps the request link', () => {
+    const adapted = adaptNcpSessionSummary(
+      createSummary({
+        metadata: {
+          label: 'Verifier',
+          session_type: 'native',
+          parent_session_id: 'parent-session-1',
+          spawned_by_request_id: 'request-1',
+        },
+      }),
+    );
+
+    expect(adapted).toMatchObject({
+      key: 'ncp-session-1',
+      isChildSession: true,
+      parentSessionId: 'parent-session-1',
+      spawnedByRequestId: 'request-1',
     });
   });
 });

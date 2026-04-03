@@ -1,6 +1,9 @@
 import { Terminal, FileText, Code2, Search, Globe } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import type { ChatToolPartViewModel } from '../../../view-models/chat-ui.types';
+import type {
+  ChatToolActionViewModel,
+  ChatToolPartViewModel,
+} from '../../../view-models/chat-ui.types';
 import { ToolCardRoot, ToolCardContent } from './tool-card-root';
 import { ToolCardHeader } from './tool-card-header';
 import { ToolCardFileOperationContent } from './tool-card-file-operation';
@@ -377,7 +380,13 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
 // -------------------------------------------------------------
 // 4. Generic View
 // -------------------------------------------------------------
-export function GenericToolCard({ card }: { card: ChatToolPartViewModel }) {
+export function GenericToolCard({
+  card,
+  onToolAction,
+}: {
+  card: ChatToolPartViewModel;
+  onToolAction?: (action: ChatToolActionViewModel) => void;
+}) {
   const input = card.input?.trim() ?? '';
   const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
@@ -419,6 +428,17 @@ export function GenericToolCard({ card }: { card: ChatToolPartViewModel }) {
               {output}
             </GenericToolSection>
           )}
+          {card.action && onToolAction ? (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onToolAction(card.action!)}
+                className="rounded-md border border-amber-300/70 bg-white/80 px-3 py-1.5 text-[11px] font-semibold text-amber-900 transition-colors hover:bg-amber-100/70"
+              >
+                {card.action.sessionKind === 'child' ? 'Open child session' : 'Open session'}
+              </button>
+            </div>
+          ) : null}
         </ToolCardContent>
       )}
     </ToolCardRoot>

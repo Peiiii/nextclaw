@@ -15,13 +15,22 @@ function filterSessionsByQuery(sessions: readonly SessionEntryView[], query: str
   return sessions.filter((session) => sessionMatchesQuery(session, query));
 }
 
+function shouldShowSessionInSidebar(session: SessionEntryView): boolean {
+  if (!session.isChildSession) {
+    return true;
+  }
+  return session.isPromotedChildSession === true;
+}
+
 export function useNcpSessionListView(params: { limit?: number } = {}) {
   const query = useChatSessionListStore((state) => state.snapshot.query);
   const sessionsQuery = useNcpSessions({ limit: params.limit ?? 200 });
 
   const items = useMemo<NcpSessionListItemView[]>(() => {
     const summaries = sessionsQuery.data?.sessions ?? [];
-    const sessions = adaptNcpSessionSummaries(summaries);
+    const sessions = adaptNcpSessionSummaries(summaries).filter(
+      shouldShowSessionInSidebar,
+    );
     const filteredSessions = filterSessionsByQuery(sessions, query);
     const summaryBySessionId = new Map(summaries.map((summary) => [summary.sessionId, summary]));
 

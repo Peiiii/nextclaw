@@ -199,7 +199,6 @@ type SessionRequestAwaitMode = "none" | "final_reply";
 
 type SessionRequestDeliveryMode =
   | "none"
-  | "append_event"
   | "resume_source";
 
 type SessionRequestRecord = {
@@ -287,17 +286,16 @@ type SessionRequestEvent =
 
 源会话如何收到完成通知，不应写死在 request event 本体里，而应交给 delivery adapter。
 
-推荐先只支持三种：
+推荐 Phase 1 先只支持两种：
 
 - `none`
   - 只更新 request 状态，不主动投递到源会话
-- `append_event`
-  - 将完成事件以内部 event 或可渲染卡片形式追加到源会话
 - `resume_source`
   - 将完成结果转成源会话可消费的内部输入，驱动其继续运行
 
 这里最关键的一条原则是：
 
+- `append_event` 这类“看起来以后可能会需要”的 delivery 语义，Phase 1 不先保留成协议枚举，避免留下伪语义
 - `resume_source` 可以内部使用 hidden follow-up message
 - 但 hidden follow-up message 不再是唯一真相源
 - 真相源应始终是 `SessionRequestRecord + SessionRequestEvent`
@@ -354,7 +352,7 @@ sessions_request({
   target: { session_id: "..." },
   message: "...",
   await: "none" | "final_reply",
-  delivery: "none" | "append_event" | "resume_source",
+  delivery: "none" | "resume_source",
   source_tool_call_id?: string,
   metadata?: Record<string, unknown>,
 })

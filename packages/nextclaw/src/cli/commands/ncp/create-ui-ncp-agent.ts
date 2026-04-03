@@ -29,9 +29,11 @@ import type { NextclawExtensionRegistry } from "../plugins.js";
 import { createAssetTools } from "./ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "./nextclaw-agent-session-store.js";
-import { persistSubagentCompletionAndResumeParent } from "./ncp-subagent-completion-follow-up.js";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
+import { ChildSessionService } from "./session-request/child-session.service.js";
+import { SessionRequestBroker } from "./session-request/session-request-broker.js";
+import { SessionRequestDeliveryService } from "./session-request/session-request-delivery.service.js";
 import {
   UiNcpRuntimeRegistry,
   type UiNcpSessionTypeDescribeParams,
@@ -44,6 +46,7 @@ export type UiNcpAgentHandle = UiNcpAgent & {
   sessionApi: NcpSessionApi;
   applyExtensionRegistry?: (extensionRegistry?: NextclawExtensionRegistry) => void;
   applyMcpConfig?: (config: Config) => Promise<void>;
+  dispose?: () => Promise<void>;
 };
 type MessageToolHintsResolver = (params: {
   sessionKey: string;
@@ -127,6 +130,7 @@ function buildPluginRuntimeSnapshotKey(extensionRegistry?: NextclawExtensionRegi
 async function createMcpRuntimeSupport(getConfig: () => Config): Promise<{
   toolRegistryAdapter: McpNcpToolRegistryAdapter;
   applyMcpConfig: (config: Config) => Promise<void>;
+  dispose: () => Promise<void>;
 }> {
   let currentMcpConfig = getConfig();
   const mcpLifecycleManager = new McpServerLifecycleManager({
@@ -159,6 +163,9 @@ async function createMcpRuntimeSupport(getConfig: () => Config): Promise<{
         }
       }
     },
+    dispose: async () => {
+      await mcpRegistryService.close();
+    },
   };
 }
 
@@ -166,7 +173,8 @@ function createNativeRuntimeFactory(
   params: CreateUiNcpAgentParams,
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter,
   assetStore: LocalAssetStore,
-  resolveBackend: () => DefaultNcpAgentBackend | null,
+  childSessionService: ChildSessionService,
+  sessionRequestBroker: SessionRequestBroker,
 ): RuntimeFactory {
   return ({
     stateManager,
@@ -197,24 +205,8 @@ function createNativeRuntimeFactory(
       gatewayController: params.gatewayController,
       getConfig: params.getConfig,
       getExtensionRegistry: params.getExtensionRegistry,
-      writeSubagentCompletionToSession: async (completion) => {
-        const backend = resolveBackend();
-        if (!backend) {
-          throw new Error("NCP backend is not ready for subagent completion persistence.");
-        }
-        await persistSubagentCompletionAndResumeParent({
-          backend,
-          completion: {
-            sessionId: completion.sessionId,
-            runId: completion.runId,
-            toolCallId: completion.toolCallId,
-            label: completion.label,
-            task: completion.task,
-            result: completion.result,
-            status: completion.status,
-          },
-        });
-      },
+      childSessionService,
+      sessionRequestBroker,
       getAdditionalTools: (context) => [
         ...createAssetTools({
           assetStore,
@@ -260,33 +252,33 @@ function resolveRegisteredRuntimeFactory(params: {
     : params.registration.createRuntime;
 }
 
-function createPluginRuntimeRegistrationController(params: {
-  runtimeRegistry: UiNcpRuntimeRegistry;
-  getConfig: () => Config;
-  getExtensionRegistry?: () => NextclawExtensionRegistry | undefined;
-  createNativeRuntime: RuntimeFactory;
-}) {
-  const pluginRuntimeScopes = new Map<string, DisposableStore>();
-  let pluginRuntimeSnapshotKey = "";
-  let activeExtensionRegistry: NextclawExtensionRegistry | undefined;
+class PluginRuntimeRegistrationController {
+  private readonly pluginRuntimeScopes = new Map<string, DisposableStore>();
+  private pluginRuntimeSnapshotKey = "";
+  private activeExtensionRegistry: NextclawExtensionRegistry | undefined;
 
-  const syncPluginRuntimeRegistrations = (extensionRegistry?: NextclawExtensionRegistry): void => {
+  constructor(
+    private readonly runtimeRegistry: UiNcpRuntimeRegistry,
+    private readonly getExtensionRegistry?: () => NextclawExtensionRegistry | undefined,
+  ) {}
+
+  private syncPluginRuntimeRegistrations = (extensionRegistry?: NextclawExtensionRegistry): void => {
     const nextSnapshotKey = buildPluginRuntimeSnapshotKey(extensionRegistry);
-    if (nextSnapshotKey === pluginRuntimeSnapshotKey) {
+    if (nextSnapshotKey === this.pluginRuntimeSnapshotKey) {
       return;
     }
 
-    pluginRuntimeSnapshotKey = nextSnapshotKey;
-    for (const scope of pluginRuntimeScopes.values()) {
+    this.pluginRuntimeSnapshotKey = nextSnapshotKey;
+    for (const scope of this.pluginRuntimeScopes.values()) {
       scope.dispose();
     }
-    pluginRuntimeScopes.clear();
+    this.pluginRuntimeScopes.clear();
 
     for (const registration of extensionRegistry?.ncpAgentRuntimes ?? []) {
       const pluginId = registration.pluginId.trim() || registration.kind;
-      const scope = pluginRuntimeScopes.get(pluginId) ?? new DisposableStore();
-      pluginRuntimeScopes.set(pluginId, scope);
-      scope.add(params.runtimeRegistry.register({
+      const scope = this.pluginRuntimeScopes.get(pluginId) ?? new DisposableStore();
+      this.pluginRuntimeScopes.set(pluginId, scope);
+      scope.add(this.runtimeRegistry.register({
         kind: registration.kind,
         label: registration.label,
         createRuntime: resolveRegisteredRuntimeFactory({
@@ -297,17 +289,25 @@ function createPluginRuntimeRegistrationController(params: {
     }
   };
 
-  const resolveActiveExtensionRegistry = (): NextclawExtensionRegistry | undefined =>
-    activeExtensionRegistry ?? params.getExtensionRegistry?.();
+  private resolveActiveExtensionRegistry = (): NextclawExtensionRegistry | undefined =>
+    this.activeExtensionRegistry ?? this.getExtensionRegistry?.();
 
-  return {
-    refreshPluginRuntimeRegistrations: (): void => {
-      syncPluginRuntimeRegistrations(resolveActiveExtensionRegistry());
-    },
-    applyExtensionRegistry: (extensionRegistry?: NextclawExtensionRegistry): void => {
-      activeExtensionRegistry = extensionRegistry;
-      syncPluginRuntimeRegistrations(extensionRegistry);
-    },
+  refreshPluginRuntimeRegistrations = (): void => {
+    this.syncPluginRuntimeRegistrations(this.resolveActiveExtensionRegistry());
+  };
+
+  applyExtensionRegistry = (extensionRegistry?: NextclawExtensionRegistry): void => {
+    this.activeExtensionRegistry = extensionRegistry;
+    this.syncPluginRuntimeRegistrations(extensionRegistry);
+  };
+
+  dispose = (): void => {
+    for (const scope of this.pluginRuntimeScopes.values()) {
+      scope.dispose();
+    }
+    this.pluginRuntimeScopes.clear();
+    this.activeExtensionRegistry = undefined;
+    this.pluginRuntimeSnapshotKey = "";
   };
 }
 
@@ -317,6 +317,7 @@ function createUiNcpAgentHandle(params: {
   refreshPluginRuntimeRegistrations: () => void;
   applyExtensionRegistry: (extensionRegistry?: NextclawExtensionRegistry) => void;
   applyMcpConfig: (config: Config) => Promise<void>;
+  dispose: () => Promise<void>;
   assetStore: LocalAssetStore;
 }): UiNcpAgentHandle {
   return {
@@ -341,6 +342,7 @@ function createUiNcpAgentHandle(params: {
     },
     applyExtensionRegistry: params.applyExtensionRegistry,
     applyMcpConfig: params.applyMcpConfig,
+    dispose: params.dispose,
   };
 }
 
@@ -349,16 +351,29 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     onSessionUpdated: params.onSessionUpdated,
   });
   const runtimeRegistry = new UiNcpRuntimeRegistry();
-  const { toolRegistryAdapter, applyMcpConfig } = await createMcpRuntimeSupport(params.getConfig);
+  const { toolRegistryAdapter, applyMcpConfig, dispose: disposeMcpRuntimeSupport } =
+    await createMcpRuntimeSupport(params.getConfig);
   const assetStore = new LocalAssetStore({
     rootDir: join(getDataDir(), "assets"),
   });
   let backend: DefaultNcpAgentBackend | null = null;
+  const childSessionService = new ChildSessionService(
+    params.sessionManager,
+    params.onSessionUpdated,
+  );
+  const sessionRequestBroker = new SessionRequestBroker(
+    params.sessionManager,
+    childSessionService,
+    new SessionRequestDeliveryService(() => backend),
+    () => backend,
+    params.onSessionUpdated,
+  );
   const createNativeRuntime = createNativeRuntimeFactory(
     params,
     toolRegistryAdapter,
     assetStore,
-    () => backend,
+    childSessionService,
+    sessionRequestBroker,
   );
 
   runtimeRegistry.register({
@@ -367,12 +382,10 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     createRuntime: createNativeRuntime,
   });
 
-  const pluginRuntimeRegistrationController = createPluginRuntimeRegistrationController({
+  const pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
     runtimeRegistry,
-    getConfig: params.getConfig,
-    getExtensionRegistry: params.getExtensionRegistry,
-    createNativeRuntime,
-  });
+    params.getExtensionRegistry,
+  );
   pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
 
   backend = new DefaultNcpAgentBackend({
@@ -394,6 +407,11 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
       pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
     applyExtensionRegistry: pluginRuntimeRegistrationController.applyExtensionRegistry,
     applyMcpConfig,
+    dispose: async () => {
+      pluginRuntimeRegistrationController.dispose();
+      await backend?.stop();
+      await disposeMcpRuntimeSupport();
+    },
     assetStore,
   });
 }

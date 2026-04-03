@@ -54,7 +54,11 @@ export function ChatMessageList(props: ChatMessageListProps) {
           <div key={message.id} className={cn('flex gap-3', isUser ? 'justify-end' : 'justify-start')}>
             {!isUser ? <ChatMessageAvatar role={message.role} /> : null}
             <div className={cn('w-fit max-w-[92%] space-y-2', isUser && 'flex flex-col items-end')}>
-              <ChatMessage message={message} texts={props.texts} />
+              <ChatMessage
+                message={message}
+                texts={props.texts}
+                onToolAction={props.onToolAction}
+              />
               <div className={cn('flex items-center gap-2', isUser && 'justify-end')}>
                 {isGenerating ? (
                   <ChatMessageTypingFooter />

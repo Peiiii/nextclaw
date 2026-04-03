@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type {
   ChatMessageTexts,
+  ChatToolActionViewModel,
   ChatMessageViewModel,
 } from "../../view-models/chat-ui.types";
 import { cn } from "../../internal/cn";
@@ -14,10 +15,11 @@ import { ChatUnknownPart } from "./chat-unknown-part";
 type ChatMessageProps = {
   message: ChatMessageViewModel;
   texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
+  onToolAction?: (action: ChatToolActionViewModel) => void;
 };
 
 export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
-  const { message, texts } = props;
+  const { message, texts, onToolAction } = props;
   const { role } = message;
   const isUser = role === "user";
   const isMessageInProgress =
@@ -74,7 +76,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
           if (type === "tool-card") {
             return (
               <div key={`tool-${index}`} className="mt-0.5">
-                <ChatToolCard card={part.card} />
+                <ChatToolCard card={part.card} onToolAction={onToolAction} />
               </div>
             );
           }

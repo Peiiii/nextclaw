@@ -29,6 +29,7 @@ function createSession(overrides: Partial<SessionEntryView> & Pick<SessionEntryV
     updatedAt: overrides.updatedAt ?? '2026-03-19T00:00:00.000Z',
     sessionType: overrides.sessionType ?? 'native',
     sessionTypeMutable: overrides.sessionTypeMutable ?? false,
+    isChildSession: overrides.isChildSession ?? false,
     messageCount: overrides.messageCount ?? 0,
     ...(overrides.label ? { label: overrides.label } : {}),
     ...(overrides.preferredModel ? { preferredModel: overrides.preferredModel } : {}),

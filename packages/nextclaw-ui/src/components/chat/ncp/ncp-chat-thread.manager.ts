@@ -1,6 +1,7 @@
 import { appQueryClient } from '@/app-query-client';
 import { deleteNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
 import { deleteNcpSession as deleteNcpSessionApi } from '@/api/ncp-session';
+import type { ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
 import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
@@ -43,6 +44,54 @@ export class NcpChatThreadManager {
 
   goToProviders = () => {
     this.uiManager.goToProviders();
+  };
+
+  openSessionFromToolAction = (action: ChatToolActionViewModel) => {
+    if (action.kind !== 'open-session') {
+      return;
+    }
+    if (action.sessionKind === 'child' && !this.isCompactViewport()) {
+      const parentSessionKey =
+        action.parentSessionId?.trim() ||
+        useChatSessionListStore.getState().snapshot.selectedSessionKey ||
+        null;
+      useChatThreadStore.getState().setSnapshot({
+        childSessionDetailSessionKey: action.sessionId,
+        childSessionDetailParentSessionKey: parentSessionKey,
+        childSessionDetailLabel: action.label?.trim() || null,
+      });
+      return;
+    }
+    this.uiManager.goToSession(action.sessionId);
+  };
+
+  closeChildSessionDetail = () => {
+    useChatThreadStore.getState().setSnapshot({
+      childSessionDetailSessionKey: null,
+      childSessionDetailParentSessionKey: null,
+      childSessionDetailLabel: null,
+    });
+  };
+
+  goToParentSession = () => {
+    const {
+      parentSessionKey,
+      childSessionDetailParentSessionKey,
+    } = useChatThreadStore.getState().snapshot;
+    const resolvedParentSessionKey =
+      parentSessionKey ?? childSessionDetailParentSessionKey;
+    if (!resolvedParentSessionKey) {
+      return;
+    }
+    this.closeChildSessionDetail();
+    this.uiManager.goToSession(resolvedParentSessionKey);
+  };
+
+  private isCompactViewport = (): boolean => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia('(max-width: 767px)').matches;
   };
 
   private deleteCurrentSession = async () => {

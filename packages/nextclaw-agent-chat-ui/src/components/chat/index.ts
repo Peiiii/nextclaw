@@ -46,6 +46,7 @@ export type {
   ChatMessageRole,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,
+  ChatToolActionViewModel,
   ChatInlineTokenViewModel,
   ChatInlineContentSegmentViewModel,
   ChatToolPartViewModel,

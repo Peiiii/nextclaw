@@ -9,7 +9,7 @@ import {
   buildTextPart,
 } from "@/components/chat/adapters/chat-message-inline-content.adapter";
 import { buildFileOperationCardData } from "@/components/chat/adapters/file-operation/card";
-import { buildSubagentToolCard } from "@/components/chat/adapters/chat-message.subagent-tool-card";
+import { buildSessionRequestToolCard } from "@/components/chat/adapters/chat-message.session-request-tool-card";
 import type {
   ChatMessagePartViewModel,
   ChatToolPartViewModel,
@@ -77,6 +77,7 @@ export type ChatMessagePartSource =
 type ToolCardViewSource = ToolCard & {
   statusTone: ChatToolPartViewModel["statusTone"];
   statusLabel: string;
+  action?: ChatToolPartViewModel["action"];
   fileOperation?: ChatToolPartViewModel["fileOperation"];
   outputData?: unknown;
 };
@@ -194,6 +195,9 @@ function buildToolCard(
       toolCard.kind === "call" ? texts.toolCallLabel : texts.toolResultLabel,
     outputLabel: texts.toolOutputLabel,
     emptyLabel: texts.toolNoOutputLabel,
+    ...("action" in toolCard && toolCard.action
+      ? { action: toolCard.action }
+      : {}),
     ...("fileOperation" in toolCard && toolCard.fileOperation
       ? { fileOperation: toolCard.fileOperation }
       : {}),
@@ -330,14 +334,18 @@ function buildToolInvocationPart(
     return assetFileView;
   }
 
-  const subagentToolCard = buildSubagentToolCard({
+  const sessionRequestToolCard = buildSessionRequestToolCard({
     invocation,
-    texts,
+    texts: {
+      toolStatusRunningLabel: texts.toolStatusRunningLabel,
+      toolStatusCompletedLabel: texts.toolStatusCompletedLabel,
+      toolStatusFailedLabel: texts.toolStatusFailedLabel,
+    },
   });
-  if (subagentToolCard) {
+  if (sessionRequestToolCard) {
     return {
       type: "tool-card",
-      card: buildToolCard(subagentToolCard, texts),
+      card: buildToolCard(sessionRequestToolCard, texts),
     };
   }
 

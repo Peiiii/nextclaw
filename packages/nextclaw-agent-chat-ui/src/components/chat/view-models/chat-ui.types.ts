@@ -199,6 +199,14 @@ export type ChatFileOperationBlockViewModel = {
   truncated?: boolean;
 };
 
+export type ChatToolActionViewModel = {
+  kind: "open-session";
+  sessionId: string;
+  sessionKind: "child" | "session";
+  label?: string;
+  parentSessionId?: string;
+};
+
 export type ChatToolPartViewModel = {
   kind: "call" | "result";
   toolName: string;
@@ -213,6 +221,7 @@ export type ChatToolPartViewModel = {
   titleLabel: string;
   outputLabel: string;
   emptyLabel: string;
+  action?: ChatToolActionViewModel;
   fileOperation?: {
     blocks: ChatFileOperationBlockViewModel[];
   };
@@ -293,4 +302,5 @@ export type ChatMessageListProps = {
   hasAssistantDraft: boolean;
   texts: ChatMessageTexts;
   className?: string;
+  onToolAction?: (action: ChatToolActionViewModel) => void;
 };

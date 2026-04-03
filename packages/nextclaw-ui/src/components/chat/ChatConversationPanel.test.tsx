@@ -32,7 +32,10 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
     chatThreadManager: {
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
-      createSession: vi.fn()
+      createSession: vi.fn(),
+      openSessionFromToolAction: vi.fn(),
+      closeChildSessionDetail: vi.fn(),
+      goToParentSession: vi.fn(),
     },
     chatSessionListManager: {
       selectSession: vi.fn()
@@ -67,7 +70,12 @@ describe('ChatConversationPanel', () => {
         isHistoryLoading: false,
         messages: [],
         isSending: false,
-        isAwaitingAssistantOutput: false
+        isAwaitingAssistantOutput: false,
+        parentSessionKey: null,
+        parentSessionLabel: null,
+        childSessionDetailSessionKey: null,
+        childSessionDetailParentSessionKey: null,
+        childSessionDetailLabel: null,
       }
     });
   });

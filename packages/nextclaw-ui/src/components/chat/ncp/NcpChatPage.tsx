@@ -15,7 +15,10 @@ import { createNcpAppClientFetch } from '@/components/chat/ncp/ncp-app-client-fe
 import { parseSessionKeyFromRoute, resolveAgentIdFromSessionKey } from '@/components/chat/chat-session-route';
 import { useNcpChatPageData } from '@/components/chat/ncp/ncp-chat-page-data';
 import { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter';
-import { createNcpSessionId } from '@/components/chat/ncp/ncp-session-adapter';
+import {
+  adaptNcpSessionSummary,
+  createNcpSessionId,
+} from '@/components/chat/ncp/ncp-session-adapter';
 import { ChatPresenterProvider } from '@/components/chat/presenter/chat-presenter-context';
 import type { ResumeRunParams } from '@/components/chat/chat-stream/types';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
@@ -308,6 +311,14 @@ export function NcpChatPage({ view }: ChatPageProps) {
   }, [confirm, location.pathname, navigate, presenter]);
 
   const currentSessionDisplayName = selectedSession ? sessionDisplayName(selectedSession) : undefined;
+  const parentSession = useMemo(() => {
+    if (!selectedSession?.parentSessionId) {
+      return null;
+    }
+    const parentSummary =
+      sessionSummaries.find((summary) => summary.sessionId === selectedSession.parentSessionId) ?? null;
+    return parentSummary ? adaptNcpSessionSummary(parentSummary) : null;
+  }, [selectedSession?.parentSessionId, sessionSummaries]);
   const currentSessionTypeLabel =
     sessionTypeOptions.find((option) => option.value === selectedSessionType)?.label ??
     resolveSessionTypeLabel(selectedSessionType);
@@ -345,7 +356,9 @@ export function NcpChatPage({ view }: ChatPageProps) {
       isHistoryLoading: agent.isHydrating,
       messages: agent.visibleMessages,
       isSending,
-      isAwaitingAssistantOutput
+      isAwaitingAssistantOutput,
+      parentSessionKey: parentSession?.key ?? null,
+      parentSessionLabel: parentSession ? sessionDisplayName(parentSession) : null,
     });
   }, [
     agent.isHydrating,
@@ -360,6 +373,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
     isSending,
     lastSendError,
     modelOptions,
+    parentSession,
     presenter,
     effectiveSessionProjectName,
     effectiveSessionProjectRoot,

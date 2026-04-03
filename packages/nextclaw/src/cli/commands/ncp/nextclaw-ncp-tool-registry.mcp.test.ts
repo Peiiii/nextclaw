@@ -11,6 +11,8 @@ import {
 import { McpRegistryService, McpServerLifecycleManager } from "@nextclaw/mcp";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
+import type { ChildSessionService } from "./session-request/child-session.service.js";
+import type { SessionRequestBroker } from "./session-request/session-request-broker.js";
 
 const fixturePath = resolve(
   import.meta.dirname,
@@ -74,6 +76,8 @@ describe("NextclawNcpToolRegistry MCP integration", () => {
       providerManager: {} as ProviderManager,
       sessionManager: new SessionManager(workspace),
       getConfig: () => config,
+      childSessionService: {} as ChildSessionService,
+      sessionRequestBroker: {} as SessionRequestBroker,
       getAdditionalTools: (context) =>
         adapter.listToolsForRun({
           agentId: context.agentId,

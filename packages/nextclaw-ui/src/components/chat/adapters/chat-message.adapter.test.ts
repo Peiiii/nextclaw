@@ -223,7 +223,7 @@ it("keeps structured terminal results as structured data instead of raw json out
   });
 });
 
-it("renders spawn tool cards from structured subagent status updates", () => {
+it("renders session request tool cards from structured child-session status updates", () => {
   const adapted = adapt([
     {
       id: "assistant-subagent",
@@ -237,12 +237,15 @@ it("renders spawn tool cards from structured subagent status updates", () => {
             toolName: "spawn",
             args: '{"label":"Verifier","task":"Verify 1+1=2"}',
             result: {
-              kind: "nextclaw.subagent_run",
-              runId: "subagent-1",
-              label: "Verifier",
+              kind: "nextclaw.session_request",
+              requestId: "request-1",
+              sessionId: "child-session-1",
+              isChildSession: true,
+              title: "Verifier",
               task: "Verify 1+1=2",
               status: "completed",
-              result: "Verified 1+1=2.",
+              finalResponseText: "Verified 1+1=2.",
+              parentSessionId: "parent-session-1",
             },
           },
         },
@@ -254,21 +257,32 @@ it("renders spawn tool cards from structured subagent status updates", () => {
     type: "tool-card",
     card: {
       toolName: "spawn",
-      summary: "label: Verifier · run: subagent-1 · task: Verify 1+1=2",
+      summary: "title: Verifier · session: child-session-1 · task: Verify 1+1=2",
       output: [
-        "Run ID: subagent-1",
+        "Request ID: request-1",
         "",
-        "Label: Verifier",
+        "Session ID: child-session-1",
+        "",
+        "Target: child",
+        "",
+        "Title: Verifier",
         "",
         "Task:",
         "Verify 1+1=2",
         "",
-        "Result:",
+        "Final Response:",
         "Verified 1+1=2.",
       ].join("\n"),
       statusTone: "success",
       statusLabel: "Completed",
       titleLabel: "Tool Result",
+      action: {
+        kind: "open-session",
+        sessionId: "child-session-1",
+        sessionKind: "child",
+        label: "Verifier",
+        parentSessionId: "parent-session-1",
+      },
     },
   });
 });

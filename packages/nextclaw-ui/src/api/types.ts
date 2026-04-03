@@ -210,6 +210,10 @@ export type SessionEntryView = {
   projectName?: string | null;
   sessionType: string;
   sessionTypeMutable: boolean;
+  isChildSession?: boolean;
+  isPromotedChildSession?: boolean;
+  parentSessionId?: string | null;
+  spawnedByRequestId?: string | null;
   messageCount: number;
   lastRole?: string;
   lastTimestamp?: string;

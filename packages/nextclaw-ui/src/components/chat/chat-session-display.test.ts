@@ -9,6 +9,7 @@ function createSession(overrides: Partial<SessionEntryView> = {}): SessionEntryV
     updatedAt: '2026-03-31T10:00:00.000Z',
     sessionType: 'native',
     sessionTypeMutable: false,
+    isChildSession: false,
     messageCount: 3,
     ...overrides
   };

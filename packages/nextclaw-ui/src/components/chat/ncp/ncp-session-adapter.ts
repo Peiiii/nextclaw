@@ -88,6 +88,30 @@ function readNcpSessionType(summary: NcpSessionSummaryView): string {
   return readOptionalString(metadata.session_type) ?? readOptionalString(metadata.sessionType) ?? 'native';
 }
 
+function readNcpParentSessionId(summary: NcpSessionSummaryView): string | null {
+  const metadata = readMetadata(summary);
+  if (!metadata) {
+    return null;
+  }
+  return readOptionalString(metadata.parent_session_id) ?? readOptionalString(metadata.parentSessionId);
+}
+
+function readNcpSpawnedByRequestId(summary: NcpSessionSummaryView): string | null {
+  const metadata = readMetadata(summary);
+  if (!metadata) {
+    return null;
+  }
+  return readOptionalString(metadata.spawned_by_request_id) ?? readOptionalString(metadata.spawnedByRequestId);
+}
+
+function readPromotedChildSession(summary: NcpSessionSummaryView): boolean {
+  const metadata = readMetadata(summary);
+  if (!metadata) {
+    return false;
+  }
+  return metadata.child_session_promoted === true;
+}
+
 function parseSessionContext(sessionKey: string): { channel?: string; type?: string } {
   if (sessionKey === 'heartbeat') {
     return { type: 'heartbeat' };
@@ -222,6 +246,9 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const projectRoot = readNcpSessionProjectRoot(summary);
   const projectName = getSessionProjectName(projectRoot);
   const context = parseSessionContext(summary.sessionId);
+  const parentSessionId = readNcpParentSessionId(summary);
+  const spawnedByRequestId = readNcpSpawnedByRequestId(summary);
+  const isPromotedChildSession = readPromotedChildSession(summary);
   return {
     key: summary.sessionId,
     createdAt: summary.updatedAt,
@@ -234,6 +261,10 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(projectName ? { projectName } : {}),
     sessionType: readNcpSessionType(summary),
     sessionTypeMutable: false,
+    isChildSession: Boolean(parentSessionId),
+    ...(isPromotedChildSession ? { isPromotedChildSession } : {}),
+    ...(parentSessionId ? { parentSessionId } : {}),
+    ...(spawnedByRequestId ? { spawnedByRequestId } : {}),
     messageCount: summary.messageCount
   };
 }

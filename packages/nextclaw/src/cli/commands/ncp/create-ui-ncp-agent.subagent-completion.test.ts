@@ -10,17 +10,46 @@ import {
   SessionManager,
 } from "@nextclaw/core";
 import { type NcpRequestEnvelope } from "@nextclaw/ncp";
-import { createUiNcpAgent } from "./create-ui-ncp-agent.js";
+import {
+  createUiNcpAgent,
+  type UiNcpAgentHandle,
+} from "./create-ui-ncp-agent.js";
 
 const tempDirs: string[] = [];
+const activeAgents: UiNcpAgentHandle[] = [];
 
 function createTempWorkspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), "nextclaw-ncp-subagent-"));
+  const dir = mkdtempSync(join(tmpdir(), "nextclaw-ncp-session-request-"));
   tempDirs.push(dir);
   return dir;
 }
 
-afterEach(() => {
+async function waitForCondition(
+  check: () => Promise<boolean>,
+  options: {
+    timeoutMs?: number;
+    intervalMs?: number;
+  } = {},
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? 3_000;
+  const intervalMs = options.intervalMs ?? 50;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() <= deadline) {
+    if (await check()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  expect(await check()).toBe(true);
+}
+
+afterEach(async () => {
+  while (activeAgents.length > 0) {
+    const agent = activeAgents.pop();
+    await agent?.dispose?.();
+  }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
@@ -29,8 +58,8 @@ afterEach(() => {
   }
 });
 
-describe("createUiNcpAgent subagent completion", () => {
-  it("persists NCP-native subagent completion back into the originating session without the legacy relay", async () => {
+describe("createUiNcpAgent session request completion", () => {
+  it("persists child-session completion back into the originating session and resumes the parent run", async () => {
     const workspace = createTempWorkspace();
     const sessionId = `session-subagent-native-${Date.now().toString(36)}`;
     const sessionManager = new SessionManager(workspace);
@@ -57,7 +86,7 @@ describe("createUiNcpAgent subagent completion", () => {
       sessionManager,
       getConfig: () => config,
     });
-
+    activeAgents.push(ncpAgent);
     await ncpAgent.agentClientEndpoint.send(
       createEnvelope({
         sessionId,
@@ -65,87 +94,113 @@ describe("createUiNcpAgent subagent completion", () => {
       }),
     );
 
-    await vi.waitFor(async () => {
+    await waitForCondition(async () => {
       const messages = await ncpAgent.sessionApi.listSessionMessages(sessionId);
-      expect(
-        messages.some(
-          (message) =>
-            message.role === "assistant" &&
-            message.parts.some(
-              (part) =>
-                part.type === "tool-invocation" &&
-                part.toolCallId === "spawn-call-1" &&
-                part.state === "result" &&
-                typeof part.result === "object" &&
-                part.result !== null &&
-                "kind" in part.result &&
-                part.result.kind === "nextclaw.subagent_run" &&
-                "status" in part.result &&
-                part.result.status === "completed" &&
-                "result" in part.result &&
-                String(part.result.result).includes("Verified 1+1=2"),
-            ),
-        ),
-      ).toBe(true);
-    });
-
-    await vi.waitFor(async () => {
-      const messages = await ncpAgent.sessionApi.listSessionMessages(sessionId);
-      expect(
-        messages.some(
-          (message) =>
-            message.role === "assistant" &&
-            message.parts.some(
-              (part) =>
-                part.type === "text" &&
-                part.text.includes("Verified 1+1=2") &&
-                part.text.includes("continuing"),
-            ),
-        ),
-      ).toBe(true);
-    });
-
-    const refreshedMessages = await ncpAgent.sessionApi.listSessionMessages(sessionId);
-    expect(
-      refreshedMessages.some(
+      return messages.some(
         (message) =>
           message.role === "assistant" &&
           message.parts.some(
             (part) =>
               part.type === "tool-invocation" &&
               part.toolCallId === "spawn-call-1" &&
-              part.state === "result",
+              part.state === "result" &&
+              typeof part.result === "object" &&
+              part.result !== null &&
+              "kind" in part.result &&
+              part.result.kind === "nextclaw.session_request" &&
+              "status" in part.result &&
+              part.result.status === "completed",
           ),
-      ),
-    ).toBe(true);
-    expect(
-      refreshedMessages.some((message) => message.role === "service"),
-    ).toBe(false);
-    expect(
-      refreshedMessages.some(
-        (message) =>
-          message.role === "system" &&
-          message.metadata?.system_event_kind === "subagent_completion_follow_up",
-      ),
-    ).toBe(false);
+      );
+    });
 
-    const persistedSession = sessionManager.getIfExists(sessionId);
-    expect(
-      persistedSession?.messages.some(
+    await waitForCondition(async () => {
+      const messages = await ncpAgent.sessionApi.listSessionMessages(sessionId);
+      return messages.some(
         (message) =>
           message.role === "assistant" &&
-          Array.isArray(message.tool_calls) &&
-          message.tool_calls.some((toolCall) => toolCall.id === "spawn-call-1"),
-      ),
-    ).toBe(true);
-    expect(
-      persistedSession?.messages.some(
-        (message) =>
-          message.role === "assistant" &&
-          String(message.content ?? "").includes("continuing with the verified result"),
-      ),
-    ).toBe(true);
-    expect(publishInbound).not.toHaveBeenCalled();
+          message.parts.some(
+            (part) =>
+              part.type === "text" &&
+              part.text.includes("Verified 1+1=2") &&
+              part.text.includes("continuing"),
+          ),
+      );
+    });
+
+      const refreshedMessages = await ncpAgent.sessionApi.listSessionMessages(sessionId);
+      const childSessionResult = refreshedMessages
+        .flatMap((message) => message.parts)
+        .find((part) => {
+          if (part.type !== "tool-invocation") {
+            return false;
+          }
+          if (part.toolCallId !== "spawn-call-1" || part.state !== "result") {
+            return false;
+          }
+          if (typeof part.result !== "object" || part.result === null) {
+            return false;
+          }
+          if (!("kind" in part.result) || part.result.kind !== "nextclaw.session_request") {
+            return false;
+          }
+          return "sessionId" in part.result && typeof part.result.sessionId === "string";
+        });
+      const childSessionId =
+        childSessionResult?.type === "tool-invocation" &&
+        typeof childSessionResult.result === "object" &&
+        childSessionResult.result !== null &&
+        "sessionId" in childSessionResult.result &&
+        typeof childSessionResult.result.sessionId === "string"
+          ? childSessionResult.result.sessionId
+          : undefined;
+      expect(
+        refreshedMessages.some(
+          (message) =>
+            message.role === "assistant" &&
+            message.parts.some(
+              (part) =>
+                part.type === "tool-invocation" &&
+                part.toolCallId === "spawn-call-1" &&
+                part.state === "result",
+            ),
+        ),
+      ).toBe(true);
+      expect(
+        refreshedMessages.some((message) => message.role === "service"),
+      ).toBe(false);
+      expect(
+        refreshedMessages.some(
+          (message) =>
+            message.role === "user" &&
+            message.metadata?.system_event_kind === "session_request_completion",
+        ),
+      ).toBe(false);
+
+      const persistedSession = sessionManager.getIfExists(sessionId);
+      expect(
+        persistedSession?.messages.some(
+          (message) =>
+            message.role === "assistant" &&
+            Array.isArray(message.tool_calls) &&
+            message.tool_calls.some((toolCall) => toolCall.id === "spawn-call-1"),
+        ),
+      ).toBe(true);
+      expect(
+        persistedSession?.messages.some(
+          (message) =>
+            message.role === "assistant" &&
+            String(message.content ?? "").includes("continuing with the verified result"),
+        ),
+      ).toBe(true);
+      expect(childSessionId).toBeTruthy();
+      const childSession = childSessionId
+        ? sessionManager.getIfExists(childSessionId)
+        : null;
+      expect(childSession).toBeTruthy();
+      expect(childSession?.metadata?.parent_session_id).toBe(sessionId);
+      expect(childSession?.metadata?.spawned_by_request_id).toBeTruthy();
+      expect(publishInbound).not.toHaveBeenCalled();
   });
 });
 
@@ -157,26 +212,61 @@ class SubagentCompletionProviderManager {
   chatStream = (params: {
     messages: Array<Record<string, unknown>>;
   }): AsyncGenerator<LLMStreamEvent> => {
+    const hasDelegatedVerificationTask = params.messages.some(
+      (message) =>
+        message.role === "user" &&
+        String(message.content ?? "").includes("Verify that 1+1=2"),
+    );
     const hasSpawnToolResult = params.messages.some(
       (message) =>
         message.role === "tool" &&
-        String(message.content ?? "").includes("Subagent [Verifier] started"),
+        String(message.content ?? "").includes('"kind":"nextclaw.session_request"'),
     );
     const hasHiddenFollowUp = params.messages.some(
       (message) =>
         message.role === "user" &&
-        String(message.content ?? "").includes("<task-notification>") &&
-        String(message.content ?? "").includes("<source>subagent_completion</source>") &&
+        String(message.content ?? "").includes("<session-request-completion>") &&
         String(message.content ?? "").includes("<status>completed</status>") &&
         String(message.content ?? "").includes("Verified 1+1=2"),
     );
+    const isChildSessionRun = params.messages.some(
+      (message) =>
+        message.role === "user" &&
+        String(message.content ?? "").includes("Verify that 1+1=2"),
+    );
 
     return (async function* (): AsyncGenerator<LLMStreamEvent> {
+      if (hasDelegatedVerificationTask) {
+        yield {
+          type: "done",
+          response: {
+            content: "Verified 1+1=2.",
+            toolCalls: [],
+            finishReason: "stop",
+            usage: {},
+          },
+        };
+        return;
+      }
+
       if (hasHiddenFollowUp) {
         yield {
           type: "done",
           response: {
             content: "Verified 1+1=2 and continuing with the verified result.",
+            toolCalls: [],
+            finishReason: "stop",
+            usage: {},
+          },
+        };
+        return;
+      }
+
+      if (isChildSessionRun) {
+        yield {
+          type: "done",
+          response: {
+            content: "Verified 1+1=2.",
             toolCalls: [],
             finishReason: "stop",
             usage: {},

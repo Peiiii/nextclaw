@@ -20,6 +20,11 @@ export type ChatThreadSnapshot = {
   messages: readonly NcpMessage[];
   isSending: boolean;
   isAwaitingAssistantOutput: boolean;
+  parentSessionKey?: string | null;
+  parentSessionLabel?: string | null;
+  childSessionDetailSessionKey?: string | null;
+  childSessionDetailParentSessionKey?: string | null;
+  childSessionDetailLabel?: string | null;
 };
 
 type ChatThreadStore = {
@@ -43,7 +48,12 @@ const initialSnapshot: ChatThreadSnapshot = {
   isHistoryLoading: false,
   messages: [],
   isSending: false,
-  isAwaitingAssistantOutput: false
+  isAwaitingAssistantOutput: false,
+  parentSessionKey: null,
+  parentSessionLabel: null,
+  childSessionDetailSessionKey: null,
+  childSessionDetailParentSessionKey: null,
+  childSessionDetailLabel: null,
 };
 
 export const useChatThreadStore = create<ChatThreadStore>((set) => ({
