@@ -22,7 +22,7 @@ function readOptionalString(value: unknown): string | null {
 function summarizeTask(task: string): string {
   const normalized = task.trim().replace(/\s+/g, " ");
   if (!normalized) {
-    return "Child session";
+    return "Session";
   }
   if (normalized.length <= 72) {
     return normalized;
@@ -53,19 +53,18 @@ function cloneInheritedMetadata(
   return nextMetadata;
 }
 
-function buildChildSessionId(agentId?: string): string {
+function buildSessionId(agentId?: string): string {
   void agentId;
   return `ncp-${Date.now().toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
 
-export class ChildSessionService {
+export class SessionCreationService {
   constructor(
     private readonly sessionManager: SessionManager,
     private readonly onSessionUpdated?: (sessionKey: string) => void,
   ) {}
 
-  createChildSession = (params: {
-    parentSessionId: string;
+  createSession = (params: {
     task: string;
     title?: string;
     sourceSessionMetadata: Record<string, unknown>;
@@ -74,13 +73,16 @@ export class ChildSessionService {
     thinkingLevel?: string;
     sessionType?: string;
     projectRoot?: string | null;
+    parentSessionId?: string;
     requestId?: string;
   }): SessionRecord => {
-    const sessionId = buildChildSessionId(params.agentId);
+    const sessionId = buildSessionId(params.agentId);
     const now = new Date().toISOString();
     const session = this.sessionManager.getOrCreate(sessionId);
     const title = readOptionalString(params.title) ?? summarizeTask(params.task);
     const metadata = cloneInheritedMetadata(params.sourceSessionMetadata);
+    const parentSessionId = readOptionalString(params.parentSessionId);
+    const requestId = readOptionalString(params.requestId);
     const sessionType =
       readOptionalString(params.sessionType) ??
       readOptionalString(metadata.session_type) ??
@@ -88,11 +90,13 @@ export class ChildSessionService {
 
     metadata.session_type = sessionType;
     metadata[SESSION_METADATA_LABEL_KEY] = title;
-    metadata[CHILD_SESSION_PARENT_METADATA_KEY] = params.parentSessionId;
     metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = DEFAULT_LIFECYCLE;
-    metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
-    if (params.requestId) {
-      metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = params.requestId;
+    if (parentSessionId) {
+      metadata[CHILD_SESSION_PARENT_METADATA_KEY] = parentSessionId;
+      metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
+    }
+    if (requestId) {
+      metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = requestId;
     }
     if (readOptionalString(params.model)) {
       metadata.model = params.model?.trim();
@@ -115,14 +119,29 @@ export class ChildSessionService {
       sessionId,
       sessionType,
       runtimeFamily: "native",
-      parentSessionId: params.parentSessionId,
-      spawnedByRequestId: params.requestId,
+      ...(parentSessionId ? { parentSessionId } : {}),
+      ...(requestId ? { spawnedByRequestId: requestId } : {}),
       lifecycle: DEFAULT_LIFECYCLE,
       title,
       metadata,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
     };
+  };
+
+  createChildSession = (params: {
+    parentSessionId: string;
+    task: string;
+    title?: string;
+    sourceSessionMetadata: Record<string, unknown>;
+    agentId?: string;
+    model?: string;
+    thinkingLevel?: string;
+    sessionType?: string;
+    projectRoot?: string | null;
+    requestId?: string;
+  }): SessionRecord => {
+    return this.createSession(params);
   };
 
   promoteChildSession = (params: { sessionId: string; promoted: boolean }): boolean => {

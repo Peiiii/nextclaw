@@ -11,7 +11,7 @@ import {
 import { McpRegistryService, McpServerLifecycleManager } from "@nextclaw/mcp";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
-import type { ChildSessionService } from "./session-request/child-session.service.js";
+import { SessionCreationService } from "./session-request/session-creation.service.js";
 import type { SessionRequestBroker } from "./session-request/session-request-broker.js";
 
 const fixturePath = resolve(
@@ -76,7 +76,7 @@ describe("NextclawNcpToolRegistry MCP integration", () => {
       providerManager: {} as ProviderManager,
       sessionManager: new SessionManager(workspace),
       getConfig: () => config,
-      childSessionService: {} as ChildSessionService,
+      sessionCreationService: {} as SessionCreationService,
       sessionRequestBroker: {} as SessionRequestBroker,
       getAdditionalTools: (context) =>
         adapter.listToolsForRun({
@@ -113,5 +113,69 @@ describe("NextclawNcpToolRegistry MCP integration", () => {
     });
 
     await registryService.close();
+  });
+
+  it("creates a regular session for sessions_spawn instead of a child session", async () => {
+    const workspace = createTempWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model",
+        },
+      },
+    });
+    const sessionManager = new SessionManager(workspace);
+    const sessionCreationService = new SessionCreationService(sessionManager);
+    const toolRegistry = new NextclawNcpToolRegistry({
+      bus: new MessageBus(),
+      providerManager: {} as ProviderManager,
+      sessionManager,
+      getConfig: () => config,
+      sessionCreationService,
+      sessionRequestBroker: {} as SessionRequestBroker,
+    });
+
+    toolRegistry.prepareForRun({
+      agentId: "main",
+      channel: "cli",
+      chatId: "default",
+      config,
+      contextTokens: 200000,
+      execTimeoutSeconds: 60,
+      handoffDepth: 0,
+      metadata: {
+        session_type: "native",
+        preferred_model: "default-model",
+      },
+      model: "default-model",
+      restrictToWorkspace: false,
+      searchConfig: config.search,
+      sessionId: "source-session-1",
+      workspace,
+    });
+
+    const result = await toolRegistry.execute("call-spawn", "sessions_spawn", {
+      task: "Review the deployment status",
+    });
+
+    expect(result).toMatchObject({
+      kind: "nextclaw.session",
+      isChildSession: false,
+      title: "Review the deployment status",
+      sessionType: "native",
+      lifecycle: "persistent",
+    });
+    expect(result).not.toHaveProperty("parentSessionId");
+    const sessionId =
+      result && typeof result === "object" && "sessionId" in result && typeof result.sessionId === "string"
+        ? result.sessionId
+        : null;
+    expect(sessionId).toBeTruthy();
+    const createdSession = sessionId ? sessionManager.getIfExists(sessionId) : null;
+    expect(createdSession).toBeTruthy();
+    expect(createdSession?.metadata?.parent_session_id).toBeUndefined();
+    expect(createdSession?.metadata?.child_session_promoted).toBeUndefined();
+    expect(createdSession?.metadata?.label).toBe("Review the deployment status");
   });
 });

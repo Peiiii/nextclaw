@@ -1,5 +1,5 @@
 import { Tool } from "@nextclaw/core";
-import { ChildSessionService } from "./child-session.service.js";
+import { SessionCreationService } from "./session-creation.service.js";
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -21,7 +21,7 @@ export class SessionSpawnTool extends Tool {
   private sourceSessionMetadata: Record<string, unknown> = {};
   private agentId: string | undefined;
 
-  constructor(private readonly childSessionService: ChildSessionService) {
+  constructor(private readonly sessionCreationService: SessionCreationService) {
     super();
   }
 
@@ -30,7 +30,7 @@ export class SessionSpawnTool extends Tool {
   }
 
   get description(): string {
-    return "Create a new child session without sending it a task yet.";
+    return "Create a new session without sending it a task yet.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -39,15 +39,15 @@ export class SessionSpawnTool extends Tool {
       properties: {
         task: {
           type: "string",
-          description: "Seed text used to title the child session.",
+          description: "Seed text used to title the new session.",
         },
         title: {
           type: "string",
-          description: "Optional explicit child session title.",
+          description: "Optional explicit session title.",
         },
         model: {
           type: "string",
-          description: "Optional model override for the child session.",
+          description: "Optional model override for the new session.",
         },
       },
       required: ["task"],
@@ -66,8 +66,7 @@ export class SessionSpawnTool extends Tool {
 
   execute = async (params: Record<string, unknown>): Promise<unknown> => {
     const task = readRequiredString(params.task, "task");
-    const session = this.childSessionService.createChildSession({
-      parentSessionId: this.sourceSessionId,
+    const session = this.sessionCreationService.createSession({
       task,
       title: readOptionalString(params.title),
       sourceSessionMetadata: this.sourceSessionMetadata,
@@ -78,8 +77,8 @@ export class SessionSpawnTool extends Tool {
     return {
       kind: "nextclaw.session",
       sessionId: session.sessionId,
-      parentSessionId: session.parentSessionId,
-      isChildSession: true,
+      ...(session.parentSessionId ? { parentSessionId: session.parentSessionId } : {}),
+      isChildSession: false,
       lifecycle: session.lifecycle,
       title: session.title,
       sessionType: session.sessionType,

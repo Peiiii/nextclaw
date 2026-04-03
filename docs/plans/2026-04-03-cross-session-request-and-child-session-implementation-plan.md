@@ -260,10 +260,11 @@ type SessionRequestEvent =
 
 应新增或收敛到单一工厂/服务：
 
-- `ChildSessionService` 或 `SessionSpawnService`
+- `SessionCreationService`
 
 它统一承接：
 
+- 创建普通 session record
 - 创建 child session record
 - 填 `parentSessionId`
 - 填 `spawnedByRequestId`
@@ -315,7 +316,7 @@ child session 的产品表面必须收敛到：
 - `session-request-broker.manager.ts`
 - `session-request-store.service.ts`
 - `session-request-delivery.service.ts`
-- `child-session.service.ts`
+- `session-creation.service.ts`
 
 推荐职责：
 
@@ -325,8 +326,8 @@ child session 的产品表面必须收敛到：
   - 读写 request 持久化
 - `SessionRequestDeliveryService`
   - 按 `deliveryMode` 执行回投
-- `ChildSessionService`
-  - 创建 child session，确保默认字段和 fail-fast 校验
+- `SessionCreationService`
+  - 统一创建普通 session / child session，确保默认字段和 fail-fast 校验
 
 ### 6.2 前端
 
@@ -373,7 +374,6 @@ child session 的产品表面必须收敛到：
 优先考虑收敛到：
 
 - `packages/nextclaw/src/cli/commands/ncp/session-request/`
-- `packages/nextclaw/src/cli/commands/ncp/child-session/`
 
 而不是继续把所有 request/session/broker 逻辑平铺回原命令文件。
 
@@ -383,8 +383,7 @@ child session 的产品表面必须收敛到：
 - `packages/nextclaw/src/cli/commands/ncp/session-request/session-request-store.service.ts`
 - `packages/nextclaw/src/cli/commands/ncp/session-request/session-request-delivery.service.ts`
 - `packages/nextclaw/src/cli/commands/ncp/session-request/session-request.types.ts`
-- `packages/nextclaw/src/cli/commands/ncp/child-session/child-session.service.ts`
-- `packages/nextclaw/src/cli/commands/ncp/child-session/child-session.types.ts`
+- `packages/nextclaw/src/cli/commands/ncp/session-request/session-creation.service.ts`
 
 ### 7.2 前端建议
 

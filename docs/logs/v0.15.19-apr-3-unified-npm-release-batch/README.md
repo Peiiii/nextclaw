@@ -97,11 +97,15 @@
   2. `PATH=/opt/homebrew/bin:$PATH NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc pnpm release:publish`
   3. 对关键包执行 `npm view <pkg> version` 线上核验
   4. 构建 docs 站，确认发布笔记可正常构建
+  5. 执行 `PATH=/opt/homebrew/bin:$PATH pnpm deploy:docs` 发布文档站
 - 当前状态：
   - 统一发包：已完成
   - npm 线上版本核验：已完成
   - changeset tag：已完成
   - docs build：已完成
+  - docs 站上线：已完成
+  - Cloudflare Pages 部署地址：`https://65b6976b.nextclaw-docs.pages.dev`
+  - 正式域名验证：`https://docs.nextclaw.io` 返回 `HTTP 200`
 
 ## 用户/产品视角的验收步骤
 

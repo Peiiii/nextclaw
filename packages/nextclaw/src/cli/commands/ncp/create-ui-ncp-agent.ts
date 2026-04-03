@@ -31,7 +31,7 @@ import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "./nextclaw-agent-session-store.js";
 import { NextclawNcpToolRegistry } from "./nextclaw-ncp-tool-registry.js";
 import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
-import { ChildSessionService } from "./session-request/child-session.service.js";
+import { SessionCreationService } from "./session-request/session-creation.service.js";
 import { SessionRequestBroker } from "./session-request/session-request-broker.js";
 import { SessionRequestDeliveryService } from "./session-request/session-request-delivery.service.js";
 import {
@@ -173,7 +173,7 @@ function createNativeRuntimeFactory(
   params: CreateUiNcpAgentParams,
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter,
   assetStore: LocalAssetStore,
-  childSessionService: ChildSessionService,
+  sessionCreationService: SessionCreationService,
   sessionRequestBroker: SessionRequestBroker,
 ): RuntimeFactory {
   return ({
@@ -205,7 +205,7 @@ function createNativeRuntimeFactory(
       gatewayController: params.gatewayController,
       getConfig: params.getConfig,
       getExtensionRegistry: params.getExtensionRegistry,
-      childSessionService,
+      sessionCreationService,
       sessionRequestBroker,
       getAdditionalTools: (context) => [
         ...createAssetTools({
@@ -357,13 +357,13 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     rootDir: join(getDataDir(), "assets"),
   });
   let backend: DefaultNcpAgentBackend | null = null;
-  const childSessionService = new ChildSessionService(
+  const sessionCreationService = new SessionCreationService(
     params.sessionManager,
     params.onSessionUpdated,
   );
   const sessionRequestBroker = new SessionRequestBroker(
     params.sessionManager,
-    childSessionService,
+    sessionCreationService,
     new SessionRequestDeliveryService(() => backend),
     () => backend,
     params.onSessionUpdated,
@@ -372,7 +372,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     params,
     toolRegistryAdapter,
     assetStore,
-    childSessionService,
+    sessionCreationService,
     sessionRequestBroker,
   );
 

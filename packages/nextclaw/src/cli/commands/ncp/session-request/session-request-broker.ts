@@ -8,9 +8,9 @@ import {
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
 import { randomUUID } from "node:crypto";
 import {
-  ChildSessionService,
+  SessionCreationService,
   CHILD_SESSION_PARENT_METADATA_KEY,
-} from "./child-session.service.js";
+} from "./session-creation.service.js";
 import { SessionRequestDeliveryService } from "./session-request-delivery.service.js";
 import type {
   SessionRequestAwaitMode,
@@ -126,7 +126,7 @@ function buildToolResult(params: {
 export class SessionRequestBroker {
   constructor(
     private readonly sessionManager: SessionManager,
-    private readonly childSessionService: ChildSessionService,
+    private readonly sessionCreationService: SessionCreationService,
     private readonly deliveryService: SessionRequestDeliveryService,
     private readonly resolveBackend: () => DefaultNcpAgentBackend | null,
     private readonly onSessionUpdated?: (sessionKey: string) => void,
@@ -146,7 +146,7 @@ export class SessionRequestBroker {
     agentId?: string;
   }): Promise<SessionRequestToolResult> => {
     const requestId = randomUUID();
-    const childSession = this.childSessionService.createChildSession({
+    const childSession = this.sessionCreationService.createChildSession({
       parentSessionId: params.sourceSessionId,
       task: params.task,
       title: params.title,

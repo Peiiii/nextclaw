@@ -287,6 +287,66 @@ it("renders session request tool cards from structured child-session status upda
   });
 });
 
+it("renders regular session request tool cards with session navigation instead of child navigation", () => {
+  const adapted = adapt([
+    {
+      id: "assistant-session-request",
+      role: "assistant",
+      parts: [
+        {
+          type: "tool-invocation",
+          toolInvocation: {
+            status: ToolInvocationStatus.RESULT,
+            toolCallId: "session-request-call-1",
+            toolName: "sessions_request",
+            args: '{"sessionId":"session-2","task":"Summarize the latest findings"}',
+            result: {
+              kind: "nextclaw.session_request",
+              requestId: "request-2",
+              sessionId: "session-2",
+              isChildSession: false,
+              title: "Research thread",
+              task: "Summarize the latest findings",
+              status: "completed",
+              finalResponseText: "Here is the summary.",
+            },
+          },
+        },
+      ],
+    },
+  ] as unknown as ChatMessageSource[]);
+
+  expect(adapted[0]?.parts[0]).toMatchObject({
+    type: "tool-card",
+    card: {
+      toolName: "sessions_request",
+      summary: "title: Research thread · session: session-2 · task: Summarize the latest findings",
+      output: [
+        "Request ID: request-2",
+        "",
+        "Session ID: session-2",
+        "",
+        "Target: session",
+        "",
+        "Title: Research thread",
+        "",
+        "Task:",
+        "Summarize the latest findings",
+        "",
+        "Final Response:",
+        "Here is the summary.",
+      ].join("\n"),
+      statusTone: "success",
+      action: {
+        kind: "open-session",
+        sessionId: "session-2",
+        sessionKind: "session",
+        label: "Research thread",
+      },
+    },
+  });
+});
+
 it("maps non-standard roles back to the generic message role", () => {
   const adapted = adapt([
     {

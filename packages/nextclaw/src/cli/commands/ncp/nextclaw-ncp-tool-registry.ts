@@ -28,7 +28,7 @@ import {
 import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
 import { isRecord, normalizeString } from "./nextclaw-ncp-message-bridge.js";
-import type { ChildSessionService } from "./session-request/child-session.service.js";
+import type { SessionCreationService } from "./session-request/session-creation.service.js";
 import { SessionRequestTool, SpawnChildSessionTool } from "./session-request/session-request.tool.js";
 import type { SessionRequestBroker } from "./session-request/session-request-broker.js";
 import { SessionSpawnTool } from "./session-request/session-spawn.tool.js";
@@ -42,7 +42,7 @@ type NextclawNcpToolRegistryOptions = {
   getConfig: () => Config;
   getExtensionRegistry?: () => ExtensionRegistry | undefined;
   getAdditionalTools?: (context: PreparedRunContext) => ReadonlyArray<NcpTool>;
-  childSessionService: ChildSessionService;
+  sessionCreationService: SessionCreationService;
   sessionRequestBroker: SessionRequestBroker;
 };
 
@@ -212,7 +212,7 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
     this.registerTool(spawnTool);
 
     const sessionsSpawnTool = new SessionSpawnTool(
-      this.options.childSessionService,
+      this.options.sessionCreationService,
     );
     sessionsSpawnTool.setContext({
       sourceSessionId: context.sessionId,
