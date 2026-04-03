@@ -39,7 +39,7 @@ describe('ChatSlashMenu', () => {
       title: 'Web Search',
       subtitle: 'Skill',
       description: 'Search the web',
-      detailLines: ['Spec: web-search']
+      detailLines: ['Spec: workspace:/Users/tongwenwen/.nextclaw/workspace/skills/bird']
     };
 
     render(
@@ -53,6 +53,7 @@ describe('ChatSlashMenu', () => {
     );
 
     expect(screen.getByText('Search the web')).toBeTruthy();
+    expect(screen.getByText(/workspace:\/Users\/tongwenwen\/\.nextclaw\/workspace\/skills\/bird/i).className).toContain('break-all');
     fireEvent.click(screen.getByRole('option', { name: /Web Search/i }));
     expect(onSelectItem).toHaveBeenCalledWith(item);
   });

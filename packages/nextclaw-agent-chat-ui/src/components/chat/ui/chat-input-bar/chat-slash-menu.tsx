@@ -98,7 +98,7 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
               </>
             )}
           </div>
-          <div className="max-w-[320px] p-3.5">
+          <div className="min-w-0 p-2.5">
             {activeItem ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
@@ -110,7 +110,10 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
                 <p className="text-xs leading-5 text-gray-600">{activeItem.description}</p>
                 <div className="space-y-1">
                   {activeItem.detailLines.map((line) => (
-                    <div key={line} className="rounded-md bg-gray-50 px-2 py-1 text-[11px] text-gray-600">
+                    <div
+                      key={line}
+                      className="min-w-0 break-all rounded-md bg-gray-50 px-2 py-1 text-[11px] leading-5 text-gray-600"
+                    >
                       {line}
                     </div>
                   ))}

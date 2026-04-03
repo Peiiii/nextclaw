@@ -475,8 +475,8 @@ importers:
         specifier: ^0.2.63
         version: 0.2.63(zod@4.3.6)
       '@nextclaw/core':
-        specifier: ^0.11.7
-        version: link:../../nextclaw-core
+        specifier: ^0.11.16
+        version: 0.11.16(encoding@0.1.13)(ws@8.19.0)
       zod:
         specifier: ^4.0.0
         version: 4.3.6
@@ -494,8 +494,8 @@ importers:
   packages/extensions/nextclaw-engine-plugin-codex-sdk:
     dependencies:
       '@nextclaw/core':
-        specifier: ^0.11.7
-        version: link:../../nextclaw-core
+        specifier: ^0.11.16
+        version: 0.11.16(encoding@0.1.13)(ws@8.19.0)
       '@openai/codex-sdk':
         specifier: ^0.107.0
         version: 0.107.0
@@ -2401,6 +2401,12 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1
       '@emnapi/runtime': ^1.7.1
+
+  '@nextclaw/core@0.11.16':
+    resolution: {integrity: sha512-PJFgWlJAmkm8p7HdW/NycZekxzgw6fQfQfhMv0j+hC46571/AesAzWeXIxt9ZM/dKsYMfF9iwOxLXi83pSxciQ==}
+
+  '@nextclaw/feishu-core@0.2.2':
+    resolution: {integrity: sha512-7chm3aBTvbVqaCrRQ3HtBwMhG7Nx2kBj+E0thpXNO+aXLTGef2wjOKL2i1hbZXB7zzgePdNTYuzjfHbb3iZ+4A==}
 
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
@@ -8910,6 +8916,35 @@ snapshots:
       '@emnapi/runtime': 1.8.1
       '@tybys/wasm-util': 0.10.1
     optional: true
+
+  '@nextclaw/core@0.11.16(encoding@0.1.13)(ws@8.19.0)':
+    dependencies:
+      '@nextclaw/feishu-core': 0.2.2
+      chokidar: 3.6.0
+      commander: 12.1.0
+      cron-parser: 4.9.0
+      dotenv: 16.6.1
+      openai: 4.104.0(encoding@0.1.13)(ws@8.19.0)(zod@3.25.76)
+      pino: 9.14.0
+      socket.io-msgpack-parser: 3.0.2
+      undici: 6.23.0
+      zod: 3.25.76
+      zod-to-json-schema: 3.25.1(zod@3.25.76)
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - encoding
+      - utf-8-validate
+      - ws
+
+  '@nextclaw/feishu-core@0.2.2':
+    dependencies:
+      '@larksuiteoapi/node-sdk': 1.59.0
+      zod: 3.25.76
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
 
   '@noble/curves@1.9.7':
     dependencies:
