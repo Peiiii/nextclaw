@@ -61,6 +61,7 @@
     "dev:desktop": "pnpm -C apps/desktop dev",
     "dev:docs": "pnpm --filter @nextclaw/docs dev",
     "docs:i18n:check": "node scripts/docs-i18n-check.mjs",
+    "project:pulse": "node scripts/project-pulse/generate-data.mjs",
     "dev:landing": "pnpm --filter @nextclaw/landing dev",
     "start": "pnpm -C packages/nextclaw start",
     "changeset": "changeset",

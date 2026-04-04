@@ -4,8 +4,8 @@
     "version": "0.0.1",
     "type": "module",
     "scripts": {
-        "dev": "vitepress dev",
-        "build": "vitepress build",
+        "dev": "node ../../scripts/project-pulse/generate-data.mjs && vitepress dev",
+        "build": "node ../../scripts/project-pulse/generate-data.mjs && vitepress build",
         "preview": "vitepress preview"
     },
     "devDependencies": {

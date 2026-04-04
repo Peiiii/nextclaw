@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,12 +44,15 @@ jobs:
             --benchmark-include-dirs src,extensions \
             --benchmark-output docs/metrics/code-volume/comparison.json
 
+      - name: Generate Project Pulse data
+        run: node scripts/project-pulse/generate-data.mjs
+
       - name: Commit source LOC snapshot
         if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore(metrics): update source loc snapshot [skip ci]"
-          file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl docs/metrics/code-volume/comparison.json
+          file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl docs/metrics/code-volume/comparison.json apps/docs/.vitepress/data/project-pulse.generated.mjs apps/docs/public/project-pulse/gallery/*
 
       - name: Append workflow summary
         run: cat "$RUNNER_TEMP/code-volume-summary.md" >> "$GITHUB_STEP_SUMMARY"
@@ -60,3 +65,5 @@ jobs:
             docs/metrics/code-volume/latest.json
             docs/metrics/code-volume/history.jsonl
             docs/metrics/code-volume/comparison.json
+            apps/docs/.vitepress/data/project-pulse.generated.mjs
+            apps/docs/public/project-pulse/gallery

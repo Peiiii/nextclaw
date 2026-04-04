@@ -72,9 +72,28 @@ pnpm metrics:repo:local
   - `docs/metrics/code-volume/latest.json`
   - `docs/metrics/code-volume/history.jsonl`
   - `docs/metrics/code-volume/comparison.json`
+  - `apps/docs/.vitepress/data/project-pulse.generated.mjs`
+  - `apps/docs/public/project-pulse/gallery/*`
 - 结果展示：自动写入 GitHub Actions Job Summary
 - 自动回写：仅在 `schedule` / `workflow_dispatch` 且位于 `master/main` 时提交快照更新；`push`/`pull_request` 只做统计与展示，不写回分支，避免干扰日常推送
 - 对比来源：workflow 会自动 checkout `openclaw/openclaw`，并按 `src,extensions` 做源码 LOC 基准对比
+- `Project Pulse` 聚合：workflow 会额外生成 commit / release / notes / screenshot 聚合数据，供文档站专题页直接消费
+
+## Project Pulse 本地更新
+
+生成 `Project Pulse` 聚合数据：
+
+```bash
+pnpm project:pulse
+```
+
+该脚本会聚合：
+
+- LOC 历史与 top scopes
+- Git commit 趋势
+- Git tag 推导的 release 批次趋势
+- 文档站 `notes` 时间线
+- docs 站公开截图素材
 
 ## README 实时展示
 

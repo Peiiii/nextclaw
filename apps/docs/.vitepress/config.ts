@@ -134,6 +134,7 @@ const enSidebar = [
   {
     text: 'Project',
     items: [
+      { text: 'Project Pulse', link: '/en/guide/project-pulse' },
       { text: 'Vision', link: '/en/guide/vision' },
       { text: 'Roadmap', link: '/en/guide/roadmap' }
     ]
@@ -218,6 +219,7 @@ const zhSidebar = [
   {
     text: '项目',
     items: [
+      { text: 'Project Pulse', link: '/zh/guide/project-pulse' },
       { text: '愿景', link: '/zh/guide/vision' },
       { text: '路线图', link: '/zh/guide/roadmap' }
     ]
