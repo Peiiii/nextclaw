@@ -37,6 +37,11 @@
   - `bar-list` 头部改成真正可收缩的双列布局
   - scope 名称改成两行截断 + 必要断词，而不是单行 `span` 省略
   - 小屏下数值自动落到下一行，避免再出现路径与数值互相挤压
+- 续改 commit 趋势卡，补齐天级别观察视角：
+  - 数据生成链路新增 `commitDaily`
+  - commit 卡默认展示近 30 天“每日 commit 趋势”
+  - 保留近 12 周周级视角，并在卡片内支持 `每日 / 每周` 切换
+  - 日级与周级切换时，摘要窗口文案和 delta 说明会同步更新
 - 扩展 `.github/workflows/code-volume-metrics.yml`，在现有 LOC workflow 中同步刷新 `Project Pulse` 聚合数据与截图副本
 - 更新内部工作流说明与 metrics README
 
@@ -92,6 +97,21 @@ const { chromium } = require('playwright');
   await browser.close();
 })();
 EOF
+node - <<'EOF'
+const { chromium } = require('playwright');
+(async () => {
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 1440, height: 1600 } });
+  await page.goto('http://127.0.0.1:4175/zh/guide/project-pulse', { waitUntil: 'networkidle' });
+  const commitCard = page.locator('.project-pulse__trend-grid .project-pulse__panel').nth(1);
+  await commitCard.locator('.trend-chart__summary-context').waitFor({ timeout: 10000 });
+  console.log(await commitCard.locator('.trend-chart__summary-context').textContent());
+  await commitCard.locator('.project-pulse__segmented-button').nth(1).click();
+  await page.waitForTimeout(400);
+  console.log(await commitCard.locator('.trend-chart__summary-context').textContent());
+  await browser.close();
+})();
+EOF
 curl -s https://d432c516.nextclaw-docs.pages.dev/en/guide/project-pulse | rg -n "Project Pulse|trend-chart__canvas"
 node - <<'EOF'
 const { chromium } = require('playwright');
@@ -114,6 +134,7 @@ EOF
 - docs preview 冒烟通过，中英文页面均能返回，且包含 `Project Pulse` 标题、截图路径与 Product Notes 链接
 - 本地浏览器冒烟通过，Playwright 已确认趋势区成功渲染出 3 张 `ECharts` SVG 图表
 - 本地浏览器边界检查通过，`Top scopes` 所有长路径均未再越过左侧卡片边界，也未再与右侧基准卡重叠
+- 本地浏览器切换验证通过，commit 卡默认显示“近 30 天每日 commit 节奏”，切换后可正确切到“近 12 周交付节奏”
 - `pnpm deploy:docs` 通过，Cloudflare Pages 已返回部署成功
 - 线上冒烟通过，远端部署页成功渲染出 3 张趋势图，最新值展示正常
 
@@ -131,6 +152,7 @@ pnpm deploy:docs
 - 入口修正续改后的最新部署地址：`https://8c9c2464.nextclaw-docs.pages.dev`
 - 图表体验优化续改后的最新部署地址：`https://d432c516.nextclaw-docs.pages.dev`
 - `Top scopes` 布局溢出修复后的最新部署地址：`https://1513266e.nextclaw-docs.pages.dev`
+- 日级 commit 趋势续改后的最新部署地址：`https://8e170c40.nextclaw-docs.pages.dev`
 
 ## 用户 / 产品视角的验收步骤
 

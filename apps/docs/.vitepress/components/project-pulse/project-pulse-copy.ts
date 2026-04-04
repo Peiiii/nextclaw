@@ -25,8 +25,8 @@ export const projectPulseCopy = {
         description: 'A running signal of implementation scope, not a quality score by itself.'
       },
       commits: {
-        title: 'Weekly commit rhythm',
-        description: 'Recent shipping intensity across the last twelve weeks.'
+        title: 'Commit rhythm',
+        description: 'Switch between daily and weekly views to read short-term execution and broader delivery cadence.'
       },
       releases: {
         title: 'Monthly release rhythm',
@@ -72,11 +72,17 @@ export const projectPulseCopy = {
       commitUnit: 'commits',
       releaseUnit: 'batches',
       locDeltaLabel: 'vs previous snapshot',
-      commitDeltaLabel: 'vs previous week',
+      commitDailyDeltaLabel: 'vs previous day',
+      commitWeeklyDeltaLabel: 'vs previous week',
       releaseDeltaLabel: 'vs previous month',
       locWindow: 'Recent source snapshot window',
-      commitWindow: '12-week delivery rhythm',
+      commitDailyWindow: '30-day daily commit rhythm',
+      commitWeeklyWindow: '12-week delivery rhythm',
       releaseWindow: '12-month release rhythm'
+    },
+    controls: {
+      daily: 'Daily',
+      weekly: 'Weekly'
     },
     trustPoints: [
       'We intentionally expose a small set of metrics with product meaning instead of publishing every internal engineering signal.',
@@ -110,8 +116,8 @@ export const projectPulseCopy = {
         description: '这是实现范围的持续信号，不是单独的质量评分。'
       },
       commits: {
-        title: '每周 commit 节奏',
-        description: '观察最近十二周的交付强度与活跃节奏。'
+        title: 'commit 节奏',
+        description: '支持在日级和周级之间切换，同时看清短期执行密度与整体交付节奏。'
       },
       releases: {
         title: '每月 release 节奏',
@@ -157,11 +163,17 @@ export const projectPulseCopy = {
       commitUnit: 'commits',
       releaseUnit: '批次',
       locDeltaLabel: '较上一快照',
-      commitDeltaLabel: '较上一周',
+      commitDailyDeltaLabel: '较上一天',
+      commitWeeklyDeltaLabel: '较上一周',
       releaseDeltaLabel: '较上一月',
       locWindow: '近期源码快照窗口',
-      commitWindow: '近 12 周交付节奏',
+      commitDailyWindow: '近 30 天每日 commit 节奏',
+      commitWeeklyWindow: '近 12 周交付节奏',
       releaseWindow: '近 12 个月发版节奏'
+    },
+    controls: {
+      daily: '每日',
+      weekly: '每周'
     },
     trustPoints: [
       '这里故意只公开少量真正有产品叙事价值的指标，而不是把所有内部工程噪音都摊出来。',

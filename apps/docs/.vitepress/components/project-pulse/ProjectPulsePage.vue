@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import pulseData from '../../data/project-pulse.generated.mjs'
 import ProjectPulseBarList from './ProjectPulseBarList.vue'
@@ -12,6 +12,7 @@ const props = defineProps<{
 }>()
 
 const t = computed(() => projectPulseCopy[props.locale])
+const commitResolution = ref<'daily' | 'weekly'>('daily')
 
 const heroStats = computed(() => [
   {
@@ -92,6 +93,20 @@ const gallery = computed(() =>
   }))
 )
 
+const commitTrend = computed(() =>
+  commitResolution.value === 'daily'
+    ? {
+        series: pulseData.trends.commitDaily,
+        deltaLabel: t.value.chart.commitDailyDeltaLabel,
+        windowLabel: t.value.chart.commitDailyWindow
+      }
+    : {
+        series: pulseData.trends.commitWeekly,
+        deltaLabel: t.value.chart.commitWeeklyDeltaLabel,
+        windowLabel: t.value.chart.commitWeeklyWindow
+      }
+)
+
 const trendCards = computed(() => [
   {
     key: 'loc',
@@ -111,12 +126,16 @@ const trendCards = computed(() => [
     title: t.value.cards.commits.title,
     description: t.value.cards.commits.description,
     headline: pulseData.hero.recentCommitCount.toLocaleString(),
-    series: pulseData.trends.commitWeekly,
+    series: commitTrend.value.series,
     accentStart: '#0ea5a4',
     accentEnd: '#38bdf8',
     valueUnit: t.value.chart.commitUnit,
-    deltaLabel: t.value.chart.commitDeltaLabel,
-    windowLabel: t.value.chart.commitWindow
+    deltaLabel: commitTrend.value.deltaLabel,
+    windowLabel: commitTrend.value.windowLabel,
+    controls: [
+      { key: 'daily', label: t.value.controls.daily },
+      { key: 'weekly', label: t.value.controls.weekly }
+    ]
   },
   {
     key: 'releases',
@@ -170,7 +189,30 @@ const trendCards = computed(() => [
               <h2>{{ card.title }}</h2>
               <p>{{ card.description }}</p>
             </div>
-            <strong>{{ card.headline }}</strong>
+            <div class="project-pulse__panel-side">
+              <div
+                v-if="card.key === 'commits' && card.controls"
+                class="project-pulse__segmented"
+                role="tablist"
+                :aria-label="card.title"
+              >
+                <button
+                  v-for="control in card.controls"
+                  :key="control.key"
+                  type="button"
+                  class="project-pulse__segmented-button"
+                  :class="{
+                    'project-pulse__segmented-button--active': commitResolution === control.key
+                  }"
+                  role="tab"
+                  :aria-selected="commitResolution === control.key"
+                  @click="commitResolution = control.key"
+                >
+                  {{ control.label }}
+                </button>
+              </div>
+              <strong>{{ card.headline }}</strong>
+            </div>
           </div>
           <ProjectPulseTrendChart
             :series="card.series"

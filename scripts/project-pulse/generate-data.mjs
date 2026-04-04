@@ -195,6 +195,7 @@ const payload = {
   },
   trends: {
     locDaily: dailyLocSeries,
+    commitDaily: commitMetrics.dailySeries,
     commitWeekly: commitMetrics.weeklySeries,
     releaseMonthly: releaseMetrics.monthlySeries
   },

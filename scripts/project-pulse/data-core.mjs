@@ -164,6 +164,8 @@ export const readCommitSeries = ({ rootDir, now }) => {
     }
   }
 
+  const days = createDayRange(now, 30);
+
   const weeks = createWeekRange(now, 12);
   const countsByWeek = new Map(weeks.map((week) => [week, 0]));
   for (const day of commitDays) {
@@ -183,6 +185,11 @@ export const readCommitSeries = ({ rootDir, now }) => {
       recent30Count,
       activeDays30
     },
+    dailySeries: days.map((day) => ({
+      key: day,
+      label: shortLabel(day),
+      value: countsByDay.get(day) ?? 0
+    })),
     weeklySeries: weeks.map((week) => ({
       key: week,
       label: shortLabel(week),
