@@ -2,8 +2,8 @@ import { spawnSync } from "node:child_process";
 import { performance } from "node:perf_hooks";
 import {
   collectWorkspacePackages,
-  getExplicitReleaseBatchPackageNames,
-  readPendingChangesetPackages
+  readPendingChangesetPackages,
+  resolveExplicitReleaseBatchPackages
 } from "./release-scope.mjs";
 
 const STEP_NAMES = ["build", "lint", "tsc"];
@@ -15,13 +15,7 @@ function formatDuration(ms) {
 function resolveBatchPackages() {
   const workspacePackages = collectWorkspacePackages();
   const pendingChangesetPackages = readPendingChangesetPackages();
-  const batchPackageNames = getExplicitReleaseBatchPackageNames(
-    workspacePackages,
-    pendingChangesetPackages
-  );
-  return workspacePackages.filter(
-    (entry) => entry.private === false && batchPackageNames.has(entry.pkg.name)
-  );
+  return resolveExplicitReleaseBatchPackages(workspacePackages, pendingChangesetPackages);
 }
 
 function collectInternalDependencies(entry, batchPackageNames) {

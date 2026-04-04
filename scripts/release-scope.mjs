@@ -5,6 +5,9 @@ import { basename, join, relative } from "node:path";
 const ROOT_DIR = process.cwd();
 const WORKSPACE_ROOTS = ["packages", "apps", "workers"];
 const CHANGESET_DIR = join(ROOT_DIR, ".changeset");
+const NPM_CONFIG_TIMEOUT_MS = 5000;
+const NPM_VIEW_TIMEOUT_MS = 15000;
+const PUBLISHED_VERSION_CACHE = new Map();
 
 function collectPackageJsonFiles(dir) {
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -107,6 +110,71 @@ export function getExplicitReleaseBatchPackageNames(workspacePackages, pendingCh
     }
   }
   return batchPackageNames;
+}
+
+export function resolveExplicitReleaseBatchPackages(
+  workspacePackages,
+  pendingChangesetPackages
+) {
+  const batchPackageNames = getExplicitReleaseBatchPackageNames(
+    workspacePackages,
+    pendingChangesetPackages
+  );
+  return workspacePackages.filter(
+    (entry) => entry.private === false && batchPackageNames.has(entry.pkg.name)
+  );
+}
+
+export function readNpmRegistry() {
+  return execFileSync("npm", ["config", "get", "registry"], {
+    cwd: ROOT_DIR,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+    timeout: NPM_CONFIG_TIMEOUT_MS
+  }).trim();
+}
+
+function parseNpmViewJson(raw) {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return trimmed;
+  }
+}
+
+export function readPublishedExactPackageVersion(packageName, version) {
+  const cacheKey = `${packageName}@${version}`;
+  if (PUBLISHED_VERSION_CACHE.has(cacheKey)) {
+    return PUBLISHED_VERSION_CACHE.get(cacheKey);
+  }
+
+  try {
+    const output = execFileSync(
+      "npm",
+      ["view", `${packageName}@${version}`, "version", "--json"],
+      {
+        cwd: ROOT_DIR,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: NPM_VIEW_TIMEOUT_MS
+      }
+    );
+    const parsed = parseNpmViewJson(output);
+    const exactVersion = typeof parsed === "string" ? parsed : null;
+    PUBLISHED_VERSION_CACHE.set(cacheKey, exactVersion);
+    return exactVersion;
+  } catch {
+    PUBLISHED_VERSION_CACHE.set(cacheKey, null);
+    return null;
+  }
+}
+
+export function isPackageVersionPublished(entry) {
+  return readPublishedExactPackageVersion(entry.pkg.name, entry.pkg.version) === entry.pkg.version;
 }
 
 export function isMeaningfulReleaseDrift(packageDir, changedFile) {

@@ -36,8 +36,10 @@ Notes:
 - `release:check:groups` now only gates the explicit release batch from pending changesets or freshly versioned packages.
 - `release:check` now validates only the explicit release batch (packages from pending changesets, or freshly versioned public packages after `release:version`) instead of the whole workspace.
 - If you need the historical full-workspace gate, run `pnpm release:check:all` explicitly.
-- `pnpm release:report:health` prints leftover unpublished drift for repository hygiene, but it does not block the current batch release.
+- `pnpm release:report:health` remains a non-blocking repository hygiene report, but it now also prints the current batch registry status so you can distinguish “already published but missing local closure steps” from “still missing on npm”.
+- `pnpm release:verify:published` is the registry truth check. It polls npm for the exact `pkg@version` pairs in the current batch and fails if they still do not exist after the retry window.
 - `release:publish` should run `release:check` (build + lint + typecheck) before publishing.
+- `release:publish` now also runs `release:verify:published` after `changeset publish` and before `changeset tag`, so “published online” becomes part of the standard release closure instead of a manual follow-up.
 - `release:publish` should create git tags automatically.
 - Never run `npm publish` directly inside `packages/*`, `packages/extensions/*`, or `packages/ncp-packages/*`.
 - In this pnpm workspace, direct `npm publish` keeps `workspace:*` in the published manifest and breaks downstream installs.
