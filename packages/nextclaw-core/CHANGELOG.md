@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.11.17
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+
 ## 0.11.16
 
 ### Patch Changes

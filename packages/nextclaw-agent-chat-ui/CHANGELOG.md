@@ -1,5 +1,11 @@
 # @nextclaw/agent-chat-ui
 
+## 0.2.21
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+
 ## 0.2.20
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # nextclaw
 
+## 0.16.33
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+- Updated dependencies
+  - @nextclaw/core@0.11.17
+  - @nextclaw/ncp-toolkit@0.4.17
+  - @nextclaw/mcp@0.1.64
+  - @nextclaw/openclaw-compat@0.3.58
+  - @nextclaw/remote@0.1.76
+  - @nextclaw/runtime@0.2.31
+  - @nextclaw/server@0.11.24
+  - @nextclaw/ncp-mcp@0.1.66
+
 ## 0.16.32
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.43
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.11.17
+  - @nextclaw/ncp-toolkit@0.4.17
+
 ## 0.1.42
 
 ### Patch Changes

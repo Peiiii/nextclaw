@@ -1,5 +1,5 @@
 import { Tool } from "@nextclaw/core";
-import { SessionCreationService } from "./session-creation.service.js";
+import type { SessionCreationService } from "./session-creation.service.js";
 
 function readRequiredString(value: unknown, key: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {

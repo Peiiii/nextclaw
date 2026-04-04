@@ -7,11 +7,9 @@ import {
 } from "@nextclaw/ncp";
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
 import { randomUUID } from "node:crypto";
-import {
-  SessionCreationService,
-  CHILD_SESSION_PARENT_METADATA_KEY,
-} from "./session-creation.service.js";
-import { SessionRequestDeliveryService } from "./session-request-delivery.service.js";
+import { CHILD_SESSION_PARENT_METADATA_KEY } from "./session-creation.service.js";
+import type { SessionCreationService } from "./session-creation.service.js";
+import type { SessionRequestDeliveryService } from "./session-request-delivery.service.js";
 import type {
   SessionRequestAwaitMode,
   SessionRequestDeliveryMode,

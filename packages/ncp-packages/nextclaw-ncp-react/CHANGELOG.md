@@ -1,5 +1,13 @@
 # @nextclaw/ncp-react
 
+## 0.4.14
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+- Updated dependencies
+  - @nextclaw/ncp-toolkit@0.4.17
+
 ## 0.4.13
 
 ### Patch Changes

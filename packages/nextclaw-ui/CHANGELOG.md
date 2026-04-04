@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.11.23
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+- Updated dependencies
+  - @nextclaw/agent-chat-ui@0.2.21
+  - @nextclaw/ncp-http-agent-client@0.3.11
+  - @nextclaw/ncp-react@0.4.14
+
 ## 0.11.22
 
 ### Patch Changes

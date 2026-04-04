@@ -1,5 +1,11 @@
 # @nextclaw/ncp-http-agent-server
 
+## 0.3.11
+
+### Patch Changes
+
+- Republish the packages changed after the April 3 unified release batch so the published tarballs match the current workspace, including the new NCP session request and session spawn flow.
+
 ## 0.3.10
 
 ### Patch Changes

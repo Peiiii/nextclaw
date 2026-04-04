@@ -1,5 +1,5 @@
 import { Tool } from "@nextclaw/core";
-import { SessionRequestBroker } from "./session-request-broker.js";
+import type { SessionRequestBroker } from "./session-request-broker.js";
 import type { SessionRequestDeliveryMode } from "./session-request.types.js";
 
 function readRequiredString(params: Record<string, unknown>, key: string): string {
