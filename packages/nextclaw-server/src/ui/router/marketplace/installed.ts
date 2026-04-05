@@ -277,7 +277,7 @@ export function collectInstalledSkillRecords(options: UiRouterOptions): {
   const records = listedSkills
     .map((skill) => {
       const enabled = availableSkillSet.has(skill.name);
-      const metadata = skillsLoader?.getSkillMetadata?.(skill.name);
+      const metadata = skillsLoader?.getSkillMetadata?.(skill);
       const description = readNonEmptyString(metadata?.description);
       const descriptionZh =
         readNonEmptyString(metadata?.description_zh) ??

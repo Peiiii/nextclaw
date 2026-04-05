@@ -1,9 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { SKILL_METADATA_KEY } from "../config/brand.js";
 import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "../session/session-project-context.js";
 
-export type SkillScope = "project" | "workspace";
+export type SkillScope = "builtin" | "project" | "workspace";
 
 export type SkillInfo = {
   ref: string;
@@ -18,6 +19,7 @@ export type SkillsLoaderOptions = {
   projectRoot?: string | null;
   supportingWorkspaces?: string[];
   projectSkillsDirName?: string;
+  includeBuiltin?: boolean;
 };
 
 type SkillDirectoryDescriptor = {
@@ -77,6 +79,7 @@ export class SkillsLoader {
   private readonly projectRoot: string | null;
   private readonly supportingWorkspaces: string[];
   private readonly projectSkillsDirName: string;
+  private readonly includeBuiltin: boolean;
 
   constructor(workspace: string);
   constructor(options: SkillsLoaderOptions);
@@ -88,6 +91,7 @@ export class SkillsLoader {
       this.projectRoot = null;
       this.supportingWorkspaces = [];
       this.projectSkillsDirName = DEFAULT_PROJECT_SKILLS_DIR_NAME;
+      this.includeBuiltin = true;
       return;
     }
 
@@ -97,6 +101,7 @@ export class SkillsLoader {
     this.projectSkillsDirName =
       normalizeOptionalString(workspaceOrOptions.projectSkillsDirName) ??
       DEFAULT_PROJECT_SKILLS_DIR_NAME;
+    this.includeBuiltin = workspaceOrOptions.includeBuiltin ?? true;
   }
 
   listSkills = (filterUnavailable = true): SkillInfo[] => {
@@ -192,10 +197,25 @@ export class SkillsLoader {
   };
 
   private collectSkills = (): SkillInfo[] => {
+    const builtinSkills = this.includeBuiltin ? this.collectBuiltinSkills() : [];
+    const builtinNames = new Set(builtinSkills.map((skill) => skill.name));
+
     return [
-      ...this.collectProjectSkills(),
-      ...this.collectWorkspaceSkills(),
+      ...builtinSkills,
+      ...this.collectProjectSkills().filter((skill) => !builtinNames.has(skill.name)),
+      ...this.collectWorkspaceSkills().filter((skill) => !builtinNames.has(skill.name)),
     ];
+  };
+
+  private collectBuiltinSkills = (): SkillInfo[] => {
+    const skillsRoot = this.resolveBuiltinSkillsRoot();
+    if (!skillsRoot) {
+      return [];
+    }
+    return this.collectDirectorySkills({
+      scope: "builtin",
+      skillsRoot,
+    });
   };
 
   private collectProjectSkills = (): SkillInfo[] => {
@@ -246,6 +266,21 @@ export class SkillsLoader {
       });
     }
     return output;
+  };
+
+  private resolveBuiltinSkillsRoot = (): string | null => {
+    const currentDir = dirname(fileURLToPath(import.meta.url));
+    const candidates = [
+      join(currentDir, "skills"),
+      resolve(currentDir, "..", "skills"),
+    ];
+
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
   };
 
   private resolveSkill = (

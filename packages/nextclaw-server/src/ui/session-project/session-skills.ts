@@ -11,6 +11,7 @@ type SkillsLoaderInstance = InstanceType<typeof NextclawCore.SkillsLoader>;
 const SCOPE_SORT_ORDER: Record<SessionSkillEntryView["scope"], number> = {
   project: 0,
   workspace: 1,
+  builtin: 2,
 };
 
 export class SessionSkillsViewBuilder {

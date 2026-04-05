@@ -4,7 +4,7 @@ import {
   setPluginRuntimeBridge,
   stopPluginChannelGateways
 } from "@nextclaw/openclaw-compat";
-import { appendFileSync, closeSync, cpSync, existsSync, mkdirSync, openSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { request as httpRequest } from "node:http";
@@ -15,7 +15,6 @@ import chokidar from "chokidar";
 import type { ConfigReloader } from "../config-reloader.js";
 import { MissingProvider } from "../missing-provider.js";
 import {
-  buildServeArgs,
   clearServiceState,
   getPackageVersion,
   isLoopbackHost,
@@ -32,10 +31,18 @@ import {
 } from "../utils.js";
 import type { RequestRestartParams } from "../types.js";
 import { ServiceMarketplaceInstaller } from "./service-marketplace-installer.js";
+import {
+  type ManagedServiceState,
+  reportManagedServiceStart,
+  resolveManagedServiceUiBinding,
+  resolveSessionRouteCandidate,
+  spawnManagedService,
+  waitForManagedServiceReadiness
+} from "./service-managed-startup.js";
 import { startGatewaySupportServices, watchCronStoreFile } from "./service-startup-support.js";
 import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../restart-sentinel.js";
 import { resolveCliSubcommandEntry } from "./cli-subcommand-launch.js";
-import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "./service-remote-runtime.js";
+import { writeReadyManagedServiceState } from "./service-remote-runtime.js";
 import { createRemoteAccessHost } from "./service-remote-access.js";
 import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.js";
 import { createGatewayShellContext, createGatewayStartupContext } from "./service-gateway-context.js";
@@ -88,6 +95,12 @@ type SkillsLoaderInstance = {
   listSkills: (filterUnavailable?: boolean) => SkillInfo[];
 };
 type SkillsLoaderConstructor = new (workspace: string, builtinSkillsDir?: string) => SkillsLoaderInstance;
+type StartServiceOptions = {
+  uiOverrides: Partial<Config["ui"]>;
+  open: boolean;
+  startupTimeoutMs?: number;
+};
+
 function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
   if (!ctor) {
@@ -99,11 +112,9 @@ function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
 export class ServiceCommands {
   private applyLiveConfigReload: (() => Promise<void>) | null = null;
   private liveUiNcpAgent: UiNcpAgentHandle | null = null;
-  constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void> }) {}
+  constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
-  async startGateway(
-    options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}
-  ): Promise<void> {
+  startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
     logStartupTrace("service.start_gateway.begin");
     this.applyLiveConfigReload = null;
     this.liveUiNcpAgent = null;
@@ -133,7 +144,7 @@ export class ServiceCommands {
         getBootstrapStatus: () => bootstrapStatus.getStatus(),
         openBrowserWindow: shellContext.uiConfig.open,
         applyLiveConfigReload,
-        ncpSessionService: ncpSessionRealtimeBridge.sessionService
+        ncpSessionService: ncpSessionRealtimeBridge.sessionService, initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory
       })
     );
     ncpSessionRealtimeBridge.setUiEventPublisher(uiStartup?.publish);
@@ -229,17 +240,17 @@ export class ServiceCommands {
       }
     });
     logStartupTrace("service.start_gateway.end");
-  }
+  };
 
-  private normalizeOptionalString(value: unknown): string | undefined {
+  private normalizeOptionalString = (value: unknown): string | undefined => {
     if (typeof value !== "string") {
       return undefined;
     }
     const trimmed = value.trim();
     return trimmed || undefined;
-  }
+  };
 
-  private watchConfigFile(reloader: ConfigReloader): void {
+  private watchConfigFile = (reloader: ConfigReloader): void => {
     const configPath = resolve(getConfigPath());
     const watcher = chokidar.watch(configPath, {
       ignoreInitial: true,
@@ -261,53 +272,31 @@ export class ServiceCommands {
         reloader.scheduleReload("config unlink");
       }
     });
-  }
+  };
 
-  private resolveMostRecentRoutableSessionKey(sessionManager: SessionManager): string | undefined {
-    const sessions = sessionManager.listSessions();
+  private resolveMostRecentRoutableSessionKey = (sessionManager: SessionManager): string | undefined => {
     let best: { key: string; updatedAt: number } | null = null;
-
-    for (const session of sessions) {
-      const key = this.normalizeOptionalString((session as Record<string, unknown>).key);
-      if (!key || key.startsWith("cli:")) {
+    for (const session of sessionManager.listSessions()) {
+      const candidate = resolveSessionRouteCandidate({
+        session,
+        normalizeOptionalString: (value) => this.normalizeOptionalString(value)
+      });
+      if (!candidate) {
         continue;
       }
-
-      const metadataRaw = (session as Record<string, unknown>).metadata;
-      const metadata =
-        metadataRaw && typeof metadataRaw === "object" && !Array.isArray(metadataRaw)
-          ? (metadataRaw as Record<string, unknown>)
-          : {};
-      const contextRaw = metadata.last_delivery_context;
-      const context =
-        contextRaw && typeof contextRaw === "object" && !Array.isArray(contextRaw)
-          ? (contextRaw as Record<string, unknown>)
-          : {};
-      const hasRoute =
-        Boolean(this.normalizeOptionalString(context.channel)) && Boolean(this.normalizeOptionalString(context.chatId));
-      const hasFallbackRoute =
-        Boolean(this.normalizeOptionalString(metadata.last_channel)) && Boolean(this.normalizeOptionalString(metadata.last_to));
-      if (!hasRoute && !hasFallbackRoute) {
-        continue;
-      }
-
-      const updatedAtRaw = this.normalizeOptionalString((session as Record<string, unknown>).updated_at);
-      const updatedAt = updatedAtRaw ? Date.parse(updatedAtRaw) : Number.NaN;
-      const score = Number.isFinite(updatedAt) ? updatedAt : 0;
-      if (!best || score >= best.updatedAt) {
-        best = { key, updatedAt: score };
+      if (!best || candidate.updatedAt >= best.updatedAt) {
+        best = candidate;
       }
     }
-
     return best?.key;
-  }
+  };
 
-  private buildRestartWakePrompt(params: {
+  private buildRestartWakePrompt = (params: {
     summary: string;
     reason?: string;
     note?: string;
     replyTo?: string;
-  }): string {
+  }): string => {
     const lines = [
       "System event: the gateway has restarted successfully.",
       "Please send one short confirmation to the user that you are back online.",
@@ -332,12 +321,12 @@ export class ServiceCommands {
     }
 
     return lines.join("\n");
-  }
+  };
 
-  private async wakeFromRestartSentinel(params: {
+  private wakeFromRestartSentinel = async (params: {
     bus: MessageBus;
     sessionManager: SessionManager;
-  }): Promise<void> {
+  }): Promise<void> => {
     const sentinel = await consumeRestartSentinel();
     if (!sentinel) {
       return;
@@ -399,12 +388,12 @@ export class ServiceCommands {
       attachments: [],
       metadata
     });
-  }
+  };
 
-  async runForeground(options: {
+  runForeground = async (options: {
     uiOverrides: Partial<Config["ui"]>;
     open: boolean;
-  }): Promise<void> {
+  }): Promise<void> => {
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
@@ -418,13 +407,39 @@ export class ServiceCommands {
       allowMissingProvider: true,
       uiStaticDir: resolveUiStaticDir()
     });
-  }
+  };
 
-  async startService(options: {
-    uiOverrides: Partial<Config["ui"]>;
-    open: boolean;
-    startupTimeoutMs?: number;
-  }): Promise<void> {
+  private handleExistingManagedService = async (params: {
+    existing: ManagedServiceState;
+    uiConfig: Config["ui"];
+    options: StartServiceOptions;
+  }): Promise<boolean> => {
+    console.log(`✓ ${APP_NAME} is already running (PID ${params.existing.pid})`);
+    console.log(`UI: ${params.existing.uiUrl}`);
+    console.log(`API: ${params.existing.apiUrl}`);
+
+    const binding = resolveManagedServiceUiBinding(params.existing);
+    if (binding.host !== params.uiConfig.host || binding.port !== params.uiConfig.port) {
+      console.log(
+        `Detected running service UI bind (${binding.host}:${binding.port}); enforcing (${params.uiConfig.host}:${params.uiConfig.port})...`
+      );
+      await this.stopService();
+      const stateAfterStop = readServiceState();
+      if (stateAfterStop && isProcessRunning(stateAfterStop.pid)) {
+        console.error("Error: Failed to stop running service while enforcing public UI exposure.");
+        return true;
+      }
+      await this.startService(params.options);
+      return true;
+    }
+
+    await this.printPublicUiUrls(binding.host, binding.port);
+    console.log(`Logs: ${params.existing.logPath}`);
+    this.printServiceControlHints();
+    return true;
+  };
+
+  startService = async (options: StartServiceOptions): Promise<void> => {
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
@@ -433,44 +448,7 @@ export class ServiceCommands {
 
     const existing = readServiceState();
     if (existing && isProcessRunning(existing.pid)) {
-      console.log(`✓ ${APP_NAME} is already running (PID ${existing.pid})`);
-      console.log(`UI: ${existing.uiUrl}`);
-      console.log(`API: ${existing.apiUrl}`);
-
-      const parsedUi = (() => {
-        try {
-          const parsed = new URL(existing.uiUrl);
-          const port = Number(parsed.port || 80);
-          return {
-            host: existing.uiHost ?? parsed.hostname,
-            port: Number.isFinite(port) ? port : existing.uiPort ?? 55667
-          };
-        } catch {
-          return {
-            host: existing.uiHost ?? "127.0.0.1",
-            port: existing.uiPort ?? 55667
-          };
-        }
-      })();
-
-      if (parsedUi.host !== uiConfig.host || parsedUi.port !== uiConfig.port) {
-        console.log(
-          `Detected running service UI bind (${parsedUi.host}:${parsedUi.port}); enforcing (${uiConfig.host}:${uiConfig.port})...`
-        );
-        await this.stopService();
-
-        const stateAfterStop = readServiceState();
-        if (stateAfterStop && isProcessRunning(stateAfterStop.pid)) {
-          console.error("Error: Failed to stop running service while enforcing public UI exposure.");
-          return;
-        }
-
-        return this.startService(options);
-      }
-
-      await this.printPublicUiUrls(parsedUi.host, parsedUi.port);
-      console.log(`Logs: ${existing.logPath}`);
-      this.printServiceControlHints();
+      await this.handleExistingManagedService({ existing, uiConfig, options });
       return;
     }
     if (existing) {
@@ -493,119 +471,77 @@ export class ServiceCommands {
       return;
     }
 
-    const logPath = resolveServiceLogPath();
-    const logDir = resolve(logPath, "..");
-    mkdirSync(logDir, { recursive: true });
-    const logFd = openSync(logPath, "a");
-    const readinessTimeoutMs = this.resolveStartupTimeoutMs(options.startupTimeoutMs);
-    const quickPhaseTimeoutMs = Math.min(8000, readinessTimeoutMs);
-    const extendedPhaseTimeoutMs = Math.max(0, readinessTimeoutMs - quickPhaseTimeoutMs);
-    this.appendStartupStage(
-      logPath,
-      `start requested: ui=${uiConfig.host}:${uiConfig.port}, readinessTimeoutMs=${readinessTimeoutMs}`
-    );
-    console.log(`Starting ${APP_NAME} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
-
-    const serveArgs = buildServeArgs({ uiPort: uiConfig.port });
-    this.appendStartupStage(logPath, `spawning background process: ${process.execPath} ${[...process.execArgv, ...serveArgs].join(" ")}`);
-    const child = spawn(process.execPath, [...process.execArgv, ...serveArgs], {
-      env: process.env,
-      stdio: ["ignore", logFd, logFd],
-      detached: true
+    const startup = spawnManagedService({
+      appName: APP_NAME,
+      config,
+      uiConfig,
+      uiUrl,
+      apiUrl,
+      healthUrl,
+      startupTimeoutMs: options.startupTimeoutMs,
+      resolveStartupTimeoutMs: this.resolveStartupTimeoutMs,
+      appendStartupStage: this.appendStartupStage,
+      printStartupFailureDiagnostics: this.printStartupFailureDiagnostics,
+      resolveServiceLogPath
     });
-    this.appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
-    closeSync(logFd);
-    if (!child.pid) {
-      this.appendStartupStage(logPath, "spawn failed: child pid missing");
-      console.error("Error: Failed to start background service.");
-      this.printStartupFailureDiagnostics({
-        uiUrl,
-        apiUrl,
-        healthUrl,
-        logPath,
-        lastProbeError: null
-      });
+    if (!startup) {
       return;
     }
 
-    writeInitialManagedServiceState({
-      config,
-      readinessTimeoutMs,
-      snapshot: { pid: child.pid, uiUrl, apiUrl, uiHost: uiConfig.host, uiPort: uiConfig.port, logPath }
-    });
-
-    this.appendStartupStage(logPath, `health probe started: ${healthUrl} (phase=quick, timeoutMs=${quickPhaseTimeoutMs})`);
-    let readiness = await this.waitForBackgroundServiceReady({
-      pid: child.pid,
+    const readiness = await waitForManagedServiceReadiness({
+      appName: APP_NAME,
+      childPid: startup.snapshot.pid,
       healthUrl,
-      timeoutMs: quickPhaseTimeoutMs
+      logPath: startup.logPath,
+      readinessTimeoutMs: startup.readinessTimeoutMs,
+      quickPhaseTimeoutMs: startup.quickPhaseTimeoutMs,
+      extendedPhaseTimeoutMs: startup.extendedPhaseTimeoutMs,
+      appendStartupStage: this.appendStartupStage,
+      waitForBackgroundServiceReady: this.waitForBackgroundServiceReady,
+      isProcessRunning
     });
-
-    if (!readiness.ready && isProcessRunning(child.pid) && extendedPhaseTimeoutMs > 0) {
-      console.warn(
-        `Warning: Background service is still running but not ready after ${Math.ceil(quickPhaseTimeoutMs / 1000)}s; waiting up to ${Math.ceil(extendedPhaseTimeoutMs / 1000)}s more.`
-      );
-      this.appendStartupStage(
-        logPath,
-        `health probe entering extended phase (timeoutMs=${extendedPhaseTimeoutMs}, lastError=${readiness.lastProbeError ?? "none"})`
-      );
-      readiness = await this.waitForBackgroundServiceReady({
-        pid: child.pid,
-        healthUrl,
-        timeoutMs: extendedPhaseTimeoutMs
-      });
-    }
-
     if (!readiness.ready) {
-      if (!isProcessRunning(child.pid)) {
+      if (!isProcessRunning(startup.snapshot.pid)) {
         clearServiceState();
         const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
-        this.appendStartupStage(logPath, `startup failed: process exited before ready.${hint}`);
-        console.error(`Error: Failed to start background service. Check logs: ${logPath}.${hint}`);
+        this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
+        console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
         this.printStartupFailureDiagnostics({
           uiUrl,
           apiUrl,
           healthUrl,
-          logPath,
+          logPath: startup.logPath,
           lastProbeError: readiness.lastProbeError
         });
         return;
       }
-      this.appendStartupStage(
-        logPath,
-        `startup degraded: process alive but health probe timed out after ${readinessTimeoutMs}ms (lastError=${readiness.lastProbeError ?? "none"})`
-      );
     }
 
-    child.unref();
+    startup.child.unref();
 
     const state = writeReadyManagedServiceState({
-      readinessTimeoutMs,
+      readinessTimeoutMs: startup.readinessTimeoutMs,
       readiness,
-      snapshot: { pid: child.pid, uiUrl, apiUrl, uiHost: uiConfig.host, uiPort: uiConfig.port, logPath }
+      snapshot: startup.snapshot
     });
-
-    if (!readiness.ready) {
-      const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
-      console.warn(
-        `Warning: ${APP_NAME} is running (PID ${state.pid}) but not healthy yet after ${Math.ceil(readinessTimeoutMs / 1000)}s. Marked as degraded.${hint}`
-      );
-      console.warn(`Tip: Run "${APP_NAME} status --json" and check logs: ${logPath}`);
-    } else {
-      console.log(`✓ ${APP_NAME} started in background (PID ${state.pid})`);
-    }
-    console.log(`UI: ${uiUrl}`);
-    console.log(`API: ${apiUrl}`);
-    await this.printPublicUiUrls(uiConfig.host, uiConfig.port);
-    console.log(`Logs: ${logPath}`);
-    this.printServiceControlHints();
+    await reportManagedServiceStart({
+      appName: APP_NAME,
+      state,
+      uiConfig,
+      uiUrl,
+      apiUrl,
+      readinessTimeoutMs: startup.readinessTimeoutMs,
+      readiness,
+      printPublicUiUrls: this.printPublicUiUrls,
+      printServiceControlHints: this.printServiceControlHints
+    });
 
     if (options.open) {
       openBrowser(uiUrl);
     }
-  }
+  };
 
-  async stopService(): Promise<void> {
+  stopService = async (): Promise<void> => {
     const state = readServiceState();
     if (!state) {
       console.log("No running service found.");
@@ -638,13 +574,13 @@ export class ServiceCommands {
 
     clearServiceState();
     console.log(`✓ ${APP_NAME} stopped`);
-  }
+  };
 
-  async waitForBackgroundServiceReady(params: {
+  waitForBackgroundServiceReady = async (params: {
     pid: number;
     healthUrl: string;
     timeoutMs: number;
-  }): Promise<{ ready: boolean; lastProbeError: string | null }> {
+  }): Promise<{ ready: boolean; lastProbeError: string | null }> => {
     const startedAt = Date.now();
     let lastProbeError: string | null = null;
     while (Date.now() - startedAt < params.timeoutMs) {
@@ -664,9 +600,9 @@ export class ServiceCommands {
       await new Promise((resolve) => setTimeout(resolve, 200));
     }
     return { ready: false, lastProbeError };
-  }
+  };
 
-  private resolveStartupTimeoutMs(overrideTimeoutMs: number | undefined): number {
+  private resolveStartupTimeoutMs = (overrideTimeoutMs: number | undefined): number => {
     const fallback = process.platform === "win32" ? 28000 : 33000;
     const envRaw = process.env.NEXTCLAW_START_TIMEOUT_MS?.trim();
     const envValue = envRaw ? Number(envRaw) : Number.NaN;
@@ -676,24 +612,24 @@ export class ServiceCommands {
       : null;
     const resolved = fromOverride ?? fromEnv ?? fallback;
     return Math.max(3000, resolved);
-  }
+  };
 
-  private appendStartupStage(logPath: string, message: string): void {
+  private appendStartupStage = (logPath: string, message: string): void => {
     try {
       appendFileSync(logPath, `[${new Date().toISOString()}] [startup] ${message}\n`, "utf-8");
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
     }
-  }
+  };
 
-  private printStartupFailureDiagnostics(params: {
+  private printStartupFailureDiagnostics = (params: {
     uiUrl: string;
     apiUrl: string;
     healthUrl: string;
     logPath: string;
     lastProbeError: string | null;
-  }): void {
+  }): void => {
     const statePath = resolveServiceStatePath();
     const lines = [
       "Startup diagnostics:",
@@ -707,13 +643,13 @@ export class ServiceCommands {
       lines.push(`- Last probe detail: ${params.lastProbeError}`);
     }
     console.error(lines.join("\n"));
-  }
+  };
 
-  private async checkUiPortPreflight(params: {
+  private checkUiPortPreflight = async (params: {
     host: string;
     port: number;
     healthUrl: string;
-  }): Promise<{ ok: true } | { ok: false; message: string }> {
+  }): Promise<{ ok: true } | { ok: false; message: string }> => {
     const availability = await this.checkPortAvailability({
       host: params.host,
       port: params.port
@@ -746,12 +682,12 @@ export class ServiceCommands {
       ok: false,
       message: lines.join("\n")
     };
-  }
+  };
 
-  private async checkPortAvailability(params: {
+  private checkPortAvailability = async (params: {
     host: string;
     port: number;
-  }): Promise<{ available: boolean; detail: string }> {
+  }): Promise<{ available: boolean; detail: string }> => {
     return await new Promise((resolve) => {
       const server = createNetServer();
       server.once("error", (error) => {
@@ -769,12 +705,9 @@ export class ServiceCommands {
         });
       });
     });
-  }
+  };
 
-  private getHeaderValue(
-    headers: Record<string, string | string[] | undefined>,
-    key: string
-  ): string | null {
+  private getHeaderValue = (headers: Record<string, string | string[] | undefined>, key: string): string | null => {
     const value = headers[key];
     if (typeof value === "string") {
       const normalized = value.trim();
@@ -785,9 +718,9 @@ export class ServiceCommands {
       return joined.length > 0 ? joined : null;
     }
     return null;
-  }
+  };
 
-  private formatProbeBodySnippet(raw: string, maxLength = 180): string | null {
+  private formatProbeBodySnippet = (raw: string, maxLength = 180): string | null => {
     const normalized = raw.replace(/\s+/g, " ").trim();
     if (!normalized) {
       return null;
@@ -796,11 +729,9 @@ export class ServiceCommands {
       ? `${normalized.slice(0, maxLength)}...`
       : normalized;
     return JSON.stringify(clipped);
-  }
+  };
 
-  private async probeHealthEndpoint(
-    healthUrl: string
-  ): Promise<{ healthy: boolean; error: string | null }> {
+  private probeHealthEndpoint = async (healthUrl: string): Promise<{ healthy: boolean; error: string | null }> => {
     let parsed: URL;
     try {
       parsed = new URL(healthUrl);
@@ -880,26 +811,27 @@ export class ServiceCommands {
       });
       req.end();
     });
-  }
+  };
 
-  createMissingProvider(config: ReturnType<typeof loadConfig>): LLMProvider {
+  createMissingProvider = (config: ReturnType<typeof loadConfig>): LLMProvider => {
     return this.makeMissingProvider(config);
-  }
+  };
 
-  createProvider(config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }): LiteLLMProvider | null {
+  createProvider = (config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }): LiteLLMProvider | null => {
     if (options?.allowMissing) {
       return this.makeProvider(config, { allowMissing: true });
     }
     return this.makeProvider(config);
-  }
+  };
 
-  private makeMissingProvider(config: ReturnType<typeof loadConfig>): LLMProvider {
+  private makeMissingProvider = (config: ReturnType<typeof loadConfig>): LLMProvider => {
     return new MissingProvider(config.agents.defaults.model);
-  }
+  };
 
-  private makeProvider(config: ReturnType<typeof loadConfig>, options: { allowMissing: true }): LiteLLMProvider | null;
-  private makeProvider(config: ReturnType<typeof loadConfig>, options?: { allowMissing?: false }): LiteLLMProvider;
-  private makeProvider(config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }) {
+  private makeProvider = (
+    config: ReturnType<typeof loadConfig>,
+    options?: { allowMissing?: boolean }
+  ): LiteLLMProvider | null => {
     const provider = getProvider(config);
     const model = config.agents.defaults.model;
     if (!provider?.apiKey && !model.startsWith("bedrock/")) {
@@ -918,9 +850,9 @@ export class ServiceCommands {
       providerName: getProviderName(config),
       wireApi: provider?.wireApi ?? null
     });
-  }
+  };
 
-  private async printPublicUiUrls(host: string, port: number): Promise<void> {
+  private printPublicUiUrls = async (host: string, port: number): Promise<void> => {
     if (isLoopbackHost(host)) {
       console.log("Public URL: disabled (UI host is loopback). Current release expects public exposure; run nextclaw restart.");
       return;
@@ -944,52 +876,32 @@ export class ServiceCommands {
     console.log(
       `If a reverse proxy returns 502, verify its upstream is http://127.0.0.1:${port} (not https://, not a stale port, and not a stopped process).`
     );
-  }
+  };
 
-  private printServiceControlHints(): void {
+  private printServiceControlHints = (): void => {
     console.log("Service controls:");
     console.log(`  - Check status: ${APP_NAME} status`);
     console.log(`  - If you need to stop the service, run: ${APP_NAME} stop`);
-  }
+  };
 
-  private installBuiltinMarketplaceSkill(
-    slug: string,
-    force: boolean | undefined
-  ): { message: string; output?: string } | null {
+  private installBuiltinMarketplaceSkill = (slug: string, _force: boolean | undefined): { message: string; output?: string } | null => {
     const workspace = getWorkspacePath(loadConfig().agents.defaults.workspace);
-    const destination = join(workspace, "skills", slug);
-    const destinationSkillFile = join(destination, "SKILL.md");
-
-    if (existsSync(destinationSkillFile) && !force) {
-      return {
-        message: `${slug} is already installed`
-      };
-    }
-
     const loader = createSkillsLoader(workspace);
     const builtin = (loader?.listSkills(false) ?? []).find((skill) => skill.name === slug && skill.source === "builtin");
 
     if (!builtin) {
-      if (existsSync(destinationSkillFile)) {
-        return {
-          message: `${slug} is already installed`
-        };
-      }
       return null;
     }
-
-    mkdirSync(join(workspace, "skills"), { recursive: true });
-    cpSync(dirname(builtin.path), destination, { recursive: true, force: true });
     return {
-      message: `Installed skill: ${slug}`
+      message: `${slug} is already available (built-in)`
     };
-  }
+  };
 
-  private mergeCommandOutput(stdout: string, stderr: string): string {
+  private mergeCommandOutput = (stdout: string, stderr: string): string => {
     return `${stdout}\n${stderr}`.trim();
-  }
+  };
 
-  private runCliSubcommand(args: string[], timeoutMs = 180_000): Promise<string> {
+  private runCliSubcommand = (args: string[], timeoutMs = 180_000): Promise<string> => {
     const cliEntry = resolveCliSubcommandEntry({
       argvEntry: process.argv[1],
       importMetaUrl: import.meta.url
@@ -998,13 +910,9 @@ export class ServiceCommands {
       cwd: process.cwd(),
       timeoutMs
     }).then((result) => this.mergeCommandOutput(result.stdout, result.stderr));
-  }
+  };
 
-  private runCommand(
-    command: string,
-    args: string[],
-    options: { cwd?: string; timeoutMs?: number } = {}
-  ): Promise<{ stdout: string; stderr: string }> {
+  private runCommand = (command: string, args: string[], options: { cwd?: string; timeoutMs?: number } = {}): Promise<{ stdout: string; stderr: string }> => {
     const timeoutMs = options.timeoutMs ?? 180_000;
     return new Promise((resolvePromise, rejectPromise) => {
       const child = spawn(command, args, {
@@ -1044,6 +952,6 @@ export class ServiceCommands {
         rejectPromise(new Error(output || `command failed with code ${code ?? 1}`));
       });
     });
-  }
+  };
 
 }

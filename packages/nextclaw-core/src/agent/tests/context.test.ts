@@ -82,4 +82,17 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("`$weather`");
     expect(prompt).toContain("explicitly selected in the chat composer");
   });
+
+  it("includes agent management in the NextClaw self-management guide", () => {
+    const workspace = createWorkspace();
+    const builder = new ContextBuilder(workspace);
+
+    const prompt = builder.buildSystemPrompt();
+
+    expect(prompt).toContain("self-management operations");
+    expect(prompt).toContain("service/plugins/channels/config/agents/cron/remote/update");
+    expect(prompt).toContain(`${workspace}/USAGE.md`);
+    expect(prompt).toContain("Do not load unrelated generic skills before reading USAGE.md");
+    expect(prompt).toContain("deprecated artifacts");
+  });
 });

@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { SkillsLoader } from "@nextclaw/core";
 import {
@@ -67,61 +67,113 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
     throw new Error(`Workdir does not exist: ${workdir}`);
   }
 
-  const dirName = options.dir?.trim() || "skills";
-  const destinationDir = isAbsolute(dirName) ? resolve(dirName, slug) : resolve(workdir, dirName, slug);
-  const skillFile = join(destinationDir, "SKILL.md");
-
+  const destinationDir = resolveMarketplaceSkillDestinationDir({
+    workdir,
+    slug,
+    dir: options.dir,
+  });
   const apiBase = resolveMarketplaceApiBase(options.apiBaseUrl);
   const item = await fetchMarketplaceSkillItem(apiBase, slug);
 
   if (item.install.kind === "builtin") {
-    if (!options.force && existsSync(destinationDir)) {
-      if (existsSync(skillFile)) {
-        return {
-          slug,
-          destinationDir,
-          alreadyInstalled: true,
-          source: "builtin"
-        };
-      }
-      throw new Error(`Skill directory already exists: ${destinationDir} (use --force)`);
-    }
-    if (existsSync(destinationDir) && options.force) {
-      rmSync(destinationDir, { recursive: true, force: true });
-    }
-    installBuiltinSkill(workdir, destinationDir, slug);
-    return {
+    return resolveBuiltinMarketplaceInstallResult({
+      workdir,
       slug,
-      destinationDir,
-      source: "builtin"
-    };
+    });
   }
 
   const filesPayload = await fetchMarketplaceSkillFiles(apiBase, slug);
+  const existingInstall = prepareMarketplaceSkillDestinationDir({
+    destinationDir,
+    files: filesPayload.files,
+    force: options.force,
+    slug,
+  });
+  if (existingInstall) {
+    return existingInstall;
+  }
+  await writeMarketplaceSkillFiles({
+    destinationDir,
+    files: filesPayload.files,
+    apiBase,
+    slug,
+  });
+  ensureInstalledMarketplaceSkill(destinationDir, slug);
+  return buildMarketplaceInstallResult(slug, destinationDir);
+}
 
-  if (!options.force && existsSync(destinationDir)) {
-    const existingDirState = inspectMarketplaceSkillDirectory(destinationDir, filesPayload.files);
+function resolveMarketplaceSkillDestinationDir(params: {
+  workdir: string;
+  slug: string;
+  dir?: string;
+}): string {
+  const dirName = params.dir?.trim() || "skills";
+  return isAbsolute(dirName)
+    ? resolve(dirName, params.slug)
+    : resolve(params.workdir, dirName, params.slug);
+}
+
+function resolveBuiltinMarketplaceInstallResult(params: {
+  workdir: string;
+  slug: string;
+}): {
+  slug: string;
+  destinationDir: string;
+  alreadyInstalled: true;
+  source: "builtin";
+} {
+  return {
+    slug: params.slug,
+    destinationDir: resolveBuiltinSkillDir(params.workdir, params.slug),
+    alreadyInstalled: true,
+    source: "builtin",
+  };
+}
+
+function prepareMarketplaceSkillDestinationDir(params: {
+  destinationDir: string;
+  files: MarketplaceSkillFileManifestEntry[];
+  force?: boolean;
+  slug: string;
+}): {
+  slug: string;
+  destinationDir: string;
+  alreadyInstalled: true;
+  source: "marketplace";
+} | null {
+  const { destinationDir, files, force, slug } = params;
+  if (!force && existsSync(destinationDir)) {
+    const existingDirState = inspectMarketplaceSkillDirectory(destinationDir, files);
     if (existingDirState === "installed") {
       return {
         slug,
         destinationDir,
         alreadyInstalled: true,
-        source: "marketplace"
+        source: "marketplace",
       };
     }
-    if (existingDirState === "recoverable") {
-      rmSync(destinationDir, { recursive: true, force: true });
-    } else {
+    if (existingDirState !== "recoverable") {
       throw new Error(`Skill directory already exists: ${destinationDir} (use --force)`);
     }
-  }
-
-  if (existsSync(destinationDir) && options.force) {
     rmSync(destinationDir, { recursive: true, force: true });
   }
-  mkdirSync(destinationDir, { recursive: true });
 
-  for (const file of filesPayload.files) {
+  if (force && existsSync(destinationDir)) {
+    rmSync(destinationDir, { recursive: true, force: true });
+  }
+
+  mkdirSync(destinationDir, { recursive: true });
+  return null;
+}
+
+async function writeMarketplaceSkillFiles(params: {
+  destinationDir: string;
+  files: MarketplaceSkillFileManifestEntry[];
+  apiBase: string;
+  slug: string;
+}): Promise<void> {
+  const { destinationDir, files, apiBase, slug } = params;
+  for (const file of files) {
     const targetPath = resolve(destinationDir, ...file.path.split("/"));
     const rel = relative(destinationDir, targetPath);
     if (rel.startsWith("..") || isAbsolute(rel)) {
@@ -134,15 +186,23 @@ export async function installMarketplaceSkill(options: MarketplaceSkillInstallOp
       : await fetchMarketplaceSkillFileBlob(apiBase, slug, file);
     writeFileSync(targetPath, bytes);
   }
+}
 
+function ensureInstalledMarketplaceSkill(destinationDir: string, slug: string): void {
   if (!existsSync(join(destinationDir, "SKILL.md"))) {
     throw new Error(`Marketplace skill ${slug} does not include SKILL.md`);
   }
+}
 
+function buildMarketplaceInstallResult(slug: string, destinationDir: string): {
+  slug: string;
+  destinationDir: string;
+  source: "marketplace";
+} {
   return {
     slug,
     destinationDir,
-    source: "marketplace"
+    source: "marketplace",
   };
 }
 
@@ -311,13 +371,13 @@ function collectFiles(rootDir: string): Array<{ path: string; contentBase64: str
   return output;
 }
 
-function installBuiltinSkill(workdir: string, destinationDir: string, skillName: string): void {
+function resolveBuiltinSkillDir(workdir: string, skillName: string): string {
   const loader = new SkillsLoader(workdir);
-  const workspaceSkill = loader.listSkills(false).find((skill) => skill.name === skillName && skill.source === "workspace");
-  if (!workspaceSkill) {
-    throw new Error(`Workspace skill not found in local installation: ${skillName}`);
+  const builtinSkill = loader.listSkills(false).find((skill) => skill.name === skillName && skill.source === "builtin");
+  if (!builtinSkill) {
+    throw new Error(`Built-in skill not found in local installation: ${skillName}`);
   }
-  cpSync(dirname(workspaceSkill.path), destinationDir, { recursive: true, force: true });
+  return dirname(builtinSkill.path);
 }
 
 async function fetchMarketplaceSkillItem(

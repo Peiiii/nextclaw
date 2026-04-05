@@ -48,7 +48,9 @@ export function buildActiveSkillsSystemSection(skills: SkillsLoader, skillSelect
   }
   return [
     "# Active Skills",
-    "These always-on skills are available for this session context.",
+    "These always-on skills are already active for this session context.",
+    "If an active skill covers the user's intent, follow it before considering unrelated available skills.",
+    "For NextClaw self-management intents, read USAGE.md before loading any unrelated generic skill.",
     "Skill refs are unique identities; names may repeat.",
     "Read a SKILL.md from <location> only when you need its instructions.",
     "",
@@ -63,8 +65,10 @@ export function buildAvailableSkillsSystemSection(skills: SkillsLoader): string 
   }
   return [
     "## Skills (mandatory)",
+    "Always-on skills in <active_skills> take precedence over this list.",
     "Before replying: scan <available_skills> entries.",
     "- If exactly one skill clearly applies: read its SKILL.md at <location> with `read_file`, then follow it.",
+    "- If the user is asking to manage NextClaw itself, read USAGE.md first and do not open unrelated generic skills before that.",
     "- If multiple skills share the same <name>, use <ref> to distinguish them. Never assume duplicate names mean the same skill.",
     "- If none clearly apply: do not read any SKILL.md.",
     "Constraints: never read more than one skill up front; only read after selecting.",

@@ -56,6 +56,7 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatSlashHint: { zh: '输入 / 触发命令或技能选择', en: 'Type / to access commands and skills' },
   chatSlashCommandHint: { zh: '回车插入命令，继续输入参数后发送。', en: 'Press Enter to insert command, then add args and send.' },
   chatSlashSkillHint: { zh: '回车把该技能加入本轮请求。', en: 'Press Enter to add this skill for the next turn.' },
+  chatSkillScopeBuiltin: { zh: '内建', en: 'Built-in' },
   chatSkillScopeProject: { zh: '项目', en: 'Project' },
   chatSkillScopeWorkspace: { zh: '工作区', en: 'Workspace' },
   chatPickerRecent: { zh: '最近使用', en: 'Recent' },

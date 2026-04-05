@@ -87,8 +87,9 @@ export function ChatInputBarContainer() {
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const skillScopeLabels = useMemo<Record<'project' | 'workspace', string>>(() => {
+  const skillScopeLabels = useMemo<Record<'builtin' | 'project' | 'workspace', string>>(() => {
     return {
+      builtin: t('chatSkillScopeBuiltin'),
       project: t('chatSkillScopeProject'),
       workspace: t('chatSkillScopeWorkspace'),
     };

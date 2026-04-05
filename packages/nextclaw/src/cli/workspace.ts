@@ -1,5 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_NAME, getDataDir } from "@nextclaw/core";
@@ -59,60 +58,7 @@ export class WorkspaceManager {
       mkdirSync(skillsDir, { recursive: true });
       created.push(join("skills", ""));
     }
-    const seeded = this.seedBuiltinSkills(skillsDir, { force });
-    if (seeded > 0) {
-      created.push(`skills (seeded ${seeded} built-ins)`);
-    }
     return { created };
-  }
-
-  private seedBuiltinSkills(targetDir: string, options: { force?: boolean } = {}): number {
-    const sourceDir = this.resolveBuiltinSkillsDir();
-    if (!sourceDir) {
-      return 0;
-    }
-    const force = Boolean(options.force);
-    let seeded = 0;
-    for (const entry of readdirSync(sourceDir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const src = join(sourceDir, entry.name);
-      if (!existsSync(join(src, "SKILL.md"))) {
-        continue;
-      }
-      const dest = join(targetDir, entry.name);
-      if (!force && existsSync(dest)) {
-        continue;
-      }
-      try {
-        cpSync(src, dest, { recursive: true, force: true });
-        seeded += 1;
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Warning: Failed to seed builtin skill '${entry.name}': ${message}`);
-      }
-    }
-    return seeded;
-  }
-
-  private resolveBuiltinSkillsDir(): string | null {
-    try {
-      const require = createRequire(import.meta.url);
-      const entry = require.resolve("@nextclaw/core");
-      const pkgRoot = resolve(dirname(entry), "..");
-      const distSkills = join(pkgRoot, "dist", "skills");
-      if (existsSync(distSkills)) {
-        return distSkills;
-      }
-      const srcSkills = join(pkgRoot, "src", "agent", "skills");
-      if (existsSync(srcSkills)) {
-        return srcSkills;
-      }
-      return null;
-    } catch {
-      return null;
-    }
   }
 
   private resolveTemplateDir(): string | null {

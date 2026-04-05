@@ -8,7 +8,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 
 ## AI Self-Management Contract
 
-When NextClaw AI needs to operate the product itself (version/status/doctor/channels/config/cron), follow these rules:
+When NextClaw AI needs to operate the product itself (version/status/doctor/service/plugins/channels/config/agents/cron/remote/update), follow these rules:
 
 1. **Read this guide first** (`USAGE.md`) before executing management commands.
 2. **Use the exact command for the intent**: use `nextclaw --version` for version lookup; do not infer version from `status`.
@@ -187,8 +187,6 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `providers.*`
 - `channels.*`
 - `agents.defaults.model`
-- `agents.defaults.maxToolIterations`
-- `agents.defaults.contextTokens`
 - `agents.context.*`
 - `tools.*`
 - `plugins.*` (v1 hot plugin runtime: plugin registry/channel gateways/channels are hot-reloaded)
@@ -203,9 +201,14 @@ UI note: **Model** page save persists `agents.defaults.model` only.
 
 ### Multi-agent routing & session isolation (OpenClaw-aligned)
 
-You can now configure OpenClaw-style multi-agent runtime behavior directly in the UI (**Routing & Runtime**) or in `config.json`:
+For agent identities themselves, do **not** create them through `Routing & Runtime` or direct `agents.list` edits.
+Use one of these two entry points instead:
 
-- `agents.list`: run multiple resident agent roles in one gateway process
+- `Agents` page in the chat workspace
+- CLI: `nextclaw agents new <agent-id>`
+
+`Routing & Runtime` is only for routing/runtime policy after agents already exist:
+
 - `bindings`: route inbound messages by `channel + accountId (+peer)` to a target `agentId`
 - `session.dmScope`: DM isolation strategy (`main` / `per-peer` / `per-channel-peer` / `per-account-channel-peer`)
 - `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops (`0` means block auto ping-pong)
@@ -219,19 +222,6 @@ Example:
 
 ```json
 {
-  "agents": {
-    "defaults": { "model": "openai/gpt-5.2-codex" },
-    "list": [
-      { "id": "main", "default": true },
-      {
-        "id": "engineer",
-        "workspace": "~/workspace-engineer",
-        "model": "openai/gpt-5.2-codex",
-        "contextTokens": 200000,
-        "maxToolIterations": 24
-      }
-    ]
-  },
   "bindings": [
     {
       "agentId": "engineer",
@@ -252,7 +242,7 @@ Example:
 CLI equivalents:
 
 ```bash
-nextclaw config set agents.list '[{"id":"main","default":true},{"id":"engineer"}]' --json
+nextclaw agents new engineer --json
 nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui"}}]' --json
 nextclaw config set session.dmScope '"per-account-channel-peer"' --json
 nextclaw config set session.agentToAgent.maxPingPongTurns 0 --json
@@ -263,7 +253,7 @@ nextclaw config set session.agentToAgent.maxPingPongTurns 0 --json
 Use this baseline for predictable team-style collaboration:
 
 1. Keep `main` as the default fallback role.
-2. Add specialist agents in `agents.list` (for example `engineer`, `ops`, `support`).
+2. Create specialist agents through the `Agents` page or `nextclaw agents new` (for example `engineer`, `ops`, `support`).
 3. Route stable traffic classes with `bindings` (channel/account/peer based).
 4. Use `session.dmScope="per-account-channel-peer"` for multi-account + multi-channel isolation.
 5. Set `session.agentToAgent.maxPingPongTurns=0` first, then increase only when you explicitly want cross-agent relay.
@@ -316,7 +306,7 @@ Example with explicit precedence (more specific rule first):
 Recipe A — default + specialist routing:
 
 ```bash
-nextclaw config set agents.list '[{"id":"main","default":true},{"id":"engineer"}]' --json
+nextclaw agents new engineer --json
 nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui","peer":{"kind":"channel","id":"dev-room"}}}]' --json
 ```
 
@@ -351,33 +341,13 @@ Pass criteria: stable routing, no cross-session context leakage, predictable gro
   - confirm `match.accountId` and `match.peer` actually match inbound metadata
 - Always falls back to `main`:
   - verify `bindings` is not empty and `match.channel` is correct
-  - verify target `agentId` exists in `agents.list`
+  - verify target `agentId` exists in `nextclaw agents list --json` or the `Agents` page
 - Group messages not triggering:
   - check `groupPolicy`, `groupAllowFrom`, and `requireMention`
   - confirm message text matches configured `mentionPatterns` if enabled
 - DM context looks mixed:
   - switch to `session.dmScope="per-account-channel-peer"`
   - re-test across two users/channels/accounts and compare outcomes
-
-### Input context budget
-
-NextClaw now applies a token-budget input pruner before each model call.
-
-- `agents.defaults.contextTokens`: model input context budget (default `200000`)
-- reserve floor: `20000` tokens
-- soft threshold: `4000` tokens
-- when over budget: trim tool results first, then drop oldest history, then trim oversized prompt/user tail as final fallback
-
-CLI examples:
-
-```bash
-nextclaw config set agents.defaults.contextTokens 200000 --json
-nextclaw config set agents.list '[{"id":"engineer","contextTokens":160000}]' --json
-```
-
-UI path:
-
-- `Routing & Runtime` page can edit both default `contextTokens` and per-agent `contextTokens` overrides.
 
 For internal AI operations (same as other built-in capabilities):
 
@@ -465,9 +435,13 @@ Created under the workspace:
 
 Skill loading contract:
 
-- NextClaw only auto-loads skills from `<workspace>/skills/`.
+- NextClaw ships with built-in skills and auto-loads them directly from the app package.
+- `<workspace>/skills/` is for custom skills and marketplace-installed skills.
 - With the default workspace, the default skill directory is `~/.nextclaw/workspace/skills/`.
-- `nextclaw skills install <slug>` installs into that directory.
+- `nextclaw skills install <slug>` installs marketplace skills into that directory.
+- Built-in marketplace skills are already available by default; `nextclaw skills install` does not copy them into the workspace.
+- Historical copied built-in skills under `<workspace>/skills/` are deprecated artifacts.
+- If a built-in skill and a workspace skill share the same name, NextClaw ignores the workspace copy and uses the built-in definition as the source of truth.
 - If you want to install into a specific project workspace, pass `--workdir <workspace>`.
 - Upstream commands such as `npx skills add ... -g` do not install a skill into NextClaw's workspace and do not make it selectable in NextClaw by themselves.
 
@@ -492,6 +466,9 @@ Skill loading contract:
 | `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
 | `nextclaw init` | Initialize workspace and template files |
 | `nextclaw init --force` | Re-run init and overwrite templates |
+| `nextclaw agents list` | List built-in and created agents |
+| `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
+| `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
 | `nextclaw login --api-base <url>` | Login to NextClaw Platform and save the platform token locally |
 | `nextclaw remote enable` | Enable service-managed remote access |
 | `nextclaw remote disable` | Disable service-managed remote access |
@@ -522,6 +499,56 @@ Skill loading contract:
 | `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
 | `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
 | `nextclaw config unset <path>` | Remove config value by path |
+
+Agent management notes:
+
+- `nextclaw agents new <agent-id>` accepts:
+  - `--name <display-name>`
+  - `--avatar <http-url-or-local-file>`
+  - `--home <path>`
+  - `--json`
+- If `--avatar` is a local file path, NextClaw copies it into the Agent Home Directory and stores it as `home://avatar.<ext>`.
+- If `--avatar` is omitted, NextClaw generates a local default `avatar.svg`.
+- `nextclaw agents new/remove --json` returns machine-readable output plus `restartRequired: true`.
+
+### Agent creation flow for AI self-management
+
+When NextClaw AI is asked to create a new Agent, use this exact flow instead of inventing config edits:
+
+1. Inspect current agents when needed:
+
+   ```bash
+   nextclaw agents list --json
+   ```
+
+2. Create the new Agent through the dedicated command:
+
+   ```bash
+   nextclaw agents new <agent-id> --json [--name <display-name>] [--avatar <url-or-local-file>] [--home <path>]
+   ```
+
+3. Treat the JSON output as the source of truth:
+   - `agent`: created Agent profile
+   - `restartRequired: true`: runtime changes still need a restart to apply
+
+4. If the service is currently running, restart explicitly after creation:
+
+   ```bash
+   nextclaw restart
+   ```
+
+5. Close the loop:
+
+   ```bash
+   nextclaw agents list --json
+   nextclaw status --json
+   ```
+
+Rules:
+
+- Do not try to create the built-in `main` agent.
+- Prefer `nextclaw agents new` over direct `config.json` edits for normal Agent creation.
+- If the user asked AI to create the Agent, AI should run the command, not only describe it.
 
 Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 

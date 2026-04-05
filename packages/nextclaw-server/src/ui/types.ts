@@ -344,12 +344,28 @@ export type RemoteServiceActionResult = {
 export type AgentProfileView = {
   id: string;
   default?: boolean;
+  displayName?: string;
+  avatar?: string;
+  avatarUrl?: string;
   workspace?: string;
   model?: string;
   engine?: string;
   engineConfig?: Record<string, unknown>;
   contextTokens?: number;
   maxToolIterations?: number;
+  builtIn?: boolean;
+};
+
+export type AgentCreateRequest = {
+  id: string;
+  displayName?: string;
+  avatar?: string;
+  home?: string;
+};
+
+export type AgentDeleteResult = {
+  deleted: boolean;
+  agentId: string;
 };
 
 export type BindingPeerView = {
@@ -441,8 +457,8 @@ export type SessionSkillEntryView = {
   ref: string;
   name: string;
   path: string;
-  scope: "project" | "workspace";
-  source: "project" | "workspace";
+  scope: "builtin" | "project" | "workspace";
+  source: "builtin" | "project" | "workspace";
   available: boolean;
   description?: string;
   descriptionZh?: string;
@@ -817,6 +833,7 @@ export type UiServerOptions = {
   productVersion?: string;
   corsOrigins?: string[] | "*";
   staticDir?: string;
+  initializeAgentHomeDirectory?: (homeDirectory: string) => void;
   marketplace?: MarketplaceApiConfig;
   cronService?: CronService;
   ncpAgent?: UiNcpAgent;
