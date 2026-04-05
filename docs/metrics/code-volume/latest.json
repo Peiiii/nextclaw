@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-04-04T03:15:07.711Z",
+  "generatedAt": "2026-04-05T03:20:50.610Z",
   "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "6d80df595aba2a3e0d618f99735d68c55d902cb1",
+    "sha": "c5709d4d1a8328d6693b166439eea60d817461fe",
     "ref": "master"
   },
   "scope": {
@@ -82,28 +82,28 @@
     ]
   },
   "totals": {
-    "files": 1157,
-    "totalLines": 179737,
-    "blankLines": 17374,
+    "files": 1156,
+    "totalLines": 180060,
+    "blankLines": 17373,
     "commentLines": 1566,
-    "codeLines": 160797
+    "codeLines": 161121
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 972,
-      "totalLines": 155290,
+      "files": 971,
+      "totalLines": 155555,
       "blankLines": 15282,
       "commentLines": 1502,
-      "codeLines": 138506
+      "codeLines": 138771
     },
     {
       "name": "TSX",
       "files": 176,
-      "totalLines": 24195,
-      "blankLines": 2056,
+      "totalLines": 24253,
+      "blankLines": 2055,
       "commentLines": 64,
-      "codeLines": 22075
+      "codeLines": 22134
     },
     {
       "name": "JavaScript",
@@ -118,10 +118,10 @@
     {
       "name": "packages/nextclaw-ui",
       "files": 240,
-      "totalLines": 31887,
-      "blankLines": 2891,
+      "totalLines": 31945,
+      "blankLines": 2890,
       "commentLines": 121,
-      "codeLines": 28875
+      "codeLines": 28934
     },
     {
       "name": "packages/extensions/nextclaw-channel-plugin-feishu",
@@ -189,11 +189,11 @@
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-toolkit",
-      "files": 29,
-      "totalLines": 4092,
-      "blankLines": 415,
+      "files": 28,
+      "totalLines": 4272,
+      "blankLines": 416,
       "commentLines": 9,
-      "codeLines": 3668
+      "codeLines": 3847
     },
     {
       "name": "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk",
@@ -318,26 +318,26 @@
     {
       "name": "packages/ncp-packages/nextclaw-ncp-http-agent-client",
       "files": 6,
-      "totalLines": 831,
-      "blankLines": 92,
+      "totalLines": 891,
+      "blankLines": 94,
       "commentLines": 0,
-      "codeLines": 739
+      "codeLines": 797
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-http-agent-server",
       "files": 12,
-      "totalLines": 844,
-      "blankLines": 98,
+      "totalLines": 849,
+      "blankLines": 97,
       "commentLines": 38,
-      "codeLines": 708
+      "codeLines": 714
     },
     {
       "name": "packages/ncp-packages/nextclaw-ncp-react",
       "files": 6,
-      "totalLines": 679,
-      "blankLines": 83,
+      "totalLines": 699,
+      "blankLines": 81,
       "commentLines": 0,
-      "codeLines": 596
+      "codeLines": 618
     },
     {
       "name": "packages/extensions/nextclaw-ncp-runtime-codex-sdk",
@@ -477,8 +477,8 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 160793,
-    "codeLines": 4,
-    "percent": 0
+    "previousCodeLines": 160797,
+    "codeLines": 324,
+    "percent": 0.2
   }
 }
