@@ -42,6 +42,7 @@ import type {
   AgentCommandOptions,
   AgentsListCommandOptions,
   AgentsNewCommandOptions,
+  AgentsUpdateCommandOptions,
   AgentsRemoveCommandOptions,
   ChannelsAddOptions,
   ChannelsLoginOptions,
@@ -692,6 +693,7 @@ export class CliRuntime {
 
   agentsList = (opts: AgentsListCommandOptions = {}): void => { this.agentCommands.agentsList(opts); };
   agentsNew = async (agentId: string, opts: AgentsNewCommandOptions = {}): Promise<void> => { await this.agentCommands.agentsNew(agentId, opts); };
+  agentsUpdate = async (agentId: string, opts: AgentsUpdateCommandOptions = {}): Promise<void> => { await this.agentCommands.agentsUpdate(agentId, opts); };
   agentsRemove = async (agentId: string, opts: AgentsRemoveCommandOptions = {}): Promise<void> => { await this.agentCommands.agentsRemove(agentId, opts); };
 
   pluginsList = (opts: PluginsListOptions = {}): void => {

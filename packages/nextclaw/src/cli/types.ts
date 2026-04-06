@@ -60,6 +60,13 @@ export type AgentsNewCommandOptions = {
   json?: boolean;
 };
 
+export type AgentsUpdateCommandOptions = {
+  name?: string;
+  description?: string;
+  avatar?: string;
+  json?: boolean;
+};
+
 export type AgentsRemoveCommandOptions = {
   json?: boolean;
 };

@@ -1,10 +1,16 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join, normalize, resolve } from "node:path";
+import { existsSync, mkdirSync, readdirSync, statSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
+import {
+  materializeAgentAvatar,
+  readAgentAvatarContent as readAgentAvatarAssetContent,
+  resolveAgentAvatarHomePath
+} from "./agent-avatar.js";
 import { loadConfig, saveConfig } from "./loader.js";
 import type { Config } from "./schema.js";
 import { expandHome } from "../utils/helpers.js";
 
 export const BUILTIN_MAIN_AGENT_ID = "main";
+export { resolveAgentAvatarHomePath } from "./agent-avatar.js";
 
 type AgentProfile = Config["agents"]["list"][number];
 
@@ -28,6 +34,17 @@ export type CreateAgentProfileInput = {
 export type CreateAgentProfileOptions = {
   configPath?: string;
   initializeHomeDirectory?: (homeDirectory: string) => void;
+};
+
+export type UpdateAgentProfileInput = {
+  id: string;
+  displayName?: string;
+  description?: string;
+  avatar?: string;
+};
+
+export type UpdateAgentProfileOptions = {
+  configPath?: string;
 };
 
 export function normalizeAgentProfileId(value: unknown): string {
@@ -64,11 +81,11 @@ export function resolveEffectiveAgentProfiles(config: Config): EffectiveAgentPro
       id: BUILTIN_MAIN_AGENT_ID,
       default: true,
       workspace: mainOverride?.workspace?.trim() || config.agents.defaults.workspace,
-      displayName: normalizeOptionalDisplayName(mainOverride?.displayName) ?? "Main",
-      ...(normalizeOptionalDescription(mainOverride?.description)
-        ? { description: normalizeOptionalDescription(mainOverride?.description) ?? undefined }
+      displayName: normalizeOptionalString(mainOverride?.displayName) ?? "Main",
+      ...(normalizeOptionalString(mainOverride?.description)
+        ? { description: normalizeOptionalString(mainOverride?.description) ?? undefined }
         : {}),
-      ...(normalizeOptionalRef(mainOverride?.avatar) ? { avatar: normalizeOptionalRef(mainOverride?.avatar) ?? undefined } : {}),
+      ...(normalizeOptionalString(mainOverride?.avatar) ? { avatar: normalizeOptionalString(mainOverride?.avatar) ?? undefined } : {}),
       model: mainOverride?.model,
       engine: mainOverride?.engine,
       engineConfig: mainOverride?.engineConfig,
@@ -134,8 +151,8 @@ export function createAgentProfile(
   mkdirSync(homeDirectory, { recursive: true });
   options.initializeHomeDirectory?.(homeDirectory);
 
-  const displayName = normalizeOptionalDisplayName(input.displayName) ?? formatAgentDisplayName(agentId);
-  const description = normalizeOptionalDescription(input.description) ?? undefined;
+  const displayName = normalizeOptionalString(input.displayName) ?? formatAgentDisplayName(agentId);
+  const description = normalizeOptionalString(input.description) ?? undefined;
   const avatar = materializeAgentAvatar({
     avatar: input.avatar,
     homeDirectory,
@@ -161,6 +178,19 @@ export function createAgentProfile(
   }
   saveConfig(config, options.configPath);
   return toEffectiveAgentProfile(profile, config) as EffectiveAgentProfile;
+}
+
+export function updateAgentProfile(
+  input: UpdateAgentProfileInput,
+  options: UpdateAgentProfileOptions = {}
+): EffectiveAgentProfile {
+  const { agentId, config, existingEffective, profileIndex, profile } = resolveAgentProfileUpdateContext(input.id, options.configPath);
+  ensureAgentProfileUpdateInput(input);
+  applyAgentProfileTextUpdate(profile, "displayName", input.displayName);
+  applyAgentProfileTextUpdate(profile, "description", input.description);
+  applyAgentProfileAvatarUpdate(profile, input.avatar, existingEffective, agentId);
+  persistUpdatedAgentProfile(config, profileIndex, profile, options.configPath);
+  return findEffectiveAgentProfile(config, agentId) as EffectiveAgentProfile;
 }
 
 export function removeAgentProfile(agentId: string, options: { configPath?: string } = {}): boolean {
@@ -203,9 +233,9 @@ function toEffectiveAgentProfile(entry: AgentProfile, config: Config): Effective
     ...entry,
     id,
     workspace: normalizeOptionalString(entry.workspace) ?? config.agents.defaults.workspace,
-    ...(normalizeOptionalDisplayName(entry.displayName) ? { displayName: normalizeOptionalDisplayName(entry.displayName) ?? undefined } : {}),
-    ...(normalizeOptionalDescription(entry.description) ? { description: normalizeOptionalDescription(entry.description) ?? undefined } : {}),
-    ...(normalizeOptionalRef(entry.avatar) ? { avatar: normalizeOptionalRef(entry.avatar) ?? undefined } : {})
+    ...(normalizeOptionalString(entry.displayName) ? { displayName: normalizeOptionalString(entry.displayName) ?? undefined } : {}),
+    ...(normalizeOptionalString(entry.description) ? { description: normalizeOptionalString(entry.description) ?? undefined } : {}),
+    ...(normalizeOptionalString(entry.avatar) ? { avatar: normalizeOptionalString(entry.avatar) ?? undefined } : {})
   };
 }
 
@@ -215,18 +245,6 @@ function normalizeOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizeOptionalDisplayName(value: unknown): string | null {
-  return normalizeOptionalString(value);
-}
-
-function normalizeOptionalDescription(value: unknown): string | null {
-  return normalizeOptionalString(value);
-}
-
-function normalizeOptionalRef(value: unknown): string | null {
-  return normalizeOptionalString(value);
 }
 
 function ensureCreatableHomeDirectory(homeDirectory: string): void {
@@ -242,149 +260,85 @@ function ensureCreatableHomeDirectory(homeDirectory: string): void {
   }
 }
 
-function materializeAgentAvatar(params: {
-  avatar?: string;
-  homeDirectory: string;
-  agentId: string;
-  displayName: string;
-}): string {
-  const avatar = normalizeOptionalString(params.avatar);
-  if (!avatar) {
-    const fileName = "avatar.svg";
-    writeFileSync(
-      join(params.homeDirectory, fileName),
-      buildDefaultAgentAvatarSvg(params.agentId, params.displayName),
-      "utf-8"
-    );
-    return `home://${fileName}`;
-  }
-  if (isRemoteAvatarRef(avatar)) {
-    return avatar;
-  }
-  return copyLocalAvatarToHome(params.homeDirectory, avatar);
-}
-
-function isRemoteAvatarRef(value: string): boolean {
-  return value.startsWith("http://") || value.startsWith("https://");
-}
-
-function copyLocalAvatarToHome(homeDirectory: string, avatarPath: string): string {
-  const sourcePath = resolve(expandHome(avatarPath));
-  if (!existsSync(sourcePath)) {
-    throw new Error(`avatar file not found: ${avatarPath}`);
-  }
-  const sourceStats = statSync(sourcePath);
-  if (!sourceStats.isFile()) {
-    throw new Error(`avatar path is not a file: ${avatarPath}`);
-  }
-  const ext = extname(sourcePath).toLowerCase() || ".png";
-  const fileName = `avatar${ext}`;
-  copyFileSync(sourcePath, join(homeDirectory, fileName));
-  return `home://${fileName}`;
-}
-
-function buildDefaultAgentAvatarSvg(agentId: string, displayName: string): string {
-  const palette = [
-    ["#F59E0B", "#B45309"],
-    ["#10B981", "#047857"],
-    ["#3B82F6", "#1D4ED8"],
-    ["#EF4444", "#B91C1C"],
-    ["#8B5CF6", "#6D28D9"],
-    ["#14B8A6", "#0F766E"]
-  ] as const;
-  const index = Math.abs(hashText(agentId)) % palette.length;
-  const [bg, fg] = palette[index] ?? palette[0];
-  const letter = resolveAvatarLetter(displayName || agentId);
-  return [
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\" role=\"img\" aria-label=\"avatar\">",
-    `  <rect width=\"256\" height=\"256\" rx=\"64\" fill=\"${bg}\" />`,
-    `  <text x=\"128\" y=\"146\" text-anchor=\"middle\" font-family=\"Arial, sans-serif\" font-size=\"104\" font-weight=\"700\" fill=\"${fg}\">${escapeXml(letter)}</text>`,
-    "</svg>"
-  ].join("\n");
-}
-
-function hashText(value: string): number {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(index);
-    hash |= 0;
-  }
-  return hash;
-}
-
-function resolveAvatarLetter(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return "A";
-  }
-  return trimmed.slice(0, 1).toUpperCase();
-}
-
-function escapeXml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("\"", "&quot;")
-    .replaceAll("'", "&apos;");
-}
-
-export function resolveAgentAvatarHomePath(params: {
-  homeDirectory: string;
-  avatarRef: string;
-}): string {
-  const normalizedRef = normalizeOptionalString(params.avatarRef);
-  if (!normalizedRef?.startsWith("home://")) {
-    throw new Error("avatar ref must use home://");
-  }
-  const relativePath = normalizedRef.slice("home://".length).trim();
-  if (!relativePath) {
-    throw new Error("avatar ref must not be empty");
-  }
-  const targetPath = resolve(params.homeDirectory, relativePath);
-  const normalizedHome = normalize(resolve(params.homeDirectory));
-  const normalizedTarget = normalize(targetPath);
-  if (
-    normalizedTarget !== normalizedHome &&
-    !normalizedTarget.startsWith(`${normalizedHome}/`) &&
-    !normalizedTarget.startsWith(`${normalizedHome}\\`)
-  ) {
-    throw new Error("avatar ref escapes agent home directory");
-  }
-  return targetPath;
-}
-
 export function readAgentAvatarContent(params: {
   config: Config;
   agentId: string;
 }): { bytes: Uint8Array; mimeType: string } | null {
-  const assetPath = resolveAgentAvatarAssetPath(params.config, params.agentId);
-  if (!assetPath || !existsSync(assetPath)) {
-    return null;
-  }
-  const bytes = readFileSync(assetPath);
-  return {
-    bytes,
-    mimeType: guessImageMimeType(assetPath)
-  };
+  return readAgentAvatarAssetContent({
+    ...params,
+    resolveAssetPath: resolveAgentAvatarAssetPath
+  });
 }
 
-export function guessImageMimeType(filePath: string): string {
-  const ext = extname(filePath).toLowerCase();
-  if (ext === ".svg") {
-    return "image/svg+xml";
+function resolveAgentProfileUpdateContext(agentIdInput: string, configPath?: string): {
+  agentId: string;
+  config: Config;
+  existingEffective: EffectiveAgentProfile;
+  profileIndex: number;
+  profile: AgentProfile;
+} {
+  const agentId = normalizeAgentProfileId(agentIdInput);
+  if (!agentId) {
+    throw new Error("agent id is required");
   }
-  if (ext === ".png") {
-    return "image/png";
+  const config = loadConfig(configPath);
+  const existingEffective = findEffectiveAgentProfile(config, agentId);
+  if (!existingEffective) {
+    throw new Error(`agent '${agentId}' not found`);
   }
-  if (ext === ".jpg" || ext === ".jpeg") {
-    return "image/jpeg";
+  const profileIndex = config.agents.list.findIndex((entry) => normalizeAgentProfileId(entry.id) === agentId);
+  const profile = profileIndex >= 0
+    ? { ...config.agents.list[profileIndex] }
+    : { id: agentId, default: agentId === BUILTIN_MAIN_AGENT_ID };
+  return { agentId, config, existingEffective, profileIndex, profile };
+}
+
+function ensureAgentProfileUpdateInput(input: UpdateAgentProfileInput): void {
+  if (input.displayName !== undefined || input.description !== undefined || input.avatar !== undefined) {
+    return;
   }
-  if (ext === ".webp") {
-    return "image/webp";
+  throw new Error("at least one field must be provided");
+}
+
+function applyAgentProfileTextUpdate(profile: AgentProfile, key: "displayName" | "description", value?: string): void {
+  if (value === undefined) {
+    return;
   }
-  if (ext === ".gif") {
-    return "image/gif";
+  const normalized = normalizeOptionalString(value);
+  if (normalized) {
+    profile[key] = normalized;
+    return;
   }
-  return "application/octet-stream";
+  delete profile[key];
+}
+
+function applyAgentProfileAvatarUpdate(
+  profile: AgentProfile,
+  avatar: string | undefined,
+  existingEffective: EffectiveAgentProfile,
+  agentId: string
+): void {
+  if (avatar === undefined) {
+    return;
+  }
+  const normalized = normalizeOptionalString(avatar);
+  if (!normalized) {
+    delete profile.avatar;
+    return;
+  }
+  profile.avatar = materializeAgentAvatar({
+    avatar: normalized,
+    homeDirectory: resolve(expandHome(existingEffective.workspace)),
+    agentId,
+    displayName: profile.displayName ?? existingEffective.displayName ?? formatAgentDisplayName(agentId)
+  });
+}
+
+function persistUpdatedAgentProfile(config: Config, profileIndex: number, profile: AgentProfile, configPath?: string): void {
+  if (profileIndex >= 0) {
+    config.agents.list[profileIndex] = profile;
+  } else {
+    config.agents.list = [...config.agents.list, profile];
+  }
+  saveConfig(config, configPath);
 }

@@ -4,9 +4,16 @@ import {
   loadConfig,
   removeAgentProfile,
   resolveEffectiveAgentProfiles,
+  updateAgentProfile,
   type EffectiveAgentProfile
 } from "@nextclaw/core";
-import type { AgentsListCommandOptions, AgentsNewCommandOptions, AgentsRemoveCommandOptions, RequestRestartParams } from "../types.js";
+import type {
+  AgentsListCommandOptions,
+  AgentsNewCommandOptions,
+  AgentsRemoveCommandOptions,
+  AgentsUpdateCommandOptions,
+  RequestRestartParams
+} from "../types.js";
 
 export class AgentCommands {
   constructor(private readonly deps: {
@@ -61,6 +68,31 @@ export class AgentCommands {
     console.log(`  description: ${created.description ?? "-"}`);
     console.log(`  home: ${created.workspace}`);
     console.log(`  avatar: ${created.avatar ?? "-"}`);
+  };
+
+  agentsUpdate = async (agentId: string, opts: AgentsUpdateCommandOptions = {}): Promise<void> => {
+    const updated = updateAgentProfile({
+      id: agentId,
+      displayName: opts.name,
+      description: opts.description,
+      avatar: opts.avatar
+    });
+    if (opts.json) {
+      console.log(JSON.stringify({
+        agent: updated,
+        restartRequired: true
+      }, null, 2));
+      return;
+    }
+    await this.deps.requestRestart({
+      reason: "agents-updated",
+      manualMessage: `Updated agent '${updated.id}'. Restart ${this.deps.appName} to apply agent runtime changes.`
+    });
+    console.log(`✓ Updated agent ${updated.id}`);
+    console.log(`  name: ${updated.displayName ?? "-"}`);
+    console.log(`  description: ${updated.description ?? "-"}`);
+    console.log(`  home: ${updated.workspace}`);
+    console.log(`  avatar: ${updated.avatar ?? "-"}`);
   };
 
   agentsRemove = async (agentId: string, opts: AgentsRemoveCommandOptions = {}): Promise<void> => {
