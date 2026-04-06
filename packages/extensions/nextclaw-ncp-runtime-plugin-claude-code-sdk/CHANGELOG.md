@@ -1,5 +1,15 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.44
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.0
+  - @nextclaw/ncp@0.5.0
+  - @nextclaw/ncp-toolkit@0.5.0
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.18
+
 ## 0.1.43
 
 ### Patch Changes
@@ -127,6 +137,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends

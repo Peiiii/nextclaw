@@ -1,5 +1,15 @@
 # nextclaw-core
 
+## 0.12.0
+
+### Minor Changes
+
+- Release the unpublished multi-agent batch as one aligned npm release.
+
+  This release includes the new multi-agent management flow across CLI, server, and UI, agent-scoped session ownership and child-session conversation unification, plus the agent identity rendering improvements for spawned child sessions and tool cards.
+
+  It also ships the openclaw marketplace/runtime npm install alignment and republishes the dependent public package chain so workspace versions stay consistent downstream.
+
 ## 0.11.17
 
 ### Patch Changes
@@ -271,6 +281,7 @@
 - Switch skill distribution to marketplace-first flow and remove GitHub-based skill install paths.
 
   This release includes:
+
   - skill/plugin model clean split (skill: `builtin` + `marketplace` only)
   - marketplace API migration from bundled JSON to D1-backed source
   - CLI support for marketplace skill upload/update/install
@@ -293,6 +304,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements
@@ -691,10 +703,12 @@
 - Add live apply support for `agents.defaults.maxTokens`, `agents.defaults.temperature`, and `tools.*` without gateway restart.
 
   Improve runtime restart boundaries:
+
   - `config set/unset` now triggers restart only for `restart-required` paths.
   - Keep `plugins.*` as restart-required for maintainability.
 
   Refine CLI/UI startup behavior and docs:
+
   - Default UI host behavior is public (`0.0.0.0`) on start/restart/serve/ui/gateway UI mode.
   - Remove redundant `--public`/`--ui-host` options from relevant commands and update usage docs.
 

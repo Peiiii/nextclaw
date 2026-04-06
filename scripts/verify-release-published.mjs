@@ -6,6 +6,10 @@ import {
   resolveExplicitReleaseBatchPackages,
   isPackageVersionPublished
 } from "./release-scope.mjs";
+import {
+  readLatestReleaseCheckpoint,
+  resolveCheckpointReleaseBatchPackages
+} from "./release-checkpoints.mjs";
 
 const DEFAULT_ATTEMPTS = 12;
 const DEFAULT_DELAY_MS = 5000;
@@ -31,19 +35,30 @@ const attempts = readNumericArg("--attempts", DEFAULT_ATTEMPTS);
 const delayMs = readNumericArg("--delay-ms", DEFAULT_DELAY_MS);
 const workspacePackages = collectWorkspacePackages();
 const pendingChangesetPackages = readPendingChangesetPackages();
-const batchPackages = resolveExplicitReleaseBatchPackages(
+const explicitBatchPackages = resolveExplicitReleaseBatchPackages(
   workspacePackages,
   pendingChangesetPackages
 );
+const checkpointRecord =
+  explicitBatchPackages.length === 0 ? readLatestReleaseCheckpoint() : null;
+const batchPackages =
+  explicitBatchPackages.length > 0
+    ? explicitBatchPackages
+    : resolveCheckpointReleaseBatchPackages(workspacePackages, checkpointRecord);
 
 if (batchPackages.length === 0) {
   console.error(
-    "No release batch packages found. Run this after `pnpm release:version` or after `changeset publish`."
+    "No release batch packages found from explicit release state or release checkpoints."
   );
   process.exit(1);
 }
 
 console.log(`[release:verify:published] registry: ${readNpmRegistry()}`);
+if (checkpointRecord) {
+  console.log(
+    `[release:verify:published] batch source: checkpoint ${checkpointRecord.checkpoint.batchId}`
+  );
+}
 console.log(
   `[release:verify:published] batch packages: ${batchPackages
     .map((entry) => entry.pkg.name)

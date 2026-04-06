@@ -1,6 +1,6 @@
 import { getConfigPath, loadConfig, saveConfig } from "@nextclaw/core";
 import { createInterface } from "node:readline";
-import { buildPlatformApiBaseErrorMessage, resolvePlatformApiBase } from "./remote/platform-api-base.js";
+import { buildPlatformApiBaseErrorMessage, resolvePlatformApiBase } from "./remote-support/platform-api-base.js";
 import type { LoginCommandOptions } from "../types.js";
 import { prompt } from "../utils.js";
 

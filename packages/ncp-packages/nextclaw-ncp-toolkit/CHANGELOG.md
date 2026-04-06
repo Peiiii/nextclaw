@@ -1,5 +1,20 @@
 # @nextclaw/ncp-toolkit
 
+## 0.5.0
+
+### Minor Changes
+
+- Release the unpublished multi-agent batch as one aligned npm release.
+
+  This release includes the new multi-agent management flow across CLI, server, and UI, agent-scoped session ownership and child-session conversation unification, plus the agent identity rendering improvements for spawned child sessions and tool cards.
+
+  It also ships the openclaw marketplace/runtime npm install alignment and republishes the dependent public package chain so workspace versions stay consistent downstream.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.5.0
+
 ## 0.4.17
 
 ### Patch Changes

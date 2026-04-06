@@ -1,5 +1,15 @@
 # @nextclaw/ncp-demo-frontend
 
+## 0.0.24
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/ncp@0.5.0
+  - @nextclaw/ncp-http-agent-client@0.3.12
+  - @nextclaw/ncp-react@0.4.15
+  - @nextclaw/ncp-react-ui@0.2.12
+
 ## 0.0.23
 
 ### Patch Changes

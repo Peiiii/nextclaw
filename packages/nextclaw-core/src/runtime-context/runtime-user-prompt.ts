@@ -1,6 +1,6 @@
 import type { Config } from "../config/schema.js";
 import { buildRequestedSkillsUserPrompt } from "../agent/skill-context.js";
-import { SkillsLoader } from "../agent/skills.js";
+import { SkillsLoader } from "../agent/skills-loader.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,

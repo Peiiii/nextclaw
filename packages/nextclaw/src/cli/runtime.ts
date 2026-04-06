@@ -35,7 +35,7 @@ import { AgentCommands } from "./commands/agents.js";
 import { PlatformAuthCommands } from "./commands/platform-auth.js";
 import { RemoteCommands } from "./commands/remote.js";
 import { DiagnosticsCommands } from "./commands/diagnostics.js";
-import { hasRunningNextclawManagedService } from "./commands/remote/remote-runtime-support.js";
+import { hasRunningNextclawManagedService } from "./commands/remote-support/remote-runtime-support.js";
 import { ServiceCommands } from "./commands/service.js";
 import { WorkspaceManager } from "./workspace.js";
 import type {

@@ -5,7 +5,7 @@ import {
   stopPluginChannelGateways
 } from "@nextclaw/openclaw-compat";
 import { appendFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
@@ -30,7 +30,7 @@ import {
   waitForExit
 } from "../utils.js";
 import type { RequestRestartParams } from "../types.js";
-import { ServiceMarketplaceInstaller } from "./service/marketplace/service-marketplace-installer.js";
+import { ServiceMarketplaceInstaller } from "./service-support/marketplace/service-marketplace-installer.js";
 import {
   type ManagedServiceState,
   reportManagedServiceStart,
@@ -38,21 +38,21 @@ import {
   resolveSessionRouteCandidate,
   spawnManagedService,
   waitForManagedServiceReadiness
-} from "./service/runtime/service-managed-startup.js";
-import { startGatewaySupportServices, watchCronStoreFile } from "./service/gateway/service-startup-support.js";
+} from "./service-support/runtime/service-managed-startup.js";
+import { startGatewaySupportServices, watchCronStoreFile } from "./service-support/gateway/service-startup-support.js";
 import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../restart-sentinel.js";
-import { resolveCliSubcommandEntry } from "./service/marketplace/cli-subcommand-launch.js";
-import { writeReadyManagedServiceState } from "./service/runtime/service-remote-runtime.js";
-import { createRemoteAccessHost } from "./service/runtime/service-remote-access.js";
+import { resolveCliSubcommandEntry } from "./service-support/marketplace/cli-subcommand-launch.js";
+import { writeReadyManagedServiceState } from "./service-support/runtime/service-remote-runtime.js";
+import { createRemoteAccessHost } from "./service-support/runtime/service-remote-access.js";
 import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.js";
-import { createGatewayShellContext, createGatewayStartupContext } from "./service/gateway/service-gateway-context.js";
+import { createGatewayShellContext, createGatewayStartupContext } from "./service-support/gateway/service-gateway-context.js";
 import {
   runGatewayRuntimeLoop,
   startDeferredGatewayStartup,
   startUiShell,
   wireSystemSessionUpdatedPublisher
-} from "./service/gateway/service-gateway-startup.js";
-import { createServiceNcpSessionRealtimeBridge } from "./service/session/service-ncp-session-realtime-bridge.js";
+} from "./service-support/gateway/service-gateway-startup.js";
+import { createServiceNcpSessionRealtimeBridge } from "./service-support/session/service-ncp-session-realtime-bridge.js";
 import { createEmptyPluginRegistry } from "./plugin/plugin-registry-loader.js";
 import {
   configureGatewayPluginRuntime,
@@ -60,10 +60,10 @@ import {
   createDeferredGatewayStartupHooks,
   createGatewayRuntimeState,
   type GatewayRuntimeState
-} from "./service/gateway/service-gateway-bootstrap.js";
+} from "./service-support/gateway/service-gateway-bootstrap.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
 
-export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service/marketplace/service-marketplace-helpers.js";
+export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
 export { resolveCliSubcommandEntry };
 
 const {

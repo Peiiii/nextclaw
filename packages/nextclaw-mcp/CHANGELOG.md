@@ -1,5 +1,12 @@
 # @nextclaw/mcp
 
+## 0.1.65
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.0
+
 ## 0.1.64
 
 ### Patch Changes
@@ -88,6 +95,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -452,6 +460,7 @@
 ### Patch Changes
 
 - Fix Codex chat startup and plugin resolution when running NextClaw from source in dev mode.
+
   - prefer repo-local first-party plugins from `packages/extensions` when `NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR` is unset
   - avoid loading stale installed Codex runtime plugins from `~/.nextclaw/extensions` during source-mode smoke tests
   - keep the release group for `@nextclaw/mcp`, `@nextclaw/server`, and `nextclaw` in sync while shipping the Codex chat fix

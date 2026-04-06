@@ -8,7 +8,7 @@ import {
   buildAvailableSkillsSystemSection,
   buildRequestedSkillsSystemSection
 } from "./skill-context.js";
-import { SkillsLoader } from "./skills.js";
+import { SkillsLoader } from "./skills-loader.js";
 import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "./tool-catalog.utils.js";
 import { APP_NAME } from "../config/brand.js";
 import type { Config } from "../config/schema.js";

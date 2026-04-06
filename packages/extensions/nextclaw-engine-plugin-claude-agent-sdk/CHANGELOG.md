@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-engine-claude-agent-sdk
 
+## 0.3.15
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.0
+
 ## 0.3.14
 
 ### Patch Changes
@@ -45,6 +52,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -165,6 +173,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements

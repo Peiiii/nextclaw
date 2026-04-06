@@ -1,5 +1,23 @@
 # @nextclaw/ui
 
+## 0.12.0
+
+### Minor Changes
+
+- Release the unpublished multi-agent batch as one aligned npm release.
+
+  This release includes the new multi-agent management flow across CLI, server, and UI, agent-scoped session ownership and child-session conversation unification, plus the agent identity rendering improvements for spawned child sessions and tool cards.
+
+  It also ships the openclaw marketplace/runtime npm install alignment and republishes the dependent public package chain so workspace versions stay consistent downstream.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/agent-chat-ui@0.3.0
+  - @nextclaw/ncp@0.5.0
+  - @nextclaw/ncp-http-agent-client@0.3.12
+  - @nextclaw/ncp-react@0.4.15
+
 ## 0.11.23
 
 ### Patch Changes
@@ -486,6 +504,7 @@
 - Switch skill distribution to marketplace-first flow and remove GitHub-based skill install paths.
 
   This release includes:
+
   - skill/plugin model clean split (skill: `builtin` + `marketplace` only)
   - marketplace API migration from bundled JSON to D1-backed source
   - CLI support for marketplace skill upload/update/install
@@ -546,6 +565,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements

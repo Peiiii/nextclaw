@@ -11,9 +11,9 @@ import {
   setLanguage,
   subscribeLanguageChange,
   type I18nLanguage
-} from './i18n/i18n-language-owner';
+} from './i18n-runtime/i18n-language-owner';
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
-import { PATH_PICKER_LABELS } from './i18n/i18n.path-picker';
+import { PATH_PICKER_LABELS } from './i18n-runtime/i18n.path-picker';
 import { REMOTE_LABELS } from './i18n.remote';
 export type { I18nLanguage };
 export {

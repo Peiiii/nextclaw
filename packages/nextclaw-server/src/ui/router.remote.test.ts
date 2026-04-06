@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import type { UiRemoteAccessHost } from "./router/types.js";
+import type { UiRemoteAccessHost } from "./ui-routes/types.js";
 import { createUiRouter } from "./router.js";
 
 const tempDirs: string[] = [];

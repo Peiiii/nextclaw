@@ -9,7 +9,7 @@ import {
 } from "@nextclaw/remote";
 import { hostname } from "node:os";
 import { isProcessRunning, readServiceState } from "../utils.js";
-import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./remote/remote-runtime-support.js";
+import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./remote-support/remote-runtime-support.js";
 
 type RemoteConfigChange = {
   changed: boolean;

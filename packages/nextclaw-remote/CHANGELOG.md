@@ -1,5 +1,13 @@
 # @nextclaw/remote
 
+## 0.1.77
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/server@0.12.0
+  - @nextclaw/core@0.12.0
+
 ## 0.1.76
 
 ### Patch Changes
@@ -116,6 +124,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -416,6 +425,7 @@
 ### Patch Changes
 
 - Publish the transparent app transport boundary fix so local and remote streaming remain a true transport-only replacement.
+
   - keep SSE and multiplex adapters transport-only instead of interpreting upper-layer terminal events
   - preserve `final` as a normal streamed event while keeping `openStream().finished` stable
   - ship the repaired local chat UX and remote request-multiplex behavior in the released CLI/UI/runtime chain

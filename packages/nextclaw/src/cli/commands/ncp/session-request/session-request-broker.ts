@@ -3,7 +3,6 @@ import {
   NcpEventType,
   type NcpCompletedEnvelope,
   type NcpEndpointEvent,
-  type NcpMessage,
 } from "@nextclaw/ncp";
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
 import { randomUUID } from "node:crypto";
@@ -33,8 +32,6 @@ import type {
 import type { SessionCreationService } from "./session-creation.service.js";
 import type { SessionRequestDeliveryService } from "./session-request-delivery.service.js";
 import type {
-  SessionRequestAwaitMode,
-  SessionRequestDeliveryMode,
   SessionRequestRecord,
   SessionRequestToolResult,
 } from "./session-request.types.js";

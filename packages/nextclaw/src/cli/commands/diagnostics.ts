@@ -18,8 +18,8 @@ import {
   resolveUiApiBase,
   resolveUiConfig
 } from "../utils.js";
-import { printDoctorReport, printStatusReport, type DoctorCheck } from "./diagnostics/diagnostics-render.js";
-import { resolveNextclawRemoteStatusSnapshot } from "./remote/remote-runtime-support.js";
+import { printDoctorReport, printStatusReport, type DoctorCheck } from "./diagnostics-support/diagnostics-render.js";
+import { resolveNextclawRemoteStatusSnapshot } from "./remote-support/remote-runtime-support.js";
 import type {
   DoctorCommandOptions,
   HealthProbe,

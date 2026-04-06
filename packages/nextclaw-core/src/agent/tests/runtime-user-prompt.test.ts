@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { SkillsLoader } from "../skills.js";
+import { SkillsLoader } from "../skills-loader.js";
 import {
   DEFAULT_RUNTIME_USER_PROMPT_BUILDER,
   buildBootstrapAwareUserPrompt,

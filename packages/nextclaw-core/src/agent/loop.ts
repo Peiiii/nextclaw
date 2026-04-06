@@ -30,7 +30,7 @@ import {
   type ThinkingLevel,
   parseThinkingLevel
 } from "../utils/thinking.js";
-import { resolveThinkingLevel } from "./thinking.js";
+import { resolveThinkingLevel } from "./agent-thinking.js";
 
 type MessageToolHintsResolver = (params: {
   sessionKey: string;

@@ -1,4 +1,4 @@
-import { SkillsLoader } from "../agent/skills.js";
+import { SkillsLoader } from "../agent/skills-loader.js";
 
 export class LayeredSkillsLoader extends SkillsLoader {
   constructor(

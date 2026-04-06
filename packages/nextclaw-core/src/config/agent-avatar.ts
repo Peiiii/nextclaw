@@ -118,9 +118,9 @@ function buildDefaultAgentAvatarSvg(agentId: string, displayName: string): strin
   const [bg, fg] = palette[Math.abs(hashText(agentId)) % palette.length] ?? palette[0];
   const letter = (displayName || agentId).trim().slice(0, 1).toUpperCase() || "A";
   return [
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 256 256\" role=\"img\" aria-label=\"avatar\">",
-    `  <rect width=\"256\" height=\"256\" rx=\"64\" fill=\"${bg}\" />`,
-    `  <text x=\"128\" y=\"146\" text-anchor=\"middle\" font-family=\"Arial, sans-serif\" font-size=\"104\" font-weight=\"700\" fill=\"${fg}\">${escapeXml(letter)}</text>`,
+    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="avatar">',
+    `  <rect width="256" height="256" rx="64" fill="${bg}" />`,
+    `  <text x="128" y="146" text-anchor="middle" font-family="Arial, sans-serif" font-size="104" font-weight="700" fill="${fg}">${escapeXml(letter)}</text>`,
     "</svg>"
   ].join("\n");
 }

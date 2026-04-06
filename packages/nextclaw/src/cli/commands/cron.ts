@@ -1,6 +1,6 @@
 import type { CronAddOptions } from "../types.js";
-import { CronLocalService } from "./cron/cron-local.service.js";
-import { printCronJobs, type CronJobView } from "./cron/cron-job.utils.js";
+import { CronLocalService } from "./cron-support/cron-local.service.js";
+import { printCronJobs, type CronJobView } from "./cron-support/cron-job.utils.js";
 import { UiBridgeApiClient, resolveManagedApiBase } from "./shared/ui-bridge-api.service.js";
 
 type CronListApiData = {

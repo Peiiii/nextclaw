@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -14,7 +13,6 @@ import {
   type ChatPageProps,
   useChatSessionSync,
 } from "@/components/chat/chat-page-shell";
-import { sessionDisplayName } from "@/components/chat/chat-session-display";
 import {
   buildInlineSkillTokensFromComposer,
   CHAT_UI_INLINE_TOKENS_METADATA_KEY,

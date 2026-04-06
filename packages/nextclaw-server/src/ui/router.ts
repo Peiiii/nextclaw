@@ -1,24 +1,24 @@
 import { Hono } from "hono";
 import { mountNcpHttpAgentRoutes } from "@nextclaw/ncp-http-agent-server";
 import { UiAuthService } from "./auth.service.js";
-import { AgentsRoutesController } from "./router/agents.controller.js";
-import { AppRoutesController } from "./router/app.controller.js";
-import { AuthRoutesController } from "./router/auth.controller.js";
-import { ConfigRoutesController } from "./router/config.controller.js";
-import { CronRoutesController } from "./router/cron.controller.js";
-import { NcpAssetRoutesController } from "./router/ncp-attachment.controller.js";
-import { NcpSessionRoutesController } from "./router/ncp-session.controller.js";
+import { AgentsRoutesController } from "./ui-routes/agents.controller.js";
+import { AppRoutesController } from "./ui-routes/app.controller.js";
+import { AuthRoutesController } from "./ui-routes/auth.controller.js";
+import { ConfigRoutesController } from "./ui-routes/config.controller.js";
+import { CronRoutesController } from "./ui-routes/cron.controller.js";
+import { NcpAssetRoutesController } from "./ui-routes/ncp-attachment.controller.js";
+import { NcpSessionRoutesController } from "./ui-routes/ncp-session.controller.js";
 import {
   McpMarketplaceController,
   mountMarketplaceRoutes,
   normalizeMarketplaceBaseUrl,
   PluginMarketplaceController,
   SkillMarketplaceController
-} from "./router/marketplace/index.js";
-import { RemoteRoutesController } from "./router/remote.controller.js";
-import { err } from "./router/response.js";
-import { ServerPathRoutesController } from "./router/server-path.controller.js";
-import type { UiRouterOptions } from "./router/types.js";
+} from "./ui-routes/marketplace/index.js";
+import { RemoteRoutesController } from "./ui-routes/remote.controller.js";
+import { err } from "./ui-routes/response.js";
+import { ServerPathRoutesController } from "./ui-routes/server-path.controller.js";
+import type { UiRouterOptions } from "./ui-routes/types.js";
 
 function registerAuthRoutes(app: Hono, authController: AuthRoutesController): void {
   app.get("/api/auth/status", authController.getStatus);
