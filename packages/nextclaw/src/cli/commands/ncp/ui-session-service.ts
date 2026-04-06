@@ -54,6 +54,7 @@ export class UiSessionService implements NcpSessionApi {
       sessions.map((session) =>
         createNcpSessionSummary({
           sessionId: session.sessionId,
+          agentId: session.agentId,
           messages: session.messages,
           updatedAt: session.updatedAt,
           status: "idle",
@@ -82,6 +83,7 @@ export class UiSessionService implements NcpSessionApi {
     }
     return createNcpSessionSummary({
       sessionId,
+      agentId: session.agentId,
       messages: session.messages,
       updatedAt: session.updatedAt,
       status: "idle",

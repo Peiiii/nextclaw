@@ -37,7 +37,7 @@ export class CronService {
     this.onJob = onJob;
   }
 
-  private loadStore(): CronStore {
+  private readonly loadStore = (): CronStore => {
     if (this.store) {
       return this.store;
     }
@@ -63,31 +63,31 @@ export class CronService {
       this.store = { version: 1, jobs: [] };
     }
     return this.store;
-  }
+  };
 
-  private saveStore(): void {
+  private readonly saveStore = (): void => {
     if (!this.store) {
       return;
     }
     mkdirSync(dirname(this.storePath), { recursive: true });
     writeFileSync(this.storePath, JSON.stringify(this.store, null, 2));
-  }
+  };
 
-  async start(): Promise<void> {
+  readonly start = async (): Promise<void> => {
     this.running = true;
     this.loadStore();
     this.recomputeNextRuns();
     this.saveStore();
     this.armTimer();
-  }
+  };
 
-  stop(): void {
+  readonly stop = (): void => {
     this.running = false;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
     }
-  }
+  };
 
   readonly reloadFromStore = (): void => {
     this.store = null;
@@ -97,7 +97,7 @@ export class CronService {
     this.armTimer();
   };
 
-  private recomputeNextRuns(): void {
+  private readonly recomputeNextRuns = (): void => {
     if (!this.store) {
       return;
     }
@@ -107,9 +107,9 @@ export class CronService {
         job.state.nextRunAtMs = computeNextRun(job.schedule, now);
       }
     }
-  }
+  };
 
-  private getNextWakeMs(): number | null {
+  private readonly getNextWakeMs = (): number | null => {
     if (!this.store) {
       return null;
     }
@@ -120,9 +120,9 @@ export class CronService {
       return null;
     }
     return Math.min(...times);
-  }
+  };
 
-  private armTimer(): void {
+  private readonly armTimer = (): void => {
     if (this.timer) {
       clearTimeout(this.timer);
     }
@@ -137,9 +137,9 @@ export class CronService {
     this.timer = setTimeout(() => {
       void this.onTimer();
     }, delayMs);
-  }
+  };
 
-  private async onTimer(): Promise<void> {
+  private readonly onTimer = async (): Promise<void> => {
     if (!this.store) {
       return;
     }
@@ -154,9 +154,9 @@ export class CronService {
 
     this.saveStore();
     this.armTimer();
-  }
+  };
 
-  private async executeJob(job: CronJob): Promise<void> {
+  private readonly executeJob = async (job: CronJob): Promise<void> => {
     const start = nowMs();
     try {
       if (this.onJob) {
@@ -182,24 +182,25 @@ export class CronService {
     } else {
       job.state.nextRunAtMs = computeNextRun(job.schedule, nowMs());
     }
-  }
+  };
 
-  listJobs(includeDisabled = false): CronJob[] {
+  readonly listJobs = (includeDisabled = false): CronJob[] => {
     const store = this.loadStore();
     const jobs = includeDisabled ? store.jobs : store.jobs.filter((job) => job.enabled);
     return jobs.sort((a, b) => (a.state.nextRunAtMs ?? Infinity) - (b.state.nextRunAtMs ?? Infinity));
-  }
+  };
 
-  addJob(params: {
+  readonly addJob = (params: {
     name: string;
     schedule: CronSchedule;
     message: string;
+    agentId?: string;
     deliver?: boolean;
     channel?: string;
     to?: string;
     accountId?: string;
     deleteAfterRun?: boolean;
-  }): CronJob {
+  }): CronJob => {
     const store = this.loadStore();
     const now = nowMs();
     const job: CronJob = {
@@ -210,6 +211,7 @@ export class CronService {
       payload: {
         kind: "agent_turn",
         message: params.message,
+        agentId: params.agentId,
         deliver: params.deliver ?? false,
         channel: params.channel,
         to: params.to,
@@ -226,9 +228,9 @@ export class CronService {
     this.saveStore();
     this.armTimer();
     return job;
-  }
+  };
 
-  removeJob(jobId: string): boolean {
+  readonly removeJob = (jobId: string): boolean => {
     const store = this.loadStore();
     const before = store.jobs.length;
     store.jobs = store.jobs.filter((job) => job.id !== jobId);
@@ -238,9 +240,9 @@ export class CronService {
       this.armTimer();
     }
     return removed;
-  }
+  };
 
-  enableJob(jobId: string, enabled = true): CronJob | null {
+  readonly enableJob = (jobId: string, enabled = true): CronJob | null => {
     const store = this.loadStore();
     for (const job of store.jobs) {
       if (job.id === jobId) {
@@ -253,9 +255,9 @@ export class CronService {
       }
     }
     return null;
-  }
+  };
 
-  async runJob(jobId: string, force = false): Promise<boolean> {
+  readonly runJob = async (jobId: string, force = false): Promise<boolean> => {
     const store = this.loadStore();
     for (const job of store.jobs) {
       if (job.id === jobId) {
@@ -269,14 +271,14 @@ export class CronService {
       }
     }
     return false;
-  }
+  };
 
-  status(): { enabled: boolean; jobs: number; nextWakeAtMs: number | null } {
+  readonly status = (): { enabled: boolean; jobs: number; nextWakeAtMs: number | null } => {
     const store = this.loadStore();
     return {
       enabled: this.running,
       jobs: store.jobs.length,
       nextWakeAtMs: this.getNextWakeMs()
     };
-  }
+  };
 }

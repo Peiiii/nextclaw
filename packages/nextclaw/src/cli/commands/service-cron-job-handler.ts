@@ -5,6 +5,7 @@ type CronJobLike = {
   id: string;
   payload: {
     message: string;
+    agentId?: string | null;
     deliver?: boolean;
     channel?: string | null;
     to?: string | null;
@@ -34,13 +35,14 @@ export function createCronJobHandler(params: {
   return async (job: CronJobLike): Promise<string> => {
     const accountId = normalizeOptionalString(job.payload.accountId);
     const metadata = buildCronJobMetadata(accountId);
+    const agentId = normalizeOptionalString(job.payload.agentId) ?? params.runtimePool.primaryAgentId;
     const response = await params.runtimePool.processDirect({
       content: job.payload.message,
       sessionKey: `cron:${job.id}`,
       channel: job.payload.channel ?? "cli",
       chatId: job.payload.to ?? "direct",
       metadata,
-      agentId: params.runtimePool.primaryAgentId
+      agentId
     });
 
     if (job.payload.deliver && job.payload.to) {

@@ -48,10 +48,12 @@ describe('buildNcpSendMetadata', () => {
   it('includes the project root in the first-message metadata when present', () => {
     expect(
       buildNcpSendMetadata({
+        agentId: 'engineer',
         sessionType: 'codex',
         projectRoot: ' /tmp/project-alpha ',
       }),
     ).toMatchObject({
+      agent_id: 'engineer',
       session_type: 'codex',
       project_root: '/tmp/project-alpha',
     });

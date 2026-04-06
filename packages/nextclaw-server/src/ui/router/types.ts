@@ -61,6 +61,7 @@ export type CronJobEntry = {
   payload: {
     kind?: "system_event" | "agent_turn";
     message: string;
+    agentId?: string | null;
     deliver?: boolean;
     channel?: string | null;
     to?: string | null;

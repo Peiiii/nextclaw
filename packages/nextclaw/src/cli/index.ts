@@ -348,6 +348,7 @@ cron
   .command("add")
   .requiredOption("-n, --name <name>", "Job name")
   .requiredOption("-m, --message <message>", "Message for agent")
+  .option("--agent <id>", "Target agent id")
   .option("-e, --every <seconds>", "Run every N seconds")
   .option("-c, --cron <expr>", "Cron expression")
   .option("--at <iso>", "Run once at time (ISO format)")

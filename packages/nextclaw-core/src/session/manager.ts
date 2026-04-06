@@ -18,6 +18,7 @@ export type SessionEvent = {
 
 export type Session = {
   key: string;
+  agentId?: string;
   messages: SessionMessage[];
   events: SessionEvent[];
   nextSeq: number;
@@ -41,6 +42,14 @@ function toIsoString(value: unknown, fallback: string): string {
   return new Date(parsed).toISOString();
 }
 
+function toOptionalAgentId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 type PendingToolCalls = {
   expectedIds: Set<string>;
   blockStart: number;
@@ -48,6 +57,7 @@ type PendingToolCalls = {
 
 type SessionLoadState = {
   events: SessionEvent[];
+  agentId?: string;
   metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
@@ -164,6 +174,7 @@ function applyMetadataLine(state: SessionLoadState, data: Record<string, unknown
   if (data._type !== "metadata") {
     return false;
   }
+  state.agentId = toOptionalAgentId(data.agent_id);
   state.metadata = (data.metadata as Record<string, unknown>) ?? {};
   if (data.created_at) {
     state.createdAt = new Date(String(data.created_at));
@@ -239,6 +250,7 @@ function buildLoadedSession(params: {
 
   return {
     key: params.key,
+    ...(params.state.agentId ? { agentId: params.state.agentId } : {}),
     messages,
     events: params.state.events,
     nextSeq,
@@ -444,6 +456,7 @@ export class SessionManager {
       _type: "metadata",
       created_at: session.createdAt.toISOString(),
       updated_at: session.updatedAt.toISOString(),
+      ...(session.agentId ? { agent_id: session.agentId } : {}),
       metadata: session.metadata
     };
     const eventLines = session.events.map((event) =>
@@ -489,6 +502,7 @@ export class SessionManager {
             created_at: data.created_at,
             updated_at: data.updated_at,
             path,
+            ...(toOptionalAgentId(data.agent_id) ? { agentId: toOptionalAgentId(data.agent_id) } : {}),
             metadata: data.metadata ?? {}
           });
         }

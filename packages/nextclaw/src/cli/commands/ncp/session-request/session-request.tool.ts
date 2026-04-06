@@ -22,7 +22,6 @@ function readOptionalString(params: Record<string, unknown>, key: string): strin
 export class SpawnChildSessionTool extends Tool {
   private sourceSessionId = "";
   private sourceSessionMetadata: Record<string, unknown> = {};
-  private agentId: string | undefined;
   private handoffDepth = 0;
 
   constructor(private readonly broker: SessionRequestBroker) {
@@ -44,6 +43,10 @@ export class SpawnChildSessionTool extends Tool {
         task: { type: "string", description: "Task to run inside the child session." },
         label: { type: "string", description: "Optional child session title." },
         model: { type: "string", description: "Optional model override for the child session." },
+        agentId: {
+          type: "string",
+          description: "Optional target agent id for the child session. Omit to use the default agent.",
+        },
       },
       required: ["task"],
     };
@@ -52,12 +55,10 @@ export class SpawnChildSessionTool extends Tool {
   setContext = (params: {
     sourceSessionId: string;
     sourceSessionMetadata: Record<string, unknown>;
-    agentId?: string;
     handoffDepth?: number;
   }): void => {
     this.sourceSessionId = params.sourceSessionId;
     this.sourceSessionMetadata = structuredClone(params.sourceSessionMetadata);
-    this.agentId = params.agentId;
     this.handoffDepth = params.handoffDepth ?? 0;
   };
 
@@ -74,7 +75,7 @@ export class SpawnChildSessionTool extends Tool {
       title: readOptionalString(params, "label"),
       model: readOptionalString(params, "model"),
       handoffDepth: this.handoffDepth,
-      agentId: this.agentId,
+      agentId: readOptionalString(params, "agentId"),
     });
   };
 }

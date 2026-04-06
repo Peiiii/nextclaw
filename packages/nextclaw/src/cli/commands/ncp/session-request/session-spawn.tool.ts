@@ -19,7 +19,6 @@ function readOptionalString(value: unknown): string | undefined {
 export class SessionSpawnTool extends Tool {
   private sourceSessionId = "";
   private sourceSessionMetadata: Record<string, unknown> = {};
-  private agentId: string | undefined;
 
   constructor(private readonly sessionCreationService: SessionCreationService) {
     super();
@@ -49,6 +48,10 @@ export class SessionSpawnTool extends Tool {
           type: "string",
           description: "Optional model override for the new session.",
         },
+        agentId: {
+          type: "string",
+          description: "Optional target agent id for the new session. Omit to use the default agent.",
+        },
       },
       required: ["task"],
     };
@@ -57,11 +60,9 @@ export class SessionSpawnTool extends Tool {
   setContext = (params: {
     sourceSessionId: string;
     sourceSessionMetadata: Record<string, unknown>;
-    agentId?: string;
   }): void => {
     this.sourceSessionId = params.sourceSessionId;
     this.sourceSessionMetadata = structuredClone(params.sourceSessionMetadata);
-    this.agentId = params.agentId;
   };
 
   execute = async (params: Record<string, unknown>): Promise<unknown> => {
@@ -70,13 +71,14 @@ export class SessionSpawnTool extends Tool {
       task,
       title: readOptionalString(params.title),
       sourceSessionMetadata: this.sourceSessionMetadata,
-      agentId: this.agentId,
+      agentId: readOptionalString(params.agentId),
       model: readOptionalString(params.model),
     });
 
     return {
       kind: "nextclaw.session",
       sessionId: session.sessionId,
+      ...(session.agentId ? { agentId: session.agentId } : {}),
       ...(session.parentSessionId ? { parentSessionId: session.parentSessionId } : {}),
       isChildSession: false,
       lifecycle: session.lifecycle,

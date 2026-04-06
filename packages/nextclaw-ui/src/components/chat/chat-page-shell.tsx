@@ -16,12 +16,9 @@ type UseChatSessionSyncParams = {
   view: MainPanelView;
   routeSessionKey: string | null;
   selectedSessionKey: string | null;
-  selectedAgentId: string;
   setSelectedSessionKey: Dispatch<SetStateAction<string | null>>;
-  setSelectedAgentId: Dispatch<SetStateAction<string>>;
   selectedSessionKeyRef: MutableRefObject<string | null>;
   resetStreamState: () => void;
-  resolveAgentIdFromSessionKey: (sessionKey: string) => string | null;
 };
 
 export function useChatSessionSync(params: UseChatSessionSyncParams): void {
@@ -29,12 +26,9 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
     view,
     routeSessionKey,
     selectedSessionKey,
-    selectedAgentId,
     setSelectedSessionKey,
-    setSelectedAgentId,
     selectedSessionKeyRef,
     resetStreamState,
-    resolveAgentIdFromSessionKey
   } = params;
 
   useEffect(() => {
@@ -52,16 +46,6 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
       resetStreamState();
     }
   }, [resetStreamState, routeSessionKey, selectedSessionKey, setSelectedSessionKey, view]);
-
-  useEffect(() => {
-    const inferred = selectedSessionKey ? resolveAgentIdFromSessionKey(selectedSessionKey) : null;
-    if (!inferred) {
-      return;
-    }
-    if (selectedAgentId !== inferred) {
-      setSelectedAgentId(inferred);
-    }
-  }, [resolveAgentIdFromSessionKey, selectedAgentId, selectedSessionKey, setSelectedAgentId]);
 
   useEffect(() => {
     selectedSessionKeyRef.current = selectedSessionKey;

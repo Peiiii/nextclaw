@@ -13,18 +13,12 @@ import { DefaultNcpAgentRuntime, LocalAssetStore } from "@nextclaw/ncp-agent-run
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import {
   type NcpAgentRuntime,
-  type NcpSessionApi,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   writeAssistantReasoningNormalizationModeToMetadata,
   type NcpAssistantReasoningNormalizationMode,
 } from "@nextclaw/ncp";
-import {
-  createAgentClientFromServer,
-  DefaultNcpAgentBackend,
-  type RuntimeFactoryParams,
-} from "@nextclaw/ncp-toolkit";
-import type { UiNcpAgent } from "@nextclaw/server";
+import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import type { NextclawExtensionRegistry } from "../plugins.js";
 import { createAssetTools } from "./ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
@@ -34,20 +28,16 @@ import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
 import { SessionCreationService } from "./session-request/session-creation.service.js";
 import { SessionRequestBroker } from "./session-request/session-request-broker.js";
 import { SessionRequestDeliveryService } from "./session-request/session-request-delivery.service.js";
+import { UiNcpRuntimeRegistry } from "./ui-ncp-runtime-registry.js";
 import {
-  UiNcpRuntimeRegistry,
-  type UiNcpSessionTypeDescribeParams,
-} from "./ui-ncp-runtime-registry.js";
+  createUiNcpAgentHandle,
+  type UiNcpAgentHandle,
+} from "./ui-ncp-agent-handle.js";
 import { join } from "node:path";
 
 const CODEX_RUNTIME_KIND = "codex";
 const CODEX_DIRECT_RUNTIME_BACKEND = "codex-sdk";
-export type UiNcpAgentHandle = UiNcpAgent & {
-  sessionApi: NcpSessionApi;
-  applyExtensionRegistry?: (extensionRegistry?: NextclawExtensionRegistry) => void;
-  applyMcpConfig?: (config: Config) => Promise<void>;
-  dispose?: () => Promise<void>;
-};
+export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.js";
 type MessageToolHintsResolver = (params: {
   sessionKey: string;
   channel: string;
@@ -311,41 +301,6 @@ class PluginRuntimeRegistrationController {
   };
 }
 
-function createUiNcpAgentHandle(params: {
-  backend: DefaultNcpAgentBackend;
-  runtimeRegistry: UiNcpRuntimeRegistry;
-  refreshPluginRuntimeRegistrations: () => void;
-  applyExtensionRegistry: (extensionRegistry?: NextclawExtensionRegistry) => void;
-  applyMcpConfig: (config: Config) => Promise<void>;
-  dispose: () => Promise<void>;
-  assetStore: LocalAssetStore;
-}): UiNcpAgentHandle {
-  return {
-    basePath: "/api/ncp/agent",
-    agentClientEndpoint: createAgentClientFromServer(params.backend),
-    streamProvider: params.backend,
-    sessionApi: params.backend,
-    listSessionTypes: (describeParams?: UiNcpSessionTypeDescribeParams) => {
-      params.refreshPluginRuntimeRegistrations();
-      return params.runtimeRegistry.listSessionTypes(describeParams);
-    },
-    assetApi: {
-      put: (input) =>
-        params.assetStore.putBytes({
-          fileName: input.fileName,
-          mimeType: input.mimeType,
-          bytes: input.bytes,
-          createdAt: input.createdAt,
-        }),
-      stat: (uri) => params.assetStore.statRecord(uri),
-      resolveContentPath: (uri) => params.assetStore.resolveContentPath(uri),
-    },
-    applyExtensionRegistry: params.applyExtensionRegistry,
-    applyMcpConfig: params.applyMcpConfig,
-    dispose: params.dispose,
-  };
-}
-
 export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
   const sessionStore = new NextclawAgentSessionStore(params.sessionManager, {
     onSessionUpdated: params.onSessionUpdated,
@@ -359,6 +314,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
   let backend: DefaultNcpAgentBackend | null = null;
   const sessionCreationService = new SessionCreationService(
     params.sessionManager,
+    params.getConfig,
     params.onSessionUpdated,
   );
   const sessionRequestBroker = new SessionRequestBroker(

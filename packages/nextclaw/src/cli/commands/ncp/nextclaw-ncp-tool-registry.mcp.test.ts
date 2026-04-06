@@ -126,7 +126,7 @@ describe("NextclawNcpToolRegistry MCP integration", () => {
       },
     });
     const sessionManager = new SessionManager(workspace);
-    const sessionCreationService = new SessionCreationService(sessionManager);
+    const sessionCreationService = new SessionCreationService(sessionManager, () => config);
     const toolRegistry = new NextclawNcpToolRegistry({
       bus: new MessageBus(),
       providerManager: {} as ProviderManager,

@@ -7,6 +7,18 @@ import type {
 } from "./agent-backend-types.js";
 import { EventPublisher } from "./event-publisher.js";
 
+function readOptionalAgentId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function readAgentIdFromMetadata(metadata: Record<string, unknown> | null | undefined): string | undefined {
+  return readOptionalAgentId(metadata?.agent_id) ?? readOptionalAgentId(metadata?.agentId);
+}
+
 export class AgentLiveSessionRegistry {
   private readonly sessions = new Map<string, LiveSessionState>();
 
@@ -15,12 +27,15 @@ export class AgentLiveSessionRegistry {
     private readonly createRuntime: CreateRuntimeFn,
   ) {}
 
-  async ensureSession(
+  readonly ensureSession = async (
     sessionId: string,
     initialMetadata?: Record<string, unknown>,
-  ): Promise<LiveSessionState> {
+  ): Promise<LiveSessionState> => {
     const existing = this.sessions.get(sessionId);
     if (existing) {
+      if (!existing.agentId) {
+        existing.agentId = readAgentIdFromMetadata(initialMetadata) ?? existing.agentId;
+      }
       if (initialMetadata && Object.keys(initialMetadata).length > 0) {
         existing.metadata = {
           ...existing.metadata,
@@ -42,9 +57,13 @@ export class AgentLiveSessionRegistry {
         : {}),
       ...(initialMetadata ? structuredClone(initialMetadata) : {}),
     };
+    const sessionAgentId =
+      readOptionalAgentId(storedSession?.agentId) ??
+      readAgentIdFromMetadata(initialMetadata);
 
     const session: LiveSessionState = {
       sessionId,
+      ...(sessionAgentId ? { agentId: sessionAgentId } : {}),
       stateManager,
       metadata: sessionMetadata,
       runtime: null as unknown as NcpAgentRuntime,
@@ -54,6 +73,7 @@ export class AgentLiveSessionRegistry {
 
     session.runtime = this.createRuntime({
       sessionId,
+      ...(sessionAgentId ? { agentId: sessionAgentId } : {}),
       stateManager,
       sessionMetadata,
       setSessionMetadata: (nextMetadata) => {
@@ -64,27 +84,27 @@ export class AgentLiveSessionRegistry {
     });
     this.sessions.set(sessionId, session);
     return session;
-  }
+  };
 
-  getSession(sessionId: string): LiveSessionState | null {
+  readonly getSession = (sessionId: string): LiveSessionState | null => {
     return this.sessions.get(sessionId) ?? null;
-  }
+  };
 
-  deleteSession(sessionId: string): LiveSessionState | null {
+  readonly deleteSession = (sessionId: string): LiveSessionState | null => {
     const session = this.sessions.get(sessionId) ?? null;
     if (session) {
       this.sessions.delete(sessionId);
     }
     return session;
-  }
+  };
 
-  clear(): void {
+  readonly clear = (): void => {
     this.sessions.clear();
-  }
+  };
 
-  listSessions(): LiveSessionState[] {
+  readonly listSessions = (): LiveSessionState[] => {
     return [...this.sessions.values()];
-  }
+  };
 }
 
 function cloneMessages(messages: ReadonlyArray<NcpMessage>): NcpMessage[] {

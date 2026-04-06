@@ -8,6 +8,7 @@ import type { EventPublisher } from "./event-publisher.js";
 
 export type RuntimeFactoryParams = {
   sessionId: string;
+  agentId?: string;
   stateManager: NcpAgentConversationStateManager;
   sessionMetadata: Record<string, unknown>;
   setSessionMetadata: (nextMetadata: Record<string, unknown>) => void;
@@ -17,6 +18,7 @@ export type CreateRuntimeFn = (params: RuntimeFactoryParams) => NcpAgentRuntime;
 
 export type AgentSessionRecord = {
   sessionId: string;
+  agentId?: string;
   messages: NcpMessage[];
   updatedAt: string;
   metadata?: Record<string, unknown>;
@@ -31,6 +33,7 @@ export type LiveSessionExecution = {
 
 export type LiveSessionState = {
   sessionId: string;
+  agentId?: string;
   runtime: NcpAgentRuntime;
   stateManager: NcpAgentConversationStateManager;
   metadata: Record<string, unknown>;

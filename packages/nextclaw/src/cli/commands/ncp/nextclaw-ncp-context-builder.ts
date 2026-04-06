@@ -1,10 +1,12 @@
 import {
   buildToolCatalogEntries,
   ContextBuilder,
+  findEffectiveAgentProfile,
   InputBudgetPruner,
   getWorkspacePath,
   parseThinkingLevel,
   readSessionProjectRoot,
+  resolveDefaultAgentProfileId,
   resolveSessionWorkspacePath,
   resolveThinkingLevel,
   type Config,
@@ -118,21 +120,35 @@ function resolveRequestedToolNames(metadata: Record<string, unknown>): string[] 
   );
 }
 
-function resolvePrimaryAgentProfile(config: Config): ResolvedAgentProfile {
-  const configuredDefaultAgentId =
-    config.agents.list.find((entry) => entry.default)?.id?.trim() ||
-    config.agents.list[0]?.id?.trim() ||
-    "main";
-  const profile = config.agents.list.find((entry) => entry.id.trim() === configuredDefaultAgentId);
+function readRequestedAgentId(metadata: Record<string, unknown>): string | null {
+  return normalizeString(metadata.agent_id)?.toLowerCase() ?? normalizeString(metadata.agentId)?.toLowerCase() ?? null;
+}
+
+function resolveAgentProfile(params: {
+  config: Config;
+  storedAgentId?: string;
+  requestMetadata: Record<string, unknown>;
+}): ResolvedAgentProfile {
+  const defaultAgentId = resolveDefaultAgentProfileId(params.config);
+  const candidateAgentId =
+    normalizeString(params.storedAgentId)?.toLowerCase() ??
+    readRequestedAgentId(params.requestMetadata) ??
+    defaultAgentId;
+  const profile =
+    findEffectiveAgentProfile(params.config, candidateAgentId) ??
+    findEffectiveAgentProfile(params.config, defaultAgentId);
+  if (!profile) {
+    throw new Error(`default agent profile not found: ${defaultAgentId}`);
+  }
   return {
-    agentId: configuredDefaultAgentId,
-    workspace: getWorkspacePath(profile?.workspace ?? config.agents.defaults.workspace),
-    model: profile?.model ?? config.agents.defaults.model,
-    maxIterations: profile?.maxToolIterations ?? config.agents.defaults.maxToolIterations,
-    contextTokens: profile?.contextTokens ?? config.agents.defaults.contextTokens,
-    restrictToWorkspace: config.tools.restrictToWorkspace,
-    searchConfig: config.search,
-    execTimeoutSeconds: config.tools.exec.timeout,
+    agentId: profile.id,
+    workspace: getWorkspacePath(profile.workspace ?? params.config.agents.defaults.workspace),
+    model: profile.model ?? params.config.agents.defaults.model,
+    maxIterations: profile.maxToolIterations ?? params.config.agents.defaults.maxToolIterations,
+    contextTokens: profile.contextTokens ?? params.config.agents.defaults.contextTokens,
+    restrictToWorkspace: params.config.tools.restrictToWorkspace,
+    searchConfig: params.config.search,
+    execTimeoutSeconds: params.config.tools.exec.timeout,
   };
 }
 
@@ -229,9 +245,13 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
 
   prepare = (input: NcpAgentRunInput, _options?: NcpContextPrepareOptions): NcpLLMApiInput => {
     const config = this.options.getConfig();
-    const profile = resolvePrimaryAgentProfile(config);
     const requestMetadata = mergeInputMetadata(input);
     const session = this.options.sessionManager.getOrCreate(input.sessionId);
+    const profile = resolveAgentProfile({
+      config,
+      storedAgentId: session.agentId,
+      requestMetadata,
+    });
     let effectiveModel = resolveEffectiveModel({
       session,
       requestMetadata,

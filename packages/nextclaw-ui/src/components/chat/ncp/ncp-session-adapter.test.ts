@@ -20,6 +20,7 @@ describe('adaptNcpSessionSummary', () => {
   it('maps session metadata into shared session entry fields', () => {
     const adapted = adaptNcpSessionSummary(
       createSummary({
+        agentId: 'engineer',
         metadata: {
           label: 'NCP Planning Thread',
           model: 'openai/gpt-5',
@@ -32,6 +33,7 @@ describe('adaptNcpSessionSummary', () => {
 
     expect(adapted).toMatchObject({
       key: 'ncp-session-1',
+      agentId: 'engineer',
       label: 'NCP Planning Thread',
       preferredModel: 'openai/gpt-5',
       preferredThinking: 'medium',

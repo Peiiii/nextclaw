@@ -215,6 +215,132 @@ it("prefers session project_root over the default workspace for tool context", (
     );
 });
 
+it("selects the stored session agent profile before request metadata", () => {
+    const { workspace } = createWorkspace();
+    const engineerWorkspace = join(workspace, "engineer-home");
+    mkdirSync(engineerWorkspace, { recursive: true });
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+        list: [
+          {
+            id: "engineer",
+            workspace: engineerWorkspace,
+            model: "engineer-model",
+          },
+        ],
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `session-${randomUUID()}`;
+    sessionManager.getOrCreate(sessionId).agentId = "engineer";
+    const prepareForRun = vi.fn();
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager,
+      toolRegistry: {
+        prepareForRun,
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+    });
+
+    builder.prepare({
+      sessionId,
+      messages: [
+        {
+          role: "user",
+          timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+          parts: [{ type: "text", text: "inspect the engineer workspace" }],
+          metadata: {
+            agent_id: "main",
+          },
+        },
+      ],
+      metadata: {},
+    } as never);
+
+    expect(prepareForRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: "engineer",
+        model: "engineer-model",
+        workspace: engineerWorkspace,
+      }),
+    );
+  });
+
+it("uses request metadata agent_id when the session has no stored agent owner yet", () => {
+    const { workspace } = createWorkspace();
+    const reviewerWorkspace = join(workspace, "reviewer-home");
+    mkdirSync(reviewerWorkspace, { recursive: true });
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+        list: [
+          {
+            id: "reviewer",
+            workspace: reviewerWorkspace,
+            model: "reviewer-model",
+          },
+        ],
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+    const prepareForRun = vi.fn();
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager: new SessionManager(workspace),
+      toolRegistry: {
+        prepareForRun,
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+    });
+
+    builder.prepare({
+      sessionId: `session-${randomUUID()}`,
+      messages: [
+        {
+          role: "user",
+          timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+          parts: [{ type: "text", text: "review the patch" }],
+        },
+      ],
+      metadata: {
+        agent_id: "reviewer",
+      },
+    } as never);
+
+    expect(prepareForRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: "reviewer",
+        model: "reviewer-model",
+        workspace: reviewerWorkspace,
+      }),
+    );
+  });
+
 it("keeps host workspace context and skills when a session is bound to a project root", () => {
     const { workspace } = createWorkspace();
     const projectRoot = join(workspace, "project-alpha");

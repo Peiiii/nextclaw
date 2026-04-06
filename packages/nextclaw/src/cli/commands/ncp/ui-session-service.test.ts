@@ -64,6 +64,7 @@ describe("UiSessionService", () => {
     const sessionId = `ncp-${randomUUID()}`;
     const session = sessionManager.getOrCreate(sessionId);
 
+    session.agentId = "engineer";
     session.metadata = {
       session_type: "native",
       label: "Startup session",
@@ -79,12 +80,17 @@ describe("UiSessionService", () => {
     expect(sessions).toHaveLength(1);
     expect(sessions[0]).toMatchObject({
       sessionId,
+      agentId: "engineer",
       messageCount: 2,
       status: "idle",
       metadata: {
         session_type: "native",
         label: "Startup session",
       },
+    });
+    expect(await sessionService.getSession(sessionId)).toMatchObject({
+      sessionId,
+      agentId: "engineer",
     });
     expect(messages.map((message) => message.role)).toEqual(["user", "assistant"]);
   });

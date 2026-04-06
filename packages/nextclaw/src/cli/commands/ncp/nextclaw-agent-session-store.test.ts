@@ -86,6 +86,39 @@ describe("NextclawAgentSessionStore", () => {
     ]);
   });
 
+  it("persists session agent ownership separately from metadata", async () => {
+    const workspace = createTempWorkspace();
+    const sessionManager = new SessionManager(workspace);
+    const store = new NextclawAgentSessionStore(sessionManager);
+    const sessionId = `session-${randomUUID()}`;
+
+    await store.saveSession({
+      sessionId,
+      agentId: "engineer",
+      updatedAt: new Date().toISOString(),
+      messages: [
+        {
+          id: "user-1",
+          sessionId,
+          role: "user",
+          status: "final",
+          timestamp: new Date().toISOString(),
+          parts: [{ type: "text", text: "hello" }],
+        },
+      ],
+      metadata: {
+        label: "Engineer Thread",
+      },
+    });
+
+    const loaded = await store.getSession(sessionId);
+    const sessions = await store.listSessions();
+
+    expect(loaded?.agentId).toBe("engineer");
+    expect(loaded?.metadata).not.toHaveProperty("agent_id");
+    expect(sessions.find((session) => session.sessionId === sessionId)?.agentId).toBe("engineer");
+  });
+
   it("notifies when a session is saved or deleted", async () => {
     const workspace = createTempWorkspace();
     const sessionManager = new SessionManager(workspace);

@@ -2,6 +2,7 @@ import type { NcpMessage, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/
 
 export function createNcpSessionSummary(params: {
   sessionId: string;
+  agentId?: string;
   messages: readonly NcpMessage[];
   updatedAt: string;
   status: NcpSessionStatus;
@@ -9,6 +10,7 @@ export function createNcpSessionSummary(params: {
 }): NcpSessionSummary {
   return {
     sessionId: params.sessionId,
+    ...(params.agentId ? { agentId: params.agentId } : {}),
     messageCount: params.messages.length,
     updatedAt: params.updatedAt,
     status: params.status,

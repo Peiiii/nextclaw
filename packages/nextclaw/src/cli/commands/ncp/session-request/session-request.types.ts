@@ -15,6 +15,7 @@ export type SessionRequestDeliveryMode =
 
 export type SessionRecord = {
   sessionId: string;
+  agentId?: string;
   sessionType: string;
   runtimeFamily: "native" | "external";
   parentSessionId?: string;

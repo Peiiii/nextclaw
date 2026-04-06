@@ -3,6 +3,14 @@ import type { AgentSessionRecord, LiveSessionState } from "./agent-backend-types
 
 const AUTO_SESSION_LABEL_MAX_LENGTH = 64;
 
+function readOptionalAgentId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 export function readMessages(
   snapshot: {
     messages: ReadonlyArray<NcpMessage>;
@@ -34,6 +42,7 @@ export function toSessionSummary(
   });
   return {
     sessionId: session.sessionId,
+    ...(readOptionalAgentId(session.agentId) ? { agentId: readOptionalAgentId(session.agentId) } : {}),
     messageCount: session.messages.length,
     updatedAt: session.updatedAt,
     status: liveSession?.activeExecution ? "running" : "idle",
@@ -55,6 +64,7 @@ export function toLiveSessionSummary(session: LiveSessionState): NcpSessionSumma
   });
   return {
     sessionId: session.sessionId,
+    ...(readOptionalAgentId(session.agentId) ? { agentId: readOptionalAgentId(session.agentId) } : {}),
     messageCount: messages.length,
     updatedAt: now(),
     status: session.activeExecution ? "running" : "idle",

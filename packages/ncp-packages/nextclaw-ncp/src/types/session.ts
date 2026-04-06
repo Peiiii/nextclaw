@@ -4,6 +4,7 @@ export type NcpSessionStatus = "idle" | "running";
 
 export type NcpSessionSummary = {
   sessionId: string;
+  agentId?: string;
   messageCount: number;
   updatedAt: string;
   status?: NcpSessionStatus;

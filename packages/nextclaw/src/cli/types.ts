@@ -163,6 +163,7 @@ export type SecretsReloadOptions = {
 export type CronAddOptions = {
   name: string;
   message: string;
+  agent?: string;
   every?: string;
   cron?: string;
   at?: string;

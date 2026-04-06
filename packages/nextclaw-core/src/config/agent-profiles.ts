@@ -87,6 +87,13 @@ export function findEffectiveAgentProfile(config: Config, agentId: string): Effe
   return resolveEffectiveAgentProfiles(config).find((entry) => entry.id === normalized) ?? null;
 }
 
+export function resolveDefaultAgentProfileId(config: Config): string {
+  return (
+    resolveEffectiveAgentProfiles(config).find((entry) => entry.default === true)?.id ??
+    BUILTIN_MAIN_AGENT_ID
+  );
+}
+
 export function resolveAgentHomeDirectory(config: Config, agentId: string): string {
   const profile = findEffectiveAgentProfile(config, agentId);
   if (!profile) {

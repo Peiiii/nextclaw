@@ -1,4 +1,4 @@
-import type { SessionManager } from "@nextclaw/core";
+import { resolveDefaultAgentProfileId, type Config, type SessionManager } from "@nextclaw/core";
 import { randomUUID } from "node:crypto";
 import type { SessionLifecycle, SessionRecord } from "./session-request.types.js";
 
@@ -53,14 +53,70 @@ function cloneInheritedMetadata(
   return nextMetadata;
 }
 
-function buildSessionId(agentId?: string): string {
-  void agentId;
+function buildSessionId(): string {
   return `ncp-${Date.now().toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
+}
+
+function resolveSessionAgentId(params: {
+  agentId?: string;
+  getConfig: () => Config;
+}): string {
+  return readOptionalString(params.agentId) ?? resolveDefaultAgentProfileId(params.getConfig());
+}
+
+function resolveSessionTitle(params: { title?: string; task: string }): string {
+  return readOptionalString(params.title) ?? summarizeTask(params.task);
+}
+
+function resolveSessionType(params: {
+  sessionType?: string;
+  metadata: Record<string, unknown>;
+}): string {
+  return (
+    readOptionalString(params.sessionType) ??
+    readOptionalString(params.metadata.session_type) ??
+    DEFAULT_SESSION_TYPE
+  );
+}
+
+function applySessionOverrides(params: {
+  metadata: Record<string, unknown>;
+  sessionType: string;
+  title: string;
+  lifecycle: SessionLifecycle;
+  parentSessionId: string | null;
+  requestId: string | null;
+  model?: string;
+  thinkingLevel?: string;
+  projectRoot?: string | null;
+}): void {
+  params.metadata.session_type = params.sessionType;
+  params.metadata[SESSION_METADATA_LABEL_KEY] = params.title;
+  params.metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = params.lifecycle;
+  if (params.parentSessionId) {
+    params.metadata[CHILD_SESSION_PARENT_METADATA_KEY] = params.parentSessionId;
+    params.metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
+  }
+  if (params.requestId) {
+    params.metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = params.requestId;
+  }
+  if (readOptionalString(params.model)) {
+    params.metadata.model = params.model?.trim();
+    params.metadata.preferred_model = params.model?.trim();
+  }
+  if (readOptionalString(params.thinkingLevel)) {
+    params.metadata.thinking = params.thinkingLevel?.trim();
+    params.metadata.preferred_thinking = params.thinkingLevel?.trim();
+  }
+  if (readOptionalString(params.projectRoot)) {
+    params.metadata.project_root = params.projectRoot?.trim();
+  }
 }
 
 export class SessionCreationService {
   constructor(
     private readonly sessionManager: SessionManager,
+    private readonly getConfig: () => Config,
     private readonly onSessionUpdated?: (sessionKey: string) => void,
   ) {}
 
@@ -76,40 +132,37 @@ export class SessionCreationService {
     parentSessionId?: string;
     requestId?: string;
   }): SessionRecord => {
-    const sessionId = buildSessionId(params.agentId);
+    const sessionId = buildSessionId();
     const now = new Date().toISOString();
     const session = this.sessionManager.getOrCreate(sessionId);
-    const title = readOptionalString(params.title) ?? summarizeTask(params.task);
+    const resolvedAgentId = resolveSessionAgentId({
+      agentId: params.agentId,
+      getConfig: this.getConfig,
+    });
+    const title = resolveSessionTitle({
+      title: params.title,
+      task: params.task,
+    });
     const metadata = cloneInheritedMetadata(params.sourceSessionMetadata);
     const parentSessionId = readOptionalString(params.parentSessionId);
     const requestId = readOptionalString(params.requestId);
-    const sessionType =
-      readOptionalString(params.sessionType) ??
-      readOptionalString(metadata.session_type) ??
-      DEFAULT_SESSION_TYPE;
+    const sessionType = resolveSessionType({
+      sessionType: params.sessionType,
+      metadata,
+    });
+    applySessionOverrides({
+      metadata,
+      sessionType,
+      title,
+      lifecycle: DEFAULT_LIFECYCLE,
+      parentSessionId,
+      requestId,
+      model: params.model,
+      thinkingLevel: params.thinkingLevel,
+      projectRoot: params.projectRoot,
+    });
 
-    metadata.session_type = sessionType;
-    metadata[SESSION_METADATA_LABEL_KEY] = title;
-    metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = DEFAULT_LIFECYCLE;
-    if (parentSessionId) {
-      metadata[CHILD_SESSION_PARENT_METADATA_KEY] = parentSessionId;
-      metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
-    }
-    if (requestId) {
-      metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = requestId;
-    }
-    if (readOptionalString(params.model)) {
-      metadata.model = params.model?.trim();
-      metadata.preferred_model = params.model?.trim();
-    }
-    if (readOptionalString(params.thinkingLevel)) {
-      metadata.thinking = params.thinkingLevel?.trim();
-      metadata.preferred_thinking = params.thinkingLevel?.trim();
-    }
-    if (readOptionalString(params.projectRoot)) {
-      metadata.project_root = params.projectRoot?.trim();
-    }
-
+    session.agentId = resolvedAgentId;
     session.metadata = metadata;
     session.updatedAt = new Date(now);
     this.sessionManager.save(session);
@@ -117,6 +170,7 @@ export class SessionCreationService {
 
     return {
       sessionId,
+      agentId: resolvedAgentId,
       sessionType,
       runtimeFamily: "native",
       ...(parentSessionId ? { parentSessionId } : {}),

@@ -56,6 +56,10 @@ export class CronTool extends Tool {
           type: "boolean",
           description: "Whether the result should be delivered back to the current chat/channel."
         },
+        agentId: {
+          type: "string",
+          description: "Optional target agent id for the scheduled job. Omit to use the default agent."
+        },
         accountId: { type: "string" },
         account_id: { type: "string" },
         includeDisabled: { type: "boolean", description: "For list only. When omitted, disabled jobs are included by default." },
@@ -76,59 +80,70 @@ export class CronTool extends Tool {
   execute = async (params: Record<string, unknown>): Promise<string> => {
     const action = this.readAction(params);
     if (action === "list") {
-      const includeDisabled = this.readIncludeDisabled(params);
-      return JSON.stringify({
-        jobs: this.cronService.listJobs(includeDisabled)
-      });
+      return this.handleList(params);
     }
     if (action === "enable" || action === "disable") {
-      const jobId = this.readJobId(params);
-      if (!jobId) {
-        return `Error: jobId is required for ${action}`;
-      }
-      const enabled = action === "enable";
-      const job = this.cronService.enableJob(jobId, enabled);
-      if (!job) {
-        return JSON.stringify({ action, updated: false, jobId });
-      }
-      return JSON.stringify({
-        action,
-        updated: true,
-        job: {
-          id: job.id,
-          name: job.name,
-          enabled: job.enabled
-        }
-      });
+      return this.handleToggle(action, params);
     }
     if (action === "remove") {
-      const jobId = this.readJobId(params);
-      if (!jobId) {
-        return "Error: jobId is required for remove";
-      }
-      const removed = this.cronService.removeJob(jobId);
-      return JSON.stringify({ removed, jobId });
+      return this.handleRemove(params);
     }
+    return this.handleAdd(params);
+  };
 
-    const name = this.readString(params, "name");
-    const message = this.readString(params, "message");
-    if (!name || !message) {
-      return "Error: name and message are required for add";
+  private handleList = (params: Record<string, unknown>): string => {
+    const includeDisabled = this.readIncludeDisabled(params);
+    return JSON.stringify({
+      jobs: this.cronService.listJobs(includeDisabled)
+    });
+  };
+
+  private handleToggle = (
+    action: "enable" | "disable",
+    params: Record<string, unknown>,
+  ): string => {
+    const jobId = this.readJobId(params);
+    if (!jobId) {
+      return `Error: jobId is required for ${action}`;
     }
-    const schedule = this.readSchedule(params);
-    if (!schedule) {
-      return "Error: Must specify --every, --cron, or --at";
+    const job = this.cronService.enableJob(jobId, action === "enable");
+    if (!job) {
+      return JSON.stringify({ action, updated: false, jobId });
     }
-    const deliver = Boolean(params.deliver ?? false);
-    const accountId = this.readAccountId(params);
+    return JSON.stringify({
+      action,
+      updated: true,
+      job: {
+        id: job.id,
+        name: job.name,
+        enabled: job.enabled
+      }
+    });
+  };
+
+  private handleRemove = (params: Record<string, unknown>): string => {
+    const jobId = this.readJobId(params);
+    if (!jobId) {
+      return "Error: jobId is required for remove";
+    }
+    const removed = this.cronService.removeJob(jobId);
+    return JSON.stringify({ removed, jobId });
+  };
+
+  private handleAdd = (params: Record<string, unknown>): string => {
+    const parsed = this.readAddJobParams(params);
+    if ("error" in parsed) {
+      return parsed.error;
+    }
     const job = this.cronService.addJob({
-      name,
-      schedule,
-      message,
-      deliver,
+      name: parsed.name,
+      schedule: parsed.schedule,
+      message: parsed.message,
+      agentId: parsed.agentId,
+      deliver: parsed.deliver,
       channel: this.channel,
       to: this.chatId,
-      accountId
+      accountId: parsed.accountId
     });
 
     return JSON.stringify({
@@ -138,6 +153,35 @@ export class CronTool extends Tool {
         name: job.name
       }
     });
+  };
+
+  private readAddJobParams = (params: Record<string, unknown>):
+    | {
+        name: string;
+        message: string;
+        schedule: CronSchedule;
+        deliver: boolean;
+        agentId?: string;
+        accountId?: string;
+      }
+    | { error: string } => {
+    const name = this.readString(params, "name");
+    const message = this.readString(params, "message");
+    if (!name || !message) {
+      return { error: "Error: name and message are required for add" };
+    }
+    const schedule = this.readSchedule(params);
+    if (!schedule) {
+      return { error: "Error: Must specify --every, --cron, or --at" };
+    }
+    return {
+      name,
+      message,
+      schedule,
+      deliver: Boolean(params.deliver ?? false),
+      agentId: this.readString(params, "agentId"),
+      accountId: this.readAccountId(params),
+    };
   };
 
   private readAction = (params: Record<string, unknown>): "add" | "list" | "enable" | "disable" | "remove" => {

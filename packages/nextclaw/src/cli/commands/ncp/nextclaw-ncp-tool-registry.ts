@@ -206,7 +206,6 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
     spawnTool.setContext({
       sourceSessionId: context.sessionId,
       sourceSessionMetadata: context.metadata,
-      agentId: context.agentId,
       handoffDepth: context.handoffDepth,
     });
     this.registerTool(spawnTool);
@@ -217,7 +216,6 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
     sessionsSpawnTool.setContext({
       sourceSessionId: context.sessionId,
       sourceSessionMetadata: context.metadata,
-      agentId: context.agentId,
     });
     this.registerTool(sessionsSpawnTool);
 

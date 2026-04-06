@@ -37,6 +37,7 @@ export class CronLocalService {
       name: opts.name,
       schedule,
       message: opts.message,
+      agentId: opts.agent,
       deliver: Boolean(opts.deliver),
       channel: opts.channel,
       to: opts.to,

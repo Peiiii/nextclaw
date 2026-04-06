@@ -1,19 +1,5 @@
 const SESSION_ROUTE_PREFIX = 'sid_';
 
-export function resolveAgentIdFromSessionKey(sessionKey: string): string | null {
-  const match = /^agent:([^:]+):/i.exec(sessionKey.trim());
-  if (!match) {
-    return null;
-  }
-  const value = match[1]?.trim();
-  return value ? value : null;
-}
-
-export function buildNewSessionKey(agentId: string): string {
-  const slug = Math.random().toString(36).slice(2, 8);
-  return `agent:${agentId}:ui:direct:web-${Date.now().toString(36)}${slug}`;
-}
-
 export function encodeSessionRouteId(sessionKey: string): string {
   const bytes = new TextEncoder().encode(sessionKey);
   let binary = '';

@@ -5,6 +5,7 @@ export type CronSchedule =
 
 export type CronPayload = {
   message: string;
+  agentId?: string | null;
   deliver?: boolean;
   channel?: string | null;
   to?: string | null;

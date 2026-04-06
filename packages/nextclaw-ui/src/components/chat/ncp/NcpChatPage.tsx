@@ -29,7 +29,6 @@ import {
 import { createNcpAppClientFetch } from "@/components/chat/ncp/ncp-app-client-fetch";
 import {
   parseSessionKeyFromRoute,
-  resolveAgentIdFromSessionKey,
 } from "@/components/chat/chat-session-route";
 import { useNcpChatPageData } from "@/components/chat/ncp/ncp-chat-page-data";
 import { NcpChatPresenter } from "@/components/chat/ncp/ncp-chat.presenter";
@@ -48,6 +47,7 @@ import {
 } from "@/lib/session-project/session-project.utils";
 
 export function buildNcpSendMetadata(payload: {
+  agentId?: string;
   model?: string;
   thinkingLevel?: string;
   sessionType?: string;
@@ -66,6 +66,9 @@ export function buildNcpSendMetadata(payload: {
   }
   if (payload.sessionType?.trim()) {
     metadata.session_type = payload.sessionType.trim();
+  }
+  if (payload.agentId?.trim()) {
+    metadata.agent_id = payload.agentId.trim();
   }
   const projectRoot = normalizeSessionProjectRootValue(payload.projectRoot);
   if (projectRoot) {
@@ -254,6 +257,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
           return;
         }
         const metadata = buildNcpSendMetadata({
+          agentId: payload.agentId,
           model: payload.model,
           thinkingLevel: payload.thinkingLevel,
           sessionType: payload.sessionType,
@@ -335,13 +339,10 @@ export function NcpChatPage({ view }: ChatPageProps) {
     view,
     routeSessionKey,
     selectedSessionKey,
-    selectedAgentId,
     setSelectedSessionKey:
       presenter.chatSessionListManager.setSelectedSessionKey,
-    setSelectedAgentId: presenter.chatSessionListManager.setSelectedAgentId,
     selectedSessionKeyRef,
     resetStreamState: presenter.chatStreamActionsManager.resetStreamState,
-    resolveAgentIdFromSessionKey,
   });
 
   useEffect(() => {
@@ -372,6 +373,13 @@ export function NcpChatPage({ view }: ChatPageProps) {
     selectedSessionType,
     sessionTypeOptions
   });
+
+  useEffect(() => {
+    if (!selectedSession?.agentId || selectedAgentId === selectedSession.agentId) {
+      return;
+    }
+    presenter.chatSessionListManager.setSelectedAgentId(selectedSession.agentId);
+  }, [presenter, selectedAgentId, selectedSession?.agentId]);
 
   useNcpChatSnapshotSync({
     presenter,

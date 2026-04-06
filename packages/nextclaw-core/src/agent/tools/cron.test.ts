@@ -79,6 +79,27 @@ describe("CronTool", () => {
     );
   });
 
+  it("passes agent ownership through when adding a job", async () => {
+    const cronService = {
+      addJob: vi.fn().mockReturnValue({ id: "job-agent", name: "review" })
+    };
+    const tool = new CronTool(cronService as never);
+
+    await tool.execute({
+      action: "add",
+      name: "review",
+      message: "review the release notes",
+      every: 300,
+      agentId: "engineer"
+    });
+
+    expect(cronService.addJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: "engineer",
+      })
+    );
+  });
+
   it("lists jobs when action is list", async () => {
     const cronService = {
       listJobs: vi.fn().mockReturnValue([{ id: "job-1", name: "reminder" }])
