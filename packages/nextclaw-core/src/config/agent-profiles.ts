@@ -10,6 +10,7 @@ import type { Config } from "./schema.js";
 import { expandHome } from "../utils/helpers.js";
 
 export const BUILTIN_MAIN_AGENT_ID = "main";
+const AGENT_HOME_DIRECTORY_SEGMENT = "agents";
 export { resolveAgentAvatarHomePath } from "./agent-avatar.js";
 
 type AgentProfile = Config["agents"]["list"][number];
@@ -213,7 +214,16 @@ export function removeAgentProfile(agentId: string, options: { configPath?: stri
 
 export function buildDefaultAgentHomePath(config: Config, agentId: string): string {
   const base = normalizeOptionalString(config.agents.defaults.workspace) ?? "~/.nextclaw/workspace";
-  return join(dirname(base), `${basename(base)}-${agentId}`);
+  return join(base, AGENT_HOME_DIRECTORY_SEGMENT, agentId);
+}
+
+export function resolveImplicitAgentHomePath(config: Config, agentId: string): string {
+  const canonicalPath = buildDefaultAgentHomePath(config, agentId);
+  const legacyPath = buildLegacyAgentHomePath(config, agentId);
+  if (pathExists(canonicalPath) || !pathExists(legacyPath)) {
+    return canonicalPath;
+  }
+  return legacyPath;
 }
 
 export function formatAgentDisplayName(agentId: string): string {
@@ -232,11 +242,20 @@ function toEffectiveAgentProfile(entry: AgentProfile, config: Config): Effective
   return {
     ...entry,
     id,
-    workspace: normalizeOptionalString(entry.workspace) ?? config.agents.defaults.workspace,
+    workspace: normalizeOptionalString(entry.workspace) ?? resolveImplicitAgentHomePath(config, id),
     ...(normalizeOptionalString(entry.displayName) ? { displayName: normalizeOptionalString(entry.displayName) ?? undefined } : {}),
     ...(normalizeOptionalString(entry.description) ? { description: normalizeOptionalString(entry.description) ?? undefined } : {}),
     ...(normalizeOptionalString(entry.avatar) ? { avatar: normalizeOptionalString(entry.avatar) ?? undefined } : {})
   };
+}
+
+function buildLegacyAgentHomePath(config: Config, agentId: string): string {
+  const base = normalizeOptionalString(config.agents.defaults.workspace) ?? "~/.nextclaw/workspace";
+  return join(dirname(base), `${basename(base)}-${agentId}`);
+}
+
+function pathExists(path: string): boolean {
+  return existsSync(resolve(expandHome(path)));
 }
 
 function normalizeOptionalString(value: unknown): string | null {

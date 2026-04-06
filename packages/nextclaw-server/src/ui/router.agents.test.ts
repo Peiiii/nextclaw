@@ -95,4 +95,44 @@ describe("agents routes", () => {
 
     expect(response.status).toBe(400);
   });
+
+  it("lists the inferred nested home for extra agents without explicit workspace", async () => {
+    const configPath = createTempConfigPath();
+    const homeDir = join(dirname(configPath), "workspace");
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace: homeDir
+          },
+          list: [
+            {
+              id: "laowizard"
+            }
+          ]
+        }
+      }),
+      configPath
+    );
+    const app = createUiRouter({
+      configPath,
+      publish: vi.fn()
+    });
+
+    const response = await app.request("http://localhost/api/agents");
+
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: true;
+      data: { agents: Array<{ id: string; workspace?: string }> };
+    };
+    expect(payload.data.agents).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "laowizard",
+          workspace: join(homeDir, "agents", "laowizard")
+        })
+      ])
+    );
+  });
 });

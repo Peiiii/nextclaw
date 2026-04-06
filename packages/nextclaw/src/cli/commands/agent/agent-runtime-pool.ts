@@ -10,6 +10,8 @@ import {
   type AgentEngineMessageToolHintsResolver,
   AgentRouteResolver,
   getWorkspacePath,
+  resolveDefaultAgentProfileId,
+  resolveEffectiveAgentProfiles,
   parseAgentScopedSessionKey,
   type SessionEvent,
   type Config,
@@ -65,50 +67,30 @@ function toRecord(value: unknown): Record<string, unknown> | undefined {
 
 function resolveAgentProfiles(config: Config): ResolvedAgentProfile[] {
   const defaults = config.agents.defaults;
-  type ListedAgentProfile = {
+  const defaultAgentId = normalizeAgentId(resolveDefaultAgentProfileId(config));
+  const listed = resolveEffectiveAgentProfiles(config);
+  const seed: Array<{
     id: string;
-    default?: boolean;
-    workspace?: string;
+    workspace: string;
     model?: string;
     engine?: string;
     engineConfig?: Record<string, unknown>;
     maxToolIterations?: number;
     contextTokens?: number;
-  };
-  const listed = Array.isArray(config.agents.list)
-    ? config.agents.list
-        .map((entry) => ({
-          id: normalizeAgentId(entry.id),
-          default: entry.default,
-          workspace: entry.workspace,
-          model: entry.model,
-          engine: entry.engine,
-          engineConfig: toRecord(entry.engineConfig),
-          maxToolIterations: entry.maxToolIterations,
-          contextTokens: entry.contextTokens
-        }))
-        .filter((entry) => Boolean(entry.id))
-    : [];
-
-  const defaultAgentId = listed.find((entry) => entry.default)?.id ?? listed[0]?.id ?? "main";
-  const seed: ListedAgentProfile[] = listed.length > 0 ? listed : [{ id: defaultAgentId }];
-
+  }> = listed.length > 0 ? listed : [{ id: defaultAgentId, workspace: defaults.workspace }];
   const unique = new Map<string, (typeof seed)[number]>();
   for (const entry of seed) {
     if (!unique.has(entry.id)) {
       unique.set(entry.id, entry);
     }
   }
-  if (!unique.has(defaultAgentId)) {
-    unique.set(defaultAgentId, { id: defaultAgentId });
-  }
 
   return Array.from(unique.values()).map((entry) => ({
     id: entry.id,
-    workspace: getWorkspacePath(entry.workspace ?? defaults.workspace),
+    workspace: getWorkspacePath(entry.workspace),
     model: entry.model ?? defaults.model,
     engine: normalizeEngineKind(entry.engine ?? defaults.engine),
-    engineConfig: entry.engineConfig ?? toRecord(defaults.engineConfig),
+    engineConfig: toRecord(entry.engineConfig) ?? toRecord(defaults.engineConfig),
     maxIterations: entry.maxToolIterations ?? defaults.maxToolIterations,
     contextTokens: entry.contextTokens ?? defaults.contextTokens
   }));

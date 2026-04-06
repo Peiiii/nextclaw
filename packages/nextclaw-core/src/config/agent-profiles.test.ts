@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
@@ -54,7 +54,7 @@ describe("agent profiles", () => {
 
     expect(created.id).toBe("engineer");
     expect(created.displayName).toBe("Engineer");
-    expect(created.workspace).toBe(`${workspace}-engineer`);
+    expect(created.workspace).toBe(join(workspace, "agents", "engineer"));
     expect(created.avatar).toBe("home://avatar.svg");
     expect(existsSync(join(created.workspace, "avatar.svg"))).toBe(true);
     expect(readFileSync(join(created.workspace, "avatar.svg"), "utf-8")).toContain("<svg");
@@ -92,6 +92,58 @@ describe("agent profiles", () => {
     const saved = loadConfig(configPath);
     const researcher = resolveEffectiveAgentProfiles(saved).find((agent) => agent.id === "researcher");
     expect(researcher?.description).toBe("负责调研、信息筛选与结论提炼。");
+  });
+
+  it("infers nested agent home when an extra agent has no explicit workspace", () => {
+    const configPath = createTempConfigPath();
+    const workspace = join(dirname(configPath), "workspace");
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace
+          },
+          list: [
+            {
+              id: "researcher"
+            }
+          ]
+        }
+      }),
+      configPath
+    );
+
+    const saved = loadConfig(configPath);
+    const researcher = resolveEffectiveAgentProfiles(saved).find((agent) => agent.id === "researcher");
+
+    expect(researcher?.workspace).toBe(join(workspace, "agents", "researcher"));
+  });
+
+  it("keeps the legacy implicit agent home when only the old directory exists", () => {
+    const configPath = createTempConfigPath();
+    const workspace = join(dirname(configPath), "workspace");
+    const legacyWorkspace = `${workspace}-researcher`;
+    mkdirSync(legacyWorkspace, { recursive: true });
+    saveConfig(
+      ConfigSchema.parse({
+        agents: {
+          defaults: {
+            workspace
+          },
+          list: [
+            {
+              id: "researcher"
+            }
+          ]
+        }
+      }),
+      configPath
+    );
+
+    const saved = loadConfig(configPath);
+    const researcher = resolveEffectiveAgentProfiles(saved).find((agent) => agent.id === "researcher");
+
+    expect(researcher?.workspace).toBe(legacyWorkspace);
   });
 
   it("updates an existing extra agent profile", () => {

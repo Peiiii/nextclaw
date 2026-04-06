@@ -212,6 +212,61 @@ describe("GatewayAgentRuntimePool slash commands", () => {
     expect(capability.supported).toBe(true);
   });
 
+  it("uses the inferred nested agent home for extra agents without explicit workspace", () => {
+    const workspace = createWorkspace();
+    const config = createConfig(workspace);
+    config.agents.list = [{ id: "laowizard", default: false }];
+    const providerManager = {
+      setConfig: () => {},
+      get: () => ({
+        getDefaultModel: () => "openai/gpt-5"
+      })
+    };
+    const bus = {
+      consumeInbound: vi.fn(async () => {
+        throw new Error("not implemented in unit test");
+      }),
+      publishOutbound: vi.fn(async () => undefined)
+    };
+    const factoryWorkspaces = new Map<string, string>();
+
+    new GatewayAgentRuntimePool({
+      bus: bus as never,
+      providerManager: providerManager as never,
+      sessionManager: new SessionManager(workspace),
+      config,
+      restrictToWorkspace: true,
+      searchConfig: config.search,
+      execConfig: config.tools.exec,
+      contextConfig: config.agents.context,
+      extensionRegistry: {
+        engines: [
+          {
+            extensionId: "test.mock",
+            source: "workspace",
+            kind: "mock",
+            factory: (context) => {
+              factoryWorkspaces.set(context.agentId, context.workspace);
+              return {
+                kind: "mock",
+                handleInbound: vi.fn(async () => null),
+                processDirect: vi.fn(async () => "ok"),
+                applyRuntimeConfig: vi.fn()
+              };
+            }
+          }
+        ],
+        channels: [],
+        tools: [],
+        diagnostics: []
+      }
+    });
+
+    expect(factoryWorkspaces.get("laowizard")).toBe(join(workspace, "agents", "laowizard"));
+  });
+});
+
+describe("GatewayAgentRuntimePool runtime behavior", () => {
   it("routes system messages back to session_key_override and emits session update hook", async () => {
     const workspace = createWorkspace();
     const handleInbound = vi.fn(async () => null);
