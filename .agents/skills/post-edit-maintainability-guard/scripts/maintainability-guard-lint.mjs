@@ -1,10 +1,14 @@
-import { spawnSync } from "node:child_process";
+import { ESLint } from "eslint";
 
 import { FUNCTION_RULE_IDS, ROOT } from "./maintainability-guard-support.mjs";
 
 const SYMBOL_NAME_PATTERN = /(?:Async method|Method|Function) '([^']+)'/;
 const PARENTHESIZED_NUMBER_PATTERN = /\((\d+)\)/;
 const COGNITIVE_COMPLEXITY_PATTERN = /from (\d+)/;
+const eslint = new ESLint({
+  cwd: ROOT,
+  errorOnUnmatchedPattern: false
+});
 
 function parseMetricValue(ruleId, message) {
   if (ruleId === "sonarjs/cognitive-complexity") {
@@ -20,21 +24,8 @@ function parseSymbolName(message) {
   return match ? match[1] : null;
 }
 
-export function lintContent(pathText, content) {
-  const result = spawnSync("pnpm", ["exec", "eslint", "--stdin", "--stdin-filename", pathText, "--format", "json"], {
-    cwd: ROOT,
-    input: content,
-    encoding: "utf8"
-  });
-
-  if (!(result.stdout || "").trim()) {
-    if (result.status === 0) {
-      return [];
-    }
-    throw new Error((result.stderr || "").trim() || `eslint failed for ${pathText}`);
-  }
-
-  const payload = JSON.parse(result.stdout);
+export async function lintContent(pathText, content) {
+  const payload = await eslint.lintText(content, { filePath: pathText });
   if (!Array.isArray(payload) || payload.length === 0) {
     return [];
   }

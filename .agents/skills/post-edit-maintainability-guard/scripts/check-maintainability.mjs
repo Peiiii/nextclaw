@@ -36,10 +36,10 @@ function parseArgs(argv) {
   return args;
 }
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   const paths = args.paths && args.paths.length > 0 ? args.paths : listChangedPaths();
-  const report = inspectPaths(paths);
+  const report = await inspectPaths(paths);
 
   if (args.json) {
     console.log(JSON.stringify(report, null, 2));
@@ -53,4 +53,4 @@ function main() {
   process.exit(report.summary.errors > 0 ? 1 : 0);
 }
 
-main();
+await main();

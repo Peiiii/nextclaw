@@ -58,7 +58,7 @@ function createFileBudgetFinding(level, pathText, category, budget, currentLines
   };
 }
 
-export function inspectPaths(paths) {
+export async function inspectPaths(paths) {
   const inspectedPaths = [];
   const findings = [];
 
@@ -153,8 +153,8 @@ export function inspectPaths(paths) {
       });
     }
 
-    const currentLintFindings = lintContent(pathText, currentContent);
-    const previousLintFindings = previousContent == null ? [] : lintContent(pathText, previousContent);
+    const currentLintFindings = await lintContent(pathText, currentContent);
+    const previousLintFindings = previousContent == null ? [] : await lintContent(pathText, previousContent);
     const previousBySignature = new Map(
       previousLintFindings
         .map((finding) => [buildSignature(finding), finding])
