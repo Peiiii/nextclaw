@@ -137,4 +137,23 @@ describe("ConfigCommands", () => {
     });
     expect(requestRestart).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects sparse array writes without saving invalid config", async () => {
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation((() => {
+      throw new Error("process.exit");
+    }) as never);
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const commands = new ConfigCommands({
+      requestRestart: vi.fn(async () => undefined)
+    });
+
+    await expect(commands.configSet("agents.list[3].id", "\"researcher\"", { json: true }))
+      .rejects.toThrow("process.exit");
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      'Error: Cannot set sparse array index 3 under "agents.list". Set indices in order.'
+    );
+    expect(mocks.saveConfigMock).not.toHaveBeenCalled();
+    expect(exitSpy).toHaveBeenCalledWith(1);
+  });
 });

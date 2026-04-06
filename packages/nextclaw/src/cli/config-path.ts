@@ -118,36 +118,60 @@ export function setAtConfigPath(root: Record<string, unknown>, pathSegments: str
     const nextIsIndex = Boolean(next && isIndexSegment(next));
 
     if (Array.isArray(current)) {
-      if (!isIndexSegment(segment)) {
-        throw new Error(`Expected numeric index for array segment "${segment}"`);
-      }
-      const index = Number.parseInt(segment, 10);
-      const existing = current[index];
-      if (!existing || typeof existing !== "object") {
-        current[index] = nextIsIndex ? [] : {};
-      }
-      current = current[index];
+      current = getOrCreateArraySegment(current, segment, nextIsIndex, pathSegments.slice(0, i));
       continue;
     }
 
-    if (!current || typeof current !== "object") {
-      throw new Error(`Cannot traverse into "${segment}" (not an object)`);
-    }
-
-    const record = current as Record<string, unknown>;
-    const existing = record[segment];
-    if (!existing || typeof existing !== "object") {
-      record[segment] = nextIsIndex ? [] : {};
-    }
-    current = record[segment];
+    current = getOrCreateObjectSegment(current, segment, nextIsIndex);
   }
 
-  const last = pathSegments[pathSegments.length - 1];
+  setConfigPathValue(current, pathSegments[pathSegments.length - 1], value, pathSegments.slice(0, -1));
+}
+
+function ensureWritableArrayIndex(current: unknown[], index: number, parentPath: string[]): void {
+  if (!Number.isFinite(index) || index < 0) {
+    throw new Error(`Invalid array index "${index}"`);
+  }
+  if (index <= current.length) {
+    return;
+  }
+  const parentPathExpr = formatConfigPath(parentPath);
+  const parentLabel = parentPathExpr ? `"${parentPathExpr}"` : "the root array";
+  throw new Error(`Cannot set sparse array index ${index} under ${parentLabel}. Set indices in order.`);
+}
+
+function getOrCreateArraySegment(
+  current: unknown[],
+  segment: string,
+  nextIsIndex: boolean,
+  parentPath: string[]
+): unknown {
+  const index = parseArrayIndexSegment(segment);
+  ensureWritableArrayIndex(current, index, parentPath);
+  const existing = current[index];
+  if (!existing || typeof existing !== "object") {
+    current[index] = nextIsIndex ? [] : {};
+  }
+  return current[index];
+}
+
+function getOrCreateObjectSegment(current: unknown, segment: string, nextIsIndex: boolean): unknown {
+  if (!current || typeof current !== "object") {
+    throw new Error(`Cannot traverse into "${segment}" (not an object)`);
+  }
+
+  const record = current as Record<string, unknown>;
+  const existing = record[segment];
+  if (!existing || typeof existing !== "object") {
+    record[segment] = nextIsIndex ? [] : {};
+  }
+  return record[segment];
+}
+
+function setConfigPathValue(current: unknown, last: string, value: unknown, parentPath: string[]): void {
   if (Array.isArray(current)) {
-    if (!isIndexSegment(last)) {
-      throw new Error(`Expected numeric index for array segment "${last}"`);
-    }
-    const index = Number.parseInt(last, 10);
+    const index = parseArrayIndexSegment(last);
+    ensureWritableArrayIndex(current, index, parentPath);
     current[index] = value;
     return;
   }
@@ -157,6 +181,25 @@ export function setAtConfigPath(root: Record<string, unknown>, pathSegments: str
   }
 
   (current as Record<string, unknown>)[last] = value;
+}
+
+function parseArrayIndexSegment(segment: string): number {
+  if (!isIndexSegment(segment)) {
+    throw new Error(`Expected numeric index for array segment "${segment}"`);
+  }
+  return Number.parseInt(segment, 10);
+}
+
+function formatConfigPath(pathSegments: string[]): string {
+  let expr = "";
+  for (const segment of pathSegments) {
+    if (isIndexSegment(segment)) {
+      expr += `[${segment}]`;
+      continue;
+    }
+    expr += expr ? `.${segment}` : segment;
+  }
+  return expr;
 }
 
 export function unsetAtConfigPath(root: Record<string, unknown>, pathSegments: string[]): boolean {
