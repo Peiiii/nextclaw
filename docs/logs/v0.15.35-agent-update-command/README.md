@@ -16,6 +16,10 @@
 - core 层新增 `updateAgentProfile()`，将更新逻辑集中在 Agent profile 单一数据源，而不是继续暴露给用户 `config set agents.list[...]` 这种底层路径。
 - 顺手把 avatar 资产处理从 [`agent-profiles.ts`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw-core/src/config/agent-profiles.ts) 拆到 [`agent-avatar.ts`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw-core/src/config/agent-avatar.ts)，把 profile 管理与头像文件处理分开，避免 `agent-profiles.ts` 继续膨胀超预算。
 - 更新 [docs/USAGE.md](/Users/tongwenwen/Projects/Peiiii/nextclaw/docs/USAGE.md)，把 `agents update` 纳入正式命令说明，并明确建议优先用该命令修改 Agent 名称/描述/头像。
+- 补齐 self-management guide 同步链路，避免开发态/运行态 AI 继续读取旧命令：
+  - 手动执行 `node packages/nextclaw/scripts/sync-usage-resource.mjs`，将 `docs/USAGE.md` 同步到 [`packages/nextclaw/resources/USAGE.md`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw/resources/USAGE.md)
+  - 更新 [`nextclaw-self-manage/SKILL.md`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw-core/src/agent/skills/nextclaw-self-manage/SKILL.md)，把 Agent 高频意图与执行规则补齐为 `list/new/update/remove`
+  - 在 [`AGENTS.md`](/Users/tongwenwen/Projects/Peiiii/nextclaw/AGENTS.md) 新增项目规则，要求今后凡触达自管理命令表面，必须同步作者源 guide、运行时 guide 与 self-manage skill，并在 repo 开发态手动运行同步脚本
 
 ## 测试/验证/验收方式
 
@@ -28,9 +32,12 @@
   - `pnpm -C packages/nextclaw tsc`
 - 可维护性守卫：
   - `pnpm lint:maintainability:guard`
+- guide 同步：
+  - `node packages/nextclaw/scripts/sync-usage-resource.mjs`
 - 结果说明：
   - 上述命令均已通过
   - 守卫仍提示若干既有目录/大文件预算 warning，但无新增 error
+  - `sync-usage-resource` 已执行，运行时 guide 与作者源 guide 已同步
   - 未直接通过 `dev:build` 做 CLI 入口冒烟，因为当前工作区同时存在未完成的 `self-cli` 相关改动；本次以 core + CLI 命令层测试覆盖新能力主链
 
 ## 发布/部署方式
@@ -63,4 +70,4 @@
   - 可维护性复核结论：通过
   - 本次顺手减债：是
   - no maintainability findings
-  - 可维护性总结：这次改动把“Agent 可以创建但不能正式更新”的产品缺口补成了清晰的一等命令，并且没有把更新语义继续泄漏成底层配置路径。保留债务主要是 `config` 目录总量仍大，但本次拆分确实让 profile 主文件回到了更可维护的体量。
+  - 可维护性总结：这次改动不仅补齐了 `agents update`，也把自管理 guide 的作者源、运行时副本和 AI skill 提示重新收敛成同一套口径，减少了“功能已改但 AI 仍按旧文档行动”的隐性维护风险。保留债务主要是 repo 开发态仍依赖手动执行同步脚本，这属于当前机制的显式约束，已通过项目规则固化。

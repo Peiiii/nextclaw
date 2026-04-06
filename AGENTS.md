@@ -399,3 +399,9 @@
   - 反例：为了省事继续把新交互、新能力、新策略同时加到 `LegacyChatPage` 和 legacy runtime；或在没有明确必要性的情况下继续扩展 legacy 组件与 legacy 后端能力。
   - 执行方式：需求进入 chat 链路时先判断“是否属于 NCP 主链路建设”；若是，则默认只改 NCP 链路。若必须改 legacy，必须在结果中明确说明触发原因、过渡范围与后续删除条件。
   - 维护责任人：当前助手。
+- **self-manage-guide-sync-required**：
+  - 约束/适用范围：凡触达 NextClaw 自管理命令表面或语义，即涉及 `version/status/doctor/service/plugins/channels/config/agents/cron/remote/update` 的 CLI 能力、help 口径、推荐路径、参数、返回语义、示例命令或“AI 应如何管理 NextClaw 自己”的指引时，必须同步维护 self-management guide 链路；禁止只改源码或只改单一文档后结束。
+  - 示例：新增 `nextclaw agents update` 后，同时更新 [`docs/USAGE.md`](docs/USAGE.md)、运行 `node packages/nextclaw/scripts/sync-usage-resource.mjs` 刷新 `packages/nextclaw/resources/USAGE.md`，并同步修正 [`packages/nextclaw-core/src/agent/skills/nextclaw-self-manage/SKILL.md`](packages/nextclaw-core/src/agent/skills/nextclaw-self-manage/SKILL.md) 中的高频意图与执行规则。
+  - 反例：CLI 已支持新命令，但 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill 仍保留旧命令列表；或只修改 `docs/USAGE.md` 却不执行同步脚本，导致开发态/运行态 AI 继续读取过期 guide。
+  - 执行方式：完成自管理命令相关改动后，必须依次检查并收敛三处：`docs/USAGE.md`（作者源）、`packages/nextclaw/resources/USAGE.md`（运行时内置 guide）、`packages/nextclaw-core/src/agent/skills/nextclaw-self-manage/SKILL.md`（AI 自管理技能提示）。在 repo 开发态，修改 `docs/USAGE.md` 后必须手动运行 `node packages/nextclaw/scripts/sync-usage-resource.mjs`；若本次只改了 `resources/USAGE.md` 而未改 `docs/USAGE.md`，视为违规。最终结果中必须明确写出“是否已执行 sync-usage-resource 脚本”。
+  - 维护责任人：当前助手。

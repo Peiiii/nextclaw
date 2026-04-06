@@ -469,6 +469,7 @@ Skill loading contract:
 | `nextclaw init --force` | Re-run init and overwrite templates |
 | `nextclaw agents list` | List built-in and created agents |
 | `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
+| `nextclaw agents update <agent-id>` | Update an existing agent's display metadata |
 | `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
 | `nextclaw login --api-base <url>` | Login to NextClaw Platform and save the platform token locally |
 | `nextclaw remote enable` | Enable service-managed remote access |
@@ -505,12 +506,20 @@ Agent management notes:
 
 - `nextclaw agents new <agent-id>` accepts:
   - `--name <display-name>`
+  - `--description <description>`
   - `--avatar <http-url-or-local-file>`
   - `--home <path>`
   - `--json`
+- `nextclaw agents update <agent-id>` accepts:
+  - `--name <display-name>`
+  - `--description <description>`
+  - `--avatar <http-url-or-local-file>`
+  - `--json`
+- `nextclaw agents update` allows updating the built-in `main` agent.
+- For `nextclaw agents update`, passing an empty string to `--name`, `--description`, or `--avatar` clears the stored override for that field.
 - If `--avatar` is a local file path, NextClaw copies it into the Agent Home Directory and stores it as `home://avatar.<ext>`.
 - If `--avatar` is omitted, NextClaw generates a local default `avatar.svg`.
-- `nextclaw agents new/remove --json` returns machine-readable output plus `restartRequired: true`.
+- `nextclaw agents new/update/remove --json` returns machine-readable output plus `restartRequired: true`.
 
 ### Agent creation flow for AI self-management
 
@@ -525,7 +534,7 @@ When NextClaw AI is asked to create a new Agent, use this exact flow instead of 
 2. Create the new Agent through the dedicated command:
 
    ```bash
-   nextclaw agents new <agent-id> --json [--name <display-name>] [--avatar <url-or-local-file>] [--home <path>]
+   nextclaw agents new <agent-id> --json [--name <display-name>] [--description <description>] [--avatar <url-or-local-file>] [--home <path>]
    ```
 
 3. Treat the JSON output as the source of truth:
@@ -548,6 +557,7 @@ When NextClaw AI is asked to create a new Agent, use this exact flow instead of 
 Rules:
 
 - Do not try to create the built-in `main` agent.
+- Prefer `nextclaw agents update` over direct `config.json` edits when changing Agent name / description / avatar.
 - Prefer `nextclaw agents new` over direct `config.json` edits for normal Agent creation.
 - If the user asked AI to create the Agent, AI should run the command, not only describe it.
 - Avatar guidance for AI-created agents:

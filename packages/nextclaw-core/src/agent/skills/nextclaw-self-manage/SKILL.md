@@ -32,7 +32,7 @@ Always use the built-in NextClaw self-management guide as the operation guide.
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
 - Be explicit about restart semantics after changes.
-- For Agent creation/removal, follow the Agent management section in the self-management guide instead of inventing direct config edits.
+- For Agent creation/update/removal, follow the Agent management section in the self-management guide instead of inventing direct config edits.
 
 ## Minimal Self-Management Flow
 
@@ -56,5 +56,5 @@ When user asks "what changed in version X", follow:
 - Lifecycle: `nextclaw start|restart|stop`
 - Channels: `nextclaw channels status|login`
 - Config: `nextclaw config get|set|unset`
-- Agents: `nextclaw agents list|new|remove`
+- Agents: `nextclaw agents list|new|update|remove`
 - Automation: `nextclaw cron list|add|remove|enable|run`
