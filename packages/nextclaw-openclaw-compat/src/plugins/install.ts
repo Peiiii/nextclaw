@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import JSZip from "jszip";
 import * as tar from "tar";
-import { createExternalCommandEnv, getDataPath } from "@nextclaw/core";
+import { getDataPath } from "@nextclaw/core";
 import { loadPluginManifest } from "./manifest.js";
+import { runRuntimeNpmCommand } from "./runtime-npm.js";
 
 export type PluginInstallLogger = {
   info?: (message: string) => void;
@@ -168,44 +168,14 @@ async function ensureOpenClawExtensions(manifest: PackageManifest): Promise<stri
   return list;
 }
 
-async function runCommand(command: string, args: string[], cwd: string): Promise<{ code: number; stdout: string; stderr: string }> {
-  return new Promise((resolve) => {
-    const child = spawn(command, args, {
-      cwd,
-      env: createExternalCommandEnv(process.env, {
-        COREPACK_ENABLE_DOWNLOAD_PROMPT: "0",
-        NPM_CONFIG_IGNORE_SCRIPTS: "true"
-      }),
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-
-    let stdout = "";
-    let stderr = "";
-    child.stdout.on("data", (chunk) => {
-      stdout += String(chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += String(chunk);
-    });
-
-    child.on("close", (code) => {
-      resolve({ code: code ?? 1, stdout, stderr });
-    });
-
-    child.on("error", (error) => {
-      resolve({ code: 1, stdout, stderr: `${stderr}\n${String(error)}` });
-    });
-  });
-}
-
 async function installDependenciesIfNeeded(packageDir: string, manifest: PackageManifest, logger: PluginInstallLogger): Promise<void> {
   if (!manifest.dependencies || Object.keys(manifest.dependencies).length === 0) {
     return;
   }
   logger.info?.("Installing plugin dependencies...");
-  const result = await runCommand("npm", ["install", "--ignore-scripts"], packageDir);
+  const result = await runRuntimeNpmCommand(["install", "--ignore-scripts"], packageDir);
   if (result.code !== 0) {
-    throw new Error(result.stderr.trim() || result.stdout.trim() || "npm install failed");
+    throw new Error(result.output.trim() || "npm install failed");
   }
 }
 
@@ -488,8 +458,16 @@ export async function installPluginFromNpmSpec(params: {
   dryRun?: boolean;
   expectedPluginId?: string;
 }): Promise<InstallPluginResult> {
-  const logger = params.logger ?? defaultLogger;
-  const spec = params.spec.trim();
+  const {
+    dryRun,
+    expectedPluginId,
+    extensionsDir,
+    logger: inputLogger,
+    mode,
+    spec: rawSpec
+  } = params;
+  const logger = inputLogger ?? defaultLogger;
+  const spec = rawSpec.trim();
   const specError = validateRegistryNpmSpec(spec);
   if (specError) {
     return { ok: false, error: specError };
@@ -498,11 +476,11 @@ export async function installPluginFromNpmSpec(params: {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "nextclaw-npm-pack-"));
   try {
     logger.info?.(`Downloading ${spec}...`);
-    const packed = await runCommand("npm", ["pack", spec, "--ignore-scripts"], tempDir);
+    const packed = await runRuntimeNpmCommand(["pack", spec, "--ignore-scripts"], tempDir);
     if (packed.code !== 0) {
       return {
         ok: false,
-        error: `npm pack failed: ${packed.stderr.trim() || packed.stdout.trim()}`
+        error: `npm pack failed: ${packed.output.trim() || "npm pack failed"}`
       };
     }
 
@@ -518,11 +496,11 @@ export async function installPluginFromNpmSpec(params: {
     const archivePath = path.join(tempDir, archiveName);
     return await installPluginFromArchive({
       archivePath,
-      extensionsDir: params.extensionsDir,
+      extensionsDir,
       logger,
-      mode: params.mode,
-      dryRun: params.dryRun,
-      expectedPluginId: params.expectedPluginId
+      mode,
+      dryRun,
+      expectedPluginId
     });
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
