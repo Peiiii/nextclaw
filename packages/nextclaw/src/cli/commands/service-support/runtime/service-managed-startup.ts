@@ -2,6 +2,7 @@ import type * as NextclawCore from "@nextclaw/core";
 import { closeSync, mkdirSync, openSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.js";
 import { writeInitialManagedServiceState } from "./service-remote-runtime.js";
 
 export type ManagedServiceState = {
@@ -109,35 +110,54 @@ export function spawnManagedService(params: {
   extendedPhaseTimeoutMs: number;
   snapshot: ManagedServiceSnapshot;
 } | null {
-  const logPath = params.resolveServiceLogPath();
+  const {
+    appName,
+    config,
+    uiConfig,
+    uiUrl,
+    apiUrl,
+    healthUrl,
+    startupTimeoutMs,
+    resolveStartupTimeoutMs,
+    appendStartupStage,
+    printStartupFailureDiagnostics,
+    resolveServiceLogPath
+  } = params;
+  const logPath = resolveServiceLogPath();
   const logDir = resolve(logPath, "..");
   mkdirSync(logDir, { recursive: true });
   const logFd = openSync(logPath, "a");
-  const readinessTimeoutMs = params.resolveStartupTimeoutMs(params.startupTimeoutMs);
+  const readinessTimeoutMs = resolveStartupTimeoutMs(startupTimeoutMs);
   const quickPhaseTimeoutMs = Math.min(8000, readinessTimeoutMs);
   const extendedPhaseTimeoutMs = Math.max(0, readinessTimeoutMs - quickPhaseTimeoutMs);
-  params.appendStartupStage(
+  appendStartupStage(
     logPath,
-    `start requested: ui=${params.uiConfig.host}:${params.uiConfig.port}, readinessTimeoutMs=${readinessTimeoutMs}`
+    `start requested: ui=${uiConfig.host}:${uiConfig.port}, readinessTimeoutMs=${readinessTimeoutMs}`
   );
-  console.log(`Starting ${params.appName} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
+  console.log(`Starting ${appName} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
 
-  const serveArgs = ["serve", "--ui-port", String(params.uiConfig.port)];
-  params.appendStartupStage(logPath, `spawning background process: ${process.execPath} ${[...process.execArgv, ...serveArgs].join(" ")}`);
-  const child = spawn(process.execPath, [...process.execArgv, ...serveArgs], {
+  const cliLaunch = resolveCliSubcommandLaunch({
+    argvEntry: process.argv[1],
+    importMetaUrl: import.meta.url,
+    cliArgs: ["serve", "--ui-port", String(uiConfig.port)],
+    nodePath: process.execPath
+  });
+  const childArgs = [...process.execArgv, ...cliLaunch.args];
+  appendStartupStage(logPath, `spawning background process: ${cliLaunch.command} ${childArgs.join(" ")}`);
+  const child = spawn(cliLaunch.command, childArgs, {
     env: process.env,
     stdio: ["ignore", logFd, logFd],
     detached: true
   });
-  params.appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
+  appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
   closeSync(logFd);
   if (!child.pid) {
-    params.appendStartupStage(logPath, "spawn failed: child pid missing");
+    appendStartupStage(logPath, "spawn failed: child pid missing");
     console.error("Error: Failed to start background service.");
-    params.printStartupFailureDiagnostics({
-      uiUrl: params.uiUrl,
-      apiUrl: params.apiUrl,
-      healthUrl: params.healthUrl,
+    printStartupFailureDiagnostics({
+      uiUrl,
+      apiUrl,
+      healthUrl,
       logPath,
       lastProbeError: null
     });
@@ -146,14 +166,14 @@ export function spawnManagedService(params: {
 
   const snapshot: ManagedServiceSnapshot = {
     pid: child.pid,
-    uiUrl: params.uiUrl,
-    apiUrl: params.apiUrl,
-    uiHost: params.uiConfig.host,
-    uiPort: params.uiConfig.port,
+    uiUrl,
+    apiUrl,
+    uiHost: uiConfig.host,
+    uiPort: uiConfig.port,
     logPath
   };
   writeInitialManagedServiceState({
-    config: params.config,
+    config,
     readinessTimeoutMs,
     snapshot
   });
