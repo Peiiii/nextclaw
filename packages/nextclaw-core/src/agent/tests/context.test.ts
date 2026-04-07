@@ -83,6 +83,16 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("explicitly selected in the chat composer");
   });
 
+  it("guides cross-session delivery through message plus route discovery", () => {
+    const workspace = createWorkspace();
+    const builder = new ContextBuilder(workspace);
+
+    const prompt = builder.buildSystemPrompt();
+
+    expect(prompt).toContain("Cross-session or cross-channel messaging");
+    expect(prompt).toContain("use sessions_list first");
+  });
+
   it("includes agent management in the NextClaw self-management guide", () => {
     const workspace = createWorkspace();
     const builder = new ContextBuilder(workspace);
@@ -95,5 +105,7 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).not.toContain(`${workspace}/USAGE.md`);
     expect(prompt).toContain("Do not load unrelated generic skills before reading the built-in self-management guide");
     expect(prompt).toContain("deprecated artifacts");
+    expect(prompt).toContain("agents list|new|update|remove --json");
+    expect(prompt).toContain("avoid text/initial-based avatar styles");
   });
 });

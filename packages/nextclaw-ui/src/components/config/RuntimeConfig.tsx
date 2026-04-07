@@ -38,7 +38,6 @@ export function RuntimeConfig() {
   const [agents, setAgents] = useState<AgentProfileView[]>([]);
   const [bindings, setBindings] = useState<AgentBindingView[]>([]);
   const [dmScope, setDmScope] = useState<DmScope>('per-channel-peer');
-  const [maxPingPongTurns, setMaxPingPongTurns] = useState(0);
   const [defaultContextTokens, setDefaultContextTokens] = useState(200000);
   const [defaultEngine, setDefaultEngine] = useState('native');
 
@@ -49,14 +48,12 @@ export function RuntimeConfig() {
     setAgents((config.agents.list ?? []).map(hydrateRuntimeAgent));
     setBindings((config.bindings ?? []).map(hydrateRuntimeBinding));
     setDmScope((config.session?.dmScope as DmScope) ?? 'per-channel-peer');
-    setMaxPingPongTurns(config.session?.agentToAgent?.maxPingPongTurns ?? 0);
     setDefaultContextTokens(config.agents.defaults.contextTokens ?? 200000);
     setDefaultEngine(config.agents.defaults.engine ?? 'native');
   }, [config]);
 
   const uiHints = schema?.uiHints;
   const dmScopeHint = hintForPath('session.dmScope', uiHints);
-  const maxPingHint = hintForPath('session.agentToAgent.maxPingPongTurns', uiHints);
   const defaultContextTokensHint = hintForPath('agents.defaults.contextTokens', uiHints);
   const defaultEngineHint = hintForPath('agents.defaults.engine', uiHints);
   const agentContextTokensHint = hintForPath('agents.list.*.contextTokens', uiHints);
@@ -153,10 +150,7 @@ export function RuntimeConfig() {
           },
           bindings: normalizedBindings,
           session: {
-            dmScope,
-            agentToAgent: {
-              maxPingPongTurns: Math.min(5, Math.max(0, maxPingPongTurns))
-            }
+            dmScope
           }
         }
       });
@@ -222,21 +216,6 @@ export function RuntimeConfig() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-800">
-              {maxPingHint?.label ?? t('maxPingPongTurns')}
-            </label>
-            <Input
-              type="number"
-              min={0}
-              max={5}
-              value={maxPingPongTurns}
-              onChange={(event) => setMaxPingPongTurns(Math.max(0, Number.parseInt(event.target.value, 10) || 0))}
-            />
-            <p className="text-xs text-gray-500">
-              {maxPingHint?.help ?? t('maxPingPongTurnsHelp')}
-            </p>
           </div>
         </CardContent>
       </Card>

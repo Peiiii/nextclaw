@@ -56,7 +56,7 @@
 - 网络工具：`web_search` / `web_fetch`
 - 消息工具：`message`
 - 定时工具：`cron`
-- 会话工具：`sessions_list` / `sessions_history` / `sessions_send`
+- 会话工具：`sessions_list` / `sessions_history`
 - 记忆工具：`memory_search` / `memory_get`
 - 子代理工具：`subagents`
 - 网关工具：`gateway`

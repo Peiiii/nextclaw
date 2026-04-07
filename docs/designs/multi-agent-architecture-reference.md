@@ -51,8 +51,7 @@ Example:
 ```json
 {
   "session": {
-    "dmScope": "per-account-channel-peer",
-    "agentToAgent": { "maxPingPongTurns": 0 }
+    "dmScope": "per-account-channel-peer"
   }
 }
 ```
@@ -92,7 +91,6 @@ Yes — NextClaw internal AI can manage this config surface through the built-in
 2. Send real user messages and confirm route hits expected role.
 3. Verify mention gating in Discord/Telegram (`@` required when configured).
 4. Verify DM isolation across users/channels/accounts.
-5. Set `maxPingPongTurns=0` and confirm auto ping-pong is blocked.
 
 Pass criteria: stable routing, no context leakage, predictable group triggering, explainable failures.
 

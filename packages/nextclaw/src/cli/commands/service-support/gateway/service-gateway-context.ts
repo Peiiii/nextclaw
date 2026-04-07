@@ -78,10 +78,11 @@ export function createGatewayShellContext(params: {
   const runtimeConfigPath = getConfigPath();
   const config = resolveConfigSecrets(loadConfig(), { configPath: runtimeConfigPath });
   const workspace = getWorkspacePath(config.agents.defaults.workspace);
+  const homeDir = getDataDir();
   const cronStorePath = join(getDataDir(), "cron", "jobs.json");
   const sessionManager = measureStartupSync(
     "service.gateway_shell_context.session_manager",
-    () => new SessionManager(workspace)
+    () => new SessionManager({ workspace, homeDir })
   );
   const cron = new CronService(cronStorePath);
   const uiConfig = resolveUiConfig(config, params.uiOverrides);

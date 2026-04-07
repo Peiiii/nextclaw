@@ -32,7 +32,9 @@ Always use the built-in NextClaw self-management guide as the operation guide.
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
 - Be explicit about restart semantics after changes.
-- For Agent creation/update/removal, follow the Agent management section in the self-management guide instead of inventing direct config edits.
+- For Agent creation/update/removal, treat `nextclaw agents list|new|update|remove --json` as the default path and follow the Agent management section in the self-management guide.
+- Do not edit `config.json` or `agents.list` directly for normal Agent CRUD; only do that when the user explicitly wants a manual recovery path.
+- When creating an Agent, prefer an explicit non-text avatar and avoid text-based styles such as DiceBear `initials`.
 
 ## Minimal Self-Management Flow
 

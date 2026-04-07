@@ -386,9 +386,6 @@ export type AgentBindingView = {
 
 export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
-  agentToAgent?: {
-    maxPingPongTurns?: number;
-  };
 };
 
 import type { ChatSessionTypesView } from "./chat-session-type.types.js";

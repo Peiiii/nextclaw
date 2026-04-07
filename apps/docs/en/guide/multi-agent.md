@@ -7,7 +7,6 @@ You can configure OpenClaw-style multi-agent runtime behavior in the UI (**Routi
 - `agents.list`: run multiple resident agent roles in one gateway process
 - `bindings`: route inbound messages by `channel + accountId (+peer)` to a target `agentId`
 - `session.dmScope`: DM isolation strategy
-- `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops
 
 ## Example Config
 
@@ -31,8 +30,7 @@ You can configure OpenClaw-style multi-agent runtime behavior in the UI (**Routi
     }
   ],
   "session": {
-    "dmScope": "per-account-channel-peer",
-    "agentToAgent": { "maxPingPongTurns": 0 }
+    "dmScope": "per-account-channel-peer"
   }
 }
 ```
@@ -63,4 +61,3 @@ You can configure OpenClaw-style multi-agent runtime behavior in the UI (**Routi
 2. Add specialist agents (`engineer`, `ops`, `support`)
 3. Route with `bindings` (channel/account/peer based)
 4. Use `dmScope="per-account-channel-peer"` for multi-account isolation
-5. Set `maxPingPongTurns=0` first, increase only when needed

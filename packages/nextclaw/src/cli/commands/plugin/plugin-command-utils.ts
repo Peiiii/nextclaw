@@ -15,7 +15,6 @@ const RESERVED_TOOL_NAMES = [
   "spawn",
   "sessions_list",
   "sessions_history",
-  "sessions_send",
   "memory_search",
   "memory_get",
   "subagents",

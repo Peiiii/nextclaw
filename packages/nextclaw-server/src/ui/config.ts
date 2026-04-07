@@ -1415,15 +1415,9 @@ export function updateRuntime(
   }
 
   if (patch.session) {
-    const nextAgentToAgent = {
-      ...config.session.agentToAgent,
-      ...(patch.session.agentToAgent ?? {})
-    };
-
     config.session = {
       ...config.session,
-      ...patch.session,
-      agentToAgent: nextAgentToAgent
+      ...patch.session
     };
   }
 

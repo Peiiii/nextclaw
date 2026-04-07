@@ -33,19 +33,28 @@ export class SpawnChildSessionTool extends Tool {
   }
 
   get description(): string {
-    return "Create a child session, delegate a task to it, and continue this session when it finishes.";
+    return "Create a child session, start the delegated task in the background, return a running child-session handle immediately, and automatically continue this session with the child's final reply when it finishes.";
   }
 
   get parameters(): Record<string, unknown> {
     return {
       type: "object",
       properties: {
-        task: { type: "string", description: "Task to run inside the child session." },
-        label: { type: "string", description: "Optional child session title." },
-        model: { type: "string", description: "Optional model override for the child session." },
+        task: {
+          type: "string",
+          description: "Task to start immediately inside the child session.",
+        },
+        label: {
+          type: "string",
+          description: "Optional child session title shown in the session list and tool card.",
+        },
+        model: {
+          type: "string",
+          description: "Optional model override used only for the child session.",
+        },
         agentId: {
           type: "string",
-          description: "Optional target agent id for the child session. Omit to use the default agent.",
+          description: "Optional target agent id for the child session. Omit to use the default agent for that child.",
         },
       },
       required: ["task"],

@@ -37,7 +37,6 @@ export const FIELD_HELP: Record<string, string> = {
   "bindings.*.match.peer.kind": "Peer kind matcher (direct/group/channel).",
   "bindings.*.match.peer.id": "Peer id matcher (user/channel/group id).",
   "session.dmScope": "DM session partition strategy (main/per-peer/per-channel-peer/per-account-channel-peer).",
-  "session.agentToAgent.maxPingPongTurns": "Maximum allowed agent-to-agent handoff depth.",
   "providers.*": "Configure credentials and endpoints for this provider.",
   "providers.openai": "Leading AI models including GPT-4 and GPT-3.5.",
   "providers.*.displayName": "Optional custom label shown in UI (recommended for custom provider slots).",

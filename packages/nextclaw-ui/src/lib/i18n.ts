@@ -381,8 +381,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   defaultContextTokensHelp: { zh: '当 Agent 未设置单独值时使用该上下文预算。', en: 'Input context budget for agents when no per-agent override is set.' },
   defaultEngine: { zh: '默认引擎', en: 'Default Engine' },
   defaultEngineHelp: { zh: '默认使用的 Agent 引擎类型，例如 native 或 codex-sdk。', en: 'Default agent engine kind, for example native or codex-sdk.' },
-  maxPingPongTurns: { zh: '最大乒乓轮次', en: 'Max Ping-Pong Turns' },
-  maxPingPongTurnsHelp: { zh: '设为 0 可阻止 Agent 间自动 ping-pong。', en: 'Set to 0 to block automatic agent-to-agent ping-pong loops.' },
   agentList: { zh: 'Agent 列表', en: 'Agent List' },
   agentListHelp: { zh: '在同一个网关进程中运行多个固定角色 Agent。', en: 'Run multiple fixed-role agents in one gateway process.' },
   bindings: { zh: '绑定规则', en: 'Bindings' },

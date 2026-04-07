@@ -202,6 +202,93 @@ describe("createUiNcpAgent session request completion", () => {
       expect(childSession?.metadata?.spawned_by_request_id).toBeTruthy();
       expect(publishInbound).not.toHaveBeenCalled();
   });
+
+  it("keeps the completed session-request tool result after backend recreation", async () => {
+    const workspace = createTempWorkspace();
+    const sessionId = `session-subagent-persisted-${Date.now().toString(36)}`;
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+      },
+    });
+
+    const firstAgent = await createUiNcpAgent({
+      bus: {
+        publishInbound: vi.fn(async () => undefined),
+        publishOutbound: vi.fn(async () => undefined),
+      } as unknown as MessageBus,
+      providerManager: new SubagentCompletionProviderManager() as unknown as ProviderManager,
+      sessionManager: new SessionManager(workspace),
+      getConfig: () => config,
+    });
+    activeAgents.push(firstAgent);
+
+    await firstAgent.agentClientEndpoint.send(
+      createEnvelope({
+        sessionId,
+        text: "spawn a subagent to verify 1+1=2",
+      }),
+    );
+
+    await waitForCondition(async () => {
+      const messages = await firstAgent.sessionApi.listSessionMessages(sessionId);
+      return messages.some(
+        (message) =>
+          message.role === "assistant" &&
+          message.parts.some(
+            (part) =>
+              part.type === "tool-invocation" &&
+              part.toolCallId === "spawn-call-1" &&
+              part.state === "result" &&
+              typeof part.result === "object" &&
+              part.result !== null &&
+              "kind" in part.result &&
+              part.result.kind === "nextclaw.session_request" &&
+              "status" in part.result &&
+              part.result.status === "completed",
+          ),
+      );
+    });
+
+    await firstAgent.dispose?.();
+    activeAgents.pop();
+
+    const secondAgent = await createUiNcpAgent({
+      bus: {
+        publishInbound: vi.fn(async () => undefined),
+        publishOutbound: vi.fn(async () => undefined),
+      } as unknown as MessageBus,
+      providerManager: new SubagentCompletionProviderManager() as unknown as ProviderManager,
+      sessionManager: new SessionManager(workspace),
+      getConfig: () => config,
+    });
+    activeAgents.push(secondAgent);
+
+    const reloadedMessages = await secondAgent.sessionApi.listSessionMessages(sessionId);
+    expect(
+      reloadedMessages.some(
+        (message) =>
+          message.role === "assistant" &&
+          message.parts.some(
+            (part) =>
+              part.type === "tool-invocation" &&
+              part.toolCallId === "spawn-call-1" &&
+              part.state === "result" &&
+              typeof part.result === "object" &&
+              part.result !== null &&
+              "kind" in part.result &&
+              part.result.kind === "nextclaw.session_request" &&
+              "status" in part.result &&
+              part.result.status === "completed",
+          ),
+      ),
+    ).toBe(true);
+  });
 });
 
 class SubagentCompletionProviderManager {

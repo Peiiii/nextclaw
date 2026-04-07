@@ -193,14 +193,15 @@ function prependRequestedSkills(content: string, requestedSkillNames: string[]):
 function buildSessionOrchestrationSection(): string {
   return [
     "## Session Orchestration",
-    "- `spawn` creates a child session for delegated sub-work that should report completion back into the current session.",
-    "- Use `spawn` when the work is a subtask of the current flow and the user expects this session to continue after that child finishes.",
+    "- `spawn` creates a child session, starts the delegated task there immediately, and returns a running child-session handle right away instead of waiting for the child to finish.",
+    "- When that child reaches its final reply, `spawn` writes the completed result back into the original tool call and resumes the current session with the child's result.",
+    "- Use `spawn` when the work is a subtask of the current flow and the user expects this session to pause now and then continue after that child finishes.",
     "- `sessions_spawn` creates a standalone session. Use it when the work should live in its own thread, remain independently reviewable later, or continue outside the current flow.",
     "- `sessions_request` sends one task to another session. Use it to reuse an existing session, or immediately after `sessions_spawn` when a new standalone session should start working right away.",
     "- If the goal is 'open a new session and have it do something now', the usual sequence is: 1) call `sessions_spawn`; 2) call `sessions_request` with that returned `sessionId`.",
     "- `sessions_request.target` must be an object shaped like `{ \"session_id\": \"<target-session-id>\" }`. Do not pass a bare string.",
     "- Prefer `delivery=\"resume_source\"` when the current session should continue after the target session produces its final reply. Use `delivery=\"none\"` when you only want the target session to run independently.",
-    "- Do not use `spawn` for long-lived independent threads when `sessions_spawn` plus `sessions_request` would match the user's intent better.",
+    "- Do not use `spawn` for long-lived independent threads, fire-and-forget work, or work that should not automatically resume the current session; in those cases use `sessions_spawn` plus `sessions_request` instead.",
   ].join("\n");
 }
 

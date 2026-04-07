@@ -255,13 +255,8 @@ export const AgentBindingSchema = z.object({
   match: BindingMatchSchema
 });
 
-export const SessionAgentToAgentSchema = z.object({
-  maxPingPongTurns: z.number().int().min(0).max(5).default(0)
-});
-
 export const SessionConfigSchema = z.object({
-  dmScope: sessionDmScopeSchema.default("per-channel-peer"),
-  agentToAgent: SessionAgentToAgentSchema.default({})
+  dmScope: sessionDmScopeSchema.default("per-channel-peer")
 });
 
 export const ContextBootstrapSchema = z.object({

@@ -63,6 +63,10 @@ export function ChatConversationPanel() {
     snapshot.sessionDisplayName ||
     (snapshot.canDeleteSession && snapshot.sessionKey ? snapshot.sessionKey : null) ||
     t("chatSidebarNewTask");
+  const normalizedAgentId = snapshot.agentId?.trim() ?? "";
+  const shouldShowHeaderAgentAvatar =
+    normalizedAgentId.length > 0 &&
+    normalizedAgentId.toLowerCase() !== "main";
 
   const showWelcome =
     !snapshot.canDeleteSession &&
@@ -119,17 +123,14 @@ export function ChatConversationPanel() {
           )}
         >
           <div className="min-w-0 flex-1 flex items-center gap-2">
-            {snapshot.agentId ? (
-              <div className="inline-flex items-center gap-2 shrink-0 rounded-full border border-gray-200 bg-white/80 px-2 py-1">
+            {shouldShowHeaderAgentAvatar ? (
+              <div className="inline-flex shrink-0 items-center">
                 <AgentAvatar
-                  agentId={snapshot.agentId}
+                  agentId={normalizedAgentId}
                   displayName={snapshot.agentDisplayName}
                   avatarUrl={snapshot.agentAvatarUrl}
                   className="h-5 w-5"
                 />
-                <span className="max-w-[120px] truncate text-xs font-medium text-gray-700">
-                  {snapshot.agentDisplayName?.trim() || snapshot.agentId}
-                </span>
               </div>
             ) : null}
             <span className="text-sm font-medium text-gray-700 truncate">

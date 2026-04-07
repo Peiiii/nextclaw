@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   selectSession: vi.fn(),
   docOpen: vi.fn(),
   updateNcpSession: vi.fn(),
+  agents: [] as Array<{ id: string; displayName?: string; avatarUrl?: string | null }>,
   sessionItems: [] as NcpSessionListItemView[],
   isLoading: false
 }));
@@ -74,7 +75,7 @@ vi.mock('@/components/common/StatusBadge', () => ({
 vi.mock('@/hooks/agents/useAgents', () => ({
   useAgents: () => ({
     data: {
-      agents: []
+      agents: mocks.agents
     }
   })
 }));
@@ -106,6 +107,7 @@ describe('ChatSidebar', () => {
     mocks.docOpen.mockReset();
     mocks.updateNcpSession.mockReset();
     mocks.updateNcpSession.mockResolvedValue({});
+    mocks.agents = [];
     mocks.sessionItems = [];
     mocks.isLoading = false;
 
@@ -252,6 +254,44 @@ describe('ChatSidebar', () => {
 
     expect(screen.getByText('Native Task')).not.toBeNull();
     expect(screen.queryByText('Native')).toBeNull();
+  });
+
+  it('hides the sidebar agent avatar for the main agent but keeps specialist avatars', () => {
+    mocks.agents = [
+      { id: 'main', displayName: 'Main' },
+      { id: 'engineer', displayName: 'Engineer' }
+    ];
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:main-1',
+        createdAt: '2026-03-19T09:00:00.000Z',
+        updatedAt: '2026-03-19T09:05:00.000Z',
+        label: 'Main Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1,
+        agentId: 'main'
+      }),
+      createSessionItem({
+        key: 'session:engineer-1',
+        createdAt: '2026-03-19T10:00:00.000Z',
+        updatedAt: '2026-03-19T10:05:00.000Z',
+        label: 'Engineer Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1,
+        agentId: 'engineer'
+      })
+    ];
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByLabelText('Main')).toBeNull();
+    expect(screen.getByLabelText('Engineer')).not.toBeNull();
   });
 
   it('edits the session label inline and saves through the ncp session api by default', async () => {

@@ -209,7 +209,6 @@ Use one of these two entry points instead:
 
 - `bindings`: route inbound messages by `channel + accountId (+peer)` to a target `agentId`
 - `session.dmScope`: DM isolation strategy (`main` / `per-peer` / `per-channel-peer` / `per-account-channel-peer`)
-- `session.agentToAgent.maxPingPongTurns`: cap cross-agent ping-pong loops (`0` means block auto ping-pong)
 
 > ⚠️ **Strict enum guard (OpenClaw-aligned):** `session.dmScope` accepts **only** these 4 values: `main`, `per-peer`, `per-channel-peer`, `per-account-channel-peer`.
 > Any other value (for example `per-account-channel-peer-agent`) is invalid and must not be written.
@@ -231,8 +230,7 @@ Example:
     }
   ],
   "session": {
-    "dmScope": "per-account-channel-peer",
-    "agentToAgent": { "maxPingPongTurns": 0 }
+    "dmScope": "per-account-channel-peer"
   }
 }
 ```
@@ -243,7 +241,6 @@ CLI equivalents:
 nextclaw agents new engineer --json
 nextclaw config set bindings '[{"agentId":"engineer","match":{"channel":"discord","accountId":"zongzhihui"}}]' --json
 nextclaw config set session.dmScope '"per-account-channel-peer"' --json
-nextclaw config set session.agentToAgent.maxPingPongTurns 0 --json
 ```
 
 ### Multi-agent collaboration playbook (recommended)
@@ -254,7 +251,6 @@ Use this baseline for predictable team-style collaboration:
 2. Create specialist agents through the `Agents` page or `nextclaw agents new` (for example `engineer`, `ops`, `support`).
 3. Route stable traffic classes with `bindings` (channel/account/peer based).
 4. Use `session.dmScope="per-account-channel-peer"` for multi-account + multi-channel isolation.
-5. Set `session.agentToAgent.maxPingPongTurns=0` first, then increase only when you explicitly want cross-agent relay.
 
 Suggested role split:
 
@@ -328,7 +324,6 @@ nextclaw config set channels.discord.groupAllowFrom '["dev-room"]' --json
 2. Add at least one binding and verify inbound messages hit the expected role.
 3. Verify DM isolation across user/channel/account boundaries under the selected `dmScope`.
 4. If Discord/Telegram group collaboration is enabled, verify mention gating (`requireMention` / `mentionPatterns`) behavior.
-5. Verify auto ping-pong policy with `session.agentToAgent.maxPingPongTurns` (set `0` to block).
 
 Pass criteria: stable routing, no cross-session context leakage, predictable group triggering, explainable fallback behavior.
 
@@ -519,9 +514,9 @@ Agent management notes:
 - If `--avatar` is omitted, NextClaw generates a local default `avatar.svg`.
 - `nextclaw agents new/update/remove --json` returns machine-readable output plus `restartRequired: true`.
 
-### Agent creation flow for AI self-management
+### Agent CRUD flow for AI self-management
 
-When NextClaw AI is asked to create a new Agent, use this exact flow instead of inventing config edits:
+When NextClaw AI is asked to create, update, or remove an Agent, use this exact flow instead of inventing config edits:
 
 1. Inspect current agents when needed:
 
@@ -529,14 +524,16 @@ When NextClaw AI is asked to create a new Agent, use this exact flow instead of 
    nextclaw agents list --json
    ```
 
-2. Create the new Agent through the dedicated command:
+2. Execute the dedicated command instead of editing config directly:
 
    ```bash
    nextclaw agents new <agent-id> --json [--name <display-name>] [--description <description>] [--avatar <url-or-local-file>] [--home <path>]
+   nextclaw agents update <agent-id> --json [--name <display-name>] [--description <description>] [--avatar <url-or-local-file>]
+   nextclaw agents remove <agent-id> --json
    ```
 
 3. Treat the JSON output as the source of truth:
-   - `agent`: created Agent profile
+   - `agent`: created or updated Agent profile
    - `restartRequired: true`: runtime changes still need a restart to apply
 
 4. If the service is currently running, restart explicitly after creation:
@@ -554,23 +551,26 @@ When NextClaw AI is asked to create a new Agent, use this exact flow instead of 
 
 Rules:
 
-- Do not try to create the built-in `main` agent.
-- Prefer `nextclaw agents update` over direct `config.json` edits when changing Agent name / description / avatar.
-- Prefer `nextclaw agents new` over direct `config.json` edits for normal Agent creation.
-- If the user asked AI to create the Agent, AI should run the command, not only describe it.
+- Do not try to create or remove the built-in `main` agent. `nextclaw agents update main` is allowed.
+- For normal Agent management, prefer `nextclaw agents list|new|update|remove --json` over direct `config.json` or `agents.list` edits.
+- Direct `config.json` / `agents.list` edits are recovery-only: use them only for explicit operator-led disaster recovery, or when a documented CLI path still cannot express the requested change.
+- Humans should use the `Agents` page or the CLI for Agent identities. `Routing & Runtime` is not the identity-management entry point.
+- If the user asked AI to perform Agent CRUD, AI should run the command, not only describe it.
 - Avatar guidance for AI-created agents:
-  - If the user did not explicitly provide an avatar, AI may prefer passing a remote avatar URL from a deterministic avatar service to improve the default UI experience.
-  - Default suggestion: if third-party avatar URLs are acceptable and the user did not express a preference, prefer a deterministic service such as DiceBear.
-  - When using DiceBear or a similar service, prefer a stable seed derived from `agent-id` (or display name) so repeated creation yields a predictable identity instead of a different avatar every time.
+  - When AI creates an Agent, prefer passing an explicit `--avatar` instead of relying on the generated fallback.
+  - Prefer non-text avatars for long-lived Agent identities; avoid letter-based or initials-based avatar styles as the default recommendation.
+  - DiceBear `initials` is a text-based avatar style and should not be the default recommendation for Agents.
+  - If you use DiceBear or a similar deterministic service, prefer a non-text style with a stable seed derived from `agent-id` (or display name) so repeated creation yields a predictable identity.
   - Concrete example:
 
     ```bash
-    nextclaw agents new researcher --json --name "Researcher" --avatar "https://api.dicebear.com/9.x/initials/svg?seed=researcher"
+    nextclaw agents new researcher --json --name "Researcher" --avatar "https://api.dicebear.com/9.x/identicon/svg?seed=researcher"
     ```
 
   - If you want a different stable avatar, keep the same URL pattern but replace the seed with the final `agent-id` or display name.
-  - Example providers may change over time; treat DiceBear as an explicit recommendation for now, but still as a replaceable suggestion rather than a built-in product dependency or a hardcoded runtime rule.
-  - If the user prefers local-only assets, offline behavior, or does not want third-party avatar URLs, omit `--avatar` and let NextClaw generate the local fallback `avatar.svg`.
+  - Example providers may change over time; treat DiceBear as a replaceable suggestion rather than a built-in product dependency or a hardcoded runtime rule.
+  - If the user prefers local-only assets, offline behavior, or does not want third-party avatar URLs, prefer passing a local image file path with `--avatar`.
+  - Omit `--avatar` only as a last-resort fallback. The generated local `avatar.svg` is acceptable as a fallback, but it is not the preferred default for AI-created Agents.
 
 Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 

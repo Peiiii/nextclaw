@@ -11,7 +11,6 @@ import {
   ReadFileTool,
   SessionsHistoryTool,
   SessionsListTool,
-  SessionsSendTool,
   ToolRegistry,
   WebFetchTool,
   WebSearchTool,
@@ -230,16 +229,6 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
 
     this.registerTool(new SessionsListTool(this.options.sessionManager));
     this.registerTool(new SessionsHistoryTool(this.options.sessionManager));
-    const sessionsSendTool = new SessionsSendTool(this.options.sessionManager, this.options.bus);
-    sessionsSendTool.setContext({
-      currentSessionKey: context.sessionId,
-      currentAgentId: context.agentId,
-      channel: context.channel,
-      chatId: context.chatId,
-      maxPingPongTurns: context.config.session?.agentToAgent?.maxPingPongTurns ?? 0,
-      currentHandoffDepth: context.handoffDepth,
-    });
-    this.registerTool(sessionsSendTool);
 
     this.registerTool(new MemorySearchTool(context.workspace));
     this.registerTool(new MemoryGetTool(context.workspace));

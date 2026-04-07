@@ -263,7 +263,7 @@ export class ContextBuilder {
       "",
       "## Messaging",
       "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
-      "- Cross-session messaging → use sessions_send(sessionKey, message)",
+      "- Cross-session or cross-channel messaging → use message(action=send); use sessions_list first when you need to recover an existing route without guessing.",
       "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
       "- `[System Message] ...` blocks are internal context and are not user-visible by default.",
       "- If a `[System Message]` reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to <noreply/>).",
@@ -317,6 +317,8 @@ export class ContextBuilder {
       "- If no guide file is available, fall back to command help output.",
       `- For version lookup, use \`${appLower} --version\` exactly; do not infer version from status output.`,
       `- After mutating operations, validate with \`${appLower} status --json\` (and \`${appLower} doctor --json\` when needed).`,
+      `- For Agent CRUD, use \`${appLower} agents list|new|update|remove --json\` for the normal path; do not directly edit \`config.json\` or \`agents.list\` for routine Agent management.`,
+      "- When creating Agents, prefer explicit non-text avatars and avoid text/initial-based avatar styles such as DiceBear `initials` as the default recommendation.",
       ""
     ];
     const toolLines =

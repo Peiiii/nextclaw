@@ -104,6 +104,8 @@ describe('ChatConversationPanel', () => {
         sessionTypeLabel: 'Codex',
         sessionKey: 'draft-session-1',
         sessionDisplayName: undefined,
+        agentId: null,
+        agentDisplayName: null,
         sessionProjectRoot: null,
         sessionProjectName: null,
         canDeleteSession: false,
@@ -145,6 +147,35 @@ describe('ChatConversationPanel', () => {
     expect(screen.getByText('Project Thread')).toBeTruthy();
     expect(screen.getByText('project-alpha')).toBeTruthy();
     expect(screen.getByLabelText('More actions')).toBeTruthy();
+  });
+
+  it('does not show a header agent marker for the main agent', () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        agentId: 'main',
+        agentDisplayName: 'Main',
+      }
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.queryByTestId('agent-avatar')).toBeNull();
+  });
+
+  it('shows only a lightweight avatar marker for a specialist agent', () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        agentId: 'engineer',
+        agentDisplayName: 'Engineer',
+      }
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.getByTestId('agent-avatar').textContent).toBe('engineer');
+    expect(screen.queryByText('Engineer')).toBeNull();
   });
 });
 

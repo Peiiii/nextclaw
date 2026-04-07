@@ -11,7 +11,7 @@ import { WebSearchTool, WebFetchTool } from "./tools/web.js";
 import { MessageTool } from "./tools/message.js";
 import { SpawnTool } from "./tools/spawn.js";
 import { CronTool } from "./tools/cron.js";
-import { SessionsListTool, SessionsHistoryTool, SessionsSendTool } from "./tools/sessions.js";
+import { SessionsListTool, SessionsHistoryTool } from "./tools/sessions.js";
 import { MemorySearchTool, MemoryGetTool } from "./tools/memory.js";
 import { GatewayTool, type GatewayController } from "./tools/gateway.js";
 import { SubagentsTool } from "./tools/subagents.js";
@@ -123,7 +123,6 @@ export class AgentLoop {
 
     this.tools.register(new SessionsListTool(this.sessions));
     this.tools.register(new SessionsHistoryTool(this.sessions));
-    this.tools.register(new SessionsSendTool(this.sessions, this.options.bus));
 
     this.tools.register(new MemorySearchTool(this.options.workspace));
     this.tools.register(new MemoryGetTool(this.options.workspace));
@@ -178,34 +177,6 @@ export class AgentLoop {
       chatId: params.chatId,
       sandboxed: this.options.restrictToWorkspace ?? false
     };
-  }
-
-  private setSessionsSendToolContext(params: {
-    sessionKey: string;
-    channel: string;
-    chatId: string;
-    handoffDepth: number;
-  }): void {
-    const sessionsSendTool = this.tools.get("sessions_send");
-    if (!(sessionsSendTool instanceof SessionsSendTool)) {
-      return;
-    }
-    sessionsSendTool.setContext({
-      currentSessionKey: params.sessionKey,
-      currentAgentId: this.agentId,
-      channel: params.channel,
-      chatId: params.chatId,
-      maxPingPongTurns: this.options.config?.session?.agentToAgent?.maxPingPongTurns ?? 0,
-      currentHandoffDepth: params.handoffDepth
-    });
-  }
-
-  private resolveHandoffDepth(metadata: Record<string, unknown>): number {
-    const rawDepth = Number(metadata.agent_handoff_depth ?? 0);
-    if (!Number.isFinite(rawDepth) || rawDepth < 0) {
-      return 0;
-    }
-    return Math.trunc(rawDepth);
   }
 
   async handleInbound(params: {
@@ -629,12 +600,6 @@ export class AgentLoop {
     const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
     this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
-    this.setSessionsSendToolContext({
-      sessionKey,
-      channel: msg.channel,
-      chatId: msg.chatId,
-      handoffDepth: this.resolveHandoffDepth(msg.metadata)
-    });
     const runtimeModel = this.resolveSessionModel(session, msg.metadata);
     const sessionThinking = this.resolveSessionThinkingOverride(session, msg.metadata);
     const runtimeThinking = resolveThinkingLevel({
@@ -867,12 +832,6 @@ export class AgentLoop {
     const sessionKey = sessionKeyOverride ?? metadataSessionKey ?? `${originChannel}:${originChatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
     this.setExtensionToolContext({ sessionKey, channel: originChannel, chatId: originChatId });
-    this.setSessionsSendToolContext({
-      sessionKey,
-      channel: originChannel,
-      chatId: originChatId,
-      handoffDepth: this.resolveHandoffDepth(msg.metadata)
-    });
     const runtimeModel = this.resolveSessionModel(session, msg.metadata);
     const sessionThinking = this.resolveSessionThinkingOverride(session, msg.metadata);
     const runtimeThinking = resolveThinkingLevel({

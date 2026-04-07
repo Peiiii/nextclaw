@@ -50,6 +50,10 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
   } = props;
 
   const iconTone = active ? 'text-gray-700' : 'text-gray-500';
+  const normalizedAgentId = agentId?.trim() ?? '';
+  const shouldShowAgentAvatar = Boolean(
+    normalizedAgentId && normalizedAgentId.toLowerCase() !== 'main',
+  );
 
   return (
     <div
@@ -112,9 +116,9 @@ export function ChatSidebarSessionItem(props: ChatSidebarSessionItemProps) {
           <button type="button" onClick={onSelect} className="w-full text-left">
             <div className="grid grid-cols-[minmax(0,1fr)_0.875rem] items-center gap-1.5 pr-8">
               <span className="flex min-w-0 items-center gap-1.5">
-                {agentId ? (
+                {shouldShowAgentAvatar ? (
                   <AgentAvatar
-                    agentId={agentId}
+                    agentId={normalizedAgentId}
                     displayName={agentLabel}
                     avatarUrl={agentAvatarUrl}
                     className="h-5 w-5 shrink-0"

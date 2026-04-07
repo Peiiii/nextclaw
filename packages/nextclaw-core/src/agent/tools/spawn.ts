@@ -32,19 +32,19 @@ export class SpawnTool extends Tool {
     };
   }
 
-  setContext(
+  setContext = (
     channel: string,
     chatId: string,
     sessionModel?: string,
     sessionKey?: string,
     agentId?: string
-  ): void {
+  ): void => {
     this.channel = channel;
     this.chatId = chatId;
     this.sessionModel = sessionModel;
     this.sessionKey = sessionKey;
     this.agentId = agentId;
-  }
+  };
 
   execute = async (params: Record<string, unknown>, toolCallId?: string): Promise<unknown> => {
     const task = String(params.task ?? "");

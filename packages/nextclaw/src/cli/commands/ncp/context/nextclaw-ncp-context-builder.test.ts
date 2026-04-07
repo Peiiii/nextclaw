@@ -156,7 +156,8 @@ it("injects session orchestration guidance into the NCP system prompt", () => {
 
     const systemPrompt = String(prepared.messages[0]?.content ?? "");
     expect(systemPrompt).toContain("## Session Orchestration");
-    expect(systemPrompt).toContain("`spawn` creates a child session");
+    expect(systemPrompt).toContain("`spawn` creates a child session, starts the delegated task there immediately");
+    expect(systemPrompt).toContain("writes the completed result back into the original tool call");
     expect(systemPrompt).toContain("`sessions_spawn` creates a standalone session");
     expect(systemPrompt).toContain("the usual sequence is: 1) call `sessions_spawn`; 2) call `sessions_request`");
     expect(systemPrompt).toContain("`sessions_request.target` must be an object shaped like");

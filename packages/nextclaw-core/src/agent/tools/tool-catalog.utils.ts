@@ -14,7 +14,6 @@ export const DEFAULT_TOOL_CATALOG: ReadonlyArray<ToolCatalogEntry> = [
   { name: "message", description: "Send messages and channel actions" },
   { name: "sessions_list", description: "List other sessions" },
   { name: "sessions_history", description: "Fetch history for another session/sub-agent" },
-  { name: "sessions_send", description: "Send a message to another session/sub-agent" },
   { name: "spawn", description: "Create a sub-agent" },
   { name: "subagents", description: "List, steer, or kill sub-agent runs" },
   { name: "memory_search", description: "Search memory files" },

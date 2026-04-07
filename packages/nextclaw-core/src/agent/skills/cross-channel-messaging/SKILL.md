@@ -1,6 +1,6 @@
 ---
 name: cross-channel-messaging
-description: Use when the user wants the AI to send, relay, or notify through another NextClaw session or chat channel, especially after work completes, including choosing between normal replies, sessions_send, and message, and resolving route/account details without guessing.
+description: Use when the user wants the AI to send, relay, or notify through another NextClaw session or chat channel, especially after work completes, including deciding between a normal reply and message, and resolving route/account details without guessing.
 ---
 
 # Cross-Channel Messaging
@@ -34,10 +34,9 @@ Pick the smallest existing primitive that already matches the user intent:
 
 1. Reply in the current conversation:
    Just reply normally when the user means the current session.
-2. Send to another existing session:
-   Use `sessions_send(sessionKey|label, message)` when the target is an existing routable session.
-3. Proactively send to an explicit channel route:
+2. Send to another conversation or channel:
    Use `message` when the user wants a direct outbound send to a specific channel/chat/account route.
+   If an existing session may already hold the route, use `sessions_list` narrowly to recover that route first, then call `message`.
 
 ## Tool Choice
 
@@ -49,31 +48,12 @@ Use a normal assistant reply when:
 - the target is clearly the current session,
 - no cross-session or cross-channel delivery is needed.
 
-### `sessions_send`
-
-Use `sessions_send` when:
-
-- the target already exists as another session,
-- you know a valid `sessionKey`,
-- or a stable session `label` is already known.
-
-Prefer `sessions_send` over `message` when an existing session already captures the route.
-
-When you need to find a likely target session first, use `sessions_list` narrowly instead of listing a broad page and manually scanning it.
-
-- If the channel is known, pass `channel`.
-- If the exact target/chat id is known, pass `to`.
-- If the account is known, pass `accountId`.
-- If the exact session is known, pass `sessionKey`.
-
-Prefer the smallest precise filter set that can prove whether a routable session already exists.
-
 ### `message`
 
 Use `message` when:
 
 - the user explicitly wants a proactive send,
-- the target is described as a channel route rather than a known session,
+- the target is described as a channel route,
 - you need to send to a specific `channel` + `to/chatId`,
 - or the user asks for a channel action that belongs to the message tool.
 
@@ -98,7 +78,7 @@ Resolve the target in this order:
 2. Current session route:
    Only when the user clearly means "here", "this chat", or the current conversation.
 3. Existing known session:
-   Use `sessions_send` if the intended target already exists as a routable session.
+   Use `sessions_list` to recover the saved route if the intended target already exists as a routable session.
 4. Authoritative context already exposed to the AI:
    tool hints, existing session metadata, project docs, or a known local config file path/content.
 5. Ask a narrow follow-up question.
@@ -208,7 +188,7 @@ Rules:
 
 - If the current session is Feishu, replying there may omit `target`.
 - If the current session is not Feishu, do not call `message(channel=feishu)` without `to/chatId`.
-- If an existing Feishu session already gives you the route, prefer that route directly or use `sessions_send`.
+- If an existing Feishu session already gives you the route, recover that route and send with `message`.
 - If only the Feishu destination is missing, ask only for the missing `open_id` or `chat_id`.
 
 ## Failure Handling
@@ -234,7 +214,7 @@ If the user asks for "notify me when done" but no target route is actually known
 
 This skill is working correctly when:
 
-- the AI chooses between normal reply, `sessions_send`, and `message` correctly,
+- the AI chooses between a normal reply and `message` correctly,
 - it reuses existing session routes when possible,
 - it reads route/account information from explicit context when available,
 - it asks for missing route data instead of guessing,

@@ -210,9 +210,6 @@ export type AgentBindingView = {
 
 export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
-  agentToAgent?: {
-    maxPingPongTurns?: number;
-  };
 };
 
 export type SessionEntryView = {

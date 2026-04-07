@@ -1,0 +1,1 @@
+import{_ as e,m as t,p as n,u as r}from"./i18n-DAekxt_G.js";var i=e(t(),1),a=n(),o=i.forwardRef(({className:e,...t},n)=>(0,a.jsx)(`label`,{ref:n,className:r(`text-sm font-medium leading-none text-gray-700 peer-disabled:cursor-not-allowed peer-disabled:opacity-70`,e),...t}));o.displayName=`Label`;export{o as t};

@@ -174,7 +174,6 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 | spawn | 调用 subagent |
 | sessions_list | 会话列表 |
 | sessions_history | 会话历史 |
-| sessions_send | 向会话发送消息 |
 | memory_search | 工作区 memory 检索 |
 | memory_get | 读取 memory 条目 |
 | subagents | 子代理能力查询/编排 |
@@ -197,7 +196,6 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 - **单进程多 Agent**：`agents.list` 定义多个常驻 Agent（如 main、engineer）。
 - **路由**：`bindings` 按 `channel + accountId (+ peer)` 路由到 `agentId`。
 - **会话隔离**：`session.dmScope`（main / per-peer / per-channel-peer / per-account-channel-peer）。
-- **Agent 间**：`session.agentToAgent.maxPingPongTurns` 限制自动乒乓。
 - **群组**：Discord/Telegram 支持 requireMention、mentionPatterns、groups 等。
 
 详见 [多 Agent 架构](https://docs.nextclaw.io/en/guide/multi-agent)。

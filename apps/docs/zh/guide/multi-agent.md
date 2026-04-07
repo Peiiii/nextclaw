@@ -7,7 +7,6 @@
 - `agents.list`：在同一个网关进程内运行多个常驻 Agent
 - `bindings`：按 `channel + accountId (+peer)` 把入站消息路由到目标 `agentId`
 - `session.dmScope`：私聊会话隔离策略
-- `session.agentToAgent.maxPingPongTurns`：限制 Agent 间 ping-pong 轮数
 
 ## 示例配置
 
@@ -31,8 +30,7 @@
     }
   ],
   "session": {
-    "dmScope": "per-account-channel-peer",
-    "agentToAgent": { "maxPingPongTurns": 0 }
+    "dmScope": "per-account-channel-peer"
   }
 }
 ```
@@ -63,4 +61,3 @@
 2. 按职责拆分专家 Agent（如 `engineer`、`ops`、`support`）
 3. 用 `bindings` 做按渠道/账号/群组的精细路由
 4. 多账号场景优先 `dmScope="per-account-channel-peer"`
-5. `maxPingPongTurns` 先设 `0`，确有需要再提高

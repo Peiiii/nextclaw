@@ -121,13 +121,6 @@ export class SessionRequestDeliveryService {
     if (!backend) {
       throw new Error("NCP backend is not ready for session request delivery.");
     }
-    const isIdle = await waitForSessionToBecomeIdle({
-      backend,
-      sessionId: params.request.sourceSessionId,
-    });
-    if (!isIdle) {
-      return;
-    }
     await backend.updateToolCallResult(
       params.request.sourceSessionId,
       params.request.sourceToolCallId.trim(),
@@ -148,6 +141,9 @@ export class SessionRequestDeliveryService {
       sessionId: params.request.sourceSessionId,
     });
     if (!isIdle) {
+      console.warn(
+        `[session-request] resume skipped for ${params.request.sourceSessionId} because the source session did not become idle in time.`,
+      );
       return;
     }
     scheduleDetached(
