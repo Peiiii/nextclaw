@@ -1,5 +1,6 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import {
+  clearPublishedVersionCache,
   collectWorkspacePackages,
   readNpmRegistry,
   readPendingChangesetPackages,
@@ -68,6 +69,7 @@ console.log(
 let missingPackages = batchPackages;
 
 for (let attempt = 1; attempt <= attempts; attempt += 1) {
+  clearPublishedVersionCache();
   missingPackages = missingPackages.filter((entry) => !isPackageVersionPublished(entry));
   if (missingPackages.length === 0) {
     console.log(

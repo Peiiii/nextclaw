@@ -8,6 +8,8 @@ const CHANGESET_DIR = join(ROOT_DIR, ".changeset");
 const NPM_CONFIG_TIMEOUT_MS = 5000;
 const NPM_VIEW_TIMEOUT_MS = 15000;
 const PUBLISHED_VERSION_CACHE = new Map();
+const PACKAGE_VERSION_COMMIT_CACHE = new Map();
+const PACKAGE_VERSION_DRIFT_CACHE = new Map();
 
 function collectPackageJsonFiles(dir) {
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -99,6 +101,31 @@ export function hasGitTag(tagName) {
   }
 }
 
+export function readLatestPackageVersionCommit(entry) {
+  const cacheKey = entry.packageFile;
+  if (PACKAGE_VERSION_COMMIT_CACHE.has(cacheKey)) {
+    return PACKAGE_VERSION_COMMIT_CACHE.get(cacheKey);
+  }
+
+  try {
+    const versionCommit = execFileSync(
+      "git",
+      ["log", "-n", "1", "--format=%H", "--", entry.packageFile],
+      {
+        cwd: ROOT_DIR,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"]
+      }
+    ).trim();
+    const resolvedCommit = versionCommit || null;
+    PACKAGE_VERSION_COMMIT_CACHE.set(cacheKey, resolvedCommit);
+    return resolvedCommit;
+  } catch {
+    PACKAGE_VERSION_COMMIT_CACHE.set(cacheKey, null);
+    return null;
+  }
+}
+
 export function getExplicitReleaseBatchPackageNames(workspacePackages, pendingChangesetPackages) {
   const batchPackageNames = new Set(pendingChangesetPackages);
   for (const entry of workspacePackages) {
@@ -173,6 +200,10 @@ export function readPublishedExactPackageVersion(packageName, version) {
   }
 }
 
+export function clearPublishedVersionCache() {
+  PUBLISHED_VERSION_CACHE.clear();
+}
+
 export function isPackageVersionPublished(entry) {
   return readPublishedExactPackageVersion(entry.pkg.name, entry.pkg.version) === entry.pkg.version;
 }
@@ -210,4 +241,41 @@ export function readMeaningfulReleaseDrift(entry) {
     .map((line) => line.trim())
     .filter(Boolean)
     .filter((file) => isMeaningfulReleaseDrift(entry.absolutePackageDir, join(ROOT_DIR, file)));
+}
+
+export function readMeaningfulVersionDrift(entry) {
+  const cacheKey = entry.packageFile;
+  if (PACKAGE_VERSION_DRIFT_CACHE.has(cacheKey)) {
+    return PACKAGE_VERSION_DRIFT_CACHE.get(cacheKey);
+  }
+
+  const versionCommit = readLatestPackageVersionCommit(entry);
+  if (!versionCommit) {
+    PACKAGE_VERSION_DRIFT_CACHE.set(cacheKey, []);
+    return [];
+  }
+
+  const driftFiles = execFileSync(
+    "git",
+    ["diff", "--name-only", `${versionCommit}..HEAD`, "--", entry.packageDir],
+    {
+      cwd: ROOT_DIR,
+      encoding: "utf8"
+    }
+  )
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((file) => isMeaningfulReleaseDrift(entry.absolutePackageDir, join(ROOT_DIR, file)));
+
+  PACKAGE_VERSION_DRIFT_CACHE.set(cacheKey, driftFiles);
+  return driftFiles;
+}
+
+export function readMeaningfulPublishDrift(entry) {
+  const tagName = getPackageTagName(entry.pkg);
+  if (hasGitTag(tagName)) {
+    return readMeaningfulReleaseDrift(entry);
+  }
+  return readMeaningfulVersionDrift(entry);
 }

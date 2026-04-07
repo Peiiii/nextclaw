@@ -1,5 +1,11 @@
 # @nextclaw/ncp-demo-frontend
 
+## 0.0.25
+
+### Patch Changes
+
+- @nextclaw/ncp-react@0.4.16
+
 ## 0.0.24
 
 ### Patch Changes

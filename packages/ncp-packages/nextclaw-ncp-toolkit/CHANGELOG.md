@@ -1,5 +1,20 @@
 # @nextclaw/ncp-toolkit
 
+## 0.5.1
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
 ## 0.5.0
 
 ### Minor Changes

@@ -59,3 +59,35 @@ reuses the same batch-scoped `release:check`; there is no separate frontend-only
 ```bash
 pnpm release:frontend
 ```
+
+## Auto release shortcut
+
+If the repo has a mix of:
+
+- already-published package versions that are only missing local git tags, and
+- new package drift that happened after the latest version commit,
+
+use the one-command auto flow:
+
+```bash
+pnpm release:auto
+```
+
+It performs the following steps:
+
+1. `release:sync:published-tags:write`
+   - creates missing local git tags only for public packages whose exact `pkg@version` is already
+     on the npm registry and whose package directory has no meaningful drift after the latest
+     version commit.
+2. `release:auto:changeset`
+   - scans public packages for meaningful drift after their latest version commit and auto-creates
+     a patch changeset for any drift package not already covered by pending changesets.
+3. `release:version`
+4. `release:publish`
+
+Behavior is intentionally explicit:
+
+- published-but-clean packages get local tags synchronized first, so they stop polluting the next
+  release batch;
+- only packages with real post-version drift are auto-added to the new changeset;
+- existing pending changesets are reused instead of duplicated.

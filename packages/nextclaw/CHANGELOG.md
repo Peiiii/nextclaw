@@ -1,5 +1,30 @@
 # nextclaw
 
+## 0.17.2
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/core@0.12.1
+  - @nextclaw/ncp-toolkit@0.5.1
+  - @nextclaw/server@0.12.1
+  - @nextclaw/mcp@0.1.66
+  - @nextclaw/openclaw-compat@1.0.1
+  - @nextclaw/remote@0.1.78
+  - @nextclaw/runtime@0.2.33
+  - @nextclaw/ncp-mcp@0.1.68
+
 ## 0.17.1
 
 ### Patch Changes

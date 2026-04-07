@@ -1,5 +1,12 @@
 # @nextclaw/channel-plugin-weixin
 
+## 0.1.26
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.1
+
 ## 0.1.25
 
 ### Patch Changes
@@ -94,7 +101,6 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
-
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends

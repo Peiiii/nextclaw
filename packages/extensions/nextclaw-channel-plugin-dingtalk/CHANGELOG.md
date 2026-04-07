@@ -1,5 +1,11 @@
 # @nextclaw/channel-plugin-dingtalk
 
+## 0.2.32
+
+### Patch Changes
+
+- @nextclaw/channel-runtime@0.4.18
+
 ## 0.2.31
 
 ### Patch Changes
@@ -279,7 +285,6 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
-
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -317,7 +322,6 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
-
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment
