@@ -60,7 +60,7 @@ export const AGENT_LABELS: Record<string, { zh: string; en: string }> = {
   agentsCardStartChat: { zh: '开始对话', en: 'Start Chat' },
   agentsCardBuiltInTag: { zh: '系统主', en: 'Main Agent' },
   agentsCardCustomTag: { zh: '专职', en: 'Specialist' },
-  chatDraftAgentTitle: { zh: '本次会话将与谁对话？', en: 'Who should this draft chat talk to?' },
-  chatDraftAgentDescription: { zh: '草稿态可以选择 Agent；会话创建后不可切换。', en: 'Choose the agent in draft state. It cannot be changed after the session is created.' },
+  chatDraftAgentTitle: { zh: '本次会话 Agent', en: 'Draft agent' },
+  chatDraftAgentDescription: { zh: '创建后不可切换', en: 'Locked after creation' },
   chatDraftAgentCurrent: { zh: '当前 Agent', en: 'Current Agent' }
 };

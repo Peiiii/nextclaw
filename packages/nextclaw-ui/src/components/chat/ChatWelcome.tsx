@@ -1,5 +1,6 @@
 import type { AgentProfileView } from '@/api/types';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { t } from '@/lib/i18n';
 import { Bot, BrainCircuit, AlarmClock, MessageCircle } from 'lucide-react';
 
@@ -43,43 +44,45 @@ export function ChatWelcome({ onCreateSession, agents, selectedAgentId, onSelect
         <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('chatWelcomeTitle')}</h2>
         <p className="text-sm text-gray-500 mb-8">{t('chatWelcomeSubtitle')}</p>
 
-        <div className="mb-8 rounded-2xl border border-gray-200 bg-white/90 p-4 text-left shadow-card">
-          <div className="text-sm font-semibold text-gray-900">{t('chatDraftAgentTitle')}</div>
-          <p className="mt-1 text-xs text-gray-500">{t('chatDraftAgentDescription')}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {agents.map((agent) => {
-              const active = agent.id === selectedAgentId;
-              return (
-                <button
-                  key={agent.id}
-                  type="button"
-                  onClick={() => onSelectAgent(agent.id)}
-                  className={[
-                    'inline-flex items-center gap-2 rounded-full border px-3 py-2 text-left transition-colors',
-                    active
-                      ? 'border-gray-900 bg-gray-900 text-white'
-                      : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
-                  ].join(' ')}
-                >
+        <div className="mb-6 flex items-center justify-center gap-2.5">
+          <span className="text-[13px] font-medium text-gray-500">
+            {t('chatDraftAgentTitle')}
+          </span>
+          <Select value={selectedAgentId} onValueChange={onSelectAgent}>
+            <SelectTrigger
+              aria-label={t('chatDraftAgentTitle')}
+              className="h-auto w-auto gap-1 rounded-full border-0 bg-transparent px-1.5 py-1 text-gray-500 shadow-none hover:bg-white/70 hover:text-gray-800 focus:ring-0"
+            >
+              <span className="sr-only">{t('chatDraftAgentTitle')}</span>
+              <div className="flex items-center gap-1.5">
+                {selectedAgent ? (
                   <AgentAvatar
-                    agentId={agent.id}
-                    displayName={agent.displayName}
-                    avatarUrl={agent.avatarUrl}
-                    className="h-6 w-6"
+                    agentId={selectedAgent.id}
+                    displayName={selectedAgent.displayName}
+                    avatarUrl={selectedAgent.avatarUrl}
+                    className="h-7 w-7 shrink-0"
                   />
-                  <span className="text-xs font-medium">
-                    {agent.displayName?.trim() || agent.id}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          {selectedAgent ? (
-            <div className="mt-4 flex items-center gap-2 text-xs text-gray-500">
-              <span>{t('chatDraftAgentCurrent')}:</span>
-              <span className="font-medium text-gray-700">{selectedAgent.displayName?.trim() || selectedAgent.id}</span>
-            </div>
-          ) : null}
+                ) : null}
+              </div>
+            </SelectTrigger>
+            <SelectContent className="rounded-xl border-gray-200/80 shadow-lg">
+              {agents.map((agent) => (
+                <SelectItem key={agent.id} value={agent.id} className="rounded-lg pr-10">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <AgentAvatar
+                      agentId={agent.id}
+                      displayName={agent.displayName}
+                      avatarUrl={agent.avatarUrl}
+                      className="h-5 w-5 shrink-0"
+                    />
+                    <span className="truncate text-sm font-medium text-gray-700">
+                      {agent.displayName?.trim() || agent.id}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Capability cards */}
