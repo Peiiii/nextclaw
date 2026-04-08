@@ -12,8 +12,10 @@ import {
 import {
   buildSessionTypeOptions,
   normalizeSessionType,
+  resolveAgentRuntimeSessionType,
   resolveSessionTypeLabel
 } from '@/components/chat/useChatSessionTypeState';
+import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { Button } from '@/components/ui/button';
@@ -123,10 +125,15 @@ export function AgentsPage() {
     setEditingAgent(null);
   };
 
-  const startChatWithAgent = (agentId: string) => {
+  const startChatWithAgent = (agent: AgentProfileView) => {
     setSessionListSnapshot({
-      selectedAgentId: agentId,
+      selectedAgentId: agent.id,
       selectedSessionKey: null
+    });
+    useChatInputStore.getState().setSnapshot({
+      pendingSessionType: resolveAgentRuntimeSessionType(agent, defaultRuntime),
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null
     });
     navigate('/chat');
   };
@@ -281,7 +288,7 @@ export function AgentsPage() {
                       <Button
                         type="button"
                         className="h-9 rounded-xl bg-[#1f5c4d] px-4 text-white hover:bg-[#184d40]"
-                        onClick={() => startChatWithAgent(agent.id)}
+                        onClick={() => startChatWithAgent(agent)}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" />
                         {t('agentsCardStartChat')}

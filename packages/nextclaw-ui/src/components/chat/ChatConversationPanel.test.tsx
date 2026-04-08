@@ -1,12 +1,17 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatChildSessionPanel } from '@/components/chat/chat-child-session-panel';
 import { ChatConversationPanel } from '@/components/chat/ChatConversationPanel';
+import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
   goToProviders: vi.fn(),
+  createSession: vi.fn(),
+  setSelectedAgentId: vi.fn(),
+  setPendingSessionType: vi.fn(),
   resolvedChildTabs: [
     {
       sessionKey: 'child-session-1',
@@ -39,7 +44,22 @@ vi.mock('@/components/chat/containers/chat-message-list.container', () => ({
 }));
 
 vi.mock('@/components/chat/ChatWelcome', () => ({
-  ChatWelcome: () => <div data-testid="chat-welcome" />
+  ChatWelcome: ({
+    onCreateSession,
+    onSelectAgent
+  }: {
+    onCreateSession: () => void;
+    onSelectAgent: (agentId: string) => void;
+  }) => (
+    <div data-testid="chat-welcome">
+      <button type="button" onClick={onCreateSession}>
+        create draft session
+      </button>
+      <button type="button" onClick={() => onSelectAgent('engineer')}>
+        switch draft agent
+      </button>
+    </div>
+  )
 }));
 
 vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
@@ -47,14 +67,18 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
         chatThreadManager: {
           deleteSession: mocks.deleteSession,
           goToProviders: mocks.goToProviders,
-          createSession: vi.fn(),
           openSessionFromToolAction: vi.fn(),
           selectChildSessionDetail: vi.fn(),
           closeChildSessionDetail: vi.fn(),
           goToParentSession: vi.fn(),
         },
     chatSessionListManager: {
-      selectSession: vi.fn()
+      selectSession: vi.fn(),
+      createSession: mocks.createSession,
+      setSelectedAgentId: mocks.setSelectedAgentId
+    },
+    chatInputManager: {
+      setPendingSessionType: mocks.setPendingSessionType
     }
   })
 }));
@@ -96,6 +120,15 @@ describe('ChatConversationPanel', () => {
   beforeEach(() => {
     mocks.deleteSession.mockReset();
     mocks.goToProviders.mockReset();
+    mocks.createSession.mockReset();
+    mocks.setSelectedAgentId.mockReset();
+    mocks.setPendingSessionType.mockReset();
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        defaultSessionType: 'native'
+      }
+    });
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
@@ -116,6 +149,10 @@ describe('ChatConversationPanel', () => {
         isAwaitingAssistantOutput: false,
         parentSessionKey: null,
         parentSessionLabel: null,
+        availableAgents: [
+          { id: 'main', displayName: 'Main', runtime: 'native' },
+          { id: 'engineer', displayName: 'Engineer', runtime: 'codex' }
+        ],
         childSessionTabs: [],
         activeChildSessionKey: null,
       }
@@ -176,6 +213,35 @@ describe('ChatConversationPanel', () => {
 
     expect(screen.getByTestId('agent-avatar').textContent).toBe('engineer');
     expect(screen.queryByText('Engineer')).toBeNull();
+  });
+
+  it('creates a draft session with the selected draft agent runtime', async () => {
+    const user = userEvent.setup();
+
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        agentId: 'engineer',
+        agentDisplayName: 'Engineer'
+      }
+    });
+
+    render(<ChatConversationPanel />);
+
+    await user.click(screen.getByRole('button', { name: 'create draft session' }));
+
+    expect(mocks.createSession).toHaveBeenCalledWith('codex');
+  });
+
+  it('syncs the pending session type when switching the draft agent', async () => {
+    const user = userEvent.setup();
+
+    render(<ChatConversationPanel />);
+
+    await user.click(screen.getByRole('button', { name: 'switch draft agent' }));
+
+    expect(mocks.setSelectedAgentId).toHaveBeenCalledWith('engineer');
+    expect(mocks.setPendingSessionType).toHaveBeenCalledWith('codex');
   });
 });
 

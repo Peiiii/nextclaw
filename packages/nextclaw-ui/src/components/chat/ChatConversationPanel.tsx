@@ -11,7 +11,9 @@ import { AgentAvatar } from "@/components/common/AgentAvatar";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
 import { ChatSessionHeaderActions } from "@/components/chat/session-header/chat-session-header-actions";
 import { ChatSessionProjectBadge } from "@/components/chat/session-header/chat-session-project-badge";
+import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
+import { resolveAgentRuntimeSessionType } from "@/components/chat/useChatSessionTypeState";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,9 @@ function ChatConversationSkeleton() {
 
 export function ChatConversationPanel() {
   const presenter = usePresenter();
+  const defaultSessionType = useChatInputStore(
+    (state) => state.snapshot.defaultSessionType,
+  );
   const snapshot = useChatThreadStore((state) => state.snapshot);
   const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
   const threadRef = snapshot.threadRef ?? fallbackThreadRef;
@@ -80,6 +85,22 @@ export function ChatConversationPanel() {
     snapshot.messages.length === 0 &&
     !snapshot.isSending &&
     !snapshot.isAwaitingAssistantOutput;
+  const availableAgents = snapshot.availableAgents ?? [];
+  const resolveDraftAgent = (agentId: string) =>
+    availableAgents.find((agent) => agent.id === agentId) ?? null;
+  const createDraftSessionForAgent = () => {
+    const sessionType = resolveAgentRuntimeSessionType(
+      resolveDraftAgent(snapshot.agentId ?? "main"),
+      defaultSessionType,
+    );
+    presenter.chatSessionListManager.createSession(sessionType);
+  };
+  const selectDraftAgent = (agentId: string) => {
+    presenter.chatSessionListManager.setSelectedAgentId(agentId);
+    presenter.chatInputManager.setPendingSessionType(
+      resolveAgentRuntimeSessionType(resolveDraftAgent(agentId), defaultSessionType),
+    );
+  };
 
   const { onScroll: handleScroll } = useStickyBottomScroll({
     scrollRef: threadRef,
@@ -192,10 +213,10 @@ export function ChatConversationPanel() {
         >
           {showWelcome ? (
             <ChatWelcome
-              onCreateSession={presenter.chatThreadManager.createSession}
-              agents={snapshot.availableAgents ?? []}
+              onCreateSession={createDraftSessionForAgent}
+              agents={availableAgents}
               selectedAgentId={snapshot.agentId ?? "main"}
-              onSelectAgent={presenter.chatSessionListManager.setSelectedAgentId}
+              onSelectAgent={selectDraftAgent}
             />
           ) : hideEmptyHint ? (
             <div className="h-full" />

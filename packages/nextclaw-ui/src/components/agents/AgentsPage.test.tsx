@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentsPage } from '@/components/agents/AgentsPage';
+import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { setLanguage } from '@/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
@@ -37,6 +39,7 @@ const mocks = vi.hoisted(() => ({
           description: '负责调研、信息筛选与结论提炼。',
           builtIn: false,
           model: 'openai/gpt-5.2',
+          runtime: 'codex',
           workspace: '~/.nextclaw/workspace/agents/researcher',
           avatarUrl: null
         }
@@ -117,6 +120,21 @@ describe('AgentsPage', () => {
     if (!HTMLElement.prototype.releasePointerCapture) {
       HTMLElement.prototype.releasePointerCapture = () => {};
     }
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        pendingSessionType: 'native',
+        pendingProjectRoot: '/tmp/demo-project',
+        pendingProjectRootSessionKey: 'draft-session'
+      }
+    });
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedAgentId: 'main',
+        selectedSessionKey: 'session-1'
+      }
+    });
   });
 
   it('renders the agents workspace in Chinese and keeps core actions visible', async () => {
@@ -160,7 +178,7 @@ describe('AgentsPage', () => {
 
     const runtimeTrigger = screen.getByRole('combobox', { name: 'Runtime' });
     expect(screen.queryByPlaceholderText('Runtime（如 native 或 codex，可选）')).toBeNull();
-    expect(runtimeTrigger.textContent).toContain('Native');
+    expect(runtimeTrigger.textContent).toContain('Codex');
     expect(screen.queryByText('跟随默认 Runtime')).toBeNull();
 
     await user.click(runtimeTrigger);
@@ -177,5 +195,23 @@ describe('AgentsPage', () => {
         runtime: 'codex'
       }
     });
+  });
+
+  it('starts a draft chat with the agent runtime as the pending session type', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AgentsPage />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getAllByRole('button', { name: '开始对话' })[1]);
+
+    expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
+    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ChatSessionTypeOptionView, SessionEntryView } from '@/api/types';
+import type { AgentProfileView, ChatSessionTypeOptionView, SessionEntryView } from '@/api/types';
 import { t } from '@/lib/i18n';
 
 export const DEFAULT_SESSION_TYPE = 'native';
@@ -37,6 +37,14 @@ export function normalizeSessionType(value: unknown): string {
   }
   const normalized = value.trim().toLowerCase();
   return normalized || DEFAULT_SESSION_TYPE;
+}
+
+export function resolveAgentRuntimeSessionType(
+  agent: Pick<AgentProfileView, 'runtime' | 'engine'> | null | undefined,
+  fallbackSessionType: string = DEFAULT_SESSION_TYPE
+): string {
+  const runtime = agent?.runtime?.trim() || agent?.engine?.trim() || fallbackSessionType;
+  return normalizeSessionType(runtime);
 }
 
 export function resolveSessionTypeLabel(sessionType: string, fallbackLabel?: string): string {
