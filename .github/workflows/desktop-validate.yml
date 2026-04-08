@@ -208,6 +208,27 @@ jobs:
 
       - name: Upload Windows smoke logs
         if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stagingRoot = "apps/desktop/release/windows-smoke-logs"
+          if (Test-Path $stagingRoot) {
+            Remove-Item -Recurse -Force $stagingRoot
+          }
+          New-Item -ItemType Directory -Path $stagingRoot | Out-Null
+
+          $homeLogs = Join-Path $env:RUNNER_TEMP "nextclaw-desktop-smoke-home/logs"
+          if (Test-Path $homeLogs) {
+            Copy-Item -Recurse -Force $homeLogs (Join-Path $stagingRoot "home-logs")
+          }
+
+          $appLogs = Join-Path $env:APPDATA "NextClaw Desktop/logs"
+          if (Test-Path $appLogs) {
+            Copy-Item -Recurse -Force $appLogs (Join-Path $stagingRoot "app-logs")
+          }
+
+      - name: Upload Windows smoke logs artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: desktop-validate-smoke-logs-win32-x64

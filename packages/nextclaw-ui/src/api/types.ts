@@ -194,8 +194,6 @@ export type AgentProfileView = {
 };
 
 export type AgentCreateRequest = {
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
   id: string;
   displayName?: string;
   description?: string;
@@ -211,19 +209,6 @@ export type AgentUpdateRequest = {
   description?: string;
   avatar?: string;
   model?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-};
-
-export type AgentUpdateRequest = {
-  displayName?: string;
-  description?: string;
-  avatar?: string;
-  model?: string;
-  runtime?: string;
-  runtimeConfig?: Record<string, unknown>;
-};
   runtime?: string;
   runtimeConfig?: Record<string, unknown>;
 };
