@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
 
+## 0.1.47
+
+### Patch Changes
+
+- f718589: Make Codex prompts include uploaded file and image parts as asset reference blocks instead of silently dropping them from the final runtime input.
+
 ## 0.1.46
 
 ### Patch Changes
