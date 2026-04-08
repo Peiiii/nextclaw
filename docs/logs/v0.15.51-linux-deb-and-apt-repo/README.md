@@ -55,6 +55,16 @@
     - 真实签名 APT repo 构建
     - 新仓库安装烟测
     - 若存在旧仓库则执行一次升级烟测
+- 远端已执行验证：
+  - `desktop-validate` run `24138225911` 通过，覆盖 runtime、macOS DMG、Windows exe、Linux AppImage、Linux `.deb` 安装/删除、test-signed APT repo 安装烟测。
+  - `desktop-release` run `24138524352` 通过，覆盖 release 产物构建、GitHub Release 上传、真实签名 APT repo 构建、APT fresh install 烟测与发布到 `gh-pages`。
+  - 本次是第一轮真实 APT repo 发布，`Smoke Linux APT upgrade` 因发布前没有旧的 `Packages` 元数据而跳过；后续存在旧仓库元数据后，release workflow 会按条件执行升级烟测。
+- 远端公网入口已执行 HEAD / metadata 检查：
+  - `https://peiiii.github.io/nextclaw/apt/dists/stable/InRelease` 返回 `HTTP 200`
+  - `https://peiiii.github.io/nextclaw/apt/dists/stable/main/binary-amd64/Packages.gz` 返回 `HTTP 200`
+  - `https://peiiii.github.io/nextclaw/apt/nextclaw-archive-keyring.gpg` 返回 `HTTP 200`
+  - `https://peiiii.github.io/nextclaw/apt/pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.130_amd64.deb` 返回 `HTTP 200`
+  - `Packages.gz` 中已包含 `nextclaw-desktop` `0.0.130`、`amd64`、正确的 pool 路径与 `SHA256`。
 
 ## 发布/部署方式
 
@@ -69,7 +79,10 @@
    - 从现有 `gh-pages/apt/pool` 复用已发布 `.deb`
    - 重新生成完整 APT 仓库元数据与签名
    - 将最新 `apt/` 发布到 `gh-pages`
-5. 对外安装入口：
+5. 本次实际发布：
+   - GitHub Release：[v0.15.51-desktop.1](https://github.com/Peiiii/nextclaw/releases/tag/v0.15.51-desktop.1)
+   - GitHub Pages APT repo：`https://peiiii.github.io/nextclaw/apt`
+6. 对外安装入口：
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings
