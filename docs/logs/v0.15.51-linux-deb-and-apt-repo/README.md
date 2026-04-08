@@ -26,6 +26,9 @@
   - [Linux Desktop Install (.deb + APT)](../../../apps/docs/en/guide/tutorials/linux-desktop-deb-apt.md)
   - [Linux 桌面安装（.deb + APT）](../../../apps/docs/zh/guide/tutorials/linux-desktop-deb-apt.md)
   - [实现方案](../../plans/2026-04-08-linux-deb-and-apt-repo-implementation-plan.md)
+- 补齐 GitHub Pages 根目录安装入口：
+  - 新增发布到 `https://peiiii.github.io/nextclaw/install-apt.sh` 的一键安装脚本
+  - `desktop-release.yml` 现在会在发布 APT repo 时同步发布该脚本
 
 ## 测试/验证/验收方式
 

@@ -4,7 +4,15 @@ This guide is for Debian, Ubuntu, and other Linux distributions that use `apt`.
 
 The goal is simple: install NextClaw Desktop once, then upgrade and remove it through the system package manager.
 
-## 1. Add the NextClaw APT repository
+Recommended one-line installer:
+
+```bash
+curl -fsSL https://peiiii.github.io/nextclaw/install-apt.sh | bash
+```
+
+If you prefer to inspect each step manually, follow the setup below.
+
+## 1. Add the NextClaw APT repository manually
 
 Import the NextClaw repository public key:
 

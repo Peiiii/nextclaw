@@ -83,7 +83,13 @@ Expected generated repository root:
 - `dist/linux-apt-repo/apt/dists/stable/...`
 - `dist/linux-apt-repo/apt/pool/main/n/nextclaw-desktop/...`
 
-Expected user install flow after GitHub Pages publish:
+Recommended one-line installer:
+
+```bash
+curl -fsSL https://peiiii.github.io/nextclaw/install-apt.sh | bash
+```
+
+Manual install flow after GitHub Pages publish:
 
 ```bash
 sudo mkdir -p /etc/apt/keyrings

@@ -398,10 +398,12 @@ jobs:
           mkdir -p .tmp/gh-pages
           rm -rf .tmp/gh-pages/apt
           cp -R dist/linux-apt-repo/apt .tmp/gh-pages/apt
+          cp apps/desktop/scripts/install-linux-apt.sh .tmp/gh-pages/install-apt.sh
+          chmod 0755 .tmp/gh-pages/install-apt.sh
           touch .tmp/gh-pages/.nojekyll
           git -C .tmp/gh-pages config user.name "github-actions[bot]"
           git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C .tmp/gh-pages add apt .nojekyll
+          git -C .tmp/gh-pages add apt install-apt.sh .nojekyll
           if git -C .tmp/gh-pages diff --cached --quiet; then
             echo "No Linux APT repo changes to publish."
             exit 0

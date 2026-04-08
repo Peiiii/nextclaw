@@ -4,7 +4,15 @@
 
 目标是让你安装一次 NextClaw Desktop，之后通过系统包管理器完成升级与卸载。
 
-## 1. 添加 NextClaw APT 软件源
+推荐的一键安装方式：
+
+```bash
+curl -fsSL https://peiiii.github.io/nextclaw/install-apt.sh | bash
+```
+
+如果你希望逐步检查每个动作，也可以继续使用下面的手动配置方式。
+
+## 1. 手动添加 NextClaw APT 软件源
 
 先导入 NextClaw 的仓库公钥：
 
