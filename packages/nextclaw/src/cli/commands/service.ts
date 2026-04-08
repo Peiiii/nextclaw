@@ -11,8 +11,6 @@ import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { createServer as createNetServer } from "node:net";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
-import chokidar from "chokidar";
-import type { ConfigReloader } from "../config-reloader.js";
 import { MissingProvider } from "../missing-provider.js";
 import {
   clearServiceState,
@@ -39,7 +37,13 @@ import {
   spawnManagedService,
   waitForManagedServiceReadiness
 } from "./service-support/runtime/service-managed-startup.js";
-import { startGatewaySupportServices, watchCronStoreFile } from "./service-support/gateway/service-startup-support.js";
+import {
+  clearOwnedServiceState,
+  finalizeLocalUiStartup,
+  ServiceFileWatcherRegistry,
+  startGatewayRuntimeSupport,
+  watchServiceConfigFile
+} from "./service-support/gateway/service-startup-support.js";
 import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../restart-sentinel.js";
 import { resolveCliSubcommandEntry } from "./service-support/marketplace/cli-subcommand-launch.js";
 import { writeReadyManagedServiceState } from "./service-support/runtime/service-remote-runtime.js";
@@ -112,10 +116,12 @@ function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
 export class ServiceCommands {
   private applyLiveConfigReload: (() => Promise<void>) | null = null;
   private liveUiNcpAgent: UiNcpAgentHandle | null = null;
+  private readonly fileWatchers = new ServiceFileWatcherRegistry();
   constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
     logStartupTrace("service.start_gateway.begin");
+    await this.fileWatchers.clear();
     this.applyLiveConfigReload = null;
     this.liveUiNcpAgent = null;
     const shellContext = measureStartupSync(
@@ -147,7 +153,11 @@ export class ServiceCommands {
         ncpSessionService: ncpSessionRealtimeBridge.sessionService, initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory
       })
     );
-    ncpSessionRealtimeBridge.setUiEventPublisher(uiStartup?.publish);
+    finalizeLocalUiStartup({
+      uiStartup,
+      setUiEventPublisher: (publish) => ncpSessionRealtimeBridge.setUiEventPublisher(publish),
+      uiConfig: shellContext.uiConfig
+    });
 
     bootstrapStatus.markShellReady();
     await waitForNextTick();
@@ -174,15 +184,21 @@ export class ServiceCommands {
     wireSystemSessionUpdatedPublisher({ runtimePool: gateway.runtimePool, publishUiEvent: uiStartup?.publish });
     console.log("✓ Capability hydration: scheduled in background");
     await measureStartupAsync("service.start_gateway_support_services", async () =>
-      await startGatewaySupportServices({
+      await startGatewayRuntimeSupport({
         cronJobs: gateway.cron.status().jobs,
         remoteModule: gateway.remoteModule,
-        watchConfigFile: () => this.watchConfigFile(gateway.reloader),
+        watchConfigFile: () => watchServiceConfigFile({
+          configPath: resolve(getConfigPath()),
+          watcherRegistry: this.fileWatchers,
+          scheduleReload: (reason) => gateway.reloader.scheduleReload(reason)
+        }),
         startCron: () => gateway.cron.start(),
-        startHeartbeat: () => gateway.heartbeat.start()
+        startHeartbeat: () => gateway.heartbeat.start(),
+        cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")),
+        reloadCronStore: () => gateway.cron.reloadFromStore(),
+        watcherRegistry: this.fileWatchers
       })
     );
-    watchCronStoreFile({ cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")), reloadCronStore: () => gateway.cron.reloadFromStore() });
     const deferredGatewayStartupHooks = createDeferredGatewayStartupHooks({
       uiStartup,
       gateway,
@@ -230,6 +246,8 @@ export class ServiceCommands {
         console.error(`Deferred startup failed: ${error instanceof Error ? error.message : String(error)}`);
       },
       cleanup: async () => {
+        clearOwnedServiceState();
+        await this.fileWatchers.clear();
         this.applyLiveConfigReload = null;
         this.liveUiNcpAgent = null;
         ncpSessionRealtimeBridge.clear();
@@ -248,30 +266,6 @@ export class ServiceCommands {
     }
     const trimmed = value.trim();
     return trimmed || undefined;
-  };
-
-  private watchConfigFile = (reloader: ConfigReloader): void => {
-    const configPath = resolve(getConfigPath());
-    const watcher = chokidar.watch(configPath, {
-      ignoreInitial: true,
-      awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
-    });
-    watcher.on("all", (event, changedPath) => {
-      if (resolve(changedPath) !== configPath) {
-        return;
-      }
-      if (event === "add") {
-        reloader.scheduleReload("config add");
-        return;
-      }
-      if (event === "change") {
-        reloader.scheduleReload("config change");
-        return;
-      }
-      if (event === "unlink") {
-        reloader.scheduleReload("config unlink");
-      }
-    });
   };
 
   private resolveMostRecentRoutableSessionKey = (sessionManager: SessionManager): string | undefined => {

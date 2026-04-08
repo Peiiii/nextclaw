@@ -19,13 +19,19 @@ export type UiBridgeApiMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export function resolveManagedApiBase(): string | null {
   const state = readServiceState();
-  if (!state?.apiUrl || !state.pid) {
+  if (!state?.pid) {
     return null;
   }
   if (!isProcessRunning(state.pid)) {
     return null;
   }
-  return state.apiUrl.replace(/\/+$/, "");
+  if (typeof state.uiUrl === "string" && state.uiUrl.trim().length > 0) {
+    return state.uiUrl.replace(/\/+$/, "");
+  }
+  if (typeof state.apiUrl === "string" && state.apiUrl.trim().length > 0) {
+    return state.apiUrl.replace(/\/api\/?$/, "").replace(/\/+$/, "");
+  }
+  return null;
 }
 
 export class UiBridgeApiClient {

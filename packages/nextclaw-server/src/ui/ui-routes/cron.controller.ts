@@ -1,7 +1,14 @@
 import type * as NextclawCore from "@nextclaw/core";
 import type { Context } from "hono";
-import type { CronActionResult, CronEnableRequest, CronJobView, CronRunRequest } from "../types.js";
-import { err, ok, readJson } from "./response.js";
+import type {
+  CronActionResult,
+  CronCreateRequest,
+  CronCreateResult,
+  CronEnableRequest,
+  CronJobView,
+  CronRunRequest
+} from "../types.js";
+import { err, ok, readJson, readNonEmptyString } from "./response.js";
 import type { CronJobEntry, UiRouterOptions } from "./types.js";
 
 function toIsoTime(value?: number | null): string | null {
@@ -39,6 +46,63 @@ function findCronJob(service: InstanceType<typeof NextclawCore.CronService>, id:
   return jobs.find((job) => job.id === id) ?? null;
 }
 
+type CronCreateParams = Parameters<InstanceType<typeof NextclawCore.CronService>["addJob"]>[0];
+
+function normalizeCronSchedule(schedule: CronCreateRequest["schedule"] | undefined): CronJobEntry["schedule"] | null {
+  if (!schedule) {
+    return null;
+  }
+  if (schedule.kind === "every") {
+    if (typeof schedule.everyMs !== "number" || !Number.isFinite(schedule.everyMs) || schedule.everyMs <= 0) {
+      return null;
+    }
+    return { kind: "every", everyMs: schedule.everyMs };
+  }
+  if (schedule.kind === "at") {
+    if (typeof schedule.atMs !== "number" || !Number.isFinite(schedule.atMs)) {
+      return null;
+    }
+    return { kind: "at", atMs: schedule.atMs };
+  }
+  if (schedule.kind === "cron") {
+    const expr = readNonEmptyString(schedule.expr);
+    if (!expr) {
+      return null;
+    }
+    const tz = readNonEmptyString(schedule.tz);
+    return tz ? { kind: "cron", expr, tz } : { kind: "cron", expr };
+  }
+  return null;
+}
+
+function readCronCreateParams(input: CronCreateRequest): { params: CronCreateParams } | { error: string } {
+  const name = readNonEmptyString(input.name);
+  if (!name) {
+    return { error: "name must be a non-empty string" };
+  }
+  const message = readNonEmptyString(input.message);
+  if (!message) {
+    return { error: "message must be a non-empty string" };
+  }
+  const schedule = normalizeCronSchedule(input.schedule);
+  if (!schedule) {
+    return { error: "schedule must be a valid at/every/cron definition" };
+  }
+  return {
+    params: {
+      name,
+      message,
+      schedule,
+      agentId: readNonEmptyString(input.agentId),
+      deliver: input.deliver === true,
+      channel: readNonEmptyString(input.channel),
+      to: readNonEmptyString(input.to),
+      accountId: readNonEmptyString(input.accountId),
+      deleteAfterRun: input.deleteAfterRun === true
+    }
+  };
+}
+
 export class CronRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
@@ -57,6 +121,23 @@ export class CronRoutesController {
     const includeDisabled = !enabledOnly;
     const jobs = this.options.cronService.listJobs(includeDisabled).map((job) => buildCronJobView(job as CronJobEntry));
     return c.json(ok({ jobs, total: jobs.length }));
+  };
+
+  readonly createJob = async (c: Context) => {
+    if (!this.options.cronService) {
+      return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
+    }
+    const body = await readJson<CronCreateRequest>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const normalized = readCronCreateParams(body.data);
+    if ("error" in normalized) {
+      return c.json(err("INVALID_BODY", normalized.error), 400);
+    }
+    const job = this.options.cronService.addJob(normalized.params);
+    const data: CronCreateResult = { job: buildCronJobView(job as CronJobEntry) };
+    return c.json(ok(data), 201);
   };
 
   readonly deleteJob = (c: Context) => {

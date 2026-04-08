@@ -6,15 +6,31 @@ import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from
 
 const nowMs = () => Date.now();
 
-function computeNextRun(schedule: CronSchedule, now: number): number | null {
+function normalizeFiniteMs(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function computeEveryNextRun(everyMs: number | null | undefined, now: number, anchorMs?: number | null): number | null {
+  if (!everyMs || everyMs <= 0) {
+    return null;
+  }
+  const normalizedAnchor = normalizeFiniteMs(anchorMs);
+  if (normalizedAnchor === null) {
+    return now + everyMs;
+  }
+  if (normalizedAnchor > now) {
+    return normalizedAnchor;
+  }
+  const intervalsToAdvance = Math.floor((now - normalizedAnchor) / everyMs) + 1;
+  return normalizedAnchor + intervalsToAdvance * everyMs;
+}
+
+function computeNextRun(schedule: CronSchedule, now: number, anchorMs?: number | null): number | null {
   if (schedule.kind === "at") {
     return schedule.atMs && schedule.atMs > now ? schedule.atMs : null;
   }
   if (schedule.kind === "every") {
-    if (!schedule.everyMs || schedule.everyMs <= 0) {
-      return null;
-    }
-    return now + schedule.everyMs;
+    return computeEveryNextRun(schedule.everyMs, now, anchorMs);
   }
   if (schedule.kind === "cron" && schedule.expr) {
     try {
@@ -27,10 +43,16 @@ function computeNextRun(schedule: CronSchedule, now: number): number | null {
   return null;
 }
 
+function serializeStore(store: CronStore): string {
+  return JSON.stringify(store, null, 2);
+}
+
 export class CronService {
   private store: CronStore | null = null;
   private timer: NodeJS.Timeout | null = null;
   private running = false;
+  private lastPersistedStoreJson: string | null = null;
+  private storeExistsOnDisk = false;
   onJob?: (job: CronJob) => Promise<string | null>;
 
   constructor(private storePath: string, onJob?: (job: CronJob) => Promise<string | null>) {
@@ -56,12 +78,16 @@ export class CronService {
           deleteAfterRun: Boolean(job.deleteAfterRun ?? false)
         }));
         this.store = { version: data.version ?? 1, jobs };
+        this.storeExistsOnDisk = true;
       } catch {
         this.store = { version: 1, jobs: [] };
+        this.storeExistsOnDisk = false;
       }
     } else {
       this.store = { version: 1, jobs: [] };
+      this.storeExistsOnDisk = false;
     }
+    this.lastPersistedStoreJson = serializeStore(this.store);
     return this.store;
   };
 
@@ -69,8 +95,14 @@ export class CronService {
     if (!this.store) {
       return;
     }
+    const nextStoreJson = serializeStore(this.store);
+    if (this.storeExistsOnDisk && this.lastPersistedStoreJson === nextStoreJson) {
+      return;
+    }
     mkdirSync(dirname(this.storePath), { recursive: true });
-    writeFileSync(this.storePath, JSON.stringify(this.store, null, 2));
+    writeFileSync(this.storePath, nextStoreJson);
+    this.lastPersistedStoreJson = nextStoreJson;
+    this.storeExistsOnDisk = true;
   };
 
   readonly start = async (): Promise<void> => {
@@ -92,9 +124,25 @@ export class CronService {
   readonly reloadFromStore = (): void => {
     this.store = null;
     this.loadStore();
-    this.recomputeNextRuns();
+    this.recomputeNextRunsForMaintenance();
     this.saveStore();
     this.armTimer();
+  };
+
+  private readonly resolveEveryResumeAnchor = (job: CronJob): number | null => {
+    const persistedNextRun = normalizeFiniteMs(job.state.nextRunAtMs);
+    if (persistedNextRun !== null) {
+      return persistedNextRun;
+    }
+    if (job.schedule.kind !== "every") {
+      return null;
+    }
+    const everyMs = normalizeFiniteMs(job.schedule.everyMs);
+    const lastRunAtMs = normalizeFiniteMs(job.state.lastRunAtMs);
+    if (everyMs === null || lastRunAtMs === null) {
+      return null;
+    }
+    return lastRunAtMs + everyMs;
   };
 
   private readonly recomputeNextRuns = (): void => {
@@ -104,7 +152,32 @@ export class CronService {
     const now = nowMs();
     for (const job of this.store.jobs) {
       if (job.enabled) {
-        job.state.nextRunAtMs = computeNextRun(job.schedule, now);
+        job.state.nextRunAtMs = computeNextRun(job.schedule, now, this.resolveEveryResumeAnchor(job));
+      }
+    }
+  };
+
+  private readonly recomputeNextRunsForMaintenance = (recomputeExpired = false): void => {
+    if (!this.store) {
+      return;
+    }
+    const now = nowMs();
+    for (const job of this.store.jobs) {
+      if (!job.enabled) {
+        continue;
+      }
+      const nextRunAtMs = normalizeFiniteMs(job.state.nextRunAtMs);
+      if (nextRunAtMs === null) {
+        job.state.nextRunAtMs = computeNextRun(job.schedule, now, this.resolveEveryResumeAnchor(job));
+        continue;
+      }
+      if (!recomputeExpired || now < nextRunAtMs) {
+        continue;
+      }
+      const lastRunAtMs = normalizeFiniteMs(job.state.lastRunAtMs);
+      const alreadyExecutedScheduledSlot = lastRunAtMs !== null && lastRunAtMs >= nextRunAtMs;
+      if (alreadyExecutedScheduledSlot) {
+        job.state.nextRunAtMs = computeNextRun(job.schedule, now, this.resolveEveryResumeAnchor(job));
       }
     }
   };
@@ -158,6 +231,7 @@ export class CronService {
 
   private readonly executeJob = async (job: CronJob): Promise<void> => {
     const start = nowMs();
+    const previousNextRunAtMs = normalizeFiniteMs(job.state.nextRunAtMs);
     try {
       if (this.onJob) {
         await this.onJob(job);
@@ -180,7 +254,7 @@ export class CronService {
         job.state.nextRunAtMs = null;
       }
     } else {
-      job.state.nextRunAtMs = computeNextRun(job.schedule, nowMs());
+      job.state.nextRunAtMs = computeNextRun(job.schedule, nowMs(), previousNextRunAtMs);
     }
   };
 

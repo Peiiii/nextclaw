@@ -527,6 +527,22 @@ export type CronListView = {
   total: number;
 };
 
+export type CronCreateRequest = {
+  name: string;
+  message: string;
+  schedule: CronScheduleView;
+  agentId?: string | null;
+  deliver?: boolean;
+  channel?: string | null;
+  to?: string | null;
+  accountId?: string | null;
+  deleteAfterRun?: boolean;
+};
+
+export type CronCreateResult = {
+  job: CronJobView;
+};
+
 export type CronEnableRequest = {
   enabled: boolean;
 };

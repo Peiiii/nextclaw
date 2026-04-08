@@ -15,6 +15,12 @@
 - 固定时间提醒
 - 周期巡检与汇总
 
+周期任务的重启语义：
+
+- 重启或热重载后，已有 interval 任务不会补跑停机期间错过的触发点。
+- 服务恢复后，会沿原有 interval 节奏对齐到下一次触发，而不是从重启时刻重新开始计时。
+- 如果服务已经在运行中（包括前台 `nextclaw serve` / `pnpm -C packages/nextclaw dev serve`），`nextclaw cron add / enable / disable / remove / run` 会优先通过当前服务 API 立即生效，而不是依赖本地文件 watcher 之后再被动看见。
+
 ## 推荐使用顺序（UI 优先）
 
 1. 先建一个一次性任务，确认链路可用。

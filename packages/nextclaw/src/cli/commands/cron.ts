@@ -1,5 +1,6 @@
+import type { CronCreateResult } from "@nextclaw/server";
 import type { CronAddOptions } from "../types.js";
-import { CronLocalService } from "./cron-support/cron-local.service.js";
+import { createCronCreateRequest, CronLocalService } from "./cron-support/cron-local.service.js";
 import { printCronJobs, type CronJobView } from "./cron-support/cron-job.utils.js";
 import { UiBridgeApiClient, resolveManagedApiBase } from "./shared/ui-bridge-api.service.js";
 
@@ -12,6 +13,13 @@ type CronActionApiData = {
   job?: CronJobView | null;
   executed?: boolean;
 };
+
+function readErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message.trim().length > 0) {
+    return error.message.trim();
+  }
+  return String(error ?? "unknown error");
+}
 
 export class CronCommands {
   constructor(
@@ -45,12 +53,28 @@ export class CronCommands {
   };
 
   readonly cronAdd = async (opts: CronAddOptions): Promise<void> => {
-    const result = this.local.add(opts);
-    if (!result.job) {
-      console.error(result.error ?? "Error: Failed to add job");
+    const request = createCronCreateRequest(opts);
+    if (!request.request) {
+      console.error(request.error ?? "Error: Failed to add job");
       return;
     }
-    console.log(`✓ Added job '${result.job.name}' (${result.job.id})`);
+    const apiClient = this.createApiClient();
+    if (apiClient) {
+      try {
+        const data = await apiClient.request<CronCreateResult>({
+          path: "/api/cron",
+          method: "POST",
+          body: request.request
+        });
+        console.log(`✓ Added job '${data.job.name}' (${data.job.id})`);
+        return;
+      } catch (error) {
+        console.error(`Error: ${readErrorMessage(error)}`);
+        return;
+      }
+    }
+    const job = this.local.addRequest(request.request);
+    console.log(`✓ Added job '${job.name}' (${job.id})`);
   };
 
   readonly cronRemove = async (jobId: string): Promise<void> => {
@@ -65,8 +89,9 @@ export class CronCommands {
           console.log(`✓ Removed job ${jobId}`);
           return;
         }
-      } catch {
-        void 0;
+      } catch (error) {
+        console.error(`Error: ${readErrorMessage(error)}`);
+        return;
       }
     }
     if (this.local.remove(jobId)) {
@@ -90,8 +115,9 @@ export class CronCommands {
           console.log(`✓ Job '${data.job.name}' ${opts.disable ? "disabled" : "enabled"}`);
           return;
         }
-      } catch {
-        void 0;
+      } catch (error) {
+        console.error(`Error: ${readErrorMessage(error)}`);
+        return;
       }
     }
     const job = this.local.enable(jobId, enabled);
@@ -113,8 +139,9 @@ export class CronCommands {
         });
         console.log(data.executed ? "✓ Job executed" : `Failed to run job ${jobId}`);
         return;
-      } catch {
-        void 0;
+      } catch (error) {
+        console.error(`Error: ${readErrorMessage(error)}`);
+        return;
       }
     }
     const ok = await this.local.run(jobId, Boolean(opts.force));

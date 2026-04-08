@@ -92,6 +92,7 @@ function registerNcpRuntimeRoutes(
 
 function registerCronRoutes(app: Hono, cronController: CronRoutesController): void {
   app.get("/api/cron", cronController.listJobs);
+  app.post("/api/cron", cronController.createJob);
   app.delete("/api/cron/:id", cronController.deleteJob);
   app.put("/api/cron/:id/enable", cronController.enableJob);
   app.post("/api/cron/:id/run", cronController.runJob);

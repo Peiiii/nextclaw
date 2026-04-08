@@ -15,6 +15,12 @@ Typical uses:
 - scheduled reminders
 - periodic checks and reports
 
+Restart behavior for recurring interval jobs:
+
+- On restart or hot reload, existing interval jobs do not replay missed runs from downtime.
+- After service recovery, the next trigger stays aligned with the existing interval cadence instead of restarting the timer from the recovery moment.
+- If the service is already running, including foreground `nextclaw serve` or `pnpm -C packages/nextclaw dev serve`, `nextclaw cron add / enable / disable / remove / run` now applies through the live service API immediately instead of waiting for local file watcher reloads.
+
 ## Recommended Order (UI First)
 
 1. Create one one-time task and verify the full path.

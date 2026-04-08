@@ -23,6 +23,75 @@ afterEach(() => {
 });
 
 describe("cron routes", () => {
+  it("creates cron jobs via POST /api/cron", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const createdJob = {
+      id: "job-created",
+      name: "job created",
+      enabled: true,
+      schedule: { kind: "every" as const, everyMs: 60_000 },
+      payload: { message: "Ping", deliver: true, channel: "weixin", to: "chat-1" },
+      state: { nextRunAtMs: 60_000, lastStatus: null, lastError: null },
+      createdAtMs: 1,
+      updatedAtMs: 2,
+      deleteAfterRun: false
+    };
+    const cronService = {
+      addJob: vi.fn(() => createdJob),
+      listJobs: vi.fn(() => [])
+    };
+
+    const app = createUiRouter({
+      configPath,
+      cronService: cronService as never,
+      publish: () => {}
+    });
+
+    const response = await app.request("http://localhost/api/cron", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        name: "  job created  ",
+        message: "  Ping  ",
+        schedule: { kind: "every", everyMs: 60_000 },
+        agentId: "main",
+        deliver: true,
+        channel: "weixin",
+        to: "chat-1",
+        accountId: "acct-1"
+      })
+    });
+
+    expect(response.status).toBe(201);
+    const payload = await response.json() as {
+      ok: true;
+      data: {
+        job: {
+          id: string;
+          name: string;
+          enabled: boolean;
+        };
+      };
+    };
+    expect(payload.data.job).toMatchObject({
+      id: "job-created",
+      name: "job created",
+      enabled: true
+    });
+    expect(cronService.addJob).toHaveBeenCalledWith({
+      name: "job created",
+      message: "Ping",
+      schedule: { kind: "every", everyMs: 60_000 },
+      agentId: "main",
+      deliver: true,
+      channel: "weixin",
+      to: "chat-1",
+      accountId: "acct-1",
+      deleteAfterRun: false
+    });
+  });
+
   it("lists disabled jobs by default and filters them when enabledOnly is set", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
