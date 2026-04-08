@@ -4,6 +4,7 @@
   "private": true,
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
+  "homepage": "https://github.com/Peiiii/nextclaw",
   "main": "dist/main.js",
   "license": "MIT",
   "scripts": {
