@@ -17,6 +17,8 @@ type ProviderScopedModelInputProps = {
   className?: string;
 };
 
+const DEFAULT_MODEL_INPUT_PLACEHOLDER = 'provider/model';
+
 function normalizeModelOptions(options: string[]): string[] {
   const deduped = new Set<string>();
   for (const option of options) {
@@ -41,6 +43,7 @@ export function ProviderScopedModelInput({
   const [providerName, setProviderName] = useState('');
   const [modelId, setModelId] = useState('');
   const hasProviders = providerCatalog.length > 0;
+  const effectiveModelPlaceholder = modelPlaceholder ?? DEFAULT_MODEL_INPUT_PLACEHOLDER;
 
   const providerMap = useMemo(
     () => new Map(providerCatalog.map((provider) => [provider.name, provider])),
@@ -98,7 +101,7 @@ export function ProviderScopedModelInput({
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="openai/gpt-5.1"
+          placeholder={effectiveModelPlaceholder}
           className="mt-3 h-10 rounded-xl"
         />
         <p className="mt-2 text-xs text-gray-500">{t('modelInputCustomHint')}</p>
@@ -133,7 +136,7 @@ export function ProviderScopedModelInput({
           onChange={handleModelChange}
           options={selectedProviderModels}
           disabled={disabled || !providerName}
-          placeholder={modelPlaceholder}
+          placeholder={effectiveModelPlaceholder}
           className="sm:flex-1"
           inputClassName="h-10 rounded-xl"
           emptyText={t('modelPickerNoOptions')}

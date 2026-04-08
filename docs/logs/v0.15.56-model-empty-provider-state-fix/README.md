@@ -3,11 +3,19 @@
 - 修复默认模型选择器在“没有任何已配置 provider”时的空态表现：不再渲染残缺的 provider/model 双控件和悬空分隔符 `/`，改为明确的空态提示加单一完整模型 ID 输入框。
 - 这次修复落在共享组件 [ProviderScopedModelInput.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/components/common/ProviderScopedModelInput.tsx)，因此模型配置页与复用该组件的 agent 弹窗会同时受益，避免同类问题在其它入口继续存在。
 - 新增回归测试 [ModelConfig.test.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/components/config/ModelConfig.test.tsx)，覆盖“无 provider 时展示清晰空态，且仍可手动输入完整模型 ID 并提交”的场景。
+- 同批次续改中，进一步去掉了 `agents.defaults.model` 的硬编码默认模型；默认值现在保持为空，避免设置页在用户尚未选择模型时展示出像“系统默认推荐”但其实只是历史硬编码的具体模型。
+- 模型输入 placeholder 也从具体模型名收敛为格式提示 `provider/model`，模型设置页、无 provider 空态输入框，以及 Agent 新建/编辑弹窗都统一为同一套提示方式，不再误导用户把占位文案当成真实默认值。
 
 # 测试 / 验证 / 验收方式
 
 - 定向 UI 交互验证：
   - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui test -- src/components/config/ModelConfig.test.tsx`
+- 定向 core 配置回归：
+  - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-core test -- src/config/schema.plugin-channels.test.ts`
+- core 类型检查：
+  - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-core tsc`
+- core 构建验证：
+  - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-core build`
 - 类型检查：
   - `PATH=/opt/homebrew/bin:$PATH pnpm -C packages/nextclaw-ui tsc`
 - 构建验证：
@@ -17,7 +25,8 @@
 - 结果摘要：
   - 上述命令均通过。
   - `lint:maintainability:guard` 仅保留仓库既有目录平铺 warning，无本次新增错误。
-  - 定向 UI 测试同时承担本次最小充分冒烟：验证无 provider 场景下空态文案、手动输入和保存提交流程都正常。
+  - 定向 UI 测试同时承担本次最小充分冒烟：验证无 provider 场景下空态文案、placeholder、手动输入和保存提交流程都正常。
+  - core 回归测试补充验证了 schema 默认值：在空配置解析时 `agents.defaults.model` 保持为空字符串，不再隐式注入具体模型。
 
 # 发布 / 部署方式
 
@@ -33,6 +42,8 @@
 4. 在输入框中填写例如 `openai/gpt-5.1` 并保存。
 5. 确认保存请求正常提交，且刷新后仍能看到已保存的完整模型 ID。
 6. 可选：打开 agent 创建/编辑弹窗，确认同样的空 provider 场景也呈现为一致的空态，而不是残缺双输入。
+7. 清空默认模型配置后重新打开模型页，确认输入框不会再预填 `dashscope/qwen3.5-flash`、`gpt-5.1` 或其他具体模型名，只显示格式提示 `provider/model`。
+8. 打开 Agent 新建/编辑弹窗，确认模型输入区域同样只显示 `provider/model` 这类提示性占位，而不是具体模型名。
 
 # 可维护性总结汇总
 
@@ -54,3 +65,16 @@
     - 净增：+27 行
   - no maintainability findings
   - 长期目标对齐 / 可维护性推进：这次把“空数据仍展示半套可交互控件”的低级 UI 错误，收敛成一个更统一、更可预测的入口行为，符合 NextClaw 作为统一入口应提供清晰状态反馈的方向。剩余观察点是配置中心目录仍偏平铺，后续若继续在该区域增加 UI 面板，应优先考虑按职责再收束一层目录边界。
+- 本次续改增量复核：
+  - 可维护性复核结论：通过
+  - 本次顺手减债：是
+  - 代码增减报告：
+    - 新增：16 行
+    - 删除：7 行
+    - 净增：+9 行
+  - 非测试代码增减报告：
+    - 新增：9 行
+    - 删除：6 行
+    - 净增：+3 行
+  - no maintainability findings
+  - 长期目标对齐 / 可维护性推进：这次续改不是继续往设置页和 Agent 弹窗里打补丁，而是把“默认模型”和“占位提示”这两个概念从底层 schema 到共享输入组件一起收敛，减少了误导性状态和重复接线，更符合 NextClaw 统一入口应提供一致、可预测配置体验的方向。剩余观察点仍是 `packages/nextclaw-ui/src/components/agents/AgentDialogs.tsx` 与 `packages/nextclaw-core/src/config` 的既有维护性 warning，但本次没有继续放大这些债务。

@@ -13,6 +13,8 @@ import { DOCS_DEFAULT_BASE_URL } from '@/components/doc-browser/DocBrowserContex
 import { BookOpen, Folder, Loader2, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+const DEFAULT_MODEL_INPUT_PLACEHOLDER = 'provider/model';
+
 export function ModelConfig() {
   const { data: config, isLoading } = useConfig();
   const { data: meta } = useConfigMeta();
@@ -98,7 +100,7 @@ export function ModelConfig() {
                 value={model}
                 onChange={setModel}
                 providerCatalog={providerCatalog}
-                modelPlaceholder={modelHint?.placeholder ?? 'gpt-5.1'}
+                modelPlaceholder={modelHint?.placeholder ?? DEFAULT_MODEL_INPUT_PLACEHOLDER}
               />
               <p className="text-xs text-gray-400">{modelHelpText}</p>
               <a

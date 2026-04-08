@@ -202,7 +202,7 @@ export const ChannelsConfigSchema = z.object({
 
 export const AgentDefaultsSchema = z.object({
   workspace: z.string().default(DEFAULT_WORKSPACE_PATH),
-  model: z.string().default("dashscope/qwen3.5-flash"),
+  model: z.string().default(""),
   engine: z.string().default("native"),
   engineConfig: z.record(z.unknown()).default({}),
   thinkingDefault: ThinkingLevelSchema.default("off"),

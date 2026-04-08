@@ -125,7 +125,7 @@ describe('ModelConfig', () => {
     expect(await screen.findByText('No providers configured')).toBeTruthy();
     expect(screen.getByText('Add an AI provider to start using the platform.')).toBeTruthy();
 
-    const modelInput = screen.getByPlaceholderText('openai/gpt-5.1');
+    const modelInput = screen.getByPlaceholderText('provider/model');
     await user.type(modelInput, 'openai/gpt-5.1');
     await user.click(screen.getByRole('button', { name: /save/i }));
 

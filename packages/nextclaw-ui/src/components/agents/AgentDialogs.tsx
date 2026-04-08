@@ -242,7 +242,6 @@ export function AgentCreateDialog({
               }
               providerCatalog={providerCatalog}
               disabled={pending}
-              modelPlaceholder="gpt-5.1"
               className="md:col-span-2"
             />
             <AgentRuntimeSelectField
@@ -367,7 +366,6 @@ export function AgentEditDialog({
               }
               providerCatalog={providerCatalog}
               disabled={pending}
-              modelPlaceholder="gpt-5.1"
               className="md:col-span-2"
             />
             <AgentRuntimeSelectField

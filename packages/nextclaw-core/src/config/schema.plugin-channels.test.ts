@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import { ConfigSchema } from "./schema.js";
 
 describe("ConfigSchema plugin channel compatibility", () => {
+  it("keeps the default agent model empty until the user sets one", () => {
+    const parsed = ConfigSchema.parse({});
+
+    expect(parsed.agents.defaults.model).toBe("");
+  });
+
   it("exposes weixin as a default builtin channel slot", () => {
     const parsed = ConfigSchema.parse({});
 
