@@ -42,6 +42,6 @@ if ($null -ne $command) {
 
 Write-Host ""
 Write-Host "使用提示:"
-Write-Host "- 安装后如需依赖宿主 Agent 自动感知，请重启宿主应用"
+Write-Host "- 以 'skillhub --help' 与实际 search/install 命令作为可用性的真相源"
 Write-Host "- 使用 'skillhub search <关键词>' 搜索技能"
 Write-Host "- 使用 'skillhub install <技能名>' 安装到当前 workspace"

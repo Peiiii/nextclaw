@@ -112,9 +112,7 @@ export class CliRuntime {
     }));
     this.pluginCommands = measureStartupSync("cli.runtime.plugin_commands", () => new PluginCommands());
     this.agentCommands = measureStartupSync("cli.runtime.agent_commands", () => new AgentCommands({
-      requestRestart: (params) => this.requestRestart(params),
-      initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory),
-      appName: APP_NAME
+      initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
     }));
     this.channelCommands = measureStartupSync("cli.runtime.channel_commands", () => new ChannelCommands({
       logo: this.logo,

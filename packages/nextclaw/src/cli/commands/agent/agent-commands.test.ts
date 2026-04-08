@@ -44,9 +44,7 @@ describe("AgentCommands", () => {
     mocks.updateAgentProfileMock.mockReturnValue(updated);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new AgentCommands({
-      requestRestart: vi.fn(async () => undefined),
-      initializeAgentHomeDirectory: vi.fn(),
-      appName: "nextclaw"
+      initializeAgentHomeDirectory: vi.fn()
     });
 
     await commands.agentsUpdate("researcher", {
@@ -64,13 +62,10 @@ describe("AgentCommands", () => {
       avatar: "https://example.com/avatar.png",
       runtime: "codex"
     });
-    expect(logSpy).toHaveBeenCalledWith(JSON.stringify({
-      agent: updated,
-      restartRequired: true
-    }, null, 2));
+    expect(logSpy).toHaveBeenCalledWith(JSON.stringify({ agent: updated }, null, 2));
   });
 
-  it("requests restart after updating an agent in normal mode", async () => {
+  it("updates an agent in normal mode without requesting restart", async () => {
     mocks.updateAgentProfileMock.mockReturnValue({
       id: "main",
       default: true,
@@ -80,22 +75,15 @@ describe("AgentCommands", () => {
       runtime: "native",
       engine: "native"
     } satisfies EffectiveAgentProfile);
-    const requestRestart = vi.fn(async () => undefined);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new AgentCommands({
-      requestRestart,
-      initializeAgentHomeDirectory: vi.fn(),
-      appName: "nextclaw"
+      initializeAgentHomeDirectory: vi.fn()
     });
 
     await commands.agentsUpdate("main", {
       description: "负责统筹"
     });
 
-    expect(requestRestart).toHaveBeenCalledWith({
-      reason: "agents-updated",
-      manualMessage: "Updated agent 'main'. Restart nextclaw to apply agent runtime changes."
-    });
     expect(logSpy).toHaveBeenCalledWith("✓ Updated agent main");
   });
 
@@ -111,9 +99,7 @@ describe("AgentCommands", () => {
     } satisfies EffectiveAgentProfile);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new AgentCommands({
-      requestRestart: vi.fn(async () => undefined),
-      initializeAgentHomeDirectory: vi.fn(),
-      appName: "nextclaw"
+      initializeAgentHomeDirectory: vi.fn()
     });
 
     await commands.agentsNew("engineer", {
@@ -140,8 +126,7 @@ describe("AgentCommands", () => {
         workspace: "~/.nextclaw/workspace-engineer",
         runtime: "codex",
         engine: "codex"
-      },
-      restartRequired: true
+      }
     }, null, 2));
   });
 
@@ -175,9 +160,7 @@ describe("AgentCommands", () => {
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const commands = new AgentCommands({
-      requestRestart: vi.fn(async () => undefined),
-      initializeAgentHomeDirectory: vi.fn(),
-      appName: "nextclaw"
+      initializeAgentHomeDirectory: vi.fn()
     });
 
     await commands.agentsRuntimes({

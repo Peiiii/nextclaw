@@ -523,7 +523,7 @@ Agent management notes:
 - For `nextclaw agents update`, passing an empty string to `--name`, `--description`, or `--avatar` clears the stored override for that field.
 - If `--avatar` is a local file path, NextClaw copies it into the Agent Home Directory and stores it as `home://avatar.<ext>`.
 - If `--avatar` is omitted, NextClaw generates a local default `avatar.svg`.
-- `nextclaw agents new/update/remove --json` returns machine-readable output plus `restartRequired: true`.
+- `nextclaw agents new/update/remove --json` returns machine-readable output with the resulting Agent payload.
 
 ### Agent CRUD flow for AI self-management
 
@@ -551,20 +551,16 @@ When NextClaw AI is asked to create, update, or remove an Agent, use this exact 
 
 4. Treat the JSON output as the source of truth:
    - `agent`: created or updated Agent profile
-   - `restartRequired: true`: runtime changes still need a restart to apply
+   - `removed` + `agentId`: removal result
 
-5. If the service is currently running, restart explicitly after creation:
-
-   ```bash
-   nextclaw restart
-   ```
-
-6. Close the loop:
+5. Close the loop:
 
    ```bash
    nextclaw agents list --json
    nextclaw status --json
    ```
+
+6. Do not invent a restart step for normal Agent CRUD. Running services hot-apply `agents.list` changes through config reload, and subsequent requests should observe the updated Agent state directly.
 
 Rules:
 

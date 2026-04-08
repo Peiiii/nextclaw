@@ -13,15 +13,12 @@ import type {
   AgentsNewCommandOptions,
   AgentsRemoveCommandOptions,
   AgentsRuntimesCommandOptions,
-  AgentsUpdateCommandOptions,
-  RequestRestartParams
+  AgentsUpdateCommandOptions
 } from "../types.js";
 
 export class AgentCommands {
   constructor(private readonly deps: {
-    requestRestart: (params: RequestRestartParams) => Promise<void>;
     initializeAgentHomeDirectory: (homeDirectory: string) => void;
-    appName: string;
   }) {}
 
   agentsList = (opts: AgentsListCommandOptions = {}): void => {
@@ -86,15 +83,10 @@ export class AgentCommands {
     );
     if (opts.json) {
       console.log(JSON.stringify({
-        agent: created,
-        restartRequired: true
+        agent: created
       }, null, 2));
       return;
     }
-    await this.deps.requestRestart({
-      reason: "agents-updated",
-      manualMessage: `Created agent '${created.id}'. Restart ${this.deps.appName} to apply agent runtime changes.`
-    });
     console.log(`✓ Created agent ${created.id}`);
     console.log(`  name: ${created.displayName ?? "-"}`);
     console.log(`  description: ${created.description ?? "-"}`);
@@ -113,15 +105,10 @@ export class AgentCommands {
     });
     if (opts.json) {
       console.log(JSON.stringify({
-        agent: updated,
-        restartRequired: true
+        agent: updated
       }, null, 2));
       return;
     }
-    await this.deps.requestRestart({
-      reason: "agents-updated",
-      manualMessage: `Updated agent '${updated.id}'. Restart ${this.deps.appName} to apply agent runtime changes.`
-    });
     console.log(`✓ Updated agent ${updated.id}`);
     console.log(`  name: ${updated.displayName ?? "-"}`);
     console.log(`  description: ${updated.description ?? "-"}`);
@@ -141,15 +128,10 @@ export class AgentCommands {
     if (opts.json) {
       console.log(JSON.stringify({
         removed: true,
-        agentId,
-        restartRequired: true
+        agentId
       }, null, 2));
       return;
     }
-    await this.deps.requestRestart({
-      reason: "agents-updated",
-      manualMessage: `Removed agent '${agentId}'. Restart ${this.deps.appName} to apply agent runtime changes.`
-    });
     console.log(`✓ Removed agent ${agentId}`);
   };
 

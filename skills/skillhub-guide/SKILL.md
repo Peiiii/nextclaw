@@ -136,16 +136,14 @@ Interpretation:
 - `search` returns normal output or a normal empty result: the CLI can reach its search flow.
 - command not found, permission failure, or shell parse failure: setup is not ready yet.
 
-### 4. Remind the user about agent restart when relevant
-
-Tencent's install doc says agents such as OpenClaw should be restarted after installation so they can notice Skillhub.
+### 4. Prefer direct CLI verification over host-agent assumptions
 
 Inside NextClaw, keep behavior explicit:
 
 - if the user wants guaranteed usage right now, prefer direct CLI commands first;
-- if the host agent is expected to auto-detect Skillhub, tell the user to restart the app before relying on that path.
+- do not promise implicit host-agent discovery unless it has been directly observed.
 
-Do not promise automatic detection if it has not been observed.
+Treat `skillhub` CLI readiness as the source of truth instead of inventing a restart step.
 
 ### 5. Discover available skills
 
@@ -196,7 +194,7 @@ Success means:
 - Treat `skillhub install <skill-name>` as a write action to the current workspace.
 - If the current workspace is unclear, stop and clarify the target directory before installing.
 - Do not describe Skillhub as built into NextClaw.
-- Do not claim automatic agent-side detection unless the user has restarted and observed it.
+- Do not claim automatic agent-side detection unless the user has directly observed it.
 
 ## Troubleshooting
 
@@ -205,11 +203,11 @@ Success means:
 - The CLI is not installed or not on `PATH`.
 - Re-run the CLI-only install command.
 - On Windows, confirm the user is running it from Git Bash or WSL if they are following the current upstream installer.
-- Open a new shell or restart the host app if needed.
+- Open a new shell if the current shell has not picked up the updated `PATH` yet.
 
 ### `skillhub --help` works but agent does not seem to notice Skillhub
 
-- Tell the user to restart the host app.
+- Do not invent a host-app restart requirement.
 - Use direct CLI commands in the meantime instead of waiting on implicit discovery.
 
 ### Search or install fails

@@ -54,17 +54,17 @@
 3. 确认返回 JSON 中：
    - `agent.id = "engineer"`
    - `agent.description = "负责工程实现与代码改造"`
-   - `restartRequired = true`
+   - 不再出现旧的“需重启后生效”字段
 4. 再执行 `nextclaw agents update main --avatar "https://example.com/main.png" --json`，确认内建 `main` 也可被更新。
 5. 执行 `nextclaw agents list --json` 或打开 `/agents` 页面，确认更新后的名称/描述/头像已经体现在展示层。
-6. 如服务正在运行，执行 `nextclaw restart`，确认运行时使用新的 Agent 元信息。
+6. 如服务正在运行，直接发起下一次请求或刷新 `/agents` 页面，确认运行时已通过配置热重载使用新的 Agent 元信息。
 
 ## 可维护性总结汇总
 
 - 是否已尽最大努力优化可维护性：是。没有把 `update` 做成对 `config set` 的命令级包装，而是补到 Agent profile 的正式核心能力里。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。相比继续让用户记住 `agents.list[<index>]` 这样的底层路径，`agents update` 直接把能力提升为一等命令，删掉了不必要的心智负担。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。虽然为了补齐缺失能力新增了最小必要代码，并新增 [`agent-avatar.ts`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw-core/src/config/agent-avatar.ts)，但同时把 [`agent-profiles.ts`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw-core/src/config/agent-profiles.ts) 从超预算压回预算内，并避免继续在 CLI 层堆配置路径特判。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。profile 更新留在 core，CLI 只负责命令参数与重启提示，avatar 文件处理独立拆出，边界更清楚。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。profile 更新留在 core，CLI 只负责命令参数与结果输出，avatar 文件处理独立拆出，边界更清楚。
 - 目录结构与文件组织是否满足当前项目治理要求：部分未满足但本次已控制恶化。`packages/nextclaw-core/src/config` 目录仍超过预算，本次新增 `agent-avatar.ts` 属于为降低单文件复杂度而做的必要拆分；CLI 测试已放到 [`commands/agent`](/Users/tongwenwen/Projects/Peiiii/nextclaw/packages/nextclaw/src/cli/commands/agent) 子目录，未继续把 `commands` 根目录摊平。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：已执行独立复核。
   - 可维护性复核结论：通过
