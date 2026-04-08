@@ -9,6 +9,16 @@ const mocks = vi.hoisted(() => ({
   createAgent: vi.fn(),
   updateAgent: vi.fn(),
   deleteAgent: vi.fn(),
+  sessionTypesQuery: {
+    data: {
+      defaultType: 'native',
+      options: [
+        { value: 'native', label: 'Native', ready: true },
+        { value: 'codex', label: 'Codex', ready: true },
+        { value: 'claude', label: 'Claude Code', ready: false, reasonMessage: 'Configure Claude Code first.' }
+      ]
+    }
+  },
   agentsQuery: {
     data: {
       agents: [
@@ -88,12 +98,25 @@ vi.mock('@/hooks/useConfig', () => ({
   useConfigMeta: () => mocks.configMetaQuery
 }));
 
+vi.mock('@/hooks/use-ncp-chat-session-types', () => ({
+  useNcpChatSessionTypes: () => mocks.sessionTypesQuery
+}));
+
 describe('AgentsPage', () => {
   beforeEach(() => {
     setLanguage('zh');
     mocks.createAgent.mockReset();
     mocks.updateAgent.mockReset();
     mocks.deleteAgent.mockReset();
+    if (!HTMLElement.prototype.hasPointerCapture) {
+      HTMLElement.prototype.hasPointerCapture = () => false;
+    }
+    if (!HTMLElement.prototype.setPointerCapture) {
+      HTMLElement.prototype.setPointerCapture = () => {};
+    }
+    if (!HTMLElement.prototype.releasePointerCapture) {
+      HTMLElement.prototype.releasePointerCapture = () => {};
+    }
   });
 
   it('renders the agents workspace in Chinese and keeps core actions visible', async () => {
@@ -120,6 +143,39 @@ describe('AgentsPage', () => {
     expect(screen.getByText('编辑 Agent 身份')).toBeTruthy();
     expect(screen.getByText('主目录保持不变')).toBeTruthy();
     expect(screen.getByDisplayValue('Researcher')).toBeTruthy();
+    expect(screen.getByDisplayValue('负责调研、信息筛选与结论提炼。').tagName).toBe('TEXTAREA');
     expect(screen.getByDisplayValue('gpt-5.2')).toBeTruthy();
+  });
+
+  it('uses a runtime dropdown instead of manual text input when editing an agent', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter>
+        <AgentsPage />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getAllByRole('button', { name: '编辑' })[1]);
+
+    const runtimeTrigger = screen.getByRole('combobox', { name: 'Runtime' });
+    expect(screen.queryByPlaceholderText('Runtime（如 native 或 codex，可选）')).toBeNull();
+    expect(runtimeTrigger.textContent).toContain('Native');
+    expect(screen.queryByText('跟随默认 Runtime')).toBeNull();
+
+    await user.click(runtimeTrigger);
+    await user.click(screen.getByRole('option', { name: 'Codex' }));
+    await user.click(screen.getByRole('button', { name: '保存编辑' }));
+
+    expect(mocks.updateAgent).toHaveBeenCalledWith({
+      agentId: 'researcher',
+      data: {
+        displayName: 'Researcher',
+        description: '负责调研、信息筛选与结论提炼。',
+        avatar: '',
+        model: 'openai/gpt-5.2',
+        runtime: 'codex'
+      }
+    });
   });
 });

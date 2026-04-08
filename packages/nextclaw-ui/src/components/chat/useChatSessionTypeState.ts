@@ -55,7 +55,7 @@ export function resolveSessionTypeLabel(sessionType: string, fallbackLabel?: str
     .join(' ') || sessionType;
 }
 
-function buildSessionTypeOptions(
+export function buildSessionTypeOptions(
   options: ChatSessionTypeOptionView[]
 ): ChatSessionTypeOption[] {
   const deduped = new Map<string, ChatSessionTypeOption>();

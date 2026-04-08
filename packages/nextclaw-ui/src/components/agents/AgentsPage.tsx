@@ -9,10 +9,16 @@ import {
   type AgentCreateFormState,
   type AgentEditFormState
 } from '@/components/agents/AgentDialogs';
+import {
+  buildSessionTypeOptions,
+  normalizeSessionType,
+  resolveSessionTypeLabel
+} from '@/components/chat/useChatSessionTypeState';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useNcpChatSessionTypes } from '@/hooks/use-ncp-chat-session-types';
 import { PageLayout } from '@/components/layout/page-layout';
 import { t } from '@/lib/i18n';
 import { buildProviderModelCatalog } from '@/lib/provider-models';
@@ -49,6 +55,7 @@ export function AgentsPage() {
   const agentsQuery = useAgents();
   const configQuery = useConfig();
   const configMetaQuery = useConfigMeta();
+  const sessionTypesQuery = useNcpChatSessionTypes();
   const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
@@ -69,6 +76,18 @@ export function AgentsPage() {
   const providerCatalog = useMemo(
     () => buildProviderModelCatalog({ config: configQuery.data, meta: configMetaQuery.data, onlyConfigured: true }),
     [configMetaQuery.data, configQuery.data]
+  );
+  const runtimeOptions = useMemo(
+    () => buildSessionTypeOptions(sessionTypesQuery.data?.options ?? []),
+    [sessionTypesQuery.data?.options]
+  );
+  const defaultRuntime = useMemo(
+    () => normalizeSessionType(sessionTypesQuery.data?.defaultType ?? 'native'),
+    [sessionTypesQuery.data?.defaultType]
+  );
+  const defaultRuntimeLabel = useMemo(
+    () => runtimeOptions.find((option) => option.value === defaultRuntime)?.label ?? resolveSessionTypeLabel(defaultRuntime),
+    [defaultRuntime, runtimeOptions]
   );
 
   const handleCreate = async (form: AgentCreateFormState) => {
@@ -188,6 +207,11 @@ export function AgentsPage() {
         ) : (
           sortedAgents.map((agent, index) => {
             const tone = resolveAgentTone(index, Boolean(agent.builtIn));
+            const runtimeValue = agent.runtime?.trim() || agent.engine?.trim() || '';
+            const runtimeLabel = runtimeValue
+              ? runtimeOptions.find((option) => option.value === normalizeSessionType(runtimeValue))?.label ??
+                resolveSessionTypeLabel(runtimeValue)
+              : defaultRuntimeLabel;
             return (
               <Card
                 key={agent.id}
@@ -239,7 +263,7 @@ export function AgentsPage() {
                         {t('agentsCardRuntimeLabel')}
                       </div>
                       <div className="mt-1.5 text-sm leading-6 text-[#475569]">
-                        {agent.runtime?.trim() || agent.engine?.trim() || 'native'}
+                        {runtimeLabel}
                       </div>
                     </div>
 
@@ -297,6 +321,8 @@ export function AgentsPage() {
         open={isCreateDialogOpen}
         pending={createAgent.isPending}
         providerCatalog={providerCatalog}
+        runtimeOptions={runtimeOptions}
+        defaultRuntime={defaultRuntime}
         onOpenChange={setIsCreateDialogOpen}
         onSubmit={handleCreate}
       />
@@ -305,6 +331,8 @@ export function AgentsPage() {
         agent={editingAgent}
         pending={updateAgent.isPending}
         providerCatalog={providerCatalog}
+        runtimeOptions={runtimeOptions}
+        defaultRuntime={defaultRuntime}
         onOpenChange={(open) => {
           if (!open && !updateAgent.isPending) {
             setEditingAgent(null);

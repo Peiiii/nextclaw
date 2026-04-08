@@ -34,6 +34,11 @@ export const AGENT_LABELS: Record<string, { zh: string; en: string }> = {
   agentsFormAvatarPlaceholder: { zh: '头像 URL 或本地路径，可选', en: 'Avatar URL or local path, optional' },
   agentsFormHomePlaceholder: { zh: '主目录，可选', en: 'Home Directory, optional' },
   agentsFormRuntimePlaceholder: { zh: 'Runtime（如 native 或 codex，可选）', en: 'Runtime (e.g. native or codex, optional)' },
+  agentsRuntimeSelectPlaceholder: { zh: '选择 Runtime', en: 'Select runtime' },
+  agentsRuntimeUnavailableHelp: {
+    zh: '当前 Runtime 已不在可用列表中；建议改选一个已安装且可用的 Runtime。',
+    en: 'This runtime is no longer available in the current list. Switch to an installed and available runtime.'
+  },
   agentsCreateAction: { zh: '创建 Agent', en: 'Create Agent' },
   agentsEditAction: { zh: '编辑', en: 'Edit' },
   agentsEditDialogTitle: { zh: '编辑 Agent 身份', en: 'Edit agent identity' },
