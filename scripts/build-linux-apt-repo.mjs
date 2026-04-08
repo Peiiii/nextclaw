@@ -187,7 +187,7 @@ function writeReleaseFile(repoRoot) {
       "-o",
       "APT::FTPArchive::Release::Description=NextClaw Linux APT Repository",
       "release",
-      resolve("dists", APT_DIST)
+      resolve(repoRoot, "dists", APT_DIST)
     ],
     { cwd: repoRoot }
   );
