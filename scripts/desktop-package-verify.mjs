@@ -144,6 +144,7 @@ function verifyLinuxDesktopPackage() {
     "electron-builder",
     "--linux",
     "AppImage",
+    "deb",
     "--x64",
     "--publish",
     "never"
@@ -156,7 +157,27 @@ function verifyLinuxDesktopPackage() {
     throw new Error("No Linux AppImage artifact found in apps/desktop/release");
   }
   run("bash", ["apps/desktop/scripts/smoke-linux-appimage.sh", appImagePath, "120"]);
+
+  const debPath = findLatestReleaseFile((name) => name.endsWith(".deb"));
+  if (!debPath) {
+    throw new Error("No Linux deb artifact found in apps/desktop/release");
+  }
+  run("bash", ["apps/desktop/scripts/smoke-linux-deb.sh", debPath]);
+  run(
+    binName("node"),
+    [
+      "scripts/build-linux-apt-repo.mjs",
+      "--input-dir",
+      releaseDir,
+      "--output-dir",
+      resolve(rootDir, "dist/linux-apt-repo-local"),
+      "--signing-mode",
+      "test"
+    ]
+  );
+  run("bash", ["apps/desktop/scripts/smoke-linux-apt-repo.sh", resolve(rootDir, "dist/linux-apt-repo-local", "apt")]);
   console.log(`[desktop-verify] Linux AppImage verified: ${appImagePath}`);
+  console.log(`[desktop-verify] Linux deb verified: ${debPath}`);
 }
 
 function main() {

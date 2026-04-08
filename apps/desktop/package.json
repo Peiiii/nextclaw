@@ -89,9 +89,23 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "category": "Utility"
+    },
+    "deb": {
+      "packageName": "nextclaw-desktop",
+      "maintainer": "NextClaw Team",
+      "priority": "optional",
+      "packageCategory": "utility",
+      "synopsis": "NextClaw Desktop",
+      "description": "NextClaw desktop shell powered by Electron."
     },
     "publish": [
       {

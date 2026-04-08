@@ -54,6 +54,10 @@ Windows (unpacked EXE directory, no publish):
 
 - `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never`
 
+Linux (`AppImage` + `.deb`, no publish):
+
+- `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never`
+
 ### 3) Artifacts to upload
 
 All artifacts are under `apps/desktop/release`:
@@ -63,8 +67,46 @@ All artifacts are under `apps/desktop/release`:
 - `NextClaw Desktop-<version>-x64.dmg`
 - `NextClaw Desktop-<version>-x64-mac.zip`
 - `win-unpacked/NextClaw Desktop.exe`
+- `NextClaw.Desktop-<version>-linux-x64.AppImage`
+- `nextclaw-desktop_<version>_amd64.deb`
 
-### 4) Optional macOS signing credentials
+### 4) Linux package lifecycle
+
+APT repository dry-run from repo root:
+
+- `PATH=/opt/homebrew/bin:$PATH pnpm desktop:apt:build`
+- `PATH=/opt/homebrew/bin:$PATH pnpm desktop:apt:verify`
+
+Expected generated repository root:
+
+- `dist/linux-apt-repo/apt`
+- `dist/linux-apt-repo/apt/dists/stable/...`
+- `dist/linux-apt-repo/apt/pool/main/n/nextclaw-desktop/...`
+
+Expected user install flow after GitHub Pages publish:
+
+```bash
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://peiiii.github.io/nextbot/apt/nextclaw-archive-keyring.gpg \
+  | sudo tee /etc/apt/keyrings/nextclaw-archive-keyring.gpg >/dev/null
+
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/nextclaw-archive-keyring.gpg] https://peiiii.github.io/nextbot/apt stable main" \
+  | sudo tee /etc/apt/sources.list.d/nextclaw.list >/dev/null
+
+sudo apt update
+sudo apt install nextclaw-desktop
+```
+
+Expected upgrade / uninstall flow:
+
+```bash
+sudo apt update
+sudo apt upgrade
+sudo apt remove nextclaw-desktop
+sudo apt purge nextclaw-desktop
+```
+
+### 5) Optional macOS signing credentials
 
 - `CSC_LINK`, `CSC_KEY_PASSWORD` for Developer ID Application certificate.
 - `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY` for notarization.

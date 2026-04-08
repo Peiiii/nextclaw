@@ -28,6 +28,10 @@ npm -v
 npm i -g nextclaw
 ```
 
+如果你是在 Debian / Ubuntu 系 Linux 上安装桌面版，而不是 CLI，请改看：
+
+- [Linux 桌面安装（.deb + APT）](/zh/guide/tutorials/linux-desktop-deb-apt)
+
 ## 3. 启动服务
 
 后台启动网关 + 配置 UI：

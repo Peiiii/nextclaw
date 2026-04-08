@@ -125,32 +125,14 @@ jobs:
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop build:main
-          pnpm -C apps/desktop exec electron-builder --linux AppImage --x64 --publish never
+          pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
 
-      - name: Normalize Linux AppImage filename
+      - name: Normalize Linux artifact filenames
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
-          if [ -z "${APPIMAGE_PATH}" ]; then
-            echo "Linux AppImage not found in apps/desktop/release"
-            exit 1
-          fi
-
-          BASE_NAME="$(basename "${APPIMAGE_PATH}")"
-          VERSION="$(echo "${BASE_NAME}" | sed -E 's/.*-([0-9]+\.[0-9]+\.[0-9]+).*/\1/')"
-          if ! echo "${VERSION}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "Failed to parse version from Linux AppImage filename: ${BASE_NAME}"
-            exit 1
-          fi
-
-          TARGET_APPIMAGE="apps/desktop/release/NextClaw.Desktop-${VERSION}-linux-x64.AppImage"
-          mv "${APPIMAGE_PATH}" "${TARGET_APPIMAGE}"
-
-          if [ -f "${APPIMAGE_PATH}.blockmap" ]; then
-            mv "${APPIMAGE_PATH}.blockmap" "${TARGET_APPIMAGE}.blockmap"
-          fi
+          bash apps/desktop/scripts/normalize-linux-release-artifacts.sh apps/desktop/release
 
       - name: Smoke Desktop (Windows)
         if: matrix.platform == 'win32'
@@ -174,6 +156,18 @@ jobs:
             exit 1
           fi
           apps/desktop/scripts/smoke-linux-appimage.sh "${APPIMAGE_PATH}" 240
+
+      - name: Smoke Desktop (Linux deb)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEB_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name 'nextclaw-desktop_*.deb' | head -n 1)"
+          if [ -z "${DEB_PATH}" ]; then
+            echo "Linux deb not found in apps/desktop/release"
+            exit 1
+          fi
+          bash apps/desktop/scripts/smoke-linux-deb.sh "${DEB_PATH}"
 
       - name: Archive desktop artifacts (Windows)
         if: matrix.platform == 'win32'
@@ -285,6 +279,7 @@ jobs:
           path: |
             apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage
             apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage.blockmap
+            apps/desktop/release/nextclaw-desktop_*.deb
 
   publish-release-assets:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
@@ -310,4 +305,106 @@ jobs:
             dist/desktop-release/*-mac.zip
             dist/desktop-release/*-win32-*-unpacked.zip
             dist/desktop-release/*.AppImage
+            dist/desktop-release/*.deb
             dist/desktop-release/*.blockmap
+
+  publish-linux-apt-repo:
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
+    needs: [build-desktop, publish-release-assets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install APT repository toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils dpkg-dev gnupg
+
+      - name: Download Linux desktop artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: desktop-release-linux-x64
+          path: dist/desktop-release
+
+      - name: Prepare gh-pages worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/gh-pages .tmp/current-pages-apt dist/linux-apt-input
+          mkdir -p dist/linux-apt-input
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add .tmp/gh-pages origin/gh-pages
+            if [ -d ".tmp/gh-pages/apt" ]; then
+              cp -R ".tmp/gh-pages/apt" ".tmp/current-pages-apt"
+              if [ -d ".tmp/current-pages-apt/pool" ]; then
+                find ".tmp/current-pages-apt/pool" -type f -name '*.deb' -exec cp {} dist/linux-apt-input/ \;
+              fi
+            fi
+          else
+            git worktree add --detach .tmp/gh-pages
+            git -C .tmp/gh-pages checkout --orphan gh-pages
+            git -C .tmp/gh-pages rm -rf . >/dev/null 2>&1 || true
+            find .tmp/gh-pages -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+
+      - name: Stage Linux desktop packages for APT
+        shell: bash
+        run: |
+          set -euo pipefail
+          find dist/desktop-release -maxdepth 1 -type f -name '*.deb' -exec cp {} dist/linux-apt-input/ \;
+          if ! find dist/linux-apt-input -maxdepth 1 -type f -name '*.deb' | grep -q .; then
+            echo "No Linux deb artifacts available for APT repo build"
+            exit 1
+          fi
+
+      - name: Build signed Linux APT repo
+        shell: bash
+        env:
+          NEXTCLAW_APT_GPG_PRIVATE_KEY: ${{ secrets.NEXTCLAW_APT_GPG_PRIVATE_KEY }}
+          NEXTCLAW_APT_GPG_PASSPHRASE: ${{ secrets.NEXTCLAW_APT_GPG_PASSPHRASE }}
+          NEXTCLAW_APT_GPG_KEY_ID: ${{ secrets.NEXTCLAW_APT_GPG_KEY_ID }}
+        run: |
+          set -euo pipefail
+          node scripts/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env
+
+      - name: Smoke Linux APT fresh install
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash apps/desktop/scripts/smoke-linux-apt-repo.sh dist/linux-apt-repo/apt
+
+      - name: Smoke Linux APT upgrade
+        if: hashFiles('.tmp/current-pages-apt/dists/stable/main/binary-amd64/Packages') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash apps/desktop/scripts/smoke-linux-apt-repo.sh dist/linux-apt-repo/apt --old-repo-dir .tmp/current-pages-apt
+
+      - name: Publish Linux APT repo to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/gh-pages
+          rm -rf .tmp/gh-pages/apt
+          cp -R dist/linux-apt-repo/apt .tmp/gh-pages/apt
+          touch .tmp/gh-pages/.nojekyll
+          git -C .tmp/gh-pages config user.name "github-actions[bot]"
+          git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C .tmp/gh-pages add apt .nojekyll
+          if git -C .tmp/gh-pages diff --cached --quiet; then
+            echo "No Linux APT repo changes to publish."
+            exit 0
+          fi
+          git -C .tmp/gh-pages commit -m "chore: publish linux apt repo"
+          git -C .tmp/gh-pages push origin HEAD:gh-pages

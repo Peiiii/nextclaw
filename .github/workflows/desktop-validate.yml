@@ -15,6 +15,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
+      - "scripts/**"
       - ".github/workflows/desktop-validate.yml"
   push:
     branches:
@@ -33,6 +34,7 @@ on:
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
       - "package.json"
+      - "scripts/**"
       - ".github/workflows/desktop-validate.yml"
   workflow_dispatch:
 
@@ -92,6 +94,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install Linux packaging tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y apt-utils dpkg-dev gnupg
 
       - name: Build macOS DMG
         run: |
@@ -202,8 +209,8 @@ jobs:
           path: |
             apps/desktop/release/win-unpacked/**
 
-  desktop-linux-appimage-smoke:
-    name: desktop-linux-appimage-smoke
+  desktop-linux-package-smoke:
+    name: desktop-linux-package-smoke
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -229,7 +236,7 @@ jobs:
           set -euo pipefail
           pnpm -r --filter @nextclaw/desktop... build
 
-      - name: Build Linux AppImage
+      - name: Build Linux AppImage + deb
         shell: bash
         run: |
           set -euo pipefail
@@ -237,18 +244,47 @@ jobs:
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
-          pnpm -C apps/desktop exec electron-builder --linux AppImage --x64 --publish never
+          pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
+
+      - name: Normalize Linux artifact filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash apps/desktop/scripts/normalize-linux-release-artifacts.sh apps/desktop/release
 
       - name: Smoke test Linux AppImage
         shell: bash
         run: |
           set -euo pipefail
-          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
+          APPIMAGE_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name 'NextClaw.Desktop-*-linux-x64.AppImage' | head -n 1)"
           if [ -z "${APPIMAGE_PATH}" ]; then
             echo "Linux AppImage not found in apps/desktop/release"
             exit 1
           fi
           apps/desktop/scripts/smoke-linux-appimage.sh "${APPIMAGE_PATH}" 120
+
+      - name: Smoke test Linux deb install
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEB_PATH="$(find apps/desktop/release -maxdepth 1 -type f -name 'nextclaw-desktop_*.deb' | head -n 1)"
+          if [ -z "${DEB_PATH}" ]; then
+            echo "Linux deb not found in apps/desktop/release"
+            exit 1
+          fi
+          bash apps/desktop/scripts/smoke-linux-deb.sh "${DEB_PATH}"
+
+      - name: Build test-signed Linux APT repo
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/build-linux-apt-repo.mjs --input-dir apps/desktop/release --output-dir dist/linux-apt-repo --signing-mode test
+
+      - name: Smoke test Linux APT repo install
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash apps/desktop/scripts/smoke-linux-apt-repo.sh dist/linux-apt-repo/apt
 
       - name: Upload Linux smoke logs
         if: always()
@@ -260,12 +296,14 @@ jobs:
             ${{ runner.temp }}/nextclaw-desktop-smoke-home/logs/**
             ${{ runner.temp }}/nextclaw-desktop-smoke-logs/**
 
-      - name: Upload Linux AppImage artifact
+      - name: Upload Linux package artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-validate-linux-x64-appimage
+          name: desktop-validate-linux-x64-packages
           if-no-files-found: warn
           path: |
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.AppImage.blockmap
+            apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage
+            apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage.blockmap
+            apps/desktop/release/nextclaw-desktop_*.deb
+            dist/linux-apt-repo/**

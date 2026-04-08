@@ -114,6 +114,7 @@ const enSidebar = [
       { text: 'MCP Tutorial', link: '/en/guide/tutorials/mcp-marketplace' },
       { text: 'Local Ollama + Qwen3 (macOS)', link: '/en/guide/tutorials/local-ollama-qwen3' },
       { text: 'Unsigned Desktop Install', link: '/en/guide/tutorials/desktop-install-unsigned' },
+      { text: 'Linux Desktop Install (.deb + APT)', link: '/en/guide/tutorials/linux-desktop-deb-apt' },
       { text: 'Resource Hub', link: '/en/guide/resources' }
     ]
   },
@@ -199,6 +200,7 @@ const zhSidebar = [
       { text: 'MCP 教程', link: '/zh/guide/tutorials/mcp-marketplace' },
       { text: '本地 Ollama + Qwen3 教程（macOS）', link: '/zh/guide/tutorials/local-ollama-qwen3' },
       { text: '桌面端无签名安装教程', link: '/zh/guide/tutorials/desktop-install-unsigned' },
+      { text: 'Linux 桌面安装（.deb + APT）', link: '/zh/guide/tutorials/linux-desktop-deb-apt' },
       { text: '生态资源', link: '/zh/guide/resources' }
     ]
   },

@@ -28,6 +28,10 @@ If you see versions (for example `v20.x` and `10.x`), your environment is ready.
 npm i -g nextclaw
 ```
 
+If you are installing the Linux desktop app on Debian / Ubuntu instead of the CLI, use:
+
+- [Linux Desktop Install (.deb + APT)](/en/guide/tutorials/linux-desktop-deb-apt)
+
 ## 3. Start the Service
 
 Start the gateway + config UI in the background:

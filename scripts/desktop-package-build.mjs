@@ -123,6 +123,7 @@ function packageForCurrentPlatform() {
         "electron-builder",
         "--linux",
         "AppImage",
+        "deb",
         "--x64",
         "--publish",
         "never"
@@ -133,6 +134,7 @@ function packageForCurrentPlatform() {
       readArtifacts().filter((path) =>
         path.endsWith(".AppImage") ||
         path.endsWith(".AppImage.blockmap") ||
+        path.endsWith(".deb") ||
         path.endsWith("latest-linux.yml")
       )
     );
