@@ -24,6 +24,24 @@ const channelDescriptionKeys: Record<string, string> = {
   weixin: 'channelDescWeixin'
 };
 
+const prioritizedChannelNames = ['weixin', 'feishu', 'discord', 'qq'] as const;
+
+function sortChannelsForDisplay<T extends { name: string }>(channels: T[]): T[] {
+  const priorityByName = new Map<string, number>(prioritizedChannelNames.map((name, index) => [name, index]));
+
+  return channels
+    .map((channel, index) => ({ channel, index }))
+    .sort((left, right) => {
+      const leftPriority = priorityByName.get(left.channel.name) ?? Number.POSITIVE_INFINITY;
+      const rightPriority = priorityByName.get(right.channel.name) ?? Number.POSITIVE_INFINITY;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.index - right.index;
+    })
+    .map(({ channel }) => channel);
+}
+
 export function ChannelsList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
@@ -32,17 +50,17 @@ export function ChannelsList() {
   const [selectedChannel, setSelectedChannel] = useState<string | undefined>();
   const [query, setQuery] = useState('');
   const uiHints = schema?.uiHints;
-  const channels = meta?.channels;
+  const channels = useMemo(() => sortChannelsForDisplay(meta?.channels ?? []), [meta?.channels]);
   const channelConfigs = config?.channels;
 
   const tabs = [
-    { id: 'enabled', label: t('channelsTabEnabled'), count: (channels ?? []).filter((c) => channelConfigs?.[c.name]?.enabled).length },
-    { id: 'all', label: t('channelsTabAll'), count: (channels ?? []).length }
+    { id: 'enabled', label: t('channelsTabEnabled'), count: channels.filter((c) => channelConfigs?.[c.name]?.enabled).length },
+    { id: 'all', label: t('channelsTabAll'), count: channels.length }
   ];
 
   const filteredChannels = useMemo(() => {
     const keyword = query.trim().toLowerCase();
-    return (channels ?? [])
+    return channels
       .filter((channel) => {
         const enabled = channelConfigs?.[channel.name]?.enabled || false;
         if (activeTab === 'enabled') {

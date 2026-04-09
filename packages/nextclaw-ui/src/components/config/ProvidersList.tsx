@@ -26,6 +26,20 @@ function formatBasePreview(base?: string | null): string | null {
   }
 }
 
+function sortProvidersForDisplay<T extends { name: string }>(providers: T[]): T[] {
+  return providers
+    .map((provider, index) => ({ provider, index }))
+    .sort((left, right) => {
+      const leftPriority = left.provider.name === 'nextclaw' ? 1 : 0;
+      const rightPriority = right.provider.name === 'nextclaw' ? 1 : 0;
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+      return left.index - right.index;
+    })
+    .map(({ provider }) => provider);
+}
+
 export function ProvidersList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
@@ -37,7 +51,7 @@ export function ProvidersList() {
   const [query, setQuery] = useState('');
 
   const uiHints = schema?.uiHints;
-  const providers = meta?.providers ?? [];
+  const providers = useMemo(() => sortProvidersForDisplay(meta?.providers ?? []), [meta?.providers]);
   const providersConfig = config?.providers ?? {};
   const configuredCount = providers.filter((provider) => {
     const current = providersConfig[provider.name];
@@ -50,7 +64,7 @@ export function ProvidersList() {
   ];
 
   const filteredProviders = useMemo(() => {
-    const baseProviders = meta?.providers ?? [];
+    const baseProviders = providers;
     const baseConfig = config?.providers ?? {};
     const keyword = query.trim().toLowerCase();
     return baseProviders
@@ -69,7 +83,7 @@ export function ProvidersList() {
         const display = (configDisplayName || provider.displayName || provider.name).toLowerCase();
         return display.includes(keyword) || provider.name.toLowerCase().includes(keyword);
       });
-  }, [meta, config, activeTab, query]);
+  }, [providers, config, activeTab, query]);
 
   useEffect(() => {
     if (filteredProviders.length === 0) {

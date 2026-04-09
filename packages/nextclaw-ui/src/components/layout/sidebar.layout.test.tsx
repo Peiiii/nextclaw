@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { Sidebar } from '@/components/layout/Sidebar';
@@ -83,6 +83,37 @@ describe('Sidebar', () => {
     expect(header.className).not.toContain('bg-white');
     expect(header.className).not.toContain('rounded-2xl');
     expect(backLink.className).toContain('hover:bg-gray-200/60');
+  });
+
+  it('keeps the settings navigation in the expected product order', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/model']}>
+        <Sidebar mode="settings" />
+      </MemoryRouter>
+    );
+
+    const nav = container.querySelector('nav');
+    if (!(nav instanceof HTMLElement)) {
+      throw new Error('settings nav not found');
+    }
+
+    const linkTexts = within(nav)
+      .getAllByRole('link')
+      .map((link) => link.textContent?.trim() || '');
+
+    expect(linkTexts).toEqual([
+      'Model',
+      'Providers',
+      'Channels',
+      'Search Channels',
+      'Plugins',
+      'MCP',
+      'Routing & Runtime',
+      'Remote Access',
+      'Security',
+      'Sessions',
+      'Secrets'
+    ]);
   });
 
   it('keeps the footer utilities compact without changing the top header structure', () => {

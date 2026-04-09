@@ -100,6 +100,31 @@ describe('ChannelsList', () => {
     mocks.updateChannelMutateAsync.mockReset();
     mocks.startChannelAuthMutateAsync.mockReset();
     mocks.pollChannelAuthMutateAsync.mockReset();
+    mocks.configQuery.data = {
+      channels: {
+        weixin: {
+          enabled: false,
+          defaultAccountId: '1344b2b24720@im.bot',
+          baseUrl: 'https://ilinkai.weixin.qq.com',
+          pollTimeoutMs: 35000,
+          allowFrom: ['o9cq804svxfyCCTIqzddDqRBeMC0@im.wechat'],
+          accounts: {
+            '1344b2b24720@im.bot': {
+              enabled: true
+            }
+          }
+        }
+      }
+    };
+    mocks.metaQuery.data = {
+      channels: [
+        {
+          name: 'weixin',
+          displayName: 'Weixin',
+          enabled: false
+        }
+      ]
+    };
   });
 
   it('renders weixin qr auth card and starts channel auth', async () => {
@@ -138,6 +163,49 @@ describe('ChannelsList', () => {
     await waitFor(() => {
       expect(screen.getByAltText('Weixin login QR code').getAttribute('src')).toBe('data:image/png;base64,weixin-qr');
     });
+  });
+
+  it('keeps Weixin, Feishu, Discord, and QQ at the front of the channel list', async () => {
+    const user = userEvent.setup();
+    mocks.configQuery.data = {
+      channels: {
+        telegram: { enabled: false },
+        qq: { enabled: false },
+        discord: { enabled: false },
+        weixin: { enabled: false },
+        feishu: { enabled: false }
+      }
+    } as unknown as typeof mocks.configQuery.data;
+    mocks.metaQuery.data = {
+      channels: [
+        { name: 'telegram', displayName: 'Telegram', enabled: false },
+        { name: 'qq', displayName: 'QQ', enabled: false },
+        { name: 'discord', displayName: 'Discord', enabled: false },
+        { name: 'weixin', displayName: 'Weixin', enabled: false },
+        { name: 'feishu', displayName: 'Feishu', enabled: false }
+      ]
+    } as typeof mocks.metaQuery.data;
+
+    const { container } = render(<ChannelsList />);
+
+    await user.click(await screen.findByRole('button', { name: /All Channels/i }));
+
+    const sidebarSection = container.querySelector('section');
+    if (!(sidebarSection instanceof HTMLElement)) {
+      throw new Error('channel sidebar not found');
+    }
+
+    const channelButtons = Array.from(sidebarSection.querySelectorAll('button[type="button"]')).filter((button) => (
+      ['Weixin', 'Feishu', 'Discord', 'QQ', 'Telegram'].some((label) => button.textContent?.includes(label))
+    ));
+
+    expect(channelButtons.map((button) => button.textContent)).toEqual([
+      expect.stringContaining('Weixin'),
+      expect.stringContaining('Feishu'),
+      expect.stringContaining('Discord'),
+      expect.stringContaining('QQ'),
+      expect.stringContaining('Telegram')
+    ]);
   });
 
   it('saves weixin advanced settings from the advanced section', async () => {

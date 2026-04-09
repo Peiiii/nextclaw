@@ -81,14 +81,24 @@ export function Sidebar({ mode }: SidebarProps) {
       icon: Sparkles,
     },
     {
+      target: '/channels',
+      label: t('channels'),
+      icon: MessageSquare,
+    },
+    {
       target: '/search',
       label: t('searchChannels'),
       icon: Search,
     },
     {
-      target: '/channels',
-      label: t('channels'),
-      icon: MessageSquare,
+      target: '/marketplace/plugins',
+      label: t('marketplaceFilterPlugins'),
+      icon: Plug,
+    },
+    {
+      target: '/marketplace/mcp',
+      label: t('marketplaceFilterMcp'),
+      icon: Wrench,
     },
     {
       target: '/runtime',
@@ -114,16 +124,6 @@ export function Sidebar({ mode }: SidebarProps) {
       target: '/secrets',
       label: t('secrets'),
       icon: KeyRound,
-    },
-    {
-      target: '/marketplace/plugins',
-      label: t('marketplaceFilterPlugins'),
-      icon: Plug,
-    },
-    {
-      target: '/marketplace/mcp',
-      label: t('marketplaceFilterMcp'),
-      icon: Wrench,
     }
   ];
   const navItems = isSettingsMode ? settingsNavItems : mainNavItems;
