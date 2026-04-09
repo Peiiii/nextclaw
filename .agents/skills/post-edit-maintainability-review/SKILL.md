@@ -35,6 +35,7 @@ Answer these in order:
 7. Are class / helper / service / store / controller boundaries clearer now, or did the change add another layer without reducing real complexity?
 8. Did the change truly simplify the system, or did it just move complexity to another file, helper, or abstraction?
 9. Did the change duplicate existing logic or an existing component surface that should have been reused or factored into a stable shared core?
+10. If React code was touched, are `useEffect` / `useLayoutEffect` still limited to external-system sync, or is business coordination still leaking through effects instead of store / manager / presenter / query-view ownership?
 
 ## Output
 
@@ -90,4 +91,5 @@ Then add a short maintainability summary in 1-3 sentences covering:
 - Accepting code growth in a non-feature change without explaining why deletion or simplification was insufficient
 - Calling something “refactored” when complexity was only renamed or moved
 - Copying an existing helper or component with minor edits instead of reusing it or extracting a shared core
+- Leaving business coordination in React effects while only renaming nearby helpers or moving setters to a different file
 - Ending the task without a concise maintainability summary in the final reply

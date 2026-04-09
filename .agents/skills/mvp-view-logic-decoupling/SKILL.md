@@ -34,6 +34,16 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 - `Feature implementation modules`
   - Implement isolated business capabilities per feature.
 
+## Effect Boundary
+
+- Use `useEffect` only for external-system synchronization:
+  - DOM and browser APIs
+  - event listeners and subscription lifecycles
+  - runtime resource setup / teardown
+- Do not use `useEffect` to mirror query results into stores or local state.
+- Do not use `useEffect` to trigger business actions after render.
+- If an effect is resetting multiple business states, first move that transition into a manager method or presenter flow.
+
 ## Mandatory Rules
 
 1. Use arrow functions for all manager and presenter methods.
@@ -41,6 +51,7 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 3. Avoid `this`-binding ambiguity by using class fields with arrow methods.
 4. Prefer direct presenter/store access over deep business prop drilling.
 5. Remove duplicate data/action plumbing when presenter already provides the capability.
+6. Keep business-oriented `useEffect` logic out of business components; prefer manager/presenter action ownership.
 
 ## Implementation Workflow
 
@@ -51,8 +62,9 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 5. Create global presenter class and instantiate managers as class fields.
 6. Add Context Provider + `usePresenter` hook.
 7. Refactor business components to use presenter/stores directly.
-8. Move remaining pure display parts into UI components.
-9. Delete unnecessary business prop forwarding.
+8. Shrink remaining effects to external sync only.
+9. Move remaining pure display parts into UI components.
+10. Delete unnecessary business prop forwarding.
 
 ## Minimal TypeScript Skeleton
 
@@ -144,6 +156,7 @@ Run this check before finishing:
 4. Verify manager/presenter methods are arrow functions.
 5. Verify manager/presenter classes do not declare constructors.
 6. Verify cross-domain communication goes through presenter-level APIs.
+7. Verify business components do not use `useEffect` to mirror query/store data or dispatch business actions.
 
 ## Anti-Patterns
 
@@ -152,3 +165,4 @@ Run this check before finishing:
 - Pass action/state through several business layers when presenter direct access is possible.
 - Mix orchestration logic into low-level feature modules.
 - Use prototype methods (`foo() {}`) in manager/presenter classes.
+- Use `useEffect` as a business patch point for state repair, query-to-store mirroring, or post-render action dispatch.
