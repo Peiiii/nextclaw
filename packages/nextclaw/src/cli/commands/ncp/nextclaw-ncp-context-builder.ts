@@ -193,16 +193,14 @@ function prependRequestedSkills(content: string, requestedSkillNames: string[]):
 function buildSessionOrchestrationSection(): string {
   return [
     "## Session Orchestration",
-    "- Before passing a non-default `runtime` to `spawn`, `sessions_spawn`, or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
-    "- `spawn` creates a child session, starts the delegated task there immediately, and returns a running child-session handle right away instead of waiting for the child to finish.",
-    "- When that child reaches its final reply, `spawn` writes the completed result back into the original tool call and resumes the current session with the child's result.",
-    "- Use `spawn` when the work is a subtask of the current flow and the user expects this session to pause now and then continue after that child finishes.",
-    "- `sessions_spawn` creates a standalone session. Use it when the work should live in its own thread, remain independently reviewable later, or continue outside the current flow.",
-    "- `sessions_request` sends one task to another session. Use it to reuse an existing session, or immediately after `sessions_spawn` when a new standalone session should start working right away.",
-    "- If the goal is 'open a new session and have it do something now', the usual sequence is: 1) call `sessions_spawn`; 2) call `sessions_request` with that returned `sessionId`.",
+    "- Before passing a non-default `runtime` to `sessions_spawn` or agent creation/update flows, inspect the installed runtime kinds with `nextclaw agents runtimes --json`.",
+    "- `sessions_spawn` is the unified session-creation tool. Omit `scope` or use `scope=\"standalone\"` for a regular session, and use `scope=\"child\"` when the new session should be a child session of the current flow.",
+    "- `sessions_spawn` only creates the session by default. Add `request: { notify: \"none\" | \"final_reply\" }` when the new session should start working immediately.",
+    "- When `sessions_spawn.scope=\"child\"` and `sessions_spawn.request.notify=\"final_reply\"`, the new child session starts right away and this session automatically continues after that child reaches its final reply.",
+    "- Use `sessions_spawn` without `request` when the user wants a separate thread created now but does not need it to start working yet.",
+    "- Use `sessions_request` to send one task to an existing session, including a session that was just created by `sessions_spawn` or a previously created child session.",
     "- `sessions_request.target` must be an object shaped like `{ \"session_id\": \"<target-session-id>\" }`. Do not pass a bare string.",
-    "- Prefer `delivery=\"resume_source\"` when the current session should continue after the target session produces its final reply. Use `delivery=\"none\"` when you only want the target session to run independently.",
-    "- Do not use `spawn` for long-lived independent threads, fire-and-forget work, or work that should not automatically resume the current session; in those cases use `sessions_spawn` plus `sessions_request` instead.",
+    "- Prefer `notify=\"final_reply\"` when the current session should continue after the target session produces its final reply. Use `notify=\"none\"` when you only want the target session to run independently.",
   ].join("\n");
 }
 

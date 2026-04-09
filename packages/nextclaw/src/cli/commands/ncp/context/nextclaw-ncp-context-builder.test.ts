@@ -123,13 +123,8 @@ it("injects session orchestration guidance into the NCP system prompt", () => {
         prepareForRun: vi.fn(),
         getToolDefinitions: () => [
           {
-            name: "spawn",
-            description: "Create a child session",
-            parameters: { type: "object", properties: {}, additionalProperties: false },
-          },
-          {
             name: "sessions_spawn",
-            description: "Create a standalone session",
+            description: "Create a session",
             parameters: { type: "object", properties: {}, additionalProperties: false },
           },
           {
@@ -157,10 +152,10 @@ it("injects session orchestration guidance into the NCP system prompt", () => {
     const systemPrompt = String(prepared.messages[0]?.content ?? "");
     expect(systemPrompt).toContain("## Session Orchestration");
     expect(systemPrompt).toContain("`nextclaw agents runtimes --json`");
-    expect(systemPrompt).toContain("`spawn` creates a child session, starts the delegated task there immediately");
-    expect(systemPrompt).toContain("writes the completed result back into the original tool call");
-    expect(systemPrompt).toContain("`sessions_spawn` creates a standalone session");
-    expect(systemPrompt).toContain("the usual sequence is: 1) call `sessions_spawn`; 2) call `sessions_request`");
+    expect(systemPrompt).toContain("`sessions_spawn` is the unified session-creation tool");
+    expect(systemPrompt).toContain("use `scope=\"child\"` when the new session should be a child session");
+    expect(systemPrompt).toContain("Add `request: { notify: \"none\" | \"final_reply\" }`");
+    expect(systemPrompt).toContain("`sessions_spawn.scope=\"child\"` and `sessions_spawn.request.notify=\"final_reply\"`");
     expect(systemPrompt).toContain("`sessions_request.target` must be an object shaped like");
   });
 

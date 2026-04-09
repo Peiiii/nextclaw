@@ -1,7 +1,6 @@
 import type { NcpCompletedEnvelope, NcpMessage } from "@nextclaw/ncp";
 import type {
-  SessionRequestAwaitMode,
-  SessionRequestDeliveryMode,
+  SessionRequestNotifyMode,
   SessionRequestRecord,
 } from "./session-request.types.js";
 
@@ -31,8 +30,7 @@ export function createRunningSessionRequest(params: {
   targetSessionId: string;
   sourceToolCallId?: string;
   handoffDepth: number;
-  awaitMode: SessionRequestAwaitMode;
-  deliveryMode: SessionRequestDeliveryMode;
+  notify: SessionRequestNotifyMode;
   title: string;
   task: string;
   isChildSession: boolean;
@@ -44,8 +42,7 @@ export function createRunningSessionRequest(params: {
     targetSessionId,
     sourceToolCallId,
     handoffDepth,
-    awaitMode,
-    deliveryMode,
+    notify,
     title,
     task,
     isChildSession,
@@ -59,8 +56,7 @@ export function createRunningSessionRequest(params: {
     sourceToolCallId,
     rootRequestId: requestId,
     handoffDepth,
-    awaitMode,
-    deliveryMode,
+    notify,
     status: "running",
     createdAt,
     startedAt: createdAt,

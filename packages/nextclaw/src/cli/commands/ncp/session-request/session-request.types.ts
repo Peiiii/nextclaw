@@ -7,11 +7,7 @@ export type SessionRequestStatus =
   | "failed"
   | "cancelled";
 
-export type SessionRequestAwaitMode = "final_reply";
-
-export type SessionRequestDeliveryMode =
-  | "none"
-  | "resume_source";
+export type SessionRequestNotifyMode = "none" | "final_reply";
 
 export type SessionRecord = {
   sessionId: string;
@@ -35,8 +31,7 @@ export type SessionRequestRecord = {
   rootRequestId: string;
   parentRequestId?: string;
   handoffDepth: number;
-  awaitMode: SessionRequestAwaitMode;
-  deliveryMode: SessionRequestDeliveryMode;
+  notify: SessionRequestNotifyMode;
   status: SessionRequestStatus;
   targetMessageId?: string;
   finalResponseMessageId?: string;
@@ -61,8 +56,7 @@ export type SessionRequestToolResult = {
   title?: string;
   task: string;
   status: SessionRequestStatus;
-  awaitMode: SessionRequestAwaitMode;
-  deliveryMode: SessionRequestDeliveryMode;
+  notify: SessionRequestNotifyMode;
   finalResponseText?: string;
   error?: string;
   message?: string;

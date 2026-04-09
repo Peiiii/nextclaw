@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, SessionManager } from "@nextclaw/core";
 import { SessionCreationService } from "./session-creation.service.js";
 import { SessionSpawnTool } from "./session-spawn.tool.js";
-import { SpawnChildSessionTool } from "./session-request.tool.js";
 
 const tempDirs: string[] = [];
 
@@ -77,7 +76,7 @@ describe("session runtime mapping", () => {
     });
     const tool = new SessionSpawnTool({
       createSession
-    } as unknown as SessionCreationService);
+    } as unknown as SessionCreationService, {} as never);
     tool.setContext({
       sourceSessionId: "source-session",
       sourceSessionMetadata: {}
@@ -99,8 +98,8 @@ describe("session runtime mapping", () => {
     });
   });
 
-  it("forwards runtime through spawn child session requests", async () => {
-    const spawnChildSessionAndRequest = vi.fn().mockResolvedValue({
+  it("forwards runtime through child sessions_spawn requests", async () => {
+    const spawnSessionAndRequest = vi.fn().mockResolvedValue({
       kind: "nextclaw.session_request",
       requestId: "request-1",
       sessionId: "child-session-1",
@@ -109,12 +108,14 @@ describe("session runtime mapping", () => {
       lifecycle: "persistent",
       task: "Investigate logs",
       status: "running",
-      awaitMode: "final_reply",
-      deliveryMode: "resume_source"
+      notify: "final_reply"
     });
-    const tool = new SpawnChildSessionTool({
-      spawnChildSessionAndRequest
-    } as never);
+    const tool = new SessionSpawnTool(
+      {} as never,
+      {
+        spawnSessionAndRequest
+      } as never
+    );
     tool.setContext({
       sourceSessionId: "source-session",
       sourceSessionMetadata: {},
@@ -122,13 +123,19 @@ describe("session runtime mapping", () => {
     });
 
     await tool.execute({
+      scope: "child",
       task: "Investigate logs",
-      runtime: "codex"
+      runtime: "codex",
+      request: {
+        notify: "final_reply"
+      }
     }, "tool-call-1");
 
-    expect(spawnChildSessionAndRequest).toHaveBeenCalledWith(expect.objectContaining({
+    expect(spawnSessionAndRequest).toHaveBeenCalledWith(expect.objectContaining({
       task: "Investigate logs",
-      runtime: "codex"
+      runtime: "codex",
+      parentSessionId: "source-session",
+      notify: "final_reply"
     }));
   });
 });

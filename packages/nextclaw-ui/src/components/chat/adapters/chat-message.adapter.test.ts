@@ -223,7 +223,7 @@ it("keeps structured terminal results as structured data instead of raw json out
   });
 });
 
-it("renders session request tool cards from structured child-session status updates", () => {
+it("renders child-session request cards for sessions_spawn when the new child starts immediately", () => {
   const adapted = adapt([
     {
       id: "assistant-subagent",
@@ -233,18 +233,21 @@ it("renders session request tool cards from structured child-session status upda
           type: "tool-invocation",
           toolInvocation: {
             status: ToolInvocationStatus.RESULT,
-            toolCallId: "spawn-call-1",
-            toolName: "spawn",
-            args: '{"label":"Verifier","task":"Verify 1+1=2"}',
+            toolCallId: "sessions-spawn-call-1",
+            toolName: "sessions_spawn",
+            args: '{"scope":"child","title":"Verifier","task":"Verify 1+1=2","request":{"notify":"final_reply"}}',
             result: {
               kind: "nextclaw.session_request",
               requestId: "request-1",
               sessionId: "child-session-1",
               agentId: "verifier-agent",
               isChildSession: true,
+              lifecycle: "persistent",
               title: "Verifier",
               task: "Verify 1+1=2",
               status: "completed",
+              notify: "final_reply",
+              spawnedByRequestId: "request-1",
               finalResponseText: "Verified 1+1=2.",
               parentSessionId: "parent-session-1",
             },
@@ -257,15 +260,33 @@ it("renders session request tool cards from structured child-session status upda
   expect(adapted[0]?.parts[0]).toMatchObject({
     type: "tool-card",
     card: {
-      toolName: "spawn",
+      toolName: "sessions_spawn",
       agentId: "verifier-agent",
       summary: "title: Verifier · session: child-session-1 · task: Verify 1+1=2",
+      input: `{
+  "scope": "child",
+  "title": "Verifier",
+  "task": "Verify 1+1=2",
+  "request": {
+    "notify": "final_reply"
+  }
+}`,
       output: [
         "Request ID: request-1",
         "",
         "Session ID: child-session-1",
         "",
         "Target: child",
+        "",
+        "Status: completed",
+        "",
+        "Notify: final_reply",
+        "",
+        "Lifecycle: persistent",
+        "",
+        "Parent Session ID: parent-session-1",
+        "",
+        "Spawned By Request ID: request-1",
         "",
         "Title: Verifier",
         "",
@@ -302,16 +323,18 @@ it("renders regular session request tool cards with session navigation instead o
             status: ToolInvocationStatus.RESULT,
             toolCallId: "session-request-call-1",
             toolName: "sessions_request",
-            args: '{"sessionId":"session-2","task":"Summarize the latest findings"}',
+            args: '{"target":{"session_id":"session-2"},"task":"Summarize the latest findings","notify":"none","title":"Research thread"}',
             result: {
               kind: "nextclaw.session_request",
               requestId: "request-2",
               sessionId: "session-2",
               agentId: "research-agent",
               isChildSession: false,
+              lifecycle: "persistent",
               title: "Research thread",
               task: "Summarize the latest findings",
               status: "completed",
+              notify: "none",
               finalResponseText: "Here is the summary.",
             },
           },
@@ -326,12 +349,26 @@ it("renders regular session request tool cards with session navigation instead o
       toolName: "sessions_request",
       agentId: "research-agent",
       summary: "title: Research thread · session: session-2 · task: Summarize the latest findings",
+      input: `{
+  "target": {
+    "session_id": "session-2"
+  },
+  "task": "Summarize the latest findings",
+  "notify": "none",
+  "title": "Research thread"
+}`,
       output: [
         "Request ID: request-2",
         "",
         "Session ID: session-2",
         "",
         "Target: session",
+        "",
+        "Status: completed",
+        "",
+        "Notify: none",
+        "",
+        "Lifecycle: persistent",
         "",
         "Title: Research thread",
         "",

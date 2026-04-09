@@ -178,4 +178,66 @@ describe("NextclawNcpToolRegistry MCP integration", () => {
     expect(createdSession?.metadata?.child_session_promoted).toBeUndefined();
     expect(createdSession?.metadata?.label).toBe("Review the deployment status");
   });
+
+  it("creates a child session for sessions_spawn when scope=child", async () => {
+    const workspace = createTempWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model",
+        },
+      },
+    });
+    const sessionManager = new SessionManager(workspace);
+    const sessionCreationService = new SessionCreationService(sessionManager, () => config);
+    const toolRegistry = new NextclawNcpToolRegistry({
+      bus: new MessageBus(),
+      providerManager: {} as ProviderManager,
+      sessionManager,
+      getConfig: () => config,
+      sessionCreationService,
+      sessionRequestBroker: {} as SessionRequestBroker,
+    });
+
+    toolRegistry.prepareForRun({
+      agentId: "main",
+      channel: "cli",
+      chatId: "default",
+      config,
+      contextTokens: 200000,
+      execTimeoutSeconds: 60,
+      handoffDepth: 0,
+      metadata: {
+        session_type: "native",
+        preferred_model: "default-model",
+      },
+      model: "default-model",
+      restrictToWorkspace: false,
+      searchConfig: config.search,
+      sessionId: "source-session-1",
+      workspace,
+    });
+
+    const result = await toolRegistry.execute("call-spawn", "sessions_spawn", {
+      scope: "child",
+      task: "Review the deployment status",
+    });
+
+    expect(result).toMatchObject({
+      kind: "nextclaw.session",
+      isChildSession: true,
+      parentSessionId: "source-session-1",
+      title: "Review the deployment status",
+      sessionType: "native",
+      lifecycle: "persistent",
+    });
+    const sessionId =
+      result && typeof result === "object" && "sessionId" in result && typeof result.sessionId === "string"
+        ? result.sessionId
+        : null;
+    const createdSession = sessionId ? sessionManager.getIfExists(sessionId) : null;
+    expect(createdSession?.metadata?.parent_session_id).toBe("source-session-1");
+    expect(createdSession?.metadata?.label).toBe("Review the deployment status");
+  });
 });

@@ -33,19 +33,19 @@ function adapt(uiMessages: ChatMessageSource[]) {
   });
 }
 
-it("exposes agentId on spawn call cards when the invocation args include it", () => {
+it("exposes agentId on sessions_spawn call cards when the invocation args include it", () => {
   const adapted = adapt([
     {
-      id: "assistant-spawn-call",
+      id: "assistant-sessions-spawn-call",
       role: "assistant",
       parts: [
         {
           type: "tool-invocation",
           toolInvocation: {
             status: ToolInvocationStatus.PARTIAL_CALL,
-            toolCallId: "spawn-call-args-1",
-            toolName: "spawn",
-            args: '{"agentId":"planner-agent","label":"Planner","task":"Plan the rollout"}',
+            toolCallId: "sessions-spawn-call-args-1",
+            toolName: "sessions_spawn",
+            args: '{"agentId":"planner-agent","scope":"child","title":"Planner","task":"Plan the rollout","request":{"notify":"final_reply"}}',
             result: {
               kind: "nextclaw.session_request",
               requestId: "request-3",
@@ -64,7 +64,7 @@ it("exposes agentId on spawn call cards when the invocation args include it", ()
   expect(adapted[0]?.parts[0]).toMatchObject({
     type: "tool-card",
     card: {
-      toolName: "spawn",
+      toolName: "sessions_spawn",
       agentId: "planner-agent",
       statusTone: "running",
     },
@@ -74,16 +74,16 @@ it("exposes agentId on spawn call cards when the invocation args include it", ()
 it("exposes agentId on running tool call cards even before a session-request result exists", () => {
   const adapted = adapt([
     {
-      id: "assistant-spawn-call-running",
+      id: "assistant-sessions-spawn-call-running",
       role: "assistant",
       parts: [
         {
           type: "tool-invocation",
           toolInvocation: {
             status: ToolInvocationStatus.PARTIAL_CALL,
-            toolCallId: "spawn-call-running-1",
-            toolName: "spawn",
-            args: '{"agentId":"planner-agent","task":"Plan the rollout"}',
+            toolCallId: "sessions-spawn-call-running-1",
+            toolName: "sessions_spawn",
+            args: '{"agentId":"planner-agent","scope":"child","task":"Plan the rollout"}',
           },
         },
       ],
@@ -93,7 +93,7 @@ it("exposes agentId on running tool call cards even before a session-request res
   expect(adapted[0]?.parts[0]).toMatchObject({
     type: "tool-card",
     card: {
-      toolName: "spawn",
+      toolName: "sessions_spawn",
       agentId: "planner-agent",
       statusTone: "running",
       titleLabel: "Tool Call",

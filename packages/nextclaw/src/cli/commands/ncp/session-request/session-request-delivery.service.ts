@@ -128,13 +128,13 @@ export class SessionRequestDeliveryService {
     );
   };
 
-  resumeSourceSession = async (params: {
+  notifySourceSession = async (params: {
     request: SessionRequestRecord;
     result: SessionRequestToolResult;
   }): Promise<void> => {
     const backend = this.resolveBackend();
     if (!backend) {
-      throw new Error("NCP backend is not ready for source session resume.");
+      throw new Error("NCP backend is not ready for session-request notifications.");
     }
     const isIdle = await waitForSessionToBecomeIdle({
       backend,
@@ -142,7 +142,7 @@ export class SessionRequestDeliveryService {
     });
     if (!isIdle) {
       console.warn(
-        `[session-request] resume skipped for ${params.request.sourceSessionId} because the source session did not become idle in time.`,
+        `[session-request] notify skipped for ${params.request.sourceSessionId} because the source session did not become idle in time.`,
       );
       return;
     }
@@ -153,7 +153,7 @@ export class SessionRequestDeliveryService {
           message: buildSessionRequestCompletionMessage(params),
         }),
       ),
-      `resume source session ${params.request.sourceSessionId}`,
+      `notify source session ${params.request.sourceSessionId}`,
     );
   };
 }

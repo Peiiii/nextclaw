@@ -170,10 +170,14 @@ class ChildSessionFollowupProviderManager {
             toolCalls: [
               {
                 id: "spawn-call-1",
-                name: "spawn",
+                name: "sessions_spawn",
                 arguments: {
-                  label: "Child worker",
+                  scope: "child",
+                  title: "Child worker",
                   task: "Initial child task",
+                  request: {
+                    notify: "final_reply",
+                  },
                 },
               },
             ],
@@ -198,8 +202,7 @@ class ChildSessionFollowupProviderManager {
                     session_id: latestRequestResult.sessionId,
                   },
                   task: "Follow-up child task",
-                  await: "final_reply",
-                  delivery: "none",
+                  notify: "none",
                 },
               },
             ],

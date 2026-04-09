@@ -14,8 +14,7 @@ function createRequest(): SessionRequestRecord {
     sourceToolCallId: "spawn-call-1",
     rootRequestId: "request-1",
     handoffDepth: 0,
-    awaitMode: "final_reply",
-    deliveryMode: "resume_source",
+    notify: "final_reply",
     status: "completed",
     createdAt: "2026-04-08T00:00:00.000Z",
     startedAt: "2026-04-08T00:00:00.000Z",
@@ -42,8 +41,7 @@ function createResult(): SessionRequestToolResult {
     title: "Verifier",
     task: "Verify that 1+1=2",
     status: "completed",
-    awaitMode: "final_reply",
-    deliveryMode: "resume_source",
+    notify: "final_reply",
     finalResponseText: "Verified 1+1=2.",
   };
 }
@@ -108,13 +106,13 @@ describe("SessionRequestDeliveryService", () => {
         () => backend as unknown as DefaultNcpAgentBackend,
       );
 
-      const resumePromise = service.resumeSourceSession({
+      const notifyPromise = service.notifySourceSession({
         request: createRequest(),
         result: createResult(),
       });
 
       await vi.advanceTimersByTimeAsync(150);
-      await resumePromise;
+      await notifyPromise;
       await vi.runAllTimersAsync();
 
       expect(backend.getSession).toHaveBeenCalledTimes(2);

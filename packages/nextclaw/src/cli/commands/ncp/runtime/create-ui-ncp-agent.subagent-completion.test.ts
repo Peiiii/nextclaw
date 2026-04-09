@@ -90,7 +90,7 @@ describe("createUiNcpAgent session request completion", () => {
     await ncpAgent.agentClientEndpoint.send(
       createEnvelope({
         sessionId,
-        text: "spawn a subagent to verify 1+1=2",
+        text: "create a child session to verify 1+1=2 and continue here when it finishes",
       }),
     );
 
@@ -231,7 +231,7 @@ describe("createUiNcpAgent session request completion", () => {
     await firstAgent.agentClientEndpoint.send(
       createEnvelope({
         sessionId,
-        text: "spawn a subagent to verify 1+1=2",
+        text: "create a child session to verify 1+1=2 and continue here when it finishes",
       }),
     );
 
@@ -299,17 +299,18 @@ class SubagentCompletionProviderManager {
   chatStream = (params: {
     messages: Array<Record<string, unknown>>;
   }): AsyncGenerator<LLMStreamEvent> => {
-    const hasDelegatedVerificationTask = params.messages.some(
+    const { messages } = params;
+    const hasDelegatedVerificationTask = messages.some(
       (message) =>
         message.role === "user" &&
         String(message.content ?? "").includes("Verify that 1+1=2"),
     );
-    const hasSpawnToolResult = params.messages.some(
+    const hasSpawnToolResult = messages.some(
       (message) =>
         message.role === "tool" &&
         String(message.content ?? "").includes('"kind":"nextclaw.session_request"'),
     );
-    const hasHiddenFollowUp = params.messages.some(
+    const hasHiddenFollowUp = messages.some(
       (message) =>
         message.role === "user" &&
         String(message.content ?? "").includes("<session-request-completion>") &&
@@ -370,10 +371,14 @@ class SubagentCompletionProviderManager {
             toolCalls: [
               {
                 id: "spawn-call-1",
-                name: "spawn",
+                name: "sessions_spawn",
                 arguments: {
-                  label: "Verifier",
+                  scope: "child",
+                  title: "Verifier",
                   task: "Verify that 1+1=2",
+                  request: {
+                    notify: "final_reply",
+                  },
                 },
               },
             ],

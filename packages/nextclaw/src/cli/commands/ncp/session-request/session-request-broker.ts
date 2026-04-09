@@ -26,7 +26,7 @@ import type {
   RequestSessionParams,
   ResolveCompletedMessageParams,
   SessionRequestExecutionParams,
-  SpawnChildSessionAndRequestParams,
+  SpawnSessionAndRequestParams,
   StreamCompletedMessageParams,
 } from "./session-request-broker.types.js";
 import type { SessionCreationService } from "./session-creation.service.js";
@@ -45,8 +45,8 @@ export class SessionRequestBroker {
     private readonly onSessionUpdated?: (sessionKey: string) => void,
   ) {}
 
-  spawnChildSessionAndRequest = async (
-    params: SpawnChildSessionAndRequestParams,
+  spawnSessionAndRequest = async (
+    params: SpawnSessionAndRequestParams,
   ): Promise<SessionRequestToolResult> => {
     const {
       sourceSessionId,
@@ -61,10 +61,12 @@ export class SessionRequestBroker {
       thinkingLevel,
       projectRoot,
       agentId,
+      parentSessionId,
+      notify,
     } = params;
     const requestId = randomUUID();
-    const childSession = this.sessionCreationService.createChildSession({
-      parentSessionId: sourceSessionId,
+    const createdSession = this.sessionCreationService.createSession({
+      ...(parentSessionId ? { parentSessionId } : {}),
       task,
       title,
       sourceSessionMetadata,
@@ -81,15 +83,14 @@ export class SessionRequestBroker {
       requestId,
       sourceSessionId,
       sourceToolCallId,
-      targetSessionId: childSession.sessionId,
+      targetSessionId: createdSession.sessionId,
       task,
-      title: childSession.title ?? summarizeSessionRequestTask(task),
+      title: createdSession.title ?? summarizeSessionRequestTask(task),
       handoffDepth: handoffDepth ?? 0,
-      awaitMode: "final_reply",
-      deliveryMode: "resume_source",
-      agentId: childSession.agentId,
-      isChildSession: true,
-      parentSessionId: sourceSessionId,
+      notify,
+      agentId: createdSession.agentId,
+      isChildSession: Boolean(parentSessionId),
+      ...(parentSessionId ? { parentSessionId } : {}),
       spawnedByRequestId: requestId,
     });
   };
@@ -103,8 +104,7 @@ export class SessionRequestBroker {
       targetSessionId,
       task,
       title,
-      awaitMode,
-      deliveryMode,
+      notify,
       handoffDepth,
     } = params;
     const normalizedTargetSessionId = targetSessionId.trim();
@@ -133,8 +133,7 @@ export class SessionRequestBroker {
         readOptionalString(targetSummary.metadata?.label) ??
         summarizeSessionRequestTask(task),
       handoffDepth: handoffDepth ?? 0,
-      awaitMode,
-      deliveryMode,
+      notify,
       agentId: targetSummary.agentId,
       isChildSession: Boolean(parentSessionId),
       parentSessionId: parentSessionId ?? undefined,
@@ -153,8 +152,7 @@ export class SessionRequestBroker {
       task,
       title,
       handoffDepth,
-      awaitMode,
-      deliveryMode,
+      notify,
       agentId,
       isChildSession,
       parentSessionId,
@@ -166,8 +164,7 @@ export class SessionRequestBroker {
       targetSessionId,
       sourceToolCallId,
       handoffDepth,
-      awaitMode,
-      deliveryMode,
+      notify,
       title,
       task,
       isChildSession,
@@ -296,8 +293,8 @@ export class SessionRequestBroker {
       request,
       result,
     });
-    if (request.deliveryMode === "resume_source") {
-      await this.deliveryService.resumeSourceSession({
+    if (request.notify === "final_reply") {
+      await this.deliveryService.notifySourceSession({
         request,
         result,
       });

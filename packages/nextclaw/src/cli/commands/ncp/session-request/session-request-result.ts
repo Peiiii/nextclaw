@@ -98,8 +98,7 @@ export function buildSessionRequestToolResult(params: {
     ...(title.trim() ? { title } : {}),
     task,
     status: request.status,
-    awaitMode: request.awaitMode,
-    deliveryMode: request.deliveryMode,
+    notify: request.notify,
     ...(request.finalResponseText
       ? { finalResponseText: request.finalResponseText }
       : {}),

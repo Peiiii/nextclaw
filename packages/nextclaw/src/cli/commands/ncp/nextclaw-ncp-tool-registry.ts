@@ -28,7 +28,7 @@ import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
 import { isRecord, normalizeString } from "./nextclaw-ncp-message-bridge.js";
 import type { SessionCreationService } from "./session-request/session-creation.service.js";
-import { SessionRequestTool, SpawnChildSessionTool } from "./session-request/session-request.tool.js";
+import { SessionRequestTool } from "./session-request/session-request.tool.js";
 import type { SessionRequestBroker } from "./session-request/session-request-broker.js";
 import { SessionSpawnTool } from "./session-request/session-spawn.tool.js";
 
@@ -179,42 +179,47 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
   };
 
   private registerDefaultTools = (context: PreparedRunContext): void => {
-    const allowedDir = context.restrictToWorkspace ? context.workspace : undefined;
+    const {
+      channel,
+      chatId,
+      execTimeoutSeconds,
+      handoffDepth,
+      metadata,
+      restrictToWorkspace,
+      searchConfig,
+      sessionId,
+      workspace
+    } = context;
+    const allowedDir = restrictToWorkspace ? workspace : undefined;
     this.registerTool(new ReadFileTool(allowedDir));
     this.registerTool(new WriteFileTool(allowedDir));
     this.registerTool(new EditFileTool(allowedDir));
     this.registerTool(new ListDirTool(allowedDir));
 
     const execTool = new ExecTool({
-      workingDir: context.workspace,
-      timeout: context.execTimeoutSeconds,
-      restrictToWorkspace: context.restrictToWorkspace,
+      workingDir: workspace,
+      timeout: execTimeoutSeconds,
+      restrictToWorkspace,
     });
     execTool.setContext({
-      sessionKey: context.sessionId,
-      channel: context.channel,
-      chatId: context.chatId,
+      sessionKey: sessionId,
+      channel,
+      chatId,
     });
     this.registerTool(execTool);
 
-    this.registerTool(new WebSearchTool(context.searchConfig));
+    this.registerTool(new WebSearchTool(searchConfig));
     this.registerTool(new WebFetchTool());
-    this.registerMessagingTools(context);
-
-    const spawnTool = new SpawnChildSessionTool(this.options.sessionRequestBroker);
-    spawnTool.setContext({
-      sourceSessionId: context.sessionId,
-      sourceSessionMetadata: context.metadata,
-      handoffDepth: context.handoffDepth,
-    });
-    this.registerTool(spawnTool);
+    this.registerMessagingTools({ channel, chatId, metadata });
 
     const sessionsSpawnTool = new SessionSpawnTool(
       this.options.sessionCreationService,
+      this.options.sessionRequestBroker,
     );
     sessionsSpawnTool.setContext({
-      sourceSessionId: context.sessionId,
-      sourceSessionMetadata: context.metadata,
+      sourceSessionId: sessionId,
+      sourceSessionMetadata: metadata,
+      handoffDepth,
     });
     this.registerTool(sessionsSpawnTool);
 
@@ -222,30 +227,31 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
       this.options.sessionRequestBroker,
     );
     sessionsRequestTool.setContext({
-      sourceSessionId: context.sessionId,
-      handoffDepth: context.handoffDepth,
+      sourceSessionId: sessionId,
+      handoffDepth,
     });
     this.registerTool(sessionsRequestTool);
 
     this.registerTool(new SessionsListTool(this.options.sessionManager));
     this.registerTool(new SessionsHistoryTool(this.options.sessionManager));
 
-    this.registerTool(new MemorySearchTool(context.workspace));
-    this.registerTool(new MemoryGetTool(context.workspace));
+    this.registerTool(new MemorySearchTool(workspace));
+    this.registerTool(new MemoryGetTool(workspace));
 
     const gatewayTool = new GatewayTool(this.options.gatewayController);
-    gatewayTool.setContext({ sessionKey: context.sessionId });
+    gatewayTool.setContext({ sessionKey: sessionId });
     this.registerTool(gatewayTool);
   };
 
-  private registerMessagingTools = (context: PreparedRunContext): void => {
-    const accountId = readMetadataAccountId(context.metadata, {});
+  private registerMessagingTools = (context: Pick<PreparedRunContext, "channel" | "chatId" | "metadata">): void => {
+    const { channel, chatId, metadata } = context;
+    const accountId = readMetadataAccountId(metadata, {});
     const messageTool = new MessageTool((message) => this.options.bus.publishOutbound(message));
-    messageTool.setContext(context.channel, context.chatId, accountId ?? null);
+    messageTool.setContext(channel, chatId, accountId ?? null);
     this.registerTool(messageTool);
     if (this.options.cronService) {
       const cronTool = new CronTool(this.options.cronService);
-      cronTool.setContext(context.channel, context.chatId, accountId ?? null);
+      cronTool.setContext(channel, chatId, accountId ?? null);
       this.registerTool(cronTool);
     }
   };

@@ -1,11 +1,10 @@
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
 import type {
-  SessionRequestAwaitMode,
-  SessionRequestDeliveryMode,
+  SessionRequestNotifyMode,
   SessionRequestRecord,
 } from "./session-request.types.js";
 
-export type SpawnChildSessionAndRequestParams = {
+export type SpawnSessionAndRequestParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
   sourceSessionMetadata: Record<string, unknown>;
@@ -18,6 +17,8 @@ export type SpawnChildSessionAndRequestParams = {
   thinkingLevel?: string;
   projectRoot?: string | null;
   agentId?: string;
+  parentSessionId?: string;
+  notify: SessionRequestNotifyMode;
 };
 
 export type RequestSessionParams = {
@@ -26,8 +27,7 @@ export type RequestSessionParams = {
   targetSessionId: string;
   task: string;
   title?: string;
-  awaitMode: SessionRequestAwaitMode;
-  deliveryMode: SessionRequestDeliveryMode;
+  notify: SessionRequestNotifyMode;
   handoffDepth?: number;
 };
 
@@ -39,8 +39,7 @@ export type DispatchRequestParams = {
   task: string;
   title: string;
   handoffDepth: number;
-  awaitMode: SessionRequestAwaitMode;
-  deliveryMode: SessionRequestDeliveryMode;
+  notify: SessionRequestNotifyMode;
   agentId?: string;
   isChildSession: boolean;
   parentSessionId?: string;
