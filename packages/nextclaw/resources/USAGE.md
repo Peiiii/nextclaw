@@ -518,7 +518,7 @@ Agent management notes:
   - `--json`
 - `runtime` defaults to `native`.
 - Use `nextclaw agents runtimes --json` before setting a non-default `runtime`; it returns the actual installed runtime kinds instead of requiring guesswork.
-- The same runtime kinds are also what NCP `spawn` / `sessions_spawn` expect in their optional `runtime` field.
+- The same runtime kinds are also what NCP `sessions_spawn` expects in its optional `runtime` field.
 - `nextclaw agents update` allows updating the built-in `main` agent.
 - For `nextclaw agents update`, passing an empty string to `--name`, `--description`, or `--avatar` clears the stored override for that field.
 - If `--avatar` is a local file path, NextClaw copies it into the Agent Home Directory and stores it as `home://avatar.<ext>`.
