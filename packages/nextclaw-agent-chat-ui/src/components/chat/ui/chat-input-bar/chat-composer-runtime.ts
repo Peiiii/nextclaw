@@ -56,6 +56,7 @@ export class ChatComposerRuntime {
   private snapshot: ChatComposerControllerSnapshot = this.controller.getSnapshot();
   private config: ChatComposerRuntimeConfig | null = null;
   private isComposing = false;
+  private hasPendingImeComposition = false;
 
   readonly bindRootElement = (node: HTMLDivElement | null): void => {
     this.rootElement = node;
@@ -110,14 +111,14 @@ export class ChatComposerRuntime {
   };
 
   readonly restoreDomAfterCommit = (): void => {
-    if (this.isComposing) {
+    if (this.shouldSuspendDomSync()) {
       return;
     }
     this.viewController.restoreSelectionIfFocused(this.rootElement, this.selection);
   };
 
   readonly renderSurface = (): void => {
-    if (this.isComposing) {
+    if (this.shouldSuspendDomSync()) {
       return;
     }
     this.viewController.renderSurface({
@@ -132,7 +133,7 @@ export class ChatComposerRuntime {
   };
 
   readonly syncSelectionState = (): void => {
-    if (!this.rootElement || this.isComposing) {
+    if (!this.rootElement || this.shouldSuspendDomSync()) {
       return;
     }
     const nextSnapshot = this.viewController.syncSelectionFromRoot(this.rootElement);
@@ -143,27 +144,31 @@ export class ChatComposerRuntime {
   };
 
   readonly handleBeforeInput = (event: FormEvent<HTMLDivElement>): void => {
+    this.syncImeGuardFromInputEvent(event.nativeEvent as InputEvent);
     this.viewController.handleBeforeInput({
       event,
       disabled: this.requireConfig().disabled,
-      isComposing: this.isComposing,
+      isComposing: this.shouldSuspendDomSync(),
       commitSnapshot: this.commitSnapshot
     });
   };
 
   readonly handleInput = (event: FormEvent<HTMLDivElement>): void => {
+    this.syncImeGuardFromInputEvent(event.nativeEvent as InputEvent);
     this.viewController.handleInput({
       event,
-      isComposing: this.isComposing,
+      isComposing: this.shouldSuspendDomSync(),
       commitSnapshot: this.commitSnapshot
     });
   };
 
   readonly handleCompositionStart = (): void => {
+    this.hasPendingImeComposition = false;
     this.isComposing = true;
   };
 
   readonly handleCompositionEnd = (event: CompositionEvent<HTMLDivElement>): void => {
+    this.hasPendingImeComposition = false;
     this.isComposing = false;
     this.viewController.handleCompositionEnd({
       event,
@@ -173,7 +178,8 @@ export class ChatComposerRuntime {
 
   readonly handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
     const config = this.requireConfig();
-    if (this.rootElement && !this.isComposing) {
+    this.syncImeGuardFromKeyboardEvent(event);
+    if (this.rootElement && !this.shouldSuspendDomSync()) {
       const nextSnapshot = this.viewController.syncSelectionFromRoot(this.rootElement);
       this.selection = nextSnapshot.selection;
       this.selectedRange = nextSnapshot.selection;
@@ -205,6 +211,7 @@ export class ChatComposerRuntime {
 
   readonly handleBlur = (): void => {
     const config = this.requireConfig();
+    this.hasPendingImeComposition = false;
     this.isComposing = false;
     this.viewController.handleBlur({
       clearSelectedRange: this.clearSelectedRange,
@@ -246,6 +253,37 @@ export class ChatComposerRuntime {
 
   private readonly requestRender = (): void => {
     this.requireConfig().requestRender();
+  };
+
+  private readonly shouldSuspendDomSync = (): boolean => {
+    return this.isComposing || this.hasPendingImeComposition;
+  };
+
+  private readonly syncImeGuardFromKeyboardEvent = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const { nativeEvent } = event;
+    const keyCode = nativeEvent.keyCode || nativeEvent.which || event.keyCode || event.which;
+    const isLikelyImePrecomposition =
+      nativeEvent.isComposing || event.key === 'Process' || event.key === 'Unidentified' || keyCode === 229;
+
+    if (isLikelyImePrecomposition) {
+      this.hasPendingImeComposition = true;
+      return;
+    }
+
+    this.hasPendingImeComposition = false;
+  };
+
+  private readonly syncImeGuardFromInputEvent = (nativeEvent: InputEvent): void => {
+    if (nativeEvent.isComposing || this.isCompositionInputType(nativeEvent.inputType)) {
+      this.hasPendingImeComposition = true;
+      return;
+    }
+
+    this.hasPendingImeComposition = false;
+  };
+
+  private readonly isCompositionInputType = (inputType: string | null | undefined): boolean => {
+    return typeof inputType === 'string' && inputType.toLowerCase().includes('composition');
   };
 
   private readonly focusComposerSoon = (): void => {

@@ -379,6 +379,40 @@ it('does not commit intermediate IME composition text before composition ends', 
   ]);
 });
 
+it('keeps Windows IME preedit text alive before compositionstart fully settles', () => {
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        composer: {
+          nodes: [createChatComposerTextNode('')],
+          placeholder: 'Type a message',
+          disabled: false,
+          onNodesChange: vi.fn()
+        }
+      })}
+    />
+  );
+
+  const textbox = screen.getByRole('textbox');
+  fireEvent.focus(textbox);
+
+  fireEvent.keyDown(textbox, {
+    key: 'Process',
+    keyCode: 229,
+    which: 229
+  });
+  textbox.textContent = 'n';
+  setCursorToEnd(textbox, 'n');
+
+  fireEvent.keyUp(textbox, {
+    key: 'Process',
+    keyCode: 229,
+    which: 229
+  });
+
+  expect(textbox.textContent).toBe('n');
+});
+
 it('removes the last selected chip when backspace is pressed on an empty draft', () => {
   const onNodesChange = vi.fn();
 
