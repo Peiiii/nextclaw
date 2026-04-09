@@ -188,14 +188,19 @@ jobs:
             throw "robocopy failed with exit code $LASTEXITCODE"
           }
           $global:LASTEXITCODE = 0
-          $zipPath = "apps/desktop/release/NextClaw Desktop-win32-x64-unpacked.zip"
+          $desktopVersion = (Get-Content "apps/desktop/package.json" | ConvertFrom-Json).version
+          if ([string]::IsNullOrWhiteSpace($desktopVersion)) {
+            throw "Desktop package version is missing in apps/desktop/package.json"
+          }
+          $zipFileName = "NextClaw.Desktop-$desktopVersion-win32-x64-unpacked.zip"
+          $zipPath = Join-Path "apps/desktop/release" $zipFileName
           if (Test-Path $zipPath) {
             Remove-Item -Force $zipPath
           }
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           [System.IO.Compression.ZipFile]::CreateFromDirectory(
             (Resolve-Path $stagingDir).Path,
-            (Join-Path (Resolve-Path "apps/desktop/release").Path "NextClaw Desktop-win32-x64-unpacked.zip")
+            (Join-Path (Resolve-Path "apps/desktop/release").Path $zipFileName)
           )
           Remove-Item -Recurse -Force $stagingDir
 
@@ -268,7 +273,7 @@ jobs:
         with:
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            apps/desktop/release/NextClaw Desktop-win32-x64-unpacked.zip
+            apps/desktop/release/NextClaw.Desktop-*-win32-x64-unpacked.zip
 
       - name: Upload desktop artifacts (Linux)
         if: matrix.platform == 'linux'
