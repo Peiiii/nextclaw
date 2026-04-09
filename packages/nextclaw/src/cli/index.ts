@@ -114,7 +114,9 @@ skills
   .command("publish <dir>")
   .description("Upload or create a skill in marketplace")
   .option("--meta <path>", "Marketplace metadata file (default: <dir>/marketplace.json)")
-  .option("--slug <slug>", "Skill slug (default: directory name)")
+  .option("--slug <slug>", "Skill name segment (default: directory name)")
+  .option("--package-name <name>", "Canonical package name, for example @alice/demo-skill")
+  .option("--scope <scope>", "Package scope, for example alice or nextclaw")
   .option("--name <name>", "Skill display name")
   .option("--summary <summary>", "Skill summary")
   .option("--description <description>", "Skill description")
@@ -125,14 +127,16 @@ skills
   .option("--published-at <datetime>", "Published time (ISO datetime)")
   .option("--updated-at <datetime>", "Updated time (ISO datetime)")
   .option("--api-base <url>", "Marketplace API base URL")
-  .option("--token <token>", "Marketplace admin token")
+  .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
   .action(async (dir, opts) => runtime.skillsPublish({ dir, ...opts, apiBaseUrl: opts.apiBase }));
 
 skills
   .command("update <dir>")
   .description("Update an existing skill in marketplace")
   .option("--meta <path>", "Marketplace metadata file (default: <dir>/marketplace.json)")
-  .option("--slug <slug>", "Skill slug (default: directory name)")
+  .option("--slug <slug>", "Skill name segment (default: directory name)")
+  .option("--package-name <name>", "Canonical package name, for example @alice/demo-skill")
+  .option("--scope <scope>", "Package scope, for example alice or nextclaw")
   .option("--name <name>", "Skill display name")
   .option("--summary <summary>", "Skill summary")
   .option("--description <description>", "Skill description")
@@ -142,7 +146,7 @@ skills
   .option("--homepage <url>", "Homepage URL")
   .option("--updated-at <datetime>", "Updated time (ISO datetime)")
   .option("--api-base <url>", "Marketplace API base URL")
-  .option("--token <token>", "Marketplace admin token")
+  .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
   .action(async (dir, opts) => runtime.skillsUpdate({ dir, ...opts, apiBaseUrl: opts.apiBase }));
 
 registerAgentsCommands(program, runtime);

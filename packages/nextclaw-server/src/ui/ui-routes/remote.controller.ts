@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import type {
+  RemoteAccountProfileUpdateRequest,
   RemoteBrowserAuthPollRequest,
   RemoteBrowserAuthStartRequest,
   RemoteLoginRequest,
@@ -98,6 +99,24 @@ export class RemoteRoutesController {
       return c.json(ok(await this.host.logout()));
     } catch (error) {
       return c.json(err("REMOTE_LOGOUT_FAILED", formatUserFacingError(error)), 500);
+    }
+  };
+
+  readonly updateProfile = async (c: Context) => {
+    const body = await readJson<RemoteAccountProfileUpdateRequest>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+
+    const username = readNonEmptyString(body.data.username);
+    if (!username) {
+      return c.json(err("INVALID_BODY", "username is required"), 400);
+    }
+
+    try {
+      return c.json(ok(await this.host.updateProfile({ username })));
+    } catch (error) {
+      return c.json(err("REMOTE_PROFILE_UPDATE_FAILED", formatUserFacingError(error)), 400);
     }
   };
 

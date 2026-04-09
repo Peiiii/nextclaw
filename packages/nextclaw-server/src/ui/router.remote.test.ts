@@ -20,6 +20,7 @@ function createRemoteHost(): UiRemoteAccessHost {
       account: {
         loggedIn: true,
         email: "demo@example.com",
+        username: "demo-user",
         role: "user",
         apiBase: "https://ai-gateway-api.nextclaw.io/v1",
         platformBase: "https://ai-gateway-api.nextclaw.io"
@@ -83,6 +84,28 @@ function createRemoteHost(): UiRemoteAccessHost {
     logout: vi.fn(() => ({
       account: {
         loggedIn: false
+      },
+      settings: {
+        enabled: true,
+        deviceName: "demo-device",
+        platformApiBase: ""
+      },
+      service: {
+        running: false,
+        currentProcess: false
+      },
+      localOrigin: "http://127.0.0.1:55667",
+      configuredEnabled: true,
+      runtime: null
+    })),
+    updateProfile: vi.fn(async ({ username }) => ({
+      account: {
+        loggedIn: true,
+        email: "demo@example.com",
+        username,
+        role: "user",
+        apiBase: "https://ai-gateway-api.nextclaw.io/v1",
+        platformBase: "https://ai-gateway-api.nextclaw.io"
       },
       settings: {
         enabled: true,
@@ -172,7 +195,7 @@ describe("remote access routes", () => {
     expect(remoteAccess.getStatus).toHaveBeenCalledOnce();
   });
 
-  it("accepts login, settings, doctor, and service actions", async () => {
+  it("accepts login, profile update, settings, doctor, and service actions", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
     const remoteAccess = createRemoteHost();
@@ -245,6 +268,20 @@ describe("remote access routes", () => {
       enabled: false,
       deviceName: "",
       platformApiBase: ""
+    });
+
+    const profileResponse = await app.request("http://localhost/api/remote/account/profile", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        username: "alice-dev"
+      })
+    });
+    expect(profileResponse.status).toBe(200);
+    expect(remoteAccess.updateProfile).toHaveBeenCalledWith({
+      username: "alice-dev"
     });
 
     const doctorResponse = await app.request("http://localhost/api/remote/doctor");

@@ -168,6 +168,21 @@ export const REMOTE_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'Authorize this device in your browser and connect it to the NextClaw platform.'
   },
   remoteAccountEmail: { zh: '邮箱', en: 'Email' },
+  remoteAccountUsername: { zh: '用户名', en: 'Username' },
+  remoteAccountUsernameRequiredTitle: { zh: '发布 skill 前需要先设置用户名', en: 'Set a username before publishing skills' },
+  remoteAccountUsernameRequiredDescription: {
+    zh: '平台账号已经登录，但还没有正式用户名。设置后，你的个人 skill 会使用 `@username/skill-name` 作为发布标识。',
+    en: 'Your platform account is already signed in, but it does not have a username yet. Once set, your personal skills will publish as `@username/skill-name`.'
+  },
+  remoteAccountUsernamePlaceholder: { zh: '例如：alice-dev', en: 'For example: alice-dev' },
+  remoteAccountUsernameSave: { zh: '保存用户名', en: 'Save Username' },
+  remoteAccountUsernameSaving: { zh: '保存中...', en: 'Saving...' },
+  remoteAccountUsernameSetSuccess: { zh: '用户名已保存', en: 'Username saved' },
+  remoteAccountUsernameSetFailed: { zh: '用户名保存失败', en: 'Failed to save username' },
+  remoteAccountUsernameLockedHelp: {
+    zh: '当前版本先支持首次设置用户名；设置后暂不支持改名。',
+    en: 'This version supports initial username setup only. Renaming is not available yet.'
+  },
   remoteAccountRole: { zh: '角色', en: 'Role' },
   remoteApiBase: { zh: 'API Base', en: 'API Base' },
   remoteBrowserAuthTitle: { zh: '浏览器授权登录', en: 'Browser Authorization' },

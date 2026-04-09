@@ -250,9 +250,14 @@ export type AuthEnabledUpdateRequest = {
 export type RemoteAccountView = {
   loggedIn: boolean;
   email?: string;
+  username?: string | null;
   role?: string;
   platformBase?: string | null;
   apiBase?: string | null;
+};
+
+export type RemoteAccountProfileUpdateRequest = {
+  username: string;
 };
 
 export type RemoteRuntimeView = {

@@ -3,6 +3,7 @@ export type Role = 'admin' | 'user';
 export type UserView = {
   id: string;
   email: string;
+  username: string | null;
   role: Role;
   freeLimitUsd: number;
   freeUsedUsd: number;

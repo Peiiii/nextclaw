@@ -9,6 +9,7 @@ import type {
   RemoteBrowserAuthStartRequest,
   RemoteBrowserAuthStartResult,
   RemoteAccessView,
+  RemoteAccountProfileUpdateRequest,
   RemoteDoctorView,
   RemoteLoginRequest,
   RemoteServiceAction,
@@ -42,6 +43,7 @@ export type UiRemoteAccessHost = {
   startBrowserAuth: (input: RemoteBrowserAuthStartRequest) => Promise<RemoteBrowserAuthStartResult>;
   pollBrowserAuth: (input: RemoteBrowserAuthPollRequest) => Promise<RemoteBrowserAuthPollResult>;
   logout: () => Promise<RemoteAccessView> | RemoteAccessView;
+  updateProfile: (input: RemoteAccountProfileUpdateRequest) => Promise<RemoteAccessView> | RemoteAccessView;
   updateSettings: (input: RemoteSettingsUpdateRequest) => Promise<RemoteAccessView> | RemoteAccessView;
   runDoctor: () => Promise<RemoteDoctorView>;
   controlService: (action: RemoteServiceAction) => Promise<RemoteServiceActionResult>;
