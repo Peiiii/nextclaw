@@ -74,6 +74,9 @@
   - `git diff --numstat -- .github/workflows/desktop-release.yml`
   - `PATH=/opt/homebrew/bin:$PATH node -e 'const { version } = require("./apps/desktop/package.json"); if (!version) throw new Error("missing version"); console.log(\`NextClaw.Desktop-${version}-win32-x64-unpacked.zip\`)'`
   - `PATH=/opt/homebrew/bin:$PATH pnpm lint:maintainability:guard`
+  - `PATH=/opt/homebrew/bin:$PATH gh release view v0.17.6-desktop.1 --json tagName,name,isPrerelease,url`
+  - `PATH=/opt/homebrew/bin:$PATH gh run watch 24207242165 --exit-status`
+  - `PATH=/opt/homebrew/bin:$PATH gh release view v0.17.6-desktop.1 --json assets --jq '.assets[].name'`
 - 结果：
   - `lint` 通过
   - `tsc` 通过
@@ -86,8 +89,29 @@
     - 删除：3 行
     - 净增：+5 行
   - 使用与 workflow 同一版本源校验后，当前预期 Windows 包名为：
-    - `NextClaw.Desktop-0.0.133-win32-x64-unpacked.zip`
+    - `NextClaw.Desktop-0.0.134-win32-x64-unpacked.zip`
   - `pnpm lint:maintainability:guard` 通过；仅报告与本次改动无关的既有目录/文件预算 warning，未发现本次 workflow 续改新增治理违规
+  - 正式发布闭环已完成：
+    - GitHub 正式 release：`v0.17.6-desktop.1`
+    - release 标题：`NextClaw Desktop v0.17.6`
+    - release 状态：`isPrerelease = false`
+    - release 地址：`https://github.com/Peiiii/nextclaw/releases/tag/v0.17.6-desktop.1`
+    - GitHub Actions run：`24207242165`
+  - `desktop-release` run `24207242165` 全量通过：
+    - `desktop-darwin-arm64`
+    - `desktop-darwin-x64`
+    - `desktop-win32-x64`
+    - `desktop-linux-x64`
+    - `publish-release-assets`
+    - `publish-linux-apt-repo`
+  - 线上正式 release 资产已包含：
+    - `NextClaw.Desktop-0.0.134-arm64.dmg`
+    - `NextClaw.Desktop-0.0.134-x64.dmg`
+    - `NextClaw.Desktop-0.0.134-arm64-mac.zip`
+    - `NextClaw.Desktop-0.0.134-x64-mac.zip`
+    - `NextClaw.Desktop-0.0.134-win32-x64-unpacked.zip`
+    - `NextClaw.Desktop-0.0.134-linux-x64.AppImage`
+    - `nextclaw-desktop_0.0.134_amd64.deb`
 - 额外现场核对：
   - 用户报错时的弹窗文案来自 [runtime-service.ts](../../../../apps/desktop/src/runtime-service.ts)
   - 现场复查确认，用户机器在报错时存在 `serviceStateExists: false` 但 `configuredApiUrl` 健康检查为 `ok` 的 orphan service 场景
@@ -113,30 +137,35 @@
 
 ## 发布/部署方式
 
-- 本次尚未执行正式发布，也未更新落地页。
-- 原因：
-  - 当前阶段仍属于桌面 beta 验收后的修复回合。
-  - 这次续改虽然已经在本地完成，但尚未重新打包并发布新的 desktop beta。
-  - 因此当前 GitHub 已发布的 Windows 资产若仍是旧包，文件名还不会自动变化；需要在下一次 preview beta 重新跑 `desktop-release` 后，新的 zip 才会按版本号命名。
-  - 仓库规则禁止在用户未明确要求时自行提交/推送代码。
-- 下一步推荐闭环：
-  1. 将本次修复提交到远端主分支
-  2. 基于远端代码创建新的 desktop beta pre-release
-  3. 触发 `desktop-release` workflow 上传三平台资产
-  4. 确认 Windows 资产名为 `NextClaw.Desktop-<version>-win32-x64-unpacked.zip`
-  5. 等用户再次验证通过后，再提升正式版并更新落地页
+- 已完成 GitHub 正式发布：
+  - 正式 tag：`v0.17.6-desktop.1`
+  - 正式 release：`NextClaw Desktop v0.17.6`
+  - release 地址：`https://github.com/Peiiii/nextclaw/releases/tag/v0.17.6-desktop.1`
+  - 触发方式：手动创建正式 release 后，执行 `desktop-release` workflow 并传入 `release_tag=v0.17.6-desktop.1`
+  - 完整验证 run：`24207242165`
+- 已完成的发布闭环：
+  1. 创建正式 GitHub release `v0.17.6-desktop.1`
+  2. 触发 `desktop-release` workflow 回填三平台正式资产
+  3. 通过 macOS arm64/x64、Windows x64、Linux AppImage/deb 冒烟
+  4. 完成 GitHub release 资产上传
+  5. 完成 Linux APT fresh install / upgrade 验证并发布到 `gh-pages`
+- 本次未执行：
+  - 官网落地页更新
+  - 原因：用户本轮要求是“直接发布正式 GitHub release”，未要求同步更新落地页
 
 ## 用户/产品视角的验收步骤
 
-1. 使用本次修复后的桌面包重新安装或覆盖安装。
-2. 保留本机已有 `~/.nextclaw` 数据目录，直接启动桌面端。
-3. 若本机 `55667` 已有健康 orphan service 但 `service.json` 缺失，确认桌面端不再弹出误导性的 `UI host/port is unavailable`；应直接给出准确的 CLI 启动失败信息。
-4. 若后台服务已在运行且 state 正常，桌面端应直接接入现有本地 UI，而不是误判失败。
-5. 在主界面可见后，继续验证最小闭环：
+1. 打开正式 release 页面：`https://github.com/Peiiii/nextclaw/releases/tag/v0.17.6-desktop.1`。
+2. 确认页面不带 `Pre-release` 标记，标题为 `NextClaw Desktop v0.17.6`。
+3. 确认 release 资产里包含带版本号的 Windows 包：`NextClaw.Desktop-0.0.134-win32-x64-unpacked.zip`，并与 macOS/Linux 一样显式带版本号。
+4. 下载对应平台正式包重新安装或覆盖安装。
+5. 保留本机已有 `~/.nextclaw` 数据目录，直接启动桌面端。
+6. 若本机 `55667` 已有健康 orphan service 但 `service.json` 缺失，确认桌面端不再弹出误导性的 `UI host/port is unavailable`；应直接给出准确的 CLI 启动失败信息。
+7. 若后台服务已在运行且 state 正常，桌面端应直接接入现有本地 UI，而不是误判失败。
+8. 在主界面可见后，继续验证最小闭环：
    - 能打开主界面
    - 能进入已有会话或设置页
    - 不要求用户手工删除 `~/.nextclaw/run/service.json`
-6. 发布新的 preview beta 后，到 release 资产列表里确认 Windows 包名带版本号，例如 `NextClaw.Desktop-0.0.133-win32-x64-unpacked.zip`，并与 macOS/Linux 版本展示方式一致。
 
 ## 可维护性总结汇总
 
