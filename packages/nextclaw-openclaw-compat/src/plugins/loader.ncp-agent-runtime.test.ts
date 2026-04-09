@@ -74,6 +74,60 @@ function writeRuntimePluginModule(rootDir: string, label: string): void {
   );
 }
 
+function createNonRuntimePluginDir(): string {
+  const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-non-runtime-"));
+  tempDirs.push(rootDir);
+  mkdirSync(join(rootDir, "dist"), { recursive: true });
+  writeFileSync(
+    join(rootDir, "package.json"),
+    JSON.stringify(
+      {
+        name: "@test/non-runtime-plugin",
+        version: "0.0.1",
+        type: "module",
+        openclaw: {
+          extensions: ["dist/index.js"],
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(rootDir, "openclaw.plugin.json"),
+    JSON.stringify(
+      {
+        id: "test-non-runtime-plugin",
+        kind: "channel",
+        name: "Test Non Runtime Plugin",
+        description: "Should be ignored by runtime-only loads.",
+        version: "0.0.1",
+        configSchema: {
+          type: "object",
+          additionalProperties: true,
+          properties: {},
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  writeFileSync(
+    join(rootDir, "dist", "index.js"),
+    [
+      "const plugin = {",
+      "  id: 'test-non-runtime-plugin',",
+      "  name: 'Test Non Runtime Plugin',",
+      "  description: 'Should be ignored by runtime-only loads.',",
+      "  configSchema: { type: 'object', additionalProperties: true, properties: {} },",
+      "  register() {}",
+      "};",
+      "export default plugin;",
+    ].join("\n"),
+  );
+  return rootDir;
+}
+
 function createAliasDependentPluginDir(): string {
   const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-alias-"));
   tempDirs.push(rootDir);
@@ -405,5 +459,46 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
       reservedNcpAgentRuntimeKinds: ["native"],
     });
     expect(reloadedRegistry.ncpAgentRuntimes[0]?.label).toBe("Test Runtime v2");
+  }, PLUGIN_LOAD_TIMEOUT_MS);
+
+});
+
+describe("loadOpenClawPlugins runtime-only loading", () => {
+  it("can skip bundled plugins and only load agent-runtime manifests", () => {
+    const runtimePluginDir = createTempPluginDir();
+    const nonRuntimePluginDir = createNonRuntimePluginDir();
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-ncp-runtime-plugin", "test-non-runtime-plugin"],
+        load: {
+          paths: [runtimePluginDir, nonRuntimePluginDir],
+        },
+        entries: {
+          "test-ncp-runtime-plugin": {
+            enabled: true,
+          },
+          "test-non-runtime-plugin": {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      includeBundled: false,
+      kinds: ["agent-runtime"],
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.plugins.some((plugin) => plugin.id === "test-ncp-runtime-plugin")).toBe(true);
+    expect(registry.ncpAgentRuntimes.some((runtime) => runtime.pluginId === "test-ncp-runtime-plugin")).toBe(true);
+    expect(registry.ncpAgentRuntimes.find((runtime) => runtime.pluginId === "test-ncp-runtime-plugin")).toMatchObject({
+      pluginId: "test-ncp-runtime-plugin",
+      kind: "test-runtime",
+      label: "Test Runtime",
+    });
+    expect(registry.plugins.some((plugin) => plugin.id === "builtin-channel-discord")).toBe(false);
+    expect(registry.plugins.some((plugin) => plugin.id === "test-non-runtime-plugin")).toBe(false);
   }, PLUGIN_LOAD_TIMEOUT_MS);
 });

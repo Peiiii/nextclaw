@@ -12,13 +12,15 @@ import { buildPluginLoaderAliases } from "./plugin-loader-aliases.js";
 import { createPluginJiti } from "./plugin-loader-jiti.js";
 import { createPluginRecord, validatePluginConfig } from "./plugin-loader-utils.js";
 import { createPluginRegisterRuntime, registerPluginWithApi, type PluginRegisterRuntime } from "./registry.js";
-import type { OpenClawPluginDefinition, OpenClawPluginModule, PluginLogger, PluginRecord, PluginRegistry } from "./types.js";
+import type { OpenClawPluginDefinition, OpenClawPluginModule, PluginKind, PluginLogger, PluginRecord, PluginRegistry } from "./types.js";
 
 export type PluginLoadOptions = {
   config: Config;
   workspaceDir?: string;
   logger?: PluginLogger;
   mode?: "full" | "validate";
+  includeBundled?: boolean;
+  kinds?: PluginKind[];
   excludeRoots?: string[];
   reservedToolNames?: string[];
   reservedChannelIds?: string[];
@@ -209,17 +211,13 @@ function loadExternalPluginModule(candidateSource: string, pluginRoot: string): 
   return pluginJiti(candidateSource) as OpenClawPluginModule;
 }
 
-
 export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
   const startedAt = Date.now();
   const loadExternalPlugins = process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "0";
-
+  const pluginKinds = options.kinds?.length ? new Set(options.kinds.map((entry) => entry.trim()).filter(Boolean)) : null;
   const logger = options.logger ?? defaultLogger;
-
   const workspaceDir = options.workspaceDir?.trim() || getWorkspacePathFromConfig(options.config);
   const normalized = normalizePluginsConfig(options.config.plugins);
-  const mode = options.mode ?? "full";
-
   const registry: PluginRegistry = {
     plugins: [],
     tools: [],
@@ -251,12 +249,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
     reservedNcpAgentRuntimeKinds
   });
 
-  appendBundledChannelPlugins({
-    registry,
-    runtime: registerRuntime,
-    normalizedConfig: normalized
-  });
-
+  if (options.includeBundled !== false) appendBundledChannelPlugins({ registry, runtime: registerRuntime, normalizedConfig: normalized });
   if (!loadExternalPlugins) {
     return registry;
   }
@@ -275,8 +268,10 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
   });
 
   registry.diagnostics.push(...manifestRegistry.diagnostics);
-
-  const manifestByRoot = new Map(manifestRegistry.plugins.map((entry) => [entry.rootDir, entry]));
+  const manifestByRoot = new Map(
+    (pluginKinds ? manifestRegistry.plugins.filter((entry) => entry.kind && pluginKinds.has(entry.kind)) : manifestRegistry.plugins)
+      .map((entry) => [entry.rootDir, entry])
+  );
   const seenIds = new Map<string, PluginRecord["origin"]>(
     registry.plugins.map((entry) => [entry.id, entry.origin])
   );
@@ -371,7 +366,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry 
       continue;
     }
 
-    if (mode === "validate") {
+    if ((options.mode ?? "full") === "validate") {
       registry.plugins.push(record);
       seenIds.set(pluginId, candidate.origin);
       continue;
