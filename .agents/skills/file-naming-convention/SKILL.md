@@ -28,6 +28,11 @@ Trigger this skill when requests include any of these intents:
 5. Run minimal validation for affected modules (type check, tests, or lint as applicable).
 6. Report changes with a compact mapping: old name -> new name.
 
+For this repository specifically:
+
+- `pnpm lint:new-code:file-names` blocks new or renamed non-kebab source/script/test files.
+- `pnpm report:file-naming` prints the current legacy non-kebab backlog for gradual migration.
+
 ## Decision Rules
 
 - Always use lowercase kebab-case for domain/subdomain segments.

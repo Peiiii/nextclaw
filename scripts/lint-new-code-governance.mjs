@@ -9,6 +9,11 @@ const forwardedArgs = process.argv.slice(2);
 
 const checks = [
   {
+    name: "file-name-kebab-case",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-file-names.mjs")],
+  },
+  {
     name: "class-methods-arrow",
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-class-methods.mjs")],
@@ -22,6 +27,11 @@ const checks = [
     name: "param-mutations-owner-boundary",
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-param-mutations.mjs")],
+  },
+  {
+    name: "react-effects-owner-boundary",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-react-effects.mjs")],
   },
   {
     name: "closure-objects-owner",
