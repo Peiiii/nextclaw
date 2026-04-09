@@ -18,6 +18,7 @@ import { useChatSessionListStore } from '@/components/chat/stores/chat-session-l
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
+import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/components/chat/chat-session-preference-sync';
 import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.manager';
 import { chatRecentSkillsManager } from '@/components/chat/chat-recent-skills.manager';
@@ -40,7 +41,7 @@ export class NcpChatInputManager {
   constructor(
     private uiManager: ChatUiManager,
     private streamActionsManager: ChatStreamActionsManager,
-    private getDraftSessionId: () => string
+    private sessionListManager: ChatSessionListManager
   ) {}
 
   private hasSnapshotChanges = (patch: Partial<ChatInputSnapshot>): boolean => {
@@ -179,10 +180,7 @@ export class NcpChatInputManager {
       return;
     }
     const { selectedSkills: requestedSkills, composerNodes } = inputSnapshot;
-    const sessionKey = sessionSnapshot.selectedSessionKey ?? this.getDraftSessionId();
-    if (!sessionSnapshot.selectedSessionKey) {
-      this.uiManager.goToSession(sessionKey, { replace: true });
-    }
+    const sessionKey = sessionSnapshot.selectedSessionKey ?? this.sessionListManager.ensureDraftSession(inputSnapshot.selectedSessionType);
     this.setComposerNodes(createInitialChatComposerNodes());
     await this.streamActionsManager.sendMessage({
       message,

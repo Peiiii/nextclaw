@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
 import {
@@ -20,11 +20,15 @@ import type {
   MarketplaceItemType,
   MarketplaceManageRequest
 } from '@/api/types';
+import { collapseMarketplaceListPages } from '@/hooks/marketplace-list-pages';
+import { useMemo } from 'react';
 
 export function useMarketplaceItems(params: MarketplaceListParams) {
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: ['marketplace-items', params],
-    queryFn: () => fetchMarketplaceItems(params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchMarketplaceItems({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage) => (lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined),
     placeholderData: (previousData, previousQuery) => {
       const previousParams = previousQuery?.queryKey?.[1];
       if (!previousParams || typeof previousParams !== 'object' || previousParams === null) {
@@ -36,6 +40,13 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
     },
     staleTime: 15_000
   });
+
+  const data = useMemo(() => collapseMarketplaceListPages(query.data), [query.data]);
+
+  return {
+    ...query,
+    data
+  };
 }
 
 export function useMarketplaceRecommendations(type: MarketplaceItemType, params: { scene?: string; limit?: number }) {

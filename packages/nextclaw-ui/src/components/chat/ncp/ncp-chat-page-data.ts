@@ -116,7 +116,6 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   );
   const sessionTypeState = useChatSessionTypeState({
     selectedSession,
-    selectedSessionKey: params.sessionKey,
     pendingSessionType: params.pendingSessionType,
     setPendingSessionType: params.setPendingSessionType,
     sessionTypesData: sessionTypesQuery.data

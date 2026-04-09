@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { t } from '@/lib/i18n';
 import { PackageSearch } from 'lucide-react';
+import type { Ref } from 'react';
 
 export function FilterPanel(props: {
   scope: 'all' | 'installed';
@@ -71,32 +72,23 @@ export function MarketplaceListSkeleton(props: {
   );
 }
 
-export function PaginationBar(props: {
-  page: number;
-  totalPages: number;
-  busy: boolean;
-  onPrev: () => void;
-  onNext: () => void;
+export function MarketplaceInfiniteScrollStatus(props: {
+  hasMore: boolean;
+  loading: boolean;
+  sentinelRef: Ref<HTMLDivElement>;
 }) {
+  if (!props.hasMore && !props.loading) {
+    return null;
+  }
+
   return (
-    <div className="mt-4 flex items-center justify-end gap-2">
-      <button
-        className="h-8 px-3 rounded-xl border border-gray-200/80 text-sm text-gray-600 disabled:opacity-40"
-        onClick={props.onPrev}
-        disabled={props.page <= 1 || props.busy}
-      >
-        {t('prev')}
-      </button>
-      <div className="text-sm text-gray-600 min-w-20 text-center">
-        {props.totalPages === 0 ? '0 / 0' : `${props.page} / ${props.totalPages}`}
-      </div>
-      <button
-        className="h-8 px-3 rounded-xl border border-gray-200/80 text-sm text-gray-600 disabled:opacity-40"
-        onClick={props.onNext}
-        disabled={props.totalPages === 0 || props.page >= props.totalPages || props.busy}
-      >
-        {t('next')}
-      </button>
+    <div className="py-4">
+      {props.hasMore && <div ref={props.sentinelRef} className="h-1 w-full" aria-hidden="true" />}
+      {props.loading && (
+        <div data-testid="marketplace-loading-more" className="pt-3 text-center text-xs text-gray-500">
+          {t('loading')}
+        </div>
+      )}
     </div>
   );
 }

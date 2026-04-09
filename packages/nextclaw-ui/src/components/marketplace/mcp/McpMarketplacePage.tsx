@@ -36,6 +36,8 @@ import {
 } from '@/components/marketplace/marketplace-localization';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { MarketplaceInfiniteScrollStatus } from '@/components/marketplace/marketplace-page-parts';
+import { useInfiniteScrollLoader } from '@/hooks/use-infinite-scroll-loader';
 
 type ScopeType = 'catalog' | 'installed';
 
@@ -256,7 +258,6 @@ export function McpMarketplacePage() {
   const [searchText, setSearchText] = useState('');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<MarketplaceSort>('relevance');
-  const [page, setPage] = useState(1);
   const [installingItem, setInstallingItem] = useState<MarketplaceItemSummary | null>(null);
   const [doctorTarget, setDoctorTarget] = useState<string | null>(null);
   const [doctorResult, setDoctorResult] = useState<MarketplaceMcpDoctorResult | null>(null);
@@ -267,7 +268,6 @@ export function McpMarketplacePage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setPage(1);
       setQuery(searchText.trim());
     }, 250);
     return () => window.clearTimeout(timer);
@@ -276,10 +276,19 @@ export function McpMarketplacePage() {
   const itemsQuery = useMcpMarketplaceItems({
     q: query || undefined,
     sort,
-    page,
     pageSize: PAGE_SIZE
   });
   const installedQuery = useMcpMarketplaceInstalled();
+
+  const infiniteScroll = useInfiniteScrollLoader({
+    disabled: scope !== 'catalog' || itemsQuery.isError || !itemsQuery.hasNextPage || itemsQuery.isFetchingNextPage,
+    onLoadMore: () => itemsQuery.fetchNextPage(),
+    watchValue: `${scope}:${query}:${sort}:${itemsQuery.data?.loadedItems ?? 0}:${itemsQuery.data?.loadedPages ?? 0}`
+  });
+
+  useEffect(() => {
+    infiniteScroll.containerRef.current?.scrollTo({ top: 0 });
+  }, [infiniteScroll.containerRef, query, scope, sort]);
 
   const installMutation = useInstallMcpMarketplaceItem();
   const manageMutation = useManageMcpMarketplaceItem();
@@ -502,7 +511,11 @@ export function McpMarketplacePage() {
           </span>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div
+          ref={infiniteScroll.containerRef}
+          className="min-h-0 flex-1 overflow-y-auto pr-1"
+          aria-busy={itemsQuery.isLoading || itemsQuery.isFetchingNextPage}
+        >
           <div className={cn('grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3')}>
             {scope === 'catalog' && itemsQuery.isLoading && Array.from({ length: 6 }, (_, index) => (
               <div key={index} className="rounded-2xl border border-gray-200/70 bg-white p-4 shadow-sm">
@@ -533,30 +546,16 @@ export function McpMarketplacePage() {
           {scope === 'installed' && installedRecords.length === 0 && (
             <div className="py-8 text-center text-sm text-gray-500">{t('marketplaceNoInstalledMcp')}</div>
           )}
+
+          {scope === 'catalog' && !itemsQuery.isError && (
+            <MarketplaceInfiniteScrollStatus
+              hasMore={Boolean(itemsQuery.hasNextPage)}
+              loading={itemsQuery.isFetchingNextPage}
+              sentinelRef={infiniteScroll.sentinelRef}
+            />
+          )}
         </div>
       </section>
-
-      {scope === 'catalog' && (
-        <div className="mt-4 flex items-center justify-end gap-2">
-          <button
-            className="h-8 rounded-xl border border-gray-200/80 px-3 text-sm text-gray-600 disabled:opacity-40"
-            onClick={() => setPage((current) => Math.max(1, current - 1))}
-            disabled={page <= 1 || itemsQuery.isFetching}
-          >
-            {t('prev')}
-          </button>
-          <div className="min-w-20 text-center text-sm text-gray-600">
-            {itemsQuery.data?.totalPages ? `${page} / ${itemsQuery.data.totalPages}` : '0 / 0'}
-          </div>
-          <button
-            className="h-8 rounded-xl border border-gray-200/80 px-3 text-sm text-gray-600 disabled:opacity-40"
-            onClick={() => setPage((current) => current + 1)}
-            disabled={!itemsQuery.data?.totalPages || page >= itemsQuery.data.totalPages || itemsQuery.isFetching}
-          >
-            {t('next')}
-          </button>
-        </div>
-      )}
 
       <InstallDialog
         item={installingItem}

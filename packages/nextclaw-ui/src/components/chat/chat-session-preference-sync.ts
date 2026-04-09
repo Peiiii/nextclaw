@@ -1,6 +1,7 @@
 import type { SessionPatchUpdate, ThinkingLevel } from '@/api/types';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 
 type QueuedSessionPreferenceSync = {
   sessionKey: string;
@@ -30,8 +31,9 @@ export class ChatSessionPreferenceSync {
   syncSelectedSessionPreferences = (): void => {
     const inputSnapshot = useChatInputStore.getState().snapshot;
     const sessionSnapshot = useChatSessionListStore.getState().snapshot;
+    const threadSnapshot = useChatThreadStore.getState().snapshot;
     const sessionKey = sessionSnapshot.selectedSessionKey;
-    if (!sessionKey) {
+    if (!sessionKey || !threadSnapshot.canDeleteSession) {
       return;
     }
 
@@ -44,15 +46,15 @@ export class ChatSessionPreferenceSync {
     });
   };
 
-  private enqueue(next: QueuedSessionPreferenceSync): void {
+  private enqueue = (next: QueuedSessionPreferenceSync): void => {
     this.queued = next;
     if (this.inFlight) {
       return;
     }
     this.startFlush();
-  }
+  };
 
-  private startFlush(): void {
+  private startFlush = (): void => {
     this.inFlight = this.flush()
       .catch((error) => {
         console.error(`Failed to sync chat session preferences: ${String(error)}`);
@@ -63,13 +65,13 @@ export class ChatSessionPreferenceSync {
           this.startFlush();
         }
       });
-  }
+  };
 
-  private async flush(): Promise<void> {
+  private flush = async (): Promise<void> => {
     while (this.queued) {
       const current = this.queued;
       this.queued = null;
       await this.updateSession(current.sessionKey, current.patch);
     }
-  }
+  };
 }

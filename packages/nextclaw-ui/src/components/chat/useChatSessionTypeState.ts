@@ -22,7 +22,6 @@ export type ChatSessionTypeOption = {
 
 type UseChatSessionTypeStateParams = {
   selectedSession: SessionEntryView | null;
-  selectedSessionKey: string | null;
   pendingSessionType: string;
   setPendingSessionType: Dispatch<SetStateAction<string>>;
   sessionTypesData?: {
@@ -114,7 +113,6 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
 } {
   const {
     selectedSession,
-    selectedSessionKey,
     pendingSessionType,
     setPendingSessionType,
     sessionTypesData
@@ -164,7 +162,7 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
   );
 
   useEffect(() => {
-    if (selectedSessionKey) {
+    if (selectedSession) {
       return;
     }
     const rawPending = typeof pendingSessionType === 'string' ? pendingSessionType.trim() : '';
@@ -181,9 +179,9 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
       return;
     }
     setPendingSessionType(defaultSessionType);
-  }, [defaultSessionType, pendingSessionType, selectedSessionKey, setPendingSessionType]);
+  }, [defaultSessionType, pendingSessionType, selectedSession, setPendingSessionType]);
 
-  const canEditSessionType = !selectedSessionKey || Boolean(selectedSession?.sessionTypeMutable);
+  const canEditSessionType = !selectedSession || Boolean(selectedSession.sessionTypeMutable);
   const availableSessionTypeSet = useMemo(
     () => new Set(runtimeSessionTypeOptions.map((option) => option.value)),
     [runtimeSessionTypeOptions]

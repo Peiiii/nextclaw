@@ -2,7 +2,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
 } from "react";
 import {
   buildNcpRequestEnvelope,
@@ -22,7 +21,6 @@ import {
 } from "@/components/chat/chat-session-route";
 import { useNcpChatPageData } from "@/components/chat/ncp/ncp-chat-page-data";
 import { NcpChatPresenter } from "@/components/chat/ncp/ncp-chat.presenter";
-import { createNcpSessionId } from "@/components/chat/ncp/ncp-session-adapter";
 import { useNcpSessionConversation } from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
 import { useNcpChatDerivedState, useNcpChatSnapshotSync } from "@/components/chat/ncp/page/ncp-chat-derived-state";
 import { ChatPresenterProvider } from "@/components/chat/presenter/chat-presenter-context";
@@ -79,25 +77,38 @@ export function buildNcpSendMetadata(payload: {
   return metadata;
 }
 
-export function shouldRefreshDraftSessionId(params: {
-  previousSelectedSessionKey: string | null | undefined;
-  nextSelectedSessionKey: string | null;
+export function shouldClearPendingProjectRootOverride(params: {
+  pendingProjectRoot: string | null;
+  pendingProjectRootSessionKey: string | null;
+  sessionKey: string | null | undefined;
+  selectedSessionProjectRoot: string | null | undefined;
 }): boolean {
+  const {
+    pendingProjectRoot,
+    pendingProjectRootSessionKey,
+    sessionKey,
+    selectedSessionProjectRoot,
+  } = params;
   return (
-    params.nextSelectedSessionKey === null &&
-    params.previousSelectedSessionKey !== undefined &&
-    params.previousSelectedSessionKey !== null
+    pendingProjectRoot !== null &&
+    pendingProjectRootSessionKey !== null &&
+    sessionKey === pendingProjectRootSessionKey &&
+    (selectedSessionProjectRoot ?? null) === pendingProjectRoot
   );
 }
 
 export function NcpChatPage({ view }: ChatPageProps) {
-  const [presenter] = useState(() => new NcpChatPresenter());
-  const [draftSessionId, setDraftSessionId] = useState(() =>
-    createNcpSessionId(),
-  );
+  const presenterRef = useRef<NcpChatPresenter | null>(null);
+  if (!presenterRef.current) {
+    presenterRef.current = new NcpChatPresenter();
+  }
+  const presenter = presenterRef.current;
   const query = useChatSessionListStore((state) => state.snapshot.query);
   const selectedSessionKey = useChatSessionListStore(
     (state) => state.snapshot.selectedSessionKey,
+  );
+  const draftSessionKey = useChatSessionListStore(
+    (state) => state.snapshot.draftSessionKey,
   );
   const selectedAgentId = useChatSessionListStore(
     (state) => state.snapshot.selectedAgentId,
@@ -123,21 +134,14 @@ export function NcpChatPage({ view }: ChatPageProps) {
   }>();
   const threadRef = useRef<HTMLDivElement | null>(null);
   const selectedSessionKeyRef = useRef<string | null>(selectedSessionKey);
-  const previousSelectedSessionKeyRef = useRef<string | null | undefined>(
-    undefined,
-  );
   const routeSessionKey = useMemo(
     () => parseSessionKeyFromRoute(routeSessionIdParam),
     [routeSessionIdParam],
   );
-  const sessionKey = selectedSessionKey ?? draftSessionId;
-  const hasDraftProjectRootOverride =
-    pendingProjectRoot !== null &&
-    pendingProjectRootSessionKey === null &&
-    selectedSessionKey === null;
+  const sessionKey = routeSessionKey ?? selectedSessionKey ?? draftSessionKey;
   const hasSessionProjectRootOverride =
     pendingProjectRoot !== null &&
-    (pendingProjectRootSessionKey === sessionKey || hasDraftProjectRootOverride);
+    pendingProjectRootSessionKey === sessionKey;
   const sessionProjectRootOverride = hasSessionProjectRootOverride
     ? pendingProjectRoot
     : undefined;
@@ -168,25 +172,6 @@ export function NcpChatPage({ view }: ChatPageProps) {
 
   const agent = useNcpSessionConversation(sessionKey);
 
-  useEffect(() => {
-    presenter.setDraftSessionId(draftSessionId);
-  }, [draftSessionId, presenter]);
-
-  useEffect(() => {
-    if (
-      shouldRefreshDraftSessionId({
-        previousSelectedSessionKey:
-          previousSelectedSessionKeyRef.current,
-        nextSelectedSessionKey: selectedSessionKey,
-      })
-    ) {
-      const nextDraftSessionId = createNcpSessionId();
-      setDraftSessionId(nextDraftSessionId);
-      presenter.setDraftSessionId(nextDraftSessionId);
-    }
-    previousSelectedSessionKeyRef.current = selectedSessionKey;
-  }, [presenter, selectedSessionKey]);
-
   const effectiveSessionProjectRoot = hasSessionProjectRootOverride
     ? pendingProjectRoot
     : (selectedSession?.projectRoot ?? null);
@@ -215,10 +200,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
           thinkingLevel: payload.thinkingLevel,
           sessionType: payload.sessionType,
           projectRoot:
-            payload.sessionKey === pendingProjectRootSessionKey ||
-            (pendingProjectRoot !== null &&
-              pendingProjectRootSessionKey === null &&
-              selectedSessionKey === null)
+            payload.sessionKey === pendingProjectRootSessionKey
               ? pendingProjectRoot
               : (selectedSession?.projectRoot ?? null),
           requestedSkills: payload.requestedSkills,
@@ -279,15 +261,14 @@ export function NcpChatPage({ view }: ChatPageProps) {
   ]);
 
   useEffect(() => {
-    const matchesPendingProjectSession =
-      pendingProjectRootSessionKey === null
-        ? selectedSessionKey !== null
-        : pendingProjectRootSessionKey === selectedSession?.key;
     if (
       !selectedSession ||
-      pendingProjectRoot === null ||
-      !matchesPendingProjectSession ||
-      (selectedSession.projectRoot ?? null) !== pendingProjectRoot
+      !shouldClearPendingProjectRootOverride({
+        pendingProjectRoot,
+        pendingProjectRootSessionKey,
+        sessionKey: selectedSession.key,
+        selectedSessionProjectRoot: selectedSession.projectRoot ?? null,
+      })
     ) {
       return;
     }
