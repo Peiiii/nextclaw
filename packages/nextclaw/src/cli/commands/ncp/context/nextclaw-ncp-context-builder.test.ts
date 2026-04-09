@@ -421,7 +421,7 @@ it("keeps host workspace context and skills when a session is bound to a project
     expect(systemPrompt).toContain("<name>host-helper</name>");
   });
 
-it("keeps current-turn text and asset reference parts in composer order", () => {
+it("keeps current-turn text, image input, and asset hint parts in composer order", () => {
     const { workspace } = createWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -483,12 +483,19 @@ it("keeps current-turn text and asset reference parts in composer order", () => 
           text: "before ",
         },
         {
+          type: "image_url",
+          image_url: {
+            url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+            detail: "auto",
+          },
+        },
+        {
           type: "text",
           text: [
-            "[Asset: sample.png]",
+            "[Attached Image: sample.png]",
             "[MIME: image/png]",
             "[Size Bytes: 10]",
-            "[Instruction: This file is not embedded in the prompt. If you need to inspect or transform it, use asset_export to copy it to a normal file path first.]",
+            "[Instruction: This image is embedded in the prompt.]",
           ].join("\n"),
         },
         {
@@ -500,7 +507,7 @@ it("keeps current-turn text and asset reference parts in composer order", () => 
     expect(prepared.model).toBe("dashscope/qwen3.5-plus");
 });
 
-it("keeps historical asset references without changing the selected model", () => {
+it("keeps historical image inputs available without changing the selected model", () => {
     const { workspace } = createWorkspace();
     const config = ConfigSchema.parse({
       agents: {
@@ -577,12 +584,19 @@ it("keeps historical asset references without changing the selected model", () =
             text: "remember this image",
           },
           {
+            type: "image_url",
+            image_url: {
+              url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+              detail: "auto",
+            },
+          },
+          {
             type: "text",
             text: [
-              "[Asset: sample.png]",
+              "[Attached Image: sample.png]",
               "[MIME: image/png]",
               "[Size Bytes: 10]",
-              "[Instruction: This file is not embedded in the prompt. If you need to inspect or transform it, use asset_export to copy it to a normal file path first.]",
+              "[Instruction: This image is embedded in the prompt.]",
             ].join("\n"),
           },
         ],
@@ -669,6 +683,94 @@ it("references uploaded assets in current-turn content", async () => {
             `[Asset URI: ${record.uri}]`,
             `[Size Bytes: ${record.sizeBytes}]`,
             "[Instruction: This file is not embedded in the prompt. If you need to inspect or transform it, use asset_export to copy it to a normal file path first.]",
+          ].join("\n"),
+        },
+      ],
+    });
+});
+
+it("converts uploaded image assets into multimodal current-turn content", async () => {
+    const { workspace, home } = createWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "dashscope/qwen3.5-plus",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+      },
+      providers: {
+        openai: {
+          enabled: true,
+          apiKey: "test-openai-key",
+          models: ["gpt-5.4"],
+        },
+      },
+    });
+    const assetStore = createAssetStore(home);
+    const record = await assetStore.putBytes({
+      fileName: "screen.png",
+      mimeType: "image/png",
+      bytes: Buffer.from("ZmFrZS1pbWFnZQ==", "base64"),
+    });
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager: new SessionManager(workspace),
+      toolRegistry: {
+        prepareForRun: vi.fn(),
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+      assetStore,
+    });
+
+    const sessionId = `session-${randomUUID()}`;
+    const prepared = builder.prepare({
+      sessionId,
+      messages: [
+        {
+          id: "user-image-asset-1",
+          sessionId,
+          role: "user",
+          status: "final",
+          timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+          parts: [
+            { type: "text", text: "inspect this screenshot" },
+            {
+              type: "file",
+              name: "screen.png",
+              mimeType: "image/png",
+              assetUri: record.uri,
+              sizeBytes: record.sizeBytes,
+            },
+          ],
+        },
+      ],
+      metadata: {},
+    } as never);
+
+    expect(prepared.messages.at(-1)).toEqual({
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: "inspect this screenshot",
+        },
+        {
+          type: "image_url",
+          image_url: {
+            url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+            detail: "auto",
+          },
+        },
+        {
+          type: "text",
+          text: [
+            "[Attached Image: screen.png]",
+            "[MIME: image/png]",
+            `[Asset URI: ${record.uri}]`,
+            `[Size Bytes: ${record.sizeBytes}]`,
+            "[Instruction: This image is embedded in the prompt. If you need to transform or process the original file with tools, use the asset URI.]",
           ].join("\n"),
         },
       ],

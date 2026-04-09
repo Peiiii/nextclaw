@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import type { NcpMessagePart, OpenAIContentPart } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "./asset-store.js";
 
@@ -36,33 +37,161 @@ function formatAssetReferenceBlock(params: {
   return lines.join("\n");
 }
 
+type ResolvedFilePart = {
+  fileName: string;
+  mimeType: string;
+  assetUri: string | null;
+  url: string | null;
+  contentBase64: string | null;
+  sizeBytes?: number;
+  contentPath: string | null;
+};
+
+function resolveFilePart(
+  part: Extract<NcpMessagePart, { type: "file" }>,
+  assetStore?: LocalAssetStore | null,
+): ResolvedFilePart {
+  const assetUri = readOptionalString(part.assetUri);
+  const stored = assetUri ? assetStore?.getByUri(assetUri) : null;
+  return {
+    fileName: readOptionalString(stored?.fileName) ?? readOptionalString(part.name) ?? "asset",
+    mimeType:
+      readOptionalString(stored?.mimeType) ??
+      readOptionalString(part.mimeType) ??
+      "application/octet-stream",
+    assetUri,
+    url: readOptionalString(part.url),
+    contentBase64: readOptionalString(part.contentBase64),
+    sizeBytes: stored?.sizeBytes ?? (typeof part.sizeBytes === "number" ? part.sizeBytes : undefined),
+    contentPath: assetUri ? assetStore?.resolveContentPath(assetUri) ?? null : null,
+  };
+}
+
+function formatImageAttachmentHint(params: {
+  fileName?: string | null;
+  mimeType?: string | null;
+  assetUri?: string | null;
+  sizeBytes?: number;
+}): string {
+  const {
+    fileName: rawFileName,
+    mimeType: rawMimeType,
+    assetUri: rawAssetUri,
+    sizeBytes,
+  } = params;
+  const fileName = readOptionalString(rawFileName) ?? "asset";
+  const mimeType = readOptionalString(rawMimeType) ?? "application/octet-stream";
+  const assetUri = readOptionalString(rawAssetUri);
+  const sizeText =
+    typeof sizeBytes === "number" && Number.isFinite(sizeBytes)
+      ? String(sizeBytes)
+      : null;
+
+  const lines = [
+    `[Attached Image: ${fileName}]`,
+    `[MIME: ${mimeType}]`,
+    ...(assetUri ? [`[Asset URI: ${assetUri}]`] : []),
+    ...(sizeText ? [`[Size Bytes: ${sizeText}]`] : []),
+    assetUri
+      ? "[Instruction: This image is embedded in the prompt. If you need to transform or process the original file with tools, use the asset URI.]"
+      : "[Instruction: This image is embedded in the prompt.]",
+  ];
+  return lines.join("\n");
+}
+
+function isImageMimeType(value: string | null): boolean {
+  return value?.startsWith("image/") ?? false;
+}
+
+function isModelReachableImageUrl(value: string | null): boolean {
+  return value !== null && (/^https?:\/\//i.test(value) || /^data:/i.test(value));
+}
+
+function buildImageDataUrl(mimeType: string, bytes: Uint8Array): string {
+  return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
+}
+
+function resolveImageContentPart(
+  part: Extract<NcpMessagePart, { type: "file" }>,
+  assetStore?: LocalAssetStore | null,
+): OpenAIContentPart | null {
+  const resolved = resolveFilePart(part, assetStore);
+  if (!isImageMimeType(resolved.mimeType)) {
+    return null;
+  }
+
+  if (resolved.contentBase64) {
+    return {
+      type: "image_url",
+      image_url: {
+        url: `data:${resolved.mimeType};base64,${resolved.contentBase64}`,
+        detail: "auto",
+      },
+    };
+  }
+
+  if (resolved.contentPath) {
+    return {
+      type: "image_url",
+      image_url: {
+        url: buildImageDataUrl(resolved.mimeType, readFileSync(resolved.contentPath)),
+        detail: "auto",
+      },
+    };
+  }
+
+  if (isModelReachableImageUrl(resolved.url)) {
+    return {
+      type: "image_url",
+      image_url: {
+        url: resolved.url,
+        detail: "auto",
+      },
+    };
+  }
+
+  return null;
+}
+
+function resolveImageAttachmentHint(
+  part: Extract<NcpMessagePart, { type: "file" }>,
+  assetStore?: LocalAssetStore | null,
+): string | null {
+  const resolved = resolveFilePart(part, assetStore);
+  if (!isImageMimeType(resolved.mimeType)) {
+    return null;
+  }
+
+  return formatImageAttachmentHint({
+    fileName: resolved.fileName,
+    mimeType: resolved.mimeType,
+    assetUri: resolved.assetUri,
+    sizeBytes: resolved.sizeBytes,
+  });
+}
+
 function resolveAssetReferenceBlock(
   part: Extract<NcpMessagePart, { type: "file" }>,
   assetStore?: LocalAssetStore | null,
 ): string | null {
-  const fileName = readOptionalString(part.name);
-  const mimeType = readOptionalString(part.mimeType);
-  const assetUri = readOptionalString(part.assetUri);
-  const url = readOptionalString(part.url);
-  const sizeBytes = typeof part.sizeBytes === "number" ? part.sizeBytes : undefined;
+  const resolved = resolveFilePart(part, assetStore);
 
-  if (assetUri) {
-    const stored = assetStore?.getByUri(assetUri);
+  if (resolved.assetUri) {
     return formatAssetReferenceBlock({
-      fileName: stored?.fileName ?? fileName,
-      mimeType: stored?.mimeType ?? mimeType,
-      assetUri,
-      url,
-      sizeBytes: stored?.sizeBytes ?? sizeBytes,
+      fileName: resolved.fileName,
+      mimeType: resolved.mimeType,
+      assetUri: resolved.assetUri,
+      url: resolved.url,
+      sizeBytes: resolved.sizeBytes,
     });
   }
 
-  if (url || part.contentBase64) {
+  if (resolved.url || resolved.contentBase64) {
     return formatAssetReferenceBlock({
-      fileName,
-      mimeType,
-      url,
-      sizeBytes,
+      fileName: resolved.fileName,
+      mimeType: resolved.mimeType,
+      url: resolved.url,
+      sizeBytes: resolved.sizeBytes,
     });
   }
 
@@ -84,6 +213,16 @@ export function buildNcpUserContent(
     }
 
     if (part.type !== "file") {
+      continue;
+    }
+
+    const imageContentPart = resolveImageContentPart(part, options.assetStore);
+    if (imageContentPart) {
+      content.push(imageContentPart);
+      const imageAttachmentHint = resolveImageAttachmentHint(part, options.assetStore);
+      if (imageAttachmentHint) {
+        content.push({ type: "text", text: imageAttachmentHint });
+      }
       continue;
     }
 

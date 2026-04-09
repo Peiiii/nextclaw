@@ -23,7 +23,7 @@ afterEach(() => {
 });
 
 describe("DefaultNcpContextBuilder", () => {
-  it("converts file parts into asset reference text blocks", () => {
+  it("converts image file parts into multimodal image inputs with asset hints", () => {
     const builder = new DefaultNcpContextBuilder();
     const prepared = builder.prepare({
       sessionId: "session-1",
@@ -53,12 +53,80 @@ describe("DefaultNcpContextBuilder", () => {
         content: [
           { type: "text", text: "describe this" },
           {
+            type: "image_url",
+            image_url: {
+              url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+              detail: "auto",
+            },
+          },
+          {
             type: "text",
             text: [
-              "[Asset: asset]",
+              "[Attached Image: asset]",
               "[MIME: image/png]",
               "[Size Bytes: 12]",
-              "[Instruction: This file is not embedded in the prompt. If you need to inspect or transform it, use asset_export to copy it to a normal file path first.]",
+              "[Instruction: This image is embedded in the prompt.]",
+            ].join("\n"),
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("converts uploaded image assets into multimodal image inputs with asset hints", async () => {
+    const assetStore = createAssetStore();
+    const record = await assetStore.putBytes({
+      fileName: "screen.png",
+      mimeType: "image/png",
+      bytes: Buffer.from("ZmFrZS1pbWFnZQ==", "base64"),
+    });
+    const builder = new DefaultNcpContextBuilder({
+      assetStore,
+    });
+
+    const prepared = builder.prepare({
+      sessionId: "session-1",
+      messages: [
+        {
+          id: "user-image-asset-1",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          timestamp: "2026-03-25T12:00:00.000Z",
+          parts: [
+            { type: "text", text: "inspect this screenshot" },
+            {
+              type: "file",
+              name: "screen.png",
+              mimeType: "image/png",
+              assetUri: record.uri,
+              sizeBytes: record.sizeBytes,
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(prepared.messages).toEqual([
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "inspect this screenshot" },
+          {
+            type: "image_url",
+            image_url: {
+              url: "data:image/png;base64,ZmFrZS1pbWFnZQ==",
+              detail: "auto",
+            },
+          },
+          {
+            type: "text",
+            text: [
+              "[Attached Image: screen.png]",
+              "[MIME: image/png]",
+              `[Asset URI: ${record.uri}]`,
+              `[Size Bytes: ${record.sizeBytes}]`,
+              "[Instruction: This image is embedded in the prompt. If you need to transform or process the original file with tools, use the asset URI.]",
             ].join("\n"),
           },
         ],
