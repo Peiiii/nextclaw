@@ -29,6 +29,8 @@ APP_STDOUT_LOG="${LOG_ROOT}/app-stdout.log"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
 RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
 DEFAULT_UI_PORT=55667
+RUNTIME_FALLBACK_PORT_START=55667
+RUNTIME_FALLBACK_PORT_END=55716
 
 mkdir -p "${LOG_ROOT}"
 
@@ -206,11 +208,9 @@ find_runtime_script() {
 }
 
 pick_runtime_port() {
-  local base_port=55667
-  local max_port=18840
   local port
 
-  for ((port=base_port; port<=max_port; port++)); do
+  for ((port=RUNTIME_FALLBACK_PORT_START; port<=RUNTIME_FALLBACK_PORT_END; port++)); do
     if ! lsof -nP -iTCP:"${port}" -sTCP:LISTEN >/dev/null 2>&1; then
       echo "${port}"
       return 0
@@ -231,7 +231,7 @@ run_runtime_fallback() {
   local runtime_port
   runtime_port="$(pick_runtime_port || true)"
   if [[ -z "${runtime_port}" ]]; then
-    echo "[desktop-smoke] runtime fallback failed: no available port in 55667-55716." >&2
+    echo "[desktop-smoke] runtime fallback failed: no available port in ${RUNTIME_FALLBACK_PORT_START}-${RUNTIME_FALLBACK_PORT_END}." >&2
     return 1
   fi
 
