@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   doctorMcpMarketplaceItem,
@@ -12,13 +12,24 @@ import {
   type McpMarketplaceListParams
 } from '@/api/mcp-marketplace';
 import { t } from '@/lib/i18n';
+import { collapseMarketplaceListPages } from '@/hooks/marketplace-list-pages';
+import { useMemo } from 'react';
 
 export function useMcpMarketplaceItems(params: McpMarketplaceListParams) {
-  return useQuery({
+  const query = useInfiniteQuery({
     queryKey: ['marketplace-mcp-items', params],
-    queryFn: () => fetchMcpMarketplaceItems(params),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => fetchMcpMarketplaceItems({ ...params, page: pageParam }),
+    getNextPageParam: (lastPage) => (lastPage.page < lastPage.totalPages ? lastPage.page + 1 : undefined),
     staleTime: 15_000
   });
+
+  const data = useMemo(() => collapseMarketplaceListPages(query.data), [query.data]);
+
+  return {
+    ...query,
+    data
+  };
 }
 
 export function useMcpMarketplaceInstalled() {

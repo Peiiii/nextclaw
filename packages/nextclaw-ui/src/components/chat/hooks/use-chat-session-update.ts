@@ -15,10 +15,12 @@ export function useChatSessionUpdate() {
   const queryClient = useQueryClient();
 
   return async (params: UpdateChatSessionParams): Promise<void> => {
+    const { sessionKey, patch, successMessage } = params;
     try {
-      const updated = await updateNcpSession(params.sessionKey, params.patch);
+      const updated = await updateNcpSession(sessionKey, patch);
       upsertNcpSessionSummaryInQueryClient(queryClient, updated);
-      toast.success(params.successMessage ?? t('configSavedApplied'));
+      await queryClient.invalidateQueries({ queryKey: ['ncp-session-skills', sessionKey] });
+      toast.success(successMessage ?? t('configSavedApplied'));
     } catch (error) {
       toast.error(
         t('configSaveFailed') + ': ' + (error instanceof Error ? error.message : String(error)),

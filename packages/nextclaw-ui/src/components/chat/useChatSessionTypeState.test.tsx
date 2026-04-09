@@ -17,7 +17,6 @@ describe('useChatSessionTypeState', () => {
     const { result } = renderHook(() =>
       useChatSessionTypeState({
         selectedSession: null,
-        selectedSessionKey: null,
         pendingSessionType: 'codex-sdk',
         setPendingSessionType,
         sessionTypesData: {
@@ -40,7 +39,6 @@ describe('useChatSessionTypeState', () => {
     renderHook(() =>
       useChatSessionTypeState({
         selectedSession: null,
-        selectedSessionKey: null,
         pendingSessionType: '',
         setPendingSessionType,
         sessionTypesData: {
@@ -62,7 +60,6 @@ describe('useChatSessionTypeState', () => {
     const { result } = renderHook(() =>
       useChatSessionTypeState({
         selectedSession: null,
-        selectedSessionKey: null,
         pendingSessionType: 'claude',
         setPendingSessionType,
         sessionTypesData: {

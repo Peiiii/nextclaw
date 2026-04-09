@@ -6,7 +6,9 @@ import {
   resolveSelectedModelValue,
   resolveSelectedThinkingLevelValue
 } from '@/components/chat/chat-session-preference-governance';
-import { shouldRefreshDraftSessionId } from '@/components/chat/ncp/NcpChatPage';
+import {
+  shouldClearPendingProjectRootOverride
+} from '@/components/chat/ncp/NcpChatPage';
 
 const modelOptions = [
   {
@@ -155,32 +157,27 @@ describe('resolveSelectedModelValue', () => {
   });
 });
 
-describe('shouldRefreshDraftSessionId', () => {
-  it('does not replace the initial draft session id on first mount', () => {
+describe('shouldClearPendingProjectRootOverride', () => {
+  it('does not clear an unrelated session project override', () => {
     expect(
-      shouldRefreshDraftSessionId({
-        previousSelectedSessionKey: undefined,
-        nextSelectedSessionKey: null
+      shouldClearPendingProjectRootOverride({
+        pendingProjectRoot: '/tmp/project-alpha',
+        pendingProjectRootSessionKey: 'draft-project-alpha',
+        sessionKey: 'session-existing',
+        selectedSessionProjectRoot: '/tmp/project-alpha'
       })
     ).toBe(false);
   });
 
-  it('replaces the draft session id after leaving an existing session', () => {
+  it('clears the override only after the bound session reflects the same project root', () => {
     expect(
-      shouldRefreshDraftSessionId({
-        previousSelectedSessionKey: 'session-1',
-        nextSelectedSessionKey: null
+      shouldClearPendingProjectRootOverride({
+        pendingProjectRoot: '/tmp/project-alpha',
+        pendingProjectRootSessionKey: 'draft-after-refresh',
+        sessionKey: 'draft-after-refresh',
+        selectedSessionProjectRoot: '/tmp/project-alpha'
       })
     ).toBe(true);
-  });
-
-  it('does not replace the draft session id while staying on the same session', () => {
-    expect(
-      shouldRefreshDraftSessionId({
-        previousSelectedSessionKey: 'session-1',
-        nextSelectedSessionKey: 'session-1'
-      })
-    ).toBe(false);
   });
 });
 

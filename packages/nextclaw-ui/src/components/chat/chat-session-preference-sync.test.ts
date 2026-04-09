@@ -3,6 +3,7 @@ import { updateNcpSession } from '@/api/ncp-session';
 import { ChatSessionPreferenceSync } from '@/components/chat/chat-session-preference-sync';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 
 vi.mock('@/api/ncp-session', () => ({
   updateNcpSession: vi.fn(async () => ({
@@ -29,6 +30,12 @@ describe('ChatSessionPreferenceSync', () => {
         selectedSessionKey: null
       }
     }));
+    useChatThreadStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        canDeleteSession: false
+      }
+    }));
     vi.clearAllMocks();
   });
 
@@ -44,6 +51,12 @@ describe('ChatSessionPreferenceSync', () => {
       snapshot: {
         ...state.snapshot,
         selectedSessionKey: 'session-1'
+      }
+    }));
+    useChatThreadStore.setState((state) => ({
+      snapshot: {
+        ...state.snapshot,
+        canDeleteSession: true
       }
     }));
 

@@ -31,10 +31,5 @@ export function useChatSessionProject() {
       patch: { projectRoot: params.projectRoot },
       successMessage,
     });
-
-    useChatInputStore.getState().setSnapshot({
-      pendingProjectRoot: params.projectRoot,
-      pendingProjectRootSessionKey: params.sessionKey,
-    });
   };
 }

@@ -4,6 +4,7 @@ import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import { normalizeSessionProjectRootValue } from '@/lib/session-project/session-project.utils';
+import { createNcpSessionId } from '@/components/chat/ncp/ncp-session-adapter';
 
 export class ChatSessionListManager {
   constructor(
@@ -45,8 +46,9 @@ export class ChatSessionListManager {
     useChatSessionListStore.getState().setSnapshot({ listMode: value });
   };
 
-  createSession = (sessionType?: string, projectRoot?: string | null) => {
+  createSession = (sessionType?: string, projectRoot?: string | null): string => {
     const { snapshot } = useChatInputStore.getState();
+    const { snapshot: sessionListSnapshot } = useChatSessionListStore.getState();
     const { defaultSessionType: configuredDefaultSessionType } = snapshot;
     const defaultSessionType = configuredDefaultSessionType || 'native';
     const nextSessionType =
@@ -54,14 +56,26 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
+    const nextSessionKey = sessionListSnapshot.draftSessionKey;
     this.streamActionsManager.resetStreamState();
-    useChatSessionListStore.getState().setSnapshot({ selectedSessionKey: null });
+    useChatSessionListStore.getState().setSnapshot({
+      draftSessionKey: createNcpSessionId()
+    });
     useChatInputStore.getState().setSnapshot({
       pendingSessionType: nextSessionType,
       pendingProjectRoot: normalizedProjectRoot,
-      pendingProjectRootSessionKey: null
+      pendingProjectRootSessionKey: normalizedProjectRoot ? nextSessionKey : null
     });
-    this.uiManager.goToChatRoot();
+    this.uiManager.goToSession(nextSessionKey);
+    return nextSessionKey;
+  };
+
+  ensureDraftSession = (sessionType?: string): string => {
+    const { snapshot } = useChatSessionListStore.getState();
+    if (snapshot.selectedSessionKey) {
+      return snapshot.selectedSessionKey;
+    }
+    return this.createSession(sessionType);
   };
 
   selectSession = (sessionKey: string) => {

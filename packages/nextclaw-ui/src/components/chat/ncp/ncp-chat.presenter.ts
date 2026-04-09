@@ -11,21 +11,11 @@ export class NcpChatPresenter {
   chatInputManager = new NcpChatInputManager(
     this.chatUiManager,
     this.chatStreamActionsManager,
-    () => this.getDraftSessionId()
+    this.chatSessionListManager
   );
   chatThreadManager = new NcpChatThreadManager(
     this.chatUiManager,
     this.chatSessionListManager,
     this.chatStreamActionsManager
   );
-
-  private draftSessionId = '';
-
-  setDraftSessionId = (sessionId: string) => {
-    this.draftSessionId = sessionId;
-  };
-
-  private getDraftSessionId(): string {
-    return this.draftSessionId;
-  }
 }

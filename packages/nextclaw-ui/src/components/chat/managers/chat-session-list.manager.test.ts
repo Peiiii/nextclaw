@@ -18,6 +18,7 @@ describe('ChatSessionListManager', () => {
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: 'session-1',
+        draftSessionKey: 'draft-root-1',
         listMode: 'time-first'
       }
     });
@@ -25,7 +26,7 @@ describe('ChatSessionListManager', () => {
 
   it('applies the requested session type when creating a session', () => {
     const uiManager = {
-      goToChatRoot: vi.fn()
+      goToSession: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
@@ -35,8 +36,9 @@ describe('ChatSessionListManager', () => {
     manager.createSession('codex');
 
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
-    expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-1');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).not.toBe('draft-root-1');
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
@@ -44,7 +46,7 @@ describe('ChatSessionListManager', () => {
 
   it('hydrates the draft project root when creating a session inside a project group', () => {
     const uiManager = {
-      goToChatRoot: vi.fn()
+      goToSession: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
@@ -54,7 +56,45 @@ describe('ChatSessionListManager', () => {
     manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe('draft-root-1');
+  });
+
+  it('promotes the current root draft when send flow needs a concrete session key', () => {
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: null,
+        draftSessionKey: 'draft-root-2'
+      }
+    });
+    const uiManager = {
+      goToSession: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
+    const streamActionsManager = {
+      resetStreamState: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
+
+    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const sessionKey = manager.ensureDraftSession('native');
+
+    expect(sessionKey).toBe('draft-root-2');
+    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-2');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+  });
+
+  it('does not eagerly replace the old selected session before the route finishes switching', () => {
+    const uiManager = {
+      goToSession: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
+    const streamActionsManager = {
+      resetStreamState: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
+
+    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    manager.createSession('native', '/tmp/project-alpha');
+
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe('draft-root-1');
   });
 
   it('delegates existing-session selection to routing without eagerly mutating the selected session state', () => {

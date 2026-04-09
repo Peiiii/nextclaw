@@ -71,7 +71,7 @@ describe('useChatSessionProject', () => {
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
 
-  it('persists to the server and mirrors the updated project override locally for an existing session', async () => {
+  it('persists to the server without reusing the draft override state for an existing session', async () => {
     const { result } = renderHook(() => useChatSessionProject());
 
     await act(async () => {
@@ -88,12 +88,12 @@ describe('useChatSessionProject', () => {
       successMessage: 'Project directory updated',
     });
     expect(useChatInputStore.getState().snapshot).toMatchObject({
-      pendingProjectRoot: '/tmp/project-beta',
-      pendingProjectRootSessionKey: 'session-1',
+      pendingProjectRoot: null,
+      pendingProjectRootSessionKey: null,
     });
   });
 
-  it('persists clearing to the server and keeps the cleared override until session state catches up', async () => {
+  it('persists clearing to the server without keeping a session-scoped local override', async () => {
     const { result } = renderHook(() => useChatSessionProject());
 
     await act(async () => {
@@ -111,7 +111,7 @@ describe('useChatSessionProject', () => {
     });
     expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: null,
-      pendingProjectRootSessionKey: 'session-1',
+      pendingProjectRootSessionKey: null,
     });
   });
 });

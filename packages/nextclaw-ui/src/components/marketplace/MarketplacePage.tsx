@@ -23,7 +23,7 @@ import {
 import {
   FilterPanel,
   MarketplaceListSkeleton,
-  PaginationBar
+  MarketplaceInfiniteScrollStatus
 } from '@/components/marketplace/marketplace-page-parts';
 import { buildLocaleFallbacks, pickLocalizedText } from '@/components/marketplace/marketplace-localization';
 import { t } from '@/lib/i18n';
@@ -31,6 +31,7 @@ import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { cn } from '@/lib/utils';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useInfiniteScrollLoader } from '@/hooks/use-infinite-scroll-loader';
 
 const PAGE_SIZE = 12;
 const SKELETON_CARD_COUNT = PAGE_SIZE;
@@ -452,21 +453,15 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   const [query, setQuery] = useState('');
   const [scope, setScope] = useState<ScopeType>('all');
   const [sort, setSort] = useState<MarketplaceSort>('relevance');
-  const [page, setPage] = useState(1);
   const [installingSpecs, setInstallingSpecs] = useState<ReadonlySet<string>>(new Set());
   const [managingTargets, setManagingTargets] = useState<ReadonlyMap<string, MarketplaceManageAction>>(new Map());
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(1);
       setQuery(searchText.trim());
     }, 250);
     return () => clearTimeout(timer);
   }, [searchText]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [typeFilter]);
 
   const installedQuery = useMarketplaceInstalled(typeFilter);
 
@@ -474,9 +469,18 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     q: query || undefined,
     type: typeFilter,
     sort,
-    page,
     pageSize: PAGE_SIZE
   });
+
+  const infiniteScroll = useInfiniteScrollLoader({
+    disabled: scope !== 'all' || itemsQuery.isError || !itemsQuery.hasNextPage || itemsQuery.isFetchingNextPage,
+    onLoadMore: () => itemsQuery.fetchNextPage(),
+    watchValue: `${typeFilter}:${scope}:${query}:${sort}:${itemsQuery.data?.loadedItems ?? 0}:${itemsQuery.data?.loadedPages ?? 0}`
+  });
+
+  useEffect(() => {
+    infiniteScroll.containerRef.current?.scrollTo({ top: 0 });
+  }, [infiniteScroll.containerRef, query, scope, sort, typeFilter]);
 
   const installMutation = useInstallMarketplaceItem();
   const manageMutation = useManageMarketplaceItem();
@@ -529,7 +533,6 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   }, [installedRecords, typeFilter, catalogLookup, query, localeFallbacks]);
 
   const total = scope === 'installed' ? installedEntries.length : (itemsQuery.data?.total ?? 0);
-  const totalPages = scope === 'installed' ? 1 : (itemsQuery.data?.totalPages ?? 0);
   const showCatalogSkeleton = scope === 'all' && itemsQuery.isLoading && !itemsQuery.data;
   const showInstalledSkeleton = scope === 'installed' && installedQuery.isLoading && !installedQuery.data;
   const showListSkeleton = showCatalogSkeleton || showInstalledSkeleton;
@@ -729,7 +732,6 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         activeTab={scope}
         onChange={(value) => {
           setScope(value as ScopeType);
-          setPage(1);
         }}
         className="mb-4"
       />
@@ -741,7 +743,6 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         sort={sort}
         onSearchTextChange={setSearchText}
         onSortChange={(value) => {
-          setPage(1);
           setSort(value);
         }}
       />
@@ -765,7 +766,11 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1" aria-busy={showListSkeleton}>
+        <div
+          ref={infiniteScroll.containerRef}
+          className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1"
+          aria-busy={showListSkeleton || itemsQuery.isFetchingNextPage}
+        >
           <div
             data-testid={showListSkeleton ? 'marketplace-list-skeleton' : undefined}
             className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
@@ -807,20 +812,16 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
           {scope === 'installed' && !showListSkeleton && !installedQuery.isError && installedEntries.length === 0 && (
             <div className="text-[13px] text-gray-500 py-8 text-center">{t(copyKeys.emptyInstalled)}</div>
           )}
+
+          {scope === 'all' && !showCatalogSkeleton && !itemsQuery.isError && (
+            <MarketplaceInfiniteScrollStatus
+              hasMore={Boolean(itemsQuery.hasNextPage)}
+              loading={itemsQuery.isFetchingNextPage}
+              sentinelRef={infiniteScroll.sentinelRef}
+            />
+          )}
         </div>
       </section>
-
-      {scope === 'all' && !showCatalogSkeleton && (
-        <div className="shrink-0">
-          <PaginationBar
-            page={page}
-            totalPages={totalPages}
-            busy={itemsQuery.isFetching}
-            onPrev={() => setPage((current) => Math.max(1, current - 1))}
-            onNext={() => setPage((current) => (totalPages > 0 ? Math.min(totalPages, current + 1) : current + 1))}
-          />
-        </div>
-      )}
       <ConfirmDialog />
     </PageLayout>
   );
