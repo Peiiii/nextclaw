@@ -1,0 +1,33 @@
+{
+  "slug": "mmx-cli",
+  "name": "MiniMax CLI",
+  "summary": "Use mmx to generate text, images, video, speech, and music via the MiniMax AI platform.",
+  "summaryI18n": {
+    "en": "Use mmx to generate text, images, video, speech, and music via the MiniMax AI platform.",
+    "zh": "使用 mmx 通过 MiniMax AI 平台生成文本、图像、视频、语音和音乐。"
+  },
+  "description": "Use this skill when the user wants to create media content, chat with MiniMax models, perform web search, or manage MiniMax API resources from the terminal with the local mmx CLI.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to create media content, chat with MiniMax models, perform web search, or manage MiniMax API resources from the terminal with the local mmx CLI.",
+    "zh": "当用户希望通过本地 mmx CLI 在终端中创作多媒体内容、与 MiniMax 模型对话、执行网页搜索或管理 MiniMax API 资源时使用此技能。"
+  },
+  "author": "MiniMax-AI",
+  "tags": [
+    "skill",
+    "minimax",
+    "mmx-cli",
+    "ai-generation",
+    "text",
+    "image",
+    "video",
+    "speech",
+    "music",
+    "search",
+    "vision",
+    "external-tool",
+    "cli",
+    "onboarding"
+  ],
+  "sourceRepo": "https://github.com/MiniMax-AI/cli",
+  "homepage": "https://github.com/MiniMax-AI/cli"
+}
