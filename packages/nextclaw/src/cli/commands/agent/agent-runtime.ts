@@ -1,6 +1,13 @@
 import { getWorkspacePath, loadConfig } from "@nextclaw/core";
+import { loadOpenClawPlugins } from "@nextclaw/openclaw-compat";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import { buildReservedPluginLoadOptions } from "../plugin/plugin-command-utils.js";
+import {
+  applyDevFirstPartyPluginLoadPaths,
+  resolveDevFirstPartyPluginDir,
+  resolveDevFirstPartyPluginInstallRoots,
+} from "../plugin/dev-first-party-plugin-load-paths.js";
 import {
   DEFAULT_UI_NCP_RUNTIME_KIND,
   UiNcpRuntimeRegistry,
@@ -8,7 +15,6 @@ import {
   type UiNcpSessionTypeOption,
 } from "../ncp/ui-ncp-runtime-registry.js";
 import {
-  loadPluginRegistry,
   logPluginDiagnostics,
   toExtensionRegistry,
 } from "../plugins.js";
@@ -28,12 +34,32 @@ function createUnusedRuntime(_params: RuntimeFactoryParams): NcpAgentRuntime {
   throw new Error("runtime creation is not available during runtime listing");
 }
 
+function loadRuntimeOnlyPluginRegistry(config: ReturnType<typeof loadConfig>, workspaceDir: string) {
+  const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
+  const configWithDevPluginPaths = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
+  const excludedRoots = resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir);
+  return loadOpenClawPlugins({
+    config: configWithDevPluginPaths,
+    workspaceDir,
+    includeBundled: false,
+    kinds: ["agent-runtime"],
+    excludeRoots: excludedRoots,
+    ...buildReservedPluginLoadOptions(),
+    logger: {
+      info: (message) => console.log(message),
+      warn: (message) => console.warn(message),
+      error: (message) => console.error(message),
+      debug: (message) => console.debug(message),
+    },
+  });
+}
+
 export async function listAvailableAgentRuntimes(
   params?: UiNcpSessionTypeDescribeParams,
 ): Promise<AgentRuntimeListResult> {
   const config = loadConfig();
   const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-  const pluginRegistry = loadPluginRegistry(config, workspaceDir);
+  const pluginRegistry = loadRuntimeOnlyPluginRegistry(config, workspaceDir);
   logPluginDiagnostics(pluginRegistry);
 
   const extensionRegistry = toExtensionRegistry(pluginRegistry);
