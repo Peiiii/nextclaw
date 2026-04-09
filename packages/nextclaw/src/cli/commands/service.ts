@@ -406,27 +406,29 @@ export class ServiceCommands {
     uiConfig: Config["ui"];
     options: StartServiceOptions;
   }): Promise<boolean> => {
-    console.log(`✓ ${APP_NAME} is already running (PID ${params.existing.pid})`);
-    console.log(`UI: ${params.existing.uiUrl}`);
-    console.log(`API: ${params.existing.apiUrl}`);
+    const { existing, options, uiConfig } = params;
+    console.log(`✓ ${APP_NAME} is already running (PID ${existing.pid})`);
+    console.log(`UI: ${existing.uiUrl}`);
+    console.log(`API: ${existing.apiUrl}`);
 
-    const binding = resolveManagedServiceUiBinding(params.existing);
-    if (binding.host !== params.uiConfig.host || binding.port !== params.uiConfig.port) {
+    const binding = resolveManagedServiceUiBinding(existing);
+    if (binding.host !== uiConfig.host || binding.port !== uiConfig.port) {
       console.log(
-        `Detected running service UI bind (${binding.host}:${binding.port}); enforcing (${params.uiConfig.host}:${params.uiConfig.port})...`
+        `Detected running service UI bind (${binding.host}:${binding.port}); enforcing (${uiConfig.host}:${uiConfig.port})...`
       );
       await this.stopService();
       const stateAfterStop = readServiceState();
       if (stateAfterStop && isProcessRunning(stateAfterStop.pid)) {
+        process.exitCode = 1;
         console.error("Error: Failed to stop running service while enforcing public UI exposure.");
         return true;
       }
-      await this.startService(params.options);
+      await this.startService(options);
       return true;
     }
 
     await this.printPublicUiUrls(binding.host, binding.port);
-    console.log(`Logs: ${params.existing.logPath}`);
+    console.log(`Logs: ${existing.logPath}`);
     this.printServiceControlHints();
     return true;
   };
@@ -443,24 +445,20 @@ export class ServiceCommands {
       await this.handleExistingManagedService({ existing, uiConfig, options });
       return;
     }
-    if (existing) {
-      clearServiceState();
-    }
+    if (existing) clearServiceState();
 
     if (!staticDir) {
       return void (process.exitCode = 1, console.error(`Error: ${APP_NAME} UI frontend bundle not found. Reinstall or rebuild ${APP_NAME}. For dev-only overrides, set NEXTCLAW_UI_STATIC_DIR to a built frontend directory.`));
     }
 
     const healthUrl = `${apiUrl}/health`;
-    const portPreflight = await this.checkUiPortPreflight({
-      host: uiConfig.host,
-      port: uiConfig.port,
-      healthUrl
-    });
+    const portPreflight = await this.checkUiPortPreflight({ host: uiConfig.host, port: uiConfig.port, healthUrl });
     if (!portPreflight.ok) {
-      console.error(`Error: Cannot start ${APP_NAME} because UI port ${uiConfig.port} is already occupied.`);
-      console.error(portPreflight.message);
-      return;
+      return void (
+        process.exitCode = 1,
+        console.error(`Error: Cannot start ${APP_NAME} because UI port ${uiConfig.port} is already occupied.`),
+        console.error(portPreflight.message)
+      );
     }
 
     const startup = spawnManagedService({
@@ -477,7 +475,7 @@ export class ServiceCommands {
       resolveServiceLogPath
     });
     if (!startup) {
-      return;
+      return void (process.exitCode = 1);
     }
 
     const readiness = await waitForManagedServiceReadiness({
@@ -494,6 +492,7 @@ export class ServiceCommands {
     });
     if (!readiness.ready) {
       if (!isProcessRunning(startup.snapshot.pid)) {
+        process.exitCode = 1;
         clearServiceState();
         const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
         this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);

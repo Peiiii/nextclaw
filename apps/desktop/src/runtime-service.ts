@@ -25,6 +25,13 @@ type ServiceState = {
   uiPort?: unknown;
 };
 
+type RuntimeCommandFailureParams = {
+  label: string;
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  outputLines: string[];
+};
+
 const LOOPBACK_HOST = "127.0.0.1";
 
 export class RuntimeServiceProcess {
@@ -54,9 +61,12 @@ export class RuntimeServiceProcess {
     await this.ensureInitialized();
     await this.runCliCommand(["start"], "start");
     const state = this.readServiceState();
+    if (!state) {
+      throw new Error(`Managed runtime did not write service state to ${this.resolveServiceStatePath()}`);
+    }
     const baseUrl = resolveManagedUiBaseUrlFromState(state);
     if (!baseUrl) {
-      throw new Error(`Managed runtime is running but UI host/port is unavailable in ${this.resolveServiceStatePath()}`);
+      throw new Error(`Managed runtime wrote invalid UI discovery state in ${this.resolveServiceStatePath()}`);
     }
     const parsedPort = this.parsePort(baseUrl);
     this.port = parsedPort;
@@ -100,6 +110,7 @@ export class RuntimeServiceProcess {
 
   private runCliCommand = async (args: string[], label: string): Promise<void> => {
     await new Promise<void>((resolve, reject) => {
+      let outputLines: string[] = [];
       const child = fork(this.options.scriptPath, args, {
         env: {
           ...process.env,
@@ -109,10 +120,18 @@ export class RuntimeServiceProcess {
       });
 
       child.stdout?.on("data", (chunk) => {
-        this.options.logger.info(`[runtime:${label}] ${String(chunk).trimEnd()}`);
+        const message = String(chunk).trimEnd();
+        if (message) {
+          this.options.logger.info(`[runtime:${label}] ${message}`);
+          outputLines = rememberRuntimeCommandOutput(outputLines, message);
+        }
       });
       child.stderr?.on("data", (chunk) => {
-        this.options.logger.warn(`[runtime:${label}] ${String(chunk).trimEnd()}`);
+        const message = String(chunk).trimEnd();
+        if (message) {
+          this.options.logger.warn(`[runtime:${label}] ${message}`);
+          outputLines = rememberRuntimeCommandOutput(outputLines, message);
+        }
       });
 
       child.once("error", (error) => {
@@ -125,7 +144,12 @@ export class RuntimeServiceProcess {
         }
         reject(
           new Error(
-            `Runtime command failed: ${label} exited with code=${String(code)}, signal=${String(signal)}`
+            formatRuntimeCommandFailureMessage({
+              label,
+              code,
+              signal,
+              outputLines
+            })
           )
         );
       });
@@ -261,6 +285,30 @@ function toManagedPort(value: unknown): number | null {
     return null;
   }
   return uiPort;
+}
+
+export function formatRuntimeCommandFailureMessage(params: RuntimeCommandFailureParams): string {
+  const { code, label, outputLines, signal } = params;
+  const header = `Runtime command failed: ${label} exited with code=${String(code)}, signal=${String(signal)}`;
+  if (outputLines.length === 0) {
+    return header;
+  }
+  return `${header}\n${outputLines.join("\n")}`;
+}
+
+function rememberRuntimeCommandOutput(outputLines: string[], chunk: string): string[] {
+  const next = [...outputLines];
+  for (const line of chunk.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+    next.push(trimmed);
+    if (next.length > 20) {
+      next.shift();
+    }
+  }
+  return next;
 }
 
 function isLoopbackHost(value: string): boolean {
