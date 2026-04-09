@@ -40,7 +40,7 @@ export class RuntimeServiceProcess {
     this.mode = options.mode ?? "embedded-serve";
   }
 
-  async start(): Promise<{ port: number; baseUrl: string }> {
+  start = async (): Promise<{ port: number; baseUrl: string }> => {
     if (this.child) {
       throw new Error("Runtime process already started.");
     }
@@ -48,22 +48,22 @@ export class RuntimeServiceProcess {
       return await this.startManagedService();
     }
     return await this.startEmbeddedServe();
-  }
+  };
 
-  private async startManagedService(): Promise<{ port: number; baseUrl: string }> {
+  private startManagedService = async (): Promise<{ port: number; baseUrl: string }> => {
     await this.ensureInitialized();
     await this.runCliCommand(["start"], "start");
     const state = this.readServiceState();
-    const baseUrl = this.resolveManagedUiBaseUrl(state);
+    const baseUrl = resolveManagedUiBaseUrlFromState(state);
     if (!baseUrl) {
       throw new Error(`Managed runtime is running but UI host/port is unavailable in ${this.resolveServiceStatePath()}`);
     }
     const parsedPort = this.parsePort(baseUrl);
     this.port = parsedPort;
     return { port: parsedPort ?? 0, baseUrl };
-  }
+  };
 
-  private async startEmbeddedServe(): Promise<{ port: number; baseUrl: string }> {
+  private startEmbeddedServe = async (): Promise<{ port: number; baseUrl: string }> => {
     await this.ensureInitialized();
     const port = await pickFreePort();
     const child = fork(this.options.scriptPath, ["serve", "--ui-port", String(port)], {
@@ -91,14 +91,14 @@ export class RuntimeServiceProcess {
     const baseUrl = `http://127.0.0.1:${port}`;
     await waitForHealth(`${baseUrl}${this.healthPath}`, this.startupTimeoutMs);
     return { port, baseUrl };
-  }
+  };
 
-  private async ensureInitialized(): Promise<void> {
+  private ensureInitialized = async (): Promise<void> => {
     this.options.logger.info("[runtime] running bootstrap init");
     await this.runCliCommand(["init"], "init");
-  }
+  };
 
-  private async runCliCommand(args: string[], label: string): Promise<void> {
+  private runCliCommand = async (args: string[], label: string): Promise<void> => {
     await new Promise<void>((resolve, reject) => {
       const child = fork(this.options.scriptPath, args, {
         env: {
@@ -130,9 +130,9 @@ export class RuntimeServiceProcess {
         );
       });
     });
-  }
+  };
 
-  async stop(): Promise<void> {
+  stop = async (): Promise<void> => {
     if (this.mode === "managed-service") {
       this.child = null;
       this.port = null;
@@ -166,9 +166,9 @@ export class RuntimeServiceProcess {
 
     this.child = null;
     this.port = null;
-  }
+  };
 
-  private readServiceState(): ServiceState | null {
+  private readServiceState = (): ServiceState | null => {
     const statePath = this.resolveServiceStatePath();
     if (!existsSync(statePath)) {
       return null;
@@ -182,35 +182,15 @@ export class RuntimeServiceProcess {
     } catch {
       return null;
     }
-  }
+  };
 
-  private resolveServiceStatePath(): string {
+  private resolveServiceStatePath = (): string => {
     const homeOverride = process.env.NEXTCLAW_HOME?.trim();
     const dataDir = homeOverride ? resolve(homeOverride) : resolve(homedir(), ".nextclaw");
     return resolve(dataDir, "run", "service.json");
-  }
+  };
 
-  private resolveManagedUiBaseUrl(state: ServiceState | null): string | null {
-    const uiHost = typeof state?.uiHost === "string" ? state.uiHost.trim() : "";
-    const uiPort = Number(state?.uiPort);
-    if (!Number.isFinite(uiPort) || uiPort <= 0) {
-      return null;
-    }
-    const resolvedHost = this.resolveManagedUiHost(uiHost);
-    if (!resolvedHost) {
-      return null;
-    }
-    return `http://${resolvedHost}:${uiPort}`;
-  }
-
-  private resolveManagedUiHost(uiHost: string): string | null {
-    if (!uiHost || isLoopbackHost(uiHost) || isWildcardHost(uiHost)) {
-      return LOOPBACK_HOST;
-    }
-    return uiHost;
-  }
-
-  private parsePort(baseUrl: string): number | null {
+  private parsePort = (baseUrl: string): number | null => {
     try {
       const parsed = new URL(baseUrl);
       const explicitPort = Number(parsed.port);
@@ -227,7 +207,60 @@ export class RuntimeServiceProcess {
     } catch {
       return null;
     }
+  };
+}
+
+export function resolveManagedUiBaseUrlFromState(state: ServiceState | null): string | null {
+  const fromUrl = resolveManagedUiUrl(state);
+  if (fromUrl) {
+    return fromUrl;
   }
+  const uiHost = typeof state?.uiHost === "string" ? state.uiHost.trim() : "";
+  const uiPort = toManagedPort(state?.uiPort);
+  if (!uiPort) {
+    return null;
+  }
+  const resolvedHost = resolveManagedUiHost(uiHost);
+  if (!resolvedHost) {
+    return null;
+  }
+  return `http://${resolvedHost}:${uiPort}`;
+}
+
+function resolveManagedUiUrl(state: ServiceState | null): string | null {
+  const uiUrl = typeof state?.uiUrl === "string" ? state.uiUrl.trim() : "";
+  if (!uiUrl) {
+    return null;
+  }
+  try {
+    const parsed = new URL(uiUrl);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    const resolvedHost = resolveManagedUiHost(parsed.hostname);
+    const resolvedPort = parsed.port ? toManagedPort(parsed.port) : parsed.protocol === "http:" ? 80 : 443;
+    if (!resolvedHost || !resolvedPort) {
+      return null;
+    }
+    return `${parsed.protocol}//${resolvedHost}:${resolvedPort}`;
+  } catch {
+    return null;
+  }
+}
+
+function resolveManagedUiHost(uiHost: string): string | null {
+  if (!uiHost || isLoopbackHost(uiHost) || isWildcardHost(uiHost)) {
+    return LOOPBACK_HOST;
+  }
+  return uiHost;
+}
+
+function toManagedPort(value: unknown): number | null {
+  const uiPort = Number(value);
+  if (!Number.isFinite(uiPort) || uiPort <= 0) {
+    return null;
+  }
+  return uiPort;
 }
 
 function isLoopbackHost(value: string): boolean {
