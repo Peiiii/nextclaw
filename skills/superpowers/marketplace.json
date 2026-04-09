@@ -1,0 +1,27 @@
+{
+  "slug": "superpowers",
+  "name": "Superpowers",
+  "summary": "Bring the Superpowers development workflow into NextClaw with bundled references for brainstorming, planning, TDD, debugging, review, and verification.",
+  "summaryI18n": {
+    "en": "Bring the Superpowers development workflow into NextClaw with bundled references for brainstorming, planning, TDD, debugging, review, and verification.",
+    "zh": "把 Superpowers 开发工作流接入 NextClaw，内置 brainstorming、规划、TDD、调试、review 与验收验证等本地参考能力。"
+  },
+  "description": "Use this skill when the user wants a disciplined engineering workflow inside NextClaw. It adapts the upstream obra/superpowers project into a marketplace-ready package with a single workflow router and bundled local references for design-first planning, implementation plans, test-driven development, systematic debugging, code review, and verification-before-completion.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants a disciplined engineering workflow inside NextClaw. It adapts the upstream obra/superpowers project into a marketplace-ready package with a single workflow router and bundled local references for design-first planning, implementation plans, test-driven development, systematic debugging, code review, and verification-before-completion.",
+    "zh": "当用户希望在 NextClaw 中采用更有纪律的工程工作流时使用此技能。它把上游 obra/superpowers 项目适配成可上架的 marketplace 包：通过一个总入口 skill，加上本地打包的设计先行、实现规划、测试驱动开发、系统化调试、代码审查与完成前验证等参考文档，形成可安装的流程方法论。"
+  },
+  "author": "NextClaw (adapted from Jesse Vincent / obra)",
+  "tags": [
+    "skill",
+    "development-workflow",
+    "planning",
+    "tdd",
+    "debugging",
+    "code-review",
+    "verification",
+    "multi-agent"
+  ],
+  "sourceRepo": "https://github.com/obra/superpowers",
+  "homepage": "https://github.com/obra/superpowers"
+}
