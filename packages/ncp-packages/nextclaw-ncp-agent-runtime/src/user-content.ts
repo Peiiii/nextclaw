@@ -103,7 +103,7 @@ function isImageMimeType(value: string | null): boolean {
   return value?.startsWith("image/") ?? false;
 }
 
-function isModelReachableImageUrl(value: string | null): boolean {
+function isModelReachableImageUrl(value: string | null): value is string {
   return value !== null && (/^https?:\/\//i.test(value) || /^data:/i.test(value));
 }
 
@@ -140,11 +140,12 @@ function resolveImageContentPart(
     };
   }
 
-  if (isModelReachableImageUrl(resolved.url)) {
+  const reachableImageUrl = resolved.url;
+  if (isModelReachableImageUrl(reachableImageUrl)) {
     return {
       type: "image_url",
       image_url: {
-        url: resolved.url,
+        url: reachableImageUrl,
         detail: "auto",
       },
     };
