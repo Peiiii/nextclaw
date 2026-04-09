@@ -339,6 +339,12 @@
   - 反例：本地已有兄弟目录 `openclaw`，但仍直接去网页搜索或查看远程仓库代码。
   - 执行方式：每次涉及 OpenClaw 对比前，先执行兄弟目录存在性检查；存在则本地检索/读取，不存在再切换远程方案。
   - 维护责任人：当前助手。
+- **prefer-local-hermes-agent-sibling-source**：
+  - 约束/适用范围：当需要查看 Hermes Agent 源码时，优先在本项目根目录的同级兄弟目录查找本地 `hermes-agent` 仓库；若存在，必须优先读取本地源码；仅在本地不存在时才允许使用其它方式（如远程仓库/网络检索）。
+  - 示例：在 `/Users/peiwang/Projects/nextbot` 需要核对 Hermes Agent 实现时，先检查 `/Users/peiwang/Projects/hermes-agent` 并直接读取对应文件。
+  - 反例：本地已有兄弟目录 `hermes-agent`，但仍直接去网页搜索或查看远程仓库代码。
+  - 执行方式：每次涉及 Hermes Agent 对比前，先执行兄弟目录存在性检查；存在则本地检索/读取，不存在再切换远程方案。
+  - 维护责任人：当前助手。
 - **cross-platform-first-for-nextclaw**：
   - 约束/适用范围：凡涉及 `nextclaw` CLI、安装/升级、自更新、路径处理、进程控制、服务托管、脚本或用户可执行流程的设计与实现，默认必须同时考虑 macOS、Linux、Windows 三平台；除非用户明确声明仅限单平台，否则禁止只按当前开发机或单一操作系统做方案。
   - 示例：设计自更新流程时，同时检查全局安装路径、可执行入口、服务托管与 shell/权限差异，分别覆盖 macOS、Linux、Windows 的行为与回滚路径。
