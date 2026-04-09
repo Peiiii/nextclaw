@@ -151,4 +151,56 @@ describe("marketplace installed plugins route", () => {
     );
     expect(() => readFileSync(markerPath, "utf8")).toThrow();
   });
+
+  it("normalizes discovered local plugin specs to the package name when no install record exists", async () => {
+    const configPath = createTempConfigPath();
+    const { pluginDir, markerPath } = createMarketplaceProbePlugin();
+
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          load: {
+            paths: [pluginDir]
+          },
+          entries: {
+            "marketplace-installed-probe": {
+              enabled: true
+            }
+          }
+        }
+      }),
+      configPath
+    );
+
+    const app = createUiRouter({
+      configPath,
+      publish: () => {}
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/plugins/installed");
+    expect(response.status).toBe(200);
+
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        records: Array<{
+          id: string;
+          spec: string;
+          runtimeStatus: string;
+        }>;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.data.records).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "marketplace-installed-probe",
+          spec: "@test/marketplace-installed-probe",
+          runtimeStatus: "loaded"
+        })
+      ])
+    );
+    expect(() => readFileSync(markerPath, "utf8")).toThrow();
+  });
 });

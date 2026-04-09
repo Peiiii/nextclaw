@@ -14,6 +14,7 @@ import {
   dedupeInstalledPluginRecordsByCanonicalSpec,
   isSupportedMarketplacePluginSpec,
   normalizePluginNpmSpec,
+  resolveDiscoveredPluginCanonicalSpec,
   resolvePluginCanonicalSpec
 } from "./spec.js";
 
@@ -94,52 +95,43 @@ function buildDiscoveredPluginMap(params: {
   return discoveredById;
 }
 
-function appendDiscoveredPluginRecords(params: {
+function collectDiscoveredPluginRecords(params: {
   discoveredById: Map<string, PluginStatusReportPlugin>;
   pluginRecordsMap: Record<string, PluginInstallRecord>;
   pluginEntries: Record<string, PluginConfigEntry>;
-  pluginRecords: MarketplaceInstalledRecord[];
-  seenPluginIds: Set<string>;
-}): void {
-  for (const plugin of params.discoveredById.values()) {
+}): MarketplaceInstalledRecord[] {
+  return Array.from(params.discoveredById.values()).map((plugin) => {
     const installRecord = params.pluginRecordsMap[plugin.id];
     const entry = params.pluginEntries[plugin.id];
-    const normalizedSpec = resolvePluginCanonicalSpec({
-      pluginId: plugin.id,
-      installSpec: installRecord?.spec
-    });
-    const enabled = entry?.enabled === false ? false : plugin.enabled;
-    const runtimeStatus = entry?.enabled === false ? "disabled" : plugin.status;
-
-    params.pluginRecords.push({
+    return {
       type: "plugin",
       id: plugin.id,
-      spec: normalizedSpec,
+      spec: resolveDiscoveredPluginCanonicalSpec({
+        pluginId: plugin.id,
+        installSpec: installRecord?.spec,
+        source: plugin.source
+      }),
       label: plugin.name && plugin.name.trim().length > 0 ? plugin.name : plugin.id,
       source: plugin.source,
       installedAt: installRecord?.installedAt,
-      enabled,
-      runtimeStatus,
+      enabled: entry?.enabled === false ? false : plugin.enabled,
+      runtimeStatus: entry?.enabled === false ? "disabled" : plugin.status,
       origin: plugin.origin,
       installPath: installRecord?.installPath
-    });
-    params.seenPluginIds.add(plugin.id);
-  }
+    } satisfies MarketplaceInstalledRecord;
+  });
 }
 
-function appendInstalledOnlyPluginRecords(params: {
+function collectInstalledOnlyPluginRecords(params: {
   pluginRecordsMap: Record<string, PluginInstallRecord>;
   pluginEntries: Record<string, PluginConfigEntry>;
-  pluginRecords: MarketplaceInstalledRecord[];
   seenPluginIds: Set<string>;
-}): void {
-  for (const [pluginId, installRecord] of Object.entries(params.pluginRecordsMap)) {
-    if (params.seenPluginIds.has(pluginId)) {
-      continue;
-    }
-
-    const entry = params.pluginEntries[pluginId];
-    params.pluginRecords.push({
+}): MarketplaceInstalledRecord[] {
+  return Object.entries(params.pluginRecordsMap)
+    .filter(([pluginId]) => !params.seenPluginIds.has(pluginId))
+    .map(([pluginId, installRecord]) => {
+      const entry = params.pluginEntries[pluginId];
+      return {
       type: "plugin",
       id: pluginId,
       spec: resolvePluginCanonicalSpec({
@@ -152,22 +144,18 @@ function appendInstalledOnlyPluginRecords(params: {
       enabled: entry?.enabled !== false,
       runtimeStatus: entry?.enabled === false ? "disabled" : "unresolved",
       installPath: installRecord.installPath
+      } satisfies MarketplaceInstalledRecord;
     });
-    params.seenPluginIds.add(pluginId);
-  }
 }
 
-function appendConfigOnlyPluginRecords(params: {
+function collectConfigOnlyPluginRecords(params: {
   pluginEntries: Record<string, PluginConfigEntry>;
-  pluginRecords: MarketplaceInstalledRecord[];
   seenPluginIds: Set<string>;
-}): void {
-  for (const [pluginId, entry] of Object.entries(params.pluginEntries)) {
-    if (params.seenPluginIds.has(pluginId)) {
-      continue;
-    }
-
-    params.pluginRecords.push({
+}): MarketplaceInstalledRecord[] {
+  return Object.entries(params.pluginEntries)
+    .filter(([pluginId]) => !params.seenPluginIds.has(pluginId))
+    .map(([pluginId, entry]) => {
+      return {
       type: "plugin",
       id: pluginId,
       spec: resolvePluginCanonicalSpec({ pluginId }),
@@ -175,9 +163,8 @@ function appendConfigOnlyPluginRecords(params: {
       source: "config",
       enabled: entry?.enabled !== false,
       runtimeStatus: entry?.enabled === false ? "disabled" : "unresolved"
+      } satisfies MarketplaceInstalledRecord;
     });
-    params.seenPluginIds.add(pluginId);
-  }
 }
 
 function findPluginIdByExactId(pluginRecords: MarketplaceInstalledRecord[], lowerTargetId: string): string | undefined {
@@ -217,8 +204,6 @@ export function collectInstalledPluginRecords(options: UiRouterOptions): {
   const config = loadConfigOrDefault(options.configPath);
   const pluginRecordsMap: Record<string, PluginInstallRecord> = config.plugins.installs ?? {};
   const pluginEntries: Record<string, PluginConfigEntry> = config.plugins.entries ?? {};
-  const pluginRecords: MarketplaceInstalledRecord[] = [];
-  const seenPluginIds = new Set<string>();
   const installedPluginIds = new Set(Object.keys(pluginRecordsMap));
 
   let discoveredPlugins: PluginStatusReportPlugin[] = [];
@@ -233,25 +218,26 @@ export function collectInstalledPluginRecords(options: UiRouterOptions): {
   }
 
   const discoveredById = buildDiscoveredPluginMap({ discoveredPlugins, installedPluginIds });
-
-  appendDiscoveredPluginRecords({
+  const discoveredRecords = collectDiscoveredPluginRecords({
     discoveredById,
     pluginRecordsMap,
-    pluginEntries,
-    pluginRecords,
-    seenPluginIds
+    pluginEntries
   });
-  appendInstalledOnlyPluginRecords({
+  const seenDiscoveredPluginIds = new Set(discoveredRecords.map((record) => record.id));
+  const installedOnlyRecords = collectInstalledOnlyPluginRecords({
     pluginRecordsMap,
     pluginEntries,
-    pluginRecords,
-    seenPluginIds
+    seenPluginIds: seenDiscoveredPluginIds
   });
-  appendConfigOnlyPluginRecords({
+  const seenInstalledPluginIds = new Set([
+    ...seenDiscoveredPluginIds,
+    ...installedOnlyRecords.map((record) => record.id)
+  ]);
+  const configOnlyRecords = collectConfigOnlyPluginRecords({
     pluginEntries,
-    pluginRecords,
-    seenPluginIds
+    seenPluginIds: seenInstalledPluginIds
   });
+  const pluginRecords = [...discoveredRecords, ...installedOnlyRecords, ...configOnlyRecords];
 
   const dedupedPluginRecords = dedupeInstalledPluginRecordsByCanonicalSpec(pluginRecords);
   dedupedPluginRecords.sort((left, right) => {

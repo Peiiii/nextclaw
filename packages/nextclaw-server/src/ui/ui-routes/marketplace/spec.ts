@@ -1,8 +1,36 @@
+import fs from "node:fs";
+import path from "node:path";
 import type { MarketplaceInstalledRecord } from "../../types.js";
 import {
   BUILTIN_CHANNEL_PLUGIN_ID_PREFIX,
   NEXTCLAW_PLUGIN_NPM_PREFIX
 } from "./constants.js";
+
+function readPluginPackageNameFromSource(source: string | undefined): string | undefined {
+  const trimmed = source?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  let cursor = path.dirname(path.resolve(trimmed));
+  for (let index = 0; index < 8; index += 1) {
+    try {
+      const manifestPath = path.join(cursor, "package.json");
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as { name?: unknown };
+      if (typeof manifest.name === "string" && manifest.name.trim().length > 0) {
+        return manifest.name.trim();
+      }
+    } catch {}
+
+    const parent = path.dirname(cursor);
+    if (parent === cursor) {
+      break;
+    }
+    cursor = parent;
+  }
+
+  return undefined;
+}
 
 export function normalizePluginNpmSpec(rawSpec: string): string {
   const spec = rawSpec.trim();
@@ -45,6 +73,17 @@ export function resolvePluginCanonicalSpec(params: {
   }
 
   return params.pluginId;
+}
+
+export function resolveDiscoveredPluginCanonicalSpec(params: {
+  pluginId: string;
+  installSpec?: string;
+  source?: string;
+}): string {
+  return resolvePluginCanonicalSpec({
+    pluginId: params.pluginId,
+    installSpec: params.installSpec ?? readPluginPackageNameFromSource(params.source)
+  });
 }
 
 function readPluginRuntimeStatusPriority(status: string | undefined): number {
