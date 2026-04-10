@@ -169,4 +169,41 @@ describe("CronService", () => {
 
     expect(statSync(storePath).mtimeMs).toBe(beforeReloadMtimeMs);
   });
+
+  it("logs unexpected timer failures and keeps the scheduler alive", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const onJob = vi.fn().mockResolvedValue("ok");
+    const service = new CronService(storePath, onJob);
+
+    await service.start();
+    service.addJob({
+      name: "guard-background-failure",
+      schedule: { kind: "every", everyMs: 1_000 },
+      message: "still run"
+    });
+
+    const serviceInternal = service as unknown as {
+      saveStore: () => void;
+    };
+    const originalSaveStore = serviceInternal.saveStore.bind(service);
+    const saveStoreSpy = vi
+      .fn<() => void>()
+      .mockImplementationOnce(() => {
+        throw new Error("persist boom");
+      })
+      .mockImplementation(() => {
+        originalSaveStore();
+      });
+    serviceInternal.saveStore = saveStoreSpy;
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(onJob).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("[cron] background timer failed:"));
+    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining("persist boom"));
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    service.stop();
+
+    expect(onJob).toHaveBeenCalledTimes(2);
+  });
 });

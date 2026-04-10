@@ -10,6 +10,13 @@ import {
 
 type PublishUiEvent = ((event: UiServerEvent) => void) | undefined;
 
+function formatBackgroundTaskError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+  return String(error);
+}
+
 export function createLatestOnlySessionChangePublisher(
   publishSessionChange: (sessionKey: string) => Promise<void>,
 ): (sessionKey: string) => Promise<void> {
@@ -64,7 +71,11 @@ export function createServiceNcpSessionRealtimeBridge(params: {
 
   const persistedSessionService = new UiSessionService(params.sessionManager, {
     onSessionUpdated: (sessionKey) => {
-      void scheduleSessionChange(sessionKey);
+      void scheduleSessionChange(sessionKey).catch((error) => {
+        console.error(
+          `[session-realtime] failed to publish session change for ${sessionKey}: ${formatBackgroundTaskError(error)}`
+        );
+      });
     }
   });
   const deferredSessionService = createDeferredUiNcpSessionService(persistedSessionService);

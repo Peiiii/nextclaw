@@ -6,6 +6,13 @@ import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from
 
 const nowMs = () => Date.now();
 
+function formatBackgroundTaskError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.stack ?? error.message;
+  }
+  return String(error);
+}
+
 function normalizeFiniteMs(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
@@ -208,8 +215,17 @@ export class CronService {
     }
     const delayMs = Math.max(0, nextWake - nowMs());
     this.timer = setTimeout(() => {
-      void this.onTimer();
+      void this.runTimerSafely();
     }, delayMs);
+  };
+
+  private readonly runTimerSafely = async (): Promise<void> => {
+    try {
+      await this.onTimer();
+    } catch (error) {
+      console.error(`[cron] background timer failed: ${formatBackgroundTaskError(error)}`);
+      this.armTimer();
+    }
   };
 
   private readonly onTimer = async (): Promise<void> => {
