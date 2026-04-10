@@ -24,6 +24,7 @@ afterEach(() => {
   }
 });
 
+
 describe("AgentLoop dynamic tool catalog", () => {
   it("injects extension tools into the system prompt tool list", async () => {
     const workspace = createWorkspace();

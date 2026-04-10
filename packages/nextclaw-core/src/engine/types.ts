@@ -7,6 +7,8 @@ import type { SessionManager } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { GatewayController } from "../agent/tools/gateway.js";
 import type { ExtensionRegistry } from "../extensions/types.js";
+import type { ContextUserContentBuilder } from "../agent/content/user-content.js";
+import type { Tool } from "../agent/tools/base.js";
 
 export type AssistantDeltaHandler = (delta: string) => void;
 export type SessionEventHandler = (event: SessionEvent) => void;
@@ -55,6 +57,11 @@ export type AgentEngineFactoryContext = {
   config: Config;
   extensionRegistry?: ExtensionRegistry;
   resolveMessageToolHints?: AgentEngineMessageToolHintsResolver;
+  prepareInboundAttachments?: (
+    attachments: InboundMessage["attachments"]
+  ) => Promise<InboundMessage["attachments"]> | InboundMessage["attachments"];
+  buildUserContent?: ContextUserContentBuilder;
+  additionalTools?: Tool[];
 };
 
 export type AgentEngineFactory = (context: AgentEngineFactoryContext) => AgentEngine;

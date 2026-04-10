@@ -25,27 +25,17 @@ import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
 import { createTypingStopControlMessage } from "../bus/control.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
 import { InputBudgetPruner } from "./input-budget-pruner.js";
-import {
-  CLEAR_THINKING_TOKENS,
-  type ThinkingLevel,
-  parseThinkingLevel
-} from "../utils/thinking.js";
+import { CLEAR_THINKING_TOKENS, type ThinkingLevel, parseThinkingLevel } from "../utils/thinking.js";
 import { resolveThinkingLevel } from "./agent-thinking.js";
+import type { ContextUserContentBuilder } from "./content/user-content.js";
+import type { Tool } from "./tools/base.js";
+import { prepareInboundMessageWithAttachments, registerRuntimeTools } from "./runtime/runtime-hooks.js";
 
-type MessageToolHintsResolver = (params: {
-  sessionKey: string;
-  channel: string;
-  chatId: string;
-  accountId?: string | null;
-}) => string[];
+type MessageToolHintsResolver = (params: { sessionKey: string; channel: string; chatId: string; accountId?: string | null }) => string[];
 
-type AssistantDeltaHandler = (delta: string) => void;
-type SessionEventHandler = (event: SessionEvent) => void;
+type AssistantDeltaHandler = (delta: string) => void; type SessionEventHandler = (event: SessionEvent) => void;
 
-const TIME_HINT_TRIGGER_PATTERNS = [
-  /\b(now|right now|current time|what time|today|tonight|tomorrow|yesterday|this morning|this afternoon|this evening|date)\b/i,
-  /(现在|此刻|当前时间|现在几点|几点了|今天|今晚|今早|今晨|明天|昨天|日期)/
-];
+const TIME_HINT_TRIGGER_PATTERNS = [/\b(now|right now|current time|what time|today|tonight|tomorrow|yesterday|this morning|this afternoon|this evening|date)\b/i, /(现在|此刻|当前时间|现在几点|几点了|今天|今晚|今早|今晨|明天|昨天|日期)/];
 
 export class AgentLoop {
   private context: ContextBuilder;
@@ -76,9 +66,12 @@ export class AgentLoop {
       extensionRegistry?: ExtensionRegistry;
       resolveMessageToolHints?: MessageToolHintsResolver;
       agentId?: string;
+      prepareInboundAttachments?: (attachments: InboundMessage["attachments"]) => Promise<InboundMessage["attachments"]> | InboundMessage["attachments"];
+      buildUserContent?: ContextUserContentBuilder;
+      additionalTools?: Tool[];
     }
   ) {
-    this.context = new ContextBuilder(options.workspace, options.contextConfig);
+    this.context = new ContextBuilder(options.workspace, options.contextConfig, { buildUserContent: options.buildUserContent });
     this.sessions = options.sessionManager ?? new SessionManager(options.workspace);
     this.tools = new ToolRegistry();
     this.subagents = new SubagentManager({
@@ -94,6 +87,7 @@ export class AgentLoop {
     this.agentId = normalizeAgentId(options.agentId);
 
     this.registerDefaultTools();
+    registerRuntimeTools({ registry: this.tools, additionalTools: this.options.additionalTools });
     this.registerExtensionTools();
   }
 
@@ -185,15 +179,16 @@ export class AgentLoop {
     publishResponse?: boolean;
     onAssistantDelta?: AssistantDeltaHandler;
   }): Promise<OutboundMessage | null> {
-    const response = await this.processMessage(params.message, params.sessionKey, {
+    const message = await prepareInboundMessageWithAttachments({ message: params.message, prepareInboundAttachments: this.options.prepareInboundAttachments });
+    const response = await this.processMessage(message, params.sessionKey, {
       onAssistantDelta: params.onAssistantDelta
     });
     const shouldPublish = params.publishResponse ?? true;
     if (response && shouldPublish) {
       await this.options.bus.publishOutbound(response);
     }
-    if (!response && shouldPublish && params.message.channel !== "system") {
-      await this.options.bus.publishOutbound(createTypingStopControlMessage(params.message));
+    if (!response && shouldPublish && message.channel !== "system") {
+      await this.options.bus.publishOutbound(createTypingStopControlMessage(message));
     }
     return response;
   }
@@ -245,6 +240,7 @@ export class AgentLoop {
   private refreshRuntimeTools(): void {
     this.tools = new ToolRegistry();
     this.registerDefaultTools();
+    registerRuntimeTools({ registry: this.tools, additionalTools: this.options.additionalTools });
     this.registerExtensionTools();
   }
 
@@ -267,7 +263,8 @@ export class AgentLoop {
       attachments: [],
       metadata: params.metadata ?? {}
     };
-    const response = await this.processMessage(msg, params.sessionKey, {
+    const preparedMessage = await prepareInboundMessageWithAttachments({ message: msg, prepareInboundAttachments: this.options.prepareInboundAttachments });
+    const response = await this.processMessage(preparedMessage, params.sessionKey, {
       abortSignal: params.abortSignal,
       onAssistantDelta: params.onAssistantDelta,
       onSessionEvent: params.onSessionEvent

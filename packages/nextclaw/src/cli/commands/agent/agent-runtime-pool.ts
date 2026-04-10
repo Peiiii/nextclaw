@@ -24,16 +24,10 @@ import {
   type SearchConfig,
   type SessionManager
 } from "@nextclaw/core";
+import { NativeManagedAssetSupport } from "./native-managed-asset-support.js";
 
-type AgentProfileRuntime = {
-  id: string;
-  engine: AgentEngine;
-};
-
-type SystemSessionUpdatedHandler = (params: {
-  sessionKey: string;
-  message: InboundMessage;
-}) => void;
+type AgentProfileRuntime = { id: string; engine: AgentEngine };
+type SystemSessionUpdatedHandler = (params: { sessionKey: string; message: InboundMessage }) => void;
 
 type ResolvedAgentProfile = {
   id: string;
@@ -104,6 +98,7 @@ export class GatewayAgentRuntimePool {
   private running = false;
   private defaultAgentId = "main";
   private onSystemSessionUpdated: SystemSessionUpdatedHandler | null = null;
+  private readonly nativeManagedAssetSupport = NativeManagedAssetSupport.createDefault();
 
   constructor(
     private options: {
@@ -489,7 +484,10 @@ export class GatewayAgentRuntimePool {
         config: context.config,
         extensionRegistry: context.extensionRegistry,
         resolveMessageToolHints: context.resolveMessageToolHints,
-        agentId: context.agentId
+        agentId: context.agentId,
+        prepareInboundAttachments: context.prepareInboundAttachments,
+        ...(context.buildUserContent ? { buildUserContent: context.buildUserContent } : {}),
+        ...(context.additionalTools ? { additionalTools: context.additionalTools } : {}),
       });
   }
 
@@ -527,7 +525,8 @@ export class GatewayAgentRuntimePool {
       gatewayController: this.options.gatewayController,
       config,
       extensionRegistry: this.options.extensionRegistry,
-      resolveMessageToolHints: this.options.resolveMessageToolHints
+      resolveMessageToolHints: this.options.resolveMessageToolHints,
+      ...this.nativeManagedAssetSupport.toRuntimeSupport(),
     };
     try {
       return factory(context);

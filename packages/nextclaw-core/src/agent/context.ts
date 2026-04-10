@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { extname } from "node:path";
 import { MemoryStore } from "./memory/memory-store.js";
 import { resolveNextclawSelfManageGuidePaths } from "./self-manage/guide-path.js";
 import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "../runtime-context/bootstrap-context.js";
@@ -19,12 +17,18 @@ import {
   SessionProjectContextResolver,
   type SessionProjectContext,
 } from "../session/session-project-context.js";
+import {
+  DefaultUserContentBuilder,
+  type ContextUserContent,
+  type ContextUserContentBuilder,
+} from "./content/user-content.js";
 
 export type Message = Record<string, unknown>;
 type ContextConfig = Config["agents"]["context"];
 type ContextBuilderOptions = {
   hostWorkspace?: string;
   sessionProjectRoot?: string | null;
+  buildUserContent?: ContextUserContentBuilder;
 };
 
 const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
@@ -56,6 +60,8 @@ export class ContextBuilder {
   private contextConfig: ContextConfig;
   private readonly projectContext: SessionProjectContext;
   private readonly projectContextResolver = new SessionProjectContextResolver();
+  private readonly customUserContentBuilder?: ContextUserContentBuilder;
+  private readonly defaultUserContentBuilder = new DefaultUserContentBuilder();
 
   constructor(
     private workspace: string,
@@ -76,6 +82,7 @@ export class ContextBuilder {
       projectRoot: this.projectContext.projectRoot,
     });
     this.contextConfig = mergeContextConfig(contextConfig);
+    this.customUserContentBuilder = options.buildUserContent;
   }
 
   setContextConfig = (contextConfig?: ContextConfig): void => {
@@ -161,7 +168,7 @@ export class ContextBuilder {
     messages.push({ role: "system", content: systemPrompt });
     messages.push(...params.history);
 
-    const userContent = this.buildUserContent(params.currentMessage, params.attachments ?? []);
+    const userContent = this.resolveUserContent(params.currentMessage, params.attachments ?? []);
     messages.push({ role: "user", content: userContent });
 
     return messages;
@@ -355,45 +362,13 @@ export class ContextBuilder {
     return `${head}${suffix}`;
   };
 
-  private buildUserContent = (text: string, attachments: InboundAttachment[]): string | Message[] => {
-    if (!attachments.length) {
-      return text;
+  private resolveUserContent = (text: string, attachments: InboundAttachment[]): ContextUserContent => {
+    if (this.customUserContentBuilder) {
+      return this.customUserContentBuilder({
+        text,
+        attachments,
+      });
     }
-    const images: Message[] = [];
-    for (const attachment of attachments) {
-      const mime = attachment.mimeType ?? guessImageMime(attachment.path ?? attachment.url ?? "");
-      if (!mime || !mime.startsWith("image/")) {
-        continue;
-      }
-
-      if (attachment.path) {
-        try {
-          const b64 = readFileSync(attachment.path).toString("base64");
-          images.push({ type: "image_url", image_url: { url: `data:${mime};base64,${b64}` } });
-          continue;
-        } catch {
-          // fall through to URL fallback
-        }
-      }
-
-      if (attachment.url) {
-        images.push({ type: "image_url", image_url: { url: attachment.url } });
-      }
-    }
-    if (!images.length) {
-      return text;
-    }
-    return [...images, { type: "text", text }];
+    return this.defaultUserContentBuilder.build({ text, attachments });
   };
-}
-
-function guessImageMime(pathOrUrl: string): string | null {
-  const ext = extname(pathOrUrl).toLowerCase();
-  if (ext === ".png") return "image/png";
-  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
-  if (ext === ".gif") return "image/gif";
-  if (ext === ".webp") return "image/webp";
-  if (ext === ".bmp") return "image/bmp";
-  if (ext === ".tif" || ext === ".tiff") return "image/tiff";
-  return null;
 }

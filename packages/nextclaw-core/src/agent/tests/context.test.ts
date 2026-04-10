@@ -108,4 +108,26 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("agents list|new|update|remove --json");
     expect(prompt).toContain("avoid text/initial-based avatar styles");
   });
+
+  it("allows callers to override how attachments become user content", () => {
+    const workspace = createWorkspace();
+    const builder = new ContextBuilder(workspace, undefined, {
+      buildUserContent: ({ text, attachments }) => [
+        { type: "text", text: `override:${text}` },
+        { type: "text", text: `attachments:${attachments.length}` },
+      ],
+    });
+
+    const messages = builder.buildMessages({
+      history: [],
+      currentMessage: "hello",
+      attachments: [{ name: "notes.md", mimeType: "text/markdown" }],
+    });
+
+    expect(messages[1]?.role).toBe("user");
+    expect(messages[1]?.content).toEqual([
+      { type: "text", text: "override:hello" },
+      { type: "text", text: "attachments:1" },
+    ]);
+  });
 });

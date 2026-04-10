@@ -5,6 +5,7 @@ export type InboundAttachment = {
   name?: string;
   path?: string;
   url?: string;
+  assetUri?: string;
   mimeType?: string;
   size?: number;
   source?: string;

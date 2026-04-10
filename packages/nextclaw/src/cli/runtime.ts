@@ -22,7 +22,8 @@ import {
 } from "./skills/marketplace-command-options.js";
 import { installMarketplaceSkill, publishMarketplaceSkill } from "./skills/marketplace.js";
 import { runSelfUpdate } from "./update/runner.js";
-import { clearServiceState, getPackageVersion, isProcessRunning, printAgentResponse, prompt, readServiceState } from "./utils.js";
+import { getPackageVersion, isProcessRunning, printAgentResponse, prompt } from "./utils.js";
+import { managedServiceStateStore } from "./runtime-state/managed-service-state.store.js";
 import {
   loadPluginRegistry,
   logPluginDiagnostics,
@@ -44,6 +45,7 @@ import { hasRunningNextclawManagedService } from "./commands/remote-support/remo
 import { describeUnmanagedHealthyTargetMessage } from "./commands/service-support/runtime/service-port-probe.js";
 import { ServiceCommands } from "./commands/service.js";
 import { WorkspaceManager } from "./workspace.js";
+import { NativeManagedAssetSupport } from "./commands/agent/native-managed-asset-support.js";
 import type {
   AgentCommandOptions,
   AgentsListCommandOptions,
@@ -138,7 +140,7 @@ export class CliRuntime {
     this.diagnosticsCommands = measureStartupSync("cli.runtime.diagnostics_commands", () => new DiagnosticsCommands({ logo: this.logo }));
 
     this.restartCoordinator = measureStartupSync("cli.runtime.restart_coordinator", () => new RestartCoordinator({
-      readServiceState,
+      readServiceState: managedServiceStateStore.read,
       isProcessRunning,
       currentPid: () => process.pid,
       restartBackgroundService: async (reason) =>
@@ -166,7 +168,7 @@ export class CliRuntime {
     }
 
     this.serviceRestartTask = (async () => {
-      const state = readServiceState();
+      const state = managedServiceStateStore.read();
       if (!state || !isProcessRunning(state.pid) || state.pid === process.pid) {
         return false;
       }
@@ -215,7 +217,7 @@ export class CliRuntime {
       return;
     }
 
-    const state = readServiceState();
+    const state = managedServiceStateStore.read();
     if (!state || state.pid !== process.pid) {
       return;
     }
@@ -232,7 +234,7 @@ export class CliRuntime {
       process.env.NEXTCLAW_SELF_RELAUNCH_CLI?.trim() ||
       fileURLToPath(new URL("./index.js", import.meta.url));
     const startArgs = [cliPath, "start", "--ui-port", String(uiPort)];
-    const serviceStatePath = resolve(getDataDir(), "run", "service.json");
+    const serviceStatePath = managedServiceStateStore.path;
     const helperScript = [
       'const { spawnSync } = require("node:child_process");',
       'const { readFileSync } = require("node:fs");',
@@ -472,13 +474,13 @@ export class CliRuntime {
     await this.writeRestartSentinelFromExecContext("cli.restart");
     const uiOverrides = resolveManagedServiceUiOverrides({ uiPort: opts.uiPort, forcedPublicHost: FORCED_PUBLIC_UI_HOST });
 
-    const state = readServiceState();
+      const state = managedServiceStateStore.read();
     if (state && isProcessRunning(state.pid)) {
       console.log(`Restarting ${APP_NAME}...`);
       await this.serviceCommands.stopService();
     } else {
       if (state) {
-        clearServiceState();
+        managedServiceStateStore.clear();
         console.log("Service state was stale and has been cleaned up.");
       }
 
@@ -549,10 +551,7 @@ export class CliRuntime {
       const provider =
         this.serviceCommands.createProvider(config) ??
         this.serviceCommands.createMissingProvider(config);
-      const providerManager = new ProviderManager({
-        defaultProvider: provider,
-        config,
-      });
+      const providerManager = new ProviderManager({ defaultProvider: provider, config });
       const agentLoop = new AgentLoop({
         bus,
         providerManager,
@@ -573,6 +572,7 @@ export class CliRuntime {
             cfg: resolveConfigSecrets(loadConfig(), { configPath }),
             accountId,
           }),
+        ...NativeManagedAssetSupport.createDefault().toRuntimeSupport(),
       });
 
       if (opts.message) {
@@ -687,7 +687,7 @@ export class CliRuntime {
       console.log(`Version updated: ${versionBefore} -> ${versionAfter}`);
     }
 
-    const state = readServiceState();
+    const state = managedServiceStateStore.read();
     if (state && isProcessRunning(state.pid)) {
       console.log(`Tip: restart ${APP_NAME} to apply the update.`);
     }

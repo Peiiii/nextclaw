@@ -12,6 +12,40 @@ import type {
 } from "./weixin-api.client.js";
 
 const WEIXIN_INBOUND_MEDIA_MAX_BYTES = 100 * 1024 * 1024;
+const FILE_EXTENSION_MIME_MAP: Record<string, string> = {
+  ".bmp": "image/bmp",
+  ".cjs": "text/javascript",
+  ".css": "text/css",
+  ".csv": "text/csv",
+  ".gif": "image/gif",
+  ".go": "text/plain",
+  ".html": "text/html",
+  ".java": "text/plain",
+  ".js": "text/javascript",
+  ".json": "application/json",
+  ".jsx": "text/plain",
+  ".md": "text/markdown",
+  ".markdown": "text/markdown",
+  ".mjs": "text/javascript",
+  ".pdf": "application/pdf",
+  ".php": "text/plain",
+  ".png": "image/png",
+  ".py": "text/plain",
+  ".rb": "text/plain",
+  ".rs": "text/plain",
+  ".scss": "text/x-scss",
+  ".sh": "text/x-shellscript",
+  ".sql": "application/sql",
+  ".svg": "image/svg+xml",
+  ".swift": "text/plain",
+  ".ts": "text/plain",
+  ".tsx": "text/plain",
+  ".txt": "text/plain",
+  ".webp": "image/webp",
+  ".xml": "application/xml",
+  ".yaml": "application/yaml",
+  ".yml": "application/yaml",
+};
 
 function detectMimeFromBuffer(buffer: Buffer): string | undefined {
   if (
@@ -42,21 +76,11 @@ function detectMimeFromBuffer(buffer: Buffer): string | undefined {
 }
 
 function detectMimeFromFileName(fileName?: string): string | undefined {
-  switch (extname(fileName ?? "").toLowerCase()) {
-    case ".png":
-      return "image/png";
-    case ".jpg":
-    case ".jpeg":
-      return "image/jpeg";
-    case ".gif":
-      return "image/gif";
-    case ".webp":
-      return "image/webp";
-    case ".pdf":
-      return "application/pdf";
-    default:
-      return undefined;
+  const extension = extname(fileName ?? "").toLowerCase();
+  if (extension === ".jpg" || extension === ".jpeg") {
+    return "image/jpeg";
   }
+  return FILE_EXTENSION_MIME_MAP[extension];
 }
 
 function mimeToExtension(contentType?: string, fileName?: string): string {

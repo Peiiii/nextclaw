@@ -129,6 +129,38 @@ describe("WeixinChannel inbound attachments", () => {
     expect(message?.attachments[0]?.path).toMatch(/\.pdf$/);
   });
 
+  it("detects markdown files as text/markdown instead of generic binary", async () => {
+    global.fetch = vi.fn(async () =>
+      new Response(Buffer.from("# nextclaw\n"), {
+        status: 200,
+        headers: { "content-type": "application/octet-stream" },
+      }),
+    ) as typeof fetch;
+
+    const message = await dispatchInboundMessage({
+      from_user_id: "user-4@im.wechat",
+      context_token: "ctx-markdown",
+      item_list: [
+        {
+          type: 4,
+          file_item: {
+            file_name: "notes.md",
+            media: {
+              full_url: "https://cdn.example.com/notes.bin",
+            },
+          },
+        },
+      ],
+    });
+
+    expect(message).not.toBeNull();
+    expect(message?.attachments).toHaveLength(1);
+    expect(message?.attachments[0]?.status).toBe("ready");
+    expect(message?.attachments[0]?.name).toBe("notes.md");
+    expect(message?.attachments[0]?.mimeType).toBe("text/markdown");
+    expect(message?.attachments[0]?.path).toMatch(/\.md$/);
+  });
+
   it("keeps a remote-only attachment instead of dropping the message when download fails", async () => {
     global.fetch = vi.fn(async () =>
       new Response("denied", {
