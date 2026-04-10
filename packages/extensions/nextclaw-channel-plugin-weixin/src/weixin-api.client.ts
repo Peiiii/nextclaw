@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { DEFAULT_WEIXIN_BOT_TYPE, DEFAULT_WEIXIN_POLL_TIMEOUT_MS } from "./weixin-config.js";
 
 type WeixinBaseInfo = {
@@ -54,6 +54,19 @@ export type WeixinGetUpdatesResponse = {
   get_updates_buf?: string;
 };
 
+export type WeixinConfigResponse = {
+  ret?: number;
+  errcode?: number;
+  errmsg?: string;
+  typing_ticket?: string;
+};
+
+export type WeixinSendTypingResponse = {
+  ret?: number;
+  errcode?: number;
+  errmsg?: string;
+};
+
 const WEIXIN_CHANNEL_VERSION = "nextclaw-weixin/0.1.0";
 const WEIXIN_MESSAGE_TYPE_BOT = 2;
 const WEIXIN_MESSAGE_STATE_FINISH = 2;
@@ -71,6 +84,11 @@ function buildWeixinBaseInfo(): WeixinBaseInfo {
 
 function normalizeWeixinBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+}
+
+function buildWeixinUinHeader(): string {
+  const value = randomInt(0xffffffff);
+  return Buffer.from(String(value), "utf8").toString("base64");
 }
 
 async function withTimeout<T>(params: {
@@ -107,7 +125,9 @@ async function fetchWeixinJson<T>(params: {
         method: params.method ?? "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(params.token ? { Authorization: `Bearer ${params.token}`, AuthorizationType: "ilink_bot_token" } : {}),
+          AuthorizationType: "ilink_bot_token",
+          "X-WECHAT-UIN": buildWeixinUinHeader(),
+          ...(params.token ? { Authorization: `Bearer ${params.token}` } : {}),
           ...(params.headers ?? {}),
         },
         body: params.body === undefined ? undefined : JSON.stringify(params.body),
@@ -136,6 +156,48 @@ export async function fetchWeixinQrCode(params: {
     method: "GET",
     timeoutMs: 15_000,
     signal: params.signal,
+  });
+}
+
+export async function fetchWeixinConfig(params: {
+  baseUrl: string;
+  token: string;
+  ilinkUserId: string;
+  contextToken: string;
+  signal?: AbortSignal;
+}): Promise<WeixinConfigResponse> {
+  return await fetchWeixinJson<WeixinConfigResponse>({
+    url: new URL("ilink/bot/getconfig", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+    token: params.token,
+    timeoutMs: 15_000,
+    signal: params.signal,
+    body: {
+      ilink_user_id: params.ilinkUserId,
+      context_token: params.contextToken,
+      base_info: buildWeixinBaseInfo(),
+    },
+  });
+}
+
+export async function sendWeixinTyping(params: {
+  baseUrl: string;
+  token: string;
+  toUserId: string;
+  typingTicket: string;
+  status: 1 | 2;
+  signal?: AbortSignal;
+}): Promise<WeixinSendTypingResponse> {
+  return await fetchWeixinJson<WeixinSendTypingResponse>({
+    url: new URL("ilink/bot/sendtyping", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+    token: params.token,
+    timeoutMs: 15_000,
+    signal: params.signal,
+    body: {
+      ilink_user_id: params.toUserId,
+      typing_ticket: params.typingTicket,
+      status: params.status,
+      base_info: buildWeixinBaseInfo(),
+    },
   });
 }
 

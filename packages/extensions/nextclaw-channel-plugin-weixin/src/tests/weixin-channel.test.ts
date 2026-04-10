@@ -1,0 +1,183 @@
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createTypingStopControlMessage, type MessageBus } from "@nextclaw/core";
+import { saveWeixinAccount } from "../weixin-account.store.js";
+
+const sendWeixinTextMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-1" })));
+const extractWeixinMessageTextMock = vi.hoisted(() => vi.fn(() => "hello"));
+const typingControllerStartMock = vi.hoisted(() => vi.fn(async () => {}));
+const typingControllerStopMock = vi.hoisted(() => vi.fn(async () => {}));
+const typingControllerStopAllMock = vi.hoisted(() => vi.fn(async () => {}));
+
+vi.mock("../weixin-api.client.js", () => ({
+  sendWeixinTextMessage: sendWeixinTextMessageMock,
+  extractWeixinMessageText: extractWeixinMessageTextMock,
+  fetchWeixinConfig: vi.fn(async () => ({ ret: 0, errcode: 0, typing_ticket: "ticket-1" })),
+  fetchWeixinUpdates: vi.fn(async () => ({ ret: 0, msgs: [], get_updates_buf: "" })),
+  sendWeixinTyping: vi.fn(async () => ({ ret: 0, errcode: 0 })),
+}));
+
+vi.mock("../weixin-typing-controller.js", () => ({
+  WeixinTypingController: class {
+    start = typingControllerStartMock;
+    stop = typingControllerStopMock;
+    stopAll = typingControllerStopAllMock;
+  },
+}));
+
+const { WeixinChannel } = await import("../weixin-channel.js");
+
+const tempHomes: string[] = [];
+const originalNextclawHome = process.env.NEXTCLAW_HOME;
+
+function createHome(): string {
+  const home = mkdtempSync(join(tmpdir(), "nextclaw-weixin-channel-test-"));
+  mkdirSync(home, { recursive: true });
+  process.env.NEXTCLAW_HOME = home;
+  tempHomes.push(home);
+  return home;
+}
+
+afterEach(() => {
+  if (originalNextclawHome) {
+    process.env.NEXTCLAW_HOME = originalNextclawHome;
+  } else {
+    delete process.env.NEXTCLAW_HOME;
+  }
+  while (tempHomes.length > 0) {
+    const home = tempHomes.pop();
+    if (!home) {
+      continue;
+    }
+    rmSync(home, { recursive: true, force: true });
+  }
+  vi.clearAllMocks();
+});
+
+describe("WeixinChannel typing lifecycle", () => {
+  it("starts typing on inbound messages with context token", async () => {
+    createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
+    const published: unknown[] = [];
+    const bus = {
+      publishInbound: vi.fn(async (msg) => {
+        published.push(msg);
+      }),
+    } as unknown as MessageBus;
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      bus,
+    );
+
+    await (channel as unknown as { handleInboundWeixinMessage: (account: unknown, message: unknown) => Promise<void> })
+      .handleInboundWeixinMessage(
+        {
+          accountId: "bot-1@im.bot",
+          token: "bot-token",
+          enabled: true,
+          baseUrl: "https://ilinkai.weixin.qq.com",
+          pollTimeoutMs: 35_000,
+          allowFrom: [],
+        },
+        {
+          from_user_id: "user-1@im.wechat",
+          context_token: "ctx-1",
+          item_list: [{ text_item: { text: "hello" } }],
+        },
+      );
+
+    expect(typingControllerStartMock).toHaveBeenCalledWith({
+      accountId: "bot-1@im.bot",
+      userId: "user-1@im.wechat",
+      contextToken: "ctx-1",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      token: "bot-token",
+    });
+    expect(published).toHaveLength(1);
+  });
+
+  it("stops typing after successful send", async () => {
+    createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
+    const bus = {
+      publishInbound: vi.fn(async () => {}),
+    } as unknown as MessageBus;
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      bus,
+    );
+
+    await channel.send({
+      channel: "weixin",
+      chatId: "user-1@im.wechat",
+      content: "reply",
+      media: [],
+      metadata: {
+        accountId: "bot-1@im.bot",
+      },
+    });
+
+    expect(sendWeixinTextMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toUserId: "user-1@im.wechat",
+        text: "reply",
+      }),
+    );
+    expect(typingControllerStopMock).toHaveBeenCalledWith({
+      accountId: "bot-1@im.bot",
+      userId: "user-1@im.wechat",
+    });
+  });
+
+  it("stops typing when core publishes a typing-stop control message", async () => {
+    createHome();
+    const bus = {
+      publishInbound: vi.fn(async () => {}),
+    } as unknown as MessageBus;
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      bus,
+    );
+
+    const handled = await channel.handleControlMessage(
+      createTypingStopControlMessage({
+        channel: "weixin",
+        senderId: "user-1@im.wechat",
+        chatId: "user-1@im.wechat",
+        content: "hello",
+        timestamp: new Date(),
+        attachments: [],
+        metadata: {
+          accountId: "bot-1@im.bot",
+        },
+      }),
+    );
+
+    expect(handled).toBe(true);
+    expect(typingControllerStopMock).toHaveBeenCalledWith({
+      accountId: "bot-1@im.bot",
+      userId: "user-1@im.wechat",
+    });
+  });
+});

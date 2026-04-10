@@ -10,7 +10,7 @@ import { GatewayAgentRuntimePool } from "../../agent/agent-runtime-pool.js";
 import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
 import { resolveChannelConfigView } from "../../channel/channel-config-view.js";
 import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugins.js";
-import { createCronJobHandler } from "./service-cron-job-handler.js";
+import { createCronJobHandler, createHeartbeatJobHandler } from "./service-cron-job-handler.js";
 import { createManagedRemoteModuleForUi } from "../runtime/service-remote-runtime.js";
 import { measureStartupSync } from "../../../startup-trace.js";
 
@@ -112,15 +112,16 @@ function createGatewayRuntimePool(state: Pick<
 function createGatewayHeartbeat(state: Pick<
   GatewayStartupContext,
   "workspace" | "runtimePool"
->): InstanceType<typeof HeartbeatService> {
+>, params: {
+  getLiveUiNcpAgent?: () => UiNcpAgentHandle | null;
+}): InstanceType<typeof HeartbeatService> {
+  const handleHeartbeat = createHeartbeatJobHandler({
+    resolveNcpAgent: () => params.getLiveUiNcpAgent?.() ?? null,
+    resolveAgentId: () => state.runtimePool.primaryAgentId,
+  });
   return new HeartbeatService(
     state.workspace,
-    async (promptText) =>
-      state.runtimePool.processDirect({
-        content: promptText,
-        sessionKey: "heartbeat",
-        agentId: state.runtimePool.primaryAgentId,
-      }),
+    async (promptText) => await handleHeartbeat(promptText),
     30 * 60,
     true,
   );
@@ -290,7 +291,7 @@ export function createGatewayStartupContext(params: {
 
   state.runtimePool = createGatewayRuntimePool(state);
   state.cron.onJob = createGatewayCronJobHandler({ bus: state.bus, getLiveUiNcpAgent });
-  state.heartbeat = createGatewayHeartbeat(state);
+  state.heartbeat = createGatewayHeartbeat(state, { getLiveUiNcpAgent });
 
   return state;
 }

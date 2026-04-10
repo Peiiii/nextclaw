@@ -24,6 +24,7 @@
     "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --deps.never-bundle @nextclaw/core",
     "prepack": "pnpm run build",
     "lint": "eslint .",
+    "test": "vitest run",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../../scripts/ensure-pnpm-publish.mjs"
   },
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
   }
 }
