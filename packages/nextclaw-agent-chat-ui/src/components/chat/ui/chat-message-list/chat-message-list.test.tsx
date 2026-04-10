@@ -249,7 +249,7 @@ it("renders injected agent identity content for tool cards with agentId", () => 
   expect(screen.getByTestId("tool-agent-identity").textContent).toBe("planner-agent");
 });
 
-it("reveals long-running tool card output only after a short delay", () => {
+it("keeps long-running generic tool cards collapsed until the user asks to inspect them", () => {
   vi.useFakeTimers();
 
   try {
@@ -289,14 +289,9 @@ it("reveals long-running tool card output only after a short delay", () => {
     expect(screen.queryByText("streamed result body")).toBeNull();
 
     act(() => {
-      vi.advanceTimersByTime(199);
+      vi.advanceTimersByTime(250);
     });
     expect(screen.queryByText("streamed result body")).toBeNull();
-
-    act(() => {
-      vi.advanceTimersByTime(1);
-    });
-    expect(screen.getByText("streamed result body")).toBeTruthy();
   } finally {
     vi.useRealTimers();
   }
@@ -564,7 +559,7 @@ it("resets completed terminal tool cards to collapsed when the message list remo
   expect(screen.queryByText("short finished output")).toBeNull();
 });
 
-it("renders completed reasoning collapsed by default while keeping the original details layout", () => {
+it("renders completed reasoning as a collapsed thought block while keeping the original details layout", () => {
   render(
     <ChatMessageList
       messages={[createReasoningMessage()]}
@@ -574,7 +569,7 @@ it("renders completed reasoning collapsed by default while keeping the original 
     />,
   );
 
-  expect(screen.getByText("Reasoning")).toBeTruthy();
+  expect(screen.getByText("思考")).toBeTruthy();
   const details = document.querySelector("details");
   expect(details?.hasAttribute("open")).toBe(false);
   expect(screen.getByText(/This is the full reasoning content\./)).toBeTruthy();
@@ -652,7 +647,7 @@ it("keeps reasoning expanded after completion when the user manually re-opens it
   );
 
   const details = () => container.querySelector("details");
-  const summary = screen.getByText("Reasoning");
+  const summary = screen.getByText("思考");
 
   expect(details()?.hasAttribute("open")).toBe(true);
 
@@ -672,6 +667,88 @@ it("keeps reasoning expanded after completion when the user manually re-opens it
   );
 
   expect(details()?.hasAttribute("open")).toBe(true);
+});
+
+it("keeps streaming thought content pinned to the bottom until the user scrolls away", () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("requestAnimationFrame", (callback: (time: number) => void) => {
+    callback(0);
+    return 1;
+  });
+  vi.stubGlobal("cancelAnimationFrame", () => {});
+
+  const renderReasoning = (text: string) => (
+    <ChatMessageList
+      messages={[
+        {
+          ...createReasoningMessage("streaming"),
+          parts: [
+            {
+              type: "reasoning" as const,
+              label: "Reasoning",
+              text,
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />
+  );
+
+  try {
+    const view = render(renderReasoning("line 1\nline 2\nline 3"));
+    const scrollArea = view.container.querySelector(
+      '[data-reasoning-scroll="true"]',
+    ) as HTMLDivElement | null;
+
+    expect(screen.getByText("思考")).toBeTruthy();
+    expect(scrollArea).toBeTruthy();
+    expect(scrollArea?.className).toContain("max-h-56");
+    if (!scrollArea) {
+      return;
+    }
+
+    let scrollHeight = 200;
+    Object.defineProperty(scrollArea, "scrollHeight", {
+      configurable: true,
+      get: () => scrollHeight,
+    });
+    Object.defineProperty(scrollArea, "clientHeight", {
+      configurable: true,
+      get: () => 100,
+    });
+    Object.defineProperty(scrollArea, "scrollTop", {
+      configurable: true,
+      writable: true,
+      value: 0,
+    });
+
+    scrollArea.scrollTop = 200;
+    fireEvent.scroll(scrollArea);
+
+    scrollHeight = 280;
+    act(() => {
+      view.rerender(renderReasoning("line 1\nline 2\nline 3\nline 4\nline 5"));
+    });
+
+    expect(scrollArea.scrollTop).toBe(280);
+
+    fireEvent.scroll(scrollArea);
+    scrollArea.scrollTop = 120;
+    fireEvent.scroll(scrollArea);
+
+    scrollHeight = 340;
+    act(() => {
+      view.rerender(renderReasoning("line 1\nline 2\nline 3\nline 4\nline 5\nline 6"));
+    });
+
+    expect(scrollArea.scrollTop).toBe(120);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  }
 });
 
 it("does not render the typing placeholder after assistant output has started but is still pending", () => {
