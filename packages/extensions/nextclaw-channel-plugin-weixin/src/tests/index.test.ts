@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
-import { saveWeixinAccount } from "./weixin-account.store.js";
-import { buildWeixinMessageToolHints } from "./index.js";
+import { saveWeixinAccount } from "../weixin-account.store.js";
+import { buildWeixinMessageToolHints } from "../index.js";
 
 const tempHomes: string[] = [];
 const originalNextclawHome = process.env.NEXTCLAW_HOME;

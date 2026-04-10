@@ -18,6 +18,10 @@ type CronJobLike = {
   };
 };
 
+type BackgroundNcpAgent = {
+  runApi: NcpAgentRunApi;
+};
+
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -83,19 +87,23 @@ function extractMessageText(message: NcpMessage): string {
   return parts.join("\n\n");
 }
 
-async function runCronJobOverNcp(params: {
-  agent: { runApi: NcpAgentRunApi };
-  job: CronJobLike;
+async function runJobOverNcp(params: {
+  agent: BackgroundNcpAgent;
   sessionId: string;
+  message: NcpMessage;
   metadata: Record<string, unknown>;
+  missingCompletedMessageError: string;
+  runErrorMessage: string;
 }): Promise<string> {
-  const { agent, job, sessionId, metadata } = params;
-  let completedMessage: NcpMessage | undefined;
-  const message = buildCronUserMessage({
+  const {
+    agent,
     sessionId,
-    content: job.payload.message,
+    message,
     metadata,
-  });
+    missingCompletedMessageError,
+    runErrorMessage,
+  } = params;
+  let completedMessage: NcpMessage | undefined;
 
   for await (const event of agent.runApi.send({
     sessionId,
@@ -106,7 +114,7 @@ async function runCronJobOverNcp(params: {
       throw new Error(event.payload.error.message);
     }
     if (event.type === NcpEventType.RunError) {
-      throw new Error(event.payload.error ?? "cron job failed");
+      throw new Error(event.payload.error ?? runErrorMessage);
     }
     if (event.type === NcpEventType.MessageCompleted) {
       completedMessage = event.payload.message;
@@ -114,13 +122,13 @@ async function runCronJobOverNcp(params: {
   }
 
   if (!completedMessage) {
-    throw new Error("cron job completed without a final assistant message");
+    throw new Error(missingCompletedMessageError);
   }
   return extractMessageText(completedMessage);
 }
 
 export function createCronJobHandler(params: {
-  resolveNcpAgent: () => { runApi: NcpAgentRunApi } | null;
+  resolveNcpAgent: () => BackgroundNcpAgent | null;
   bus: MessageBus;
 }): (job: CronJobLike) => Promise<string> {
   return async (job: CronJobLike): Promise<string> => {
@@ -136,11 +144,17 @@ export function createCronJobHandler(params: {
       agentId,
       accountId,
     });
-    const response = await runCronJobOverNcp({
+    const response = await runJobOverNcp({
       agent: ncpAgent,
-      job,
       sessionId,
+      message: buildCronUserMessage({
+        sessionId,
+        content: job.payload.message,
+        metadata,
+      }),
       metadata,
+      missingCompletedMessageError: "cron job completed without a final assistant message",
+      runErrorMessage: "cron job failed",
     });
 
     if (job.payload.deliver && job.payload.to) {
@@ -154,5 +168,63 @@ export function createCronJobHandler(params: {
     }
 
     return response;
+  };
+}
+
+function buildHeartbeatMetadata(params: {
+  agentId: string;
+}): Record<string, unknown> {
+  return {
+    agentId: params.agentId,
+    agent_id: params.agentId,
+    channel: "cli",
+    chatId: "direct",
+    chat_id: "direct",
+    label: "heartbeat",
+    session_origin: "heartbeat",
+  };
+}
+
+function buildHeartbeatUserMessage(params: {
+  content: string;
+  metadata: Record<string, unknown>;
+}): NcpMessage {
+  const timestamp = new Date().toISOString();
+  return {
+    id: `heartbeat:user:${timestamp}`,
+    sessionId: "heartbeat",
+    role: "user",
+    status: "final",
+    timestamp,
+    parts: [{ type: "text", text: params.content }],
+    metadata: structuredClone(params.metadata),
+  };
+}
+
+export function createHeartbeatJobHandler(params: {
+  resolveNcpAgent: () => BackgroundNcpAgent | null;
+  resolveAgentId: () => string;
+}): (prompt: string) => Promise<string> {
+  return async (prompt: string): Promise<string> => {
+    const ncpAgent = params.resolveNcpAgent();
+    if (!ncpAgent) {
+      throw new Error("NCP agent is not ready for heartbeat execution.");
+    }
+
+    const metadata = buildHeartbeatMetadata({
+      agentId: params.resolveAgentId(),
+    });
+
+    return await runJobOverNcp({
+      agent: ncpAgent,
+      sessionId: "heartbeat",
+      message: buildHeartbeatUserMessage({
+        content: prompt,
+        metadata,
+      }),
+      metadata,
+      missingCompletedMessageError: "heartbeat execution completed without a final assistant message",
+      runErrorMessage: "heartbeat execution failed",
+    });
   };
 }

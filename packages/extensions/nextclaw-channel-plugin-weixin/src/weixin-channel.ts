@@ -1,13 +1,16 @@
 import type { MessageBus } from "@nextclaw/core";
-import { BaseChannel, type OutboundMessage } from "@nextclaw/core";
+import { BaseChannel, isTypingStopControlMessage, type OutboundMessage } from "@nextclaw/core";
 import { loadWeixinAccount, loadWeixinCursor, saveWeixinCursor, listStoredWeixinAccountIds } from "./weixin-account.store.js";
 import {
   extractWeixinMessageText,
+  fetchWeixinConfig,
   fetchWeixinUpdates,
+  sendWeixinTyping,
   sendWeixinTextMessage,
   type WeixinMessage,
 } from "./weixin-api.client.js";
 import { getWeixinContextToken, setWeixinContextToken } from "./weixin-context-token.store.js";
+import { WeixinTypingController } from "./weixin-typing-controller.js";
 import {
   DEFAULT_WEIXIN_BASE_URL,
   DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
@@ -62,19 +65,43 @@ type ResolvedWeixinAccountRuntime = {
 export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   private readonly pollTasks: Promise<void>[] = [];
   private readonly accountControllers = new Map<string, AbortController>();
+  private readonly typingController: WeixinTypingController;
 
   constructor(
     private readonly pluginConfig: WeixinPluginConfig,
     bus: MessageBus,
   ) {
     super(pluginConfig as Record<string, unknown>, bus);
+    this.typingController = new WeixinTypingController({
+      fetchTicket: async (runtime) => {
+        const response = await fetchWeixinConfig({
+          baseUrl: runtime.baseUrl,
+          token: runtime.token,
+          ilinkUserId: runtime.userId,
+          contextToken: runtime.contextToken,
+        });
+        if (response.ret !== 0 || (response.errcode ?? 0) !== 0) {
+          return undefined;
+        }
+        return response.typing_ticket?.trim();
+      },
+      sendTyping: async (params) => {
+        await sendWeixinTyping({
+          baseUrl: params.baseUrl,
+          token: params.token,
+          toUserId: params.userId,
+          typingTicket: params.ticket,
+          status: params.status,
+        });
+      },
+    });
   }
 
   get name(): string {
     return "weixin";
   }
 
-  async start(): Promise<void> {
+  start = async (): Promise<void> => {
     if (this.running) {
       return;
     }
@@ -88,18 +115,19 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       this.accountControllers.set(accountId, controller);
       this.pollTasks.push(this.runAccountPollingLoop(accountId, controller.signal));
     }
-  }
+  };
 
-  async stop(): Promise<void> {
+  stop = async (): Promise<void> => {
     this.running = false;
     for (const controller of this.accountControllers.values()) {
       controller.abort();
     }
     this.accountControllers.clear();
     await Promise.allSettled(this.pollTasks.splice(0, this.pollTasks.length));
-  }
+    await this.typingController.stopAll();
+  };
 
-  async send(msg: OutboundMessage): Promise<void> {
+  send = async (msg: OutboundMessage): Promise<void> => {
     const accountId = resolveWeixinAccountSelection(
       this.pluginConfig,
       Array.from(new Set([...resolveConfiguredWeixinAccountIds(this.pluginConfig), ...listStoredWeixinAccountIds()])),
@@ -114,16 +142,38 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       throw new Error(`weixin send failed: account "${accountId}" is not logged in`);
     }
 
-    await sendWeixinTextMessage({
-      baseUrl: account.baseUrl,
-      token: account.token,
-      toUserId: msg.chatId,
-      text: msg.content,
-      contextToken: getWeixinContextToken(account.accountId, msg.chatId),
+    try {
+      await sendWeixinTextMessage({
+        baseUrl: account.baseUrl,
+        token: account.token,
+        toUserId: msg.chatId,
+        text: msg.content,
+        contextToken: getWeixinContextToken(account.accountId, msg.chatId),
+      });
+    } finally {
+      await this.typingController.stop({
+        accountId: account.accountId,
+        userId: msg.chatId,
+      });
+    }
+  };
+
+  override async handleControlMessage(msg: OutboundMessage): Promise<boolean> {
+    if (!isTypingStopControlMessage(msg)) {
+      return false;
+    }
+    const accountId = this.resolveAccountIdFromMetadata(msg.metadata);
+    if (!accountId) {
+      return true;
+    }
+    await this.typingController.stop({
+      accountId,
+      userId: msg.chatId,
     });
+    return true;
   }
 
-  private resolveAccountRuntime(accountId: string): ResolvedWeixinAccountRuntime | null {
+  private resolveAccountRuntime = (accountId: string): ResolvedWeixinAccountRuntime | null => {
     const stored = loadWeixinAccount(accountId);
     if (!stored?.token) {
       return null;
@@ -139,9 +189,9 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
         new Set([...readStringArray(this.pluginConfig.allowFrom), ...readStringArray(accountConfig.allowFrom)]),
       ),
     };
-  }
+  };
 
-  private async runAccountPollingLoop(accountId: string, signal: AbortSignal): Promise<void> {
+  private runAccountPollingLoop = async (accountId: string, signal: AbortSignal): Promise<void> => {
     while (this.running && !signal.aborted) {
       try {
         const account = this.resolveAccountRuntime(accountId);
@@ -173,12 +223,12 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
         }
       }
     }
-  }
+  };
 
-  private async handleInboundWeixinMessage(
+  private handleInboundWeixinMessage = async (
     account: ResolvedWeixinAccountRuntime,
     message: WeixinMessage,
-  ): Promise<void> {
+  ): Promise<void> => {
     const senderId = message.from_user_id?.trim();
     if (!senderId || senderId === account.accountId) {
       return;
@@ -195,6 +245,13 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     const contextToken = message.context_token?.trim();
     if (contextToken) {
       setWeixinContextToken(account.accountId, senderId, contextToken);
+      void this.typingController.start({
+        accountId: account.accountId,
+        userId: senderId,
+        contextToken,
+        baseUrl: account.baseUrl,
+        token: account.token,
+      });
     }
 
     await this.handleMessage({
@@ -208,5 +265,19 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
         context_token: contextToken,
       },
     });
-  }
+  };
+
+  private resolveAccountIdFromMetadata = (metadata: Record<string, unknown>): string | undefined => {
+    const requestedAccountId =
+      typeof metadata.accountId === "string" && metadata.accountId.trim().length > 0
+        ? metadata.accountId
+        : typeof metadata.account_id === "string" && metadata.account_id.trim().length > 0
+          ? metadata.account_id
+          : null;
+    return resolveWeixinAccountSelection(
+      this.pluginConfig,
+      Array.from(new Set([...resolveConfiguredWeixinAccountIds(this.pluginConfig), ...listStoredWeixinAccountIds()])),
+      requestedAccountId,
+    );
+  };
 }

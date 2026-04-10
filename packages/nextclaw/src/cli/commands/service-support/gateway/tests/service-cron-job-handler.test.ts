@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
-import { createCronJobHandler } from "../service-cron-job-handler.js";
+import {
+  createCronJobHandler,
+  createHeartbeatJobHandler,
+} from "../service-cron-job-handler.js";
 
 function createAssistantMessage(text: string) {
   return {
@@ -131,5 +134,80 @@ describe("createCronJobHandler", () => {
         },
       }),
     ).rejects.toThrow("cron job completed without a final assistant message");
+  });
+});
+
+describe("createHeartbeatJobHandler", () => {
+  it("runs heartbeat through the NCP run api with the legacy cli/direct session semantics preserved", async () => {
+    const send = vi.fn((_envelope: unknown) =>
+      (async function* () {
+        yield {
+          type: NcpEventType.MessageCompleted,
+          payload: {
+            message: createAssistantMessage("HEARTBEAT_OK"),
+          },
+        } as never;
+      })());
+    const handler = createHeartbeatJobHandler({
+      resolveNcpAgent: () =>
+        ({
+          runApi: { send },
+        }) as never,
+      resolveAgentId: () => "engineer",
+    });
+
+    const response = await handler("Read HEARTBEAT.md");
+
+    expect(response).toBe("HEARTBEAT_OK");
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0]?.[0]).toMatchObject({
+      sessionId: "heartbeat",
+      metadata: expect.objectContaining({
+        agentId: "engineer",
+        agent_id: "engineer",
+        channel: "cli",
+        chatId: "direct",
+        chat_id: "direct",
+        label: "heartbeat",
+        session_origin: "heartbeat",
+      }),
+      message: expect.objectContaining({
+        sessionId: "heartbeat",
+        role: "user",
+        parts: [{ type: "text", text: "Read HEARTBEAT.md" }],
+      }),
+    });
+  });
+
+  it("fails fast when the NCP agent is not ready instead of falling back to legacy execution", async () => {
+    const handler = createHeartbeatJobHandler({
+      resolveNcpAgent: () => null,
+      resolveAgentId: () => "main",
+    });
+
+    await expect(handler("ping")).rejects.toThrow(
+      "NCP agent is not ready for heartbeat execution.",
+    );
+  });
+
+  it("fails fast when the NCP stream finishes without a completed assistant message", async () => {
+    const send = vi.fn((_envelope: unknown) =>
+      (async function* () {
+        yield {
+          type: NcpEventType.RunStarted,
+          payload: { sessionId: "heartbeat" },
+        } as never;
+      })());
+    const handler = createHeartbeatJobHandler({
+      resolveNcpAgent: () =>
+        ({
+          runApi: { send },
+        }) as never,
+      resolveAgentId: () => "main",
+    });
+
+    await expect(handler("ping")).rejects.toThrow(
+      "heartbeat execution completed without a final assistant message",
+    );
   });
 });
