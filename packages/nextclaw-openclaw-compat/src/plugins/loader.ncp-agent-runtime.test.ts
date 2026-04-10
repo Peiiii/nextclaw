@@ -1,5 +1,5 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
@@ -8,10 +8,13 @@ import { buildPluginLoaderAliases, loadOpenClawPlugins } from "./loader.js";
 const tempDirs: string[] = [];
 const PLUGIN_LOAD_TIMEOUT_MS = 60_000;
 
-function createTempPluginDir(): string {
+function createTempPluginDir(options: { withDevelopmentSource?: boolean } = {}): string {
   const rootDir = mkdtempSync(join(tmpdir(), "nextclaw-plugin-ncp-runtime-"));
   tempDirs.push(rootDir);
   mkdirSync(join(rootDir, "dist"), { recursive: true });
+  if (options.withDevelopmentSource) {
+    mkdirSync(join(rootDir, "src"), { recursive: true });
+  }
   writeFileSync(
     join(rootDir, "package.json"),
     JSON.stringify(
@@ -21,6 +24,13 @@ function createTempPluginDir(): string {
         type: "module",
         openclaw: {
           extensions: ["dist/index.js"],
+          ...(options.withDevelopmentSource
+            ? {
+                development: {
+                  extensions: ["src/index.ts"],
+                },
+              }
+            : {}),
         },
       },
       null,
@@ -47,12 +57,39 @@ function createTempPluginDir(): string {
     ),
   );
   writeRuntimePluginModule(rootDir, "Test Runtime");
+  if (options.withDevelopmentSource) {
+    writeRuntimePluginDevelopmentModule(rootDir, "Test Runtime Dev");
+  }
   return rootDir;
 }
 
 function writeRuntimePluginModule(rootDir: string, label: string): void {
   writeFileSync(
     join(rootDir, "dist", "index.js"),
+    [
+      "const plugin = {",
+      "  id: 'test-ncp-runtime-plugin',",
+      "  name: 'Test NCP Runtime Plugin',",
+      "  description: 'Registers a test runtime.',",
+      "  configSchema: { type: 'object', additionalProperties: true, properties: {} },",
+      "  register(api) {",
+      "    api.registerNcpAgentRuntime({",
+      "      kind: 'test-runtime',",
+      `      label: '${label}',`,
+      "      createRuntime() {",
+      "        return { async *run() {} };",
+      "      }",
+      "    });",
+      "  }",
+      "};",
+      "export default plugin;",
+    ].join("\n"),
+  );
+}
+
+function writeRuntimePluginDevelopmentModule(rootDir: string, label: string): void {
+  writeFileSync(
+    join(rootDir, "src", "index.ts"),
     [
       "const plugin = {",
       "  id: 'test-ncp-runtime-plugin',",
@@ -306,6 +343,16 @@ afterEach(() => {
 });
 
 describe("loadOpenClawPlugins ncp agent runtime registration", () => {
+  it("prefers workspace source aliases for symlinked first-party dependencies during local plugin development", () => {
+    const aliases = buildPluginLoaderAliases(
+      resolve(process.cwd(), "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk"),
+    );
+
+    expect(aliases["@nextclaw/nextclaw-ncp-runtime-codex-sdk"]).toContain(
+      "packages/extensions/nextclaw-ncp-runtime-codex-sdk/src/index.ts",
+    );
+  });
+
   it("prefers runnable plugin-local @nextclaw packages over host aliases", () => {
     const pluginDir = createLocalDependencyPluginDir();
     const config = ConfigSchema.parse({
@@ -461,6 +508,131 @@ describe("loadOpenClawPlugins ncp agent runtime registration", () => {
     expect(reloadedRegistry.ncpAgentRuntimes[0]?.label).toBe("Test Runtime v2");
   }, PLUGIN_LOAD_TIMEOUT_MS);
 
+});
+
+describe("loadOpenClawPlugins development source selection", () => {
+  it("loads a plugin development entry when plugins.entries.*.source=development", () => {
+    const pluginDir = createTempPluginDir({ withDevelopmentSource: true });
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-ncp-runtime-plugin"],
+        load: {
+          paths: [pluginDir],
+        },
+        entries: {
+          "test-ncp-runtime-plugin": {
+            enabled: true,
+            source: "development",
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.ncpAgentRuntimes[0]?.label).toBe("Test Runtime Dev");
+    expect(registry.plugins.find((entry) => entry.id === "test-ncp-runtime-plugin")?.source).toContain("src/index.ts");
+  }, PLUGIN_LOAD_TIMEOUT_MS);
+
+  it("loads the real codex runtime plugin from its declared development source entry", () => {
+    const pluginDir = resolve(process.cwd(), "../extensions/nextclaw-ncp-runtime-plugin-codex-sdk");
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace: join(tmpdir(), "nextclaw-codex-runtime-plugin-dev-source"),
+          model: "openai/gpt-5",
+        },
+      },
+      plugins: {
+        allow: ["nextclaw-ncp-runtime-plugin-codex-sdk"],
+        load: {
+          paths: [pluginDir],
+        },
+        entries: {
+          "nextclaw-ncp-runtime-plugin-codex-sdk": {
+            enabled: true,
+            source: "development",
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      includeBundled: false,
+      kinds: ["agent-runtime"],
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.plugins.find((entry) => entry.id === "nextclaw-ncp-runtime-plugin-codex-sdk")?.source).toContain(
+      "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/index.ts",
+    );
+    expect(
+      registry.ncpAgentRuntimes.find((entry) => entry.pluginId === "nextclaw-ncp-runtime-plugin-codex-sdk")?.kind,
+    ).toBe("codex");
+  }, PLUGIN_LOAD_TIMEOUT_MS);
+
+  it("keeps production entry by default even when development entry exists", () => {
+    const pluginDir = createTempPluginDir({ withDevelopmentSource: true });
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-ncp-runtime-plugin"],
+        load: {
+          paths: [pluginDir],
+        },
+        entries: {
+          "test-ncp-runtime-plugin": {
+            enabled: true,
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.ncpAgentRuntimes[0]?.label).toBe("Test Runtime");
+    expect(registry.plugins.find((entry) => entry.id === "test-ncp-runtime-plugin")?.source).toContain("dist/index.js");
+  }, PLUGIN_LOAD_TIMEOUT_MS);
+
+  it("fails fast when development source is requested but the plugin package does not declare one", () => {
+    const pluginDir = createTempPluginDir();
+    const config = ConfigSchema.parse({
+      plugins: {
+        allow: ["test-ncp-runtime-plugin"],
+        load: {
+          paths: [pluginDir],
+        },
+        entries: {
+          "test-ncp-runtime-plugin": {
+            enabled: true,
+            source: "development",
+          },
+        },
+      },
+    });
+
+    const registry = loadOpenClawPlugins({
+      config,
+      reservedNcpAgentRuntimeKinds: ["native"],
+    });
+
+    expect(registry.ncpAgentRuntimes).toHaveLength(0);
+    expect(registry.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "test-ncp-runtime-plugin",
+          level: "error",
+          message: expect.stringContaining("openclaw.development.extensions"),
+        }),
+      ]),
+    );
+  }, PLUGIN_LOAD_TIMEOUT_MS);
 });
 
 describe("loadOpenClawPlugins runtime-only loading", () => {

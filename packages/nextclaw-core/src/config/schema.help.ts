@@ -98,6 +98,7 @@ export const FIELD_HELP: Record<string, string> = {
   "plugins.load.paths": "Additional plugin files or directories to load.",
   "plugins.entries": "Per-plugin settings keyed by plugin id.",
   "plugins.entries.*.enabled": "Override plugin enable/disable for this plugin.",
+  "plugins.entries.*.source": "Select whether this plugin loads its production build or declared development source entry.",
   "plugins.entries.*.config": "Plugin-defined config payload validated by plugin schema.",
   "plugins.installs": "CLI-managed install metadata.",
   "plugins.installs.*.source": "Install source (npm, archive, or path).",

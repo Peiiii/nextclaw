@@ -6,6 +6,7 @@ import type { Config } from "@nextclaw/core";
 type WorkspacePluginPackage = {
   packageName: string;
   dir: string;
+  supportsDevelopmentSource: boolean;
 };
 
 const readJsonFile = (filePath: string): Record<string, unknown> | null => {
@@ -37,7 +38,7 @@ export const resolveDevFirstPartyPluginDir = (
     return configured;
   }
 
-  const inferred = path.resolve(moduleDir, "../../../../extensions");
+  const inferred = path.resolve(moduleDir, "../../../../../extensions");
   return fs.existsSync(inferred) ? inferred : undefined;
 };
 
@@ -47,7 +48,28 @@ const hasOpenClawExtensions = (pkg: Record<string, unknown>): boolean => {
     return false;
   }
   const extensions = (openclaw as Record<string, unknown>).extensions;
-  return Array.isArray(extensions) && extensions.some((entry) => typeof entry === "string" && entry.trim().length > 0);
+  return (
+    Array.isArray(extensions) &&
+    extensions.some((entry) => typeof entry === "string" && entry.trim().length > 0)
+  );
+};
+
+const hasOpenClawDevelopmentExtensions = (
+  pkg: Record<string, unknown>,
+): boolean => {
+  const openclaw = pkg.openclaw;
+  if (!openclaw || typeof openclaw !== "object" || Array.isArray(openclaw)) {
+    return false;
+  }
+  const development = (openclaw as Record<string, unknown>).development;
+  if (!development || typeof development !== "object" || Array.isArray(development)) {
+    return false;
+  }
+  const extensions = (development as Record<string, unknown>).extensions;
+  return (
+    Array.isArray(extensions) &&
+    extensions.some((entry) => typeof entry === "string" && entry.trim().length > 0)
+  );
 };
 
 const normalizePackageSpec = (spec: string): string | undefined => {
@@ -67,7 +89,9 @@ const normalizePackageSpec = (spec: string): string | undefined => {
   return versionIndex < 0 ? trimmed : trimmed.slice(0, versionIndex);
 };
 
-const readWorkspacePluginPackages = (workspaceExtensionsDir: string): WorkspacePluginPackage[] => {
+const readWorkspacePluginPackages = (
+  workspaceExtensionsDir: string,
+): WorkspacePluginPackage[] => {
   if (!workspaceExtensionsDir.trim() || !fs.existsSync(workspaceExtensionsDir)) {
     return [];
   }
@@ -90,9 +114,59 @@ const readWorkspacePluginPackages = (workspaceExtensionsDir: string): WorkspaceP
     packages.push({
       packageName,
       dir: packageDir,
+      supportsDevelopmentSource: hasOpenClawDevelopmentExtensions(pkg),
     });
   }
   return packages;
+};
+
+const mergeLoadPaths = (existingLoadPaths: string[], devLoadPaths: string[]): string[] => {
+  const mergedLoadPaths = [...devLoadPaths];
+  for (const entry of existingLoadPaths) {
+    if (!mergedLoadPaths.includes(entry)) {
+      mergedLoadPaths.push(entry);
+    }
+  }
+  return mergedLoadPaths;
+};
+
+const buildDevelopmentSourceEntryDefaults = (
+  config: Config,
+  workspacePackages: WorkspacePluginPackage[],
+): {
+  didDefaultDevelopmentSource: boolean;
+  nextEntries: NonNullable<Config["plugins"]["entries"]>;
+} => {
+  const packageByName = new Map(
+    workspacePackages.map((entry) => [entry.packageName, entry]),
+  );
+  const nextEntries = { ...(config.plugins.entries ?? {}) };
+  let didDefaultDevelopmentSource = false;
+
+  for (const [pluginId, installRecord] of Object.entries(config.plugins.installs ?? {})) {
+    const packageName = normalizePackageSpec(installRecord.spec ?? "");
+    if (!packageName) {
+      continue;
+    }
+    const workspacePackage = packageByName.get(packageName);
+    if (!workspacePackage?.supportsDevelopmentSource) {
+      continue;
+    }
+    const existingEntry = nextEntries[pluginId];
+    if (existingEntry?.source) {
+      continue;
+    }
+    nextEntries[pluginId] = {
+      ...existingEntry,
+      source: "development",
+    };
+    didDefaultDevelopmentSource = true;
+  }
+
+  return {
+    didDefaultDevelopmentSource,
+    nextEntries,
+  };
 };
 
 export const resolveDevFirstPartyPluginLoadPaths = (
@@ -109,7 +183,9 @@ export const resolveDevFirstPartyPluginLoadPaths = (
     return [];
   }
 
-  const packageDirByName = new Map(workspacePackages.map((entry) => [entry.packageName, entry.dir]));
+  const packageDirByName = new Map(
+    workspacePackages.map((entry) => [entry.packageName, entry.dir]),
+  );
   const loadPaths: string[] = [];
   const installs = config.plugins.installs ?? {};
 
@@ -142,7 +218,9 @@ export const resolveDevFirstPartyPluginInstallRoots = (
     return [];
   }
 
-  const packageNames = new Set(workspacePackages.map((entry) => entry.packageName));
+  const packageNames = new Set(
+    workspacePackages.map((entry) => entry.packageName),
+  );
   const installRoots: string[] = [];
 
   for (const installRecord of Object.values(config.plugins.installs ?? {})) {
@@ -164,25 +242,34 @@ export const applyDevFirstPartyPluginLoadPaths = (
   config: Config,
   workspaceExtensionsDir: string | undefined,
 ): Config => {
-  const devLoadPaths = resolveDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
-  if (devLoadPaths.length === 0) {
+  const rootDir = resolveDevFirstPartyPluginDir(workspaceExtensionsDir);
+  if (!rootDir) {
+    return config;
+  }
+  const workspacePackages = readWorkspacePluginPackages(rootDir);
+  if (workspacePackages.length === 0) {
     return config;
   }
 
-  const existingLoadPaths = Array.isArray(config.plugins.load?.paths)
-    ? config.plugins.load.paths.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-    : [];
-  const mergedLoadPaths = [...devLoadPaths];
-  for (const entry of existingLoadPaths) {
-    if (!mergedLoadPaths.includes(entry)) {
-      mergedLoadPaths.push(entry);
-    }
+  const devLoadPaths = resolveDevFirstPartyPluginLoadPaths(config, rootDir);
+  if (devLoadPaths.length === 0) {
+    return config;
   }
+  const existingLoadPaths = Array.isArray(config.plugins.load?.paths)
+    ? config.plugins.load.paths.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && entry.trim().length > 0,
+      )
+    : [];
+  const mergedLoadPaths = mergeLoadPaths(existingLoadPaths, devLoadPaths);
+  const { didDefaultDevelopmentSource, nextEntries } =
+    buildDevelopmentSourceEntryDefaults(config, workspacePackages);
 
   return {
     ...config,
     plugins: {
       ...config.plugins,
+      entries: didDefaultDevelopmentSource ? nextEntries : config.plugins.entries,
       load: {
         ...config.plugins.load,
         paths: mergedLoadPaths,

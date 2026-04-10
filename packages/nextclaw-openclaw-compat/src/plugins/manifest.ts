@@ -76,6 +76,9 @@ export function loadPluginManifest(rootDir: string): PluginManifestLoadResult {
 
 type OpenClawPackageManifest = {
   extensions?: string[];
+  development?: {
+    extensions?: string[];
+  };
   install?: {
     npmSpec?: string;
     localPath?: string;
@@ -95,4 +98,18 @@ export function getPackageManifestMetadata(manifest: PackageManifest | undefined
     return undefined;
   }
   return manifest.openclaw;
+}
+
+export function getPackageManifestExtensions(
+  manifest: PackageManifest | undefined,
+  source: "production" | "development" = "production",
+): string[] {
+  const metadata = getPackageManifestMetadata(manifest);
+  if (!metadata) {
+    return [];
+  }
+  if (source === "development") {
+    return normalizeStringList(metadata.development?.extensions);
+  }
+  return normalizeStringList(metadata.extensions);
 }

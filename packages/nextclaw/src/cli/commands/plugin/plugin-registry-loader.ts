@@ -7,7 +7,7 @@ import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginDir,
   resolveDevFirstPartyPluginInstallRoots,
-} from "./dev-first-party-plugin-load-paths.js";
+} from "./development-source/first-party-plugin-load-paths.js";
 import { buildReservedPluginLoadOptions } from "./plugin-command-utils.js";
 import type { Config } from "@nextclaw/core";
 

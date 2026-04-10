@@ -1,11 +1,12 @@
 import type { Config } from "@nextclaw/core";
+import type { PluginEntrySource } from "./development-source/entry-selection.js";
 
 export type NormalizedPluginsConfig = {
   enabled: boolean;
   allow: string[];
   deny: string[];
   loadPaths: string[];
-  entries: Record<string, { enabled?: boolean; config?: unknown }>;
+  entries: Record<string, { enabled?: boolean; source?: PluginEntrySource; config?: unknown }>;
 };
 
 function normalizeList(value: unknown): string[] {
@@ -32,6 +33,7 @@ function normalizeEntries(entries: unknown): NormalizedPluginsConfig["entries"] 
     const entry = value as Record<string, unknown>;
     normalized[id] = {
       enabled: typeof entry.enabled === "boolean" ? entry.enabled : undefined,
+      source: entry.source === "development" || entry.source === "production" ? entry.source : undefined,
       config: Object.prototype.hasOwnProperty.call(entry, "config") ? entry.config : undefined
     };
   }

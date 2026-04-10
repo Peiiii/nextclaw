@@ -2,7 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import type { Config } from "@nextclaw/core";
 import { expandHome, getDataPath } from "@nextclaw/core";
-import { getPackageManifestMetadata, type PackageManifest } from "./manifest.js";
+import type { PackageManifest } from "./manifest.js";
+import { discoverPackageDirectoryEntry } from "./development-source/package-directory.js";
 import type { PluginDiagnostic, PluginOrigin } from "./types.js";
 
 const EXTENSION_EXTS = new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
@@ -56,39 +57,6 @@ function isExtensionFile(filePath: string): boolean {
   return !filePath.endsWith(".d.ts");
 }
 
-function readPackageManifest(dir: string): PackageManifest | null {
-  const manifestPath = path.join(dir, "package.json");
-  if (!fs.existsSync(manifestPath)) {
-    return null;
-  }
-  try {
-    return JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as PackageManifest;
-  } catch {
-    return null;
-  }
-}
-
-function resolvePackageExtensions(manifest: PackageManifest): string[] {
-  const raw = getPackageManifestMetadata(manifest)?.extensions;
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  return raw.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean);
-}
-
-function deriveIdHint(params: { filePath: string; packageName?: string; hasMultipleExtensions: boolean }): string {
-  const base = path.basename(params.filePath, path.extname(params.filePath));
-  const packageName = params.packageName?.trim();
-  if (!packageName) {
-    return base;
-  }
-  const unscoped = packageName.includes("/") ? (packageName.split("/").pop() ?? packageName) : packageName;
-  if (!params.hasMultipleExtensions) {
-    return unscoped;
-  }
-  return `${unscoped}/${base}`;
-}
-
 function addCandidate(params: {
   candidates: PluginCandidate[];
   seen: Set<string>;
@@ -122,6 +90,7 @@ function addCandidate(params: {
 function discoverInDirectory(params: {
   dir: string;
   origin: PluginOrigin;
+  config?: Config;
   workspaceDir?: string;
   candidates: PluginCandidate[];
   diagnostics: PluginDiagnostic[];
@@ -164,51 +133,28 @@ function discoverInDirectory(params: {
       continue;
     }
 
-    const manifest = readPackageManifest(fullPath);
-    const extensions = manifest ? resolvePackageExtensions(manifest) : [];
-    if (extensions.length > 0) {
-      for (const extPath of extensions) {
-        const resolved = path.resolve(fullPath, extPath);
+    void discoverPackageDirectoryEntry({
+      fullPath,
+      idHint: entry.name,
+      origin: params.origin,
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      diagnostics: params.diagnostics,
+      isExtensionFile,
+      addCandidate: (candidate) =>
         addCandidate({
           candidates: params.candidates,
           seen: params.seen,
-          idHint: deriveIdHint({
-            filePath: resolved,
-            packageName: manifest?.name,
-            hasMultipleExtensions: extensions.length > 1
-          }),
-          source: resolved,
-          rootDir: fullPath,
-          origin: params.origin,
-          workspaceDir: params.workspaceDir,
-          manifest,
-          packageDir: fullPath
-        });
-      }
-      continue;
-    }
-
-    const indexCandidates = ["index.ts", "index.js", "index.mjs", "index.cjs"];
-    const indexFile = indexCandidates.map((candidate) => path.join(fullPath, candidate)).find((candidate) => fs.existsSync(candidate));
-    if (indexFile && isExtensionFile(indexFile)) {
-      addCandidate({
-        candidates: params.candidates,
-        seen: params.seen,
-        idHint: entry.name,
-        source: indexFile,
-        rootDir: fullPath,
-        origin: params.origin,
-        workspaceDir: params.workspaceDir,
-        manifest,
-        packageDir: fullPath
-      });
-    }
+          ...candidate,
+        }),
+    });
   }
 }
 
 function discoverFromPath(params: {
   rawPath: string;
   origin: PluginOrigin;
+  config?: Config;
   workspaceDir?: string;
   candidates: PluginCandidate[];
   diagnostics: PluginDiagnostic[];
@@ -247,51 +193,28 @@ function discoverFromPath(params: {
   }
 
   if (stat.isDirectory()) {
-    const manifest = readPackageManifest(resolved);
-    const extensions = manifest ? resolvePackageExtensions(manifest) : [];
-
-    if (extensions.length > 0) {
-      for (const extPath of extensions) {
-        const source = path.resolve(resolved, extPath);
+    if (discoverPackageDirectoryEntry({
+      fullPath: resolved,
+      idHint: path.basename(resolved),
+      origin: params.origin,
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      diagnostics: params.diagnostics,
+      isExtensionFile,
+      addCandidate: (candidate) =>
         addCandidate({
           candidates: params.candidates,
           seen: params.seen,
-          idHint: deriveIdHint({
-            filePath: source,
-            packageName: manifest?.name,
-            hasMultipleExtensions: extensions.length > 1
-          }),
-          source,
-          rootDir: resolved,
-          origin: params.origin,
-          workspaceDir: params.workspaceDir,
-          manifest,
-          packageDir: resolved
-        });
-      }
-      return;
-    }
-
-    const indexCandidates = ["index.ts", "index.js", "index.mjs", "index.cjs"];
-    const indexFile = indexCandidates.map((candidate) => path.join(resolved, candidate)).find((candidate) => fs.existsSync(candidate));
-    if (indexFile && isExtensionFile(indexFile)) {
-      addCandidate({
-        candidates: params.candidates,
-        seen: params.seen,
-        idHint: path.basename(resolved),
-        source: indexFile,
-        rootDir: resolved,
-        origin: params.origin,
-        workspaceDir: params.workspaceDir,
-        manifest,
-        packageDir: resolved
-      });
+          ...candidate,
+        }),
+    })) {
       return;
     }
 
     discoverInDirectory({
       dir: resolved,
       origin: params.origin,
+      config: params.config,
       workspaceDir: params.workspaceDir,
       candidates: params.candidates,
       diagnostics: params.diagnostics,
@@ -324,6 +247,7 @@ export function discoverOpenClawPlugins(params: {
     discoverFromPath({
       rawPath: trimmed,
       origin: "config",
+      config: params.config,
       workspaceDir,
       candidates,
       diagnostics,
@@ -335,6 +259,7 @@ export function discoverOpenClawPlugins(params: {
     discoverInDirectory({
       dir: path.join(workspaceDir, ".nextclaw", "extensions"),
       origin: "workspace",
+      config: params.config,
       workspaceDir,
       candidates,
       diagnostics,
@@ -345,6 +270,7 @@ export function discoverOpenClawPlugins(params: {
   discoverInDirectory({
     dir: path.join(getDataPath(), "extensions"),
     origin: "global",
+    config: params.config,
     candidates,
     diagnostics,
     seen

@@ -12,7 +12,7 @@ import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginDir,
   resolveDevFirstPartyPluginInstallRoots,
-} from "./plugin/dev-first-party-plugin-load-paths.js";
+} from "./plugin/development-source/first-party-plugin-load-paths.js";
 import {
   loadConfig,
   type Config,

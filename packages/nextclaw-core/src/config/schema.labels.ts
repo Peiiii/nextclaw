@@ -120,6 +120,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "plugins.load.paths": "Plugin Paths",
   "plugins.entries": "Plugin Entries",
   "plugins.entries.*.enabled": "Plugin Enabled",
+  "plugins.entries.*.source": "Plugin Source",
   "plugins.entries.*.config": "Plugin Config",
   "plugins.installs": "Plugin Installs",
   "plugins.installs.*.source": "Install Source",

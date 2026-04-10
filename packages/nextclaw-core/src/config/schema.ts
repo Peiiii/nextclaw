@@ -307,8 +307,11 @@ export const ProviderConfigSchema = z.object({
 
 export const ProvidersConfigSchema = z.record(ProviderConfigSchema).default({});
 
+export const PluginEntrySourceSchema = z.enum(["production", "development"]);
+
 export const PluginEntrySchema = z.object({
   enabled: z.boolean().optional(),
+  source: PluginEntrySourceSchema.optional(),
   config: z.record(z.unknown()).optional()
 });
 

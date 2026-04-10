@@ -25,7 +25,12 @@
   "openclaw": {
     "extensions": [
       "dist/index.js"
-    ]
+    ],
+    "development": {
+      "extensions": [
+        "src/index.ts"
+      ]
+    }
   },
   "dependencies": {
     "@nextclaw/ncp": "workspace:*",
