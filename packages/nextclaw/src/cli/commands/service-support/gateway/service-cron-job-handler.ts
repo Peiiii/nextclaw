@@ -3,9 +3,7 @@ import {
   NcpEventType,
   type NcpAgentRunApi,
   type NcpMessage,
-  type NcpSessionApi,
 } from "@nextclaw/ncp";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
 
 type CronJobLike = {
   id: string;
@@ -28,15 +26,6 @@ function normalizeOptionalString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
-function buildCronJobMetadata(accountId?: string): Record<string, unknown> {
-  if (!accountId) {
-    return {};
-  }
-  return { accountId, account_id: accountId };
-}
-
-type CronNcpAgent = Pick<UiNcpAgentHandle, "runApi" | "sessionApi">;
-
 function buildCronSessionMetadata(params: {
   job: CronJobLike;
   agentId: string;
@@ -46,7 +35,6 @@ function buildCronSessionMetadata(params: {
   const channel = normalizeOptionalString(job.payload.channel) ?? "cli";
   const chatId = normalizeOptionalString(job.payload.to) ?? "direct";
   const metadata: Record<string, unknown> = {
-    ...buildCronJobMetadata(accountId),
     agentId,
     agent_id: agentId,
     channel,
@@ -57,6 +45,10 @@ function buildCronSessionMetadata(params: {
     cron_job_name: job.name,
     session_origin: "cron",
   };
+  if (accountId) {
+    metadata.accountId = accountId;
+    metadata.account_id = accountId;
+  }
   return metadata;
 }
 
@@ -78,10 +70,7 @@ function buildCronUserMessage(params: {
   };
 }
 
-function extractMessageText(message: NcpMessage | undefined): string | undefined {
-  if (!message) {
-    return undefined;
-  }
+function extractMessageText(message: NcpMessage): string {
   const parts = message.parts
     .flatMap((part) => {
       if (part.type === "text" || part.type === "rich-text") {
@@ -91,21 +80,11 @@ function extractMessageText(message: NcpMessage | undefined): string | undefined
     })
     .map((text) => text.trim())
     .filter((text) => text.length > 0);
-  return parts.length > 0 ? parts.join("\n\n") : undefined;
-}
-
-function findLatestAssistantMessage(messages: readonly NcpMessage[]): NcpMessage | undefined {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message?.role === "assistant") {
-      return message;
-    }
-  }
-  return undefined;
+  return parts.join("\n\n");
 }
 
 async function runCronJobOverNcp(params: {
-  agent: Pick<CronNcpAgent, "runApi" | "sessionApi">;
+  agent: { runApi: NcpAgentRunApi };
   job: CronJobLike;
   sessionId: string;
   metadata: Record<string, unknown>;
@@ -134,17 +113,14 @@ async function runCronJobOverNcp(params: {
     }
   }
 
-  const completedText = extractMessageText(completedMessage);
-  if (completedText) {
-    return completedText;
+  if (!completedMessage) {
+    throw new Error("cron job completed without a final assistant message");
   }
-
-  const messages = await agent.sessionApi.listSessionMessages(sessionId);
-  return extractMessageText(findLatestAssistantMessage(messages)) ?? "";
+  return extractMessageText(completedMessage);
 }
 
 export function createCronJobHandler(params: {
-  resolveNcpAgent: () => CronNcpAgent | null;
+  resolveNcpAgent: () => { runApi: NcpAgentRunApi } | null;
   bus: MessageBus;
 }): (job: CronJobLike) => Promise<string> {
   return async (job: CronJobLike): Promise<string> => {
@@ -173,7 +149,7 @@ export function createCronJobHandler(params: {
         chatId: job.payload.to,
         content: response,
         media: [],
-        metadata
+        metadata,
       });
     }
 

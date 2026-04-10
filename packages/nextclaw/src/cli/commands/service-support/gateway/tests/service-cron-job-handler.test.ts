@@ -24,19 +24,11 @@ describe("createCronJobHandler", () => {
           },
         } as never;
       })());
-    const listSessionMessages = vi.fn(async () => []);
     const publishOutbound = vi.fn(async () => undefined);
     const handler = createCronJobHandler({
       resolveNcpAgent: () =>
         ({
           runApi: { send },
-          sessionApi: {
-            listSessions: vi.fn(async () => []),
-            listSessionMessages,
-            getSession: vi.fn(async () => null),
-            updateSession: vi.fn(async () => null),
-            deleteSession: vi.fn(async () => undefined),
-          },
         }) as never,
       bus: {
         publishOutbound,
@@ -88,7 +80,6 @@ describe("createCronJobHandler", () => {
         accountId: "acct-1",
       }),
     });
-    expect(listSessionMessages).not.toHaveBeenCalled();
   });
 
   it("fails fast when the NCP agent is not ready instead of falling back to legacy execution", async () => {
@@ -113,7 +104,7 @@ describe("createCronJobHandler", () => {
     expect(publishOutbound).not.toHaveBeenCalled();
   });
 
-  it("falls back to the persisted NCP session reply when the run stream omits a completed message payload", async () => {
+  it("fails fast when the NCP stream finishes without a completed assistant message", async () => {
     const send = vi.fn((_envelope: unknown) =>
       (async function* () {
         yield {
@@ -121,20 +112,10 @@ describe("createCronJobHandler", () => {
           payload: { sessionId: "cron:job-3" },
         } as never;
       })());
-    const listSessionMessages = vi.fn(async () => [
-      createAssistantMessage("Recovered from session history"),
-    ]);
     const handler = createCronJobHandler({
       resolveNcpAgent: () =>
         ({
           runApi: { send },
-          sessionApi: {
-            listSessions: vi.fn(async () => []),
-            listSessionMessages,
-            getSession: vi.fn(async () => null),
-            updateSession: vi.fn(async () => null),
-            deleteSession: vi.fn(async () => undefined),
-          },
         }) as never,
       bus: {
         publishOutbound: vi.fn(async () => undefined),
@@ -144,13 +125,11 @@ describe("createCronJobHandler", () => {
     await expect(
       handler({
         id: "job-3",
-        name: "history-fallback",
+        name: "strict-final-message",
         payload: {
           message: "continue",
         },
       }),
-    ).resolves.toBe("Recovered from session history");
-
-    expect(listSessionMessages).toHaveBeenCalledWith("cron:job-3");
+    ).rejects.toThrow("cron job completed without a final assistant message");
   });
 });
