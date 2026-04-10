@@ -122,44 +122,64 @@ export async function startDeferredGatewayStartup(params: {
   onNcpAgentReady: (agent: UiNcpAgentHandle) => void;
   publishSessionChange: (sessionKey: string) => void;
 }): Promise<void> {
+  const {
+    uiStartup,
+    deferredNcpSessionService,
+    bus,
+    sessionManager,
+    providerManager,
+    cronService,
+    gatewayController,
+    getConfig,
+    getExtensionRegistry,
+    resolveMessageToolHints,
+    hydrateCapabilities,
+    startPluginGateways,
+    startChannels,
+    wakeFromRestartSentinel,
+    onNcpAgentReady,
+    publishSessionChange,
+  } = params;
   logStartupTrace("service.deferred_startup.begin");
-  if (params.uiStartup) {
-    try {
-      const ncpAgent = await measureStartupAsync("service.deferred_startup.create_ui_ncp_agent", async () =>
-        await createUiNcpAgent({
-          bus: params.bus,
-          providerManager: params.providerManager,
-          sessionManager: params.sessionManager,
-          cronService: params.cronService,
-          gatewayController: params.gatewayController,
-          getConfig: params.getConfig,
-          getExtensionRegistry: params.getExtensionRegistry,
-          onSessionUpdated: params.publishSessionChange,
-          onSessionRunStatusChanged: (payload) => {
-            params.uiStartup?.publish({
-              type: "session.run-status",
-              payload,
-            });
-          },
-          resolveMessageToolHints: ({ channel, accountId }) =>
-            params.resolveMessageToolHints({ channel, accountId }),
-        })
-      );
-      params.deferredNcpSessionService.activate(ncpAgent.sessionApi);
-      params.onNcpAgentReady(ncpAgent);
-      params.uiStartup.deferredNcpAgent.activate(ncpAgent);
+  try {
+    const ncpAgent = await measureStartupAsync("service.deferred_startup.create_ui_ncp_agent", async () =>
+      await createUiNcpAgent({
+        bus,
+        providerManager,
+        sessionManager,
+        cronService,
+        gatewayController,
+        getConfig,
+        getExtensionRegistry,
+        onSessionUpdated: publishSessionChange,
+        onSessionRunStatusChanged: (payload) => {
+          uiStartup?.publish({
+            type: "session.run-status",
+            payload,
+          });
+        },
+        resolveMessageToolHints: ({ channel, accountId }) =>
+          resolveMessageToolHints({ channel, accountId }),
+      })
+    );
+    deferredNcpSessionService.activate(ncpAgent.sessionApi);
+    onNcpAgentReady(ncpAgent);
+    if (uiStartup) {
+      uiStartup.deferredNcpAgent.activate(ncpAgent);
       console.log("✓ UI NCP agent: ready");
-    } catch (error) {
-      console.error(`UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`);
+    } else {
+      console.log("✓ Service NCP agent: ready");
     }
+  } catch (error) {
+    console.error(`UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 
-  if (params.hydrateCapabilities) {
-    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", params.hydrateCapabilities);
+  if (hydrateCapabilities) {
+    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", hydrateCapabilities);
   }
-  await measureStartupAsync("service.deferred_startup.start_plugin_gateways", params.startPluginGateways);
-  await measureStartupAsync("service.deferred_startup.start_channels", params.startChannels);
-  await measureStartupAsync("service.deferred_startup.wake_restart_sentinel", params.wakeFromRestartSentinel);
+  await measureStartupAsync("service.deferred_startup.start_plugin_gateways", startPluginGateways);
+  await measureStartupAsync("service.deferred_startup.start_channels", startChannels);
+  await measureStartupAsync("service.deferred_startup.wake_restart_sentinel", wakeFromRestartSentinel);
   console.log("✓ Deferred startup: plugin gateways and channels settled");
   logStartupTrace("service.deferred_startup.end");
 }

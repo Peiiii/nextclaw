@@ -156,7 +156,6 @@ export class ServiceCommands {
       setUiEventPublisher: (publish) => ncpSessionRealtimeBridge.setUiEventPublisher(publish),
       uiConfig: shellContext.uiConfig
     });
-
     bootstrapStatus.markShellReady();
     await waitForNextTick();
     const gateway = measureStartupSync("service.create_gateway_startup_context", () =>
@@ -170,7 +169,8 @@ export class ServiceCommands {
           ? this.makeProvider(config, { allowMissing: true })
           : this.makeProvider(config),
         makeMissingProvider: (config) => this.makeMissingProvider(config),
-        requestRestart: (params) => this.deps.requestRestart(params)
+        requestRestart: (params) => this.deps.requestRestart(params),
+        getLiveUiNcpAgent: () => this.liveUiNcpAgent
       })
     );
     this.applyLiveConfigReload = gateway.applyLiveConfigReload;

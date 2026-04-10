@@ -7,6 +7,7 @@ import { ConfigReloader } from "../../../config-reloader.js";
 import type { RequestRestartParams } from "../../../types.js";
 import { resolveUiConfig, resolveUiStaticDir } from "../../../utils.js";
 import { GatewayAgentRuntimePool } from "../../agent/agent-runtime-pool.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
 import { resolveChannelConfigView } from "../../channel/channel-config-view.js";
 import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugins.js";
 import { createCronJobHandler } from "./service-cron-job-handler.js";
@@ -71,6 +72,70 @@ export function applyGatewayCapabilityState(
   gateway.extensionRegistry = next.extensionRegistry;
 }
 
+function createGatewayRuntimePool(state: Pick<
+  GatewayStartupContext,
+  | "bus"
+  | "providerManager"
+  | "sessionManager"
+  | "config"
+  | "cron"
+  | "gatewayController"
+  | "extensionRegistry"
+  | "pluginRegistry"
+  | "runtimeConfigPath"
+>): GatewayAgentRuntimePool {
+  return measureStartupSync(
+    "service.gateway_context.runtime_pool",
+    () => new GatewayAgentRuntimePool({
+      bus: state.bus,
+      providerManager: state.providerManager,
+      sessionManager: state.sessionManager,
+      config: state.config,
+      cronService: state.cron,
+      restrictToWorkspace: state.config.tools.restrictToWorkspace,
+      searchConfig: state.config.search,
+      execConfig: state.config.tools.exec,
+      contextConfig: state.config.agents.context,
+      gatewayController: state.gatewayController,
+      extensionRegistry: state.extensionRegistry,
+      resolveMessageToolHints: ({ channel, accountId }) =>
+        resolvePluginChannelMessageToolHints({
+          registry: state.pluginRegistry,
+          channel,
+          cfg: resolveConfigSecrets(loadConfig(), { configPath: state.runtimeConfigPath }),
+          accountId,
+        }),
+    })
+  );
+}
+
+function createGatewayHeartbeat(state: Pick<
+  GatewayStartupContext,
+  "workspace" | "runtimePool"
+>): InstanceType<typeof HeartbeatService> {
+  return new HeartbeatService(
+    state.workspace,
+    async (promptText) =>
+      state.runtimePool.processDirect({
+        content: promptText,
+        sessionKey: "heartbeat",
+        agentId: state.runtimePool.primaryAgentId,
+      }),
+    30 * 60,
+    true,
+  );
+}
+
+function createGatewayCronJobHandler(params: {
+  bus: NextclawCore.MessageBus;
+  getLiveUiNcpAgent?: () => UiNcpAgentHandle | null;
+}): ReturnType<typeof createCronJobHandler> {
+  return createCronJobHandler({
+    resolveNcpAgent: () => params.getLiveUiNcpAgent?.() ?? null,
+    bus: params.bus,
+  });
+}
+
 export function createGatewayShellContext(params: {
   uiOverrides?: Partial<Config["ui"]>;
   uiStaticDir?: string | null;
@@ -113,11 +178,23 @@ export function createGatewayStartupContext(params: {
   makeProvider: (config: Config, options?: { allowMissing?: boolean }) => NextclawCore.LLMProvider | null;
   makeMissingProvider: (config: Config) => NextclawCore.LLMProvider;
   requestRestart: (params: RequestRestartParams) => Promise<void>;
+  getLiveUiNcpAgent?: () => UiNcpAgentHandle | null;
 }): GatewayStartupContext {
+  const {
+    shellContext: providedShellContext,
+    uiOverrides,
+    allowMissingProvider,
+    uiStaticDir,
+    initialPluginRegistry,
+    makeProvider,
+    makeMissingProvider,
+    requestRestart,
+    getLiveUiNcpAgent,
+  } = params;
   const state = {} as GatewayStartupContext;
-  const shellContext = params.shellContext ?? createGatewayShellContext({
-    uiOverrides: params.uiOverrides,
-    uiStaticDir: params.uiStaticDir,
+  const shellContext = providedShellContext ?? createGatewayShellContext({
+    uiOverrides,
+    uiStaticDir,
   });
   state.runtimeConfigPath = shellContext.runtimeConfigPath;
   state.config = shellContext.config;
@@ -127,7 +204,7 @@ export function createGatewayStartupContext(params: {
   state.uiConfig = shellContext.uiConfig;
   state.uiStaticDir = shellContext.uiStaticDir;
   state.remoteModule = shellContext.remoteModule;
-  state.pluginRegistry = params.initialPluginRegistry ?? measureStartupSync(
+  state.pluginRegistry = initialPluginRegistry ?? measureStartupSync(
     "service.gateway_context.load_plugin_registry",
     () => loadPluginRegistry(state.config, state.workspace)
   );
@@ -143,13 +220,13 @@ export function createGatewayStartupContext(params: {
 
   state.bus = new MessageBus();
   const provider =
-    params.allowMissingProvider === true
-      ? params.makeProvider(state.config, { allowMissing: true })
-      : params.makeProvider(state.config);
+    allowMissingProvider === true
+      ? makeProvider(state.config, { allowMissing: true })
+      : makeProvider(state.config);
   state.providerManager = measureStartupSync(
     "service.gateway_context.provider_manager",
     () => new ProviderManager({
-      defaultProvider: provider ?? params.makeMissingProvider(state.config),
+      defaultProvider: provider ?? makeMissingProvider(state.config),
       config: state.config,
     })
   );
@@ -174,12 +251,12 @@ export function createGatewayStartupContext(params: {
       sessionManager: state.sessionManager,
       providerManager: state.providerManager,
       makeProvider: (nextConfig) =>
-        params.makeProvider(nextConfig, { allowMissing: true }) ?? params.makeMissingProvider(nextConfig),
+        makeProvider(nextConfig, { allowMissing: true }) ?? makeMissingProvider(nextConfig),
       loadConfig: () => resolveConfigSecrets(loadConfig(), { configPath: state.runtimeConfigPath }),
       resolveChannelConfig: (nextConfig) => resolveChannelConfigView(nextConfig, state.pluginChannelBindings),
       getExtensionChannels: () => state.extensionRegistry.channels,
       onRestartRequired: (paths) => {
-        void params.requestRestart({
+        void requestRestart({
           reason: `config reload requires restart: ${paths.join(", ")}`,
           manualMessage: `Config changes require restart: ${paths.join(", ")}`,
           strategy: "background-service-or-manual",
@@ -200,7 +277,7 @@ export function createGatewayStartupContext(params: {
       getConfigPath,
       saveConfig,
       requestRestart: async (options) => {
-        await params.requestRestart({
+        await requestRestart({
           reason: options?.reason ?? "gateway tool restart",
           manualMessage: "Restart the gateway to apply changes.",
           strategy: "background-service-or-exit",
@@ -211,43 +288,9 @@ export function createGatewayStartupContext(params: {
     })
   );
 
-  state.runtimePool = measureStartupSync(
-    "service.gateway_context.runtime_pool",
-    () => new GatewayAgentRuntimePool({
-      bus: state.bus,
-      providerManager: state.providerManager,
-      sessionManager: state.sessionManager,
-      config: state.config,
-      cronService: state.cron,
-      restrictToWorkspace: state.config.tools.restrictToWorkspace,
-      searchConfig: state.config.search,
-      execConfig: state.config.tools.exec,
-      contextConfig: state.config.agents.context,
-      gatewayController: state.gatewayController,
-      extensionRegistry: state.extensionRegistry,
-      resolveMessageToolHints: ({ channel, accountId }) =>
-        resolvePluginChannelMessageToolHints({
-          registry: state.pluginRegistry,
-          channel,
-          cfg: resolveConfigSecrets(loadConfig(), { configPath: state.runtimeConfigPath }),
-          accountId,
-        }),
-    })
-  );
-
-  state.cron.onJob = createCronJobHandler({ runtimePool: state.runtimePool, bus: state.bus });
-
-  state.heartbeat = new HeartbeatService(
-    state.workspace,
-    async (promptText) =>
-      state.runtimePool.processDirect({
-        content: promptText,
-        sessionKey: "heartbeat",
-        agentId: state.runtimePool.primaryAgentId,
-      }),
-    30 * 60,
-    true,
-  );
+  state.runtimePool = createGatewayRuntimePool(state);
+  state.cron.onJob = createGatewayCronJobHandler({ bus: state.bus, getLiveUiNcpAgent });
+  state.heartbeat = createGatewayHeartbeat(state);
 
   return state;
 }
