@@ -10,6 +10,7 @@ import {
   type WeixinMessage,
 } from "./weixin-api.client.js";
 import { getWeixinContextToken, setWeixinContextToken } from "./weixin-context-token.store.js";
+import { resolveWeixinInboundAttachments } from "./weixin-inbound-media.service.js";
 import { WeixinTypingController } from "./weixin-typing-controller.js";
 import {
   DEFAULT_WEIXIN_BASE_URL,
@@ -238,7 +239,11 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     }
 
     const content = extractWeixinMessageText(message);
-    if (!content) {
+    const attachments = await resolveWeixinInboundAttachments({
+      message,
+      baseUrl: account.baseUrl,
+    });
+    if (!content && attachments.length === 0) {
       return;
     }
 
@@ -258,6 +263,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       senderId,
       chatId: senderId,
       content,
+      attachments,
       metadata: {
         accountId: account.accountId,
         account_id: account.accountId,

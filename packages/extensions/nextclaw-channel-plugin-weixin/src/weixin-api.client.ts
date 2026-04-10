@@ -13,13 +13,26 @@ type WeixinVoiceItem = {
   text?: string;
 };
 
-type WeixinFileItem = {
+export type WeixinCdnMedia = {
+  encrypt_query_param?: string;
+  aes_key?: string;
+  full_url?: string;
+};
+
+export type WeixinImageItem = {
+  media?: WeixinCdnMedia;
+  aeskey?: string;
+};
+
+export type WeixinFileItem = {
   file_name?: string;
+  media?: WeixinCdnMedia;
 };
 
 export type WeixinMessageItem = {
   type?: number;
   text_item?: WeixinTextItem;
+  image_item?: WeixinImageItem;
   voice_item?: WeixinVoiceItem;
   file_item?: WeixinFileItem;
 };
