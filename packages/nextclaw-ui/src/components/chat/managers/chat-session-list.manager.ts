@@ -46,6 +46,19 @@ export class ChatSessionListManager {
     useChatSessionListStore.getState().setSnapshot({ listMode: value });
   };
 
+  markSessionRead = (sessionKey: string | null | undefined, updatedAt: string | null | undefined) => {
+    if (!sessionKey) {
+      return;
+    }
+    useChatSessionListStore.getState().markSessionRead(sessionKey, updatedAt);
+  };
+
+  hydrateReadWatermarks = (
+    entries: readonly { sessionKey: string; updatedAt: string | null | undefined }[],
+  ) => {
+    useChatSessionListStore.getState().hydrateReadWatermarks(entries);
+  };
+
   createSession = (sessionType?: string, projectRoot?: string | null): string => {
     const { snapshot } = useChatInputStore.getState();
     const { snapshot: sessionListSnapshot } = useChatSessionListStore.getState();

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SessionEntryView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { BrandHeader } from '@/components/common/BrandHeader';
@@ -17,7 +17,10 @@ import { useChatSessionLabel } from '@/components/chat/hooks/use-chat-session-la
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import {
+  shouldShowUnreadSessionIndicator,
+  useChatSessionListStore
+} from '@/components/chat/stores/chat-session-list.store';
 import { useAgents } from '@/hooks/agents/useAgents';
 import { getSessionProjectName } from '@/lib/session-project/session-project.utils';
 import { cn } from '@/lib/utils';
@@ -143,6 +146,50 @@ const navItems = [
   { target: '/agents', label: () => t('agentsPageTitle'), icon: Bot },
 ];
 
+function useChatSessionUnreadState(
+  items: readonly NcpSessionListItemView[],
+  selectedSessionKey: string | null,
+  markSessionRead: (sessionKey: string | null | undefined, updatedAt: string | null | undefined) => void,
+  hydrateReadWatermarks: (
+    entries: readonly { sessionKey: string; updatedAt: string | null | undefined }[],
+  ) => void,
+): Record<string, string> {
+  const readUpdatedAtBySessionKey = useChatSessionListStore((state) => state.readUpdatedAtBySessionKey);
+  const hasHydratedReadWatermarks = useChatSessionListStore((state) => state.hasHydratedReadWatermarks);
+
+  useEffect(() => {
+    const syncHydratedReadWatermarks = () => {
+      if (hasHydratedReadWatermarks || items.length === 0) {
+        return;
+      }
+      hydrateReadWatermarks(
+        items.map(({ session }) => ({
+          sessionKey: session.key,
+          updatedAt: session.updatedAt
+        }))
+      );
+    };
+    syncHydratedReadWatermarks();
+  }, [hasHydratedReadWatermarks, hydrateReadWatermarks, items]);
+
+  useEffect(() => {
+    const syncSelectedSessionReadState = () => {
+      if (!selectedSessionKey) {
+        return;
+      }
+      const selectedItem = items.find(({ session }) => session.key === selectedSessionKey);
+      if (!selectedItem) {
+        return;
+      }
+      const { session: selectedSession } = selectedItem;
+      markSessionRead(selectedSession.key, selectedSession.updatedAt);
+    };
+    syncSelectedSessionReadState();
+  }, [items, markSessionRead, selectedSessionKey]);
+
+  return readUpdatedAtBySessionKey;
+}
+
 export function ChatSidebar() {
   const presenter = usePresenter();
   const docBrowser = useDocBrowser();
@@ -164,7 +211,6 @@ export function ChatSidebar() {
     () => new Map((agentsQuery.data?.agents ?? []).map((agent) => [agent.id, agent])),
     [agentsQuery.data?.agents]
   );
-
   const sortedItems = useMemo(() => sortSessionItemsByUpdatedAtDesc(items), [items]);
   const groups = useMemo(() => groupSessionsByDate(sortedItems), [sortedItems]);
   const projectGroups = useMemo(() => groupSessionsByProject(sortedItems), [sortedItems]);
@@ -174,24 +220,26 @@ export function ChatSidebar() {
     [defaultSessionType, inputSnapshot.sessionTypeOptions]
   );
   const isProjectFirstView = listSnapshot.listMode === 'project-first';
-
+  const readUpdatedAtBySessionKey = useChatSessionUnreadState(
+    items,
+    listSnapshot.selectedSessionKey,
+    presenter.chatSessionListManager.markSessionRead,
+    presenter.chatSessionListManager.hydrateReadWatermarks,
+  );
   const handleLanguageSwitch = (nextLang: I18nLanguage) => {
     if (language === nextLang) return;
     setLanguage(nextLang);
     window.location.reload();
   };
-
   const startEditingSessionLabel = (session: SessionEntryView) => {
     setEditingSessionKey(session.key);
     setDraftLabel(session.label?.trim() ?? '');
   };
-
   const cancelEditingSessionLabel = () => {
     setEditingSessionKey(null);
     setDraftLabel('');
     setSavingSessionKey(null);
   };
-
   const saveSessionLabel = async (session: SessionEntryView) => {
     const normalizedLabel = draftLabel.trim();
     const currentLabel = session.label?.trim() ?? '';
@@ -211,9 +259,14 @@ export function ChatSidebar() {
       setSavingSessionKey(null);
     }
   };
-
   const renderSessionItem = ({ session, runStatus }: NcpSessionListItemView) => {
     const active = listSnapshot.selectedSessionKey === session.key;
+    const showUnreadDot = shouldShowUnreadSessionIndicator({
+      active,
+      updatedAt: session.updatedAt,
+      readUpdatedAt: readUpdatedAtBySessionKey[session.key],
+      runStatus,
+    });
     const context = resolveSessionContextView(session, inputSnapshot.sessionTypeOptions);
     const isEditing = editingSessionKey === session.key;
     const isSaving = savingSessionKey === session.key;
@@ -222,6 +275,7 @@ export function ChatSidebar() {
         key={session.key}
         session={session}
         active={active}
+        showUnreadDot={showUnreadDot}
         runStatus={runStatus}
         context={context}
         title={sessionTitle(session)}
@@ -239,7 +293,6 @@ export function ChatSidebar() {
       />
     );
   };
-
   return (
     <aside className="w-[280px] shrink-0 flex flex-col h-full bg-secondary border-r border-gray-200/60">
       <div className="px-5 pt-5 pb-3">

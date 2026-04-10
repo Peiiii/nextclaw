@@ -46,6 +46,7 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatChildSessionLoading: { zh: '正在加载子会话…', en: 'Loading child session…' },
   chatChildSessionEmpty: { zh: '子会话还没有消息。', en: 'No child session messages yet.' },
   chatChildSessionClosePanel: { zh: '关闭子会话侧栏', en: 'Close child session panel' },
+  chatSessionUnread: { zh: '会话有未读更新', en: 'Session has unread updates' },
   chatTyping: { zh: 'Agent 正在思考...', en: 'Agent is thinking...' },
   chatInputPlaceholder: { zh: '输入消息，输入 / 选择技能，Enter 发送，Shift + Enter 换行', en: 'Type a message, type / to select skills, Enter to send, Shift + Enter for newline' },
   chatInputHint: { zh: '支持多轮上下文，默认走当前会话。', en: 'Multi-turn context is preserved in the current session.' },

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowLeft, Loader2, X } from "lucide-react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import { ChatMessageListContainer } from "@/components/chat/containers/chat-message-list.container";
@@ -7,6 +7,11 @@ import {
   type ResolvedChildSessionTab,
 } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useNcpSessionConversation } from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
+import {
+  shouldShowUnreadSessionIndicator,
+  useChatSessionListStore,
+} from "@/components/chat/stores/chat-session-list.store";
+import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
 import type { ChatChildSessionTab } from "@/components/chat/stores/chat-thread.store";
 import { AgentIdentityAvatar } from "@/components/common/agent-identity";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -122,15 +127,34 @@ export function ChatChildSessionPanel({
   onBackToParent,
   onToolAction,
 }: ChatChildSessionPanelProps) {
+  const presenter = usePresenter();
   const resolvedTabs = useNcpChildSessionTabsView(tabs);
+  const readUpdatedAtBySessionKey = useChatSessionListStore(
+    (state) => state.readUpdatedAtBySessionKey,
+  );
   const activeTab =
     resolvedTabs.find((tab) => tab.sessionKey === activeSessionKey) ??
     resolvedTabs[0] ??
     null;
+  const activeTabSessionKey = activeTab?.sessionKey ?? null;
+  const activeTabUpdatedAt = activeTab?.updatedAt?.trim() ?? null;
   const hasParentSession = resolvedTabs.some((tab) =>
     Boolean(tab.parentSessionKey),
   );
   const shouldShowTabs = resolvedTabs.length > 1;
+
+  useEffect(() => {
+    const syncActiveTabReadState = () => {
+      if (!activeTabSessionKey || !activeTabUpdatedAt) {
+        return;
+      }
+      presenter.chatSessionListManager.markSessionRead(
+        activeTabSessionKey,
+        activeTabUpdatedAt,
+      );
+    };
+    syncActiveTabReadState();
+  }, [activeTabSessionKey, activeTabUpdatedAt, presenter]);
 
   if (!activeTab) {
     return null;
@@ -178,23 +202,37 @@ export function ChatChildSessionPanel({
             <div className="mt-3 overflow-x-auto custom-scrollbar">
               <Tabs value={activeSessionKey} onValueChange={onSelectSession}>
                 <TabsList className="h-auto min-w-max justify-start gap-1.5 rounded-none bg-transparent p-0 text-gray-500">
-                  {resolvedTabs.map((tab) => (
-                    <TabsTrigger
-                      key={tab.sessionKey}
-                      value={tab.sessionKey}
-                      className="gap-2 rounded-full border border-gray-200/80 bg-white/85 px-2.5 py-1.5 text-xs font-medium text-gray-600 shadow-none hover:border-primary/30 hover:text-primary data-[state=active]:border-primary/30 data-[state=active]:bg-primary-50/70 data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                    >
-                      {tab.agentId ? (
-                        <AgentIdentityAvatar
-                          agentId={tab.agentId}
-                          className="h-4 w-4 shrink-0"
-                        />
-                      ) : null}
-                      <span className="max-w-[132px] truncate">
-                        {tab.title}
-                      </span>
-                    </TabsTrigger>
-                  ))}
+                  {resolvedTabs.map((tab) => {
+                    const showUnreadDot = shouldShowUnreadSessionIndicator({
+                      active: tab.sessionKey === activeSessionKey,
+                      updatedAt: tab.updatedAt,
+                      readUpdatedAt: readUpdatedAtBySessionKey[tab.sessionKey],
+                      runStatus: tab.runStatus,
+                    });
+                    return (
+                      <TabsTrigger
+                        key={tab.sessionKey}
+                        value={tab.sessionKey}
+                        className="gap-2 rounded-full border border-gray-200/80 bg-white/85 px-2.5 py-1.5 text-xs font-medium text-gray-600 shadow-none hover:border-primary/30 hover:text-primary data-[state=active]:border-primary/30 data-[state=active]:bg-primary-50/70 data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                      >
+                        {tab.agentId ? (
+                          <AgentIdentityAvatar
+                            agentId={tab.agentId}
+                            className="h-4 w-4 shrink-0"
+                          />
+                        ) : null}
+                        <span className="max-w-[132px] truncate">
+                          {tab.title}
+                        </span>
+                        {showUnreadDot ? (
+                          <span
+                            aria-label={t("chatSessionUnread")}
+                            className="h-2 w-2 shrink-0 rounded-full bg-primary"
+                          />
+                        ) : null}
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
               </Tabs>
             </div>

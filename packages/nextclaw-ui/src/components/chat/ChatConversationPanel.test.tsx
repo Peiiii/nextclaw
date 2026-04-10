@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatChildSessionPanel } from "@/components/chat/chat-child-session-panel";
 import { ChatConversationPanel } from "@/components/chat/ChatConversationPanel";
+import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
+import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
 
 const mocks = vi.hoisted(() => ({
@@ -21,12 +23,13 @@ const mocks = vi.hoisted(() => ({
       parentSessionKey: "parent-session-1",
       title: "北京天气",
       agentId: "weather",
+      updatedAt: "2026-04-10T09:00:00.000Z",
       sessionTypeLabel: "Codex",
       preferredModel: "openai/gpt-5.3-codex",
       projectName: "project-alpha",
       projectRoot: "/Users/demo/project-alpha",
     },
-  ],
+  ] as ResolvedChildSessionTab[],
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
@@ -79,6 +82,19 @@ vi.mock("@/components/chat/presenter/chat-presenter-context", () => ({
       selectSession: vi.fn(),
       createSession: mocks.createSession,
       setSelectedAgentId: mocks.setSelectedAgentId,
+      markSessionRead: (
+        sessionKey: string | null | undefined,
+        updatedAt: string | null | undefined,
+      ) =>
+        sessionKey
+          ? useChatSessionListStore.getState().markSessionRead(
+              sessionKey,
+              updatedAt,
+            )
+          : undefined,
+      hydrateReadWatermarks: (
+        entries: readonly { sessionKey: string; updatedAt: string | null | undefined }[],
+      ) => useChatSessionListStore.getState().hydrateReadWatermarks(entries),
     },
     chatInputManager: {
       setPendingSessionType: mocks.setPendingSessionType,
@@ -173,6 +189,13 @@ describe("ChatConversationPanel", () => {
         ],
         childSessionTabs: [],
         activeChildSessionKey: null,
+      },
+    });
+    useChatSessionListStore.setState({
+      readUpdatedAtBySessionKey: {},
+      hasHydratedReadWatermarks: false,
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
       },
     });
   });
@@ -275,6 +298,7 @@ describe("ChatChildSessionPanel", () => {
         parentSessionKey: "parent-session-1",
         title: "北京天气",
         agentId: "weather",
+        updatedAt: "2026-04-10T09:00:00.000Z",
         sessionTypeLabel: "Codex",
         preferredModel: "openai/gpt-5.3-codex",
         projectName: "project-alpha",
@@ -320,6 +344,7 @@ describe("ChatChildSessionPanel", () => {
         parentSessionKey: "parent-session-1",
         title: "北京天气",
         agentId: "weather",
+        updatedAt: "2026-04-10T09:00:00.000Z",
         sessionTypeLabel: "Codex",
         preferredModel: "openai/gpt-5.3-codex",
         projectName: "project-alpha",
@@ -330,6 +355,7 @@ describe("ChatChildSessionPanel", () => {
         parentSessionKey: "parent-session-1",
         title: "上海天气",
         agentId: "weather",
+        updatedAt: "2026-04-10T09:05:00.000Z",
         sessionTypeLabel: "Claude Code",
         preferredModel: "anthropic/claude-sonnet-4",
         projectName: "project-beta",
@@ -372,5 +398,139 @@ describe("ChatChildSessionPanel", () => {
     expect(tabButtons).toHaveLength(2);
     expect(tabButtons[0]?.getAttribute("aria-pressed")).toBe("true");
     expect(tabButtons[1]?.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("shows an unread dot for inactive child tabs until the user opens them", () => {
+    mocks.resolvedChildTabs = [
+      {
+        sessionKey: "child-session-1",
+        parentSessionKey: "parent-session-1",
+        title: "北京天气",
+        agentId: "weather",
+        updatedAt: "2026-04-10T09:00:00.000Z",
+        sessionTypeLabel: "Codex",
+        preferredModel: "openai/gpt-5.3-codex",
+        projectName: "project-alpha",
+        projectRoot: "/Users/demo/project-alpha",
+      },
+      {
+        sessionKey: "child-session-2",
+        parentSessionKey: "parent-session-1",
+        title: "上海天气",
+        agentId: "weather",
+        updatedAt: "2026-04-10T09:05:00.000Z",
+        runStatus: "running",
+        sessionTypeLabel: "Claude Code",
+        preferredModel: "anthropic/claude-sonnet-4",
+        projectName: "project-beta",
+        projectRoot: "/Users/demo/project-beta",
+      },
+    ];
+
+    const { rerender } = render(
+      <ChatChildSessionPanel
+        tabs={[
+          {
+            sessionKey: "child-session-1",
+            parentSessionKey: "parent-session-1",
+            label: "北京天气",
+            agentId: "weather",
+          },
+          {
+            sessionKey: "child-session-2",
+            parentSessionKey: "parent-session-1",
+            label: "上海天气",
+            agentId: "weather",
+          },
+        ]}
+        activeSessionKey="child-session-1"
+        onSelectSession={vi.fn()}
+        onClose={vi.fn()}
+        onBackToParent={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText("Session has unread updates"),
+    ).toBeNull();
+
+    mocks.resolvedChildTabs = [
+      {
+        sessionKey: "child-session-1",
+        parentSessionKey: "parent-session-1",
+        title: "北京天气",
+        agentId: "weather",
+        updatedAt: "2026-04-10T09:00:00.000Z",
+        sessionTypeLabel: "Codex",
+        preferredModel: "openai/gpt-5.3-codex",
+        projectName: "project-alpha",
+        projectRoot: "/Users/demo/project-alpha",
+      },
+      {
+        sessionKey: "child-session-2",
+        parentSessionKey: "parent-session-1",
+        title: "上海天气",
+        agentId: "weather",
+        updatedAt: "2026-04-10T09:05:00.000Z",
+        sessionTypeLabel: "Claude Code",
+        preferredModel: "anthropic/claude-sonnet-4",
+        projectName: "project-beta",
+        projectRoot: "/Users/demo/project-beta",
+      },
+    ];
+
+    rerender(
+      <ChatChildSessionPanel
+        tabs={[
+          {
+            sessionKey: "child-session-1",
+            parentSessionKey: "parent-session-1",
+            label: "北京天气",
+            agentId: "weather",
+          },
+          {
+            sessionKey: "child-session-2",
+            parentSessionKey: "parent-session-1",
+            label: "上海天气",
+            agentId: "weather",
+          },
+        ]}
+        activeSessionKey="child-session-1"
+        onSelectSession={vi.fn()}
+        onClose={vi.fn()}
+        onBackToParent={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByLabelText("Session has unread updates"),
+    ).toBeTruthy();
+
+    rerender(
+      <ChatChildSessionPanel
+        tabs={[
+          {
+            sessionKey: "child-session-1",
+            parentSessionKey: "parent-session-1",
+            label: "北京天气",
+            agentId: "weather",
+          },
+          {
+            sessionKey: "child-session-2",
+            parentSessionKey: "parent-session-1",
+            label: "上海天气",
+            agentId: "weather",
+          },
+        ]}
+        activeSessionKey="child-session-2"
+        onSelectSession={vi.fn()}
+        onClose={vi.fn()}
+        onBackToParent={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByLabelText("Session has unread updates"),
+    ).toBeNull();
   });
 });

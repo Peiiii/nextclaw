@@ -15,6 +15,8 @@ describe('ChatSessionListManager', () => {
       }
     });
     useChatSessionListStore.setState({
+      readUpdatedAtBySessionKey: {},
+      hasHydratedReadWatermarks: false,
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: 'session-1',
@@ -121,5 +123,37 @@ describe('ChatSessionListManager', () => {
 
     expect(useChatSessionListStore.getState().snapshot.listMode).toBe('project-first');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+  });
+
+  it('marks a session as read through the session list owner boundary', () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+    );
+
+    manager.markSessionRead('session-2', '2026-04-10T10:00:00.000Z');
+
+    expect(useChatSessionListStore.getState().readUpdatedAtBySessionKey['session-2']).toBe(
+      '2026-04-10T10:00:00.000Z'
+    );
+  });
+
+  it('hydrates the initial unread baseline through the session list owner boundary', () => {
+    const manager = new ChatSessionListManager(
+      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {} as ConstructorParameters<typeof ChatSessionListManager>[1]
+    );
+
+    manager.hydrateReadWatermarks([
+      {
+        sessionKey: 'session-2',
+        updatedAt: '2026-04-10T10:00:00.000Z'
+      }
+    ]);
+
+    expect(useChatSessionListStore.getState().readUpdatedAtBySessionKey['session-2']).toBe(
+      '2026-04-10T10:00:00.000Z'
+    );
+    expect(useChatSessionListStore.getState().hasHydratedReadWatermarks).toBe(true);
   });
 });

@@ -18,8 +18,11 @@ const mocks = vi.hoisted(() => ({
   isLoading: false
 }));
 
-function createSessionItem(session: NcpSessionListItemView['session']): NcpSessionListItemView {
-  return { session };
+function createSessionItem(
+  session: NcpSessionListItemView['session'],
+  runStatus?: NcpSessionListItemView['runStatus'],
+): NcpSessionListItemView {
+  return { session, runStatus };
 }
 
 vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
@@ -28,7 +31,12 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
       createSession: mocks.createSession,
       setQuery: mocks.setQuery,
       setListMode: mocks.setListMode,
-      selectSession: mocks.selectSession
+      selectSession: mocks.selectSession,
+      markSessionRead: (sessionKey: string | null | undefined, updatedAt: string | null | undefined) =>
+        sessionKey ? useChatSessionListStore.getState().markSessionRead(sessionKey, updatedAt) : undefined,
+      hydrateReadWatermarks: (
+        entries: readonly { sessionKey: string; updatedAt: string | null | undefined }[],
+      ) => useChatSessionListStore.getState().hydrateReadWatermarks(entries)
     }
   })
 }));
@@ -124,10 +132,13 @@ function resetSidebarTestState() {
     }
   });
   useChatSessionListStore.setState({
+    readUpdatedAtBySessionKey: {},
+    hasHydratedReadWatermarks: false,
     snapshot: {
       ...useChatSessionListStore.getState().snapshot,
       query: '',
-      listMode: 'time-first'
+      listMode: 'time-first',
+      selectedSessionKey: null
     }
   });
 }
@@ -495,5 +506,99 @@ describe('ChatSidebar session item interactions', () => {
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
     expect(screen.queryByDisplayValue('Should Not Persist')).toBeNull();
     expect(screen.getByText('Cancelable Label')).not.toBeNull();
+  });
+
+  it('shows an unread dot only after a non-active session finishes its newer update', () => {
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:ncp-1',
+        createdAt: '2026-03-19T09:00:00.000Z',
+        updatedAt: '2026-03-19T09:05:00.000Z',
+        label: 'Current Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1
+      }),
+      createSessionItem({
+        key: 'session:ncp-2',
+        createdAt: '2026-03-19T10:00:00.000Z',
+        updatedAt: '2026-03-19T10:05:00.000Z',
+        label: 'Background Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1
+      }, 'running')
+    ];
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: 'session:ncp-1'
+      }
+    });
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByLabelText('Session has unread updates')).toBeNull();
+
+    mocks.sessionItems = [
+      mocks.sessionItems[0]!,
+      createSessionItem({
+        key: 'session:ncp-2',
+        createdAt: '2026-03-19T10:00:00.000Z',
+        updatedAt: '2026-03-19T10:06:00.000Z',
+        label: 'Background Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 2
+      }, 'running')
+    ];
+
+    rerender(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByLabelText('Session has unread updates')).toBeNull();
+
+    mocks.sessionItems = [
+      mocks.sessionItems[0]!,
+      createSessionItem({
+        key: 'session:ncp-2',
+        createdAt: '2026-03-19T10:00:00.000Z',
+        updatedAt: '2026-03-19T10:06:00.000Z',
+        label: 'Background Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 2
+      })
+    ];
+
+    rerender(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByLabelText('Session has unread updates')).toBeTruthy();
+
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: 'session:ncp-2'
+      }
+    });
+
+    rerender(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByLabelText('Session has unread updates')).toBeNull();
   });
 });
