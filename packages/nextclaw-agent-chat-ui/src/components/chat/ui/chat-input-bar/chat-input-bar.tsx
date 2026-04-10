@@ -89,6 +89,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
         ...props.toolbar.skillPicker,
         onSelectedKeysChange: (nextKeys: string[]) => {
           composerRef.current?.syncSelectedSkills(nextKeys, props.toolbar.skillPicker?.options ?? []);
+          props.toolbar.skillPicker?.onSelectedKeysChange(nextKeys);
         }
       }
     };

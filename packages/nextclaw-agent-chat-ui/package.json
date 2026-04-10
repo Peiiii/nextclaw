@@ -41,11 +41,13 @@
     "react-dom": "^18.3.1"
   },
   "dependencies": {
+    "@lexical/react": "^0.43.0",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-tooltip": "^1.1.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "lexical": "^0.43.0",
     "lucide-react": "^0.462.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",

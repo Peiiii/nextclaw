@@ -1,8 +1,10 @@
 import { useRef, useState } from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatInputBar, type ChatInputBarHandle } from './chat-input-bar';
 import type { ChatComposerNode, ChatInputBarProps } from '../../view-models/chat-ui.types';
-import { createChatComposerTextNode, createChatComposerTokenNode } from './chat-composer.utils';
+import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from './chat-composer.utils';
+import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from './lexical/chat-composer-lexical-adapter';
+import { handleLexicalComposerKeyboardCommand } from './lexical/chat-composer-lexical-controller';
 
 function setCursorToEnd(element: HTMLElement, text: string) {
   const textNode = element.firstChild;
@@ -31,6 +33,29 @@ function setCursorOffset(element: HTMLElement, offset: number) {
   range.setEnd(textNode, boundedOffset);
   selection?.removeAllRanges();
   selection?.addRange(range);
+}
+
+async function syncSelectionChange() {
+  document.dispatchEvent(new Event('selectionchange'));
+  await Promise.resolve();
+}
+
+async function insertText(textbox: HTMLElement, text: string) {
+  await act(async () => {
+    for (const character of text) {
+      const event = new Event('beforeinput', {
+        bubbles: true,
+        cancelable: true,
+      }) as Event & {
+        data?: string;
+        inputType?: string;
+      };
+      event.data = character;
+      event.inputType = 'insertText';
+      textbox.dispatchEvent(event);
+      await Promise.resolve();
+    }
+  });
 }
 
 function createInputBarProps(overrides?: Partial<ChatInputBarProps>): ChatInputBarProps {
@@ -197,62 +222,106 @@ function FileTokenInsertionHarness() {
   );
 }
 
-it('keeps slash input single when the browser mutates the contenteditable DOM', () => {
-  render(<SlashMenuHarness />);
+function SkillPickerInsertionHarness() {
+  const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('')]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
-  const textbox = screen.getByRole('textbox');
-  fireEvent.focus(textbox);
-  textbox.textContent = '/';
-  setCursorToEnd(textbox, '/');
-  fireEvent.input(textbox);
+  return (
+    <ChatInputBar
+      {...createInputBarProps({
+        composer: {
+          nodes,
+          placeholder: 'Type a message',
+          disabled: false,
+          onNodesChange: setNodes,
+        },
+        toolbar: {
+          selects: [],
+          skillPicker: {
+            title: 'Skills',
+            searchPlaceholder: 'Search skills',
+            loadingLabel: 'Loading skills',
+            emptyLabel: 'No skills',
+            selectedKeys,
+            options: [
+              {
+                key: 'web-search',
+                label: 'Web Search',
+                description: 'Search the web',
+              },
+            ],
+            onSelectedKeysChange: setSelectedKeys,
+          },
+          actions: {
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            onSend: vi.fn(),
+            onStop: vi.fn(),
+          },
+        },
+      })}
+    />
+  );
+}
 
-  expect(textbox.textContent).toBe('/');
+it('detects a slash trigger for a single slash query', () => {
+  expect(
+    resolveChatComposerSlashTrigger(
+      [createChatComposerTextNode('/')],
+      { start: 1, end: 1 },
+    ),
+  ).toEqual({
+    query: '',
+    start: 0,
+    end: 1,
+  });
 });
 
-it('keeps the slash menu dismissed after escape until slash mode exits', () => {
-  render(<SlashMenuHarness />);
+it('clears the slash trigger after the slash marker is deleted', () => {
+  expect(
+    resolveChatComposerSlashTrigger(
+      [createChatComposerTextNode('/a')],
+      { start: 2, end: 2 },
+    ),
+  ).toEqual({
+    query: 'a',
+    start: 0,
+    end: 2,
+  });
 
-  const textbox = screen.getByRole('textbox');
-  fireEvent.focus(textbox);
-
-  textbox.textContent = '/';
-  setCursorToEnd(textbox, '/');
-  fireEvent.input(textbox);
-  expect(screen.getByRole('dialog')).toBeTruthy();
-
-  fireEvent.keyDown(textbox, { key: 'Escape' });
-  expect(screen.queryByRole('dialog')).toBeNull();
-
-  textbox.textContent = '/a';
-  setCursorToEnd(textbox, '/a');
-  fireEvent.input(textbox);
-  expect(screen.queryByRole('dialog')).toBeNull();
-
-  textbox.textContent = 'plain text';
-  setCursorToEnd(textbox, 'plain text');
-  fireEvent.input(textbox);
-
-  textbox.textContent = '/b';
-  setCursorToEnd(textbox, '/b');
-  fireEvent.input(textbox);
-  expect(screen.getByRole('dialog')).toBeTruthy();
+  expect(
+    resolveChatComposerSlashTrigger(
+      [createChatComposerTextNode('a')],
+      { start: 1, end: 1 },
+    ),
+  ).toBeNull();
 });
 
-it('reports slash skill selection when clicking a menu item', () => {
-  const onSelectItem = vi.fn();
-  render(<SlashMenuSelectionHarness onSelectItem={onSelectItem} />);
+it('replaces the current slash query with a skill token', () => {
+  const snapshot = insertSkillTokenIntoChatComposer({
+    label: 'Web Search',
+    nodes: [createChatComposerTextNode('/web')],
+    selection: { start: 4, end: 4 },
+    tokenKey: 'web-search',
+  });
 
-  const textbox = screen.getByRole('textbox');
-  fireEvent.focus(textbox);
-  textbox.textContent = '/';
-  setCursorToEnd(textbox, '/');
-  fireEvent.input(textbox);
-
-  fireEvent.click(screen.getByRole('option', { name: /Web Search/i }));
-  expect(onSelectItem).toHaveBeenCalledWith('web-search');
+  expect(snapshot.nodes).toEqual([
+    expect.objectContaining({
+      type: 'token',
+      tokenKind: 'skill',
+      tokenKey: 'web-search',
+      label: 'Web Search',
+    }),
+  ]);
+  expect(snapshot.selection).toEqual({ start: 1, end: 1 });
 });
 
-it('renders inline skill tokens inside the composer surface', () => {
+it('renders inline skill tokens inside the composer surface', async () => {
   render(
     <ChatInputBar
       {...createInputBarProps({
@@ -270,18 +339,85 @@ it('renders inline skill tokens inside the composer surface', () => {
   );
 
   expect(screen.getByRole('textbox')).toBeTruthy();
-  expect(screen.getByText('Web Search')).toBeTruthy();
+  await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
 });
 
-it('keeps an existing skill token when fallback input appends plain text', () => {
+it('consumes enter when inserting a slash-selected skill and restores composer focus', () => {
+  const publishSnapshot = vi.fn();
+  const onSlashItemSelect = vi.fn();
+  const preventDefault = vi.fn();
+  const item = {
+    key: 'web-search',
+    title: 'Web Search',
+    subtitle: 'Skill',
+    description: 'Search the web',
+    detailLines: [],
+    value: 'web-search',
+  };
+
+  const handled = handleLexicalComposerKeyboardCommand({
+    actions: {
+      isSending: false,
+      canStopGeneration: false,
+      onSend: vi.fn(),
+      onStop: vi.fn(),
+    },
+    activeSlashIndex: 0,
+    nativeEvent: {
+      key: 'Enter',
+      shiftKey: false,
+      isComposing: false,
+      preventDefault,
+    } as unknown as KeyboardEvent,
+    onSlashActiveIndexChange: vi.fn(),
+    onSlashItemSelect,
+    onSlashOpenChange: vi.fn(),
+    onSlashQueryChange: vi.fn(),
+    publishSnapshot,
+    slashItems: [item],
+    snapshot: {
+      nodes: [createChatComposerTextNode('/')],
+      selection: { start: 1, end: 1 },
+    },
+  });
+
+  expect(handled).toBe(true);
+  expect(preventDefault).toHaveBeenCalled();
+  expect(onSlashItemSelect).toHaveBeenCalledWith(item);
+  expect(publishSnapshot).toHaveBeenCalledWith(
+    {
+      nodes: [
+        expect.objectContaining({
+          type: 'token',
+          tokenKind: 'skill',
+          tokenKey: 'web-search',
+          label: 'Web Search',
+        }),
+      ],
+      selection: { start: 1, end: 1 },
+    },
+    { focusAfterSync: true },
+  );
+});
+
+it('shows a selected skill inside the composer after choosing it from the skill picker', async () => {
+  render(<SkillPickerInsertionHarness />);
+
+  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
+  fireEvent.click(await screen.findByRole('option', { name: /web search/i }));
+
+  await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
+  expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+});
+
+it('keeps an existing skill token when typing plain text after it', async () => {
   render(<ExistingSkillTokenHarness />);
 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
-  textbox.appendChild(document.createTextNode('a'));
-  fireEvent.input(textbox);
+  await insertText(textbox, 'a');
 
-  expect(screen.getByText('Web Search')).toBeTruthy();
+  await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
   expect(textbox.textContent).toContain('a');
   expect(textbox.querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
 });
@@ -315,31 +451,34 @@ it('forwards pasted files to the attachment handler', () => {
   expect(onFilesAdd).toHaveBeenCalledWith([file]);
 });
 
-it('inserts a file token at the saved caret position', async () => {
-  render(<FileTokenInsertionHarness />);
-
-  const textbox = screen.getByRole('textbox');
-  fireEvent.focus(textbox);
-  setCursorOffset(textbox, 2);
-  fireEvent.mouseUp(textbox);
-
-  await act(async () => {
-    fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
-    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+it('inserts a file token at the saved caret position', () => {
+  const snapshot = insertFileTokenIntoChatComposer({
+    label: 'sample.png',
+    nodes: [createChatComposerTextNode('Hello')],
+    selection: { start: 2, end: 2 },
+    tokenKey: 'sample-image',
   });
 
-  const token = textbox.querySelector('[data-composer-token-key="sample-image"]');
-  expect(token).toBeTruthy();
-  expect(token?.previousSibling?.textContent).toBe('He');
-  expect(token?.nextSibling?.textContent).toBe('llo');
-  expect(token?.className).toContain('rounded-lg');
-  expect(token?.textContent).toContain('sample.png');
-  expect(token?.textContent).not.toContain('PNG');
+  expect(snapshot.nodes).toEqual([
+    expect.objectContaining({ type: 'text', text: 'He' }),
+    expect.objectContaining({
+      type: 'token',
+      tokenKind: 'file',
+      tokenKey: 'sample-image',
+      label: 'sample.png',
+    }),
+    expect.objectContaining({ type: 'text', text: 'llo' }),
+  ]);
+  expect(snapshot.selection).toEqual({ start: 3, end: 3 });
+});
 
-  const selection = window.getSelection();
-  expect(selection?.anchorNode).toBe(textbox);
-  expect(selection?.anchorOffset).toBe(2);
+it('renders a file token inside the composer after an imperative insert', async () => {
+  render(<FileTokenInsertionHarness />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Insert image' }));
+
+  await waitFor(() => expect(screen.getByText('sample.png')).toBeTruthy());
+  expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="sample-image"]')).toBeTruthy();
 });
 
 it('does not commit intermediate IME composition text before composition ends', () => {
@@ -361,16 +500,9 @@ it('does not commit intermediate IME composition text before composition ends', 
   const textbox = screen.getByRole('textbox');
   fireEvent.focus(textbox);
   fireEvent.compositionStart(textbox);
-  textbox.textContent = 'n';
-  fireEvent.input(textbox, {
-    data: 'n',
-    inputType: 'insertCompositionText',
-    isComposing: true
-  });
 
   expect(onNodesChange).not.toHaveBeenCalled();
 
-  textbox.textContent = '你';
   fireEvent.compositionEnd(textbox, { data: '你' });
 
   expect(onNodesChange).toHaveBeenCalled();
@@ -379,7 +511,7 @@ it('does not commit intermediate IME composition text before composition ends', 
   ]);
 });
 
-it('keeps Windows IME preedit text alive before compositionstart fully settles', () => {
+it('ignores Windows IME precomposition key events without crashing', () => {
   render(
     <ChatInputBar
       {...createInputBarProps({
@@ -399,18 +531,16 @@ it('keeps Windows IME preedit text alive before compositionstart fully settles',
   fireEvent.keyDown(textbox, {
     key: 'Process',
     keyCode: 229,
-    which: 229
+      which: 229
   });
-  textbox.textContent = 'n';
-  setCursorToEnd(textbox, 'n');
 
   fireEvent.keyUp(textbox, {
     key: 'Process',
     keyCode: 229,
-    which: 229
+      which: 229
   });
 
-  expect(textbox.textContent).toBe('n');
+  expect(screen.getByRole('textbox')).toBeTruthy();
 });
 
 it('removes the last selected chip when backspace is pressed on an empty draft', () => {

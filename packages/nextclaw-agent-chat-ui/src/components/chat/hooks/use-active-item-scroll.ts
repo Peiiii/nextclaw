@@ -11,19 +11,23 @@ type UseActiveItemScrollParams = {
 const defaultGetItemSelector = (index: number) => `[data-item-index="${index}"]`;
 
 export function useActiveItemScroll(params: UseActiveItemScrollParams) {
-  const getItemSelector = params.getItemSelector ?? defaultGetItemSelector;
+  const { activeIndex, containerRef, getItemSelector: customGetItemSelector, isEnabled, itemCount } =
+    params;
+  const getItemSelector = customGetItemSelector ?? defaultGetItemSelector;
 
   useEffect(() => {
-    if (!params.isEnabled || params.itemCount === 0) {
+    if (!isEnabled || itemCount === 0) {
       return;
     }
 
-    const container = params.containerRef.current;
+    const container = containerRef.current;
     if (!container) {
       return;
     }
 
-    const activeItem = container.querySelector<HTMLElement>(getItemSelector(params.activeIndex));
-    activeItem?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [getItemSelector, params.activeIndex, params.containerRef, params.isEnabled, params.itemCount]);
+    const activeItem = container.querySelector<HTMLElement>(getItemSelector(activeIndex));
+    if (typeof activeItem?.scrollIntoView === 'function') {
+      activeItem.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [activeIndex, containerRef, getItemSelector, isEnabled, itemCount]);
 }

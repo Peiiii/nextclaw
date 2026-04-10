@@ -1,9 +1,9 @@
-import { resolveChatComposerKeyboardAction } from './chat-composer-keyboard.utils';
+import { resolveLexicalComposerKeyboardAction } from './lexical/chat-composer-lexical-controller';
 
 describe('chat composer keyboard utils', () => {
   it('moves the slash menu selection with arrow keys', () => {
     expect(
-      resolveChatComposerKeyboardAction({
+      resolveLexicalComposerKeyboardAction({
         key: 'ArrowDown',
         shiftKey: false,
         isComposing: false,
@@ -21,7 +21,7 @@ describe('chat composer keyboard utils', () => {
 
   it('deletes composer content when backspace is pressed outside IME composition', () => {
     expect(
-      resolveChatComposerKeyboardAction({
+      resolveLexicalComposerKeyboardAction({
         key: 'Backspace',
         shiftKey: false,
         isComposing: false,
@@ -39,7 +39,7 @@ describe('chat composer keyboard utils', () => {
 
   it('consumes enter while a response is still running', () => {
     expect(
-      resolveChatComposerKeyboardAction({
+      resolveLexicalComposerKeyboardAction({
         key: 'Enter',
         shiftKey: false,
         isComposing: false,
