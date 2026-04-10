@@ -93,6 +93,10 @@ function normalizeTerminalOutput(rawOutput?: string, structuredOutput?: unknown)
   }
 }
 
+function shouldAutoExpandRunningFileOperation(toolName: string): boolean {
+  return toolName === 'write_file' || toolName === 'edit_file';
+}
+
 function useToolCardExpandedState({
   canExpand,
   isRunning,
@@ -246,6 +250,7 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand: output.trim().length > 0 || isRunning,
     isRunning,
+    autoExpandWhileRunning: false,
     expandOnError: hasContent,
     statusTone: card.statusTone,
   });
@@ -311,6 +316,7 @@ export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
     return count + block.lines.reduce((lineCount, line) => lineCount + line.text.length + 1, 0);
   }, 0);
   const shouldAutoExpandWhileRunning =
+    shouldAutoExpandRunningFileOperation(card.toolName) &&
     !(
       isRunning &&
       card.toolName === 'write_file' &&
@@ -354,6 +360,7 @@ export function SearchSnippetView({ card }: { card: ChatToolPartViewModel }) {
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand: !!output || isRunning,
     isRunning,
+    autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
 
@@ -400,6 +407,7 @@ export function GenericToolCard({
   const { expanded, onToggle } = useToolCardExpandedState({
     canExpand: hasContent || isRunning,
     isRunning,
+    autoExpandWhileRunning: false,
     statusTone: card.statusTone,
   });
 

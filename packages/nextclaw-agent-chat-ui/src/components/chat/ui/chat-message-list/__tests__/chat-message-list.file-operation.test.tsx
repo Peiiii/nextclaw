@@ -243,6 +243,70 @@ it("keeps large running write previews collapsed until the user asks to inspect 
   }
 });
 
+it("keeps non-edit file operation cards collapsed while they are running", () => {
+  vi.useFakeTimers();
+
+  try {
+    render(
+      <ChatMessageList
+        messages={[
+          {
+            id: "assistant-running-file-change",
+            role: "assistant",
+            roleLabel: "Assistant",
+            timestampLabel: "10:20",
+            parts: [
+              {
+                type: "tool-card",
+                card: {
+                  kind: "call",
+                  toolName: "file_change",
+                  summary: "src/config.ts",
+                  hasResult: false,
+                  statusTone: "running",
+                  statusLabel: "Running",
+                  titleLabel: "Tool Call",
+                  outputLabel: "View Output",
+                  emptyLabel: "No output",
+                  fileOperation: {
+                    blocks: [
+                      {
+                        key: "src/config.ts-1",
+                        path: "src/config.ts",
+                        lines: [
+                          {
+                            kind: "remove",
+                            text: "export const retries = 1;",
+                          },
+                          {
+                            kind: "add",
+                            text: "export const retries = 2;",
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ]}
+        isSending={false}
+        hasAssistantDraft={false}
+        texts={defaultTexts}
+      />,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(screen.queryByText("export const retries = 2;")).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("renders write previews with a single gutter and without repeating the file path", () => {
   const longLine =
     "const_super_long_editor_line = window.__NEXTCLAW_PREVIEW_SHOULD_SCROLL_HORIZONTALLY__;";
