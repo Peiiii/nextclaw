@@ -9,10 +9,9 @@ import {
   buildReservedPluginLoadOptions,
 } from "./plugin/plugin-command-utils.js";
 import {
-  applyDevFirstPartyPluginLoadPaths,
-  resolveDevFirstPartyPluginDir,
-  resolveDevFirstPartyPluginInstallRoots,
-} from "./plugin/development-source/first-party-plugin-load-paths.js";
+  resolveDevPluginLoadingContext,
+} from "./plugin/development-source/dev-plugin-overrides.utils.js";
+import { resolveDevFirstPartyPluginDir } from "./plugin/development-source/first-party-plugin-load-paths.js";
 import {
   loadConfig,
   type Config,
@@ -39,13 +38,12 @@ export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-co
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {
   const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
-  const configWithDevPluginPaths = applyDevFirstPartyPluginLoadPaths(
+  const { configWithDevPluginOverrides, excludedRoots } = resolveDevPluginLoadingContext(
     config,
     workspaceExtensionsDir,
   );
-  const excludedRoots = resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir);
   return loadOpenClawPlugins({
-    config: configWithDevPluginPaths,
+    config: configWithDevPluginOverrides,
     workspaceDir,
     excludeRoots: excludedRoots,
     ...buildReservedPluginLoadOptions(),

@@ -4,10 +4,9 @@ import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { buildReservedPluginLoadOptions } from "../plugin/plugin-command-utils.js";
 import {
-  applyDevFirstPartyPluginLoadPaths,
-  resolveDevFirstPartyPluginDir,
-  resolveDevFirstPartyPluginInstallRoots,
-} from "../plugin/development-source/first-party-plugin-load-paths.js";
+  resolveDevPluginLoadingContext,
+} from "../plugin/development-source/dev-plugin-overrides.utils.js";
+import { resolveDevFirstPartyPluginDir } from "../plugin/development-source/first-party-plugin-load-paths.js";
 import {
   DEFAULT_UI_NCP_RUNTIME_KIND,
   UiNcpRuntimeRegistry,
@@ -36,10 +35,12 @@ function createUnusedRuntime(_params: RuntimeFactoryParams): NcpAgentRuntime {
 
 function loadRuntimeOnlyPluginRegistry(config: ReturnType<typeof loadConfig>, workspaceDir: string) {
   const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
-  const configWithDevPluginPaths = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
-  const excludedRoots = resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir);
+  const { configWithDevPluginOverrides, excludedRoots } = resolveDevPluginLoadingContext(
+    config,
+    workspaceExtensionsDir,
+  );
   return loadOpenClawPlugins({
-    config: configWithDevPluginPaths,
+    config: configWithDevPluginOverrides,
     workspaceDir,
     includeBundled: false,
     kinds: ["agent-runtime"],

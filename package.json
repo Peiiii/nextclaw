@@ -44,6 +44,7 @@
     "tsc:ui": "pnpm -C packages/nextclaw-ui tsc",
     "tsc:desktop": "pnpm -C apps/desktop tsc",
     "dev": "node scripts/dev-runner.mjs",
+    "dev:start:plugins": "node scripts/dev-start-plugins.mjs",
     "dev:status": "node scripts/dev-process-status.mjs",
     "dev:kill": "node scripts/dev-process-status.mjs --kill",
     "dev:plugin:local": "node scripts/local-plugin-dev-server.mjs",

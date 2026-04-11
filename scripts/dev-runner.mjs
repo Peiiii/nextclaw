@@ -5,8 +5,14 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer as createNetServer, Socket } from "node:net";
 import { homedir } from "node:os";
+import {
+  createPluginOverrideValue,
+  validatePluginOverride,
+} from "./dev-plugin-overrides-support.mjs";
 
 const command = process.argv[2] ?? "start";
+const commandArgs = process.argv.slice(3);
+const DEV_PLUGIN_OVERRIDES_ENV = "NEXTCLAW_DEV_PLUGIN_OVERRIDES";
 
 if (command !== "start") {
   console.error("Unsupported dev command. Use: pnpm dev start");
@@ -66,6 +72,74 @@ const frontendBin = resolve(frontendDir, "node_modules/.bin", binName("vite"));
 
 if (!existsSync(backendBin) || !existsSync(frontendBin)) {
   console.error("Missing local dev binaries. Run `pnpm install` at repo root first.");
+  process.exit(1);
+}
+
+function parsePluginOverrideArg(rawValue) {
+  const value = typeof rawValue === "string" ? rawValue.trim() : "";
+  const separatorIndex = value.indexOf("=");
+  if (separatorIndex <= 0 || separatorIndex === value.length - 1) {
+    throw new Error(
+      `Invalid --plugin-override value "${rawValue}". Expected <pluginId>=<path>[#production|#development].`
+    );
+  }
+
+  const pluginId = value.slice(0, separatorIndex).trim();
+  let pluginPath = value.slice(separatorIndex + 1).trim();
+  let source = "production";
+  if (pluginPath.endsWith("#development")) {
+    pluginPath = pluginPath.slice(0, -"#development".length);
+    source = "development";
+  } else if (pluginPath.endsWith("#production")) {
+    pluginPath = pluginPath.slice(0, -"#production".length);
+  }
+
+  const normalizedPath = resolve(rootDir, pluginPath.trim());
+  if (!pluginId || !pluginPath.trim()) {
+    throw new Error(
+      `Invalid --plugin-override value "${rawValue}". Expected <pluginId>=<path>[#production|#development].`
+    );
+  }
+
+  return {
+    pluginId,
+    pluginPath: normalizedPath,
+    source,
+  };
+}
+
+function parseDevStartOptions(argv) {
+  const pluginOverrides = [];
+  const seenPluginIds = new Set();
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--plugin-override") {
+      const next = argv[index + 1];
+      if (!next) {
+        throw new Error("--plugin-override requires a value.");
+      }
+      const override = parsePluginOverrideArg(next);
+      if (seenPluginIds.has(override.pluginId)) {
+        throw new Error(`Duplicate --plugin-override for "${override.pluginId}".`);
+      }
+      validatePluginOverride(override);
+      seenPluginIds.add(override.pluginId);
+      pluginOverrides.push(override);
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unsupported dev option: ${arg}`);
+  }
+
+  return { pluginOverrides };
+}
+
+let devStartOptions;
+try {
+  devStartOptions = parseDevStartOptions(commandArgs);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
@@ -147,6 +221,13 @@ if (backendPort !== preferredBackendPort || frontendPort !== preferredFrontendPo
 console.log(`[dev] API base: http://127.0.0.1:${backendPort}`);
 console.log(`[dev] Frontend: http://127.0.0.1:${frontendPort}`);
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
+if (devStartOptions.pluginOverrides.length > 0) {
+  console.log(
+    `[dev] Plugin overrides: ${devStartOptions.pluginOverrides
+      .map((entry) => createPluginOverrideValue(entry))
+      .join(", ")}`
+  );
+}
 
 const children = [];
 let shuttingDown = false;
@@ -224,6 +305,11 @@ const backendProcess = spawnProcess(
   {
     NODE_OPTIONS: developmentNodeOptions,
     NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR: firstPartyPluginDir,
+    ...(devStartOptions.pluginOverrides.length > 0
+      ? {
+          [DEV_PLUGIN_OVERRIDES_ENV]: JSON.stringify(devStartOptions.pluginOverrides),
+        }
+      : {}),
     NEXTCLAW_DISABLE_STATIC_UI: "1",
     NEXTCLAW_REMOTE_LOCAL_ORIGIN: `http://127.0.0.1:${frontendPort}`,
     NEXTCLAW_HOME: nextclawHome

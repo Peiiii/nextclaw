@@ -4,10 +4,9 @@ import {
   type PluginRegistry
 } from "@nextclaw/openclaw-compat";
 import {
-  applyDevFirstPartyPluginLoadPaths,
-  resolveDevFirstPartyPluginDir,
-  resolveDevFirstPartyPluginInstallRoots,
-} from "./development-source/first-party-plugin-load-paths.js";
+  resolveDevPluginLoadingContext,
+} from "./development-source/dev-plugin-overrides.utils.js";
+import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.js";
 import { buildReservedPluginLoadOptions } from "./plugin-command-utils.js";
 import type { Config } from "@nextclaw/core";
 
@@ -22,10 +21,7 @@ function createPluginLogger() {
 
 function withDevFirstPartyPluginPaths(config: Config) {
   const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
-  return {
-    workspaceExtensionsDir,
-    configWithDevPluginPaths: applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir)
-  };
+  return resolveDevPluginLoadingContext(config, workspaceExtensionsDir);
 }
 
 export async function loadPluginRegistryProgressively(
@@ -35,10 +31,9 @@ export async function loadPluginRegistryProgressively(
     onPluginProcessed?: (params: { loadedPluginCount: number; pluginId?: string }) => void;
   } = {}
 ): Promise<PluginRegistry> {
-  const { workspaceExtensionsDir, configWithDevPluginPaths } = withDevFirstPartyPluginPaths(config);
-  const excludedRoots = resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir);
+  const { configWithDevPluginOverrides, excludedRoots } = withDevFirstPartyPluginPaths(config);
   return await loadOpenClawPluginsProgressively({
-    config: configWithDevPluginPaths,
+    config: configWithDevPluginOverrides,
     workspaceDir,
     excludeRoots: excludedRoots,
     ...buildReservedPluginLoadOptions(),
@@ -48,9 +43,9 @@ export async function loadPluginRegistryProgressively(
 }
 
 export function discoverPluginRegistryStatus(config: Config, workspaceDir: string) {
-  const { configWithDevPluginPaths } = withDevFirstPartyPluginPaths(config);
+  const { configWithDevPluginOverrides } = withDevFirstPartyPluginPaths(config);
   return discoverPluginStatusReport({
-    config: configWithDevPluginPaths,
+    config: configWithDevPluginOverrides,
     workspaceDir
   });
 }
