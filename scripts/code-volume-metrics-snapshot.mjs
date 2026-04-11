@@ -5,7 +5,7 @@ const NESTED_SCOPE_ROOTS = {
   packages: new Set(["extensions", "ncp-packages"])
 };
 
-const detectLanguage = (extension) => {
+export const detectLanguage = (extension) => {
   if (extension === ".ts") return "TypeScript";
   if (extension === ".tsx") return "TSX";
   if (extension === ".js") return "JavaScript";
@@ -15,7 +15,7 @@ const detectLanguage = (extension) => {
   return extension.slice(1).toUpperCase();
 };
 
-const detectScope = (relativePath) => {
+export const detectScope = (relativePath) => {
   const segments = relativePath.split("/");
   const [firstSegment, secondSegment, thirdSegment] = segments;
 
@@ -35,7 +35,7 @@ const detectScope = (relativePath) => {
   return "root";
 };
 
-const countLines = (content, extension) => {
+export const countLines = (content, extension) => {
   const lines = content.split(/\r?\n/);
   let blankLines = 0;
   let commentLines = 0;
@@ -89,7 +89,7 @@ const countLines = (content, extension) => {
   };
 };
 
-const listTrackedFiles = (repoRoot, includePaths, includeExtensions, excludeDirs) => {
+export const listTrackedFiles = (repoRoot, includePaths, includeExtensions, excludeDirs) => {
   const files = new Set();
   const includeExtensionSet = new Set(includeExtensions);
   const excludeDirSet = new Set(excludeDirs);
@@ -168,10 +168,33 @@ export const collectSnapshot = ({
   gitRef,
   generatedAt
 }) => {
+  return collectDetailedSnapshot({
+    repoRoot,
+    scopeProfile,
+    includePaths,
+    includeExtensions,
+    excludeDirs,
+    gitSha,
+    gitRef,
+    generatedAt
+  });
+};
+
+export const collectDetailedSnapshot = ({
+  repoRoot,
+  scopeProfile,
+  includePaths,
+  includeExtensions,
+  excludeDirs,
+  gitSha,
+  gitRef,
+  generatedAt
+}) => {
   const trackedFiles = listTrackedFiles(repoRoot, includePaths, includeExtensions, excludeDirs);
   const totals = { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 };
   const byLanguage = new Map();
   const byScope = new Map();
+  const byFile = [];
 
   for (const filePath of trackedFiles) {
     const extension = extname(filePath).toLowerCase();
@@ -199,6 +222,13 @@ export const collectSnapshot = ({
       byScope.set(scope, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
     }
     mergeMetrics(byScope.get(scope), increment);
+
+    byFile.push({
+      path: relativePath,
+      scope,
+      language,
+      ...increment
+    });
   }
 
   return {
@@ -216,6 +246,12 @@ export const collectSnapshot = ({
     },
     totals,
     byLanguage: toSortedArray(byLanguage),
-    byScope: toSortedArray(byScope)
+    byScope: toSortedArray(byScope),
+    byFile: byFile.sort(
+      (left, right) =>
+        right.codeLines - left.codeLines ||
+        right.totalLines - left.totalLines ||
+        left.path.localeCompare(right.path)
+    )
   };
 };

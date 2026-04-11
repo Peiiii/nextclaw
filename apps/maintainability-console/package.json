@@ -1,0 +1,35 @@
+{
+  "name": "@nextclaw/maintainability-console",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.utils.mjs",
+    "dev:client": "vite --config vite.config.ts --host 127.0.0.1 --port 5180 --strictPort",
+    "dev:server": "tsx watch --tsconfig tsconfig.backend.json server/index.ts",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "tsc -p tsconfig.backend.json",
+    "start": "node dist/server/index.js",
+    "lint": "cd ../.. && pnpm exec eslint apps/maintainability-console --config apps/maintainability-console/eslint.config.mjs --max-warnings=0",
+    "tsc": "tsc -p tsconfig.json && tsc -p tsconfig.backend.json --noEmit",
+    "smoke": "node scripts/smoke.test.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "@tanstack/react-query": "^5.90.21",
+    "hono": "^4.11.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^6.0.1",
+    "playwright": "^1.52.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3"
+  }
+}
