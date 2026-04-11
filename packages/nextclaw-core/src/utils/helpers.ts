@@ -26,6 +26,14 @@ export function getWorkspacePath(workspace?: string): string {
   return ensureDir(resolve(getDataPath(), "workspace"));
 }
 
+export function getLogsPath(): string {
+  return ensureDir(resolve(getDataPath(), "logs"));
+}
+
+export function getLogsArchivePath(): string {
+  return ensureDir(resolve(getLogsPath(), "archive"));
+}
+
 export function getSessionsPath(): string {
   return ensureDir(resolve(getDataPath(), "sessions"));
 }

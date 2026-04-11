@@ -40,6 +40,7 @@ import { AgentCommands } from "./commands/agents.js";
 import { PlatformAuthCommands } from "./commands/platform-auth.js";
 import { RemoteCommands } from "./commands/remote.js";
 import { DiagnosticsCommands } from "./commands/diagnostics.js";
+import { LogsCommands } from "./commands/logs.js";
 import { hasRunningNextclawManagedService } from "./commands/remote-support/remote-runtime-support.js";
 import { describeUnmanagedHealthyTargetMessage } from "./commands/service-support/runtime/service-port-probe.js";
 import { ServiceCommands } from "./commands/service.js";
@@ -62,6 +63,7 @@ import type {
   DoctorCommandOptions,
   GatewayCommandOptions,
   LoginCommandOptions,
+  LogsTailCommandOptions,
   McpAddCommandOptions,
   McpDoctorOptions,
   McpListOptions,
@@ -101,6 +103,7 @@ export class CliRuntime {
   private remoteCommands: RemoteCommands;
   readonly remote: RemoteRuntimeActions;
   private diagnosticsCommands: DiagnosticsCommands;
+  private logsCommands: LogsCommands;
   constructor(options: { logo?: string } = {}) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? LOGO;
@@ -137,6 +140,7 @@ export class CliRuntime {
       hasRunningManagedService: hasRunningNextclawManagedService
     }));
     this.diagnosticsCommands = measureStartupSync("cli.runtime.diagnostics_commands", () => new DiagnosticsCommands({ logo: this.logo }));
+    this.logsCommands = measureStartupSync("cli.runtime.logs_commands", () => new LogsCommands());
 
     this.restartCoordinator = measureStartupSync("cli.runtime.restart_coordinator", () => new RestartCoordinator({
       readServiceState: managedServiceStateStore.read,
@@ -704,6 +708,8 @@ export class CliRuntime {
 
   status = async (opts: StatusCommandOptions = {}): Promise<void> => { await this.diagnosticsCommands.status(opts); };
   doctor = async (opts: DoctorCommandOptions = {}): Promise<void> => { await this.diagnosticsCommands.doctor(opts); };
+  logsPath = (): void => { this.logsCommands.logsPath(); };
+  logsTail = (opts: LogsTailCommandOptions = {}): void => { this.logsCommands.logsTail(opts); };
 
   skillsInstall = async (options: {
     slug: string;

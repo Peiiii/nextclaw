@@ -1,10 +1,11 @@
 import type * as NextclawCore from "@nextclaw/core";
-import { closeSync, mkdirSync, openSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { spawn } from "node:child_process";
 import type { ManagedServiceState } from "../../../runtime-state/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.js";
 import { writeInitialManagedServiceState } from "./service-remote-runtime.js";
+import { RuntimeLogManager } from "../../../runtime-logging/runtime-log-manager.js";
 
 export type ManagedServiceSnapshot = {
   pid: number;
@@ -116,9 +117,9 @@ export function spawnManagedService(params: {
     resolveServiceLogPath
   } = params;
   const logPath = resolveServiceLogPath();
-  const logDir = resolve(logPath, "..");
+  new RuntimeLogManager({ serviceLogPath: logPath }).ensureReady();
+  const logDir = dirname(logPath);
   mkdirSync(logDir, { recursive: true });
-  const logFd = openSync(logPath, "a");
   const readinessTimeoutMs = resolveStartupTimeoutMs(startupTimeoutMs);
   const quickPhaseTimeoutMs = Math.min(8000, readinessTimeoutMs);
   const extendedPhaseTimeoutMs = Math.max(0, readinessTimeoutMs - quickPhaseTimeoutMs);
@@ -138,11 +139,10 @@ export function spawnManagedService(params: {
   appendStartupStage(logPath, `spawning background process: ${cliLaunch.command} ${childArgs.join(" ")}`);
   const child = spawn(cliLaunch.command, childArgs, {
     env: process.env,
-    stdio: ["ignore", logFd, logFd],
+    stdio: "ignore",
     detached: true
   });
   appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
-  closeSync(logFd);
   if (!child.pid) {
     appendStartupStage(logPath, "spawn failed: child pid missing");
     console.error("Error: Failed to start background service.");

@@ -200,6 +200,11 @@ export type DoctorCommandOptions = {
   fix?: boolean;
 };
 
+export type LogsTailCommandOptions = {
+  crash?: boolean;
+  lines?: string | number;
+};
+
 export type UsageCommandOptions = {
   json?: boolean;
   history?: boolean;

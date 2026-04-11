@@ -384,6 +384,9 @@ cron
 
 program.command("status").description(`Show ${APP_NAME} status`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.status(opts));
 program.command("doctor").description(`Run ${APP_NAME} diagnostics`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.doctor(opts));
+const logs = program.command("logs").description("Inspect local runtime logs");
+logs.command("path").description("Show local log file paths").action(() => runtime.logsPath());
+logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.logsTail(opts));
 program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => llmUsageCommands.show(opts));
 
 program.parseAsync(process.argv);

@@ -6,7 +6,8 @@ import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import {
   createExternalCommandEnv,
-  getDataDir,
+  getLogsArchivePath,
+  getLogsPath,
   getPackageVersion as getCorePackageVersion,
   resolveLocalUiBaseUrl,
   type Config
@@ -66,7 +67,15 @@ export function buildServeArgs(options: { uiPort: number }): string[] {
 }
 
 export function resolveServiceLogPath(): string {
-  return resolve(getDataDir(), "logs", "service.log");
+  return resolve(getLogsPath(), "service.log");
+}
+
+export function resolveCrashLogPath(): string {
+  return resolve(getLogsPath(), "crash.log");
+}
+
+export function resolveLogsArchivePath(): string {
+  return getLogsArchivePath();
 }
 
 export function isProcessRunning(pid: number): boolean {

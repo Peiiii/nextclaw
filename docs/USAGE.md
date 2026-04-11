@@ -195,6 +195,18 @@ Restart is still required for:
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: plugins reloaded.` / `Config reload: plugin channel gateways restarted.` / `Config reload: channels restarted.`
 
+Runtime logs live under `${NEXTCLAW_HOME:-~/.nextclaw}/logs/`:
+
+- `service.log`: current runtime log
+- `crash.log`: fatal / startup / uncaught crash log
+- `archive/*.log`: rotated history files with timestamps
+
+Useful commands:
+
+- `nextclaw logs path`
+- `nextclaw logs tail`
+- `nextclaw logs tail --crash`
+
 UI note: **Model** page save persists `agents.defaults.model` only.
 
 ### Multi-agent routing & session isolation (OpenClaw-aligned)

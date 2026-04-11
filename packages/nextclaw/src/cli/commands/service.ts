@@ -1,6 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
 import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat";
-import { appendFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
@@ -36,6 +35,7 @@ import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGat
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./service-support/gateway/service-gateway-runtime-lifecycle.js";
 import { inspectUiTarget, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
+import { RuntimeLogManager } from "../runtime-logging/runtime-log-manager.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
 export { resolveCliSubcommandEntry };
@@ -86,9 +86,12 @@ export class ServiceCommands {
   private applyLiveConfigReload: (() => Promise<void>) | null = null;
   private liveUiNcpAgent: UiNcpAgentHandle | null = null;
   private readonly fileWatchers = new ServiceFileWatcherRegistry();
+  private readonly runtimeLogManager = new RuntimeLogManager();
+  private loggingInstalled = false;
   constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
+    this.ensureRuntimeLoggingInstalled();
     logStartupTrace("service.start_gateway.begin");
     await this.fileWatchers.clear();
     this.applyLiveConfigReload = null;
@@ -389,6 +392,7 @@ export class ServiceCommands {
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {
+    this.runtimeLogManager.ensureReady();
     const { open, startupTimeoutMs, uiOverrides } = options;
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, uiOverrides);
@@ -481,6 +485,7 @@ export class ServiceCommands {
       resolveServiceLogPath
     });
     if (!startup) {
+      this.runtimeLogManager.appendCrashLine("managed service startup aborted before child process was created", "fatal");
       process.exitCode = 1;
       return;
     }
@@ -502,6 +507,17 @@ export class ServiceCommands {
       managedServiceStateStore.clear();
       const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
       this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
+      this.runtimeLogManager.appendCrashLine(
+        [
+          "managed service startup failed before ready",
+          `ui=${uiUrl}`,
+          `api=${apiUrl}`,
+          `health=${healthUrl}`,
+          `logPath=${startup.logPath}`,
+          ...(readiness.lastProbeError ? [`lastProbeError=${readiness.lastProbeError}`] : []),
+        ].join(" | "),
+        "fatal"
+      );
       console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
       this.printStartupFailureDiagnostics({
         uiUrl,
@@ -609,7 +625,7 @@ export class ServiceCommands {
 
   private appendStartupStage = (logPath: string, message: string): void => {
     try {
-      appendFileSync(logPath, `[${new Date().toISOString()}] [startup] ${message}\n`, "utf-8");
+      new RuntimeLogManager({ serviceLogPath: logPath }).appendServiceLine(`[startup] ${message}`);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
@@ -749,6 +765,19 @@ export class ServiceCommands {
     console.log("Service controls:");
     console.log(`  - Check status: ${APP_NAME} status`);
     console.log(`  - If you need to stop the service, run: ${APP_NAME} stop`);
+    console.log(`  - View log paths: ${APP_NAME} logs path`);
+    console.log(`  - Tail recent logs: ${APP_NAME} logs tail`);
+  };
+
+  private ensureRuntimeLoggingInstalled = (): void => {
+    if (this.loggingInstalled) {
+      return;
+    }
+    this.runtimeLogManager.ensureReady();
+    this.runtimeLogManager.installConsoleMirror();
+    this.runtimeLogManager.installProcessCrashMonitor();
+    this.runtimeLogManager.appendServiceLine(`runtime logging ready (startupId=${this.runtimeLogManager.getStartupId()})`);
+    this.loggingInstalled = true;
   };
 
   private installBuiltinMarketplaceSkill = (slug: string, _force: boolean | undefined): { message: string; output?: string } | null => {
