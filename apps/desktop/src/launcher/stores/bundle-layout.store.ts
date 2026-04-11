@@ -1,7 +1,7 @@
-import { app } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
+import { resolveDesktopDataDir } from "../../utils/desktop-paths.utils";
 
 export type DesktopVersionPointer = {
   version: string;
@@ -28,14 +28,6 @@ function normalizeVersionPointer(parsed: Record<string, unknown> | null): Deskto
     return null;
   }
   return { version };
-}
-
-export function resolveDesktopDataDir(baseDir?: string): string {
-  const explicitBaseDir = baseDir ?? process.env.NEXTCLAW_DESKTOP_DATA_DIR?.trim();
-  if (explicitBaseDir) {
-    return resolve(explicitBaseDir);
-  }
-  return resolve(app.getPath("userData"));
 }
 
 export class DesktopBundleLayoutStore {

@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  formatRuntimeCommandFailureMessage,
-  resolveManagedUiBaseUrlFromConfig
-} from "./runtime-service";
+import { formatRuntimeCommandFailureMessage } from "./runtime-service";
 
 test("includes recent cli output in runtime command failure message", () => {
   assert.equal(
@@ -22,30 +19,4 @@ test("includes recent cli output in runtime command failure message", () => {
       "Health probe: http://127.0.0.1:55667/api/health is already healthy."
     ].join("\n")
   );
-});
-
-test("resolves managed ui base url from config using local client contract", () => {
-  assert.equal(
-    resolveManagedUiBaseUrlFromConfig({
-      ui: {
-        port: 55667,
-      }
-    }),
-    "http://127.0.0.1:55667"
-  );
-});
-
-test("managed ui config fallback keeps a stable loopback origin even when host is localhost", () => {
-  assert.equal(
-    resolveManagedUiBaseUrlFromConfig({
-      ui: {
-        port: 18792,
-      }
-    }),
-    "http://127.0.0.1:18792"
-  );
-});
-
-test("managed ui config fallback uses default port when config is missing", () => {
-  assert.equal(resolveManagedUiBaseUrlFromConfig(null), "http://127.0.0.1:55667");
 });

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { RuntimeServiceProcess } = require("../dist/runtime-service.js");
+const { RuntimeServiceProcess } = require("../dist/src/runtime-service.js");
 
 function assert(condition, message) {
   if (!condition) {
@@ -17,6 +17,7 @@ function assert(condition, message) {
 const workspace = mkdtempSync(join(tmpdir(), "nextclaw-desktop-smoke-"));
 const embeddedScriptPath = join(workspace, "mock-embedded-runtime.cjs");
 const managedScriptPath = join(workspace, "mock-managed-runtime.cjs");
+const managedServerPath = join(workspace, "mock-managed-runtime-server.cjs");
 
 writeFileSync(
   embeddedScriptPath,
@@ -49,23 +50,50 @@ writeFileSync(
 );
 
 writeFileSync(
+  managedServerPath,
+  [
+    "const http = require('node:http');",
+    "const port = Number(process.argv[2] || 0);",
+    "if (!port) throw new Error('missing managed server port');",
+    "const server = http.createServer((req, res) => {",
+    "  if (req.url === '/api/health') {",
+    "    res.writeHead(200, { 'content-type': 'application/json' });",
+    "    res.end(JSON.stringify({ ok: true, data: { status: 'ok' } }));",
+    "    return;",
+    "  }",
+    "  res.writeHead(404, { 'content-type': 'application/json' });",
+    "  res.end(JSON.stringify({ ok: false }));",
+    "});",
+    "server.listen(port, '127.0.0.1');",
+    "setTimeout(() => server.close(() => process.exit(0)), 15000);",
+    "process.on('SIGTERM', () => server.close(() => process.exit(0)));",
+    "process.on('SIGINT', () => server.close(() => process.exit(0)));"
+  ].join("\n"),
+  "utf8"
+);
+
+writeFileSync(
   managedScriptPath,
   [
     "const { mkdirSync, writeFileSync } = require('node:fs');",
     "const { join, resolve } = require('node:path');",
+    "const { fork } = require('node:child_process');",
     "const args = process.argv.slice(2);",
     "const command = args[0];",
     "const dataDir = resolve(process.env.NEXTCLAW_HOME || '.');",
-    "const runDir = join(dataDir, 'run');",
-    "const statePath = join(runDir, 'service.json');",
-    "mkdirSync(runDir, { recursive: true });",
+    "const configPath = join(dataDir, 'config.json');",
+    "const serverScriptPath = process.env.MANAGED_TEST_SERVER_SCRIPT;",
+    "mkdirSync(dataDir, { recursive: true });",
     "if (command === 'init') {",
     "  process.exit(0);",
     "}",
     "if (command !== 'start') throw new Error('expected start command');",
     "const port = Number(process.env.MANAGED_TEST_PORT || 0);",
     "if (!port) throw new Error('missing managed test port');",
-    "writeFileSync(statePath, JSON.stringify({ uiHost: '0.0.0.0', uiPort: port }, null, 2));",
+    "if (!serverScriptPath) throw new Error('missing MANAGED_TEST_SERVER_SCRIPT');",
+    "writeFileSync(configPath, JSON.stringify({ ui: { host: '0.0.0.0', port } }, null, 2));",
+    "const child = fork(serverScriptPath, [String(port)], { detached: true, stdio: 'ignore' });",
+    "child.unref();",
     "process.exit(0);"
   ].join("\n"),
   "utf8"
@@ -95,9 +123,11 @@ try {
   const managedPort = await pickFreePort();
   const previousHome = process.env.NEXTCLAW_HOME;
   const previousManagedPort = process.env.MANAGED_TEST_PORT;
+  const previousManagedServerScript = process.env.MANAGED_TEST_SERVER_SCRIPT;
   mkdirSync(managedHome, { recursive: true });
   process.env.NEXTCLAW_HOME = managedHome;
   process.env.MANAGED_TEST_PORT = String(managedPort);
+  process.env.MANAGED_TEST_SERVER_SCRIPT = managedServerPath;
 
   try {
     const managedRuntime = new RuntimeServiceProcess({
@@ -107,7 +137,7 @@ try {
       startupTimeoutMs: 8_000
     });
     const managedResult = await managedRuntime.start();
-    assert(existsSync(join(managedHome, "run", "service.json")), "managed-service must write service.json");
+    assert(existsSync(join(managedHome, "config.json")), "managed-service must write config.json");
     assert(
       managedResult.baseUrl === `http://127.0.0.1:${managedPort}`,
       `managed-service must resolve loopback UI url, got ${managedResult.baseUrl}`
@@ -123,6 +153,11 @@ try {
       delete process.env.MANAGED_TEST_PORT;
     } else {
       process.env.MANAGED_TEST_PORT = previousManagedPort;
+    }
+    if (previousManagedServerScript === undefined) {
+      delete process.env.MANAGED_TEST_SERVER_SCRIPT;
+    } else {
+      process.env.MANAGED_TEST_SERVER_SCRIPT = previousManagedServerScript;
     }
   }
 

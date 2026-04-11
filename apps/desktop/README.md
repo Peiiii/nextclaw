@@ -8,11 +8,14 @@ Electron desktop shell for NextClaw.
 - `pnpm -C apps/desktop build`: build desktop runtime bundle (`dist/`).
 - `pnpm -C apps/desktop dist`: build desktop artifacts with electron-builder.
 - `pnpm -C apps/desktop smoke`: run non-GUI runtime smoke test.
+- `pnpm -C apps/desktop bundle:public-key -- ...`: derive the bundled desktop update public key from the signing private key.
+- `pnpm -C apps/desktop bundle:build -- ...`: build a launcher-compatible zipped product bundle.
+- `pnpm -C apps/desktop bundle:manifest -- ...`: generate a signed desktop update manifest for a product bundle archive.
 
 ## Notes
 
-- `build:main` uses `tsc` emit (no bundling). This avoids bundling Electron's runtime loader into `dist/main.js`.
-- `dev` will auto-check `nextclaw/dist`. If missing, it auto-runs `pnpm -C packages/nextclaw build`.
+- `build:main` uses `tsc` emit (no bundling). This avoids bundling Electron's runtime loader into `dist/src/main.js`.
+- `dev` will auto-check `nextclaw/dist`. If missing, it auto-runs `pnpm -C packages/nextclaw build`, then injects `NEXTCLAW_DESKTOP_RUNTIME_SCRIPT=../../packages/nextclaw/dist/cli/index.js` explicitly.
 - `pack` / `dist` will auto-ensure `nextclaw-ui` + `nextclaw` runtime artifacts before packaging.
 - If you see `Electron failed to install correctly`, first run:
   - `PATH=/opt/homebrew/bin:$PATH pnpm install`
@@ -20,6 +23,75 @@ Electron desktop shell for NextClaw.
   - then retry `PATH=/opt/homebrew/bin:$PATH pnpm dev:desktop`
 
 ## Release Modes
+
+### Product Bundle Update Manifest
+
+Build a zipped product bundle from the current `nextclaw` package output:
+
+```bash
+pnpm -C apps/desktop bundle:build -- \
+  --platform linux \
+  --arch x64 \
+  --version 0.18.0 \
+  --minimum-launcher-version 0.0.134 \
+  --output-dir apps/desktop/dist-bundles
+```
+
+The builder currently:
+
+- ensures `packages/nextclaw-ui` + `packages/nextclaw` outputs exist
+- uses `pnpm --filter nextclaw --prod deploy` to create a self-contained runtime tree
+- copies `ui-dist` into bundle `ui/`
+- emits `bundle/manifest.json`
+- writes `nextclaw-bundle-<platform>-<arch>-<version>.zip`
+
+Generate a signed manifest for a zipped product bundle:
+
+```bash
+pnpm -C apps/desktop bundle:manifest -- \
+  --bundle apps/desktop/dist-bundles/nextclaw-bundle-linux-x64-0.18.0.zip \
+  --platform linux \
+  --arch x64 \
+  --version 0.18.0 \
+  --minimum-launcher-version 0.1.0 \
+  --bundle-url https://example.com/nextclaw-bundle-linux-x64-0.18.0.zip \
+  --output apps/desktop/release-manifests/manifest-stable-linux-x64.json \
+  --private-key-file /path/to/desktop-bundle-private.pem
+```
+
+Equivalent environment variables are also supported for signing:
+
+- `NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY`
+- `NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY_FILE`
+
+The generated manifest now includes both:
+
+- `bundleSignature`: signs the downloaded bundle archive
+- `manifestSignature`: signs the manifest payload itself
+
+Write the packaged launcher public key file from the same private key:
+
+```bash
+pnpm -C apps/desktop bundle:public-key -- \
+  --private-key-file /path/to/desktop-bundle-private.pem \
+  --output apps/desktop/build/update-bundle-public.pem
+```
+
+At runtime the launcher verifies bundle signatures with:
+
+- `NEXTCLAW_DESKTOP_UPDATE_MANIFEST_URL` as an explicit override
+- `NEXTCLAW_DESKTOP_BUNDLE_PUBLIC_KEY` as an explicit override
+- packaged default manifest URL:
+  - `https://github.com/Peiiii/nextclaw/releases/latest/download/manifest-stable-<platform>-<arch>.json`
+- packaged default bundled public key:
+  - `resources/update/update-bundle-public.pem`
+
+The same public key is used to verify both the manifest signature and the bundle signature.
+
+Desktop runtime sources are now intentionally reduced to only two:
+
+- `bundle`: the packaged launcher runs the active product bundle
+- `environment-override`: development or diagnostics can explicitly provide `NEXTCLAW_DESKTOP_RUNTIME_SCRIPT`
 
 ### 1) Validate before release
 
@@ -69,6 +141,9 @@ All artifacts are under `apps/desktop/release`:
 - `win-unpacked/NextClaw Desktop.exe`
 - `NextClaw.Desktop-<version>-linux-x64.AppImage`
 - `nextclaw-desktop_<version>_amd64.deb`
+- `../dist-bundles/nextclaw-bundle-<platform>-<arch>-<version>.zip`
+- `../release-manifests/manifest-stable-<platform>-<arch>.json`
+- `../build/update-bundle-public.pem`
 
 ### 4) Linux package lifecycle
 

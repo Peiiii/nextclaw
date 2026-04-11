@@ -1,8 +1,5 @@
 import { fork, type ChildProcess } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { createServer } from "node:net";
-import { homedir } from "node:os";
-import { resolve } from "node:path";
 import { setTimeout as sleep } from "node:timers/promises";
 
 type RuntimeLogger = {
@@ -14,15 +11,9 @@ type RuntimeLogger = {
 type RuntimeServiceOptions = {
   logger: RuntimeLogger;
   scriptPath: string;
+  runtimeEnv: NodeJS.ProcessEnv;
   startupTimeoutMs?: number;
   healthPath?: string;
-  mode?: "managed-service" | "embedded-serve";
-};
-
-type RuntimeConfigState = {
-  ui?: {
-    port?: unknown;
-  };
 };
 
 type RuntimeCommandFailureParams = {
@@ -32,49 +23,30 @@ type RuntimeCommandFailureParams = {
   outputLines: string[];
 };
 
-const LOOPBACK_HOST = "127.0.0.1";
-
 export class RuntimeServiceProcess {
   private readonly startupTimeoutMs: number;
   private readonly healthPath: string;
-  private readonly mode: "managed-service" | "embedded-serve";
   private child: ChildProcess | null = null;
   private port: number | null = null;
 
   constructor(private readonly options: RuntimeServiceOptions) {
     this.startupTimeoutMs = options.startupTimeoutMs ?? 25_000;
     this.healthPath = options.healthPath ?? "/api/health";
-    this.mode = options.mode ?? "embedded-serve";
   }
 
   start = async (): Promise<{ port: number; baseUrl: string }> => {
     if (this.child) {
       throw new Error("Runtime process already started.");
     }
-    if (this.mode === "managed-service") {
-      return await this.startManagedService();
-    }
     return await this.startEmbeddedServe();
-  };
-
-  private startManagedService = async (): Promise<{ port: number; baseUrl: string }> => {
-    await this.ensureInitialized();
-    await this.runCliCommand(["start"], "start");
-    const baseUrl = resolveManagedUiBaseUrlFromConfig(this.readRuntimeConfig());
-    await waitForHealth(`${baseUrl}${this.healthPath}`, Math.min(this.startupTimeoutMs, 5_000));
-    const parsedPort = this.parsePort(baseUrl);
-    this.port = parsedPort;
-    return { port: parsedPort ?? 0, baseUrl };
   };
 
   private startEmbeddedServe = async (): Promise<{ port: number; baseUrl: string }> => {
     await this.ensureInitialized();
     const port = await pickFreePort();
+    this.options.logger.info(`[runtime] launching embedded serve with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
     const child = fork(this.options.scriptPath, ["serve", "--ui-port", String(port)], {
-      env: {
-        ...process.env,
-        ELECTRON_RUN_AS_NODE: "1"
-      },
+      env: this.options.runtimeEnv,
       stdio: "pipe"
     });
 
@@ -98,7 +70,7 @@ export class RuntimeServiceProcess {
   };
 
   private ensureInitialized = async (): Promise<void> => {
-    this.options.logger.info("[runtime] running bootstrap init");
+    this.options.logger.info(`[runtime] running bootstrap init with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
     await this.runCliCommand(["init"], "init");
   };
 
@@ -106,10 +78,7 @@ export class RuntimeServiceProcess {
     await new Promise<void>((resolve, reject) => {
       let outputLines: string[] = [];
       const child = fork(this.options.scriptPath, args, {
-        env: {
-          ...process.env,
-          ELECTRON_RUN_AS_NODE: "1"
-        },
+        env: this.options.runtimeEnv,
         stdio: "pipe"
       });
 
@@ -151,12 +120,6 @@ export class RuntimeServiceProcess {
   };
 
   stop = async (): Promise<void> => {
-    if (this.mode === "managed-service") {
-      this.child = null;
-      this.port = null;
-      return;
-    }
-
     const child = this.child;
     if (!child || child.killed) {
       this.child = null;
@@ -185,47 +148,6 @@ export class RuntimeServiceProcess {
     this.child = null;
     this.port = null;
   };
-
-  private readRuntimeConfig = (): RuntimeConfigState | null => {
-    const configPath = this.resolveRuntimeConfigPath();
-    if (!existsSync(configPath)) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(readFileSync(configPath, "utf8"));
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return null;
-      }
-      return parsed as RuntimeConfigState;
-    } catch {
-      return null;
-    }
-  };
-
-  private resolveRuntimeConfigPath = (): string => {
-    const homeOverride = process.env.NEXTCLAW_HOME?.trim();
-    const dataDir = homeOverride ? resolve(homeOverride) : resolve(homedir(), ".nextclaw");
-    return resolve(dataDir, "config.json");
-  };
-
-  private parsePort = (baseUrl: string): number | null => {
-    try {
-      const parsed = new URL(baseUrl);
-      const explicitPort = Number(parsed.port);
-      if (Number.isFinite(explicitPort) && explicitPort > 0) {
-        return explicitPort;
-      }
-      if (parsed.protocol === "http:") {
-        return 80;
-      }
-      if (parsed.protocol === "https:") {
-        return 443;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  };
 }
 
 export function formatRuntimeCommandFailureMessage(params: RuntimeCommandFailureParams): string {
@@ -235,12 +157,6 @@ export function formatRuntimeCommandFailureMessage(params: RuntimeCommandFailure
     return header;
   }
   return `${header}\n${outputLines.join("\n")}`;
-}
-
-export function resolveManagedUiBaseUrlFromConfig(config: RuntimeConfigState | null): string {
-  const configuredPort = Number(config?.ui?.port);
-  const port = Number.isFinite(configuredPort) && configuredPort > 0 ? configuredPort : 55667;
-  return `http://${LOOPBACK_HOST}:${port}`;
 }
 
 function rememberRuntimeCommandOutput(outputLines: string[], chunk: string): string[] {

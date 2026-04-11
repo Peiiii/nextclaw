@@ -31,6 +31,7 @@ RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
 DEFAULT_UI_PORT=55667
 RUNTIME_FALLBACK_PORT_START=55667
 RUNTIME_FALLBACK_PORT_END=55716
+SMOKE_UI_PORT=""
 
 mkdir -p "${LOG_ROOT}"
 
@@ -103,9 +104,7 @@ collect_descendant_pids() {
 
 collect_candidate_ports() {
   local -a pids=("$@")
-  # The packaged desktop app starts the runtime on the default UI port even when
-  # the runtime process detaches from the launcher process tree.
-  local -a ports=("${DEFAULT_UI_PORT}")
+  local -a ports=()
   local env_name
   local env_port
   local current_pid=""
@@ -142,6 +141,48 @@ collect_candidate_ports() {
   fi
 
   dedupe_ports "${ports[@]}"
+}
+
+prepare_isolated_runtime_config() {
+  local runtime_script
+  runtime_script="$(find_runtime_script || true)"
+  if [[ -z "${runtime_script}" ]]; then
+    echo "[desktop-smoke] failed to locate packaged runtime script before launch." >&2
+    return 1
+  fi
+
+  SMOKE_UI_PORT="$(pick_runtime_port || true)"
+  if [[ -z "${SMOKE_UI_PORT}" ]]; then
+    echo "[desktop-smoke] failed to reserve an isolated UI port for smoke." >&2
+    return 1
+  fi
+
+  export NEXTCLAW_UI_PORT="${SMOKE_UI_PORT}"
+  echo "[desktop-smoke] preparing isolated runtime config on port ${SMOKE_UI_PORT}"
+
+  if ! ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${runtime_script}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
+    echo "[desktop-smoke] isolated runtime init failed. See ${RUNTIME_STDOUT_LOG}" >&2
+    return 1
+  fi
+
+  if ! node - "${SMOKE_HOME}/config.json" "${SMOKE_UI_PORT}" <<'NODE'
+const fs = require("node:fs");
+const [configPath, port] = process.argv.slice(2);
+const parsedPort = Number(port);
+const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+config.ui = {
+  ...(config.ui && typeof config.ui === "object" ? config.ui : {}),
+  enabled: true,
+  host: "127.0.0.1",
+  open: false,
+  port: parsedPort
+};
+fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
+NODE
+  then
+    echo "[desktop-smoke] failed to write isolated runtime config. See ${RUNTIME_STDOUT_LOG}" >&2
+    return 1
+  fi
 }
 
 stop_process_tree() {
@@ -298,6 +339,8 @@ echo "[desktop-smoke] smoke home: ${SMOKE_HOME}"
 rm -rf "${SMOKE_HOME}" "${INSTALL_ROOT}" >/dev/null 2>&1 || true
 mkdir -p "${SMOKE_HOME}" "${INSTALL_ROOT}"
 export NEXTCLAW_HOME="${SMOKE_HOME}"
+export NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE="${SMOKE_HOME}"
+export NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE="${SMOKE_HOME}"
 
 echo "[desktop-smoke] mounting dmg"
 ATTACH_OUTPUT="$(hdiutil attach "${DMG_PATH}" -nobrowse -noverify -noautoopen)"
@@ -323,6 +366,8 @@ if [[ ! -x "${APP_BIN}" ]]; then
   echo "[desktop-smoke] app binary not executable: ${APP_BIN}" >&2
   exit 1
 fi
+
+prepare_isolated_runtime_config
 
 echo "[desktop-smoke] launching desktop app"
 "${APP_BIN}" >"${APP_STDOUT_LOG}" 2>&1 &

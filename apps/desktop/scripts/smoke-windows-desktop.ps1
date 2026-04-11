@@ -212,6 +212,8 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $logRoot
 New-Item -ItemType Directory -Path $smokeHome | Out-Null
 New-Item -ItemType Directory -Path $logRoot | Out-Null
 $env:NEXTCLAW_HOME = $smokeHome
+$env:NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE = $smokeHome
+$env:NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE = $smokeHome
 
 $appProc = $null
 try {
