@@ -27,6 +27,7 @@
     "lint:new-code:param-mutations": "node scripts/lint-new-code-param-mutations.mjs",
     "lint:new-code:react-effects": "node scripts/lint-new-code-react-effects.mjs",
     "lint:new-code:file-names": "node scripts/lint-new-code-file-names.mjs",
+    "lint:new-code:file-role-boundaries": "node scripts/lint-new-code-file-role-boundaries.mjs",
     "lint:new-code:closure-objects": "node scripts/lint-new-code-closure-objects.mjs",
     "lint:new-code:context-destructuring": "node scripts/lint-new-code-context-destructuring.mjs",
     "lint:new-code:flat-directories": "node scripts/lint-new-code-flat-directories.mjs",
