@@ -39,7 +39,20 @@ Examples:
 - `.controller.ts`: route/request entry layer, protocol adaptation, input validation.
 - `.provider.ts`: provider-facing integration capability.
 
-## 4. Test File Naming
+## 4. Directory-to-Suffix Mapping
+
+- `controllers/` should only contain `*.controller.ts` files.
+- `services/` should only contain `*.service.ts` files.
+- `providers/` should only contain `*.provider.ts` files.
+- `repositories/` should only contain `*.repository.ts` files.
+- `stores/` should only contain `*.store.ts` files.
+- `types/` should only contain `*.types.ts` files.
+- `utils/` should only contain `*.utils.ts` files.
+- `hooks/` should contain `use-<domain>.ts` or `use-<domain>.tsx`.
+- `pages/` should contain `<domain>-page.tsx`.
+- `components/` may keep plain kebab-case names, but still require one clear primary responsibility per file.
+
+## 5. Test File Naming
 
 - Unit test: `<domain>.<role>.test.ts`
 - Integration test: `<domain>.<role>.int.test.ts`
@@ -50,27 +63,38 @@ Examples:
 - `chat.controller.test.ts`
 - `chat-stream.manager.int.test.ts`
 
-## 5. Directory and Export Rules
+## 6. Directory and Export Rules
 
 - Prefer feature-first folder organization.
+- Non-component/page/hook files should default to whitelist-only secondary suffixes.
+- `app.ts`, `main.ts`, `main.tsx`, and `index.ts` are the only default entry-point exceptions.
 - `index.ts` should only aggregate exports.
 - Avoid weak names like `utils.ts`, `helpers.ts`, `common.ts` in broad shared scope.
 
-## 6. Anti-Patterns
+## 7. Anti-Patterns
 
 - `ChatController.ts` (not kebab-case)
 - `chatController.ts` (not kebab-case)
 - `chat_controller.ts` (snake_case)
 - `controller.ts` (missing domain context)
 - `chat.service.manager.ts` (mixed roles)
+- `services/chat-manager.ts` (directory and suffix do not match)
+- `hooks/chat-session.ts` (hook directory but not `use-*`)
+- `pages/chat.tsx` (page directory but not `*-page.tsx`)
 
-## 7. Migration Policy
+## 8. Migration Policy
 
 - New files: must follow this spec immediately.
 - Existing files: apply rename when touched.
 - Large-scale rename: execute by module batches to reduce conflicts.
 
-## 8. Rename Execution Checklist
+## 9. Automated Enforcement
+
+- `pnpm lint:new-code:file-names` blocks new or renamed non-kebab files.
+- `pnpm lint:new-code:file-role-boundaries` blocks new or renamed files that miss an approved role suffix or violate directory-to-suffix mapping.
+- Touched legacy violations should warn first so migration can stay diff-only and incremental.
+
+## 10. Rename Execution Checklist
 
 1. Build old-to-new filename mapping.
 2. Rename with `git mv`.
