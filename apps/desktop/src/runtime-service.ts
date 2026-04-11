@@ -19,12 +19,6 @@ type RuntimeServiceOptions = {
   mode?: "managed-service" | "embedded-serve";
 };
 
-type ServiceState = {
-  uiUrl?: unknown;
-  uiHost?: unknown;
-  uiPort?: unknown;
-};
-
 type RuntimeConfigState = {
   ui?: {
     port?: unknown;
@@ -66,9 +60,7 @@ export class RuntimeServiceProcess {
   private startManagedService = async (): Promise<{ port: number; baseUrl: string }> => {
     await this.ensureInitialized();
     await this.runCliCommand(["start"], "start");
-    const state = this.readServiceState();
-    const baseUrl = resolveManagedUiBaseUrlFromState(state)
-      ?? resolveManagedUiBaseUrlFromConfig(this.readRuntimeConfig());
+    const baseUrl = resolveManagedUiBaseUrlFromConfig(this.readRuntimeConfig());
     await waitForHealth(`${baseUrl}${this.healthPath}`, Math.min(this.startupTimeoutMs, 5_000));
     const parsedPort = this.parsePort(baseUrl);
     this.port = parsedPort;
@@ -194,22 +186,6 @@ export class RuntimeServiceProcess {
     this.port = null;
   };
 
-  private readServiceState = (): ServiceState | null => {
-    const statePath = this.resolveServiceStatePath();
-    if (!existsSync(statePath)) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(readFileSync(statePath, "utf8"));
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return null;
-      }
-      return parsed as ServiceState;
-    } catch {
-      return null;
-    }
-  };
-
   private readRuntimeConfig = (): RuntimeConfigState | null => {
     const configPath = this.resolveRuntimeConfigPath();
     if (!existsSync(configPath)) {
@@ -224,12 +200,6 @@ export class RuntimeServiceProcess {
     } catch {
       return null;
     }
-  };
-
-  private resolveServiceStatePath = (): string => {
-    const homeOverride = process.env.NEXTCLAW_HOME?.trim();
-    const dataDir = homeOverride ? resolve(homeOverride) : resolve(homedir(), ".nextclaw");
-    return resolve(dataDir, "run", "service.json");
   };
 
   private resolveRuntimeConfigPath = (): string => {
@@ -256,59 +226,6 @@ export class RuntimeServiceProcess {
       return null;
     }
   };
-}
-
-export function resolveManagedUiBaseUrlFromState(state: ServiceState | null): string | null {
-  const fromUrl = resolveManagedUiUrl(state);
-  if (fromUrl) {
-    return fromUrl;
-  }
-  const uiHost = typeof state?.uiHost === "string" ? state.uiHost.trim() : "";
-  const uiPort = toManagedPort(state?.uiPort);
-  if (!uiPort) {
-    return null;
-  }
-  const resolvedHost = resolveManagedUiHost(uiHost);
-  if (!resolvedHost) {
-    return null;
-  }
-  return `http://${resolvedHost}:${uiPort}`;
-}
-
-function resolveManagedUiUrl(state: ServiceState | null): string | null {
-  const uiUrl = typeof state?.uiUrl === "string" ? state.uiUrl.trim() : "";
-  if (!uiUrl) {
-    return null;
-  }
-  try {
-    const parsed = new URL(uiUrl);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return null;
-    }
-    const resolvedHost = resolveManagedUiHost(parsed.hostname);
-    const resolvedPort = parsed.port ? toManagedPort(parsed.port) : parsed.protocol === "http:" ? 80 : 443;
-    if (!resolvedHost || !resolvedPort) {
-      return null;
-    }
-    return `${parsed.protocol}//${resolvedHost}:${resolvedPort}`;
-  } catch {
-    return null;
-  }
-}
-
-function resolveManagedUiHost(uiHost: string): string | null {
-  if (!uiHost || isLoopbackHost(uiHost) || isWildcardHost(uiHost)) {
-    return LOOPBACK_HOST;
-  }
-  return uiHost;
-}
-
-function toManagedPort(value: unknown): number | null {
-  const uiPort = Number(value);
-  if (!Number.isFinite(uiPort) || uiPort <= 0) {
-    return null;
-  }
-  return uiPort;
 }
 
 export function formatRuntimeCommandFailureMessage(params: RuntimeCommandFailureParams): string {
@@ -339,16 +256,6 @@ function rememberRuntimeCommandOutput(outputLines: string[], chunk: string): str
     }
   }
   return next;
-}
-
-function isLoopbackHost(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  return normalized === "127.0.0.1" || normalized === "localhost" || normalized === "::1";
-}
-
-function isWildcardHost(value: string): boolean {
-  const normalized = value.trim().toLowerCase();
-  return normalized === "0.0.0.0" || normalized === "::";
 }
 
 export async function waitForHealth(url: string, timeoutMs: number): Promise<void> {

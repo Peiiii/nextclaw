@@ -2,29 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatRuntimeCommandFailureMessage,
-  resolveManagedUiBaseUrlFromConfig,
-  resolveManagedUiBaseUrlFromState
+  resolveManagedUiBaseUrlFromConfig
 } from "./runtime-service";
-
-test("uses uiUrl when managed service state omits uiHost and uiPort", () => {
-  assert.equal(
-    resolveManagedUiBaseUrlFromState({
-      uiUrl: "http://127.0.0.1:55667"
-    }),
-    "http://127.0.0.1:55667"
-  );
-});
-
-test("falls back to uiHost and uiPort when uiUrl is invalid", () => {
-  assert.equal(
-    resolveManagedUiBaseUrlFromState({
-      uiUrl: "not-a-url",
-      uiHost: "0.0.0.0",
-      uiPort: 18792
-    }),
-    "http://127.0.0.1:18792"
-  );
-});
 
 test("includes recent cli output in runtime command failure message", () => {
   assert.equal(
@@ -65,4 +44,8 @@ test("managed ui config fallback keeps a stable loopback origin even when host i
     }),
     "http://127.0.0.1:18792"
   );
+});
+
+test("managed ui config fallback uses default port when config is missing", () => {
+  assert.equal(resolveManagedUiBaseUrlFromConfig(null), "http://127.0.0.1:55667");
 });

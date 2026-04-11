@@ -1,13 +1,13 @@
-import type { Config } from "@nextclaw/core";
+import { resolveLocalUiBaseUrl, type Config } from "@nextclaw/core";
 import { isProcessRunning } from "../utils.js";
 import {
   type LocalUiRuntimeState,
-  LocalUiRuntimeStore,
+  type LocalUiRuntimeStore,
   localUiRuntimeStore
 } from "./local-ui-runtime.store.js";
 import {
   type ManagedServiceState,
-  ManagedServiceStateStore,
+  type ManagedServiceStateStore,
   managedServiceStateStore
 } from "./managed-service-state.store.js";
 
@@ -31,10 +31,6 @@ export class LocalUiDiscoveryService {
     return this.readRunningState(this.localUiStore.read()) ?? this.readRunningState(this.managedServiceStore.read());
   };
 
-  readonly readKnownRuntimeState = (): DiscoveredLocalUiState | null => {
-    return this.readRunningRuntimeState() ?? this.localUiStore.read() ?? this.managedServiceStore.read();
-  };
-
   readonly resolveApiBase = (): string | null => {
     const state = this.readRunningRuntimeState();
     if (!state) {
@@ -51,11 +47,15 @@ export class LocalUiDiscoveryService {
 
   readonly resolveLocalOrigin = (config: Config): string => {
     const state = this.readRunningRuntimeState();
-    if (state && Number.isFinite(state.uiPort)) {
-      return `http://127.0.0.1:${state.uiPort}`;
+    const runtimePort =
+      state && typeof state.uiPort === "number" && Number.isFinite(state.uiPort)
+        ? state.uiPort
+        : null;
+    if (runtimePort !== null) {
+      return resolveLocalUiBaseUrl({ host: "0.0.0.0", port: runtimePort });
     }
     const port = typeof config.ui.port === "number" && Number.isFinite(config.ui.port) ? config.ui.port : 55667;
-    return `http://127.0.0.1:${port}`;
+    return resolveLocalUiBaseUrl({ host: "0.0.0.0", port });
   };
 }
 

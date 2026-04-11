@@ -75,6 +75,25 @@ export function expandHome(value: string): string {
   return value;
 }
 
+function normalizeUiHostForLocalClient(host: string): string {
+  const normalized = host.trim().toLowerCase();
+  if (
+    !normalized
+    || normalized === "0.0.0.0"
+    || normalized === "::"
+    || normalized === "127.0.0.1"
+    || normalized === "localhost"
+    || normalized === "::1"
+  ) {
+    return "127.0.0.1";
+  }
+  return host;
+}
+
+export function resolveLocalUiBaseUrl(params: { host: string; port: number }): string {
+  return `http://${normalizeUiHostForLocalClient(params.host)}:${params.port}`;
+}
+
 function resolveVersionFromPackageTree(startDir: string, expectedName?: string): string | null {
   let current = resolve(startDir);
   while (current.length > 0) {

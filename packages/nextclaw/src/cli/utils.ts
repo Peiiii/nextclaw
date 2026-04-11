@@ -8,6 +8,7 @@ import {
   createExternalCommandEnv,
   getDataDir,
   getPackageVersion as getCorePackageVersion,
+  resolveLocalUiBaseUrl,
   type Config
 } from "@nextclaw/core";
 
@@ -17,8 +18,7 @@ export function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]
 }
 
 export function resolveUiApiBase(host: string, port: number): string {
-  const normalizedHost = host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
-  return `http://${normalizedHost}:${port}`;
+  return resolveLocalUiBaseUrl({ host, port });
 }
 
 export function isLoopbackHost(host: string): boolean {

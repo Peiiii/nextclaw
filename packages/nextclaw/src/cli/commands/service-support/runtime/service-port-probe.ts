@@ -127,6 +127,59 @@ export async function probeHealthEndpoint(healthUrl: string): Promise<{ healthy:
   });
 }
 
+export type UiTargetProbeResult =
+  | {
+      state: "available";
+      availabilityDetail: string;
+      probeError: null;
+    }
+  | {
+      state: "healthy-existing";
+      availabilityDetail: string;
+      probeError: null;
+    }
+  | {
+      state: "occupied-unhealthy";
+      availabilityDetail: string;
+      probeError: string | null;
+    };
+
+export async function inspectUiTarget(params: {
+  host: string;
+  port: number;
+  healthUrl: string;
+  checkPortAvailabilityFn?: typeof checkPortAvailability;
+  probeHealthEndpointFn?: typeof probeHealthEndpoint;
+}): Promise<UiTargetProbeResult> {
+  const { checkPortAvailabilityFn, healthUrl, host, port, probeHealthEndpointFn } = params;
+  const availability = await (checkPortAvailabilityFn ?? checkPortAvailability)({
+    host,
+    port
+  });
+  if (availability.available) {
+    return {
+      state: "available",
+      availabilityDetail: availability.detail,
+      probeError: null
+    };
+  }
+
+  const probe = await (probeHealthEndpointFn ?? probeHealthEndpoint)(healthUrl);
+  if (probe.healthy) {
+    return {
+      state: "healthy-existing",
+      availabilityDetail: availability.detail,
+      probeError: null
+    };
+  }
+
+  return {
+    state: "occupied-unhealthy",
+    availabilityDetail: availability.detail,
+    probeError: probe.error
+  };
+}
+
 export async function describeUnmanagedHealthyTargetMessage(params: {
   uiOverrides: Partial<Config["ui"]>;
   checkPortAvailabilityFn?: typeof checkPortAvailability;
@@ -136,16 +189,14 @@ export async function describeUnmanagedHealthyTargetMessage(params: {
   const uiConfig = resolveUiConfig(config, params.uiOverrides);
   const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
   const healthUrl = `${uiUrl}/api/health`;
-  const availability = await (params.checkPortAvailabilityFn ?? checkPortAvailability)({
+  const target = await inspectUiTarget({
     host: uiConfig.host,
-    port: uiConfig.port
+    port: uiConfig.port,
+    healthUrl,
+    checkPortAvailabilityFn: params.checkPortAvailabilityFn,
+    probeHealthEndpointFn: params.probeHealthEndpointFn
   });
-  if (availability.available) {
-    return null;
-  }
-
-  const probe = await (params.probeHealthEndpointFn ?? probeHealthEndpoint)(healthUrl);
-  if (!probe.healthy) {
+  if (target.state !== "healthy-existing") {
     return null;
   }
 

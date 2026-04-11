@@ -19,24 +19,10 @@ import {
 } from "../utils.js";
 import type { RequestRestartParams } from "../types.js";
 import { ServiceMarketplaceInstaller } from "./service-support/marketplace/service-marketplace-installer.js";
-import {
-  reportManagedServiceStart,
-  resolveManagedServiceUiBinding,
-  resolveSessionRouteCandidate,
-  spawnManagedService,
-  waitForManagedServiceReadiness
-} from "./service-support/runtime/service-managed-startup.js";
-import {
-  finalizeLocalUiStartup,
-  ServiceFileWatcherRegistry,
-  startGatewayRuntimeSupport,
-  watchServiceConfigFile
-} from "./service-support/gateway/service-startup-support.js";
+import { reportManagedServiceStart, resolveManagedServiceUiBinding, resolveSessionRouteCandidate, spawnManagedService, waitForManagedServiceReadiness } from "./service-support/runtime/service-managed-startup.js";
+import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "./service-support/gateway/service-startup-support.js";
 import { localUiRuntimeStore } from "../runtime-state/local-ui-runtime.store.js";
-import {
-  managedServiceStateStore,
-  type ManagedServiceState
-} from "../runtime-state/managed-service-state.store.js";
+import { managedServiceStateStore, type ManagedServiceState } from "../runtime-state/managed-service-state.store.js";
 import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../restart-sentinel.js";
 import { resolveCliSubcommandEntry } from "./service-support/marketplace/cli-subcommand-launch.js";
 import { writeReadyManagedServiceState } from "./service-support/runtime/service-remote-runtime.js";
@@ -46,15 +32,9 @@ import { createGatewayShellContext, createGatewayStartupContext } from "./servic
 import { runConfiguredGatewayRuntime, startUiShell } from "./service-support/gateway/service-gateway-startup.js";
 import { createServiceNcpSessionRealtimeBridge } from "./service-support/session/service-ncp-session-realtime-bridge.js";
 import { createEmptyPluginRegistry } from "./plugin/plugin-registry-loader.js";
-import {
-  configureGatewayPluginRuntime,
-  createBootstrapStatus,
-  createDeferredGatewayStartupHooks,
-  createGatewayRuntimeState,
-  type GatewayRuntimeState
-} from "./service-support/gateway/service-gateway-bootstrap.js";
+import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./service-support/gateway/service-gateway-bootstrap.js";
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./service-support/gateway/service-gateway-runtime-lifecycle.js";
-import { checkPortAvailability, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
+import { inspectUiTarget, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
@@ -198,7 +178,6 @@ export class ServiceCommands {
       wakeFromRestartSentinel: async () =>
         await this.wakeFromRestartSentinel({ bus: gateway.bus, sessionManager: gateway.sessionManager })
     });
-
     await runConfiguredGatewayRuntime({
       uiStartup,
       gateway,
@@ -410,8 +389,9 @@ export class ServiceCommands {
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {
+    const { open, startupTimeoutMs, uiOverrides } = options;
     const config = loadConfig();
-    const uiConfig = resolveUiConfig(config, options.uiOverrides);
+    const uiConfig = resolveUiConfig(config, uiOverrides);
     const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
     const apiUrl = `${uiUrl}/api`;
     const staticDir = resolveUiStaticDir();
@@ -436,7 +416,57 @@ export class ServiceCommands {
         console.error(portPreflight.message)
       );
     }
+    if (portPreflight.reusedExistingHealthyTarget) {
+      await this.reuseExistingHealthyStartTarget({ uiConfig, uiUrl, apiUrl, open });
+      return;
+    }
 
+    await this.startNewManagedServiceTarget({
+      config,
+      uiConfig,
+      uiUrl,
+      apiUrl,
+      healthUrl,
+      startupTimeoutMs,
+    });
+
+    if (open) {
+      openBrowser(uiUrl);
+    }
+  };
+
+  private reuseExistingHealthyStartTarget = async (params: {
+    uiConfig: Config["ui"];
+    uiUrl: string;
+    apiUrl: string;
+    open: boolean;
+  }): Promise<void> => {
+    const { apiUrl, open, uiConfig, uiUrl } = params;
+    console.log(`✓ ${APP_NAME} is already serving the target UI/API port`);
+    console.log(`UI: ${uiUrl}`);
+    console.log(`API: ${apiUrl}`);
+    console.warn(
+      [
+        `Warning: The healthy listener on ${uiConfig.port} is not tracked by ${managedServiceStateStore.path}.`,
+        "This start call reused the existing runtime instead of spawning another one.",
+        "Use the owning process or port-level tools to stop it; managed stop/restart will not control it automatically."
+      ].join(" ")
+    );
+    await this.printPublicUiUrls(uiConfig.host, uiConfig.port);
+    if (open) {
+      openBrowser(uiUrl);
+    }
+  };
+
+  private startNewManagedServiceTarget = async (params: {
+    config: Config;
+    uiConfig: Config["ui"];
+    uiUrl: string;
+    apiUrl: string;
+    healthUrl: string;
+    startupTimeoutMs?: number;
+  }): Promise<void> => {
+    const { apiUrl, config, healthUrl, startupTimeoutMs, uiConfig, uiUrl } = params;
     const startup = spawnManagedService({
       appName: APP_NAME,
       config,
@@ -444,14 +474,15 @@ export class ServiceCommands {
       uiUrl,
       apiUrl,
       healthUrl,
-      startupTimeoutMs: options.startupTimeoutMs,
+      startupTimeoutMs,
       resolveStartupTimeoutMs: this.resolveStartupTimeoutMs,
       appendStartupStage: this.appendStartupStage,
       printStartupFailureDiagnostics: this.printStartupFailureDiagnostics,
       resolveServiceLogPath
     });
     if (!startup) {
-      return void (process.exitCode = 1);
+      process.exitCode = 1;
+      return;
     }
 
     const readiness = await waitForManagedServiceReadiness({
@@ -466,26 +497,23 @@ export class ServiceCommands {
       waitForBackgroundServiceReady: this.waitForBackgroundServiceReady,
       isProcessRunning
     });
-    if (!readiness.ready) {
-      if (!isProcessRunning(startup.snapshot.pid)) {
-        process.exitCode = 1;
-        managedServiceStateStore.clear();
-        const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
-        this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
-        console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
-        this.printStartupFailureDiagnostics({
-          uiUrl,
-          apiUrl,
-          healthUrl,
-          logPath: startup.logPath,
-          lastProbeError: readiness.lastProbeError
-        });
-        return;
-      }
+    if (!readiness.ready && !isProcessRunning(startup.snapshot.pid)) {
+      process.exitCode = 1;
+      managedServiceStateStore.clear();
+      const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
+      this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
+      console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
+      this.printStartupFailureDiagnostics({
+        uiUrl,
+        apiUrl,
+        healthUrl,
+        logPath: startup.logPath,
+        lastProbeError: readiness.lastProbeError
+      });
+      return;
     }
 
     startup.child.unref();
-
     const state = writeReadyManagedServiceState({
       readinessTimeoutMs: startup.readinessTimeoutMs,
       readiness,
@@ -502,10 +530,6 @@ export class ServiceCommands {
       printPublicUiUrls: this.printPublicUiUrls,
       printServiceControlHints: this.printServiceControlHints
     });
-
-    if (options.open) {
-      openBrowser(uiUrl);
-    }
   };
 
   stopService = async (): Promise<void> => {
@@ -618,33 +642,32 @@ export class ServiceCommands {
     host: string;
     port: number;
     healthUrl: string;
-  }): Promise<{ ok: true } | { ok: false; message: string }> => {
+  }): Promise<
+    | { ok: true; reusedExistingHealthyTarget: boolean }
+    | { ok: false; message: string }
+  > => {
     const { healthUrl, host, port } = params;
-    const availability = await checkPortAvailability({
+    const target = await inspectUiTarget({
       host,
-      port
+      port,
+      healthUrl
     });
-    if (availability.available) {
-      return { ok: true };
+    if (target.state === "available") {
+      return { ok: true, reusedExistingHealthyTarget: false };
+    }
+    if (target.state === "healthy-existing") {
+      return { ok: true, reusedExistingHealthyTarget: true };
     }
 
-    const probe = await probeHealthEndpoint(healthUrl);
     const lines = [
-      `Port probe: ${availability.detail}`
+      `Port probe: ${target.availabilityDetail}`
     ];
-    if (probe.healthy) {
-      lines.push(
-        `Health probe: ${healthUrl} is already healthy. Another process is already serving this UI/API port.`
-      );
-      lines.push(
-        `This usually means a healthy ${APP_NAME} instance is already serving the port, but it is not tracked by the current managed service state, so restart cannot stop it automatically.`
-      );
-    } else if (probe.error) {
-      lines.push(`Health probe: ${probe.error}`);
-      lines.push(
-        "The port is occupied by a process that does not answer as a healthy NextClaw HTTP server."
-      );
+    if (target.probeError) {
+      lines.push(`Health probe: ${target.probeError}`);
     }
+    lines.push(
+      "The port is occupied by a process that does not answer as a healthy NextClaw HTTP server."
+    );
     lines.push(
       `Fix: free port ${port} or start NextClaw with another port via --ui-port <port>.`
     );
