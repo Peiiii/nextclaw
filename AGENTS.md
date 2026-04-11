@@ -280,7 +280,7 @@
   - 约束/适用范围：凡准备新增任何目录或文件（含源码、脚本、测试、文档、配置）时，必须先做目录结构规划，再执行创建。规划不是只报一个路径，而是必须先判断能否复用现有目录/文件、能否先删减或合并、目标目录结构是否符合可维护性最佳实践，以及这次创建后是否会让职责边界、目录平铺度和后续扩展性变差。未经规划与说明，禁止直接新建目录或文件。
   - 示例：准备新增一组 chat 相关文件前，先说明“现有 `chat/` 目录职责已混杂，先按 `adapters/`、`containers/`、`stores/` 分层；本次新文件放入 `adapters/`，不再继续平铺在根目录”；准备新增单个 helper 前，先说明“已有 `utils` 可承载，且无需新目录，本次直接并入现有模块而不是新开 `helpers2/`”。
   - 反例：想到一个能力就直接创建 `foo.ts`、`foo2.ts`、`new-feature/`；先把文件落下再事后解释原因；明知已有目录职责混乱或已有可复用位置，却继续随手新建平行目录/文件；只给出“我打算放这里”但没有复用、合并、边界和维护性判断。
-  - 执行方式：创建前至少先回答五个问题：`现有结构里是否已有可直接复用的位置？`、`是否应先删除/合并现有文件而不是新增？`、`新增后目录职责是否仍然单一清晰？`、`是否会继续恶化目录平铺或 mixed concerns？`、`本次计划创建哪些目录/文件，为什么各自放在那里？`。回答后必须先向用户给出简明结构规划，再开始创建；若实现过程中发现原规划不合适，必须先更新规划，再调整目录或文件落点。该规则与 `directory-file-budget-must-stay-explicit`、`no-duplicate-functionality`、`delete-simplify-before-add` 联合执行。
+  - 执行方式：创建前必须先打开 skill [`.agents/skills/collapsible-feature-root-architecture/SKILL.md`](.agents/skills/collapsible-feature-root-architecture/SKILL.md)，并至少回答七个问题：`现有结构里是否已有可直接复用的位置？`、`是否应先删除/合并现有文件而不是新增？`、`当前作用域属于 L0/L1/L2/L3/L4 哪一档？`、`当前目录能否直接作为 feature root？`、`当前应使用哪一份目录白名单？`、`新增后目录职责是否仍然单一清晰？`、`本次计划创建哪些目录/文件，为什么各自放在那里？`。回答后必须先向用户给出简明结构规划，再开始创建；若实现过程中发现原规划不合适，必须先更新规划，再调整目录或文件落点。该规则与 `collapsible-feature-root-architecture-required`、`directory-file-budget-must-stay-explicit`、`no-duplicate-functionality`、`delete-simplify-before-add` 联合执行。
   - 维护责任人：当前助手。
 - **ui-no-business-logic**：
   - 约束/适用范围：UI 组件禁止依赖业务逻辑。前端中的复杂业务逻辑、状态编排、领域规则与副作用治理，默认必须下沉到 class 边界，而不是停留在组件、hook 或零散 store action 中。
@@ -356,6 +356,12 @@
   - 反例：本地已有兄弟目录 `copaw`，但仍直接去网页搜索或查看远程仓库代码。
   - 执行方式：每次涉及 CoPaw 对比前，先执行兄弟目录存在性检查；存在则本地检索/读取，不存在再切换远程方案。
   - 维护责任人：当前助手。
+- **collapsible-feature-root-architecture-required**：
+  - 约束/适用范围：这是本项目的高优先级架构规则。凡涉及项目代码、脚本、测试、技能、运行链路配置，或会影响目录结构、文件落点、命名边界、模块拆分、平台拆分、package 拆分的设计与实现，必须自动加载并遵循 skill [`.agents/skills/collapsible-feature-root-architecture/SKILL.md`](.agents/skills/collapsible-feature-root-architecture/SKILL.md)。默认采用“可折叠 feature-root 架构”：单 feature 场景当前目录直接作为 feature root，不额外引入 `features/`；只有出现多个并列 feature 时才引入 `features/` 聚合层；只有出现稳定子业务域时才继续展开子 `features/`；目录必须落在当前作用域的白名单内，白名单内目录按需可选，白名单外目录默认禁止。CLI 入口统一归 `app/`，前端多平台仅在 `L4` 使用 `platforms/desktop|mobile|web`，且每个平台内部仍然继续遵循 feature 架构。
+  - 示例：单一 CLI package 直接使用 `src/app + src/features + src/shared`，不额外创建 `commands/`；前端单 feature 模块直接把当前目录作为 feature root，不再包一层空的 `features/<same-domain>/`；一个后端 feature 需要增长时，先在白名单内选择 `controllers/`、`routes/`、`services/`、`repositories/`、`providers/`、`types/`、`utils/`、`shared/`，而不是随手新增 `integrations/`、`workers/`、`consumers/`、`common/`。
+  - 反例：只有一个主 feature 却强行新增 `features/`；明知当前作用域白名单不含某目录仍然新建 `commands/`、`integrations/`、`helpers/`、`misc/`；把 CLI 入口单独拆成 `commands/`；把前端多平台误写成根级散目录，或把 `desktop/`、`mobile/`、`web/` 当作没有内部 feature 结构的平铺容器。
+  - 执行方式：凡发生结构决策前，必须先用该 skill 回答至少七个问题：`当前作用域是什么？`、`当前属于 L0/L1/L2/L3/L4 哪一档？`、`当前目录能否直接作为 feature root？`、`是否真的需要引入 features/？`、`当前应使用哪一份目录白名单？`、`是否存在白名单外目录；若有为何例外成立？`、`是否存在更小更简单的结构？`。若本次结构调整同时涉及命名与目录治理，还必须联动 `file-naming-convention`、`file-organization-governance` 与 `directory-file-budget-must-stay-explicit`；最终结果中必须明确写出采用的复杂度等级、白名单、目录落点理由，以及是否存在例外目录。
+  - 维护责任人：当前助手。
 - **cross-platform-first-for-nextclaw**：
   - 约束/适用范围：凡涉及 `nextclaw` CLI、安装/升级、自更新、路径处理、进程控制、服务托管、脚本或用户可执行流程的设计与实现，默认必须同时考虑 macOS、Linux、Windows 三平台；除非用户明确声明仅限单平台，否则禁止只按当前开发机或单一操作系统做方案。
   - 示例：设计自更新流程时，同时检查全局安装路径、可执行入口、服务托管与 shell/权限差异，分别覆盖 macOS、Linux、Windows 的行为与回滚路径。
@@ -396,7 +402,7 @@
   - 约束/适用范围：凡本仓库触达源码、脚本、测试文件所在目录时，必须防止“一个目录下无理由堆过多直接手写代码文件”。文件数不是唯一触发条件；即使尚未超阈值，只要同一目录开始混入多种职责，或同一问题域持续以平铺方式新增文件，也必须提前做目录组织。默认以直接子文件计数，不递归子目录；`12` 个起进入 review 区间，`20` 个以上默认禁止。`__tests__`、`tests`、`__fixtures__`、`fixtures`、`generated`、`migrations` 目录默认不纳入该约束。
   - 示例：`src/components/chat/` 直接代码文件达到 `12` 个后，继续新增功能前先拆成 `containers/`、`presenters/`、`adapters/`；或某目录虽然只有 `9` 个文件，但已经把 `service`、`store`、`controller`、`utils`、`types` 混放在一起，则应先按领域或职责拆目录，而不是继续平铺；若 `src/pages/` 因框架路由必须保留扁平结构并超过 `20` 个文件，则在该目录 `README.md` 中加入 `## 目录预算豁免` 与 `- 原因：...` 明确说明。
   - 反例：长期把 `utils`、`components`、`services` 混放在同一目录直到二三十个文件；目录已经超过 `20` 个直接代码文件，却既不拆分也不留下任何明确理由；目录虽然未超硬阈值，但同一领域已经连续新增多个文件，仍然以“还没到上限”为由持续平铺；把“可能以后再拆”当作默认豁免。
-  - 执行方式：收尾阶段通过 `post-edit-maintainability-guard` 自动检查被触达目录的直接代码文件数，并按 diff-only 原则识别“进入 review 区间 / 穿越 hard limit / 超限但无豁免说明”。若触达目录出现 mixed concerns 或同领域持续平铺增长，必须参照 `file-organization-governance` skill 的思路先做一次“按功能领域分组 + 按职责分层”的判断。若目录确需超过 `20` 个文件或继续保持扁平，必须在该目录 `README.md` 添加 `## 目录预算豁免` + `- 原因：...`；否则视为阻塞项。
+  - 执行方式：收尾阶段通过 `post-edit-maintainability-guard` 自动检查被触达目录的直接代码文件数，并按 diff-only 原则识别“进入 review 区间 / 穿越 hard limit / 超限但无豁免说明”。若触达目录出现 mixed concerns 或同领域持续平铺增长，必须先参照 skill [`.agents/skills/collapsible-feature-root-architecture/SKILL.md`](.agents/skills/collapsible-feature-root-architecture/SKILL.md) 判断当前目录是否仍应作为单 feature root、是否已满足引入 `features/` 的条件、以及当前作用域白名单下哪些子目录是允许的；然后再结合 `file-organization-governance` skill 做“按功能领域分组 + 按职责分层”的落地判断。若目录确需超过 `20` 个文件或继续保持扁平，必须在该目录 `README.md` 添加 `## 目录预算豁免` + `- 原因：...`；否则视为阻塞项。
   - 维护责任人：当前助手。
 - **post-edit-maintainability-guard-required**：
   - 约束/适用范围：凡本次任务触达项目代码、脚本、测试或影响运行链路的配置，收尾前必须执行项目内 skill `post-edit-maintainability-guard` 的自检；纯文档、措辞或元信息微调不适用，但必须明确说明“不适用”。
