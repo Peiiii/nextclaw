@@ -64,7 +64,7 @@
   - `/new-rule`：创建新规则条目（按 Rulebook 模板）。执行时必须先判断应写入 Rulebook 还是 Project Rulebook；若规则本质是在约束系统行为原则，应优先固化“行为明确、清晰、可预测，不依赖隐藏兜底或环境状态制造 surprise success / surprise failure”这类可复用高层约束，而不是只记录单次问题的表层补丁。
   - `/commit`：进行提交操作（提交信息需使用英文）
   - `/maintainability-review`：对本次改动执行一轮独立于实现阶段的可维护性复核，重点检查“能否删减/简化、是否让代码继续膨胀、抽象与职责边界是否更清晰、非功能改动的增长是否最小必要、是否只是把复杂度换个位置保留”；默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 执行。复核输出除结论与总结外，必须同时包含固定模块 `长期目标对齐 / 可维护性推进`、`代码增减报告` 与 `非测试代码增减报告`；其中 `长期目标对齐 / 可维护性推进` 至少必须说明：本次是否顺着“代码更少、架构更简单、边界更清晰、复用更通用、复杂点更少”的长期方向推进了一小步；若没有，阻碍是什么、下一步准备从哪里推进。若总代码或非测试代码净增长，必须明确说明是否已做到最佳删减、已经删掉或收敛了什么、以及剩余增长为何仍属最小必要。
-  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试。代码改动在动手前，默认先按 Rulebook 的 `business-logic-class-first`、`stateless-utility-first`、`ordinary-function-no-input-mutation`、`class-arrow-methods-by-default`、`react-effect-boundary-only` 做一次结构自检：先判断业务逻辑是否应落到 class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、是否存在普通函数原地改入参、若采用 class 则实例方法是否从第一版起就使用箭头函数、React effect 是否只承担外部系统同步。代码改动收尾默认包含 `pnpm lint:maintainability:guard`，其内统一调用 `pnpm lint:new-code:governance`（当前含新增/重命名文件的 kebab-case 文件名阻断、class 方法箭头函数检查、普通函数入参 mutation 阻断、React effect owner 边界治理，可扩展），并在守卫后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核
+  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试。代码改动在动手前，默认先按 Rulebook 的 `business-logic-must-use-class`、`class-over-function-sprawl`、`stateless-utility-first`、`ordinary-function-no-input-mutation`、`class-arrow-methods-by-default`、`react-effect-boundary-only` 做一次结构自检：先判断业务逻辑是否必须落到 class、是否已经出现函数蔓延且必须收敛为 owner class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、是否存在普通函数原地改入参、若采用 class 则实例方法是否从第一版起就使用箭头函数、React effect 是否只承担外部系统同步。代码改动收尾默认包含 `pnpm lint:maintainability:guard`，其内统一调用 `pnpm lint:new-code:governance`（当前含新增/重命名文件的 kebab-case 文件名阻断、class 方法箭头函数检查、普通函数入参 mutation 阻断、React effect owner 边界治理，可扩展），并在守卫后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核
   - `/release-frontend`：前端一键发布（仅 UI 变更场景）
 
 ## 规则/Rule 机制
@@ -131,6 +131,42 @@
   - 示例：用户说“太慢了”，应推断关注点是性能/流程，先明确建议“优先做瓶颈定位而不是盲目重构”，再给出优化路径与验证计划。
   - 反例：只回答“好的，我会加快”或仅机械执行指令，不表达判断、不提示关键风险与更优路径。
   - 执行方式：在回复前先写出“深层意图”判断；随后输出“我的判断/推荐 + 理由 + 最小可执行方案 + 可选后续动作”。当用户方案存在明显风险时，需先提示风险并给出更优替代。
+  - 维护责任人：当前助手。
+- **business-logic-must-use-class**：
+  - 约束/适用范围：业务逻辑默认必须使用 class，并围绕一个清晰的 class owner 收敛状态、上下文、生命周期、规则、入口方法与行为；这不是“优先考虑”，而是默认强制要求。只有明确属于特殊情况的内容才允许不使用 class：纯常量、纯类型声明、极小且稳定的纯计算、纯数据映射、纯业务无关工具函数。普通函数只留给这类非业务主干的纯辅助能力，不能反过来成为业务主干。该要求同时适用于后端、CLI、脚本、服务层、领域层，以及前端中的复杂业务逻辑；前端组件、hooks、stores 默认不应承载持续增长的业务编排，而应把复杂业务逻辑下沉到清晰的 class（如 manager / service / controller / presenter）中。
+  - 示例：把 agent/session 编排、配置解析与校验、任务调度、provider 调用策略、运行时上下文管理封装进 `XxxManager` / `XxxService`；前端把复杂交互流程、状态迁移、请求编排、副作用治理、领域规则判断收敛到 `XxxManager`、`XxxPresenter` 或同等职责明确的 class，组件、hook、store 只负责绑定展示、状态映射与事件转发；当同一业务文件已经出现多个 `prepareXxx`、`runXxx`、`syncXxx`、`cleanupXxx` 时，直接回收为一个 owner class，而不是继续加第 `N` 个函数。
+  - 反例：同一业务职责以多个平铺函数、多个 hook、多个零散 helper、多个 store action 拼起来；前端为了“写起来快”把复杂业务逻辑塞进组件、hook 或一排 util；把带业务语义的编排函数伪装成“utils”；名义上有 class，但真正的业务流程仍散落在 class 外部的多个 helper / hook / effect 中，class 只剩空壳；明明已经存在状态、缓存、重试、清理、编排，却仍拒绝抽成 class；明明属于业务逻辑，却以“先写成函数以后再收”作为理由继续不落 class。
+  - 执行方式：开始实现或修改业务逻辑时，先回答六个问题：`这段逻辑是否属于业务规则/业务编排，而不是纯展示或纯数据变换？`、`它是否会增长或携带状态/上下文/生命周期？`、`这个业务职责的 owner class 是谁？`、`当前主流程是否已经围绕该 class 收敛，还是散落在函数 / hook / action / effect 中？`、`哪些函数可以安全保留为纯辅助，而不是主流程？`、`如果不用 class，这是不是唯一合理的特殊情况？`。只要前两个问题任一答案为“是”，或第三个问题答不清，或第四个问题答案是“散落”，默认就必须使用 class，并先做结构优化：定义 class 边界，把状态、规则、生命周期和主入口方法收回同一个 owner，再继续写增量逻辑。只有在最后一个问题可以被明确回答为“是，而且属于纯常量 / 纯类型 / 极小纯计算 / 纯数据映射 / 纯工具”时，才允许不使用 class；`先快写成函数、以后再收` 不构成豁免理由。若最终不采用 class，必须在结果中明确说明它具体属于哪一类特殊情况，否则视为不符合规范。
+  - 维护责任人：当前助手。
+- **class-arrow-methods-by-default**：
+  - 约束/适用范围：一旦决定使用 class 来承载业务逻辑、状态 owner、生命周期治理、副作用编排、前端 manager / presenter / service / controller 等职责，新增或修改的实例方法默认必须从第一版起直接写成箭头函数 class field（如 `load = () => {}`），而不是先写普通方法再等后置 lint/guard 纠正。`constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法按既有豁免处理。
+  - 示例：新增 `ChatStreamManager` 时，把 `load`、`retry`、`dispose` 都直接写成 `load = async () => {}`、`retry = () => {}`、`dispose = () => {}`；重构已有 `SessionManager` 时，触达到的普通实例方法默认一并改成箭头函数写法。
+  - 反例：已经决定采用 class 边界，却仍把实例方法写成 `load() {}`、`retry() {}`，等 `pnpm lint:new-code:governance` 或 review 再返工；或只把新增的一个方法写成箭头函数，同一个已触达 class 里其它同类方法继续保留普通写法。
+  - 执行方式：一旦确定“这段逻辑要落到 class”，在写第一个实例方法前先完成一次方法形态检查：`这个行为是否属于实例方法？`、`若属于实例方法，是否应直接写成箭头函数 class field？`。收尾前还要按“已触达 class 为边界”再扫一遍同类实例方法，避免把后置治理当成默认纠偏流程。若最终没有采用箭头函数，必须明确说明语义约束、继承要求或其它阻断原因。
+  - 维护责任人：当前助手。
+- **class-over-function-sprawl**：
+  - 约束/适用范围：这是 `business-logic-must-use-class` 的收敛规则。凡同一职责被拆成多个彼此耦合、共享上下文/配置/缓存/清理流程的平铺函数时，必须收敛为 class 或清晰的 class owner 边界，而不是继续保留函数簇。本规则不只针对 `createXxx` 工厂函数；只要已经出现可复用、有状态、具生命周期、或同一职责会持续增长的逻辑，就不再允许把它长期保留为普通函数集合。仅当逻辑确实属于极小、无状态、纯数据变换且边界稳定的特殊情况时，才允许继续保持普通函数集合。
+  - 示例：将 typing 生命周期管理封装为 `ChannelTypingController` class；或把同一 agent/session 职责下分散的 `load`、`validate`、`apply`、`finalize`、`cleanup` 收敛进一个清晰的 class，而不是让它们作为一排互相传递 context 的函数长期平铺。
+  - 反例：明明已经出现多个共享上下文、共享状态、共享清理逻辑的函数，却继续新增第 `N` 个同职责函数；或把本应有明确边界的对象行为拆成到处可调用的零散 helper，只因为“先这样快一点”。
+  - 执行方式：当同一职责出现第 `2/3` 个相关函数，或多个函数共享状态、配置、上下文、缓存、重试/清理生命周期时，必须直接触发 class 收敛，而不是只做“以后再说”的评估；若当前任务已触达该函数簇，默认就应顺手收敛。若最终没有收敛为 class，必须说明它具体属于哪一类允许保留函数集合的特殊情况，否则视为不符合规范。
+  - 维护责任人：当前助手。
+- **stateless-utility-first**：
+  - 约束/适用范围：工具函数默认必须无状态、输入输出可预测，且不承载业务规则、业务编排或业务生命周期；普通函数只应用于纯工具、纯无状态、纯业务无关的辅助能力。应优先通过普通数据参数完成职责，尽量避免将函数作为入参传入工具函数。
+  - 示例：`normalizeProviderConfig(rawConfig)` 只依赖输入并返回新结果，不读写外部可变状态，也不要求回调入参；`pickVisibleTabs(allTabs, role)` 仅做纯展示辅助判断，不承载业务状态迁移。
+  - 反例：`processConfig(input, onSuccess, onError)` 通过回调驱动分支且隐式依赖外部状态，导致行为难追踪与复用困难；把带有重试、缓存、副作用编排、状态迁移的业务逻辑继续塞进 `utils.ts` 里的普通函数。
+  - 执行方式：拆分工具函数时先检查“是否无状态 + 是否可纯数据调用 + 是否纯业务无关”；若任何一项不满足，默认回到 `business-logic-must-use-class` 重新评估 class 边界。若必须传入函数参数，需在变更说明中写明必要性、边界与替代方案为何不可行。
+  - 维护责任人：当前助手。
+- **ordinary-function-no-input-mutation**：
+  - 约束/适用范围：普通函数、对象字面量函数、顶层 helper 与其它非 class owner 的函数默认不得原地修改入参对象、入参数组、入参映射或其属性。若逻辑需要落地状态变更，默认只能走两条路：要么保持 `input -> output` / `input -> patch` 形式返回新结果，要么把这段变更逻辑收敛到职责明确的 class owner 中。该规则默认用于新改动治理，不要求一次性清扫所有历史代码。
+  - 示例：`buildProfilePatch(input, existing)` 返回 `{ avatar, displayName }` 或 `{ clearAvatar: true }` 之类 patch，由外层统一写回；或把配置树物化与写回职责收敛到 `AgentProfileUpdater` / `ConfigEditor` 之类 class，由 owner 明确持有并修改内部状态。
+  - 反例：`applyAgentProfileAvatarUpdate(profile, avatar, ...)` 这类普通函数直接执行 `profile.avatar = ...`、`delete profile.avatar`、`Object.assign(profile, patch)`、`items.push(x)`；或通过 `map.set()` / `set.add()` / `array.splice()` 等方式在 helper 内偷偷改掉调用方传入的对象树。
+  - 执行方式：写普通函数前必须先回答三个问题：`这段逻辑能否改成纯返回新值/patch？`、`如果需要持有状态或顺序性，是否应该改成明确 owner class？`、`如果仍保留普通函数，是否保证对入参零 mutation？`。收尾阶段通过 `pnpm lint:new-code:governance` 中的 `param-mutations-owner-boundary` 增量检查阻断新增普通函数入参 mutation；命中后默认修法是“改成 pure return/patch”优先，其次才是“提升为 class owner”，而不是保留 helper + 原地写入。
+  - 维护责任人：当前助手。
+- **react-effect-boundary-only**：
+  - 约束/适用范围：React 中的 `useEffect` / `useLayoutEffect` 默认只允许承担“React 与外部系统同步”的职责，例如 DOM、浏览器 API、事件监听、定时器/订阅生命周期、运行时资源装载与清理。禁止把 effect 当作业务编排器、状态修补器、query/store 镜像器或渲染后补动作入口。远端读取与只读派生应优先落到 `query / view hook`，本地 UI 态应落到 `store`，动作、状态迁移与领域规则应落到 `manager`，跨模块协调应落到 `presenter`。
+  - 示例：`useEffect(() => { document.documentElement.lang = locale; }, [locale])`；`useEffect(() => { window.addEventListener("resize", onResize); return () => window.removeEventListener("resize", onResize); }, [onResize])`；会话 runtime 在 effect 中建立外部订阅并在 cleanup 中销毁。
+  - 反例：`useEffect(() => setUser(meQuery.data.user), [meQuery.data])` 把 query 结果再镜像进 store；`useEffect(() => { setError(null); setPassword(""); setCode(""); }, [mode])` 把 effect 当状态修补器；`useEffect(() => logout(), [meQuery.error])`、`useEffect(() => mutation.mutate(), [selectedId])` 通过 effect 触发业务动作。
+  - 执行方式：写 effect 前必须先回答三个问题：`这是不是在和 React 外部世界同步？`、`如果不是，是否应该改到 query/view hook、store、manager 或 presenter？`、`如果保留 effect，它同步的外部边界是什么？`。收尾阶段通过 `pnpm lint:new-code:governance` 中的 `react-effects-owner-boundary` 增量检查阻断新增的高置信度业务型 effect；命中后默认修法是“回收到 action 入口或 owner 层”，而不是继续在 effect 里补条件分支。
   - 维护责任人：当前助手。
 - **long-term-maintainability-mission-default**：
   - 约束/适用范围：除非用户明确要求仅做纯转写、纯引用、纯翻译或纯临时试验且不得延展，否则所有任务默认都带一个隐含但强制的长期目标：持续推动项目朝“代码更少、结构更简单、边界更清晰、复用更通用、复杂点更少、整体更易维护”的方向前进。这个目标必须被当成常驻使命，而不是只有用户点名时才考虑。
@@ -275,43 +311,6 @@
   - 示例：将重复的校验、发布前检查、日志生成流程沉淀为脚本或统一命令入口。
   - 反例：同一流程反复手动执行且每次步骤不一致，导致效率低和易漏项。
   - 执行方式：在复盘中标记重复流程，达到复用阈值后抽象为脚本/命令，并更新文档与使用说明。
-  - 维护责任人：当前助手。
-
-- **business-logic-class-first**：
-  - 约束/适用范围：除少数明确适合保持为纯函数/常量/类型声明的简单场景外，业务代码默认必须以 class 作为主要组织单元，优先采用面向对象方式收敛状态、上下文、生命周期、规则与行为。普通函数只留给纯工具、纯无状态、纯业务无关的辅助能力。该要求同时适用于后端、CLI、脚本、服务层、领域层，以及前端中的复杂业务逻辑；前端组件、hooks、stores 默认不应承载持续增长的业务编排，而应把复杂业务逻辑下沉到清晰的 class（如 manager / service / controller / presenter）中。
-  - 示例：把 agent/session 编排、配置解析与校验、任务调度、provider 调用策略、运行时上下文管理封装进 class；前端把复杂交互流程、状态迁移、请求编排、副作用治理、领域规则判断收敛到 `XxxManager`、`XxxPresenter` 或同等职责明确的 class，组件和 hook 只负责绑定展示与调用。
-  - 反例：同一业务职责以多个平铺函数、多个 hook、多个零散 helper、多个 store action 拼起来；前端为了“写起来快”把复杂业务逻辑塞进组件、hook 或一排 util；把带业务语义的编排函数伪装成“utils”；明明已经存在状态、缓存、重试、清理、编排，却仍拒绝抽成 class。
-  - 执行方式：开始实现业务逻辑时，先回答四个问题：`这段逻辑是否属于业务规则/业务编排，而不是纯展示或纯数据变换？`、`它是否会增长或携带状态/上下文/生命周期？`、`普通函数是否真的只会承担纯工具/纯无状态/纯业务无关辅助能力？`、`是否应该先设计一个职责单一的 class 边界？`。只要前两个问题任一答案为“是”，或第三个问题答案为“否”，默认就必须先评估并优先采用 class。若最终不采用 class，必须在结果中明确说明其为何仍可安全保持为纯函数集合（如逻辑极小、纯计算、稳定且无状态），否则视为不符合规范。
-  - 维护责任人：当前助手。
-- **class-arrow-methods-by-default**：
-  - 约束/适用范围：一旦决定使用 class 来承载业务逻辑、状态 owner、生命周期治理、副作用编排、前端 manager / presenter / service / controller 等职责，新增或修改的实例方法默认必须从第一版起直接写成箭头函数 class field（如 `load = () => {}`），而不是先写普通方法再等后置 lint/guard 纠正。`constructor`、`get/set`、`static`、`abstract`、`override`、带 decorator 的方法按既有豁免处理。
-  - 示例：新增 `ChatStreamManager` 时，把 `load`、`retry`、`dispose` 都直接写成 `load = async () => {}`、`retry = () => {}`、`dispose = () => {}`；重构已有 `SessionManager` 时，触达到的普通实例方法默认一并改成箭头函数写法。
-  - 反例：已经决定采用 class 边界，却仍把实例方法写成 `load() {}`、`retry() {}`，等 `pnpm lint:new-code:governance` 或 review 再返工；或只把新增的一个方法写成箭头函数，同一个已触达 class 里其它同类方法继续保留普通写法。
-  - 执行方式：一旦确定“这段逻辑要落到 class”，在写第一个实例方法前先完成一次方法形态检查：`这个行为是否属于实例方法？`、`若属于实例方法，是否应直接写成箭头函数 class field？`。收尾前还要按“已触达 class 为边界”再扫一遍同类实例方法，避免把后置治理当成默认纠偏流程。若最终没有采用箭头函数，必须明确说明语义约束、继承要求或其它阻断原因。
-  - 维护责任人：当前助手。
-- **class-over-function-sprawl**：
-  - 约束/适用范围：这是 `business-logic-class-first` 的收敛规则。默认优先使用 class 组织可复用、有状态、具生命周期、或同一职责会持续增长的逻辑。本规则不只针对 `createXxx` 工厂函数；凡同一职责被拆成多个彼此耦合、共享上下文/配置/缓存/清理流程的平铺函数时，都必须优先评估是否应收敛为 class 或清晰模块边界。仅当逻辑确实简单、无状态、纯数据变换且边界稳定时，才允许继续保持普通函数集合。
-  - 示例：将 typing 生命周期管理封装为 `ChannelTypingController` class；或把同一 agent/session 职责下分散的 `load`、`validate`、`apply`、`finalize`、`cleanup` 收敛进一个清晰的 class，而不是让它们作为一排互相传递 context 的函数长期平铺。
-  - 反例：明明已经出现多个共享上下文、共享状态、共享清理逻辑的函数，却继续新增第 `N` 个同职责函数；或把本应有明确边界的对象行为拆成到处可调用的零散 helper，只因为“先这样快一点”。
-  - 执行方式：当同一职责出现第 `2/3` 个相关函数，或多个函数共享状态、配置、上下文、缓存、重试/清理生命周期时，必须触发 class 方案评估；若当前任务已触达该函数簇，默认应顺手收敛，或至少在结果中明确为何暂不收敛。若最终不采用 class，必须说明其仍应保持为纯函数集合的理由（如无状态、职责稳定、不会继续增长）。
-  - 维护责任人：当前助手。
-- **stateless-utility-first**：
-  - 约束/适用范围：工具函数默认必须无状态、输入输出可预测，且不承载业务规则、业务编排或业务生命周期；普通函数只应用于纯工具、纯无状态、纯业务无关的辅助能力。应优先通过普通数据参数完成职责，尽量避免将函数作为入参传入工具函数。
-  - 示例：`normalizeProviderConfig(rawConfig)` 只依赖输入并返回新结果，不读写外部可变状态，也不要求回调入参；`pickVisibleTabs(allTabs, role)` 仅做纯展示辅助判断，不承载业务状态迁移。
-  - 反例：`processConfig(input, onSuccess, onError)` 通过回调驱动分支且隐式依赖外部状态，导致行为难追踪与复用困难；把带有重试、缓存、副作用编排、状态迁移的业务逻辑继续塞进 `utils.ts` 里的普通函数。
-  - 执行方式：拆分工具函数时先检查“是否无状态 + 是否可纯数据调用 + 是否纯业务无关”；若任何一项不满足，默认回到 `business-logic-class-first` 重新评估 class 边界。若必须传入函数参数，需在变更说明中写明必要性、边界与替代方案为何不可行。
-  - 维护责任人：当前助手。
-- **ordinary-function-no-input-mutation**：
-  - 约束/适用范围：普通函数、对象字面量函数、顶层 helper 与其它非 class owner 的函数默认不得原地修改入参对象、入参数组、入参映射或其属性。若逻辑需要落地状态变更，默认只能走两条路：要么保持 `input -> output` / `input -> patch` 形式返回新结果，要么把这段变更逻辑收敛到职责明确的 class owner 中。该规则默认用于新改动治理，不要求一次性清扫所有历史代码。
-  - 示例：`buildProfilePatch(input, existing)` 返回 `{ avatar, displayName }` 或 `{ clearAvatar: true }` 之类 patch，由外层统一写回；或把配置树物化与写回职责收敛到 `AgentProfileUpdater` / `ConfigEditor` 之类 class，由 owner 明确持有并修改内部状态。
-  - 反例：`applyAgentProfileAvatarUpdate(profile, avatar, ...)` 这类普通函数直接执行 `profile.avatar = ...`、`delete profile.avatar`、`Object.assign(profile, patch)`、`items.push(x)`；或通过 `map.set()` / `set.add()` / `array.splice()` 等方式在 helper 内偷偷改掉调用方传入的对象树。
-  - 执行方式：写普通函数前必须先回答三个问题：`这段逻辑能否改成纯返回新值/patch？`、`如果需要持有状态或顺序性，是否应该改成明确 owner class？`、`如果仍保留普通函数，是否保证对入参零 mutation？`。收尾阶段通过 `pnpm lint:new-code:governance` 中的 `param-mutations-owner-boundary` 增量检查阻断新增普通函数入参 mutation；命中后默认修法是“改成 pure return/patch”优先，其次才是“提升为 class owner”，而不是保留 helper + 原地写入。
-  - 维护责任人：当前助手。
-- **react-effect-boundary-only**：
-  - 约束/适用范围：React 中的 `useEffect` / `useLayoutEffect` 默认只允许承担“React 与外部系统同步”的职责，例如 DOM、浏览器 API、事件监听、定时器/订阅生命周期、运行时资源装载与清理。禁止把 effect 当作业务编排器、状态修补器、query/store 镜像器或渲染后补动作入口。远端读取与只读派生应优先落到 `query / view hook`，本地 UI 态应落到 `store`，动作、状态迁移与领域规则应落到 `manager`，跨模块协调应落到 `presenter`。
-  - 示例：`useEffect(() => { document.documentElement.lang = locale; }, [locale])`；`useEffect(() => { window.addEventListener("resize", onResize); return () => window.removeEventListener("resize", onResize); }, [onResize])`；会话 runtime 在 effect 中建立外部订阅并在 cleanup 中销毁。
-  - 反例：`useEffect(() => setUser(meQuery.data.user), [meQuery.data])` 把 query 结果再镜像进 store；`useEffect(() => { setError(null); setPassword(""); setCode(""); }, [mode])` 把 effect 当状态修补器；`useEffect(() => logout(), [meQuery.error])`、`useEffect(() => mutation.mutate(), [selectedId])` 通过 effect 触发业务动作。
-  - 执行方式：写 effect 前必须先回答三个问题：`这是不是在和 React 外部世界同步？`、`如果不是，是否应该改到 query/view hook、store、manager 或 presenter？`、`如果保留 effect，它同步的外部边界是什么？`。收尾阶段通过 `pnpm lint:new-code:governance` 中的 `react-effects-owner-boundary` 增量检查阻断新增的高置信度业务型 effect；命中后默认修法是“回收到 action 入口或 owner 层”，而不是继续在 effect 里补条件分支。
   - 维护责任人：当前助手。
 - **root-cause-fix-over-band-aid**：
   - 约束/适用范围：修复缺陷时必须先定位深层根因；若问题反映架构边界不清、职责耦合、模型设计缺陷，或本质属于发布/构建/部署/配置事故，必须优先给出源头修正，禁止仅做表层补丁即结束。禁止向用户提供“临时绕过 / 先这样用 / 先顶住 / fallback 一下 / 打补丁过渡”这类方案选项。禁止把一次性事故知识、当前坏版本特征、stderr 文案匹配、外部故障签名等硬编码进运行时代码，伪装成“更友好提示”或“兼容修复”。同样禁止为了通过某个边界校验、接口限制或上游约束，直接篡改领域语义、数据语义或角色语义来“绕过去”。
