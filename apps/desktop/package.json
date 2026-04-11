@@ -5,17 +5,21 @@
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
   "homepage": "https://github.com/Peiiii/nextclaw",
-  "main": "dist/main.js",
+  "main": "dist/src/main.js",
   "license": "MIT",
   "scripts": {
+    "bundle:build": "node scripts/update/services/build-product-bundle.service.mjs",
+    "bundle:public-key": "node scripts/update/services/write-bundle-public-key.service.mjs",
+    "bundle:seed": "node scripts/update/services/prepare-seed-bundle.service.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
-    "dev": "node scripts/ensure-runtime.mjs && pnpm build:main && env -u ELECTRON_RUN_AS_NODE electron .",
+    "bundle:manifest": "node scripts/update/services/build-update-manifest.service.mjs",
+    "dev": "node scripts/ensure-runtime.mjs && pnpm build:main && NEXTCLAW_DESKTOP_RUNTIME_SCRIPT=../../packages/nextclaw/dist/cli/index.js env -u ELECTRON_RUN_AS_NODE electron .",
     "build": "pnpm build:main",
     "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
     "lint": "eslint \"src/**/*.ts\"",
     "tsc": "tsc -p tsconfig.json --noEmit",
-    "pack": "node scripts/ensure-runtime.mjs && pnpm build:main && electron-builder --dir",
-    "dist": "node scripts/ensure-runtime.mjs && pnpm build:main && electron-builder",
+    "pack": "node scripts/ensure-runtime.mjs && pnpm bundle:seed && pnpm build:main && electron-builder --dir",
+    "dist": "node scripts/ensure-runtime.mjs && pnpm bundle:seed && pnpm build:main && electron-builder",
     "smoke": "pnpm build:main && node scripts/smoke-runtime.mjs"
   },
   "dependencies": {
@@ -33,6 +37,7 @@
     "@nextclaw/core": "workspace:*",
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/server": "workspace:*",
+    "jszip": "^3.10.1",
     "nextclaw": "workspace:*"
   },
   "devDependencies": {
@@ -54,13 +59,22 @@
       "dist/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "build/update-bundle-public.pem",
+        "to": "update/update-bundle-public.pem"
+      },
+      {
+        "from": "build/update/seed-product-bundle.zip",
+        "to": "update/seed-product-bundle.zip"
+      }
+    ],
     "npmRebuild": false,
     "asar": true,
-    "afterPack": "./scripts/electron-after-pack.cjs",
     "afterSign": "./scripts/electron-after-sign.cjs",
     "mac": {
       "icon": "build/icons/icon.icns",
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.inherit.plist",

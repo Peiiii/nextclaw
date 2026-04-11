@@ -1,4 +1,4 @@
-export type DesktopUpdateManifest = {
+export type DesktopUnsignedUpdateManifest = {
   channel: string;
   platform: string;
   arch: string;
@@ -6,7 +6,12 @@ export type DesktopUpdateManifest = {
   minimumLauncherVersion: string;
   bundleUrl: string;
   bundleSha256: string;
+  bundleSignature: string;
   releaseNotesUrl: string | null;
+};
+
+export type DesktopUpdateManifest = DesktopUnsignedUpdateManifest & {
+  manifestSignature: string;
 };
 
 function readRequiredString(record: Record<string, unknown>, key: string, context: string): string {
@@ -15,6 +20,28 @@ function readRequiredString(record: Record<string, unknown>, key: string, contex
     throw new Error(`${context} missing required string field: ${key}`);
   }
   return value.trim();
+}
+
+export function getDesktopUnsignedUpdateManifest(
+  manifest: DesktopUpdateManifest | DesktopUnsignedUpdateManifest
+): DesktopUnsignedUpdateManifest {
+  return {
+    channel: manifest.channel,
+    platform: manifest.platform,
+    arch: manifest.arch,
+    latestVersion: manifest.latestVersion,
+    minimumLauncherVersion: manifest.minimumLauncherVersion,
+    bundleUrl: manifest.bundleUrl,
+    bundleSha256: manifest.bundleSha256,
+    bundleSignature: manifest.bundleSignature,
+    releaseNotesUrl: manifest.releaseNotesUrl
+  };
+}
+
+export function serializeDesktopUnsignedUpdateManifest(
+  manifest: DesktopUpdateManifest | DesktopUnsignedUpdateManifest
+): string {
+  return JSON.stringify(getDesktopUnsignedUpdateManifest(manifest));
 }
 
 export class DesktopUpdateManifestReader {
@@ -34,7 +61,9 @@ export class DesktopUpdateManifestReader {
       minimumLauncherVersion: readRequiredString(record, "minimumLauncherVersion", context),
       bundleUrl: readRequiredString(record, "bundleUrl", context),
       bundleSha256: readRequiredString(record, "bundleSha256", context).toLowerCase(),
-      releaseNotesUrl
+      bundleSignature: readRequiredString(record, "bundleSignature", context),
+      releaseNotesUrl,
+      manifestSignature: readRequiredString(record, "manifestSignature", context)
     };
   };
 }

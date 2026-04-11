@@ -7,6 +7,9 @@ on:
         description: "Release tag to upload assets to, e.g. v0.8.61-desktop-beta.1"
         required: false
         type: string
+  release:
+    types:
+      - published
 
 permissions:
   contents: write
@@ -51,12 +54,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Write bundled update public key
+        env:
+          NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
+        run: pnpm -C apps/desktop bundle:public-key -- --output build/update-bundle-public.pem
+
       - name: Build Desktop (macOS)
         if: matrix.platform == 'darwin'
         shell: bash
         run: |
           set -euo pipefail
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
 
@@ -114,6 +123,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never
 
@@ -124,6 +134,7 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
 
@@ -168,6 +179,69 @@ jobs:
             exit 1
           fi
           bash apps/desktop/scripts/smoke-linux-deb.sh "${DEB_PATH}"
+
+      - name: Build signed product bundle + manifest (Unix)
+        if: matrix.platform != 'win32'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+          NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          BUNDLE_VERSION="$(node -p "require('./packages/nextclaw/package.json').version")"
+          LAUNCHER_VERSION="$(node -p "require('./apps/desktop/package.json').version")"
+
+          pnpm -C apps/desktop bundle:build -- \
+            --platform ${{ matrix.platform }} \
+            --arch ${{ matrix.arch }} \
+            --version "$BUNDLE_VERSION" \
+            --minimum-launcher-version "$LAUNCHER_VERSION" \
+            --output-dir apps/desktop/dist-bundles
+
+          BUNDLE_PATH="apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-${BUNDLE_VERSION}.zip"
+          MANIFEST_PATH="apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json"
+
+          pnpm -C apps/desktop bundle:manifest -- \
+            --bundle "$BUNDLE_PATH" \
+            --platform ${{ matrix.platform }} \
+            --arch ${{ matrix.arch }} \
+            --version "$BUNDLE_VERSION" \
+            --minimum-launcher-version "$LAUNCHER_VERSION" \
+            --bundle-url "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/$(basename "$BUNDLE_PATH")" \
+            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG}" \
+            --output "$MANIFEST_PATH"
+
+      - name: Build signed product bundle + manifest (Windows)
+        if: matrix.platform == 'win32'
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+          NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $bundleVersion = node -p "require('./packages/nextclaw/package.json').version"
+          $launcherVersion = node -p "require('./apps/desktop/package.json').version"
+
+          pnpm -C apps/desktop bundle:build -- `
+            --platform ${{ matrix.platform }} `
+            --arch ${{ matrix.arch }} `
+            --version $bundleVersion `
+            --minimum-launcher-version $launcherVersion `
+            --output-dir apps/desktop/dist-bundles
+
+          $bundlePath = "apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-$bundleVersion.zip"
+          $manifestPath = "apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json"
+          $bundleFileName = Split-Path $bundlePath -Leaf
+
+          pnpm -C apps/desktop bundle:manifest -- `
+            --bundle $bundlePath `
+            --platform ${{ matrix.platform }} `
+            --arch ${{ matrix.arch }} `
+            --version $bundleVersion `
+            --minimum-launcher-version $launcherVersion `
+            --bundle-url "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/$bundleFileName" `
+            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/$env:RELEASE_TAG" `
+            --output $manifestPath
 
       - name: Archive desktop artifacts (Windows)
         if: matrix.platform == 'win32'
@@ -266,6 +340,8 @@ jobs:
             apps/desktop/release/*-mac.zip
             apps/desktop/release/latest-mac-${{ matrix.arch }}.yml
             apps/desktop/release/*.blockmap
+            apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
+            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload desktop artifacts (Windows)
         if: matrix.platform == 'win32'
@@ -274,6 +350,8 @@ jobs:
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             apps/desktop/release/NextClaw.Desktop-*-win32-x64-unpacked.zip
+            apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
+            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload desktop artifacts (Linux)
         if: matrix.platform == 'linux'
@@ -285,6 +363,16 @@ jobs:
             apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage
             apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage.blockmap
             apps/desktop/release/nextclaw-desktop_*.deb
+            apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
+            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
+
+      - name: Upload bundle update public key
+        if: matrix.platform == 'linux' && matrix.arch == 'x64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-update-public-key
+          path: |
+            apps/desktop/build/update-bundle-public.pem
 
   publish-release-assets:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
@@ -312,6 +400,9 @@ jobs:
             dist/desktop-release/*.AppImage
             dist/desktop-release/*.deb
             dist/desktop-release/*.blockmap
+            dist/desktop-release/nextclaw-bundle-*.zip
+            dist/desktop-release/manifest-stable-*.json
+            dist/desktop-release/update-bundle-public.pem
 
   publish-linux-apt-repo:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')

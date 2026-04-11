@@ -74,6 +74,87 @@ jobs:
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop smoke
 
+      - name: Build product bundle + signed manifest smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OUTPUT_DIR="$(mktemp -d)"
+          KEY_DIR="$(mktemp -d)"
+          trap 'rm -rf "$OUTPUT_DIR" "$KEY_DIR"' EXIT
+
+          pnpm -C apps/desktop bundle:build -- \
+            --platform linux \
+            --arch x64 \
+            --version 0.17.6-validate \
+            --minimum-launcher-version 0.0.134 \
+            --output-dir "$OUTPUT_DIR"
+
+          BUNDLE_PATH="$(find "$OUTPUT_DIR" -maxdepth 1 -type f -name 'nextclaw-bundle-*.zip' | head -n 1)"
+          if [ -z "$BUNDLE_PATH" ]; then
+            echo "bundle archive not found"
+            exit 1
+          fi
+
+          node - "$KEY_DIR/private.pem" "$KEY_DIR/public.pem" <<'NODE'
+          const { generateKeyPairSync } = require('node:crypto');
+          const { writeFileSync } = require('node:fs');
+          const privateKeyPath = process.argv[2];
+          const publicKeyPath = process.argv[3];
+          const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+          writeFileSync(privateKeyPath, privateKey.export({ type: 'pkcs8', format: 'pem' }));
+          writeFileSync(publicKeyPath, publicKey.export({ type: 'spki', format: 'pem' }));
+          NODE
+
+          pnpm -C apps/desktop bundle:manifest -- \
+            --bundle "$BUNDLE_PATH" \
+            --platform linux \
+            --arch x64 \
+            --version 0.17.6-validate \
+            --minimum-launcher-version 0.0.134 \
+            --bundle-url "https://example.com/$(basename "$BUNDLE_PATH")" \
+            --output "$OUTPUT_DIR/manifest-stable-linux-x64.json" \
+            --private-key-file "$KEY_DIR/private.pem"
+
+          node - "$BUNDLE_PATH" "$OUTPUT_DIR/manifest-stable-linux-x64.json" "$KEY_DIR/public.pem" <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const { createPublicKey, verify } = require('node:crypto');
+          const bundlePath = process.argv[2];
+          const manifestPath = process.argv[3];
+          const publicKeyPath = process.argv[4];
+          const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+          const publicKey = createPublicKey(readFileSync(publicKeyPath, 'utf8'));
+          const manifestPayload = JSON.stringify({
+            channel: manifest.channel,
+            platform: manifest.platform,
+            arch: manifest.arch,
+            latestVersion: manifest.latestVersion,
+            minimumLauncherVersion: manifest.minimumLauncherVersion,
+            bundleUrl: manifest.bundleUrl,
+            bundleSha256: manifest.bundleSha256,
+            bundleSignature: manifest.bundleSignature,
+            releaseNotesUrl: manifest.releaseNotesUrl
+          });
+          const manifestValid = verify(
+            null,
+            Buffer.from(manifestPayload),
+            publicKey,
+            Buffer.from(manifest.manifestSignature, 'base64')
+          );
+          if (!manifestValid) {
+            throw new Error('manifest signature verification failed');
+          }
+          const valid = verify(
+            null,
+            readFileSync(bundlePath),
+            publicKey,
+            Buffer.from(manifest.bundleSignature, 'base64')
+          );
+          if (!valid) {
+            throw new Error('bundle signature verification failed');
+          }
+          NODE
+
   desktop-macos-dmg-install-smoke:
     name: desktop-macos-dmg-install-smoke
     runs-on: macos-14
@@ -100,6 +181,7 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
+          pnpm -C apps/desktop bundle:seed -- --platform darwin --arch arm64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
@@ -170,6 +252,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          pnpm -C apps/desktop bundle:seed -- --platform win32 --arch x64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
