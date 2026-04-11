@@ -35,7 +35,6 @@ import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGat
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./service-support/gateway/service-gateway-runtime-lifecycle.js";
 import { inspectUiTarget, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
-import { RuntimeLogManager } from "../runtime-logging/runtime-log-manager.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
 export { resolveCliSubcommandEntry };
@@ -86,7 +85,8 @@ export class ServiceCommands {
   private applyLiveConfigReload: (() => Promise<void>) | null = null;
   private liveUiNcpAgent: UiNcpAgentHandle | null = null;
   private readonly fileWatchers = new ServiceFileWatcherRegistry();
-  private readonly runtimeLogManager = new RuntimeLogManager();
+  private readonly loggingRuntime = NextclawCore.getLoggingRuntime();
+  private readonly serviceLogger = this.loggingRuntime.getLogger("service");
   private loggingInstalled = false;
   constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
@@ -392,7 +392,7 @@ export class ServiceCommands {
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {
-    this.runtimeLogManager.ensureReady();
+    this.loggingRuntime.ensureReady();
     const { open, startupTimeoutMs, uiOverrides } = options;
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, uiOverrides);
@@ -485,7 +485,9 @@ export class ServiceCommands {
       resolveServiceLogPath
     });
     if (!startup) {
-      this.runtimeLogManager.appendCrashLine("managed service startup aborted before child process was created", "fatal");
+      this.serviceLogger.fatal("service.managed_startup.aborted", {
+        reason: "child_process_not_created"
+      });
       process.exitCode = 1;
       return;
     }
@@ -507,17 +509,13 @@ export class ServiceCommands {
       managedServiceStateStore.clear();
       const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
       this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
-      this.runtimeLogManager.appendCrashLine(
-        [
-          "managed service startup failed before ready",
-          `ui=${uiUrl}`,
-          `api=${apiUrl}`,
-          `health=${healthUrl}`,
-          `logPath=${startup.logPath}`,
-          ...(readiness.lastProbeError ? [`lastProbeError=${readiness.lastProbeError}`] : []),
-        ].join(" | "),
-        "fatal"
-      );
+      this.serviceLogger.fatal("service.managed_startup.failed_before_ready", {
+        uiUrl,
+        apiUrl,
+        healthUrl,
+        logPath: startup.logPath,
+        ...(readiness.lastProbeError ? { lastProbeError: readiness.lastProbeError } : {}),
+      });
       console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
       this.printStartupFailureDiagnostics({
         uiUrl,
@@ -625,7 +623,10 @@ export class ServiceCommands {
 
   private appendStartupStage = (logPath: string, message: string): void => {
     try {
-      new RuntimeLogManager({ serviceLogPath: logPath }).appendServiceLine(`[startup] ${message}`);
+      this.serviceLogger.child("startup").info("service.startup.stage", {
+        logPath,
+        message
+      });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
@@ -773,10 +774,13 @@ export class ServiceCommands {
     if (this.loggingInstalled) {
       return;
     }
-    this.runtimeLogManager.ensureReady();
-    this.runtimeLogManager.installConsoleMirror();
-    this.runtimeLogManager.installProcessCrashMonitor();
-    this.runtimeLogManager.appendServiceLine(`runtime logging ready (startupId=${this.runtimeLogManager.getStartupId()})`);
+    NextclawCore.configureAppLogging({
+      installConsoleMirror: true,
+      installProcessCrashMonitor: true
+    });
+    this.serviceLogger.info("logging.runtime.ready", {
+      startupId: this.loggingRuntime.getStartupId()
+    });
     this.loggingInstalled = true;
   };
 

@@ -1,11 +1,11 @@
 import type * as NextclawCore from "@nextclaw/core";
+import { FileLogSink } from "@nextclaw/core";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { spawn } from "node:child_process";
 import type { ManagedServiceState } from "../../../runtime-state/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.js";
 import { writeInitialManagedServiceState } from "./service-remote-runtime.js";
-import { RuntimeLogManager } from "../../../runtime-logging/runtime-log-manager.js";
 
 export type ManagedServiceSnapshot = {
   pid: number;
@@ -117,7 +117,7 @@ export function spawnManagedService(params: {
     resolveServiceLogPath
   } = params;
   const logPath = resolveServiceLogPath();
-  new RuntimeLogManager({ serviceLogPath: logPath }).ensureReady();
+  new FileLogSink({ serviceLogPath: logPath }).ensureReady();
   const logDir = dirname(logPath);
   mkdirSync(logDir, { recursive: true });
   const readinessTimeoutMs = resolveStartupTimeoutMs(startupTimeoutMs);

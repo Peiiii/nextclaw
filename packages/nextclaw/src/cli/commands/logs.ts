@@ -1,11 +1,11 @@
-import { RuntimeLogManager, type RuntimeLogKind } from "../runtime-logging/runtime-log-manager.js";
+import { getLoggingRuntime, type AppLogKind, type LoggingRuntime } from "@nextclaw/core";
 import type { LogsTailCommandOptions } from "../types.js";
 
 export class LogsCommands {
-  constructor(private readonly manager: RuntimeLogManager = new RuntimeLogManager()) {}
+  constructor(private readonly runtime: LoggingRuntime = getLoggingRuntime()) {}
 
   logsPath = (): void => {
-    const paths = this.manager.getPaths();
+    const paths = this.runtime.getPaths();
     console.log([
       `Logs directory: ${paths.logsDir}`,
       `Service log: ${paths.serviceLogPath}`,
@@ -15,12 +15,12 @@ export class LogsCommands {
   };
 
   logsTail = (opts: LogsTailCommandOptions = {}): void => {
-    const kind: RuntimeLogKind = opts.crash ? "crash" : "service";
+    const kind: AppLogKind = opts.crash ? "crash" : "service";
     const rawLines = Number(opts.lines);
     const lines = Number.isFinite(rawLines) && rawLines > 0 ? Math.floor(rawLines) : 40;
-    const output = this.manager.tail(kind, lines);
+    const output = this.runtime.tail(kind, lines);
     if (output.length === 0) {
-      console.log(`No log entries found in ${this.manager.resolveLogPath(kind)}.`);
+      console.log(`No log entries found in ${this.runtime.resolveLogPath(kind)}.`);
       return;
     }
     console.log(output.join("\n"));

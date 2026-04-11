@@ -2,13 +2,16 @@
 
 ## 迭代完成说明
 
-- 为 NextClaw CLI/runtime 增加一套本地优先、轻量、低侵入的运行时日志基础能力，统一落在 `${NEXTCLAW_HOME}/logs/` 下，删除主目录时可一并清理，不向系统目录额外散落文件。
+- 为 NextClaw 建立一套本地优先、轻量、低侵入的应用级日志基础能力，统一落在 `${NEXTCLAW_HOME}/logs/` 下，删除主目录时可一并清理，不向系统目录额外散落文件。
 - 本次没有引入上传接口、前端日志页、多实例隔离或重量级日志平台，只补当前最需要的本地排障链路：
   - `service.log`：当前运行期日志
   - `crash.log`：启动失败、fatal、未捕获异常
   - `archive/*.log`：超阈值后自动归档的历史日志
-- 新增 [`RuntimeLogManager`](../../../packages/nextclaw/src/cli/runtime-logging/runtime-log-manager.ts)，把日志目录准备、当前文件初始化、按大小轮转、行格式、console mirror、`uncaughtExceptionMonitor` crash 捕获收口到一个薄 owner class 中。
-- `nextclaw service/serve/start` 主链路已接入该 manager：
+- 这次最终没有把日志 owner 放在 CLI 包里，而是按正确边界迁到 `@nextclaw/core/logging`：
+  - [`AppLogger`](../../../packages/nextclaw-core/src/logging/app-logger.ts)
+  - [`FileLogSink`](../../../packages/nextclaw-core/src/logging/file-log-sink.ts)
+  - [`LoggingRuntime`](../../../packages/nextclaw-core/src/logging/logging-runtime.ts)
+- `nextclaw service/serve/start` 主链路已接入这套 core logging：
   - 前台 `serve` 进程会把 `console.debug/info/log/warn/error` 镜像到 `service.log`
   - `console.error` 与未捕获异常会进入 `crash.log`
   - 后台 `start` 不再把 child stdout/stderr 直接重定向到单文件，而是由服务进程内部自行落日志，避免双写与职责分散
@@ -17,17 +20,22 @@
   - `nextclaw logs tail`
   - `nextclaw logs tail --crash`
 - 补充文档：
-  - [`Runtime Local Log Architecture Design`](../../plans/2026-04-11-runtime-local-log-architecture-design.md)
-  - [`Runtime Local Log Implementation Plan`](../../plans/2026-04-11-runtime-local-log-implementation-plan.md)
+  - [`App Logging Architecture Design`](../../plans/2026-04-11-app-logging-architecture-design.md)
   - [`docs/USAGE.md`](../../USAGE.md)
   - [`packages/nextclaw/resources/USAGE.md`](../../../packages/nextclaw/resources/USAGE.md)
 
 ## 测试/验证/验收方式
 
-- 已执行：`pnpm -C packages/nextclaw exec vitest run src/cli/runtime-logging/runtime-log-manager.test.ts src/cli/commands/logs.test.ts src/cli/commands/service-support/runtime/tests/service-managed-startup.test.ts`
-  - 结果：通过，`3` 个测试文件、`5` 个测试全部通过。
-- 已执行：`pnpm -C packages/nextclaw exec eslint src/cli/runtime-logging/runtime-log-manager.ts src/cli/runtime-logging/runtime-log-manager.test.ts src/cli/commands/logs.ts src/cli/commands/logs.test.ts src/cli/runtime.ts src/cli/commands/service.ts src/cli/commands/service-support/runtime/service-managed-startup.ts src/cli/utils.ts src/cli/types.ts src/cli/index.ts`
+- 已执行：`pnpm -C packages/nextclaw-core exec vitest run src/logging/file-log-sink.test.ts src/logging/logging-runtime.test.ts`
+  - 结果：通过，`2` 个测试文件、`3` 个测试全部通过。
+- 已执行：`pnpm -C packages/nextclaw exec vitest run src/cli/commands/logs.test.ts src/cli/commands/service-support/runtime/tests/service-managed-startup.test.ts`
+  - 结果：通过，`2` 个测试文件、`3` 个测试全部通过。
+- 已执行：`pnpm -C packages/nextclaw-core exec eslint src/logging/app-logger.ts src/logging/file-log-sink.ts src/logging/logging-runtime.ts src/logging/file-log-sink.test.ts src/logging/logging-runtime.test.ts`
+  - 结果：通过。
+- 已执行：`pnpm -C packages/nextclaw exec eslint src/cli/commands/logs.ts src/cli/commands/logs.test.ts src/cli/commands/service.ts src/cli/commands/service-support/runtime/service-managed-startup.ts src/cli/commands/service-support/runtime/tests/service-managed-startup.test.ts src/cli/commands/diagnostics.ts src/cli/utils.ts src/cli/runtime.ts src/cli/types.ts src/cli/index.ts`
   - 结果：无 error；仅保留仓库既有 warning，包括 `prefer-top-level-context-destructuring` 与 `max-depth`，不属于本次新增问题。
+- 已执行：`pnpm -C packages/nextclaw-core exec tsc -p tsconfig.json --noEmit`
+  - 结果：通过。
 - 已执行：`pnpm -C packages/nextclaw exec tsc -p tsconfig.json --noEmit`
   - 结果：未通过。
   - 阻塞原因：仓库既有无关错误位于 `packages/nextclaw-server/src/ui/ui-routes/marketplace/installed.ts:230` 与 `packages/nextclaw-server/src/ui/ui-routes/marketplace/installed.ts:238`，为 `Set<string | undefined>` 不能赋给 `Set<string>`。
@@ -54,9 +62,9 @@
 
 - 本次是否已尽最大努力优化可维护性：是。本次没有引入日志平台、上传链路、前端展示或多实例管理，而是只在 CLI/runtime 主链路内补足本地排障闭环，并把日志职责收口到单一 owner class。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。实现上删除了后台服务通过父进程文件描述符重定向 stdout/stderr 的旧做法，改为服务进程内部自主管理日志；同时没有新增额外 daemon、数据库或配置层。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。本次为新增能力，总代码与文件数有净增长，但增长被压在一个新的薄目录 `runtime-logging/` 与一个轻量命令文件内，没有继续把复杂度堆进已有 `service.ts` 热点；同时顺手减少了启动阶段日志写入对默认路径的隐式依赖。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`RuntimeLogManager` 只负责日志文件生命周期与运行时镜像，不接入上传、聚合、查询平台；`LogsCommands` 只负责用户查看入口；`ServiceCommands` 只负责在启动节点调用，不再亲自拼装多套文件写逻辑。
-- 目录结构与文件组织是否满足当前项目治理要求：基本满足。本次新增目录仅有 `packages/nextclaw/src/cli/runtime-logging/`，职责明确；未触达前端，也未把日志能力扩散到多个 feature root。仍需关注的是 `service.ts` 本身历史上较大，但这次新增逻辑已尽量外移，没有继续把其推向更重的 orchestrator。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。本次为新增能力，总代码与文件数有净增长，但这轮续改已经把错误的 `packages/nextclaw/src/cli/runtime-logging/` owner 删除，改为 `packages/nextclaw-core/src/logging/` 单点承载，避免了 CLI 成为跨模块日志依赖源。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`AppLogger` 负责统一写日志合同，`FileLogSink` 负责本地文件落盘，`LoggingRuntime` 负责进程级初始化；`LogsCommands` 只保留查看入口；`ServiceCommands` 只负责在启动节点接入。
+- 目录结构与文件组织是否满足当前项目治理要求：基本满足。本次最终保留的新增目录是 `packages/nextclaw-core/src/logging/`，它属于真正可复用的基础能力层；CLI 内部的 `runtime-logging/` 已删除，不再制造反向依赖问题。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。以下结论基于实现完成后的独立复核，而不是只复述 lint/test 输出。
 
 可维护性复核结论：通过
@@ -65,18 +73,18 @@
 
 长期目标对齐 / 可维护性推进：
 - 这次改动顺着 NextClaw 作为统一入口、统一运行时体验的方向推进了一小步。用户不需要先猜“日志在哪、还能不能看”，而是可以通过统一 CLI 命令和统一目录快速定位故障。
-- 这次没有把排障能力做成一个独立系统，而是以内聚的 runtime owner class 把“可观察性最小闭环”补齐，符合“统一入口、能力编排、不过度堆功能”的产品方向。
-- 下一步若继续扩展，优先考虑在现有 `RuntimeLogManager` 上增加轻量 retention 配置或诊断导出，而不是引入第二套日志管线。
+- 这次没有把排障能力做成一个独立系统，而是以内聚的 `core/logging` 边界把“应用级日志最小闭环”补齐，符合“统一入口、能力编排、不过度堆功能”的产品方向。
+- 下一步若继续扩展，优先考虑在现有 `logging` 边界上增加轻量 retention 配置或诊断导出，而不是引入第二套日志管线。
 
 代码增减报告：
-- 新增：978 行
-- 删除：10 行
-- 净增：+968 行
+- 新增：265 行
+- 删除：14 行
+- 净增：+251 行
 
 非测试代码增减报告：
-- 新增：871 行
-- 删除：10 行
-- 净增：+861 行
+- 新增：209 行
+- 删除：14 行
+- 净增：+195 行
 
 可维护性总结：
 - no maintainability findings

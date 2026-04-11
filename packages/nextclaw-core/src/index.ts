@@ -4,6 +4,7 @@ export * from "./agent/content/user-content.js";
 export * from "./runtime-context/bootstrap-context.js";
 export * from "./runtime-context/layered-skills-loader.js";
 export * from "./runtime-context/runtime-user-prompt.js";
+export * from "./logging/index.js";
 export * from "./agent/tool-catalog.utils.js";
 export * from "./agent/skill-context.js";
 export { SkillsLoader } from "./agent/skills-loader.js";

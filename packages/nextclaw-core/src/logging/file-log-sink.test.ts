@@ -2,13 +2,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { RuntimeLogManager } from "./runtime-log-manager.js";
+import { FileLogSink } from "./file-log-sink.js";
 
-describe("RuntimeLogManager", () => {
+describe("FileLogSink", () => {
   let tempDir: string;
 
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-runtime-logs-"));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-file-log-sink-"));
   });
 
   afterEach(() => {
@@ -21,7 +21,7 @@ describe("RuntimeLogManager", () => {
     fs.mkdirSync(logsDir, { recursive: true });
     fs.writeFileSync(path.join(logsDir, "service.log"), "x".repeat(32), "utf-8");
 
-    const manager = new RuntimeLogManager({
+    const sink = new FileLogSink({
       serviceLogPath: path.join(logsDir, "service.log"),
       crashLogPath: path.join(logsDir, "crash.log"),
       archiveDirPath: archiveDir,
@@ -29,28 +29,30 @@ describe("RuntimeLogManager", () => {
       now: () => new Date("2026-04-11T17:32:33.000Z"),
     });
 
-    manager.ensureReady();
+    sink.ensureReady();
 
     expect(fs.readFileSync(path.join(logsDir, "service.log"), "utf-8")).toBe("");
     expect(fs.readdirSync(archiveDir)).toEqual(["service-2026-04-11T17-32-33Z.log"]);
   });
 
-  it("tails the requested log file", () => {
-    const logsDir = path.join(tempDir, "logs");
-    const manager = new RuntimeLogManager({
-      serviceLogPath: path.join(logsDir, "service.log"),
-      crashLogPath: path.join(logsDir, "crash.log"),
-      archiveDirPath: path.join(logsDir, "archive"),
+  it("writes error records to both service.log and crash.log", () => {
+    const sink = new FileLogSink({
+      serviceLogPath: path.join(tempDir, "logs", "service.log"),
+      crashLogPath: path.join(tempDir, "logs", "crash.log"),
+      archiveDirPath: path.join(tempDir, "logs", "archive"),
     });
 
-    manager.appendServiceLine("first");
-    manager.appendServiceLine("second");
-    manager.appendServiceLine("third");
+    sink.writeRecord({
+      ts: "2026-04-11T17:32:33.000Z",
+      level: "error",
+      scope: "test.scope",
+      event: "test.failed",
+      startupId: "startup-1",
+      pid: 123,
+      fields: { reason: "boom" },
+    });
 
-    const tail = manager.tail("service", 2);
-
-    expect(tail).toHaveLength(2);
-    expect(tail[0]).toContain("second");
-    expect(tail[1]).toContain("third");
+    expect(fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8")).toContain("\"event\":\"test.failed\"");
+    expect(fs.readFileSync(path.join(tempDir, "logs", "crash.log"), "utf-8")).toContain("\"event\":\"test.failed\"");
   });
 });

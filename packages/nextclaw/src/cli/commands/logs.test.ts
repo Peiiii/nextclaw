@@ -2,8 +2,8 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FileLogSink, LoggingRuntime } from "@nextclaw/core";
 import { LogsCommands } from "./logs.js";
-import { RuntimeLogManager } from "../runtime-logging/runtime-log-manager.js";
 
 describe("LogsCommands", () => {
   let tempDir: string;
@@ -18,12 +18,14 @@ describe("LogsCommands", () => {
   });
 
   it("prints the resolved log paths", () => {
-    const manager = new RuntimeLogManager({
-      serviceLogPath: path.join(tempDir, "logs", "service.log"),
-      crashLogPath: path.join(tempDir, "logs", "crash.log"),
-      archiveDirPath: path.join(tempDir, "logs", "archive"),
+    const runtime = new LoggingRuntime({
+      sink: new FileLogSink({
+        serviceLogPath: path.join(tempDir, "logs", "service.log"),
+        crashLogPath: path.join(tempDir, "logs", "crash.log"),
+        archiveDirPath: path.join(tempDir, "logs", "archive"),
+      }),
     });
-    const commands = new LogsCommands(manager);
+    const commands = new LogsCommands(runtime);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     commands.logsPath();
@@ -33,14 +35,17 @@ describe("LogsCommands", () => {
   });
 
   it("tails crash.log when requested", () => {
-    const manager = new RuntimeLogManager({
-      serviceLogPath: path.join(tempDir, "logs", "service.log"),
-      crashLogPath: path.join(tempDir, "logs", "crash.log"),
-      archiveDirPath: path.join(tempDir, "logs", "archive"),
+    const runtime = new LoggingRuntime({
+      sink: new FileLogSink({
+        serviceLogPath: path.join(tempDir, "logs", "service.log"),
+        crashLogPath: path.join(tempDir, "logs", "crash.log"),
+        archiveDirPath: path.join(tempDir, "logs", "archive"),
+      }),
     });
-    manager.appendCrashLine("fatal one", "fatal");
-    manager.appendCrashLine("fatal two", "fatal");
-    const commands = new LogsCommands(manager);
+    const logger = runtime.getLogger("tests.logs");
+    logger.fatal("logs.tail.one", { message: "fatal one" });
+    logger.fatal("logs.tail.two", { message: "fatal two" });
+    const commands = new LogsCommands(runtime);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
     commands.logsTail({ crash: true, lines: 1 });

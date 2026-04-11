@@ -8,15 +8,10 @@ import {
 } from "./development-source/dev-plugin-overrides.utils.js";
 import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.js";
 import { buildReservedPluginLoadOptions } from "./plugin-command-utils.js";
-import type { Config } from "@nextclaw/core";
+import { createMessageLogger, type Config } from "@nextclaw/core";
 
 function createPluginLogger() {
-  return {
-    info: (message: string) => console.log(message),
-    warn: (message: string) => console.warn(message),
-    error: (message: string) => console.error(message),
-    debug: (message: string) => console.debug(message)
-  };
+  return createMessageLogger("plugin.registry_loader", "plugin.loader.message");
 }
 
 function withDevFirstPartyPluginPaths(config: Config) {

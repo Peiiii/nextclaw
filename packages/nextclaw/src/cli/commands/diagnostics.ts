@@ -5,12 +5,12 @@ import {
   getConfigPath,
   getWorkspacePath,
   hasSecretRef,
-  loadConfig
+  loadConfig,
+  resolveAppLogPath
 } from "@nextclaw/core";
 import { listBuiltinProviders } from "@nextclaw/runtime";
 import {
   isProcessRunning,
-  resolveServiceLogPath,
   resolveUiApiBase,
   resolveUiConfig
 } from "../utils.js";
@@ -214,7 +214,7 @@ export class DiagnosticsCommands {
     });
 
     const logTail = params.verbose
-      ? this.readLogTail((serviceState?.logPath ?? resolveServiceLogPath()), 25)
+      ? this.readLogTail((serviceState?.logPath ?? resolveAppLogPath("service")), 25)
       : [];
 
     const level: RuntimeStatusReport["level"] = running
@@ -339,7 +339,7 @@ export class DiagnosticsCommands {
     }
     if (params.running && params.managedHealth.state !== "ok") {
       params.issues.push(`Managed service health check failed: ${params.managedHealth.detail}`);
-      params.recommendations.push(`Check logs at ${params.serviceState?.logPath ?? resolveServiceLogPath()}.`);
+      params.recommendations.push(`Check logs at ${params.serviceState?.logPath ?? resolveAppLogPath("service")}.`);
     }
     if (params.running && params.serviceState?.startupState === "degraded" && params.managedHealth.state !== "ok") {
       const startupHint = params.serviceState.startupLastProbeError ? ` (${params.serviceState.startupLastProbeError})` : "";
