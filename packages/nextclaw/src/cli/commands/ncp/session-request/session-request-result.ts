@@ -45,18 +45,6 @@ export function extractSessionMessageText(
   return parts.join("\n\n");
 }
 
-export function findLatestAssistantMessage(
-  messages: readonly NcpMessage[],
-): NcpMessage | undefined {
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message?.role === "assistant") {
-      return message;
-    }
-  }
-  return undefined;
-}
-
 export function readParentSessionId(
   metadata: Record<string, unknown> | undefined,
 ): string | undefined {

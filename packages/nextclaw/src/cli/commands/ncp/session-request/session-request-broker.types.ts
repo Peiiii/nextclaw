@@ -62,9 +62,4 @@ export type StreamCompletedMessageParams = {
   task: string;
 };
 
-export type ResolveCompletedMessageParams = Pick<
-  SessionRequestExecutionParams,
-  "request" | "task"
->;
-
 export type PublishRequestOutcomeParams = SessionRequestExecutionParams;

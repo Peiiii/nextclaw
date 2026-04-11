@@ -276,6 +276,7 @@ describe("createUiNcpAgent child session follow-up requests", () => {
     );
 
     expect(events.some((event) => event.type === NcpEventType.MessageFailed)).toBe(false);
+    expect(events.some((event) => event.type === NcpEventType.MessageCompleted)).toBe(true);
     expect(events.at(-1)?.type).toBe(NcpEventType.RunFinished);
 
     const messages = await ncpAgent.sessionApi.listSessionMessages("parent-session-1");
@@ -343,6 +344,7 @@ describe("createUiNcpAgent child session follow-up requests", () => {
     );
 
     expect(secondEvents.some((event) => event.type === NcpEventType.MessageFailed)).toBe(false);
+    expect(secondEvents.some((event) => event.type === NcpEventType.MessageCompleted)).toBe(true);
     expect(secondEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
   });
 
@@ -402,6 +404,7 @@ describe("createUiNcpAgent child session follow-up requests", () => {
     );
 
     expect(secondEvents.some((event) => event.type === NcpEventType.MessageFailed)).toBe(false);
+    expect(secondEvents.some((event) => event.type === NcpEventType.MessageCompleted)).toBe(true);
     expect(secondEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
   });
 });

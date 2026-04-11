@@ -220,6 +220,7 @@ describe("createUiNcpAgent Claude runtime", () => {
     expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextStart);
     expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextDelta);
     expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageTextEnd);
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
     expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
     expect(
       runEvents.some(
@@ -264,6 +265,7 @@ describe("createUiNcpAgent Claude runtime", () => {
       }),
     );
 
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
     expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
     expect(
       runEvents.some(

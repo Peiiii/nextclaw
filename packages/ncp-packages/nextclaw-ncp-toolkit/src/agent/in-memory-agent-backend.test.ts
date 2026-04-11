@@ -484,6 +484,20 @@ class SlowEchoNcpLLMApi implements NcpLLMApi {
 class EchoNcpLLMApiRuntime implements NcpAgentRuntime {
   async *run(): AsyncGenerator<NcpEndpointEvent> {
     yield {
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: "session-1",
+        message: {
+          id: "assistant-1",
+          sessionId: "session-1",
+          role: "assistant",
+          status: "final",
+          parts: [{ type: "text", text: "hello" }],
+          timestamp: now,
+        },
+      },
+    };
+    yield {
       type: NcpEventType.RunFinished,
       payload: {
         sessionId: "session-1",

@@ -1,4 +1,10 @@
-import { type NcpEndpointEvent, type NcpMessage, type NcpSessionSummary, NcpEventType } from "@nextclaw/ncp";
+import {
+  type NcpCompletedEnvelope,
+  type NcpEndpointEvent,
+  type NcpMessage,
+  type NcpSessionSummary,
+  NcpEventType,
+} from "@nextclaw/ncp";
 import type { AgentSessionRecord, LiveSessionState } from "./agent-backend-types.js";
 
 const AUTO_SESSION_LABEL_MAX_LENGTH = 64;
@@ -138,4 +144,91 @@ export function isTerminalEvent(event: NcpEndpointEvent): boolean {
     default:
       return false;
   }
+}
+
+function findFinalAssistantMessageById(
+  session: LiveSessionState,
+  messageId: string,
+): NcpMessage | null {
+  const normalizedMessageId = messageId.trim();
+  if (!normalizedMessageId) {
+    return null;
+  }
+  const snapshot = session.stateManager.getSnapshot();
+  for (let index = snapshot.messages.length - 1; index >= 0; index -= 1) {
+    const message = snapshot.messages[index];
+    if (
+      message?.id === normalizedMessageId &&
+      message.role === "assistant" &&
+      message.status === "final"
+    ) {
+      return message;
+    }
+  }
+  return null;
+}
+
+function buildCompletedEventForFinishedRun(
+  session: LiveSessionState,
+  event: Extract<NcpEndpointEvent, { type: NcpEventType.RunFinished }>,
+): { type: NcpEventType.MessageCompleted; payload: NcpCompletedEnvelope } {
+  const messageId = event.payload.messageId?.trim();
+  if (!messageId) {
+    throw new Error(
+      `Run finished without messageId for session "${session.sessionId}".`,
+    );
+  }
+  const completedMessage = findFinalAssistantMessageById(session, messageId);
+  if (!completedMessage) {
+    throw new Error(
+      `Run finished without a final assistant message for session "${session.sessionId}" and message "${messageId}".`,
+    );
+  }
+  return {
+    type: NcpEventType.MessageCompleted,
+    payload: {
+      sessionId: session.sessionId,
+      message: structuredClone(completedMessage),
+    },
+  };
+}
+
+export function normalizeSendRunEvent(params: {
+  session: LiveSessionState;
+  event: NcpEndpointEvent;
+  completedMessageSeen: boolean;
+}): {
+  eventsToPublish: NcpEndpointEvent[];
+  completedMessageSeen: boolean;
+} {
+  const { session, event } = params;
+  if (event.type === NcpEventType.MessageCompleted) {
+    if (params.completedMessageSeen) {
+      throw new Error(
+        `Multiple final assistant messages were emitted for session "${session.sessionId}".`,
+      );
+    }
+    return {
+      eventsToPublish: [event],
+      completedMessageSeen: true,
+    };
+  }
+
+  if (event.type === NcpEventType.RunFinished) {
+    if (params.completedMessageSeen) {
+      return {
+        eventsToPublish: [event],
+        completedMessageSeen: true,
+      };
+    }
+    return {
+      eventsToPublish: [buildCompletedEventForFinishedRun(session, event), event],
+      completedMessageSeen: true,
+    };
+  }
+
+  return {
+    eventsToPublish: [event],
+    completedMessageSeen: params.completedMessageSeen,
+  };
 }

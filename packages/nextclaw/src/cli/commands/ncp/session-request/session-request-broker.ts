@@ -9,7 +9,6 @@ import { randomUUID } from "node:crypto";
 import {
   buildSessionRequestToolResult,
   extractSessionMessageText,
-  findLatestAssistantMessage,
   readOptionalString,
   readParentSessionId,
   summarizeSessionRequestTask,
@@ -24,7 +23,6 @@ import type {
   DispatchRequestParams,
   PublishRequestOutcomeParams,
   RequestSessionParams,
-  ResolveCompletedMessageParams,
   SessionRequestExecutionParams,
   SpawnSessionAndRequestParams,
   StreamCompletedMessageParams,
@@ -237,9 +235,10 @@ export class SessionRequestBroker {
     return completedMessage;
   };
 
-  private resolveCompletedMessage = async (
-    params: ResolveCompletedMessageParams,
-  ): Promise<NcpCompletedEnvelope["message"]> => {
+  private resolveCompletedMessage = async (params: {
+    request: SessionRequestRecord;
+    task: string;
+  }): Promise<NcpCompletedEnvelope["message"]> => {
     const { request, task } = params;
     const backend = this.resolveBackendOrThrow();
     const streamedMessage = await this.readCompletedMessageFromStream({
@@ -249,13 +248,6 @@ export class SessionRequestBroker {
     });
     if (streamedMessage) {
       return streamedMessage;
-    }
-    const targetMessages = await backend.listSessionMessages(
-      request.targetSessionId,
-    );
-    const fallbackMessage = findLatestAssistantMessage(targetMessages);
-    if (fallbackMessage) {
-      return fallbackMessage;
     }
     throw new Error("Session request completed without a final reply.");
   };

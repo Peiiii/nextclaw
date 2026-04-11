@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   type NcpAgentConversationStateManager,
+  type NcpEndpointEvent,
+  type NcpAgentRuntime,
   type NcpRequestEnvelope,
   NcpEventType,
 } from "@nextclaw/ncp";
@@ -92,4 +94,60 @@ describe("DefaultNcpAgentBackend final session summary status", () => {
 
     expect(sessionStore.publishedStatuses.at(-1)).toBe("idle");
   });
+
+  it("publishes message.completed before run.finished for send consumers", async () => {
+    const backend = new DefaultNcpAgentBackend({
+      sessionStore: new RecordingSessionStore(async () => "idle"),
+      createRuntime: ({ stateManager }: { stateManager: NcpAgentConversationStateManager }) => {
+        const toolRegistry = new DefaultNcpToolRegistry();
+        return new DefaultNcpAgentRuntime({
+          contextBuilder: new DefaultNcpContextBuilder(toolRegistry),
+          llmApi: new EchoNcpLLMApi(),
+          toolRegistry,
+          stateManager,
+        });
+      },
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of backend.send(createEnvelope("hello"))) {
+      events.push(event);
+    }
+
+    const eventTypes = events.map((event) => event.type);
+    expect(eventTypes).toContain(NcpEventType.MessageCompleted);
+    expect(eventTypes.at(-1)).toBe(NcpEventType.RunFinished);
+    expect(eventTypes.indexOf(NcpEventType.MessageCompleted)).toBeLessThan(
+      eventTypes.indexOf(NcpEventType.RunFinished),
+    );
+  });
+
+  it("fails fast when a runtime finishes without producing a final assistant message", async () => {
+    const backend = new DefaultNcpAgentBackend({
+      sessionStore: new RecordingSessionStore(async () => "idle"),
+      createRuntime: () => new RunFinishedWithoutAssistantMessageRuntime(),
+    });
+
+    await expect(
+      backend.emit({
+        type: NcpEventType.MessageRequest,
+        payload: createEnvelope("hello"),
+      }),
+    ).rejects.toThrow(
+      'Run finished without a final assistant message for session "session-1" and message "assistant-1".',
+    );
+  });
 });
+
+class RunFinishedWithoutAssistantMessageRuntime implements NcpAgentRuntime {
+  async *run(): AsyncGenerator<NcpEndpointEvent> {
+    yield {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-1",
+        runId: "run-1",
+      },
+    };
+  }
+}

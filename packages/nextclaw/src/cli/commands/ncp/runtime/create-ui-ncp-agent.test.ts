@@ -182,7 +182,6 @@ describe("createUiNcpAgent session types refresh", () => {
     let extensionRegistry: NextclawExtensionRegistry = {
       tools: [],
       channels: [],
-      engines: [],
       ncpAgentRuntimes: [],
       diagnostics: [],
     };
@@ -230,7 +229,6 @@ describe("createUiNcpAgent session types refresh", () => {
     ncpAgent.applyExtensionRegistry?.({
       tools: [],
       channels: [],
-      engines: [],
       ncpAgentRuntimes: [],
       diagnostics: [],
     });
@@ -314,7 +312,6 @@ describe("createUiNcpAgent tool catalog hot reload", () => {
         },
       ],
       channels: [],
-      engines: [],
       diagnostics: [],
       ncpAgentRuntimes: [],
     };
@@ -385,7 +382,6 @@ describe("createUiNcpAgent codex native routing", () => {
     const extensionRegistry: NextclawExtensionRegistry = {
       tools: [],
       channels: [],
-      engines: [],
       diagnostics: [],
       ncpAgentRuntimes: [
         {
@@ -404,13 +400,16 @@ describe("createUiNcpAgent codex native routing", () => {
                 },
               };
               yield {
-                type: NcpEventType.RunMetadata,
+                type: NcpEventType.MessageCompleted,
                 payload: {
                   sessionId: input.sessionId,
-                  messageId: "codex-run-message",
-                  runId: "codex-run-id",
-                  metadata: {
-                    kind: "final",
+                  message: {
+                    id: "codex-run-message",
+                    sessionId: input.sessionId,
+                    role: "assistant",
+                    status: "final",
+                    timestamp: new Date().toISOString(),
+                    parts: [{ type: "text", text: "hi from codex runtime" }],
                   },
                 },
               };
@@ -450,6 +449,7 @@ describe("createUiNcpAgent codex native routing", () => {
       }),
     );
 
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
     expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
     expect(providerManager.calls).toHaveLength(0);
 
@@ -513,6 +513,7 @@ describe("createUiNcpAgent MCP hot reload", () => {
 
     expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageToolCallStart);
     expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageToolCallResult);
+    expect(runEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
     expect(runEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
     expect(providerManager.calls[0]?.toolNames).toContain("mcp_demo__echo");
     expect(
@@ -579,6 +580,7 @@ function expectFirstRunBehavior(
 ): void {
   expect(firstRunEvents.map((event) => event.type)).toContain(NcpEventType.MessageToolCallStart);
   expect(firstRunEvents.map((event) => event.type)).toContain(NcpEventType.MessageToolCallResult);
+  expect(firstRunEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
   expect(firstRunEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
 
   expect(providerManager.calls).toHaveLength(2);
@@ -615,6 +617,7 @@ function expectSecondRunBehavior(
   secondRunEvents: NcpEndpointEvent[],
   providerManager: RecordingProviderManager,
 ): void {
+  expect(secondRunEvents.map((event) => event.type)).toContain(NcpEventType.MessageCompleted);
   expect(secondRunEvents.at(-1)?.type).toBe(NcpEventType.RunFinished);
   expect(providerManager.calls[0]?.model).toBe("override-model");
   expect(providerManager.calls[0]?.thinkingLevel).toBe("high");
@@ -767,7 +770,6 @@ function createCodexExtensionRegistryFromSource(config: Config): NextclawExtensi
   return {
     tools: [],
     channels: [],
-    engines: [],
     diagnostics: [],
     ncpAgentRuntimes,
   };

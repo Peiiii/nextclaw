@@ -127,6 +127,7 @@ describe("createUiNcpAgent reasoning normalization", () => {
       NcpEventType.MessageTextStart,
       NcpEventType.MessageTextDelta,
       NcpEventType.MessageTextEnd,
+      NcpEventType.MessageCompleted,
       NcpEventType.RunFinished,
     ]);
 
@@ -183,6 +184,7 @@ describe("createUiNcpAgent reasoning normalization", () => {
       NcpEventType.MessageTextStart,
       NcpEventType.MessageTextDelta,
       NcpEventType.MessageTextEnd,
+      NcpEventType.MessageCompleted,
       NcpEventType.RunFinished,
     ]);
 
