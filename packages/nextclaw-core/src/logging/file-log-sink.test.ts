@@ -46,13 +46,13 @@ describe("FileLogSink", () => {
       ts: "2026-04-11T17:32:33.000Z",
       level: "error",
       scope: "test.scope",
-      event: "test.failed",
+      message: "test failed",
       startupId: "startup-1",
       pid: 123,
-      fields: { reason: "boom" },
+      context: { reason: "boom" },
     });
 
-    expect(fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8")).toContain("\"event\":\"test.failed\"");
-    expect(fs.readFileSync(path.join(tempDir, "logs", "crash.log"), "utf-8")).toContain("\"event\":\"test.failed\"");
+    expect(fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8")).toContain("\"message\":\"test failed\"");
+    expect(fs.readFileSync(path.join(tempDir, "logs", "crash.log"), "utf-8")).toContain("\"message\":\"test failed\"");
   });
 });

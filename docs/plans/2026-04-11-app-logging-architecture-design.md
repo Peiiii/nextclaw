@@ -161,19 +161,20 @@ packages/nextclaw/src/cli/
 
 ```ts
 type AppLogger = {
-  debug: (event: string, fields?: Record<string, unknown>) => void;
-  info: (event: string, fields?: Record<string, unknown>) => void;
-  warn: (event: string, fields?: Record<string, unknown>) => void;
-  error: (event: string, fields?: Record<string, unknown>) => void;
-  fatal: (event: string, fields?: Record<string, unknown>) => void;
-  child: (scope: string, fields?: Record<string, unknown>) => AppLogger;
+  debug: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  fatal: (...args: unknown[]) => void;
+  child: (scope: string) => AppLogger;
 };
 ```
 
 关键点：
 
-- 第一参数优先是 `event`，不是随手拼文案
-- `fields` 用于补上下文
+- 对调用方暴露 message-first、接近 `console.*` 的使用方式，迁移 `console.log(...)` 成本更低
+- 若最后一个参数是普通对象，可自动收为结构化 `context`
+- 若最后一个参数是 `Error`，可自动收为结构化 `error`
 - `scope` 是结构化字段，不是 message 前缀技巧
 
 ### `file-log-sink.ts`
@@ -292,11 +293,11 @@ other modules -> packages/nextclaw/cli/logging
 type AppLogRecord = {
   ts: string;
   level: "debug" | "info" | "warn" | "error" | "fatal";
-  event: string;
   scope: string;
+  message: string;
   startupId: string;
   pid: number;
-  fields?: Record<string, unknown>;
+  context?: Record<string, unknown>;
   error?: {
     name: string;
     message: string;
@@ -321,8 +322,8 @@ import { getAppLogger } from "@nextclaw/core";
 
 const logger = getAppLogger("remote.connector");
 
-logger.info("remote.connect.started", { endpoint });
-logger.error("remote.connect.failed", { endpoint, code: "ECONNREFUSED" });
+logger.info("remote connection started", { endpoint });
+logger.error("remote connection failed", { endpoint, code: "ECONNREFUSED" });
 ```
 
 这意味着调用方：
@@ -331,6 +332,7 @@ logger.error("remote.connect.failed", { endpoint, code: "ECONNREFUSED" });
 - 不知道日志文件路径
 - 不知道归档细节
 - 不需要自己判断该写 `service.log` 还是 `crash.log`
+- 不需要每条日志手动传 `event`
 
 这些都由 logging 模块统一处理。
 

@@ -142,12 +142,12 @@ export class FileLogSink {
         ts: record.ts,
         level: "error",
         scope: "logging.file_log_sink",
-        event: "logging.serialize_failed",
+        message: "failed to serialize log record",
         startupId: record.startupId,
         pid: record.pid,
-        fields: {
+        context: {
           originalScope: record.scope,
-          originalEvent: record.event,
+          originalMessage: record.message,
           serializationError: error instanceof Error ? error.message : String(error),
         },
       });

@@ -1,6 +1,8 @@
+import { format } from "node:util";
+
 export type AppLogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 
-export type AppLogFields = Record<string, unknown>;
+export type AppLogContext = Record<string, unknown>;
 
 export type AppLogError = {
   name: string;
@@ -12,10 +14,10 @@ export type AppLogRecord = {
   ts: string;
   level: AppLogLevel;
   scope: string;
-  event: string;
+  message: string;
   startupId: string;
   pid: number;
-  fields?: AppLogFields;
+  context?: AppLogContext;
   error?: AppLogError;
 };
 
@@ -24,12 +26,12 @@ export type AppLogWriter = {
 };
 
 export type AppLogger = {
-  debug: (event: string, fields?: AppLogFields) => void;
-  info: (event: string, fields?: AppLogFields) => void;
-  warn: (event: string, fields?: AppLogFields) => void;
-  error: (event: string, fields?: AppLogFields, error?: unknown) => void;
-  fatal: (event: string, fields?: AppLogFields, error?: unknown) => void;
-  child: (scope: string, fields?: AppLogFields) => AppLogger;
+  debug: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  fatal: (...args: unknown[]) => void;
+  child: (scope: string) => AppLogger;
 };
 
 type ScopedAppLoggerOptions = {
@@ -38,7 +40,6 @@ type ScopedAppLoggerOptions = {
   startupId: string;
   pid: number;
   now?: () => Date;
-  baseFields?: AppLogFields;
 };
 
 function joinScope(parentScope: string, childScope: string): string {
@@ -49,14 +50,16 @@ function joinScope(parentScope: string, childScope: string): string {
   return parentScope ? `${parentScope}.${trimmedChild}` : trimmedChild;
 }
 
-function mergeFields(baseFields?: AppLogFields, fields?: AppLogFields): AppLogFields | undefined {
-  if (!baseFields && !fields) {
-    return undefined;
+function isPlainObject(value: unknown): value is AppLogContext {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
   }
-  return {
-    ...(baseFields ?? {}),
-    ...(fields ?? {}),
-  };
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function containsFormatDirective(value: string): boolean {
+  return /%[sdifoOj%]/.test(value);
 }
 
 function normalizeLogError(error: unknown): AppLogError | undefined {
@@ -82,64 +85,102 @@ export class ScopedAppLogger implements AppLogger {
   private readonly startupId: string;
   private readonly pid: number;
   private readonly now: () => Date;
-  private readonly baseFields?: AppLogFields;
-
   constructor(options: ScopedAppLoggerOptions) {
-    const { baseFields, now, pid, scope, startupId, writer } = options;
+    const { now, pid, scope, startupId, writer } = options;
     this.writer = writer;
     this.scope = scope;
     this.startupId = startupId;
     this.pid = pid;
     this.now = now ?? (() => new Date());
-    this.baseFields = baseFields;
   }
 
-  debug = (event: string, fields?: AppLogFields): void => {
-    this.write("debug", event, fields);
+  debug = (...args: unknown[]): void => {
+    this.write("debug", args);
   };
 
-  info = (event: string, fields?: AppLogFields): void => {
-    this.write("info", event, fields);
+  info = (...args: unknown[]): void => {
+    this.write("info", args);
   };
 
-  warn = (event: string, fields?: AppLogFields): void => {
-    this.write("warn", event, fields);
+  warn = (...args: unknown[]): void => {
+    this.write("warn", args);
   };
 
-  error = (event: string, fields?: AppLogFields, error?: unknown): void => {
-    this.write("error", event, fields, error);
+  error = (...args: unknown[]): void => {
+    this.write("error", args);
   };
 
-  fatal = (event: string, fields?: AppLogFields, error?: unknown): void => {
-    this.write("fatal", event, fields, error);
+  fatal = (...args: unknown[]): void => {
+    this.write("fatal", args);
   };
 
-  child = (scope: string, fields?: AppLogFields): AppLogger => {
+  child = (scope: string): AppLogger => {
     return new ScopedAppLogger({
       writer: this.writer,
       scope: joinScope(this.scope, scope),
       startupId: this.startupId,
       pid: this.pid,
       now: this.now,
-      baseFields: mergeFields(this.baseFields, fields),
     });
   };
 
-  private write = (
-    level: AppLogLevel,
-    event: string,
-    fields?: AppLogFields,
-    error?: unknown
-  ): void => {
+  private write = (level: AppLogLevel, args: unknown[]): void => {
+    const { message, context, error } = this.normalizeArgs(args);
+    if (!message && !context && !error) {
+      return;
+    }
     this.writer.writeRecord({
       ts: this.now().toISOString(),
       level,
       scope: this.scope,
-      event,
+      message,
       startupId: this.startupId,
       pid: this.pid,
-      ...(mergeFields(this.baseFields, fields) ? { fields: mergeFields(this.baseFields, fields) } : {}),
-      ...(normalizeLogError(error) ? { error: normalizeLogError(error) } : {}),
+      ...(context ? { context } : {}),
+      ...(error ? { error } : {}),
     });
+  };
+
+  private normalizeArgs = (args: unknown[]): {
+    message: string;
+    context?: AppLogContext;
+    error?: AppLogError;
+  } => {
+    const errorCandidate = args.at(-1);
+    const error = errorCandidate instanceof Error ? normalizeLogError(errorCandidate) : undefined;
+    const argsWithoutError = error ? args.slice(0, -1) : args;
+    const { context, messageArgs } = this.extractContext(argsWithoutError);
+    const message = this.buildMessage(messageArgs, error);
+    return {
+      message,
+      ...(context ? { context } : {}),
+      ...(error ? { error } : {}),
+    };
+  };
+
+  private extractContext = (args: unknown[]): {
+    messageArgs: unknown[];
+    context?: AppLogContext;
+  } => {
+    if (args.length < 2) {
+      return { messageArgs: args };
+    }
+    const lastArg = args.at(-1);
+    const firstArg = args[0];
+    if (!isPlainObject(lastArg) || typeof firstArg !== "string" || containsFormatDirective(firstArg)) {
+      return { messageArgs: args };
+    }
+    return {
+      messageArgs: args.slice(0, -1),
+      context: lastArg,
+    };
+  };
+
+  private buildMessage = (args: unknown[], error?: AppLogError): string => {
+    const formatted = args.length > 0 ? format(...args).trim() : "";
+    if (formatted) {
+      return formatted;
+    }
+    return error?.message ?? "";
   };
 }

@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { FileLogSink } from "./file-log-sink.js";
-import { LoggingRuntime, adaptMessageLogger } from "./logging-runtime.js";
+import { LoggingRuntime } from "./logging-runtime.js";
 
 describe("LoggingRuntime", () => {
   let tempDir: string;
@@ -29,15 +29,16 @@ describe("LoggingRuntime", () => {
     });
     const logger = runtime.getLogger("service.startup");
 
-    logger.info("service.startup.stage", { message: "ready" });
+    logger.info("service startup ready", { stage: "ready" });
 
     const serviceLog = fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8");
     expect(serviceLog).toContain("\"scope\":\"service.startup\"");
-    expect(serviceLog).toContain("\"event\":\"service.startup.stage\"");
+    expect(serviceLog).toContain("\"message\":\"service startup ready\"");
+    expect(serviceLog).toContain("\"context\":{\"stage\":\"ready\"}");
     expect(serviceLog).toContain("\"startupId\":\"startup-1\"");
   });
 
-  it("creates a simple message logger adapter inside core", () => {
+  it("lets app logger work as a message logger without extra adapters", () => {
     const runtime = new LoggingRuntime({
       startupId: "startup-2",
       pid: 789,
@@ -48,10 +49,11 @@ describe("LoggingRuntime", () => {
       }),
       now: () => new Date("2026-04-11T17:32:33.000Z"),
     });
-    const messageLogger = adaptMessageLogger(runtime.getLogger("plugin.registry_loader"), "plugin.loader.message");
-    messageLogger.info("plugin discovered");
+    const pluginLogger = runtime.getLogger("plugin.registry_loader");
+    pluginLogger.info("plugin discovered");
 
     const serviceLog = fs.readFileSync(path.join(tempDir, "logs", "service.log"), "utf-8");
-    expect(serviceLog).toContain("\"event\":\"plugin.loader.message\"");
+    expect(serviceLog).toContain("\"scope\":\"plugin.registry_loader\"");
+    expect(serviceLog).toContain("\"message\":\"plugin discovered\"");
   });
 });

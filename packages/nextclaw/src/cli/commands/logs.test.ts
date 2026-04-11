@@ -43,8 +43,8 @@ describe("LogsCommands", () => {
       }),
     });
     const logger = runtime.getLogger("tests.logs");
-    logger.fatal("logs.tail.one", { message: "fatal one" });
-    logger.fatal("logs.tail.two", { message: "fatal two" });
+    logger.fatal("fatal one");
+    logger.fatal("fatal two");
     const commands = new LogsCommands(runtime);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 

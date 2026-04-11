@@ -3,6 +3,7 @@
 ## 迭代完成说明
 
 - 为 NextClaw 建立一套本地优先、轻量、低侵入的应用级日志基础能力，统一落在 `${NEXTCLAW_HOME}/logs/` 下，删除主目录时可一并清理，不向系统目录额外散落文件。
+- 这轮续改进一步把 logger API 收敛成更接近 `console` 的 message-first 形式：业务侧直接 `logger.info("plugin discovered", { pluginId })` 即可，不再要求每条日志手动传 `event`。
 - 本次没有引入上传接口、前端日志页、多实例隔离或重量级日志平台，只补当前最需要的本地排障链路：
   - `service.log`：当前运行期日志
   - `crash.log`：启动失败、fatal、未捕获异常
@@ -11,6 +12,7 @@
   - [`AppLogger`](../../../packages/nextclaw-core/src/logging/app-logger.ts)
   - [`FileLogSink`](../../../packages/nextclaw-core/src/logging/file-log-sink.ts)
   - [`LoggingRuntime`](../../../packages/nextclaw-core/src/logging/logging-runtime.ts)
+- 当前日志记录最小合同已调整为 `message + optional context + optional error`，结构化提取由 core 内部统一完成，业务侧不再接触 `{ info, warn, error, debug }` 适配对象或 `event-first` 协议。
 - `nextclaw service/serve/start` 主链路已接入这套 core logging：
   - 前台 `serve` 进程会把 `console.debug/info/log/warn/error` 镜像到 `service.log`
   - `console.error` 与未捕获异常会进入 `crash.log`
@@ -27,7 +29,7 @@
 ## 测试/验证/验收方式
 
 - 已执行：`pnpm -C packages/nextclaw-core exec vitest run src/logging/file-log-sink.test.ts src/logging/logging-runtime.test.ts`
-  - 结果：通过，`2` 个测试文件、`3` 个测试全部通过。
+  - 结果：通过，`2` 个测试文件、`4` 个测试全部通过。
 - 已执行：`pnpm -C packages/nextclaw exec vitest run src/cli/commands/logs.test.ts src/cli/commands/service-support/runtime/tests/service-managed-startup.test.ts`
   - 结果：通过，`2` 个测试文件、`3` 个测试全部通过。
 - 已执行：`pnpm -C packages/nextclaw-core exec eslint src/logging/app-logger.ts src/logging/file-log-sink.ts src/logging/logging-runtime.ts src/logging/file-log-sink.test.ts src/logging/logging-runtime.test.ts`
@@ -37,12 +39,12 @@
 - 已执行：`pnpm -C packages/nextclaw-core exec tsc -p tsconfig.json --noEmit`
   - 结果：通过。
 - 已执行：`pnpm -C packages/nextclaw exec tsc -p tsconfig.json --noEmit`
-  - 结果：未通过。
-  - 阻塞原因：仓库既有无关错误位于 `packages/nextclaw-server/src/ui/ui-routes/marketplace/installed.ts:230` 与 `packages/nextclaw-server/src/ui/ui-routes/marketplace/installed.ts:238`，为 `Set<string | undefined>` 不能赋给 `Set<string>`。
+  - 结果：通过。
 - 已执行：`pnpm -C packages/nextclaw exec tsx src/cli/index.ts logs path`
   - 结果：通过，能直接输出 `Logs directory / Service log / Crash log / Archive` 四个本地路径。
 - 已执行：`pnpm lint:maintainability:guard`
-  - 结果：当前仓库入口命令不存在，`pnpm` 返回 `ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL` 与 `Command "lint:maintainability:guard" not found`；本次改动未能通过该统一入口完成守卫，只能以定向测试、定向 eslint 与独立 maintainability review 作为收尾验证。
+  - 结果：未通过。
+  - 阻塞原因：守卫执行时命中仓库其它并行改动与既有维护性问题，包括 `apps/maintainability-console/scripts/dev.mjs` 的 file role-boundary 新增文件阻断，以及若干 desktop / server / ui / scripts 热点文件的既有 warning；本次 logging 改动本身未新增该类错误，但无法在当前全仓脏工作树下拿到全绿结果。
 
 ## 发布/部署方式
 
@@ -62,8 +64,8 @@
 
 - 本次是否已尽最大努力优化可维护性：是。本次没有引入日志平台、上传链路、前端展示或多实例管理，而是只在 CLI/runtime 主链路内补足本地排障闭环，并把日志职责收口到单一 owner class。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。实现上删除了后台服务通过父进程文件描述符重定向 stdout/stderr 的旧做法，改为服务进程内部自主管理日志；同时没有新增额外 daemon、数据库或配置层。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。本次为新增能力，总代码与文件数有净增长，但这轮续改已经把错误的 `packages/nextclaw/src/cli/runtime-logging/` owner 删除，改为 `packages/nextclaw-core/src/logging/` 单点承载，避免了 CLI 成为跨模块日志依赖源。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`AppLogger` 负责统一写日志合同，`FileLogSink` 负责本地文件落盘，`LoggingRuntime` 负责进程级初始化；`LogsCommands` 只保留查看入口；`ServiceCommands` 只负责在启动节点接入。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。本次为新增能力，总代码与文件数有净增长，但这轮续改已经把错误的 `packages/nextclaw/src/cli/runtime-logging/` owner 删除，改为 `packages/nextclaw-core/src/logging/` 单点承载，并进一步删掉了额外的 message adapter/export，让调用路径重新收敛为一个直接 logger API。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`AppLogger` 负责统一写日志合同，`FileLogSink` 负责本地文件落盘，`LoggingRuntime` 负责进程级初始化；`LogsCommands` 只保留查看入口；`ServiceCommands` 只负责在启动节点接入。业务侧现在只感知一个 `logger.info(...args)` 风格接口，不再承担额外适配成本。
 - 目录结构与文件组织是否满足当前项目治理要求：基本满足。本次最终保留的新增目录是 `packages/nextclaw-core/src/logging/`，它属于真正可复用的基础能力层；CLI 内部的 `runtime-logging/` 已删除，不再制造反向依赖问题。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。以下结论基于实现完成后的独立复核，而不是只复述 lint/test 输出。
 
@@ -88,4 +90,4 @@
 
 可维护性总结：
 - no maintainability findings
-- 这次实现虽然是新增能力，但抽象保持得足够薄，主要复杂度被限制在日志 owner 内，没有向前端、接口层或更多运行时入口扩散。保留的债务主要是仓库统一 maintainability guard 入口当前不可用，以及 `service.ts` 仍是历史热点文件；本次已经尽量把新增代码外移，并把剩余增长压到最小必要范围。
+- 这次实现虽然是新增能力，但抽象保持得足够薄，主要复杂度被限制在日志 owner 内，没有向前端、接口层或更多运行时入口扩散。续改后又进一步把对外 API 从 `event-first` 收敛到 `console-like`，减少了调用心智负担。保留的债务主要是仓库统一 maintainability guard 入口当前不可用，以及 `service.ts` 仍是历史热点文件；本次已经尽量把新增代码外移，并把剩余增长压到最小必要范围。

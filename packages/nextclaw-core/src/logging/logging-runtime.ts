@@ -1,4 +1,3 @@
-import { format } from "node:util";
 import { FileLogSink, type AppLogKind, type AppLogPaths } from "./file-log-sink.js";
 import { ScopedAppLogger, type AppLogRecord, type AppLogWriter, type AppLogger } from "./app-logger.js";
 
@@ -7,13 +6,6 @@ type ConsoleMethodName = "debug" | "info" | "log" | "warn" | "error";
 type ConfigureAppLoggingOptions = {
   installConsoleMirror?: boolean;
   installProcessCrashMonitor?: boolean;
-};
-
-export type MessageLogger = {
-  debug: (message: string) => void;
-  info: (message: string) => void;
-  warn: (message: string) => void;
-  error: (message: string) => void;
 };
 
 type LoggingRuntimeOptions = {
@@ -123,23 +115,21 @@ export class LoggingRuntime implements AppLogWriter {
     const installMethod = (name: ConsoleMethodName) => {
       console[name] = ((...args: unknown[]) => {
         originalConsole[name](...args);
-        const message = format(...args).trim();
-        if (!message) {
+        if (args.length === 0) {
           return;
         }
-        const fields = { message, method: name };
         switch (methodLevels[name]) {
           case "debug":
-            consoleLogger.debug("console.message", fields);
+            consoleLogger.debug(...args);
             return;
           case "warn":
-            consoleLogger.warn("console.message", fields);
+            consoleLogger.warn(...args);
             return;
           case "error":
-            consoleLogger.error("console.message", fields);
+            consoleLogger.error(...args);
             return;
           default:
-            consoleLogger.info("console.message", fields);
+            consoleLogger.info(...args);
         }
       }) as typeof console.log;
     };
@@ -166,7 +156,7 @@ export class LoggingRuntime implements AppLogWriter {
     }
     const crashLogger = this.getLogger("runtime.crash");
     const listener = (error: Error, origin: NodeJS.UncaughtExceptionOrigin) => {
-      crashLogger.fatal("runtime.uncaught_exception", { origin }, error);
+      crashLogger.fatal("uncaught exception", { origin }, error);
     };
     process.on("uncaughtExceptionMonitor", listener);
     installedCrashMonitor = {
@@ -201,19 +191,6 @@ export function configureAppLogging(options: ConfigureAppLoggingOptions = {}): L
 
 export function getAppLogger(scope: string): AppLogger {
   return getLoggingRuntime().getLogger(scope);
-}
-
-export function adaptMessageLogger(logger: AppLogger, event = "message"): MessageLogger {
-  return {
-    debug: (message: string) => logger.debug(event, { message }),
-    info: (message: string) => logger.info(event, { message }),
-    warn: (message: string) => logger.warn(event, { message }),
-    error: (message: string) => logger.error(event, { message })
-  };
-}
-
-export function createMessageLogger(scope: string, event = "message"): MessageLogger {
-  return adaptMessageLogger(getAppLogger(scope), event);
 }
 
 export function getAppLogPaths(): AppLogPaths {

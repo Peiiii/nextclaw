@@ -485,7 +485,7 @@ export class ServiceCommands {
       resolveServiceLogPath
     });
     if (!startup) {
-      this.serviceLogger.fatal("service.managed_startup.aborted", {
+      this.serviceLogger.fatal("managed service startup aborted", {
         reason: "child_process_not_created"
       });
       process.exitCode = 1;
@@ -509,7 +509,7 @@ export class ServiceCommands {
       managedServiceStateStore.clear();
       const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
       this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
-      this.serviceLogger.fatal("service.managed_startup.failed_before_ready", {
+      this.serviceLogger.fatal("managed service exited before readiness completed", {
         uiUrl,
         apiUrl,
         healthUrl,
@@ -623,10 +623,7 @@ export class ServiceCommands {
 
   private appendStartupStage = (logPath: string, message: string): void => {
     try {
-      this.serviceLogger.child("startup").info("service.startup.stage", {
-        logPath,
-        message
-      });
+      this.serviceLogger.child("startup").info(message, { logPath });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
@@ -778,7 +775,7 @@ export class ServiceCommands {
       installConsoleMirror: true,
       installProcessCrashMonitor: true
     });
-    this.serviceLogger.info("logging.runtime.ready", {
+    this.serviceLogger.info("runtime logging ready", {
       startupId: this.loggingRuntime.getStartupId()
     });
     this.loggingInstalled = true;
