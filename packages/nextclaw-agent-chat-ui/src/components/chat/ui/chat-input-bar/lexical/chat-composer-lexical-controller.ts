@@ -196,6 +196,21 @@ export function createLexicalComposerHandle(
   return new LexicalComposerHandleOwner(params);
 }
 
+function getChatComposerContentSignature(nodes: ChatComposerNode[]): string {
+  return JSON.stringify(
+    nodes.map((node) =>
+      node.type === 'text'
+        ? { text: node.text, type: node.type }
+        : {
+            label: node.label,
+            tokenKey: node.tokenKey,
+            tokenKind: node.tokenKind,
+            type: node.type,
+          },
+    ),
+  );
+}
+
 export function handleLexicalComposerBeforeInput(params: {
   disabled: boolean;
   event: FormEvent<HTMLDivElement>;
@@ -245,14 +260,20 @@ export function handleLexicalComposerCompositionEnd(params: {
   };
 }): void {
   const { data, fallbackSnapshot, publishSnapshot, snapshotReader } = params;
-  const snapshot =
-    data.length > 0
+  const currentSnapshot = snapshotReader();
+  const editorSnapshot = fallbackSnapshot();
+  const shouldUseEditorSnapshot =
+    getChatComposerContentSignature(editorSnapshot.nodes) !==
+    getChatComposerContentSignature(currentSnapshot.nodes);
+  const snapshot = shouldUseEditorSnapshot
+    ? editorSnapshot
+    : data.length > 0
       ? replaceChatComposerSelectionWithText({
-          nodes: snapshotReader().nodes,
-          selection: snapshotReader().selection,
+          nodes: currentSnapshot.nodes,
+          selection: currentSnapshot.selection,
           text: data,
         })
-      : fallbackSnapshot();
+      : editorSnapshot;
   publishSnapshot(snapshot, { forcePublish: true });
 }
 
