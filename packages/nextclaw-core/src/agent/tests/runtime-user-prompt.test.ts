@@ -84,6 +84,23 @@ describe("buildBootstrapAwareUserPrompt", () => {
     expect(prompt).toContain("plain message");
   });
 
+  it("injects execution policy overlay for model-specific prompts", () => {
+    const workspace = createWorkspace();
+    const prompt = buildBootstrapAwareUserPrompt({
+      workspace,
+      sessionKey: "session-4",
+      skills: new SkillsLoader(workspace),
+      skillSelectors: [],
+      userMessage: "inspect and fix it",
+      model: "gpt-5.4",
+    });
+
+    expect(prompt).toContain("## Current Turn Execution");
+    expect(prompt).toContain("Do not stop at promises");
+    expect(prompt).toContain("Do not guess time, date, system state");
+    expect(prompt).not.toContain("Batch independent reads when possible.");
+  });
+
   it("keeps project and host workspace skills distinct when names collide", () => {
     const hostWorkspace = createWorkspace();
     const projectRoot = createWorkspace();
