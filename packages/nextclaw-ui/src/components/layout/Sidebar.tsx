@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/lib/theme';
-import { Cpu, GitBranch, History, MessageCircle, MessageSquare, Sparkles, BookOpen, Plug, BrainCircuit, AlarmClock, Languages, Palette, KeyRound, Settings, ArrowLeft, Search, Shield, Wrench, Wifi, Bot } from 'lucide-react';
+import { Cpu, GitBranch, History, MessageCircle, MessageSquare, Sparkles, BookOpen, Plug, BrainCircuit, AlarmClock, Languages, Palette, KeyRound, Settings, ArrowLeft, Search, Shield, Wrench, Wifi, Bot, Download } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useDocBrowser } from '@/components/doc-browser';
 import { BrandHeader } from '@/components/common/BrandHeader';
@@ -104,6 +104,11 @@ export function Sidebar({ mode }: SidebarProps) {
       target: '/runtime',
       label: t('runtime'),
       icon: GitBranch,
+    },
+    {
+      target: '/updates',
+      label: t('updates'),
+      icon: Download,
     },
     {
       target: '/remote',

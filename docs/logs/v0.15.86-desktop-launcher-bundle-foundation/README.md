@@ -73,6 +73,34 @@
   - [apps/desktop/src/utils/desktop-logging.utils.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/utils/desktop-logging.utils.ts)
   - [apps/desktop/src/utils/window-diagnostics.utils.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/utils/window-diagnostics.utils.ts)
   让 [apps/desktop/src/main.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/main.ts) 重新回到“桌面启动编排 owner”的职责边界。
+- 本次续改已把桌面端“免下载更新”真正落成用户可感知的产品体验，而不再只是主进程后台能力：
+  - 默认策略改为“自动检查更新，但不默认自动后台下载”
+  - 已支持应用内手动 `检查更新 / 下载更新 / 立即重启更新`
+  - 下载与应用已拆成两个明确阶段：下载完成后保留 `downloaded` 状态，是否立即重启仍由用户决定
+  - 已新增桌面端更新偏好：`automaticChecks`、`autoDownload`
+  - 已新增设置页入口 `/updates`，并同步接入桌面应用菜单入口
+- 这次续改同时把桌面更新壳层职责从 [apps/desktop/src/main.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/main.ts) 再次向外收敛：
+  - 新增 [apps/desktop/src/services/desktop-update-shell.service.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/services/desktop-update-shell.service.ts)，专门承接菜单、IPC、弹窗提示、snapshot 广播与重启应用更新
+  - `main.ts` 已从上一轮一度膨胀后的 593 行重新压回 372 行
+- renderer 侧新增了完整桥接链路：
+  - [apps/desktop/src/preload.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/preload.ts) 现在会暴露桌面更新 API 与状态订阅
+  - [packages/nextclaw-ui/src/desktop/managers/desktop-update.manager.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/desktop/managers/desktop-update.manager.ts) 收敛更新页面的桌面交互 owner
+  - [packages/nextclaw-ui/src/desktop/stores/desktop-update.store.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/desktop/stores/desktop-update.store.ts) 负责 renderer 侧状态承载
+  - [packages/nextclaw-ui/src/components/config/desktop-update-config.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/components/config/desktop-update-config.tsx) 提供最终设置页
+- 本次又额外修复了一个会让“我已经写好了更新页，但用户安装出来还是旧界面”的发布链路问题：
+  - 原先桌面端 `dist/pack` 在生成 `seed-product-bundle.zip` 前只要求 runtime 产物存在，不保证 `packages/nextclaw/ui-dist` 一定按当前源码重新构建
+  - 这会导致桌面安装包复用陈旧 `ui-dist`，把旧 UI 一起打进 DMG
+  - 现在 [apps/desktop/scripts/update/services/build-product-bundle.service.mjs](/Users/peiwang/Projects/nextbot/apps/desktop/scripts/update/services/build-product-bundle.service.mjs) 已在生成 product bundle 前强制执行 `packages/nextclaw-ui build` 与 `packages/nextclaw build`，把“先拿最新 UI/runtime，再打包”变成显式合同
+- 本次还额外修复了一个只在 packaged app 启动后暴露的 preload 桥接问题：
+  - 原先 [apps/desktop/src/preload.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/preload.ts) 通过本地相对模块加载 `desktop-ipc.utils`
+  - packaged Electron 在该 preload 场景下会出现本地模块解析失败，导致窗口日志出现 `Unable to load preload script` 与 `module not found: ./utils/desktop-ipc.utils`
+  - preload 一旦失效，`window.nextclawDesktop` 桥接就不会注入到 renderer，更新页即使已经打进 UI，也只能退化成“桌面端桥接不可用”的状态
+  - 现在 preload 已收敛为自包含入口，直接内联桌面更新 IPC channel 常量，不再依赖本地相对模块解析
+- 本次续改还补齐了 update coordinator 的产品语义：
+  - 检查更新时会稳定写入 `lastUpdateCheckAt`
+  - 已下载版本会在应用或回滚时清理 `downloadedVersion` / `downloadedReleaseNotesUrl`
+  - 自动后台下载只会在用户明确打开 `autoDownload` 时发生
+- 为了让现有冒烟链继续可用，本次顺手修复了 [apps/desktop/scripts/smoke-runtime.mjs](/Users/peiwang/Projects/nextbot/apps/desktop/scripts/smoke-runtime.mjs) 与当前 `RuntimeServiceProcess` 契约脱节的问题；现在该脚本会传入显式 `runtimeEnv`，并回到当前真实支持的 embedded runtime 启动方式。
 - `.github/workflows/desktop-release.yml` 现在会在 release 发布时统一产出并上传：
   - 桌面安装物
   - `nextclaw-bundle-<platform>-<arch>-<version>.zip`
@@ -82,6 +110,7 @@
 - 技术方案见：
   - [2026-04-11-desktop-no-download-update-architecture-design](../../plans/2026-04-11-desktop-no-download-update-architecture-design.md)
   - [2026-04-11-desktop-no-download-update-phase1-implementation-plan](../../plans/2026-04-11-desktop-no-download-update-phase1-implementation-plan.md)
+  - [2026-04-12-desktop-update-product-experience-final-design](../../plans/2026-04-12-desktop-update-product-experience-final-design.md)
 
 ## 测试/验证/验收方式
 
@@ -90,9 +119,15 @@
 - 已执行：`pnpm -C apps/desktop lint`
   - 结果：通过
 - 已执行：`pnpm -C apps/desktop build:main && node --test apps/desktop/dist/**/*.test.js`
-  - 结果：通过，`24 passed / 24 total`
+  - 结果：已收敛为更精确的测试入口 `node --test apps/desktop/dist/src/launcher/__tests__/*.test.js`，通过，`24 passed / 24 total`
 - 已执行：`pnpm -C apps/desktop smoke`
   - 结果：通过。删除 `legacy-runtime` 后，桌面端 runtime smoke 仍保持可用。
+- 已执行：`pnpm -C packages/nextclaw-ui tsc`
+  - 结果：通过
+- 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/desktop/desktop-update.types.ts src/desktop/stores/desktop-update.store.ts src/desktop/managers/desktop-update.manager.ts src/components/config/desktop-update-config.tsx src/App.tsx src/components/layout/Sidebar.tsx src/components/layout/sidebar.layout.test.tsx src/lib/ui-document-title.ts src/lib/i18n.ts src/lib/desktop-update-labels.utils.ts`
+  - 结果：通过
+- 已执行：`pnpm -C packages/nextclaw-ui build`
+  - 结果：通过。已确认桌面更新设置页产物被打进 UI bundle，最终 chunk 中包含 `desktop-update-config-*.js`
 - 已执行：`node apps/desktop/scripts/update/services/build-update-manifest.service.mjs -- ...`
   - 结果：通过。使用临时 Ed25519 密钥与临时 bundle 文件做了真实冒烟，脚本能产出 manifest，且产出的 `manifestSignature` 与 `bundleSignature` 都可被公钥成功验签。
 - 已执行：`node apps/desktop/scripts/update/services/build-product-bundle.service.mjs -- ...`
@@ -121,7 +156,7 @@
     - 安装 packaged seed bundle
     - 解析 active bundle runtime
     - 启动本地 runtime
-    - 命中 `http://127.0.0.1:55667/api/health`
+    - 命中 `http://127.0.0.1:59736/api/health`
   - 说明：这次冒烟明确命中了桌面端自身启动出来的 runtime，不再走 fallback runtime。
 - 已执行：`env -u ELECTRON_RUN_AS_NODE 'apps/desktop/release/mac-arm64/NextClaw Desktop.app/Contents/MacOS/NextClaw Desktop'`
   - 结果：通过。新的桌面窗口诊断日志已经在 [apps/desktop/src/main.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/main.ts) 对应的 packaged 应用里生效，并在 `~/Library/Application Support/@nextclaw/desktop/launcher/main.log` 中确认到：
@@ -143,6 +178,23 @@
     - `runtimeHome=/Users/peiwang/.nextclaw`
     - `resolvedRuntimeHome=/Users/peiwang/.nextclaw`
     - `resolvedDesktopDataDir=/Users/peiwang/Library/Application Support/@nextclaw/desktop`
+- 已执行：重新生成 `apps/desktop/build/update/seed-product-bundle.zip` 后直接解包检查
+  - 结果：通过。新的 seed bundle 已明确包含：
+    - `bundle/ui/assets/desktop-update-config-*.js`
+    - `/updates` 路由
+    - `desktopUpdatesPageTitle`
+    - `desktopUpdatesAutomaticChecks`
+  - 说明：这次验证直接证实“桌面安装包里已经不是旧前端”，根因确认为旧 `ui-dist` 被复用的问题已消除。
+- 已执行：覆盖安装最新构建产物到 `/Applications/NextClaw Desktop.app` 后，再直接解包其中的 `Contents/Resources/update/seed-product-bundle.zip`
+  - 结果：通过。安装后的 app 资源里同样包含 `desktop-update-config-*.js` 与 `/updates` 路由，不再是旧 seed bundle。
+- 已执行：直接启动 `/Applications/NextClaw Desktop.app/Contents/MacOS/NextClaw Desktop` 并检查 `~/Library/Logs/@nextclaw/desktop/main.log`
+  - 结果：通过。最新日志已确认：
+    - `Runtime source: bundle`
+    - `Bundle version: 0.17.6`
+    - 不再出现 `Unable to load preload script`
+    - 不再出现 `module not found: ./utils/desktop-ipc.utils`
+    - 启动后已进入 `Desktop update snapshot changed. status=idle/checking/failed ...`
+  - 说明：这次验证确认 packaged preload 桥接已真正恢复，桌面更新页不再因为 preload 失效而退化。
 - 已执行：Playwright 直接拉起刚打包出来的 [apps/desktop/release/mac-arm64/NextClaw Desktop.app](/Users/peiwang/Projects/nextbot/apps/desktop/release/mac-arm64/NextClaw%20Desktop.app) 二进制，并在页面内读取桌面 UI 当前状态
   - 结果：通过。确认桌面端当前使用自己的独立 loopback 端口而不是固定 `55667`，并且页面内可直接读到：
     - `providerKeys = ["nextclaw", "minimax", "custom-1", "custom-2", "dashscope", "custom-3", "custom-4"]`
@@ -150,16 +202,27 @@
     - `metaProviderCount = 20`
     - `sessionCount = 912`
   - 说明：这次验证直接覆盖了用户最关心的结果，即“桌面端打开后能正常加载原有 `~/.nextclaw` 数据，而不是空 provider / 空 model / 空会话列表”。
+- 本次续改还补上了桌面 bundle 存储回收策略，避免版本目录无限增长：
+  - launcher 现在只保留被当前状态明确引用的版本：`currentVersion`、`previousVersion`、`lastKnownGoodVersion`、`candidateVersion`、`downloadedVersion`，以及 `current.json` / `previous.json` 指针指向的版本
+  - 一旦版本切换、下载待应用、回滚或健康确认完成，未被这些引用命中的旧 `versions/<version>` 目录会自动删除
+  - `staging/` 只再承担临时下载/解压用途，启动时与清理时会主动清掉历史残留
+  - 因而桌面端更新链路现在的空间上界已收敛为“当前版本 + 一个回滚版本 + 一个已下载待应用版本 + 短生命周期 staging”，而不是每升级一次永久多留一整份 UI/runtime/plugins
+- 为了避免桌面入口继续膨胀，本次又把“启动前 seed 安装 / 远端首包拉取 / pending candidate 恢复 / bundle 存储清理”从 [apps/desktop/src/main.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/main.ts) 收敛进了 [apps/desktop/src/services/desktop-bundle-bootstrap.service.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/services/desktop-bundle-bootstrap.service.ts)，让桌面入口重新只承担 Electron 生命周期与窗口装配。
 - 已执行：`ruby -e 'require "yaml"; YAML.load_file(".github/workflows/desktop-release.yml")'`
   - 结果：通过。release workflow YAML 语法可正常解析。
 - 已执行：`pnpm lint:maintainability:guard`
-  - 结果：命令仍失败，但桌面端这次的主新增链路已经把 `main.ts` 从 570 行重新压回 373 行，当前桌面端相关的新增硬错误已消除。剩余阻断项来自工作区其它并行链路：
-    - `packages/nextclaw/src/cli/commands/diagnostics.ts`
-    - `packages/nextclaw/src/cli/commands/plugin/development-source/dev-plugin-overrides.ts`
-    - `packages/nextclaw/src/cli/commands/service.ts`
-  - 本次桌面端相关剩余输出主要是维护性预警而非阻断：
-    - `apps/desktop/src/launcher/__tests__/launcher-foundation.test.ts` 接近预算上限
-    - `apps/desktop/src/launcher/services/update.service.ts` 文件体积增长
+  - 结果：通过。当前剩余输出仅为预警，没有新增硬错误；本次新增链路的治理检查、命名检查、owner 边界检查均已通过。
+- 已执行：`pnpm dlx tsx --test apps/desktop/src/launcher/__tests__/launcher-foundation.test.ts`
+  - 结果：通过。21/21 测试全部通过，其中新增覆盖了：
+    - 仅保留被状态引用的版本目录
+    - 清理 `staging/` 历史残留
+    - 健康确认后自动删除更老的无引用版本
+- 已执行：`pnpm dlx tsx --test apps/desktop/src/launcher/__tests__/update-coordinator.service.test.ts`
+  - 结果：通过。4/4 测试全部通过，其中新增确认：
+    - “先下载、后应用”模式下仍会保留当前版本与待应用版本
+    - 下载新版本后会自动删除更老且无引用的历史版本
+- 已执行：`pnpm -C apps/desktop build:main`
+  - 结果：通过。
 - 已尝试执行：`python3 /Users/peiwang/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/role-first-file-organization`
   - 结果：未通过，失败原因不是 skill 本身，而是当前本机 Python 环境缺少 `yaml` 模块，报错 `ModuleNotFoundError: No module named 'yaml'`
 
@@ -190,14 +253,32 @@
 11. 将一个已知坏版本号写入 launcher state 的 `badVersions` 后再次提供相同版本 manifest，确认 launcher 会显式跳过该版本，而不是反复下载它。
 12. 在本机先人为启动一个旧的 `nextclaw start` 后台服务，再打开最新桌面端，确认桌面窗口仍然会连到自己的独立端口（例如 `http://127.0.0.1:53489/chat`），而不是被旧服务固定端口劫持。
 13. 打开桌面端后确认会话列表、provider 列表和默认模型都与 `~/.nextclaw/config.json`、`~/.nextclaw/sessions` 中的真实数据一致，而不是出现空列表。
+14. 打开桌面端设置页，确认左侧设置导航已经出现“更新”入口，进入后可看到：
+  - 当前桌面壳版本
+  - 当前产品版本
+  - 可用版本
+  - 上次检查时间
+15. 在更新页点击“检查更新”，确认应用内状态会在 `idle / checking / update-available / up-to-date / downloaded / failed` 之间按实际情况切换，而不是直接静默替换当前版本。
+16. 在更新页点击“下载更新”，确认只会把新版本下载到本地并进入“已下载待应用”，当前运行版本不应立即改变。
+17. 在更新页点击“立即重启更新”，确认应用重启后才切到新版本；若新版本启动失败且没有健康确认，后续再次启动时仍会自动回滚。
+18. 切换“自动检查更新”和“发现更新后自动后台下载”两个偏好开关，重启桌面端后确认状态仍能保留，且只有在打开 `autoDownload` 时才会自动进入下载阶段。
+19. 打开 `~/Library/Logs/@nextclaw/desktop/main.log`，确认最新启动日志中不再出现 `Unable to load preload script` 与 `module not found: ./utils/desktop-ipc.utils`。
+20. 使用最新安装到 `/Applications/NextClaw Desktop.app` 的桌面端进入设置页，确认左侧已经出现“更新”入口，而不是旧版本里缺失该入口的状态。
+21. 连续完成多次桌面 bundle 更新后，检查 `~/Library/Application Support/@nextclaw/desktop/versions`，确认不会无限堆积历史版本；正常情况下只应保留：
+  - 当前运行版本
+  - 一个可回滚版本
+  - 一个已下载待应用版本（如果存在）
+22. 检查 `~/Library/Application Support/@nextclaw/desktop/staging`，确认桌面稳定运行后不会残留历史下载或历史解压目录。
 
 ## 可维护性总结汇总
 
 - 可维护性复核结论：保留债务经说明接受
 - 长期目标对齐 / 可维护性推进：本次顺着“桌面端产品版本单元统一、入口合同更单一、运行来源更可解释”的长期方向又推进了一步。相比继续往旧 `electron-updater` 路径堆 patch，这次把“manifest -> 下载 -> 验签 -> 解包 -> 安装 -> candidate 激活 -> 重启切换 -> 坏版本 quarantine”继续收敛进 launcher 主链路里，桌面更新体验开始真正服从同一份 bundle 合同。
 - 本次是否已尽最大努力优化可维护性：是
-- 是否优先遵循删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好：是。本次没有再新增新的 role、层次或中转文件，而是把 zip 解包、安装和候选激活继续收敛到已有 `update.service.ts` 里，避免为 `extractor / installer / activator` 再次拆回多个薄文件。
+- 是否优先遵循删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好：是。本次没有新增新的兼容分支或隐藏 fallback，而是把“版本保留多少”收敛成单一、显式的引用保留规则，同时删除了“版本目录会一直堆着不管”的隐性维护债。
 - 本次桌面端可用性修复也遵循了“单路径优先、可预测优先”的原则：没有再在 `managed-service` 上叠加“如果发现旧服务就猜测是否重启 / 强行接管 / 根据端口做兼容”的 incident patch，而是直接删除桌面端对外部后台服务的依赖，把契约收敛成“桌面 app 启动就拉起自己 bundle 的 runtime 并连接自己的端口”。
+- 本次关于磁盘占用的修复也遵循了同样原则：不是通过“定时扫描一堆猜测路径”做隐式回收，而是严格围绕 launcher state 与 version pointer 做引用式清理。只要版本不再被当前运行、回滚或待应用语义引用，就自动删除。
+- 抽象与边界方面，本次新增的 [apps/desktop/src/services/desktop-bundle-bootstrap.service.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/services/desktop-bundle-bootstrap.service.ts) 属于必要收敛而非过度拆分：它把原本继续膨胀的 `main.ts` 启动前 bundle 编排收回到单一 service owner，避免入口文件继续承载过多分支。
 - 代码增减报告：
   - 统计口径：仅统计本次续改相对上一提交的桌面端相关改动，不含 `docs/` 设计与迭代文档。
   - 新增：`692` 行以上
@@ -213,10 +294,17 @@
   - 解压策略从并发改顺序
   - bundle 产物从 symlink 拓扑改为 hoisted 可打包拓扑
   这比继续在 runtime 解析阶段追加隐藏 fallback 更可预测，也更符合“删减优先、单路径优先”的目标。
+- 本次针对“安装包仍是旧前端”的修复也遵循了同样的原则：没有再补一层 freshness 猜测器或缓存探测器，而是直接把发布链路改成“先构最新 UI/runtime，再打 seed bundle”的单路径合同。
+- 本次 preload 修复同样保持最小收敛：没有新增 preload loader、barrel 或额外 bridge class，只是把 6 个 IPC channel 常量内联回 preload 文件本身，让 packaged preload 行为重新回到最可预测的单文件入口。
 - 本次无证书 macOS 打包修复也遵循了同样的思路：没有新增一整套“签名管理框架”或多层包装脚本，只是在已有 `electron-after-sign.cjs` 中把“签名完整性自检 + 必要时补做完整 adhoc 深签名”收敛成最小补丁，避免以后继续靠人工 `codesign` 救火。
 - 本次又额外删掉了桌面端 `runtime-service.ts` 里整条 `managed-service` 分支及其相关测试残留，让桌面运行链路不再同时维护“连外部后台服务”和“拉起内嵌 runtime”两套路径；同时把 `main.ts` 中与壳层编排无关的日志/窗口诊断逻辑移动到 `utils`，把入口文件重新压回预算内。
+- 本次续改继续沿着“少一点入口膨胀、少一点隐式行为”的方向推进：
+  - 把桌面更新壳层编排从 `main.ts` 抽到独立 `DesktopUpdateShellService`
+  - 把新增的桌面更新文案从 `i18n.ts` 拆到 [packages/nextclaw-ui/src/lib/desktop-update-labels.utils.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/lib/desktop-update-labels.utils.ts)
+  - 把新增的 update coordinator 行为测试拆到 [apps/desktop/src/launcher/__tests__/update-coordinator.service.test.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/launcher/__tests__/update-coordinator.service.test.ts)，避免原测试文件继续无边界膨胀
 - 这次新增的 renderer 诊断日志虽然带来了少量非功能代码，但仍压在现有 `main.ts` 这个桌面壳入口 owner 内，没有再拆新的 logger class、diagnostic service 或 Electron bridge；它解决的是“桌面窗口真实发生了什么无法证据化”这个直接排障缺口，属于最小必要增长。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分达成。总代码量相对本大迭代起点仍是净增，但本次这轮续改本身已经删掉了桌面端一整条运行模式分支，并把 `main.ts` 从超预算状态压回预算内；新增的两个 `utils` 文件属于为了降低入口复杂度而做的职责收敛，没有继续恶化目录平铺度。
+- 这次最终收尾后，`pnpm lint:maintainability:guard` 已恢复通过；剩余只保留维护性预警，没有再留下本轮新增硬阻断。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰：是。`main.ts` 仍保持壳层协调，负责“何时检查首包 / 何时后台拉更新 / 何时提示重启”；真正的下载、解包、安装、candidate 激活都仍归 `update.service.ts` 拥有。本次没有额外引入 `extractor`、`archive-installer` 之类只包一层的类。
 - 是否避免了过度抽象或补丁式叠加：是。本次没有引入额外 framework 式抽象，也没有做 incident-specific fallback patch，并且已经删除 `legacy-runtime` 自动兜底路径，把桌面端运行来源收敛成更可预测的单一路径合同。
 - 目录结构与文件组织是否满足当前项目治理要求：当前桌面端链路已满足本次治理要求，`apps/desktop/src` 根目录文件数问题已通过子目录收敛消除，launcher 内也已删除所有无意义 barrel。后续若继续推进 update client / manifest / signer，应继续放在 `launcher/` 目录内，并优先复用现有 `services / stores / utils` 角色，避免重新把 `src` 根目录铺平或发明新的假角色。

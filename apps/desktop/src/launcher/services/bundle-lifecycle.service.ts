@@ -48,8 +48,11 @@ export class DesktopBundleLifecycleService {
       currentVersion: version,
       previousVersion,
       candidateVersion: version,
-      candidateLaunchCount: 0
+      candidateLaunchCount: 0,
+      downloadedVersion: null,
+      downloadedReleaseNotesUrl: null
     });
+    await this.bundleService.pruneRetainedArtifacts();
 
     return {
       activatedVersion: version,
@@ -87,8 +90,12 @@ export class DesktopBundleLifecycleService {
         previousVersion: null,
         candidateVersion: null,
         candidateLaunchCount: 0,
-        badVersions: [...new Set([...state.badVersions, candidateVersion])]
+        badVersions: [...new Set([...state.badVersions, candidateVersion])],
+        downloadedVersion: null,
+        downloadedReleaseNotesUrl: null
       });
+      await this.bundleService.removeVersion(candidateVersion);
+      await this.bundleService.pruneRetainedArtifacts();
       return {
         rolledBackFrom: candidateVersion,
         rolledBackTo: null
@@ -105,8 +112,11 @@ export class DesktopBundleLifecycleService {
       candidateVersion: null,
       candidateLaunchCount: 0,
       lastKnownGoodVersion: rollbackVersion,
-      badVersions: [...new Set([...state.badVersions, candidateVersion])]
+      badVersions: [...new Set([...state.badVersions, candidateVersion])],
+      downloadedVersion: null,
+      downloadedReleaseNotesUrl: null
     });
+    await this.bundleService.pruneRetainedArtifacts();
 
     return {
       rolledBackFrom: candidateVersion,
@@ -132,6 +142,7 @@ export class DesktopBundleLifecycleService {
         badVersions: state.badVersions.filter((entry) => entry !== version)
       };
     });
+    await this.bundleService.pruneRetainedArtifacts();
   };
 
   private resolveRollbackVersion = (

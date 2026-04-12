@@ -16,6 +16,7 @@ const SearchConfigPage = lazy(async () => ({ default: (await import('@/component
 const ProvidersListPage = lazy(async () => ({ default: (await import('@/components/config/ProvidersList')).ProvidersList }));
 const ChannelsListPage = lazy(async () => ({ default: (await import('@/components/config/ChannelsList')).ChannelsList }));
 const RuntimeConfigPage = lazy(async () => ({ default: (await import('@/components/config/RuntimeConfig')).RuntimeConfig }));
+const DesktopUpdateConfigPage = lazy(async () => ({ default: (await import('@/components/config/desktop-update-config')).DesktopUpdateConfig }));
 const SecurityConfigPage = lazy(async () => ({ default: (await import('@/components/config/security-config')).SecurityConfig }));
 const SessionsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SessionsConfig')).SessionsConfig }));
 const SecretsConfigPage = lazy(async () => ({ default: (await import('@/components/config/SecretsConfig')).SecretsConfig }));
@@ -51,6 +52,7 @@ function ProtectedApp() {
             <Route path="/providers" element={<LazyRoute><ProvidersListPage /></LazyRoute>} />
             <Route path="/channels" element={<LazyRoute><ChannelsListPage /></LazyRoute>} />
             <Route path="/runtime" element={<LazyRoute><RuntimeConfigPage /></LazyRoute>} />
+            <Route path="/updates" element={<LazyRoute><DesktopUpdateConfigPage /></LazyRoute>} />
             <Route path="/remote" element={<LazyRoute><RemoteAccessPage /></LazyRoute>} />
             <Route path="/security" element={<LazyRoute><SecurityConfigPage /></LazyRoute>} />
             <Route path="/sessions" element={<LazyRoute><SessionsConfigPage /></LazyRoute>} />

@@ -1,189 +1,56 @@
 import assert from "node:assert/strict";
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { readFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
-import JSZip from "jszip";
 import { DesktopBundleLifecycleService } from "../services/bundle-lifecycle.service";
 import { DesktopBundleService } from "../services/bundle.service";
 import { DesktopUpdateService } from "../services/update.service";
 import { DesktopBundleManifestReader } from "../utils/bundle-manifest.utils";
-import {
-  DesktopUpdateManifestReader,
-  serializeDesktopUnsignedUpdateManifest,
-  type DesktopUnsignedUpdateManifest
-} from "../utils/update-manifest.utils";
+import { DesktopUpdateManifestReader } from "../utils/update-manifest.utils";
 import { compareDesktopVersions } from "../utils/version.utils";
 import { DesktopBundleLayoutStore } from "../stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../stores/launcher-state.store";
-
-type BundleFixtureOptions = {
-  rootDir: string;
-  version: string;
-  platform?: string;
-  arch?: string;
-  includeUi?: boolean;
-  includePlugins?: boolean;
-};
-
-const bundleSigningKeyPair = generateKeyPairSync("ed25519");
-const bundlePublicKey = bundleSigningKeyPair.publicKey
-  .export({
-    type: "spki",
-    format: "pem"
-  })
-  .toString();
-
-async function withTempDir(prefix: string, run: (rootDir: string) => Promise<void> | void): Promise<void> {
-  const rootDir = mkdtempSync(join(tmpdir(), prefix));
-  try {
-    await run(rootDir);
-  } finally {
-    rmSync(rootDir, { recursive: true, force: true });
-  }
-}
-
-function writeBundleFixture(options: BundleFixtureOptions): string {
-  const {
-    rootDir,
-    version,
-    platform = process.platform,
-    arch = process.arch,
-    includeUi = true,
-    includePlugins = true
-  } = options;
-  const bundleDir = join(rootDir, version);
-  mkdirSync(join(bundleDir, "runtime", "dist", "cli"), { recursive: true });
-  writeFileSync(join(bundleDir, "runtime", "dist", "cli", "index.js"), "console.log('runtime');\n");
-
-  if (includeUi) {
-    mkdirSync(join(bundleDir, "ui"), { recursive: true });
-    writeFileSync(join(bundleDir, "ui", "index.html"), "<html></html>\n");
-  }
-
-  if (includePlugins) {
-    mkdirSync(join(bundleDir, "plugins"), { recursive: true });
-    writeFileSync(join(bundleDir, "plugins", ".keep"), "\n");
-  }
-
-  writeFileSync(
-    join(bundleDir, "manifest.json"),
-    `${JSON.stringify(
-      {
-        bundleVersion: version,
-        platform,
-        arch,
-        uiVersion: version,
-        runtimeVersion: version,
-        builtInPluginSetVersion: version,
-        launcherCompatibility: {
-          minVersion: "0.1.0"
-        },
-        entrypoints: {
-          runtimeScript: "runtime/dist/cli/index.js"
-        },
-        migrationVersion: 1
-      },
-      null,
-      2
-    )}\n`
-  );
-
-  return bundleDir;
-}
-
-async function createBundleArchive(options: BundleFixtureOptions): Promise<Buffer> {
-  const sourceBundleDir = writeBundleFixture(options);
-  const zip = new JSZip();
-  const bundlePrefix = "bundle";
-  const files = [
-    "manifest.json",
-    join("runtime", "dist", "cli", "index.js"),
-    join("ui", "index.html"),
-    join("plugins", ".keep")
-  ];
-
-  await Promise.all(
-    files.map(async (relativePath) => {
-      const bytes = await readFile(join(sourceBundleDir, relativePath));
-      zip.file(join(bundlePrefix, relativePath).replaceAll("\\", "/"), bytes);
-    })
-  );
-
-  return await zip.generateAsync({ type: "nodebuffer" });
-}
-
-function signBundleArchive(bytes: Buffer): string {
-  return sign(null, bytes, bundleSigningKeyPair.privateKey).toString("base64");
-}
-
-function createSignedUpdateManifest(
-  overrides: Partial<DesktopUnsignedUpdateManifest> & Pick<DesktopUnsignedUpdateManifest, "latestVersion">
-) {
-  const manifest: DesktopUnsignedUpdateManifest = {
-    channel: overrides.channel ?? "stable",
-    platform: overrides.platform ?? process.platform,
-    arch: overrides.arch ?? process.arch,
-    latestVersion: overrides.latestVersion,
-    minimumLauncherVersion: overrides.minimumLauncherVersion ?? "0.1.0",
-    bundleUrl: overrides.bundleUrl ?? "https://example.com/nextclaw.bundle",
-    bundleSha256: overrides.bundleSha256 ?? "abc123",
-    bundleSignature: overrides.bundleSignature ?? "c2lnbmF0dXJl",
-    releaseNotesUrl: overrides.releaseNotesUrl ?? null
-  };
-
-  return {
-    ...manifest,
-    manifestSignature: sign(
-      null,
-      Buffer.from(serializeDesktopUnsignedUpdateManifest(manifest)),
-      bundleSigningKeyPair.privateKey
-    ).toString("base64")
-  };
-}
+import {
+  bundlePublicKey,
+  createBundleArchive,
+  createLauncherState,
+  createSignedUpdateManifest,
+  signBundleArchive,
+  withTempDir,
+  writeBundleFixture
+} from "./launcher-test.utils";
 
 test("returns default launcher state when state file is missing", () =>
   withTempDir("nextclaw-desktop-state-", (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const store = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    assert.deepEqual(store.read(), {
-      channel: "stable",
-      currentVersion: null,
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: null,
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    assert.deepEqual(store.read(), createLauncherState());
   }));
 
 test("persists launcher state updates", async () =>
   await withTempDir("nextclaw-desktop-state-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     const store = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    await store.write({
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: "0.17.9",
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: ["0.17.8"],
-      lastUpdateCheckAt: "2026-04-11T12:00:00Z"
-    });
-    assert.deepEqual(store.read(), {
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: "0.17.9",
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: ["0.17.8"],
-      lastUpdateCheckAt: "2026-04-11T12:00:00Z"
-    });
+    await store.write(
+      createLauncherState({
+        currentVersion: "0.18.0",
+        previousVersion: "0.17.9",
+        lastKnownGoodVersion: "0.18.0",
+        badVersions: ["0.17.8"],
+        lastUpdateCheckAt: "2026-04-11T12:00:00Z"
+      })
+    );
+    assert.deepEqual(
+      store.read(),
+      createLauncherState({
+        currentVersion: "0.18.0",
+        previousVersion: "0.17.9",
+        lastKnownGoodVersion: "0.18.0",
+        badVersions: ["0.17.8"],
+        lastUpdateCheckAt: "2026-04-11T12:00:00Z"
+      })
+    );
   }));
 
 test("parses a valid desktop bundle manifest", () => {
@@ -306,16 +173,14 @@ test("skips a remote version that has already been quarantined as bad", async ()
   await withTempDir("nextclaw-update-bad-version-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
     await layout.ensureLauncherDirs();
-    await new DesktopLauncherStateStore(layout.getLauncherStatePath()).write({
-      channel: "stable",
-      currentVersion: "0.18.1",
-      previousVersion: "0.18.0",
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: ["0.18.2"],
-      lastUpdateCheckAt: null
-    });
+    await new DesktopLauncherStateStore(layout.getLauncherStatePath()).write(
+      createLauncherState({
+        currentVersion: "0.18.1",
+        previousVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0",
+        badVersions: ["0.18.2"]
+      })
+    );
     const updateClient = new DesktopUpdateService({
       layout,
       launcherVersion: "0.1.0",
@@ -449,16 +314,12 @@ test("downloads, extracts, installs, and stages a bundle update candidate", asyn
       rootDir: layout.getVersionsDir(),
       version: "0.18.1"
     });
-    await stateStore.write({
-      channel: "stable",
-      currentVersion: "0.18.1",
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.1",
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.18.1",
+        lastKnownGoodVersion: "0.18.1"
+      })
+    );
     await layout.writeCurrentPointer({ version: "0.18.1" });
 
     const archiveBytes = await createBundleArchive({
@@ -507,16 +368,16 @@ test("downloads, extracts, installs, and stages a bundle update candidate", asyn
     });
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.18.2" });
     assert.deepEqual(layout.readPreviousPointer(), { version: "0.18.1" });
-    assert.deepEqual(stateStore.read(), {
-      channel: "stable",
-      currentVersion: "0.18.2",
-      previousVersion: "0.18.1",
-      candidateVersion: "0.18.2",
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.1",
-      badVersions: [],
-      lastUpdateCheckAt: "1970-01-01T00:00:00.456Z"
-    });
+    assert.deepEqual(
+      stateStore.read(),
+      createLauncherState({
+        currentVersion: "0.18.2",
+        previousVersion: "0.18.1",
+        candidateVersion: "0.18.2",
+        lastKnownGoodVersion: "0.18.1",
+        lastUpdateCheckAt: "1970-01-01T00:00:00.456Z"
+      })
+    );
   }));
 
 test("stages the first remote bundle when no current version exists", async () =>
@@ -568,16 +429,14 @@ test("stages the first remote bundle when no current version exists", async () =
     });
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.18.0" });
     assert.equal(layout.readPreviousPointer(), null);
-    assert.deepEqual(new DesktopLauncherStateStore(layout.getLauncherStatePath()).read(), {
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: null,
-      candidateVersion: "0.18.0",
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: null,
-      badVersions: [],
-      lastUpdateCheckAt: "1970-01-01T00:00:00.789Z"
-    });
+    assert.deepEqual(
+      new DesktopLauncherStateStore(layout.getLauncherStatePath()).read(),
+      createLauncherState({
+        currentVersion: "0.18.0",
+        candidateVersion: "0.18.0",
+        lastUpdateCheckAt: "1970-01-01T00:00:00.789Z"
+      })
+    );
   }));
 
 test("resolves the runtime script from the active bundle", async () =>
@@ -585,16 +444,12 @@ test("resolves the runtime script from the active bundle", async () =>
     const layout = new DesktopBundleLayoutStore(rootDir);
     await layout.ensureLauncherDirs();
     const store = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    await store.write({
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    await store.write(
+      createLauncherState({
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
     const bundleDir = writeBundleFixture({
       rootDir: layout.getVersionsDir(),
       version: "0.18.0"
@@ -618,16 +473,11 @@ test("rejects current bundle when pointer and state disagree", async () =>
     const layout = new DesktopBundleLayoutStore(rootDir);
     await layout.ensureLauncherDirs();
     const store = new DesktopLauncherStateStore(layout.getLauncherStatePath());
-    await store.write({
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: null,
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    await store.write(
+      createLauncherState({
+        currentVersion: "0.18.0"
+      })
+    );
     writeBundleFixture({
       rootDir: layout.getVersionsDir(),
       version: "0.18.1"
@@ -661,6 +511,56 @@ test("installer copies a verified bundle into the version store", async () =>
     assert.equal(layout.readCurrentPointer(), null);
   }));
 
+test("bundle storage pruning keeps only retained versions and clears staging leftovers", async () =>
+  await withTempDir("nextclaw-bundle-prune-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.0"
+    });
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.1"
+    });
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.2"
+    });
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.3"
+    });
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.18.2",
+        previousVersion: "0.18.1",
+        lastKnownGoodVersion: "0.18.2",
+        downloadedVersion: "0.18.3"
+      })
+    );
+    await layout.writeCurrentPointer({ version: "0.18.2" });
+    await layout.writePreviousPointer({ version: "0.18.1" });
+    mkdirSync(join(layout.getStagingDir(), "leftover"), { recursive: true });
+    writeFileSync(join(layout.getStagingDir(), "leftover", "temp.txt"), "stale\n");
+
+    const bundleService = new DesktopBundleService({
+      layout,
+      stateStore,
+      launcherVersion: "0.1.0"
+    });
+    const pruneResult = await bundleService.pruneRetainedArtifacts();
+
+    assert.deepEqual(pruneResult.keptVersions, ["0.18.1", "0.18.2", "0.18.3"]);
+    assert.deepEqual(pruneResult.removedVersions, ["0.18.0"]);
+    assert.deepEqual(pruneResult.removedStagingEntries, ["leftover"]);
+    assert.equal(existsSync(layout.getVersionDir("0.18.0")), false);
+    assert.equal(existsSync(layout.getVersionDir("0.18.1")), true);
+    assert.equal(existsSync(layout.getVersionDir("0.18.2")), true);
+    assert.equal(existsSync(layout.getVersionDir("0.18.3")), true);
+  }));
+
 test("installer rejects a bundle that is missing the ui directory", async () =>
   await withTempDir("nextclaw-bundle-invalid-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
@@ -683,6 +583,14 @@ test("marks an activated bundle healthy after bootstrap succeeds", async () =>
     const layout = new DesktopBundleLayoutStore(rootDir);
     await layout.ensureLauncherDirs();
     const store = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.1"
+    });
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.18.2"
+    });
     const bundleDir = writeBundleFixture({
       rootDir: layout.getVersionsDir(),
       version: "0.18.3"
@@ -696,18 +604,18 @@ test("marks an activated bundle healthy after bootstrap succeeds", async () =>
     assert.equal(result.bundle.bundleDirectory, bundleDir);
     await lifecycle.markVersionHealthy("0.18.3");
 
-    assert.deepEqual(store.read(), {
-      channel: "stable",
-      currentVersion: "0.18.3",
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.3",
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    assert.deepEqual(
+      store.read(),
+      createLauncherState({
+        currentVersion: "0.18.3",
+        lastKnownGoodVersion: "0.18.3"
+      })
+    );
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.18.3" });
     assert.equal(layout.readPreviousPointer(), null);
+    assert.equal(existsSync(layout.getVersionDir("0.18.1")), false);
+    assert.equal(existsSync(layout.getVersionDir("0.18.2")), false);
+    assert.equal(existsSync(layout.getVersionDir("0.18.3")), true);
   }));
 
 test("allows one startup attempt for a freshly activated candidate bundle", async () =>
@@ -720,16 +628,14 @@ test("allows one startup attempt for a freshly activated candidate bundle", asyn
       version: "0.18.1"
     });
 
-    await store.write({
-      channel: "stable",
-      currentVersion: "0.18.1",
-      previousVersion: "0.18.0",
-      candidateVersion: "0.18.1",
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    await store.write(
+      createLauncherState({
+        currentVersion: "0.18.1",
+        previousVersion: "0.18.0",
+        candidateVersion: "0.18.1",
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
     await layout.writeCurrentPointer({ version: "0.18.1" });
 
     const lifecycle = new DesktopBundleLifecycleService({
@@ -757,16 +663,15 @@ test("rolls back an unconfirmed candidate to the last healthy bundle", async () 
       version: "0.18.1"
     });
 
-    await store.write({
-      channel: "stable",
-      currentVersion: "0.18.1",
-      previousVersion: "0.18.0",
-      candidateVersion: "0.18.1",
-      candidateLaunchCount: 1,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: [],
-      lastUpdateCheckAt: null
-    });
+    await store.write(
+      createLauncherState({
+        currentVersion: "0.18.1",
+        previousVersion: "0.18.0",
+        candidateVersion: "0.18.1",
+        candidateLaunchCount: 1,
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
     await layout.writeCurrentPointer({ version: "0.18.1" });
     await layout.writePreviousPointer({ version: "0.18.0" });
 
@@ -780,16 +685,14 @@ test("rolls back an unconfirmed candidate to the last healthy bundle", async () 
       rolledBackFrom: "0.18.1",
       rolledBackTo: "0.18.0"
     });
-    assert.deepEqual(store.read(), {
-      channel: "stable",
-      currentVersion: "0.18.0",
-      previousVersion: null,
-      candidateVersion: null,
-      candidateLaunchCount: 0,
-      lastKnownGoodVersion: "0.18.0",
-      badVersions: ["0.18.1"],
-      lastUpdateCheckAt: null
-    });
+    assert.deepEqual(
+      store.read(),
+      createLauncherState({
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0",
+        badVersions: ["0.18.1"]
+      })
+    );
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.18.0" });
     assert.equal(layout.readPreviousPointer(), null);
   }));

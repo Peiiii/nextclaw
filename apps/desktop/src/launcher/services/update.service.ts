@@ -4,7 +4,7 @@ import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import JSZip from "jszip";
 import { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
-import { DesktopBundleService } from "./bundle.service";
+import { DesktopBundleService, type ResolvedDesktopBundle } from "./bundle.service";
 import {
   DesktopUpdateManifestReader,
   serializeDesktopUnsignedUpdateManifest,
@@ -56,6 +56,13 @@ export type StagedDesktopBundleUpdate = {
   manifest: DesktopUpdateManifest;
   activatedVersion: string;
   previousVersion: string | null;
+  bundleDirectory: string;
+};
+
+export type DownloadedDesktopBundleUpdate = {
+  kind: "bundle-update-downloaded";
+  manifest: DesktopUpdateManifest;
+  downloadedVersion: string;
   bundleDirectory: string;
 };
 
@@ -166,15 +173,27 @@ export class DesktopUpdateService {
       return availableUpdate;
     }
 
-    const downloadedBundle = await this.downloadBundle(availableUpdate.manifest);
+    const downloadedUpdate = await this.downloadAndInstallUpdate(availableUpdate.manifest);
+    const activation = await this.lifecycleService.activateVersion(downloadedUpdate.downloadedVersion);
+    return {
+      kind: "bundle-update-staged",
+      manifest: availableUpdate.manifest,
+      activatedVersion: activation.activatedVersion,
+      previousVersion: activation.previousVersion,
+      bundleDirectory: downloadedUpdate.bundleDirectory
+    };
+  };
+
+  downloadAndInstallUpdate = async (
+    manifest: DesktopUpdateManifest
+  ): Promise<DownloadedDesktopBundleUpdate> => {
+    const downloadedBundle = await this.downloadBundle(manifest);
     try {
       const installedBundle = await this.installDownloadedBundle(downloadedBundle);
-      const activation = await this.lifecycleService.activateVersion(installedBundle.manifest.bundleVersion);
       return {
-        kind: "bundle-update-staged",
-        manifest: availableUpdate.manifest,
-        activatedVersion: activation.activatedVersion,
-        previousVersion: activation.previousVersion,
+        kind: "bundle-update-downloaded",
+        manifest,
+        downloadedVersion: installedBundle.manifest.bundleVersion,
         bundleDirectory: installedBundle.bundleDirectory
       };
     } finally {
@@ -210,6 +229,22 @@ export class DesktopUpdateService {
     }
   };
 
+  readLocalArchiveBundleVersion = async (archivePath: string): Promise<string> => {
+    const archive = await JSZip.loadAsync(await readFile(archivePath));
+    const manifestEntry =
+      archive.file("bundle/manifest.json") ??
+      Object.values(archive.files).find((entry) => entry.name.endsWith("/manifest.json"));
+    if (!manifestEntry) {
+      throw new Error(`bundle archive does not contain manifest.json: ${archivePath}`);
+    }
+    const parsed = JSON.parse(await manifestEntry.async("text")) as { bundleVersion?: unknown };
+    const bundleVersion = typeof parsed.bundleVersion === "string" ? parsed.bundleVersion.trim() : "";
+    if (!bundleVersion) {
+      throw new Error(`bundle archive manifest is missing bundleVersion: ${archivePath}`);
+    }
+    return bundleVersion;
+  };
+
   private fetchManifest = async (manifestUrl: string): Promise<DesktopUpdateManifest> => {
     const response = await this.fetchImpl(manifestUrl);
     if (!response.ok) {
@@ -233,7 +268,7 @@ export class DesktopUpdateService {
     }
   };
 
-  private installDownloadedBundle = async (downloadedBundle: DownloadedDesktopBundle) => {
+  private installDownloadedBundle = async (downloadedBundle: DownloadedDesktopBundle): Promise<ResolvedDesktopBundle> => {
     const extractedDirectory = await this.extractArchive(
       downloadedBundle.archivePath,
       `${downloadedBundle.manifest.latestVersion}-extract-${this.now()}`

@@ -3,11 +3,14 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import desktopPackageJson from "../package.json";
 import { DesktopBundleLifecycleService } from "./launcher/services/bundle-lifecycle.service";
+import { DesktopBundleService } from "./launcher/services/bundle.service";
 import { DesktopUpdateService } from "./launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 import { RuntimeConfigResolver } from "./runtime-config";
 import { RuntimeServiceProcess } from "./runtime-service";
+import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
+import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
   createDesktopLogger,
   installDesktopProcessErrorLogging,
@@ -25,6 +28,8 @@ class DesktopApplication {
   private runtime: RuntimeServiceProcess | null = null;
   private window: BrowserWindow | null = null;
   private stopping = false;
+  private desktopUpdateShell: DesktopUpdateShellService | null = null;
+  private bundleBootstrap: DesktopBundleBootstrapService | null = null;
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -63,6 +68,8 @@ class DesktopApplication {
 
     logger.info("Waiting for Electron app readiness.");
     await app.whenReady();
+    this.ensureDesktopUpdateShell().registerIpcHandlers();
+    this.ensureDesktopUpdateShell().installApplicationMenu();
     logger.info(
       [
         "Electron app is ready.",
@@ -84,8 +91,9 @@ class DesktopApplication {
   private bootstrapRuntimeAndWindow = async (): Promise<boolean> => {
     try {
       logger.info("Bootstrapping runtime and desktop window.");
-      await this.ensureInitialBundleAvailability();
-      await this.recoverPendingBundleCandidate();
+      await this.ensureBundleBootstrap().ensureInitialBundleAvailability();
+      await this.ensureBundleBootstrap().recoverPendingBundleCandidate();
+      await this.ensureBundleBootstrap().pruneRetainedBundleArtifacts();
       const runtimeCommand = new RuntimeConfigResolver().resolveCommand();
       logger.info(`Runtime source: ${runtimeCommand.source}`);
       if (runtimeCommand.source === "bundle") {
@@ -98,13 +106,14 @@ class DesktopApplication {
       });
       const { baseUrl } = await runtime.start();
       this.runtime = runtime;
+      this.ensureDesktopUpdateShell();
       this.window = this.createWindow();
       logger.info(`Loading desktop window URL: ${baseUrl}`);
       await this.window.loadURL(baseUrl);
       if (runtimeCommand.source === "bundle" && runtimeCommand.bundleVersion) {
-        await this.markBundleHealthy(runtimeCommand.bundleVersion);
+        await this.ensureBundleBootstrap().markBundleHealthy(runtimeCommand.bundleVersion);
       }
-      void this.checkForBackgroundBundleUpdate(runtimeCommand.bundleVersion ?? null);
+      void this.ensureDesktopUpdateShell().runStartupCheck();
       return true;
     } catch (error) {
       logger.error(`Failed to bootstrap runtime: ${String(error)}`);
@@ -129,140 +138,6 @@ class DesktopApplication {
     }
   };
 
-  private ensureInitialBundleAvailability = async (): Promise<void> => {
-    const stateStore = this.createLauncherStateStore();
-    const currentVersion = stateStore.read().currentVersion;
-    if (currentVersion) {
-      return;
-    }
-
-    const seedBundlePath = this.getSeedBundlePath();
-    if (seedBundlePath) {
-      logger.info("No active product bundle found. Desktop will install the packaged seed bundle before boot.");
-      try {
-        const stagedSeedBundle = await this.createUpdateService().stageLocalArchive(seedBundlePath);
-        logger.info(`Prepared packaged seed bundle ${stagedSeedBundle.activatedVersion} for desktop startup.`);
-        return;
-      } catch (error) {
-        logger.warn(`Failed to install packaged seed bundle: ${String(error)}`);
-      }
-    }
-
-    const manifestUrl = this.getUpdateManifestUrl();
-    if (!manifestUrl) {
-      return;
-    }
-
-    logger.info("No active product bundle found. Desktop will try to fetch the latest stable bundle before boot.");
-    try {
-      const result = await this.createUpdateService().stageUpdate(manifestUrl, null);
-      if (!result) {
-        logger.warn("Update manifest returned no bundle for initial desktop bootstrap.");
-        return;
-      }
-      if (result.kind === "launcher-update-required") {
-        logger.warn(
-          `Initial bundle bootstrap requires launcher >= ${result.manifest.minimumLauncherVersion}; current launcher is ${app.getVersion()}.`
-        );
-        return;
-      }
-      if (result.kind === "quarantined-bad-version") {
-        logger.warn(`Initial bundle bootstrap skipped quarantined bad version ${result.manifest.latestVersion}.`);
-        return;
-      }
-      logger.info(`Prepared initial bundle ${result.activatedVersion} for desktop startup.`);
-    } catch (error) {
-      logger.warn(`Failed to fetch initial desktop bundle: ${String(error)}`);
-    }
-  };
-
-  private recoverPendingBundleCandidate = async (): Promise<void> => {
-    const lifecycle = this.createBundleLifecycle();
-    const rollbackResult = await lifecycle.recoverPendingCandidate();
-    if (!rollbackResult) {
-      return;
-    }
-    if (rollbackResult.rolledBackTo) {
-      logger.warn(
-        [
-          `Rolled back unconfirmed bundle ${rollbackResult.rolledBackFrom}.`,
-          `Launcher restored ${rollbackResult.rolledBackTo} before starting desktop again.`
-        ].join(" ")
-      );
-      return;
-    }
-    logger.warn(
-      [
-        `Cleared unconfirmed bundle ${rollbackResult.rolledBackFrom}.`,
-        "No known-good bundle was available for rollback."
-      ].join(" ")
-    );
-  };
-
-  private markBundleHealthy = async (version: string): Promise<void> => {
-    await this.createBundleLifecycle().markVersionHealthy(version);
-    logger.info(`Bundle version marked healthy: ${version}`);
-  };
-
-  private checkForBackgroundBundleUpdate = async (currentVersion: string | null): Promise<void> => {
-    const manifestUrl = this.getUpdateManifestUrl();
-    if (!manifestUrl) {
-      return;
-    }
-
-    try {
-      const result = await this.createUpdateService().stageUpdate(manifestUrl, currentVersion);
-      if (!result) {
-        logger.info("Desktop update check completed: already on latest bundle.");
-        return;
-      }
-      if (result.kind === "launcher-update-required") {
-        logger.warn(
-          `Desktop bundle update requires launcher >= ${result.manifest.minimumLauncherVersion}; current launcher is ${app.getVersion()}.`
-        );
-        return;
-      }
-      if (result.kind === "quarantined-bad-version") {
-        logger.warn(`Desktop update skipped quarantined bad version ${result.manifest.latestVersion}.`);
-        return;
-      }
-
-      logger.info(
-        [
-          `Desktop bundle update staged: ${result.activatedVersion}.`,
-          "Restart the launcher to switch UI, runtime, and bundled plugins together."
-        ].join(" ")
-      );
-      const window = this.window;
-      const dialogOptions = {
-        type: "info" as const,
-        title: "NextClaw Update Ready",
-        message: `Version ${result.activatedVersion} has been downloaded and is ready to install.`,
-        detail: "Restart NextClaw now to apply the new bundle. If the new version fails to boot, the launcher will roll back automatically.",
-        buttons: ["Restart Now", "Later"],
-        defaultId: 0,
-        cancelId: 1
-      };
-      const response = window
-        ? await dialog.showMessageBox(window, dialogOptions)
-        : await dialog.showMessageBox(dialogOptions);
-      if (response.response === 0) {
-        app.relaunch();
-        app.quit();
-      }
-    } catch (error) {
-      logger.warn(`Desktop background update check failed: ${String(error)}`);
-    }
-  };
-
-  private createBundleLifecycle = (): DesktopBundleLifecycleService => {
-    const layout = new DesktopBundleLayoutStore();
-    return new DesktopBundleLifecycleService({
-      layout,
-      stateStore: new DesktopLauncherStateStore(layout.getLauncherStatePath())
-    });
-  };
-
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
       layout: new DesktopBundleLayoutStore(),
@@ -274,6 +149,67 @@ class DesktopApplication {
   private createLauncherStateStore = (): DesktopLauncherStateStore => {
     const layout = new DesktopBundleLayoutStore();
     return new DesktopLauncherStateStore(layout.getLauncherStatePath());
+  };
+
+  private createBundleService = (): DesktopBundleService => {
+    const layout = new DesktopBundleLayoutStore();
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    return new DesktopBundleService({
+      layout,
+      stateStore,
+      launcherVersion: app.getVersion()
+    });
+  };
+
+  private createBundleLifecycle = (): DesktopBundleLifecycleService => {
+    const layout = new DesktopBundleLayoutStore();
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    return new DesktopBundleLifecycleService({
+      layout,
+      stateStore,
+      bundleService: new DesktopBundleService({
+        layout,
+        stateStore,
+        launcherVersion: app.getVersion()
+      })
+    });
+  };
+
+  private ensureBundleBootstrap = (): DesktopBundleBootstrapService => {
+    if (this.bundleBootstrap) {
+      return this.bundleBootstrap;
+    }
+    this.bundleBootstrap = new DesktopBundleBootstrapService({
+      logger,
+      launcherVersion: app.getVersion(),
+      manifestUrl: this.getUpdateManifestUrl(),
+      bundlePublicKey: this.getBundlePublicKey() ?? null,
+      seedBundlePath: this.getSeedBundlePath() ?? null
+    });
+    return this.bundleBootstrap;
+  };
+
+  private ensureDesktopUpdateShell = (): DesktopUpdateShellService => {
+    if (this.desktopUpdateShell) {
+      return this.desktopUpdateShell;
+    }
+
+    this.desktopUpdateShell = new DesktopUpdateShellService({
+      logger,
+      launcherVersion: app.getVersion(),
+      manifestUrl: this.getUpdateManifestUrl(),
+      getWindow: () => this.window,
+      createLauncherStateStore: this.createLauncherStateStore,
+      createUpdateService: this.createUpdateService,
+      createBundleLifecycle: this.createBundleLifecycle,
+      createBundleService: this.createBundleService,
+      restartApplication: () => {
+        app.relaunch();
+        app.quit();
+      }
+    });
+
+    return this.desktopUpdateShell;
   };
 
   private getUpdateManifestUrl = (): string | null => {

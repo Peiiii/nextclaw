@@ -63,6 +63,11 @@ function runCommand(command, args, cwd) {
   }
 }
 
+function ensureFreshRuntimeArtifacts() {
+  runCommand("pnpm", ["-C", "packages/nextclaw-ui", "build"], workspaceRoot);
+  runCommand("pnpm", ["-C", "packages/nextclaw", "build"], workspaceRoot);
+}
+
 async function addDirectoryToZip(zip, sourceDir, zipRoot) {
   const entries = await readdir(sourceDir, { withFileTypes: true });
   await Promise.all(
@@ -95,6 +100,7 @@ async function buildBundleArchive(args) {
   const minimumLauncherVersion = readRequiredOption(args, "minimum-launcher-version", desktopPackage.version);
   const outputDir = resolve(args["output-dir"]?.trim() || join(desktopDir, "dist-bundles"));
 
+  ensureFreshRuntimeArtifacts();
   runCommand("node", [resolve(desktopDir, "scripts", "ensure-runtime.mjs")], workspaceRoot);
 
   const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-product-bundle-"));
