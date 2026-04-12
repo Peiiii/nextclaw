@@ -1,6 +1,7 @@
 export * from "./agent/route-resolver.js";
 export * from "./agent/context.js";
 export * from "./agent/content/user-content.js";
+export * from "./agent/execution-prompt.utils.js";
 export * from "./runtime-context/bootstrap-context.js";
 export * from "./runtime-context/layered-skills-loader.js";
 export * from "./runtime-context/runtime-user-prompt.js";

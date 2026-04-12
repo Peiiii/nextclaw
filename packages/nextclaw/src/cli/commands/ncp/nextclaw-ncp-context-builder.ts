@@ -1,5 +1,6 @@
 import {
   buildToolCatalogEntries,
+  buildMinimalSystemExecutionPrompt,
   ContextBuilder,
   findEffectiveAgentProfile,
   InputBudgetPruner,
@@ -312,7 +313,10 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       accountId: accountId ?? null,
     });
     const toolDefinitions = this.options.toolRegistry.getToolDefinitions();
-    const additionalSystemSections = [buildSessionOrchestrationSection()];
+    const additionalSystemSections = [
+      buildSessionOrchestrationSection(),
+      buildMinimalSystemExecutionPrompt(effectiveModel),
+    ].filter(Boolean);
 
     const contextBuilder = new ContextBuilder(
       effectiveWorkspace,

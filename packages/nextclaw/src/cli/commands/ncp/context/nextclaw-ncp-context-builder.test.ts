@@ -46,7 +46,7 @@ it("injects runtime tool definitions into the system prompt", () => {
       agents: {
         defaults: {
           workspace,
-          model: "dashscope/qwen3.5-plus",
+          model: "gpt-5.4",
           contextTokens: 200000,
           maxToolIterations: 8,
         },
@@ -95,6 +95,8 @@ it("injects runtime tool definitions into the system prompt", () => {
     const systemMessage = prepared.messages[0];
     expect(systemMessage?.role).toBe("system");
     expect(String(systemMessage?.content)).toContain("- feishu_doc: Feishu document operations");
+    expect(String(systemMessage?.content)).toContain("## Tool Use Enforcement");
+    expect(String(systemMessage?.content)).toContain("## OpenAI/Codex Execution Discipline");
     expect(prepareForRun).toHaveBeenCalledTimes(1);
 });
 

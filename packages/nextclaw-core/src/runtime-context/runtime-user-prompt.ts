@@ -1,6 +1,7 @@
 import type { Config } from "../config/schema.js";
 import { buildRequestedSkillsUserPrompt } from "../agent/skill-context.js";
 import { SkillsLoader } from "../agent/skills-loader.js";
+import { buildMinimalRuntimeExecutionPrompt } from "../agent/execution-prompt.utils.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,
@@ -107,18 +108,28 @@ export class RuntimeUserPromptBuilder {
     sessionKey?: string;
     metadata?: Record<string, unknown>;
     userMessage: string;
+    model?: string | null;
   }): RuntimeUserPromptSessionContext => {
+    const {
+      workspace,
+      hostWorkspace,
+      contextConfig,
+      sessionKey,
+      metadata,
+      userMessage,
+      model,
+    } = params;
     const projectContext = this.projectContextResolver.resolve({
-      sessionMetadata: params.metadata,
-      workspace: params.hostWorkspace ?? params.workspace,
-      defaultWorkspace: params.workspace,
+      sessionMetadata: metadata,
+      workspace: hostWorkspace ?? workspace,
+      defaultWorkspace: workspace,
     });
     const skills = new SkillsLoader({
       workspace: projectContext.hostWorkspace,
       projectRoot: projectContext.projectRoot,
     });
     const requestedSkills = this.requestedSkillsReader.readSelection(
-      params.metadata,
+      metadata,
     );
 
     return {
@@ -128,12 +139,13 @@ export class RuntimeUserPromptBuilder {
       prompt: this.buildBootstrapAwareUserPrompt({
         workspace: projectContext.effectiveWorkspace,
         hostWorkspace: projectContext.hostWorkspace,
-        contextConfig: params.contextConfig,
-        sessionKey: params.sessionKey,
-        metadata: params.metadata,
+        contextConfig,
+        sessionKey,
+        metadata,
         skills,
         skillSelectors: requestedSkills.selectors,
-        userMessage: params.userMessage,
+        userMessage,
+        model,
       }),
     };
   };
@@ -147,24 +159,39 @@ export class RuntimeUserPromptBuilder {
     skills: SkillsLoader;
     skillSelectors: string[];
     userMessage: string;
+    model?: string | null;
   }): string => {
+    const {
+      workspace,
+      hostWorkspace,
+      contextConfig,
+      sessionKey,
+      metadata,
+      skills,
+      skillSelectors,
+      userMessage,
+      model,
+    } = params;
     const projectContext = this.projectContextResolver.resolve({
-      sessionMetadata: params.metadata,
-      workspace: params.hostWorkspace ?? params.workspace,
-      defaultWorkspace: params.workspace,
+      sessionMetadata: metadata,
+      workspace: hostWorkspace ?? workspace,
+      defaultWorkspace: workspace,
     });
     const requestedSkillsPrompt = buildRequestedSkillsUserPrompt(
-      params.skills,
-      params.skillSelectors,
-      params.userMessage,
+      skills,
+      skillSelectors,
+      userMessage,
     );
+    const executionPrompt = buildMinimalRuntimeExecutionPrompt(model);
     const contextSection = buildWorkspaceProjectContextSection({
       projectContext,
-      contextConfig: params.contextConfig,
-      sessionKey: params.sessionKey,
+      contextConfig,
+      sessionKey,
     });
 
-    return [contextSection, requestedSkillsPrompt].join("\n\n");
+    return [contextSection, executionPrompt, requestedSkillsPrompt]
+      .filter(Boolean)
+      .join("\n\n");
   };
 }
 
@@ -179,6 +206,7 @@ export function buildBootstrapAwareUserPrompt(params: {
   skills: SkillsLoader;
   skillSelectors: string[];
   userMessage: string;
+  model?: string | null;
 }): string {
   return DEFAULT_RUNTIME_USER_PROMPT_BUILDER.buildBootstrapAwareUserPrompt(params);
 }
