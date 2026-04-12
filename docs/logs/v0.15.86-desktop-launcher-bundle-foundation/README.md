@@ -91,6 +91,10 @@
   - 原先桌面端 `dist/pack` 在生成 `seed-product-bundle.zip` 前只要求 runtime 产物存在，不保证 `packages/nextclaw/ui-dist` 一定按当前源码重新构建
   - 这会导致桌面安装包复用陈旧 `ui-dist`，把旧 UI 一起打进 DMG
   - 现在 [apps/desktop/scripts/update/services/build-product-bundle.service.mjs](/Users/peiwang/Projects/nextbot/apps/desktop/scripts/update/services/build-product-bundle.service.mjs) 已在生成 product bundle 前强制执行 `packages/nextclaw-ui build` 与 `packages/nextclaw build`，把“先拿最新 UI/runtime，再打包”变成显式合同
+- 本次最后还修正了一个只在 GitHub Actions Windows runner 上暴露的产物打包根因：
+  - 原先 `build-product-bundle.service.mjs` 会把 `%TEMP%` 下的绝对路径直接传给 `pnpm deploy`
+  - Windows 下该参数会被 `pnpm deploy` 错误拼成 `workspaceRoot + C:\\...` 形式，导致 `seed-product-bundle.zip` 无法生成，随后桌面端首启只能去拉远端 manifest，最终退化成 `Unable to locate nextclaw runtime script`
+  - 现在该脚本已统一改成在仓库 `tmp/` 下创建短生命周期工作目录，并向 `pnpm deploy` 传递相对路径；这样 Linux、macOS、Windows 三端都走同一套显式合同，不再依赖 Windows 对绝对路径参数的偶然行为
 - 本次还额外修复了一个只在 packaged app 启动后暴露的 preload 桥接问题：
   - 原先 [apps/desktop/src/preload.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/preload.ts) 通过本地相对模块加载 `desktop-ipc.utils`
   - packaged Electron 在该 preload 场景下会出现本地模块解析失败，导致窗口日志出现 `Unable to load preload script` 与 `module not found: ./utils/desktop-ipc.utils`
@@ -223,6 +227,16 @@
     - 下载新版本后会自动删除更老且无引用的历史版本
 - 已执行：`pnpm -C apps/desktop build:main`
   - 结果：通过。
+- 已执行：GitHub Actions `desktop-release` workflow_dispatch，run id `24302831063`
+  - 结果：通过。四个矩阵 job 均成功完成：
+    - `desktop-darwin-arm64`
+    - `desktop-darwin-x64`
+    - `desktop-linux-x64`
+    - `desktop-win32-x64`
+  - 关键确认：
+    - Windows 已真实通过 `Build Desktop (Windows)`、`Smoke Desktop (Windows)`、`Build signed product bundle + manifest (Windows)`
+    - Linux 已真实通过 AppImage/deb 烟测与 signed bundle + manifest
+    - macOS arm64/x64 已真实通过 DMG 烟测与 signed bundle + manifest
 - 已尝试执行：`python3 /Users/peiwang/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/role-first-file-organization`
   - 结果：未通过，失败原因不是 skill 本身，而是当前本机 Python 环境缺少 `yaml` 模块，报错 `ModuleNotFoundError: No module named 'yaml'`
 
@@ -278,6 +292,7 @@
 - 是否优先遵循删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好：是。本次没有新增新的兼容分支或隐藏 fallback，而是把“版本保留多少”收敛成单一、显式的引用保留规则，同时删除了“版本目录会一直堆着不管”的隐性维护债。
 - 本次桌面端可用性修复也遵循了“单路径优先、可预测优先”的原则：没有再在 `managed-service` 上叠加“如果发现旧服务就猜测是否重启 / 强行接管 / 根据端口做兼容”的 incident patch，而是直接删除桌面端对外部后台服务的依赖，把契约收敛成“桌面 app 启动就拉起自己 bundle 的 runtime 并连接自己的端口”。
 - 本次关于磁盘占用的修复也遵循了同样原则：不是通过“定时扫描一堆猜测路径”做隐式回收，而是严格围绕 launcher state 与 version pointer 做引用式清理。只要版本不再被当前运行、回滚或待应用语义引用，就自动删除。
+- 本次 Windows 修复也保持了同样的删减取向：没有引入新的平台分支、wrapper 或备用打包器，只是把临时目录放回仓库 `tmp/` 并把 `pnpm deploy` 目标改成相对路径，让现有脚本在三端共享同一实现。
 - 抽象与边界方面，本次新增的 [apps/desktop/src/services/desktop-bundle-bootstrap.service.ts](/Users/peiwang/Projects/nextbot/apps/desktop/src/services/desktop-bundle-bootstrap.service.ts) 属于必要收敛而非过度拆分：它把原本继续膨胀的 `main.ts` 启动前 bundle 编排收回到单一 service owner，避免入口文件继续承载过多分支。
 - 代码增减报告：
   - 统计口径：仅统计本次续改相对上一提交的桌面端相关改动，不含 `docs/` 设计与迭代文档。
