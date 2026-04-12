@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 function run(command, args) {
   execFileSync(command, args, { stdio: "pipe" });
@@ -35,17 +35,11 @@ if (!existsSync(sourceSvg)) {
 
 const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-desktop-icon-"));
 const iconsetDir = join(tempDir, "icon.iconset");
-const quickLookPng = join(tempDir, `${basename(sourceSvg)}.png`);
 
 mkdirSync(iconsetDir, { recursive: true });
 mkdirSync(iconsOutputDir, { recursive: true });
 
 try {
-  run("qlmanage", ["-t", "-s", "1024", "-o", tempDir, sourceSvg]);
-  if (!existsSync(quickLookPng)) {
-    throw new Error(`Quick Look did not render PNG: ${quickLookPng}`);
-  }
-
   const iconSizes = [
     ["icon_16x16.png", 16],
     ["icon_16x16@2x.png", 32],
@@ -60,7 +54,7 @@ try {
   ];
 
   for (const [name, size] of iconSizes) {
-    run("sips", ["-z", String(size), String(size), quickLookPng, "--out", join(iconsetDir, name)]);
+    run("sips", ["-z", String(size), String(size), "-s", "format", "png", sourceSvg, "--out", join(iconsetDir, name)]);
   }
 
   const icnsPath = join(iconsOutputDir, "icon.icns");
