@@ -23,6 +23,7 @@ type InstalledConsoleMirror = {
 type InstalledCrashMonitor = {
   runtimeKey: string;
   listener: (error: Error, origin: NodeJS.UncaughtExceptionOrigin) => void;
+  rejectionListener: (reason: unknown, promise: Promise<unknown>) => void;
 };
 
 let activeLoggingRuntime: LoggingRuntime | null = null;
@@ -153,15 +154,28 @@ export class LoggingRuntime implements AppLogWriter {
     }
     if (installedCrashMonitor) {
       process.off("uncaughtExceptionMonitor", installedCrashMonitor.listener);
+      process.off("unhandledRejection", installedCrashMonitor.rejectionListener);
     }
     const crashLogger = this.getLogger("runtime.crash");
     const listener = (error: Error, origin: NodeJS.UncaughtExceptionOrigin) => {
       crashLogger.fatal("uncaught exception", { origin }, error);
     };
+    const rejectionListener = (reason: unknown, _promise: Promise<unknown>) => {
+      if (reason instanceof Error) {
+        crashLogger.error("unhandled rejection", { promiseState: "unhandled" }, reason);
+        return;
+      }
+      crashLogger.error("unhandled rejection", {
+        promiseState: "unhandled",
+        reason: String(reason),
+      });
+    };
     process.on("uncaughtExceptionMonitor", listener);
+    process.on("unhandledRejection", rejectionListener);
     installedCrashMonitor = {
       runtimeKey,
       listener,
+      rejectionListener,
     };
   };
 
