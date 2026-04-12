@@ -17,3 +17,14 @@ export type {
   AssetRef,
   StoredAssetRecord,
 } from "./asset-store.js";
+export {
+  assertOpenAiFunctionParametersSchema,
+  appendToolRoundToInput,
+  buildOpenAiFunctionTool,
+  createInvalidToolArgumentsResult,
+  createToolExecutionFailedResult,
+  genId,
+  getOpenAiFunctionParametersSchemaIssues,
+  parseToolArgs,
+  validateToolArgs,
+} from "./utils.js";

@@ -13,7 +13,10 @@ import {
   type Config,
   type SessionManager,
 } from "@nextclaw/core";
-import type { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import {
+  buildOpenAiFunctionTool,
+  type LocalAssetStore,
+} from "@nextclaw/ncp-agent-runtime";
 import type {
   NcpAgentRunInput,
   NcpContextBuilder,
@@ -130,26 +133,35 @@ function resolveAgentProfile(params: {
   storedAgentId?: string;
   requestMetadata: Record<string, unknown>;
 }): ResolvedAgentProfile {
-  const defaultAgentId = resolveDefaultAgentProfileId(params.config);
+  const { config, requestMetadata, storedAgentId } = params;
+  const {
+    agents: { defaults },
+    search: searchConfig,
+    tools: {
+      restrictToWorkspace,
+      exec: { timeout: execTimeoutSeconds },
+    },
+  } = config;
+  const defaultAgentId = resolveDefaultAgentProfileId(config);
   const candidateAgentId =
-    normalizeString(params.storedAgentId)?.toLowerCase() ??
-    readRequestedAgentId(params.requestMetadata) ??
+    normalizeString(storedAgentId)?.toLowerCase() ??
+    readRequestedAgentId(requestMetadata) ??
     defaultAgentId;
   const profile =
-    findEffectiveAgentProfile(params.config, candidateAgentId) ??
-    findEffectiveAgentProfile(params.config, defaultAgentId);
+    findEffectiveAgentProfile(config, candidateAgentId) ??
+    findEffectiveAgentProfile(config, defaultAgentId);
   if (!profile) {
     throw new Error(`default agent profile not found: ${defaultAgentId}`);
   }
   return {
     agentId: profile.id,
-    workspace: getWorkspacePath(profile.workspace ?? params.config.agents.defaults.workspace),
-    model: profile.model ?? params.config.agents.defaults.model,
-    maxIterations: profile.maxToolIterations ?? params.config.agents.defaults.maxToolIterations,
-    contextTokens: profile.contextTokens ?? params.config.agents.defaults.contextTokens,
-    restrictToWorkspace: params.config.tools.restrictToWorkspace,
-    searchConfig: params.config.search,
-    execTimeoutSeconds: params.config.tools.exec.timeout,
+    workspace: getWorkspacePath(profile.workspace ?? defaults.workspace),
+    model: profile.model ?? defaults.model,
+    maxIterations: profile.maxToolIterations ?? defaults.maxToolIterations,
+    contextTokens: profile.contextTokens ?? defaults.contextTokens,
+    restrictToWorkspace,
+    searchConfig,
+    execTimeoutSeconds,
   };
 }
 
@@ -225,14 +237,7 @@ function buildRequestedOpenAiTools(
   requestedToolNames: string[],
 ): OpenAITool[] | undefined {
   return filterTools(
-    toolDefinitions.map((tool) => ({
-      type: "function" as const,
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      },
-    })),
+    toolDefinitions.map(buildOpenAiFunctionTool),
     requestedToolNames,
   );
 }

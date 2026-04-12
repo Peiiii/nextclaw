@@ -2,8 +2,10 @@ import AjvPkg, { type ErrorObject, type ValidateFunction } from "ajv";
 import type {
   NcpInvalidToolArgumentsResult,
   NcpLLMApiInput,
+  NcpToolDefinition,
   NcpToolCallResult,
   OpenAIChatMessage,
+  OpenAITool,
 } from "@nextclaw/ncp";
 
 export type ParsedToolArgs =
@@ -30,9 +32,20 @@ const toolSchemaValidator = new AjvCtor({
   removeAdditional: false,
 });
 const validatorCache = new WeakMap<Record<string, unknown>, ValidateFunction>();
+const DISALLOWED_OPENAI_TOOL_SCHEMA_TOP_LEVEL_KEYWORDS = [
+  "oneOf",
+  "anyOf",
+  "allOf",
+  "enum",
+  "not",
+] as const;
 
 export function genId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 function stringifyRawArgs(args: unknown): string {
@@ -47,6 +60,60 @@ function stringifyRawArgs(args: unknown): string {
     }
   }
   return String(args ?? "");
+}
+
+export function getOpenAiFunctionParametersSchemaIssues(
+  schema: Record<string, unknown> | undefined,
+): string[] {
+  if (!schema) {
+    return ['parameters must be declared as a JSON Schema object'];
+  }
+  if (!isRecord(schema)) {
+    return ['parameters must be a JSON Schema object'];
+  }
+
+  const issues: string[] = [];
+  if (schema.type !== "object") {
+    issues.push('root schema must set type to "object"');
+  }
+
+  for (const keyword of DISALLOWED_OPENAI_TOOL_SCHEMA_TOP_LEVEL_KEYWORDS) {
+    if (keyword in schema) {
+      issues.push(`root schema must not declare top-level "${keyword}"`);
+    }
+  }
+
+  return issues;
+}
+
+export function assertOpenAiFunctionParametersSchema(params: {
+  toolName: string;
+  schema: Record<string, unknown> | undefined;
+}): void {
+  const issues = getOpenAiFunctionParametersSchemaIssues(params.schema);
+  if (issues.length === 0) {
+    return;
+  }
+  throw new Error(
+    `Tool "${params.toolName}" declares an unsupported OpenAI-compatible parameters schema: ${issues.join(
+      "; ",
+    )}. See docs/internal/openai-tool-schema.md.`,
+  );
+}
+
+export function buildOpenAiFunctionTool(definition: NcpToolDefinition): OpenAITool {
+  assertOpenAiFunctionParametersSchema({
+    toolName: definition.name,
+    schema: definition.parameters,
+  });
+  return {
+    type: "function" as const,
+    function: {
+      name: definition.name,
+      description: definition.description,
+      parameters: definition.parameters,
+    },
+  };
 }
 
 export function parseToolArgs(args: unknown): ParsedToolArgs {
@@ -162,15 +229,16 @@ export function createInvalidToolArgumentsResult(params: {
   rawArgumentsText: string;
   issues: string[];
 }): NcpInvalidToolArgumentsResult {
+  const { toolCallId, toolName, rawArgumentsText, issues } = params;
   return {
     ok: false,
     error: {
       code: "invalid_tool_arguments",
       message: "Tool arguments are invalid.",
-      toolCallId: params.toolCallId,
-      toolName: params.toolName,
-      rawArgumentsText: params.rawArgumentsText,
-      issues: params.issues,
+      toolCallId,
+      toolName,
+      rawArgumentsText,
+      issues,
     },
   };
 }

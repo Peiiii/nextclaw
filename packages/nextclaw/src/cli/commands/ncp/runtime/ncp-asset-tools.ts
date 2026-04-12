@@ -46,52 +46,48 @@ class AssetPutTool implements NcpTool {
     "Put a normal file path or base64 bytes into the managed asset store.";
   readonly parameters = {
     type: "object",
-    oneOf: [
-      {
-        type: "object",
-        properties: {
-          path: {
-            type: "string",
-            description: "Existing local file path to put into the asset store.",
-          },
-          fileName: {
-            type: "string",
-            description: "Optional asset file name override.",
-          },
-          mimeType: {
-            type: "string",
-            description: "Optional mime type override.",
-          },
-        },
-        required: ["path"],
-        additionalProperties: false,
+    properties: {
+      path: {
+        type: "string",
+        description: "Existing local file path to put into the asset store.",
       },
-      {
-        type: "object",
-        properties: {
-          bytesBase64: {
-            type: "string",
-            description: "Base64 file bytes. Use together with fileName when no source path exists.",
-          },
-          fileName: {
-            type: "string",
-            description: "Asset file name. Required when using bytesBase64.",
-          },
-          mimeType: {
-            type: "string",
-            description: "Optional mime type override.",
-          },
-        },
-        required: ["bytesBase64", "fileName"],
-        additionalProperties: false,
+      bytesBase64: {
+        type: "string",
+        description: "Base64 file bytes. Use together with fileName when no source path exists.",
       },
-    ],
+      fileName: {
+        type: "string",
+        description: "Optional asset file name override. Required when using bytesBase64.",
+      },
+      mimeType: {
+        type: "string",
+        description: "Optional mime type override.",
+      },
+    },
+    additionalProperties: false,
   };
 
   constructor(
     private readonly assetStore: LocalAssetStore,
     private readonly contentBasePath: string,
   ) {}
+
+  validateArgs = (args: Record<string, unknown>): string[] => {
+    const path = readOptionalString(args.path);
+    const bytesBase64 = readOptionalString(args.bytesBase64);
+    const fileName = readOptionalString(args.fileName);
+
+    if (path && bytesBase64) {
+      return ["Provide either path, or bytesBase64 + fileName, not both."];
+    }
+    if (path) {
+      return [];
+    }
+    if (bytesBase64) {
+      return fileName ? [] : ["fileName is required when using bytesBase64."];
+    }
+    return ["Provide either path, or bytesBase64 + fileName."];
+  };
 
   execute = async (args: unknown): Promise<unknown> => {
     const path = readOptionalString((args as { path?: unknown } | null)?.path);
@@ -210,10 +206,11 @@ export function createAssetTools(params: {
   assetStore: LocalAssetStore;
   contentBasePath?: string;
 }): NcpTool[] {
+  const { assetStore } = params;
   const contentBasePath = params.contentBasePath ?? "/api/ncp/assets/content";
   return [
-    new AssetPutTool(params.assetStore, contentBasePath),
-    new AssetExportTool(params.assetStore),
-    new AssetStatTool(params.assetStore, contentBasePath),
+    new AssetPutTool(assetStore, contentBasePath),
+    new AssetExportTool(assetStore),
+    new AssetStatTool(assetStore, contentBasePath),
   ];
 }

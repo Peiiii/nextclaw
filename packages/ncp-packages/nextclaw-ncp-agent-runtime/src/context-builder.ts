@@ -11,6 +11,7 @@ import type { NcpAgentRunInput } from "@nextclaw/ncp";
 import type { NcpToolRegistry } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "./asset-store.js";
 import { buildNcpUserContent } from "./user-content.js";
+import { buildOpenAiFunctionTool } from "./utils.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -211,14 +212,7 @@ export class DefaultNcpContextBuilder implements NcpContextBuilder {
       requestedToolNames.length > 0
         ? toolDefinitions.filter((definition) => requestedToolNames.includes(definition.name))
         : toolDefinitions;
-    const tools: OpenAITool[] | undefined = filteredToolDefinitions.map((definition) => ({
-      type: "function" as const,
-      function: {
-        name: definition.name,
-        description: definition.description,
-        parameters: definition.parameters,
-      },
-    }));
+    const tools: OpenAITool[] | undefined = filteredToolDefinitions.map(buildOpenAiFunctionTool);
 
     return {
       messages,

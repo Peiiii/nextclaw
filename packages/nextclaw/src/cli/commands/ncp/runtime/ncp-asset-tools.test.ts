@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 describe("createAssetTools", () => {
-  it("publishes strict schema branches for asset_put", () => {
+  it("publishes an OpenAI-compatible schema for asset_put", () => {
     const assetStore = new LocalAssetStore({
       rootDir: createTempDir("nextclaw-asset-tools-store-"),
     });
@@ -34,17 +34,37 @@ describe("createAssetTools", () => {
 
     expect(tool?.parameters).toMatchObject({
       type: "object",
-      oneOf: [
-        expect.objectContaining({
-          required: ["path"],
-          additionalProperties: false,
-        }),
-        expect.objectContaining({
-          required: ["bytesBase64", "fileName"],
-          additionalProperties: false,
-        }),
-      ],
+      properties: expect.objectContaining({
+        path: expect.any(Object),
+        bytesBase64: expect.any(Object),
+        fileName: expect.any(Object),
+        mimeType: expect.any(Object),
+      }),
+      additionalProperties: false,
     });
+  });
+
+  it("rejects mixed asset_put input modes during runtime validation", () => {
+    const assetStore = new LocalAssetStore({
+      rootDir: createTempDir("nextclaw-asset-tools-store-"),
+    });
+    const tool = createAssetTools({ assetStore }).find(
+      (item) => item.name === "asset_put",
+    );
+
+    expect(
+      tool?.validateArgs?.({
+        path: "/tmp/demo.txt",
+        bytesBase64: "ZmlsZQ==",
+        fileName: "demo.txt",
+      }),
+    ).toEqual(["Provide either path, or bytesBase64 + fileName, not both."]);
+
+    expect(
+      tool?.validateArgs?.({
+        bytesBase64: "ZmlsZQ==",
+      }),
+    ).toEqual(["fileName is required when using bytesBase64."]);
   });
 
   it("stores a file from a validated path input", async () => {
