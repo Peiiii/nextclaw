@@ -1,0 +1,6 @@
+export const DESKTOP_UPDATES_GET_STATE_CHANNEL = "nextclaw-desktop:updates:get-state";
+export const DESKTOP_UPDATES_CHECK_CHANNEL = "nextclaw-desktop:updates:check";
+export const DESKTOP_UPDATES_DOWNLOAD_CHANNEL = "nextclaw-desktop:updates:download";
+export const DESKTOP_UPDATES_APPLY_CHANNEL = "nextclaw-desktop:updates:apply";
+export const DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL = "nextclaw-desktop:updates:update-preferences";
+export const DESKTOP_UPDATES_STATE_CHANGED_CHANNEL = "nextclaw-desktop:updates:state-changed";

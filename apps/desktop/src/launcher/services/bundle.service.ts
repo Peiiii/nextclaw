@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { cp, rename, rm } from "node:fs/promises";
+import { cp, readdir, rename, rm } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { DesktopBundleManifestReader, type DesktopBundleManifest } from "../utils/bundle-manifest.utils";
 import { compareDesktopVersions } from "../utils/version.utils";
@@ -13,6 +13,12 @@ export type ResolvedDesktopBundle = {
   uiDirectory: string;
   pluginsDirectory: string;
   runtimeScriptPath: string;
+};
+
+export type DesktopBundlePruneResult = {
+  keptVersions: string[];
+  removedVersions: string[];
+  removedStagingEntries: string[];
 };
 
 type DesktopBundleServiceOptions = {
@@ -100,6 +106,25 @@ export class DesktopBundleService {
     }
   };
 
+  removeVersion = async (version: string): Promise<void> => {
+    await rm(this.options.layout.getVersionDir(version), { recursive: true, force: true });
+  };
+
+  pruneRetainedArtifacts = async (): Promise<DesktopBundlePruneResult> => {
+    await this.options.layout.ensureLauncherDirs();
+
+    const retainedVersions = [...this.collectRetainedVersions()].sort(compareDesktopVersions);
+    const removedVersions =
+      retainedVersions.length > 0 ? await this.removeUnretainedVersions(new Set(retainedVersions)) : [];
+    const removedStagingEntries = await this.clearStagingDirectory();
+
+    return {
+      keptVersions: retainedVersions,
+      removedVersions,
+      removedStagingEntries
+    };
+  };
+
   private verifyBundle = (bundleDirectory: string): ResolvedDesktopBundle => {
     const manifestPath = resolve(bundleDirectory, "manifest.json");
     const manifest = this.manifestReader.readFile(manifestPath);
@@ -125,6 +150,57 @@ export class DesktopBundleService {
       pluginsDirectory,
       runtimeScriptPath
     };
+  };
+
+  private collectRetainedVersions = (): Set<string> => {
+    const retainedVersions = new Set<string>();
+    const state = this.options.stateStore?.read();
+    const currentPointer = this.options.layout.readCurrentPointer();
+    const previousPointer = this.options.layout.readPreviousPointer();
+    const versions = [
+      state?.currentVersion,
+      state?.previousVersion,
+      state?.lastKnownGoodVersion,
+      state?.candidateVersion,
+      state?.downloadedVersion,
+      currentPointer?.version,
+      previousPointer?.version
+    ];
+
+    for (const version of versions) {
+      if (version?.trim()) {
+        retainedVersions.add(version);
+      }
+    }
+
+    return retainedVersions;
+  };
+
+  private removeUnretainedVersions = async (retainedVersions: Set<string>): Promise<string[]> => {
+    const removedVersions: string[] = [];
+    const entries = await readdir(this.options.layout.getVersionsDir(), { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory() || retainedVersions.has(entry.name)) {
+        continue;
+      }
+      await rm(join(this.options.layout.getVersionsDir(), entry.name), { recursive: true, force: true });
+      removedVersions.push(entry.name);
+    }
+
+    return removedVersions.sort(compareDesktopVersions);
+  };
+
+  private clearStagingDirectory = async (): Promise<string[]> => {
+    const removedEntries: string[] = [];
+    const entries = await readdir(this.options.layout.getStagingDir(), { withFileTypes: true });
+
+    for (const entry of entries) {
+      await rm(join(this.options.layout.getStagingDir(), entry.name), { recursive: true, force: true });
+      removedEntries.push(entry.name);
+    }
+
+    return removedEntries.sort();
   };
 
   private assertBundleCompatibility = (manifest: DesktopBundleManifest): void => {

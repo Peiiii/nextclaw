@@ -109,6 +109,7 @@ describe('Sidebar', () => {
       'Plugins',
       'MCP',
       'Routing & Runtime',
+      'Updates',
       'Remote Access',
       'Security',
       'Sessions',

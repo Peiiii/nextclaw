@@ -12,20 +12,13 @@ import {
   subscribeLanguageChange,
   type I18nLanguage
 } from './i18n-runtime/i18n-language-owner';
+import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
 import { PATH_PICKER_LABELS } from './i18n-runtime/i18n.path-picker';
 import { REMOTE_LABELS } from './i18n.remote';
 import { SEARCH_LABELS } from './i18n.search';
 export type { I18nLanguage };
-export {
-  getLanguage,
-  getLocale,
-  initializeI18n,
-  LANGUAGE_OPTIONS,
-  resolveInitialLanguage,
-  setLanguage,
-  subscribeLanguageChange
-};
+export { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange };
 export function formatDateTime(value?: string | Date, lang: I18nLanguage = getLanguage()): string {
   if (!value) {
     return '-';
@@ -224,6 +217,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providerAuthSessionLabel: { zh: '会话', en: 'Session' },
   resetToDefault: { zh: '恢复默认', en: 'Reset to Default' },
   leaveBlankToKeepUnchanged: { zh: '留空则保持不变', en: 'Leave blank to keep unchanged' },
+  ...DESKTOP_UPDATE_LABELS,
   ...SEARCH_LABELS,
 
   // Channel

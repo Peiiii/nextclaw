@@ -11,6 +11,12 @@ export type DesktopLauncherState = {
   lastKnownGoodVersion: string | null;
   badVersions: string[];
   lastUpdateCheckAt: string | null;
+  downloadedVersion: string | null;
+  downloadedReleaseNotesUrl: string | null;
+  updatePreferences: {
+    automaticChecks: boolean;
+    autoDownload: boolean;
+  };
 };
 
 const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
@@ -21,7 +27,13 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   candidateLaunchCount: 0,
   lastKnownGoodVersion: null,
   badVersions: [],
-  lastUpdateCheckAt: null
+  lastUpdateCheckAt: null,
+  downloadedVersion: null,
+  downloadedReleaseNotesUrl: null,
+  updatePreferences: {
+    automaticChecks: true,
+    autoDownload: false
+  }
 };
 
 function isStringArray(value: unknown): value is string[] {
@@ -54,7 +66,27 @@ function normalizeState(parsed: unknown): DesktopLauncherState {
     candidateLaunchCount: Number.isInteger(candidateLaunchCount) && candidateLaunchCount >= 0 ? candidateLaunchCount : 0,
     lastKnownGoodVersion: normalizeOptionalString(record.lastKnownGoodVersion),
     badVersions,
-    lastUpdateCheckAt: normalizeOptionalString(record.lastUpdateCheckAt)
+    lastUpdateCheckAt: normalizeOptionalString(record.lastUpdateCheckAt),
+    downloadedVersion: normalizeOptionalString(record.downloadedVersion),
+    downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl),
+    updatePreferences: normalizeUpdatePreferences(record.updatePreferences)
+  };
+}
+
+function normalizeUpdatePreferences(value: unknown): DesktopLauncherState["updatePreferences"] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { ...DEFAULT_LAUNCHER_STATE.updatePreferences };
+  }
+  const record = value as Record<string, unknown>;
+  return {
+    automaticChecks:
+      typeof record.automaticChecks === "boolean"
+        ? record.automaticChecks
+        : DEFAULT_LAUNCHER_STATE.updatePreferences.automaticChecks,
+    autoDownload:
+      typeof record.autoDownload === "boolean"
+        ? record.autoDownload
+        : DEFAULT_LAUNCHER_STATE.updatePreferences.autoDownload
   };
 }
 
