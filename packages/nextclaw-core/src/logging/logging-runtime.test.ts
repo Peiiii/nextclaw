@@ -56,4 +56,27 @@ describe("LoggingRuntime", () => {
     expect(serviceLog).toContain("\"scope\":\"plugin.registry_loader\"");
     expect(serviceLog).toContain("\"message\":\"plugin discovered\"");
   });
+
+  it("captures unhandled rejections in the crash log when crash monitoring is enabled", async () => {
+    const runtime = new LoggingRuntime({
+      startupId: "startup-3",
+      pid: 999,
+      sink: new FileLogSink({
+        serviceLogPath: path.join(tempDir, "logs", "service.log"),
+        crashLogPath: path.join(tempDir, "logs", "crash.log"),
+        archiveDirPath: path.join(tempDir, "logs", "archive"),
+      }),
+      now: () => new Date("2026-04-11T17:32:33.000Z"),
+    });
+
+    runtime.installProcessCrashMonitor();
+    process.emit("unhandledRejection", new Error("boom rejection"), Promise.resolve());
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const crashLog = fs.readFileSync(path.join(tempDir, "logs", "crash.log"), "utf-8");
+    expect(crashLog).toContain("\"scope\":\"runtime.crash\"");
+    expect(crashLog).toContain("\"message\":\"unhandled rejection\"");
+    expect(crashLog).toContain("\"error\":{\"name\":\"Error\",\"message\":\"boom rejection\"");
+  });
 });

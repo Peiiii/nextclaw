@@ -25,6 +25,31 @@ function inferNonJsonHint(endpoint: string, status: number): string | undefined 
   return undefined;
 }
 
+function formatUnknownFetchError(error: unknown): {
+  summary: string;
+  details: Record<string, unknown>;
+} {
+  if (error instanceof Error) {
+    const name = error.name?.trim() || 'Error';
+    const message = error.message?.trim() || 'Unknown error';
+    return {
+      summary: `${name}: ${message}`,
+      details: {
+        errorName: name,
+        errorMessage: message,
+        ...(error.stack?.trim() ? { errorStack: error.stack.trim() } : {})
+      }
+    };
+  }
+  return {
+    summary: String(error ?? 'Unknown error'),
+    details: {
+      errorName: 'NonError',
+      errorMessage: String(error ?? 'Unknown error')
+    }
+  };
+}
+
 export async function requestRawApiResponse<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -32,14 +57,32 @@ export async function requestRawApiResponse<T>(
   const url = `${API_BASE}${endpoint}`;
   const method = (options.method || 'GET').toUpperCase();
 
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    },
-    ...options
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+      },
+      ...options
+    });
+  } catch (error) {
+    const formatted = formatUnknownFetchError(error);
+    return {
+      ok: false,
+      error: {
+        code: 'NETWORK_ERROR',
+        message: `Fetch failed on ${method} ${endpoint} | ${formatted.summary}`,
+        details: {
+          method,
+          endpoint,
+          url,
+          ...formatted.details
+        }
+      }
+    };
+  }
 
   const text = await response.text();
   let data: ApiResponse<T> | null = null;

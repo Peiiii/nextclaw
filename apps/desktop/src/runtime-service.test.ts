@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatRuntimeCommandFailureMessage } from "./runtime-service";
+import { computeRuntimeRestartDelayMs, formatRuntimeCommandFailureMessage } from "./runtime-service";
 
 test("includes recent cli output in runtime command failure message", () => {
   assert.equal(
@@ -19,4 +19,11 @@ test("includes recent cli output in runtime command failure message", () => {
       "Health probe: http://127.0.0.1:55667/api/health is already healthy."
     ].join("\n")
   );
+});
+
+test("caps automatic recovery backoff to a bounded delay", () => {
+  assert.equal(computeRuntimeRestartDelayMs(1), 500);
+  assert.equal(computeRuntimeRestartDelayMs(2), 1_000);
+  assert.equal(computeRuntimeRestartDelayMs(3), 2_000);
+  assert.equal(computeRuntimeRestartDelayMs(10), 15_000);
 });

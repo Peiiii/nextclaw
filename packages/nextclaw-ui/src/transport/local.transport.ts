@@ -14,6 +14,26 @@ function createTransportError(response: ApiResponse<unknown>, fallback: string):
   return new Error(fallback);
 }
 
+function formatUnknownTransportError(error: unknown): string {
+  if (error instanceof Error) {
+    const name = error.name?.trim();
+    const message = error.message?.trim();
+    if (name && message) {
+      return `${name}: ${message}`;
+    }
+    return message || name || 'Unknown error';
+  }
+  return String(error ?? 'Unknown error');
+}
+
+function createErrorWithCause(message: string, cause: unknown): Error {
+  const error = new Error(message) as Error & { cause?: unknown };
+  if (cause !== undefined) {
+    error.cause = cause;
+  }
+  return error;
+}
+
 class LocalRealtimeGateway {
   private socket: WebSocket | null = null;
   private reconnectTimer: number | null = null;
@@ -113,7 +133,7 @@ export class LocalAppTransport implements AppTransport {
     this.realtimeGateway = new LocalRealtimeGateway(resolveTransportWebSocketUrl(this.apiBase, options.wsPath ?? '/ws'));
   }
 
-  async request<T>(input: RequestInput): Promise<T> {
+  request = async <T>(input: RequestInput): Promise<T> => {
     const timeoutMs = Number.isFinite(input.timeoutMs) && (input.timeoutMs ?? 0) > 0
       ? Math.trunc(input.timeoutMs as number)
       : null;
@@ -137,15 +157,21 @@ export class LocalAppTransport implements AppTransport {
         const reason = controller.signal.reason;
         throw new Error(typeof reason === 'string' && reason.trim() ? reason : `Request timed out: ${input.method} ${input.path}`);
       }
-      throw error;
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw createErrorWithCause(
+        `Request failed for ${input.method} ${input.path} | ${formatUnknownTransportError(error)}`,
+        error
+      );
     } finally {
       if (timeoutId !== null) {
         window.clearTimeout(timeoutId);
       }
     }
-  }
+  };
 
-  openStream<TFinal = unknown>(input: StreamInput): StreamSession<TFinal> {
+  openStream = <TFinal = unknown>(input: StreamInput): StreamSession<TFinal> => {
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (input.signal) {
@@ -157,20 +183,33 @@ export class LocalAppTransport implements AppTransport {
     }
 
     const finished = (async () => {
-      const response = await fetch(`${this.apiBase}${input.path}`, {
-        method: input.method,
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'text/event-stream'
-        },
-        ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
-        signal: controller.signal
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${this.apiBase}${input.path}`, {
+          method: input.method,
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'text/event-stream'
+          },
+          ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
+          signal: controller.signal
+        });
+      } catch (error) {
+        throw createErrorWithCause(
+          `Stream request failed for ${input.method} ${input.path} | ${formatUnknownTransportError(error)}`,
+          error
+        );
+      }
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text.trim() || `HTTP ${response.status}`);
+        const body = text.trim();
+        throw new Error(
+          body
+            ? `Stream request failed for ${input.method} ${input.path} | HTTP ${response.status} | ${body}`
+            : `Stream request failed for ${input.method} ${input.path} | HTTP ${response.status}`
+        );
       }
       try {
         return await readSseStreamResult<TFinal>(response, input.onEvent);
@@ -183,9 +222,9 @@ export class LocalAppTransport implements AppTransport {
       finished,
       cancel: () => controller.abort()
     };
-  }
+  };
 
-  subscribe(handler: (event: AppEvent) => void): () => void {
+  subscribe = (handler: (event: AppEvent) => void): () => void => {
     return this.realtimeGateway.subscribe(handler);
-  }
+  };
 }

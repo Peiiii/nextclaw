@@ -55,7 +55,7 @@ describe('ncp-app-client-fetch', () => {
         'content-type': 'application/json'
       },
       body: JSON.stringify({ sessionId: 's1' })
-    })).rejects.toThrow('Failed to fetch');
+    })).rejects.toThrow('NCP fetch failed for POST http://127.0.0.1:55667/api/ncp/agent/abort: Error: Failed to fetch');
   });
 
   it('preserves native SSE request headers', async () => {
