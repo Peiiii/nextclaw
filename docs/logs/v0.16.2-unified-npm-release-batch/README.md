@@ -43,7 +43,7 @@
 
 同时完成了对应 `package.json`、`CHANGELOG.md`、发布 checkpoint 与 git tags 的同步。发布后仓库健康检查已经恢复为 clean。
 
-同批次收尾补丁中，进一步修复了 `nextclaw update` 在“当前已是最新版本”场景下仍然无条件执行 `npm i -g nextclaw` 的问题。该行为会在部分 npm 10 / arborist 全局树状态下触发崩溃，即使当前版本已经是 `0.17.8`。本次把默认行为改为先查询 registry 最新版本，只有确认存在新版本时才执行全局安装；如果当前已经是最新版本，则明确输出 no-op 结果而不是继续重装。
+同批次收尾补丁中，进一步修复了 `nextclaw update` 在“当前已是最新版本”场景下仍然无条件执行 `npm i -g nextclaw` 的问题。该行为会在部分 npm 10 / arborist 全局树状态下触发崩溃，即使当前版本已经是 `0.17.8`。本次把默认行为改为先查询 registry 最新版本，只有确认存在新版本时才执行全局安装；如果当前已经是最新版本，则明确输出 no-op 结果而不是继续重装，并额外完成一次单独 patch 发布：`nextclaw@0.17.9`。
 
 ## 测试 / 验证 / 验收方式
 
@@ -63,11 +63,16 @@
 - 正式发布：
   - `pnpm release:publish`
   - 结果：28 个公共包发布成功，`release:verify:published` 输出 `published 28/28 package versions`
+- update no-op 热修复 patch 发布：
+  - `.changeset/fix-update-noop-latest.md`
+  - `pnpm release:version`
+  - `pnpm release:publish`
+  - 结果：仅发布 `nextclaw@0.17.9`；联动更新私有工作区包 `@nextclaw/desktop@0.0.137` 的版本元数据，但不发布到 npm
 - 发布后仓库健康检查：
   - `pnpm release:report:health`
   - 结果：`Repository release health is clean.`
 - 关键线上版本核验：
-  - `npm view nextclaw version` -> `0.17.8`
+  - `npm view nextclaw version` -> `0.17.9`
   - `npm view @nextclaw/ui version` -> `0.12.6`
   - `npm view @nextclaw/core version` -> `0.12.4`
   - `npm view @nextclaw/server version` -> `0.12.4`
@@ -83,7 +88,8 @@
   - `pnpm -C packages/nextclaw test -- run src/cli/update/runner.test.ts`
   - `pnpm -C packages/nextclaw tsc`
   - `pnpm -C packages/nextclaw dev:build -- update`
-  - 结果：3 条单测通过；`tsc` 通过；源码态 CLI 在当前版本已是 `0.17.8` 时输出 `✓ nextclaw is already up to date (0.17.8)`，不会再执行全局安装
+  - `npm view nextclaw version`
+  - 结果：3 条单测通过；`tsc` 通过；源码态 CLI 在当前版本已是 `0.17.8` 时输出 `✓ nextclaw is already up to date (0.17.8)`，不会再执行全局安装；registry 最新版本已更新到 `0.17.9`
 - 可维护性守卫：
   - `pnpm lint:maintainability:guard`
   - 结果：通过；保留 2 条既有 warning：
@@ -96,12 +102,13 @@
 
 - 本次属于 npm 生态统一发版，不涉及数据库 migration，也不涉及 Cloudflare worker / Pages / 后端服务的独立部署
 - 推荐执行顺序：
-  1. `pnpm release:auto:prepare`
-  2. `pnpm release:version`
-  3. `pnpm release:publish`
-  4. `pnpm release:report:health`
-  5. 对关键包执行 `npm view <pkg> version`
-  6. 在非仓库临时目录执行 `npm exec nextclaw@<version> -- --help` 或隔离 store 的 `pnpm dlx`
+1. `pnpm release:auto:prepare`
+2. `pnpm release:version`
+3. `pnpm release:publish`
+ 4. 若 release 后又发现只影响 `nextclaw` 的 CLI 热修复，新增单包 patch changeset 后再次执行 `pnpm release:version` 与 `pnpm release:publish`
+ 5. `pnpm release:report:health`
+ 6. 对关键包执行 `npm view <pkg> version`
+ 7. 在非仓库临时目录执行 `npm exec nextclaw@<version> -- --help` 或隔离 store 的 `pnpm dlx`
 - 当前状态：
   - npm 发布：已完成
   - registry 版本核验：已完成
@@ -111,12 +118,12 @@
 
 ## 用户/产品视角的验收步骤
 
-1. 执行 `npm view nextclaw version`，确认结果为 `0.17.8`。
+1. 执行 `npm view nextclaw version`，确认结果为 `0.17.9`。
 2. 执行 `npm view @nextclaw/ui version`、`npm view @nextclaw/server version`、`npm view @nextclaw/core version`，确认分别为 `0.12.6`、`0.12.4`、`0.12.4`。
-3. 在任意非仓库临时目录执行 `npm exec nextclaw@0.17.8 -- --help`。
+3. 在任意非仓库临时目录执行 `npm exec nextclaw@0.17.9 -- --help`。
 4. 确认 CLI 能正常安装并输出完整帮助与命令列表。
 5. 若业务侧依赖 channel/runtime/NCP 相关包，安装本次新版本并确认依赖解析无缺包或版本冲突。
-6. 若当前机器已经安装 `nextclaw@0.17.8`，执行 `nextclaw update`，确认输出“already up to date”并直接成功返回。
+6. 若当前机器已经安装的是 `nextclaw@0.17.9`，执行 `nextclaw update`，确认输出“already up to date”并直接成功返回。
 
 ## 可维护性总结汇总
 

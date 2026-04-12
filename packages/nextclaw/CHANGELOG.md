@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.17.9
+
+### Patch Changes
+
+- Skip the global reinstall path when `nextclaw update` is already on the latest published version, so the command exits cleanly instead of re-running npm install unnecessarily.
+
 ## 0.17.8
 
 ### Patch Changes
