@@ -8,6 +8,7 @@ import { DesktopUpdateService } from "./launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 import { RuntimeConfigResolver } from "./runtime-config";
+import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
@@ -30,6 +31,7 @@ class DesktopApplication {
   private stopping = false;
   private desktopUpdateShell: DesktopUpdateShellService | null = null;
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
+  private updateSourceService: DesktopUpdateSourceService | null = null;
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -141,6 +143,7 @@ class DesktopApplication {
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
       layout: new DesktopBundleLayoutStore(),
+      channel: this.ensureUpdateSourceService().resolveChannel(),
       launcherVersion: app.getVersion(),
       bundlePublicKey: this.getBundlePublicKey()
     });
@@ -182,7 +185,8 @@ class DesktopApplication {
     this.bundleBootstrap = new DesktopBundleBootstrapService({
       logger,
       launcherVersion: app.getVersion(),
-      manifestUrl: this.getUpdateManifestUrl(),
+      channel: this.ensureUpdateSourceService().resolveChannel(),
+      resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       bundlePublicKey: this.getBundlePublicKey() ?? null,
       seedBundlePath: this.getSeedBundlePath() ?? null
     });
@@ -197,7 +201,7 @@ class DesktopApplication {
     this.desktopUpdateShell = new DesktopUpdateShellService({
       logger,
       launcherVersion: app.getVersion(),
-      manifestUrl: this.getUpdateManifestUrl(),
+      resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       getWindow: () => this.window,
       createLauncherStateStore: this.createLauncherStateStore,
       createUpdateService: this.createUpdateService,
@@ -212,21 +216,17 @@ class DesktopApplication {
     return this.desktopUpdateShell;
   };
 
-  private getUpdateManifestUrl = (): string | null => {
-    const manifestUrl = process.env.NEXTCLAW_DESKTOP_UPDATE_MANIFEST_URL?.trim();
-    if (manifestUrl) {
-      return manifestUrl;
+  private ensureUpdateSourceService = (): DesktopUpdateSourceService => {
+    if (this.updateSourceService) {
+      return this.updateSourceService;
     }
-    if (!app.isPackaged) {
-      return null;
-    }
-
-    const publishTarget = this.getGitHubPublishTarget();
-    if (!publishTarget) {
-      return null;
-    }
-
-    return `https://github.com/${publishTarget.owner}/${publishTarget.repo}/releases/latest/download/manifest-stable-${process.platform}-${process.arch}.json`;
+    this.updateSourceService = new DesktopUpdateSourceService({
+      isPackaged: app.isPackaged,
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      publishTarget: this.getGitHubPublishTarget()
+    });
+    return this.updateSourceService;
   };
 
   private getBundlePublicKey = (): string | undefined => {

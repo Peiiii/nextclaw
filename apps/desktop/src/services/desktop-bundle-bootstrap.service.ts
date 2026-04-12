@@ -4,6 +4,7 @@ import { DesktopBundleService } from "../launcher/services/bundle.service";
 import { DesktopUpdateService } from "../launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
+import type { DesktopReleaseChannel } from "./desktop-update-source.service";
 
 type DesktopBundleBootstrapLogger = {
   info: (message: string) => void;
@@ -13,7 +14,8 @@ type DesktopBundleBootstrapLogger = {
 type DesktopBundleBootstrapServiceOptions = {
   logger: DesktopBundleBootstrapLogger;
   launcherVersion: string;
-  manifestUrl: string | null;
+  channel: DesktopReleaseChannel;
+  resolveManifestUrl: () => Promise<string | null>;
   bundlePublicKey: string | null;
   seedBundlePath: string | null;
 };
@@ -32,7 +34,7 @@ export class DesktopBundleBootstrapService {
       return;
     }
 
-    const manifestUrl = this.options.manifestUrl?.trim();
+    const manifestUrl = (await this.options.resolveManifestUrl())?.trim();
     if (!manifestUrl) {
       return;
     }
@@ -152,6 +154,7 @@ export class DesktopBundleBootstrapService {
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
       layout: new DesktopBundleLayoutStore(),
+      channel: this.options.channel,
       launcherVersion: this.options.launcherVersion,
       bundlePublicKey: this.options.bundlePublicKey ?? undefined
     });

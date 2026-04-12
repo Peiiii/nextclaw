@@ -10,6 +10,7 @@
   "scripts": {
     "bundle:build": "node scripts/update/services/build-product-bundle.service.mjs",
     "bundle:public-key": "node scripts/update/services/write-bundle-public-key.service.mjs",
+    "bundle:release-metadata": "node scripts/update/services/write-release-metadata.service.mjs",
     "bundle:seed": "node scripts/update/services/prepare-seed-bundle.service.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "bundle:manifest": "node scripts/update/services/build-update-manifest.service.mjs",
@@ -60,6 +61,10 @@
       "package.json"
     ],
     "extraResources": [
+      {
+        "from": "build/update-release-metadata.json",
+        "to": "update/update-release-metadata.json"
+      },
       {
         "from": "build/update-bundle-public.pem",
         "to": "update/update-bundle-public.pem"

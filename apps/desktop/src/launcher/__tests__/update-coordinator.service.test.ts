@@ -88,7 +88,7 @@ test("coordinator reports an available update without downloading by default", a
     let downloadInvocations = 0;
     const coordinator = new DesktopUpdateCoordinatorService({
       launcherVersion: "0.1.0",
-      manifestUrl: "https://example.com/manifest.json",
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -153,7 +153,7 @@ test("coordinator downloads an update and waits for user-triggered apply", async
     });
     const coordinator = new DesktopUpdateCoordinatorService({
       launcherVersion: "0.1.0",
-      manifestUrl: "https://example.com/manifest.json",
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -220,7 +220,7 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
     let downloadInvocations = 0;
     const coordinator = new DesktopUpdateCoordinatorService({
       launcherVersion: "0.1.0",
-      manifestUrl: "https://example.com/manifest.json",
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
       updateService: {
         checkForUpdate: async () => ({
@@ -255,4 +255,63 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
     assert.equal(downloadInvocations, 1);
     assert.equal(autoReadyNotifications, 1);
     assert.equal(stateStore.read().downloadedVersion, "0.18.1");
+  }));
+
+test("background update check failures do not replace the primary status with failed", async () =>
+  await withTempDir("nextclaw-update-coordinator-background-failure-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
+
+    const coordinator = new DesktopUpdateCoordinatorService({
+      launcherVersion: "0.1.0",
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => {
+          throw new Error("update manifest request failed with status 404");
+        }
+      } as unknown as DesktopUpdateService,
+      bundleLifecycle: {} as DesktopBundleLifecycleService,
+      bundleService: {} as DesktopBundleService
+    });
+
+    const snapshot = await coordinator.checkForUpdates();
+    assert.equal(snapshot.status, "idle");
+    assert.equal(snapshot.errorMessage, null);
+    assert.match(snapshot.lastCheckedAt ?? "", /^20\d\d-/);
+  }));
+
+test("manual update checks still report failures to the user", async () =>
+  await withTempDir("nextclaw-update-coordinator-manual-failure-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0"
+      })
+    );
+
+    const coordinator = new DesktopUpdateCoordinatorService({
+      launcherVersion: "0.1.0",
+      resolveManifestUrl: async () => "https://example.com/manifest.json",
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => {
+          throw new Error("update manifest request failed with status 404");
+        }
+      } as unknown as DesktopUpdateService,
+      bundleLifecycle: {} as DesktopBundleLifecycleService,
+      bundleService: {} as DesktopBundleService
+    });
+
+    const snapshot = await coordinator.checkForUpdates({ manual: true });
+    assert.equal(snapshot.status, "failed");
+    assert.equal(snapshot.errorMessage, "update manifest request failed with status 404");
   }));

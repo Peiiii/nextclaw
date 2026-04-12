@@ -26,7 +26,7 @@ type DesktopUpdateShellLogger = {
 type DesktopUpdateShellServiceOptions = {
   logger: DesktopUpdateShellLogger;
   launcherVersion: string;
-  manifestUrl: string | null;
+  resolveManifestUrl: () => Promise<string | null>;
   getWindow: () => BrowserWindow | null;
   createLauncherStateStore: () => DesktopLauncherStateStore;
   createUpdateService: () => DesktopUpdateService;
@@ -86,7 +86,7 @@ export class DesktopUpdateShellService {
 
     this.coordinator = new DesktopUpdateCoordinatorService({
       launcherVersion: this.options.launcherVersion,
-      manifestUrl: this.options.manifestUrl,
+      resolveManifestUrl: this.options.resolveManifestUrl,
       stateStore: this.options.createLauncherStateStore(),
       updateService: this.options.createUpdateService(),
       bundleLifecycle: this.options.createBundleLifecycle(),

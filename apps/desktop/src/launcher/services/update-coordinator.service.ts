@@ -32,7 +32,7 @@ export type DesktopUpdateSnapshot = {
 
 type DesktopUpdateCoordinatorServiceOptions = {
   launcherVersion: string;
-  manifestUrl: string | null;
+  resolveManifestUrl: () => Promise<string | null>;
   stateStore: DesktopLauncherStateStore;
   updateService: DesktopUpdateService;
   bundleLifecycle: DesktopBundleLifecycleService;
@@ -158,12 +158,7 @@ export class DesktopUpdateCoordinatorService {
     return this.getSnapshot();
   };
 
-  private performCheckForUpdates = async (_options: DesktopCheckUpdateOptions): Promise<DesktopUpdateSnapshot> => {
-    const manifestUrl = this.options.manifestUrl?.trim();
-    if (!manifestUrl) {
-      throw new Error("Desktop update manifest URL is not configured.");
-    }
-
+  private performCheckForUpdates = async (options: DesktopCheckUpdateOptions): Promise<DesktopUpdateSnapshot> => {
     const checkedAt = new Date().toISOString();
 
     this.snapshot = {
@@ -174,6 +169,10 @@ export class DesktopUpdateCoordinatorService {
     this.publishSnapshot();
 
     try {
+      const manifestUrl = (await this.options.resolveManifestUrl())?.trim();
+      if (!manifestUrl) {
+        throw new Error("Desktop update manifest URL is not configured.");
+      }
       const availableUpdate = await this.options.updateService.checkForUpdate(manifestUrl, this.snapshot.currentVersion);
       const persistedState = await this.recordLastCheckedAt(checkedAt);
       this.snapshot = this.toSnapshotAfterCheck(availableUpdate, persistedState);
@@ -187,14 +186,16 @@ export class DesktopUpdateCoordinatorService {
     } catch (error) {
       this.availableManifest = null;
       const persistedState = await this.recordLastCheckedAt(checkedAt);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const backgroundStatus = persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS;
       this.snapshot = {
         ...this.snapshot,
-        status: persistedState.downloadedVersion ? "downloaded" : "failed",
+        status: options.manual ? "failed" : backgroundStatus,
         currentVersion: persistedState.currentVersion,
         downloadedVersion: persistedState.downloadedVersion,
         releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
         lastCheckedAt: persistedState.lastUpdateCheckAt,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: options.manual ? errorMessage : null,
         preferences: { ...persistedState.updatePreferences }
       };
       this.publishSnapshot();

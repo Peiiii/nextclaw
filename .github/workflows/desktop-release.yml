@@ -18,6 +18,9 @@ jobs:
   build-desktop:
     name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    env:
+      DESKTOP_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+      DESKTOP_UPDATE_CHANNEL: ${{ contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'desktop-beta') && 'beta' || 'stable' }}
     strategy:
       fail-fast: false
       matrix:
@@ -58,6 +61,9 @@ jobs:
         env:
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: pnpm -C apps/desktop bundle:public-key -- --output build/update-bundle-public.pem
+
+      - name: Write desktop release metadata
+        run: pnpm -C apps/desktop bundle:release-metadata -- --channel ${{ env.DESKTOP_UPDATE_CHANNEL }} --release-tag ${{ env.DESKTOP_RELEASE_TAG }} --output build/update-release-metadata.json
 
       - name: Build Desktop (macOS)
         if: matrix.platform == 'darwin'
@@ -184,7 +190,6 @@ jobs:
         if: matrix.platform != 'win32'
         shell: bash
         env:
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: |
           set -euo pipefail
@@ -199,23 +204,23 @@ jobs:
             --output-dir apps/desktop/dist-bundles
 
           BUNDLE_PATH="apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-${BUNDLE_VERSION}.zip"
-          MANIFEST_PATH="apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json"
+          MANIFEST_PATH="apps/desktop/release-manifests/manifest-${DESKTOP_UPDATE_CHANNEL}-${{ matrix.platform }}-${{ matrix.arch }}.json"
 
           pnpm -C apps/desktop bundle:manifest -- \
             --bundle "$BUNDLE_PATH" \
+            --channel "$DESKTOP_UPDATE_CHANNEL" \
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
             --version "$BUNDLE_VERSION" \
             --minimum-launcher-version "$LAUNCHER_VERSION" \
-            --bundle-url "https://github.com/${{ github.repository }}/releases/download/${RELEASE_TAG}/$(basename "$BUNDLE_PATH")" \
-            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${RELEASE_TAG}" \
+            --bundle-url "https://github.com/${{ github.repository }}/releases/download/${DESKTOP_RELEASE_TAG}/$(basename "$BUNDLE_PATH")" \
+            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${DESKTOP_RELEASE_TAG}" \
             --output "$MANIFEST_PATH"
 
       - name: Build signed product bundle + manifest (Windows)
         if: matrix.platform == 'win32'
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: |
           $ErrorActionPreference = "Stop"
@@ -230,17 +235,18 @@ jobs:
             --output-dir apps/desktop/dist-bundles
 
           $bundlePath = "apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-$bundleVersion.zip"
-          $manifestPath = "apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json"
+          $manifestPath = "apps/desktop/release-manifests/manifest-$env:DESKTOP_UPDATE_CHANNEL-${{ matrix.platform }}-${{ matrix.arch }}.json"
           $bundleFileName = Split-Path $bundlePath -Leaf
 
           pnpm -C apps/desktop bundle:manifest -- `
             --bundle $bundlePath `
+            --channel $env:DESKTOP_UPDATE_CHANNEL `
             --platform ${{ matrix.platform }} `
             --arch ${{ matrix.arch }} `
             --version $bundleVersion `
             --minimum-launcher-version $launcherVersion `
-            --bundle-url "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/$bundleFileName" `
-            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/$env:RELEASE_TAG" `
+            --bundle-url "https://github.com/${{ github.repository }}/releases/download/$env:DESKTOP_RELEASE_TAG/$bundleFileName" `
+            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/$env:DESKTOP_RELEASE_TAG" `
             --output $manifestPath
 
       - name: Archive desktop artifacts (Windows)
@@ -341,7 +347,7 @@ jobs:
             apps/desktop/release/latest-mac-${{ matrix.arch }}.yml
             apps/desktop/release/*.blockmap
             apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
-            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
+            apps/desktop/release-manifests/manifest-${{ env.DESKTOP_UPDATE_CHANNEL }}-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload desktop artifacts (Windows)
         if: matrix.platform == 'win32'
@@ -351,7 +357,7 @@ jobs:
           path: |
             apps/desktop/release/NextClaw.Desktop-*-win32-x64-unpacked.zip
             apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
-            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
+            apps/desktop/release-manifests/manifest-${{ env.DESKTOP_UPDATE_CHANNEL }}-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload desktop artifacts (Linux)
         if: matrix.platform == 'linux'
@@ -364,7 +370,7 @@ jobs:
             apps/desktop/release/NextClaw.Desktop-*-linux-x64.AppImage.blockmap
             apps/desktop/release/nextclaw-desktop_*.deb
             apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
-            apps/desktop/release-manifests/manifest-stable-${{ matrix.platform }}-${{ matrix.arch }}.json
+            apps/desktop/release-manifests/manifest-${{ env.DESKTOP_UPDATE_CHANNEL }}-${{ matrix.platform }}-${{ matrix.arch }}.json
 
       - name: Upload bundle update public key
         if: matrix.platform == 'linux' && matrix.arch == 'x64'
@@ -394,15 +400,16 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            dist/desktop-release/*.dmg
-            dist/desktop-release/*-mac.zip
-            dist/desktop-release/*-win32-*-unpacked.zip
-            dist/desktop-release/*.AppImage
-            dist/desktop-release/*.deb
-            dist/desktop-release/*.blockmap
-            dist/desktop-release/nextclaw-bundle-*.zip
-            dist/desktop-release/manifest-stable-*.json
-            dist/desktop-release/update-bundle-public.pem
+            dist/desktop-release/**/*.dmg
+            dist/desktop-release/**/*-mac.zip
+            dist/desktop-release/**/*-win32-*-unpacked.zip
+            dist/desktop-release/**/*.AppImage
+            dist/desktop-release/**/*.deb
+            dist/desktop-release/**/*.blockmap
+            dist/desktop-release/**/nextclaw-bundle-*.zip
+            dist/desktop-release/**/manifest-*.json
+            dist/desktop-release/**/latest-mac-*.yml
+            dist/desktop-release/**/update-bundle-public.pem
 
   publish-linux-apt-repo:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != '')
