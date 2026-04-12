@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-codex-sdk",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "private": false,
   "description": "Optional NCP runtime adapter backed by OpenAI Codex SDK.",
   "type": "module",
