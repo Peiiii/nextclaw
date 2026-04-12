@@ -1,42 +1,69 @@
 import { cn } from "../../../internal/cn";
 import {
+  File,
+  FileArchive,
+  FileAudio2,
+  FileCode2,
+  FileImage,
+  FileJson2,
+  FileSpreadsheet,
+  FileText,
+  FileVideo2,
+} from "lucide-react";
+import {
   buildChatMessageFileMeta,
-  FILE_CATEGORY_LABELS,
   FILE_CATEGORY_TILE_CLASSES,
   isImageFileLike,
+  type FileCategory,
   type ChatMessageFileView,
 } from "./meta";
+import type { ChatMessageTexts } from "../../../view-models/chat-ui.types";
 
 type ChatMessageFileProps = {
   file: ChatMessageFileView;
   isUser?: boolean;
+  texts?: Pick<
+    ChatMessageTexts,
+    "attachmentOpenLabel" | "attachmentAttachedLabel" | "attachmentCategoryLabels"
+  >;
 };
 
-function renderMetaBadge(label: string, isUser: boolean) {
+const DEFAULT_FILE_CATEGORY_LABELS: Record<FileCategory, string> = {
+  archive: "Archive",
+  audio: "Audio",
+  code: "Code file",
+  data: "Data file",
+  document: "Document",
+  generic: "File",
+  image: "Image",
+  pdf: "PDF document",
+  sheet: "Spreadsheet",
+  video: "Video",
+};
+
+function readFileCategoryLabel(
+  category: FileCategory,
+  texts?: ChatMessageFileProps["texts"],
+): string {
   return (
-    <span
-      key={label}
-      className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium",
-        isUser
-          ? "border-white/12 bg-white/10 text-white/82"
-          : "border-slate-200/80 bg-slate-950/[0.04] text-slate-600",
-      )}
-    >
-      {label}
-    </span>
+    texts?.attachmentCategoryLabels?.[category] ??
+    DEFAULT_FILE_CATEGORY_LABELS[category]
   );
 }
 
-function renderMimeType(mimeType: string, isUser: boolean) {
+function renderMetaLine(
+  categoryLabel: string,
+  sizeLabel: string | null,
+  isUser: boolean,
+) {
   return (
     <div
       className={cn(
-        "truncate text-[11px]",
-        isUser ? "text-white/58" : "text-slate-500",
+        "mt-1 text-xs leading-5",
+        isUser ? "text-white/70" : "text-slate-500",
       )}
     >
-      {mimeType}
+      {sizeLabel ? `${categoryLabel} · ${sizeLabel}` : categoryLabel}
     </div>
   );
 }
@@ -64,29 +91,87 @@ function renderActionPill(
   );
 }
 
+function readFileCategoryIcon(category: FileCategory) {
+  if (category === "archive") {
+    return FileArchive;
+  }
+  if (category === "audio") {
+    return FileAudio2;
+  }
+  if (category === "code") {
+    return FileCode2;
+  }
+  if (category === "data") {
+    return FileJson2;
+  }
+  if (category === "pdf") {
+    return FileText;
+  }
+  if (category === "sheet") {
+    return FileSpreadsheet;
+  }
+  if (category === "image") {
+    return FileImage;
+  }
+  if (category === "video") {
+    return FileVideo2;
+  }
+  if (category === "document") {
+    return FileText;
+  }
+  return File;
+}
+
+function FileCategoryGlyph({
+  category,
+  isUser,
+}: {
+  category: FileCategory;
+  isUser: boolean;
+}) {
+  const Icon = readFileCategoryIcon(category);
+
+  return (
+    <div
+      className={cn(
+        "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] border",
+        isUser
+          ? "border-white/12 bg-white/10 text-white"
+          : FILE_CATEGORY_TILE_CLASSES[category],
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-7 w-7",
+          isUser ? "text-white/92" : "text-current",
+        )}
+        strokeWidth={2.2}
+      />
+    </div>
+  );
+}
+
 export function ChatMessageFile({
   file,
   isUser = false,
+  texts,
 }: ChatMessageFileProps) {
-  const { category, extension, metaBadges, sizeLabel } =
-    buildChatMessageFileMeta(file);
+  const { category, extension, sizeLabel } = buildChatMessageFileMeta(file);
   const renderAsImage = isImageFileLike(file) && Boolean(file.dataUrl);
   const isInteractive = Boolean(file.dataUrl);
   const actionLabel = isInteractive
-    ? renderAsImage
-      ? "Open preview"
-      : "Open file"
-    : "Attached";
-  const tileLabel = extension.slice(0, 4);
+    ? texts?.attachmentOpenLabel ?? "Open"
+    : texts?.attachmentAttachedLabel ?? "Attached";
+  const categoryLabel = readFileCategoryLabel(category, texts);
   const shellClasses = cn(
     "block overflow-hidden rounded-[1.25rem] border transition duration-200",
     isUser
-      ? "border-white/12 bg-white/10 text-white shadow-[0_18px_40px_-28px_rgba(15,23,42,0.85)]"
-      : "border-slate-200/80 bg-white/95 text-slate-900 shadow-[0_20px_45px_-30px_rgba(15,23,42,0.28)]",
+      ? "border-white/12 bg-white/10 text-white"
+      : "border-slate-200/80 bg-white/95 text-slate-900",
     isInteractive &&
       (isUser
         ? "hover:border-white/18 hover:bg-white/13"
-        : "hover:border-slate-300 hover:bg-white hover:shadow-[0_24px_50px_-30px_rgba(15,23,42,0.3)]"),
+        : "hover:border-slate-300 hover:bg-white"),
   );
 
   if (renderAsImage && file.dataUrl) {
@@ -95,7 +180,6 @@ export function ChatMessageFile({
         href={file.dataUrl}
         target="_blank"
         rel="noreferrer"
-        aria-label={`Open preview: ${file.label}`}
         className="group block"
       >
         <div
@@ -118,7 +202,7 @@ export function ChatMessageFile({
                 isUser ? "bg-slate-950/36" : "bg-slate-950/58",
               )}
             >
-              {tileLabel}
+              {categoryLabel}
             </span>
             {sizeLabel ? (
               <span
@@ -137,38 +221,21 @@ export function ChatMessageFile({
   }
 
   const content = (
-    <div className="flex items-start gap-3 p-3.5">
-      <div
-        className={cn(
-          "flex h-14 w-14 shrink-0 items-center justify-center rounded-[1rem] border text-xs font-semibold tracking-[0.22em]",
-          isUser
-            ? "border-white/12 bg-white/10 text-white"
-            : FILE_CATEGORY_TILE_CLASSES[category],
-        )}
-      >
-        {tileLabel}
-      </div>
+    <div className="flex items-center gap-3 p-3.5">
+      <FileCategoryGlyph
+        category={category}
+        isUser={isUser}
+      />
       <div className="min-w-0 flex-1">
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold leading-5">
+            <div className="truncate text-[15px] font-semibold leading-5">
               {file.label}
             </div>
-            <div
-              className={cn(
-                "mt-1 text-xs",
-                isUser ? "text-white/68" : "text-slate-500",
-              )}
-            >
-              {FILE_CATEGORY_LABELS[category]} attachment
-            </div>
+            {renderMetaLine(categoryLabel, sizeLabel, isUser)}
           </div>
           {renderActionPill(actionLabel, isUser, isInteractive)}
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {metaBadges.map((label) => renderMetaBadge(label, isUser))}
-        </div>
-        <div className="mt-2">{renderMimeType(file.mimeType, isUser)}</div>
       </div>
     </div>
   );
@@ -182,7 +249,6 @@ export function ChatMessageFile({
       href={file.dataUrl}
       target="_blank"
       rel="noreferrer"
-      aria-label={`Open file: ${file.label}`}
       className={cn(shellClasses, "group")}
     >
       {content}

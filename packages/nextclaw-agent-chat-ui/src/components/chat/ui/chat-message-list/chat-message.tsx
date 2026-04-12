@@ -14,7 +14,14 @@ import { ChatUnknownPart } from "./chat-unknown-part";
 
 type ChatMessageProps = {
   message: ChatMessageViewModel;
-  texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
+  texts: Pick<
+    ChatMessageTexts,
+    | "copyCodeLabel"
+    | "copiedCodeLabel"
+    | "attachmentOpenLabel"
+    | "attachmentAttachedLabel"
+    | "attachmentCategoryLabels"
+  >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
 };
@@ -91,6 +98,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
                 key={`file-${index}`}
                 file={part.file}
                 isUser={isUser}
+                texts={texts}
               />
             );
           }

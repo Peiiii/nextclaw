@@ -4,18 +4,19 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { ChatMessageListContainer } from "./chat-message-list.container";
 
 const captures = vi.hoisted(() => ({
-  renders: [] as Array<{ messages: unknown[] }>,
+  renders: [] as Array<{ messages: unknown[]; texts?: Record<string, unknown> }>,
+  language: "en",
 }));
 
 vi.mock("@nextclaw/agent-chat-ui", () => ({
-  ChatMessageList: (props: { messages: unknown[] }) => {
+  ChatMessageList: (props: { messages: unknown[]; texts?: Record<string, unknown> }) => {
     captures.renders.push(props);
     return <div data-testid="chat-message-list" />;
   },
 }));
 
 vi.mock("@/components/providers/I18nProvider", () => ({
-  useI18n: () => ({ language: "en" }),
+  useI18n: () => ({ language: captures.language }),
 }));
 
 vi.mock("@/lib/i18n", () => ({
@@ -25,6 +26,7 @@ vi.mock("@/lib/i18n", () => ({
 
 beforeEach(() => {
   captures.renders = [];
+  captures.language = "en";
 });
 
 it("reuses adapted message references when the source message object is unchanged", () => {
@@ -142,5 +144,21 @@ it("adapts persisted inline token metadata into rich message parts", () => {
         ],
       },
     ],
+  });
+});
+
+it("passes localized attachment card texts to the shared chat UI", () => {
+  captures.language = "zh";
+
+  render(<ChatMessageListContainer messages={[]} isSending={false} />);
+
+  expect(captures.renders[captures.renders.length - 1]?.texts).toMatchObject({
+    attachmentOpenLabel: "chatAttachmentOpen",
+    attachmentAttachedLabel: "chatAttachmentAttached",
+    attachmentCategoryLabels: {
+      archive: "chatAttachmentCategoryArchive",
+      pdf: "chatAttachmentCategoryPdf",
+      generic: "chatAttachmentCategoryGeneric",
+    },
   });
 });

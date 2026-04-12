@@ -1,46 +1,26 @@
-import type { ChatMessagePartViewModel } from "../../../view-models/chat-ui.types";
+import type {
+  ChatAttachmentCategory,
+  ChatMessagePartViewModel,
+} from "../../../view-models/chat-ui.types";
 
 export type ChatMessageFileView = Extract<
   ChatMessagePartViewModel,
   { type: "file" }
 >["file"];
 
-export type FileCategory =
-  | "archive"
-  | "audio"
-  | "code"
-  | "data"
-  | "document"
-  | "generic"
-  | "image"
-  | "pdf"
-  | "sheet"
-  | "video";
-
-export const FILE_CATEGORY_LABELS: Record<FileCategory, string> = {
-  archive: "Archive",
-  audio: "Audio",
-  code: "Code",
-  data: "Data",
-  document: "Document",
-  generic: "File",
-  image: "Image",
-  pdf: "PDF",
-  sheet: "Sheet",
-  video: "Video",
-};
+export type FileCategory = ChatAttachmentCategory;
 
 export const FILE_CATEGORY_TILE_CLASSES: Record<FileCategory, string> = {
-  archive: "border-amber-200/80 bg-amber-100 text-amber-700",
-  audio: "border-fuchsia-200/80 bg-fuchsia-100 text-fuchsia-700",
-  code: "border-cyan-200/80 bg-cyan-100 text-cyan-700",
-  data: "border-slate-200/80 bg-slate-100 text-slate-700",
-  document: "border-blue-200/80 bg-blue-100 text-blue-700",
-  generic: "border-slate-200/80 bg-slate-100 text-slate-700",
-  image: "border-emerald-200/80 bg-emerald-100 text-emerald-700",
-  pdf: "border-rose-200/80 bg-rose-100 text-rose-700",
-  sheet: "border-lime-200/80 bg-lime-100 text-lime-700",
-  video: "border-violet-200/80 bg-violet-100 text-violet-700",
+  archive: "border-amber-200/80 bg-amber-50 text-amber-700",
+  audio: "border-fuchsia-200/80 bg-fuchsia-50 text-fuchsia-700",
+  code: "border-cyan-200/80 bg-cyan-50 text-cyan-700",
+  data: "border-slate-200/80 bg-slate-50 text-slate-700",
+  document: "border-blue-200/80 bg-blue-50 text-blue-700",
+  generic: "border-slate-200/80 bg-slate-50 text-slate-700",
+  image: "border-emerald-200/80 bg-emerald-50 text-emerald-700",
+  pdf: "border-rose-200/80 bg-rose-50 text-rose-700",
+  sheet: "border-lime-200/80 bg-lime-50 text-lime-700",
+  video: "border-violet-200/80 bg-violet-50 text-violet-700",
 };
 
 const CODE_EXTENSIONS = new Set([
@@ -148,6 +128,10 @@ function readFileExtension(label: string): string {
   return /\.([a-z0-9]{1,12})$/i.exec(label.trim())?.[1]?.toLowerCase() ?? "";
 }
 
+function truncateDisplayCode(value: string): string {
+  return value.trim().slice(0, 4).toUpperCase();
+}
+
 function isImageDataUrl(dataUrl?: string): boolean {
   return typeof dataUrl === "string" && /^data:image\//i.test(dataUrl.trim());
 }
@@ -216,7 +200,6 @@ export function buildChatMessageFileMeta(file: ChatMessageFileView): {
   category: FileCategory;
   extension: string;
   sizeLabel: string | null;
-  metaBadges: string[];
 } {
   const category = resolveFileCategory(file.label, file.mimeType);
   const sizeLabel = formatFileSize(file.sizeBytes);
@@ -224,8 +207,24 @@ export function buildChatMessageFileMeta(file: ChatMessageFileView): {
     category,
     extension: getFileExtension(file.label, file.mimeType),
     sizeLabel,
-    metaBadges: [FILE_CATEGORY_LABELS[category], sizeLabel].filter(
-      (value): value is string => Boolean(value),
-    ),
   };
+}
+
+export function getFileCategoryDisplayCode(
+  category: FileCategory,
+  extension: string,
+): string {
+  if (category === "image") {
+    return "IMG";
+  }
+  if (category === "video") {
+    return "VID";
+  }
+  if (category === "audio") {
+    return "AUD";
+  }
+  if (category === "generic") {
+    return truncateDisplayCode(extension || "FILE");
+  }
+  return truncateDisplayCode(extension);
 }

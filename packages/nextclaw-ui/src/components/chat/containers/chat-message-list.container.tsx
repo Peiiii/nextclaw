@@ -65,6 +65,20 @@ function buildChatMessageTexts(language: string) {
     copyMessageLabel: t("chatMessageCopy"),
     copiedMessageLabel: t("chatMessageCopied"),
     typingLabel: t("chatTyping"),
+    attachmentOpenLabel: t("chatAttachmentOpen"),
+    attachmentAttachedLabel: t("chatAttachmentAttached"),
+    attachmentCategoryLabels: {
+      archive: t("chatAttachmentCategoryArchive"),
+      audio: t("chatAttachmentCategoryAudio"),
+      code: t("chatAttachmentCategoryCode"),
+      data: t("chatAttachmentCategoryData"),
+      document: t("chatAttachmentCategoryDocument"),
+      generic: t("chatAttachmentCategoryGeneric"),
+      image: t("chatAttachmentCategoryImage"),
+      pdf: t("chatAttachmentCategoryPdf"),
+      sheet: t("chatAttachmentCategorySheet"),
+      video: t("chatAttachmentCategoryVideo"),
+    },
   };
 }
 

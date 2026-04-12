@@ -292,12 +292,27 @@ export type ChatMessageViewModel = {
   status?: string;
 };
 
+export type ChatAttachmentCategory =
+  | "archive"
+  | "audio"
+  | "code"
+  | "data"
+  | "document"
+  | "generic"
+  | "image"
+  | "pdf"
+  | "sheet"
+  | "video";
+
 export type ChatMessageTexts = {
   copyCodeLabel: string;
   copiedCodeLabel: string;
   copyMessageLabel: string;
   copiedMessageLabel: string;
   typingLabel: string;
+  attachmentOpenLabel?: string;
+  attachmentAttachedLabel?: string;
+  attachmentCategoryLabels?: Partial<Record<ChatAttachmentCategory, string>>;
 };
 
 export type ChatMessageListProps = {
