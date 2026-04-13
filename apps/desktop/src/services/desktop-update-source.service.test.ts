@@ -71,6 +71,62 @@ test("beta packaged apps resolve the published beta channel manifest URL", async
     );
   }));
 
+test("packaged metadata manifest base url can drive a local validation update source", async () =>
+  await withTempDir("nextclaw-update-source-packaged-base-url-", async (rootDir) => {
+    const resourcesPath = join(rootDir, "resources");
+    await mkdir(join(resourcesPath, "update"), { recursive: true });
+    await writeFile(
+      join(resourcesPath, "update", "update-release-metadata.json"),
+      `${JSON.stringify(
+        {
+          channel: "stable",
+          releaseTag: "validation",
+          manifestBaseUrl: "http://127.0.0.1:43010/desktop-updates"
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
+
+    const stateStore = new DesktopLauncherStateStore(join(rootDir, "launcher-state.json"));
+    await stateStore.write({
+      channel: "beta",
+      currentVersion: null,
+      previousVersion: null,
+      candidateVersion: null,
+      candidateLaunchCount: 0,
+      lastKnownGoodVersion: null,
+      badVersions: [],
+      lastUpdateCheckAt: null,
+      downloadedVersion: null,
+      downloadedReleaseNotesUrl: null,
+      updatePreferences: {
+        automaticChecks: true,
+        autoDownload: false
+      }
+    });
+
+    const service = new DesktopUpdateSourceService({
+      isPackaged: true,
+      appPath: rootDir,
+      resourcesPath,
+      platform: "darwin",
+      arch: "arm64",
+      publishTarget: {
+        owner: "Peiiii",
+        repo: "nextclaw"
+      },
+      stateStore
+    });
+
+    assert.equal(service.resolveChannel(), "beta");
+    assert.equal(
+      await service.resolveManifestUrl(),
+      "http://127.0.0.1:43010/desktop-updates/beta/manifest-beta-darwin-arm64.json"
+    );
+  }));
+
 test("builds a deterministic published channel manifest URL", () => {
   assert.equal(
     getDesktopUpdateChannelManifestUrl({ owner: "Peiiii", repo: "nextclaw" }, "beta", "darwin", "arm64"),

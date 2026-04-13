@@ -37,9 +37,15 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   const outputPath = resolve(readRequiredOption(args, "output"));
   const releaseTag = args["release-tag"]?.trim() || null;
+  const manifestBaseUrl = args["manifest-base-url"]?.trim() || null;
+  const runtimeHomeOverride = args["runtime-home-override"]?.trim() || null;
+  const desktopDataDirOverride = args["desktop-data-dir-override"]?.trim() || null;
   const metadata = {
     channel: normalizeChannel(args.channel),
-    releaseTag
+    releaseTag,
+    manifestBaseUrl,
+    runtimeHomeOverride,
+    desktopDataDirOverride
   };
 
   mkdirSync(dirname(outputPath), { recursive: true });

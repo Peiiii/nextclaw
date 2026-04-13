@@ -25,6 +25,7 @@ type DesktopUpdateSourceServiceOptions = {
 type PackagedReleaseMetadata = {
   channel: DesktopReleaseChannel;
   releaseTag: string | null;
+  manifestBaseUrl: string | null;
 };
 
 const RELEASE_METADATA_FILE_NAME = "update-release-metadata.json";
@@ -94,6 +95,10 @@ export class DesktopUpdateSourceService {
     if (explicitManifestBaseUrl) {
       return this.buildChannelManifestUrlFromBaseUrl(explicitManifestBaseUrl, this.resolveChannel());
     }
+    const packagedMetadataBaseUrl = this.readPackagedReleaseMetadata().manifestBaseUrl;
+    if (packagedMetadataBaseUrl) {
+      return this.buildChannelManifestUrlFromBaseUrl(packagedMetadataBaseUrl, this.resolveChannel());
+    }
     if (!this.options.isPackaged || !this.options.publishTarget) {
       return null;
     }
@@ -119,14 +124,16 @@ export class DesktopUpdateSourceService {
     if (!existsSync(metadataPath)) {
       return {
         channel: "stable",
-        releaseTag: null
+        releaseTag: null,
+        manifestBaseUrl: null
       };
     }
 
     const parsed = JSON.parse(readFileSync(metadataPath, "utf8")) as Record<string, unknown>;
     return {
       channel: normalizeDesktopReleaseChannel(normalizeOptionalString(parsed.channel)),
-      releaseTag: normalizeOptionalString(parsed.releaseTag)
+      releaseTag: normalizeOptionalString(parsed.releaseTag),
+      manifestBaseUrl: normalizeOptionalString(parsed.manifestBaseUrl)
     };
   };
 

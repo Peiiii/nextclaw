@@ -4,7 +4,6 @@ import { createHash, generateKeyPairSync, sign } from "node:crypto";
 import {
   chmodSync,
   copyFileSync,
-  cpSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -13,13 +12,14 @@ import {
   statSync,
   writeFileSync
 } from "node:fs";
+import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import JSZip from "jszip";
 
 const desktopDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(desktopDir, "..", "..");
-const defaultValidationRoot = resolve(desktopDir, ".local", "manual-update-validation");
+const defaultSupportRoot = resolve(desktopDir, "release", "manual-update-validation-support");
 const defaultStableSeedBundlePath = "/Applications/NextClaw Desktop.app/Contents/Resources/update/seed-product-bundle.zip";
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
@@ -120,23 +120,6 @@ function createSignedManifest({ privateKey, channel, version, bundlePath, bundle
   };
 }
 
-function findFirstAppBundle(rootDir) {
-  const entries = readdirSync(rootDir, { withFileTypes: true });
-  for (const entry of entries) {
-    const entryPath = join(rootDir, entry.name);
-    if (entry.isDirectory() && entry.name.endsWith(".app")) {
-      return entryPath;
-    }
-    if (entry.isDirectory()) {
-      const nested = findFirstAppBundle(entryPath);
-      if (nested) {
-        return nested;
-      }
-    }
-  }
-  return null;
-}
-
 function createBackupMap(filePaths) {
   const backup = new Map();
   for (const filePath of filePaths) {
@@ -164,48 +147,55 @@ function writeExecutableFile(filePath, content) {
   chmodSync(filePath, 0o755);
 }
 
-function buildReadme({
-  validationRoot,
-  port,
-  stableVersion,
-  betaVersion,
-  appPath
-}) {
+function findFirstDmg(rootDir) {
+  const entries = readdirSync(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    const entryPath = join(rootDir, entry.name);
+    if (entry.isFile() && entry.name.endsWith(".dmg")) {
+      return entryPath;
+    }
+  }
+  return null;
+}
+
+function buildReadme({ installerDmgPath, supportRoot, stableVersion, betaVersion, runtimeHomeOverride, desktopDataDirOverride }) {
   return `# Desktop Release Channel Manual Validation
 
-这是给本机人工验收用的本地验证目录。
+这是给产品本人手动验收用的标准安装包支持目录。
 
-## 目录说明
+## 你真正要安装的文件
 
-- App: ${appPath}
-- Local update server root: ${join(validationRoot, "server-root")}
-- Runtime home: ${join(validationRoot, "runtime-home")}
-- Desktop data: ${join(validationRoot, "desktop-data")}
-- Local update base url: http://127.0.0.1:${String(port)}/desktop-updates
+- DMG 安装包：${installerDmgPath}
 
-## 一次完整验证怎么做
+## 安装和验证步骤
 
-1. 双击 \`1-start-local-update-server.command\`，保持这个终端窗口不要关闭。
-2. 如果你想从头再测一遍，先双击 \`3-reset-validation-state.command\`。
-3. 双击 \`2-open-validation-app.command\` 启动本地验证版桌面端。
-4. 在应用里进入“设置 > 桌面端更新”。
-5. 先保持 \`Stable\`，点击“检查更新”，预期当前版本是 \`${stableVersion}\`，结果是“已是最新”。
-6. 把 \`Release channel\` 切到 \`Beta\`，再次点击“检查更新”，预期看到可更新版本 \`${betaVersion}\`。
-7. 点击下载，等待状态变成“已下载，等待应用”。
-8. 点击应用更新并重启，等待应用重新起来。
-9. 重启后再次打开“设置 > 桌面端更新”，预期当前版本已经变成 \`${betaVersion}\`。
-10. 再切回 \`Stable\` 并检查更新，预期不会强制降级，当前版本仍保持 \`${betaVersion}\`。
+1. 双击上面的 DMG，把 \`NextClaw Desktop.app\` 拖到 \`Applications\`。
+2. 双击 \`1-start-local-update-server.command\`，保持这个终端窗口不要关闭。
+3. 如需把这次验证写入的数据清空，双击 \`2-reset-validation-state.command\`。
+4. 正常从 \`Applications/NextClaw Desktop.app\` 打开应用。
+5. 进入“设置 > 桌面端更新”。
+6. 在 \`Stable\` 下点击“检查更新”，预期当前版本是 \`${stableVersion}\`，结果为“已是最新”。
+7. 切到 \`Beta\`，再次点击“检查更新”，预期看到 \`${betaVersion}\`。
+8. 下载并应用更新，重启后预期当前版本变成 \`${betaVersion}\`。
+9. 再切回 \`Stable\` 检查更新，预期不会强制降级，当前版本仍保持 \`${betaVersion}\`。
+
+## 支持目录内容
+
+- 本地更新源根目录：${join(supportRoot, "server-root")}
+- 验证 runtime home：${runtimeHomeOverride}
+- 验证 desktop data：${desktopDataDirOverride}
 
 ## 注意
 
-- 这是本地人工验收包，运行数据会写到这个目录自己的 \`runtime-home\` / \`desktop-data\`，不会污染你平时的桌面端数据。
-- 如果要重新从稳定版起点再测一次，执行 \`3-reset-validation-state.command\` 即可。
+- 这是标准 DMG 安装包，不是让你直接在奇怪目录里跑 \`.app\`
+- 这个验证包已经把本地更新源地址和独立验证数据目录烘进安装包里，所以安装后可以像普通桌面端一样从 \`Applications\` 启动
+- 你只需要额外启动一次本地更新源脚本，因为这次还没有把测试用 beta 版本发布到正式线上更新源
 `;
 }
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const validationRoot = resolve(args["output-dir"]?.trim() || defaultValidationRoot);
+  const supportRoot = resolve(args["output-dir"]?.trim() || defaultSupportRoot);
   const stableSeedBundlePath = resolve(args["stable-seed-bundle"]?.trim() || defaultStableSeedBundlePath);
   const port = Number.parseInt(args.port?.trim() || "43010", 10);
   const betaVersion = args["beta-version"]?.trim() || "0.17.11";
@@ -217,20 +207,19 @@ async function main() {
   const desktopPackage = JSON.parse(readFileSync(resolve(desktopDir, "package.json"), "utf8"));
   const productName = desktopPackage.build.productName;
   const launcherVersion = desktopPackage.version;
+  const installerOutputRoot = join(supportRoot, "pack-output");
+  const installerDmgPath = resolve(desktopDir, "release", "NextClaw Desktop-manual-update-validation-installer.dmg");
+  const runtimeHomeOverride = resolve(homedir(), ".nextclaw-manual-update-validation", "runtime-home");
+  const desktopDataDirOverride = resolve(homedir(), ".nextclaw-manual-update-validation", "desktop-data");
 
-  rmSync(validationRoot, { recursive: true, force: true });
-  mkdirSync(validationRoot, { recursive: true });
+  rmSync(supportRoot, { recursive: true, force: true });
+  rmSync(installerDmgPath, { force: true });
+  mkdirSync(supportRoot, { recursive: true });
 
-  const runtimeHome = join(validationRoot, "runtime-home");
-  const desktopData = join(validationRoot, "desktop-data");
-  const serverRoot = join(validationRoot, "server-root");
+  const serverRoot = join(supportRoot, "server-root");
   const updatesRoot = join(serverRoot, "desktop-updates");
   const stableRoot = join(updatesRoot, "stable");
   const betaRoot = join(updatesRoot, "beta");
-  const packagedOutputRoot = join(validationRoot, "pack-output");
-  const validationAppPath = join(validationRoot, `${productName}.app`);
-  mkdirSync(runtimeHome, { recursive: true });
-  mkdirSync(desktopData, { recursive: true });
   mkdirSync(stableRoot, { recursive: true });
   mkdirSync(betaRoot, { recursive: true });
 
@@ -247,6 +236,7 @@ async function main() {
   const betaBundleUrl = `http://127.0.0.1:${String(port)}/desktop-updates/beta/${basename(betaBundlePath)}`;
   const stableReleaseNotesUrl = `http://127.0.0.1:${String(port)}/desktop-updates/stable/release-notes-${stableVersion}.txt`;
   const betaReleaseNotesUrl = `http://127.0.0.1:${String(port)}/desktop-updates/beta/release-notes-${betaVersion}.txt`;
+  const manifestBaseUrl = `http://127.0.0.1:${String(port)}/desktop-updates`;
 
   writeFileSync(join(stableRoot, `release-notes-${stableVersion}.txt`), `NextClaw stable ${stableVersion}\n`, "utf8");
   writeFileSync(join(betaRoot, `release-notes-${betaVersion}.txt`), `NextClaw beta ${betaVersion}\n`, "utf8");
@@ -294,14 +284,35 @@ async function main() {
     mkdirSync(dirname(buildReleaseMetadataPath), { recursive: true });
     mkdirSync(dirname(buildPublicKeyPath), { recursive: true });
     mkdirSync(dirname(buildSeedBundlePath), { recursive: true });
-    writeFileSync(buildReleaseMetadataPath, `${JSON.stringify({ channel: "stable", releaseTag: null }, null, 2)}\n`, "utf8");
+    writeFileSync(
+      buildReleaseMetadataPath,
+      `${JSON.stringify(
+        {
+          channel: "stable",
+          releaseTag: "manual-update-validation",
+          manifestBaseUrl,
+          runtimeHomeOverride,
+          desktopDataDirOverride
+        },
+        null,
+        2
+      )}\n`,
+      "utf8"
+    );
     writeFileSync(buildPublicKeyPath, publicKeyPem, "utf8");
     copyFileSync(stableSeedBundlePath, buildSeedBundlePath);
 
-    runCommand(pnpmCommand, ["-C", "apps/desktop", "build:main"]);
     runCommand(
       pnpmCommand,
-      ["-C", "apps/desktop", "exec", "electron-builder", "--dir", `--config.directories.output=${packagedOutputRoot}`],
+      [
+        "-C",
+        "apps/desktop",
+        "exec",
+        "electron-builder",
+        "--mac",
+        "dmg",
+        `--config.directories.output=${installerOutputRoot}`
+      ],
       workspaceRoot,
       {
         ...process.env,
@@ -312,14 +323,14 @@ async function main() {
     restoreBackups(transientBuildFiles, backupMap);
   }
 
-  const packagedAppSource = findFirstAppBundle(packagedOutputRoot);
-  if (!packagedAppSource) {
-    throw new Error(`Unable to find packaged app bundle under ${packagedOutputRoot}`);
+  const packagedDmgPath = findFirstDmg(installerOutputRoot);
+  if (!packagedDmgPath) {
+    throw new Error(`Unable to find packaged dmg under ${installerOutputRoot}`);
   }
-  cpSync(packagedAppSource, validationAppPath, { recursive: true });
+  copyFileSync(packagedDmgPath, installerDmgPath);
 
   writeExecutableFile(
-    join(validationRoot, "1-start-local-update-server.command"),
+    join(supportRoot, "1-start-local-update-server.command"),
     `#!/bin/bash
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -327,34 +338,23 @@ node "${resolve(desktopDir, "scripts", "run-local-update-server.mjs")}" --root "
 `
   );
   writeExecutableFile(
-    join(validationRoot, "2-open-validation-app.command"),
+    join(supportRoot, "2-reset-validation-state.command"),
     `#!/bin/bash
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-export NEXTCLAW_DESKTOP_UPDATE_MANIFEST_BASE_URL="http://127.0.0.1:${String(port)}/desktop-updates"
-export NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE="$SCRIPT_DIR/runtime-home"
-export NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE="$SCRIPT_DIR/desktop-data"
-exec "$SCRIPT_DIR/${productName}.app/Contents/MacOS/${productName}"
-`
-  );
-  writeExecutableFile(
-    join(validationRoot, "3-reset-validation-state.command"),
-    `#!/bin/bash
-set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-rm -rf "$SCRIPT_DIR/runtime-home" "$SCRIPT_DIR/desktop-data"
-mkdir -p "$SCRIPT_DIR/runtime-home" "$SCRIPT_DIR/desktop-data"
-echo "Validation state reset to a clean stable starting point."
+rm -rf "${runtimeHomeOverride}" "${desktopDataDirOverride}"
+mkdir -p "${runtimeHomeOverride}" "${desktopDataDirOverride}"
+echo "Validation state reset."
 `
   );
   writeFileSync(
-    join(validationRoot, "README.md"),
+    join(supportRoot, "README.md"),
     buildReadme({
-      validationRoot,
-      port,
+      installerDmgPath,
+      supportRoot,
       stableVersion,
       betaVersion,
-      appPath: validationAppPath
+      runtimeHomeOverride,
+      desktopDataDirOverride
     }),
     "utf8"
   );
@@ -362,13 +362,14 @@ echo "Validation state reset to a clean stable starting point."
   process.stdout.write(
     `${JSON.stringify(
       {
-        validationRoot,
+        installerDmgPath,
+        supportRoot,
         stableVersion,
         betaVersion,
-        appPath: validationAppPath,
-        startServerScript: join(validationRoot, "1-start-local-update-server.command"),
-        openAppScript: join(validationRoot, "2-open-validation-app.command"),
-        resetStateScript: join(validationRoot, "3-reset-validation-state.command")
+        startServerScript: join(supportRoot, "1-start-local-update-server.command"),
+        resetStateScript: join(supportRoot, "2-reset-validation-state.command"),
+        runtimeHomeOverride,
+        desktopDataDirOverride
       },
       null,
       2
