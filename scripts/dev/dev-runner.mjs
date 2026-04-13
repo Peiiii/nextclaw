@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join, relative, resolve } from "node:path";
 import { createServer as createNetServer, Socket } from "node:net";
 import { homedir } from "node:os";
 import {
   createPluginOverrideValue,
   validatePluginOverride,
 } from "./dev-plugin-overrides-support.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const command = process.argv[2] ?? "start";
 const commandArgs = process.argv.slice(3);
@@ -19,7 +19,7 @@ if (command !== "start") {
   process.exit(1);
 }
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = resolveRepoPath(import.meta.url);
 const backendDir = resolve(rootDir, "packages/nextclaw");
 const frontendDir = resolve(rootDir, "packages/nextclaw-ui");
 const explicitNextclawHome =

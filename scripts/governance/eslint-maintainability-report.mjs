@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { relative, resolve, sep } from "node:path";
 import { ESLint } from "eslint";
 import { collectDirectoryBudgetHotspots } from "./maintainability-directory-budget.mjs";
 import {
   findDeferredMaintainabilityWorkspace,
   MAINTAINABILITY_REPORT_DEFERRED_WORKSPACES
 } from "./maintainability-report-scope.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = resolveRepoPath(import.meta.url);
 const trackedRuleIds = new Set([
   "max-lines",
   "max-lines-per-function",

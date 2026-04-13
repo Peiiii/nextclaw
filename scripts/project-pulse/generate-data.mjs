@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import {
   copyGalleryAssets,
@@ -14,8 +13,9 @@ import {
   resolveFirstExisting,
   safeNumber
 } from "./data-core.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const rootDir = resolveRepoPath(import.meta.url);
 const latestMetricsPath = resolve(rootDir, "docs/metrics/code-volume/latest.json");
 const historyMetricsPath = resolve(rootDir, "docs/metrics/code-volume/history.jsonl");
 const comparisonMetricsPath = resolve(rootDir, "docs/metrics/code-volume/comparison.json");

@@ -4,7 +4,7 @@ import { closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync 
 import net from "node:net";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_UI_PORT = 18834;
@@ -13,8 +13,7 @@ const CONFIG_SOURCE_ENV = "NEXTCLAW_LOCAL_PLUGIN_SOURCE_CONFIG";
 const READY_SERVICE_LOG = "✓ UI NCP agent: ready";
 const READY_FRONTEND_LOG = "Local:";
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(scriptDir, "..");
+const repoRoot = resolveRepoPath(import.meta.url);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function fail(message) {

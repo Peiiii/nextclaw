@@ -2,9 +2,10 @@
 
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { pathToFileURL } from "node:url"
+import { resolveRepoPath } from "../shared/repo-paths.mjs"
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+const ROOT = resolveRepoPath(import.meta.url)
 
 const INCLUDED_ROOTS = new Set(["packages", "apps", "workers"])
 const CODE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".mts", ".cts"])

@@ -2,14 +2,14 @@
 import { createServer } from "node:http";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import net from "node:net";
 import { pbkdf2Sync, randomBytes, randomUUID } from "node:crypto";
 import { exerciseUserAuthFlows } from "./platform-mvp-auth-smoke-support.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = resolveRepoPath(import.meta.url);
 const workerDir = resolve(rootDir, "workers/nextclaw-provider-gateway-api");
 const workerConfig = resolve(workerDir, "wrangler.toml");
 const wranglerBin = resolve(

@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { dirname, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, sep } from "node:path";
 import { readFileSync } from "node:fs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+export const rootDir = resolveRepoPath(import.meta.url);
 const governedRoots = ["apps", "packages", "workers", "scripts"];
 const supportedSourceExtensions = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 

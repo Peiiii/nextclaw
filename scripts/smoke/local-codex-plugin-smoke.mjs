@@ -12,7 +12,7 @@ import {
 import net from "node:net";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const DEFAULT_PROMPT = "Reply exactly NEXTCLAW_LOCAL_CODEX_PLUGIN_OK";
 const DEFAULT_TIMEOUT_MS = 180_000;
@@ -22,8 +22,7 @@ const CONFIG_SOURCE_ENV = "NEXTCLAW_LOCAL_CODEX_PLUGIN_SOURCE_CONFIG";
 const KEEP_RUNNING_DEFAULT = true;
 
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(scriptDir, "../..");
+const repoRoot = resolveRepoPath(import.meta.url);
 const pluginPath = path.join(
   repoRoot,
   "packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk",

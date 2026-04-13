@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import {
   createPluginOverrideValue,
   inspectProductionBuildStatus,
@@ -10,9 +9,9 @@ import {
   readPluginOverrideMetadata,
   resolveFirstPartyPluginRef,
 } from "./dev-plugin-overrides-support.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const scriptDir = dirname(fileURLToPath(import.meta.url));
-const rootDir = resolve(scriptDir, "../..");
+const rootDir = resolveRepoPath(import.meta.url);
 const devRunnerPath = resolve(rootDir, "scripts/dev/dev-runner.mjs");
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 

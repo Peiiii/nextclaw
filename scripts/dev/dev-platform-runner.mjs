@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { createServer as createNetServer, Socket } from "node:net";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const argv = new Set(process.argv.slice(2));
 const shouldMigrate = !argv.has("--no-migrate");
 const checkOnly = argv.has("--check");
 const useAdminFrontend = argv.has("--admin");
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = resolveRepoPath(import.meta.url);
 const workerDir = resolve(rootDir, "workers/nextclaw-provider-gateway-api");
 const frontendDir = resolve(
   rootDir,

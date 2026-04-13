@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
 import net from "node:net";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-export const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+export const rootDir = resolveRepoPath(import.meta.url);
 const workerDir = resolve(rootDir, "workers/nextclaw-provider-gateway-api");
 const workerConfig = resolve(workerDir, "wrangler.toml");
 export const wranglerBin = resolve(

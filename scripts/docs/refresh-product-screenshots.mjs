@@ -1,13 +1,11 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
+import { resolveRepoPath } from '../shared/repo-paths.mjs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
+const repoRoot = resolveRepoPath(import.meta.url);
 
 const DEFAULT_UI_PORT = Number(process.env.SCREENSHOT_UI_PORT || 5194);
 const shouldStartUi = !process.env.SCREENSHOT_UI_ORIGIN;

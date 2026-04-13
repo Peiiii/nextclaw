@@ -15,12 +15,14 @@
 - `scripts/deploy/`: 仓库级 deploy 脚本
 - `scripts/local/`: 本地安装与本地插件开发辅助
 - `scripts/project-pulse/`: 项目脉搏数据生成
+- `scripts/shared/`: 仓库根路径发现等跨子树共享基础能力
 
 ## 根目录约束
 
 - 根 `scripts/` 默认只保留 `README.md` 与职责明确的子目录。
 - 新增仓库级脚本时，必须先归类到已有子树；若没有合适分组，先补目录结构，再新增脚本。
 - 不保留 root-level 兼容 shim；根 `package.json`、技能、工作流与文档应直接引用真实子路径。
+- 仓库级脚本禁止继续按目录层级硬编码猜测 repo root；统一通过 `scripts/shared/repo-paths.mjs` 解析工作区根，避免目录重组后批量失效。
 
 ## 本轮治理结果
 

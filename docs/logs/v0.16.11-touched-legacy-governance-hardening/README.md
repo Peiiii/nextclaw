@@ -28,6 +28,10 @@
   - 根 `scripts/` 直接文件数从 `92` 降到 `1`
   - 根目录不再保留大量平铺脚本，统一改为 `governance / release / dev / smoke / docs / desktop / metrics / deploy / local` 等职责子树
   - 根 [`package.json`](/Users/peiwang/Projects/nextbot/package.json)、维护性控制台动态导入、技能脚本与工作流文档已同步指向新路径
+- 同批次续改补齐脚本目录重组后的仓库根路径契约：
+  - 新增共享 helper [`scripts/shared/repo-paths.mjs`](/Users/peiwang/Projects/nextbot/scripts/shared/repo-paths.mjs) 与测试 [`scripts/shared/repo-paths.test.mjs`](/Users/peiwang/Projects/nextbot/scripts/shared/repo-paths.test.mjs)
+  - `dev / governance / local / smoke / desktop / metrics / docs / project-pulse` 下的仓库级脚本不再通过 `../..` 或 `..` 猜测 repo root，统一改为共享解析
+  - 这次修正的目标不是“把层级多改一层”，而是消除目录重组后容易再次批量失效的脆弱实现
 - 同步更新治理文档与元规则：
   - [治理计划文档](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-touched-legacy-governance-hardening-plan.md)
   - [脚本目录整理计划](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-scripts-directory-organization-plan.md)
@@ -57,6 +61,24 @@ pnpm -s lint:new-code:governance -- scripts docs commands
 pnpm -s check:governance-backlog-ratchet
 ```
 
+- 运行共享 repo root helper 单测：
+
+```bash
+node --test scripts/shared/repo-paths.test.mjs
+```
+
+- 运行真实开发入口冒烟：
+
+```bash
+NEXTCLAW_HOME="$(mktemp -d /tmp/nextclaw-dev-smoke.XXXXXX)" NEXTCLAW_DEV_BACKEND_PORT=18992 NEXTCLAW_DEV_FRONTEND_PORT=5199 pnpm dev start
+```
+
+- 运行平台开发入口 check：
+
+```bash
+pnpm dev:platform:stack --check
+```
+
 - 运行针对本次脚本改动的 maintainability guard：
 
 ```bash
@@ -65,6 +87,9 @@ node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainabilit
 
 - 结果摘要：
   - 脚本测试通过
+  - `repo-paths` 单测通过
+  - `pnpm dev start` 冒烟通过，不再误报 `Missing local dev binaries`
+  - `pnpm dev:platform:stack --check` 通过
   - diff-only 治理检查通过
   - backlog ratchet 通过，当前 tracked baseline 为：
     - source file-name violations: `81`
@@ -93,6 +118,6 @@ node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainabilit
 - 是否优先遵循删减优先、简化优先、代码更少更好原则：是。没有新增新的大型治理框架，也没有引入数据库或额外配置层；复用现有 diff gate、报告脚本和命令入口，只补最小必要的 contract、docs helper 和 ratchet。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：本次文件数净增长，属于最小必要新增。增长来自 docs 命名治理与 backlog ratchet 的新脚本和测试；同步偿还的维护性债务是把“存量永远只是 warning”的机制缺口补上，并把 docs 命名首次纳入自动治理主链路。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适：更合适。治理契约、docs 命名共享逻辑、report/check 入口分离清晰，避免把所有逻辑继续堆进单一脚本。
-- 目录结构与文件组织是否满足当前项目治理要求：是，而且比上一轮更进一步。治理脚本已收敛到 `scripts/governance/` 等职责子树，根 `scripts/` 只保留 `README.md` 与子目录，目录平铺度显著下降。
+- 目录结构与文件组织是否满足当前项目治理要求：是，而且比上一轮更进一步。治理脚本已收敛到 `scripts/governance/` 等职责子树，根 `scripts/` 只保留 `README.md` 与子目录，目录平铺度显著下降；这次又把“目录结构整理”继续推进到了“共享路径契约收口”，脚本目录已不再依赖子目录深度这一隐式前提，后续再调整 `scripts/` 子树时不会因为 root 推导散落在各文件里而批量失效。
 - 若本次涉及代码可维护性评估，是否基于独立于实现阶段的 `post-edit-maintainability-review`：是。结论为“通过，但保留明确后续扩围位点”。本次顺手减债：是。减掉的是“只有新增受约束、存量永远弱约束”的机制债。
-- 长期目标对齐 / 可维护性推进：本次顺着“代码更少、规则更明确、结构更清晰、治理更可预测”的长期方向推进了一小步。不只是把历史命名债务治理从“纯人工提醒”推进到“自动阻断新增 + 分批 strict touched + backlog 不反弹”的闭环，还把 `scripts/` 从巨石平铺目录收成明确子树，减少了后续继续膨胀的默认路径。下一步最合理的推进位点，是继续扩大 strict touched governance 覆盖目录，并按 baseline 报告分批消化 `81 + 11` 的历史命名债务。
+- 长期目标对齐 / 可维护性推进：本次顺着“代码更少、规则更明确、结构更清晰、治理更可预测”的长期方向又推进了一小步。不只是把历史命名债务治理从“纯人工提醒”推进到“自动阻断新增 + 分批 strict touched + backlog 不反弹”的闭环，还把 `scripts/` 从巨石平铺目录收成明确子树，并补上统一 repo root 契约，避免未来继续靠目录层级这种隐式状态制造 surprise failure。下一步最合理的推进位点，是继续扩大 strict touched governance 覆盖目录，并按 baseline 报告分批消化 `81 + 11` 的历史命名债务。

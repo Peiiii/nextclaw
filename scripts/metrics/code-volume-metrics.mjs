@@ -8,7 +8,6 @@ import {
   writeFileSync
 } from "node:fs";
 import { dirname, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   createBaseScanConfig,
   createBenchmarkScanConfig,
@@ -16,8 +15,9 @@ import {
   SUPPORTED_SCOPE_PROFILES
 } from "./code-volume-metrics-profile.mjs";
 import { collectSnapshot } from "./code-volume-metrics-snapshot.mjs";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const rootDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const rootDir = resolveRepoPath(import.meta.url);
 
 const args = process.argv.slice(2).filter((arg) => arg !== "--");
 const options = {

@@ -2,9 +2,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = resolveRepoPath(import.meta.url);
 
 export const HOTSPOT_LOG_SECTION_TITLE = "## 红区触达与减债记录";
 export const HOTSPOT_LOG_REQUIRED_FIELDS = ["本次是否减债", "说明", "下一步拆分缝"];

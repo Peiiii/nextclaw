@@ -33,7 +33,7 @@ export const STRICT_TOUCHED_LEGACY_DOC_PATHS = [
   "apps/docs/zh"
 ];
 
-export const GOVERNANCE_BACKLOG_BASELINE_PATH = "governance/governance-backlog-baseline.json";
+export const GOVERNANCE_BACKLOG_BASELINE_PATH = "scripts/governance/governance-backlog-baseline.json";
 
 export const isPathWithinPrefixes = (filePath, prefixes) => {
   const normalizedFilePath = normalizePath(filePath);

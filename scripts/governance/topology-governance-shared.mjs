@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
-export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const ROOT = resolveRepoPath(import.meta.url);
 const INCLUDED_ROOTS = new Set(["packages", "apps", "workers", "scripts", "bridge"]);
 const EXCLUDED_ROOT_PATHS = new Set(["apps/docs"]);
 const IGNORED_DIRS = new Set([
