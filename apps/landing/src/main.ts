@@ -182,7 +182,7 @@ const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releas
 const DESKTOP_ASSET_PATTERNS: Record<DownloadAssetKey, RegExp> = {
   macArm64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)-arm64\.dmg$/,
   macX64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)(?:-x64)?\.dmg$/,
-  windowsX64Zip: /NextClaw\.Desktop-win32-x64-unpacked\.zip$/,
+  windowsX64Zip: /NextClaw\.Desktop(?:-(\d+\.\d+\.\d+))?-win32-x64-unpacked\.zip$/,
   linuxX64AppImage: /NextClaw(?:\.Desktop| Desktop)-(\d+\.\d+\.\d+)(?:-linux-x64)?\.AppImage$/i
 };
 

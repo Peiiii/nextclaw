@@ -3,6 +3,9 @@
 ## 迭代完成说明（改了什么）
 
 - 更新 landing 页桌面下载兜底元数据 [`apps/landing/src/main.ts`](/Users/peiwang/Projects/nextbot/apps/landing/src/main.ts)，把旧正式版 `v0.13.24-desktop.5 / 0.0.60` 对齐到当前最新正式版 `v0.17.8-desktop.1 / 0.0.136`。
+- 修复下载页运行时的正式 release 识别逻辑：
+  - 将 `DESKTOP_ASSET_PATTERNS.windowsX64Zip` 从“只匹配旧的无版本 Windows zip 文件名”调整为同时兼容旧格式与新版 `NextClaw.Desktop-<version>-win32-x64-unpacked.zip`。
+  - 根因是 `v0.17.8-desktop.1` 的 Windows 资产已带版本号，旧正则无法命中，导致页面运行时把最新正式版整条跳过，错误回退到 `v0.15.51-desktop.1 / 0.0.130`。
 - 四个平台兜底下载地址已统一切换到当前正式 release 资产：
   - `NextClaw.Desktop-0.0.136-arm64.dmg`
   - `NextClaw.Desktop-0.0.136-x64.dmg`
@@ -28,6 +31,12 @@
 - 源码 / 静态页校验：
   - `rg -n "v0\\.17\\.8-desktop\\.1|0\\.0\\.136" apps/landing/src/main.ts apps/landing/en/index.html apps/landing/en/download/index.html apps/landing/zh/index.html apps/landing/zh/download/index.html`
   - 结果：命中最新正式版 tag 与版本号。
+- 运行时 release 选择回归校验：
+  - 使用 GitHub releases API 按 landing 当前匹配规则执行同样的筛选逻辑。
+  - 结果：首个命中的正式 release 已变为：
+    - `tag = v0.17.8-desktop.1`
+    - `version = 0.0.136`
+    - `windows asset = NextClaw.Desktop-0.0.136-win32-x64-unpacked.zip`
 - 构建验证：
   - `pnpm -C apps/landing build`
   - 结果：通过。
@@ -58,13 +67,14 @@
 2. 点击 release 链接，确认跳转到 `v0.17.8-desktop.1`，而不是旧的 `v0.13.24-desktop.5`。
 3. 在 macOS Apple Silicon / Intel 下载卡片上，确认分别落到 `NextClaw.Desktop-0.0.136-arm64.dmg` 与 `NextClaw.Desktop-0.0.136-x64.dmg`。
 4. 在 Windows 与 Linux 下载卡片上，确认分别落到 `NextClaw.Desktop-0.0.136-win32-x64-unpacked.zip` 与 `NextClaw.Desktop-0.0.136-linux-x64.AppImage`。
-5. 即使浏览器没有成功拉到 GitHub API 动态元数据，也应因为 fallback 已更新而继续下载到 `v0.17.8-desktop.1` 的正式资产，而不是旧版。
+5. 刷新 `https://nextclaw.io/zh/download/` 后，确认页面中“当前桌面端版本”不再显示 `0.0.130`，而是 `0.0.136`，发布标签不再显示 `v0.15.51-desktop.1`。
+6. 即使浏览器没有成功拉到 GitHub API 动态元数据，也应因为 fallback 已更新而继续下载到 `v0.17.8-desktop.1` 的正式资产，而不是旧版。
 
 ## 可维护性总结汇总
 
 - 本次是否已尽最大努力优化可维护性：是。本次只更新已有下载元数据与结构化地址，没有引入新的下载配置层、条件分支或额外封装。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。方案保持原有“运行时拉最新正式版 + 静态 fallback 兜底”的单一路径，只替换过期常量，不叠加新逻辑。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。未新增源代码文件、未新增函数、未新增分支；本次变更总计 `新增 11 行 / 删除 11 行 / 净增 0 行`，非测试代码净增同样为 `0`。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。补丁继续维持单文件小改，没有新增源代码文件、没有新增抽象层；在前一版基础上仅增加 1 条兼容新旧 Windows 资产名的正则，属于最小必要修复。本批次累计代码增减为 `新增 16 行 / 删除 11 行 / 净增 +5 行`，非测试代码净增同样为 `+5`。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。下载入口仍由 landing 现有 owner 集中维护，没有把 release 同步再拆成新 helper 或 patch 层。
 - 目录结构与文件组织是否满足当前项目治理要求：本次未新增目录治理债务。已知历史债务是 [`apps/landing/src/main.ts`](/Users/peiwang/Projects/nextbot/apps/landing/src/main.ts) 仍然过长，但这不是本次引入，也没有继续恶化；下一步整理入口仍是把该文件按页面区块与渲染职责继续拆分。
 - 基于独立于实现阶段的 `post-edit-maintainability-review` 复核结论如下：
@@ -74,14 +84,14 @@
     - 这次改动顺着“统一入口的官方下载入口必须稳定可信”的长期方向前进了一小步，避免用户被官网带去旧版 release。
     - 本次没有新增功能，重点是把旧 release 常量收回到当前正式版，维持“动态拉取失败时也不掉到过期版本”的可预测行为。
   - 代码增减报告：
-    - 新增：11 行
+    - 新增：16 行
     - 删除：11 行
-    - 净增：0 行
+    - 净增：+5 行
   - 非测试代码增减报告：
-    - 新增：11 行
+    - 新增：16 行
     - 删除：11 行
-    - 净增：0 行
+    - 净增：+5 行
   - no maintainability findings
   - 可维护性总结：
-    - 这次修改没有增加任何新抽象，只把过期元数据替换为当前正式版，保持了现有下载链路的简单性。
+    - 这次修改没有增加任何新抽象，只补齐了一个明确的资产命名契约，避免页面因为隐藏匹配失败而退回旧 release。
     - 已知债务仍是 landing 主文件过长，但本次没有继续放大它；后续若继续动 landing，可把下载页与首页渲染继续拆到更清晰的 owner 边界中。
