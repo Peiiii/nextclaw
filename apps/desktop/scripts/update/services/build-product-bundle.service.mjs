@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
-import { cp, lstat, mkdir, readdir, realpath, stat, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -11,6 +11,53 @@ const workspaceRoot = resolve(desktopDir, "..", "..");
 const nextclawPackageRoot = resolve(workspaceRoot, "packages", "nextclaw");
 const desktopPackageJsonPath = resolve(desktopDir, "package.json");
 const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
+const RUNTIME_NODE_MODULES_PRUNE_SUFFIXES = [
+  ".d.ts",
+  ".d.mts",
+  ".d.cts",
+  ".map",
+  ".md",
+  ".markdown",
+  ".mdx",
+  ".mkd",
+  ".tsbuildinfo"
+];
+const RUNTIME_NODE_MODULES_PRUNE_BASENAMES = new Set([
+  ".editorconfig",
+  ".eslintignore",
+  ".eslintrc",
+  ".eslintrc.cjs",
+  ".eslintrc.js",
+  ".eslintrc.json",
+  ".gitattributes",
+  ".gitignore",
+  ".npmignore",
+  ".nycrc",
+  ".prettierignore",
+  ".prettierrc",
+  ".prettierrc.cjs",
+  ".prettierrc.js",
+  ".prettierrc.json",
+  "changes.md",
+  "changelog.md",
+  "contributing.md",
+  "history.md",
+  "readme.md"
+]);
+const RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES = new Set([
+  "__tests__",
+  "__mocks__",
+  "benchmark",
+  "benchmarks",
+  "coverage",
+  "docs",
+  "doc",
+  "example",
+  "examples",
+  "test",
+  "tests",
+  "website"
+]);
 
 function parseArgs(argv) {
   const args = {};
@@ -96,74 +143,154 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
   );
 }
 
-async function buildBundleArchive(args) {
+function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
+  const normalizedRelativePath = relativePath.replaceAll("\\", "/").toLowerCase();
+  const basename = entry.name.toLowerCase();
+  if (entry.isDirectory()) {
+    return RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES.has(basename);
+  }
+  if (RUNTIME_NODE_MODULES_PRUNE_BASENAMES.has(basename)) {
+    return true;
+  }
+  if (RUNTIME_NODE_MODULES_PRUNE_SUFFIXES.some((suffix) => basename.endsWith(suffix))) {
+    return true;
+  }
+  return normalizedRelativePath.includes("/docs/") || normalizedRelativePath.includes("/examples/");
+}
+
+async function pruneRuntimeNodeModules(runtimeRoot) {
+  const nodeModulesRoot = join(runtimeRoot, "node_modules");
+  try {
+    const nodeModulesStat = await stat(nodeModulesRoot);
+    if (!nodeModulesStat.isDirectory()) {
+      return { removedEntries: 0 };
+    }
+  } catch {
+    return { removedEntries: 0 };
+  }
+
+  let removedEntries = 0;
+  async function walk(currentDir) {
+    const entries = await readdir(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const entryPath = join(currentDir, entry.name);
+      const relativePath = relative(nodeModulesRoot, entryPath);
+      if (shouldPruneRuntimeNodeModulesEntry(relativePath, entry)) {
+        await rm(entryPath, { recursive: true, force: true });
+        removedEntries += 1;
+        continue;
+      }
+      if (entry.isDirectory()) {
+        await walk(entryPath);
+      }
+    }
+  }
+
+  await walk(nodeModulesRoot);
+  return { removedEntries };
+}
+
+function resolveBundleBuildOptions(args) {
   const nextclawPackage = readJson(nextclawPackageJsonPath);
   const desktopPackage = readJson(desktopPackageJsonPath);
-  const bundleVersion = readRequiredOption(args, "version", nextclawPackage.version);
-  const platform = readRequiredOption(args, "platform", process.platform);
-  const arch = readRequiredOption(args, "arch", process.arch);
-  const minimumLauncherVersion = readRequiredOption(args, "minimum-launcher-version", desktopPackage.version);
-  const outputDir = resolve(args["output-dir"]?.trim() || join(desktopDir, "dist-bundles"));
+  return {
+    bundleVersion: readRequiredOption(args, "version", nextclawPackage.version),
+    platform: readRequiredOption(args, "platform", process.platform),
+    arch: readRequiredOption(args, "arch", process.arch),
+    minimumLauncherVersion: readRequiredOption(args, "minimum-launcher-version", desktopPackage.version),
+    outputDir: resolve(args["output-dir"]?.trim() || join(desktopDir, "dist-bundles"))
+  };
+}
 
-  ensureFreshRuntimeArtifacts();
-  runCommand("node", [resolve(desktopDir, "scripts", "ensure-runtime.mjs")], workspaceRoot);
-
-  const tempRoot = createWorkspaceTempRoot();
+function createBundleWorkspace(tempRoot) {
   const bundleRoot = join(tempRoot, "bundle");
   const runtimeRoot = join(bundleRoot, "runtime");
   const uiRoot = join(bundleRoot, "ui");
   const pluginsRoot = join(bundleRoot, "plugins");
-  const runtimeDeployPath = relative(workspaceRoot, runtimeRoot);
+  return {
+    bundleRoot,
+    runtimeRoot,
+    uiRoot,
+    pluginsRoot,
+    runtimeDeployPath: relative(workspaceRoot, runtimeRoot)
+  };
+}
+
+async function prepareBundleWorkspace(workspace) {
+  ensureFreshRuntimeArtifacts();
+  runCommand("node", [resolve(desktopDir, "scripts", "ensure-runtime.mjs")], workspaceRoot);
+  await mkdir(workspace.bundleRoot, { recursive: true });
+  runCommand(
+    "pnpm",
+    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath],
+    workspaceRoot
+  );
+  const pruneResult = await pruneRuntimeNodeModules(workspace.runtimeRoot);
+  await cp(join(workspace.runtimeRoot, "ui-dist"), workspace.uiRoot, { recursive: true });
+  await mkdir(workspace.pluginsRoot, { recursive: true });
+  await writeFile(join(workspace.pluginsRoot, ".keep"), "\n", "utf8");
+  return pruneResult;
+}
+
+async function writeBundleManifest(bundleRoot, options) {
+  const { bundleVersion, platform, arch, minimumLauncherVersion } = options;
+  const manifest = {
+    bundleVersion,
+    platform,
+    arch,
+    uiVersion: bundleVersion,
+    runtimeVersion: bundleVersion,
+    builtInPluginSetVersion: bundleVersion,
+    launcherCompatibility: {
+      minVersion: minimumLauncherVersion
+    },
+    entrypoints: {
+      runtimeScript: "runtime/dist/cli/index.js"
+    },
+    migrationVersion: 1
+  };
+  await writeFile(join(bundleRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
+
+async function writeBundleArchive(bundleRoot, options) {
+  const { platform, arch, bundleVersion, outputDir } = options;
+  const zip = new JSZip();
+  await addDirectoryToZip(zip, bundleRoot, basename(bundleRoot));
+  const archiveName = `nextclaw-bundle-${platform}-${arch}-${bundleVersion}.zip`;
+  const archivePath = resolve(outputDir, archiveName);
+  await mkdir(dirname(archivePath), { recursive: true });
+  await writeFile(archivePath, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
+  return archivePath;
+}
+
+function reportBundleBuildResult(archivePath, options, workspace, pruneResult) {
+  process.stdout.write(
+    `${JSON.stringify(
+      {
+        archivePath,
+        bundleVersion: options.bundleVersion,
+        platform: options.platform,
+        arch: options.arch,
+        prunedNodeModulesEntries: pruneResult.removedEntries,
+        runtimeRoot: relative(workspaceRoot, workspace.runtimeRoot),
+        uiRoot: relative(workspaceRoot, workspace.uiRoot)
+      },
+      null,
+      2
+    )}\n`
+  );
+}
+
+async function buildBundleArchive(args) {
+  const options = resolveBundleBuildOptions(args);
+  const tempRoot = createWorkspaceTempRoot();
+  const workspace = createBundleWorkspace(tempRoot);
 
   try {
-    await mkdir(bundleRoot, { recursive: true });
-    runCommand(
-      "pnpm",
-      ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", runtimeDeployPath],
-      workspaceRoot
-    );
-    await cp(join(runtimeRoot, "ui-dist"), uiRoot, { recursive: true });
-    await mkdir(pluginsRoot, { recursive: true });
-    await writeFile(join(pluginsRoot, ".keep"), "\n", "utf8");
-
-    const manifest = {
-      bundleVersion,
-      platform,
-      arch,
-      uiVersion: bundleVersion,
-      runtimeVersion: bundleVersion,
-      builtInPluginSetVersion: bundleVersion,
-      launcherCompatibility: {
-        minVersion: minimumLauncherVersion
-      },
-      entrypoints: {
-        runtimeScript: "runtime/dist/cli/index.js"
-      },
-      migrationVersion: 1
-    };
-    await writeFile(join(bundleRoot, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-
-    const zip = new JSZip();
-    await addDirectoryToZip(zip, bundleRoot, basename(bundleRoot));
-    const archiveName = `nextclaw-bundle-${platform}-${arch}-${bundleVersion}.zip`;
-    const archivePath = resolve(outputDir, archiveName);
-    await mkdir(dirname(archivePath), { recursive: true });
-    await writeFile(archivePath, await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
-
-    process.stdout.write(
-      `${JSON.stringify(
-        {
-          archivePath,
-          bundleVersion,
-          platform,
-          arch,
-          runtimeRoot: relative(workspaceRoot, runtimeRoot),
-          uiRoot: relative(workspaceRoot, uiRoot)
-        },
-        null,
-        2
-      )}\n`
-    );
+    const pruneResult = await prepareBundleWorkspace(workspace);
+    await writeBundleManifest(workspace.bundleRoot, options);
+    const archivePath = await writeBundleArchive(workspace.bundleRoot, options);
+    reportBundleBuildResult(archivePath, options, workspace, pruneResult);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }

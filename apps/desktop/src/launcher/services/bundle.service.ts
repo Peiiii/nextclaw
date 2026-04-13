@@ -21,6 +21,14 @@ export type DesktopBundlePruneResult = {
   removedStagingEntries: string[];
 };
 
+function shouldRetryInstallWithCopy(error: unknown): boolean {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+  const code = "code" in error ? String(error.code) : "";
+  return code === "EXDEV" || code === "EPERM";
+}
+
 type DesktopBundleServiceOptions = {
   layout: DesktopBundleLayoutStore;
   stateStore?: DesktopLauncherStateStore;
@@ -91,6 +99,19 @@ export class DesktopBundleService {
     const targetDirectory = this.options.layout.getVersionDir(version);
     if (existsSync(targetDirectory)) {
       return this.verifyBundle(targetDirectory);
+    }
+
+    if (resolve(sourceDirectory) === resolve(targetDirectory)) {
+      return this.verifyBundle(targetDirectory);
+    }
+
+    try {
+      await rename(sourceDirectory, targetDirectory);
+      return this.verifyBundle(targetDirectory);
+    } catch (error) {
+      if (!shouldRetryInstallWithCopy(error)) {
+        throw error;
+      }
     }
 
     const stagingDirectory = join(this.options.layout.getStagingDir(), `${version}-${this.now()}`);
