@@ -162,18 +162,18 @@ const LINKS: Record<'github' | 'npm' | 'discord' | 'wechatGroupImage', string> &
 };
 
 const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
-  tag: 'v0.13.24-desktop.5',
-  version: '0.0.60',
-  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.13.24-desktop.5',
+  tag: 'v0.17.8-desktop.1',
+  version: '0.0.136',
+  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.17.8-desktop.1',
   assets: {
     macArm64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.13.24-desktop.5/NextClaw.Desktop-0.0.60-arm64.dmg',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.8-desktop.1/NextClaw.Desktop-0.0.136-arm64.dmg',
     macX64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.13.24-desktop.5/NextClaw.Desktop-0.0.60-x64.dmg',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.8-desktop.1/NextClaw.Desktop-0.0.136-x64.dmg',
     windowsX64Zip:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.13.24-desktop.5/NextClaw.Desktop-win32-x64-unpacked.zip',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.8-desktop.1/NextClaw.Desktop-0.0.136-win32-x64-unpacked.zip',
     linuxX64AppImage:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.13.24-desktop.5/NextClaw.Desktop-0.0.60-linux-x64.AppImage'
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.8-desktop.1/NextClaw.Desktop-0.0.136-linux-x64.AppImage'
   }
 };
 
