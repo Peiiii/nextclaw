@@ -3,8 +3,7 @@ import { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifec
 import { DesktopBundleService } from "../launcher/services/bundle.service";
 import { DesktopUpdateService } from "../launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
-import { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
-import type { DesktopReleaseChannel } from "./desktop-update-source.service";
+import { DesktopLauncherStateStore, type DesktopReleaseChannel } from "../launcher/stores/launcher-state.store";
 
 type DesktopBundleBootstrapLogger = {
   info: (message: string) => void;

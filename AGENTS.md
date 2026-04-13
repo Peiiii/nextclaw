@@ -423,7 +423,7 @@
   - 执行方式：默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md)，并采用 `code-review` 的 findings-first 视角专门检查非指标型可维护性问题。复核时至少必须回答以下问题：`还能删什么？`、`删不掉的部分还能如何简化？`、`总代码新增/删除/净增分别是多少？`、`排除测试后的新增/删除/净增分别是多少？`、`这次是否让总代码量/分支/函数/文件继续膨胀？`、`如果总代码或非测试代码净增长，是否已做到最佳删减，且增长是否属于最小必要？`、`抽象、模块边界、class/helper/service/store 的职责划分是否更清晰？`、`是否只是把复杂度换个名字或换个位置继续保留？`、`这次是否顺着“代码更少、架构更简单、边界更清晰、复杂点更少”的长期方向推进了一小步？`、`若没有推进，阻碍是什么、下一步拆分缝或推进位点是什么？`。最终输出必须显式包含固定模块 `长期目标对齐 / 可维护性推进`。若答案显示存在更优的删减/简化方案，默认应继续修改；若因风险、时效或联动成本保留债务，必须明确原因、风险与下一步拆分缝。代码任务最终回复默认还必须包含一段简短的 `可维护性总结`，用 1-3 句概括：这次是否让代码更少/更清晰、若净增长是否已最小化、是否存在保留债务、以及下一步拆分缝或观察点。
   - 维护责任人：当前助手。
 - **hotspot-touch-must-record-debt-status**：
-  - 约束/适用范围：凡触达仓库红区文件（以 [`scripts/maintainability-hotspots.mjs`](scripts/maintainability-hotspots.mjs) 为准），本次 `docs/logs/v<semver>-<slug>/README.md` 必须新增 `## 红区触达与减债记录`，并为每个红区文件单独记录“本次是否减债 / 说明 / 下一步拆分缝”。
+  - 约束/适用范围：凡触达仓库红区文件（以 [`scripts/governance/maintainability-hotspots.mjs`](scripts/governance/maintainability-hotspots.mjs) 为准），本次 `docs/logs/v<semver>-<slug>/README.md` 必须新增 `## 红区触达与减债记录`，并为每个红区文件单独记录“本次是否减债 / 说明 / 下一步拆分缝”。
   - 示例：修改 `packages/nextclaw/src/cli/commands/diagnostics.ts` 后，在本次迭代 README 中增加 `### packages/nextclaw/src/cli/commands/diagnostics.ts`，并填写 `- 本次是否减债：否`、`- 说明：...`、`- 下一步拆分缝：...`。
   - 反例：触达红区文件却不留下减债状态；或只写“已修改 diagnostics.ts”而没有明确是否减债和下一步拆分缝。
   - 执行方式：收尾阶段通过 `post-edit-maintainability-guard` 自动检查 changed hotspot files 与 changed iteration README 的对应关系；缺失日志或字段不完整视为阻塞项。具体格式遵循 [`docs/workflows/maintainability-hotspot-freeze.md`](docs/workflows/maintainability-hotspot-freeze.md)。

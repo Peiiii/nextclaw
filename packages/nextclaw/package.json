@@ -40,12 +40,12 @@
     "dev": "tsx watch --tsconfig tsconfig.json src/cli/index.ts",
     "dev:build": "tsx src/cli/index.ts",
     "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
-    "prepack": "node ../../scripts/verify-package-release-artifacts.mjs",
+    "prepack": "node ../../scripts/release/verify-package-release-artifacts.mjs",
     "start": "node dist/cli.js",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
     "test": "vitest",
-    "prepublishOnly": "node ../../scripts/ensure-pnpm-publish.mjs"
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",

@@ -1,4 +1,5 @@
 import type {
+  DesktopReleaseChannel,
   DesktopUpdatePreferences,
   DesktopUpdateSnapshot,
   NextClawDesktopBridge
@@ -7,7 +8,7 @@ import { useDesktopUpdateStore } from '@/desktop/stores/desktop-update.store';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
-type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving-preferences';
+type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving-preferences' | 'switching-channel';
 
 export class DesktopUpdateManager {
   private unsubscribe: (() => void) | null = null;
@@ -125,6 +126,37 @@ export class DesktopUpdateManager {
     }
   };
 
+  updateChannel = async (channel: DesktopReleaseChannel) => {
+    const currentChannel = useDesktopUpdateStore.getState().snapshot?.channel;
+    if (currentChannel === channel) {
+      return;
+    }
+
+    let snapshot: DesktopUpdateSnapshot;
+    try {
+      snapshot = await this.runSnapshotCommand(
+        'switching-channel',
+        t('desktopUpdatesChannelChangeFailed'),
+        async (desktopApi) => await desktopApi.updateChannel(channel)
+      );
+    } catch {
+      return;
+    }
+
+    if (snapshot.status === 'update-available' && snapshot.availableVersion) {
+      toast.success(
+        t('desktopUpdatesChannelChangedWithUpdate')
+          .replace('{channel}', this.getChannelLabel(channel))
+          .replace('{version}', snapshot.availableVersion)
+      );
+      return;
+    }
+
+    toast.success(
+      t('desktopUpdatesChannelChanged').replace('{channel}', this.getChannelLabel(channel))
+    );
+  };
+
   private runSnapshotCommand = async (
     busyAction: DesktopUpdateBusyAction,
     fallbackMessage: string,
@@ -157,6 +189,10 @@ export class DesktopUpdateManager {
 
   private getErrorMessage = (error: unknown): string => {
     return error instanceof Error ? error.message : t('error');
+  };
+
+  private getChannelLabel = (channel: DesktopReleaseChannel): string => {
+    return channel === 'beta' ? t('desktopUpdatesChannelBeta') : t('desktopUpdatesChannelStable');
   };
 }
 

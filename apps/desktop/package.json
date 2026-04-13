@@ -21,7 +21,10 @@
     "tsc": "tsc -p tsconfig.json --noEmit",
     "pack": "node scripts/ensure-runtime.mjs && pnpm bundle:seed && pnpm build:main && electron-builder --dir",
     "dist": "node scripts/ensure-runtime.mjs && pnpm bundle:seed && pnpm build:main && electron-builder",
-    "smoke": "pnpm build:main && node scripts/smoke-runtime.mjs"
+    "smoke": "pnpm build:main && node scripts/smoke-runtime.mjs",
+    "smoke:update": "node scripts/smoke-product-update.mjs",
+    "validation:prepare-manual-update": "node scripts/prepare-manual-update-validation.mjs",
+    "validation:serve-local-update": "node scripts/run-local-update-server.mjs"
   },
   "dependencies": {
     "@nextclaw/channel-plugin-dingtalk": "workspace:*",

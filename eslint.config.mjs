@@ -4,10 +4,10 @@ import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
-import { FILE_DIRECTORY_BASENAME_COLLISION_ALLOWLIST } from "./scripts/file-directory-basename-collision-shared.mjs";
-import noFileDirectoryBasenameCollisionRule from "./scripts/eslint-rules/no-file-directory-basename-collision-rule.mjs";
-import preferTopLevelContextDestructuringRule from "./scripts/eslint-rules/prefer-top-level-context-destructuring-rule.mjs";
-import reactComponentPropsDestructuringRule from "./scripts/eslint-rules/react-component-props-destructuring-rule.mjs";
+import { FILE_DIRECTORY_BASENAME_COLLISION_ALLOWLIST } from "./scripts/governance/file-directory-basename-collision-shared.mjs";
+import noFileDirectoryBasenameCollisionRule from "./scripts/governance/eslint-rules/no-file-directory-basename-collision-rule.mjs";
+import preferTopLevelContextDestructuringRule from "./scripts/governance/eslint-rules/prefer-top-level-context-destructuring-rule.mjs";
+import reactComponentPropsDestructuringRule from "./scripts/governance/eslint-rules/react-component-props-destructuring-rule.mjs";
 
 const jsWorkspaceFiles = [
   "apps/**/*.{js,jsx,mjs}",

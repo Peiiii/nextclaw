@@ -82,7 +82,7 @@ pnpm metrics:repo:local
 或：
 
 ```bash
-node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --print-summary
+node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-write --print-summary
 ```
 
 这里的代码统计当前属于“补充信号”，用于增强 maintainability report，不改变现有 guard 的默认阻塞逻辑。
@@ -279,5 +279,5 @@ node scripts/code-volume-metrics.mjs --scope-profile repo-volume --no-write --pr
 - `scripts/maintainability-guard-hotspots.mjs`：红区触达与迭代日志校验
 - `scripts/maintainability-guard-lint.mjs`：ESLint 结果解析
 - `scripts/maintainability-guard-support.mjs`：git / 文件 / 预算辅助函数
-- `../../../../scripts/maintainability-hotspots.mjs`：仓库红区清单与日志格式约定
-- `../../../../scripts/code-volume-metrics.mjs`：仓库代码体积快照与 LOC 趋势统计
+- `../../../../scripts/governance/maintainability-hotspots.mjs`：仓库红区清单与日志格式约定
+- `../../../../scripts/metrics/code-volume-metrics.mjs`：仓库代码体积快照与 LOC 趋势统计

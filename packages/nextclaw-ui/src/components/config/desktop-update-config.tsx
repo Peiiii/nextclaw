@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { PageHeader, PageLayout } from '@/components/layout/page-layout';
 import { desktopUpdateManager } from '@/desktop/managers/desktop-update.manager';
+import type { DesktopReleaseChannel } from '@/desktop/desktop-update.types';
 import { useDesktopUpdateStore } from '@/desktop/stores/desktop-update.store';
 import { formatDateTime, t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -16,6 +18,10 @@ function formatVersion(value: string | null): string {
 
 function formatLastCheckedAt(value: string | null): string {
   return value ? formatDateTime(value) : '-';
+}
+
+function getChannelLabel(channel: DesktopReleaseChannel): string {
+  return channel === 'beta' ? t('desktopUpdatesChannelBeta') : t('desktopUpdatesChannelStable');
 }
 
 function getStatusLabel(status: string): string {
@@ -91,6 +97,7 @@ export function DesktopUpdateConfig() {
   const isDownloading = busyAction === 'downloading';
   const isApplying = busyAction === 'applying';
   const isSavingPreferences = busyAction === 'saving-preferences';
+  const isSwitchingChannel = busyAction === 'switching-channel';
   const canDownload = snapshot.status === 'update-available' && !isDownloading && !isApplying;
   const canApply = snapshot.status === 'downloaded' && !isApplying;
 
@@ -124,7 +131,7 @@ export function DesktopUpdateConfig() {
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
               <p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{t('desktopUpdatesLauncherVersion')}</p>
               <p className="mt-2 text-base font-semibold text-gray-900">{formatVersion(snapshot.launcherVersion)}</p>
@@ -141,7 +148,18 @@ export function DesktopUpdateConfig() {
               <p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{t('desktopUpdatesLastCheckedAt')}</p>
               <p className="mt-2 text-base font-semibold text-gray-900">{formatLastCheckedAt(snapshot.lastCheckedAt)}</p>
             </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+              <p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{t('desktopUpdatesCurrentChannel')}</p>
+              <p className="mt-2 text-base font-semibold text-gray-900">{getChannelLabel(snapshot.channel)}</p>
+            </div>
           </div>
+
+          {snapshot.channel === 'beta' ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+              <p className="text-sm font-semibold text-amber-800">{t('desktopUpdatesBetaBadgeTitle')}</p>
+              <p className="mt-1 text-sm text-amber-700">{t('desktopUpdatesBetaBadgeDescription')}</p>
+            </div>
+          ) : null}
 
           {snapshot.downloadedVersion ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
@@ -166,6 +184,29 @@ export function DesktopUpdateConfig() {
           <CardDescription>{t('desktopUpdatesPreferencesDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="rounded-xl border border-gray-200 p-4">
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label>{t('desktopUpdatesReleaseChannel')}</Label>
+                <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelHelp')}</p>
+              </div>
+              <Select
+                value={snapshot.channel}
+                disabled={isSwitchingChannel || isChecking || isDownloading || isApplying}
+                onValueChange={(value) => void desktopUpdateManager.updateChannel(value as DesktopReleaseChannel)}
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue placeholder={t('desktopUpdatesReleaseChannel')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stable">{t('desktopUpdatesChannelStable')}</SelectItem>
+                  <SelectItem value="beta">{t('desktopUpdatesChannelBeta')}</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelDowngradeHint')}</p>
+            </div>
+          </div>
+
           <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 p-4">
             <div className="space-y-1">
               <Label>{t('desktopUpdatesAutomaticChecks')}</Label>
@@ -173,7 +214,7 @@ export function DesktopUpdateConfig() {
             </div>
             <Switch
               checked={snapshot.preferences.automaticChecks}
-              disabled={isSavingPreferences}
+              disabled={isSavingPreferences || isSwitchingChannel}
               onCheckedChange={(checked) => void desktopUpdateManager.updatePreferences({ automaticChecks: checked })}
             />
           </div>
@@ -185,7 +226,7 @@ export function DesktopUpdateConfig() {
             </div>
             <Switch
               checked={snapshot.preferences.autoDownload}
-              disabled={isSavingPreferences}
+              disabled={isSavingPreferences || isSwitchingChannel}
               onCheckedChange={(checked) => void desktopUpdateManager.updatePreferences({ autoDownload: checked })}
             />
           </div>

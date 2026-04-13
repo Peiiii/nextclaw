@@ -7,12 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "prepack": "node ../../scripts/verify-package-release-artifacts.mjs",
+    "prepack": "node ../../scripts/release/verify-package-release-artifacts.mjs",
     "preview": "vite preview",
     "lint": "eslint .",
     "tsc": "tsc --noEmit",
     "test": "vitest run",
-    "prepublishOnly": "node ../../scripts/ensure-pnpm-publish.mjs"
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
     "@nextclaw/agent-chat": "workspace:*",

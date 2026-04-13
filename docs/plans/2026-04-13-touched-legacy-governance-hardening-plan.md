@@ -16,7 +16,7 @@
 - Modify: `docs/workflows/file-naming-convention.md`
 - Modify: `commands/commands.md`
 - Modify: `AGENTS.md`
-- Create: `scripts/touched-legacy-governance-contracts.mjs`
+- Create: `scripts/governance/touched-legacy-governance-contracts.mjs`
 
 **Step 1: 明确本次机制必须解决的问题**
 
@@ -43,12 +43,12 @@ contract 至少包含：
 ### Task 2: 实现源码/脚本/测试的 touched legacy 升级
 
 **Files:**
-- Modify: `scripts/lint-new-code-file-names.mjs`
-- Modify: `scripts/lint-new-code-file-role-boundaries.mjs`
-- Modify: `scripts/lint-new-code-flat-directories.mjs`
-- Test: `scripts/lint-new-code-file-names.test.mjs`
-- Test: `scripts/lint-new-code-file-role-boundaries.test.mjs`
-- Test: `scripts/lint-new-code-flat-directories.test.mjs`
+- Modify: `scripts/governance/lint-new-code-file-names.mjs`
+- Modify: `scripts/governance/lint-new-code-file-role-boundaries.mjs`
+- Modify: `scripts/governance/lint-new-code-flat-directories.mjs`
+- Test: `scripts/governance/lint-new-code-file-names.test.mjs`
+- Test: `scripts/governance/lint-new-code-file-role-boundaries.test.mjs`
+- Test: `scripts/governance/lint-new-code-flat-directories.test.mjs`
 
 **Step 1: 让脚本读取 contract**
 
@@ -69,11 +69,11 @@ contract 至少包含：
 ### Task 3: 把文档命名纳入主链路
 
 **Files:**
-- Create: `scripts/report-doc-file-name-violations.mjs`
-- Create: `scripts/lint-doc-file-names.mjs`
-- Create: `scripts/lint-doc-file-names.test.mjs`
+- Create: `scripts/governance/report-doc-file-name-violations.mjs`
+- Create: `scripts/governance/lint-doc-file-names.mjs`
+- Create: `scripts/governance/lint-doc-file-names.test.mjs`
 - Modify: `package.json`
-- Modify: `scripts/lint-new-code-governance.mjs`
+- Modify: `scripts/governance/lint-new-code-governance.mjs`
 
 **Step 1: 约束文档命名规则**
 
@@ -95,8 +95,8 @@ contract 至少包含：
 ### Task 4: 增加 baseline ratchet
 
 **Files:**
-- Create: `scripts/check-governance-backlog-ratchet.mjs`
-- Create: `scripts/check-governance-backlog-ratchet.test.mjs`
+- Create: `scripts/governance/check-governance-backlog-ratchet.mjs`
+- Create: `scripts/governance/check-governance-backlog-ratchet.test.mjs`
 - Modify: `package.json`
 
 **Step 1: 定义 baseline 文件**

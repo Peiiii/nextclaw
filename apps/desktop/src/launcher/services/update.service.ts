@@ -5,6 +5,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import JSZip from "jszip";
 import { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
 import { DesktopBundleService, type ResolvedDesktopBundle } from "./bundle.service";
+import { normalizeDesktopReleaseChannel } from "../stores/launcher-state.store";
 import {
   DesktopUpdateManifestReader,
   serializeDesktopUnsignedUpdateManifest,
@@ -19,6 +20,7 @@ type FetchLike = typeof fetch;
 type DesktopUpdateServiceOptions = {
   layout: DesktopBundleLayoutStore;
   channel?: string;
+  resolveChannel?: () => string;
   platform?: NodeJS.Platform;
   arch?: string;
   launcherVersion: string;
@@ -67,10 +69,10 @@ export type DownloadedDesktopBundleUpdate = {
 };
 
 export class DesktopUpdateService {
-  private readonly channel: string;
   private readonly platform: NodeJS.Platform;
   private readonly arch: string;
   private readonly launcherVersion: string;
+  private readonly resolveChannel: () => string;
   private readonly manifestReader: DesktopUpdateManifestReader;
   private readonly fetchImpl: FetchLike;
   private readonly now: () => number;
@@ -80,10 +82,10 @@ export class DesktopUpdateService {
   private readonly bundlePublicKey: KeyObject | null;
 
   constructor(private readonly options: DesktopUpdateServiceOptions) {
-    this.channel = options.channel ?? "stable";
     this.platform = options.platform ?? process.platform;
     this.arch = options.arch ?? process.arch;
     this.launcherVersion = options.launcherVersion;
+    this.resolveChannel = options.resolveChannel ?? (() => options.channel ?? "stable");
     this.manifestReader = options.manifestReader ?? new DesktopUpdateManifestReader();
     this.fetchImpl = options.fetchImpl ?? fetch;
     this.now = options.now ?? Date.now;
@@ -105,7 +107,7 @@ export class DesktopUpdateService {
 
   checkForUpdate = async (manifestUrl: string, currentVersion: string | null): Promise<DesktopAvailableUpdate | null> => {
     const manifest = await this.fetchManifest(manifestUrl);
-    this.assertManifestTarget(manifest);
+    this.assertManifestTarget(manifest, this.getChannel());
     if (compareDesktopVersions(this.launcherVersion, manifest.minimumLauncherVersion) < 0) {
       return {
         kind: "launcher-update-required",
@@ -121,9 +123,9 @@ export class DesktopUpdateService {
     if (currentVersion && compareDesktopVersions(manifest.latestVersion, currentVersion) <= 0) {
       return null;
     }
-    return {
-      kind: "bundle-update",
-      manifest
+      return {
+        kind: "bundle-update",
+        manifest
     };
   };
 
@@ -202,6 +204,7 @@ export class DesktopUpdateService {
   };
 
   stageLocalArchive = async (archivePath: string): Promise<StagedDesktopBundleUpdate> => {
+    const channel = this.getChannel();
     const extractedDirectory = await this.extractArchive(archivePath, `seed-${this.now()}`);
     try {
       const installedBundle = await this.bundleService.installFromDirectory(extractedDirectory);
@@ -209,7 +212,7 @@ export class DesktopUpdateService {
       return {
         kind: "bundle-update-staged",
         manifest: {
-          channel: this.channel,
+          channel,
           platform: this.platform,
           arch: this.arch,
           latestVersion: installedBundle.manifest.bundleVersion,
@@ -256,9 +259,9 @@ export class DesktopUpdateService {
     return manifest;
   };
 
-  private assertManifestTarget = (manifest: DesktopUpdateManifest): void => {
-    if (manifest.channel !== this.channel) {
-      throw new Error(`update manifest channel mismatch: expected ${this.channel} but got ${manifest.channel}`);
+  private assertManifestTarget = (manifest: DesktopUpdateManifest, channel: string): void => {
+    if (manifest.channel !== channel) {
+      throw new Error(`update manifest channel mismatch: expected ${channel} but got ${manifest.channel}`);
     }
     if (manifest.platform !== this.platform) {
       throw new Error(`update manifest platform mismatch: expected ${this.platform} but got ${manifest.platform}`);
@@ -266,6 +269,10 @@ export class DesktopUpdateService {
     if (manifest.arch !== this.arch) {
       throw new Error(`update manifest arch mismatch: expected ${this.arch} but got ${manifest.arch}`);
     }
+  };
+
+  private getChannel = (): string => {
+    return normalizeDesktopReleaseChannel(this.resolveChannel());
   };
 
   private installDownloadedBundle = async (downloadedBundle: DownloadedDesktopBundle): Promise<ResolvedDesktopBundle> => {

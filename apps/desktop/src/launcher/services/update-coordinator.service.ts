@@ -1,5 +1,6 @@
 import type { DesktopUpdateManifest } from "../utils/update-manifest.utils";
 import type { DesktopLauncherStateStore } from "../stores/launcher-state.store";
+import type { DesktopReleaseChannel } from "../stores/launcher-state.store";
 import type { DesktopAvailableUpdate, DesktopUpdateService } from "./update.service";
 import type { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
 import type { DesktopBundleService } from "./bundle.service";
@@ -20,6 +21,7 @@ export type DesktopUpdatePreferences = {
 
 export type DesktopUpdateSnapshot = {
   status: DesktopUpdateStatus;
+  channel: DesktopReleaseChannel;
   launcherVersion: string;
   currentVersion: string | null;
   availableVersion: string | null;
@@ -31,6 +33,7 @@ export type DesktopUpdateSnapshot = {
 };
 
 type DesktopUpdateCoordinatorServiceOptions = {
+  initialChannel: DesktopReleaseChannel;
   launcherVersion: string;
   resolveManifestUrl: () => Promise<string | null>;
   stateStore: DesktopLauncherStateStore;
@@ -43,6 +46,7 @@ type DesktopUpdateCoordinatorServiceOptions = {
 
 type DesktopCheckUpdateOptions = {
   manual?: boolean;
+  allowAutoDownload?: boolean;
 };
 
 type DesktopDownloadUpdateOptions = {
@@ -61,6 +65,7 @@ export class DesktopUpdateCoordinatorService {
     const persistedState = options.stateStore.read();
     this.snapshot = {
       status: persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS,
+      channel: options.initialChannel,
       launcherVersion: options.launcherVersion,
       currentVersion: persistedState.currentVersion,
       availableVersion: null,
@@ -75,7 +80,10 @@ export class DesktopUpdateCoordinatorService {
   }
 
   getSnapshot = (): DesktopUpdateSnapshot => {
-    return { ...this.snapshot, preferences: { ...this.snapshot.preferences } };
+    return {
+      ...this.snapshot,
+      preferences: { ...this.snapshot.preferences }
+    };
   };
 
   runStartupCheck = async (): Promise<DesktopUpdateSnapshot> => {
@@ -158,6 +166,36 @@ export class DesktopUpdateCoordinatorService {
     return this.getSnapshot();
   };
 
+  updateChannel = async (channel: DesktopReleaseChannel): Promise<DesktopUpdateSnapshot> => {
+    if (this.snapshot.channel === channel) {
+      return this.getSnapshot();
+    }
+
+    const nextState = await this.options.stateStore.update((state) => ({
+      ...state,
+      channel,
+      downloadedVersion: null,
+      downloadedReleaseNotesUrl: null
+    }));
+    this.availableManifest = null;
+    this.snapshot = {
+      ...this.snapshot,
+      status: DEFAULT_STATUS,
+      channel: nextState.channel,
+      currentVersion: nextState.currentVersion,
+      availableVersion: null,
+      downloadedVersion: null,
+      releaseNotesUrl: null,
+      lastCheckedAt: nextState.lastUpdateCheckAt,
+      errorMessage: null,
+      preferences: { ...nextState.updatePreferences }
+    };
+    this.publishSnapshot();
+    return await this.checkForUpdates({
+      allowAutoDownload: false
+    });
+  };
+
   private performCheckForUpdates = async (options: DesktopCheckUpdateOptions): Promise<DesktopUpdateSnapshot> => {
     const checkedAt = new Date().toISOString();
 
@@ -178,7 +216,11 @@ export class DesktopUpdateCoordinatorService {
       this.snapshot = this.toSnapshotAfterCheck(availableUpdate, persistedState);
       this.publishSnapshot();
 
-      if (availableUpdate?.kind === "bundle-update" && this.snapshot.preferences.autoDownload) {
+      if (
+        availableUpdate?.kind === "bundle-update" &&
+        this.snapshot.preferences.autoDownload &&
+        options.allowAutoDownload !== false
+      ) {
         return await this.downloadUpdate({ autoTriggered: true });
       }
 

@@ -3,7 +3,7 @@
 ## 迭代完成说明
 
 - 新增本地研发专用的 `apps/maintainability-console`，在同一个 workspace 包里并置 `src`（Vite React）与 `server`（Hono Node）两层，形成一个可直接本地启动的前后端维护性控制台。
-- 后端复用现有 `scripts/code-volume-metrics-*`、`scripts/maintainability-hotspots.mjs`、`scripts/maintainability-directory-budget.mjs`，没有复制第二套扫描真相源；前端统一消费 `/api/maintainability/overview`，展示总代码量、文件数、模块榜单、大文件排行、目录压力、维护性热点与扫描口径。
+- 后端复用现有 `scripts/metrics/code-volume-metrics-*`、`scripts/governance/maintainability-hotspots.mjs`、`scripts/governance/maintainability-directory-budget.mjs`，没有复制第二套扫描真相源；前端统一消费 `/api/maintainability/overview`，展示总代码量、文件数、模块榜单、大文件排行、目录压力、维护性热点与扫描口径。
 - 新增 `source` / `repo-volume` 双口径切换与手动刷新，让同一个入口既能看产品源码体积，也能看更接近工程总体积的仓库口径。
 - 根工作区新增 `dev:maintainability:console`、`smoke:maintainability:console`、`validate:maintainability:console`，方便直接从仓库根启动和验证。
 - 为了对齐仓库命名治理，把 app 内脚本命名收敛为 `scripts/dev.utils.mjs` 与 `scripts/smoke.test.mjs`，并把共享类型文件收敛为 `shared/maintainability.types.ts`。

@@ -1,7 +1,13 @@
 import type { DesktopUpdateSnapshot } from '@/desktop/desktop-update.types';
 import { create } from 'zustand';
 
-type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving-preferences' | null;
+type DesktopUpdateBusyAction =
+  | 'checking'
+  | 'downloading'
+  | 'applying'
+  | 'saving-preferences'
+  | 'switching-channel'
+  | null;
 
 type DesktopUpdateStoreState = {
   supported: boolean;

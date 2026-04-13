@@ -72,6 +72,7 @@ class DesktopApplication {
 
     logger.info("Waiting for Electron app readiness.");
     await app.whenReady();
+    await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
@@ -146,7 +147,7 @@ class DesktopApplication {
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
       layout: new DesktopBundleLayoutStore(),
-      channel: this.ensureUpdateSourceService().resolveChannel(),
+      resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
       launcherVersion: app.getVersion(),
       bundlePublicKey: this.getBundlePublicKey()
     });
@@ -204,6 +205,7 @@ class DesktopApplication {
     this.desktopUpdateShell = new DesktopUpdateShellService({
       logger,
       launcherVersion: app.getVersion(),
+      resolveChannel: () => this.ensureUpdateSourceService().resolveChannel(),
       resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       getWindow: () => this.window,
       createLauncherStateStore: this.createLauncherStateStore,
@@ -249,7 +251,8 @@ class DesktopApplication {
       isPackaged: app.isPackaged,
       appPath: app.getAppPath(),
       resourcesPath: process.resourcesPath,
-      publishTarget: this.getGitHubPublishTarget()
+      publishTarget: this.getGitHubPublishTarget(),
+      stateStore: this.createLauncherStateStore()
     });
     return this.updateSourceService;
   };
@@ -320,7 +323,7 @@ class DesktopApplication {
         preload: join(__dirname, "preload.js"),
         nodeIntegration: false,
         contextIsolation: true,
-        sandbox: true
+        sandbox: false
       }
     });
 

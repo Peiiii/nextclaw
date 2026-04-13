@@ -15,6 +15,7 @@ packages/nextclaw/*.tgz
 
 apps/docs/.vitepress/.temp/
 apps/ncp-demo/backend/.ncp-demo-store/
+apps/desktop/.local/
 **/__pycache__/
 *.pyc
 *.pyo

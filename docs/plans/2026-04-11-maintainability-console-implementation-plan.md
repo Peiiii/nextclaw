@@ -4,7 +4,7 @@
 
 **Goal:** 在 `apps/maintainability-console` 落成一个仅供本地研发使用的只读 maintainability console，用统一前后端入口展示项目级文件数、代码行数、模块体积、目录预算压力与维护性热点。
 
-**Architecture:** 继续沿用仓库里已经存在的 `apps/maintainability-console` 半成品，不重起新 app。后端基于 Hono 聚合现有 `scripts/code-volume-metrics-*`、`maintainability-hotspots`、`maintainability-directory-budget` 的统计结果，对外暴露单一只读概览接口；前端基于 Vite React 消费该接口，渲染本地单页大盘。
+**Architecture:** 继续沿用仓库里已经存在的 `apps/maintainability-console` 半成品，不重起新 app。后端基于 Hono 聚合现有 `scripts/metrics/code-volume-metrics-*`、`maintainability-hotspots`、`maintainability-directory-budget` 的统计结果，对外暴露单一只读概览接口；前端基于 Vite React 消费该接口，渲染本地单页大盘。
 
 **Tech Stack:** TypeScript、React、Vite、Hono、`@hono/node-server`、`@tanstack/react-query`、原生 CSS、Node `tsx`、Playwright（smoke）。
 
@@ -29,7 +29,7 @@
 - `apps/maintainability-console/server/index.ts`
 - `apps/maintainability-console/server/maintainability-data.service.ts`
 - `apps/maintainability-console/shared/maintainability.types.ts`
-- `scripts/code-volume-metrics-snapshot.mjs`
+- `scripts/metrics/code-volume-metrics-snapshot.mjs`
 
 ### 已经完成的方向判断
 
@@ -97,10 +97,10 @@
 
 ### 复用的现有脚本
 
-- [`scripts/code-volume-metrics-profile.mjs`](/Users/peiwang/Projects/nextbot/scripts/code-volume-metrics-profile.mjs)
-- [`scripts/code-volume-metrics-snapshot.mjs`](/Users/peiwang/Projects/nextbot/scripts/code-volume-metrics-snapshot.mjs)
-- [`scripts/maintainability-hotspots.mjs`](/Users/peiwang/Projects/nextbot/scripts/maintainability-hotspots.mjs)
-- [`scripts/maintainability-directory-budget.mjs`](/Users/peiwang/Projects/nextbot/scripts/maintainability-directory-budget.mjs)
+- [`scripts/metrics/code-volume-metrics-profile.mjs`](/Users/peiwang/Projects/nextbot/scripts/metrics/code-volume-metrics-profile.mjs)
+- [`scripts/metrics/code-volume-metrics-snapshot.mjs`](/Users/peiwang/Projects/nextbot/scripts/metrics/code-volume-metrics-snapshot.mjs)
+- [`scripts/governance/maintainability-hotspots.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/maintainability-hotspots.mjs)
+- [`scripts/governance/maintainability-directory-budget.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/maintainability-directory-budget.mjs)
 
 ### 后端 owner
 
@@ -176,7 +176,7 @@
 
 ### 继续使用 / 修改
 
-- Modify: `scripts/code-volume-metrics-snapshot.mjs`
+- Modify: `scripts/metrics/code-volume-metrics-snapshot.mjs`
 - Modify: `apps/maintainability-console/package.json`
 - Modify: `apps/maintainability-console/tsconfig.backend.json`
 - Modify: `apps/maintainability-console/scripts/dev.utils.mjs`
@@ -235,7 +235,7 @@
 ### Task 2: 固化共享扫描与后端概览服务
 
 **Files:**
-- Modify: `scripts/code-volume-metrics-snapshot.mjs`
+- Modify: `scripts/metrics/code-volume-metrics-snapshot.mjs`
 - Modify: `apps/maintainability-console/server/index.ts`
 - Modify: `apps/maintainability-console/server/maintainability-data.service.ts`
 - Modify: `apps/maintainability-console/shared/maintainability.types.ts`
@@ -247,7 +247,7 @@
 
 **Steps:**
 
-1. 确认 `scripts/code-volume-metrics-snapshot.mjs` 已导出文件级明细能力，若缺字段则补齐。
+1. 确认 `scripts/metrics/code-volume-metrics-snapshot.mjs` 已导出文件级明细能力，若缺字段则补齐。
 2. 整理 `MaintainabilityDataService` 的响应结构，确保 summary、scope、largest file、hotspots 字段可直接渲染。
 3. 对齐共享类型，避免前后端对同一 JSON 形态出现漂移。
 4. 检查生产模式下静态资源托管路径是否与客户端构建目录一致。

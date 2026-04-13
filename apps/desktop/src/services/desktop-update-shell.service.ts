@@ -8,12 +8,14 @@ import {
 } from "../launcher/services/update-coordinator.service";
 import type { DesktopUpdateService } from "../launcher/services/update.service";
 import type { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
+import type { DesktopReleaseChannel } from "../launcher/stores/launcher-state.store";
 import {
   DESKTOP_UPDATES_APPLY_CHANNEL,
   DESKTOP_UPDATES_CHECK_CHANNEL,
   DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
   DESKTOP_UPDATES_GET_STATE_CHANNEL,
   DESKTOP_UPDATES_STATE_CHANGED_CHANNEL,
+  DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL,
   DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL
 } from "../utils/desktop-ipc.utils";
 
@@ -26,6 +28,7 @@ type DesktopUpdateShellLogger = {
 type DesktopUpdateShellServiceOptions = {
   logger: DesktopUpdateShellLogger;
   launcherVersion: string;
+  resolveChannel: () => DesktopReleaseChannel;
   resolveManifestUrl: () => Promise<string | null>;
   getWindow: () => BrowserWindow | null;
   createLauncherStateStore: () => DesktopLauncherStateStore;
@@ -46,6 +49,7 @@ export class DesktopUpdateShellService {
     ipcMain.removeHandler(DESKTOP_UPDATES_DOWNLOAD_CHANNEL);
     ipcMain.removeHandler(DESKTOP_UPDATES_APPLY_CHANNEL);
     ipcMain.removeHandler(DESKTOP_UPDATES_UPDATE_PREFERENCES_CHANNEL);
+    ipcMain.removeHandler(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL);
 
     ipcMain.handle(DESKTOP_UPDATES_GET_STATE_CHANNEL, async () => this.ensureCoordinator().getSnapshot());
     ipcMain.handle(DESKTOP_UPDATES_CHECK_CHANNEL, async () => await this.ensureCoordinator().checkForUpdates({ manual: true }));
@@ -60,6 +64,9 @@ export class DesktopUpdateShellService {
       async (_event, preferences: Partial<DesktopUpdatePreferences> | undefined) =>
         await this.ensureCoordinator().updatePreferences(preferences ?? {})
     );
+    ipcMain.handle(DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL, async (_event, channel: DesktopReleaseChannel | undefined) => {
+      return await this.ensureCoordinator().updateChannel(channel === "beta" ? "beta" : "stable");
+    });
   };
 
   installApplicationMenu = (): void => {
@@ -85,6 +92,7 @@ export class DesktopUpdateShellService {
     }
 
     this.coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: this.options.resolveChannel(),
       launcherVersion: this.options.launcherVersion,
       resolveManifestUrl: this.options.resolveManifestUrl,
       stateStore: this.options.createLauncherStateStore(),
@@ -266,6 +274,7 @@ export class DesktopUpdateShellService {
       [
         "Desktop update snapshot changed.",
         `status=${snapshot.status}`,
+        `channel=${snapshot.channel}`,
         `current=${snapshot.currentVersion ?? ""}`,
         `available=${snapshot.availableVersion ?? ""}`,
         `downloaded=${snapshot.downloadedVersion ?? ""}`,

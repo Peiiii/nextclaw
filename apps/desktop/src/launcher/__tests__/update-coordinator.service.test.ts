@@ -87,6 +87,7 @@ test("coordinator reports an available update without downloading by default", a
     });
     let downloadInvocations = 0;
     const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
       launcherVersion: "0.1.0",
       resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
@@ -106,7 +107,13 @@ test("coordinator reports an available update without downloading by default", a
         }
       } as unknown as DesktopUpdateService,
       bundleLifecycle: {} as DesktopBundleLifecycleService,
-      bundleService: {} as DesktopBundleService
+      bundleService: {
+        resolveVersion: () => ({
+          manifest: {
+            bundleVersion: "0.18.1"
+          }
+        })
+      } as unknown as DesktopBundleService
     });
 
     const snapshot = await coordinator.checkForUpdates({ manual: true });
@@ -152,6 +159,7 @@ test("coordinator downloads an update and waits for user-triggered apply", async
       launcherVersion: "0.1.0"
     });
     const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
       launcherVersion: "0.1.0",
       resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
@@ -219,6 +227,7 @@ test("coordinator auto-downloads only when the preference is enabled", async () 
     let autoReadyNotifications = 0;
     let downloadInvocations = 0;
     const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
       launcherVersion: "0.1.0",
       resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
@@ -269,6 +278,7 @@ test("background update check failures do not replace the primary status with fa
     );
 
     const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
       launcherVersion: "0.1.0",
       resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
@@ -278,7 +288,13 @@ test("background update check failures do not replace the primary status with fa
         }
       } as unknown as DesktopUpdateService,
       bundleLifecycle: {} as DesktopBundleLifecycleService,
-      bundleService: {} as DesktopBundleService
+      bundleService: {
+        resolveVersion: () => ({
+          manifest: {
+            bundleVersion: "0.18.1"
+          }
+        })
+      } as unknown as DesktopBundleService
     });
 
     const snapshot = await coordinator.checkForUpdates();
@@ -299,6 +315,7 @@ test("manual update checks throw without replacing the primary status", async ()
     );
 
     const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
       launcherVersion: "0.1.0",
       resolveManifestUrl: async () => "https://example.com/manifest.json",
       stateStore,
@@ -308,7 +325,13 @@ test("manual update checks throw without replacing the primary status", async ()
         }
       } as unknown as DesktopUpdateService,
       bundleLifecycle: {} as DesktopBundleLifecycleService,
-      bundleService: {} as DesktopBundleService
+      bundleService: {
+        resolveVersion: () => ({
+          manifest: {
+            bundleVersion: "0.18.1"
+          }
+        })
+      } as unknown as DesktopBundleService
     });
 
     await assert.rejects(
@@ -319,4 +342,67 @@ test("manual update checks throw without replacing the primary status", async ()
     assert.equal(snapshot.status, "idle");
     assert.equal(snapshot.errorMessage, null);
     assert.match(snapshot.lastCheckedAt ?? "", /^20\d\d-/);
+  }));
+
+test("channel switching clears stale downloads and refreshes availability without auto-download", async () =>
+  await withTempDir("nextclaw-update-coordinator-channel-switch-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        channel: "stable",
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0",
+        downloadedVersion: "0.18.1",
+        downloadedReleaseNotesUrl: "https://example.com/stable-notes",
+        updatePreferences: {
+          automaticChecks: true,
+          autoDownload: true
+        }
+      })
+    );
+    const manifest = createSignedUpdateManifest({
+      channel: "beta",
+      latestVersion: "0.18.2-beta.1",
+      releaseNotesUrl: "https://example.com/beta-notes"
+    });
+    let downloadInvocations = 0;
+    const coordinator = new DesktopUpdateCoordinatorService({
+      initialChannel: "stable",
+      launcherVersion: "0.1.0",
+      resolveManifestUrl: async () => "https://example.com/beta-manifest.json",
+      stateStore,
+      updateService: {
+        checkForUpdate: async () => ({
+          kind: "bundle-update",
+          manifest
+        }),
+        downloadAndInstallUpdate: async () => {
+          downloadInvocations += 1;
+          return {
+            kind: "bundle-update-downloaded",
+            manifest,
+            downloadedVersion: manifest.latestVersion,
+            bundleDirectory: layout.getVersionDir(manifest.latestVersion)
+          };
+        }
+      } as unknown as DesktopUpdateService,
+      bundleLifecycle: {} as DesktopBundleLifecycleService,
+      bundleService: {
+        resolveVersion: () => ({
+          manifest: {
+            bundleVersion: "0.18.1"
+          }
+        })
+      } as unknown as DesktopBundleService
+    });
+
+    const snapshot = await coordinator.updateChannel("beta");
+    assert.equal(snapshot.channel, "beta");
+    assert.equal(snapshot.status, "update-available");
+    assert.equal(snapshot.availableVersion, "0.18.2-beta.1");
+    assert.equal(snapshot.downloadedVersion, null);
+    assert.equal(downloadInvocations, 0);
+    assert.equal(stateStore.read().channel, "beta");
+    assert.equal(stateStore.read().downloadedVersion, null);
   }));

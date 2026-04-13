@@ -6,13 +6,13 @@
 
 本文件对应仓库治理方案中的 `Phase 2: Hotspot Freeze`，与以下文件配套：
 
-- 红区数据源：[`scripts/maintainability-hotspots.mjs`](../../scripts/maintainability-hotspots.mjs)
+- 红区数据源：[`scripts/governance/maintainability-hotspots.mjs`](../../scripts/governance/maintainability-hotspots.mjs)
 - 默认守卫：[`post-edit-maintainability-guard`](../../.agents/skills/post-edit-maintainability-guard/SKILL.md)
 - 上层方案：[`2026-03-19-repo-maintainability-governance-plan.md`](../plans/2026-03-19-repo-maintainability-governance-plan.md)
 
 ## 默认规则
 
-1. 红区文件清单以 [`scripts/maintainability-hotspots.mjs`](../../scripts/maintainability-hotspots.mjs) 为准。
+1. 红区文件清单以 [`scripts/governance/maintainability-hotspots.mjs`](../../scripts/governance/maintainability-hotspots.mjs) 为准。
 2. 触达红区文件时，不允许继续把 unrelated logic 塞进原文件。
 3. 触达红区文件时，必须在本次 `docs/logs/v<semver>-<slug>/README.md` 增加 `## 红区触达与减债记录`。
 4. `红区触达与减债记录` 下必须为每个被触达的红区文件写一个独立块，标题格式固定为 `### <repo-path>`。
@@ -48,8 +48,8 @@
 
 ## 日常使用
 
-- 查看当前红区清单：`node scripts/maintainability-hotspots.mjs`
-- 只看指定红区：`node scripts/maintainability-hotspots.mjs --paths packages/nextclaw/src/cli/commands/diagnostics.ts`
+- 查看当前红区清单：`node scripts/governance/maintainability-hotspots.mjs`
+- 只看指定红区：`node scripts/governance/maintainability-hotspots.mjs --paths packages/nextclaw/src/cli/commands/diagnostics.ts`
 - 代码任务收尾：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`
 
 ## 何时更新红区清单
@@ -61,6 +61,6 @@
 
 更新红区清单时，必须同步：
 
-- 更新 [`scripts/maintainability-hotspots.mjs`](../../scripts/maintainability-hotspots.mjs)
+- 更新 [`scripts/governance/maintainability-hotspots.mjs`](../../scripts/governance/maintainability-hotspots.mjs)
 - 更新本文件中的首批红区列表
 - 在对应迭代 README 中记录为什么新增、移除或调整红区

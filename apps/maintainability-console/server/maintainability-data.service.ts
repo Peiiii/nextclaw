@@ -230,10 +230,10 @@ export class MaintainabilityDataService {
           directoryBudgetModule,
           hotspotModule
         ] = await Promise.all([
-          import(pathToFileURL(resolve(this.repoRoot, "scripts/code-volume-metrics-profile.mjs")).href),
-          import(pathToFileURL(resolve(this.repoRoot, "scripts/code-volume-metrics-snapshot.mjs")).href),
-          import(pathToFileURL(resolve(this.repoRoot, "scripts/maintainability-directory-budget.mjs")).href),
-          import(pathToFileURL(resolve(this.repoRoot, "scripts/maintainability-hotspots.mjs")).href)
+          import(pathToFileURL(resolve(this.repoRoot, "scripts/metrics/code-volume-metrics-profile.mjs")).href),
+          import(pathToFileURL(resolve(this.repoRoot, "scripts/metrics/code-volume-metrics-snapshot.mjs")).href),
+          import(pathToFileURL(resolve(this.repoRoot, "scripts/governance/maintainability-directory-budget.mjs")).href),
+          import(pathToFileURL(resolve(this.repoRoot, "scripts/governance/maintainability-hotspots.mjs")).href)
         ]);
 
         return {

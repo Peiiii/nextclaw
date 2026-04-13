@@ -3,7 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 export type DesktopLauncherState = {
-  channel: string;
+  channel: DesktopReleaseChannel;
   currentVersion: string | null;
   previousVersion: string | null;
   candidateVersion: string | null;
@@ -36,6 +36,12 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   }
 };
 
+export type DesktopReleaseChannel = "stable" | "beta";
+
+export function normalizeDesktopReleaseChannel(value: unknown): DesktopReleaseChannel {
+  return typeof value === "string" && value.trim().toLowerCase() === "beta" ? "beta" : "stable";
+}
+
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
@@ -53,7 +59,7 @@ function normalizeState(parsed: unknown): DesktopLauncherState {
     throw new Error("launcher state must be an object");
   }
   const record = parsed as Record<string, unknown>;
-  const channel = typeof record.channel === "string" && record.channel.trim() ? record.channel.trim() : "stable";
+  const channel = normalizeDesktopReleaseChannel(record.channel);
   const badVersions = isStringArray(record.badVersions)
     ? [...new Set(record.badVersions.map((entry: string) => entry.trim()).filter(Boolean))]
     : [];
@@ -93,8 +99,12 @@ function normalizeUpdatePreferences(value: unknown): DesktopLauncherState["updat
 export class DesktopLauncherStateStore {
   constructor(private readonly statePath: string) {}
 
+  hasStateFile = (): boolean => {
+    return existsSync(this.statePath);
+  };
+
   read = (): DesktopLauncherState => {
-    if (!existsSync(this.statePath)) {
+    if (!this.hasStateFile()) {
       return { ...DEFAULT_LAUNCHER_STATE };
     }
     const raw = readFileSync(this.statePath, "utf8");

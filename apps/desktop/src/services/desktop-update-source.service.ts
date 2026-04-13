@@ -1,7 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-
-export type DesktopReleaseChannel = "stable" | "beta";
+import {
+  DesktopLauncherStateStore,
+  type DesktopReleaseChannel,
+  normalizeDesktopReleaseChannel
+} from "../launcher/stores/launcher-state.store";
 
 export type GitHubPublishTarget = {
   owner: string;
@@ -16,6 +19,7 @@ type DesktopUpdateSourceServiceOptions = {
   platform?: NodeJS.Platform;
   arch?: string;
   publishTarget: GitHubPublishTarget | null;
+  stateStore: DesktopLauncherStateStore;
 };
 
 type PackagedReleaseMetadata = {
@@ -31,10 +35,6 @@ function normalizeOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
-}
-
-export function normalizeDesktopReleaseChannel(value: string | null | undefined): DesktopReleaseChannel {
-  return value?.trim().toLowerCase() === "beta" ? "beta" : "stable";
 }
 
 export function getDesktopUpdateManifestAssetName(
@@ -54,6 +54,15 @@ export function getDesktopUpdateChannelManifestUrl(
   return `https://${publishTarget.owner}.github.io/${publishTarget.repo}/desktop-updates/${channel}/${getDesktopUpdateManifestAssetName(channel, platform, arch)}`;
 }
 
+export function getDesktopUpdateChannelManifestUrlFromBaseUrl(
+  baseUrl: string,
+  channel: DesktopReleaseChannel,
+  platform: NodeJS.Platform,
+  arch: string
+): string {
+  return new URL(`${channel}/${getDesktopUpdateManifestAssetName(channel, platform, arch)}`, `${baseUrl.replace(/\/+$/, "")}/`).toString();
+}
+
 export class DesktopUpdateSourceService {
   private readonly env: NodeJS.ProcessEnv;
   private readonly platform: NodeJS.Platform;
@@ -70,6 +79,9 @@ export class DesktopUpdateSourceService {
     if (envChannel) {
       return normalizeDesktopReleaseChannel(envChannel);
     }
+    if (this.options.stateStore.hasStateFile()) {
+      return this.options.stateStore.read().channel;
+    }
     return this.readPackagedReleaseMetadata().channel;
   };
 
@@ -78,11 +90,26 @@ export class DesktopUpdateSourceService {
     if (explicitManifestUrl) {
       return explicitManifestUrl;
     }
+    const explicitManifestBaseUrl = normalizeOptionalString(this.env.NEXTCLAW_DESKTOP_UPDATE_MANIFEST_BASE_URL);
+    if (explicitManifestBaseUrl) {
+      return this.buildChannelManifestUrlFromBaseUrl(explicitManifestBaseUrl, this.resolveChannel());
+    }
     if (!this.options.isPackaged || !this.options.publishTarget) {
       return null;
     }
 
     return this.buildChannelManifestUrl(this.options.publishTarget, this.resolveChannel());
+  };
+
+  ensureStateChannelInitialized = async (): Promise<DesktopReleaseChannel> => {
+    const channel = this.resolveChannel();
+    if (!this.options.stateStore.hasStateFile()) {
+      await this.options.stateStore.update((state) => ({
+        ...state,
+        channel
+      }));
+    }
+    return channel;
   };
 
   private readPackagedReleaseMetadata = (): PackagedReleaseMetadata => {
@@ -108,5 +135,12 @@ export class DesktopUpdateSourceService {
     channel: DesktopReleaseChannel
   ): string => {
     return getDesktopUpdateChannelManifestUrl(publishTarget, channel, this.platform, this.arch);
+  };
+
+  private buildChannelManifestUrlFromBaseUrl = (
+    baseUrl: string,
+    channel: DesktopReleaseChannel
+  ): string => {
+    return getDesktopUpdateChannelManifestUrlFromBaseUrl(baseUrl, channel, this.platform, this.arch);
   };
 }
