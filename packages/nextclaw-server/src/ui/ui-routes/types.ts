@@ -19,7 +19,7 @@ import type {
   UiNcpSessionService,
   UiServerEvent
 } from "../types.js";
-import type { RuntimeControlView, RuntimeRestartResult } from "../runtime-control.types.js";
+import type { RuntimeControlActionResult, RuntimeControlView } from "../runtime-control.types.js";
 
 export type UiRouterOptions = {
   configPath: string;
@@ -53,7 +53,9 @@ export type UiRemoteAccessHost = {
 
 export type UiRuntimeControlHost = {
   getControl: () => Promise<RuntimeControlView> | RuntimeControlView;
-  restartService: () => Promise<RuntimeRestartResult> | RuntimeRestartResult;
+  startService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
+  restartService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
+  stopService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
 };
 
 export type CronJobEntry = {

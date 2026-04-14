@@ -9,7 +9,7 @@ import { setLanguage } from '@/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
   useRuntimeControl: vi.fn(),
-  useRestartRuntimeService: vi.fn(),
+  useRuntimeServiceAction: vi.fn(),
   waitForRecovery: vi.fn(),
   restartApp: vi.fn(),
 }));
@@ -23,7 +23,7 @@ vi.mock('sonner', () => ({
 
 vi.mock('@/hooks/use-runtime-control', () => ({
   useRuntimeControl: (...args: unknown[]) => mocks.useRuntimeControl(...args),
-  useRestartRuntimeService: (...args: unknown[]) => mocks.useRestartRuntimeService(...args),
+  useRuntimeServiceAction: (...args: unknown[]) => mocks.useRuntimeServiceAction(...args),
 }));
 
 vi.mock('@/runtime-control/runtime-control.manager', () => ({
@@ -47,10 +47,22 @@ describe('RuntimeControlCard', () => {
       data: {
         environment: 'managed-local-service',
         lifecycle: 'healthy',
+        serviceState: 'running',
         message: 'runtime healthy',
+        canStartService: {
+          available: false,
+          requiresConfirmation: false,
+          impact: 'brief-ui-disconnect',
+          reasonIfUnavailable: '当前页面已经由运行中的本地服务托管。'
+        },
         canRestartService: {
           available: true,
           requiresConfirmation: false,
+          impact: 'brief-ui-disconnect',
+        },
+        canStopService: {
+          available: true,
+          requiresConfirmation: true,
           impact: 'brief-ui-disconnect',
         },
         canRestartApp: {
@@ -59,11 +71,12 @@ describe('RuntimeControlCard', () => {
           impact: 'full-app-relaunch',
           reasonIfUnavailable: 'desktop only',
         },
+        managementHint: 'This page is served by the running local service.'
       },
       isError: false,
       error: null,
     });
-    mocks.useRestartRuntimeService.mockReturnValue({
+    mocks.useRuntimeServiceAction.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue({
         accepted: true,
         action: 'restart-service',
@@ -75,10 +88,22 @@ describe('RuntimeControlCard', () => {
     mocks.waitForRecovery.mockResolvedValue({
       environment: 'managed-local-service',
       lifecycle: 'healthy',
+      serviceState: 'running',
       message: 'runtime healthy',
+      canStartService: {
+        available: false,
+        requiresConfirmation: false,
+        impact: 'brief-ui-disconnect',
+        reasonIfUnavailable: '当前页面已经由运行中的本地服务托管。'
+      },
       canRestartService: {
         available: true,
         requiresConfirmation: false,
+        impact: 'brief-ui-disconnect',
+      },
+      canStopService: {
+        available: true,
+        requiresConfirmation: true,
         impact: 'brief-ui-disconnect',
       },
       canRestartApp: {
@@ -87,6 +112,7 @@ describe('RuntimeControlCard', () => {
         impact: 'full-app-relaunch',
         reasonIfUnavailable: 'desktop only',
       },
+      managementHint: 'This page is served by the running local service.'
     });
     mocks.restartApp.mockResolvedValue({
       accepted: true,
@@ -100,16 +126,20 @@ describe('RuntimeControlCard', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders runtime control actions from the current capability view', () => {
+  it('renders service management actions from the current capability view', () => {
     const queryClient = new QueryClient();
 
     render(<RuntimeControlCard />, {
       wrapper: createWrapper(queryClient),
     });
 
+    const startButton = screen.getByRole('button', { name: '启动服务' }) as HTMLButtonElement;
     const restartAppButton = screen.getByRole('button', { name: '重启应用' }) as HTMLButtonElement;
-    expect(screen.getByText('运行时控制')).toBeTruthy();
+    expect(screen.getByText('服务管理')).toBeTruthy();
+    expect(screen.getByText('服务运行中')).toBeTruthy();
     expect(screen.getByRole('button', { name: '重启服务' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '停止服务' })).toBeTruthy();
+    expect(startButton.disabled).toBe(true);
     expect(restartAppButton.disabled).toBe(true);
     expect(screen.getByText('desktop only')).toBeTruthy();
   });
@@ -124,7 +154,7 @@ describe('RuntimeControlCard', () => {
       lifecycle: 'restarting-service',
       message: 'Restart scheduled. This page may disconnect for a few seconds.',
     });
-    mocks.useRestartRuntimeService.mockReturnValue({
+    mocks.useRuntimeServiceAction.mockReturnValue({
       mutateAsync,
       isPending: false,
     });
@@ -136,11 +166,40 @@ describe('RuntimeControlCard', () => {
     await user.click(screen.getByRole('button', { name: '重启服务' }));
 
     await waitFor(() => {
-      expect(mutateAsync).toHaveBeenCalledTimes(1);
+      expect(mutateAsync).toHaveBeenCalledWith('restart-service');
       expect(mocks.waitForRecovery).toHaveBeenCalledTimes(1);
     });
     expect(toast.success).toHaveBeenCalledWith('Restart scheduled. This page may disconnect for a few seconds.');
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({ queryKey: ['runtime-control'] });
+  });
+
+  it('runs the stop service flow after confirmation', async () => {
+    const queryClient = new QueryClient();
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue({
+      accepted: true,
+      action: 'stop-service',
+      lifecycle: 'stopping-service',
+      message: 'Stop scheduled. This page will disconnect shortly.',
+    });
+    mocks.useRuntimeServiceAction.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    });
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<RuntimeControlCard />, {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await user.click(screen.getByRole('button', { name: '停止服务' }));
+
+    await waitFor(() => {
+      expect(confirmSpy).toHaveBeenCalledTimes(1);
+      expect(mutateAsync).toHaveBeenCalledWith('stop-service');
+    });
+    expect(mocks.waitForRecovery).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Stop scheduled. This page will disconnect shortly.');
   });
 
   it('runs the desktop restart app flow after confirmation', async () => {
@@ -151,10 +210,21 @@ describe('RuntimeControlCard', () => {
       data: {
         environment: 'desktop-embedded',
         lifecycle: 'healthy',
+        serviceState: 'running',
         message: 'runtime healthy',
+        canStartService: {
+          available: false,
+          requiresConfirmation: false,
+          impact: 'none',
+        },
         canRestartService: {
           available: true,
           requiresConfirmation: false,
+          impact: 'brief-ui-disconnect',
+        },
+        canStopService: {
+          available: false,
+          requiresConfirmation: true,
           impact: 'brief-ui-disconnect',
         },
         canRestartApp: {
@@ -162,6 +232,7 @@ describe('RuntimeControlCard', () => {
           requiresConfirmation: true,
           impact: 'full-app-relaunch',
         },
+        managementHint: 'desktop launcher hint'
       },
       isError: false,
       error: null,

@@ -122,7 +122,9 @@ function registerRuntimeControlRoutes(app: Hono, runtimeControlController: Runti
   }
 
   app.get("/api/runtime/control", runtimeControlController.getControl);
+  app.post("/api/runtime/control/start-service", runtimeControlController.startService);
   app.post("/api/runtime/control/restart-service", runtimeControlController.restartService);
+  app.post("/api/runtime/control/stop-service", runtimeControlController.stopService);
 }
 
 function createUiRouteControllers(

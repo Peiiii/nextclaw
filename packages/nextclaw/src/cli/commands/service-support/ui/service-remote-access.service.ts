@@ -38,23 +38,24 @@ export function createRemoteAccessHost(params: {
   uiConfig: Pick<Config["ui"], "host" | "port">;
   remoteModule: RemoteServiceModule | null;
 }): RemoteAccessHost {
-  const currentLocalOrigin = `http://127.0.0.1:${params.uiConfig.port}`;
+  const { remoteModule, requestRestart, serviceCommands, uiConfig } = params;
+  const currentLocalOrigin = `http://127.0.0.1:${uiConfig.port}`;
   return new RemoteAccessHost({
-    serviceCommands: params.serviceCommands,
-    requestManagedServiceRestart: (options) => requestManagedServiceRestart(params.requestRestart, options),
+    serviceCommands,
+    requestManagedServiceRestart: (options) => requestManagedServiceRestart(requestRestart, options),
     remoteCommands: new RemoteCommands({ currentLocalOrigin }),
     platformAuthCommands: new PlatformAuthCommands(),
-    currentUi: params.uiConfig,
-    remoteRuntimeController: params.remoteModule
+    currentUi: uiConfig,
+    remoteRuntimeController: remoteModule
       ? {
         start: async () => {
-          params.remoteModule?.start();
+          remoteModule?.start();
         },
         stop: async () => {
-          await params.remoteModule?.stop();
+          await remoteModule?.stop();
         },
         restart: async () => {
-          await params.remoteModule?.restart();
+          await remoteModule?.restart();
         }
       }
       : null

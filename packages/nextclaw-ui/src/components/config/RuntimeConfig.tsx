@@ -4,6 +4,7 @@ import type { AgentBindingView, AgentProfileView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RuntimeControlCard } from '@/components/config/runtime-control-card';
+import { RuntimePresenceCard } from '@/components/config/runtime-presence-card';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -30,6 +31,16 @@ const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [
   { value: 'per-channel-peer', label: 'per-channel-peer' },
   { value: 'per-account-channel-peer', label: 'per-account-channel-peer' }
 ];
+
+function RuntimeConfigOverview() {
+  return (
+    <>
+      <PageHeader title={t('runtimePageTitle')} description={t('runtimePageDescription')} />
+      <RuntimeControlCard />
+      <RuntimePresenceCard />
+    </>
+  );
+}
 
 export function RuntimeConfig() {
   const { data: config, isLoading } = useConfig();
@@ -164,8 +175,7 @@ export function RuntimeConfig() {
 
   return (
     <PageLayout className="space-y-6">
-      <PageHeader title={t('runtimePageTitle')} description={t('runtimePageDescription')} />
-      <RuntimeControlCard />
+      <RuntimeConfigOverview />
       <Card>
         <CardHeader>
           <CardTitle>{dmScopeHint?.label ?? t('dmScope')}</CardTitle>

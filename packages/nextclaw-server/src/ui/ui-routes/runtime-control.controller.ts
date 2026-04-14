@@ -20,4 +20,20 @@ export class RuntimeControlRoutesController {
       return c.json(err("RUNTIME_RESTART_FAILED", formatUserFacingError(error)), 400);
     }
   };
+
+  readonly startService = async (c: Context) => {
+    try {
+      return c.json(ok(await this.host.startService()));
+    } catch (error) {
+      return c.json(err("RUNTIME_START_FAILED", formatUserFacingError(error)), 400);
+    }
+  };
+
+  readonly stopService = async (c: Context) => {
+    try {
+      return c.json(ok(await this.host.stopService()));
+    } catch (error) {
+      return c.json(err("RUNTIME_STOP_FAILED", formatUserFacingError(error)), 400);
+    }
+  };
 }

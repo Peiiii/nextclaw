@@ -2,8 +2,8 @@ import type { Config } from "@nextclaw/core";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import type { UiRemoteAccessHost, UiRuntimeControlHost } from "@nextclaw/server";
 import type { RequestRestartParams } from "../../../types.js";
-import { createRuntimeControlHost } from "../../runtime-support/runtime-control-host.js";
-import { createRemoteAccessHost } from "./service-remote-access.js";
+import { createRuntimeControlHost } from "./runtime-control-host.service.js";
+import { createRemoteAccessHost } from "./service-remote-access.service.js";
 
 export function createServiceUiHosts(params: {
   serviceCommands: {
@@ -20,6 +20,7 @@ export function createServiceUiHosts(params: {
   return {
     remoteAccess: createRemoteAccessHost(params),
     runtimeControl: createRuntimeControlHost({
+      serviceCommands: params.serviceCommands,
       requestRestart: params.requestRestart,
       uiConfig: params.uiConfig
     })

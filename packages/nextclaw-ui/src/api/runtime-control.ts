@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { RuntimeControlView, RuntimeRestartResult } from './runtime-control.types';
+import type { RuntimeControlActionResult, RuntimeControlView } from './runtime-control.types';
 
 export async function fetchRuntimeControl(): Promise<RuntimeControlView> {
   const response = await api.get<RuntimeControlView>('/api/runtime/control');
@@ -9,8 +9,24 @@ export async function fetchRuntimeControl(): Promise<RuntimeControlView> {
   return response.data;
 }
 
-export async function restartRuntimeService(): Promise<RuntimeRestartResult> {
-  const response = await api.post<RuntimeRestartResult>('/api/runtime/control/restart-service', {});
+export async function startRuntimeService(): Promise<RuntimeControlActionResult> {
+  const response = await api.post<RuntimeControlActionResult>('/api/runtime/control/start-service', {});
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+export async function restartRuntimeService(): Promise<RuntimeControlActionResult> {
+  const response = await api.post<RuntimeControlActionResult>('/api/runtime/control/restart-service', {});
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+export async function stopRuntimeService(): Promise<RuntimeControlActionResult> {
+  const response = await api.post<RuntimeControlActionResult>('/api/runtime/control/stop-service', {});
   if (!response.ok) {
     throw new Error(response.error.message);
   }

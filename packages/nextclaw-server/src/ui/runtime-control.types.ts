@@ -6,7 +6,9 @@ export type RuntimeControlEnvironment =
 
 export type RuntimeLifecycleState =
   | "healthy"
+  | "starting-service"
   | "restarting-service"
+  | "stopping-service"
   | "restarting-app"
   | "recovering"
   | "unavailable"
@@ -21,19 +23,36 @@ export type RuntimeActionCapability = {
   reasonIfUnavailable?: string;
 };
 
+export type RuntimeServiceState =
+  | "running"
+  | "stopped"
+  | "starting"
+  | "stopping"
+  | "restarting"
+  | "unknown";
+
 export type RuntimeControlView = {
   environment: RuntimeControlEnvironment;
   lifecycle: RuntimeLifecycleState;
+  serviceState: RuntimeServiceState;
+  canStartService: RuntimeActionCapability;
   canRestartService: RuntimeActionCapability;
+  canStopService: RuntimeActionCapability;
   canRestartApp: RuntimeActionCapability;
+  ownerLabel?: string;
+  managementHint?: string;
   message?: string;
 };
 
-export type RuntimeRestartAction = "restart-service" | "restart-app";
+export type RuntimeControlAction =
+  | "start-service"
+  | "restart-service"
+  | "stop-service"
+  | "restart-app";
 
-export type RuntimeRestartResult = {
+export type RuntimeControlActionResult = {
   accepted: boolean;
-  action: RuntimeRestartAction;
+  action: RuntimeControlAction;
   lifecycle: RuntimeLifecycleState;
   message: string;
 };

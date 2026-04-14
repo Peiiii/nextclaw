@@ -1,20 +1,40 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type {
+  RuntimeActionCapability,
+  RuntimeControlAction,
+  RuntimeControlView,
+  RuntimeLifecycleState,
+  RuntimeServiceState
+} from '@/api/runtime-control.types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRuntimeControl, useRestartRuntimeService } from '@/hooks/use-runtime-control';
+import { useRuntimeControl, useRuntimeServiceAction } from '@/hooks/use-runtime-control';
 import { t } from '@/lib/i18n';
 import { runtimeControlManager } from '@/runtime-control/runtime-control.manager';
-import type { RuntimeControlView, RuntimeLifecycleState } from '@/api/runtime-control.types';
-import { Loader2, RotateCw } from 'lucide-react';
+import { Loader2, RotateCw, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
+
+type VisibleRuntimeAction = {
+  action: RuntimeControlAction;
+  capability: RuntimeActionCapability;
+  label: string;
+  icon: 'play' | 'rotate' | 'square';
+  variant?: 'default' | 'secondary' | 'destructive';
+};
 
 function resolveLifecycleLabel(lifecycle: RuntimeLifecycleState): string {
   if (lifecycle === 'healthy') {
     return t('runtimeControlHealthy');
   }
+  if (lifecycle === 'starting-service') {
+    return t('runtimeControlStartingService');
+  }
   if (lifecycle === 'restarting-service') {
     return t('runtimeControlRestartingService');
+  }
+  if (lifecycle === 'stopping-service') {
+    return t('runtimeControlStoppingService');
   }
   if (lifecycle === 'restarting-app') {
     return t('runtimeControlRestartingApp');
@@ -26,6 +46,25 @@ function resolveLifecycleLabel(lifecycle: RuntimeLifecycleState): string {
     return t('runtimeControlFailed');
   }
   return t('runtimeControlUnavailable');
+}
+
+function resolveServiceStateLabel(serviceState: RuntimeServiceState): string {
+  if (serviceState === 'running') {
+    return t('runtimeControlServiceRunning');
+  }
+  if (serviceState === 'stopped') {
+    return t('runtimeControlServiceStopped');
+  }
+  if (serviceState === 'starting') {
+    return t('runtimeControlServiceStarting');
+  }
+  if (serviceState === 'stopping') {
+    return t('runtimeControlServiceStopping');
+  }
+  if (serviceState === 'restarting') {
+    return t('runtimeControlServiceRestarting');
+  }
+  return t('runtimeControlServiceUnknown');
 }
 
 function resolveEnvironmentLabel(view: RuntimeControlView): string {
@@ -41,42 +80,133 @@ function resolveEnvironmentLabel(view: RuntimeControlView): string {
   return t('runtimeControlEnvironmentSharedWeb');
 }
 
+function resolveVisibleActions(controlView: RuntimeControlView | undefined): VisibleRuntimeAction[] {
+  if (!controlView) {
+    return [];
+  }
+
+  const actions: VisibleRuntimeAction[] = [
+    {
+      action: 'start-service',
+      capability: controlView.canStartService,
+      label: t('runtimeControlStartService'),
+      icon: 'play'
+    },
+    {
+      action: 'restart-service',
+      capability: controlView.canRestartService,
+      label: t('runtimeControlRestartService'),
+      icon: 'rotate'
+    },
+    {
+      action: 'stop-service',
+      capability: controlView.canStopService,
+      label: t('runtimeControlStopService'),
+      icon: 'square',
+      variant: 'destructive'
+    },
+    {
+      action: 'restart-app',
+      capability: controlView.canRestartApp,
+      label: t('runtimeControlRestartApp'),
+      icon: 'rotate',
+      variant: 'secondary'
+    }
+  ];
+
+  return actions.filter((item) => item.capability.available || Boolean(item.capability.reasonIfUnavailable));
+}
+
+function resolveActionHelp(action: RuntimeControlAction): string {
+  if (action === 'start-service') {
+    return t('runtimeControlStartingServiceHelp');
+  }
+  if (action === 'restart-service') {
+    return t('runtimeControlRestartingServiceHelp');
+  }
+  if (action === 'stop-service') {
+    return t('runtimeControlStoppingServiceHelp');
+  }
+  return t('runtimeControlRestartingAppHelp');
+}
+
+function RuntimeActionIcon(props: { icon: VisibleRuntimeAction['icon']; busy: boolean }) {
+  const { busy, icon } = props;
+  if (busy) {
+    return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+  }
+  if (icon === 'play') {
+    return <Play className="mr-2 h-4 w-4" />;
+  }
+  if (icon === 'square') {
+    return <Square className="mr-2 h-4 w-4" />;
+  }
+  return <RotateCw className="mr-2 h-4 w-4" />;
+}
+
 export function RuntimeControlCard() {
   const queryClient = useQueryClient();
   const runtimeControlQuery = useRuntimeControl();
-  const restartServiceMutation = useRestartRuntimeService();
+  const serviceActionMutation = useRuntimeServiceAction();
   const [localLifecycle, setLocalLifecycle] = useState<RuntimeLifecycleState | null>(null);
+  const [localServiceState, setLocalServiceState] = useState<RuntimeServiceState | null>(null);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
-  const [restartingApp, setRestartingApp] = useState(false);
+  const [busyAction, setBusyAction] = useState<RuntimeControlAction | null>(null);
 
   const controlView = runtimeControlQuery.data;
   const displayedLifecycle = localLifecycle ?? controlView?.lifecycle ?? 'healthy';
-  const lifecycleLabel = controlView || localLifecycle
-    ? resolveLifecycleLabel(displayedLifecycle)
-    : t('runtimeControlLoading');
+  const displayedServiceState = localServiceState ?? controlView?.serviceState ?? 'unknown';
   const displayedMessage = localMessage ?? controlView?.message ?? t('runtimeControlDescription');
-  const busy = restartServiceMutation.isPending || restartingApp || localLifecycle === 'recovering';
+  const busy = serviceActionMutation.isPending || busyAction !== null || displayedLifecycle === 'recovering';
+  const visibleActions = resolveVisibleActions(controlView);
 
-  const handleRestartService = async () => {
-    setLocalLifecycle('restarting-service');
-    setLocalMessage(t('runtimeControlRestartingServiceHelp'));
+  const resetLocalState = () => {
+    setLocalLifecycle(null);
+    setLocalServiceState(null);
+    setLocalMessage(null);
+    setBusyAction(null);
+  };
+
+  const handleServiceAction = async (action: Extract<RuntimeControlAction, 'start-service' | 'restart-service' | 'stop-service'>) => {
+    const capability = action === 'start-service'
+      ? controlView?.canStartService
+      : action === 'stop-service'
+        ? controlView?.canStopService
+        : controlView?.canRestartService;
+
+    if (!capability?.available) {
+      toast.error(capability?.reasonIfUnavailable ?? t('runtimeControlLoadFailed'));
+      return;
+    }
+    if (action === 'stop-service' && capability.requiresConfirmation && !window.confirm(t('runtimeControlStopServiceConfirm'))) {
+      return;
+    }
+
+    setBusyAction(action);
+    setLocalLifecycle(action === 'start-service' ? 'starting-service' : action === 'stop-service' ? 'stopping-service' : 'restarting-service');
+    setLocalServiceState(action === 'start-service' ? 'starting' : action === 'stop-service' ? 'stopping' : 'restarting');
+    setLocalMessage(resolveActionHelp(action));
 
     try {
-      const result = await restartServiceMutation.mutateAsync();
+      const result = await serviceActionMutation.mutateAsync(action);
       toast.success(result.message);
+      if (action === 'stop-service') {
+        return;
+      }
       setLocalLifecycle('recovering');
       setLocalMessage(t('runtimeControlRecoveringHelp'));
       const recoveredView = await runtimeControlManager.waitForRecovery();
       queryClient.setQueryData(['runtime-control'], recoveredView);
       await queryClient.invalidateQueries({ queryKey: ['runtime-control'] });
-      setLocalLifecycle(null);
-      setLocalMessage(null);
+      resetLocalState();
       toast.success(t('runtimeControlRecovered'));
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('runtimeControlRestartFailed');
+      const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
       setLocalLifecycle('failed');
+      setLocalServiceState(action === 'stop-service' ? 'running' : 'unknown');
       setLocalMessage(message);
-      toast.error(`${t('runtimeControlRestartFailed')}: ${message}`);
+      setBusyAction(null);
+      toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
     }
   };
 
@@ -89,7 +219,7 @@ export function RuntimeControlCard() {
       return;
     }
 
-    setRestartingApp(true);
+    setBusyAction('restart-app');
     setLocalLifecycle('restarting-app');
     setLocalMessage(t('runtimeControlRestartingAppHelp'));
 
@@ -97,11 +227,11 @@ export function RuntimeControlCard() {
       const result = await runtimeControlManager.restartApp();
       toast.success(result.message);
     } catch (error) {
-      const message = error instanceof Error ? error.message : t('runtimeControlRestartFailed');
-      setRestartingApp(false);
+      const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
       setLocalLifecycle('failed');
       setLocalMessage(message);
-      toast.error(`${t('runtimeControlRestartFailed')}: ${message}`);
+      setBusyAction(null);
+      toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
     }
   };
 
@@ -112,48 +242,59 @@ export function RuntimeControlCard() {
         <CardDescription>{t('runtimeControlDescription')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-2">
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
           <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm font-medium text-gray-900">{lifecycleLabel}</div>
+            <div className="text-sm font-medium text-gray-900">{resolveServiceStateLabel(displayedServiceState)}</div>
             <div className="text-xs text-gray-500">
               {controlView ? resolveEnvironmentLabel(controlView) : t('runtimeControlLoading')}
             </div>
           </div>
           <p className="text-sm text-gray-600">{displayedMessage}</p>
-          {runtimeControlQuery.isError && !busy && (
+          <div className="text-xs text-gray-500">{resolveLifecycleLabel(displayedLifecycle)}</div>
+          {controlView?.managementHint ? (
+            <p className="text-xs text-gray-500">{controlView.managementHint}</p>
+          ) : null}
+          {runtimeControlQuery.isError && !busy ? (
             <p className="text-sm text-amber-700">
               {runtimeControlQuery.error instanceof Error ? runtimeControlQuery.error.message : t('runtimeControlLoadFailed')}
             </p>
-          )}
+          ) : null}
         </div>
 
-        <div className="flex flex-col gap-3 md:flex-row">
-          <Button
-            type="button"
-            onClick={() => void handleRestartService()}
-            disabled={!controlView?.canRestartService.available || busy}
-          >
-            {busy && displayedLifecycle !== 'restarting-app' ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <RotateCw className="mr-2 h-4 w-4" />
-            )}
-            {t('runtimeControlRestartService')}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => void handleRestartApp()}
-            disabled={!controlView?.canRestartApp.available || busy}
-          >
-            <RotateCw className="mr-2 h-4 w-4" />
-            {t('runtimeControlRestartApp')}
-          </Button>
+        <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
+          {visibleActions.map((item) => {
+            const isBusyAction = busyAction === item.action;
+            const disabled = !item.capability.available || busy;
+            const handleClick = () => {
+              if (item.action === 'restart-app') {
+                void handleRestartApp();
+                return;
+              }
+              void handleServiceAction(item.action);
+            };
+
+            return (
+              <Button
+                key={item.action}
+                type="button"
+                variant={item.variant ?? 'default'}
+                onClick={handleClick}
+                disabled={disabled}
+              >
+                <RuntimeActionIcon icon={item.icon} busy={isBusyAction} />
+                {item.label}
+              </Button>
+            );
+          })}
         </div>
 
-        {!controlView?.canRestartApp.available && controlView?.canRestartApp.reasonIfUnavailable && (
-          <p className="text-xs text-gray-500">{controlView.canRestartApp.reasonIfUnavailable}</p>
-        )}
+        {visibleActions
+          .filter((item) => !item.capability.available && item.capability.reasonIfUnavailable)
+          .map((item) => (
+            <p key={`${item.action}-reason`} className="text-xs text-gray-500">
+              {item.capability.reasonIfUnavailable}
+            </p>
+          ))}
       </CardContent>
     </Card>
   );

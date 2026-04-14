@@ -177,11 +177,12 @@ export type {
 export type {
   RuntimeActionCapability,
   RuntimeActionImpact,
+  RuntimeControlAction,
   RuntimeControlEnvironment,
   RuntimeControlView,
   RuntimeLifecycleState,
-  RuntimeRestartAction,
-  RuntimeRestartResult
+  RuntimeServiceState,
+  RuntimeControlActionResult
 } from './runtime-control.types';
 
 export type AgentProfileView = {

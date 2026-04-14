@@ -34,6 +34,16 @@ export type DesktopRuntimeControlResult = {
   message: string;
 };
 
+export type DesktopPresencePreferences = {
+  closeToBackground: boolean;
+  launchAtLogin: boolean;
+};
+
+export type DesktopPresenceSnapshot = DesktopPresencePreferences & {
+  supportsLaunchAtLogin: boolean;
+  launchAtLoginReason: string | null;
+};
+
 export type NextClawDesktopBridge = {
   platform: string;
   version: string;
@@ -45,5 +55,7 @@ export type NextClawDesktopBridge = {
   updateChannel: (channel: DesktopReleaseChannel) => Promise<DesktopUpdateSnapshot>;
   restartService: () => Promise<DesktopRuntimeControlResult>;
   restartApp: () => Promise<DesktopRuntimeControlResult>;
+  getPresenceState: () => Promise<DesktopPresenceSnapshot>;
+  updatePresencePreferences: (preferences: Partial<DesktopPresencePreferences>) => Promise<DesktopPresenceSnapshot>;
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void) => () => void;
 };

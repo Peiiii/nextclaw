@@ -11,11 +11,12 @@ export function useRuntimeControl() {
   });
 }
 
-export function useRestartRuntimeService() {
+export function useRuntimeServiceAction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => await runtimeControlManager.restartService(),
+    mutationFn: async (action: 'start-service' | 'restart-service' | 'stop-service') =>
+      await runtimeControlManager.controlService(action),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['runtime-control'] });
     }
