@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdirSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import {
   copyGalleryAssets,
