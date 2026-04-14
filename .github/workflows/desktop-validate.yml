@@ -402,7 +402,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/build-linux-apt-repo.mjs --input-dir apps/desktop/release --output-dir dist/linux-apt-repo --signing-mode test
+          node scripts/desktop/build-linux-apt-repo.mjs --input-dir apps/desktop/release --output-dir dist/linux-apt-repo --signing-mode test
 
       - name: Smoke test Linux APT repo install
         shell: bash

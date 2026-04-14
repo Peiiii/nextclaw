@@ -563,7 +563,7 @@ jobs:
           NEXTCLAW_APT_GPG_KEY_ID: ${{ secrets.NEXTCLAW_APT_GPG_KEY_ID }}
         run: |
           set -euo pipefail
-          node scripts/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env
+          node scripts/desktop/build-linux-apt-repo.mjs --input-dir dist/linux-apt-input --output-dir dist/linux-apt-repo --signing-mode env
 
       - name: Smoke Linux APT fresh install
         shell: bash
