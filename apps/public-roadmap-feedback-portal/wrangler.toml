@@ -1,0 +1,8 @@
+name = "nextclaw-public-roadmap-feedback-portal"
+main = "worker/index.ts"
+compatibility_date = "2026-04-14"
+workers_dev = true
+
+[assets]
+directory = "./dist/client"
+binding = "ASSETS"
