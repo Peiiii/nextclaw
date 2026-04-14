@@ -36,6 +36,7 @@ type TelegramStreamingMode = "off" | "partial" | "block";
 
 type TelegramStreamState = {
   chatId: string;
+  threadId?: number;
   rawText: string;
   lastRenderedText: string;
   messageId?: number;
@@ -47,6 +48,10 @@ type TelegramStreamState = {
   pending: boolean;
   timer: ReturnType<typeof setTimeout> | null;
 };
+
+function streamStateKey(chatId: string, threadId?: string): string {
+  return threadId ? `${chatId}:${threadId}` : chatId;
+}
 
 class TelegramStreamPreviewController {
   private readonly states = new Map<string, TelegramStreamState>();
@@ -60,13 +65,16 @@ class TelegramStreamPreviewController {
 
   async handleReset(msg: OutboundMessage): Promise<void> {
     const chatId = String(msg.chatId);
-    this.dispose(chatId);
+    const threadId = msg.threadId;
+    const key = streamStateKey(chatId, threadId);
+    this.dispose(key);
     if (this.params.resolveMode() === "off") {
       return;
     }
     const replyToMessageId = readReplyToMessageId(msg.metadata);
-    this.states.set(chatId, {
+    this.states.set(key, {
       chatId,
+      threadId: threadId ? Number(threadId) : undefined,
       rawText: "",
       lastRenderedText: "",
       messageId: undefined,
@@ -88,9 +96,10 @@ class TelegramStreamPreviewController {
       return;
     }
     const chatId = String(msg.chatId);
-    const state = this.ensureState(chatId);
+    const key = streamStateKey(chatId, msg.threadId);
+    const state = this.ensureState(chatId, msg.threadId);
     state.rawText += delta;
-    this.scheduleFlush(state);
+    this.scheduleFlush(key, state);
   }
 
   async finalizeWithFinalMessage(msg: OutboundMessage): Promise<boolean> {
@@ -98,7 +107,9 @@ class TelegramStreamPreviewController {
       return false;
     }
     const chatId = String(msg.chatId);
-    const state = this.states.get(chatId);
+    const threadId = msg.threadId;
+    const key = streamStateKey(chatId, threadId);
+    const state = this.states.get(key);
     if (!state) {
       return false;
     }
@@ -106,7 +117,7 @@ class TelegramStreamPreviewController {
     const replyToMessageId = msg.replyTo ? Number(msg.replyTo) : state.replyToMessageId;
     state.silent = msg.metadata?.silent === true || state.silent;
     if (!state.rawText.trim()) {
-      this.dispose(chatId);
+      this.dispose(key);
       return false;
     }
     const handled = await this.flushNow(state, {
@@ -115,23 +126,25 @@ class TelegramStreamPreviewController {
       replyToMessageId,
       silent: state.silent
     });
-    this.dispose(chatId);
+    this.dispose(key);
     return handled;
   }
 
   stopAll(): void {
-    for (const chatId of this.states.keys()) {
-      this.dispose(chatId);
+    for (const key of this.states.keys()) {
+      this.dispose(key);
     }
   }
 
-  private ensureState(chatId: string): TelegramStreamState {
-    const existing = this.states.get(chatId);
+  private ensureState(chatId: string, threadId?: string): TelegramStreamState {
+    const key = streamStateKey(chatId, threadId);
+    const existing = this.states.get(key);
     if (existing) {
       return existing;
     }
     const created: TelegramStreamState = {
       chatId,
+      threadId: threadId ? Number(threadId) : undefined,
       rawText: "",
       lastRenderedText: "",
       messageId: undefined,
@@ -143,11 +156,11 @@ class TelegramStreamPreviewController {
       pending: false,
       timer: null
     };
-    this.states.set(chatId, created);
+    this.states.set(key, created);
     return created;
   }
 
-  private scheduleFlush(state: TelegramStreamState): void {
+  private scheduleFlush(key: string, state: TelegramStreamState): void {
     if (state.timer) {
       return;
     }
@@ -158,12 +171,12 @@ class TelegramStreamPreviewController {
     const delay = Math.max(0, minInterval - (Date.now() - state.lastSentAt));
     state.timer = setTimeout(() => {
       state.timer = null;
-      void this.flushScheduled(state);
+      void this.flushScheduled(key, state);
     }, delay);
   }
 
-  private async flushScheduled(state: TelegramStreamState): Promise<void> {
-    const current = this.states.get(state.chatId);
+  private async flushScheduled(key: string, state: TelegramStreamState): Promise<void> {
+    const current = this.states.get(key);
     if (current !== state) {
       return;
     }
@@ -183,7 +196,7 @@ class TelegramStreamPreviewController {
       state.inFlight = false;
       if (state.pending) {
         state.pending = false;
-        this.scheduleFlush(state);
+        this.scheduleFlush(key, state);
       }
     }
   }
@@ -254,6 +267,7 @@ class TelegramStreamPreviewController {
 
     const sendOptions = {
       parse_mode: "HTML" as const,
+      ...(state.threadId ? { message_thread_id: state.threadId } : {}),
       ...(opts.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
       ...(opts.silent ? { disable_notification: true } : {})
     };
@@ -264,6 +278,7 @@ class TelegramStreamPreviewController {
       }
     } catch {
       const sent = await bot.sendMessage(Number(state.chatId), plainText.slice(0, TELEGRAM_TEXT_LIMIT), {
+        ...(state.threadId ? { message_thread_id: state.threadId } : {}),
         ...(opts.replyToMessageId ? { reply_to_message_id: opts.replyToMessageId } : {}),
         ...(opts.silent ? { disable_notification: true } : {})
       });
@@ -343,9 +358,11 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     }
 
     this.bot.onText(/^\/start$/, async (msg: Message) => {
+      const opts = threadSendOptions(msg);
       await this.bot?.sendMessage(
         msg.chat.id,
-        `👋 Hi ${msg.from?.first_name ?? ""}! I'm ${APP_NAME}.\n\nSend me a message and I'll respond!\nType /help to see available commands.`
+        `👋 Hi ${msg.from?.first_name ?? ""}! I'm ${APP_NAME}.\n\nSend me a message and I'll respond!\nType /help to see available commands.`,
+        opts
       );
     });
 
@@ -356,29 +373,25 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         "/reset — Reset conversation history\n" +
         "/help — Show this help message\n\n" +
         "Just send me a text message to chat!";
-      await this.bot?.sendMessage(msg.chat.id, helpText, { parse_mode: "HTML" });
+      const opts = { parse_mode: "HTML" as const, ...threadSendOptions(msg) };
+      await this.bot?.sendMessage(msg.chat.id, helpText, opts);
     });
 
     this.bot.onText(/^\/reset$/, async (msg: Message) => {
       const chatId = String(msg.chat.id);
+      const threadId = msg.message_thread_id != null ? String(msg.message_thread_id) : undefined;
+      const opts = threadSendOptions(msg);
       if (!this.sessionManager) {
-        await this.bot?.sendMessage(msg.chat.id, "⚠️ Session management is not available.");
+        await this.bot?.sendMessage(msg.chat.id, "⚠️ Session management is not available.", opts);
         return;
       }
       const accountId = this.resolveAccountId();
+      const sessionPrefix = threadId ? `${this.name}:${chatId}:${threadId}` : `${this.name}:${chatId}`;
       const candidates = this.sessionManager
         .listSessions()
         .filter((entry) => {
-          const metadata = (entry.metadata as Record<string, unknown> | undefined) ?? {};
-          const lastChannel = typeof metadata.last_channel === "string" ? metadata.last_channel : "";
-          const lastTo = typeof metadata.last_to === "string" ? metadata.last_to : "";
-          const lastAccountId =
-            typeof metadata.last_account_id === "string"
-              ? metadata.last_account_id
-              : typeof metadata.last_accountId === "string"
-                ? metadata.last_accountId
-                : "default";
-          return lastChannel === this.name && lastTo === chatId && lastAccountId === accountId;
+          const key = String(entry.key ?? "");
+          return key === sessionPrefix || key.startsWith(sessionPrefix + ":");
         })
         .map((entry) => String(entry.key ?? ""))
         .filter(Boolean);
@@ -395,13 +408,13 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       }
 
       if (candidates.length === 0) {
-        const legacySession = this.sessionManager.getOrCreate(`${this.name}:${chatId}`);
+        const legacySession = this.sessionManager.getOrCreate(sessionPrefix);
         totalCleared = legacySession.messages.length;
         this.sessionManager.clear(legacySession);
         this.sessionManager.save(legacySession);
       }
 
-      await this.bot?.sendMessage(msg.chat.id, `🔄 Conversation history cleared (${totalCleared} messages).`);
+      await this.bot?.sendMessage(msg.chat.id, `🔄 Conversation history cleared (${totalCleared} messages).`, opts);
     });
 
     this.bot.on("message", async (msg: Message) => {
@@ -469,8 +482,10 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     const htmlContent = markdownToTelegramHtml(msg.content ?? "");
     const silent = msg.metadata?.silent === true;
     const replyTo = msg.replyTo ? Number(msg.replyTo) : undefined;
+    const threadId = msg.threadId ? Number(msg.threadId) : undefined;
     const options = {
       parse_mode: "HTML" as const,
+      ...(threadId ? { message_thread_id: threadId } : {}),
       ...(replyTo ? { reply_to_message_id: replyTo } : {}),
       ...(silent ? { disable_notification: true } : {})
     };
@@ -478,6 +493,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       await this.bot.sendMessage(Number(msg.chatId), htmlContent, options);
     } catch {
       await this.bot.sendMessage(Number(msg.chatId), msg.content ?? "", {
+        ...(threadId ? { message_thread_id: threadId } : {}),
         ...(replyTo ? { reply_to_message_id: replyTo } : {}),
         ...(silent ? { disable_notification: true } : {})
       });
@@ -493,6 +509,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       return;
     }
     const chatId = String(message.chat.id);
+    const threadId = message.message_thread_id != null ? String(message.message_thread_id) : undefined;
     const isGroup = message.chat.type !== "private";
     if (!this.isAllowedByPolicy({ senderId: String(sender.id), chatId, isGroup })) {
       return;
@@ -569,7 +586,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         peer_id: isGroup ? chatId : String(sender.id),
         was_mentioned: mentionState.wasMentioned,
         require_mention: mentionState.requireMention
-      });
+      }, threadId);
     } catch (error) {
       this.stopTyping(chatId);
       throw error;
@@ -581,9 +598,10 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     chatId: string,
     content: string,
     attachments: InboundAttachment[],
-    metadata: Record<string, unknown>
+    metadata: Record<string, unknown>,
+    threadId?: string
   ): Promise<void> {
-    await this.handleMessage({ senderId, chatId, content, attachments, metadata });
+    await this.handleMessage({ senderId, chatId, threadId, content, attachments, metadata });
   }
 
   private startTyping(chatId: string): void {
@@ -807,6 +825,13 @@ function shouldSendAckReaction(params: {
     return params.isGroup && params.requireMention && params.wasMentioned;
   }
   return false;
+}
+
+function threadSendOptions(msg: Message): { message_thread_id?: number } {
+  if (msg.message_thread_id != null && typeof msg.message_thread_id === "number") {
+    return { message_thread_id: msg.message_thread_id };
+  }
+  return {};
 }
 
 function readReplyToMessageId(metadata: Record<string, unknown>): number | undefined {

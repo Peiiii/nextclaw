@@ -32,6 +32,7 @@ export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
   protected async handleMessage(params: {
     senderId: string;
     chatId: string;
+    threadId?: string;
     content: string;
     attachments?: InboundAttachment[];
     metadata?: Record<string, unknown>;
@@ -43,6 +44,7 @@ export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
       channel: this.name,
       senderId: params.senderId,
       chatId: params.chatId,
+      threadId: params.threadId,
       content: params.content,
       timestamp: new Date(),
       attachments: params.attachments ?? [],
