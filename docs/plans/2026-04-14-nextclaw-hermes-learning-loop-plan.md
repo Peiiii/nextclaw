@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在不重造 Hermes 全量 runtime、也不新增专门 `skill_manage` 工具的前提下，让 NextClaw 先补齐 `skill 列表稳定注入`、`AI 主动维护 skill`，再补 `session_search`，最后基于现有子 agent / child session 能力实现后台复盘写回。
+**Goal:** 在不重造 Hermes 全量 runtime、也不新增专门 `skill_manage` 工具的前提下，让 NextClaw 先补齐 `skill 列表稳定注入` 与 `AI 主动复盘、主动抽象、主动沉淀 skill` 的学习闭环，再补 `session_search`，最后基于现有子 agent / child session 能力实现后台复盘写回。
 
-**Architecture:** 复用 NextClaw 现有 `SkillsLoader`、prompt builder、file tools、session persistence、`sessions_*` 与 subagent/runtime 基础设施，只补“让模型知道有 skill、敢用 skill、会修 skill、能在任务结束后复盘沉淀”的闭环层。不新增第一阶段专用 skill 编辑工具，优先加强现有文件工具与 prompt/skill 协议；`session_search` 先作为独立 recall 基础设施落地，再让后台复盘通过现有 child session / background session request 在其上工作，不把它们挤进 memory。
+**Architecture:** 复用 NextClaw 现有 `SkillsLoader`、prompt builder、session persistence、`sessions_*` 与 subagent/runtime 基础设施，只补“让模型知道有 skill、会在任务后主动复盘、能把复盘结果抽象成 skill 候选、并在合适时机写回”的闭环层。不新增第一阶段专用 skill 编辑工具；实现层可继续复用现有文件能力，但产品重点放在“自动学习协议”而不是“文件编辑动作”本身。`session_search` 先作为独立 recall 基础设施落地，再让后台复盘通过现有 child session / background session request 在其上工作，不把它们挤进 memory。
 
 **Tech Stack:** TypeScript, Vitest, NextClaw core agent context, NCP toolkit session persistence, Hono UI routes, existing file/session/subagent tools, Markdown skills.
 
@@ -14,7 +14,7 @@
 
 这次不是为了“把 Hermes 再做一遍”，而是为了让 NextClaw 更像个人操作层：会积累经验、会复用工作流、会在多会话中持续变得更顺手。方案默认坚持三点：
 
-1. 不新增第一阶段专用 `skill_manage` 工具，先复用现有文件工具，把复杂度留在更通用的边界。
+1. 不新增第一阶段专用 `skill_manage` 工具，把重点放在自动学习协议与沉淀闭环，而不是工具表面形态。
 2. 不把 durable memory、history recall、procedural memory 混成一锅粥。
 3. 不在一个热点中心文件里叠补丁，而是沿 `skills/context/runtime/session-search/subagent-session-request` 边界分别推进。
 
@@ -26,8 +26,8 @@
    - 主 system prompt 通过 [`packages/nextclaw-core/src/agent/context.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/context.ts) 注入 `active_skills` 与 `available_skills`。
    - 具体注入文案在 [`packages/nextclaw-core/src/agent/skill-context.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/skill-context.ts)。
    - runtime user prompt 也会注入 requested skills，见 [`packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts)。
-2. **`AI 主动编辑 skill` 还没有闭环。**
-   - 现在 AI 理论上可以用 `read_file/write_file/edit_file/list_dir` 改 skill 文件，但没有强约束提示、没有专门安全护栏、没有“发现可复用流程后应主动沉淀”的稳定协议。
+2. **`AI 主动学习并沉淀 skill` 还没有闭环。**
+   - 现在缺的不是“能不能改 skill 文件”，而是“任务结束后会不会主动复盘、会不会抽象出复用模式、会不会把经验提升成 skill 候选”的稳定协议。
 3. **`session_search` 还没有正式能力。**
    - 现有 [`sessions_history`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/sessions.ts) 只适合定向取历史，不是“跨会话召回”。
    - 后端全文搜索方向已经在 [`docs/plans/2026-04-13-chat-global-content-search-design.md`](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-chat-global-content-search-design.md) 里定过大方向。
@@ -39,7 +39,8 @@
 ### P0
 
 1. 确认并补齐所有主要 runtime 的 `skill 列表注入` 一致性。
-2. 不新增 `skill_manage` 工具，改为让 AI 在现有文件工具上就能主动创建/修补 skill。
+2. 让 AI 在任务结束后主动产出复盘总结，并判断是否应沉淀为新 skill 或修补已有 skill。
+3. 让这个“复盘 -> 抽象 -> skill 候选”成为明确协议，而不是偶发灵感。
 
 ### P1
 
@@ -61,17 +62,17 @@
 
 理由：
 
-1. 当前仓库已经有足够的文件读写能力，足以支持 skill 维护。
-2. 专用工具会引入新的 schema、权限边界、实现和维护成本。
-3. 真正缺的是“AI 被明确要求这样做”以及“这样做时不会乱写”的协议，而不是写文件能力本身。
+1. 当前问题的关键不是“有没有编辑入口”，而是“AI 会不会主动学习、主动抽象、主动沉淀”。
+2. 专用工具会引入新的 schema、权限边界、实现和维护成本，但并不会自动解决学习闭环本身。
+3. 真正缺的是“何时必须复盘、如何把复盘抽象成 skill、什么情况下应该新增/修补 skill”的协议。
 
 第一阶段方案：
 
-1. 用 prompt contract 明确要求：当发现可复用 workflow、踩坑修复、或 skill 已过期时，应主动去编辑 skill。
-2. 用内建 skill 或内建指南明确 skill 的目录、frontmatter、支持文件约定、推荐 patch 方式。
-3. 用测试保证模型可见链路中确实有这些提示。
+1. 用 prompt contract 明确要求：当任务形成可复用 workflow、踩坑修复、稳定套路或明显知识增量时，必须先产出复盘总结。
+2. 复盘总结必须进一步回答：这次经验是否值得提升为新 skill，还是只是补丁到已有 skill。
+3. 用测试保证模型可见链路中确实有这些提示与判断步骤。
 
-只有在第一阶段证明“现有文件工具 + 清晰协议”仍明显不够时，才进入第二阶段评估专用工具。
+只有在第一阶段证明“学习协议已经成立，但落地写回动作仍明显不够顺滑”时，才进入第二阶段评估专用工具。
 
 ### 决策 2：`session_search` 走独立查询面，不复用 memory
 
@@ -144,7 +145,7 @@ git add packages/nextclaw-core/src/agent/skill-context.ts packages/nextclaw-core
 git commit -m "test: lock skill visibility across prompt builders"
 ```
 
-## Task 2: Let AI Proactively Maintain Skills Using Existing File Tools
+## Task 2: Teach AI To Proactively Summarize, Abstract, And Propose Skills
 
 **Files:**
 - Modify: [`packages/nextclaw-core/src/agent/skill-context.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/skill-context.ts)
@@ -158,9 +159,9 @@ git commit -m "test: lock skill visibility across prompt builders"
 
 至少覆盖：
 
-1. system prompt 明确告诉 AI：发现可复用流程/修复过时 skill 时，应主动维护 skill。
-2. 文案明确写明第一阶段通过现有文件工具维护 `SKILL.md`，不是依赖新工具。
-3. 不允许一开始就读多个 skill；只有确认相关后再读具体 `SKILL.md`。
+1. system prompt 明确告诉 AI：任务完成后若形成可复用模式，必须主动产出复盘总结。
+2. 复盘总结必须继续判断：这次经验应不应该提升为新 skill，还是补丁到已有 skill。
+3. 复盘结果应包含“触发条件 / 适用场景 / 核心步骤 / 失败信号”这类可 skill 化要素，而不是只写流水账。
 
 **Step 2: Run focused tests**
 
@@ -172,11 +173,11 @@ pnpm vitest run packages/nextclaw-core/src/agent/tests/context.test.ts packages/
 
 内容收敛为三部分：
 
-1. **发现条件**：复杂任务、踩坑修复、流程收敛、旧 skill 失效。
-2. **动作方式**：优先使用 `read_file/write_file/edit_file/list_dir` 直接维护 skill 文件。
-3. **文件约定**：skill 放在哪里、`SKILL.md` 基本结构、支持文件目录约定。
+1. **触发条件**：复杂任务、踩坑修复、流程收敛、重复动作、旧 skill 失效。
+2. **复盘输出**：先总结本次学到了什么，再判断是否应新增/修补 skill。
+3. **skill 抽象标准**：只有当经验足够可复用、可触发、可执行、可验证时，才提升为 skill。
 
-这里不新增工具；若需要补充说明，优先修改内建 `skill-creator` 或新增一个轻量内建 skill 说明，而不是新增 executable tool。
+这里不新增工具；若需要补充说明，优先修改内建 `skill-creator` 或新增一个轻量内建 skill 说明，而不是新增 executable tool。实现层即便仍复用现有文件能力，也不把“如何写文件”当成这一阶段的产品重点。
 
 **Step 4: Re-run tests**
 
@@ -186,7 +187,7 @@ pnpm vitest run packages/nextclaw-core/src/agent/tests/context.test.ts packages/
 
 ```bash
 git add packages/nextclaw-core/src/agent/skill-context.ts packages/nextclaw-core/src/agent/context.ts packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts packages/nextclaw-core/src/agent/skills/skill-creator packages/nextclaw-core/src/agent/tests/context.test.ts packages/nextclaw-core/src/agent/tests/runtime-user-prompt.test.ts
-git commit -m "feat: teach agents to maintain skills with file tools"
+git commit -m "feat: teach agents to summarize and propose skills"
 ```
 
 ## Task 3: Implement Session Search As A Separate Recall Layer
@@ -288,8 +289,9 @@ git commit -m "feat: add background skill review loop"
 ### P0 验证
 
 1. `available_skills` / `active_skills` / `requested_skills` 在主 prompt、runtime prompt、NCP prompt 中都可见。
-2. 文案明确要求 AI 发现可复用流程时主动维护 skill。
-3. 不引入新的 skill 管理 tool schema。
+2. 文案明确要求 AI 在任务后主动产出复盘总结，而不是只在用户点名时才总结。
+3. 复盘总结会继续判断“是否应新增 skill / 修补 skill / 不需要沉淀”。
+4. 不引入新的 skill 管理 tool schema。
 
 ### P1 验证
 
@@ -307,7 +309,7 @@ git commit -m "feat: add background skill review loop"
 ## 风险与防守线
 
 1. **风险：AI 乱改 skill。**  
-   第一阶段通过内建约束、测试、目录边界、最小动作范围控制，而不是靠新工具兜底。
+   第一阶段先把重点放在“会不会正确复盘和抽象”，而不是鼓励它一上来就频繁改 skill；先控制沉淀判断质量，再扩写回动作。
 
 2. **风险：后台复盘变成噪音制造器。**  
    第一版只做 skill review，不做 memory auto-write，不做多目标复盘；必要时只在命中明确触发条件时才调度 background child session。
@@ -321,7 +323,7 @@ git commit -m "feat: add background skill review loop"
 ## 推荐实施顺序
 
 1. Task 1: Skill visibility consistency
-2. Task 2: AI proactive skill maintenance with file tools
+2. Task 2: AI proactive summarize and skill proposal
 3. Task 3: Session search
 4. Task 4: Background skill review
 
@@ -330,7 +332,7 @@ git commit -m "feat: add background skill review loop"
 按当前现状，最值钱的路线不是“先造 skill 管理新工具”，而是：
 
 1. 先确保 skill 真的稳定可见。
-2. 再让 AI 被明确要求用现有文件工具主动维护 skill。
+2. 再让 AI 被明确要求主动复盘、主动抽象，并判断是否应沉淀成 skill。
 3. 再补 `session_search`，把跨会话历史召回做成独立底座。
 4. 最后基于现有子 agent / child session 能力，把 skill 维护做成后台复盘闭环。
 
