@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 在不重造 Hermes 全量 runtime、也不新增专门 `skill_manage` 工具的前提下，让 NextClaw 先补齐三个最关键闭环：`skill 列表稳定注入`、`AI 主动维护 skill`、`后台复盘写回`，随后再补 `session_search`。
+**Goal:** 在不重造 Hermes 全量 runtime、也不新增专门 `skill_manage` 工具的前提下，让 NextClaw 先补齐 `skill 列表稳定注入`、`AI 主动维护 skill`，再补 `session_search`，最后基于现有子 agent / child session 能力实现后台复盘写回。
 
-**Architecture:** 复用 NextClaw 现有 `SkillsLoader`、prompt builder、file tools、session persistence 与 subagent/runtime 基础设施，只补“让模型知道有 skill、敢用 skill、会修 skill、能在任务结束后复盘沉淀”的闭环层。不新增第一阶段专用 skill 编辑工具，优先加强现有文件工具与 prompt/skill 协议；`session_search` 单独走后端索引驱动查询面，不挤进 memory。
+**Architecture:** 复用 NextClaw 现有 `SkillsLoader`、prompt builder、file tools、session persistence、`sessions_*` 与 subagent/runtime 基础设施，只补“让模型知道有 skill、敢用 skill、会修 skill、能在任务结束后复盘沉淀”的闭环层。不新增第一阶段专用 skill 编辑工具，优先加强现有文件工具与 prompt/skill 协议；`session_search` 先作为独立 recall 基础设施落地，再让后台复盘通过现有 child session / background session request 在其上工作，不把它们挤进 memory。
 
 **Tech Stack:** TypeScript, Vitest, NextClaw core agent context, NCP toolkit session persistence, Hono UI routes, existing file/session/subagent tools, Markdown skills.
 
@@ -16,7 +16,7 @@
 
 1. 不新增第一阶段专用 `skill_manage` 工具，先复用现有文件工具，把复杂度留在更通用的边界。
 2. 不把 durable memory、history recall、procedural memory 混成一锅粥。
-3. 不在一个热点中心文件里叠补丁，而是沿 `skills/context/runtime/session-search` 边界分别推进。
+3. 不在一个热点中心文件里叠补丁，而是沿 `skills/context/runtime/session-search/subagent-session-request` 边界分别推进。
 
 ## 当前结论
 
@@ -28,10 +28,11 @@
    - runtime user prompt 也会注入 requested skills，见 [`packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts)。
 2. **`AI 主动编辑 skill` 还没有闭环。**
    - 现在 AI 理论上可以用 `read_file/write_file/edit_file/list_dir` 改 skill 文件，但没有强约束提示、没有专门安全护栏、没有“发现可复用流程后应主动沉淀”的稳定协议。
-3. **后台复盘写回还没有 Hermes 式机制。**
-4. **`session_search` 还没有正式能力。**
+3. **`session_search` 还没有正式能力。**
    - 现有 [`sessions_history`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/sessions.ts) 只适合定向取历史，不是“跨会话召回”。
    - 后端全文搜索方向已经在 [`docs/plans/2026-04-13-chat-global-content-search-design.md`](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-chat-global-content-search-design.md) 里定过大方向。
+4. **后台复盘写回还没有 Hermes 式机制。**
+   - 但仓库已经有 [`spawn`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/spawn.ts)、[`subagents`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/subagents.ts) 与 child session / cross-session request 方向，不需要从零造第二套 agent loop。
 
 ## 范围与优先级
 
@@ -42,11 +43,11 @@
 
 ### P1
 
-3. 增加后台复盘写回能力：任务结束后自动判断是否应沉淀/修补 skill。
+3. 实现 `session_search`，让历史过程回忆与 durable memory 分层，并为后台复盘提供检索底座。
 
 ### P2
 
-4. 实现 `session_search`，让历史过程回忆与 durable memory 分层。
+4. 增加后台复盘写回能力：任务结束后用现有子 agent / child session 机制自动判断是否应沉淀/修补 skill。
 
 ### 明确暂缓
 
@@ -79,13 +80,23 @@
 1. `memory` 存稳定事实与偏好。
 2. `session_search` 存历史过程与旧决策轨迹。
 3. 把两者混起来会让记忆膨胀、污染 prompt，并且破坏可解释性。
+4. 后台复盘若未来要看“之前怎么做过类似事”，也应查 `session_search`，而不是翻 memory。
 
-### 决策 3：后台复盘应复用现有 session/subagent 基础，而不是造第二套 agent loop
+### 决策 3：`session_search` 要先于后台复盘落地
 
 理由：
 
-1. 仓库已经有 session persistence、subagent、runtime prompt builder。
+1. 复盘若只盯当前会话，很容易退化成“当前 transcript 再总结一遍”，而不是真正的跨会话经验沉淀。
+2. 先有独立 recall 层，复盘才能在需要时引用旧会话、旧修复、旧 skill 轨迹。
+3. 这也更符合 NextClaw 作为统一入口的方向：先补通用检索底座，再让上层 agent 工作流复用。
+
+### 决策 4：后台复盘应复用现有 session/subagent 基础，而不是造第二套 agent loop
+
+理由：
+
+1. 仓库已经有 `spawn`、`subagents`、session persistence，以及 child session / cross-session request 的协议方向。
 2. 复盘本质是“低优先级、异步、可容错”的附加执行，不需要再造 Hermes runner。
+3. 第一版完全可以表现为“主任务结束后调度一个 background child session / session request”，而不是新发明线程模型。
 
 ## Task 1: Skill Visibility Consistency Audit And Patch
 
@@ -178,50 +189,7 @@ git add packages/nextclaw-core/src/agent/skill-context.ts packages/nextclaw-core
 git commit -m "feat: teach agents to maintain skills with file tools"
 ```
 
-## Task 3: Add Background Skill Review After Task Completion
-
-**Files:**
-- Check/Modify runtime execution boundary under [`packages/ncp-packages/nextclaw-ncp-toolkit/src/agent/agent-backend`](/Users/peiwang/Projects/nextbot/packages/ncp-packages/nextclaw-ncp-toolkit/src/agent/agent-backend)
-- Check/Modify subagent/session tools under [`packages/nextclaw-core/src/agent/tools/subagents.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/subagents.ts)
-- Check/Modify session tools under [`packages/nextclaw-core/src/agent/tools/sessions.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/sessions.ts)
-- Add tests under [`packages/ncp-packages/nextclaw-ncp-toolkit/src/agent`](/Users/peiwang/Projects/nextbot/packages/ncp-packages/nextclaw-ncp-toolkit/src/agent)
-
-**Step 1: Write failing tests for asynchronous review scheduling**
-
-至少覆盖：
-
-1. 主任务完成后会调度一个低优先级复盘动作。
-2. 复盘失败不影响主回复完成。
-3. 复盘任务默认只尝试 skill review，不先扩展到 memory auto-write。
-
-**Step 2: Run focused tests**
-
-按新增测试路径执行。
-
-**Step 3: Implement minimal background review**
-
-第一版只做：
-
-1. 主 run 结束后，若本轮满足条件，则调度一条“skill review”后台任务。
-2. review prompt 只回答一个问题：这轮是否应新增/修补 skill。
-3. review 自身仍通过现有文件工具改 skill，不新增专用 skill tool。
-
-不要第一版就做：
-
-1. memory auto-write
-2. 多层优先级调度
-3. 复杂评分系统
-
-**Step 4: Re-run tests**
-
-**Step 5: Commit**
-
-```bash
-git add packages/ncp-packages/nextclaw-ncp-toolkit/src/agent packages/nextclaw-core/src/agent/tools/subagents.ts packages/nextclaw-core/src/agent/tools/sessions.ts
-git commit -m "feat: add background skill review loop"
-```
-
-## Task 4: Implement Session Search As A Separate Recall Layer
+## Task 3: Implement Session Search As A Separate Recall Layer
 
 **Files:**
 - Reference: [`docs/plans/2026-04-13-chat-global-content-search-design.md`](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-13-chat-global-content-search-design.md)
@@ -266,6 +234,55 @@ git add packages/nextclaw-core/src/agent/tools packages/ncp-packages/nextclaw-nc
 git commit -m "feat: add cross-session search recall layer"
 ```
 
+## Task 4: Add Background Skill Review After Task Completion
+
+**Files:**
+- Check/Modify runtime execution boundary under [`packages/ncp-packages/nextclaw-ncp-toolkit/src/agent/agent-backend`](/Users/peiwang/Projects/nextbot/packages/ncp-packages/nextclaw-ncp-toolkit/src/agent/agent-backend)
+- Check/Modify subagent/session tools under [`packages/nextclaw-core/src/agent/tools/subagents.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/subagents.ts)
+- Check/Modify spawn/session tools under [`packages/nextclaw-core/src/agent/tools/spawn.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/spawn.ts) and [`packages/nextclaw-core/src/agent/tools/sessions.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-core/src/agent/tools/sessions.ts)
+- Reference: [`docs/plans/2026-04-03-cross-session-request-and-child-session-design.md`](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-03-cross-session-request-and-child-session-design.md)
+- Add tests under [`packages/ncp-packages/nextclaw-ncp-toolkit/src/agent`](/Users/peiwang/Projects/nextbot/packages/ncp-packages/nextclaw-ncp-toolkit/src/agent)
+
+**Step 1: Write failing tests for asynchronous review scheduling**
+
+至少覆盖：
+
+1. 主任务完成后会调度一个低优先级复盘动作。
+2. 复盘失败不影响主回复完成。
+3. 复盘任务默认只尝试 skill review，不先扩展到 memory auto-write。
+4. 第一版复盘执行复用 background child session / session request / subagent 路径，而不是新线程执行器。
+
+**Step 2: Run focused tests**
+
+按新增测试路径执行。
+
+**Step 3: Implement minimal background review**
+
+第一版只做：
+
+1. 主 run 结束后，若本轮满足条件，则调度一条“skill review”后台任务。
+2. review prompt 只回答一个问题：这轮是否应新增/修补 skill。
+3. review 自身仍通过现有文件工具改 skill，不新增专用 skill tool。
+4. 优先复用现有 `spawn` / child session / cross-session request 语义；如果第一版只需要其中一条最短路径，也应沿这条协议演进。
+5. 若复盘需要取旧案例，统一调用 `session_search`，而不是读 memory。
+
+不要第一版就做：
+
+1. memory auto-write
+2. 多层优先级调度
+3. 复杂评分系统
+
+**Step 4: Re-run tests**
+
+按新增测试路径执行。
+
+**Step 5: Commit**
+
+```bash
+git add packages/ncp-packages/nextclaw-ncp-toolkit/src/agent packages/nextclaw-core/src/agent/tools/subagents.ts packages/nextclaw-core/src/agent/tools/spawn.ts packages/nextclaw-core/src/agent/tools/sessions.ts
+git commit -m "feat: add background skill review loop"
+```
+
 ## 验证策略
 
 ### P0 验证
@@ -276,15 +293,16 @@ git commit -m "feat: add cross-session search recall layer"
 
 ### P1 验证
 
-1. 主任务成功返回后，后台 review 会被调度。
-2. review 出错不会中断主流程。
-3. 至少能在测试环境里观察到“应创建/应 patch skill”的动作触发。
-
-### P2 验证
-
 1. 给定一个旧会话关键词，AI 可通过 `session_search` 找回相关片段。
 2. 当前会话默认不混入结果。
 3. 检索结果不会污染 durable memory。
+
+### P2 验证
+
+1. 主任务成功返回后，后台 review 会被调度。
+2. review 出错不会中断主流程。
+3. 至少能在测试环境里观察到“应创建/应 patch skill”的动作触发。
+4. 后台 review 通过现有子 agent / child session 路径执行，而不是独立 runner。
 
 ## 风险与防守线
 
@@ -292,17 +310,20 @@ git commit -m "feat: add cross-session search recall layer"
    第一阶段通过内建约束、测试、目录边界、最小动作范围控制，而不是靠新工具兜底。
 
 2. **风险：后台复盘变成噪音制造器。**  
-   第一版只做 skill review，不做 memory auto-write，不做多目标复盘。
+   第一版只做 skill review，不做 memory auto-write，不做多目标复盘；必要时只在命中明确触发条件时才调度 background child session。
 
 3. **风险：`session_search` 与 memory 语义混淆。**  
    工具命名、提示文案、返回结构必须明确区分“稳定事实”和“历史过程”。
+
+4. **风险：后台复盘先造了一套和现有多 agent 脱节的新机制。**  
+   第一版明确要求复用 `spawn` / `subagents` / child session / session request 语义，不新增平行线程体系。
 
 ## 推荐实施顺序
 
 1. Task 1: Skill visibility consistency
 2. Task 2: AI proactive skill maintenance with file tools
-3. Task 3: Background skill review
-4. Task 4: Session search
+3. Task 3: Session search
+4. Task 4: Background skill review
 
 ## 本计划的最终判断
 
@@ -310,7 +331,7 @@ git commit -m "feat: add cross-session search recall layer"
 
 1. 先确保 skill 真的稳定可见。
 2. 再让 AI 被明确要求用现有文件工具主动维护 skill。
-3. 再把这种行为做成后台复盘闭环。
-4. 最后补跨会话历史召回。
+3. 再补 `session_search`，把跨会话历史召回做成独立底座。
+4. 最后基于现有子 agent / child session 能力，把 skill 维护做成后台复盘闭环。
 
 这样最符合你现在给的优先级，也最符合 NextClaw 现有架构。
