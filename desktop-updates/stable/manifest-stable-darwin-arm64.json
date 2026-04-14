@@ -5,8 +5,8 @@
   "latestVersion": "0.17.11",
   "minimumLauncherVersion": "0.0.140",
   "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/v0.17.11-desktop.1/nextclaw-bundle-darwin-arm64-0.17.11.zip",
-  "bundleSha256": "c2a6941df03dc7c32f133f9dd534797a2bf5e52bd8b47206c2fbd2a87f05f5d5",
-  "bundleSignature": "PcXa5mBovZqpfgu35Fx0C0riFN0etGl5mIxs7p3T2gDlwhdXZxNmBuEXgtIcjdb+/jGCVJXE4epVlyX3fVCdDQ==",
+  "bundleSha256": "659c40c6b187858827fc7c8cae323f00589b77558fbf86c6193f92fff08f4233",
+  "bundleSignature": "k9nFH9xJwk9zhg+fcBpP5Jto1wA0QlOih3n8xXJ+KmGUCIaqt28Ff9pqBfh/BZUj1mQTMbkamKHJfXnX15GHBw==",
   "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.17.11-desktop.1",
-  "manifestSignature": "NKuGMUDREva8m+BU35pQ70V6L+ZO3xO6iKge5Lha7MzLVoqTgJE7PfXusWTRgRwx5adQFBUuwZzZODKOvUoiCw=="
+  "manifestSignature": "S0milZbq6fLiizYgrRZpRybn2dqYPFpL4p0T3sDmXVCgowU521gCDGGeS8F31Vre564RXV6z9n4B+alificADQ=="
 }
