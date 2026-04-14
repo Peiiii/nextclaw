@@ -37,18 +37,21 @@ describe('ChatSessionListManager', () => {
 
   it('applies the requested session type when creating a session', () => {
     const uiManager = {
-      goToSession: vi.fn()
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    manager.createSession('codex');
+    const sessionKey = manager.createSession('codex');
 
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
-    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-1');
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+    expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBe(sessionKey);
     expect(useChatSessionListStore.getState().snapshot.draftSessionKey).not.toBe('draft-root-1');
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
@@ -57,20 +60,22 @@ describe('ChatSessionListManager', () => {
 
   it('hydrates the draft project root when creating a session inside a project group', () => {
     const uiManager = {
-      goToSession: vi.fn()
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    manager.createSession('native', '/tmp/project-alpha');
+    const sessionKey = manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe('draft-root-1');
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe(sessionKey);
   });
 
-  it('promotes the current root draft when send flow needs a concrete session key', () => {
+  it('reuses the current root draft when send flow needs a concrete session key', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -79,7 +84,9 @@ describe('ChatSessionListManager', () => {
       }
     });
     const uiManager = {
-      goToSession: vi.fn()
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
@@ -89,28 +96,33 @@ describe('ChatSessionListManager', () => {
     const sessionKey = manager.ensureDraftSession('native');
 
     expect(sessionKey).toBe('draft-root-2');
-    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-2');
+    expect(uiManager.goToChatRoot).not.toHaveBeenCalled();
+    expect(uiManager.goToSession).not.toHaveBeenCalled();
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
   });
 
   it('does not eagerly replace the old selected session before the route finishes switching', () => {
     const uiManager = {
-      goToSession: vi.fn()
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    manager.createSession('native', '/tmp/project-alpha');
+    const sessionKey = manager.createSession('native', '/tmp/project-alpha');
 
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe('draft-root-1');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe(sessionKey);
   });
 
   it('delegates existing-session selection to routing without eagerly mutating the selected session state', () => {
     const uiManager = {
-      goToSession: vi.fn()
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {
       resetStreamState: vi.fn()
@@ -124,7 +136,9 @@ describe('ChatSessionListManager', () => {
   });
 
   it('updates the sidebar list mode without touching other session list state', () => {
-    const uiManager = {} as ConstructorParameters<typeof ChatSessionListManager>[0];
+    const uiManager = {
+      isAtChatRoot: vi.fn(() => true),
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
     const streamActionsManager = {} as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
@@ -136,7 +150,9 @@ describe('ChatSessionListManager', () => {
 
   it('marks a session as read through the session list owner boundary', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {
+        isAtChatRoot: vi.fn(() => true),
+      } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0],
       {} as ConstructorParameters<typeof ChatSessionListManager>[1]
     );
 
@@ -152,7 +168,9 @@ describe('ChatSessionListManager', () => {
 
   it('skips persisting read state when the backend already has the same watermark', () => {
     const manager = new ChatSessionListManager(
-      {} as ConstructorParameters<typeof ChatSessionListManager>[0],
+      {
+        isAtChatRoot: vi.fn(() => true),
+      } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0],
       {} as ConstructorParameters<typeof ChatSessionListManager>[1]
     );
 
@@ -164,5 +182,29 @@ describe('ChatSessionListManager', () => {
 
     expect(useChatSessionListStore.getState().optimisticReadAtBySessionKey['session-2']).toBeUndefined();
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
+  });
+
+  it('promotes the active root draft to a concrete session route after the draft has been sent successfully', () => {
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: null,
+        draftSessionKey: 'draft-root-2',
+      }
+    });
+    const uiManager = {
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
+    const streamActionsManager = {
+      resetStreamState: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
+    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+
+    manager.ensureDraftSession('native');
+    manager.promoteRootDraftSessionRoute('draft-root-2');
+
+    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-2', { replace: true });
   });
 });

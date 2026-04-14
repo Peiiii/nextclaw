@@ -15,6 +15,7 @@ import {
 } from '@/components/chat/chat-composer-state';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
@@ -170,6 +171,7 @@ export class NcpChatInputManager {
   send = async () => {
     const inputSnapshot = useChatInputStore.getState().snapshot;
     const sessionSnapshot = useChatSessionListStore.getState().snapshot;
+    const threadSnapshot = useChatThreadStore.getState().snapshot;
     const message = inputSnapshot.draft.trim();
     const attachments = inputSnapshot.attachments;
     const parts = deriveNcpMessagePartsFromComposer(inputSnapshot.composerNodes, attachments);
@@ -180,7 +182,10 @@ export class NcpChatInputManager {
       return;
     }
     const { selectedSkills: requestedSkills, composerNodes } = inputSnapshot;
-    const sessionKey = sessionSnapshot.selectedSessionKey ?? this.sessionListManager.ensureDraftSession(inputSnapshot.selectedSessionType);
+    const sessionKey =
+      threadSnapshot.sessionKey ??
+      sessionSnapshot.selectedSessionKey ??
+      this.sessionListManager.ensureDraftSession(inputSnapshot.selectedSessionType);
     this.setComposerNodes(createInitialChatComposerNodes());
     await this.streamActionsManager.sendMessage({
       message,
@@ -196,6 +201,7 @@ export class NcpChatInputManager {
       restoreDraftOnError: true,
       composerNodes
     });
+    this.sessionListManager.promoteRootDraftSessionRoute(sessionKey);
   };
 
   stop = async () => {

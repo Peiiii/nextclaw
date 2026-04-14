@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildNcpSendMetadata } from '@/components/chat/ncp/NcpChatPage';
+import { buildNcpSendMetadata } from '@/components/chat/ncp/ncp-chat-page';
 import { filterModelOptionsBySessionType } from '@/components/chat/ncp/ncp-chat-page-data';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 

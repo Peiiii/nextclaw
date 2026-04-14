@@ -8,7 +8,7 @@ import {
 } from '@/components/chat/chat-session-preference-governance';
 import {
   shouldClearPendingProjectRootOverride
-} from '@/components/chat/ncp/NcpChatPage';
+} from '@/components/chat/ncp/ncp-chat-page';
 
 const modelOptions = [
   {

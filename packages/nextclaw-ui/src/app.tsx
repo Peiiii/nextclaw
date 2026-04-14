@@ -11,7 +11,7 @@ import { Toaster } from 'sonner';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 const ModelConfigPage = lazy(async () => ({ default: (await import('@/components/config/ModelConfig')).ModelConfig }));
-const ChatPage = lazy(async () => ({ default: (await import('@/components/chat/ChatPage')).ChatPage }));
+const ChatPage = lazy(async () => ({ default: (await import('@/components/chat/chat-page')).ChatPage }));
 const SearchConfigPage = lazy(async () => ({ default: (await import('@/components/config/SearchConfig')).SearchConfig }));
 const ProvidersListPage = lazy(async () => ({ default: (await import('@/components/config/ProvidersList')).ProvidersList }));
 const ChannelsListPage = lazy(async () => ({ default: (await import('@/components/config/ChannelsList')).ChannelsList }));

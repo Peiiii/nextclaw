@@ -1,5 +1,6 @@
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
@@ -12,6 +13,22 @@ export class ChatSessionListManager {
     private uiManager: ChatUiManager,
     private streamActionsManager: ChatStreamActionsManager
   ) {}
+
+  private syncDraftThreadState = (sessionKey: string) => {
+    useChatThreadStore.getState().setSnapshot({
+      sessionKey,
+      sessionDisplayName: undefined,
+      canDeleteSession: false,
+      isHistoryLoading: false,
+      messages: [],
+      isSending: false,
+      isAwaitingAssistantOutput: false,
+      parentSessionKey: null,
+      parentSessionLabel: null,
+      childSessionTabs: [],
+      activeChildSessionKey: null,
+    });
+  };
 
   private resolveUpdateValue = <T>(prev: T, next: SetStateAction<T>): T => {
     if (typeof next === 'function') {
@@ -82,7 +99,6 @@ export class ChatSessionListManager {
 
   createSession = (sessionType?: string, projectRoot?: string | null): string => {
     const { snapshot } = useChatInputStore.getState();
-    const { snapshot: sessionListSnapshot } = useChatSessionListStore.getState();
     const { defaultSessionType: configuredDefaultSessionType } = snapshot;
     const defaultSessionType = configuredDefaultSessionType || 'native';
     const nextSessionType =
@@ -90,17 +106,19 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
-    const nextSessionKey = sessionListSnapshot.draftSessionKey;
+    const nextSessionKey = createNcpSessionId();
     this.streamActionsManager.resetStreamState();
     useChatSessionListStore.getState().setSnapshot({
-      draftSessionKey: createNcpSessionId()
+      selectedSessionKey: null,
+      draftSessionKey: nextSessionKey
     });
+    this.syncDraftThreadState(nextSessionKey);
     useChatInputStore.getState().setSnapshot({
       pendingSessionType: nextSessionType,
       pendingProjectRoot: normalizedProjectRoot,
       pendingProjectRootSessionKey: normalizedProjectRoot ? nextSessionKey : null
     });
-    this.uiManager.goToSession(nextSessionKey);
+    this.uiManager.goToChatRoot();
     return nextSessionKey;
   };
 
@@ -109,7 +127,33 @@ export class ChatSessionListManager {
     if (snapshot.selectedSessionKey) {
       return snapshot.selectedSessionKey;
     }
-    return this.createSession(sessionType);
+    const normalizedSessionType =
+      typeof sessionType === 'string' && sessionType.trim().length > 0
+        ? sessionType.trim()
+        : null;
+    this.syncDraftThreadState(snapshot.draftSessionKey);
+    if (normalizedSessionType) {
+      useChatInputStore.getState().setSnapshot({ pendingSessionType: normalizedSessionType });
+    }
+    return snapshot.draftSessionKey;
+  };
+
+  promoteRootDraftSessionRoute = (sessionKey: string) => {
+    const normalizedSessionKey = sessionKey.trim();
+    if (!normalizedSessionKey) {
+      return;
+    }
+    const { snapshot } = useChatSessionListStore.getState();
+    const { sessionKey: currentThreadSessionKey } = useChatThreadStore.getState().snapshot;
+    if (
+      snapshot.selectedSessionKey !== null ||
+      snapshot.draftSessionKey !== normalizedSessionKey ||
+      currentThreadSessionKey !== normalizedSessionKey ||
+      !this.uiManager.isAtChatRoot()
+    ) {
+      return;
+    }
+    this.uiManager.goToSession(normalizedSessionKey, { replace: true });
   };
 
   selectSession = (sessionKey: string) => {

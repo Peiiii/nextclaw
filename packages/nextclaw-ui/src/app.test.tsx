@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { I18nProvider } from '@/components/providers/I18nProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
-import AppContent from '@/App';
+import AppContent from '@/app';
 
 const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),

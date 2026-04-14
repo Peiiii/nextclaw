@@ -59,6 +59,8 @@ export class ChatUiManager {
     this.navigateTo('/chat', options);
   };
 
+  isAtChatRoot = () => this.state.pathname === '/chat';
+
   goToSession = (sessionKey: string, options?: NavigateOptions) => {
     this.navigateTo(buildSessionPath(sessionKey), options);
   };
