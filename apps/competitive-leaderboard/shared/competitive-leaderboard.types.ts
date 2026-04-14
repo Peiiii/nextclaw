@@ -153,6 +153,12 @@ export type LeaderboardMethodology = {
   tierRules: string[];
   scoringFormula: string[];
   exclusions: string[];
+  reviewedExclusions: {
+    name: string;
+    reason: string;
+    sourceTitle: string;
+    sourceUrl: string;
+  }[];
   notes: string[];
 };
 

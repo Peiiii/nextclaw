@@ -1112,7 +1112,7 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
       name: "Sentient",
       displayName: "Sentient",
       category: "personal-assistant",
-      comparability: "core",
+      comparability: "watch",
       disclosure: "third-party",
       shortDescription: "强调主动式数字生活管理和多应用连接的 personal assistant。",
       positioning: "官方把 Sentient 表述为 advanced personal assistant 和 central command center，强调主动管理日程、邮件、任务、记忆和多应用连接。",
@@ -1238,7 +1238,7 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
       name: "OpenDAN",
       displayName: "OpenDAN",
       category: "operating-layer",
-      comparability: "core",
+      comparability: "watch",
       disclosure: "third-party",
       shortDescription: "把个人 AI OS 明确写进产品定位的老牌 open-source 项目。",
       positioning: "官方把 OpenDAN 定义为 open source Personal AI OS，强调多 AI modules、agents 协作、Docker、IoT 和知识库。",
@@ -1341,7 +1341,7 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
       name: "zclaw",
       displayName: "zclaw",
       category: "embedded-assistant",
-      comparability: "core",
+      comparability: "watch",
       disclosure: "third-party",
       shortDescription: "跑在 ESP32 上的超小型 AI personal assistant。",
       positioning: "官方把 zclaw 定义为 smallest possible AI personal assistant for ESP32，并公开 scheduled tasks、persistent memory、custom tools 和 local admin console。",
@@ -1458,606 +1458,284 @@ export const PRODUCT_SEEDS: ProductSeed[] = [
   },
   {
     product: {
-      id: "khoj",
-      name: "Khoj",
-      displayName: "Khoj",
-      category: "knowledge-assistant",
-      comparability: "adjacent",
+      id: "clawx",
+      name: "ClawX",
+      displayName: "ClawX",
+      category: "wrapper",
+      comparability: "watch",
       disclosure: "third-party",
-      shortDescription: "更偏 AI second brain 的 self-hostable personal AI。",
-      positioning: "官方主表达是 AI second brain、deep research、custom agents 和 schedule automations，而不是统一 personal assistant 入口。",
-      bestFor: "适合想把个人知识库、研究和 agent 工作流结合起来的人。",
-      caution: "与龙虾类产品强替代，但原始心智更偏 knowledge / research assistant。",
-      highlight: "self-hostable、research、custom agents、schedule automations。",
-      tags: ["second-brain", "research", "self-hosted", "agents", "automation"],
+      shortDescription: "OpenClaw agents 的桌面图形界面和包装层。",
+      positioning: "官方把 ClawX 表述为 The Desktop Interface for OpenClaw AI Agents，本质是 OpenClaw 的桌面包装与体验层，而不是独立龙虾类内核。",
+      bestFor: "适合不想直接面对 CLI、但又想使用 OpenClaw 能力的用户。",
+      caution: "它是衍生包装层，不应和独立龙虾类产品统一排名。",
+      highlight: "桌面 GUI、guided setup、多渠道管理、调度任务。",
+      tags: ["desktop-gui", "openclaw-wrapper", "channels", "scheduler"],
       sources: [
-        repoSource("https://github.com/khoj-ai/khoj"),
-        docsSource("https://docs.khoj.dev"),
-        siteSource("https://khoj.dev")
+        repoSource("https://github.com/ValueCell-ai/ClawX"),
+        siteSource("https://claw-x.com"),
+        readmeSource("https://github.com/ValueCell-ai/ClawX/blob/main/README.md")
       ]
     },
     repoStats: {
-      repoFullName: "khoj-ai/khoj",
-      stars: 34053,
-      forks: 2132,
-      pushedAt: "2026-03-26T03:35:43Z",
-      createdAt: "2021-08-16T01:48:44Z",
-      homepage: "https://khoj.dev",
-      license: "AGPL-3.0"
+      repoFullName: "ValueCell-ai/ClawX",
+      stars: 6470,
+      forks: 931,
+      pushedAt: "2026-04-13T13:56:17Z",
+      createdAt: null,
+      homepage: "https://claw-x.com",
+      license: "MIT"
     },
     inclusionChecks: buildInclusionChecks({
       "assistant-identity": {
         passed: false,
-        summary: "官方主文案是 AI second brain，而不是明确 personal AI assistant。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方定位是 OpenClaw agents 的桌面界面，而不是独立 personal AI assistant。",
+        evidenceIds: ["clawx-positioning"]
       },
       "standalone-entry": {
-        passed: true,
-        summary: "它是独立产品，但主心智偏 knowledge / research assistant。",
-        evidenceIds: ["khoj-positioning"]
+        passed: false,
+        summary: "它依附 OpenClaw runtime，不是独立龙虾类入口。",
+        evidenceIds: ["clawx-positioning"]
       },
       "self-hosted-or-local": {
         passed: true,
-        summary: "官方 repo 描述直接写 self-hostable。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "ClawX 运行在本地桌面，并内嵌 OpenClaw runtime。",
+        evidenceIds: ["clawx-positioning"]
       },
       "action-layer": {
         passed: true,
-        summary: "官方公开了 custom agents、schedule automations 和 deep research。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方公开了多渠道管理和调度任务，但这些能力来自底层 OpenClaw agent 系统。",
+        evidenceIds: ["clawx-positioning"]
       },
       "official-docs": {
         passed: true,
-        summary: "官方 repo、site 和 docs 都公开存在。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方 repo 和站点公开存在。",
+        evidenceIds: ["clawx-positioning"]
       }
     }),
     capabilityAssessments: buildCapabilityAssessments({
       "local-control": {
         status: "yes",
-        summary: "官方描述直接写 self-hostable。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "它是本地桌面应用。",
+        evidenceIds: ["clawx-positioning"]
       },
-      extensibility: {
+      "web-or-admin-ui": {
+        status: "partial",
+        summary: "它提供桌面 GUI，而不是独立 Web / admin 产品。",
+        evidenceIds: ["clawx-positioning"]
+      },
+      "multi-channel": {
         status: "yes",
-        summary: "官方公开 custom agents。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方公开支持多渠道管理。",
+        evidenceIds: ["clawx-positioning"]
       },
       "scheduled-automation": {
         status: "yes",
-        summary: "官方 repo 描述直接写 schedule automations。",
-        evidenceIds: ["khoj-positioning"]
-      },
-      "task-execution": {
-        status: "partial",
-        summary: "它具备 agent 能力，但产品主心智更偏 research assistant。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方公开支持 scheduling intelligent tasks。",
+        evidenceIds: ["clawx-positioning"]
       },
       "docs-onboarding": {
         status: "yes",
-        summary: "官方 docs 站公开存在。",
-        evidenceIds: ["khoj-positioning"]
+        summary: "官方 README 强调 one-click installation 和 guided setup wizard。",
+        evidenceIds: ["clawx-positioning"]
       }
     }),
     evidence: [
       createEvidence(
-        "khoj-positioning",
-        "khoj",
-        "Khoj GitHub Repository",
-        "https://github.com/khoj-ai/khoj",
-        "官方 repo 把 Khoj 表达成 AI second brain，公开强调 self-hostable、custom agents、schedule automations、deep research 和 personal autonomous AI。"
+        "clawx-positioning",
+        "clawx",
+        "ClawX README",
+        "https://github.com/ValueCell-ai/ClawX/blob/main/README.md",
+        "官方 README 把 ClawX 描述成 The Desktop Interface for OpenClaw AI Agents，强调 desktop GUI、多渠道管理、guided setup 和定时任务。"
       )
     ]
   },
   {
     product: {
-      id: "anythingllm",
-      name: "AnythingLLM",
-      displayName: "AnythingLLM",
-      category: "workspace",
-      comparability: "adjacent",
+      id: "openlobster",
+      name: "OpenLobster",
+      displayName: "OpenLobster",
+      category: "personal-assistant",
+      comparability: "watch",
       disclosure: "third-party",
-      shortDescription: "更像 AI productivity workspace，而不是 assistant 入口。",
-      positioning: "官方 repo 描述是 all-in-one AI productivity accelerator，产品原始心智偏 workspace / productivity app。",
-      bestFor: "适合想要文档、agents、RAG 和私有部署都在一个工作台里的人。",
-      caution: "它很强，但不是典型的 personal assistant / personal AI OS。",
-      highlight: "桌面、隐私优先、all-in-one workspace。",
-      tags: ["workspace", "desktop", "privacy-first", "rag", "agents"],
+      shortDescription: "OpenClaw 的 opinionated fork，继续沿 personal AI assistant 方向推进。",
+      positioning: "官方把 OpenLobster 直接表述为 Personal AI Assistant，但同时明确它是基于 OpenClaw 的 opinionated fork。",
+      bestFor: "适合想看 OpenClaw 分叉路线如何在安全、记忆和多用户方向演进的人。",
+      caution: "它是直接分叉，不适合和独立龙虾类产品同权重混排。",
+      highlight: "fork、memory 改造、多用户、安全与更强 UI。",
+      tags: ["openclaw-fork", "personal-assistant", "security", "memory", "multi-user"],
       sources: [
-        repoSource("https://github.com/Mintplex-Labs/anything-llm"),
-        docsSource("https://docs.anythingllm.com"),
-        siteSource("https://anythingllm.com")
+        repoSource("https://github.com/Neirth/OpenLobster"),
+        docsSource("https://neirth.gitbook.io/openlobster"),
+        readmeSource("https://github.com/Neirth/OpenLobster/blob/main/README.md")
       ]
     },
     repoStats: {
-      repoFullName: "Mintplex-Labs/anything-llm",
-      stars: 58238,
-      forks: 6296,
-      pushedAt: "2026-04-13T15:32:21Z",
-      createdAt: "2023-06-04T02:29:14Z",
-      homepage: "https://anythingllm.com",
-      license: "MIT"
+      repoFullName: "Neirth/OpenLobster",
+      stars: 233,
+      forks: 18,
+      pushedAt: "2026-04-13T05:38:02Z",
+      createdAt: null,
+      homepage: "https://neirth.gitbook.io/openlobster",
+      license: "GPL-3.0"
     },
     inclusionChecks: buildInclusionChecks({
       "assistant-identity": {
-        passed: false,
-        summary: "官方主文案不是 personal assistant，而是 AI productivity accelerator。",
-        evidenceIds: ["anythingllm-positioning"]
+        passed: true,
+        summary: "官方直接称它为 Personal AI Assistant。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "standalone-entry": {
         passed: false,
-        summary: "它是独立产品，但产品心智更偏 workspace。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "它是 OpenClaw 的 opinionated fork，不是完全独立的新类目产品。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "self-hosted-or-local": {
         passed: true,
-        summary: "官方 repo 写明 on device and privacy first。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "它延续 self-hosted assistant 路线，并强化本地部署边界。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "action-layer": {
         passed: true,
-        summary: "它有 agents、RAG 和多模型能力。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "官方公开了 memory、multi-user、MCP、channels 和 GraphQL API。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "official-docs": {
         passed: true,
-        summary: "官方 repo、站点与 docs 公开存在。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "官方 repo 和 GitBook 文档公开存在。",
+        evidenceIds: ["openlobster-positioning"]
       }
     }),
     capabilityAssessments: buildCapabilityAssessments({
       "local-control": {
         status: "yes",
-        summary: "官方强调 on device and privacy first。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "官方强调 self-hosted 路线与本地 secrets / auth 边界。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "web-or-admin-ui": {
         status: "yes",
-        summary: "产品形态就是完整 workspace UI。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "官方强调 first-launch setup wizard 和 browser UI。",
+        evidenceIds: ["openlobster-positioning"]
+      },
+      "multi-channel": {
+        status: "yes",
+        summary: "README 列出 Telegram、Discord、WhatsApp、Slack、Twilio SMS。",
+        evidenceIds: ["openlobster-positioning"]
       },
       extensibility: {
-        status: "partial",
-        summary: "官方具备 agents / MCP / vector-database 能力，但不以 assistant 扩展层为核心叙事。",
-        evidenceIds: ["anythingllm-positioning"]
+        status: "yes",
+        summary: "官方公开支持 MCP、marketplace、proper GraphQL API 和多后端。",
+        evidenceIds: ["openlobster-positioning"]
       },
       "docs-onboarding": {
         status: "yes",
-        summary: "官方 docs 公开存在。",
-        evidenceIds: ["anythingllm-positioning"]
+        summary: "README 与 GitBook 都公开存在。",
+        evidenceIds: ["openlobster-positioning"]
       }
     }),
     evidence: [
       createEvidence(
-        "anythingllm-positioning",
-        "anythingllm",
-        "AnythingLLM GitHub Repository",
-        "https://github.com/Mintplex-Labs/anything-llm",
-        "官方 repo 将 AnythingLLM 表述为 all-in-one AI productivity accelerator，强调 on device、privacy first、agents 与 RAG。"
+        "openlobster-positioning",
+        "openlobster",
+        "OpenLobster README",
+        "https://github.com/Neirth/OpenLobster/blob/main/README.md",
+        "官方 README 把 OpenLobster 表述为 Personal AI Assistant，并明确说明它是 OpenClaw 的 opinionated fork，重点改造 memory、多用户、安全、MCP 与 UI。"
       )
     ]
   },
   {
     product: {
-      id: "librechat",
-      name: "LibreChat",
-      displayName: "LibreChat",
-      category: "chat-ui",
-      comparability: "adjacent",
+      id: "n8nclaw",
+      name: "n8nClaw",
+      displayName: "n8nClaw",
+      category: "wrapper",
+      comparability: "watch",
       disclosure: "third-party",
-      shortDescription: "成熟的 self-hosted AI chat / agents Web 应用。",
-      positioning: "官方主表达是 enhanced ChatGPT clone / self-hosting chat UI，而不是 multi-channel personal assistant。",
-      bestFor: "适合优先需要成熟 Web chat 界面、多模型和团队使用体验的人。",
-      caution: "功能很强，但类目属于 chat UI / agent workspace，不宜直接进同一总榜。",
-      highlight: "web UI 成熟、多 provider、self-hosting 强。",
-      tags: ["chat-ui", "web-app", "self-hosted", "agents", "multi-provider"],
+      shortDescription: "基于 n8n 搭出的 lightweight self-hosted AI assistant。",
+      positioning: "官方把 n8nClaw 定义为 lightweight, self-hosted AI assistant，并明确说明它 inspired by OpenClaw、built entirely in n8n。",
+      bestFor: "适合本身就重度依赖 n8n、想快速复制一套视觉化龙虾风 assistant 的用户。",
+      caution: "它更像用 n8n 搭出的轻量实现，不适合和独立产品内核混排。",
+      highlight: "n8n、visual workflow、memory、sub-agents、多渠道。",
+      tags: ["n8n", "self-hosted", "visual-workflow", "memory", "sub-agents"],
       sources: [
-        repoSource("https://github.com/danny-avila/LibreChat"),
-        docsSource("https://www.librechat.ai/docs"),
-        siteSource("https://www.librechat.ai")
+        repoSource("https://github.com/shabbirun/n8nclaw"),
+        readmeSource("https://github.com/shabbirun/n8nclaw/blob/main/README.md")
       ]
     },
     repoStats: {
-      repoFullName: "danny-avila/LibreChat",
-      stars: 35578,
-      forks: 7269,
-      pushedAt: "2026-04-13T15:07:49Z",
-      createdAt: "2023-02-12T01:06:52Z",
-      homepage: "https://librechat.ai/",
-      license: "MIT"
+      repoFullName: "shabbirun/n8nclaw",
+      stars: 223,
+      forks: 67,
+      pushedAt: "2026-02-10T13:21:33Z",
+      createdAt: null,
+      homepage: null,
+      license: null
     },
     inclusionChecks: buildInclusionChecks({
       "assistant-identity": {
-        passed: false,
-        summary: "官方描述是 enhanced ChatGPT clone / chat platform。",
-        evidenceIds: ["librechat-positioning"]
+        passed: true,
+        summary: "官方 README 明确写 lightweight, self-hosted AI assistant。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "standalone-entry": {
         passed: false,
-        summary: "独立产品没错，但原始形态是 chat UI 而非 personal assistant 入口。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "它是基于 n8n 搭出的视觉化实现，更像组合式包装，而非独立产品内核。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "self-hosted-or-local": {
         passed: true,
-        summary: "官方明确支持 self-hosting。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "官方 README 明确写 self-hosted。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "action-layer": {
         passed: true,
-        summary: "官方公开 Agents、MCP、Functions、Actions。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "官方公开 channels、memory、task management、sub-agents 和 tools。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "official-docs": {
         passed: true,
-        summary: "官方 site 和 docs 公开存在。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "官方 repo 与 README 公开存在。",
+        evidenceIds: ["n8nclaw-positioning"]
       }
     }),
     capabilityAssessments: buildCapabilityAssessments({
       "local-control": {
         status: "yes",
-        summary: "官方强调 self-hosting。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "官方 README 直接写 self-hosted。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "web-or-admin-ui": {
         status: "yes",
-        summary: "产品核心就是 Web UI。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "它以 n8n 视觉工作流和可视化 agent 拓扑为主。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
-      extensibility: {
+      "multi-channel": {
         status: "yes",
-        summary: "官方公开 Agents、MCP、OpenAPI Actions、Functions。",
-        evidenceIds: ["librechat-positioning"]
+        summary: "官方 README 明确存在 channels triggers。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
-      "docs-onboarding": {
+      memory: {
         status: "yes",
-        summary: "官方 docs 站公开存在。",
-        evidenceIds: ["librechat-positioning"]
-      }
-    }),
-    evidence: [
-      createEvidence(
-        "librechat-positioning",
-        "librechat",
-        "LibreChat GitHub Repository",
-        "https://github.com/danny-avila/LibreChat",
-        "官方 repo 把 LibreChat 表述为 enhanced ChatGPT clone，公开强调 self-hosting、Agents、MCP、Functions 和 web app 体验。"
-      )
-    ]
-  },
-  {
-    product: {
-      id: "open-webui",
-      name: "Open WebUI",
-      displayName: "Open WebUI",
-      category: "chat-ui",
-      comparability: "adjacent",
-      disclosure: "third-party",
-      shortDescription: "面向本地模型与私有部署的 user-friendly AI interface。",
-      positioning: "官方主表达是 AI Interface / WebUI，不是 personal AI assistant。",
-      bestFor: "适合本地模型、Ollama、私有推理和统一 Web 界面的用户。",
-      caution: "它是极强的 AI interface，但不是龙虾类产品的原始形态。",
-      highlight: "本地模型、私有部署、统一 Web 界面。",
-      tags: ["webui", "ollama", "self-hosted", "local-models", "interface"],
-      sources: [
-        repoSource("https://github.com/open-webui/open-webui"),
-        docsSource("https://docs.openwebui.com"),
-        siteSource("https://openwebui.com")
-      ]
-    },
-    repoStats: {
-      repoFullName: "open-webui/open-webui",
-      stars: 131608,
-      forks: 18671,
-      pushedAt: "2026-04-13T03:11:11Z",
-      createdAt: "2023-10-06T22:08:27Z",
-      homepage: "https://openwebui.com",
-      license: "NOASSERTION"
-    },
-    inclusionChecks: buildInclusionChecks({
-      "assistant-identity": {
-        passed: false,
-        summary: "官方 repo 直接把它写成 user-friendly AI Interface。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "standalone-entry": {
-        passed: false,
-        summary: "独立产品没错，但本质是 interface / WebUI。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "self-hosted-or-local": {
-        passed: true,
-        summary: "官方明确支持 self-hosted / private LLM 场景。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "action-layer": {
-        passed: true,
-        summary: "官方公开 MCP、RAG 和 OpenAPI 能力。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "official-docs": {
-        passed: true,
-        summary: "官方 site 和 docs 公开存在。",
-        evidenceIds: ["openwebui-positioning"]
-      }
-    }),
-    capabilityAssessments: buildCapabilityAssessments({
-      "local-control": {
-        status: "yes",
-        summary: "官方强调 self-hosted / private LLM。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "web-or-admin-ui": {
-        status: "yes",
-        summary: "产品本体就是 WebUI。",
-        evidenceIds: ["openwebui-positioning"]
+        summary: "官方 README 直接写 Postgres Chat Memory 和 User Profile。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       extensibility: {
         status: "partial",
-        summary: "官方公开 MCP 与 OpenAPI，但定位仍是 interface。",
-        evidenceIds: ["openwebui-positioning"]
-      },
-      "docs-onboarding": {
-        status: "yes",
-        summary: "官方 docs 站公开存在。",
-        evidenceIds: ["openwebui-positioning"]
-      }
-    }),
-    evidence: [
-      createEvidence(
-        "openwebui-positioning",
-        "open-webui",
-        "Open WebUI GitHub Repository",
-        "https://github.com/open-webui/open-webui",
-        "官方 repo 把 Open WebUI 表述为 user-friendly AI Interface，公开强调 self-hosted、Ollama、OpenAI API、MCP 和 RAG。"
-      )
-    ]
-  },
-  {
-    product: {
-      id: "dify",
-      name: "Dify",
-      displayName: "Dify",
-      category: "platform",
-      comparability: "adjacent",
-      disclosure: "third-party",
-      shortDescription: "production-ready agentic workflow development platform。",
-      positioning: "官方主表达是 workflow development platform，不是 personal assistant。",
-      bestFor: "适合团队要搭 agentic workflow、内部 AI app 和编排平台的人。",
-      caution: "强替代但不同类，应该放在 adjacent 层而不是 core 总榜。",
-      highlight: "平台化、workflow、agentic development。",
-      tags: ["platform", "workflow", "agentic", "low-code", "rag"],
-      sources: [
-        repoSource("https://github.com/langgenius/dify"),
-        docsSource("https://docs.dify.ai"),
-        siteSource("https://dify.ai")
-      ]
-    },
-    repoStats: {
-      repoFullName: "langgenius/dify",
-      stars: 137575,
-      forks: 21551,
-      pushedAt: "2026-04-13T15:58:27Z",
-      createdAt: "2023-04-12T07:40:24Z",
-      homepage: "https://dify.ai",
-      license: "NOASSERTION"
-    },
-    inclusionChecks: buildInclusionChecks({
-      "assistant-identity": {
-        passed: false,
-        summary: "官方 repo 直接写 production-ready platform。",
-        evidenceIds: ["dify-positioning"]
-      },
-      "standalone-entry": {
-        passed: false,
-        summary: "它是 builder / development platform，而不是 assistant 入口。",
-        evidenceIds: ["dify-positioning"]
-      },
-      "self-hosted-or-local": {
-        passed: true,
-        summary: "官方支持自部署。",
-        evidenceIds: ["dify-positioning"]
-      },
-      "action-layer": {
-        passed: true,
-        summary: "官方主打 agentic workflow。",
-        evidenceIds: ["dify-positioning"]
-      },
-      "official-docs": {
-        passed: true,
-        summary: "官方 repo、site、docs 齐全。",
-        evidenceIds: ["dify-positioning"]
-      }
-    }),
-    capabilityAssessments: buildCapabilityAssessments({
-      "web-or-admin-ui": {
-        status: "yes",
-        summary: "平台本身有完整 UI。",
-        evidenceIds: ["dify-positioning"]
-      },
-      extensibility: {
-        status: "yes",
-        summary: "官方主打 workflow / orchestration / no-code。",
-        evidenceIds: ["dify-positioning"]
-      },
-      "docs-onboarding": {
-        status: "yes",
-        summary: "官方 docs 公开存在。",
-        evidenceIds: ["dify-positioning"]
-      }
-    }),
-    evidence: [
-      createEvidence(
-        "dify-positioning",
-        "dify",
-        "Dify GitHub Repository",
-        "https://github.com/langgenius/dify",
-        "官方 repo 把 Dify 定义为 production-ready platform for agentic workflow development。"
-      )
-    ]
-  },
-  {
-    product: {
-      id: "flowise",
-      name: "Flowise",
-      displayName: "Flowise",
-      category: "platform",
-      comparability: "adjacent",
-      disclosure: "third-party",
-      shortDescription: "Build AI Agents, Visually 的可视化平台。",
-      positioning: "官方主表达是视觉化 agent builder / workflow platform，而不是 personal assistant。",
-      bestFor: "适合偏低代码、可视化编排和 agent 开发的团队。",
-      caution: "替代关系存在，但根本产品形态不同。",
-      highlight: "visual builder、workflow、multiagent。",
-      tags: ["visual-builder", "workflow", "agents", "platform", "low-code"],
-      sources: [
-        repoSource("https://github.com/FlowiseAI/Flowise"),
-        docsSource("https://docs.flowiseai.com"),
-        siteSource("https://flowiseai.com")
-      ]
-    },
-    repoStats: {
-      repoFullName: "FlowiseAI/Flowise",
-      stars: 51856,
-      forks: 24127,
-      pushedAt: "2026-04-13T15:47:16Z",
-      createdAt: "2023-03-31T12:23:09Z",
-      homepage: "https://flowiseai.com",
-      license: "NOASSERTION"
-    },
-    inclusionChecks: buildInclusionChecks({
-      "assistant-identity": {
-        passed: false,
-        summary: "官方 repo 直接写 Build AI Agents, Visually。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      "standalone-entry": {
-        passed: false,
-        summary: "本质是可视化 builder / workflow platform。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      "self-hosted-or-local": {
-        passed: true,
-        summary: "官方支持自部署。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      "action-layer": {
-        passed: true,
-        summary: "官方主打 workflow automation 和 multiagent。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      "official-docs": {
-        passed: true,
-        summary: "官方 docs 公开存在。",
-        evidenceIds: ["flowise-positioning"]
-      }
-    }),
-    capabilityAssessments: buildCapabilityAssessments({
-      "web-or-admin-ui": {
-        status: "yes",
-        summary: "产品核心是可视化界面。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      extensibility: {
-        status: "yes",
-        summary: "官方强调 low-code、多 agent 和 workflow automation。",
-        evidenceIds: ["flowise-positioning"]
-      },
-      "docs-onboarding": {
-        status: "yes",
-        summary: "官方 docs 公开存在。",
-        evidenceIds: ["flowise-positioning"]
-      }
-    }),
-    evidence: [
-      createEvidence(
-        "flowise-positioning",
-        "flowise",
-        "Flowise GitHub Repository",
-        "https://github.com/FlowiseAI/Flowise",
-        "官方 repo 把 Flowise 定义为 Build AI Agents, Visually，并公开强调 low-code、multiagent 和 workflow automation。"
-      )
-    ]
-  },
-  {
-    product: {
-      id: "jan",
-      name: "Jan",
-      displayName: "Jan",
-      category: "chat-ui",
-      comparability: "adjacent",
-      disclosure: "third-party",
-      shortDescription: "100% offline 的 ChatGPT alternative / local AI desktop。",
-      positioning: "官方 repo 主表达是 open source alternative to ChatGPT that runs 100% offline。",
-      bestFor: "适合只想要离线桌面 AI 与本地模型体验的用户。",
-      caution: "它是强本地桌面产品，但不是 personal assistant 入口类产品。",
-      highlight: "offline、desktop、本地模型。",
-      tags: ["desktop", "offline", "local-models", "chatgpt-alternative"],
-      sources: [
-        repoSource("https://github.com/janhq/jan"),
-        siteSource("https://jan.ai")
-      ]
-    },
-    repoStats: {
-      repoFullName: "janhq/jan",
-      stars: 41738,
-      forks: 2749,
-      pushedAt: "2026-04-12T03:08:35Z",
-      createdAt: "2023-08-17T02:17:10Z",
-      homepage: "https://jan.ai/",
-      license: "NOASSERTION"
-    },
-    inclusionChecks: buildInclusionChecks({
-      "assistant-identity": {
-        passed: false,
-        summary: "官方主表达是 ChatGPT alternative。",
-        evidenceIds: ["jan-positioning"]
-      },
-      "standalone-entry": {
-        passed: false,
-        summary: "独立产品没错，但原始形态是离线桌面 chat app。",
-        evidenceIds: ["jan-positioning"]
-      },
-      "self-hosted-or-local": {
-        passed: true,
-        summary: "官方 repo 直接写 runs 100% offline on your computer。",
-        evidenceIds: ["jan-positioning"]
-      },
-      "action-layer": {
-        passed: false,
-        summary: "官方主表达并不强调多渠道或 assistant 执行层。",
-        evidenceIds: ["jan-positioning"]
-      },
-      "official-docs": {
-        passed: true,
-        summary: "官方 repo 和网站公开存在。",
-        evidenceIds: ["jan-positioning"]
-      }
-    }),
-    capabilityAssessments: buildCapabilityAssessments({
-      "local-control": {
-        status: "yes",
-        summary: "官方直接写 100% offline。",
-        evidenceIds: ["jan-positioning"]
-      },
-      "web-or-admin-ui": {
-        status: "partial",
-        summary: "这是桌面 app，不是 Web / gateway 入口。",
-        evidenceIds: ["jan-positioning"]
+        summary: "它依赖 n8n 节点和 workflow，不是独立技能生态。",
+        evidenceIds: ["n8nclaw-positioning"]
       },
       "docs-onboarding": {
         status: "partial",
-        summary: "有官方站点，但公开文档不如平台型产品完整。",
-        evidenceIds: ["jan-positioning"]
+        summary: "当前主要是 README 导入步骤，没有完整独立 docs 站。",
+        evidenceIds: ["n8nclaw-positioning"]
       }
     }),
     evidence: [
       createEvidence(
-        "jan-positioning",
-        "jan",
-        "Jan GitHub Repository",
-        "https://github.com/janhq/jan",
-        "官方 repo 把 Jan 定义为 open source alternative to ChatGPT that runs 100% offline on your computer。"
+        "n8nclaw-positioning",
+        "n8nclaw",
+        "n8nClaw README",
+        "https://github.com/shabbirun/n8nclaw/blob/main/README.md",
+        "官方 README 把 n8nClaw 定义为 lightweight, self-hosted AI assistant，并明确说明它 built entirely in n8n、inspired by OpenClaw。"
       )
     ]
   }

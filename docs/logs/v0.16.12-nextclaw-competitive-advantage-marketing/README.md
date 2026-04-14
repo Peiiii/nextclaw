@@ -8,12 +8,12 @@
   - 废弃旧版 `persona + rawScore` 主观评分模型
   - 废弃“把不属于同类的产品硬混进统一总榜”的 universe 设计
   - 只使用官方公开资料作为主要证据源
-  - 引入 `core / adjacent / watch` 分层思路，但当前实现主要覆盖 `core + adjacent`
+  - 引入更严格的 `core / watch / exclude` 边界，主动移出非龙虾类产品
   - 把评分改成：
     - `公共信号 40 分`
     - `能力覆盖 60 分`
     - 只有 `core comparable` 层进入统一总榜
-- 当前 core 直系同类样本扩展为 11 个：
+- 当前 core 直系同类样本收紧为 8 个：
   - `NextClaw`
   - `OpenClaw`
   - `QwenPaw`
@@ -22,17 +22,17 @@
   - `PicoClaw`
   - `IronClaw`
   - `Leon`
+- 当前 watch 衍生物样本覆盖：
   - `Sentient`
   - `OpenDAN`
   - `zclaw`
-- 当前 adjacent 相邻层样本覆盖：
-  - `Khoj`
-  - `AnythingLLM`
-  - `LibreChat`
-  - `Open WebUI`
-  - `Dify`
-  - `Flowise`
-  - `Jan`
+  - `ClawX`
+  - `OpenLobster`
+  - `n8nClaw`
+- 方法论补充了“已审查但排除”的知名大厂产品说明：
+  - `腾讯元器`
+  - `通义 APP`
+  - `有道云笔记 AI 工具`
 - 前后端结构也同步重写：
   - `CompetitiveLeaderboardDataService` 只负责数据与元信息装配
   - `CompetitiveLeaderboardScoringService` 负责公共信号、能力覆盖和统一总榜计算
@@ -54,7 +54,7 @@
   - 页面出现“先画全市场，再谈总榜”
   - 页面出现“只对真正同类的一层做统一总榜”
   - 页面出现“把‘声量’和‘能力’拆开看”
-  - 产品资料卡不少于 15 个
+  - 产品资料卡不少于 14 个
   - 打开证据抽屉后能看到“纳入判断 / 能力矩阵 / 公共信号拆解”
 - 维护性治理：
   - 已执行 `pnpm lint:maintainability:guard`
@@ -76,7 +76,7 @@
 
 1. 执行 `pnpm dev:competitive:leaderboard`。
 2. 打开页面，确认首页首先强调这是“研究榜单”，而不是直接宣传 NextClaw。
-3. 查看 `Universe Map`，确认页面先区分 `core comparable` 与 `adjacent alternative`。
+3. 查看 `Universe Map`，确认页面先区分 `core comparable` 与 `derivative / watch`。
 4. 查看 `Core Leaderboard`，确认只对 core 层统一排名。
 5. 查看 `公共信号榜` 与 `能力覆盖榜`，确认它们和综合总榜是拆开的。
 6. 任意点开一个产品，确认抽屉里能看到：
@@ -85,18 +85,19 @@
   - 能力矩阵
   - 公共信号拆解
   - 证据条目
-7. 打开 adjacent 产品，确认它保留资料与证据，但不参与统一总榜。
+7. 打开 watch 产品，确认它保留资料与证据，但不参与统一总榜。
 8. 查看方法论区域，确认页面明确披露：
   - 维护方是 NextClaw 团队
   - 只用官方公开资料
   - 非同类产品不混排
+  - 已审查但排除的大厂产品及其排除理由
 
 ## 可维护性总结汇总
 
 - 本次是否已尽最大努力优化可维护性：否。
   - 主要阻碍是为了先把可信 universe、证据条目和能力矩阵一次性落地，研究数据目录文件 `leaderboard-products.data.ts` 暂时仍然过长，未在本次继续拆到更细模块。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。
-  - 本次已经主动删除了旧 persona 组件、旧维度模型、旧主观评分数据文件和旧 universe/evidence 结构，避免新旧两套模型并存。
+  - 本次已经主动删除了旧 persona 组件、旧维度模型、旧主观评分数据文件和旧 universe/evidence 结构，避免新旧两套模型并存；这轮续改又进一步把 `Sentient`、`OpenDAN`、`zclaw` 从统一总榜层降到 `watch`，减少不必要的 core 混排噪音。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：没有做到净减少。
   - 这是一次新 app 的实质性交付，且为了修复“榜单不可信”问题，必须引入新的研究数据与证据结构。
   - 但在新增之前，已经先删掉了旧评分模型和旧数据文件，避免继续叠加历史补丁。
@@ -107,7 +108,7 @@
   - 没有把评分逻辑塞回 React 组件，也没有再保留旧 persona / rawScore 分支。
 - 目录结构与文件组织是否满足当前项目治理要求：部分满足。
   - app 仍被清晰收拢在 `apps/competitive-leaderboard`
-  - 但 `server/leaderboard-products.data.ts` 超出 file budget，下一步应按 `core / adjacent / watch` 或按产品批次继续拆分。
+  - 但 `server/leaderboard-products.data.ts` 超出 file budget，下一步应按 `core / watch` 或按产品批次继续拆分。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。
 
 ### 可维护性复核结论：保留债务经说明接受

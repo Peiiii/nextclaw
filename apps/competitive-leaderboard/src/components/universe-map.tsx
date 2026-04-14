@@ -20,7 +20,7 @@ export function UniverseMap({ productDetails, onInspect }: UniverseMapProps): JS
     <Panel
       eyebrow="Universe Map"
       title="先画全市场，再谈总榜"
-      subtitle="真正可信的榜单，第一步不是排分，而是先把谁是直系同类、谁只是强替代、谁仍在观察层说清楚。"
+      subtitle="真正可信的榜单，第一步不是排分，而是先把谁是真正龙虾类、谁只是直接衍生物，以及哪些知名产品虽然被审查过但不该混排说清楚。"
     >
       <div className="universe-grid">
         {groupedDetails.map((group) => (

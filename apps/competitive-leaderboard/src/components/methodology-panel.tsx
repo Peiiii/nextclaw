@@ -56,6 +56,20 @@ export function MethodologyPanel({
           </ul>
         </article>
         <article className="methodology-card">
+          <h3>已审查但排除</h3>
+          <ul>
+            {methodology.reviewedExclusions.map((item) => (
+              <li key={item.name}>
+                <strong>{item.name}</strong>：{item.reason}
+                {" "}
+                <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                  {item.sourceTitle}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </article>
+        <article className="methodology-card">
           <h3>额外说明</h3>
           <ul>
             {methodology.notes.map((note) => (

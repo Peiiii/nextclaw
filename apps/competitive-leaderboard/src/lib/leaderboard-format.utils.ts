@@ -20,7 +20,7 @@ export function formatComparability(comparability: string): string {
   if (comparability === "adjacent") {
     return "Adjacent Alternative";
   }
-  return "Market Watch";
+  return "Derivative / Watch";
 }
 
 export function formatConfidence(confidence: string): string {

@@ -55,10 +55,11 @@ try {
   await expectText(page, "先画全市场，再谈总榜");
   await expectText(page, "只对真正同类的一层做统一总榜");
   await expectText(page, "把“声量”和“能力”拆开看");
+  await expectText(page, "Derivative / Watch");
 
   const profileCards = page.locator(".profile-card");
-  if ((await profileCards.count()) < 15) {
-    throw new Error("Expected at least 15 product profile cards in the universe.");
+  if ((await profileCards.count()) < 14) {
+    throw new Error("Expected at least 14 product profile cards in the universe.");
   }
 
   await page.getByRole("button", { name: "看证据" }).first().click();
