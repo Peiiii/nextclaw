@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
+const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -61,11 +63,84 @@ function runCommonBuildSteps() {
   run(binName("pnpm"), ["-C", "packages/nextclaw-openclaw-compat", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw", "build"]);
+  run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "lint"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "tsc"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], {
     env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
   });
+}
+
+function readExpectedBundleVersion() {
+  const nextclawPackage = JSON.parse(readFileSync(nextclawPackageJsonPath, "utf8"));
+  const version = typeof nextclawPackage.version === "string" ? nextclawPackage.version.trim() : "";
+  if (!version) {
+    throw new Error(`Invalid nextclaw package version: ${nextclawPackageJsonPath}`);
+  }
+  return version;
+}
+
+function readZipBundleVersion(zipPath) {
+  const script = [
+    "const JSZip=require('jszip');",
+    "const fs=require('fs');",
+    "const zipPath=process.argv[1];",
+    "JSZip.loadAsync(fs.readFileSync(zipPath))",
+    "  .then(async (zip) => {",
+    "    const manifestEntry = zip.file('bundle/manifest.json');",
+    "    if (!manifestEntry) throw new Error(`bundle/manifest.json missing: ${zipPath}`);",
+    "    const manifest = JSON.parse(await manifestEntry.async('string'));",
+    "    if (!manifest?.bundleVersion || typeof manifest.bundleVersion !== 'string') {",
+    "      throw new Error(`bundleVersion missing: ${zipPath}`);",
+    "    }",
+    "    console.log(manifest.bundleVersion.trim());",
+    "  })",
+    "  .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });"
+  ].join(" ");
+  const result = spawnSync(binName("pnpm"), ["-C", "apps/desktop", "exec", "node", "-e", script, zipPath], {
+    cwd: rootDir,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) {
+    throw new Error(`Failed to read bundleVersion from ${zipPath}: ${result.stderr || result.stdout}`);
+  }
+  const bundleVersion = result.stdout.trim();
+  if (!bundleVersion) {
+    throw new Error(`Empty bundleVersion from ${zipPath}`);
+  }
+  return bundleVersion;
+}
+
+function assertSeedBundleVersion(seedBundlePath) {
+  const expectedVersion = readExpectedBundleVersion();
+  const actualVersion = readZipBundleVersion(seedBundlePath);
+  if (actualVersion !== expectedVersion) {
+    throw new Error(
+      `Packaged seed bundle version mismatch: expected ${expectedVersion} but got ${actualVersion} (${seedBundlePath})`
+    );
+  }
+  console.log(`[desktop-verify] seed bundle version verified: ${actualVersion}`);
+}
+
+function verifySeedBundleRuntimeInit(seedBundlePath) {
+  const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-seed-runtime-verify-"));
+  const extractRoot = resolve(tempRoot, "extract");
+  const runtimeHome = resolve(tempRoot, "home");
+  try {
+    run("ditto", ["-x", "-k", seedBundlePath, extractRoot]);
+    const runtimeScriptPath = resolve(extractRoot, "bundle", "runtime", "dist", "cli", "index.js");
+    if (!existsSync(runtimeScriptPath)) {
+      throw new Error(`Packaged seed runtime script missing: ${runtimeScriptPath}`);
+    }
+    run(binName("node"), [runtimeScriptPath, "init"], {
+      env: {
+        NEXTCLAW_HOME: runtimeHome
+      }
+    });
+    console.log(`[desktop-verify] seed runtime init verified: ${runtimeScriptPath}`);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
 }
 
 function verifyMacDesktopPackage() {
@@ -88,6 +163,13 @@ function verifyMacDesktopPackage() {
   if (!dmgPath) {
     throw new Error("No dmg artifact found in apps/desktop/release");
   }
+  const mountedAppRoot = resolve(releaseDir, `mac-${arch}`, "NextClaw Desktop.app");
+  const seedBundlePath = resolve(mountedAppRoot, "Contents/Resources/update/seed-product-bundle.zip");
+  if (!existsSync(seedBundlePath)) {
+    throw new Error(`Packaged seed bundle missing: ${seedBundlePath}`);
+  }
+  assertSeedBundleVersion(seedBundlePath);
+  verifySeedBundleRuntimeInit(seedBundlePath);
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
   console.log(`[desktop-verify] macOS package verified: ${dmgPath}`);
 }

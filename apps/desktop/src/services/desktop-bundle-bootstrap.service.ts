@@ -1,9 +1,15 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { compareDesktopVersions } from "../launcher/utils/version.utils";
 import { DesktopBundleLifecycleService } from "../launcher/services/bundle-lifecycle.service";
 import { DesktopBundleService } from "../launcher/services/bundle.service";
 import { DesktopUpdateService } from "../launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "../launcher/stores/bundle-layout.store";
-import { DesktopLauncherStateStore, type DesktopReleaseChannel } from "../launcher/stores/launcher-state.store";
+import {
+  DesktopLauncherStateStore,
+  type DesktopLauncherState,
+  type DesktopReleaseChannel
+} from "../launcher/stores/launcher-state.store";
 
 type DesktopBundleBootstrapLogger = {
   info: (message: string) => void;
@@ -17,6 +23,7 @@ type DesktopBundleBootstrapServiceOptions = {
   resolveManifestUrl: () => Promise<string | null>;
   bundlePublicKey: string | null;
   seedBundlePath: string | null;
+  layout?: DesktopBundleLayoutStore;
 };
 
 export class DesktopBundleBootstrapService {
@@ -24,12 +31,12 @@ export class DesktopBundleBootstrapService {
 
   ensureInitialBundleAvailability = async (): Promise<void> => {
     const stateStore = this.createLauncherStateStore();
-    const currentVersion = stateStore.read().currentVersion;
-    if (await this.installPackagedSeedBundleIfNeeded(currentVersion)) {
+    const state = stateStore.read();
+    if (await this.installPackagedSeedBundleIfNeeded(state)) {
       return;
     }
 
-    if (currentVersion) {
+    if (state.currentVersion) {
       return;
     }
 
@@ -84,7 +91,7 @@ export class DesktopBundleBootstrapService {
     );
   };
 
-  private installPackagedSeedBundleIfNeeded = async (currentVersion: string | null): Promise<boolean> => {
+  repairPackagedSeedBundle = async (failedBundleVersion: string): Promise<boolean> => {
     const seedBundlePath = this.options.seedBundlePath?.trim();
     if (!seedBundlePath) {
       return false;
@@ -93,22 +100,70 @@ export class DesktopBundleBootstrapService {
     try {
       const updateService = this.createUpdateService();
       const seedVersion = await updateService.readLocalArchiveBundleVersion(seedBundlePath);
-      const shouldInstallSeed = !currentVersion || compareDesktopVersions(seedVersion, currentVersion) > 0;
+      if (seedVersion !== failedBundleVersion) {
+        return false;
+      }
+      this.options.logger.warn(
+        `Desktop bootstrap failed while running bundle ${failedBundleVersion}. Reinstalling packaged seed bundle ${seedVersion}.`
+      );
+      await this.createBundleService().removeVersion(seedVersion);
+      const repairedBundle = await updateService.stageLocalArchive(seedBundlePath);
+      this.options.logger.info(`Reinstalled packaged seed bundle ${repairedBundle.activatedVersion} after bootstrap failure.`);
+      return true;
+    } catch (error) {
+      this.options.logger.warn(`Failed to repair packaged seed bundle after bootstrap failure: ${String(error)}`);
+      return false;
+    }
+  };
+
+  private installPackagedSeedBundleIfNeeded = async (state: DesktopLauncherState): Promise<boolean> => {
+    const seedBundlePath = this.options.seedBundlePath?.trim();
+    if (!seedBundlePath) {
+      return false;
+    }
+
+    try {
+      const updateService = this.createUpdateService();
+      const seedVersion = await updateService.readLocalArchiveBundleVersion(seedBundlePath);
+      const seedSha256 = await this.readBundleArchiveSha256(seedBundlePath);
+      const currentVersion = state.currentVersion;
+      const quarantined = state.badVersions.includes(seedVersion);
+      const samePackagedSeedAttempt =
+        state.lastAttemptedPackagedSeedVersion === seedVersion && state.lastAttemptedPackagedSeedSha256 === seedSha256;
+      const shouldUpgrade = !currentVersion || compareDesktopVersions(seedVersion, currentVersion) > 0;
+      const shouldRetryQuarantinedSeed = quarantined && !samePackagedSeedAttempt;
+      const shouldInstallSeed = (!quarantined && shouldUpgrade) || shouldRetryQuarantinedSeed;
       if (!shouldInstallSeed) {
+        if (quarantined && samePackagedSeedAttempt) {
+          this.options.logger.warn(
+            `Skipping packaged seed bundle ${seedVersion} because the same packaged archive fingerprint already failed on this machine.`
+          );
+        }
         return false;
       }
       this.options.logger.info(
-        !currentVersion
-          ? "No active product bundle found. Desktop will install the packaged seed bundle before boot."
-          : `Packaged seed bundle ${seedVersion} is newer than current bundle ${currentVersion}. Desktop will upgrade before boot.`
+        shouldRetryQuarantinedSeed
+          ? `Packaged seed bundle ${seedVersion} was previously quarantined, but the packaged archive fingerprint changed. Desktop will retry it before boot.`
+          : !currentVersion
+            ? "No active product bundle found. Desktop will install the packaged seed bundle before boot."
+            : `Packaged seed bundle ${seedVersion} is newer than current bundle ${currentVersion}. Desktop will upgrade before boot.`
       );
       const stagedSeedBundle = await updateService.stageLocalArchive(seedBundlePath);
+      await this.createLauncherStateStore().update((currentState) => ({
+        ...currentState,
+        lastAttemptedPackagedSeedVersion: seedVersion,
+        lastAttemptedPackagedSeedSha256: seedSha256
+      }));
       this.options.logger.info(`Prepared packaged seed bundle ${stagedSeedBundle.activatedVersion} for desktop startup.`);
       return true;
     } catch (error) {
       this.options.logger.warn(`Failed to inspect or install packaged seed bundle: ${String(error)}`);
       return false;
     }
+  };
+
+  private readBundleArchiveSha256 = async (archivePath: string): Promise<string> => {
+    return createHash("sha256").update(await readFile(archivePath)).digest("hex");
   };
 
   private fetchInitialRemoteBundle = async (manifestUrl: string): Promise<void> => {
@@ -137,7 +192,7 @@ export class DesktopBundleBootstrapService {
   };
 
   private createBundleLifecycle = (): DesktopBundleLifecycleService => {
-    const layout = new DesktopBundleLayoutStore();
+    const layout = this.getLayout();
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
     return new DesktopBundleLifecycleService({
       layout,
@@ -152,7 +207,7 @@ export class DesktopBundleBootstrapService {
 
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
-      layout: new DesktopBundleLayoutStore(),
+      layout: this.getLayout(),
       channel: this.options.channel,
       launcherVersion: this.options.launcherVersion,
       bundlePublicKey: this.options.bundlePublicKey ?? undefined
@@ -160,17 +215,21 @@ export class DesktopBundleBootstrapService {
   };
 
   private createLauncherStateStore = (): DesktopLauncherStateStore => {
-    const layout = new DesktopBundleLayoutStore();
+    const layout = this.getLayout();
     return new DesktopLauncherStateStore(layout.getLauncherStatePath());
   };
 
   private createBundleService = (): DesktopBundleService => {
-    const layout = new DesktopBundleLayoutStore();
+    const layout = this.getLayout();
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
     return new DesktopBundleService({
       layout,
       stateStore,
       launcherVersion: this.options.launcherVersion
     });
+  };
+
+  private getLayout = (): DesktopBundleLayoutStore => {
+    return this.options.layout ?? new DesktopBundleLayoutStore();
   };
 }

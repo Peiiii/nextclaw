@@ -61,6 +61,7 @@
     },
     "files": [
       "dist/**/*",
+      "build/icons/icon.png",
       "package.json"
     ],
     "extraResources": [

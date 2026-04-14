@@ -38,7 +38,11 @@ test("persists launcher state updates", async () =>
         previousVersion: "0.17.9",
         lastKnownGoodVersion: "0.18.0",
         badVersions: ["0.17.8"],
-        lastUpdateCheckAt: "2026-04-11T12:00:00Z"
+        lastUpdateCheckAt: "2026-04-11T12:00:00Z",
+        presencePreferences: {
+          closeToBackground: false,
+          launchAtLogin: true
+        }
       })
     );
     assert.deepEqual(
@@ -48,7 +52,11 @@ test("persists launcher state updates", async () =>
         previousVersion: "0.17.9",
         lastKnownGoodVersion: "0.18.0",
         badVersions: ["0.17.8"],
-        lastUpdateCheckAt: "2026-04-11T12:00:00Z"
+        lastUpdateCheckAt: "2026-04-11T12:00:00Z",
+        presencePreferences: {
+          closeToBackground: false,
+          launchAtLogin: true
+        }
       })
     );
   }));

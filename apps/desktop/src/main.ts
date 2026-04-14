@@ -8,6 +8,7 @@ import { DesktopUpdateService } from "./launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 import { RuntimeConfigResolver } from "./runtime-config";
+import { DesktopPresenceService } from "./services/desktop-presence.service";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
 import { RuntimeServiceProcess } from "./runtime-service";
@@ -20,20 +21,19 @@ import {
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
-
 const logger = createDesktopLogger();
-
 installDesktopProcessErrorLogging(logger);
 logDesktopMainEntryLoaded(logger);
-
 class DesktopApplication {
   private runtime: RuntimeServiceProcess | null = null;
   private window: BrowserWindow | null = null;
   private stopping = false;
   private desktopRuntimeControlService: DesktopRuntimeControlService | null = null;
+  private desktopPresenceService: DesktopPresenceService | null = null;
   private desktopUpdateShell: DesktopUpdateShellService | null = null;
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
+  private runtimeBaseUrl: string | null = null;
 
   start = async (): Promise<void> => {
     logger.info("Desktop start requested.");
@@ -44,19 +44,15 @@ class DesktopApplication {
       app.quit();
       return;
     }
-
     app.on("second-instance", () => {
       if (this.window) {
-        if (this.window.isMinimized()) {
-          this.window.restore();
-        }
-        this.window.focus();
+        this.ensureDesktopPresenceService().showMainWindow();
+        return;
       }
+      void this.restoreWindow();
     });
-
     app.on("window-all-closed", () => {
-      logger.info("All desktop windows closed. Quitting launcher.");
-      app.quit();
+      this.ensureDesktopPresenceService().handleAllWindowsClosed();
     });
     app.on("before-quit", (event) => {
       logger.info(`before-quit received. stopping=${String(this.stopping)}`);
@@ -64,18 +60,29 @@ class DesktopApplication {
         return;
       }
       this.stopping = true;
+      this.ensureDesktopPresenceService().markQuitting();
       event.preventDefault();
       void this.stopRuntime().finally(() => {
         app.quit();
       });
     });
-
     logger.info("Waiting for Electron app readiness.");
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
+    this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
+    this.ensureDesktopPresenceService().installTray();
+    app.on("activate", () => {
+      if (!this.window && this.runtimeBaseUrl) {
+        void this.restoreWindow();
+        return;
+      }
+      if (this.window) {
+        this.ensureDesktopPresenceService().showMainWindow();
+      }
+    });
     logger.info(
       [
         "Electron app is ready.",
@@ -93,57 +100,79 @@ class DesktopApplication {
       app.quit();
     }
   };
-
-  private bootstrapRuntimeAndWindow = async (): Promise<boolean> => {
+  private bootstrapRuntimeAndWindow = async (allowPackagedSeedRepair = true): Promise<boolean> => {
+    let runtimeCommand: ReturnType<RuntimeConfigResolver["resolveCommand"]> | null = null;
     try {
       logger.info("Bootstrapping runtime and desktop window.");
-      await this.ensureBundleBootstrap().ensureInitialBundleAvailability();
-      await this.ensureBundleBootstrap().recoverPendingBundleCandidate();
-      await this.ensureBundleBootstrap().pruneRetainedBundleArtifacts();
-      const runtimeCommand = new RuntimeConfigResolver().resolveCommand();
+      const bundleBootstrap = this.ensureBundleBootstrap();
+      await bundleBootstrap.ensureInitialBundleAvailability();
+      await bundleBootstrap.recoverPendingBundleCandidate();
+      await bundleBootstrap.pruneRetainedBundleArtifacts();
+      runtimeCommand = new RuntimeConfigResolver().resolveCommand();
       logger.info(`Runtime source: ${runtimeCommand.source}`);
-      if (runtimeCommand.source === "bundle") {
-        logger.info(`Bundle version: ${runtimeCommand.bundleVersion ?? "unknown"}`);
-      }
-      const runtime = new RuntimeServiceProcess({
-        logger,
-        scriptPath: runtimeCommand.scriptPath,
-        runtimeEnv: createDesktopRuntimeEnv()
-      });
-      const { baseUrl } = await runtime.start();
-      this.runtime = runtime;
-      this.ensureDesktopUpdateShell();
-      this.window = this.createWindow();
-      logger.info(`Loading desktop window URL: ${baseUrl}`);
-      await this.window.loadURL(baseUrl);
+      this.logResolvedRuntimeCommand(runtimeCommand);
+      await this.startRuntimeAndLoadWindow(runtimeCommand.scriptPath);
       if (runtimeCommand.source === "bundle" && runtimeCommand.bundleVersion) {
-        await this.ensureBundleBootstrap().markBundleHealthy(runtimeCommand.bundleVersion);
+        await bundleBootstrap.markBundleHealthy(runtimeCommand.bundleVersion);
       }
       void this.ensureDesktopUpdateShell().runStartupCheck();
       return true;
     } catch (error) {
-      logger.error(`Failed to bootstrap runtime: ${String(error)}`);
-      const result = await dialog.showMessageBox({
-        type: "error",
-        title: "NextClaw Desktop Failed to Start",
-        message: "Unable to start local NextClaw runtime.",
-        detail: error instanceof Error ? error.message : String(error),
-        buttons: ["Open Logs", "Quit"],
-        defaultId: 0,
-        cancelId: 1
-      });
-      if (result.response === 0) {
-        await app.whenReady();
-        const logPath = join(app.getPath("logs"), "main.log");
-        this.window = this.createWindow();
-        await this.window.loadURL(`data:text/plain,${encodeURIComponent(`Check logs at: ${logPath}`)}`);
-        return true;
+      if (allowPackagedSeedRepair && runtimeCommand?.source === "bundle" && runtimeCommand.bundleVersion) {
+        const repaired = await this.ensureBundleBootstrap().repairPackagedSeedBundle(runtimeCommand.bundleVersion);
+        if (repaired) {
+          logger.warn(`Retrying desktop bootstrap after packaged seed bundle repair for ${runtimeCommand.bundleVersion}.`);
+          await this.stopRuntime();
+          return await this.bootstrapRuntimeAndWindow(false);
+        }
       }
-      await this.stopRuntime();
-      return false;
+      return await this.handleBootstrapFailure(error);
     }
   };
-
+  private logResolvedRuntimeCommand = (runtimeCommand: ReturnType<RuntimeConfigResolver["resolveCommand"]>): void => {
+    if (runtimeCommand.source !== "bundle") {
+      return;
+    }
+    logger.info(`Bundle version: ${runtimeCommand.bundleVersion ?? "unknown"}`);
+  };
+  private startRuntimeAndLoadWindow = async (scriptPath: string): Promise<void> => {
+    const runtime = new RuntimeServiceProcess({
+      logger,
+      scriptPath,
+      runtimeEnv: createDesktopRuntimeEnv()
+    });
+    const { baseUrl } = await runtime.start();
+    this.runtime = runtime;
+    this.runtimeBaseUrl = baseUrl;
+    this.ensureDesktopUpdateShell();
+    this.window = this.createWindow();
+    logger.info(`Loading desktop window URL: ${baseUrl}`);
+    await this.window.loadURL(baseUrl);
+  };
+  private handleBootstrapFailure = async (error: unknown): Promise<boolean> => {
+    logger.error(`Failed to bootstrap runtime: ${String(error)}`);
+    const result = await dialog.showMessageBox({
+      type: "error",
+      title: "NextClaw Desktop Failed to Start",
+      message: "Unable to start local NextClaw runtime.",
+      detail: error instanceof Error ? error.message : String(error),
+      buttons: ["Open Logs", "Quit"],
+      defaultId: 0,
+      cancelId: 1
+    });
+    if (result.response === 0) {
+      await this.openBootstrapLogsWindow();
+      return true;
+    }
+    await this.stopRuntime();
+    return false;
+  };
+  private openBootstrapLogsWindow = async (): Promise<void> => {
+    await app.whenReady();
+    const logPath = join(app.getPath("logs"), "main.log");
+    this.window = this.createWindow();
+    await this.window.loadURL(`data:text/plain,${encodeURIComponent(`Check logs at: ${logPath}`)}`);
+  };
   private createUpdateService = (): DesktopUpdateService => {
     return new DesktopUpdateService({
       layout: new DesktopBundleLayoutStore(),
@@ -152,12 +181,10 @@ class DesktopApplication {
       bundlePublicKey: this.getBundlePublicKey()
     });
   };
-
   private createLauncherStateStore = (): DesktopLauncherStateStore => {
     const layout = new DesktopBundleLayoutStore();
     return new DesktopLauncherStateStore(layout.getLauncherStatePath());
   };
-
   private createBundleService = (): DesktopBundleService => {
     const layout = new DesktopBundleLayoutStore();
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
@@ -167,7 +194,6 @@ class DesktopApplication {
       launcherVersion: app.getVersion()
     });
   };
-
   private createBundleLifecycle = (): DesktopBundleLifecycleService => {
     const layout = new DesktopBundleLayoutStore();
     const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
@@ -181,7 +207,6 @@ class DesktopApplication {
       })
     });
   };
-
   private ensureBundleBootstrap = (): DesktopBundleBootstrapService => {
     if (this.bundleBootstrap) {
       return this.bundleBootstrap;
@@ -196,12 +221,10 @@ class DesktopApplication {
     });
     return this.bundleBootstrap;
   };
-
   private ensureDesktopUpdateShell = (): DesktopUpdateShellService => {
     if (this.desktopUpdateShell) {
       return this.desktopUpdateShell;
     }
-
     this.desktopUpdateShell = new DesktopUpdateShellService({
       logger,
       launcherVersion: app.getVersion(),
@@ -217,15 +240,12 @@ class DesktopApplication {
         app.quit();
       }
     });
-
     return this.desktopUpdateShell;
   };
-
   private ensureDesktopRuntimeControlService = (): DesktopRuntimeControlService => {
     if (this.desktopRuntimeControlService) {
       return this.desktopRuntimeControlService;
     }
-
     this.desktopRuntimeControlService = new DesktopRuntimeControlService({
       logger,
       restartRuntime: async () => {
@@ -239,10 +259,23 @@ class DesktopApplication {
         app.quit();
       }
     });
-
     return this.desktopRuntimeControlService;
   };
+  private ensureDesktopPresenceService = (): DesktopPresenceService => {
+    if (this.desktopPresenceService) {
+      return this.desktopPresenceService;
+    }
 
+    this.desktopPresenceService = new DesktopPresenceService({
+      logger,
+      getWindow: () => this.window,
+      createLauncherStateStore: this.createLauncherStateStore,
+      requestApplicationQuit: () => {
+        app.quit();
+      }
+    });
+    return this.desktopPresenceService;
+  };
   private ensureUpdateSourceService = (): DesktopUpdateSourceService => {
     if (this.updateSourceService) {
       return this.updateSourceService;
@@ -302,6 +335,7 @@ class DesktopApplication {
   private stopRuntime = async (): Promise<void> => {
     const runtime = this.runtime;
     this.runtime = null;
+    this.runtimeBaseUrl = null;
     if (!runtime) {
       return;
     }
@@ -310,6 +344,14 @@ class DesktopApplication {
     } catch (error) {
       logger.warn(`Failed to stop runtime cleanly: ${String(error)}`);
     }
+  };
+
+  private restoreWindow = async (): Promise<void> => {
+    if (this.window || !this.runtimeBaseUrl) {
+      return;
+    }
+    this.window = this.createWindow();
+    await this.window.loadURL(this.runtimeBaseUrl);
   };
 
   private createWindow = (): BrowserWindow => {
@@ -328,6 +370,9 @@ class DesktopApplication {
     });
 
     attachWindowDiagnostics(window, logger);
+    window.on("close", (event) => {
+      this.ensureDesktopPresenceService().handleWindowClose(event);
+    });
 
     window.on("closed", () => {
       this.window = null;

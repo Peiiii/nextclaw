@@ -5,6 +5,8 @@ import type {
 } from "./launcher/services/update-coordinator.service";
 import type { DesktopReleaseChannel } from "./launcher/stores/launcher-state.store";
 import {
+  DESKTOP_PRESENCE_GET_STATE_CHANNEL,
+  DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL,
   DESKTOP_RUNTIME_RESTART_APP_CHANNEL,
   DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL,
   DESKTOP_UPDATES_APPLY_CHANNEL,
@@ -23,6 +25,16 @@ type DesktopRuntimeControlResult = {
   message: string;
 };
 
+type DesktopPresencePreferences = {
+  closeToBackground: boolean;
+  launchAtLogin: boolean;
+};
+
+type DesktopPresenceSnapshot = DesktopPresencePreferences & {
+  supportsLaunchAtLogin: boolean;
+  launchAtLoginReason: string | null;
+};
+
 contextBridge.exposeInMainWorld("nextclawDesktop", {
   platform: process.platform,
   version: process.versions.electron,
@@ -39,6 +51,10 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
     await ipcRenderer.invoke(DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL),
   restartApp: async (): Promise<DesktopRuntimeControlResult> =>
     await ipcRenderer.invoke(DESKTOP_RUNTIME_RESTART_APP_CHANNEL),
+  getPresenceState: async (): Promise<DesktopPresenceSnapshot> =>
+    await ipcRenderer.invoke(DESKTOP_PRESENCE_GET_STATE_CHANNEL),
+  updatePresencePreferences: async (preferences: Partial<DesktopPresencePreferences>): Promise<DesktopPresenceSnapshot> =>
+    await ipcRenderer.invoke(DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL, preferences),
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: DesktopUpdateSnapshot) => {
       listener(snapshot);

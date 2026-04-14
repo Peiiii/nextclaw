@@ -46,12 +46,18 @@ export function createLauncherState(overrides: Partial<DesktopLauncherState> = {
     candidateLaunchCount: 0,
     lastKnownGoodVersion: null,
     badVersions: [],
+    lastAttemptedPackagedSeedVersion: null,
+    lastAttemptedPackagedSeedSha256: null,
     lastUpdateCheckAt: null,
     downloadedVersion: null,
     downloadedReleaseNotesUrl: null,
     updatePreferences: {
       automaticChecks: true,
       autoDownload: false
+    },
+    presencePreferences: {
+      closeToBackground: true,
+      launchAtLogin: false
     },
     ...overrides
   };

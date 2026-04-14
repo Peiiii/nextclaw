@@ -145,9 +145,16 @@ async function addDirectoryToZip(zip, sourceDir, zipRoot) {
 
 function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
   const normalizedRelativePath = relativePath.replaceAll("\\", "/").toLowerCase();
+  const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
   const basename = entry.name.toLowerCase();
   if (entry.isDirectory()) {
-    return RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES.has(basename);
+    if (!RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES.has(basename)) {
+      return false;
+    }
+    if (pathSegments[0]?.startsWith("@")) {
+      return pathSegments.length === 3;
+    }
+    return pathSegments.length === 2;
   }
   if (RUNTIME_NODE_MODULES_PRUNE_BASENAMES.has(basename)) {
     return true;
@@ -155,7 +162,7 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
   if (RUNTIME_NODE_MODULES_PRUNE_SUFFIXES.some((suffix) => basename.endsWith(suffix))) {
     return true;
   }
-  return normalizedRelativePath.includes("/docs/") || normalizedRelativePath.includes("/examples/");
+  return false;
 }
 
 async function pruneRuntimeNodeModules(runtimeRoot) {

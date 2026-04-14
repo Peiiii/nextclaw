@@ -7,3 +7,5 @@ export const DESKTOP_UPDATES_UPDATE_CHANNEL_CHANNEL = "nextclaw-desktop:updates:
 export const DESKTOP_UPDATES_STATE_CHANGED_CHANNEL = "nextclaw-desktop:updates:state-changed";
 export const DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL = "nextclaw-desktop:runtime:restart-service";
 export const DESKTOP_RUNTIME_RESTART_APP_CHANNEL = "nextclaw-desktop:runtime:restart-app";
+export const DESKTOP_PRESENCE_GET_STATE_CHANNEL = "nextclaw-desktop:presence:get-state";
+export const DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL = "nextclaw-desktop:presence:update-preferences";

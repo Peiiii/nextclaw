@@ -1,8 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
-  DesktopLauncherStateStore,
   type DesktopReleaseChannel,
+  type DesktopLauncherStateStore,
   normalizeDesktopReleaseChannel
 } from "../launcher/stores/launcher-state.store";
 

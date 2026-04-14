@@ -12,7 +12,6 @@ import {
   statSync,
   writeFileSync
 } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import JSZip from "jszip";
@@ -158,7 +157,7 @@ function findFirstDmg(rootDir) {
   return null;
 }
 
-function buildReadme({ installerDmgPath, supportRoot, stableVersion, betaVersion, runtimeHomeOverride, desktopDataDirOverride }) {
+function buildReadme({ installerDmgPath, supportRoot, stableVersion, betaVersion }) {
   return `# Desktop Release Channel Manual Validation
 
 这是给产品本人手动验收用的标准安装包支持目录。
@@ -171,24 +170,21 @@ function buildReadme({ installerDmgPath, supportRoot, stableVersion, betaVersion
 
 1. 双击上面的 DMG，把 \`NextClaw Desktop.app\` 拖到 \`Applications\`。
 2. 双击 \`1-start-local-update-server.command\`，保持这个终端窗口不要关闭。
-3. 如需把这次验证写入的数据清空，双击 \`2-reset-validation-state.command\`。
-4. 正常从 \`Applications/NextClaw Desktop.app\` 打开应用。
-5. 进入“设置 > 桌面端更新”。
-6. 在 \`Stable\` 下点击“检查更新”，预期当前版本是 \`${stableVersion}\`，结果为“已是最新”。
-7. 切到 \`Beta\`，再次点击“检查更新”，预期看到 \`${betaVersion}\`。
-8. 下载并应用更新，重启后预期当前版本变成 \`${betaVersion}\`。
-9. 再切回 \`Stable\` 检查更新，预期不会强制降级，当前版本仍保持 \`${betaVersion}\`。
+3. 正常从 \`Applications/NextClaw Desktop.app\` 打开应用。
+4. 进入“设置 > 桌面端更新”。
+5. 在 \`Stable\` 下点击“检查更新”，预期当前版本是 \`${stableVersion}\`，结果为“已是最新”。
+6. 切到 \`Beta\`，再次点击“检查更新”，预期看到 \`${betaVersion}\`。
+7. 下载并应用更新，重启后预期当前版本变成 \`${betaVersion}\`。
+8. 再切回 \`Stable\` 检查更新，预期不会强制降级，当前版本仍保持 \`${betaVersion}\`。
 
 ## 支持目录内容
 
 - 本地更新源根目录：${join(supportRoot, "server-root")}
-- 验证 runtime home：${runtimeHomeOverride}
-- 验证 desktop data：${desktopDataDirOverride}
 
 ## 注意
 
 - 这是标准 DMG 安装包，不是让你直接在奇怪目录里跑 \`.app\`
-- 这个验证包已经把本地更新源地址和独立验证数据目录烘进安装包里，所以安装后可以像普通桌面端一样从 \`Applications\` 启动
+- 这个验证包只把本地更新源地址烘进安装包里，标准运行数据仍会继续使用用户自己的 \`~/.nextclaw\`
 - 你只需要额外启动一次本地更新源脚本，因为这次还没有把测试用 beta 版本发布到正式线上更新源
 `;
 }
@@ -209,9 +205,6 @@ async function main() {
   const launcherVersion = desktopPackage.version;
   const installerOutputRoot = join(supportRoot, "pack-output");
   const installerDmgPath = resolve(desktopDir, "release", "NextClaw Desktop-manual-update-validation-installer.dmg");
-  const runtimeHomeOverride = resolve(homedir(), ".nextclaw-manual-update-validation", "runtime-home");
-  const desktopDataDirOverride = resolve(homedir(), ".nextclaw-manual-update-validation", "desktop-data");
-
   rmSync(supportRoot, { recursive: true, force: true });
   rmSync(installerDmgPath, { force: true });
   mkdirSync(supportRoot, { recursive: true });
@@ -290,9 +283,7 @@ async function main() {
         {
           channel: "stable",
           releaseTag: "manual-update-validation",
-          manifestBaseUrl,
-          runtimeHomeOverride,
-          desktopDataDirOverride
+          manifestBaseUrl
         },
         null,
         2
@@ -337,24 +328,13 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 node "${resolve(desktopDir, "scripts", "run-local-update-server.mjs")}" --root "$SCRIPT_DIR/server-root" --port "${String(port)}"
 `
   );
-  writeExecutableFile(
-    join(supportRoot, "2-reset-validation-state.command"),
-    `#!/bin/bash
-set -euo pipefail
-rm -rf "${runtimeHomeOverride}" "${desktopDataDirOverride}"
-mkdir -p "${runtimeHomeOverride}" "${desktopDataDirOverride}"
-echo "Validation state reset."
-`
-  );
   writeFileSync(
     join(supportRoot, "README.md"),
     buildReadme({
       installerDmgPath,
       supportRoot,
       stableVersion,
-      betaVersion,
-      runtimeHomeOverride,
-      desktopDataDirOverride
+      betaVersion
     }),
     "utf8"
   );
@@ -366,10 +346,7 @@ echo "Validation state reset."
         supportRoot,
         stableVersion,
         betaVersion,
-        startServerScript: join(supportRoot, "1-start-local-update-server.command"),
-        resetStateScript: join(supportRoot, "2-reset-validation-state.command"),
-        runtimeHomeOverride,
-        desktopDataDirOverride
+        startServerScript: join(supportRoot, "1-start-local-update-server.command")
       },
       null,
       2
