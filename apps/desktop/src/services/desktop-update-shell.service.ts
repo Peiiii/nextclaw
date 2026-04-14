@@ -35,6 +35,7 @@ type DesktopUpdateShellServiceOptions = {
   createUpdateService: () => DesktopUpdateService;
   createBundleLifecycle: () => DesktopBundleLifecycleService;
   createBundleService: () => DesktopBundleService;
+  requestApplicationQuit: () => void;
   restartApplication: () => void;
 };
 
@@ -127,7 +128,13 @@ export class DesktopUpdateShellService {
         { role: "hideOthers" },
         { role: "unhide" },
         { type: "separator" },
-        { role: "quit" }
+        {
+          label: "Quit NextClaw",
+          accelerator: "CommandOrControl+Q",
+          click: () => {
+            this.options.requestApplicationQuit();
+          }
+        }
       ]
     };
   };

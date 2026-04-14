@@ -59,6 +59,9 @@ class DesktopApplication {
       if (this.stopping) {
         return;
       }
+      if (!this.ensureDesktopPresenceService().handleBeforeQuit(event)) {
+        return;
+      }
       this.stopping = true;
       this.ensureDesktopPresenceService().markQuitting();
       event.preventDefault();
@@ -97,6 +100,7 @@ class DesktopApplication {
     const loaded = await this.bootstrapRuntimeAndWindow();
     if (!loaded) {
       logger.warn("Desktop bootstrap returned false. Quitting launcher.");
+      this.ensureDesktopPresenceService().markQuitting();
       app.quit();
     }
   };
@@ -235,7 +239,11 @@ class DesktopApplication {
       createUpdateService: this.createUpdateService,
       createBundleLifecycle: this.createBundleLifecycle,
       createBundleService: this.createBundleService,
+      requestApplicationQuit: () => {
+        this.ensureDesktopPresenceService().requestExplicitQuit();
+      },
       restartApplication: () => {
+        this.ensureDesktopPresenceService().markQuitting();
         app.relaunch();
         app.quit();
       }
@@ -255,6 +263,7 @@ class DesktopApplication {
         await this.runtime.restart();
       },
       restartApplication: () => {
+        this.ensureDesktopPresenceService().markQuitting();
         app.relaunch();
         app.quit();
       }

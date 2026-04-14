@@ -89,6 +89,16 @@ export class DesktopPresenceService {
     this.options.logger.info("Desktop window close intercepted. Hiding window to tray.");
   };
 
+  handleBeforeQuit = (event: ElectronEvent): boolean => {
+    if (this.quitting || !this.getSnapshot().closeToBackground) {
+      return true;
+    }
+    event.preventDefault();
+    this.hideMainWindow();
+    this.options.logger.warn("Implicit desktop quit intercepted while background-running is enabled.");
+    return false;
+  };
+
   handleAllWindowsClosed = (): void => {
     if (this.quitting || !this.getSnapshot().closeToBackground) {
       this.options.logger.info("All desktop windows closed. Quitting launcher.");
@@ -100,6 +110,11 @@ export class DesktopPresenceService {
 
   markQuitting = (): void => {
     this.quitting = true;
+  };
+
+  requestExplicitQuit = (): void => {
+    this.markQuitting();
+    this.options.requestApplicationQuit();
   };
 
   showMainWindow = (): void => {
@@ -188,7 +203,7 @@ export class DesktopPresenceService {
       {
         label: "Quit NextClaw",
         click: () => {
-          this.options.requestApplicationQuit();
+          this.requestExplicitQuit();
         }
       }
     ];

@@ -9,6 +9,10 @@
   - 增加托盘常驻入口，可从托盘恢复主窗口、切换登录自启、显式退出应用。
   - 新增 presence 偏好持久化：`closeToBackground`、`launchAtLogin`。
   - 新增主进程 presence owner：负责托盘、关窗拦截、显式退出放行、登录自启设置读写、presence IPC。
+- 同批次验收修正补上了一个关键桌面生命周期缺陷：
+  - 真实安装态排查发现，主窗口关闭后虽然先被正确拦截并隐藏到托盘，但随后又会落入 `before-quit -> stopRuntime()` 链路，导致内嵌 runtime 被 `SIGTERM` 终止，所以定时任务只会多跑一次，之后全部停止。
+  - 本次把“隐式 quit”和“显式 Quit NextClaw”彻底分开：启用后台运行时，普通 `before-quit` 会被 presence owner 拦回后台；只有托盘菜单或应用菜单里的 `Quit NextClaw`，以及 restart / update 等明确退出路径，才会先标记 `quitting` 再放行停服务。
+  - 修复后桌面端的真实合同收紧为：`关闭窗口 = 隐藏到托盘并继续后台运行`，`Quit NextClaw = 退出应用并停止 runtime`。
 - Desktop renderer / UI 已完成对应接线：
   - preload bridge 新增 `getPresenceState()`、`updatePresencePreferences()`。
   - runtime 配置页新增 `Runtime Presence` 卡片。
@@ -53,6 +57,14 @@
 - 未执行：真实 GUI 冒烟
   - 原因：当前轮次先完成代码与配置链路落地，未在本机桌面环境里额外启动 Electron 进行人工点击式验证。
   - 后续建议最小冒烟：启动桌面端后验证“关窗隐藏到托盘”“托盘恢复窗口”“托盘 Quit 才退出”“开启登录自启后重新读取状态正确”；网页端验证 `Service Management` 在 `managed-local-service` 下显示统一的服务状态与动作按钮。
+- 已补做：桌面端真实生命周期冒烟与排查复现
+  - 复现证据：`~/Library/Application Support/@nextclaw/desktop/launcher/main.log` 在 `2026-04-14T11:01:13Z` 记录 `Desktop window close intercepted. Hiding window to tray.`，但随后又在 `2026-04-14T11:01:15Z` 记录 `before-quit received. stopping=false`，并紧接着出现 runtime `signal=SIGTERM` 退出日志，和“关窗后只再跑一次定时任务”现象一致。
+  - 修复后已通过：`pnpm -C apps/desktop exec tsc -p tsconfig.json --noEmit`
+  - 修复后已通过：`pnpm lint:new-code:governance -- apps/desktop/src/main.ts apps/desktop/src/services/desktop-presence.service.ts apps/desktop/src/services/desktop-update-shell.service.ts`
+  - 修复后已通过：源码态桌面端真实冒烟。使用 `pnpm -C apps/desktop dev` 启动桌面端后，发送一次真实关窗操作（`Command+W`），`main.log` 在 `2026-04-14T11:28:48Z` 只记录 `Desktop window close intercepted. Hiding window to tray.`，没有再出现新的 `before-quit`。
+  - 修复后已通过：关窗后再次检查进程，Electron 主进程 `pid=59377` 与内嵌 runtime `pid=59662` 仍同时存活。
+  - 修复后已通过：窗口隐藏到托盘后直接请求本地 API，`curl http://127.0.0.1:53277/api/config` 与 `curl http://127.0.0.1:53277/api/ncp/sessions?limit=20` 都返回 `ok:true`，说明不是“窗口隐藏了但服务已失效”的假存活。
+  - 已重新构建安装包：`pnpm desktop:package`
 
 ## 发布/部署方式
 
@@ -70,8 +82,10 @@
 - Desktop 验收：
   - 启动桌面端，进入运行时配置页，确认出现 `Runtime Presence` 卡片。
   - 保持“关闭窗口时继续后台运行”为开启，关闭主窗口，确认应用未退出、runtime 未停止。
+  - 在保持后台运行开启的前提下等待至少 2 分钟，确认 cron / 定时任务仍继续执行，而不是只在关窗后额外跑一条就停止。
   - 从托盘点击 `Open NextClaw`，确认主窗口可恢复。
   - 从托盘点击 `Quit NextClaw`，确认桌面应用退出，内嵌 runtime 跟随停止。
+  - 若已有“每分钟发送问候”之类的真实定时任务，验证“关闭窗口后继续发送；点击 `Quit NextClaw` 后停止发送”的完整对照语义。
   - 打开“登录系统时自动启动 NextClaw”，重启应用后再次进入设置页，确认状态能正确回显。
 - Web 验收：
   - 在 `managed-local-service`、`self-hosted-web` 或 `shared-web` 环境进入运行时配置页。
@@ -88,6 +102,7 @@
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。Desktop 生命周期由 `DesktopPresenceService` 统一 owner；Web 服务动作由 `RuntimeControlHost` 统一 owner；UI 侧通过 `runtimeControlManager` 和 `desktopPresenceManager` 分别承接 service management 与 presence，不再把两类语义混在一张对象里。
 - 目录结构与文件组织是否满足当前项目治理要求：比上一版更接近目标。`service-support/runtime` 现在只承担 runtime 基础设施，`service-support/ui` 承担 UI host / 控制面装配，旧的 `runtime-support` 目录已不再承载职责；剩余已知旧债仍主要在 `packages/nextclaw-ui/src/components/config` 与 `packages/nextclaw-ui/src/api` 两处 legacy 平铺目录。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：已执行独立复核，结论如下。
+- 针对本次关窗误停服务的续改复核：本次增量只触达 3 个桌面主进程文件，代码增减为 `+33 / -2`，且全部围绕既有 `DesktopPresenceService` 与桌面退出链路收口，没有新增第四类 lifecycle owner、没有引入状态兜底分支、也没有再造一套“退出原因枚举 + 中间适配层”的补丁结构；这是当前问题下更小、更可预测的修法。
 
 可维护性复核结论：保留债务经说明接受
 
