@@ -5,10 +5,13 @@ import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 
 const appRoot = process.cwd();
-const baseUrl = (process.env.COMPETITIVE_LEADERBOARD_BASE_URL ?? "http://127.0.0.1:3194").replace(/\/+$/, "");
+const productionBaseUrl = "https://clawboard.nextclaw.io";
+const skipLocalServer = process.env.COMPETITIVE_LEADERBOARD_SKIP_LOCAL_SERVER === "1";
+const baseUrl = (
+  process.env.COMPETITIVE_LEADERBOARD_BASE_URL ?? (skipLocalServer ? productionBaseUrl : "http://127.0.0.1:3194")
+).replace(/\/+$/, "");
 const distIndexPath = resolve(appRoot, "dist/client/index.html");
 const serverPort = Number.parseInt(new URL(baseUrl).port || "3194", 10);
-const skipLocalServer = process.env.COMPETITIVE_LEADERBOARD_SKIP_LOCAL_SERVER === "1";
 
 if (!skipLocalServer && !existsSync(distIndexPath)) {
   console.error("Smoke test requires a built client. Run `pnpm -C apps/competitive-leaderboard build` first.");
@@ -54,7 +57,7 @@ try {
   });
 
   await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await expectText(page, "龙虾类产品研究榜单");
+  await expectText(page, "ClawBoard：龙虾类产品研究榜单");
   await expectText(page, "先画全市场，再谈总榜");
   await expectText(page, "只对真正同类的 core 层做统一总榜");
   await expectText(page, "并把公共信号和能力覆盖拆开给你看");

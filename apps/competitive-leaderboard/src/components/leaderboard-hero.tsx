@@ -15,8 +15,8 @@ export function LeaderboardHero({
   return (
     <header className="hero">
       <div className="hero__copy">
-        <div className="hero__eyebrow">Lobster-Class Product Research Index</div>
-        <h1>龙虾类产品研究榜单</h1>
+        <div className="hero__eyebrow">ClawBoard · Lobster-Class Product Research Index</div>
+        <h1>ClawBoard：龙虾类产品研究榜单</h1>
         <p className="hero__summary">
           这不是“把我们家排第一”的宣传页，而是一套公开方法论驱动的研究型榜单。
           我们只保留真正的龙虾类产品和直接衍生物，再只对真正同类的 core 层做统一总榜，并把公共信号和能力覆盖拆开给你看。

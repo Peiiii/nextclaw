@@ -18,7 +18,7 @@ export default function App(): JSX.Element {
   });
 
   useEffect(() => {
-    document.title = "Lobster-Class Product Research Index";
+    document.title = "ClawBoard | 龙虾类产品研究榜单";
   }, []);
 
   const activeDetail: ProductDetail | null = overviewQuery.data && selectedProductId

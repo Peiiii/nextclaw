@@ -3,6 +3,10 @@ main = "worker/index.ts"
 compatibility_date = "2026-04-14"
 workers_dev = true
 
+[[routes]]
+pattern = "clawboard.nextclaw.io"
+custom_domain = true
+
 [assets]
 directory = "./dist/client"
 binding = "ASSETS"

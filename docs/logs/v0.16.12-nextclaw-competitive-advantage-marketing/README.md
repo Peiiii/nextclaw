@@ -50,6 +50,11 @@
   - 移除 Worker 路径中会导致响应异常的 Hono `compress()` 中间件
   - 将服务端 Hono 路由入口从 `server/app.ts` 收敛为符合治理规则的 `server/leaderboard.controller.ts`
   - 同步更新 Node server、Worker 入口与 Worker tsconfig 引用，避免线上代码与仓库代码不一致
+- 本次续优化正式品牌与域名：
+  - 将对外名称统一为 `ClawBoard`
+  - 将正式域名配置为 `https://clawboard.nextclaw.io`
+  - 补充页面 title、description、canonical、Open Graph、Twitter Card 与 theme color
+  - 将远程 smoke 默认地址切到 `https://clawboard.nextclaw.io`
 
 ## 测试/验证/验收方式
 
@@ -71,12 +76,16 @@
   - 产品资料卡不少于 20 个
   - 打开证据抽屉后能看到“纳入判断 / 能力矩阵 / 公共信号拆解”
 - 线上验证：
-  - Cloudflare deploy 成功返回 `Current Version ID: 30a8c716-a09e-444a-a3d1-39d32b8e2ba7`
-  - 线上地址：`https://nextclaw-competitive-leaderboard.15353764479037.workers.dev`
+  - Cloudflare deploy 成功返回 `Current Version ID: 126f5b90-4972-4746-b252-63ca3bda9c69`
+  - 正式线上地址：`https://clawboard.nextclaw.io`
+  - Worker fallback 地址：`https://nextclaw-competitive-leaderboard.15353764479037.workers.dev`
+  - Cloudflare deploy 输出已确认 `clawboard.nextclaw.io (custom domain)`
   - 已通过外部网络检查线上 `/health` 正常返回 `ok: true`
   - 已通过外部网络检查线上 `/api/leaderboard` 正常返回榜单 JSON
-  - 额外远程 smoke 已尝试：
+  - 已执行正式域名远程 smoke：
     - `COMPETITIVE_LEADERBOARD_BASE_URL=https://nextclaw-competitive-leaderboard.15353764479037.workers.dev pnpm smoke:competitive:leaderboard:remote`
+    - `pnpm smoke:competitive:leaderboard:remote`
+  - `pnpm smoke:competitive:leaderboard:remote` 当前默认指向 `https://clawboard.nextclaw.io`
   - 当前本机终端与 Chrome DevTools 到 `workers.dev` 仍出现连接超时；该问题与外部网络检查结果不一致，按本机网络链路问题记录，不作为应用接口失败结论。
 - 维护性治理：
   - 已执行 `pnpm lint:maintainability:guard`
@@ -91,16 +100,19 @@
 - Cloudflare 发布：
   - `pnpm deploy:competitive:leaderboard`
 - 当前线上地址：
+  - `https://clawboard.nextclaw.io`
+- Worker fallback 地址：
   - `https://nextclaw-competitive-leaderboard.15353764479037.workers.dev`
 - 部署形态：
   - Cloudflare Worker + static assets
   - Worker 名称：`nextclaw-competitive-leaderboard`
+  - Custom Domain：`clawboard.nextclaw.io`
 - 建议继续保持“研究型榜单站”身份，而不是直接降级为官网某个宣传分栏。
 
 ## 用户/产品视角的验收步骤
 
 1. 执行 `pnpm dev:competitive:leaderboard`。
-2. 打开页面，确认首页首先强调这是“研究榜单”，而不是直接宣传 NextClaw。
+2. 打开页面，确认首页展示 `ClawBoard：龙虾类产品研究榜单`，并首先强调这是“研究榜单”，而不是直接宣传 NextClaw。
 3. 查看 `Universe Map`，确认页面先区分 `core comparable` 与 `derivative / watch`。
 4. 查看 `Core Leaderboard`，确认只对 core 层统一排名。
 5. 查看 `公共信号榜` 与 `能力覆盖榜`，确认它们和综合总榜是拆开的。
@@ -174,3 +186,22 @@
 - 这次不是新增兜底逻辑，而是删除导致 Worker 响应异常的压缩中间件，系统路径更少、更直接、更可预测。
 - 同时把触达的服务端入口文件收敛为 `leaderboard.controller.ts`，使 API 路由职责更清晰，也让维护性守卫从失败恢复为通过。
 - 后续仍应继续拆分 `leaderboard-products.data.ts`，但这次修复本身已经做到净删除、低分支、低复杂度。
+
+### 本次 ClawBoard 域名优化的可维护性复核结论：通过
+
+- 本次顺手减债：是
+- 代码增减报告：
+  - 新增：35 行
+  - 删除：8 行
+  - 净增：+27 行
+- 非测试代码增减报告：
+  - 新增：29 行
+  - 删除：5 行
+  - 净增：+24 行
+- no maintainability findings
+
+### 本次 ClawBoard 域名优化的长期目标对齐 / 可维护性推进
+
+- 这次增长主要来自必要的站点元信息和 Cloudflare custom domain 配置，属于对外正式化的最小必要新增。
+- 没有新增业务分支、兼容兜底或额外抽象，只把品牌、正式域名与远程 smoke 默认入口统一起来。
+- 后续如果继续扩展传播资产，应优先复用这套 `ClawBoard` 品牌入口，不要再新增多个分裂域名或页面身份。
