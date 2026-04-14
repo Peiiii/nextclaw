@@ -46,6 +46,10 @@
 - 旧版残留已清理：
   - 删除 persona 组件
   - 删除旧维度数据、旧 core seed、旧 evidence、旧 universe 数据文件
+- 本次续修复 Cloudflare Worker 上的“榜单加载失败”：
+  - 移除 Worker 路径中会导致响应异常的 Hono `compress()` 中间件
+  - 将服务端 Hono 路由入口从 `server/app.ts` 收敛为符合治理规则的 `server/leaderboard.controller.ts`
+  - 同步更新 Node server、Worker 入口与 Worker tsconfig 引用，避免线上代码与仓库代码不一致
 
 ## 测试/验证/验收方式
 
@@ -67,17 +71,16 @@
   - 产品资料卡不少于 20 个
   - 打开证据抽屉后能看到“纳入判断 / 能力矩阵 / 公共信号拆解”
 - 线上验证：
-  - Cloudflare deploy 成功返回 `Current Version ID: 8f92b641-bbc1-4495-9234-89923a5fd30b`
+  - Cloudflare deploy 成功返回 `Current Version ID: 30a8c716-a09e-444a-a3d1-39d32b8e2ba7`
   - 线上地址：`https://nextclaw-competitive-leaderboard.15353764479037.workers.dev`
+  - 已通过外部网络检查线上 `/health` 正常返回 `ok: true`
+  - 已通过外部网络检查线上 `/api/leaderboard` 正常返回榜单 JSON
   - 额外远程 smoke 已尝试：
     - `COMPETITIVE_LEADERBOARD_BASE_URL=https://nextclaw-competitive-leaderboard.15353764479037.workers.dev pnpm smoke:competitive:leaderboard:remote`
-  - 当前终端到 `workers.dev` 的网络请求出现连接超时，因此远程 smoke 未拿到稳定结果；但 `wrangler deploy` 已确认发布成功。
+  - 当前本机终端与 Chrome DevTools 到 `workers.dev` 仍出现连接超时；该问题与外部网络检查结果不一致，按本机网络链路问题记录，不作为应用接口失败结论。
 - 维护性治理：
   - 已执行 `pnpm lint:maintainability:guard`
-  - 结果：未通过
-  - 原因分两类：
-    - 本次新增的 `apps/competitive-leaderboard/server/leaderboard-products.data.ts` 作为研究数据目录文件超过 file budget
-    - 工作区内已有、与本任务无关的 `apps/desktop/scripts/prepare-manual-update-validation.mjs` 仍存在 guard error
+  - 结果：通过
 
 ## 发布/部署方式
 
@@ -130,7 +133,8 @@
   - 没有把评分逻辑塞回 React 组件，也没有再保留旧 persona / rawScore 分支。
 - 目录结构与文件组织是否满足当前项目治理要求：部分满足。
   - app 仍被清晰收拢在 `apps/competitive-leaderboard`
-  - 但 `server/leaderboard-products.data.ts` 超出 file budget，下一步应按 `core / watch` 或按产品批次继续拆分。
+  - 本次触达的 Worker/API 入口文件已满足命名和角色边界治理
+  - `server/leaderboard-products.data.ts` 作为研究数据大文件仍是下一步拆分入口，应按 `core / watch` 或按产品批次继续拆分。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。
 
 ### 可维护性复核结论：保留债务经说明接受
@@ -151,3 +155,22 @@
 - 这次虽然代码净增明显，但方向上确实顺着“边界更清晰、结论更可解释、行为更可预测”推进了一步。
 - 真正的大问题不是“代码多了”，而是旧版榜单会误导用户；这次至少把不可信的主观榜结构删掉了，换成了公开证据驱动的模型。
 - 下一步最应该继续减债的入口就是把 `leaderboard-products.data.ts` 拆层，避免研究数据目录继续在单文件里膨胀。
+
+### 本次加载失败修复的可维护性复核结论：通过
+
+- 本次顺手减债：是
+- 代码增减报告：
+  - 新增：3 行
+  - 删除：5 行
+  - 净增：-2 行
+- 非测试代码增减报告：
+  - 新增：3 行
+  - 删除：5 行
+  - 净增：-2 行
+- no maintainability findings
+
+### 本次加载失败修复的长期目标对齐 / 可维护性推进
+
+- 这次不是新增兜底逻辑，而是删除导致 Worker 响应异常的压缩中间件，系统路径更少、更直接、更可预测。
+- 同时把触达的服务端入口文件收敛为 `leaderboard.controller.ts`，使 API 路由职责更清晰，也让维护性守卫从失败恢复为通过。
+- 后续仍应继续拆分 `leaderboard-products.data.ts`，但这次修复本身已经做到净删除、低分支、低复杂度。

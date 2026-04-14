@@ -8,5 +8,5 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["worker", "server/app.ts", "server/leaderboard-*.ts", "shared"]
+  "include": ["worker", "server/leaderboard.controller.ts", "server/leaderboard-*.ts", "shared"]
 }

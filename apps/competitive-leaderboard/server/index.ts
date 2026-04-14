@@ -3,7 +3,7 @@ import { serveStatic } from "hono/serve-static";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { competitiveLeaderboardApp } from "./app.js";
+import { competitiveLeaderboardApp } from "./leaderboard.controller.js";
 
 const host = process.env.COMPETITIVE_LEADERBOARD_HOST?.trim() || "127.0.0.1";
 const port = parsePort(process.env.COMPETITIVE_LEADERBOARD_PORT, 3194);

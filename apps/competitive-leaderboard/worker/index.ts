@@ -1,4 +1,4 @@
-import { competitiveLeaderboardApp } from "../server/app.js";
+import { competitiveLeaderboardApp } from "../server/leaderboard.controller.js";
 
 type AssetsBinding = {
   fetch: (request: Request) => Promise<Response>;

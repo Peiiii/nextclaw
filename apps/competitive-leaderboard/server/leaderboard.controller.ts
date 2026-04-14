@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import { compress } from "hono/compress";
 import { cors } from "hono/cors";
 import type {
   ApiEnvelope,
@@ -31,7 +30,6 @@ function errorEnvelope(code: string, message: string): ApiEnvelope<never> {
 
 export const competitiveLeaderboardApp = new Hono();
 
-competitiveLeaderboardApp.use("/*", compress());
 competitiveLeaderboardApp.use("/api/*", cors());
 
 competitiveLeaderboardApp.get("/health", (c) => {
