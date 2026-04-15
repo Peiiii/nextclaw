@@ -89,7 +89,7 @@ function StickyFileOperationScrollArea({
       onScroll={onScroll}
       data-file-scroll-kind={scrollKind}
       className={cn(
-        "overflow-y-auto overscroll-contain bg-white custom-scrollbar-amber",
+        "overflow-y-auto bg-white custom-scrollbar-amber",
         className,
       )}
     >

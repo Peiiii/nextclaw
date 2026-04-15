@@ -53,7 +53,7 @@ export function ChatReasoningBlock({ label, text, isUser, isInProgress }: ChatRe
         onScroll={onScroll}
         data-reasoning-scroll="true"
         className={cn(
-          "mt-2 w-fit max-w-[500px] max-h-56 overflow-y-auto overscroll-contain rounded-lg custom-scrollbar-amber",
+          "mt-2 w-fit max-w-[500px] max-h-56 overflow-y-auto rounded-lg custom-scrollbar-amber",
           isUser ? "bg-primary-700/60" : "bg-gray-100",
         )}
       >

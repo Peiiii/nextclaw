@@ -706,6 +706,7 @@ it("keeps streaming thought content pinned to the bottom until the user scrolls 
     expect(screen.getByText("思考")).toBeTruthy();
     expect(scrollArea).toBeTruthy();
     expect(scrollArea?.className).toContain("max-h-56");
+    expect(scrollArea?.className).not.toContain("overscroll-contain");
     if (!scrollArea) {
       return;
     }

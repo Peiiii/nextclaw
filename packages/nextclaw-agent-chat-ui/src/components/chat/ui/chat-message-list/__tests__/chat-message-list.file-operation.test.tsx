@@ -526,6 +526,7 @@ it("keeps growing write previews pinned to the bottom until the user scrolls awa
       '[data-file-scroll-kind="block"]',
     ) as HTMLDivElement | null;
     expect(scrollArea).toBeTruthy();
+    expect(scrollArea?.className).not.toContain("overscroll-contain");
     if (!scrollArea) {
       return;
     }
