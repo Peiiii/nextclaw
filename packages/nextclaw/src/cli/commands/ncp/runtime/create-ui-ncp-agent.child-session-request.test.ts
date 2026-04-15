@@ -17,7 +17,7 @@ import {
 import {
   createUiNcpAgent,
   type UiNcpAgentHandle,
-} from "../create-ui-ncp-agent.js";
+} from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
 const activeAgents: UiNcpAgentHandle[] = [];

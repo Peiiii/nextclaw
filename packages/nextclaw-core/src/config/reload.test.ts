@@ -21,4 +21,10 @@ describe("buildReloadPlan", () => {
     expect(plan.reloadMcp).toBe(true);
     expect(plan.restartRequired).toEqual([]);
   });
+
+  it("reloads agent runtime for learning loop config changes", () => {
+    const plan = buildReloadPlan(["agents.learningLoop.enabled"]);
+    expect(plan.reloadAgent).toBe(true);
+    expect(plan.restartRequired).toEqual([]);
+  });
 });

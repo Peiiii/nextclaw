@@ -30,6 +30,8 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.context.bootstrap.totalChars": "Max total chars across bootstrap files.",
   "agents.context.memory.enabled": "Enable memory injection from memory files.",
   "agents.context.memory.maxChars": "Max characters of memory injected per turn.",
+  "agents.learningLoop.enabled": "Enable automatic background learning-loop reviews after enough main-session tool usage accumulates.",
+  "agents.learningLoop.toolCallThreshold": "Minimum number of tool calls since the last learning-loop review before the next review is triggered.",
   "bindings": "Inbound routing rules: channel + account + peer -> agent.",
   "bindings.*.agentId": "Target agent id for this routing rule.",
   "bindings.*.match.channel": "Channel id to match (e.g. discord, telegram).",

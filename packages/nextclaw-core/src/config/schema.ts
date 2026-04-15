@@ -288,9 +288,15 @@ export const ContextConfigSchema = z.object({
   memory: ContextMemorySchema.default({})
 });
 
+export const AgentsLearningLoopSchema = z.object({
+  enabled: z.boolean().default(true),
+  toolCallThreshold: z.number().int().min(1).default(15)
+});
+
 export const AgentsConfigSchema = z.object({
   defaults: AgentDefaultsSchema.default({}),
   context: ContextConfigSchema.default({}),
+  learningLoop: AgentsLearningLoopSchema.default({}),
   list: z.array(AgentProfileSchema).default([])
 });
 

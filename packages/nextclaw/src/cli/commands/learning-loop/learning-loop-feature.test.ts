@@ -6,18 +6,18 @@ import {
   createGlobalTypedEventBus,
   SessionManager,
 } from "@nextclaw/core";
-import { LearningReviewFeature } from "./learning-review-feature.service.js";
-import { agentRunFinishedLifecycleEventKey } from "../lifecycle-events/ncp-lifecycle-event.config.js";
+import { LearningLoopFeature } from "./learning-loop-feature.service.js";
+import { agentRunFinishedLifecycleEventKey } from "../ncp/lifecycle-events/ncp-lifecycle-event.config.js";
 import {
-  LEARNING_REVIEW_DISABLED_METADATA_KEY,
-  LEARNING_REVIEW_LAST_REVIEW_SESSION_ID_METADATA_KEY,
-  LEARNING_REVIEW_LAST_TOOL_CALL_COUNT_METADATA_KEY,
-} from "./learning-review.config.js";
+  LEARNING_LOOP_DISABLED_METADATA_KEY,
+  LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY,
+  LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY,
+} from "./learning-loop.config.js";
 
 const tempDirs: string[] = [];
 
 function createSessionManager(): SessionManager {
-  const dir = mkdtempSync(join(tmpdir(), "nextclaw-learning-review-"));
+  const dir = mkdtempSync(join(tmpdir(), "nextclaw-learning-loop-"));
   tempDirs.push(dir);
   return new SessionManager({
     sessionsDir: dir,
@@ -33,7 +33,7 @@ afterEach(() => {
   }
 });
 
-describe("LearningReviewFeature", () => {
+describe("LearningLoopFeature", () => {
   it("spawns a review child session after enough tool calls", async () => {
     const eventBus = createGlobalTypedEventBus();
     const sessionStore = createSessionManager();
@@ -51,7 +51,7 @@ describe("LearningReviewFeature", () => {
     const spawnSessionAndRequest = vi.fn().mockResolvedValue({
       sessionId: "review-session-1",
     });
-    const feature = new LearningReviewFeature({
+    const feature = new LearningLoopFeature({
       eventBus,
       sessionStore,
       sessionRequester: {
@@ -74,20 +74,21 @@ describe("LearningReviewFeature", () => {
         sourceSessionId: "root-session",
         parentSessionId: "root-session",
         notify: "none",
+        title: "Learning loop: Investigate deploy issue",
         metadataOverrides: expect.objectContaining({
           requested_skills: ["skill-creator"],
-          [LEARNING_REVIEW_DISABLED_METADATA_KEY]: true,
+          [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
         }),
       }),
     );
     expect(
       sessionStore.getIfExists("root-session")?.metadata[
-        LEARNING_REVIEW_LAST_TOOL_CALL_COUNT_METADATA_KEY
+        LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY
       ],
     ).toBe(2);
     expect(
       sessionStore.getIfExists("root-session")?.metadata[
-        LEARNING_REVIEW_LAST_REVIEW_SESSION_ID_METADATA_KEY
+        LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY
       ],
     ).toBe("review-session-1");
   });
@@ -97,7 +98,7 @@ describe("LearningReviewFeature", () => {
     const sessionStore = createSessionManager();
     const session = sessionStore.getOrCreate("root-session");
     session.metadata = {
-      [LEARNING_REVIEW_DISABLED_METADATA_KEY]: true,
+      [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
     };
     session.messages.push({
       role: "assistant",
@@ -107,7 +108,7 @@ describe("LearningReviewFeature", () => {
     });
     sessionStore.save(session);
     const spawnSessionAndRequest = vi.fn();
-    const feature = new LearningReviewFeature({
+    const feature = new LearningLoopFeature({
       eventBus,
       sessionStore,
       sessionRequester: {
@@ -125,6 +126,41 @@ describe("LearningReviewFeature", () => {
     eventBus.emit(agentRunFinishedLifecycleEventKey, {
       sessionId: "child-session",
       isChildSession: true,
+      emittedAt: new Date().toISOString(),
+    });
+
+    await Promise.resolve();
+    expect(spawnSessionAndRequest).not.toHaveBeenCalled();
+  });
+
+  it("respects runtime config and can disable the learning loop globally", async () => {
+    const eventBus = createGlobalTypedEventBus();
+    const sessionStore = createSessionManager();
+    const session = sessionStore.getOrCreate("root-session");
+    session.messages.push({
+      role: "assistant",
+      content: "",
+      timestamp: new Date().toISOString(),
+      tool_calls: [{ id: "call-1" }, { id: "call-2" }],
+    });
+    sessionStore.save(session);
+    const spawnSessionAndRequest = vi.fn();
+    const feature = new LearningLoopFeature({
+      eventBus,
+      sessionStore,
+      sessionRequester: {
+        spawnSessionAndRequest,
+      },
+      resolveRuntimeConfig: () => ({
+        enabled: false,
+        toolCallThreshold: 1,
+      }),
+    });
+
+    feature.start();
+    eventBus.emit(agentRunFinishedLifecycleEventKey, {
+      sessionId: "root-session",
+      isChildSession: false,
       emittedAt: new Date().toISOString(),
     });
 

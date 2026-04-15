@@ -35,7 +35,10 @@ import {
   createUiNcpAgentHandle,
   type UiNcpAgentHandle,
 } from "./runtime/ui-ncp-agent-handle.js";
-import { AgentLifecycleSupport } from "./lifecycle-events/agent-lifecycle-support.service.js";
+import {
+  LearningLoopRuntimeService,
+  readLearningLoopRuntimeConfig,
+} from "../learning-loop/index.js";
 import { PluginRuntimeRegistrationController } from "./plugin-runtime-registration.controller.js";
 import { join } from "node:path";
 import { llmUsageRecorder } from "../shared/llm-usage-recorder.js";
@@ -236,11 +239,12 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     () => backend,
     sessionSearchRuntimeSupport.handleSessionUpdated,
   );
-  const lifecycleSupport = new AgentLifecycleSupport({
+  const learningLoopRuntime = new LearningLoopRuntimeService({
     sessionManager,
     sessionRequestBroker,
     onSessionUpdated: sessionSearchRuntimeSupport.handleSessionUpdated,
     globalEventBus,
+    resolveLearningLoopConfig: () => readLearningLoopRuntimeConfig(getConfig()),
   });
   const createNativeRuntime = createNativeRuntimeFactory(
     {
@@ -286,7 +290,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
   });
 
   await backend.start();
-  lifecycleSupport.attachBackend(backend);
+  learningLoopRuntime.attachBackend(backend);
 
   return createUiNcpAgentHandle({
     backend,
@@ -296,7 +300,7 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     applyExtensionRegistry: pluginRuntimeRegistrationController.applyExtensionRegistry,
     applyMcpConfig,
     dispose: async () => {
-      lifecycleSupport.dispose();
+      learningLoopRuntime.dispose();
       pluginRuntimeRegistrationController.dispose();
       await backend?.stop();
       await sessionSearchRuntimeSupport.dispose();

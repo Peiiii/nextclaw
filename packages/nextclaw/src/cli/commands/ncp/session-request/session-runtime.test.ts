@@ -77,12 +77,12 @@ describe("session runtime mapping", () => {
       sourceSessionMetadata: {},
       metadataOverrides: {
         requested_skills: ["skill-creator"],
-        learning_review_disabled: true,
+        learning_loop_disabled: true,
       },
     });
 
     expect(created.metadata.requested_skills).toEqual(["skill-creator"]);
-    expect(created.metadata.learning_review_disabled).toBe(true);
+    expect(created.metadata.learning_loop_disabled).toBe(true);
   });
 
   it("forwards runtime through sessions_spawn", async () => {

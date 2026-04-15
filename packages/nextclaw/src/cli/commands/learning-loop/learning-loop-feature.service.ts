@@ -2,27 +2,19 @@ import {
   type Session,
   type SessionMessage,
 } from "@nextclaw/core";
-import { agentRunFinishedLifecycleEventKey } from "../lifecycle-events/ncp-lifecycle-event.config.js";
-import type { AgentRunFinishedLifecycleEvent } from "../lifecycle-events/ncp-lifecycle-event.types.js";
+import { agentRunFinishedLifecycleEventKey } from "../ncp/lifecycle-events/ncp-lifecycle-event.config.js";
+import type { AgentRunFinishedLifecycleEvent } from "../ncp/lifecycle-events/ncp-lifecycle-event.types.js";
 import {
-  DEFAULT_LEARNING_REVIEW_TOOL_CALL_THRESHOLD,
-  LEARNING_REVIEW_DISABLED_METADATA_KEY,
-  LEARNING_REVIEW_LAST_REQUESTED_AT_METADATA_KEY,
-  LEARNING_REVIEW_LAST_REVIEW_SESSION_ID_METADATA_KEY,
-  LEARNING_REVIEW_LAST_TOOL_CALL_COUNT_METADATA_KEY,
-  LEARNING_REVIEW_REQUESTED_SKILLS,
-  LEARNING_REVIEW_SOURCE_SESSION_ID_METADATA_KEY,
-} from "./learning-review.config.js";
-import { buildLearningReviewTask } from "./learning-review-prompt.utils.js";
-import type { LearningReviewFeatureConfig } from "./learning-review.types.js";
-
-function readBoolean(value: unknown): boolean {
-  return value === true;
-}
-
-function readNumber(value: unknown): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null;
-}
+  DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
+  LEARNING_LOOP_DISABLED_METADATA_KEY,
+  LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY,
+  LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY,
+  LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY,
+  LEARNING_LOOP_REQUESTED_SKILLS,
+  LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY,
+} from "./learning-loop.config.js";
+import { buildLearningLoopTask } from "./learning-loop-prompt.utils.js";
+import type { LearningLoopFeatureConfig } from "./learning-loop.types.js";
 
 function countToolCallsFromMessage(message: SessionMessage): number {
   if (Array.isArray(message.tool_calls)) {
@@ -67,15 +59,21 @@ function readSessionLabel(metadata: Record<string, unknown>): string | undefined
   return typeof label === "string" && label.trim().length > 0 ? label.trim() : undefined;
 }
 
-export class LearningReviewFeature {
-  private readonly toolCallThreshold: number;
+function isLearningLoopDisabled(metadata: Record<string, unknown>): boolean {
+  return metadata[LEARNING_LOOP_DISABLED_METADATA_KEY] === true;
+}
+
+function readLearningLoopLastToolCallCount(
+  metadata: Record<string, unknown>,
+): number {
+  const value = metadata[LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+export class LearningLoopFeature {
   private readonly inFlightSessionIds = new Set<string>();
   private unsubscribe: (() => void) | null = null;
-
-  constructor(private readonly config: LearningReviewFeatureConfig) {
-    this.toolCallThreshold =
-      config.toolCallThreshold ?? DEFAULT_LEARNING_REVIEW_TOOL_CALL_THRESHOLD;
-  }
+  constructor(private readonly config: LearningLoopFeatureConfig) {}
 
   start = (): void => {
     if (this.unsubscribe) {
@@ -95,7 +93,7 @@ export class LearningReviewFeature {
   private handleRunFinished = (event: AgentRunFinishedLifecycleEvent): void => {
     void this.handleRunFinishedInBackground(event).catch((error) => {
       console.warn(
-        `[learning-review] Failed for ${event.sessionId}: ${
+        `[learning-loop] Failed for ${event.sessionId}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -112,16 +110,19 @@ export class LearningReviewFeature {
     if (!session) {
       return;
     }
-    if (readBoolean(session.metadata[LEARNING_REVIEW_DISABLED_METADATA_KEY])) {
+    const runtimeConfig = this.readRuntimeConfig();
+    if (!runtimeConfig.enabled) {
+      return;
+    }
+    if (isLearningLoopDisabled(session.metadata)) {
       return;
     }
     const totalToolCalls = countSessionToolCalls(session);
-    const lastReviewedToolCallCount =
-      readNumber(
-        session.metadata[LEARNING_REVIEW_LAST_TOOL_CALL_COUNT_METADATA_KEY],
-      ) ?? 0;
+    const lastReviewedToolCallCount = readLearningLoopLastToolCallCount(
+      session.metadata,
+    );
     const toolCallsSinceReview = totalToolCalls - lastReviewedToolCallCount;
-    if (toolCallsSinceReview < this.toolCallThreshold) {
+    if (toolCallsSinceReview < runtimeConfig.toolCallThreshold) {
       return;
     }
 
@@ -131,34 +132,46 @@ export class LearningReviewFeature {
         sourceSessionId: event.sessionId,
         sourceSessionMetadata: session.metadata,
         metadataOverrides: {
-          requested_skills: LEARNING_REVIEW_REQUESTED_SKILLS,
-          [LEARNING_REVIEW_DISABLED_METADATA_KEY]: true,
-          [LEARNING_REVIEW_SOURCE_SESSION_ID_METADATA_KEY]: event.sessionId,
+          requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,
+          [LEARNING_LOOP_DISABLED_METADATA_KEY]: true,
+          [LEARNING_LOOP_SOURCE_SESSION_ID_METADATA_KEY]: event.sessionId,
         },
         parentSessionId: event.sessionId,
         notify: "none",
         title: this.buildReviewTitle(session.metadata),
-        task: buildLearningReviewTask({
+        task: buildLearningLoopTask({
           sessionId: event.sessionId,
           toolCallsSinceReview,
           currentToolCallCount: totalToolCalls,
         }),
       });
-      session.metadata = {
+      const nextMetadata: Record<string, unknown> = {
         ...session.metadata,
-        [LEARNING_REVIEW_LAST_TOOL_CALL_COUNT_METADATA_KEY]: totalToolCalls,
-        [LEARNING_REVIEW_LAST_REQUESTED_AT_METADATA_KEY]: new Date().toISOString(),
-        [LEARNING_REVIEW_LAST_REVIEW_SESSION_ID_METADATA_KEY]:
+        [LEARNING_LOOP_LAST_TOOL_CALL_COUNT_METADATA_KEY]: totalToolCalls,
+        [LEARNING_LOOP_LAST_REQUESTED_AT_METADATA_KEY]: new Date().toISOString(),
+        [LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY]:
           reviewSession.sessionId,
       };
+      session.metadata = nextMetadata;
       this.config.sessionStore.save(session);
     } finally {
       this.inFlightSessionIds.delete(event.sessionId);
     }
   };
 
+  private readRuntimeConfig = () => {
+    if (this.config.resolveRuntimeConfig) {
+      return this.config.resolveRuntimeConfig();
+    }
+    return {
+      enabled: true,
+      toolCallThreshold:
+        this.config.toolCallThreshold ?? DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
+    };
+  };
+
   private buildReviewTitle = (metadata: Record<string, unknown>): string => {
     const label = readSessionLabel(metadata);
-    return label ? `Learning review: ${label}` : "Learning review";
+    return label ? `Learning loop: ${label}` : "Learning loop";
   };
 }

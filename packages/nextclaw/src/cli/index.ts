@@ -5,6 +5,7 @@ import { registerRemoteCommands } from "@nextclaw/remote";
 import { LlmUsageCommands } from "./commands/shared/llm-usage.commands.js";
 import { CliRuntime, LOGO } from "./runtime.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
+import { registerLearningLoopCommands } from "./commands/learning-loop/register-learning-loop-commands.js";
 import { logStartupTrace, measureStartupSync } from "./startup-trace.js";
 import { getPackageVersion } from "./utils.js";
 
@@ -217,6 +218,8 @@ config
   .command("unset <path>")
   .description("Remove a config value by dot path")
   .action((path) => runtime.configUnset(path));
+
+registerLearningLoopCommands(program, runtime);
 
 const mcp = program.command("mcp").description("Manage MCP servers");
 

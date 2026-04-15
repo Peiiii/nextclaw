@@ -10,7 +10,7 @@ import {
   type ProviderManager,
 } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent, type NcpRequestEnvelope } from "@nextclaw/ncp";
-import { createUiNcpAgent } from "../create-ui-ncp-agent.js";
+import { createUiNcpAgent } from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
 

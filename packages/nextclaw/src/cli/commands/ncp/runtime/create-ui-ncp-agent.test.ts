@@ -14,7 +14,7 @@ import { NcpEventType, type NcpEndpointEvent, type NcpRequestEnvelope } from "@n
 import { createPluginRuntime } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugins.js";
 import codexRuntimePlugin from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/index.js";
-import { createUiNcpAgent } from "../create-ui-ncp-agent.js";
+import { createUiNcpAgent } from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
 const mcpFixturePath = resolve(

@@ -4,14 +4,15 @@ import {
   type SessionManager,
 } from "@nextclaw/core";
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
-import { LearningReviewFeature } from "../learning-review/index.js";
-import type { SessionRequestBroker } from "../session-request/session-request-broker.service.js";
-import { NcpLifecycleEventBridge } from "./ncp-lifecycle-event-bridge.service.js";
+import type { SessionRequestBroker } from "../ncp/session-request/session-request-broker.service.js";
+import { NcpLifecycleEventBridge } from "../ncp/lifecycle-events/ncp-lifecycle-event-bridge.service.js";
+import { LearningLoopFeature } from "./learning-loop-feature.service.js";
+import type { LearningLoopRuntimeConfig } from "./learning-loop.config.js";
 
-export class AgentLifecycleSupport {
+export class LearningLoopRuntimeService {
   readonly globalEventBus: GlobalTypedEventBus;
   private readonly lifecycleEventBridge: NcpLifecycleEventBridge;
-  private readonly learningReviewFeature: LearningReviewFeature;
+  private readonly learningLoopFeature: LearningLoopFeature;
   private unsubscribeEndpointEvents: (() => void) | null = null;
 
   constructor(params: {
@@ -19,12 +20,14 @@ export class AgentLifecycleSupport {
     sessionRequestBroker: SessionRequestBroker;
     onSessionUpdated?: (sessionKey: string) => void;
     globalEventBus?: GlobalTypedEventBus;
+    resolveLearningLoopConfig?: () => LearningLoopRuntimeConfig;
   }) {
     const {
       sessionManager,
       sessionRequestBroker,
       onSessionUpdated,
       globalEventBus,
+      resolveLearningLoopConfig,
     } = params;
     this.globalEventBus =
       globalEventBus ??
@@ -41,10 +44,11 @@ export class AgentLifecycleSupport {
       sessionManager,
       this.globalEventBus,
     );
-    this.learningReviewFeature = new LearningReviewFeature({
+    this.learningLoopFeature = new LearningLoopFeature({
       eventBus: this.globalEventBus,
       sessionStore: sessionManager,
       sessionRequester: sessionRequestBroker,
+      resolveRuntimeConfig: resolveLearningLoopConfig,
     });
     this.onSessionUpdated = onSessionUpdated;
   }
@@ -61,11 +65,11 @@ export class AgentLifecycleSupport {
     this.unsubscribeEndpointEvents = backend.subscribe(
       this.lifecycleEventBridge.handleEndpointEvent,
     );
-    this.learningReviewFeature.start();
+    this.learningLoopFeature.start();
   };
 
   dispose = (): void => {
-    this.learningReviewFeature.dispose();
+    this.learningLoopFeature.dispose();
     this.unsubscribeEndpointEvents?.();
     this.unsubscribeEndpointEvents = null;
   };

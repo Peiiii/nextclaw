@@ -2,15 +2,15 @@ function pluralizeToolCalls(value: number): string {
   return value === 1 ? "1 tool call" : `${value} tool calls`;
 }
 
-export function buildLearningReviewTask(params: {
+export function buildLearningLoopTask(params: {
   sessionId: string;
   toolCallsSinceReview: number;
   currentToolCallCount: number;
 }): string {
   return [
-    "Run a background learning review for the parent session.",
+    "Run a background learning-loop review for the parent session.",
     `Parent session id: ${params.sessionId}.`,
-    `There have been ${pluralizeToolCalls(params.toolCallsSinceReview)} since the last learning review (${params.currentToolCallCount} total so far).`,
+    `There have been ${pluralizeToolCalls(params.toolCallsSinceReview)} since the last learning-loop review (${params.currentToolCallCount} total so far).`,
     "",
     "Your job is to extract only the reusable lesson.",
     "- Review the parent session history and, if helpful, use session_search to compare similar historical sessions.",
