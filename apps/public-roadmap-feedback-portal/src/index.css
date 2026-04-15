@@ -267,12 +267,12 @@ button {
 .roadmap-board {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(6, minmax(220px, 1fr));
-  min-width: max-content;
+  grid-template-columns: repeat(6, 240px);
+  width: max-content;
 }
 
 .roadmap-column {
-  min-width: 220px;
+  width: 240px;
   display: grid;
   align-content: start;
   gap: 14px;

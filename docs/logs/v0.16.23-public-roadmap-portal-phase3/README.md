@@ -66,8 +66,9 @@
   - 修复 `Board` 视图在较窄屏幕或中等桌面宽度下把整页撑出屏幕、导致内容看不完整的问题。
   - 当前做法是在 [`roadmap-board.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/roadmap/components/roadmap-board.tsx) 增加局部横向滚动容器，并在 [`index.css`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 把溢出约束收回 board 自身，而不是让整页产生横向超屏。
   - 后续又继续修正了一次真正的根因：把 [`portal-shell__content`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css)、[`.panel`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 和 `roadmap-board-scroller` 的宽度边界都锁到 `100%` 以内，避免 board 把父容器一起撑宽后再被外层裁掉，造成“只能看到左半部分”的问题。
+  - 这次还继续修复了上一版收尾带来的回归：由于把 `max-content` 和 `fr` 列宽组合在一起，导致每列被算得过宽，视觉上只剩接近单列。现已改回固定列宽的多列 board，在保留局部横向滚动的同时恢复多列看板效果。
   - 该修复已重新部署到 Cloudflare Worker：
-    - 当前 live 版本：`685b20e7-6eb1-4642-b0e6-fe73279709e7`
+    - 当前 live 版本：`695d15de-20fe-46a7-b846-768a2ba00d2c`
 - 相关设计文档：
   - [public-roadmap-feedback-portal-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-design.md)
   - [public-roadmap-feedback-portal-implementation-plan.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-implementation-plan.md)
@@ -95,6 +96,11 @@
     - `curl -I https://roadmap.nextclaw.io` 返回 `HTTP/2 200`
     - `curl https://roadmap.nextclaw.io/api/overview` 返回 `mode=live`，官方事项仍为 `59`
     - 线上 Playwright 宽度专项冒烟通过：`live-board-width-smoke: ok`
+    - 线上 Playwright 多列专项冒烟通过：`live-board-multi-column-smoke: ok`
+  - 本地多列专项验证：
+    - 在 `1600px` 视口下确认 board 至少可同时看到 `4` 列
+    - 在 `1280px` 视口下确认 board 至少可同时看到 `3` 列
+    - 同时确认文档、panel 与 scroller 都没有再次超出视口右边界
 - 已通过的 live/部署侧验证：
   - `pnpm -C apps/public-roadmap-feedback-portal db:migrate:remote`
   - `linear auth whoami`
@@ -182,4 +188,5 @@
   - 这次域名收尾没有继续引入新的业务层抽象，只是在现有 Worker 配置上补一条清晰的 custom domain route，并把页面 canonical / `og:url` 与主入口统一，保持部署入口单一、可预测。
   - 这次 board 超屏修复也保持了同样的收敛思路：只增加一个局部滚动容器，不改公开阶段模型、不新增状态或脚本，把溢出边界收回到组件本身，没有把复杂度转移到别的层。
   - 第二次修正又把问题继续收敛到了更本质的边界层：没有引入新的布局模式，只是把内容容器、panel 和 scroller 的最大宽度显式锁死，让“谁负责裁剪、谁负责滚动”重新变得清晰可预测。
+  - 这次回归修复进一步说明了为什么边界修正和列宽策略要分开治理：父容器负责约束 `100%` 边界，board 自己负责稳定列宽；两者职责分清后，既不会超屏，也不会退化成单列。
   - 当前主要观察点是 [`portal-query.service.ts`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/server/portal-query.service.ts) 已明显变大；下一步如果继续扩展审核、合并或统计能力，应优先把 engagement 聚合和 thread 组装继续拆出稳定子 owner。
