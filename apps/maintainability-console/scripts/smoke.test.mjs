@@ -6,33 +6,36 @@ import { spawn } from "node:child_process";
 
 const appRoot = process.cwd();
 const baseUrl = (process.env.MAINTAINABILITY_CONSOLE_BASE_URL ?? "http://127.0.0.1:3198").replace(/\/+$/, "");
+const skipLocalServer = process.env.MAINTAINABILITY_CONSOLE_SKIP_LOCAL_SERVER === "1";
 const distIndexPath = resolve(appRoot, "dist/client/index.html");
 const serverPort = Number.parseInt(new URL(baseUrl).port || "3198", 10);
 
-if (!existsSync(distIndexPath)) {
+if (!skipLocalServer && !existsSync(distIndexPath)) {
   console.error("Smoke test requires a built client. Run `pnpm -C apps/maintainability-console build` first.");
   process.exit(1);
 }
 
-const serverProcess = spawn("pnpm", ["run", "start"], {
-  cwd: appRoot,
-  env: {
-    ...process.env,
-    MAINTAINABILITY_CONSOLE_PORT: `${serverPort}`
-  },
-  stdio: ["ignore", "pipe", "pipe"]
-});
+const serverProcess = skipLocalServer
+  ? null
+  : spawn("pnpm", ["run", "start"], {
+      cwd: appRoot,
+      env: {
+        ...process.env,
+        MAINTAINABILITY_CONSOLE_PORT: `${serverPort}`
+      },
+      stdio: ["ignore", "pipe", "pipe"]
+    });
 
 let serverLogs = "";
-serverProcess.stdout.on("data", (chunk) => {
+serverProcess?.stdout.on("data", (chunk) => {
   serverLogs += chunk.toString();
 });
-serverProcess.stderr.on("data", (chunk) => {
+serverProcess?.stderr.on("data", (chunk) => {
   serverLogs += chunk.toString();
 });
 
 const stopServer = () => {
-  if (!serverProcess.killed) {
+  if (serverProcess && !serverProcess.killed) {
     serverProcess.kill("SIGTERM");
   }
 };
@@ -54,6 +57,8 @@ try {
   await expectText(page, "Maintainability Console");
   await expectText(page, "模块榜单");
   await expectText(page, "大文件排行");
+  await expectText(page, "规则总览");
+  await expectText(page, "规则字典");
   await expectText(page, "目录压力");
   await expectText(page, "维护性热点");
 

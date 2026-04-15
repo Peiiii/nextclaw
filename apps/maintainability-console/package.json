@@ -10,10 +10,13 @@
     "build": "pnpm run build:client && pnpm run build:server",
     "build:client": "vite build --outDir dist/client",
     "build:server": "tsc -p tsconfig.backend.json",
+    "build:worker-snapshots": "pnpm exec tsx scripts/build-worker-snapshots.mts",
     "start": "node dist/server/index.js",
     "lint": "cd ../.. && pnpm exec eslint apps/maintainability-console --config apps/maintainability-console/eslint.config.mjs --max-warnings=0",
-    "tsc": "tsc -p tsconfig.json && tsc -p tsconfig.backend.json --noEmit",
-    "smoke": "node scripts/smoke.test.mjs"
+    "tsc": "tsc -p tsconfig.json && tsc -p tsconfig.backend.json --noEmit && tsc -p tsconfig.worker.json",
+    "smoke": "node scripts/smoke.test.mjs",
+    "smoke:remote": "MAINTAINABILITY_CONSOLE_SKIP_LOCAL_SERVER=1 node scripts/smoke.test.mjs",
+    "deploy": "pnpm run build && pnpm run build:worker-snapshots && pnpm exec wrangler deploy --config wrangler.toml"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.9",
@@ -23,6 +26,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260218.0",
     "@types/node": "^25.5.0",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
@@ -30,6 +34,7 @@
     "playwright": "^1.52.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^8.0.3"
+    "vite": "^8.0.3",
+    "wrangler": "^4.45.0"
   }
 }

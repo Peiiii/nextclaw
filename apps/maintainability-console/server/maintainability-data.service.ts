@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { AgentsRulebookService } from "./agents-rulebook.service.js";
 import type {
   BreakdownMetricRow,
   DirectoryBudgetHotspot,
@@ -116,11 +117,13 @@ function countFileLines(filePath: string): number | null {
 export class MaintainabilityDataService {
   readonly appRoot: string;
   readonly repoRoot: string;
+  readonly agentsRulebookService: AgentsRulebookService;
   moduleBundlePromise: Promise<MetricsModuleBundle> | null = null;
 
   constructor(appRoot = process.cwd()) {
     this.appRoot = appRoot;
     this.repoRoot = resolve(appRoot, "../..");
+    this.agentsRulebookService = new AgentsRulebookService(this.repoRoot);
   }
 
   assertProfile = (profileText: string | null | undefined): MaintainabilityProfile => {
@@ -160,6 +163,7 @@ export class MaintainabilityDataService {
       rootDir: this.repoRoot,
       scanRoots: repoVolumeConfig.includePaths
     });
+    const governanceRulebook = this.agentsRulebookService.getOverview();
     const fileMetricsByPath = new Map(snapshot.byFile.map((entry) => [entry.path, entry]));
     const maintainabilityHotspots = modules.hotspots.map<MaintainabilityHotspotRow>((entry) => {
       const snapshotFile = fileMetricsByPath.get(entry.path);
@@ -188,13 +192,18 @@ export class MaintainabilityDataService {
       durationMs: Math.round(performance.now() - startedAt),
       repoRoot: this.repoRoot,
       profile,
+      deliveryMode: "live-scan",
       git,
       summary: {
         moduleCount: snapshot.byScope.length,
         languageCount: snapshot.byLanguage.length,
         directoryHotspotCount: directoryBudget.hotspots.length,
         maintainabilityHotspotCount: maintainabilityHotspots.length,
-        scanRootCount: snapshot.scope.includePaths.length
+        scanRootCount: snapshot.scope.includePaths.length,
+        governanceRuleCount: governanceRulebook.totalCount,
+        projectRuleCount: governanceRulebook.sectionSummaries.find((entry) => entry.section === "project-rulebook")
+          ?.count ?? 0,
+        governanceOwnerCount: governanceRulebook.ownerSummaries.length
       },
       scope: {
         includePaths: snapshot.scope.includePaths,
@@ -217,7 +226,8 @@ export class MaintainabilityDataService {
         exceptionReason: entry.exception_reason,
         exceptionStatus: entry.exception_status
       })),
-      maintainabilityHotspots
+      maintainabilityHotspots,
+      governanceRulebook
     };
   };
 

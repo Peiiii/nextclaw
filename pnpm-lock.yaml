@@ -209,6 +209,9 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
     devDependencies:
+      '@cloudflare/workers-types':
+        specifier: ^4.20260218.0
+        version: 4.20260228.0
       '@types/node':
         specifier: ^25.5.0
         version: 25.5.0
@@ -233,6 +236,9 @@ importers:
       vite:
         specifier: ^8.0.3
         version: 8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2)
+      wrangler:
+        specifier: ^4.45.0
+        version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
 
   apps/ncp-demo:
     devDependencies:
@@ -635,6 +641,28 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
+  packages/extensions/nextclaw-ncp-runtime-adapter-hermes-http:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-agent-runtime':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp-agent-runtime
+      '@nextclaw/ncp-http-agent-client':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp-http-agent-client
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
   packages/extensions/nextclaw-ncp-runtime-claude-code-sdk:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
@@ -666,6 +694,25 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/extensions/nextclaw-ncp-runtime-http-client:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-http-agent-client':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp-http-agent-client
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/extensions/nextclaw-ncp-runtime-plugin-claude-code-sdk:
     dependencies:
@@ -707,6 +754,28 @@ importers:
       typescript:
         specifier: ^5.6.3
         version: 5.9.3
+
+  packages/extensions/nextclaw-ncp-runtime-plugin-http-client:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-toolkit':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp-toolkit
+      '@nextclaw/nextclaw-ncp-runtime-http-client':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-http-client
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/ncp-packages/nextclaw-ncp:
     devDependencies:

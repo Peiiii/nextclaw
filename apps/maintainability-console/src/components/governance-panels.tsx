@@ -1,5 +1,6 @@
 import type { MaintainabilityOverview } from "@shared/maintainability.types";
 import { DirectoryHotspotList } from "./directory-hotspot-list";
+import { GovernanceRulebookPanels } from "./governance/governance-rulebook-panels";
 import { MaintainabilityHotspotList } from "./maintainability-hotspot-list";
 import { Panel } from "./panel";
 
@@ -10,6 +11,8 @@ type GovernancePanelsProps = {
 export function GovernancePanels({ data }: GovernancePanelsProps): JSX.Element {
   return (
     <>
+      <GovernanceRulebookPanels data={data.governanceRulebook} />
+
       <section className="panel-grid panel-grid--two">
         <Panel
           eyebrow="Directory Pressure"

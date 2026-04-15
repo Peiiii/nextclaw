@@ -45,6 +45,18 @@ export function OverviewStatGrid({ data }: OverviewStatGridProps): JSX.Element {
         hint="来自长期冻结 / 热点清单"
         tone="rose"
       />
+      <StatCard
+        label="治理规则"
+        value={formatInteger(data.summary.governanceRuleCount)}
+        hint={`责任人 ${formatInteger(data.summary.governanceOwnerCount)} 个`}
+        tone="mint"
+      />
+      <StatCard
+        label="项目规则"
+        value={formatInteger(data.summary.projectRuleCount)}
+        hint="来自 AGENTS.md Project Rulebook"
+        tone="amber"
+      />
     </section>
   );
 }

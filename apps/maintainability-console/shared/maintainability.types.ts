@@ -46,11 +46,51 @@ export type MaintainabilityHotspotRow = {
   scope: string | null;
 };
 
+export type GovernanceRuleSection = "rulebook" | "project-rulebook";
+
+export type GovernanceRule = {
+  name: string;
+  section: GovernanceRuleSection;
+  sectionLabel: string;
+  constraint: string;
+  example: string;
+  counterExample: string;
+  execution: string;
+  owner: string;
+  isComplete: boolean;
+};
+
+export type GovernanceRuleSectionSummary = {
+  section: GovernanceRuleSection;
+  label: string;
+  count: number;
+  completeCount: number;
+};
+
+export type GovernanceRuleOwnerSummary = {
+  owner: string;
+  count: number;
+  generalRuleCount: number;
+  projectRuleCount: number;
+};
+
+export type GovernanceRulebookOverview = {
+  sourcePath: string;
+  totalCount: number;
+  completeCount: number;
+  sectionSummaries: GovernanceRuleSectionSummary[];
+  ownerSummaries: GovernanceRuleOwnerSummary[];
+  rules: GovernanceRule[];
+};
+
+export type MaintainabilityDeliveryMode = "live-scan" | "published-snapshot";
+
 export type MaintainabilityOverview = {
   generatedAt: string;
   durationMs: number;
   repoRoot: string;
   profile: MaintainabilityProfile;
+  deliveryMode: MaintainabilityDeliveryMode;
   git: {
     sha: string | null;
     ref: string | null;
@@ -61,6 +101,9 @@ export type MaintainabilityOverview = {
     directoryHotspotCount: number;
     maintainabilityHotspotCount: number;
     scanRootCount: number;
+    governanceRuleCount: number;
+    projectRuleCount: number;
+    governanceOwnerCount: number;
   };
   scope: {
     includePaths: string[];
@@ -73,6 +116,7 @@ export type MaintainabilityOverview = {
   largestFiles: FileMetricRow[];
   directoryHotspots: DirectoryBudgetHotspot[];
   maintainabilityHotspots: MaintainabilityHotspotRow[];
+  governanceRulebook: GovernanceRulebookOverview;
 };
 
 export type ApiEnvelope<T> =

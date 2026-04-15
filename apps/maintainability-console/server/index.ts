@@ -1,12 +1,9 @@
 import { serve } from "@hono/node-server";
-import { Hono } from "hono";
-import { compress } from "hono/compress";
-import { cors } from "hono/cors";
 import { serveStatic } from "hono/serve-static";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import type { ApiEnvelope, MaintainabilityOverview } from "../shared/maintainability.types.js";
+import { createMaintainabilityConsoleApp } from "./maintainability-console.controller.js";
 import { MaintainabilityDataService } from "./maintainability-data.service.js";
 
 const host = process.env.MAINTAINABILITY_CONSOLE_HOST?.trim() || "127.0.0.1";
@@ -14,45 +11,7 @@ const port = parsePort(process.env.MAINTAINABILITY_CONSOLE_PORT, 3198);
 const appRoot = process.cwd();
 const staticDir = resolve(appRoot, "dist/client");
 const service = new MaintainabilityDataService(appRoot);
-const app = new Hono();
-
-function okEnvelope<T>(data: T): ApiEnvelope<T> {
-  return {
-    ok: true,
-    data
-  };
-}
-
-function errorEnvelope(code: string, message: string): ApiEnvelope<never> {
-  return {
-    ok: false,
-    error: {
-      code,
-      message
-    }
-  };
-}
-
-app.use("/*", compress());
-app.use("/api/*", cors());
-
-app.get("/health", (c) => {
-  return c.json(okEnvelope({
-    status: "ok"
-  }));
-});
-
-app.get("/api/maintainability/overview", async (c) => {
-  try {
-    const profile = service.assertProfile(c.req.query("profile"));
-    const overview: MaintainabilityOverview = await service.getOverview(profile);
-    return c.json(okEnvelope(overview));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load maintainability overview.";
-    const status = message.startsWith("Unsupported maintainability profile") ? 400 : 500;
-    return c.json(errorEnvelope(status === 400 ? "INVALID_PROFILE" : "OVERVIEW_FAILED", message), status);
-  }
-});
+const app = createMaintainabilityConsoleApp(service);
 
 if (existsSync(join(staticDir, "index.html"))) {
   const indexHtml = readFileSync(join(staticDir, "index.html"), "utf8");

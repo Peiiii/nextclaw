@@ -15,6 +15,11 @@ const PROFILE_COPY: Record<MaintainabilityProfile, { label: string; description:
   }
 };
 
+const DELIVERY_MODE_COPY = {
+  "live-scan": "本地实时扫描",
+  "published-snapshot": "Cloudflare 发布快照"
+} as const;
+
 type ConsoleHeroProps = {
   profile: MaintainabilityProfile;
   data: MaintainabilityOverview | undefined;
@@ -38,10 +43,13 @@ export function ConsoleHero({
         <div className="hero__eyebrow">Local Maintainability Workbench</div>
         <h1>Maintainability Console</h1>
         <p className="hero__summary">
-          面向本地研发的项目大盘，直接看全仓代码量、模块体积、目录压力和维护性热点，不用再在脚本输出里来回切。
+          {data?.deliveryMode === "published-snapshot"
+            ? "当前是已发布快照版 dashboard，展示的是发布时固化的仓库视图；刷新只会重新获取当前线上快照，不会实时扫描你的本地机器。"
+            : "面向本地研发的项目大盘，直接看全仓代码量、模块体积、目录压力和维护性热点，不用再在脚本输出里来回切。"}
         </p>
         <div className="hero__meta">
           <span className="hero__meta-pill">当前口径：{PROFILE_COPY[profile].description}</span>
+          {data ? <span className="hero__meta-pill">运行模式：{DELIVERY_MODE_COPY[data.deliveryMode]}</span> : null}
           {data ? (
             <span className="hero__meta-pill">
               最新扫描：{formatDateTime(data.generatedAt)} · {formatShortHash(data.git.sha)}
