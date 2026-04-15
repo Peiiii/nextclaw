@@ -1,12 +1,12 @@
 export default {
-  "generatedAt": "2026-04-14T03:21:09.966Z",
+  "generatedAt": "2026-04-15T18:55:32.071Z",
   "hero": {
     "currentLoc": 182759,
     "trackedFiles": 1321,
-    "recentCommitCount": 567,
-    "activeDays30": 29,
-    "recentReleaseCount": 51,
-    "latestReleaseDate": "2026-04-13",
+    "recentCommitCount": 626,
+    "activeDays30": 30,
+    "recentReleaseCount": 52,
+    "latestReleaseDate": "2026-04-14",
     "latestNoteDate": "2026-04-03",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1842003,
@@ -289,14 +289,14 @@ export default {
         "key": "2026-04-14",
         "label": "04-14",
         "value": 182759
+      },
+      {
+        "key": "2026-04-15",
+        "label": "04-15",
+        "value": 182759
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-03-16",
-        "label": "03-16",
-        "value": 4
-      },
       {
         "key": "2026-03-17",
         "label": "03-17",
@@ -435,12 +435,17 @@ export default {
       {
         "key": "2026-04-13",
         "label": "04-13",
-        "value": 9
+        "value": 20
       },
       {
         "key": "2026-04-14",
         "label": "04-14",
-        "value": 0
+        "value": 35
+      },
+      {
+        "key": "2026-04-15",
+        "label": "04-15",
+        "value": 17
       }
     ],
     "commitWeekly": [
@@ -502,7 +507,7 @@ export default {
       {
         "key": "2026-04-13",
         "label": "04-13",
-        "value": 9
+        "value": 78
       }
     ],
     "releaseMonthly": [
@@ -564,7 +569,7 @@ export default {
       {
         "key": "2026-04",
         "label": "04/26",
-        "value": 7
+        "value": 8
       }
     ]
   },
@@ -627,6 +632,15 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-04-14",
+        "tagCount": 38,
+        "sampleTags": [
+          "v0.17.11-desktop.1",
+          "@nextclaw/agent-chat-ui@0.3.5",
+          "@nextclaw/agent-chat@0.1.10"
+        ]
+      },
+      {
         "date": "2026-04-13",
         "tagCount": 59,
         "sampleTags": [
@@ -669,15 +683,6 @@ export default {
           "@nextclaw/agent-chat-ui@0.3.0",
           "@nextclaw/channel-plugin-dingtalk@0.2.31",
           "@nextclaw/channel-plugin-discord@0.2.31"
-        ]
-      },
-      {
-        "date": "2026-04-03",
-        "tagCount": 27,
-        "sampleTags": [
-          "@nextclaw/channel-plugin-dingtalk@0.2.29",
-          "@nextclaw/channel-plugin-discord@0.2.29",
-          "@nextclaw/channel-plugin-email@0.2.29"
         ]
       }
     ]

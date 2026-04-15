@@ -4,6 +4,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveRepoPath } from '../shared/repo-paths.mjs';
+import { authStatusPayload, remoteStatusPayload } from './product-screenshot-status-mocks.mjs';
 
 const repoRoot = resolveRepoPath(import.meta.url);
 
@@ -571,21 +572,36 @@ function matchItemBySlug(items, slug) {
   return items.find((item) => item.slug === slug) || null;
 }
 
+const staticGetMocks = new Map([
+  ['/api/auth/status', authStatusPayload],
+  ['/api/remote/status', remoteStatusPayload],
+  ['/api/config', configPayload],
+  ['/api/config/meta', { providers: providerSpecs, channels: channelSpecs }],
+  ['/api/config/schema', schemaPayload],
+  ['/api/sessions', { sessions: [], total: 0 }],
+  ['/api/chat/capabilities', { stopSupported: true }],
+  ['/api/chat/runs', { runs: [], total: 0 }],
+  ['/api/cron', { jobs: cronJobs, total: cronJobs.length }],
+  ['/api/marketplace/plugins/installed', {
+    type: 'plugin',
+    total: installedPluginRecords.length,
+    specs: installedPluginRecords.map((record) => record.spec),
+    records: installedPluginRecords
+  }],
+  ['/api/marketplace/skills/installed', {
+    type: 'skill',
+    total: installedSkillRecords.length,
+    specs: installedSkillRecords.map((record) => record.spec),
+    records: installedSkillRecords
+  }]
+]);
+
 function resolveMock(pathname, searchParams, method) {
-  if (method === 'GET' && pathname === '/api/config') {
-    return ok(configPayload);
-  }
-
-  if (method === 'GET' && pathname === '/api/config/meta') {
-    return ok({ providers: providerSpecs, channels: channelSpecs });
-  }
-
-  if (method === 'GET' && pathname === '/api/config/schema') {
-    return ok(schemaPayload);
-  }
-
-  if (method === 'GET' && pathname === '/api/sessions') {
-    return ok({ sessions: [], total: 0 });
+  if (method === 'GET') {
+    const staticPayload = staticGetMocks.get(pathname);
+    if (staticPayload) {
+      return ok(staticPayload);
+    }
   }
 
   if (method === 'GET' && /^\/api\/sessions\/[^/]+\/history$/.test(pathname)) {
@@ -600,14 +616,6 @@ function resolveMock(pathname, searchParams, method) {
     });
   }
 
-  if (method === 'GET' && pathname === '/api/chat/capabilities') {
-    return ok({ stopSupported: true });
-  }
-
-  if (method === 'GET' && pathname === '/api/chat/runs') {
-    return ok({ runs: [], total: 0 });
-  }
-
   if (method === 'GET' && pathname.startsWith('/api/chat/runs/')) {
     const runId = decodeURIComponent(pathname.slice('/api/chat/runs/'.length));
     return ok({
@@ -620,10 +628,6 @@ function resolveMock(pathname, searchParams, method) {
       eventCount: 0,
       reply: ''
     });
-  }
-
-  if (method === 'GET' && pathname === '/api/cron') {
-    return ok({ jobs: cronJobs, total: cronJobs.length });
   }
 
   if (method === 'GET' && pathname === '/api/marketplace/plugins/items') {
@@ -653,24 +657,6 @@ function resolveMock(pathname, searchParams, method) {
       description: 'Curated skill list',
       total: marketplaceSkills.length,
       items: marketplaceSkills
-    });
-  }
-
-  if (method === 'GET' && pathname === '/api/marketplace/plugins/installed') {
-    return ok({
-      type: 'plugin',
-      total: installedPluginRecords.length,
-      specs: installedPluginRecords.map((record) => record.spec),
-      records: installedPluginRecords
-    });
-  }
-
-  if (method === 'GET' && pathname === '/api/marketplace/skills/installed') {
-    return ok({
-      type: 'skill',
-      total: installedSkillRecords.length,
-      specs: installedSkillRecords.map((record) => record.spec),
-      records: installedSkillRecords
     });
   }
 
