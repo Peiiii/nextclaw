@@ -45,6 +45,7 @@ button {
   position: relative;
   z-index: 1;
   margin: 0 auto;
+  width: min(1320px, 100%);
   max-width: 1320px;
   display: grid;
   gap: 24px;
@@ -74,6 +75,9 @@ button {
 }
 
 .panel {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid rgba(16, 33, 52, 0.08);
   border-radius: 28px;
   background: rgba(255, 255, 255, 0.82);
@@ -251,12 +255,20 @@ button {
   color: white;
 }
 
+.roadmap-board-scroller {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 6px;
+}
+
 .roadmap-board {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(6, minmax(220px, 1fr));
-  overflow-x: auto;
-  padding-bottom: 6px;
+  min-width: max-content;
 }
 
 .roadmap-column {

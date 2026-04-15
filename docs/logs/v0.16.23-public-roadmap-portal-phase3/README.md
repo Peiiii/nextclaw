@@ -62,6 +62,12 @@
     - 支持显式 `all/*` 语义，在当前 team 没有 `public` 标签时也能同步全量公开事项
 - 目录治理同步优化：
   - 把 preview 和 community 内部类型收进子目录，避免 `server/` 顶层继续越过维护性预算。
+- 同批次验收修正继续补了一处公开路线图 UI 问题：
+  - 修复 `Board` 视图在较窄屏幕或中等桌面宽度下把整页撑出屏幕、导致内容看不完整的问题。
+  - 当前做法是在 [`roadmap-board.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/roadmap/components/roadmap-board.tsx) 增加局部横向滚动容器，并在 [`index.css`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 把溢出约束收回 board 自身，而不是让整页产生横向超屏。
+  - 后续又继续修正了一次真正的根因：把 [`portal-shell__content`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css)、[`.panel`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 和 `roadmap-board-scroller` 的宽度边界都锁到 `100%` 以内，避免 board 把父容器一起撑宽后再被外层裁掉，造成“只能看到左半部分”的问题。
+  - 该修复已重新部署到 Cloudflare Worker：
+    - 当前 live 版本：`685b20e7-6eb1-4642-b0e6-fe73279709e7`
 - 相关设计文档：
   - [public-roadmap-feedback-portal-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-design.md)
   - [public-roadmap-feedback-portal-implementation-plan.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-implementation-plan.md)
@@ -75,6 +81,20 @@
   - `pnpm smoke:public-roadmap:portal`
   - `pnpm validate:public-roadmap:portal`
   - `pnpm lint:new-code:governance -- apps/public-roadmap-feedback-portal`
+  - 本地 Playwright 布局专项冒烟：
+    - 在 `1280px` 视口下确认文档宽度不再超过视口宽度
+    - 在 `390px` 视口下确认文档宽度不再超过视口宽度
+    - 确认 `Board` 视图的横向溢出被限制在局部 board 容器内，而不是扩散到整页
+    - 在 `1600px / 1280px / 390px` 三组视口下确认：
+      - `.portal-shell__content` 没有被 board 撑出视口
+      - `.roadmap-panel` 没有被 board 撑出视口
+      - `.roadmap-board-scroller` 没有超出父容器右边界
+      - board 的超宽只存在于局部 scroller 内部
+  - 线上发布后验证：
+    - `pnpm deploy:public-roadmap:portal`
+    - `curl -I https://roadmap.nextclaw.io` 返回 `HTTP/2 200`
+    - `curl https://roadmap.nextclaw.io/api/overview` 返回 `mode=live`，官方事项仍为 `59`
+    - 线上 Playwright 宽度专项冒烟通过：`live-board-width-smoke: ok`
 - 已通过的 live/部署侧验证：
   - `pnpm -C apps/public-roadmap-feedback-portal db:migrate:remote`
   - `linear auth whoami`
@@ -160,4 +180,6 @@
   - 这次净增长属于新增能力的最小必要集合，但已经提前做了两笔关键减债：一是把 preview / community 责任压回子目录，二是把写侧逻辑收进 `PortalWriteService`，没有让评论、投票、建议提交流入 controller 或 React 组件。
   - 收尾阶段又顺手偿还了一笔真实环境债务：把 Linear provider 改成分页根查询，并加入显式 `all/*` 策略，不再把“有 `public` 标签”写死成唯一可运行路径。
   - 这次域名收尾没有继续引入新的业务层抽象，只是在现有 Worker 配置上补一条清晰的 custom domain route，并把页面 canonical / `og:url` 与主入口统一，保持部署入口单一、可预测。
+  - 这次 board 超屏修复也保持了同样的收敛思路：只增加一个局部滚动容器，不改公开阶段模型、不新增状态或脚本，把溢出边界收回到组件本身，没有把复杂度转移到别的层。
+  - 第二次修正又把问题继续收敛到了更本质的边界层：没有引入新的布局模式，只是把内容容器、panel 和 scroller 的最大宽度显式锁死，让“谁负责裁剪、谁负责滚动”重新变得清晰可预测。
   - 当前主要观察点是 [`portal-query.service.ts`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/server/portal-query.service.ts) 已明显变大；下一步如果继续扩展审核、合并或统计能力，应优先把 engagement 聚合和 thread 组装继续拆出稳定子 owner。
