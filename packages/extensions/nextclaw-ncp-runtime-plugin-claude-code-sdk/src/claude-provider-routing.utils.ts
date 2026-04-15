@@ -6,7 +6,7 @@ import {
   type ProviderConfig,
   type ProviderSpec,
 } from "@nextclaw/core";
-import { dedupeStrings, readString, readStringArray } from "./claude-runtime-shared.js";
+import { dedupeStrings, readString, readStringArray } from "./claude-runtime-shared.utils.js";
 
 export type ClaudeProviderRouteKind = "anthropic-direct" | "anthropic-gateway";
 
@@ -24,8 +24,10 @@ export type ClaudeProviderRoute = {
 export type ClaudeProviderRoutingResult = {
   route: ClaudeProviderRoute | null;
   modelInput: string;
+  runtimeModel: string;
   configuredModels: string[];
   recommendedModel: string | null;
+  recommendedRuntimeModel: string | null;
   reason?: string;
   reasonMessage?: string;
 };
@@ -147,18 +149,19 @@ function toAnthropicCompatibleApiBase(params: {
   providerName: string;
   apiBase?: string;
 }): string | undefined {
-  const normalizedBase = normalizeApiBase(params.apiBase);
+  const { apiBase, providerName } = params;
+  const normalizedBase = normalizeApiBase(apiBase);
   if (!normalizedBase) {
     return undefined;
   }
-  if (params.providerName === "minimax" || params.providerName === "minimax-portal") {
+  if (providerName === "minimax" || providerName === "minimax-portal") {
     if (normalizedBase.endsWith("/anthropic")) {
       return normalizedBase;
     }
     const withoutV1 = normalizedBase.replace(/\/v1$/i, "");
     return joinProviderPath(withoutV1, "anthropic");
   }
-  if (params.providerName === "zhipu") {
+  if (providerName === "zhipu") {
     if (normalizedBase.endsWith("/api/anthropic") || normalizedBase.endsWith("/anthropic")) {
       return normalizedBase;
     }
@@ -213,11 +216,12 @@ function readConfiguredProviderModels(params: {
   provider: ProviderConfig | null;
   providerSpec?: ProviderSpec;
 }): string[] {
-  const prefix = readString(params.providerSpec?.modelPrefix) ?? params.providerName;
-  const aliases = normalizeProviderAliases(params.providerName, params.providerSpec);
+  const { provider, providerName, providerSpec } = params;
+  const prefix = readString(providerSpec?.modelPrefix) ?? providerName;
+  const aliases = normalizeProviderAliases(providerName, providerSpec);
   const providerModels =
-    params.provider && Array.isArray(params.provider.models) ? params.provider.models : [];
-  const defaultModels = params.providerSpec?.defaultModels ?? [];
+    provider && Array.isArray(provider.models) ? provider.models : [];
+  const defaultModels = providerSpec?.defaultModels ?? [];
   const localModels = dedupeStrings(
     [...defaultModels, ...providerModels]
       .map((model) => toProviderLocalModel(String(model), aliases))
@@ -260,36 +264,37 @@ function createProviderCandidate(params: {
   providerSpec?: ProviderSpec;
   routeKind: ClaudeProviderRouteKind;
 }): ProviderCandidate | null {
-  const apiKey = readString(params.provider?.apiKey);
+  const { provider, providerName, providerSpec, routeKind } = params;
+  const apiKey = readString(provider?.apiKey);
   if (!apiKey) {
     return null;
   }
 
   const apiBase = toAnthropicCompatibleApiBase({
-    providerName: params.providerName,
+    providerName,
     apiBase:
-      normalizeApiBase(readString(params.provider?.apiBase)) ??
-      normalizeApiBase(readString(params.providerSpec?.defaultApiBase)),
+      normalizeApiBase(readString(provider?.apiBase)) ??
+      normalizeApiBase(readString(providerSpec?.defaultApiBase)),
   });
-  if (!apiBase && params.providerName !== "anthropic") {
+  if (!apiBase && providerName !== "anthropic") {
     return null;
   }
   const configuredModels = readConfiguredProviderModels({
-    providerName: params.providerName,
-    provider: params.provider,
-    providerSpec: params.providerSpec,
+    providerName,
+    provider,
+    providerSpec,
   });
-  const aliases = normalizeProviderAliases(params.providerName, params.providerSpec);
+  const aliases = normalizeProviderAliases(providerName, providerSpec);
   const providerLabel =
-    readString(params.provider?.displayName) ??
-    readString(params.providerSpec?.displayName) ??
-    params.providerName;
+    readString(provider?.displayName) ??
+    readString(providerSpec?.displayName) ??
+    providerName;
 
-  if (params.routeKind === "anthropic-direct") {
-    if (params.providerName === "anthropic") {
+  if (routeKind === "anthropic-direct") {
+    if (providerName === "anthropic") {
       return {
-        routeKind: params.routeKind,
-        providerName: params.providerName,
+        routeKind,
+        providerName,
         providerLabel,
         configuredModels,
         apiBase,
@@ -298,8 +303,8 @@ function createProviderCandidate(params: {
       };
     }
     return {
-      routeKind: params.routeKind,
-      providerName: params.providerName,
+      routeKind,
+      providerName,
       providerLabel,
       configuredModels,
       apiBase,
@@ -310,8 +315,8 @@ function createProviderCandidate(params: {
   }
 
   return {
-    routeKind: params.routeKind,
-    providerName: params.providerName,
+    routeKind,
+    providerName,
     providerLabel,
     configuredModels,
     apiBase,
@@ -325,15 +330,16 @@ function findCompatibleProviderCandidates(params: {
   config: Config;
   pluginConfig: Record<string, unknown>;
 }): ProviderCandidate[] {
+  const { config, pluginConfig } = params;
   const configuredProviders =
-    params.config.providers && typeof params.config.providers === "object" && !Array.isArray(params.config.providers)
-      ? (params.config.providers as Record<string, ProviderConfig>)
+    config.providers && typeof config.providers === "object" && !Array.isArray(config.providers)
+      ? (config.providers as Record<string, ProviderConfig>)
       : {};
   const anthropicCompatibleProviderNames = new Set([
     ...BUILTIN_ANTHROPIC_COMPATIBLE_PROVIDER_NAMES,
-    ...(readStringArray(params.pluginConfig.anthropicCompatibleProviderNames) ?? []),
+    ...(readStringArray(pluginConfig.anthropicCompatibleProviderNames) ?? []),
   ]);
-  const gatewayProviderNames = new Set(readStringArray(params.pluginConfig.gatewayProviderNames) ?? []);
+  const gatewayProviderNames = new Set(readStringArray(pluginConfig.gatewayProviderNames) ?? []);
   const candidates: ProviderCandidate[] = [];
 
   for (const providerName of Object.keys(configuredProviders)) {
@@ -364,18 +370,19 @@ function buildRouteFromCandidate(params: {
   candidate: ProviderCandidate;
   modelInput: string;
 }): ClaudeProviderRoute {
+  const { candidate, modelInput } = params;
   return {
-    kind: params.candidate.routeKind,
-    providerName: params.candidate.providerName,
-    providerLabel: params.candidate.providerLabel,
+    kind: candidate.routeKind,
+    providerName: candidate.providerName,
+    providerLabel: candidate.providerLabel,
     configuredModels: resolveConfiguredCandidateModels({
-      modelInput: params.modelInput,
-      candidate: params.candidate,
+      modelInput,
+      candidate,
     }),
-    runtimeModel: stripProviderModelPrefix(params.modelInput, params.candidate.aliases),
-    apiBase: params.candidate.apiBase,
-    apiKey: params.candidate.apiKey,
-    authToken: params.candidate.authToken,
+    runtimeModel: stripProviderModelPrefix(modelInput, candidate.aliases),
+    apiBase: candidate.apiBase,
+    apiKey: candidate.apiKey,
+    authToken: candidate.authToken,
   };
 }
 
@@ -384,20 +391,21 @@ function matchCandidateForModel(params: {
   modelInput: string;
   candidates: ProviderCandidate[];
 }): ProviderCandidate | null {
-  const providerName = getProviderName(params.config, params.modelInput);
+  const { config, modelInput, candidates } = params;
+  const providerName = getProviderName(config, modelInput);
   if (!providerName) {
     return null;
   }
 
-  for (const candidate of params.candidates) {
+  for (const candidate of candidates) {
     if (candidate.providerName !== providerName) {
       continue;
     }
     const configuredModels = resolveConfiguredCandidateModels({
-      modelInput: params.modelInput,
+      modelInput,
       candidate,
     });
-    if (configuredModels.length === 0 || configuredModels.includes(params.modelInput)) {
+    if (configuredModels.length === 0 || configuredModels.includes(modelInput)) {
       return candidate;
     }
   }
@@ -413,10 +421,11 @@ function resolveUnsupportedReason(params: {
   reason?: string;
   reasonMessage?: string;
 } {
-  const providerName = getProviderName(params.config, params.modelInput);
-  const provider = getProvider(params.config, params.modelInput);
+  const { candidates, config, modelInput } = params;
+  const providerName = getProviderName(config, modelInput);
+  const provider = getProvider(config, modelInput);
   if (!providerName) {
-    return params.candidates.length > 0
+    return candidates.length > 0
       ? {
           reason: "model_unsupported",
           reasonMessage:
@@ -462,18 +471,19 @@ export function resolveClaudeProviderRouting(params: {
   modelInput: string;
   allowRecommendedFallback: boolean;
 }): ClaudeProviderRoutingResult {
-  const modelInput = readString(params.modelInput) ?? params.config.agents.defaults.model;
+  const { allowRecommendedFallback, config, pluginConfig } = params;
+  const modelInput = readString(params.modelInput) ?? config.agents.defaults.model;
   const candidates = findCompatibleProviderCandidates({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
+    config,
+    pluginConfig,
   });
   const selectedCandidate = matchCandidateForModel({
-    config: params.config,
+    config,
     modelInput,
     candidates,
   });
   const recommendedRoute =
-    !selectedCandidate && params.allowRecommendedFallback && candidates.length > 0
+    !selectedCandidate && allowRecommendedFallback && candidates.length > 0
       ? buildRouteFromCandidate({
           candidate: candidates[0],
           modelInput: candidates[0].configuredModels[0] ?? modelInput,
@@ -498,6 +508,14 @@ export function resolveClaudeProviderRouting(params: {
       recommendedRoute?.configuredModels[0] ??
       configuredModels[0] ??
       null;
+  const recommendedRuntimeModel = selectedRoute?.configuredModels.includes(modelInput)
+    ? selectedRoute.runtimeModel
+    : selectedCandidate
+      ? buildRouteFromCandidate({
+          candidate: selectedCandidate,
+          modelInput: selectedCandidate.configuredModels[0] ?? modelInput,
+        }).runtimeModel
+      : recommendedRoute?.runtimeModel ?? recommendedModel;
 
   if (route) {
     return {
@@ -505,13 +523,15 @@ export function resolveClaudeProviderRouting(params: {
       modelInput: selectedRoute?.configuredModels.includes(modelInput)
         ? modelInput
         : route.configuredModels[0] ?? modelInput,
+      runtimeModel: route.runtimeModel,
       configuredModels,
       recommendedModel,
+      recommendedRuntimeModel,
     };
   }
 
   const unsupportedReason = resolveUnsupportedReason({
-    config: params.config,
+    config,
     modelInput,
     candidates,
   });
@@ -519,8 +539,10 @@ export function resolveClaudeProviderRouting(params: {
   return {
     route: null,
     modelInput,
+    runtimeModel: modelInput,
     configuredModels,
     recommendedModel,
+    recommendedRuntimeModel: recommendedModel,
     ...unsupportedReason,
   };
 }

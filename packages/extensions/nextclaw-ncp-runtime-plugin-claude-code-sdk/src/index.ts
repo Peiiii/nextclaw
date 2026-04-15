@@ -9,20 +9,19 @@ import {
 import {
   buildClaudeInputBuilder,
   resolveClaudeRuntimeContext,
-} from "./claude-runtime-context.js";
+} from "./claude-runtime-context.utils.js";
 import {
   buildClaudeGatewayConfig,
   isHardClaudeSetupFailure,
-} from "./claude-route-probe.js";
+} from "./claude-route-probe.utils.js";
 import {
-  normalizeClaudeModel,
   readBoolean,
   readNumber,
   readRecord,
   readString,
   resolveClaudeExecutionProbeTimeoutMs,
   resolveClaudeRequestTimeoutMs,
-} from "./claude-runtime-shared.js";
+} from "./claude-runtime-shared.utils.js";
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-claude-code-sdk";
 const CLAUDE_RUNTIME_KIND = "claude";
@@ -146,10 +145,10 @@ export function createDescribeClaudeSessionType(params: {
         }),
         env: runtimeContext.env,
         workingDirectory: runtimeContext.workingDirectory,
-        model: normalizeClaudeModel(runtimeContext.modelInput),
+        model: runtimeContext.runtimeModel,
         baseQueryOptions: runtimeContext.baseQueryOptions,
         configuredModels: runtimeContext.configuredModels,
-        recommendedModel: normalizeClaudeModel(runtimeContext.recommendedModel ?? runtimeContext.modelInput),
+        recommendedModel: runtimeContext.recommendedRuntimeModel ?? runtimeContext.runtimeModel,
         probeTimeoutMs: Math.max(1000, Math.trunc(readNumber(params.pluginConfig.probeTimeoutMs) ?? 5000)),
         executionProbeTimeoutMs: resolveClaudeExecutionProbeTimeoutMs(params.pluginConfig.executionProbeTimeoutMs),
         verifyExecution: false,
@@ -237,7 +236,7 @@ const plugin: PluginDefinition = {
             apiKey: runtimeContext.apiKey,
             authToken: runtimeContext.authToken,
           }),
-          model: normalizeClaudeModel(runtimeContext.modelInput),
+          model: runtimeContext.runtimeModel,
           workingDirectory: runtimeContext.workingDirectory,
           sessionRuntimeId: readString(runtimeParams.sessionMetadata.claude_session_id) ?? null,
           env: runtimeContext.env,

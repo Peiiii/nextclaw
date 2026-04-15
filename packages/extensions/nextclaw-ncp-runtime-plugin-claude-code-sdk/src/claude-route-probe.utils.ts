@@ -1,7 +1,7 @@
 import type { Config } from "@nextclaw/core";
 import { loadAndProbeClaudeCodeSdkCapability } from "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk";
-import { listClaudeProviderRouteCandidates } from "./claude-provider-routing.js";
-import type { resolveClaudeRuntimeContext } from "./claude-runtime-context.js";
+import { listClaudeProviderRouteCandidates } from "./claude-provider-routing.utils.js";
+import type { resolveClaudeRuntimeContext } from "./claude-runtime-context.utils.js";
 import {
   dedupeStrings,
   normalizeClaudeModel,
@@ -9,7 +9,7 @@ import {
   readNumber,
   readString,
   resolveClaudeExecutionProbeTimeoutMs,
-} from "./claude-runtime-shared.js";
+} from "./claude-runtime-shared.utils.js";
 
 const HARD_CLAUDE_SETUP_FAILURE_REASONS = new Set([
   "api_key_missing",
@@ -29,16 +29,17 @@ export function buildClaudeGatewayConfig(params: {
   apiKey?: string;
   authToken?: string;
 }) {
-  if (params.routeKind !== "anthropic-gateway") {
+  const { apiBase, apiKey, authToken, routeKind } = params;
+  if (routeKind !== "anthropic-gateway") {
     return undefined;
   }
-  const upstreamApiBase = readString(params.apiBase);
+  const upstreamApiBase = readString(apiBase);
   if (!upstreamApiBase) {
     return undefined;
   }
   return {
     upstreamApiBase,
-    upstreamApiKey: readString(params.authToken) ?? readString(params.apiKey),
+    upstreamApiKey: readString(authToken) ?? readString(apiKey),
   };
 }
 
@@ -51,15 +52,16 @@ export async function probeClaudeRouteModels(params: {
   runtimeContext: ReturnType<typeof resolveClaudeRuntimeContext>;
   pluginConfig: Record<string, unknown>;
 }): Promise<ClaudeRouteProbeSummary> {
+  const { config, pluginConfig, runtimeContext } = params;
   const routeCandidates = listClaudeProviderRouteCandidates({
-    config: params.config,
-    pluginConfig: params.pluginConfig,
+    config,
+    pluginConfig,
   });
-  const probeTimeoutMs = Math.max(1000, Math.trunc(readNumber(params.pluginConfig.probeTimeoutMs) ?? 5000));
+  const probeTimeoutMs = Math.max(1000, Math.trunc(readNumber(pluginConfig.probeTimeoutMs) ?? 5000));
   const executionProbeTimeoutMs = resolveClaudeExecutionProbeTimeoutMs(
-    params.pluginConfig.executionProbeTimeoutMs,
+    pluginConfig.executionProbeTimeoutMs,
   );
-  const verifyExecution = readBoolean(params.pluginConfig.verifyExecution) ?? true;
+  const verifyExecution = readBoolean(pluginConfig.verifyExecution) ?? true;
 
   if (routeCandidates.length === 0) {
     return {
@@ -89,9 +91,9 @@ export async function probeClaudeRouteModels(params: {
           apiKey: route.apiKey,
           authToken: route.authToken,
         }),
-        env: params.runtimeContext.env,
-        workingDirectory: params.runtimeContext.workingDirectory,
-        baseQueryOptions: params.runtimeContext.baseQueryOptions,
+        env: runtimeContext.env,
+        workingDirectory: runtimeContext.workingDirectory,
+        baseQueryOptions: runtimeContext.baseQueryOptions,
         probeTimeoutMs,
         executionProbeTimeoutMs,
         verifyExecution,

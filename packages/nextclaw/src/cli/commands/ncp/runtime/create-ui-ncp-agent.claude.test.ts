@@ -10,7 +10,7 @@ import {
 } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent, type NcpRequestEnvelope } from "@nextclaw/ncp";
 import { loadPluginRegistry, toExtensionRegistry } from "../../plugins.js";
-import { createUiNcpAgent } from "../create-ui-ncp-agent.js";
+import { createUiNcpAgent } from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
 
@@ -319,6 +319,51 @@ describe("createUiNcpAgent Claude runtime", () => {
       .join("");
     expect(textPayload).toContain("model=MiniMax-M2.7");
     expect(textPayload).toContain("base=https://api.minimaxi.com/anthropic");
+    expect(textPayload).toContain("auth=token");
+  });
+
+  it("keeps nested upstream model paths when stripping only the provider routing prefix", async () => {
+    const workspace = createTempWorkspace();
+    const mockClaudePath = createEnvEchoClaudeScript(workspace);
+    const { ncpAgent } = await createClaudeRuntimeFixture({
+      workspace,
+      defaultModel: "dashscope/qwen3-coder-next",
+      providers: {
+        dashscope: {
+          apiKey: "dashscope-key",
+          models: ["qwen3-coder-next"],
+        },
+        idealap: {
+          apiKey: "idealap-key",
+          apiBase: "https://api.idealap.example/anthropic",
+          models: ["pai/glm-5"],
+        },
+      },
+      pluginConfig: {
+        pathToClaudeCodeExecutable: mockClaudePath,
+      },
+    });
+
+    const runEvents = await sendAndCollectEvents(
+      ncpAgent.agentClientEndpoint,
+      createEnvelope({
+        sessionId: "session-claude-idealap-route",
+        text: "say hello from claude",
+        metadata: {
+          session_type: "claude",
+          preferred_model: "idealap/pai/glm-5",
+          model: "idealap/pai/glm-5",
+        },
+      }),
+    );
+
+    const textPayload = runEvents
+      .filter((event) => event.type === NcpEventType.MessageTextDelta)
+      .map((event) => ("payload" in event ? String((event.payload as { delta?: unknown }).delta ?? "") : ""))
+      .join("");
+    expect(textPayload).toContain("model=pai/glm-5");
+    expect(textPayload).not.toContain("model=glm-5");
+    expect(textPayload).toMatch(/base=http:\/\/127\.0\.0\.1:\d+/);
     expect(textPayload).toContain("auth=token");
   });
 

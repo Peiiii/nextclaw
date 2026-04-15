@@ -6,7 +6,7 @@ import {
   type Config,
 } from "@nextclaw/core";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
-import { resolveClaudeProviderRouting } from "./claude-provider-routing.js";
+import { resolveClaudeProviderRouting } from "./claude-provider-routing.utils.js";
 import {
   dedupeStrings,
   normalizeClaudeModel,
@@ -17,7 +17,7 @@ import {
   readStringArray,
   readStringOrNullRecord,
   readStringRecord,
-} from "./claude-runtime-shared.js";
+} from "./claude-runtime-shared.utils.js";
 
 type ClaudePermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan" | "dontAsk";
 type ClaudeSettingSource = "user" | "project" | "local";
@@ -235,7 +235,7 @@ export function intersectSdkModelsWithConfiguredModels(params: {
     return configuredModels.length > 0 ? configuredModels : undefined;
   }
 
-  const rawSdkModelSet = new Set(sdkModels.map((model) => normalizeClaudeModel(model)));
+  const rawSdkModelSet = new Set(sdkModels.map((model) => readString(model)).filter((model): model is string => Boolean(model)));
   const matchedConfiguredModels = configuredModels.filter((model) => rawSdkModelSet.has(normalizeClaudeModel(model)));
 
   if (matchedConfiguredModels.length > 0) {
@@ -337,6 +337,7 @@ export function resolveClaudeRuntimeContext(params: {
 
   return {
     modelInput,
+    runtimeModel: providerRouting.runtimeModel,
     apiKey,
     authToken,
     apiBase,
@@ -355,5 +356,6 @@ export function resolveClaudeRuntimeContext(params: {
         modelInput,
         pluginConfig,
       }) ?? providerRouting.recommendedModel,
+    recommendedRuntimeModel: providerRouting.recommendedRuntimeModel,
   };
 }

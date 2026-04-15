@@ -1,10 +1,21 @@
 #!/usr/bin/env node
 
+import {
+  createDeferred,
+  delay,
+  isAbortError,
+  isTerminalEvent,
+  parseSseBlock,
+  printPretty,
+  summarizeEvents,
+} from "./chat-capability-smoke.utils.mjs";
+
 const DEFAULT_PORT = 18792;
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PROMPT = "Reply exactly OK";
 const DEFAULT_SESSION_TYPE = "native";
 const DEFAULT_TIMEOUT_MS = 120_000;
+const SESSION_TYPE_READY_POLL_MS = 500;
 
 function printHelp() {
   console.log(`Usage: pnpm smoke:ncp-chat -- [options]
@@ -148,170 +159,188 @@ function buildEnvelope(options) {
   };
 }
 
-function parseSseBody(body) {
-  const blocks = body.split(/\r?\n\r?\n/g);
-  const events = [];
+class NcpChatSmokeRunner {
+  constructor(options) {
+    this.options = options;
+  }
 
-  for (const block of blocks) {
-    const lines = block.split(/\r?\n/g).map((line) => line.trimEnd());
-    const dataLines = [];
-    let eventName = "message";
-    for (const line of lines) {
-      if (!line || line.startsWith(":")) {
-        continue;
-      }
-      if (line.startsWith("event:")) {
-        eventName = line.slice(6).trim() || "message";
-        continue;
-      }
-      if (line.startsWith("data:")) {
-        dataLines.push(line.slice(5).trimStart());
-      }
-    }
-    if (dataLines.length === 0) {
-      continue;
-    }
-    const raw = dataLines.join("\n");
+  run = async () => {
+    const envelope = buildEnvelope(this.options);
+    const streamController = new AbortController();
+    const sendController = new AbortController();
+    const startedAt = Date.now();
+    const events = [];
+    let stream = null;
+    const timer = setTimeout(() => {
+      streamController.abort(new Error(`smoke timed out after ${this.options.timeoutMs}ms`));
+      sendController.abort(new Error(`smoke timed out after ${this.options.timeoutMs}ms`));
+    }, this.options.timeoutMs);
+
     try {
-      events.push({
-        event: eventName,
-        raw,
-        data: JSON.parse(raw),
+      await this.waitForSessionTypeReady(sendController.signal);
+      stream = this.startStream({
+        sessionId: envelope.sessionId,
+        signal: streamController.signal,
+        onEvent: (event) => {
+          events.push(event);
+          if (isTerminalEvent(event)) {
+            streamController.abort();
+          }
+        },
       });
-    } catch {
-      events.push({
-        event: eventName,
-        raw,
-        data: null,
-      });
+      await stream.ready;
+      const response = await this.sendEnvelope(envelope, sendController.signal);
+      await stream.done;
+      const result = summarizeEvents(events);
+      return {
+        ...result,
+        status: response.status,
+        durationMs: Date.now() - startedAt,
+        baseUrl: this.options.baseUrl,
+        sessionId: envelope.sessionId,
+        sessionType: this.options.sessionType,
+        model: this.options.model.trim(),
+      };
+    } finally {
+      clearTimeout(timer);
+      if (!streamController.signal.aborted) {
+        streamController.abort();
+      }
+      if (!sendController.signal.aborted) {
+        sendController.abort();
+      }
+      await stream?.done.catch(() => undefined);
     }
-  }
-
-  return events;
-}
-
-function extractTextParts(message) {
-  if (!message || typeof message !== "object" || !Array.isArray(message.parts)) {
-    return [];
-  }
-  return message.parts
-    .filter((part) => part && typeof part === "object" && part.type === "text" && typeof part.text === "string")
-    .map((part) => part.text);
-}
-
-function summarizeEvents(events) {
-  const eventTypes = [];
-  let assistantText = "";
-  let reasoningText = "";
-  let errorMessage = "";
-  let terminalEvent = "";
-
-  for (const entry of events) {
-    const payload = entry?.data?.payload;
-    const type = typeof entry?.data?.type === "string" ? entry.data.type : entry.event;
-    eventTypes.push(type);
-
-    if (type === "message.text-delta" && typeof payload?.delta === "string") {
-      assistantText += payload.delta;
-      continue;
-    }
-    if (type === "message.reasoning-delta" && typeof payload?.delta === "string") {
-      reasoningText += payload.delta;
-      continue;
-    }
-    if (type === "message.completed") {
-      assistantText += extractTextParts(payload?.message).join("");
-      terminalEvent = type;
-      continue;
-    }
-    if (type === "run.finished") {
-      terminalEvent = type;
-      continue;
-    }
-    if ((type === "run.error" || type === "message.failed") && typeof payload?.error === "string") {
-      errorMessage = payload.error;
-      terminalEvent = type;
-      continue;
-    }
-  }
-
-  const normalizedAssistantText = assistantText.trim();
-  const normalizedReasoningText = reasoningText.trim();
-
-  return {
-    ok: !errorMessage && normalizedAssistantText.length > 0,
-    eventTypes,
-    assistantText: normalizedAssistantText,
-    reasoningText: normalizedReasoningText,
-    errorMessage,
-    terminalEvent,
   };
-}
 
-function printPretty(summary) {
-  const lines = [
-    `Result: ${summary.ok ? "PASS" : "FAIL"}`,
-    `Session Type: ${summary.sessionType}`,
-    `Model: ${summary.model || "(default)"}`,
-    `Base URL: ${summary.baseUrl}`,
-    `Session ID: ${summary.sessionId}`,
-    `HTTP Status: ${summary.status}`,
-    `Terminal Event: ${summary.terminalEvent || "(none)"}`,
-    `Assistant Text: ${summary.assistantText || "(empty)"}`,
-  ];
+  waitForSessionTypeReady = async (signal) => {
+    while (!signal.aborted) {
+      const response = await fetch(`${this.options.baseUrl}/api/ncp/session-types`, {
+        method: "GET",
+        headers: {
+          accept: "application/json",
+        },
+        signal,
+      });
+      if (!response.ok) {
+        throw new Error(`session-types failed with HTTP ${response.status}: ${await response.text()}`);
+      }
+      const payload = await response.json();
+      const options = Array.isArray(payload?.data?.options) ? payload.data.options : [];
+      const sessionType = this.options.sessionType.trim();
+      const option = options.find((entry) => entry?.value === sessionType);
+      if (option?.ready === true) {
+        return;
+      }
+      if (option && option.ready === false) {
+        const reason = option.reasonMessage || option.reason || "unknown reason";
+        throw new Error(`session type ${sessionType} is not ready: ${reason}`);
+      }
+      await delay(SESSION_TYPE_READY_POLL_MS, signal);
+    }
+  };
 
-  if (summary.reasoningText) {
-    lines.push(`Reasoning Text: ${summary.reasoningText}`);
-  }
-  if (summary.errorMessage) {
-    lines.push(`Error: ${summary.errorMessage}`);
-  }
-  lines.push(`Event Types: ${summary.eventTypes.join(", ") || "(none)"}`);
-  console.log(lines.join("\n"));
+  sendEnvelope = async (envelope, signal) => {
+    const response = await fetch(`${this.options.baseUrl}/api/ncp/agent/send`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify(envelope),
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`send failed with HTTP ${response.status}: ${await response.text()}`);
+    }
+    return response;
+  };
+
+  startStream = ({ sessionId, signal, onEvent }) => {
+    const ready = createDeferred();
+    const done = (async () => {
+      try {
+        const response = await fetch(
+          `${this.options.baseUrl}/api/ncp/agent/stream?sessionId=${encodeURIComponent(sessionId)}`,
+          {
+            method: "GET",
+            headers: {
+              accept: "text/event-stream",
+            },
+            signal,
+          },
+        );
+        if (!response.ok) {
+          throw new Error(`stream failed with HTTP ${response.status}: ${await response.text()}`);
+        }
+        if (!response.body) {
+          throw new Error("stream response has no body");
+        }
+        ready.resolve();
+        await this.readStream(response.body, signal, onEvent);
+      } catch (error) {
+        if (signal.aborted && isAbortError(error)) {
+          ready.resolve();
+          return;
+        }
+        ready.reject(error);
+        throw error;
+      }
+    })();
+    return { ready: ready.promise, done };
+  };
+
+  readStream = async (body, signal, onEvent) => {
+    const reader = body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    try {
+      while (!signal.aborted) {
+        const { value, done } = await reader.read();
+        if (done) {
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        buffer = this.consumeSseBuffer(buffer, onEvent);
+      }
+      buffer += decoder.decode();
+      this.consumeSseBuffer(`${buffer}\n\n`, onEvent);
+    } finally {
+      reader.releaseLock();
+    }
+  };
+
+  consumeSseBuffer = (buffer, onEvent) => {
+    let nextBuffer = buffer;
+    let boundary = nextBuffer.search(/\r?\n\r?\n/);
+    while (boundary >= 0) {
+      const block = nextBuffer.slice(0, boundary);
+      const separator = nextBuffer.slice(boundary).match(/^\r?\n\r?\n/)?.[0] ?? "\n\n";
+      nextBuffer = nextBuffer.slice(boundary + separator.length);
+      const event = parseSseBlock(block);
+      if (event) {
+        onEvent(event);
+      }
+      boundary = nextBuffer.search(/\r?\n\r?\n/);
+    }
+    return nextBuffer;
+  };
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const envelope = buildEnvelope(options);
-  const controller = new AbortController();
-  const startedAt = Date.now();
-  const timer = setTimeout(() => {
-    controller.abort(new Error(`smoke timed out after ${options.timeoutMs}ms`));
-  }, options.timeoutMs);
+  const runner = new NcpChatSmokeRunner(options);
+  const summary = await runner.run();
 
-  try {
-    const response = await fetch(`${options.baseUrl}/api/ncp/agent/send`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(envelope),
-      signal: controller.signal,
-    });
-    const body = await response.text();
-    const events = parseSseBody(body);
-    const result = summarizeEvents(events);
-    const summary = {
-      ...result,
-      status: response.status,
-      durationMs: Date.now() - startedAt,
-      baseUrl: options.baseUrl,
-      sessionId: envelope.sessionId,
-      sessionType: options.sessionType,
-      model: options.model.trim(),
-    };
+  if (options.json) {
+    console.log(JSON.stringify(summary, null, 2));
+  } else {
+    printPretty(summary);
+  }
 
-    if (options.json) {
-      console.log(JSON.stringify(summary, null, 2));
-    } else {
-      printPretty(summary);
-    }
-
-    if (!response.ok || !summary.ok) {
-      process.exitCode = 1;
-    }
-  } finally {
-    clearTimeout(timer);
+  if (!summary.ok) {
+    process.exitCode = 1;
   }
 }
 

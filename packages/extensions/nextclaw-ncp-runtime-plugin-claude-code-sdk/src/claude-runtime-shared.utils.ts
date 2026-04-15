@@ -87,8 +87,8 @@ export function normalizeClaudeModel(value: string): string {
   if (!trimmed.includes("/")) {
     return trimmed;
   }
-  const parts = trimmed.split("/").filter(Boolean);
-  return parts[parts.length - 1] ?? trimmed;
+  const slashIndex = trimmed.indexOf("/");
+  return trimmed.slice(slashIndex + 1).trim() || trimmed;
 }
 
 export function dedupeStrings(values: string[]): string[] {
