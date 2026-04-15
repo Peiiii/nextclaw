@@ -2,11 +2,12 @@ import type { PropsWithChildren } from "react";
 
 type PanelProps = PropsWithChildren<{
   className?: string;
+  id?: string;
 }>;
 
-export function Panel({ children, className = "" }: PanelProps): JSX.Element {
+export function Panel({ children, className = "", id }: PanelProps): JSX.Element {
   return (
-    <section className={`panel ${className}`.trim()}>
+    <section id={id} className={`panel ${className}`.trim()}>
       {children}
     </section>
   );

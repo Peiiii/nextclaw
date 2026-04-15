@@ -10,7 +10,7 @@ type UpdatesSectionProps = {
 
 export function UpdatesSection({ data, isPending }: UpdatesSectionProps): JSX.Element {
   return (
-    <Panel className="updates-panel">
+    <Panel id="updates" className="updates-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Shipped</p>

@@ -29,7 +29,7 @@ export function CommunityFeedbackSection(props: CommunityFeedbackSectionProps): 
   });
 
   return (
-    <Panel className="community-panel">
+    <Panel id="community" className="community-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Community</p>

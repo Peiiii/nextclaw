@@ -69,6 +69,22 @@
   - 这次还继续修复了上一版收尾带来的回归：由于把 `max-content` 和 `fr` 列宽组合在一起，导致每列被算得过宽，视觉上只剩接近单列。现已改回固定列宽的多列 board，在保留局部横向滚动的同时恢复多列看板效果。
   - 该修复已重新部署到 Cloudflare Worker：
     - 当前 live 版本：`695d15de-20fe-46a7-b846-768a2ba00d2c`
+- 同批次继续推进了一版“公开产品进展门户”信息架构重构：
+  - 在 [`overview-section.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/overview/components/overview-section.tsx) 把首屏从纯标题 + 数据卡升级为“方向说明 + 三个入口卡”：
+    - `查看路线图`
+    - `参与反馈`
+    - `看最近交付`
+  - 新增 [`portal-section-nav.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/shared/components/portal-section-nav.tsx)，提供 sticky 模块导航：
+    - `方向总览`
+    - `产品路线图`
+    - `社区反馈`
+    - `近期交付`
+  - 在 [`panel.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/shared/components/panel.tsx) 给各主模块开放 `id`，让模块导航和首屏入口可以直接跳转到对应模块。
+  - 在 [`app.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/app/app.tsx) 把门户导航提升为全局一级结构，而不是继续让用户只能靠长滚动寻找模块。
+  - 在 [`index.css`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 加入平滑滚动、scroll margin、首屏入口卡和 sticky nav 的门户化样式，让用户在首屏就知道页面不止一个模块。
+  - 最后又把导航行为进一步校准成“原位出现，到顶部阈值后再吸顶”的吊顶式导航，而不是一开始就固定悬浮；同时把横向裁剪从 `portal-shell` 移到 `body`，避免 sticky 约束容器错误导致导航无法吸顶。
+  - 该门户导航版本已重新部署到 Cloudflare Worker：
+    - 当前 live 版本：`4abe8e46-b652-46a3-a9d7-12db0341f0f1`
 - 相关设计文档：
   - [public-roadmap-feedback-portal-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-design.md)
   - [public-roadmap-feedback-portal-implementation-plan.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-implementation-plan.md)
@@ -101,6 +117,17 @@
     - 在 `1600px` 视口下确认 board 至少可同时看到 `4` 列
     - 在 `1280px` 视口下确认 board 至少可同时看到 `3` 列
     - 同时确认文档、panel 与 scroller 都没有再次超出视口右边界
+  - 本地门户导航专项验证：
+    - 确认首屏出现 `查看路线图 / 参与反馈 / 看最近交付`
+    - 确认 sticky 导航出现 `方向总览 / 产品路线图 / 社区反馈 / 近期交付`
+    - 点击 `社区反馈` 后，对应模块会进入可视区
+    - 点击 `近期交付` 后，对应模块会进入可视区
+    - 验证结果：`portal-nav-smoke: ok`
+  - 本地吸顶阈值专项验证：
+    - 首屏时导航仍处于原始布局位置，不会一开始就悬浮
+    - 向下滚动后，导航会在顶部阈值附近吸住
+    - 点击锚点后，目标模块不会被吸顶导航遮挡
+    - 验证结果：`sticky-threshold-nav-smoke: ok`
 - 已通过的 live/部署侧验证：
   - `pnpm -C apps/public-roadmap-feedback-portal db:migrate:remote`
   - `linear auth whoami`
@@ -115,6 +142,9 @@
   - `curl https://roadmap.nextclaw.io/api/overview`
   - `curl 'https://roadmap.nextclaw.io/api/items?sort=recent&view=board'`
   - `curl https://roadmap.nextclaw.io/api/feedback`
+  - `curl -I https://roadmap.nextclaw.io` 返回 `HTTP/2 200`
+  - `curl https://roadmap.nextclaw.io/api/overview` 返回 `mode=live`，官方事项仍为 `59`
+  - 线上吸顶导航专项冒烟通过：`live-sticky-threshold-nav-smoke: ok`
   - Playwright 浏览器侧只读冒烟：
     - 访问 `https://roadmap.nextclaw.io`
     - 确认页面渲染出 `公开路线图与产品进展`
@@ -189,4 +219,6 @@
   - 这次 board 超屏修复也保持了同样的收敛思路：只增加一个局部滚动容器，不改公开阶段模型、不新增状态或脚本，把溢出边界收回到组件本身，没有把复杂度转移到别的层。
   - 第二次修正又把问题继续收敛到了更本质的边界层：没有引入新的布局模式，只是把内容容器、panel 和 scroller 的最大宽度显式锁死，让“谁负责裁剪、谁负责滚动”重新变得清晰可预测。
   - 这次回归修复进一步说明了为什么边界修正和列宽策略要分开治理：父容器负责约束 `100%` 边界，board 自己负责稳定列宽；两者职责分清后，既不会超屏，也不会退化成单列。
+  - 这轮“进展门户化”信息架构新增是有意识的最小必要集合：没有引入新的状态层、router、tab 系统或额外查询逻辑，而是优先复用现有模块，只补了入口卡、sticky nav 和锚点边界。按当前 diff 单独看，本轮增量约为 `新增 239 行 / 删除 33 行 / 净增 206 行`，主要集中在首屏与导航样式。
+  - 这次吸顶行为调整同样控制在最小改动范围内：没有新增脚本或滚动监听，只是利用 CSS sticky 和正确的 overflow 边界来完成“原位 -> 吸顶”的行为，把复杂度留在浏览器原生能力里。
   - 当前主要观察点是 [`portal-query.service.ts`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/server/portal-query.service.ts) 已明显变大；下一步如果继续扩展审核、合并或统计能力，应优先把 engagement 聚合和 thread 组装继续拆出稳定子 owner。

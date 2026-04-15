@@ -12,6 +12,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 * {
@@ -21,6 +22,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
 }
 
 button,
@@ -37,7 +39,6 @@ button {
 .portal-shell {
   position: relative;
   min-height: 100vh;
-  overflow: hidden;
   padding: 40px 20px 72px;
 }
 
@@ -49,6 +50,10 @@ button {
   max-width: 1320px;
   display: grid;
   gap: 24px;
+}
+
+.portal-shell__content > [id] {
+  scroll-margin-top: 128px;
 }
 
 .portal-shell__glow {
@@ -134,10 +139,132 @@ button {
   font-weight: 600;
 }
 
+.overview-panel__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.portal-entry-card {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(16, 33, 52, 0.08);
+  background: rgba(255, 255, 255, 0.78);
+  color: #102134;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.portal-entry-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(16, 33, 52, 0.16);
+  box-shadow: 0 18px 32px rgba(16, 33, 52, 0.08);
+}
+
+.portal-entry-card span,
+.overview-panel__north-star > span {
+  color: #9b5f22;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.portal-entry-card strong,
+.overview-panel__north-star strong {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", serif;
+  font-size: 1.2rem;
+}
+
+.portal-entry-card p,
+.overview-panel__north-star p {
+  margin: 0;
+  color: #536579;
+}
+
 .overview-panel__stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
+}
+
+.overview-panel__aside {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.overview-panel__north-star {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 246, 234, 0.92), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(155, 95, 34, 0.12);
+}
+
+.overview-panel__north-star-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.overview-panel__north-star-list span {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(16, 33, 52, 0.08);
+  color: #33475b;
+  font-weight: 700;
+}
+
+.portal-section-nav {
+  position: sticky;
+  top: 16px;
+  z-index: 20;
+  align-self: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(16, 33, 52, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 40px rgba(18, 32, 50, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.portal-section-nav__link {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+  color: #102134;
+  background: rgba(16, 33, 52, 0.04);
+  transition: background 160ms ease, transform 160ms ease;
+}
+
+.portal-section-nav__link:hover {
+  background: rgba(38, 108, 190, 0.1);
+  transform: translateY(-1px);
+}
+
+.portal-section-nav__link strong {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.portal-section-nav__mobile-label {
+  display: none;
 }
 
 .stat-card {
@@ -735,6 +862,11 @@ button {
   .overview-panel {
     grid-template-columns: 1fr;
   }
+
+  .overview-panel__actions,
+  .portal-section-nav {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -751,6 +883,34 @@ button {
 
   .overview-panel__stats {
     grid-template-columns: 1fr;
+  }
+
+  .overview-panel__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-shell__content > [id] {
+    scroll-margin-top: 154px;
+  }
+
+  .portal-section-nav {
+    top: 10px;
+    border-radius: 26px;
+    justify-content: stretch;
+  }
+
+  .portal-section-nav__link {
+    flex: 1 1 calc(50% - 10px);
+    justify-content: center;
+  }
+
+  .portal-section-nav__mobile-label {
+    display: inline-flex;
+    color: #9b5f22;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .section-heading {

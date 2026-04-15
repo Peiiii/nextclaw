@@ -6,6 +6,7 @@ import { OverviewSection } from "../features/overview/components/overview-sectio
 import { RoadmapSection } from "../features/roadmap/components/roadmap-section";
 import { UpdatesSection } from "../features/updates/components/updates-section";
 import { portalApiService, portalQueryKeys } from "../services/portal-api.service";
+import { PortalSectionNav } from "../shared/components/portal-section-nav";
 import { useCommunityFeedbackStore } from "../stores/community-feedback.store";
 import { useItemDetailStore } from "../stores/item-detail.store";
 import { useRoadmapViewStore } from "../stores/roadmap-view.store";
@@ -64,6 +65,7 @@ export default function App(): JSX.Element {
   return (
     <AppRoot>
       <OverviewSection data={overviewQuery.data} isPending={overviewQuery.isPending} />
+      <PortalSectionNav />
       <RoadmapSection
         data={itemsQuery.data}
         error={itemsQuery.error}

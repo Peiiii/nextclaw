@@ -32,7 +32,7 @@ export function RoadmapSection(props: RoadmapSectionProps): JSX.Element {
   const items = props.data?.items ?? [];
 
   return (
-    <Panel className="roadmap-panel">
+    <Panel id="roadmap" className="roadmap-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Roadmap</p>
