@@ -294,9 +294,7 @@ button {
   color: #536579;
 }
 
-.roadmap-panel,
-.updates-panel,
-.community-panel {
+.portal-stage-panel {
   padding: 28px;
 }
 
@@ -670,6 +668,87 @@ button {
   gap: 14px;
 }
 
+@media (min-width: 1024px) {
+  .portal-stage-panel {
+    display: grid;
+    gap: 18px;
+    height: calc(100svh - 132px);
+    overflow: hidden;
+  }
+
+  .roadmap-panel {
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+
+  .community-panel,
+  .updates-panel {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .portal-stage-panel .section-heading,
+  .roadmap-panel .filter-bar {
+    margin-bottom: 0;
+  }
+
+  .portal-stage-panel__body {
+    min-height: 0;
+  }
+
+  .roadmap-panel__body {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+  }
+
+  .roadmap-list,
+  .roadmap-board-scroller {
+    min-height: 100%;
+  }
+
+  .updates-panel__body,
+  .community-panel__body {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .updates-timeline {
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+  }
+
+  .community-panel__layout {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .community-panel__form {
+    max-height: 100%;
+    overflow: auto;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+  }
+
+  .community-panel__threads {
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .community-panel__thread-list {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+  }
+}
+
 .feedback-thread-card {
   padding: 20px;
   border-radius: 24px;
@@ -875,9 +954,7 @@ button {
   }
 
   .overview-panel,
-  .roadmap-panel,
-  .updates-panel,
-  .community-panel {
+  .portal-stage-panel {
     padding: 20px;
   }
 
@@ -925,6 +1002,24 @@ button {
 
   .community-panel__layout {
     grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .portal-stage-panel,
+  .portal-stage-panel__body,
+  .roadmap-panel__body,
+  .updates-panel__body,
+  .updates-timeline,
+  .community-panel__body,
+  .community-panel__form,
+  .community-panel__threads,
+  .community-panel__thread-list {
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+    scrollbar-gutter: auto;
   }
 
   .community-panel__toolbar,

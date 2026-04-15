@@ -10,7 +10,7 @@ type UpdatesSectionProps = {
 
 export function UpdatesSection({ data, isPending }: UpdatesSectionProps): JSX.Element {
   return (
-    <Panel id="updates" className="updates-panel">
+    <Panel id="updates" className="updates-panel portal-stage-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Shipped</p>
@@ -18,22 +18,24 @@ export function UpdatesSection({ data, isPending }: UpdatesSectionProps): JSX.El
         </div>
         <span className="panel-badge">Product progress</span>
       </div>
-      {isPending ? (
-        <div className="loading-block">正在加载已交付事项…</div>
-      ) : (
-        <div className="updates-timeline">
-          {(data?.items ?? []).map((item) => (
-            <article key={item.id} className="update-card">
-              <time>{formatPortalDate(item.shippedAt ?? item.updatedAt)}</time>
-              <div>
-                <TagChip tone="type">{PUBLIC_ITEM_TYPE_LABELS[item.type]}</TagChip>
-                <h3>{item.title}</h3>
-                <p>{item.summary}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      <div className="updates-panel__body portal-stage-panel__body">
+        {isPending ? (
+          <div className="loading-block">正在加载已交付事项…</div>
+        ) : (
+          <div className="updates-timeline">
+            {(data?.items ?? []).map((item) => (
+              <article key={item.id} className="update-card">
+                <time>{formatPortalDate(item.shippedAt ?? item.updatedAt)}</time>
+                <div>
+                  <TagChip tone="type">{PUBLIC_ITEM_TYPE_LABELS[item.type]}</TagChip>
+                  <h3>{item.title}</h3>
+                  <p>{item.summary}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
     </Panel>
   );
 }
