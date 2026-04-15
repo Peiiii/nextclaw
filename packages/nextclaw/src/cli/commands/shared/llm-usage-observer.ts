@@ -16,7 +16,7 @@ export class LlmUsageObserver {
   readonly observe = (params: {
     model?: string | null;
     usage: Record<string, number>;
-  }): LlmUsageRecord => {
+  }): LlmUsageRecord | null => {
     return this.recorder.record({
       source: this.source,
       model: params.model ?? null,

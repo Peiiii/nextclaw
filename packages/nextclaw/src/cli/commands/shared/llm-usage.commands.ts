@@ -137,13 +137,17 @@ export class LlmUsageCommands {
       "LLM usage history stats",
       `History path: ${this.queryService.historyPath}`,
       `Records: ${stats.totalRecords}`,
+      `Usage records: ${stats.usageRecordCount}`,
+      `Empty usage records: ${stats.emptyUsageRecordCount}`,
+      `Prompt-bearing records: ${stats.promptTokenRecordCount}`,
       `Oldest observed at: ${stats.oldestObservedAt ?? "n/a"}`,
       `Latest observed at: ${stats.latestObservedAt ?? "n/a"}`,
       `Prompt tokens: ${stats.totalPromptTokens}`,
       `Completion tokens: ${stats.totalCompletionTokens}`,
       `Total tokens: ${stats.totalTokens}`,
       `Cached tokens: ${stats.totalCachedTokens}`,
-      `Cache hits: ${stats.cacheHitRecords}/${stats.totalRecords} (${this.toPercent(stats.cacheHitRate)})`,
+      `Cache hit records: ${stats.cacheHitRecords}/${stats.promptTokenRecordCount} (${this.toPercent(stats.cacheHitRate)})`,
+      `Cache token rate: ${this.toPercent(stats.tokenCacheRate)}`,
     ];
     if (stats.sources.length > 0) {
       lines.push(`Sources: ${stats.sources.map((item) => `${item.value}=${item.count}`).join(", ")}`);

@@ -46,6 +46,10 @@ export class LlmUsageRecordFactory {
     return next;
   };
 
+  readonly hasTelemetry = (usage: Record<string, number>): boolean => {
+    return Object.keys(usage).length > 0;
+  };
+
   readonly buildSummary = (usage: Record<string, number>): LlmUsageSummary => {
     const promptTokens = usage.prompt_tokens ?? usage.input_tokens ?? 0;
     const completionTokens = usage.completion_tokens ?? usage.output_tokens ?? 0;

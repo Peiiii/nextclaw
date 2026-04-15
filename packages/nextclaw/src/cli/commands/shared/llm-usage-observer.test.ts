@@ -98,4 +98,24 @@ describe("ObservedProviderManager", () => {
       summary: { promptTokens: 1000, completionTokens: 40, cachedTokens: 768 }
     });
   });
+
+  it("skips empty usage payloads so they do not pollute usage history", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-observer-"));
+    const snapshotStore = new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json"));
+    const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
+    const manager = new ObservedProviderManager(
+      new ProviderManager(new StaticUsageProvider({
+        content: "ok",
+        toolCalls: [],
+        finishReason: "stop",
+        usage: {}
+      })),
+      new LlmUsageObserver(new LlmUsageRecorder({ snapshotStore, historyStore }), "ui-ncp")
+    );
+
+    await manager.chat({ messages: [{ role: "user", content: "hello" }], model: "default-model" });
+
+    expect(snapshotStore.read()).toBeNull();
+    expect(historyStore.list()).toHaveLength(0);
+  });
 });

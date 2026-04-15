@@ -4,6 +4,9 @@ import { llmUsageSnapshotStore, type LlmUsageSnapshotStore } from "../../runtime
 
 export type LlmUsageStats = {
   totalRecords: number;
+  usageRecordCount: number;
+  emptyUsageRecordCount: number;
+  promptTokenRecordCount: number;
   oldestObservedAt: string | null;
   latestObservedAt: string | null;
   totalPromptTokens: number;
@@ -12,6 +15,7 @@ export type LlmUsageStats = {
   totalCachedTokens: number;
   cacheHitRecords: number;
   cacheHitRate: number;
+  tokenCacheRate: number;
   sources: Array<{ value: string; count: number }>;
   models: Array<{ value: string; count: number }>;
 };
@@ -51,12 +55,21 @@ export class LlmUsageQueryService {
     let totalTokens = 0;
     let totalCachedTokens = 0;
     let cacheHitRecords = 0;
+    let usageRecordCount = 0;
+    let promptTokenRecordCount = 0;
 
     for (const record of records) {
+      const hasUsage = Object.keys(record.usage).length > 0;
+      if (hasUsage) {
+        usageRecordCount += 1;
+      }
       totalPromptTokens += record.summary.promptTokens;
       totalCompletionTokens += record.summary.completionTokens;
       totalTokens += record.summary.totalTokens;
       totalCachedTokens += record.summary.cachedTokens;
+      if (record.summary.promptTokens > 0) {
+        promptTokenRecordCount += 1;
+      }
       if (record.summary.cacheHit) {
         cacheHitRecords += 1;
       }
@@ -66,6 +79,9 @@ export class LlmUsageQueryService {
 
     return {
       totalRecords: records.length,
+      usageRecordCount,
+      emptyUsageRecordCount: records.length - usageRecordCount,
+      promptTokenRecordCount,
       oldestObservedAt: records[0]?.observedAt ?? null,
       latestObservedAt: records.at(-1)?.observedAt ?? null,
       totalPromptTokens,
@@ -73,7 +89,8 @@ export class LlmUsageQueryService {
       totalTokens,
       totalCachedTokens,
       cacheHitRecords,
-      cacheHitRate: records.length > 0 ? cacheHitRecords / records.length : 0,
+      cacheHitRate: promptTokenRecordCount > 0 ? cacheHitRecords / promptTokenRecordCount : 0,
+      tokenCacheRate: totalPromptTokens > 0 ? totalCachedTokens / totalPromptTokens : 0,
       sources: this.toSortedCounts(sources),
       models: this.toSortedCounts(models),
     };

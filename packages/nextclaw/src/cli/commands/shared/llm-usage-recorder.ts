@@ -16,8 +16,11 @@ export class LlmUsageRecorder {
     source: string;
     model?: string | null;
     usage: Record<string, number>;
-  }): LlmUsageRecord => {
+  }): LlmUsageRecord | null => {
     const record = this.recordFactory.create(params);
+    if (!this.recordFactory.hasTelemetry(record.usage)) {
+      return null;
+    }
     this.snapshotStore.write(record);
     this.historyStore.append(record);
     return record;
