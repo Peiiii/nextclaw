@@ -25,6 +25,7 @@ export class ChatSessionListManager {
       isAwaitingAssistantOutput: false,
       parentSessionKey: null,
       parentSessionLabel: null,
+      childSessionPanelParentKey: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
     });
@@ -157,6 +158,10 @@ export class ChatSessionListManager {
   };
 
   selectSession = (sessionKey: string) => {
+    useChatThreadStore.getState().setSnapshot({
+      childSessionPanelParentKey: null,
+      activeChildSessionKey: null,
+    });
     this.uiManager.goToSession(sessionKey);
   };
 

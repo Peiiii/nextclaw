@@ -34,6 +34,7 @@ export type ChatThreadSnapshot = {
   isAwaitingAssistantOutput: boolean;
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
+  childSessionPanelParentKey?: string | null;
   childSessionTabs: ChatChildSessionTab[];
   activeChildSessionKey?: string | null;
 };
@@ -66,6 +67,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   isAwaitingAssistantOutput: false,
   parentSessionKey: null,
   parentSessionLabel: null,
+  childSessionPanelParentKey: null,
   childSessionTabs: [],
   activeChildSessionKey: null,
 };

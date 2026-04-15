@@ -6,10 +6,7 @@ import type { ChatSessionListManager } from '@/components/chat/managers/chat-ses
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
-import type {
-  ChatChildSessionTab,
-  ChatThreadSnapshot,
-} from '@/components/chat/stores/chat-thread.store';
+import type { ChatThreadSnapshot } from '@/components/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import { t } from '@/lib/i18n';
 
@@ -49,21 +46,25 @@ export class NcpChatThreadManager {
     this.uiManager.goToProviders();
   };
 
-  private upsertChildSessionTab = (tab: ChatChildSessionTab) => {
-    const { snapshot } = useChatThreadStore.getState();
-    const existingIndex = snapshot.childSessionTabs.findIndex(
-      (item) => item.sessionKey === tab.sessionKey,
-    );
-    const nextTabs =
-      existingIndex >= 0
-        ? snapshot.childSessionTabs.map((item, index) =>
-            index === existingIndex ? { ...item, ...tab } : item,
-          )
-        : [...snapshot.childSessionTabs, tab];
+  openChildSessionPanel = (params: {
+    parentSessionKey: string;
+    activeChildSessionKey?: string | null;
+  }) => {
+    const parentSessionKey = params.parentSessionKey.trim();
+    if (!parentSessionKey) {
+      return;
+    }
+    const activeChildSessionKey = params.activeChildSessionKey?.trim() || null;
     useChatThreadStore.getState().setSnapshot({
-      childSessionTabs: nextTabs,
-      activeChildSessionKey: tab.sessionKey,
+      childSessionPanelParentKey: parentSessionKey,
+      activeChildSessionKey,
     });
+    const {
+      snapshot: { selectedSessionKey },
+    } = useChatSessionListStore.getState();
+    if (selectedSessionKey !== parentSessionKey) {
+      this.uiManager.goToSession(parentSessionKey);
+    }
   };
 
   openSessionFromToolAction = (action: ChatToolActionViewModel) => {
@@ -75,14 +76,18 @@ export class NcpChatThreadManager {
         action.parentSessionId?.trim() ||
         useChatSessionListStore.getState().snapshot.selectedSessionKey ||
         null;
-      this.upsertChildSessionTab({
-        sessionKey: action.sessionId,
-        parentSessionKey,
-        label: action.label?.trim() || null,
-        agentId: action.agentId?.trim() || null,
-      });
-      return;
+      if (parentSessionKey) {
+        this.openChildSessionPanel({
+          parentSessionKey,
+          activeChildSessionKey: action.sessionId,
+        });
+        return;
+      }
     }
+    useChatThreadStore.getState().setSnapshot({
+      childSessionPanelParentKey: null,
+      activeChildSessionKey: null,
+    });
     this.uiManager.goToSession(action.sessionId);
   };
 
@@ -101,27 +106,9 @@ export class NcpChatThreadManager {
   };
 
   closeChildSessionDetail = () => {
-    const {
-      sessionKey,
-      childSessionTabs,
-      activeChildSessionKey,
-    } = useChatThreadStore.getState().snapshot;
-    if (!sessionKey) {
-      useChatThreadStore.getState().setSnapshot({
-        childSessionTabs: [],
-        activeChildSessionKey: null,
-      });
-      return;
-    }
-    const nextTabs = childSessionTabs.filter(
-      (tab) => tab.parentSessionKey !== sessionKey,
-    );
-    const nextActiveKey = nextTabs.some((tab) => tab.sessionKey === activeChildSessionKey)
-      ? activeChildSessionKey
-      : null;
     useChatThreadStore.getState().setSnapshot({
-      childSessionTabs: nextTabs,
-      activeChildSessionKey: nextActiveKey,
+      childSessionPanelParentKey: null,
+      activeChildSessionKey: null,
     });
   };
 

@@ -43,6 +43,7 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatHistoryLoading: { zh: '加载会话历史中...', en: 'Loading session history...' },
   chatNoMessages: { zh: '暂无消息，发送一条开始对话。', en: 'No messages yet. Send one to start.' },
   chatBackToParent: { zh: '返回父会话', en: 'Back to parent' },
+  chatSessionOpenChildSessions: { zh: '查看子会话', en: 'View child sessions' },
   chatChildSessionLoading: { zh: '正在加载子会话…', en: 'Loading child session…' },
   chatChildSessionEmpty: { zh: '子会话还没有消息。', en: 'No child session messages yet.' },
   chatChildSessionClosePanel: { zh: '关闭子会话侧栏', en: 'Close child session panel' },

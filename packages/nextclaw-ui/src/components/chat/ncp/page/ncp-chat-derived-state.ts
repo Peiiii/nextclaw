@@ -10,8 +10,30 @@ import { adaptNcpSessionSummary } from '@/components/chat/ncp/ncp-session-adapte
 import type { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter';
 import type { UseHydratedNcpAgentResult } from '@nextclaw/ncp-react';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
+import type { ChatChildSessionTab } from '@/components/chat/stores/chat-thread.store';
 import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
+
+function buildChildSessionTabs(params: {
+  parentSessionKey: string | null;
+  sessionSummaries: NcpSessionSummaryView[];
+}): ChatChildSessionTab[] {
+  if (!params.parentSessionKey) {
+    return [];
+  }
+  return params.sessionSummaries
+    .map(adaptNcpSessionSummary)
+    .filter((session) => session.parentSessionId === params.parentSessionKey)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .map((session) => ({
+      sessionKey: session.key,
+      parentSessionKey: session.parentSessionId ?? null,
+      label: session.label ?? null,
+      agentId: session.agentId ?? null,
+    }));
+}
+
 export function useNcpChatDerivedState(params: {
+  sessionKey: string | null;
   selectedSession: SessionEntryView | null;
   selectedAgentId: string;
   availableAgents: AgentProfileView[];
@@ -20,32 +42,51 @@ export function useNcpChatDerivedState(params: {
   selectedSessionType: string;
   sessionTypeOptions: Array<{ value: string; label: string }>;
 }) {
-  const currentSessionDisplayName = params.selectedSession
-    ? sessionDisplayName(params.selectedSession)
+  const {
+    availableAgents,
+    parentSessionId,
+    selectedAgentId,
+    selectedSession,
+    selectedSessionType,
+    sessionKey,
+    sessionSummaries,
+    sessionTypeOptions,
+  } = params;
+  const currentSessionDisplayName = selectedSession
+    ? sessionDisplayName(selectedSession)
     : undefined;
-  const currentAgentId = params.selectedSession?.agentId ?? params.selectedAgentId;
+  const currentAgentId = selectedSession?.agentId ?? selectedAgentId;
   const currentAgent =
-    params.availableAgents.find((agent) => agent.id === currentAgentId) ?? null;
+    availableAgents.find((agent) => agent.id === currentAgentId) ?? null;
   const parentSession = useMemo(() => {
-    if (!params.parentSessionId) {
+    if (!parentSessionId) {
       return null;
     }
     const parentSummary =
-      params.sessionSummaries.find(
-        (summary) => summary.sessionId === params.parentSessionId,
+      sessionSummaries.find(
+        (summary) => summary.sessionId === parentSessionId,
       ) ?? null;
     return parentSummary ? adaptNcpSessionSummary(parentSummary) : null;
-  }, [params.parentSessionId, params.sessionSummaries]);
+  }, [parentSessionId, sessionSummaries]);
   const currentSessionTypeLabel =
-    params.sessionTypeOptions.find((option) => option.value === params.selectedSessionType)
-      ?.label ?? resolveSessionTypeLabel(params.selectedSessionType);
+    sessionTypeOptions.find((option) => option.value === selectedSessionType)
+      ?.label ?? resolveSessionTypeLabel(selectedSessionType);
+  const currentChildSessionTabs = useMemo(
+    () =>
+      buildChildSessionTabs({
+        parentSessionKey: sessionKey,
+        sessionSummaries,
+      }),
+    [sessionKey, sessionSummaries],
+  );
 
   return {
     currentSessionDisplayName,
     currentAgentId,
     currentAgent,
     parentSession,
-    currentSessionTypeLabel
+    currentSessionTypeLabel,
+    currentChildSessionTabs,
   };
 }
 
@@ -78,6 +119,7 @@ export function useNcpChatSnapshotSync(params: {
   agent: Pick<UseHydratedNcpAgentResult, 'isHydrating' | 'visibleMessages'>;
   isAwaitingAssistantOutput: boolean;
   parentSession: SessionEntryView | null;
+  childSessionTabs: ChatChildSessionTab[];
 }) {
   useEffect(() => {
     params.presenter.chatInputManager.syncSnapshot({
@@ -121,6 +163,7 @@ export function useNcpChatSnapshotSync(params: {
       parentSessionLabel: params.parentSession
         ? sessionDisplayName(params.parentSession)
         : null,
+      childSessionTabs: params.childSessionTabs,
     });
   }, [
     params

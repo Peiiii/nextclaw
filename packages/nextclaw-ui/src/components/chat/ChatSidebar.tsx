@@ -201,6 +201,22 @@ export function ChatSidebar() {
     [agentsQuery.data?.agents]
   );
   const sortedItems = useMemo(() => sortSessionItemsByUpdatedAtDesc(items), [items]);
+  const childSessionsByParentKey = useMemo(() => {
+    const grouped = new Map<string, NcpSessionListItemView[]>();
+    for (const item of items) {
+      const parentSessionKey = item.session.parentSessionId?.trim();
+      if (!parentSessionKey) {
+        continue;
+      }
+      const bucket = grouped.get(parentSessionKey) ?? [];
+      bucket.push(item);
+      grouped.set(parentSessionKey, bucket);
+    }
+    for (const bucket of grouped.values()) {
+      bucket.sort((left, right) => getSessionUpdatedAtTimestamp(right) - getSessionUpdatedAtTimestamp(left));
+    }
+    return grouped;
+  }, [items]);
   const groups = useMemo(() => groupSessionsByDate(sortedItems), [sortedItems]);
   const projectGroups = useMemo(() => groupSessionsByProject(sortedItems), [sortedItems]);
   const defaultSessionType = inputSnapshot.defaultSessionType || 'native';
@@ -263,6 +279,7 @@ export function ChatSidebar() {
     const context = resolveSessionContextView(session, inputSnapshot.sessionTypeOptions);
     const isEditing = editingSessionKey === session.key;
     const isSaving = savingSessionKey === session.key;
+    const childSessions = childSessionsByParentKey.get(session.key) ?? [];
     return (
       <ChatSidebarSessionItem
         key={session.key}
@@ -275,10 +292,17 @@ export function ChatSidebar() {
         agentId={session.agentId ?? null}
         agentLabel={session.agentId ? (agentsById.get(session.agentId)?.displayName ?? session.agentId) : null}
         agentAvatarUrl={session.agentId ? (agentsById.get(session.agentId)?.avatarUrl ?? null) : null}
+        childSessionCount={childSessions.length}
         isEditing={isEditing}
         draftLabel={draftLabel}
         isSaving={isSaving}
         onSelect={() => presenter.chatSessionListManager.selectSession(session.key)}
+        onOpenChildSessions={() =>
+          presenter.chatThreadManager.openChildSessionPanel({
+            parentSessionKey: session.key,
+            activeChildSessionKey: childSessions[0]?.session.key ?? null,
+          })
+        }
         onStartEditing={() => startEditingSessionLabel(session)}
         onDraftLabelChange={setDraftLabel}
         onSave={() => saveSessionLabel(session)}

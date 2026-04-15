@@ -8,7 +8,7 @@ import { type SessionContextView } from '@/lib/session-context.utils';
 import type { SessionRunStatus } from '@/lib/session-run-status';
 import { cn } from '@/lib/utils';
 import { formatDateTime, t } from '@/lib/i18n';
-import { Check, Pencil, X } from 'lucide-react';
+import { Check, GitBranch, Pencil, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {
   session: SessionEntryView;
@@ -20,10 +20,12 @@ type ChatSidebarSessionItemProps = {
   agentId?: string | null;
   agentLabel?: string | null;
   agentAvatarUrl?: string | null;
+  childSessionCount?: number;
   isEditing: boolean;
   draftLabel: string;
   isSaving: boolean;
   onSelect: () => void;
+  onOpenChildSessions?: () => void;
   onStartEditing: () => void;
   onDraftLabelChange: (value: string) => void;
   onSave: () => void | Promise<void>;
@@ -108,7 +110,9 @@ function ChatSidebarSessionDisplayView({
   agentId,
   agentLabel,
   agentAvatarUrl,
+  childSessionCount = 0,
   onSelect,
+  onOpenChildSessions,
   onStartEditing
 }: ChatSidebarSessionDisplayViewProps) {
   const iconTone = active ? 'text-gray-700' : 'text-gray-500';
@@ -162,9 +166,31 @@ function ChatSidebarSessionDisplayView({
           </span>
         </div>
         <div className="mt-0.5 text-[11px] text-gray-400 truncate">
-          {agentLabel?.trim() ? `${agentLabel} · ` : ''}{session.messageCount} · {formatDateTime(session.updatedAt)}
+          <span>
+            {agentLabel?.trim() ? `${agentLabel} · ` : ''}{session.messageCount} · {formatDateTime(session.updatedAt)}
+          </span>
         </div>
       </button>
+      {childSessionCount > 0 && onOpenChildSessions ? (
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenChildSessions();
+          }}
+          className={cn(
+            'absolute right-7 top-0 inline-flex h-7 items-center gap-1 rounded-lg px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
+            active
+              ? 'opacity-100'
+              : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
+          )}
+          aria-label={t('chatSessionOpenChildSessions')}
+          title={t('chatSessionOpenChildSessions')}
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+          <span>{childSessionCount}</span>
+        </button>
+      ) : null}
       <button
         type="button"
         onClick={(event) => {
@@ -195,10 +221,12 @@ export function ChatSidebarSessionItem({
   agentId,
   agentLabel,
   agentAvatarUrl,
+  childSessionCount,
   isEditing,
   draftLabel,
   isSaving,
   onSelect,
+  onOpenChildSessions,
   onStartEditing,
   onDraftLabelChange,
   onSave,
@@ -234,6 +262,8 @@ export function ChatSidebarSessionItem({
           agentLabel={agentLabel}
           agentAvatarUrl={agentAvatarUrl}
           onSelect={onSelect}
+          childSessionCount={childSessionCount}
+          onOpenChildSessions={onOpenChildSessions}
           onStartEditing={onStartEditing}
         />
       )}

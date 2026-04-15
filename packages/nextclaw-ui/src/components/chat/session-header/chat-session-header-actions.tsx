@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderOpen, MoreHorizontal, Trash2 } from 'lucide-react';
+import { FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useChatSessionProject } from '@/components/chat/hooks/use-chat-session-project';
@@ -12,6 +12,8 @@ type ChatSessionHeaderActionsProps = {
   canDeleteSession: boolean;
   isDeletePending: boolean;
   projectRoot?: string | null;
+  childSessionCount?: number;
+  onOpenChildSessions?: () => void;
   onDeleteSession: () => void;
 };
 
@@ -20,6 +22,8 @@ export function ChatSessionHeaderActions({
   canDeleteSession,
   isDeletePending,
   projectRoot,
+  childSessionCount = 0,
+  onOpenChildSessions,
   onDeleteSession,
 }: ChatSessionHeaderActionsProps) {
   const updateSessionProject = useChatSessionProject();
@@ -46,6 +50,20 @@ export function ChatSessionHeaderActions({
 
   return (
     <>
+      {childSessionCount > 0 && onOpenChildSessions ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="rounded-lg shrink-0 text-gray-400 hover:text-gray-700"
+          aria-label={t('chatSessionOpenChildSessions')}
+          title={t('chatSessionOpenChildSessions')}
+          onClick={onOpenChildSessions}
+          disabled={isBusy}
+        >
+          <GitBranch className="h-4 w-4" />
+        </Button>
+      ) : null}
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
           <Button

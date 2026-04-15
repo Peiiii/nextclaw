@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   setQuery: vi.fn(),
   setListMode: vi.fn(),
   selectSession: vi.fn(),
+  openChildSessionPanel: vi.fn(),
   docOpen: vi.fn(),
   updateNcpSession: vi.fn(),
   agents: [] as Array<{ id: string; displayName?: string; avatarUrl?: string | null }>,
@@ -36,7 +37,10 @@ vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
         sessionKey: string | null | undefined,
         readAt: string | null | undefined,
       ) => (sessionKey ? useChatSessionListStore.getState().markSessionRead(sessionKey, readAt) : undefined),
-    }
+    },
+    chatThreadManager: {
+      openChildSessionPanel: mocks.openChildSessionPanel,
+    },
   })
 }));
 
@@ -113,6 +117,7 @@ function resetSidebarTestState() {
   mocks.setQuery.mockReset();
   mocks.setListMode.mockReset();
   mocks.selectSession.mockReset();
+  mocks.openChildSessionPanel.mockReset();
   mocks.docOpen.mockReset();
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
@@ -629,5 +634,42 @@ describe('ChatSidebar session item interactions', () => {
     );
 
     expect(screen.queryByLabelText('Session has unread updates')).toBeNull();
+  });
+
+  it('opens the child-session browser from a parent session row', () => {
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:parent-1',
+        createdAt: '2026-03-19T09:00:00.000Z',
+        updatedAt: '2026-03-19T09:05:00.000Z',
+        label: 'Parent Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1
+      }),
+      createSessionItem({
+        key: 'session:child-1',
+        createdAt: '2026-03-19T09:06:00.000Z',
+        updatedAt: '2026-03-19T09:07:00.000Z',
+        label: 'Child Task',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1,
+        parentSessionId: 'session:parent-1'
+      })
+    ];
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByLabelText('View child sessions'));
+
+    expect(mocks.openChildSessionPanel).toHaveBeenCalledWith({
+      parentSessionKey: 'session:parent-1',
+      activeChildSessionKey: 'session:child-1',
+    });
   });
 });

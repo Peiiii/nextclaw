@@ -6,6 +6,7 @@ import { ChatSessionHeaderActions } from '@/components/chat/session-header/chat-
 const mocks = vi.hoisted(() => ({
   updateSessionProject: vi.fn(),
   onDeleteSession: vi.fn(),
+  onOpenChildSessions: vi.fn(),
 }));
 
 vi.mock('@/components/chat/hooks/use-chat-session-project', () => ({
@@ -20,6 +21,7 @@ describe('ChatSessionHeaderActions', () => {
   beforeEach(() => {
     mocks.updateSessionProject.mockReset();
     mocks.onDeleteSession.mockReset();
+    mocks.onOpenChildSessions.mockReset();
   });
 
   it('keeps only the set-project action in the more-actions menu when a project is already attached', async () => {
@@ -31,6 +33,8 @@ describe('ChatSessionHeaderActions', () => {
         canDeleteSession
         isDeletePending={false}
         projectRoot="/tmp/project-alpha"
+        childSessionCount={0}
+        onOpenChildSessions={mocks.onOpenChildSessions}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -51,6 +55,8 @@ describe('ChatSessionHeaderActions', () => {
         canDeleteSession={false}
         isDeletePending={false}
         projectRoot={null}
+        childSessionCount={0}
+        onOpenChildSessions={mocks.onOpenChildSessions}
         onDeleteSession={mocks.onDeleteSession}
       />
     );
@@ -59,5 +65,25 @@ describe('ChatSessionHeaderActions', () => {
 
     expect(screen.getByText('Set Project Directory')).toBeTruthy();
     expect(screen.queryByText('Clear Project Directory')).toBeNull();
+  });
+
+  it('shows a dedicated child-session entry button when the current session has child sessions', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-children"
+        canDeleteSession
+        isDeletePending={false}
+        projectRoot={null}
+        childSessionCount={2}
+        onOpenChildSessions={mocks.onOpenChildSessions}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'View child sessions' }));
+
+    expect(mocks.onOpenChildSessions).toHaveBeenCalledTimes(1);
   });
 });

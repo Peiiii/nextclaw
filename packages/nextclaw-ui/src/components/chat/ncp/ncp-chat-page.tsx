@@ -2,6 +2,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   buildNcpRequestEnvelope,
@@ -98,11 +99,7 @@ export function shouldClearPendingProjectRootOverride(params: {
 }
 
 export function NcpChatPage({ view }: ChatPageProps) {
-  const presenterRef = useRef<NcpChatPresenter | null>(null);
-  if (!presenterRef.current) {
-    presenterRef.current = new NcpChatPresenter();
-  }
-  const presenter = presenterRef.current;
+  const [presenter] = useState(() => new NcpChatPresenter());
   const query = useChatSessionListStore((state) => state.snapshot.query);
   const selectedSessionKey = useChatSessionListStore(
     (state) => state.snapshot.selectedSessionKey,
@@ -306,8 +303,10 @@ export function NcpChatPage({ view }: ChatPageProps) {
     currentAgentId,
     currentAgent,
     parentSession,
-    currentSessionTypeLabel
+    currentSessionTypeLabel,
+    currentChildSessionTabs,
   } = useNcpChatDerivedState({
+    sessionKey,
     selectedSession,
     selectedAgentId,
     availableAgents,
@@ -352,7 +351,8 @@ export function NcpChatPage({ view }: ChatPageProps) {
     threadRef,
     agent,
     isAwaitingAssistantOutput,
-    parentSession
+    parentSession,
+    childSessionTabs: currentChildSessionTabs,
   });
 
   return (

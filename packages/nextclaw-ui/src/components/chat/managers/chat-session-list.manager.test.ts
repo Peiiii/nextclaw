@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
@@ -32,6 +33,13 @@ describe('ChatSessionListManager', () => {
         draftSessionKey: 'draft-root-1',
         listMode: 'time-first'
       }
+    });
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        childSessionPanelParentKey: 'session-1',
+        activeChildSessionKey: 'child-session-1',
+      },
     });
   });
 
@@ -133,6 +141,8 @@ describe('ChatSessionListManager', () => {
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('session-2');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
+    expect(useChatThreadStore.getState().snapshot.childSessionPanelParentKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBeNull();
   });
 
   it('updates the sidebar list mode without touching other session list state', () => {
