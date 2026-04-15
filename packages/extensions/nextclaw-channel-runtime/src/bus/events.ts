@@ -16,6 +16,7 @@ export type InboundMessage = {
   channel: string;
   senderId: string;
   chatId: string;
+  threadId?: string;
   content: string;
   timestamp: Date;
   attachments: InboundAttachment[];
@@ -23,12 +24,16 @@ export type InboundMessage = {
 };
 
 export function inboundSessionKey(msg: InboundMessage): string {
+  if (msg.threadId) {
+    return `${msg.channel}:${msg.chatId}:${msg.threadId}`;
+  }
   return `${msg.channel}:${msg.chatId}`;
 }
 
 export type OutboundMessage = {
   channel: string;
   chatId: string;
+  threadId?: string;
   content: string;
   replyTo?: string | null;
   media: string[];
