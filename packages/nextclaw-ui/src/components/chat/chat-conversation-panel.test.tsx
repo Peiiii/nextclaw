@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatChildSessionPanel } from "@/components/chat/chat-child-session-panel";
-import { ChatConversationPanel } from "@/components/chat/ChatConversationPanel";
+import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
 import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
@@ -75,6 +75,7 @@ vi.mock("@/components/chat/presenter/chat-presenter-context", () => ({
     chatThreadManager: {
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
+      openChildSessionPanel: vi.fn(),
       openSessionFromToolAction: vi.fn(),
       selectChildSessionDetail: vi.fn(),
       closeChildSessionDetail: vi.fn(),
@@ -182,6 +183,7 @@ describe("ChatConversationPanel", () => {
         isAwaitingAssistantOutput: false,
         parentSessionKey: null,
         parentSessionLabel: null,
+        childSessionPanelParentKey: null,
         availableAgents: [
           { id: "main", displayName: "Main", runtime: "native" },
           { id: "engineer", displayName: "Engineer", runtime: "codex" },
@@ -252,6 +254,50 @@ describe("ChatConversationPanel", () => {
 
     expect(screen.getByTestId("agent-avatar").textContent).toBe("engineer");
     expect(screen.queryByText("Engineer")).toBeNull();
+  });
+
+  it("keeps the message area clean while a session history is hydrating", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: "session-1",
+        canDeleteSession: true,
+        isHistoryLoading: true,
+        messages: [],
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(
+      screen.queryByRole("status", { name: "Loading session history..." }),
+    ).toBeNull();
+    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+  });
+
+  it("does not auto-open the child-session panel until the panel is explicitly opened", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: "parent-session-1",
+        sessionDisplayName: "Parent Session",
+        canDeleteSession: true,
+        childSessionTabs: [
+          {
+            sessionKey: "child-session-1",
+            parentSessionKey: "parent-session-1",
+            label: "北京天气",
+            agentId: "weather",
+          },
+        ],
+        activeChildSessionKey: "child-session-1",
+        childSessionPanelParentKey: null,
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.queryByLabelText("Close child session panel")).toBeNull();
   });
 
   it("creates a draft session with the selected draft agent runtime", async () => {

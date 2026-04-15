@@ -1,0 +1,390 @@
+import { type ComponentProps, useRef } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
+import {
+  ChatInputBarContainer,
+  ChatMessageListContainer,
+} from "@/components/chat/nextclaw";
+import { ChatChildSessionPanel } from "@/components/chat/chat-child-session-panel";
+import { ChatWelcome } from "@/components/chat/ChatWelcome";
+import { AgentAvatar } from "@/components/common/AgentAvatar";
+import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
+import { ChatSessionHeaderActions } from "@/components/chat/session-header/chat-session-header-actions";
+import { ChatSessionProjectBadge } from "@/components/chat/session-header/chat-session-project-badge";
+import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
+import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
+import { resolveAgentRuntimeSessionType } from "@/components/chat/useChatSessionTypeState";
+import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+
+function ChatConversationSkeleton() {
+  return (
+    <section className="flex-1 min-h-0 flex flex-col overflow-hidden bg-gradient-to-b from-gray-50/60 to-white">
+      <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+        <div className="mx-auto w-full max-w-[min(1120px,100%)] px-6 py-5">
+          <div className="space-y-4">
+            <div className="h-6 w-48 animate-pulse rounded bg-gray-200" />
+            <div className="h-24 w-[78%] animate-pulse rounded-2xl bg-gray-200/80" />
+            <div className="h-20 w-[62%] animate-pulse rounded-2xl bg-gray-200/80" />
+            <div className="h-28 w-[84%] animate-pulse rounded-2xl bg-gray-200/80" />
+          </div>
+        </div>
+      </div>
+      <div className="border-t border-gray-200/80 bg-white p-4">
+        <div className="mx-auto w-full max-w-[min(1120px,100%)]">
+          <div className="rounded-2xl border border-gray-200 bg-white shadow-card p-4">
+            <div className="h-16 w-full animate-pulse rounded-xl bg-gray-200/80" />
+            <div className="mt-3 flex items-center justify-between">
+              <div className="h-8 w-36 animate-pulse rounded-lg bg-gray-200/80" />
+              <div className="h-8 w-20 animate-pulse rounded-lg bg-gray-200/80" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type ChatThreadSnapshot = ReturnType<typeof useChatThreadStore.getState>["snapshot"];
+type ChatHeaderDeleteHandler = ComponentProps<
+  typeof ChatSessionHeaderActions
+>["onDeleteSession"];
+type ChatToolActionHandler = ComponentProps<
+  typeof ChatMessageListContainer
+>["onToolAction"];
+
+type ChatParentSessionBannerProps = {
+  parentSessionLabel: string | null;
+  onGoToParentSession: () => void;
+};
+
+function ChatParentSessionBanner({
+  parentSessionLabel,
+  onGoToParentSession,
+}: ChatParentSessionBannerProps) {
+  if (!parentSessionLabel) {
+    return null;
+  }
+  const trimmedLabel = parentSessionLabel.trim();
+  return (
+    <div className="border-b border-gray-200/60 bg-white/75 px-5 py-2 backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={onGoToParentSession}
+        className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        <span>
+          {t("chatBackToParent")}
+          {trimmedLabel ? ` · ${trimmedLabel}` : ""}
+        </span>
+      </button>
+    </div>
+  );
+}
+
+type ChatConversationHeaderProps = {
+  snapshot: ChatThreadSnapshot;
+  childSessionCount: number;
+  normalizedAgentId: string;
+  sessionHeaderTitle: string;
+  shouldShowHeaderAgentAvatar: boolean;
+  shouldShowSessionHeader: boolean;
+  onOpenChildSessions: () => void;
+  onDeleteSession: ChatHeaderDeleteHandler;
+};
+
+function ChatConversationHeader({
+  snapshot,
+  childSessionCount,
+  normalizedAgentId,
+  sessionHeaderTitle,
+  shouldShowHeaderAgentAvatar,
+  shouldShowSessionHeader,
+  onOpenChildSessions,
+  onDeleteSession,
+}: ChatConversationHeaderProps) {
+  return (
+    <div
+      className={cn(
+        "px-5 border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-all duration-200",
+        shouldShowSessionHeader ? "py-3 opacity-100" : "h-0 py-0 opacity-0 border-b-0",
+      )}
+    >
+      <div className="min-w-0 flex-1 flex items-center gap-2">
+        {shouldShowHeaderAgentAvatar ? (
+          <div className="inline-flex shrink-0 items-center">
+            <AgentAvatar
+              agentId={normalizedAgentId}
+              displayName={snapshot.agentDisplayName}
+              avatarUrl={snapshot.agentAvatarUrl}
+              className="h-5 w-5"
+            />
+          </div>
+        ) : null}
+        <span className="text-sm font-medium text-gray-700 truncate">
+          {sessionHeaderTitle}
+        </span>
+        {snapshot.sessionTypeLabel ? (
+          <span className="shrink-0 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+            {snapshot.sessionTypeLabel}
+          </span>
+        ) : null}
+        {snapshot.sessionProjectName ? (
+          <ChatSessionProjectBadge
+            sessionKey={snapshot.sessionKey ?? "draft"}
+            projectName={snapshot.sessionProjectName}
+            projectRoot={snapshot.sessionProjectRoot}
+            persistToServer={snapshot.canDeleteSession}
+          />
+        ) : null}
+      </div>
+      {snapshot.sessionKey ? (
+        <ChatSessionHeaderActions
+          sessionKey={snapshot.sessionKey}
+          canDeleteSession={snapshot.canDeleteSession}
+          isDeletePending={snapshot.isDeletePending}
+          projectRoot={snapshot.sessionProjectRoot}
+          childSessionCount={childSessionCount}
+          onOpenChildSessions={onOpenChildSessions}
+          onDeleteSession={onDeleteSession}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+type ChatConversationAlertsProps = {
+  shouldShowProviderHint: boolean;
+  sessionTypeUnavailable: boolean;
+  sessionTypeUnavailableMessage: string | null;
+  onGoToProviders: () => void;
+};
+
+function ChatConversationAlerts({
+  shouldShowProviderHint,
+  sessionTypeUnavailable,
+  sessionTypeUnavailableMessage,
+  onGoToProviders,
+}: ChatConversationAlertsProps) {
+  return (
+    <>
+      {shouldShowProviderHint ? (
+        <div className="px-5 py-2.5 border-b border-amber-200/70 bg-amber-50/70 flex items-center justify-between gap-3 shrink-0">
+          <span className="text-xs text-amber-800">
+            {t("chatModelNoOptions")}
+          </span>
+          <button
+            type="button"
+            onClick={onGoToProviders}
+            className="text-xs font-semibold text-amber-900 underline-offset-2 hover:underline"
+          >
+            {t("chatGoConfigureProvider")}
+          </button>
+        </div>
+      ) : null}
+      {sessionTypeUnavailable && sessionTypeUnavailableMessage?.trim() ? (
+        <div className="px-5 py-2.5 border-b border-amber-200/70 bg-amber-50/70 shrink-0">
+          <span className="text-xs text-amber-800">
+            {sessionTypeUnavailableMessage}
+          </span>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+type ChatConversationContentProps = {
+  snapshot: ChatThreadSnapshot;
+  availableAgents: NonNullable<ChatThreadSnapshot["availableAgents"]>;
+  hideEmptyHint: boolean;
+  showWelcome: boolean;
+  threadRef: ComponentProps<"div">["ref"];
+  onScroll: ComponentProps<"div">["onScroll"];
+  onCreateSession: () => void;
+  onSelectAgent: (agentId: string) => void;
+  onToolAction: ChatToolActionHandler;
+};
+
+function ChatConversationContent({
+  snapshot,
+  availableAgents,
+  hideEmptyHint,
+  showWelcome,
+  threadRef,
+  onScroll,
+  onCreateSession,
+  onSelectAgent,
+  onToolAction,
+}: ChatConversationContentProps) {
+  return (
+    <div
+      ref={threadRef}
+      onScroll={onScroll}
+      className="flex-1 min-h-0 overflow-y-auto custom-scrollbar"
+    >
+      {showWelcome ? (
+        <ChatWelcome
+          onCreateSession={onCreateSession}
+          agents={availableAgents}
+          selectedAgentId={snapshot.agentId ?? "main"}
+          onSelectAgent={onSelectAgent}
+        />
+      ) : hideEmptyHint ? null : snapshot.messages.length === 0 ? (
+        <div className="px-5 py-5 text-sm text-gray-500">
+          {t("chatNoMessages")}
+        </div>
+      ) : (
+        <div className="mx-auto w-full max-w-[min(1120px,100%)] px-6 py-5">
+          <ChatMessageListContainer
+            key={snapshot.sessionKey ?? "draft"}
+            messages={snapshot.messages}
+            isSending={snapshot.isSending && snapshot.isAwaitingAssistantOutput}
+            onToolAction={onToolAction}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function resolveDetailSessionKey(
+  snapshot: ChatThreadSnapshot,
+  childSessionTabs: ChatThreadSnapshot["childSessionTabs"],
+) {
+  if (snapshot.childSessionPanelParentKey !== snapshot.sessionKey) {
+    return null;
+  }
+  if (childSessionTabs.some((tab) => tab.sessionKey === snapshot.activeChildSessionKey)) {
+    return snapshot.activeChildSessionKey;
+  }
+  return childSessionTabs[0]?.sessionKey ?? null;
+}
+
+export function ChatConversationPanel() {
+  const presenter = usePresenter();
+  const defaultSessionType = useChatInputStore(
+    (state) => state.snapshot.defaultSessionType,
+  );
+  const snapshot = useChatThreadStore((state) => state.snapshot);
+  const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
+  const threadRef = snapshot.threadRef ?? fallbackThreadRef;
+  const childSessionTabs = snapshot.childSessionTabs.filter(
+    (tab) => tab.parentSessionKey === snapshot.sessionKey,
+  );
+  const detailSessionKey = resolveDetailSessionKey(snapshot, childSessionTabs);
+  const shouldShowSessionHeader = Boolean(
+    snapshot.sessionKey || snapshot.sessionTypeLabel,
+  );
+  const sessionHeaderTitle =
+    snapshot.sessionDisplayName ||
+    (snapshot.canDeleteSession && snapshot.sessionKey ? snapshot.sessionKey : null) ||
+    t("chatSidebarNewTask");
+  const normalizedAgentId = snapshot.agentId?.trim() ?? "";
+  const shouldShowHeaderAgentAvatar =
+    normalizedAgentId.length > 0 &&
+    normalizedAgentId.toLowerCase() !== "main";
+
+  const showWelcome =
+    !snapshot.canDeleteSession &&
+    snapshot.messages.length === 0 &&
+    !snapshot.isSending;
+  const hasConfiguredModel = snapshot.modelOptions.length > 0;
+  const shouldShowProviderHint =
+    snapshot.isProviderStateResolved && !hasConfiguredModel;
+  const hideEmptyHint =
+    snapshot.isHistoryLoading &&
+    snapshot.messages.length === 0 &&
+    !snapshot.isSending &&
+    !snapshot.isAwaitingAssistantOutput;
+  const availableAgents = snapshot.availableAgents ?? [];
+  const resolveDraftAgent = (agentId: string) =>
+    availableAgents.find((agent) => agent.id === agentId) ?? null;
+  const createDraftSessionForAgent = () => {
+    const sessionType = resolveAgentRuntimeSessionType(
+      resolveDraftAgent(snapshot.agentId ?? "main"),
+      defaultSessionType,
+    );
+    presenter.chatSessionListManager.createSession(sessionType);
+  };
+  const selectDraftAgent = (agentId: string) => {
+    presenter.chatSessionListManager.setSelectedAgentId(agentId);
+    presenter.chatInputManager.setPendingSessionType(
+      resolveAgentRuntimeSessionType(resolveDraftAgent(agentId), defaultSessionType),
+    );
+  };
+  const openChildSessions = () => {
+    if (!snapshot.sessionKey) {
+      return;
+    }
+    presenter.chatThreadManager.openChildSessionPanel({
+      parentSessionKey: snapshot.sessionKey,
+      activeChildSessionKey: childSessionTabs[0]?.sessionKey ?? null,
+    });
+  };
+
+  const { onScroll: handleScroll } = useStickyBottomScroll({
+    scrollRef: threadRef,
+    resetKey: snapshot.sessionKey,
+    isLoading: snapshot.isHistoryLoading,
+    hasContent: snapshot.messages.length > 0,
+    contentVersion: snapshot.messages[snapshot.messages.length - 1] ?? null,
+  });
+
+  if (!snapshot.isProviderStateResolved) {
+    return <ChatConversationSkeleton />;
+  }
+
+  return (
+    <section className="flex-1 min-h-0 flex overflow-hidden bg-gradient-to-b from-gray-50/60 to-white">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <ChatParentSessionBanner
+          parentSessionLabel={
+            snapshot.parentSessionKey ? (snapshot.parentSessionLabel ?? null) : null
+          }
+          onGoToParentSession={presenter.chatThreadManager.goToParentSession}
+        />
+        <ChatConversationHeader
+          snapshot={snapshot}
+          childSessionCount={childSessionTabs.length}
+          normalizedAgentId={normalizedAgentId}
+          sessionHeaderTitle={sessionHeaderTitle}
+          shouldShowHeaderAgentAvatar={shouldShowHeaderAgentAvatar}
+          shouldShowSessionHeader={shouldShowSessionHeader}
+          onOpenChildSessions={openChildSessions}
+          onDeleteSession={presenter.chatThreadManager.deleteSession}
+        />
+        <ChatConversationAlerts
+          shouldShowProviderHint={shouldShowProviderHint}
+          sessionTypeUnavailable={snapshot.sessionTypeUnavailable}
+          sessionTypeUnavailableMessage={snapshot.sessionTypeUnavailableMessage ?? null}
+          onGoToProviders={presenter.chatThreadManager.goToProviders}
+        />
+        <ChatConversationContent
+          snapshot={snapshot}
+          availableAgents={availableAgents}
+          hideEmptyHint={hideEmptyHint}
+          showWelcome={showWelcome}
+          threadRef={threadRef}
+          onScroll={handleScroll}
+          onCreateSession={createDraftSessionForAgent}
+          onSelectAgent={selectDraftAgent}
+          onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+        />
+
+        <ChatInputBarContainer />
+      </div>
+
+      {detailSessionKey ? (
+        <ChatChildSessionPanel
+          tabs={childSessionTabs}
+          activeSessionKey={detailSessionKey}
+          onSelectSession={presenter.chatThreadManager.selectChildSessionDetail}
+          onClose={presenter.chatThreadManager.closeChildSessionDetail}
+          onBackToParent={presenter.chatThreadManager.goToParentSession}
+          onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+        />
+      ) : null}
+    </section>
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
-import { ChatConversationPanel } from '@/components/chat/ChatConversationPanel';
+import { ChatConversationPanel } from '@/components/chat/chat-conversation-panel';
 import { AgentsPage } from '@/components/agents/AgentsPage';
 import { CronConfig } from '@/components/config/CronConfig';
 import { MarketplacePage } from '@/components/marketplace/MarketplacePage';
