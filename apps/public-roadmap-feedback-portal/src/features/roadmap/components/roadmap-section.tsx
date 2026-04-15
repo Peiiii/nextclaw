@@ -32,7 +32,7 @@ export function RoadmapSection(props: RoadmapSectionProps): JSX.Element {
   const items = props.data?.items ?? [];
 
   return (
-    <Panel id="roadmap" className="roadmap-panel portal-stage-panel">
+    <Panel id="roadmap" className="roadmap-panel">
       <div className="section-heading">
         <div>
           <p className="eyebrow">Roadmap</p>
@@ -93,25 +93,23 @@ export function RoadmapSection(props: RoadmapSectionProps): JSX.Element {
         </label>
       </div>
 
-      <div className="roadmap-panel__body portal-stage-panel__body">
-        {props.isPending ? (
-          <div className="loading-block">正在加载公开路线图…</div>
-        ) : null}
+      {props.isPending ? (
+        <div className="loading-block">正在加载公开路线图…</div>
+      ) : null}
 
-        {props.error ? (
-          <div className="error-block">
-            <strong>路线图加载失败</strong>
-            <p>{props.error instanceof Error ? props.error.message : "Unknown roadmap error."}</p>
-            <button type="button" onClick={props.onRetry}>重试</button>
-          </div>
-        ) : null}
+      {props.error ? (
+        <div className="error-block">
+          <strong>路线图加载失败</strong>
+          <p>{props.error instanceof Error ? props.error.message : "Unknown roadmap error."}</p>
+          <button type="button" onClick={props.onRetry}>重试</button>
+        </div>
+      ) : null}
 
-        {!props.isPending && !props.error ? (
-          props.viewMode === "board"
-            ? <RoadmapBoard items={items} onOpenItem={presenter.itemDetailManager.openItem} />
-            : <RoadmapList items={items} onOpenItem={presenter.itemDetailManager.openItem} />
-        ) : null}
-      </div>
+      {!props.isPending && !props.error ? (
+        props.viewMode === "board"
+          ? <RoadmapBoard items={items} onOpenItem={presenter.itemDetailManager.openItem} />
+          : <RoadmapList items={items} onOpenItem={presenter.itemDetailManager.openItem} />
+      ) : null}
     </Panel>
   );
 }

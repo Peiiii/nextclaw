@@ -85,16 +85,6 @@
   - 最后又把导航行为进一步校准成“原位出现，到顶部阈值后再吸顶”的吊顶式导航，而不是一开始就固定悬浮；同时把横向裁剪从 `portal-shell` 移到 `body`，避免 sticky 约束容器错误导致导航无法吸顶。
   - 该门户导航版本已重新部署到 Cloudflare Worker：
     - 当前 live 版本：`4abe8e46-b652-46a3-a9d7-12db0341f0f1`
-- 同批次继续把门户节奏收成“模块级一屏体验”：
-  - 在 [`roadmap-section.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/roadmap/components/roadmap-section.tsx)、[`community-feedback-section.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/community-feedback/components/community-feedback-section.tsx) 和 [`updates-section.tsx`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/features/updates/components/updates-section.tsx) 为路线图、社区反馈、近期交付三大模块补齐统一的 `portal-stage-panel` / `portal-stage-panel__body` 骨架。
-  - 在 [`index.css`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/src/index.css) 把桌面端模块明确收成接近一屏的固定 panel：
-    - `Roadmap` 模块头部和筛选保留在上方，事项内容区改为模块内滚动
-    - `Community` 模块左侧表单保持独立布局，右侧“社区声音”线程列表改为内部滚动
-    - `Updates` 模块标题保留在上方，timeline 列表改为内部滚动
-  - 同时保留移动端降级策略：手机与窄屏下不强行做一屏模块，而是恢复自然长页面，避免出现难用的嵌套滚动体验。
-  - 这次修正解决的是更本质的节奏问题：此前虽然已有门户导航，但后 3 个模块仍会被长列表继续撑高，用户很容易滚很久才意识到页面还有后续模块；现在桌面端每个主模块都更像一个独立页面，真正长的内容被收回到模块内部。
-  - 该布局版本已重新部署到 Cloudflare Worker：
-    - 当前 live 版本：`d274ed33-3745-4dc0-b8d9-116927b4d079`
 - 相关设计文档：
   - [public-roadmap-feedback-portal-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-design.md)
   - [public-roadmap-feedback-portal-implementation-plan.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-14-public-roadmap-feedback-portal-implementation-plan.md)
@@ -138,19 +128,6 @@
     - 向下滚动后，导航会在顶部阈值附近吸住
     - 点击锚点后，目标模块不会被吸顶导航遮挡
     - 验证结果：`sticky-threshold-nav-smoke: ok`
-  - 本地一屏模块布局专项验证：
-    - 在 `1440x1100` 视口下确认 `Roadmap / Community / Updates` 三个主模块都被收成接近一屏的 panel，高度不再继续被长列表撑高
-    - 确认 `.roadmap-panel__body` 会在桌面端接管纵向滚动，路线图列表不会再把整个文档无限拉长
-    - 确认 `.community-panel__thread-list` 会在桌面端接管线程列表滚动，左侧建议表单保持独立布局
-    - 确认 `.updates-timeline` 作为内部 scroll 区存在，已交付列表不会把整个模块继续拉长
-    - 在 `390x844` 视口下确认上述内部滚动容器全部回退为自然文档流
-    - 验证结果：`portal-fullpage-section-smoke: ok`
-  - 线上一屏模块布局专项验证：
-    - 访问 `https://roadmap.nextclaw.io`
-    - 确认主域名已经返回新资源：`index-DULzvzP5.css` / `index-LVAHr0p7.js`
-    - 在 `1440x1100` 视口下确认 `Roadmap / Community / Updates` 三个主模块都保持接近一屏
-    - 在 `390x844` 视口下确认内部滚动容器都回退为自然文档流
-    - 验证结果：`live-portal-fullpage-section-smoke: ok`
 - 已通过的 live/部署侧验证：
   - `pnpm -C apps/public-roadmap-feedback-portal db:migrate:remote`
   - `linear auth whoami`
@@ -218,8 +195,6 @@
 6. 把环境切到 `live` 并执行 D1 migration 后，社区建议、评论、投票应持久化到 D1，而不是只存在 preview 内存态。
 7. 当前版本已经接入 `NC` team 的真实 Linear 事项；至少可以在远端 D1 中确认 `59` 条官方事项已存在。
 8. 通过 `https://roadmap.nextclaw.io/api/overview` 或首页 UI，应能看到真实事项，例如 `NextClaw Apps`、`有时候发了第一条消息后就被吞了`。
-9. 在桌面端浏览门户时，`产品路线图`、`社区反馈`、`近期交付` 三个模块都应各自接近一整屏；用户滚到模块内时，真正变长的应该是该模块自己的列表区，而不是整页继续被单个模块拖着走。
-10. 在移动端浏览门户时，不应出现强制一屏模块造成的怪异嵌套滚动；页面应恢复自然纵向浏览体验。
 
 ## 可维护性总结汇总
 
@@ -246,5 +221,4 @@
   - 这次回归修复进一步说明了为什么边界修正和列宽策略要分开治理：父容器负责约束 `100%` 边界，board 自己负责稳定列宽；两者职责分清后，既不会超屏，也不会退化成单列。
   - 这轮“进展门户化”信息架构新增是有意识的最小必要集合：没有引入新的状态层、router、tab 系统或额外查询逻辑，而是优先复用现有模块，只补了入口卡、sticky nav 和锚点边界。按当前 diff 单独看，本轮增量约为 `新增 239 行 / 删除 33 行 / 净增 206 行`，主要集中在首屏与导航样式。
   - 这次吸顶行为调整同样控制在最小改动范围内：没有新增脚本或滚动监听，只是利用 CSS sticky 和正确的 overflow 边界来完成“原位 -> 吸顶”的行为，把复杂度留在浏览器原生能力里。
-  - 这次一屏模块优化继续沿用了同样的收敛思路：没有引入新的路由、分页、脚本滚动控制或额外状态，而是给三个现有模块补统一的 panel/body 骨架，再把滚动责任重新分配给模块内部。按本轮 diff 单独看，代码约为 `新增 238 行 / 删除 137 行 / 净增 101 行`，且全部集中在既有 section 组件与样式层，没有继续扩大目录或文件面。
   - 当前主要观察点是 [`portal-query.service.ts`](/Users/peiwang/Projects/nextbot/apps/public-roadmap-feedback-portal/server/portal-query.service.ts) 已明显变大；下一步如果继续扩展审核、合并或统计能力，应优先把 engagement 聚合和 thread 组装继续拆出稳定子 owner。
