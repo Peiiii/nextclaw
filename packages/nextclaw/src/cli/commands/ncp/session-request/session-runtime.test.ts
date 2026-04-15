@@ -59,6 +59,32 @@ describe("session runtime mapping", () => {
     expect(defaultSession.metadata.runtime).toBe("native");
   });
 
+  it("applies metadata overrides when creating a session", () => {
+    const workspace = createTempWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "default-model"
+        }
+      }
+    });
+    const sessionManager = new SessionManager(workspace);
+    const service = new SessionCreationService(sessionManager, () => config);
+
+    const created = service.createSession({
+      task: "Review deployment",
+      sourceSessionMetadata: {},
+      metadataOverrides: {
+        requested_skills: ["skill-creator"],
+        learning_review_disabled: true,
+      },
+    });
+
+    expect(created.metadata.requested_skills).toEqual(["skill-creator"]);
+    expect(created.metadata.learning_review_disabled).toBe(true);
+  });
+
   it("forwards runtime through sessions_spawn", async () => {
     const createSession = vi.fn().mockReturnValue({
       sessionId: "session-1",

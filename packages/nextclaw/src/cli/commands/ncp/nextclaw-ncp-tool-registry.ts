@@ -29,7 +29,7 @@ import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp"
 import { isRecord, normalizeString } from "./nextclaw-ncp-message-bridge.js";
 import type { SessionCreationService } from "./session-request/session-creation.service.js";
 import { SessionRequestTool } from "./session-request/session-request.tool.js";
-import type { SessionRequestBroker } from "./session-request/session-request-broker.js";
+import type { SessionRequestBroker } from "./session-request/session-request-broker.service.js";
 import { SessionSpawnTool } from "./session-request/session-spawn.tool.js";
 
 type NextclawNcpToolRegistryOptions = {
@@ -135,13 +135,21 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
   ) {}
 
   prepareForRun = (context: PreparedRunContext): void => {
+    const {
+      channel,
+      chatId,
+      config,
+      restrictToWorkspace,
+      sessionId,
+      workspace,
+    } = context;
     this.currentExtensionToolContext = {
-      config: context.config,
-      workspaceDir: context.workspace,
-      sessionKey: context.sessionId,
-      channel: context.channel,
-      chatId: context.chatId,
-      sandboxed: context.restrictToWorkspace,
+      config,
+      workspaceDir: workspace,
+      sessionKey: sessionId,
+      channel,
+      chatId,
+      sandboxed: restrictToWorkspace,
     };
 
     this.registry = new ToolRegistry();

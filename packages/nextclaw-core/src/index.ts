@@ -55,6 +55,7 @@ export * from "./providers/registry.js";
 export * from "./session/manager.js";
 export * from "./session/project-root.js";
 export * from "./session/session-project-context.js";
+export * from "./typed-event-bus/index.js";
 export * from "./utils/disposable.js";
 export * from "./utils/child-process-env.js";
 export * from "./utils/helpers.js";

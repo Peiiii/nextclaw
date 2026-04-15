@@ -8,6 +8,7 @@ export type SpawnSessionAndRequestParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
   sourceSessionMetadata: Record<string, unknown>;
+  metadataOverrides?: Record<string, unknown>;
   task: string;
   title?: string;
   model?: string;

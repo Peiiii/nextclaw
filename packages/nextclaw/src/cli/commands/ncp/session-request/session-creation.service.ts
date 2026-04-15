@@ -54,6 +54,19 @@ function cloneInheritedMetadata(
   return nextMetadata;
 }
 
+function mergeMetadataOverrides(
+  metadata: Record<string, unknown>,
+  overrides?: Record<string, unknown>,
+): Record<string, unknown> {
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return metadata;
+  }
+  return {
+    ...metadata,
+    ...structuredClone(overrides),
+  };
+}
+
 function buildSessionId(): string {
   return `ncp-${Date.now().toString(36)}-${randomUUID().replace(/-/g, "").slice(0, 8)}`;
 }
@@ -74,11 +87,12 @@ function resolveSessionType(params: {
   sessionType?: string;
   metadata: Record<string, unknown>;
 }): string {
+  const { metadata, runtime, sessionType } = params;
   return (
-    readOptionalString(params.runtime) ??
-    readOptionalString(params.metadata.runtime) ??
-    readOptionalString(params.sessionType) ??
-    readOptionalString(params.metadata.session_type) ??
+    readOptionalString(runtime) ??
+    readOptionalString(metadata.runtime) ??
+    readOptionalString(sessionType) ??
+    readOptionalString(metadata.session_type) ??
     DEFAULT_SESSION_TYPE
   );
 }
@@ -94,27 +108,38 @@ function applySessionOverrides(params: {
   thinkingLevel?: string;
   projectRoot?: string | null;
 }): void {
-  params.metadata.session_type = params.sessionType;
-  params.metadata.runtime = params.sessionType;
-  params.metadata[SESSION_METADATA_LABEL_KEY] = params.title;
-  params.metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = params.lifecycle;
-  if (params.parentSessionId) {
-    params.metadata[CHILD_SESSION_PARENT_METADATA_KEY] = params.parentSessionId;
-    params.metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
+  const {
+    lifecycle,
+    metadata,
+    model,
+    parentSessionId,
+    projectRoot,
+    requestId,
+    sessionType,
+    thinkingLevel,
+    title,
+  } = params;
+  metadata.session_type = sessionType;
+  metadata.runtime = sessionType;
+  metadata[SESSION_METADATA_LABEL_KEY] = title;
+  metadata[CHILD_SESSION_LIFECYCLE_METADATA_KEY] = lifecycle;
+  if (parentSessionId) {
+    metadata[CHILD_SESSION_PARENT_METADATA_KEY] = parentSessionId;
+    metadata[CHILD_SESSION_PROMOTED_METADATA_KEY] = false;
   }
-  if (params.requestId) {
-    params.metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = params.requestId;
+  if (requestId) {
+    metadata[CHILD_SESSION_REQUEST_METADATA_KEY] = requestId;
   }
-  if (readOptionalString(params.model)) {
-    params.metadata.model = params.model?.trim();
-    params.metadata.preferred_model = params.model?.trim();
+  if (readOptionalString(model)) {
+    metadata.model = model?.trim();
+    metadata.preferred_model = model?.trim();
   }
-  if (readOptionalString(params.thinkingLevel)) {
-    params.metadata.thinking = params.thinkingLevel?.trim();
-    params.metadata.preferred_thinking = params.thinkingLevel?.trim();
+  if (readOptionalString(thinkingLevel)) {
+    metadata.thinking = thinkingLevel?.trim();
+    metadata.preferred_thinking = thinkingLevel?.trim();
   }
-  if (readOptionalString(params.projectRoot)) {
-    params.metadata.project_root = params.projectRoot?.trim();
+  if (readOptionalString(projectRoot)) {
+    metadata.project_root = projectRoot?.trim();
   }
 }
 
@@ -129,6 +154,7 @@ export class SessionCreationService {
     task: string;
     title?: string;
     sourceSessionMetadata: Record<string, unknown>;
+    metadataOverrides?: Record<string, unknown>;
     agentId?: string;
     model?: string;
     runtime?: string;
@@ -138,23 +164,37 @@ export class SessionCreationService {
     parentSessionId?: string;
     requestId?: string;
   }): SessionRecord => {
+    const {
+      agentId,
+      metadataOverrides,
+      model,
+      parentSessionId: rawParentSessionId,
+      projectRoot,
+      requestId: rawRequestId,
+      runtime,
+      sessionType: requestedSessionType,
+      sourceSessionMetadata,
+      task,
+      thinkingLevel,
+      title: requestedTitle,
+    } = params;
     const sessionId = buildSessionId();
     const now = new Date().toISOString();
     const session = this.sessionManager.getOrCreate(sessionId);
     const resolvedAgentId = resolveSessionAgentId({
-      agentId: params.agentId,
+      agentId,
       getConfig: this.getConfig,
     });
     const title = resolveSessionTitle({
-      title: params.title,
-      task: params.task,
+      title: requestedTitle,
+      task,
     });
-    const metadata = cloneInheritedMetadata(params.sourceSessionMetadata);
-    const parentSessionId = readOptionalString(params.parentSessionId);
-    const requestId = readOptionalString(params.requestId);
+    const metadata = cloneInheritedMetadata(sourceSessionMetadata);
+    const parentSessionId = readOptionalString(rawParentSessionId);
+    const requestId = readOptionalString(rawRequestId);
     const sessionType = resolveSessionType({
-      runtime: params.runtime,
-      sessionType: params.sessionType,
+      runtime,
+      sessionType: requestedSessionType,
       metadata,
     });
     applySessionOverrides({
@@ -164,13 +204,14 @@ export class SessionCreationService {
       lifecycle: DEFAULT_LIFECYCLE,
       parentSessionId,
       requestId,
-      model: params.model,
-      thinkingLevel: params.thinkingLevel,
-      projectRoot: params.projectRoot,
+      model,
+      thinkingLevel,
+      projectRoot,
     });
+    const nextMetadata = mergeMetadataOverrides(metadata, metadataOverrides);
 
     session.agentId = resolvedAgentId;
-    session.metadata = metadata;
+    session.metadata = nextMetadata;
     session.updatedAt = new Date(now);
     this.sessionManager.save(session);
     this.onSessionUpdated?.(sessionId);
@@ -184,7 +225,7 @@ export class SessionCreationService {
       ...(requestId ? { spawnedByRequestId: requestId } : {}),
       lifecycle: DEFAULT_LIFECYCLE,
       title,
-      metadata,
+      metadata: nextMetadata,
       createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
     };
@@ -195,6 +236,7 @@ export class SessionCreationService {
     task: string;
     title?: string;
     sourceSessionMetadata: Record<string, unknown>;
+    metadataOverrides?: Record<string, unknown>;
     agentId?: string;
     model?: string;
     runtime?: string;
