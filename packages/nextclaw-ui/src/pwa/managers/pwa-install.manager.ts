@@ -1,6 +1,12 @@
 import { usePwaStore, createInitialPwaState } from '@/pwa/stores/pwa.store';
 import type { PwaInstallBlockedReason, PwaInstallMethod, PwaInstallPromptOutcome, PwaInstallabilityState } from '@/pwa/pwa.types';
 import { pwaRuntimeManager } from '@/pwa/managers/pwa-runtime.manager';
+import {
+  clearPwaInstallBannerDismissal,
+  dismissPwaInstallBannerUntil,
+  isPwaInstallBannerDismissed,
+  PWA_INSTALL_BANNER_SNOOZE_MS
+} from '@/pwa/pwa-install-banner.storage';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
@@ -60,12 +66,14 @@ export class PwaInstallManager {
       initialized: true,
       installability: resolution.installability,
       installMethod: resolution.installMethod,
-      blockedReason: resolution.blockedReason
+      blockedReason: resolution.blockedReason,
+      dismissedInstallPrompt: isPwaInstallBannerDismissed()
     }));
     void pwaRuntimeManager.syncUpdateAvailability();
   };
 
   dismissInstallPrompt = () => {
+    dismissPwaInstallBannerUntil(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS);
     usePwaStore.setState({
       dismissedInstallPrompt: true
     });
@@ -84,25 +92,27 @@ export class PwaInstallManager {
     this.deferredPrompt.prompt();
     const result = await this.deferredPrompt.userChoice;
     this.deferredPrompt = null;
-    this.refreshState();
     if (result.outcome === 'accepted') {
+      clearPwaInstallBannerDismissal();
+      this.refreshState();
       toast.success(t('pwaInstallAccepted'));
       return 'accepted';
     }
+
+    this.dismissInstallPrompt();
+    this.refreshState();
     return 'dismissed';
   };
 
   private handleBeforeInstallPrompt = (event: BeforeInstallPromptEvent) => {
     event.preventDefault();
     this.deferredPrompt = event;
-    usePwaStore.setState({
-      dismissedInstallPrompt: false
-    });
     this.refreshState();
   };
 
   private handleAppInstalled = () => {
     this.deferredPrompt = null;
+    clearPwaInstallBannerDismissal();
     usePwaStore.setState({
       dismissedInstallPrompt: true
     });
@@ -205,6 +215,7 @@ export class PwaInstallManager {
     };
     legacyQuery.removeListener?.(listener);
   };
+
 }
 
 export const pwaInstallManager = new PwaInstallManager();

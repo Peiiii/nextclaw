@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { PwaInstallCard, PwaUpdateBanner } from '@/pwa/components/pwa-install-entry';
+import { PwaInstallBanner, PwaInstallCard, PwaUpdateBanner } from '@/pwa/components/pwa-install-entry';
 import { usePwaStore, createInitialPwaState } from '@/pwa/stores/pwa.store';
 
 describe('PwaInstallCard', () => {
@@ -73,5 +73,38 @@ describe('PwaInstallCard', () => {
 
     expect(screen.getByText('NextClaw Update Ready')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refresh Now' })).toBeTruthy();
+  });
+
+  it('renders install banner when prompt install is available and not dismissed', () => {
+    usePwaStore.setState({
+      initialized: true,
+      installability: 'available',
+      installMethod: 'prompt',
+      blockedReason: null,
+      dismissedInstallPrompt: false,
+      updateAvailable: false,
+      registrationFailed: false
+    });
+
+    render(<PwaInstallBanner />);
+
+    expect(screen.getByText('Pin NextClaw as an App')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Install NextClaw' })).toBeTruthy();
+  });
+
+  it('does not render install banner after dismissal', () => {
+    usePwaStore.setState({
+      initialized: true,
+      installability: 'available',
+      installMethod: 'prompt',
+      blockedReason: null,
+      dismissedInstallPrompt: true,
+      updateAvailable: false,
+      registrationFailed: false
+    });
+
+    const { container } = render(<PwaInstallBanner />);
+
+    expect(container.textContent).toBe('');
   });
 });

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PwaInstallManager } from '@/pwa/managers/pwa-install.manager';
+import {
+  PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY,
+  PWA_INSTALL_BANNER_SNOOZE_MS
+} from '@/pwa/pwa-install-banner.storage';
 import { usePwaStore, createInitialPwaState } from '@/pwa/stores/pwa.store';
 
 function createMatchMedia(matches = false): typeof window.matchMedia {
@@ -13,6 +17,14 @@ function createMatchMedia(matches = false): typeof window.matchMedia {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn()
   }));
+}
+
+function createBeforeInstallPromptEvent(outcome: 'accepted' | 'dismissed' = 'accepted'): BeforeInstallPromptEvent {
+  const event = new Event('beforeinstallprompt') as BeforeInstallPromptEvent;
+  event.preventDefault = vi.fn();
+  event.prompt = vi.fn();
+  event.userChoice = Promise.resolve({ outcome, platform: 'web' });
+  return event;
 }
 
 describe('PwaInstallManager', () => {
@@ -37,10 +49,12 @@ describe('PwaInstallManager', () => {
       configurable: true,
       value: {}
     });
+    window.localStorage.clear();
   });
 
   afterEach(() => {
     manager.resetForTests();
+    window.localStorage.clear();
   });
 
   it('marks desktop host as suppressed', () => {
@@ -92,5 +106,46 @@ describe('PwaInstallManager', () => {
     const state = usePwaStore.getState();
     expect(state.installability).toBe('unsupported');
     expect(state.blockedReason).toBe('insecure-context');
+  });
+
+  it('keeps install banner dismissed after beforeinstallprompt fires again', () => {
+    manager.start();
+    window.dispatchEvent(createBeforeInstallPromptEvent());
+
+    manager.dismissInstallPrompt();
+    expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
+
+    window.dispatchEvent(createBeforeInstallPromptEvent());
+
+    expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
+    expect(window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY)).toBeTruthy();
+  });
+
+  it('snoozes install banner after user dismisses the native install prompt', async () => {
+    manager.start();
+    const promptEvent = createBeforeInstallPromptEvent('dismissed');
+    window.dispatchEvent(promptEvent);
+
+    const outcome = await manager.promptInstall();
+
+    expect(outcome).toBe('dismissed');
+    expect(promptEvent.prompt).toHaveBeenCalledTimes(1);
+    expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
+    const dismissedUntil = Number.parseInt(
+      window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY) ?? '',
+      10
+    );
+    expect(dismissedUntil).toBeGreaterThan(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS - 5_000);
+  });
+
+  it('hydrates dismissed state from persisted snooze on fresh store init', () => {
+    window.localStorage.setItem(
+      PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY,
+      String(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS)
+    );
+
+    usePwaStore.setState(createInitialPwaState());
+
+    expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
   });
 });

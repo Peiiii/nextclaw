@@ -23,6 +23,7 @@
   - 后续同批次微调中，已将顶部 PWA 更新提示卡片的视觉样式对齐到底部安装提示卡片，避免同一套 PWA 提示出现两种割裂的设计语言
   - 后续同批次修正中，已把顶部 PWA 更新提示的触发条件从“页面被 service worker 控制”收敛为“当前是已安装的 PWA 且存在 waiting update”，避免未安装用户误看到更新提示
   - 后续同批次视觉校正中，已将 PWA 壳的 `theme-color / theme_color` 从深色改为与主界面一致的浅暖色，避免安装后窗口或标题条出现突兀黑色外壳
+  - 后续同批次交互修正中，已把“稍后再说”从单次内存状态改为带本地持久化的 banner snooze，并让 PWA store 首屏直接按本地冷却期初始化，避免开发或日常访问时刷新后又立刻重新弹出安装提示；用户仍可在 `Runtime` 页通过常驻卡片手动安装
 - 设计文档见：
   - [2026-04-16-nextclaw-ui-pwa-installable-shell-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-16-nextclaw-ui-pwa-installable-shell-design.md)
 
@@ -31,6 +32,7 @@
 - 通过：
   - `pnpm -C packages/nextclaw-ui tsc`
   - `pnpm -C packages/nextclaw-ui test -- --run src/pwa/managers/pwa-install.manager.test.ts src/pwa/components/pwa-install-entry.test.tsx`
+    - 已覆盖“再次触发 `beforeinstallprompt` 也不应把已 snooze 的安装 banner 重新拉起”与“用户关闭原生安装 prompt 后应进入本地冷却期”
   - `pnpm -C packages/nextclaw-ui test -- --run src/app.test.tsx src/components/layout/app-layout.test.tsx`
   - `pnpm -C packages/nextclaw-ui build`
   - `pnpm -C packages/nextclaw-ui exec eslint public/sw.js src/pwa/pwa.types.ts src/pwa/stores/pwa.store.ts src/pwa/managers/pwa-install.manager.ts src/pwa/managers/pwa-runtime.manager.ts src/pwa/register-pwa.ts src/pwa/components/pwa-install-entry.tsx src/pwa/managers/pwa-install.manager.test.ts src/pwa/components/pwa-install-entry.test.tsx src/lib/i18n.pwa.ts src/lib/i18n.ts src/app.tsx src/components/config/RuntimeConfig.tsx src/components/layout/AppLayout.tsx`
@@ -71,10 +73,11 @@
 2. 用浏览器访问页面，确认页面 `<head>` 已包含 manifest。
 3. 打开 `Runtime` 页面，确认能看到“Install as App / 安装为应用”卡片。
 4. 在支持安装弹窗的浏览器中，确认可触发 `Install NextClaw`；若浏览器不主动弹窗，确认卡片会提示从浏览器菜单安装。
-5. 完成安装后，确认 NextClaw 以独立窗口打开，而不是新的产品分支页面。
-6. 在已安装形态和普通浏览器形态间切换，确认聊天、配置、runtime 控制仍然连接同一套服务。
-7. 断网后重新导航，确认看到的是明确的离线兜底页，而不是空白页。
-8. 在 Electron 桌面宿主里打开同一套 UI，确认不会错误显示 PWA 安装入口。
+5. 点击右下角安装 banner 的“稍后再说”后，刷新页面或重新打开同一站点，确认右下角 banner 不会立刻再次出现，但 `Runtime` 页面里的安装卡片仍然可见。
+6. 完成安装后，确认 NextClaw 以独立窗口打开，而不是新的产品分支页面。
+7. 在已安装形态和普通浏览器形态间切换，确认聊天、配置、runtime 控制仍然连接同一套服务。
+8. 断网后重新导航，确认看到的是明确的离线兜底页，而不是空白页。
+9. 在 Electron 桌面宿主里打开同一套 UI，确认不会错误显示 PWA 安装入口。
 
 ## 可维护性总结汇总
 
@@ -86,6 +89,7 @@
   - `PwaInstallManager` 负责安装状态与宿主抑制
   - `PwaRuntimeManager` 负责 SW 注册与更新
   - UI 组件只消费归一化状态
+- 本轮续改继续朝“更少 surprise、更可预测”推进了一小步：安装 banner 现在受显式本地冷却期控制，而不是被浏览器每次重新分发 `beforeinstallprompt` 事件时偷偷重置。
 
 ### 可维护性复核结论
 
