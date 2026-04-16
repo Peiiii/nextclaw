@@ -1,4 +1,5 @@
 import type {
+  ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
   ChatToolPartViewModel,
 } from '../../view-models/chat-ui.types';
@@ -23,17 +24,19 @@ function isSearchTool(name: string) {
 export function ChatToolCard({
   card,
   onToolAction,
+  onFileOpen,
   renderToolAgent,
 }: {
   card: ChatToolPartViewModel;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
 }) {
   if (isTerminalTool(card.toolName)) {
     return <TerminalExecutionView card={card} />;
   }
   if (isFileEditTool(card.toolName)) {
-    return <FileOperationView card={card} />;
+    return <FileOperationView card={card} onFileOpen={onFileOpen} />;
   }
   if (isSearchTool(card.toolName)) {
     return <SearchSnippetView card={card} />;

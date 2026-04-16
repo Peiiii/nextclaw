@@ -1,4 +1,5 @@
 import type {
+  ChatFileOpenActionViewModel,
   ChatFileOperationBlockViewModel,
   ChatToolPartViewModel,
 } from "../../../view-models/chat-ui.types";
@@ -60,6 +61,27 @@ function renderCaption(caption: string) {
   );
 }
 
+function buildFileOpenAction(
+  block: ChatFileOperationBlockViewModel,
+): ChatFileOpenActionViewModel {
+  return {
+    path: block.path,
+    label: block.path.split("/").filter(Boolean).pop() ?? block.path,
+    viewMode: block.display === "diff" ? "diff" : "preview",
+    ...(block.rawText ? { rawText: block.rawText } : {}),
+    ...(block.beforeText ? { beforeText: block.beforeText } : {}),
+    ...(block.afterText ? { afterText: block.afterText } : {}),
+    ...(block.patchText ? { patchText: block.patchText } : {}),
+    ...(typeof block.oldStartLine === "number"
+      ? { oldStartLine: block.oldStartLine }
+      : {}),
+    ...(typeof block.newStartLine === "number"
+      ? { newStartLine: block.newStartLine }
+      : {}),
+    fullLines: block.fullLines ?? block.lines,
+  };
+}
+
 function StickyFileOperationScrollArea({
   children,
   contentVersion,
@@ -102,15 +124,24 @@ function FileOperationBlock({
   block,
   showPathRow,
   isFirst,
+  onFileOpen,
 }: {
   block: ChatFileOperationBlockViewModel;
   showPathRow: boolean;
   isFirst: boolean;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 }) {
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } =
     ChatUiPrimitives;
   const previewBlock = isPreviewBlock(block);
   const showMetaRow = showPathRow || Boolean(block.caption);
+
+  const handlePathClick = () => {
+    if (!onFileOpen) {
+      return;
+    }
+    onFileOpen(buildFileOpenAction(block));
+  };
 
   return (
     <section
@@ -131,12 +162,18 @@ function FileOperationBlock({
               <TooltipProvider delayDuration={250}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div
-                      className="truncate whitespace-nowrap font-mono text-[12px] font-medium text-stone-700"
+                    <button
+                      type="button"
+                      onClick={handlePathClick}
+                      className={cn(
+                        "w-full truncate whitespace-nowrap text-left font-mono text-[12px] font-medium text-stone-700",
+                        onFileOpen &&
+                          "transition-colors hover:text-amber-900 hover:underline",
+                      )}
                       title={block.path}
                     >
                       {block.path}
-                    </div>
+                    </button>
                   </TooltipTrigger>
                   <TooltipContent
                     side="top"
@@ -188,9 +225,11 @@ function FileOperationBlock({
 export function ToolCardFileOperationContent({
   card,
   className,
+  onFileOpen,
 }: {
   card: ChatToolPartViewModel;
   className?: string;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 }) {
   const blocks = card.fileOperation?.blocks ?? [];
   const output = card.output?.trim() ?? "";
@@ -207,6 +246,7 @@ export function ToolCardFileOperationContent({
             block={block}
             showPathRow={true}
             isFirst={index === 0}
+            onFileOpen={onFileOpen}
           />
         );
       })}

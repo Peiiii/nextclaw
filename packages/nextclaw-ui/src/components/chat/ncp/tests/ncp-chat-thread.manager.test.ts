@@ -30,7 +30,7 @@ describe('NcpChatThreadManager', () => {
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
         sessionKey: 'parent-session-1',
-        childSessionPanelParentKey: null,
+        workspacePanelParentKey: null,
         childSessionTabs: [
           {
             sessionKey: 'child-session-1',
@@ -63,7 +63,7 @@ describe('NcpChatThreadManager', () => {
       activeChildSessionKey: 'child-session-1',
     });
 
-    expect(useChatThreadStore.getState().snapshot.childSessionPanelParentKey).toBe('parent-session-1');
+    expect(useChatThreadStore.getState().snapshot.workspacePanelParentKey).toBe('parent-session-1');
     expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBe('child-session-1');
     expect(uiManager.goToSession).not.toHaveBeenCalled();
   });
@@ -94,6 +94,49 @@ describe('NcpChatThreadManager', () => {
     });
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('parent-session-1');
+  });
+
+  it('keeps preview and diff for the same file as separate workspace tabs', () => {
+    const uiManager = {
+      goToSession: vi.fn(),
+      goToChatRoot: vi.fn(),
+      goToProviders: vi.fn(),
+      confirm: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+
+    const manager = new NcpChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'preview',
+    });
+    manager.openFilePreview({
+      path: 'README.md',
+      label: 'README.md',
+      viewMode: 'diff',
+      beforeText: 'old\n',
+      afterText: 'new\n',
+    });
+
+    expect(useChatThreadStore.getState().snapshot.workspaceFileTabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          key: 'parent-session-1::preview::README.md',
+          path: 'README.md',
+          viewMode: 'preview',
+        }),
+        expect.objectContaining({
+          key: 'parent-session-1::diff::README.md',
+          path: 'README.md',
+          viewMode: 'diff',
+        }),
+      ]),
+    );
   });
 
   it('clears the selected thread state after deleting the current session', async () => {
@@ -128,9 +171,11 @@ describe('NcpChatThreadManager', () => {
       sessionKey: null,
       canDeleteSession: false,
       messages: [],
-      childSessionPanelParentKey: null,
+      workspacePanelParentKey: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
     });
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
     expect(deleteSummaryMock).toHaveBeenCalledWith(appQueryClient, 'parent-session-1');

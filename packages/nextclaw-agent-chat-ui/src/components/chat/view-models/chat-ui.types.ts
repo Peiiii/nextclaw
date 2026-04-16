@@ -197,7 +197,13 @@ export type ChatFileOperationBlockViewModel = {
   display?: "preview" | "diff";
   caption?: string;
   lines: ChatFileOperationLineViewModel[];
+  fullLines?: ChatFileOperationLineViewModel[];
   rawText?: string;
+  beforeText?: string;
+  afterText?: string;
+  patchText?: string;
+  oldStartLine?: number;
+  newStartLine?: number;
   truncated?: boolean;
 };
 
@@ -208,6 +214,21 @@ export type ChatToolActionViewModel = {
   agentId?: string;
   label?: string;
   parentSessionId?: string;
+};
+
+export type ChatFileOpenActionViewModel = {
+  path: string;
+  label?: string;
+  viewMode: "preview" | "diff";
+  line?: number;
+  column?: number;
+  rawText?: string;
+  beforeText?: string;
+  afterText?: string;
+  patchText?: string;
+  oldStartLine?: number;
+  newStartLine?: number;
+  fullLines?: ChatFileOperationLineViewModel[];
 };
 
 export type ChatToolPartViewModel = {
@@ -322,5 +343,6 @@ export type ChatMessageListProps = {
   texts: ChatMessageTexts;
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
 };

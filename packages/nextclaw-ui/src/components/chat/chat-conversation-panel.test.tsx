@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatChildSessionPanel } from "@/components/chat/chat-child-session-panel";
 import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
+import { ChatSessionWorkspacePanel } from "@/components/chat/chat-session-workspace-panel";
 import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
@@ -51,6 +51,14 @@ vi.mock("@/components/chat/containers/chat-message-list.container", () => ({
   ChatMessageListContainer: () => <div data-testid="child-chat-message-list" />,
 }));
 
+vi.mock("@/components/chat/chat-session-workspace-file-preview", () => ({
+  ChatSessionWorkspaceFilePreview: ({
+    file,
+  }: {
+    file: { path: string };
+  }) => <div data-testid="workspace-file-preview">{file.path}</div>,
+}));
+
 vi.mock("@/components/chat/ChatWelcome", () => ({
   ChatWelcome: ({
     onCreateSession,
@@ -76,9 +84,12 @@ vi.mock("@/components/chat/presenter/chat-presenter-context", () => ({
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
       openChildSessionPanel: vi.fn(),
+      openFilePreview: vi.fn(),
       openSessionFromToolAction: vi.fn(),
       selectChildSessionDetail: vi.fn(),
-      closeChildSessionDetail: vi.fn(),
+      selectWorkspaceFile: vi.fn(),
+      closeWorkspaceFile: vi.fn(),
+      closeWorkspacePanel: vi.fn(),
       goToParentSession: vi.fn(),
     },
     chatSessionListManager: {
@@ -183,13 +194,15 @@ describe("ChatConversationPanel", () => {
         isAwaitingAssistantOutput: false,
         parentSessionKey: null,
         parentSessionLabel: null,
-        childSessionPanelParentKey: null,
+        workspacePanelParentKey: null,
         availableAgents: [
           { id: "main", displayName: "Main", runtime: "native" },
           { id: "engineer", displayName: "Engineer", runtime: "codex" },
         ],
         childSessionTabs: [],
         activeChildSessionKey: null,
+        workspaceFileTabs: [],
+        activeWorkspaceFileKey: null,
       },
     });
     useChatSessionListStore.setState({
@@ -291,7 +304,7 @@ describe("ChatConversationPanel", () => {
           },
         ],
         activeChildSessionKey: "child-session-1",
-        childSessionPanelParentKey: null,
+        workspacePanelParentKey: null,
       },
     });
 
@@ -334,8 +347,8 @@ describe("ChatConversationPanel", () => {
   });
 });
 
-describe("ChatChildSessionPanel", () => {
-  it("keeps the header compact for a single child session", () => {
+describe("ChatSessionWorkspacePanel", () => {
+  it("renders child session tabs and active child metadata in the workspace sidebar", () => {
     mocks.resolvedChildTabs = [
       {
         sessionKey: "child-session-1",
@@ -351,9 +364,10 @@ describe("ChatChildSessionPanel", () => {
         projectRoot: "/Users/demo/project-alpha",
       },
     ];
+
     render(
-      <ChatChildSessionPanel
-        tabs={[
+      <ChatSessionWorkspacePanel
+        childSessionTabs={[
           {
             sessionKey: "child-session-1",
             parentSessionKey: "parent-session-1",
@@ -361,20 +375,26 @@ describe("ChatChildSessionPanel", () => {
             agentId: "weather",
           },
         ]}
-        activeSessionKey="child-session-1"
+        activeChildSessionKey="child-session-1"
+        workspaceFileTabs={[]}
+        activeWorkspaceFileKey={null}
+        sessionProjectRoot="/Users/demo/project-alpha"
         onSelectSession={vi.fn()}
+        onSelectFile={vi.fn()}
+        onCloseFile={vi.fn()}
         onClose={vi.fn()}
         onBackToParent={vi.fn()}
+        onFileOpen={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("北京天气")).toBeTruthy();
+    expect(screen.queryByText("Child sessions")).toBeNull();
+    expect(screen.getAllByText("北京天气")).toHaveLength(2);
     expect(screen.getByText("Codex")).toBeTruthy();
     expect(screen.getByText("openai/gpt-5.3-codex")).toBeTruthy();
     expect(screen.getByText("project-alpha")).toBeTruthy();
     expect(screen.getByText("/Users/demo/project-alpha")).toBeTruthy();
-    expect(screen.queryByText("Child Sessions")).toBeNull();
-    expect(screen.queryByText("child-session-1")).toBeNull();
+    expect(screen.getByText("No child session messages yet.")).toBeTruthy();
     expect(mocks.stickyBottomScroll).toHaveBeenCalledWith(
       expect.objectContaining({
         resetKey: "child-session-1",
@@ -383,129 +403,7 @@ describe("ChatChildSessionPanel", () => {
     );
   });
 
-  it("uses tabs as the only title layer when multiple child sessions are open", () => {
-    mocks.resolvedChildTabs = [
-      {
-        sessionKey: "child-session-1",
-        parentSessionKey: "parent-session-1",
-        title: "北京天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:00:00.000Z",
-        lastMessageAt: "2026-04-10T09:00:00.000Z",
-        readAt: "2026-04-10T09:00:00.000Z",
-        sessionTypeLabel: "Codex",
-        preferredModel: "openai/gpt-5.3-codex",
-        projectName: "project-alpha",
-        projectRoot: "/Users/demo/project-alpha",
-      },
-      {
-        sessionKey: "child-session-2",
-        parentSessionKey: "parent-session-1",
-        title: "上海天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:05:00.000Z",
-        lastMessageAt: "2026-04-10T09:05:00.000Z",
-        readAt: "2026-04-10T09:05:00.000Z",
-        sessionTypeLabel: "Claude Code",
-        preferredModel: "anthropic/claude-sonnet-4",
-        projectName: "project-beta",
-        projectRoot: "/Users/demo/project-beta",
-      },
-    ];
-
-    render(
-      <ChatChildSessionPanel
-        tabs={[
-          {
-            sessionKey: "child-session-1",
-            parentSessionKey: "parent-session-1",
-            label: "北京天气",
-            agentId: "weather",
-          },
-          {
-            sessionKey: "child-session-2",
-            parentSessionKey: "parent-session-1",
-            label: "上海天气",
-            agentId: "weather",
-          },
-        ]}
-        activeSessionKey="child-session-1"
-        onSelectSession={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-      />,
-    );
-
-    expect(screen.getAllByText("北京天气")).toHaveLength(1);
-    expect(screen.getByText("上海天气")).toBeTruthy();
-    expect(screen.getByText("Codex")).toBeTruthy();
-    expect(screen.getByText("openai/gpt-5.3-codex")).toBeTruthy();
-    expect(screen.getByText("project-alpha")).toBeTruthy();
-    expect(screen.getByText("/Users/demo/project-alpha")).toBeTruthy();
-    const tabButtons = screen
-      .getAllByRole("button")
-      .filter((element) => element.getAttribute("aria-pressed") !== null);
-    expect(tabButtons).toHaveLength(2);
-    expect(tabButtons[0]?.getAttribute("aria-pressed")).toBe("true");
-    expect(tabButtons[1]?.getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("shows an unread dot for inactive child tabs until the user opens them", () => {
-    mocks.resolvedChildTabs = [
-      {
-        sessionKey: "child-session-1",
-        parentSessionKey: "parent-session-1",
-        title: "北京天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:00:00.000Z",
-        lastMessageAt: "2026-04-10T09:00:00.000Z",
-        readAt: "2026-04-10T09:00:00.000Z",
-        sessionTypeLabel: "Codex",
-        preferredModel: "openai/gpt-5.3-codex",
-        projectName: "project-alpha",
-        projectRoot: "/Users/demo/project-alpha",
-      },
-      {
-        sessionKey: "child-session-2",
-        parentSessionKey: "parent-session-1",
-        title: "上海天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:05:00.000Z",
-        lastMessageAt: "2026-04-10T09:05:00.000Z",
-        readAt: "2026-04-10T09:05:00.000Z",
-        runStatus: "running",
-        sessionTypeLabel: "Claude Code",
-        preferredModel: "anthropic/claude-sonnet-4",
-        projectName: "project-beta",
-        projectRoot: "/Users/demo/project-beta",
-      },
-    ];
-
-    const { rerender } = render(
-      <ChatChildSessionPanel
-        tabs={[
-          {
-            sessionKey: "child-session-1",
-            parentSessionKey: "parent-session-1",
-            label: "北京天气",
-            agentId: "weather",
-          },
-          {
-            sessionKey: "child-session-2",
-            parentSessionKey: "parent-session-1",
-            label: "上海天气",
-            agentId: "weather",
-          },
-        ]}
-        activeSessionKey="child-session-1"
-        onSelectSession={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByLabelText("Session has unread updates")).toBeNull();
-
+  it("shows unread state for inactive child session tabs", () => {
     mocks.resolvedChildTabs = [
       {
         sessionKey: "child-session-1",
@@ -535,9 +433,9 @@ describe("ChatChildSessionPanel", () => {
       },
     ];
 
-    rerender(
-      <ChatChildSessionPanel
-        tabs={[
+    render(
+      <ChatSessionWorkspacePanel
+        childSessionTabs={[
           {
             sessionKey: "child-session-1",
             parentSessionKey: "parent-session-1",
@@ -551,94 +449,51 @@ describe("ChatChildSessionPanel", () => {
             agentId: "weather",
           },
         ]}
-        activeSessionKey="child-session-1"
+        activeChildSessionKey="child-session-1"
+        workspaceFileTabs={[]}
+        activeWorkspaceFileKey={null}
+        sessionProjectRoot="/Users/demo/project-alpha"
         onSelectSession={vi.fn()}
+        onSelectFile={vi.fn()}
+        onCloseFile={vi.fn()}
         onClose={vi.fn()}
         onBackToParent={vi.fn()}
+        onFileOpen={vi.fn()}
       />,
     );
 
     expect(screen.getByLabelText("Session has unread updates")).toBeTruthy();
-
-    rerender(
-      <ChatChildSessionPanel
-        tabs={[
-          {
-            sessionKey: "child-session-1",
-            parentSessionKey: "parent-session-1",
-            label: "北京天气",
-            agentId: "weather",
-          },
-          {
-            sessionKey: "child-session-2",
-            parentSessionKey: "parent-session-1",
-            label: "上海天气",
-            agentId: "weather",
-          },
-        ]}
-        activeSessionKey="child-session-2"
-        onSelectSession={vi.fn()}
-        onClose={vi.fn()}
-        onBackToParent={vi.fn()}
-      />,
-    );
-
-    expect(screen.queryByLabelText("Session has unread updates")).toBeNull();
   });
 
-  it("does not show an unread dot for child tabs without a persisted ui read baseline", () => {
-    mocks.resolvedChildTabs = [
-      {
-        sessionKey: "child-session-1",
-        parentSessionKey: "parent-session-1",
-        title: "北京天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:00:00.000Z",
-        lastMessageAt: "2026-04-10T09:00:00.000Z",
-        readAt: null,
-        sessionTypeLabel: "Codex",
-        preferredModel: "openai/gpt-5.3-codex",
-        projectName: "project-alpha",
-        projectRoot: "/Users/demo/project-alpha",
-      },
-      {
-        sessionKey: "child-session-2",
-        parentSessionKey: "parent-session-1",
-        title: "上海天气",
-        agentId: "weather",
-        updatedAt: "2026-04-10T09:05:00.000Z",
-        lastMessageAt: "2026-04-10T09:06:00.000Z",
-        readAt: null,
-        sessionTypeLabel: "Claude Code",
-        preferredModel: "anthropic/claude-sonnet-4",
-        projectName: "project-beta",
-        projectRoot: "/Users/demo/project-beta",
-      },
-    ];
-
+  it("shows opened files as top tabs and renders the file preview pane", () => {
     render(
-      <ChatChildSessionPanel
-        tabs={[
+      <ChatSessionWorkspacePanel
+        childSessionTabs={[]}
+        activeChildSessionKey={null}
+        workspaceFileTabs={[
           {
-            sessionKey: "child-session-1",
+            key: "parent-session-1::preview::README.md",
             parentSessionKey: "parent-session-1",
-            label: "北京天气",
-            agentId: "weather",
-          },
-          {
-            sessionKey: "child-session-2",
-            parentSessionKey: "parent-session-1",
-            label: "上海天气",
-            agentId: "weather",
+            path: "README.md",
+            label: "README.md",
+            viewMode: "preview",
           },
         ]}
-        activeSessionKey="child-session-1"
+        activeWorkspaceFileKey="parent-session-1::preview::README.md"
+        sessionProjectRoot="/Users/demo/project-alpha"
         onSelectSession={vi.fn()}
+        onSelectFile={vi.fn()}
+        onCloseFile={vi.fn()}
         onClose={vi.fn()}
         onBackToParent={vi.fn()}
+        onFileOpen={vi.fn()}
       />,
     );
 
-    expect(screen.queryByLabelText("Session has unread updates")).toBeNull();
+    expect(screen.queryByText("Open files")).toBeNull();
+    expect(screen.getAllByText("README.md").length).toBeGreaterThan(0);
+    expect(screen.getByTestId("workspace-file-preview").textContent).toBe(
+      "README.md",
+    );
   });
 });

@@ -54,7 +54,16 @@ function finalizeParsedBlocks(
       display: block.display,
       ...(block.caption ? { caption: block.caption } : {}),
       lines: block.lines,
+      ...(block.fullLines ? { fullLines: block.fullLines } : {}),
       ...(block.rawText ? { rawText: block.rawText } : {}),
+      ...(block.beforeText ? { beforeText: block.beforeText } : {}),
+      ...(block.afterText ? { afterText: block.afterText } : {}),
+      ...(typeof block.oldStartLine === "number"
+        ? { oldStartLine: block.oldStartLine }
+        : {}),
+      ...(typeof block.newStartLine === "number"
+        ? { newStartLine: block.newStartLine }
+        : {}),
       ...(block.truncated ? { truncated: true } : {}),
     }))
     .filter((block) => block.lines.length > 0 || Boolean(block.rawText));

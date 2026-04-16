@@ -147,6 +147,55 @@ it("adapts persisted inline token metadata into rich message parts", () => {
   });
 });
 
+it("keeps Hermes tool invocation parts as tool cards instead of flattening them into plain text", () => {
+  const message = {
+    id: "assistant-hermes-tool-1",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-04-16T00:00:00.000Z",
+    parts: [
+      {
+        type: "reasoning",
+        text: "The user wants Python files.",
+      },
+      {
+        type: "text",
+        text: "\n",
+      },
+      {
+        type: "tool-invocation",
+        toolCallId: "hermes-inline-tool-1",
+        toolName: "search_files",
+        state: "call",
+        args: "{\"pattern\":\"*.py\"}",
+      },
+      {
+        type: "text",
+        text: "\nFound them.",
+      },
+    ],
+  } satisfies NcpMessage;
+
+  render(<ChatMessageListContainer messages={[message]} isSending={false} />);
+
+  const renderedMessages =
+    captures.renders[captures.renders.length - 1]?.messages ?? [];
+  expect(renderedMessages[0]).toMatchObject({
+    parts: expect.arrayContaining([
+      expect.objectContaining({
+        type: "tool-card",
+        card: expect.objectContaining({
+          toolName: "search_files",
+          titleLabel: "chatToolCall",
+          statusTone: "running",
+          statusLabel: "chatToolStatusRunning",
+        }),
+      }),
+    ]),
+  });
+});
+
 it("passes localized attachment card texts to the shared chat UI", () => {
   captures.language = "zh";
 

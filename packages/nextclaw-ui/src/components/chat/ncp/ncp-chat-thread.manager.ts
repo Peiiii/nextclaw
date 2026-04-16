@@ -1,12 +1,18 @@
 import { appQueryClient } from '@/app-query-client';
 import { deleteNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
 import { deleteNcpSession as deleteNcpSessionApi } from '@/api/ncp-session';
-import type { ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
+import type {
+  ChatFileOpenActionViewModel,
+  ChatToolActionViewModel,
+} from '@nextclaw/agent-chat-ui';
 import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
-import type { ChatThreadSnapshot } from '@/components/chat/stores/chat-thread.store';
+import type {
+  ChatThreadSnapshot,
+  ChatWorkspaceFileTab,
+} from '@/components/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import { t } from '@/lib/i18n';
 
@@ -54,10 +60,76 @@ export class NcpChatThreadManager {
       isAwaitingAssistantOutput: false,
       parentSessionKey: null,
       parentSessionLabel: null,
-      childSessionPanelParentKey: null,
+      workspacePanelParentKey: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
     });
+  };
+
+  private resolveWorkspaceParentSessionKey = (): string | null => {
+    const threadSessionKey = useChatThreadStore.getState().snapshot.sessionKey?.trim();
+    if (threadSessionKey) {
+      return threadSessionKey;
+    }
+    return useChatSessionListStore.getState().snapshot.selectedSessionKey ?? null;
+  };
+
+  private buildWorkspaceFileTab = (
+    action: ChatFileOpenActionViewModel,
+    parentSessionKey: string | null,
+  ): ChatWorkspaceFileTab | null => {
+    const normalizedPath = action.path.trim();
+    if (!normalizedPath) {
+      return null;
+    }
+    const normalizedParentSessionKey = parentSessionKey?.trim() || null;
+    const key =
+      `${normalizedParentSessionKey ?? 'draft'}::${action.viewMode}::${normalizedPath}`;
+    return {
+      key,
+      parentSessionKey: normalizedParentSessionKey,
+      path: normalizedPath,
+      label: action.label?.trim() || null,
+      viewMode: action.viewMode,
+      line: action.line ?? null,
+      column: action.column ?? null,
+      rawText: action.rawText ?? null,
+      beforeText: action.beforeText ?? null,
+      afterText: action.afterText ?? null,
+      patchText: action.patchText ?? null,
+      oldStartLine: action.oldStartLine ?? null,
+      newStartLine: action.newStartLine ?? null,
+      fullLines: action.fullLines,
+    };
+  };
+
+  private upsertWorkspaceFileTab = (nextTab: ChatWorkspaceFileTab): ChatWorkspaceFileTab[] => {
+    const { workspaceFileTabs } = useChatThreadStore.getState().snapshot;
+    const existingIndex = workspaceFileTabs.findIndex((tab) => tab.key === nextTab.key);
+    if (existingIndex === -1) {
+      return [nextTab, ...workspaceFileTabs];
+    }
+    const nextTabs = [...workspaceFileTabs];
+    nextTabs.splice(existingIndex, 1);
+    nextTabs.unshift({
+      ...workspaceFileTabs[existingIndex],
+      ...nextTab,
+    });
+    return nextTabs;
+  };
+
+  private ensureWorkspaceParentRoute = (parentSessionKey: string | null) => {
+    if (!parentSessionKey) {
+      return;
+    }
+    const {
+      snapshot: { selectedSessionKey },
+    } = useChatSessionListStore.getState();
+    if (selectedSessionKey !== parentSessionKey) {
+      this.uiManager.goToSession(parentSessionKey);
+    }
   };
 
   deleteSession = () => {
@@ -82,15 +154,26 @@ export class NcpChatThreadManager {
     }
     const activeChildSessionKey = params.activeChildSessionKey?.trim() || null;
     useChatThreadStore.getState().setSnapshot({
-      childSessionPanelParentKey: parentSessionKey,
+      workspacePanelParentKey: parentSessionKey,
       activeChildSessionKey,
+      activeWorkspaceFileKey: null,
     });
-    const {
-      snapshot: { selectedSessionKey },
-    } = useChatSessionListStore.getState();
-    if (selectedSessionKey !== parentSessionKey) {
-      this.uiManager.goToSession(parentSessionKey);
+    this.ensureWorkspaceParentRoute(parentSessionKey);
+  };
+
+  openFilePreview = (action: ChatFileOpenActionViewModel) => {
+    const parentSessionKey = this.resolveWorkspaceParentSessionKey();
+    const nextTab = this.buildWorkspaceFileTab(action, parentSessionKey);
+    if (!nextTab) {
+      return;
     }
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: parentSessionKey,
+      workspaceFileTabs: this.upsertWorkspaceFileTab(nextTab),
+      activeWorkspaceFileKey: nextTab.key,
+      activeChildSessionKey: null,
+    });
+    this.ensureWorkspaceParentRoute(parentSessionKey);
   };
 
   openSessionFromToolAction = (action: ChatToolActionViewModel) => {
@@ -111,8 +194,9 @@ export class NcpChatThreadManager {
       }
     }
     useChatThreadStore.getState().setSnapshot({
-      childSessionPanelParentKey: null,
+      workspacePanelParentKey: null,
       activeChildSessionKey: null,
+      activeWorkspaceFileKey: null,
     });
     this.uiManager.goToSession(action.sessionId);
   };
@@ -128,14 +212,54 @@ export class NcpChatThreadManager {
     }
     useChatThreadStore.getState().setSnapshot({
       activeChildSessionKey: normalizedSessionKey,
+      activeWorkspaceFileKey: null,
+    });
+  };
+
+  selectWorkspaceFile = (fileKey: string) => {
+    const normalizedFileKey = fileKey.trim();
+    if (!normalizedFileKey) {
+      return;
+    }
+    const { workspaceFileTabs } = useChatThreadStore.getState().snapshot;
+    if (!workspaceFileTabs.some((tab) => tab.key === normalizedFileKey)) {
+      return;
+    }
+    useChatThreadStore.getState().setSnapshot({
+      activeWorkspaceFileKey: normalizedFileKey,
+      activeChildSessionKey: null,
+    });
+  };
+
+  closeWorkspaceFile = (fileKey: string) => {
+    const normalizedFileKey = fileKey.trim();
+    if (!normalizedFileKey) {
+      return;
+    }
+    const { snapshot } = useChatThreadStore.getState();
+    const { activeWorkspaceFileKey, workspaceFileTabs } = snapshot;
+    const nextTabs = workspaceFileTabs.filter(
+      (tab) => tab.key !== normalizedFileKey,
+    );
+    const nextPatch: Partial<ChatThreadSnapshot> = {
+      workspaceFileTabs: nextTabs,
+    };
+    if (activeWorkspaceFileKey === normalizedFileKey) {
+      nextPatch.activeWorkspaceFileKey = null;
+    }
+    useChatThreadStore.getState().setSnapshot(nextPatch);
+  };
+
+  closeWorkspacePanel = () => {
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: null,
+      activeChildSessionKey: null,
+      activeWorkspaceFileKey: null,
     });
   };
 
   closeChildSessionDetail = () => {
-    useChatThreadStore.getState().setSnapshot({
-      childSessionPanelParentKey: null,
-      activeChildSessionKey: null,
-    });
+    this.closeWorkspacePanel();
   };
 
   goToParentSession = () => {
@@ -152,7 +276,7 @@ export class NcpChatThreadManager {
     if (!resolvedParentSessionKey) {
       return;
     }
-    this.closeChildSessionDetail();
+    this.closeWorkspacePanel();
     this.uiManager.goToSession(resolvedParentSessionKey);
   };
 

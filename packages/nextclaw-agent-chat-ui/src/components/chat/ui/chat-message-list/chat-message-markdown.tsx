@@ -1,10 +1,14 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, type MouseEvent, type ReactNode } from 'react';
 import type { Components } from 'react-markdown';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '../../internal/cn';
 import { ChatCodeBlock } from './chat-code-block';
-import type { ChatMessageRole, ChatMessageTexts } from '../../view-models/chat-ui.types';
+import type {
+  ChatFileOpenActionViewModel,
+  ChatMessageRole,
+  ChatMessageTexts,
+} from '../../view-models/chat-ui.types';
 
 const MARKDOWN_MAX_CHARS = 140_000;
 const SAFE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
@@ -35,18 +39,51 @@ function isExternalHref(href: string): boolean {
   return /^https?:\/\//i.test(href);
 }
 
+function looksLikeLocalFileHref(href: string): boolean {
+  return (
+    href.startsWith('./') ||
+    href.startsWith('../') ||
+    href.startsWith('/Users/') ||
+    href.startsWith('/home/') ||
+    href.startsWith('/tmp/') ||
+    href.startsWith('/var/') ||
+    /^\/.+\.[A-Za-z0-9_-]+(?::\d+(?::\d+)?)?$/.test(href)
+  );
+}
+
+function parseLocalFileAction(href: string): ChatFileOpenActionViewModel | null {
+  const normalizedHref = href.split('#')[0]?.split('?')[0] ?? href;
+  const decodedHref = decodeURIComponent(normalizedHref);
+  if (!looksLikeLocalFileHref(decodedHref)) {
+    return null;
+  }
+  const lineMatch = /^(.*?)(?::(\d+)(?::(\d+))?)$/.exec(decodedHref);
+  const rawPath = lineMatch?.[1] ?? decodedHref;
+  const line = lineMatch?.[2] ? Number(lineMatch[2]) : undefined;
+  const column = lineMatch?.[3] ? Number(lineMatch[3]) : undefined;
+  return {
+    path: rawPath,
+    label: rawPath.split('/').filter(Boolean).pop() ?? rawPath,
+    viewMode: 'preview',
+    ...(typeof line === 'number' ? { line } : {}),
+    ...(typeof column === 'number' ? { column } : {}),
+  };
+}
+
 type ChatMessageMarkdownProps = {
   text: string;
   role: ChatMessageRole;
   texts: Pick<ChatMessageTexts, 'copyCodeLabel' | 'copiedCodeLabel'>;
   inline?: boolean;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 };
 
 export function ChatMessageMarkdown({
   text,
   role,
   texts,
-  inline = false
+  inline = false,
+  onFileOpen,
 }: ChatMessageMarkdownProps) {
   const isUser = role === 'user';
   const markdownComponents = useMemo<Components>(() => ({
@@ -57,10 +94,29 @@ export function ChatMessageMarkdown({
         return <span className="chat-link-invalid">{children}</span>;
       }
       const external = isExternalHref(safeHref);
+      const localFileAction = external ? null : parseLocalFileAction(safeHref);
+      const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+        if (!onFileOpen || !localFileAction) {
+          return;
+        }
+        if (
+          event.defaultPrevented ||
+          event.button !== 0 ||
+          event.metaKey ||
+          event.ctrlKey ||
+          event.shiftKey ||
+          event.altKey
+        ) {
+          return;
+        }
+        event.preventDefault();
+        onFileOpen(localFileAction);
+      };
       return (
         <a
           {...rest}
           href={safeHref}
+          onClick={handleClick}
           target={external ? '_blank' : undefined}
           rel={external ? 'noreferrer noopener' : undefined}
         >
@@ -102,7 +158,7 @@ export function ChatMessageMarkdown({
         </ChatCodeBlock>
       );
     }
-  }), [inline, texts]);
+  }), [inline, onFileOpen, texts]);
 
   const WrapperTag = inline ? 'span' : 'div';
 

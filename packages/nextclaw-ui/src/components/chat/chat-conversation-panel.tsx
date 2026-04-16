@@ -1,12 +1,13 @@
 import { type ComponentProps, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
+import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import {
   ChatInputBarContainer,
   ChatMessageListContainer,
 } from "@/components/chat/nextclaw";
-import { ChatChildSessionPanel } from "@/components/chat/chat-child-session-panel";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
+import { ChatSessionWorkspacePanel } from "@/components/chat/chat-session-workspace-panel";
 import { AgentAvatar } from "@/components/common/AgentAvatar";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
 import { ChatSessionHeaderActions } from "@/components/chat/session-header/chat-session-header-actions";
@@ -52,6 +53,9 @@ type ChatHeaderDeleteHandler = ComponentProps<
 type ChatToolActionHandler = ComponentProps<
   typeof ChatMessageListContainer
 >["onToolAction"];
+type ChatFileOpenHandler = ComponentProps<
+  typeof ChatMessageListContainer
+>["onFileOpen"];
 
 type ChatParentSessionBannerProps = {
   parentSessionLabel: string | null;
@@ -204,6 +208,7 @@ type ChatConversationContentProps = {
   onCreateSession: () => void;
   onSelectAgent: (agentId: string) => void;
   onToolAction: ChatToolActionHandler;
+  onFileOpen: ChatFileOpenHandler;
 };
 
 function ChatConversationContent({
@@ -216,6 +221,7 @@ function ChatConversationContent({
   onCreateSession,
   onSelectAgent,
   onToolAction,
+  onFileOpen,
 }: ChatConversationContentProps) {
   return (
     <div
@@ -241,6 +247,7 @@ function ChatConversationContent({
             messages={snapshot.messages}
             isSending={snapshot.isSending && snapshot.isAwaitingAssistantOutput}
             onToolAction={onToolAction}
+            onFileOpen={onFileOpen}
           />
         </div>
       )}
@@ -248,17 +255,15 @@ function ChatConversationContent({
   );
 }
 
-function resolveDetailSessionKey(
+function shouldShowWorkspacePanel(
   snapshot: ChatThreadSnapshot,
   childSessionTabs: ChatThreadSnapshot["childSessionTabs"],
+  workspaceFileTabs: ChatThreadSnapshot["workspaceFileTabs"],
 ) {
-  if (snapshot.childSessionPanelParentKey !== snapshot.sessionKey) {
-    return null;
+  if (snapshot.workspacePanelParentKey !== snapshot.sessionKey) {
+    return false;
   }
-  if (childSessionTabs.some((tab) => tab.sessionKey === snapshot.activeChildSessionKey)) {
-    return snapshot.activeChildSessionKey;
-  }
-  return childSessionTabs[0]?.sessionKey ?? null;
+  return childSessionTabs.length > 0 || workspaceFileTabs.length > 0;
 }
 
 export function ChatConversationPanel() {
@@ -272,7 +277,14 @@ export function ChatConversationPanel() {
   const childSessionTabs = snapshot.childSessionTabs.filter(
     (tab) => tab.parentSessionKey === snapshot.sessionKey,
   );
-  const detailSessionKey = resolveDetailSessionKey(snapshot, childSessionTabs);
+  const workspaceFileTabs = snapshot.workspaceFileTabs.filter(
+    (tab) => tab.parentSessionKey === snapshot.sessionKey,
+  );
+  const showWorkspacePanel = shouldShowWorkspacePanel(
+    snapshot,
+    childSessionTabs,
+    workspaceFileTabs,
+  );
   const shouldShowSessionHeader = Boolean(
     snapshot.sessionKey || snapshot.sessionTypeLabel,
   );
@@ -312,6 +324,9 @@ export function ChatConversationPanel() {
     presenter.chatInputManager.setPendingSessionType(
       resolveAgentRuntimeSessionType(resolveDraftAgent(agentId), defaultSessionType),
     );
+  };
+  const openFilePreview = (action: ChatFileOpenActionViewModel) => {
+    presenter.chatThreadManager.openFilePreview(action);
   };
   const openChildSessions = () => {
     if (!snapshot.sessionKey) {
@@ -370,19 +385,26 @@ export function ChatConversationPanel() {
           onCreateSession={createDraftSessionForAgent}
           onSelectAgent={selectDraftAgent}
           onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+          onFileOpen={openFilePreview}
         />
 
         <ChatInputBarContainer />
       </div>
 
-      {detailSessionKey ? (
-        <ChatChildSessionPanel
-          tabs={childSessionTabs}
-          activeSessionKey={detailSessionKey}
+      {showWorkspacePanel ? (
+        <ChatSessionWorkspacePanel
+          childSessionTabs={childSessionTabs}
+          activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
+          workspaceFileTabs={workspaceFileTabs}
+          activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
+          sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
           onSelectSession={presenter.chatThreadManager.selectChildSessionDetail}
-          onClose={presenter.chatThreadManager.closeChildSessionDetail}
+          onSelectFile={presenter.chatThreadManager.selectWorkspaceFile}
+          onCloseFile={presenter.chatThreadManager.closeWorkspaceFile}
+          onClose={presenter.chatThreadManager.closeWorkspacePanel}
           onBackToParent={presenter.chatThreadManager.goToParentSession}
           onToolAction={presenter.chatThreadManager.openSessionFromToolAction}
+          onFileOpen={openFilePreview}
         />
       ) : null}
     </section>

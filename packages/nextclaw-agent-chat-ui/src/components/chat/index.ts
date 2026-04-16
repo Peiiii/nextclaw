@@ -1,6 +1,11 @@
 export { ChatInputBar } from './ui/chat-input-bar/chat-input-bar';
 export type { ChatInputBarHandle } from './ui/chat-input-bar/chat-input-bar';
 export { ChatMessageList } from './ui/chat-message-list/chat-message-list';
+export { ChatMessageMarkdown } from './ui/chat-message-list/chat-message-markdown';
+export {
+  FileOperationCodeSurface,
+  FileOperationLinesGrid
+} from './ui/chat-message-list/tool-card/tool-card-file-operation-lines';
 
 export { useActiveItemScroll } from './hooks/use-active-item-scroll';
 export { useCopyFeedback } from './hooks/use-copy-feedback';
@@ -46,6 +51,7 @@ export type {
   ChatMessageRole,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,
+  ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
   ChatInlineTokenViewModel,
   ChatInlineContentSegmentViewModel,

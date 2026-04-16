@@ -37,8 +37,9 @@ describe('ChatSessionListManager', () => {
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
-        childSessionPanelParentKey: 'session-1',
+        workspacePanelParentKey: 'session-1',
         activeChildSessionKey: 'child-session-1',
+        activeWorkspaceFileKey: 'session-1::/tmp/demo.md',
       },
     });
   });
@@ -141,8 +142,9 @@ describe('ChatSessionListManager', () => {
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('session-2');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('session-1');
-    expect(useChatThreadStore.getState().snapshot.childSessionPanelParentKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.workspacePanelParentKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.activeChildSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.activeWorkspaceFileKey).toBeNull();
   });
 
   it('updates the sidebar list mode without touching other session list state', () => {

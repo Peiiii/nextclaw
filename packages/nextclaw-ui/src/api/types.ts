@@ -246,6 +246,13 @@ export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
 };
 
+export type RuntimeEntryView = {
+  enabled?: boolean;
+  label?: string;
+  type: string;
+  config?: Record<string, unknown>;
+};
+
 export type SessionEntryView = {
   key: string;
   createdAt: string;
@@ -347,17 +354,9 @@ export type SessionPatchUpdate = {
   clearHistory?: boolean;
 };
 
-export type ServerPathEntryView = {
-  name: string;
-  path: string;
-  kind: "directory" | "file";
-  hidden: boolean;
-};
+export type ServerPathEntryView = { name: string; path: string; kind: "directory" | "file"; hidden: boolean };
 
-export type ServerPathBreadcrumbView = {
-  label: string;
-  path: string;
-};
+export type ServerPathBreadcrumbView = { label: string; path: string };
 
 export type ServerPathBrowseView = {
   currentPath: string;
@@ -366,6 +365,8 @@ export type ServerPathBrowseView = {
   breadcrumbs: ServerPathBreadcrumbView[];
   entries: ServerPathEntryView[];
 };
+
+export type ServerPathReadView = { requestedPath: string; resolvedPath: string; kind: "text" | "markdown" | "binary"; sizeBytes: number; truncated: boolean; text?: string; languageHint?: string | null };
 
 export type {
   ChatSessionTypeCtaView,
@@ -430,6 +431,9 @@ export type RuntimeConfigUpdate = {
       contextTokens?: number;
       engine?: string;
       engineConfig?: Record<string, unknown>;
+    };
+    runtimes?: {
+      entries?: Record<string, RuntimeEntryView> | null;
     };
     list?: AgentProfileView[];
   };
@@ -499,6 +503,9 @@ export type ConfigView = {
       engineConfig?: Record<string, unknown>;
       contextTokens?: number;
       maxToolIterations?: number;
+    };
+    runtimes?: {
+      entries?: Record<string, RuntimeEntryView>;
     };
     list?: AgentProfileView[];
     context?: {

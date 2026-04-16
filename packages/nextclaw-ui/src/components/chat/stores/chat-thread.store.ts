@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { MutableRefObject } from 'react';
 import type { NcpMessage } from '@nextclaw/ncp';
+import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import type { AgentProfileView } from '@/api/types';
 
@@ -9,6 +10,23 @@ export type ChatChildSessionTab = {
   parentSessionKey: string | null;
   label?: string | null;
   agentId?: string | null;
+};
+
+export type ChatWorkspaceFileTab = {
+  key: string;
+  parentSessionKey: string | null;
+  path: string;
+  label?: string | null;
+  viewMode: 'preview' | 'diff';
+  line?: number | null;
+  column?: number | null;
+  rawText?: string | null;
+  beforeText?: string | null;
+  afterText?: string | null;
+  patchText?: string | null;
+  oldStartLine?: number | null;
+  newStartLine?: number | null;
+  fullLines?: ChatFileOperationLineViewModel[];
 };
 
 export type ChatThreadSnapshot = {
@@ -34,9 +52,11 @@ export type ChatThreadSnapshot = {
   isAwaitingAssistantOutput: boolean;
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
-  childSessionPanelParentKey?: string | null;
+  workspacePanelParentKey?: string | null;
   childSessionTabs: ChatChildSessionTab[];
   activeChildSessionKey?: string | null;
+  workspaceFileTabs: ChatWorkspaceFileTab[];
+  activeWorkspaceFileKey?: string | null;
 };
 
 type ChatThreadStore = {
@@ -67,9 +87,11 @@ const initialSnapshot: ChatThreadSnapshot = {
   isAwaitingAssistantOutput: false,
   parentSessionKey: null,
   parentSessionLabel: null,
-  childSessionPanelParentKey: null,
+  workspacePanelParentKey: null,
   childSessionTabs: [],
   activeChildSessionKey: null,
+  workspaceFileTabs: [],
+  activeWorkspaceFileKey: null,
 };
 
 export const useChatThreadStore = create<ChatThreadStore>((set) => ({

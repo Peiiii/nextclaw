@@ -13,7 +13,12 @@ export type ParsedBlock = {
   display: "preview" | "diff";
   caption?: string;
   lines: ChatFileOperationLineViewModel[];
+  fullLines?: ChatFileOperationLineViewModel[];
   rawText?: string;
+  beforeText?: string;
+  afterText?: string;
+  oldStartLine?: number;
+  newStartLine?: number;
   truncated?: boolean;
 };
 
@@ -114,6 +119,9 @@ export function buildRawPreviewBlock(params: {
       lines,
     }),
     lines,
+    rawText: previewText,
+    oldStartLine,
+    newStartLine,
   };
 }
 
@@ -144,6 +152,11 @@ export function buildFullReplaceBlock(params: {
       lines,
     }),
     lines: limited.lines,
+    ...(limited.truncated ? { fullLines: lines } : {}),
+    ...(params.beforeText != null ? { beforeText: params.beforeText } : {}),
+    ...(params.afterText != null ? { afterText: params.afterText } : {}),
+    ...(typeof oldStartLine === "number" ? { oldStartLine } : {}),
+    ...(typeof newStartLine === "number" ? { newStartLine } : {}),
     truncated: limited.truncated,
   };
 }
@@ -162,6 +175,7 @@ function buildParsedPatchBlock(params: {
       lines: params.lines,
     }),
     lines: limited.lines,
+    ...(limited.truncated ? { fullLines: params.lines } : {}),
     truncated: limited.truncated,
   };
 }

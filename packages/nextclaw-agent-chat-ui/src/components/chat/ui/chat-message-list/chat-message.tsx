@@ -1,5 +1,6 @@
 import { memo, type ReactNode } from "react";
 import type {
+  ChatFileOpenActionViewModel,
   ChatMessageTexts,
   ChatToolActionViewModel,
   ChatMessageViewModel,
@@ -23,11 +24,12 @@ type ChatMessageProps = {
     | "attachmentCategoryLabels"
   >;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
   renderToolAgent?: (agentId: string) => ReactNode;
 };
 
 export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
-  const { message, texts, onToolAction, renderToolAgent } = props;
+  const { message, texts, onToolAction, onFileOpen, renderToolAgent } = props;
   const { role } = message;
   const isUser = role === "user";
   const isMessageInProgress =
@@ -51,13 +53,14 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
           if (type === "markdown") {
             return (
               <ChatMessageMarkdown
-                key={`markdown-${index}`}
-                text={part.text}
-                role={role}
-                texts={texts}
-              />
-            );
-          }
+              key={`markdown-${index}`}
+              text={part.text}
+              role={role}
+              texts={texts}
+              onFileOpen={onFileOpen}
+            />
+          );
+        }
           if (type === "inline-content") {
             return (
               <ChatMessageInlineContent
@@ -65,6 +68,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
                 segments={part.segments}
                 role={role}
                 texts={texts}
+                onFileOpen={onFileOpen}
               />
             );
           }
@@ -87,6 +91,7 @@ export const ChatMessage = memo(function ChatMessage(props: ChatMessageProps) {
                 <ChatToolCard
                   card={part.card}
                   onToolAction={onToolAction}
+                  onFileOpen={onFileOpen}
                   renderToolAgent={renderToolAgent}
                 />
               </div>

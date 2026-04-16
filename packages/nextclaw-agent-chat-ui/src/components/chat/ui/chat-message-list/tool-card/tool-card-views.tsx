@@ -1,6 +1,7 @@
 import { Terminal, FileText, Code2, Search, Globe } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import type {
+  ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
   ChatToolPartViewModel,
 } from '../../../view-models/chat-ui.types';
@@ -302,7 +303,13 @@ export function TerminalExecutionView({ card }: { card: ChatToolPartViewModel })
 // -------------------------------------------------------------
 // 2. File Operation View
 // -------------------------------------------------------------
-export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
+export function FileOperationView({
+  card,
+  onFileOpen,
+}: {
+  card: ChatToolPartViewModel;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
+}) {
   const output = card.output?.trim() ?? '';
   const isRunning = card.statusTone === 'running';
   const hasStructuredPreview = Boolean(card.fileOperation?.blocks.length);
@@ -344,7 +351,7 @@ export function FileOperationView({ card }: { card: ChatToolPartViewModel }) {
       />
       {expanded && hasContent && (
         <ToolCardContent className="border-t border-amber-200/20 bg-transparent px-0 pt-0 pb-0">
-          <ToolCardFileOperationContent card={card} />
+          <ToolCardFileOperationContent card={card} onFileOpen={onFileOpen} />
         </ToolCardContent>
       )}
     </ToolCardRoot>

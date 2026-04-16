@@ -1,4 +1,5 @@
 import type {
+  ChatFileOpenActionViewModel,
   ChatInlineContentSegmentViewModel,
   ChatMessageRole,
   ChatMessageTexts,
@@ -10,6 +11,7 @@ type ChatMessageInlineContentProps = {
   segments: ChatInlineContentSegmentViewModel[];
   role: ChatMessageRole;
   texts: Pick<ChatMessageTexts, "copyCodeLabel" | "copiedCodeLabel">;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 };
 
 function hasVisibleInlineText(value: string): boolean {
@@ -93,6 +95,7 @@ export function ChatMessageInlineContent({
   segments,
   role,
   texts,
+  onFileOpen,
 }: ChatMessageInlineContentProps) {
   const isUser = role === "user";
 
@@ -123,6 +126,7 @@ export function ChatMessageInlineContent({
             role={role}
             texts={texts}
             inline
+            onFileOpen={onFileOpen}
           />
         );
       })}

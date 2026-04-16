@@ -178,6 +178,101 @@ it("renders completed file-change cards with an expandable diff view", () => {
   expect(screen.getByText("-1").className).toContain("rose");
 });
 
+it("opens file diff actions from file operation path rows", () => {
+  vi.useFakeTimers();
+
+  try {
+    const onFileOpen = vi.fn();
+    const view = render(
+      <ChatMessageList
+        messages={[
+          {
+            id: "assistant-file-preview-open-action",
+            role: "assistant",
+            roleLabel: "Assistant",
+            timestampLabel: "10:14",
+            parts: [
+              {
+                type: "tool-card",
+                card: {
+                  kind: "call",
+                  toolName: "edit_file",
+                  summary: "src/app.ts",
+                  hasResult: false,
+                  statusTone: "running",
+                  statusLabel: "Running",
+                  titleLabel: "Tool Call",
+                  outputLabel: "View Output",
+                  emptyLabel: "No output",
+                  fileOperation: {
+                    blocks: [
+                      {
+                        key: "src/app.ts-1",
+                        path: "src/app.ts",
+                        display: "diff",
+                        lines: [
+                          {
+                            kind: "remove",
+                            text: "const color = 'red';",
+                            oldLineNumber: 4,
+                          },
+                          {
+                            kind: "add",
+                            text: "const color = 'blue';",
+                            newLineNumber: 4,
+                          },
+                        ],
+                        beforeText: "const color = 'red';\n",
+                        afterText: "const color = 'blue';\n",
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ]}
+        isSending={false}
+        hasAssistantDraft={false}
+        texts={defaultTexts}
+        onFileOpen={onFileOpen}
+      />,
+    );
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+
+    const pathButtons = view.container.querySelectorAll('button[title="src/app.ts"]');
+    expect(pathButtons).toHaveLength(1);
+
+    fireEvent.click(pathButtons[0] as HTMLButtonElement);
+
+    expect(onFileOpen).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: "src/app.ts",
+        viewMode: "diff",
+        beforeText: "const color = 'red';\n",
+        afterText: "const color = 'blue';\n",
+        fullLines: [
+          expect.objectContaining({
+            kind: "remove",
+            text: "const color = 'red';",
+            oldLineNumber: 4,
+          }),
+          expect.objectContaining({
+            kind: "add",
+            text: "const color = 'blue';",
+            newLineNumber: 4,
+          }),
+        ],
+      }),
+    );
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("keeps large running write previews collapsed until the user asks to inspect them", () => {
   vi.useFakeTimers();
 

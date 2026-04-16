@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
+  type ChatFileOpenActionViewModel,
   type ChatToolActionViewModel,
   type ChatMessageViewModel,
   ChatMessageList,
@@ -21,6 +22,7 @@ type ChatMessageListContainerProps = {
   isSending: boolean;
   className?: string;
   onToolAction?: (action: ChatToolActionViewModel) => void;
+  onFileOpen?: (action: ChatFileOpenActionViewModel) => void;
 };
 
 const messageViewModelCache = new WeakMap<
@@ -87,6 +89,7 @@ export function ChatMessageListContainer({
   isSending,
   className,
   onToolAction,
+  onFileOpen,
 }: ChatMessageListContainerProps) {
   const { language } = useI18n();
   const texts = useMemo<ChatMessageAdapterTexts>(
@@ -144,6 +147,7 @@ export function ChatMessageListContainer({
       className={className}
       texts={messageTexts}
       onToolAction={onToolAction}
+      onFileOpen={onFileOpen}
       renderToolAgent={(agentId) => (
         <AgentIdentityAvatar
           agentId={agentId}

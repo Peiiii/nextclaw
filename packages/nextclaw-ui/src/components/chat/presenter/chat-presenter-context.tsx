@@ -1,4 +1,8 @@
-import type { ChatComposerNode, ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
+import type {
+  ChatComposerNode,
+  ChatFileOpenActionViewModel,
+  ChatToolActionViewModel,
+} from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import { createContext, useContext } from 'react';
 import type { ReactNode } from 'react';
@@ -41,9 +45,12 @@ export type ChatThreadManagerLike = {
     parentSessionKey: string;
     activeChildSessionKey?: string | null;
   }) => void;
+  openFilePreview: (action: ChatFileOpenActionViewModel) => void;
   openSessionFromToolAction: (action: ChatToolActionViewModel) => void;
   selectChildSessionDetail: (sessionKey: string) => void;
-  closeChildSessionDetail: () => void;
+  selectWorkspaceFile: (fileKey: string) => void;
+  closeWorkspaceFile: (fileKey: string) => void;
+  closeWorkspacePanel: () => void;
   goToParentSession: () => void;
 };
 
