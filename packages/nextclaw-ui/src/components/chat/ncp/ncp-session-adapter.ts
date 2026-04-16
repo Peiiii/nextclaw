@@ -1,6 +1,7 @@
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView, ThinkingLevel } from '@/api/types';
+import { API_BASE } from '@/api/api-base';
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -17,6 +18,11 @@ function stringifyUnknown(value: unknown): string {
   } catch {
     return String(value ?? '');
   }
+}
+
+function buildNcpAssetContentUrl(assetUri: string): string {
+  const query = new URLSearchParams({ uri: assetUri });
+  return `${API_BASE}/api/ncp/assets/content?${query.toString()}`;
 }
 
 function readOptionalString(value: unknown): string | null {
@@ -203,6 +209,17 @@ function toUiParts(parts: NcpMessagePart[]): UIMessage['parts'] {
         mimeType: part.mimeType ?? 'application/octet-stream',
         data: '',
         url: part.url,
+        ...(typeof part.sizeBytes === 'number' ? { sizeBytes: part.sizeBytes } : {})
+      });
+      continue;
+    }
+    if (part.type === 'file' && part.assetUri) {
+      uiParts.push({
+        type: 'file',
+        ...(part.name ? { name: part.name } : {}),
+        mimeType: part.mimeType ?? 'application/octet-stream',
+        data: '',
+        url: buildNcpAssetContentUrl(part.assetUri),
         ...(typeof part.sizeBytes === 'number' ? { sizeBytes: part.sizeBytes } : {})
       });
       continue;

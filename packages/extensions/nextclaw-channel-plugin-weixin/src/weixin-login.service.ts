@@ -12,8 +12,8 @@ import {
   DEFAULT_WEIXIN_BASE_URL,
   WEIXIN_CHANNEL_ID,
   normalizeWeixinPluginConfig,
-  type WeixinPluginConfig,
 } from "./weixin-config.js";
+import type { WeixinPluginConfig } from "./weixin-config.js";
 
 async function sleep(ms: number): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, Math.max(0, ms)));

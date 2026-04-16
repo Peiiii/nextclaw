@@ -81,7 +81,15 @@ export class ChannelReplyRouterService {
     params: ChannelReplyRouterDispatchParams,
   ): Promise<void> => {
     const input: NcpReplyInput = {
-      target: params.route.target,
+      target: {
+        ...params.route.target,
+        ...(params.agent.assetApi?.resolveContentPath
+          ? {
+              resolveAssetContentPath:
+                params.agent.assetApi.resolveContentPath,
+            }
+          : {}),
+      },
       eventStream: this.runnerService.streamPromptOverNcp({
         agent: params.agent,
         sessionId: params.sessionId,

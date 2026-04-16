@@ -17,6 +17,7 @@ type AssetApi = {
     bytes: Uint8Array;
     createdAt?: Date;
   }) => Promise<{ uri: string }>;
+  resolveContentPath?: (uri: string) => string | null;
 };
 
 export type NcpRunnerAgent = {

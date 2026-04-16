@@ -1,26 +1,26 @@
 import type { MessageBus } from "@nextclaw/core";
-import { BaseChannel, type OutboundMessage } from "@nextclaw/core";
-import {
-  type ChatTarget,
-  NcpReplyConsumer,
-  type NcpReplyInput,
-} from "@nextclaw/ncp-toolkit";
+import { BaseChannel } from "@nextclaw/core";
+import type { OutboundMessage } from "@nextclaw/core";
+import { NcpReplyConsumer } from "@nextclaw/ncp-toolkit";
+import type { ChatTarget, NcpReplyInput } from "@nextclaw/ncp-toolkit";
 import { loadWeixinCursor, saveWeixinCursor, listStoredWeixinAccountIds } from "./weixin-account.store.js";
 import {
   extractWeixinMessageText,
   fetchWeixinConfig,
   fetchWeixinUpdates,
+  isSyntheticWeixinAttachmentText,
   sendWeixinTyping,
-  type WeixinMessage,
 } from "./weixin-api.client.js";
+import type { WeixinMessage } from "./weixin-api.client.js";
 import { setWeixinContextToken } from "./weixin-context-token.store.js";
 import { resolveWeixinInboundAttachments } from "./weixin-inbound-media.service.js";
 import { WeixinTypingController } from "./weixin-typing-controller.js";
 import {
   resolveConfiguredWeixinAccountIds,
-  type WeixinPluginConfig,
 } from "./weixin-config.js";
-import { WeixinChat, type ResolvedWeixinAccountRuntime } from "./weixin-chat.js";
+import type { WeixinPluginConfig } from "./weixin-config.js";
+import { WeixinChat } from "./weixin-chat.js";
+import type { ResolvedWeixinAccountRuntime } from "./weixin-chat.js";
 
 function isAllowedSender(allowFrom: string[], senderId: string): boolean {
   if (allowFrom.length === 0) {
@@ -185,11 +185,15 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       return;
     }
 
-    const content = extractWeixinMessageText(message);
     const attachments = await resolveWeixinInboundAttachments({
       message,
       baseUrl: account.baseUrl,
     });
+    const extractedContent = extractWeixinMessageText(message);
+    const content =
+      attachments.length > 0 && isSyntheticWeixinAttachmentText(extractedContent)
+        ? ""
+        : extractedContent;
     if (!content && attachments.length === 0) {
       return;
     }

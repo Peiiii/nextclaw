@@ -1,7 +1,10 @@
 import { randomInt, randomUUID } from "node:crypto";
-import { DEFAULT_WEIXIN_BOT_TYPE, DEFAULT_WEIXIN_POLL_TIMEOUT_MS } from "./weixin-config.js";
+import {
+  DEFAULT_WEIXIN_BOT_TYPE,
+  DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
+} from "./weixin-config.js";
 
-type WeixinBaseInfo = {
+export type WeixinBaseInfo = {
   channel_version: string;
 };
 
@@ -16,17 +19,20 @@ type WeixinVoiceItem = {
 export type WeixinCdnMedia = {
   encrypt_query_param?: string;
   aes_key?: string;
+  encrypt_type?: number;
   full_url?: string;
 };
 
 export type WeixinImageItem = {
   media?: WeixinCdnMedia;
   aeskey?: string;
+  mid_size?: number;
 };
 
 export type WeixinFileItem = {
   file_name?: string;
   media?: WeixinCdnMedia;
+  len?: string;
 };
 
 export type WeixinMessageItem = {
@@ -79,23 +85,27 @@ export type WeixinSendTypingResponse = {
   errcode?: number;
   errmsg?: string;
 };
+export const WEIXIN_API_TIMEOUT_MS = 15_000;
+export const WEIXIN_MESSAGE_TYPE_BOT = 2;
+export const WEIXIN_MESSAGE_ITEM_TYPE_TEXT = 1;
+export const WEIXIN_MESSAGE_ITEM_TYPE_IMAGE = 2;
+export const WEIXIN_MESSAGE_ITEM_TYPE_FILE = 4;
+export const WEIXIN_UPLOAD_MEDIA_TYPE_IMAGE = 1;
+export const WEIXIN_UPLOAD_MEDIA_TYPE_FILE = 3;
+export const WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED = 1;
 
 const WEIXIN_CHANNEL_VERSION = "nextclaw-weixin/0.1.0";
-const WEIXIN_MESSAGE_TYPE_BOT = 2;
 const WEIXIN_MESSAGE_STATE_FINISH = 2;
-const WEIXIN_MESSAGE_ITEM_TYPE_TEXT = 1;
-const WEIXIN_MESSAGE_ITEM_TYPE_IMAGE = 2;
 const WEIXIN_MESSAGE_ITEM_TYPE_VOICE = 3;
-const WEIXIN_MESSAGE_ITEM_TYPE_FILE = 4;
 const WEIXIN_MESSAGE_ITEM_TYPE_VIDEO = 5;
 
-function buildWeixinBaseInfo(): WeixinBaseInfo {
+export function buildWeixinBaseInfo(): WeixinBaseInfo {
   return {
     channel_version: WEIXIN_CHANNEL_VERSION,
   };
 }
 
-function normalizeWeixinBaseUrl(baseUrl: string): string {
+export function normalizeWeixinBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 }
 
@@ -110,7 +120,10 @@ async function withTimeout<T>(params: {
   handler: (signal: AbortSignal) => Promise<T>;
 }): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.max(1_000, params.timeoutMs));
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Math.max(1_000, params.timeoutMs),
+  );
   const abort = () => controller.abort();
   params.signal?.addEventListener("abort", abort, { once: true });
   try {
@@ -121,7 +134,7 @@ async function withTimeout<T>(params: {
   }
 }
 
-async function fetchWeixinJson<T>(params: {
+export async function fetchWeixinJson<T>(params: {
   url: string;
   method?: "GET" | "POST";
   token?: string;
@@ -155,19 +168,63 @@ async function fetchWeixinJson<T>(params: {
   });
 }
 
+function stripSimpleMarkdown(text: string): string {
+  return text
+    .replace(/```[^\n]*\n?([\s\S]*?)```/g, "$1")
+    .replace(/!\[[^\]]*]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)]\([^)]*\)/g, "$1")
+    .replace(/[*_~`>#-]+/g, "")
+    .trim();
+}
+
+export async function sendWeixinMessageItem(params: {
+  baseUrl: string;
+  token: string;
+  toUserId: string;
+  item: WeixinMessageItem;
+  contextToken?: string;
+  signal?: AbortSignal;
+}): Promise<{ messageId: string }> {
+  const messageId = randomUUID();
+  await fetchWeixinJson<Record<string, unknown>>({
+    url: new URL(
+      "ilink/bot/sendmessage",
+      normalizeWeixinBaseUrl(params.baseUrl),
+    ).toString(),
+    token: params.token,
+    timeoutMs: WEIXIN_API_TIMEOUT_MS,
+    signal: params.signal,
+    body: {
+      msg: {
+        from_user_id: "",
+        to_user_id: params.toUserId,
+        client_id: messageId,
+        message_type: WEIXIN_MESSAGE_TYPE_BOT,
+        message_state: WEIXIN_MESSAGE_STATE_FINISH,
+        item_list: [params.item],
+        context_token: params.contextToken ?? "",
+      },
+      base_info: buildWeixinBaseInfo(),
+    },
+  });
+  return { messageId };
+}
+
 export async function fetchWeixinQrCode(params: {
   baseUrl: string;
   botType?: string;
   signal?: AbortSignal;
 }): Promise<WeixinQrCodeResponse> {
   const url = new URL(
-    `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(params.botType ?? DEFAULT_WEIXIN_BOT_TYPE)}`,
+    `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(
+      params.botType ?? DEFAULT_WEIXIN_BOT_TYPE,
+    )}`,
     normalizeWeixinBaseUrl(params.baseUrl),
   );
   return await fetchWeixinJson<WeixinQrCodeResponse>({
     url: url.toString(),
     method: "GET",
-    timeoutMs: 15_000,
+    timeoutMs: WEIXIN_API_TIMEOUT_MS,
     signal: params.signal,
   });
 }
@@ -180,9 +237,12 @@ export async function fetchWeixinConfig(params: {
   signal?: AbortSignal;
 }): Promise<WeixinConfigResponse> {
   return await fetchWeixinJson<WeixinConfigResponse>({
-    url: new URL("ilink/bot/getconfig", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+    url: new URL(
+      "ilink/bot/getconfig",
+      normalizeWeixinBaseUrl(params.baseUrl),
+    ).toString(),
     token: params.token,
-    timeoutMs: 15_000,
+    timeoutMs: WEIXIN_API_TIMEOUT_MS,
     signal: params.signal,
     body: {
       ilink_user_id: params.ilinkUserId,
@@ -201,9 +261,12 @@ export async function sendWeixinTyping(params: {
   signal?: AbortSignal;
 }): Promise<WeixinSendTypingResponse> {
   return await fetchWeixinJson<WeixinSendTypingResponse>({
-    url: new URL("ilink/bot/sendtyping", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+    url: new URL(
+      "ilink/bot/sendtyping",
+      normalizeWeixinBaseUrl(params.baseUrl),
+    ).toString(),
     token: params.token,
-    timeoutMs: 15_000,
+    timeoutMs: WEIXIN_API_TIMEOUT_MS,
     signal: params.signal,
     body: {
       ilink_user_id: params.toUserId,
@@ -251,7 +314,10 @@ export async function fetchWeixinUpdates(params: {
 }): Promise<WeixinGetUpdatesResponse> {
   try {
     return await fetchWeixinJson<WeixinGetUpdatesResponse>({
-      url: new URL("ilink/bot/getupdates", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+      url: new URL(
+        "ilink/bot/getupdates",
+        normalizeWeixinBaseUrl(params.baseUrl),
+      ).toString(),
       token: params.token,
       timeoutMs: params.timeoutMs ?? DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
       signal: params.signal,
@@ -268,15 +334,6 @@ export async function fetchWeixinUpdates(params: {
   }
 }
 
-function stripSimpleMarkdown(text: string): string {
-  return text
-    .replace(/```[^\n]*\n?([\s\S]*?)```/g, "$1")
-    .replace(/!\[[^\]]*]\([^)]*\)/g, "")
-    .replace(/\[([^\]]+)]\([^)]*\)/g, "$1")
-    .replace(/[*_~`>#-]+/g, "")
-    .trim();
-}
-
 export async function sendWeixinTextMessage(params: {
   baseUrl: string;
   token: string;
@@ -285,33 +342,28 @@ export async function sendWeixinTextMessage(params: {
   contextToken?: string;
   signal?: AbortSignal;
 }): Promise<{ messageId: string }> {
-  const messageId = randomUUID();
-  await fetchWeixinJson<Record<string, unknown>>({
-    url: new URL("ilink/bot/sendmessage", normalizeWeixinBaseUrl(params.baseUrl)).toString(),
+  return await sendWeixinMessageItem({
+    baseUrl: params.baseUrl,
     token: params.token,
-    timeoutMs: 15_000,
+    toUserId: params.toUserId,
+    contextToken: params.contextToken,
     signal: params.signal,
-    body: {
-      msg: {
-        from_user_id: "",
-        to_user_id: params.toUserId,
-        client_id: messageId,
-        message_type: WEIXIN_MESSAGE_TYPE_BOT,
-        message_state: WEIXIN_MESSAGE_STATE_FINISH,
-        item_list: [
-          {
-            type: WEIXIN_MESSAGE_ITEM_TYPE_TEXT,
-            text_item: {
-              text: stripSimpleMarkdown(params.text),
-            },
-          },
-        ],
-        context_token: params.contextToken ?? "",
+    item: {
+      type: WEIXIN_MESSAGE_ITEM_TYPE_TEXT,
+      text_item: {
+        text: stripSimpleMarkdown(params.text),
       },
-      base_info: buildWeixinBaseInfo(),
     },
   });
-  return { messageId };
+}
+
+export function isSyntheticWeixinAttachmentText(text: string): boolean {
+  return (
+    text === "[收到图片]" ||
+    text === "[收到视频]" ||
+    text === "[收到语音]" ||
+    /^\[收到文件(?:: .+)?]$/.test(text)
+  );
 }
 
 export function extractWeixinMessageText(message: WeixinMessage): string {

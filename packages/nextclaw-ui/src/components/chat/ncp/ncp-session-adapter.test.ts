@@ -71,7 +71,7 @@ describe('adaptNcpSessionSummary', () => {
   });
 });
 
-describe('adaptNcpMessageToUiMessage', () => {
+describe('adaptNcpMessageToUiMessage file rendering', () => {
   it('preserves mixed text and image part order for message rendering', () => {
     const adapted = adaptNcpMessageToUiMessage({
       id: 'ncp-message-1',
@@ -111,6 +111,40 @@ describe('adaptNcpMessageToUiMessage', () => {
     ]);
   });
 
+  it('maps assetUri file parts into asset content urls for rendering', () => {
+    const adapted = adaptNcpMessageToUiMessage({
+      id: 'ncp-message-asset-1',
+      sessionId: 'ncp-session-1',
+      role: 'assistant',
+      status: 'final',
+      timestamp: '2026-04-16T00:00:00.000Z',
+      parts: [
+        {
+          type: 'file',
+          name: 'diagram.png',
+          mimeType: 'image/png',
+          assetUri: 'asset://store/2026/04/16/asset_123',
+          sizeBytes: 42,
+        },
+      ],
+    });
+
+    expect(adapted.parts).toHaveLength(1);
+    expect(adapted.parts[0]).toMatchObject({
+      type: 'file',
+      name: 'diagram.png',
+      mimeType: 'image/png',
+      data: '',
+      sizeBytes: 42,
+    });
+    expect((adapted.parts[0] as { url?: string }).url).toMatch(
+      /\/api\/ncp\/assets\/content\?uri=asset%3A%2F%2Fstore%2F2026%2F04%2F16%2Fasset_123$/,
+    );
+  });
+
+});
+
+describe('adaptNcpMessageToUiMessage tool rendering', () => {
   it('keeps streamed native file tool args renderable as a preview before the tool result arrives', () => {
     const uiMessage = adaptNcpMessageToUiMessage({
       id: 'ncp-message-tool-1',

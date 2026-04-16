@@ -1,16 +1,26 @@
 import type { Chat, ChatTarget } from "@nextclaw/ncp-toolkit";
 import type { NcpMessagePart } from "@nextclaw/ncp";
-import { loadWeixinAccount, listStoredWeixinAccountIds } from "./weixin-account.store.js";
-import { sendWeixinTextMessage } from "./weixin-api.client.js";
+import {
+  listStoredWeixinAccountIds,
+  loadWeixinAccount,
+} from "./weixin-account.store.js";
 import { getWeixinContextToken } from "./weixin-context-token.store.js";
+import { sendWeixinTextMessage } from "./weixin-api.client.js";
+import {
+  sendWeixinFileMessage,
+  sendWeixinImageMessage,
+} from "./media/weixin-media.client.js";
+import { WeixinMediaPartReader } from "./media/weixin-media-part-reader.js";
 import type { WeixinTypingController } from "./weixin-typing-controller.js";
 import {
   DEFAULT_WEIXIN_BASE_URL,
   DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
   resolveConfiguredWeixinAccountIds,
   resolveWeixinAccountSelection,
-  type WeixinAccountConfig,
-  type WeixinPluginConfig,
+} from "./weixin-config.js";
+import type {
+  WeixinAccountConfig,
+  WeixinPluginConfig,
 } from "./weixin-config.js";
 
 export type ResolvedWeixinAccountRuntime = {
@@ -29,6 +39,11 @@ type WeixinChatDeps = {
 
 type SendTextParams = {
   stopTyping: boolean;
+};
+
+type WeixinSendContext = {
+  account: ResolvedWeixinAccountRuntime;
+  contextToken?: string;
 };
 
 function readString(value: unknown): string | undefined {
@@ -65,13 +80,6 @@ function renderWeixinPartText(part: NcpMessagePart): string {
       return part.text;
     case "rich-text":
       return part.text;
-    case "file":
-      return [
-        part.name ? `[文件] ${part.name}` : "[文件]",
-        part.url ?? part.assetUri ?? "",
-      ]
-        .filter(Boolean)
-        .join("\n");
     case "source":
       return [part.title ?? "", part.url ?? "", part.snippet ?? ""]
         .filter(Boolean)
@@ -100,6 +108,8 @@ function renderWeixinPartText(part: NcpMessagePart): string {
 }
 
 export class WeixinChat implements Chat {
+  private readonly mediaPartReader = new WeixinMediaPartReader();
+
   constructor(private readonly deps: WeixinChatDeps) {}
 
   resolveAccountRuntime = (
@@ -158,6 +168,10 @@ export class WeixinChat implements Chat {
   };
 
   sendPart = async (target: ChatTarget, part: NcpMessagePart): Promise<void> => {
+    if (part.type === "file") {
+      await this.sendFilePart(target, part);
+      return;
+    }
     const text = renderWeixinPartText(part);
     if (!text.trim()) {
       return;
@@ -220,11 +234,7 @@ export class WeixinChat implements Chat {
     );
   };
 
-  private sendText = async (
-    target: ChatTarget,
-    text: string,
-    params: SendTextParams,
-  ): Promise<void> => {
+  private resolveSendContext = (target: ChatTarget): WeixinSendContext => {
     const accountId = this.resolveAccountId(target);
     if (!accountId) {
       throw new Error(
@@ -239,24 +249,62 @@ export class WeixinChat implements Chat {
       );
     }
 
-    const contextToken = this.resolveContextToken(target, accountId);
+    return {
+      account,
+      contextToken: this.resolveContextToken(target, accountId),
+    };
+  };
+
+  private sendText = async (
+    target: ChatTarget,
+    text: string,
+    params: SendTextParams,
+  ): Promise<void> => {
+    const sendContext = this.resolveSendContext(target);
 
     try {
       await sendWeixinTextMessage({
-        baseUrl: account.baseUrl,
-        token: account.token,
+        baseUrl: sendContext.account.baseUrl,
+        token: sendContext.account.token,
         toUserId: target.conversationId,
         text,
-        contextToken,
+        contextToken: sendContext.contextToken,
       });
     } finally {
       if (!params.stopTyping) {
         return;
       }
       await this.deps.typingController.stop({
-        accountId: account.accountId,
+        accountId: sendContext.account.accountId,
         userId: target.conversationId,
       });
     }
+  };
+
+  private sendFilePart = async (
+    target: ChatTarget,
+    part: Extract<NcpMessagePart, { type: "file" }>,
+  ): Promise<void> => {
+    const media = await this.mediaPartReader.read(target, part);
+    const sendContext = this.resolveSendContext(target);
+    if (media.isImage) {
+      await sendWeixinImageMessage({
+        baseUrl: sendContext.account.baseUrl,
+        token: sendContext.account.token,
+        toUserId: target.conversationId,
+        bytes: media.bytes,
+        contextToken: sendContext.contextToken,
+      });
+      return;
+    }
+
+    await sendWeixinFileMessage({
+      baseUrl: sendContext.account.baseUrl,
+      token: sendContext.account.token,
+      toUserId: target.conversationId,
+      fileName: media.fileName,
+      bytes: media.bytes,
+      contextToken: sendContext.contextToken,
+    });
   };
 }

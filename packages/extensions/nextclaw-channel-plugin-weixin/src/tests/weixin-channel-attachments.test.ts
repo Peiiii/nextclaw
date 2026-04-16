@@ -86,7 +86,7 @@ describe("WeixinChannel inbound attachments", () => {
     });
 
     expect(message).not.toBeNull();
-    expect(message?.content).toBe("[收到图片]");
+    expect(message?.content).toBe("");
     expect(message?.attachments).toHaveLength(1);
     expect(message?.attachments[0]?.status).toBe("ready");
     expect(message?.attachments[0]?.mimeType).toBe("image/png");
@@ -184,7 +184,7 @@ describe("WeixinChannel inbound attachments", () => {
     });
 
     expect(message).not.toBeNull();
-    expect(message?.content).toBe("[收到图片]");
+    expect(message?.content).toBe("");
     expect(message?.attachments).toHaveLength(1);
     expect(message?.attachments[0]).toMatchObject({
       status: "remote-only",

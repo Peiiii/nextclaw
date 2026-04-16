@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +7,8 @@ import type { MessageBus } from "@nextclaw/core";
 import { saveWeixinAccount } from "../weixin-account.store.js";
 
 const sendWeixinTextMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-1" })));
+const sendWeixinImageMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-image-1" })));
+const sendWeixinFileMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-file-1" })));
 const extractWeixinMessageTextMock = vi.hoisted(() => vi.fn(() => "hello"));
 const typingControllerStartMock = vi.hoisted(() => vi.fn(async () => {}));
 const typingControllerStopMock = vi.hoisted(() => vi.fn(async () => {}));
@@ -14,9 +17,15 @@ const typingControllerStopAllMock = vi.hoisted(() => vi.fn(async () => {}));
 vi.mock("../weixin-api.client.js", () => ({
   sendWeixinTextMessage: sendWeixinTextMessageMock,
   extractWeixinMessageText: extractWeixinMessageTextMock,
+  isSyntheticWeixinAttachmentText: vi.fn(() => false),
   fetchWeixinConfig: vi.fn(async () => ({ ret: 0, errcode: 0, typing_ticket: "ticket-1" })),
   fetchWeixinUpdates: vi.fn(async () => ({ ret: 0, msgs: [], get_updates_buf: "" })),
   sendWeixinTyping: vi.fn(async () => ({ ret: 0, errcode: 0 })),
+}));
+
+vi.mock("../media/weixin-media.client.js", () => ({
+  sendWeixinImageMessage: sendWeixinImageMessageMock,
+  sendWeixinFileMessage: sendWeixinFileMessageMock,
 }));
 
 vi.mock("../weixin-typing-controller.js", () => ({
@@ -56,7 +65,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-describe("WeixinChannel typing lifecycle", () => {
+describe("WeixinChannel inbound and text reply lifecycle", () => {
   it("starts typing on inbound messages with context token", async () => {
     createHome();
     saveWeixinAccount({
@@ -266,5 +275,148 @@ describe("WeixinChannel typing lifecycle", () => {
       accountId: "bot-1@im.bot",
       userId: "user-1@im.wechat",
     });
+  });
+
+});
+
+describe("WeixinChannel native media delivery", () => {
+  it("sends assistant image file parts through the native weixin image path", async () => {
+    createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
+    const bus = {
+      publishInbound: vi.fn(async () => {}),
+    } as unknown as MessageBus;
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      bus,
+    );
+
+    await channel.consumeNcpReply({
+      target: {
+        conversationId: "user-1@im.wechat",
+        participantId: "user-1@im.wechat",
+        accountId: "bot-1@im.bot",
+        metadata: {
+          accountId: "bot-1@im.bot",
+          context_token: "ctx-image",
+        },
+      },
+      eventStream: {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            type: "message.completed",
+            payload: {
+              sessionId: "session-1",
+              message: {
+                id: "assistant-1",
+                sessionId: "session-1",
+                role: "assistant",
+                status: "final",
+                timestamp: new Date().toISOString(),
+                parts: [
+                  {
+                    type: "file",
+                    name: "diagram.png",
+                    mimeType: "image/png",
+                    contentBase64: Buffer.from("png-binary").toString("base64"),
+                  },
+                ],
+              },
+            },
+          };
+        },
+      },
+    });
+
+    expect(sendWeixinImageMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toUserId: "user-1@im.wechat",
+        contextToken: "ctx-image",
+        bytes: expect.any(Uint8Array),
+      }),
+    );
+    expect(sendWeixinFileMessageMock).not.toHaveBeenCalled();
+    expect(sendWeixinTextMessageMock).not.toHaveBeenCalled();
+  });
+
+  it("resolves assetUri file parts and sends them through the native weixin file path", async () => {
+    const home = createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
+    const assetPath = join(home, "report.pdf");
+    const pdfBytes = Buffer.from("%PDF-1.7 nextclaw");
+    mkdirSync(home, { recursive: true });
+    await writeFile(assetPath, pdfBytes);
+    const bus = {
+      publishInbound: vi.fn(async () => {}),
+    } as unknown as MessageBus;
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      bus,
+    );
+
+    await channel.consumeNcpReply({
+      target: {
+        conversationId: "user-1@im.wechat",
+        participantId: "user-1@im.wechat",
+        accountId: "bot-1@im.bot",
+        resolveAssetContentPath: (assetUri) =>
+          assetUri === "asset://report" ? assetPath : null,
+        metadata: {
+          accountId: "bot-1@im.bot",
+          context_token: "ctx-file",
+        },
+      },
+      eventStream: {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            type: "message.completed",
+            payload: {
+              sessionId: "session-1",
+              message: {
+                id: "assistant-1",
+                sessionId: "session-1",
+                role: "assistant",
+                status: "final",
+                timestamp: new Date().toISOString(),
+                parts: [
+                  {
+                    type: "file",
+                    assetUri: "asset://report",
+                    mimeType: "application/pdf",
+                    name: "report.pdf",
+                  },
+                ],
+              },
+            },
+          };
+        },
+      },
+    });
+
+    expect(sendWeixinFileMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        toUserId: "user-1@im.wechat",
+        contextToken: "ctx-file",
+        fileName: "report.pdf",
+        bytes: expect.any(Uint8Array),
+      }),
+    );
+    expect(sendWeixinImageMessageMock).not.toHaveBeenCalled();
   });
 });

@@ -8,6 +8,7 @@ export type ChatTarget = {
   messageId?: string;
   threadId?: string;
   accountId?: string;
+  resolveAssetContentPath?: (assetUri: string) => string | null;
   metadata?: Record<string, unknown>;
 };
 
