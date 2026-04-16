@@ -54,7 +54,7 @@ function AppLayoutInner({ children }: AppLayoutProps) {
           ) : (
             <main
               className={cn(
-                'flex-1 custom-scrollbar p-8',
+                'flex-1 custom-scrollbar p-8 pb-24',
                 lockPageScroll ? 'overflow-auto xl:overflow-hidden' : 'overflow-auto'
               )}
             >

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F9F8F5" />
+  <title>NextClaw Offline</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f9f8f5;
+      --card: rgba(255, 255, 255, 0.92);
+      --text: #17120f;
+      --muted: #6d645c;
+      --border: rgba(23, 18, 15, 0.1);
+      --accent: #fbbf24;
+      --shadow: 0 18px 50px rgba(26, 21, 18, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "SF Pro Display", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(251, 191, 36, 0.16), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(26, 21, 18, 0.1), transparent 28%),
+        var(--bg);
+      color: var(--text);
+    }
+
+    .card {
+      width: min(100%, 520px);
+      border-radius: 28px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .brand img {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      background: #1a1512;
+      padding: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.15;
+    }
+
+    p {
+      margin: 14px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .hint {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(251, 191, 36, 0.12);
+      color: #5f4a00;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <div class="brand">
+      <img src="/logo.svg" alt="NextClaw logo" />
+      <span>NextClaw</span>
+    </div>
+    <h1>应用壳已加载，但当前无法连接服务。</h1>
+    <p>NextClaw 的 PWA 主要用于更自然地进入本地或远端运行中的 NextClaw UI，而不是提供完整离线能力。请确认本地 runtime 或远端服务当前可访问，然后刷新重试。</p>
+    <div class="hint">如果你是通过本机访问，请先确认 NextClaw 服务已经启动；如果你是通过服务器访问，请确认当前网络连接正常。</div>
+  </main>
+</body>
+
+</html>

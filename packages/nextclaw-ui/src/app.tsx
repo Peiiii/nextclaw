@@ -7,8 +7,11 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { isTransientAuthStatusBootstrapError, useAuthStatus } from '@/hooks/use-auth';
 import { useRealtimeQueryBridge } from '@/hooks/use-realtime-query-bridge';
 import { AppPresenterProvider } from '@/presenter/app-presenter-context';
+import { PwaInstallBanner, PwaUpdateBanner } from '@/pwa/components/pwa-install-entry';
+import { startNextClawPwa } from '@/pwa/register-pwa';
 import { Toaster } from 'sonner';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
 
 const ModelConfigPage = lazy(async () => ({ default: (await import('@/components/config/ModelConfig')).ModelConfig }));
 const ChatPage = lazy(async () => ({ default: (await import('@/components/chat/chat-page')).ChatPage }));
@@ -89,9 +92,15 @@ function AuthGate() {
 }
 
 export default function AppContent() {
+  useEffect(() => {
+    startNextClawPwa();
+  }, []);
+
   return (
     <QueryClientProvider client={appQueryClient}>
       <AuthGate />
+      <PwaInstallBanner />
+      <PwaUpdateBanner />
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

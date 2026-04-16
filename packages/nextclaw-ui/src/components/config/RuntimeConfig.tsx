@@ -19,6 +19,7 @@ import {
 import { hintForPath } from '@/lib/config-hints';
 import { t } from '@/lib/i18n';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
+import { PwaInstallCard } from '@/pwa/components/pwa-install-entry';
 import { Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -38,6 +39,7 @@ function RuntimeConfigOverview() {
       <PageHeader title={t('runtimePageTitle')} description={t('runtimePageDescription')} />
       <RuntimeControlCard />
       <RuntimePresenceCard />
+      <PwaInstallCard />
     </>
   );
 }

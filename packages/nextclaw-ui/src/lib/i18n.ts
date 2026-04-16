@@ -15,6 +15,7 @@ import {
 import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
 import { MARKETPLACE_LABELS } from './i18n.marketplace';
 import { PATH_PICKER_LABELS } from './i18n-runtime/i18n.path-picker';
+import { PWA_LABELS } from './i18n.pwa';
 import { REMOTE_LABELS } from './i18n.remote';
 import { RUNTIME_CONTROL_LABELS } from './i18n.runtime-control';
 import { SEARCH_LABELS } from './i18n.search';
@@ -24,7 +25,6 @@ export function formatDateTime(value?: string | Date, lang: I18nLanguage = getLa
   if (!value) {
     return '-';
   }
-
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) {
     return typeof value === 'string' ? value : '-';
@@ -517,7 +517,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   enterTag: { zh: '输入后按回车...', en: 'Type and press Enter...' },
   headerName: { zh: 'Header 名称', en: 'Header Name' },
   headerValue: { zh: 'Header 值', en: 'Header Value' },
-
   // Doc Browser
   docBrowserTitle: { zh: '内嵌浏览器', en: 'Embedded Browser' },
   docBrowserSearchPlaceholder: { zh: '搜索，也可以输入文档地址直接打开', en: 'Search, or enter a doc URL to open' },
@@ -531,6 +530,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   docBrowserCloseTab: { zh: '关闭标签', en: 'Close Tab' },
   docBrowserTabUntitled: { zh: '未命名', en: 'Untitled' },
   ...PATH_PICKER_LABELS,
+  ...PWA_LABELS,
   ...CHANNEL_AUTH_LABELS,
 };
 

@@ -1,0 +1,30 @@
+{
+  "name": "NextClaw",
+  "short_name": "NextClaw",
+  "description": "NextClaw is your installable AI operating layer for chat, configuration, orchestration, and local runtime control.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f9f8f5",
+  "theme_color": "#f9f8f5",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
