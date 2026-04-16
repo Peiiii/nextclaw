@@ -105,7 +105,7 @@ export function resolveUiStaticDir(): string | null {
   return existsSync(join(bundledDir, "index.html")) ? bundledDir : null;
 }
 
-export function openBrowser(url: string): void {
+export function openBrowser(url: string): boolean {
   const platform = process.platform;
   let command: string;
   let args: string[];
@@ -119,12 +119,20 @@ export function openBrowser(url: string): void {
     command = "xdg-open";
     args = [url];
   }
-  const child = spawn(command, args, {
-    stdio: "ignore",
-    detached: true,
-    env: createExternalCommandEnv(process.env)
-  });
-  child.unref();
+  if (!which(command)) {
+    return false;
+  }
+  try {
+    const child = spawn(command, args, {
+      stdio: "ignore",
+      detached: true,
+      env: createExternalCommandEnv(process.env)
+    });
+    child.unref();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export type ExecutableLookupEnv = {
@@ -224,10 +232,10 @@ function resolveVersionFromPackageTree(startDir: string, expectedName?: string):
       try {
         const raw = readFileSync(pkgPath, "utf-8");
         const parsed = JSON.parse(raw) as { name?: string; version?: string };
-        if (typeof parsed.version === "string") {
-          if (!expectedName || parsed.name === expectedName) {
-            return parsed.version;
-          }
+        const version = typeof parsed.version === "string" ? parsed.version : null;
+        const matchesExpectedName = !expectedName || parsed.name === expectedName;
+        if (version && matchesExpectedName) {
+          return version;
         }
       } catch {
         // Ignore malformed package.json and continue searching upwards.

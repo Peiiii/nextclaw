@@ -242,26 +242,34 @@ function renderBrowserAuthPendingContent(params: {
   errorMessage?: string;
   successMessage?: string;
 }): string {
-  const emailValue = escapeHtml(params.email ?? "");
-  const errorMessage = params.errorMessage ? `<div class="notice error">${escapeHtml(params.errorMessage)}</div>` : "";
-  const successMessage = params.successMessage ? `<div class="notice success">${escapeHtml(params.successMessage)}</div>` : "";
-  const expiresText = params.expiresAt ? new Date(params.expiresAt).toLocaleString("en-US") : "-";
+  const {
+    email,
+    errorMessage: rawErrorMessage,
+    expiresAt,
+    mode,
+    sessionId,
+    successMessage: rawSuccessMessage
+  } = params;
+  const emailValue = escapeHtml(email ?? "");
+  const errorMessage = rawErrorMessage ? `<div class="notice error">${escapeHtml(rawErrorMessage)}</div>` : "";
+  const successMessage = rawSuccessMessage ? `<div class="notice success">${escapeHtml(rawSuccessMessage)}</div>` : "";
+  const expiresText = expiresAt ? new Date(expiresAt).toLocaleString("en-US") : "-";
   const switchModeLink =
-    params.mode === "register"
-      ? `<a href="?sessionId=${encodeURIComponent(params.sessionId)}">Already have an account? Sign in</a>`
-      : `<a href="?sessionId=${encodeURIComponent(params.sessionId)}&mode=register">Need an account? Create one</a>`;
-  const submitLabel = params.mode === "register" ? "Create Account" : "Continue";
-  const passwordPlaceholder = params.mode === "register" ? "At least 8 characters" : "Enter your password";
+    mode === "register"
+      ? `<a href="?sessionId=${encodeURIComponent(sessionId)}">Already have an account? Sign in</a>`
+      : `<a href="?sessionId=${encodeURIComponent(sessionId)}&mode=register">Need an account? Create one</a>`;
+  const submitLabel = mode === "register" ? "Create Account" : "Continue";
+  const passwordPlaceholder = mode === "register" ? "At least 8 characters" : "Enter your password";
   return `
     ${errorMessage}
     ${successMessage}
     <div class="mode-switch">
-      <a class="${params.mode === "login" ? "active" : ""}" href="?sessionId=${encodeURIComponent(params.sessionId)}">Sign In</a>
-      <a class="${params.mode === "register" ? "active" : ""}" href="?sessionId=${encodeURIComponent(params.sessionId)}&mode=register">Create Account</a>
+      <a class="${mode === "login" ? "active" : ""}" href="?sessionId=${encodeURIComponent(sessionId)}">Sign In</a>
+      <a class="${mode === "register" ? "active" : ""}" href="?sessionId=${encodeURIComponent(sessionId)}&mode=register">Create Account</a>
     </div>
     <form method="post" action="/platform/auth/browser/authorize" class="auth-form">
-      <input type="hidden" name="sessionId" value="${escapeHtml(params.sessionId)}" />
-      <input type="hidden" name="mode" value="${params.mode}" />
+      <input type="hidden" name="sessionId" value="${escapeHtml(sessionId)}" />
+      <input type="hidden" name="mode" value="${mode}" />
       <label>
         <span>Email</span>
         <input type="email" name="email" value="${emailValue}" placeholder="name@example.com" required />
@@ -283,14 +291,20 @@ function renderBrowserAuthResolvedContent(params: {
   errorMessage?: string;
   successMessage?: string;
 }): string {
-  const errorMessage = params.errorMessage ? `<div class="notice error">${escapeHtml(params.errorMessage)}</div>` : "";
-  const successMessage = params.successMessage ? `<div class="notice success">${escapeHtml(params.successMessage)}</div>` : "";
+  const {
+    errorMessage: rawErrorMessage,
+    sessionId,
+    subtitle,
+    successMessage: rawSuccessMessage
+  } = params;
+  const errorMessage = rawErrorMessage ? `<div class="notice error">${escapeHtml(rawErrorMessage)}</div>` : "";
+  const successMessage = rawSuccessMessage ? `<div class="notice success">${escapeHtml(rawSuccessMessage)}</div>` : "";
   return `
     ${errorMessage}
     ${successMessage}
     <div class="state-card">
-      <p>${escapeHtml(params.subtitle)}</p>
-      <p class="meta">Session: ${escapeHtml(params.sessionId.slice(0, 10))}...</p>
+      <p>${escapeHtml(subtitle)}</p>
+      <p class="meta">Session: ${escapeHtml(sessionId.slice(0, 10))}...</p>
     </div>
   `;
 }
@@ -304,14 +318,20 @@ function renderBrowserAuthPage(params: {
   successMessage?: string;
   pageState: "pending" | "authorized" | "expired" | "missing";
 }) {
-  const { title, subtitle } = getBrowserAuthHeading(params.pageState);
-  const content = params.pageState === "pending"
+  const {
+    errorMessage,
+    pageState,
+    sessionId,
+    successMessage
+  } = params;
+  const { title, subtitle } = getBrowserAuthHeading(pageState);
+  const content = pageState === "pending"
     ? renderBrowserAuthPendingContent(params)
     : renderBrowserAuthResolvedContent({
-      sessionId: params.sessionId,
+      sessionId,
       subtitle,
-      errorMessage: params.errorMessage,
-      successMessage: params.successMessage
+      errorMessage,
+      successMessage
     });
 
   return new Response(
@@ -520,7 +540,7 @@ export async function authorizeBrowserAuthHandler(c: Context<{ Bindings: Env }>)
       expiresAt: session.expires_at,
       email,
       pageState: "authorized",
-      successMessage: "Authorization completed. Return to NextClaw to finish connecting this device."
+      successMessage: "Authorization completed. You can close this page now. NextClaw should finish this device login automatically."
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {

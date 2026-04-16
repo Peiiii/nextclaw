@@ -478,7 +478,7 @@ Skill loading contract:
 | `nextclaw agents new <agent-id>` | Create a new agent with default home/template/avatar |
 | `nextclaw agents update <agent-id>` | Update an existing agent's display metadata |
 | `nextclaw agents remove <agent-id>` | Remove an extra agent (built-in `main` cannot be removed) |
-| `nextclaw login --api-base <url>` | Login to NextClaw Platform and save the platform token locally |
+| `nextclaw login --api-base <url>` | Start browser sign-in for NextClaw Platform and save the platform token locally (`--no-open` for headless servers, `--email/--password` for direct fallback) |
 | `nextclaw remote enable` | Enable service-managed remote access |
 | `nextclaw remote disable` | Disable service-managed remote access |
 | `nextclaw remote status` | Show remote runtime/config status |
@@ -608,6 +608,7 @@ If service is already running, new UI port flags do not hot-apply; use `nextclaw
 Remote access quick start:
 
 1. Login once on that device: `nextclaw login --api-base https://ai-gateway-api.nextclaw.io/v1`.
+   On a headless server, add `--no-open` and open the printed link from another device/browser.
 2. Enable service-managed remote access: `nextclaw remote enable`.
 3. Start your local NextClaw service: `nextclaw start`.
 4. Check status if needed: `nextclaw remote status`.

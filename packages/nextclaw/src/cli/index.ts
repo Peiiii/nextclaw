@@ -33,10 +33,11 @@ program
 
 program
   .command("login")
-  .description("Login to NextClaw platform and save token into providers.nextclaw.apiKey")
+  .description("Sign in to NextClaw Platform and save the platform token locally (browser flow by default)")
   .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
-  .option("--email <email>", "Login email")
-  .option("--password <password>", "Login password")
+  .option("--email <email>", "Login email for direct password sign-in")
+  .option("--password <password>", "Login password for direct password sign-in")
+  .option("--no-open", "Do not open the browser automatically")
   .action(async (opts) => runtime.login(opts));
 
 registerRemoteCommands(program, runtime.remote);

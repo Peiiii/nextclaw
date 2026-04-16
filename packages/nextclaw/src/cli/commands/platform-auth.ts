@@ -10,7 +10,7 @@ import {
   readPlatformUserPayload
 } from "./platform-auth-support/payload.js";
 import type { LoginCommandOptions } from "../types.js";
-import { prompt } from "../utils.js";
+import { openBrowser, prompt } from "../utils.js";
 
 type NextclawProviderConfig = {
   displayName?: string;
@@ -157,6 +157,101 @@ function persistPlatformToken(params: {
 }
 
 export class PlatformAuthCommands {
+  private shouldUseBrowserLogin = (opts: LoginCommandOptions): boolean => {
+    const email = typeof opts.email === "string" ? opts.email.trim() : "";
+    const password = typeof opts.password === "string" ? opts.password : "";
+    return !email && !password;
+  };
+
+  private waitFor = async (delayMs: number): Promise<void> => {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  };
+
+  private formatLoginDeadline = (expiresAt: string): string => {
+    const value = Date.parse(expiresAt);
+    return Number.isNaN(value) ? expiresAt : new Date(value).toLocaleString();
+  };
+
+  private printLoginSuccess = (result: PlatformLoginResult): void => {
+    console.log(`✓ Logged in to NextClaw platform (${result.platformBase})`);
+    console.log(`✓ Account: ${result.email} (${result.role})`);
+    console.log("✓ Token saved into providers.nextclaw.apiKey");
+  };
+
+  private printBrowserLoginIntro = (params: {
+    verificationUri: string;
+    expiresAt: string;
+    open: boolean;
+    openedBrowser: boolean;
+  }): void => {
+    const {
+      expiresAt,
+      open,
+      openedBrowser,
+      verificationUri
+    } = params;
+    const expiresText = this.formatLoginDeadline(expiresAt);
+    console.log("NextClaw browser sign-in");
+    console.log(`Open this link to continue: ${verificationUri}`);
+    if (open) {
+      if (openedBrowser) {
+        console.log("✓ Opened the default browser. Finish sign-in there and this terminal will complete automatically.");
+      } else {
+        console.log("Browser did not open automatically. Open the link above in any browser to continue.");
+      }
+    } else {
+      console.log("Automatic browser opening is disabled. Open the link above in any browser to continue.");
+    }
+    console.log("This link can be opened on this machine or on another device if your CLI is running remotely.");
+    console.log(`Waiting for authorization until ${expiresText}...`);
+  };
+
+  private waitForBrowserLoginResult = async (params: {
+    apiBase?: string;
+    sessionId: string;
+  }): Promise<PlatformLoginResult> => {
+    while (true) {
+      const result = await this.pollBrowserAuth({
+        apiBase: params.apiBase,
+        sessionId: params.sessionId
+      });
+      if (result.status === "pending") {
+        await this.waitFor(result.nextPollMs);
+        continue;
+      }
+      if (result.status === "expired") {
+        throw new Error(`${result.message} Run \`nextclaw login\` again to generate a new sign-in link.`);
+      }
+      return {
+        token: result.token,
+        role: result.role,
+        email: result.email,
+        platformBase: result.platformBase,
+        v1Base: result.v1Base
+      };
+    }
+  };
+
+  private loginWithBrowserResult = async (opts: LoginCommandOptions = {}): Promise<PlatformLoginResult> => {
+    const startResult = await this.startBrowserAuth({
+      apiBase: opts.apiBase
+    });
+    const shouldOpenBrowser = opts.open !== false;
+    const openedBrowser = shouldOpenBrowser ? openBrowser(startResult.verificationUri) : false;
+    this.printBrowserLoginIntro({
+      verificationUri: startResult.verificationUri,
+      expiresAt: startResult.expiresAt,
+      open: shouldOpenBrowser,
+      openedBrowser
+    });
+    const result = await this.waitForBrowserLoginResult({
+      apiBase: opts.apiBase,
+      sessionId: startResult.sessionId
+    });
+    console.log("✓ Browser authorization completed.");
+    return result;
+  };
+
   private readStoredToken = (params: { apiBase?: string } = {}): {
     configPath: string;
     config: ReturnType<typeof loadConfig>;
@@ -287,11 +382,10 @@ export class PlatformAuthCommands {
   };
 
   login = async (opts: LoginCommandOptions = {}): Promise<void> => {
-    const result = await this.loginResult(opts);
-
-    console.log(`✓ Logged in to NextClaw platform (${result.platformBase})`);
-    console.log(`✓ Account: ${result.email} (${result.role})`);
-    console.log(`✓ Token saved into providers.nextclaw.apiKey`);
+    const result = this.shouldUseBrowserLogin(opts)
+      ? await this.loginWithBrowserResult(opts)
+      : await this.loginResult(opts);
+    this.printLoginSuccess(result);
   };
 
   me = async (params: { apiBase?: string } = {}): Promise<PlatformMeResult> => {
