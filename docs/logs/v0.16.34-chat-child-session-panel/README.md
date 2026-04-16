@@ -12,6 +12,9 @@
 4. 调整 `NcpChatThreadManager`，新增 `openChildSessionPanel`，由 manager 统一负责父会话路由与 active child session 聚焦。
 5. 补充侧栏、session list manager、session header actions、NCP chat thread manager 等相关测试。
 6. 已重新构建 `packages/nextclaw-ui/dist`，并通过 `packages/nextclaw/scripts/copy-ui-dist.mjs` 同步最新构建产物到 `packages/nextclaw/ui-dist`。
+7. 同批次续改：修复“前端删除当前会话后，外部渠道同 key 会话再次收到新消息时，聊天面板仍可能沿用旧前端线程状态”的问题。
+8. `NcpChatThreadManager` 在删除成功后会立即清空当前 `selectedSessionKey` 与线程快照，不再只依赖路由回到 `/chat` 后再被动同步，避免旧消息、旧父子面板状态、旧 header 信息继续滞留在前端内存态里。
+9. 为该删除链路补充回归测试，锁定“删除成功后必须立刻清空当前线程选择态与消息快照”的行为。
 
 ## 测试 / 验证 / 验收方式
 
@@ -31,6 +34,11 @@
 4. 构建产物已同步到 `packages/nextclaw/ui-dist`。
 5. touched 文件定点 eslint 无 error，仅保留 `ChatSidebar` 超过函数行数阈值的 warning。
 6. `pnpm -C packages/nextclaw-ui lint` 全量执行被 marketplace 既有 `react-hooks/refs` error 阻断，阻断文件不属于本次改动范围。
+7. 同批次续改已完成：
+   `pnpm -C packages/nextclaw-ui test -- src/components/chat/ncp/tests/ncp-chat-thread.manager.test.ts`
+8. 同批次续改复查已完成：
+   `pnpm -C packages/nextclaw-ui test -- src/components/chat/chat-conversation-panel.test.tsx`
+9. `pnpm lint:maintainability:guard` 本次仍被仓库中其它并行改动/既有超预算文件阻断，阻断项不在本次 touched 文件内；本次改动自身未新增新的守卫命中。
 
 ## 发布 / 部署方式
 
@@ -50,6 +58,9 @@
 4. 点击子会话入口，确认会切回父会话并打开右侧 child session 面板。
 5. 在会话头部点击 child session 按钮，确认同样可以打开子会话面板。
 6. 从工具卡打开 child session 时，确认面板聚焦到对应子会话，而不是把主会话导航到子会话详情页后丢失父子关系。
+7. 打开一个微信等外部渠道映射出来的会话，确认聊天面板里已有历史消息。
+8. 在会话右上角执行“删除会话”，确认页面立即回到 `/chat` 根态，旧消息和子会话面板状态不再残留。
+9. 让同一个外部渠道会话再次发来一条新消息，确认前端不会先把刚才删除掉的整段旧历史重新显示出来；新会话只展示新的会话态。
 
 ## 可维护性总结汇总
 
@@ -60,6 +71,7 @@
 1. 本次增强了 NextClaw 作为统一工作台的连续性：子会话不再像离散会话一样隐藏在列表里，而是能围绕父会话形成可理解的工作流层级。
 2. 状态来源更清晰：child session tab 列表由 session summaries 派生，而不是由点击工具卡时临时写入 store，减少了 UI 状态漂移。
 3. 行为入口收敛到 `NcpChatThreadManager.openChildSessionPanel`，没有把父会话路由和 child 聚焦逻辑散落到多个组件里。
+4. 本次续改进一步把“删除成功后的前端状态清理”也收回 `NcpChatThreadManager`，避免删除语义依赖页面 effect 时序。
 
 本次是否已尽最大努力优化可维护性：是，但保留了一个明确债务。
 
@@ -68,6 +80,7 @@
 1. 删除了旧的 `upsertChildSessionTab` 临时写 store 路径，改成从 session summaries 派生 child tabs。
 2. 没有新增独立 store 或新的 presenter 层，只在既有 manager / derived state / view 入口上扩展。
 3. 由于这是新增用户可见入口，源码仍出现净增长；增长主要来自入口展示、派生态和测试，属于最小必要范围。
+4. 本次续改属于非功能扩张的验收修正，新增代码只用于立即清空删除后的前端选择态与补回归测试，没有再引入新的 store、query 层或组件分支。
 
 代码增减报告：
 
@@ -93,6 +106,7 @@
 1. 子会话打开行为由 `NcpChatThreadManager` 这个 owner class 承接。
 2. child tabs 由 `useNcpChatDerivedState` 从 session summaries 派生。
 3. `ChatSidebar` 与 header actions 只负责展示入口和转发用户动作。
+4. 删除成功后的清理 owner 仍然留在 `NcpChatThreadManager`，没有把补丁式状态重置散落回 header action 组件。
 
 目录结构与文件组织是否满足当前项目治理要求：基本满足。
 
@@ -103,6 +117,20 @@
 可维护性复核：
 
 no maintainability findings
+
+同批次续改补充复核：
+
+1. 可维护性复核结论：通过
+2. 本次顺手减债：是
+3. 代码增减报告：
+   新增：87 行
+   删除：0 行
+   净增：+87 行
+4. 非测试代码增减报告：
+   新增：27 行
+   删除：0 行
+   净增：+27 行
+5. 说明：这次净增没有带来新能力面，而是把原本隐式依赖路由/effect 时序的删除后状态清理显式收敛进现有 manager，并用测试覆盖锁住回归点；继续压缩会重新回到“删除成功但前端是否立刻清干净取决于后续同步时机”的不稳定状态。
 
 可维护性总结：
 
