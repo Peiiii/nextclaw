@@ -11,12 +11,14 @@ import {
 } from "@nextclaw/server";
 import { openBrowser } from "../../../utils.js";
 import type { GatewayControllerImpl } from "../../../gateway/controller.js";
-import { createUiNcpAgent, type UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
+import { createUiNcpAgent, type UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { runGatewayInboundLoop } from "../../ncp/runtime/nextclaw-ncp-dispatch.js";
+import { createChannelReplyRouterService } from "../../ncp/runtime/runner/channel-reply-router.service.js";
 import type { NextclawExtensionRegistry } from "../../plugins.js";
 import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../session/service-deferred-ncp-agent.js";
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
 import { logStartupTrace, measureStartupAsync } from "../../../startup-trace.js";
+import type { ConfigReloader } from "../../../config-reloader.js";
 
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
@@ -214,6 +216,7 @@ export async function runConfiguredGatewayRuntime(params: {
     providerManager: ProviderManager;
     cron: CronService;
     gatewayController: GatewayControllerImpl;
+    reloader: ConfigReloader;
     runtimeConfigPath: string;
   };
   deferredNcpSessionService: DeferredUiNcpSessionServiceController;
@@ -239,6 +242,7 @@ export async function runConfiguredGatewayRuntime(params: {
   const onSystemSessionUpdated = createSystemSessionUpdatedPublisher({
     publishUiEvent: params.publishUiEvent,
   });
+  const replyRouter = createChannelReplyRouterService();
 
   logStartupTrace("service.start_gateway.runtime_loop_begin");
   await runGatewayRuntimeLoop({
@@ -248,6 +252,8 @@ export async function runConfiguredGatewayRuntime(params: {
         sessionManager: params.gateway.sessionManager,
         getConfig: params.getConfig,
         resolveNcpAgent: params.getLiveUiNcpAgent,
+        getChannels: () => params.gateway.reloader.getChannels(),
+        replyRouter,
         onSystemSessionUpdated: ({ sessionKey }) =>
           onSystemSessionUpdated({ sessionKey }),
       }),

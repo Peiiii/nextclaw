@@ -134,4 +134,46 @@ describe("DefaultNcpStreamEncoder", () => {
       },
     });
   });
+
+  it("closes the current text part before tool call events begin", async () => {
+    const eventTypes = await collectEventTypes([
+      {
+        choices: [
+          {
+            delta: {
+              content: "Need tool first. ",
+            },
+          },
+        ],
+      },
+      {
+        choices: [
+          {
+            delta: {
+              tool_calls: [
+                {
+                  index: 0,
+                  id: "tool-search-1",
+                  function: {
+                    name: "search",
+                    arguments: "{\"q\":\"nextclaw\"}",
+                  },
+                },
+              ],
+            },
+            finish_reason: "tool_calls",
+          },
+        ],
+      },
+    ]);
+
+    expect(eventTypes).toEqual([
+      NcpEventType.MessageTextStart,
+      NcpEventType.MessageTextDelta,
+      NcpEventType.MessageTextEnd,
+      NcpEventType.MessageToolCallStart,
+      NcpEventType.MessageToolCallArgsDelta,
+      NcpEventType.MessageToolCallEnd,
+    ]);
+  });
 });

@@ -17,7 +17,12 @@
   "openclaw": {
     "extensions": [
       "index.js"
-    ]
+    ],
+    "development": {
+      "extensions": [
+        "index.js"
+      ]
+    }
   },
   "scripts": {
     "lint": "eslint index.js",

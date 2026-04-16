@@ -7,6 +7,7 @@ import {
   NcpEventType,
 } from "@nextclaw/ncp";
 import {
+  closeTextPartBeforeToolCalls,
   createStreamContentState,
   type DeltaLike,
   emitReasoningDelta,
@@ -49,6 +50,11 @@ export class DefaultNcpStreamEncoder implements NcpStreamEncoder {
         yield* emitReasoningDelta(delta, { sessionId, messageId });
         const nextState = yield* emitTextDeltas(delta, { sessionId, messageId }, state);
         state = nextState;
+        state = yield* closeTextPartBeforeToolCalls(
+          delta,
+          { sessionId, messageId },
+          state,
+        );
         yield* emitToolCallDeltas(delta, toolCallBuffers, { sessionId, messageId });
       }
 

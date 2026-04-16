@@ -152,4 +152,8 @@ export class ChannelManager {
   get enabledChannels(): string[] {
     return Object.keys(this.channels);
   }
+
+  getChannel(name: string): BaseChannel<Record<string, unknown>> | null {
+    return this.channels[name] ?? null;
+  }
 }

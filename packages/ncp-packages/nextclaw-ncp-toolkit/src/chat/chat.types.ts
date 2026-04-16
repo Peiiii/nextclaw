@@ -1,0 +1,24 @@
+import type { NcpEndpointEvent, NcpMessagePart } from "@nextclaw/ncp";
+
+export type NcpEventStream = AsyncIterable<NcpEndpointEvent>;
+
+export type ChatTarget = {
+  conversationId: string;
+  participantId: string;
+  messageId?: string;
+  threadId?: string;
+  accountId?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type NcpReplyInput = {
+  target: ChatTarget;
+  eventStream: NcpEventStream;
+};
+
+export interface Chat {
+  startTyping(target: ChatTarget): Promise<void>;
+  sendPart(target: ChatTarget, part: NcpMessagePart): Promise<void>;
+  sendError(target: ChatTarget, message: string): Promise<void>;
+  stopTyping(target: ChatTarget): Promise<void>;
+}

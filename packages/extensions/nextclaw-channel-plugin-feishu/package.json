@@ -20,6 +20,11 @@
     "extensions": [
       "./index.ts"
     ],
+    "development": {
+      "extensions": [
+        "./index.ts"
+      ]
+    },
     "channel": {
       "id": "feishu",
       "label": "Feishu",

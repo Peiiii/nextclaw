@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../../ncp/create-ui-ncp-agent.js", () => ({
+vi.mock("../../../ncp/create-ui-ncp-agent.service.js", () => ({
   createUiNcpAgent: vi.fn(),
 }));
 
-import { createUiNcpAgent } from "../../../ncp/create-ui-ncp-agent.js";
+import { createUiNcpAgent } from "../../../ncp/create-ui-ncp-agent.service.js";
 import {
   createSystemSessionUpdatedPublisher,
   startDeferredGatewayStartup,

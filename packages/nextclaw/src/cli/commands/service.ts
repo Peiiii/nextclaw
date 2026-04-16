@@ -26,7 +26,7 @@ import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey }
 import { resolveCliSubcommandEntry } from "./service-support/marketplace/cli-subcommand-launch.js";
 import { writeReadyManagedServiceState } from "./service-support/runtime/service-remote-runtime.js";
 import { createServiceUiHosts } from "./service-support/ui/service-ui-hosts.service.js";
-import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.js";
+import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.service.js";
 import { createGatewayShellContext, createGatewayStartupContext } from "./service-support/gateway/service-gateway-context.js";
 import { runConfiguredGatewayRuntime, startUiShell } from "./service-support/gateway/service-gateway-startup.js";
 import { createServiceNcpSessionRealtimeBridge } from "./service-support/session/service-ncp-session-realtime-bridge.js";

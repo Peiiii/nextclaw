@@ -5,7 +5,9 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@nextclaw/core": ["../../nextclaw-core/src/index.ts"]
+      "@nextclaw/core": ["../../nextclaw-core/src/index.ts"],
+      "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
+      "@nextclaw/ncp-toolkit": ["../../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"]
     }
   },
   "include": ["src"],

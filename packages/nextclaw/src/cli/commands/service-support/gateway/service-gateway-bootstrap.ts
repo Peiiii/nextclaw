@@ -6,7 +6,7 @@ import {
   type PluginRegistry,
   type PluginUiMetadata,
 } from "@nextclaw/openclaw-compat";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { dispatchPromptOverNcp } from "../../ncp/runtime/nextclaw-ncp-dispatch.js";
 import {
   applyGatewayCapabilityState,

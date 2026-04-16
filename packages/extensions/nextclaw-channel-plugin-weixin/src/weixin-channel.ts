@@ -1,34 +1,26 @@
 import type { MessageBus } from "@nextclaw/core";
-import { BaseChannel, isTypingStopControlMessage, type OutboundMessage } from "@nextclaw/core";
-import { loadWeixinAccount, loadWeixinCursor, saveWeixinCursor, listStoredWeixinAccountIds } from "./weixin-account.store.js";
+import { BaseChannel, type OutboundMessage } from "@nextclaw/core";
+import {
+  type ChatTarget,
+  NcpReplyConsumer,
+  type NcpReplyInput,
+} from "@nextclaw/ncp-toolkit";
+import { loadWeixinCursor, saveWeixinCursor, listStoredWeixinAccountIds } from "./weixin-account.store.js";
 import {
   extractWeixinMessageText,
   fetchWeixinConfig,
   fetchWeixinUpdates,
   sendWeixinTyping,
-  sendWeixinTextMessage,
   type WeixinMessage,
 } from "./weixin-api.client.js";
-import { getWeixinContextToken, setWeixinContextToken } from "./weixin-context-token.store.js";
+import { setWeixinContextToken } from "./weixin-context-token.store.js";
 import { resolveWeixinInboundAttachments } from "./weixin-inbound-media.service.js";
 import { WeixinTypingController } from "./weixin-typing-controller.js";
 import {
-  DEFAULT_WEIXIN_BASE_URL,
-  DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
   resolveConfiguredWeixinAccountIds,
-  resolveWeixinAccountSelection,
-  type WeixinAccountConfig,
   type WeixinPluginConfig,
 } from "./weixin-config.js";
-
-function readStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter(Boolean);
-}
+import { WeixinChat, type ResolvedWeixinAccountRuntime } from "./weixin-chat.js";
 
 function isAllowedSender(allowFrom: string[], senderId: string): boolean {
   if (allowFrom.length === 0) {
@@ -54,19 +46,12 @@ async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-type ResolvedWeixinAccountRuntime = {
-  accountId: string;
-  token: string;
-  enabled: boolean;
-  baseUrl: string;
-  pollTimeoutMs: number;
-  allowFrom: string[];
-};
-
 export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   private readonly pollTasks: Promise<void>[] = [];
   private readonly accountControllers = new Map<string, AbortController>();
   private readonly typingController: WeixinTypingController;
+  private readonly chat: WeixinChat;
+  private readonly replyConsumer: NcpReplyConsumer;
 
   constructor(
     private readonly pluginConfig: WeixinPluginConfig,
@@ -96,6 +81,11 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
         });
       },
     });
+    this.chat = new WeixinChat({
+      pluginConfig: this.pluginConfig,
+      typingController: this.typingController,
+    });
+    this.replyConsumer = new NcpReplyConsumer(this.chat);
   }
 
   get name(): string {
@@ -129,67 +119,24 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   };
 
   send = async (msg: OutboundMessage): Promise<void> => {
-    const accountId = resolveWeixinAccountSelection(
-      this.pluginConfig,
-      Array.from(new Set([...resolveConfiguredWeixinAccountIds(this.pluginConfig), ...listStoredWeixinAccountIds()])),
-      typeof msg.metadata.accountId === "string" ? msg.metadata.accountId : null,
-    );
-    if (!accountId) {
-      throw new Error("weixin send failed: accountId is required when multiple accounts are configured");
-    }
-
-    const account = this.resolveAccountRuntime(accountId);
-    if (!account?.enabled || !account.token) {
-      throw new Error(`weixin send failed: account "${accountId}" is not logged in`);
-    }
-
-    try {
-      await sendWeixinTextMessage({
-        baseUrl: account.baseUrl,
-        token: account.token,
-        toUserId: msg.chatId,
-        text: msg.content,
-        contextToken: getWeixinContextToken(account.accountId, msg.chatId),
-      });
-    } finally {
-      await this.typingController.stop({
-        accountId: account.accountId,
-        userId: msg.chatId,
-      });
-    }
+    const target = this.createChatTarget({
+      conversationId: msg.chatId,
+      participantId: msg.chatId,
+      metadata: msg.metadata,
+    });
+    await this.chat.sendPart(target, {
+      type: "text",
+      text: msg.content,
+    });
+    await this.chat.stopTyping(target);
   };
 
-  override async handleControlMessage(msg: OutboundMessage): Promise<boolean> {
-    if (!isTypingStopControlMessage(msg)) {
-      return false;
-    }
-    const accountId = this.resolveAccountIdFromMetadata(msg.metadata);
-    if (!accountId) {
-      return true;
-    }
-    await this.typingController.stop({
-      accountId,
-      userId: msg.chatId,
-    });
-    return true;
-  }
+  consumeNcpReply = async (input: NcpReplyInput): Promise<void> => {
+    await this.replyConsumer.consume(input);
+  };
 
   private resolveAccountRuntime = (accountId: string): ResolvedWeixinAccountRuntime | null => {
-    const stored = loadWeixinAccount(accountId);
-    if (!stored?.token) {
-      return null;
-    }
-    const accountConfig: WeixinAccountConfig = this.pluginConfig.accounts?.[accountId] ?? {};
-    return {
-      accountId,
-      token: stored.token,
-      enabled: accountConfig.enabled !== false && this.pluginConfig.enabled !== false,
-      baseUrl: accountConfig.baseUrl || stored.baseUrl || this.pluginConfig.baseUrl || DEFAULT_WEIXIN_BASE_URL,
-      pollTimeoutMs: this.pluginConfig.pollTimeoutMs ?? DEFAULT_WEIXIN_POLL_TIMEOUT_MS,
-      allowFrom: Array.from(
-        new Set([...readStringArray(this.pluginConfig.allowFrom), ...readStringArray(accountConfig.allowFrom)]),
-      ),
-    };
+    return this.chat.resolveAccountRuntime(accountId);
   };
 
   private runAccountPollingLoop = async (accountId: string, signal: AbortSignal): Promise<void> => {
@@ -248,15 +195,22 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     }
 
     const contextToken = message.context_token?.trim();
+    const metadata = {
+      accountId: account.accountId,
+      account_id: account.accountId,
+      message_id: message.message_id ? String(message.message_id) : undefined,
+      context_token: contextToken,
+    };
+
     if (contextToken) {
       setWeixinContextToken(account.accountId, senderId, contextToken);
-      void this.typingController.start({
+      void this.chat.startTyping(this.createChatTarget({
+        conversationId: senderId,
+        participantId: senderId,
         accountId: account.accountId,
-        userId: senderId,
-        contextToken,
-        baseUrl: account.baseUrl,
-        token: account.token,
-      });
+        messageId: message.message_id ? String(message.message_id) : undefined,
+        metadata,
+      }));
     }
 
     await this.handleMessage({
@@ -264,26 +218,25 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       chatId: senderId,
       content,
       attachments,
-      metadata: {
-        accountId: account.accountId,
-        account_id: account.accountId,
-        message_id: message.message_id ? String(message.message_id) : undefined,
-        context_token: contextToken,
-      },
+      metadata,
     });
   };
 
-  private resolveAccountIdFromMetadata = (metadata: Record<string, unknown>): string | undefined => {
-    const requestedAccountId =
-      typeof metadata.accountId === "string" && metadata.accountId.trim().length > 0
-        ? metadata.accountId
-        : typeof metadata.account_id === "string" && metadata.account_id.trim().length > 0
-          ? metadata.account_id
-          : null;
-    return resolveWeixinAccountSelection(
-      this.pluginConfig,
-      Array.from(new Set([...resolveConfiguredWeixinAccountIds(this.pluginConfig), ...listStoredWeixinAccountIds()])),
-      requestedAccountId,
-    );
+  private createChatTarget = (params: {
+    conversationId: string;
+    participantId: string;
+    messageId?: string;
+    threadId?: string;
+    accountId?: string;
+    metadata?: Record<string, unknown>;
+  }): ChatTarget => {
+    return {
+      conversationId: params.conversationId,
+      participantId: params.participantId,
+      ...(params.messageId ? { messageId: params.messageId } : {}),
+      ...(params.threadId ? { threadId: params.threadId } : {}),
+      ...(params.accountId ? { accountId: params.accountId } : {}),
+      ...(params.metadata ? { metadata: params.metadata } : {}),
+    };
   };
 }

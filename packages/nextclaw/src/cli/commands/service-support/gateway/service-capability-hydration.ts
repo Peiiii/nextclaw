@@ -6,7 +6,7 @@ import {
   type PluginRegistry,
   type PluginUiMetadata,
 } from "@nextclaw/openclaw-compat";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { applyGatewayCapabilityState, type GatewayStartupContext } from "./service-gateway-context.js";
 import { shouldRestartChannelsForPluginReload } from "../../plugin/plugin-reload.js";
 import {

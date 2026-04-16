@@ -6,7 +6,7 @@ import { GatewayControllerImpl } from "../../../gateway/controller.js";
 import { ConfigReloader } from "../../../config-reloader.js";
 import type { RequestRestartParams } from "../../../types.js";
 import { resolveUiConfig, resolveUiStaticDir } from "../../../utils.js";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { resolveChannelConfigView } from "../../channel/channel-config-view.js";
 import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugins.js";
 import { createCronJobHandler, createHeartbeatJobHandler } from "./service-cron-job-handler.js";

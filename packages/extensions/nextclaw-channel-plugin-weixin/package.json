@@ -6,6 +6,7 @@
   "type": "module",
   "exports": {
     ".": {
+      "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
@@ -18,7 +19,12 @@
   "openclaw": {
     "extensions": [
       "dist/index.js"
-    ]
+    ],
+    "development": {
+      "extensions": [
+        "src/index.ts"
+      ]
+    }
   },
   "scripts": {
     "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --deps.never-bundle @nextclaw/core",
@@ -29,7 +35,9 @@
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/core": "workspace:*"
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

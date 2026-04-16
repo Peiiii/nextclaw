@@ -8,6 +8,8 @@ import {
   dispatchPromptOverNcp,
   runGatewayInboundLoop,
 } from "./nextclaw-ncp-dispatch.js";
+import { createChannelReplyRouterService } from "./runner/channel-reply-router.service.js";
+import { createNextclawNcpRunnerService } from "./runner/nextclaw-ncp-runner.service.js";
 
 const tempWorkspaces: string[] = [];
 
@@ -186,7 +188,182 @@ describe("dispatchPromptOverNcp", () => {
   });
 });
 
+describe("runPromptOverNcp", () => {
+  it("collects final reply while preserving event callbacks", async () => {
+    const runnerService = createNextclawNcpRunnerService();
+    const ncpAgent = createNcpAgent({
+      text: "final reply",
+      events: [
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: { sessionId: "session-1", messageId: "assistant-1", delta: "Hello " },
+        },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: { sessionId: "session-1", messageId: "assistant-1", delta: "world" },
+        },
+      ],
+    });
+    const observedEvents: string[] = [];
+    const observedDeltas: string[] = [];
+
+    const result = await runnerService.runPromptOverNcp({
+      agent: ncpAgent.agent as never,
+      sessionId: "session-1",
+      content: "hello",
+      onEvent: (event) => {
+        observedEvents.push(event.type);
+      },
+      onAssistantDelta: (delta) => {
+        observedDeltas.push(delta);
+      },
+    });
+
+    expect(result.text).toBe("final reply");
+    expect(observedDeltas).toEqual(["Hello ", "world"]);
+    expect(observedEvents).toEqual([
+      NcpEventType.MessageTextDelta,
+      NcpEventType.MessageTextDelta,
+      NcpEventType.MessageCompleted,
+    ]);
+  });
+});
+
+describe("streamPromptOverNcp", () => {
+  it("exposes the raw NCP event stream without collapsing it", async () => {
+    const runnerService = createNextclawNcpRunnerService();
+    const ncpAgent = createNcpAgent({
+      text: "final reply",
+      events: [
+        {
+          type: NcpEventType.MessageTextStart,
+          payload: { sessionId: "session-1", messageId: "assistant-1" },
+        },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: { sessionId: "session-1", messageId: "assistant-1", delta: "Hello" },
+        },
+      ],
+    });
+    const observedEvents: string[] = [];
+    const streamedTypes: string[] = [];
+
+    for await (const event of runnerService.streamPromptOverNcp({
+      agent: ncpAgent.agent as never,
+      sessionId: "session-1",
+      content: "hello",
+      onEvent: (nextEvent) => {
+        observedEvents.push(nextEvent.type);
+      },
+    })) {
+      streamedTypes.push(event.type);
+    }
+
+    expect(streamedTypes).toEqual([
+      NcpEventType.MessageTextStart,
+      NcpEventType.MessageTextDelta,
+      NcpEventType.MessageCompleted,
+    ]);
+    expect(observedEvents).toEqual(streamedTypes);
+  });
+});
+
 describe("runGatewayInboundLoop", () => {
+  it("routes reply-capable channels through direct NCP event streams", async () => {
+    const workspace = createWorkspace();
+    const ncpAgent = createNcpAgent({
+      text: "Hello",
+      events: [
+        {
+          type: NcpEventType.MessageTextStart,
+          payload: {
+            sessionId: "agent:main:weixin:direct:user-1@im.wechat",
+            messageId: "assistant-1",
+          },
+        },
+        {
+          type: NcpEventType.MessageTextDelta,
+          payload: {
+            sessionId: "agent:main:weixin:direct:user-1@im.wechat",
+            messageId: "assistant-1",
+            delta: "Hello",
+          },
+        },
+      ],
+    });
+    const inboundQueue: Array<Record<string, unknown> | null> = [
+      {
+        channel: "weixin",
+        senderId: "user-1@im.wechat",
+        chatId: "user-1@im.wechat",
+        content: "hello",
+        timestamp: new Date(),
+        attachments: [],
+        metadata: {
+          accountId: "bot-1@im.bot",
+          context_token: "ctx-1",
+          message_id: "wx-1",
+        },
+      },
+      null,
+    ];
+    const bus = {
+      consumeInbound: vi.fn(async () => {
+        const next = inboundQueue.shift();
+        if (!next) {
+          throw new Error("stop-loop");
+        }
+        return next;
+      }),
+      publishOutbound: vi.fn(async () => undefined),
+    };
+    const consumed: Array<{ target: Record<string, unknown>; eventTypes: string[] }> = [];
+    const channel = {
+      consumeNcpReply: vi.fn(async (input: { target: Record<string, unknown>; eventStream: AsyncIterable<{ type: string }> }) => {
+        const eventTypes: string[] = [];
+        for await (const event of input.eventStream) {
+          eventTypes.push(event.type);
+        }
+        consumed.push({
+          target: input.target,
+          eventTypes,
+        });
+      }),
+    };
+
+    await expect(
+      runGatewayInboundLoop({
+        bus: bus as never,
+        sessionManager: new SessionManager(workspace),
+        getConfig: () => createConfig(workspace),
+        resolveNcpAgent: () => ncpAgent.agent as never,
+        getChannels: () =>
+          ({
+            getChannel: vi.fn(() => channel),
+          }) as never,
+        replyRouter: createChannelReplyRouterService(),
+      }),
+    ).rejects.toThrow("stop-loop");
+
+    expect(channel.consumeNcpReply).toHaveBeenCalledTimes(1);
+    expect(bus.publishOutbound).not.toHaveBeenCalled();
+    expect(consumed).toEqual([
+      {
+        target: expect.objectContaining({
+          conversationId: "user-1@im.wechat",
+          participantId: "user-1@im.wechat",
+          accountId: "bot-1@im.bot",
+          messageId: "wx-1",
+        }),
+        eventTypes: [
+          NcpEventType.MessageTextStart,
+          NcpEventType.MessageTextDelta,
+          NcpEventType.MessageCompleted,
+        ],
+      },
+    ]);
+  });
+
   it("streams reset, delta, and final reply for non-system messages", async () => {
     const workspace = createWorkspace();
     const ncpAgent = createNcpAgent({

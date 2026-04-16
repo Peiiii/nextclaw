@@ -135,6 +135,34 @@ export function* flushTextDeltas(
   };
 }
 
+export function* closeTextPartBeforeToolCalls(
+  delta: DeltaLike,
+  ctx: { sessionId: string; messageId: string },
+  state: StreamContentState,
+): Generator<NcpEndpointEvent, StreamContentState> {
+  if (!Array.isArray(delta.tool_calls) || delta.tool_calls.length === 0) {
+    return state;
+  }
+
+  let nextState = state;
+  if (nextState.normalizer) {
+    nextState = yield* flushTextDeltas(ctx, nextState);
+  }
+  if (!nextState.textStarted) {
+    return nextState;
+  }
+
+  yield {
+    type: NcpEventType.MessageTextEnd,
+    payload: ctx,
+  };
+
+  return {
+    ...nextState,
+    textStarted: false,
+  };
+}
+
 export function* emitReasoningDelta(
   delta: DeltaLike,
   ctx: { sessionId: string; messageId: string },

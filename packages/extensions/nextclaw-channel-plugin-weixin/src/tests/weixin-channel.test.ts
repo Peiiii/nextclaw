@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createTypingStopControlMessage, type MessageBus } from "@nextclaw/core";
+import type { MessageBus } from "@nextclaw/core";
 import { saveWeixinAccount } from "../weixin-account.store.js";
 
 const sendWeixinTextMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-1" })));
@@ -147,8 +147,14 @@ describe("WeixinChannel typing lifecycle", () => {
     });
   });
 
-  it("stops typing when core publishes a typing-stop control message", async () => {
+  it("consumes reply streams text-part by text-part without duplicating the final message", async () => {
     createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
     const bus = {
       publishInbound: vi.fn(async () => {}),
     } as unknown as MessageBus;
@@ -160,21 +166,102 @@ describe("WeixinChannel typing lifecycle", () => {
       bus,
     );
 
-    const handled = await channel.handleControlMessage(
-      createTypingStopControlMessage({
-        channel: "weixin",
-        senderId: "user-1@im.wechat",
-        chatId: "user-1@im.wechat",
-        content: "hello",
-        timestamp: new Date(),
-        attachments: [],
+    await channel.consumeNcpReply({
+      target: {
+        conversationId: "user-1@im.wechat",
+        participantId: "user-1@im.wechat",
+        accountId: "bot-1@im.bot",
         metadata: {
           accountId: "bot-1@im.bot",
+          context_token: "ctx-1",
         },
+      },
+      eventStream: {
+        [Symbol.asyncIterator]: async function* () {
+          yield {
+            type: "message.text-start",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+            },
+          };
+          yield {
+            type: "message.text-delta",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+              delta: "Hello ",
+            },
+          };
+          yield {
+            type: "message.text-end",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+            },
+          };
+          yield {
+            type: "message.text-start",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+            },
+          };
+          yield {
+            type: "message.text-delta",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+              delta: "world",
+            },
+          };
+          yield {
+            type: "message.text-end",
+            payload: {
+              sessionId: "session-1",
+              messageId: "assistant-1",
+            },
+          };
+          yield {
+            type: "message.completed",
+            payload: {
+              sessionId: "session-1",
+              message: {
+                id: "assistant-1",
+                sessionId: "session-1",
+                role: "assistant",
+                status: "final",
+                timestamp: new Date().toISOString(),
+                parts: [{ type: "text", text: "Hello world" }],
+              },
+            },
+          };
+        },
+      },
+    });
+
+    expect(typingControllerStartMock).toHaveBeenCalledWith({
+      accountId: "bot-1@im.bot",
+      userId: "user-1@im.wechat",
+      contextToken: "ctx-1",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      token: "bot-token",
+    });
+    expect(sendWeixinTextMessageMock).toHaveBeenCalledTimes(2);
+    expect(sendWeixinTextMessageMock).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        toUserId: "user-1@im.wechat",
+        text: "Hello ",
       }),
     );
-
-    expect(handled).toBe(true);
+    expect(sendWeixinTextMessageMock).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        toUserId: "user-1@im.wechat",
+        text: "world",
+      }),
+    );
     expect(typingControllerStopMock).toHaveBeenCalledWith({
       accountId: "bot-1@im.bot",
       userId: "user-1@im.wechat",
