@@ -5,11 +5,20 @@ import { chmod, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { resolveRepoPath } from '../shared/repo-paths.mjs';
 import { authStatusPayload, remoteStatusPayload } from './product-screenshot-status-mocks.mjs';
+import {
+  initializeScreenshotDocument,
+  installMockApiRoutes,
+  openFirstSkillDetail,
+  waitForChatReady,
+  waitForSceneText,
+  writeSceneOutputs
+} from './product-screenshot-browser-helpers.mjs';
 
 const repoRoot = resolveRepoPath(import.meta.url);
 
 const DEFAULT_UI_PORT = Number(process.env.SCREENSHOT_UI_PORT || 5194);
 const shouldStartUi = !process.env.SCREENSHOT_UI_ORIGIN;
+const useRealAppData = parseBooleanEnv(process.env.SCREENSHOT_USE_REAL_APP_DATA || process.env.SCREENSHOT_REAL_APP_DATA);
 const useRealMarketplace = parseBooleanEnv(process.env.REAL_MARKETPLACE || process.env.SCREENSHOT_REAL_MARKETPLACE);
 const realMarketplaceBase = normalizeBaseUrl(
   process.env.REAL_MARKETPLACE_BASE || process.env.SCREENSHOT_REAL_MARKETPLACE_BASE || 'https://marketplace-api.nextclaw.io'
@@ -122,7 +131,8 @@ const scenes = [
     id: 'chat-home-en',
     route: '/chat',
     language: 'en',
-    waitText: uiText.en.chatWelcome,
+    waitText: [uiText.en.chatWelcome, 'New Task'],
+    afterLoad: async ({ page }) => waitForChatReady(page),
     outputs: [
       'images/screenshots/nextclaw-chat-page-en.png',
       'images/screenshots/nextclaw-ui-screenshot.png',
@@ -133,7 +143,8 @@ const scenes = [
     id: 'chat-home-zh',
     route: '/chat',
     language: 'zh',
-    waitText: uiText.zh.chatWelcome,
+    waitText: [uiText.zh.chatWelcome, '新任务'],
+    afterLoad: async ({ page }) => waitForChatReady(page),
     outputs: [
       'images/screenshots/nextclaw-chat-page-cn.png',
       'apps/landing/public/nextclaw-chat-page-cn.png'
@@ -144,12 +155,7 @@ const scenes = [
     route: '/marketplace/skills',
     language: 'en',
     waitText: uiText.en.skillMarketplace,
-    afterLoad: async ({ page }) => {
-      const firstSkillCard = page.locator('article').first();
-      await firstSkillCard.waitFor({ timeout: 10_000 });
-      await firstSkillCard.click();
-      await page.locator('iframe[src^="data:text/html"]').first().waitFor({ timeout: 10_000 });
-    },
+    afterLoad: async ({ page }) => openFirstSkillDetail(page),
     outputs: [
       'images/screenshots/nextclaw-skills-doc-browser-en.png',
       'apps/landing/public/nextclaw-skills-doc-browser-en.png'
@@ -160,12 +166,7 @@ const scenes = [
     route: '/marketplace/skills',
     language: 'zh',
     waitText: uiText.zh.skillMarketplace,
-    afterLoad: async ({ page }) => {
-      const firstSkillCard = page.locator('article').first();
-      await firstSkillCard.waitFor({ timeout: 10_000 });
-      await firstSkillCard.click();
-      await page.locator('iframe[src^="data:text/html"]').first().waitFor({ timeout: 10_000 });
-    },
+    afterLoad: async ({ page }) => openFirstSkillDetail(page),
     outputs: [
       'images/screenshots/nextclaw-skills-doc-browser-cn.png',
       'apps/landing/public/nextclaw-skills-doc-browser-cn.png'
@@ -972,75 +973,28 @@ async function captureScene(browser, scene, uiOrigin) {
   });
 
   try {
-    await context.addInitScript(
-      ({ key, value }) => {
-        window.localStorage.setItem(key, value);
-        class MockWebSocket {
-          constructor() {
-            this.readyState = 1;
-            this.onopen = null;
-            this.onclose = null;
-            this.onmessage = null;
-            this.onerror = null;
-            setTimeout(() => {
-              if (typeof this.onopen === 'function') {
-                this.onopen(new Event('open'));
-              }
-            }, 0);
-          }
-
-          send() {}
-
-          close() {
-            this.readyState = 3;
-            if (typeof this.onclose === 'function') {
-              this.onclose(new Event('close'));
-            }
-          }
-
-          addEventListener() {}
-          removeEventListener() {}
-        }
-        window.WebSocket = MockWebSocket;
-      },
-      { key: languageStorageKey, value: scene.language }
-    );
+    const pageErrors = [];
+    await context.addInitScript(initializeScreenshotDocument, {
+      key: languageStorageKey,
+      value: scene.language,
+      useMockRealtime: !useRealAppData
+    });
 
     const page = await context.newPage();
-    await page.route(
-      (url) => new URL(url).pathname.startsWith('/api/'),
-      async (route) => {
-        const requestUrl = new URL(route.request().url());
-        let response = null;
-        if (useRealMarketplace && requestUrl.pathname.startsWith('/api/marketplace/')) {
-          try {
-            response = await resolveRealMarketplace(requestUrl.pathname, requestUrl.searchParams, route.request().method());
-          } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            console.warn(`[screenshot] real marketplace fallback -> mock: ${requestUrl.pathname} (${message})`);
-          }
-        }
+    page.on('pageerror', (error) => {
+      pageErrors.push(error instanceof Error ? error.stack || error.message : String(error));
+    });
 
-        if (!response) {
-          response = resolveMock(requestUrl.pathname, requestUrl.searchParams, route.request().method());
-        }
-
-        await route.fulfill(response);
-      }
-    );
+    if (!useRealAppData) {
+      await installMockApiRoutes(page, {
+        useRealMarketplace,
+        resolveRealMarketplace,
+        resolveMock
+      });
+    }
 
     await page.goto(`${uiOrigin}${scene.route}`, { waitUntil: 'domcontentloaded' });
-
-    if (scene.waitText) {
-      try {
-        await page.getByText(scene.waitText, { exact: true }).first().waitFor({ timeout: 15_000 });
-      } catch (error) {
-        const bodyText = (await page.textContent('body')) || '';
-        const compact = bodyText.replace(/\s+/g, ' ').trim().slice(0, 240);
-        console.error(`[screenshot] waitText timeout for ${scene.id}. url=${page.url()} body="${compact}"`);
-        throw error;
-      }
-    }
+    await waitForSceneText(page, scene);
 
     if (scene.afterLoad) {
       await scene.afterLoad({ page });
@@ -1059,23 +1013,10 @@ async function captureScene(browser, scene, uiOrigin) {
 
     await delay(600);
 
-    const grouped = new Map();
-    for (const output of scene.outputs) {
-      const key = output.endsWith('.jpg') || output.endsWith('.jpeg') ? 'jpeg' : 'png';
-      if (!grouped.has(key)) {
-        grouped.set(key, []);
-      }
-      grouped.get(key).push(output);
+    if (pageErrors.length > 0) {
+      throw new Error(`[screenshot] page errors on ${scene.id}: ${pageErrors.join(' | ')}`);
     }
-
-    for (const outputs of grouped.values()) {
-      const options = screenshotOptionsFor(outputs[0]);
-      const buffer = await page.screenshot(options);
-      for (const target of outputs) {
-        await writeBuffer(target, buffer);
-        console.log(`[screenshot] ${scene.id} -> ${target}`);
-      }
-    }
+    await writeSceneOutputs(page, scene, screenshotOptionsFor, writeBuffer);
   } finally {
     await context.close();
   }
@@ -1087,6 +1028,9 @@ async function main() {
   const resolvedUiOrigin = process.env.SCREENSHOT_UI_ORIGIN || `http://127.0.0.1:${uiPort}`;
 
   try {
+    if (useRealAppData) {
+      console.log(`[screenshot] real app mode enabled. origin=${resolvedUiOrigin}`);
+    }
     if (useRealMarketplace) {
       console.log(`[screenshot] REAL_MARKETPLACE enabled. source=${realMarketplaceBase}`);
     }
