@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PwaInstallManager } from '@/pwa/managers/pwa-install.manager';
 import {
   PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY,
-  PWA_INSTALL_BANNER_SNOOZE_MS
+  PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY
 } from '@/pwa/pwa-install-banner.storage';
 import { usePwaStore, createInitialPwaState } from '@/pwa/stores/pwa.store';
 
@@ -121,7 +121,7 @@ describe('PwaInstallManager', () => {
     expect(window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY)).toBeTruthy();
   });
 
-  it('snoozes install banner after user dismisses the native install prompt', async () => {
+  it('keeps install banner dismissed after user dismisses the native install prompt', async () => {
     manager.start();
     const promptEvent = createBeforeInstallPromptEvent('dismissed');
     window.dispatchEvent(promptEvent);
@@ -131,21 +131,30 @@ describe('PwaInstallManager', () => {
     expect(outcome).toBe('dismissed');
     expect(promptEvent.prompt).toHaveBeenCalledTimes(1);
     expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
-    const dismissedUntil = Number.parseInt(
-      window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY) ?? '',
-      10
-    );
-    expect(dismissedUntil).toBeGreaterThan(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS - 5_000);
+    expect(window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY)).toBe('1');
   });
 
-  it('hydrates dismissed state from persisted snooze on fresh store init', () => {
+  it('hydrates dismissed state from persisted dismiss flag on fresh store init', () => {
     window.localStorage.setItem(
       PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY,
-      String(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS)
+      '1'
     );
 
     usePwaStore.setState(createInitialPwaState());
 
     expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
+  });
+
+  it('migrates legacy snooze timestamps into the permanent dismiss flag', () => {
+    window.localStorage.setItem(
+      PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY,
+      String(Date.now() + 60_000)
+    );
+
+    usePwaStore.setState(createInitialPwaState());
+
+    expect(usePwaStore.getState().dismissedInstallPrompt).toBe(true);
+    expect(window.localStorage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY)).toBe('1');
+    expect(window.localStorage.getItem(PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY)).toBeNull();
   });
 });

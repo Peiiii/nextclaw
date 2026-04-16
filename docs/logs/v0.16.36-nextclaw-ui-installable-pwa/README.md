@@ -23,7 +23,8 @@
   - 后续同批次微调中，已将顶部 PWA 更新提示卡片的视觉样式对齐到底部安装提示卡片，避免同一套 PWA 提示出现两种割裂的设计语言
   - 后续同批次修正中，已把顶部 PWA 更新提示的触发条件从“页面被 service worker 控制”收敛为“当前是已安装的 PWA 且存在 waiting update”，避免未安装用户误看到更新提示
   - 后续同批次视觉校正中，已将 PWA 壳的 `theme-color / theme_color` 从深色改为与主界面一致的浅暖色，避免安装后窗口或标题条出现突兀黑色外壳
-  - 后续同批次交互修正中，已把“稍后再说”从单次内存状态改为带本地持久化的 banner snooze，并让 PWA store 首屏直接按本地冷却期初始化，避免开发或日常访问时刷新后又立刻重新弹出安装提示；用户仍可在 `Runtime` 页通过常驻卡片手动安装
+  - 后续同批次交互修正中，已把自动安装 banner 的“稍后再说”彻底收敛为前端本地的单次 dismiss：用户关闭后不再自动反复弹出，并让 PWA store 首屏直接按前端持久化状态初始化；同时保留 `Runtime` 页常驻安装卡片作为显式入口，避免“提示消失 = 安装入口消失”的误解
+  - 后续同批次开发体验修正中，已把 PWA service worker / 安装提示的启用条件从“本地固定端口”收敛为“任意 Vite 开发态禁用、正式构建启用”，并在开发态首屏主动清理残留的 NextClaw SW 与缓存，避免 dev HMR websocket、旧缓存和已卸载 PWA 壳互相打架导致白屏或 hook 异常
 - 设计文档见：
   - [2026-04-16-nextclaw-ui-pwa-installable-shell-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-16-nextclaw-ui-pwa-installable-shell-design.md)
 
@@ -32,7 +33,7 @@
 - 通过：
   - `pnpm -C packages/nextclaw-ui tsc`
   - `pnpm -C packages/nextclaw-ui test -- --run src/pwa/managers/pwa-install.manager.test.ts src/pwa/components/pwa-install-entry.test.tsx`
-    - 已覆盖“再次触发 `beforeinstallprompt` 也不应把已 snooze 的安装 banner 重新拉起”与“用户关闭原生安装 prompt 后应进入本地冷却期”
+    - 已覆盖“再次触发 `beforeinstallprompt` 也不应把已 dismiss 的安装 banner 重新拉起”“用户关闭原生安装 prompt 后应保持前端本地 dismiss 状态”以及“旧的时间型 snooze 值可迁移到新的永久 dismiss 标记”
   - `pnpm -C packages/nextclaw-ui test -- --run src/app.test.tsx src/components/layout/app-layout.test.tsx`
   - `pnpm -C packages/nextclaw-ui build`
   - `pnpm -C packages/nextclaw-ui exec eslint public/sw.js src/pwa/pwa.types.ts src/pwa/stores/pwa.store.ts src/pwa/managers/pwa-install.manager.ts src/pwa/managers/pwa-runtime.manager.ts src/pwa/register-pwa.ts src/pwa/components/pwa-install-entry.tsx src/pwa/managers/pwa-install.manager.test.ts src/pwa/components/pwa-install-entry.test.tsx src/lib/i18n.pwa.ts src/lib/i18n.ts src/app.tsx src/components/config/RuntimeConfig.tsx src/components/layout/AppLayout.tsx`
@@ -73,7 +74,7 @@
 2. 用浏览器访问页面，确认页面 `<head>` 已包含 manifest。
 3. 打开 `Runtime` 页面，确认能看到“Install as App / 安装为应用”卡片。
 4. 在支持安装弹窗的浏览器中，确认可触发 `Install NextClaw`；若浏览器不主动弹窗，确认卡片会提示从浏览器菜单安装。
-5. 点击右下角安装 banner 的“稍后再说”后，刷新页面或重新打开同一站点，确认右下角 banner 不会立刻再次出现，但 `Runtime` 页面里的安装卡片仍然可见。
+5. 点击右下角安装 banner 的“`不再提示 / Don't Ask Again`”后，刷新页面或重新打开同一站点，确认右下角 banner 不会再次自动出现，但 `Runtime` 页面里的安装卡片仍然可见。
 6. 完成安装后，确认 NextClaw 以独立窗口打开，而不是新的产品分支页面。
 7. 在已安装形态和普通浏览器形态间切换，确认聊天、配置、runtime 控制仍然连接同一套服务。
 8. 断网后重新导航，确认看到的是明确的离线兜底页，而不是空白页。
@@ -89,7 +90,7 @@
   - `PwaInstallManager` 负责安装状态与宿主抑制
   - `PwaRuntimeManager` 负责 SW 注册与更新
   - UI 组件只消费归一化状态
-- 本轮续改继续朝“更少 surprise、更可预测”推进了一小步：安装 banner 现在受显式本地冷却期控制，而不是被浏览器每次重新分发 `beforeinstallprompt` 事件时偷偷重置。
+- 本轮续改继续朝“更少 surprise、更可预测”推进了一小步：安装 banner 现在改为前端本地的单次 dismiss，而不是“过几天再回来打扰你”的时间型 snooze；提示语义与用户按钮文案也更一致。
 
 ### 可维护性复核结论
 

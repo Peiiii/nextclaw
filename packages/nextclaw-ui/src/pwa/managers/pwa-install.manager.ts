@@ -3,9 +3,8 @@ import type { PwaInstallBlockedReason, PwaInstallMethod, PwaInstallPromptOutcome
 import { pwaRuntimeManager } from '@/pwa/managers/pwa-runtime.manager';
 import {
   clearPwaInstallBannerDismissal,
-  dismissPwaInstallBannerUntil,
-  isPwaInstallBannerDismissed,
-  PWA_INSTALL_BANNER_SNOOZE_MS
+  dismissPwaInstallBanner,
+  isPwaInstallBannerDismissed
 } from '@/pwa/pwa-install-banner.storage';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -73,7 +72,7 @@ export class PwaInstallManager {
   };
 
   dismissInstallPrompt = () => {
-    dismissPwaInstallBannerUntil(Date.now() + PWA_INSTALL_BANNER_SNOOZE_MS);
+    dismissPwaInstallBanner();
     usePwaStore.setState({
       dismissedInstallPrompt: true
     });
@@ -125,6 +124,14 @@ export class PwaInstallManager {
   };
 
   private resolveInstallability = (): InstallabilityResolution => {
+    if (this.isDevelopmentServer()) {
+      return {
+        installability: 'unsupported',
+        installMethod: 'none',
+        blockedReason: 'dev-server'
+      };
+    }
+
     if (this.hasDesktopHost()) {
       return {
         installability: 'suppressed',
@@ -181,6 +188,10 @@ export class PwaInstallManager {
 
   private isTrustedLocalhost = (hostname: string): boolean => {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
+  };
+
+  private isDevelopmentServer = (): boolean => {
+    return typeof window !== 'undefined' && import.meta.env.DEV && !import.meta.env.VITEST;
   };
 
   private isStandalone = (): boolean => {

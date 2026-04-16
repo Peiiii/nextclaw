@@ -62,6 +62,10 @@ function resolveCardDescription(
     return t('pwaInstallCardInsecureContext');
   }
 
+  if (blockedReason === 'dev-server') {
+    return t('pwaInstallCardDevServer');
+  }
+
   return t('pwaInstallCardUnsupported');
 }
 

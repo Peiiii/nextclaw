@@ -1,43 +1,29 @@
-export const PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY = 'nextclaw-pwa-install-banner-dismissed-until';
-export const PWA_INSTALL_BANNER_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+export const PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY = 'nextclaw-pwa-install-banner-dismissed';
+export const PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY = 'nextclaw-pwa-install-banner-dismissed-until';
 
 export function isPwaInstallBannerDismissed(): boolean {
-  const dismissedUntil = readPwaInstallBannerDismissedUntil();
-  if (!dismissedUntil) {
+  const storage = getPwaBannerStorage();
+  if (!storage) {
     return false;
   }
 
-  if (dismissedUntil <= Date.now()) {
-    clearPwaInstallBannerDismissal();
-    return false;
+  if (storage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY) === '1') {
+    return true;
   }
 
-  return true;
+  return migrateLegacyDismissal(storage);
 }
 
-export function dismissPwaInstallBannerUntil(dismissedUntil: number) {
+export function dismissPwaInstallBanner() {
   const storage = getPwaBannerStorage();
-  storage?.setItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY, String(dismissedUntil));
+  storage?.setItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY, '1');
+  storage?.removeItem(PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY);
 }
 
 export function clearPwaInstallBannerDismissal() {
   const storage = getPwaBannerStorage();
   storage?.removeItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY);
-}
-
-export function readPwaInstallBannerDismissedUntil(): number | null {
-  const storage = getPwaBannerStorage();
-  if (!storage) {
-    return null;
-  }
-
-  const rawValue = storage.getItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY);
-  if (!rawValue) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(rawValue, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  storage?.removeItem(PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY);
 }
 
 function getPwaBannerStorage(): Storage | null {
@@ -50,4 +36,20 @@ function getPwaBannerStorage(): Storage | null {
   } catch {
     return null;
   }
+}
+
+function migrateLegacyDismissal(storage: Storage): boolean {
+  const rawValue = storage.getItem(PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY);
+  if (!rawValue) {
+    return false;
+  }
+
+  const dismissedUntil = Number.parseInt(rawValue, 10);
+  storage.removeItem(PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY);
+  if (!Number.isFinite(dismissedUntil) || dismissedUntil <= Date.now()) {
+    return false;
+  }
+
+  storage.setItem(PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY, '1');
+  return true;
 }

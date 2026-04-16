@@ -5,7 +5,7 @@ export const PWA_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'Install this NextClaw UI as a standalone entry point you can launch from your desktop, launcher, or dock.'
   },
   pwaInstallAction: { zh: '安装 NextClaw', en: 'Install NextClaw' },
-  pwaInstallDismiss: { zh: '稍后再说', en: 'Maybe Later' },
+  pwaInstallDismiss: { zh: '不再提示', en: "Don't Ask Again" },
   pwaInstallAccepted: { zh: '已打开安装面板。', en: 'Install prompt opened.' },
   pwaInstalledToast: { zh: 'NextClaw 已安装为应用入口。', en: 'NextClaw is now installed as an app.' },
   pwaInstallStatusAvailable: { zh: '可安装', en: 'Installable' },
@@ -31,6 +31,10 @@ export const PWA_LABELS: Record<string, { zh: string; en: string }> = {
   pwaInstallCardInsecureContext: {
     zh: '当前地址不是浏览器允许安装 PWA 的安全上下文。请使用 `localhost`、`127.0.0.1` 或 HTTPS 域名访问。',
     en: 'This address is not a secure context for browser-managed app installation. Use localhost, 127.0.0.1, or an HTTPS origin instead.'
+  },
+  pwaInstallCardDevServer: {
+    zh: '当前是 Vite 开发环境。为避免 service worker 缓存和 HMR 热更新互相干扰，开发态默认关闭 PWA 安装与更新能力；请使用 preview 或正式构建验证 PWA。',
+    en: 'This is the Vite development server. PWA install and update are disabled in dev to avoid service worker caching conflicts with HMR; use preview or a production build to verify the PWA.'
   },
   pwaInstallCardUnsupported: {
     zh: '当前浏览器环境不支持这套安装能力，或缺少 PWA 所需的关键运行能力。',

@@ -1,5 +1,7 @@
 import { usePwaStore } from '@/pwa/stores/pwa.store';
 
+const PWA_DEV_RESET_SESSION_KEY = 'nextclaw-pwa-dev-sw-reset';
+
 export class PwaRuntimeManager {
   private started = false;
   private registration: ServiceWorkerRegistration | null = null;
@@ -12,6 +14,11 @@ export class PwaRuntimeManager {
 
     this.started = true;
     if (!('serviceWorker' in navigator) || !this.isEligibleInstallContext()) {
+      return;
+    }
+
+    if (this.isDevelopmentServer()) {
+      await this.cleanupDevelopmentRegistrations();
       return;
     }
 
@@ -112,11 +119,77 @@ export class PwaRuntimeManager {
     return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
   };
 
+  private isDevelopmentServer = (): boolean => {
+    return import.meta.env.DEV && !import.meta.env.VITEST;
+  };
+
   private shouldSurfaceUpdate = (registration: ServiceWorkerRegistration | null): boolean => {
     if (!registration?.waiting || !navigator.serviceWorker.controller) {
       return false;
     }
     return usePwaStore.getState().installability === 'installed';
+  };
+
+  private cleanupDevelopmentRegistrations = async () => {
+    if (typeof navigator.serviceWorker.getRegistrations !== 'function') {
+      return;
+    }
+
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const nextclawRegistrations = registrations.filter((registration) =>
+      [registration.active?.scriptURL, registration.installing?.scriptURL, registration.waiting?.scriptURL]
+        .filter((value): value is string => Boolean(value))
+        .some((scriptUrl) => scriptUrl.endsWith('/sw.js'))
+    );
+
+    if (nextclawRegistrations.length === 0) {
+      this.clearDevResetMarker();
+      return;
+    }
+
+    await Promise.all(nextclawRegistrations.map(async (registration) => await registration.unregister()));
+    await this.clearNextClawCaches();
+
+    if (navigator.serviceWorker.controller && !this.hasDevResetMarker()) {
+      this.setDevResetMarker();
+      window.location.reload();
+      return;
+    }
+
+    this.clearDevResetMarker();
+  };
+
+  private clearNextClawCaches = async () => {
+    if (typeof window === 'undefined' || !('caches' in window) || typeof caches.keys !== 'function') {
+      return;
+    }
+
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((key) => key.startsWith('nextclaw-ui-')).map(async (key) => await caches.delete(key)));
+  };
+
+  private hasDevResetMarker = (): boolean => {
+    try {
+      return window.sessionStorage.getItem(PWA_DEV_RESET_SESSION_KEY) === '1';
+    } catch {
+      return false;
+    }
+  };
+
+  private setDevResetMarker = () => {
+    try {
+      window.sessionStorage.setItem(PWA_DEV_RESET_SESSION_KEY, '1');
+    } catch {
+      // ignore sessionStorage availability failures in dev cleanup
+    }
+  };
+
+  private clearDevResetMarker = () => {
+    try {
+      window.sessionStorage.removeItem(PWA_DEV_RESET_SESSION_KEY);
+    } catch {
+      // ignore sessionStorage availability failures in dev cleanup
+    }
   };
 }
 
