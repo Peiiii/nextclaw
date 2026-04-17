@@ -23,9 +23,22 @@ Do not present Hermes as:
 - an API-server-first integration
 - a second independent provider configuration system
 
-The authoritative design doc for this skill is:
+This installed skill must stay self-contained.
 
-- [2026-04-17-hermes-acp-runtime-route-bridge-design.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-17-hermes-acp-runtime-route-bridge-design.md)
+Do not assume the user can open this repository's internal design docs after installing it from the marketplace.
+Everything needed for setup, readiness, repair, and first-message verification should be explained here.
+
+## Install Boundary: Skill vs Hermes Binary
+
+Always distinguish these two things before taking action:
+
+- the NextClaw marketplace skill:
+  installed into the active workspace as `skills/hermes-runtime/SKILL.md`
+- the Hermes executable:
+  the external runtime binary exposed as `hermes`
+
+Installing this skill does not install Hermes by itself.
+The skill must detect whether `hermes` is already available and install or repair Hermes when it is not.
 
 ## What This Skill Owns
 
@@ -51,7 +64,7 @@ Always describe the system in this order:
    - `command: "hermes"`
    - `args: ["acp"]`
 4. NextClaw owns `model / apiBase / apiKey / headers`.
-5. Hermes ACP consumes that route through the built-in bridge layer.
+5. Hermes ACP consumes that route through the dedicated Hermes ACP bridge bundled with NextClaw.
 
 Do not teach users that the main setup path is:
 
@@ -127,6 +140,7 @@ The important part is not hidden implementation details. The important part is:
 - the launcher is `hermes acp`
 - NextClaw stays the owner of route selection
 - Hermes ACP does not require a second provider setup path for this integration
+- the bridge is triggered automatically by the bundled Hermes ACP bridge package; the skill should not ask the user to install a separate bridge manually
 
 ## Setup Contract
 

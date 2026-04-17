@@ -1,0 +1,27 @@
+{
+  "slug": "hermes-runtime",
+  "name": "Hermes Runtime",
+  "summary": "Set up Hermes as a formal NextClaw runtime entry on the preferred narp-stdio(acp) path, with install, ACP readiness checks, runtime entry repair, and real reply smoke.",
+  "summaryI18n": {
+    "en": "Set up Hermes as a formal NextClaw runtime entry on the preferred narp-stdio(acp) path, with install, ACP readiness checks, runtime entry repair, and real reply smoke.",
+    "zh": "把 Hermes 按首选的 narp-stdio(acp) 路径接成正式 NextClaw runtime：覆盖安装、ACP 就绪检查、runtime entry 修复与真实回复冒烟。"
+  },
+  "description": "Use this skill when Hermes needs to become a formal NextClaw session type instead of an API-server-first or connector-first workaround. It guides cold-start installation, repairs missing `hermes acp` dependencies, writes or fixes the unified `agents.runtimes.entries.hermes` config, verifies session-type visibility, and finishes only after a real Hermes reply smoke succeeds.",
+  "descriptionI18n": {
+    "en": "Use this skill when Hermes needs to become a formal NextClaw session type instead of an API-server-first or connector-first workaround. It guides cold-start installation, repairs missing `hermes acp` dependencies, writes or fixes the unified `agents.runtimes.entries.hermes` config, verifies session-type visibility, and finishes only after a real Hermes reply smoke succeeds.",
+    "zh": "当需要把 Hermes 接成正式 NextClaw 会话类型，而不是走 API server 优先或 connector 优先的临时方案时使用此技能。它覆盖冷启动安装、`hermes acp` 依赖修复、统一 `agents.runtimes.entries.hermes` 配置写入或修复、会话类型可见性校验，并且只有在真实 Hermes 回复冒烟通过后才算完成。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "hermes",
+    "runtime",
+    "narp-stdio",
+    "acp",
+    "external-runtime",
+    "onboarding",
+    "diagnostics"
+  ],
+  "sourceRepo": "https://github.com/NousResearch/hermes-agent",
+  "homepage": "https://github.com/NousResearch/hermes-agent"
+}
