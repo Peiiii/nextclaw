@@ -134,7 +134,6 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   send = async (msg: OutboundMessage): Promise<void> => {
     const target = this.createChatTarget({
       conversationId: msg.chatId,
-      participantId: msg.chatId,
       metadata: msg.metadata,
     });
     await this.chat.sendPart(target, {
@@ -220,7 +219,6 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     const metadata = {
       accountId: account.accountId,
       account_id: account.accountId,
-      message_id: message.message_id ? String(message.message_id) : undefined,
       context_token: contextToken,
     };
 
@@ -228,9 +226,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       setWeixinContextToken(account.accountId, senderId, contextToken);
       void this.chat.startTyping(this.createChatTarget({
         conversationId: senderId,
-        participantId: senderId,
         accountId: account.accountId,
-        messageId: message.message_id ? String(message.message_id) : undefined,
         metadata,
       }));
     }
@@ -246,17 +242,11 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
 
   private createChatTarget = (params: {
     conversationId: string;
-    participantId: string;
-    messageId?: string;
-    threadId?: string;
     accountId?: string;
     metadata?: Record<string, unknown>;
   }): ChatTarget => {
     return {
       conversationId: params.conversationId,
-      participantId: params.participantId,
-      ...(params.messageId ? { messageId: params.messageId } : {}),
-      ...(params.threadId ? { threadId: params.threadId } : {}),
       ...(params.accountId ? { accountId: params.accountId } : {}),
       ...(params.metadata ? { metadata: params.metadata } : {}),
     };

@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpEndpointEvent, type NcpMessagePart } from "@nextclaw/ncp";
-import { NcpReplyConsumer } from "./ncp-reply-consumer.service.js";
+import { NcpReplyConsumer } from "./ncp-reply-consumer.js";
 import type { Chat, ChatTarget } from "./chat.types.js";
 
 const target: ChatTarget = {
   conversationId: "conversation-1",
-  participantId: "user-1",
 };
 
 function createEventStream(

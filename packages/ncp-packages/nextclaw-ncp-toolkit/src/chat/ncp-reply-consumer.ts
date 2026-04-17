@@ -45,19 +45,14 @@ function resolveFallbackUnsentParts(
   fallbackText: string,
   sentText: string,
 ): NcpMessagePart[] {
-  if (!fallbackText) {
+  if (!fallbackText || fallbackText === sentText) {
     return [];
   }
-  if (!sentText) {
-    return [{ type: "text", text: fallbackText }];
-  }
-  if (fallbackText === sentText) {
-    return [];
-  }
-  if (fallbackText.startsWith(sentText)) {
-    return [{ type: "text", text: fallbackText.slice(sentText.length) }];
-  }
-  return [{ type: "text", text: fallbackText }];
+  const nextText =
+    sentText && fallbackText.startsWith(sentText)
+      ? fallbackText.slice(sentText.length)
+      : fallbackText;
+  return nextText ? [{ type: "text", text: nextText }] : [];
 }
 
 function canReuseCompletedTextPrefix(
@@ -229,10 +224,7 @@ class NcpReplySession {
   private readonly toolNameByCallId = new Map<string, string>();
   private readonly projectedToolCallIds = new Set<string>();
 
-  constructor(
-    private readonly chat: Chat,
-    private readonly target: ChatTarget,
-  ) {}
+  constructor(private readonly chat: Chat, private readonly target: ChatTarget) {}
 
   consume = async (eventStream: NcpEventStream): Promise<void> => {
     try {
@@ -303,9 +295,7 @@ class NcpReplySession {
     this.fullText += delta;
   };
 
-  private handleTextEnd = async (): Promise<void> => {
-    await this.flushTextPart();
-  };
+  private handleTextEnd = async (): Promise<void> => this.flushTextPart();
 
   private handleToolCallStart = async (
     toolCallId: string,

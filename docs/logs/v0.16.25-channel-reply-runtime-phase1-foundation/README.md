@@ -18,7 +18,7 @@
 - `packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/index.ts`
 - `packages/extensions/nextclaw-channel-plugin-weixin/src/weixin-chat.ts`
 - `packages/extensions/nextclaw-channel-plugin-weixin/src/weixin-channel.ts`
-- `packages/nextclaw/src/cli/commands/ncp/runtime/runner/channel-reply-router.service.ts`
+- `packages/nextclaw/src/cli/commands/ncp/runtime/runner/channel-reply.ts`
 - `packages/nextclaw/src/cli/commands/ncp/runtime/runner/nextclaw-ncp-runner.service.ts`
 - `packages/nextclaw/src/cli/commands/ncp/runtime/nextclaw-ncp-dispatch.ts`
 
@@ -35,7 +35,7 @@
   - 删除了 `blockId` 这层没有真实消费方的过渡概念
   - `NcpReplySession` 内部删除了仅为 `blockId` 服务的 `activeMessageId` / `blockCount`
   - 一批只剩 `void payload`、`void reason`、`void params.kind` 的过渡参数被删掉
-  - `ChannelReplyRouterService` 删除了未使用的 `sessionKey` 过渡字段
+  - 平台侧 channel reply 路由删除了未使用的 `sessionKey` 过渡字段
   - 在用户指出“协议不能被错误收窄成纯文本”后，`Chat` 共享协议从文本专用重新提升回 `NcpMessagePart` 级别：现在由 `sendPart(target, part)` 统一承接文本、文件、卡片等 part，而不是把公共协议限制死在 `sendTextPart(...)`
   - `NcpReplyConsumer` 在 `message.completed` 时会补发尚未输出的非文本 part；微信侧 `WeixinChat` 开始在自身内部承担 part 到微信消息能力的映射逻辑
 
@@ -111,7 +111,7 @@ pnpm check:governance-backlog-ratchet
 
 1. 阅读 [../../designs/2026-04-16-channel-consume-ncp-reply-midstate-design.md](../../designs/2026-04-16-channel-consume-ncp-reply-midstate-design.md)，确认顶层模型已经收敛成 `Channel + consumeNcpReply(...) + Chat + ChatTarget`。
 2. 阅读 `packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/chat.types.ts` 与 `packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/ncp-reply-consumer.ts`，确认共享层只保留最小协议与最小消费逻辑，并且 reply state 已被收回到内部 class owner。
-3. 阅读 `packages/nextclaw/src/cli/commands/ncp/runtime/runner/channel-reply-router.service.ts`，确认平台只做定向路由，不再引入第二套插件注册协议。
+3. 阅读 `packages/nextclaw/src/cli/commands/ncp/runtime/runner/channel-reply.ts`，确认平台只做定向路由，不再引入第二套插件注册协议。
 4. 阅读 `packages/extensions/nextclaw-channel-plugin-weixin/src/weixin-channel.ts` 与 `packages/extensions/nextclaw-channel-plugin-weixin/src/weixin-chat.ts`，确认微信链路已经内聚成 `WeixinChannel + WeixinChat`。
 5. 运行上面的定向测试，确认微信在 text-part 边界会逐块发送，且 `message.completed` 不会重复整条文本。
 6. 查看 `packages/nextclaw/src/cli/commands/ncp/runtime/nextclaw-ncp-dispatch.ts`，确认 dispatch 仍然清晰，并且没有为了接新链继续叠加一套 fallback 解析逻辑。
@@ -209,7 +209,7 @@ pnpm check:governance-backlog-ratchet
 - `WeixinChat` 专注“把回复发到微信聊天世界”
 - `NcpReplyConsumer` 专注“消费 NCP reply event stream 并驱动 chat 输出”
 - `NcpReplySession` 作为内部 state owner，专注“维护一次 reply 消费过程中的文本块状态与 flush 边界”
-- `ChannelReplyRouterService` 只保留平台层定向路由职责
+- 平台侧 channel reply 路由只保留定向路由职责
 
 本次没有再引入 `orchestrator / translator / endpoint / delivery` 这类会污染顶层心智模型的公开角色。
 

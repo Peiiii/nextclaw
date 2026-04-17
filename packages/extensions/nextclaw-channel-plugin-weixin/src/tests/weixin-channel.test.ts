@@ -185,7 +185,6 @@ describe("WeixinChannel inbound and text reply lifecycle", () => {
     await channel.consumeNcpReply({
       target: {
         conversationId: "user-1@im.wechat",
-        participantId: "user-1@im.wechat",
         accountId: "bot-1@im.bot",
         metadata: {
           accountId: "bot-1@im.bot",
@@ -309,7 +308,6 @@ describe("WeixinChannel native media delivery", () => {
     await channel.consumeNcpReply({
       target: {
         conversationId: "user-1@im.wechat",
-        participantId: "user-1@im.wechat",
         accountId: "bot-1@im.bot",
         metadata: {
           accountId: "bot-1@im.bot",
@@ -380,7 +378,6 @@ describe("WeixinChannel native media delivery", () => {
     await channel.consumeNcpReply({
       target: {
         conversationId: "user-1@im.wechat",
-        participantId: "user-1@im.wechat",
         accountId: "bot-1@im.bot",
         resolveAssetContentPath: (assetUri) =>
           assetUri === "asset://report" ? assetPath : null,

@@ -13,7 +13,6 @@ import { openBrowser } from "../../../utils.js";
 import type { GatewayControllerImpl } from "../../../gateway/controller.js";
 import { createUiNcpAgent, type UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { runGatewayInboundLoop } from "../../ncp/runtime/nextclaw-ncp-dispatch.js";
-import { createChannelReplyRouterService } from "../../ncp/runtime/runner/channel-reply-router.service.js";
 import type { NextclawExtensionRegistry } from "../../plugins.js";
 import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../session/service-deferred-ncp-agent.js";
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
@@ -145,6 +144,9 @@ export async function startDeferredGatewayStartup(params: {
     publishSessionChange,
   } = params;
   logStartupTrace("service.deferred_startup.begin");
+  if (hydrateCapabilities) {
+    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", hydrateCapabilities);
+  }
   try {
     const ncpAgent = await measureStartupAsync("service.deferred_startup.create_ui_ncp_agent", async () =>
       await createUiNcpAgent({
@@ -176,10 +178,6 @@ export async function startDeferredGatewayStartup(params: {
     }
   } catch (error) {
     console.error(`UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-
-  if (hydrateCapabilities) {
-    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", hydrateCapabilities);
   }
   await measureStartupAsync("service.deferred_startup.start_plugin_gateways", startPluginGateways);
   await measureStartupAsync("service.deferred_startup.start_channels", startChannels);
@@ -242,7 +240,6 @@ export async function runConfiguredGatewayRuntime(params: {
   const onSystemSessionUpdated = createSystemSessionUpdatedPublisher({
     publishUiEvent: params.publishUiEvent,
   });
-  const replyRouter = createChannelReplyRouterService();
 
   logStartupTrace("service.start_gateway.runtime_loop_begin");
   await runGatewayRuntimeLoop({
@@ -253,7 +250,6 @@ export async function runConfiguredGatewayRuntime(params: {
         getConfig: params.getConfig,
         resolveNcpAgent: params.getLiveUiNcpAgent,
         getChannels: () => params.gateway.reloader.getChannels(),
-        replyRouter,
         onSystemSessionUpdated: ({ sessionKey }) =>
           onSystemSessionUpdated({ sessionKey }),
       }),

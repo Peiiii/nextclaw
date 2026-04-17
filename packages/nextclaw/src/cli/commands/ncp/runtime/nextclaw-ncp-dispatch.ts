@@ -13,7 +13,10 @@ import {
   type SessionManager,
 } from "@nextclaw/core";
 import { runPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.js";
-import type { ChannelReplyRouterService } from "./runner/channel-reply-router.service.js";
+import {
+  dispatchChannelReplyRoute,
+  resolveChannelReplyRoute,
+} from "./runner/channel-reply.js";
 export type DirectPromptDispatchParams = {
   config: Config;
   sessionManager: SessionManager;
@@ -35,7 +38,6 @@ export type GatewayInboundLoopParams = {
   getConfig: () => Config;
   resolveNcpAgent?: () => NcpRunnerAgent | null;
   getChannels?: () => ChannelManager;
-  replyRouter?: ChannelReplyRouterService;
   onSystemSessionUpdated?: (params: {
     sessionKey: string;
     message: InboundMessage;
@@ -181,13 +183,12 @@ async function dispatchChannelReplyRouteMaybe(
 ): Promise<boolean> {
   if (
     context.message.channel === "system" ||
-    !params.replyRouter ||
     !params.getChannels
   ) {
     return false;
   }
 
-  const replyRoute = params.replyRouter.resolveRoute({
+  const replyRoute = resolveChannelReplyRoute({
     channel: params.getChannels().getChannel(context.message.channel),
     message: context.message,
     route: context.route,
@@ -196,7 +197,7 @@ async function dispatchChannelReplyRouteMaybe(
     return false;
   }
 
-  await params.replyRouter.dispatch({
+  await dispatchChannelReplyRoute({
     agent: context.agent,
     route: replyRoute,
     sessionId: context.route.sessionKey,

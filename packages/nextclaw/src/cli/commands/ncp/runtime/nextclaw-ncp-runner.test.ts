@@ -8,8 +8,10 @@ import {
   dispatchPromptOverNcp,
   runGatewayInboundLoop,
 } from "./nextclaw-ncp-dispatch.js";
-import { createChannelReplyRouterService } from "./runner/channel-reply-router.service.js";
-import { createNextclawNcpRunnerService } from "./runner/nextclaw-ncp-runner.service.js";
+import {
+  collectPromptOverNcpReply,
+  streamPromptOverNcp,
+} from "./runner/ncp-event-stream.js";
 
 const tempWorkspaces: string[] = [];
 
@@ -190,7 +192,6 @@ describe("dispatchPromptOverNcp", () => {
 
 describe("runPromptOverNcp", () => {
   it("collects final reply while preserving event callbacks", async () => {
-    const runnerService = createNextclawNcpRunnerService();
     const ncpAgent = createNcpAgent({
       text: "final reply",
       events: [
@@ -207,7 +208,7 @@ describe("runPromptOverNcp", () => {
     const observedEvents: string[] = [];
     const observedDeltas: string[] = [];
 
-    const result = await runnerService.runPromptOverNcp({
+    const result = await collectPromptOverNcpReply({
       agent: ncpAgent.agent as never,
       sessionId: "session-1",
       content: "hello",
@@ -231,7 +232,6 @@ describe("runPromptOverNcp", () => {
 
 describe("streamPromptOverNcp", () => {
   it("exposes the raw NCP event stream without collapsing it", async () => {
-    const runnerService = createNextclawNcpRunnerService();
     const ncpAgent = createNcpAgent({
       text: "final reply",
       events: [
@@ -248,7 +248,7 @@ describe("streamPromptOverNcp", () => {
     const observedEvents: string[] = [];
     const streamedTypes: string[] = [];
 
-    for await (const event of runnerService.streamPromptOverNcp({
+    for await (const event of streamPromptOverNcp({
       agent: ncpAgent.agent as never,
       sessionId: "session-1",
       content: "hello",
@@ -302,7 +302,6 @@ describe("runGatewayInboundLoop", () => {
         metadata: {
           accountId: "bot-1@im.bot",
           context_token: "ctx-1",
-          message_id: "wx-1",
         },
       },
       null,
@@ -341,7 +340,6 @@ describe("runGatewayInboundLoop", () => {
           ({
             getChannel: vi.fn(() => channel),
           }) as never,
-        replyRouter: createChannelReplyRouterService(),
       }),
     ).rejects.toThrow("stop-loop");
 
@@ -351,9 +349,7 @@ describe("runGatewayInboundLoop", () => {
       {
         target: expect.objectContaining({
           conversationId: "user-1@im.wechat",
-          participantId: "user-1@im.wechat",
           accountId: "bot-1@im.bot",
-          messageId: "wx-1",
         }),
         eventTypes: [
           NcpEventType.MessageTextStart,

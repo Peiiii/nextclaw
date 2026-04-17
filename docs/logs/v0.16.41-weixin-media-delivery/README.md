@@ -20,6 +20,12 @@
   - 后续又对照官方微信 SDK，把图片发送 payload 进一步收回到更小的原生 `image_item` 形态，只保留 `media + mid_size`
   - 图片现在重新走回原生 `image_item` 路径，并按微信官方实现使用十六进制 key 的 base64 编码
   - 文件继续走稳定的 `file_item` 路径，不再和图片共用一套编码假设
+- 同批次续改又继续收掉了一批 reply 链残留：
+  - `ncp-reply-consumer.service.ts` 收回到更直接的 `ncp-reply-consumer.ts`
+  - `channel-reply-router.service.ts` 删除，改成无状态的 `channel-reply.ts` 纯函数模块
+  - `nextclaw-ncp-runner.service.ts` 删除，改成无状态的 `ncp-event-stream.ts` 纯函数模块
+  - `ChatTarget` 删除了没有运行时消费方的 `participantId / messageId / threadId`
+  - 微信 channel 自己也删掉了对应的空传递字段与 `message_id` 元信息残留
 - 微信长轮询里的 `errcode=-14, errmsg=session timeout` 现在会被识别成 `getupdates` 会话游标过期：
   - 自动清掉本地保存的 cursor
   - 下一轮静默恢复轮询
@@ -67,7 +73,14 @@ pnpm -C packages/nextclaw exec tsx --eval 'import("../../packages/extensions/nex
 - `@nextclaw/ncp-toolkit` 的 `ncp-reply-consumer.test.ts` 通过，`5` 条测试通过。
 - 补充后，`@nextclaw/ncp-toolkit` 的 `ncp-reply-consumer.test.ts` 已扩展到覆盖 `asset_put -> file part` 投影，当前 `7` 条测试通过。
 - `nextclaw` 的 `nextclaw-ncp-runner.test.ts` 通过，`8` 条测试通过。
-- 四个相关包的定向 `tsc` 都通过。
+- 本轮继续删壳后，再次验证：
+  - `pnpm --filter @nextclaw/ncp-toolkit test -- ncp-reply-consumer.test.ts`
+  - `pnpm --filter @nextclaw/ncp-toolkit tsc`
+  - `pnpm --filter @nextclaw/channel-plugin-weixin test -- weixin-channel.test.ts weixin-api.client.test.ts weixin-channel-attachments.test.ts`
+  - `pnpm --filter @nextclaw/channel-plugin-weixin tsc`
+  - `pnpm --filter nextclaw test -- nextclaw-ncp-runner.test.ts`
+  - `pnpm --filter nextclaw tsc`
+  结果全部通过。
 - `pnpm lint:maintainability:guard` 未通过，但本轮自己引入的 hard error 已经清掉；剩余 hard error 全部来自当前工作区里其它 Hermes / HTTP runtime 相关并行改动，不是本轮微信 media 改动造成的。
 - source-mode 运行时 import 验证通过，`weixin-media.client.ts` 和 `weixin-channel.ts` 都能在本地源码模式下被真实加载。
 
@@ -199,7 +212,7 @@ pnpm -C packages/nextclaw exec tsx --eval 'import("../../packages/extensions/nex
 - `media/weixin-media.client.ts`：上传与微信媒体发送
 - `media/weixin-media-part-reader.ts`：把 `file part` 读成字节
 - `weixin-chat.ts`：聊天发送 owner
-- `channel-reply-router.service.ts`：只负责把资产解析能力和 reply 流一起定向交给 channel
+- `channel-reply.ts`：只负责把资产解析能力和 reply 流一起定向交给 channel
 
 这比把所有逻辑都继续堆回 `weixin-chat.ts` 明显更可维护。
 

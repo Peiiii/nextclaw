@@ -4,9 +4,6 @@ export type NcpEventStream = AsyncIterable<NcpEndpointEvent>;
 
 export type ChatTarget = {
   conversationId: string;
-  participantId: string;
-  messageId?: string;
-  threadId?: string;
   accountId?: string;
   resolveAssetContentPath?: (assetUri: string) => string | null;
   metadata?: Record<string, unknown>;
