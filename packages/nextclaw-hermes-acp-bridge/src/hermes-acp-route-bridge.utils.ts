@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename, delimiter } from "node:path";
+import { basename, delimiter, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERMES_ACP_BRIDGE_ENABLE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
@@ -66,8 +66,13 @@ export function isHermesAcpRuntimeConfig(config: HermesAcpLaunchTarget): boolean
 }
 
 function resolveHermesAcpBridgeDir(): string | null {
-  const bridgeDir = fileURLToPath(new URL("./hermes-acp-route-bridge", import.meta.url));
-  return existsSync(bridgeDir) ? bridgeDir : null;
+  const packageDir = fileURLToPath(new URL("../", import.meta.url));
+  const sourceBridgeDir = resolve(packageDir, "src/hermes-acp-route-bridge");
+  if (existsSync(sourceBridgeDir)) {
+    return sourceBridgeDir;
+  }
+  const distBridgeDir = resolve(packageDir, "dist/hermes-acp-route-bridge");
+  return existsSync(distBridgeDir) ? distBridgeDir : null;
 }
 
 function mergePathList(existingValue: string | undefined, injectedPath: string): string {

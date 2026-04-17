@@ -7,57 +7,42 @@ NextClaw RuntimeRoute instead of resolving its own provider config first.
 
 from __future__ import annotations
 
-import json
+import copy
+import importlib.util
 import logging
-import os
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict
 
 LOGGER = logging.getLogger("nextclaw.hermes_acp_route_bridge")
 ROUTE_ENABLE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE"
-API_MODE_HEADER = "x-nextclaw-narp-api-mode"
+CREATE_EXECUTION_AGENT = None
+CREATE_SESSION_SNAPSHOT = None
 
-
-def _read_text_env(name: str) -> Optional[str]:
-    value = os.environ.get(name)
-    if not isinstance(value, str):
-        return None
-    trimmed = value.strip()
-    return trimmed or None
-
-
-def _read_headers_env() -> Dict[str, str]:
-    raw = _read_text_env("NEXTCLAW_HEADERS_JSON")
-    if not raw:
-        return {}
-    try:
-        parsed = json.loads(raw)
-    except Exception:
-        LOGGER.debug("Failed to parse NEXTCLAW_HEADERS_JSON", exc_info=True)
-        return {}
-    if not isinstance(parsed, dict):
-        return {}
-    normalized: Dict[str, str] = {}
-    for key, value in parsed.items():
-        if isinstance(key, str) and isinstance(value, str) and key.strip() and value.strip():
-            normalized[key] = value
-    return normalized
-
-
-def _read_nextclaw_route(explicit_model: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    model = explicit_model or _read_text_env("NEXTCLAW_MODEL")
-    api_base = _read_text_env("NEXTCLAW_API_BASE")
-    api_key = _read_text_env("NEXTCLAW_API_KEY")
-    headers = _read_headers_env()
-    api_mode = headers.pop(API_MODE_HEADER, None) or "chat_completions"
-    if not any([model, api_base, api_key, headers]):
-        return None
-    return {
-      "model": model,
-      "api_base": api_base,
-      "api_key": api_key or "",
-      "headers": headers,
-      "api_mode": api_mode,
-    }
+_ROUTE_HELPER_SPEC = importlib.util.spec_from_file_location(
+    "nextclaw_hermes_acp_runtime_route",
+    Path(__file__).with_name("nextclaw-hermes-acp-runtime-route.py"),
+)
+if _ROUTE_HELPER_SPEC is None or _ROUTE_HELPER_SPEC.loader is None:
+    raise ImportError("Failed to load nextclaw Hermes ACP runtime route helper.")
+_ROUTE_HELPER_MODULE = importlib.util.module_from_spec(_ROUTE_HELPER_SPEC)
+_ROUTE_HELPER_SPEC.loader.exec_module(_ROUTE_HELPER_MODULE)
+_SESSION_SNAPSHOT_SPEC = importlib.util.spec_from_file_location(
+    "nextclaw_hermes_acp_session_snapshot",
+    Path(__file__).with_name("nextclaw-hermes-acp-session-snapshot.py"),
+)
+if _SESSION_SNAPSHOT_SPEC is None or _SESSION_SNAPSHOT_SPEC.loader is None:
+    raise ImportError("Failed to load nextclaw Hermes ACP session snapshot helper.")
+_SESSION_SNAPSHOT_MODULE = importlib.util.module_from_spec(_SESSION_SNAPSHOT_SPEC)
+_SESSION_SNAPSHOT_SPEC.loader.exec_module(_SESSION_SNAPSHOT_MODULE)
+clear_session_routes = _ROUTE_HELPER_MODULE.clear_session_routes
+pop_session_route = _ROUTE_HELPER_MODULE.pop_session_route
+read_nextclaw_prompt_route = _ROUTE_HELPER_MODULE.read_nextclaw_prompt_route
+read_nextclaw_route = _ROUTE_HELPER_MODULE.read_nextclaw_route
+read_session_route = _ROUTE_HELPER_MODULE.read_session_route
+read_text_env = _ROUTE_HELPER_MODULE.read_text_env
+remember_session_route = _ROUTE_HELPER_MODULE.remember_session_route
+copy_session_surface = _SESSION_SNAPSHOT_MODULE.copy_session_surface
+HermesSessionAgentSnapshot = _SESSION_SNAPSHOT_MODULE.HermesSessionAgentSnapshot
 
 
 def _merge_openai_headers(agent: Any, headers: Dict[str, str]) -> None:
@@ -103,7 +88,7 @@ def _patch_acp_auth() -> None:
     original_detect_provider = auth_module.detect_provider
 
     def detect_provider():
-        route = _read_nextclaw_route()
+        route = read_nextclaw_route()
         if route is not None:
             return "nextclaw"
         return original_detect_provider()
@@ -116,13 +101,94 @@ def _patch_acp_auth() -> None:
 
 
 def _patch_session_manager() -> None:
+    global CREATE_EXECUTION_AGENT
+    global CREATE_SESSION_SNAPSHOT
     try:
         from acp_adapter import session as session_module
     except Exception:
         LOGGER.debug("Failed to import acp_adapter.session", exc_info=True)
         return
 
-    original_make_agent = session_module.SessionManager._make_agent
+    def create_execution_agent(
+        *,
+        session_id: str,
+        cwd: str,
+        model: str | None,
+        requested_provider: str | None,
+        base_url: str | None,
+        api_mode: str | None,
+        source_agent: Any = None,
+    ):
+        route = read_nextclaw_route(
+            session_id=session_id,
+            explicit_model=model,
+            explicit_base_url=base_url,
+            explicit_api_mode=api_mode,
+            explicit_provider=requested_provider,
+        )
+        if route is None:
+            raise RuntimeError(
+                "Missing NextClaw providerRoute for Hermes ACP request-scoped execution."
+            )
+
+        from run_agent import AIAgent
+
+        kwargs = {
+            "platform": "acp",
+            "enabled_toolsets": ["hermes-acp"],
+            "quiet_mode": True,
+            "session_id": session_id,
+            "model": route["model"] or "",
+            "provider": route.get("provider") or requested_provider or "custom",
+            "api_mode": route["api_mode"],
+            "base_url": route["api_base"] or "",
+            "api_key": route["api_key"],
+        }
+
+        session_module._register_task_cwd(session_id, cwd)
+        agent = AIAgent(**kwargs)
+        agent._print_fn = session_module._acp_stderr_print
+        copy_session_surface(source_agent, agent)
+        _merge_openai_headers(agent, route["headers"])
+        _merge_anthropic_headers(agent, route["headers"])
+        LOGGER.info(
+            "Hermes ACP execution agent route resolved: session_id=%s model=%s provider=%s api_mode=%s base_url=%s",
+            session_id,
+            getattr(agent, "model", ""),
+            getattr(agent, "provider", ""),
+            getattr(agent, "api_mode", ""),
+            getattr(agent, "base_url", ""),
+        )
+        return agent
+
+    def create_session_snapshot(
+        session_id: str,
+        *,
+        cwd: str,
+        model: str | None,
+        provider: str | None,
+        base_url: str | None,
+        api_mode: str | None,
+        source_agent: Any = None,
+    ) -> HermesSessionAgentSnapshot:
+        return HermesSessionAgentSnapshot(
+            session_id=session_id,
+            cwd=cwd,
+            model=model,
+            provider=provider,
+            base_url=base_url,
+            api_mode=api_mode,
+            source_agent=source_agent,
+            execution_agent_factory=lambda: create_execution_agent(
+                session_id=session_id,
+                cwd=cwd,
+                model=model,
+                requested_provider=provider,
+                base_url=base_url,
+                api_mode=api_mode,
+                source_agent=source_agent,
+            )
+        )
 
     def bridged_make_agent(
         self,
@@ -134,43 +200,136 @@ def _patch_session_manager() -> None:
         base_url: str | None = None,
         api_mode: str | None = None,
     ):
-        route = _read_nextclaw_route(explicit_model=model)
-        if route is None:
-            return original_make_agent(
-                self,
-                session_id=session_id,
-                cwd=cwd,
-                model=model,
-                requested_provider=requested_provider,
-                base_url=base_url,
-                api_mode=api_mode,
-            )
-
-        if self._agent_factory is not None:
-            return self._agent_factory()
-
-        from run_agent import AIAgent
-
-        kwargs = {
-            "platform": "acp",
-            "enabled_toolsets": ["hermes-acp"],
-            "quiet_mode": True,
-            "session_id": session_id,
-            "model": route["model"] or "",
-            "provider": requested_provider or "custom",
-            "api_mode": api_mode or route["api_mode"],
-            "base_url": base_url or route["api_base"] or "",
-            "api_key": route["api_key"],
-        }
-
-        session_module._register_task_cwd(session_id, cwd)
-        agent = AIAgent(**kwargs)
-        agent._print_fn = session_module._acp_stderr_print
-        _merge_openai_headers(agent, route["headers"])
-        _merge_anthropic_headers(agent, route["headers"])
-        return agent
+        route = read_nextclaw_route(
+            session_id=session_id,
+            explicit_model=model,
+            explicit_base_url=base_url,
+            explicit_api_mode=api_mode,
+            explicit_provider=requested_provider,
+        )
+        resolved_model = (route or {}).get("model") or model
+        resolved_provider = (route or {}).get("provider") or requested_provider
+        resolved_base_url = (route or {}).get("api_base") or base_url
+        resolved_api_mode = (route or {}).get("api_mode") or api_mode
+        return create_session_snapshot(
+            session_id=session_id,
+            cwd=cwd,
+            model=resolved_model,
+            provider=resolved_provider,
+            base_url=resolved_base_url,
+            api_mode=resolved_api_mode,
+        )
 
     session_module.SessionManager._make_agent = bridged_make_agent
+
+    original_persist = getattr(session_module.SessionManager, "_persist", None)
+
+    if callable(original_persist):
+        def bridged_persist(self, state):
+            sanitized_state = copy.copy(state)
+            sanitized_state.agent = create_session_snapshot(
+                session_id=state.session_id,
+                cwd=state.cwd,
+                model=state.model or getattr(state.agent, "model", None),
+                provider=getattr(state.agent, "provider", None),
+                base_url=None,
+                api_mode=getattr(state.agent, "api_mode", None),
+                source_agent=state.agent,
+            )
+            return original_persist(self, sanitized_state)
+
+        session_module.SessionManager._persist = bridged_persist
+
+    original_remove_session = session_module.SessionManager.remove_session
+
+    def bridged_remove_session(self, session_id: str) -> bool:
+        pop_session_route(session_id)
+        return original_remove_session(self, session_id)
+
+    session_module.SessionManager.remove_session = bridged_remove_session
+
+    original_cleanup = session_module.SessionManager.cleanup
+
+    def bridged_cleanup(self) -> None:
+        clear_session_routes()
+        return original_cleanup(self)
+
+    session_module.SessionManager.cleanup = bridged_cleanup
+    CREATE_EXECUTION_AGENT = create_execution_agent
+    CREATE_SESSION_SNAPSHOT = create_session_snapshot
+
+
+def _patch_prompt_execution() -> None:
+    try:
+        from acp_adapter import server as server_module
+        from acp_adapter import session as session_module
+    except Exception:
+        LOGGER.debug("Failed to import Hermes ACP server/session modules", exc_info=True)
+        return
+
+    original_prompt = getattr(server_module.HermesACPAgent, "prompt", None)
+    if not callable(original_prompt):
+        return
+    if getattr(original_prompt, "__nextclaw_request_scoped_agent_bridge__", False):
+        return
+
+    async def bridged_prompt(self, prompt, session_id: str, **kwargs):
+        if not callable(CREATE_EXECUTION_AGENT) or not callable(CREATE_SESSION_SNAPSHOT):
+            raise RuntimeError("NextClaw Hermes ACP request-scoped agent bridge is not ready.")
+        state = self.session_manager.get_session(session_id)
+        if state is None:
+            return await original_prompt(self, prompt, session_id, **kwargs)
+
+        prompt_route = read_nextclaw_prompt_route(kwargs)
+        if prompt_route is not None and read_session_route(session_id) != prompt_route:
+            remember_session_route(session_id, prompt_route)
+
+        if prompt_route and prompt_route.get("model"):
+            state.model = prompt_route["model"]
+
+        previous_agent = getattr(state, "agent", None)
+        provider_hint = None if prompt_route is not None else getattr(previous_agent, "provider", None)
+        base_url_hint = None if prompt_route is not None else getattr(previous_agent, "base_url", None)
+        api_mode_hint = None if prompt_route is not None else getattr(previous_agent, "api_mode", None)
+        execution_agent = None
+        try:
+            execution_agent = CREATE_EXECUTION_AGENT(
+                session_id=session_id,
+                cwd=state.cwd,
+                model=state.model or getattr(previous_agent, "model", None),
+                requested_provider=provider_hint,
+                base_url=base_url_hint,
+                api_mode=api_mode_hint,
+                source_agent=previous_agent,
+            )
+        except Exception as exc:
+            LOGGER.exception(
+                "Failed to create request-scoped Hermes execution agent for session %s",
+                session_id,
+            )
+            raise RuntimeError(
+                "NextClaw Hermes ACP failed to create the request-scoped execution agent."
+            ) from exc
+
+        state.agent = execution_agent
+        try:
+            return await original_prompt(self, prompt, session_id, **kwargs)
+        finally:
+            current_agent = getattr(state, "agent", None)
+            source_agent = current_agent if current_agent is not execution_agent else execution_agent
+            state.agent = CREATE_SESSION_SNAPSHOT(
+                session_id=session_id,
+                cwd=state.cwd,
+                model=state.model or getattr(source_agent, "model", None),
+                provider=getattr(source_agent, "provider", None),
+                base_url=None,
+                api_mode=getattr(source_agent, "api_mode", None),
+                source_agent=source_agent,
+            )
+            session_module._register_task_cwd(session_id, state.cwd)
+
+    bridged_prompt.__nextclaw_request_scoped_agent_bridge__ = True
+    server_module.HermesACPAgent.prompt = bridged_prompt
 
 
 def _patch_acp_reasoning_mapping() -> None:
@@ -215,10 +374,11 @@ def _patch_acp_reasoning_mapping() -> None:
 
 
 def _activate() -> None:
-    if _read_text_env(ROUTE_ENABLE_ENV) != "1":
+    if read_text_env(ROUTE_ENABLE_ENV) != "1":
         return
     _patch_acp_auth()
     _patch_session_manager()
+    _patch_prompt_execution()
     _patch_acp_reasoning_mapping()
 
 

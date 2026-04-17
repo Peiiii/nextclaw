@@ -24,9 +24,8 @@ import {
   normalizeRuntimeError,
 } from "./stdio-runtime-error.utils.js";
 import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
-
 type AcpClientUpdate = acp.SessionUpdate;
-
+const HERMES_ACP_ROUTE_BRIDGE_ENV = "NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE";
 export type StdioRuntimeNcpAgentRuntimeConfig = StdioRuntimeResolvedConfig & {
   sessionId: string;
   stateManager?: NcpAgentConversationStateManager;
@@ -338,8 +337,9 @@ class StdioRuntimeSession {
     const releaseAbort = this.bindAbortSignal(signal);
 
     try {
-      if (modelId) {
+      if (modelId && this.config.env?.[HERMES_ACP_ROUTE_BRIDGE_ENV] !== "1") {
         try {
+          // Hermes ACP must switch on prompt-scoped providerRoute, not modelId alone.
           await this.connection.unstable_setSessionModel({
             sessionId: this.remoteSessionId,
             modelId,

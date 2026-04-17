@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
@@ -9,6 +10,8 @@ import {
 } from "./hermes-acp-route-bridge.utils.js";
 
 const tempDirs: string[] = [];
+const packageDir = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const expectedSourceBridgeDir = join(packageDir, "src", "hermes-acp-route-bridge");
 
 function createHermesAcpConfig() {
   return {
@@ -239,6 +242,16 @@ describe("buildHermesAcpBridgeLaunchEnv", () => {
     expect(env.NEXTCLAW_API_KEY).toBe("nextclaw-hermes-acp-probe-key");
     expect(env.NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE).toBe("1");
     expect(env.PYTHONPATH).toContain("hermes-acp-route-bridge");
+  });
+
+  it("prefers the source bridge directory when the workspace package is available", () => {
+    const env = buildHermesAcpBridgeLaunchEnv({
+      ...createHermesAcpConfig(),
+      baseEnv: {},
+    });
+
+    expect(env.NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE_DIR).toBe(expectedSourceBridgeDir);
+    expect(env.PYTHONPATH?.split(":")[0]).toBe(expectedSourceBridgeDir);
   });
 });
 

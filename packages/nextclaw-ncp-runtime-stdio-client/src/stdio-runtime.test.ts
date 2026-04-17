@@ -19,6 +19,12 @@ const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
   "hermes-tool-title-agent.utils.mjs",
 );
 
+const FAILING_FIXTURE_PATH = join(
+  import.meta.dirname,
+  "test-fixtures",
+  "failing-agent.mjs",
+);
+
 describe("StdioRuntimeConfigResolver", () => {
   it("reads command and args from explicit config", () => {
     const resolver = new StdioRuntimeConfigResolver({
@@ -193,6 +199,117 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
         }
       })(),
     ).rejects.toThrow(/failed to start stdio runtime command/);
+  });
+});
+
+describe("StdioRuntimeNcpAgentRuntime Hermes request-scoped route handling", () => {
+  it("skips unstable session model switching for Hermes request-scoped ACP runs", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-hermes-route-truth",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [FIXTURE_PATH],
+      env: {
+        NEXTCLAW_HERMES_ACP_ROUTE_BRIDGE: "1",
+      },
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+      resolveProviderRoute: () => ({
+        model: "qwen3.6-plus",
+        apiKey: "dashscope-key",
+        apiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        headers: {
+          "x-dashscope-workspace": "workspace-456",
+        },
+      }),
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-stdio-hermes-route-truth",
+      messages: [
+        {
+          id: "user-hermes-route-truth",
+          sessionId: "session-stdio-hermes-route-truth",
+          role: "user",
+          status: "final",
+          timestamp: "2026-04-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "route truth" }],
+        },
+      ],
+      metadata: {
+        preferredModel: "dashscope/qwen3.6-plus",
+      },
+    })) {
+      events.push(event);
+    }
+
+    const toolResultEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageToolCallResult }> =>
+        event.type === NcpEventType.MessageToolCallResult,
+    );
+    expect(toolResultEvent?.payload.content).toEqual({
+      modelId: null,
+      routedModel: "qwen3.6-plus",
+      envRoutedModel: "qwen3.6-plus",
+      headerKeys: ["x-dashscope-workspace"],
+      envHeaderKeys: ["x-dashscope-workspace"],
+      toolNames: [],
+    });
+  });
+
+});
+
+describe("StdioRuntimeNcpAgentRuntime failure handling", () => {
+  it("emits explicit failure events when the ACP prompt fails", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-failing-prompt",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [FAILING_FIXTURE_PATH],
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-stdio-failing-prompt",
+      messages: [
+        {
+          id: "user-failing-prompt",
+          sessionId: "session-stdio-failing-prompt",
+          role: "user",
+          status: "final",
+          timestamp: "2026-04-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "fail please" }],
+        },
+      ],
+    })) {
+      events.push(event);
+    }
+
+    expect(events.map((event) => event.type)).toEqual([
+      NcpEventType.MessageAccepted,
+      NcpEventType.RunStarted,
+      NcpEventType.MessageFailed,
+      NcpEventType.RunError,
+    ]);
+
+    const failedEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageFailed }> =>
+        event.type === NcpEventType.MessageFailed,
+    );
+    const runErrorEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.RunError }> =>
+        event.type === NcpEventType.RunError,
+    );
+    expect(failedEvent?.payload.error.code).toBe("runtime-error");
+    expect(failedEvent?.payload.error.message).toContain("fixture prompt failure");
+    expect(runErrorEvent?.payload.error).toContain("fixture prompt failure");
   });
 
 });

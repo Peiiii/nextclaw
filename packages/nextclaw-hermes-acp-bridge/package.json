@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle && node ./scripts/copy-hermes-acp-route-bridge.mjs",
+    "check:bridge-sync": "node ./scripts/check-hermes-acp-route-bridge-sync.mjs",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",

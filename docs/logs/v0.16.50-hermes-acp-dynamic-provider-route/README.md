@@ -23,6 +23,10 @@
 - 收尾补丁修复了 `pnpm dev start` 启动残留回归。
   - `packages/nextclaw-core/src/agent/context.ts` 与 `packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts` 仍引用已删除的 `bootstrap-context.js`。
   - 现在统一改为指向现有的 `bootstrap-context.service.js`，避免开发启动时直接触发 `ERR_MODULE_NOT_FOUND`。
+- 补上 Hermes ACP bridge 运行产物同步防线。
+  - 本地仓库运行时现在优先使用 `src/hermes-acp-route-bridge`，避免工作区已经修好但 `dist/hermes-acp-route-bridge` 仍是旧桥时继续吃到旧逻辑。
+  - 新增 `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge check:bridge-sync`，可直接检测 source / dist 桥接文件是否一致。
+  - request-scoped execution agent 在 Hermes 日志里会显式打印最终 `model/provider/api_mode/base_url`，方便核对“实际执行模型”和“自报模型”是否一致。
 
 ## 测试/验证/验收方式
 

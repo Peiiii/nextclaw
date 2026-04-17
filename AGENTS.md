@@ -383,6 +383,12 @@
   - 反例：本地已有兄弟目录 `hermes-agent`，但仍直接去网页搜索或查看远程仓库代码。
   - 执行方式：每次涉及 Hermes Agent 对比前，先执行兄弟目录存在性检查；存在则本地检索/读取，不存在再切换远程方案。
   - 维护责任人：当前助手。
+- **hermes-upstream-source-must-stay-immutable**：
+  - 约束/适用范围：凡涉及 Hermes 集成、ACP、runtime route、provider 切换、桥接、注入、兼容、诊断或相关文档时，禁止直接修改 Hermes 上游源码仓库（如同级兄弟目录 `../hermes-agent`）中的实现文件。默认只能在 NextClaw 自身边界内做适配、桥接、注入、包装、补丁层或文档约束，例如 `packages/nextclaw-hermes-acp-bridge`、NCP runtime adapter、启动环境注入、sidecar 包装与本仓库说明文档。
+  - 示例：为 Hermes ACP 增加 route 透传时，只修改 NextClaw 侧 bridge / adapter / runtime 代码；需要说明边界时，更新 `packages/nextclaw-hermes-acp-bridge/README.md` 或本仓库规则文档，而不是改 `hermes-agent` 上游实现。
+  - 反例：直接编辑 `/Users/peiwang/Projects/hermes-agent/acp_adapter/server.py`、`session.py` 或其它 Hermes 上游源码来修复 NextClaw 集成问题；把本应留在 NextClaw 侧的适配逻辑提交到 Hermes 仓库。
+  - 执行方式：开始 Hermes 相关任务时先做边界判断：`这次需求能否完全在 NextClaw 侧完成？`、`是否误把上游源码当成当前改动目标？`、`如果需要触碰 Hermes 行为，是否能通过 bridge / adapter / 启动注入 / sidecar 包装解决？`。若发现方案依赖直接修改 Hermes 上游源码，默认退回并重新设计为 NextClaw 侧适配方案；只有用户明确要求维护 Hermes 上游仓库本身时，才可脱离本规则。
+  - 维护责任人：当前助手。
 - **prefer-local-copaw-sibling-source**：
   - 约束/适用范围：当需要查看 CoPaw 源码时，优先在本项目根目录的同级兄弟目录查找本地 `copaw` 仓库；若存在，必须优先读取本地源码；仅在本地不存在时才允许使用其它方式（如远程仓库/网络检索）。
   - 示例：在 `/Users/peiwang/Projects/nextbot` 需要核对 CoPaw 实现时，先检查 `/Users/peiwang/Projects/copaw` 并直接读取对应文件。
