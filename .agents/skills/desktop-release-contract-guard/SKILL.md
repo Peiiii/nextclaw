@@ -22,6 +22,19 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - `pnpm -C apps/desktop bundle:public-key:ensure`
    - then `pnpm -C apps/desktop dist ...` or `pnpm -C apps/desktop pack ...`
 3. If handing a local installer to a human, point them to `apps/desktop/release/...` and state the exact artifact path.
+4. After creating a GitHub prerelease/tag, verify workflow and assets instead of stopping at `gh release create`:
+   - `gh run view <run-id> --repo <owner/repo> --json status,conclusion,jobs`
+   - `gh release view <tag> --repo <owner/repo> --json assets,isPrerelease,url`
+
+## Release Completion Gate
+- Treat tag creation or `gh release create` success as the start signal, not the finish line.
+- A desktop release is only complete when the release-triggered `desktop-release` workflow finishes with overall `success`.
+- Confirm the matrix jobs and the follow-on publish jobs all finished:
+  - `publish-release-assets`
+  - `publish-desktop-update-channels`
+  - `publish-linux-apt-repo` for stable releases
+- Release assets may stay empty while the workflow is still running. Do not treat an empty `assets[]` list as proof of either success or final failure until the workflow attempt is finished.
+- If packaging, smoke, bundle, and manifest steps already passed and the only failure is `actions/upload-artifact@v4` reporting `Upload progress stalled.`, rerun failed jobs first before changing product code or packaging logic.
 
 ## Non-Negotiable Checks
 - Confirm packaged app contains `resources/update/update-bundle-public.pem`.
@@ -42,6 +55,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Do not "fix" missing packaged public key by skipping manifest signature verification in runtime.
 - Do not accept "works with local node" as evidence that the packaged runtime is healthy.
 - Do not claim validation passed if only unit tests passed.
+- Do not treat "tag already exists" or "release page exists" as proof that assets or update-channel manifests are published.
 
 ## Recommended Response Pattern
 - State the root cause in contract terms: missing packaged verifier, broken packaging contract, or manifest/signature mismatch.
