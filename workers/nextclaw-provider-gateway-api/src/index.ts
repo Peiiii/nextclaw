@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { remoteProxyHandler } from "./controllers/remote-controller";
 import { NextclawRemoteQuotaDurableObject } from "./remote-quota-do";
 import { NextclawRemoteRelayDurableObject } from "./remote-relay-do";
-import { registerAppRoutes } from "./register-app-routes";
+import { registerAppRoutes } from "./register-app-routes.service";
 import type { Env } from "./types/platform";
 import { openaiError } from "./utils/platform-utils";
 

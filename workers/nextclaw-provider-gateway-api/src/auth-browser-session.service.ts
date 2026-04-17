@@ -1,5 +1,9 @@
 import type { Context } from "hono";
-import { renderBrowserAuthPage, type BrowserAuthMode } from "./auth-browser-page-renderer";
+import {
+  renderBrowserAuthPage,
+  type BrowserAuthLocale,
+  type BrowserAuthMode,
+} from "./auth-browser-page-renderer.service";
 import {
   createPlatformAuthSession,
   getPlatformAuthSessionById,
@@ -67,13 +71,14 @@ export async function loadPlatformAuthSession(c: Context<{ Bindings: Env }>, ses
   };
 }
 
-export function renderMissingSessionPage(errorMessage: string): Response {
+export function renderMissingSessionPage(locale: BrowserAuthLocale): Response {
   return renderBrowserAuthPage({
     sessionId: "",
     pageState: "missing",
     expiresAt: null,
     mode: "login",
-    errorMessage,
+    locale,
+    errorCode: "MISSING_SESSION",
   });
 }
 
@@ -81,6 +86,7 @@ export async function loadPendingBrowserAuthSession(
   c: Context<{ Bindings: Env }>,
   sessionId: string,
   mode: BrowserAuthMode,
+  locale: BrowserAuthLocale,
   email?: string,
 ): Promise<
   | { ok: true; session: NonNullable<Awaited<ReturnType<typeof loadPlatformAuthSession>>> }
@@ -89,7 +95,7 @@ export async function loadPendingBrowserAuthSession(
   if (!sessionId) {
     return {
       ok: false,
-      response: renderMissingSessionPage("Missing authorization session."),
+      response: renderMissingSessionPage(locale),
     };
   }
 
@@ -102,8 +108,9 @@ export async function loadPendingBrowserAuthSession(
         pageState: "missing",
         expiresAt: null,
         mode,
+        locale,
         email,
-        errorMessage: "Authorization session not found.",
+        errorCode: "SESSION_NOT_FOUND",
       }),
     };
   }
@@ -116,8 +123,9 @@ export async function loadPendingBrowserAuthSession(
         pageState: "authorized",
         expiresAt: session.expires_at,
         mode,
+        locale,
         email,
-        successMessage: "This device is already authorized.",
+        successCode: "ALREADY_AUTHORIZED",
       }),
     };
   }
@@ -130,8 +138,9 @@ export async function loadPendingBrowserAuthSession(
         pageState: "expired",
         expiresAt: session.expires_at,
         mode,
+        locale,
         email,
-        errorMessage: "Authorization session expired.",
+        errorCode: "SESSION_EXPIRED",
       }),
     };
   }

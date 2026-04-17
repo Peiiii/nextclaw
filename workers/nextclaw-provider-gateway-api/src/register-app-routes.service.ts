@@ -8,7 +8,7 @@ import {
   sendBrowserPasswordResetCodeHandler,
   sendBrowserRegisterCodeHandler,
   startBrowserAuthHandler,
-} from "./auth-browser-route-handlers";
+} from "./auth-browser-route.controller";
 import {
   completePasswordResetHandler,
   completeRegisterHandler,

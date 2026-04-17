@@ -2,15 +2,17 @@ import type { Context } from "hono";
 import { getUserById } from "./repositories/platform-repository";
 import {
   renderBrowserAuthPage,
+  resolveBrowserAuthLocale,
   resolveBrowserAuthMode,
-} from "./auth-browser-page-renderer";
+  type BrowserAuthLocale,
+} from "./auth-browser-page-renderer.service";
 import {
   authorizeBrowserSessionForUser,
   createBrowserAuthSession,
   loadPendingBrowserAuthSession,
   loadPlatformAuthSession,
   renderMissingSessionPage,
-} from "./auth-browser-session-support";
+} from "./auth-browser-session.service";
 import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "./platform-email-otp-service";
 import {
   authenticatePlatformUser,
@@ -22,6 +24,17 @@ import {
 import { ensurePlatformBootstrap } from "./services/platform-service";
 import { DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS, type Env } from "./types/platform";
 import { apiError, readClientIp, readJson, readString } from "./utils/platform-utils";
+
+function resolveRequestBrowserAuthLocale(
+  c: Context<{ Bindings: Env }>,
+  explicitLocale?: string | null,
+): BrowserAuthLocale {
+  return resolveBrowserAuthLocale({
+    explicitLocale,
+    cookieHeader: c.req.header("cookie"),
+    acceptLanguageHeader: c.req.header("accept-language"),
+  });
+}
 
 export async function startBrowserAuthHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);
@@ -85,8 +98,9 @@ export async function browserAuthPageHandler(c: Context<{ Bindings: Env }>): Pro
   await ensurePlatformBootstrap(c.env);
   const sessionId = c.req.query("sessionId")?.trim() ?? "";
   const mode = resolveBrowserAuthMode(c.req.query("mode"));
+  const locale = resolveRequestBrowserAuthLocale(c, c.req.query("locale"));
   if (!sessionId) {
-    return renderMissingSessionPage("Missing authorization session.");
+    return renderMissingSessionPage(locale);
   }
 
   const session = await loadPlatformAuthSession(c, sessionId);
@@ -96,7 +110,8 @@ export async function browserAuthPageHandler(c: Context<{ Bindings: Env }>): Pro
       pageState: "missing",
       expiresAt: null,
       mode,
-      errorMessage: "Authorization session not found.",
+      locale,
+      errorCode: "SESSION_NOT_FOUND",
     });
   }
 
@@ -105,6 +120,7 @@ export async function browserAuthPageHandler(c: Context<{ Bindings: Env }>): Pro
     pageState: session.status,
     expiresAt: session.expires_at,
     mode,
+    locale,
   });
 }
 
@@ -112,9 +128,10 @@ export async function loginBrowserAuthHandler(c: Context<{ Bindings: Env }>): Pr
   await ensurePlatformBootstrap(c.env);
   const form = await c.req.formData();
   const sessionId = String(form.get("sessionId") ?? "").trim();
+  const locale = resolveRequestBrowserAuthLocale(c, String(form.get("locale") ?? "").trim());
   const email = String(form.get("email") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "login", email);
+  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "login", locale, email);
   if (!sessionResult.ok) {
     return sessionResult.response;
   }
@@ -137,8 +154,9 @@ export async function loginBrowserAuthHandler(c: Context<{ Bindings: Env }>): Pr
       pageState: "authorized",
       expiresAt: sessionResult.session.expires_at,
       mode: "login",
+      locale,
       email,
-      successMessage: "This device is now linked to your NextClaw Account.",
+      successCode: "DEVICE_LINKED",
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {
@@ -147,7 +165,9 @@ export async function loginBrowserAuthHandler(c: Context<{ Bindings: Env }>): Pr
         pageState: "pending",
         expiresAt: sessionResult.session.expires_at,
         mode: "login",
+        locale,
         email,
+        errorCode: error.code,
         errorMessage: error.message,
       });
     }
@@ -159,8 +179,9 @@ export async function sendBrowserRegisterCodeHandler(c: Context<{ Bindings: Env 
   await ensurePlatformBootstrap(c.env);
   const form = await c.req.formData();
   const sessionId = String(form.get("sessionId") ?? "").trim();
+  const locale = resolveRequestBrowserAuthLocale(c, String(form.get("locale") ?? "").trim());
   const email = String(form.get("email") ?? "").trim();
-  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "register", email);
+  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "register", locale, email);
   if (!sessionResult.ok) {
     return sessionResult.response;
   }
@@ -178,10 +199,11 @@ export async function sendBrowserRegisterCodeHandler(c: Context<{ Bindings: Env 
       pageState: "pending",
       expiresAt: sessionResult.session.expires_at,
       mode: "register",
+      locale,
       email: result.email,
       maskedEmail: result.maskedEmail,
       codeStepActive: true,
-      successMessage: "Verification code sent.",
+      successCode: "VERIFICATION_CODE_SENT",
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {
@@ -190,7 +212,9 @@ export async function sendBrowserRegisterCodeHandler(c: Context<{ Bindings: Env 
         pageState: "pending",
         expiresAt: sessionResult.session.expires_at,
         mode: "register",
+        locale,
         email,
+        errorCode: error.code,
         errorMessage: error.message,
       });
     }
@@ -202,10 +226,11 @@ export async function completeBrowserRegisterHandler(c: Context<{ Bindings: Env 
   await ensurePlatformBootstrap(c.env);
   const form = await c.req.formData();
   const sessionId = String(form.get("sessionId") ?? "").trim();
+  const locale = resolveRequestBrowserAuthLocale(c, String(form.get("locale") ?? "").trim());
   const email = String(form.get("email") ?? "").trim();
   const code = String(form.get("code") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "register", email);
+  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "register", locale, email);
   if (!sessionResult.ok) {
     return sessionResult.response;
   }
@@ -233,8 +258,9 @@ export async function completeBrowserRegisterHandler(c: Context<{ Bindings: Env 
       pageState: "authorized",
       expiresAt: sessionResult.session.expires_at,
       mode: "register",
+      locale,
       email,
-      successMessage: "Account created and device authorized.",
+      successCode: "ACCOUNT_CREATED_AND_AUTHORIZED",
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {
@@ -243,8 +269,10 @@ export async function completeBrowserRegisterHandler(c: Context<{ Bindings: Env 
         pageState: "pending",
         expiresAt: sessionResult.session.expires_at,
         mode: "register",
+        locale,
         email,
         codeStepActive: true,
+        errorCode: error.code,
         errorMessage: error.message,
       });
     }
@@ -256,8 +284,9 @@ export async function sendBrowserPasswordResetCodeHandler(c: Context<{ Bindings:
   await ensurePlatformBootstrap(c.env);
   const form = await c.req.formData();
   const sessionId = String(form.get("sessionId") ?? "").trim();
+  const locale = resolveRequestBrowserAuthLocale(c, String(form.get("locale") ?? "").trim());
   const email = String(form.get("email") ?? "").trim();
-  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "reset_password", email);
+  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "reset_password", locale, email);
   if (!sessionResult.ok) {
     return sessionResult.response;
   }
@@ -275,10 +304,11 @@ export async function sendBrowserPasswordResetCodeHandler(c: Context<{ Bindings:
       pageState: "pending",
       expiresAt: sessionResult.session.expires_at,
       mode: "reset_password",
+      locale,
       email: result.email,
       maskedEmail: result.maskedEmail,
       codeStepActive: true,
-      successMessage: "Verification code sent.",
+      successCode: "VERIFICATION_CODE_SENT",
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {
@@ -287,7 +317,9 @@ export async function sendBrowserPasswordResetCodeHandler(c: Context<{ Bindings:
         pageState: "pending",
         expiresAt: sessionResult.session.expires_at,
         mode: "reset_password",
+        locale,
         email,
+        errorCode: error.code,
         errorMessage: error.message,
       });
     }
@@ -299,10 +331,11 @@ export async function completeBrowserPasswordResetHandler(c: Context<{ Bindings:
   await ensurePlatformBootstrap(c.env);
   const form = await c.req.formData();
   const sessionId = String(form.get("sessionId") ?? "").trim();
+  const locale = resolveRequestBrowserAuthLocale(c, String(form.get("locale") ?? "").trim());
   const email = String(form.get("email") ?? "").trim();
   const code = String(form.get("code") ?? "").trim();
   const password = String(form.get("password") ?? "");
-  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "reset_password", email);
+  const sessionResult = await loadPendingBrowserAuthSession(c, sessionId, "reset_password", locale, email);
   if (!sessionResult.ok) {
     return sessionResult.response;
   }
@@ -330,8 +363,9 @@ export async function completeBrowserPasswordResetHandler(c: Context<{ Bindings:
       pageState: "authorized",
       expiresAt: sessionResult.session.expires_at,
       mode: "reset_password",
+      locale,
       email,
-      successMessage: "Password reset and device authorized.",
+      successCode: "PASSWORD_RESET_AND_AUTHORIZED",
     });
   } catch (error) {
     if (isPlatformAuthServiceError(error)) {
@@ -340,8 +374,10 @@ export async function completeBrowserPasswordResetHandler(c: Context<{ Bindings:
         pageState: "pending",
         expiresAt: sessionResult.session.expires_at,
         mode: "reset_password",
+        locale,
         email,
         codeStepActive: true,
+        errorCode: error.code,
         errorMessage: error.message,
       });
     }
