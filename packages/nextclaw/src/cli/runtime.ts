@@ -12,14 +12,8 @@ import { spawn } from "node:child_process";
 import { RestartCoordinator, type RestartStrategy } from "./restart-coordinator.js";
 import { initializeConfigIfMissing } from "./runtime-config-init.js";
 import { writeRestartSentinel } from "./restart-sentinel.js";
-import { parseStartTimeoutMs, resolveManagedServiceUiOverrides, resolveSkillsInstallWorkdir } from "./runtime-helpers.js";
+import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "./runtime-helpers.js";
 import { logStartupTrace, measureStartupSync } from "./startup-trace.js";
-import {
-  buildMarketplacePublishOptions,
-  buildMarketplaceUpdateOptions,
-  type MarketplacePublishCommandOptions
-} from "./skills/marketplace-command-options.js";
-import { installMarketplaceSkill, publishMarketplaceSkill } from "./skills/marketplace.js";
 import { reportSelfUpdateResult } from "./update/self-update-report.utils.js";
 import { runSelfUpdate } from "./update/runner.js";
 import { getPackageVersion, isProcessRunning } from "./utils.js";
@@ -50,7 +44,7 @@ import { LlmUsageObserver, ObservedProviderManager } from "./commands/shared/llm
 import { llmUsageRecorder } from "./commands/shared/llm-usage-recorder.js";
 import { runCliAgentCommand } from "./commands/agent/cli-agent-runner.js";
 import { RuntimeRestartRequestService } from "./runtime-restart-request.service.js";
-import { SkillsQueryService } from "./skills/skills-query.service.js";
+import { SkillsCommands } from "./commands/skills.controller.js";
 import type {
   AgentCommandOptions,
   AgentsListCommandOptions,
@@ -67,8 +61,6 @@ import type {
   GatewayCommandOptions,
   LoginCommandOptions,
   LogsTailCommandOptions,
-  MarketplaceSkillsRecommendCommandOptions,
-  MarketplaceSkillsSearchCommandOptions,
   McpAddCommandOptions,
   McpDoctorOptions,
   McpListOptions,
@@ -81,8 +73,6 @@ import type {
   SecretsConfigureOptions,
   SecretsReloadOptions,
   RequestRestartParams,
-  SkillsInfoCommandOptions,
-  SkillsInstalledCommandOptions,
   StartCommandOptions,
   StatusCommandOptions,
   UiCommandOptions,
@@ -98,7 +88,7 @@ export class CliRuntime {
   private serviceRestartTask: Promise<boolean> | null = null;
   private selfRelaunchArmed = false;
   private restartRequestService: RuntimeRestartRequestService;
-  private readonly skillsQueryService = new SkillsQueryService();
+  readonly skillsCommands: SkillsCommands;
   private workspaceManager: WorkspaceManager;
   private serviceCommands: ServiceCommands;
   private configCommands: ConfigCommands;
@@ -165,6 +155,7 @@ export class CliRuntime {
       requestRestartFromCoordinator: async (params) =>
         await this.restartCoordinator.requestRestart(params)
     });
+    this.skillsCommands = measureStartupSync("cli.runtime.skills_commands", () => new SkillsCommands());
     logStartupTrace("cli.runtime.constructor.end");
   }
 
@@ -679,174 +670,6 @@ export class CliRuntime {
   doctor = async (opts: DoctorCommandOptions = {}): Promise<void> => { await this.diagnosticsCommands.doctor(opts); };
   logsPath = (): void => { this.logsCommands.logsPath(); };
   logsTail = (opts: LogsTailCommandOptions = {}): void => { this.logsCommands.logsTail(opts); };
-
-  skillsInstalled = async (options: SkillsInstalledCommandOptions = {}): Promise<void> => {
-    const config = loadConfig();
-    const workdir = resolveSkillsInstallWorkdir({
-      explicitWorkdir: options.workdir,
-      configuredWorkspace: config.agents.defaults.workspace,
-    });
-    const result = this.skillsQueryService.listInstalled({
-      workdir,
-      scope: options.scope,
-      query: options.query,
-    });
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return;
-    }
-
-    if (result.skills.length === 0) {
-      console.log("No installed skills found.");
-      return;
-    }
-
-    for (const skill of result.skills) {
-      console.log(`${skill.name} (${skill.scope})`);
-      console.log(`  ref: ${skill.ref}`);
-      console.log(`  path: ${skill.path}`);
-      console.log(`  summary: ${skill.summary ?? "-"}`);
-      console.log(`  description: ${skill.description ?? "-"}`);
-      console.log(`  tags: ${skill.tags.join(", ") || "-"}`);
-      console.log(`  always: ${skill.always ? "yes" : "no"}`);
-    }
-  };
-
-  skillsInfo = async (selector: string, options: SkillsInfoCommandOptions = {}): Promise<void> => {
-    const config = loadConfig();
-    const workdir = resolveSkillsInstallWorkdir({
-      explicitWorkdir: options.workdir,
-      configuredWorkspace: config.agents.defaults.workspace,
-    });
-    const result = this.skillsQueryService.getInstalledInfo({
-      workdir,
-      selector,
-    });
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return;
-    }
-
-    console.log(`${result.name} (${result.scope})`);
-    console.log(`  ref: ${result.ref}`);
-    console.log(`  path: ${result.path}`);
-    console.log(`  summary: ${result.summary ?? "-"}`);
-    console.log(`  description: ${result.description ?? "-"}`);
-    console.log(`  author: ${result.author ?? "-"}`);
-    console.log(`  tags: ${result.tags.join(", ") || "-"}`);
-    console.log(`  always: ${result.always ? "yes" : "no"}`);
-  };
-
-  skillsInstall = async (options: {
-    slug: string;
-    workdir?: string;
-    dir?: string;
-    force?: boolean;
-    apiBaseUrl?: string;
-  }): Promise<void> => {
-    const config = loadConfig();
-    const workdir = resolveSkillsInstallWorkdir({
-      explicitWorkdir: options.workdir,
-      configuredWorkspace: config.agents.defaults.workspace
-    });
-    const result = await installMarketplaceSkill({
-      slug: options.slug,
-      workdir,
-      dir: options.dir,
-      force: options.force,
-      apiBaseUrl: options.apiBaseUrl
-    });
-
-    if (result.alreadyInstalled) {
-      console.log(`✓ ${result.slug} is already installed`);
-    } else {
-      console.log(`✓ Installed ${result.slug} (${result.source})`);
-    }
-    console.log(`  Path: ${result.destinationDir}`);
-  };
-
-  marketplaceSkillsSearch = async (options: MarketplaceSkillsSearchCommandOptions = {}): Promise<void> => {
-    const result = await this.skillsQueryService.searchMarketplaceSkills({
-      apiBaseUrl: options.apiBase,
-      query: options.query,
-      tag: options.tag,
-      sort: options.sort,
-      page: options.page,
-      pageSize: options.pageSize,
-    });
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return;
-    }
-
-    if (result.items.length === 0) {
-      console.log("No marketplace skills found.");
-      return;
-    }
-
-    for (const item of result.items) {
-      console.log(`${item.name} (${item.slug})`);
-      console.log(`  summary: ${item.summary}`);
-      console.log(`  author: ${item.author}`);
-      console.log(`  tags: ${item.tags.join(", ") || "-"}`);
-      console.log(`  install: ${item.install.command}`);
-    }
-  };
-
-  marketplaceSkillsInfo = async (slug: string, options: { apiBase?: string; json?: boolean } = {}): Promise<void> => {
-    const result = await this.skillsQueryService.getMarketplaceSkillInfo({
-      apiBaseUrl: options.apiBase,
-      slug,
-    });
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return;
-    }
-
-    console.log(`${result.item.name} (${result.item.slug})`);
-    console.log(`  summary: ${result.item.summary}`);
-    console.log(`  description: ${result.item.description ?? "-"}`);
-    console.log(`  author: ${result.item.author}`);
-    console.log(`  tags: ${result.item.tags.join(", ") || "-"}`);
-    console.log(`  install: ${result.item.install.command}`);
-    console.log(`  source: ${result.content.source}`);
-  };
-
-  marketplaceSkillsRecommend = async (options: MarketplaceSkillsRecommendCommandOptions = {}): Promise<void> => {
-    const result = await this.skillsQueryService.recommendMarketplaceSkills({
-      apiBaseUrl: options.apiBase,
-      scene: options.scene,
-      limit: options.limit,
-    });
-
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      return;
-    }
-
-    console.log(`${result.title} (${result.sceneId})`);
-    if (result.description) {
-      console.log(`  ${result.description}`);
-    }
-    for (const item of result.items) {
-      console.log(`- ${item.name} (${item.slug})`);
-    }
-  };
-  skillsPublish = async (options: MarketplacePublishCommandOptions): Promise<void> => {
-    const result = await publishMarketplaceSkill(buildMarketplacePublishOptions(options));
-    console.log(`${result.created ? `✓ Published new skill: ${result.packageName}` : `✓ Updated skill: ${result.packageName}`}\n  Alias: ${result.slug}\n  Files: ${result.fileCount}`);
-  };
-
-  skillsUpdate = async (options: Omit<MarketplacePublishCommandOptions, "publishedAt">): Promise<void> => {
-    const result = await publishMarketplaceSkill(buildMarketplaceUpdateOptions(options));
-    console.log(`✓ Updated skill: ${result.packageName}`);
-    console.log(`  Alias: ${result.slug}`);
-    console.log(`  Files: ${result.fileCount}`);
-  };
 
   private createObservedProviderManager = (providerManager: ProviderManager, source: string): ProviderManager =>
     new ObservedProviderManager(providerManager, new LlmUsageObserver(llmUsageRecorder, source));

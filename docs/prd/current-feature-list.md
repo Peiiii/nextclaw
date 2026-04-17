@@ -86,9 +86,15 @@
 
 ## 9. Skills 能力
 
+- `nextclaw skills installed`
+- `nextclaw skills info <selector>`
 - `nextclaw skills install <slug>`
 - `nextclaw skills publish <dir>`
 - `nextclaw skills update <dir>`
+- `nextclaw marketplace skills search`
+- `nextclaw marketplace skills info <slug>`
+- `nextclaw marketplace skills recommend`
+- `nextclaw marketplace skills install <slug>`
 - 内置 skills 模板注入（init 时种子）
 
 ## 10. 当前已知生效边界

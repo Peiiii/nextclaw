@@ -4,6 +4,7 @@ import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
 import { LlmUsageCommands } from "./commands/shared/llm-usage.commands.js";
 import { CliRuntime, LOGO } from "./runtime.js";
+import { registerSkillsCommands } from "./commands/skills.controller.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerLearningLoopCommands } from "./commands/learning-loop/register-learning-loop-commands.js";
 import { logStartupTrace, measureStartupSync } from "./startup-trace.js";
@@ -14,6 +15,7 @@ logStartupTrace("cli.index.module_loaded");
 const program = new Command();
 const runtime = measureStartupSync("cli.runtime.construct", () => new CliRuntime({ logo: LOGO }));
 const llmUsageCommands = new LlmUsageCommands();
+const withRepeatableTag = (value: string, previous: string[] = []) => [...previous, value];
 
 program
   .name(APP_NAME)
@@ -102,56 +104,7 @@ program
   .option("--timeout <ms>", "Update command timeout in milliseconds")
   .action(async (opts) => runtime.update(opts));
 
-const skills = program.command("skills").description("Manage skills");
-skills
-  .command("install <slug>")
-  .description("Install a skill from NextClaw marketplace")
-  .option("--api-base <url>", "Marketplace API base URL")
-  .option("--workdir <dir>", "Workspace directory to install into")
-  .option("--dir <dir>", "Skills directory name (default: skills)")
-  .option("-f, --force", "Overwrite existing skill files", false)
-  .action(async (slug, opts) => runtime.skillsInstall({ slug, ...opts, apiBaseUrl: opts.apiBase }));
-
-const withRepeatableTag = (value: string, previous: string[] = []) => [...previous, value];
-
-skills
-  .command("publish <dir>")
-  .description("Upload or create a skill in marketplace")
-  .option("--meta <path>", "Marketplace metadata file (default: <dir>/marketplace.json)")
-  .option("--slug <slug>", "Skill name segment (default: directory name)")
-  .option("--package-name <name>", "Canonical package name, for example @alice/demo-skill")
-  .option("--scope <scope>", "Package scope, for example alice or nextclaw")
-  .option("--name <name>", "Skill display name")
-  .option("--summary <summary>", "Skill summary")
-  .option("--description <description>", "Skill description")
-  .option("--author <author>", "Skill author")
-  .option("--tag <tag>", "Skill tag (repeatable)", withRepeatableTag, [])
-  .option("--source-repo <url>", "Source repository URL")
-  .option("--homepage <url>", "Homepage URL")
-  .option("--published-at <datetime>", "Published time (ISO datetime)")
-  .option("--updated-at <datetime>", "Updated time (ISO datetime)")
-  .option("--api-base <url>", "Marketplace API base URL")
-  .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
-  .action(async (dir, opts) => runtime.skillsPublish({ dir, ...opts, apiBaseUrl: opts.apiBase }));
-
-skills
-  .command("update <dir>")
-  .description("Update an existing skill in marketplace")
-  .option("--meta <path>", "Marketplace metadata file (default: <dir>/marketplace.json)")
-  .option("--slug <slug>", "Skill name segment (default: directory name)")
-  .option("--package-name <name>", "Canonical package name, for example @alice/demo-skill")
-  .option("--scope <scope>", "Package scope, for example alice or nextclaw")
-  .option("--name <name>", "Skill display name")
-  .option("--summary <summary>", "Skill summary")
-  .option("--description <description>", "Skill description")
-  .option("--author <author>", "Skill author")
-  .option("--tag <tag>", "Skill tag (repeatable)", withRepeatableTag, [])
-  .option("--source-repo <url>", "Source repository URL")
-  .option("--homepage <url>", "Homepage URL")
-  .option("--updated-at <datetime>", "Updated time (ISO datetime)")
-  .option("--api-base <url>", "Marketplace API base URL")
-  .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
-  .action(async (dir, opts) => runtime.skillsUpdate({ dir, ...opts, apiBaseUrl: opts.apiBase }));
+registerSkillsCommands(program, runtime.skillsCommands);
 
 registerAgentsCommands(program, runtime);
 

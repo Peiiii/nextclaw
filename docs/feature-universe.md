@@ -100,9 +100,15 @@
 
 | 命令 | 说明 |
 |------|------|
-| `nextclaw skills install <slug>` | 从 marketplace 安装 skill |
+| `nextclaw skills installed` | 查看本地已安装 skill |
+| `nextclaw skills info <selector>` | 查看本地已安装 skill 详情 |
+| `nextclaw skills install <slug>` | 兼容入口：从 marketplace 安装 skill |
 | `nextclaw skills publish <dir>` | 上传/创建 marketplace skill |
 | `nextclaw skills update <dir>` | 更新已有 marketplace skill |
+| `nextclaw marketplace skills search` | 搜索 marketplace skill 目录 |
+| `nextclaw marketplace skills info <slug>` | 查看 marketplace skill 详情 |
+| `nextclaw marketplace skills recommend` | 查看 marketplace skill 推荐 |
+| `nextclaw marketplace skills install <slug>` | 从 marketplace 安装 skill（显式远端域） |
 
 ---
 

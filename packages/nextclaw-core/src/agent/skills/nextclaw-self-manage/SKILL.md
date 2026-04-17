@@ -6,7 +6,7 @@ metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, plugins, channels, config, agents, cron, remote, update).
+Use this skill whenever the user asks to manage NextClaw itself (version, service status, diagnostics, plugins, channels, config, agents, cron, remote, update, installed skills, marketplace skills).
 
 ## Source of Truth
 
@@ -28,6 +28,9 @@ Always use the built-in NextClaw self-management guide as the operation guide.
 - Map version lookup directly to `nextclaw --version`; do not substitute `status` for version queries.
 - Prefer machine-readable output: use `--json` when available.
 - Execute only commands documented in the self-management guide or CLI help; do not invent commands or config paths.
+- Keep installed skills and marketplace catalog as two different domains:
+  - local installed: `nextclaw skills installed|info`
+  - marketplace catalog: `nextclaw marketplace skills search|info|recommend|install`
 - After mutating operations, close the loop with:
   - `nextclaw status --json`
   - and `nextclaw doctor --json` when needed
@@ -60,3 +63,5 @@ When user asks "what changed in version X", follow:
 - Config: `nextclaw config get|set|unset`
 - Agents: `nextclaw agents list|new|update|remove`
 - Automation: `nextclaw cron list|add|remove|enable|run`
+- Installed skills: `nextclaw skills installed|info`
+- Marketplace skills: `nextclaw marketplace skills search|info|recommend|install`
