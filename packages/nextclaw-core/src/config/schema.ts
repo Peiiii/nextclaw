@@ -239,6 +239,17 @@ export const AgentProfileSchema = z.object({
   maxToolIterations: z.number().int().optional()
 });
 
+export const AgentRuntimeEntrySchema = z.object({
+  enabled: z.boolean().default(true),
+  label: z.string().trim().min(1).optional(),
+  type: z.string().trim().min(1),
+  config: z.record(z.unknown()).default({})
+});
+
+export const AgentRuntimesConfigSchema = z.object({
+  entries: z.record(AgentRuntimeEntrySchema).default({})
+});
+
 export const BindingPeerSchema = z.object({
   kind: z.enum(["direct", "group", "channel"]),
   id: z.string()
@@ -295,6 +306,7 @@ export const AgentsLearningLoopSchema = z.object({
 
 export const AgentsConfigSchema = z.object({
   defaults: AgentDefaultsSchema.default({}),
+  runtimes: AgentRuntimesConfigSchema.default({}),
   context: ContextConfigSchema.default({}),
   learningLoop: AgentsLearningLoopSchema.default({}),
   list: z.array(AgentProfileSchema).default([])

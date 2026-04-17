@@ -1,3 +1,4 @@
+import type { OpenAITool } from "../agent-runtime/llm-api.js";
 import type { NcpError } from "./errors.js";
 import type { NcpMessage } from "./message.js";
 
@@ -18,6 +19,15 @@ export type NcpRequestEnvelope = {
   message: NcpMessage;
   correlationId?: string;
   metadata?: Record<string, unknown>;
+  providerRoute?: NcpProviderRuntimeRoute;
+  tools?: ReadonlyArray<OpenAITool>;
+};
+
+export type NcpProviderRuntimeRoute = {
+  model: string;
+  apiKey?: string | null;
+  apiBase?: string | null;
+  headers: Record<string, string>;
 };
 
 /** Payload for message.incoming: message content from the other peer (partial or full). */

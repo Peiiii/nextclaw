@@ -12,6 +12,7 @@ import { McpRegistryService, McpServerLifecycleManager } from "@nextclaw/mcp";
 import { DefaultNcpAgentRuntime, LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import {
+  type NcpAgentRunInput,
   type NcpAgentRuntime,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
@@ -40,8 +41,10 @@ import {
   readLearningLoopRuntimeConfig,
 } from "../learning-loop/index.js";
 import { PluginRuntimeRegistrationController } from "./plugin-runtime-registration.controller.js";
+import { BuiltinNarpRuntimeRegistrationService } from "./builtin-narp-runtime-registration.service.js";
 import { join } from "node:path";
 import { llmUsageRecorder } from "../shared/llm-usage-recorder.js";
+import { resolveUiNcpRuntimeEntries } from "./ui-ncp-runtime-entry-resolver.js";
 
 export type { UiNcpAgentHandle } from "./runtime/ui-ncp-agent-handle.js";
 type MessageToolHintsResolver = (params: {
@@ -75,7 +78,9 @@ function resolveNativeReasoningNormalizationMode(params: {
   config: Config;
   sessionMetadata: Record<string, unknown>;
 }): NcpAssistantReasoningNormalizationMode {
-  const runtimeEntry = params.config.ui.ncp.runtimes.native;
+  const runtimeEntry =
+    params.config.agents.runtimes.entries.native?.config ??
+    params.config.ui.ncp.runtimes.native;
   const runtimeMetadata = isRecord(runtimeEntry) ? runtimeEntry : {};
 
   return (
@@ -201,6 +206,54 @@ function createNativeRuntimeFactory(
   };
 }
 
+function createResolveOpenAiToolsForRuntime(params: {
+  bus: MessageBus;
+  providerManager: ProviderManager;
+  sessionManager: SessionManager;
+  cronService?: CronService | null;
+  gatewayController?: GatewayController;
+  getConfig: () => Config;
+  getExtensionRegistry?: () => NextclawExtensionRegistry | undefined;
+  resolveMessageToolHints?: MessageToolHintsResolver;
+  assetStore: LocalAssetStore;
+  toolRegistryAdapter: McpNcpToolRegistryAdapter;
+  sessionCreationService: SessionCreationService;
+  sessionRequestBroker: SessionRequestBroker;
+  sessionSearchRuntimeSupport: SessionSearchRuntimeSupport;
+}) {
+  const toolRegistry = new NextclawNcpToolRegistry({
+    bus: params.bus,
+    providerManager: params.providerManager,
+    sessionManager: params.sessionManager,
+    cronService: params.cronService,
+    gatewayController: params.gatewayController,
+    getConfig: params.getConfig,
+    getExtensionRegistry: params.getExtensionRegistry,
+    sessionCreationService: params.sessionCreationService,
+    sessionRequestBroker: params.sessionRequestBroker,
+    getAdditionalTools: (context) => [
+      ...createAssetTools({
+        assetStore: params.assetStore,
+      }),
+      ...params.toolRegistryAdapter.listToolsForRun({
+        agentId: context.agentId,
+      }),
+      params.sessionSearchRuntimeSupport.createTool({
+        currentSessionId: context.sessionId,
+      }),
+    ],
+  });
+  const contextBuilder = new NextclawNcpContextBuilder({
+    sessionManager: params.sessionManager,
+    toolRegistry,
+    getConfig: params.getConfig,
+    resolveMessageToolHints: params.resolveMessageToolHints,
+    assetStore: params.assetStore,
+  });
+
+  return (input: NcpAgentRunInput) => contextBuilder.prepare(input).tools;
+}
+
 export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
   const {
     getConfig,
@@ -268,12 +321,23 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     label: "Native",
     createRuntime: createNativeRuntime,
   });
+  const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(getConfig);
+  const builtinNarpRegistrations = builtinNarpRegistrationService.registerInto(runtimeRegistry);
 
   const pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
     runtimeRegistry,
     getExtensionRegistry,
   );
+  const refreshConfiguredRuntimeEntries = () => {
+    runtimeRegistry.applyEntries(
+      resolveUiNcpRuntimeEntries({
+        config: getConfig(),
+        providerKinds: runtimeRegistry.listProviderKinds(),
+      }),
+    );
+  };
   pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
+  refreshConfiguredRuntimeEntries();
   await sessionSearchRuntimeSupport.initialize();
 
   backend = new DefaultNcpAgentBackend({
@@ -282,9 +346,25 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     onSessionRunStatusChanged,
     createRuntime: (runtimeParams) => {
       pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
+      refreshConfiguredRuntimeEntries();
       return runtimeRegistry.createRuntime({
         ...runtimeParams,
         resolveAssetContentPath: (assetUri) => assetStore.resolveContentPath(assetUri),
+        resolveTools: createResolveOpenAiToolsForRuntime({
+          bus: params.bus,
+          providerManager,
+          sessionManager,
+          cronService: params.cronService,
+          gatewayController: params.gatewayController,
+          getConfig,
+          getExtensionRegistry,
+          resolveMessageToolHints,
+          assetStore,
+          toolRegistryAdapter,
+          sessionCreationService,
+          sessionRequestBroker,
+          sessionSearchRuntimeSupport,
+        }),
       });
     },
   });
@@ -297,10 +377,14 @@ export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<
     runtimeRegistry,
     refreshPluginRuntimeRegistrations:
       pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
+    refreshConfiguredRuntimeEntries,
     applyExtensionRegistry: pluginRuntimeRegistrationController.applyExtensionRegistry,
     applyMcpConfig,
     dispose: async () => {
       learningLoopRuntime.dispose();
+      for (const registration of builtinNarpRegistrations) {
+        registration.dispose();
+      }
       pluginRuntimeRegistrationController.dispose();
       await backend?.stop();
       await sessionSearchRuntimeSupport.dispose();

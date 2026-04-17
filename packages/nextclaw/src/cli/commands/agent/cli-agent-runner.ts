@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import type { AgentCommandOptions } from "../../types.js";
 import { printAgentResponse, prompt } from "../../utils.js";
-import { createUiNcpAgent } from "../ncp/create-ui-ncp-agent.js";
+import { createUiNcpAgent } from "../ncp/create-ui-ncp-agent.service.js";
 import { dispatchPromptOverNcp } from "../ncp/runtime/nextclaw-ncp-dispatch.js";
 import type { NextclawExtensionRegistry } from "../plugins.js";
 

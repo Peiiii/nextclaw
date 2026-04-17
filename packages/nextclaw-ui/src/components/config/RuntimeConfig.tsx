@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useConfig, useConfigSchema, useUpdateRuntime } from '@/hooks/useConfig';
-import type { AgentBindingView, AgentProfileView } from '@/api/types';
+import type { AgentBindingView, AgentProfileView, RuntimeEntryView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RuntimeControlCard } from '@/components/config/runtime-control-card';
@@ -25,6 +25,10 @@ import { toast } from 'sonner';
 
 type DmScope = 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
 type PeerKind = '' | 'direct' | 'group' | 'channel';
+type RuntimeEntryDraft = RuntimeEntryView & {
+  id: string;
+  configText: string;
+};
 
 const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [
   { value: 'main', label: 'main' },
@@ -32,6 +36,18 @@ const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [
   { value: 'per-channel-peer', label: 'per-channel-peer' },
   { value: 'per-account-channel-peer', label: 'per-account-channel-peer' }
 ];
+
+const DEFAULT_NARP_STDIO_ENTRY_CONFIG = {
+  wireDialect: 'acp',
+  processScope: 'per-session',
+  command: '',
+  args: ['acp'],
+  env: {},
+  cwd: '',
+  startupTimeoutMs: 8000,
+  probeTimeoutMs: 3000,
+  requestTimeoutMs: 120000
+};
 
 function RuntimeConfigOverview() {
   return (
@@ -51,6 +67,7 @@ export function RuntimeConfig() {
 
   const [agents, setAgents] = useState<AgentProfileView[]>([]);
   const [bindings, setBindings] = useState<AgentBindingView[]>([]);
+  const [runtimeEntries, setRuntimeEntries] = useState<RuntimeEntryDraft[]>([]);
   const [dmScope, setDmScope] = useState<DmScope>('per-channel-peer');
   const [defaultContextTokens, setDefaultContextTokens] = useState(200000);
   const [defaultEngine, setDefaultEngine] = useState('native');
@@ -61,6 +78,16 @@ export function RuntimeConfig() {
     }
     setAgents((config.agents.list ?? []).map(hydrateRuntimeAgent));
     setBindings((config.bindings ?? []).map(hydrateRuntimeBinding));
+    setRuntimeEntries(
+      Object.entries(config.agents.runtimes?.entries ?? {}).map(([id, entry]) => ({
+        id,
+        enabled: entry.enabled !== false,
+        label: entry.label ?? '',
+        type: entry.type,
+        config: entry.config ?? {},
+        configText: JSON.stringify(entry.config ?? {}, null, 2)
+      }))
+    );
     setDmScope((config.session?.dmScope as DmScope) ?? 'per-channel-peer');
     setDefaultContextTokens(config.agents.defaults.contextTokens ?? 200000);
     setDefaultEngine(config.agents.defaults.engine ?? 'native');
@@ -74,6 +101,7 @@ export function RuntimeConfig() {
   const agentEngineHint = hintForPath('agents.list.*.engine', uiHints);
   const agentsHint = hintForPath('agents.list', uiHints);
   const bindingsHint = hintForPath('bindings', uiHints);
+  const runtimeEntriesHint = hintForPath('agents.runtimes.entries', uiHints);
 
   const knownAgentIds = useMemo(() => {
     const ids = new Set<string>(['main']);
@@ -93,6 +121,29 @@ export function RuntimeConfig() {
   const updateBinding = (index: number, next: AgentBindingView) => {
     setBindings((prev) => prev.map((binding, cursor) => (cursor === index ? next : binding)));
   };
+
+  const updateRuntimeEntry = (index: number, patch: Partial<RuntimeEntryDraft>) => {
+    setRuntimeEntries((prev) => prev.map((entry, cursor) => (cursor === index ? { ...entry, ...patch } : entry)));
+  };
+
+  const removeRuntimeEntry = (index: number) => {
+    setRuntimeEntries((prev) => prev.filter((_, cursor) => cursor !== index));
+  };
+
+  const addRuntimeEntry = () => {
+    setRuntimeEntries((prev) => [
+      ...prev,
+      {
+        id: '',
+        enabled: true,
+        label: '',
+        type: 'narp-stdio',
+        config: DEFAULT_NARP_STDIO_ENTRY_CONFIG,
+        configText: JSON.stringify(DEFAULT_NARP_STDIO_ENTRY_CONFIG, null, 2)
+      }
+    ]);
+  };
+
   const handleSave = () => {
     try {
       const normalizedAgents = agents.map((agent, index) => {
@@ -152,6 +203,33 @@ export function RuntimeConfig() {
         return normalized;
       });
 
+      const normalizedRuntimeEntries = runtimeEntries.reduce<Record<string, RuntimeEntryView>>((entries, entry, index) => {
+        const id = entry.id.trim();
+        const type = entry.type.trim();
+        if (!id) {
+          throw new Error(`Runtime entry id is required at index ${index}.`);
+        }
+        if (!type) {
+          throw new Error(`Runtime entry type is required for "${id}".`);
+        }
+        if (entries[id]) {
+          throw new Error(`Duplicate runtime entry id: ${id}`);
+        }
+
+        const configValue = entry.configText.trim() ? JSON.parse(entry.configText) : {};
+        if (configValue && (typeof configValue !== 'object' || Array.isArray(configValue))) {
+          throw new Error(`Runtime entry config for "${id}" must be a JSON object.`);
+        }
+
+        entries[id] = {
+          enabled: entry.enabled !== false,
+          ...(entry.label?.trim() ? { label: entry.label.trim() } : {}),
+          type,
+          config: (configValue as Record<string, unknown>) ?? {}
+        };
+        return entries;
+      }, {});
+
       updateRuntime.mutate({
         data: {
           agents: {
@@ -159,7 +237,10 @@ export function RuntimeConfig() {
               contextTokens: Math.max(1000, defaultContextTokens),
               engine: defaultEngine.trim() || 'native'
             },
-            list: normalizedAgents
+            list: normalizedAgents,
+            runtimes: {
+              entries: normalizedRuntimeEntries
+            }
           },
           bindings: normalizedBindings,
           session: {
@@ -227,6 +308,62 @@ export function RuntimeConfig() {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{runtimeEntriesHint?.label ?? 'Runtime Entries'}</CardTitle>
+          <CardDescription>{runtimeEntriesHint?.help ?? '统一管理可见的 runtime entry 与其配置。'}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {runtimeEntries.map((entry, index) => (
+            <div key={`${index}-${entry.id || 'runtime-entry'}`} className="rounded-xl border border-gray-200 p-3 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  value={entry.id}
+                  onChange={(event) => updateRuntimeEntry(index, { id: event.target.value })}
+                  placeholder="entry id，例如 hermes"
+                />
+                <Input
+                  value={entry.label ?? ''}
+                  onChange={(event) => updateRuntimeEntry(index, { label: event.target.value })}
+                  placeholder="展示名称，例如 Hermes"
+                />
+                <Input
+                  value={entry.type}
+                  onChange={(event) => updateRuntimeEntry(index, { type: event.target.value })}
+                  placeholder="runtime type，例如 narp-stdio"
+                />
+                <div className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2">
+                  <span className="text-sm text-gray-700">Enabled</span>
+                  <Switch
+                    checked={entry.enabled !== false}
+                    onCheckedChange={(checked) => updateRuntimeEntry(index, { enabled: checked })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-800">Config JSON</label>
+                <textarea
+                  className="min-h-32 w-full rounded-md border border-gray-200 px-3 py-2 text-sm font-mono"
+                  value={entry.configText}
+                  onChange={(event) => updateRuntimeEntry(index, { configText: event.target.value })}
+                  spellCheck={false}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button type="button" variant="outline" onClick={() => removeRuntimeEntry(index)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  {t('deleteButton')}
+                </Button>
+              </div>
+            </div>
+          ))}
+          <Button type="button" variant="outline" onClick={addRuntimeEntry}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Runtime Entry
+          </Button>
         </CardContent>
       </Card>
 

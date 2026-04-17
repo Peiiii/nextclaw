@@ -1,0 +1,39 @@
+{
+  "name": "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Standalone NCP HTTP adapter server that bridges NextClaw http-runtime sessions to Hermes API Server.",
+  "type": "module",
+  "bin": {
+    "nextclaw-hermes-http-adapter": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts src/cli.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-http-agent-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

@@ -21,6 +21,7 @@ export function createUiNcpAgentHandle(params: {
   backend: DefaultNcpAgentBackend;
   runtimeRegistry: UiNcpRuntimeRegistry;
   refreshPluginRuntimeRegistrations: () => void;
+  refreshConfiguredRuntimeEntries: () => void;
   applyExtensionRegistry: (extensionRegistry?: NextclawExtensionRegistry) => void;
   applyMcpConfig: (config: Config) => Promise<void>;
   dispose: () => Promise<void>;
@@ -30,6 +31,7 @@ export function createUiNcpAgentHandle(params: {
     backend,
     runtimeRegistry,
     refreshPluginRuntimeRegistrations,
+    refreshConfiguredRuntimeEntries,
     applyExtensionRegistry,
     applyMcpConfig,
     dispose,
@@ -43,6 +45,7 @@ export function createUiNcpAgentHandle(params: {
     sessionApi: backend,
     listSessionTypes: (describeParams?: UiNcpSessionTypeDescribeParams) => {
       refreshPluginRuntimeRegistrations();
+      refreshConfiguredRuntimeEntries();
       return runtimeRegistry.listSessionTypes(describeParams);
     },
     assetApi: {

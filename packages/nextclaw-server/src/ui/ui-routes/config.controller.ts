@@ -337,6 +337,9 @@ export class ConfigRoutesController {
     if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "engineConfig")) {
       changedPaths.push("agents.defaults.engineConfig");
     }
+    if (body.data.agents?.runtimes && Object.prototype.hasOwnProperty.call(body.data.agents.runtimes, "entries")) {
+      changedPaths.push("agents.runtimes.entries");
+    }
     changedPaths.push("agents.list", "bindings", "session");
     await this.publishConfigUpdates(changedPaths);
     return c.json(ok(result));

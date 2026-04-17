@@ -8,11 +8,17 @@ import {
 } from "../plugin/development-source/dev-plugin-overrides.utils.js";
 import { resolveDevFirstPartyPluginDir } from "../plugin/development-source/first-party-plugin-load-paths.js";
 import {
-  DEFAULT_UI_NCP_RUNTIME_KIND,
+  DEFAULT_UI_NCP_RUNTIME_ENTRY_ID,
   UiNcpRuntimeRegistry,
   type UiNcpSessionTypeDescribeParams,
   type UiNcpSessionTypeOption,
 } from "../ncp/ui-ncp-runtime-registry.js";
+import { resolveUiNcpRuntimeEntries } from "../ncp/ui-ncp-runtime-entry-resolver.js";
+import { BuiltinNarpRuntimeRegistrationService } from "../ncp/builtin-narp-runtime-registration.service.js";
+import {
+  NARP_HTTP_RUNTIME_KIND,
+  NARP_STDIO_RUNTIME_KIND,
+} from "../ncp/builtin-narp-runtime-types.js";
 import {
   logPluginDiagnostics,
   toExtensionRegistry,
@@ -64,22 +70,40 @@ export async function listAvailableAgentRuntimes(
   logPluginDiagnostics(pluginRegistry);
 
   const extensionRegistry = toExtensionRegistry(pluginRegistry);
-  const runtimeRegistry = new UiNcpRuntimeRegistry(DEFAULT_UI_NCP_RUNTIME_KIND);
+  const runtimeRegistry = new UiNcpRuntimeRegistry();
   const runtimeSourceByKind = new Map<string, {
+    source: "builtin" | "plugin";
+    pluginId?: string;
+  }>();
+  const runtimeSourceByEntryId = new Map<string, {
     source: "builtin" | "plugin";
     pluginId?: string;
   }>();
 
   runtimeRegistry.register({
-    kind: DEFAULT_UI_NCP_RUNTIME_KIND,
+    kind: DEFAULT_UI_NCP_RUNTIME_ENTRY_ID,
     label: "Native",
     createRuntime: createUnusedRuntime,
   });
-  runtimeSourceByKind.set(DEFAULT_UI_NCP_RUNTIME_KIND, {
+  runtimeSourceByKind.set(DEFAULT_UI_NCP_RUNTIME_ENTRY_ID, {
+    source: "builtin",
+  });
+  new BuiltinNarpRuntimeRegistrationService(() => config).registerInto(runtimeRegistry);
+  runtimeSourceByKind.set("narp-http", {
+    source: "builtin",
+  });
+  runtimeSourceByKind.set("narp-stdio", {
     source: "builtin",
   });
 
   for (const registration of extensionRegistry.ncpAgentRuntimes) {
+    const normalizedKind = registration.kind.trim().toLowerCase();
+    if (
+      normalizedKind === NARP_HTTP_RUNTIME_KIND ||
+      normalizedKind === NARP_STDIO_RUNTIME_KIND
+    ) {
+      continue;
+    }
     runtimeRegistry.register({
       kind: registration.kind,
       label: registration.label,
@@ -92,11 +116,23 @@ export async function listAvailableAgentRuntimes(
     });
   }
 
+  const resolvedEntries = resolveUiNcpRuntimeEntries({
+    config,
+    providerKinds: runtimeRegistry.listProviderKinds(),
+  });
+  runtimeRegistry.applyEntries(resolvedEntries);
+  for (const entry of resolvedEntries.entries) {
+    const source = runtimeSourceByKind.get(entry.type);
+    runtimeSourceByEntryId.set(entry.id, source ?? {
+      source: entry.id === DEFAULT_UI_NCP_RUNTIME_ENTRY_ID ? "builtin" : "plugin",
+    });
+  }
+
   const listed = await runtimeRegistry.listSessionTypes(params);
   return {
     defaultRuntime: listed.defaultType,
     runtimes: listed.options.map((runtime) => {
-      const source = runtimeSourceByKind.get(runtime.value);
+      const source = runtimeSourceByEntryId.get(runtime.value);
       return {
         ...runtime,
         default: runtime.value === listed.defaultType,

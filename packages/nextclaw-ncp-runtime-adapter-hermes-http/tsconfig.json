@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"],
+      "@nextclaw/ncp-agent-runtime": ["../ncp-packages/nextclaw-ncp-agent-runtime/src/index.ts"],
+      "@nextclaw/ncp-http-agent-client": ["../ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts"]
+    }
+  },
+  "include": ["src"]
+}

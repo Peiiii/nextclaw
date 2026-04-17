@@ -1,6 +1,6 @@
 import type { UiNcpAgent } from "@nextclaw/server";
 import type { NcpAgentClientEndpoint } from "@nextclaw/ncp";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 
 const DEFAULT_BASE_PATH = "/api/ncp/agent";
 const DEFERRED_NCP_AGENT_UNAVAILABLE = "ncp agent unavailable during startup";

@@ -1,6 +1,15 @@
 import { DisposableStore } from "@nextclaw/core";
 import type { NextclawExtensionRegistry } from "../plugins.js";
 import type { UiNcpRuntimeRegistry } from "./ui-ncp-runtime-registry.js";
+import {
+  NARP_HTTP_RUNTIME_KIND,
+  NARP_STDIO_RUNTIME_KIND,
+} from "./builtin-narp-runtime-types.js";
+
+const RESERVED_BUILTIN_RUNTIME_KINDS = new Set([
+  NARP_HTTP_RUNTIME_KIND,
+  NARP_STDIO_RUNTIME_KIND,
+]);
 
 function buildPluginRuntimeSnapshotKey(extensionRegistry?: NextclawExtensionRegistry): string {
   const registrations = extensionRegistry?.ncpAgentRuntimes ?? [];
@@ -79,14 +88,32 @@ export class PluginRuntimeRegistrationController {
     this.pluginRuntimeScopes.clear();
 
     for (const registration of extensionRegistry?.ncpAgentRuntimes ?? []) {
+      if (RESERVED_BUILTIN_RUNTIME_KINDS.has(registration.kind.trim().toLowerCase())) {
+        continue;
+      }
       const pluginId = registration.pluginId.trim() || registration.kind;
       const scope = this.pluginRuntimeScopes.get(pluginId) ?? new DisposableStore();
       this.pluginRuntimeScopes.set(pluginId, scope);
+      const createRuntimeForEntry = registration.createRuntimeForEntry;
       scope.add(this.runtimeRegistry.register({
         kind: registration.kind,
         label: registration.label,
         createRuntime: createRuntimeFactory(registration),
+        createRuntimeForEntry: createRuntimeForEntry
+          ? ({ entry, runtimeParams }) =>
+              createRuntimeForEntry({
+                entry,
+                runtimeParams: {
+                  ...runtimeParams,
+                  sessionMetadata: {
+                    ...runtimeParams.sessionMetadata,
+                    runtime_type: entry.type,
+                  },
+                },
+              })
+          : undefined,
         describeSessionType: registration.describeSessionType,
+        describeSessionTypeForEntry: registration.describeSessionTypeForEntry,
       }));
     }
   };

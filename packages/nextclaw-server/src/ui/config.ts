@@ -475,7 +475,7 @@ export function buildConfigView(config: Config, options?: PluginConfigProjection
     providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
   }
   return {
-    agents: config.agents,
+    agents: sanitizePublicConfigValue(config.agents, "agents", uiHints),
     providers,
     search: buildSearchView(config),
     channels: sanitizePublicConfigValue(projectedChannels, "channels", uiHints),
@@ -490,6 +490,65 @@ export function buildConfigView(config: Config, options?: PluginConfigProjection
       providers: { ...config.secrets.providers },
       refs: { ...config.secrets.refs }
     } satisfies SecretsView
+  };
+}
+
+function normalizeRuntimeEntries(
+  entries: Record<string, unknown> | null | undefined,
+): Config["agents"]["runtimes"]["entries"] {
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
+    return {};
+  }
+
+  const normalized: Config["agents"]["runtimes"]["entries"] = {};
+  for (const [rawId, rawEntry] of Object.entries(entries)) {
+    const id = rawId.trim();
+    if (!id || !rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
+      continue;
+    }
+    const entry = rawEntry as Record<string, unknown>;
+    const type = normalizeOptionalString(entry.type);
+    if (!type) {
+      continue;
+    }
+    normalized[id] = {
+      enabled: typeof entry.enabled === "boolean" ? entry.enabled : true,
+      ...(normalizeOptionalString(entry.label) ? { label: normalizeOptionalString(entry.label) ?? undefined } : {}),
+      type,
+      config: normalizeRuntimeEntryConfig(
+        type,
+        entry.config && typeof entry.config === "object" && !Array.isArray(entry.config)
+          ? (entry.config as Record<string, unknown>)
+          : {},
+      ),
+    };
+  }
+  return normalized;
+}
+
+function normalizeRuntimeEntryConfig(
+  type: string,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  if (type !== "narp-stdio") {
+    return { ...config };
+  }
+
+  const command = normalizeOptionalString(config.command);
+  const cwd = normalizeOptionalString(config.cwd);
+  const wireDialect = normalizeOptionalString(config.wireDialect) ?? "acp";
+  const processScope = normalizeOptionalString(config.processScope) ?? "per-session";
+
+  return {
+    wireDialect,
+    processScope,
+    ...(command ? { command } : {}),
+    ...(normalizeStringArray(config.args) ? { args: normalizeStringArray(config.args) } : {}),
+    env: normalizeUnknownStringRecord(config.env) ?? {},
+    ...(cwd ? { cwd } : {}),
+    startupTimeoutMs: normalizePositiveInteger(config.startupTimeoutMs) ?? 8000,
+    probeTimeoutMs: normalizePositiveInteger(config.probeTimeoutMs) ?? 3000,
+    requestTimeoutMs: normalizePositiveInteger(config.requestTimeoutMs) ?? 120000,
   };
 }
 
@@ -761,6 +820,40 @@ function normalizeOptionalString(value: unknown): string | null {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePositiveInteger(value: unknown): number | null {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const normalized = Math.trunc(parsed);
+  return normalized > 0 ? normalized : null;
+}
+
+function normalizeStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const entries = value
+    .map((entry) => normalizeOptionalString(entry))
+    .filter((entry): entry is string => Boolean(entry));
+  return entries.length > 0 ? entries : null;
+}
+
+function normalizeUnknownStringRecord(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const entries = Object.entries(value)
+    .map(([key, entryValue]) => [key.trim(), normalizeOptionalString(entryValue)] as const)
+    .filter(([key, entryValue]) => key.length > 0 && Boolean(entryValue));
+  return entries.length > 0 ? Object.fromEntries(entries) as Record<string, string> : null;
 }
 
 function normalizeHeaders(input: Record<string, string> | null | undefined): Record<string, string> | null {
@@ -1280,6 +1373,12 @@ export function updateRuntime(
         ...(hasEngineConfig ? { engineConfig: { ...entry.engineConfig } } : {})
       };
     });
+  }
+
+  if (patch.agents?.runtimes && Object.prototype.hasOwnProperty.call(patch.agents.runtimes, "entries")) {
+    config.agents.runtimes.entries = normalizeRuntimeEntries(
+      patch.agents.runtimes.entries as Record<string, unknown> | null | undefined,
+    );
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {

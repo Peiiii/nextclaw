@@ -79,6 +79,9 @@ const SENSITIVE_PATTERNS = [/token$/i, /password/i, /secret/i, /api.?key/i];
 
 function isWhitelistedSensitivePath(path: string): boolean {
   const lowerPath = path.toLowerCase();
+  if (lowerPath.endsWith("runtimeroute.fields.apikey")) {
+    return true;
+  }
   return NORMALIZED_SENSITIVE_KEY_WHITELIST_SUFFIXES.some((suffix) => lowerPath.endsWith(suffix));
 }
 

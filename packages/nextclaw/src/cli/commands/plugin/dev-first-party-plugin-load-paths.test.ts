@@ -239,4 +239,5 @@ describe("resolveDevFirstPartyPluginLoadPaths", () => {
 
     expect(resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir)).toEqual([installRoot]);
   });
+
 });

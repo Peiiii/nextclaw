@@ -29,6 +29,11 @@ const readString = (value: unknown): string | undefined => {
   return trimmed || undefined;
 };
 
+const normalizeInstallRecordPath = (value: unknown): string | undefined => {
+  const filePath = readString(value);
+  return filePath ? path.resolve(filePath) : undefined;
+};
+
 export const resolveDevFirstPartyPluginDir = (
   explicitDir: string | undefined,
   moduleDir = path.dirname(fileURLToPath(import.meta.url)),
@@ -130,13 +135,40 @@ const mergeLoadPaths = (existingLoadPaths: string[], devLoadPaths: string[]): st
   return mergedLoadPaths;
 };
 
+const findWorkspacePackageForInstallRecord = (
+  installRecord: Record<string, unknown>,
+  workspacePackages: WorkspacePluginPackage[],
+  packageByName: Map<string, WorkspacePluginPackage>,
+): WorkspacePluginPackage | undefined => {
+  const packageName = normalizePackageSpec(readString(installRecord.spec) ?? "");
+  if (packageName) {
+    const matchedByPackageName = packageByName.get(packageName);
+    if (matchedByPackageName) {
+      return matchedByPackageName;
+    }
+  }
+
+  const installPathCandidates = new Set(
+    [installRecord.sourcePath, installRecord.installPath]
+      .map(normalizeInstallRecordPath)
+      .filter((entry): entry is string => Boolean(entry)),
+  );
+  if (installPathCandidates.size === 0) {
+    return undefined;
+  }
+
+  return workspacePackages.find((workspacePackage) =>
+    installPathCandidates.has(path.resolve(workspacePackage.dir)),
+  );
+};
+
 const buildDevelopmentSourceEntryDefaults = (
   config: Config,
   workspacePackages: WorkspacePluginPackage[],
 ): {
   didDefaultDevelopmentSource: boolean;
   nextEntries: NonNullable<Config["plugins"]["entries"]>;
-} => {
+  } => {
   const packageByName = new Map(
     workspacePackages.map((entry) => [entry.packageName, entry]),
   );
@@ -144,11 +176,11 @@ const buildDevelopmentSourceEntryDefaults = (
   let didDefaultDevelopmentSource = false;
 
   for (const [pluginId, installRecord] of Object.entries(config.plugins.installs ?? {})) {
-    const packageName = normalizePackageSpec(installRecord.spec ?? "");
-    if (!packageName) {
-      continue;
-    }
-    const workspacePackage = packageByName.get(packageName);
+    const workspacePackage = findWorkspacePackageForInstallRecord(
+      installRecord,
+      workspacePackages,
+      packageByName,
+    );
     if (!workspacePackage?.supportsDevelopmentSource) {
       continue;
     }
@@ -186,15 +218,21 @@ export const resolveDevFirstPartyPluginLoadPaths = (
   const packageDirByName = new Map(
     workspacePackages.map((entry) => [entry.packageName, entry.dir]),
   );
+  const packageByName = new Map(
+    workspacePackages.map((entry) => [entry.packageName, entry]),
+  );
   const loadPaths: string[] = [];
   const installs = config.plugins.installs ?? {};
 
   for (const installRecord of Object.values(installs)) {
-    const packageName = normalizePackageSpec(installRecord.spec ?? "");
-    if (!packageName) {
-      continue;
-    }
-    const packageDir = packageDirByName.get(packageName);
+    const matchedWorkspacePackage = findWorkspacePackageForInstallRecord(
+      installRecord,
+      workspacePackages,
+      packageByName,
+    );
+    const packageDir = matchedWorkspacePackage
+      ? matchedWorkspacePackage.dir
+      : packageDirByName.get(normalizePackageSpec(readString(installRecord.spec) ?? "") ?? "");
     if (!packageDir || loadPaths.includes(packageDir)) {
       continue;
     }
@@ -221,15 +259,26 @@ export const resolveDevFirstPartyPluginInstallRoots = (
   const packageNames = new Set(
     workspacePackages.map((entry) => entry.packageName),
   );
+  const packageByName = new Map(
+    workspacePackages.map((entry) => [entry.packageName, entry]),
+  );
   const installRoots: string[] = [];
 
   for (const installRecord of Object.values(config.plugins.installs ?? {})) {
-    const packageName = normalizePackageSpec(installRecord.spec ?? "");
-    if (!packageName || !packageNames.has(packageName)) {
+    const workspacePackage = findWorkspacePackageForInstallRecord(
+      installRecord,
+      workspacePackages,
+      packageByName,
+    );
+    const packageName = normalizePackageSpec(readString(installRecord.spec) ?? "");
+    if (!workspacePackage && (!packageName || !packageNames.has(packageName))) {
       continue;
     }
     const installPath = readString(installRecord.installPath);
     if (!installPath || installRoots.includes(installPath)) {
+      continue;
+    }
+    if (workspacePackage && path.resolve(installPath) === path.resolve(workspacePackage.dir)) {
       continue;
     }
     installRoots.push(installPath);

@@ -70,4 +70,40 @@ describe("startDeferredGatewayStartup", () => {
     expect(consoleLog).toHaveBeenCalledWith("✓ Service NCP agent: ready");
     consoleLog.mockRestore();
   });
+
+  it("hydrates capabilities before creating the UI NCP agent", async () => {
+    const order: string[] = [];
+    vi.mocked(createUiNcpAgent).mockImplementation(async () => {
+      order.push("create-ui-ncp-agent");
+      return {
+        runApi: { send: vi.fn() },
+        sessionApi: {},
+      } as never;
+    });
+
+    await startDeferredGatewayStartup({
+      uiStartup: null,
+      deferredNcpSessionService: {
+        activate: vi.fn(),
+      } as never,
+      bus: {} as never,
+      sessionManager: {} as never,
+      providerManager: {} as never,
+      cronService: {} as never,
+      gatewayController: {} as never,
+      getConfig: () => ({}) as never,
+      getExtensionRegistry: () => undefined,
+      resolveMessageToolHints: () => [],
+      hydrateCapabilities: async () => {
+        order.push("hydrate-capabilities");
+      },
+      startPluginGateways: async () => undefined,
+      startChannels: async () => undefined,
+      wakeFromRestartSentinel: async () => undefined,
+      onNcpAgentReady: vi.fn(),
+      publishSessionChange: vi.fn(),
+    });
+
+    expect(order).toEqual(["hydrate-capabilities", "create-ui-ncp-agent"]);
+  });
 });

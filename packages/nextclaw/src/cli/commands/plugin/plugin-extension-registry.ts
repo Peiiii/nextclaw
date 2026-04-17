@@ -24,7 +24,9 @@ export function toExtensionRegistry(pluginRegistry: PluginRegistry): NextclawExt
       kind: runtime.kind,
       label: runtime.label,
       createRuntime: runtime.createRuntime,
+      createRuntimeForEntry: runtime.createRuntimeForEntry,
       describeSessionType: runtime.describeSessionType,
+      describeSessionTypeForEntry: runtime.describeSessionTypeForEntry,
       source: runtime.source,
     })),
     diagnostics: pluginRegistry.diagnostics.map((diag) => ({

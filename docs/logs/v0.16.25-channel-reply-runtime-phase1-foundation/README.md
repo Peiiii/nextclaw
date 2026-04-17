@@ -83,7 +83,7 @@ pnpm check:governance-backlog-ratchet
 
 - `pnpm lint:maintainability:guard` 未通过，但这次直接相关的硬错误已经清掉；`packages/nextclaw/src/cli/commands/ncp/runtime/nextclaw-ncp-dispatch.ts` 已从超预算错误降为 `332 / 400` 的 near-budget 预警
 - 后续 class 收敛本身没有再引入新的维护性硬错误；`packages/ncp-packages/nextclaw-ncp-toolkit/src/chat/ncp-reply-consumer.ts` 与 `packages/nextclaw/src/cli/commands/ncp/runtime/nextclaw-ncp-dispatch.ts` 当前都只剩 near-budget 预警
-- `pnpm lint:maintainability:guard` 剩余硬错误都来自当前工作区里其它无关改动，例如 `packages/extensions/nextclaw-ncp-runtime-adapter-hermes-http/*` 和 `packages/extensions/nextclaw-ncp-runtime-http-client/*`
+- `pnpm lint:maintainability:guard` 剩余硬错误都来自当前工作区里其它无关改动，例如 `packages/nextclaw-ncp-runtime-adapter-hermes-http/*` 和 `packages/nextclaw-ncp-runtime-http-client/*`
 - `pnpm lint:new-code:governance` 仍未通过；本轮直接相关的阻塞来自当前仓库的 file-role-boundary 规则与既有 touched 文件命名债务，外加若干无关改动
 - `pnpm check:governance-backlog-ratchet` 未通过，原因是仓库当前 tracked doc 命名债务计数为 `13`，高于 baseline `11`；直接涉及的 tracked 文档包括 `docs/logs/TEMPLATE.md` 与 `docs/logs/v0.6.34-multi-agent-gateway-research/SOURCE.md`
 

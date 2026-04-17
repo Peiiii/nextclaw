@@ -1,0 +1,35 @@
+{
+  "name": "@nextclaw/nextclaw-ncp-runtime-stdio-client",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Optional NCP runtime adapter backed by a protocol-aware stdio agent command.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle && node ./scripts/copy-hermes-acp-route-bridge.mjs",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@agentclientprotocol/sdk": "^0.19.0",
+    "@nextclaw/ncp": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

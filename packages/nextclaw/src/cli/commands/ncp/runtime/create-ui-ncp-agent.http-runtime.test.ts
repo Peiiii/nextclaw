@@ -7,15 +7,14 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   ConfigSchema,
   ENV_HOME_KEY,
-  type Config,
   MessageBus,
   SessionManager,
   type ProviderManager,
 } from "@nextclaw/core";
 import { NcpEventType, type NcpEndpointEvent, type NcpRequestEnvelope } from "@nextclaw/ncp";
-import { createPluginRuntime } from "@nextclaw/openclaw-compat";
-import type { NextclawExtensionRegistry } from "../../plugins.js";
-import httpRuntimePlugin from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-http-client/src/index.js";
+import {
+  NARP_HTTP_RUNTIME_KIND,
+} from "../builtin-narp-runtime-types.js";
 import { createUiNcpAgent } from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
@@ -63,7 +62,7 @@ afterEach(async () => {
 });
 
 describe("createUiNcpAgent HTTP runtime session types", () => {
-  it("lists http-runtime as unavailable until baseUrl is configured", async () => {
+  it("lists narp-http as unavailable until baseUrl is configured", async () => {
     useTempHomeDir();
     const workspace = createTempWorkspace();
     const config = ConfigSchema.parse({
@@ -74,16 +73,23 @@ describe("createUiNcpAgent HTTP runtime session types", () => {
           contextTokens: 200000,
           maxToolIterations: 8,
         },
+        runtimes: {
+          entries: {
+            "mock-http": {
+              label: "NARP HTTP",
+              type: NARP_HTTP_RUNTIME_KIND,
+              config: {},
+            },
+          },
+        },
       },
     });
-    const extensionRegistry = createHttpRuntimeExtensionRegistryFromSource(config, {});
 
     const ncpAgent = await createUiNcpAgent({
       bus: new MessageBus(),
       providerManager: new NoopProviderManager() as unknown as ProviderManager,
       sessionManager: new SessionManager(workspace),
       getConfig: () => config,
-      getExtensionRegistry: () => extensionRegistry,
     });
     agentDisposers.push(async () => {
       await ncpAgent.dispose?.();
@@ -93,10 +99,62 @@ describe("createUiNcpAgent HTTP runtime session types", () => {
     expect(sessionTypes?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          value: "http-runtime",
-          label: "HTTP Runtime",
+          value: "mock-http",
+          label: "NARP HTTP",
           ready: false,
           reason: "base_url_missing",
+        }),
+      ]),
+    );
+  });
+
+  it("lists narp-http as unavailable when the configured healthcheck is unreachable", async () => {
+    useTempHomeDir();
+    const workspace = createTempWorkspace();
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace,
+          model: "openai/gpt-5.4",
+          contextTokens: 200000,
+          maxToolIterations: 8,
+        },
+        runtimes: {
+          entries: {
+            hermes: {
+              label: "Hermes",
+              type: NARP_HTTP_RUNTIME_KIND,
+              config: {
+                label: "Hermes",
+                baseUrl: "http://127.0.0.1:65530",
+                healthcheckUrl: "http://127.0.0.1:65530/health",
+                recommendedModel: "minimax/MiniMax-M2.7",
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const ncpAgent = await createUiNcpAgent({
+      bus: new MessageBus(),
+      providerManager: new NoopProviderManager() as unknown as ProviderManager,
+      sessionManager: new SessionManager(workspace),
+      getConfig: () => config,
+    });
+    agentDisposers.push(async () => {
+      await ncpAgent.dispose?.();
+    });
+
+    const sessionTypes = await ncpAgent.listSessionTypes?.();
+    expect(sessionTypes?.options).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          value: "hermes",
+          label: "Hermes",
+          ready: false,
+          reason: "healthcheck_unreachable",
+          recommendedModel: "minimax/MiniMax-M2.7",
         }),
       ]),
     );
@@ -116,14 +174,22 @@ describe("createUiNcpAgent HTTP runtime", () => {
           contextTokens: 200000,
           maxToolIterations: 8,
         },
+        runtimes: {
+          entries: {
+            hermes: {
+              label: "Hermes",
+              type: NARP_HTTP_RUNTIME_KIND,
+              config: {
+                label: "Hermes",
+                baseUrl: adapter.baseUrl,
+                basePath: "/runtime",
+                recommendedModel: "hermes/default",
+                supportedModels: ["hermes/default"],
+              },
+            },
+          },
+        },
       },
-    });
-    const extensionRegistry = createHttpRuntimeExtensionRegistryFromSource(config, {
-      label: "Hermes",
-      baseUrl: adapter.baseUrl,
-      basePath: "/runtime",
-      recommendedModel: "hermes/default",
-      supportedModels: ["hermes/default"],
     });
 
     const sessionManager = new SessionManager(workspace);
@@ -132,7 +198,6 @@ describe("createUiNcpAgent HTTP runtime", () => {
       providerManager: new NoopProviderManager() as unknown as ProviderManager,
       sessionManager,
       getConfig: () => config,
-      getExtensionRegistry: () => extensionRegistry,
     });
     agentDisposers.push(async () => {
       await ncpAgent.dispose?.();
@@ -142,7 +207,7 @@ describe("createUiNcpAgent HTTP runtime", () => {
     expect(sessionTypes?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          value: "http-runtime",
+          value: "hermes",
           label: "Hermes",
           ready: true,
           recommendedModel: "hermes/default",
@@ -157,7 +222,7 @@ describe("createUiNcpAgent HTTP runtime", () => {
         sessionId: "session-http-runtime",
         text: "say hello from http runtime",
         metadata: {
-          session_type: "http-runtime",
+          session_type: "hermes",
         },
       }),
     );
@@ -185,7 +250,8 @@ describe("createUiNcpAgent HTTP runtime", () => {
     ).toBe(true);
 
     const persistedSession = sessionManager.getIfExists("session-http-runtime");
-    expect(persistedSession?.metadata.session_type).toBe("http-runtime");
+    expect(persistedSession?.metadata.session_type).toBe("hermes");
+    expect(persistedSession?.metadata.runtime_type).toBe(NARP_HTTP_RUNTIME_KIND);
     expect(
       persistedSession?.messages.some(
         (message) =>
@@ -202,37 +268,6 @@ class NoopProviderManager {
       getDefaultModel: () => "default-model",
     };
   }
-}
-
-function createHttpRuntimeExtensionRegistryFromSource(
-  config: Config,
-  pluginConfig: Record<string, unknown>,
-): NextclawExtensionRegistry {
-  const ncpAgentRuntimes: NextclawExtensionRegistry["ncpAgentRuntimes"] = [];
-  httpRuntimePlugin.register({
-    pluginConfig,
-    runtime: createPluginRuntime({
-      workspace: config.agents.defaults.workspace,
-      config,
-    }),
-    registerNcpAgentRuntime(registration) {
-      ncpAgentRuntimes.push({
-        pluginId: "nextclaw-ncp-runtime-plugin-http-client",
-        kind: registration.kind,
-        label: registration.label ?? "HTTP Runtime",
-        createRuntime: registration.createRuntime,
-        describeSessionType: registration.describeSessionType,
-        source: "test:http-runtime-source",
-      });
-    },
-  });
-
-  return {
-    tools: [],
-    channels: [],
-    diagnostics: [],
-    ncpAgentRuntimes,
-  };
 }
 
 async function startMockHttpRuntimeServer(): Promise<{

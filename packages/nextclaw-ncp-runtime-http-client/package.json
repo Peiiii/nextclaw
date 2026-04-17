@@ -1,0 +1,35 @@
+{
+  "name": "@nextclaw/nextclaw-ncp-runtime-http-client",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Optional NCP runtime adapter backed by a remote HTTP/SSE agent endpoint.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-http-agent-client": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}
