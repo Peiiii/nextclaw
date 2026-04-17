@@ -34,6 +34,7 @@ Trigger this skill when work includes any of these patterns:
 - Runtime behavior that depends on `cwd`, local repo files, or ambient machine state.
 - Graceful degradation that can turn a broken release into a "works on my machine" illusion.
 - "Just in case" retries, defaults, silent recovery, or legacy code preservation.
+- Protocol or transport mismatches such as `stream` vs non-stream, SSE vs JSON, long-poll vs evented delivery, or request/response shape drift.
 - A proposal to inspect stderr/stdout text, broken-version markers, or current incident signatures inside runtime code to explain or route around a release accident.
 - A `read/get/list/status/discover/report` path that may import modules, register capabilities, write state, or call external systems.
 - Frontend page-load, polling, or focus-refetch behavior that might automatically trigger anything beyond pure data reads.
@@ -47,6 +48,7 @@ Trigger this skill when work includes any of these patterns:
 3. Ask the masking question.
    Would this fallback make system behavior less predictable by hiding a packaging, config, release, or runtime bug that should fail loudly?
 4. If yes, remove the fallback or gate it behind an explicit dev-only switch.
+   If the failure is a protocol mismatch, fix the primary contract from the first request instead of probing one mode and switching after an error.
 5. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
 6. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
 
@@ -85,6 +87,7 @@ Do not add these to shipped runtime unless the user explicitly asks for a tempor
 - `stderr.includes(...)` / `stdout.includes(...)` checks that recognize a current packaging, release, deploy, or upstream outage signature.
 - hardcoded references to "latest release is broken", a currently bad version, or a known temporary registry accident.
 - runtime branches whose only purpose is to explain, soften, or route around a broken artifact that should have been blocked by release validation.
+- request one transport mode first, then inspect upstream error text to switch to the real required mode on retry, when the correct primary contract could have been sent immediately.
 
 If the problem is a broken published package, broken installer, broken deploy, or bad config contract, the default fix is:
 

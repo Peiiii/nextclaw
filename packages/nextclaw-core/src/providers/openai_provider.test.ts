@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import type { LLMStreamEvent } from "./base.js";
 import { OpenAICompatibleProvider } from "./openai_provider.js";
+import { parseOpenAiResponsesPayload } from "../utils/openai/responses-payload.utils.js";
 
 const originalFetch = globalThis.fetch;
 
@@ -10,12 +11,6 @@ afterEach(() => {
 });
 
 describe("OpenAICompatibleProvider responses payload parser", () => {
-  const provider = new OpenAICompatibleProvider({
-    apiKey: "sk-test",
-    apiBase: "http://127.0.0.1:9/v1",
-    defaultModel: "gpt-test"
-  });
-
   it("unwraps response.completed envelope from SSE payload", () => {
     const raw = [
       "event: response.created",
@@ -25,8 +20,7 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
       "data: [DONE]"
     ].join("\n");
 
-    const parsed = (provider as unknown as { parseResponsesPayload: (payload: string) => Record<string, unknown> })
-      .parseResponsesPayload(raw);
+    const parsed = parseOpenAiResponsesPayload(raw);
     const output = parsed.output as Array<Record<string, unknown>> | undefined;
     expect(Array.isArray(output)).toBe(true);
     expect((parsed as { status?: string }).status).toBe("completed");
@@ -38,8 +32,7 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
       'data: {"type":"response.done"}'
     ].join("\n");
 
-    const parsed = (provider as unknown as { extractSseJson: (payload: string) => Record<string, unknown> | null })
-      .extractSseJson(raw);
+    const parsed = parseOpenAiResponsesPayload(raw);
     expect(parsed).not.toBeNull();
     expect(Array.isArray((parsed as { output?: unknown }).output)).toBe(true);
   });
@@ -139,6 +132,206 @@ describe("OpenAICompatibleProvider responses payload parser", () => {
       prompt_tokens: 1500,
       completion_tokens: 80,
       input_tokens_details_cached_tokens: 1024
+    });
+  });
+
+  it("sends stream=true on the first responses request and aggregates SSE for chat", async () => {
+    const fetchMock = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { stream?: boolean };
+      expect(body.stream).toBe(true);
+      return new Response(
+        [
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"stream "}',
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"ok"}',
+          'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"stream ok"}]}],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+          "data: [DONE]",
+          ""
+        ].join("\n\n"),
+        { status: 200, headers: { "Content-Type": "text/event-stream" } }
+      );
+    });
+    globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+    const response = await responseProvider.chat({
+      messages: [{ role: "user", content: "hello" }]
+    });
+
+    expect(response.content).toBe("stream ok");
+    expect(response.usage).toMatchObject({
+      prompt_tokens: 1,
+      completion_tokens: 1,
+      total_tokens: 2
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("streams delta events from responses API before the final done event", async () => {
+    globalThis.fetch = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { stream?: boolean };
+      expect(body.stream).toBe(true);
+      return new Response(
+        [
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"hello "}',
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"world"}',
+          'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"hello world"}]}],"usage":{"input_tokens":2,"output_tokens":2,"total_tokens":4}}}',
+          "data: [DONE]",
+          ""
+        ].join("\n\n"),
+        { status: 200, headers: { "Content-Type": "text/event-stream" } }
+      );
+    }) as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+
+    const events: LLMStreamEvent[] = [];
+    for await (const event of responseProvider.chatStream({
+      messages: [{ role: "user", content: "hello" }]
+    })) {
+      events.push(event);
+    }
+
+    expect(events).toEqual([
+      { type: "delta", delta: "hello " },
+      { type: "delta", delta: "world" },
+      {
+        type: "done",
+        response: {
+          content: "hello world",
+          toolCalls: [],
+          finishReason: "completed",
+          usage: {
+            input_tokens: 2,
+            output_tokens: 2,
+            prompt_tokens: 2,
+            completion_tokens: 2,
+            total_tokens: 4
+          },
+          reasoningContent: null
+        }
+      }
+    ]);
+  });
+
+  it("ignores transport noise after response.completed from responses API", async () => {
+    globalThis.fetch = vi.fn(async () => new Response(
+      [
+        'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"pong"}',
+        'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"pong"}]}],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+        'event: error\ndata: {"error":"upstream_disconnect","message":"Upstream connection closed unexpectedly"}',
+        "data: [DONE]",
+        ""
+      ].join("\n\n"),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } }
+    )) as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+
+    const response = await responseProvider.chat({
+      messages: [{ role: "user", content: "hello" }]
+    });
+
+    expect(response).toEqual({
+      content: "pong",
+      toolCalls: [],
+      finishReason: "completed",
+      usage: {
+        input_tokens: 1,
+        output_tokens: 1,
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2
+      },
+      reasoningContent: null
+    });
+  });
+
+  it("falls back to accumulated stream content when response.completed payload is empty", async () => {
+    globalThis.fetch = vi.fn(async () => new Response(
+      [
+        'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"pong"}',
+        'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+        "data: [DONE]",
+        ""
+      ].join("\n\n"),
+      { status: 200, headers: { "Content-Type": "text/event-stream" } }
+    )) as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+
+    const response = await responseProvider.chat({
+      messages: [{ role: "user", content: "hello" }]
+    });
+
+    expect(response).toEqual({
+      content: "pong",
+      toolCalls: [],
+      finishReason: "completed",
+      usage: {
+        input_tokens: 1,
+        output_tokens: 1,
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2
+      },
+      reasoningContent: null
+    });
+  });
+
+  it("parses SSE payloads even when the upstream content-type is text/plain", async () => {
+    globalThis.fetch = vi.fn(async () => new Response(
+      [
+        'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"pong"}',
+        'event: response.completed\ndata: {"type":"response.completed","response":{"status":"completed","output":[],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+        "data: [DONE]",
+        ""
+      ].join("\n\n"),
+      { status: 200, headers: { "Content-Type": "text/plain; charset=UTF-8" } }
+    )) as unknown as typeof globalThis.fetch;
+
+    const responseProvider = new OpenAICompatibleProvider({
+      apiKey: "sk-test",
+      apiBase: "http://127.0.0.1:9/v1",
+      defaultModel: "gpt-test",
+      wireApi: "responses"
+    });
+
+    const response = await responseProvider.chat({
+      messages: [{ role: "user", content: "hello" }]
+    });
+
+    expect(response).toEqual({
+      content: "pong",
+      toolCalls: [],
+      finishReason: "completed",
+      usage: {
+        input_tokens: 1,
+        output_tokens: 1,
+        prompt_tokens: 1,
+        completion_tokens: 1,
+        total_tokens: 2
+      },
+      reasoningContent: null
     });
   });
 });

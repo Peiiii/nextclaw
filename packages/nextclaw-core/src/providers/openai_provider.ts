@@ -10,8 +10,12 @@ import {
   buildOpenAiApiBaseCandidates,
   createEmptyChatCompletionsPayloadError,
   isSemanticallyEmptyOpenAiResponse,
-  normalizeOpenAiResponsesOutput,
 } from "../utils/openai/response.utils.js";
+import { extractLeadingJson } from "../utils/openai/responses-payload.utils.js";
+import {
+  consumeOpenAiResponsesStream,
+  executeOpenAiResponsesStreamRequest,
+} from "../utils/openai/responses-stream.utils.js";
 import {
   createOpenAiChatCompletionsStreamState,
   consumeOpenAiChatCompletionsChunk,
@@ -91,8 +95,9 @@ export class OpenAICompatibleProvider extends LLMProvider {
         return;
       }
       if (provider.wireApi === "responses") {
-        const response = await provider.chatResponses(params);
-        yield { type: "done", response };
+        for await (const event of provider.chatResponsesStream(params)) {
+          yield event;
+        }
         return;
       }
       try {
@@ -103,8 +108,9 @@ export class OpenAICompatibleProvider extends LLMProvider {
         if (!provider.shouldFallbackToResponses(error)) {
           throw error;
         }
-        const response = await provider.chatResponses(params);
-        yield { type: "done", response };
+        for await (const event of provider.chatResponsesStream(params)) {
+          yield event;
+        }
       }
     })(this);
   };
@@ -217,9 +223,89 @@ export class OpenAICompatibleProvider extends LLMProvider {
     thinkingLevel?: ThinkingLevel | null;
     signal?: AbortSignal;
   }): Promise<LLMResponse> => {
-    const model = params.model ?? this.defaultModel;
+    const body = this.buildResponsesRequestBody({
+      model: params.model ?? this.defaultModel,
+      messages: params.messages,
+      tools: params.tools,
+      maxTokens: params.maxTokens,
+      thinkingLevel: params.thinkingLevel,
+    });
+
+    let finalResponse: LLMResponse | null = null;
+    for await (const event of this.chatResponsesStream(params, body)) {
+      if (event.type === "done") {
+        finalResponse = event.response;
+      }
+    }
+    if (finalResponse) {
+      return finalResponse;
+    }
+
+    throw new Error("Responses API returned an empty assistant response.");
+  };
+
+  private chatResponsesStream = (
+    params: {
+      messages: Array<Record<string, unknown>>;
+      tools?: Array<Record<string, unknown>>;
+      model?: string | null;
+      maxTokens?: number;
+      thinkingLevel?: ThinkingLevel | null;
+      signal?: AbortSignal;
+    },
+    preparedBody?: Record<string, unknown>,
+  ): AsyncGenerator<LLMStreamEvent> => {
+    return (async function* (provider: OpenAICompatibleProvider): AsyncGenerator<LLMStreamEvent> {
+      const model = params.model ?? provider.defaultModel;
+      const body = preparedBody ?? provider.buildResponsesRequestBody({
+        model,
+        messages: params.messages,
+        tools: params.tools,
+        maxTokens: params.maxTokens,
+        thinkingLevel: params.thinkingLevel,
+      });
+      let lastError: unknown = null;
+
+      for (const apiBase of provider.apiBaseCandidates) {
+        const base = apiBase ?? "https://api.openai.com/v1";
+        const responseUrl = new URL("responses", base.endsWith("/") ? base : `${base}/`);
+
+        try {
+          const response = await provider.withRetry(() => executeOpenAiResponsesStreamRequest({
+            fetchImpl: fetch,
+            responseUrl: responseUrl.toString(),
+            apiKey: provider.apiKey,
+            extraHeaders: provider.extraHeaders,
+            body,
+            signal: params.signal,
+          }));
+          for await (const event of consumeOpenAiResponsesStream({
+            response,
+            apiBase,
+            normalizeUsageCounters: provider.normalizeUsageCounters,
+            parseToolCallArguments: provider.parseToolCallArguments,
+          })) {
+            yield event;
+          }
+          return;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError ?? new Error("Responses API returned an empty assistant response.");
+    })(this);
+  };
+
+  private buildResponsesRequestBody = (params: {
+    model: string;
+    messages: Array<Record<string, unknown>>;
+    tools?: Array<Record<string, unknown>>;
+    maxTokens?: number;
+    thinkingLevel?: ThinkingLevel | null;
+  }): Record<string, unknown> => {
     const input = this.toResponsesInput(params.messages);
-    const body: Record<string, unknown> = { model, input: input as unknown };
+    const body: Record<string, unknown> = { model: params.model, input: input as unknown };
     const reasoningEffort = mapThinkingLevelToOpenAIReasoningEffort(params.thinkingLevel);
     if (reasoningEffort) {
       body.reasoning = { effort: reasoningEffort };
@@ -227,190 +313,10 @@ export class OpenAICompatibleProvider extends LLMProvider {
     if (params.tools && params.tools.length) {
       body.tools = params.tools as unknown;
     }
-
-    let lastError: unknown = null;
-
-    for (const apiBase of this.apiBaseCandidates) {
-      const base = apiBase ?? "https://api.openai.com/v1";
-      const responseUrl = new URL("responses", base.endsWith("/") ? base : `${base}/`);
-
-      try {
-        const response = await this.withRetry(async () => {
-          const attempt = await fetch(responseUrl.toString(), {
-            method: "POST",
-            headers: {
-              "Authorization": this.apiKey ? `Bearer ${this.apiKey}` : "",
-              "Content-Type": "application/json",
-              ...(this.extraHeaders ?? {})
-            },
-            body: JSON.stringify(body),
-            signal: params.signal
-          });
-
-          if (!attempt.ok) {
-            const text = await attempt.text();
-            const preview = text.slice(0, 200);
-            const error = new Error(
-              `Responses API failed (${attempt.status}): ${preview}`
-            ) as Error & { status?: number; responseUrl?: string; bodyPreview?: string };
-            error.status = attempt.status;
-            error.responseUrl = responseUrl.toString();
-            error.bodyPreview = preview;
-            throw error;
-          }
-
-          return attempt;
-        });
-
-        const rawText = await response.text();
-        const responseAny = this.parseResponsesPayload(rawText) as {
-          output?: Array<Record<string, unknown>>;
-          usage?: Record<string, number>;
-          status?: string;
-        };
-        const normalized = normalizeOpenAiResponsesOutput({
-          ...responseAny,
-          usage: this.normalizeUsageCounters(responseAny.usage as Record<string, unknown> | undefined),
-        });
-        if (isSemanticallyEmptyOpenAiResponse(normalized)) {
-          throw new Error(
-            `Responses API returned an empty assistant response${apiBase ? ` for base "${apiBase}"` : ""}.`
-          );
-        }
-        return normalized;
-      } catch (error) {
-        lastError = error;
-      }
+    if (typeof params.maxTokens === "number") {
+      body.max_output_tokens = params.maxTokens;
     }
-
-    throw lastError ?? new Error("Responses API returned an empty assistant response.");
-  };
-
-  private parseResponsesPayload = (rawText: string): Record<string, unknown> => {
-    const text = rawText.replace(/^\uFEFF/, "").trim();
-    if (!text) {
-      return {};
-    }
-
-    try {
-      return JSON.parse(text) as Record<string, unknown>;
-    } catch {
-      const leadingJson = this.extractLeadingJson(text);
-      if (leadingJson) {
-        try {
-          return JSON.parse(leadingJson) as Record<string, unknown>;
-        } catch {
-          // continue to SSE fallback
-        }
-      }
-
-      const sseJson = this.extractSseJson(text);
-      if (sseJson) {
-        return this.unwrapResponsesEnvelope(sseJson);
-      }
-
-      throw new Error(`Responses API returned non-JSON payload: ${text.slice(0, 240)}`);
-    }
-  };
-
-  private extractLeadingJson = (text: string): string | null => {
-    let start = -1;
-    for (let index = 0; index < text.length; index += 1) {
-      const ch = text[index];
-      if (!/\s/.test(ch)) {
-        if (ch !== "{" && ch !== "[") {
-          return null;
-        }
-        start = index;
-        break;
-      }
-    }
-
-    if (start === -1) {
-      return null;
-    }
-
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-
-    for (let index = start; index < text.length; index += 1) {
-      const ch = text[index];
-
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (ch === "\\") {
-          escaped = true;
-          continue;
-        }
-        if (ch === '"') {
-          inString = false;
-        }
-        continue;
-      }
-
-      if (ch === '"') {
-        inString = true;
-        continue;
-      }
-
-      if (ch === "{" || ch === "[") {
-        depth += 1;
-        continue;
-      }
-      if (ch === "}" || ch === "]") {
-        depth -= 1;
-        if (depth === 0) {
-          return text.slice(start, index + 1);
-        }
-      }
-    }
-
-    return null;
-  };
-
-  private extractSseJson = (text: string): Record<string, unknown> | null => {
-    const lines = text.split(/\r?\n/);
-    let latestJson: Record<string, unknown> | null = null;
-    let latestResponse: Record<string, unknown> | null = null;
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith("data:")) {
-        continue;
-      }
-      const payload = trimmed.slice(5).trim();
-      if (!payload || payload === "[DONE]") {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(payload) as Record<string, unknown>;
-        latestJson = parsed;
-        if (Array.isArray(parsed.output)) {
-          latestResponse = parsed;
-          continue;
-        }
-        const response = parsed.response;
-        if (response && typeof response === "object" && !Array.isArray(response)) {
-          latestResponse = response as Record<string, unknown>;
-        }
-      } catch {
-        // ignore non-json data frame
-      }
-    }
-
-    return latestResponse ?? latestJson;
-  };
-
-  private unwrapResponsesEnvelope = (payload: Record<string, unknown>): Record<string, unknown> => {
-    const response = payload.response;
-    if (response && typeof response === "object" && !Array.isArray(response)) {
-      return response as Record<string, unknown>;
-    }
-    return payload;
+    return body;
   };
 
   private shouldFallbackToResponses = (error: unknown): boolean => {
@@ -448,7 +354,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
       return {};
     }
 
-    const candidates = [trimmed, this.stripCodeFence(trimmed), this.extractLeadingJson(trimmed)].filter(
+    const candidates = [trimmed, this.stripCodeFence(trimmed), extractLeadingJson(trimmed)].filter(
       (value): value is string => Boolean(value)
     );
 
