@@ -23,6 +23,17 @@ const usage = `Usage:
 Checks touched ordinary functions in changed workspace source files.
 If a touched non-class function mutates one of its parameters, return a new value/patch or move the mutation under an explicit owner class instead of mutating the input object in place.`;
 
+const PARAM_MUTATION_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const mutatingMethodNames = new Set([
   "add",
   "append",
@@ -238,6 +249,9 @@ const collectMutationsInsideFunction = (fnNode, parameterNames) => {
 
 export const collectViolationsForTouchedFunctionParamMutations = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!PARAM_MUTATION_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 

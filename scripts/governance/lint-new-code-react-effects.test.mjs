@@ -134,3 +134,13 @@ export function Demo({ mode }) {
     ["setError"]
   );
 });
+
+test("skips non-js-ts source files instead of trying to parse them", () => {
+  const violations = collectViolationsForTouchedReactEffects({
+    filePath: "packages/demo/src/hermes-acp-route-bridge/sitecustomize.py",
+    source: "def hello():\n    return 'world'\n",
+    addedLines: new Set([1])
+  });
+
+  assert.deepEqual(violations, []);
+});

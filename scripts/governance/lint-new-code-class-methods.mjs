@@ -23,6 +23,17 @@ Checks every touched class in changed TypeScript workspace files.
 Once a class is touched by the diff, all eligible instance methods in that class must use foo = () => {}.
 Ignored by design: constructor/get/set/static/abstract/override/decorated methods.`;
 
+const CLASS_METHOD_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const getMethodName = (node) => {
   const key = node.key;
   if (!key) {
@@ -77,6 +88,9 @@ const isEligibleInstanceMethod = (node) => {
 
 export const collectViolationsForTouchedClasses = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!CLASS_METHOD_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 

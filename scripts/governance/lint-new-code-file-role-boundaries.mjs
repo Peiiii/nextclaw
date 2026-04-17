@@ -80,7 +80,7 @@ const DIRECTORY_ROLE_RULES = {
   }
 };
 
-const EXACT_ALLOWLIST_ANYWHERE = new Set(["index"]);
+const EXACT_ALLOWLIST_ANYWHERE = new Set(["index", "sitecustomize"]);
 const ROOT_ENTRY_ALLOWLIST = new Set(["app", "main"]);
 const TEST_QUALIFIER_PATTERN = "[a-z0-9-]+";
 const SOURCE_ROOT_SEGMENTS = new Set(["src"]);

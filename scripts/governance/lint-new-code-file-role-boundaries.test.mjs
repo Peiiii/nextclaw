@@ -51,6 +51,13 @@ test("allows root entry files without role suffixes", () => {
   }), null);
 });
 
+test("allows sitecustomize bridge entry files without role suffixes", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/hermes-acp-route-bridge/sitecustomize.py",
+    status: "M"
+  }), null);
+});
+
 test("allows component files without role suffixes", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/components/chat-shell.tsx",

@@ -24,6 +24,21 @@ const usage = `Usage:
 Checks touched modules that coordinate shared state through multiple top-level functions without an explicit owner.
 If a touched file has module-scope state shared by several lifecycle-style functions, promote that orchestration to a class or explicit owner abstraction.`;
 
+const STATEFUL_ORCHESTRATOR_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
+const isAstGovernedSourceFile = (filePath, extensions) => (
+  extensions.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")
+);
+
 const lifecycleNamePattern = /^(start|stop|reset|clear|dispose|destroy|reload|connect|disconnect|subscribe|unsubscribe|resume|pause|open|close|flush|publish|schedule|sync|hydrate|init|initialize)/i;
 const statefulNamePattern = /(state|cache|queue|pending|inFlight|listener|timer|interval|controller|registry|session|store)/i;
 const statefulCtorNames = new Set(["Map", "Set", "WeakMap", "WeakSet", "AbortController"]);
@@ -97,21 +112,7 @@ const isStatefulInitializer = (initializer, bindingName) => {
   return false;
 };
 
-export const collectStatefulOrchestratorViolations = ({ filePath, source, addedLines }) => {
-  if (!addedLines || addedLines.size === 0) {
-    return [];
-  }
-
-  const ast = parser.parse(source, {
-    ecmaVersion: "latest",
-    sourceType: "module",
-    loc: true,
-    range: false,
-    ecmaFeatures: {
-      jsx: filePath.endsWith(".tsx")
-    }
-  });
-
+const collectTopLevelOrchestratorState = (ast) => {
   const statefulBindings = new Set();
   const topLevelFunctions = [];
   let hasClassDeclaration = false;
@@ -142,10 +143,14 @@ export const collectStatefulOrchestratorViolations = ({ filePath, source, addedL
     }
   }
 
-  if (statefulBindings.size === 0 || topLevelFunctions.length < 3) {
-    return [];
-  }
+  return {
+    hasClassDeclaration,
+    statefulBindings,
+    topLevelFunctions
+  };
+};
 
+const collectParticipatingFunctionState = (topLevelFunctions, statefulBindings) => {
   const participatingFunctions = [];
   const sharedBindingUsage = new Map();
 
@@ -162,6 +167,45 @@ export const collectStatefulOrchestratorViolations = ({ filePath, source, addedL
     }
     participatingFunctions.push(functionEntry);
   }
+
+  return {
+    participatingFunctions,
+    sharedBindingUsage
+  };
+};
+
+export const collectStatefulOrchestratorViolations = ({ filePath, source, addedLines }) => {
+  if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!isAstGovernedSourceFile(filePath, STATEFUL_ORCHESTRATOR_CHECK_EXTENSIONS)) {
+    return [];
+  }
+
+  const ast = parser.parse(source, {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    loc: true,
+    range: false,
+    ecmaFeatures: {
+      jsx: filePath.endsWith(".tsx")
+    }
+  });
+
+  const {
+    hasClassDeclaration,
+    statefulBindings,
+    topLevelFunctions
+  } = collectTopLevelOrchestratorState(ast);
+
+  if (statefulBindings.size === 0 || topLevelFunctions.length < 3) {
+    return [];
+  }
+
+  const { participatingFunctions, sharedBindingUsage } = collectParticipatingFunctionState(
+    topLevelFunctions,
+    statefulBindings
+  );
 
   if (participatingFunctions.length < 3) {
     return [];

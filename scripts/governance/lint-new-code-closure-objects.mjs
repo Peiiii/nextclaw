@@ -25,6 +25,17 @@ const usage = `Usage:
 Checks touched factory functions that return closure-backed multi-method objects.
 If a touched factory returns a stateful object with multiple callable entries sharing captured state, promote it to a class or explicit owner abstraction.`;
 
+const CLOSURE_OBJECT_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const lifecycleNames = new Set([
   "start",
   "stop",
@@ -261,6 +272,9 @@ const collectCallableEntries = (objectExpression) =>
 
 export const collectClosureObjectViolations = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!CLOSURE_OBJECT_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 

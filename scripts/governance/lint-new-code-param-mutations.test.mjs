@@ -95,3 +95,18 @@ export const updateProviders = (providers: Map<string, string>, names: string[])
     ]
   );
 });
+
+test("ignores non-AST-governed source files", () => {
+  const source = `
+def apply_profile(profile):
+    profile["avatar"] = "ok"
+`.trim();
+
+  const violations = collectViolationsForTouchedFunctionParamMutations({
+    filePath: "packages/demo/src/sitecustomize.py",
+    source,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(violations.length, 0);
+});

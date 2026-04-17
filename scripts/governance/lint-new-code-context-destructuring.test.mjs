@@ -75,3 +75,13 @@ export function buildThing(context: { a: string; b: string; c: string }) {
 
   assert.equal(violations.length, 0);
 });
+
+test("skips non-js-ts source files instead of trying to parse them", () => {
+  const violations = collectContextDestructuringViolationsForTouchedFunctions({
+    filePath: "packages/demo/src/hermes-acp-route-bridge/sitecustomize.py",
+    source: "def hello():\n    return 'world'\n",
+    addedLines: new Set([1])
+  });
+
+  assert.deepEqual(violations, []);
+});

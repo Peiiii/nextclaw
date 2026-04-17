@@ -23,6 +23,17 @@ Checks every touched object literal in changed TypeScript workspace files.
 Once an object literal is touched by the diff, all eligible object methods in that object must use foo: () => {}.
 Ignored by design: getters/setters, constructors are not applicable here.`;
 
+const OBJECT_METHOD_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const getPropertyName = (node) => {
   const key = node.key;
   if (!key) {
@@ -60,6 +71,9 @@ const getObjectLabel = (parent) => {
 
 export const collectViolationsForTouchedObjectLiterals = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!OBJECT_METHOD_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 

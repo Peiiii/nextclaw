@@ -23,6 +23,17 @@ Checks touched functions in changed TypeScript workspace files.
 If a touched function repeatedly reads params/options/context style objects 4+ times,
 it must destructure the top-level fields instead of repeating context.* access.`;
 
+const CONTEXT_DESTRUCTURING_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const TARGET_PARAM_NAMES = new Set(["params", "options", "context"]);
 const MIN_MEMBER_ACCESS_COUNT = 4;
 
@@ -100,6 +111,9 @@ const collectRootMemberAccesses = (functionNode, paramName) => {
 
 export const collectContextDestructuringViolationsForTouchedFunctions = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!CONTEXT_DESTRUCTURING_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 

@@ -24,6 +24,17 @@ Checks touched React effects in changed workspace source files.
 Touched useEffect/useLayoutEffect callbacks must stay focused on external-system synchronization.
 Move business actions, state repair, and query/store mirroring back into query/view hooks, stores, managers, or presenters.`;
 
+const REACT_EFFECT_CHECK_EXTENSIONS = new Set([
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs"
+]);
+
 const dangerousMemberCallKinds = new Map([
   ["mutate", "mutation trigger"],
   ["mutateAsync", "mutation trigger"],
@@ -303,6 +314,9 @@ const getEffectHookLabel = (callNode) => {
 
 export const collectViolationsForTouchedReactEffects = ({ filePath, source, addedLines }) => {
   if (!addedLines || addedLines.size === 0) {
+    return [];
+  }
+  if (!REACT_EFFECT_CHECK_EXTENSIONS.has(resolve(filePath).match(/\.[^./]+$/)?.[0] ?? "")) {
     return [];
   }
 
