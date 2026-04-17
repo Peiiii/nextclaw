@@ -4,22 +4,16 @@ import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  buildStdioLaunchEnv,
+  buildHermesAcpBridgeLaunchEnv,
   isHermesAcpRuntimeConfig,
 } from "./hermes-acp-route-bridge.utils.js";
-import type { StdioRuntimeResolvedConfig } from "./stdio-runtime-config.utils.js";
 
 const tempDirs: string[] = [];
 
-function createHermesAcpConfig(): StdioRuntimeResolvedConfig {
+function createHermesAcpConfig() {
   return {
-    wireDialect: "acp",
-    processScope: "per-session",
     command: "hermes",
     args: ["acp"],
-    startupTimeoutMs: 8000,
-    probeTimeoutMs: 3000,
-    requestTimeoutMs: 120000,
   };
 }
 
@@ -97,13 +91,27 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
       "        self.provider = kwargs.get(\"provider\", \"\")",
       "        self.base_url = kwargs.get(\"base_url\", \"\")",
       "        self.api_mode = kwargs.get(\"api_mode\", \"\")",
+      "        self.platform = kwargs.get(\"platform\", \"\")",
       "        self.client = object()",
       "        self._anthropic_client = _AnthropicClient() if self.api_mode == \"anthropic_messages\" else None",
       "        self._replace_reasons = []",
+      "        self.thinking_callback = None",
+      "        self.reasoning_callback = None",
       "",
       "    def _replace_primary_openai_client(self, *, reason):",
       "        self._replace_reasons.append(reason)",
       "        return True",
+      "",
+      "    def run_conversation(self, **kwargs):",
+      "        self._last_run_state = {",
+      "            \"thinking_is_none\": self.thinking_callback is None,",
+      "            \"reasoning_is_callable\": callable(self.reasoning_callback),",
+      "        }",
+      "        if callable(self.thinking_callback):",
+      "            self.thinking_callback(\"(⌐■_■) computing...\")",
+      "        if callable(self.reasoning_callback):",
+      "            self.reasoning_callback(\"real reasoning\")",
+      "        return self._last_run_state",
       "",
     ].join("\n"),
     "utf8",
@@ -148,10 +156,10 @@ describe("isHermesAcpRuntimeConfig", () => {
   });
 });
 
-describe("buildStdioLaunchEnv", () => {
+describe("buildHermesAcpBridgeLaunchEnv", () => {
   it("injects a synthetic route for hermes acp probes", () => {
-    const env = buildStdioLaunchEnv({
-      config: createHermesAcpConfig(),
+    const env = buildHermesAcpBridgeLaunchEnv({
+      ...createHermesAcpConfig(),
       useProbeRoute: true,
       baseEnv: {},
     });
@@ -167,21 +175,19 @@ describe("Hermes ACP bridge sitecustomize", () => {
   it("patches fake Hermes ACP session creation to consume the NextClaw RuntimeRoute", () => {
     const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-fake-");
     seedFakeHermesPythonPackage(fakeHermesRoot);
-    const env = buildStdioLaunchEnv({
-      config: createHermesAcpConfig(),
+    const env = buildHermesAcpBridgeLaunchEnv({
+      ...createHermesAcpConfig(),
       baseEnv: {
         ...process.env,
         PYTHONPATH: fakeHermesRoot,
       },
-      providerRoute: {
-        model: "qwen3.5-plus",
-        apiBase: "http://127.0.0.1:18999/v1",
-        apiKey: "bridge-key",
-        headers: {
-          "x-nextclaw-narp-api-mode": "chat_completions",
-          "x-test-header": "bridge-ok",
-        },
-      },
+    });
+    env.NEXTCLAW_MODEL = "qwen3.5-plus";
+    env.NEXTCLAW_API_BASE = "http://127.0.0.1:18999/v1";
+    env.NEXTCLAW_API_KEY = "bridge-key";
+    env.NEXTCLAW_HEADERS_JSON = JSON.stringify({
+      "x-nextclaw-narp-api-mode": "chat_completions",
+      "x-test-header": "bridge-ok",
     });
 
     const pythonResult = spawnSync(
@@ -232,5 +238,62 @@ describe("Hermes ACP bridge sitecustomize", () => {
       "x-test-header": "bridge-ok",
     });
     expect(output.replace_reasons).toContain("nextclaw_runtime_route_bridge");
+  });
+
+  it("remaps ACP thinking callbacks onto reasoning during agent runs", () => {
+    const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-reasoning-");
+    seedFakeHermesPythonPackage(fakeHermesRoot);
+    const env = buildHermesAcpBridgeLaunchEnv({
+      ...createHermesAcpConfig(),
+      baseEnv: {
+        ...process.env,
+        PYTHONPATH: fakeHermesRoot,
+      },
+    });
+
+    const pythonResult = spawnSync(
+      "python3",
+      [
+        "-c",
+        [
+          "import json",
+          "from run_agent import AIAgent",
+          "captured = []",
+          "agent = AIAgent(platform='acp')",
+          "agent.thinking_callback = lambda text: captured.append(text)",
+          "agent.reasoning_callback = None",
+          "run_state = agent.run_conversation(user_message='hi', conversation_history=[], task_id='task-1')",
+          "print(json.dumps({",
+          "  'captured': captured,",
+          "  'run_state': run_state,",
+          "  'thinking_restored': callable(agent.thinking_callback),",
+          "  'reasoning_restored': agent.reasoning_callback is None,",
+          "}))",
+        ].join("\n"),
+      ],
+      {
+        env,
+        encoding: "utf8",
+      },
+    );
+
+    expect(pythonResult.status).toBe(0);
+    const output = JSON.parse(pythonResult.stdout.trim()) as {
+      captured: string[];
+      run_state: {
+        thinking_is_none: boolean;
+        reasoning_is_callable: boolean;
+      };
+      thinking_restored: boolean;
+      reasoning_restored: boolean;
+    };
+
+    expect(output.captured).toEqual(["real reasoning"]);
+    expect(output.run_state).toEqual({
+      thinking_is_none: true,
+      reasoning_is_callable: true,
+    });
+    expect(output.thinking_restored).toBe(true);
+    expect(output.reasoning_restored).toBe(true);
   });
 });

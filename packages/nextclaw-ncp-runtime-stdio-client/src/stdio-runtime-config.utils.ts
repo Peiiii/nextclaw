@@ -168,6 +168,26 @@ export function buildRuntimeRouteBridgeEnv(params: {
   };
 }
 
+export function buildStdioRuntimeLaunchEnv(params: {
+  baseEnv?: Record<string, string | undefined>;
+  configEnv?: StdioRuntimeEnv;
+  providerRoute?: NcpProviderRuntimeRoute;
+}): Record<string, string> {
+  const baseEnv: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params.baseEnv ?? process.env)) {
+    if (typeof value === "string") {
+      baseEnv[key] = value;
+    }
+  }
+  return {
+    ...baseEnv,
+    ...(params.configEnv ?? {}),
+    ...buildRuntimeRouteBridgeEnv({
+      providerRoute: params.providerRoute,
+    }),
+  };
+}
+
 function parseJsonArray(value: unknown): unknown {
   if (typeof value !== "string" || !value.trim()) {
     return undefined;

@@ -10,11 +10,23 @@
   - runtime entry 直接启动 `hermes acp`
   - 不再把 `Hermes API server`、`stdio connector`、`connector wrapper` 当成产品主语
 - `NextClaw` 对 `RuntimeRoute(model / apiBase / apiKey / headers)` 的 ownership 已真正落到 `hermes acp`
-  - 在 `@nextclaw/nextclaw-ncp-runtime-stdio-client` 里新增了一层极薄的 Hermes ACP Python bridge
+  - Hermes ACP Python bridge 已从通用 `@nextclaw/nextclaw-ncp-runtime-stdio-client` 中拆出
+  - 现在由独立包 `@nextclaw/nextclaw-hermes-acp-bridge` 承载 Hermes 专属 bridge
+  - builtin Hermes runtime entry 会显式启用这层 bridge；通用 stdio client 只保留通用 stdio 运行时职责
   - 这层 bridge 通过环境变量把 NextClaw 已解析好的 route 桥进 Hermes ACP，会话创建时优先消费这份 route，而不是回退到 Hermes 自己的 provider 解析主语
 - `narp-stdio` 对 Hermes ACP 的启动/探测逻辑已对齐
-  - runtime 启动时会自动识别 `hermes acp`
+  - builtin Hermes runtime entry 在创建与 probe 阶段都会显式挂接 Hermes ACP bridge
+  - 通用 stdio client 不再内嵌 `Hermes` 判断逻辑
   - probe 也走同一套 Hermes ACP bridge 逻辑，不再要求另外起一个 API server
+- Hermes ACP 的 reasoning 协议映射已补齐
+  - 本机真实会话里出现过 `( •_•)>⌐■-■ reasoning...`、`(⌐■_■) computing...` 这类占位文本被当成 reasoning 流式透出的严重问题
+  - 根因不是 NextClaw 自己生成了假 reasoning，而是 Hermes ACP 当前把瞬时 spinner/status 用的 `thinking_callback` 接到了 ACP thought 更新上
+  - `narp-stdio` 作为通用 ACP transport 并没有做错，它只是忠实把 ACP thought 当 reasoning 发给前端
+  - 修复落在 Hermes 专属 bridge 的 `sitecustomize.py`：
+    - 仅在 `platform == "acp"`、存在 `thinking_callback`、且 `reasoning_callback is None` 时
+    - 临时把 `thinking_callback` 重映射到 `reasoning_callback`
+    - run 结束后恢复原始 callback
+  - 这样既不修改外部 Hermes 源码，也不把 Hermes 特例塞进通用 stdio runtime；后续 Hermes 升级后，只要上游自己修好了映射，这段桥接也会因为 `reasoning_callback` 已存在而保持旁路
 - `narp-stdio` 的启动失败已收口为正常错误
   - 之前如果 runtime entry 仍指向已删除的 connector 命令，子进程 `spawn ENOENT` 会冒成 uncaught exception，进而把服务打崩
   - 本轮把 runtime 和 probe 两侧都补成显式 `spawn` 错误收口，坏配置现在会回成明确的 runtime 启动失败，而不是直接炸服务
@@ -56,11 +68,12 @@
 
 这轮关键代码落点：
 
-- [hermes-acp-route-bridge.utils.ts](../../../packages/nextclaw-ncp-runtime-stdio-client/src/hermes-acp-route-bridge.utils.ts)
-- [sitecustomize.py](../../../packages/nextclaw-ncp-runtime-stdio-client/src/hermes-acp-route-bridge/sitecustomize.py)
+- [hermes-acp-route-bridge.utils.ts](../../../packages/nextclaw-hermes-acp-bridge/src/hermes-acp-route-bridge.utils.ts)
+- [sitecustomize.py](../../../packages/nextclaw-hermes-acp-bridge/src/hermes-acp-route-bridge/sitecustomize.py)
+- [copy-hermes-acp-route-bridge.mjs](../../../packages/nextclaw-hermes-acp-bridge/scripts/copy-hermes-acp-route-bridge.mjs)
+- [builtin-narp-runtime-registration.service.ts](../../../packages/nextclaw/src/cli/commands/ncp/builtin-narp-runtime-registration.service.ts)
 - [stdio-runtime.service.ts](../../../packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime.service.ts)
 - [stdio-runtime-probe.utils.ts](../../../packages/nextclaw-ncp-runtime-stdio-client/src/stdio-runtime-probe.utils.ts)
-- [copy-hermes-acp-route-bridge.mjs](../../../packages/nextclaw-ncp-runtime-stdio-client/scripts/copy-hermes-acp-route-bridge.mjs)
 - [SKILL.md](../../../packages/nextclaw-core/src/agent/skills/hermes-runtime/SKILL.md)
 
 ## 测试/验证/验收方式
@@ -70,6 +83,9 @@
 - `pnpm -C packages/nextclaw-ncp-runtime-stdio-client test`
 - `pnpm -C packages/nextclaw-ncp-runtime-stdio-client tsc`
 - `pnpm -C packages/nextclaw-ncp-runtime-stdio-client build`
+- `pnpm -C packages/nextclaw-hermes-acp-bridge test`
+- `pnpm -C packages/nextclaw-hermes-acp-bridge tsc`
+- `pnpm -C packages/nextclaw-hermes-acp-bridge build`
 - `pnpm -C packages/nextclaw tsc`
 - `pnpm -C packages/nextclaw-core tsc`
 - `pnpm install --lockfile-only`
@@ -160,12 +176,33 @@
   - Hermes 会话发送请求返回 `NCP request failed with HTTP 502`
 - 清掉并发 dev 组后重新启动，Hermes 会话真实 smoke 再次通过，说明这次 502 属于运行环境锁冲突，而不是 ACP 主链消息归并修复失败
 
+本轮 reasoning 映射回归验证：
+
+- 桥接层单测：
+  - `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge test`
+  - 新增回归断言：
+    - ACP run 期间 `thinking_callback` 会被临时置空
+    - `reasoning_callback` 会接收到真实 `real reasoning`
+    - `(⌐■_■) computing...` 不再进入 reasoning 输出
+    - run 结束后 callback 会恢复原值
+- 真实现场 smoke（修复前）：
+  - `pnpm smoke:ncp-chat -- --session-type hermes --model dashscope/qwen3.6-plus --base-url http://127.0.0.1:18792 --prompt 'Reply exactly OK' --json`
+  - 结果包含：
+    - `assistantText: "OK"`
+    - `reasoningText: "(⌐■_■) computing..."`
+- 真实现场 smoke（修复后）：
+  - 同一命令重新验证
+  - 结果包含：
+    - `assistantText: "OK"`
+    - `reasoningText` 为模型真实推理文本，不再是 spinner/status 占位串
+
 ## 发布/部署方式
 
 当前这条主链的发布/接入方式如下：
 
-1. 发布包含 `@nextclaw/nextclaw-ncp-runtime-stdio-client` 的 NextClaw 版本
-   - 该包现在自带 Hermes ACP bridge 所需资源
+1. 发布包含 `@nextclaw/nextclaw-ncp-runtime-stdio-client` 与 `@nextclaw/nextclaw-hermes-acp-bridge` 的 NextClaw 版本
+   - 前者负责通用 stdio runtime
+   - 后者负责 Hermes 专属 ACP bridge 资源
 2. 用户机器上安装 Hermes
    - 标准路径是安装官方 Hermes
    - 若 ACP extra 缺失，需要补齐 `hermes-agent[acp]`

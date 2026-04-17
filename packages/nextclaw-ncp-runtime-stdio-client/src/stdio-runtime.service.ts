@@ -18,9 +18,9 @@ import {
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
+  buildStdioRuntimeLaunchEnv,
   readString,
 } from "./stdio-runtime-config.utils.js";
-import { buildStdioLaunchEnv } from "./hermes-acp-route-bridge.utils.js";
 
 type AcpClientUpdate = acp.SessionUpdate;
 
@@ -251,8 +251,8 @@ class StdioRuntimeSession {
       return;
     }
 
-    const env = buildStdioLaunchEnv({
-      config: this.config,
+    const env = buildStdioRuntimeLaunchEnv({
+      configEnv: this.config.env,
       providerRoute: this.pendingProviderRoute,
     });
 

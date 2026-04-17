@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import { Readable, Writable } from "node:stream";
 import * as acp from "@agentclientprotocol/sdk";
-import type { StdioRuntimeResolvedConfig } from "./stdio-runtime-config.utils.js";
-import { buildStdioLaunchEnv } from "./hermes-acp-route-bridge.utils.js";
+import {
+  buildStdioRuntimeLaunchEnv,
+  type StdioRuntimeResolvedConfig,
+} from "./stdio-runtime-config.utils.js";
 
 type ProbeClientBridge = {
   sessionUpdate: (params: { sessionId: string; update: unknown }) => Promise<void>;
@@ -21,9 +23,8 @@ const createProbeClientBridge = (): ProbeClientBridge => ({
 export async function probeStdioRuntime(config: StdioRuntimeResolvedConfig): Promise<void> {
   const child = spawn(config.command, config.args, {
     cwd: config.cwd,
-    env: buildStdioLaunchEnv({
-      config,
-      useProbeRoute: true,
+    env: buildStdioRuntimeLaunchEnv({
+      configEnv: config.env,
     }),
     stdio: ["pipe", "pipe", "pipe"],
   });

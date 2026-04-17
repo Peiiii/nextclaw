@@ -173,12 +173,53 @@ def _patch_session_manager() -> None:
     session_module.SessionManager._make_agent = bridged_make_agent
 
 
+def _patch_acp_reasoning_mapping() -> None:
+    try:
+        from run_agent import AIAgent
+    except Exception:
+        LOGGER.debug("Failed to import run_agent.AIAgent", exc_info=True)
+        return
+
+    original_run_conversation = getattr(AIAgent, "run_conversation", None)
+    if not callable(original_run_conversation):
+        return
+    if getattr(original_run_conversation, "__nextclaw_reasoning_bridge__", False):
+        return
+
+    def bridged_run_conversation(self, *args, **kwargs):
+        original_thinking = getattr(self, "thinking_callback", None)
+        original_reasoning = getattr(self, "reasoning_callback", None)
+        remapped = (
+            getattr(self, "platform", None) == "acp"
+            and callable(original_thinking)
+            and original_reasoning is None
+        )
+
+        if remapped:
+            # Hermes ACP currently wires its transient spinner/status callback
+            # into ACP thought events. For ACP sessions, remap that callback to
+            # the real reasoning channel so downstream clients receive model
+            # reasoning instead of strings like "(⌐■_■) computing...".
+            self.reasoning_callback = original_thinking
+            self.thinking_callback = None
+
+        try:
+            return original_run_conversation(self, *args, **kwargs)
+        finally:
+            if remapped:
+                self.thinking_callback = original_thinking
+                self.reasoning_callback = original_reasoning
+
+    bridged_run_conversation.__nextclaw_reasoning_bridge__ = True
+    AIAgent.run_conversation = bridged_run_conversation
+
+
 def _activate() -> None:
     if _read_text_env(ROUTE_ENABLE_ENV) != "1":
         return
     _patch_acp_auth()
     _patch_session_manager()
+    _patch_acp_reasoning_mapping()
 
 
 _activate()
-

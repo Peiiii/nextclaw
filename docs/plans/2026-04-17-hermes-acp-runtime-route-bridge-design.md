@@ -14,7 +14,7 @@
 2. `Hermes` 的标准 runtime entry 直接启动 `hermes acp`
 3. `NextClaw` 才是 `model / apiBase / apiKey / headers` 的 owner
 4. `Hermes ACP` 必须消费 NextClaw 的 `RuntimeRoute`，不能重新退回 Hermes 自己的 provider 解析主语
-5. 允许存在一层极薄的 Python bridge/launcher 来完成这件事
+5. 允许存在一层极薄的 Python bridge/launcher 来完成这件事，而且这层 bridge 必须位于 Hermes 专属包中，不能污染通用 stdio client
 6. `API server`、`HTTP adapter`、`stdio connector -> API server` 都不是这条主链的产品主语
 
 ---
@@ -90,6 +90,7 @@ NextClaw 中的 `Hermes` 是统一 runtime registry 里的一条正式 entry。
 2. `wireDialect` 必须是 `acp`
 3. 启动目标必须是 `hermes acp`
 4. `RuntimeRoute` 必须由 NextClaw 通过内建环境变量桥接进去，不需要用户显式配置字段名
+5. Hermes 专属 Python bridge 必须由独立 Hermes bridge 包承载，`@nextclaw/nextclaw-ncp-runtime-stdio-client` 只保留通用 stdio 运行时职责
 
 ### 3.2 RuntimeRoute Contract
 
@@ -138,11 +139,14 @@ Bridge 可以是以下任一等价实现：
 - `sitecustomize.py` monkeypatch
 - 极小的 Hermes ACP 创建链 patch
 
+但不管具体形态如何，它都必须放在 Hermes 专属包中，由 builtin Hermes runtime entry 显式启用，而不是把 Hermes 判断逻辑内嵌进通用 stdio client。
+
 这层 bridge 的唯一职责是：
 
 1. 读取 NextClaw 注入的环境变量
 2. 把这些值变成 `AIAgent(...)` 的显式 runtime 参数
 3. 优先使用这些显式参数，而不是继续先走 Hermes 自己的 provider resolution
+4. 在 Hermes ACP 对外事件语义和 NextClaw/NCP 合同不一致时，只在 Hermes 专属 bridge 内做最小必要协议映射，例如把误接到 ACP thought 事件里的瞬时 `thinking_callback` 重映射到真实 reasoning 通道，而不是修改 Hermes 源码或污染通用 stdio client
 
 ### 4.3 Bridge 必须完成的事情
 

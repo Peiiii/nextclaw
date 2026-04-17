@@ -1,6 +1,7 @@
 export {
   NARP_STDIO_PROMPT_META_KEY,
   StdioRuntimeConfigResolver,
+  buildStdioRuntimeLaunchEnv,
   buildRuntimeRouteBridgeEnv,
   type NarpStdioPromptMeta,
   type StdioRuntimeEnv,

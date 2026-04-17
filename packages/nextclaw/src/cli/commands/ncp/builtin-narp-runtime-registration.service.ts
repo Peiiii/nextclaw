@@ -16,7 +16,12 @@ import {
   probeStdioRuntime,
   StdioRuntimeConfigResolver,
   StdioRuntimeNcpAgentRuntime,
+  type StdioRuntimeResolvedConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-stdio-client";
+import {
+  buildHermesAcpBridgeLaunchEnv,
+  isHermesAcpRuntimeConfig,
+} from "@nextclaw/nextclaw-hermes-acp-bridge";
 import type {
   UiNcpRuntimeEntry,
   UiNcpRuntimeRegistry,
@@ -243,7 +248,9 @@ class BuiltinStdioRuntimeSessionTypeService {
   ): Promise<SessionTypeDescriptor> => {
     const resolver = new StdioRuntimeConfigResolver(this.entry.config ?? {});
     try {
-      const config = resolver.resolve();
+      const config = applyBuiltinStdioBridgeEnv(resolver.resolve(), {
+        useProbeRoute: describeMode === "probe",
+      });
       const executablePath = await resolveExecutablePath(config.command);
       if (!executablePath) {
         return {
@@ -390,8 +397,9 @@ export class BuiltinNarpRuntimeRegistrationService {
   ): StdioRuntimeNcpAgentRuntime => {
     const config = readRecord(entry.config) ?? {};
     const resolver = new StdioRuntimeConfigResolver(config);
+    const resolvedConfig = applyBuiltinStdioBridgeEnv(resolver.resolve());
     return new StdioRuntimeNcpAgentRuntime({
-      ...resolver.resolve(),
+      ...resolvedConfig,
       sessionId: runtimeParams.sessionId,
       stateManager: runtimeParams.stateManager,
       resolveTools: runtimeParams.resolveTools,
@@ -404,5 +412,23 @@ export class BuiltinNarpRuntimeRegistrationService {
           configuredModel: readString(config.model),
         }),
     });
+  };
+}
+
+function applyBuiltinStdioBridgeEnv(
+  config: StdioRuntimeResolvedConfig,
+  params?: { useProbeRoute?: boolean },
+): StdioRuntimeResolvedConfig {
+  if (!isHermesAcpRuntimeConfig(config)) {
+    return config;
+  }
+  return {
+    ...config,
+    env: buildHermesAcpBridgeLaunchEnv({
+      command: config.command,
+      args: config.args,
+      baseEnv: config.env,
+      useProbeRoute: params?.useProbeRoute,
+    }),
   };
 }
