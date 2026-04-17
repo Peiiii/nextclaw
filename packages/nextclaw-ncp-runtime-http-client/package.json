@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-http-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "Optional NCP runtime adapter backed by a remote HTTP/SSE agent endpoint.",
   "type": "module",
