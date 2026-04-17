@@ -98,3 +98,23 @@ Description: NextClaw Desktop
 License: MIT
 Vendor: NextClaw Team
 
+Package: nextclaw-desktop
+Version: 0.0.143
+Architecture: amd64
+Maintainer: NextClaw Team
+Installed-Size: 399248
+Depends: libgtk-3-0, libnotify4, libnss3, libxss1, libxtst6, xdg-utils, libatspi2.0-0, libuuid1, libsecret-1-0
+Recommends: libappindicator3-1
+Filename: pool/main/n/nextclaw-desktop/nextclaw-desktop_0.0.143_amd64.deb
+Size: 100540500
+MD5sum: 9032c5024ed8fe3305d0c34ed390812b
+SHA1: dacc38f38a725dfbec1f8b7e363ac79183cb5fce
+SHA256: 3f426cfb873652db701e401e1dcdc8141cb7fd447d5fd3e4aae01b6b0c3710b2
+Section: utility
+Priority: optional
+Homepage: https://github.com/Peiiii/nextclaw
+Description: NextClaw Desktop
+  NextClaw desktop shell powered by Electron.
+License: MIT
+Vendor: NextClaw Team
+
