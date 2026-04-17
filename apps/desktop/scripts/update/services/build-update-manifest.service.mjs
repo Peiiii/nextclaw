@@ -3,6 +3,7 @@ import { createHash, createPrivateKey, generateKeyPairSync, sign } from "node:cr
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { mkdirSync } from "node:fs";
+import { normalizeDesktopUpdateChannel, resolveGovernedMinimumLauncherVersion } from "./launcher-compatibility.service.mjs";
 
 function parseArgs(argv) {
   const args = {};
@@ -72,13 +73,18 @@ function buildManifest(args) {
   const privateKey = resolvePrivateKey(args);
   const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
   const bundleSignature = sign(null, bundleBytes, privateKey).toString("base64");
+  const channel = normalizeDesktopUpdateChannel(args.channel);
 
   const manifest = {
-    channel: args.channel?.trim() || "stable",
+    channel,
     platform: readRequiredOption(args, "platform"),
     arch: readRequiredOption(args, "arch"),
     latestVersion: readRequiredOption(args, "version"),
-    minimumLauncherVersion: readRequiredOption(args, "minimum-launcher-version"),
+    minimumLauncherVersion: resolveGovernedMinimumLauncherVersion({
+      channel,
+      minimumLauncherVersion: args["minimum-launcher-version"],
+      allowOverride: args["allow-minimum-launcher-version-override"] === "true"
+    }),
     bundleUrl: readRequiredOption(args, "bundle-url"),
     bundleSha256,
     bundleSignature,

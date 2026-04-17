@@ -5,11 +5,14 @@ import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
+import {
+  normalizeDesktopUpdateChannel,
+  resolveGovernedMinimumLauncherVersion
+} from "./launcher-compatibility.service.mjs";
 
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const nextclawPackageRoot = resolve(workspaceRoot, "packages", "nextclaw");
-const desktopPackageJsonPath = resolve(desktopDir, "package.json");
 const nextclawPackageJsonPath = resolve(nextclawPackageRoot, "package.json");
 const RUNTIME_NODE_MODULES_PRUNE_SUFFIXES = [
   ".d.ts",
@@ -199,12 +202,17 @@ async function pruneRuntimeNodeModules(runtimeRoot) {
 
 function resolveBundleBuildOptions(args) {
   const nextclawPackage = readJson(nextclawPackageJsonPath);
-  const desktopPackage = readJson(desktopPackageJsonPath);
+  const channel = normalizeDesktopUpdateChannel(args.channel);
   return {
     bundleVersion: readRequiredOption(args, "version", nextclawPackage.version),
     platform: readRequiredOption(args, "platform", process.platform),
     arch: readRequiredOption(args, "arch", process.arch),
-    minimumLauncherVersion: readRequiredOption(args, "minimum-launcher-version", desktopPackage.version),
+    channel,
+    minimumLauncherVersion: resolveGovernedMinimumLauncherVersion({
+      channel,
+      minimumLauncherVersion: args["minimum-launcher-version"],
+      allowOverride: args["allow-minimum-launcher-version-override"] === "true"
+    }),
     outputDir: resolve(args["output-dir"]?.trim() || join(desktopDir, "dist-bundles"))
   };
 }

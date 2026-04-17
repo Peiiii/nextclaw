@@ -21,16 +21,35 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - A shipped desktop app must contain `Contents/Resources/update/update-bundle-public.pem`.
 - The packaged public key must be able to verify the target update manifest signature.
 - The packaged runtime must still boot under the Electron-bundled Node runtime, not only under the developer's ambient `node`.
+- The update-channel minimum launcher version must come from `apps/desktop/desktop-launcher-compatibility.json`, not from `apps/desktop/package.json`.
 - "能启动" 不等于 "可发布"。缺少更新验签材料的安装包视为坏包。
+
+## Launcher Compatibility Floor Contract
+- `minimumLauncherVersion` is a compatibility floor, not a mirror of the current launcher release version.
+- Default assumption: desktop update bundles stay compatible with the existing channel floor.
+- Only raise the floor when the new bundle truly depends on a launcher-side contract break, for example:
+  - new launcher-owned lifecycle or recovery behavior
+  - new bundle manifest/layout/entrypoint contract that older launchers cannot read
+  - new launcher-side security or signature contract
+  - new launcher-owned state migration that older launchers would handle incorrectly
+- Do not raise the floor for:
+  - pure UI changes
+  - runtime/server/plugin changes that stay inside the bundle
+  - ordinary bugfixes or refactors
+  - "because this release also ships a newer launcher"
+- If the floor changes, update `apps/desktop/desktop-launcher-compatibility.json` intentionally and explain the reason in the release notes / iteration log.
 
 ## Required Commands
 1. Default verification command from repo root:
    - `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
-2. Direct packaging path only after the public-key contract is ensured:
+2. Inspect the governed channel floor before release:
+   - `pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel stable`
+   - `pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel beta`
+3. Direct packaging path only after the public-key contract is ensured:
    - `pnpm -C apps/desktop bundle:public-key:ensure`
    - then `pnpm -C apps/desktop dist ...` or `pnpm -C apps/desktop pack ...`
-3. If handing a local installer to a human, point them to `apps/desktop/release/...` and state the exact artifact path.
-4. After creating a GitHub prerelease/tag, verify workflow and assets instead of stopping at `gh release create`:
+4. If handing a local installer to a human, point them to `apps/desktop/release/...` and state the exact artifact path.
+5. After creating a GitHub prerelease/tag, verify workflow and assets instead of stopping at `gh release create`:
    - `gh run view <run-id> --repo <owner/repo> --json status,conclusion,jobs`
    - `gh release view <tag> --repo <owner/repo> --json assets,isPrerelease,url`
 
@@ -38,17 +57,20 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 1. Verify locally first.
    - Run `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
    - Do not start GitHub release work until this passes.
-2. Create the prerelease or release tag.
+2. Confirm the update-channel compatibility floor.
+   - Read `apps/desktop/desktop-launcher-compatibility.json`
+   - Verify the target `minimumLauncherVersion` still matches the governed floor for the channel
+3. Create the prerelease or release tag.
    - Treat this as the trigger, not the success signal.
-3. Watch the `desktop-release` workflow to completion.
+4. Watch the `desktop-release` workflow to completion.
    - Require overall `success`
    - Require the matrix jobs plus publish jobs
-4. Verify GitHub release assets are actually present.
+5. Verify GitHub release assets are actually present.
    - Expect platform installers, bundles, manifests, mac metadata, and `update-bundle-public.pem`
-5. Verify update-channel source of truth.
+6. Verify update-channel source of truth.
    - Check `gh-pages` branch contents first
    - Then check the public Pages URL
-6. Only announce "发布完成" after both are true:
+7. Only announce "发布完成" after both are true:
    - workflow is fully green
    - public update-channel content reflects the new version
 
@@ -72,6 +94,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Confirm packaged app contains `resources/update/update-bundle-public.pem`.
 - Confirm the key parses as a valid public key.
 - Confirm it verifies the target manifest signature.
+- Confirm release-manifest `minimumLauncherVersion` matches the channel floor from `apps/desktop/desktop-launcher-compatibility.json`.
 - Confirm installed-app runtime commands still work when executed through the packaged app binary with `ELECTRON_RUN_AS_NODE=1`.
 - Confirm update check does not only "switch channel", but can actually complete the signature-verification path.
 
@@ -105,6 +128,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Do not "fix" missing packaged public key by skipping manifest signature verification in runtime.
 - Do not accept "works with local node" as evidence that the packaged runtime is healthy.
 - Do not claim validation passed if only unit tests passed.
+- Do not derive `minimumLauncherVersion` from `apps/desktop/package.json` current version.
 - Do not treat "tag already exists" or "release page exists" as proof that assets or update-channel manifests are published.
 
 ## Final Handoff Checklist

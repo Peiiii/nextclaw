@@ -12,6 +12,7 @@
     "bundle:public-key": "node scripts/update/services/write-bundle-public-key.service.mjs",
     "bundle:public-key:ensure": "node scripts/update/services/ensure-bundle-public-key.service.mjs --output build/update-bundle-public.pem",
     "bundle:release-metadata": "node scripts/update/services/write-release-metadata.service.mjs",
+    "bundle:minimum-launcher-version": "node scripts/update/services/print-minimum-launcher-version.service.mjs",
     "bundle:seed": "node scripts/update/services/prepare-seed-bundle.service.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "bundle:manifest": "node scripts/update/services/build-update-manifest.service.mjs",

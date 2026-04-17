@@ -195,13 +195,14 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLE_VERSION="$(node -p "require('./packages/nextclaw/package.json').version")"
-          LAUNCHER_VERSION="$(node -p "require('./apps/desktop/package.json').version")"
+          MINIMUM_LAUNCHER_VERSION="$(pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel "$DESKTOP_UPDATE_CHANNEL")"
 
           pnpm -C apps/desktop bundle:build -- \
+            --channel "$DESKTOP_UPDATE_CHANNEL" \
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
             --version "$BUNDLE_VERSION" \
-            --minimum-launcher-version "$LAUNCHER_VERSION" \
+            --minimum-launcher-version "$MINIMUM_LAUNCHER_VERSION" \
             --output-dir dist-bundles
 
           BUNDLE_PATH="dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-${BUNDLE_VERSION}.zip"
@@ -213,7 +214,7 @@ jobs:
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
             --version "$BUNDLE_VERSION" \
-            --minimum-launcher-version "$LAUNCHER_VERSION" \
+            --minimum-launcher-version "$MINIMUM_LAUNCHER_VERSION" \
             --bundle-url "https://github.com/${{ github.repository }}/releases/download/${DESKTOP_RELEASE_TAG}/$(basename "$BUNDLE_PATH")" \
             --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${DESKTOP_RELEASE_TAG}" \
             --output "$MANIFEST_PATH"
@@ -229,13 +230,14 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $bundleVersion = node -p "require('./packages/nextclaw/package.json').version"
-          $launcherVersion = node -p "require('./apps/desktop/package.json').version"
+          $minimumLauncherVersion = pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel $env:DESKTOP_UPDATE_CHANNEL
 
           pnpm -C apps/desktop bundle:build -- `
+            --channel $env:DESKTOP_UPDATE_CHANNEL `
             --platform ${{ matrix.platform }} `
             --arch ${{ matrix.arch }} `
             --version $bundleVersion `
-            --minimum-launcher-version $launcherVersion `
+            --minimum-launcher-version $minimumLauncherVersion `
             --output-dir dist-bundles
 
           $bundlePath = "dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-$bundleVersion.zip"
@@ -248,7 +250,7 @@ jobs:
             --platform ${{ matrix.platform }} `
             --arch ${{ matrix.arch }} `
             --version $bundleVersion `
-            --minimum-launcher-version $launcherVersion `
+            --minimum-launcher-version $minimumLauncherVersion `
             --bundle-url "https://github.com/${{ github.repository }}/releases/download/$env:DESKTOP_RELEASE_TAG/$bundleFileName" `
             --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/$env:DESKTOP_RELEASE_TAG" `
             --output $manifestPath

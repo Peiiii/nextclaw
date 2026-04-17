@@ -1,0 +1,10 @@
+{
+  "stable": {
+    "minimumLauncherVersion": "0.0.141",
+    "policy": "Stable desktop update bundles must stay compatible with launcher 0.0.141+ unless a reviewed launcher-side contract break explicitly raises the floor."
+  },
+  "beta": {
+    "minimumLauncherVersion": "0.0.143",
+    "policy": "Beta desktop update bundles may use a newer launcher floor only when preview bundles depend on a reviewed launcher-side contract break."
+  }
+}

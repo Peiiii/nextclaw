@@ -32,12 +32,16 @@ Build a zipped product bundle from the current `nextclaw` package output:
 
 ```bash
 pnpm -C apps/desktop bundle:build -- \
+  --channel stable \
   --platform linux \
   --arch x64 \
   --version 0.18.0 \
-  --minimum-launcher-version 0.0.134 \
   --output-dir apps/desktop/dist-bundles
 ```
+
+Normal desktop releases must resolve the minimum launcher version from
+[`desktop-launcher-compatibility.json`](./desktop-launcher-compatibility.json).
+Do not derive it from the current launcher package version.
 
 The builder currently:
 
@@ -52,10 +56,10 @@ Generate a signed manifest for a zipped product bundle:
 ```bash
 pnpm -C apps/desktop bundle:manifest -- \
   --bundle apps/desktop/dist-bundles/nextclaw-bundle-linux-x64-0.18.0.zip \
+  --channel stable \
   --platform linux \
   --arch x64 \
   --version 0.18.0 \
-  --minimum-launcher-version 0.1.0 \
   --bundle-url https://example.com/nextclaw-bundle-linux-x64-0.18.0.zip \
   --output apps/desktop/release-manifests/manifest-stable-linux-x64.json \
   --private-key-file /path/to/desktop-bundle-private.pem
