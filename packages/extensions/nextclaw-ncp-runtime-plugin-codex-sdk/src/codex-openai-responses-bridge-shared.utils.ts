@@ -26,7 +26,7 @@ export type OpenAiChatCompletionResponse = {
   choices?: Array<{
     message?: OpenAiChatCompletionChoiceMessage;
   }>;
-  usage?: {
+  usage?: Record<string, unknown> & {
     prompt_tokens?: number;
     completion_tokens?: number;
     total_tokens?: number;

@@ -6,7 +6,7 @@ import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import codexRuntimePlugin from "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/dist/index.js";
 
 vi.mock(
-  "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/dist/codex-responses-capability.js",
+  "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/dist/codex-responses-capability.utils.js",
   () => ({
     resolveCodexResponsesApiSupport: vi.fn(async () => true),
   }),

@@ -1,18 +1,18 @@
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { callOpenAiCompatibleUpstream } from "./codex-openai-responses-bridge-request.js";
+import { callOpenAiCompatibleUpstream } from "./codex-openai-responses-bridge-request.utils.js";
 import {
   buildBridgeResponsePayload,
   writeResponsesStream,
   writeStreamError,
-} from "./codex-openai-responses-bridge-stream.js";
+} from "./codex-openai-responses-bridge-stream.utils.js";
 import {
   readBoolean,
   readRecord,
   type BridgeEntry,
   type CodexOpenAiResponsesBridgeConfig,
   type CodexOpenAiResponsesBridgeResult,
-} from "./codex-openai-responses-bridge-shared.js";
+} from "./codex-openai-responses-bridge-shared.utils.js";
 
 const bridgeCache = new Map<string, BridgeEntry>();
 

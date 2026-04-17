@@ -8,14 +8,14 @@ import {
   type CodexOpenAiResponsesBridgeConfig,
   type OpenAiChatCompletionResponse,
   type OpenResponsesItemRecord,
-} from "./codex-openai-responses-bridge-shared.js";
+} from "./codex-openai-responses-bridge-shared.utils.js";
 import {
   buildChatContent,
   mergeChatContent,
   normalizeToolOutput,
   readAssistantMessageText,
   type OpenAiChatContent,
-} from "./codex-openai-responses-bridge-message-content.js";
+} from "./codex-openai-responses-bridge-message-content.utils.js";
 function stripModelPrefix(model: string, prefixes: string[]): string {
   const normalizedModel = model.trim();
   for (const prefix of prefixes) {

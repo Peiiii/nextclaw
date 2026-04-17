@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
-import { ensureCodexOpenAiResponsesBridge } from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge.js";
+import { ensureCodexOpenAiResponsesBridge } from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge.utils.js";
 
 type RecordedRequest = {
   method: string;
@@ -188,6 +188,16 @@ function expectAssistantEvents(events: Array<Record<string, unknown>>): void {
     status: "completed",
     content: [{ type: "output_text", text: "bridge reply", annotations: [] }],
   });
+  expect(events[7]?.response).toMatchObject({
+    usage: {
+      input_tokens: 11,
+      input_tokens_details: {
+        cached_tokens: 9,
+      },
+      output_tokens: 7,
+      total_tokens: 18,
+    },
+  });
 }
 
 function expectReasoningEvents(events: Array<Record<string, unknown>>): void {
@@ -313,6 +323,9 @@ describe("ensureCodexOpenAiResponsesBridge", () => {
           prompt_tokens: 11,
           completion_tokens: 7,
           total_tokens: 18,
+          prompt_tokens_details: {
+            cached_tokens: 9,
+          },
         },
       }),
     });

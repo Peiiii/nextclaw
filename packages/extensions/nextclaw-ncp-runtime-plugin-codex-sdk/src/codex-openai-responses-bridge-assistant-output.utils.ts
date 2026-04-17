@@ -9,7 +9,7 @@ import {
   type OpenAiChatCompletionChoiceMessage,
   type OpenResponsesOutputItem,
   type StreamSequenceState,
-} from "./codex-openai-responses-bridge-shared.js";
+} from "./codex-openai-responses-bridge-shared.utils.js";
 
 function extractAssistantText(content: unknown): string {
   if (typeof content === "string") {

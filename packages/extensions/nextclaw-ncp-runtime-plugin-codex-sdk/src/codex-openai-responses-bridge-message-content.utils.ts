@@ -1,4 +1,4 @@
-import { readRecord, readString } from "./codex-openai-responses-bridge-shared.js";
+import { readRecord, readString } from "./codex-openai-responses-bridge-shared.utils.js";
 
 export type OpenAiChatContent = string | Array<Record<string, unknown>> | null;
 

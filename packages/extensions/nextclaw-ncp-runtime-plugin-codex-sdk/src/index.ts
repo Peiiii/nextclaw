@@ -19,8 +19,8 @@ import {
   mapAccessModeToSandboxMode,
   resolveCodexAccessMode,
 } from "./codex-access-mode.js";
-import { ensureCodexOpenAiResponsesBridge } from "./codex-openai-responses-bridge.js";
-import { resolveCodexResponsesApiSupport } from "./codex-responses-capability.js";
+import { ensureCodexOpenAiResponsesBridge } from "./codex-openai-responses-bridge.utils.js";
+import { resolveCodexResponsesApiSupport } from "./codex-responses-capability.utils.js";
 import { createDescribeCodexSessionType } from "./codex-session-type.js";
 import type {
   AgentRuntimeApi,

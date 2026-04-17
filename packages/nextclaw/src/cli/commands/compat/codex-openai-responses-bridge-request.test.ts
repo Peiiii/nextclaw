@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { callOpenAiCompatibleUpstream } from "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge-request.js";
+import { callOpenAiCompatibleUpstream } from "../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge-request.utils.js";
 
 describe("codex openai responses bridge request", () => {
   afterEach(() => {

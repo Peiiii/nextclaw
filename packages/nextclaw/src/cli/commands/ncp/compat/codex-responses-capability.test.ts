@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveCodexResponsesApiSupport } from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-responses-capability.js";
+import { resolveCodexResponsesApiSupport } from "../../../../../../extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-responses-capability.utils.js";
 
 type MockResponse = {
   ok: boolean;

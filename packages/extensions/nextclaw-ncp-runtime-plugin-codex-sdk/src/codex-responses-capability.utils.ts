@@ -1,4 +1,4 @@
-import { readString } from "./codex-openai-responses-bridge-shared.js";
+import { readString } from "./codex-openai-responses-bridge-shared.utils.js";
 
 const codexResponsesProbeCache = new Map<string, Promise<boolean>>();
 
