@@ -195,7 +195,7 @@ jobs:
         run: |
           set -euo pipefail
           BUNDLE_VERSION="$(node -p "require('./packages/nextclaw/package.json').version")"
-          MINIMUM_LAUNCHER_VERSION="$(pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel "$DESKTOP_UPDATE_CHANNEL")"
+          MINIMUM_LAUNCHER_VERSION="$(node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel "$DESKTOP_UPDATE_CHANNEL")"
 
           pnpm -C apps/desktop bundle:build -- \
             --channel "$DESKTOP_UPDATE_CHANNEL" \
@@ -230,7 +230,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $bundleVersion = node -p "require('./packages/nextclaw/package.json').version"
-          $minimumLauncherVersion = pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel $env:DESKTOP_UPDATE_CHANNEL
+          $minimumLauncherVersion = node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel $env:DESKTOP_UPDATE_CHANNEL
 
           pnpm -C apps/desktop bundle:build -- `
             --channel $env:DESKTOP_UPDATE_CHANNEL `
