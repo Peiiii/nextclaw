@@ -66,8 +66,56 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
   kind: string;
   label?: string;
   createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
+  createRuntimeForEntry?: (params: {
+    entry: {
+      id: string;
+      label: string;
+      type: string;
+      enabled?: boolean;
+      config?: Record<string, unknown>;
+    };
+    runtimeParams: RuntimeFactoryParams;
+  }) => NcpAgentRuntime;
   describeSessionType?: (params?: {
     describeMode?: "observation" | "probe";
+  }) =>
+    | Promise<{
+        ready?: boolean;
+        reason?: string | null;
+        reasonMessage?: string | null;
+        supportedModels?: string[];
+        recommendedModel?: string | null;
+        cta?: {
+          kind: string;
+          label?: string;
+          href?: string;
+        } | null;
+      } | null | undefined>
+    | {
+        ready?: boolean;
+        reason?: string | null;
+        reasonMessage?: string | null;
+        supportedModels?: string[];
+        recommendedModel?: string | null;
+        cta?: {
+          kind: string;
+          label?: string;
+          href?: string;
+        } | null;
+      }
+    | null
+    | undefined;
+  describeSessionTypeForEntry?: (params: {
+    entry: {
+      id: string;
+      label: string;
+      type: string;
+      enabled?: boolean;
+      config?: Record<string, unknown>;
+    };
+    describeParams?: {
+      describeMode?: "observation" | "probe";
+    };
   }) =>
     | Promise<{
         ready?: boolean;
@@ -338,7 +386,9 @@ export type PluginNcpAgentRuntimeRegistration = {
   kind: string;
   label: string;
   createRuntime: (params: RuntimeFactoryParams) => NcpAgentRuntime;
+  createRuntimeForEntry?: OpenClawPluginNcpAgentRuntimeRegistration["createRuntimeForEntry"];
   describeSessionType?: OpenClawPluginNcpAgentRuntimeRegistration["describeSessionType"];
+  describeSessionTypeForEntry?: OpenClawPluginNcpAgentRuntimeRegistration["describeSessionTypeForEntry"];
   source: string;
 };
 

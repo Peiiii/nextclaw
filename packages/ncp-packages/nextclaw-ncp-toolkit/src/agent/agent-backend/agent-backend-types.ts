@@ -1,8 +1,10 @@
 import type {
   NcpAgentConversationStateManager,
+  NcpAgentRunInput,
   NcpAgentRuntime,
   NcpMessage,
   NcpRequestEnvelope,
+  OpenAITool,
 } from "@nextclaw/ncp";
 import type { EventPublisher } from "./event-publisher.js";
 
@@ -13,6 +15,7 @@ export type RuntimeFactoryParams = {
   sessionMetadata: Record<string, unknown>;
   setSessionMetadata: (nextMetadata: Record<string, unknown>) => void;
   resolveAssetContentPath?: (assetUri: string) => string | null;
+  resolveTools?: (input: NcpAgentRunInput) => ReadonlyArray<OpenAITool> | undefined;
 };
 
 export type CreateRuntimeFn = (params: RuntimeFactoryParams) => NcpAgentRuntime;

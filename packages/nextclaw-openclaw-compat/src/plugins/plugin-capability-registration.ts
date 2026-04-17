@@ -82,7 +82,9 @@ export function registerPluginNcpAgentRuntime(params: {
     kind: accepted[0],
     label: params.registration.label?.trim() || accepted[0],
     createRuntime: params.registration.createRuntime,
+    createRuntimeForEntry: params.registration.createRuntimeForEntry,
     describeSessionType: params.registration.describeSessionType,
+    describeSessionTypeForEntry: params.registration.describeSessionTypeForEntry,
     source: params.source,
   });
   params.record.ncpAgentRuntimeKinds.push(accepted[0]);
