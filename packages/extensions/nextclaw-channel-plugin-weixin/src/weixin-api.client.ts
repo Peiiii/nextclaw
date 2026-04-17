@@ -109,8 +109,6 @@ export const WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED = 1;
 
 const WEIXIN_CHANNEL_VERSION = "nextclaw-weixin/0.1.0";
 const WEIXIN_MESSAGE_STATE_FINISH = 2;
-const WEIXIN_MESSAGE_ITEM_TYPE_VOICE = 3;
-const WEIXIN_MESSAGE_ITEM_TYPE_VIDEO = 5;
 
 export function buildWeixinBaseInfo(): WeixinBaseInfo {
   return {
@@ -407,45 +405,4 @@ export async function sendWeixinTextMessage(params: {
       },
     },
   });
-}
-
-export function isSyntheticWeixinAttachmentText(text: string): boolean {
-  return (
-    text === "[收到图片]" ||
-    text === "[收到视频]" ||
-    text === "[收到语音]" ||
-    /^\[收到文件(?:: .+)?]$/.test(text)
-  );
-}
-
-export function extractWeixinMessageText(message: WeixinMessage): string {
-  const items = Array.isArray(message.item_list) ? message.item_list : [];
-  for (const item of items) {
-    const text = item.text_item?.text?.trim();
-    if (text) {
-      return text;
-    }
-    const voiceText = item.voice_item?.text?.trim();
-    if (voiceText) {
-      return voiceText;
-    }
-  }
-
-  for (const item of items) {
-    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_IMAGE) {
-      return "[收到图片]";
-    }
-    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_VIDEO) {
-      return "[收到视频]";
-    }
-    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_VOICE) {
-      return "[收到语音]";
-    }
-    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_FILE) {
-      const fileName = item.file_item?.file_name?.trim();
-      return fileName ? `[收到文件: ${fileName}]` : "[收到文件]";
-    }
-  }
-
-  return "";
 }

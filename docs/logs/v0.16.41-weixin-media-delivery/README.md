@@ -37,6 +37,8 @@
   - `readWeixinPluginConfigFromConfig(...)` 不再保留，配置读取直接回到调用点，减少一层无意义包装
   - `ResolvedWeixinAccountRuntime` 收回到 `weixin-chat.ts` 文件内私有，`WeixinChannel` 也删掉了一层无意义的 `resolveAccountRuntime` 薄转发
   - 可用账号集合的收集职责收回到 `WeixinChat.listAvailableAccountIds()`，不再由 channel 和 chat 各拼一遍同样的集合
+  - `extractWeixinMessageText` / `isSyntheticWeixinAttachmentText` 从 `weixin-api.client.ts` 收回到 `weixin-channel.ts` 本地，基础 API client 不再承担入站消息语义解释职责
+  - 删除了低价值的 `src/tests/index.test.ts`，不再为一个私有 hints helper 单独保留一整个测试文件
 - `ChatTarget` 新增了运行时级的 `resolveAssetContentPath`，平台在 reply 路由时把资产解析能力定向带给 channel，避免把这类宿主级细节硬塞进 NCP part 协议或 metadata 里。
 - `NcpReplyConsumer` 现在会在 `chat.sendPart(...)` 前，把 `asset_put` 的工具结果统一投影成标准 `file part`：
   - 不再依赖前端单独对 `asset_put` 做 UI 特判才看得到附件
@@ -133,6 +135,11 @@ pnpm -C packages/nextclaw exec tsx --eval 'import("../../packages/extensions/nex
   - `pnpm --filter @nextclaw/channel-plugin-weixin tsc`
   - `pnpm --filter nextclaw tsc`
   结果全部通过，说明删除 context-token 小 store、收窄插件公开面和删死参数后，微信插件行为仍然成立。
+- 再下一轮继续减债后，又补跑了：
+  - `pnpm --filter @nextclaw/channel-plugin-weixin test -- weixin-channel.test.ts weixin-api.client.test.ts weixin-channel-attachments.test.ts weixin-typing-controller.test.ts`
+  - `pnpm --filter @nextclaw/channel-plugin-weixin tsc`
+  - `pnpm --filter nextclaw tsc`
+  结果全部通过，说明把入站文本语义收回 channel 本地、并删除 `index.test.ts` 后，微信插件运行链依然稳定。
 
 ## 发布 / 部署方式
 
@@ -249,3 +256,5 @@ no maintainability findings
 这次续改没有再扩一层功能，只是把源码模式运行时的最后一处不稳定点压掉，并补了真实在线冒烟，属于对同一能力闭环的收尾。保留的债务仍然主要在测试文件体积上；如果下一轮继续扩微信 media 变体，优先把这些测试里的 fixtures/builders 再抽出来。 
 
 同批次最新一轮“继续删插件内部残留”的补充结论是：这次不是功能新增，而是纯减债。当前这轮微信插件相关 diff 仍然保持非测试代码净减；统计口径仅看本轮触达的微信插件源码、测试与同批次 README：总代码 `新增 82 / 删除 73 / 净增 +9`，其中非测试代码 `新增 50 / 删除 70 / 净增 -20`。也就是说，这轮虽然为了把测试改回真实插件注册面补了一些测试代码，但插件运行时本身确实进一步变小了。当前保留的下一个观察点主要是 `weixin-chat.ts` 仍然靠近预算线，后续如果微信发送分支继续增长，应优先继续收紧 `WeixinChannel / WeixinChat` 之间的账号 runtime 边界，而不是再往 chat owner 里塞新判断。
+
+再下一轮“继续往下砍”的补充结论是：在不损伤清晰度的前提下，又继续删掉了一层错误的职责归属。当前仅看这一轮相对上一个提交的 diff，微信插件相关代码做到 `新增 45 / 删除 130 / 净增 -85`；其中非测试代码是 `新增 45 / 删除 48 / 净增 -3`，测试代码则通过直接删除 `src/tests/index.test.ts` 再净减了一轮。到这一步后，微信插件里还剩下的主要就是实际职责本身，而不再是明显的垃圾壳；如果继续强删，下一步就会开始触碰真正有价值的提示能力、登录能力或媒体链路，不再属于“删掉明显残留”的范畴。

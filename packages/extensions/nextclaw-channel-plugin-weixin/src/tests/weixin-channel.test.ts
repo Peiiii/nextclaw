@@ -13,7 +13,6 @@ import {
 const sendWeixinTextMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-1" })));
 const sendWeixinImageMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-image-1" })));
 const sendWeixinFileMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-file-1" })));
-const extractWeixinMessageTextMock = vi.hoisted(() => vi.fn(() => "hello"));
 const fetchWeixinUpdatesMock = vi.hoisted(() =>
   vi.fn(async () => ({ ret: 0, msgs: [], get_updates_buf: "" })),
 );
@@ -23,8 +22,6 @@ const typingControllerStopAllMock = vi.hoisted(() => vi.fn(async () => {}));
 
 vi.mock("../weixin-api.client.js", () => ({
   sendWeixinTextMessage: sendWeixinTextMessageMock,
-  extractWeixinMessageText: extractWeixinMessageTextMock,
-  isSyntheticWeixinAttachmentText: vi.fn(() => false),
   fetchWeixinConfig: vi.fn(async () => ({ ret: 0, errcode: 0, typing_ticket: "ticket-1" })),
   fetchWeixinUpdates: fetchWeixinUpdatesMock,
   sendWeixinTyping: vi.fn(async () => ({ ret: 0, errcode: 0 })),

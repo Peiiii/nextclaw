@@ -9,10 +9,8 @@ import {
   saveWeixinCursor,
 } from "./weixin-account.store.js";
 import {
-  extractWeixinMessageText,
   fetchWeixinConfig,
   fetchWeixinUpdates,
-  isSyntheticWeixinAttachmentText,
   sendWeixinTyping,
 } from "./weixin-api.client.js";
 import type { WeixinMessage } from "./weixin-api.client.js";
@@ -22,6 +20,10 @@ import type { WeixinPluginConfig } from "./weixin-config.js";
 import { WeixinChat } from "./weixin-chat.js";
 
 type WeixinRuntimeAccount = NonNullable<ReturnType<WeixinChat["resolveAccountRuntime"]>>;
+const WEIXIN_MESSAGE_ITEM_TYPE_IMAGE = 2;
+const WEIXIN_MESSAGE_ITEM_TYPE_VOICE = 3;
+const WEIXIN_MESSAGE_ITEM_TYPE_FILE = 4;
+const WEIXIN_MESSAGE_ITEM_TYPE_VIDEO = 5;
 
 function isAllowedSender(allowFrom: string[], senderId: string): boolean {
   if (allowFrom.length === 0) {
@@ -53,6 +55,47 @@ function isWeixinPollingSessionTimeout(error: unknown): boolean {
     message.includes("weixin getupdates failed") &&
     (message.includes("errcode=-14") || message.includes("session timeout"))
   );
+}
+
+function isSyntheticWeixinAttachmentText(text: string): boolean {
+  return (
+    text === "[收到图片]" ||
+    text === "[收到视频]" ||
+    text === "[收到语音]" ||
+    /^\[收到文件(?:: .+)?]$/.test(text)
+  );
+}
+
+function extractWeixinMessageText(message: WeixinMessage): string {
+  const items = Array.isArray(message.item_list) ? message.item_list : [];
+  for (const item of items) {
+    const text = item.text_item?.text?.trim();
+    if (text) {
+      return text;
+    }
+    const voiceText = item.voice_item?.text?.trim();
+    if (voiceText) {
+      return voiceText;
+    }
+  }
+
+  for (const item of items) {
+    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_IMAGE) {
+      return "[收到图片]";
+    }
+    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_VIDEO) {
+      return "[收到视频]";
+    }
+    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_VOICE) {
+      return "[收到语音]";
+    }
+    if (item.type === WEIXIN_MESSAGE_ITEM_TYPE_FILE) {
+      const fileName = item.file_item?.file_name?.trim();
+      return fileName ? `[收到文件: ${fileName}]` : "[收到文件]";
+    }
+  }
+
+  return "";
 }
 
 export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
