@@ -27,6 +27,36 @@ describe("resolveProviderRuntime", () => {
             isGateway: false,
             isLocal: false,
           },
+          {
+            name: "dashscope",
+            displayName: "DashScope",
+            keywords: ["qwen", "dashscope"],
+            envKey: "DASHSCOPE_API_KEY",
+            defaultApiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            modelPrefix: "dashscope",
+            isGateway: false,
+            isLocal: false,
+          },
+          {
+            name: "minimax",
+            displayName: "MiniMax",
+            keywords: ["minimax"],
+            envKey: "MINIMAX_API_KEY",
+            defaultApiBase: "https://api.minimaxi.com/v1",
+            modelPrefix: "minimax",
+            isGateway: false,
+            isLocal: false,
+          },
+          {
+            name: "zhipu",
+            displayName: "Zhipu AI",
+            keywords: ["zhipu", "glm", "zai"],
+            envKey: "ZAI_API_KEY",
+            defaultApiBase: "https://open.bigmodel.cn/api/paas/v4",
+            modelPrefix: "zai",
+            isGateway: false,
+            isLocal: false,
+          },
         ],
       },
     ]);
@@ -102,6 +132,54 @@ describe("resolveProviderRuntime", () => {
         providerDisplayName: "NextClaw Gateway",
         apiKey: "nc_free_test_key",
         apiBase: "https://ai-gateway-api.nextclaw.io/v1",
+      }),
+    );
+  });
+
+  it("resolves prefixed providers through their modelPrefix alias", () => {
+    const config = ConfigSchema.parse({
+      providers: {
+        zhipu: {
+          apiKey: "zhipu-key",
+        },
+      },
+    });
+
+    expect(resolveProviderRuntime(config, "zai/glm-5")).toEqual(
+      expect.objectContaining({
+        resolvedModel: "zai/glm-5",
+        providerLocalModel: "glm-5",
+        providerName: "zhipu",
+        providerDisplayName: "Zhipu AI",
+        apiKey: "zhipu-key",
+        apiBase: "https://open.bigmodel.cn/api/paas/v4",
+      }),
+    );
+  });
+
+  it("does not silently guess a provider for ambiguous bare model names", () => {
+    const config = ConfigSchema.parse({
+      providers: {
+        nextclaw: {
+          apiKey: "nc_free_test_key",
+        },
+        dashscope: {
+          apiKey: "dashscope-key",
+        },
+        minimax: {
+          apiKey: "minimax-key",
+        },
+      },
+    });
+
+    expect(resolveProviderRuntime(config, "qwen3.6-plus")).toEqual(
+      expect.objectContaining({
+        resolvedModel: "qwen3.6-plus",
+        providerLocalModel: "qwen3.6-plus",
+        providerName: null,
+        providerDisplayName: null,
+        apiKey: null,
+        apiBase: null,
       }),
     );
   });

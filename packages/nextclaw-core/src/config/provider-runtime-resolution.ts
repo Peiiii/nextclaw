@@ -9,17 +9,27 @@ function normalizeOptionalString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function stripProviderPrefix(model: string, providerName?: string | null): string {
+function stripProviderPrefix(model: string, providerName?: string | null, providerSpec?: ProviderSpec | null): string {
   const normalizedModel = model.trim();
+  if (!normalizedModel) {
+    return normalizedModel;
+  }
+  const candidatePrefixes = new Set<string>();
   const normalizedProvider = providerName?.trim().toLowerCase();
-  if (!normalizedModel || !normalizedProvider) {
-    return normalizedModel;
+  if (normalizedProvider) {
+    candidatePrefixes.add(normalizedProvider);
   }
-  const prefix = `${normalizedProvider}/`;
-  if (!normalizedModel.toLowerCase().startsWith(prefix)) {
-    return normalizedModel;
+  const normalizedModelPrefix = providerSpec?.modelPrefix?.trim().toLowerCase();
+  if (normalizedModelPrefix) {
+    candidatePrefixes.add(normalizedModelPrefix);
   }
-  return normalizedModel.slice(prefix.length);
+  for (const candidate of candidatePrefixes) {
+    const prefix = `${candidate}/`;
+    if (normalizedModel.toLowerCase().startsWith(prefix)) {
+      return normalizedModel.slice(prefix.length);
+    }
+  }
+  return normalizedModel;
 }
 
 export type ProviderRuntimeResolution = {
@@ -47,7 +57,7 @@ export function resolveProviderRuntime(config: Config, model?: string): Provider
   return {
     inputModel: String(model ?? "").trim(),
     resolvedModel,
-    providerLocalModel: stripProviderPrefix(resolvedModel, name),
+    providerLocalModel: stripProviderPrefix(resolvedModel, name, providerSpec),
     provider,
     providerName: name,
     providerDisplayName,

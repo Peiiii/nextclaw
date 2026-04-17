@@ -41,6 +41,10 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
   writeFileSync(
     join(rootDir, "acp_adapter", "session.py"),
     [
+      "from dataclasses import dataclass, field",
+      "import threading",
+      "import uuid",
+      "",
       "_last_registered_task = None",
       "",
       "def _register_task_cwd(session_id, cwd):",
@@ -50,9 +54,19 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
       "def _acp_stderr_print(*args, **kwargs):",
       "    return None",
       "",
+      "@dataclass",
+      "class SessionState:",
+      "    session_id: str",
+      "    agent: object",
+      "    cwd: str = '.'",
+      "    model: str = ''",
+      "    history: list = field(default_factory=list)",
+      "    cancel_event: object = None",
+      "",
       "class SessionManager:",
       "    def __init__(self, agent_factory=None):",
       "        self._agent_factory = agent_factory",
+      "        self._sessions = {}",
       "",
       "    def _make_agent(self, *, session_id, cwd, model=None, requested_provider=None, base_url=None, api_mode=None):",
       "        return {",
@@ -63,6 +77,59 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
       "            \"requested_provider\": requested_provider,",
       "            \"base_url\": base_url,",
       "            \"api_mode\": api_mode,",
+      "        }",
+      "",
+      "    def create_session(self, cwd='.'):",
+      "        session_id = str(uuid.uuid4())",
+      "        agent = self._make_agent(session_id=session_id, cwd=cwd)",
+      "        state = SessionState(",
+      "            session_id=session_id,",
+      "            agent=agent,",
+      "            cwd=cwd,",
+      "            model=getattr(agent, 'model', '') or '',",
+      "            cancel_event=threading.Event(),",
+      "        )",
+      "        self._sessions[session_id] = state",
+      "        return state",
+      "",
+      "    def get_session(self, session_id):",
+      "        return self._sessions.get(session_id)",
+      "",
+      "    def save_session(self, session_id):",
+      "        return None",
+      "",
+      "    def remove_session(self, session_id):",
+      "        return self._sessions.pop(session_id, None) is not None",
+      "",
+      "    def cleanup(self):",
+      "        self._sessions = {}",
+      "",
+    ].join("\n"),
+    "utf8",
+  );
+  writeFileSync(
+    join(rootDir, "acp_adapter", "server.py"),
+    [
+      "from acp_adapter.session import SessionManager",
+      "",
+      "class HermesACPAgent:",
+      "    def __init__(self, session_manager=None):",
+      "        self.session_manager = session_manager or SessionManager()",
+      "",
+      "    async def prompt(self, prompt, session_id, **kwargs):",
+      "        state = self.session_manager.get_session(session_id)",
+      "        if state is None:",
+      "            return {\"missing\": True}",
+      "        if getattr(state.agent, '_cached_system_prompt', None) is None and hasattr(state.agent, '_build_system_prompt'):",
+      "            state.agent._cached_system_prompt = state.agent._build_system_prompt()",
+      "        return {",
+      "            \"model\": getattr(state.agent, \"model\", \"\"),",
+      "            \"provider\": getattr(state.agent, \"provider\", \"\"),",
+      "            \"base_url\": getattr(state.agent, \"base_url\", \"\"),",
+      "            \"api_mode\": getattr(state.agent, \"api_mode\", \"\"),",
+      "            \"api_key\": state.agent._client_kwargs.get(\"api_key\", \"\"),",
+      "            \"default_headers\": state.agent._client_kwargs.get(\"default_headers\", {}),",
+      "            \"cached_system_prompt\": getattr(state.agent, '_cached_system_prompt', None),",
       "        }",
       "",
     ].join("\n"),
@@ -97,10 +164,14 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
       "        self._replace_reasons = []",
       "        self.thinking_callback = None",
       "        self.reasoning_callback = None",
+      "        self._cached_system_prompt = None",
       "",
       "    def _replace_primary_openai_client(self, *, reason):",
       "        self._replace_reasons.append(reason)",
       "        return True",
+      "",
+      "    def _build_system_prompt(self):",
+      "        return f'Model: {self.model}\\nProvider: {self.provider}'",
       "",
       "    def run_conversation(self, **kwargs):",
       "        self._last_run_state = {",
@@ -171,8 +242,8 @@ describe("buildHermesAcpBridgeLaunchEnv", () => {
   });
 });
 
-describe("Hermes ACP bridge sitecustomize", () => {
-  it("patches fake Hermes ACP session creation to consume the NextClaw RuntimeRoute", () => {
+describe("Hermes ACP bridge sitecustomize session snapshots", () => {
+  it("creates Hermes session snapshots from the NextClaw RuntimeRoute without retaining credentials", () => {
     const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-fake-");
     seedFakeHermesPythonPackage(fakeHermesRoot);
     const env = buildHermesAcpBridgeLaunchEnv({
@@ -202,9 +273,11 @@ describe("Hermes ACP bridge sitecustomize", () => {
           "print(json.dumps({",
           "  'provider_detected': detect_provider(),",
           "  'has_provider': has_provider(),",
-          "  'init_kwargs': agent.init_kwargs,",
-          "  'client_kwargs': agent._client_kwargs,",
-          "  'replace_reasons': agent._replace_reasons,",
+          "  'model': getattr(agent, 'model', ''),",
+          "  'provider': getattr(agent, 'provider', ''),",
+          "  'base_url': getattr(agent, 'base_url', ''),",
+          "  'api_mode': getattr(agent, 'api_mode', ''),",
+          "  'has_client_kwargs': hasattr(agent, '_client_kwargs'),",
           "}))",
         ].join("\n"),
       ],
@@ -218,28 +291,28 @@ describe("Hermes ACP bridge sitecustomize", () => {
     const output = JSON.parse(pythonResult.stdout.trim()) as {
       provider_detected: string;
       has_provider: boolean;
-      init_kwargs: Record<string, unknown>;
-      client_kwargs: Record<string, unknown>;
-      replace_reasons: string[];
+      model: string;
+      provider: string;
+      base_url: string;
+      api_mode: string;
+      has_client_kwargs: boolean;
     };
 
     expect(output.provider_detected).toBe("nextclaw");
     expect(output.has_provider).toBe(true);
-    expect(output.init_kwargs).toEqual(
-      expect.objectContaining({
-        model: "qwen3.5-plus",
-        provider: "custom",
-        api_mode: "chat_completions",
-        base_url: "http://127.0.0.1:18999/v1",
-        api_key: "bridge-key",
-      }),
-    );
-    expect(output.client_kwargs.default_headers).toEqual({
-      "x-test-header": "bridge-ok",
+    expect(output).toEqual({
+      provider_detected: "nextclaw",
+      has_provider: true,
+      model: "qwen3.5-plus",
+      provider: "",
+      base_url: "http://127.0.0.1:18999/v1",
+      api_mode: "chat_completions",
+      has_client_kwargs: false,
     });
-    expect(output.replace_reasons).toContain("nextclaw_runtime_route_bridge");
   });
+});
 
+describe("Hermes ACP bridge sitecustomize reasoning mapping", () => {
   it("remaps ACP thinking callbacks onto reasoning during agent runs", () => {
     const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-reasoning-");
     seedFakeHermesPythonPackage(fakeHermesRoot);
@@ -295,5 +368,117 @@ describe("Hermes ACP bridge sitecustomize", () => {
     });
     expect(output.thinking_restored).toBe(true);
     expect(output.reasoning_restored).toBe(true);
+  });
+});
+
+describe("Hermes ACP bridge sitecustomize request-scoped execution", () => {
+  it("runs each prompt on a request-scoped execution agent and restores a scrubbed session snapshot", () => {
+    const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-prompt-route-");
+    seedFakeHermesPythonPackage(fakeHermesRoot);
+    const env = buildHermesAcpBridgeLaunchEnv({
+      ...createHermesAcpConfig(),
+      baseEnv: {
+        ...process.env,
+        PYTHONPATH: fakeHermesRoot,
+      },
+    });
+    env.NEXTCLAW_MODEL = "MiniMax-M2.7";
+    env.NEXTCLAW_API_BASE = "https://api.minimaxi.com/v1";
+    env.NEXTCLAW_API_KEY = "minimax-key";
+    env.NEXTCLAW_HEADERS_JSON = JSON.stringify({
+      "x-nextclaw-narp-api-mode": "chat_completions",
+      "x-minimax-group-id": "group-123",
+    });
+
+    const pythonResult = spawnSync(
+      "python3",
+      [
+        "-c",
+        [
+          "import asyncio",
+          "import json",
+          "from acp_adapter.server import HermesACPAgent",
+          "",
+          "agent = HermesACPAgent()",
+          "state = agent.session_manager.create_session(cwd='/tmp/work')",
+          "result = asyncio.run(agent.prompt(",
+          "  prompt=[],",
+          "  session_id=state.session_id,",
+          "  _meta={",
+          "    'nextclaw_narp': {",
+          "      'providerRoute': {",
+          "        'model': 'qwen3.6-plus',",
+          "        'apiBase': 'https://dashscope.aliyuncs.com/compatible-mode/v1',",
+          "        'apiKey': 'dashscope-key',",
+          "        'headers': {",
+          "          'x-nextclaw-narp-api-mode': 'chat_completions',",
+          "          'x-dashscope-workspace': 'workspace-456'",
+          "        }",
+          "      }",
+          "    }",
+          "  }",
+          "))",
+          "restored = agent.session_manager.get_session(state.session_id)",
+          "print(json.dumps({",
+          "  'result': result,",
+          "  'persisted': {",
+          "    'model': getattr(restored.agent, 'model', ''),",
+          "    'provider': getattr(restored.agent, 'provider', ''),",
+          "    'base_url': getattr(restored.agent, 'base_url', ''),",
+          "    'api_mode': getattr(restored.agent, 'api_mode', ''),",
+          "    'has_client_kwargs': hasattr(restored.agent, '_client_kwargs'),",
+          "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None)",
+          "  }",
+          "}))",
+        ].join("\n"),
+      ],
+      {
+        env,
+        encoding: "utf8",
+      },
+    );
+
+    expect(pythonResult.status).toBe(0);
+    const output = JSON.parse(pythonResult.stdout.trim()) as {
+      result: {
+        model: string;
+        provider: string;
+        base_url: string;
+        api_mode: string;
+        api_key: string;
+        default_headers: Record<string, string>;
+        cached_system_prompt: string | null;
+      };
+      persisted: {
+        model: string;
+        provider: string;
+        base_url: string;
+        api_mode: string;
+        has_client_kwargs: boolean;
+        cached_system_prompt?: string | null;
+      };
+    };
+
+    expect(output).toEqual({
+      result: {
+        model: "qwen3.6-plus",
+        provider: "custom",
+        base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_mode: "chat_completions",
+        api_key: "dashscope-key",
+        default_headers: {
+          "x-dashscope-workspace": "workspace-456",
+        },
+        cached_system_prompt: "Model: qwen3.6-plus\nProvider: custom",
+      },
+      persisted: {
+        model: "qwen3.6-plus",
+        provider: "custom",
+        base_url: "",
+        api_mode: "chat_completions",
+        has_client_kwargs: false,
+        cached_system_prompt: null,
+      },
+    });
   });
 });

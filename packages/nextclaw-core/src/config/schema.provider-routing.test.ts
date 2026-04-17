@@ -17,6 +17,24 @@ describe("provider apiBase routing", () => {
             isLocal: false
           },
           {
+            name: "dashscope",
+            keywords: ["qwen", "dashscope"],
+            envKey: "DASHSCOPE_API_KEY",
+            defaultApiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            modelPrefix: "dashscope",
+            isGateway: false,
+            isLocal: false
+          },
+          {
+            name: "minimax",
+            keywords: ["minimax"],
+            envKey: "MINIMAX_API_KEY",
+            defaultApiBase: "https://api.minimaxi.com/v1",
+            modelPrefix: "minimax",
+            isGateway: false,
+            isLocal: false
+          },
+          {
             name: "dashscope-coding-plan",
             keywords: ["dashscope-coding-plan", "coding-plan"],
             envKey: "DASHSCOPE_CODING_PLAN_API_KEY",
@@ -29,6 +47,15 @@ describe("provider apiBase routing", () => {
             keywords: ["kimi-coding", "kimi-for-coding"],
             envKey: "KIMI_CODING_API_KEY",
             defaultApiBase: "https://api.kimi.com/coding",
+            isGateway: false,
+            isLocal: false
+          },
+          {
+            name: "zhipu",
+            keywords: ["zhipu", "glm", "zai"],
+            envKey: "ZAI_API_KEY",
+            defaultApiBase: "https://open.bigmodel.cn/api/paas/v4",
+            modelPrefix: "zai",
             isGateway: false,
             isLocal: false
           },
@@ -49,17 +76,33 @@ describe("provider apiBase routing", () => {
     configureProviderCatalog([]);
   });
 
-  it("uses built-in nextclaw provider when prefixed provider has no apiKey", () => {
+  it("keeps the explicit provider prefix instead of silently falling back to a gateway keyword match", () => {
     const config = ConfigSchema.parse({
       providers: {
         nextclaw: {
           apiKey: "nc_free_test_key"
+        },
+        dashscope: {
+          apiBase: "https://dashscope.aliyuncs.com/compatible-mode/v1"
         }
       }
     });
 
-    expect(getProviderName(config, "dashscope/qwen3.5-flash")).toBe("nextclaw");
-    expect(getApiBase(config, "dashscope/qwen3.5-flash")).toBe("https://ai-gateway-api.nextclaw.io/v1");
+    expect(getProviderName(config, "dashscope/qwen3.5-flash")).toBe("dashscope");
+    expect(getApiBase(config, "dashscope/qwen3.5-flash")).toBe("https://dashscope.aliyuncs.com/compatible-mode/v1");
+  });
+
+  it("routes by provider modelPrefix aliases instead of requiring the provider config key", () => {
+    const config = ConfigSchema.parse({
+      providers: {
+        zhipu: {
+          apiKey: "zhipu-test-key"
+        }
+      }
+    });
+
+    expect(getProviderName(config, "zai/glm-5")).toBe("zhipu");
+    expect(getApiBase(config, "zai/glm-5")).toBe("https://open.bigmodel.cn/api/paas/v4");
   });
 
   it("uses provider default api base for non-gateway providers when apiBase is unset", () => {
@@ -125,6 +168,25 @@ describe("provider apiBase routing", () => {
 
     expect(getProviderName(config, "kimi-coding/kimi-for-coding")).toBe("kimi-coding");
     expect(getApiBase(config, "kimi-coding/kimi-for-coding")).toBe("https://api.kimi.com/coding");
+  });
+
+  it("rejects ambiguous bare model names instead of silently guessing across multiple configured providers", () => {
+    const config = ConfigSchema.parse({
+      providers: {
+        nextclaw: {
+          apiKey: "nc_free_test_key"
+        },
+        dashscope: {
+          apiKey: "dashscope-key"
+        },
+        minimax: {
+          apiKey: "minimax-key"
+        }
+      }
+    });
+
+    expect(getProviderName(config, "qwen3.6-plus")).toBe(null);
+    expect(getApiBase(config, "qwen3.6-plus")).toBe(null);
   });
 
   it("skips disabled providers during routing", () => {
