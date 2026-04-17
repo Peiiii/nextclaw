@@ -13,6 +13,7 @@ import type {
   RemoteInstance,
   RemoteQuotaSummary,
   RemoteShareGrant,
+  UpdateProfileInput,
   UserView
 } from '@/api/types';
 
@@ -130,6 +131,14 @@ export async function completePasswordReset(email: string, code: string, passwor
 
 export async function fetchMe(token: string): Promise<{ user: UserView }> {
   const data = await request<ApiEnvelope<{ user: UserView }>>('/platform/auth/me', {}, token);
+  return unwrap(data);
+}
+
+export async function updateProfile(token: string, input: UpdateProfileInput): Promise<AuthResult> {
+  const data = await request<ApiEnvelope<AuthResult>>('/platform/auth/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(input)
+  }, token);
   return unwrap(data);
 }
 

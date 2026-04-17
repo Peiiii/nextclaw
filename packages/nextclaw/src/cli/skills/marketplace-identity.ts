@@ -119,7 +119,11 @@ function assertPersonalScopeAllowed(scope: string, currentUser: PlatformMeResult
 function requirePlatformUsername(currentUser: PlatformMeResult | null): string {
   const username = currentUser?.user.username;
   if (!username) {
-    throw new Error("Set your NextClaw username before publishing personal skills.");
+    throw new Error(
+      "Set your NextClaw username before publishing personal skills. "
+      + "Open NextClaw Web account settings: https://platform.nextclaw.io/account "
+      + "or run `nextclaw account set-username <username>`."
+    );
   }
   return username;
 }

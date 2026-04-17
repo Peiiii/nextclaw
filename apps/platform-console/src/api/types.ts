@@ -18,6 +18,10 @@ export type AuthResult = {
   user: UserView;
 };
 
+export type UpdateProfileInput = {
+  username: string;
+};
+
 export type EmailCodeSendResult = {
   email: string;
   maskedEmail: string;

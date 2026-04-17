@@ -232,7 +232,7 @@ export function AccountPanel() {
                 setSavingUsername(false);
               }
             }}
-            onOpenDeviceList={() => presenter.accountManager.openNextClawWeb()}
+            onOpenDeviceList={() => presenter.accountManager.openNextClawWeb('/account')}
             onLogout={() => presenter.accountManager.logout()}
           />
         ) : (

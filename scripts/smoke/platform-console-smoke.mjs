@@ -16,31 +16,45 @@ async function fulfillJson(route, data) {
   });
 }
 
-async function assertDashboardFlow(browser) {
-  const page = await browser.newPage({ locale: "en-US" });
-  const activeInstances = [
-    {
-      id: "inst-1",
-      instanceInstallId: "install-1",
-      displayName: "MacBook Pro",
-      appVersion: "0.13.99",
-      platform: "macOS",
-      status: "online",
-      lastSeenAt: "2026-03-23T09:00:00.000Z",
-      archivedAt: null,
-      createdAt: "2026-03-23T08:00:00.000Z",
-      updatedAt: "2026-03-23T09:00:00.000Z"
-    }
-  ];
-  const archivedInstances = [];
+function createDashboardFixtures() {
+  return {
+    accountUser: {
+      id: "user-1",
+      email: "user@example.com",
+      role: "user",
+      username: null
+    },
+    activeInstances: [
+      {
+        id: "inst-1",
+        instanceInstallId: "install-1",
+        displayName: "MacBook Pro",
+        appVersion: "0.13.99",
+        platform: "macOS",
+        status: "online",
+        lastSeenAt: "2026-03-23T09:00:00.000Z",
+        archivedAt: null,
+        createdAt: "2026-03-23T08:00:00.000Z",
+        updatedAt: "2026-03-23T09:00:00.000Z"
+      }
+    ],
+    archivedInstances: []
+  };
+}
 
+async function installDashboardRoutes(page, fixtures) {
   await page.route("**/platform/auth/me", async (route) => {
     await fulfillJson(route, {
-      user: {
-        id: "user-1",
-        email: "user@example.com",
-        role: "user"
-      }
+      user: fixtures.accountUser
+    });
+  });
+
+  await page.route("**/platform/auth/profile", async (route) => {
+    const body = JSON.parse(route.request().postData() ?? "{}");
+    fixtures.accountUser.username = body.username;
+    await fulfillJson(route, {
+      token: "demo-token-2",
+      user: fixtures.accountUser
     });
   });
 
@@ -48,34 +62,34 @@ async function assertDashboardFlow(browser) {
     const url = new URL(route.request().url());
     const includeArchived = url.searchParams.get("includeArchived") === "true";
     await fulfillJson(route, {
-      items: includeArchived ? [...activeInstances, ...archivedInstances] : activeInstances
+      items: includeArchived ? [...fixtures.activeInstances, ...fixtures.archivedInstances] : fixtures.activeInstances
     });
   });
 
   await page.route("**/platform/remote/instances/inst-1/archive", async (route) => {
     const archived = {
-      ...activeInstances[0],
+      ...fixtures.activeInstances[0],
       archivedAt: "2026-03-23T10:00:00.000Z",
       updatedAt: "2026-03-23T10:00:00.000Z"
     };
-    activeInstances.splice(0, 1);
-    archivedInstances.splice(0, archivedInstances.length, archived);
+    fixtures.activeInstances.splice(0, 1);
+    fixtures.archivedInstances.splice(0, fixtures.archivedInstances.length, archived);
     await fulfillJson(route, { instance: archived });
   });
 
   await page.route("**/platform/remote/instances/inst-1/unarchive", async (route) => {
     const restored = {
-      ...archivedInstances[0],
+      ...fixtures.archivedInstances[0],
       archivedAt: null,
       updatedAt: "2026-03-23T10:05:00.000Z"
     };
-    archivedInstances.splice(0, 1);
-    activeInstances.splice(0, activeInstances.length, restored);
+    fixtures.archivedInstances.splice(0, 1);
+    fixtures.activeInstances.splice(0, fixtures.activeInstances.length, restored);
     await fulfillJson(route, { instance: restored });
   });
 
   await page.route("**/platform/remote/instances/inst-1/delete", async (route) => {
-    archivedInstances.splice(0, 1);
+    fixtures.archivedInstances.splice(0, 1);
     await fulfillJson(route, { deleted: true, instanceId: "inst-1" });
   });
 
@@ -104,7 +118,6 @@ async function assertDashboardFlow(browser) {
       await fulfillJson(route, { items: [] });
       return;
     }
-
     await fulfillJson(route, {
       id: "grant-1",
       instanceId: "inst-1",
@@ -131,7 +144,9 @@ async function assertDashboardFlow(browser) {
       fixedDomainOpenUrl: "https://remote.claw.cool/platform/remote/open?token=token-1"
     });
   });
+}
 
+async function initializeDashboardPage(page) {
   await page.addInitScript(() => {
     window.localStorage.clear();
     window.localStorage.setItem("nextclaw.platform.token", "demo-token");
@@ -141,97 +156,109 @@ async function assertDashboardFlow(browser) {
       return null;
     };
   });
+}
 
+async function assertDashboardLanding(page) {
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   const bodyText = await page.locator("body").innerText();
-
-  if (!bodyText.includes("My Instances")) {
-    throw new Error("Dashboard did not render the English remote instances section.");
-  }
-  if (!bodyText.includes("Remote Quota & Usage")) {
-    throw new Error("Dashboard did not render the remote quota section.");
-  }
-  if (!bodyText.includes("Open via fixed domain")) {
-    throw new Error("Dashboard did not render the fixed-domain open action.");
-  }
-  if (!bodyText.includes("Daily Worker requests")) {
-    throw new Error("Dashboard did not render worker quota metrics.");
-  }
-  if (!bodyText.includes("COMING SOON")) {
-    throw new Error("Dashboard did not render the English billing coming-soon badge.");
+  const requiredText = [
+    "Set your username before publishing personal skills",
+    "My Instances",
+    "Remote Quota & Usage",
+    "Open via fixed domain",
+    "Daily Worker requests",
+    "COMING SOON",
+    "https://platform.nextclaw.io/account"
+  ];
+  for (const expected of requiredText) {
+    if (!bodyText.includes(expected)) {
+      throw new Error(`Dashboard is missing expected text: ${expected}`);
+    }
   }
   if (bodyText.includes("Recharge") || bodyText.includes("Ledger")) {
     throw new Error("Dashboard still exposes billing details that should stay hidden.");
   }
+}
 
+async function assertAccountSettingsFlow(page) {
+  await page.goto(`${baseUrl}/account`, { waitUntil: "networkidle" });
+  const accountText = await page.locator("body").innerText();
+  if (!accountText.includes("You are on the exact account settings page")) {
+    throw new Error("/account did not render the dedicated account guidance.");
+  }
+  await page.getByPlaceholder("For example: alice-dev").fill("alice-dev");
+  await page.getByRole("button", { name: "Save Username" }).click();
+  await page.waitForFunction(() => document.body.innerText.includes("@alice-dev/*"));
+  const readyText = await page.locator("body").innerText();
+  if (!readyText.includes("Personal publishing is unlocked")) {
+    throw new Error("/account did not confirm that personal publishing is ready.");
+  }
+}
+
+async function assertRemoteOpenActions(page) {
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Open in browser" }).click();
   await page.waitForFunction(() => Array.isArray(window.__openedUrls) && window.__openedUrls.length >= 1);
   const openedSubdomainUrl = await page.evaluate(() => window.__openedUrls[0]);
   if (openedSubdomainUrl !== "https://r-session-1.claw.cool/platform/remote/open?token=token-1") {
     throw new Error(`Subdomain open action used unexpected URL: ${openedSubdomainUrl}`);
   }
-
   await page.getByRole("button", { name: "Open via fixed domain" }).click();
   await page.waitForFunction(() => Array.isArray(window.__openedUrls) && window.__openedUrls.length >= 2);
   const openedFixedDomainUrl = await page.evaluate(() => window.__openedUrls[1]);
   if (openedFixedDomainUrl !== "https://remote.claw.cool/platform/remote/open?token=token-1") {
     throw new Error(`Fixed-domain open action used unexpected URL: ${openedFixedDomainUrl}`);
   }
+}
 
+function acceptNextDialog(page) {
   page.once("dialog", async (dialog) => {
     await dialog.accept();
   });
+}
+
+async function assertArchiveLifecycle(page) {
+  acceptNextDialog(page);
   await page.getByRole("button", { name: "Archive" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Archived instances"));
   await page.waitForFunction(() => document.body.innerText.includes("Restore"));
   await page.waitForFunction(() => document.body.innerText.includes("Delete"));
-
   const archivedText = await page.locator("body").innerText();
   if (!archivedText.includes("Archived instances")) {
     throw new Error("Dashboard did not render the archived instances section after archiving.");
   }
-  if (!archivedText.includes("Restore") || !archivedText.includes("Delete")) {
-    throw new Error("Archived instance actions did not render.");
-  }
-
   await page.getByRole("button", { name: "Restore" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Instance restored to the main list."));
-
-  const restoredText = await page.locator("body").innerText();
-  if (!restoredText.includes("Instance restored to the main list.")) {
-    throw new Error("Dashboard did not confirm restore.");
-  }
-
-  page.once("dialog", async (dialog) => {
-    await dialog.accept();
-  });
+  acceptNextDialog(page);
   await page.getByRole("button", { name: "Archive" }).click();
   await page.waitForTimeout(300);
-  page.once("dialog", async (dialog) => {
-    await dialog.accept();
-  });
+  acceptNextDialog(page);
   await page.getByRole("button", { name: "Delete" }).click();
   await page.waitForFunction(() => document.body.innerText.includes("Archived instance deleted permanently."));
+}
 
-  const deletedText = await page.locator("body").innerText();
-  if (!deletedText.includes("Archived instance deleted permanently.")) {
-    throw new Error("Dashboard did not confirm deletion.");
-  }
-
+async function assertDashboardLocaleSwitch(page) {
   await page.getByRole("button", { name: "中文" }).click();
   await page.waitForTimeout(300);
-
   const zhText = await page.locator("body").innerText();
-  if (!zhText.includes("我的实例")) {
-    throw new Error("Dashboard did not switch to Chinese.");
+  const requiredText = ["我的实例", "个人发布已经解锁", "Remote 额度与用量", "即将上线"];
+  for (const expected of requiredText) {
+    if (!zhText.includes(expected)) {
+      throw new Error(`Dashboard did not switch expected text to Chinese: ${expected}`);
+    }
   }
-  if (!zhText.includes("Remote 额度与用量")) {
-    throw new Error("Dashboard did not switch the quota card to Chinese.");
-  }
-  if (!zhText.includes("即将上线")) {
-    throw new Error("Dashboard did not render the Chinese billing badge.");
-  }
+}
 
+async function assertDashboardFlow(browser) {
+  const page = await browser.newPage({ locale: "en-US" });
+  const fixtures = createDashboardFixtures();
+  await installDashboardRoutes(page, fixtures);
+  await initializeDashboardPage(page);
+  await assertDashboardLanding(page);
+  await assertAccountSettingsFlow(page);
+  await assertRemoteOpenActions(page);
+  await assertArchiveLifecycle(page);
+  await assertDashboardLocaleSwitch(page);
   await page.close();
 }
 

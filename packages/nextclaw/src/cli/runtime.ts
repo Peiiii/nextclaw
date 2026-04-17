@@ -98,7 +98,7 @@ export class CliRuntime {
   private agentCommands: AgentCommands;
   private channelCommands: ChannelCommands;
   private cronCommands: CronCommands;
-  private platformAuthCommands: PlatformAuthCommands;
+  readonly platformAuthCommands: PlatformAuthCommands;
   private remoteCommands: RemoteCommands;
   readonly remote: RemoteRuntimeActions;
   private diagnosticsCommands: DiagnosticsCommands;
@@ -214,7 +214,8 @@ export class CliRuntime {
     strategy?: RestartStrategy;
     delayMs?: number;
   }): void => {
-    const strategy = params.strategy ?? "background-service-or-manual";
+    const { delayMs: requestedDelayMs, reason, strategy: requestedStrategy } = params;
+    const strategy = requestedStrategy ?? "background-service-or-manual";
     if (
       strategy !== "background-service-or-exit" &&
       strategy !== "exit-process"
@@ -235,8 +236,8 @@ export class CliRuntime {
         ? state.uiPort
         : 55667;
     const delayMs =
-      typeof params.delayMs === "number" && Number.isFinite(params.delayMs)
-        ? Math.max(0, Math.floor(params.delayMs))
+      typeof requestedDelayMs === "number" && Number.isFinite(requestedDelayMs)
+        ? Math.max(0, Math.floor(requestedDelayMs))
         : 100;
     const cliPath =
       process.env.NEXTCLAW_SELF_RELAUNCH_CLI?.trim() ||
@@ -309,7 +310,7 @@ export class CliRuntime {
       });
       helper.unref();
       this.selfRelaunchArmed = true;
-      console.warn(`Gateway self-restart armed (${params.reason}).`);
+      console.warn(`Gateway self-restart armed (${reason}).`);
     } catch (error) {
       console.error(`Failed to arm gateway self-restart: ${String(error)}`);
     }
@@ -406,7 +407,6 @@ export class CliRuntime {
     await this.init({ source: "login", auto: true });
     await this.platformAuthCommands.login(opts);
   };
-
   gateway = async (opts: GatewayCommandOptions): Promise<void> => {
     const uiOverrides: Partial<Config["ui"]> = {
       host: FORCED_PUBLIC_UI_HOST,

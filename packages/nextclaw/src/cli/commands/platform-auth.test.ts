@@ -187,4 +187,65 @@ describe("PlatformAuthCommands login", () => {
       })
     );
   });
+
+  it("prints account readiness with exact web and CLI guidance when username is missing", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(createJsonResponse({
+      ok: true,
+      data: {
+        user: {
+          id: "user-4",
+          email: "publisher@example.com",
+          role: "user",
+          username: null
+        }
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const commands = new PlatformAuthCommands();
+
+    await commands.accountStatus({
+      apiBase: "https://ai-gateway-api.nextclaw.io/v1"
+    });
+
+    expect(logSpy).toHaveBeenCalledWith("NextClaw account status");
+    expect(logSpy).toHaveBeenCalledWith("Username: (not set)");
+    expect(logSpy).toHaveBeenCalledWith("NextClaw Web account settings: https://platform.nextclaw.io/account");
+    expect(logSpy).toHaveBeenCalledWith("CLI fallback: nextclaw account set-username <username>");
+  });
+
+  it("updates username and prints the unlocked personal publish scope", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(createJsonResponse({
+      ok: true,
+      data: {
+        token: "token-4",
+        user: {
+          id: "user-5",
+          email: "publisher@example.com",
+          role: "user",
+          username: "alice-dev"
+        }
+      }
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const commands = new PlatformAuthCommands();
+
+    await commands.accountSetUsername({
+      apiBase: "https://ai-gateway-api.nextclaw.io/v1",
+      username: "alice-dev"
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://ai-gateway-api.nextclaw.io/platform/auth/profile",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({
+          username: "alice-dev"
+        })
+      })
+    );
+    expect(logSpy).toHaveBeenCalledWith("✓ Username saved: alice-dev");
+    expect(logSpy).toHaveBeenCalledWith("✓ Personal publish scope: @alice-dev/*");
+  });
 });

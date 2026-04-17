@@ -118,14 +118,15 @@ export class AccountManager {
     }
   };
 
-  openNextClawWeb = async () => {
+  openNextClawWeb = async (path = '/') => {
     const status = await ensureRemoteStatus();
     const webBase = resolveRemoteWebBase(status);
     if (!webBase) {
       toast.error(t('remoteOpenWebUnavailable'));
       return;
     }
-    window.open(webBase, '_blank', 'noopener,noreferrer');
+    const targetUrl = new URL(path, `${webBase.replace(/\/+$/, '')}/`).toString();
+    window.open(targetUrl, '_blank', 'noopener,noreferrer');
   };
 
   private scheduleBrowserAuthPoll = () => {

@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
   fetchRemoteQuotaSummary,
 } from '@/api/client';
-import type { RemoteInstance, RemoteQuotaSummary, RemoteShareGrant } from '@/api/types';
+import type { RemoteInstance, RemoteQuotaSummary, RemoteShareGrant, UserView } from '@/api/types';
+import { AccountSummaryCard } from '@/components/account/account-summary-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,8 @@ import { useRemoteInstancesCardState } from '@/pages/UserDashboardPage.remote-st
 
 type Props = {
   token: string;
+  user: UserView;
+  highlightAccount: boolean;
 };
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -580,12 +583,13 @@ function RemoteInstancesCard(props: {
   );
 }
 
-export function UserDashboardPage({ token }: Props): JSX.Element {
+export function UserDashboardPage({ token, user, highlightAccount }: Props): JSX.Element {
   const locale = useLocaleStore((state) => state.locale);
   const t = useMemo(() => createTranslator(locale), [locale]);
 
   return (
     <div className="space-y-6">
+      <AccountSummaryCard token={token} user={user} t={t} highlight={highlightAccount} />
       <RemoteQuotaCard locale={locale} t={t} token={token} />
       <RemoteInstancesCard locale={locale} t={t} token={token} />
       <BillingComingSoonCard t={t} />

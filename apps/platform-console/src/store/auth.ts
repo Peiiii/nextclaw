@@ -1,11 +1,8 @@
 import { create } from 'zustand';
-import type { UserView } from '@/api/types';
 
 type AuthState = {
   token: string | null;
-  user: UserView | null;
   setToken: (token: string | null) => void;
-  setUser: (user: UserView | null) => void;
   logout: () => void;
 };
 
@@ -21,7 +18,6 @@ function readTokenFromStorage(): string | null {
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: readTokenFromStorage(),
-  user: null,
   setToken: (token) => {
     if (typeof window !== 'undefined') {
       if (token) {
@@ -32,11 +28,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     set({ token });
   },
-  setUser: (user) => set({ user }),
   logout: () => {
     if (typeof window !== 'undefined') {
       window.localStorage.removeItem(STORAGE_KEY);
     }
-    set({ token: null, user: null });
+    set({ token: null });
   }
 }));

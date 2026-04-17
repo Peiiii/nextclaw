@@ -15,9 +15,52 @@
   "app": {
     "brand": "NextClaw Platform",
     "loadingAccount": "加载 NextClaw Account...",
+    "accountLoadFailedTitle": "暂时无法加载你的 NextClaw 账号。",
+    "accountLoadFailedDescription": "请重新登录，刷新账号会话后再继续使用网页版 NextClaw。",
+    "accountLoadFailedAction": "重新登录",
+    "navigation": {
+      "home": "我的实例",
+      "account": "账号"
+    },
     "roles": {
       "user": "用户",
       "admin": "管理员"
+    }
+  },
+  "account": {
+    "title": "NextClaw 账号",
+    "description": "这里把发布身份、用户名准备状态，以及网页版 NextClaw 的标准账号入口收敛到同一个地方。",
+    "highlightDescription": "你现在所在的就是发布报错应该指向的那个账号设置页。发布个人 skill 之前，先在这里把用户名设好。",
+    "readiness": {
+      "ready": "已就绪",
+      "missing": "需要处理"
+    },
+    "fields": {
+      "email": "邮箱",
+      "username": "用户名",
+      "role": "角色",
+      "publishScope": "个人发布 Scope",
+      "webAddress": "网页版账号地址",
+      "cliFallback": "CLI 兜底命令"
+    },
+    "values": {
+      "notSet": "还没有设置"
+    },
+    "publishScopeMissing": "先设置用户名，才能启用 @username/* 个人发布",
+    "missingTitle": "发布个人 skill 之前需要先设置用户名",
+    "missingDescription": "你的账号已经登录，但个人 marketplace 发布还会被用户名缺失卡住。标准页面就是 https://platform.nextclaw.io/account，CLI 兜底命令是 `nextclaw account set-username <username>`。",
+    "usernamePlaceholder": "例如：alice-dev",
+    "readyTitle": "个人发布已经解锁",
+    "readyDescription": "你的个人 skill 现在会以 {scope} 发布。",
+    "lockedHelp": "当前版本先支持首次设置用户名；设置后暂不支持改名。",
+    "messages": {
+      "usernameSaved": "用户名已保存，个人发布 scope 已经就绪。",
+      "usernameSaveFailed": "用户名保存失败"
+    },
+    "actions": {
+      "saveUsername": "保存用户名",
+      "savingUsername": "保存中...",
+      "openInstances": "打开我的实例"
     }
   },
   "login": {

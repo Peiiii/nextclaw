@@ -15,9 +15,52 @@
   "app": {
     "brand": "NextClaw Platform",
     "loadingAccount": "Loading NextClaw Account...",
+    "accountLoadFailedTitle": "We could not load your NextClaw Account right now.",
+    "accountLoadFailedDescription": "Sign in again to refresh your account session and continue with NextClaw Web.",
+    "accountLoadFailedAction": "Sign in again",
+    "navigation": {
+      "home": "My Instances",
+      "account": "Account"
+    },
     "roles": {
       "user": "User",
       "admin": "Admin"
+    }
+  },
+  "account": {
+    "title": "NextClaw Account",
+    "description": "This keeps your publishing identity, username readiness, and the canonical NextClaw Web account entry in one place.",
+    "highlightDescription": "You are on the exact account settings page that publish errors should point to. Set your username here before publishing personal skills.",
+    "readiness": {
+      "ready": "Ready",
+      "missing": "Action Required"
+    },
+    "fields": {
+      "email": "Email",
+      "username": "Username",
+      "role": "Role",
+      "publishScope": "Personal Scope",
+      "webAddress": "Web Account URL",
+      "cliFallback": "CLI Fallback"
+    },
+    "values": {
+      "notSet": "Not set yet"
+    },
+    "publishScopeMissing": "Set a username to unlock @username/* publishing",
+    "missingTitle": "Set your username before publishing personal skills",
+    "missingDescription": "Your account is already signed in, but personal marketplace publishing stays blocked until this username is set. The canonical page is https://platform.nextclaw.io/account, and the CLI fallback is `nextclaw account set-username <username>`.",
+    "usernamePlaceholder": "For example: alice-dev",
+    "readyTitle": "Personal publishing is unlocked",
+    "readyDescription": "Your personal skills now publish under {scope}.",
+    "lockedHelp": "This version supports initial username setup only. Renaming is not available yet.",
+    "messages": {
+      "usernameSaved": "Username saved. Your personal publish scope is now ready.",
+      "usernameSaveFailed": "Failed to save username"
+    },
+    "actions": {
+      "saveUsername": "Save Username",
+      "savingUsername": "Saving...",
+      "openInstances": "Open My Instances"
     }
   },
   "login": {

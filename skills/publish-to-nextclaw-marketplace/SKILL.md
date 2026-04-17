@@ -94,7 +94,9 @@ Important:
 
 - login alone is not enough
 - the username must already exist on the NextClaw platform account
-- if it is missing, direct the user to set it from the platform account UI or the remote account profile flow before publishing
+- the canonical web page is `https://platform.nextclaw.io/account`
+- the CLI fallback is `nextclaw account set-username <username>`
+- if it is missing, direct the user to one of those two concrete paths before publishing
 
 ### 4. Local skill files
 
@@ -216,7 +218,7 @@ The point is to verify real installability without polluting the current repo.
 ### Username missing
 
 - Symptom: personal publish fails because the platform account has no username
-- Action: set the username in the platform account UI or remote account profile flow, then retry
+- Action: open `https://platform.nextclaw.io/account` or run `nextclaw account set-username <username>`, then retry
 
 ### Scope mismatch
 

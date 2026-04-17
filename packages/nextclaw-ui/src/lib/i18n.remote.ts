@@ -5,7 +5,7 @@ export const REMOTE_LABELS: Record<string, { zh: string; en: string }> = {
     en: 'Make this device appear in your NextClaw Platform device list and open it from the web.'
   },
   remoteOpenWeb: { zh: '前往 NextClaw Web', en: 'Open NextClaw Web' },
-  remoteOpenDeviceList: { zh: '查看我的设备', en: 'View My Devices' },
+  remoteOpenDeviceList: { zh: '前往 NextClaw Web', en: 'Open NextClaw Web' },
   remoteOpenWebHint: {
     zh: '开启后，这台设备会出现在 NextClaw Web 中，你可以在那里点击打开并继续使用。',
     en: 'Once enabled, this device appears in NextClaw Web, where you can open it and keep working.'

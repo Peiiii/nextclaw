@@ -72,6 +72,16 @@ export type LoginCommandOptions = {
   open?: boolean;
 };
 
+export type AccountCommandOptions = {
+  apiBase?: string;
+  json?: boolean;
+};
+
+export type AccountSetUsernameCommandOptions = {
+  apiBase?: string;
+  json?: boolean;
+};
+
 export type PluginsListOptions = {
   json?: boolean;
   enabled?: boolean;

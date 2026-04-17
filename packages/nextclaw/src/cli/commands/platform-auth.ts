@@ -9,7 +9,8 @@ import {
   readPlatformErrorMessage,
   readPlatformUserPayload
 } from "./platform-auth-support/payload.js";
-import type { LoginCommandOptions } from "../types.js";
+import { printAccountStatus, printUsernameUpdated, toAccountStatusView } from "./platform-auth-support/account-status.js";
+import type { AccountCommandOptions, AccountSetUsernameCommandOptions, LoginCommandOptions } from "../types.js";
 import { openBrowser, prompt } from "../utils.js";
 
 type NextclawProviderConfig = {
@@ -456,5 +457,29 @@ export class PlatformAuthCommands {
     providers.nextclaw = nextclawProvider;
     saveConfig(config, configPath);
     return { cleared };
+  };
+
+  accountStatus = async (opts: AccountCommandOptions = {}): Promise<void> => {
+    const result = await this.me({ apiBase: opts.apiBase });
+    const view = toAccountStatusView(result);
+    if (opts.json) {
+      console.log(JSON.stringify(view, null, 2));
+      return;
+    }
+    printAccountStatus(view);
+  };
+
+  accountSetUsername = async (opts: AccountSetUsernameCommandOptions & { username: string }): Promise<void> => {
+    const result = await this.updateProfile({
+      apiBase: opts.apiBase,
+      username: opts.username
+    });
+    const view = toAccountStatusView(result);
+    if (opts.json) {
+      console.log(JSON.stringify(view, null, 2));
+      return;
+    }
+    printUsernameUpdated(view);
+    printAccountStatus(view);
   };
 }

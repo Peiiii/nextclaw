@@ -341,13 +341,11 @@ function useLoginPageManager(t: Translate) {
   const [error, setError] = useState<string | null>(null);
 
   const setToken = useAuthStore((state) => state.setToken);
-  const setUser = useAuthStore((state) => state.setUser);
 
   const loginMutation = useMutation({
     mutationFn: async () => await login(email, password),
     onSuccess: (result) => {
       setToken(result.token);
-      setUser(result.user);
       setError(null);
     },
     onError: (err) => {
@@ -379,7 +377,6 @@ function useLoginPageManager(t: Translate) {
     mutationFn: async () => await completeRegister(codeFlow?.email ?? email, code, password),
     onSuccess: (result) => {
       setToken(result.token);
-      setUser(result.user);
       setError(null);
     },
     onError: (err) => {
@@ -411,7 +408,6 @@ function useLoginPageManager(t: Translate) {
     mutationFn: async () => await completePasswordReset(codeFlow?.email ?? email, code, password),
     onSuccess: (result) => {
       setToken(result.token);
-      setUser(result.user);
       setError(null);
     },
     onError: (err) => {

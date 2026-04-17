@@ -42,6 +42,32 @@ program
   .option("--no-open", "Do not open the browser automatically")
   .action(async (opts) => runtime.login(opts));
 
+const account = program.command("account").description("Inspect and manage your NextClaw account");
+
+account
+  .command("status")
+  .description("Show account status and personal marketplace publish readiness")
+  .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
+  .option("--json", "Output JSON", false)
+  .action(async (opts) => {
+    await runtime.init({ source: "account status", auto: true });
+    await runtime.platformAuthCommands.accountStatus(opts);
+  });
+
+account
+  .command("set-username <username>")
+  .description("Set your NextClaw username for personal marketplace publishing")
+  .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
+  .option("--json", "Output JSON", false)
+  .action(async (username, opts) => {
+    await runtime.init({ source: "account set-username", auto: true });
+    await runtime.platformAuthCommands.accountSetUsername({
+      apiBase: opts.apiBase,
+      json: opts.json,
+      username
+    });
+  });
+
 registerRemoteCommands(program, runtime.remote);
 
 program
