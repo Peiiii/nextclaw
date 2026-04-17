@@ -5,6 +5,7 @@ This section provides practical setup walkthroughs for specific channels and int
 ## Available Tutorials
 
 - [First Step After Install: Choose Provider Path (Qwen Portal or API Key)](/en/guide/tutorials/provider-options)
+- [Claude Code / Codex / Hermes Integrations](/en/guide/tutorials/claude-codex-hermes)
 - [Docker One-Click Deployment Tutorial](/en/guide/tutorials/docker-one-click)
 - [Qwen Portal Setup Tutorial (Beginner-Friendly)](/en/guide/tutorials/qwen-portal)
 - [Feishu Setup Tutorial](/en/guide/tutorials/feishu)

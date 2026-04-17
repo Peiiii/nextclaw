@@ -1,48 +1,46 @@
 # Skills Tutorial (Install + Use)
 
-This is the shortest path to run skills end-to-end: install -> select -> verify.
+This page is the simple ordinary-user path:
 
-## 1) Install one skill
+**install a skill in the UI, then use it in chat.**
 
-```bash
-nextclaw skills install <slug>
-```
+## 1) Install a skill from Marketplace
 
-Example:
+1. Open NextClaw
+2. Go to `Marketplace -> Skills`
+3. Search for the skill you want
+4. Click `Install`
 
-```bash
-nextclaw skills install weather
-```
+For ordinary users, this is the main thing to remember:
 
-If this slug is unavailable in your registry, replace it with any installable skill.
+- skills are installed from `Marketplace -> Skills`
+- after install, go back to chat and use them there
+- you do not need to learn command-line setup first
 
-NextClaw only loads skills from the workspace `skills/` directory.
+## 2) Enable the skill in chat
 
-- Default workspace: `~/.nextclaw/workspace`
-- Default install target: `~/.nextclaw/workspace/skills/<slug>/SKILL.md`
-- If you need a project-specific workspace, pass:
+1. Open the chat page
+2. Click `Skills` under the input box
+3. Select the skill you just installed
+4. Send your request
 
-```bash
-nextclaw skills install <slug> --workdir <workspace>
-```
+Examples:
 
-After install, you should see `skills/<slug>/SKILL.md` in your workspace.
-
-Note: upstream global commands such as `npx skills add ... -g` do not install the skill into the NextClaw workspace, so they do not make it selectable in NextClaw by themselves.
-
-## 2) Select the skill in UI
-
-1. Start and open UI (default `http://127.0.0.1:55667`).
-2. Open chat page and click `Skills` under the input box.
-3. Select the installed skill, then send a message.
+- if it is a writing skill, send the writing task directly
+- if it is a Hermes-related skill, ask it to help connect or check Hermes
 
 ## 3) Verify it is applied
 
-- Check whether the response follows that skill's rules/format.
-- Unselect the same skill and send a similar prompt again to compare.
+- the reply should clearly reflect that skill's capability or constraints
+- unselect the same skill and ask a similar question again; the result should be observably different
+
+## 4) Ordinary-user recommendation
+
+- install one skill first instead of many
+- run it once in chat before adding more
+- if a skill looks too technical, skip it and choose one whose summary matches your task more directly
 
 ## Related docs
 
 - [Chat Capabilities](/en/guide/chat)
 - [Tutorial Hub](/en/guide/tutorials)
-- [Commands](/en/guide/commands)

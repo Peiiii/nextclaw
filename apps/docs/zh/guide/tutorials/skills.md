@@ -1,48 +1,46 @@
 # Skills 教程（安装 + 使用）
 
-本教程用最短路径跑通一次技能能力：安装 → 选择 → 生效。
+本教程只讲普通用户最简单的路径：
 
-## 1）安装一个 Skill
+**在界面里安装 skill，然后在聊天里使用它。**
 
-```bash
-nextclaw skills install <slug>
-```
+## 1）在 Marketplace 里安装 Skill
 
-示例：
+1. 打开 NextClaw
+2. 进入 `Marketplace -> Skills`
+3. 搜索你想要的 skill
+4. 点击 `Install`
 
-```bash
-nextclaw skills install weather
-```
+对普通用户来说，先记住这一点就够了：
 
-如果该 slug 在当前源不可用，替换为任意可安装的 skill 即可。
+- skill 是从 `Marketplace -> Skills` 装
+- 装完后直接回聊天页使用
+- 不需要先学命令行
 
-NextClaw 只会从“工作区”的 `skills/` 目录加载 skill。
+## 2）在聊天里启用 Skill
 
-- 默认工作区：`~/.nextclaw/workspace`
-- 默认安装目标：`~/.nextclaw/workspace/skills/<slug>/SKILL.md`
-- 如果你要装到某个项目专用工作区，必须显式传：
+1. 打开聊天页
+2. 在输入框下方点击 `Skills`
+3. 勾选刚安装的 skill
+4. 发送你的请求
 
-```bash
-nextclaw skills install <slug> --workdir <workspace>
-```
+例如：
 
-安装后可在工作区 `skills/<slug>/SKILL.md` 看到文件。
+- 如果你装的是写作类 skill，就直接发写作需求
+- 如果你装的是 Hermes 相关 skill，就直接让它帮你做 Hermes 接入或检查
 
-注意：像 `npx skills add ... -g` 这类上游全局安装命令，不会把 skill 装进 NextClaw 的工作区，因此不会自动让它出现在 NextClaw 里可选。
+## 3）怎么确认已经生效
 
-## 2）在 UI 里选择 Skill
+- 回复内容明显带上该 skill 的能力或规则
+- 取消勾选同一个 skill 后，再问同类问题，结果会出现可观察差异
 
-1. 启动并打开 UI（默认 `http://127.0.0.1:55667`）。
-2. 进入聊天页，在输入框下方点 `Skills`。
-3. 勾选刚安装的 skill，再发送消息。
+## 4）普通用户建议
 
-## 3）确认已生效
-
-- 观察回复是否体现该 skill 的规则/格式约束。
-- 取消勾选同一个 skill，再发一次同类问题，确认结果有可观察差异。
+- 第一次只装一个 skill，先看懂它到底帮你解决什么
+- 先在聊天里跑通一次，再决定要不要继续装更多 skill
+- 如果某个 skill 看起来太偏技术，不要硬装，先选描述更贴近你任务的那个
 
 ## 相关文档
 
 - [对话能力](/zh/guide/chat)
 - [教程总览](/zh/guide/tutorials)
-- [命令](/zh/guide/commands)

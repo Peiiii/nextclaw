@@ -46,6 +46,7 @@ nextclaw start
 
 1. 添加 Provider（如 Qwen Portal / MiniMax / OpenRouter / OpenAI）
    - 如果你安装后不知道先选哪条路，先看：[安装后第一步：先选接入方式（Qwen Portal 或 API Key）](/zh/guide/tutorials/provider-options)
+   - 如果你的目标是接入 `Claude Code / Codex / Hermes`，直接看：[Claude Code / Codex / Hermes 集成](/zh/guide/tutorials/claude-codex-hermes)
 2. 选择默认模型
 3. 保存配置并发起第一条消息
 
