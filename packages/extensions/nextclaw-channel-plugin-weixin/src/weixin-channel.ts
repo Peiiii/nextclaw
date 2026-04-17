@@ -7,7 +7,6 @@ import {
   deleteWeixinCursor,
   loadWeixinCursor,
   saveWeixinCursor,
-  listStoredWeixinAccountIds,
 } from "./weixin-account.store.js";
 import {
   extractWeixinMessageText,
@@ -17,15 +16,12 @@ import {
   sendWeixinTyping,
 } from "./weixin-api.client.js";
 import type { WeixinMessage } from "./weixin-api.client.js";
-import { setWeixinContextToken } from "./weixin-context-token.store.js";
 import { resolveWeixinInboundAttachments } from "./weixin-inbound-media.service.js";
 import { WeixinTypingController } from "./weixin-typing-controller.js";
-import {
-  resolveConfiguredWeixinAccountIds,
-} from "./weixin-config.js";
 import type { WeixinPluginConfig } from "./weixin-config.js";
 import { WeixinChat } from "./weixin-chat.js";
-import type { ResolvedWeixinAccountRuntime } from "./weixin-chat.js";
+
+type WeixinRuntimeAccount = NonNullable<ReturnType<WeixinChat["resolveAccountRuntime"]>>;
 
 function isAllowedSender(allowFrom: string[], senderId: string): boolean {
   if (allowFrom.length === 0) {
@@ -67,7 +63,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   private readonly replyConsumer: NcpReplyConsumer;
 
   constructor(
-    private readonly pluginConfig: WeixinPluginConfig,
+    pluginConfig: WeixinPluginConfig,
     bus: MessageBus,
   ) {
     super(pluginConfig as Record<string, unknown>, bus);
@@ -95,7 +91,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       },
     });
     this.chat = new WeixinChat({
-      pluginConfig: this.pluginConfig,
+      pluginConfig,
       typingController: this.typingController,
     });
     this.replyConsumer = new NcpReplyConsumer(this.chat);
@@ -110,11 +106,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
       return;
     }
     this.running = true;
-    const accountIds = new Set<string>([
-      ...resolveConfiguredWeixinAccountIds(this.pluginConfig),
-      ...listStoredWeixinAccountIds(),
-    ]);
-    for (const accountId of accountIds) {
+    for (const accountId of this.chat.listAvailableAccountIds()) {
       const controller = new AbortController();
       this.accountControllers.set(accountId, controller);
       this.pollTasks.push(this.runAccountPollingLoop(accountId, controller.signal));
@@ -147,14 +139,10 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     await this.replyConsumer.consume(input);
   };
 
-  private resolveAccountRuntime = (accountId: string): ResolvedWeixinAccountRuntime | null => {
-    return this.chat.resolveAccountRuntime(accountId);
-  };
-
   private runAccountPollingLoop = async (accountId: string, signal: AbortSignal): Promise<void> => {
     while (this.running && !signal.aborted) {
       try {
-        const account = this.resolveAccountRuntime(accountId);
+        const account = this.chat.resolveAccountRuntime(accountId);
         if (!account?.enabled) {
           await sleep(3_000, signal);
           continue;
@@ -191,7 +179,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
   };
 
   private handleInboundWeixinMessage = async (
-    account: ResolvedWeixinAccountRuntime,
+    account: WeixinRuntimeAccount,
     message: WeixinMessage,
   ): Promise<void> => {
     const senderId = message.from_user_id?.trim();
@@ -223,7 +211,7 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
     };
 
     if (contextToken) {
-      setWeixinContextToken(account.accountId, senderId, contextToken);
+      this.chat.rememberContextToken(account.accountId, senderId, contextToken);
       void this.chat.startTyping(this.createChatTarget({
         conversationId: senderId,
         accountId: account.accountId,

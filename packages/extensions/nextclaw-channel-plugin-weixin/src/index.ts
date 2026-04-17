@@ -10,7 +10,6 @@ import {
   isWeixinPluginEnabled,
   normalizeWeixinPluginConfig,
   resolveConfiguredWeixinAccountIds,
-  readWeixinPluginConfigFromConfig,
   WEIXIN_CHANNEL_ID,
   WEIXIN_PLUGIN_CONFIG_SCHEMA,
   WEIXIN_PLUGIN_CONFIG_UI_HINTS,
@@ -25,7 +24,7 @@ type NextclawWeixinPluginApi = {
 };
 
 function readKnownWeixinRoutes(cfg: Config): Array<{ accountId: string; userId: string }> {
-  const pluginConfig = readWeixinPluginConfigFromConfig(cfg, WEIXIN_PLUGIN_ID);
+  const pluginConfig = normalizeWeixinPluginConfig(cfg.channels?.[WEIXIN_CHANNEL_ID]);
   const knownAccountIds = new Set<string>([
     ...resolveConfiguredWeixinAccountIds(pluginConfig),
     ...listStoredWeixinAccountIds(),
@@ -58,8 +57,8 @@ function readKnownWeixinRoutes(cfg: Config): Array<{ accountId: string; userId: 
   return routes;
 }
 
-export function buildWeixinMessageToolHints(params: { cfg: Config; accountId?: string | null }): string[] {
-  const pluginConfig = readWeixinPluginConfigFromConfig(params.cfg, WEIXIN_PLUGIN_ID);
+function buildWeixinMessageToolHints(params: { cfg: Config; accountId?: string | null }): string[] {
+  const pluginConfig = normalizeWeixinPluginConfig(params.cfg.channels?.[WEIXIN_CHANNEL_ID]);
   const knownRoutes = readKnownWeixinRoutes(params.cfg);
   const hints: string[] = [
     "To proactively message a Weixin user, use the message tool with channel='weixin' and to='<user_id@im.wechat>'.",
@@ -149,7 +148,10 @@ function createWeixinChannelPlugin(pluginId: string) {
     nextclaw: {
       isEnabled: (config: Config) => isWeixinPluginEnabled(config, pluginId),
       createChannel: (context: { config: Config; bus: MessageBus }) =>
-        new WeixinChannel(readWeixinPluginConfigFromConfig(context.config, pluginId), context.bus),
+        new WeixinChannel(
+          normalizeWeixinPluginConfig(context.config.channels?.[WEIXIN_CHANNEL_ID]),
+          context.bus,
+        ),
     },
   };
 }
@@ -161,7 +163,7 @@ const plugin = {
   configSchema: WEIXIN_PLUGIN_CONFIG_SCHEMA,
   register(api: NextclawWeixinPluginApi) {
     const pluginConfig = normalizeWeixinPluginConfig(
-      readWeixinPluginConfigFromConfig(api.config as Config, api.id || WEIXIN_PLUGIN_ID)
+      (api.config as Config).channels?.[WEIXIN_CHANNEL_ID]
     );
     api.registerChannel({
       plugin: {

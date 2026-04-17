@@ -30,6 +30,13 @@
   - 自动清掉本地保存的 cursor
   - 下一轮静默恢复轮询
   - 不再把 UI 日志持续刷成一整屏 `polling failed`
+- 同批次继续清理了一轮微信插件内部残留：
+  - 删除了只剩一个 `Map` 和两个薄函数的 `weixin-context-token.store.ts`
+  - context token 状态收回到 `WeixinChat` 实例内部，不再额外悬挂一个小 store 文件
+  - `buildWeixinMessageToolHints` 不再作为插件源码对外公开 helper 暴露，只保留插件实际注册面
+  - `readWeixinPluginConfigFromConfig(...)` 不再保留，配置读取直接回到调用点，减少一层无意义包装
+  - `ResolvedWeixinAccountRuntime` 收回到 `weixin-chat.ts` 文件内私有，`WeixinChannel` 也删掉了一层无意义的 `resolveAccountRuntime` 薄转发
+  - 可用账号集合的收集职责收回到 `WeixinChat.listAvailableAccountIds()`，不再由 channel 和 chat 各拼一遍同样的集合
 - `ChatTarget` 新增了运行时级的 `resolveAssetContentPath`，平台在 reply 路由时把资产解析能力定向带给 channel，避免把这类宿主级细节硬塞进 NCP part 协议或 metadata 里。
 - `NcpReplyConsumer` 现在会在 `chat.sendPart(...)` 前，把 `asset_put` 的工具结果统一投影成标准 `file part`：
   - 不再依赖前端单独对 `asset_put` 做 UI 特判才看得到附件
@@ -121,6 +128,11 @@ pnpm -C packages/nextclaw exec tsx --eval 'import("../../packages/extensions/nex
   - `getupdates` 返回 `errcode=-14, errmsg=session timeout` 时，会自动清掉失效 cursor 并恢复下一轮轮询
   - 这条路径现在不会再持续 `console.warn`
   - 微信插件定向测试已经覆盖这条恢复逻辑
+- 最新一轮“只删不增” cleanup 又补跑了：
+  - `pnpm --filter @nextclaw/channel-plugin-weixin test -- index.test.ts weixin-channel.test.ts weixin-api.client.test.ts weixin-channel-attachments.test.ts weixin-typing-controller.test.ts`
+  - `pnpm --filter @nextclaw/channel-plugin-weixin tsc`
+  - `pnpm --filter nextclaw tsc`
+  结果全部通过，说明删除 context-token 小 store、收窄插件公开面和删死参数后，微信插件行为仍然成立。
 
 ## 发布 / 部署方式
 
@@ -235,3 +247,5 @@ pnpm -C packages/nextclaw exec tsx --eval 'import("../../packages/extensions/nex
 no maintainability findings
 
 这次续改没有再扩一层功能，只是把源码模式运行时的最后一处不稳定点压掉，并补了真实在线冒烟，属于对同一能力闭环的收尾。保留的债务仍然主要在测试文件体积上；如果下一轮继续扩微信 media 变体，优先把这些测试里的 fixtures/builders 再抽出来。 
+
+同批次最新一轮“继续删插件内部残留”的补充结论是：这次不是功能新增，而是纯减债。当前这轮微信插件相关 diff 仍然保持非测试代码净减；统计口径仅看本轮触达的微信插件源码、测试与同批次 README：总代码 `新增 82 / 删除 73 / 净增 +9`，其中非测试代码 `新增 50 / 删除 70 / 净增 -20`。也就是说，这轮虽然为了把测试改回真实插件注册面补了一些测试代码，但插件运行时本身确实进一步变小了。当前保留的下一个观察点主要是 `weixin-chat.ts` 仍然靠近预算线，后续如果微信发送分支继续增长，应优先继续收紧 `WeixinChannel / WeixinChat` 之间的账号 runtime 边界，而不是再往 chat owner 里塞新判断。

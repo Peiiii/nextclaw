@@ -4,7 +4,6 @@ import {
   listStoredWeixinAccountIds,
   loadWeixinAccount,
 } from "./weixin-account.store.js";
-import { getWeixinContextToken } from "./weixin-context-token.store.js";
 import { sendWeixinTextMessage } from "./weixin-api.client.js";
 import {
   sendWeixinFileMessage,
@@ -23,7 +22,7 @@ import type {
   WeixinPluginConfig,
 } from "./weixin-config.js";
 
-export type ResolvedWeixinAccountRuntime = {
+type ResolvedWeixinAccountRuntime = {
   accountId: string;
   token: string;
   enabled: boolean;
@@ -37,14 +36,14 @@ type WeixinChatDeps = {
   typingController: WeixinTypingController;
 };
 
-type SendTextParams = {
-  stopTyping: boolean;
-};
-
 type WeixinSendContext = {
   account: ResolvedWeixinAccountRuntime;
   contextToken?: string;
 };
+
+function buildContextTokenKey(accountId: string, userId: string): string {
+  return `${accountId}:${userId}`;
+}
 
 function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -109,8 +108,30 @@ function renderWeixinPartText(part: NcpMessagePart): string {
 
 export class WeixinChat implements Chat {
   private readonly mediaPartReader = new WeixinMediaPartReader();
+  private readonly contextTokens = new Map<string, string>();
 
   constructor(private readonly deps: WeixinChatDeps) {}
+
+  listAvailableAccountIds = (): string[] => {
+    return Array.from(
+      new Set([
+        ...resolveConfiguredWeixinAccountIds(this.deps.pluginConfig),
+        ...listStoredWeixinAccountIds(),
+      ]),
+    );
+  };
+
+  rememberContextToken = (
+    accountId: string,
+    userId: string,
+    contextToken: string,
+  ): void => {
+    const trimmedToken = contextToken.trim();
+    if (!trimmedToken) {
+      return;
+    }
+    this.contextTokens.set(buildContextTokenKey(accountId, userId), trimmedToken);
+  };
 
   resolveAccountRuntime = (
     accountId: string,
@@ -176,9 +197,7 @@ export class WeixinChat implements Chat {
     if (!text.trim()) {
       return;
     }
-    await this.sendText(target, text, {
-      stopTyping: false,
-    });
+    await this.sendText(target, text, false);
   };
 
   sendError = async (
@@ -189,9 +208,7 @@ export class WeixinChat implements Chat {
     if (!normalizedMessage) {
       return;
     }
-    await this.sendText(target, normalizedMessage, {
-      stopTyping: true,
-    });
+    await this.sendText(target, normalizedMessage, true);
   };
 
   stopTyping = async (target: ChatTarget): Promise<void> => {
@@ -214,12 +231,7 @@ export class WeixinChat implements Chat {
 
     return resolveWeixinAccountSelection(
       this.deps.pluginConfig,
-      Array.from(
-        new Set([
-          ...resolveConfiguredWeixinAccountIds(this.deps.pluginConfig),
-          ...listStoredWeixinAccountIds(),
-        ]),
-      ),
+      this.listAvailableAccountIds(),
       requestedAccountId,
     );
   };
@@ -230,7 +242,7 @@ export class WeixinChat implements Chat {
   ): string | undefined => {
     return (
       readString(target.metadata?.context_token) ??
-      getWeixinContextToken(accountId, target.conversationId)
+      this.contextTokens.get(buildContextTokenKey(accountId, target.conversationId))
     );
   };
 
@@ -258,7 +270,7 @@ export class WeixinChat implements Chat {
   private sendText = async (
     target: ChatTarget,
     text: string,
-    params: SendTextParams,
+    stopTyping: boolean,
   ): Promise<void> => {
     const sendContext = this.resolveSendContext(target);
 
@@ -271,7 +283,7 @@ export class WeixinChat implements Chat {
         contextToken: sendContext.contextToken,
       });
     } finally {
-      if (!params.stopTyping) {
+      if (!stopTyping) {
         return;
       }
       await this.deps.typingController.stop({

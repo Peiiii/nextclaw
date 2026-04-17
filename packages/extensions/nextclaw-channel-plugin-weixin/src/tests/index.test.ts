@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema } from "@nextclaw/core";
 import { saveWeixinAccount } from "../weixin-account.store.js";
-import { buildWeixinMessageToolHints } from "../index.js";
+import plugin from "../index.js";
 
 const tempHomes: string[] = [];
 const originalNextclawHome = process.env.NEXTCLAW_HOME;
@@ -32,7 +32,7 @@ afterEach(() => {
   }
 });
 
-describe("buildWeixinMessageToolHints", () => {
+describe("Weixin channel plugin message tool hints", () => {
   it("includes the known self-notify route when exactly one authorized user is known", () => {
     createHome();
     saveWeixinAccount({
@@ -57,7 +57,23 @@ describe("buildWeixinMessageToolHints", () => {
       },
     });
 
-    const hints = buildWeixinMessageToolHints({ cfg: config, accountId: null });
+    let registeredPlugin: Record<string, unknown> | undefined;
+    plugin.register({
+      id: "nextclaw-channel-weixin",
+      config,
+      registerChannel: (registration) => {
+        registeredPlugin = registration.plugin;
+      },
+    });
+
+    const messageToolHints = (
+      registeredPlugin?.agentPrompt as
+        | { messageToolHints?: (params: { cfg: typeof config; accountId?: string | null }) => string[] }
+        | undefined
+    )?.messageToolHints;
+
+    expect(messageToolHints).toBeTypeOf("function");
+    const hints = messageToolHints?.({ cfg: config, accountId: null }) ?? [];
 
     expect(hints).toContain("Default Weixin accountId is 'bot-1@im.bot'.");
     expect(hints.some((hint) => hint.includes("Known Weixin self-notify route"))).toBe(true);

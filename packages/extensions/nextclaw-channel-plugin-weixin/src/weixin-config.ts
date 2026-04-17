@@ -87,17 +87,12 @@ export function normalizeWeixinPluginConfig(value: unknown): WeixinPluginConfig 
   };
 }
 
-export function readWeixinPluginConfigFromConfig(config: Config, _pluginId = WEIXIN_PLUGIN_ID): WeixinPluginConfig {
-  const channelConfig = config.channels?.[WEIXIN_CHANNEL_ID];
-  return normalizeWeixinPluginConfig(channelConfig);
-}
-
 export function isWeixinPluginEnabled(config: Config, pluginId = WEIXIN_PLUGIN_ID): boolean {
   const pluginEntry = config.plugins.entries?.[pluginId];
   if (pluginEntry?.enabled === false) {
     return false;
   }
-  return readWeixinPluginConfigFromConfig(config, pluginId).enabled !== false;
+  return normalizeWeixinPluginConfig(config.channels?.[WEIXIN_CHANNEL_ID]).enabled !== false;
 }
 
 export function resolveConfiguredWeixinAccountIds(pluginConfig: WeixinPluginConfig): string[] {
