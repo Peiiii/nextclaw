@@ -1,20 +1,22 @@
-import { useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { desktopPresenceManager } from '@/desktop/managers/desktop-presence.manager';
-import { useDesktopPresenceStore } from '@/desktop/stores/desktop-presence.store';
-import { useRuntimeControl } from '@/hooks/use-runtime-control';
-import { t } from '@/lib/i18n';
+import { useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { NoticeCard } from "@/components/ui/notice-card";
+import { SettingRow } from "@/components/ui/setting-row";
+import { Switch } from "@/components/ui/switch";
+import { desktopPresenceManager } from "@/desktop/managers/desktop-presence.manager";
+import { useDesktopPresenceStore } from "@/desktop/stores/desktop-presence.store";
+import { useRuntimeControl } from "@/hooks/use-runtime-control";
+import { t } from "@/lib/i18n";
 
 function PresenceHint(props: { title: string; description: string }) {
   const { description, title } = props;
-  return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <p className="text-sm font-medium text-gray-900">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-gray-600">{description}</p>
-    </div>
-  );
+  return <NoticeCard tone="neutral" title={title} description={description} />;
 }
 
 export function RuntimePresenceCard() {
@@ -26,71 +28,83 @@ export function RuntimePresenceCard() {
   const snapshot = useDesktopPresenceStore((state) => state.snapshot);
 
   useEffect(() => {
-    if (environment === 'desktop-embedded') {
+    if (environment === "desktop-embedded") {
       void desktopPresenceManager.start();
       return;
     }
     desktopPresenceManager.markUnsupported();
   }, [environment]);
 
-  if (environment === 'desktop-embedded') {
+  if (environment === "desktop-embedded") {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('runtimePresenceTitle')}</CardTitle>
-          <CardDescription>{t('runtimePresenceDescription')}</CardDescription>
+          <CardTitle>{t("runtimePresenceTitle")}</CardTitle>
+          <CardDescription>{t("runtimePresenceDescription")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-            <p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">
-              {t('runtimePresenceBehaviorLabel')}
-            </p>
-            <p className="mt-2 text-sm font-medium text-gray-900">
-              {snapshot?.closeToBackground ? t('runtimePresenceBehaviorBackground') : t('runtimePresenceBehaviorQuit')}
-            </p>
-          </div>
+          <NoticeCard
+            tone="neutral"
+            title={t("runtimePresenceBehaviorLabel")}
+            description={
+              snapshot?.closeToBackground
+                ? t("runtimePresenceBehaviorBackground")
+                : t("runtimePresenceBehaviorQuit")
+            }
+            className="rounded-xl"
+          />
 
           {!initialized || (supported && !snapshot) ? (
-            <p className="text-sm text-gray-500">{t('runtimePresenceLoading')}</p>
+            <p className="text-sm text-gray-500">
+              {t("runtimePresenceLoading")}
+            </p>
           ) : null}
 
           {snapshot ? (
             <div className="space-y-4">
-              <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 p-4">
-                <div className="space-y-2">
-                  <Label htmlFor="runtime-presence-close-background">{t('runtimePresenceCloseToBackground')}</Label>
-                  <p className="text-sm text-gray-500">{t('runtimePresenceCloseToBackgroundHelp')}</p>
-                </div>
-                <Switch
-                  id="runtime-presence-close-background"
-                  aria-label={t('runtimePresenceCloseToBackground')}
-                  checked={snapshot.closeToBackground}
-                  disabled={busyAction === 'saving-preferences'}
-                  onCheckedChange={(checked) => {
-                    void desktopPresenceManager.updatePreferences({ closeToBackground: checked });
-                  }}
-                />
-              </div>
+              <SettingRow
+                title={t("runtimePresenceCloseToBackground")}
+                description={t("runtimePresenceCloseToBackgroundHelp")}
+                control={
+                  <Switch
+                    id="runtime-presence-close-background"
+                    aria-label={t("runtimePresenceCloseToBackground")}
+                    checked={snapshot.closeToBackground}
+                    disabled={busyAction === "saving-preferences"}
+                    onCheckedChange={(checked) => {
+                      void desktopPresenceManager.updatePreferences({
+                        closeToBackground: checked,
+                      });
+                    }}
+                  />
+                }
+              />
 
-              <div className="flex items-start justify-between gap-4 rounded-xl border border-gray-200 p-4">
-                <div className="space-y-2">
-                  <Label htmlFor="runtime-presence-launch-login">{t('runtimePresenceLaunchAtLogin')}</Label>
-                  <p className="text-sm text-gray-500">
-                    {snapshot.supportsLaunchAtLogin
-                      ? t('runtimePresenceLaunchAtLoginHelp')
-                      : snapshot.launchAtLoginReason ?? t('runtimePresenceLaunchAtLoginUnavailable')}
-                  </p>
-                </div>
-                <Switch
-                  id="runtime-presence-launch-login"
-                  aria-label={t('runtimePresenceLaunchAtLogin')}
-                  checked={snapshot.launchAtLogin}
-                  disabled={!snapshot.supportsLaunchAtLogin || busyAction === 'saving-preferences'}
-                  onCheckedChange={(checked) => {
-                    void desktopPresenceManager.updatePreferences({ launchAtLogin: checked });
-                  }}
-                />
-              </div>
+              <SettingRow
+                title={t("runtimePresenceLaunchAtLogin")}
+                description={
+                  snapshot.supportsLaunchAtLogin
+                    ? t("runtimePresenceLaunchAtLoginHelp")
+                    : (snapshot.launchAtLoginReason ??
+                      t("runtimePresenceLaunchAtLoginUnavailable"))
+                }
+                control={
+                  <Switch
+                    id="runtime-presence-launch-login"
+                    aria-label={t("runtimePresenceLaunchAtLogin")}
+                    checked={snapshot.launchAtLogin}
+                    disabled={
+                      !snapshot.supportsLaunchAtLogin ||
+                      busyAction === "saving-preferences"
+                    }
+                    onCheckedChange={(checked) => {
+                      void desktopPresenceManager.updatePreferences({
+                        launchAtLogin: checked,
+                      });
+                    }}
+                  />
+                }
+              />
             </div>
           ) : null}
         </CardContent>
@@ -98,51 +112,51 @@ export function RuntimePresenceCard() {
     );
   }
 
-  if (environment === 'managed-local-service') {
+  if (environment === "managed-local-service") {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('runtimePresenceTitle')}</CardTitle>
-          <CardDescription>{t('runtimePresenceDescription')}</CardDescription>
+          <CardTitle>{t("runtimePresenceTitle")}</CardTitle>
+          <CardDescription>{t("runtimePresenceDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <PresenceHint
-            title={t('runtimePresenceManagedLocalTitle')}
-            description={t('runtimePresenceManagedLocalDescription')}
+            title={t("runtimePresenceManagedLocalTitle")}
+            description={t("runtimePresenceManagedLocalDescription")}
           />
         </CardContent>
       </Card>
     );
   }
 
-  if (environment === 'self-hosted-web') {
+  if (environment === "self-hosted-web") {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('runtimePresenceTitle')}</CardTitle>
-          <CardDescription>{t('runtimePresenceDescription')}</CardDescription>
+          <CardTitle>{t("runtimePresenceTitle")}</CardTitle>
+          <CardDescription>{t("runtimePresenceDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <PresenceHint
-            title={t('runtimePresenceSelfHostedTitle')}
-            description={t('runtimePresenceSelfHostedDescription')}
+            title={t("runtimePresenceSelfHostedTitle")}
+            description={t("runtimePresenceSelfHostedDescription")}
           />
         </CardContent>
       </Card>
     );
   }
 
-  if (environment === 'shared-web') {
+  if (environment === "shared-web") {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('runtimePresenceTitle')}</CardTitle>
-          <CardDescription>{t('runtimePresenceDescription')}</CardDescription>
+          <CardTitle>{t("runtimePresenceTitle")}</CardTitle>
+          <CardDescription>{t("runtimePresenceDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <PresenceHint
-            title={t('runtimePresenceSharedTitle')}
-            description={t('runtimePresenceSharedDescription')}
+            title={t("runtimePresenceSharedTitle")}
+            description={t("runtimePresenceSharedDescription")}
           />
         </CardContent>
       </Card>
@@ -152,11 +166,11 @@ export function RuntimePresenceCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('runtimePresenceTitle')}</CardTitle>
-        <CardDescription>{t('runtimePresenceDescription')}</CardDescription>
+        <CardTitle>{t("runtimePresenceTitle")}</CardTitle>
+        <CardDescription>{t("runtimePresenceDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-gray-500">{t('runtimePresenceLoading')}</p>
+        <p className="text-sm text-gray-500">{t("runtimePresenceLoading")}</p>
       </CardContent>
     </Card>
   );

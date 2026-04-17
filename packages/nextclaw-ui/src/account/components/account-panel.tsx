@@ -1,19 +1,175 @@
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useRemoteStatus } from '@/hooks/useRemoteAccess';
-import { formatDateTime, t } from '@/lib/i18n';
-import { useAccountStore } from '@/account/stores/account.store';
-import { useAppPresenter } from '@/presenter/app-presenter-context';
-import { KeyRound, LogOut, SquareArrowOutUpRight } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NoticeCard } from "@/components/ui/notice-card";
+import { useRemoteStatus } from "@/hooks/useRemoteAccess";
+import { formatDateTime, t } from "@/lib/i18n";
+import { useAccountStore } from "@/account/stores/account.store";
+import { useAppPresenter } from "@/presenter/app-presenter-context";
+import { KeyRound, LogOut, SquareArrowOutUpRight } from "lucide-react";
+import { useEffect, useState } from "react";
 
-function AccountValueRow({ label, value }: { label: string; value?: string | null }) {
+function AccountValueRow({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 py-2 text-sm">
       <span className="text-gray-500">{label}</span>
-      <span className="text-right text-gray-900">{value?.trim() || '-'}</span>
+      <span className="text-right text-gray-900">{value?.trim() || "-"}</span>
+    </div>
+  );
+}
+
+function SignedInAccountSection(props: {
+  email?: string | null;
+  username?: string | null;
+  role?: string | null;
+  canSubmitUsername: boolean;
+  savingUsername: boolean;
+  usernameDraft: string;
+  onUsernameDraftChange: (value: string) => void;
+  onSubmitUsername: () => Promise<void>;
+  onOpenDeviceList: () => Promise<void>;
+  onLogout: () => Promise<void>;
+}) {
+  const {
+    email,
+    username,
+    role,
+    canSubmitUsername,
+    savingUsername,
+    usernameDraft,
+    onUsernameDraftChange,
+    onSubmitUsername,
+    onOpenDeviceList,
+    onLogout,
+  } = props;
+
+  return (
+    <div className="space-y-4">
+      <NoticeCard
+        tone="success"
+        title={t("accountPanelSignedInTitle")}
+        description={t("accountPanelSignedInDescription")}
+      />
+      <NoticeCard tone="neutral">
+        <AccountValueRow label={t("remoteAccountEmail")} value={email} />
+        <AccountValueRow label={t("remoteAccountUsername")} value={username} />
+        <AccountValueRow label={t("remoteAccountRole")} value={role} />
+      </NoticeCard>
+      {username ? (
+        <p className="text-xs text-gray-500">
+          {t("remoteAccountUsernameLockedHelp")}
+        </p>
+      ) : (
+        <NoticeCard
+          tone="warning"
+          title={t("remoteAccountUsernameRequiredTitle")}
+          description={t("remoteAccountUsernameRequiredDescription")}
+        >
+          <div className="mt-4 space-y-2">
+            <Label htmlFor="account-panel-username">
+              {t("remoteAccountUsername")}
+            </Label>
+            <Input
+              id="account-panel-username"
+              value={usernameDraft}
+              onChange={(event) => onUsernameDraftChange(event.target.value)}
+              placeholder={t("remoteAccountUsernamePlaceholder")}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+            />
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button
+              disabled={!canSubmitUsername}
+              onClick={() => void onSubmitUsername()}
+            >
+              {savingUsername
+                ? t("remoteAccountUsernameSaving")
+                : t("remoteAccountUsernameSave")}
+            </Button>
+          </div>
+        </NoticeCard>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={() => void onOpenDeviceList()}>
+          <SquareArrowOutUpRight className="mr-2 h-4 w-4" />
+          {t("remoteOpenDeviceList")}
+        </Button>
+        <Button variant="outline" onClick={() => void onLogout()}>
+          <LogOut className="mr-2 h-4 w-4" />
+          {t("remoteLogout")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function SignedOutAccountSection(props: {
+  authSessionId?: string | null;
+  authExpiresAt?: string | null;
+  authStatusMessage?: string | null;
+  authVerificationUri?: string | null;
+  onStartBrowserSignIn: () => Promise<void>;
+  onResumeBrowserSignIn: () => void;
+}) {
+  const {
+    authSessionId,
+    authExpiresAt,
+    authStatusMessage,
+    authVerificationUri,
+    onStartBrowserSignIn,
+    onResumeBrowserSignIn,
+  } = props;
+
+  return (
+    <div className="space-y-4">
+      <NoticeCard
+        tone="neutral"
+        title={t("accountPanelSignedOutTitle")}
+        description={t("accountPanelSignedOutDescription")}
+      >
+        {authSessionId ? (
+          <div className="mt-3 border-t border-white/80 pt-3">
+            <AccountValueRow
+              label={t("remoteBrowserAuthSession")}
+              value={authSessionId}
+            />
+            <AccountValueRow
+              label={t("remoteBrowserAuthExpiresAt")}
+              value={authExpiresAt ? formatDateTime(authExpiresAt) : "-"}
+            />
+          </div>
+        ) : null}
+      </NoticeCard>
+      {authStatusMessage ? (
+        <p className="text-sm text-gray-600">{authStatusMessage}</p>
+      ) : null}
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={() => void onStartBrowserSignIn()}>
+          {authSessionId
+            ? t("remoteBrowserAuthActionRetry")
+            : t("remoteBrowserAuthAction")}
+        </Button>
+        {authVerificationUri ? (
+          <Button variant="outline" onClick={onResumeBrowserSignIn}>
+            {t("remoteBrowserAuthResume")}
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -23,111 +179,75 @@ export function AccountPanel() {
   const remoteStatus = useRemoteStatus();
   const panelOpen = useAccountStore((state) => state.panelOpen);
   const authSessionId = useAccountStore((state) => state.authSessionId);
-  const authVerificationUri = useAccountStore((state) => state.authVerificationUri);
+  const authVerificationUri = useAccountStore(
+    (state) => state.authVerificationUri,
+  );
   const authExpiresAt = useAccountStore((state) => state.authExpiresAt);
   const authStatusMessage = useAccountStore((state) => state.authStatusMessage);
   const status = remoteStatus.data;
-  const [usernameDraft, setUsernameDraft] = useState('');
+  const [usernameDraft, setUsernameDraft] = useState("");
   const [savingUsername, setSavingUsername] = useState(false);
 
   useEffect(() => {
     presenter.accountManager.syncRemoteStatus(status);
   }, [presenter, status]);
 
-  const canSubmitUsername = !savingUsername && usernameDraft.trim().length > 0 && !status?.account.username;
+  const canSubmitUsername =
+    !savingUsername &&
+    usernameDraft.trim().length > 0 &&
+    !status?.account.username;
 
   return (
-    <Dialog open={panelOpen} onOpenChange={(open) => (open ? presenter.accountManager.openAccountPanel() : presenter.accountManager.closeAccountPanel())}>
+    <Dialog
+      open={panelOpen}
+      onOpenChange={(open) =>
+        open
+          ? presenter.accountManager.openAccountPanel()
+          : presenter.accountManager.closeAccountPanel()
+      }
+    >
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <KeyRound className="h-5 w-5 text-primary" />
-            {t('accountPanelTitle')}
+            {t("accountPanelTitle")}
           </DialogTitle>
-          <DialogDescription>{t('accountPanelDescription')}</DialogDescription>
+          <DialogDescription>{t("accountPanelDescription")}</DialogDescription>
         </DialogHeader>
 
         {status?.account.loggedIn ? (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-              <p className="text-sm font-medium text-emerald-800">{t('accountPanelSignedInTitle')}</p>
-              <p className="mt-1 text-sm text-emerald-700">{t('accountPanelSignedInDescription')}</p>
-            </div>
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <AccountValueRow label={t('remoteAccountEmail')} value={status.account.email} />
-              <AccountValueRow label={t('remoteAccountUsername')} value={status.account.username} />
-              <AccountValueRow label={t('remoteAccountRole')} value={status.account.role} />
-            </div>
-            {status.account.username ? (
-              <p className="text-xs text-gray-500">{t('remoteAccountUsernameLockedHelp')}</p>
-            ) : (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
-                <p className="text-sm font-medium text-amber-900">{t('remoteAccountUsernameRequiredTitle')}</p>
-                <p className="mt-1 text-sm text-amber-800">{t('remoteAccountUsernameRequiredDescription')}</p>
-                <div className="mt-4 space-y-2">
-                  <Label htmlFor="account-panel-username">{t('remoteAccountUsername')}</Label>
-                  <Input
-                    id="account-panel-username"
-                    value={usernameDraft}
-                    onChange={(event) => setUsernameDraft(event.target.value)}
-                    placeholder={t('remoteAccountUsernamePlaceholder')}
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    spellCheck={false}
-                  />
-                </div>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <Button
-                    disabled={!canSubmitUsername}
-                    onClick={async () => {
-                      setSavingUsername(true);
-                      try {
-                        await presenter.accountManager.updateUsername(usernameDraft);
-                      } finally {
-                        setSavingUsername(false);
-                      }
-                    }}
-                  >
-                    {savingUsername ? t('remoteAccountUsernameSaving') : t('remoteAccountUsernameSave')}
-                  </Button>
-                </div>
-              </div>
-            )}
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void presenter.accountManager.openNextClawWeb()}>
-                <SquareArrowOutUpRight className="mr-2 h-4 w-4" />
-                {t('remoteOpenDeviceList')}
-              </Button>
-              <Button variant="outline" onClick={() => void presenter.accountManager.logout()}>
-                <LogOut className="mr-2 h-4 w-4" />
-                {t('remoteLogout')}
-              </Button>
-            </div>
-          </div>
+          <SignedInAccountSection
+            email={status.account.email}
+            username={status.account.username}
+            role={status.account.role}
+            canSubmitUsername={canSubmitUsername}
+            savingUsername={savingUsername}
+            usernameDraft={usernameDraft}
+            onUsernameDraftChange={setUsernameDraft}
+            onSubmitUsername={async () => {
+              setSavingUsername(true);
+              try {
+                await presenter.accountManager.updateUsername(usernameDraft);
+              } finally {
+                setSavingUsername(false);
+              }
+            }}
+            onOpenDeviceList={() => presenter.accountManager.openNextClawWeb()}
+            onLogout={() => presenter.accountManager.logout()}
+          />
         ) : (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-              <p className="text-sm font-medium text-gray-900">{t('accountPanelSignedOutTitle')}</p>
-              <p className="mt-1 text-sm text-gray-600">{t('accountPanelSignedOutDescription')}</p>
-              {authSessionId ? (
-                <div className="mt-3 border-t border-white/80 pt-3">
-                  <AccountValueRow label={t('remoteBrowserAuthSession')} value={authSessionId} />
-                  <AccountValueRow label={t('remoteBrowserAuthExpiresAt')} value={authExpiresAt ? formatDateTime(authExpiresAt) : '-'} />
-                </div>
-              ) : null}
-            </div>
-            {authStatusMessage ? <p className="text-sm text-gray-600">{authStatusMessage}</p> : null}
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void presenter.accountManager.startBrowserSignIn()}>
-                {authSessionId ? t('remoteBrowserAuthActionRetry') : t('remoteBrowserAuthAction')}
-              </Button>
-              {authVerificationUri ? (
-                <Button variant="outline" onClick={() => presenter.accountManager.resumeBrowserSignIn()}>
-                  {t('remoteBrowserAuthResume')}
-                </Button>
-              ) : null}
-            </div>
-          </div>
+          <SignedOutAccountSection
+            authSessionId={authSessionId}
+            authExpiresAt={authExpiresAt}
+            authStatusMessage={authStatusMessage}
+            authVerificationUri={authVerificationUri}
+            onStartBrowserSignIn={() =>
+              presenter.accountManager.startBrowserSignIn()
+            }
+            onResumeBrowserSignIn={() =>
+              presenter.accountManager.resumeBrowserSignIn()
+            }
+          />
         )}
       </DialogContent>
     </Dialog>

@@ -1,12 +1,12 @@
-import { useEffect } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
-import { ChatConversationPanel } from '@/components/chat/chat-conversation-panel';
-import { AgentsPage } from '@/components/agents/AgentsPage';
-import { CronConfig } from '@/components/config/CronConfig';
-import { MarketplacePage } from '@/components/marketplace/MarketplacePage';
+import { useEffect } from "react";
+import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
+import { AgentsPage } from "@/components/agents/agents-page";
+import { CronConfig } from "@/components/config/CronConfig";
+import { MarketplacePage } from "@/components/marketplace/marketplace-page";
 
-export type MainPanelView = 'chat' | 'cron' | 'skills' | 'agents';
+export type MainPanelView = "chat" | "cron" | "skills" | "agents";
 
 export type ChatPageProps = {
   view: MainPanelView;
@@ -32,7 +32,7 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
   } = params;
 
   useEffect(() => {
-    if (view !== 'chat') {
+    if (view !== "chat") {
       return;
     }
     if (routeSessionKey) {
@@ -45,7 +45,13 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
       setSelectedSessionKey(null);
       resetStreamState();
     }
-  }, [resetStreamState, routeSessionKey, selectedSessionKey, setSelectedSessionKey, view]);
+  }, [
+    resetStreamState,
+    routeSessionKey,
+    selectedSessionKey,
+    setSelectedSessionKey,
+    view,
+  ]);
 
   useEffect(() => {
     selectedSessionKeyRef.current = selectedSessionKey;
@@ -62,17 +68,17 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
     <div className="h-full flex">
       <ChatSidebar />
 
-      {view === 'chat' ? (
+      {view === "chat" ? (
         <ChatConversationPanel />
       ) : (
         <section className="flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-gray-50/60 to-white">
-          {view === 'cron' ? (
+          {view === "cron" ? (
             <div className="h-full overflow-auto custom-scrollbar">
               <div className="mx-auto w-full max-w-[min(1120px,100%)] px-6 py-5">
                 <CronConfig />
               </div>
             </div>
-          ) : view === 'agents' ? (
+          ) : view === "agents" ? (
             <div className="h-full overflow-auto custom-scrollbar">
               <div className="mx-auto w-full max-w-[min(1180px,100%)] px-6 py-5">
                 <AgentsPage />
