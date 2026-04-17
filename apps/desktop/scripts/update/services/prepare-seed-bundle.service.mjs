@@ -5,10 +5,13 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
+import {
+  normalizeDesktopUpdateChannel,
+  resolveGovernedMinimumLauncherVersion
+} from "./launcher-compatibility.service.mjs";
 
 const desktopDir = resolve(fileURLToPath(new URL("../../..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
-const desktopPackageJsonPath = resolve(desktopDir, "package.json");
 const nextclawPackageJsonPath = resolve(workspaceRoot, "packages", "nextclaw", "package.json");
 const releaseMetadataPath = resolve(desktopDir, "build", "update-release-metadata.json");
 
@@ -98,18 +101,20 @@ function updateReleaseMetadata(seedBundleMetadata) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const desktopPackage = readJson(desktopPackageJsonPath);
   const nextclawPackage = readJson(nextclawPackageJsonPath);
   const platform = args.platform?.trim() || process.platform;
   const arch = args.arch?.trim() || process.arch;
+  const channel = normalizeDesktopUpdateChannel(args.channel);
   const bundleVersion = args.version?.trim() || nextclawPackage.version;
-  const minimumLauncherVersion = args["minimum-launcher-version"]?.trim() || desktopPackage.version;
+  const minimumLauncherVersion = resolveGovernedMinimumLauncherVersion({
+    channel,
+    minimumLauncherVersion: args["minimum-launcher-version"],
+    allowOverride: args["allow-minimum-launcher-version-override"] === "true"
+  });
   const outputDir = resolve(args["output-dir"]?.trim() || join(desktopDir, "build", "update"));
   const targetPath = resolve(outputDir, "seed-product-bundle.zip");
   const sourcePath = resolve(outputDir, `nextclaw-bundle-${platform}-${arch}-${bundleVersion}.zip`);
-
-  rmSync(targetPath, { force: true });
-  const buildResult = runCommand("pnpm", [
+  const buildArgs = [
     "-C",
     "apps/desktop",
     "bundle:build",
@@ -118,13 +123,21 @@ async function main() {
     platform,
     "--arch",
     arch,
+    "--channel",
+    channel,
     "--version",
     bundleVersion,
     "--minimum-launcher-version",
     minimumLauncherVersion,
     "--output-dir",
     outputDir
-  ]);
+  ];
+  if (args["allow-minimum-launcher-version-override"] === "true") {
+    buildArgs.push("--allow-minimum-launcher-version-override", "true");
+  }
+
+  rmSync(targetPath, { force: true });
+  const buildResult = runCommand("pnpm", buildArgs);
   if (buildResult.trim()) {
     process.stdout.write(buildResult);
   }

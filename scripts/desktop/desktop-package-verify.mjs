@@ -65,7 +65,7 @@ function runCommonBuildSteps() {
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw", "build"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:public-key:ensure"]);
-  run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed"]);
+  run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed", "--", "--channel", "stable"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "lint"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "tsc"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], {
@@ -263,6 +263,42 @@ function verifyWindowsDesktopPackage() {
     run("powershell", psArgs);
   }
   console.log(`[desktop-verify] Windows desktop executable verified: ${desktopExePath}`);
+
+  run(binName("pnpm"), [
+    "-C",
+    "apps/desktop",
+    "exec",
+    "electron-builder",
+    "--win",
+    "nsis",
+    `--${arch}`,
+    "--publish",
+    "never"
+  ], {
+    env: { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
+  });
+  const installerPath = findLatestReleaseFile((name) => name.endsWith(".exe") && name.includes("Setup"));
+  if (!installerPath) {
+    throw new Error("No Windows installer executable found in apps/desktop/release");
+  }
+
+  const installerPsArgs = [
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "apps/desktop/scripts/smoke-windows-installer.ps1",
+    "-InstallerPath",
+    installerPath,
+    "-StartupTimeoutSec",
+    "120"
+  ];
+  if (commandExists("pwsh")) {
+    run("pwsh", installerPsArgs);
+  } else {
+    run("powershell", installerPsArgs);
+  }
+  console.log(`[desktop-verify] Windows desktop installer verified: ${installerPath}`);
 }
 
 function verifyLinuxDesktopPackage() {

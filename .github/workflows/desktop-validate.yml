@@ -81,13 +81,15 @@ jobs:
 
           OUTPUT_DIR="$(mktemp -d)"
           KEY_DIR="$(mktemp -d)"
+          MINIMUM_LAUNCHER_VERSION="$(pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel stable)"
           trap 'rm -rf "$OUTPUT_DIR" "$KEY_DIR"' EXIT
 
           pnpm -C apps/desktop bundle:build -- \
+            --channel stable \
             --platform linux \
             --arch x64 \
             --version 0.17.6-validate \
-            --minimum-launcher-version 0.0.134 \
+            --minimum-launcher-version "$MINIMUM_LAUNCHER_VERSION" \
             --output-dir "$OUTPUT_DIR"
 
           BUNDLE_PATH="$(find "$OUTPUT_DIR" -maxdepth 1 -type f -name 'nextclaw-bundle-*.zip' | head -n 1)"
@@ -108,10 +110,11 @@ jobs:
 
           pnpm -C apps/desktop bundle:manifest -- \
             --bundle "$BUNDLE_PATH" \
+            --channel stable \
             --platform linux \
             --arch x64 \
             --version 0.17.6-validate \
-            --minimum-launcher-version 0.0.134 \
+            --minimum-launcher-version "$MINIMUM_LAUNCHER_VERSION" \
             --bundle-url "https://example.com/$(basename "$BUNDLE_PATH")" \
             --output "$OUTPUT_DIR/manifest-stable-linux-x64.json" \
             --private-key-file "$KEY_DIR/private.pem"
@@ -181,7 +184,7 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
-          pnpm -C apps/desktop bundle:seed -- --platform darwin --arch arm64
+          pnpm -C apps/desktop bundle:seed -- --channel stable --platform darwin --arch arm64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
@@ -252,7 +255,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
-          pnpm -C apps/desktop bundle:seed -- --platform win32 --arch x64
+          pnpm -C apps/desktop bundle:seed -- --channel stable --platform win32 --arch x64
           pnpm -C apps/desktop lint
           pnpm -C apps/desktop tsc
           pnpm -C apps/desktop build:main
@@ -327,6 +330,96 @@ jobs:
           if-no-files-found: warn
           path: |
             apps/desktop/release/win-unpacked/**
+
+  desktop-windows-installer-smoke:
+    name: desktop-windows-installer-smoke
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        shell: pwsh
+        run: pnpm install --frozen-lockfile
+
+      - name: Build desktop runtime dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          pnpm -r --filter @nextclaw/desktop... build
+
+      - name: Build Windows desktop installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          pnpm -C apps/desktop bundle:seed -- --channel stable --platform win32 --arch x64
+          pnpm -C apps/desktop lint
+          pnpm -C apps/desktop tsc
+          pnpm -C apps/desktop build:main
+          pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
+
+      - name: Smoke test Windows desktop installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installerPath = Get-ChildItem "apps/desktop/release" -Filter "*Setup*.exe" | Select-Object -First 1
+          if ($null -eq $installerPath) {
+            throw "Windows desktop installer not found in apps/desktop/release"
+          }
+          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 120
+
+      - name: Stage Windows installer smoke logs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $stagingRoot = "apps/desktop/release/windows-installer-smoke-logs"
+          if (Test-Path $stagingRoot) {
+            Remove-Item -Recurse -Force $stagingRoot
+          }
+          New-Item -ItemType Directory -Path $stagingRoot | Out-Null
+
+          $homeLogs = Join-Path $env:RUNNER_TEMP "nextclaw-desktop-smoke-home/logs"
+          if (Test-Path $homeLogs) {
+            Copy-Item -Recurse -Force $homeLogs (Join-Path $stagingRoot "home-logs")
+          }
+
+          $appLogs = Join-Path $env:APPDATA "NextClaw Desktop/logs"
+          if (Test-Path $appLogs) {
+            Copy-Item -Recurse -Force $appLogs (Join-Path $stagingRoot "app-logs")
+          }
+
+      - name: Upload Windows installer smoke logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-smoke-logs-win32-x64-installer
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/windows-installer-smoke-logs/**
+
+      - name: Upload Windows desktop installer artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-validate-win32-x64-installer
+          if-no-files-found: warn
+          path: |
+            apps/desktop/release/*Setup*.exe
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.exe.blockmap
 
   desktop-linux-package-smoke:
     name: desktop-linux-package-smoke

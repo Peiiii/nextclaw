@@ -43,6 +43,12 @@ Normal desktop releases must resolve the minimum launcher version from
 [`desktop-launcher-compatibility.json`](./desktop-launcher-compatibility.json).
 Do not derive it from the current launcher package version.
 
+`bundle:seed` is part of the same contract. Local packaging entrypoints may default
+to `stable`, but release and validation workflows should pass the channel
+explicitly so the packaged seed bundle and update manifest stay governed by the
+same floor. The long-lived policy lives in
+[`docs/internal/desktop-launcher-bundle-governance.md`](../../docs/internal/desktop-launcher-bundle-governance.md).
+
 The builder currently:
 
 - ensures `packages/nextclaw-ui` + `packages/nextclaw` outputs exist
@@ -131,9 +137,10 @@ macOS signed/notarized (optional):
 
 - same command as above, but provide signing/notarization credentials in environment.
 
-Windows (unpacked EXE directory, no publish):
+Windows (`Setup.exe` installer + unpacked EXE directory, no publish):
 
 - `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never`
+- `PATH=/opt/homebrew/bin:$PATH CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never`
 
 Linux (`AppImage` + `.deb`, no publish):
 
@@ -147,12 +154,17 @@ All artifacts are under `apps/desktop/release`:
 - `NextClaw Desktop-<version>-arm64-mac.zip`
 - `NextClaw Desktop-<version>-x64.dmg`
 - `NextClaw Desktop-<version>-x64-mac.zip`
+- `NextClaw.Desktop-Setup-<version>-x64.exe`
+- `latest.yml`
+- `*.exe.blockmap`
 - `win-unpacked/NextClaw Desktop.exe`
 - `NextClaw.Desktop-<version>-linux-x64.AppImage`
 - `nextclaw-desktop_<version>_amd64.deb`
 - `../dist-bundles/nextclaw-bundle-<platform>-<arch>-<version>.zip`
 - `../release-manifests/manifest-stable-<platform>-<arch>.json`
 - `../build/update-bundle-public.pem`
+
+Windows 推荐把 `Setup.exe` 作为普通用户下载入口，`win-unpacked` / `zip` 保留给兼容、便携和排障场景。
 
 ### 4) Linux package lifecycle
 

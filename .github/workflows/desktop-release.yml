@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm -r --filter @nextclaw/desktop... build
-          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          pnpm -C apps/desktop bundle:seed -- --channel "$DESKTOP_UPDATE_CHANNEL" --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop build:main
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm -C apps/desktop exec electron-builder --mac dmg zip --${{ matrix.arch }} --publish never
 
@@ -130,7 +130,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           pnpm -r --filter @nextclaw/desktop... build
-          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          pnpm -C apps/desktop bundle:seed -- --channel $env:DESKTOP_UPDATE_CHANNEL --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --win dir --x64 --publish never
 
@@ -141,7 +141,7 @@ jobs:
           set -euo pipefail
           export CSC_IDENTITY_AUTO_DISCOVERY=false
           pnpm -r --filter @nextclaw/desktop... build
-          pnpm -C apps/desktop bundle:seed -- --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
+          pnpm -C apps/desktop bundle:seed -- --channel "$DESKTOP_UPDATE_CHANNEL" --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
           pnpm -C apps/desktop build:main
           pnpm -C apps/desktop exec electron-builder --linux AppImage deb --x64 --publish never
 
@@ -297,6 +297,25 @@ jobs:
           )
           Remove-Item -Recurse -Force $stagingDir
 
+      - name: Build Desktop Installer (Windows)
+        if: matrix.platform == 'win32'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
+          pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
+
+      - name: Smoke Desktop Installer (Windows)
+        if: matrix.platform == 'win32'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $installerPath = Get-ChildItem "apps/desktop/release" -Filter "*Setup*.exe" | Select-Object -First 1
+          if ($null -eq $installerPath) {
+            throw "Windows desktop installer not found in apps/desktop/release"
+          }
+          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 180
+
       - name: Stage Smoke Logs (Windows)
         if: matrix.platform == 'win32' && always()
         shell: pwsh
@@ -366,9 +385,13 @@ jobs:
         if: matrix.platform == 'win32'
         uses: actions/upload-artifact@v4
         with:
+          if-no-files-found: warn
           name: desktop-release-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             apps/desktop/release/NextClaw.Desktop-*-win32-x64-unpacked.zip
+            apps/desktop/release/*Setup*.exe
+            apps/desktop/release/latest.yml
+            apps/desktop/release/*.exe.blockmap
             apps/desktop/dist-bundles/nextclaw-bundle-${{ matrix.platform }}-${{ matrix.arch }}-*.zip
             apps/desktop/release-manifests/manifest-${{ env.DESKTOP_UPDATE_CHANNEL }}-${{ matrix.platform }}-${{ matrix.arch }}.json
 
@@ -416,12 +439,13 @@ jobs:
             dist/desktop-release/**/*.dmg
             dist/desktop-release/**/*-mac.zip
             dist/desktop-release/**/*-win32-*-unpacked.zip
+            dist/desktop-release/**/*Setup*.exe
             dist/desktop-release/**/*.AppImage
             dist/desktop-release/**/*.deb
             dist/desktop-release/**/*.blockmap
             dist/desktop-release/**/nextclaw-bundle-*.zip
             dist/desktop-release/**/manifest-*.json
-            dist/desktop-release/**/latest-mac-*.yml
+            dist/desktop-release/**/latest*.yml
             dist/desktop-release/**/update-bundle-public.pem
 
   publish-desktop-update-channels:

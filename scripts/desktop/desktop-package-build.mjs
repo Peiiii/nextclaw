@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
 
 const rootDir = resolveRepoPath(import.meta.url);
@@ -47,6 +47,39 @@ function printArtifacts(paths) {
   }
 }
 
+function buildWindowsArtifacts(arch, env) {
+  run(
+    binName("pnpm"),
+    [
+      "-C",
+      "apps/desktop",
+      "exec",
+      "electron-builder",
+      "--win",
+      "dir",
+      `--${arch}`,
+      "--publish",
+      "never"
+    ],
+    { env }
+  );
+  run(
+    binName("pnpm"),
+    [
+      "-C",
+      "apps/desktop",
+      "exec",
+      "electron-builder",
+      "--win",
+      "nsis",
+      `--${arch}`,
+      "--publish",
+      "never"
+    ],
+    { env }
+  );
+}
+
 function packageForCurrentPlatform() {
   const arch = process.arch === "x64" ? "x64" : "arm64";
   const env = { CSC_IDENTITY_AUTO_DISCOVERY: "false" };
@@ -61,7 +94,7 @@ function packageForCurrentPlatform() {
   run(binName("pnpm"), ["-C", "packages/nextclaw-server", "build"]);
   run(binName("pnpm"), ["-C", "packages/nextclaw", "build"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "bundle:public-key:ensure"]);
-  run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed"]);
+  run(binName("pnpm"), ["-C", "apps/desktop", "bundle:seed", "--", "--channel", "stable"]);
   run(binName("pnpm"), ["-C", "apps/desktop", "build:main"], { env });
 
   if (process.platform === "darwin") {
@@ -90,24 +123,21 @@ function packageForCurrentPlatform() {
   }
 
   if (process.platform === "win32") {
-    run(
-      binName("pnpm"),
-      [
-        "-C",
-        "apps/desktop",
-        "exec",
-        "electron-builder",
-        "--win",
-        "dir",
-        `--${arch}`,
-        "--publish",
-        "never"
-      ],
-      { env }
-    );
+    buildWindowsArtifacts(arch, env);
     const unpackedExe = resolve(releaseDir, "win-unpacked", "NextClaw Desktop.exe");
     printArtifacts(
-      [unpackedExe, ...readArtifacts().filter((path) => path.endsWith("win-unpacked"))]
+      [
+        unpackedExe,
+        ...readArtifacts().filter((path) => {
+          const name = basename(path);
+          return (
+            path.endsWith("win-unpacked") ||
+            (name.endsWith(".exe") && name.includes("Setup")) ||
+            name === "latest.yml" ||
+            name.endsWith(".exe.blockmap")
+          );
+        })
+      ]
     );
     return;
   }

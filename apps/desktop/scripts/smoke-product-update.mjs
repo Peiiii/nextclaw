@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { createHash, generateKeyPairSync, sign } from "node:crypto";
+import { generateKeyPairSync } from "node:crypto";
 import { createServer as createHttpServer } from "node:http";
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { mkdir, readdir, readFile, realpath, stat, writeFile, lstat, rm } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { createServer as createNetServer, Socket } from "node:net";
 import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import JSZip from "jszip";
 import { chromium } from "playwright";
+import { prepareLocalUpdateChannelArtifacts } from "./update/services/local-update-channel-artifacts.service.mjs";
 
 const desktopDir = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceRoot = resolve(desktopDir, "..", "..");
@@ -18,7 +18,6 @@ const installedDesktopSeedBundlePath = "/Applications/NextClaw Desktop.app/Conte
 const desktopSeedBundlePath = resolve(desktopDir, "build", "update", "seed-product-bundle.zip");
 const stableVersion = "0.17.7";
 const betaVersion = "0.17.11";
-const launcherVersion = JSON.parse(readFileSync(resolve(desktopDir, "package.json"), "utf8")).version;
 
 function sleep(ms) {
   return new Promise((resolveSleep) => setTimeout(resolveSleep, ms));
@@ -105,57 +104,6 @@ async function resolveFreePort(startPort, host = "127.0.0.1", scanLimit = 50) {
   throw new Error(`Unable to reserve a free port from ${startPort} on ${host}.`);
 }
 
-function serializeUnsignedManifest(manifest) {
-  return JSON.stringify({
-    channel: manifest.channel,
-    platform: manifest.platform,
-    arch: manifest.arch,
-    latestVersion: manifest.latestVersion,
-    minimumLauncherVersion: manifest.minimumLauncherVersion,
-    bundleUrl: manifest.bundleUrl,
-    bundleSha256: manifest.bundleSha256,
-    bundleSignature: manifest.bundleSignature,
-    releaseNotesUrl: manifest.releaseNotesUrl
-  });
-}
-
-async function cloneBundleWithVersion(sourceArchivePath, nextArchivePath, nextVersion) {
-  const sourceArchive = await JSZip.loadAsync(readFileSync(sourceArchivePath));
-  const manifestEntry =
-    sourceArchive.file("bundle/manifest.json") ??
-    Object.values(sourceArchive.files).find((entry) => entry.name.endsWith("/manifest.json"));
-  if (!manifestEntry) {
-    throw new Error(`Bundle archive is missing manifest.json: ${sourceArchivePath}`);
-  }
-  const manifest = JSON.parse(await manifestEntry.async("text"));
-  manifest.bundleVersion = nextVersion;
-  manifest.uiVersion = nextVersion;
-  manifest.runtimeVersion = nextVersion;
-  manifest.builtInPluginSetVersion = nextVersion;
-  sourceArchive.file(manifestEntry.name, `${JSON.stringify(manifest, null, 2)}\n`);
-  await writeFile(nextArchivePath, await sourceArchive.generateAsync({ type: "nodebuffer", compression: "DEFLATE" }));
-}
-
-function createSignedUpdateManifest({ privateKey, channel, version, bundleUrl, bundlePath, releaseNotesUrl }) {
-  const bundleBytes = readFileSync(bundlePath);
-  const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
-  const manifest = {
-    channel,
-    platform: process.platform,
-    arch: process.arch,
-    latestVersion: version,
-    minimumLauncherVersion: launcherVersion,
-    bundleUrl,
-    bundleSha256,
-    bundleSignature: sign(null, bundleBytes, privateKey).toString("base64"),
-    releaseNotesUrl
-  };
-  return {
-    ...manifest,
-    manifestSignature: sign(null, Buffer.from(serializeUnsignedManifest(manifest)), privateKey).toString("base64")
-  };
-}
-
 async function waitForDesktopPageTarget(cdpPort, timeoutMs = 120_000) {
   const startAt = Date.now();
   let lastError = null;
@@ -236,7 +184,6 @@ async function closeDesktopWindow(page) {
 }
 
 const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-desktop-update-smoke-"));
-const bundleDir = join(tempRoot, "bundles");
 const serverRoot = join(tempRoot, "server-root");
 const runtimeHome = join(tempRoot, "runtime-home");
 const desktopData = join(tempRoot, "desktop-data");
@@ -250,7 +197,6 @@ let httpServer = null;
 let seededDesktopBundle = false;
 
 try {
-  await mkdir(bundleDir, { recursive: true });
   await mkdir(serverRoot, { recursive: true });
   await mkdir(runtimeHome, { recursive: true });
   await mkdir(desktopData, { recursive: true });
@@ -266,49 +212,28 @@ try {
   seededDesktopBundle = true;
 
   console.log(`[desktop-update-smoke] preparing stable seed bundle ${stableVersion}`);
-  const stableBundlePath = join(bundleDir, `nextclaw-bundle-${process.platform}-${process.arch}-${stableVersion}.zip`);
-  copyFileSync(installedDesktopSeedBundlePath, stableBundlePath);
-  const betaBundlePath = join(bundleDir, `nextclaw-bundle-${process.platform}-${process.arch}-${betaVersion}.zip`);
-  console.log(`[desktop-update-smoke] deriving beta bundle ${betaVersion} from ${stableVersion}`);
-  await cloneBundleWithVersion(stableBundlePath, betaBundlePath, betaVersion);
-
   const keyPair = generateKeyPairSync("ed25519");
   const publicKeyPem = keyPair.publicKey.export({ type: "spki", format: "pem" }).toString();
   const manifestPort = await resolveFreePort(43010);
   const cdpPort = await resolveFreePort(9222);
   const manifestBaseUrl = `http://127.0.0.1:${manifestPort}/desktop-updates`;
-  const stableBundleFileName = basename(stableBundlePath);
-  const betaBundleFileName = basename(betaBundlePath);
-  const stableBundleUrl = `${manifestBaseUrl}/stable/${stableBundleFileName}`;
-  const betaBundleUrl = `${manifestBaseUrl}/beta/${betaBundleFileName}`;
-
-  const stableManifest = createSignedUpdateManifest({
-    privateKey: keyPair.privateKey,
-    channel: "stable",
-    version: stableVersion,
-    bundleUrl: stableBundleUrl,
-    bundlePath: stableBundlePath,
-    releaseNotesUrl: `${manifestBaseUrl}/stable/release-notes-${stableVersion}.txt`
-  });
-  const betaManifest = createSignedUpdateManifest({
-    privateKey: keyPair.privateKey,
-    channel: "beta",
-    version: betaVersion,
-    bundleUrl: betaBundleUrl,
-    bundlePath: betaBundlePath,
-    releaseNotesUrl: `${manifestBaseUrl}/beta/release-notes-${betaVersion}.txt`
-  });
 
   const stableDir = join(serverRoot, "desktop-updates", "stable");
   const betaDir = join(serverRoot, "desktop-updates", "beta");
   await mkdir(stableDir, { recursive: true });
   await mkdir(betaDir, { recursive: true });
-  await writeFile(join(stableDir, `manifest-stable-${process.platform}-${process.arch}.json`), `${JSON.stringify(stableManifest, null, 2)}\n`);
-  await writeFile(join(betaDir, `manifest-beta-${process.platform}-${process.arch}.json`), `${JSON.stringify(betaManifest, null, 2)}\n`);
-  await writeFile(join(stableDir, stableBundleFileName), readFileSync(stableBundlePath));
-  await writeFile(join(betaDir, betaBundleFileName), readFileSync(betaBundlePath));
-  await writeFile(join(stableDir, `release-notes-${stableVersion}.txt`), `Stable ${stableVersion}\n`, "utf8");
-  await writeFile(join(betaDir, `release-notes-${betaVersion}.txt`), `Beta ${betaVersion}\n`, "utf8");
+  console.log(`[desktop-update-smoke] deriving beta bundle ${betaVersion} from ${stableVersion}`);
+  const { stableBundlePath, betaBundlePath } = await prepareLocalUpdateChannelArtifacts({
+    stableSeedBundlePath: installedDesktopSeedBundlePath,
+    stableVersion,
+    betaVersion,
+    stableRoot: stableDir,
+    betaRoot: betaDir,
+    manifestBaseUrl,
+    privateKey: keyPair.privateKey
+  });
+  const stableBundleFileName = basename(stableBundlePath);
+  const betaBundleFileName = basename(betaBundlePath);
 
   httpServer = createHttpServer((request, response) => {
     const requestPath = request.url ? request.url.split("?")[0] : "/";
