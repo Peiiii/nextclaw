@@ -12,7 +12,7 @@
 - 因内部依赖链联动，本次发布链路还一并推送了自动进入批次的相关公开包，最终 registry 校验通过 `22/22` 个版本。
 - 基于上述 `nextclaw 0.18.0` 交付，本次还完成了桌面预览 beta 发布：GitHub prerelease `v0.18.0-desktop-beta.1`，release title 为 [NextClaw Desktop 0.0.143 Preview Beta 1](https://github.com/Peiiii/nextclaw/releases/tag/v0.18.0-desktop-beta.1)。
 - 本次桌面 prerelease 对应 launcher `0.0.143`，内置 product bundle `0.18.0`；四个平台 release assets、beta update manifests 与 `update-bundle-public.pem` 已全部发布完成。
-- 桌面发布过程中遇到一次非代码型 CI 坑：`desktop-darwin-arm64` 在 attempt 1 的 `actions/upload-artifact@v4` 阶段报 `Upload progress stalled.`；attempt 2 通过 `rerun failed jobs` 收敛成功，对应防坑要点已补到 [desktop-release-contract-guard](../../../.agents/skills/desktop-release-contract-guard/SKILL.md)。
+- 桌面发布过程中遇到一次非代码型 CI 坑：`desktop-darwin-arm64` 在 attempt 1 的 `actions/upload-artifact@v4` 阶段报 `Upload progress stalled.`；attempt 2 通过 `rerun failed jobs` 收敛成功。相关经验没有只停留在“补几条坑点”，而是已经整理成面向后续发布的流程型 skill：[desktop-release-contract-guard](../../../.agents/skills/desktop-release-contract-guard/SKILL.md)，覆盖发布顺序、完成门槛、假成功信号与出坑动作。
 
 ## 测试 / 验证 / 验收方式
 
@@ -115,7 +115,7 @@ gh api 'repos/Peiiii/nextclaw/contents/desktop-updates/beta/manifest-beta-darwin
 - 把 `nextclaw 0.18.0` 与 Hermes ACP bridge 新包交付收敛到正式 registry。
 - 避免“仓库代码已经切到新 runtime 边界，但外部用户仍拿不到对应包版本”的交付割裂。
 - 把桌面 beta 发布结果、workflow run、update channel 状态与一次真实踩坑处理统一收敛到同一迭代记录。
-- 没有额外新增发布脚本，而是把经验沉淀到既有 skill，避免以后重复踩同一类流程坑。
+- 没有额外新增发布脚本，而是把经验沉淀到既有 skill，并把它提升成可直接指导后续发布的流程卡，避免以后重复踩同一类流程坑。
 
 ### 代码增减报告
 

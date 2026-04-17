@@ -5,6 +5,14 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 
 # Desktop Release Contract Guard
 
+## Overview
+- This skill is a release decision guide, not just a packaging note.
+- Use it to drive the whole desktop release from local verification to GitHub assets to public update-channel confirmation.
+- The goal is to prevent three failure modes:
+  - shipping a bad package
+  - mistaking a partial publish for a finished release
+  - changing code when the real problem is release infrastructure or propagation
+
 ## When to Use
 - Any NextClaw desktop packaging, preview release, local installer handoff, or update-channel verification task.
 - Any task mentioning `DMG`, desktop release, `electron-builder`, update manifest, beta/stable desktop channel, or "检查更新".
@@ -26,6 +34,24 @@ description: Use when building, verifying, or releasing NextClaw desktop install
    - `gh run view <run-id> --repo <owner/repo> --json status,conclusion,jobs`
    - `gh release view <tag> --repo <owner/repo> --json assets,isPrerelease,url`
 
+## Release Flow
+1. Verify locally first.
+   - Run `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
+   - Do not start GitHub release work until this passes.
+2. Create the prerelease or release tag.
+   - Treat this as the trigger, not the success signal.
+3. Watch the `desktop-release` workflow to completion.
+   - Require overall `success`
+   - Require the matrix jobs plus publish jobs
+4. Verify GitHub release assets are actually present.
+   - Expect platform installers, bundles, manifests, mac metadata, and `update-bundle-public.pem`
+5. Verify update-channel source of truth.
+   - Check `gh-pages` branch contents first
+   - Then check the public Pages URL
+6. Only announce "发布完成" after both are true:
+   - workflow is fully green
+   - public update-channel content reflects the new version
+
 ## Release Completion Gate
 - Treat tag creation or `gh release create` success as the start signal, not the finish line.
 - A desktop release is only complete when the release-triggered `desktop-release` workflow finishes with overall `success`.
@@ -35,6 +61,12 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - `publish-linux-apt-repo` for stable releases
 - Release assets may stay empty while the workflow is still running. Do not treat an empty `assets[]` list as proof of either success or final failure until the workflow attempt is finished.
 - If packaging, smoke, bundle, and manifest steps already passed and the only failure is `actions/upload-artifact@v4` reporting `Upload progress stalled.`, rerun failed jobs first before changing product code or packaging logic.
+
+## Public Update Channel Gate
+- `gh-pages` branch content is the publishing source of truth.
+- The public GitHub Pages URL may lag behind the branch due to CDN or Pages propagation.
+- If `gh-pages` already shows the new manifest but the public URL still shows the previous version, treat that as propagation delay, not a failed publish.
+- Keep watching until the public manifest reflects the new `latestVersion` and `minimumLauncherVersion`.
 
 ## Non-Negotiable Checks
 - Confirm packaged app contains `resources/update/update-bundle-public.pem`.
@@ -50,12 +82,42 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - If a capability depends on a newer Node builtin than the packaged Electron runtime, gate that capability explicitly and keep desktop startup alive instead of crashing the whole launcher.
 - If macOS DMG smoke falls back from GUI launch to `ELECTRON_RUN_AS_NODE`, run that fallback against an isolated temp home so a failed GUI bootstrap does not contaminate the fallback validation state.
 
+## Common Traps
+- `gh release create` succeeded:
+  - Meaning: the release object exists
+  - Not enough because assets and update channels may still be missing
+- `tag already exists`:
+  - Meaning: a prior create attempt already made the tag or release
+  - Do not assume publishing is complete; inspect the workflow and assets
+- release page exists but `assets[]` is empty:
+  - Usually means the workflow is still running or failed before publish jobs
+- `actions/upload-artifact@v4` says `Upload progress stalled.`:
+  - First action is `rerun failed jobs`
+  - Do not jump to product-code changes if build, smoke, bundle, and manifest steps already passed
+- local `node` works but desktop app fails:
+  - Trust the packaged Electron runtime, not the developer shell
+- public manifest still shows previous version:
+  - Check `gh-pages` branch before diagnosing workflow failure
+  - If branch is new and public URL is old, wait for propagation and re-check
+
 ## Forbidden Shortcuts
 - Do not ship raw `electron-builder` output without the public-key preparation step.
 - Do not "fix" missing packaged public key by skipping manifest signature verification in runtime.
 - Do not accept "works with local node" as evidence that the packaged runtime is healthy.
 - Do not claim validation passed if only unit tests passed.
 - Do not treat "tag already exists" or "release page exists" as proof that assets or update-channel manifests are published.
+
+## Final Handoff Checklist
+- Local verify command passed
+- Release workflow ended in `success`
+- Release assets are complete
+- `gh-pages` branch manifest points at the new version
+- Public update-channel URL reflects the new version
+- Response includes:
+  - release URL
+  - workflow run URL
+  - exact version pair: launcher + bundle
+  - any propagation caveat or rerun history if it happened
 
 ## Recommended Response Pattern
 - State the root cause in contract terms: missing packaged verifier, broken packaging contract, or manifest/signature mismatch.
