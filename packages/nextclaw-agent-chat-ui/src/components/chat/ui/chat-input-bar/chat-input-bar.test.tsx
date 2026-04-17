@@ -668,3 +668,75 @@ it('renders disabled accessories as icon-only triggers when tooltip copy exists'
   expect(screen.queryByText('Coming soon')).toBeNull();
   expect(trigger.tagName).toBe('SPAN');
 });
+
+it('collapses long send errors and reveals the full text in a details popover', async () => {
+  const longError =
+    'NotFoundError [HTTP 404]\nProvider: custom Model: MiniMax-M2.7\nEndpoint: https://dashscope.aliyuncs.com/compatible-mode/v1\nThis model does not exist or you do not have access to it.';
+
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        toolbar: {
+          selects: [],
+          actions: {
+            sendError: longError,
+            sendErrorDetailsLabel: 'View details',
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            onSend: vi.fn(),
+            onStop: vi.fn()
+          }
+        }
+      })}
+    />
+  );
+
+  expect(screen.getByText(/NotFoundError \[HTTP 404\]/)).toBeTruthy();
+  expect(
+    screen.queryByText(/Endpoint: https:\/\/dashscope\.aliyuncs\.com\/compatible-mode\/v1/)
+  ).toBeNull();
+
+  fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+
+  await waitFor(() => {
+    expect(
+      screen.getByText(/Endpoint: https:\/\/dashscope\.aliyuncs\.com\/compatible-mode\/v1/)
+    ).toBeTruthy();
+  });
+});
+
+it('reveals the original send error on hover even when the summary stays on one line', async () => {
+  const hoverError =
+    'timeout while contacting upstream\nrequest_id=req-123\nprovider=narp-stdio';
+
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        toolbar: {
+          selects: [],
+          actions: {
+            sendError: hoverError,
+            sendErrorDetailsLabel: 'View details',
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            onSend: vi.fn(),
+            onStop: vi.fn()
+          }
+        }
+      })}
+    />
+  );
+
+  expect(screen.getByRole('button', { name: 'View details' })).toBeTruthy();
+  expect((document.querySelector('span[title]') as HTMLElement | null)?.getAttribute('title')).toBe(hoverError);
+});

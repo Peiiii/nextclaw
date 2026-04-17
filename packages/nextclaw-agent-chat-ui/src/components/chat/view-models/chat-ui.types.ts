@@ -116,6 +116,7 @@ export type ChatSkillPickerProps = {
 
 export type ChatInputBarActionsProps = {
   sendError?: string | null;
+  sendErrorDetailsLabel?: string;
   isSending: boolean;
   canStopGeneration: boolean;
   sendDisabled: boolean;
