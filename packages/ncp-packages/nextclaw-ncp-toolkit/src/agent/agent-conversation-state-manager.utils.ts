@@ -1,5 +1,7 @@
 import type { NcpError, NcpMessage, NcpRunErrorPayload } from "@nextclaw/ncp";
 
+export const ABORTED_TOOL_CALL_SENTINEL = "__nextclaw_aborted_tool_call__";
+
 export function buildRuntimeError(payload: NcpRunErrorPayload): NcpError {
   const message = payload.error?.trim();
   return {
@@ -92,4 +94,29 @@ export function upsertToolInvocationPart(
   }
   nextParts.push(toolPart);
   return nextParts;
+}
+
+export function cancelInFlightToolInvocations(parts: NcpMessage["parts"]): {
+  parts: NcpMessage["parts"];
+  toolCallIds: string[];
+} {
+  const toolCallIds: string[] = [];
+  return {
+    parts: parts.map((part) => {
+      if (
+        part.type !== "tool-invocation" ||
+        !part.toolCallId ||
+        part.state === "result" ||
+        part.state === "cancelled"
+      ) {
+        return part;
+      }
+      toolCallIds.push(part.toolCallId);
+      return {
+        ...part,
+        state: "cancelled" as const,
+      };
+    }),
+    toolCallIds,
+  };
 }

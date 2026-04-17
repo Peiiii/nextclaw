@@ -151,6 +151,9 @@ function parseSessionContext(sessionKey: string): { channel?: string; type?: str
 }
 
 function mapToolStatus(part: Extract<NcpMessagePart, { type: 'tool-invocation' }>): ToolInvocationStatus {
+  if (part.state === 'cancelled') {
+    return ToolInvocationStatus.CANCELLED;
+  }
   if (part.state === 'result') {
     return ToolInvocationStatus.RESULT;
   }

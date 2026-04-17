@@ -316,6 +316,7 @@ describe('adaptNcpMessageToUiMessage tool rendering', () => {
       },
     });
   });
+
 });
 
 describe('readNcpSessionPreferredThinking', () => {

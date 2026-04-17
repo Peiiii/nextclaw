@@ -92,12 +92,13 @@ export type NcpReasoningPart = {
  * - `"call"`         — The model has emitted a complete tool call; `args` is populated.
  * - `"partial-call"` — Arguments are still being streamed; `args` may be incomplete.
  * - `"result"`       — The tool has returned; `result` is populated.
+ * - `"cancelled"`    — The tool was interrupted before a result was delivered.
  */
 export type NcpToolInvocationPart = {
   type: "tool-invocation";
   toolName: string;
   toolCallId?: string;
-  state?: "call" | "partial-call" | "result";
+  state?: "call" | "partial-call" | "result" | "cancelled";
   /** Tool input arguments. May be partial when `state === "partial-call"`. */
   args?: unknown;
   /** Tool output. Populated when `state === "result"`. */
