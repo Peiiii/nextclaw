@@ -3,7 +3,12 @@ import { BaseChannel } from "@nextclaw/core";
 import type { OutboundMessage } from "@nextclaw/core";
 import { NcpReplyConsumer } from "@nextclaw/ncp-toolkit";
 import type { ChatTarget, NcpReplyInput } from "@nextclaw/ncp-toolkit";
-import { loadWeixinCursor, saveWeixinCursor, listStoredWeixinAccountIds } from "./weixin-account.store.js";
+import {
+  deleteWeixinCursor,
+  loadWeixinCursor,
+  saveWeixinCursor,
+  listStoredWeixinAccountIds,
+} from "./weixin-account.store.js";
 import {
   extractWeixinMessageText,
   fetchWeixinConfig,
@@ -44,6 +49,14 @@ async function sleep(ms: number, signal?: AbortSignal): Promise<void> {
     };
     signal?.addEventListener("abort", onAbort, { once: true });
   });
+}
+
+function isWeixinPollingSessionTimeout(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("weixin getupdates failed") &&
+    (message.includes("errcode=-14") || message.includes("session timeout"))
+  );
 }
 
 export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
@@ -165,6 +178,11 @@ export class WeixinChannel extends BaseChannel<Record<string, unknown>> {
         }
       } catch (error) {
         if (!signal.aborted) {
+          if (isWeixinPollingSessionTimeout(error)) {
+            deleteWeixinCursor(accountId);
+            await sleep(1_000, signal);
+            continue;
+          }
           // eslint-disable-next-line no-console
           console.warn(`[weixin] polling failed for ${accountId}: ${String(error)}`);
           await sleep(3_000, signal);

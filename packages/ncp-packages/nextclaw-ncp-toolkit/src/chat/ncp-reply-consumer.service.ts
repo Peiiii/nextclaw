@@ -116,12 +116,118 @@ function resolveUnsentMessageParts(
   return collectUnsentPartsFromNormalizedParts(normalizedParts, sentText);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function readOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function readOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined;
+}
+
+function projectAssetPutFiles(
+  result: unknown,
+): Extract<NcpMessagePart, { type: "file" }>[] {
+  if (!isRecord(result)) {
+    return [];
+  }
+
+  const assetCandidates = isRecord(result.asset)
+    ? [result.asset]
+    : Array.isArray(result.assets)
+      ? result.assets.filter(isRecord)
+      : [];
+
+  return assetCandidates.flatMap((asset) => {
+    const assetUri = readOptionalString(asset.uri);
+    const url = readOptionalString(asset.url);
+    if (!assetUri && !url) {
+      return [];
+    }
+    return [
+      {
+        type: "file" as const,
+        ...(readOptionalString(asset.name)
+          ? { name: readOptionalString(asset.name) }
+          : {}),
+        ...(readOptionalString(asset.mimeType)
+          ? { mimeType: readOptionalString(asset.mimeType) }
+          : {}),
+        ...(assetUri ? { assetUri } : {}),
+        ...(url ? { url } : {}),
+        ...(readOptionalNumber(asset.sizeBytes) != null
+          ? { sizeBytes: readOptionalNumber(asset.sizeBytes) }
+          : {}),
+      },
+    ];
+  });
+}
+
+function projectToolResultParts(params: {
+  toolCallId?: string;
+  toolName?: string;
+  content: unknown;
+  projectedToolCallIds: Set<string>;
+}): NcpMessagePart[] {
+  if (
+    params.toolName !== "asset_put" ||
+    !params.toolCallId ||
+    params.projectedToolCallIds.has(params.toolCallId)
+  ) {
+    return [];
+  }
+  const projectedFiles = projectAssetPutFiles(params.content);
+  if (projectedFiles.length > 0) {
+    params.projectedToolCallIds.add(params.toolCallId);
+  }
+  return projectedFiles;
+}
+
+function projectChannelOutputParts(
+  parts: NcpMessagePart[],
+  projectedToolCallIds: Set<string>,
+): NcpMessagePart[] {
+  return parts.flatMap((part) => {
+    if (
+      part.type === "tool-invocation" &&
+      part.toolName === "asset_put" &&
+      part.result
+    ) {
+      if (
+        part.toolCallId &&
+        projectedToolCallIds.has(part.toolCallId)
+      ) {
+        return [];
+      }
+      const projectedFiles = projectAssetPutFiles(part.result);
+      if (projectedFiles.length > 0) {
+        if (part.toolCallId) {
+          projectedToolCallIds.add(part.toolCallId);
+        }
+        return projectedFiles;
+      }
+    }
+    return [part];
+  });
+}
+
 class NcpReplySession {
   private activeText = "";
   private fullText = "";
   private sentText = "";
   private typingStarted = false;
   private closed = false;
+  private readonly toolNameByCallId = new Map<string, string>();
+  private readonly projectedToolCallIds = new Set<string>();
 
   constructor(
     private readonly chat: Chat,
@@ -153,13 +259,19 @@ class NcpReplySession {
         await this.handleTextEnd();
         return;
       case NcpEventType.MessageToolCallStart:
-        await this.handleToolCallStart();
+        await this.handleToolCallStart(
+          event.payload.toolCallId,
+          event.payload.toolName,
+        );
         return;
       case NcpEventType.MessageReasoningStart:
         await this.flushTextPart();
         return;
       case NcpEventType.MessageToolCallResult:
-        await this.ensureTypingStarted();
+        await this.handleToolCallResult(
+          event.payload.toolCallId,
+          event.payload.content,
+        );
         return;
       case NcpEventType.MessageCompleted:
         await this.handleCompleted(event.payload.message);
@@ -195,17 +307,40 @@ class NcpReplySession {
     await this.flushTextPart();
   };
 
-  private handleToolCallStart = async (): Promise<void> => {
+  private handleToolCallStart = async (
+    toolCallId: string,
+    toolName: string,
+  ): Promise<void> => {
+    this.toolNameByCallId.set(toolCallId, toolName);
     await this.ensureTypingStarted();
     await this.flushTextPart();
   };
 
+  private handleToolCallResult = async (
+    toolCallId: string,
+    content: unknown,
+  ): Promise<void> => {
+    await this.ensureTypingStarted();
+    const projectedParts = projectToolResultParts({
+      toolCallId,
+      toolName: this.toolNameByCallId.get(toolCallId),
+      content,
+      projectedToolCallIds: this.projectedToolCallIds,
+    });
+    if (projectedParts.length === 0) {
+      return;
+    }
+    await this.flushTextPart();
+    for (const part of projectedParts) {
+      await this.chat.sendPart(this.target, part);
+    }
+  };
+
   private handleCompleted = async (message: NcpMessage): Promise<void> => {
     await this.flushTextPart();
-    const unsentParts = resolveUnsentMessageParts(
-      message,
-      this.sentText,
-      this.fullText,
+    const unsentParts = projectChannelOutputParts(
+      resolveUnsentMessageParts(message, this.sentText, this.fullText),
+      this.projectedToolCallIds,
     );
     for (const part of unsentParts) {
       await this.ensureTypingStarted();

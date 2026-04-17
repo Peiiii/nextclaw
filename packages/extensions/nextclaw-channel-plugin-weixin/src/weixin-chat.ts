@@ -293,6 +293,8 @@ export class WeixinChat implements Chat {
         token: sendContext.account.token,
         toUserId: target.conversationId,
         bytes: media.bytes,
+        width: media.imageWidth,
+        height: media.imageHeight,
         contextToken: sendContext.contextToken,
       });
       return;

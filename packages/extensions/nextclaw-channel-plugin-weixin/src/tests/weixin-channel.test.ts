@@ -4,12 +4,19 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { MessageBus } from "@nextclaw/core";
-import { saveWeixinAccount } from "../weixin-account.store.js";
+import {
+  loadWeixinCursor,
+  saveWeixinAccount,
+  saveWeixinCursor,
+} from "../weixin-account.store.js";
 
 const sendWeixinTextMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-1" })));
 const sendWeixinImageMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-image-1" })));
 const sendWeixinFileMessageMock = vi.hoisted(() => vi.fn(async () => ({ messageId: "msg-file-1" })));
 const extractWeixinMessageTextMock = vi.hoisted(() => vi.fn(() => "hello"));
+const fetchWeixinUpdatesMock = vi.hoisted(() =>
+  vi.fn(async () => ({ ret: 0, msgs: [], get_updates_buf: "" })),
+);
 const typingControllerStartMock = vi.hoisted(() => vi.fn(async () => {}));
 const typingControllerStopMock = vi.hoisted(() => vi.fn(async () => {}));
 const typingControllerStopAllMock = vi.hoisted(() => vi.fn(async () => {}));
@@ -19,7 +26,7 @@ vi.mock("../weixin-api.client.js", () => ({
   extractWeixinMessageText: extractWeixinMessageTextMock,
   isSyntheticWeixinAttachmentText: vi.fn(() => false),
   fetchWeixinConfig: vi.fn(async () => ({ ret: 0, errcode: 0, typing_ticket: "ticket-1" })),
-  fetchWeixinUpdates: vi.fn(async () => ({ ret: 0, msgs: [], get_updates_buf: "" })),
+  fetchWeixinUpdates: fetchWeixinUpdatesMock,
   sendWeixinTyping: vi.fn(async () => ({ ret: 0, errcode: 0 })),
 }));
 
@@ -418,5 +425,53 @@ describe("WeixinChannel native media delivery", () => {
       }),
     );
     expect(sendWeixinImageMessageMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("WeixinChannel polling recovery", () => {
+  it("clears the saved cursor when getupdates reports session timeout and resumes quietly", async () => {
+    createHome();
+    saveWeixinAccount({
+      accountId: "bot-1@im.bot",
+      token: "bot-token",
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      savedAt: "2026-04-10T00:00:00.000Z",
+    });
+    saveWeixinCursor("bot-1@im.bot", "stale-cursor");
+
+    const controller = new AbortController();
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    fetchWeixinUpdatesMock
+      .mockRejectedValueOnce(
+        new Error("weixin getupdates failed: errcode=-14, errmsg=session timeout"),
+      )
+      .mockImplementationOnce(async () => {
+        controller.abort();
+        return {
+          ret: 0,
+          msgs: [],
+          get_updates_buf: "fresh-cursor",
+        };
+      });
+
+    const channel = new WeixinChannel(
+      {
+        enabled: true,
+        defaultAccountId: "bot-1@im.bot",
+      },
+      {
+        publishInbound: vi.fn(async () => {}),
+      } as unknown as MessageBus,
+    );
+
+    (channel as unknown as { running: boolean }).running = true;
+
+    await (channel as unknown as {
+      runAccountPollingLoop: (accountId: string, signal: AbortSignal) => Promise<void>;
+    }).runAccountPollingLoop("bot-1@im.bot", controller.signal);
+
+    expect(loadWeixinCursor("bot-1@im.bot")).toBe("fresh-cursor");
+    expect(warnSpy).not.toHaveBeenCalled();
   });
 });

@@ -20,7 +20,7 @@ type WeixinUploadUrlResponse = {
 
 type UploadedWeixinMedia = {
   downloadEncryptedQueryParam: string;
-  aesKeyBase64: string;
+  aesKeyHex: string;
   fileSize: number;
   fileSizeCiphertext: number;
 };
@@ -49,6 +49,10 @@ function computeEncryptedSize(size: number): number {
 function encryptWeixinBytes(bytes: Uint8Array, aesKey: Buffer): Buffer {
   const cipher = createCipheriv("aes-128-ecb", aesKey, null);
   return Buffer.concat([cipher.update(Buffer.from(bytes)), cipher.final()]);
+}
+
+function encodeWeixinMediaAesKey(aesKeyHex: string): string {
+  return Buffer.from(aesKeyHex, "utf8").toString("base64");
 }
 
 async function withUploadTimeout<T>(params: {
@@ -157,7 +161,7 @@ async function uploadWeixinMedia(params: {
 
   return {
     downloadEncryptedQueryParam,
-    aesKeyBase64: params.aesKey.toString("base64"),
+    aesKeyHex: params.aesKey.toString("hex"),
     fileSize: params.bytes.byteLength,
     fileSizeCiphertext: ciphertext.byteLength,
   };
@@ -204,36 +208,6 @@ async function sendUploadedWeixinMediaItem(params: {
   });
 }
 
-export async function sendWeixinImageMessage(params: {
-  baseUrl: string;
-  token: string;
-  toUserId: string;
-  bytes: Uint8Array;
-  contextToken?: string;
-  signal?: AbortSignal;
-}): Promise<{ messageId: string }> {
-  return await sendUploadedWeixinMediaItem({
-    baseUrl: params.baseUrl,
-    token: params.token,
-    toUserId: params.toUserId,
-    bytes: params.bytes,
-    contextToken: params.contextToken,
-    mediaType: WEIXIN_UPLOAD_MEDIA_TYPE_IMAGE,
-    signal: params.signal,
-    item: (uploaded) => ({
-      type: WEIXIN_MESSAGE_ITEM_TYPE_IMAGE,
-      image_item: {
-        media: {
-          encrypt_query_param: uploaded.downloadEncryptedQueryParam,
-          aes_key: uploaded.aesKeyBase64,
-          encrypt_type: WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED,
-        },
-        mid_size: uploaded.fileSizeCiphertext,
-      },
-    }),
-  });
-}
-
 export async function sendWeixinFileMessage(params: {
   baseUrl: string;
   token: string;
@@ -258,9 +232,41 @@ export async function sendWeixinFileMessage(params: {
         len: String(uploaded.fileSize),
         media: {
           encrypt_query_param: uploaded.downloadEncryptedQueryParam,
-          aes_key: uploaded.aesKeyBase64,
+          aes_key: encodeWeixinMediaAesKey(uploaded.aesKeyHex),
           encrypt_type: WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED,
         },
+      },
+    }),
+  });
+}
+
+export async function sendWeixinImageMessage(params: {
+  baseUrl: string;
+  token: string;
+  toUserId: string;
+  bytes: Uint8Array;
+  width?: number;
+  height?: number;
+  contextToken?: string;
+  signal?: AbortSignal;
+}): Promise<{ messageId: string }> {
+  return await sendUploadedWeixinMediaItem({
+    baseUrl: params.baseUrl,
+    token: params.token,
+    toUserId: params.toUserId,
+    bytes: params.bytes,
+    contextToken: params.contextToken,
+    mediaType: WEIXIN_UPLOAD_MEDIA_TYPE_IMAGE,
+    signal: params.signal,
+    item: (uploaded) => ({
+      type: WEIXIN_MESSAGE_ITEM_TYPE_IMAGE,
+      image_item: {
+        media: {
+          encrypt_query_param: uploaded.downloadEncryptedQueryParam,
+          aes_key: encodeWeixinMediaAesKey(uploaded.aesKeyHex),
+          encrypt_type: WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED,
+        },
+        mid_size: uploaded.fileSizeCiphertext,
       },
     }),
   });

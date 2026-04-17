@@ -25,8 +25,13 @@ export type WeixinCdnMedia = {
 
 export type WeixinImageItem = {
   media?: WeixinCdnMedia;
+  thumb_media?: WeixinCdnMedia;
   aeskey?: string;
   mid_size?: number;
+  thumb_size?: number;
+  thumb_height?: number;
+  thumb_width?: number;
+  hd_size?: number;
 };
 
 export type WeixinFileItem = {
@@ -85,6 +90,14 @@ export type WeixinSendTypingResponse = {
   errcode?: number;
   errmsg?: string;
 };
+
+type WeixinBizResponse = {
+  ret?: number;
+  errcode?: number;
+  errmsg?: string;
+  message_id?: string | number;
+};
+
 export const WEIXIN_API_TIMEOUT_MS = 15_000;
 export const WEIXIN_MESSAGE_TYPE_BOT = 2;
 export const WEIXIN_MESSAGE_ITEM_TYPE_TEXT = 1;
@@ -177,6 +190,31 @@ function stripSimpleMarkdown(text: string): string {
     .trim();
 }
 
+function assertWeixinBizSuccess(
+  response: WeixinBizResponse,
+  action: string,
+): void {
+  const ret = response.ret;
+  const errcode = response.errcode;
+  const isRetFailure = typeof ret === "number" && ret !== 0;
+  const isErrcodeFailure = typeof errcode === "number" && errcode !== 0;
+  if (!isRetFailure && !isErrcodeFailure) {
+    return;
+  }
+
+  const detail = [ret !== undefined ? `ret=${ret}` : null]
+    .concat(errcode !== undefined ? `errcode=${errcode}` : null)
+    .concat(response.errmsg?.trim() ? `errmsg=${response.errmsg.trim()}` : null)
+    .filter(Boolean)
+    .join(", ");
+
+  throw new Error(
+    detail
+      ? `weixin ${action} failed: ${detail}`
+      : `weixin ${action} failed`,
+  );
+}
+
 export async function sendWeixinMessageItem(params: {
   baseUrl: string;
   token: string;
@@ -185,8 +223,8 @@ export async function sendWeixinMessageItem(params: {
   contextToken?: string;
   signal?: AbortSignal;
 }): Promise<{ messageId: string }> {
-  const messageId = randomUUID();
-  await fetchWeixinJson<Record<string, unknown>>({
+  const clientMessageId = randomUUID();
+  const response = await fetchWeixinJson<WeixinBizResponse>({
     url: new URL(
       "ilink/bot/sendmessage",
       normalizeWeixinBaseUrl(params.baseUrl),
@@ -198,7 +236,7 @@ export async function sendWeixinMessageItem(params: {
       msg: {
         from_user_id: "",
         to_user_id: params.toUserId,
-        client_id: messageId,
+        client_id: clientMessageId,
         message_type: WEIXIN_MESSAGE_TYPE_BOT,
         message_state: WEIXIN_MESSAGE_STATE_FINISH,
         item_list: [params.item],
@@ -207,7 +245,15 @@ export async function sendWeixinMessageItem(params: {
       base_info: buildWeixinBaseInfo(),
     },
   });
-  return { messageId };
+  assertWeixinBizSuccess(response, "sendmessage");
+  return {
+    messageId:
+      typeof response.message_id === "string"
+        ? response.message_id
+        : typeof response.message_id === "number"
+          ? String(response.message_id)
+          : clientMessageId,
+  };
 }
 
 export async function fetchWeixinQrCode(params: {
@@ -236,7 +282,7 @@ export async function fetchWeixinConfig(params: {
   contextToken: string;
   signal?: AbortSignal;
 }): Promise<WeixinConfigResponse> {
-  return await fetchWeixinJson<WeixinConfigResponse>({
+  const response = await fetchWeixinJson<WeixinConfigResponse>({
     url: new URL(
       "ilink/bot/getconfig",
       normalizeWeixinBaseUrl(params.baseUrl),
@@ -250,6 +296,8 @@ export async function fetchWeixinConfig(params: {
       base_info: buildWeixinBaseInfo(),
     },
   });
+  assertWeixinBizSuccess(response, "getconfig");
+  return response;
 }
 
 export async function sendWeixinTyping(params: {
@@ -260,7 +308,7 @@ export async function sendWeixinTyping(params: {
   status: 1 | 2;
   signal?: AbortSignal;
 }): Promise<WeixinSendTypingResponse> {
-  return await fetchWeixinJson<WeixinSendTypingResponse>({
+  const response = await fetchWeixinJson<WeixinSendTypingResponse>({
     url: new URL(
       "ilink/bot/sendtyping",
       normalizeWeixinBaseUrl(params.baseUrl),
@@ -275,6 +323,8 @@ export async function sendWeixinTyping(params: {
       base_info: buildWeixinBaseInfo(),
     },
   });
+  assertWeixinBizSuccess(response, "sendtyping");
+  return response;
 }
 
 export async function fetchWeixinQrStatus(params: {
@@ -313,7 +363,7 @@ export async function fetchWeixinUpdates(params: {
   signal?: AbortSignal;
 }): Promise<WeixinGetUpdatesResponse> {
   try {
-    return await fetchWeixinJson<WeixinGetUpdatesResponse>({
+    const response = await fetchWeixinJson<WeixinGetUpdatesResponse>({
       url: new URL(
         "ilink/bot/getupdates",
         normalizeWeixinBaseUrl(params.baseUrl),
@@ -326,6 +376,8 @@ export async function fetchWeixinUpdates(params: {
         base_info: buildWeixinBaseInfo(),
       },
     });
+    assertWeixinBizSuccess(response, "getupdates");
+    return response;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       return { ret: 0, msgs: [], get_updates_buf: params.cursor };

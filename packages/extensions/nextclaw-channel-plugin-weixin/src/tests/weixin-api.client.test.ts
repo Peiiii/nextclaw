@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   fetchWeixinConfig,
+  sendWeixinTextMessage,
   sendWeixinTyping,
 } from "../weixin-api.client.js";
 import {
@@ -73,6 +74,32 @@ describe("weixin api typing helpers", () => {
     });
   });
 
+  it("fails fast when sendmessage returns a business error", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          ret: -2,
+          errcode: 0,
+          errmsg: "context token expired",
+        }),
+        { status: 200 },
+      ),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+
+    await expect(
+      sendWeixinTextMessage({
+        baseUrl: "https://ilinkai.weixin.qq.com",
+        token: "bot-token",
+        toUserId: "user-1@im.wechat",
+        text: "hello",
+        contextToken: "ctx-expired",
+      }),
+    ).rejects.toThrow(
+      "weixin sendmessage failed: ret=-2, errcode=0, errmsg=context token expired",
+    );
+  });
+
   it("uploads image bytes and sends a native image message", async () => {
     const fetchMock = vi
       .fn()
@@ -92,21 +119,37 @@ describe("weixin api typing helpers", () => {
           },
         }),
       )
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ret: 0,
+            errcode: 0,
+            message_id: "msg-image-remote",
+          }),
+          { status: 200 },
+        ),
+      );
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await sendWeixinImageMessage({
+    const response = await sendWeixinImageMessage({
       baseUrl: "https://ilinkai.weixin.qq.com",
       token: "bot-token",
       toUserId: "user-1@im.wechat",
       bytes: new Uint8Array([1, 2, 3, 4]),
+      width: 400,
+      height: 300,
       contextToken: "ctx-image",
+    });
+
+    expect(response).toEqual({
+      messageId: "msg-image-remote",
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const [uploadUrl, uploadInit] = fetchMock.mock.calls[0] ?? [];
     expect(uploadUrl).toBe("https://ilinkai.weixin.qq.com/ilink/bot/getuploadurl");
-    expect(JSON.parse(String(uploadInit?.body))).toMatchObject({
+    const uploadBody = JSON.parse(String(uploadInit?.body));
+    expect(uploadBody).toMatchObject({
       to_user_id: "user-1@im.wechat",
       media_type: 1,
       rawsize: 4,
@@ -122,7 +165,8 @@ describe("weixin api typing helpers", () => {
 
     const [sendUrl, sendInit] = fetchMock.mock.calls[2] ?? [];
     expect(sendUrl).toBe("https://ilinkai.weixin.qq.com/ilink/bot/sendmessage");
-    expect(JSON.parse(String(sendInit?.body))).toMatchObject({
+    const sendBody = JSON.parse(String(sendInit?.body));
+    expect(sendBody).toMatchObject({
       msg: {
         to_user_id: "user-1@im.wechat",
         context_token: "ctx-image",
@@ -140,6 +184,11 @@ describe("weixin api typing helpers", () => {
         ],
       },
     });
+    const imageMediaKey =
+      sendBody.msg.item_list[0]?.image_item?.media?.aes_key;
+    expect(Buffer.from(imageMediaKey, "base64").toString("utf8")).toBe(
+      uploadBody.aeskey,
+    );
   });
 
   it("uploads file bytes and sends a native file message", async () => {
@@ -161,10 +210,19 @@ describe("weixin api typing helpers", () => {
           },
         }),
       )
-      .mockResolvedValueOnce(new Response("{}", { status: 200 }));
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            ret: 0,
+            errcode: 0,
+            message_id: "msg-file-remote",
+          }),
+          { status: 200 },
+        ),
+      );
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await sendWeixinFileMessage({
+    const response = await sendWeixinFileMessage({
       baseUrl: "https://ilinkai.weixin.qq.com",
       token: "bot-token",
       toUserId: "user-1@im.wechat",
@@ -173,9 +231,14 @@ describe("weixin api typing helpers", () => {
       contextToken: "ctx-file",
     });
 
+    expect(response).toEqual({
+      messageId: "msg-file-remote",
+    });
+
     expect(fetchMock).toHaveBeenCalledTimes(3);
     const [, uploadInit] = fetchMock.mock.calls[0] ?? [];
-    expect(JSON.parse(String(uploadInit?.body))).toMatchObject({
+    const uploadBody = JSON.parse(String(uploadInit?.body));
+    expect(uploadBody).toMatchObject({
       to_user_id: "user-1@im.wechat",
       media_type: 3,
       rawsize: 3,
@@ -185,7 +248,8 @@ describe("weixin api typing helpers", () => {
     expect(cdnUrl).toBe("https://cdn.example.com/upload/direct");
 
     const [, sendInit] = fetchMock.mock.calls[2] ?? [];
-    expect(JSON.parse(String(sendInit?.body))).toMatchObject({
+    const sendBody = JSON.parse(String(sendInit?.body));
+    expect(sendBody).toMatchObject({
       msg: {
         to_user_id: "user-1@im.wechat",
         context_token: "ctx-file",
@@ -204,5 +268,10 @@ describe("weixin api typing helpers", () => {
         ],
       },
     });
+    const fileMediaKey =
+      sendBody.msg.item_list[0]?.file_item?.media?.aes_key;
+    expect(Buffer.from(fileMediaKey, "base64").toString("utf8")).toBe(
+      uploadBody.aeskey,
+    );
   });
 });
