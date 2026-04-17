@@ -42,6 +42,7 @@
 - 构建 seed bundle：同上。
 - 本地更新烟测、手动验收支持脚本：stable / beta manifest 与 bundle 内部 `launcherCompatibility.minVersion` 都必须与各自 channel floor 一致。
 - release / validate workflow：禁止写死历史 floor，必须动态读取 governed floor，或显式传 channel 让脚本自己读取。
+- CI / workflow 若只是想拿纯净 floor 值，必须直接调用 [`print-minimum-launcher-version.service.mjs`](../../apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs) 这类纯 stdout 脚本；不要用 `pnpm run` 包装后再命令替换，避免把包管理器 banner / script 前缀误当成版本号。
 
 ## 变更 floor 时的必做动作
 

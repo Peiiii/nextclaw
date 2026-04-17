@@ -16,11 +16,16 @@
   - [desktop-validate.yml](../../../.github/workflows/desktop-validate.yml)
   - [desktop-release.yml](../../../.github/workflows/desktop-release.yml)
   - 这些入口现在都显式传 `channel` 或动态读取 governed floor，避免再出现隐藏默认值把 launcher 与 bundle 重新耦合起来。
+- 追加修正 CI floor 取值链路：
+  - `desktop-release` / `desktop-validate` 不再通过 `pnpm run bundle:minimum-launcher-version` 做命令替换取值。
+  - 改为直接调用 [print-minimum-launcher-version.service.mjs](../../../apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs) 输出纯净版本号，避免 `pnpm` banner 被误传给 `bundle:build` / `bundle:manifest`，从而再次触发“stable channel floor 0.0.141”看似匹配却仍报错的问题。
 - 补充 [apps/desktop/README.md](../../../apps/desktop/README.md) 与 [desktop-install-unsigned.md](../../../docs/internal/desktop-install-unsigned.md) 的长期说明入口，方便后续查找。
 
 ## 测试/验证/验收方式
 
 - 已通过：
+  - `node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel stable`
+  - `node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel beta`
   - `node --check apps/desktop/scripts/update/services/local-update-channel-artifacts.service.mjs`
   - `node --check apps/desktop/scripts/update/services/prepare-seed-bundle.service.mjs`
   - `node --check apps/desktop/scripts/prepare-manual-update-validation.mjs`
@@ -52,7 +57,7 @@
 - 本次不需要改动桌面 release 的外部发布入口，继续沿用 [desktop-release.yml](../../../.github/workflows/desktop-release.yml)。
 - 重新发布桌面版时，release workflow 会：
   - 显式把 `DESKTOP_UPDATE_CHANNEL` 传给 `bundle:seed`
-  - 动态读取对应 channel 的 governed floor 构建 product bundle 与 update manifest
+  - 直接通过纯 stdout service 动态读取对应 channel 的 governed floor 构建 product bundle 与 update manifest
   - 继续保留 Windows `Setup.exe` 与 `win-unpacked.zip` 双轨资产
 - 本次本地已经把 release contract 修正到可重新发布状态；是否真正对外发布，以本次提交后的 tag / release workflow 为准。
 

@@ -81,7 +81,7 @@ jobs:
 
           OUTPUT_DIR="$(mktemp -d)"
           KEY_DIR="$(mktemp -d)"
-          MINIMUM_LAUNCHER_VERSION="$(pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel stable)"
+          MINIMUM_LAUNCHER_VERSION="$(node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel stable)"
           trap 'rm -rf "$OUTPUT_DIR" "$KEY_DIR"' EXIT
 
           pnpm -C apps/desktop bundle:build -- \
