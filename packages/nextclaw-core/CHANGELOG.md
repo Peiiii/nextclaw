@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.12.8
+
+### Patch Changes
+
+- Promote Hermes ACP bridge extraction into a published runtime package and ship the NextClaw 0.18 release line.
+
 ## 0.12.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @nextclaw/channel-plugin-dingtalk
 
+## 0.2.39
+
+### Patch Changes
+
+- @nextclaw/channel-runtime@0.4.25
+
 ## 0.2.38
 
 ### Patch Changes

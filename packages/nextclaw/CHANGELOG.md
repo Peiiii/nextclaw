@@ -1,5 +1,24 @@
 # nextclaw
 
+## 0.18.0
+
+### Minor Changes
+
+- Promote Hermes ACP bridge extraction into a published runtime package and ship the NextClaw 0.18 release line.
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.8
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.1.2
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.1.1
+  - @nextclaw/mcp@0.1.73
+  - @nextclaw/openclaw-compat@1.0.8
+  - @nextclaw/remote@0.1.85
+  - @nextclaw/runtime@0.2.40
+  - @nextclaw/server@0.12.8
+  - @nextclaw/ncp-mcp@0.1.75
+
 ## 0.17.12
 
 ### Patch Changes
