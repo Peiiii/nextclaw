@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import {
   buildConfigSchema,
+  buildReloadPlan,
   ConfigSchema,
+  diffConfigPaths,
   normalizeInlineSecretRefs,
   redactConfigObject,
   type Config,
@@ -21,6 +23,7 @@ import {
 
 type ConfigReloaderLike = {
   getChannels: () => ChannelManager;
+  applyReloadPlan: (nextConfig: Config) => Promise<void>;
   reloadConfig: (reason?: string) => Promise<string>;
 };
 
@@ -92,18 +95,25 @@ const mergeDeep = (base: Record<string, unknown>, patch: Record<string, unknown>
   return next;
 };
 
+const buildPendingRestartMessage = (paths: string[]): string => {
+  if (paths.length === 0) {
+    return "Config saved. Restart manually to apply changes.";
+  }
+  return `Config saved. Restart manually to apply: ${paths.join(", ")}.`;
+};
+
 export class GatewayControllerImpl implements GatewayController {
   constructor(private deps: ControllerDeps) {}
 
-  private normalizeOptionalString(value: unknown): string | undefined {
+  private normalizeOptionalString = (value: unknown): string | undefined => {
     if (typeof value !== "string") {
       return undefined;
     }
     const trimmed = value.trim();
     return trimmed || undefined;
-  }
+  };
 
-  private resolveDeliveryContext(sessionKey?: string): RestartSentinelDeliveryContext | undefined {
+  private resolveDeliveryContext = (sessionKey?: string): RestartSentinelDeliveryContext | undefined => {
     const normalizedSessionKey = this.normalizeOptionalString(sessionKey);
     const keyTarget = parseSessionKey(normalizedSessionKey);
     const keyRoute = keyTarget && keyTarget.channel !== "agent" ? keyTarget : null;
@@ -147,16 +157,16 @@ export class GatewayControllerImpl implements GatewayController {
       ...(accountId ? { accountId } : {}),
       ...(Object.keys(cachedMetadata).length > 0 ? { metadata: cachedMetadata } : {})
     };
-  }
+  };
 
-  private async writeRestartSentinelPayload(params: {
+  private writeRestartSentinelPayload = async (params: {
     kind: "config.apply" | "config.patch" | "update.run" | "restart";
     status: "ok" | "error" | "skipped";
     sessionKey?: string;
     note?: string;
     reason?: string;
-      strategy?: string;
-  }): Promise<string | null> {
+    strategy?: string;
+  }): Promise<string | null> => {
     const sessionKey = this.normalizeOptionalString(params.sessionKey);
     const deliveryContext = this.resolveDeliveryContext(sessionKey);
     try {
@@ -175,9 +185,9 @@ export class GatewayControllerImpl implements GatewayController {
     } catch {
       return null;
     }
-  }
+  };
 
-  private async requestRestart(options?: { delayMs?: number; reason?: string }): Promise<void> {
+  private requestRestart = async (options?: { delayMs?: number; reason?: string }): Promise<void> => {
     if (this.deps.requestRestart) {
       await this.deps.requestRestart(options);
       return;
@@ -188,21 +198,84 @@ export class GatewayControllerImpl implements GatewayController {
     setTimeout(() => {
       process.exit(0);
     }, delay);
-  }
+  };
 
-  status(): Record<string, unknown> {
+  private createConfigMutationResult = (params: {
+    changedPaths: string[];
+    config: Config;
+    note?: string;
+    plan: ReturnType<typeof buildReloadPlan>;
+  }): Record<string, unknown> => {
+    const pendingRestart =
+      params.plan.restartRequired.length > 0
+        ? {
+            required: true,
+            automatic: false,
+            changedPaths: [...params.plan.restartRequired],
+            message: buildPendingRestartMessage(params.plan.restartRequired)
+          }
+        : null;
+    const message =
+      params.changedPaths.length === 0
+        ? "Config already matched the requested state."
+        : pendingRestart
+          ? params.changedPaths.length > params.plan.restartRequired.length
+            ? "Config saved. Supported changes were applied immediately; restart manually to apply the rest."
+            : "Config saved. Restart manually to apply changes."
+          : "Config saved and applied.";
+
+    return {
+      ok: true,
+      note: params.note ?? null,
+      path: this.deps.getConfigPath(),
+      config: redactValue(params.config),
+      changedPaths: [...params.changedPaths],
+      message,
+      pendingRestart
+    };
+  };
+
+  private applyConfigChange = async (params: {
+    kind: "config.apply" | "config.patch";
+    nextConfig: Config;
+    note?: string;
+  }): Promise<Record<string, unknown>> => {
+    const snapshot = readConfigSnapshot(this.deps.getConfigPath);
+    const changedPaths = diffConfigPaths(snapshot.config, params.nextConfig);
+    const plan = buildReloadPlan(changedPaths);
+
+    if (changedPaths.length === 0) {
+      return this.createConfigMutationResult({
+        changedPaths,
+        config: params.nextConfig,
+        note: params.note,
+        plan
+      });
+    }
+
+    this.deps.saveConfig(params.nextConfig);
+    await this.deps.reloader.applyReloadPlan(params.nextConfig);
+    return this.createConfigMutationResult({
+      changedPaths,
+      config: params.nextConfig,
+      note: params.note,
+      plan
+    });
+  };
+
+  status = (): Record<string, unknown> => {
     return {
       channels: this.deps.reloader.getChannels().enabledChannels,
       cron: this.deps.cron.status(),
       configPath: this.deps.getConfigPath()
     };
-  }
+  };
 
-  async reloadConfig(reason?: string): Promise<string> {
+  reloadConfig = async (reason?: string): Promise<string> => {
     return this.deps.reloader.reloadConfig(reason);
-  }
+  };
 
-  async restart(options?: { delayMs?: number; reason?: string; sessionKey?: string }): Promise<string> {
+  restart = async (options?: { delayMs?: number; reason?: string; sessionKey?: string }): Promise<string> => {
     await this.writeRestartSentinelPayload({
       kind: "restart",
       status: "ok",
@@ -211,9 +284,9 @@ export class GatewayControllerImpl implements GatewayController {
     });
     await this.requestRestart(options);
     return "Restart scheduled";
-  }
+  };
 
-  async getConfig(): Promise<Record<string, unknown>> {
+  getConfig = async (): Promise<Record<string, unknown>> => {
     const snapshot = readConfigSnapshot(this.deps.getConfigPath);
     return {
       raw: snapshot.raw,
@@ -224,19 +297,19 @@ export class GatewayControllerImpl implements GatewayController {
       resolved: snapshot.redacted,
       valid: snapshot.valid
     };
-  }
+  };
 
-  async getConfigSchema(): Promise<Record<string, unknown>> {
+  getConfigSchema = async (): Promise<Record<string, unknown>> => {
     return buildConfigSchema({ version: getPackageVersion() });
-  }
+  };
 
-  async applyConfig(params: {
+  applyConfig = async (params: {
     raw: string;
     baseHash?: string;
     note?: string;
     restartDelayMs?: number;
     sessionKey?: string;
-  }): Promise<Record<string, unknown>> {
+  }): Promise<Record<string, unknown>> => {
     const snapshot = readConfigSnapshot(this.deps.getConfigPath);
     if (!params.baseHash) {
       return { ok: false, error: "config base hash required; re-run config.get and retry" };
@@ -259,33 +332,20 @@ export class GatewayControllerImpl implements GatewayController {
     } catch (err) {
       return { ok: false, error: `invalid config: ${String(err)}` };
     }
-    this.deps.saveConfig(validated);
-    const delayMs = params.restartDelayMs ?? 0;
-    const sentinelPath = await this.writeRestartSentinelPayload({
+    return this.applyConfigChange({
       kind: "config.apply",
-      status: "ok",
-      sessionKey: params.sessionKey,
-      note: params.note,
-      reason: "config.apply"
+      nextConfig: validated,
+      note: params.note
     });
-    await this.requestRestart({ delayMs, reason: "config.apply" });
-    return {
-      ok: true,
-      note: params.note ?? null,
-      path: this.deps.getConfigPath(),
-      config: redactValue(validated),
-      restart: { scheduled: true, delayMs },
-      sentinel: sentinelPath ? { path: sentinelPath } : null
-    };
-  }
+  };
 
-  async patchConfig(params: {
+  patchConfig = async (params: {
     raw: string;
     baseHash?: string;
     note?: string;
     restartDelayMs?: number;
     sessionKey?: string;
-  }): Promise<Record<string, unknown>> {
+  }): Promise<Record<string, unknown>> => {
     const snapshot = readConfigSnapshot(this.deps.getConfigPath);
     if (!params.baseHash) {
       return { ok: false, error: "config base hash required; re-run config.get and retry" };
@@ -309,32 +369,19 @@ export class GatewayControllerImpl implements GatewayController {
     } catch (err) {
       return { ok: false, error: `invalid config: ${String(err)}` };
     }
-    this.deps.saveConfig(validated);
-    const delayMs = params.restartDelayMs ?? 0;
-    const sentinelPath = await this.writeRestartSentinelPayload({
+    return this.applyConfigChange({
       kind: "config.patch",
-      status: "ok",
-      sessionKey: params.sessionKey,
-      note: params.note,
-      reason: "config.patch"
+      nextConfig: validated,
+      note: params.note
     });
-    await this.requestRestart({ delayMs, reason: "config.patch" });
-    return {
-      ok: true,
-      note: params.note ?? null,
-      path: this.deps.getConfigPath(),
-      config: redactValue(validated),
-      restart: { scheduled: true, delayMs },
-      sentinel: sentinelPath ? { path: sentinelPath } : null
-    };
-  }
+  };
 
-  async updateRun(params: {
+  updateRun = async (params: {
     note?: string;
     restartDelayMs?: number;
     timeoutMs?: number;
     sessionKey?: string;
-  }): Promise<Record<string, unknown>> {
+  }): Promise<Record<string, unknown>> => {
     const versionBefore = getPackageVersion();
     const result = runSelfUpdate({ timeoutMs: params.timeoutMs });
     if (!result.ok) {
@@ -374,5 +421,5 @@ export class GatewayControllerImpl implements GatewayController {
       },
       sentinel: sentinelPath ? { path: sentinelPath } : null
     };
-  }
+  };
 }

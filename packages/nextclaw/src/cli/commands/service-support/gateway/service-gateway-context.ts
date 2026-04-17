@@ -230,8 +230,10 @@ export function createGatewayStartupContext(params: {
       getExtensionChannels: () => state.extensionRegistry.channels,
       onRestartRequired: (paths) => {
         void requestRestart({
+          changedPaths: paths,
+          manualMessage: `已保存以下改动，等待你手动重启后生效：${paths.join(", ")}`,
+          mode: "notify",
           reason: `config reload requires restart: ${paths.join(", ")}`,
-          manualMessage: `Config changes require restart: ${paths.join(", ")}`,
           strategy: "background-service-or-manual",
         });
       },

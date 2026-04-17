@@ -32,6 +32,35 @@ export type AgentCommandOptions = {
   model?: string;
 };
 
+export type SkillsInstalledCommandOptions = {
+  workdir?: string;
+  scope?: string;
+  query?: string;
+  json?: boolean;
+};
+
+export type SkillsInfoCommandOptions = {
+  workdir?: string;
+  json?: boolean;
+};
+
+export type MarketplaceSkillsSearchCommandOptions = {
+  apiBase?: string;
+  query?: string;
+  tag?: string;
+  sort?: string;
+  page?: string | number;
+  pageSize?: string | number;
+  json?: boolean;
+};
+
+export type MarketplaceSkillsRecommendCommandOptions = {
+  apiBase?: string;
+  scene?: string;
+  limit?: string | number;
+  json?: boolean;
+};
+
 export type UpdateCommandOptions = {
   timeout?: string | number;
 };
@@ -265,4 +294,6 @@ export type RequestRestartParams = {
   strategy?: RestartStrategy;
   delayMs?: number;
   silentOnServiceRestart?: boolean;
+  changedPaths?: string[];
+  mode?: "execute" | "notify";
 };

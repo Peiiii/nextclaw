@@ -75,6 +75,37 @@ export const RUNTIME_CONTROL_LABELS: Record<string, { zh: string; en: string }> 
   runtimeControlRestartService: { zh: '重启服务', en: 'Restart Service' },
   runtimeControlStopService: { zh: '停止服务', en: 'Stop Service' },
   runtimeControlRestartApp: { zh: '重启应用', en: 'Restart App' },
+  runtimeControlPendingRestartTitle: { zh: '待重启', en: 'Pending Restart' },
+  runtimeControlPendingRestartDescription: {
+    zh: '这次改动已经保存，但系统不会自动重启。请在你方便的时候手动重启，重启完成后该提示会自动清空。',
+    en: 'These changes are saved, but the system will not restart automatically. Restart manually when you are ready, and this notice clears after the restart finishes.'
+  },
+  runtimeControlPendingRestartPaths: { zh: '待生效项', en: 'Changes Waiting For Restart' },
+  runtimeStatusLoadingTitle: { zh: '读取状态中', en: 'Loading status' },
+  runtimeStatusLoadingDescription: {
+    zh: '正在读取当前系统状态。',
+    en: 'Loading the current system status.'
+  },
+  runtimeStatusHealthyTitle: { zh: '系统正常', en: 'System healthy' },
+  runtimeStatusHealthyDescription: {
+    zh: '当前没有需要你立即处理的系统动作。',
+    en: 'There is no system action that needs your attention right now.'
+  },
+  runtimeStatusPendingRestartTitle: { zh: '待重启', en: 'Restart required' },
+  runtimeStatusPendingRestartDescription: {
+    zh: '这些改动已经保存，但不会自动重启。你可以在这里查看原因，并在方便的时候手动重启。',
+    en: 'These changes are saved, but the system will not restart automatically. Review the reason here and restart when you are ready.'
+  },
+  runtimeStatusPendingRestartReasonItem: {
+    zh: '{path} 改动将在重启后生效。',
+    en: 'Changes in {path} will apply after restart.'
+  },
+  runtimeStatusActionHint: {
+    zh: '准备好时再执行',
+    en: 'Run when you are ready'
+  },
+  runtimeStatusRestartAction: { zh: '立即重启', en: 'Restart now' },
+  runtimeStatusRestartingAction: { zh: '重启中...', en: 'Restarting...' },
   runtimeControlStartingServiceHelp: {
     zh: '正在启动 NextClaw 服务，页面可能会在服务恢复后重新连接。',
     en: 'Starting the NextClaw service. The page may reconnect after the service becomes available.'

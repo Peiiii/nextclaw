@@ -49,6 +49,7 @@ describe('RuntimeControlCard', () => {
         lifecycle: 'healthy',
         serviceState: 'running',
         message: 'runtime healthy',
+        pendingRestart: null,
         canStartService: {
           available: false,
           requiresConfirmation: false,
@@ -90,6 +91,7 @@ describe('RuntimeControlCard', () => {
       lifecycle: 'healthy',
       serviceState: 'running',
       message: 'runtime healthy',
+      pendingRestart: null,
       canStartService: {
         available: false,
         requiresConfirmation: false,
@@ -212,6 +214,7 @@ describe('RuntimeControlCard', () => {
         lifecycle: 'healthy',
         serviceState: 'running',
         message: 'runtime healthy',
+        pendingRestart: null,
         canStartService: {
           available: false,
           requiresConfirmation: false,
@@ -251,5 +254,58 @@ describe('RuntimeControlCard', () => {
       expect(mocks.restartApp).toHaveBeenCalledTimes(1);
     });
     expect(toast.success).toHaveBeenCalledWith('NextClaw app restart scheduled.');
+  });
+
+  it('shows a pending restart notice instead of auto-applying hidden restarts', () => {
+    const queryClient = new QueryClient();
+
+    mocks.useRuntimeControl.mockReturnValue({
+      data: {
+        environment: 'managed-local-service',
+        lifecycle: 'healthy',
+        serviceState: 'running',
+        message: 'Saved changes are waiting for a manual restart.',
+        pendingRestart: {
+          changedPaths: ['plugins', 'ui'],
+          message: 'Saved changes are waiting for a manual restart.',
+          reasons: ['config reload requires restart: plugins, ui'],
+          requestedAt: '2026-04-17T10:00:00.000Z'
+        },
+        canStartService: {
+          available: false,
+          requiresConfirmation: false,
+          impact: 'brief-ui-disconnect',
+          reasonIfUnavailable: '当前页面已经由运行中的本地服务托管。'
+        },
+        canRestartService: {
+          available: true,
+          requiresConfirmation: false,
+          impact: 'brief-ui-disconnect',
+        },
+        canStopService: {
+          available: true,
+          requiresConfirmation: true,
+          impact: 'brief-ui-disconnect',
+        },
+        canRestartApp: {
+          available: false,
+          requiresConfirmation: true,
+          impact: 'full-app-relaunch',
+          reasonIfUnavailable: 'desktop only',
+        },
+        managementHint: 'This page is served by the running local service.'
+      },
+      isError: false,
+      error: null,
+    });
+
+    render(<RuntimeControlCard />, {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(screen.getByText('待重启')).toBeTruthy();
+    expect(screen.getByText('这次改动已经保存，但系统不会自动重启。请在你方便的时候手动重启，重启完成后该提示会自动清空。')).toBeTruthy();
+    expect(screen.getByText('plugins')).toBeTruthy();
+    expect(screen.getByText('ui')).toBeTruthy();
   });
 });

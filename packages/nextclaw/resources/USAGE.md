@@ -180,9 +180,9 @@ If `127.0.0.1:55667` is healthy but the public entry returns `502`, the problem 
 
 Supported providers include OpenRouter, OpenAI, Anthropic, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and AiHubMix. You can configure them in the UI or by editing `config.json`.
 
-### Runtime config apply behavior (no restart)
+### Runtime config apply behavior (no automatic restart)
 
-When the gateway is already running, config changes from the UI or `nextclaw config set` are hot-applied for these paths:
+When the gateway is already running, config changes from the UI, `nextclaw config set`, or the gateway tool (`config.apply` / `config.patch`) are hot-applied for these paths:
 
 - `providers.*`
 - `channels.*`
@@ -191,7 +191,9 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `tools.*`
 - `plugins.*` (v1 hot plugin runtime: plugin registry/channel gateways/channels are hot-reloaded)
 
-Restart is still required for:
+For paths outside the hot-reload plan, the gateway now saves config and marks the runtime as `pending restart` instead of restarting automatically. You can then restart from the Runtime page or the global status entry in the main UI.
+
+Restart is still manually required for:
 
 - UI bind port (`--port` / `--ui-port`)
 
@@ -361,11 +363,13 @@ For internal AI operations (same as other built-in capabilities):
 - Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
 - The AI can use it to manage the same config surface when you explicitly ask.
 - As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
+- Supported config writes are hot-applied immediately; writes outside the hot-reload plan are saved and surfaced as `pending restart` instead of auto-restarting the gateway.
 - **Required safe flow for AI config writes:**
   1. run `config.get` to read current config + hash;
   2. run `config.schema` and copy enum values exactly (no invented suffixes/variants);
   3. run `config.patch` with minimal patch;
-  4. run `config.get` again to verify persisted value.
+  4. if the result says `pendingRestart`, surface that to the user and let them choose when to restart;
+  5. run `config.get` again to verify persisted value.
 
 ---
 

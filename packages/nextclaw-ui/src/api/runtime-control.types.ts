@@ -31,6 +31,13 @@ export type RuntimeServiceState =
   | 'restarting'
   | 'unknown';
 
+export type RuntimePendingRestart = {
+  changedPaths: string[];
+  message: string;
+  reasons: string[];
+  requestedAt: string;
+};
+
 export type RuntimeControlView = {
   environment: RuntimeControlEnvironment;
   lifecycle: RuntimeLifecycleState;
@@ -39,6 +46,7 @@ export type RuntimeControlView = {
   canRestartService: RuntimeActionCapability;
   canStopService: RuntimeActionCapability;
   canRestartApp: RuntimeActionCapability;
+  pendingRestart?: RuntimePendingRestart | null;
   ownerLabel?: string;
   managementHint?: string;
   message?: string;

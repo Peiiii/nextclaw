@@ -49,18 +49,18 @@ export class GatewayTool extends Tool {
     super();
   }
 
-  setContext(context: GatewayToolContext): void {
+  setContext = (context: GatewayToolContext): void => {
     this.context = {
       sessionKey: typeof context.sessionKey === "string" ? context.sessionKey.trim() || undefined : undefined
     };
-  }
+  };
 
   get name(): string {
     return "gateway";
   }
 
   get description(): string {
-    return "Restart or update gateway config (config.get/schema/apply/patch) and trigger restart.";
+    return "Inspect gateway config, apply config changes, and request an explicit restart when needed.";
   }
 
   get parameters(): Record<string, unknown> {
@@ -88,115 +88,142 @@ export class GatewayTool extends Tool {
         baseHash: { type: "string", description: "Config base hash (from config.get)" },
         sessionKey: { type: "string", description: "Session key for restart notification" },
         note: { type: "string", description: "Completion note for config apply/patch" },
-        restartDelayMs: { type: "number", description: "Restart delay after apply/patch (ms)" }
+        restartDelayMs: {
+          type: "number",
+          description: "Deprecated for config.apply/config.patch; config writes no longer auto-restart."
+        }
       },
       required: ["action"]
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
-    const action = String(params.action ?? "");
-    if (!this.controller) {
-      return JSON.stringify({ ok: false, error: "gateway controller not available in this runtime" }, null, 2);
-    }
-    const resolveSessionKey = (): string | undefined => {
-      if (typeof params.sessionKey === "string" && params.sessionKey.trim()) {
-        return params.sessionKey.trim();
-      }
-      return this.context.sessionKey;
-    };
+  private renderResult = (result: Record<string, unknown>): string => {
+    return JSON.stringify(result, null, 2);
+  };
 
+  private resolveSessionKey = (params: Record<string, unknown>): string | undefined => {
+    if (typeof params.sessionKey === "string" && params.sessionKey.trim()) {
+      return params.sessionKey.trim();
+    }
+    return this.context.sessionKey;
+  };
+
+  private resolveBaseHash = async (params: Record<string, unknown>): Promise<string | undefined> => {
+    const explicitHash =
+      typeof params.baseHash === "string" && params.baseHash.trim() ? params.baseHash.trim() : undefined;
+    if (explicitHash || !this.controller?.getConfig) {
+      return explicitHash;
+    }
+    const snapshot = await this.controller.getConfig();
+    if (!snapshot || typeof snapshot !== "object") {
+      return undefined;
+    }
+    const hashValue = (snapshot as GatewayConfigSnapshot).hash;
+    return typeof hashValue === "string" && hashValue.trim() ? hashValue.trim() : undefined;
+  };
+
+  private executeConfigRead = async (action: "config.get" | "config.schema"): Promise<string> => {
     if (action === "config.get") {
-      if (!this.controller.getConfig) {
-        return JSON.stringify({ ok: false, error: "config.get not supported" }, null, 2);
+      if (!this.controller?.getConfig) {
+        return this.renderResult({ ok: false, error: "config.get not supported" });
       }
       const result = await this.controller.getConfig();
-      return JSON.stringify({ ok: true, result }, null, 2);
+      return this.renderResult({ ok: true, result });
     }
-    if (action === "config.schema") {
-      if (!this.controller.getConfigSchema) {
-        return JSON.stringify({ ok: false, error: "config.schema not supported" }, null, 2);
-      }
-      const result = await this.controller.getConfigSchema();
-      return JSON.stringify({ ok: true, result }, null, 2);
+    if (!this.controller?.getConfigSchema) {
+      return this.renderResult({ ok: false, error: "config.schema not supported" });
     }
-    if (action === "config.apply" || action === "config.patch") {
-      const raw = params.raw;
-      if (typeof raw !== "string" || !raw.trim()) {
-        return JSON.stringify({ ok: false, error: "raw config string is required" }, null, 2);
+    const result = await this.controller.getConfigSchema();
+    return this.renderResult({ ok: true, result });
+  };
+
+  private executeConfigWrite = async (
+    action: "config.apply" | "config.patch",
+    params: Record<string, unknown>
+  ): Promise<string> => {
+    const raw = params.raw;
+    if (typeof raw !== "string" || !raw.trim()) {
+      return this.renderResult({ ok: false, error: "raw config string is required" });
+    }
+
+    const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
+    const baseHash = await this.resolveBaseHash(params);
+    const sessionKey = this.resolveSessionKey(params);
+
+    if (action === "config.apply") {
+      if (!this.controller?.applyConfig) {
+        return this.renderResult({ ok: false, error: "config.apply not supported" });
       }
-      const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
-      const restartDelayMs =
-        typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
-          ? Math.floor(params.restartDelayMs)
-          : undefined;
-      let baseHash =
-        typeof params.baseHash === "string" && params.baseHash.trim() ? params.baseHash.trim() : undefined;
-      if (!baseHash && this.controller.getConfig) {
-        const snapshot = await this.controller.getConfig();
-        if (snapshot && typeof snapshot === "object") {
-          const hashValue = (snapshot as GatewayConfigSnapshot).hash;
-          if (typeof hashValue === "string" && hashValue.trim()) {
-            baseHash = hashValue.trim();
-          }
-        }
-      }
-      const sessionKey = resolveSessionKey();
-      if (action === "config.apply") {
-        if (!this.controller.applyConfig) {
-          return JSON.stringify({ ok: false, error: "config.apply not supported" }, null, 2);
-        }
-        const result = await this.controller.applyConfig({
-          raw,
-          baseHash,
-          note,
-          restartDelayMs,
-          sessionKey
-        });
-        return JSON.stringify({ ok: true, result }, null, 2);
-      }
-      if (!this.controller.patchConfig) {
-        return JSON.stringify({ ok: false, error: "config.patch not supported" }, null, 2);
-      }
-      const result = await this.controller.patchConfig({
+      const result = await this.controller.applyConfig({
         raw,
         baseHash,
         note,
-        restartDelayMs,
         sessionKey
       });
-      return JSON.stringify({ ok: true, result }, null, 2);
+      return this.renderResult({ ok: true, result });
+    }
+
+    if (!this.controller?.patchConfig) {
+      return this.renderResult({ ok: false, error: "config.patch not supported" });
+    }
+    const result = await this.controller.patchConfig({
+      raw,
+      baseHash,
+      note,
+      sessionKey
+    });
+    return this.renderResult({ ok: true, result });
+  };
+
+  private executeRestart = async (params: Record<string, unknown>): Promise<string> => {
+    if (!this.controller?.restart) {
+      return this.renderResult({ ok: false, error: "restart not supported" });
+    }
+    const delayMs =
+      typeof params.delayMs === "number" && Number.isFinite(params.delayMs)
+        ? Math.floor(params.delayMs)
+        : undefined;
+    const reason = typeof params.reason === "string" ? params.reason.trim() || undefined : undefined;
+    const sessionKey = this.resolveSessionKey(params);
+    const result = await this.controller.restart({ delayMs, reason, sessionKey });
+    return this.renderResult({ ok: true, result: result ?? "Restart scheduled" });
+  };
+
+  private executeUpdateRun = async (params: Record<string, unknown>): Promise<string> => {
+    if (!this.controller?.updateRun) {
+      return this.renderResult({ ok: false, error: "update.run not supported in this runtime" });
+    }
+    const restartDelayMs =
+      typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
+        ? Math.floor(params.restartDelayMs)
+        : undefined;
+    const timeoutMs =
+      typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
+        ? Math.max(1, Math.floor(params.timeoutMs))
+        : undefined;
+    const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
+    const sessionKey = this.resolveSessionKey(params);
+    const result = await this.controller.updateRun({ note, restartDelayMs, timeoutMs, sessionKey });
+    return this.renderResult({ ok: true, result });
+  };
+
+  execute = async (params: Record<string, unknown>): Promise<string> => {
+    const action = String(params.action ?? "");
+    if (!this.controller) {
+      return this.renderResult({ ok: false, error: "gateway controller not available in this runtime" });
+    }
+    if (action === "config.get" || action === "config.schema") {
+      return this.executeConfigRead(action);
+    }
+    if (action === "config.apply" || action === "config.patch") {
+      return this.executeConfigWrite(action, params);
     }
     if (action === "restart") {
-      if (!this.controller.restart) {
-        return JSON.stringify({ ok: false, error: "restart not supported" }, null, 2);
-      }
-      const delayMs =
-        typeof params.delayMs === "number" && Number.isFinite(params.delayMs)
-          ? Math.floor(params.delayMs)
-          : undefined;
-      const reason = typeof params.reason === "string" ? params.reason.trim() || undefined : undefined;
-      const sessionKey = resolveSessionKey();
-      const result = await this.controller.restart({ delayMs, reason, sessionKey });
-      return JSON.stringify({ ok: true, result: result ?? "Restart scheduled" }, null, 2);
+      return this.executeRestart(params);
     }
     if (action === "update.run") {
-      if (!this.controller.updateRun) {
-        return JSON.stringify({ ok: false, error: "update.run not supported in this runtime" }, null, 2);
-      }
-      const restartDelayMs =
-        typeof params.restartDelayMs === "number" && Number.isFinite(params.restartDelayMs)
-          ? Math.floor(params.restartDelayMs)
-          : undefined;
-      const timeoutMs =
-        typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
-          ? Math.max(1, Math.floor(params.timeoutMs))
-          : undefined;
-      const sessionKey = resolveSessionKey();
-      const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
-      const result = await this.controller.updateRun({ note, restartDelayMs, timeoutMs, sessionKey });
-      return JSON.stringify({ ok: true, result }, null, 2);
+      return this.executeUpdateRun(params);
     }
-    return JSON.stringify({ ok: false, error: `Unknown action: ${action}` }, null, 2);
-  }
+    return this.renderResult({ ok: false, error: `Unknown action: ${action}` });
+  };
 }

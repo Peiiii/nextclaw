@@ -185,6 +185,8 @@ export class ConfigCommands {
       return;
     }
     await this.deps.requestRestart({
+      changedPaths: plan.restartRequired,
+      mode: "notify",
       reason: `${params.reason} (${plan.restartRequired.join(", ")})`,
       manualMessage: params.manualMessage
     });

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RuntimeControlHost } from "../runtime-control-host.service.js";
+import { pendingRestartStore } from "../../../../runtime-state/pending-restart.store.js";
 
 const mocks = vi.hoisted(() => ({
   controlRemoteService: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("../service-remote-access.service.js", () => ({
 describe("RuntimeControlHost", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pendingRestartStore.clear();
     mocks.resolveRemoteServiceView.mockReturnValue({
       running: true,
       currentProcess: true,
@@ -50,6 +52,31 @@ describe("RuntimeControlHost", () => {
     expect(view.canRestartService.available).toBe(true);
     expect(view.canStopService.available).toBe(true);
     expect(view.canRestartApp.available).toBe(false);
+    expect(view.pendingRestart).toBeNull();
+  });
+
+  it("exposes pending restart reasons without auto-restarting", () => {
+    pendingRestartStore.mark({
+      changedPaths: ["plugins"],
+      manualMessage: "Saved changes are waiting for a manual restart.",
+      reason: "plugin install"
+    });
+
+    const host = new RuntimeControlHost({
+      serviceCommands: {
+        startService: vi.fn(),
+        stopService: vi.fn()
+      },
+      requestRestart: vi.fn(),
+      uiConfig: { host: "0.0.0.0", port: 55667 }
+    });
+
+    const view = host.getControl();
+    expect(view.pendingRestart).toMatchObject({
+      changedPaths: ["plugins"],
+      message: "Saved changes are waiting for a manual restart."
+    });
+    expect(view.message).toBe("Use this page to manage the local NextClaw service. Closing the browser does not stop the service.");
   });
 
   it("maps service actions through the shared managed-service owner", async () => {

@@ -95,8 +95,9 @@ export class ChannelCommands {
     saveConfig(this.buildNextConfigAfterChannelLogin(config, channelContext.binding, result));
     this.printPluginChannelLoginResult(channelContext.binding, result);
     await this.deps.requestRestart({
+      mode: "notify",
       reason: `channel login via plugin: ${channelContext.binding.pluginId}`,
-      manualMessage: "Restart the gateway to apply changes."
+      manualMessage: "渠道配置已保存，等待你手动重启后生效。"
     });
   }
 
@@ -257,8 +258,9 @@ export class ChannelCommands {
 
     console.log(`Configured channel "${binding.channelId}" via plugin "${binding.pluginId}".`);
     await this.deps.requestRestart({
+      mode: "notify",
       reason: `channel configured via plugin: ${binding.pluginId}`,
-      manualMessage: "Restart the gateway to apply changes."
+      manualMessage: "渠道配置已保存，等待你手动重启后生效。"
     });
   }
 }

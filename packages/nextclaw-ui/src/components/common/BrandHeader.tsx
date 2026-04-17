@@ -1,5 +1,6 @@
 import { useAppMeta } from '@/hooks/useConfig';
 import type { ReactNode } from 'react';
+import { RuntimeStatusEntry } from '@/components/layout/runtime-status-entry';
 
 type BrandHeaderProps = {
   className?: string;
@@ -10,6 +11,7 @@ export function BrandHeader({ className, suffix }: BrandHeaderProps) {
   const { data } = useAppMeta();
   const productName = data?.name ?? 'NextClaw';
   const productVersion = data?.productVersion?.trim();
+  const resolvedSuffix = suffix ?? <RuntimeStatusEntry />;
 
   return (
     <div className={className ?? 'flex items-center gap-2.5'}>
@@ -19,7 +21,7 @@ export function BrandHeader({ className, suffix }: BrandHeaderProps) {
       <div className="flex items-baseline gap-2 min-w-0">
         <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-gray-800">{productName}</span>
         {productVersion ? <span className="text-[13px] font-medium text-gray-500">v{productVersion}</span> : null}
-        {suffix ? <span className="inline-flex items-center shrink-0">{suffix}</span> : null}
+        {resolvedSuffix ? <span className="inline-flex items-center shrink-0">{resolvedSuffix}</span> : null}
       </div>
     </div>
   );

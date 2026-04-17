@@ -3,6 +3,7 @@ import type { RuntimeControlActionResult, RuntimeControlView, UiRuntimeControlHo
 import { requestManagedServiceRestart } from "./service-remote-access.service.js";
 import { controlRemoteService, resolveRemoteServiceView } from "../../remote-support/remote-access-service-control.js";
 import type { RequestRestartParams } from "../../../types.js";
+import { pendingRestartStore } from "../../../runtime-state/pending-restart.store.js";
 
 const MANAGED_SERVICE_OWNER_LABEL = "Managed local service";
 const DESKTOP_APP_ONLY_REASON = "App restart is only available in the desktop shell.";
@@ -23,6 +24,7 @@ export class RuntimeControlHost implements UiRuntimeControlHost {
   getControl = (): RuntimeControlView => {
     const service = resolveRemoteServiceView(this.deps.uiConfig);
     const serviceRunning = service.running;
+    const pendingRestart = pendingRestartStore.read();
 
     return {
       environment: "managed-local-service",
@@ -52,6 +54,7 @@ export class RuntimeControlHost implements UiRuntimeControlHost {
         impact: "full-app-relaunch",
         reasonIfUnavailable: DESKTOP_APP_ONLY_REASON
       },
+      pendingRestart,
       ownerLabel: MANAGED_SERVICE_OWNER_LABEL,
       managementHint: service.currentProcess
         ? "This page is served by the running local service. Closing the browser does not stop it."

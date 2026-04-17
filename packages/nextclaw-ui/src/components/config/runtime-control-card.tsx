@@ -159,6 +159,7 @@ export function RuntimeControlCard() {
   const displayedMessage = localMessage ?? controlView?.message ?? t('runtimeControlDescription');
   const busy = serviceActionMutation.isPending || busyAction !== null || displayedLifecycle === 'recovering';
   const visibleActions = resolveVisibleActions(controlView);
+  const pendingRestart = controlView?.pendingRestart ?? null;
 
   const resetLocalState = () => {
     setLocalLifecycle(null);
@@ -260,6 +261,30 @@ export function RuntimeControlCard() {
             </p>
           ) : null}
         </div>
+
+        {pendingRestart ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
+            <div className="text-sm font-medium text-amber-900">{t('runtimeControlPendingRestartTitle')}</div>
+            <p className="text-sm text-amber-800">{t('runtimeControlPendingRestartDescription')}</p>
+            {pendingRestart.changedPaths.length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-xs font-medium uppercase tracking-[0.08em] text-amber-700">
+                  {t('runtimeControlPendingRestartPaths')}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {pendingRestart.changedPaths.map((path) => (
+                    <span
+                      key={path}
+                      className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs text-amber-800"
+                    >
+                      {path}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-3 md:flex-row md:flex-wrap">
           {visibleActions.map((item) => {
