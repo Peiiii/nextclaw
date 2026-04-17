@@ -1,6 +1,5 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import type {
   SessionSearchDocument,
   SessionSearchStoreHit,
@@ -9,6 +8,20 @@ import type {
 } from "./session-search.types.js";
 
 const SESSION_SEARCH_TABLE = "session_search_index";
+
+type SessionSearchStatement = {
+  all: (...params: unknown[]) => unknown[];
+  get: (...params: unknown[]) => unknown;
+  run: (...params: unknown[]) => unknown;
+};
+
+type SessionSearchDatabase = {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => SessionSearchStatement;
+  close: () => void;
+};
+
+type SessionSearchDatabaseSyncCtor = new (path: string) => SessionSearchDatabase;
 
 type CountRow = {
   total?: number;
@@ -22,10 +35,46 @@ type SearchRow = {
   rank?: number;
 };
 
-export class SessionSearchStoreService {
-  private database: DatabaseSync | null = null;
+export class SessionSearchUnsupportedRuntimeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "SessionSearchUnsupportedRuntimeError";
+  }
+}
 
-  constructor(private readonly databasePath: string) {}
+async function loadSessionSearchDatabaseSync(): Promise<SessionSearchDatabaseSyncCtor> {
+  try {
+    const module = await import("node:sqlite");
+    return module.DatabaseSync as SessionSearchDatabaseSyncCtor;
+  } catch (error) {
+    if (isUnsupportedNodeSqliteError(error)) {
+      throw new SessionSearchUnsupportedRuntimeError(
+        `session_search requires node:sqlite support, but the current runtime (${process.version}) does not provide it.`
+      );
+    }
+    throw error;
+  }
+}
+
+function isUnsupportedNodeSqliteError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const errorWithCode = error as Error & { code?: string };
+  return (
+    errorWithCode.code === "ERR_UNKNOWN_BUILTIN_MODULE" ||
+    errorWithCode.code === "ERR_MODULE_NOT_FOUND" ||
+    errorWithCode.code === "MODULE_NOT_FOUND"
+  );
+}
+
+export class SessionSearchStoreService {
+  private database: SessionSearchDatabase | null = null;
+
+  constructor(
+    private readonly databasePath: string,
+    private readonly loadDatabaseSync: () => Promise<SessionSearchDatabaseSyncCtor> = loadSessionSearchDatabaseSync,
+  ) {}
 
   initialize = async (): Promise<void> => {
     if (this.database) {
@@ -33,6 +82,7 @@ export class SessionSearchStoreService {
     }
 
     mkdirSync(dirname(this.databasePath), { recursive: true });
+    const DatabaseSync = await this.loadDatabaseSync();
     this.database = new DatabaseSync(this.databasePath);
     this.database.exec(`
       PRAGMA journal_mode = WAL;
@@ -158,7 +208,7 @@ export class SessionSearchStoreService {
     }
   }
 
-  private requireDatabase(): DatabaseSync {
+  private requireDatabase(): SessionSearchDatabase {
     if (!this.database) {
       throw new Error("Session search store has not been initialized.");
     }

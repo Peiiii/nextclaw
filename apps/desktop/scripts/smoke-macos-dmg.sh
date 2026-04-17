@@ -28,6 +28,7 @@ LOG_ROOT="${TEMP_ROOT}/nextclaw-desktop-smoke-logs"
 APP_STDOUT_LOG="${LOG_ROOT}/app-stdout.log"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
 RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
+RUNTIME_FALLBACK_HOME="${TEMP_ROOT}/nextclaw-desktop-runtime-fallback-home"
 DEFAULT_UI_PORT=55667
 RUNTIME_FALLBACK_PORT_START=55667
 RUNTIME_FALLBACK_PORT_END=55716
@@ -272,14 +273,25 @@ run_runtime_fallback() {
     return 1
   fi
 
+  rm -rf "${RUNTIME_FALLBACK_HOME}" >/dev/null 2>&1 || true
   echo "[desktop-smoke] runtime fallback: init"
-  if ! ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${runtime_script}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
+  if ! env \
+    -u NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE \
+    -u NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE \
+    NEXTCLAW_HOME="${RUNTIME_FALLBACK_HOME}" \
+    ELECTRON_RUN_AS_NODE=1 \
+    "${APP_BIN}" "${runtime_script}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
     echo "[desktop-smoke] runtime fallback init failed. See ${RUNTIME_STDOUT_LOG}" >&2
     return 1
   fi
 
   echo "[desktop-smoke] runtime fallback: serve on ${runtime_port}"
-  ELECTRON_RUN_AS_NODE=1 "${APP_BIN}" "${runtime_script}" serve --ui-port "${runtime_port}" >>"${RUNTIME_STDOUT_LOG}" 2>&1 &
+  env \
+    -u NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE \
+    -u NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE \
+    NEXTCLAW_HOME="${RUNTIME_FALLBACK_HOME}" \
+    ELECTRON_RUN_AS_NODE=1 \
+    "${APP_BIN}" "${runtime_script}" serve --ui-port "${runtime_port}" >>"${RUNTIME_STDOUT_LOG}" 2>&1 &
   RUNTIME_PID="$!"
 
   local started_at now

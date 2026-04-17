@@ -179,17 +179,17 @@ function createNativeRuntimeFactory(
       sessionCreationService,
       sessionRequestBroker,
       getAdditionalTools: (context) => [
-        ...createAssetTools({
-          assetStore,
-        }),
-        ...mcpToolRegistryAdapter.listToolsForRun({
-          agentId: context.agentId,
-        }),
-        sessionSearchRuntimeSupport.createTool({
-          currentSessionId: context.sessionId,
-        }),
-      ],
-    });
+      ...createAssetTools({
+        assetStore,
+      }),
+      ...mcpToolRegistryAdapter.listToolsForRun({
+        agentId: context.agentId,
+      }),
+      ...sessionSearchRuntimeSupport.createAdditionalTools({
+        currentSessionId: context.sessionId,
+      }),
+    ],
+  });
     return new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
         sessionManager: params.sessionManager,
@@ -238,7 +238,7 @@ function createResolveOpenAiToolsForRuntime(params: {
       ...params.toolRegistryAdapter.listToolsForRun({
         agentId: context.agentId,
       }),
-      params.sessionSearchRuntimeSupport.createTool({
+      ...params.sessionSearchRuntimeSupport.createAdditionalTools({
         currentSessionId: context.sessionId,
       }),
     ],
