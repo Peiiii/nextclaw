@@ -175,7 +175,7 @@
 - 怎么验证（轻量 smoke-check + `build/lint/typecheck`）
 - 怎么发布/部署（如果会影响 npm 包/线上环境；详细流程引用 `docs/workflows/npm-release-process.md`）
 
-模板：`docs/logs/TEMPLATE.md`
+模板：`docs/logs/template.md`
 
 ## 规划规则
 

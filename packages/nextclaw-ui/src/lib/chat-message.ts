@@ -24,6 +24,17 @@ function truncateText(value: string, maxChars = 2400): string {
   return `${value.slice(0, maxChars)}\n…`;
 }
 
+function truncateInlineText(value: string, maxChars = 120): string {
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxChars) {
+    return normalized;
+  }
+  if (maxChars <= 1) {
+    return '…';
+  }
+  return `${normalized.slice(0, maxChars - 1)}…`;
+}
+
 export function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
     return value;
@@ -64,7 +75,7 @@ export function summarizeToolArgs(args: unknown): string | undefined {
   const parsed = parseArgsObject(args);
   if (!parsed) {
     const text = stringifyUnknown(args).trim();
-    return text ? truncateText(text, 120) : undefined;
+    return text ? truncateInlineText(text, 120) : undefined;
   }
 
   const items: string[] = [];
@@ -80,9 +91,9 @@ export function summarizeToolArgs(args: unknown): string | undefined {
     }
   }
   if (items.length > 0) {
-    return items.join(' · ');
+    return truncateInlineText(items.join(' · '), 120);
   }
-  return truncateText(stringifyUnknown(parsed), 140);
+  return truncateInlineText(stringifyUnknown(parsed), 140);
 }
 
 function toToolName(value: unknown): string {

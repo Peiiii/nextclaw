@@ -1,0 +1,20 @@
+appname=fnnas.nextclaw
+version=__NEXTCLAW_VERSION__
+display_name=NextClaw
+desc=NextClaw personal AI operating layer for fnOS
+platform=__FNOS_PLATFORM__
+source=thirdparty
+
+maintainer=NextClaw Team
+maintainer_url=https://github.com/Peiiii/nextclaw
+distributor=NextClaw Team
+distributor_url=https://github.com/Peiiii/nextclaw
+
+os_min_version=1.1.8
+desktop_uidir=ui
+desktop_applaunchname=fnnas.nextclaw.Application
+
+service_port=__NEXTCLAW_SERVICE_PORT__
+checkport=true
+disable_authorization_path=true
+install_dep_apps=nodejs_v22

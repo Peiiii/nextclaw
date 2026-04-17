@@ -1,0 +1,7 @@
+interface:
+  display_name: "接入 HTTP Agent Runtime"
+  short_description: "把 Hermes 或其他外部 HTTP runtime 接成 NextClaw 可选会话类型，并完成验证与调试"
+  default_prompt: "使用 $integrating-http-agent-runtime 把 Hermes 或另一个外部 HTTP-backed agent runtime 接入 NextClaw。优先复用现有 http-runtime/plugin/adapter 能力，判断是只需配置 baseUrl 还是需要先补 adapter，然后完成 session type 可见性、自动化验证、真实 smoke 和故障定位。"
+
+policy:
+  allow_implicit_invocation: true

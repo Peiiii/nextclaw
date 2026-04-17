@@ -62,19 +62,19 @@ export function ToolCardHeader({
   return (
     <div 
       className={cn(
-        "flex items-center justify-between px-3 py-2.5 transition-colors bg-transparent", 
+        "flex items-center gap-3 px-3 py-2.5 transition-colors bg-transparent", 
         canExpand ? "cursor-pointer hover:bg-amber-100/30" : ""
       )}
       onClick={onToggle}
     >
-      <div className="flex items-center gap-2 font-mono min-w-0 max-w-[calc(100%-80px)] text-amber-950/80">
+      <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden font-mono text-amber-950/80">
         <Icon className="h-4 w-4 text-amber-600/80 shrink-0" strokeWidth={3} />
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden">
           <span className="font-bold shrink-0 tracking-tight">{card.toolName}</span>
           {summaryPart && (
             <>
               <span className="text-amber-300 font-bold select-none shrink-0">›</span>
-              <span className="truncate flex-1 min-w-0 font-normal" title={summaryPart}>
+              <span className="block min-w-0 flex-1 truncate font-normal" title={summaryPart}>
                 {summaryPart}
               </span>
             </>

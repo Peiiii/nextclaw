@@ -1,0 +1,130 @@
+#!/bin/bash
+
+LOG_FILE="${TRIM_PKGVAR}/info.log"
+PID_FILE="${TRIM_PKGVAR}/app.pid"
+NEXTCLAW_HOME_DIR="${TRIM_PKGVAR}/nextclaw-home"
+SERVICE_PORT="__NEXTCLAW_SERVICE_PORT__"
+
+export PATH=/var/apps/nodejs_v22/target/bin:$PATH
+export HOME="${TRIM_PKGVAR}"
+export NEXTCLAW_HOME="${NEXTCLAW_HOME_DIR}"
+
+CLI_PATH="${TRIM_APPDEST}/server/dist/cli/index.js"
+INIT_CMD="NODE_ENV=production NEXTCLAW_HOME=${NEXTCLAW_HOME} node ${CLI_PATH} init"
+CMD="NODE_ENV=production NEXTCLAW_HOME=${NEXTCLAW_HOME} node ${CLI_PATH} ui --port ${SERVICE_PORT}"
+
+log_msg() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "${LOG_FILE}"
+}
+
+ensure_runtime() {
+    if ! command -v node >/dev/null 2>&1; then
+        log_msg "node runtime not found in PATH"
+        return 1
+    fi
+
+    if [ ! -f "${CLI_PATH}" ]; then
+        log_msg "missing cli entry: ${CLI_PATH}"
+        return 1
+    fi
+
+    return 0
+}
+
+check_process() {
+    local pid=$1
+    if kill -0 "${pid}" 2>/dev/null; then
+        return 0
+    fi
+    return 1
+}
+
+status() {
+    if [ -f "${PID_FILE}" ]; then
+        pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
+        if check_process "${pid}"; then
+            return 0
+        fi
+        rm -f "${PID_FILE}"
+    fi
+    return 1
+}
+
+start_process() {
+    if status; then
+        return 0
+    fi
+
+    mkdir -p "${TRIM_PKGVAR}" "${NEXTCLAW_HOME_DIR}"
+    if ! ensure_runtime; then
+        return 1
+    fi
+
+    log_msg "Starting NextClaw fnOS package on port ${SERVICE_PORT}"
+    if ! bash -c "${INIT_CMD}" >> "${LOG_FILE}" 2>&1; then
+        log_msg "init command failed"
+        return 1
+    fi
+
+    bash -c "${CMD}" >> "${LOG_FILE}" 2>&1 &
+    printf "%s" "$!" > "${PID_FILE}"
+    sleep 2
+
+    if ! status; then
+        log_msg "ui command exited before service became ready"
+        return 1
+    fi
+
+    return 0
+}
+
+stop_process() {
+    log_msg "Stopping NextClaw fnOS package"
+
+    if [ ! -r "${PID_FILE}" ]; then
+        return 0
+    fi
+
+    pid=$(head -n 1 "${PID_FILE}" | tr -d '[:space:]')
+    if ! check_process "${pid}"; then
+        rm -f "${PID_FILE}"
+        return 0
+    fi
+
+    kill -TERM "${pid}" >> "${LOG_FILE}" 2>&1
+
+    local count=0
+    while check_process "${pid}" && [ ${count} -lt 15 ]; do
+        sleep 1
+        count=$((count + 1))
+    done
+
+    if check_process "${pid}"; then
+        kill -KILL "${pid}" >> "${LOG_FILE}" 2>&1
+    fi
+
+    rm -f "${PID_FILE}"
+    return 0
+}
+
+case "$1" in
+start)
+    start_process
+    ;;
+stop)
+    stop_process
+    ;;
+restart)
+    stop_process
+    start_process
+    ;;
+status)
+    if status; then
+        exit 0
+    fi
+    exit 3
+    ;;
+*)
+    exit 1
+    ;;
+esac

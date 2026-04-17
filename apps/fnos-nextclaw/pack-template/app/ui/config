@@ -1,0 +1,13 @@
+{
+  ".url": {
+    "fnnas.nextclaw.Application": {
+      "title": "NextClaw",
+      "icon": "images/icon-{0}.png",
+      "type": "url",
+      "protocol": "http",
+      "port": "__NEXTCLAW_SERVICE_PORT__",
+      "url": "/",
+      "allUsers": true
+    }
+  }
+}

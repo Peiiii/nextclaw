@@ -11,7 +11,7 @@ import {
 import { NextclawNcpToolRegistry } from "../nextclaw-ncp-tool-registry.js";
 import { NextclawAgentSessionStore } from "../nextclaw-agent-session-store.js";
 import { SessionCreationService } from "../session-request/session-creation.service.js";
-import type { SessionRequestBroker } from "../session-request/session-request-broker.js";
+import type { SessionRequestBroker } from "../session-request/session-request-broker.service.js";
 import { SessionSearchFeatureService } from "../session-search/session-search-feature.service.js";
 
 const tempDirs: string[] = [];

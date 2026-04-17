@@ -2,7 +2,7 @@
 
 ## 迭代完成说明（改了什么）
 
-- 已将你提供的多 Agent 架构实践原文归档到：`docs/logs/v0.6.34-multi-agent-gateway-research/SOURCE.md`。
+- 已将你提供的多 Agent 架构实践原文归档到：`docs/logs/v0.6.34-multi-agent-gateway-research/source.md`。
 - 基于当前 NextClaw 主干代码（截至本地当前版本）完成一轮“能力对照研究”，输出“已支持 / 部分支持 / 缺口”与可落地路线图。
 - 本次为“研究迭代”，不改动运行时代码，不触发版本发布。
 
@@ -88,7 +88,7 @@ ls -la docs/logs/v0.6.34-multi-agent-gateway-research
 
 验收点：
 - 存在 `README.md`（研究结论与路线图）
-- 存在 `SOURCE.md`（原文归档）
+- 存在 `source.md`（原文归档）
 
 ### 关于 build/lint/tsc
 

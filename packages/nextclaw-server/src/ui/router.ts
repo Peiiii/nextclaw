@@ -72,6 +72,7 @@ function registerNcpSessionRoutes(app: Hono, ncpSessionController: NcpSessionRou
 
 function registerServerPathRoutes(app: Hono, serverPathController: ServerPathRoutesController): void {
   app.get("/api/server-paths/browse", serverPathController.browse);
+  app.get("/api/server-paths/read", serverPathController.read);
 }
 
 function registerNcpRuntimeRoutes(
