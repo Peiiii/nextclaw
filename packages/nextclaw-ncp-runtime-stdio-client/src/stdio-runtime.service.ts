@@ -8,19 +8,22 @@ import type {
   NcpAgentRunOptions,
   NcpAgentRuntime,
   NcpEndpointEvent,
-  NcpError,
   NcpProviderRuntimeRoute,
   OpenAITool,
 } from "@nextclaw/ncp";
-import {
-  NcpEventType,
-} from "@nextclaw/ncp";
+import { NcpEventType } from "@nextclaw/ncp";
 import type { StdioRuntimeResolvedConfig, NarpStdioPromptMeta } from "./stdio-runtime-config.utils.js";
 import {
   NARP_STDIO_PROMPT_META_KEY,
   buildStdioRuntimeLaunchEnv,
   readString,
 } from "./stdio-runtime-config.utils.js";
+import {
+  buildSpawnFailureMessage,
+  isAbortLikeRuntimeError,
+  normalizeRuntimeError,
+} from "./stdio-runtime-error.utils.js";
+import { resolveToolNameFromAcpUpdate } from "./stdio-runtime-tool-name.utils.js";
 
 type AcpClientUpdate = acp.SessionUpdate;
 
@@ -36,6 +39,8 @@ type AcpToolState = {
   args?: string;
   completed: boolean;
 };
+
+type PromptExecutionState = { settled: boolean; error: unknown };
 
 class UpdateBuffer {
   private readonly updates: AcpClientUpdate[] = [];
@@ -398,15 +403,6 @@ class StdioRuntimeSession {
   readStderr = (): string => this.stderr;
 }
 
-function buildSpawnFailureMessage(params: {
-  command: string;
-  cwd?: string;
-  error: Error;
-}): string {
-  const cwdSuffix = params.cwd ? ` (cwd: ${params.cwd})` : "";
-  return `[narp-stdio] failed to start stdio runtime command "${params.command}"${cwdSuffix}: ${params.error.message}`;
-}
-
 class StdioRuntimeRunController {
   private readonly buffer = new UpdateBuffer();
   private readonly collector = new PromptUpdateCollector();
@@ -426,7 +422,6 @@ class StdioRuntimeRunController {
     this.resolvedTools = resolveTools?.(input) ?? [];
     this.resolvedProviderRoute = resolveProviderRoute?.(input);
   }
-
   execute = async function* (
     this: StdioRuntimeRunController,
     options?: NcpAgentRunOptions,
@@ -452,21 +447,48 @@ class StdioRuntimeRunController {
       signal: options?.signal,
       onUpdate: (update) => this.buffer.push(update),
     });
+    const promptState = this.trackPromptState(promptPromise);
 
-    let promptSettled = false;
-    let promptError: unknown = null;
+    yield* this.emitRunStartedEvents(assistantMessageId);
+
+    try {
+      yield* this.drainPromptUpdates(assistantMessageId, promptState);
+      if (this.shouldExitForAbort(options, promptState.error)) {
+        return;
+      }
+      yield* this.emitCompletionEvents(assistantMessageId);
+    } catch (error) {
+      if (this.shouldExitForAbort(options, error)) {
+        return;
+      }
+      yield* this.emitFailureEvents(assistantMessageId, error);
+    }
+  };
+  private trackPromptState = (
+    promptPromise: Promise<acp.PromptResponse>,
+  ): PromptExecutionState => {
+    const promptState: PromptExecutionState = {
+      settled: false,
+      error: null,
+    };
 
     promptPromise
       .then(() => {
-        promptSettled = true;
+        promptState.settled = true;
         this.buffer.notify();
       })
       .catch((error) => {
-        promptSettled = true;
-        promptError = error;
+        promptState.settled = true;
+        promptState.error = error;
         this.buffer.notify();
       });
 
+    return promptState;
+  };
+  private emitRunStartedEvents = async function* (
+    this: StdioRuntimeRunController,
+    assistantMessageId: string,
+  ): AsyncGenerator<NcpEndpointEvent> {
     yield* this.emitEvent({
       type: NcpEventType.MessageAccepted,
       payload: {
@@ -482,84 +504,90 @@ class StdioRuntimeRunController {
         runId: `narp-stdio:${this.input.sessionId}:${Date.now()}`,
       },
     });
-
-    try {
-      while (!promptSettled || this.buffer.hasItems()) {
-        const update = this.buffer.shift();
-        if (!update) {
-          await this.buffer.waitForChange();
-          continue;
-        }
-        for (const event of this.translateUpdate(update, assistantMessageId)) {
-          yield* this.emitEvent(event);
-        }
+  };
+  private drainPromptUpdates = async function* (
+    this: StdioRuntimeRunController,
+    assistantMessageId: string,
+    promptState: PromptExecutionState,
+  ): AsyncGenerator<NcpEndpointEvent> {
+    while (!promptState.settled || this.buffer.hasItems()) {
+      const update = this.buffer.shift();
+      if (!update) {
+        await this.buffer.waitForChange();
+        continue;
       }
-
-      if (promptError) {
-        throw promptError;
+      for (const event of this.translateUpdate(update, assistantMessageId)) {
+        yield* this.emitEvent(event);
       }
-
-      if (options?.signal?.aborted) {
-        throw createNcpError("abort-error", "ACP prompt cancelled");
-      }
-
-      for (const terminalEvent of this.createTerminalEvents(assistantMessageId)) {
-        yield* this.emitEvent(terminalEvent);
-      }
-
-      if (!this.collector.hasParts()) {
-        throw new Error(
-          `[narp-stdio] ACP prompt completed without any assistant content for session ${this.input.sessionId}. stderr=${this.session.readStderr()}`,
-        );
-      }
-
-      yield* this.emitEvent({
-        type: NcpEventType.MessageCompleted,
-        payload: {
-          sessionId: this.input.sessionId,
-          correlationId: this.input.correlationId,
-          message: {
-            id: assistantMessageId,
-            sessionId: this.input.sessionId,
-            role: "assistant",
-            status: "final",
-            parts: this.collector.buildParts() as never,
-            timestamp: new Date().toISOString(),
-          },
-        },
-      });
-      yield* this.emitEvent({
-        type: NcpEventType.RunFinished,
-        payload: {
-          sessionId: this.input.sessionId,
-          messageId: assistantMessageId,
-          runId: `narp-stdio:${this.input.sessionId}`,
-        },
-      });
-
-    } catch (error) {
-      const ncpError = normalizeRuntimeError(error);
-      yield* this.emitEvent({
-        type: NcpEventType.MessageFailed,
-        payload: {
-          sessionId: this.input.sessionId,
-          messageId: assistantMessageId,
-          correlationId: this.input.correlationId,
-          error: ncpError,
-        },
-      });
-      yield* this.emitEvent({
-        type: NcpEventType.RunError,
-        payload: {
-          sessionId: this.input.sessionId,
-          messageId: assistantMessageId,
-          runId: `narp-stdio:${this.input.sessionId}`,
-          error: ncpError.message,
-        },
-      });
     }
   };
+  private shouldExitForAbort = (
+    options: NcpAgentRunOptions | undefined,
+    error: unknown,
+  ): boolean => options?.signal?.aborted === true || isAbortLikeRuntimeError(error);
+  private emitCompletionEvents = async function* (
+    this: StdioRuntimeRunController,
+    assistantMessageId: string,
+  ): AsyncGenerator<NcpEndpointEvent> {
+    for (const terminalEvent of this.createTerminalEvents(assistantMessageId)) {
+      yield* this.emitEvent(terminalEvent);
+    }
 
+    if (!this.collector.hasParts()) {
+      throw new Error(
+        `[narp-stdio] ACP prompt completed without any assistant content for session ${this.input.sessionId}. stderr=${this.session.readStderr()}`,
+      );
+    }
+
+    yield* this.emitEvent({
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: this.input.sessionId,
+        correlationId: this.input.correlationId,
+        message: {
+          id: assistantMessageId,
+          sessionId: this.input.sessionId,
+          role: "assistant",
+          status: "final",
+          parts: this.collector.buildParts() as never,
+          timestamp: new Date().toISOString(),
+        },
+      },
+    });
+    yield* this.emitEvent({
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: this.input.sessionId,
+        messageId: assistantMessageId,
+        runId: `narp-stdio:${this.input.sessionId}`,
+      },
+    });
+  };
+  private emitFailureEvents = async function* (
+    this: StdioRuntimeRunController,
+    assistantMessageId: string,
+    error: unknown,
+  ): AsyncGenerator<NcpEndpointEvent> {
+    const ncpError = normalizeRuntimeError(error);
+    yield* this.emitEvent({
+      type: NcpEventType.MessageFailed,
+      payload: {
+        sessionId: this.input.sessionId,
+        messageId: assistantMessageId,
+        correlationId: this.input.correlationId,
+        error: ncpError,
+      },
+    });
+    yield* this.emitEvent({
+      type: NcpEventType.RunError,
+      payload: {
+        sessionId: this.input.sessionId,
+        messageId: assistantMessageId,
+        runId: `narp-stdio:${this.input.sessionId}`,
+        error: ncpError.message,
+      },
+    });
+  };
   private emitEvent = async function* (
     this: StdioRuntimeRunController,
     event: NcpEndpointEvent,
@@ -819,15 +847,7 @@ function resolveModelId(params: {
 function resolveToolName(
   update: Extract<AcpClientUpdate, { sessionUpdate: "tool_call" }>,
 ): string {
-  if (typeof update.rawInput === "object" && update.rawInput && !Array.isArray(update.rawInput)) {
-    const candidate =
-      readString((update.rawInput as Record<string, unknown>).toolName) ??
-      readString((update.rawInput as Record<string, unknown>).tool);
-    if (candidate) {
-      return candidate;
-    }
-  }
-  return readString(update.title) ?? "unknown";
+  return resolveToolNameFromAcpUpdate(update);
 }
 
 function createAssistantMessageId(requestMessageId: string): string {
@@ -843,31 +863,6 @@ function serializeToolArgs(value: unknown): string {
     return "{}";
   }
   return JSON.stringify(value);
-}
-
-function normalizeRuntimeError(error: unknown): NcpError {
-  if (isNcpError(error)) {
-    return error;
-  }
-  const message = error instanceof Error ? error.message : String(error);
-  const lowered = message.toLowerCase();
-  return {
-    code: lowered.includes("abort") || lowered.includes("cancel")
-      ? "abort-error"
-      : "runtime-error",
-    message,
-  };
-}
-
-function createNcpError(code: NcpError["code"], message: string): NcpError {
-  return { code, message };
-}
-
-function isNcpError(value: unknown): value is NcpError {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  return typeof (value as NcpError).code === "string" && typeof (value as NcpError).message === "string";
 }
 
 async function withTimeout<T>(

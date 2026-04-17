@@ -13,6 +13,12 @@ const FIXTURE_PATH = join(
   "echo-agent.mjs",
 );
 
+const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
+  import.meta.dirname,
+  "test-fixtures",
+  "hermes-tool-title-agent.utils.mjs",
+);
+
 describe("StdioRuntimeConfigResolver", () => {
   it("reads command and args from explicit config", () => {
     const resolver = new StdioRuntimeConfigResolver({
@@ -37,7 +43,7 @@ describe("StdioRuntimeConfigResolver", () => {
   });
 });
 
-describe("StdioRuntimeNcpAgentRuntime", () => {
+describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
   it("bridges ACP stdio updates into NCP events and forwards prompt meta", async () => {
     const runtime = new StdioRuntimeNcpAgentRuntime({
       sessionId: "session-stdio-runtime",
@@ -169,7 +175,7 @@ describe("StdioRuntimeNcpAgentRuntime", () => {
 
     await expect(
       (async () => {
-        for await (const _event of runtime.run({
+        for await (const event of runtime.run({
           sessionId: "session-stdio-missing-command",
           messages: [
             {
@@ -182,10 +188,65 @@ describe("StdioRuntimeNcpAgentRuntime", () => {
             },
           ],
         })) {
+          void event;
           // no-op
         }
       })(),
     ).rejects.toThrow(/failed to start stdio runtime command/);
+  });
+
+});
+
+describe("StdioRuntimeNcpAgentRuntime tool normalization", () => {
+  it("normalizes Hermes ACP tool titles back to canonical tool names", async () => {
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-hermes-tool-title",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [HERMES_TOOL_TITLE_FIXTURE_PATH],
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    const events: NcpEndpointEvent[] = [];
+    for await (const event of runtime.run({
+      sessionId: "session-stdio-hermes-tool-title",
+      messages: [
+        {
+          id: "user-hermes-title",
+          sessionId: "session-stdio-hermes-tool-title",
+          role: "user",
+          status: "final",
+          timestamp: "2026-04-17T00:00:00.000Z",
+          parts: [{ type: "text", text: "normalize Hermes title" }],
+        },
+      ],
+    })) {
+      events.push(event);
+    }
+
+    const toolCallStartEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageToolCallStart }> =>
+        event.type === NcpEventType.MessageToolCallStart,
+    );
+    expect(toolCallStartEvent?.payload.toolName).toBe("terminal");
+
+    const completedEvent = events.find(
+      (event): event is Extract<NcpEndpointEvent, { type: NcpEventType.MessageCompleted }> =>
+        event.type === NcpEventType.MessageCompleted,
+    );
+    expect(completedEvent?.payload.message.parts).toEqual([
+      {
+        type: "tool-invocation",
+        toolCallId: "hermes-title-call-1",
+        toolName: "terminal",
+        state: "call",
+        args: "{\"command\":\"pwd\"}",
+      },
+      { type: "text", text: "done" },
+    ]);
   });
 });
 
