@@ -16,6 +16,33 @@
 
 如果这三个问题回答不清，目录就会失控；如果这三个问题被写成固定 contract，结构治理才真正落地。
 
+## 包内通用规则与等级关系
+
+下面这些规则，不是某一个等级独享的局部规则，而是包内部结构的通用治理规则：
+
+- 目录命名三分类
+- 通用职责目录固定总白名单
+- `shared/` 的准入条件与内部结构规则
+- feature 的唯一导出入口
+- 平台差异层的唯一导出入口
+- 目录白名单与弱语义目录禁止规则
+
+这些规则默认适用于 `L0`、`L1`、`L2`、`L3`。
+
+区别不在于“某个等级才拥有某条规则”，而在于：
+
+- 某个等级是否真的需要启用某个结构轴
+- 某个目录在当前等级是否实际出现
+- 某条规则在低复杂度场景下可能暂时不触发，但它仍然成立
+
+因此，`L3` 不应被理解成“前面的规则到了这里才开始生效”。
+
+更准确地说：
+
+- `L0`、`L1`、`L2`、`L3` 共用同一套包内结构治理原则
+- `L3` 只是前端多平台场景下的最完整展开
+- 前面的等级更像 `L3` 的子集或裁剪态，而不是另一套独立规则系统
+
 ## 目录命名三分类
 
 这套规则把源码目录名分成三类：
@@ -71,11 +98,11 @@
 
 - `shared/lib/` 不属于普通通用职责目录白名单，它是特殊目录，承载“模拟独立包”的强语义模块边界，应按特殊规则治理
 
-## L4 的定位
+## L3 的定位
 
-`L4` 不是“每个平台各自复制一套完整 feature 架构”。
+`L3` 不是“每个平台各自复制一套完整 feature 架构”。
 
-`L4` 的真实含义是：
+`L3` 的真实含义是：
 
 - 这是一个前端多平台应用或 package
 - 主业务轴固定在 `features/`
@@ -83,9 +110,10 @@
 - 平台差异层固定在 `platforms/`
 - 默认优先共享业务实现，只把平台差异放进 `platforms/`
 
-也就是说，`L4` 的重点不是“平台优先”，而是“业务优先，平台差异后置且集中化”。
+也就是说，`L3` 的重点不是“平台优先”，而是“业务优先，平台差异后置且集中化”。
+它不是新增一套专属规则，而是把包内通用规则与平台差异规则同时展开的全集场景。
 
-## L4 标准结构
+## L3 标准结构
 
 推荐结构如下：
 
@@ -118,9 +146,9 @@ src/
 - `shared/` 负责跨 feature 或跨 platform 的稳定共享抽象
 - `platforms/` 负责平台差异实现，而不是主业务实现
 
-## L4 根级约束
+## L3 根级约束
 
-在 `L4` 下，应用根只允许出现固定骨架目录：
+在 `L3` 下，应用根只允许出现固定骨架目录：
 
 - `app/`
 - `features/`
@@ -143,7 +171,7 @@ src/
 - `utils/`
 - `providers/`
 
-因为一旦允许这些目录直接平铺在根下，`L4` 的骨架层次就会被打穿。
+因为一旦允许这些目录直接平铺在根下，`L3` 的骨架层次就会被打穿。
 
 ## 目标
 
@@ -203,16 +231,23 @@ src/
 
 `shared/` 的定位是“稳定共享层”，不是“第二套 feature 根”，也不是“暂时不知道放哪”的回收站。
 
-在 `L4` 下，`shared/` 一级目录允许的是固定的通用职责类目录。常见白名单如下：
+在 `L3` 下，`shared/` 一级目录允许的是：
 
-- `ui/`
-- `hooks/`
-- `lib/`
-- `types/`
-- `providers/`
-- `stores/`
-- `services/`
-- `utils/`
+- 特殊目录：`lib/`
+- 以及固定通用职责目录总白名单中的任意适用项：
+  - `components/`
+  - `hooks/`
+  - `presenters/`
+  - `stores/`
+  - `managers/`
+  - `services/`
+  - `pages/`
+  - `types/`
+  - `utils/`
+  - `providers/`
+  - `controllers/`
+  - `repositories/`
+  - `routes/`
 
 其中：
 
@@ -233,11 +268,11 @@ src/
 
 如果某段代码本质上仍然属于某个 feature 的私有业务逻辑，即使它恰好写成了 `service`、`store` 或 `provider`，也不应因为目录名像通用职责，就被提升进 `shared/`。
 
-### `shared/ui/`
+### `shared/components/`
 
 - 允许直接放文件
 - 禁止为了单文件先包一层无意义目录
-- 禁止在 `shared/ui/` 根下新增 `index.ts` 或 `index.tsx`
+- 禁止在 `shared/components/` 根下新增 `index.ts` 或 `index.tsx`
 - 只承载真正跨 feature 或跨平台复用的纯展示组件、展示壳或稳定 UI primitive
 
 ### `shared/hooks/`
@@ -269,7 +304,7 @@ src/
 
 ```text
 shared/
-├── ui/
+├── components/
 │   ├── button.tsx
 │   └── notice-card.tsx
 ├── hooks/
@@ -290,7 +325,7 @@ shared/
 ```text
 shared/
 ├── transport/
-├── ui/
+├── components/
 │   └── index.ts
 ├── hooks/
 │   └── index.ts
@@ -305,7 +340,7 @@ shared/
 
 这套规则的目标不是“目录长得整齐”，而是强制稳定的唯一导入地址。
 
-- `shared/ui`、`shared/hooks`、`shared/types` 采用“文件直放、无 barrel”规则
+- `shared/components`、`shared/hooks`、`shared/types` 采用“文件直放、无 barrel”规则
 - `shared/lib/*` 采用“目录即包、`index.ts(x)` 唯一出口、禁止 deep import”规则
 - 任何共享模块都不应同时暴露多个平行导入入口
 
@@ -313,7 +348,7 @@ shared/
 
 ```ts
 import { formatDate } from "@/shared/lib/date-format";
-import { Button } from "@/shared/ui/button";
+import { Button } from "@/shared/components/button";
 import { useCopy } from "@/shared/hooks/use-copy";
 import type { Pagination } from "@/shared/types/pagination.types";
 ```
@@ -323,7 +358,7 @@ import type { Pagination } from "@/shared/types/pagination.types";
 ```ts
 import { formatDate } from "@/shared/lib/date-format/date-format.utils";
 import { formatDate } from "@/shared/lib/date-format/index";
-import { Button } from "@/shared/ui";
+import { Button } from "@/shared/components";
 import { useCopy } from "@/shared/hooks";
 import type { Pagination } from "@/shared/types";
 ```
@@ -355,7 +390,7 @@ features/
 - 必须有 `index.ts` 或 `index.tsx`
 - 该 `index.ts(x)` 是这个 feature 对外的唯一公共导入出口
 - 外部禁止绕过 `index.ts(x)` 直接导入 feature 内部文件
-- feature 内部允许继续按通用职责目录组织，如 `ui/`、`hooks/`、`services/`、`stores/`、`types/`、`utils/`
+- feature 内部允许继续按固定通用职责目录总白名单组织，如 `components/`、`hooks/`、`presenters/`、`stores/`、`managers/`、`services/`、`pages/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
 
 推荐示例：
 
@@ -363,7 +398,7 @@ features/
 features/
 └── chat/
     ├── index.ts
-    ├── ui/
+    ├── components/
     ├── hooks/
     ├── services/
     ├── stores/
@@ -379,7 +414,7 @@ import { ChatPanel } from "@/features/chat";
 禁止：
 
 ```ts
-import { ChatPanel } from "@/features/chat/ui/chat-panel";
+import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { useChatStore } from "@/features/chat/stores/chat.store";
 ```
 
@@ -397,7 +432,7 @@ import { useChatStore } from "@/features/chat/stores/chat.store";
 
 - 必须有 `index.ts` 或 `index.tsx`
 - 该 `index.ts(x)` 是该平台差异层的唯一公共导出入口
-- platform 根下只能放通用职责目录
+- platform 根下只能放固定通用职责目录总白名单中的目录
 - platform 根下禁止直接放业务目录名
 - 外部禁止绕过 platform 根的 `index.ts(x)` 直接导入内部文件
 
