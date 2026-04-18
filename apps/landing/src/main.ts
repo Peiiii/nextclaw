@@ -1,5 +1,12 @@
 import './style.css';
 import { createIcons, icons } from 'lucide';
+import {
+  DESKTOP_RELEASE_FALLBACK,
+  detectRecommendedDesktopAsset,
+  fetchLatestStableDesktopRelease,
+  type DesktopReleaseInfo,
+  type DownloadAssetKey
+} from './desktop-release.service';
 
 type Locale = 'en' | 'zh';
 type PageRoute = 'home' | 'download';
@@ -31,21 +38,12 @@ type ComparisonRow = {
   values: string[]; // [NextClaw, OpenClaw, NanoBot, ...]
 };
 
-type DownloadAssetKey = 'macArm64Dmg' | 'macX64Dmg' | 'windowsX64Zip' | 'linuxX64AppImage';
-
 type DownloadOption = {
   key: DownloadAssetKey;
   icon: string;
   title: string;
   description: string;
   buttonLabel: string;
-};
-
-type DesktopReleaseInfo = {
-  tag: string;
-  version: string;
-  url: string;
-  assets: Record<DownloadAssetKey, string>;
 };
 
 type LandingCopy = {
@@ -72,6 +70,8 @@ type LandingCopy = {
   downloadMacGuideSteps: string[];
   downloadWindowsGuideSteps: string[];
   downloadLinuxGuideSteps: string[];
+  downloadWindowsPortableLabel: string;
+  downloadWindowsPortableDescription: string;
   downloadOptions: DownloadOption[];
   copyTitle: string;
   installOptionDesktop: string;
@@ -161,147 +161,6 @@ const LINKS: Record<'github' | 'npm' | 'discord' | 'wechatGroupImage', string> &
   }
 };
 
-const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
-  tag: 'v0.17.11-desktop.2',
-  version: '0.0.141',
-  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.17.11-desktop.2',
-  assets: {
-    macArm64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.11-desktop.2/NextClaw.Desktop-0.0.141-arm64.dmg',
-    macX64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.11-desktop.2/NextClaw.Desktop-0.0.141-x64.dmg',
-    windowsX64Zip:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.11-desktop.2/NextClaw.Desktop-0.0.141-win32-x64-unpacked.zip',
-    linuxX64AppImage:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.17.11-desktop.2/NextClaw.Desktop-0.0.141-linux-x64.AppImage'
-  }
-};
-
-const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releases?per_page=20';
-
-const DESKTOP_ASSET_PATTERNS: Record<DownloadAssetKey, RegExp> = {
-  macArm64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)-arm64\.dmg$/,
-  macX64Dmg: /NextClaw\.Desktop-(\d+\.\d+\.\d+)(?:-x64)?\.dmg$/,
-  windowsX64Zip: /NextClaw\.Desktop(?:-(\d+\.\d+\.\d+))?-win32-x64-unpacked\.zip$/,
-  linuxX64AppImage: /NextClaw(?:\.Desktop| Desktop)-(\d+\.\d+\.\d+)(?:-linux-x64)?\.AppImage$/i
-};
-
-function inferDesktopVersionFromAssetName(assetName: string): string | null {
-  const match = assetName.match(DESKTOP_ASSET_PATTERNS.macArm64Dmg) ?? assetName.match(DESKTOP_ASSET_PATTERNS.macX64Dmg);
-  return match?.[1] ?? null;
-}
-
-function resolveDesktopReleaseInfo(input: unknown): DesktopReleaseInfo | null {
-  if (!input || typeof input !== 'object') {
-    return null;
-  }
-
-  const release = input as {
-    draft?: boolean;
-    prerelease?: boolean;
-    tag_name?: string;
-    html_url?: string;
-    assets?: Array<{ name?: string; browser_download_url?: string }>;
-  };
-
-  if (release.draft || release.prerelease) {
-    return null;
-  }
-
-  if (typeof release.tag_name !== 'string' || !/^v\d+\.\d+\.\d+-desktop\.\d+$/.test(release.tag_name)) {
-    return null;
-  }
-
-  const assets = Array.isArray(release.assets) ? release.assets : [];
-  const macArmAsset = assets.find((item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.macArm64Dmg.test(item.name));
-  const macX64Asset = assets.find((item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.macX64Dmg.test(item.name));
-  const windowsAsset = assets.find(
-    (item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.windowsX64Zip.test(item.name)
-  );
-  const linuxAsset = assets.find(
-    (item) => typeof item.name === 'string' && DESKTOP_ASSET_PATTERNS.linuxX64AppImage.test(item.name)
-  );
-
-  if (
-    !macArmAsset?.browser_download_url ||
-    !macX64Asset?.browser_download_url ||
-    !windowsAsset?.browser_download_url ||
-    !linuxAsset?.browser_download_url ||
-    !macArmAsset.name
-  ) {
-    return null;
-  }
-
-  const version = inferDesktopVersionFromAssetName(macArmAsset.name) ?? DESKTOP_RELEASE_FALLBACK.version;
-
-  return {
-    tag: release.tag_name,
-    version,
-    url: release.html_url ?? `https://github.com/Peiiii/nextclaw/releases/tag/${release.tag_name}`,
-    assets: {
-      macArm64Dmg: macArmAsset.browser_download_url,
-      macX64Dmg: macX64Asset.browser_download_url,
-      windowsX64Zip: windowsAsset.browser_download_url,
-      linuxX64AppImage: linuxAsset.browser_download_url
-    }
-  };
-}
-
-async function fetchLatestStableDesktopRelease(): Promise<DesktopReleaseInfo | null> {
-  try {
-    const response = await fetch(GITHUB_RELEASES_API, {
-      headers: {
-        Accept: 'application/vnd.github+json'
-      }
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const releases: unknown = await response.json();
-    if (!Array.isArray(releases)) {
-      return null;
-    }
-
-    for (const candidate of releases) {
-      const resolved = resolveDesktopReleaseInfo(candidate);
-      if (resolved) {
-        return resolved;
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to fetch desktop release metadata', error);
-  }
-
-  return null;
-}
-
-function detectRecommendedDesktopAsset(): DownloadAssetKey | 'unknown' {
-  const userAgent = navigator.userAgent.toLowerCase();
-
-  if (userAgent.includes('windows')) {
-    return 'windowsX64Zip';
-  }
-
-  if (userAgent.includes('linux') && !userAgent.includes('android')) {
-    return 'linuxX64AppImage';
-  }
-
-  const userAgentData = (navigator as Navigator & { userAgentData?: { architecture?: string; platform?: string } }).userAgentData;
-  if (userAgentData?.platform?.toLowerCase() === 'macos') {
-    const arch = userAgentData.architecture?.toLowerCase();
-    if (arch === 'arm' || arch === 'arm64' || arch === 'aarch64') {
-      return 'macArm64Dmg';
-    }
-    if (arch === 'x86' || arch === 'x86_64' || arch === 'x64') {
-      return 'macX64Dmg';
-    }
-  }
-
-  return 'unknown';
-}
-
 const COPY: Record<Locale, LandingCopy> = {
   en: {
     navDownload: 'Download',
@@ -333,8 +192,9 @@ const COPY: Record<Locale, LandingCopy> = {
       'If still blocked as damaged, run: xattr -cr "/Applications/NextClaw Desktop.app".'
     ],
     downloadWindowsGuideSteps: [
-      'Unzip the downloaded package.',
-      'Run NextClaw Desktop.exe.',
+      'Run the Setup.exe installer.',
+      'Choose the install location and create shortcuts if needed.',
+      'Launch NextClaw Desktop from the desktop or Start menu.',
       'If SmartScreen appears, click More info -> Run anyway.'
     ],
     downloadLinuxGuideSteps: [
@@ -342,6 +202,8 @@ const COPY: Record<Locale, LandingCopy> = {
       'Run: chmod +x NextClaw.Desktop-*.AppImage',
       'Run: ./NextClaw.Desktop-*.AppImage'
     ],
+    downloadWindowsPortableLabel: 'Need the portable ZIP instead?',
+    downloadWindowsPortableDescription: 'Use the unpacked ZIP when you want a no-install fallback or portable copy.',
     downloadOptions: [
       {
         key: 'macArm64Dmg',
@@ -358,11 +220,11 @@ const COPY: Record<Locale, LandingCopy> = {
         buttonLabel: 'Download DMG'
       },
       {
-        key: 'windowsX64Zip',
+        key: 'windowsX64Installer',
         icon: 'monitor',
         title: 'Windows (x64)',
-        description: 'Unpacked zip containing NextClaw Desktop.exe.',
-        buttonLabel: 'Download ZIP'
+        description: 'Recommended Setup.exe installer with a proper setup wizard and shortcuts.',
+        buttonLabel: 'Download Installer'
       },
       {
         key: 'linuxX64AppImage',
@@ -545,8 +407,9 @@ const COPY: Record<Locale, LandingCopy> = {
       '若仍提示已损坏，执行：xattr -cr "/Applications/NextClaw Desktop.app"。'
     ],
     downloadWindowsGuideSteps: [
-      '先解压下载的 zip 包。',
-      '双击运行 NextClaw Desktop.exe。',
+      '运行 Setup.exe 安装器。',
+      '按向导选择安装目录，并按需勾选桌面或开始菜单快捷方式。',
+      '安装完成后，从桌面快捷方式或开始菜单启动 NextClaw Desktop。',
       '若出现 SmartScreen，点“更多信息” -> “仍要运行”。'
     ],
     downloadLinuxGuideSteps: [
@@ -554,6 +417,8 @@ const COPY: Record<Locale, LandingCopy> = {
       '执行：chmod +x NextClaw.Desktop-*.AppImage',
       '执行：./NextClaw.Desktop-*.AppImage'
     ],
+    downloadWindowsPortableLabel: '需要便携版 ZIP？',
+    downloadWindowsPortableDescription: '如果你想保留免安装备用路径或便携拷贝，可以直接下载解压版 ZIP。',
     downloadOptions: [
       {
         key: 'macArm64Dmg',
@@ -570,11 +435,11 @@ const COPY: Record<Locale, LandingCopy> = {
         buttonLabel: '下载 DMG'
       },
       {
-        key: 'windowsX64Zip',
+        key: 'windowsX64Installer',
         icon: 'monitor',
         title: 'Windows（x64）',
-        description: '解压后可直接运行 NextClaw Desktop.exe。',
-        buttonLabel: '下载 ZIP'
+        description: '推荐使用带正式安装向导和快捷方式的 Setup.exe 安装器。',
+        buttonLabel: '下载安装器'
       },
       {
         key: 'linuxX64AppImage',
@@ -805,6 +670,45 @@ class LandingPage {
     this.copy = COPY[locale];
   }
 
+  private renderDownloadCard = (option: DownloadOption): string => `
+    <article data-download-card="${option.key}" class="rounded-2xl border border-border/70 bg-background/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex items-start gap-3">
+          <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <i data-lucide="${option.icon}" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-lg">${option.title}</h3>
+            <p class="text-sm text-muted-foreground mt-1">${option.description}</p>
+          </div>
+        </div>
+        <a
+          data-download-link="${option.key}"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex h-11 min-w-[128px] shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+        >
+          ${option.buttonLabel}
+        </a>
+      </div>
+      ${option.key === 'windowsX64Installer'
+        ? `<div class="mt-3 border-t border-border/50 pt-3 text-sm text-muted-foreground">
+            <span>${this.copy.downloadWindowsPortableLabel}</span>
+            <a
+              id="desktop-windows-portable-link"
+              href="${DESKTOP_RELEASE_FALLBACK.windowsPortableZipUrl ?? DESKTOP_RELEASE_FALLBACK.url}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="ml-2 font-semibold text-primary hover:underline"
+            >
+              ${this.copy.downloadWindowsPortableDescription}
+            </a>
+          </div>`
+        : ''}
+    </article>
+  `;
+
   render = (): void => {
     const docsLink = LINKS.docs[this.locale];
     const homeRoute = ROUTES[this.locale].home;
@@ -885,32 +789,7 @@ class LandingPage {
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 ${this.copy.downloadOptions
-                  .map(
-                    (option) => `
-                      <article data-download-card="${option.key}" class="rounded-2xl border border-border/70 bg-background/70 p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg">
-                        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                          <div class="flex items-start gap-3">
-                            <div class="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                              <i data-lucide="${option.icon}" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                              <h3 class="font-semibold text-lg">${option.title}</h3>
-                              <p class="text-sm text-muted-foreground mt-1">${option.description}</p>
-                            </div>
-                          </div>
-                          <a
-                            data-download-link="${option.key}"
-                            href="#"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex h-11 min-w-[128px] shrink-0 items-center justify-center whitespace-nowrap rounded-xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-                          >
-                            ${option.buttonLabel}
-                          </a>
-                        </div>
-                      </article>
-                    `
-                  )
+                  .map((option) => this.renderDownloadCard(option))
                   .join('')}
               </div>
 
@@ -1265,18 +1144,19 @@ class LandingPage {
     const detectedNode = document.querySelector<HTMLElement>('#desktop-detected-platform');
     const releasePrimary = document.querySelector<HTMLAnchorElement>('#desktop-release-link');
     const releaseSecondary = document.querySelector<HTMLAnchorElement>('#desktop-release-link-secondary');
+    const windowsPortableLink = document.querySelector<HTMLAnchorElement>('#desktop-windows-portable-link');
 
     const linkNodes: Record<DownloadAssetKey, HTMLAnchorElement | null> = {
       macArm64Dmg: document.querySelector<HTMLAnchorElement>('[data-download-link="macArm64Dmg"]'),
       macX64Dmg: document.querySelector<HTMLAnchorElement>('[data-download-link="macX64Dmg"]'),
-      windowsX64Zip: document.querySelector<HTMLAnchorElement>('[data-download-link="windowsX64Zip"]'),
+      windowsX64Installer: document.querySelector<HTMLAnchorElement>('[data-download-link="windowsX64Installer"]'),
       linuxX64AppImage: document.querySelector<HTMLAnchorElement>('[data-download-link="linuxX64AppImage"]')
     };
 
     if (
       !linkNodes.macArm64Dmg ||
       !linkNodes.macX64Dmg ||
-      !linkNodes.windowsX64Zip ||
+      !linkNodes.windowsX64Installer ||
       !linkNodes.linuxX64AppImage ||
       !releasePrimary ||
       !releaseSecondary
@@ -1285,13 +1165,13 @@ class LandingPage {
     }
     const macDownloadLink = linkNodes.macArm64Dmg;
     const macX64DownloadLink = linkNodes.macX64Dmg;
-    const windowsDownloadLink = linkNodes.windowsX64Zip;
+    const windowsDownloadLink = linkNodes.windowsX64Installer;
     const linuxDownloadLink = linkNodes.linuxX64AppImage;
 
     const cardNodes: Record<DownloadAssetKey, HTMLElement | null> = {
       macArm64Dmg: document.querySelector<HTMLElement>('[data-download-card="macArm64Dmg"]'),
       macX64Dmg: document.querySelector<HTMLElement>('[data-download-card="macX64Dmg"]'),
-      windowsX64Zip: document.querySelector<HTMLElement>('[data-download-card="windowsX64Zip"]'),
+      windowsX64Installer: document.querySelector<HTMLElement>('[data-download-card="windowsX64Installer"]'),
       linuxX64AppImage: document.querySelector<HTMLElement>('[data-download-card="linuxX64AppImage"]')
     };
 
@@ -1308,8 +1188,11 @@ class LandingPage {
       }
       macDownloadLink.setAttribute('href', release.assets.macArm64Dmg);
       macX64DownloadLink.setAttribute('href', release.assets.macX64Dmg);
-      windowsDownloadLink.setAttribute('href', release.assets.windowsX64Zip);
+      windowsDownloadLink.setAttribute('href', release.assets.windowsX64Installer);
       linuxDownloadLink.setAttribute('href', release.assets.linuxX64AppImage);
+      if (windowsPortableLink) {
+        windowsPortableLink.href = release.windowsPortableZipUrl ?? release.url;
+      }
     };
 
     const recommended = detectRecommendedDesktopAsset();

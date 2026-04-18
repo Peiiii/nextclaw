@@ -28,6 +28,11 @@
   - 新增构建并上传 `NextClaw.Desktop-Setup-<version>-x64.exe`、`latest.yml`、`*.exe.blockmap`
   - Release 资产层面形成并存双轨
 - 更新 [apps/desktop/README.md](../../../apps/desktop/README.md) 与 [docs/internal/desktop-install-unsigned.md](../../../docs/internal/desktop-install-unsigned.md)，统一成“推荐安装器、保留 zip 备用”的说明。
+- 补充更新官网 landing 下载入口：
+  - 更新 [apps/landing/src/main.ts](../../../apps/landing/src/main.ts) 的桌面 release fallback 到 `v0.18.0-desktop.1 / 0.0.143`
+  - Windows 主下载按钮改为 `NextClaw.Desktop-Setup-0.0.143-x64.exe`
+  - 继续显式保留 `NextClaw.Desktop-0.0.143-win32-x64-unpacked.zip` 作为备用便携下载入口
+  - 同步更新四个 landing HTML 的结构化 `downloadUrl`，避免官网首页与下载页继续把搜索引擎或分享抓取导向旧 release
 
 ## 测试/验证/验收方式
 
@@ -42,6 +47,22 @@
   - `pnpm -C apps/desktop build:main`
 - 已通过治理回归：
   - `pnpm check:governance-backlog-ratchet`
+- 已通过官网发布入口定向核对：
+  - `gh release view v0.18.0-desktop.1 --repo Peiiii/nextclaw --json tagName,url,assets`
+    - 已确认线上正式 release 资产同时包含：
+      - `NextClaw.Desktop-Setup-0.0.143-x64.exe`
+      - `NextClaw.Desktop-0.0.143-win32-x64-unpacked.zip`
+  - `rg -n "v0\\.18\\.0-desktop\\.1|0\\.0\\.143|NextClaw\\.Desktop-Setup-0\\.0\\.143-x64\\.exe|NextClaw\\.Desktop-0\\.0\\.143-win32-x64-unpacked\\.zip" apps/landing/src/main.ts apps/landing/src/desktop-release.service.ts apps/landing/en/index.html apps/landing/en/download/index.html apps/landing/zh/index.html apps/landing/zh/download/index.html`
+  - `pnpm -C apps/landing lint`
+  - `pnpm -C apps/landing tsc`
+  - `pnpm -C apps/landing build`
+  - `rg -n "v0\\.18\\.0-desktop\\.1|0\\.0\\.143|NextClaw\\.Desktop-Setup-0\\.0\\.143-x64\\.exe|NextClaw\\.Desktop-0\\.0\\.143-win32-x64-unpacked\\.zip" apps/landing/dist -S`
+  - `pnpm deploy:landing`
+  - `curl -s https://nextclaw.io/en/download/ | rg 'v0\\.18\\.0-desktop\\.1'`
+  - `curl -s https://nextclaw.io/zh/download/ | rg 'v0\\.18\\.0-desktop\\.1'`
+  - 浏览器快照核对：
+    - `https://nextclaw.io/en/download/` 已显示 `Download Installer`，并保留 Windows 便携 zip 链接
+    - `https://nextclaw.io/zh/download/` 已显示 `下载安装器`，并保留 Windows 便携 zip 链接
 - 未通过但确认非本次 installer 改动新增的问题：
   - `pnpm lint:new-code:governance`
     - 失败点来自当前工作区其它既有改动：`packages/nextclaw-core/src/agent/context.ts`、`packages/nextclaw-core/src/config/provider-runtime-resolution.ts`、`packages/nextclaw-core/src/config/schema.ts`、`packages/nextclaw-core/src/runtime-context/runtime-user-prompt.ts` 以及若干 Python / fixture 文件命名治理问题，不是本次 Windows installer 双轨改动触达的文件。
@@ -65,6 +86,11 @@
   - `*.exe.blockmap`
 - macOS / Linux 的 DMG / AppImage / deb / bundle / manifest / public key 发布合同保持不变。
 - 本次不涉及数据库迁移、不涉及服务端部署步骤调整。
+- 官网入口发布保持沿用 landing 既有流程：
+  - 合并当前改动后执行 `pnpm deploy:landing`
+  - 发布后官网首页与下载页都会把 Windows 主入口落到 installer，同时保留 zip 备用入口
+  - 本次已实际执行 `pnpm deploy:landing`，Cloudflare Pages 返回部署地址：`https://8b812fb8.nextclaw-landing.pages.dev`
+  - 随后已核对 `https://nextclaw.io/en/download/` 与 `https://nextclaw.io/zh/download/`，确认正式域名已同步到新 release
 
 ## 用户/产品视角的验收步骤
 
@@ -77,6 +103,11 @@
 5. 进入主界面后确认应用可交互、首屏可打开。
 6. 在兼容/便携场景下，再下载 zip，解压并直接运行 `NextClaw Desktop.exe`，确认也能正常启动。
 7. 二次升级时，确认重新运行新的 `Setup.exe` 后不破坏已有核心配置；若走便携路径，替换目录后也可正常运行。
+8. 打开官网首页与下载页，确认：
+   - 页面显示当前桌面端版本为 `0.0.143`
+   - release 标签跳转到 `v0.18.0-desktop.1`
+   - Windows 主按钮下载的是 `Setup.exe`
+   - Windows 卡片下方仍保留 zip 备用入口，不是把 zip 路径删掉
 
 ## 可维护性总结汇总
 
@@ -105,12 +136,14 @@
   - 文件数只净增一个新的 installer smoke 脚本与一份计划文档，没有恢复额外独立 installer 子系统。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：
   - 是。installer 逻辑被收敛到专门脚本，zip 启动验证仍由既有脚本承接；workflow 只负责编排，不承载具体安装/启动细节。
+  - 本次官网同步续改也保持在 landing 现有 owner 中完成，只替换 release 常量与下载入口，不新增第二套下载配置层。
 - 目录结构与文件组织是否满足当前项目治理要求：
   - 本次新增文件位置符合当前治理要求。
   - 当前工作区仍存在与本次无关的历史治理债务入口：`packages/nextclaw-core/src/agent`、`workers/nextclaw-provider-gateway-api/src`，本次未越界处理。
 - 独立于实现阶段的主观复核：
   - no maintainability findings
   - 当前剩余风险不是结构失衡，而是需要等待真实 Windows runner 验证 `NSIS /S` 静默安装路径在 CI 环境下稳定通过。
+  - 官网入口这次额外把“installer 主入口 + zip 备用入口并存”直接落到了用户可见页面，降低了后续再把官网改回单一路径的概率。
 
 ## NPM 包发布记录
 
