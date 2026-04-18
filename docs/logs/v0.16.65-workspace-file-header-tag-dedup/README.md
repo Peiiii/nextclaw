@@ -10,6 +10,13 @@
 - 同批次继续收紧 breadcrumb 的垂直节奏，改成更接近 VSCode 的紧凑导航条：
   - 外层 `padding`、segment 高度、图标尺寸、segment 间距和右侧元信息胶囊都同步下调。
   - 弱化整块渐变和过强的 chip 感，让 breadcrumb 更像“导航信息层”，而不是第二个内容 header。
+- 同批次继续修正横向滚动条的“位置感”：
+  - 问题根因不是“滚动条不够细”，而是此前把横向滚动条和内容层绑在同一个容器里，导致一旦试图通过 `padding` 去移动滚动条位置，就会顺带影响 tab 下划线和正文节奏。
+  - 本轮不再在原容器上补丁式加 `padding`，而是直接把横向滚动条提升到真正带 `border / background` 的外层边界壳上。
+  - 最终结构收敛成两层：
+    - `shell`：同时承担边界线、背景和横向滚动条
+    - `content`：只负责 tab / breadcrumb 内容本身
+  - 中间那层额外 viewport 已删除，避免“为了改滚动条位置，结果把中间层 padding、tab 下划线位置和文字节奏一起带偏”的问题。现在滚动条通过 `scrollbar-gutter: stable` 贴靠真正的底部边界，而不再靠内容层 padding 去“挪位置”。
 - 根因说明：此前右侧工作区虽然已经支持文件预览和 diff，但文件路径仍然被内嵌在 `ChatSessionWorkspaceFilePreview` 里的 `WorkspaceFileHeader` 单体实现中，既没有“工作区根目录 -> 相对路径 -> 当前文件”的结构化视图模型，也没有可复用的导航条组件，所以很难自然长出 VSCode 风格的路径导航体验。
 - 本次修复没有继续在原 header 上补样式，而是沿着根因重做边界：
   - 新增 `lib/session-project/workspace-file-breadcrumb.ts`，统一负责把绝对路径、相对路径与 `sessionProjectRoot` 收敛成 breadcrumb 视图模型。
@@ -24,11 +31,21 @@
 - 已执行：`pnpm -C packages/nextclaw-ui test -- src/components/chat/chat-session-workspace-file-preview.test.tsx`
   - 结果：通过（5 个测试全部通过）。
   - 覆盖点：补充锁定 breadcrumb 紧凑 header 的 `py-1.5` 节奏约束，避免后续再次被撑高。
+- 已执行：`pnpm -C packages/nextclaw-ui test -- src/components/chat/chat-session-workspace-file-preview.test.tsx src/components/chat/chat-conversation-panel.test.tsx`
+  - 结果：通过（2 个测试文件、17 个测试全部通过）。
+  - 覆盖点：锁定 breadcrumb 与 workspace tabs 的横向滚动条都直接挂在外层边界壳上，而内容层只保留自身节奏。
 - 已执行：`pnpm -C packages/nextclaw-ui tsc`
-  - 结果：通过。
+  - 结果：失败，但失败点来自当前工作区里的并行改动，并非本次 workspace 滚动条重构引入：
+    - `src/components/config/ChannelsList.tsx(41,47)`
+    - `src/components/config/ChannelsList.tsx(42,48)`
+  - 结论：本次改动文件未出现新的类型错误，但 `@nextclaw/ui` 当前整体类型检查未恢复到绿色。
 - 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/lib/session-project/workspace-file-breadcrumb.ts src/lib/session-project/workspace-file-breadcrumb.test.ts src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx src/components/chat/chat-session-workspace-file-preview.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx`
   - 结果：通过。
 - 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx`
+  - 结果：通过。
+- 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/index.css src/components/chat/chat-session-workspace-panel-nav.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx`
+  - 结果：`TypeScript/TSX` 改动文件通过；`index.css` 被 ESLint 直接忽略（`File ignored because no matching configuration was supplied`），不是代码错误。
+- 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx src/components/chat/chat-session-workspace-panel-nav.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx src/components/chat/chat-conversation-panel.test.tsx`
   - 结果：通过。
 - 已执行：`pnpm lint:maintainability:guard`
   - 结果：失败，但失败项均来自当前工作区里与本次 breadcrumb 续改无关的并行改动，例如：
@@ -58,6 +75,7 @@
 7. 如果当前预览被截断，确认 breadcrumb 右侧仍会显示截断提示，而不是把有效元信息一起删掉。
 8. 在顶部 tab 间切换 `preview` 和 `diff` 文件，确认 breadcrumb 与正文内容同步切换，没有出现路径和内容错位。
 9. 观察 breadcrumb 自身高度，确认它更接近一条紧凑导航条，而不是一个较厚的二级 header；segment 与右侧状态胶囊都应明显更薄。
+10. 当 breadcrumb 或 workspace tabs 横向内容超出时，确认滚动条贴靠真正的底部边界线，而不是贴着文字本身出现；tab 下划线和 breadcrumb 文本位置不应再被“为了挪滚动条”一起带偏。
 
 ## 可维护性总结汇总
 - 本次是否已尽最大努力优化可维护性：是。这次不只是补一个视觉条，而是顺手把“路径结构化”和“路径渲染”拆开，并把文件落点重新收敛到更合理的 `lib/session-project/` 与 `components/chat/workspace/`，避免让热点目录继续升温。
@@ -80,7 +98,7 @@
     - 删除：42 行
     - 净增：+244 行
   - no maintainability findings
-  - 可维护性总结：这轮代码净增确实不小，但它主要换来了此前缺失的“路径模型 + 导航层”两个稳定边界，而且已经通过删除旧 header、避免 manager/store 过度建模、以及把文件迁出热点目录把增长压在了当前最小必要范围内。最新这次紧凑化续改则保持在原边界内，只调整样式密度和组件测试，没有再新增新的状态层或并行头部实现。下一步若这个工作区继续演进，优先的继续拆分缝应是把更多文件视图（例如图片、未来的符号级 breadcrumb）也挂到同一条 breadcrumb/view-model 体系上，而不是再各自长新的顶部头部实现。
+  - 可维护性总结：这轮代码净增确实不小，但它主要换来了此前缺失的“路径模型 + 导航层”两个稳定边界，而且已经通过删除旧 header、避免 manager/store 过度建模、以及把文件迁出热点目录把增长压在了当前最小必要范围内。最新这次滚动条位置修正没有再在错误层级上补 `padding`，而是进一步删掉了非必要的中间 viewport 层，把职责收敛为“外层边界壳承载滚动条，内层内容只承载内容节奏”；这比继续在原容器上堆样式更容易维护，也更不容易误伤 tab 下划线或文本位置。下一步若这个工作区继续演进，优先的继续拆分缝应是把更多文件视图（例如图片、未来的符号级 breadcrumb）也挂到同一条 breadcrumb/view-model 体系上，而不是再各自长新的顶部头部实现。
 
 ## NPM 包发布记录
 - 本次是否需要发包：不需要。

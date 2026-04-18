@@ -139,8 +139,11 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     expect(screen.getByText("workspace")).toBeTruthy();
     expect(screen.getByText("src")).toBeTruthy();
     expect(screen.getByText("example.ts")).toBeTruthy();
+    expect(
+      screen.getByTestId("workspace-file-breadcrumb-scroll").className,
+    ).toContain("py-1.5");
     expect(screen.getByTestId("workspace-file-breadcrumbs").className).toContain(
-      "py-1.5",
+      "workspace-horizontal-scrollbar",
     );
   });
 

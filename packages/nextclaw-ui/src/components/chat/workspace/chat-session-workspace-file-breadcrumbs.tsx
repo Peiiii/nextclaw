@@ -33,39 +33,38 @@ export function ChatSessionWorkspaceFileBreadcrumbs({
   return (
     <div
       data-testid="workspace-file-breadcrumbs"
-      className="border-b border-gray-200/80 bg-gray-50/55 px-3 py-1.5"
+      title={breadcrumb.fullPath}
+      className="workspace-horizontal-scrollbar overflow-x-auto overflow-y-hidden border-b border-gray-200/80 bg-gray-50/55"
     >
-      <div className="flex items-center gap-2.5">
-        <div
-          title={breadcrumb.fullPath}
-          className="min-w-0 flex-1 overflow-x-auto custom-scrollbar"
-        >
-          <div className="flex min-w-max items-center gap-1 pr-1">
-            {breadcrumb.segments.map((segment, index) => (
-              <Fragment key={segment.key}>
-                <span
-                  className={cn(
-                    "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none",
-                    segment.kind === "workspace"
-                      ? "bg-primary/8 text-primary"
-                      : segment.isCurrent
-                        ? "bg-gray-200/70 text-gray-900"
-                        : "text-gray-500",
-                  )}
-                >
-                  {segment.kind === "workspace" ? (
-                    <FolderTree className="h-3 w-3 shrink-0" />
-                  ) : segment.isCurrent ? (
-                    <FileCode2 className="h-3 w-3 shrink-0" />
-                  ) : null}
-                  <span>{segment.label}</span>
-                </span>
-                {index < breadcrumb.segments.length - 1 ? (
-                  <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />
+      <div
+        data-testid="workspace-file-breadcrumb-scroll"
+        className="flex min-w-max items-center gap-2.5 px-3 py-1.5"
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-1 pr-1">
+          {breadcrumb.segments.map((segment, index) => (
+            <Fragment key={segment.key}>
+              <span
+                className={cn(
+                  "inline-flex h-5 items-center gap-1 rounded-sm px-1 text-[11px] leading-none",
+                  segment.kind === "workspace"
+                    ? "bg-primary/8 text-primary"
+                    : segment.isCurrent
+                      ? "bg-gray-200/70 text-gray-900"
+                      : "text-gray-500",
+                )}
+              >
+                {segment.kind === "workspace" ? (
+                  <FolderTree className="h-3 w-3 shrink-0" />
+                ) : segment.isCurrent ? (
+                  <FileCode2 className="h-3 w-3 shrink-0" />
                 ) : null}
-              </Fragment>
-            ))}
-          </div>
+                <span>{segment.label}</span>
+              </span>
+              {index < breadcrumb.segments.length - 1 ? (
+                <ChevronRight className="h-3 w-3 shrink-0 text-gray-300" />
+              ) : null}
+            </Fragment>
+          ))}
         </div>
 
         {breadcrumb.locationLabel || breadcrumb.truncated ? (

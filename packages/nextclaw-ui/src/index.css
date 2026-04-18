@@ -59,6 +59,30 @@
     background: hsl(var(--gray-400));
   }
 
+  .workspace-horizontal-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--gray-300) / 0.38) transparent;
+    scrollbar-gutter: stable;
+  }
+
+  .workspace-horizontal-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 2px;
+  }
+
+  .workspace-horizontal-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .workspace-horizontal-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--gray-300) / 0.38);
+    border-radius: 999px;
+  }
+
+  .workspace-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--gray-400) / 0.48);
+  }
+
   /* ========================================
      GLASSMORPHISM
      ======================================== */

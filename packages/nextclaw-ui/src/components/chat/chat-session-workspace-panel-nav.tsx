@@ -186,8 +186,14 @@ export function WorkspaceTabsBar({
   tabs: readonly WorkspaceTabViewModel[];
 }) {
   return (
-    <div className="overflow-x-auto border-b border-gray-200/70 bg-gray-50/85 custom-scrollbar">
-      <div className="flex min-w-max items-stretch">
+    <div
+      data-testid="workspace-tabs-bar"
+      className="workspace-horizontal-scrollbar overflow-x-auto overflow-y-hidden border-b border-gray-200/70 bg-gray-50/85"
+    >
+      <div
+        data-testid="workspace-tabs-scroll"
+        className="flex min-w-max items-stretch"
+      >
         {tabs.map((tab) => (
           <WorkspaceTabItem key={tab.key} tab={tab} />
         ))}

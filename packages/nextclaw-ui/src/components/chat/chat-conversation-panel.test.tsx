@@ -512,5 +512,8 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(screen.getByTestId("workspace-file-preview").textContent).toBe(
       "README.md",
     );
+    expect(screen.getByTestId("workspace-tabs-bar").className).toContain(
+      "workspace-horizontal-scrollbar",
+    );
   });
 });
