@@ -96,12 +96,13 @@ async function assertConsoleShell(browser) {
 
   const homeText = await page.locator("body").innerText();
   const homeExpected = [
-    "平台治理控制台",
+    "Platform Admin",
     "总览",
     "Marketplace 审核",
     "用户与额度",
     "充值审核",
-    "平台治理总览",
+    "PLATFORM GOVERNANCE",
+    "平台治理入口与关键运行状态",
     "营收与上游治理"
   ];
   for (const value of homeExpected) {
@@ -111,15 +112,15 @@ async function assertConsoleShell(browser) {
   }
 
   await page.getByRole("link", { name: /Marketplace 审核/ }).first().click();
-  await page.waitForFunction(() => document.body.innerText.includes("skill 上架治理入口"));
+  await page.waitForFunction(() => document.body.innerText.includes("审核队列"));
   await page.getByRole("button", { name: /Stock Briefing/ }).click();
   await page.waitForFunction(() => document.body.innerText.includes("@peiiii/stock-briefing"));
 
   await page.getByRole("link", { name: /用户与额度/ }).first().click();
-  await page.waitForFunction(() => document.body.innerText.includes("用户额度管理"));
+  await page.waitForFunction(() => document.body.innerText.includes("用户额度表格"));
 
   await page.getByRole("link", { name: /充值审核/ }).first().click();
-  await page.waitForFunction(() => document.body.innerText.includes("充值审核"));
+  await page.waitForFunction(() => document.body.innerText.includes("充值审核表"));
   await page.waitForFunction(() => document.body.innerText.includes("user-1"));
   await page.waitForFunction(() => document.body.innerText.includes("20.0000"));
 

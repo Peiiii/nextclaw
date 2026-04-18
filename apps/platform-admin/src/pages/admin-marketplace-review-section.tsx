@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 
 type Props = {
   token: string;
+  showHeader?: boolean;
 };
 
 const PAGE_SIZE = 12;
@@ -30,7 +31,7 @@ const STATUS_OPTIONS: Array<{ value: AdminMarketplaceSkillPublishStatus; label: 
   { value: 'all', label: '全部' }
 ];
 
-export function AdminMarketplaceReviewSection({ token }: Props): JSX.Element {
+export function AdminMarketplaceReviewSection({ token, showHeader = true }: Props): JSX.Element {
   const queryClient = useQueryClient();
   const [publishStatus, setPublishStatus] = useState<AdminMarketplaceSkillPublishStatus>('pending');
   const [searchInput, setSearchInput] = useState('');
@@ -83,13 +84,15 @@ export function AdminMarketplaceReviewSection({ token }: Props): JSX.Element {
   });
 
   return (
-    <Card className="space-y-4">
-      <div className="space-y-1">
-        <CardTitle>Marketplace 审核</CardTitle>
-        <p className="text-sm text-slate-500">
-          这里是 skill 上架治理入口。管理员可以查看待审核队列、阅读 `SKILL.md` 与 `marketplace.json`，并直接执行通过或拒绝。
-        </p>
-      </div>
+    <Card className="space-y-4 rounded-2xl border-[#e4e0d7] p-5 shadow-[0_1px_3px_rgba(31,31,29,0.04)]">
+      {showHeader ? (
+        <div className="space-y-1">
+          <CardTitle>Marketplace 审核</CardTitle>
+          <p className="text-sm text-[#656561]">
+            这里是 skill 上架治理入口。管理员可以查看待审核队列、阅读 `SKILL.md` 与 `marketplace.json`，并直接执行通过或拒绝。
+          </p>
+        </div>
+      ) : null}
 
       <MarketplaceCountsStrip counts={listQuery.data?.counts} />
 
@@ -164,9 +167,9 @@ function MarketplaceCountsStrip(props: { counts: AdminMarketplaceSkillCountsView
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {items.map((item) => (
-        <div key={item.label} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-xs text-slate-500">{item.label}</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-950">{item.value}</p>
+        <div key={item.label} className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#8f8a7d]">{item.label}</p>
+          <p className="mt-2 text-2xl font-semibold text-[#1f1f1d]">{item.value}</p>
         </div>
       ))}
     </div>
@@ -183,8 +186,8 @@ function MarketplaceFilterPanel(props: {
   onClear: () => void;
 }): JSX.Element {
   return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-      <p className="text-sm font-medium text-slate-900">筛选队列</p>
+    <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+      <p className="text-sm font-medium text-[#1f1f1d]">筛选队列</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {STATUS_OPTIONS.map((option) => (
           <Button
@@ -232,16 +235,16 @@ function MarketplaceQueuePanel(props: {
   onNextPage: () => void;
 }): JSX.Element {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white">
-      <div className="border-b border-slate-200 px-4 py-3">
-        <p className="text-sm font-medium text-slate-900">审核队列</p>
-        <p className="mt-1 text-xs text-slate-500">第 {props.page} 页，共 {Math.max(props.totalPages, 1)} 页，累计 {props.total} 个 skill。</p>
+    <div className="rounded-2xl border border-[#e4e0d7] bg-white">
+      <div className="border-b border-[#e4e0d7] px-4 py-3">
+        <p className="text-sm font-medium text-[#1f1f1d]">审核队列</p>
+        <p className="mt-1 text-xs text-[#8f8a7d]">第 {props.page} 页，共 {Math.max(props.totalPages, 1)} 页，累计 {props.total} 个 skill。</p>
       </div>
 
       <div className="space-y-2 p-3">
-        {props.isLoading ? <p className="px-1 py-6 text-sm text-slate-500">加载队列中...</p> : null}
+        {props.isLoading ? <p className="px-1 py-6 text-sm text-[#8f8a7d]">加载队列中...</p> : null}
         {props.errorMessage ? <p className="px-1 text-sm text-rose-600">{props.errorMessage}</p> : null}
-        {!props.isLoading && props.items.length === 0 ? <p className="px-1 py-6 text-sm text-slate-500">当前筛选条件下没有 skill。</p> : null}
+        {!props.isLoading && props.items.length === 0 ? <p className="px-1 py-6 text-sm text-[#8f8a7d]">当前筛选条件下没有 skill。</p> : null}
 
         {props.items.map((item) => {
           const selector = item.packageName;
@@ -252,20 +255,20 @@ function MarketplaceQueuePanel(props: {
               type="button"
               className={`w-full rounded-lg border px-3 py-3 text-left transition-colors ${
                 isSelected
-                  ? 'border-brand-400 bg-brand-50'
-                  : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100'
+                  ? 'border-brand-300 bg-brand-50'
+                  : 'border-[#e4e0d7] bg-[#f9f8f5] hover:border-[#d4cdbd] hover:bg-[#f3f2ee]'
               }`}
               onClick={() => props.onSelect(selector)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-900">{item.name}</p>
-                  <p className="mt-1 truncate text-xs text-slate-500">{item.packageName}</p>
+                  <p className="truncate text-sm font-medium text-[#1f1f1d]">{item.name}</p>
+                  <p className="mt-1 truncate text-xs text-[#8f8a7d]">{item.packageName}</p>
                 </div>
                 <MarketplaceStatusBadge status={item.publishStatus} />
               </div>
-              <p className="mt-2 line-clamp-2 text-sm text-slate-600">{item.summary}</p>
-              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+              <p className="mt-2 line-clamp-2 text-sm text-[#656561]">{item.summary}</p>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#8f8a7d]">
                 <span>作者：{item.author}</span>
                 <span>更新：{formatDateTime(item.updatedAt)}</span>
               </div>
@@ -274,7 +277,7 @@ function MarketplaceQueuePanel(props: {
         })}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-3 py-3">
+      <div className="flex items-center justify-end gap-2 border-t border-[#e4e0d7] px-3 py-3">
         <Button variant="ghost" className="h-8 px-3" disabled={props.page <= 1} onClick={props.onPrevPage}>上一页</Button>
         <Button
           variant="secondary"
@@ -302,7 +305,7 @@ function MarketplaceDetailPanel(props: {
   onReject: () => void;
 }): JSX.Element {
   if (props.isLoading) {
-    return <Card className="text-sm text-slate-500">加载 skill 详情中...</Card>;
+    return <Card className="text-sm text-[#8f8a7d]">加载 skill 详情中...</Card>;
   }
 
   if (props.errorMessage) {
@@ -310,7 +313,7 @@ function MarketplaceDetailPanel(props: {
   }
 
   if (!props.detail) {
-    return <Card className="text-sm text-slate-500">请先从左侧选择一个 skill。</Card>;
+    return <Card className="text-sm text-[#8f8a7d]">请先从左侧选择一个 skill。</Card>;
   }
 
   const { item, files, skillMarkdownRaw, marketplaceJsonRaw } = props.detail;
@@ -321,7 +324,7 @@ function MarketplaceDetailPanel(props: {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{item.name}</CardTitle>
-            <p className="mt-1 text-sm text-slate-500">{item.packageName}</p>
+            <p className="mt-1 text-sm text-[#8f8a7d]">{item.packageName}</p>
           </div>
           <MarketplaceStatusBadge status={item.publishStatus} />
         </div>
@@ -336,20 +339,20 @@ function MarketplaceDetailPanel(props: {
         </div>
 
         <div>
-          <p className="text-xs text-slate-500">摘要</p>
-          <p className="mt-1 text-sm text-slate-700">{item.summary}</p>
+          <p className="text-xs text-[#8f8a7d]">摘要</p>
+          <p className="mt-1 text-sm text-[#656561]">{item.summary}</p>
         </div>
 
         {item.description ? (
           <div>
-            <p className="text-xs text-slate-500">描述</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{item.description}</p>
+            <p className="text-xs text-[#8f8a7d]">描述</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-[#656561]">{item.description}</p>
           </div>
         ) : null}
 
         <div className="flex flex-wrap gap-2">
           {item.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600">{tag}</span>
+            <span key={tag} className="rounded-full bg-[#f3f2ee] px-2.5 py-1 text-xs text-[#656561]">{tag}</span>
           ))}
         </div>
 
@@ -361,7 +364,7 @@ function MarketplaceDetailPanel(props: {
 
       <Card className="space-y-3">
         <CardTitle>审核动作</CardTitle>
-        <p className="text-sm text-slate-500">拒绝时必须填写备注；通过时备注可选，但建议给出审核结论，便于后续治理留痕。</p>
+        <p className="text-sm text-[#656561]">拒绝时必须填写备注；通过时备注可选，但建议给出审核结论，便于后续治理留痕。</p>
         <Textarea
           placeholder="填写审核备注。拒绝时必填，例如缺少 metadata、命名不规范、文件不完整等。"
           value={props.reviewDraft}
@@ -378,7 +381,7 @@ function MarketplaceDetailPanel(props: {
         <CardTitle>文件清单</CardTitle>
         <TableWrap>
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-[#f3f2ee] text-xs uppercase tracking-wide text-[#8f8a7d]">
               <tr>
                 <th className="px-3 py-2">路径</th>
                 <th className="px-3 py-2">大小</th>
@@ -387,10 +390,10 @@ function MarketplaceDetailPanel(props: {
             </thead>
             <tbody>
               {files.map((file) => (
-                <tr key={file.path} className="border-t border-slate-100">
-                  <td className="px-3 py-2 font-mono text-xs text-slate-700">{file.path}</td>
-                  <td className="px-3 py-2 text-slate-600">{formatBytes(file.sizeBytes)}</td>
-                  <td className="px-3 py-2 text-slate-600">{formatDateTime(file.updatedAt)}</td>
+                <tr key={file.path} className="border-t border-[#ece7dd]">
+                  <td className="px-3 py-2 font-mono text-xs text-[#4a4944]">{file.path}</td>
+                  <td className="px-3 py-2 text-[#656561]">{formatBytes(file.sizeBytes)}</td>
+                  <td className="px-3 py-2 text-[#656561]">{formatDateTime(file.updatedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -406,23 +409,23 @@ function MarketplaceDetailPanel(props: {
 
 function DetailMetaItem(props: { label: string; value: string }): JSX.Element {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{props.label}</p>
-      <p className="mt-1 text-sm text-slate-800">{props.value}</p>
+    <div className="rounded-lg border border-[#e4e0d7] bg-[#f9f8f5] p-3">
+      <p className="text-xs text-[#8f8a7d]">{props.label}</p>
+      <p className="mt-1 text-sm text-[#1f1f1d]">{props.value}</p>
     </div>
   );
 }
 
 function LinkMetaItem(props: { label: string; href?: string }): JSX.Element {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs text-slate-500">{props.label}</p>
+    <div className="rounded-lg border border-[#e4e0d7] bg-[#f9f8f5] p-3">
+      <p className="text-xs text-[#8f8a7d]">{props.label}</p>
       {props.href ? (
         <a className="mt-1 block break-all text-sm text-brand-700 hover:underline" href={props.href} target="_blank" rel="noreferrer">
           {props.href}
         </a>
       ) : (
-        <p className="mt-1 text-sm text-slate-500">未提供</p>
+        <p className="mt-1 text-sm text-[#8f8a7d]">未提供</p>
       )}
     </div>
   );
@@ -432,7 +435,7 @@ function RawContentCard(props: { title: string; raw?: string }): JSX.Element {
   return (
     <Card className="space-y-3">
       <CardTitle>{props.title}</CardTitle>
-      <pre className="max-h-[360px] overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+      <pre className="max-h-[360px] overflow-auto rounded-lg bg-[#1f1f1d] p-4 text-xs leading-6 text-[#f6f4ee]">
         {props.raw && props.raw.trim().length > 0 ? props.raw : `未提供 ${props.title}`}
       </pre>
     </Card>

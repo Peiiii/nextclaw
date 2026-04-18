@@ -40,18 +40,18 @@ export default function App(): JSX.Element {
   }
 
   if (meQuery.isLoading) {
-    return <main className="p-6 text-sm text-slate-500">加载登录态...</main>;
+    return <main className="p-6 text-sm text-[#8f8a7d]">加载登录态...</main>;
   }
 
   const currentUser = meQuery.data?.user ?? user;
 
   if (currentUser?.role !== 'admin') {
     return (
-      <main className="min-h-screen bg-slate-50 text-slate-900">
+      <main className="min-h-screen bg-[#f9f8f5] text-[#1f1f1d]">
         <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-6 py-10">
-          <section className="w-full rounded-xl border border-slate-200 bg-white p-6">
+          <section className="w-full rounded-xl border border-[#e4e0d7] bg-white p-6">
             <h1 className="text-lg font-semibold">仅管理员可访问</h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-[#656561]">
               当前账号不是管理员。请使用管理员账号登录独立管理后台。
             </p>
             <div className="mt-4">
@@ -64,8 +64,8 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 xl:px-8">
+    <main className="min-h-screen bg-[#f9f8f5] text-[#1f1f1d]">
+      <div className="mx-auto w-full max-w-[1680px] px-4 py-4 md:px-5 xl:px-6">
         <AdminDashboardPage token={token} user={currentUser} onLogout={logout} />
       </div>
     </main>

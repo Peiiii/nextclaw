@@ -6,7 +6,6 @@ export type AdminConsoleRoute = {
   key: AdminConsoleRouteKey;
   label: string;
   description: string;
-  eyebrow: string;
   hash: string;
 };
 
@@ -17,28 +16,24 @@ export const ADMIN_CONSOLE_ROUTES: AdminConsoleRoute[] = [
     key: 'overview',
     label: '总览',
     description: '平台治理入口与关键运行状态。',
-    eyebrow: 'Overview',
     hash: '#/overview'
   },
   {
     key: 'marketplace',
     label: 'Marketplace 审核',
     description: '集中查看待审核 skill，并直接通过或拒绝。',
-    eyebrow: 'Marketplace',
     hash: '#/marketplace'
   },
   {
     key: 'users',
     label: '用户与额度',
     description: '统一管理免费池、用户额度和付费余额。',
-    eyebrow: 'Users & Quota',
     hash: '#/users'
   },
   {
     key: 'recharge',
     label: '充值审核',
     description: '处理平台充值申请与待办状态。',
-    eyebrow: 'Recharge',
     hash: '#/recharge'
   }
 ];

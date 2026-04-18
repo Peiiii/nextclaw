@@ -1,6 +1,14 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AdminMetricCard,
+  AdminMetricGrid,
+  AdminPage,
+  AdminSection,
+  AdminSurface,
+  AdminToolbar
+} from '@/components/admin/admin-page';
+import {
   fetchAdminOverview,
   fetchAdminUsers,
   updateAdminUser,
@@ -8,7 +16,6 @@ import {
 } from '@/api/client';
 import type { AdminOverview, UserView } from '@/api/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { formatUsd } from '@/lib/utils';
@@ -77,59 +84,66 @@ export function AdminUserQuotaPage({ token }: Props): JSX.Element {
   const users = usersQuery.data?.items ?? [];
 
   return (
-    <div className="space-y-6">
-      <GlobalQuotaCard
-        overview={overviewQuery.data}
-        draft={globalLimitDraft}
-        errorMessage={overviewQuery.error instanceof Error ? overviewQuery.error.message : null}
-        isSubmitting={setGlobalLimitMutation.isPending}
-        submitErrorMessage={setGlobalLimitMutation.error instanceof Error ? setGlobalLimitMutation.error.message : null}
-        onDraftChange={setGlobalLimitDraft}
-        onSubmit={() => setGlobalLimitMutation.mutate()}
-      />
+    <AdminPage>
+      <AdminSection
+        title="全局额度治理"
+        description="把平台免费池和用户额度管理收敛到统一治理页面，避免在多个区块之间来回查找。"
+      >
+        <GlobalQuotaCard
+          overview={overviewQuery.data}
+          draft={globalLimitDraft}
+          errorMessage={overviewQuery.error instanceof Error ? overviewQuery.error.message : null}
+          isSubmitting={setGlobalLimitMutation.isPending}
+          submitErrorMessage={setGlobalLimitMutation.error instanceof Error ? setGlobalLimitMutation.error.message : null}
+          onDraftChange={setGlobalLimitDraft}
+          onSubmit={() => setGlobalLimitMutation.mutate()}
+        />
+      </AdminSection>
 
-      <UserQuotaManagementCard
-        users={users}
-        searchInput={userSearchInput}
-        freeLimitEdits={freeLimitEdits}
-        paidDeltaEdits={paidDeltaEdits}
-        isLoading={usersQuery.isLoading}
-        listErrorMessage={usersQuery.error instanceof Error ? usersQuery.error.message : null}
-        updateErrorMessage={updateQuotaMutation.error instanceof Error ? updateQuotaMutation.error.message : null}
-        canPrev={userCursorHistory.length > 0}
-        canNext={Boolean(usersQuery.data?.hasMore && usersQuery.data?.nextCursor)}
-        onSearchInputChange={setUserSearchInput}
-        onSearch={() => {
-          setUserSearch(userSearchInput.trim());
-          setUserCursor(null);
-          setUserCursorHistory([]);
-        }}
-        onClearSearch={() => {
-          setUserSearchInput('');
-          setUserSearch('');
-          setUserCursor(null);
-          setUserCursorHistory([]);
-        }}
-        onFreeLimitEditChange={(userId, value) => {
-          setFreeLimitEdits((prev) => ({ ...prev, [userId]: value }));
-        }}
-        onPaidDeltaEditChange={(userId, value) => {
-          setPaidDeltaEdits((prev) => ({ ...prev, [userId]: value }));
-        }}
-        onSaveUserQuota={(user) => {
-          updateQuotaMutation.mutate(buildUpdateQuotaPayload(user, freeLimitEdits, paidDeltaEdits));
-        }}
-        onPrevPage={() => {
-          const previous = userCursorHistory[userCursorHistory.length - 1] ?? null;
-          setUserCursor(previous);
-          setUserCursorHistory((prev) => prev.slice(0, -1));
-        }}
-        onNextPage={() => {
-          setUserCursorHistory((prev) => [...prev, userCursor]);
-          setUserCursor(usersQuery.data?.nextCursor ?? null);
-        }}
-      />
-    </div>
+      <AdminSection title="用户额度表格" description="以表格为主进行搜索、分页和行内额度调整。">
+        <UserQuotaManagementCard
+          users={users}
+          searchInput={userSearchInput}
+          freeLimitEdits={freeLimitEdits}
+          paidDeltaEdits={paidDeltaEdits}
+          isLoading={usersQuery.isLoading}
+          listErrorMessage={usersQuery.error instanceof Error ? usersQuery.error.message : null}
+          updateErrorMessage={updateQuotaMutation.error instanceof Error ? updateQuotaMutation.error.message : null}
+          canPrev={userCursorHistory.length > 0}
+          canNext={Boolean(usersQuery.data?.hasMore && usersQuery.data?.nextCursor)}
+          onSearchInputChange={setUserSearchInput}
+          onSearch={() => {
+            setUserSearch(userSearchInput.trim());
+            setUserCursor(null);
+            setUserCursorHistory([]);
+          }}
+          onClearSearch={() => {
+            setUserSearchInput('');
+            setUserSearch('');
+            setUserCursor(null);
+            setUserCursorHistory([]);
+          }}
+          onFreeLimitEditChange={(userId, value) => {
+            setFreeLimitEdits((prev) => ({ ...prev, [userId]: value }));
+          }}
+          onPaidDeltaEditChange={(userId, value) => {
+            setPaidDeltaEdits((prev) => ({ ...prev, [userId]: value }));
+          }}
+          onSaveUserQuota={(user) => {
+            updateQuotaMutation.mutate(buildUpdateQuotaPayload(user, freeLimitEdits, paidDeltaEdits));
+          }}
+          onPrevPage={() => {
+            const previous = userCursorHistory[userCursorHistory.length - 1] ?? null;
+            setUserCursor(previous);
+            setUserCursorHistory((prev) => prev.slice(0, -1));
+          }}
+          onNextPage={() => {
+            setUserCursorHistory((prev) => [...prev, userCursor]);
+            setUserCursor(usersQuery.data?.nextCursor ?? null);
+          }}
+        />
+      </AdminSection>
+    </AdminPage>
   );
 }
 
@@ -142,52 +156,32 @@ function GlobalQuotaCard(props: {
   onDraftChange: (value: string) => void;
   onSubmit: () => void;
 }): JSX.Element {
-  const inputValue = props.draft.trim().length > 0
-    ? props.draft
-    : String(props.overview?.globalFreeLimitUsd ?? 20);
+  const inputValue = props.draft.trim().length > 0 ? props.draft : String(props.overview?.globalFreeLimitUsd ?? 20);
 
   return (
-    <Card className="space-y-4 rounded-[28px]">
-      <div className="space-y-1">
-        <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">Users & Quota</p>
-        <CardTitle>用户与额度</CardTitle>
-        <p className="text-sm text-slate-500">把用户额度、全局免费池和个人余额集中放到同一个治理页面，避免跨区块来回查找。</p>
-      </div>
-
+    <AdminSurface className="space-y-5 p-5">
       {props.errorMessage ? <p className="text-sm text-rose-600">{props.errorMessage}</p> : null}
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <QuotaSummaryCard label="全局免费池上限" value={formatUsd(props.overview?.globalFreeLimitUsd ?? 0)} />
-        <QuotaSummaryCard label="全局免费池已消耗" value={formatUsd(props.overview?.globalFreeUsedUsd ?? 0)} />
-        <QuotaSummaryCard label="全局免费池剩余" value={formatUsd(props.overview?.globalFreeRemainingUsd ?? 0)} />
-      </div>
+      <AdminMetricGrid className="xl:grid-cols-3">
+        <AdminMetricCard label="全局免费池上限" value={formatUsd(props.overview?.globalFreeLimitUsd ?? 0)} />
+        <AdminMetricCard label="全局免费池已消耗" value={formatUsd(props.overview?.globalFreeUsedUsd ?? 0)} />
+        <AdminMetricCard label="全局免费池剩余" value={formatUsd(props.overview?.globalFreeRemainingUsd ?? 0)} />
+      </AdminMetricGrid>
 
-      <div className="grid gap-3 lg:grid-cols-[280px_180px_minmax(0,1fr)]">
+      <AdminToolbar className="grid gap-3 lg:grid-cols-[280px_180px_minmax(0,1fr)]">
         <Input
           value={inputValue}
           onChange={(event) => props.onDraftChange(event.target.value)}
           placeholder="设置新的全局免费池上限"
         />
         <Button onClick={props.onSubmit} disabled={props.isSubmitting}>更新上限</Button>
-        <div className="flex items-center text-sm text-slate-500">
+        <div className="flex items-center text-sm text-[#656561]">
           当前累计用户数：{props.overview?.userCount ?? 0}，待审核充值：{props.overview?.pendingRechargeIntents ?? 0}
         </div>
-      </div>
+      </AdminToolbar>
 
       {props.submitErrorMessage ? <p className="text-sm text-rose-600">{props.submitErrorMessage}</p> : null}
-    </Card>
-  );
-}
-
-function QuotaSummaryCard(props: {
-  label: string;
-  value: string;
-}): JSX.Element {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{props.label}</p>
-      <p className="mt-3 text-2xl font-semibold text-slate-950">{props.value}</p>
-    </div>
+    </AdminSurface>
   );
 }
 
@@ -211,30 +205,29 @@ function UserQuotaManagementCard(props: {
   onNextPage: () => void;
 }): JSX.Element {
   return (
-    <Card className="space-y-4 rounded-[28px]">
-      <div className="space-y-1">
-        <CardTitle>用户额度管理</CardTitle>
-        <p className="text-sm text-slate-500">支持按用户调整个人免费额度上限，并直接增减付费余额（USD）。</p>
-      </div>
-
-      <form
+    <AdminSurface className="space-y-4 p-5">
+      <AdminToolbar
         className="flex flex-wrap gap-2"
-        onSubmit={(event) => {
-          event.preventDefault();
-          props.onSearch();
-        }}
       >
-        <Input
-          className="max-w-sm"
-          placeholder="按邮箱搜索"
-          value={props.searchInput}
-          onChange={(event) => props.onSearchInputChange(event.target.value)}
-        />
-        <Button type="submit" variant="secondary">搜索</Button>
-        <Button type="button" variant="ghost" onClick={props.onClearSearch}>清空</Button>
-      </form>
+        <form
+          className="flex flex-wrap gap-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            props.onSearch();
+          }}
+        >
+          <Input
+            className="max-w-sm"
+            placeholder="按邮箱搜索"
+            value={props.searchInput}
+            onChange={(event) => props.onSearchInputChange(event.target.value)}
+          />
+          <Button type="submit" variant="secondary">搜索</Button>
+          <Button type="button" variant="ghost" onClick={props.onClearSearch}>清空</Button>
+        </form>
+      </AdminToolbar>
 
-      {props.isLoading ? <p className="text-sm text-slate-500">加载用户中...</p> : null}
+      {props.isLoading ? <p className="text-sm text-[#8f8a7d]">加载用户中...</p> : null}
       {props.listErrorMessage ? <p className="text-sm text-rose-600">{props.listErrorMessage}</p> : null}
 
       <UserQuotaTable
@@ -252,7 +245,7 @@ function UserQuotaManagementCard(props: {
         <Button variant="ghost" className="h-8 px-3" disabled={!props.canPrev} onClick={props.onPrevPage}>上一页</Button>
         <Button variant="secondary" className="h-8 px-3" disabled={!props.canNext} onClick={props.onNextPage}>下一页</Button>
       </div>
-    </Card>
+    </AdminSurface>
   );
 }
 
@@ -267,7 +260,7 @@ function UserQuotaTable(props: {
   return (
     <TableWrap>
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-[#f3f2ee] text-xs uppercase tracking-wide text-[#8f8a7d]">
           <tr>
             <th className="px-3 py-2">邮箱</th>
             <th className="px-3 py-2">角色</th>
@@ -280,7 +273,7 @@ function UserQuotaTable(props: {
         </thead>
         <tbody>
           {props.users.map((user) => (
-            <tr key={user.id} className="border-t border-slate-100">
+            <tr key={user.id} className="border-t border-[#ece7dd]">
               <td className="px-3 py-2">{user.email}</td>
               <td className="px-3 py-2">{user.role}</td>
               <td className="px-3 py-2">
