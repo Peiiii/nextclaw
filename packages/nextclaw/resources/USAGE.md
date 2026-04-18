@@ -470,8 +470,12 @@ Skill loading contract:
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
 | `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
 | `sudo nextclaw service uninstall-systemd --system` | Remove a system-wide Linux `systemd` service |
-| `nextclaw service autostart status --user` | Show host autostart status |
-| `nextclaw service autostart doctor --user` | Diagnose host autostart setup |
+| `nextclaw service install-launch-agent` | Install a managed macOS LaunchAgent for NextClaw |
+| `nextclaw service uninstall-launch-agent` | Remove a managed macOS LaunchAgent |
+| `nextclaw service install-task` | Install a managed Windows Scheduled Task for NextClaw |
+| `nextclaw service uninstall-task` | Remove a managed Windows Scheduled Task |
+| `nextclaw service autostart status` | Show host autostart status |
+| `nextclaw service autostart doctor` | Diagnose host autostart setup |
 | `nextclaw ui` | Start UI and gateway in the foreground |
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw serve` | Run gateway + UI in the foreground (no background) |
@@ -529,8 +533,10 @@ Autostart notes:
 
 - `npm i -g nextclaw` installs the CLI only. It does not register host autostart by itself.
 - On Linux, use `nextclaw service install-systemd --user` for a user-level login autostart path.
+- On macOS, use `nextclaw service install-launch-agent` for a LaunchAgent-based login autostart path.
+- On Windows, use `nextclaw service install-task` for a Scheduled Task based login autostart path.
 - For machine-wide Linux startup after boot, use `sudo nextclaw service install-systemd --system`.
-- `nextclaw service autostart status` and `nextclaw service autostart doctor` are read-only inspection commands; add `--user` or `--system` when you need an explicit scope.
+- `nextclaw service autostart status` and `nextclaw service autostart doctor` are read-only inspection commands; add `--user` or `--system` only when you need an explicit Linux `systemd` scope.
 
 Agent management notes:
 

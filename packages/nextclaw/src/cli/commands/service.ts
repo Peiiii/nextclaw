@@ -35,9 +35,8 @@ import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGat
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./service-support/gateway/service-gateway-runtime-lifecycle.js";
 import { inspectUiTarget, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
-import { HostAutostartService } from "./service-support/autostart/host-autostart.service.js";
-import type { HostAutostartDoctorReport, HostAutostartScope, HostAutostartStatus, SystemdScopeFlags } from "./service-support/autostart/host-autostart.types.js";
-import type { ServiceSystemdCommandOptions } from "../types.js";
+import { HostAutostartCommandService } from "./service-support/autostart/host-autostart-command.service.js";
+import type { ServiceAutostartCommandOptions } from "../types.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
 export { resolveCliSubcommandEntry };
@@ -90,7 +89,7 @@ export class ServiceCommands {
   private readonly fileWatchers = new ServiceFileWatcherRegistry();
   private readonly loggingRuntime = NextclawCore.getLoggingRuntime();
   private readonly serviceLogger = this.loggingRuntime.getLogger("service");
-  private readonly hostAutostartService = new HostAutostartService();
+  private readonly hostAutostartCommandService = new HostAutostartCommandService();
   private loggingInstalled = false;
   constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
@@ -443,101 +442,36 @@ export class ServiceCommands {
     }
   };
 
-  installSystemd = async (options: ServiceSystemdCommandOptions = {}): Promise<void> => {
-    const scope = this.resolveRequiredSystemdScope(options);
-    if (!scope) {
-      process.exitCode = 1;
-      return;
-    }
-    const result = await this.hostAutostartService.installSystemd(scope, {
-      dryRun: Boolean(options.dryRun),
-    });
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      process.exitCode = result.ok ? 0 : 1;
-      return;
-    }
-    if (!result.ok) {
-      process.exitCode = 1;
-      console.error(`Error: ${result.reasonIfUnavailable ?? "systemd autostart install failed."}`);
-      return;
-    }
-    console.log(`Host autostart owner: ${scope === "user" ? "systemd user service" : "systemd system service"}`);
-    console.log(`Unit: ${result.resourceName}`);
-    console.log(`Unit path: ${result.unitPath}`);
-    console.log(`Home: ${result.homeDir}`);
-    console.log(`Command: ${result.command}`);
-    console.log(`Logs: ${result.logHint}`);
-    for (const action of result.actions) {
-      console.log(`- ${action}`);
-    }
-    console.log(result.dryRun ? "Dry run complete." : "systemd autostart installed.");
-    process.exitCode = 0;
+  installSystemd = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.installSystemd(options);
   };
 
-  uninstallSystemd = async (options: ServiceSystemdCommandOptions = {}): Promise<void> => {
-    const scope = this.resolveRequiredSystemdScope(options);
-    if (!scope) {
-      process.exitCode = 1;
-      return;
-    }
-    const result = await this.hostAutostartService.uninstallSystemd(scope, {
-      dryRun: Boolean(options.dryRun),
-    });
-    if (options.json) {
-      console.log(JSON.stringify(result, null, 2));
-      process.exitCode = result.ok ? 0 : 1;
-      return;
-    }
-    if (!result.ok) {
-      process.exitCode = 1;
-      console.error(`Error: ${result.reasonIfUnavailable ?? "systemd autostart uninstall failed."}`);
-      return;
-    }
-    console.log(`Host autostart owner: ${scope === "user" ? "systemd user service" : "systemd system service"}`);
-    console.log(`Unit: ${result.resourceName}`);
-    console.log(`Unit path: ${result.unitPath}`);
-    console.log(`Logs: ${result.logHint}`);
-    for (const action of result.actions) {
-      console.log(`- ${action}`);
-    }
-    if (!result.removed) {
-      console.log("No installed unit file found.");
-    }
-    console.log(result.dryRun ? "Dry run complete." : "systemd autostart uninstalled.");
-    process.exitCode = 0;
+  uninstallSystemd = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.uninstallSystemd(options);
   };
 
-  autostartStatus = async (options: ServiceSystemdCommandOptions = {}): Promise<void> => {
-    const scope = this.resolveOptionalSystemdScope(options);
-    if (scope === "invalid") {
-      process.exitCode = 1;
-      return;
-    }
-    const status = await this.hostAutostartService.status(scope ?? undefined);
-    if (options.json) {
-      console.log(JSON.stringify(status, null, 2));
-      process.exitCode = 0;
-      return;
-    }
-    this.printAutostartStatus(status);
-    process.exitCode = 0;
+  installLaunchAgent = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.installLaunchAgent(options);
   };
 
-  autostartDoctor = async (options: ServiceSystemdCommandOptions = {}): Promise<void> => {
-    const scope = this.resolveOptionalSystemdScope(options);
-    if (scope === "invalid") {
-      process.exitCode = 1;
-      return;
-    }
-    const report = await this.hostAutostartService.doctor(scope ?? undefined);
-    if (options.json) {
-      console.log(JSON.stringify(report, null, 2));
-      process.exitCode = report.exitCode;
-      return;
-    }
-    this.printAutostartDoctor(report);
-    process.exitCode = report.exitCode;
+  uninstallLaunchAgent = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.uninstallLaunchAgent(options);
+  };
+
+  installWindowsTask = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.installWindowsTask(options);
+  };
+
+  uninstallWindowsTask = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.uninstallWindowsTask(options);
+  };
+
+  autostartStatus = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.autostartStatus(options);
+  };
+
+  autostartDoctor = async (options: ServiceAutostartCommandOptions = {}): Promise<void> => {
+    await this.hostAutostartCommandService.autostartDoctor(options);
   };
 
   private reuseExistingHealthyStartTarget = async (params: {
@@ -867,73 +801,6 @@ export class ServiceCommands {
     console.log(`  - View log paths: ${APP_NAME} logs path`);
     console.log(`  - Tail recent logs: ${APP_NAME} logs tail`);
     console.log(`  - Check autostart: ${APP_NAME} service autostart status --user`);
-  };
-
-  private resolveRequiredSystemdScope = (options: SystemdScopeFlags): HostAutostartScope | null => {
-    if (Boolean(options.user) === Boolean(options.system)) {
-      console.error("Error: Choose exactly one scope: --user or --system.");
-      return null;
-    }
-    return options.system ? "system" : "user";
-  };
-
-  private resolveOptionalSystemdScope = (options: SystemdScopeFlags): HostAutostartScope | "invalid" | null => {
-    const { system, user } = options;
-    if (user && system) {
-      console.error("Error: Choose at most one scope: --user or --system.");
-      return "invalid";
-    }
-    if (system) {
-      return "system";
-    }
-    if (user) {
-      return "user";
-    }
-    return null;
-  };
-
-  private printAutostartStatus = (status: HostAutostartStatus): void => {
-    console.log("Host autostart status:");
-    console.log(`- Supported: ${status.supported ? "yes" : "no"}`);
-    console.log(`- Installed: ${status.installed ? "yes" : "no"}`);
-    if (status.scope) {
-      console.log(`- Scope: ${status.scope}`);
-    }
-    if (status.hostOwner) {
-      console.log(`- Owner: ${status.hostOwner}`);
-    }
-    if (status.resourceName) {
-      console.log(`- Resource: ${status.resourceName}`);
-    }
-    if (status.unitPath) {
-      console.log(`- Unit path: ${status.unitPath}`);
-    }
-    if (status.homeDir) {
-      console.log(`- Home: ${status.homeDir}`);
-    }
-    if (status.command) {
-      console.log(`- Command: ${status.command}`);
-    }
-    if (status.enabled !== null) {
-      console.log(`- Enabled: ${status.enabled ? "yes" : "no"}`);
-    }
-    if (status.active !== null) {
-      console.log(`- Active: ${status.active ? "yes" : "no"}`);
-    }
-    if (status.logHint) {
-      console.log(`- Logs: ${status.logHint}`);
-    }
-    if (status.reasonIfUnavailable) {
-      console.log(`- Note: ${status.reasonIfUnavailable}`);
-    }
-  };
-
-  private printAutostartDoctor = (report: HostAutostartDoctorReport): void => {
-    this.printAutostartStatus(report.status);
-    console.log("Autostart doctor:");
-    for (const check of report.checks) {
-      console.log(`- [${check.status}] ${check.name}: ${check.detail}`);
-    }
   };
 
   private ensureRuntimeLoggingInstalled = (): void => {

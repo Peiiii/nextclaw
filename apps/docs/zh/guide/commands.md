@@ -11,8 +11,12 @@
 | `sudo nextclaw service install-systemd --system` | 安装系统级 Linux `systemd` 服务 |
 | `nextclaw service uninstall-systemd --user` | 移除用户级 Linux `systemd` 服务 |
 | `sudo nextclaw service uninstall-systemd --system` | 移除系统级 Linux `systemd` 服务 |
-| `nextclaw service autostart status --user` | 查看宿主自启动状态 |
-| `nextclaw service autostart doctor --user` | 诊断宿主自启动配置 |
+| `nextclaw service install-launch-agent` | 安装 macOS LaunchAgent |
+| `nextclaw service uninstall-launch-agent` | 移除 macOS LaunchAgent |
+| `nextclaw service install-task` | 安装 Windows 计划任务 |
+| `nextclaw service uninstall-task` | 移除 Windows 计划任务 |
+| `nextclaw service autostart status` | 查看宿主自启动状态 |
+| `nextclaw service autostart doctor` | 诊断宿主自启动配置 |
 | `nextclaw ui` | 前台启动 UI 与网关 |
 | `nextclaw gateway` | 仅启动网关（用于渠道） |
 | `nextclaw serve` | 前台运行网关 + UI |
@@ -22,6 +26,14 @@
 | `nextclaw update` | 自更新 CLI |
 
 `npm i -g nextclaw` 只负责安装 CLI，不会自动替你注册宿主自启动。
+
+对 npm / CLI 安装链路来说，宿主原生自启动 owner 会随平台分流：
+
+- Linux：`systemd`（支持 `--user` / `--system`）
+- macOS：LaunchAgent
+- Windows：计划任务
+
+`nextclaw service autostart status` 和 `nextclaw service autostart doctor` 都是只读诊断命令。只有在 Linux 上需要区分 `systemd` 作用域时，才额外加 `--user` 或 `--system`。
 
 如果你是在 Linux 服务器上通过 Nginx / Caddy / Traefik 对外暴露 NextClaw，请不要只依赖一次性的 `nextclaw start`。一旦机器重启或进程退出，反向代理层通常就会直接表现为 `502 Bad Gateway`。此时应使用 `sudo nextclaw service install-systemd --system` 安装受管常驻服务。
 

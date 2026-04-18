@@ -7,6 +7,7 @@ import { CliRuntime, LOGO } from "./runtime.js";
 import { registerSkillsCommands } from "./commands/skills.controller.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerLearningLoopCommands } from "./commands/learning-loop/register-learning-loop-commands.js";
+import { registerServiceCommands } from "./service-command-registration.service.js";
 import { logStartupTrace, measureStartupSync } from "./startup-trace.js";
 import { getPackageVersion } from "./utils.js";
 import type { ServiceCommands } from "./commands/service.js";
@@ -123,43 +124,10 @@ program
   .description(`Stop the ${APP_NAME} background service`)
   .action(async () => runtime.stop());
 
-const service = program.command("service").description("Manage host service integrations");
-
-service
-  .command("install-systemd")
-  .description("Install a managed Linux systemd service for NextClaw")
-  .option("--user", "Install a user-level systemd unit", false)
-  .option("--system", "Install a system-wide systemd unit", false)
-  .option("--dry-run", "Show what would be installed without making changes", false)
-  .option("--json", "Output JSON", false)
-  .action(async (opts) => getServiceCommands().installSystemd(opts));
-
-service
-  .command("uninstall-systemd")
-  .description("Remove a managed Linux systemd service for NextClaw")
-  .option("--user", "Remove a user-level systemd unit", false)
-  .option("--system", "Remove a system-wide systemd unit", false)
-  .option("--dry-run", "Show what would be removed without making changes", false)
-  .option("--json", "Output JSON", false)
-  .action(async (opts) => getServiceCommands().uninstallSystemd(opts));
-
-const autostart = service.command("autostart").description("Inspect host autostart status");
-
-autostart
-  .command("status")
-  .description("Show host autostart status")
-  .option("--user", "Inspect the user-level autostart owner", false)
-  .option("--system", "Inspect the system-level autostart owner", false)
-  .option("--json", "Output JSON", false)
-  .action(async (opts) => getServiceCommands().autostartStatus(opts));
-
-autostart
-  .command("doctor")
-  .description("Diagnose host autostart setup")
-  .option("--user", "Inspect the user-level autostart owner", false)
-  .option("--system", "Inspect the system-level autostart owner", false)
-  .option("--json", "Output JSON", false)
-  .action(async (opts) => getServiceCommands().autostartDoctor(opts));
+registerServiceCommands({
+  program,
+  getServiceCommands,
+});
 
 program
   .command("agent")

@@ -1,25 +1,19 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { createRequire } from "node:module";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, extname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { getDataDir } from "@nextclaw/core";
-import { resolveCliSubcommandEntry } from "../marketplace/cli-subcommand-launch.js";
 import type {
   HostAutostartCheck,
   HostAutostartDoctorReport,
   HostAutostartInstallResult,
   HostAutostartOwner,
+  HostAutostartRunCommand,
+  HostAutostartRunCommandResult,
   HostAutostartScope,
   HostAutostartStatus,
   HostAutostartUninstallResult,
 } from "./host-autostart.types.js";
-
-type CommandResult = {
-  code: number;
-  stdout: string;
-  stderr: string;
-};
+import { HostAutostartRuntimeService } from "./host-autostart-runtime.service.js";
 
 type CheckedCommandParams = {
   command: string;
@@ -29,17 +23,13 @@ type CheckedCommandParams = {
 type LinuxSystemdAutostartServiceOptions = {
   platform?: NodeJS.Platform;
   env?: NodeJS.ProcessEnv;
-  nodePath?: string;
-  argvEntry?: string;
-  importMetaUrl?: string;
   getHomeDir?: () => string;
-  getDataDir?: () => string;
   existsSync?: (path: string) => boolean;
   mkdirSync?: typeof mkdirSync;
   writeFileSync?: typeof writeFileSync;
-  readFileSync?: typeof readFileSync;
   rmSync?: typeof rmSync;
-  runCommand?: (command: string, args: string[]) => Promise<CommandResult>;
+  runCommand?: HostAutostartRunCommand;
+  runtimeService?: HostAutostartRuntimeService;
 };
 
 type ResolvedScopeStatus = {
@@ -49,38 +39,28 @@ type ResolvedScopeStatus = {
 
 const DEFAULT_SYSTEMD_SERVICE_NAME = "nextclaw.service";
 const SUPPORTED_PLATFORM = "linux";
-const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
-const require = createRequire(import.meta.url);
 
 export class LinuxSystemdAutostartService {
   private readonly platform: NodeJS.Platform;
   private readonly env: NodeJS.ProcessEnv;
-  private readonly nodePath: string;
-  private readonly argvEntry: string | undefined;
-  private readonly importMetaUrl: string;
   private readonly getHomeDir: () => string;
-  private readonly getResolvedDataDir: () => string;
   private readonly pathExists: (path: string) => boolean;
   private readonly ensureDir: typeof mkdirSync;
   private readonly writeFile: typeof writeFileSync;
-  private readonly readFile: typeof readFileSync;
   private readonly removeFile: typeof rmSync;
-  private readonly runCommandImpl: (command: string, args: string[]) => Promise<CommandResult>;
+  private readonly runCommandImpl: HostAutostartRunCommand;
+  private readonly runtimeService: HostAutostartRuntimeService;
 
   constructor(options: LinuxSystemdAutostartServiceOptions = {}) {
     this.platform = options.platform ?? process.platform;
     this.env = options.env ?? process.env;
-    this.nodePath = options.nodePath ?? process.execPath;
-    this.argvEntry = options.argvEntry ?? process.argv[1];
-    this.importMetaUrl = options.importMetaUrl ?? import.meta.url;
     this.getHomeDir = options.getHomeDir ?? homedir;
-    this.getResolvedDataDir = options.getDataDir ?? getDataDir;
     this.pathExists = options.existsSync ?? existsSync;
     this.ensureDir = options.mkdirSync ?? mkdirSync;
     this.writeFile = options.writeFileSync ?? writeFileSync;
-    this.readFile = options.readFileSync ?? readFileSync;
     this.removeFile = options.rmSync ?? rmSync;
     this.runCommandImpl = options.runCommand ?? defaultRunCommand;
+    this.runtimeService = options.runtimeService ?? new HostAutostartRuntimeService();
   }
 
   install = async (scope: HostAutostartScope, options: { dryRun?: boolean } = {}): Promise<HostAutostartInstallResult> => {
@@ -90,7 +70,7 @@ export class LinuxSystemdAutostartService {
 
     const plan = this.buildPlan(scope);
     const actions = [
-      `write unit file ${plan.unitPath}`,
+      `write unit file ${plan.resourcePath}`,
       `run ${this.formatCommand(plan.systemctlCommand, [...plan.systemctlScopeArgs, "daemon-reload"])}`,
       `run ${this.formatCommand(plan.systemctlCommand, [...plan.systemctlScopeArgs, "enable", plan.resourceName])}`,
       `run ${this.formatCommand(plan.systemctlCommand, [...plan.systemctlScopeArgs, "restart", plan.resourceName])}`,
@@ -98,8 +78,8 @@ export class LinuxSystemdAutostartService {
 
     try {
       if (!options.dryRun) {
-        this.ensureDir(dirname(plan.unitPath), { recursive: true });
-        this.writeFile(plan.unitPath, plan.unitContent);
+        this.ensureDir(dirname(plan.resourcePath), { recursive: true });
+        this.writeFile(plan.resourcePath, plan.unitContent);
         await this.runCheckedCommand({
           command: plan.systemctlCommand,
           args: [...plan.systemctlScopeArgs, "daemon-reload"],
@@ -118,8 +98,9 @@ export class LinuxSystemdAutostartService {
         ok: false,
         dryRun: Boolean(options.dryRun),
         scope,
-        unitPath: plan.unitPath,
+        hostOwner: plan.hostOwner,
         resourceName: plan.resourceName,
+        resourcePath: plan.resourcePath,
         homeDir: plan.homeDir,
         command: plan.command,
         logHint: plan.logHint,
@@ -132,8 +113,9 @@ export class LinuxSystemdAutostartService {
       ok: true,
       dryRun: Boolean(options.dryRun),
       scope,
-      unitPath: plan.unitPath,
+      hostOwner: plan.hostOwner,
       resourceName: plan.resourceName,
+      resourcePath: plan.resourcePath,
       homeDir: plan.homeDir,
       command: plan.command,
       logHint: plan.logHint,
@@ -149,8 +131,9 @@ export class LinuxSystemdAutostartService {
         ok: false,
         dryRun: Boolean(options.dryRun),
         scope,
-        unitPath: plan.unitPath,
+        hostOwner: plan.hostOwner,
         resourceName: plan.resourceName,
+        resourcePath: plan.resourcePath,
         removed: false,
         logHint: plan.logHint,
         actions: [],
@@ -158,7 +141,7 @@ export class LinuxSystemdAutostartService {
       };
     }
 
-    const installed = this.pathExists(plan.unitPath);
+    const installed = this.pathExists(plan.resourcePath);
     const actions: string[] = [];
 
     if (!installed) {
@@ -166,8 +149,9 @@ export class LinuxSystemdAutostartService {
         ok: true,
         dryRun: Boolean(options.dryRun),
         scope,
-        unitPath: plan.unitPath,
+        hostOwner: plan.hostOwner,
         resourceName: plan.resourceName,
+        resourcePath: plan.resourcePath,
         removed: false,
         logHint: plan.logHint,
         actions: ["no installed unit file found"],
@@ -176,7 +160,7 @@ export class LinuxSystemdAutostartService {
     }
 
     actions.push(`run ${this.formatCommand(plan.systemctlCommand, [...plan.systemctlScopeArgs, "disable", "--now", plan.resourceName])}`);
-    actions.push(`remove unit file ${plan.unitPath}`);
+    actions.push(`remove unit file ${plan.resourcePath}`);
     actions.push(`run ${this.formatCommand(plan.systemctlCommand, [...plan.systemctlScopeArgs, "daemon-reload"])}`);
 
     try {
@@ -185,7 +169,7 @@ export class LinuxSystemdAutostartService {
           command: plan.systemctlCommand,
           args: [...plan.systemctlScopeArgs, "disable", "--now", plan.resourceName],
         });
-        this.removeFile(plan.unitPath, { force: true });
+        this.removeFile(plan.resourcePath, { force: true });
         await this.runCheckedCommand({
           command: plan.systemctlCommand,
           args: [...plan.systemctlScopeArgs, "daemon-reload"],
@@ -196,8 +180,9 @@ export class LinuxSystemdAutostartService {
         ok: false,
         dryRun: Boolean(options.dryRun),
         scope,
-        unitPath: plan.unitPath,
+        hostOwner: plan.hostOwner,
         resourceName: plan.resourceName,
+        resourcePath: plan.resourcePath,
         removed: false,
         logHint: plan.logHint,
         actions,
@@ -209,8 +194,9 @@ export class LinuxSystemdAutostartService {
       ok: true,
       dryRun: Boolean(options.dryRun),
       scope,
-      unitPath: plan.unitPath,
+      hostOwner: plan.hostOwner,
       resourceName: plan.resourceName,
+      resourcePath: plan.resourcePath,
       removed: true,
       logHint: plan.logHint,
       actions,
@@ -233,7 +219,7 @@ export class LinuxSystemdAutostartService {
         scope: null,
         hostOwner: null,
         resourceName: null,
-        unitPath: null,
+        resourcePath: null,
         homeDir: null,
         command: null,
         logHint: null,
@@ -242,7 +228,7 @@ export class LinuxSystemdAutostartService {
     }
 
     const plan = this.buildPlan(resolvedScope.scope);
-    const installed = this.pathExists(plan.unitPath);
+    const installed = this.pathExists(plan.resourcePath);
     if (!installed) {
       return {
         supported: true,
@@ -252,7 +238,7 @@ export class LinuxSystemdAutostartService {
         scope: resolvedScope.scope,
         hostOwner: plan.hostOwner,
         resourceName: plan.resourceName,
-        unitPath: plan.unitPath,
+        resourcePath: plan.resourcePath,
         homeDir: plan.homeDir,
         command: plan.command,
         logHint: plan.logHint,
@@ -271,7 +257,7 @@ export class LinuxSystemdAutostartService {
       scope: resolvedScope.scope,
       hostOwner: plan.hostOwner,
       resourceName: plan.resourceName,
-      unitPath: plan.unitPath,
+      resourcePath: plan.resourcePath,
       homeDir: plan.homeDir,
       command: plan.command,
       logHint: plan.logHint,
@@ -282,6 +268,7 @@ export class LinuxSystemdAutostartService {
   doctor = async (requestedScope?: HostAutostartScope): Promise<HostAutostartDoctorReport> => {
     const status = await this.status(requestedScope);
     const checks: HostAutostartCheck[] = [];
+    const launchPlan = this.runtimeService.resolveForegroundServeLaunch();
 
     checks.push({
       name: "platform",
@@ -292,19 +279,19 @@ export class LinuxSystemdAutostartService {
     checks.push({
       name: "unit-file",
       status: status.installed ? "pass" : "warn",
-      detail: status.unitPath ?? "no unit path",
+      detail: status.resourcePath ?? "no unit path",
     });
 
     checks.push({
       name: "exec-path",
-      status: this.pathExists(this.nodePath) ? "pass" : "fail",
-      detail: this.nodePath,
+      status: this.pathExists(launchPlan.command) ? "pass" : "fail",
+      detail: launchPlan.command,
     });
 
     checks.push({
       name: "home-dir",
-      status: this.pathExists(status.homeDir ?? this.getResolvedDataDir()) ? "pass" : "warn",
-      detail: status.homeDir ?? this.getResolvedDataDir(),
+      status: this.pathExists(launchPlan.homeDir) ? "pass" : "warn",
+      detail: launchPlan.homeDir,
     });
 
     if (status.installed) {
@@ -350,7 +337,7 @@ export class LinuxSystemdAutostartService {
       scope: null,
       hostOwner: null,
       resourceName: null,
-      unitPath: null,
+      resourcePath: null,
       homeDir: null,
       command: null,
       logHint: null,
@@ -364,8 +351,9 @@ export class LinuxSystemdAutostartService {
       ok: false,
       dryRun,
       scope,
-      unitPath: plan.unitPath,
+      hostOwner: plan.hostOwner,
       resourceName: plan.resourceName,
+      resourcePath: plan.resourcePath,
       homeDir: plan.homeDir,
       command: plan.command,
       logHint: plan.logHint,
@@ -396,23 +384,11 @@ export class LinuxSystemdAutostartService {
   };
 
   private buildPlan = (scope: HostAutostartScope) => {
-    const cliEntry = resolveCliSubcommandEntry({
-      argvEntry: this.argvEntry,
-      importMetaUrl: this.importMetaUrl,
-    });
-    const launch = TYPESCRIPT_EXTENSIONS.has(extname(cliEntry).toLowerCase())
-      ? {
-          command: this.nodePath,
-          args: [require.resolve("tsx/cli"), cliEntry, "serve"],
-        }
-      : {
-          command: this.nodePath,
-          args: [cliEntry, "serve"],
-        };
+    const launch = this.runtimeService.resolveForegroundServeLaunch();
     const command = this.formatCommand(launch.command, launch.args);
     const resourceName = DEFAULT_SYSTEMD_SERVICE_NAME;
-    const unitPath = this.getUnitPath(scope);
-    const homeDir = this.getResolvedDataDir();
+    const resourcePath = this.getUnitPath(scope);
+    const homeDir = launch.homeDir;
     const hostOwner: HostAutostartOwner = scope === "user" ? "systemd-user-service" : "systemd-system-service";
     const systemctlScopeArgs = scope === "user" ? ["--user"] : [];
     const logHint = scope === "user"
@@ -423,7 +399,7 @@ export class LinuxSystemdAutostartService {
     return {
       scope,
       resourceName,
-      unitPath,
+      resourcePath,
       homeDir,
       hostOwner,
       command,
@@ -481,8 +457,8 @@ export class LinuxSystemdAutostartService {
   };
 }
 
-const defaultRunCommand = async (command: string, args: string[]): Promise<CommandResult> => {
-  return await new Promise<CommandResult>((resolvePromise, rejectPromise) => {
+const defaultRunCommand = async (command: string, args: string[]): Promise<HostAutostartRunCommandResult> => {
+  return await new Promise<HostAutostartRunCommandResult>((resolvePromise, rejectPromise) => {
     const child = spawn(command, args, {
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],

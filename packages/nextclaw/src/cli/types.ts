@@ -25,7 +25,7 @@ export type StartCommandOptions = {
   startTimeout?: string | number;
 };
 
-export type ServiceSystemdCommandOptions = {
+export type ServiceAutostartCommandOptions = {
   user?: boolean;
   system?: boolean;
   dryRun?: boolean;

@@ -2,7 +2,20 @@ export type HostAutostartScope = "user" | "system";
 
 export type HostAutostartOwner =
   | "systemd-user-service"
-  | "systemd-system-service";
+  | "systemd-system-service"
+  | "launchd-launch-agent"
+  | "windows-logon-task";
+
+export type HostAutostartRunCommandResult = {
+  code: number;
+  stdout: string;
+  stderr: string;
+};
+
+export type HostAutostartRunCommand = (
+  command: string,
+  args: string[],
+) => Promise<HostAutostartRunCommandResult>;
 
 export type HostAutostartStatus = {
   supported: boolean;
@@ -12,7 +25,7 @@ export type HostAutostartStatus = {
   scope: HostAutostartScope | null;
   hostOwner: HostAutostartOwner | null;
   resourceName: string | null;
-  unitPath: string | null;
+  resourcePath: string | null;
   homeDir: string | null;
   command: string | null;
   logHint: string | null;
@@ -34,12 +47,13 @@ export type HostAutostartDoctorReport = {
 export type HostAutostartInstallResult = {
   ok: boolean;
   dryRun: boolean;
-  scope: HostAutostartScope;
-  unitPath: string;
-  resourceName: string;
-  homeDir: string;
-  command: string;
-  logHint: string;
+  scope: HostAutostartScope | null;
+  hostOwner: HostAutostartOwner | null;
+  resourceName: string | null;
+  resourcePath: string | null;
+  homeDir: string | null;
+  command: string | null;
+  logHint: string | null;
   actions: string[];
   reasonIfUnavailable: string | null;
 };
@@ -47,11 +61,12 @@ export type HostAutostartInstallResult = {
 export type HostAutostartUninstallResult = {
   ok: boolean;
   dryRun: boolean;
-  scope: HostAutostartScope;
-  unitPath: string;
-  resourceName: string;
+  scope: HostAutostartScope | null;
+  hostOwner: HostAutostartOwner | null;
+  resourceName: string | null;
+  resourcePath: string | null;
   removed: boolean;
-  logHint: string;
+  logHint: string | null;
   actions: string[];
   reasonIfUnavailable: string | null;
 };

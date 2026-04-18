@@ -11,8 +11,12 @@
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service |
 | `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
 | `sudo nextclaw service uninstall-systemd --system` | Remove a system-wide Linux `systemd` service |
-| `nextclaw service autostart status --user` | Show host autostart status |
-| `nextclaw service autostart doctor --user` | Diagnose host autostart setup |
+| `nextclaw service install-launch-agent` | Install a macOS LaunchAgent |
+| `nextclaw service uninstall-launch-agent` | Remove a macOS LaunchAgent |
+| `nextclaw service install-task` | Install a Windows Scheduled Task |
+| `nextclaw service uninstall-task` | Remove a Windows Scheduled Task |
+| `nextclaw service autostart status` | Show host autostart status |
+| `nextclaw service autostart doctor` | Diagnose host autostart setup |
 | `nextclaw ui` | Start UI and gateway in the foreground |
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw serve` | Run gateway + UI in the foreground |
@@ -22,6 +26,14 @@
 | `nextclaw update` | Self-update the CLI |
 
 `npm i -g nextclaw` only installs the CLI. It does not register a host autostart owner by itself.
+
+For npm/CLI installs, the host-native autostart owner is platform-specific:
+
+- Linux: `systemd` (`--user` or `--system`)
+- macOS: LaunchAgent
+- Windows: Scheduled Task
+
+`nextclaw service autostart status` and `nextclaw service autostart doctor` are read-only. Add `--user` or `--system` only when you need to disambiguate Linux `systemd` scope.
 
 If you expose NextClaw behind Nginx/Caddy/Traefik on a Linux server, use `sudo nextclaw service install-systemd --system` instead of relying on a one-time `nextclaw start`. Otherwise a reboot or exited process can surface as `502 Bad Gateway` at the reverse proxy.
 
