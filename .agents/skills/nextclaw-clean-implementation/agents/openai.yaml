@@ -1,0 +1,7 @@
+interface:
+  display_name: "NextClaw Clean Implementation"
+  short_description: "写代码前先拦住 fallback、弱抽象、重复实现和目录漂移"
+  default_prompt: "使用 $nextclaw-clean-implementation 先对这次代码改动做垃圾代码风险自检：明确能删什么、owner 是谁、主路径是什么、是否有隐藏 fallback、文件应放在哪里，以及最小可信验证是什么。"
+
+policy:
+  allow_implicit_invocation: true

@@ -375,6 +375,12 @@
   - 反例：只有一个主 feature 却强行新增 `features/`；明知当前作用域白名单不含某目录仍然新建 `commands/`、`integrations/`、`helpers/`、`misc/`；把 CLI 入口单独拆成 `commands/`；把前端多平台误写成根级散目录，或把 `desktop/`、`mobile/`、`web/` 当作没有内部 feature 结构的平铺容器。
   - 执行方式：凡发生结构决策前，必须先用该 skill 回答至少七个问题：`当前作用域是什么？`、`当前属于 L0/L1/L2/L3/L4 哪一档？`、`当前目录能否直接作为 feature root？`、`是否真的需要引入 features/？`、`当前应使用哪一份目录白名单？`、`是否存在白名单外目录；若有为何例外成立？`、`是否存在更小更简单的结构？`。若本次结构调整同时涉及命名与目录治理，还必须联动 `file-naming-convention`、`file-organization-governance` 与 `directory-file-budget-must-stay-explicit`；最终结果中必须明确写出采用的复杂度等级、白名单、目录落点理由，以及是否存在例外目录。
   - 维护责任人：当前助手。
+- **nextclaw-clean-implementation-required**：
+  - 约束/适用范围：凡本仓库任务会触达项目源码、脚本、测试或影响运行链路的配置，在真正开始写实现前，必须自动加载并遵循 skill [`.agents/skills/nextclaw-clean-implementation/SKILL.md`](.agents/skills/nextclaw-clean-implementation/SKILL.md)。该 skill 是本项目“避免写出垃圾代码”的前置闸口，用于在动手前先压住 fallback 乱长、弱抽象、重复实现、目录漂移、owner 不清与补丁式修复。
+  - 示例：准备为某个 bugfix 加一层 fallback 前，先用该 skill 判断是否应直接修主合同；准备新增 helper、wrapper、adapter 或复制一段旧实现前，先判断能否删除、复用或收敛 owner；准备拆文件或加目录前，先判断文件主职责与真实落点。
+  - 反例：一上来就开始写代码，直到 lint、review 或用户指出后才发现这次其实只是又加了一层兜底、又复制了一份实现、又把业务逻辑塞进 effect / helper 里；或把“避免垃圾代码”的思路继续散在多个规则里，却从不在实现前显式过一遍。
+  - 执行方式：开始实现前，至少先用该 skill 回答六个问题：`这次能删什么？`、`owner 是谁？`、`主路径是什么？`、`为什么这不是隐藏 fallback 或补丁式修复？`、`文件为什么放在这里？`、`最小可信验证是什么？`。若答案暴露出 fallback/兼容风险，立即联动 `predictable-behavior-first`；若暴露出结构、角色或命名问题，立即联动 `collapsible-feature-root-architecture`、`role-first-file-organization` 与 `file-naming-convention`；若是复杂排障，联动 `long-chain-debugging` 与 `iteration-work-notes`。只要这些问题里有两个以上答不清，默认先停在设计与澄清阶段，不直接开写。
+  - 维护责任人：当前助手。
 - **prefer-local-openclaw-sibling-source**：
   - 约束/适用范围：当需要查看 OpenClaw 源码时，优先在本项目根目录的同级兄弟目录查找本地 `openclaw` 仓库；若存在，必须优先读取本地源码；仅在本地不存在时才允许使用其它方式（如远程仓库/网络检索）。
   - 示例：在 `/Users/peiwang/Projects/nextbot` 需要核对 OpenClaw 实现时，先检查 `/Users/peiwang/Projects/openclaw` 并直接读取对应文件。
