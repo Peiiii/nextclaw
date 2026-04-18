@@ -48,8 +48,10 @@ description: Use when implementing or refactoring code in this repository, espec
 - 这次是在新增用户能力，还是只是在修结构/修 bug/修链路
 - 如果不是新增能力，什么旧代码可以直接删
 - 能不能通过删路径、删分支、删中间层解决，而不是继续加逻辑
+- 如果这不是新增能力，最终能不能做到“排除测试后的非测试代码净增 <= 0”
 
 只要删得掉，默认先删，不要先加。
+如果当前方案做不到最后一条，默认说明方案还不够好，先不要开写。
 
 ### 2. 这段逻辑的 owner 是谁
 
@@ -141,7 +143,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 为了“先快一点”复制一份旧实现
 - 为了一个新领域词发明一个新目录或新角色
 - 用 `utils`、`helpers`、`common` 掩盖真实业务职责
-- 非测试改动净增很多，但解释不了为什么删不掉
+- 这不是新增能力，但排除测试后的非测试代码净增还是正数
 - 目录已经很平，但继续往里扔文件
 
 ## 决策顺序
@@ -176,8 +178,9 @@ description: Use when implementing or refactoring code in this repository, espec
 4. 为什么这不是隐藏 fallback 或补丁式修复
 5. 文件为什么放在这里
 6. 最小可信验证是什么
+7. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
 
-如果这 6 个问题里有 2 个以上答不清，先不要写代码。
+如果这些问题里有 2 个以上答不清，先不要写代码。
 
 ## 完成标准
 
@@ -189,3 +192,4 @@ description: Use when implementing or refactoring code in this repository, espec
 4. 目录、文件角色与命名都能自解释
 5. 改动后的复杂度增长已被压到最小
 6. 验证方式能证明真实风险被覆盖
+7. 如果这次不是新增用户能力，排除测试后的非测试代码净增已经小于等于 `0`

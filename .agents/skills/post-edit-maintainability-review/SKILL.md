@@ -18,6 +18,11 @@ The goal is not to ask “did the code pass the guard?” but “did this change
 - A non-feature change added code and you need to decide whether that growth is truly necessary
 - A change may have hidden duplication, extra indirection, patch-style abstraction, or complexity moved elsewhere
 
+For this repository, pure bugfixes, pure refactors, and other non-feature changes have an extra hard gate:
+
+- after excluding tests, non-test net lines must be `<= 0`
+- if non-test net lines are positive, the review must fail
+
 Do not use for pure docs, wording tweaks, or trivial metadata edits.
 
 ## Review Questions
@@ -36,6 +41,7 @@ Answer these in order:
 8. Did the change truly simplify the system, or did it just move complexity to another file, helper, or abstraction?
 9. Did the change duplicate existing logic or an existing component surface that should have been reused or factored into a stable shared core?
 10. If React code was touched, are `useEffect` / `useLayoutEffect` still limited to external-system sync, or is business coordination still leaking through effects instead of store / manager / presenter / query-view ownership?
+11. If this is a pure bugfix, pure refactor, or other non-feature change, is `非测试代码增减报告` already `净增：0 行` or negative? If not, the review must conclude `需继续修改`.
 
 ## Output
 
@@ -66,6 +72,12 @@ If total or non-test code is net positive, you must explicitly explain:
 - what was deleted or simplified before accepting the growth,
 - and why the remaining growth is still the minimum necessary.
 
+For this repository, there is one stricter exception:
+
+- if the change is not a new user-facing capability and non-test code is net positive, you must not accept the change as `通过`
+- in that case you must output `可维护性复核结论：需继续修改`
+- do not use `保留债务经说明接受` to waive this gate
+
 If issues exist, list:
 
 1. The maintainability finding
@@ -89,6 +101,7 @@ Then add a short maintainability summary in 1-3 sentences covering:
 - Omitting the line-change report or only reporting total diff without separating non-test code
 - Treating `lint passed` as proof that the structure is already good enough
 - Accepting code growth in a non-feature change without explaining why deletion or simplification was insufficient
+- Marking a pure bugfix or pure refactor as passed when non-test code is still net positive
 - Calling something “refactored” when complexity was only renamed or moved
 - Copying an existing helper or component with minor edits instead of reusing it or extracting a shared core
 - Leaving business coordination in React effects while only renaming nearby helpers or moving setters to a different file
