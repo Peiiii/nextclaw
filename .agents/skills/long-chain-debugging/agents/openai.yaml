@@ -1,0 +1,7 @@
+interface:
+  display_name: "长链路 Debug"
+  short_description: "用证据、切片和二分法加速跨多 hop 的根因排查"
+  default_prompt: "使用 $long-chain-debugging 帮我把这个跨多层链路的问题压缩成可执行的排查路径：先定义症状和黄金复现，再画链路地图、设计观察点、做缩圈实验，并给出同链路验收条件。"
+
+policy:
+  allow_implicit_invocation: true
