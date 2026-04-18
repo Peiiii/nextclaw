@@ -12,6 +12,11 @@
 - 支持 `napp inspect <app-dir>` 校验应用目录与 manifest
 - 支持 `napp run <app-dir>` 启动本地宿主，提供 UI 静态服务和 `__napp` bridge
 - 支持 `napp dev <app-dir>`，当前等价于 `run`
+- 第二阶段补齐 `napp pack / install / uninstall / list / info`
+- 支持 `.napp` bundle，内部包含 `.napp/bundle.json` 与 `.napp/checksums.json`
+- 支持本地安装目录与数据目录分离
+- 支持本地 app registry：`~/.nextclaw/apps/registry.json`
+- 支持安装态运行：`napp run <app-id>`
 - 支持最小权限模型：`documentAccess`、`allowedDomains`、`storage`、`capabilities.hostBridge`
 - 新增示例应用 `apps/examples/hello-notes`
 - `napp create` 生成的骨架内置最小 `manifest.json / main / ui / assets` 目录合同，并默认产出可直接运行的 starter app
@@ -40,6 +45,8 @@
 - [方案冻结稿](../../../plans/2026-04-18-nextclaw-wasm-apps-freeze.md)
 - [最小实现计划](../../../plans/2026-04-18-nextclaw-wasm-apps-mvp-implementation-plan.md)
 - [运行时结构设计](../../../plans/2026-04-18-nextclaw-app-runtime-structure-design.md)
+- [分发与安装闭环设计稿](../../../plans/2026-04-19-nextclaw-app-distribution-closure-design.md)
+- [第二阶段收尾冻结稿](../../../plans/2026-04-19-nextclaw-app-runtime-phase2-freeze.md)
 
 ## 测试/验证/验收方式
 
@@ -51,6 +58,11 @@
 - `pnpm -C packages/nextclaw-app-runtime tsc`
 - `pnpm -C packages/nextclaw-app-runtime lint`
 - `pnpm -C packages/nextclaw-app-runtime build`
+- `pnpm -C packages/nextclaw-app-runtime exec node dist/main.js pack ../../apps/examples/hello-notes --json`
+- `tmpdir=$(mktemp -d) && node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/starter" --json && node packages/nextclaw-app-runtime/dist/main.js pack "$tmpdir/starter" --out "$tmpdir/starter.napp" --json && NEXTCLAW_APP_HOME="$tmpdir/home" node packages/nextclaw-app-runtime/dist/main.js install "$tmpdir/starter.napp" --json`
+- `tmpdir=$(mktemp -d) && NEXTCLAW_APP_HOME="$tmpdir/home" node packages/nextclaw-app-runtime/dist/main.js list --json`
+- `tmpdir=$(mktemp -d) && NEXTCLAW_APP_HOME="$tmpdir/home" node packages/nextclaw-app-runtime/dist/main.js info <app-id> --json`
+- `tmpdir=$(mktemp -d) && NEXTCLAW_APP_HOME="$tmpdir/home" node packages/nextclaw-app-runtime/dist/main.js uninstall <app-id> --json`
 - `tmpdir=$(mktemp -d) && node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/starter" --json`
 - `tmpdir=$(mktemp -d) && node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/starter" --json && node packages/nextclaw-app-runtime/dist/main.js inspect "$tmpdir/starter" --json`
 - `cd packages/nextclaw-app-runtime && node dist/main.js --help`
@@ -73,9 +85,13 @@
 
 - `create` 能在空目录下生成可立即通过 `inspect` 与 `run` 的 starter app
 - `inspect` 能正确解析 `hello-notes` manifest，并输出 `main/ui/permissions` 摘要
+- `pack` 能生成 `.napp` bundle，并在 bundle 内写入 `.napp/bundle.json` 与 `.napp/checksums.json`
+- `install` 能把 app 目录或 `.napp` bundle 安装到本地统一目录，并更新 `registry.json`
+- `list / info / uninstall` 能围绕本地 registry 正常工作
+- `run <app-id>` 能直接运行已安装应用，不再只支持目录路径
 - `--help` 与 `--version` 能作为 skill 安装后的最小 readiness check
 - `smoke` 能真实启动 `napp run`
-- `smoke` 新增了一段真实的 `napp create -> napp inspect` 验证，不再只依赖仓库内置示例应用
+- `smoke` 新增了一段真实的 `napp create -> napp pack -> napp install -> napp list -> napp info -> napp run <app-id> -> napp uninstall` 验证
 - `smoke` 会在临时目录创建两份 notes，再通过 `POST /__napp/run` 调用 Wasm 主模块
 - 结果中 `documentCount`、`textBytes`、`output.output` 与预期一致
 - marketplace skill metadata 本地校验通过，`Errors: 0`，`Warnings: 0`
@@ -96,7 +112,12 @@
 pnpm -C packages/nextclaw-app-runtime build
 node packages/nextclaw-app-runtime/dist/main.js create ./tmp/my-first-napp
 node packages/nextclaw-app-runtime/dist/main.js inspect ./tmp/my-first-napp --json
-node packages/nextclaw-app-runtime/dist/main.js run ./tmp/my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js pack ./tmp/my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js install ./tmp/my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js list
+node packages/nextclaw-app-runtime/dist/main.js info nextclaw.my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js run nextclaw.my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js uninstall nextclaw.my-first-napp
 
 node packages/nextclaw-app-runtime/dist/main.js inspect apps/examples/hello-notes --json
 node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --document notes=/absolute/path/to/notes
@@ -148,14 +169,18 @@ node packages/nextclaw/dist/cli/index.js skills update \
 
 1. 运行 `napp create ./my-first-napp`
 2. 运行 `napp inspect ./my-first-napp`
-3. 看到应用名称、版本、动作名、主模块路径、UI 路径和权限声明
-4. 运行 `napp run ./my-first-napp`
-5. 打开本地输出的 URL
-6. 在页面里点击 `Run Starter Demo`
-7. 页面展示 `documentCount=0`、`textBytes=0`、`wasm-score=200`
-8. 如果要体验目录授权路径，再运行 `napp run apps/examples/hello-notes --document notes=/your/notes/path`
+3. 运行 `napp pack ./my-first-napp`
+4. 运行 `napp install ./my-first-napp`
+5. 运行 `napp list`，看到已安装应用
+6. 运行 `napp info nextclaw.my-first-napp`
+7. 运行 `napp run nextclaw.my-first-napp`
+8. 打开本地输出的 URL
+9. 在页面里点击 `Run Starter Demo`
+10. 页面展示 `documentCount=0`、`textBytes=0`、`wasm-score=200`
+11. 运行 `napp uninstall nextclaw.my-first-napp`
+12. 如果要体验目录授权路径，再运行 `napp run apps/examples/hello-notes --document notes=/your/notes/path`
 
-如果以上步骤成立，说明“独立宿主 + 应用目录 + starter scaffold + Wasm 主模块 + UI bridge”这套基础形态已经成立；再补跑 `hello-notes` 则说明目录授权链路也成立。
+如果以上步骤成立，说明“独立宿主 + 应用目录 + starter scaffold + bundle + install + local registry + 安装态运行”这套第二阶段闭环已经成立；再补跑 `hello-notes` 则说明目录授权链路也成立。
 
 ## 可维护性总结汇总
 
@@ -169,6 +194,7 @@ node packages/nextclaw/dist/cli/index.js skills update \
 - 这次没有直接接主产品，而是先做独立 runtime 包，降低了对既有服务/UI/CLI 的耦合压力
 - 这次进一步把“微应用运行时能力”包装成可独立安装的 npm 包与可独立安装的 marketplace skill，让生态入口更接近真实用户使用方式
 - 这次继续把入口往前推了一步，不再要求用户先手抄目录结构或复制示例目录，而是可以直接从 `napp create` 开始
+- 这次进一步把“能开发、能跑”推进成了“能打包、能安装、能管理、能运行已安装 app”，把微应用从 runtime 原型推进到了真正可交付的本地产品闭环
 
 代码增减报告：
 
@@ -189,6 +215,7 @@ node packages/nextclaw/dist/cli/index.js skills update \
 - 在新增能力前已经把范围压到最小：不做产品接入、不做市场层、不做交互式模板系统、不做安装器、不做通用网络执行、不做复杂 Wasmtime 进程管理
 - 业务 owner 相对清晰：manifest 读取收敛到 `AppManifestService`，权限收敛到 `AppPermissionsService`，应用执行收敛到 `AppInstanceService`，宿主收敛到 `AppHostService`，Wasm 调用收敛到 `WasmMainRunnerService`
 - `napp create` 的新增逻辑也保持单 owner：目录与模板生成都收敛到 `AppScaffoldService`，CLI 入口只负责分发命令，没有把模板写入逻辑塞进 `main.ts`
+- 第二阶段新增逻辑也保持了清晰 owner：`bundle/` 只管 bundle，`install/` 只管安装与运行解析，`registry/` 只管 registry，`paths/` 只管本地目录，`commands/` 只管 CLI 输出
 - 新增的 marketplace skill 没有偷渡 runtime 逻辑，而是保持“skill 负责 onboarding，runtime 负责执行”的清晰边界
 - 命名和目录结构已经按仓库治理规则收敛到明确角色后缀，没有继续制造 `logic/`、`helpers/`、`misc` 这类假角色
 - 复杂度没有被隐藏到 effect、普通函数 mutation 或兜底分支里，主链路保持单一路径
@@ -199,8 +226,21 @@ node packages/nextclaw/dist/cli/index.js skills update \
 - 已优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是
 - 由于这是新增运行时能力，总代码量与文件数出现净增长；该增长是最小必要增长，因为本次同时交付了 CLI、宿主、bridge、Wasm 执行、示例应用与 smoke 闭环，且刻意未引入产品耦合层、市场层和复杂 sidecar 管理
 - 由于本次继续新增 starter scaffold，非测试代码继续净增；这一增长主要来自首份可运行模板的 HTML / controller / WAT / wasm 内嵌资源，但仍保持在单一 owner 下，没有再引入额外模板系统或二次抽象
+- 第二阶段代码增长主要来自 bundle、registry、install 和新的命令层，但这些增长没有平铺到已有 owner 里，而是各自收敛到明确模块边界
 - 抽象、模块边界、class / helper / service / controller 划分比“把逻辑堆进一个 CLI 文件”更清晰，也避免了补丁式叠加
 - 目录结构与文件组织满足当前治理要求；新增文件已通过 `lint:new-code:governance` 与 `lint:maintainability:guard`
+
+第二阶段增量代码增减报告：
+
+- 新增：1459 行
+- 删除：187 行
+- 净增：+1272 行
+
+第二阶段增量非测试代码增减报告：
+
+- 新增：1346 行
+- 删除：187 行
+- 净增：+1159 行
 
 后续 watchpoint：
 
@@ -217,7 +257,7 @@ node packages/nextclaw/dist/cli/index.js skills update \
 
 当前状态：
 
-- `@nextclaw/app-runtime`：`0.2.0` 已发布
+- `@nextclaw/app-runtime`：`0.2.0` 已发布；本次第二阶段收尾改动已补 changeset，待下一次统一 release 时发布新版本
 
 官方 marketplace skill 状态：
 
@@ -226,4 +266,5 @@ node packages/nextclaw/dist/cli/index.js skills update \
 补充说明：
 
 - 本次已执行 changeset version，并完成 `@nextclaw/app-runtime@0.2.0` 正式发布
+- 当前工作树中的第二阶段 bundle/install/registry 改动尚未重新发包，已补 changeset 等待下一次 release
 - marketplace 官方更新不再依赖手工临时复制 token，当前机器已具备可复用的本地 token 存储与自动加载路径

@@ -47,7 +47,9 @@
     "smoke": "node scripts/smoke.mjs",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
-  "dependencies": {},
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
   "devDependencies": {
     "@types/node": "^20.17.6",
     "prettier": "^3.3.3",
