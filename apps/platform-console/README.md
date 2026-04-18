@@ -2,6 +2,16 @@
 
 用户前端站点（独立于管理后台）。
 
+当前已采用与 `platform-admin` 对齐的经典工作台结构：
+
+- 左侧固定导航
+- 顶部固定全局栏
+- 中间内容区独立滚动
+- 用户侧首批页面：
+  - `我的实例`
+  - `账号`
+- 登录页与分享页也统一到同一套 NextClaw 暖中性色视觉语言
+
 技术栈：
 - React + TypeScript
 - TanStack Query
@@ -52,4 +62,10 @@ pnpm deploy:platform:console
 pnpm -C apps/platform-console build
 pnpm -C apps/platform-console lint
 pnpm -C apps/platform-console tsc
+```
+
+UI 冒烟：
+
+```bash
+PLATFORM_CONSOLE_BASE_URL=http://127.0.0.1:4173 pnpm smoke:platform:console
 ```

@@ -13,8 +13,8 @@ export function LocaleSwitcher({ className }: Props): JSX.Element {
 
   return (
     <div className={className}>
-      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 p-1 backdrop-blur">
-        <span className="px-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+      <div className="flex items-center gap-2 rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-1">
+        <span className="px-2 text-xs font-medium uppercase tracking-[0.18em] text-[#8f8a7d]">
           {t('common.languageLabel')}
         </span>
         {supportedLocales.map((item) => (

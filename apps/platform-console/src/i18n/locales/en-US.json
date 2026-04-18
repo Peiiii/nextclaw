@@ -14,6 +14,7 @@
   },
   "app": {
     "brand": "NextClaw Platform",
+    "workbenchTag": "NextClaw Workbench",
     "loadingAccount": "Loading NextClaw Account...",
     "accountLoadFailedTitle": "We could not load your NextClaw Account right now.",
     "accountLoadFailedDescription": "Sign in again to refresh your account session and continue with NextClaw Web.",
@@ -21,6 +22,15 @@
     "navigation": {
       "home": "My Instances",
       "account": "Account"
+    },
+    "routeDescriptions": {
+      "instances": "Open your remote instances, review quota usage, and continue work from the web.",
+      "account": "Manage your username, publishing scope, and account readiness in one place."
+    },
+    "metrics": {
+      "publishReadiness": "Publish readiness",
+      "freeQuotaRemaining": "Free quota remaining",
+      "paidBalance": "Paid balance"
     },
     "roles": {
       "user": "User",

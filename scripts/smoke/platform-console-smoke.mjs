@@ -162,13 +162,14 @@ async function assertDashboardLanding(page) {
   await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
   const bodyText = await page.locator("body").innerText();
   const requiredText = [
-    "Set your username before publishing personal skills",
+    "NEXTCLAW WORKBENCH",
     "My Instances",
+    "PUBLISH READINESS",
     "Remote Quota & Usage",
     "Open via fixed domain",
     "Daily Worker requests",
     "COMING SOON",
-    "https://platform.nextclaw.io/account"
+    "Account"
   ];
   for (const expected of requiredText) {
     if (!bodyText.includes(expected)) {
@@ -241,7 +242,7 @@ async function assertDashboardLocaleSwitch(page) {
   await page.getByRole("button", { name: "中文" }).click();
   await page.waitForTimeout(300);
   const zhText = await page.locator("body").innerText();
-  const requiredText = ["我的实例", "个人发布已经解锁", "Remote 额度与用量", "即将上线"];
+  const requiredText = ["我的实例", "发布准备状态", "Remote 额度与用量", "即将上线"];
   for (const expected of requiredText) {
     if (!zhText.includes(expected)) {
       throw new Error(`Dashboard did not switch expected text to Chinese: ${expected}`);

@@ -14,6 +14,7 @@
   },
   "app": {
     "brand": "NextClaw Platform",
+    "workbenchTag": "NextClaw 工作台",
     "loadingAccount": "加载 NextClaw Account...",
     "accountLoadFailedTitle": "暂时无法加载你的 NextClaw 账号。",
     "accountLoadFailedDescription": "请重新登录，刷新账号会话后再继续使用网页版 NextClaw。",
@@ -21,6 +22,15 @@
     "navigation": {
       "home": "我的实例",
       "account": "账号"
+    },
+    "routeDescriptions": {
+      "instances": "从网页打开你的远程实例，查看额度用量，并继续当前工作流。",
+      "account": "统一管理用户名、个人发布 scope 和账号准备状态。"
+    },
+    "metrics": {
+      "publishReadiness": "发布准备状态",
+      "freeQuotaRemaining": "免费额度剩余",
+      "paidBalance": "付费余额"
     },
     "roles": {
       "user": "用户",

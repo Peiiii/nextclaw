@@ -1,22 +1,25 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
+  ConsolePage,
+  ConsoleSection
+} from '@/components/console/console-page';
+import {
   fetchRemoteQuotaSummary,
 } from '@/api/client';
 import type { RemoteInstance, RemoteQuotaSummary, RemoteShareGrant, UserView } from '@/api/types';
-import { AccountSummaryCard } from '@/components/account/account-summary-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { createTranslator, formatDateTime, type LocaleCode } from '@/i18n/i18n.service';
 import { useLocaleStore } from '@/i18n/locale.store';
+import { WorkbenchSummaryStrip } from '@/components/console/workbench-summary-strip';
 import { useRemoteInstancesCardState } from '@/pages/UserDashboardPage.remote-state';
 
 type Props = {
   token: string;
   user: UserView;
-  highlightAccount: boolean;
 };
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
@@ -79,7 +82,7 @@ function RemoteInstancesTable({
   return (
     <TableWrap>
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+        <thead className="bg-[#f3f2ee] text-xs uppercase tracking-wide text-[#8f8a7d]">
           <tr>
             <th className="px-3 py-2">{t('remote.table.instance')}</th>
             <th className="px-3 py-2">{t('remote.table.platform')}</th>
@@ -90,18 +93,18 @@ function RemoteInstancesTable({
         </thead>
         <tbody>
           {instances.map((instance) => (
-            <tr key={instance.id} className="border-t border-slate-100">
+            <tr key={instance.id} className="border-t border-[#ece7dd]">
               <td className="px-3 py-2">
-                <div className="font-medium text-slate-900">{instance.displayName}</div>
-                <div className="text-xs text-slate-500">{instance.appVersion}</div>
+                <div className="font-medium text-[#1f1f1d]">{instance.displayName}</div>
+                <div className="text-xs text-[#8f8a7d]">{instance.appVersion}</div>
               </td>
-              <td className="px-3 py-2">{instance.platform}</td>
+              <td className="px-3 py-2 text-[#656561]">{instance.platform}</td>
               <td className="px-3 py-2">
-                <span className={instance.status === 'online' ? 'text-emerald-600' : 'text-slate-500'}>
+                <span className={instance.status === 'online' ? 'text-emerald-600' : 'text-[#8f8a7d]'}>
                   {instance.status === 'online' ? t('remote.status.online') : t('remote.status.offline')}
                 </span>
               </td>
-              <td className="px-3 py-2">{formatDateTime(locale, instance.lastSeenAt)}</td>
+              <td className="px-3 py-2 text-[#656561]">{formatDateTime(locale, instance.lastSeenAt)}</td>
               <td className="px-3 py-2 text-right">
                 <div className="flex flex-wrap justify-end gap-2">
                   <Button
@@ -143,7 +146,7 @@ function RemoteInstancesTable({
           ))}
           {!isLoading && instances.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-3 py-4 text-sm text-slate-500">
+              <td colSpan={5} className="px-3 py-4 text-sm text-[#8f8a7d]">
                 {t('remote.messages.empty')}
               </td>
             </tr>
@@ -170,13 +173,13 @@ function ArchivedInstancesPanel({
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+    <div className="space-y-3 rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
       <div>
-        <p className="text-sm font-medium text-slate-900">{t('remote.archived.title')}</p>
-        <p className="text-sm text-slate-500">{t('remote.archived.description')}</p>
+        <p className="text-sm font-medium text-[#1f1f1d]">{t('remote.archived.title')}</p>
+        <p className="text-sm text-[#656561]">{t('remote.archived.description')}</p>
       </div>
 
-      {isLoading ? <p className="text-sm text-slate-500">{t('remote.archived.loading')}</p> : null}
+      {isLoading ? <p className="text-sm text-[#8f8a7d]">{t('remote.archived.loading')}</p> : null}
       {error ? (
         <p className="text-sm text-rose-600">
           {error instanceof Error ? error.message : t('remote.archived.loadFailed')}
@@ -186,7 +189,7 @@ function ArchivedInstancesPanel({
       {!isLoading && !error ? (
         <TableWrap>
           <table className="w-full text-left text-sm">
-            <thead className="bg-white text-xs uppercase tracking-wide text-slate-500">
+            <thead className="bg-white text-xs uppercase tracking-wide text-[#8f8a7d]">
               <tr>
                 <th className="px-3 py-2">{t('remote.table.instance')}</th>
                 <th className="px-3 py-2">{t('remote.table.platform')}</th>
@@ -197,23 +200,23 @@ function ArchivedInstancesPanel({
             </thead>
             <tbody>
               {instances.map((instance) => (
-                <tr key={instance.id} className="border-t border-slate-100 bg-white">
+                <tr key={instance.id} className="border-t border-[#ece7dd] bg-white">
                   <td className="px-3 py-2">
-                    <div className="font-medium text-slate-900">{instance.displayName}</div>
-                    <div className="text-xs text-slate-500">{instance.appVersion}</div>
+                    <div className="font-medium text-[#1f1f1d]">{instance.displayName}</div>
+                    <div className="text-xs text-[#8f8a7d]">{instance.appVersion}</div>
                     {instance.archivedAt ? (
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-[#a7a08f]">
                         {t('remote.archived.archivedAt', {
                           archivedAt: formatDateTime(locale, instance.archivedAt)
                         })}
                       </div>
                     ) : null}
                   </td>
-                  <td className="px-3 py-2">{instance.platform}</td>
+                  <td className="px-3 py-2 text-[#656561]">{instance.platform}</td>
                   <td className="px-3 py-2">
-                    <span className="text-slate-500">{t('remote.status.archived')}</span>
+                    <span className="text-[#8f8a7d]">{t('remote.status.archived')}</span>
                   </td>
-                  <td className="px-3 py-2">{formatDateTime(locale, instance.lastSeenAt)}</td>
+                  <td className="px-3 py-2 text-[#656561]">{formatDateTime(locale, instance.lastSeenAt)}</td>
                   <td className="px-3 py-2 text-right">
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
@@ -236,7 +239,7 @@ function ArchivedInstancesPanel({
               ))}
               {instances.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-3 py-4 text-sm text-slate-500">
+                  <td colSpan={5} className="px-3 py-4 text-sm text-[#8f8a7d]">
                     {t('remote.archived.empty')}
                   </td>
                 </tr>
@@ -267,11 +270,11 @@ function RemoteShareGrantPanel({
   }
 
   return (
-    <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4">
+    <div className="space-y-3 rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-slate-900">{t('remote.sharePanel.title')}</p>
-          <p className="text-sm text-slate-500">{t('remote.sharePanel.description')}</p>
+          <p className="text-sm font-medium text-[#1f1f1d]">{t('remote.sharePanel.title')}</p>
+          <p className="text-sm text-[#656561]">{t('remote.sharePanel.description')}</p>
         </div>
         <Button
           variant="secondary"
@@ -282,33 +285,33 @@ function RemoteShareGrantPanel({
         </Button>
       </div>
 
-      {isLoading ? <p className="text-sm text-slate-500">{t('remote.messages.loadingShares')}</p> : null}
+      {isLoading ? <p className="text-sm text-[#8f8a7d]">{t('remote.messages.loadingShares')}</p> : null}
       {error ? (
         <p className="text-sm text-rose-600">
           {error instanceof Error ? error.message : t('remote.messages.loadSharesFailed')}
         </p>
       ) : null}
-      {!isLoading && grants.length === 0 ? <p className="text-sm text-slate-500">{t('remote.messages.noShares')}</p> : null}
+      {!isLoading && grants.length === 0 ? <p className="text-sm text-[#8f8a7d]">{t('remote.messages.noShares')}</p> : null}
 
       <div className="space-y-3">
         {grants.map((grant) => (
-          <div key={grant.id} className="rounded-xl border border-slate-200 bg-white p-3">
+          <div key={grant.id} className="rounded-xl border border-[#e4e0d7] bg-white p-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-slate-900">
+                <p className="text-sm font-medium text-[#1f1f1d]">
                   {grant.status === 'active'
                     ? t('remote.status.shareActive')
                     : grant.status === 'revoked'
                       ? t('remote.status.shareRevoked')
                       : t('remote.status.shareExpired')}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#8f8a7d]">
                   {t('remote.sharePanel.meta', {
                     createdAt: formatDateTime(locale, grant.createdAt),
                     expiresAt: formatDateTime(locale, grant.expiresAt)
                   })}
                 </p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[#8f8a7d]">
                   {t('remote.sharePanel.activeSessions', { count: grant.activeSessionCount })}
                 </p>
               </div>
@@ -340,13 +343,13 @@ function BillingComingSoonCard(props: {
   t: Translate;
 }): JSX.Element {
   return (
-    <Card className="rounded-[28px] border-slate-200/80 p-5">
+    <Card className="rounded-2xl p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-2">
           <CardTitle>{props.t('billing.title')}</CardTitle>
-          <p className="text-sm leading-6 text-slate-500">{props.t('billing.description')}</p>
+          <p className="text-sm leading-6 text-[#656561]">{props.t('billing.description')}</p>
         </div>
-        <span className="rounded-full bg-amber-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+        <span className="rounded-full bg-[#f3eee2] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#926f29]">
           {props.t('billing.badge')}
         </span>
       </div>
@@ -365,14 +368,14 @@ function RemoteQuotaCard(props: {
   });
 
   return (
-    <Card className="rounded-[28px] border-slate-200/80 p-5">
+    <Card className="rounded-2xl p-5">
       <div className="space-y-2">
         <CardTitle>{props.t('remote.quota.title')}</CardTitle>
-        <p className="text-sm leading-6 text-slate-500">{props.t('remote.quota.description')}</p>
+        <p className="text-sm leading-6 text-[#656561]">{props.t('remote.quota.description')}</p>
       </div>
 
       {quotaQuery.isLoading ? (
-        <p className="mt-4 text-sm text-slate-500">{props.t('remote.quota.messages.loading')}</p>
+        <p className="mt-4 text-sm text-[#8f8a7d]">{props.t('remote.quota.messages.loading')}</p>
       ) : null}
       {quotaQuery.error ? (
         <p className="mt-4 text-sm text-rose-600">
@@ -415,8 +418,8 @@ function RemoteQuotaSummaryGrid(props: {
         />
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-        <p className="text-sm font-medium text-slate-900">{t('remote.quota.runtime.title')}</p>
+      <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+        <p className="text-sm font-medium text-[#1f1f1d]">{t('remote.quota.runtime.title')}</p>
         <dl className="mt-3 space-y-3 text-sm">
           <QuotaMetaRow label={t('remote.quota.runtime.sessionLimit')} value={formatQuotaValue(summary.sessionRequestsPerMinute)} />
           <QuotaMetaRow label={t('remote.quota.runtime.activeConnections')} value={formatQuotaValue(summary.activeBrowserConnections)} />
@@ -436,13 +439,13 @@ function QuotaMetricCard(props: {
   unitLabel: string;
 }): JSX.Element {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-      <p className="text-sm font-medium text-slate-900">{props.label}</p>
-      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-slate-950">
+    <div className="rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+      <p className="text-sm font-medium text-[#1f1f1d]">{props.label}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#1f1f1d]">
         {formatQuotaValue(props.used)}
-        <span className="ml-2 text-sm font-medium text-slate-500">/ {formatQuotaValue(props.limit)} {props.unitLabel}</span>
+        <span className="ml-2 text-sm font-medium text-[#656561]">/ {formatQuotaValue(props.limit)} {props.unitLabel}</span>
       </p>
-      <p className="mt-2 text-sm text-slate-500">{props.subtitle}</p>
+      <p className="mt-2 text-sm text-[#656561]">{props.subtitle}</p>
     </div>
   );
 }
@@ -453,8 +456,8 @@ function QuotaMetaRow(props: {
 }): JSX.Element {
   return (
     <div className="flex items-center justify-between gap-3">
-      <dt className="text-slate-500">{props.label}</dt>
-      <dd className="font-medium text-slate-900">{props.value}</dd>
+      <dt className="text-[#656561]">{props.label}</dt>
+      <dd className="font-medium text-[#1f1f1d]">{props.value}</dd>
     </div>
   );
 }
@@ -498,9 +501,9 @@ function RemoteInstancesCard(props: {
   });
 
   return (
-    <Card className="space-y-4 rounded-[28px] border-slate-200/80 p-5">
+    <Card className="space-y-4 rounded-2xl p-5">
       <CardTitle>{props.t('remote.title')}</CardTitle>
-      <p className="text-sm text-slate-500">{props.t('remote.description')}</p>
+      <p className="text-sm text-[#656561]">{props.t('remote.description')}</p>
       <RemoteInstancesTable
         locale={props.locale}
         t={props.t}
@@ -553,7 +556,7 @@ function RemoteInstancesCard(props: {
           {deleteRemoteInstanceMutation.error instanceof Error ? deleteRemoteInstanceMutation.error.message : props.t('remote.messages.deleteFailed')}
         </p>
       ) : null}
-      {shareFeedback ? <p className="text-sm text-slate-600">{shareFeedback}</p> : null}
+      {shareFeedback ? <p className="text-sm text-[#656561]">{shareFeedback}</p> : null}
 
       <RemoteShareGrantPanel
         locale={props.locale}
@@ -583,16 +586,22 @@ function RemoteInstancesCard(props: {
   );
 }
 
-export function UserDashboardPage({ token, user, highlightAccount }: Props): JSX.Element {
+export function UserDashboardPage({ token, user }: Props): JSX.Element {
   const locale = useLocaleStore((state) => state.locale);
   const t = useMemo(() => createTranslator(locale), [locale]);
 
   return (
-    <div className="space-y-6">
-      <AccountSummaryCard token={token} user={user} t={t} highlight={highlightAccount} />
-      <RemoteQuotaCard locale={locale} t={t} token={token} />
-      <RemoteInstancesCard locale={locale} t={t} token={token} />
-      <BillingComingSoonCard t={t} />
-    </div>
+    <ConsolePage>
+      <WorkbenchSummaryStrip t={t} user={user} />
+      <ConsoleSection>
+        <RemoteQuotaCard locale={locale} t={t} token={token} />
+      </ConsoleSection>
+      <ConsoleSection>
+        <RemoteInstancesCard locale={locale} t={t} token={token} />
+      </ConsoleSection>
+      <ConsoleSection>
+        <BillingComingSoonCard t={t} />
+      </ConsoleSection>
+    </ConsolePage>
   );
 }

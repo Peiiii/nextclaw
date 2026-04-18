@@ -62,14 +62,14 @@ function LoginHighlights(props: {
 }): JSX.Element {
   return (
     <section className="flex items-center">
-      <div className="w-full rounded-[32px] border border-white/60 bg-white/70 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.10)] backdrop-blur md:p-10">
+      <div className="w-full rounded-[32px] border border-[#e4e0d7] bg-[#f3f2ee] p-8 shadow-[0_24px_72px_rgba(31,31,29,0.08)] md:p-10">
         <div className="max-w-xl space-y-6">
           <div className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-[0.34em] text-brand-700">{props.t('login.platformTag')}</p>
-            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-[-0.04em] text-[#1f1f1d] md:text-5xl">
               {props.t('login.heroTitle')}
             </h1>
-            <p className="max-w-lg text-base leading-7 text-slate-600 md:text-lg">
+            <p className="max-w-lg text-base leading-7 text-[#656561] md:text-lg">
               {props.t('login.heroDescription')}
             </p>
           </div>
@@ -78,10 +78,10 @@ function LoginHighlights(props: {
             {highlightKeys.map((prefix) => (
               <div
                 key={prefix}
-                className="rounded-3xl border border-slate-200/80 bg-slate-50/90 px-5 py-4"
+                className="rounded-3xl border border-[#e4e0d7] bg-white px-5 py-4"
               >
-                <p className="text-sm font-semibold text-slate-950">{props.t(`${prefix}.title`)}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{props.t(`${prefix}.description`)}</p>
+                <p className="text-sm font-semibold text-[#1f1f1d]">{props.t(`${prefix}.title`)}</p>
+                <p className="mt-2 text-sm leading-6 text-[#656561]">{props.t(`${prefix}.description`)}</p>
               </div>
             ))}
           </div>
@@ -98,7 +98,7 @@ function AuthModeTabs(props: {
 }): JSX.Element {
   const modes: AuthMode[] = ['login', 'register', 'reset_password'];
   return (
-    <div className="grid grid-cols-3 gap-2 rounded-3xl border border-slate-200 bg-slate-50 p-1">
+    <div className="grid grid-cols-3 gap-2 rounded-3xl border border-[#e4e0d7] bg-[#f3f2ee] p-1">
       {modes.map((mode) => (
         <button
           key={mode}
@@ -106,7 +106,7 @@ function AuthModeTabs(props: {
           onClick={() => props.onModeChange(mode)}
           className={[
             'rounded-[20px] px-3 py-2 text-sm font-semibold transition',
-            props.mode === mode ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600'
+            props.mode === mode ? 'bg-brand-500 text-white shadow-sm' : 'text-[#656561]'
           ].join(' ')}
         >
           {props.t(`login.modes.${mode}.label`)}
@@ -123,12 +123,12 @@ function CodeFlowNotice(props: {
 }): JSX.Element {
   return (
     <div className="rounded-3xl border border-brand-100 bg-brand-50/70 px-4 py-4">
-      <p className="text-sm font-medium text-slate-900">
+      <p className="text-sm font-medium text-[#1f1f1d]">
         {props.t('login.notices.codeSent', {
           email: props.codeFlow.maskedEmail || props.codeFlow.email
         })}
       </p>
-      <p className="mt-1 text-sm leading-6 text-slate-600">
+      <p className="mt-1 text-sm leading-6 text-[#656561]">
         {props.t('login.notices.codeExpiresAt', { expiresAt: props.expiresAtText || '-' })}
       </p>
       {props.codeFlow.debugCode ? (
@@ -205,7 +205,7 @@ function AuthActionBlock(props: {
         </Button>
         <Button
           variant="ghost"
-          className="h-11 rounded-2xl border border-slate-200"
+          className="h-11 rounded-2xl border border-[#e4e0d7]"
           onClick={props.onResetCodeFlow}
         >
           {props.t('login.actions.changeEmail')}
@@ -228,20 +228,20 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
 
   return (
     <section className="flex items-center">
-      <Card className="w-full rounded-[32px] border-slate-200/80 bg-white/92 p-7 shadow-[0_24px_72px_rgba(15,23,42,0.12)] md:p-8">
+      <Card className="w-full rounded-[32px] bg-white p-7 shadow-[0_24px_72px_rgba(31,31,29,0.08)] md:p-8">
         <div className="space-y-4">
           <AuthModeTabs mode={props.mode} t={props.t} onModeChange={props.onModeChange} />
 
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">{props.t('login.accountTag')}</p>
             <CardTitle className="text-[28px] leading-tight tracking-[-0.03em]">{currentTitle}</CardTitle>
-            <p className="text-sm leading-6 text-slate-500">{currentSubtitle}</p>
+            <p className="text-sm leading-6 text-[#656561]">{currentSubtitle}</p>
           </div>
         </div>
 
         <div className="mt-6 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
+            <label className="text-sm font-medium text-[#4a4944]" htmlFor="email">
               {props.t('login.fields.email')}
             </label>
             <Input
@@ -257,7 +257,7 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
 
           {props.mode === 'login' ? (
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700" htmlFor="password">
+              <label className="text-sm font-medium text-[#4a4944]" htmlFor="password">
                 {props.t('login.fields.password')}
               </label>
               <Input
@@ -278,7 +278,7 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
           {props.mode !== 'login' && codeStepActive ? (
             <>
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="code">
+                <label className="text-sm font-medium text-[#4a4944]" htmlFor="code">
                   {props.t('login.fields.code')}
                 </label>
                 <Input
@@ -292,7 +292,7 @@ function LoginAuthCard(props: AuthCardProps): JSX.Element {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-700" htmlFor="password-action">
+                <label className="text-sm font-medium text-[#4a4944]" htmlFor="password-action">
                   {props.mode === 'register' ? props.t('login.fields.setPassword') : props.t('login.fields.newPassword')}
                 </label>
                 <Input
@@ -468,7 +468,7 @@ export function LoginPage(): JSX.Element {
   const manager = useLoginPageManager(t);
 
   return (
-    <main className="min-h-screen bg-transparent text-slate-950">
+    <main className="min-h-screen bg-[#f9f8f5] text-[#1f1f1d]">
       <div className="mx-auto flex w-full max-w-6xl justify-end px-6 pt-6 lg:px-10">
         <LocaleSwitcher />
       </div>

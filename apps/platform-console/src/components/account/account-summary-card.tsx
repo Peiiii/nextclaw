@@ -24,9 +24,9 @@ function AccountMetaRow(props: {
   value: string;
 }): JSX.Element {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/80 px-4 py-3">
-      <p className="text-sm font-medium text-slate-600">{props.label}</p>
-      <p className="text-sm font-semibold text-slate-950">{props.value}</p>
+    <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] px-4 py-3">
+      <p className="text-sm font-medium text-[#656561]">{props.label}</p>
+      <p className="text-sm font-semibold text-[#1f1f1d]">{props.value}</p>
     </div>
   );
 }
@@ -65,8 +65,8 @@ export function AccountSummaryCard({ token, user, t, highlight }: Props): JSX.El
   return (
     <Card
       className={cn(
-        'space-y-5 rounded-[28px] border-slate-200/80 p-5',
-        highlight ? 'border-brand-200 shadow-[0_20px_60px_rgba(37,99,235,0.12)]' : null
+        'space-y-5 rounded-2xl p-5',
+        highlight ? 'border-brand-200 shadow-[0_16px_40px_rgba(95,107,67,0.12)]' : null
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -82,13 +82,13 @@ export function AccountSummaryCard({ token, user, t, highlight }: Props): JSX.El
               {hasUsername ? t('account.readiness.ready') : t('account.readiness.missing')}
             </span>
           </div>
-          <p className="max-w-3xl text-sm leading-6 text-slate-600">
+          <p className="max-w-3xl text-sm leading-6 text-[#656561]">
             {highlight ? t('account.highlightDescription') : t('account.description')}
           </p>
         </div>
         <a
           href="/"
-          className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+          className="inline-flex items-center justify-center rounded-2xl border border-[#e4e0d7] bg-white px-4 py-2 text-sm font-medium text-[#656561] transition-colors hover:bg-[#f9f8f5]"
         >
           {t('account.actions.openInstances')}
         </a>
@@ -107,9 +107,9 @@ export function AccountSummaryCard({ token, user, t, highlight }: Props): JSX.El
       </div>
 
       {!hasUsername ? (
-        <div className="rounded-[24px] border border-amber-200 bg-amber-50/80 p-4">
-          <p className="text-sm font-semibold text-slate-950">{t('account.missingTitle')}</p>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{t('account.missingDescription')}</p>
+        <div className="rounded-[24px] border border-amber-200 bg-[#fbf6eb] p-4">
+          <p className="text-sm font-semibold text-[#1f1f1d]">{t('account.missingTitle')}</p>
+          <p className="mt-2 text-sm leading-6 text-[#656561]">{t('account.missingDescription')}</p>
           <div className="mt-4 flex flex-col gap-3 md:flex-row">
             <Input
               value={usernameDraft}
@@ -130,14 +130,14 @@ export function AccountSummaryCard({ token, user, t, highlight }: Props): JSX.El
           </div>
         </div>
       ) : (
-        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50/80 p-4 text-sm leading-6 text-slate-700">
-          <p className="font-semibold text-slate-950">{t('account.readyTitle')}</p>
+        <div className="rounded-[24px] border border-emerald-200 bg-emerald-50/70 p-4 text-sm leading-6 text-[#656561]">
+          <p className="font-semibold text-[#1f1f1d]">{t('account.readyTitle')}</p>
           <p className="mt-2">{t('account.readyDescription', { scope: publishScope })}</p>
           <p className="mt-2">{t('account.lockedHelp')}</p>
         </div>
       )}
 
-      {feedback ? <p className="text-sm text-slate-600">{feedback}</p> : null}
+      {feedback ? <p className="text-sm text-[#656561]">{feedback}</p> : null}
     </Card>
   );
 }

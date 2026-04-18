@@ -27,24 +27,24 @@ export function SharePage({ grantToken }: Props): JSX.Element {
   }, [openShareQuery.data]);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.12),_transparent_45%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-4 py-10 text-slate-900">
+    <main className="min-h-screen bg-[#f9f8f5] px-4 py-10 text-[#1f1f1d]">
       <div className="mx-auto max-w-2xl">
         <div className="mb-6 flex justify-end">
           <LocaleSwitcher />
         </div>
       </div>
       <div className="mx-auto flex min-h-[70vh] max-w-2xl items-center">
-        <Card className="w-full space-y-4 rounded-[32px] border-white/70 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.10)] backdrop-blur">
+        <Card className="w-full space-y-4 rounded-[32px] p-6 shadow-[0_24px_80px_rgba(31,31,29,0.08)]">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand-700">{t('share.tag')}</p>
             <CardTitle>{t('share.title')}</CardTitle>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[#656561]">
               {t('share.description')}
             </p>
           </div>
 
           {openShareQuery.isLoading ? (
-            <p className="text-sm text-slate-600">{t('share.loading')}</p>
+            <p className="text-sm text-[#656561]">{t('share.loading')}</p>
           ) : null}
 
           {openShareQuery.error ? (
@@ -60,9 +60,9 @@ export function SharePage({ grantToken }: Props): JSX.Element {
           ) : null}
 
           {openShareQuery.data ? (
-            <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-sm font-medium text-slate-900">{t('share.sessionCreated')}</p>
-              <p className="break-all text-xs text-slate-500">{openShareQuery.data.openUrl}</p>
+            <div className="space-y-2 rounded-2xl border border-[#e4e0d7] bg-[#f9f8f5] p-4">
+              <p className="text-sm font-medium text-[#1f1f1d]">{t('share.sessionCreated')}</p>
+              <p className="break-all text-xs text-[#8f8a7d]">{openShareQuery.data.openUrl}</p>
               <Button onClick={() => window.location.replace(openShareQuery.data?.openUrl ?? '/')}>
                 {t('common.openNow')}
               </Button>
