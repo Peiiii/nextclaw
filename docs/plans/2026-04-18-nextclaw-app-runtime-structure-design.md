@@ -105,9 +105,9 @@ apps/
 当前更合理的目标是先让下面这种命令成立：
 
 ```bash
-nextclaw-app-runtime inspect ./apps/examples/hello-notes
-nextclaw-app-runtime run ./apps/examples/hello-notes
-nextclaw-app-runtime dev ./apps/examples/hello-notes
+napp inspect ./apps/examples/hello-notes
+napp run ./apps/examples/hello-notes
+napp dev ./apps/examples/hello-notes
 ```
 
 也就是说：
@@ -258,9 +258,9 @@ assets/
 先只做三条命令：
 
 ```bash
-nextclaw-app-runtime inspect <app-dir>
-nextclaw-app-runtime run <app-dir>
-nextclaw-app-runtime dev <app-dir>
+napp inspect <app-dir>
+napp run <app-dir>
+napp dev <app-dir>
 ```
 
 ### `inspect`
