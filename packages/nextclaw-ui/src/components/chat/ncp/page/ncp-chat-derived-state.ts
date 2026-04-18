@@ -11,6 +11,7 @@ import type { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter'
 import type { UseHydratedNcpAgentResult } from '@nextclaw/ncp-react';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import type { ChatChildSessionTab } from '@/components/chat/stores/chat-thread.store';
+import type { ChatSessionTypeOption } from '@/components/chat/useChatSessionTypeState';
 import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
 
 function buildChildSessionTabs(params: {
@@ -40,7 +41,7 @@ export function useNcpChatDerivedState(params: {
   parentSessionId: string | null;
   sessionSummaries: NcpSessionSummaryView[];
   selectedSessionType: string;
-  sessionTypeOptions: Array<{ value: string; label: string }>;
+  sessionTypeOptions: ChatSessionTypeOption[];
 }) {
   const {
     availableAgents,
@@ -68,9 +69,11 @@ export function useNcpChatDerivedState(params: {
       ) ?? null;
     return parentSummary ? adaptNcpSessionSummary(parentSummary) : null;
   }, [parentSessionId, sessionSummaries]);
+  const currentSessionTypeOption =
+    sessionTypeOptions.find((option) => option.value === selectedSessionType) ?? null;
   const currentSessionTypeLabel =
-    sessionTypeOptions.find((option) => option.value === selectedSessionType)
-      ?.label ?? resolveSessionTypeLabel(selectedSessionType);
+    currentSessionTypeOption?.label ?? resolveSessionTypeLabel(selectedSessionType);
+  const currentSessionTypeIcon = currentSessionTypeOption?.icon ?? null;
   const currentChildSessionTabs = useMemo(
     () =>
       buildChildSessionTabs({
@@ -86,6 +89,7 @@ export function useNcpChatDerivedState(params: {
     currentAgent,
     parentSession,
     currentSessionTypeLabel,
+    currentSessionTypeIcon,
     currentChildSessionTabs,
   };
 }
@@ -99,7 +103,7 @@ export function useNcpChatSnapshotSync(params: {
   lastSendError: string | null;
   isSending: boolean;
   modelOptions: ChatModelOption[];
-  sessionTypeOptions: Array<{ value: string; label: string }>;
+  sessionTypeOptions: ChatSessionTypeOption[];
   selectedSessionType: string;
   canEditSessionType: boolean;
   sessionTypeUnavailable: boolean;
@@ -107,6 +111,7 @@ export function useNcpChatSnapshotSync(params: {
   isSkillsLoading: boolean;
   sessionTypeUnavailableMessage: string | null;
   currentSessionTypeLabel: string;
+  currentSessionTypeIcon: ChatSessionTypeOption['icon'];
   sessionKey: string;
   currentAgentId: string;
   currentAgent: AgentProfileView | null;
@@ -145,6 +150,7 @@ export function useNcpChatSnapshotSync(params: {
       sessionTypeUnavailable: params.sessionTypeUnavailable,
       sessionTypeUnavailableMessage: params.sessionTypeUnavailableMessage,
       sessionTypeLabel: params.currentSessionTypeLabel,
+      sessionTypeIcon: params.currentSessionTypeIcon,
       sessionKey: params.sessionKey,
       agentId: params.currentAgentId,
       agentDisplayName: params.currentAgent?.displayName ?? null,

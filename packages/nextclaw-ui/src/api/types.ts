@@ -246,10 +246,17 @@ export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
 };
 
+
+export type SessionTypeIconView = {
+  kind: "image";
+  src: string;
+  alt?: string | null;
+};
 export type RuntimeEntryView = {
   enabled?: boolean;
   label?: string;
   type: string;
+  icon?: SessionTypeIconView | null;
   config?: Record<string, unknown>;
 };
 

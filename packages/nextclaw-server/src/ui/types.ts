@@ -421,6 +421,11 @@ export type RuntimeEntryView = {
   enabled?: boolean;
   label?: string;
   type: string;
+  icon?: {
+    kind: "image";
+    src: string;
+    alt?: string | null;
+  } | null;
   config?: Record<string, unknown>;
 };
 

@@ -1,18 +1,25 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema } from "@nextclaw/core";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ConfigSchema, ENV_HOME_KEY } from "@nextclaw/core";
 import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginInstallRoots,
 } from "./development-source/first-party-plugin-load-paths.js";
 
 const tempDirs: string[] = [];
+const originalHomeDir = process.env[ENV_HOME_KEY];
 
 const createTempDir = () => {
   const dir = mkdtempSync(path.join(tmpdir(), "nextclaw-dev-plugin-path-install-"));
   tempDirs.push(dir);
+  return dir;
+};
+
+const createTempNextclawHome = () => {
+  const dir = createTempDir();
+  process.env[ENV_HOME_KEY] = dir;
   return dir;
 };
 
@@ -46,12 +53,21 @@ const writeWorkspacePluginPackage = (
 };
 
 afterEach(() => {
+  if (originalHomeDir) {
+    process.env[ENV_HOME_KEY] = originalHomeDir;
+  } else {
+    delete process.env[ENV_HOME_KEY];
+  }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+});
+
+beforeEach(() => {
+  createTempNextclawHome();
 });
 
 describe("path-installed first-party plugin load paths", () => {

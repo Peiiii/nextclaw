@@ -74,6 +74,11 @@ describe("createUiNcpAgent Claude session types", () => {
         expect.objectContaining({
           value: "claude",
           label: "Claude",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/claude.ico",
+            alt: "Claude",
+          },
           ready: true,
           recommendedModel: "anthropic/claude-sonnet-4-5",
         }),
@@ -131,6 +136,11 @@ describe("createUiNcpAgent Claude session types", () => {
         expect.objectContaining({
           value: "claude",
           label: "Claude",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/claude.ico",
+            alt: "Claude",
+          },
           ready: true,
           recommendedModel: "dashscope/qwen3-coder-next",
         }),
@@ -186,6 +196,11 @@ describe("createUiNcpAgent Claude session types", () => {
         expect.objectContaining({
           value: "claude",
           label: "Claude",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/claude.ico",
+            alt: "Claude",
+          },
           ready: true,
           recommendedModel: "dashscope/qwen3-coder-next",
         }),

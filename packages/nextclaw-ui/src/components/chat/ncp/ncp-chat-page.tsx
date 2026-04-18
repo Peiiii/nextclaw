@@ -304,6 +304,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
     currentAgent,
     parentSession,
     currentSessionTypeLabel,
+    currentSessionTypeIcon,
     currentChildSessionTabs,
   } = useNcpChatDerivedState({
     sessionKey,
@@ -340,6 +341,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
     isSkillsLoading: sessionSkillsQuery.isLoading,
     sessionTypeUnavailableMessage,
     currentSessionTypeLabel,
+    currentSessionTypeIcon,
     sessionKey,
     currentAgentId,
     currentAgent,

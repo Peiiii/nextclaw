@@ -1,8 +1,8 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema } from "@nextclaw/core";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ConfigSchema, ENV_HOME_KEY } from "@nextclaw/core";
 import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginDir,
@@ -11,10 +11,17 @@ import {
 } from "./development-source/first-party-plugin-load-paths.js";
 
 const tempDirs: string[] = [];
+const originalHomeDir = process.env[ENV_HOME_KEY];
 
 const createTempDir = () => {
   const dir = mkdtempSync(path.join(tmpdir(), "nextclaw-dev-plugin-load-paths-"));
   tempDirs.push(dir);
+  return dir;
+};
+
+const createTempNextclawHome = () => {
+  const dir = createTempDir();
+  process.env[ENV_HOME_KEY] = dir;
   return dir;
 };
 
@@ -48,12 +55,21 @@ const writeWorkspacePluginPackage = (
 };
 
 afterEach(() => {
+  if (originalHomeDir) {
+    process.env[ENV_HOME_KEY] = originalHomeDir;
+  } else {
+    delete process.env[ENV_HOME_KEY];
+  }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
       rmSync(dir, { recursive: true, force: true });
     }
   }
+});
+
+beforeEach(() => {
+  createTempNextclawHome();
 });
 
 describe("resolveDevFirstPartyPluginLoadPaths", () => {
@@ -107,6 +123,48 @@ describe("resolveDevFirstPartyPluginLoadPaths", () => {
     expect(resolveDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir)).toEqual([
       path.join(workspaceExtensionsDir, "nextclaw-ncp-runtime-plugin-codex-sdk"),
     ]);
+  });
+
+  it("maps globally installed first-party plugins to local workspace package dirs even without install records", () => {
+    const nextclawHome = createTempNextclawHome();
+    const workspaceExtensionsDir = createTempDir();
+    const workspacePluginDir = path.join(
+      workspaceExtensionsDir,
+      "nextclaw-ncp-runtime-plugin-codex-sdk",
+    );
+    writeWorkspacePluginPackage(
+      workspaceExtensionsDir,
+      "nextclaw-ncp-runtime-plugin-codex-sdk",
+      "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+      { withDevelopmentSource: true },
+    );
+    writeWorkspacePluginPackage(
+      path.join(nextclawHome, "extensions"),
+      "nextclaw-ncp-runtime-plugin-codex-sdk",
+      "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
+    );
+    const config = ConfigSchema.parse({
+      agents: {
+        defaults: {
+          workspace: createTempDir(),
+          model: "openai/gpt-5",
+        },
+      },
+      plugins: {},
+    });
+
+    expect(resolveDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir)).toEqual([
+      workspacePluginDir,
+    ]);
+    expect(resolveDevFirstPartyPluginInstallRoots(config, workspaceExtensionsDir)).toEqual([
+      path.join(nextclawHome, "extensions", "nextclaw-ncp-runtime-plugin-codex-sdk"),
+    ]);
+
+    const nextConfig = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
+    expect(nextConfig.plugins.load?.paths).toEqual([workspacePluginDir]);
+    expect(nextConfig.plugins.entries?.["nextclaw-ncp-runtime-plugin-codex-sdk"]).toEqual({
+      source: "development",
+    });
   });
 
   it("prepends resolved dev plugin paths ahead of existing config load paths", () => {

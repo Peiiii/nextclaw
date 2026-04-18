@@ -511,9 +511,11 @@ function normalizeRuntimeEntries(
     if (!type) {
       continue;
     }
+    const normalizedIcon = normalizeRuntimeEntryIcon(entry.icon);
     normalized[id] = {
       enabled: typeof entry.enabled === "boolean" ? entry.enabled : true,
       ...(normalizeOptionalString(entry.label) ? { label: normalizeOptionalString(entry.label) ?? undefined } : {}),
+      ...(normalizedIcon ? { icon: normalizedIcon } : {}),
       type,
       config: normalizeRuntimeEntryConfig(
         type,
@@ -524,6 +526,28 @@ function normalizeRuntimeEntries(
     };
   }
   return normalized;
+}
+
+function normalizeRuntimeEntryIcon(
+  value: unknown,
+): { kind: "image"; src: string; alt?: string } | null {
+  if (typeof value === "string") {
+    const src = value.trim();
+    return src ? { kind: "image", src } : null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const src = normalizeOptionalString((value as Record<string, unknown>).src);
+  if (!src) {
+    return null;
+  }
+  const alt = normalizeOptionalString((value as Record<string, unknown>).alt);
+  return {
+    kind: "image",
+    src,
+    ...(alt ? { alt } : {}),
+  };
 }
 
 function normalizeRuntimeEntryConfig(

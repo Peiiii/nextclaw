@@ -67,6 +67,11 @@ describe("createUiNcpAgent Hermes HTTP runtime", () => {
           entries: {
             hermes: {
               label: "Hermes",
+                icon: {
+                  kind: "image",
+                  src: "app://runtime-icons/hermes-agent.png",
+                  alt: "Hermes",
+                },
               type: NARP_HTTP_RUNTIME_KIND,
               config: {
                 label: "Hermes",
@@ -110,6 +115,11 @@ describe("createUiNcpAgent Hermes HTTP runtime", () => {
         expect.objectContaining({
           value: "hermes",
           label: "Hermes",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/hermes-agent.png",
+            alt: "Hermes",
+          },
           ready: true,
         }),
       ]),

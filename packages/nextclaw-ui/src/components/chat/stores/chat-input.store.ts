@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-import type { SessionSkillEntryView, ThinkingLevel } from '@/api/types';
+import type { SessionSkillEntryView, SessionTypeIconView, ThinkingLevel } from '@/api/types';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { createInitialChatComposerNodes } from '@/components/chat/chat-composer-state';
 
@@ -24,6 +24,7 @@ export type ChatInputSnapshot = {
   sessionTypeOptions: Array<{
     value: string;
     label: string;
+    icon?: SessionTypeIconView | null;
     ready?: boolean;
     reason?: string | null;
     reasonMessage?: string | null;

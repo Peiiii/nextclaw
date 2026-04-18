@@ -1,11 +1,20 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Config } from "@nextclaw/core";
+import { getDataPath, type Config } from "@nextclaw/core";
 
 type WorkspacePluginPackage = {
+  pluginId: string;
   packageName: string;
   dir: string;
+  supportsDevelopmentSource: boolean;
+};
+
+type InstalledFirstPartyPluginMatch = {
+  pluginId: string;
+  packageName: string;
+  workspaceDir: string;
+  installPath: string;
   supportsDevelopmentSource: boolean;
 };
 
@@ -27,6 +36,14 @@ const readString = (value: unknown): string | undefined => {
   }
   const trimmed = value.trim();
   return trimmed || undefined;
+};
+
+const toPluginIdFromPackageName = (packageName: string): string => {
+  const trimmed = packageName.trim();
+  if (!trimmed) {
+    return "";
+  }
+  return trimmed.includes("/") ? (trimmed.split("/").pop() ?? trimmed) : trimmed;
 };
 
 const normalizeInstallRecordPath = (value: unknown): string | undefined => {
@@ -117,12 +134,56 @@ const readWorkspacePluginPackages = (
       continue;
     }
     packages.push({
+      pluginId: toPluginIdFromPackageName(packageName),
       packageName,
       dir: packageDir,
       supportsDevelopmentSource: hasOpenClawDevelopmentExtensions(pkg),
     });
   }
   return packages;
+};
+
+const readInstalledFirstPartyPluginMatches = (
+  workspaceExtensionsDir: string,
+): InstalledFirstPartyPluginMatch[] => {
+  const workspacePackages = readWorkspacePluginPackages(workspaceExtensionsDir);
+  if (workspacePackages.length === 0) {
+    return [];
+  }
+
+  const globalExtensionsDir = path.join(getDataPath(), "extensions");
+  if (!fs.existsSync(globalExtensionsDir)) {
+    return [];
+  }
+
+  const workspacePackageByName = new Map(
+    workspacePackages.map((entry) => [entry.packageName, entry]),
+  );
+  const entries = fs.readdirSync(globalExtensionsDir, { withFileTypes: true });
+  const matches: InstalledFirstPartyPluginMatch[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const packageDir = path.join(globalExtensionsDir, entry.name);
+    const pkg = readJsonFile(path.join(packageDir, "package.json"));
+    const packageName = readString(pkg?.name);
+    if (!packageName) {
+      continue;
+    }
+    const workspacePackage = workspacePackageByName.get(packageName);
+    if (!workspacePackage) {
+      continue;
+    }
+    matches.push({
+      pluginId: workspacePackage.pluginId,
+      packageName,
+      workspaceDir: workspacePackage.dir,
+      installPath: packageDir,
+      supportsDevelopmentSource: workspacePackage.supportsDevelopmentSource,
+    });
+  }
+  return matches;
 };
 
 const mergeLoadPaths = (existingLoadPaths: string[], devLoadPaths: string[]): string[] => {
@@ -165,6 +226,7 @@ const findWorkspacePackageForInstallRecord = (
 const buildDevelopmentSourceEntryDefaults = (
   config: Config,
   workspacePackages: WorkspacePluginPackage[],
+  installedPluginMatches: InstalledFirstPartyPluginMatch[],
 ): {
   didDefaultDevelopmentSource: boolean;
   nextEntries: NonNullable<Config["plugins"]["entries"]>;
@@ -174,6 +236,21 @@ const buildDevelopmentSourceEntryDefaults = (
   );
   const nextEntries = { ...(config.plugins.entries ?? {}) };
   let didDefaultDevelopmentSource = false;
+
+  for (const installedPlugin of installedPluginMatches) {
+    if (!installedPlugin.supportsDevelopmentSource) {
+      continue;
+    }
+    const existingEntry = nextEntries[installedPlugin.pluginId];
+    if (existingEntry?.source) {
+      continue;
+    }
+    nextEntries[installedPlugin.pluginId] = {
+      ...existingEntry,
+      source: "development",
+    };
+    didDefaultDevelopmentSource = true;
+  }
 
   for (const [pluginId, installRecord] of Object.entries(config.plugins.installs ?? {})) {
     const workspacePackage = findWorkspacePackageForInstallRecord(
@@ -214,6 +291,7 @@ export const resolveDevFirstPartyPluginLoadPaths = (
   if (workspacePackages.length === 0) {
     return [];
   }
+  const installedPluginMatches = readInstalledFirstPartyPluginMatches(rootDir);
 
   const packageDirByName = new Map(
     workspacePackages.map((entry) => [entry.packageName, entry.dir]),
@@ -237,6 +315,13 @@ export const resolveDevFirstPartyPluginLoadPaths = (
       continue;
     }
     loadPaths.push(packageDir);
+  }
+
+  for (const installedPlugin of installedPluginMatches) {
+    if (loadPaths.includes(installedPlugin.workspaceDir)) {
+      continue;
+    }
+    loadPaths.push(installedPlugin.workspaceDir);
   }
 
   return loadPaths;
@@ -263,6 +348,14 @@ export const resolveDevFirstPartyPluginInstallRoots = (
     workspacePackages.map((entry) => [entry.packageName, entry]),
   );
   const installRoots: string[] = [];
+  const installedPluginMatches = readInstalledFirstPartyPluginMatches(rootDir);
+
+  for (const installedPlugin of installedPluginMatches) {
+    if (installRoots.includes(installedPlugin.installPath)) {
+      continue;
+    }
+    installRoots.push(installedPlugin.installPath);
+  }
 
   for (const installRecord of Object.values(config.plugins.installs ?? {})) {
     const workspacePackage = findWorkspacePackageForInstallRecord(
@@ -299,6 +392,7 @@ export const applyDevFirstPartyPluginLoadPaths = (
   if (workspacePackages.length === 0) {
     return config;
   }
+  const installedPluginMatches = readInstalledFirstPartyPluginMatches(rootDir);
 
   const devLoadPaths = resolveDevFirstPartyPluginLoadPaths(config, rootDir);
   if (devLoadPaths.length === 0) {
@@ -312,7 +406,7 @@ export const applyDevFirstPartyPluginLoadPaths = (
     : [];
   const mergedLoadPaths = mergeLoadPaths(existingLoadPaths, devLoadPaths);
   const { didDefaultDevelopmentSource, nextEntries } =
-    buildDevelopmentSourceEntryDefaults(config, workspacePackages);
+    buildDevelopmentSourceEntryDefaults(config, workspacePackages, installedPluginMatches);
 
   return {
     ...config,

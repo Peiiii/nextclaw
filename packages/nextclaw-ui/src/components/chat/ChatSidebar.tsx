@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SelectItem } from '@/components/ui/select';
 import { ChatSidebarSessionItem } from '@/components/chat/chat-sidebar-session-item';
+import { ChatSessionTypeOptionItem } from '@/components/chat/chat-session-type-option-item';
 import { ChatSidebarListModeSwitch } from '@/components/chat/chat-sidebar-list-mode-switch';
 import {
   ChatSidebarProjectGroups,
@@ -128,16 +129,6 @@ function sessionTitle(session: SessionEntryView): string {
   }
   const chunks = session.key.split(':');
   return chunks[chunks.length - 1] || session.key;
-}
-
-function resolveSessionTypeStatusText(option: {
-  ready?: boolean;
-  reasonMessage?: string | null;
-}): string {
-  if (option.ready === false) {
-    return option.reasonMessage?.trim() || t('statusSetup');
-  }
-  return t('statusReady');
 }
 
 const navItems = [
@@ -347,38 +338,23 @@ export function ChatSidebar() {
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-2">
-                <div className="px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+              <PopoverContent
+                align="end"
+                className="w-[18.75rem] rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+              >
+                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
                   {t('chatSessionTypeLabel')}
                 </div>
-                <div className="mt-1 space-y-1">
+                <div className="space-y-1">
                   {nonDefaultSessionTypeOptions.map((option) => (
-                    <button
+                    <ChatSessionTypeOptionItem
                       key={option.value}
-                      type="button"
-                      onClick={() => {
+                      option={option}
+                      onSelect={() => {
                         presenter.chatSessionListManager.createSession(option.value);
                         setIsCreateMenuOpen(false);
                       }}
-                      className="w-full rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-100"
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-[13px] font-medium text-gray-900">{option.label}</div>
-                        <span
-                          className={cn(
-                            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                            option.ready === false
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-emerald-100 text-emerald-700'
-                          )}
-                        >
-                          {option.ready === false ? t('statusSetup') : t('statusReady')}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-gray-500">
-                        {resolveSessionTypeStatusText(option)}
-                      </div>
-                    </button>
+                    />
                   ))}
                 </div>
               </PopoverContent>

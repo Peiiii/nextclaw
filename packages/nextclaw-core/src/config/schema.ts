@@ -242,6 +242,11 @@ export const AgentProfileSchema = z.object({
 export const AgentRuntimeEntrySchema = z.object({
   enabled: z.boolean().default(true),
   label: z.string().trim().min(1).optional(),
+  icon: z.object({
+    kind: z.literal("image"),
+    src: z.string().trim().min(1),
+    alt: z.string().trim().min(1).nullable().optional()
+  }).optional(),
   type: z.string().trim().min(1),
   config: z.record(z.unknown()).default({})
 });

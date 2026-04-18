@@ -1,3 +1,9 @@
+export type ChatSessionTypeIconView = {
+  kind: "image";
+  src: string;
+  alt?: string | null;
+};
+
 export type ChatSessionTypeCtaView = {
   kind: string;
   label?: string;
@@ -7,6 +13,7 @@ export type ChatSessionTypeCtaView = {
 export type ChatSessionTypeOptionView = {
   value: string;
   label: string;
+  icon?: ChatSessionTypeIconView | null;
   ready?: boolean;
   reason?: string | null;
   reasonMessage?: string | null;

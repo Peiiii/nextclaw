@@ -1,4 +1,9 @@
 export type SessionTypeDescriptor = {
+  icon?: {
+    kind: "image";
+    src: string;
+    alt?: string | null;
+  } | null;
   ready?: boolean;
   reason?: string | null;
   reasonMessage?: string | null;
@@ -10,6 +15,8 @@ export type SessionTypeDescriptor = {
     href?: string;
   } | null;
 };
+
+const CODEX_RUNTIME_ICON_URI = "app://runtime-icons/codex-openai.svg";
 
 function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -69,6 +76,11 @@ export function createDescribeCodexSessionType(params: {
   return () => {
     const supportedModels = resolveConfiguredCodexModels(params.pluginConfig);
     const descriptor: SessionTypeDescriptor = {
+      icon: {
+        kind: "image",
+        src: CODEX_RUNTIME_ICON_URI,
+        alt: "Codex",
+      },
       ready: true,
       reason: null,
       reasonMessage: null,

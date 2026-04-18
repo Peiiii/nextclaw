@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { AgentProfileView, ChatSessionTypeOptionView, SessionEntryView } from '@/api/types';
+import type {
+  AgentProfileView,
+  ChatSessionTypeOptionView,
+  SessionEntryView,
+  SessionTypeIconView
+} from '@/api/types';
 import { t } from '@/lib/i18n';
 
 export const DEFAULT_SESSION_TYPE = 'native';
@@ -8,6 +13,7 @@ export const DEFAULT_SESSION_TYPE = 'native';
 export type ChatSessionTypeOption = {
   value: string;
   label: string;
+  icon: SessionTypeIconView | null;
   ready: boolean;
   reason?: string | null;
   reasonMessage?: string | null;
@@ -71,6 +77,7 @@ export function buildSessionTypeOptions(
     deduped.set(value, {
       value,
       label: option.label?.trim() || resolveSessionTypeLabel(value),
+      icon: option.icon ?? null,
       ready: option.ready ?? true,
       reason: option.reason ?? null,
       reasonMessage: option.reasonMessage ?? null,
@@ -83,6 +90,7 @@ export function buildSessionTypeOptions(
     deduped.set(DEFAULT_SESSION_TYPE, {
       value: DEFAULT_SESSION_TYPE,
       label: resolveSessionTypeLabel(DEFAULT_SESSION_TYPE),
+      icon: null,
       ready: true,
       reason: null,
       reasonMessage: null,
@@ -129,6 +137,7 @@ export function useChatSessionTypeState(params: UseChatSessionTypeStateParams): 
       options.push({
         value: currentSessionType,
         label: resolveSessionTypeLabel(currentSessionType),
+        icon: null,
         ready: true,
         reason: null,
         reasonMessage: null,

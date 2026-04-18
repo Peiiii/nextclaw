@@ -3,7 +3,7 @@ import type { MutableRefObject } from 'react';
 import type { NcpMessage } from '@nextclaw/ncp';
 import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
-import type { AgentProfileView } from '@/api/types';
+import type { AgentProfileView, SessionTypeIconView } from '@/api/types';
 
 export type ChatChildSessionTab = {
   sessionKey: string;
@@ -35,6 +35,7 @@ export type ChatThreadSnapshot = {
   sessionTypeUnavailable: boolean;
   sessionTypeUnavailableMessage?: string | null;
   sessionTypeLabel?: string | null;
+  sessionTypeIcon?: SessionTypeIconView | null;
   sessionKey: string | null;
   agentId?: string | null;
   agentDisplayName?: string | null;
@@ -70,6 +71,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   sessionTypeUnavailable: false,
   sessionTypeUnavailableMessage: null,
   sessionTypeLabel: null,
+  sessionTypeIcon: null,
   sessionKey: null,
   agentId: null,
   agentDisplayName: null,

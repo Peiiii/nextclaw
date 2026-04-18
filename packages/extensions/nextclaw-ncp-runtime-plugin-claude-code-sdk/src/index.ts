@@ -25,8 +25,19 @@ import {
 
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-claude-code-sdk";
 const CLAUDE_RUNTIME_KIND = "claude";
+const CLAUDE_RUNTIME_ICON_URI = "app://runtime-icons/claude.ico";
+const CLAUDE_RUNTIME_ICON: NonNullable<SessionTypeDescriptor["icon"]> = {
+  kind: "image",
+  src: CLAUDE_RUNTIME_ICON_URI,
+  alt: "Claude",
+};
 
 type SessionTypeDescriptor = {
+  icon?: {
+    kind: "image";
+    src: string;
+    alt?: string | null;
+  } | null;
   ready?: boolean;
   reason?: string | null;
   reasonMessage?: string | null;
@@ -109,6 +120,7 @@ export function createDescribeClaudeSessionType(params: {
         !runtimeContext.allowsClaudeManagedAuth
       ) {
         return {
+          icon: CLAUDE_RUNTIME_ICON,
           ready: false,
           reason: runtimeContext.reason ?? "api_key_missing",
           reasonMessage:
@@ -126,6 +138,7 @@ export function createDescribeClaudeSessionType(params: {
 
       if (!shouldRunCapabilityProbe) {
         return {
+          icon: CLAUDE_RUNTIME_ICON,
           ready: true,
           reason: null,
           reasonMessage: null,
@@ -160,6 +173,7 @@ export function createDescribeClaudeSessionType(params: {
       const shouldTreatCapabilityFailureAsHardBlock = !capability.ready && isHardClaudeSetupFailure(capability.reason);
 
       return {
+        icon: CLAUDE_RUNTIME_ICON,
         ready: !shouldTreatCapabilityFailureAsHardBlock,
         reason: shouldTreatCapabilityFailureAsHardBlock ? capability.reason ?? null : null,
         reasonMessage: shouldTreatCapabilityFailureAsHardBlock ? capability.reasonMessage ?? null : null,

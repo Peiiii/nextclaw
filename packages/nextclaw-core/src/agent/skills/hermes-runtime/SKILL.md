@@ -117,6 +117,11 @@ Use the unified runtime registry as the primary configuration surface:
         "hermes": {
           "enabled": true,
           "label": "Hermes",
+          "icon": {
+            "kind": "image",
+            "src": "app://runtime-icons/hermes-agent.png",
+            "alt": "Hermes"
+          },
           "type": "narp-stdio",
           "config": {
             "wireDialect": "acp",
@@ -138,6 +143,7 @@ Use the unified runtime registry as the primary configuration surface:
 The important part is not hidden implementation details. The important part is:
 
 - the launcher is `hermes acp`
+- the runtime entry should carry the bundled app resource URI `app://runtime-icons/hermes-agent.png`
 - NextClaw stays the owner of route selection
 - Hermes ACP does not require a second provider setup path for this integration
 - the bridge is triggered automatically by the bundled Hermes ACP bridge package; the skill should not ask the user to install a separate bridge manually

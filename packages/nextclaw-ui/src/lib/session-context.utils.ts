@@ -1,4 +1,4 @@
-import type { SessionEntryView } from '@/api/types';
+import type { SessionEntryView, SessionTypeIconView } from '@/api/types';
 import { t } from '@/lib/i18n';
 import { getChannelLogo } from '@/lib/logos';
 
@@ -6,6 +6,7 @@ type SessionContextSymbolIcon = 'heartbeat' | 'cron';
 
 export type SessionContextIcon =
   | { kind: 'channel-logo'; channel: string }
+  | { kind: 'runtime-image'; src: string; alt?: string | null; name?: string | null }
   | { kind: 'symbol'; icon: SessionContextSymbolIcon };
 
 export type SessionContextView = {
@@ -55,6 +56,17 @@ function resolveSessionTypeLabel(
   return toTitleCaseByDelimiter(normalized);
 }
 
+function resolveSessionTypeOption(
+  sessionType: string,
+  options: Array<{ value: string; label: string; icon?: SessionTypeIconView | null }>
+): { value: string; label: string; icon?: SessionTypeIconView | null } | null {
+  const normalized = normalize(sessionType);
+  if (!normalized || normalized === 'native') {
+    return null;
+  }
+  return options.find((option) => normalize(option.value) === normalized) ?? null;
+}
+
 function resolveChannelLogoName(channel: string): string | null {
   const normalized = normalize(channel);
   if (!normalized) {
@@ -66,7 +78,7 @@ function resolveChannelLogoName(channel: string): string | null {
 
 export function resolveSessionContextView(
   session: SessionEntryView,
-  options: Array<{ value: string; label: string }>
+  options: Array<{ value: string; label: string; icon?: SessionTypeIconView | null }>
 ): SessionContextView {
   const logoChannel = resolveChannelLogoName(session.channel ?? '');
   if (logoChannel) {
@@ -83,6 +95,18 @@ export function resolveSessionContextView(
   }
 
   const sessionType = normalize(session.sessionType);
+  const matchedSessionTypeOption = resolveSessionTypeOption(sessionType, options);
+  if (matchedSessionTypeOption?.icon?.src?.trim()) {
+    return {
+      icon: {
+        kind: 'runtime-image',
+        src: matchedSessionTypeOption.icon.src,
+        alt: matchedSessionTypeOption.icon.alt ?? null,
+        name: matchedSessionTypeOption.label
+      },
+      label: null,
+    };
+  }
   const labelKey = SESSION_TYPE_LABEL_REGISTRY[sessionType];
   if (labelKey) {
     return { icon: null, label: t(labelKey) };
@@ -90,6 +114,7 @@ export function resolveSessionContextView(
 
   return {
     icon: null,
-    label: resolveSessionTypeLabel(session.sessionType, options),
+    label:
+      matchedSessionTypeOption?.label?.trim() || resolveSessionTypeLabel(session.sessionType, options),
   };
 }

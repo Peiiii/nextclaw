@@ -17,6 +17,11 @@ import codexRuntimePlugin from "../../../../../../extensions/nextclaw-ncp-runtim
 import { createUiNcpAgent } from "../create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
+const CODEX_ICON_EXPECTATION = {
+  kind: "image",
+  src: "app://runtime-icons/codex-openai.svg",
+  alt: "Codex",
+} as const;
 const mcpFixturePath = resolve(
   import.meta.dirname,
   "../../../../../../../nextclaw-mcp/tests/fixtures/mock-mcp-server.mjs",
@@ -111,7 +116,12 @@ describe("createUiNcpAgent session types availability", () => {
     expect(sessionTypes?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ value: "native", label: "Native", ready: true }),
-        expect.objectContaining({ value: "codex", label: "Codex", ready: true }),
+        expect.objectContaining({
+          value: "codex",
+          label: "Codex",
+          icon: CODEX_ICON_EXPECTATION,
+          ready: true,
+        }),
       ]),
     );
   });
@@ -125,6 +135,7 @@ describe("createUiNcpAgent session types supported models", () => {
       expect.objectContaining({
         value: "codex",
         label: "Codex",
+        icon: CODEX_ICON_EXPECTATION,
         ready: true,
         recommendedModel: "dashscope/qwen3-coder-next",
       }),
@@ -139,6 +150,7 @@ describe("createUiNcpAgent session types supported models", () => {
       expect.objectContaining({
         value: "codex",
         label: "Codex",
+        icon: CODEX_ICON_EXPECTATION,
         ready: true,
         recommendedModel: "dashscope/qwen3-coder-next",
         supportedModels: ["openai/gpt-5.4", "dashscope/qwen3-coder-next"],
@@ -156,6 +168,7 @@ describe("createUiNcpAgent session types supported models", () => {
     expect(codexOption).toEqual(
       expect.objectContaining({
         value: "codex",
+        icon: CODEX_ICON_EXPECTATION,
         recommendedModel: "dashscope/qwen3-coder-next",
       }),
     );
@@ -222,7 +235,12 @@ describe("createUiNcpAgent session types refresh", () => {
     expect(enabledSessionTypes?.options).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ value: "native", label: "Native", ready: true }),
-        expect.objectContaining({ value: "codex", label: "Codex", ready: true }),
+        expect.objectContaining({
+          value: "codex",
+          label: "Codex",
+          icon: CODEX_ICON_EXPECTATION,
+          ready: true,
+        }),
       ]),
     );
 

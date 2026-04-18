@@ -1,5 +1,36 @@
 import type { Config } from "@nextclaw/core";
-import type { UiNcpRuntimeEntry } from "./ui-ncp-runtime-registry.js";
+import {
+  normalizeUiNcpSessionTypeIcon,
+  type UiNcpSessionTypeIcon,
+  type UiNcpRuntimeEntry,
+} from "./ui-ncp-runtime-registry.js";
+
+const BUILTIN_RUNTIME_PRESENTATION = {
+  claude: {
+    label: "Claude",
+    icon: {
+      kind: "image",
+      src: "app://runtime-icons/claude.ico",
+      alt: "Claude",
+    },
+  },
+  codex: {
+    label: "Codex",
+    icon: {
+      kind: "image",
+      src: "app://runtime-icons/codex-openai.svg",
+      alt: "Codex",
+    },
+  },
+  hermes: {
+    label: "Hermes",
+    icon: {
+      kind: "image",
+      src: "app://runtime-icons/hermes-agent.png",
+      alt: "Hermes",
+    },
+  },
+} satisfies Record<string, { label: string; icon?: UiNcpSessionTypeIcon }>;
 
 function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -16,6 +47,16 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown>;
 }
 
+function resolveBuiltinRuntimePresentation(
+  value: string | undefined,
+): { label: string; icon?: UiNcpSessionTypeIcon } | null {
+  const normalized = readString(value)?.toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+  return BUILTIN_RUNTIME_PRESENTATION[normalized] ?? null;
+}
+
 function buildNativeRuntimeEntry(config: Config): UiNcpRuntimeEntry {
   const nativeRuntimeConfig = readRecord(config.ui?.ncp?.runtimes?.native) ?? {};
   return {
@@ -28,9 +69,11 @@ function buildNativeRuntimeEntry(config: Config): UiNcpRuntimeEntry {
 }
 
 function buildBuiltinRuntimeEntry(kind: string, label: string): UiNcpRuntimeEntry {
+  const presentation = resolveBuiltinRuntimePresentation(kind);
   return {
     id: kind,
-    label,
+    label: presentation?.label ?? label,
+    ...(presentation?.icon ? { icon: presentation.icon } : {}),
     type: kind,
     enabled: true,
     config: {},
@@ -62,9 +105,16 @@ export function resolveUiNcpRuntimeEntries(params: {
     if (!id || !type) {
       continue;
     }
+    const explicitIcon = normalizeUiNcpSessionTypeIcon(rawEntry.icon);
+    const builtinPresentation =
+      resolveBuiltinRuntimePresentation(id) ??
+      resolveBuiltinRuntimePresentation(type);
     entries.set(id, {
       id,
-      label: readString(rawEntry.label) ?? id,
+      label: readString(rawEntry.label) ?? builtinPresentation?.label ?? id,
+      ...(explicitIcon ?? builtinPresentation?.icon
+        ? { icon: explicitIcon ?? builtinPresentation?.icon }
+        : {}),
       type,
       enabled: rawEntry.enabled !== false,
       config: rawEntry.config ? { ...rawEntry.config } : {},

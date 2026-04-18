@@ -52,6 +52,12 @@ function readString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
+function resolveEntryIcon(
+  entry: UiNcpRuntimeEntry,
+): SessionTypeDescriptor["icon"] {
+  return entry.icon ?? null;
+}
+
 function resolveRequestedModel(params: {
   input: NcpAgentRunInput;
   sessionMetadata: Record<string, unknown>;
@@ -149,6 +155,7 @@ class BuiltinHttpRuntimeSessionTypeService {
 
     if (!config.baseUrl) {
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: false,
         reason: "base_url_missing",
         reasonMessage: "Configure the runtime entry baseUrl before starting an HTTP runtime session.",
@@ -163,6 +170,7 @@ class BuiltinHttpRuntimeSessionTypeService {
     const shouldProbe = (config.capabilityProbe ?? true) && Boolean(config.healthcheckUrl);
     if (!shouldProbe) {
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: true,
         reason: null,
         reasonMessage: null,
@@ -183,6 +191,7 @@ class BuiltinHttpRuntimeSessionTypeService {
       });
       if (!response.ok) {
         return {
+          icon: resolveEntryIcon(this.entry),
           ready: false,
           reason: "healthcheck_failed",
           reasonMessage: `HTTP runtime healthcheck returned HTTP ${response.status}.`,
@@ -192,6 +201,7 @@ class BuiltinHttpRuntimeSessionTypeService {
         };
       }
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: true,
         reason: null,
         reasonMessage: null,
@@ -201,6 +211,7 @@ class BuiltinHttpRuntimeSessionTypeService {
       };
     } catch (error) {
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: false,
         reason: "healthcheck_unreachable",
         reasonMessage:
@@ -254,6 +265,7 @@ class BuiltinStdioRuntimeSessionTypeService {
       const executablePath = await resolveExecutablePath(config.command);
       if (!executablePath) {
         return {
+          icon: resolveEntryIcon(this.entry),
           ready: false,
           reason: "command_missing",
           reasonMessage: `Configured stdio command "${config.command}" is not available. Update the runtime entry command or install the required launcher first.`,
@@ -268,6 +280,7 @@ class BuiltinStdioRuntimeSessionTypeService {
           await probeStdioRuntime(config);
         } catch (error) {
           return {
+            icon: resolveEntryIcon(this.entry),
             ready: false,
             reason: "probe_failed",
             reasonMessage:
@@ -282,6 +295,7 @@ class BuiltinStdioRuntimeSessionTypeService {
         }
       }
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: true,
         reason: null,
         reasonMessage: null,
@@ -289,6 +303,7 @@ class BuiltinStdioRuntimeSessionTypeService {
       };
     } catch (error) {
       return {
+        icon: resolveEntryIcon(this.entry),
         ready: false,
         reason: "command_missing",
         reasonMessage:

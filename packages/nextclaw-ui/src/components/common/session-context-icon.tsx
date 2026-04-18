@@ -1,4 +1,5 @@
 import { type SessionContextIcon } from '@/lib/session-context.utils';
+import { resolveAppResourceUri } from '@/lib/app-resource-uri';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { getChannelLogo } from '@/lib/logos';
 import { cn } from '@/lib/utils';
@@ -7,6 +8,18 @@ import { AlarmClock, Bot, HeartPulse } from 'lucide-react';
 export function SessionContextIconNode({ icon, className }: { icon: SessionContextIcon; className?: string }) {
   if (icon.kind === 'channel-logo') {
     return <ChannelLogoIcon channel={icon.channel} className={className} />;
+  }
+  if (icon.kind === 'runtime-image') {
+    const runtimeIconSrc = resolveAppResourceUri(icon.src);
+    return (
+      <LogoBadge
+        name={icon.name?.trim() || icon.alt?.trim() || 'runtime'}
+        src={runtimeIconSrc ?? undefined}
+        className={cn('h-[1.125rem] w-[1.125rem]', className)}
+        imgClassName="h-full w-full object-contain"
+        fallback={<Bot className={cn('h-3 w-3 text-gray-500', className)} />}
+      />
+    );
   }
   if (icon.icon === 'heartbeat') {
     return <HeartPulse className={cn('h-3.5 w-3.5', className)} />;
@@ -22,8 +35,8 @@ function ChannelLogoIcon(
     <LogoBadge
       name={channel}
       src={logoSrc}
-      className={cn('h-4 w-4 rounded-[4px] border border-gray-200/80 bg-white', className)}
-      imgClassName="h-3 w-3 object-contain"
+      className={cn('h-[1.125rem] w-[1.125rem]', className)}
+      imgClassName="h-full w-full object-contain"
       fallback={<Bot className="h-3 w-3 text-gray-500" />}
     />
   );

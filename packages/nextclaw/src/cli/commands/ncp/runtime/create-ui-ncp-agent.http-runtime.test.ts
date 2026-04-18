@@ -123,6 +123,11 @@ describe("createUiNcpAgent HTTP runtime session types", () => {
           entries: {
             hermes: {
               label: "Hermes",
+                icon: {
+                  kind: "image",
+                  src: "app://runtime-icons/hermes-agent.png",
+                  alt: "Hermes",
+                },
               type: NARP_HTTP_RUNTIME_KIND,
               config: {
                 label: "Hermes",
@@ -152,6 +157,11 @@ describe("createUiNcpAgent HTTP runtime session types", () => {
         expect.objectContaining({
           value: "hermes",
           label: "Hermes",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/hermes-agent.png",
+            alt: "Hermes",
+          },
           ready: false,
           reason: "healthcheck_unreachable",
           recommendedModel: "minimax/MiniMax-M2.7",
@@ -178,6 +188,11 @@ describe("createUiNcpAgent HTTP runtime", () => {
           entries: {
             hermes: {
               label: "Hermes",
+                icon: {
+                  kind: "image",
+                  src: "app://runtime-icons/hermes-agent.png",
+                  alt: "Hermes",
+                },
               type: NARP_HTTP_RUNTIME_KIND,
               config: {
                 label: "Hermes",
@@ -209,6 +224,11 @@ describe("createUiNcpAgent HTTP runtime", () => {
         expect.objectContaining({
           value: "hermes",
           label: "Hermes",
+          icon: {
+            kind: "image",
+            src: "app://runtime-icons/hermes-agent.png",
+            alt: "Hermes",
+          },
           ready: true,
           recommendedModel: "hermes/default",
           supportedModels: ["hermes/default"],

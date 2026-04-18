@@ -4,9 +4,16 @@ import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 
 export const DEFAULT_UI_NCP_RUNTIME_ENTRY_ID = "native";
 
+export type UiNcpSessionTypeIcon = {
+  kind: "image";
+  src: string;
+  alt?: string | null;
+};
+
 export type UiNcpSessionTypeOption = {
   value: string;
   label: string;
+  icon?: UiNcpSessionTypeIcon | null;
   ready?: boolean;
   reason?: string | null;
   reasonMessage?: string | null;
@@ -26,6 +33,7 @@ export type UiNcpSessionTypeDescribeParams = {
 export type UiNcpRuntimeEntry = {
   id: string;
   label: string;
+  icon?: UiNcpSessionTypeIcon | null;
   type: string;
   enabled?: boolean;
   config?: Record<string, unknown>;
@@ -66,9 +74,36 @@ function cloneRuntimeEntry(entry: UiNcpRuntimeEntry): UiNcpRuntimeEntry {
   return {
     id: entry.id,
     label: entry.label,
+    ...(entry.icon ? { icon: { ...entry.icon } } : {}),
     type: entry.type,
     enabled: entry.enabled !== false,
     config: entry.config ? { ...entry.config } : {},
+  };
+}
+
+export function normalizeUiNcpSessionTypeIcon(
+  value: unknown,
+): UiNcpSessionTypeIcon | null {
+  if (typeof value === "string") {
+    const src = value.trim();
+    return src ? { kind: "image", src } : null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const iconRecord = value as Record<string, unknown>;
+  const src = typeof iconRecord.src === "string" ? iconRecord.src.trim() : "";
+  if (!src) {
+    return null;
+  }
+  const alt =
+    typeof iconRecord.alt === "string" && iconRecord.alt.trim().length > 0
+      ? iconRecord.alt.trim()
+      : null;
+  return {
+    kind: "image",
+    src,
+    ...(alt ? { alt } : {}),
   };
 }
 
@@ -184,13 +219,14 @@ export class UiNcpRuntimeRegistry {
         .map(async (entry) => {
           const provider = this.providers.get(entry.type);
           if (!provider) {
-            return {
-              value: entry.id,
-              label: entry.label,
-              ready: false,
-              reason: "runtime_provider_unavailable",
-              reasonMessage: `Runtime provider unavailable for type "${entry.type}".`,
-              recommendedModel: null,
+          return {
+            value: entry.id,
+            label: entry.label,
+            icon: entry.icon ?? null,
+            ready: false,
+            reason: "runtime_provider_unavailable",
+            reasonMessage: `Runtime provider unavailable for type "${entry.type}".`,
+            recommendedModel: null,
               cta: {
                 kind: "settings",
                 label: "Configure Runtime",
@@ -207,6 +243,7 @@ export class UiNcpRuntimeRegistry {
           return {
             value: entry.id,
             label: entry.label,
+            icon: descriptor?.icon ?? entry.icon ?? null,
             ready: descriptor?.ready ?? true,
             reason: descriptor?.reason ?? null,
             reasonMessage: descriptor?.reasonMessage ?? null,

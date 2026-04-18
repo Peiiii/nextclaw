@@ -1,4 +1,5 @@
 export * from "./plugin-sdk/index.js";
+export * from "./plugins/app-resource-uri.js";
 export * from "./plugins/config-state.js";
 export * from "./plugins/channel-runtime.js";
 export * from "./plugins/discovery.js";

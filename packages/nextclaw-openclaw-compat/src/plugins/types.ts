@@ -80,6 +80,11 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
     describeMode?: "observation" | "probe";
   }) =>
     | Promise<{
+        icon?: {
+          kind: "image";
+          src: string;
+          alt?: string | null;
+        } | null;
         ready?: boolean;
         reason?: string | null;
         reasonMessage?: string | null;
@@ -92,6 +97,11 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
         } | null;
       } | null | undefined>
     | {
+        icon?: {
+          kind: "image";
+          src: string;
+          alt?: string | null;
+        } | null;
         ready?: boolean;
         reason?: string | null;
         reasonMessage?: string | null;
@@ -118,6 +128,11 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
     };
   }) =>
     | Promise<{
+        icon?: {
+          kind: "image";
+          src: string;
+          alt?: string | null;
+        } | null;
         ready?: boolean;
         reason?: string | null;
         reasonMessage?: string | null;
@@ -130,6 +145,11 @@ export type OpenClawPluginNcpAgentRuntimeRegistration = {
         } | null;
       } | null | undefined>
     | {
+        icon?: {
+          kind: "image";
+          src: string;
+          alt?: string | null;
+        } | null;
         ready?: boolean;
         reason?: string | null;
         reasonMessage?: string | null;
