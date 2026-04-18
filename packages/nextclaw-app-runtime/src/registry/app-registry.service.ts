@@ -74,6 +74,10 @@ export class AppRegistryService {
     sourceRef: string;
     installedAt: string;
     permissions: AppPermissions;
+    registryUrl?: string;
+    bundleUrl?: string;
+    sha256?: string;
+    publisher?: AppRegistryInstalledVersion["publisher"];
   }): Promise<AppRegistryAppRecord> => {
     const {
       appId,
@@ -86,6 +90,10 @@ export class AppRegistryService {
       sourceRef,
       installedAt,
       permissions,
+      registryUrl,
+      bundleUrl,
+      sha256,
+      publisher,
     } = params;
     const registry = await this.load();
     const currentRecord = registry.apps[appId];
@@ -104,6 +112,10 @@ export class AppRegistryService {
           sourceRef,
           installedAt,
           permissions,
+          registryUrl,
+          bundleUrl,
+          sha256,
+          publisher,
         },
       },
       grants: currentRecord?.grants ?? {},
@@ -129,6 +141,34 @@ export class AppRegistryService {
     registry.apps[appId] = appRecord;
     await this.save(registry);
     return appRecord;
+  };
+
+  setDocumentGrant = async (
+    appId: string,
+    scopeId: string,
+    directoryPath: string,
+  ): Promise<AppRegistryAppRecord> => {
+    return this.updateGrants(appId, {
+      [scopeId]: directoryPath,
+    });
+  };
+
+  removeDocumentGrant = async (
+    appId: string,
+    scopeId: string,
+  ): Promise<boolean> => {
+    const registry = await this.load();
+    const appRecord = registry.apps[appId];
+    if (!appRecord) {
+      throw new Error(`未找到已安装应用：${appId}`);
+    }
+    if (!(scopeId in appRecord.grants)) {
+      return false;
+    }
+    delete appRecord.grants[scopeId];
+    registry.apps[appId] = appRecord;
+    await this.save(registry);
+    return true;
   };
 
   removeApp = async (appId: string): Promise<AppRegistryAppRecord | undefined> => {

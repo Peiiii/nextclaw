@@ -25,6 +25,10 @@ export class AppHomeService {
     return path.join(this.appHomeDirectory, "registry.json");
   };
 
+  getConfigPath = (): string => {
+    return path.join(this.appHomeDirectory, "config.json");
+  };
+
   getInstallDirectory = (appId: string, version: string): string => {
     return path.join(this.getPackagesDirectory(), appId, version);
   };

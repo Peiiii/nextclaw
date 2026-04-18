@@ -15,6 +15,9 @@ export class AppPermissionsService {
   resolve = async (
     bundle: AppManifestBundle,
     documentGrantMap: AppDocumentGrantMap,
+    context?: {
+      appId?: string;
+    },
   ): Promise<ResolvedPermissions> => {
     const requestedPermissions = bundle.manifest.permissions ?? {};
     const documentAccess =
@@ -22,7 +25,7 @@ export class AppPermissionsService {
         ? []
         : await Promise.all(
             requestedPermissions.documentAccess.map((scope) =>
-              this.resolveDocumentGrant(scope, documentGrantMap),
+              this.resolveDocumentGrant(scope, documentGrantMap, context?.appId),
             ),
           );
 
@@ -58,13 +61,25 @@ export class AppPermissionsService {
   private resolveDocumentGrant = async (
     scope: AppDocumentAccessScope,
     documentGrantMap: AppDocumentGrantMap,
+    appId?: string,
   ): Promise<ResolvedDocumentGrant> => {
     const grantedPath = documentGrantMap[scope.id];
     if (!grantedPath) {
-      throw new Error(`缺少 documentAccess 授权：${scope.id}`);
+      if (appId) {
+        throw new Error(
+          `缺少 documentAccess 授权：${scope.id}。请先执行 napp grant ${appId} --document ${scope.id}=/absolute/path`,
+        );
+      }
+      throw new Error(
+        `缺少 documentAccess 授权：${scope.id}。请通过 --document ${scope.id}=/absolute/path 提供授权。`,
+      );
     }
     const normalizedPath = path.resolve(grantedPath);
-    await access(normalizedPath);
+    try {
+      await access(normalizedPath);
+    } catch {
+      throw new Error(`documentAccess 授权路径不存在：${scope.id} -> ${normalizedPath}`);
+    }
     return {
       id: scope.id,
       mode: scope.mode,

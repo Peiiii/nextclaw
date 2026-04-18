@@ -24,7 +24,9 @@ export class RunCommand {
     const launch = await this.installationService.resolveLaunch(appReference, documentGrantMap);
     const bundle = await this.manifestService.load(launch.appDirectory);
     const appInstance = new AppInstanceService(bundle);
-    await appInstance.initialize(launch.documentGrantMap);
+    await appInstance.initialize(launch.documentGrantMap, {
+      appId: launch.appId,
+    });
     await this.installationService.persistGrants(launch.appId, launch.documentGrantMap);
     const appHost = new AppHostService(appInstance);
     const hostHandle = await appHost.start({

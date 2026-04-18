@@ -20,7 +20,7 @@ export class ListCommand {
       return;
     }
     for (const appItem of result) {
-      write(`${appItem.appId} ${appItem.activeVersion} ${appItem.name}\n`);
+      write(`${appItem.appId} ${appItem.activeVersion} ${appItem.sourceKind} ${appItem.name}\n`);
     }
   };
 }

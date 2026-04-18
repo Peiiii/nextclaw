@@ -27,3 +27,33 @@ export type AppPermissionSummary = Pick<
 > & {
   requested: AppPermissions;
 };
+
+export type AppDocumentGrantState = {
+  id: string;
+  mode: "read" | "read-write";
+  description?: string;
+  granted: boolean;
+  grantedPath?: string;
+};
+
+export type AppInstalledPermissionState = {
+  appId: string;
+  name: string;
+  activeVersion: string;
+  documentAccess: AppDocumentGrantState[];
+  allowedDomains: string[];
+  storage: {
+    enabled: boolean;
+    namespace?: string;
+  };
+  capabilities: {
+    hostBridge: boolean;
+  };
+};
+
+export type AppDocumentGrantMutationResult = {
+  appId: string;
+  scopeId: string;
+  grantedPath?: string;
+  removed?: boolean;
+};

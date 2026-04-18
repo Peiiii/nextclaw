@@ -28,8 +28,17 @@ export class AppInstanceService {
     private readonly manifestService: AppManifestService = new AppManifestService(),
   ) {}
 
-  initialize = async (documentGrantMap: AppDocumentGrantMap): Promise<void> => {
-    this.permissions = await this.permissionsService.resolve(this.bundle, documentGrantMap);
+  initialize = async (
+    documentGrantMap: AppDocumentGrantMap,
+    context?: {
+      appId?: string;
+    },
+  ): Promise<void> => {
+    this.permissions = await this.permissionsService.resolve(
+      this.bundle,
+      documentGrantMap,
+      context,
+    );
   };
 
   summarizeManifest = () => {

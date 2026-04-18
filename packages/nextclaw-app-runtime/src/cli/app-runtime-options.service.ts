@@ -20,9 +20,30 @@ export type JsonOnlyCliOptions = {
   json: boolean;
 };
 
+export type InstallCliOptions = {
+  json: boolean;
+  registryUrl?: string;
+};
+
+export type UpdateCliOptions = {
+  json: boolean;
+  registryUrl?: string;
+  version?: string;
+};
+
 export type UninstallCliOptions = {
   json: boolean;
   purgeData: boolean;
+};
+
+export type GrantCliOptions = {
+  json: boolean;
+  documentGrantMap: AppDocumentGrantMap;
+};
+
+export type RevokeCliOptions = {
+  json: boolean;
+  documentScopeIds: string[];
 };
 
 export class AppRuntimeOptionsService {
@@ -108,6 +129,60 @@ export class AppRuntimeOptionsService {
     return options;
   };
 
+  readInstallOptions = (rawArgs: string[]): InstallCliOptions => {
+    const options: InstallCliOptions = {
+      json: false,
+    };
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      const nextValue = rawArgs[index + 1];
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--registry":
+          options.registryUrl = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+    return options;
+  };
+
+  readUpdateOptions = (rawArgs: string[]): UpdateCliOptions => {
+    const options: UpdateCliOptions = {
+      json: false,
+    };
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      const nextValue = rawArgs[index + 1];
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--registry":
+          options.registryUrl = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        case "--version":
+          options.version = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+    return options;
+  };
+
   readUninstallOptions = (rawArgs: string[]): UninstallCliOptions => {
     const options: UninstallCliOptions = {
       json: false,
@@ -175,6 +250,69 @@ export class AppRuntimeOptionsService {
     return options;
   };
 
+  readGrantOptions = (rawArgs: string[]): GrantCliOptions => {
+    const options: GrantCliOptions = {
+      json: false,
+      documentGrantMap: {},
+    };
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      const nextValue = rawArgs[index + 1];
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--document":
+          this.assignDocumentGrant(
+            options.documentGrantMap,
+            this.requireOptionValue(current, nextValue),
+          );
+          index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+    if (Object.keys(options.documentGrantMap).length === 0) {
+      throw new Error("grant 至少需要一个 --document scope=/path。");
+    }
+    return options;
+  };
+
+  readRevokeOptions = (rawArgs: string[]): RevokeCliOptions => {
+    const options: RevokeCliOptions = {
+      json: false,
+      documentScopeIds: [],
+    };
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      const nextValue = rawArgs[index + 1];
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--document":
+          options.documentScopeIds.push(
+            this.readDocumentScopeId(this.requireOptionValue(current, nextValue)),
+          );
+          index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+    if (options.documentScopeIds.length === 0) {
+      throw new Error("revoke 至少需要一个 --document scope。");
+    }
+    return options;
+  };
+
   private assignDocumentGrant = (
     documentGrantMap: AppDocumentGrantMap,
     rawGrant: string,
@@ -189,6 +327,14 @@ export class AppRuntimeOptionsService {
       throw new Error("--document 缺少 scopeId 或 path。");
     }
     documentGrantMap[scopeId] = directoryPath;
+  };
+
+  private readDocumentScopeId = (scopeId: string): string => {
+    const normalized = scopeId.trim();
+    if (!normalized || normalized.includes("=")) {
+      throw new Error("--document 必须使用 scopeId 格式。");
+    }
+    return normalized;
   };
 
   private requireOptionValue = (flag: string, nextValue: string | undefined): string => {

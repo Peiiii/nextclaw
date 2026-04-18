@@ -20,5 +20,14 @@ export class InfoCommand {
     write(`Active version: ${result.activeVersion}\n`);
     write(`Data: ${result.dataDirectory}\n`);
     write(`Installed versions: ${result.installedVersions.map((item) => item.version).join(", ")}\n`);
+    const activeVersion = result.installedVersions.find(
+      (item) => item.version === result.activeVersion,
+    );
+    if (activeVersion?.registryUrl) {
+      write(`Registry: ${activeVersion.registryUrl}\n`);
+    }
+    if (activeVersion?.publisher) {
+      write(`Publisher: ${activeVersion.publisher.name} (${activeVersion.publisher.id})\n`);
+    }
   };
 }

@@ -1,13 +1,18 @@
 import packageJson from "../../package.json" with { type: "json" };
 import { CreateCommand } from "../commands/create.controller.js";
 import { DevCommand } from "../commands/dev.controller.js";
+import { GrantCommand } from "../commands/grant.controller.js";
 import { InfoCommand } from "../commands/info.controller.js";
 import { InspectCommand } from "../commands/inspect.controller.js";
 import { InstallCommand } from "../commands/install.controller.js";
 import { ListCommand } from "../commands/list.controller.js";
 import { PackCommand } from "../commands/pack.controller.js";
+import { PermissionsCommand } from "../commands/permissions.controller.js";
+import { RegistryCommand } from "../commands/registry.controller.js";
+import { RevokeCommand } from "../commands/revoke.controller.js";
 import { RunCommand } from "../commands/run.controller.js";
 import { UninstallCommand } from "../commands/uninstall.controller.js";
+import { UpdateCommand } from "../commands/update.controller.js";
 import { AppRuntimeOptionsService } from "./app-runtime-options.service.js";
 
 export class AppRuntimeCliService {
@@ -53,6 +58,9 @@ export class AppRuntimeCliService {
       case "install":
         await this.handleInstall(restArgs);
         return;
+      case "update":
+        await this.handleUpdate(restArgs);
+        return;
       case "uninstall":
         await this.handleUninstall(restArgs);
         return;
@@ -61,6 +69,18 @@ export class AppRuntimeCliService {
         return;
       case "info":
         await this.handleInfo(restArgs);
+        return;
+      case "registry":
+        await this.handleRegistry(restArgs);
+        return;
+      case "permissions":
+        await this.handlePermissions(restArgs);
+        return;
+      case "grant":
+        await this.handleGrant(restArgs);
+        return;
+      case "revoke":
+        await this.handleRevoke(restArgs);
         return;
       default:
         this.writeUsage();
@@ -127,9 +147,22 @@ export class AppRuntimeCliService {
 
   private handleInstall = async (restArgs: string[]): Promise<void> => {
     const { target, optionArgs } = this.optionsService.readTarget("install", restArgs);
-    const options = this.optionsService.readJsonOnlyOptions(optionArgs);
+    const options = this.optionsService.readInstallOptions(optionArgs);
     await new InstallCommand().run({
       appSource: target,
+      registryUrl: options.registryUrl,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
+  private handleUpdate = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("update", restArgs);
+    const options = this.optionsService.readUpdateOptions(optionArgs);
+    await new UpdateCommand().run({
+      appId: target,
+      version: options.version,
+      registryUrl: options.registryUrl,
       json: options.json,
       write: this.write,
     });
@@ -164,15 +197,100 @@ export class AppRuntimeCliService {
     });
   };
 
+  private handleRegistry = async (restArgs: string[]): Promise<void> => {
+    const [actionOrUrl, ...optionArgs] = restArgs;
+    if (!actionOrUrl || actionOrUrl === "get") {
+      const options = this.optionsService.readJsonOnlyOptions(optionArgs);
+      await new RegistryCommand().run({
+        action: "get",
+        json: options.json,
+        write: this.write,
+      });
+      return;
+    }
+    if (actionOrUrl === "--json") {
+      const options = this.optionsService.readJsonOnlyOptions([actionOrUrl, ...optionArgs]);
+      await new RegistryCommand().run({
+        action: "get",
+        json: options.json,
+        write: this.write,
+      });
+      return;
+    }
+    if (actionOrUrl === "set") {
+      const { target, optionArgs: actionOptionArgs } = this.optionsService.readTarget(
+        "registry set",
+        optionArgs,
+      );
+      const options = this.optionsService.readJsonOnlyOptions(actionOptionArgs);
+      await new RegistryCommand().run({
+        action: "set",
+        registryUrl: target,
+        json: options.json,
+        write: this.write,
+      });
+      return;
+    }
+    if (actionOrUrl === "reset") {
+      const options = this.optionsService.readJsonOnlyOptions(optionArgs);
+      await new RegistryCommand().run({
+        action: "reset",
+        json: options.json,
+        write: this.write,
+      });
+      return;
+    }
+    throw new Error(`未知 registry 子命令：${actionOrUrl}`);
+  };
+
+  private handlePermissions = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("permissions", restArgs);
+    const options = this.optionsService.readJsonOnlyOptions(optionArgs);
+    await new PermissionsCommand().run({
+      appId: target,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
+  private handleGrant = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("grant", restArgs);
+    const options = this.optionsService.readGrantOptions(optionArgs);
+    await new GrantCommand().run({
+      appId: target,
+      documentGrantMap: options.documentGrantMap,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
+  private handleRevoke = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("revoke", restArgs);
+    const options = this.optionsService.readRevokeOptions(optionArgs);
+    await new RevokeCommand().run({
+      appId: target,
+      documentScopeIds: options.documentScopeIds,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
   private writeUsage = (): void => {
     this.write("Usage: napp create <app-dir> [--json]\n");
     this.write("       napp inspect <app-dir> [--json]\n");
     this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
     this.write("       napp pack <app-dir> [--out bundle.napp] [--json]\n");
-    this.write("       napp install <app-dir|bundle.napp> [--json]\n");
+    this.write("       napp install <app-dir|bundle.napp|app-id[@version]> [--registry <url>] [--json]\n");
+    this.write("       napp update <app-id> [--version <version>] [--registry <url>] [--json]\n");
     this.write("       napp uninstall <app-id> [--purge-data] [--json]\n");
     this.write("       napp list [--json]\n");
     this.write("       napp info <app-id> [--json]\n");
+    this.write("       napp registry [get] [--json]\n");
+    this.write("       napp registry set <url> [--json]\n");
+    this.write("       napp registry reset [--json]\n");
+    this.write("       napp permissions <app-id> [--json]\n");
+    this.write("       napp grant <app-id> --document scope=/path [--json]\n");
+    this.write("       napp revoke <app-id> --document scope [--json]\n");
     this.write("       napp --help\n");
     this.write("       napp --version\n");
   };

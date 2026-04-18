@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.3.0
+
+### Minor Changes
+
+- 5319511: Add configurable registry installs, app updates, explicit permission management, and npm-style registry configuration commands to `napp`.
+
 ## 0.2.0
 
 ### Minor Changes

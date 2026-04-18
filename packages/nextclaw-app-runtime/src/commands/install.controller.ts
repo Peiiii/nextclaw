@@ -7,11 +7,14 @@ export class InstallCommand {
 
   run = async (params: {
     appSource: string;
+    registryUrl?: string;
     json: boolean;
     write: (text: string) => void;
   }): Promise<void> => {
-    const { appSource, json, write } = params;
-    const result = await this.installationService.install(appSource);
+    const { appSource, registryUrl, json, write } = params;
+    const result = await this.installationService.install(appSource, {
+      registryUrl,
+    });
     if (json) {
       write(`${JSON.stringify({ ok: true, installation: result }, null, 2)}\n`);
       return;
@@ -19,5 +22,8 @@ export class InstallCommand {
     write(`Installed ${result.name} (${result.appId}) ${result.version}\n`);
     write(`Code: ${result.installDirectory}\n`);
     write(`Data: ${result.dataDirectory}\n`);
+    if (result.registryUrl) {
+      write(`Registry: ${result.registryUrl}\n`);
+    }
   };
 }
