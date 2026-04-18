@@ -1,0 +1,65 @@
+name: structure-governance
+
+on:
+  pull_request:
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "workers/**"
+      - "scripts/**"
+      - "docs/workflows/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/structure-governance.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: structure-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  governance:
+    name: structure-governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch pull request base
+        run: git fetch --no-tags --prune origin "${{ github.base_ref }}" --depth=1
+
+      - name: Diff-only governance gate
+        run: pnpm lint:new-code:governance --base "origin/${{ github.base_ref }}"
+
+      - name: Governance backlog ratchet
+        run: pnpm check:governance-backlog-ratchet
+
+      - name: Generate topology report
+        run: pnpm report:topology -- --top 50 > topology-governance-report.txt
+
+      - name: Upload topology report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: topology-governance-report
+          if-no-files-found: error
+          path: topology-governance-report.txt

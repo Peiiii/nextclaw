@@ -1,6 +1,6 @@
 import type { AppPermissions } from "../manifest/app-manifest.types.js";
 
-export const DEFAULT_APP_REGISTRY_URL = "https://registry.nextclaw.com/";
+export const DEFAULT_APP_REGISTRY_URL = "https://marketplace-api.nextclaw.io/api/v1/apps/registry/";
 
 export type AppPublisher = {
   id: string;

@@ -1,11 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { applyNcpSessionRealtimeEvent } from '@/api/ncp-session-query-cache';
+import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
 import { appClient } from '@/transport';
-import { useUiStore } from '@/stores/ui.store';
 import type { QueryClient } from '@tanstack/react-query';
-
-type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
-type SetConnectionStatus = (status: ConnectionStatus) => void;
 
 function shouldInvalidateConfigQuery(configPath: string) {
   const normalized = configPath.trim().toLowerCase();
@@ -39,22 +36,34 @@ function handleConfigUpdatedEvent(queryClient: QueryClient | undefined, path: st
 }
 
 function handleRealtimeEvent(
-  queryClient: QueryClient | undefined,
-  setConnectionStatus: SetConnectionStatus,
-  shouldResyncSessionsRef: { current: boolean },
-  event: Parameters<Parameters<typeof appClient.subscribe>[0]>[0]
+  params: {
+    queryClient: QueryClient | undefined;
+    shouldResyncSessions: boolean;
+    clearShouldResyncSessions: () => void;
+    markShouldResyncSessions: () => void;
+    event: Parameters<Parameters<typeof appClient.subscribe>[0]>[0];
+  }
 ): void {
+  const {
+    queryClient,
+    shouldResyncSessions,
+    clearShouldResyncSessions,
+    markShouldResyncSessions,
+    event,
+  } = params;
   if (event.type === 'connection.open') {
-    setConnectionStatus('connected');
-    if (shouldResyncSessionsRef.current) {
-      shouldResyncSessionsRef.current = false;
+    runtimeLifecycleManager.handleConnectionRestored();
+    if (shouldResyncSessions) {
+      clearShouldResyncSessions();
       queryClient?.invalidateQueries({ queryKey: ['ncp-sessions'] });
     }
     return;
   }
   if (event.type === 'connection.close' || event.type === 'connection.error') {
-    setConnectionStatus('disconnected');
-    shouldResyncSessionsRef.current = true;
+    runtimeLifecycleManager.handleConnectionInterrupted(
+      event.type === 'connection.error' ? event.payload?.message : null
+    );
+    markShouldResyncSessions();
     return;
   }
   if (event.type === 'config.updated') {
@@ -76,14 +85,21 @@ function handleRealtimeEvent(
 }
 
 export function useRealtimeQueryBridge(queryClient?: QueryClient) {
-  const { setConnectionStatus } = useUiStore();
   const shouldResyncSessionsRef = useRef(false);
 
   useEffect(() => {
-    setConnectionStatus('connecting');
-
     return appClient.subscribe((event) =>
-      handleRealtimeEvent(queryClient, setConnectionStatus, shouldResyncSessionsRef, event)
+      handleRealtimeEvent({
+        queryClient,
+        shouldResyncSessions: shouldResyncSessionsRef.current,
+        clearShouldResyncSessions: () => {
+          shouldResyncSessionsRef.current = false;
+        },
+        markShouldResyncSessions: () => {
+          shouldResyncSessionsRef.current = true;
+        },
+        event,
+      })
     );
-  }, [queryClient, setConnectionStatus]);
+  }, [queryClient]);
 }

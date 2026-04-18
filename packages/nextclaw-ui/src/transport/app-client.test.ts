@@ -21,12 +21,16 @@ describe('appClient runtime detection', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const { LocalAppTransport } = await import('@/transport/local.transport');
-    const localRequest = vi
-      .spyOn(LocalAppTransport.prototype, 'request')
-      .mockResolvedValue({ ok: true } as never);
+    const localRequest = vi.fn().mockResolvedValue({ ok: true } as never);
+    vi.doMock('@/transport/local-transport.service', () => ({
+      LocalAppTransport: class {
+        request = localRequest;
+        openStream = vi.fn();
+        subscribe = vi.fn();
+      }
+    }));
 
-    const { appClient } = await import('@/transport/app-client');
+    const { appClient } = await import('@/transport/app-client.service');
     const result = await appClient.request<{ ok: boolean }>({
       method: 'GET',
       path: '/api/config'

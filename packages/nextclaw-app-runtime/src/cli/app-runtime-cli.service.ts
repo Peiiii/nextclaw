@@ -8,6 +8,7 @@ import { InstallCommand } from "../commands/install.controller.js";
 import { ListCommand } from "../commands/list.controller.js";
 import { PackCommand } from "../commands/pack.controller.js";
 import { PermissionsCommand } from "../commands/permissions.controller.js";
+import { PublishCommand } from "../commands/publish.controller.js";
 import { RegistryCommand } from "../commands/registry.controller.js";
 import { RevokeCommand } from "../commands/revoke.controller.js";
 import { RunCommand } from "../commands/run.controller.js";
@@ -54,6 +55,9 @@ export class AppRuntimeCliService {
         return;
       case "pack":
         await this.handlePack(restArgs);
+        return;
+      case "publish":
+        await this.handlePublish(restArgs);
         return;
       case "install":
         await this.handleInstall(restArgs);
@@ -140,6 +144,19 @@ export class AppRuntimeCliService {
     await new PackCommand().run({
       appDirectory: target,
       outputPath: options.outputPath,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
+  private handlePublish = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("publish", restArgs);
+    const options = this.optionsService.readPublishOptions(optionArgs);
+    await new PublishCommand().run({
+      appDirectory: target,
+      metadataPath: options.metadataPath,
+      apiBaseUrl: options.apiBaseUrl,
+      token: options.token,
       json: options.json,
       write: this.write,
     });

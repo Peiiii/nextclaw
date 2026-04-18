@@ -1,4 +1,4 @@
-export { appClient } from './app-client';
+export { appClient } from './app-client.service';
 export type {
   AppEvent,
   AppTransport,

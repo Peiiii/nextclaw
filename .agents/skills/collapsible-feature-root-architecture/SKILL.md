@@ -140,26 +140,29 @@ docs/
 
 ```text
 src/
+├── app/
+├── features/
+│   ├── chat/
+│   ├── auth/
+│   └── settings/
+├── shared/
+│   ├── ui/
+│   ├── hooks/
+│   ├── lib/
+│   └── types/
 └── platforms/
     ├── desktop/
-    │   ├── app/
-    │   ├── features/
-    │   └── shared/
-    ├── mobile/
-    │   ├── app/
-    │   ├── features/
-    │   └── shared/
+    ├── pwa/
     └── web/
-        ├── app/
-        ├── features/
-        └── shared/
 ```
 
 这里要明确：
 
-- `desktop/`、`mobile/`、`web/` 每一个内部都不是散目录，而是各自一套 feature 架构
-- 也就是说，每个平台内部仍然继续遵循 `L0` 到 `L2` 的规则
-- 上图为了避免歧义，直接把 `app/ + features/ + shared/` 明示出来
+- `features/` 是主业务轴，业务能力优先放在这里
+- `shared/` 是稳定共享层，只容纳通用职责抽象，不容纳业务域目录
+- `platforms/` 是平台差异层，不是第二套 `features/`
+- 默认应先共享业务实现，只有平台专属适配、桥接、provider wiring 与平台 API 接入才进入 `platforms/`
+- `platforms/<platform>/` 根下应只出现通用职责目录，不应出现业务目录名
 
 只有当前端平台差异已经成为稳定的一等边界时，才进入 `L4`。  
 不要因为少量 UI 差异或单个入口函数不同，就过早升级到 `L4`。
@@ -207,6 +210,146 @@ src/
 
 如果某段代码只服务于一个 feature，就应留在该 feature root 内部。
 
+### `shared/` 的固定语义
+
+`shared/` 不是第二套 feature 根，也不是“暂时不知道放哪”的回收站。
+
+`shared/` 只承载稳定共享层，放进去的内容必须满足两个前提：
+
+- 它的共享关系是真实存在的，而不是预判式抽取
+- 它表达的是通用职责抽象，而不是具体业务域
+
+因此，`shared/` 的一级目录必须优先使用通用职责目录名，而不是业务目录名。
+
+### `shared/` 一级目录规则
+
+在前端 `L4` 场景下，`shared/` 的一级目录应使用固定的通用职责目录白名单。
+
+常见允许目录：
+
+- `ui/`
+- `hooks/`
+- `lib/`
+- `types/`
+- `providers/`
+- `stores/`
+- `services/`
+- `utils/`
+
+这里要明确：
+
+- `shared/` 下允许的是“非 feature 的通用职责类目录”
+- `features/` 不允许出现在 `shared/` 下
+- 业务目录名不允许出现在 `shared/` 下
+- 渠道名、平台名、集成面目录也不允许出现在 `shared/` 下
+
+例如以下目录名不应作为 `shared/` 一级目录出现：
+
+- `transport/`
+- `marketplace/`
+- `auth/`
+- `remote-access/`
+- `desktop/`
+- `web/`
+
+如果某个目录名本身已经在表达业务域、平台域或集成域，就说明它不属于 `shared/` 的稳定抽象层。
+
+### `shared/ui`、`shared/hooks`、`shared/types`
+
+这三类目录采用“文件直放、无 barrel”的规则：
+
+- 允许直接放文件
+- 不要求为了单文件额外包一层目录
+- 根下禁止新增 `index.ts` 或 `index.tsx`
+- 对外导入时直接导入文件本身
+
+示例：
+
+```text
+shared/
+├── ui/
+│   └── button.tsx
+├── hooks/
+│   └── use-copy.ts
+└── types/
+    └── pagination.types.ts
+```
+
+允许：
+
+```ts
+import { Button } from "@/shared/ui/button";
+import { useCopy } from "@/shared/hooks/use-copy";
+import type { Pagination } from "@/shared/types/pagination.types";
+```
+
+禁止：
+
+```ts
+import { Button } from "@/shared/ui";
+import { useCopy } from "@/shared/hooks";
+import type { Pagination } from "@/shared/types";
+```
+
+### `shared/lib`
+
+`shared/lib/` 是 `shared/` 下面的特殊目录，它不是“再放一些 utils”的兜底层，而是“模拟独立包”的强边界模块层。
+
+规则如下：
+
+- `shared/lib/` 根下禁止直接放文件
+- `shared/lib/` 根下只允许子目录
+- `shared/lib/` 根下禁止新增 `index.ts` 或 `index.tsx`
+- 每个子目录都视为一个模拟独立包的小模块
+- 每个子目录必须有 `index.ts` 或 `index.tsx`
+- 该 `index.ts(x)` 是该模块唯一公共出口
+- 禁止 deep import 到模块内部文件
+- `shared/lib/` 下的 sibling 模块之间也不得直接引用对方内部文件
+
+推荐示例：
+
+```text
+shared/
+└── lib/
+    ├── date-format/
+    │   ├── index.ts
+    │   └── date-format.utils.ts
+    └── project-root/
+        ├── index.ts
+        └── project-root.utils.ts
+```
+
+允许：
+
+```ts
+import { formatDate } from "@/shared/lib/date-format";
+```
+
+禁止：
+
+```ts
+import { formatDate } from "@/shared/lib/date-format/date-format.utils";
+import { formatDate } from "@/shared/lib/date-format/index";
+```
+
+### `shared/` 的唯一导入地址原则
+
+`shared/` 的目标不是“目录长得整齐”，而是强制稳定的唯一导入地址。
+
+具体来说：
+
+- `shared/ui`、`shared/hooks`、`shared/types` 采用“文件即入口”
+- `shared/lib/*` 采用“目录即入口”
+- 不应让同一共享模块同时暴露多个平行导入地址
+
+如果一个共享能力同时支持：
+
+- 从目录根导入
+- 从目录内文件导入
+- 从某个额外 barrel 导入
+
+那么它的边界就是不稳定的，这违反 `shared/` 的治理目标。
+
 ## 白名单规则
 
 ### 总规则
@@ -239,6 +382,15 @@ src/
 - `repositories/`
 - `types/`
 - `utils/`
+
+如果当前作用域已经明确采用 `L4`，则应用根应进一步收敛为固定骨架：
+
+- `app/`
+- `features/`
+- `shared/`
+- `platforms/`
+
+此时默认不再允许把 `hooks/`、`services/`、`stores/`、`utils/` 等通用职责目录直接平铺在应用根。
 
 ### 前端 Feature Root 白名单
 
@@ -329,16 +481,19 @@ src/
 前端常见平台：
 
 - `desktop/`
-- `mobile/`
+- `pwa/`
 - `web/`
 
 不要因为页面长得不完全一样，就立刻镜像整个 feature。
 
 推荐做法：
 
-- 每个平台目录内部仍然保持自己的 `app/ + features/ + shared/` 结构
+- `features/` 统一承载业务域，`platforms/` 只承载平台差异
+- 每个平台目录根下只放通用职责目录，例如 `providers/`、`services/`、`stores/`、`utils/`
+- 每个平台目录根必须有 `index.ts` 或 `index.tsx`，作为平台差异层的唯一出口
+- 外部禁止 deep import 平台目录内部文件
 - 共享业务 feature 逻辑应优先收敛，而不是为每个平台复制一份再慢慢漂移
-- 平台特有的适配器、壳层、平台组件留在对应平台作用域
+- 平台特有的适配器、壳层、桥接与平台 API 接入留在对应平台作用域
 
 ### CLI
 

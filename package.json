@@ -32,6 +32,7 @@
     "lint:new-code:directory-names": "node scripts/governance/lint-new-code-directory-names.mjs",
     "lint:new-code:doc-file-names": "node scripts/governance/lint-doc-file-names.mjs",
     "lint:new-code:file-role-boundaries": "node scripts/governance/lint-new-code-file-role-boundaries.mjs",
+    "lint:new-code:module-structure": "node scripts/governance/module-structure/lint-new-code-module-structure.mjs",
     "lint:new-code:closure-objects": "node scripts/governance/lint-new-code-closure-objects.mjs",
     "lint:new-code:context-destructuring": "node scripts/governance/lint-new-code-context-destructuring.mjs",
     "lint:new-code:flat-directories": "node scripts/governance/lint-new-code-flat-directories.mjs",

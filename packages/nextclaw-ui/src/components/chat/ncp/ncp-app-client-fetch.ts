@@ -1,3 +1,5 @@
+import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
+
 type FetchLike = typeof fetch;
 
 function formatFetchTarget(input: RequestInfo | URL): string {
@@ -38,6 +40,7 @@ export function createNcpAppClientFetch(): FetchLike {
         ...init
       });
     } catch (error) {
+      runtimeLifecycleManager.reportTransportFailure(formatUnknownFetchError(error));
       const method = (init?.method || 'GET').toUpperCase();
       const target = formatFetchTarget(input);
       throw createErrorWithCause(

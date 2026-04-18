@@ -29,6 +29,11 @@ const checks = [
     args: [path.join(scriptDir, "lint-new-code-file-role-boundaries.mjs")],
   },
   {
+    name: "module-structure-drift",
+    command: "node",
+    args: [path.join(scriptDir, "module-structure/lint-new-code-module-structure.mjs")],
+  },
+  {
     name: "class-methods-arrow",
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-class-methods.mjs")],

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { requestRawApiResponse } from './raw-client';
+import { requestRawApiResponse } from './raw-client.utils';
 
 const fetchMock = vi.fn<typeof fetch>();
 

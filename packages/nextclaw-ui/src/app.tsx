@@ -14,6 +14,8 @@ import {
   PwaInstallBanner,
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
+import { runtimeLifecycleManager } from "@/runtime-lifecycle/runtime-lifecycle.manager";
+import { useRuntimeBootstrapStatus } from "@/runtime-lifecycle/hooks/use-runtime-bootstrap-status";
 import { startNextClawPwa } from "@/pwa/register-pwa";
 import { Toaster } from "sonner";
 import { Routes, Route, Navigate } from "react-router-dom";
@@ -224,6 +226,21 @@ function ProtectedRoutes() {
 
 function ProtectedApp() {
   useRealtimeQueryBridge(appQueryClient);
+  const runtimeBootstrapStatus = useRuntimeBootstrapStatus();
+
+  useEffect(() => {
+    if (!runtimeBootstrapStatus.data) {
+      return;
+    }
+    runtimeLifecycleManager.reportBootstrapStatus(runtimeBootstrapStatus.data);
+  }, [runtimeBootstrapStatus.data]);
+
+  useEffect(() => {
+    if (!runtimeBootstrapStatus.error) {
+      return;
+    }
+    runtimeLifecycleManager.reportBootstrapQueryError(runtimeBootstrapStatus.error);
+  }, [runtimeBootstrapStatus.error]);
 
   return (
     <AppPresenterProvider>

@@ -46,6 +46,13 @@ export type RevokeCliOptions = {
   documentScopeIds: string[];
 };
 
+export type PublishCliOptions = {
+  json: boolean;
+  metadataPath?: string;
+  apiBaseUrl?: string;
+  token?: string;
+};
+
 export class AppRuntimeOptionsService {
   readTarget = (
     command: string,
@@ -309,6 +316,39 @@ export class AppRuntimeOptionsService {
     }
     if (options.documentScopeIds.length === 0) {
       throw new Error("revoke 至少需要一个 --document scope。");
+    }
+    return options;
+  };
+
+  readPublishOptions = (rawArgs: string[]): PublishCliOptions => {
+    const options: PublishCliOptions = {
+      json: false,
+    };
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      const nextValue = rawArgs[index + 1];
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--meta":
+          options.metadataPath = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        case "--api-base":
+          options.apiBaseUrl = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        case "--token":
+          options.token = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
     }
     return options;
   };
