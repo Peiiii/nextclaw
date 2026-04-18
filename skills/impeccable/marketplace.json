@@ -1,0 +1,27 @@
+{
+  "slug": "impeccable",
+  "name": "Impeccable",
+  "summary": "Bring Impeccable into NextClaw with bundled frontend design references, critique and polish workflows, and optional detector-guided anti-pattern scanning.",
+  "summaryI18n": {
+    "en": "Bring Impeccable into NextClaw with bundled frontend design references, critique and polish workflows, and optional detector-guided anti-pattern scanning.",
+    "zh": "把 Impeccable 接入 NextClaw：内置前端设计参考、批判式评审与 polish 工作流，并支持可选的 detector 反模式扫描。"
+  },
+  "description": "Use this skill when the user wants distinctive, production-grade frontend design inside NextClaw. It adapts the upstream Impeccable project into a marketplace-ready package with bundled references for typography, color, layout, motion, interaction, responsive design, UX writing, guided workflows for shaping, crafting, critique, audit, polish, and optional readiness-gated use of the upstream impeccable detector CLI.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants distinctive, production-grade frontend design inside NextClaw. It adapts the upstream Impeccable project into a marketplace-ready package with bundled references for typography, color, layout, motion, interaction, responsive design, UX writing, guided workflows for shaping, crafting, critique, audit, polish, and optional readiness-gated use of the upstream impeccable detector CLI.",
+    "zh": "当用户希望在 NextClaw 内获得更有辨识度、可交付的高质量前端设计指导时使用此技能。它将上游 Impeccable 项目适配成可上架的 marketplace 包：内置 typography、color、layout、motion、interaction、responsive、UX writing 等参考资料，提供 shaping、craft、critique、audit、polish 等工作流，并在环境就绪时支持可选的 upstream impeccable detector CLI。"
+  },
+  "author": "NextClaw (adapted from Paul Bakaus)",
+  "tags": [
+    "skill",
+    "frontend-design",
+    "ui",
+    "ux",
+    "design-review",
+    "anti-patterns",
+    "accessibility",
+    "design-system"
+  ],
+  "sourceRepo": "https://github.com/pbakaus/impeccable",
+  "homepage": "https://impeccable.style"
+}
