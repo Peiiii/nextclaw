@@ -165,14 +165,10 @@ it("renders completed file-change cards with an expandable diff view", () => {
     screen
       .getByText("console.log('new');")
       .closest('[data-file-line-row="true"]')?.className,
-  ).toContain("w-max");
+  ).toContain("w-full");
   expect(
-    screen
-      .getByText("console.log('new');")
-      .closest('[data-file-line-row="true"]')?.className,
-  ).toContain(
-    "min-w-full",
-  );
+    view.container.querySelector('[data-file-code-stack="true"]'),
+  ).toBeTruthy();
   expect(screen.getByText("+1").className).toContain("emerald");
   expect(screen.getByText("+1").className).not.toContain("rounded");
   expect(screen.getByText("-1").className).toContain("rose");
@@ -483,12 +479,10 @@ it("renders write previews with a single gutter and without repeating the file p
     screen
       .getByText(longLine)
       .closest('[data-file-line-row="true"]')?.className,
-  ).toContain("w-max");
+  ).toContain("w-full");
   expect(
-    screen
-      .getByText(longLine)
-      .closest('[data-file-line-row="true"]')?.className,
-  ).toContain("min-w-full");
+    view.container.querySelector('[data-file-code-stack="true"]'),
+  ).toBeTruthy();
   expect(screen.queryByText("Showing a shortened diff preview.")).toBeNull();
 });
 

@@ -3,19 +3,15 @@ import type {
   ChatFileOperationLineViewModel,
 } from "../../../view-models/chat-ui.types";
 import { cn } from "../../../internal/cn";
-import type { CSSProperties } from "react";
 
 const FILE_TEXT_CLASS_NAME = "font-mono text-[11px] leading-5";
-const FILE_ROW_CLASS_NAME = `h-5 ${FILE_TEXT_CLASS_NAME}`;
+const FILE_ROW_CLASS_NAME = `flex h-5 w-full ${FILE_TEXT_CLASS_NAME}`;
 const FILE_LINE_NUMBER_CELL_CLASS_NAME =
   "flex h-5 items-center justify-center px-2.5 tabular-nums select-none";
 
-function formatLineNumber(value?: number): string {
-  return typeof value === "number" ? String(value) : "";
-}
-
 function readVisibleLineNumber(line: ChatFileOperationLineViewModel): string {
-  return formatLineNumber(line.newLineNumber ?? line.oldLineNumber);
+  const value = line.newLineNumber ?? line.oldLineNumber;
+  return typeof value === "number" ? String(value) : "";
 }
 
 function readLineKey(
@@ -33,9 +29,7 @@ function hasVisibleLineNumber(line: ChatFileOperationLineViewModel): boolean {
   );
 }
 
-function readHasBlockLineNumbers(
-  block: ChatFileOperationBlockViewModel,
-): boolean {
+function readHasBlockLineNumbers(block: ChatFileOperationBlockViewModel): boolean {
   return block.lines.some(hasVisibleLineNumber);
 }
 
@@ -52,16 +46,12 @@ function readLineNumberColumnWidth(
   return `${width}ch`;
 }
 
-function buildRowTemplateColumns(params: {
-  showLineNumbers: boolean;
-  lineNumberColumnWidth: string;
-}): CSSProperties | undefined {
-  if (!params.showLineNumbers) {
-    return undefined;
-  }
-  return {
-    gridTemplateColumns: `${params.lineNumberColumnWidth} minmax(0, 1fr)`,
-  };
+function readCodeColumnWidth(block: ChatFileOperationBlockViewModel): string {
+  const maxColumns = block.lines.reduce(
+    (currentMax, line) => Math.max(currentMax, Math.max(1, line.text.length)),
+    1,
+  );
+  return `calc(${maxColumns}ch + 1.25rem)`;
 }
 
 function getLineNumberTone(line: ChatFileOperationLineViewModel): string {
@@ -93,18 +83,13 @@ function FileOperationLineNumberCell({
   line: ChatFileOperationLineViewModel;
   lineNumberColumnWidth: string;
 }) {
-  const lineNumberCellClassName =
-    layout === "compact"
-      ? "sticky left-0 z-[1]"
-      : "w-full shrink-0";
-
   return (
     <span
       data-file-line-number-cell="true"
-      style={layout === "compact" ? { width: lineNumberColumnWidth } : undefined}
+      style={layout === "compact" ? { width: lineNumberColumnWidth, minWidth: lineNumberColumnWidth } : undefined}
       className={cn(
         FILE_LINE_NUMBER_CELL_CLASS_NAME,
-        lineNumberCellClassName,
+        layout === "compact" ? "sticky left-0 z-[1]" : "w-full shrink-0",
         getLineNumberTone(line),
       )}
     >
@@ -122,7 +107,7 @@ function FileOperationCodeCell({
     <span
       data-file-code-row="true"
       className={cn(
-        "block min-w-full whitespace-pre px-2.5",
+        "block min-w-0 flex-1 whitespace-pre px-2.5",
         getCodeRowTone(line),
       )}
     >
@@ -141,14 +126,7 @@ function FileOperationLineRow({
   lineNumberColumnWidth: string;
 }) {
   return (
-    <div
-      data-file-line-row="true"
-      className={cn("grid w-max min-w-full", FILE_ROW_CLASS_NAME)}
-      style={buildRowTemplateColumns({
-        showLineNumbers,
-        lineNumberColumnWidth,
-      })}
-    >
+    <div data-file-line-row="true" className={FILE_ROW_CLASS_NAME}>
       {showLineNumbers ? (
         <FileOperationLineNumberCell
           layout="compact"
@@ -168,6 +146,7 @@ function FileOperationWorkspaceSurface({
 }) {
   const showLineNumbers = readHasBlockLineNumbers(block);
   const lineNumberColumnWidth = readLineNumberColumnWidth(block);
+  const codeColumnWidth = readCodeColumnWidth(block);
 
   return (
     <div
@@ -203,15 +182,21 @@ function FileOperationWorkspaceSurface({
         data-file-code-canvas="true"
         className="flex h-full min-h-full min-w-0 flex-1 flex-col bg-white"
       >
-        {block.lines.map((line, index) => (
-          <div
-            key={readLineKey("code", line, index)}
-            data-file-code-canvas-row="true"
-            className={FILE_ROW_CLASS_NAME}
-          >
-            <FileOperationCodeCell line={line} />
-          </div>
-        ))}
+        <div
+          data-file-code-stack="true"
+          className="min-w-full"
+          style={{ minWidth: codeColumnWidth }}
+        >
+          {block.lines.map((line, index) => (
+            <div
+              key={readLineKey("code", line, index)}
+              data-file-code-canvas-row="true"
+              className={FILE_ROW_CLASS_NAME}
+            >
+              <FileOperationCodeCell line={line} />
+            </div>
+          ))}
+        </div>
         <div className="min-h-0 flex-1 bg-white" />
       </div>
     </div>
@@ -231,6 +216,10 @@ export function FileOperationCodeSurface({
 
   const showLineNumbers = readHasBlockLineNumbers(block);
   const lineNumberColumnWidth = readLineNumberColumnWidth(block);
+  const codeColumnWidth = readCodeColumnWidth(block);
+  const surfaceMinWidth = showLineNumbers
+    ? `calc(${lineNumberColumnWidth} + ${codeColumnWidth})`
+    : codeColumnWidth;
 
   return (
     <div
@@ -238,14 +227,20 @@ export function FileOperationCodeSurface({
       data-file-code-surface-layout="compact"
       className="overflow-x-auto custom-scrollbar-amber bg-white"
     >
-      {block.lines.map((line, index) => (
-        <FileOperationLineRow
-          key={readLineKey("row", line, index)}
-          line={line}
-          showLineNumbers={showLineNumbers}
-          lineNumberColumnWidth={lineNumberColumnWidth}
-        />
-      ))}
+      <div
+        data-file-code-stack="true"
+        className="min-w-full"
+        style={{ minWidth: surfaceMinWidth }}
+      >
+        {block.lines.map((line, index) => (
+          <FileOperationLineRow
+            key={readLineKey("row", line, index)}
+            line={line}
+            showLineNumbers={showLineNumbers}
+            lineNumberColumnWidth={lineNumberColumnWidth}
+          />
+        ))}
+      </div>
     </div>
   );
 }
