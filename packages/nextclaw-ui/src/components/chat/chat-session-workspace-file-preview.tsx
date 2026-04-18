@@ -8,12 +8,14 @@ import {
   FileOperationCodeSurface,
 } from "@nextclaw/agent-chat-ui";
 import type { ChatWorkspaceFileTab } from "@/components/chat/stores/chat-thread.store";
+import { ChatSessionWorkspaceFileBreadcrumbs } from "@/components/chat/workspace/chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/hooks/server-path/use-server-path-read";
 import {
   buildLineDiff,
   buildPreviewLines,
 } from "@/components/chat/adapters/file-operation/line-builder";
 import { t } from "@/lib/i18n";
+import { buildWorkspaceFileBreadcrumb } from "@/lib/session-project/workspace-file-breadcrumb";
 import { cn } from "@/lib/utils";
 
 function inferPreviewKind(params: {
@@ -114,43 +116,6 @@ function WorkspaceFilePreviewStatus({
       )}
     >
       {text}
-    </div>
-  );
-}
-
-function WorkspaceFileHeader({
-  file,
-  resolvedPath,
-  truncated,
-}: {
-  file: Pick<ChatWorkspaceFileTab, "line" | "column">;
-  resolvedPath: string;
-  truncated: boolean;
-}) {
-  const hasMeta = typeof file.line === "number" || truncated;
-
-  return (
-    <div className="border-b border-gray-200/80 px-4 py-2.5">
-      <div
-        title={resolvedPath}
-        className="truncate font-mono text-[12px] font-medium leading-4 text-gray-700"
-      >
-        {resolvedPath}
-      </div>
-      {hasMeta ? (
-        <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          {typeof file.line === "number" ? (
-            <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-              {`L${file.line}${typeof file.column === "number" ? `:${file.column}` : ""}`}
-            </span>
-          ) : null}
-          {truncated ? (
-            <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-              {t("chatWorkspacePreviewTruncated")}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -279,14 +244,21 @@ export function ChatSessionWorkspaceFilePreview({
   }, [file.line, file.path, isPreviewMode, previewQuery.data?.resolvedPath, previewText]);
   const resolvedPath = previewQuery.data?.resolvedPath ?? file.path;
   const isTruncated = Boolean(previewQuery.data?.truncated);
+  const breadcrumb = useMemo(
+    () =>
+      buildWorkspaceFileBreadcrumb({
+        path: resolvedPath,
+        sessionProjectRoot,
+        line: file.line,
+        column: file.column,
+        truncated: isTruncated,
+      }),
+    [file.column, file.line, isTruncated, resolvedPath, sessionProjectRoot],
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
-      <WorkspaceFileHeader
-        file={file}
-        resolvedPath={resolvedPath}
-        truncated={isTruncated}
-      />
+      <ChatSessionWorkspaceFileBreadcrumbs breadcrumb={breadcrumb} />
 
       <div className="flex-1 min-h-0 overflow-hidden">
         {file.viewMode === "diff" ? (

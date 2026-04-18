@@ -112,15 +112,17 @@ describe("ChatSessionWorkspaceFilePreview", () => {
 
     expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
     expect(screen.getByTitle("/tmp/example.ts")).toBeTruthy();
+    expect(screen.getByText("tmp")).toBeTruthy();
+    expect(screen.getByText("example.ts")).toBeTruthy();
   });
 
-  it("keeps the title-only header compact when no metadata is present", () => {
+  it("renders project-relative breadcrumbs when the file is inside the workspace", () => {
     serverPathReadMock.mockReturnValue({
       isLoading: false,
       error: null,
       data: {
         kind: "text",
-        resolvedPath: "/tmp/example.ts",
+        resolvedPath: "/tmp/workspace/src/example.ts",
         text: "const answer = 42;\n",
         truncated: false,
       },
@@ -129,17 +131,14 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     render(
       <ChatSessionWorkspaceFilePreview
         file={buildWorkspaceFile({ viewMode: "preview" })}
-        sessionProjectRoot="/tmp"
+        sessionProjectRoot="/tmp/workspace"
         onFileOpen={vi.fn()}
       />,
     );
 
-    const title = screen.getByTitle("/tmp/example.ts");
-    const header = title.parentElement;
-
-    expect(header).toBeTruthy();
-    expect(header?.className).toContain("py-2.5");
-    expect(header?.children).toHaveLength(1);
+    expect(screen.getByText("workspace")).toBeTruthy();
+    expect(screen.getByText("src")).toBeTruthy();
+    expect(screen.getByText("example.ts")).toBeTruthy();
   });
 
   it("keeps line and truncation metadata without the duplicated type badge", () => {
