@@ -147,3 +147,4 @@ pnpm platform:admin:grant -- --email you@example.com --local
 - 该命令只提升已存在账号，不负责创建账号。
 - 生产环境默认应先在用户站完成注册，再执行提权。
 - 忘记密码应走统一的平台账号重置流程，而不是单独维护一套后台密码。
+- marketplace 审核后台链路默认优先透传当前管理员登录态；`MARKETPLACE_ADMIN_TOKEN` 仍可保留给机器间调用，但不再是 admin 页面可用性的单点依赖。

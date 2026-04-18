@@ -10,12 +10,14 @@
   - 审核写入支持备注，并在重新发布时清空旧审核元数据
   - 将审核与文件读取责任拆到 `d1-marketplace-skill-admin-support.ts`，把超长数据源文件收回预算内
   - 将 admin skill 路由从 `main.ts` 抽到独立注册模块，避免主入口继续膨胀
+  - 修复 admin 路由对内部 `MARKETPLACE_ADMIN_TOKEN` 的硬依赖：现在也接受平台侧 `role=admin` 的 Bearer token
 - `workers/nextclaw-provider-gateway-api`
   - 新增 marketplace admin service，统一代理 marketplace admin API
   - 新增 `/platform/admin/marketplace/skills*` 后台接口
   - review 动作接入平台管理员鉴权与 audit log
   - 将新增 controller 放到 `controllers/marketplace/` 子目录，避免 controllers 目录直接文件数超限
   - 补充最小正式运维入口 `pnpm platform:admin:grant -- --email <email> --remote`，解决“管理后台已上线但生产库尚无 admin 账号”时的可恢复开通问题
+  - 修复 provider 侧对 `MARKETPLACE_ADMIN_TOKEN` 缺失时的审核列表报错：现在默认透传当前管理员登录态到 marketplace admin API
 - `apps/platform-admin`
   - 新增 `Marketplace 审核` 区块
   - 支持状态筛选、关键词搜索、分页、详情查看、审核备注、通过/拒绝
@@ -46,6 +48,11 @@
   - `POST /platform/admin/marketplace/skills/:selector/review`
   - 同时确认 review 后写入 1 条 audit log
 - 使用 `pnpm platform:admin:grant -- --email 1535376447@qq.com --remote` 完成一次真实远端提权，并通过远端 D1 查询确认该账号 `role` 已从 `user` 变为 `admin`
+- 真实线上链路验收：
+  - 创建临时 `admin` 冒烟账号并登录 `https://ai-gateway-api.nextclaw.io/platform/auth/login`
+  - 使用登录返回的 Bearer token 请求 `GET /platform/admin/marketplace/skills?publishStatus=all&page=1&pageSize=5`，返回 `200`
+  - 使用同一 Bearer token 直接请求 `GET https://marketplace-api.nextclaw.io/api/v1/admin/skills/items?publishStatus=all&page=1&pageSize=5`，返回 `200`
+  - 返回数据中确认包含待审核 skill `@peiiii/stock-briefing`，不再出现 `missing or invalid admin token`
 
 已知验证缺口：
 
@@ -66,7 +73,7 @@
 
 本批次额外运维动作：
 
-- 不涉及新的线上代码部署
+- 涉及新的线上代码部署
 - 涉及一次生产账号权限初始化：使用仓库内正式脚本把现有平台账号提升为管理员
 
 部署依赖：
@@ -82,8 +89,10 @@
   - 已部署版本 ID：`e983da4f-3368-4176-9f90-e9f7cc863e5e`
   - 域名：`https://marketplace-api.nextclaw.io`
 - `nextclaw-provider-gateway-api`
-  - 已部署版本 ID：`bc1df801-e22d-49c8-8640-5876d241f2ce`
+  - 已部署版本 ID：`77a61425-5a5e-42ed-a641-4ab9d5785363`
   - 域名：`https://ai-gateway-api.nextclaw.io`
+- `marketplace-api`
+  - 最新修复部署版本 ID：`8498d249-36e2-4fca-9b0b-0ede4636bc0e`
 - `platform-admin`
   - 已部署 Pages URL：`https://c7597a56.nextclaw-platform-admin.pages.dev`
 
@@ -92,6 +101,7 @@
 - `curl https://marketplace-api.nextclaw.io/health` 返回 `ok`
 - `curl https://ai-gateway-api.nextclaw.io/health` 返回 `ok`
 - `curl -I https://c7597a56.nextclaw-platform-admin.pages.dev` 返回 `HTTP/2 200`
+- 使用真实管理员 Bearer token 请求后台审核列表，返回 `pending=1 / published=25 / rejected=0`，待审核项包含 `@peiiii/stock-briefing`
 
 # 用户/产品视角的验收步骤
 
@@ -122,6 +132,7 @@
 - 把 `workers/marketplace-api/src/main.ts` 的 admin skill 路由注册抽出，避免主入口继续膨胀
 - 把 `provider-gateway-api` 新增 controller 收进 `controllers/marketplace/` 子目录，避免直接目录超限
 - 本次 admin 开通补丁选择轻量运维脚本，而不是再做一套独立 bootstrap 页面或额外后台登录体系，避免把单次可恢复问题扩成长期维护面
+- 本次审核链路修复选择“统一登录态优先，内部 token 兼容保留”，而不是继续把 provider 对内部 secret 的存在当成后台可用性的单点前提
 
 本次是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：在总代码量上是净增长，但增长主要来自新增的正式审核能力；同时同步偿还了 `marketplace-api` 两个超预算热点和 `provider-gateway-api/controllers` 目录平铺问题，没有把复杂度直接叠加回原文件。
 

@@ -13,21 +13,21 @@ type MarketplaceAuthContext = {
 
 export class MarketplaceAuthError extends Error {}
 
-export function requireAdminToken(c: MarketplaceAuthContext): void {
-  const expected = c.env.MARKETPLACE_ADMIN_TOKEN?.trim();
+export async function requireMarketplaceAdminAccess(c: MarketplaceAuthContext): Promise<void> {
   const auth = c.req.header("authorization")?.trim();
-  if (expected && auth === `Bearer ${expected}`) {
+  const adminToken = c.env.MARKETPLACE_ADMIN_TOKEN?.trim();
+  if (adminToken && auth === `Bearer ${adminToken}`) {
     return;
   }
-  throw new MarketplaceAuthError("missing or invalid admin token");
+
+  const user = await loadPlatformUserFromAuth(c, auth);
+  if (user.role !== "admin") {
+    throw new MarketplaceAuthError("admin permission required");
+  }
 }
 
 export async function resolvePublishActor(c: MarketplaceAuthContext): Promise<MarketplaceSkillPublishActor> {
   const auth = c.req.header("authorization")?.trim();
-  if (!auth) {
-    throw new MarketplaceAuthError("missing authorization header");
-  }
-
   const adminToken = c.env.MARKETPLACE_ADMIN_TOKEN?.trim();
   if (adminToken && auth === `Bearer ${adminToken}`) {
     return {
@@ -36,6 +36,28 @@ export async function resolvePublishActor(c: MarketplaceAuthContext): Promise<Ma
       userId: null,
       username: "nextclaw"
     };
+  }
+
+  const user = await loadPlatformUserFromAuth(c, auth);
+  return {
+    authType: "platform_user",
+    role: user.role,
+    userId: user.id,
+    username: user.username
+  };
+}
+
+async function loadPlatformUserFromAuth(
+  c: MarketplaceAuthContext,
+  auth: string | undefined
+): Promise<{
+  id: string;
+  email: string;
+  username: string | null;
+  role: "admin" | "user";
+}> {
+  if (!auth) {
+    throw new MarketplaceAuthError("missing authorization header");
   }
 
   const response = await fetch(`${resolvePlatformApiBase(c)}/platform/auth/me`, {
@@ -52,13 +74,7 @@ export async function resolvePublishActor(c: MarketplaceAuthContext): Promise<Ma
     throw new Error(`platform auth lookup failed: ${response.status}`);
   }
 
-  const user = readPlatformUserPayload(payload);
-  return {
-    authType: "platform_user",
-    role: user.role,
-    userId: user.id,
-    username: user.username
-  };
+  return readPlatformUserPayload(payload);
 }
 
 function resolvePlatformApiBase(c: MarketplaceAuthContext): string {

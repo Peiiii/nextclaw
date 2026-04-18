@@ -83,4 +83,4 @@ curl -sS 'https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSiz
 
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
-- `MARKETPLACE_ADMIN_TOKEN`（可选；设置后 admin 写接口要求 `Authorization: Bearer <token>`）
+- `MARKETPLACE_ADMIN_TOKEN`（可选；用于机器间或脚本化 admin 调用。未命中该 token 时，admin 路由也接受平台侧 `role=admin` 的 Bearer token）

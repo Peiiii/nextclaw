@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { ResourceNotFoundError } from "../../domain/errors";
 import type { D1MarketplaceSkillDataSource } from "../../infrastructure/d1-data-source";
-import { requireAdminToken } from "./marketplace-auth";
+import { requireMarketplaceAdminAccess } from "./marketplace-auth";
 import type { MarketplaceQueryParser } from "./query-parser";
 import { ApiResponseFactory } from "./response";
 
@@ -26,14 +26,14 @@ export function registerAdminSkillRoutes(
   getRuntime: (bindings: AdminSkillRouteBindings) => AdminSkillRouteRuntime
 ): void {
   app.get("/api/v1/admin/skills/items", async (c) => {
-    requireAdminToken(c);
+    await requireMarketplaceAdminAccess(c);
     const runtime = getRuntime(c.env);
     const data = await runtime.skillDataSource.listAdminSkills(runtime.parser.parseAdminSkillListQuery(c));
     return runtime.responses.ok(c, data);
   });
 
   app.get("/api/v1/admin/skills/items/:selector", async (c) => {
-    requireAdminToken(c);
+    await requireMarketplaceAdminAccess(c);
     const runtime = getRuntime(c.env);
     const selector = c.req.param("selector");
     const payload = await runtime.skillDataSource.getAdminSkillDetail(selector);
@@ -44,7 +44,7 @@ export function registerAdminSkillRoutes(
   });
 
   app.post("/api/v1/admin/skills/upsert", async (c) => {
-    requireAdminToken(c);
+    await requireMarketplaceAdminAccess(c);
     let body: unknown;
     try {
       body = await c.req.json();
@@ -68,7 +68,7 @@ export function registerAdminSkillRoutes(
   });
 
   app.post("/api/v1/admin/skills/review", async (c) => {
-    requireAdminToken(c);
+    await requireMarketplaceAdminAccess(c);
     let body: unknown;
     try {
       body = await c.req.json();

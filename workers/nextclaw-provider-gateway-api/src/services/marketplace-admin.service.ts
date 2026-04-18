@@ -24,10 +24,12 @@ type MarketplaceApiFailure = {
 export class MarketplaceAdminService {
   private readonly baseUrl: string;
   private readonly adminToken: string | null;
+  private readonly requestAuthorization: string | null;
 
-  constructor(private readonly env: Env) {
+  constructor(private readonly env: Env, requestAuthorization?: string | null) {
     this.baseUrl = this.resolveBaseUrl();
     this.adminToken = this.resolveAdminToken();
+    this.requestAuthorization = requestAuthorization?.trim() || null;
   }
 
   listSkills = async (query: {
@@ -83,8 +85,9 @@ export class MarketplaceAdminService {
     if (init.body) {
       headers.set("content-type", "application/json");
     }
-    if (this.adminToken) {
-      headers.set("authorization", `Bearer ${this.adminToken}`);
+    const authorization = this.requestAuthorization || (this.adminToken ? `Bearer ${this.adminToken}` : null);
+    if (authorization) {
+      headers.set("authorization", authorization);
     }
 
     return await fetch(this.toUrl(path), {

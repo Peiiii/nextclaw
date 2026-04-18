@@ -19,7 +19,7 @@ export async function adminMarketplaceSkillsHandler(c: Context<{ Bindings: Env }
     return admin.response;
   }
 
-  const service = new MarketplaceAdminService(c.env);
+  const service = new MarketplaceAdminService(c.env, c.req.header("authorization"));
   const publishStatus = readAdminMarketplacePublishStatus(c.req.query("publishStatus"));
   const q = readOptionalQueryString(c.req.query("q"));
   const page = parseBoundedInt(c.req.query("page"), 1, 1, 999);
@@ -44,7 +44,7 @@ export async function adminMarketplaceSkillDetailHandler(c: Context<{ Bindings: 
     return admin.response;
   }
 
-  const service = new MarketplaceAdminService(c.env);
+  const service = new MarketplaceAdminService(c.env, c.req.header("authorization"));
   const selector = c.req.param("selector");
   const data = await service.getSkillDetail(selector);
   if (!data) {
@@ -64,7 +64,7 @@ export async function reviewAdminMarketplaceSkillHandler(c: Context<{ Bindings: 
     return admin.response;
   }
 
-  const service = new MarketplaceAdminService(c.env);
+  const service = new MarketplaceAdminService(c.env, c.req.header("authorization"));
   const selector = c.req.param("selector");
   const before = await service.getSkillDetail(selector);
   if (!before) {
