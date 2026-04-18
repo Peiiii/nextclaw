@@ -125,3 +125,25 @@ pnpm -C workers/nextclaw-provider-gateway-api tsc
 ```bash
 pnpm -C workers/nextclaw-provider-gateway-api deploy
 ```
+
+## 7. 管理员开通
+
+平台管理后台与普通平台账号共用同一套邮箱密码登录体系，不存在独立的“后台默认密码”。
+
+当前仓库提供了一个最小正式运维入口，用于把现有平台账号提升为管理员：
+
+```bash
+pnpm platform:admin:grant -- --email you@example.com --remote
+```
+
+本地环境：
+
+```bash
+pnpm platform:admin:grant -- --email you@example.com --local
+```
+
+注意：
+
+- 该命令只提升已存在账号，不负责创建账号。
+- 生产环境默认应先在用户站完成注册，再执行提权。
+- 忘记密码应走统一的平台账号重置流程，而不是单独维护一套后台密码。

@@ -15,6 +15,7 @@
   - 新增 `/platform/admin/marketplace/skills*` 后台接口
   - review 动作接入平台管理员鉴权与 audit log
   - 将新增 controller 放到 `controllers/marketplace/` 子目录，避免 controllers 目录直接文件数超限
+  - 补充最小正式运维入口 `pnpm platform:admin:grant -- --email <email> --remote`，解决“管理后台已上线但生产库尚无 admin 账号”时的可恢复开通问题
 - `apps/platform-admin`
   - 新增 `Marketplace 审核` 区块
   - 支持状态筛选、关键词搜索、分页、详情查看、审核备注、通过/拒绝
@@ -44,6 +45,7 @@
   - `GET /platform/admin/marketplace/skills/:selector`
   - `POST /platform/admin/marketplace/skills/:selector/review`
   - 同时确认 review 后写入 1 条 audit log
+- 使用 `pnpm platform:admin:grant -- --email 1535376447@qq.com --remote` 完成一次真实远端提权，并通过远端 D1 查询确认该账号 `role` 已从 `user` 变为 `admin`
 
 已知验证缺口：
 
@@ -61,6 +63,11 @@
    - `pnpm -C workers/nextclaw-provider-gateway-api deploy`
 3. 平台管理后台前端
    - `pnpm deploy:platform:admin`
+
+本批次额外运维动作：
+
+- 不涉及新的线上代码部署
+- 涉及一次生产账号权限初始化：使用仓库内正式脚本把现有平台账号提升为管理员
 
 部署依赖：
 
@@ -103,6 +110,7 @@
    - 拒绝：必须填写备注，状态切到 `rejected`
 7. 审核完成后刷新列表，确认状态、审核时间、备注同步更新
 8. 对于通过的 skill，确认 marketplace 公共侧可见；对于拒绝的 skill，确认不会出现在公共 marketplace
+9. 若生产环境尚无管理员账号，先执行 `pnpm platform:admin:grant -- --email <email> --remote`，再使用该账号的原平台密码登录管理后台
 
 # 可维护性总结汇总
 
@@ -113,6 +121,7 @@
 - 把 `workers/marketplace-api/src/infrastructure/d1-skill-data-source.ts` 中新增的审核/文件责任抽出为独立 support 模块
 - 把 `workers/marketplace-api/src/main.ts` 的 admin skill 路由注册抽出，避免主入口继续膨胀
 - 把 `provider-gateway-api` 新增 controller 收进 `controllers/marketplace/` 子目录，避免直接目录超限
+- 本次 admin 开通补丁选择轻量运维脚本，而不是再做一套独立 bootstrap 页面或额外后台登录体系，避免把单次可恢复问题扩成长期维护面
 
 本次是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：在总代码量上是净增长，但增长主要来自新增的正式审核能力；同时同步偿还了 `marketplace-api` 两个超预算热点和 `provider-gateway-api/controllers` 目录平铺问题，没有把复杂度直接叠加回原文件。
 

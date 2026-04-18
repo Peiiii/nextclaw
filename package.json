@@ -79,6 +79,7 @@
     "deploy:public-roadmap:portal": "pnpm -C apps/public-roadmap-feedback-portal run deploy",
     "platform:db:migrate:local": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:local",
     "platform:db:migrate:remote": "pnpm -C workers/nextclaw-provider-gateway-api db:migrate:remote",
+    "platform:admin:grant": "node scripts/platform/grant-admin.mjs",
     "smoke:platform:mvp": "node scripts/smoke/platform-mvp-smoke.mjs",
     "smoke:platform:console": "node scripts/smoke/platform-console-smoke.mjs",
     "smoke:maintainability:console": "pnpm -C apps/maintainability-console smoke",
