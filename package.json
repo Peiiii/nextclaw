@@ -82,6 +82,7 @@
     "platform:admin:grant": "node scripts/platform/grant-admin.mjs",
     "smoke:platform:mvp": "node scripts/smoke/platform-mvp-smoke.mjs",
     "smoke:platform:console": "node scripts/smoke/platform-console-smoke.mjs",
+    "smoke:platform:admin": "node scripts/smoke/platform-admin-smoke.mjs",
     "smoke:maintainability:console": "pnpm -C apps/maintainability-console smoke",
     "smoke:remote-relay": "node scripts/smoke/remote-relay-hibernation-smoke.mjs",
     "smoke:ncp-chat": "node scripts/smoke/chat-capability-smoke.mjs",

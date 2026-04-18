@@ -43,7 +43,9 @@ export default function App(): JSX.Element {
     return <main className="p-6 text-sm text-slate-500">加载登录态...</main>;
   }
 
-  if (user?.role !== 'admin') {
+  const currentUser = meQuery.data?.user ?? user;
+
+  if (currentUser?.role !== 'admin') {
     return (
       <main className="min-h-screen bg-slate-50 text-slate-900">
         <div className="mx-auto flex min-h-screen w-full max-w-xl items-center px-6 py-10">
@@ -63,18 +65,8 @@ export default function App(): JSX.Element {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8">
-        <header className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-700">NextClaw Admin Console</p>
-            <p className="text-sm text-slate-500">{user?.email ?? ''}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => logout()}>退出</Button>
-          </div>
-        </header>
-
-        <AdminDashboardPage token={token} />
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 xl:px-8">
+        <AdminDashboardPage token={token} user={currentUser} onLogout={logout} />
       </div>
     </main>
   );

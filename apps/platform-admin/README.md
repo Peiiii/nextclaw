@@ -2,6 +2,17 @@
 
 独立管理后台站点（仅管理员）。
 
+当前已采用轻量经典管控台结构：
+
+- 左侧一级导航
+- 顶部全局栏
+- 中间内容区按模块切页
+- 当前首批页面：
+  - `总览`
+  - `Marketplace 审核`
+  - `用户与额度`
+  - `充值审核`
+
 技术栈：
 - React + TypeScript
 - TanStack Query
@@ -39,4 +50,10 @@ pnpm deploy:platform:admin
 pnpm -C apps/platform-admin build
 pnpm -C apps/platform-admin lint
 pnpm -C apps/platform-admin tsc
+```
+
+UI 冒烟：
+
+```bash
+PLATFORM_ADMIN_BASE_URL=http://127.0.0.1:4177 pnpm smoke:platform:admin
 ```

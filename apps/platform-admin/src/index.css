@@ -7,10 +7,21 @@
   font-family: "SF Pro Text", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   margin: 0;
   min-width: 320px;
-  background: radial-gradient(circle at top right, #dcecff 0%, #f8fafc 46%, #f1f5f9 100%);
+  color: #0f172a;
+  background:
+    radial-gradient(circle at top right, rgba(125, 211, 252, 0.28) 0%, rgba(248, 250, 252, 0) 34%),
+    radial-gradient(circle at top left, rgba(191, 219, 254, 0.22) 0%, rgba(248, 250, 252, 0) 30%),
+    linear-gradient(180deg, #f8fbff 0%, #f8fafc 28%, #eef2ff 100%);
+  background-attachment: fixed;
 }
 
 * {
