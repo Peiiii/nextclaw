@@ -123,35 +123,34 @@ function WorkspaceFileHeader({
   resolvedPath,
   truncated,
 }: {
-  file: ChatWorkspaceFileTab;
+  file: Pick<ChatWorkspaceFileTab, "line" | "column">;
   resolvedPath: string;
   truncated: boolean;
 }) {
+  const hasMeta = typeof file.line === "number" || truncated;
+
   return (
-    <div className="border-b border-gray-200/80 px-4 py-3">
+    <div className="border-b border-gray-200/80 px-4 py-2.5">
       <div
         title={resolvedPath}
-        className="truncate font-mono text-[12px] font-medium text-gray-700"
+        className="truncate font-mono text-[12px] font-medium leading-4 text-gray-700"
       >
         {resolvedPath}
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em] text-gray-500">
-          {file.viewMode === "diff"
-            ? t("chatWorkspaceDiff")
-            : t("chatWorkspacePreview")}
-        </span>
-        {typeof file.line === "number" ? (
-          <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-            {`L${file.line}${typeof file.column === "number" ? `:${file.column}` : ""}`}
-          </span>
-        ) : null}
-        {truncated ? (
-          <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
-            {t("chatWorkspacePreviewTruncated")}
-          </span>
-        ) : null}
-      </div>
+      {hasMeta ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          {typeof file.line === "number" ? (
+            <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+              {`L${file.line}${typeof file.column === "number" ? `:${file.column}` : ""}`}
+            </span>
+          ) : null}
+          {truncated ? (
+            <span className="rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+              {t("chatWorkspacePreviewTruncated")}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

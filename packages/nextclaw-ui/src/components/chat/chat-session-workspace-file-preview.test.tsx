@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSessionWorkspaceFilePreview } from "@/components/chat/chat-session-workspace-file-preview";
 import type { ChatWorkspaceFileTab } from "@/components/chat/stores/chat-thread.store";
+import { t } from "@/lib/i18n";
 
 const serverPathReadMock = vi.fn();
 
@@ -87,5 +88,86 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     expect(screen.getByTestId("file-code-surface").getAttribute("data-layout")).toBe(
       "workspace",
     );
+  });
+
+  it("does not repeat the preview badge inside the workspace header", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/example.ts",
+        text: "const answer = 42;\n",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({ viewMode: "preview" })}
+        sessionProjectRoot="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
+    expect(screen.getByTitle("/tmp/example.ts")).toBeTruthy();
+  });
+
+  it("keeps the title-only header compact when no metadata is present", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/example.ts",
+        text: "const answer = 42;\n",
+        truncated: false,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({ viewMode: "preview" })}
+        sessionProjectRoot="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    const title = screen.getByTitle("/tmp/example.ts");
+    const header = title.parentElement;
+
+    expect(header).toBeTruthy();
+    expect(header?.className).toContain("py-2.5");
+    expect(header?.children).toHaveLength(1);
+  });
+
+  it("keeps line and truncation metadata without the duplicated type badge", () => {
+    serverPathReadMock.mockReturnValue({
+      isLoading: false,
+      error: null,
+      data: {
+        kind: "text",
+        resolvedPath: "/tmp/example.ts",
+        text: "const answer = 42;\n",
+        truncated: true,
+      },
+    });
+
+    render(
+      <ChatSessionWorkspaceFilePreview
+        file={buildWorkspaceFile({
+          viewMode: "preview",
+          line: 12,
+          column: 4,
+        })}
+        sessionProjectRoot="/tmp"
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("L12:4")).toBeTruthy();
+    expect(screen.getByText(t("chatWorkspacePreviewTruncated"))).toBeTruthy();
+    expect(screen.queryByText(t("chatWorkspacePreview"))).toBeNull();
   });
 });
