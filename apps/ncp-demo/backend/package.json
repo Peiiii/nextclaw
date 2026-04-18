@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-demo-backend",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "private": true,
   "type": "module",
   "scripts": {

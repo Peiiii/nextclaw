@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-runtime",
-  "version": "0.4.25",
+  "version": "0.4.26",
   "private": false,
   "description": "Runtime implementations for NextClaw builtin channel plugins.",
   "type": "module",

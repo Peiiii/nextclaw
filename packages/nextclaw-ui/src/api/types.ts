@@ -246,17 +246,17 @@ export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
 };
 
-
 export type SessionTypeIconView = {
   kind: "image";
   src: string;
   alt?: string | null;
 };
+
 export type RuntimeEntryView = {
   enabled?: boolean;
   label?: string;
-  type: string;
   icon?: SessionTypeIconView | null;
+  type: string;
   config?: Record<string, unknown>;
 };
 
@@ -684,7 +684,7 @@ export type ConfigActionExecuteResult = {
 // WebSocket events
 export type WsEvent =
   | { type: 'config.updated'; payload: { path: string } }
-  | { type: 'channel.config.apply-status'; payload: { channel: string; applyId: string; status: 'started' | 'succeeded' | 'failed'; message?: string } }
+  | { type: 'channel.config.apply-status'; payload: { channel: string; status: 'started' | 'succeeded' | 'failed'; message?: string } }
   | { type: 'session.updated'; payload: { sessionKey: string } }
   | { type: 'session.run-status'; payload: { sessionKey: string; status: 'running' | 'idle' } }
   | { type: 'session.summary.upsert'; payload: { summary: NcpSessionSummaryView } }

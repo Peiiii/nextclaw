@@ -23,6 +23,11 @@ function createWorkspace(): { workspace: string; home: string } {
   return { workspace, home };
 }
 
+function writeGitConfig(workspace: string, config: string): void {
+  mkdirSync(join(workspace, ".git"), { recursive: true });
+  writeFileSync(join(workspace, ".git", "config"), config);
+}
+
 function createAssetStore(home: string): LocalAssetStore {
   return new LocalAssetStore({
     rootDir: join(home, "assets"),
@@ -46,6 +51,13 @@ afterEach(() => {
 
 it("injects runtime tool definitions into the system prompt", () => {
     const { workspace } = createWorkspace();
+    writeGitConfig(
+      workspace,
+      [
+        '[remote "origin"]',
+        "  url = https://github.com/Peiiii/nextclaw.git",
+      ].join("\n"),
+    );
     const config = createNcpTestConfig(workspace);
     const prepareForRun = vi.fn();
     const builder = new NextclawNcpContextBuilder({
@@ -82,6 +94,8 @@ it("injects runtime tool definitions into the system prompt", () => {
 
     const systemMessage = prepared.messages[0];
     expect(systemMessage?.role).toBe("system");
+    expect(String(systemMessage?.content)).toContain("Canonical repository: https://github.com/Peiiii/nextclaw");
+    expect(String(systemMessage?.content)).toContain("Repository identity rule:");
     expect(String(systemMessage?.content)).toContain("- feishu_doc: Feishu document operations");
     expect(String(systemMessage?.content)).toContain("## Tool Use Enforcement");
     expect(String(systemMessage?.content)).toContain("## OpenAI/Codex Execution Discipline");

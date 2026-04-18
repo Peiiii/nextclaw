@@ -16,6 +16,11 @@ function createWorkspace(): string {
   return workspace;
 }
 
+function writeGitConfig(workspace: string, config: string): void {
+  mkdirSync(join(workspace, ".git"), { recursive: true });
+  writeFileSync(join(workspace, ".git", "config"), config);
+}
+
 afterEach(() => {
   while (tempWorkspaces.length > 0) {
     const workspace = tempWorkspaces.pop();
@@ -31,6 +36,13 @@ describe("buildBootstrapAwareUserPrompt", () => {
     const workspace = createWorkspace();
     writeFileSync(join(workspace, "IDENTITY.md"), "Identity rules.\n");
     writeFileSync(join(workspace, "SOUL.md"), "Warm, direct tone.\n");
+    writeGitConfig(
+      workspace,
+      [
+        '[remote "origin"]',
+        "  url = ssh://git@ssh.github.com:443/Peiiii/nextclaw.git",
+      ].join("\n"),
+    );
     mkdirSync(join(workspace, "skills", "demo-skill"), { recursive: true });
     writeFileSync(
       join(workspace, "skills", "demo-skill", "SKILL.md"),
@@ -54,6 +66,9 @@ describe("buildBootstrapAwareUserPrompt", () => {
 
     expect(prompt).toContain("# Project Context");
     expect(prompt).toContain(`Active project directory: ${workspace}`);
+    expect(prompt).toContain(`Repository root: ${workspace}`);
+    expect(prompt).toContain("Canonical repository: https://github.com/Peiiii/nextclaw");
+    expect(prompt).toContain("Repository identity rule:");
     expect(prompt).toContain("## IDENTITY.md");
     expect(prompt).toContain("Identity rules.");
     expect(prompt).toContain("## SOUL.md");

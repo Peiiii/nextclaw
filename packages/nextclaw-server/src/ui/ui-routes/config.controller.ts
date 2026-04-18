@@ -63,7 +63,6 @@ export class ConfigRoutesController {
 
   private readonly publishChannelConfigApplyStatus = (params: {
     channel: string;
-    applyId: string;
     status: "started" | "succeeded" | "failed";
     message?: string;
   }): void => {
@@ -73,34 +72,25 @@ export class ConfigRoutesController {
     });
   };
 
-  private readonly buildChannelApplyId = (channel: string): string => {
-    return `${channel}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  };
-
   private readonly enqueueChannelConfigApply = (channel: string): void => {
-    const applyId = this.buildChannelApplyId(channel);
-    this.publishChannelConfigApplyStatus({
-      channel,
-      applyId,
-      status: "started"
-    });
-
     const previousTask = this.channelConfigApplyTasks.get(channel) ?? Promise.resolve();
     const task = previousTask
       .catch(() => undefined)
       .then(async () => {
+        this.publishChannelConfigApplyStatus({
+          channel,
+          status: "started"
+        });
         try {
           await this.options.applyLiveConfigReload?.();
           this.publishChannelConfigApplyStatus({
             channel,
-            applyId,
             status: "succeeded"
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           this.publishChannelConfigApplyStatus({
             channel,
-            applyId,
             status: "failed",
             message
           });

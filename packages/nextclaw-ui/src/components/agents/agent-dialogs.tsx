@@ -97,6 +97,7 @@ function buildRuntimeSelectOptions(params: {
     {
       value: normalizedCurrentRuntime,
       label: resolveSessionTypeLabel(normalizedCurrentRuntime),
+      icon: null,
       ready: false,
       reason: "unavailable",
       reasonMessage: null,

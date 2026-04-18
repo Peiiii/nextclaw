@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "private": false,
   "description": "NextClaw plugin that registers Claude Agent SDK as an optional NCP runtime.",
   "type": "module",
@@ -25,7 +25,12 @@
   "openclaw": {
     "extensions": [
       "dist/index.js"
-    ]
+    ],
+    "development": {
+      "extensions": [
+        "src/index.ts"
+      ]
+    }
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",

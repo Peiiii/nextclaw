@@ -1,5 +1,51 @@
 # @nextclaw/channel-plugin-feishu
 
+## 0.2.26
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/channel-plugin-dingtalk
+  - @nextclaw/channel-plugin-discord
+  - @nextclaw/channel-plugin-email
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-mochat
+  - @nextclaw/channel-plugin-qq
+  - @nextclaw/channel-plugin-slack
+  - @nextclaw/channel-plugin-telegram
+  - @nextclaw/channel-plugin-wecom
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/channel-plugin-whatsapp
+  - @nextclaw/channel-runtime
+  - @nextclaw/core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/openclaw-compat
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
 ## 0.2.25
 
 ### Patch Changes
@@ -7,6 +53,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -36,6 +83,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -283,6 +331,7 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
+
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -320,6 +369,7 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
+
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment

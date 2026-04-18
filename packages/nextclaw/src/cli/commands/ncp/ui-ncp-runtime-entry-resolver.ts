@@ -32,6 +32,8 @@ const BUILTIN_RUNTIME_PRESENTATION = {
   },
 } satisfies Record<string, { label: string; icon?: UiNcpSessionTypeIcon }>;
 
+type BuiltinRuntimePresentationKey = keyof typeof BUILTIN_RUNTIME_PRESENTATION;
+
 function readString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -54,7 +56,10 @@ function resolveBuiltinRuntimePresentation(
   if (!normalized) {
     return null;
   }
-  return BUILTIN_RUNTIME_PRESENTATION[normalized] ?? null;
+  if (!(normalized in BUILTIN_RUNTIME_PRESENTATION)) {
+    return null;
+  }
+  return BUILTIN_RUNTIME_PRESENTATION[normalized as BuiltinRuntimePresentationKey] ?? null;
 }
 
 function buildNativeRuntimeEntry(config: Config): UiNcpRuntimeEntry {
