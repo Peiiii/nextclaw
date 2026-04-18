@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import packageJson from "../package.json" with { type: "json" };
+import { CreateCommand } from "./commands/create.controller.js";
 import { DevCommand } from "./commands/dev.controller.js";
 import { InspectCommand } from "./commands/inspect.controller.js";
 import { RunCommand } from "./commands/run.controller.js";
@@ -11,6 +12,10 @@ type CliOptions = {
   port: number;
   json: boolean;
   documentGrantMap: AppDocumentGrantMap;
+};
+
+type CreateOptions = {
+  json: boolean;
 };
 
 class AppRuntimeCli {
@@ -30,7 +35,17 @@ class AppRuntimeCli {
       process.exit(1);
     }
 
-    const options = this.readOptions(restArgs);
+    if (command === "create") {
+      const options = this.readCreateOptions(restArgs);
+      await new CreateCommand().run({
+        appDirectory,
+        json: options.json,
+        write: this.write,
+      });
+      return;
+    }
+
+    const options = this.readRuntimeOptions(restArgs);
     if (command === "inspect") {
       await new InspectCommand().run({
         appDirectory,
@@ -66,7 +81,28 @@ class AppRuntimeCli {
     process.exit(1);
   };
 
-  private readOptions = (rawArgs: string[]): CliOptions => {
+  private readCreateOptions = (rawArgs: string[]): CreateOptions => {
+    const options: CreateOptions = {
+      json: false,
+    };
+
+    for (const current of rawArgs) {
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+
+    return options;
+  };
+
+  private readRuntimeOptions = (rawArgs: string[]): CliOptions => {
     const options: CliOptions = {
       host: "127.0.0.1",
       port: 3100,
@@ -77,7 +113,7 @@ class AppRuntimeCli {
     for (let index = 0; index < rawArgs.length; index += 1) {
       const current = rawArgs[index];
       if (!current?.startsWith("--")) {
-        continue;
+        throw new Error(`未知参数：${current}`);
       }
       const nextValue = rawArgs[index + 1];
       switch (current) {
@@ -131,7 +167,8 @@ class AppRuntimeCli {
   };
 
   private writeUsage = (): void => {
-    this.write("Usage: napp <inspect|run|dev> <app-dir> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
+    this.write("Usage: napp create <app-dir> [--json]\n");
+    this.write("       napp <inspect|run|dev> <app-dir> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
     this.write("       napp --help\n");
     this.write("       napp --version\n");
   };

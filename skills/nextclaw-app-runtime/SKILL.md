@@ -1,6 +1,6 @@
 ---
 name: nextclaw-app-runtime
-description: Use when the user wants to create, inspect, run, or share NextClaw micro apps through the local napp CLI, including install, readiness checks, manual app scaffolding, and safe permission-aware execution.
+description: Use when the user wants to create, inspect, run, or share NextClaw micro apps through the local napp CLI, including install, readiness checks, starter app scaffolding, and safe permission-aware execution.
 ---
 
 # NextClaw App Runtime
@@ -44,7 +44,7 @@ Running an app still requires a concrete app directory and any needed permission
 - install or update `@nextclaw/app-runtime`
 - verify `napp` readiness
 - inspect an existing app directory
-- scaffold a first app directory manually when no scaffold command exists yet
+- scaffold a first app directory with `napp create`
 - explain and apply `--document scope=/path` permission mappings
 - run a local app safely
 - help the user share an app directory with another user
@@ -94,7 +94,7 @@ Classify the request into one of these:
 - troubleshoot a runtime or permission failure
 
 If the user does not yet have an app directory, do not tell them to “come back later”.
-This skill should scaffold the folder manually in the workspace when needed.
+This skill should use `napp create` to scaffold the folder in the workspace when needed.
 
 ### 3. For an existing app, inspect before running
 
@@ -115,18 +115,12 @@ Confirm at least:
 
 Do not jump straight to `run` before `inspect` succeeds.
 
-### 4. For a new app, scaffold the directory manually
+### 4. For a new app, scaffold it with `napp create`
 
-If the user wants a first app and `napp create` does not exist yet, create this structure directly:
+Run:
 
-```text
-<app-dir>/
-  manifest.json
-  main/
-    app.wasm
-  ui/
-    index.html
-  assets/
+```bash
+napp create <app-dir>
 ```
 
 Current MVP recommendation:

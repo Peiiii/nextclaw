@@ -8,11 +8,13 @@
 
 - 新建独立包 `packages/nextclaw-app-runtime`
 - 新增短命令 CLI `napp`
+- 支持 `napp create <app-dir>` 生成一个最小可跑的微应用骨架
 - 支持 `napp inspect <app-dir>` 校验应用目录与 manifest
 - 支持 `napp run <app-dir>` 启动本地宿主，提供 UI 静态服务和 `__napp` bridge
 - 支持 `napp dev <app-dir>`，当前等价于 `run`
 - 支持最小权限模型：`documentAccess`、`allowedDomains`、`storage`、`capabilities.hostBridge`
 - 新增示例应用 `apps/examples/hello-notes`
+- `napp create` 生成的骨架内置最小 `manifest.json / main / ui / assets` 目录合同，并默认产出可直接运行的 starter app
 - 通过 Wasm `main/app.wasm` 跑通“读取已授权目录 -> 汇总输入 -> 调 Wasm 导出 -> 返回 UI”这条完整链路
 - 将新包纳入根级 `build / lint / tsc` 脚本，避免后续仓库级验证遗漏
 - 补齐 `@nextclaw/app-runtime` 的对外发布元数据与 `napp --help / --version`
@@ -49,6 +51,8 @@
 - `pnpm -C packages/nextclaw-app-runtime tsc`
 - `pnpm -C packages/nextclaw-app-runtime lint`
 - `pnpm -C packages/nextclaw-app-runtime build`
+- `tmpdir=$(mktemp -d) && node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/starter" --json`
+- `tmpdir=$(mktemp -d) && node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/starter" --json && node packages/nextclaw-app-runtime/dist/main.js inspect "$tmpdir/starter" --json`
 - `cd packages/nextclaw-app-runtime && node dist/main.js --help`
 - `cd packages/nextclaw-app-runtime && node dist/main.js --version`
 - `pnpm -C packages/nextclaw-app-runtime smoke`
@@ -67,9 +71,11 @@
 
 关键观察点：
 
+- `create` 能在空目录下生成可立即通过 `inspect` 与 `run` 的 starter app
 - `inspect` 能正确解析 `hello-notes` manifest，并输出 `main/ui/permissions` 摘要
 - `--help` 与 `--version` 能作为 skill 安装后的最小 readiness check
 - `smoke` 能真实启动 `napp run`
+- `smoke` 新增了一段真实的 `napp create -> napp inspect` 验证，不再只依赖仓库内置示例应用
 - `smoke` 会在临时目录创建两份 notes，再通过 `POST /__napp/run` 调用 Wasm 主模块
 - 结果中 `documentCount`、`textBytes`、`output.output` 与预期一致
 - marketplace skill metadata 本地校验通过，`Errors: 0`，`Warnings: 0`
@@ -87,6 +93,10 @@
 
 ```bash
 pnpm -C packages/nextclaw-app-runtime build
+node packages/nextclaw-app-runtime/dist/main.js create ./tmp/my-first-napp
+node packages/nextclaw-app-runtime/dist/main.js inspect ./tmp/my-first-napp --json
+node packages/nextclaw-app-runtime/dist/main.js run ./tmp/my-first-napp
+
 node packages/nextclaw-app-runtime/dist/main.js inspect apps/examples/hello-notes --json
 node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --document notes=/absolute/path/to/notes
 ```
@@ -133,15 +143,16 @@ node packages/nextclaw/dist/cli/index.js skills update \
 
 从用户视角，本次应能完成下面这条最小体验路径：
 
-1. 准备一个本地 notes 目录
-2. 运行 `napp inspect apps/examples/hello-notes`
+1. 运行 `napp create ./my-first-napp`
+2. 运行 `napp inspect ./my-first-napp`
 3. 看到应用名称、版本、动作名、主模块路径、UI 路径和权限声明
-4. 运行 `napp run apps/examples/hello-notes --document notes=/your/notes/path`
+4. 运行 `napp run ./my-first-napp`
 5. 打开本地输出的 URL
-6. 在页面里点击 `Run Summary`
-7. 页面展示目录中文件数、文本字节数和 Wasm 计算结果
+6. 在页面里点击 `Run Starter Demo`
+7. 页面展示 `documentCount=0`、`textBytes=0`、`wasm-score=200`
+8. 如果要体验目录授权路径，再运行 `napp run apps/examples/hello-notes --document notes=/your/notes/path`
 
-如果以上步骤成立，说明“独立宿主 + 应用目录 + Wasm 主模块 + UI bridge + 目录授权”这套基础形态已经成立。
+如果以上步骤成立，说明“独立宿主 + 应用目录 + starter scaffold + Wasm 主模块 + UI bridge”这套基础形态已经成立；再补跑 `hello-notes` 则说明目录授权链路也成立。
 
 ## 可维护性总结汇总
 
@@ -154,25 +165,27 @@ node packages/nextclaw/dist/cli/index.js skills update \
 - 这次改动顺着 NextClaw “统一入口 + 能力编排 + 生态扩展”的长期方向推进了一小步，因为它把“用户自己做的小应用”收敛成了一个可复制的运行时形态，而不是继续往主产品里堆一个一次性功能
 - 这次没有直接接主产品，而是先做独立 runtime 包，降低了对既有服务/UI/CLI 的耦合压力
 - 这次进一步把“微应用运行时能力”包装成可独立安装的 npm 包与可独立安装的 marketplace skill，让生态入口更接近真实用户使用方式
+- 这次继续把入口往前推了一步，不再要求用户先手抄目录结构或复制示例目录，而是可以直接从 `napp create` 开始
 
 代码增减报告：
 
-- 新增：1350 行
-- 删除：0 行
-- 净增：+1350 行
+- 新增：1792 行
+- 删除：4 行
+- 净增：+1788 行
 
 非测试代码增减报告：
 
-- 新增：1245 行
-- 删除：0 行
-- 净增：+1245 行
+- 新增：1646 行
+- 删除：4 行
+- 净增：+1642 行
 
 独立可维护性复核：
 
 - no maintainability findings
 - 这次属于新增用户能力，不是纯 bugfix 或纯重构，因此非测试代码净增为正是允许的
-- 在新增能力前已经把范围压到最小：不做产品接入、不做市场层、不做安装器、不做通用网络执行、不做复杂 Wasmtime 进程管理
+- 在新增能力前已经把范围压到最小：不做产品接入、不做市场层、不做交互式模板系统、不做安装器、不做通用网络执行、不做复杂 Wasmtime 进程管理
 - 业务 owner 相对清晰：manifest 读取收敛到 `AppManifestService`，权限收敛到 `AppPermissionsService`，应用执行收敛到 `AppInstanceService`，宿主收敛到 `AppHostService`，Wasm 调用收敛到 `WasmMainRunnerService`
+- `napp create` 的新增逻辑也保持单 owner：目录与模板生成都收敛到 `AppScaffoldService`，CLI 入口只负责分发命令，没有把模板写入逻辑塞进 `main.ts`
 - 新增的 marketplace skill 没有偷渡 runtime 逻辑，而是保持“skill 负责 onboarding，runtime 负责执行”的清晰边界
 - 命名和目录结构已经按仓库治理规则收敛到明确角色后缀，没有继续制造 `logic/`、`helpers/`、`misc` 这类假角色
 - 复杂度没有被隐藏到 effect、普通函数 mutation 或兜底分支里，主链路保持单一路径
@@ -182,6 +195,7 @@ node packages/nextclaw/dist/cli/index.js skills update \
 - 本次已尽最大努力优化可维护性：是
 - 已优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是
 - 由于这是新增运行时能力，总代码量与文件数出现净增长；该增长是最小必要增长，因为本次同时交付了 CLI、宿主、bridge、Wasm 执行、示例应用与 smoke 闭环，且刻意未引入产品耦合层、市场层和复杂 sidecar 管理
+- 由于本次继续新增 starter scaffold，非测试代码继续净增；这一增长主要来自首份可运行模板的 HTML / controller / WAT / wasm 内嵌资源，但仍保持在单一 owner 下，没有再引入额外模板系统或二次抽象
 - 抽象、模块边界、class / helper / service / controller 划分比“把逻辑堆进一个 CLI 文件”更清晰，也避免了补丁式叠加
 - 目录结构与文件组织满足当前治理要求；新增文件已通过 `lint:new-code:governance` 与 `lint:maintainability:guard`
 
@@ -200,7 +214,7 @@ node packages/nextclaw/dist/cli/index.js skills update \
 
 当前状态：
 
-- `@nextclaw/app-runtime`：已发布
+- `@nextclaw/app-runtime`：`0.1.0` 已发布；本次新增 `napp create` 后已补 changeset，待下一次统一 release 时发布新版本
 
 官方 marketplace skill 状态：
 

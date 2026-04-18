@@ -4,6 +4,7 @@
 
 当前 MVP 提供三件事：
 
+- `napp create <app-dir>`：生成一个最小可跑的微应用骨架
 - `napp inspect <app-dir>`：校验应用目录与 manifest
 - `napp run <app-dir>`：启动本地宿主，提供 UI 静态服务和桥接 API
 - `napp dev <app-dir>`：当前等价于 `run`
@@ -43,6 +44,14 @@ assets/
 - 当前 Wasm 执行底座：Node 原生 `WebAssembly`
 
 ## 示例
+
+```bash
+napp create ./my-first-napp
+napp inspect ./my-first-napp
+napp run ./my-first-napp
+```
+
+已有示例应用：
 
 ```bash
 napp inspect ./apps/examples/hello-notes
