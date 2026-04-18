@@ -23,6 +23,7 @@ import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/market
 import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
 import { ApiResponseFactory } from "./presentation/http/response";
+import { registerUserSkillRoutes } from "./presentation/http/user-skill-routes";
 
 type MarketplaceBindings = {
   MARKETPLACE_SKILLS_DB: D1Database;
@@ -160,8 +161,9 @@ app.use("/api/v1/*", async (c, next) => {
   const isRead = method === "GET" || method === "HEAD";
   const isAdminWrite = method === "POST" && path.startsWith("/api/v1/admin/");
   const isSkillPublish = method === "POST" && path === "/api/v1/skills/publish";
+  const isOwnerManage = method === "POST" && path === "/api/v1/user/skills/manage";
 
-  if (!isRead && !isAdminWrite && !isSkillPublish) {
+  if (!isRead && !isAdminWrite && !isSkillPublish && !isOwnerManage) {
     return responses.error(c, "READ_ONLY_API", "marketplace api is read-only except publish/admin routes", 405);
   }
 
@@ -352,5 +354,6 @@ app.post("/api/v1/skills/publish", async (c) => {
 });
 
 registerAdminSkillRoutes(app, getRuntime);
+registerUserSkillRoutes(app, getRuntime);
 
 export default app;

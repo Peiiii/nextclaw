@@ -37,6 +37,11 @@ import {
   adminMarketplaceSkillsHandler,
   reviewAdminMarketplaceSkillHandler,
 } from "./controllers/marketplace/admin-marketplace-controller";
+import {
+  manageOwnerMarketplaceSkillHandler,
+  ownerMarketplaceSkillDetailHandler,
+  ownerMarketplaceSkillsHandler,
+} from "./controllers/marketplace/user-marketplace-controller";
 import { loginHandler, meHandler, patchProfileHandler } from "./controllers/auth-controller";
 import {
   billingLedgerHandler,
@@ -122,6 +127,9 @@ export function registerAppRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/billing/ledger", billingLedgerHandler);
   app.get("/platform/billing/recharge-intents", billingRechargeIntentsHandler);
   app.post("/platform/billing/recharge-intents", createRechargeIntentHandler);
+  app.get("/platform/marketplace/skills", ownerMarketplaceSkillsHandler);
+  app.get("/platform/marketplace/skills/:selector", ownerMarketplaceSkillDetailHandler);
+  app.post("/platform/marketplace/skills/:selector/manage", manageOwnerMarketplaceSkillHandler);
 
   app.get("/platform/admin/overview", adminOverviewHandler);
   app.get("/platform/admin/remote/quota", adminRemoteQuotaSummaryHandler);

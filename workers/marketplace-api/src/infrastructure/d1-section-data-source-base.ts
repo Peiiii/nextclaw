@@ -127,6 +127,10 @@ export abstract class D1MarketplaceSectionDataSourceBase extends BaseMarketplace
     return value === "user" ? "user" : "admin";
   };
 
+  protected readSkillOwnerVisibility = (value: string | null | undefined): "public" | "hidden" => {
+    return value === "hidden" ? "hidden" : "public";
+  };
+
   protected mapScenes = (rows: SceneRow[], items: MarketplaceItem[]): MarketplaceRecommendationScene[] => {
     const itemIds = new Set(items.map((item) => item.id));
     const sceneMap = new Map<string, MarketplaceRecommendationScene>();

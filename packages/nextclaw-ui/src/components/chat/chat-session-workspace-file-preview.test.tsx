@@ -139,6 +139,9 @@ describe("ChatSessionWorkspaceFilePreview", () => {
     expect(screen.getByText("workspace")).toBeTruthy();
     expect(screen.getByText("src")).toBeTruthy();
     expect(screen.getByText("example.ts")).toBeTruthy();
+    expect(screen.getByTestId("workspace-file-breadcrumbs").className).toContain(
+      "py-1.5",
+    );
   });
 
   it("keeps line and truncation metadata without the duplicated type badge", () => {

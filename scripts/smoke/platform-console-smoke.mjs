@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { chromium } from "playwright";
-
 const baseUrl = (process.env.PLATFORM_CONSOLE_BASE_URL ?? "http://127.0.0.1:4173").replace(/\/+$/, "");
-
 function okEnvelope(data) {
   return JSON.stringify({ ok: true, data });
 }
@@ -38,7 +36,83 @@ function createDashboardFixtures() {
         updatedAt: "2026-03-23T09:00:00.000Z"
       }
     ],
-    archivedInstances: []
+    archivedInstances: [],
+    ownerSkills: [
+      {
+        id: "skill-1",
+        slug: "stock-briefing",
+        packageName: "@peiiii/stock-briefing",
+        ownerScope: "peiiii",
+        skillName: "stock-briefing",
+        name: "Stock Briefing",
+        summary: "Daily market briefing skill for investors.",
+        summaryI18n: {
+          en: "Daily market briefing skill for investors.",
+          zh: "给投资者的每日市场简报 skill。"
+        },
+        description: "Summarize watchlist moves, catalysts, and next checks.",
+        descriptionI18n: {
+          en: "Summarize watchlist moves, catalysts, and next checks.",
+          zh: "总结自选股波动、催化因素和下一步检查项。"
+        },
+        author: "peiiii",
+        tags: ["market", "briefing"],
+        publishStatus: "published",
+        publishedByType: "user",
+        ownerVisibility: "public",
+        reviewNote: "Looks good.",
+        reviewedAt: "2026-03-23T08:30:00.000Z",
+        publishedAt: "2026-03-23T08:00:00.000Z",
+        updatedAt: "2026-03-23T09:00:00.000Z",
+        sourceRepo: "https://github.com/nextclaw/stock-briefing",
+        homepage: "https://platform.nextclaw.io/skills/stock-briefing",
+        install: {
+          kind: "marketplace",
+          spec: "@peiiii/stock-briefing",
+          command: "nextclaw skills install @peiiii/stock-briefing"
+        },
+        canShow: false,
+        canHide: true,
+        canDelete: true,
+        ownerDeletedAt: null
+      }
+    ]
+  };
+}
+
+function toOwnerSkillSummary(skill) {
+  return {
+    id: skill.id,
+    slug: skill.slug,
+    packageName: skill.packageName,
+    ownerScope: skill.ownerScope,
+    skillName: skill.skillName,
+    name: skill.name,
+    summary: skill.summary,
+    author: skill.author,
+    tags: skill.tags,
+    publishStatus: skill.publishStatus,
+    publishedByType: skill.publishedByType,
+    ownerVisibility: skill.ownerVisibility,
+    reviewNote: skill.reviewNote,
+    reviewedAt: skill.reviewedAt,
+    publishedAt: skill.publishedAt,
+    updatedAt: skill.updatedAt
+  };
+}
+
+function toOwnerSkillDetail(skill) {
+  return {
+    ...toOwnerSkillSummary(skill),
+    summaryI18n: skill.summaryI18n,
+    description: skill.description,
+    descriptionI18n: skill.descriptionI18n,
+    sourceRepo: skill.sourceRepo,
+    homepage: skill.homepage,
+    install: skill.install,
+    canShow: !skill.ownerDeletedAt && skill.ownerVisibility === "hidden",
+    canHide: !skill.ownerDeletedAt && skill.ownerVisibility === "public",
+    canDelete: !skill.ownerDeletedAt
   };
 }
 
@@ -48,7 +122,6 @@ async function installDashboardRoutes(page, fixtures) {
       user: fixtures.accountUser
     });
   });
-
   await page.route("**/platform/auth/profile", async (route) => {
     const body = JSON.parse(route.request().postData() ?? "{}");
     fixtures.accountUser.username = body.username;
@@ -57,7 +130,11 @@ async function installDashboardRoutes(page, fixtures) {
       user: fixtures.accountUser
     });
   });
+  await installRemoteRoutes(page, fixtures);
+  await installOwnerSkillRoutes(page, fixtures);
+}
 
+async function installRemoteRoutes(page, fixtures) {
   await page.route("**/platform/remote/instances**", async (route) => {
     const url = new URL(route.request().url());
     const includeArchived = url.searchParams.get("includeArchived") === "true";
@@ -65,7 +142,6 @@ async function installDashboardRoutes(page, fixtures) {
       items: includeArchived ? [...fixtures.activeInstances, ...fixtures.archivedInstances] : fixtures.activeInstances
     });
   });
-
   await page.route("**/platform/remote/instances/inst-1/archive", async (route) => {
     const archived = {
       ...fixtures.activeInstances[0],
@@ -76,7 +152,6 @@ async function installDashboardRoutes(page, fixtures) {
     fixtures.archivedInstances.splice(0, fixtures.archivedInstances.length, archived);
     await fulfillJson(route, { instance: archived });
   });
-
   await page.route("**/platform/remote/instances/inst-1/unarchive", async (route) => {
     const restored = {
       ...fixtures.archivedInstances[0],
@@ -87,12 +162,10 @@ async function installDashboardRoutes(page, fixtures) {
     fixtures.activeInstances.splice(0, fixtures.activeInstances.length, restored);
     await fulfillJson(route, { instance: restored });
   });
-
   await page.route("**/platform/remote/instances/inst-1/delete", async (route) => {
     fixtures.archivedInstances.splice(0, 1);
     await fulfillJson(route, { deleted: true, instanceId: "inst-1" });
   });
-
   await page.route("**/platform/remote/quota", async (route) => {
     await fulfillJson(route, {
       dayKey: "2026-03-25",
@@ -112,7 +185,6 @@ async function installDashboardRoutes(page, fixtures) {
       }
     });
   });
-
   await page.route("**/platform/remote/instances/inst-1/shares", async (route) => {
     if (route.request().method() === "GET") {
       await fulfillJson(route, { items: [] });
@@ -128,7 +200,6 @@ async function installDashboardRoutes(page, fixtures) {
       activeSessionCount: 0
     });
   });
-
   await page.route("**/platform/remote/instances/inst-1/open", async (route) => {
     await fulfillJson(route, {
       id: "session-1",
@@ -143,6 +214,80 @@ async function installDashboardRoutes(page, fixtures) {
       openUrl: "https://r-session-1.claw.cool/platform/remote/open?token=token-1",
       fixedDomainOpenUrl: "https://remote.claw.cool/platform/remote/open?token=token-1"
     });
+  });
+}
+
+async function installOwnerSkillRoutes(page, fixtures) {
+  await page.route("**/platform/marketplace/skills", async (route) => {
+    const url = new URL(route.request().url());
+    const query = (url.searchParams.get("q") ?? "").trim().toLowerCase();
+    const items = fixtures.ownerSkills
+      .filter((skill) => !skill.ownerDeletedAt)
+      .filter((skill) => {
+        if (!query) {
+          return true;
+        }
+        return [skill.name, skill.packageName, skill.summary]
+          .join(" ")
+          .toLowerCase()
+          .includes(query);
+      })
+      .map((skill) => toOwnerSkillSummary(skill));
+
+    await fulfillJson(route, {
+      total: items.length,
+      items
+    });
+  });
+  await page.route("**/platform/marketplace/skills/*/manage", async (route) => {
+    const selector = readMarketplaceSkillSelector(route.request().url()).replace(/\/manage$/, "");
+    const body = JSON.parse(route.request().postData() ?? "{}");
+    const skill = fixtures.ownerSkills.find((entry) => entry.packageName === selector || entry.slug === selector);
+    if (!skill) {
+      await fulfillNotFound(route);
+      return;
+    }
+
+    if (body.action === "hide") {
+      skill.ownerVisibility = "hidden";
+    } else if (body.action === "show") {
+      skill.ownerVisibility = "public";
+    } else if (body.action === "delete") {
+      skill.ownerDeletedAt = "2026-03-23T09:30:00.000Z";
+    }
+    skill.updatedAt = "2026-03-23T09:30:00.000Z";
+
+    await fulfillJson(route, {
+      item: toOwnerSkillDetail(skill)
+    });
+  });
+  await page.route("**/platform/marketplace/skills/*", async (route) => {
+    const selector = readMarketplaceSkillSelector(route.request().url());
+    const skill = fixtures.ownerSkills.find(
+      (entry) => !entry.ownerDeletedAt && (entry.packageName === selector || entry.slug === selector)
+    );
+    if (!skill) {
+      await fulfillNotFound(route);
+      return;
+    }
+
+    await fulfillJson(route, toOwnerSkillDetail(skill));
+  });
+}
+
+function readMarketplaceSkillSelector(url) {
+  return decodeURIComponent(url.split("/platform/marketplace/skills/")[1]);
+}
+async function fulfillNotFound(route) {
+  await route.fulfill({
+    status: 404,
+    contentType: "application/json",
+    body: JSON.stringify({
+      ok: false,
+      error: {
+        message: "Marketplace skill not found."
+      }
+    })
   });
 }
 
@@ -182,7 +327,16 @@ async function assertDashboardLanding(page) {
 }
 
 async function assertAccountSettingsFlow(page) {
-  await page.goto(`${baseUrl}/account`, { waitUntil: "networkidle" });
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    window.__spaNavGuard = "alive";
+  });
+  await page.getByRole("link", { name: "Account" }).click();
+  await page.waitForURL(`${baseUrl}/account`);
+  const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
+  if (spaNavGuard !== "alive") {
+    throw new Error("Sidebar navigation triggered a full page reload instead of SPA routing.");
+  }
   const accountText = await page.locator("body").innerText();
   if (!accountText.includes("You are on the exact account settings page")) {
     throw new Error("/account did not render the dedicated account guidance.");
@@ -194,6 +348,40 @@ async function assertAccountSettingsFlow(page) {
   if (!readyText.includes("Personal publishing is unlocked")) {
     throw new Error("/account did not confirm that personal publishing is ready.");
   }
+}
+
+async function assertSkillManagementFlow(page) {
+  await page.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+  await page.evaluate(() => {
+    window.__spaNavGuard = "alive";
+  });
+  await page.getByRole("link", { name: "My Skills" }).click();
+  await page.waitForURL(`${baseUrl}/skills`);
+  const spaNavGuard = await page.evaluate(() => window.__spaNavGuard);
+  if (spaNavGuard !== "alive") {
+    throw new Error("Skills sidebar navigation triggered a full page reload instead of SPA routing.");
+  }
+
+  await page.waitForFunction(() => document.body.innerText.includes("Stock Briefing"));
+  await page.getByRole("button", { name: "Hide" }).waitFor();
+
+  await page.getByRole("button", { name: "Hide" }).click();
+  await page.waitForFunction(() => document.body.innerText.includes("Hidden"));
+  const hiddenText = await page.locator("body").innerText();
+  if (!hiddenText.includes("Make visible")) {
+    throw new Error("Skill detail did not expose the show action after hiding the skill.");
+  }
+
+  await page.getByRole("button", { name: "Make visible" }).click();
+  await page.waitForFunction(() => document.body.innerText.includes("Visible"));
+  const shownText = await page.locator("body").innerText();
+  if (!shownText.includes("Hide")) {
+    throw new Error("Skill detail did not restore the hide action after showing the skill.");
+  }
+
+  acceptNextDialog(page);
+  await page.getByRole("button", { name: "Delete" }).click();
+  await page.waitForFunction(() => document.body.innerText.includes("No skills under your scope yet."));
 }
 
 async function assertRemoteOpenActions(page) {
@@ -211,7 +399,6 @@ async function assertRemoteOpenActions(page) {
     throw new Error(`Fixed-domain open action used unexpected URL: ${openedFixedDomainUrl}`);
   }
 }
-
 function acceptNextDialog(page) {
   page.once("dialog", async (dialog) => {
     await dialog.accept();
@@ -257,6 +444,7 @@ async function assertDashboardFlow(browser) {
   await initializeDashboardPage(page);
   await assertDashboardLanding(page);
   await assertAccountSettingsFlow(page);
+  await assertSkillManagementFlow(page);
   await assertRemoteOpenActions(page);
   await assertArchiveLifecycle(page);
   await assertDashboardLocaleSwitch(page);
@@ -301,6 +489,10 @@ async function main() {
 
 main().catch((error) => {
   console.error("[platform-console-smoke] failed");
-  console.error(error instanceof Error ? error.message : String(error));
+  if (error instanceof Error) {
+    console.error(error.stack ?? error.message);
+  } else {
+    console.error(String(error));
+  }
   process.exit(1);
 });

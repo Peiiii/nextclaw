@@ -5,6 +5,9 @@ export type ItemRow = {
   slug: string;
   package_name?: string | null;
   owner_scope?: string | null;
+  owner_user_id?: string | null;
+  owner_visibility?: string | null;
+  owner_deleted_at?: string | null;
   skill_name?: string | null;
   publish_status?: string | null;
   published_by_type?: string | null;

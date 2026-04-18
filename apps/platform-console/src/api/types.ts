@@ -148,6 +148,50 @@ export type AdminRemoteQuotaSummary = {
   durableObjectRequests: RemoteQuotaPlatformUsageSummary;
 };
 
+export type OwnerMarketplaceSkillVisibility = 'public' | 'hidden';
+export type OwnerMarketplaceSkillManageAction = 'hide' | 'show' | 'delete';
+
+export type OwnerMarketplaceSkillSummaryView = {
+  id: string;
+  slug: string;
+  packageName: string;
+  ownerScope: string;
+  skillName: string;
+  name: string;
+  summary: string;
+  author: string;
+  tags: string[];
+  publishStatus: 'pending' | 'published' | 'rejected';
+  publishedByType: 'admin' | 'user';
+  ownerVisibility: OwnerMarketplaceSkillVisibility;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+  updatedAt: string;
+};
+
+export type OwnerMarketplaceSkillDetailView = OwnerMarketplaceSkillSummaryView & {
+  summaryI18n: Record<string, string>;
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  install: {
+    kind: string;
+    spec: string;
+    command?: string;
+    sourceUrl?: string;
+  };
+  canShow: boolean;
+  canHide: boolean;
+  canDelete: boolean;
+};
+
+export type OwnerMarketplaceSkillListView = {
+  total: number;
+  items: OwnerMarketplaceSkillSummaryView[];
+};
+
 export type CursorPage<T> = {
   items: T[];
   nextCursor: string | null;

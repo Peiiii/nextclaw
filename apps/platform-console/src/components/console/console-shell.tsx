@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { NavLink } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { UserConsoleRoute } from '@/pages/user-console-navigation';
@@ -34,30 +35,34 @@ export function ConsoleShell({
 
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <ul className="space-y-1.5">
-            {routes.map((route) => {
-              const isActive = route.key === currentRoute.key;
-              return (
-                <li key={route.key}>
-                  <a
-                    href={route.href}
-                    className={cn(
+            {routes.map((route) => (
+              <li key={route.key}>
+                <NavLink
+                  to={route.href}
+                  end={route.href === '/'}
+                  className={({ isActive }) =>
+                    cn(
                       'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-white text-[#1f1f1d] shadow-[0_1px_2px_rgba(31,31,29,0.05)]'
                         : 'text-[#656561] hover:bg-white/70 hover:text-[#1f1f1d]'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'h-2.5 w-2.5 shrink-0 rounded-full',
-                        isActive ? 'bg-brand-500' : 'bg-[#c9c3b5]'
-                      )}
-                    />
-                    <span className="truncate">{route.label}</span>
-                  </a>
-                </li>
-              );
-            })}
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={cn(
+                          'h-2.5 w-2.5 shrink-0 rounded-full',
+                          isActive ? 'bg-brand-500' : 'bg-[#c9c3b5]'
+                        )}
+                      />
+                      <span className="truncate">{route.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
 

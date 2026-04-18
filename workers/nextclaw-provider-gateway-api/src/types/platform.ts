@@ -328,16 +328,15 @@ export type ChargeResult =
   };
 
 export type AdminMarketplaceSkillPublishStatus = "pending" | "published" | "rejected" | "all";
-
 export type AdminMarketplaceSkillReviewStatus = "published" | "rejected";
-
+export type OwnerMarketplaceSkillVisibility = "public" | "hidden";
+export type OwnerMarketplaceSkillManageAction = "hide" | "show" | "delete";
 export type MarketplaceSkillInstallView = {
   kind: string;
   spec: string;
   command?: string;
   sourceUrl?: string;
 };
-
 export type MarketplaceSkillFileView = {
   path: string;
   sha256: string;
@@ -345,13 +344,11 @@ export type MarketplaceSkillFileView = {
   updatedAt: string;
   downloadPath?: string;
 };
-
 export type AdminMarketplaceSkillCountsView = {
   pending: number;
   published: number;
   rejected: number;
 };
-
 export type AdminMarketplaceSkillSummaryView = {
   id: string;
   slug: string;
@@ -369,7 +366,6 @@ export type AdminMarketplaceSkillSummaryView = {
   publishedAt: string;
   updatedAt: string;
 };
-
 export type AdminMarketplaceSkillDetailView = AdminMarketplaceSkillSummaryView & {
   summaryI18n: Record<string, string>;
   description?: string;
@@ -378,7 +374,6 @@ export type AdminMarketplaceSkillDetailView = AdminMarketplaceSkillSummaryView &
   homepage?: string;
   install: MarketplaceSkillInstallView;
 };
-
 export type AdminMarketplaceSkillListView = {
   counts: AdminMarketplaceSkillCountsView;
   total: number;
@@ -389,14 +384,45 @@ export type AdminMarketplaceSkillListView = {
   query?: string;
   items: AdminMarketplaceSkillSummaryView[];
 };
-
 export type AdminMarketplaceSkillDetailPayload = {
   item: AdminMarketplaceSkillDetailView;
   files: MarketplaceSkillFileView[];
   skillMarkdownRaw?: string;
   marketplaceJsonRaw?: string;
 };
-
+export type OwnerMarketplaceSkillSummaryView = {
+  id: string;
+  slug: string;
+  packageName: string;
+  ownerScope: string;
+  skillName: string;
+  name: string;
+  summary: string;
+  author: string;
+  tags: string[];
+  publishStatus: Exclude<AdminMarketplaceSkillPublishStatus, "all">;
+  publishedByType: "admin" | "user";
+  ownerVisibility: OwnerMarketplaceSkillVisibility;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+  updatedAt: string;
+};
+export type OwnerMarketplaceSkillDetailView = OwnerMarketplaceSkillSummaryView & {
+  summaryI18n: Record<string, string>;
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  install: MarketplaceSkillInstallView;
+  canShow: boolean;
+  canHide: boolean;
+  canDelete: boolean;
+};
+export type OwnerMarketplaceSkillListView = {
+  total: number;
+  items: OwnerMarketplaceSkillSummaryView[];
+};
 export type CursorPayload = {
   createdAt: string;
   id: string;

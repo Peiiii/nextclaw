@@ -8,6 +8,12 @@ import {
   type MarketplaceAdminSkillListQuery
 } from "./skills/d1-marketplace-skill-admin-support";
 import {
+  D1MarketplaceSkillOwnerSupport,
+  type MarketplaceOwnerSkillDetail,
+  type MarketplaceOwnerSkillListQuery,
+  type MarketplaceOwnerSkillManageInput
+} from "./skills/d1-marketplace-skill-owner-support";
+import {
   assertExistingSkillOwnership,
   parseSkillReviewInput,
   parseSkillUpsertInput,
@@ -29,6 +35,7 @@ type SkillUpsertContext = { existing: ExistingSkillRow | null; itemId: string; p
 export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSourceBase {
   private readonly fileStore: MarketplaceSkillFileStore;
   private readonly adminSupport: D1MarketplaceSkillAdminSupport;
+  private readonly ownerSupport: D1MarketplaceSkillOwnerSupport;
   constructor(db: D1Database, filesBucket: R2Bucket) {
     super(db);
     this.fileStore = new MarketplaceSkillFileStore(db, filesBucket, (raw, path) => this.decodeBase64(raw, path), (bytes) => this.sha256Hex(bytes));
@@ -41,6 +48,15 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       mapInstall: (type, kind, spec, command, slug) => this.mapInstall(type, kind, spec, command, slug) as MarketplaceSkillInstallSpec,
       readSkillPublishStatus: this.readSkillPublishStatus,
       readSkillPublishedByType: this.readSkillPublishedByType
+    });
+    this.ownerSupport = new D1MarketplaceSkillOwnerSupport({
+      db,
+      mapInstall: (type, kind, spec, command, slug) => this.mapInstall(type, kind, spec, command, slug) as MarketplaceSkillInstallSpec,
+      parseStringArray: this.parseStringArray,
+      parseLocalizedMap: this.parseLocalizedMap,
+      readSkillPublishStatus: this.readSkillPublishStatus,
+      readSkillPublishedByType: this.readSkillPublishedByType,
+      readSkillOwnerVisibility: this.readSkillOwnerVisibility
     });
   }
 
@@ -64,6 +80,9 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
           slug,
           package_name,
           owner_scope,
+          owner_user_id,
+          owner_visibility,
+          owner_deleted_at,
           skill_name,
           publish_status,
           published_by_type,
@@ -83,6 +102,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
           updated_at
         FROM marketplace_skill_items
         WHERE publish_status = 'published'
+          AND COALESCE(owner_visibility, 'public') = 'public'
+          AND owner_deleted_at IS NULL
       `)
       .all<ItemRow>();
 
@@ -129,6 +150,18 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
 
   getAdminSkillDetail = async (selector: string) => {
     return await this.adminSupport.getAdminSkillDetail(selector);
+  };
+
+  listOwnerSkills = async (query: MarketplaceOwnerSkillListQuery) => {
+    return await this.ownerSupport.listOwnerSkills(query);
+  };
+
+  getOwnerSkillDetail = async (selector: string, ownerUserId: string) => {
+    return await this.ownerSupport.getOwnerSkillDetail(selector, ownerUserId);
+  };
+
+  manageOwnerSkill = async (input: MarketplaceOwnerSkillManageInput): Promise<MarketplaceOwnerSkillDetail> => {
+    return await this.ownerSupport.manageOwnerSkill(input);
   };
 
   upsertSkill = async (
@@ -216,11 +249,11 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       .prepare(`
         INSERT INTO marketplace_skill_items (
           id, slug, package_name, owner_user_id, owner_scope, skill_name,
-          publish_status, published_by_type, review_note, reviewed_at,
+          publish_status, published_by_type, owner_visibility, owner_deleted_at, review_note, reviewed_at,
           name, summary, summary_i18n, description, description_i18n,
           tags, author, source_repo, homepage, install_kind, install_spec, install_command,
           published_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(package_name) DO UPDATE SET
           slug = excluded.slug,
           owner_user_id = excluded.owner_user_id,
@@ -228,6 +261,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
           skill_name = excluded.skill_name,
           publish_status = excluded.publish_status,
           published_by_type = excluded.published_by_type,
+          owner_visibility = excluded.owner_visibility,
+          owner_deleted_at = excluded.owner_deleted_at,
           review_note = excluded.review_note,
           reviewed_at = excluded.reviewed_at,
           name = excluded.name,
@@ -253,6 +288,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
         identity.skillName,
         context.publishStatus,
         context.publishedByType,
+        "public",
+        null,
         null,
         null,
         input.name,

@@ -137,6 +137,7 @@ export class D1MarketplaceSkillAdminSupport {
     const counts = await this.countAdminSkillsByStatus();
     const filters: string[] = [];
     const bindings: unknown[] = [];
+    filters.push("owner_deleted_at IS NULL");
     const normalizedQuery = query.q?.trim().toLowerCase();
     if (query.publishStatus !== "all") {
       filters.push("publish_status = ?");
@@ -265,6 +266,7 @@ export class D1MarketplaceSkillAdminSupport {
       .prepare(`
         SELECT publish_status, COUNT(1) AS count
         FROM marketplace_skill_items
+        WHERE owner_deleted_at IS NULL
         GROUP BY publish_status
       `)
       .all<{ publish_status: string | null; count: number | null }>();
@@ -352,6 +354,8 @@ export class D1MarketplaceSkillAdminSupport {
     ];
     if (!options.includeUnpublished) {
       filters.push("publish_status = 'published'");
+      filters.push("COALESCE(owner_visibility, 'public') = 'public'");
+      filters.push("owner_deleted_at IS NULL");
     }
     const row = await this.dependencies.db
       .prepare(`
@@ -360,6 +364,9 @@ export class D1MarketplaceSkillAdminSupport {
           slug,
           package_name,
           owner_scope,
+          owner_user_id,
+          owner_visibility,
+          owner_deleted_at,
           skill_name,
           publish_status,
           published_by_type,

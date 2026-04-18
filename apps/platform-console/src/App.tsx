@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
 import { fetchMe } from '@/api/client';
 import { ConsoleShell } from '@/components/console/console-shell';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -11,54 +12,40 @@ import { SharePage } from '@/pages/SharePage';
 import { UserDashboardPage } from '@/pages/UserDashboardPage';
 import { UserAccountPage } from '@/pages/user-account-page';
 import { getUserConsoleRoutes, resolveUserConsoleRoute } from '@/pages/user-console-navigation';
+import { UserSkillsPage } from '@/pages/user-skills-page';
 import { useAuthStore } from '@/store/auth';
 
-function readAppLocationState(): {
-  shareToken: string | null;
-  pathname: string;
-} {
-  if (typeof window === 'undefined') {
-    return {
-      shareToken: null,
-      pathname: '/'
-    };
+function SharePageRoute(): JSX.Element {
+  const params = useParams<{ grantToken: string }>();
+
+  if (!params.grantToken) {
+    return <Navigate to="/" replace />;
   }
-  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
-  const match = pathname.match(/^\/share\/([^/]+)$/);
-  return {
-    shareToken: match?.[1] ? decodeURIComponent(match[1]) : null,
-    pathname
-  };
+
+  return <SharePage grantToken={params.grantToken} />;
 }
 
-export default function App(): JSX.Element {
-  const { shareToken, pathname } = readAppLocationState();
+function ConsoleWorkbench(): JSX.Element {
+  const location = useLocation();
   const locale = useLocaleStore((state) => state.locale);
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
   const t = useMemo(() => createTranslator(locale), [locale]);
-  const routes = getUserConsoleRoutes(t);
-  const currentRoute = resolveUserConsoleRoute(pathname, routes);
-
-  useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.lang = locale;
-    }
-  }, [locale]);
-
-  if (shareToken) {
-    return <SharePage grantToken={shareToken} />;
-  }
+  const routes = useMemo(() => getUserConsoleRoutes(t), [t]);
+  const currentRoute = useMemo(
+    () => resolveUserConsoleRoute(location.pathname, routes),
+    [location.pathname, routes]
+  );
 
   const meQuery = useQuery({
-    queryKey: ['me', token, shareToken],
+    queryKey: ['me', token],
     queryFn: async () => {
       if (!token) {
         throw new Error('No token');
       }
       return await fetchMe(token);
     },
-    enabled: Boolean(token) && !shareToken
+    enabled: Boolean(token)
   });
 
   if (!token) {
@@ -102,13 +89,32 @@ export default function App(): JSX.Element {
           localeSwitcher={<LocaleSwitcher />}
           onLogout={logout}
         >
-          {currentRoute.key === 'account' ? (
-            <UserAccountPage token={token} user={user} t={t} />
-          ) : (
-            <UserDashboardPage token={token} user={user} />
-          )}
+          <Routes>
+            <Route index element={<UserDashboardPage token={token} user={user} />} />
+            <Route path="skills" element={<UserSkillsPage token={token} t={t} />} />
+            <Route path="account" element={<UserAccountPage token={token} user={user} t={t} />} />
+            <Route path="profile" element={<Navigate to="/account" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </ConsoleShell>
       </div>
     </main>
+  );
+}
+
+export default function App(): JSX.Element {
+  const locale = useLocaleStore((state) => state.locale);
+
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = locale;
+    }
+  }, [locale]);
+
+  return (
+    <Routes>
+      <Route path="/share/:grantToken" element={<SharePageRoute />} />
+      <Route path="/*" element={<ConsoleWorkbench />} />
+    </Routes>
   );
 }

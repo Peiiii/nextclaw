@@ -7,6 +7,9 @@
 - 保留真正仍有信息价值的头部元信息：文件定位行列号与 `truncated` 状态标签继续展示，不影响排查和定位。
 - 补充组件测试，明确约束“不要在 workspace header 里重复渲染 preview 类型标签”，同时覆盖标题态保持紧凑、行列号与截断标签仍然保留的行为。
 - 同批次续改将原先“header 里的一整行路径字符串”升级成更接近 VSCode 的 breadcrumb 导航条：现在路径展示被提升为 tab 与正文之间的独立导航层，而不再只是预览组件内部的一段标题文案。
+- 同批次继续收紧 breadcrumb 的垂直节奏，改成更接近 VSCode 的紧凑导航条：
+  - 外层 `padding`、segment 高度、图标尺寸、segment 间距和右侧元信息胶囊都同步下调。
+  - 弱化整块渐变和过强的 chip 感，让 breadcrumb 更像“导航信息层”，而不是第二个内容 header。
 - 根因说明：此前右侧工作区虽然已经支持文件预览和 diff，但文件路径仍然被内嵌在 `ChatSessionWorkspaceFilePreview` 里的 `WorkspaceFileHeader` 单体实现中，既没有“工作区根目录 -> 相对路径 -> 当前文件”的结构化视图模型，也没有可复用的导航条组件，所以很难自然长出 VSCode 风格的路径导航体验。
 - 本次修复没有继续在原 header 上补样式，而是沿着根因重做边界：
   - 新增 `lib/session-project/workspace-file-breadcrumb.ts`，统一负责把绝对路径、相对路径与 `sessionProjectRoot` 收敛成 breadcrumb 视图模型。
@@ -18,9 +21,14 @@
 - 已执行：`pnpm -C packages/nextclaw-ui test -- src/lib/session-project/workspace-file-breadcrumb.test.ts src/components/chat/chat-session-workspace-file-preview.test.tsx src/components/chat/chat-conversation-panel.test.tsx`
   - 结果：通过（3 个测试文件、20 个测试全部通过）。
   - 覆盖点：breadcrumb 视图模型构建、工作区文件预览组件渲染、现有 workspace panel 集成面未回归。
+- 已执行：`pnpm -C packages/nextclaw-ui test -- src/components/chat/chat-session-workspace-file-preview.test.tsx`
+  - 结果：通过（5 个测试全部通过）。
+  - 覆盖点：补充锁定 breadcrumb 紧凑 header 的 `py-1.5` 节奏约束，避免后续再次被撑高。
 - 已执行：`pnpm -C packages/nextclaw-ui tsc`
   - 结果：通过。
 - 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/lib/session-project/workspace-file-breadcrumb.ts src/lib/session-project/workspace-file-breadcrumb.test.ts src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx src/components/chat/chat-session-workspace-file-preview.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx`
+  - 结果：通过。
+- 已执行：`pnpm -C packages/nextclaw-ui exec eslint src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx src/components/chat/chat-session-workspace-file-preview.test.tsx`
   - 结果：通过。
 - 已执行：`pnpm lint:maintainability:guard`
   - 结果：失败，但失败项均来自当前工作区里与本次 breadcrumb 续改无关的并行改动，例如：
@@ -49,6 +57,7 @@
 6. 如果当前文件带有行号定位，确认 breadcrumb 右侧仍会显示类似 `L12:4` 的定位信息。
 7. 如果当前预览被截断，确认 breadcrumb 右侧仍会显示截断提示，而不是把有效元信息一起删掉。
 8. 在顶部 tab 间切换 `preview` 和 `diff` 文件，确认 breadcrumb 与正文内容同步切换，没有出现路径和内容错位。
+9. 观察 breadcrumb 自身高度，确认它更接近一条紧凑导航条，而不是一个较厚的二级 header；segment 与右侧状态胶囊都应明显更薄。
 
 ## 可维护性总结汇总
 - 本次是否已尽最大努力优化可维护性：是。这次不只是补一个视觉条，而是顺手把“路径结构化”和“路径渲染”拆开，并把文件落点重新收敛到更合理的 `lib/session-project/` 与 `components/chat/workspace/`，避免让热点目录继续升温。
@@ -71,7 +80,7 @@
     - 删除：42 行
     - 净增：+244 行
   - no maintainability findings
-  - 可维护性总结：这轮代码净增确实不小，但它主要换来了此前缺失的“路径模型 + 导航层”两个稳定边界，而且已经通过删除旧 header、避免 manager/store 过度建模、以及把文件迁出热点目录把增长压在了当前最小必要范围内。下一步若这个工作区继续演进，优先的继续拆分缝应是把更多文件视图（例如图片、未来的符号级 breadcrumb）也挂到同一条 breadcrumb/view-model 体系上，而不是再各自长新的顶部头部实现。
+  - 可维护性总结：这轮代码净增确实不小，但它主要换来了此前缺失的“路径模型 + 导航层”两个稳定边界，而且已经通过删除旧 header、避免 manager/store 过度建模、以及把文件迁出热点目录把增长压在了当前最小必要范围内。最新这次紧凑化续改则保持在原边界内，只调整样式密度和组件测试，没有再新增新的状态层或并行头部实现。下一步若这个工作区继续演进，优先的继续拆分缝应是把更多文件视图（例如图片、未来的符号级 breadcrumb）也挂到同一条 breadcrumb/view-model 体系上，而不是再各自长新的顶部头部实现。
 
 ## NPM 包发布记录
 - 本次是否需要发包：不需要。
