@@ -188,6 +188,8 @@ description: Use when a bug spans multiple hops, layers, runtimes, transports, o
 - 配置问题：对比加载时快照与保存后快照
 - prompt / skill 可见性问题：对比可用 skills 快照与实际请求里带上的 skill 选择
 
+如果这轮排查会跨多次对话、长时间等待或有明显上下文压缩风险，配合 `iteration-work-notes` 一起使用，把当前事实、证据、已排除项、关键决策与下一步写进对应迭代目录下的 `work/working-notes.md`。
+
 ## 反模式
 
 - 没有稳定复现就直接改代码

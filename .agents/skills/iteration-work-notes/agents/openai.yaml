@@ -1,0 +1,7 @@
+interface:
+  display_name: "迭代工作笔记"
+  short_description: "用 work/ 工作笔记保护复杂任务和复杂 debug 的上下文连续性"
+  default_prompt: "使用 $iteration-work-notes 为当前复杂任务建立或更新对应迭代目录下的 work/working-notes.md，整理当前事实、证据、活跃假设、已排除项、关键决策、下一步和剩余缺口。"
+
+policy:
+  allow_implicit_invocation: true
