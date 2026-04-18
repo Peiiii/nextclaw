@@ -8,7 +8,6 @@ let subscribeHandler:
     type: 'channel.config.apply-status';
     payload: {
       channel: string;
-      applyId: string;
       status: 'started' | 'succeeded' | 'failed';
       message?: string;
     };
@@ -115,7 +114,6 @@ describe('ChannelForm', () => {
         type: 'channel.config.apply-status',
         payload: {
           channel: 'weixin',
-          applyId: 'apply-1',
           status: 'started'
         }
       });
@@ -127,7 +125,6 @@ describe('ChannelForm', () => {
         type: 'channel.config.apply-status',
         payload: {
           channel: 'weixin',
-          applyId: 'apply-1',
           status: 'succeeded'
         }
       });
@@ -139,28 +136,6 @@ describe('ChannelForm', () => {
         type: 'channel.config.apply-status',
         payload: {
           channel: 'weixin',
-          applyId: 'apply-2',
-          status: 'started'
-        }
-      });
-      subscribeHandler?.({
-        type: 'channel.config.apply-status',
-        payload: {
-          channel: 'weixin',
-          applyId: 'apply-1',
-          status: 'failed',
-          message: 'stale failure'
-        }
-      });
-    });
-    expect(screen.queryByText(/stale failure/i)).toBeNull();
-
-    await act(async () => {
-      subscribeHandler?.({
-        type: 'channel.config.apply-status',
-        payload: {
-          channel: 'weixin',
-          applyId: 'apply-2',
           status: 'failed',
           message: 'boom'
         }

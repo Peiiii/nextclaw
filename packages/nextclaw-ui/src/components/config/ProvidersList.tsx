@@ -1,41 +1,44 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useConfig, useConfigMeta, useConfigSchema, useCreateProvider } from '@/hooks/useConfig';
-import { Search, KeyRound, Plus } from 'lucide-react';
-import { ProviderForm } from './ProviderForm';
-import { cn } from '@/lib/utils';
-import { Tabs } from '@/components/ui/tabs-custom';
-import { LogoBadge } from '@/components/common/LogoBadge';
-import { hintForPath } from '@/lib/config-hints';
-import { StatusDot } from '@/components/ui/status-dot';
-import { t } from '@/lib/i18n';
-import { PageLayout, PageHeader } from '@/components/layout/page-layout';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { CONFIG_SIDEBAR_CARD_CLASS, CONFIG_SPLIT_GRID_CLASS } from './config-layout';
+import { useEffect, useMemo, useState } from "react";
+import { KeyRound, Plus, Search } from "lucide-react";
+import { useConfig, useConfigMeta, useConfigSchema, useCreateProvider } from "@/hooks/useConfig";
+import { LogoBadge } from "@/components/common/LogoBadge";
+import { PageHeader, PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs } from "@/components/ui/tabs-custom";
+import { StatusDot } from "@/components/ui/status-dot";
+import { hintForPath } from "@/lib/config-hints";
+import { t } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { ProviderForm } from "./ProviderForm";
+import {
+  ConfigSelectionCard,
+  ConfigSplitEmptyState,
+  ConfigSplitPage,
+  ConfigSplitPaneBody,
+  ConfigSplitPaneHeader,
+  ConfigSplitSidebar,
+} from "./config-split-page";
 
-function formatBasePreview(base?: string | null): string | null {
+function formatBasePreview(base?: string | null) {
   if (!base) {
     return null;
   }
   try {
     const parsed = new URL(base);
-    const path = parsed.pathname && parsed.pathname !== '/' ? parsed.pathname : '';
-    return `${parsed.host}${path}`;
+    return `${parsed.host}${parsed.pathname && parsed.pathname !== "/" ? parsed.pathname : ""}`;
   } catch {
-    return base.replace(/^https?:\/\//, '');
+    return base.replace(/^https?:\/\//, "");
   }
 }
 
-function sortProvidersForDisplay<T extends { name: string }>(providers: T[]): T[] {
+function sortProvidersForDisplay<T extends { name: string }>(providers: T[]) {
   return providers
     .map((provider, index) => ({ provider, index }))
     .sort((left, right) => {
-      const leftPriority = left.provider.name === 'nextclaw' ? 1 : 0;
-      const rightPriority = right.provider.name === 'nextclaw' ? 1 : 0;
-      if (leftPriority !== rightPriority) {
-        return leftPriority - rightPriority;
-      }
-      return left.index - right.index;
+      const leftPriority = left.provider.name === "nextclaw" ? 1 : 0;
+      const rightPriority = right.provider.name === "nextclaw" ? 1 : 0;
+      return leftPriority !== rightPriority ? leftPriority - rightPriority : left.index - right.index;
     })
     .map(({ provider }) => provider);
 }
@@ -45,130 +48,109 @@ export function ProvidersList() {
   const { data: meta } = useConfigMeta();
   const { data: schema } = useConfigSchema();
   const createProvider = useCreateProvider();
-
-  const [activeTab, setActiveTab] = useState('installed');
-  const [selectedProvider, setSelectedProvider] = useState<string | undefined>();
-  const [query, setQuery] = useState('');
-
-  const uiHints = schema?.uiHints;
+  const [activeTab, setActiveTab] = useState("installed");
+  const [selectedProvider, setSelectedProvider] = useState<string>();
+  const [query, setQuery] = useState("");
   const providers = useMemo(() => sortProvidersForDisplay(meta?.providers ?? []), [meta?.providers]);
   const providersConfig = config?.providers ?? {};
-  const configuredCount = providers.filter((provider) => {
-    const current = providersConfig[provider.name];
-    return current?.enabled !== false && current?.apiKeySet;
-  }).length;
-
-  const tabs = [
-    { id: 'installed', label: t('providersTabConfigured'), count: configuredCount },
-    { id: 'all', label: t('providersTabAll'), count: providers.length }
-  ];
 
   const filteredProviders = useMemo(() => {
-    const baseProviders = providers;
-    const baseConfig = config?.providers ?? {};
     const keyword = query.trim().toLowerCase();
-    return baseProviders
-      .filter((provider) => {
-        if (activeTab === 'installed') {
-          const current = baseConfig[provider.name];
-          return Boolean(current?.enabled !== false && current?.apiKeySet);
-        }
-        return true;
-      })
+    return providers
+      .filter((provider) =>
+        activeTab !== "installed" || Boolean(providersConfig[provider.name]?.enabled !== false && providersConfig[provider.name]?.apiKeySet),
+      )
       .filter((provider) => {
         if (!keyword) {
           return true;
         }
-        const configDisplayName = baseConfig[provider.name]?.displayName?.trim();
-        const display = (configDisplayName || provider.displayName || provider.name).toLowerCase();
-        return display.includes(keyword) || provider.name.toLowerCase().includes(keyword);
+        const display =
+          providersConfig[provider.name]?.displayName?.trim() || provider.displayName || provider.name;
+        return display.toLowerCase().includes(keyword) || provider.name.toLowerCase().includes(keyword);
       });
-  }, [providers, config, activeTab, query]);
+  }, [activeTab, providers, providersConfig, query]);
 
   useEffect(() => {
-    if (filteredProviders.length === 0) {
-      setSelectedProvider(undefined);
-      return;
-    }
-
-    const exists = filteredProviders.some((provider) => provider.name === selectedProvider);
-    if (!exists) {
-      setSelectedProvider(filteredProviders[0].name);
-    }
+    setSelectedProvider(
+      filteredProviders.some((provider) => provider.name === selectedProvider)
+        ? selectedProvider
+        : filteredProviders[0]?.name,
+    );
   }, [filteredProviders, selectedProvider]);
 
-  const selectedName = selectedProvider;
-
-  const handleCreateCustomProvider = async () => {
-    try {
-      const result = await createProvider.mutateAsync({ data: {} });
-      setActiveTab('all');
-      setQuery('');
-      setSelectedProvider(result.name);
-    } catch {
-      // toast handled in hook
-    }
-  };
-
   if (!config || !meta) {
-    return <div className="p-8">{t('providersLoading')}</div>;
+    return <div className="p-8">{t("providersLoading")}</div>;
   }
 
   return (
-    <PageLayout>
-      <PageHeader title={t('providersPageTitle')} description={t('providersPageDescription')} />
-
-      <div className={CONFIG_SPLIT_GRID_CLASS}>
-        <section className={CONFIG_SIDEBAR_CARD_CLASS}>
-          <div className="border-b border-gray-100 px-4 pt-4 pb-3 space-y-3">
-            <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-0" />
+    <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
+      <PageHeader title={t("providersPageTitle")} description={t("providersPageDescription")} />
+      <ConfigSplitPage className="xl:min-h-0">
+        <ConfigSplitSidebar>
+          <ConfigSplitPaneHeader className="space-y-3 px-4 pb-3 pt-4">
+            <Tabs
+              tabs={[
+                {
+                  id: "installed",
+                  label: t("providersTabConfigured"),
+                  count: providers.filter((provider) => providersConfig[provider.name]?.enabled !== false && providersConfig[provider.name]?.apiKeySet).length,
+                },
+                { id: "all", label: t("providersTabAll"), count: providers.length },
+              ]}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              className="mb-0"
+            />
             <Button
               type="button"
               variant="outline"
               className="w-full justify-center"
-              onClick={handleCreateCustomProvider}
+              onClick={async () => {
+                try {
+                  const result = await createProvider.mutateAsync({ data: {} });
+                  setActiveTab("all");
+                  setQuery("");
+                  setSelectedProvider(result.name);
+                } catch {
+                  // toast handled in hook
+                }
+              }}
               disabled={createProvider.isPending}
             >
               <Plus className="mr-2 h-4 w-4" />
-              {createProvider.isPending ? t('saving') : t('providerAddCustom')}
+              {createProvider.isPending ? t("saving") : t("providerAddCustom")}
             </Button>
-          </div>
+          </ConfigSplitPaneHeader>
 
           <div className="border-b border-gray-100 px-4 py-3">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('providersFilterPlaceholder')}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("providersFilterPlaceholder")}
                 className="h-10 rounded-xl pl-9"
               />
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
+          <ConfigSplitPaneBody className="space-y-2 p-3">
             {filteredProviders.map((provider) => {
-              const providerConfig = config.providers[provider.name];
+              const providerConfig = providersConfig[provider.name];
               const isEnabled = providerConfig?.enabled !== false;
               const isReady = Boolean(isEnabled && providerConfig?.apiKeySet);
-              const isActive = selectedName === provider.name;
-              const providerLabel = providerConfig?.displayName?.trim() || provider.displayName || provider.name;
-              const providerHint = hintForPath(`providers.${provider.name}`, uiHints);
-              const resolvedBase = providerConfig?.apiBase || provider.defaultApiBase || '';
-              const basePreview = formatBasePreview(resolvedBase);
-              const description = basePreview || providerHint?.help || t('providersDefaultDescription');
+              const providerLabel =
+                providerConfig?.displayName?.trim() || provider.displayName || provider.name;
+              const description =
+                formatBasePreview(providerConfig?.apiBase || provider.defaultApiBase || "") ||
+                hintForPath(`providers.${provider.name}`, schema?.uiHints)?.help ||
+                t("providersDefaultDescription");
 
               return (
-                <button
+                <ConfigSelectionCard
                   key={provider.name}
-                  type="button"
                   onClick={() => setSelectedProvider(provider.name)}
-                  className={cn(
-                    'w-full rounded-xl border p-2.5 text-left transition-all',
-                    isActive
-                      ? 'border-primary/30 bg-primary-50/40 shadow-sm'
-                      : 'border-gray-200/70 bg-white hover:border-gray-300 hover:bg-gray-50/70'
-                  )}
+                  active={selectedProvider === provider.name}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
@@ -176,8 +158,8 @@ export function ProvidersList() {
                         name={provider.name}
                         src={provider.logo ? `/logos/${provider.logo}` : null}
                         className={cn(
-                          'h-10 w-10 rounded-lg border',
-                          isReady ? 'border-primary/30 bg-white' : 'border-gray-200/70 bg-white'
+                          "h-10 w-10 rounded-lg border",
+                          isReady ? "border-primary/30 bg-white" : "border-gray-200/70 bg-white",
                         )}
                         imgClassName="h-5 w-5 object-contain"
                         fallback={<span className="text-sm font-semibold uppercase text-gray-500">{provider.name[0]}</span>}
@@ -188,35 +170,30 @@ export function ProvidersList() {
                       </div>
                     </div>
                     <StatusDot
-                      status={isEnabled ? (isReady ? 'ready' : 'setup') : 'inactive'}
-                      label={isEnabled ? (isReady ? t('statusReady') : t('statusSetup')) : t('disabled')}
+                      status={isEnabled ? (isReady ? "ready" : "setup") : "inactive"}
+                      label={isEnabled ? (isReady ? t("statusReady") : t("statusSetup")) : t("disabled")}
                       className="min-w-[56px] justify-center"
                     />
                   </div>
-                </button>
+                </ConfigSelectionCard>
               );
             })}
 
-            {filteredProviders.length === 0 && (
-              <div className="flex h-full min-h-[220px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50/70 py-10 text-center">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-white">
-                  <KeyRound className="h-5 w-5 text-gray-300" />
-                </div>
-                <p className="text-sm font-medium text-gray-700">{t('providersNoMatch')}</p>
-              </div>
-            )}
-          </div>
-        </section>
+            {filteredProviders.length === 0 ? (
+              <ConfigSplitEmptyState icon={KeyRound} title={t("providersNoMatch")} />
+            ) : null}
+          </ConfigSplitPaneBody>
+        </ConfigSplitSidebar>
 
         <ProviderForm
-          providerName={selectedName}
+          providerName={selectedProvider}
           onProviderDeleted={(deletedProvider) => {
             if (deletedProvider === selectedProvider) {
               setSelectedProvider(undefined);
             }
           }}
         />
-      </div>
+      </ConfigSplitPage>
     </PageLayout>
   );
 }

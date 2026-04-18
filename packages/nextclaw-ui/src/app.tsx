@@ -228,9 +228,7 @@ function ProtectedApp() {
   return (
     <AppPresenterProvider>
       <AppLayout>
-        <div className="h-full w-full">
-          <ProtectedRoutes />
-        </div>
+        <ProtectedRoutes />
       </AppLayout>
       <AccountPanel />
     </AppPresenterProvider>

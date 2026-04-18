@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { CircleDotDashed, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   useConfig,
   useConfigMeta,
@@ -11,16 +13,20 @@ import {
   useTestProviderConnection,
   useUpdateProvider
 } from '@/hooks/useConfig';
+import { MaskedInput } from '@/components/common/MaskedInput';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MaskedInput } from '@/components/common/MaskedInput';
-import { getLanguage, t } from '@/lib/i18n';
 import { hintForPath } from '@/lib/config-hints';
+import { getLanguage, t } from '@/lib/i18n';
 import type { ProviderConfigUpdate, ProviderConnectionTestRequest, ThinkingLevel } from '@/api/types';
-import { CircleDotDashed, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
-import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS } from './config-layout';
+import {
+  ConfigSplitDetailPane,
+  ConfigSplitEmptyPane,
+  ConfigSplitPaneBody,
+  ConfigSplitPaneFooter,
+  ConfigSplitPaneHeader
+} from './config-split-page';
 import { ProviderAdvancedSettingsSection } from './provider-advanced-settings-section';
 import { ProviderAuthSection } from './provider-auth-section';
 import { ProviderEnabledField } from './provider-enabled-field';
@@ -86,7 +92,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const resolvedProviderConfig = providerConfig ?? EMPTY_PROVIDER_CONFIG;
   const uiHints = schema?.uiHints;
   const isCustomProvider = Boolean(providerSpec?.isCustom);
-
   const apiKeyHint = providerName ? hintForPath(`providers.${providerName}.apiKey`, uiHints) : undefined;
   const apiBaseHint = providerName ? hintForPath(`providers.${providerName}.apiBase`, uiHints) : undefined;
   const extraHeadersHint = providerName ? hintForPath(`providers.${providerName}.extraHeaders`, uiHints) : undefined;
@@ -95,12 +100,10 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   const currentDisplayName = (resolvedProviderConfig.displayName || '').trim();
   const effectiveDisplayName = currentDisplayName || defaultDisplayName;
   const currentEnabled = resolvedProviderConfig.enabled !== false;
-
   const providerTitle = providerDisplayName.trim() || effectiveDisplayName || providerName || t('providersSelectPlaceholder');
-  const providerModelPrefix = providerSpec?.modelPrefix || providerName || '';
   const providerModelAliases = useMemo(
-    () => normalizeModelList([providerModelPrefix, providerName || '']),
-    [providerModelPrefix, providerName]
+    () => normalizeModelList([providerSpec?.modelPrefix || providerName || '', providerName || '']),
+    [providerName, providerSpec?.modelPrefix]
   );
   const defaultApiBase = providerSpec?.defaultApiBase || '';
   const currentApiBase = resolvedProviderConfig.apiBase || defaultApiBase;
@@ -120,10 +123,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       ),
     [resolvedProviderConfig.models, providerModelAliases]
   );
-  const currentEditableModels = useMemo(
-    () => resolveEditableModels(defaultModels, currentModels),
-    [defaultModels, currentModels]
-  );
+  const currentEditableModels = useMemo(() => resolveEditableModels(defaultModels, currentModels), [defaultModels, currentModels]);
   const currentModelThinking = useMemo(
     () =>
       normalizeModelThinkingForModels(
@@ -134,15 +134,9 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   );
   const language = getLanguage();
   const apiBaseHelpText =
-    providerSpec?.apiBaseHelp?.[language] ||
-    providerSpec?.apiBaseHelp?.en ||
-    apiBaseHint?.help ||
-    t('providerApiBaseHelp');
+    providerSpec?.apiBaseHelp?.[language] || providerSpec?.apiBaseHelp?.en || apiBaseHint?.help || t('providerApiBaseHelp');
   const providerAuth = providerSpec?.auth;
-  const providerAuthMethods = useMemo(
-    () => providerAuth?.methods ?? [],
-    [providerAuth?.methods]
-  );
+  const providerAuthMethods = providerAuth?.methods ?? [];
   const supportsWireApi = Boolean(providerSpec?.supportsWireApi) || isCustomProvider;
   const providerAuthMethodOptions = useMemo(
     () =>
@@ -153,12 +147,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     [providerAuthMethods, language]
   );
   const preferredAuthMethodId = useMemo(
-    () => resolvePreferredAuthMethodId({
-      providerName,
-      methods: providerAuthMethods,
-      defaultMethodId: providerAuth?.defaultMethodId,
-      language
-    }),
+    () => resolvePreferredAuthMethodId({ providerName, methods: providerAuthMethods, defaultMethodId: providerAuth?.defaultMethodId, language }),
     [providerName, providerAuth?.defaultMethodId, providerAuthMethods, language]
   );
   const resolvedAuthMethodId = useMemo(() => {
@@ -180,8 +169,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     hasDefault: Boolean(providerAuth?.defaultMethodId?.trim()),
     optionCount: providerAuthMethods.length
   });
-  const wireApiOptions = providerSpec?.wireApiOptions || ['auto', 'chat', 'responses'];
-  const wireApiSelectOptions: PillSelectOption[] = wireApiOptions.map((option) => ({
+  const wireApiSelectOptions: PillSelectOption[] = (providerSpec?.wireApiOptions || ['auto', 'chat', 'responses']).map((option) => ({
     value: option,
     label: option === 'chat' ? t('wireApiChat') : option === 'responses' ? t('wireApiResponses') : t('wireApiAuto')
   }));
@@ -198,46 +186,46 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
   }, []);
 
-  const scheduleProviderAuthPoll = useCallback((sessionId: string, delayMs: number) => {
-    clearAuthPollTimer();
-    authPollTimerRef.current = window.setTimeout(() => {
-      void (async () => {
-        if (!providerName) {
-          return;
-        }
-        try {
-          const result = await pollProviderAuth.mutateAsync({
-            provider: providerName,
-            data: { sessionId }
-          });
-          if (result.status === 'pending') {
-            setAuthStatusMessage(t('providerAuthWaitingBrowser'));
-            scheduleProviderAuthPoll(sessionId, result.nextPollMs ?? delayMs);
+  const scheduleProviderAuthPoll = useCallback(
+    (sessionId: string, delayMs: number) => {
+      clearAuthPollTimer();
+      authPollTimerRef.current = window.setTimeout(() => {
+        void (async () => {
+          if (!providerName) {
             return;
           }
-          if (result.status === 'authorized') {
+          try {
+            const result = await pollProviderAuth.mutateAsync({ provider: providerName, data: { sessionId } });
+            if (result.status === 'pending') {
+              setAuthStatusMessage(t('providerAuthWaitingBrowser'));
+              scheduleProviderAuthPoll(sessionId, result.nextPollMs ?? delayMs);
+              return;
+            }
+            if (result.status === 'authorized') {
+              setAuthSessionId(null);
+              clearAuthPollTimer();
+              setAuthStatusMessage(t('providerAuthCompleted'));
+              toast.success(t('providerAuthCompleted'));
+              queryClient.invalidateQueries({ queryKey: ['config'] });
+              queryClient.invalidateQueries({ queryKey: ['config-meta'] });
+              return;
+            }
             setAuthSessionId(null);
             clearAuthPollTimer();
-            setAuthStatusMessage(t('providerAuthCompleted'));
-            toast.success(t('providerAuthCompleted'));
-            queryClient.invalidateQueries({ queryKey: ['config'] });
-            queryClient.invalidateQueries({ queryKey: ['config-meta'] });
-            return;
+            setAuthStatusMessage(result.message || `Authorization ${result.status}.`);
+            toast.error(result.message || `Authorization ${result.status}.`);
+          } catch (error) {
+            setAuthSessionId(null);
+            clearAuthPollTimer();
+            const message = error instanceof Error ? error.message : String(error);
+            setAuthStatusMessage(message);
+            toast.error(`Authorization failed: ${message}`);
           }
-          setAuthSessionId(null);
-          clearAuthPollTimer();
-          setAuthStatusMessage(result.message || `Authorization ${result.status}.`);
-          toast.error(result.message || `Authorization ${result.status}.`);
-        } catch (error) {
-          setAuthSessionId(null);
-          clearAuthPollTimer();
-          const message = error instanceof Error ? error.message : String(error);
-          setAuthStatusMessage(message);
-          toast.error(`Authorization failed: ${message}`);
-        }
-      })();
-    }, Math.max(1000, delayMs));
-  }, [clearAuthPollTimer, pollProviderAuth, providerName, queryClient]);
+        })();
+      }, Math.max(1000, delayMs));
+    },
+    [clearAuthPollTimer, pollProviderAuth, providerName, queryClient]
+  );
 
   useEffect(() => {
     if (!providerName) {
@@ -284,40 +272,24 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
   ]);
 
   useEffect(() => () => clearAuthPollTimer(), [clearAuthPollTimer]);
-
-  useEffect(() => {
-    setModelThinking((prev) => normalizeModelThinkingForModels(prev, models));
-  }, [models]);
+  useEffect(() => setModelThinking((prev) => normalizeModelThinkingForModels(prev, models)), [models]);
 
   const hasChanges = useMemo(() => {
     if (!providerName) {
       return false;
     }
-    const apiKeyChanged = apiKey.trim().length > 0;
-    const apiBaseChanged = apiBase.trim() !== currentApiBase.trim();
-    const headersChanged = !headersEqual(extraHeaders, currentHeaders);
-    const wireApiChanged = supportsWireApi ? wireApi !== currentWireApi : false;
-    const modelsChanged = !modelListsEqual(models, currentEditableModels);
-    const modelThinkingChanged = !modelThinkingEqual(modelThinking, currentModelThinking);
-    const displayNameChanged = isCustomProvider
-      ? providerDisplayName.trim() !== effectiveDisplayName
-      : false;
-
     return (
-      apiKeyChanged ||
+      apiKey.trim().length > 0 ||
       enabled !== currentEnabled ||
-      apiBaseChanged ||
-      headersChanged ||
-      wireApiChanged ||
-      modelsChanged ||
-      modelThinkingChanged ||
-      displayNameChanged
+      apiBase.trim() !== currentApiBase.trim() ||
+      !headersEqual(extraHeaders, currentHeaders) ||
+      (supportsWireApi && wireApi !== currentWireApi) ||
+      !modelListsEqual(models, currentEditableModels) ||
+      !modelThinkingEqual(modelThinking, currentModelThinking) ||
+      (isCustomProvider && providerDisplayName.trim() !== effectiveDisplayName)
     );
   }, [
     providerName,
-    isCustomProvider,
-    providerDisplayName,
-    effectiveDisplayName,
     apiKey,
     enabled,
     currentEnabled,
@@ -331,7 +303,10 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     models,
     currentEditableModels,
     modelThinking,
-    currentModelThinking
+    currentModelThinking,
+    isCustomProvider,
+    providerDisplayName,
+    effectiveDisplayName
   ]);
 
   const handleAddModel = () => {
@@ -379,16 +354,13 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       }
       return {
         ...prev,
-        [modelName]: level
-          ? { supported: currentEntry.supported, default: level }
-          : { supported: currentEntry.supported }
+        [modelName]: level ? { supported: currentEntry.supported, default: level } : { supported: currentEntry.supported }
       };
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!providerName) {
       return;
     }
@@ -402,20 +374,16 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     if (isCustomProvider && trimmedDisplayName !== effectiveDisplayName) {
       payload.displayName = trimmedDisplayName.length > 0 ? trimmedDisplayName : null;
     }
-
     if (trimmedApiKey.length > 0) {
       payload.apiKey = trimmedApiKey;
     }
     applyEnabledPatch(payload, enabled, currentEnabled);
-
     if (trimmedApiBase !== currentApiBase.trim()) {
       payload.apiBase = trimmedApiBase.length > 0 && trimmedApiBase !== defaultApiBase ? trimmedApiBase : null;
     }
-
     if (!headersEqual(normalizedHeaders, currentHeaders)) {
       payload.extraHeaders = normalizedHeaders;
     }
-
     if (supportsWireApi && wireApi !== currentWireApi) {
       payload.wireApi = wireApi;
     }
@@ -433,7 +401,6 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     if (!providerName) {
       return;
     }
-
     const preferredModel = models.find((modelName) => modelName.trim().length > 0) ?? '';
     const testModel = toProviderLocalModelId(preferredModel, providerModelAliases);
     const payload: ProviderConnectionTestRequest = {
@@ -449,10 +416,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     }
 
     try {
-      const result = await testProviderConnection.mutateAsync({
-        provider: providerName,
-        data: payload
-      });
+      const result = await testProviderConnection.mutateAsync({ provider: providerName, data: payload });
       if (result.success) {
         toast.success(`${t('providerTestConnectionSuccess')} (${result.latencyMs}ms)`);
         return;
@@ -472,8 +436,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
     if (!providerName || !isCustomProvider) {
       return;
     }
-    const confirmed = window.confirm(t('providerDeleteConfirm'));
-    if (!confirmed) {
+    if (!window.confirm(t('providerDeleteConfirm'))) {
       return;
     }
     try {
@@ -519,8 +482,7 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
       clearAuthPollTimer();
       setAuthSessionId(null);
       const result = await importProviderAuthFromCli.mutateAsync({ provider: providerName });
-      const expiresText = result.expiresAt ? ` (expires: ${result.expiresAt})` : '';
-      setAuthStatusMessage(`${t('providerAuthImportStatusPrefix')}${expiresText}`);
+      setAuthStatusMessage(`${t('providerAuthImportStatusPrefix')}${result.expiresAt ? ` (expires: ${result.expiresAt})` : ''}`);
       toast.success(t('providerAuthImportSuccess'));
       queryClient.invalidateQueries({ queryKey: ['config'] });
       queryClient.invalidateQueries({ queryKey: ['config-meta'] });
@@ -533,71 +495,71 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
 
   if (!providerName || !providerSpec) {
     return (
-      <div className={CONFIG_EMPTY_DETAIL_CARD_CLASS}>
+      <ConfigSplitEmptyPane>
         <div>
-          <h3 className="text-base font-semibold text-gray-900">{t('providersSelectTitle')}</h3>
-          <p className="mt-2 text-sm text-gray-500">{t('providersSelectDescription')}</p>
+          <h3 className='text-base font-semibold text-gray-900'>{t('providersSelectTitle')}</h3>
+          <p className='mt-2 text-sm text-gray-500'>{t('providersSelectDescription')}</p>
         </div>
-      </div>
+      </ConfigSplitEmptyPane>
     );
   }
 
   return (
-    <div className={CONFIG_DETAIL_CARD_CLASS}>
-      <div className="border-b border-gray-100 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <h3 className="truncate text-lg font-semibold text-gray-900">{providerTitle}</h3>
-          <div className="flex items-center gap-3">
+    <ConfigSplitDetailPane>
+      <ConfigSplitPaneHeader className='px-6 py-4'>
+        <div className='flex items-center justify-between'>
+          <h3 className='truncate text-lg font-semibold text-gray-900'>{providerTitle}</h3>
+          <div className='flex items-center gap-3'>
             {isCustomProvider && (
               <button
-                type="button"
+                type='button'
                 onClick={handleDeleteProvider}
                 disabled={deleteProvider.isPending}
-                className="text-gray-400 hover:text-red-500 transition-colors"
+                className='text-gray-400 transition-colors hover:text-red-500'
                 title={t('providerDelete')}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className='h-4 w-4' />
               </button>
             )}
             <ProviderStatusBadge enabled={currentEnabled} apiKeySet={resolvedProviderConfig.apiKeySet} />
           </div>
         </div>
-      </div>
+      </ConfigSplitPaneHeader>
 
-      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+      <form onSubmit={handleSubmit} className='flex min-h-0 flex-1 flex-col'>
+        <ConfigSplitPaneBody className='space-y-5 px-6 py-5'>
           <ProviderEnabledField enabled={enabled} onChange={setEnabled} />
 
           {isCustomProvider && (
-            <div className="space-y-2">
-              <Label htmlFor="providerDisplayName" className="text-sm font-medium text-gray-900">
+            <div className='space-y-2'>
+              <Label htmlFor='providerDisplayName' className='text-sm font-medium text-gray-900'>
                 {t('providerDisplayName')}
               </Label>
               <Input
-                id="providerDisplayName"
-                type="text"
+                id='providerDisplayName'
+                type='text'
                 value={providerDisplayName}
                 onChange={(e) => setProviderDisplayName(e.target.value)}
                 placeholder={defaultDisplayName || t('providerDisplayNamePlaceholder')}
-                className="rounded-xl"
+                className='rounded-xl'
               />
-              <p className="text-xs text-gray-500">{t('providerDisplayNameHelpShort')}</p>
+              <p className='text-xs text-gray-500'>{t('providerDisplayNameHelpShort')}</p>
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="apiKey" className="text-sm font-medium text-gray-900">
+          <div className='space-y-2'>
+            <Label htmlFor='apiKey' className='text-sm font-medium text-gray-900'>
               {apiKeyHint?.label ?? t('apiKey')}
             </Label>
             <MaskedInput
-              id="apiKey"
+              id='apiKey'
               value={apiKey}
               isSet={resolvedProviderConfig.apiKeySet}
               onChange={(e) => setApiKey(e.target.value)}
               placeholder={apiKeyHint?.placeholder ?? t('enterApiKey')}
-              className="rounded-xl"
+              className='rounded-xl'
             />
-            <p className="text-xs text-gray-500">{t('leaveBlankToKeepUnchanged')}</p>
+            <p className='text-xs text-gray-500'>{t('leaveBlankToKeepUnchanged')}</p>
           </div>
 
           <ProviderAuthSection
@@ -617,19 +579,19 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             authStatusMessage={authStatusMessage}
           />
 
-          <div className="space-y-2">
-            <Label htmlFor="apiBase" className="text-sm font-medium text-gray-900">
+          <div className='space-y-2'>
+            <Label htmlFor='apiBase' className='text-sm font-medium text-gray-900'>
               {apiBaseHint?.label ?? t('apiBase')}
             </Label>
             <Input
-              id="apiBase"
-              type="text"
+              id='apiBase'
+              type='text'
               value={apiBase}
               onChange={(e) => setApiBase(e.target.value)}
               placeholder={defaultApiBase || apiBaseHint?.placeholder || 'https://api.example.com'}
-              className="rounded-xl"
+              className='rounded-xl'
             />
-            <p className="text-xs text-gray-500">{apiBaseHelpText}</p>
+            <p className='text-xs text-gray-500'>{apiBaseHelpText}</p>
           </div>
 
           <ProviderModelsSection
@@ -667,18 +629,18 @@ export function ProviderForm({ providerName, onProviderDeleted }: ProviderFormPr
             extraHeaders={extraHeaders}
             onExtraHeadersChange={setExtraHeaders}
           />
-        </div>
+        </ConfigSplitPaneBody>
 
-        <div className="flex items-center justify-between border-t border-gray-100 px-6 py-4">
-          <Button type="button" variant="outline" size="sm" onClick={handleTestConnection} disabled={testProviderConnection.isPending}>
-            <CircleDotDashed className="mr-1.5 h-4 w-4" />
+        <ConfigSplitPaneFooter className='flex items-center justify-between px-6 py-4'>
+          <Button type='button' variant='outline' size='sm' onClick={handleTestConnection} disabled={testProviderConnection.isPending}>
+            <CircleDotDashed className='mr-1.5 h-4 w-4' />
             {testProviderConnection.isPending ? t('providerTestingConnection') : t('providerTestConnection')}
           </Button>
-          <Button type="submit" disabled={updateProvider.isPending || !hasChanges}>
+          <Button type='submit' disabled={updateProvider.isPending || !hasChanges}>
             {updateProvider.isPending ? t('saving') : hasChanges ? t('save') : t('unchanged')}
           </Button>
-        </div>
+        </ConfigSplitPaneFooter>
       </form>
-    </div>
+    </ConfigSplitDetailPane>
   );
 }
