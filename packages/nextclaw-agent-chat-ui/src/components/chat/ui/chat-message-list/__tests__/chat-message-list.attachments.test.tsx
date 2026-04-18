@@ -153,3 +153,114 @@ it("renders archive files with a dedicated archive icon treatment", () => {
   expect(container.querySelector(".lucide-file-archive")).toBeTruthy();
   expect(screen.getByText("Open")).toBeTruthy();
 });
+
+it("renders audio attachments with an inline player instead of only a download card", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-audio",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:11",
+          parts: [
+            {
+              type: "file",
+              file: {
+                label: "voice-note.mp3",
+                mimeType: "audio/mpeg",
+                dataUrl: "/api/ncp/assets/content?uri=asset_audio",
+                sizeBytes: 3 * 1024 * 1024,
+                isImage: false,
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByLabelText("voice-note.mp3").tagName).toBe("AUDIO");
+  expect(container.querySelector("audio source")?.getAttribute("src")).toBe(
+    "/api/ncp/assets/content?uri=asset_audio",
+  );
+  expect(screen.getByText("Audio · 3 MB")).toBeTruthy();
+});
+
+it("renders video attachments with an inline player instead of only a download card", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-video",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:12",
+          parts: [
+            {
+              type: "file",
+              file: {
+                label: "walkthrough.mp4",
+                mimeType: "video/mp4",
+                dataUrl: "/api/ncp/assets/content?uri=asset_video",
+                sizeBytes: 12 * 1024 * 1024,
+                isImage: false,
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByLabelText("walkthrough.mp4").tagName).toBe("VIDEO");
+  expect(container.querySelector("video source")?.getAttribute("src")).toBe(
+    "/api/ncp/assets/content?uri=asset_video",
+  );
+  expect(screen.getByText("Video · 12 MB")).toBeTruthy();
+});
+
+it("renders mp3 attachments as audio even when mimeType falls back to octet-stream", () => {
+  const { container } = render(
+    <ChatMessageList
+      messages={[
+        {
+          id: "assistant-audio-by-extension",
+          role: "assistant",
+          roleLabel: "Assistant",
+          timestampLabel: "10:13",
+          parts: [
+            {
+              type: "file",
+              file: {
+                label: "chill_beats.mp3",
+                mimeType: "application/octet-stream",
+                dataUrl: "/api/ncp/assets/content?uri=asset_audio_generic",
+                sizeBytes: 3.1 * 1024 * 1024,
+                isImage: false,
+              },
+            },
+          ],
+        },
+      ]}
+      isSending={false}
+      hasAssistantDraft={false}
+      texts={defaultTexts}
+    />,
+  );
+
+  expect(screen.getByLabelText("chill_beats.mp3").tagName).toBe("AUDIO");
+  expect(container.querySelector("audio source")?.getAttribute("src")).toBe(
+    "/api/ncp/assets/content?uri=asset_audio_generic",
+  );
+  expect(container.querySelector("audio source")?.getAttribute("type")).toBe(
+    "audio/mpeg",
+  );
+  expect(screen.getByText("Audio · 3.1 MB")).toBeTruthy();
+});

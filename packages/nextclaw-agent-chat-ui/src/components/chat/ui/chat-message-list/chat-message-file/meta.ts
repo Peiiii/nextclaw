@@ -67,6 +67,25 @@ const IMAGE_EXTENSIONS = new Set([
   "tiff",
   "webp",
 ]);
+const AUDIO_EXTENSIONS = new Set([
+  "aac",
+  "flac",
+  "m4a",
+  "mp3",
+  "ogg",
+  "opus",
+  "wav",
+  "weba",
+]);
+const VIDEO_EXTENSIONS = new Set([
+  "avi",
+  "m4v",
+  "mov",
+  "mp4",
+  "mkv",
+  "webm",
+  "wmv",
+]);
 const DOCUMENT_EXTENSIONS = new Set([
   "doc",
   "docx",
@@ -136,6 +155,62 @@ function isImageDataUrl(dataUrl?: string): boolean {
   return typeof dataUrl === "string" && /^data:image\//i.test(dataUrl.trim());
 }
 
+function inferMimeTypeFromExtension(extension: string): string | null {
+  if (IMAGE_EXTENSIONS.has(extension)) {
+    if (extension === "jpg" || extension === "jpeg") {
+      return "image/jpeg";
+    }
+    if (extension === "svg") {
+      return "image/svg+xml";
+    }
+    return `image/${extension}`;
+  }
+  if (AUDIO_EXTENSIONS.has(extension)) {
+    if (extension === "mp3") {
+      return "audio/mpeg";
+    }
+    if (extension === "m4a") {
+      return "audio/mp4";
+    }
+    if (extension === "weba") {
+      return "audio/webm";
+    }
+    return `audio/${extension}`;
+  }
+  if (VIDEO_EXTENSIONS.has(extension)) {
+    if (extension === "mov") {
+      return "video/quicktime";
+    }
+    if (extension === "m4v") {
+      return "video/mp4";
+    }
+    return `video/${extension}`;
+  }
+  if (extension === "pdf") {
+    return "application/pdf";
+  }
+  return null;
+}
+
+export function inferMimeTypeFromFileName(fileName: string): string | null {
+  const extension = readFileExtension(fileName);
+  if (!extension) {
+    return null;
+  }
+  return inferMimeTypeFromExtension(extension);
+}
+
+export function resolveRenderableMimeType(file: ChatMessageFileView): string | null {
+  const normalizedMimeType = file.mimeType.trim().toLowerCase();
+  if (
+    normalizedMimeType.length > 0 &&
+    normalizedMimeType !== "application/octet-stream"
+  ) {
+    return normalizedMimeType;
+  }
+  return inferMimeTypeFromFileName(file.label);
+}
+
 export function isImageFileLike(file: ChatMessageFileView): boolean {
   const normalizedMimeType = file.mimeType.trim().toLowerCase();
   const extension = readFileExtension(file.label);
@@ -154,10 +229,10 @@ function resolveFileCategory(label: string, mimeType: string): FileCategory {
   if (normalizedMimeType.startsWith("image/") || IMAGE_EXTENSIONS.has(extension)) {
     return "image";
   }
-  if (normalizedMimeType.startsWith("audio/")) {
+  if (normalizedMimeType.startsWith("audio/") || AUDIO_EXTENSIONS.has(extension)) {
     return "audio";
   }
-  if (normalizedMimeType.startsWith("video/")) {
+  if (normalizedMimeType.startsWith("video/") || VIDEO_EXTENSIONS.has(extension)) {
     return "video";
   }
   if (normalizedMimeType.includes("pdf") || extension === "pdf") {

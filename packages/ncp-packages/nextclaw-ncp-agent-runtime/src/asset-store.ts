@@ -59,6 +59,41 @@ function normalizeMimeType(value: string | null | undefined): string {
   return normalized.length > 0 ? normalized : "application/octet-stream";
 }
 
+function inferMimeTypeFromFileName(fileName: string): string | null {
+  const normalized = fileName.trim().toLowerCase();
+  if (normalized.endsWith(".mp3")) return "audio/mpeg";
+  if (normalized.endsWith(".m4a")) return "audio/mp4";
+  if (normalized.endsWith(".wav")) return "audio/wav";
+  if (normalized.endsWith(".ogg")) return "audio/ogg";
+  if (normalized.endsWith(".opus")) return "audio/opus";
+  if (normalized.endsWith(".flac")) return "audio/flac";
+  if (normalized.endsWith(".aac")) return "audio/aac";
+  if (normalized.endsWith(".weba")) return "audio/webm";
+  if (normalized.endsWith(".mp4") || normalized.endsWith(".m4v")) return "video/mp4";
+  if (normalized.endsWith(".mov")) return "video/quicktime";
+  if (normalized.endsWith(".webm")) return "video/webm";
+  if (normalized.endsWith(".mkv")) return "video/x-matroska";
+  if (normalized.endsWith(".avi")) return "video/x-msvideo";
+  if (normalized.endsWith(".wmv")) return "video/x-ms-wmv";
+  if (normalized.endsWith(".png")) return "image/png";
+  if (normalized.endsWith(".jpg") || normalized.endsWith(".jpeg")) return "image/jpeg";
+  if (normalized.endsWith(".gif")) return "image/gif";
+  if (normalized.endsWith(".webp")) return "image/webp";
+  if (normalized.endsWith(".svg")) return "image/svg+xml";
+  if (normalized.endsWith(".pdf")) return "application/pdf";
+  if (normalized.endsWith(".json")) return "application/json";
+  if (normalized.endsWith(".txt")) return "text/plain";
+  return null;
+}
+
+function resolveStoredMimeType(fileName: string, mimeType?: string | null): string {
+  const normalized = normalizeMimeType(mimeType);
+  if (normalized !== "application/octet-stream") {
+    return normalized;
+  }
+  return inferMimeTypeFromFileName(fileName) ?? normalized;
+}
+
 function buildAssetId(): string {
   return `asset_${Date.now().toString(36)}_${randomUUID().slice(0, 8)}`;
 }
@@ -295,12 +330,13 @@ export class LocalAssetStore {
     bytes: Uint8Array;
     createdAt?: Date;
   }): Promise<StoredAssetRecord> {
-    const bytes = Buffer.from(params.bytes);
+    const { bytes: rawBytes, createdAt, fileName, mimeType } = params;
+    const bytes = Buffer.from(rawBytes);
     const record = this.buildRecord({
-      fileName: params.fileName,
-      mimeType: params.mimeType,
+      fileName,
+      mimeType,
       bytes,
-      createdAt: params.createdAt,
+      createdAt,
     });
     const assetDir = this.resolveStorageKeyDirectory(record.storageKey);
     await mkdir(assetDir, { recursive: true });
@@ -315,20 +351,21 @@ export class LocalAssetStore {
     bytes: Buffer;
     createdAt?: Date;
   }): StoredAssetRecord {
-    const createdAt = params.createdAt ?? new Date();
+    const { bytes, createdAt: rawCreatedAt, fileName: rawFileName, mimeType } = params;
+    const createdAt = rawCreatedAt ?? new Date();
     const id = buildAssetId();
     const storageKey = buildStorageKey(createdAt, id);
-    const fileName = normalizeFileName(params.fileName);
+    const fileName = normalizeFileName(rawFileName);
     return {
       id,
       uri: buildAssetUri(storageKey),
       storageKey,
       fileName,
       storedName: normalizeSegment(fileName),
-      mimeType: normalizeMimeType(params.mimeType),
-      sizeBytes: params.bytes.length,
+      mimeType: resolveStoredMimeType(fileName, mimeType),
+      sizeBytes: bytes.length,
       createdAt: createdAt.toISOString(),
-      sha256: createHash("sha256").update(params.bytes).digest("hex"),
+      sha256: createHash("sha256").update(bytes).digest("hex"),
     };
   }
 

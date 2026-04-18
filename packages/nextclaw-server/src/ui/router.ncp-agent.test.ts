@@ -754,3 +754,20 @@ it("creates a lightweight session when patching a draft session", async () => {
     },
   });
 });
+
+it("serves legacy octet-stream audio assets with an inferred media content-type", async () => {
+  const { app, agent } = createTestApp();
+  const record = await agent.assetApi.put({
+    fileName: "chill_beats.mp3",
+    mimeType: "application/octet-stream",
+    bytes: new Uint8Array(Buffer.from("fake-mp3", "utf8")),
+  });
+
+  const response = await app.request(
+    `http://localhost/api/ncp/assets/content?uri=${encodeURIComponent(record.uri)}`,
+  );
+
+  expect(response.status).toBe(200);
+  expect(response.headers.get("content-type")).toContain("audio/mpeg");
+  expect(response.headers.get("content-disposition")).toContain("inline;");
+});

@@ -15,6 +15,33 @@ function encodeContentDispositionFileName(fileName: string): string {
   return encodeURIComponent(fileName).replace(/\*/g, "%2A");
 }
 
+function inferMimeTypeFromFileName(fileName: string): string | null {
+  const normalized = fileName.trim().toLowerCase();
+  if (normalized.endsWith(".mp3")) return "audio/mpeg";
+  if (normalized.endsWith(".m4a")) return "audio/mp4";
+  if (normalized.endsWith(".wav")) return "audio/wav";
+  if (normalized.endsWith(".ogg")) return "audio/ogg";
+  if (normalized.endsWith(".opus")) return "audio/opus";
+  if (normalized.endsWith(".flac")) return "audio/flac";
+  if (normalized.endsWith(".aac")) return "audio/aac";
+  if (normalized.endsWith(".weba")) return "audio/webm";
+  if (normalized.endsWith(".mp4") || normalized.endsWith(".m4v")) return "video/mp4";
+  if (normalized.endsWith(".mov")) return "video/quicktime";
+  if (normalized.endsWith(".webm")) return "video/webm";
+  if (normalized.endsWith(".mkv")) return "video/x-matroska";
+  if (normalized.endsWith(".avi")) return "video/x-msvideo";
+  if (normalized.endsWith(".wmv")) return "video/x-ms-wmv";
+  return null;
+}
+
+function resolveResponseMimeType(fileName: string, mimeType: string): string {
+  const normalized = mimeType.trim().toLowerCase();
+  if (normalized.length > 0 && normalized !== "application/octet-stream") {
+    return normalized;
+  }
+  return inferMimeTypeFromFileName(fileName) ?? "application/octet-stream";
+}
+
 function toAssetView(record: {
   id: string;
   uri: string;
@@ -102,7 +129,10 @@ export class NcpAssetRoutesController {
     const body = await readFile(contentPath);
     return new Response(body, {
       headers: {
-        "content-type": record.mimeType || "application/octet-stream",
+        "content-type": resolveResponseMimeType(
+          record.fileName,
+          record.mimeType || "application/octet-stream",
+        ),
         "content-disposition": `inline; filename*=UTF-8''${encodeContentDispositionFileName(record.fileName)}`,
       },
     });

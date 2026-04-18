@@ -34,4 +34,14 @@ describe("LocalAssetStore", () => {
     expect(record.storedName).toBe("my_config.json");
     expect(store.resolveContentPath(record.uri)).toContain("my_config.json");
   });
+
+  it("infers a media mime type from the file name when the input mime type is missing", async () => {
+    const store = createStore();
+    const record = await store.putBytes({
+      fileName: "chill_beats.mp3",
+      bytes: Buffer.from("fake-mp3", "utf8"),
+    });
+
+    expect(record.mimeType).toBe("audio/mpeg");
+  });
 });
