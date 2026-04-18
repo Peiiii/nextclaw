@@ -15,8 +15,18 @@ describe('NcpChatInputManager', () => {
         attachments: [],
         selectedSkills: [],
         selectedSessionType: 'native',
-        selectedModel: '',
+        selectedModel: 'gpt-5',
         selectedThinkingLevel: null,
+        isProviderStateResolved: true,
+        modelOptions: [
+          {
+            value: 'gpt-5',
+            modelLabel: 'GPT-5',
+            providerLabel: 'OpenAI',
+            thinkingCapability: null,
+          },
+        ],
+        chatRuntimeBlocked: false,
       },
     });
     useChatSessionListStore.setState({
@@ -95,5 +105,34 @@ describe('NcpChatInputManager', () => {
       }),
     );
     expect(sessionListManager.promoteRootDraftSessionRoute).toHaveBeenCalledWith('draft-root-session');
+  });
+
+  it('does not send while the runtime is still blocked during startup', async () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        chatRuntimeBlocked: true,
+        isProviderStateResolved: false,
+        modelOptions: [],
+      },
+    });
+    const streamActionsManager = {
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'draft-session'),
+      promoteRootDraftSessionRoute: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    const manager = new NcpChatInputManager(
+      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
+      streamActionsManager,
+      sessionListManager,
+    );
+
+    await manager.send();
+
+    expect(streamActionsManager.sendMessage).not.toHaveBeenCalled();
+    expect(sessionListManager.promoteRootDraftSessionRoute).not.toHaveBeenCalled();
   });
 });

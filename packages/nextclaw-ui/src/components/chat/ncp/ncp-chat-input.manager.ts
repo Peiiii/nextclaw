@@ -21,6 +21,7 @@ import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-s
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/components/chat/chat-session-preference-sync';
+import { isNcpChatSendDisabled } from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
 import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.manager';
 import { chatRecentSkillsManager } from '@/components/chat/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
@@ -178,7 +179,12 @@ export class NcpChatInputManager {
     const hasSendableContent = parts.some(
       (part) => part.type !== 'text' || part.text.trim().length > 0
     );
-    if (!hasSendableContent) {
+    if (
+      isNcpChatSendDisabled({
+        snapshot: inputSnapshot,
+        hasSendableDraft: hasSendableContent,
+      })
+    ) {
       return;
     }
     const { selectedSkills: requestedSkills, composerNodes } = inputSnapshot;

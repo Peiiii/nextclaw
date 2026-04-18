@@ -16,6 +16,13 @@ import {
   type ChatThinkingLevel
 } from '@/components/chat/adapters/chat-input-bar.adapter';
 import { deriveSelectedSkillsFromComposer } from '@/components/chat/chat-composer-state';
+import {
+  hasNcpChatModelOptions,
+  isNcpChatComposerDisabled,
+  isNcpChatModelOptionsEmpty,
+  isNcpChatModelOptionsLoading,
+  isNcpChatSendDisabled,
+} from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
 import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
 import {
   CHAT_RECENT_MODELS_MIN_OPTIONS,
@@ -26,7 +33,6 @@ import {
   chatRecentSkillsManager
 } from '@/components/chat/chat-recent-skills.manager';
 import { useI18n } from '@/components/providers/I18nProvider';
-import { useRuntimeRecoveryStore } from '@/runtime-recovery/runtime-recovery.manager';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import type { SessionSkillEntryView } from '@/api/types';
 import { t } from '@/lib/i18n';
@@ -84,7 +90,6 @@ export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
   const snapshot = useChatInputStore((state) => state.snapshot);
-  const runtimeRecoveryPhase = useRuntimeRecoveryStore((state) => state.snapshot.phase);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -128,20 +133,14 @@ export function ChatInputBarContainer() {
     minAvailableCount: CHAT_RECENT_SKILLS_MIN_OPTIONS
   });
 
-  const hasModelOptions = modelRecords.length > 0;
-  const isModelOptionsLoading = !snapshot.isProviderStateResolved && !hasModelOptions;
-  const isModelOptionsEmpty = snapshot.isProviderStateResolved && !hasModelOptions;
-  const isRuntimeRecovering = runtimeRecoveryPhase === 'recovering';
-  const inputDisabled =
-    isRuntimeRecovering ||
-    ((isModelOptionsLoading || isModelOptionsEmpty) && !snapshot.isSending) ||
-    snapshot.sessionTypeUnavailable;
+  const hasModelOptions = hasNcpChatModelOptions(snapshot);
+  const isModelOptionsLoading = isNcpChatModelOptionsLoading(snapshot);
+  const isModelOptionsEmpty = isNcpChatModelOptionsEmpty(snapshot);
+  const inputDisabled = isNcpChatComposerDisabled(snapshot);
   const attachmentSupported = typeof presenter.chatInputManager.addAttachments === 'function';
-  const textareaPlaceholder = isModelOptionsLoading
-    ? ''
-    : hasModelOptions
-      ? t('chatInputPlaceholder')
-      : t('chatModelNoOptions');
+  const textareaPlaceholder = isModelOptionsEmpty
+    ? t('chatModelNoOptions')
+    : t('chatInputPlaceholder');
   const recentModelsLabel = t('chatPickerRecentModels');
   const allModelsLabel = t('chatPickerAllModels');
   const recentSkillsLabel = t('chatPickerRecent');
@@ -308,12 +307,10 @@ export function ChatInputBarContainer() {
             sendError: snapshot.chatRuntimeBlocked ? null : snapshot.sendError,
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
-            sendDisabled:
-              isRuntimeRecovering ||
-              snapshot.chatRuntimeBlocked ||
-              !hasSendableDraft ||
-              !hasModelOptions ||
-              snapshot.sessionTypeUnavailable,
+            sendDisabled: isNcpChatSendDisabled({
+              snapshot,
+              hasSendableDraft,
+            }),
             stopDisabled: !snapshot.canStopGeneration,
             stopHint: resolvedStopHint,
             sendButtonLabel: t('chatSend'),

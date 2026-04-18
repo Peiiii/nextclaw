@@ -22,8 +22,10 @@ import {
 } from "@/components/chat/chat-session-route";
 import { useNcpChatPageData } from "@/components/chat/ncp/ncp-chat-page-data";
 import { NcpChatPresenter } from "@/components/chat/ncp/ncp-chat.presenter";
-import { resolveChatRuntimeBootstrapStage } from "@/components/chat/ncp/page/chat-runtime-bootstrap-state";
-import { useNcpSessionConversation } from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
+import {
+  isNcpAgentStartupUnavailableErrorMessage,
+  useNcpSessionConversation,
+} from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
 import { useNcpChatDerivedState, useNcpChatSnapshotSync } from "@/components/chat/ncp/page/ncp-chat-derived-state";
 import { ChatPresenterProvider } from "@/components/chat/presenter/chat-presenter-context";
 import type { ResumeRunParams } from "@/components/chat/chat-stream/types";
@@ -31,10 +33,9 @@ import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useAgents } from "@/hooks/agents/useAgents";
-import { useRuntimeBootstrapStatus } from "@/hooks/use-runtime-bootstrap-status";
 import { normalizeRequestedSkills } from "@/lib/chat-runtime-utils";
-import { t } from "@/lib/i18n";
-import { runtimeRecoveryManager, useRuntimeRecoveryStore } from "@/runtime-recovery/runtime-recovery.manager";
+import { runtimeLifecycleManager } from "@/runtime-lifecycle/runtime-lifecycle.manager";
+import { useRuntimeLifecycleStatus } from "@/runtime-lifecycle/hooks/use-runtime-lifecycle-status";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -123,8 +124,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const pendingProjectRootSessionKey = useChatInputStore(
     (state) => state.snapshot.pendingProjectRootSessionKey,
   );
-  const runtimeRecoveryPhase = useRuntimeRecoveryStore((state) => state.snapshot.phase);
-  const runtimeBootstrapStatusQuery = useRuntimeBootstrapStatus();
+  const runtimeLifecycle = useRuntimeLifecycleStatus();
   const agentsQuery = useAgents();
   const currentSelectedModel = useChatInputStore(
     (state) => state.snapshot.selectedModel,
@@ -190,22 +190,18 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const stopDisabledReason = agent.isRunning ? null : "__preparing__";
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
-  const chatRuntimeBootstrapStage = resolveChatRuntimeBootstrapStage(runtimeBootstrapStatusQuery.data);
-  const chatRuntimeBlocked = chatRuntimeBootstrapStage !== "ready";
-  const chatRuntimeMessage =
-    chatRuntimeBootstrapStage === "initializing"
-      ? t("chatRuntimeInitializing")
-      : chatRuntimeBootstrapStage === "error"
-        ? runtimeBootstrapStatusQuery.data?.ncpAgent.error?.trim() ||
-          runtimeBootstrapStatusQuery.data?.lastError?.trim() ||
-          t("chatRuntimeInitializationFailed")
-        : null;
+  const { chatRuntimeBlocked, chatRuntimeMessage } = runtimeLifecycle;
+  const filteredLastSendError =
+    runtimeLifecycle.phase === "ready" &&
+    isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
+      ? null
+      : rawLastSendError;
   const lastSendError =
     chatRuntimeBlocked
       ? null
-      : runtimeRecoveryPhase === "idle"
-      ? rawLastSendError
-      : runtimeRecoveryManager.getDisplayMessage(rawLastSendError);
+      : runtimeLifecycle.phase === "ready"
+      ? filteredLastSendError
+      : runtimeLifecycleManager.getDisplayMessage(filteredLastSendError);
 
   useEffect(() => {
     presenter.chatStreamActionsManager.bind({
