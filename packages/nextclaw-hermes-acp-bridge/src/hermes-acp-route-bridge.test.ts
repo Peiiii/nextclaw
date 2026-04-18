@@ -26,6 +26,53 @@ function createTempDir(prefix: string): string {
   return dir;
 }
 
+function createPromptRouteTestEnv(prefix: string): Record<string, string> {
+  const fakeHermesRoot = createTempDir(prefix);
+  seedFakeHermesPythonPackage(fakeHermesRoot);
+  const env = buildHermesAcpBridgeLaunchEnv({
+    ...createHermesAcpConfig(),
+    baseEnv: {
+      ...process.env,
+      PYTHONPATH: fakeHermesRoot,
+    },
+  });
+  env.NEXTCLAW_MODEL = "MiniMax-M2.7";
+  env.NEXTCLAW_API_BASE = "https://api.minimaxi.com/v1";
+  env.NEXTCLAW_API_KEY = "minimax-key";
+  env.NEXTCLAW_HEADERS_JSON = JSON.stringify({
+    "x-nextclaw-narp-api-mode": "chat_completions",
+    "x-minimax-group-id": "group-123",
+  });
+  return env;
+}
+
+function runFakeHermesPythonScript(env: Record<string, string>, scriptLines: string[]) {
+  return spawnSync(
+    "python3",
+    ["-c", scriptLines.join("\n")],
+    {
+      env,
+      encoding: "utf8",
+    },
+  );
+}
+
+function buildFlattenedPromptRouteArgLines(): string[] {
+  return [
+    "  nextclaw_narp={",
+    "    'providerRoute': {",
+    "      'model': 'qwen3.6-plus',",
+    "      'apiBase': 'https://dashscope.aliyuncs.com/compatible-mode/v1',",
+    "      'apiKey': 'dashscope-key',",
+    "      'headers': {",
+    "        'x-nextclaw-narp-api-mode': 'chat_completions',",
+    "        'x-dashscope-workspace': 'workspace-456'",
+    "      }",
+    "    }",
+    "  }",
+  ];
+}
+
 function seedFakeHermesPythonPackage(rootDir: string): void {
   mkdirSync(join(rootDir, "acp_adapter"), { recursive: true });
   writeFileSync(join(rootDir, "acp_adapter", "__init__.py"), "", "utf8");
@@ -395,73 +442,35 @@ describe("Hermes ACP bridge sitecustomize reasoning mapping", () => {
 });
 
 describe("Hermes ACP bridge sitecustomize prompt-routed execution", () => {
-  it("rebuilds the Hermes execution agent from the prompt route without dropping tools", () => {
-    const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-prompt-route-");
-    seedFakeHermesPythonPackage(fakeHermesRoot);
-    const env = buildHermesAcpBridgeLaunchEnv({
-      ...createHermesAcpConfig(),
-      baseEnv: {
-        ...process.env,
-        PYTHONPATH: fakeHermesRoot,
-      },
-    });
-    env.NEXTCLAW_MODEL = "MiniMax-M2.7";
-    env.NEXTCLAW_API_BASE = "https://api.minimaxi.com/v1";
-    env.NEXTCLAW_API_KEY = "minimax-key";
-    env.NEXTCLAW_HEADERS_JSON = JSON.stringify({
-      "x-nextclaw-narp-api-mode": "chat_completions",
-      "x-minimax-group-id": "group-123",
-    });
-
-    const pythonResult = spawnSync(
-      "python3",
-      [
-        "-c",
-        [
-          "import asyncio",
-          "import json",
-          "from acp_adapter.server import HermesACPAgent",
-          "",
-          "agent = HermesACPAgent()",
-          "state = agent.session_manager.create_session(cwd='/tmp/work')",
-          "result = asyncio.run(agent.prompt(",
-          "  prompt=[],",
-          "  session_id=state.session_id,",
-          "  _meta={",
-          "    'nextclaw_narp': {",
-          "      'providerRoute': {",
-          "        'model': 'qwen3.6-plus',",
-          "        'apiBase': 'https://dashscope.aliyuncs.com/compatible-mode/v1',",
-          "        'apiKey': 'dashscope-key',",
-          "        'headers': {",
-          "          'x-nextclaw-narp-api-mode': 'chat_completions',",
-          "          'x-dashscope-workspace': 'workspace-456'",
-          "        }",
-          "      }",
-          "    }",
-          "  }",
-          "))",
-          "restored = agent.session_manager.get_session(state.session_id)",
-          "print(json.dumps({",
-          "  'result': result,",
-          "  'persisted': {",
-          "    'model': getattr(restored.agent, 'model', ''),",
-          "    'provider': getattr(restored.agent, 'provider', ''),",
-          "    'base_url': getattr(restored.agent, 'base_url', ''),",
-          "    'api_mode': getattr(restored.agent, 'api_mode', ''),",
-          "    'has_client_kwargs': hasattr(restored.agent, '_client_kwargs'),",
-          "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None),",
-          "    'tool_count': len(getattr(restored.agent, 'tools', [])),",
-          "    'valid_tool_names': sorted(getattr(restored.agent, 'valid_tool_names', set()))",
-          "  }",
-          "}))",
-        ].join("\n"),
-      ],
-      {
-        env,
-        encoding: "utf8",
-      },
-    );
+  it("rebuilds the Hermes execution agent from flattened ACP meta without dropping tools", () => {
+    const env = createPromptRouteTestEnv("nextclaw-hermes-acp-prompt-route-");
+    const pythonResult = runFakeHermesPythonScript(env, [
+      "import asyncio",
+      "import json",
+      "from acp_adapter.server import HermesACPAgent",
+      "",
+      "agent = HermesACPAgent()",
+      "state = agent.session_manager.create_session(cwd='/tmp/work')",
+      "result = asyncio.run(agent.prompt(",
+      "  prompt=[],",
+      "  session_id=state.session_id,",
+      ...buildFlattenedPromptRouteArgLines(),
+      "))",
+      "restored = agent.session_manager.get_session(state.session_id)",
+      "print(json.dumps({",
+      "  'result': result,",
+      "  'persisted': {",
+      "    'model': getattr(restored.agent, 'model', ''),",
+      "    'provider': getattr(restored.agent, 'provider', ''),",
+      "    'base_url': getattr(restored.agent, 'base_url', ''),",
+      "    'api_mode': getattr(restored.agent, 'api_mode', ''),",
+      "    'has_client_kwargs': hasattr(restored.agent, '_client_kwargs'),",
+      "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None),",
+      "    'tool_count': len(getattr(restored.agent, 'tools', [])),",
+      "    'valid_tool_names': sorted(getattr(restored.agent, 'valid_tool_names', set()))",
+      "  }",
+      "}))",
+    ]);
 
     expect(pythonResult.status).toBe(0);
     const output = JSON.parse(pythonResult.stdout.trim()) as {
@@ -507,6 +516,97 @@ describe("Hermes ACP bridge sitecustomize prompt-routed execution", () => {
         cached_system_prompt: "Model: qwen3.6-plus\nProvider: custom",
         tool_count: 1,
         valid_tool_names: ["terminal"],
+      },
+    });
+  });
+
+  it("rebuilds the Hermes execution agent on the second prompt in the same session", () => {
+    const env = createPromptRouteTestEnv("nextclaw-hermes-acp-second-prompt-");
+    const pythonResult = runFakeHermesPythonScript(env, [
+      "import asyncio",
+      "import json",
+      "from acp_adapter.server import HermesACPAgent",
+      "",
+      "agent = HermesACPAgent()",
+      "state = agent.session_manager.create_session(cwd='/tmp/work')",
+      "first = asyncio.run(agent.prompt(prompt=[], session_id=state.session_id))",
+      "second = asyncio.run(agent.prompt(",
+      "  prompt=[],",
+      "  session_id=state.session_id,",
+      ...buildFlattenedPromptRouteArgLines(),
+      "))",
+      "restored = agent.session_manager.get_session(state.session_id)",
+      "print(json.dumps({",
+      "  'first': first,",
+      "  'second': second,",
+      "  'persisted': {",
+      "    'model': getattr(restored.agent, 'model', ''),",
+      "    'provider': getattr(restored.agent, 'provider', ''),",
+      "    'base_url': getattr(restored.agent, 'base_url', ''),",
+      "    'api_mode': getattr(restored.agent, 'api_mode', ''),",
+      "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None),",
+      "  }",
+      "}))",
+    ]);
+
+    expect(pythonResult.status).toBe(0);
+    const output = JSON.parse(pythonResult.stdout.trim()) as {
+      first: {
+        model: string;
+        provider: string;
+        base_url: string;
+        api_mode: string;
+        api_key: string;
+        default_headers: Record<string, string>;
+        cached_system_prompt: string | null;
+      };
+      second: {
+        model: string;
+        provider: string;
+        base_url: string;
+        api_mode: string;
+        api_key: string;
+        default_headers: Record<string, string>;
+        cached_system_prompt: string | null;
+      };
+      persisted: {
+        model: string;
+        provider: string;
+        base_url: string;
+        api_mode: string;
+        cached_system_prompt: string | null;
+      };
+    };
+
+    expect(output).toEqual({
+      first: {
+        model: "MiniMax-M2.7",
+        provider: "custom",
+        base_url: "https://api.minimaxi.com/v1",
+        api_mode: "chat_completions",
+        api_key: "minimax-key",
+        default_headers: {
+          "x-minimax-group-id": "group-123",
+        },
+        cached_system_prompt: "Model: MiniMax-M2.7\nProvider: custom",
+      },
+      second: {
+        model: "qwen3.6-plus",
+        provider: "custom",
+        base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_mode: "chat_completions",
+        api_key: "dashscope-key",
+        default_headers: {
+          "x-dashscope-workspace": "workspace-456",
+        },
+        cached_system_prompt: "Model: qwen3.6-plus\nProvider: custom",
+      },
+      persisted: {
+        model: "qwen3.6-plus",
+        provider: "custom",
+        base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_mode: "chat_completions",
+        cached_system_prompt: "Model: qwen3.6-plus\nProvider: custom",
       },
     });
   });

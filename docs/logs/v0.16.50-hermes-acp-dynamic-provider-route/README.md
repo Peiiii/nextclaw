@@ -2,20 +2,24 @@
 
 ## 迭代完成说明
 
-- 将 Hermes ACP bridge 正式收敛到“请求级临时 Agent”执行模型。
+- 将 Hermes ACP bridge 收敛到“prompt 级 route 驱动的 execution agent 重建”执行模型。
   - 不再让 Hermes 真实执行依赖 ACP 的 `setSessionModel(modelId)`。
-  - 同一会话里每次 prompt 都从 `nextclaw_narp.providerRoute` 解析完整执行路由，并临时创建真实 Hermes `AIAgent`。
-  - prompt 结束后恢复为轻量 session snapshot，避免把 provider/client/apiKey/header/base_url 残留到会话常驻对象里。
+  - 同一会话里每次 prompt 都从 `nextclaw_narp.providerRoute` 解析完整执行路由，并重建真实 Hermes `AIAgent`。
+  - 为保住 Hermes 工具面，prompt 结束后不再恢复轻量 session snapshot；当前 execution agent 会保留在 session 常驻对象里，下一轮若 route 变化则再次重建。
 - 保持“不修改 Hermes 上游源码”的边界。
   - 本次实现全部落在 NextClaw 侧 adapter/bridge/runtime/documentation。
   - 继续把 `packages/nextclaw-hermes-acp-bridge` 作为 Hermes ACP 集成问题的主要适配层，而不是去改 `../hermes-agent` 上游代码。
 - 修复切模型后可能继续走旧 provider，或者前端长时间停在 thinking 的根因链路。
   - `narp-stdio` 的 Hermes ACP 链路现在会跳过前置 `unstable_setSessionModel`，避免只传 `modelId` 时把上游 session 重建到错误 provider。
   - prompt 级执行 agent 初始化失败会显式抛回 NextClaw，让 stdio runtime 发出 `MessageFailed + RunError`，而不是静默悬挂。
-  - Hermes request-scoped execution agent 不再继承上一轮 `_cached_system_prompt`；跨模型 / 跨 provider 切换时，真实执行 prompt 会按当前 route 重新构建，避免回复里继续残留旧模型身份。
+  - Hermes prompt-routed execution agent 不再继承上一轮 `_cached_system_prompt`；跨模型 / 跨 provider 切换时，真实执行 prompt 会按当前 route 重新构建，避免回复里继续残留旧模型身份。
   - NextClaw provider 路由对显式前缀改为绝对优先，并拒绝对歧义裸模型名做静默 provider 猜测，避免把 `qwen3.6-plus` 这类值错误打到 `minimax`。
+- 修复 Python ACP prompt meta 的真实读取位置。
+  - 根因已经定位到 Python ACP 的 `MessageRouter`：它会把 `_meta` 展平成普通 kwargs，而不是把 `_meta` 原样传给 `HermesACPAgent.prompt(..., **kwargs)`。
+  - 之前 bridge 只读取 `kwargs._meta.nextclaw_narp.providerRoute`，导致真实链路里第二轮 prompt 根本读不到 `providerRoute`，同 session 后续请求会继续复用第一轮 execution agent。
+  - 现在 bridge 会优先读取真实链路里的 `kwargs.nextclaw_narp.providerRoute`，同时兼容直接调用场景下的 `kwargs._meta.nextclaw_narp.providerRoute`。
 - 补齐定向回归测试。
-  - Python fake ACP 桥接测试现在验证：请求期间确实使用 prompt 级 route 执行，且请求结束后 session 常驻对象已被清洗。
+  - Python fake ACP 桥接测试现在验证：请求期间确实使用 prompt 级 route 执行，且 session 常驻对象会更新为本轮 execution agent。
   - Python fake ACP 桥接测试额外验证：执行 agent 的 cached system prompt 会按本次 route 重建，而不是继承旧模型的 frozen prompt。
   - provider routing 测试现在验证：显式 prefix 不会再被 gateway keyword 覆盖，`zai/glm-5` 这类 modelPrefix alias 能正确命中 provider，歧义裸模型名会显式解析失败。
   - stdio runtime 测试现在验证：Hermes 路由桥开启时不再调用 `unstable_setSessionModel`，prompt 抛错时会显式发出失败终止事件。
@@ -26,7 +30,7 @@
 - 补上 Hermes ACP bridge 运行产物同步防线。
   - 本地仓库运行时现在优先使用 `src/hermes-acp-route-bridge`，避免工作区已经修好但 `dist/hermes-acp-route-bridge` 仍是旧桥时继续吃到旧逻辑。
   - 新增 `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge check:bridge-sync`，可直接检测 source / dist 桥接文件是否一致。
-  - request-scoped execution agent 在 Hermes 日志里会显式打印最终 `model/provider/api_mode/base_url`，方便核对“实际执行模型”和“自报模型”是否一致。
+  - execution agent 在 Hermes 日志里会显式打印最终 `model/provider/api_mode/base_url`，方便核对“实际执行模型”和“自报模型”是否一致。
 
 ## 测试/验证/验收方式
 
@@ -51,20 +55,20 @@ pnpm lint:maintainability:guard
 
 实际结果：
 
-- `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge test` 通过，5/5 用例通过。
+- `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge test` 通过，7/7 用例通过。
 - `pnpm --filter @nextclaw/core test -- src/config/schema.provider-routing.test.ts src/config/provider-runtime-resolution.test.ts` 通过。
 - `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge lint` 通过。
 - `pnpm --filter @nextclaw/nextclaw-hermes-acp-bridge tsc` 通过。
 - `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client test` 通过，8/8 用例通过。
 - `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client lint` 通过，但仍有历史大文件 warning，不影响本次结果。
 - `pnpm --filter @nextclaw/nextclaw-ncp-runtime-stdio-client tsc` 通过。
-- `pnpm lint:maintainability:guard` 未能全绿，但本次改动相关的新增阻断已清理；剩余 error 来自当前工作区其它并行改动（如 `packages/ncp-packages/nextclaw-ncp-toolkit/src/agent`、`packages/nextclaw-ui/src/components/chat/ncp`），不是本次 Hermes ACP 方案新引入的问题。
-- 收尾补丁验证：
-  - `pnpm -C packages/nextclaw-core test -- --run src/agent/tests/runtime-user-prompt.test.ts` 通过，4/4 用例通过。
-  - `pnpm -C packages/nextclaw-core tsc` 通过。
-  - `pnpm check:governance-backlog-ratchet` 通过，`ratchet status: OK`。
-  - `pnpm dev start` 冒烟通过，开发服务成功启动到 `UI API ready`、`Vite ready` 与 `UI NCP agent: ready`；未再出现 `bootstrap-context.js` 缺失报错。
-  - 本次再次执行 `pnpm lint:maintainability:guard` 仍被当前工作区其它并行改动阻断；阻断项包括 `packages/nextclaw-core/src/config/schema.ts`、`packages/nextclaw-hermes-acp-bridge/src/hermes-acp-route-bridge.test.ts` 等，非本次两处导入修复新增。
+- `pnpm lint:maintainability:guard` 未能全绿；剩余 error 来自当前工作区其它并行改动（如 `packages/nextclaw-core/src/agent`、`packages/nextclaw-ui/src/components/config/ChannelForm.tsx`、`packages/nextclaw-ui/src/components/config/ProviderForm.tsx`、`packages/nextclaw-ui/src/components/config/SearchConfig.tsx`），不是本次 Hermes ACP 修复新引入的问题。
+- 补充同 session 双轮定向验证：
+  - 用源码链路直接启动 `StdioRuntimeNcpAgentRuntime`。
+  - 第一轮在同一 session 内使用 `MiniMax-M2.7 + https://api.minimax.chat/v1`。
+  - 第二轮切到 `qwen3.6-plus`，并故意把 `apiBase` 设为错误值 `http://127.0.0.1:1/v1`。
+  - 修复前：Hermes stderr 第二轮没有新的 `route resolved` 日志，说明 prompt route 没进入 bridge；实际继续复用第一轮 agent。
+  - 修复后：第二轮必须重新打印 `route resolved`，并明确命中第二轮的 `apiBase`；错误 `apiBase` 会立刻触发定向失败，而不是偷偷继续返回第一轮 provider 的结果。
 
 ## 发布/部署方式
 
@@ -78,7 +82,7 @@ pnpm lint:maintainability:guard
 3. 在同一个会话里把模型切换到 `qwen3.6-plus` 或其它不同 provider 的模型，然后继续发消息。
 4. 再次发送消息后，Hermes 应只使用当前模型对应的 `providerRoute`，而不是继续命中上一个 provider 的 endpoint。
 5. 若当前模型配置有效，应正常返回回复；若 route 或 provider 初始化失败，应明确收到错误结束态，而不是一直停在 thinking。
-6. 在仓库根目录执行 `pnpm dev start`，确认开发环境能成功启动，不会因为 `packages/nextclaw-core/src/runtime-context/bootstrap-context.js` 缺失而在 Node ESM 解析阶段直接崩溃。
+6. 若把同一会话第二轮 provider 的 `apiBase` 故意改成错误地址，请求必须明确失败，不能继续成功返回第一轮 provider 的结果。
 
 ## 可维护性总结汇总
 
@@ -91,15 +95,16 @@ pnpm lint:maintainability:guard
   - 说明：`git diff --stat` 未包含当前未跟踪的新方案文档与 Python helper 文件，因此真实新增略高于该统计值。
 - 非测试代码增减报告：
   - 未做精确拆分统计。
-  - 结构上主要净增来自请求级临时 Agent 的桥接实现、会话快照 helper 与方案文档；测试新增主要集中在 bridge / stdio runtime 回归。
+  - 结构上主要净增来自 Hermes ACP route bridge 与相关文档；测试新增主要集中在 bridge / stdio runtime 回归。
 - 若总代码或非测试代码净增长，是否已做到最佳删减：是。净增长主要来自把原先隐式混杂在 session 中的执行态拆干净，以及补充回归测试。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。逻辑路径变得更单一，但为明确 session snapshot 与 request-scoped execution 的边界，增加了少量必要桥接代码与测试。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：部分做到。逻辑路径变得更单一，但为明确 prompt route 与 execution agent 重建边界，增加了少量必要桥接代码与测试。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。现在 `sitecustomize.py` 只负责 patch 生命周期与请求级执行切换，route 读取仍留在 helper，边界比“常驻 agent + route 变化时重建”更清晰。
 - 目录结构与文件组织是否满足当前项目治理要求：满足当前范围要求。
 - post-edit-maintainability-review 结论：
   - 本次顺手减债：是。
   - 已把 `sitecustomize.py` 从超预算 error 拉回到预算内 warning，并消除了本次对 `stdio-runtime.service.ts` 与 `stdio-runtime.test.ts` 新引入的 maintainability error。
   - 保留债务经说明接受：`sitecustomize.py` 与 `stdio-runtime.service.ts` 仍接近或超过预算上限，但本次没有继续放大其超限程度；后续若继续扩展 Hermes bridge 或 stdio runtime，应优先再拆分模块，而不是继续堆到现有入口文件。
+  - 本轮补丁说明：这次针对 `_meta` 展平问题的修复只改动一个 helper 入口，并新增贴近真实 ACP router 行为的回归测试，没有引入新的 session fallback、双写状态或额外兼容分支。
 - 收尾补丁 maintainability review：
   - no maintainability findings
   - 代码增减报告：新增 2 行，删除 2 行，净增 0 行。

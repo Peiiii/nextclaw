@@ -158,12 +158,14 @@ def read_nextclaw_route(
 
 
 def read_nextclaw_prompt_route(kwargs: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    meta = kwargs.get("_meta")
-    if not isinstance(meta, dict):
-        return None
-    nextclaw_meta = meta.get(NARP_PROMPT_META_KEY)
+    nextclaw_meta = kwargs.get(NARP_PROMPT_META_KEY)
     if not isinstance(nextclaw_meta, dict):
-        return None
+        meta = kwargs.get("_meta")
+        if not isinstance(meta, dict):
+            return None
+        nextclaw_meta = meta.get(NARP_PROMPT_META_KEY)
+        if not isinstance(nextclaw_meta, dict):
+            return None
     return _normalize_route_payload(nextclaw_meta.get("providerRoute"))
 
 

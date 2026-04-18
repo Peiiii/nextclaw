@@ -24,11 +24,11 @@ protocol-generic while Hermes keeps its own integration layer.
 ## Execution Model
 
 - Hermes ACP execution in NextClaw is request-scoped, not session-agent-scoped.
-- The long-lived ACP session only keeps conversation history, cwd, selected
-  model snapshot, and lightweight session metadata.
-- Each prompt builds a temporary Hermes execution agent from the current
-  `nextclaw_narp.providerRoute`, runs that one request, then discards the
-  execution agent.
+- The long-lived ACP session keeps conversation history, cwd, selected model
+  snapshot, lightweight session metadata, and the current execution agent.
+- Each prompt treats `nextclaw_narp.providerRoute` as execution truth. When the
+  prompt route changes, NextClaw rebuilds the Hermes execution agent for that
+  request and replaces the session's current execution agent with the new one.
 - `providerRoute` is the execution truth for Hermes ACP requests. NextClaw does
   not rely on ACP `setSessionModel(modelId)` to perform real cross-provider
   switching for Hermes.

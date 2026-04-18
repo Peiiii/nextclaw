@@ -1,4 +1,4 @@
-# Hermes ACP 请求级临时 Agent 方案
+# Hermes ACP prompt 级 route 执行方案
 
 ## 背景与根因
 
@@ -22,18 +22,19 @@ provider route，因此跨 provider 切换时只能用旧 agent 上残留的
 
 ## 目标方案
 
-采用“每次请求临时创建 Hermes 执行 Agent”的模型。
+采用“prompt 级 route 驱动的 execution agent 重建”模型，而不是早期
+“请求后立刻销毁临时 agent”的变体。
 
-- ACP session 长期只保留：
+- ACP session 长期保留：
   - `history`
   - `cwd`
   - 当前模型快照与必要元数据
-  - 轻量工具面信息
+  - 当前 execution agent 与 Hermes 工具面
 - 每次 `prompt` 到来时：
   - 从 `nextclaw_narp.providerRoute` 解析当前请求的完整执行路由
-  - 用该路由临时创建 Hermes `AIAgent`
-  - 用这个临时 agent 执行本次 prompt
-  - prompt 结束后立即销毁，并把 session 恢复为不含凭据/客户端的轻量快照
+  - 若 prompt route 与当前 execution agent 不一致，则重建 Hermes `AIAgent`
+  - 用本轮 route 对应的 execution agent 执行 prompt
+  - prompt 结束后保留本轮 execution agent；下一轮 route 变化时再重建
 
 ## 组件职责
 
@@ -46,12 +47,13 @@ provider route，因此跨 provider 切换时只能用旧 agent 上残留的
 
 - `sitecustomize.py`
   - patch Hermes ACP 生命周期
-  - 在 prompt 入口创建请求级临时执行 agent
-  - prompt 完成后恢复轻量 session 快照
+  - 在 prompt 入口按当前 route 重建 execution agent
+  - 把重建后的 execution agent 写回当前 session
   - 把初始化失败等请求级错误显式抛回 NextClaw
 - `nextclaw-hermes-acp-runtime-route.py`
   - 解析 `nextclaw_narp.providerRoute`
   - 归一化 `model/provider/apiBase/apiKey/apiMode/headers`
+  - 兼容 ACP router 把 `_meta.nextclaw_narp` 展平成 `kwargs.nextclaw_narp`
   - 管理 session 级 route override 读取
 
 ## 状态归属
@@ -61,13 +63,10 @@ provider route，因此跨 provider 切换时只能用旧 agent 上残留的
   - cwd
   - 选中模型快照
   - 必要工具面元数据
-- 请求级临时状态：
-  - provider
-  - apiBase
-  - apiKey
-  - headers
-  - OpenAI/Anthropic client
-  - 真实执行 agent
+  - 当前 execution agent
+- 请求级决定因素：
+  - 本轮 `providerRoute`
+  - 是否需要按本轮 route 重建 execution agent
 
 ## 失败语义
 
@@ -83,7 +82,8 @@ provider route，因此跨 provider 切换时只能用旧 agent 上残留的
 
 - Bridge 回归：
   - 同一会话 `MiniMax -> qwen/dashscope`，第二次请求必须只使用新 route。
-  - prompt 结束后 session 常驻对象不得残留 `_client_kwargs/api_key/headers`。
+  - 第二次请求必须重建 execution agent，并让 `cached_system_prompt` 与本轮 route 对齐。
+  - 真实 ACP router 展平 `_meta` 后，bridge 仍能正确读到 `nextclaw_narp.providerRoute`。
 - Runtime 回归：
   - Hermes route bridge 开启时，stdio runtime 不再调用 `unstable_setSessionModel`。
   - prompt 失败时必须得到 `MessageFailed + RunError`。
