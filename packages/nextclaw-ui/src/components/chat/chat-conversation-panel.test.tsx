@@ -269,6 +269,23 @@ describe("ChatConversationPanel", () => {
     expect(screen.queryByText("Engineer")).toBeNull();
   });
 
+  it("renders a fuller loading skeleton before provider state settles", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        isProviderStateResolved: false,
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.getByTestId("chat-conversation-skeleton")).toBeTruthy();
+    expect(
+      screen.getAllByTestId("chat-conversation-skeleton-bubble"),
+    ).toHaveLength(4);
+    expect(screen.queryByTestId("chat-input-bar")).toBeNull();
+  });
+
   it("keeps the message area clean while a session history is hydrating", () => {
     useChatThreadStore.setState({
       snapshot: {
