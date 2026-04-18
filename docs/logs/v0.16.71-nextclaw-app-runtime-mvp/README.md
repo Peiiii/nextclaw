@@ -58,7 +58,7 @@
 - `pnpm -C packages/nextclaw-app-runtime smoke`
 - `pnpm -C packages/nextclaw-app-runtime exec node dist/main.js inspect ../../apps/examples/hello-notes --json`
 - `cd packages/nextclaw-app-runtime && pnpm publish --access public --dry-run --no-git-checks`
-- `pnpm publish --access public --no-git-checks`（在 `packages/nextclaw-app-runtime` 下正式执行）
+- `pnpm publish --access public --no-git-checks`（分别在 `packages/nextclaw-app-runtime@0.1.0` 与 `@0.2.0` 下正式执行）
 - `node packages/nextclaw/dist/cli/index.js account status`
 - `node packages/nextclaw/dist/cli/index.js skills publish skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --scope nextclaw --api-base https://marketplace-api.nextclaw.io`
 - `node packages/nextclaw/dist/cli/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --scope nextclaw --token <local-admin-token> --api-base https://marketplace-api.nextclaw.io`
@@ -79,8 +79,9 @@
 - `smoke` 会在临时目录创建两份 notes，再通过 `POST /__napp/run` 调用 Wasm 主模块
 - 结果中 `documentCount`、`textBytes`、`output.output` 与预期一致
 - marketplace skill metadata 本地校验通过，`Errors: 0`，`Warnings: 0`
-- npm dry-run 通过，正式发布后 `npm view @nextclaw/app-runtime version` 返回 `0.1.0`
+- npm dry-run 通过，正式发布后 `npm view @nextclaw/app-runtime version` 返回 `0.2.0`
 - 官方 skill 远端详情返回 `200`，`packageName=@nextclaw/nextclaw-app-runtime`，`publishStatus=published`
+- 官方 skill 远端详情中的 `descriptionI18n` 已同步到 `napp create` 新工作流
 - 官方 skill 安装冒烟通过，临时目录中包含 `SKILL.md` 与 `marketplace.json`
 - `MARKETPLACE_ADMIN_TOKEN` 已旋转到 Cloudflare Worker secret，并本地持久化到 `$HOME/.nextclaw/secrets/marketplace-admin-token.env`
 - 新增文件命名、角色后缀、class arrow methods、param mutation、react effects 等治理检查全部通过
@@ -108,10 +109,12 @@ cd packages/nextclaw-app-runtime
 pnpm publish --access public --no-git-checks
 
 cd /Users/peiwang/Projects/nextbot
-node packages/nextclaw/dist/cli/index.js skills publish \
+source "$HOME/.nextclaw/secrets/marketplace-admin-token.env"
+node packages/nextclaw/dist/cli/index.js skills update \
   skills/nextclaw-app-runtime \
   --meta skills/nextclaw-app-runtime/marketplace.json \
   --scope nextclaw \
+  --token "$NEXTCLAW_MARKETPLACE_ADMIN_TOKEN" \
   --api-base https://marketplace-api.nextclaw.io
 ```
 
@@ -214,13 +217,13 @@ node packages/nextclaw/dist/cli/index.js skills update \
 
 当前状态：
 
-- `@nextclaw/app-runtime`：`0.1.0` 已发布；本次新增 `napp create` 后已补 changeset，待下一次统一 release 时发布新版本
+- `@nextclaw/app-runtime`：`0.2.0` 已发布
 
 官方 marketplace skill 状态：
 
-- `@nextclaw/nextclaw-app-runtime`：已发布
+- `@nextclaw/nextclaw-app-runtime`：已更新，远端文案已同步 `napp create` 新能力
 
 补充说明：
 
-- 本次仍保留了 changeset，用于把本地仓库状态纳入后续统一 release 节奏
+- 本次已执行 changeset version，并完成 `@nextclaw/app-runtime@0.2.0` 正式发布
 - marketplace 官方更新不再依赖手工临时复制 token，当前机器已具备可复用的本地 token 存储与自动加载路径
