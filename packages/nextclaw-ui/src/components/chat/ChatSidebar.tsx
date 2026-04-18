@@ -340,7 +340,7 @@ export function ChatSidebar() {
               </PopoverTrigger>
               <PopoverContent
                 align="end"
-                className="w-[18.75rem] rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
+                className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
               >
                 <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
                   {t('chatSessionTypeLabel')}

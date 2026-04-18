@@ -17,6 +17,7 @@
 - `Hermes` 这类 entry-based runtime 现在通过 `agents.runtimes.entries.<id>.icon` 正式声明图标；同时补齐了 config schema，避免 icon 在配置解析阶段被吞掉。
 - UI 边界层新增统一 `app:// -> /...` 解析器，让会话类型图标消费的是统一 Resource URI，而不是散落的站内绝对路径。
 - 前端收尾时把重复的会话类型菜单项抽到 [chat-session-type-option-item.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/components/chat/chat-session-type-option-item.tsx)，避免为了图标能力继续膨胀 [ChatSidebar.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/components/chat/ChatSidebar.tsx)。
+- 同批次验收修正里把会话类型下拉宽度从 `18.75rem` 先收窄到 `16rem`，随后继续微调到 `15rem`，再进一步收窄到 `14rem`，让开发态侧边栏里的新建会话菜单更克制，不再显得过宽。
 - 开发态 `pnpm dev:start` 的真实根因也已补上：之前 dev backend 只会根据 `plugins.installs` 记录把第一方插件切到 workspace 源码；当用户本地 `~/.nextclaw/extensions` 已有全局安装副本、但 `plugins.installs` 为空时，开发态仍会继续加载全局插件，导致新图标能力在 dev UI 里看不到。
 - 本次在 [first-party-plugin-load-paths.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/commands/plugin/development-source/first-party-plugin-load-paths.ts) 把这条逻辑收敛为单一路径：dev 模式会扫描 `NEXTCLAW_HOME/extensions` 中已安装的第一方插件，并按 package name 映射回 workspace `packages/extensions/*`，同时把对应 installed root 排除掉，并默认 `source = development`。这次命中的是真正的 dev source 选择根因，不是只把生产构建或全局安装链路修好。
 
