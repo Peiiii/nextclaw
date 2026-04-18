@@ -1,7 +1,6 @@
 import type * as Lark from "@larksuiteoapi/node-sdk";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
-import { createFeishuToolClient, resolveAnyEnabledFeishuToolsConfig } from "./tool-account.js";
+import { createFeishuToolClient, resolveRegisteredFeishuToolsConfig } from "./tool-account.js";
 import {
   jsonToolResult,
   toolExecutionErrorResult,
@@ -157,13 +156,7 @@ export function registerFeishuWikiTools(api: OpenClawPluginApi) {
     return;
   }
 
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    api.logger.debug?.("feishu_wiki: No Feishu accounts configured, skipping wiki tools");
-    return;
-  }
-
-  const toolsCfg = resolveAnyEnabledFeishuToolsConfig(accounts);
+  const toolsCfg = resolveRegisteredFeishuToolsConfig(api.config);
   if (!toolsCfg.wiki) {
     api.logger.debug?.("feishu_wiki: wiki tool disabled in config");
     return;

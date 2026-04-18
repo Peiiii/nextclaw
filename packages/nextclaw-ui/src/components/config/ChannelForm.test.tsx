@@ -1,5 +1,19 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChannelForm } from './ChannelForm';
+
+const updateChannelMutate = vi.fn();
+const updateChannelMutateAsync = vi.fn();
+let subscribeHandler:
+  | ((event: {
+    type: 'channel.config.apply-status';
+    payload: {
+      channel: string;
+      applyId: string;
+      status: 'started' | 'succeeded' | 'failed';
+      message?: string;
+    };
+  }) => void)
+  | null = null;
 
 vi.mock('@/hooks/useConfig', () => ({
   useConfig: () => ({
@@ -29,8 +43,8 @@ vi.mock('@/hooks/useConfig', () => ({
     }
   }),
   useUpdateChannel: () => ({
-    mutate: vi.fn(),
-    mutateAsync: vi.fn(),
+    mutate: updateChannelMutate,
+    mutateAsync: updateChannelMutateAsync,
     isPending: false
   }),
   useExecuteConfigAction: () => ({
@@ -38,6 +52,27 @@ vi.mock('@/hooks/useConfig', () => ({
     isPending: false
   })
 }));
+
+vi.mock('@/transport', () => ({
+  appClient: {
+    subscribe: (handler: typeof subscribeHandler) => {
+      subscribeHandler = handler;
+      return () => {
+        subscribeHandler = null;
+      };
+    }
+  }
+}));
+
+vi.mock('./weixin-channel-auth-section', () => ({
+  WeixinChannelAuthSection: () => null
+}));
+
+afterEach(() => {
+  updateChannelMutate.mockReset();
+  updateChannelMutateAsync.mockReset();
+  subscribeHandler = null;
+});
 
 describe('ChannelForm', () => {
   it('renders the empty selection state without entering a render loop', async () => {
@@ -56,5 +91,81 @@ describe('ChannelForm', () => {
     });
 
     consoleErrorSpy.mockRestore();
+  });
+
+  it('submits channel updates without waiting for background apply', () => {
+    render(<ChannelForm channelName="weixin" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(updateChannelMutate).toHaveBeenCalledWith({
+      channel: 'weixin',
+      data: {
+        accounts: {},
+        enabled: false
+      }
+    });
+  });
+
+  it('shows apply status updates from realtime events for the active channel', async () => {
+    render(<ChannelForm channelName="weixin" />);
+
+    await act(async () => {
+      subscribeHandler?.({
+        type: 'channel.config.apply-status',
+        payload: {
+          channel: 'weixin',
+          applyId: 'apply-1',
+          status: 'started'
+        }
+      });
+    });
+    expect(screen.getByText('Channel configuration is applying')).toBeTruthy();
+
+    await act(async () => {
+      subscribeHandler?.({
+        type: 'channel.config.apply-status',
+        payload: {
+          channel: 'weixin',
+          applyId: 'apply-1',
+          status: 'succeeded'
+        }
+      });
+    });
+    expect(screen.getByText('Channel configuration applied')).toBeTruthy();
+
+    await act(async () => {
+      subscribeHandler?.({
+        type: 'channel.config.apply-status',
+        payload: {
+          channel: 'weixin',
+          applyId: 'apply-2',
+          status: 'started'
+        }
+      });
+      subscribeHandler?.({
+        type: 'channel.config.apply-status',
+        payload: {
+          channel: 'weixin',
+          applyId: 'apply-1',
+          status: 'failed',
+          message: 'stale failure'
+        }
+      });
+    });
+    expect(screen.queryByText(/stale failure/i)).toBeNull();
+
+    await act(async () => {
+      subscribeHandler?.({
+        type: 'channel.config.apply-status',
+        payload: {
+          channel: 'weixin',
+          applyId: 'apply-2',
+          status: 'failed',
+          message: 'boom'
+        }
+      });
+    });
+    expect(screen.getByText('Failed to apply channel configuration: boom')).toBeTruthy();
   });
 });

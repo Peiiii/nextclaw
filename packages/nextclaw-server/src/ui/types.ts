@@ -871,6 +871,7 @@ export type ConfigActionExecuteResult = {
 
 export type UiServerEvent =
   | { type: "config.updated"; payload: { path: string } }
+  | { type: "channel.config.apply-status"; payload: { channel: string; applyId: string; status: "started" | "succeeded" | "failed"; message?: string } }
   | { type: "session.updated"; payload: { sessionKey: string } }
   | { type: "session.run-status"; payload: { sessionKey: string; status: "running" | "idle" } }
   | { type: "session.summary.upsert"; payload: { summary: NcpSessionSummary } }
@@ -898,9 +899,4 @@ export type UiServerOptions = {
   getPluginUiMetadata?: () => PluginUiMetadata[];
 };
 
-export type UiServerHandle = {
-  host: string;
-  port: number;
-  close: () => Promise<void>;
-  publish: (event: UiServerEvent) => void;
-};
+export type UiServerHandle = { host: string; port: number; close: () => Promise<void>; publish: (event: UiServerEvent) => void };

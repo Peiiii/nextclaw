@@ -1,6 +1,6 @@
 import type * as Lark from "@larksuiteoapi/node-sdk";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { resolveFeishuAccount } from "./accounts.js";
+import { listFeishuAccountIds, resolveFeishuAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
 import { getTicket } from "./lark-ticket.js";
 import { resolveToolsConfig } from "./tools-config.js";
@@ -83,4 +83,13 @@ export function resolveAnyEnabledFeishuToolsConfig(
     merged.identity = merged.identity || cfg.identity;
   }
   return merged;
+}
+
+export function resolveRegisteredFeishuToolsConfig(
+  config: OpenClawPluginApi["config"],
+): Required<FeishuToolsConfig> {
+  const accounts = listFeishuAccountIds(config).map((accountId) =>
+    resolveFeishuAccount({ cfg: config, accountId }),
+  );
+  return resolveAnyEnabledFeishuToolsConfig(accounts);
 }

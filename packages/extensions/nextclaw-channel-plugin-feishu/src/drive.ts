@@ -1,8 +1,7 @@
 import type * as Lark from "@larksuiteoapi/node-sdk";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
 import { FeishuDriveSchema, type FeishuDriveParams } from "./drive-schema.js";
-import { createFeishuToolClient, resolveAnyEnabledFeishuToolsConfig } from "./tool-account.js";
+import { createFeishuToolClient, resolveRegisteredFeishuToolsConfig } from "./tool-account.js";
 import {
   jsonToolResult,
   toolExecutionErrorResult,
@@ -169,13 +168,7 @@ export function registerFeishuDriveTools(api: OpenClawPluginApi) {
     return;
   }
 
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    api.logger.debug?.("feishu_drive: No Feishu accounts configured, skipping drive tools");
-    return;
-  }
-
-  const toolsCfg = resolveAnyEnabledFeishuToolsConfig(accounts);
+  const toolsCfg = resolveRegisteredFeishuToolsConfig(api.config);
   if (!toolsCfg.drive) {
     api.logger.debug?.("feishu_drive: drive tool disabled in config");
     return;

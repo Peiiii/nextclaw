@@ -8,10 +8,10 @@ describe("buildReloadPlan", () => {
     expect(plan.restartChannels).toBe(false);
   });
 
-  it("reloads agent runtime for channel config changes", () => {
+  it("restarts channel runtime without reloading plugins for channel config changes", () => {
     const plan = buildReloadPlan(["channels.feishu.enabled"]);
     expect(plan.restartChannels).toBe(true);
-    expect(plan.reloadPlugins).toBe(true);
+    expect(plan.reloadPlugins).toBe(false);
     expect(plan.reloadAgent).toBe(true);
     expect(plan.restartRequired).toEqual([]);
   });

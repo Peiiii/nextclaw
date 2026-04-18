@@ -11,6 +11,7 @@ import { BookOpen, ChevronDown } from 'lucide-react';
 import type { ConfigActionManifest } from '@/api/types';
 import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
 import { getChannelLogo } from '@/lib/logos';
+import { appClient } from '@/transport';
 import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS, CONFIG_SCROLL_REGION_CLASS } from './config-layout';
 import { ChannelFormFieldsSection } from './channel-form-fields-section';
 import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from './channel-form-fields';
@@ -22,6 +23,14 @@ type ChannelFormProps = {
 
 const EMPTY_CHANNEL_FIELDS: ChannelField[] = [];
 const DEFAULT_CHANNEL_LAYOUT_BLOCKS: ChannelFormBlock[] = [{ type: 'fields', section: 'all' }];
+type ChannelApplyState =
+  | { applyId: string; status: 'applying' }
+  | { applyId: string; status: 'applied' }
+  | { applyId: string; status: 'failed'; message?: string };
+type ChannelApplyStatusView = {
+  className: string;
+  label: string;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -88,6 +97,54 @@ function buildChannelFormHydrationKey(
   });
 }
 
+function useChannelApplyState(channelName: string | undefined): ChannelApplyState | null {
+  const [channelApplyState, setChannelApplyState] = useState<ChannelApplyState | null>(null);
+
+  useEffect(() => {
+    if (!channelName) {
+      setChannelApplyState(null);
+      return;
+    }
+
+    return appClient.subscribe((event) => {
+      if (event.type !== 'channel.config.apply-status' || event.payload.channel !== channelName) {
+        return;
+      }
+
+      setChannelApplyState((prev) => {
+        if (event.payload.status === 'started') {
+          return { applyId: event.payload.applyId, status: 'applying' };
+        }
+        if (prev && prev.applyId !== event.payload.applyId) {
+          return prev;
+        }
+        if (event.payload.status === 'succeeded') {
+          return { applyId: event.payload.applyId, status: 'applied' };
+        }
+        return { applyId: event.payload.applyId, status: 'failed', message: event.payload.message };
+      });
+    });
+  }, [channelName]);
+
+  return channelApplyState;
+}
+
+function buildChannelApplyStatusView(channelApplyState: ChannelApplyState | null): ChannelApplyStatusView | null {
+  if (!channelApplyState) {
+    return null;
+  }
+  if (channelApplyState.status === 'applying') {
+    return { className: 'text-amber-600', label: t('channelConfigApplying') };
+  }
+  if (channelApplyState.status === 'applied') {
+    return { className: 'text-emerald-600', label: t('channelConfigApplied') };
+  }
+  return {
+    className: 'text-red-600',
+    label: `${t('channelConfigApplyFailed')}${channelApplyState.message ? `: ${channelApplyState.message}` : ''}`
+  };
+}
+
 export function ChannelForm({ channelName }: ChannelFormProps) {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
@@ -98,6 +155,7 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [jsonDrafts, setJsonDrafts] = useState<Record<string, string>>({});
   const [runningActionId, setRunningActionId] = useState<string | null>(null);
+  const channelApplyState = useChannelApplyState(channelName);
   const lastHydrationKeyRef = useRef<string | null>(null);
 
   const channelConfig = channelName ? config?.channels[channelName] : null;
@@ -245,6 +303,7 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
   }
 
   const enabled = typeof formData.enabled === 'boolean' ? formData.enabled : Boolean(channelConfig.enabled);
+  const channelApplyStatus = buildChannelApplyStatusView(channelApplyState);
 
   return (
     <div className={CONFIG_DETAIL_CARD_CLASS}>
@@ -265,6 +324,11 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
               <h3 className="truncate text-lg font-semibold text-gray-900 capitalize">{channelLabel}</h3>
             </div>
             <p className="mt-2 text-sm text-gray-500">{t('channelsFormDescription')}</p>
+            {channelApplyStatus ? (
+              <p className={cn('mt-2 text-xs font-medium', channelApplyStatus.className)}>
+                {channelApplyStatus.label}
+              </p>
+            ) : null}
             {tutorialUrl && (
               <a
                 href={tutorialUrl}

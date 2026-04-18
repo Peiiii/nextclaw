@@ -1,11 +1,10 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
 import { requestDeviceAuthorization, pollDeviceToken } from "./device-flow.js";
 import { feishuFetch } from "./feishu-fetch.js";
 import { getTicket } from "./lark-ticket.js";
 import { getStoredToken, setStoredToken, tokenStatus } from "./token-store.js";
-import { resolveAnyEnabledFeishuToolsConfig } from "./tool-account.js";
+import { resolveRegisteredFeishuToolsConfig } from "./tool-account.js";
 import { revokeUAT } from "./uat-client.js";
 import { createUserToolClient } from "./user-tool-client.js";
 import { jsonToolResult } from "./tool-result.js";
@@ -188,12 +187,7 @@ export function registerFeishuOAuthTool(api: OpenClawPluginApi) {
     return;
   }
 
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    return;
-  }
-
-  const toolsConfig = resolveAnyEnabledFeishuToolsConfig(accounts);
+  const toolsConfig = resolveRegisteredFeishuToolsConfig(api.config);
   if (!toolsConfig.oauth) {
     return;
   }

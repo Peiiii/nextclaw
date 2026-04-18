@@ -24,6 +24,11 @@ afterEach(() => {
   }
 });
 
+async function flushMicrotasks(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 function createWeixinPluginBinding(): PluginChannelBinding {
   return {
     pluginId: "nextclaw-channel-weixin",
@@ -145,7 +150,22 @@ describe("weixin plugin channel config route", () => {
       type: "config.updated",
       payload: { path: "channels.weixin" }
     });
+    await flushMicrotasks();
     expect(applyLiveConfigReload).toHaveBeenCalledTimes(1);
+    expect(publish).toHaveBeenCalledWith({
+      type: "channel.config.apply-status",
+      payload: expect.objectContaining({
+        channel: "weixin",
+        status: "started"
+      })
+    });
+    expect(publish).toHaveBeenCalledWith({
+      type: "channel.config.apply-status",
+      payload: expect.objectContaining({
+        channel: "weixin",
+        status: "succeeded"
+      })
+    });
   });
 
   it("persists disabled weixin state through projected channel updates", async () => {
@@ -221,6 +241,67 @@ describe("weixin plugin channel config route", () => {
       type: "config.updated",
       payload: { path: "channels.weixin" }
     });
+    await flushMicrotasks();
     expect(applyLiveConfigReload).toHaveBeenCalledTimes(1);
+  });
+
+});
+
+describe("weixin plugin channel config route background apply", () => {
+  it("returns immediately while channel config apply continues in the background", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(ConfigSchema.parse({}), configPath);
+    const publish = vi.fn();
+    let resolveReload: (() => void) | null = null;
+    const applyLiveConfigReload = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveReload = () => {
+            resolve();
+          };
+        })
+    );
+
+    const app = createUiRouter({
+      configPath,
+      publish,
+      applyLiveConfigReload,
+      getPluginChannelBindings: () => [createWeixinPluginBinding()],
+      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()]
+    });
+
+    const updateResponse = await app.request("http://localhost/api/config/channels/weixin", {
+      method: "PUT",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        enabled: true
+      })
+    });
+
+    expect(updateResponse.status).toBe(200);
+    expect(resolveReload).not.toBeNull();
+    expect(publish).toHaveBeenCalledWith({
+      type: "channel.config.apply-status",
+      payload: expect.objectContaining({
+        channel: "weixin",
+        status: "started"
+      })
+    });
+
+    if (!resolveReload) {
+      throw new Error("expected background reload resolver to be available");
+    }
+    (resolveReload as () => void)();
+    await flushMicrotasks();
+
+    expect(publish).toHaveBeenCalledWith({
+      type: "channel.config.apply-status",
+      payload: expect.objectContaining({
+        channel: "weixin",
+        status: "succeeded"
+      })
+    });
   });
 });

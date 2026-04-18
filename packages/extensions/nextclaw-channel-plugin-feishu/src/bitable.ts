@@ -1,7 +1,6 @@
 import type * as Lark from "@larksuiteoapi/node-sdk";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
 import { createFeishuToolClient } from "./tool-account.js";
 
 // ============ Helpers ============
@@ -535,12 +534,6 @@ const UpdateRecordSchema = Type.Object({
 export function registerFeishuBitableTools(api: OpenClawPluginApi) {
   if (!api.config) {
     api.logger.debug?.("feishu_bitable: No config available, skipping bitable tools");
-    return;
-  }
-
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    api.logger.debug?.("feishu_bitable: No Feishu accounts configured, skipping bitable tools");
     return;
   }
 

@@ -108,12 +108,9 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     }
     if (rule.kind === "restart-channels") {
       plan.restartChannels = true;
-      // Channel config changes also affect plugin-produced extension tools.
-      // Rebuild the plugin registry in the same hot-reload pass so tool
-      // catalogs and prompt-visible tool availability stay in sync.
-      plan.reloadPlugins = true;
-      // Channel config also affects agent-visible tool/message behavior, so the
-      // agent runtime must refresh in the same hot-reload pass.
+      // Channel config is a channel runtime concern. It should restart channel
+      // lifecycles and refresh agent-visible behavior, but it should not rebuild
+      // the plugin registry.
       plan.reloadAgent = true;
       continue;
     }

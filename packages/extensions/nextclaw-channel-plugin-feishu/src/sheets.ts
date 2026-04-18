@@ -1,6 +1,5 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
 import {
   type SheetParams,
   handleCreate,
@@ -11,7 +10,7 @@ import {
   handleWrite,
   resolveToken,
 } from "./sheets-shared.js";
-import { resolveAnyEnabledFeishuToolsConfig } from "./tool-account.js";
+import { resolveRegisteredFeishuToolsConfig } from "./tool-account.js";
 import { createToolContext, handleInvokeError, registerTool, StringEnum } from "./user-tool-helpers.js";
 
 const SheetSchema = Type.Union([
@@ -70,9 +69,7 @@ const SheetSchema = Type.Union([
 
 export function registerFeishuSheetsTools(api: OpenClawPluginApi) {
   if (!api.config) return;
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) return;
-  if (!resolveAnyEnabledFeishuToolsConfig(accounts).sheets) return;
+  if (!resolveRegisteredFeishuToolsConfig(api.config).sheets) return;
 
   registerTool(api, {
     name: "feishu_sheet",

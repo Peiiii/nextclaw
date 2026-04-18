@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
-import { resolveAnyEnabledFeishuToolsConfig } from "./tool-account.js";
+import { resolveRegisteredFeishuToolsConfig } from "./tool-account.js";
 import {
   assertLarkOk,
   createToolContext,
@@ -43,12 +42,7 @@ export function registerFeishuIdentityTools(api: OpenClawPluginApi) {
     return;
   }
 
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    return;
-  }
-
-  const toolsConfig = resolveAnyEnabledFeishuToolsConfig(accounts);
+  const toolsConfig = resolveRegisteredFeishuToolsConfig(api.config);
   if (!toolsConfig.identity) {
     return;
   }

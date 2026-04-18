@@ -39,21 +39,89 @@ import { err, ok, readJson } from "./response.js";
 import type { UiRouterOptions } from "./types.js";
 
 export class ConfigRoutesController {
+  private readonly channelConfigApplyTasks = new Map<string, Promise<void>>();
+
   constructor(private readonly options: UiRouterOptions) {}
 
-  private getPluginConfigOptions() {
+  private readonly getPluginConfigOptions = () => {
     return {
       pluginChannelBindings: this.options.getPluginChannelBindings?.() ?? [],
       pluginUiMetadata: this.options.getPluginUiMetadata?.() ?? []
     };
-  }
+  };
 
-  private async publishConfigUpdates(paths: string[]): Promise<void> {
+  private readonly publishConfigUpdatedPaths = (paths: string[]): void => {
     for (const path of paths) {
       this.options.publish({ type: "config.updated", payload: { path } });
     }
+  };
+
+  private readonly publishConfigUpdates = async (paths: string[]): Promise<void> => {
+    this.publishConfigUpdatedPaths(paths);
     await this.options.applyLiveConfigReload?.();
-  }
+  };
+
+  private readonly publishChannelConfigApplyStatus = (params: {
+    channel: string;
+    applyId: string;
+    status: "started" | "succeeded" | "failed";
+    message?: string;
+  }): void => {
+    this.options.publish({
+      type: "channel.config.apply-status",
+      payload: params
+    });
+  };
+
+  private readonly buildChannelApplyId = (channel: string): string => {
+    return `${channel}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  };
+
+  private readonly enqueueChannelConfigApply = (channel: string): void => {
+    const applyId = this.buildChannelApplyId(channel);
+    this.publishChannelConfigApplyStatus({
+      channel,
+      applyId,
+      status: "started"
+    });
+
+    const previousTask = this.channelConfigApplyTasks.get(channel) ?? Promise.resolve();
+    const task = previousTask
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          await this.options.applyLiveConfigReload?.();
+          this.publishChannelConfigApplyStatus({
+            channel,
+            applyId,
+            status: "succeeded"
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.publishChannelConfigApplyStatus({
+            channel,
+            applyId,
+            status: "failed",
+            message
+          });
+          this.options.publish({
+            type: "error",
+            payload: {
+              code: "CHANNEL_CONFIG_APPLY_FAILED",
+              message: `Failed to apply ${channel} channel config: ${message}`
+            }
+          });
+        }
+      })
+      .finally(() => {
+        if (this.channelConfigApplyTasks.get(channel) === task) {
+          this.channelConfigApplyTasks.delete(channel);
+        }
+      });
+
+    this.channelConfigApplyTasks.set(channel, task);
+    void task;
+  };
 
   readonly getConfig = (c: Context) => {
     const config = loadConfigOrDefault(this.options.configPath);
@@ -249,7 +317,8 @@ export class ConfigRoutesController {
     if (!result) {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }
-    await this.publishConfigUpdates([`channels.${channel}`]);
+    this.publishConfigUpdatedPaths([`channels.${channel}`]);
+    this.enqueueChannelConfigApply(channel);
     return c.json(ok(result));
   };
 

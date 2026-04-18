@@ -5,7 +5,6 @@ import { basename } from "node:path";
 import type * as Lark from "@larksuiteoapi/node-sdk";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "./nextclaw-sdk/feishu.js";
-import { listEnabledFeishuAccounts } from "./accounts.js";
 import { FeishuDocSchema, type FeishuDocParams } from "./doc-schema.js";
 import { BATCH_SIZE, insertBlocksInBatches } from "./docx-batch-insert.js";
 import { updateColorText } from "./docx-color-text.js";
@@ -20,8 +19,8 @@ import {
 import { getFeishuRuntime } from "./runtime.js";
 import {
   createFeishuToolClient,
-  resolveAnyEnabledFeishuToolsConfig,
   resolveFeishuToolAccount,
+  resolveRegisteredFeishuToolsConfig,
 } from "./tool-account.js";
 
 // ============ Helpers ============
@@ -1232,15 +1231,8 @@ export function registerFeishuDocTools(api: OpenClawPluginApi) {
     return;
   }
 
-  // Check if any account is configured
-  const accounts = listEnabledFeishuAccounts(api.config);
-  if (accounts.length === 0) {
-    api.logger.debug?.("feishu_doc: No Feishu accounts configured, skipping doc tools");
-    return;
-  }
-
-  // Register if enabled on any account; account routing is resolved per execution.
-  const toolsCfg = resolveAnyEnabledFeishuToolsConfig(accounts);
+  // Register if enabled by config; account routing is resolved per execution.
+  const toolsCfg = resolveRegisteredFeishuToolsConfig(api.config);
 
   const registered: string[] = [];
   type FeishuDocExecuteParams = FeishuDocParams & { accountId?: string };
