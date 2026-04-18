@@ -37,6 +37,9 @@ describe("startDeferredGatewayStartup", () => {
   it("starts the NCP agent even when the UI shell is disabled so cron can use the NCP chain", async () => {
     const activateSessionService = vi.fn();
     const onNcpAgentReady = vi.fn();
+    const markNcpAgentRunning = vi.fn();
+    const markNcpAgentReady = vi.fn();
+    const markNcpAgentError = vi.fn();
     const ncpAgent = {
       runApi: { send: vi.fn() },
       sessionApi: {},
@@ -45,6 +48,11 @@ describe("startDeferredGatewayStartup", () => {
     const consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
 
     await startDeferredGatewayStartup({
+      bootstrapStatus: {
+        markNcpAgentRunning,
+        markNcpAgentReady,
+        markNcpAgentError,
+      } as never,
       uiStartup: null,
       deferredNcpSessionService: {
         activate: activateSessionService,
@@ -65,6 +73,9 @@ describe("startDeferredGatewayStartup", () => {
     });
 
     expect(createUiNcpAgent).toHaveBeenCalledTimes(1);
+    expect(markNcpAgentRunning).toHaveBeenCalledTimes(1);
+    expect(markNcpAgentReady).toHaveBeenCalledTimes(1);
+    expect(markNcpAgentError).not.toHaveBeenCalled();
     expect(activateSessionService).toHaveBeenCalledWith(ncpAgent.sessionApi);
     expect(onNcpAgentReady).toHaveBeenCalledWith(ncpAgent);
     expect(consoleLog).toHaveBeenCalledWith("✓ Service NCP agent: ready");
@@ -73,6 +84,7 @@ describe("startDeferredGatewayStartup", () => {
 
   it("hydrates capabilities before creating the UI NCP agent", async () => {
     const order: string[] = [];
+    const markNcpAgentRunning = vi.fn();
     vi.mocked(createUiNcpAgent).mockImplementation(async () => {
       order.push("create-ui-ncp-agent");
       return {
@@ -82,6 +94,11 @@ describe("startDeferredGatewayStartup", () => {
     });
 
     await startDeferredGatewayStartup({
+      bootstrapStatus: {
+        markNcpAgentRunning,
+        markNcpAgentReady: vi.fn(),
+        markNcpAgentError: vi.fn(),
+      } as never,
       uiStartup: null,
       deferredNcpSessionService: {
         activate: vi.fn(),
@@ -105,5 +122,6 @@ describe("startDeferredGatewayStartup", () => {
     });
 
     expect(order).toEqual(["hydrate-capabilities", "create-ui-ncp-agent"]);
+    expect(markNcpAgentRunning).toHaveBeenCalledTimes(1);
   });
 });

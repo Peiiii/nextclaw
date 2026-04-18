@@ -59,6 +59,14 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatWorkspacePreviewTruncated: { zh: '内容已截断', en: 'Preview truncated' },
   chatSessionUnread: { zh: '会话有未读更新', en: 'Session has unread updates' },
   chatTyping: { zh: 'Agent 正在思考...', en: 'Agent is thinking...' },
+  chatRuntimeInitializing: {
+    zh: '聊天能力正在初始化。你可以先输入内容，完成后即可发送。',
+    en: 'Chat is still initializing. You can keep typing and send once startup finishes.'
+  },
+  chatRuntimeInitializationFailed: {
+    zh: '聊天能力启动失败，请稍后重试或检查服务日志。',
+    en: 'Chat startup failed. Please retry in a moment or inspect the service logs.'
+  },
   chatInputPlaceholder: { zh: '输入消息，输入 / 选择技能，Enter 发送，Shift + Enter 换行', en: 'Type a message, type / to select skills, Enter to send, Shift + Enter for newline' },
   chatInputHint: { zh: '支持多轮上下文，默认走当前会话。', en: 'Multi-turn context is preserved in the current session.' },
   chatSlashSectionCommands: { zh: '命令', en: 'Commands' },

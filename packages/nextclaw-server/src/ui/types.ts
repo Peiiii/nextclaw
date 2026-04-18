@@ -36,6 +36,12 @@ export type BootstrapRemoteState = "pending" | "ready" | "conflict" | "disabled"
 export type BootstrapStatusView = {
   phase: BootstrapPhase;
   shellReadyAt?: string;
+  ncpAgent: {
+    state: BootstrapStageState;
+    startedAt?: string;
+    completedAt?: string;
+    error?: string;
+  };
   pluginHydration: {
     state: BootstrapStageState;
     loadedPluginCount: number;

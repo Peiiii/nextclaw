@@ -35,6 +35,7 @@ export type GatewayRuntimeState = {
 
 export function createBootstrapStatus(remoteEnabled: boolean): ServiceBootstrapStatusStore {
   const bootstrapStatus = new ServiceBootstrapStatusStore();
+  bootstrapStatus.markNcpAgentPending();
   bootstrapStatus.markPluginHydrationPending();
   bootstrapStatus.markChannelsPending();
   bootstrapStatus.setRemoteState(remoteEnabled ? "pending" : "disabled");

@@ -232,6 +232,8 @@ type ChatConversationAlertsProps = {
   shouldShowProviderHint: boolean;
   sessionTypeUnavailable: boolean;
   sessionTypeUnavailableMessage: string | null;
+  chatRuntimeBlocked: boolean;
+  chatRuntimeMessage: string | null;
   onGoToProviders: () => void;
 };
 
@@ -239,10 +241,19 @@ function ChatConversationAlerts({
   shouldShowProviderHint,
   sessionTypeUnavailable,
   sessionTypeUnavailableMessage,
+  chatRuntimeBlocked,
+  chatRuntimeMessage,
   onGoToProviders,
 }: ChatConversationAlertsProps) {
   return (
     <>
+      {chatRuntimeBlocked && chatRuntimeMessage?.trim() ? (
+        <div className="px-5 py-2.5 border-b border-blue-200/70 bg-blue-50/70 shrink-0">
+          <span className="text-xs text-blue-800">
+            {chatRuntimeMessage}
+          </span>
+        </div>
+      ) : null}
       {shouldShowProviderHint ? (
         <div className="px-5 py-2.5 border-b border-amber-200/70 bg-amber-50/70 flex items-center justify-between gap-3 shrink-0">
           <span className="text-xs text-amber-800">
@@ -443,6 +454,8 @@ export function ChatConversationPanel() {
           shouldShowProviderHint={shouldShowProviderHint}
           sessionTypeUnavailable={snapshot.sessionTypeUnavailable}
           sessionTypeUnavailableMessage={snapshot.sessionTypeUnavailableMessage ?? null}
+          chatRuntimeBlocked={snapshot.chatRuntimeBlocked}
+          chatRuntimeMessage={snapshot.chatRuntimeMessage ?? null}
           onGoToProviders={presenter.chatThreadManager.goToProviders}
         />
         <ChatConversationContent

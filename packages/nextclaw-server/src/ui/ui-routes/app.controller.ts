@@ -14,6 +14,9 @@ function buildAppMetaView(options: UiRouterOptions): AppMetaView {
 function buildFallbackBootstrapStatus(): BootstrapStatusView {
   return {
     phase: "kernel-starting",
+    ncpAgent: {
+      state: "pending",
+    },
     pluginHydration: {
       state: "pending",
       loadedPluginCount: 0,

@@ -26,6 +26,7 @@ import {
   chatRecentSkillsManager
 } from '@/components/chat/chat-recent-skills.manager';
 import { useI18n } from '@/components/providers/I18nProvider';
+import { useRuntimeRecoveryStore } from '@/runtime-recovery/runtime-recovery.manager';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import type { SessionSkillEntryView } from '@/api/types';
 import { t } from '@/lib/i18n';
@@ -83,11 +84,13 @@ export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
   const snapshot = useChatInputStore((state) => state.snapshot);
+  const runtimeRecoveryPhase = useRuntimeRecoveryStore((state) => state.snapshot.phase);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const skillScopeLabels = useMemo<Record<'builtin' | 'project' | 'workspace', string>>(() => {
+    void language;
     return {
       builtin: t('chatSkillScopeBuiltin'),
       project: t('chatSkillScopeProject'),
@@ -96,6 +99,7 @@ export function ChatInputBarContainer() {
   }, [language]);
   const slashTexts = useMemo(
     () => {
+      void language;
       return {
         slashSkillSubtitle: t('chatSlashTypeSkill'),
         slashSkillSpecLabel: t('chatSlashSkillSpec'),
@@ -127,8 +131,11 @@ export function ChatInputBarContainer() {
   const hasModelOptions = modelRecords.length > 0;
   const isModelOptionsLoading = !snapshot.isProviderStateResolved && !hasModelOptions;
   const isModelOptionsEmpty = snapshot.isProviderStateResolved && !hasModelOptions;
+  const isRuntimeRecovering = runtimeRecoveryPhase === 'recovering';
   const inputDisabled =
-    ((isModelOptionsLoading || isModelOptionsEmpty) && !snapshot.isSending) || snapshot.sessionTypeUnavailable;
+    isRuntimeRecovering ||
+    ((isModelOptionsLoading || isModelOptionsEmpty) && !snapshot.isSending) ||
+    snapshot.sessionTypeUnavailable;
   const attachmentSupported = typeof presenter.chatInputManager.addAttachments === 'function';
   const textareaPlaceholder = isModelOptionsLoading
     ? ''
@@ -298,10 +305,15 @@ export function ChatInputBarContainer() {
           ],
           skillPicker,
           actions: {
-            sendError: snapshot.sendError,
+            sendError: snapshot.chatRuntimeBlocked ? null : snapshot.sendError,
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
-            sendDisabled: !hasSendableDraft || !hasModelOptions || snapshot.sessionTypeUnavailable,
+            sendDisabled:
+              isRuntimeRecovering ||
+              snapshot.chatRuntimeBlocked ||
+              !hasSendableDraft ||
+              !hasModelOptions ||
+              snapshot.sessionTypeUnavailable,
             stopDisabled: !snapshot.canStopGeneration,
             stopHint: resolvedStopHint,
             sendButtonLabel: t('chatSend'),

@@ -6,6 +6,8 @@ describe("ServiceBootstrapStatusStore", () => {
     const store = new ServiceBootstrapStatusStore();
 
     store.markShellReady();
+    store.markNcpAgentRunning();
+    store.markNcpAgentReady();
     store.markPluginHydrationRunning({ totalPluginCount: 3 });
     store.markPluginHydrationProgress({ loadedPluginCount: 2, totalPluginCount: 3 });
     store.markPluginHydrationReady({ loadedPluginCount: 3, totalPluginCount: 3 });
@@ -14,6 +16,9 @@ describe("ServiceBootstrapStatusStore", () => {
 
     expect(store.getStatus()).toMatchObject({
       phase: "ready",
+      ncpAgent: {
+        state: "ready",
+      },
       pluginHydration: {
         state: "ready",
         loadedPluginCount: 3,
@@ -31,11 +36,17 @@ describe("ServiceBootstrapStatusStore", () => {
     const firstSnapshot = store.getStatus();
     firstSnapshot.channels.enabled.push("mutated");
 
+    store.markNcpAgentRunning();
+    store.markNcpAgentError("failed");
     store.markPluginHydrationRunning({ totalPluginCount: 1 });
     store.markPluginHydrationError("failed");
 
     expect(store.getStatus()).toMatchObject({
       phase: "error",
+      ncpAgent: {
+        state: "error",
+        error: "failed"
+      },
       pluginHydration: {
         state: "error",
         error: "failed"

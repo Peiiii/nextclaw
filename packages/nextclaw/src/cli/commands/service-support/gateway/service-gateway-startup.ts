@@ -18,6 +18,7 @@ import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
 import { logStartupTrace, measureStartupAsync } from "../../../startup-trace.js";
 import type { ConfigReloader } from "../../../config-reloader.js";
+import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
@@ -108,6 +109,7 @@ export async function startUiShell(params: {
 }
 
 export async function startDeferredGatewayStartup(params: {
+  bootstrapStatus: ServiceBootstrapStatusStore;
   uiStartup: UiStartupHandle | null;
   deferredNcpSessionService: DeferredUiNcpSessionServiceController;
   bus: MessageBus;
@@ -126,6 +128,7 @@ export async function startDeferredGatewayStartup(params: {
   publishSessionChange: (sessionKey: string) => void;
 }): Promise<void> {
   const {
+    bootstrapStatus,
     uiStartup,
     deferredNcpSessionService,
     bus,
@@ -147,6 +150,7 @@ export async function startDeferredGatewayStartup(params: {
   if (hydrateCapabilities) {
     await measureStartupAsync("service.deferred_startup.hydrate_capabilities", hydrateCapabilities);
   }
+  bootstrapStatus.markNcpAgentRunning();
   try {
     const ncpAgent = await measureStartupAsync("service.deferred_startup.create_ui_ncp_agent", async () =>
       await createUiNcpAgent({
@@ -170,6 +174,7 @@ export async function startDeferredGatewayStartup(params: {
     );
     deferredNcpSessionService.activate(ncpAgent.sessionApi);
     onNcpAgentReady(ncpAgent);
+    bootstrapStatus.markNcpAgentReady();
     if (uiStartup) {
       uiStartup.deferredNcpAgent.activate(ncpAgent);
       console.log("✓ UI NCP agent: ready");
@@ -177,6 +182,7 @@ export async function startDeferredGatewayStartup(params: {
       console.log("✓ Service NCP agent: ready");
     }
   } catch (error) {
+    bootstrapStatus.markNcpAgentError(error instanceof Error ? error.message : String(error));
     console.error(`UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`);
   }
   await measureStartupAsync("service.deferred_startup.start_plugin_gateways", startPluginGateways);
@@ -208,6 +214,7 @@ export async function runGatewayRuntimeLoop(params: {
 
 export async function runConfiguredGatewayRuntime(params: {
   uiStartup: UiStartupHandle | null;
+  bootstrapStatus: ServiceBootstrapStatusStore;
   gateway: {
     bus: MessageBus;
     sessionManager: SessionManager;
@@ -255,6 +262,7 @@ export async function runConfiguredGatewayRuntime(params: {
       }),
     startDeferredStartup: () =>
       startDeferredGatewayStartup({
+        bootstrapStatus: params.bootstrapStatus,
         uiStartup: params.uiStartup,
         deferredNcpSessionService: params.deferredNcpSessionService,
         bus: params.gateway.bus,

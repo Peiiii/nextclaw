@@ -13,6 +13,46 @@ export type ApiResponse<T> =
 
 export type AppMetaView = { name: string; productVersion: string };
 
+export type BootstrapPhase =
+  | 'kernel-starting'
+  | 'shell-ready'
+  | 'hydrating-capabilities'
+  | 'ready'
+  | 'error';
+
+export type BootstrapStageState = 'pending' | 'running' | 'ready' | 'error';
+
+export type BootstrapRemoteState = 'pending' | 'ready' | 'conflict' | 'disabled' | 'error';
+
+export type BootstrapStatusView = {
+  phase: BootstrapPhase;
+  shellReadyAt?: string;
+  ncpAgent: {
+    state: BootstrapStageState;
+    startedAt?: string;
+    completedAt?: string;
+    error?: string;
+  };
+  pluginHydration: {
+    state: BootstrapStageState;
+    loadedPluginCount: number;
+    totalPluginCount: number;
+    startedAt?: string;
+    completedAt?: string;
+    error?: string;
+  };
+  channels: {
+    state: BootstrapStageState;
+    enabled: string[];
+    error?: string;
+  };
+  remote: {
+    state: BootstrapRemoteState;
+    message?: string;
+  };
+  lastError?: string;
+};
+
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "adaptive" | "xhigh";
 
 export type ProviderConfigView = {

@@ -107,6 +107,8 @@ export function useNcpChatSnapshotSync(params: {
   selectedSessionType: string;
   canEditSessionType: boolean;
   sessionTypeUnavailable: boolean;
+  chatRuntimeBlocked: boolean;
+  chatRuntimeMessage: string | null;
   skillRecords: SessionSkillEntryView[];
   isSkillsLoading: boolean;
   sessionTypeUnavailableMessage: string | null;
@@ -141,6 +143,8 @@ export function useNcpChatSnapshotSync(params: {
       selectedSessionType: params.selectedSessionType,
       canEditSessionType: params.canEditSessionType,
       sessionTypeUnavailable: params.sessionTypeUnavailable,
+      chatRuntimeBlocked: params.chatRuntimeBlocked,
+      chatRuntimeMessage: params.chatRuntimeMessage,
       skillRecords: params.skillRecords,
       isSkillsLoading: params.isSkillsLoading,
     });
@@ -149,6 +153,8 @@ export function useNcpChatSnapshotSync(params: {
       modelOptions: params.modelOptions,
       sessionTypeUnavailable: params.sessionTypeUnavailable,
       sessionTypeUnavailableMessage: params.sessionTypeUnavailableMessage,
+      chatRuntimeBlocked: params.chatRuntimeBlocked,
+      chatRuntimeMessage: params.chatRuntimeMessage,
       sessionTypeLabel: params.currentSessionTypeLabel,
       sessionTypeIcon: params.currentSessionTypeIcon,
       sessionKey: params.sessionKey,

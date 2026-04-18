@@ -6,6 +6,7 @@ import type {
   AuthSetupRequest,
   AuthStatusView,
   AppMetaView,
+  BootstrapStatusView,
   ConfigView,
   ConfigMetaView,
   ConfigSchemaResponse,
@@ -93,6 +94,15 @@ export async function updateAuthEnabled(data: AuthEnabledUpdateRequest): Promise
 // GET /api/app/meta
 export async function fetchAppMeta(): Promise<AppMetaView> {
   const response = await api.get<AppMetaView>('/api/app/meta');
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// GET /api/runtime/bootstrap-status
+export async function fetchBootstrapStatus(): Promise<BootstrapStatusView> {
+  const response = await api.get<BootstrapStatusView>('/api/runtime/bootstrap-status');
   if (!response.ok) {
     throw new Error(response.error.message);
   }

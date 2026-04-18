@@ -186,6 +186,7 @@ export class ServiceCommands {
     });
     await runConfiguredGatewayRuntime({
       uiStartup,
+      bootstrapStatus,
       gateway,
       deferredNcpSessionService: ncpSessionRealtimeBridge.deferredSessionService,
       getConfig: loadGatewayConfig,

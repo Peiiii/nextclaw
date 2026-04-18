@@ -7,6 +7,9 @@ function now(): string {
 export class ServiceBootstrapStatusStore {
   private state: BootstrapStatusView = {
     phase: "kernel-starting",
+    ncpAgent: {
+      state: "pending",
+    },
     pluginHydration: {
       state: "pending",
       loadedPluginCount: 0,
@@ -24,6 +27,7 @@ export class ServiceBootstrapStatusStore {
   getStatus(): BootstrapStatusView {
     return {
       ...this.state,
+      ncpAgent: { ...this.state.ncpAgent },
       pluginHydration: { ...this.state.pluginHydration },
       channels: {
         ...this.state.channels,
@@ -36,6 +40,39 @@ export class ServiceBootstrapStatusStore {
   markShellReady(): void {
     this.state.phase = "shell-ready";
     this.state.shellReadyAt = this.state.shellReadyAt ?? now();
+  }
+
+  markNcpAgentPending(): void {
+    this.state.ncpAgent = {
+      state: "pending",
+    };
+  }
+
+  markNcpAgentRunning(): void {
+    this.state.ncpAgent = {
+      state: "running",
+      startedAt: this.state.ncpAgent.startedAt ?? now(),
+      completedAt: undefined,
+      error: undefined
+    };
+  }
+
+  markNcpAgentReady(): void {
+    this.state.ncpAgent = {
+      state: "ready",
+      startedAt: this.state.ncpAgent.startedAt ?? now(),
+      completedAt: now(),
+      error: undefined
+    };
+  }
+
+  markNcpAgentError(error: string): void {
+    this.state.ncpAgent = {
+      state: "error",
+      startedAt: this.state.ncpAgent.startedAt ?? now(),
+      completedAt: now(),
+      error
+    };
   }
 
   markPluginHydrationPending(): void {
