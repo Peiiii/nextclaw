@@ -162,6 +162,10 @@ function seedFakeHermesPythonPackage(rootDir: string): void {
       "        self.base_url = kwargs.get(\"base_url\", \"\")",
       "        self.api_mode = kwargs.get(\"api_mode\", \"\")",
       "        self.platform = kwargs.get(\"platform\", \"\")",
+      "        self.enabled_toolsets = list(kwargs.get(\"enabled_toolsets\", []))",
+      "        self.disabled_toolsets = []",
+      "        self.tools = [{\"name\": \"terminal\"}]",
+      "        self.valid_tool_names = {\"terminal\"}",
       "        self.client = object()",
       "        self._anthropic_client = _AnthropicClient() if self.api_mode == \"anthropic_messages\" else None",
       "        self._replace_reasons = []",
@@ -255,8 +259,8 @@ describe("buildHermesAcpBridgeLaunchEnv", () => {
   });
 });
 
-describe("Hermes ACP bridge sitecustomize session snapshots", () => {
-  it("creates Hermes session snapshots from the NextClaw RuntimeRoute without retaining credentials", () => {
+describe("Hermes ACP bridge sitecustomize session agents", () => {
+  it("creates Hermes session agents from the NextClaw RuntimeRoute with a live tool surface", () => {
     const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-fake-");
     seedFakeHermesPythonPackage(fakeHermesRoot);
     const env = buildHermesAcpBridgeLaunchEnv({
@@ -291,6 +295,8 @@ describe("Hermes ACP bridge sitecustomize session snapshots", () => {
           "  'base_url': getattr(agent, 'base_url', ''),",
           "  'api_mode': getattr(agent, 'api_mode', ''),",
           "  'has_client_kwargs': hasattr(agent, '_client_kwargs'),",
+          "  'tool_count': len(getattr(agent, 'tools', [])),",
+          "  'valid_tool_names': sorted(getattr(agent, 'valid_tool_names', set())),",
           "}))",
         ].join("\n"),
       ],
@@ -309,6 +315,8 @@ describe("Hermes ACP bridge sitecustomize session snapshots", () => {
       base_url: string;
       api_mode: string;
       has_client_kwargs: boolean;
+      tool_count: number;
+      valid_tool_names: string[];
     };
 
     expect(output.provider_detected).toBe("nextclaw");
@@ -317,10 +325,12 @@ describe("Hermes ACP bridge sitecustomize session snapshots", () => {
       provider_detected: "nextclaw",
       has_provider: true,
       model: "qwen3.5-plus",
-      provider: "",
+      provider: "custom",
       base_url: "http://127.0.0.1:18999/v1",
       api_mode: "chat_completions",
-      has_client_kwargs: false,
+      has_client_kwargs: true,
+      tool_count: 1,
+      valid_tool_names: ["terminal"],
     });
   });
 });
@@ -384,8 +394,8 @@ describe("Hermes ACP bridge sitecustomize reasoning mapping", () => {
   });
 });
 
-describe("Hermes ACP bridge sitecustomize request-scoped execution", () => {
-  it("runs each prompt on a request-scoped execution agent and restores a scrubbed session snapshot", () => {
+describe("Hermes ACP bridge sitecustomize prompt-routed execution", () => {
+  it("rebuilds the Hermes execution agent from the prompt route without dropping tools", () => {
     const fakeHermesRoot = createTempDir("nextclaw-hermes-acp-prompt-route-");
     seedFakeHermesPythonPackage(fakeHermesRoot);
     const env = buildHermesAcpBridgeLaunchEnv({
@@ -440,7 +450,9 @@ describe("Hermes ACP bridge sitecustomize request-scoped execution", () => {
           "    'base_url': getattr(restored.agent, 'base_url', ''),",
           "    'api_mode': getattr(restored.agent, 'api_mode', ''),",
           "    'has_client_kwargs': hasattr(restored.agent, '_client_kwargs'),",
-          "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None)",
+          "    'cached_system_prompt': getattr(restored.agent, '_cached_system_prompt', None),",
+          "    'tool_count': len(getattr(restored.agent, 'tools', [])),",
+          "    'valid_tool_names': sorted(getattr(restored.agent, 'valid_tool_names', set()))",
           "  }",
           "}))",
         ].join("\n"),
@@ -469,6 +481,8 @@ describe("Hermes ACP bridge sitecustomize request-scoped execution", () => {
         api_mode: string;
         has_client_kwargs: boolean;
         cached_system_prompt?: string | null;
+        tool_count: number;
+        valid_tool_names: string[];
       };
     };
 
@@ -487,10 +501,12 @@ describe("Hermes ACP bridge sitecustomize request-scoped execution", () => {
       persisted: {
         model: "qwen3.6-plus",
         provider: "custom",
-        base_url: "",
+        base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1",
         api_mode: "chat_completions",
-        has_client_kwargs: false,
-        cached_system_prompt: null,
+        has_client_kwargs: true,
+        cached_system_prompt: "Model: qwen3.6-plus\nProvider: custom",
+        tool_count: 1,
+        valid_tool_names: ["terminal"],
       },
     });
   });
