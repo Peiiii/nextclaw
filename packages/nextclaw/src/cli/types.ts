@@ -25,6 +25,13 @@ export type StartCommandOptions = {
   startTimeout?: string | number;
 };
 
+export type ServiceSystemdCommandOptions = {
+  user?: boolean;
+  system?: boolean;
+  dryRun?: boolean;
+  json?: boolean;
+};
+
 export type AgentCommandOptions = {
   message?: string;
   session?: string;

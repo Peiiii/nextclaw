@@ -180,9 +180,9 @@ If `127.0.0.1:55667` is healthy but the public entry returns `502`, the problem 
 
 Supported providers include OpenRouter, OpenAI, Anthropic, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and AiHubMix. You can configure them in the UI or by editing `config.json`.
 
-### Runtime config apply behavior (no automatic restart)
+### Runtime config apply behavior (no restart)
 
-When the gateway is already running, config changes from the UI, `nextclaw config set`, or the gateway tool (`config.apply` / `config.patch`) are hot-applied for these paths:
+When the gateway is already running, config changes from the UI or `nextclaw config set` are hot-applied for these paths:
 
 - `providers.*`
 - `channels.*`
@@ -191,9 +191,7 @@ When the gateway is already running, config changes from the UI, `nextclaw confi
 - `tools.*`
 - `plugins.*` (v1 hot plugin runtime: plugin registry/channel gateways/channels are hot-reloaded)
 
-For paths outside the hot-reload plan, the gateway now saves config and marks the runtime as `pending restart` instead of restarting automatically. You can then restart from the Runtime page or the global status entry in the main UI.
-
-Restart is still manually required for:
+Restart is still required for:
 
 - UI bind port (`--port` / `--ui-port`)
 
@@ -363,13 +361,11 @@ For internal AI operations (same as other built-in capabilities):
 - Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
 - The AI can use it to manage the same config surface when you explicitly ask.
 - As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
-- Supported config writes are hot-applied immediately; writes outside the hot-reload plan are saved and surfaced as `pending restart` instead of auto-restarting the gateway.
 - **Required safe flow for AI config writes:**
   1. run `config.get` to read current config + hash;
   2. run `config.schema` and copy enum values exactly (no invented suffixes/variants);
   3. run `config.patch` with minimal patch;
-  4. if the result says `pendingRestart`, surface that to the user and let them choose when to restart;
-  5. run `config.get` again to verify persisted value.
+  4. run `config.get` again to verify persisted value.
 
 ---
 
@@ -470,6 +466,12 @@ Skill loading contract:
 | `nextclaw start` | Start gateway + UI in the background |
 | `nextclaw restart` | Restart the background service with optional start flags |
 | `nextclaw stop` | Stop the background service |
+| `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
+| `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
+| `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
+| `sudo nextclaw service uninstall-systemd --system` | Remove a system-wide Linux `systemd` service |
+| `nextclaw service autostart status --user` | Show host autostart status |
+| `nextclaw service autostart doctor --user` | Diagnose host autostart setup |
 | `nextclaw ui` | Start UI and gateway in the foreground |
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw serve` | Run gateway + UI in the foreground (no background) |
@@ -522,6 +524,13 @@ Skill loading contract:
 | `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
 | `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
 | `nextclaw config unset <path>` | Remove config value by path |
+
+Autostart notes:
+
+- `npm i -g nextclaw` installs the CLI only. It does not register host autostart by itself.
+- On Linux, use `nextclaw service install-systemd --user` for a user-level login autostart path.
+- For machine-wide Linux startup after boot, use `sudo nextclaw service install-systemd --system`.
+- `nextclaw service autostart status` and `nextclaw service autostart doctor` are read-only inspection commands; add `--user` or `--system` when you need an explicit scope.
 
 Agent management notes:
 

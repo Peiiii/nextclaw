@@ -7,8 +7,12 @@
 | `nextclaw start` | Start gateway + UI in the background |
 | `nextclaw restart` | Restart the background service |
 | `nextclaw stop` | Stop the background service |
-| `sudo nextclaw service install-systemd` | Install a managed Linux `systemd` service |
-| `sudo nextclaw service uninstall-systemd` | Remove the managed Linux `systemd` service |
+| `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service |
+| `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service |
+| `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
+| `sudo nextclaw service uninstall-systemd --system` | Remove a system-wide Linux `systemd` service |
+| `nextclaw service autostart status --user` | Show host autostart status |
+| `nextclaw service autostart doctor --user` | Diagnose host autostart setup |
 | `nextclaw ui` | Start UI and gateway in the foreground |
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw serve` | Run gateway + UI in the foreground |
@@ -17,7 +21,9 @@
 | `nextclaw doctor` | Run runtime diagnostics |
 | `nextclaw update` | Self-update the CLI |
 
-If you expose NextClaw behind Nginx/Caddy/Traefik on a Linux server, use `sudo nextclaw service install-systemd` instead of relying on a one-time `nextclaw start`. Otherwise a reboot or exited process can surface as `502 Bad Gateway` at the reverse proxy.
+`npm i -g nextclaw` only installs the CLI. It does not register a host autostart owner by itself.
+
+If you expose NextClaw behind Nginx/Caddy/Traefik on a Linux server, use `sudo nextclaw service install-systemd --system` instead of relying on a one-time `nextclaw start`. Otherwise a reboot or exited process can surface as `502 Bad Gateway` at the reverse proxy.
 
 ## Agent Commands
 

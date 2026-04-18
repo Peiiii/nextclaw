@@ -7,8 +7,12 @@
 | `nextclaw start` | 后台启动网关 + UI |
 | `nextclaw restart` | 重启后台服务 |
 | `nextclaw stop` | 停止后台服务 |
-| `sudo nextclaw service install-systemd` | 安装受管的 Linux `systemd` 服务 |
-| `sudo nextclaw service uninstall-systemd` | 移除受管的 Linux `systemd` 服务 |
+| `nextclaw service install-systemd --user` | 安装用户级 Linux `systemd` 服务 |
+| `sudo nextclaw service install-systemd --system` | 安装系统级 Linux `systemd` 服务 |
+| `nextclaw service uninstall-systemd --user` | 移除用户级 Linux `systemd` 服务 |
+| `sudo nextclaw service uninstall-systemd --system` | 移除系统级 Linux `systemd` 服务 |
+| `nextclaw service autostart status --user` | 查看宿主自启动状态 |
+| `nextclaw service autostart doctor --user` | 诊断宿主自启动配置 |
 | `nextclaw ui` | 前台启动 UI 与网关 |
 | `nextclaw gateway` | 仅启动网关（用于渠道） |
 | `nextclaw serve` | 前台运行网关 + UI |
@@ -17,7 +21,9 @@
 | `nextclaw doctor` | 运行诊断 |
 | `nextclaw update` | 自更新 CLI |
 
-如果你是在 Linux 服务器上通过 Nginx / Caddy / Traefik 对外暴露 NextClaw，请不要只依赖一次性的 `nextclaw start`。一旦机器重启或进程退出，反向代理层通常就会直接表现为 `502 Bad Gateway`。此时应使用 `sudo nextclaw service install-systemd` 安装受管常驻服务。
+`npm i -g nextclaw` 只负责安装 CLI，不会自动替你注册宿主自启动。
+
+如果你是在 Linux 服务器上通过 Nginx / Caddy / Traefik 对外暴露 NextClaw，请不要只依赖一次性的 `nextclaw start`。一旦机器重启或进程退出，反向代理层通常就会直接表现为 `502 Bad Gateway`。此时应使用 `sudo nextclaw service install-systemd --system` 安装受管常驻服务。
 
 ## Agent 命令
 
