@@ -3,8 +3,12 @@ import type { MarketplaceCatalogSection, MarketplaceItem, MarketplaceItemType, M
 import { D1MarketplaceSectionDataSourceBase } from "./d1-section-data-source-base";
 import { MarketplaceSkillFileStore } from "./skills/marketplace-skill-file-store";
 import {
+  D1MarketplaceSkillAdminSupport,
+  type MarketplaceAdminSkillDetail,
+  type MarketplaceAdminSkillListQuery
+} from "./skills/d1-marketplace-skill-admin-support";
+import {
   assertExistingSkillOwnership,
-  normalizeRelativeFilePath,
   parseSkillReviewInput,
   parseSkillUpsertInput,
   resolveSkillIdentity,
@@ -17,7 +21,6 @@ import type {
   MarketplaceSkillPublishActor,
   MarketplaceSkillUpsertInput,
   SceneRow,
-  SkillFileRow,
   TableNames
 } from "./skills/d1-section-types";
 
@@ -25,9 +28,20 @@ type SkillUpsertContext = { existing: ExistingSkillRow | null; itemId: string; p
 
 export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSourceBase {
   private readonly fileStore: MarketplaceSkillFileStore;
+  private readonly adminSupport: D1MarketplaceSkillAdminSupport;
   constructor(db: D1Database, filesBucket: R2Bucket) {
     super(db);
     this.fileStore = new MarketplaceSkillFileStore(db, filesBucket, (raw, path) => this.decodeBase64(raw, path), (bytes) => this.sha256Hex(bytes));
+    this.adminSupport = new D1MarketplaceSkillAdminSupport({
+      db,
+      fileStore: this.fileStore,
+      mapItemRow: this.mapItemRow,
+      parseStringArray: this.parseStringArray,
+      parseLocalizedMap: this.parseLocalizedMap,
+      mapInstall: (type, kind, spec, command, slug) => this.mapInstall(type, kind, spec, command, slug) as MarketplaceSkillInstallSpec,
+      readSkillPublishStatus: this.readSkillPublishStatus,
+      readSkillPublishedByType: this.readSkillPublishedByType
+    });
   }
 
   protected getItemType = (): MarketplaceItemType => {
@@ -98,25 +112,7 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     item: MarketplaceItem;
     files: MarketplaceSkillFile[];
   } | null> => {
-    const item = await this.getSkillItemBySelector(selector, { includeUnpublished: false });
-    if (!item) {
-      return null;
-    }
-
-    const files = await this.fileStore.listItemFileRows(item.id);
-    const metadata = await Promise.all(files.map(async (row) => {
-      const resolvedSizeBytes = Number.isFinite(row.size_bytes)
-        ? Number(row.size_bytes)
-        : row.content_b64
-          ? this.fileStore.mapSkillFileMetadata(row).sizeBytes
-          : undefined;
-      return this.fileStore.mapSkillFileMetadata(row, resolvedSizeBytes);
-    }));
-
-    return {
-      item,
-      files: metadata
-    };
+    return await this.adminSupport.getSkillFiles(selector, { includeUnpublished: false });
   };
 
   getSkillFileContentBySlug = async (selector: string, filePath: string): Promise<{
@@ -124,31 +120,15 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     file: MarketplaceSkillFile;
     bytes: Uint8Array;
   } | null> => {
-    const item = await this.getSkillItemBySelector(selector, { includeUnpublished: false });
-    if (!item) {
-      return null;
-    }
+    return await this.adminSupport.getSkillFileContent(selector, filePath, { includeUnpublished: false });
+  };
 
-    const row = await this.db
-      .prepare(`
-        SELECT file_path, content_b64, content_sha256, updated_at, storage_backend, r2_key, size_bytes
-        FROM marketplace_skill_files
-        WHERE skill_item_id = ? AND file_path = ?
-        LIMIT 1
-      `)
-      .bind(item.id, normalizeRelativeFilePath(filePath, "query.path"))
-      .first<SkillFileRow>();
+  listAdminSkills = async (query: MarketplaceAdminSkillListQuery) => {
+    return await this.adminSupport.listAdminSkills(query);
+  };
 
-    if (!row) {
-      return null;
-    }
-
-    const bytes = await this.fileStore.readSkillFileBytes(item.id, row);
-    return {
-      item,
-      file: this.fileStore.mapSkillFileMetadata(row, bytes.byteLength),
-      bytes
-    };
+  getAdminSkillDetail = async (selector: string) => {
+    return await this.adminSupport.getAdminSkillDetail(selector);
   };
 
   upsertSkill = async (
@@ -179,28 +159,9 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     };
   };
 
-  reviewSkill = async (rawInput: unknown): Promise<MarketplaceItem> => {
+  reviewSkill = async (rawInput: unknown): Promise<MarketplaceAdminSkillDetail> => {
     const input = parseSkillReviewInput(rawInput, this.validationTools);
-    const item = await this.getSkillItemBySelector(input.selector, { includeUnpublished: true });
-    if (!item || item.type !== "skill") {
-      throw new DomainValidationError(`skill item not found: ${input.selector}`);
-    }
-
-    const updatedAt = new Date().toISOString();
-    await this.db
-      .prepare(`
-        UPDATE marketplace_skill_items
-        SET publish_status = ?, updated_at = ?
-        WHERE id = ?
-      `)
-      .bind(input.publishStatus, updatedAt, item.id)
-      .run();
-
-    const nextItem = await this.getSkillItemBySelector(item.packageName, { includeUnpublished: true });
-    if (!nextItem) {
-      throw new DomainValidationError(`review succeeded but item not found: ${item.packageName}`);
-    }
-    return nextItem;
+    return await this.adminSupport.reviewSkill(input);
   };
 
   private resolveSkillUpsertContext = async (
@@ -255,11 +216,11 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       .prepare(`
         INSERT INTO marketplace_skill_items (
           id, slug, package_name, owner_user_id, owner_scope, skill_name,
-          publish_status, published_by_type,
+          publish_status, published_by_type, review_note, reviewed_at,
           name, summary, summary_i18n, description, description_i18n,
           tags, author, source_repo, homepage, install_kind, install_spec, install_command,
           published_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(package_name) DO UPDATE SET
           slug = excluded.slug,
           owner_user_id = excluded.owner_user_id,
@@ -267,6 +228,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
           skill_name = excluded.skill_name,
           publish_status = excluded.publish_status,
           published_by_type = excluded.published_by_type,
+          review_note = excluded.review_note,
+          reviewed_at = excluded.reviewed_at,
           name = excluded.name,
           summary = excluded.summary,
           summary_i18n = excluded.summary_i18n,
@@ -290,6 +253,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
         identity.skillName,
         context.publishStatus,
         context.publishedByType,
+        null,
+        null,
         input.name,
         input.summary,
         JSON.stringify(input.summaryI18n),
@@ -338,49 +303,10 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     selector: string,
     options: { includeUnpublished?: boolean } = {}
   ): Promise<MarketplaceItem | null> => {
-    const filters = [
-      "(slug = ? OR package_name = ?)"
-    ];
-    if (!options.includeUnpublished) {
-      filters.push("publish_status = 'published'");
-    }
-    const row = await this.db
-      .prepare(`
-        SELECT
-          id,
-          slug,
-          package_name,
-          owner_scope,
-          skill_name,
-          publish_status,
-          published_by_type,
-          name,
-          summary,
-          summary_i18n,
-          description,
-          description_i18n,
-          tags,
-          author,
-          source_repo,
-          homepage,
-          install_kind,
-          install_spec,
-          install_command,
-          published_at,
-          updated_at
-        FROM marketplace_skill_items
-        WHERE ${filters.join(" AND ")}
-        LIMIT 1
-      `)
-      .bind(selector, selector)
-      .first<ItemRow>();
-
-    if (!row) {
-      return null;
-    }
-
-    return this.mapItemRow(row);
+    const payload = await this.adminSupport.getSkillFiles(selector, options);
+    return payload?.item ?? null;
   };
+
   private get validationTools() {
     return {
       isRecord: (value: unknown): value is Record<string, unknown> => this.isRecord(value),

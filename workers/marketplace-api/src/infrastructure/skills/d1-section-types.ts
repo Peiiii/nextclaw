@@ -8,6 +8,8 @@ export type ItemRow = {
   skill_name?: string | null;
   publish_status?: string | null;
   published_by_type?: string | null;
+  review_note?: string | null;
+  reviewed_at?: string | null;
   name: string;
   summary: string;
   summary_i18n: string;

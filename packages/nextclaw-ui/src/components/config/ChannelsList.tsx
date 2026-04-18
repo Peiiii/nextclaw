@@ -12,7 +12,7 @@ import { t } from '@/lib/i18n';
 import { PageLayout, PageHeader } from '@/components/layout/page-layout';
 import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
 import { Input } from '@/components/ui/input';
-import { CONFIG_SIDEBAR_CARD_CLASS, CONFIG_SPLIT_GRID_CLASS } from './config-layout';
+import { CONFIG_SCROLL_REGION_CLASS, CONFIG_SIDEBAR_CARD_CLASS, CONFIG_SPLIT_GRID_CLASS } from './config-layout';
 
 const channelDescriptionKeys: Record<string, string> = {
   telegram: 'channelDescTelegram',
@@ -114,7 +114,7 @@ export function ChannelsList() {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3">
+          <div className={cn(CONFIG_SCROLL_REGION_CLASS, 'space-y-2 p-3')}>
             {filteredChannels.map((channel) => {
               const channelConfig = config.channels[channel.name];
               const enabled = channelConfig?.enabled || false;

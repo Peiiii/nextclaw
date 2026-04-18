@@ -2,6 +2,8 @@ export type Env = {
   DASHSCOPE_API_KEY?: string;
   DASHSCOPE_API_BASE?: string;
   AUTH_TOKEN_SECRET?: string;
+  MARKETPLACE_API_BASE?: string;
+  MARKETPLACE_ADMIN_TOKEN?: string;
   NEXTCLAW_WEB_BASE_URL?: string;
   REMOTE_ACCESS_BASE_DOMAIN?: string;
   REMOTE_ACCESS_FIXED_DOMAIN?: string;
@@ -324,6 +326,76 @@ export type ChargeResult =
     reason: "insufficient_quota";
     snapshot: BillingSnapshot;
   };
+
+export type AdminMarketplaceSkillPublishStatus = "pending" | "published" | "rejected" | "all";
+
+export type AdminMarketplaceSkillReviewStatus = "published" | "rejected";
+
+export type MarketplaceSkillInstallView = {
+  kind: string;
+  spec: string;
+  command?: string;
+  sourceUrl?: string;
+};
+
+export type MarketplaceSkillFileView = {
+  path: string;
+  sha256: string;
+  sizeBytes: number;
+  updatedAt: string;
+  downloadPath?: string;
+};
+
+export type AdminMarketplaceSkillCountsView = {
+  pending: number;
+  published: number;
+  rejected: number;
+};
+
+export type AdminMarketplaceSkillSummaryView = {
+  id: string;
+  slug: string;
+  packageName: string;
+  ownerScope: string;
+  skillName: string;
+  name: string;
+  summary: string;
+  author: string;
+  tags: string[];
+  publishStatus: Exclude<AdminMarketplaceSkillPublishStatus, "all">;
+  publishedByType: "admin" | "user";
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+  updatedAt: string;
+};
+
+export type AdminMarketplaceSkillDetailView = AdminMarketplaceSkillSummaryView & {
+  summaryI18n: Record<string, string>;
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  install: MarketplaceSkillInstallView;
+};
+
+export type AdminMarketplaceSkillListView = {
+  counts: AdminMarketplaceSkillCountsView;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  publishStatus: AdminMarketplaceSkillPublishStatus;
+  query?: string;
+  items: AdminMarketplaceSkillSummaryView[];
+};
+
+export type AdminMarketplaceSkillDetailPayload = {
+  item: AdminMarketplaceSkillDetailView;
+  files: MarketplaceSkillFileView[];
+  skillMarkdownRaw?: string;
+  marketplaceJsonRaw?: string;
+};
 
 export type CursorPayload = {
   createdAt: string;

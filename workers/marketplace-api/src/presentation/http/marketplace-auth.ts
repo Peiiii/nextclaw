@@ -1,11 +1,19 @@
-import type { Context } from "hono";
 import type { MarketplaceSkillPublishActor } from "../../infrastructure/d1-data-source";
 
 const DEFAULT_PLATFORM_API_BASE = "https://ai-gateway-api.nextclaw.io";
+type MarketplaceAuthContext = {
+  env: {
+    MARKETPLACE_ADMIN_TOKEN?: string;
+    NEXTCLAW_PLATFORM_API_BASE?: string;
+  };
+  req: {
+    header: (name: string) => string | undefined;
+  };
+};
 
 export class MarketplaceAuthError extends Error {}
 
-export function requireAdminToken(c: Context<any>): void {
+export function requireAdminToken(c: MarketplaceAuthContext): void {
   const expected = c.env.MARKETPLACE_ADMIN_TOKEN?.trim();
   const auth = c.req.header("authorization")?.trim();
   if (expected && auth === `Bearer ${expected}`) {
@@ -14,7 +22,7 @@ export function requireAdminToken(c: Context<any>): void {
   throw new MarketplaceAuthError("missing or invalid admin token");
 }
 
-export async function resolvePublishActor(c: Context<any>): Promise<MarketplaceSkillPublishActor> {
+export async function resolvePublishActor(c: MarketplaceAuthContext): Promise<MarketplaceSkillPublishActor> {
   const auth = c.req.header("authorization")?.trim();
   if (!auth) {
     throw new MarketplaceAuthError("missing authorization header");
@@ -53,7 +61,7 @@ export async function resolvePublishActor(c: Context<any>): Promise<MarketplaceS
   };
 }
 
-function resolvePlatformApiBase(c: Context<any>): string {
+function resolvePlatformApiBase(c: MarketplaceAuthContext): string {
   const base = c.env.NEXTCLAW_PLATFORM_API_BASE?.trim() || DEFAULT_PLATFORM_API_BASE;
   return base.replace(/\/+$/, "");
 }

@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
 import { formatUsd } from '@/lib/utils';
 import { GatewayBusinessLoopSection } from '@/pages/admin-gateway-business-loop';
+import { AdminMarketplaceReviewSection } from '@/pages/admin-marketplace-review-section';
 
 type Props = {
   token: string;
@@ -165,6 +166,7 @@ export function AdminDashboardPage({ token }: Props): JSX.Element {
         errorMessage={remoteQuotaQuery.error instanceof Error ? remoteQuotaQuery.error.message : null}
       />
       <GatewayBusinessLoopSection token={token} />
+      <AdminMarketplaceReviewSection token={token} />
       <UserQuotaManagementCard
         users={users}
         searchInput={userSearchInput}

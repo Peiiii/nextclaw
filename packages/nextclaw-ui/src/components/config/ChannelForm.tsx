@@ -11,7 +11,7 @@ import { BookOpen, ChevronDown } from 'lucide-react';
 import type { ConfigActionManifest } from '@/api/types';
 import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
 import { getChannelLogo } from '@/lib/logos';
-import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS } from './config-layout';
+import { CONFIG_DETAIL_CARD_CLASS, CONFIG_EMPTY_DETAIL_CARD_CLASS, CONFIG_SCROLL_REGION_CLASS } from './config-layout';
 import { ChannelFormFieldsSection } from './channel-form-fields-section';
 import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from './channel-form-fields';
 import { WeixinChannelAuthSection } from './weixin-channel-auth-section';
@@ -280,7 +280,7 @@ export function ChannelForm({ channelName }: ChannelFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-5">
+        <div className={cn(CONFIG_SCROLL_REGION_CLASS, 'space-y-6 px-6 py-5')}>
           {layoutBlocks.map((block, index) => {
             if (block.type === 'fields') {
               const blockFields = resolveFieldsForSection(fields, block.section);

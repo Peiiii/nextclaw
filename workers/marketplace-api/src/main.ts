@@ -9,7 +9,6 @@ import { GetSkillItemUseCase } from "./application/skills/get-skill-item.usecase
 import { ListSkillItemsUseCase } from "./application/skills/list-skill-items.usecase";
 import { ListSkillRecommendationsUseCase } from "./application/skills/list-skill-recommendations.usecase";
 import { DomainValidationError, ResourceNotFoundError } from "./domain/errors";
-import type { MarketplaceItem } from "./domain/model";
 import {
   D1MarketplacePluginDataSource,
   D1MarketplaceSkillDataSource,
@@ -19,8 +18,9 @@ import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp-repository
 import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin-repository";
 import { InMemorySkillRepository } from "./infrastructure/in-memory-skill-repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
+import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes";
 import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/marketplace-content";
-import { MarketplaceAuthError, requireAdminToken, resolvePublishActor } from "./presentation/http/marketplace-auth";
+import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
 import { ApiResponseFactory } from "./presentation/http/response";
 
@@ -332,30 +332,6 @@ app.get("/api/v1/mcp/recommendations", async (c) => {
   return runtime.responses.ok(c, data);
 });
 
-app.post("/api/v1/admin/skills/upsert", async (c) => {
-  requireAdminToken(c);
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return responses.error(c, "INVALID_BODY", "invalid json body", 400);
-  }
-
-  const runtime = getRuntime(c.env);
-  const result = await runtime.skillDataSource.upsertSkill(body, {
-    authType: "admin_token",
-    role: "admin",
-    userId: null,
-    username: "nextclaw"
-  });
-  runtime.invalidateCache();
-  return runtime.responses.ok(c, {
-    created: result.created,
-    item: result.item,
-    fileCount: result.fileCount
-  });
-});
-
 app.post("/api/v1/skills/publish", async (c) => {
   let body: unknown;
   try {
@@ -375,21 +351,6 @@ app.post("/api/v1/skills/publish", async (c) => {
   });
 });
 
-app.post("/api/v1/admin/skills/review", async (c) => {
-  requireAdminToken(c);
-  let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return responses.error(c, "INVALID_BODY", "invalid json body", 400);
-  }
-
-  const runtime = getRuntime(c.env);
-  const item = await runtime.skillDataSource.reviewSkill(body);
-  runtime.invalidateCache();
-  return runtime.responses.ok(c, {
-    item
-  });
-});
+registerAdminSkillRoutes(app, getRuntime);
 
 export default app;

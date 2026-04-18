@@ -13,6 +13,7 @@ export type ExistingSkillRow = {
 export type MarketplaceSkillReviewInput = {
   selector: string;
   publishStatus: "published" | "rejected";
+  reviewNote?: string;
 };
 
 export type MarketplaceResolvedSkillIdentity = {
@@ -87,7 +88,7 @@ export function parseSkillUpsertInput(
 
 export function parseSkillReviewInput(
   rawInput: unknown,
-  tools: Pick<MarketplaceSkillValidationTools, "isRecord" | "readString">
+  tools: Pick<MarketplaceSkillValidationTools, "isRecord" | "readString" | "readOptionalString">
 ): MarketplaceSkillReviewInput {
   if (!tools.isRecord(rawInput)) {
     throw new DomainValidationError("body must be an object");
@@ -95,13 +96,18 @@ export function parseSkillReviewInput(
 
   const selector = tools.readString(rawInput.selector, "body.selector");
   const publishStatus = tools.readString(rawInput.publishStatus, "body.publishStatus");
+  const reviewNote = tools.readOptionalString(rawInput.reviewNote, "body.reviewNote")?.trim();
   if (publishStatus !== "published" && publishStatus !== "rejected") {
     throw new DomainValidationError("body.publishStatus must be published or rejected");
+  }
+  if (publishStatus === "rejected" && !reviewNote) {
+    throw new DomainValidationError("body.reviewNote is required when publishStatus is rejected");
   }
 
   return {
     selector,
-    publishStatus
+    publishStatus,
+    reviewNote
   };
 }
 

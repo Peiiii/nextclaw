@@ -208,6 +208,25 @@ describe('ChannelsList', () => {
     ]);
   });
 
+  it('uses responsive scroll containment so stacked layouts can keep bubbling to the page', async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ChannelsList />);
+
+    await user.click(await screen.findByRole('button', { name: /All Channels/i }));
+
+    const scrollRegions = Array.from(container.querySelectorAll('div')).filter((node) => {
+      const classTokens = node.className.split(/\s+/).filter(Boolean);
+      return classTokens.includes('overflow-y-auto') && classTokens.includes('overscroll-auto');
+    });
+
+    expect(scrollRegions.length).toBeGreaterThanOrEqual(2);
+    scrollRegions.forEach((region) => {
+      const classTokens = region.className.split(/\s+/).filter(Boolean);
+      expect(classTokens).not.toContain('overscroll-contain');
+      expect(classTokens).toContain('xl:overscroll-contain');
+    });
+  });
+
   it('saves weixin advanced settings from the advanced section', async () => {
     const user = userEvent.setup();
 

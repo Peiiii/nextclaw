@@ -22,6 +22,11 @@ import {
   confirmRechargeIntentHandler,
   rejectRechargeIntentHandler
 } from "./controllers/admin-recharge-controller";
+import {
+  adminMarketplaceSkillDetailHandler,
+  adminMarketplaceSkillsHandler,
+  reviewAdminMarketplaceSkillHandler
+} from "./controllers/marketplace/admin-marketplace-controller";
 import { loginHandler, meHandler, patchProfileHandler, registerHandler } from "./controllers/auth-controller";
 import {
   billingLedgerHandler,
@@ -100,6 +105,9 @@ export function registerRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/admin/overview", adminOverviewHandler);
   app.get("/platform/admin/remote/quota", adminRemoteQuotaSummaryHandler);
   app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
+  app.get("/platform/admin/marketplace/skills", adminMarketplaceSkillsHandler);
+  app.get("/platform/admin/marketplace/skills/:selector", adminMarketplaceSkillDetailHandler);
+  app.post("/platform/admin/marketplace/skills/:selector/review", reviewAdminMarketplaceSkillHandler);
   app.get("/platform/admin/users", adminUsersHandler);
   app.patch("/platform/admin/users/:userId", patchAdminUserHandler);
   app.get("/platform/admin/providers", adminProvidersHandler);
