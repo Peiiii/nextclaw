@@ -120,6 +120,16 @@ export function isCodePath(pathText) {
   return CODE_EXTENSIONS.has(path.posix.extname(normalized).toLowerCase());
 }
 
+export function isTestPath(pathText) {
+  const normalized = normalizePath(pathText);
+  if (!normalized) {
+    return false;
+  }
+  const name = path.posix.basename(normalized).toLowerCase();
+  const segments = normalized.split("/").map((segment) => segment.toLowerCase());
+  return name.includes(".test.") || name.includes(".spec.") || segments.some((segment) => segment === "__tests__" || segment === "tests");
+}
+
 export function listCodeFilesUnder(pathText) {
   const absoluteRoot = path.resolve(ROOT, pathText);
   if (!fs.existsSync(absoluteRoot) || !fs.statSync(absoluteRoot).isDirectory()) {
@@ -194,7 +204,7 @@ export function chooseBudget(pathText) {
   const name = path.posix.basename(normalized).toLowerCase();
   const stem = path.posix.basename(normalized, path.posix.extname(normalized)).toLowerCase();
 
-  if (name.includes(".test.") || name.includes(".spec.") || segments.some((segment) => segment === "__tests__" || segment === "tests")) {
+  if (isTestPath(pathText)) {
     return { maxLines: 900, category: "test" };
   }
   if (new Set(["types", "schema", "schemas", "constants"]).has(stem) || [".types.ts", ".schema.ts", ".constants.ts", ".config.ts"].some((suffix) => name.endsWith(suffix))) {

@@ -11,6 +11,7 @@ import {
   readFileText,
   suggestSeam
 } from "./maintainability-guard-support.mjs";
+import { summarizeRepoLineChanges } from "./maintainability-guard-line-changes.mjs";
 import { collectDirectoryBudgetFindings } from "./maintainability-guard-directory-budget.mjs";
 import { collectHotspotGovernanceFindings } from "./maintainability-guard-hotspots.mjs";
 import { buildSignature, lintContent } from "./maintainability-guard-lint.mjs";
@@ -58,9 +59,12 @@ function createFileBudgetFinding(level, pathText, category, budget, currentLines
   };
 }
 
-export async function inspectPaths(paths) {
+export async function inspectPaths(paths, options = {}) {
   const inspectedPaths = [];
   const findings = [];
+  const lineChangeSummary = summarizeRepoLineChanges({
+    candidatePaths: options.scopePaths ?? null
+  });
 
   for (const rawPath of paths) {
     const pathText = normalizePath(rawPath);
@@ -217,6 +221,27 @@ export async function inspectPaths(paths) {
 
   findings.push(...collectDirectoryBudgetFindings(inspectedPaths));
 
+  if (options.changeKind === "non-feature" && lineChangeSummary.non_test.net > 0) {
+    findings.push({
+      level: "error",
+      source: "line-change-gate",
+      path: "(change-set)",
+      category: "line-change",
+      budget: null,
+      current_lines: null,
+      previous_lines: null,
+      delta_lines: lineChangeSummary.non_test.net,
+      message: `non-feature change increased non-test code by ${lineChangeSummary.non_test.net} lines; keep non-test net growth <= 0 before passing validation`,
+      suggested_seam: "delete obsolete paths, collapse duplicate branches, or simplify the implementation until non-test net growth is no longer positive",
+      rule_id: "non-feature-net-non-test-growth",
+      symbol_name: null,
+      line: null,
+      end_line: null,
+      metric_value: lineChangeSummary.non_test.net,
+      previous_metric_value: 0
+    });
+  }
+
   findings.sort((left, right) => {
     if ((left.level === "error") !== (right.level === "error")) {
       return left.level === "error" ? -1 : 1;
@@ -251,8 +276,10 @@ export async function inspectPaths(paths) {
   });
 
   return {
-    applicable: inspectedPaths.length > 0,
+    applicable: inspectedPaths.length > 0 || lineChangeSummary.has_code_changes,
+    change_kind: options.changeKind ?? "auto",
     inspected_paths: inspectedPaths,
+    line_change_summary: lineChangeSummary,
     summary: {
       errors: findings.filter((item) => item.level === "error").length,
       warnings: findings.filter((item) => item.level === "warn").length
@@ -273,9 +300,18 @@ export function printHuman(report) {
   }
 
   console.log("Maintainability check report");
+  console.log(`Change kind: ${report.change_kind ?? "auto"}`);
   console.log(`Inspected files: ${report.inspected_paths.length}`);
   console.log(`Errors: ${report.summary.errors}`);
   console.log(`Warnings: ${report.summary.warnings}`);
+  if (report.line_change_summary) {
+    console.log(
+      `Line changes: total +${report.line_change_summary.total.added} / -${report.line_change_summary.total.deleted} / net ${report.line_change_summary.total.net >= 0 ? "+" : ""}${report.line_change_summary.total.net}`
+    );
+    console.log(
+      `Non-test line changes: +${report.line_change_summary.non_test.added} / -${report.line_change_summary.non_test.deleted} / net ${report.line_change_summary.non_test.net >= 0 ? "+" : ""}${report.line_change_summary.non_test.net}`
+    );
+  }
 
   if (report.findings.length === 0) {
     console.log("No maintainability findings.");

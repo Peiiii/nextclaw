@@ -7,7 +7,8 @@ function parseArgs(argv) {
   const args = {
     paths: null,
     json: false,
-    noFail: false
+    noFail: false,
+    changeKind: "auto"
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -18,6 +19,10 @@ function parseArgs(argv) {
     }
     if (arg === "--no-fail") {
       args.noFail = true;
+      continue;
+    }
+    if (arg === "--non-feature") {
+      args.changeKind = "non-feature";
       continue;
     }
     if (arg === "--paths") {
@@ -39,7 +44,10 @@ function parseArgs(argv) {
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const paths = args.paths && args.paths.length > 0 ? args.paths : listChangedPaths();
-  const report = await inspectPaths(paths);
+  const report = await inspectPaths(paths, {
+    changeKind: args.changeKind,
+    scopePaths: args.paths && args.paths.length > 0 ? paths : null
+  });
 
   if (args.json) {
     console.log(JSON.stringify(report, null, 2));

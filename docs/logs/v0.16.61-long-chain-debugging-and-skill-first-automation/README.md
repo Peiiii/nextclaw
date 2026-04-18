@@ -44,6 +44,11 @@
   - [`code-review`](../../../.agents/skills/code-review/SKILL.md) 现在会把“纯非功能改动但非测试代码净增为正”直接视为 finding
   - [`post-edit-maintainability-review`](../../../.agents/skills/post-edit-maintainability-review/SKILL.md) 现在会把这种情况直接判为 `需继续修改`
   - [`nextclaw-clean-implementation`](../../../.agents/skills/nextclaw-clean-implementation/SKILL.md) 也同步前移了这条门槛，要求在动手前就说明如何保证 `非测试代码净增 <= 0`
+- 这次又继续向前推进了一层自动化落地：
+  - 为 [`post-edit-maintainability-guard`](../../../.agents/skills/post-edit-maintainability-guard/SKILL.md) 的脚本入口新增 `--non-feature` 模式
+  - 在该模式下，脚本会自动统计当前变更的总代码增减与非测试代码增减
+  - 若这是纯 bugfix / 纯重构 / 纯结构整理等非新增用户能力改动，且非测试代码净增仍大于 `0`，guard 会直接报错阻断
+  - 自动化层刻意不去猜“这次是不是非功能改动”，而是要求调用方显式声明 `--non-feature`，避免制造不稳定的误判
 - 在当前迭代目录下新增示范性工作笔记：
   - [`work/working-notes.md`](./work/working-notes.md)
 - `long-chain-debugging` 已同步接入这条机制：当排查跨多轮对话或存在压缩风险时，应配合 `iteration-work-notes` 使用，而不是把所有证据继续只留在聊天上下文里。
@@ -81,6 +86,12 @@
   - `rg -n "非测试代码净增|净增 <= 0|判失败|需继续修改" AGENTS.md .agents/skills/code-review/SKILL.md .agents/skills/post-edit-maintainability-review/SKILL.md .agents/skills/nextclaw-clean-implementation/SKILL.md`
   - 结果：命中 `AGENTS.md`、`code-review`、`post-edit-maintainability-review` 与 `nextclaw-clean-implementation`，说明“纯非功能改动非测试代码净增即失败”的硬门槛已经同时接入前置 skill、评审 skill、可维护性复核与验证规则。
 - 已执行：
+  - `node --test .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-support.test.mjs .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-directory-budget.test.mjs .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-hotspots.test.mjs`
+  - 结果：`11` 个测试全部通过，说明新增的代码增减统计逻辑与既有目录/红区测试未被破坏。
+- 已执行：
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-core.mjs .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-support.mjs .agents/skills/post-edit-maintainability-guard/scripts/maintainability-guard-support.test.mjs`
+  - 结果：脚本按预期返回非零退出码，并明确报出 `non-feature change increased non-test code`，说明 `--non-feature` gate 已真正开始阻断，而不是只打印提示。
+- 已执行：
   - `git diff --check -- AGENTS.md .agents/skills/code-review/SKILL.md .agents/skills/post-edit-maintainability-review/SKILL.md .agents/skills/nextclaw-clean-implementation/SKILL.md docs/logs/v0.16.61-long-chain-debugging-and-skill-first-automation/README.md docs/logs/v0.16.61-long-chain-debugging-and-skill-first-automation/work/working-notes.md`
   - 结果：通过，说明本次文档与规则修改没有引入空白符或 patch 级格式问题。
 - 已执行：
@@ -112,29 +123,34 @@
 7. 打开 [`code-review`](../../../.agents/skills/code-review/SKILL.md) 与 [`post-edit-maintainability-review`](../../../.agents/skills/post-edit-maintainability-review/SKILL.md)，确认：
   - review 机制本来就存在，不需要再发明一个新入口
   - 现在两者都已明确把“纯非功能改动但非测试代码净增为正”视为不能放行
-8. 随机挑一个未来的纯 bugfix 或纯重构场景，确认按新规则判断时：
+8. 打开 [`post-edit-maintainability-guard/SKILL.md`](../../../.agents/skills/post-edit-maintainability-guard/SKILL.md) 与其脚本目录，确认：
+  - 默认入口仍可用于一般代码任务
+  - 现在已经新增 `--non-feature` 模式，用于纯 bugfix / 纯重构 / 纯结构整理场景
+  - 自动化层要求显式声明 `--non-feature`，而不是让脚本自己猜任务类型
+9. 随机挑一个未来的纯 bugfix 或纯重构场景，确认按新规则判断时：
   - 若排除测试后的非测试代码净增为负数或 `0`，验证才有资格通过
   - 若排除测试后的非测试代码净增为正数，即使能解释理由，也必须继续改，不能算完成
+  - 若走的是 `post-edit-maintainability-guard --non-feature`，脚本本身就会先把这次改动拦下来
 
 ## 可维护性总结汇总
 
 ### 长期目标对齐 / 可维护性推进
 
-本次顺着“让 NextClaw 逐步具备可积累、可复用、可自进化的问题解决能力”的长期方向继续推进了一小步。它不再允许纯 bugfix / 纯重构类改动靠“解释为什么净增也合理”来过关，而是把“非测试代码净增必须 <= 0”写成了前置 skill、review skill、maintainability review 和验证阶段共同遵守的硬门槛。
+本次顺着“让 NextClaw 逐步具备可积累、可复用、可自进化的问题解决能力”的长期方向继续推进了一小步。它不再允许纯 bugfix / 纯重构类改动靠“解释为什么净增也合理”来过关，而且现在连 `post-edit-maintainability-guard` 都有了显式 `--non-feature` 自动 gate，不再只停留在文档约束。
 
 ### 具体判断
 
 - 本次是否已尽最大努力优化可维护性：是。本次没有再平铺多条平行规则，也没有再长出一个新的文档体系，而是把新机制接到现有迭代制度、复杂任务规则和项目私有 skill 位点上。
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。这轮没有再把“纯非功能改动净增也可解释通过”留成软约束，而是直接把它改成硬门槛，强制把实现路径压回“删减优先、简化优先”；同时仍然复用现有 review 机制，而不是新造一套并行体系。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：本次有最小必要净增长，原因是必须新增一个独立 skill 目录并更新当前迭代留痕；但同时避免了新增脚本、额外规则文件、第二个迭代目录或新的文档体系，增长仍属最小必要。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。现在边界被进一步拆清：`nextclaw-clean-implementation` 负责写代码前的垃圾代码风险自检，`code-review` 负责 findings-first 评审，`post-edit-maintainability-review` 负责最终主观可维护性复核，`/validate` 负责最终 gate；它们围绕同一硬规则协同，而不是各说各话。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：本次仍有最小必要净增长，原因是新增了 `post-edit-maintainability-guard` 的自动 gate 代码与测试，并更新当前迭代留痕；但同时把新增的 line-change 统计逻辑单独拆到了专门模块，避免继续把 `maintainability-guard-support.mjs` 推向预算外，增长仍属最小必要。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。现在边界被进一步拆清：`nextclaw-clean-implementation` 负责写代码前的垃圾代码风险自检，`code-review` 负责 findings-first 评审，`post-edit-maintainability-review` 负责最终主观可维护性复核，`post-edit-maintainability-guard --non-feature` 负责自动阻断，`/validate` 负责最终 gate；它们围绕同一硬规则协同，而不是各说各话。
 - 目录结构与文件组织是否满足当前项目治理要求：满足。新增内容放在既有 `.agents/skills/<skill-name>/` 与当前迭代 `README.md` / `work/` 之下，没有引入新的散点目录。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：不适用。本次未修改源码、脚本、测试或影响运行链路的配置。
 - 若本次迭代不涉及代码可维护性评估，必须明确写“不适用”并说明理由：不适用，原因同上；本次属于项目规则与 skill 文档能力沉淀，不是代码实现或代码重构。
 
 ### 可维护性总结
 
-这次改动把“非功能改动不得越改越多”从原则升级成了 gate。以后在这个仓库里，纯 bugfix / 纯重构 / 纯结构整理只要排除测试后的非测试代码净增为正，就不算通过；而且这条判断已经同时出现在实现前、评审中、可维护性复核和最终验证里，不再靠人临场记忆。
+这次改动把“非功能改动不得越改越多”从原则升级成了真正可执行的 gate。以后在这个仓库里，纯 bugfix / 纯重构 / 纯结构整理只要排除测试后的非测试代码净增为正，就不算通过；而且这条判断已经同时出现在实现前、评审中、可维护性复核、最终验证，以及 `post-edit-maintainability-guard --non-feature` 的自动阻断里，不再靠人临场记忆。
 
 ## NPM 包发布记录
 

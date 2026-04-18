@@ -76,7 +76,7 @@
   - `/new-rule`：创建新规则条目（按 Rulebook 模板）。执行时必须先判断应写入 Rulebook 还是 Project Rulebook；若规则本质是在约束系统行为原则，应优先固化“行为明确、清晰、可预测，不依赖隐藏兜底或环境状态制造 surprise success / surprise failure”这类可复用高层约束，而不是只记录单次问题的表层补丁。
   - `/commit`：进行提交操作（提交信息需使用英文）
   - `/maintainability-review`：对本次改动执行一轮独立于实现阶段的可维护性复核，重点检查“能否删减/简化、是否让代码继续膨胀、抽象与职责边界是否更清晰、非功能改动是否真正做到不增长、是否只是把复杂度换个位置保留”；默认使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 执行。复核输出除结论与总结外，必须同时包含固定模块 `长期目标对齐 / 可维护性推进`、`代码增减报告` 与 `非测试代码增减报告`；其中 `长期目标对齐 / 可维护性推进` 至少必须说明：本次是否顺着“代码更少、架构更简单、边界更清晰、复用更通用、复杂点更少”的长期方向推进了一小步；若没有，阻碍是什么、下一步准备从哪里推进。若本次不是新增用户能力，且排除测试后的非测试代码净增长大于 `0`，则本次复核结论必须为 `需继续修改`，不得以“已做到最小必要增长”或“保留债务经说明接受”判通过。
-  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试。代码改动在动手前，默认先按 Rulebook 的 `business-logic-must-use-class`、`class-over-function-sprawl`、`stateless-utility-first`、`ordinary-function-no-input-mutation`、`class-arrow-methods-by-default`、`react-effect-boundary-only` 做一次结构自检：先判断业务逻辑是否必须落到 class、是否已经出现函数蔓延且必须收敛为 owner class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、是否存在普通函数原地改入参、若采用 class 则实例方法是否从第一版起就使用箭头函数、React effect 是否只承担外部系统同步。代码改动收尾默认包含 `pnpm lint:maintainability:guard`，其内统一调用 `pnpm lint:new-code:governance`（当前含 touched 文件 kebab-case 文件名阻断、touched parent directory kebab-case 阻断、受治理文档命名阻断、touched file role-boundary 阻断、class 方法箭头函数检查、普通函数入参 mutation 阻断、React effect owner 边界治理，可扩展），并追加 `pnpm check:governance-backlog-ratchet` 确认 tracked 历史命名债务总量没有反弹；随后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核。若本次属于纯 bugfix、纯重构、结构整理、命名调整或其它不新增用户能力的改动，且 `非测试代码增减报告` 中的净增大于 `0`，则验证阶段必须判定为失败，不得视为验证通过。
+  - `/validate`：运行项目验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补冒烟测试。代码改动在动手前，默认先按 Rulebook 的 `business-logic-must-use-class`、`class-over-function-sprawl`、`stateless-utility-first`、`ordinary-function-no-input-mutation`、`class-arrow-methods-by-default`、`react-effect-boundary-only` 做一次结构自检：先判断业务逻辑是否必须落到 class、是否已经出现函数蔓延且必须收敛为 owner class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、是否存在普通函数原地改入参、若采用 class 则实例方法是否从第一版起就使用箭头函数、React effect 是否只承担外部系统同步。代码改动收尾默认包含 `post-edit-maintainability-guard`：一般代码任务可执行 `pnpm lint:maintainability:guard`；若本次属于纯 bugfix、纯重构、结构整理、命名调整或其它不新增用户能力的改动，则必须改用 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`（必要时可叠加 `--paths <touched-files...>` 缩小到当前改动范围），再继续执行 `pnpm lint:new-code:governance` 与 `pnpm check:governance-backlog-ratchet`。随后再执行一次 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](.agents/skills/post-edit-maintainability-review/SKILL.md) 定义的主观可维护性复核。若本次属于纯 bugfix、纯重构、结构整理、命名调整或其它不新增用户能力的改动，且 `非测试代码增减报告` 中的净增大于 `0`，则验证阶段必须判定为失败，不得视为验证通过。
   - `/release-frontend`：前端一键发布（仅 UI 变更场景）
 
 ## 规则/Rule 机制
@@ -238,7 +238,7 @@
   - 约束/适用范围：这是高优先级硬规则。凡属于纯 bugfix、行为校正、兼容处理、重构、结构整理、命名调整、配置整理或其它“非新增用户能力”的改动，默认目标必须是让系统更小、更清楚、更集中。对这类改动，排除测试后的非测试代码净增必须小于等于 `0`；若大于 `0`，则本次改动直接视为失败，验证不得通过。禁止借“只是修改一下”之名持续堆补丁、堆分支、堆函数、堆文件，再以“这是最小必要增长”为理由放行。
   - 示例：修复问题时删除旧分支、合并重复逻辑、把同一职责的函数簇收敛成一个清晰的 class 或模块边界，并让 `非测试代码增减报告` 最终为 `净增：0 行` 或负数；重构时把旧 helper 和中间层一起删掉，最终非测试代码净减少。
   - 反例：没有新增用户能力，却为了修一个问题连续增加 if/guard/helper/file，旧逻辑一个不删，最终 `非测试代码增减报告` 为正数；或纯重构新增一大段非测试代码，再试图以“长期会更好”“这是必要重写”要求放行。
-  - 执行方式：实现前必须先回答五个问题：`这次是否真的在新增用户能力？`、`如果不是，能删掉什么？`、`能合并哪些重复分支/函数/文件？`、`哪些职责应该收敛成 class 或明确模块边界？`、`当前目录是否已经开始平铺失控？`。若答案是“这次不是新增用户能力”，则收尾阶段必须计算 `非测试代码增减报告`，并在 `/validate` 与 `/maintainability-review` 中把 `净增 <= 0` 作为硬门槛；只要 `净增 > 0`，就必须继续修改直到非测试代码不再净增长，不能以说明理由代替通过。
+  - 执行方式：实现前必须先回答五个问题：`这次是否真的在新增用户能力？`、`如果不是，能删掉什么？`、`能合并哪些重复分支/函数/文件？`、`哪些职责应该收敛成 class 或明确模块边界？`、`当前目录是否已经开始平铺失控？`。若答案是“这次不是新增用户能力”，则收尾阶段必须计算 `非测试代码增减报告`，并在 `/validate` 与 `/maintainability-review` 中把 `净增 <= 0` 作为硬门槛；同时应优先运行 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`（必要时结合 `--paths <touched-files...>`）做自动阻断。只要 `净增 > 0`，就必须继续修改直到非测试代码不再净增长，不能以说明理由代替通过。
   - 维护责任人：当前助手。
 - **delete-simplify-before-add**：
   - 约束/适用范围：这是“优先让代码更少、更简单、更清晰，而不是追求最小改动”的执行规则。面对问题修复、功能设计、规则调整、流程治理或架构演进时，默认必须先评估“能否删除”，再评估“能否简化”，只有前两者都不足以解决问题时才允许新增逻辑、抽象、规则、配置或流程；禁止跳过删减/简化评估直接叠加新东西。也禁止把原问题“换个名字/换个语义/换个入口”后继续保留本质复杂度，伪装成已经解决。对于非新增用户能力的修改，总代码量上涨默认应视为异常情况，而不是常态。
@@ -455,9 +455,9 @@
   - 维护责任人：当前助手。
 - **post-edit-maintainability-guard-required**：
   - 约束/适用范围：凡本次任务触达项目代码、脚本、测试或影响运行链路的配置，收尾前必须执行项目内 skill `post-edit-maintainability-guard` 的自检；纯文档、措辞或元信息微调不适用，但必须明确说明“不适用”。
-  - 示例：修改 `packages/nextclaw/src/cli/commands/service.ts` 后，在最终回复前运行 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`，并说明是否存在“新文件超预算 / 目录进入或穿越文件数预算线 / 超限文件继续增长 / 新增的文件名-职责错配”。
+  - 示例：修改 `packages/nextclaw/src/cli/commands/service.ts` 后，在最终回复前运行 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`，并说明是否存在“新文件超预算 / 目录进入或穿越文件数预算线 / 超限文件继续增长 / 新增的文件名-职责错配”；若本次是纯 bugfix 或纯重构，则改用 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`，让脚本自动阻断 `非测试代码净增 > 0`。
   - 反例：代码改完只跑功能验证，不做任何可维护性自检；或发现超长文件继续增长却不提示风险和拆分缝。
-  - 执行方式：默认在收尾阶段运行 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`；如只需检查特定文件，可加 `--paths <file...>`；结果除文件级/目录级/函数级预算外，还要关注 diff-only 的命名职责一致性告警；若出现阻塞项，优先继续拆分、补豁免说明或更名，否则需在结果中明确债务、原因与下一步拆分位点。
+  - 执行方式：默认在收尾阶段运行 `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs`；若本次属于纯 bugfix、纯重构、结构整理、命名调整或其它不新增用户能力的改动，则必须加 `--non-feature` 开启“非测试代码净增 <= 0”自动 gate；如只需检查特定文件，可再叠加 `--paths <file...>`。结果除文件级/目录级/函数级预算外，还要关注 diff-only 的命名职责一致性告警，以及 `--non-feature` 模式下的非测试代码净增是否已被压到 `<= 0`；若出现阻塞项，优先继续拆分、补豁免说明或更名，否则需在结果中明确债务、原因与下一步拆分位点。
   - 维护责任人：当前助手。
 - **post-edit-maintainability-review-required**：
   - 约束/适用范围：凡本次任务触达项目源码、脚本、测试或影响运行链路的配置，在 `post-edit-maintainability-guard` 之后、最终回复或提交之前，必须再执行一轮独立于实现阶段的主观可维护性复核；纯文档、措辞或元信息微调不适用，但必须明确说明“不适用”。
