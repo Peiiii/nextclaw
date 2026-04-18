@@ -15,6 +15,11 @@
 - 新增示例应用 `apps/examples/hello-notes`
 - 通过 Wasm `main/app.wasm` 跑通“读取已授权目录 -> 汇总输入 -> 调 Wasm 导出 -> 返回 UI”这条完整链路
 - 将新包纳入根级 `build / lint / tsc` 脚本，避免后续仓库级验证遗漏
+- 补齐 `@nextclaw/app-runtime` 的对外发布元数据与 `napp --help / --version`
+- 新增 marketplace skill：`skills/nextclaw-app-runtime`
+- 已将 `@nextclaw/app-runtime` 发布到 npm
+- 已将 `nextclaw-app-runtime` 以官方 skill `@nextclaw/nextclaw-app-runtime` 发布到 NextClaw marketplace
+- 已旋转并持久化 `MARKETPLACE_ADMIN_TOKEN`，用于后续官方 skill 更新
 
 本次实现刻意保持一条主路径：
 
@@ -39,26 +44,44 @@
 本次实际执行的验证如下：
 
 - `pnpm install`
+- `python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/nextclaw-app-runtime`
 - `pnpm -C packages/nextclaw-app-runtime test`
 - `pnpm -C packages/nextclaw-app-runtime tsc`
 - `pnpm -C packages/nextclaw-app-runtime lint`
 - `pnpm -C packages/nextclaw-app-runtime build`
+- `cd packages/nextclaw-app-runtime && node dist/main.js --help`
+- `cd packages/nextclaw-app-runtime && node dist/main.js --version`
 - `pnpm -C packages/nextclaw-app-runtime smoke`
 - `pnpm -C packages/nextclaw-app-runtime exec node dist/main.js inspect ../../apps/examples/hello-notes --json`
+- `cd packages/nextclaw-app-runtime && pnpm publish --access public --dry-run --no-git-checks`
+- `pnpm publish --access public --no-git-checks`（在 `packages/nextclaw-app-runtime` 下正式执行）
+- `node packages/nextclaw/dist/cli/index.js account status`
+- `node packages/nextclaw/dist/cli/index.js skills publish skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --scope nextclaw --api-base https://marketplace-api.nextclaw.io`
+- `node packages/nextclaw/dist/cli/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --scope nextclaw --token <local-admin-token> --api-base https://marketplace-api.nextclaw.io`
+- `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/%40nextclaw%2Fnextclaw-app-runtime`
+- `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/%40nextclaw%2Fnextclaw-app-runtime/files`
+- `node packages/nextclaw/dist/cli/index.js skills install @nextclaw/nextclaw-app-runtime --api-base https://marketplace-api.nextclaw.io --workdir <tmp-dir>`
+- `npm view @nextclaw/app-runtime version --json`
 - `pnpm lint:new-code:governance`
 - `pnpm lint:maintainability:guard`
 
 关键观察点：
 
 - `inspect` 能正确解析 `hello-notes` manifest，并输出 `main/ui/permissions` 摘要
+- `--help` 与 `--version` 能作为 skill 安装后的最小 readiness check
 - `smoke` 能真实启动 `napp run`
 - `smoke` 会在临时目录创建两份 notes，再通过 `POST /__napp/run` 调用 Wasm 主模块
 - 结果中 `documentCount`、`textBytes`、`output.output` 与预期一致
+- marketplace skill metadata 本地校验通过，`Errors: 0`，`Warnings: 0`
+- npm dry-run 通过，正式发布后 `npm view @nextclaw/app-runtime version` 返回 `0.1.0`
+- 官方 skill 远端详情返回 `200`，`packageName=@nextclaw/nextclaw-app-runtime`，`publishStatus=published`
+- 官方 skill 安装冒烟通过，临时目录中包含 `SKILL.md` 与 `marketplace.json`
+- `MARKETPLACE_ADMIN_TOKEN` 已旋转到 Cloudflare Worker secret，并本地持久化到 `$HOME/.nextclaw/secrets/marketplace-admin-token.env`
 - 新增文件命名、角色后缀、class arrow methods、param mutation、react effects 等治理检查全部通过
 
 ## 发布/部署方式
 
-当前阶段不涉及正式部署，也不接入主产品发布链路。
+当前阶段已完成对外发布，但仍未接入主产品主链路。
 
 如果要本地体验这一版 runtime，可按下面方式运行：
 
@@ -68,10 +91,43 @@ node packages/nextclaw-app-runtime/dist/main.js inspect apps/examples/hello-note
 node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --document notes=/absolute/path/to/notes
 ```
 
-如果后续要对外发布，建议分两步：
+本次实际对外发布链路：
 
-1. 先补稳定的 `init/create` 脚手架与更完整的 host contract
-2. 再决定是否以 `@nextclaw/app-runtime` 单独发包
+```bash
+cd packages/nextclaw-app-runtime
+pnpm publish --access public --no-git-checks
+
+cd /Users/peiwang/Projects/nextbot
+node packages/nextclaw/dist/cli/index.js skills publish \
+  skills/nextclaw-app-runtime \
+  --meta skills/nextclaw-app-runtime/marketplace.json \
+  --scope nextclaw \
+  --api-base https://marketplace-api.nextclaw.io
+```
+
+本地官方 admin token 持久化路径：
+
+```text
+$HOME/.nextclaw/secrets/marketplace-admin-token.env
+```
+
+本机 shell 自动加载方式：
+
+```text
+[ -f "$HOME/.nextclaw/secrets/marketplace-admin-token.env" ] && source "$HOME/.nextclaw/secrets/marketplace-admin-token.env"
+```
+
+后续若需要更新官方 skill，可直接使用：
+
+```bash
+source "$HOME/.nextclaw/secrets/marketplace-admin-token.env"
+node packages/nextclaw/dist/cli/index.js skills update \
+  skills/nextclaw-app-runtime \
+  --meta skills/nextclaw-app-runtime/marketplace.json \
+  --scope nextclaw \
+  --token "$NEXTCLAW_MARKETPLACE_ADMIN_TOKEN" \
+  --api-base https://marketplace-api.nextclaw.io
+```
 
 ## 用户/产品视角的验收步骤
 
@@ -97,6 +153,7 @@ node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --
 
 - 这次改动顺着 NextClaw “统一入口 + 能力编排 + 生态扩展”的长期方向推进了一小步，因为它把“用户自己做的小应用”收敛成了一个可复制的运行时形态，而不是继续往主产品里堆一个一次性功能
 - 这次没有直接接主产品，而是先做独立 runtime 包，降低了对既有服务/UI/CLI 的耦合压力
+- 这次进一步把“微应用运行时能力”包装成可独立安装的 npm 包与可独立安装的 marketplace skill，让生态入口更接近真实用户使用方式
 
 代码增减报告：
 
@@ -116,6 +173,7 @@ node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --
 - 这次属于新增用户能力，不是纯 bugfix 或纯重构，因此非测试代码净增为正是允许的
 - 在新增能力前已经把范围压到最小：不做产品接入、不做市场层、不做安装器、不做通用网络执行、不做复杂 Wasmtime 进程管理
 - 业务 owner 相对清晰：manifest 读取收敛到 `AppManifestService`，权限收敛到 `AppPermissionsService`，应用执行收敛到 `AppInstanceService`，宿主收敛到 `AppHostService`，Wasm 调用收敛到 `WasmMainRunnerService`
+- 新增的 marketplace skill 没有偷渡 runtime 逻辑，而是保持“skill 负责 onboarding，runtime 负责执行”的清晰边界
 - 命名和目录结构已经按仓库治理规则收敛到明确角色后缀，没有继续制造 `logic/`、`helpers/`、`misc` 这类假角色
 - 复杂度没有被隐藏到 effect、普通函数 mutation 或兜底分支里，主链路保持单一路径
 
@@ -134,10 +192,21 @@ node packages/nextclaw-app-runtime/dist/main.js run apps/examples/hello-notes --
 
 ## NPM 包发布记录
 
-本次不涉及 NPM 包发布。
+本次涉及 NPM 包发布判断。
 
-判断原因：
+需要发布的包：
 
-- `@nextclaw/app-runtime` 仍处于 MVP 验证阶段
-- 当前没有补 changeset，也没有进入统一发布批次
-- 当前更适合作为仓库内独立能力继续演进，待 contract 更稳定后再决定是否单独发包
+- `@nextclaw/app-runtime`
+
+当前状态：
+
+- `@nextclaw/app-runtime`：已发布
+
+官方 marketplace skill 状态：
+
+- `@nextclaw/nextclaw-app-runtime`：已发布
+
+补充说明：
+
+- 本次仍保留了 changeset，用于把本地仓库状态纳入后续统一 release 节奏
+- marketplace 官方更新不再依赖手工临时复制 token，当前机器已具备可复用的本地 token 存储与自动加载路径

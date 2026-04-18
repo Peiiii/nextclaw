@@ -1,0 +1,30 @@
+{
+  "slug": "nextclaw-app-runtime",
+  "name": "NextClaw App Runtime",
+  "summary": "Create, inspect, run, and share NextClaw micro apps through the local napp CLI with guided install, readiness checks, and explicit permission mapping.",
+  "summaryI18n": {
+    "en": "Create, inspect, run, and share NextClaw micro apps through the local napp CLI with guided install, readiness checks, and explicit permission mapping.",
+    "zh": "通过本地 napp CLI 创建、检查、运行和分享 NextClaw 微应用，覆盖安装引导、就绪检查与显式权限映射。"
+  },
+  "description": "Use this skill when the user wants to build or use a local NextClaw micro app through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, manual app scaffolding when no create command exists yet, inspect-before-run workflow, explicit document permission mapping, and first-run troubleshooting.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to build or use a local NextClaw micro app through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, manual app scaffolding when no create command exists yet, inspect-before-run workflow, explicit document permission mapping, and first-run troubleshooting.",
+    "zh": "当用户希望通过独立的 @nextclaw/app-runtime 包来构建或使用本地 NextClaw 微应用时使用此技能。它覆盖 npm 安装、napp 就绪检查、在尚无 create 命令时手动脚手架应用目录、先 inspect 后 run 的工作流、显式文档权限映射以及首轮运行排障。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "nextclaw",
+    "micro-app",
+    "napp",
+    "wasm",
+    "cli",
+    "local-runtime",
+    "onboarding"
+  ],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://github.com/Peiiii/nextclaw",
+  "install": {
+    "kind": "marketplace"
+  }
+}

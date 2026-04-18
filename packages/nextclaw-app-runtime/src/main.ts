@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import packageJson from "../package.json" with { type: "json" };
 import { DevCommand } from "./commands/dev.controller.js";
 import { InspectCommand } from "./commands/inspect.controller.js";
 import { RunCommand } from "./commands/run.controller.js";
@@ -14,7 +15,16 @@ type CliOptions = {
 
 class AppRuntimeCli {
   run = async (): Promise<void> => {
-    const [command, appDirectory, ...restArgs] = process.argv.slice(2);
+    const args = process.argv.slice(2);
+    const [command, appDirectory, ...restArgs] = args;
+    if (command === "--help" || command === "help") {
+      this.writeUsage();
+      return;
+    }
+    if (command === "--version" || command === "version") {
+      this.write(`${packageJson.version}\n`);
+      return;
+    }
     if (!command || !appDirectory) {
       this.writeUsage();
       process.exit(1);
@@ -122,6 +132,8 @@ class AppRuntimeCli {
 
   private writeUsage = (): void => {
     this.write("Usage: napp <inspect|run|dev> <app-dir> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
+    this.write("       napp --help\n");
+    this.write("       napp --version\n");
   };
 
   private write = (text: string): void => {

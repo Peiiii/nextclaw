@@ -4,8 +4,28 @@
   "private": false,
   "description": "Standalone micro app runtime and CLI for NextClaw apps.",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-app-runtime",
+  "bugs": {
+    "url": "https://github.com/Peiiii/nextclaw/issues"
+  },
+  "keywords": [
+    "nextclaw",
+    "micro-app",
+    "wasm",
+    "webview",
+    "app-runtime",
+    "cli"
+  ],
   "bin": {
     "napp": "dist/main.js"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "exports": {
     ".": {

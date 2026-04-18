@@ -8,6 +8,19 @@
 - `napp run <app-dir>`：启动本地宿主，提供 UI 静态服务和桥接 API
 - `napp dev <app-dir>`：当前等价于 `run`
 
+## 安装
+
+```bash
+npm install -g @nextclaw/app-runtime
+```
+
+安装后可用：
+
+```bash
+napp --help
+napp --version
+```
+
 第一版先聚焦“独立可运行的微应用宿主”，不接入现有 NextClaw 主产品路由、服务或传播层。
 
 ## 应用目录
