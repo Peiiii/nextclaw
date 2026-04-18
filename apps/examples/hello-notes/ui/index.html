@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hello Notes</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(255, 210, 120, 0.28), transparent 32%),
+          linear-gradient(160deg, #f6f0e2 0%, #f8fafc 52%, #e5eef8 100%);
+        color: #10233e;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      main {
+        box-sizing: border-box;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+      }
+
+      .panel {
+        backdrop-filter: blur(18px);
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(16, 35, 62, 0.1);
+        border-radius: 24px;
+        box-shadow: 0 18px 48px rgba(16, 35, 62, 0.12);
+        padding: 28px;
+      }
+
+      h1 {
+        font-size: clamp(32px, 6vw, 54px);
+        line-height: 1;
+        margin: 0 0 12px;
+      }
+
+      p {
+        line-height: 1.6;
+      }
+
+      button {
+        border: 0;
+        border-radius: 999px;
+        background: #10233e;
+        color: #fff;
+        padding: 12px 18px;
+        font-size: 15px;
+        cursor: pointer;
+      }
+
+      dl {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin: 24px 0 0;
+      }
+
+      dt {
+        font-size: 12px;
+        color: #50647e;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      dd {
+        margin: 6px 0 0;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      pre {
+        margin-top: 20px;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(16, 35, 62, 0.08);
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <p id="eyebrow">NextClaw Micro App</p>
+        <h1 id="title">Loading...</h1>
+        <p id="description"></p>
+        <button id="run-button" type="button">Run Summary</button>
+        <dl>
+          <div>
+            <dt>Action</dt>
+            <dd id="action">-</dd>
+          </div>
+          <div>
+            <dt>Documents</dt>
+            <dd id="document-count">-</dd>
+          </div>
+          <div>
+            <dt>Text Bytes</dt>
+            <dd id="text-bytes">-</dd>
+          </div>
+          <div>
+            <dt>Wasm Score</dt>
+            <dd id="wasm-score">-</dd>
+          </div>
+        </dl>
+        <pre id="details"></pre>
+      </section>
+    </main>
+    <script type="module" src="./hello-notes.controller.js"></script>
+  </body>
+</html>

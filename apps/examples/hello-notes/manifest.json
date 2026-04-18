@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "nextclaw.hello-notes",
+  "name": "Hello Notes",
+  "version": "0.1.0",
+  "description": "A tiny micro app that summarizes an authorized notes directory through a wasm main module.",
+  "icon": "assets/icon.svg",
+  "main": {
+    "kind": "wasm",
+    "entry": "main/app.wasm",
+    "export": "summarize_notes",
+    "action": "summarizeNotes"
+  },
+  "ui": {
+    "entry": "ui/index.html"
+  },
+  "permissions": {
+    "documentAccess": [
+      {
+        "id": "notes",
+        "mode": "read",
+        "description": "Read a notes directory and compute a small summary score."
+      }
+    ],
+    "allowedDomains": [
+      "api.example.com"
+    ],
+    "storage": {
+      "namespace": "hello-notes"
+    },
+    "capabilities": {
+      "hostBridge": true
+    }
+  }
+}

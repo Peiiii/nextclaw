@@ -1,0 +1,37 @@
+{
+  "name": "@nextclaw/app-runtime",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Standalone micro app runtime and CLI for NextClaw apps.",
+  "type": "module",
+  "bin": {
+    "napp": "dist/main.js"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts src/main.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}
