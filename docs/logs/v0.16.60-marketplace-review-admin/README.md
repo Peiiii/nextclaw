@@ -67,6 +67,25 @@
 - Cloudflare 远端权限与 wrangler 登录态
 - `MARKETPLACE_ADMIN_TOKEN` 等线上 secret 已配置
 
+实际发布结果：
+
+- `marketplace-api`
+  - 已执行 `pnpm -C workers/marketplace-api db:migrate:skills:remote`
+  - migration `0005_marketplace_skill_review_metadata_20260418.sql` 已成功应用
+  - 已部署版本 ID：`e983da4f-3368-4176-9f90-e9f7cc863e5e`
+  - 域名：`https://marketplace-api.nextclaw.io`
+- `nextclaw-provider-gateway-api`
+  - 已部署版本 ID：`bc1df801-e22d-49c8-8640-5876d241f2ce`
+  - 域名：`https://ai-gateway-api.nextclaw.io`
+- `platform-admin`
+  - 已部署 Pages URL：`https://c7597a56.nextclaw-platform-admin.pages.dev`
+
+线上探测：
+
+- `curl https://marketplace-api.nextclaw.io/health` 返回 `ok`
+- `curl https://ai-gateway-api.nextclaw.io/health` 返回 `ok`
+- `curl -I https://c7597a56.nextclaw-platform-admin.pages.dev` 返回 `HTTP/2 200`
+
 # 用户/产品视角的验收步骤
 
 1. 管理员登录 `platform-admin`
@@ -109,9 +128,18 @@
 
 - 可维护性复核结论：保留债务经说明接受
 - 本次顺手减债：是
-- 代码增减报告：本次需在最终提交前以 staged diff 为准复核；当前实现层面属于新增能力带来的净增长，但已通过拆分 support / route registry / 独立 section 把增长压回到最小必要范围
-- 非测试代码增减报告：本次改动全部为非测试代码；最终以 staged diff 为准复核
-- 可维护性总结：本次没有把审核能力硬塞回现有大文件，而是用更清晰的后端代理、worker support 和前端 section 边界承接新增复杂度。仍保留的债务主要是 `types/platform.ts` 与新 support 文件接近预算上限，后续若继续扩展 marketplace 后台，优先从类型拆分与 marketplace 子域模块化入手。
+- no maintainability findings
+- 代码增减报告：
+  - 新增：`1949` 行
+  - 删除：`157` 行
+  - 净增：`1792` 行
+  - 说明：统计口径为 `git diff HEAD~1..HEAD -- docs/plans/2026-04-18-marketplace-review-admin-design.md docs/logs/v0.16.60-marketplace-review-admin/README.md apps/platform-admin workers/marketplace-api workers/nextclaw-provider-gateway-api`
+- 非测试代码增减报告：
+  - 新增：`1532` 行
+  - 删除：`157` 行
+  - 净增：`1375` 行
+  - 说明：实现改动未触达测试文件，非测试代码净增长来自正式审核后台能力；文档增量为设计方案与迭代记录，共 `417` 行
+- 可维护性总结：这次净增代码主要来自新增正式审核能力本身，但在接受增长前，已经先把 `marketplace-api` 的审核/文件职责拆到独立 support 模块、把 admin 路由从 `main.ts` 抽离、并把 provider controller 收进子目录，避免把新增复杂度直接堆回既有热点文件。当前边界总体更清晰，没有发现明显重复抽象或把业务编排继续塞回 React effect 的问题；后续继续扩展该后台时，优先关注 `apps/platform-admin/src/pages/admin-marketplace-review-section.tsx` 与 `workers/nextclaw-provider-gateway-api/src/types/platform.ts` 的体积增长，及时按子域拆分。
 
 # NPM 包发布记录
 
