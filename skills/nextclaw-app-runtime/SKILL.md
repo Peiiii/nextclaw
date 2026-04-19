@@ -1,13 +1,13 @@
 ---
 name: nextclaw-app-runtime
-description: Use when the user wants to create, inspect, run, or share NextClaw micro apps through the local napp CLI, including install, readiness checks, starter app scaffolding, and safe permission-aware execution.
+description: Use when the user wants to create, inspect, publish, install, run, or share NextClaw Apps through the local napp CLI, including registry workflows, readiness checks, starter scaffolding, and explicit permission-aware execution.
 ---
 
 # NextClaw App Runtime
 
 ## Overview
 
-Use this skill when the user wants to build or run a local NextClaw micro app through the standalone `napp` runtime.
+Use this skill when the user wants to build, publish, install, or run a local NextClaw App through the standalone `napp` runtime.
 
 This skill is intentionally decoupled:
 
@@ -19,6 +19,8 @@ From the user's point of view, the experience should feel complete:
 - install `napp` if missing,
 - verify the runtime is really ready,
 - create or inspect an app directory,
+- publish the app to the official registry when needed,
+- discover or install an app from the official store when needed,
 - map the needed local permissions explicitly,
 - then run the micro app for real.
 
@@ -37,7 +39,7 @@ Always distinguish these three things:
 
 Installing the marketplace skill does not install `napp` by itself.
 Installing `napp` does not create an app automatically.
-Running an app still requires a concrete app directory and any needed permission mappings.
+Running an app still requires either a concrete app directory or an installed app id, plus any needed permission mappings.
 
 ## What This Skill Covers
 
@@ -45,6 +47,9 @@ Running an app still requires a concrete app directory and any needed permission
 - verify `napp` readiness
 - inspect an existing app directory
 - scaffold a first app directory with `napp create`
+- publish an app with `napp publish`
+- install or update an app from the official registry
+- explain the official Apps store and registry entry points
 - explain and apply `--document scope=/path` permission mappings
 - run a local app safely
 - help the user share an app directory with another user
@@ -55,11 +60,21 @@ Running an app still requires a concrete app directory and any needed permission
 - claiming container-grade isolation that the current MVP does not provide
 - silently granting file access without an explicit user path
 - inventing app capabilities that `manifest.json` and `napp` do not actually support
-- claiming there is already an app store, installer UX, or one-click packaging when that path is not ready yet
+- claiming this is already a full Docker replacement, a general backend platform, or a finished in-product app center
+
+## Official Entry Points
+
+Current official entry points:
+
+- Apps store: `https://apps.nextclaw.io`
+- Apps registry/API: `https://apps-registry.nextclaw.io`
+- Default registry base used by `napp`: `https://apps-registry.nextclaw.io/api/v1/apps/registry/`
+
+Use these entry points when the user asks how to discover apps, publish apps, or install an app by id.
 
 ## Deterministic First-Use Workflow
 
-When the user asks to create or use a NextClaw micro app, follow this exact order.
+When the user asks to create, publish, install, or use a NextClaw App, follow this exact order.
 
 ### 1. Check whether `napp` exists
 
@@ -90,6 +105,8 @@ Classify the request into one of these:
 
 - use an existing app directory
 - create a new app directory
+- publish an app directory
+- install an app from the official registry
 - inspect an app somebody else shared
 - troubleshoot a runtime or permission failure
 
@@ -136,7 +153,45 @@ After scaffolding, always run:
 napp inspect <app-dir> --json
 ```
 
-### 5. Apply file access explicitly
+### 5. For a published or remote app, install before running
+
+Run:
+
+```bash
+napp install <app-id>
+```
+
+Useful checks:
+
+```bash
+napp list
+napp info <app-id>
+napp permissions <app-id>
+```
+
+If the user is choosing an app from the official store, prefer using the app id shown there, for example:
+
+```bash
+napp install nextclaw.hello-notes
+```
+
+### 6. Publish an app when the user is acting as a developer
+
+Run:
+
+```bash
+napp inspect <app-dir> --json
+napp publish <app-dir>
+```
+
+Publish rules:
+
+- do not publish before `inspect` succeeds,
+- confirm the app contains `marketplace.json`,
+- prefer the default official API unless the user explicitly asks for another registry,
+- surface the returned app id, detail page, and install command after publish succeeds.
+
+### 7. Apply file access explicitly
 
 If the app declares `documentAccess`, the user must provide an explicit mapping at runtime, for example:
 
@@ -150,12 +205,12 @@ Rules:
 - the user must know exactly which local path is being granted,
 - the skill must not silently choose a path on the user's behalf for write-sensitive cases.
 
-### 6. Run the app for real
+### 8. Run the app for real
 
 Run:
 
 ```bash
-napp run <app-dir> [--document scope=/path ...]
+napp run <app-dir|app-id> [--document scope=/path ...]
 ```
 
 Then open the printed local URL in a browser.
@@ -177,15 +232,16 @@ Always explain the runtime in this order:
 4. the host bridge is the controlled path from the web UI to local capabilities.
 5. local file access only happens through explicit permission mappings.
 
-Do not describe the current MVP as:
+Do not describe the current product as:
 
 - a full Docker replacement,
 - a general backend platform,
-- or an already-finished app marketplace.
+- or an in-product embedded app center that is already fully integrated everywhere.
 
 Describe it truthfully as:
 
 - a lightweight local micro-app runtime,
+- with an official apps registry and store,
 - with a web UI,
 - a constrained main module,
 - and explicit host-mediated permissions.
@@ -209,6 +265,14 @@ When one user wants to share an app with another user, use this order:
 4. the receiver starts it with explicit `--document` mappings
 5. the receiver opens the local URL and verifies behavior
 
+If the app has already been published, the reuse workflow can also be:
+
+1. share the app id or detail page
+2. the receiver runs `napp install <app-id>`
+3. the receiver checks `napp permissions <app-id>`
+4. the receiver grants explicit local paths
+5. the receiver runs `napp run <app-id>`
+
 The key product point is:
 
 - the app is portable as a folder,
@@ -227,6 +291,19 @@ The key product point is:
 - fix the folder structure first
 - confirm `manifest.json`, `main.entry`, and `ui.entry`
 - do not continue to `run`
+
+### `install` fails
+
+- check `napp registry get`
+- confirm the app id exists in the official registry
+- retry with the default registry unless the user explicitly changed it
+
+### `publish` fails
+
+- inspect the app again
+- confirm `marketplace.json` exists and is valid
+- confirm publish auth is available if the target registry requires it
+- do not claim the app is available until the publish result returns a real app id
 
 ### `run` says a document scope is missing
 
@@ -248,5 +325,6 @@ This skill is working correctly when:
 - `napp` is installed and observable,
 - `napp --version` and `napp --help` both work,
 - a real app directory can be inspected,
+- a real app can be published or installed when that is the user's goal,
 - required permissions are surfaced before execution,
 - and the app can be run through the local host with a real successful action.

@@ -19,6 +19,7 @@
 - 将人类入口冻结为 `https://apps.nextclaw.io`，当前已完成 Pages 部署，域名绑定由用户接手处理。
 - 已将 3 个官方示例 app 真正发布到线上 registry。
 - 已将 `@nextclaw/app-runtime@0.4.0` 与 `@nextclaw/app-sdk@0.1.0` 真正发布到 npm。
+- 已将官方 marketplace skill `@nextclaw/nextclaw-app-runtime` 更新到与当前 Apps 闭环一致的版本，补齐 `publish / install / registry / store` 新工作流描述。
 
 相关设计文档：
 
@@ -67,6 +68,10 @@
 - `pnpm publish --access public --no-git-checks`（在 `packages/nextclaw-app-sdk` 目录）
 - `npm view @nextclaw/app-runtime version`
 - `npm view @nextclaw/app-sdk version`
+- `python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/nextclaw-app-runtime`
+- `node packages/nextclaw/dist/cli/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`
+- `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/%40nextclaw%2Fnextclaw-app-runtime`
+- `tmp_dir=$(mktemp -d /tmp/nextclaw-marketplace-skill.XXXXXX) && node packages/nextclaw/dist/cli/index.js skills install @nextclaw/nextclaw-app-runtime --api-base https://marketplace-api.nextclaw.io --workdir "$tmp_dir"`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`
 - `pnpm check:governance-backlog-ratchet`
 
@@ -79,6 +84,7 @@
 - 真实远端安装链路可用：`install -> list -> info -> permissions -> grant -> run -> revoke -> uninstall`。
 - `hello-notes` 的真实运行调用返回 `output=129`，证明 Wasm 执行链路与授权目录读取链路都成立。
 - npm 查询结果已确认 `@nextclaw/app-runtime=0.4.0`、`@nextclaw/app-sdk=0.1.0`。
+- 官方 skill 已完成远端更新，`updatedAt` 已刷新，且临时目录安装冒烟拉到的是新版 `SKILL.md`。
 - 仓库级 `pnpm lint:new-code:governance` 当前失败，但失败点来自工作区内 4 个与本轮 apps 无关的既有改动文件命名，不是本轮 apps 交付造成的阻塞。
 
 ## 发布/部署方式

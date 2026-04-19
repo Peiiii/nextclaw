@@ -1,24 +1,26 @@
 {
   "slug": "nextclaw-app-runtime",
   "name": "NextClaw App Runtime",
-  "summary": "Create, inspect, run, and share NextClaw micro apps through the local napp CLI with guided install, readiness checks, and explicit permission mapping.",
+  "summary": "Create, inspect, publish, install, run, and share NextClaw Apps through the local napp CLI with official registry workflows, readiness checks, and explicit permission mapping.",
   "summaryI18n": {
-    "en": "Create, inspect, run, and share NextClaw micro apps through the local napp CLI with guided install, readiness checks, and explicit permission mapping.",
-    "zh": "通过本地 napp CLI 创建、检查、运行和分享 NextClaw 微应用，覆盖安装引导、就绪检查与显式权限映射。"
+    "en": "Create, inspect, publish, install, run, and share NextClaw Apps through the local napp CLI with official registry workflows, readiness checks, and explicit permission mapping.",
+    "zh": "通过本地 napp CLI 创建、检查、发布、安装、运行和分享 NextClaw Apps，覆盖官方 registry 工作流、就绪检查与显式权限映射。"
   },
-  "description": "Use this skill when the user wants to build or use a local NextClaw micro app through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, explicit document permission mapping, and first-run troubleshooting.",
+  "description": "Use this skill when the user wants to build, publish, install, or use a local NextClaw App through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, `napp publish`, official registry install flows, explicit document permission mapping, and first-run troubleshooting.",
   "descriptionI18n": {
-    "en": "Use this skill when the user wants to build or use a local NextClaw micro app through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, explicit document permission mapping, and first-run troubleshooting.",
-    "zh": "当用户希望通过独立的 @nextclaw/app-runtime 包来构建或使用本地 NextClaw 微应用时使用此技能。它覆盖 npm 安装、napp 就绪检查、`napp create` 起步脚手架、先 inspect 后 run 的工作流、显式文档权限映射以及首轮运行排障。"
+    "en": "Use this skill when the user wants to build, publish, install, or use a local NextClaw App through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, `napp publish`, official registry install flows, explicit document permission mapping, and first-run troubleshooting.",
+    "zh": "当用户希望通过独立的 @nextclaw/app-runtime 包来构建、发布、安装或使用本地 NextClaw App 时使用此技能。它覆盖 npm 安装、napp 就绪检查、`napp create` 起步脚手架、先 inspect 后 run 的工作流、`napp publish`、官方 registry 安装流程、显式文档权限映射以及首轮运行排障。"
   },
   "author": "NextClaw",
   "tags": [
     "skill",
     "nextclaw",
+    "apps",
     "micro-app",
     "napp",
     "wasm",
     "cli",
+    "registry",
     "local-runtime",
     "onboarding"
   ],
