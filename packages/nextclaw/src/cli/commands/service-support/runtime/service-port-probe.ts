@@ -2,8 +2,8 @@ import { APP_NAME, loadConfig, type Config } from "@nextclaw/core";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { createServer as createNetServer } from "node:net";
-import { resolveUiApiBase, resolveUiConfig } from "../../../utils.js";
-import { managedServiceStateStore } from "../../../runtime-state/managed-service-state.store.js";
+import { resolveUiApiBase, resolveUiConfig } from "../../../shared/utils/cli.utils.js";
+import { managedServiceStateStore } from "../../../shared/stores/managed-service-state.store.js";
 
 function getHeaderValue(headers: Record<string, string | string[] | undefined>, key: string): string | null {
   const value = headers[key];

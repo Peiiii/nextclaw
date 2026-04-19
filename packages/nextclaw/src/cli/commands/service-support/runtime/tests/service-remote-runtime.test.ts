@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ManagedServiceState } from "../../../../runtime-state/managed-service-state.store.js";
+import type { ManagedServiceState } from "../../../../shared/stores/managed-service-state.store.js";
 import {
   claimManagedRemoteRuntimeOwnership,
   createManagedRemoteModuleForUi

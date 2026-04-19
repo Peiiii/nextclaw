@@ -13,11 +13,11 @@ import {
   isProcessRunning,
   resolveUiApiBase,
   resolveUiConfig
-} from "../utils.js";
+} from "../shared/utils/cli.utils.js";
 import {
   managedServiceStateStore,
   type ManagedServiceState
-} from "../runtime-state/managed-service-state.store.js";
+} from "../shared/stores/managed-service-state.store.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "./diagnostics-support/diagnostics-render.js";
 import { resolveNextclawRemoteStatusSnapshot } from "./remote-support/remote-runtime-support.js";
 import type {
@@ -25,7 +25,7 @@ import type {
   HealthProbe,
   RuntimeStatusReport,
   StatusCommandOptions
-} from "../types.js";
+} from "../shared/types/cli.types.js";
 
 export class DiagnosticsCommands {
   constructor(private deps: { logo: string }) {}

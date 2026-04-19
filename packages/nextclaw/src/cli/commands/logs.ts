@@ -1,5 +1,5 @@
 import { getLoggingRuntime, type AppLogKind, type LoggingRuntime } from "@nextclaw/core";
-import type { LogsTailCommandOptions } from "../types.js";
+import type { LogsTailCommandOptions } from "../shared/types/cli.types.js";
 
 export class LogsCommands {
   constructor(private readonly runtime: LoggingRuntime = getLoggingRuntime()) {}

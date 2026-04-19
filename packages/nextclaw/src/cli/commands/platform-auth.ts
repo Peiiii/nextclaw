@@ -10,8 +10,8 @@ import {
   readPlatformUserPayload
 } from "./platform-auth-support/payload.js";
 import { printAccountStatus, printUsernameUpdated, toAccountStatusView } from "./platform-auth-support/account-status.js";
-import type { AccountCommandOptions, AccountSetUsernameCommandOptions, LoginCommandOptions } from "../types.js";
-import { openBrowser, prompt } from "../utils.js";
+import type { AccountCommandOptions, AccountSetUsernameCommandOptions, LoginCommandOptions } from "../shared/types/cli.types.js";
+import { openBrowser, prompt } from "../shared/utils/cli.utils.js";
 
 type NextclawProviderConfig = {
   displayName?: string;

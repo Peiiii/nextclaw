@@ -12,7 +12,7 @@ export const wranglerBin = resolve(
   process.platform === "win32" ? "wrangler.cmd" : "wrangler"
 );
 
-export const nextclawCli = resolve(rootDir, "packages/nextclaw/dist/cli/index.js");
+export const nextclawCli = resolve(rootDir, "packages/nextclaw/dist/cli/app/index.js");
 const remoteAccessHostPattern = /^r-[a-z0-9-]+\.claw\.cool$/i;
 const remoteAccessFixedHost = "remote.claw.cool";
 

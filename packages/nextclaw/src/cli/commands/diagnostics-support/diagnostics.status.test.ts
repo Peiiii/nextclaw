@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DiagnosticsCommands } from "../diagnostics.js";
-import type { RuntimeStatusReport } from "../../types.js";
+import type { RuntimeStatusReport } from "../../shared/types/cli.types.js";
 
 type DiagnosticsCommandsStatusProbe = {
   collectRuntimeStatus: (params: { verbose: boolean; fix: boolean }) => Promise<RuntimeStatusReport>;

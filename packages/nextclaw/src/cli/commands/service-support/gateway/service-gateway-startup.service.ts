@@ -9,15 +9,15 @@ import {
   type UiServerEvent,
   type UiRemoteAccessHost
 } from "@nextclaw/server";
-import { openBrowser } from "../../../utils.js";
-import type { GatewayControllerImpl } from "../../../gateway/controller.js";
-import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
-import { runGatewayInboundLoop } from "../../ncp/runtime/nextclaw-ncp-dispatch.js";
+import { openBrowser } from "../../../shared/utils/cli.utils.js";
+import type { GatewayControllerImpl } from "../../../shared/controllers/gateway.controller.js";
+import type { UiNcpAgentHandle } from "../../ncp/features/runtime/create-ui-ncp-agent.service.js";
+import { runGatewayInboundLoop } from "../../ncp/features/runtime/nextclaw-ncp-dispatch.js";
 import type { NextclawExtensionRegistry } from "../../plugins.js";
-import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../session/service-deferred-ncp-agent.js";
+import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../session/service-deferred-ncp-agent.service.js";
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
-import { logStartupTrace } from "../../../startup-trace.js";
-import type { ConfigReloader } from "../../../config-reloader.js";
+import { logStartupTrace } from "../../../shared/utils/startup-trace.js";
+import type { ConfigReloader } from "../../../shared/services/config-reloader.service.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 import { NextclawApp } from "./nextclaw-app.service.js";
 

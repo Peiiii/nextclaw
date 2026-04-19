@@ -24,7 +24,7 @@ import type {
   PluginsInstallOptions,
   PluginsListOptions,
   PluginsUninstallOptions
-} from "../types.js";
+} from "../shared/types/cli.types.js";
 import {
   disablePluginMutation,
   enablePluginMutation,

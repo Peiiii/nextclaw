@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseConfigPath, setAtConfigPath } from "../../config-path.js";
+import { parseConfigPath, setAtConfigPath } from "../../shared/utils/config-path.js";
 
 describe("setAtConfigPath", () => {
   it("allows contiguous array writes", () => {

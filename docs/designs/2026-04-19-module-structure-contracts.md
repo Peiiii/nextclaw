@@ -261,13 +261,13 @@ src/
 
 - [`scripts/governance/module-structure/module-structure-contracts.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-contracts.mjs)
 
-具体采用哪种结构约束，不再由中心脚本手写绑定，而是由每个模块在自己的结构根下声明：
+具体采用哪种结构约束，不再由中心脚本手写绑定，而是由每个包在自己的包根下声明：
 
 - `module-structure.config.json`
 
 例如：
 
-- [`packages/nextclaw-ui/src/module-structure.config.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/module-structure.config.json)
+- [`packages/nextclaw-ui/module-structure.config.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/module-structure.config.json)
 
 注意：
 
@@ -288,7 +288,7 @@ src/
 
 ## 模块内配置最少要写什么
 
-每个模块根下的 `module-structure.config.json` 至少应明确：
+每个包根下的 `module-structure.config.json` 至少应明确：
 
 - `contractKind`：`legacy` 或 `protocol`
 - `organizationModel`：当前模块采用的组织模型（`legacy` 必填）
@@ -303,7 +303,7 @@ src/
 
 说明：
 
-- `modulePath` 不再手填，治理器会以配置文件所在目录作为模块根
+- `modulePath` 不再手填，治理器会以配置文件所在包根 + 协议模板内置源码根推导出真正的治理根
 - 协议模板仍然是中心定义的通用能力，但“哪个模块采纳哪个模板”由模块自己管理
 
 ## 何时新增或修改 contract

@@ -6,10 +6,10 @@ import {
   parseRequiredConfigPath,
   setAtConfigPath,
   unsetAtConfigPath
-} from "../config-path.js";
+} from "../shared/utils/config-path.js";
 import { resolveChannelConfigView } from "./channel/channel-config-view.js";
 import { loadPluginRegistry, mergePluginConfigView } from "./plugins.js";
-import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "../types.js";
+import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "../shared/types/cli.types.js";
 
 export class ConfigCommands {
   constructor(

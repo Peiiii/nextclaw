@@ -1,5 +1,5 @@
 import type { CronCreateResult } from "@nextclaw/server";
-import type { CronAddOptions } from "../types.js";
+import type { CronAddOptions } from "../shared/types/cli.types.js";
 import { createCronCreateRequest, CronLocalService } from "./cron-support/cron-local.service.js";
 import { printCronJobs, type CronJobView } from "./cron-support/cron-job.utils.js";
 import { UiBridgeApiClient, resolveLocalUiApiBase } from "./shared/ui-bridge-api.service.js";

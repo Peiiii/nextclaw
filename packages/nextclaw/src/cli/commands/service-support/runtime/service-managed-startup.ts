@@ -3,7 +3,7 @@ import { FileLogSink } from "@nextclaw/core";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { spawn } from "node:child_process";
-import type { ManagedServiceState } from "../../../runtime-state/managed-service-state.store.js";
+import type { ManagedServiceState } from "../../../shared/stores/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.js";
 import { writeInitialManagedServiceState } from "./service-remote-runtime.js";
 

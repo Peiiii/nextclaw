@@ -10,14 +10,14 @@ import {
   type SecretRef,
   type SecretSource
 } from "@nextclaw/core";
-import { getAtConfigPath, parseRequiredConfigPath } from "../config-path.js";
+import { getAtConfigPath, parseRequiredConfigPath } from "../shared/utils/config-path.js";
 import type {
   RequestRestartParams,
   SecretsApplyOptions,
   SecretsAuditOptions,
   SecretsConfigureOptions,
   SecretsReloadOptions
-} from "../types.js";
+} from "../shared/types/cli.types.js";
 
 type AuditItem = {
   path: string;

@@ -1,11 +1,11 @@
 import type * as NextclawCore from "@nextclaw/core";
-import { logStartupTrace, measureStartupAsync } from "../../../startup-trace.js";
+import { logStartupTrace, measureStartupAsync } from "../../../shared/utils/startup-trace.js";
 import type { NextclawExtensionRegistry } from "../../plugins.js";
 import {
   type CreateUiNcpAgentParams,
   type UiNcpAgentHandle,
   UiNcpAgentRuntimeService,
-} from "../../ncp/create-ui-ncp-agent.service.js";
+} from "../../ncp/features/runtime/create-ui-ncp-agent.service.js";
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
 import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";

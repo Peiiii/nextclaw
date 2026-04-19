@@ -20,7 +20,7 @@ describe("LinuxSystemdAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),
@@ -34,7 +34,7 @@ describe("LinuxSystemdAutostartService", () => {
     expect(writeFileSync).toHaveBeenCalledTimes(1);
     const unitFile = writeFileSync.mock.calls[0]?.[1];
     expect(String(unitFile)).toContain("Environment=NEXTCLAW_HOME=/srv/nextclaw-home");
-    expect(String(unitFile)).toContain("ExecStart=/usr/local/bin/node /opt/nextclaw/dist/cli/index.js serve");
+    expect(String(unitFile)).toContain("ExecStart=/usr/local/bin/node /opt/nextclaw/dist/cli/app/index.js serve");
     expect(runCommand).toHaveBeenNthCalledWith(1, "systemctl", ["--user", "daemon-reload"]);
     expect(runCommand).toHaveBeenNthCalledWith(2, "systemctl", ["--user", "enable", "nextclaw.service"]);
     expect(runCommand).toHaveBeenNthCalledWith(3, "systemctl", ["--user", "restart", "nextclaw.service"]);
@@ -63,7 +63,7 @@ describe("LinuxSystemdAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
@@ -103,7 +103,7 @@ describe("LinuxSystemdAutostartService", () => {
       existsSync: (path) => path === "/usr/bin/node" || path === "/home/alice/.nextclaw",
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
@@ -132,7 +132,7 @@ describe("LinuxSystemdAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),

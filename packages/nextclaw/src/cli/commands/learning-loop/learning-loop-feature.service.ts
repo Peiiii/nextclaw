@@ -2,8 +2,8 @@ import {
   type Session,
   type SessionMessage,
 } from "@nextclaw/core";
-import { agentRunFinishedLifecycleEventKey } from "../ncp/lifecycle-events/ncp-lifecycle-event.config.js";
-import type { AgentRunFinishedLifecycleEvent } from "../ncp/lifecycle-events/ncp-lifecycle-event.types.js";
+import { agentRunFinishedLifecycleEventKey } from "../ncp/shared/lifecycle-events/ncp-lifecycle-event.config.js";
+import type { AgentRunFinishedLifecycleEvent } from "../ncp/shared/lifecycle-events/ncp-lifecycle-event.types.js";
 import {
   DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
   LEARNING_LOOP_DISABLED_METADATA_KEY,

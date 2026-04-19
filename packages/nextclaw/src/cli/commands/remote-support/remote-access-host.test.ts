@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as utils from "../../utils.js";
-import { managedServiceStateStore } from "../../runtime-state/managed-service-state.store.js";
+import * as utils from "../../shared/utils/cli.utils.js";
+import { managedServiceStateStore } from "../../shared/stores/managed-service-state.store.js";
 import { RemoteAccessHost } from "./remote-access-host.js";
 
 const originalNextclawHome = process.env.NEXTCLAW_HOME;

@@ -4,7 +4,7 @@ import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtim
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
 import { resolveChannelConfigView } from "./channel/channel-config-view.js";
-import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../types.js";
+import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../shared/types/cli.types.js";
 
 const CHANNEL_LABELS: Record<string, string> = {
   telegram: "Telegram",

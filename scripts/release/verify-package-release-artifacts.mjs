@@ -33,9 +33,9 @@ const assertNextclawUiArtifacts = () => {
 
 const assertNextclawArtifacts = () => {
   assertPath("dist/index.js", "dist/index.js");
-  assertPath("dist/cli/index.js", "dist/cli/index.js");
+  assertPath("dist/cli/app/index.js", "dist/cli/app/index.js");
   assertPath("dist/index.d.ts", "dist/index.d.ts");
-  assertPath("dist/cli/index.d.ts", "dist/cli/index.d.ts");
+  assertPath("dist/cli/app/index.d.ts", "dist/cli/app/index.d.ts");
   assertPath("ui-dist/index.html", "ui-dist index.html");
   assertDirectoryHasEntries("ui-dist/assets", "ui-dist/assets");
 };

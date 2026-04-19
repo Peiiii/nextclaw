@@ -25,16 +25,16 @@ describe("buildMarketplaceSkillInstallArgs", () => {
 describe("resolveCliSubcommandEntry", () => {
   it("prefers argv entry to avoid bundled relative-path mismatch", () => {
     const entry = resolveCliSubcommandEntry({
-      argvEntry: "/tmp/dist/cli/index.js",
-      importMetaUrl: "file:///tmp/dist/cli/index.js"
+      argvEntry: "/tmp/dist/cli/app/index.js",
+      importMetaUrl: "file:///tmp/dist/cli/app/index.js"
     });
-    expect(entry).toBe("/tmp/dist/cli/index.js");
+    expect(entry).toBe("/tmp/dist/cli/app/index.js");
   });
 
-  it("falls back to legacy relative resolution when argv entry is missing", () => {
+  it("falls back to the app entry when argv entry is missing", () => {
     const entry = resolveCliSubcommandEntry({
       importMetaUrl: "file:///tmp/dist/cli/commands/service.js"
     });
-    expect(entry).toBe("/tmp/dist/cli/index.js");
+    expect(entry).toBe("/tmp/app/index.js");
   });
 });

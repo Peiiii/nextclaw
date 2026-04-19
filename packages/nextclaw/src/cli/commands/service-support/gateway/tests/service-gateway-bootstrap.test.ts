@@ -30,7 +30,7 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   };
 });
 
-vi.mock("../service-capability-hydration.js", () => ({
+vi.mock("../service-capability-hydration.service.js", () => ({
   hydrateServiceCapabilities: vi.fn()
 }));
 
@@ -52,7 +52,7 @@ vi.mock("../service-startup-support.js", () => ({
   }
 }));
 
-import { configureGatewayPluginRuntime } from "../service-gateway-bootstrap.js";
+import { configureGatewayPluginRuntime } from "../service-gateway-bootstrap.service.js";
 
 describe("configureGatewayPluginRuntime", () => {
   beforeEach(() => {

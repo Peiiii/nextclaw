@@ -7,7 +7,7 @@ import {
   SessionManager,
 } from "@nextclaw/core";
 import { LearningLoopFeature } from "./learning-loop-feature.service.js";
-import { agentRunFinishedLifecycleEventKey } from "../ncp/lifecycle-events/ncp-lifecycle-event.config.js";
+import { agentRunFinishedLifecycleEventKey } from "../ncp/shared/lifecycle-events/ncp-lifecycle-event.config.js";
 import {
   LEARNING_LOOP_DISABLED_METADATA_KEY,
   LEARNING_LOOP_LAST_REVIEW_SESSION_ID_METADATA_KEY,

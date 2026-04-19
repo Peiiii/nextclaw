@@ -1,5 +1,5 @@
 import type { Config } from "@nextclaw/core";
-import type { RequestRestartParams } from "../../../types.js";
+import type { RequestRestartParams } from "../../../shared/types/cli.types.js";
 import { RemoteAccessHost } from "../../remote-support/remote-access-host.js";
 import { PlatformAuthCommands } from "../../platform-auth.js";
 import { RemoteCommands } from "../../remote.js";

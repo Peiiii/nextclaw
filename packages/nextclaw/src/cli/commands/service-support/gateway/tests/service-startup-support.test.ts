@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { localUiRuntimeStore } from "../../../../runtime-state/local-ui-runtime.store.js";
-import { managedServiceStateStore } from "../../../../runtime-state/managed-service-state.store.js";
+import { localUiRuntimeStore } from "../../../../shared/stores/local-ui-runtime.store.js";
+import { managedServiceStateStore } from "../../../../shared/stores/managed-service-state.store.js";
 import { finalizeLocalUiStartup } from "../service-startup-support.js";
 
 const originalNextclawHome = process.env.NEXTCLAW_HOME;

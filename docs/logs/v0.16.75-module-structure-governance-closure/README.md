@@ -16,12 +16,17 @@
   - 新增协议辅助模块 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs)，把协议结构检查与导入边界检查拆成独立职责，避免主检查器继续膨胀。
   - 将该检查接入 [`scripts/governance/lint-new-code-governance.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-governance.mjs) 与根 [`package.json`](/Users/peiwang/Projects/nextbot/package.json) 的 `pnpm lint:new-code:governance` 主链路，再补充 PR workflow [`structure-governance.yml`](/Users/peiwang/Projects/nextbot/.github/workflows/structure-governance.yml)，让 review 阶段也能自动执行 diff-only 结构治理。
 - 新增治理说明文档 [`docs/designs/2026-04-19-module-structure-contracts.md`](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-19-module-structure-contracts.md)，把 contract 字段、shared 容器边界和“什么时候先改 contract 再落目录”写成明确结构规范。
+- 同批次续改补齐了 `packages/nextclaw` 的真实 CLI 入口迁移收尾，避免 `cli-command-first` 债务清理后继续残留旧入口引用：
+  - 开发启动链路 [`scripts/dev/dev-runner.mjs`](/Users/peiwang/Projects/nextbot/scripts/dev/dev-runner.mjs) 现已改为从 `src/cli/app/index.ts` 启动，而不是继续引用已删除的 `src/cli/index.ts`。
+  - 开发进程探测脚本 [`scripts/dev/dev-process-status.mjs`](/Users/peiwang/Projects/nextbot/scripts/dev/dev-process-status.mjs) 同步切到 `src/cli/app/index.ts` / `dist/cli/app/index.js`，保证 dev 状态识别与真实入口一致。
+  - 发布制品校验 [`scripts/release/verify-package-release-artifacts.mjs`](/Users/peiwang/Projects/nextbot/scripts/release/verify-package-release-artifacts.mjs)、远端冒烟辅助 [`scripts/smoke/remote-relay-smoke-support.mjs`](/Users/peiwang/Projects/nextbot/scripts/smoke/remote-relay-smoke-support.mjs) 与相关自启动 / 启动测试样例已全部改到 `dist/cli/app/index.js`，不再保留旧 `dist/cli/index.js` 假入口。
 - 根因记录：
   - 根因不是“仓库完全没有结构治理脚本”，而是此前只有命名治理、flat-directory、frozen-directory、topology report 等分散机制，没有一份模块级结构 contract 作为单一事实来源，也没有一条默认 diff-only gate 去判断“这个模块允许怎么长”。
   - 同时，早期 contract 还是“目录级白名单手写配置”形态，还没有上升到“固定协议模板 + 包级声明 + 唯一导入入口检查”这一层，所以即便补上了 root 白名单，也还不能严格表达你们现在确认的 `L3` 前端协议。
   - 这一点通过代码路径确认：`lint:new-code:governance` 之前没有任何 `module-structure` 检查，`.github/workflows/` 中也没有专门跑结构治理的 PR workflow；`check:topology` 虽存在，但当前全仓仍有 `26` 个既有 cross-layer violation，只能作为报告命令，不能直接粗暴接成 blocking gate。
   - 因此之前的真实状态是：规则/skill/README 已经写了很多，但目录层级约束没有形成“contract -> diff gate -> PR workflow”闭环，所以团队体感会等同于“没管”。
 - 本次修复命中根因而不是只处理表象，因为新增的是“固定协议模板 + 包级声明 + diff gate + 导入边界 gate”本身，而不是再补一条口头规则或单目录例外说明。
+- 这次续改对应的真实失败根因是：`packages/nextclaw/src/cli/index.ts` 已在 CLI 结构清理中移除，但开发脚本、发布校验脚本和部分测试数据仍把它当作事实入口，导致用户实际运行 `pnpm dev start` 时直接抛出 `ERR_MODULE_NOT_FOUND`。这次命中的是“入口单一事实来源没有彻底收敛”的根因，而不是只在一个触发点上做临时兜底。
 - 相关设计与说明：
   - [2026-04-02-structure-governance-hardening-plan.md](/Users/peiwang/Projects/nextbot/docs/plans/2026-04-02-structure-governance-hardening-plan.md)
   - [2026-04-19-module-structure-contracts.md](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-19-module-structure-contracts.md)
@@ -37,6 +42,14 @@
 - 已通过：`pnpm check:governance-backlog-ratchet`
 - 已通过：`ruby -e 'require "yaml"; YAML.load_file(".github/workflows/structure-governance.yml"); puts "yaml ok"'`
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+- 已通过：`pnpm --filter nextclaw tsc`
+- 已通过：`pnpm dev start`
+  - 观察点：不再报 `Cannot find module '/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/index.ts'`；前端成功监听 `http://127.0.0.1:5174/`，后端健康检查 `http://127.0.0.1:18792/api/health` 返回 `{"ok":true,"data":{"status":"ok",...}}`。
+- 已通过：`node scripts/dev/dev-process-status.mjs --json`
+  - 观察点：`mode=dev-start`、`status=running`，并正确识别 backend watch/runtime 入口为 `src/cli/app/index.ts`。
+- 已通过：`pnpm --filter nextclaw test -- --run src/cli/commands/service-support/runtime/tests/service-managed-startup.test.ts src/cli/commands/service-support/marketplace/tests/service.marketplace-skill-args.test.ts src/cli/commands/service-support/autostart/tests/linux-systemd-autostart.service.test.ts src/cli/commands/service-support/autostart/tests/macos-launch-agent-autostart.service.test.ts`
+- 已通过：`pnpm --filter nextclaw build`
+- 已通过：`node ../../scripts/release/verify-package-release-artifacts.mjs`
 - 当前未作为 blocking gate 接入的项：`pnpm check:topology`
   - 原因：仓库现状仍有历史 cross-layer violation backlog，本次按根因优先顺序先补“目录层级 contract + diff gate + PR workflow”，把 topology 继续保留为 PR 报告产物，而不是直接炸掉全仓准入。
 
@@ -66,6 +79,7 @@
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：目录组织层面有改善。虽然总代码净增，但新增代码是为了提供此前缺失的结构治理能力；同时把新治理逻辑收进了 `scripts/governance/module-structure/` 子树，而不是继续把 `scripts/governance/` 根目录摊平。
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。协议模板、模块配置发现、diff 检查器、workflow 与说明文档各自承担单一职责，没有再把“模块采用什么规则”硬编码在中心脚本里。
 - 目录结构与文件组织是否满足当前项目治理要求：本次新增内容满足。新增治理能力已放入独立子树 `scripts/governance/module-structure/`，模块采纳关系也已下放到各模块根自己的 `module-structure.config.json`；保留债务是测试文件增长较快，以及协议模块本身已接近预算上限，后续若继续扩协议类型，应优先按“结构检查 / 导入检查 / 模板定义 / 配置发现”再拆一层。
+- 同批次 CLI 续改后的结构状态：更接近目标。`packages/nextclaw` 的真实入口事实来源已统一为 `src/cli/app/index.ts` / `dist/cli/app/index.js`，不再让 dev / release / smoke / autostart 测试各自保留一套旧入口字符串；仍待继续清算的是 CLI 命令目录内剩余命名治理与历史平铺债务。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。结论如下：
   - 长期目标对齐 / 可维护性推进：是，这次顺着“目录边界更明确、默认入口更统一、review 更可预测”的方向推进了一步。它增强的是 NextClaw 作为长期统一入口产品的内部演进能力，因为后续新能力更不容易继续掉进平铺失控目录。
   - 可维护性复核结论：通过

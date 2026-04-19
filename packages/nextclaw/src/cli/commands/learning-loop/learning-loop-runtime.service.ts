@@ -5,7 +5,7 @@ import {
 } from "@nextclaw/core";
 import type { DefaultNcpAgentBackend } from "@nextclaw/ncp-toolkit";
 import type { SessionRequestBroker } from "../ncp/session-request/session-request-broker.service.js";
-import { NcpLifecycleEventBridge } from "../ncp/lifecycle-events/ncp-lifecycle-event-bridge.service.js";
+import { NcpLifecycleEventBridge } from "../ncp/shared/lifecycle-events/ncp-lifecycle-event-bridge.service.js";
 import { LearningLoopFeature } from "./learning-loop-feature.service.js";
 import type { LearningLoopRuntimeConfig } from "./learning-loop.config.js";
 

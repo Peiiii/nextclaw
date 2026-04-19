@@ -23,7 +23,7 @@ describe("MacosLaunchAgentAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/Users/alice/.nextclaw",
       }),
@@ -68,7 +68,7 @@ describe("MacosLaunchAgentAutostartService", () => {
       runCommand,
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
-        argvEntry: "/opt/nextclaw/dist/cli/index.js",
+        argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
         importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
         getDataDir: () => "/Users/alice/.nextclaw",
       }),

@@ -26,6 +26,7 @@ const buildFinding = (filePath, level, message, reason, line = 1, column = 1) =>
 
 const isGovernedCodeFile = (filePath) => AST_PARSE_EXTENSIONS.has(path.posix.extname(filePath));
 const looksLikeFileSegment = (segment) => Boolean(path.posix.extname(segment));
+const isIndexLikeImportSegment = (segment) => /^index(?:\.[^.]+)?(?:\.[^.]+)?$/.test(segment);
 const isReservedProtocolName = (name) => RESERVED_PROTOCOL_DIRECTORY_NAMES.has(name);
 const buildProtocolReason = (contract) => `protocol=${contract.protocol} module=${contract.modulePath}`;
 const repoPathExistsInWorkspace = (repoPath) => existsSync(path.resolve(rootDir, repoPath));
@@ -383,7 +384,11 @@ const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath 
   if ((targetSegments[0] === "features" || targetSegments[0] === "commands") && targetSegments[1]) {
     const targetBusinessBoundary = `${targetSegments[0]}/${targetSegments[1]}`;
     const targetBusinessLabel = targetSegments[0] === "commands" ? "command" : "feature";
-    if (currentBusinessBoundary !== targetBusinessBoundary && targetSegments.length > 2) {
+    if (
+      currentBusinessBoundary !== targetBusinessBoundary &&
+      targetSegments.length > 2 &&
+      !(targetSegments.length === 3 && isIndexLikeImportSegment(targetSegments[2]))
+    ) {
       return `${targetBusinessLabel} imports must go through '${targetBusinessBoundary}' instead of deep importing '${targetRelativePath}'`;
     }
     return null;
@@ -391,7 +396,11 @@ const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath 
 
   if (targetSegments[0] === "platforms" && targetSegments[1]) {
     const targetPlatformBoundary = `platforms/${targetSegments[1]}`;
-    if (currentPlatformBoundary !== targetPlatformBoundary && targetSegments.length > 2) {
+    if (
+      currentPlatformBoundary !== targetPlatformBoundary &&
+      targetSegments.length > 2 &&
+      !(targetSegments.length === 3 && isIndexLikeImportSegment(targetSegments[2]))
+    ) {
       return `platform imports must go through '${targetPlatformBoundary}' instead of deep importing '${targetRelativePath}'`;
     }
     return null;
@@ -399,7 +408,11 @@ const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath 
 
   if (targetSegments[0] === "shared" && targetSegments[1] === "lib" && targetSegments[2]) {
     const targetSharedLibBoundary = `shared/lib/${targetSegments[2]}`;
-    if (currentSharedLibBoundary !== targetSharedLibBoundary && targetSegments.length > 3) {
+    if (
+      currentSharedLibBoundary !== targetSharedLibBoundary &&
+      targetSegments.length > 3 &&
+      !(targetSegments.length === 4 && isIndexLikeImportSegment(targetSegments[3]))
+    ) {
       return `shared/lib imports must go through '${targetSharedLibBoundary}' instead of deep importing '${targetRelativePath}'`;
     }
     return null;

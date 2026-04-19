@@ -8,7 +8,7 @@ const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
 
 const isTypeScriptEntry = (entry: string): boolean => TYPESCRIPT_EXTENSIONS.has(extname(entry).toLowerCase());
 
-const resolveTsxCliEntry = (): string => require.resolve("tsx/dist/cli.mjs");
+const resolveTsxCliEntry = (): string => require.resolve("tsx/cli");
 
 export const resolveCliSubcommandEntry = (params: {
   argvEntry?: string;
@@ -18,7 +18,7 @@ export const resolveCliSubcommandEntry = (params: {
   if (argvEntry) {
     return resolve(argvEntry);
   }
-  return fileURLToPath(new URL("../index.js", params.importMetaUrl));
+  return fileURLToPath(new URL("../../../app/index.js", params.importMetaUrl));
 };
 
 export const resolveCliSubcommandLaunch = (params: {

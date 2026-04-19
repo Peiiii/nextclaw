@@ -37,7 +37,7 @@ describe("spawnManagedService", () => {
   });
 
   it("spawns the managed service through the resolved CLI entry", () => {
-    process.argv[1] = "/tmp/dist/cli/index.js";
+    process.argv[1] = "/tmp/dist/cli/app/index.js";
     const appendStartupStage = vi.fn();
 
     const startup = spawnManagedService({
@@ -63,7 +63,7 @@ describe("spawnManagedService", () => {
     expect(startup?.snapshot.pid).toBe(4321);
     expect(spawnMock).toHaveBeenCalledWith(
       process.execPath,
-      [...process.execArgv, "/tmp/dist/cli/index.js", "serve", "--ui-port", "18791"],
+      [...process.execArgv, "/tmp/dist/cli/app/index.js", "serve", "--ui-port", "18791"],
       expect.objectContaining({
         env: process.env,
         stdio: "ignore",
@@ -72,7 +72,7 @@ describe("spawnManagedService", () => {
     );
     expect(appendStartupStage).toHaveBeenCalledWith(
       path.join(tempDir, "service.log"),
-      expect.stringContaining("/tmp/dist/cli/index.js serve --ui-port 18791")
+      expect.stringContaining("/tmp/dist/cli/app/index.js serve --ui-port 18791")
     );
     expect(writeInitialManagedServiceStateMock).toHaveBeenCalledWith(
       expect.objectContaining({

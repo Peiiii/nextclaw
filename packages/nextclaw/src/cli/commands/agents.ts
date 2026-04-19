@@ -14,7 +14,7 @@ import type {
   AgentsRemoveCommandOptions,
   AgentsRuntimesCommandOptions,
   AgentsUpdateCommandOptions
-} from "../types.js";
+} from "../shared/types/cli.types.js";
 
 export class AgentCommands {
   constructor(private readonly deps: {

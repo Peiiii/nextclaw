@@ -3,7 +3,7 @@ import type { startPluginChannelGateways } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import chokidar, { type FSWatcher } from "chokidar";
 import { resolve } from "node:path";
-import { localUiRuntimeStore } from "../../../runtime-state/local-ui-runtime.store.js";
+import { localUiRuntimeStore } from "../../../shared/stores/local-ui-runtime.store.js";
 
 export const pluginGatewayLogger = {
   info: (message: string) => console.log(`[plugins] ${message}`),

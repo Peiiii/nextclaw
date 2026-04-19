@@ -12,9 +12,9 @@ import {
 import {
   getPackageVersion,
   isProcessRunning
-} from "../../utils.js";
-import { localUiRuntimeStore } from "../../runtime-state/local-ui-runtime.store.js";
-import { managedServiceStateStore } from "../../runtime-state/managed-service-state.store.js";
+} from "../../shared/utils/cli.utils.js";
+import { localUiRuntimeStore } from "../../shared/stores/local-ui-runtime.store.js";
+import { managedServiceStateStore } from "../../shared/stores/managed-service-state.store.js";
 import { resolvePlatformApiBase } from "./platform-api-base.js";
 
 let currentProcessRemoteRuntimeState: RemoteRuntimeState | null = null;

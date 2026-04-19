@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RuntimeControlHost } from "../runtime-control-host.service.js";
-import { pendingRestartStore } from "../../../../runtime-state/pending-restart.store.js";
+import { pendingRestartStore } from "../../../../shared/stores/pending-restart.store.js";
 
 const mocks = vi.hoisted(() => ({
   controlRemoteService: vi.fn(),

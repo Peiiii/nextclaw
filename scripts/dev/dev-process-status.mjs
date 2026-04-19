@@ -110,12 +110,12 @@ function isNextclawServeCommand(command) {
   }
 
   return (
-    command.includes("src/cli/index.ts") ||
-    command.includes("src/cli/index.js") ||
+    command.includes("src/cli/app/index.ts") ||
+    command.includes("src/cli/app/index.js") ||
     command.includes("dist/cli.js") ||
-    command.includes("dist/cli/index.js") ||
-    command.includes("packages/nextclaw/src/cli/index.js") ||
-    command.includes("packages/nextclaw/dist/cli/index.js")
+    command.includes("dist/cli/app/index.js") ||
+    command.includes("packages/nextclaw/src/cli/app/index.js") ||
+    command.includes("packages/nextclaw/dist/cli/app/index.js")
   );
 }
 
@@ -143,7 +143,7 @@ function classifyProcess(entry) {
   if (command.includes("scripts/dev/dev-runner.mjs start")) {
     roles.push("dev-runner");
   }
-  if (/tsx.*\swatch\b.*src\/cli\/index\.ts serve --ui-port \d+/.test(command)) {
+  if (/tsx.*\swatch\b.*src\/cli\/app\/index\.ts serve --ui-port \d+/.test(command)) {
     roles.push("backend-watch");
   }
   if (isNextclawServeCommand(command) && !roles.includes("backend-watch")) {

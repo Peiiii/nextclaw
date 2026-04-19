@@ -3,7 +3,7 @@ import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat"
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
-import { MissingProvider } from "../missing-provider.js";
+import { MissingProvider } from "../shared/providers/missing-provider.js";
 import {
   getPackageVersion,
   isLoopbackHost,
@@ -15,28 +15,28 @@ import {
   resolveUiStaticDir,
   resolvePublicIp,
   waitForExit
-} from "../utils.js";
-import type { RequestRestartParams } from "../types.js";
+} from "../shared/utils/cli.utils.js";
+import type { RequestRestartParams } from "../shared/types/cli.types.js";
 import { ServiceMarketplaceInstaller } from "./service-support/marketplace/service-marketplace-installer.js";
 import { reportManagedServiceStart, resolveManagedServiceUiBinding, resolveSessionRouteCandidate, spawnManagedService, waitForManagedServiceReadiness } from "./service-support/runtime/service-managed-startup.js";
 import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "./service-support/gateway/service-startup-support.js";
-import { localUiRuntimeStore } from "../runtime-state/local-ui-runtime.store.js";
-import { managedServiceStateStore, type ManagedServiceState } from "../runtime-state/managed-service-state.store.js";
-import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../restart-sentinel.js";
+import { localUiRuntimeStore } from "../shared/stores/local-ui-runtime.store.js";
+import { managedServiceStateStore, type ManagedServiceState } from "../shared/stores/managed-service-state.store.js";
+import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../shared/services/restart-sentinel.service.js";
 import { resolveCliSubcommandEntry } from "./service-support/marketplace/cli-subcommand-launch.js";
 import { writeReadyManagedServiceState } from "./service-support/runtime/service-remote-runtime.js";
 import { createServiceUiHosts } from "./service-support/ui/service-ui-hosts.service.js";
-import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.service.js";
-import { createGatewayShellContext, createGatewayStartupContext } from "./service-support/gateway/service-gateway-context.js";
+import { type UiNcpAgentHandle } from "./ncp/features/runtime/create-ui-ncp-agent.service.js";
+import { createGatewayShellContext, createGatewayStartupContext } from "./service-support/gateway/service-gateway-context.service.js";
 import { runConfiguredGatewayRuntime, startUiShell } from "./service-support/gateway/service-gateway-startup.service.js";
 import { createServiceNcpSessionRealtimeBridge } from "./service-support/session/service-ncp-session-realtime-bridge.js";
 import { createEmptyPluginRegistry } from "./plugin/plugin-registry-loader.js";
-import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./service-support/gateway/service-gateway-bootstrap.js";
+import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./service-support/gateway/service-gateway-bootstrap.service.js";
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./service-support/gateway/service-gateway-runtime-lifecycle.js";
 import { inspectUiTarget, probeHealthEndpoint } from "./service-support/runtime/service-port-probe.js";
-import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../startup-trace.js";
+import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../shared/utils/startup-trace.js";
 import { HostAutostartCommandService } from "./service-support/autostart/host-autostart-command.service.js";
-import type { ServiceAutostartCommandOptions } from "../types.js";
+import type { ServiceAutostartCommandOptions } from "../shared/types/cli.types.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./service-support/marketplace/service-marketplace-helpers.js";
 export { resolveCliSubcommandEntry };

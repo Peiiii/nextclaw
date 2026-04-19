@@ -53,7 +53,7 @@ vi.mock("../service-ui-shell-grace.js", () => ({
   waitForUiShellGraceWindow: mocks.waitForUiShellGraceWindowMock
 }));
 
-import { hydrateServiceCapabilities } from "../service-capability-hydration.js";
+import { hydrateServiceCapabilities } from "../service-capability-hydration.service.js";
 
 describe("hydrateServiceCapabilities", () => {
   beforeEach(() => {

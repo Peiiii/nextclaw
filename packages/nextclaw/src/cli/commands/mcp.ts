@@ -4,7 +4,7 @@ import {
   McpMutationService,
   McpRegistryService
 } from "@nextclaw/mcp";
-import type { McpAddCommandOptions, McpDoctorOptions, McpListOptions } from "../types.js";
+import type { McpAddCommandOptions, McpDoctorOptions, McpListOptions } from "../shared/types/cli.types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {

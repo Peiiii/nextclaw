@@ -5,7 +5,7 @@
   "private": false,
   "type": "module",
   "bin": {
-    "nextclaw": "dist/cli/index.js"
+    "nextclaw": "dist/cli/app/index.js"
   },
   "license": "MIT",
   "repository": {
@@ -37,11 +37,11 @@
     "resources"
   ],
   "scripts": {
-    "dev": "tsx watch --tsconfig tsconfig.json src/cli/index.ts",
-    "dev:build": "tsx src/cli/index.ts",
-    "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
+    "dev": "tsx watch --tsconfig tsconfig.json src/cli/app/index.ts",
+    "dev:build": "tsx src/cli/app/index.ts",
+    "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/app/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
     "prepack": "node ../../scripts/release/verify-package-release-artifacts.mjs",
-    "start": "node dist/cli.js",
+    "start": "node dist/cli/app/index.js",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",
     "test": "vitest",

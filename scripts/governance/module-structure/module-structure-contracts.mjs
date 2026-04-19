@@ -109,6 +109,7 @@ export const RESERVED_PROTOCOL_DIRECTORY_NAMES = new Set([
 const FRONTEND_L3_PROTOCOL = {
   protocolName: "frontend-l3",
   organizationModel: "protocol-frontend-l3",
+  governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared", "platforms"],
   allowedRootFiles: [],
   sharedDirectories: ["shared"],
@@ -118,6 +119,7 @@ const FRONTEND_L3_PROTOCOL = {
 const CLI_COMMAND_FIRST_PROTOCOL = {
   protocolName: "cli-command-first",
   organizationModel: "protocol-cli-command-first",
+  governedRoot: "src/cli",
   allowedRootDirectories: ["app", "commands", "shared"],
   allowedRootFiles: [],
   sharedDirectories: ["shared"],
@@ -210,13 +212,17 @@ const buildContractFromConfigFile = (configRepoPath) => {
   }
 
   const config = readJsonFile(configRepoPath);
-  const modulePath = normalizePath(path.posix.dirname(configRepoPath));
+  const configDirectory = normalizePath(path.posix.dirname(configRepoPath));
   const contractKind = config.contractKind ?? (typeof config.protocol === "string" ? "protocol" : "legacy");
 
   let contract;
   if (contractKind === "protocol") {
+    const protocol = MODULE_STRUCTURE_PROTOCOLS.get(config.protocol);
+    if (!protocol) {
+      throw new Error(`Unknown module-structure protocol '${config.protocol}'.`);
+    }
     contract = defineProtocolDeclaration({
-      modulePath,
+      modulePath: normalizePath(path.posix.join(configDirectory, protocol.governedRoot ?? "")),
       protocol: config.protocol,
       rootPolicy: config.rootPolicy,
       enforcement: config.enforcement,
@@ -229,7 +235,7 @@ const buildContractFromConfigFile = (configRepoPath) => {
       throw new Error(`Module-structure config '${configRepoPath}' must define a non-empty 'organizationModel'.`);
     }
     contract = defineLegacyContract({
-      modulePath,
+      modulePath: configDirectory,
       organizationModel: config.organizationModel,
       rootPolicy: config.rootPolicy,
       enforcement: config.enforcement,

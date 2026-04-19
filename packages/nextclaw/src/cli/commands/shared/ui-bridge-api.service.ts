@@ -1,5 +1,5 @@
 import { ensureUiBridgeSecret } from "@nextclaw/server";
-import { localUiDiscoveryService } from "../../runtime-state/local-ui-discovery.service.js";
+import { localUiDiscoveryService } from "../../shared/services/local-ui-discovery.service.js";
 
 type ApiOkResponse<T> = {
   ok: true;

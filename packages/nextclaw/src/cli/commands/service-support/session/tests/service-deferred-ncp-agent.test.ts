@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { UiNcpAgentHandle } from "../../../ncp/create-ui-ncp-agent.service.js";
-import { createDeferredUiNcpAgent } from "../service-deferred-ncp-agent.js";
+import type { UiNcpAgentHandle } from "../../../ncp/features/runtime/create-ui-ncp-agent.service.js";
+import { createDeferredUiNcpAgent } from "../service-deferred-ncp-agent.service.js";
 
 function createAgentHandle(): UiNcpAgentHandle {
   const stop = vi.fn(async () => undefined);

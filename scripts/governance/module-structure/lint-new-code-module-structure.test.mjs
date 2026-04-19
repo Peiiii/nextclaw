@@ -7,14 +7,14 @@ import {
   evaluateProtocolImportBoundaryFindings
 } from "./lint-new-code-module-structure.mjs";
 
-test("finds the protocol declaration for nextclaw-ui src", () => {
+test("finds the protocol declaration for nextclaw-ui package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-ui/src");
   assert.equal(contract?.protocol, "frontend-l3");
   assert.equal(isProtocolContract(contract), true);
 });
 
-test("finds the protocol declaration for nextclaw cli src", () => {
+test("finds the protocol declaration for nextclaw cli package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
   assert.equal(contract?.protocol, "cli-command-first");
@@ -219,6 +219,12 @@ test("allows shared component file imports", () => {
   assert.equal(findings.length, 0);
 });
 
+test("finds config from package root when linting the config file itself", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/module-structure.config.json");
+  assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
+  assert.equal(contract?.protocol, "cli-command-first");
+});
+
 test("blocks a new root directory outside the CLI command-first skeleton", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/gateway/controller.ts");
   const findings = evaluateModuleStructureFindings({
@@ -289,6 +295,18 @@ test("blocks new deep imports into another command", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /command imports must go through 'commands\/service'/);
+});
+
+test("allows explicit index imports at a command boundary", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/app/bootstrap.ts");
+  const findings = evaluateProtocolImportBoundaryFindings({
+    filePath: "packages/nextclaw/src/cli/app/bootstrap.ts",
+    contract,
+    source: `import { runCliAgentCommand } from "../commands/agent/index.js";\n`,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(findings.length, 0);
 });
 
 test("allows deep imports inside the same command boundary", () => {

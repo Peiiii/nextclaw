@@ -1,4 +1,4 @@
-import type { ServiceAutostartCommandOptions } from "../../../types.js";
+import type { ServiceAutostartCommandOptions } from "../../../shared/types/cli.types.js";
 import { HostAutostartService } from "./host-autostart.service.js";
 import type {
   HostAutostartDoctorReport,
