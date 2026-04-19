@@ -5,8 +5,8 @@ import {
   buildMarketplacePublishOptions,
   buildMarketplaceUpdateOptions,
   type MarketplacePublishCommandOptions,
-} from "./marketplace-command-options.js";
-import { installMarketplaceSkill, publishMarketplaceSkill } from "./marketplace.js";
+} from "./marketplace-command-options.utils.js";
+import { installMarketplaceSkill, publishMarketplaceSkill } from "./marketplace.service.js";
 import { SkillsQueryService } from "./skills-query.service.js";
 import type {
   MarketplaceSkillsRecommendCommandOptions,

@@ -1,4 +1,4 @@
-import type { PlatformMeResult } from "../platform-auth.js";
+import type { PlatformMeResult } from "../index.js";
 
 const NEXTCLAW_WEB_ACCOUNT_URL = "https://platform.nextclaw.io/account";
 const ACCOUNT_SET_USERNAME_HELP = "nextclaw account set-username <username>";

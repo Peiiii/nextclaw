@@ -12,7 +12,7 @@ import type { AgentCommandOptions } from "../../shared/types/cli.types.js";
 import { printAgentResponse, prompt } from "../../shared/utils/cli.utils.js";
 import { createUiNcpAgent } from "../ncp/features/runtime/create-ui-ncp-agent.service.js";
 import { dispatchPromptOverNcp } from "../ncp/features/runtime/nextclaw-ncp-dispatch.js";
-import type { NextclawExtensionRegistry } from "../plugins.js";
+import type { NextclawExtensionRegistry } from "../plugin/index.js";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
 

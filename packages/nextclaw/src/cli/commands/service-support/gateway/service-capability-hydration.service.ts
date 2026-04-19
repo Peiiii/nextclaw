@@ -13,7 +13,7 @@ import {
   logPluginDiagnostics,
   toExtensionRegistry,
   type NextclawExtensionRegistry,
-} from "../../plugins.js";
+} from "../../plugin/index.js";
 import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "../../plugin/plugin-registry-loader.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 import { waitForUiShellGraceWindow } from "./service-ui-shell-grace.js";

@@ -19,7 +19,7 @@ vi.mock("../service-remote-runtime.js", () => ({
   writeInitialManagedServiceState: writeInitialManagedServiceStateMock
 }));
 
-import { spawnManagedService } from "../service-managed-startup.js";
+import { spawnManagedService } from "../service-managed-startup.service.js";
 
 describe("spawnManagedService", () => {
   let tempDir: string;

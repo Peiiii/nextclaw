@@ -1,6 +1,6 @@
 import type * as NextclawCore from "@nextclaw/core";
 import { logStartupTrace, measureStartupAsync } from "../../../shared/utils/startup-trace.js";
-import type { NextclawExtensionRegistry } from "../../plugins.js";
+import type { NextclawExtensionRegistry } from "../../plugin/index.js";
 import {
   type CreateUiNcpAgentParams,
   type UiNcpAgentHandle,

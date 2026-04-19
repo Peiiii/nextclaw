@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { spawn } from "node:child_process";
 import type { ManagedServiceState } from "../../../shared/stores/managed-service-state.store.js";
-import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.js";
+import { resolveCliSubcommandLaunch } from "../marketplace/cli-subcommand-launch.utils.js";
 import { writeInitialManagedServiceState } from "./service-remote-runtime.js";
 
 export type ManagedServiceSnapshot = {

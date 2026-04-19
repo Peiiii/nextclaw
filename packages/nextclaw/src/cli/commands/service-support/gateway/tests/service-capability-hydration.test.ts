@@ -44,7 +44,7 @@ vi.mock("../../../plugin/plugin-reload.js", () => ({
   shouldRestartChannelsForPluginReload: mocks.shouldRestartChannelsForPluginReloadMock
 }));
 
-vi.mock("../../../plugins.js", () => ({
+vi.mock("../../../plugin/index.js", () => ({
   logPluginDiagnostics: mocks.logPluginDiagnosticsMock,
   toExtensionRegistry: mocks.toExtensionRegistryMock
 }));

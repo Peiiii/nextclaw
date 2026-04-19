@@ -19,11 +19,11 @@ vi.mock("@nextclaw/core", () => ({
   removeAgentProfile: mocks.removeAgentProfileMock
 }));
 
-vi.mock("./agent-runtime.js", () => ({
+vi.mock("./agent-runtime.service.js", () => ({
   listAvailableAgentRuntimes: mocks.listAvailableAgentRuntimesMock
 }));
 
-import { AgentCommands } from "../agents.js";
+import { AgentCommands } from "./services/agent-commands.service.js";
 
 describe("AgentCommands", () => {
   beforeEach(() => {

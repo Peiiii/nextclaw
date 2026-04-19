@@ -23,7 +23,7 @@ type DevServiceHandle = {
   spawnedAtMs: number;
 };
 
-const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../");
+const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../../");
 const tempDirs: string[] = [];
 const activeServices: DevServiceHandle[] = [];
 let nextPort = 19100;

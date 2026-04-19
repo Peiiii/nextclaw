@@ -20,7 +20,7 @@ vi.mock("@nextclaw/core", async (importOriginal) => {
   };
 });
 
-import { installPluginRuntimeBridge } from "../service-plugin-runtime-bridge.js";
+import { installPluginRuntimeBridge } from "../service-plugin-runtime-bridge.service.js";
 
 describe("installPluginRuntimeBridge media attachment forwarding", () => {
   beforeEach(() => {

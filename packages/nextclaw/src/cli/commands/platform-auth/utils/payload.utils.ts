@@ -1,4 +1,4 @@
-import type { PlatformUserView } from "../platform-auth.js";
+import type { PlatformUserView } from "../index.js";
 
 export function readLoginPayload(raw: string): { token: string; role: string } {
   const authResult = readPlatformAuthResultPayload(raw);

@@ -14,8 +14,8 @@ import type {
   RemoteSettingsUpdateRequest,
   UiRemoteAccessHost
 } from "@nextclaw/server";
-import type { PlatformAuthCommands } from "../platform-auth.js";
-import type { RemoteCommands } from "../remote.js";
+import type { PlatformAuthCommands } from "../platform-auth/index.js";
+import type { RemoteCommands } from "../remote/index.js";
 import {
   controlRemoteService,
   resolveRemoteServiceView,

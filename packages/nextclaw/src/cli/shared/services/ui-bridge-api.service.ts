@@ -1,5 +1,5 @@
 import { ensureUiBridgeSecret } from "@nextclaw/server";
-import { localUiDiscoveryService } from "../../shared/services/local-ui-discovery.service.js";
+import { localUiDiscoveryService } from "./local-ui-discovery.service.js";
 
 type ApiOkResponse<T> = {
   ok: true;
@@ -56,14 +56,15 @@ export class UiBridgeApiClient {
     method?: UiBridgeApiMethod;
     body?: unknown;
   }): Promise<T> => {
+    const { body, method, path } = params;
     const cookie = await this.getCookie();
-    const response = await fetch(`${this.apiBase}${params.path}`, {
-      method: params.method ?? "GET",
+    const response = await fetch(`${this.apiBase}${path}`, {
+      method: method ?? "GET",
       headers: {
-        ...(params.body ? { "Content-Type": "application/json" } : {}),
+        ...(body ? { "Content-Type": "application/json" } : {}),
         ...(cookie ? { Cookie: cookie } : {})
       },
-      ...(params.body ? { body: JSON.stringify(params.body) } : {})
+      ...(body ? { body: JSON.stringify(body) } : {})
     });
     if (!response.ok) {
       throw new Error(`api request failed with status ${response.status}`);

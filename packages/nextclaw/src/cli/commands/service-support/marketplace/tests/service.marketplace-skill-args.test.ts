@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildMarketplaceSkillInstallArgs, resolveCliSubcommandEntry } from "../../../service.js";
+import { buildMarketplaceSkillInstallArgs, resolveCliSubcommandEntry } from "../../../service/index.js";
 
 describe("buildMarketplaceSkillInstallArgs", () => {
   it("always includes workspace and slug", () => {
@@ -33,8 +33,8 @@ describe("resolveCliSubcommandEntry", () => {
 
   it("falls back to the app entry when argv entry is missing", () => {
     const entry = resolveCliSubcommandEntry({
-      importMetaUrl: "file:///tmp/dist/cli/commands/service.js"
+      importMetaUrl: "file:///tmp/dist/cli/commands/service/index.js"
     });
-    expect(entry).toBe("/tmp/app/index.js");
+    expect(entry).toBe("/tmp/dist/cli/app/index.js");
   });
 });

@@ -16,10 +16,10 @@ import {
 import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 import { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 import { hydrateServiceCapabilities } from "./service-capability-hydration.service.js";
-import { installPluginRuntimeBridge } from "../plugin/service-plugin-runtime-bridge.js";
-import { reloadServicePlugins } from "../plugin/service-plugin-reload.js";
+import { installPluginRuntimeBridge } from "../plugin/service-plugin-runtime-bridge.service.js";
+import { reloadServicePlugins } from "../plugin/service-plugin-reload.service.js";
 import { logPluginGatewayDiagnostics, pluginGatewayLogger } from "./service-startup-support.js";
-import type { NextclawExtensionRegistry } from "../../plugins.js";
+import type { NextclawExtensionRegistry } from "../../plugin/index.js";
 
 const { loadConfig, resolveConfigSecrets } = NextclawCore;
 

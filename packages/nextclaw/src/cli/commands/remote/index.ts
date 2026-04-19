@@ -8,8 +8,8 @@ import {
   type RemoteStatusSnapshot
 } from "@nextclaw/remote";
 import { hostname } from "node:os";
-import { localUiDiscoveryService } from "../shared/services/local-ui-discovery.service.js";
-import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./remote-support/remote-runtime-support.js";
+import { localUiDiscoveryService } from "../../shared/services/local-ui-discovery.service.js";
+import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "../remote-support/remote-runtime-support.js";
 
 type RemoteConfigChange = {
   changed: boolean;

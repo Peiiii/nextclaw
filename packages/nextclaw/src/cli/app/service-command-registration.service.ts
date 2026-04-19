@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { ServiceCommands } from "../commands/service.js";
+import type { ServiceCommands } from "../commands/service/index.js";
 
 type RegisterServiceCommandsParams = {
   program: Command;

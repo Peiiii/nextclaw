@@ -21,7 +21,7 @@ import {
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { join } from "node:path";
-import type { NextclawExtensionRegistry } from "../../../plugins.js";
+import type { NextclawExtensionRegistry } from "../../../plugin/index.js";
 import { createAssetTools } from "./ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "../../nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "../../nextclaw-agent-session-store.js";
@@ -36,7 +36,7 @@ import { LlmUsageObserver, ObservedProviderManager } from "../../../../shared/se
 import {
   createUiNcpAgentHandle,
   type UiNcpAgentHandle,
-} from "./ui-ncp-agent-handle.js";
+} from "./ui-ncp-agent-handle.service.js";
 import {
   LearningLoopRuntimeService,
   readLearningLoopRuntimeConfig,
@@ -46,7 +46,7 @@ import { BuiltinNarpRuntimeRegistrationService } from "../../builtin-narp-runtim
 import { llmUsageRecorder } from "../../../../shared/services/llm-usage-recorder.service.js";
 import { resolveUiNcpRuntimeEntries } from "../../ui-ncp-runtime-entry-resolver.js";
 
-export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.js";
+export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.service.js";
 
 type MessageToolHintsResolver = (params: {
   sessionKey: string;

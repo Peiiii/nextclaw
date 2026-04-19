@@ -5,7 +5,7 @@ import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as utils from "../../shared/utils/cli.utils.js";
 import { managedServiceStateStore } from "../../shared/stores/managed-service-state.store.js";
-import { RemoteAccessHost } from "./remote-access-host.js";
+import { RemoteAccessHost } from "./remote-access-host.service.js";
 
 const originalNextclawHome = process.env.NEXTCLAW_HOME;
 

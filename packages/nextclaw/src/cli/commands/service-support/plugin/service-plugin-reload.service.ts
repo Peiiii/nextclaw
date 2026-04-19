@@ -12,7 +12,7 @@ import {
   logPluginDiagnostics,
   toExtensionRegistry,
   type NextclawExtensionRegistry,
-} from "../../plugins.js";
+} from "../../plugin/index.js";
 
 type PluginGatewayHandles = Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"];
 type PluginGatewayDiagnostics = Awaited<ReturnType<typeof startPluginChannelGateways>>["diagnostics"];

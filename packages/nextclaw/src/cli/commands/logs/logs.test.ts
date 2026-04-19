@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileLogSink, LoggingRuntime } from "@nextclaw/core";
-import { LogsCommands } from "./logs.js";
+import { LogsCommands } from "./index.js";
 
 describe("LogsCommands", () => {
   let tempDir: string;

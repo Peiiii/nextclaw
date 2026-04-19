@@ -19,6 +19,18 @@ export type HostAutostartLaunchPlan = {
 const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"]);
 const require = createRequire(import.meta.url);
 
+const resolveCliAppEntryFromImportMeta = (importMetaUrl: string): string => {
+  const modulePath = fileURLToPath(importMetaUrl);
+  const normalizedPath = modulePath.replace(/\\/g, "/");
+  const cliRootIndex = normalizedPath.lastIndexOf("/cli/");
+  if (cliRootIndex === -1) {
+    return fileURLToPath(new URL("../../../app/index.js", importMetaUrl));
+  }
+  const extension = extname(modulePath) || ".js";
+  const cliRootPath = modulePath.slice(0, cliRootIndex + "/cli/".length);
+  return resolve(cliRootPath, "app", `index${extension}`);
+};
+
 export class HostAutostartRuntimeService {
   private readonly nodePath: string;
   private readonly argvEntry: string | undefined;
@@ -51,6 +63,6 @@ export class HostAutostartRuntimeService {
       }
       return resolve(argvEntry);
     }
-    return fileURLToPath(new URL("../index.js", this.importMetaUrl));
+    return resolveCliAppEntryFromImportMeta(this.importMetaUrl);
   };
 }

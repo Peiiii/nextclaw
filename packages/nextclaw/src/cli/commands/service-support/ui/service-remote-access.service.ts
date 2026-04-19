@@ -1,8 +1,8 @@
 import type { Config } from "@nextclaw/core";
 import type { RequestRestartParams } from "../../../shared/types/cli.types.js";
-import { RemoteAccessHost } from "../../remote-support/remote-access-host.js";
-import { PlatformAuthCommands } from "../../platform-auth.js";
-import { RemoteCommands } from "../../remote.js";
+import { RemoteAccessHost } from "../../remote-support/remote-access-host.service.js";
+import { PlatformAuthCommands } from "../../platform-auth/index.js";
+import { RemoteCommands } from "../../remote/index.js";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 
 type ManagedServiceRestartOptions = {

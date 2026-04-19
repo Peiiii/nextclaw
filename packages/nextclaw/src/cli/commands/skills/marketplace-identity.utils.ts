@@ -1,4 +1,4 @@
-import type { PlatformMeResult } from "../platform-auth.js";
+import type { PlatformMeResult } from "../platform-auth/index.js";
 
 export function resolvePublishPackageName(params: {
   explicitPackageName?: string;

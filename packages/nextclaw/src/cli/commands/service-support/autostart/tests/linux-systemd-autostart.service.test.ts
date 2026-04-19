@@ -21,7 +21,7 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
+        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),
     });
@@ -64,7 +64,7 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
+        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
     });
@@ -104,7 +104,7 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
+        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/home/alice/.nextclaw",
       }),
     });
@@ -133,7 +133,7 @@ describe("LinuxSystemdAutostartService", () => {
       runtimeService: new HostAutostartRuntimeService({
         nodePath: "/usr/local/bin/node",
         argvEntry: "/opt/nextclaw/dist/cli/app/index.js",
-        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service.js",
+        importMetaUrl: "file:///opt/nextclaw/dist/cli/commands/service/index.js",
         getDataDir: () => "/srv/nextclaw-home",
       }),
     });

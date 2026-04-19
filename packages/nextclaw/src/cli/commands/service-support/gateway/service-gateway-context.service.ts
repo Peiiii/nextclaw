@@ -8,7 +8,7 @@ import type { RequestRestartParams } from "../../../shared/types/cli.types.js";
 import { resolveUiConfig, resolveUiStaticDir } from "../../../shared/utils/cli.utils.js";
 import type { UiNcpAgentHandle } from "../../ncp/features/runtime/create-ui-ncp-agent.service.js";
 import { resolveChannelConfigView } from "../../channel/channel-config-view.js";
-import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugins.js";
+import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugin/index.js";
 import { createCronJobHandler, createHeartbeatJobHandler } from "./service-cron-job-handler.js";
 import { createManagedRemoteModuleForUi } from "../runtime/service-remote-runtime.js";
 import { measureStartupSync } from "../../../shared/utils/startup-trace.js";

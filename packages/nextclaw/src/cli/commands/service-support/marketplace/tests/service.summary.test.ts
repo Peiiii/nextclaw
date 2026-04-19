@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickUserFacingCommandSummary } from "../../../service.js";
+import { pickUserFacingCommandSummary } from "../../../service/index.js";
 
 describe("pickUserFacingCommandSummary", () => {
   it("hides absolute path line and keeps user-facing install summary", () => {

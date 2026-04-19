@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePublishPackageName } from "./marketplace-identity.js";
+import { resolvePublishPackageName } from "./marketplace-identity.utils.js";
 
 describe("resolvePublishPackageName", () => {
   it("includes exact NextClaw Web and CLI guidance when username is missing", () => {

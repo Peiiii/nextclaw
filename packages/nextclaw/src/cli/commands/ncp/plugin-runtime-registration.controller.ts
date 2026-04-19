@@ -1,5 +1,5 @@
 import { DisposableStore } from "@nextclaw/core";
-import type { NextclawExtensionRegistry } from "../plugins.js";
+import type { NextclawExtensionRegistry } from "../plugin/index.js";
 import type { UiNcpRuntimeRegistry } from "./ui-ncp-runtime-registry.js";
 import {
   NARP_HTTP_RUNTIME_KIND,

@@ -10,6 +10,18 @@ const isTypeScriptEntry = (entry: string): boolean => TYPESCRIPT_EXTENSIONS.has(
 
 const resolveTsxCliEntry = (): string => require.resolve("tsx/cli");
 
+const resolveCliAppEntryFromImportMeta = (importMetaUrl: string): string => {
+  const modulePath = fileURLToPath(importMetaUrl);
+  const normalizedPath = modulePath.replace(/\\/g, "/");
+  const cliRootIndex = normalizedPath.lastIndexOf("/cli/");
+  if (cliRootIndex === -1) {
+    return fileURLToPath(new URL("../../../app/index.js", importMetaUrl));
+  }
+  const extension = extname(modulePath) || ".js";
+  const cliRootPath = modulePath.slice(0, cliRootIndex + "/cli/".length);
+  return resolve(cliRootPath, "app", `index${extension}`);
+};
+
 export const resolveCliSubcommandEntry = (params: {
   argvEntry?: string;
   importMetaUrl: string;
@@ -18,7 +30,7 @@ export const resolveCliSubcommandEntry = (params: {
   if (argvEntry) {
     return resolve(argvEntry);
   }
-  return fileURLToPath(new URL("../../../app/index.js", params.importMetaUrl));
+  return resolveCliAppEntryFromImportMeta(params.importMetaUrl);
 };
 
 export const resolveCliSubcommandLaunch = (params: {

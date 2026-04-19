@@ -2,9 +2,11 @@ import { spawnSync } from "node:child_process";
 import { getWorkspacePath, loadConfig, saveConfig } from "@nextclaw/core";
 import { BUILTIN_CHANNEL_PLUGIN_IDS, builtinProviderIds } from "@nextclaw/runtime";
 import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings } from "@nextclaw/openclaw-compat";
-import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "./plugins.js";
-import { resolveChannelConfigView } from "./channel/channel-config-view.js";
-import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../shared/types/cli.types.js";
+import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
+import { resolveChannelConfigView } from "./channel-config-view.js";
+import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
+
+export { resolveChannelConfigView } from "./channel-config-view.js";
 
 const CHANNEL_LABELS: Record<string, string> = {
   telegram: "Telegram",

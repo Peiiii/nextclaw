@@ -22,7 +22,7 @@ import {
 import {
   logPluginDiagnostics,
   toExtensionRegistry,
-} from "../plugins.js";
+} from "../plugin/index.js";
 
 export type AgentRuntimeListEntry = UiNcpSessionTypeOption & {
   default: boolean;

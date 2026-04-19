@@ -1,7 +1,7 @@
 import { loadConfig, resolveConfigSecrets, saveConfig, type InboundAttachment } from "@nextclaw/core";
 import { setPluginRuntimeBridge } from "@nextclaw/openclaw-compat";
 import type { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
-import { mergePluginConfigView, toPluginConfigView } from "../../plugins.js";
+import { mergePluginConfigView, toPluginConfigView } from "../../plugin/index.js";
 
 type InstallPluginRuntimeBridgeParams = {
   dispatchPrompt: (params: {

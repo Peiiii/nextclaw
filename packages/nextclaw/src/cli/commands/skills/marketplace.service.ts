@@ -7,7 +7,7 @@ import {
   readMarketplaceMetadataFile,
   type LocalizedTextMap
 } from "./marketplace.metadata.js";
-import { PlatformAuthCommands } from "../platform-auth.js";
+import { PlatformAuthCommands } from "../platform-auth/index.js";
 import {
   fetchMarketplaceSkillFileBlob,
   fetchMarketplaceSkillFiles,
@@ -22,7 +22,7 @@ import {
   resolvePublishPackageName,
   validateSkillSelector,
   validateSkillSlug
-} from "./marketplace-identity.js";
+} from "./marketplace-identity.utils.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.js";
 
 type MarketplaceSkillInstallKind = "builtin" | "marketplace";

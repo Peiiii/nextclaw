@@ -7,11 +7,11 @@ import {
 import {
   appendPluginCapabilityLines,
   buildReservedPluginLoadOptions,
-} from "./plugin/plugin-command-utils.js";
+} from "./plugin-command-utils.js";
 import {
   resolveDevPluginLoadingContext,
-} from "./plugin/development-source/dev-plugin-overrides.utils.js";
-import { resolveDevFirstPartyPluginDir } from "./plugin/development-source/first-party-plugin-load-paths.js";
+} from "./development-source/dev-plugin-overrides.utils.js";
+import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.js";
 import {
   loadConfig,
   type Config,
@@ -24,7 +24,7 @@ import type {
   PluginsInstallOptions,
   PluginsListOptions,
   PluginsUninstallOptions
-} from "../shared/types/cli.types.js";
+} from "../../shared/types/cli.types.js";
 import {
   disablePluginMutation,
   enablePluginMutation,
@@ -32,8 +32,8 @@ import {
   type PluginMutationResult,
   type PluginUninstallMutationResult,
   uninstallPluginMutation,
-} from "./plugin/plugin-mutation-actions.js";
-export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin/plugin-extension-registry.js";
+} from "./plugin-mutation-actions.js";
+export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {

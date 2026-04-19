@@ -34,11 +34,11 @@ vi.mock("../service-capability-hydration.service.js", () => ({
   hydrateServiceCapabilities: vi.fn()
 }));
 
-vi.mock("../../plugin/service-plugin-reload.js", () => ({
+vi.mock("../../plugin/service-plugin-reload.service.js", () => ({
   reloadServicePlugins: mocks.reloadServicePluginsMock
 }));
 
-vi.mock("../../plugin/service-plugin-runtime-bridge.js", () => ({
+vi.mock("../../plugin/service-plugin-runtime-bridge.service.js", () => ({
   installPluginRuntimeBridge: mocks.installPluginRuntimeBridgeMock
 }));
 

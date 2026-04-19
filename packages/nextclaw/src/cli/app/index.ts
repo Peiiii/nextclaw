@@ -10,7 +10,7 @@ import { registerLearningLoopCommands } from "../commands/learning-loop/index.js
 import { registerServiceCommands } from "./service-command-registration.service.js";
 import { logStartupTrace, measureStartupSync } from "../shared/utils/startup-trace.js";
 import { getPackageVersion } from "../shared/utils/cli.utils.js";
-import type { ServiceCommands } from "../commands/service.js";
+import type { ServiceCommands } from "../commands/service/index.js";
 
 logStartupTrace("cli.index.module_loaded");
 

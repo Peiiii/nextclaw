@@ -1,5 +1,5 @@
 import { APP_NAME } from "@nextclaw/core";
-import type { RuntimeStatusReport } from "../../shared/types/cli.types.js";
+import type { RuntimeStatusReport } from "../../../shared/types/cli.types.js";
 
 export type DoctorCheck = {
   name: string;
@@ -82,21 +82,22 @@ export function printDoctorReport(params: {
   verbose: boolean;
   logTail: string[];
 }): void {
-  console.log(`${params.logo} ${APP_NAME} Doctor`);
-  console.log(`Generated: ${params.generatedAt}`);
+  const { checks, generatedAt, logTail, logo, recommendations, verbose } = params;
+  console.log(`${logo} ${APP_NAME} Doctor`);
+  console.log(`Generated: ${generatedAt}`);
   console.log("");
 
-  for (const check of params.checks) {
+  for (const check of checks) {
     const icon = check.status === "pass" ? "✓" : check.status === "warn" ? "!" : "✗";
     console.log(`${icon} ${check.name}: ${check.detail}`);
   }
 
-  printTextList("Recommendations", params.recommendations);
+  printTextList("Recommendations", recommendations);
 
-  if (params.verbose && params.logTail.length > 0) {
+  if (verbose && logTail.length > 0) {
     console.log("");
     console.log("Recent logs:");
-    for (const line of params.logTail) {
+    for (const line of logTail) {
       console.log(line);
     }
   }

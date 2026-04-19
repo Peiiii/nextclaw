@@ -25,20 +25,20 @@ import {
   toExtensionRegistry,
   toPluginConfigView,
   PluginCommands,
-} from "../commands/plugins.js";
-import { ConfigCommands } from "../commands/config.js";
-import { McpCommands } from "../commands/mcp.js";
-import { SecretsCommands } from "../commands/secrets.js";
-import { ChannelCommands } from "../commands/channels.js";
-import { CronCommands } from "../commands/cron.js";
-import { AgentCommands } from "../commands/agents.js";
-import { PlatformAuthCommands } from "../commands/platform-auth.js";
-import { RemoteCommands } from "../commands/remote.js";
-import { DiagnosticsCommands } from "../commands/diagnostics.js";
-import { LogsCommands } from "../commands/logs.js";
+} from "../commands/plugin/index.js";
+import { ConfigCommands } from "../commands/config/index.js";
+import { McpCommands } from "../commands/mcp/index.js";
+import { SecretsCommands } from "../commands/secrets/index.js";
+import { ChannelCommands } from "../commands/channel/index.js";
+import { CronCommands } from "../commands/cron/index.js";
+import { AgentCommands } from "../commands/agent/index.js";
+import { PlatformAuthCommands } from "../commands/platform-auth/index.js";
+import { RemoteCommands } from "../commands/remote/index.js";
+import { DiagnosticsCommands } from "../commands/diagnostics/index.js";
+import { LogsCommands } from "../commands/logs/index.js";
 import { hasRunningNextclawManagedService } from "../commands/remote-support/index.js";
 import { describeUnmanagedHealthyTargetMessage } from "../commands/service-support/index.js";
-import { ServiceCommands } from "../commands/service.js";
+import { ServiceCommands } from "../commands/service/index.js";
 import { WorkspaceManager } from "../shared/services/workspace-manager.service.js";
 import { LlmUsageObserver, ObservedProviderManager } from "../shared/services/llm-usage-observer.service.js";
 import { llmUsageRecorder } from "../shared/services/llm-usage-recorder.service.js";
