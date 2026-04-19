@@ -11,6 +11,7 @@ import { LoginPage } from '@/pages/LoginPage';
 import { SharePage } from '@/pages/SharePage';
 import { UserDashboardPage } from '@/pages/UserDashboardPage';
 import { UserAccountPage } from '@/pages/user-account-page';
+import { UserAppsPage } from '@/pages/user-apps-page';
 import { getUserConsoleRoutes, resolveUserConsoleRoute } from '@/pages/user-console-navigation';
 import { UserSkillsPage } from '@/pages/user-skills-page';
 import { useAuthStore } from '@/store/auth';
@@ -91,6 +92,7 @@ function ConsoleWorkbench(): JSX.Element {
         >
           <Routes>
             <Route index element={<UserDashboardPage token={token} user={user} />} />
+            <Route path="apps" element={<UserAppsPage token={token} t={t} />} />
             <Route path="skills" element={<UserSkillsPage token={token} t={t} />} />
             <Route path="account" element={<UserAccountPage token={token} user={user} t={t} />} />
             <Route path="profile" element={<Navigate to="/account" replace />} />

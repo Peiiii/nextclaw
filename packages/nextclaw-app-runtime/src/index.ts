@@ -29,6 +29,7 @@ export * from "./publish/app-marketplace-client.service.js";
 export * from "./publish/app-marketplace-metadata.service.js";
 export * from "./publish/app-publish.service.js";
 export * from "./publish/app-publish.types.js";
+export * from "./publish/platform-auth-state.service.js";
 export * from "./registry/app-registry-config.service.js";
 export * from "./registry/app-remote-registry-client.service.js";
 export * from "./registry/app-remote-registry.types.js";

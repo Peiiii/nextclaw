@@ -258,11 +258,6 @@ export class AppScaffoldService {
       sourceRepo: "https://github.com/Peiiii/nextclaw",
       homepage: "https://nextclaw.io",
       featured: false,
-      publisher: {
-        id: "nextclaw",
-        name: "NextClaw",
-        url: "https://nextclaw.io",
-      },
     };
   };
 

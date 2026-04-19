@@ -1,6 +1,6 @@
 export type Translate = (key: string, params?: Record<string, string | number>) => string;
 
-export type UserConsoleRouteKey = 'instances' | 'skills' | 'account';
+export type UserConsoleRouteKey = 'instances' | 'apps' | 'skills' | 'account';
 
 export type UserConsoleRoute = {
   key: UserConsoleRouteKey;
@@ -10,6 +10,7 @@ export type UserConsoleRoute = {
 };
 
 const ACCOUNT_PATHS = new Set(['/account', '/profile']);
+const APP_PATHS = new Set(['/apps']);
 const SKILL_PATHS = new Set(['/skills']);
 
 function normalizePathname(pathname: string): string {
@@ -29,6 +30,12 @@ export function getUserConsoleRoutes(t: Translate): UserConsoleRoute[] {
       href: '/'
     },
     {
+      key: 'apps',
+      label: t('app.navigation.apps'),
+      description: t('app.routeDescriptions.apps'),
+      href: '/apps'
+    },
+    {
       key: 'skills',
       label: t('app.navigation.skills'),
       description: t('app.routeDescriptions.skills'),
@@ -45,6 +52,9 @@ export function getUserConsoleRoutes(t: Translate): UserConsoleRoute[] {
 
 export function resolveUserConsoleRoute(pathname: string, routes: UserConsoleRoute[]): UserConsoleRoute {
   const normalizedPathname = normalizePathname(pathname);
+  if (APP_PATHS.has(normalizedPathname)) {
+    return routes.find((route) => route.key === 'apps') ?? routes[0];
+  }
   if (SKILL_PATHS.has(normalizedPathname)) {
     return routes.find((route) => route.key === 'skills') ?? routes[0];
   }

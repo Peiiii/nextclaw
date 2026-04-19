@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppScaffoldService } from "../scaffold/app-scaffold.service.js";
 import { AppPublishService } from "./app-publish.service.js";
+import { PlatformAuthStateService } from "./platform-auth-state.service.js";
 
 describe("AppPublishService", () => {
   const cleanupPaths: string[] = [];
@@ -57,7 +58,25 @@ describe("AppPublishService", () => {
       {
         publish,
       } as never,
+      {
+        readCurrentAuthState: () => ({
+          token: "user-token",
+          apiBaseUrl: "https://ai-gateway-api.nextclaw.io/v1",
+        }),
+      } as PlatformAuthStateService,
     );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          user: {
+            id: "user-1",
+            username: "alice",
+            role: "user",
+          },
+        },
+      }),
+    }));
 
     const result = await service.publish({
       appDirectory,
@@ -71,6 +90,10 @@ describe("AppPublishService", () => {
       payload: {
         appId: "nextclaw.app",
         slug: "app",
+        publisher: {
+          id: "alice",
+          name: "alice",
+        },
         files: [
           expect.objectContaining({
             path: "marketplace.json",

@@ -189,6 +189,13 @@ Publish rules:
 - do not publish before `inspect` succeeds,
 - confirm the app contains `marketplace.json`,
 - prefer the default official API unless the user explicitly asks for another registry,
+- auth priority is fixed as:
+  - explicit `--token`
+  - current `nextclaw login` session
+  - `NEXTCLAW_MARKETPLACE_ADMIN_TOKEN`
+- personal publish requires a platform username and an app id in the form `<username>.<app-name>`,
+- official publish uses `nextclaw.<app-name>` and requires admin permission,
+- do not treat `marketplace.json.publisher` as the source of truth for real publish ownership,
 - surface the returned app id, detail page, and install command after publish succeeds.
 
 ### 7. Apply file access explicitly
@@ -303,6 +310,8 @@ The key product point is:
 - inspect the app again
 - confirm `marketplace.json` exists and is valid
 - confirm publish auth is available if the target registry requires it
+- confirm the current platform account already has a username
+- confirm `manifest.json` uses the correct app id scope for the current publisher
 - do not claim the app is available until the publish result returns a real app id
 
 ### `run` says a document scope is missing

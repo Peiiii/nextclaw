@@ -21,11 +21,13 @@
     "accountLoadFailedAction": "Sign in again",
     "navigation": {
       "home": "My Instances",
+      "apps": "My Apps",
       "skills": "My Skills",
       "account": "Account"
     },
     "routeDescriptions": {
       "instances": "Open your remote instances, review quota usage, and continue work from the web.",
+      "apps": "Manage the marketplace visibility and review status of the apps you published.",
       "skills": "Manage the marketplace visibility and lifecycle of the skills you published.",
       "account": "Manage your username, publishing scope, and account readiness in one place."
     },
@@ -131,6 +133,66 @@
       "empty": "No skills under your scope yet. Publish one first, then manage it here.",
       "selectOne": "Select a skill from the left to review its current state.",
       "deleteConfirm": "Delete this skill from your marketplace management list? The marketplace entry will be removed immediately."
+    }
+  },
+  "apps": {
+    "title": "My Apps",
+    "description": "Manage the apps you published under your own scope. Admin review status and your marketplace visibility stay separate here.",
+    "queueTitle": "Published by me",
+    "queueSummary": "{count} app(s) in this view.",
+    "searchPlaceholder": "Search by appId or title",
+    "metrics": {
+      "total": "Total apps",
+      "totalHint": "All non-deleted apps under your scope.",
+      "live": "Live in marketplace",
+      "liveHint": "Reviewed and publicly visible.",
+      "hidden": "Hidden by me",
+      "hiddenHint": "Still kept, but removed from public listing.",
+      "pending": "Pending review",
+      "pendingHint": "Waiting for marketplace approval."
+    },
+    "fields": {
+      "scope": "Scope",
+      "appId": "App ID",
+      "updatedAt": "Updated at",
+      "publishedAt": "Published at",
+      "reviewedAt": "Reviewed at",
+      "summary": "Summary",
+      "description": "Description",
+      "reviewNote": "Review note",
+      "install": "Install command"
+    },
+    "values": {
+      "notReviewed": "Not reviewed yet"
+    },
+    "publishStatus": {
+      "pending": "Pending review",
+      "published": "Published",
+      "rejected": "Rejected"
+    },
+    "visibility": {
+      "public": "Visible",
+      "hidden": "Hidden"
+    },
+    "actions": {
+      "search": "Search",
+      "clear": "Clear",
+      "openStore": "Open detail page",
+      "manageTitle": "Marketplace visibility",
+      "manageDescription": "Hide removes this app from the public marketplace without touching the admin review result. Delete removes it from your default management list.",
+      "hide": "Hide",
+      "hiding": "Hiding...",
+      "show": "Make visible",
+      "showing": "Updating...",
+      "delete": "Delete",
+      "deleting": "Deleting..."
+    },
+    "messages": {
+      "loading": "Loading your apps...",
+      "loadingDetail": "Loading app details...",
+      "empty": "No apps under your scope yet. Publish one first, then manage it here.",
+      "selectOne": "Select an app from the left to review its current state.",
+      "deleteConfirm": "Delete this app from your marketplace management list? The marketplace entry will be removed immediately."
     }
   },
   "login": {

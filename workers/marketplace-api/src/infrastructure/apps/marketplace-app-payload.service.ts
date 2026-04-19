@@ -15,6 +15,7 @@ export class MarketplaceAppPayloadParser {
     const summary = this.readString(candidate.summary, "summary");
     const description = this.readOptionalString(candidate.description, "description");
     return {
+      requireExisting: Boolean(candidate.requireExisting),
       slug: this.readSlug(candidate.slug, "slug"),
       appId: this.readString(candidate.appId, "appId"),
       name: this.readString(candidate.name, "name"),

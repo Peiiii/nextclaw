@@ -6,6 +6,7 @@ import {
   type AdminConsoleRouteKey
 } from '@/pages/admin-console-navigation';
 import { AdminMarketplaceReviewPage } from '@/pages/admin-marketplace-review-page';
+import { AdminMarketplaceAppReviewPage } from '@/pages/admin-marketplace-app-review-page';
 import { AdminOverviewPage } from '@/pages/admin-overview-page';
 import { AdminRechargeReviewPage } from '@/pages/admin-recharge-review-page';
 import { AdminUserQuotaPage } from '@/pages/admin-user-quota-page';
@@ -36,6 +37,8 @@ function renderRoutePage(token: string, routeKey: AdminConsoleRouteKey): JSX.Ele
   switch (routeKey) {
     case 'marketplace':
       return <AdminMarketplaceReviewPage token={token} />;
+    case 'marketplace-apps':
+      return <AdminMarketplaceAppReviewPage token={token} />;
     case 'users':
       return <AdminUserQuotaPage token={token} />;
     case 'recharge':

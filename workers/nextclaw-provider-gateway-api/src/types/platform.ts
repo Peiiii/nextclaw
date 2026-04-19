@@ -423,6 +423,163 @@ export type OwnerMarketplaceSkillListView = {
   total: number;
   items: OwnerMarketplaceSkillSummaryView[];
 };
+
+export type AdminMarketplaceAppPublishStatus = "pending" | "published" | "rejected" | "all";
+export type AdminMarketplaceAppReviewStatus = "published" | "rejected";
+export type OwnerMarketplaceAppVisibility = "public" | "hidden";
+export type OwnerMarketplaceAppManageAction = "hide" | "show" | "delete";
+
+export type MarketplaceAppInstallView = {
+  kind: "registry";
+  spec: string;
+  command: string;
+  registry: string;
+};
+
+export type MarketplaceAppFileView = {
+  path: string;
+  contentType: string;
+  sizeBytes: number;
+  sha256: string;
+  updatedAt: string;
+  downloadPath?: string;
+};
+
+export type MarketplaceAppPublisherView = {
+  id: string;
+  name: string;
+  url?: string;
+};
+
+export type MarketplaceAppManifestView = {
+  schemaVersion: 1;
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  icon?: string;
+  main: {
+    kind: "wasm";
+    entry: string;
+    export: string;
+    action: string;
+  };
+  ui: {
+    entry: string;
+  };
+  permissions?: Record<string, unknown>;
+};
+
+export type MarketplaceAppPermissionsView = Record<string, unknown>;
+
+export type MarketplaceAppVersionView = {
+  version: string;
+  publishedAt: string;
+  updatedAt: string;
+  bundleSha256: string;
+  downloadPath: string;
+};
+
+export type AdminMarketplaceAppCountsView = {
+  pending: number;
+  published: number;
+  rejected: number;
+};
+
+export type OwnerMarketplaceAppSummaryView = {
+  id: string;
+  slug: string;
+  appId: string;
+  ownerScope: string;
+  appName: string;
+  name: string;
+  summary: string;
+  summaryI18n: Record<string, string>;
+  tags: string[];
+  author: string;
+  updatedAt: string;
+  latestVersion: string;
+  featured: boolean;
+  publisher: MarketplaceAppPublisherView;
+  install: MarketplaceAppInstallView;
+  webUrl: string;
+  publishStatus: Exclude<AdminMarketplaceAppPublishStatus, "all">;
+  publishedByType: "admin" | "user";
+  ownerVisibility: OwnerMarketplaceAppVisibility;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+};
+
+export type OwnerMarketplaceAppDetailView = OwnerMarketplaceAppSummaryView & {
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  manifest: MarketplaceAppManifestView;
+  permissions: MarketplaceAppPermissionsView;
+  versions: MarketplaceAppVersionView[];
+  canShow: boolean;
+  canHide: boolean;
+  canDelete: boolean;
+};
+
+export type OwnerMarketplaceAppListView = {
+  total: number;
+  items: OwnerMarketplaceAppSummaryView[];
+};
+
+export type AdminMarketplaceAppSummaryView = {
+  id: string;
+  slug: string;
+  appId: string;
+  ownerScope: string;
+  appName: string;
+  name: string;
+  summary: string;
+  summaryI18n: Record<string, string>;
+  tags: string[];
+  author: string;
+  updatedAt: string;
+  latestVersion: string;
+  featured: boolean;
+  publisher: MarketplaceAppPublisherView;
+  install: MarketplaceAppInstallView;
+  webUrl: string;
+  publishStatus: Exclude<AdminMarketplaceAppPublishStatus, "all">;
+  publishedByType: "admin" | "user";
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+};
+
+export type AdminMarketplaceAppDetailView = AdminMarketplaceAppSummaryView & {
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  manifest: MarketplaceAppManifestView;
+  permissions: MarketplaceAppPermissionsView;
+  versions: MarketplaceAppVersionView[];
+};
+
+export type AdminMarketplaceAppListView = {
+  counts: AdminMarketplaceAppCountsView;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  publishStatus: AdminMarketplaceAppPublishStatus;
+  query?: string;
+  items: AdminMarketplaceAppSummaryView[];
+};
+
+export type AdminMarketplaceAppDetailPayload = {
+  item: AdminMarketplaceAppDetailView;
+  files: MarketplaceAppFileView[];
+  readmeRaw?: string;
+  marketplaceJsonRaw?: string;
+};
 export type CursorPayload = {
   createdAt: string;
   id: string;

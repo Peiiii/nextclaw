@@ -1,5 +1,9 @@
 import type {
   AdminProfitOverview,
+  AdminMarketplaceAppDetailPayload,
+  AdminMarketplaceAppDetailView,
+  AdminMarketplaceAppListView,
+  AdminMarketplaceAppReviewStatus,
   AdminMarketplaceSkillDetailPayload,
   AdminMarketplaceSkillListView,
   AdminMarketplaceSkillReviewStatus,
@@ -159,6 +163,53 @@ export async function reviewAdminMarketplaceSkill(
 ): Promise<{ item: AdminMarketplaceSkillDetailView }> {
   const data = await request<ApiEnvelope<{ item: AdminMarketplaceSkillDetailView }>>(
     `/platform/admin/marketplace/skills/${encodeURIComponent(selector)}/review`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    },
+    token
+  );
+  return unwrap(data);
+}
+
+export async function fetchAdminMarketplaceApps(
+  token: string,
+  options: { publishStatus?: 'pending' | 'published' | 'rejected' | 'all'; q?: string; page?: number; pageSize?: number } = {}
+): Promise<AdminMarketplaceAppListView> {
+  const params = new URLSearchParams();
+  params.set('publishStatus', options.publishStatus ?? 'pending');
+  params.set('page', String(options.page ?? 1));
+  params.set('pageSize', String(options.pageSize ?? 20));
+  if (options.q && options.q.trim().length > 0) {
+    params.set('q', options.q.trim());
+  }
+  const data = await request<ApiEnvelope<AdminMarketplaceAppListView>>(
+    `/platform/admin/marketplace/apps?${params.toString()}`,
+    {},
+    token
+  );
+  return unwrap(data);
+}
+
+export async function fetchAdminMarketplaceAppDetail(
+  token: string,
+  selector: string
+): Promise<AdminMarketplaceAppDetailPayload> {
+  const data = await request<ApiEnvelope<AdminMarketplaceAppDetailPayload>>(
+    `/platform/admin/marketplace/apps/${encodeURIComponent(selector)}`,
+    {},
+    token
+  );
+  return unwrap(data);
+}
+
+export async function reviewAdminMarketplaceApp(
+  token: string,
+  selector: string,
+  payload: { publishStatus: AdminMarketplaceAppReviewStatus; reviewNote?: string }
+): Promise<{ item: AdminMarketplaceAppDetailView }> {
+  const data = await request<ApiEnvelope<{ item: AdminMarketplaceAppDetailView }>>(
+    `/platform/admin/marketplace/apps/${encodeURIComponent(selector)}/review`,
     {
       method: 'POST',
       body: JSON.stringify(payload)

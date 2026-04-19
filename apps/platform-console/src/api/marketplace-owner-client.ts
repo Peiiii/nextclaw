@@ -1,4 +1,7 @@
 import type {
+  OwnerMarketplaceAppDetailView,
+  OwnerMarketplaceAppListView,
+  OwnerMarketplaceAppManageAction,
   ApiEnvelope,
   OwnerMarketplaceSkillDetailView,
   OwnerMarketplaceSkillListView,
@@ -42,6 +45,51 @@ export async function manageOwnerMarketplaceSkill(
 ): Promise<{ item: OwnerMarketplaceSkillDetailView }> {
   const data = await request<ApiEnvelope<{ item: OwnerMarketplaceSkillDetailView }>>(
     `/platform/marketplace/skills/${encodeURIComponent(selector)}/manage`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ action })
+    },
+    token
+  );
+  return unwrap(data);
+}
+
+export async function fetchOwnerMarketplaceApps(
+  token: string,
+  options: { q?: string } = {}
+): Promise<OwnerMarketplaceAppListView> {
+  const params = new URLSearchParams();
+  if (options.q && options.q.trim().length > 0) {
+    params.set('q', options.q.trim());
+  }
+  const suffix = params.toString();
+  const data = await request<ApiEnvelope<OwnerMarketplaceAppListView>>(
+    suffix ? `/platform/marketplace/apps?${suffix}` : '/platform/marketplace/apps',
+    {},
+    token
+  );
+  return unwrap(data);
+}
+
+export async function fetchOwnerMarketplaceAppDetail(
+  token: string,
+  selector: string
+): Promise<OwnerMarketplaceAppDetailView> {
+  const data = await request<ApiEnvelope<OwnerMarketplaceAppDetailView>>(
+    `/platform/marketplace/apps/${encodeURIComponent(selector)}`,
+    {},
+    token
+  );
+  return unwrap(data);
+}
+
+export async function manageOwnerMarketplaceApp(
+  token: string,
+  selector: string,
+  action: OwnerMarketplaceAppManageAction
+): Promise<{ item: OwnerMarketplaceAppDetailView }> {
+  const data = await request<ApiEnvelope<{ item: OwnerMarketplaceAppDetailView }>>(
+    `/platform/marketplace/apps/${encodeURIComponent(selector)}/manage`,
     {
       method: 'POST',
       body: JSON.stringify({ action })

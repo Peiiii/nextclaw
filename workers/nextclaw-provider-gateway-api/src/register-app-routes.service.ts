@@ -33,10 +33,20 @@ import {
   rejectRechargeIntentHandler,
 } from "./controllers/admin-recharge-controller";
 import {
+  adminMarketplaceAppDetailHandler,
+  adminMarketplaceAppsHandler,
+  reviewAdminMarketplaceAppHandler,
+} from "./controllers/marketplace/admin-marketplace-app-controller";
+import {
   adminMarketplaceSkillDetailHandler,
   adminMarketplaceSkillsHandler,
   reviewAdminMarketplaceSkillHandler,
 } from "./controllers/marketplace/admin-marketplace-controller";
+import {
+  manageOwnerMarketplaceAppHandler,
+  ownerMarketplaceAppDetailHandler,
+  ownerMarketplaceAppsHandler,
+} from "./controllers/marketplace/user-marketplace-app-controller";
 import {
   manageOwnerMarketplaceSkillHandler,
   ownerMarketplaceSkillDetailHandler,
@@ -113,30 +123,39 @@ function registerRemoteAccessRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/remote/connect", remoteConnectorWebSocketHandler);
 }
 
-export function registerAppRoutes(app: Hono<{ Bindings: Env }>): void {
+function registerPublicRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/health", healthHandler);
-
   app.get("/v1/models", modelsHandler);
   app.get("/v1/usage", usageHandler);
   app.post("/v1/chat/completions", chatCompletionsHandler);
+}
 
-  registerPlatformAuthRoutes(app);
-  registerRemoteAccessRoutes(app);
-
+function registerBillingRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/billing/overview", billingOverviewHandler);
   app.get("/platform/billing/ledger", billingLedgerHandler);
   app.get("/platform/billing/recharge-intents", billingRechargeIntentsHandler);
   app.post("/platform/billing/recharge-intents", createRechargeIntentHandler);
+}
+
+function registerUserMarketplaceRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/marketplace/skills", ownerMarketplaceSkillsHandler);
   app.get("/platform/marketplace/skills/:selector", ownerMarketplaceSkillDetailHandler);
   app.post("/platform/marketplace/skills/:selector/manage", manageOwnerMarketplaceSkillHandler);
+  app.get("/platform/marketplace/apps", ownerMarketplaceAppsHandler);
+  app.get("/platform/marketplace/apps/:selector", ownerMarketplaceAppDetailHandler);
+  app.post("/platform/marketplace/apps/:selector/manage", manageOwnerMarketplaceAppHandler);
+}
 
+function registerAdminRoutes(app: Hono<{ Bindings: Env }>): void {
   app.get("/platform/admin/overview", adminOverviewHandler);
   app.get("/platform/admin/remote/quota", adminRemoteQuotaSummaryHandler);
   app.get("/platform/admin/profit/overview", adminProfitOverviewHandler);
   app.get("/platform/admin/marketplace/skills", adminMarketplaceSkillsHandler);
   app.get("/platform/admin/marketplace/skills/:selector", adminMarketplaceSkillDetailHandler);
   app.post("/platform/admin/marketplace/skills/:selector/review", reviewAdminMarketplaceSkillHandler);
+  app.get("/platform/admin/marketplace/apps", adminMarketplaceAppsHandler);
+  app.get("/platform/admin/marketplace/apps/:selector", adminMarketplaceAppDetailHandler);
+  app.post("/platform/admin/marketplace/apps/:selector/review", reviewAdminMarketplaceAppHandler);
   app.get("/platform/admin/users", adminUsersHandler);
   app.patch("/platform/admin/users/:userId", patchAdminUserHandler);
   app.get("/platform/admin/providers", adminProvidersHandler);
@@ -148,4 +167,13 @@ export function registerAppRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/platform/admin/recharge-intents/:intentId/confirm", confirmRechargeIntentHandler);
   app.post("/platform/admin/recharge-intents/:intentId/reject", rejectRechargeIntentHandler);
   app.patch("/platform/admin/settings", patchAdminSettingsHandler);
+}
+
+export function registerAppRoutes(app: Hono<{ Bindings: Env }>): void {
+  registerPublicRoutes(app);
+  registerPlatformAuthRoutes(app);
+  registerRemoteAccessRoutes(app);
+  registerBillingRoutes(app);
+  registerUserMarketplaceRoutes(app);
+  registerAdminRoutes(app);
 }

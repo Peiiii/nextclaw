@@ -56,6 +56,7 @@ export type MarketplaceAppFileInput = {
 };
 
 export type MarketplaceAppPublishInput = {
+  requireExisting?: boolean;
   slug: string;
   appId: string;
   name: string;
@@ -81,6 +82,8 @@ export type MarketplaceAppItemSummary = {
   id: string;
   slug: string;
   appId: string;
+  ownerScope: string;
+  appName: string;
   name: string;
   summary: string;
   summaryI18n: Record<string, string>;
@@ -99,6 +102,10 @@ export type MarketplaceAppItemDetail = MarketplaceAppItemSummary & {
   descriptionI18n?: Record<string, string>;
   sourceRepo?: string;
   homepage?: string;
+  publishStatus: "pending" | "published" | "rejected";
+  publishedByType: "admin" | "user";
+  reviewNote?: string;
+  reviewedAt?: string;
   manifest: MarketplaceAppManifest;
   permissions: AppPermissions;
   publishedAt: string;
@@ -140,6 +147,9 @@ export type MarketplaceAppPublishResult = {
   item: {
     slug: string;
     appId: string;
+    ownerScope: string;
+    appName: string;
+    publishStatus: "pending" | "published";
     name: string;
     latestVersion: string;
     webUrl: string;
@@ -152,6 +162,15 @@ export type MarketplaceAppItemRow = {
   id: string;
   slug: string;
   app_id: string;
+  owner_scope: string | null;
+  owner_user_id: string | null;
+  owner_visibility: string | null;
+  owner_deleted_at: string | null;
+  app_name: string | null;
+  publish_status: string | null;
+  published_by_type: string | null;
+  review_note: string | null;
+  reviewed_at: string | null;
   name: string;
   summary: string;
   summary_i18n: string;
@@ -192,4 +211,93 @@ export type MarketplaceAppFileRow = {
   size_bytes: number;
   storage_key: string;
   updated_at: string;
+};
+
+export type MarketplaceAppPublishStatus = "pending" | "published" | "rejected";
+export type MarketplaceAppPublishedByType = "admin" | "user";
+export type MarketplaceAppOwnerVisibility = "public" | "hidden";
+
+export type MarketplaceAdminAppPublishStatus = MarketplaceAppPublishStatus | "all";
+export type MarketplaceAdminAppReviewStatus = "published" | "rejected";
+export type MarketplaceOwnerAppManageAction = "hide" | "show" | "delete";
+
+export type MarketplaceAdminAppCounts = {
+  pending: number;
+  published: number;
+  rejected: number;
+};
+
+export type MarketplaceOwnerAppSummary = MarketplaceAppItemSummary & {
+  publishStatus: MarketplaceAppPublishStatus;
+  publishedByType: MarketplaceAppPublishedByType;
+  ownerVisibility: MarketplaceAppOwnerVisibility;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+};
+
+export type MarketplaceOwnerAppDetail = MarketplaceOwnerAppSummary & {
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  manifest: MarketplaceAppManifest;
+  permissions: AppPermissions;
+  versions: Array<{
+    version: string;
+    publishedAt: string;
+    updatedAt: string;
+    bundleSha256: string;
+    downloadPath: string;
+  }>;
+  canShow: boolean;
+  canHide: boolean;
+  canDelete: boolean;
+};
+
+export type MarketplaceOwnerAppListResult = {
+  total: number;
+  items: MarketplaceOwnerAppSummary[];
+};
+
+export type MarketplaceAdminAppSummary = MarketplaceAppItemSummary & {
+  publishStatus: MarketplaceAppPublishStatus;
+  publishedByType: MarketplaceAppPublishedByType;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+};
+
+export type MarketplaceAdminAppDetail = MarketplaceAdminAppSummary & {
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  manifest: MarketplaceAppManifest;
+  permissions: AppPermissions;
+  versions: Array<{
+    version: string;
+    publishedAt: string;
+    updatedAt: string;
+    bundleSha256: string;
+    downloadPath: string;
+  }>;
+};
+
+export type MarketplaceAdminAppDetailPayload = {
+  item: MarketplaceAdminAppDetail;
+  files: MarketplaceAppFilesResult["files"];
+  readmeRaw?: string;
+  marketplaceJsonRaw?: string;
+};
+
+export type MarketplaceAdminAppListResult = {
+  counts: MarketplaceAdminAppCounts;
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  publishStatus: MarketplaceAdminAppPublishStatus;
+  query?: string;
+  items: MarketplaceAdminAppSummary[];
 };

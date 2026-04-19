@@ -10,9 +10,9 @@ export class AppMarketplaceClientService {
     const apiBaseUrl = this.normalizeApiBase(
       params.apiBaseUrl ?? DEFAULT_APP_MARKETPLACE_API_BASE,
     );
-    const token = params.token?.trim() || process.env.NEXTCLAW_MARKETPLACE_ADMIN_TOKEN?.trim();
+    const token = params.token?.trim();
     if (!token) {
-      throw new Error("缺少 marketplace admin token，请传 --token 或设置 NEXTCLAW_MARKETPLACE_ADMIN_TOKEN。");
+      throw new Error("缺少 marketplace publish token。请先登录 NextClaw，或传入 --token。");
     }
     const response = await fetch(`${apiBaseUrl}/api/v1/apps/publish`, {
       method: "POST",

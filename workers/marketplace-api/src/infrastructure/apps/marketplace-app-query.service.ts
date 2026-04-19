@@ -1,8 +1,12 @@
 import type { MarketplaceListQuery } from "../../domain/model";
 
 export class MarketplaceAppQuerySupport {
-  buildFilters = (query: MarketplaceListQuery): { whereClause: string; bindings: unknown[] } => {
-    const clauses: string[] = [];
+  buildPublicFilters = (query: MarketplaceListQuery): { whereClause: string; bindings: unknown[] } => {
+    const clauses: string[] = [
+      "publish_status = 'published'",
+      "COALESCE(owner_visibility, 'public') = 'public'",
+      "owner_deleted_at IS NULL",
+    ];
     const bindings: unknown[] = [];
     if (query.q) {
       const like = `%${query.q.toLowerCase()}%`;
@@ -16,7 +20,7 @@ export class MarketplaceAppQuerySupport {
       bindings.push(`%"${query.tag.toLowerCase()}"%`);
     }
     return {
-      whereClause: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+      whereClause: `WHERE ${clauses.join(" AND ")}`,
       bindings,
     };
   };

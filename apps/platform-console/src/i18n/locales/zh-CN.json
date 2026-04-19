@@ -21,11 +21,13 @@
     "accountLoadFailedAction": "重新登录",
     "navigation": {
       "home": "我的实例",
+      "apps": "我的 Apps",
       "skills": "我的 Skills",
       "account": "账号"
     },
     "routeDescriptions": {
       "instances": "从网页打开你的远程实例，查看额度用量，并继续当前工作流。",
+      "apps": "管理你自己发布的 app，可见性和审核状态统一收在这里。",
       "skills": "管理你自己发布的 skill，可见性和生命周期入口统一收在这里。",
       "account": "统一管理用户名、个人发布 scope 和账号准备状态。"
     },
@@ -131,6 +133,66 @@
       "empty": "你当前 scope 下还没有 skill。先发布一个，再回到这里管理。",
       "selectOne": "先从左侧选择一个 skill，再查看它的当前状态。",
       "deleteConfirm": "确认把这个 skill 从你的 marketplace 管理列表中删除吗？公开市场里的条目会立即移除。"
+    }
+  },
+  "apps": {
+    "title": "我的 Apps",
+    "description": "这里集中管理你自己 scope 下发布过的 app。管理员审核状态和你自己的 marketplace 可见性，在这里分开处理。",
+    "queueTitle": "我发布的 App",
+    "queueSummary": "当前列表共 {count} 个 app。",
+    "searchPlaceholder": "搜索 appId 或标题",
+    "metrics": {
+      "total": "App 总数",
+      "totalHint": "你名下当前未删除的 app。",
+      "live": "公开中",
+      "liveHint": "已审核通过且对 marketplace 可见。",
+      "hidden": "已隐藏",
+      "hiddenHint": "你主动隐藏，但数据仍保留。",
+      "pending": "待审核",
+      "pendingHint": "还在等待 marketplace 审核。"
+    },
+    "fields": {
+      "scope": "Scope",
+      "appId": "App ID",
+      "updatedAt": "更新时间",
+      "publishedAt": "发布时间",
+      "reviewedAt": "最近审核时间",
+      "summary": "摘要",
+      "description": "描述",
+      "reviewNote": "审核备注",
+      "install": "安装命令"
+    },
+    "values": {
+      "notReviewed": "还没有审核"
+    },
+    "publishStatus": {
+      "pending": "待审核",
+      "published": "已发布",
+      "rejected": "已拒绝"
+    },
+    "visibility": {
+      "public": "公开中",
+      "hidden": "已隐藏"
+    },
+    "actions": {
+      "search": "搜索",
+      "clear": "清空",
+      "openStore": "打开详情页",
+      "manageTitle": "Marketplace 可见性",
+      "manageDescription": "隐藏只会把 app 从公共 marketplace 中撤下，不会改动管理员的审核结论。删除会把它从你的默认管理列表中移除。",
+      "hide": "隐藏",
+      "hiding": "隐藏中...",
+      "show": "重新公开",
+      "showing": "更新中...",
+      "delete": "删除",
+      "deleting": "删除中..."
+    },
+    "messages": {
+      "loading": "正在加载你的 apps...",
+      "loadingDetail": "正在加载 app 详情...",
+      "empty": "你当前 scope 下还没有 app。先发布一个，再回到这里管理。",
+      "selectOne": "先从左侧选择一个 app，再查看它的当前状态。",
+      "deleteConfirm": "确认把这个 app 从你的 marketplace 管理列表中删除吗？公开市场里的条目会立即移除。"
     }
   },
   "login": {

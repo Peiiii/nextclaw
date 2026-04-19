@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { ResourceNotFoundError } from "../../../domain/errors";
 import type { D1MarketplaceAppDataSource } from "../../../infrastructure/apps/d1-marketplace-app.repository";
-import { requireMarketplaceAdminAccess } from "../marketplace-auth";
+import { resolvePublishActor } from "../marketplace-auth";
 import type { MarketplaceQueryParser } from "../query-parser";
 import { ApiResponseFactory } from "../response";
 
@@ -102,7 +102,7 @@ export function registerAppRoutes(
   });
 
   app.post("/api/v1/apps/publish", async (c) => {
-    await requireMarketplaceAdminAccess(c);
+    const actor = await resolvePublishActor(c);
     let body: unknown;
     try {
       body = await c.req.json();
@@ -110,7 +110,7 @@ export function registerAppRoutes(
       return runtimeResponseFactory.error(c, "INVALID_BODY", "invalid json body", 400);
     }
     const runtime = getRuntime(c.env);
-    const data = await runtime.appDataSource.publishApp(body);
+    const data = await runtime.appDataSource.publishApp(body, actor);
     runtime.invalidateCache();
     return runtime.responses.ok(c, data);
   });

@@ -4,7 +4,9 @@ import type { MarketplaceListQuery, MarketplaceSort } from "../../domain/model";
 
 const SORT_VALUES: MarketplaceSort[] = ["relevance", "updated"];
 const ADMIN_SKILL_PUBLISH_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
+const ADMIN_APP_PUBLISH_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
 type MarketplaceAdminSkillPublishStatus = typeof ADMIN_SKILL_PUBLISH_STATUS_VALUES[number];
+type MarketplaceAdminAppPublishStatus = typeof ADMIN_APP_PUBLISH_STATUS_VALUES[number];
 
 export class MarketplaceQueryParser {
   parseListQuery(c: Context): MarketplaceListQuery {
@@ -38,6 +40,21 @@ export class MarketplaceQueryParser {
       q: this.readOptionalString(query.q),
       page: this.readPage(query.page),
       pageSize: this.readPageSize(query.pageSize)
+    };
+  }
+
+  parseAdminAppListQuery(c: Context): {
+    publishStatus: MarketplaceAdminAppPublishStatus;
+    q?: string;
+    page: number;
+    pageSize: number;
+  } {
+    const query = c.req.query();
+    return {
+      publishStatus: this.readAdminAppPublishStatus(query.publishStatus),
+      q: this.readOptionalString(query.q),
+      page: this.readPage(query.page),
+      pageSize: this.readPageSize(query.pageSize),
     };
   }
 
@@ -101,6 +118,16 @@ export class MarketplaceQueryParser {
       throw new DomainValidationError("query.publishStatus is invalid");
     }
     return rawStatus as MarketplaceAdminSkillPublishStatus;
+  }
+
+  private readAdminAppPublishStatus(rawStatus: string | undefined): MarketplaceAdminAppPublishStatus {
+    if (!rawStatus) {
+      return "pending";
+    }
+    if (!ADMIN_APP_PUBLISH_STATUS_VALUES.includes(rawStatus as MarketplaceAdminAppPublishStatus)) {
+      throw new DomainValidationError("query.publishStatus is invalid");
+    }
+    return rawStatus as MarketplaceAdminAppPublishStatus;
   }
 
   private readOptionalString(value: string | undefined): string | undefined {

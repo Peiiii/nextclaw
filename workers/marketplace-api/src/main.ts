@@ -19,12 +19,14 @@ import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp-repository
 import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin-repository";
 import { InMemorySkillRepository } from "./infrastructure/in-memory-skill-repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
+import { registerAdminAppRoutes } from "./presentation/http/admin-app-routes";
 import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes";
 import { registerAppRoutes } from "./presentation/http/apps/app.controller";
 import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/marketplace-content";
 import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
 import { ApiResponseFactory } from "./presentation/http/response";
+import { registerUserAppRoutes } from "./presentation/http/user-app-routes";
 import { registerUserSkillRoutes } from "./presentation/http/user-skill-routes";
 
 type MarketplaceBindings = {
@@ -185,7 +187,9 @@ app.use("/api/v1/*", async (c, next) => {
   const isAdminWrite = method === "POST" && path.startsWith("/api/v1/admin/");
   const isSkillPublish = method === "POST" && path === "/api/v1/skills/publish";
   const isAppPublish = method === "POST" && path === "/api/v1/apps/publish";
-  const isOwnerManage = method === "POST" && path === "/api/v1/user/skills/manage";
+  const isOwnerManage =
+    method === "POST" &&
+    (path === "/api/v1/user/skills/manage" || path === "/api/v1/user/apps/manage");
 
   if (!isRead && !isAdminWrite && !isSkillPublish && !isAppPublish && !isOwnerManage) {
     return responses.error(c, "READ_ONLY_API", "marketplace api is read-only except publish/admin routes", 405);
@@ -378,7 +382,9 @@ app.post("/api/v1/skills/publish", async (c) => {
 });
 
 registerAdminSkillRoutes(app, getRuntime);
+registerAdminAppRoutes(app, getRuntime);
 registerAppRoutes(app, getRuntime);
 registerUserSkillRoutes(app, getRuntime);
+registerUserAppRoutes(app, getRuntime);
 
 export default app;

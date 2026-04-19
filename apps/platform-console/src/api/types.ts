@@ -192,6 +192,92 @@ export type OwnerMarketplaceSkillListView = {
   items: OwnerMarketplaceSkillSummaryView[];
 };
 
+export type OwnerMarketplaceAppVisibility = 'public' | 'hidden';
+export type OwnerMarketplaceAppManageAction = 'hide' | 'show' | 'delete';
+
+export type MarketplaceAppInstallView = {
+  kind: 'registry';
+  spec: string;
+  command: string;
+  registry: string;
+};
+
+export type MarketplaceAppPublisherView = {
+  id: string;
+  name: string;
+  url?: string;
+};
+
+export type MarketplaceAppManifestView = {
+  schemaVersion: 1;
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  icon?: string;
+  main: {
+    kind: 'wasm';
+    entry: string;
+    export: string;
+    action: string;
+  };
+  ui: {
+    entry: string;
+  };
+  permissions?: Record<string, unknown>;
+};
+
+export type MarketplaceAppVersionView = {
+  version: string;
+  publishedAt: string;
+  updatedAt: string;
+  bundleSha256: string;
+  downloadPath: string;
+};
+
+export type OwnerMarketplaceAppSummaryView = {
+  id: string;
+  slug: string;
+  appId: string;
+  ownerScope: string;
+  appName: string;
+  name: string;
+  summary: string;
+  summaryI18n: Record<string, string>;
+  tags: string[];
+  author: string;
+  updatedAt: string;
+  latestVersion: string;
+  featured: boolean;
+  publisher: MarketplaceAppPublisherView;
+  install: MarketplaceAppInstallView;
+  webUrl: string;
+  publishStatus: 'pending' | 'published' | 'rejected';
+  publishedByType: 'admin' | 'user';
+  ownerVisibility: OwnerMarketplaceAppVisibility;
+  reviewNote?: string;
+  reviewedAt?: string;
+  publishedAt: string;
+};
+
+export type OwnerMarketplaceAppDetailView = OwnerMarketplaceAppSummaryView & {
+  description?: string;
+  descriptionI18n?: Record<string, string>;
+  sourceRepo?: string;
+  homepage?: string;
+  manifest: MarketplaceAppManifestView;
+  permissions: Record<string, unknown>;
+  versions: MarketplaceAppVersionView[];
+  canShow: boolean;
+  canHide: boolean;
+  canDelete: boolean;
+};
+
+export type OwnerMarketplaceAppListView = {
+  total: number;
+  items: OwnerMarketplaceAppSummaryView[];
+};
+
 export type CursorPage<T> = {
   items: T[];
   nextCursor: string | null;

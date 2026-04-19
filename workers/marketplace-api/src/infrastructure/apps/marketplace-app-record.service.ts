@@ -2,10 +2,17 @@ import { DomainValidationError } from "../../domain/errors";
 import type {
   AppInstallSpec,
   AppPublisher,
+  MarketplaceAdminAppDetail,
+  MarketplaceAdminAppSummary,
   MarketplaceAppItemDetail,
   MarketplaceAppItemRow,
   MarketplaceAppItemSummary,
   MarketplaceAppManifest,
+  MarketplaceAppOwnerVisibility,
+  MarketplaceAppPublishedByType,
+  MarketplaceAppPublishStatus,
+  MarketplaceOwnerAppDetail,
+  MarketplaceOwnerAppSummary,
   MarketplaceAppVersionRow,
 } from "./app-marketplace.types";
 import {
@@ -19,6 +26,8 @@ export class MarketplaceAppRecordMapper {
       id: row.id,
       slug: row.slug,
       appId: row.app_id,
+      ownerScope: this.readOwnerScope(row),
+      appName: this.readAppName(row),
       name: row.name,
       summary: row.summary,
       summaryI18n: this.parseLocalizedMap(row.summary_i18n, `${row.slug}.summary_i18n`, row.summary),
@@ -45,6 +54,10 @@ export class MarketplaceAppRecordMapper {
         : undefined,
       sourceRepo: row.source_repo ?? undefined,
       homepage: row.homepage ?? undefined,
+      publishStatus: this.readPublishStatus(row.publish_status),
+      publishedByType: this.readPublishedByType(row.published_by_type),
+      reviewNote: row.review_note ?? undefined,
+      reviewedAt: row.reviewed_at ?? undefined,
       manifest: this.parseManifest(row.manifest_json, `${row.slug}.manifest_json`),
       permissions: this.parsePermissions(row.permissions_json, `${row.slug}.permissions_json`),
       publishedAt: row.published_at,
@@ -56,6 +69,52 @@ export class MarketplaceAppRecordMapper {
         downloadPath: `/api/v1/apps/items/${encodeURIComponent(row.slug)}/bundles/${encodeURIComponent(versionRow.version)}`,
       })),
     };
+  };
+
+  mapOwnerSummary = (row: MarketplaceAppItemRow): MarketplaceOwnerAppSummary => {
+    return {
+      ...this.mapItemSummary(row),
+      publishStatus: this.readPublishStatus(row.publish_status),
+      publishedByType: this.readPublishedByType(row.published_by_type),
+      ownerVisibility: this.readOwnerVisibility(row.owner_visibility),
+      reviewNote: row.review_note ?? undefined,
+      reviewedAt: row.reviewed_at ?? undefined,
+      publishedAt: row.published_at,
+    };
+  };
+
+  mapOwnerDetail = (
+    row: MarketplaceAppItemRow,
+    versionRows: MarketplaceAppVersionRow[],
+  ): MarketplaceOwnerAppDetail => {
+    const detail = this.mapItemDetail(row, versionRows);
+    const ownerVisibility = this.readOwnerVisibility(row.owner_visibility);
+    const isDeleted = Boolean(row.owner_deleted_at);
+    return {
+      ...detail,
+      ownerVisibility,
+      canShow: !isDeleted && ownerVisibility === "hidden",
+      canHide: !isDeleted && ownerVisibility === "public",
+      canDelete: !isDeleted,
+    };
+  };
+
+  mapAdminSummary = (row: MarketplaceAppItemRow): MarketplaceAdminAppSummary => {
+    return {
+      ...this.mapItemSummary(row),
+      publishStatus: this.readPublishStatus(row.publish_status),
+      publishedByType: this.readPublishedByType(row.published_by_type),
+      reviewNote: row.review_note ?? undefined,
+      reviewedAt: row.reviewed_at ?? undefined,
+      publishedAt: row.published_at,
+    };
+  };
+
+  mapAdminDetail = (
+    row: MarketplaceAppItemRow,
+    versionRows: MarketplaceAppVersionRow[],
+  ): MarketplaceAdminAppDetail => {
+    return this.mapItemDetail(row, versionRows);
   };
 
   parseManifest = (raw: string, path: string): MarketplaceAppManifest => {
@@ -84,6 +143,21 @@ export class MarketplaceAppRecordMapper {
       command: `napp install ${appId}`,
       registry: OFFICIAL_APPS_REGISTRY_METADATA_URL,
     };
+  };
+
+  readPublishStatus = (value: string | null | undefined): MarketplaceAppPublishStatus => {
+    if (value === "pending" || value === "published" || value === "rejected") {
+      return value;
+    }
+    return "published";
+  };
+
+  readPublishedByType = (value: string | null | undefined): MarketplaceAppPublishedByType => {
+    return value === "user" ? "user" : "admin";
+  };
+
+  readOwnerVisibility = (value: string | null | undefined): MarketplaceAppOwnerVisibility => {
+    return value === "hidden" ? "hidden" : "public";
   };
 
   private parseLocalizedMap = (
@@ -133,5 +207,13 @@ export class MarketplaceAppRecordMapper {
       throw new DomainValidationError(`${path} must be a non-empty string`);
     }
     return value.trim();
+  };
+
+  private readOwnerScope = (row: MarketplaceAppItemRow): string => {
+    return row.owner_scope?.trim() || "nextclaw";
+  };
+
+  private readAppName = (row: MarketplaceAppItemRow): string => {
+    return row.app_name?.trim() || row.app_id.split(".").slice(1).join(".") || row.slug;
   };
 }

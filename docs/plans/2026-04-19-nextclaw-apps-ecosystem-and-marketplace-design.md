@@ -117,6 +117,17 @@ napp publish <app-dir> [--meta <path>] [--api-base <url>] [--token <token>] [--j
 - 调用官方 publish API
 - 返回 app id、slug、version、详情页地址、安装命令
 
+发布身份与 scope 规则冻结：
+
+- `napp publish` 的身份优先级固定为：
+  - 显式 `--token`
+  - 当前 `nextclaw login` 登录态
+  - `NEXTCLAW_MARKETPLACE_ADMIN_TOKEN`
+- 普通登录用户默认发布个人 scope app，`manifest.json` 中的 `appId` 必须满足 `<username>.<app-name>`
+- 官方 scope 固定为 `nextclaw.<app-name>`，只允许管理员发布
+- `marketplace.json.publisher` 只作为元数据输入，不作为真实发布身份来源
+- 若当前平台账号没有 `username`，CLI 必须直接报错并提示先完成平台账号设置
+
 ### 6.2 官方 apps registry
 
 在 `workers/marketplace-api` 中新增 apps 域。
@@ -129,6 +140,12 @@ napp publish <app-dir> [--meta <path>] [--api-base <url>] [--token <token>] [--j
 - 提供 bundle 下载
 - 提供 registry metadata
 - 提供 publish
+
+补充治理入口：
+
+- 在 `platform-console` 提供普通用户 `My Apps` 管理页
+- 在 `platform-admin` 提供管理员 Apps 审核页
+- apps 的 owner / review 模型与现有 Skills marketplace 对齐
 
 ### 6.3 独立 web app store
 
@@ -218,7 +235,8 @@ CLI 本轮必须具备：
 - `napp publish`
 - 对 `marketplace.json` 的读取与校验
 - 默认发布到官方 apps API
-- 默认从 `registry.nextclaw.io` 安装与更新
+- 默认从 `apps-registry.nextclaw.io` 安装与更新
+- 默认优先复用当前 `nextclaw login` 登录态完成个人发布
 
 CLI 本轮不做：
 
@@ -243,6 +261,8 @@ CLI 本轮不做：
 - `selector` 支持 `slug` 或 `appId`
 - `publish` 使用 Bearer token 鉴权
 - `registry` 返回 npm 风格版本元数据，供 `napp install` 与 `napp update` 直接使用
+- 个人发布使用平台用户身份，审核前默认进入 `pending`
+- 管理员可在后台将 app 审核为 `published` 或 `rejected`
 
 ## 9.3 Web App Store 产品需求
 

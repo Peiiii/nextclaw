@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-export type AdminConsoleRouteKey = 'overview' | 'marketplace' | 'users' | 'recharge';
+export type AdminConsoleRouteKey = 'overview' | 'marketplace' | 'marketplace-apps' | 'users' | 'recharge';
 
 export type AdminConsoleRoute = {
   key: AdminConsoleRouteKey;
@@ -23,6 +23,12 @@ export const ADMIN_CONSOLE_ROUTES: AdminConsoleRoute[] = [
     label: 'Marketplace 审核',
     description: '集中查看待审核 skill，并直接通过或拒绝。',
     hash: '#/marketplace'
+  },
+  {
+    key: 'marketplace-apps',
+    label: 'Apps 审核',
+    description: '集中查看待审核 app，并直接通过或拒绝。',
+    hash: '#/marketplace-apps'
   },
   {
     key: 'users',

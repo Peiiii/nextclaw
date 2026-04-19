@@ -51,11 +51,27 @@ export class MarketplaceAppPersistence {
   persistItem = async (params: {
     itemId: string;
     input: MarketplaceAppPublishInput;
+    ownerScope: string;
+    ownerUserId: string | null;
+    appName: string;
+    publishStatus: "pending" | "published";
+    publishedByType: "admin" | "user";
     latestVersion: string;
     publishedAt: string;
     updatedAt: string;
   }): Promise<void> => {
-    const { itemId, input, latestVersion, publishedAt, updatedAt } = params;
+    const {
+      itemId,
+      input,
+      ownerScope,
+      ownerUserId,
+      appName,
+      publishStatus,
+      publishedByType,
+      latestVersion,
+      publishedAt,
+      updatedAt,
+    } = params;
     await this.db
       .prepare(
         `
@@ -63,6 +79,15 @@ export class MarketplaceAppPersistence {
             id,
             slug,
             app_id,
+            owner_scope,
+            owner_user_id,
+            owner_visibility,
+            owner_deleted_at,
+            app_name,
+            publish_status,
+            published_by_type,
+            review_note,
+            reviewed_at,
             name,
             summary,
             summary_i18n,
@@ -81,9 +106,18 @@ export class MarketplaceAppPersistence {
             permissions_json,
             published_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(app_id) DO UPDATE SET
             slug = excluded.slug,
+            owner_scope = excluded.owner_scope,
+            owner_user_id = excluded.owner_user_id,
+            owner_visibility = excluded.owner_visibility,
+            owner_deleted_at = excluded.owner_deleted_at,
+            app_name = excluded.app_name,
+            publish_status = excluded.publish_status,
+            published_by_type = excluded.published_by_type,
+            review_note = excluded.review_note,
+            reviewed_at = excluded.reviewed_at,
             name = excluded.name,
             summary = excluded.summary,
             summary_i18n = excluded.summary_i18n,
@@ -107,6 +141,15 @@ export class MarketplaceAppPersistence {
         itemId,
         input.slug,
         input.appId,
+        ownerScope,
+        ownerUserId,
+        "public",
+        null,
+        appName,
+        publishStatus,
+        publishedByType,
+        null,
+        null,
         input.name,
         input.summary,
         JSON.stringify(input.summaryI18n),
