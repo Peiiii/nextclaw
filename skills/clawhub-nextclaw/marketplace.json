@@ -1,0 +1,29 @@
+{
+  "slug": "clawhub-nextclaw",
+  "name": "ClawHub for NextClaw",
+  "summary": "Search external ClawHub skills and install them into a NextClaw workspace's skills directory without blurring marketplace boundaries.",
+  "summaryI18n": {
+    "en": "Search external ClawHub skills and install them into a NextClaw workspace's skills directory without blurring marketplace boundaries.",
+    "zh": "帮助 NextClaw 用户搜索外部 ClawHub skill，并把它们安装到 NextClaw workspace 的 skills 目录，同时保持 marketplace 边界清晰。"
+  },
+  "description": "Use this skill when the user wants to use ClawHub as an external skill source for NextClaw. It guides direct ClawHub search and install commands with explicit --workdir and --dir targeting so skills land in a NextClaw workspace instead of being mistaken for the NextClaw marketplace.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to use ClawHub as an external skill source for NextClaw. It guides direct ClawHub search and install commands with explicit --workdir and --dir targeting so skills land in a NextClaw workspace instead of being mistaken for the NextClaw marketplace.",
+    "zh": "当用户希望把 ClawHub 当作 NextClaw 的外部 skill 来源使用时使用此技能。它会引导直接使用带 --workdir 和 --dir 的官方 ClawHub 搜索与安装命令，让 skill 落到 NextClaw workspace，而不是被误当成 NextClaw marketplace。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "clawhub",
+    "openclaw",
+    "external-tool",
+    "import",
+    "skills",
+    "marketplace"
+  ],
+  "homepage": "https://docs.openclaw.ai/zh-CN/tools/clawhub",
+  "sourceRepo": "https://www.npmjs.com/package/clawhub",
+  "install": {
+    "kind": "marketplace"
+  }
+}
