@@ -1,0 +1,7 @@
+{
+  "contractKind": "protocol",
+  "protocol": "frontend-l3",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "importAliasPrefixes": ["@/"]
+}

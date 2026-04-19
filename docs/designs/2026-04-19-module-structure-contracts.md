@@ -177,9 +177,23 @@ src/
 
 目录层级治理不再只靠 review 记忆或 README 口头说明，而是把“这个模块允许怎样长”写成一份机器可读 contract，并接入 `pnpm lint:new-code:governance`。
 
-当前 contract 数据源位于：
+当前协议模板与 contract 发现器位于：
 
 - [`scripts/governance/module-structure/module-structure-contracts.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-contracts.mjs)
+
+具体采用哪种结构约束，不再由中心脚本手写绑定，而是由每个模块在自己的结构根下声明：
+
+- `module-structure.config.json`
+
+例如：
+
+- [`packages/nextclaw-ui/src/module-structure.config.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/module-structure.config.json)
+
+注意：
+
+- 模块内配置文件不是“把现状白名单化”的豁免开关
+- 只有明确决定采纳某个目标结构的模块，才应该新增自己的 `module-structure.config.json`
+- 未采纳的模块保持“暂未纳入该层级协议”，而不是自动发一个 legacy 配置把历史结构固化成长期合法状态
 
 当前 diff-only 检查入口位于：
 
@@ -192,18 +206,25 @@ src/
 - `shared/utils/types/lib/common/helpers/support` 这类共享容器里继续长出 `service/manager/controller/provider/router/store` 这类编排型文件
 - 平台应用根目录继续新增白名单之外的根级源码文件
 
-## contract 最少要写什么
+## 模块内配置最少要写什么
 
-每条 contract 至少应明确：
+每个模块根下的 `module-structure.config.json` 至少应明确：
 
-- `modulePath`：模块根路径
-- `organizationModel`：当前模块采用的组织模型
+- `contractKind`：`legacy` 或 `protocol`
+- `organizationModel`：当前模块采用的组织模型（`legacy` 必填）
+- `protocol`：当前模块采用的固定协议名（`protocol` 必填）
 - `rootPolicy`：
   - `contract-only`：根级只允许显式白名单文件
   - `legacy-frozen`：历史根级文件暂时允许被触达，但禁止再新增新的根级文件
 - `allowedRootDirectories`：模块根下允许出现的一级目录
 - `allowedRootFiles`：模块根下允许继续保留或新增的根级源码文件
 - `sharedDirectories`：在该模块里被视为共享容器、需要做“纯度检查”的目录
+- `importAliasPrefixes`：协议模块的导入别名前缀，例如 `@/`
+
+说明：
+
+- `modulePath` 不再手填，治理器会以配置文件所在目录作为模块根
+- 协议模板仍然是中心定义的通用能力，但“哪个模块采纳哪个模板”由模块自己管理
 
 ## 何时新增或修改 contract
 
@@ -212,7 +233,7 @@ src/
 - 某个应用根或 feature root 已经形成稳定白名单
 - 你准备新增一级子目录，但现有 contract 还没声明它
 
-默认不要先建目录再补 contract，而是先改 contract，再让新结构落地。
+默认不要先建目录再补模块配置，而是先改 `module-structure.config.json`，再让新结构落地。
 
 ## 何时允许 shared 容器
 

@@ -1,36 +1,53 @@
 #!/usr/bin/env node
 
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  collectAddedLinesByFile,
   collectChangedWorkspaceFiles,
   defaultSortByLocation,
   parseDiffCheckArgs,
+  rootDir,
   runGit
 } from "../lint-new-code-governance-support.mjs";
 import {
   findModuleStructureContract,
   getModuleRootEntryPath,
+  isProtocolContract,
+  normalizePath,
   SHARED_CONTAINER_DIRECTORY_NAMES,
   splitModuleRelativePath,
   toModuleRelativePath
 } from "./module-structure-contracts.mjs";
+import {
+  evaluateProtocolImportBoundaryFindings,
+  evaluateProtocolStructureFindings
+} from "./module-structure-protocol-checks.mjs";
 
 const usage = `Usage:
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs --staged
   node scripts/governance/module-structure/lint-new-code-module-structure.mjs --base origin/main
-  node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src/components/chat
+  node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src
 
-Checks touched files against explicit module-structure contracts so crowded roots do not keep growing without subtree boundaries.`;
+Checks touched files against explicit module-structure contracts so crowded roots do not keep growing without subtree boundaries.
+Protocol-enabled modules also validate structure and import boundaries against fixed hierarchy templates.`;
 
 const SHARED_DIRECTORY_ROLE_HINT = /(service|manager|controller|presenter|provider|orchestrator|runtime|router|route|store|gateway|handler|policy|registry)\b/;
+const GOVERNED_IMPORT_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
 
-const normalizePath = (value) => `${value ?? ""}`
-  .trim()
-  .replace(/\\/g, "/")
-  .replace(/^\.\/+/, "")
-  .replace(/\/+$/, "");
+const buildFinding = (filePath, level, message, reason, line = 1, column = 1) => ({
+  filePath,
+  line,
+  column,
+  ownerLine: line,
+  level,
+  message,
+  reason
+});
+
+const isGovernedImportFile = (filePath) => GOVERNED_IMPORT_FILE_EXTENSIONS.has(path.posix.extname(filePath));
 
 const createPathExistsInRef = () => {
   const cache = new Map();
@@ -55,24 +72,12 @@ const createPathExistsInRef = () => {
   };
 };
 
-const buildFinding = (filePath, level, message, reason) => ({
+const evaluateStructureEntryFindings = ({
   filePath,
-  line: 1,
-  column: 1,
-  ownerLine: 1,
-  level,
-  message,
-  reason
-});
-
-export const evaluateModuleStructureFindings = (params) => {
-  const {
-    filePath,
-    contract,
-    existedInComparisonRef,
-    rootEntryExistedInComparisonRef
-  } = params;
-
+  contract,
+  existedInComparisonRef,
+  rootEntryExistedInComparisonRef
+}) => {
   const relativePath = toModuleRelativePath(filePath, contract);
   const segments = splitModuleRelativePath(filePath, contract);
   if (!relativePath || segments.length === 0) {
@@ -82,22 +87,34 @@ export const evaluateModuleStructureFindings = (params) => {
   const firstSegment = segments[0];
   const isRootFile = segments.length === 1;
   const findings = [];
-  const contractReason = `contract=${contract.modulePath} model=${contract.organizationModel}`;
+  const contractReason = isProtocolContract(contract)
+    ? `protocol=${contract.protocol} module=${contract.modulePath}`
+    : `contract=${contract.modulePath} model=${contract.organizationModel}`;
 
   if (!isRootFile) {
     if (!contract.allowedRootDirectories.has(firstSegment)) {
+      if (existedInComparisonRef) {
+        findings.push(buildFinding(
+          filePath,
+          "warn",
+          `touched file still lives under legacy root directory '${firstSegment}/' outside the module structure whitelist`,
+          contractReason
+        ));
+        return findings;
+      }
+
       findings.push(buildFinding(
         filePath,
-        rootEntryExistedInComparisonRef ? "warn" : "error",
+        "error",
         rootEntryExistedInComparisonRef
-          ? `touched file still lives under legacy root directory '${firstSegment}/' outside the module structure whitelist`
+          ? `new file was added under legacy root directory '${firstSegment}/', which is outside the module structure whitelist`
           : `new root directory '${firstSegment}/' is outside the module structure whitelist`,
         contractReason
       ));
       return findings;
     }
 
-    if (contract.sharedDirectories.has(firstSegment) || SHARED_CONTAINER_DIRECTORY_NAMES.has(firstSegment)) {
+    if (!isProtocolContract(contract) && (contract.sharedDirectories.has(firstSegment) || SHARED_CONTAINER_DIRECTORY_NAMES.has(firstSegment))) {
       const basename = path.posix.basename(relativePath, path.posix.extname(relativePath)).toLowerCase();
       if (SHARED_DIRECTORY_ROLE_HINT.test(basename)) {
         findings.push(buildFinding(
@@ -141,7 +158,21 @@ export const evaluateModuleStructureFindings = (params) => {
   return findings;
 };
 
-export const collectModuleStructureViolations = (changedFiles, options) => {
+export const evaluateModuleStructureFindings = (params) => {
+  const structureFindings = evaluateStructureEntryFindings(params);
+  if (!isProtocolContract(params.contract)) {
+    return structureFindings;
+  }
+
+  return [
+    ...structureFindings,
+    ...evaluateProtocolStructureFindings(params)
+  ];
+};
+
+export { evaluateProtocolImportBoundaryFindings } from "./module-structure-protocol-checks.mjs";
+
+export const collectModuleStructureViolations = (changedFiles, addedLinesByFile, options) => {
   const comparisonRef = options.baseRef ?? "HEAD";
   const pathExistsInRef = createPathExistsInRef();
   const violations = [];
@@ -153,14 +184,35 @@ export const collectModuleStructureViolations = (changedFiles, options) => {
     }
 
     const rootEntryPath = getModuleRootEntryPath(filePath, contract);
+    const existedInComparisonRef = pathExistsInRef(comparisonRef, filePath);
+
     violations.push(
       ...evaluateModuleStructureFindings({
         filePath,
         contract,
-        existedInComparisonRef: pathExistsInRef(comparisonRef, filePath),
+        existedInComparisonRef,
         rootEntryExistedInComparisonRef: rootEntryPath
           ? pathExistsInRef(comparisonRef, rootEntryPath)
           : false
+      })
+    );
+
+    if (!isProtocolContract(contract) || !isGovernedImportFile(filePath)) {
+      continue;
+    }
+
+    const absoluteFilePath = path.resolve(rootDir, filePath);
+    if (!existsSync(absoluteFilePath)) {
+      continue;
+    }
+
+    const source = readFileSync(absoluteFilePath, "utf8");
+    violations.push(
+      ...evaluateProtocolImportBoundaryFindings({
+        filePath,
+        source,
+        addedLines: addedLinesByFile.get(filePath) ?? new Set(),
+        contract
       })
     );
   }
@@ -169,14 +221,15 @@ export const collectModuleStructureViolations = (changedFiles, options) => {
 };
 
 export const runModuleStructureCheck = (options) => {
-  const { changedFiles } = collectChangedWorkspaceFiles(options);
+  const { pathArgs, changedFiles, untrackedFiles } = collectChangedWorkspaceFiles(options);
   if (changedFiles.length === 0) {
     return { changedFiles, violations: [] };
   }
 
+  const addedLinesByFile = collectAddedLinesByFile(pathArgs, untrackedFiles, options);
   return {
     changedFiles,
-    violations: collectModuleStructureViolations(changedFiles, options)
+    violations: collectModuleStructureViolations(changedFiles, addedLinesByFile, options)
   };
 };
 
@@ -197,7 +250,7 @@ export const printViolations = ({ changedFiles, violations }) => {
   if (warningFindings.length > 0) {
     console.warn("Module-structure diff check found touched legacy drift that still needs cleanup.");
     for (const warning of warningFindings) {
-      console.warn(`- [${warning.level}] ${warning.filePath}: ${warning.message}`);
+      console.warn(`- [${warning.level}] ${warning.filePath}:${warning.line}:${warning.column}: ${warning.message}`);
       if (warning.reason) {
         console.warn(`  reason: ${warning.reason}`);
       }
@@ -210,7 +263,7 @@ export const printViolations = ({ changedFiles, violations }) => {
 
   console.error("Module-structure diff check blocked new hierarchy drift that violates a module contract.");
   for (const violation of blockingFindings) {
-    console.error(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
+    console.error(`- [${violation.level}] ${violation.filePath}:${violation.line}:${violation.column}: ${violation.message}`);
     if (violation.reason) {
       console.error(`  reason: ${violation.reason}`);
     }
