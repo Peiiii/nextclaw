@@ -11,14 +11,15 @@ import {
 } from "@nextclaw/server";
 import { openBrowser } from "../../../utils.js";
 import type { GatewayControllerImpl } from "../../../gateway/controller.js";
-import { createUiNcpAgent, type UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
+import type { UiNcpAgentHandle } from "../../ncp/create-ui-ncp-agent.service.js";
 import { runGatewayInboundLoop } from "../../ncp/runtime/nextclaw-ncp-dispatch.js";
 import type { NextclawExtensionRegistry } from "../../plugins.js";
 import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "../session/service-deferred-ncp-agent.js";
 import type { DeferredUiNcpSessionServiceController } from "../session/service-deferred-ncp-session-service.js";
-import { logStartupTrace, measureStartupAsync } from "../../../startup-trace.js";
+import { logStartupTrace } from "../../../startup-trace.js";
 import type { ConfigReloader } from "../../../config-reloader.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
+import { NextclawApp } from "./nextclaw-app.service.js";
 
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
@@ -61,37 +62,54 @@ export async function startUiShell(params: {
   initializeAgentHomeDirectory?: (homeDirectory: string) => void;
 }): Promise<UiStartupHandle | null> {
   logStartupTrace("service.start_ui_shell.begin");
-  if (!params.uiConfig.enabled) {
+  const {
+    applyLiveConfigReload,
+    configPath,
+    cronService,
+    getBootstrapStatus,
+    getPluginChannelBindings,
+    getPluginUiMetadata,
+    initializeAgentHomeDirectory,
+    marketplace,
+    ncpSessionService,
+    openBrowserWindow,
+    productVersion,
+    remoteAccess,
+    runtimeControl,
+    uiConfig,
+    uiStaticDir,
+  } = params;
+  if (!uiConfig.enabled) {
     return null;
   }
 
   let publishUiEvent: ((event: UiServerEvent) => void) | null = null;
   const deferredNcpAgent = createDeferredUiNcpAgent();
   const uiServer = startUiServer({
-    host: params.uiConfig.host,
-    port: params.uiConfig.port,
-    configPath: params.configPath,
-    productVersion: params.productVersion,
-    staticDir: params.uiStaticDir ?? undefined,
-    applyLiveConfigReload: params.applyLiveConfigReload,
-    initializeAgentHomeDirectory: params.initializeAgentHomeDirectory,
-    cronService: params.cronService,
-    marketplace: params.marketplace,
-    remoteAccess: params.remoteAccess,
-    runtimeControl: params.runtimeControl,
-    getBootstrapStatus: params.getBootstrapStatus,
-    getPluginChannelBindings: params.getPluginChannelBindings,
-    getPluginUiMetadata: params.getPluginUiMetadata,
-    ncpSessionService: params.ncpSessionService,
+    host: uiConfig.host,
+    port: uiConfig.port,
+    configPath,
+    productVersion,
+    staticDir: uiStaticDir ?? undefined,
+    applyLiveConfigReload,
+    initializeAgentHomeDirectory,
+    cronService,
+    marketplace,
+    remoteAccess,
+    runtimeControl,
+    getBootstrapStatus,
+    getPluginChannelBindings,
+    getPluginUiMetadata,
+    ncpSessionService,
     ncpAgent: deferredNcpAgent.agent,
   });
   publishUiEvent = uiServer.publish;
   const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
   console.log(`✓ UI API: ${uiUrl}/api`);
-  if (params.uiStaticDir) {
+  if (uiStaticDir) {
     console.log(`✓ UI frontend: ${uiUrl}`);
   }
-  if (params.openBrowserWindow) {
+  if (openBrowserWindow) {
     openBrowser(uiUrl);
   }
 
@@ -127,69 +145,8 @@ export async function startDeferredGatewayStartup(params: {
   onNcpAgentReady: (agent: UiNcpAgentHandle) => void;
   publishSessionChange: (sessionKey: string) => void;
 }): Promise<void> {
-  const {
-    bootstrapStatus,
-    uiStartup,
-    deferredNcpSessionService,
-    bus,
-    sessionManager,
-    providerManager,
-    cronService,
-    gatewayController,
-    getConfig,
-    getExtensionRegistry,
-    resolveMessageToolHints,
-    hydrateCapabilities,
-    startPluginGateways,
-    startChannels,
-    wakeFromRestartSentinel,
-    onNcpAgentReady,
-    publishSessionChange,
-  } = params;
-  logStartupTrace("service.deferred_startup.begin");
-  if (hydrateCapabilities) {
-    await measureStartupAsync("service.deferred_startup.hydrate_capabilities", hydrateCapabilities);
-  }
-  bootstrapStatus.markNcpAgentRunning();
-  try {
-    const ncpAgent = await measureStartupAsync("service.deferred_startup.create_ui_ncp_agent", async () =>
-      await createUiNcpAgent({
-        bus,
-        providerManager,
-        sessionManager,
-        cronService,
-        gatewayController,
-        getConfig,
-        getExtensionRegistry,
-        onSessionUpdated: publishSessionChange,
-        onSessionRunStatusChanged: (payload) => {
-          uiStartup?.publish({
-            type: "session.run-status",
-            payload,
-          });
-        },
-        resolveMessageToolHints: ({ channel, accountId }) =>
-          resolveMessageToolHints({ channel, accountId }),
-      })
-    );
-    deferredNcpSessionService.activate(ncpAgent.sessionApi);
-    onNcpAgentReady(ncpAgent);
-    bootstrapStatus.markNcpAgentReady();
-    if (uiStartup) {
-      uiStartup.deferredNcpAgent.activate(ncpAgent);
-      console.log("✓ UI NCP agent: ready");
-    } else {
-      console.log("✓ Service NCP agent: ready");
-    }
-  } catch (error) {
-    bootstrapStatus.markNcpAgentError(error instanceof Error ? error.message : String(error));
-    console.error(`UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  await measureStartupAsync("service.deferred_startup.start_plugin_gateways", startPluginGateways);
-  await measureStartupAsync("service.deferred_startup.start_channels", startChannels);
-  await measureStartupAsync("service.deferred_startup.wake_restart_sentinel", wakeFromRestartSentinel);
-  console.log("✓ Deferred startup: plugin gateways and channels settled");
-  logStartupTrace("service.deferred_startup.end");
+  const app = new NextclawApp(params);
+  await app.start();
 }
 
 export async function runGatewayRuntimeLoop(params: {
@@ -198,17 +155,23 @@ export async function runGatewayRuntimeLoop(params: {
   onDeferredStartupError: (error: unknown) => void;
   cleanup: () => Promise<void>;
 }): Promise<void> {
+  const {
+    cleanup,
+    onDeferredStartupError,
+    runRuntimeLoop,
+    startDeferredStartup,
+  } = params;
   let startupTask: Promise<void> | null = null;
   try {
-    const runtimeLoopTask = params.runRuntimeLoop();
-    startupTask = params.startDeferredStartup();
-    void startupTask.catch(params.onDeferredStartupError);
+    const runtimeLoopTask = runRuntimeLoop();
+    startupTask = startDeferredStartup();
+    void startupTask.catch(onDeferredStartupError);
     await runtimeLoopTask;
   } finally {
     if (startupTask) {
       await startupTask.catch(() => undefined);
     }
-    await params.cleanup();
+    await cleanup();
   }
 }
 

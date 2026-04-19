@@ -33,9 +33,6 @@ export function resolveChatRuntimeMessage(
       t('chatRuntimeInitializationFailed')
     );
   }
-  if (snapshot.phase === 'recovering') {
-    return t('runtimeControlRecoveringHelp');
-  }
   if (snapshot.phase === 'stalled') {
     return t('runtimeRecoveryTimedOut');
   }

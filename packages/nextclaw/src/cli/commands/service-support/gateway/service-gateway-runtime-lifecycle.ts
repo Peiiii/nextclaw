@@ -2,7 +2,7 @@ import { setPluginRuntimeBridge, stopPluginChannelGateways } from "@nextclaw/ope
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import { localUiRuntimeStore } from "../../../runtime-state/local-ui-runtime.store.js";
 import type { ServiceFileWatcherRegistry } from "./service-startup-support.js";
-import type { UiStartupHandle } from "./service-gateway-startup.js";
+import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 import type { GatewayRuntimeState } from "./service-gateway-bootstrap.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 

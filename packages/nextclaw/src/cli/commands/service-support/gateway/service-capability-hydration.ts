@@ -17,7 +17,7 @@ import {
 import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "../../plugin/plugin-registry-loader.js";
 import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 import { waitForUiShellGraceWindow } from "./service-ui-shell-grace.js";
-import type { UiStartupHandle } from "./service-gateway-startup.js";
+import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 
 export type ServiceCapabilityHydrationState = {
   pluginRegistry: PluginRegistry;

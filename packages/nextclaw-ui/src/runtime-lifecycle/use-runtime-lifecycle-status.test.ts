@@ -67,6 +67,20 @@ describe('resolveChatRuntimeMessage', () => {
       })
     ).toBe('boom');
   });
+
+  it('hides the transient recovery banner copy during reconnecting', () => {
+    expect(
+      resolveChatRuntimeMessage({
+        phase: 'recovering',
+        hasReachedReady: true,
+        lastReadyAt: Date.now(),
+        recoveryStartedAt: Date.now(),
+        bootstrapStatus: null,
+        lastError: 'Failed to fetch',
+        lastTransportError: 'Failed to fetch',
+      })
+    ).toBeNull();
+  });
 });
 
 describe('toRuntimeLifecycleView', () => {

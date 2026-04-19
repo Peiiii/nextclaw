@@ -8,7 +8,7 @@ import {
   type ProviderManager,
   type SessionManager,
 } from "@nextclaw/core";
-import { McpRegistryService, McpServerLifecycleManager } from "@nextclaw/mcp";
+import { McpRegistryService, McpServerLifecycleManager, type McpServerWarmResult } from "@nextclaw/mcp";
 import { DefaultNcpAgentRuntime, LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import {
@@ -20,6 +20,7 @@ import {
   type NcpAssistantReasoningNormalizationMode,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import { join } from "node:path";
 import type { NextclawExtensionRegistry } from "../plugins.js";
 import { createAssetTools } from "./runtime/ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "./nextclaw-ncp-context-builder.js";
@@ -42,18 +43,19 @@ import {
 } from "../learning-loop/index.js";
 import { PluginRuntimeRegistrationController } from "./plugin-runtime-registration.controller.js";
 import { BuiltinNarpRuntimeRegistrationService } from "./builtin-narp-runtime-registration.service.js";
-import { join } from "node:path";
 import { llmUsageRecorder } from "../shared/llm-usage-recorder.js";
 import { resolveUiNcpRuntimeEntries } from "./ui-ncp-runtime-entry-resolver.js";
 
 export type { UiNcpAgentHandle } from "./runtime/ui-ncp-agent-handle.js";
+
 type MessageToolHintsResolver = (params: {
   sessionKey: string;
   channel: string;
   chatId: string;
   accountId?: string | null;
 }) => string[];
-type CreateUiNcpAgentParams = {
+
+export type CreateUiNcpAgentParams = {
   bus: MessageBus;
   providerManager: ProviderManager;
   sessionManager: SessionManager;
@@ -69,7 +71,16 @@ type CreateUiNcpAgentParams = {
   }) => void;
   globalEventBus?: GlobalTypedEventBus;
 };
+
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
+
+type McpRuntimeSupport = {
+  toolRegistryAdapter: McpNcpToolRegistryAdapter;
+  applyMcpConfig: (config: Config) => Promise<void>;
+  prewarmEnabledServers: () => Promise<McpServerWarmResult[]>;
+  dispose: () => Promise<void>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -93,11 +104,7 @@ function resolveNativeReasoningNormalizationMode(params: {
   );
 }
 
-async function createMcpRuntimeSupport(getConfig: () => Config): Promise<{
-  toolRegistryAdapter: McpNcpToolRegistryAdapter;
-  applyMcpConfig: (config: Config) => Promise<void>;
-  dispose: () => Promise<void>;
-}> {
+function createMcpRuntimeSupport(getConfig: () => Config): McpRuntimeSupport {
   let currentMcpConfig = getConfig();
   const mcpLifecycleManager = new McpServerLifecycleManager({
     getConfig: () => currentMcpConfig,
@@ -106,12 +113,6 @@ async function createMcpRuntimeSupport(getConfig: () => Config): Promise<{
     getConfig: () => currentMcpConfig,
     lifecycleManager: mcpLifecycleManager,
   });
-  const mcpPrewarmResults = await mcpRegistryService.prewarmEnabledServers();
-  for (const result of mcpPrewarmResults) {
-    if (!result.ok) {
-      console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);
-    }
-  }
 
   return {
     toolRegistryAdapter: new McpNcpToolRegistryAdapter(mcpRegistryService),
@@ -129,6 +130,7 @@ async function createMcpRuntimeSupport(getConfig: () => Config): Promise<{
         }
       }
     },
+    prewarmEnabledServers: async () => await mcpRegistryService.prewarmEnabledServers(),
     dispose: async () => {
       await mcpRegistryService.close();
     },
@@ -179,17 +181,17 @@ function createNativeRuntimeFactory(
       sessionCreationService,
       sessionRequestBroker,
       getAdditionalTools: (context) => [
-      ...createAssetTools({
-        assetStore,
-      }),
-      ...mcpToolRegistryAdapter.listToolsForRun({
-        agentId: context.agentId,
-      }),
-      ...sessionSearchRuntimeSupport.createAdditionalTools({
-        currentSessionId: context.sessionId,
-      }),
-    ],
-  });
+        ...createAssetTools({
+          assetStore,
+        }),
+        ...mcpToolRegistryAdapter.listToolsForRun({
+          agentId: context.agentId,
+        }),
+        ...sessionSearchRuntimeSupport.createAdditionalTools({
+          currentSessionId: context.sessionId,
+        }),
+      ],
+    });
     return new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
         sessionManager: params.sessionManager,
@@ -221,175 +223,254 @@ function createResolveOpenAiToolsForRuntime(params: {
   sessionRequestBroker: SessionRequestBroker;
   sessionSearchRuntimeSupport: SessionSearchRuntimeSupport;
 }) {
+  const {
+    assetStore,
+    bus,
+    cronService,
+    gatewayController,
+    getConfig,
+    getExtensionRegistry,
+    providerManager,
+    resolveMessageToolHints,
+    sessionCreationService,
+    sessionManager,
+    sessionRequestBroker,
+    sessionSearchRuntimeSupport,
+    toolRegistryAdapter,
+  } = params;
   const toolRegistry = new NextclawNcpToolRegistry({
-    bus: params.bus,
-    providerManager: params.providerManager,
-    sessionManager: params.sessionManager,
-    cronService: params.cronService,
-    gatewayController: params.gatewayController,
-    getConfig: params.getConfig,
-    getExtensionRegistry: params.getExtensionRegistry,
-    sessionCreationService: params.sessionCreationService,
-    sessionRequestBroker: params.sessionRequestBroker,
+    bus,
+    providerManager,
+    sessionManager,
+    cronService,
+    gatewayController,
+    getConfig,
+    getExtensionRegistry,
+    sessionCreationService,
+    sessionRequestBroker,
     getAdditionalTools: (context) => [
       ...createAssetTools({
-        assetStore: params.assetStore,
+        assetStore,
       }),
-      ...params.toolRegistryAdapter.listToolsForRun({
+      ...toolRegistryAdapter.listToolsForRun({
         agentId: context.agentId,
       }),
-      ...params.sessionSearchRuntimeSupport.createAdditionalTools({
+      ...sessionSearchRuntimeSupport.createAdditionalTools({
         currentSessionId: context.sessionId,
       }),
     ],
   });
   const contextBuilder = new NextclawNcpContextBuilder({
-    sessionManager: params.sessionManager,
+    sessionManager,
     toolRegistry,
-    getConfig: params.getConfig,
-    resolveMessageToolHints: params.resolveMessageToolHints,
-    assetStore: params.assetStore,
+    getConfig,
+    resolveMessageToolHints,
+    assetStore,
   });
 
   return (input: NcpAgentRunInput) => contextBuilder.prepare(input).tools;
 }
 
-export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
-  const {
-    getConfig,
-    getExtensionRegistry,
-    globalEventBus,
-    onSessionRunStatusChanged,
-    onSessionUpdated,
-    providerManager,
-    resolveMessageToolHints,
-    sessionManager,
-  } = params;
-  const sessionSearchRuntimeSupport = new SessionSearchRuntimeSupport({
-    sessionManager,
-    onSessionUpdated,
-    databasePath: join(getDataDir(), "session-search.db"),
-  });
-  const sessionStore = new NextclawAgentSessionStore(sessionManager, {
-    onSessionUpdated: sessionSearchRuntimeSupport.handleSessionUpdated,
-  });
-  const runtimeRegistry = new UiNcpRuntimeRegistry();
-  const { toolRegistryAdapter, applyMcpConfig, dispose: disposeMcpRuntimeSupport } =
-    await createMcpRuntimeSupport(getConfig);
-  const assetStore = new LocalAssetStore({
+export class UiNcpAgentRuntimeService {
+  private readonly sessionSearchRuntimeSupport: SessionSearchRuntimeSupport;
+  private readonly sessionStore: NextclawAgentSessionStore;
+  private readonly runtimeRegistry = new UiNcpRuntimeRegistry();
+  private readonly mcpRuntimeSupport: McpRuntimeSupport;
+  private readonly assetStore = new LocalAssetStore({
     rootDir: join(getDataDir(), "assets"),
   });
-  let backend: DefaultNcpAgentBackend | null = null;
-  const sessionCreationService = new SessionCreationService(
-    sessionManager,
-    getConfig,
-    sessionSearchRuntimeSupport.handleSessionUpdated,
-  );
-  const sessionRequestBroker = new SessionRequestBroker(
-    sessionManager,
-    sessionCreationService,
-    new SessionRequestDeliveryService(() => backend),
-    () => backend,
-    sessionSearchRuntimeSupport.handleSessionUpdated,
-  );
-  const learningLoopRuntime = new LearningLoopRuntimeService({
-    sessionManager,
-    sessionRequestBroker,
-    onSessionUpdated: sessionSearchRuntimeSupport.handleSessionUpdated,
-    globalEventBus,
-    resolveLearningLoopConfig: () => readLearningLoopRuntimeConfig(getConfig()),
-  });
-  const createNativeRuntime = createNativeRuntimeFactory(
-    {
-      ...params,
-      getConfig,
-      getExtensionRegistry,
-      onSessionUpdated,
-      providerManager,
-      resolveMessageToolHints,
-      sessionManager,
-    },
-    toolRegistryAdapter,
-    assetStore,
-    sessionCreationService,
-    sessionRequestBroker,
-    sessionSearchRuntimeSupport,
-  );
-
-  runtimeRegistry.register({
-    kind: "native",
-    label: "Native",
-    createRuntime: createNativeRuntime,
-  });
-  const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(getConfig);
-  const builtinNarpRegistrations = builtinNarpRegistrationService.registerInto(runtimeRegistry);
-
-  const pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
-    runtimeRegistry,
-    getExtensionRegistry,
-  );
-  const refreshConfiguredRuntimeEntries = () => {
-    runtimeRegistry.applyEntries(
+  private readonly sessionCreationService: SessionCreationService;
+  private readonly sessionRequestBroker: SessionRequestBroker;
+  private readonly learningLoopRuntime: LearningLoopRuntimeService;
+  private readonly pluginRuntimeRegistrationController: PluginRuntimeRegistrationController;
+  private readonly refreshConfiguredRuntimeEntries = () => {
+    this.runtimeRegistry.applyEntries(
       resolveUiNcpRuntimeEntries({
-        config: getConfig(),
-        providerKinds: runtimeRegistry.listProviderKinds(),
+        config: this.params.getConfig(),
+        providerKinds: this.runtimeRegistry.listProviderKinds(),
       }),
     );
   };
-  pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
-  refreshConfiguredRuntimeEntries();
-  await sessionSearchRuntimeSupport.initialize();
 
-  backend = new DefaultNcpAgentBackend({
-    endpointId: "nextclaw-ui-agent",
-    sessionStore,
-    onSessionRunStatusChanged,
-    createRuntime: (runtimeParams) => {
-      pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
-      refreshConfiguredRuntimeEntries();
-      return runtimeRegistry.createRuntime({
-        ...runtimeParams,
-        resolveAssetContentPath: (assetUri) => assetStore.resolveContentPath(assetUri),
-        resolveTools: createResolveOpenAiToolsForRuntime({
-          bus: params.bus,
-          providerManager,
-          sessionManager,
-          cronService: params.cronService,
-          gatewayController: params.gatewayController,
-          getConfig,
-          getExtensionRegistry,
-          resolveMessageToolHints,
-          assetStore,
-          toolRegistryAdapter,
-          sessionCreationService,
-          sessionRequestBroker,
-          sessionSearchRuntimeSupport,
-        }),
-      });
-    },
-  });
+  private backend: DefaultNcpAgentBackend | null = null;
+  private handle: UiNcpAgentHandle | null = null;
+  private builtinNarpRegistrations: Array<{ dispose: () => void }> = [];
+  private kernelBootstrapped = false;
+  private warmupPromise: Promise<void> | null = null;
+  private disposed = false;
 
-  await backend.start();
-  learningLoopRuntime.attachBackend(backend);
+  constructor(private readonly params: CreateUiNcpAgentParams) {
+    this.sessionSearchRuntimeSupport = new SessionSearchRuntimeSupport({
+      sessionManager: params.sessionManager,
+      onSessionUpdated: params.onSessionUpdated,
+      databasePath: join(getDataDir(), "session-search.db"),
+    });
+    this.sessionStore = new NextclawAgentSessionStore(params.sessionManager, {
+      onSessionUpdated: this.sessionSearchRuntimeSupport.handleSessionUpdated,
+    });
+    this.mcpRuntimeSupport = createMcpRuntimeSupport(params.getConfig);
+    this.sessionCreationService = new SessionCreationService(
+      params.sessionManager,
+      params.getConfig,
+      this.sessionSearchRuntimeSupport.handleSessionUpdated,
+    );
+    this.sessionRequestBroker = new SessionRequestBroker(
+      params.sessionManager,
+      this.sessionCreationService,
+      new SessionRequestDeliveryService(() => this.backend),
+      () => this.backend,
+      this.sessionSearchRuntimeSupport.handleSessionUpdated,
+    );
+    this.learningLoopRuntime = new LearningLoopRuntimeService({
+      sessionManager: params.sessionManager,
+      sessionRequestBroker: this.sessionRequestBroker,
+      onSessionUpdated: this.sessionSearchRuntimeSupport.handleSessionUpdated,
+      globalEventBus: params.globalEventBus,
+      resolveLearningLoopConfig: () => readLearningLoopRuntimeConfig(params.getConfig()),
+    });
+    this.pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
+      this.runtimeRegistry,
+      params.getExtensionRegistry,
+    );
+  }
 
-  return createUiNcpAgentHandle({
-    backend,
-    runtimeRegistry,
-    refreshPluginRuntimeRegistrations:
-      pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
-    refreshConfiguredRuntimeEntries,
-    applyExtensionRegistry: pluginRuntimeRegistrationController.applyExtensionRegistry,
-    applyMcpConfig,
-    dispose: async () => {
-      learningLoopRuntime.dispose();
-      for (const registration of builtinNarpRegistrations) {
-        registration.dispose();
+  bootstrapKernel = async (): Promise<UiNcpAgentHandle> => {
+    this.assertNotDisposed();
+    if (this.handle) {
+      return this.handle;
+    }
+    this.registerCoreRuntimes();
+
+    this.backend = new DefaultNcpAgentBackend({
+      endpointId: "nextclaw-ui-agent",
+      sessionStore: this.sessionStore,
+      onSessionRunStatusChanged: this.params.onSessionRunStatusChanged,
+      createRuntime: (runtimeParams) => {
+        this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
+        this.refreshConfiguredRuntimeEntries();
+        return this.runtimeRegistry.createRuntime({
+          ...runtimeParams,
+          resolveAssetContentPath: (assetUri) => this.assetStore.resolveContentPath(assetUri),
+          resolveTools: createResolveOpenAiToolsForRuntime({
+            bus: this.params.bus,
+            providerManager: this.params.providerManager,
+            sessionManager: this.params.sessionManager,
+            cronService: this.params.cronService,
+            gatewayController: this.params.gatewayController,
+            getConfig: this.params.getConfig,
+            getExtensionRegistry: this.params.getExtensionRegistry,
+            resolveMessageToolHints: this.params.resolveMessageToolHints,
+            assetStore: this.assetStore,
+            toolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
+            sessionCreationService: this.sessionCreationService,
+            sessionRequestBroker: this.sessionRequestBroker,
+            sessionSearchRuntimeSupport: this.sessionSearchRuntimeSupport,
+          }),
+        });
+      },
+    });
+
+    await this.backend.start();
+    this.learningLoopRuntime.attachBackend(this.backend);
+    this.handle = createUiNcpAgentHandle({
+      backend: this.backend,
+      runtimeRegistry: this.runtimeRegistry,
+      refreshPluginRuntimeRegistrations:
+        this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
+      refreshConfiguredRuntimeEntries: this.refreshConfiguredRuntimeEntries,
+      applyExtensionRegistry: this.pluginRuntimeRegistrationController.applyExtensionRegistry,
+      applyMcpConfig: this.mcpRuntimeSupport.applyMcpConfig,
+      dispose: this.dispose,
+      assetStore: this.assetStore,
+    });
+    return this.handle;
+  };
+
+  recoverDurableState = async (): Promise<void> => {
+    this.assertNotDisposed();
+  };
+
+  warmDerivedCapabilities = async (): Promise<void> => {
+    this.assertNotDisposed();
+    this.warmupPromise ??= this.runDerivedCapabilityWarmup();
+    await this.warmupPromise;
+  };
+
+  getHandle = (): UiNcpAgentHandle | null => {
+    return this.handle;
+  };
+
+  dispose = async (): Promise<void> => {
+    if (this.disposed) {
+      return;
+    }
+    this.disposed = true;
+    await this.warmupPromise?.catch(() => undefined);
+    this.learningLoopRuntime.dispose();
+    for (const registration of this.builtinNarpRegistrations) {
+      registration.dispose();
+    }
+    this.pluginRuntimeRegistrationController.dispose();
+    await this.backend?.stop();
+    await this.sessionSearchRuntimeSupport.dispose();
+    await this.mcpRuntimeSupport.dispose();
+  };
+
+  private registerCoreRuntimes(): void {
+    if (this.kernelBootstrapped) {
+      return;
+    }
+    this.kernelBootstrapped = true;
+    this.runtimeRegistry.register({
+      kind: "native",
+      label: "Native",
+      createRuntime: createNativeRuntimeFactory(
+        this.params,
+        this.mcpRuntimeSupport.toolRegistryAdapter,
+        this.assetStore,
+        this.sessionCreationService,
+        this.sessionRequestBroker,
+        this.sessionSearchRuntimeSupport,
+      ),
+    });
+    const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(this.params.getConfig);
+    this.builtinNarpRegistrations = builtinNarpRegistrationService.registerInto(this.runtimeRegistry);
+    this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
+    this.refreshConfiguredRuntimeEntries();
+  }
+
+  private runDerivedCapabilityWarmup = async (): Promise<void> => {
+    const [, mcpWarmResults] = await Promise.all([
+      this.sessionSearchRuntimeSupport.initialize(),
+      this.mcpRuntimeSupport.prewarmEnabledServers(),
+    ]);
+    for (const result of mcpWarmResults) {
+      if (!result.ok) {
+        console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);
       }
-      pluginRuntimeRegistrationController.dispose();
-      await backend?.stop();
-      await sessionSearchRuntimeSupport.dispose();
-      await disposeMcpRuntimeSupport();
-    },
-    assetStore,
-  });
+    }
+  };
+
+  private assertNotDisposed(): void {
+    if (this.disposed) {
+      throw new Error("UI NCP agent runtime has already been disposed.");
+    }
+  }
+}
+
+export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
+  const runtime = new UiNcpAgentRuntimeService(params);
+  try {
+    await runtime.bootstrapKernel();
+    await runtime.recoverDurableState();
+    await runtime.warmDerivedCapabilities();
+    const handle = runtime.getHandle();
+    if (!handle) {
+      throw new Error("UI NCP agent kernel finished bootstrapping without exposing a handle.");
+    }
+    return handle;
+  } catch (error) {
+    await runtime.dispose().catch(() => undefined);
+    throw error;
+  }
 }

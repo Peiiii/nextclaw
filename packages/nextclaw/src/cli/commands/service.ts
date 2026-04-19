@@ -28,7 +28,7 @@ import { writeReadyManagedServiceState } from "./service-support/runtime/service
 import { createServiceUiHosts } from "./service-support/ui/service-ui-hosts.service.js";
 import { type UiNcpAgentHandle } from "./ncp/create-ui-ncp-agent.service.js";
 import { createGatewayShellContext, createGatewayStartupContext } from "./service-support/gateway/service-gateway-context.js";
-import { runConfiguredGatewayRuntime, startUiShell } from "./service-support/gateway/service-gateway-startup.js";
+import { runConfiguredGatewayRuntime, startUiShell } from "./service-support/gateway/service-gateway-startup.service.js";
 import { createServiceNcpSessionRealtimeBridge } from "./service-support/session/service-ncp-session-realtime-bridge.js";
 import { createEmptyPluginRegistry } from "./plugin/plugin-registry-loader.js";
 import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./service-support/gateway/service-gateway-bootstrap.js";

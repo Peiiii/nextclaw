@@ -16,6 +16,7 @@ type SessionSearchFeatureLike = Pick<
 export class SessionSearchRuntimeSupport {
   private readonly feature: SessionSearchFeatureLike;
   private enabled = true;
+  private ready = false;
 
   constructor(
     params: {
@@ -25,12 +26,13 @@ export class SessionSearchRuntimeSupport {
       feature?: SessionSearchFeatureLike;
     },
   ) {
-    this.onSessionUpdated = params.onSessionUpdated;
+    const { databasePath, feature, onSessionUpdated, sessionManager } = params;
+    this.onSessionUpdated = onSessionUpdated;
     this.feature =
-      params.feature ??
+      feature ??
       new SessionSearchFeatureService({
-        sessionStore: new NextclawAgentSessionStore(params.sessionManager),
-        databasePath: params.databasePath,
+        sessionStore: new NextclawAgentSessionStore(sessionManager),
+        databasePath,
       });
   }
 
@@ -39,6 +41,7 @@ export class SessionSearchRuntimeSupport {
   initialize = async (): Promise<void> => {
     try {
       await this.feature.initialize();
+      this.ready = true;
     } catch (error) {
       if (error instanceof SessionSearchUnsupportedRuntimeError) {
         this.enabled = false;
@@ -50,11 +53,11 @@ export class SessionSearchRuntimeSupport {
   };
 
   createAdditionalTools = (params: { currentSessionId?: string }): NcpTool[] =>
-    this.enabled ? [this.feature.createTool(params)] : [];
+    this.enabled && this.ready ? [this.feature.createTool(params)] : [];
 
   handleSessionUpdated = (sessionKey: string): void => {
     this.onSessionUpdated?.(sessionKey);
-    if (!this.enabled) {
+    if (!this.enabled || !this.ready) {
       return;
     }
     void this.feature.handleSessionUpdated(sessionKey).catch((error) => {
@@ -68,4 +71,6 @@ export class SessionSearchRuntimeSupport {
     }
     await this.feature.dispose();
   };
+
+  isReady = (): boolean => this.enabled && this.ready;
 }

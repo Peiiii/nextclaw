@@ -13,7 +13,7 @@ import {
   type GatewayCapabilityState,
   type GatewayStartupContext
 } from "./service-gateway-context.js";
-import type { UiStartupHandle } from "./service-gateway-startup.js";
+import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 import { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
 import { hydrateServiceCapabilities } from "./service-capability-hydration.js";
 import { installPluginRuntimeBridge } from "../plugin/service-plugin-runtime-bridge.js";
