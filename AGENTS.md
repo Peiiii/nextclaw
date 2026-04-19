@@ -381,6 +381,12 @@
   - 反例：一上来就开始写代码，直到 lint、review 或用户指出后才发现这次其实只是又加了一层兜底、又复制了一份实现、又把业务逻辑塞进 effect / helper 里；或把“避免垃圾代码”的思路继续散在多个规则里，却从不在实现前显式过一遍。
   - 执行方式：开始实现前，至少先用该 skill 回答六个问题：`这次能删什么？`、`owner 是谁？`、`主路径是什么？`、`为什么这不是隐藏 fallback 或补丁式修复？`、`文件为什么放在这里？`、`最小可信验证是什么？`。若答案暴露出 fallback/兼容风险，立即联动 `predictable-behavior-first`；若暴露出结构、角色或命名问题，立即联动 `collapsible-feature-root-architecture`、`role-first-file-organization` 与 `file-naming-convention`；若是复杂排障，联动 `long-chain-debugging` 与 `iteration-work-notes`。只要这些问题里有两个以上答不清，默认先停在设计与澄清阶段，不直接开写。
   - 维护责任人：当前助手。
+- **applicable-standards-must-be-read-before-coding**：
+  - 约束/适用范围：凡准备在本仓库开始编写或修改项目源码、脚本、测试，或影响运行链路的配置时，必须先识别并了解本次任务所适用的规范，再进入实现。这里的“规范”至少包括：产品愿景、`AGENTS.md` 中与当前任务直接相关的 Rulebook / Project Rulebook、命中的 skills、相关 workflow / README / 结构合同文件；禁止跳过规范识别，靠写完后再让 lint、review 或用户兜底指出方向错误。
+  - 示例：动手改前端目录结构前，先阅读 `docs/VISION.md`、`AGENTS.md` 中的结构治理规则、`module-structure.config.json` 与 `collapsible-feature-root-architecture` skill，再决定目录落点；动手改命名前，先读取 `file-naming-convention` skill 与对应 workflow，再确定文件名；动手改运行链路前，先确认相关发布/验证/契约规则。
+  - 反例：看到需求就直接开始写代码，做到一半才发现违反命名规范、目录白名单、owner 边界或产品目标；或只凭记忆觉得“应该差不多”，没有在当前任务上下文里重新确认适用规范；或把“规范学习”拖到收尾阶段，导致实现方向已经定死，只能被动返工。
+  - 执行方式：开始实现前，至少先回答四个问题：`这次任务直接服务于哪个产品目标或用户价值？`、`当前任务受哪些 Rulebook / Project Rulebook 约束？`、`有哪些必须先读取的 skill / workflow / README / 结构合同？`、`如果现在直接开写，最可能违反的规范是什么？`。只有在这四个问题都已有明确答案后，才进入实现；若任务过程中发现适用规范判断错误，必须先停下补齐规范对齐，再继续编码。最终结果中若本次有规范对齐上的关键决策，需简要说明“本次先对齐了哪些规范，为什么”。
+  - 维护责任人：当前助手。
 - **prefer-local-openclaw-sibling-source**：
   - 约束/适用范围：当需要查看 OpenClaw 源码时，优先在本项目根目录的同级兄弟目录查找本地 `openclaw` 仓库；若存在，必须优先读取本地源码；仅在本地不存在时才允许使用其它方式（如远程仓库/网络检索）。
   - 示例：在 `/Users/peiwang/Projects/nextbot` 需要核对 OpenClaw 实现时，先检查 `/Users/peiwang/Projects/openclaw` 并直接读取对应文件。
