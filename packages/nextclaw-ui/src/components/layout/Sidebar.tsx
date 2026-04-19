@@ -9,8 +9,8 @@ import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/comp
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { SelectItem } from '@/components/ui/select';
-import { useRemoteStatus } from '@/hooks/useRemoteAccess';
-import { useAppPresenter } from '@/presenter/app-presenter-context';
+import { useAppManager } from '@/app/components/app-manager-provider';
+import { useRemoteStatus } from '@/features/remote';
 
 type SidebarMode = 'main' | 'settings';
 
@@ -19,7 +19,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ mode }: SidebarProps) {
-  const presenter = useAppPresenter();
+  const manager = useAppManager();
   const docBrowser = useDocBrowser();
   const remoteStatus = useRemoteStatus();
   const { language, setLanguage } = useI18n();
@@ -182,7 +182,7 @@ export function Sidebar({ mode }: SidebarProps) {
         <div className={cn('shrink-0 border-t border-[#dde0ea] bg-secondary', isSettingsMode ? 'mt-2 pt-3' : 'mt-3 pt-3')}>
           {isSettingsMode ? (
             <SidebarActionItem
-              onClick={() => presenter.accountManager.openAccountPanel()}
+              onClick={() => manager.accountManager.openAccountPanel()}
               icon={KeyRound}
               label={t('remoteAccountEntryManage')}
               density="compact"

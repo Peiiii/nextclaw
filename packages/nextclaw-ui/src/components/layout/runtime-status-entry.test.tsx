@@ -17,12 +17,9 @@ vi.mock('sonner', () => ({
   },
 }));
 
-vi.mock('@/system-status/hooks/use-system-status', () => ({
+vi.mock('@/features/system-status', () => ({
   useRuntimeStatusBadgeView: (...args: unknown[]) =>
     mocks.useRuntimeStatusBadgeView(...args),
-}));
-
-vi.mock('@/system-status/system-status.manager', () => ({
   systemStatusManager: {
     runRuntimeControlAction: (...args: unknown[]) =>
       mocks.runRuntimeControlAction(...args),

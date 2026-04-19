@@ -48,12 +48,9 @@ vi.mock('sonner', () => ({
   },
 }));
 
-vi.mock('@/system-status/hooks/use-system-status', () => ({
+vi.mock('@/features/system-status', () => ({
   useRuntimeControlPanelView: (...args: unknown[]) =>
     mocks.useRuntimeControlPanelView(...args),
-}));
-
-vi.mock('@/system-status/system-status.manager', () => ({
   systemStatusManager: {
     runRuntimeControlAction: (...args: unknown[]) =>
       mocks.runRuntimeControlAction(...args),

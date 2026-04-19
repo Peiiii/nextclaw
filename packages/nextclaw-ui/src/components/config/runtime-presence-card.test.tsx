@@ -2,8 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuntimePresenceCard } from '@/components/config/runtime-presence-card';
-import { useDesktopPresenceStore } from '@/desktop/stores/desktop-presence.store';
 import { setLanguage } from '@/lib/i18n';
+import { useDesktopPresenceStore } from '@/platforms/desktop';
 
 const mocks = vi.hoisted(() => ({
   useSystemStatus: vi.fn(),
@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   toastError: vi.fn()
 }));
 
-vi.mock('@/system-status/hooks/use-system-status', () => ({
+vi.mock('@/features/system-status', () => ({
   useSystemStatus: (...args: unknown[]) => mocks.useSystemStatus(...args)
 }));
 

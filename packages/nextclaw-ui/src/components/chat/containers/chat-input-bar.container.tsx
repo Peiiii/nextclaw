@@ -34,7 +34,7 @@ import {
 } from '@/components/chat/chat-recent-skills.manager';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import { useChatRuntimeAvailability } from '@/system-status/hooks/use-system-status';
+import { useChatRuntimeAvailability } from '@/features/system-status';
 import type { SessionSkillEntryView } from '@/api/types';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';

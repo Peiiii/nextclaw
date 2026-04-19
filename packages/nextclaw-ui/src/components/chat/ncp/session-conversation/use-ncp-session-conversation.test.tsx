@@ -46,7 +46,7 @@ vi.mock("@nextclaw/ncp-http-agent-client", () => ({
   }),
 }));
 
-vi.mock("@/system-status/hooks/use-system-status", () => ({
+vi.mock("@/features/system-status", () => ({
   useChatRuntimeAvailability: vi.fn(() => mocks.runtimeAvailability),
 }));
 

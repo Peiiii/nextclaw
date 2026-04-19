@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { applyNcpSessionRealtimeEvent } from '@/api/ncp-session-query-cache';
-import { systemStatusManager } from '@/system-status/system-status.manager';
+import { systemStatusManager } from '@/features/system-status';
 import { appClient } from '@/transport';
 import type { QueryClient } from '@tanstack/react-query';
 

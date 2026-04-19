@@ -34,8 +34,10 @@ import { useChatSessionListStore } from "@/components/chat/stores/chat-session-l
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useAgents } from "@/hooks/agents/useAgents";
 import { normalizeRequestedSkills } from "@/lib/chat-runtime-utils";
-import { systemStatusManager } from "@/system-status/system-status.manager";
-import { useChatRuntimeAvailability } from "@/system-status/hooks/use-system-status";
+import {
+  systemStatusManager,
+  useChatRuntimeAvailability,
+} from "@/features/system-status";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,

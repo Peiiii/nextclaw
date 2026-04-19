@@ -1,10 +1,10 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  systemStatusManager,
+  useRuntimeStatusBadgeView,
+} from '@/features/system-status';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-import {
-  useRuntimeStatusBadgeView,
-} from '@/system-status/hooks/use-system-status';
-import { systemStatusManager } from '@/system-status/system-status.manager';
 import { toast } from 'sonner';
 
 type RuntimeStatusTone = 'healthy' | 'attention' | 'inactive';

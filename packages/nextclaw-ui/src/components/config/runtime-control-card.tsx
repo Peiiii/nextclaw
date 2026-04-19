@@ -10,8 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { t } from '@/lib/i18n';
 import {
   useRuntimeControlPanelView,
-} from '@/system-status/hooks/use-system-status';
-import { systemStatusManager } from '@/system-status/system-status.manager';
+  systemStatusManager,
+} from '@/features/system-status';
 import { Loader2, RotateCw, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -222,7 +222,7 @@ export function RuntimeControlCard() {
                   {t('runtimeControlPendingRestartPaths')}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {pendingRestart.changedPaths.map((path) => (
+                  {pendingRestart.changedPaths.map((path: string) => (
                     <span
                       key={path}
                       className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs text-amber-800"

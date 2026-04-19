@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DesktopUpdateConfig } from '@/components/config/desktop-update-config';
-import { useDesktopUpdateStore } from '@/desktop/stores/desktop-update.store';
 import { setLanguage } from '@/lib/i18n';
+import { useDesktopUpdateStore } from '@/platforms/desktop';
 
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
@@ -15,9 +15,15 @@ const mocks = vi.hoisted(() => ({
   updateChannel: vi.fn()
 }));
 
-vi.mock('@/desktop/managers/desktop-update.manager', () => ({
-  desktopUpdateManager: mocks
-}));
+vi.mock('@/platforms/desktop', async () => {
+  const actual = await vi.importActual<typeof import('@/platforms/desktop')>(
+    '@/platforms/desktop'
+  );
+  return {
+    ...actual,
+    desktopUpdateManager: mocks,
+  };
+});
 
 describe('DesktopUpdateConfig', () => {
   beforeEach(() => {

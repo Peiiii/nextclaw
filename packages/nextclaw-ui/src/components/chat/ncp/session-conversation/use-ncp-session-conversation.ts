@@ -4,7 +4,7 @@ import { useHydratedNcpAgent, type NcpConversationSeed } from "@nextclaw/ncp-rea
 import { API_BASE } from "@/api/api-base";
 import { fetchNcpSessionMessages } from "@/api/ncp-session";
 import { createNcpAppClientFetch } from "@/components/chat/ncp/ncp-app-client-fetch";
-import { useChatRuntimeAvailability } from "@/system-status/hooks/use-system-status";
+import { useChatRuntimeAvailability } from "@/features/system-status";
 
 const DEFAULT_MESSAGE_LIMIT = 300;
 const NCP_AGENT_UNAVAILABLE_DURING_STARTUP = "ncp agent unavailable during startup";

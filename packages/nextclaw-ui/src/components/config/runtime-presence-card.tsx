@@ -9,10 +9,12 @@ import {
 import { NoticeCard } from "@/components/ui/notice-card";
 import { SettingRow } from "@/components/ui/setting-row";
 import { Switch } from "@/components/ui/switch";
-import { desktopPresenceManager } from "@/desktop/managers/desktop-presence.manager";
-import { useDesktopPresenceStore } from "@/desktop/stores/desktop-presence.store";
+import {
+  desktopPresenceManager,
+  useDesktopPresenceStore,
+} from "@/platforms/desktop";
+import { useSystemStatus } from "@/features/system-status";
 import { t } from "@/lib/i18n";
-import { useSystemStatus } from "@/system-status/hooks/use-system-status";
 
 function PresenceHint(props: { title: string; description: string }) {
   const { description, title } = props;

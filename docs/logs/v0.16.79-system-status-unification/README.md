@@ -2,7 +2,18 @@
 
 ## 迭代完成说明
 
-本次迭代完成了前端“系统状态”收口整改，把原先分散在 `runtime-lifecycle`、`runtime-control`、聊天 store 与页面局部拼装逻辑中的系统级状态统一收口到新的 `system-status` 模块中。
+本次迭代完成了前端“系统状态”收口整改，把原先分散在 `runtime-lifecycle`、`runtime-control`、聊天 store 与页面局部拼装逻辑中的系统级状态统一收口到新的 `features/system-status` 模块中。
+
+同批次续改又补做了一轮 `nextclaw-ui` 目录治理：
+
+- 把 `account/` 正式迁到 `features/account/`
+- 把 `remote/` 与远程页面收口到 `features/remote/`
+- 把 `system-status/` 正式迁到 `features/system-status/`
+- 把 `desktop/` 收口到 `platforms/desktop/`
+- 把原来的 `presenter/` 假角色收口为 `app/managers/app.manager.ts` 与 `app/components/app-manager-provider.tsx`
+- 删除迁移后遗留的空目录，包括 `runtime-control/`、`runtime-recovery/`、`presenter/`、旧的 `account/remote/system-status/desktop/` 空壳目录等
+- 把新增 feature / platform 内部跨目录引用统一改为 `@/` 别名，避免继续使用 `../`
+- 把历史 hook `useRemoteAccess.ts` 规范化并下沉到 `features/remote/hooks/use-remote-access.ts`
 
 相关设计文档：
 
@@ -24,10 +35,10 @@
 本次实现命中根因的方式：
 
 - 新增唯一 owner：
-  - `packages/nextclaw-ui/src/system-status/system-status.manager.ts`
-  - `packages/nextclaw-ui/src/system-status/system-status.store.ts`
-  - `packages/nextclaw-ui/src/system-status/system-status.utils.ts`
-  - `packages/nextclaw-ui/src/system-status/hooks/use-system-status.ts`
+  - `packages/nextclaw-ui/src/features/system-status/managers/system-status.manager.ts`
+  - `packages/nextclaw-ui/src/features/system-status/stores/system-status.store.ts`
+  - `packages/nextclaw-ui/src/features/system-status/utils/system-status.utils.ts`
+  - `packages/nextclaw-ui/src/features/system-status/hooks/use-system-status.ts`
 - 把 bootstrap、transport、连接中断恢复、runtime control、服务动作期状态统一收口到 `system-status`。
 - 删除旧的 `runtime-lifecycle` 整个模块。
 - 删除旧的 `use-runtime-control.ts` 与 `runtime-control.manager.ts`。
@@ -80,6 +91,46 @@ pnpm -C packages/nextclaw-ui exec tsc --noEmit
 已执行：
 
 ```bash
+pnpm -C packages/nextclaw-ui exec vitest run \
+  src/features/system-status/managers/system-status.manager.test.ts \
+  src/features/system-status/managers/system-status.manager.bootstrap-polling.test.ts \
+  src/features/remote/components/remote-access-page.test.tsx \
+  src/components/config/runtime-control-card.test.tsx \
+  src/components/config/runtime-presence-card.test.tsx \
+  src/components/config/desktop-update-config.test.tsx \
+  src/components/layout/runtime-status-entry.test.tsx \
+  src/components/layout/sidebar.layout.test.tsx
+```
+
+结果：
+
+- `8` 个测试文件通过
+- `28` 个测试用例通过
+
+已执行：
+
+```bash
+node scripts/governance/lint-new-code-file-role-boundaries.mjs -- packages/nextclaw-ui/src
+```
+
+结果：
+
+- 通过
+
+已执行：
+
+```bash
+node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src
+```
+
+结果：
+
+- 已消除本轮新增 hierarchy drift error
+- 仍有 warning 指向 `api/`、`components/`、`hooks/`、`transport/` 等历史 legacy root 被本轮触达后的存量迁移债，这部分需要后续更大范围的 package 级迁移，不是本轮新引入的结构违规
+
+已执行：
+
+```bash
 pnpm -C packages/nextclaw-ui exec eslint \
   src/app.tsx \
   src/system-status \
@@ -124,7 +175,7 @@ node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainabilit
 结果：
 
 - 通过
-- 非测试代码变更：`新增 78 行 / 删除 754 行 / 净减 676 行`
+- 非测试代码变更：`新增 39 行 / 删除 2813 行 / 净减 2774 行`
 
 已执行：
 
@@ -185,15 +236,15 @@ pnpm lint:new-code:governance
 
 代码增减报告：
 
-- 新增：277 行
-- 删除：1438 行
-- 净增：-1161 行
+- 新增：67 行
+- 删除：3433 行
+- 净增：-3366 行
 
 非测试代码增减报告：
 
-- 新增：78 行
-- 删除：754 行
-- 净增：-676 行
+- 新增：39 行
+- 删除：2813 行
+- 净增：-2774 行
 
 no maintainability findings
 
@@ -205,7 +256,7 @@ no maintainability findings
 
 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰：是。现在“系统状态”有唯一 `manager + store`，聊天 store 回到聊天域，runtime control 回到系统状态输入源，组件主要消费 selector。
 
-目录结构与文件组织是否满足当前项目治理要求：本次涉及的 `nextclaw-ui` 新增命名已满足治理要求；全仓 `pnpm lint:new-code:governance` 仍被其它未收敛改动阻塞，不属于本迭代新增问题。
+目录结构与文件组织是否满足当前项目治理要求：本轮新增的 `features/account`、`features/remote`、`features/system-status`、`platforms/desktop` 与 `app/*` 收口已经满足命名与角色治理；`file-role-boundaries` 已通过。仍有 `api/`、`components/`、`hooks/`、`transport/` 等 legacy root 的历史迁移 warning，需要后续做更大范围的 package 级目录治理，本轮没有继续放大这笔债务。
 
 独立于实现阶段的主观复核结论：
 

@@ -1,4 +1,4 @@
-import { systemStatusManager } from '@/system-status/system-status.manager';
+import { systemStatusManager } from '@/features/system-status';
 
 type FetchLike = typeof fetch;
 

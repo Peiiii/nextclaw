@@ -31,7 +31,7 @@ import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useDocBrowser } from '@/components/doc-browser';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/components/layout/sidebar-items';
-import { useSystemStatus } from '@/system-status/hooks/use-system-status';
+import { useSystemStatus } from '@/features/system-status';
 import {
   AlarmClock,
   Bot,

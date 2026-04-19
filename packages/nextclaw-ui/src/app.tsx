@@ -1,21 +1,21 @@
 import { lazy, Suspense, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { AccountPanel } from "@/account/components/account-panel";
 import { appQueryClient } from "@/app-query-client";
+import { AppManagerProvider } from "@/app/components/app-manager-provider";
 import { LoginPage } from "@/components/auth/login-page";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { AccountPanel } from "@/features/account";
+import { useSystemStatusSources } from "@/features/system-status";
 import {
   isTransientAuthStatusBootstrapError,
   useAuthStatus,
 } from "@/hooks/use-auth";
 import { useRealtimeQueryBridge } from "@/hooks/use-realtime-query-bridge";
-import { AppPresenterProvider } from "@/presenter/app-presenter-context";
 import {
   PwaInstallBanner,
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
-import { useSystemStatusSources } from "@/system-status/hooks/use-system-status";
 import { Toaster } from "sonner";
 import { Routes, Route, Navigate } from "react-router-dom";
 
@@ -51,8 +51,7 @@ const SecretsConfigPage = lazy(async () => ({
   default: (await import("@/components/config/SecretsConfig")).SecretsConfig,
 }));
 const RemoteAccessPage = lazy(async () => ({
-  default: (await import("@/components/remote/remote-access-page"))
-    .RemoteAccessPage,
+  default: (await import("@/features/remote")).RemoteAccessPage,
 }));
 const MarketplacePage = lazy(async () => ({
   default: (await import("@/components/marketplace/marketplace-page"))
@@ -227,12 +226,12 @@ function ProtectedApp() {
   useSystemStatusSources();
 
   return (
-    <AppPresenterProvider>
+    <AppManagerProvider>
       <AppLayout>
         <ProtectedRoutes />
       </AppLayout>
       <AccountPanel />
-    </AppPresenterProvider>
+    </AppManagerProvider>
   );
 }
 

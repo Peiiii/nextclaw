@@ -107,7 +107,7 @@ vi.mock('@/components/providers/ThemeProvider', () => ({
   })
 }));
 
-vi.mock('@/system-status/hooks/use-system-status', () => ({
+vi.mock('@/features/system-status', () => ({
   useSystemStatus: () => ({
     connectionStatus: 'connected'
   })

@@ -4,7 +4,7 @@ import { NcpChatInputManager } from '@/components/chat/ncp/ncp-chat-input.manage
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
-import { useSystemStatusStore } from '@/system-status/system-status.store';
+import { useSystemStatusStore } from '@/features/system-status';
 
 describe('NcpChatInputManager', () => {
   beforeEach(() => {

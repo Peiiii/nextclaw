@@ -26,7 +26,7 @@ import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.ma
 import { chatRecentSkillsManager } from '@/components/chat/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState';
-import { systemStatusManager } from '@/system-status/system-status.manager';
+import { systemStatusManager } from '@/features/system-status';
 
 export class NcpChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);

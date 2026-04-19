@@ -1,6 +1,6 @@
 import { API_BASE } from './api-base';
 import type { ApiResponse } from './types';
-import { systemStatusManager } from '@/system-status/system-status.manager';
+import { systemStatusManager } from '@/features/system-status';
 
 function compactSnippet(text: string) {
   return text.replace(/\s+/g, ' ').trim().slice(0, 200);

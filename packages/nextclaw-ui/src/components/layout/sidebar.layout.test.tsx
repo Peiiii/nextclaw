@@ -22,17 +22,23 @@ vi.mock('@/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/presenter/app-presenter-context', () => ({
-  useAppPresenter: () => ({
+vi.mock('@/app/components/app-manager-provider', () => ({
+  useAppManager: () => ({
     accountManager: {
       openAccountPanel: mocks.openAccountPanel
     }
   })
 }));
 
-vi.mock('@/hooks/useRemoteAccess', () => ({
-  useRemoteStatus: () => mocks.remoteStatus
-}));
+vi.mock('@/features/remote', async () => {
+  const actual = await vi.importActual<typeof import('@/features/remote')>(
+    '@/features/remote'
+  );
+  return {
+    ...actual,
+    useRemoteStatus: () => mocks.remoteStatus
+  };
+});
 
 vi.mock('@/components/providers/I18nProvider', () => ({
   useI18n: () => ({

@@ -5,11 +5,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { PageHeader, PageLayout } from '@/components/layout/page-layout';
-import { desktopUpdateManager } from '@/desktop/managers/desktop-update.manager';
-import type { DesktopReleaseChannel } from '@/desktop/desktop-update.types';
-import { useDesktopUpdateStore } from '@/desktop/stores/desktop-update.store';
 import { formatDateTime, t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import {
+  desktopUpdateManager,
+  type DesktopReleaseChannel,
+  useDesktopUpdateStore,
+} from '@/platforms/desktop';
 import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
 
 function formatVersion(value: string | null): string {

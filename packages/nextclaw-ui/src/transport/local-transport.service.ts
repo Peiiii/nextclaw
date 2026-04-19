@@ -1,7 +1,7 @@
 import { API_BASE } from '@/api/api-base';
 import { requestRawApiResponse } from '@/api/raw-client.utils';
 import type { ApiResponse } from '@/api/types';
-import { systemStatusManager } from '@/system-status/system-status.manager';
+import { systemStatusManager } from '@/features/system-status';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { readSseStreamResult } from './sse-stream';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url';
