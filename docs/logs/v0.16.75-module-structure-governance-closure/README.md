@@ -16,6 +16,16 @@
   - 新增协议辅助模块 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs)，把协议结构检查与导入边界检查拆成独立职责，避免主检查器继续膨胀。
   - 将该检查接入 [`scripts/governance/lint-new-code-governance.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-governance.mjs) 与根 [`package.json`](/Users/peiwang/Projects/nextbot/package.json) 的 `pnpm lint:new-code:governance` 主链路，再补充 PR workflow [`structure-governance.yml`](/Users/peiwang/Projects/nextbot/.github/workflows/structure-governance.yml)，让 review 阶段也能自动执行 diff-only 结构治理。
 - 新增治理说明文档 [`docs/designs/2026-04-19-module-structure-contracts.md`](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-19-module-structure-contracts.md)，把 contract 字段、shared 容器边界和“什么时候先改 contract 再落目录”写成明确结构规范。
+- 同批次续改继续把“结构规范文档”和“结构治理 skill”重新对齐，避免规则只停留在 README 或讨论上下文里：
+  - 包内复杂度等级已收敛为 `L1 / L2 / L3`，移除了独立价值不强的旧 `L0` 编号与旧 `L1` 变体。
+  - `L1` 现已明确为“最小包内结构”，允许 `app/` 但不允许为了“像 feature”再额外包一层单独业务根目录。
+  - 新增并明确了包内导入路径协议：同目录使用 `./`，跨目录统一使用 `@/`，禁止父级相对路径回退，且禁止显式导入 `index.ts(x)` 入口。
+  - 新增 `configs/` 为正式通用职责目录，并明确 `*.config.ts(x)` 作为其文件后缀契约。
+  - 同时纠正了两个特殊目录例外：`components/` 不再要求 `.component` 后缀，`hooks/` 不再要求 `.hook` 后缀，而是继续采用 `use-<domain>.ts(x)` 约定。
+- 同批次续改继续把规范落到检测脚本，而不是只留在文档：
+  - [`scripts/governance/lint-new-code-file-role-boundaries.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-file-role-boundaries.mjs) 已补齐 `configs/ -> *.config.ts(x)` 的目录职责检查。
+  - 现有 `components/` 与 `hooks/` 特殊例外仍保留：`components/` 允许无额外角色后缀，`hooks/` 继续要求 `use-*` 命名，但不再要求 `.hook`。
+  - 对应测试 [`scripts/governance/lint-new-code-file-role-boundaries.test.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-file-role-boundaries.test.mjs) 已新增 `configs/` 正反例覆盖，并同步更新了页面目录的 `ts(x)` 文案断言。
 - 同批次续改把 CLI 共享服务根层继续收紧，避免 `shared/services/` 自己退化成新的平铺垃圾层：
   - `config-reloader`、`self-update`、`restart-*`、`runtime-*`、`llm-usage-*`、`workspace-manager`、`ui-bridge-api`、`local-ui-discovery` 等文件已按职责回收到 `shared/services/{config,restart,runtime,ui,update,usage,workspace}/`。
   - 这次命中的根因不是“某几个 import 没改干净”，而是 `shared/services/` 根层本身仍然在继续承担历史过渡目录角色；本次修的是职责层次，而不是再给根层开白名单。
@@ -58,6 +68,10 @@
 
 ## 测试/验证/验收方式
 
+- 已通过：`node --test scripts/governance/lint-new-code-file-role-boundaries.test.mjs`
+  - 观察点：`14/14` 全通过，说明 `configs/` 目录后缀规则和 `components/hooks` 特殊例外已被脚本正确表达。
+- 已通过：`node scripts/governance/lint-new-code-governance.mjs scripts/governance/lint-new-code-file-role-boundaries.mjs scripts/governance/lint-new-code-file-role-boundaries.test.mjs scripts/governance/module-structure/module-structure-contracts.mjs docs/designs/2026-04-19-module-structure-contracts.md .agents/skills/collapsible-feature-root-architecture/SKILL.md`
+  - 观察点：本次变更对应的增量治理检查全绿，没有新增目录结构或文件角色边界回归。
 - 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
   - 观察点：新增断言覆盖“alias 已配置时阻断 `../` 父级相对导入，同时允许同目录 `./` 相对导入”。

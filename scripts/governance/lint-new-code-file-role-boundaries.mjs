@@ -34,10 +34,15 @@ const DIRECTORY_ROLE_RULES = {
     role: "controller",
     expectedLabel: "*.controller.ts"
   },
+  configs: {
+    type: "role-suffix",
+    role: "config",
+    expectedLabel: "*.config.ts(x)"
+  },
   providers: {
     type: "role-suffix",
     role: "provider",
-    expectedLabel: "*.provider.ts"
+    expectedLabel: "*.provider.ts(x)"
   },
   repositories: {
     type: "role-suffix",
@@ -70,7 +75,7 @@ const DIRECTORY_ROLE_RULES = {
   },
   pages: {
     type: "page",
-    expectedLabel: "<domain>-page.tsx"
+    expectedLabel: "<domain>-page.ts(x)"
   },
   components: {
     type: "component"

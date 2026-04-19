@@ -19,6 +19,23 @@ test("blocks new files in role directories when the suffix does not match the di
   assert.match(violations[0].message, /services\/' must match '\*\.service\.ts'/);
 });
 
+test("requires .config suffix inside configs directories", () => {
+  const violation = inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/configs/runtime.ts",
+    status: "A"
+  });
+
+  assert.ok(violation);
+  assert.match(violation.message, /configs\/' must match '\*\.config\.ts\(x\)'/);
+});
+
+test("allows .config files inside configs directories", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/configs/runtime.config.ts",
+    status: "A"
+  }), null);
+});
+
 test("allows test files whose underlying role still matches the directory", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/services/chat.service.contract.test.ts",
@@ -65,6 +82,13 @@ test("allows component files without role suffixes", () => {
   }), null);
 });
 
+test("allows hook files without extra .hook suffix when they still use use-* naming", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/hooks/use-chat-session.ts",
+    status: "A"
+  }), null);
+});
+
 test("skips role-boundary enforcement for script support paths", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: ".agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs",
@@ -94,7 +118,7 @@ test("requires -page naming inside pages directories", () => {
   });
 
   assert.ok(violation);
-  assert.match(violation.message, /pages\/' must match '<domain>-page\.tsx'/);
+  assert.match(violation.message, /pages\/' must match '<domain>-page\.ts\(x\)'/);
 });
 
 test("blocks touched files when they still violate the directory mapping", () => {
