@@ -9,6 +9,7 @@ import { GetSkillItemUseCase } from "./application/skills/get-skill-item.usecase
 import { ListSkillItemsUseCase } from "./application/skills/list-skill-items.usecase";
 import { ListSkillRecommendationsUseCase } from "./application/skills/list-skill-recommendations.usecase";
 import { DomainValidationError, ResourceNotFoundError } from "./domain/errors";
+import { D1MarketplaceAppDataSource } from "./infrastructure/apps/d1-marketplace-app.repository";
 import {
   D1MarketplacePluginDataSource,
   D1MarketplaceSkillDataSource,
@@ -19,6 +20,7 @@ import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin-repo
 import { InMemorySkillRepository } from "./infrastructure/in-memory-skill-repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
 import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes";
+import { registerAppRoutes } from "./presentation/http/apps/app.controller";
 import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/marketplace-content";
 import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
@@ -44,6 +46,7 @@ class MarketplaceRuntime {
   readonly pluginDataSource: D1MarketplacePluginDataSource;
   readonly skillDataSource: D1MarketplaceSkillDataSource;
   readonly mcpDataSource: D1MarketplaceMcpDataSource;
+  readonly appDataSource: D1MarketplaceAppDataSource;
 
   readonly pluginRepository: InMemoryPluginRepository;
   readonly listPluginItems: ListPluginItemsUseCase;
@@ -64,6 +67,7 @@ class MarketplaceRuntime {
     this.pluginDataSource = new D1MarketplacePluginDataSource(bindings.MARKETPLACE_PLUGINS_DB);
     this.skillDataSource = new D1MarketplaceSkillDataSource(bindings.MARKETPLACE_SKILLS_DB, bindings.MARKETPLACE_SKILLS_FILES);
     this.mcpDataSource = new D1MarketplaceMcpDataSource(bindings.MARKETPLACE_PLUGINS_DB);
+    this.appDataSource = new D1MarketplaceAppDataSource(bindings.MARKETPLACE_SKILLS_DB, bindings.MARKETPLACE_SKILLS_FILES);
     const ttlSeconds = this.parseCacheTtlSeconds(bindings.MARKETPLACE_CACHE_TTL_SECONDS);
 
     this.pluginRepository = new InMemoryPluginRepository(this.pluginDataSource, {
@@ -136,6 +140,25 @@ function getRuntime(bindings: MarketplaceBindings): MarketplaceRuntime {
 }
 
 const app = new Hono<MarketplaceEnv>();
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET,HEAD,POST,OPTIONS",
+  "access-control-allow-headers": "authorization, content-type",
+};
+
+app.use("*", async (c, next) => {
+  if (c.req.method.toUpperCase() === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: CORS_HEADERS,
+    });
+  }
+  await next();
+  Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+    c.res.headers.set(key, value);
+  });
+  return c.res;
+});
 
 app.notFound((c) => responses.error(c, "NOT_FOUND", "endpoint not found", 404));
 
@@ -161,9 +184,10 @@ app.use("/api/v1/*", async (c, next) => {
   const isRead = method === "GET" || method === "HEAD";
   const isAdminWrite = method === "POST" && path.startsWith("/api/v1/admin/");
   const isSkillPublish = method === "POST" && path === "/api/v1/skills/publish";
+  const isAppPublish = method === "POST" && path === "/api/v1/apps/publish";
   const isOwnerManage = method === "POST" && path === "/api/v1/user/skills/manage";
 
-  if (!isRead && !isAdminWrite && !isSkillPublish && !isOwnerManage) {
+  if (!isRead && !isAdminWrite && !isSkillPublish && !isAppPublish && !isOwnerManage) {
     return responses.error(c, "READ_ONLY_API", "marketplace api is read-only except publish/admin routes", 405);
   }
 
@@ -176,7 +200,7 @@ app.get("/health", (c) => {
     status: "ok",
     service: "marketplace-api",
     storage: "d1+r2",
-    databases: ["skills", "plugins"]
+    databases: ["skills", "plugins", "apps"]
   });
 });
 
@@ -354,6 +378,7 @@ app.post("/api/v1/skills/publish", async (c) => {
 });
 
 registerAdminSkillRoutes(app, getRuntime);
+registerAppRoutes(app, getRuntime);
 registerUserSkillRoutes(app, getRuntime);
 
 export default app;

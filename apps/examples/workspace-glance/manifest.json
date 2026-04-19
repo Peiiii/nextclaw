@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "nextclaw.workspace-glance",
+  "name": "Workspace Glance",
+  "version": "0.1.0",
+  "description": "A compact workspace pulse app that summarizes an authorized workspace directory through a wasm main module.",
+  "icon": "assets/icon.svg",
+  "main": {
+    "kind": "wasm",
+    "entry": "main/app.wasm",
+    "export": "summarize_notes",
+    "action": "glanceWorkspace"
+  },
+  "ui": {
+    "entry": "ui/index.html"
+  },
+  "permissions": {
+    "documentAccess": [
+      {
+        "id": "workspace",
+        "mode": "read",
+        "description": "Read a workspace directory and compute a compact pulse summary."
+      }
+    ],
+    "storage": {
+      "namespace": "workspace-glance"
+    },
+    "capabilities": {
+      "hostBridge": true
+    }
+  }
+}

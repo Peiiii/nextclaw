@@ -10,11 +10,12 @@ export class AppMarketplaceMetadataService {
     manifest: AppManifest;
     metadataPath?: string;
   }): Promise<AppMarketplaceMetadata> => {
-    const metadataPath = params.metadataPath
-      ? path.resolve(params.metadataPath)
-      : path.join(path.resolve(params.appDirectory), "marketplace.json");
+    const { appDirectory, manifest, metadataPath: customMetadataPath } = params;
+    const metadataPath = customMetadataPath
+      ? path.resolve(customMetadataPath)
+      : path.join(path.resolve(appDirectory), "marketplace.json");
     const raw = JSON.parse(await readFile(metadataPath, "utf-8")) as unknown;
-    return this.parseMetadata(raw, params.manifest);
+    return this.parseMetadata(raw, manifest);
   };
 
   collectPublishFiles = async (params: {

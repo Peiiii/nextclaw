@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "nextclaw.starter-card",
+  "name": "Starter Card",
+  "version": "0.1.0",
+  "description": "A minimal starter app card that runs locally and demonstrates the host bridge action loop.",
+  "icon": "assets/icon.svg",
+  "main": {
+    "kind": "wasm",
+    "entry": "main/app.wasm",
+    "export": "summarize_notes",
+    "action": "runStarterCard"
+  },
+  "ui": {
+    "entry": "ui/index.html"
+  },
+  "permissions": {
+    "storage": {
+      "namespace": "starter-card"
+    },
+    "capabilities": {
+      "hostBridge": true
+    }
+  }
+}

@@ -9,6 +9,7 @@
 - `napp run <app-dir|app-id>`：启动本地宿主，支持目录运行和已安装应用运行
 - `napp dev <app-dir>`：当前等价于 `run`
 - `napp pack <app-dir>`：把应用目录打成 `.napp` bundle
+- `napp publish <app-dir>`：把应用目录发布到官方 apps registry
 - `napp install <app-dir|bundle.napp|app-id[@version]>`：从本地或 registry 安装应用
 - `napp update <app-id>`：更新已安装应用
 - `napp uninstall <app-id>`：卸载已安装应用
@@ -57,7 +58,7 @@ assets/
 - 用户数据目录：`~/.nextclaw/apps/data/<app-id>/`
 - 本地 registry：`~/.nextclaw/apps/registry.json`
 - 本地 config：`~/.nextclaw/apps/config.json`
-- 默认 registry：`https://registry.nextclaw.com/`
+- 默认 registry：`https://apps-registry.nextclaw.io/api/v1/apps/registry/`
 
 ## 当前 MVP 工作流
 
@@ -67,6 +68,7 @@ assets/
 napp create ./my-first-napp
 napp inspect ./my-first-napp
 napp pack ./my-first-napp
+napp publish ./my-first-napp
 ```
 
 本地安装工作流：
@@ -115,6 +117,7 @@ napp run nextclaw.my-first-napp
 ```bash
 napp inspect ./apps/examples/hello-notes
 napp pack ./apps/examples/hello-notes
+napp publish ./apps/examples/hello-notes
 napp install ./apps/examples/hello-notes
 napp grant nextclaw.hello-notes --document notes=/absolute/path/to/notes
 napp run ./apps/examples/hello-notes --document notes=/absolute/path/to/notes
@@ -128,6 +131,11 @@ napp registry set https://registry.example.com/
 napp install nextclaw.hello-notes
 napp update nextclaw.hello-notes
 ```
+
+官方 apps 入口：
+
+- Web：`https://apps.nextclaw.io`
+- Registry/API：`https://apps-registry.nextclaw.io`
 
 ## Bundle 结构
 

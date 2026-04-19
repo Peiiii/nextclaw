@@ -25,6 +25,12 @@ export class AppScaffoldService {
         "utf-8",
       ),
       writeFile(
+        path.join(appDirectory, "marketplace.json"),
+        `${JSON.stringify(this.buildMarketplaceMetadata(appName), null, 2)}\n`,
+        "utf-8",
+      ),
+      writeFile(path.join(appDirectory, "README.md"), this.buildReadme(appName, appId), "utf-8"),
+      writeFile(
         path.join(appDirectory, "main", "app.wasm"),
         Buffer.from(APP_WASM_BASE64, "base64"),
       ),
@@ -231,6 +237,56 @@ export class AppScaffoldService {
     <script type="module" src="./app.controller.js"></script>
   </body>
 </html>
+`;
+  };
+
+  private buildMarketplaceMetadata = (appName: string) => {
+    return {
+      slug: this.normalizeSlug(appName),
+      summary: `A minimal ${appName} app scaffold created by napp.`,
+      summaryI18n: {
+        en: `A minimal ${appName} app scaffold created by napp.`,
+        zh: `一个由 napp 创建的最小 ${appName} 应用骨架。`,
+      },
+      description: `A minimal NextClaw app scaffold for ${appName}, ready for local run and marketplace publish.`,
+      descriptionI18n: {
+        en: `A minimal NextClaw app scaffold for ${appName}, ready for local run and marketplace publish.`,
+        zh: `一个面向 ${appName} 的最小 NextClaw 应用骨架，可直接本地运行并发布到 marketplace。`,
+      },
+      author: "NextClaw",
+      tags: ["starter", "official", "local"],
+      sourceRepo: "https://github.com/Peiiii/nextclaw",
+      homepage: "https://nextclaw.io",
+      featured: false,
+      publisher: {
+        id: "nextclaw",
+        name: "NextClaw",
+        url: "https://nextclaw.io",
+      },
+    };
+  };
+
+  private buildReadme = (appName: string, appId: string): string => {
+    return `# ${appName}
+
+This starter app was created by \`napp create\`.
+
+## Local workflow
+
+\`\`\`bash
+napp inspect .
+napp run .
+\`\`\`
+
+## Publish workflow
+
+\`\`\`bash
+napp publish .
+\`\`\`
+
+## App ID
+
+\`${appId}\`
 `;
   };
 

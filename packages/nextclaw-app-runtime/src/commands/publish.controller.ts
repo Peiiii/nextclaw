@@ -13,20 +13,24 @@ export class PublishCommand {
     json: boolean;
     write: (text: string) => void;
   }): Promise<void> => {
+    const { appDirectory, metadataPath, apiBaseUrl, token, json, write } = params;
     const result = await this.publishService.publish({
-      appDirectory: params.appDirectory,
-      metadataPath: params.metadataPath,
-      apiBaseUrl: params.apiBaseUrl,
-      token: params.token,
+      appDirectory,
+      metadataPath,
+      apiBaseUrl,
+      token,
     });
-    if (params.json) {
-      params.write(`${JSON.stringify({ ok: true, publish: result }, null, 2)}\n`);
+    if (json) {
+      write(`${JSON.stringify({ ok: true, publish: result }, null, 2)}\n`);
       return;
     }
-    params.write(
+    write(
       `${result.created ? "Published" : "Updated"} ${result.item.name} (${result.item.appId}) ${result.item.latestVersion}\n`,
     );
-    params.write(`Bundle: ${result.bundle.path}\n`);
-    params.write(`Install: ${result.item.install.command}\n`);
+    write(`Bundle: ${result.bundle.path}\n`);
+    if (result.item.webUrl) {
+      write(`Details: ${result.item.webUrl}\n`);
+    }
+    write(`Install: ${result.item.install.command}\n`);
   };
 }

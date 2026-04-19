@@ -1,7 +1,7 @@
 import type { AppManifest, AppPermissions } from "../manifest/app-manifest.types.js";
 import type { AppPublisher } from "../registry/app-remote-registry.types.js";
 
-export const DEFAULT_APP_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
+export const DEFAULT_APP_MARKETPLACE_API_BASE = "https://apps-registry.nextclaw.io";
 
 export type AppMarketplaceMetadata = {
   slug: string;
@@ -51,6 +51,7 @@ export type AppPublishResult = {
     appId: string;
     name: string;
     latestVersion: string;
+    webUrl?: string;
     install: {
       kind: "registry";
       spec: string;

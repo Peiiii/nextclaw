@@ -1,0 +1,23 @@
+{
+  "slug": "workspace-glance",
+  "summary": "Scan an authorized workspace directory and return a compact pulse snapshot.",
+  "summaryI18n": {
+    "en": "Scan an authorized workspace directory and return a compact pulse snapshot.",
+    "zh": "扫描已授权 workspace 目录并返回一个紧凑概览。"
+  },
+  "description": "A small NextClaw app for quickly glancing over a granted workspace directory and surfacing a compact document summary.",
+  "descriptionI18n": {
+    "en": "A small NextClaw app for quickly glancing over a granted workspace directory and surfacing a compact document summary.",
+    "zh": "一个小型 NextClaw app，用来快速查看已授权 workspace 目录并返回文档概览。"
+  },
+  "author": "NextClaw",
+  "tags": ["workspace", "documents", "local", "official"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": true,
+  "publisher": {
+    "id": "nextclaw",
+    "name": "NextClaw",
+    "url": "https://nextclaw.io"
+  }
+}

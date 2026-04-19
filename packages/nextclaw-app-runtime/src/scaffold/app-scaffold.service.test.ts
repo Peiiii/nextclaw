@@ -33,6 +33,8 @@ describe("AppScaffoldService", () => {
     const bundle = await manifestService.load(result.appDirectory);
 
     await expect(access(path.join(result.appDirectory, "main", "app.wat"))).resolves.toBeUndefined();
+    await expect(access(path.join(result.appDirectory, "marketplace.json"))).resolves.toBeUndefined();
+    await expect(access(path.join(result.appDirectory, "README.md"))).resolves.toBeUndefined();
     expect(bundle.manifest.id.startsWith("nextclaw.napp-starter-")).toBe(true);
     expect(bundle.manifest.main.action).toBe("runStarterDemo");
     expect(bundle.manifest.ui.entry).toBe("ui/index.html");

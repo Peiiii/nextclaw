@@ -1,0 +1,23 @@
+{
+  "slug": "starter-card",
+  "summary": "A smallest-possible official app card for local install and bridge testing.",
+  "summaryI18n": {
+    "en": "A smallest-possible official app card for local install and bridge testing.",
+    "zh": "一个最小可运行的官方 app 卡片，用于本地安装与 bridge 测试。"
+  },
+  "description": "A tiny starter app that demonstrates the default host bridge round-trip without requiring document permissions.",
+  "descriptionI18n": {
+    "en": "A tiny starter app that demonstrates the default host bridge round-trip without requiring document permissions.",
+    "zh": "一个极小的 starter app，用来展示不依赖文档权限的默认宿主 bridge 往返调用。"
+  },
+  "author": "NextClaw",
+  "tags": ["starter", "official", "local"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": true,
+  "publisher": {
+    "id": "nextclaw",
+    "name": "NextClaw",
+    "url": "https://nextclaw.io"
+  }
+}

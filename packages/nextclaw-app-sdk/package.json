@@ -1,0 +1,49 @@
+{
+  "name": "@nextclaw/app-sdk",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Lightweight bridge client for NextClaw Apps.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-app-sdk",
+  "bugs": {
+    "url": "https://github.com/Peiiii/nextclaw/issues"
+  },
+  "keywords": [
+    "nextclaw",
+    "app-sdk",
+    "micro-app",
+    "webview",
+    "bridge"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint src --max-warnings=0",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

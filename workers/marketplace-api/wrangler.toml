@@ -3,7 +3,8 @@ main = "src/main.ts"
 compatibility_date = "2026-02-23"
 workers_dev = false
 routes = [
-  { pattern = "marketplace-api.nextclaw.io", custom_domain = true }
+  { pattern = "marketplace-api.nextclaw.io", custom_domain = true },
+  { pattern = "apps-registry.nextclaw.io", custom_domain = true }
 ]
 
 [observability]

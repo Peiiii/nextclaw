@@ -297,6 +297,7 @@ export class AppRuntimeCliService {
     this.write("       napp inspect <app-dir> [--json]\n");
     this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
     this.write("       napp pack <app-dir> [--out bundle.napp] [--json]\n");
+    this.write("       napp publish <app-dir> [--meta marketplace.json] [--api-base <url>] [--token <token>] [--json]\n");
     this.write("       napp install <app-dir|bundle.napp|app-id[@version]> [--registry <url>] [--json]\n");
     this.write("       napp update <app-id> [--version <version>] [--registry <url>] [--json]\n");
     this.write("       napp uninstall <app-id> [--purge-data] [--json]\n");

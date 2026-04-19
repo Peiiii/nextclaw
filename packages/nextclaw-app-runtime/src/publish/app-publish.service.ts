@@ -21,12 +21,13 @@ export class AppPublishService {
     apiBaseUrl?: string;
     token?: string;
   }): Promise<AppPublishResult> => {
-    const appDirectory = path.resolve(params.appDirectory);
+    const { appDirectory: inputAppDirectory, metadataPath, apiBaseUrl, token } = params;
+    const appDirectory = path.resolve(inputAppDirectory);
     const manifestBundle = await this.manifestService.load(appDirectory);
     const metadata = await this.metadataService.load({
       appDirectory,
       manifest: manifestBundle.manifest,
-      metadataPath: params.metadataPath,
+      metadataPath,
     });
     const bundle = await this.bundleService.packAppDirectory({
       appDirectory,
@@ -35,7 +36,7 @@ export class AppPublishService {
     const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
     const publishFiles = await this.metadataService.collectPublishFiles({
       appDirectory,
-      metadataPath: params.metadataPath,
+      metadataPath,
     });
     const payload: AppPublishPayload = {
       slug: metadata.slug,
@@ -67,8 +68,8 @@ export class AppPublishService {
     };
     const result = await this.marketplaceClient.publish({
       payload,
-      apiBaseUrl: params.apiBaseUrl,
-      token: params.token,
+      apiBaseUrl,
+      token,
     });
     return {
       ...result,

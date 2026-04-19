@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.4.0
+
+### Minor Changes
+
+- Add `napp publish`, official apps registry defaults, scaffolded marketplace metadata, and standalone NextClaw Apps distribution support.
+
 ## 0.3.0
 
 ### Minor Changes

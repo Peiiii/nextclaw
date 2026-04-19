@@ -111,6 +111,7 @@ exampleRunChild.kill("SIGTERM");
 await onceExit(exampleRunChild);
 
 const registryWorkspace = await mkdtemp(path.join(tmpdir(), "napp-registry-"));
+const publishWorkspace = await mkdtemp(path.join(tmpdir(), "napp-publish-"));
 const registryVersion2Directory = path.join(registryWorkspace, "hello-notes-v2");
 await cp(exampleAppDirectory, registryVersion2Directory, { recursive: true });
 const version2ManifestPath = path.join(registryVersion2Directory, "manifest.json");
@@ -198,8 +199,64 @@ if (!registryAddress || typeof registryAddress === "string") {
   throw new Error("registry smoke server address unavailable");
 }
 const registryUrl = `http://127.0.0.1:${registryAddress.port}/`;
+const publishServer = createServer(async (request, response) => {
+  const requestUrl = new URL(request.url ?? "/", "http://127.0.0.1");
+  if (request.method === "POST" && requestUrl.pathname === "/api/v1/apps/publish") {
+    const chunks = [];
+    for await (const chunk of request) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    const payload = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+    response.setHeader("content-type", "application/json");
+    response.end(
+      JSON.stringify({
+        ok: true,
+        data: {
+          created: true,
+          item: {
+            slug: payload.slug,
+            appId: payload.appId,
+            name: payload.name,
+            latestVersion: payload.version,
+            webUrl: `https://apps.nextclaw.io/apps/${payload.slug}`,
+            install: {
+              kind: "registry",
+              spec: payload.appId,
+              command: `napp install ${payload.appId}`,
+              registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+            },
+          },
+          fileCount: payload.files.length,
+        },
+      }),
+    );
+    return;
+  }
+  response.writeHead(404, {
+    "content-type": "text/plain",
+  });
+  response.end("not found");
+});
+await new Promise((resolve) => {
+  publishServer.listen(0, "127.0.0.1", resolve);
+});
+const publishAddress = publishServer.address();
+if (!publishAddress || typeof publishAddress === "string") {
+  throw new Error("publish smoke server address unavailable");
+}
+const publishApiBase = `http://127.0.0.1:${publishAddress.port}`;
 
 try {
+  const publishResult = await runCli(
+    ["publish", exampleAppDirectory, "--api-base", publishApiBase, "--token", "smoke-token", "--json"],
+    {
+      NEXTCLAW_APP_HOME: publishWorkspace,
+    },
+  );
+  if (publishResult.publish.item.appId !== "nextclaw.hello-notes") {
+    throw new Error(`unexpected publish payload: ${JSON.stringify(publishResult)}`);
+  }
+
   const registrySetResult = await runCli(["registry", "set", registryUrl, "--json"], {
     NEXTCLAW_APP_HOME: appHomeDirectory,
   });
@@ -322,6 +379,15 @@ try {
     NEXTCLAW_APP_HOME: appHomeDirectory,
   });
 } finally {
+  await new Promise((resolve, reject) => {
+    publishServer.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
   await new Promise((resolve, reject) => {
     registryServer.close((error) => {
       if (error) {

@@ -1,0 +1,23 @@
+{
+  "slug": "hello-notes",
+  "summary": "Summarize an authorized notes directory in a tiny local app.",
+  "summaryI18n": {
+    "en": "Summarize an authorized notes directory in a tiny local app.",
+    "zh": "通过一个轻量本地 app 汇总已授权的 notes 目录。"
+  },
+  "description": "A small NextClaw app that reads a granted notes directory and returns a compact summary through the local host bridge.",
+  "descriptionI18n": {
+    "en": "A small NextClaw app that reads a granted notes directory and returns a compact summary through the local host bridge.",
+    "zh": "一个小型 NextClaw app，通过本地宿主桥接读取已授权 notes 目录并返回简洁摘要。"
+  },
+  "author": "NextClaw",
+  "tags": ["notes", "documents", "local", "official"],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://nextclaw.io",
+  "featured": true,
+  "publisher": {
+    "id": "nextclaw",
+    "name": "NextClaw",
+    "url": "https://nextclaw.io"
+  }
+}
