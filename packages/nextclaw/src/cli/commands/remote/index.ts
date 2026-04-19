@@ -9,7 +9,19 @@ import {
 } from "@nextclaw/remote";
 import { hostname } from "node:os";
 import { localUiDiscoveryService } from "../../shared/services/local-ui-discovery.service.js";
-import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "../remote-support/remote-runtime-support.js";
+import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./services/remote-runtime-support.service.js";
+
+export {
+  buildNextclawConfiguredRemoteState,
+  createNextclawRemoteConnector,
+  createNextclawRemoteStatusStore,
+  hasRunningNextclawManagedService,
+  resolveNextclawRemoteStatusSnapshot
+} from "./services/remote-runtime-support.service.js";
+export {
+  buildPlatformApiBaseErrorMessage,
+  resolvePlatformApiBase
+} from "./utils/platform-api-base.utils.js";
 
 type RemoteConfigChange = {
   changed: boolean;

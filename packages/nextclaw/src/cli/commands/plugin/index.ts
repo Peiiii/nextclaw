@@ -34,6 +34,7 @@ import {
   uninstallPluginMutation,
 } from "./plugin-mutation-actions.js";
 export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.js";
+export { createEmptyPluginRegistry } from "./plugin-registry-loader.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {

@@ -19,7 +19,7 @@ import {
   type ManagedServiceState
 } from "../../../shared/stores/managed-service-state.store.js";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "../utils/diagnostics-render.utils.js";
-import { resolveNextclawRemoteStatusSnapshot } from "../../remote-support/index.js";
+import { resolveNextclawRemoteStatusSnapshot } from "../../remote/index.js";
 import type {
   DoctorCommandOptions,
   HealthProbe,

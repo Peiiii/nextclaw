@@ -17,29 +17,29 @@ import {
   waitForExit
 } from "../../shared/utils/cli.utils.js";
 import type { RequestRestartParams } from "../../shared/types/cli.types.js";
-import { ServiceMarketplaceInstaller } from "../service-support/marketplace/service-marketplace-installer.js";
-import { reportManagedServiceStart, resolveManagedServiceUiBinding, resolveSessionRouteCandidate, spawnManagedService, waitForManagedServiceReadiness } from "../service-support/runtime/service-managed-startup.service.js";
-import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "../service-support/gateway/service-startup-support.js";
+import { ServiceMarketplaceInstaller } from "./services/marketplace/service-marketplace-installer.js";
+import { reportManagedServiceStart, resolveManagedServiceUiBinding, resolveSessionRouteCandidate, spawnManagedService, waitForManagedServiceReadiness } from "./services/runtime/service-managed-startup.service.js";
+import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "./services/gateway/service-startup-support.js";
 import { localUiRuntimeStore } from "../../shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore, type ManagedServiceState } from "../../shared/stores/managed-service-state.store.js";
 import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../../shared/services/restart-sentinel.service.js";
-import { resolveCliSubcommandEntry } from "../service-support/marketplace/cli-subcommand-launch.utils.js";
-import { writeReadyManagedServiceState } from "../service-support/runtime/service-remote-runtime.js";
-import { createServiceUiHosts } from "../service-support/ui/service-ui-hosts.service.js";
-import { type UiNcpAgentHandle } from "../ncp/features/runtime/create-ui-ncp-agent.service.js";
-import { createGatewayShellContext, createGatewayStartupContext } from "../service-support/gateway/service-gateway-context.service.js";
-import { runConfiguredGatewayRuntime, startUiShell } from "../service-support/gateway/service-gateway-startup.service.js";
-import { createServiceNcpSessionRealtimeBridge } from "../service-support/session/service-ncp-session-realtime-bridge.js";
-import { createEmptyPluginRegistry } from "../plugin/plugin-registry-loader.js";
-import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "../service-support/gateway/service-gateway-bootstrap.service.js";
-import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "../service-support/gateway/service-gateway-runtime-lifecycle.js";
-import { inspectUiTarget, probeHealthEndpoint } from "../service-support/runtime/service-port-probe.js";
+import { resolveCliSubcommandEntry } from "./utils/marketplace/cli-subcommand-launch.utils.js";
+import { writeReadyManagedServiceState } from "./services/runtime/service-remote-runtime.js";
+import { createServiceUiHosts } from "./services/ui/service-ui-hosts.service.js";
+import { type UiNcpAgentHandle } from "../ncp/index.js";
+import { createGatewayShellContext, createGatewayStartupContext } from "./services/gateway/service-gateway-context.service.js";
+import { runConfiguredGatewayRuntime, startUiShell } from "./services/gateway/service-gateway-startup.service.js";
+import { createServiceNcpSessionRealtimeBridge } from "./services/session/service-ncp-session-realtime-bridge.js";
+import { createEmptyPluginRegistry } from "../plugin/index.js";
+import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./services/gateway/service-gateway-bootstrap.service.js";
+import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./services/gateway/service-gateway-runtime-lifecycle.js";
+import { inspectUiTarget, probeHealthEndpoint, describeUnmanagedHealthyTargetMessage } from "./utils/runtime/service-port-probe.utils.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../../shared/utils/startup-trace.js";
-import { HostAutostartCommandService } from "../service-support/autostart/host-autostart-command.service.js";
+import { HostAutostartCommandService } from "./services/autostart/host-autostart-command.service.js";
 import type { ServiceAutostartCommandOptions } from "../../shared/types/cli.types.js";
 
-export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "../service-support/marketplace/service-marketplace-helpers.js";
-export { resolveCliSubcommandEntry };
+export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./utils/marketplace/service-marketplace-helpers.utils.js";
+export { describeUnmanagedHealthyTargetMessage, resolveCliSubcommandEntry };
 const {
   APP_NAME,
   getApiBase,

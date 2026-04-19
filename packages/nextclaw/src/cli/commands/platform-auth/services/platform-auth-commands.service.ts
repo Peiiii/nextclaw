@@ -1,6 +1,6 @@
 import { getConfigPath, loadConfig, saveConfig } from "@nextclaw/core";
 import { createInterface } from "node:readline";
-import { buildPlatformApiBaseErrorMessage, resolvePlatformApiBase } from "../../remote-support/index.js";
+import { buildPlatformApiBaseErrorMessage, resolvePlatformApiBase } from "../../remote/index.js";
 import {
   readBrowserAuthPollPayload,
   readBrowserAuthStartPayload,
