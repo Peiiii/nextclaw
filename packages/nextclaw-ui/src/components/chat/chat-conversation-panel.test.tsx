@@ -305,6 +305,25 @@ describe("ChatConversationPanel", () => {
     expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
   });
 
+  it("does not render runtime lifecycle copy in the conversation alert strip", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        chatRuntimeBlocked: true,
+        chatRuntimeMessage:
+          "聊天能力正在初始化。你可以先输入内容，完成后即可发送。",
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(
+      screen.queryByText(
+        "聊天能力正在初始化。你可以先输入内容，完成后即可发送。",
+      ),
+    ).toBeNull();
+  });
+
   it("does not auto-open the child-session panel until the panel is explicitly opened", () => {
     useChatThreadStore.setState({
       snapshot: {
