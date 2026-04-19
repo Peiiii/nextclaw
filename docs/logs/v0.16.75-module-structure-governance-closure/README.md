@@ -19,6 +19,10 @@
 - 同批次续改把 CLI 共享服务根层继续收紧，避免 `shared/services/` 自己退化成新的平铺垃圾层：
   - `config-reloader`、`self-update`、`restart-*`、`runtime-*`、`llm-usage-*`、`workspace-manager`、`ui-bridge-api`、`local-ui-discovery` 等文件已按职责回收到 `shared/services/{config,restart,runtime,ui,update,usage,workspace}/`。
   - 这次命中的根因不是“某几个 import 没改干净”，而是 `shared/services/` 根层本身仍然在继续承担历史过渡目录角色；本次修的是职责层次，而不是再给根层开白名单。
+- 同批次续改进一步纠正了 `usage` 与 telemetry 的 owner 边界，避免 CLI 表层命令继续偷带运行态写侧职责：
+  - `commands/usage/` 现在只保留 read side owner，也就是 `LlmUsageCommandService` 与本地 `LlmUsageQueryService`；它只负责读取 `shared/stores` 中已有 usage 数据并做展示，不再拥有 runtime 观测写入职责。
+  - runtime / NCP 侧的写入能力已从 `shared/services/usage/` 明确回收到 [`packages/nextclaw/src/cli/shared/services/telemetry/`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/shared/services/telemetry)，其中 `LlmUsageObserver`、`ObservedProviderManager`、`LlmUsageRecorder` 统一表达“运行时 telemetry 采集”而不是“usage 命令逻辑”。
+  - 这次命中的根因不是 import 路径老旧，而是早期把“usage 查看命令”和“usage 数据写入 owner”混进同一个命名空间，导致其它运行时入口看起来像是在依赖命令 feature；本次修的是 owner 语义，而不是继续把 telemetry 包装成 `usage` 的附属物。
 - 同批次续改把 alias 导入协议真正接入 `module-structure` 合同，而不是只把 `importAliasPrefixes` 当成解析辅助信息：
   - 一旦模块声明了 `importAliasPrefixes`，治理器现在会把它解释成“跨目录导入的唯一协议”，父级相对路径如 `../`、`../../` 会被直接阻断，只保留同目录 `./` 相对导入。
   - 对应检查已落到 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs) 和单测 [`scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/lint-new-code-module-structure.test.mjs)。

@@ -32,7 +32,7 @@ import { SessionRequestBroker } from "@/cli/commands/ncp/session-request/session
 import { SessionRequestDeliveryService } from "@/cli/commands/ncp/session-request/session-request-delivery.service.js";
 import { SessionSearchRuntimeSupport } from "@/cli/commands/ncp/session-search/session-search-runtime.service.js";
 import { UiNcpRuntimeRegistry } from "@/cli/commands/ncp/ui-ncp-runtime-registry.js";
-import { LlmUsageObserver, ObservedProviderManager } from "@/cli/shared/services/usage/llm-usage-observer.service.js";
+import { LlmUsageObserver, ObservedProviderManager } from "@/cli/shared/services/telemetry/llm-usage-observer.service.js";
 import {
   createUiNcpAgentHandle,
   type UiNcpAgentHandle,
@@ -43,7 +43,7 @@ import {
 } from "@/cli/commands/learning-loop/index.js";
 import { PluginRuntimeRegistrationController } from "@/cli/commands/ncp/plugin-runtime-registration.controller.js";
 import { BuiltinNarpRuntimeRegistrationService } from "@/cli/commands/ncp/builtin-narp-runtime-registration.service.js";
-import { llmUsageRecorder } from "@/cli/shared/services/usage/llm-usage-recorder.service.js";
+import { llmUsageRecorder } from "@/cli/shared/services/telemetry/llm-usage-recorder.service.js";
 import { resolveUiNcpRuntimeEntries } from "@/cli/commands/ncp/ui-ncp-runtime-entry-resolver.js";
 
 export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.service.js";

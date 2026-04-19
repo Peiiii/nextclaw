@@ -3,7 +3,7 @@ import {
   llmUsageQueryService,
   type LlmUsageQueryService,
   type LlmUsageStats,
-} from "@/cli/shared/services/usage/llm-usage-query.service.js";
+} from "./llm-usage-query.service.js";
 
 export class LlmUsageCommandService {
   constructor(
