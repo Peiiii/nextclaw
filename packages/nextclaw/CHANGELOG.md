@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.3
+
+### Patch Changes
+
+- Fix packaged CLI UI static bundle resolution after npm update and restart.
+
 ## 0.18.2
 
 ### Patch Changes

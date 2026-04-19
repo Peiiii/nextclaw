@@ -2,7 +2,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_NAME, getDataDir } from "@nextclaw/core";
-import { which } from "@/cli/shared/utils/cli.utils.js";
+import { findExecutableOnPath } from "@/cli/shared/utils/cli.utils.js";
 import { spawnSync } from "node:child_process";
 
 export class WorkspaceManager {
@@ -119,7 +119,7 @@ export class WorkspaceManager {
   };
 
   private readonly assertCommandAvailable = (command: string): void => {
-    if (which(command)) {
+    if (findExecutableOnPath(command)) {
       return;
     }
     this.exitWithError(`${command} not found. Please install Node.js >= 18.`);
