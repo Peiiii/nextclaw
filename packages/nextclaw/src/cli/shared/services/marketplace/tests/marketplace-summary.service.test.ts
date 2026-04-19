@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { pickUserFacingCommandSummary } from "../../../index.js";
+import { pickUserFacingCommandSummary } from "@/cli/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 
 describe("pickUserFacingCommandSummary", () => {
   it("hides absolute path line and keeps user-facing install summary", () => {

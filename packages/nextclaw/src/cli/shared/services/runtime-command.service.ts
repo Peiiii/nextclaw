@@ -3,50 +3,40 @@ import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat"
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
-import { MissingProvider } from "../../shared/providers/missing-provider.js";
+import { MissingProvider } from "@/cli/shared/providers/missing-provider.js";
 import {
   getPackageVersion,
-  isLoopbackHost,
-  isProcessRunning,
-  openBrowser,
-  resolveServiceLogPath,
-  resolveUiApiBase,
   resolveUiConfig,
   resolveUiStaticDir,
-  resolvePublicIp,
-  waitForExit
-} from "../../shared/utils/cli.utils.js";
-import type { RequestRestartParams } from "../../shared/types/cli.types.js";
-import { ServiceMarketplaceInstaller } from "./services/marketplace/service-marketplace-installer.js";
-import { reportManagedServiceStart, resolveManagedServiceUiBinding, resolveSessionRouteCandidate, spawnManagedService, waitForManagedServiceReadiness } from "./services/runtime/service-managed-startup.service.js";
-import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "./services/service-startup-support.js";
-import { localUiRuntimeStore } from "../../shared/stores/local-ui-runtime.store.js";
-import { managedServiceStateStore, type ManagedServiceState } from "../../shared/stores/managed-service-state.store.js";
-import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "../../shared/services/restart-sentinel.service.js";
-import { resolveCliSubcommandEntry } from "./utils/marketplace/cli-subcommand-launch.utils.js";
-import { writeReadyManagedServiceState } from "./services/runtime/service-remote-runtime.js";
-import { createServiceUiHosts } from "./services/ui/service-ui-hosts.service.js";
-import { type UiNcpAgentHandle } from "../ncp/index.js";
-import { createGatewayShellContext, createGatewayStartupContext } from "./services/service-gateway-context.service.js";
-import { runConfiguredGatewayRuntime, startUiShell } from "./services/service-gateway-startup.service.js";
-import { createServiceNcpSessionRealtimeBridge } from "./services/session/service-ncp-session-realtime-bridge.js";
-import { createEmptyPluginRegistry } from "../plugin/index.js";
-import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "./services/service-gateway-bootstrap.service.js";
-import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "./services/service-gateway-runtime-lifecycle.js";
-import { inspectUiTarget, probeHealthEndpoint, describeUnmanagedHealthyTargetMessage } from "./utils/service-port-probe.utils.js";
-import { logStartupTrace, measureStartupAsync, measureStartupSync } from "../../shared/utils/startup-trace.js";
+} from "@/cli/shared/utils/cli.utils.js";
+import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
+import { ServiceMarketplaceInstaller } from "@/cli/shared/services/marketplace/service-marketplace-installer.service.js";
+import { ManagedServiceCommandService, resolveSessionRouteCandidate, type StartServiceOptions } from "@/cli/shared/services/runtime/service-managed-startup.service.js";
+import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "@/cli/shared/services/gateway/service-startup-support.js";
+import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "@/cli/shared/services/restart-sentinel.service.js";
+import { createServiceUiHosts } from "@/cli/shared/services/ui/service-ui-hosts.service.js";
+import { type UiNcpAgentHandle } from "@/cli/commands/ncp/index.js";
+import { createGatewayShellContext, createGatewayStartupContext } from "@/cli/shared/services/gateway/service-gateway-context.service.js";
+import { runConfiguredGatewayRuntime, startUiShell } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
+import { createServiceNcpSessionRealtimeBridge } from "@/cli/shared/services/session/service-ncp-session-realtime-bridge.service.js";
+import { createEmptyPluginRegistry } from "@/cli/commands/plugin/index.js";
+import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "@/cli/shared/services/gateway/service-gateway-bootstrap.service.js";
+import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "@/cli/shared/services/gateway/service-gateway-runtime-lifecycle.js";
+import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@/cli/shared/utils/service-port-probe.utils.js";
+import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
+import { resolveCliSubcommandEntry } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
+import { isLoopbackHost, resolvePublicIp } from "@/cli/shared/utils/cli.utils.js";
 
-export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "./utils/marketplace/service-marketplace-helpers.utils.js";
-export { describeUnmanagedHealthyTargetMessage, resolveCliSubcommandEntry };
+export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@/cli/shared/utils/marketplace/service-marketplace-helpers.utils.js";
+export { describeUnmanagedHealthyTargetMessage };
 const {
-  APP_NAME,
   getApiBase,
   getConfigPath,
   getProvider,
   getProviderName,
   getWorkspacePath,
-  LiteLLMProvider,
   loadConfig,
+  LiteLLMProvider,
   MessageBus,
   resolveConfigSecrets,
   SessionManager,
@@ -55,9 +45,9 @@ const {
 
 type Config = NextclawCore.Config;
 type LLMProvider = NextclawCore.LLMProvider;
+type LiteLLMProvider = NextclawCore.LiteLLMProvider;
 type MessageBus = NextclawCore.MessageBus;
 type SessionManager = NextclawCore.SessionManager;
-type LiteLLMProvider = NextclawCore.LiteLLMProvider;
 type SkillInfo = {
   name: string;
   path: string;
@@ -67,11 +57,6 @@ type SkillsLoaderInstance = {
   listSkills: (filterUnavailable?: boolean) => SkillInfo[];
 };
 type SkillsLoaderConstructor = new (workspace: string, builtinSkillsDir?: string) => SkillsLoaderInstance;
-type StartServiceOptions = {
-  uiOverrides: Partial<Config["ui"]>;
-  open: boolean;
-  startupTimeoutMs?: number;
-};
 
 function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
@@ -81,13 +66,18 @@ function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   return new ctor(workspace);
 }
 
-export class RuntimeCommands {
+export class RuntimeCommandService {
   private applyLiveConfigReload: (() => Promise<void>) | null = null;
   private liveUiNcpAgent: UiNcpAgentHandle | null = null;
   private readonly fileWatchers = new ServiceFileWatcherRegistry();
-  private readonly loggingRuntime = NextclawCore.getLoggingRuntime();
-  private readonly serviceLogger = this.loggingRuntime.getLogger("service");
   private loggingInstalled = false;
+  private readonly managedServiceCommandService = new ManagedServiceCommandService({
+    startGateway: async (options) => await this.startGateway(options),
+    printPublicUiUrls: async (host, port) => await this.printPublicUiUrls(host, port),
+    printServiceControlHints: () => this.printServiceControlHints(),
+    checkUiPortPreflight: async (params) => await this.checkUiPortPreflight(params)
+  });
+
   constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
 
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
@@ -104,7 +94,11 @@ export class RuntimeCommands {
     let runtimeState: GatewayRuntimeState | null = null;
     const bootstrapStatus = createBootstrapStatus(shellContext.config.remote.enabled);
     const ncpSessionRealtimeBridge = createServiceNcpSessionRealtimeBridge({ sessionManager: shellContext.sessionManager });
-    const marketplaceInstaller = new ServiceMarketplaceInstaller({ applyLiveConfigReload, runCliSubcommand: (args) => this.runCliSubcommand(args), installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force) }).createInstaller();
+    const marketplaceInstaller = new ServiceMarketplaceInstaller({
+      applyLiveConfigReload,
+      runCliSubcommand: (args) => this.runCliSubcommand(args),
+      installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force)
+    }).createInstaller();
     const { remoteAccess, runtimeControl } = createServiceUiHosts({ serviceCommands: this, requestRestart: this.deps.requestRestart, uiConfig: shellContext.uiConfig, remoteModule: shellContext.remoteModule });
     const uiStartup = await measureStartupAsync("service.start_ui_shell", async () =>
       await startUiShell({
@@ -140,9 +134,9 @@ export class RuntimeCommands {
         uiStaticDir: options.uiStaticDir,
         initialPluginRegistry: createEmptyPluginRegistry(),
         makeProvider: (config, providerOptions) => providerOptions?.allowMissing === true
-          ? this.makeProvider(config, { allowMissing: true })
-          : this.makeProvider(config),
-        makeMissingProvider: (config) => this.makeMissingProvider(config),
+          ? this.createProvider(config, { allowMissing: true })
+          : this.createProvider(config),
+        makeMissingProvider: (config) => this.createMissingProvider(config),
         requestRestart: (params) => this.deps.requestRestart(params),
         getLiveUiNcpAgent: () => this.liveUiNcpAgent
       })
@@ -341,379 +335,26 @@ export class RuntimeCommands {
     });
   };
 
+  startService = async (options: StartServiceOptions): Promise<void> => {
+    await this.managedServiceCommandService.startService(options);
+  };
+
+  stopService = async (): Promise<void> => {
+    await this.managedServiceCommandService.stopService();
+  };
+
   runForeground = async (options: {
     uiOverrides: Partial<Config["ui"]>;
     open: boolean;
   }): Promise<void> => {
-    const config = loadConfig();
-    const uiConfig = resolveUiConfig(config, options.uiOverrides);
-    const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
-
-    if (options.open) {
-      openBrowser(uiUrl);
-    }
-
-    await this.startGateway({
-      uiOverrides: options.uiOverrides,
-      allowMissingProvider: true,
-      uiStaticDir: resolveUiStaticDir()
-    });
-  };
-
-  private handleExistingManagedService = async (params: {
-    existing: ManagedServiceState;
-    uiConfig: Config["ui"];
-    options: StartServiceOptions;
-  }): Promise<boolean> => {
-    const { existing, options, uiConfig } = params;
-    console.log(`✓ ${APP_NAME} is already running (PID ${existing.pid})`);
-    console.log(`UI: ${existing.uiUrl}`);
-    console.log(`API: ${existing.apiUrl}`);
-
-    const binding = resolveManagedServiceUiBinding(existing);
-    if (binding.host !== uiConfig.host || binding.port !== uiConfig.port) {
-      console.log(
-        `Detected running service UI bind (${binding.host}:${binding.port}); enforcing (${uiConfig.host}:${uiConfig.port})...`
-      );
-      await this.stopService();
-      const stateAfterStop = managedServiceStateStore.read();
-      if (stateAfterStop && isProcessRunning(stateAfterStop.pid)) {
-        process.exitCode = 1;
-        console.error("Error: Failed to stop running service while enforcing public UI exposure.");
-        return true;
-      }
-      await this.startService(options);
-      return true;
-    }
-
-    await this.printPublicUiUrls(binding.host, binding.port);
-    console.log(`Logs: ${existing.logPath}`);
-    this.printServiceControlHints();
-    return true;
-  };
-
-  startService = async (options: StartServiceOptions): Promise<void> => {
-    this.loggingRuntime.ensureReady();
-    const { open, startupTimeoutMs, uiOverrides } = options;
-    const config = loadConfig();
-    const uiConfig = resolveUiConfig(config, uiOverrides);
-    const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
-    const apiUrl = `${uiUrl}/api`;
-    const staticDir = resolveUiStaticDir();
-
-    const existing = managedServiceStateStore.read();
-    if (existing && isProcessRunning(existing.pid)) {
-      await this.handleExistingManagedService({ existing, uiConfig, options });
-      return;
-    }
-    if (existing) managedServiceStateStore.clear();
-
-    if (!staticDir) {
-      return void (process.exitCode = 1, console.error(`Error: ${APP_NAME} UI frontend bundle not found. Reinstall or rebuild ${APP_NAME}. For dev-only overrides, set NEXTCLAW_UI_STATIC_DIR to a built frontend directory.`));
-    }
-
-    const healthUrl = `${apiUrl}/health`;
-    const portPreflight = await this.checkUiPortPreflight({ host: uiConfig.host, port: uiConfig.port, healthUrl });
-    if (!portPreflight.ok) {
-      return void (
-        process.exitCode = 1,
-        console.error(`Error: Cannot start ${APP_NAME} because UI port ${uiConfig.port} is already occupied.`),
-        console.error(portPreflight.message)
-      );
-    }
-    if (portPreflight.reusedExistingHealthyTarget) {
-      await this.reuseExistingHealthyStartTarget({ uiConfig, uiUrl, apiUrl, open });
-      return;
-    }
-
-    await this.startNewManagedServiceTarget({
-      config,
-      uiConfig,
-      uiUrl,
-      apiUrl,
-      healthUrl,
-      startupTimeoutMs,
-    });
-
-    if (open) {
-      openBrowser(uiUrl);
-    }
-  };
-
-  private reuseExistingHealthyStartTarget = async (params: {
-    uiConfig: Config["ui"];
-    uiUrl: string;
-    apiUrl: string;
-    open: boolean;
-  }): Promise<void> => {
-    const { apiUrl, open, uiConfig, uiUrl } = params;
-    console.log(`✓ ${APP_NAME} is already serving the target UI/API port`);
-    console.log(`UI: ${uiUrl}`);
-    console.log(`API: ${apiUrl}`);
-    console.warn(
-      [
-        `Warning: The healthy listener on ${uiConfig.port} is not tracked by ${managedServiceStateStore.path}.`,
-        "This start call reused the existing runtime instead of spawning another one.",
-        "Use the owning process or port-level tools to stop it; managed stop/restart will not control it automatically."
-      ].join(" ")
-    );
-    await this.printPublicUiUrls(uiConfig.host, uiConfig.port);
-    if (open) {
-      openBrowser(uiUrl);
-    }
-  };
-
-  private startNewManagedServiceTarget = async (params: {
-    config: Config;
-    uiConfig: Config["ui"];
-    uiUrl: string;
-    apiUrl: string;
-    healthUrl: string;
-    startupTimeoutMs?: number;
-  }): Promise<void> => {
-    const { apiUrl, config, healthUrl, startupTimeoutMs, uiConfig, uiUrl } = params;
-    const startup = spawnManagedService({
-      appName: APP_NAME,
-      config,
-      uiConfig,
-      uiUrl,
-      apiUrl,
-      healthUrl,
-      startupTimeoutMs,
-      resolveStartupTimeoutMs: this.resolveStartupTimeoutMs,
-      appendStartupStage: this.appendStartupStage,
-      printStartupFailureDiagnostics: this.printStartupFailureDiagnostics,
-      resolveServiceLogPath
-    });
-    if (!startup) {
-      this.serviceLogger.fatal("managed service startup aborted", {
-        reason: "child_process_not_created"
-      });
-      process.exitCode = 1;
-      return;
-    }
-
-    const readiness = await waitForManagedServiceReadiness({
-      appName: APP_NAME,
-      childPid: startup.snapshot.pid,
-      healthUrl,
-      logPath: startup.logPath,
-      readinessTimeoutMs: startup.readinessTimeoutMs,
-      quickPhaseTimeoutMs: startup.quickPhaseTimeoutMs,
-      extendedPhaseTimeoutMs: startup.extendedPhaseTimeoutMs,
-      appendStartupStage: this.appendStartupStage,
-      waitForBackgroundServiceReady: this.waitForBackgroundServiceReady,
-      isProcessRunning
-    });
-    if (!readiness.ready && !isProcessRunning(startup.snapshot.pid)) {
-      process.exitCode = 1;
-      managedServiceStateStore.clear();
-      const hint = readiness.lastProbeError ? ` Last probe error: ${readiness.lastProbeError}` : "";
-      this.appendStartupStage(startup.logPath, `startup failed: process exited before ready.${hint}`);
-      this.serviceLogger.fatal("managed service exited before readiness completed", {
-        uiUrl,
-        apiUrl,
-        healthUrl,
-        logPath: startup.logPath,
-        ...(readiness.lastProbeError ? { lastProbeError: readiness.lastProbeError } : {}),
-      });
-      console.error(`Error: Failed to start background service. Check logs: ${startup.logPath}.${hint}`);
-      this.printStartupFailureDiagnostics({
-        uiUrl,
-        apiUrl,
-        healthUrl,
-        logPath: startup.logPath,
-        lastProbeError: readiness.lastProbeError
-      });
-      return;
-    }
-
-    startup.child.unref();
-    const state = writeReadyManagedServiceState({
-      readinessTimeoutMs: startup.readinessTimeoutMs,
-      readiness,
-      snapshot: startup.snapshot
-    });
-    await reportManagedServiceStart({
-      appName: APP_NAME,
-      state,
-      uiConfig,
-      uiUrl,
-      apiUrl,
-      readinessTimeoutMs: startup.readinessTimeoutMs,
-      readiness,
-      printPublicUiUrls: this.printPublicUiUrls,
-      printServiceControlHints: this.printServiceControlHints
-    });
-  };
-
-  stopService = async (): Promise<void> => {
-    const state = managedServiceStateStore.read();
-    if (!state) {
-      console.log("No running background service found.");
-      return;
-    }
-    if (!isProcessRunning(state.pid)) {
-      console.log("Service is not running. Cleaning up state.");
-      managedServiceStateStore.clear();
-      return;
-    }
-
-    console.log(`Stopping ${APP_NAME} (PID ${state.pid})...`);
-    try {
-      process.kill(state.pid, "SIGTERM");
-    } catch (error) {
-      console.error(`Failed to stop service: ${String(error)}`);
-      return;
-    }
-
-    const stopped = await waitForExit(state.pid, 3000);
-    if (!stopped) {
-      try {
-        process.kill(state.pid, "SIGKILL");
-      } catch (error) {
-        console.error(`Failed to force stop service: ${String(error)}`);
-        return;
-      }
-      await waitForExit(state.pid, 2000);
-    }
-
-    managedServiceStateStore.clear();
-    localUiRuntimeStore.clearIfOwnedByProcess(state.pid);
-    console.log(`✓ ${APP_NAME} stopped`);
-  };
-
-  waitForBackgroundServiceReady = async (params: {
-    pid: number;
-    healthUrl: string;
-    timeoutMs: number;
-  }): Promise<{ ready: boolean; lastProbeError: string | null }> => {
-    const { pid, healthUrl, timeoutMs } = params;
-    const startedAt = Date.now();
-    let lastProbeError: string | null = null;
-    while (Date.now() - startedAt < timeoutMs) {
-      if (!isProcessRunning(pid)) {
-        return { ready: false, lastProbeError };
-      }
-      const probe = await probeHealthEndpoint(healthUrl);
-      if (!probe.healthy) {
-        lastProbeError = probe.error;
-        await new Promise((resolve) => setTimeout(resolve, 200));
-        continue;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      if (isProcessRunning(pid)) {
-        return { ready: true, lastProbeError: null };
-      }
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
-    return { ready: false, lastProbeError };
-  };
-
-  private resolveStartupTimeoutMs = (overrideTimeoutMs: number | undefined): number => {
-    const fallback = process.platform === "win32" ? 28000 : 33000;
-    const envRaw = process.env.NEXTCLAW_START_TIMEOUT_MS?.trim();
-    const envValue = envRaw ? Number(envRaw) : Number.NaN;
-    const fromEnv = Number.isFinite(envValue) && envValue > 0 ? Math.floor(envValue) : null;
-    const fromOverride = Number.isFinite(overrideTimeoutMs) && Number(overrideTimeoutMs) > 0
-      ? Math.floor(Number(overrideTimeoutMs))
-      : null;
-    const resolved = fromOverride ?? fromEnv ?? fallback;
-    return Math.max(3000, resolved);
-  };
-
-  private appendStartupStage = (logPath: string, message: string): void => {
-    try {
-      this.serviceLogger.child("startup").info(message, { logPath });
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : String(error);
-      console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
-    }
-  };
-
-  private printStartupFailureDiagnostics = (params: {
-    uiUrl: string;
-    apiUrl: string;
-    healthUrl: string;
-    logPath: string;
-    lastProbeError: string | null;
-  }): void => {
-    const statePath = managedServiceStateStore.path;
-    const lines = [
-      "Startup diagnostics:",
-      `- UI URL: ${params.uiUrl}`,
-      `- API URL: ${params.apiUrl}`,
-      `- Health probe: ${params.healthUrl}`,
-      `- Service state path: ${statePath}`,
-      `- Startup log path: ${params.logPath}`
-    ];
-    if (params.lastProbeError) {
-      lines.push(`- Last probe detail: ${params.lastProbeError}`);
-    }
-    console.error(lines.join("\n"));
-  };
-
-  private checkUiPortPreflight = async (params: {
-    host: string;
-    port: number;
-    healthUrl: string;
-  }): Promise<
-    | { ok: true; reusedExistingHealthyTarget: boolean }
-    | { ok: false; message: string }
-  > => {
-    const { healthUrl, host, port } = params;
-    const target = await inspectUiTarget({
-      host,
-      port,
-      healthUrl
-    });
-    if (target.state === "available") {
-      return { ok: true, reusedExistingHealthyTarget: false };
-    }
-    if (target.state === "healthy-existing") {
-      return { ok: true, reusedExistingHealthyTarget: true };
-    }
-
-    const lines = [
-      `Port probe: ${target.availabilityDetail}`
-    ];
-    if (target.probeError) {
-      lines.push(`Health probe: ${target.probeError}`);
-    }
-    lines.push(
-      "The port is occupied by a process that does not answer as a healthy NextClaw HTTP server."
-    );
-    lines.push(
-      `Fix: free port ${port} or start NextClaw with another port via --ui-port <port>.`
-    );
-    lines.push(
-      `Inspect locally with: ss -ltnp | grep ${port} || lsof -iTCP:${port} -sTCP:LISTEN -n -P`
-    );
-    return {
-      ok: false,
-      message: lines.join("\n")
-    };
+    await this.managedServiceCommandService.runForeground(options);
   };
 
   createMissingProvider = (config: ReturnType<typeof loadConfig>): LLMProvider => {
-    return this.makeMissingProvider(config);
-  };
-
-  createProvider = (config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }): LiteLLMProvider | null => {
-    if (options?.allowMissing) {
-      return this.makeProvider(config, { allowMissing: true });
-    }
-    return this.makeProvider(config);
-  };
-
-  private makeMissingProvider = (config: ReturnType<typeof loadConfig>): LLMProvider => {
     return new MissingProvider(config.agents.defaults.model);
   };
 
-  private makeProvider = (
-    config: ReturnType<typeof loadConfig>,
-    options?: { allowMissing?: boolean }
-  ): LiteLLMProvider | null => {
+  createProvider = (config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }): LiteLLMProvider | null => {
     const provider = getProvider(config);
     const model = config.agents.defaults.model;
     if (!provider?.apiKey && !model.startsWith("bedrock/")) {
@@ -732,55 +373,6 @@ export class RuntimeCommands {
       providerName: getProviderName(config),
       wireApi: provider?.wireApi ?? null
     });
-  };
-
-  private printPublicUiUrls = async (host: string, port: number): Promise<void> => {
-    if (isLoopbackHost(host)) {
-      console.log("Public URL: disabled (UI host is loopback). Current release expects public exposure; run nextclaw restart.");
-      return;
-    }
-
-    const publicIp = await resolvePublicIp();
-    if (!publicIp) {
-      console.log("Public URL: UI is exposed, but automatic public IP detection failed.");
-      return;
-    }
-
-    const publicBase = `http://${publicIp}:${port}`;
-    console.log(`Public UI (if firewall/NAT allows): ${publicBase}`);
-    console.log(`Public API (if firewall/NAT allows): ${publicBase}/api`);
-    console.log(
-      `Public deploy note: NextClaw serves plain HTTP on ${port}.`
-    );
-    console.log(
-      `For https:// or standard 80/443 access, terminate TLS in Nginx/Caddy and proxy to http://127.0.0.1:${port}.`
-    );
-    console.log(
-      `If a reverse proxy returns 502, verify its upstream is http://127.0.0.1:${port} (not https://, not a stale port, and not a stopped process).`
-    );
-  };
-
-  private printServiceControlHints = (): void => {
-    console.log("Service controls:");
-    console.log(`  - Check status: ${APP_NAME} status`);
-    console.log(`  - If you need to stop the service, run: ${APP_NAME} stop`);
-    console.log(`  - View log paths: ${APP_NAME} logs path`);
-    console.log(`  - Tail recent logs: ${APP_NAME} logs tail`);
-    console.log(`  - Check autostart: ${APP_NAME} service autostart status --user`);
-  };
-
-  private ensureRuntimeLoggingInstalled = (): void => {
-    if (this.loggingInstalled) {
-      return;
-    }
-    NextclawCore.configureAppLogging({
-      installConsoleMirror: true,
-      installProcessCrashMonitor: true
-    });
-    this.serviceLogger.info("runtime logging ready", {
-      startupId: this.loggingRuntime.getStartupId()
-    });
-    this.loggingInstalled = true;
   };
 
   private installBuiltinMarketplaceSkill = (slug: string, _force: boolean | undefined): { message: string; output?: string } | null => {
@@ -853,4 +445,72 @@ export class RuntimeCommands {
     });
   };
 
+  private ensureRuntimeLoggingInstalled = (): void => {
+    if (this.loggingInstalled) {
+      return;
+    }
+    NextclawCore.configureAppLogging({
+      installConsoleMirror: true,
+      installProcessCrashMonitor: true
+    });
+    this.loggingInstalled = true;
+  };
+
+  private checkUiPortPreflight = async (params: {
+    host: string;
+    port: number;
+    healthUrl: string;
+  }): Promise<
+    | { ok: true; reusedExistingHealthyTarget: boolean }
+    | { ok: false; message: string }
+  > => {
+    const target = await inspectUiTarget(params);
+    if (target.state === "available") {
+      return { ok: true, reusedExistingHealthyTarget: false };
+    }
+    if (target.state === "healthy-existing") {
+      return { ok: true, reusedExistingHealthyTarget: true };
+    }
+
+    const lines = [`Port probe: ${target.availabilityDetail}`];
+    if (target.probeError) {
+      lines.push(`Health probe: ${target.probeError}`);
+    }
+    lines.push("The port is occupied by a process that does not answer as a healthy NextClaw HTTP server.");
+    lines.push(`Fix: free port ${params.port} or start NextClaw with another port via --ui-port <port>.`);
+    lines.push(`Inspect locally with: ss -ltnp | grep ${params.port} || lsof -iTCP:${params.port} -sTCP:LISTEN -n -P`);
+    return {
+      ok: false,
+      message: lines.join("\n")
+    };
+  };
+
+  private printPublicUiUrls = async (host: string, port: number): Promise<void> => {
+    if (isLoopbackHost(host)) {
+      console.log("Public URL: disabled (UI host is loopback). Current release expects public exposure; run nextclaw restart.");
+      return;
+    }
+
+    const publicIp = await resolvePublicIp();
+    if (!publicIp) {
+      console.log("Public URL: UI is exposed, but automatic public IP detection failed.");
+      return;
+    }
+
+    const publicBase = `http://${publicIp}:${port}`;
+    console.log(`Public UI (if firewall/NAT allows): ${publicBase}`);
+    console.log(`Public API (if firewall/NAT allows): ${publicBase}/api`);
+    console.log(`Public deploy note: NextClaw serves plain HTTP on ${port}.`);
+    console.log(`For https:// or standard 80/443 access, terminate TLS in Nginx/Caddy and proxy to http://127.0.0.1:${port}.`);
+    console.log(`If a reverse proxy returns 502, verify its upstream is http://127.0.0.1:${port} (not https://, not a stale port, and not a stopped process).`);
+  };
+
+  private printServiceControlHints = (): void => {
+    console.log("Service controls:");
+    console.log("  - Check status: NextClaw status");
+    console.log("  - If you need to stop the service, run: NextClaw stop");
+    console.log("  - View log paths: NextClaw logs path");
+    console.log("  - Tail recent logs: NextClaw logs tail");
+    console.log("  - Check autostart: NextClaw service autostart status --user");
+  };
 }

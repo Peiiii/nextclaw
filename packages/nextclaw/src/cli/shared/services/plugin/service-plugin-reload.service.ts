@@ -6,13 +6,13 @@ import {
   type PluginChannelBinding,
   type PluginRegistry,
 } from "@nextclaw/openclaw-compat";
-import { shouldRestartChannelsForPluginReload } from "../../../plugin/plugin-reload.js";
+import { shouldRestartChannelsForPluginReload } from "@/cli/commands/plugin/plugin-reload.js";
 import {
   loadPluginRegistry,
   logPluginDiagnostics,
   toExtensionRegistry,
   type NextclawExtensionRegistry,
-} from "../../../plugin/index.js";
+} from "@/cli/commands/plugin/index.js";
 
 type PluginGatewayHandles = Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"];
 type PluginGatewayDiagnostics = Awaited<ReturnType<typeof startPluginChannelGateways>>["diagnostics"];

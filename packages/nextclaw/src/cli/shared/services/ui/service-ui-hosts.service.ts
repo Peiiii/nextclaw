@@ -1,9 +1,9 @@
 import type { Config } from "@nextclaw/core";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import type { UiRemoteAccessHost, UiRuntimeControlHost } from "@nextclaw/server";
-import type { RequestRestartParams } from "../../../../shared/types/cli.types.js";
-import { createRuntimeControlHost } from "./runtime-control-host.service.js";
-import { createRemoteAccessHost } from "./service-remote-access.service.js";
+import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
+import { createRuntimeControlHost } from "@/cli/shared/services/ui/runtime-control-host.service.js";
+import { createRemoteAccessHost } from "@/cli/shared/services/ui/service-remote-access.service.js";
 
 export function createServiceUiHosts(params: {
   serviceCommands: {

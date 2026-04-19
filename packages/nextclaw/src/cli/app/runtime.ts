@@ -9,15 +9,15 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { RestartCoordinator, type RestartStrategy } from "../shared/services/restart-coordinator.service.js";
-import { initializeConfigIfMissing } from "../shared/services/runtime-config-init.service.js";
-import { writeRestartSentinel } from "../shared/services/restart-sentinel.service.js";
-import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "../shared/utils/runtime-helpers.js";
-import { logStartupTrace, measureStartupSync } from "../shared/utils/startup-trace.js";
-import { reportSelfUpdateResult } from "../shared/utils/self-update-report.utils.js";
-import { runSelfUpdate } from "../shared/services/self-update.service.js";
-import { getPackageVersion, isProcessRunning } from "../shared/utils/cli.utils.js";
-import { managedServiceStateStore } from "../shared/stores/managed-service-state.store.js";
+import { RestartCoordinator, type RestartStrategy } from "@/cli/shared/services/restart-coordinator.service.js";
+import { initializeConfigIfMissing } from "@/cli/shared/services/runtime-config-init.service.js";
+import { writeRestartSentinel } from "@/cli/shared/services/restart-sentinel.service.js";
+import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
+import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
+import { reportSelfUpdateResult } from "@/cli/shared/utils/self-update-report.utils.js";
+import { runSelfUpdate } from "@/cli/shared/services/self-update.service.js";
+import { getPackageVersion, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
+import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 import {
   loadPluginRegistry,
   logPluginDiagnostics,
@@ -25,26 +25,30 @@ import {
   toExtensionRegistry,
   toPluginConfigView,
   PluginCommands,
-} from "../commands/plugin/index.js";
-import { ConfigCommands } from "../commands/config/index.js";
-import { McpCommands } from "../commands/mcp/index.js";
-import { SecretsCommands } from "../commands/secrets/index.js";
-import { ChannelCommands } from "../commands/channel/index.js";
-import { CronCommands } from "../commands/cron/index.js";
-import { AgentCommands } from "../commands/agent/index.js";
-import { PlatformAuthCommands } from "../commands/platform-auth/index.js";
-import { RemoteCommands } from "../commands/remote/index.js";
-import { DiagnosticsCommands } from "../commands/diagnostics/index.js";
-import { LogsCommands } from "../commands/logs/index.js";
-import { hasRunningNextclawManagedService } from "../commands/remote/index.js";
-import { describeUnmanagedHealthyTargetMessage, RuntimeCommands } from "../commands/runtime/index.js";
-import { ServiceCommands } from "../commands/service/index.js";
-import { WorkspaceManager } from "../shared/services/workspace-manager.service.js";
-import { LlmUsageObserver, ObservedProviderManager } from "../shared/services/llm-usage-observer.service.js";
-import { llmUsageRecorder } from "../shared/services/llm-usage-recorder.service.js";
-import { runCliAgentCommand } from "../commands/agent/index.js";
-import { RuntimeRestartRequestService } from "../shared/services/runtime-restart-request.service.js";
-import { SkillsCommands } from "../commands/skills/index.js";
+} from "@/cli/commands/plugin/index.js";
+import { ConfigCommands } from "@/cli/commands/config/index.js";
+import { McpCommands } from "@/cli/commands/mcp/index.js";
+import { SecretsCommands } from "@/cli/commands/secrets/index.js";
+import { ChannelCommands } from "@/cli/commands/channel/index.js";
+import { CronCommands } from "@/cli/commands/cron/index.js";
+import { AgentCommands, runCliAgentCommand } from "@/cli/commands/agent/index.js";
+import { PlatformAuthCommands } from "@/cli/commands/platform-auth/index.js";
+import { RemoteCommands, hasRunningNextclawManagedService } from "@/cli/commands/remote/index.js";
+import { DiagnosticsCommands } from "@/cli/commands/diagnostics/index.js";
+import { LogsCommands } from "@/cli/commands/logs/index.js";
+import { RuntimeCommandService } from "@/cli/shared/services/runtime-command.service.js";
+import { ServiceCommands } from "@/cli/commands/service/index.js";
+import { WorkspaceManager } from "@/cli/shared/services/workspace-manager.service.js";
+import { LlmUsageObserver, ObservedProviderManager } from "@/cli/shared/services/llm-usage-observer.service.js";
+import { llmUsageRecorder } from "@/cli/shared/services/llm-usage-recorder.service.js";
+import { RuntimeRestartRequestService } from "@/cli/shared/services/runtime-restart-request.service.js";
+import { SkillsCommands } from "@/cli/commands/skills/index.js";
+import { GatewayCommands } from "@/cli/commands/gateway/index.js";
+import { UiCommands } from "@/cli/commands/ui/index.js";
+import { StartCommands } from "@/cli/commands/start/index.js";
+import { RestartCommands } from "@/cli/commands/restart/index.js";
+import { ServeCommands } from "@/cli/commands/serve/index.js";
+import { StopCommands } from "@/cli/commands/stop/index.js";
 import type {
   AgentCommandOptions,
   AgentsListCommandOptions,
@@ -77,7 +81,7 @@ import type {
   StatusCommandOptions,
   UiCommandOptions,
   UpdateCommandOptions,
-} from "../shared/types/cli.types.js";
+} from "@/cli/shared/types/cli.types.js";
 export const LOGO = "🤖";
 const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 
@@ -89,7 +93,7 @@ export class CliRuntime {
   private restartRequestService: RuntimeRestartRequestService;
   readonly skillsCommands: SkillsCommands;
   private workspaceManager: WorkspaceManager;
-  private runtimeCommands: RuntimeCommands;
+  private runtimeCommandService: RuntimeCommandService;
   private serviceCommands: ServiceCommands;
   private configCommands: ConfigCommands;
   private mcpCommands: McpCommands;
@@ -103,13 +107,45 @@ export class CliRuntime {
   readonly remote: RemoteRuntimeActions;
   private diagnosticsCommands: DiagnosticsCommands;
   private logsCommands: LogsCommands;
+  private gatewayCommands: GatewayCommands;
+  private uiCommands: UiCommands;
+  private startCommands: StartCommands;
+  private restartCommands: RestartCommands;
+  private serveCommands: ServeCommands;
+  private stopCommands: StopCommands;
   constructor(options: { logo?: string } = {}) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? LOGO;
     this.workspaceManager = measureStartupSync("cli.runtime.workspace_manager", () => new WorkspaceManager(this.logo));
-    this.runtimeCommands = measureStartupSync("cli.runtime.runtime_commands", () => new RuntimeCommands({
+    this.runtimeCommandService = measureStartupSync("cli.runtime.runtime_command_service", () => new RuntimeCommandService({
       requestRestart: (params) => this.requestRestart(params),
       initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
+    }));
+    this.gatewayCommands = measureStartupSync("cli.runtime.gateway_commands", () => new GatewayCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST
+    }));
+    this.uiCommands = measureStartupSync("cli.runtime.ui_commands", () => new UiCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST
+    }));
+    this.startCommands = measureStartupSync("cli.runtime.start_commands", () => new StartCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST,
+      init: (params) => this.init(params)
+    }));
+    this.restartCommands = measureStartupSync("cli.runtime.restart_commands", () => new RestartCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      startCommands: this.startCommands,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST,
+      writeRestartSentinelFromExecContext: (reason) => this.writeRestartSentinelFromExecContext(reason)
+    }));
+    this.serveCommands = measureStartupSync("cli.runtime.serve_commands", () => new ServeCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST
+    }));
+    this.stopCommands = measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
+      runtimeCommandService: this.runtimeCommandService
     }));
     this.serviceCommands = measureStartupSync("cli.runtime.service_commands", () => new ServiceCommands());
     this.configCommands = measureStartupSync("cli.runtime.config_commands", () => new ConfigCommands({
@@ -190,8 +226,8 @@ export class CliRuntime {
       console.log(
         `Applying changes (${reason}): restarting ${APP_NAME} background service...`,
       );
-      await this.runtimeCommands.stopService();
-      await this.runtimeCommands.startService({
+      await this.runtimeCommandService.stopService();
+      await this.runtimeCommandService.startService({
         uiOverrides: {
           enabled: true,
           host: uiHost,
@@ -408,87 +444,27 @@ export class CliRuntime {
     await this.platformAuthCommands.login(opts);
   };
   gateway = async (opts: GatewayCommandOptions): Promise<void> => {
-    const uiOverrides: Partial<Config["ui"]> = {
-      host: FORCED_PUBLIC_UI_HOST,
-    };
-    if (opts.ui) {
-      uiOverrides.enabled = true;
-    }
-    if (opts.uiPort) {
-      uiOverrides.port = Number(opts.uiPort);
-    }
-    if (opts.uiOpen) {
-      uiOverrides.open = true;
-    }
-    await this.runtimeCommands.startGateway({ uiOverrides });
+    await this.gatewayCommands.run(opts);
   };
 
   ui = async (opts: UiCommandOptions): Promise<void> => {
-    const uiOverrides: Partial<Config["ui"]> = {
-      enabled: true,
-      host: FORCED_PUBLIC_UI_HOST,
-      open: Boolean(opts.open),
-    };
-    if (opts.port) {
-      uiOverrides.port = Number(opts.port);
-    }
-    await this.runtimeCommands.startGateway({
-      uiOverrides,
-      allowMissingProvider: true,
-    });
+    await this.uiCommands.run(opts);
   };
 
   start = async (opts: StartCommandOptions): Promise<void> => {
-    const startupTimeoutMs = parseStartTimeoutMs(opts.startTimeout);
-    await this.init({ source: "start", auto: true });
-    const uiOverrides = resolveManagedServiceUiOverrides({ uiPort: opts.uiPort, forcedPublicHost: FORCED_PUBLIC_UI_HOST });
-
-    await this.runtimeCommands.startService({
-      uiOverrides,
-      open: Boolean(opts.open),
-      startupTimeoutMs,
-    });
+    await this.startCommands.run(opts);
   };
 
   restart = async (opts: StartCommandOptions): Promise<void> => {
-    await this.writeRestartSentinelFromExecContext("cli.restart");
-    const uiOverrides = resolveManagedServiceUiOverrides({ uiPort: opts.uiPort, forcedPublicHost: FORCED_PUBLIC_UI_HOST });
-
-      const state = managedServiceStateStore.read();
-    if (state && isProcessRunning(state.pid)) {
-      console.log(`Restarting ${APP_NAME}...`);
-      await this.runtimeCommands.stopService();
-    } else {
-      if (state) {
-        managedServiceStateStore.clear();
-        console.log("Service state was stale and has been cleaned up.");
-      }
-
-      const unmanagedHealthyServiceMessage = await describeUnmanagedHealthyTargetMessage({ uiOverrides });
-      if (unmanagedHealthyServiceMessage) {
-        console.error(`Error: Cannot restart ${APP_NAME} because the target UI/API port is already served by a healthy unmanaged instance.`);
-        console.error(unmanagedHealthyServiceMessage);
-        return;
-      }
-      if (!state) {
-        console.log("No running service found. Starting a new service.");
-      }
-    }
-
-    await this.start(opts);
+    await this.restartCommands.run(opts);
   };
 
   serve = async (opts: StartCommandOptions): Promise<void> => {
-    const uiOverrides = resolveManagedServiceUiOverrides({ uiPort: opts.uiPort, forcedPublicHost: FORCED_PUBLIC_UI_HOST });
-
-    await this.runtimeCommands.runForeground({
-      uiOverrides,
-      open: Boolean(opts.open),
-    });
+    await this.serveCommands.run(opts);
   };
 
   stop = async (): Promise<void> => {
-    await this.runtimeCommands.stopService();
+    await this.stopCommands.run();
   };
 
   agent = async (opts: AgentCommandOptions): Promise<void> => {
@@ -528,8 +504,8 @@ export class CliRuntime {
 
     try {
       const provider =
-        this.runtimeCommands.createProvider(config) ??
-        this.runtimeCommands.createMissingProvider(config);
+        this.runtimeCommandService.createProvider(config) ??
+        this.runtimeCommandService.createMissingProvider(config);
       const providerManager = this.createObservedProviderManager(
         new ProviderManager({ defaultProvider: provider, config }),
         "cli-agent",

@@ -12,9 +12,9 @@ import {
   enablePluginMutation,
   installPluginMutation,
   uninstallPluginMutation
-} from "../../../plugin/plugin-mutation-actions.js";
-import { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "../../utils/marketplace/service-marketplace-helpers.utils.js";
-import { ServiceMcpMarketplaceOps } from "./service-mcp-marketplace-ops.js";
+} from "@/cli/commands/plugin/plugin-mutation-actions.js";
+import { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@/cli/shared/utils/marketplace/service-marketplace-helpers.utils.js";
+import { ServiceMcpMarketplaceOps } from "@/cli/shared/services/marketplace/service-mcp-marketplace-ops.js";
 
 type UserFacingResult = {
   message: string;

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 let capturedOnSessionUpdated: ((sessionKey: string) => void) | undefined;
 const publishSessionChangeMock = vi.fn<(sessionKey: string) => Promise<void>>();
 
-vi.mock("../../../../ncp/ui-session-service.js", () => ({
+vi.mock("@/cli/commands/ncp/ui-session-service.js", () => ({
   UiSessionService: class {
     constructor(_sessionManager: unknown, options: { onSessionUpdated?: (sessionKey: string) => void } = {}) {
       capturedOnSessionUpdated = options.onSessionUpdated;
@@ -11,20 +11,20 @@ vi.mock("../../../../ncp/ui-session-service.js", () => ({
   }
 }));
 
-vi.mock("../service-deferred-ncp-session-service.js", () => ({
+vi.mock("@/cli/shared/services/session/service-deferred-ncp-session-service.js", () => ({
   createDeferredUiNcpSessionService: () => ({
     service: {},
     clear: vi.fn()
   })
 }));
 
-vi.mock("../../../../ncp/session/ncp-session-realtime-change.js", () => ({
+vi.mock("@/cli/commands/ncp/session/ncp-session-realtime-change.js", () => ({
   createNcpSessionRealtimeChangePublisher: () => ({
     publishSessionChange: publishSessionChangeMock
   })
 }));
 
-import { createServiceNcpSessionRealtimeBridge } from "../service-ncp-session-realtime-bridge.js";
+import { createServiceNcpSessionRealtimeBridge } from "../service-ncp-session-realtime-bridge.service.js";
 
 describe("createServiceNcpSessionRealtimeBridge", () => {
   afterEach(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createLatestOnlySessionChangePublisher } from "../service-ncp-session-realtime-bridge.js";
+import { createLatestOnlySessionChangePublisher } from "../service-ncp-session-realtime-bridge.service.js";
 
 function deferredPromise<T = void>() {
   let resolve!: (value: T | PromiseLike<T>) => void;

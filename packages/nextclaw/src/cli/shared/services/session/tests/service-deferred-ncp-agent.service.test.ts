@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { UiNcpAgentHandle } from "../../../../ncp/features/runtime/create-ui-ncp-agent.service.js";
+import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
 import { createDeferredUiNcpAgent } from "../service-deferred-ncp-agent.service.js";
 
 function createAgentHandle(): UiNcpAgentHandle {

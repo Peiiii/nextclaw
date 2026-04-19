@@ -12,17 +12,16 @@ import {
 } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { getDataDir } from "@nextclaw/core";
-import { resolveUiApiBase } from "../../../../shared/utils/cli.utils.js";
+import { resolveUiApiBase, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
 import {
   managedServiceStateStore,
   type ManagedServiceState
-} from "../../../../shared/stores/managed-service-state.store.js";
+} from "@/cli/shared/stores/managed-service-state.store.js";
 import {
   buildNextclawConfiguredRemoteState,
   createNextclawRemoteConnector,
   createNextclawRemoteStatusStore
-} from "../../../remote/services/remote-runtime-support.service.js";
-import { isProcessRunning } from "../../../../shared/utils/cli.utils.js";
+} from "@/cli/commands/remote/services/remote-runtime-support.service.js";
 
 type ManagedServiceSnapshot = {
   pid: number;

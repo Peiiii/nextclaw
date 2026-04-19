@@ -207,13 +207,19 @@ src/
 │   ├── channel/
 │   ├── cron/
 │   ├── diagnostics/
+│   ├── gateway/
 │   ├── learning-loop/
 │   ├── ncp/
 │   ├── platform-auth/
 │   ├── plugin/
 │   ├── remote/
+│   ├── restart/
+│   ├── serve/
 │   ├── service/
 │   ├── skills/
+│   ├── start/
+│   ├── stop/
+│   ├── ui/
 │   └── update/
 └── shared/
 ```
@@ -230,6 +236,8 @@ src/
 - 任何不在 `app/`、`commands/`、`shared/` 根骨架内的历史目录或历史根文件，只要被触达，就按债务清算处理并直接报错
 - 这意味着该协议不是“防止以后继续长歪”的软冻结，而是“从现在开始按目标结构强制收债”
 - 因此只有在团队确认要正式推进 CLI 结构治理时，才应为 CLI 模块新增 `module-structure.config.json`
+- `commands/` 下禁止出现 `runtime/`、`support/`、`compat/` 这类不代表真实命令 owner 的伪 feature 根目录
+- `gateway / ui / start / restart / serve / stop` 这组运行态命令虽然共享大量底层实现，但根目录仍必须各自独立存在；共享实现应进入 `shared/services/*` 或 `shared/utils/*`
 
 默认禁止继续把下面这些目录长期平铺在 CLI 根下：
 
@@ -400,6 +408,16 @@ src/
 - 每个子目录必须包含 `index.ts` 或 `index.tsx`，作为该模块唯一公共暴露口
 - 外部只能从该子目录根导入，不允许 deep import 到模块内部文件
 - `shared/lib/` 下的 sibling 模块之间同样不得 deep import 对方内部文件，也只能通过对方目录根导入
+- `shared/lib/` 明确禁止承载业务代码
+- 这里的“业务代码”包括：
+  - 具体 feature / command owner
+  - 具体业务域私有规则
+  - 面向某个 feature / command 的业务编排
+  - 仍然代表某个业务能力本身的模块
+- 只有在某段能力已经完成“去业务 owner 化”之后，才允许进入 `shared/lib/`
+- 因此，`shared/lib/` 可以放“从业务代码里抽出的稳定共享内核”，但不能放“feature 本身”或“command 本身”
+- 如果一个模块仍然能被自然描述成 `chat`、`marketplace`、`plugin`、`remote`、`service` 这类业务能力 owner，它就不应进入 `shared/lib/`
+- 即使某段业务代码被多个 feature / command 复用，只要它仍然属于业务 owner，而不是共享内核，也禁止放进 `shared/lib/`
 
 推荐示例：
 

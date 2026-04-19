@@ -6,20 +6,20 @@ import {
   type PluginRegistry,
   type PluginUiMetadata,
 } from "@nextclaw/openclaw-compat";
-import type { UiNcpAgentHandle } from "../../ncp/features/runtime/create-ui-ncp-agent.service.js";
-import { dispatchPromptOverNcp } from "../../ncp/features/runtime/nextclaw-ncp-dispatch.js";
+import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
+import { dispatchPromptOverNcp } from "@/cli/commands/ncp/features/runtime/nextclaw-ncp-dispatch.js";
 import {
   applyGatewayCapabilityState,
   type GatewayCapabilityState,
   type GatewayStartupContext
-} from "./service-gateway-context.service.js";
-import type { UiStartupHandle } from "./service-gateway-startup.service.js";
-import { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
-import { hydrateServiceCapabilities } from "./service-capability-hydration.service.js";
-import { installPluginRuntimeBridge } from "./plugin/service-plugin-runtime-bridge.service.js";
-import { reloadServicePlugins } from "./plugin/service-plugin-reload.service.js";
-import { logPluginGatewayDiagnostics, pluginGatewayLogger } from "./service-startup-support.js";
-import type { NextclawExtensionRegistry } from "../../plugin/index.js";
+} from "@/cli/shared/services/gateway/service-gateway-context.service.js";
+import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
+import { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
+import { hydrateServiceCapabilities } from "@/cli/shared/services/gateway/service-capability-hydration.service.js";
+import { installPluginRuntimeBridge } from "@/cli/shared/services/plugin/service-plugin-runtime-bridge.service.js";
+import { reloadServicePlugins } from "@/cli/shared/services/plugin/service-plugin-reload.service.js";
+import { logPluginGatewayDiagnostics, pluginGatewayLogger } from "@/cli/shared/services/gateway/service-startup-support.js";
+import type { NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
 
 const { loadConfig, resolveConfigSecrets } = NextclawCore;
 

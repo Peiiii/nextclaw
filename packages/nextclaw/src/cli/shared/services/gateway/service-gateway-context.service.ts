@@ -2,16 +2,16 @@ import * as NextclawCore from "@nextclaw/core";
 import { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import { join } from "node:path";
-import { GatewayControllerImpl } from "../../../shared/controllers/gateway.controller.js";
-import { ConfigReloader } from "../../../shared/services/config-reloader.service.js";
-import type { RequestRestartParams } from "../../../shared/types/cli.types.js";
-import { resolveUiConfig, resolveUiStaticDir } from "../../../shared/utils/cli.utils.js";
-import type { UiNcpAgentHandle } from "../../ncp/features/runtime/create-ui-ncp-agent.service.js";
-import { resolveChannelConfigView } from "../../channel/channel-config-view.js";
-import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "../../plugin/index.js";
-import { createCronJobHandler, createHeartbeatJobHandler } from "./service-cron-job-handler.js";
-import { createManagedRemoteModuleForUi } from "./runtime/service-remote-runtime.js";
-import { measureStartupSync } from "../../../shared/utils/startup-trace.js";
+import { GatewayControllerImpl } from "@/cli/shared/controllers/gateway.controller.js";
+import { ConfigReloader } from "@/cli/shared/services/config-reloader.service.js";
+import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
+import { resolveUiConfig, resolveUiStaticDir } from "@/cli/shared/utils/cli.utils.js";
+import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
+import { resolveChannelConfigView } from "@/cli/commands/channel/channel-config-view.js";
+import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
+import { createCronJobHandler, createHeartbeatJobHandler } from "@/cli/shared/services/gateway/service-cron-job-handler.js";
+import { createManagedRemoteModuleForUi } from "@/cli/shared/services/runtime/service-remote-runtime.service.js";
+import { measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 
 const {
   ChannelManager,

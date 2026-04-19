@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RuntimeControlHost } from "../runtime-control-host.service.js";
-import { pendingRestartStore } from "../../../../../shared/stores/pending-restart.store.js";
+import { pendingRestartStore } from "@/cli/shared/stores/pending-restart.store.js";
 
 const mocks = vi.hoisted(() => ({
   controlRemoteService: vi.fn(),
@@ -8,12 +8,12 @@ const mocks = vi.hoisted(() => ({
   requestManagedServiceRestart: vi.fn()
 }));
 
-vi.mock("../../../../remote/services/remote-service-control.service.js", () => ({
+vi.mock("@/cli/commands/remote/services/remote-service-control.service.js", () => ({
   controlRemoteService: (...args: unknown[]) => mocks.controlRemoteService(...args),
   resolveRemoteServiceView: (...args: unknown[]) => mocks.resolveRemoteServiceView(...args)
 }));
 
-vi.mock("../service-remote-access.service.js", () => ({
+vi.mock("@/cli/shared/services/ui/service-remote-access.service.js", () => ({
   requestManagedServiceRestart: (...args: unknown[]) => mocks.requestManagedServiceRestart(...args)
 }));
 

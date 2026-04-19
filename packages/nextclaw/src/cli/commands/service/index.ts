@@ -1,5 +1,5 @@
-import { HostAutostartCommandService } from "./services/autostart/host-autostart-command.service.js";
-import type { ServiceAutostartCommandOptions } from "../../shared/types/cli.types.js";
+import { HostAutostartCommandService } from "@/cli/commands/service/services/autostart/host-autostart-command.service.js";
+import type { ServiceAutostartCommandOptions } from "@/cli/shared/types/cli.types.js";
 
 export class ServiceCommands {
   private readonly hostAutostartCommandService = new HostAutostartCommandService();

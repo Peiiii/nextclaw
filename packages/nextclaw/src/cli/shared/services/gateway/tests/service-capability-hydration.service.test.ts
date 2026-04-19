@@ -35,21 +35,21 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../plugin/plugin-registry-loader.js", () => ({
+vi.mock("@/cli/commands/plugin/plugin-registry-loader.js", () => ({
   discoverPluginRegistryStatus: mocks.discoverPluginRegistryStatusMock,
   loadPluginRegistryProgressively: mocks.loadPluginRegistryProgressivelyMock
 }));
 
-vi.mock("../../../plugin/plugin-reload.js", () => ({
+vi.mock("@/cli/commands/plugin/plugin-reload.js", () => ({
   shouldRestartChannelsForPluginReload: mocks.shouldRestartChannelsForPluginReloadMock
 }));
 
-vi.mock("../../../plugin/index.js", () => ({
+vi.mock("@/cli/commands/plugin/index.js", () => ({
   logPluginDiagnostics: mocks.logPluginDiagnosticsMock,
   toExtensionRegistry: mocks.toExtensionRegistryMock
 }));
 
-vi.mock("../service-ui-shell-grace.js", () => ({
+vi.mock("@/cli/shared/services/gateway/service-ui-shell-grace.js", () => ({
   waitForUiShellGraceWindow: mocks.waitForUiShellGraceWindowMock
 }));
 

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as pluginMutations from "../../../../plugin/plugin-mutation-actions.js";
-import { ServiceMarketplaceInstaller } from "../service-marketplace-installer.js";
+import * as pluginMutations from "@/cli/commands/plugin/plugin-mutation-actions.js";
+import { ServiceMarketplaceInstaller } from "../service-marketplace-installer.service.js";
 
 describe("ServiceCommands marketplace plugin management", () => {
   afterEach(() => {

@@ -1,9 +1,9 @@
 import type { Config } from "@nextclaw/core";
 import type { RuntimeControlActionResult, RuntimeControlView, UiRuntimeControlHost } from "@nextclaw/server";
-import { requestManagedServiceRestart } from "./service-remote-access.service.js";
-import { controlRemoteService, resolveRemoteServiceView } from "../../../remote/services/remote-service-control.service.js";
-import type { RequestRestartParams } from "../../../../shared/types/cli.types.js";
-import { pendingRestartStore } from "../../../../shared/stores/pending-restart.store.js";
+import { requestManagedServiceRestart } from "@/cli/shared/services/ui/service-remote-access.service.js";
+import { controlRemoteService, resolveRemoteServiceView } from "@/cli/commands/remote/services/remote-service-control.service.js";
+import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
+import { pendingRestartStore } from "@/cli/shared/stores/pending-restart.store.js";
 
 const MANAGED_SERVICE_OWNER_LABEL = "Managed local service";
 const DESKTOP_APP_ONLY_REASON = "App restart is only available in the desktop shell.";
