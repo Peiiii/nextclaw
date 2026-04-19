@@ -1,0 +1,7 @@
+interface:
+  display_name: "契约驱动交付战役"
+  short_description: "用任务契约、防漂移检查和强制验收闭环推进长期编码交付任务"
+  default_prompt: "使用 $contract-driven-delivery-campaign 为当前仓库启动或继续一次长期编码交付任务。先锁定 task-contract.md，再按阶段推进、持续做偏航检查，并以验收清单而不是中间进展来判断是否真正完成。"
+
+policy:
+  allow_implicit_invocation: true
