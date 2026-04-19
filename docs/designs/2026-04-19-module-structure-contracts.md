@@ -27,7 +27,7 @@
 - 平台差异层的唯一导出入口
 - 目录白名单与弱语义目录禁止规则
 
-这些规则默认适用于 `L0`、`L1`、`L2`、`L3`。
+这些规则默认适用于 `L1`、`L2`、`L3`。
 
 区别不在于“某个等级才拥有某条规则”，而在于：
 
@@ -39,9 +39,120 @@
 
 更准确地说：
 
-- `L0`、`L1`、`L2`、`L3` 共用同一套包内结构治理原则
+- `L1`、`L2`、`L3` 共用同一套包内结构治理原则
 - `L3` 只是前端多平台场景下的最完整展开
 - 前面的等级更像 `L3` 的子集或裁剪态，而不是另一套独立规则系统
+
+## 等级定义总览
+
+这套 `L` 分级描述的是“一个包内部是否已经需要显式的业务聚合轴、共享轴、平台轴”。
+
+它不是“复杂度打分”，也不是“目录越多等级越高”。
+
+更准确地说：
+
+- `L1`：最小包内结构，还不需要 `features/`、`shared/`、`platforms/`
+- `L2`：已经有多个 feature，且需要稳定共享层
+- `L3`：在 `L2` 基础上再展开平台差异层
+
+推荐把这三级理解为一条逐步展开的骨架路径：
+
+```text
+L1: minimal package
+L2: app + features + shared
+L3: app + features + shared + platforms
+```
+
+升级触发条件也应明确：
+
+- 从 `L1` 升到 `L2`：当第二个 sibling 业务域出现，或已经出现稳定的跨 feature 共享抽象
+- 从 `L2` 升到 `L3`：当平台差异已经成为一级结构事实，而不能再只靠局部条件分支收住
+
+### L1：Minimal Package
+
+`L1` 适用于还不需要 `features/`、`shared/`、`platforms/` 的最小包内结构。
+
+典型场景：
+
+- SDK 包
+- kernel / runtime / adapter / bridge 这类非应用壳层包
+- 单一职责、以通用职责目录组织更自然的内部模块
+- 只有一个业务 owner、但还没有必要引入 `features/` 聚合层的小型业务包
+
+标准结构：
+
+```text
+src/
+├── app/
+├── index.ts
+├── managers/
+├── services/
+├── types/
+└── utils/
+```
+
+说明：
+
+- `L1` 的关键是：还没有必要显式展开 `features/`、`shared/`、`platforms/`
+- `L1` 只保留一种最小骨架，不再额外定义“single business root”变体
+- `app/` 在 `L1` 下可以存在，但它不是必须项
+- 如果存在 `app/`，它只负责装配、入口与启动级职责
+- 根下允许出现按需的通用职责目录
+- 根下允许存在少量必要的入口文件，例如 `index.ts`
+
+约束重点：
+
+- 不应在 `L1` 根下直接出现多个 sibling 业务目录名
+- 不应为了“看起来像大项目”提前造出 `features/` 或 `shared/`
+- 不应为了“像 feature”而额外造一个单独的业务根目录包住全部实现
+- `L1` 默认不引入 `features/`，因为还没有多个 sibling feature
+- `L1` 默认不引入 `shared/`，因为“共享”还没有跨多个 sibling feature 的语义前提
+- 一旦第二个 sibling 业务目录出现，就应升级为 `L2`
+
+### L2：Single-Platform Multi-Feature
+
+`L2` 适用于单平台前端应用或包，已经存在多个 feature，并且需要稳定共享层。
+
+这一级是 `L3` 去掉 `platforms/` 之后的标准子集。
+
+标准结构：
+
+```text
+src/
+├── app/
+├── features/
+│   ├── chat/
+│   ├── auth/
+│   └── marketplace/
+└── shared/
+    ├── components/
+    ├── hooks/
+    ├── lib/
+    └── types/
+```
+
+说明：
+
+- `app/`：应用装配、路由、provider wiring、启动级编排
+- `features/`：主业务轴
+- `shared/`：跨 feature 的稳定共享抽象
+- 不存在 `platforms/`，因为平台差异还不是一级结构事实
+
+根级约束：
+
+- `src/` 根下只允许：
+  - `app/`
+  - `features/`
+  - `shared/`
+- 默认禁止在根下继续新增：
+  - 业务目录名
+  - 普通通用职责目录名
+  - 零散根级源码文件
+
+升级判断：
+
+- 如果只是单平台，但已经有多个 feature，并且开始出现稳定共享模块，就不应继续停留在 `L1`
+- 如果平台差异开始成为一级结构事实，就应从 `L2` 升到 `L3`
 
 ## 目录命名三分类
 
@@ -74,6 +185,7 @@
 固定总白名单如下：
 
 - `components/`
+- `configs/`
 - `hooks/`
 - `presenters/`
 - `stores/`
@@ -104,6 +216,68 @@
 
 - `shared/lib/` 不属于普通通用职责目录白名单，它是特殊目录，承载“模拟独立包”的强语义模块边界，应按特殊规则治理
 - 在 CLI command-first variant 里，`commands/` 可以作为 `features/` 的等价骨架目录使用，但它只适用于 CLI 包，不是所有包的通用默认骨架名
+
+## 通用职责目录与文件后缀一致性
+
+通用职责目录不能只在目录名上表达职责，目录内部的文件名后缀也必须和该职责匹配。
+
+在这份规范里，`.ts` 与 `.tsx` 视为同等级的 TypeScript 实现文件后缀。
+
+除非某条规则必须强调“这里只能是纯类型文件”之类更强语义，否则文档中默认使用 `ts(x)` 作为合并写法，不再把 `.ts` 和 `.tsx` 重复展开。
+
+除目录公共入口 `index.ts(x)` 外，放在通用职责目录中的文件默认必须使用与职责对应的角色后缀。
+
+特殊例外：
+
+- `components/` 不要求额外追加 `.component`
+- `hooks/` 不要求额外追加 `.hook`
+- 这两个目录本身已经有足够强的职责语义，再叠一层同义后缀只会制造冗余
+
+推荐映射如下：
+
+- `components/` -> `<name>.ts(x)`
+- `configs/` -> `*.config.ts(x)`
+- `hooks/` -> `use-<domain>.ts(x)`
+- `presenters/` -> `*.presenter.ts(x)`
+- `stores/` -> `*.store.ts`
+- `managers/` -> `*.manager.ts`
+- `services/` -> `*.service.ts`
+- `pages/` -> `*.page.ts(x)`
+- `types/` -> `*.types.ts`
+- `utils/` -> `*.utils.ts`
+- `providers/` -> `*.provider.ts(x)`
+- `controllers/` -> `*.controller.ts`
+- `repositories/` -> `*.repository.ts`
+- `routes/` -> `*.route.ts(x)`
+
+例如：
+
+- `shared/components/button.tsx`
+- `shared/configs/model.config.ts`
+- `features/chat/hooks/use-chat-input.ts`
+- `commands/service/services/service-status.service.ts`
+- `shared/types/pagination.types.ts`
+- `shared/utils/date-format.utils.ts`
+
+禁止：
+
+- 在 `services/` 里放 `config.ts`
+- 在 `configs/` 里放 `runtime.ts`
+- 在 `managers/` 里放 `runtime.ts`
+- 在 `hooks/` 里放 `copy.ts`
+- 在 `components/` 里放 `button.utils.tsx`
+- 在 `types/` 里放 `pagination.ts`
+
+这条规则的目标是：
+
+- 防止目录名和文件职责脱钩
+- 让 review 时可以从路径字面量直接判断文件角色
+- 让治理器更容易做稳定的角色边界检查
+
+唯一例外：
+
+- 目录型公共出口允许使用 `index.ts(x)`
+- 这个例外只适用于“模块出口”，不适用于把普通实现文件伪装成无后缀文件名
 
 ## L3 的定位
 
@@ -315,6 +489,51 @@ src/
 - 协议模板仍然是中心定义的通用能力，但“哪个模块采纳哪个模板”由模块自己管理
 - 一旦协议模块声明了 `importAliasPrefixes`，就等于同时声明“跨目录导入必须使用 alias 前缀”；相对导入默认只允许同目录 `./`，禁止再用 `../`、`../../` 这类父级回退路径访问模块内部其它目录
 
+## 包内导入路径协议
+
+对已经显式采纳目录结构协议，并声明了 `importAliasPrefixes` 的模块，包内导入路径应遵守统一协议。
+
+默认规则：
+
+- 同目录文件之间使用 `./`
+- 只要跨目录，就使用 `@/`
+- 禁止使用 `../`、`../../` 这类父级相对路径在包内跨目录穿透
+- 导入目录型公共入口时，直接导入目录名本身，禁止显式写 `index`、`index.ts(x)`
+
+这条规则的目标不是代码风格统一而已，而是让包内路径表达变成稳定协议：
+
+- 目录迁移时不需要同步重写一串父级相对路径
+- 导入语义更明确，一眼就能看出这是包内绝对路径
+- 更容易和 feature / command / shared / platforms 的边界规则叠加治理
+- 可以避免“相对路径刚好能绕进去”这类弱边界问题
+
+允许：
+
+```ts
+import { localHelper } from "./local-helper";
+import { localModule } from "./local-module";
+import { setupApp } from "@/app/setup-app";
+import { RuntimeManager } from "@/managers/runtime.manager";
+import { formatDate } from "@/shared/lib/date-format";
+```
+
+禁止：
+
+```ts
+import { setupApp } from "../app/setup-app";
+import { RuntimeManager } from "../../managers/runtime.manager";
+import { formatDate } from "../../shared/lib/date-format";
+import { localModule } from "./local-module/index";
+import { formatDate } from "@/shared/lib/date-format/index";
+```
+
+注意：
+
+- `@/` 解决的是“包内跨目录导入路径应该怎么写”
+- 它不放松 feature / command / `shared/lib/*` 的唯一出口规则
+- 因此，哪怕使用了 `@/`，仍然禁止 deep import 到不该暴露的内部文件
+- `module` 和 `module/index` 不应同时并存为两个等价入口；目录入口的唯一合法写法就是模块目录名本身
+
 ## 何时新增或修改 contract
 
 - 某个热点目录已经被认定需要固定目录边界
@@ -341,11 +560,12 @@ src/
 
 `shared/` 的定位是“稳定共享层”，不是“第二套 feature 根”，也不是“暂时不知道放哪”的回收站。
 
-在 `L3` 下，`shared/` 一级目录允许的是：
+在启用了 `shared/` 的等级下，例如 `L2` / `L3`，`shared/` 一级目录允许的是：
 
 - 特殊目录：`lib/`
 - 以及固定通用职责目录总白名单中的任意适用项：
   - `components/`
+  - `configs/`
   - `hooks/`
   - `presenters/`
   - `stores/`
@@ -382,31 +602,41 @@ src/
 
 - 允许直接放文件
 - 禁止为了单文件先包一层无意义目录
-- 禁止在 `shared/components/` 根下新增 `index.ts` 或 `index.tsx`
+- 禁止在 `shared/components/` 根下新增 `index.ts(x)`
+- 文件名不要求额外追加 `.component`
 - 只承载真正跨 feature 或跨平台复用的纯展示组件、展示壳或稳定 UI primitive
+
+### `shared/configs/`
+
+- 允许直接放文件
+- 禁止为了单文件先包一层无意义目录
+- 禁止在 `shared/configs/` 根下新增 `index.ts(x)`
+- 文件名后缀必须为 `.config.ts(x)`
+- 只承载稳定共享的配置对象、配置 schema、配置默认值或配置装配辅助，不承载业务 owner 编排
 
 ### `shared/hooks/`
 
 - 允许直接放文件
 - 禁止为了单文件先包一层无意义目录
-- 禁止在 `shared/hooks/` 根下新增 `index.ts` 或 `index.tsx`
-- hook 文件继续遵循 `use-<domain>.ts` 或 `use-<domain>.tsx`
+- 禁止在 `shared/hooks/` 根下新增 `index.ts(x)`
+- hook 文件应继续使用 `use-<domain>.ts(x)`
 - 只承载真正共享且边界稳定的 hook，不承载 feature 私有业务编排
 
 ### `shared/types/`
 
 - 允许直接放文件
 - 禁止为了单文件先包一层无意义目录
-- 禁止在 `shared/types/` 根下新增 `index.ts` 或 `index.tsx`
+- 禁止在 `shared/types/` 根下新增 `index.ts(x)`
+- 文件名后缀必须为 `.types.ts`
 - 只承载稳定共享类型契约
 
 ### `shared/lib/`
 
 - `shared/lib/` 根下禁止直接放文件
 - `shared/lib/` 根下只允许子目录
-- 禁止在 `shared/lib/` 根下新增 `index.ts` 或 `index.tsx`
+- 禁止在 `shared/lib/` 根下新增 `index.ts(x)`
 - `shared/lib/` 下的每个子目录都视为一个模拟独立包的小模块
-- 每个子目录必须包含 `index.ts` 或 `index.tsx`，作为该模块唯一公共暴露口
+- 每个子目录必须包含 `index.ts(x)`，作为该模块唯一公共暴露口
 - 外部只能从该子目录根导入，不允许 deep import 到模块内部文件
 - `shared/lib/` 下的 sibling 模块之间同样不得 deep import 对方内部文件，也只能通过对方目录根导入
 - `shared/lib/` 明确禁止承载业务代码
@@ -427,6 +657,8 @@ shared/
 ├── components/
 │   ├── button.tsx
 │   └── notice-card.tsx
+├── configs/
+│   └── model.config.ts
 ├── hooks/
 │   └── use-copy.ts
 ├── types/
@@ -478,6 +710,7 @@ import type { Pagination } from "@/shared/types/pagination.types";
 ```ts
 import { formatDate } from "@/shared/lib/date-format/date-format.utils";
 import { formatDate } from "@/shared/lib/date-format/index";
+import { formatDate } from "@/shared/lib/date-format/index.ts";
 import { Button } from "@/shared/components";
 import { useCopy } from "@/shared/hooks";
 import type { Pagination } from "@/shared/types";
@@ -527,10 +760,10 @@ commands/
 
 每个 feature root 或 command root 都必须满足以下规则：
 
-- 必须有 `index.ts` 或 `index.tsx`
+- 必须有 `index.ts(x)`
 - 该 `index.ts(x)` 是这个 root 对外的唯一公共导入出口
 - 外部禁止绕过 `index.ts(x)` 直接导入内部文件
-- feature 内部允许继续按固定通用职责目录总白名单组织，如 `components/`、`hooks/`、`presenters/`、`stores/`、`managers/`、`services/`、`pages/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
+- feature 内部允许继续按固定通用职责目录总白名单组织，如 `components/`、`configs/`、`hooks/`、`presenters/`、`stores/`、`managers/`、`services/`、`pages/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
 
 推荐示例：
 

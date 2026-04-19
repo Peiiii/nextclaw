@@ -56,6 +56,7 @@ const defineLegacyContract = ({
 
 export const FIXED_ROLE_DIRECTORY_NAMES = new Set([
   "components",
+  "configs",
   "hooks",
   "presenters",
   "stores",
