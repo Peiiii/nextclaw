@@ -9,6 +9,7 @@
     - 治理器现在会向上发现模块根下的 `module-structure.config.json`，再按通用协议模板或 legacy contract 解析，不再由中心脚本手写“哪个模块采用哪个规则”。
     - `packages/nextclaw-ui/src` 已迁移为 [`module-structure.config.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/module-structure.config.json) 自声明 `frontend-l3`。
     - 同时纠正了一个设计偏差：没有继续给其它历史模块批量补 legacy 配置，因为那会把现状结构误固化为“被认可的长期架构”。现在保持为“只有明确 opt-in 的模块，才新增自己的配置文件进入强约束”。
+    - 本轮继续把 CLI 规范正式落地为 `cli-command-first` 协议：`commands/` 等价于 `features/`，根骨架固定为 `app/ + commands/ + shared/`，并且对 CLI 使用严格 `contract-only` 语义，历史根债务一旦触达就直接报错，不再只给 warning。
   - diff-only 结构漂移检查 [`scripts/governance/module-structure/lint-new-code-module-structure.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/lint-new-code-module-structure.mjs) 现在不再只检查“根目录白名单”，还会对协议化包执行两类额外阻断：
     - 结构协议检查：例如 `features/` 下误放职责目录、`shared/lib/` 直放文件、platform 根缺 `index.ts(x)`、legacy root 下继续新增文件等。
     - 唯一导入入口检查：例如从 feature 外部 deep import `@/features/<feature>/...`、deep import `@/shared/lib/<module>/...`、deep import `@/platforms/<platform>/...`。
@@ -30,6 +31,7 @@
 - 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src/module-structure.config.json scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`pnpm lint:new-code:governance -- packages/nextclaw-ui/src/module-structure.config.json scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+- 已通过：`pnpm lint:new-code:governance -- packages/nextclaw/src/cli/gateway/controller.ts packages/nextclaw/src/cli/runtime.ts packages/nextclaw/src/cli/commands/service/service.ts`
 - 已通过：`node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`pnpm lint:new-code:governance -- scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`pnpm check:governance-backlog-ratchet`
@@ -55,6 +57,7 @@
 6. 运行对应治理检查，确认会直接失败，提示 `shared/lib` 只能“目录即包 + index 唯一出口”。
 7. 在 PR 中提交上述违规改动，确认 `structure-governance` workflow 会自动运行并阻断。
 8. 查看 workflow 上传的 `topology-governance-report` artifact，确认 review 阶段能同时看到全仓 topology 报告。
+9. 在 `packages/nextclaw/src/cli/` 中触达历史根目录如 `gateway/` 或历史根文件如 `runtime.ts`，运行治理检查，确认它们会因为不在 `app/ + commands/ + shared/` 骨架内而直接报错，而不是只给 warning。
 
 ## 可维护性总结汇总
 

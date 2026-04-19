@@ -72,12 +72,19 @@ export const FIXED_ROLE_DIRECTORY_NAMES = new Set([
 
 export const PACKAGE_STRUCTURE_SKELETON_DIRECTORIES = new Set([
   "app",
+  "commands",
   "features",
   "shared",
   "platforms"
 ]);
 
 export const FEATURE_LOCAL_DIRECTORY_NAMES = new Set([
+  "features",
+  "shared",
+  ...FIXED_ROLE_DIRECTORY_NAMES
+]);
+
+export const COMMAND_LOCAL_DIRECTORY_NAMES = new Set([
   "features",
   "shared",
   ...FIXED_ROLE_DIRECTORY_NAMES
@@ -108,8 +115,18 @@ const FRONTEND_L3_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
+const CLI_COMMAND_FIRST_PROTOCOL = {
+  protocolName: "cli-command-first",
+  organizationModel: "protocol-cli-command-first",
+  allowedRootDirectories: ["app", "commands", "shared"],
+  allowedRootFiles: [],
+  sharedDirectories: ["shared"],
+  importAliasPrefixes: ["@/"]
+};
+
 export const MODULE_STRUCTURE_PROTOCOLS = new Map([
-  [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL]
+  [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL],
+  [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL]
 ]);
 
 const defineProtocolDeclaration = (declaration) => {

@@ -61,6 +61,12 @@
 
 这类目录名只应出现在业务聚合层，例如 `features/` 下，或某个 feature 的子 feature 层。
 
+对 CLI 场景的特殊说明：
+
+- 在 command-first CLI variant 里，`commands/` 等价于 `features/`
+- 因此业务目录名也可以出现在 `commands/` 下
+- 这不是新增一套独立哲学，而是对业务聚合层目录名的一个语义化别名
+
 ### 2. 通用职责目录名
 
 与具体业务无关，表达的是通用抽象角色，而不是产品域。
@@ -97,6 +103,7 @@
 特殊说明：
 
 - `shared/lib/` 不属于普通通用职责目录白名单，它是特殊目录，承载“模拟独立包”的强语义模块边界，应按特殊规则治理
+- 在 CLI command-first variant 里，`commands/` 可以作为 `features/` 的等价骨架目录使用，但它只适用于 CLI 包，不是所有包的通用默认骨架名
 
 ## L3 的定位
 
@@ -172,6 +179,79 @@ src/
 - `providers/`
 
 因为一旦允许这些目录直接平铺在根下，`L3` 的骨架层次就会被打穿。
+
+## CLI Command-First Variant
+
+CLI 不适合为了表面统一而强行把最自然的业务聚合词 `commands/` 改写成 `features/`。
+
+更推荐的做法是：
+
+- 继续复用同一套包内治理原则
+- 继续复用 `app/`、`shared/`、唯一导出入口、shared 纯化、禁止 deep import 等规则
+- 只在业务聚合层名称上做一个最小必要差异：`commands/` 等价于 `features/`
+
+这意味着：
+
+- `commands/` 是 CLI 包的主业务聚合轴
+- 每个 `commands/<command>/` 等价于一个 feature root
+- `commands/<command>/` 的内部规则，默认复用普通 feature root 的规则
+- 如果某个 command 足够复杂，它的内部仍可继续展开标准 `features/` 子层，而不是再发明 `commands/commands/`
+
+推荐结构：
+
+```text
+src/
+├── app/
+├── commands/
+│   ├── agent/
+│   ├── channel/
+│   ├── cron/
+│   ├── diagnostics/
+│   ├── learning-loop/
+│   ├── ncp/
+│   ├── platform-auth/
+│   ├── plugin/
+│   ├── remote/
+│   ├── service/
+│   ├── skills/
+│   └── update/
+└── shared/
+```
+
+对应语义：
+
+- `app/`：CLI 启动、bootstrap、命令注册、入口 wiring、运行时装配
+- `commands/`：主业务层，等价于其它包里的 `features/`
+- `shared/`：跨多个 command 的稳定共享抽象
+
+严格治理要求：
+
+- CLI 包一旦显式采纳 `cli-command-first` 协议，就不再保留“历史债务触达只警告”的通道
+- 任何不在 `app/`、`commands/`、`shared/` 根骨架内的历史目录或历史根文件，只要被触达，就按债务清算处理并直接报错
+- 这意味着该协议不是“防止以后继续长歪”的软冻结，而是“从现在开始按目标结构强制收债”
+- 因此只有在团队确认要正式推进 CLI 结构治理时，才应为 CLI 模块新增 `module-structure.config.json`
+
+默认禁止继续把下面这些目录长期平铺在 CLI 根下：
+
+- `gateway/`
+- `runtime-state/`
+- `skills/`
+- `update/`
+- 以及其它既不是入口装配层、也不是共享层、也不是 command 业务层的平行根目录
+
+这些内容要么：
+
+- 回收到对应的 `commands/<command>/`
+- 要么进入 `shared/`
+- 要么进入 `app/`
+
+这个 variant 不是新的 `L` 级别。
+
+更准确地说：
+
+- 它仍然属于同一套包内结构治理体系
+- 只是把 CLI 包的业务聚合层命名为 `commands/`
+- 所以 `commands/ == features/` 只是语义别名，不是架构例外
 
 ## 目标
 
@@ -384,9 +464,11 @@ import { useCopy } from "@/shared/hooks";
 import type { Pagination } from "@/shared/types";
 ```
 
-## Feature 边界规则
+## Feature / Command 边界规则
 
 `features/` 是业务域聚合层，因此它的一级目录只能是业务目录名。
+
+在 CLI command-first variant 中，`commands/` 与 `features/` 具有相同语义，因此也适用同样的边界规则。
 
 允许：
 
@@ -406,11 +488,29 @@ features/
 └── utils/
 ```
 
-每个 feature 根都必须满足以下规则：
+CLI 等价示例：
+
+```text
+commands/
+├── remote/
+├── service/
+└── update/
+```
+
+禁止：
+
+```text
+commands/
+├── hooks/
+├── services/
+└── utils/
+```
+
+每个 feature root 或 command root 都必须满足以下规则：
 
 - 必须有 `index.ts` 或 `index.tsx`
-- 该 `index.ts(x)` 是这个 feature 对外的唯一公共导入出口
-- 外部禁止绕过 `index.ts(x)` 直接导入 feature 内部文件
+- 该 `index.ts(x)` 是这个 root 对外的唯一公共导入出口
+- 外部禁止绕过 `index.ts(x)` 直接导入内部文件
 - feature 内部允许继续按固定通用职责目录总白名单组织，如 `components/`、`hooks/`、`presenters/`、`stores/`、`managers/`、`services/`、`pages/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
 
 推荐示例：
@@ -432,11 +532,24 @@ features/
 import { ChatPanel } from "@/features/chat";
 ```
 
+CLI 等价允许：
+
+```ts
+import { runServiceCommand } from "@/commands/service";
+```
+
 禁止：
 
 ```ts
 import { ChatPanel } from "@/features/chat/components/chat-panel";
 import { useChatStore } from "@/features/chat/stores/chat.store";
+```
+
+CLI 等价禁止：
+
+```ts
+import { runServiceCommand } from "@/commands/service/service-command-runner";
+import { ServiceRuntimeStore } from "@/commands/service/stores/service-runtime.store";
 ```
 
 ## Platforms 边界规则

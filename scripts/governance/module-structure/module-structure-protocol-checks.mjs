@@ -3,6 +3,7 @@ import path from "node:path";
 import parser from "@typescript-eslint/parser";
 import { hasAddedLineInRange, rootDir } from "../lint-new-code-governance-support.mjs";
 import {
+  COMMAND_LOCAL_DIRECTORY_NAMES,
   FEATURE_LOCAL_DIRECTORY_NAMES,
   FIXED_ROLE_DIRECTORY_NAMES,
   isProtocolContract,
@@ -28,6 +29,16 @@ const looksLikeFileSegment = (segment) => Boolean(path.posix.extname(segment));
 const isReservedProtocolName = (name) => RESERVED_PROTOCOL_DIRECTORY_NAMES.has(name);
 const buildProtocolReason = (contract) => `protocol=${contract.protocol} module=${contract.modulePath}`;
 const repoPathExistsInWorkspace = (repoPath) => existsSync(path.resolve(rootDir, repoPath));
+const getProtocolViolationLevel = (contract, existedInComparisonRef) => (
+  contract.rootPolicy === "contract-only"
+    ? "error"
+    : existedInComparisonRef ? "warn" : "error"
+);
+const getBusinessRootDirectoryName = (contract) => contract.protocol === "cli-command-first" ? "commands" : "features";
+const getBusinessRootLabel = (contract) => getBusinessRootDirectoryName(contract) === "commands" ? "command" : "feature";
+const getBusinessLocalDirectoryNames = (contract) => (
+  contract.protocol === "cli-command-first" ? COMMAND_LOCAL_DIRECTORY_NAMES : FEATURE_LOCAL_DIRECTORY_NAMES
+);
 
 const hasIndexEntry = (repoDirectoryPath, repoPathExists = repoPathExistsInWorkspace) => {
   for (const indexFileName of INDEX_FILE_NAMES) {
@@ -38,10 +49,13 @@ const hasIndexEntry = (repoDirectoryPath, repoPathExists = repoPathExistsInWorks
   return false;
 };
 
-const getFeatureBoundaryKey = (relativePath) => {
+const getBusinessBoundaryKey = (relativePath) => {
   const parts = relativePath.split("/").filter(Boolean);
-  return parts[0] === "features" && parts[1] && !looksLikeFileSegment(parts[1])
-    ? `features/${parts[1]}`
+  if (!parts[1] || looksLikeFileSegment(parts[1])) {
+    return null;
+  }
+  return (parts[0] === "features" || parts[0] === "commands")
+    ? `${parts[0]}/${parts[1]}`
     : null;
 };
 
@@ -59,7 +73,7 @@ const getSharedLibBoundaryKey = (relativePath) => {
     : null;
 };
 
-const evaluateFeatureProtocolFindings = ({
+const evaluateBusinessProtocolFindings = ({
   filePath,
   contract,
   segments,
@@ -67,34 +81,38 @@ const evaluateFeatureProtocolFindings = ({
   repoPathExists
 }) => {
   const findings = [];
-  const featureName = segments[1];
+  const businessRootDirectoryName = getBusinessRootDirectoryName(contract);
+  const businessRootLabel = getBusinessRootLabel(contract);
+  const localDirectoryNames = getBusinessLocalDirectoryNames(contract);
+  const businessName = segments[1];
   const reason = buildProtocolReason(contract);
+  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
 
-  if (!featureName) {
+  if (!businessName) {
     return findings;
   }
 
-  if (looksLikeFileSegment(featureName)) {
+  if (looksLikeFileSegment(businessName)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
-      "files cannot live directly under 'features/'; create a business feature directory first",
+      level,
+      `files cannot live directly under '${businessRootDirectoryName}/'; create a business ${businessRootLabel} directory first`,
       reason
     ));
     return findings;
   }
 
-  if (isReservedProtocolName(featureName)) {
+  if (isReservedProtocolName(businessName)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
-      `feature directory '${featureName}/' uses a reserved structure name; features must use business directory names`,
+      level,
+      `${businessRootLabel} directory '${businessName}/' uses a reserved structure name; ${businessRootDirectoryName} must use business directory names`,
       reason
     ));
     return findings;
   }
 
-  const featureRootPath = path.posix.join(contract.modulePath, "features", featureName);
+  const businessRootPath = path.posix.join(contract.modulePath, businessRootDirectoryName, businessName);
   const childEntry = segments[2];
   if (!childEntry) {
     return findings;
@@ -104,28 +122,28 @@ const evaluateFeatureProtocolFindings = ({
     if (!INDEX_FILE_NAMES.has(childEntry)) {
       findings.push(buildFinding(
         filePath,
-        existedInComparisonRef ? "warn" : "error",
-        `feature '${featureName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
+        level,
+        `${businessRootLabel} '${businessName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
         reason
       ));
     }
     return findings;
   }
 
-  if (!hasIndexEntry(featureRootPath, repoPathExists)) {
+  if (!hasIndexEntry(businessRootPath, repoPathExists)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
-      `feature '${featureName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
+      level,
+      `${businessRootLabel} '${businessName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
       reason
     ));
   }
 
-  if (!FEATURE_LOCAL_DIRECTORY_NAMES.has(childEntry)) {
+  if (!localDirectoryNames.has(childEntry)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
-      `directory '${childEntry}/' is outside the feature-local whitelist for '${featureName}/'`,
+      level,
+      `directory '${childEntry}/' is outside the ${businessRootLabel}-local whitelist for '${businessName}/'`,
       reason
     ));
     return findings;
@@ -136,7 +154,7 @@ const evaluateFeatureProtocolFindings = ({
     if (subFeatureName && !looksLikeFileSegment(subFeatureName) && isReservedProtocolName(subFeatureName)) {
       findings.push(buildFinding(
         filePath,
-        existedInComparisonRef ? "warn" : "error",
+        level,
         `subfeature directory '${subFeatureName}/' uses a reserved structure name; subfeatures must use business directory names`,
         reason
       ));
@@ -156,6 +174,7 @@ const evaluateSharedProtocolFindings = ({
   const findings = [];
   const sharedEntry = segments[1];
   const reason = buildProtocolReason(contract);
+  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
 
   if (!sharedEntry) {
     return findings;
@@ -164,7 +183,7 @@ const evaluateSharedProtocolFindings = ({
   if (looksLikeFileSegment(sharedEntry)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       "files cannot live directly under 'shared/'; shared root only accepts whitelisted role directories or 'lib/'",
       reason
     ));
@@ -179,7 +198,7 @@ const evaluateSharedProtocolFindings = ({
     if (looksLikeFileSegment(libModuleName)) {
       findings.push(buildFinding(
         filePath,
-        existedInComparisonRef ? "warn" : "error",
+        level,
         "files cannot live directly under 'shared/lib/'; create a module directory first",
         reason
       ));
@@ -190,7 +209,7 @@ const evaluateSharedProtocolFindings = ({
     if (!hasIndexEntry(libModuleRootPath, repoPathExists)) {
       findings.push(buildFinding(
         filePath,
-        existedInComparisonRef ? "warn" : "error",
+        level,
         `shared/lib module '${libModuleName}/' is missing 'index.ts' or 'index.tsx' as its唯一公共出口`,
         reason
       ));
@@ -201,7 +220,7 @@ const evaluateSharedProtocolFindings = ({
   if (!FIXED_ROLE_DIRECTORY_NAMES.has(sharedEntry)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       `directory '${sharedEntry}/' is outside the shared role whitelist`,
       reason
     ));
@@ -212,7 +231,7 @@ const evaluateSharedProtocolFindings = ({
   if (sharedRoleEntry && INDEX_FILE_NAMES.has(sharedRoleEntry)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       `shared/${sharedEntry}/ forbids root-level 'index.ts' or 'index.tsx'; import concrete files instead`,
       reason
     ));
@@ -231,6 +250,7 @@ const evaluatePlatformProtocolFindings = ({
   const findings = [];
   const platformName = segments[1];
   const reason = buildProtocolReason(contract);
+  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
 
   if (!platformName) {
     return findings;
@@ -239,7 +259,7 @@ const evaluatePlatformProtocolFindings = ({
   if (looksLikeFileSegment(platformName)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       "files cannot live directly under 'platforms/'; create a platform directory first",
       reason
     ));
@@ -249,7 +269,7 @@ const evaluatePlatformProtocolFindings = ({
   if (isReservedProtocolName(platformName)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       `platform directory '${platformName}/' uses a reserved structure name; platforms should use actual platform names`,
       reason
     ));
@@ -266,7 +286,7 @@ const evaluatePlatformProtocolFindings = ({
     if (!INDEX_FILE_NAMES.has(childEntry)) {
       findings.push(buildFinding(
         filePath,
-        existedInComparisonRef ? "warn" : "error",
+        level,
         `platform '${platformName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
         reason
       ));
@@ -277,7 +297,7 @@ const evaluatePlatformProtocolFindings = ({
   if (!hasIndexEntry(platformRootPath, repoPathExists)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       `platform '${platformName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
       reason
     ));
@@ -286,7 +306,7 @@ const evaluatePlatformProtocolFindings = ({
   if (!FIXED_ROLE_DIRECTORY_NAMES.has(childEntry)) {
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
+      level,
       `platform '${platformName}/' may only contain role directories from the fixed whitelist; found '${childEntry}/'`,
       reason
     ));
@@ -315,8 +335,8 @@ export const evaluateProtocolStructureFindings = ({
     return [];
   }
 
-  if (segments[0] === "features") {
-    return evaluateFeatureProtocolFindings({ filePath, contract, segments, existedInComparisonRef, repoPathExists });
+  if (segments[0] === "features" || segments[0] === "commands") {
+    return evaluateBusinessProtocolFindings({ filePath, contract, segments, existedInComparisonRef, repoPathExists });
   }
   if (segments[0] === "shared") {
     return evaluateSharedProtocolFindings({ filePath, contract, segments, existedInComparisonRef, repoPathExists });
@@ -355,15 +375,16 @@ const resolveImportTargetRelativePath = (importSource, filePath, contract) => {
 };
 
 const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath }) => {
-  const currentFeatureBoundary = getFeatureBoundaryKey(currentRelativePath);
+  const currentBusinessBoundary = getBusinessBoundaryKey(currentRelativePath);
   const currentPlatformBoundary = getPlatformBoundaryKey(currentRelativePath);
   const currentSharedLibBoundary = getSharedLibBoundaryKey(currentRelativePath);
   const targetSegments = targetRelativePath.split("/").filter(Boolean);
 
-  if (targetSegments[0] === "features" && targetSegments[1]) {
-    const targetFeatureBoundary = `features/${targetSegments[1]}`;
-    if (currentFeatureBoundary !== targetFeatureBoundary && targetSegments.length > 2) {
-      return `feature imports must go through '${targetFeatureBoundary}' instead of deep importing '${targetRelativePath}'`;
+  if ((targetSegments[0] === "features" || targetSegments[0] === "commands") && targetSegments[1]) {
+    const targetBusinessBoundary = `${targetSegments[0]}/${targetSegments[1]}`;
+    const targetBusinessLabel = targetSegments[0] === "commands" ? "command" : "feature";
+    if (currentBusinessBoundary !== targetBusinessBoundary && targetSegments.length > 2) {
+      return `${targetBusinessLabel} imports must go through '${targetBusinessBoundary}' instead of deep importing '${targetRelativePath}'`;
     }
     return null;
   }
@@ -439,7 +460,7 @@ export const evaluateProtocolImportBoundaryFindings = ({
     const importWasAdded = addedLines && hasAddedLineInRange(addedLines, statement.loc.start.line, statement.loc.end.line);
     findings.push(buildFinding(
       filePath,
-      importWasAdded ? "error" : "warn",
+      importWasAdded || contract.rootPolicy === "contract-only" ? "error" : "warn",
       violationMessage,
       buildProtocolReason(contract),
       statement.loc.start.line,

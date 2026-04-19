@@ -48,6 +48,11 @@ const buildFinding = (filePath, level, message, reason, line = 1, column = 1) =>
 });
 
 const isGovernedImportFile = (filePath) => GOVERNED_IMPORT_FILE_EXTENSIONS.has(path.posix.extname(filePath));
+const getDriftLevel = (contract, existedInComparisonRef) => (
+  contract.rootPolicy === "contract-only"
+    ? "error"
+    : existedInComparisonRef ? "warn" : "error"
+);
 
 const createPathExistsInRef = () => {
   const cache = new Map();
@@ -93,10 +98,11 @@ const evaluateStructureEntryFindings = ({
 
   if (!isRootFile) {
     if (!contract.allowedRootDirectories.has(firstSegment)) {
-      if (existedInComparisonRef) {
+      const level = getDriftLevel(contract, existedInComparisonRef);
+      if (level !== "error") {
         findings.push(buildFinding(
           filePath,
-          "warn",
+          level,
           `touched file still lives under legacy root directory '${firstSegment}/' outside the module structure whitelist`,
           contractReason
         ));
@@ -117,10 +123,11 @@ const evaluateStructureEntryFindings = ({
     if (!isProtocolContract(contract) && (contract.sharedDirectories.has(firstSegment) || SHARED_CONTAINER_DIRECTORY_NAMES.has(firstSegment))) {
       const basename = path.posix.basename(relativePath, path.posix.extname(relativePath)).toLowerCase();
       if (SHARED_DIRECTORY_ROLE_HINT.test(basename)) {
+        const level = getDriftLevel(contract, existedInComparisonRef);
         findings.push(buildFinding(
           filePath,
-          existedInComparisonRef ? "warn" : "error",
-          existedInComparisonRef
+          level,
+          level === "warn"
             ? `touched legacy file under '${firstSegment}/' still looks like orchestration logic; shared containers should stay pure`
             : `new file under '${firstSegment}/' looks like orchestration logic; move it to a feature/service subtree instead of a shared container`,
           contractReason
@@ -133,10 +140,11 @@ const evaluateStructureEntryFindings = ({
 
   const allowedRootFile = contract.allowedRootFiles.has(firstSegment);
   if (contract.rootPolicy === "contract-only" && !allowedRootFile) {
+    const level = getDriftLevel(contract, existedInComparisonRef);
     findings.push(buildFinding(
       filePath,
-      existedInComparisonRef ? "warn" : "error",
-      existedInComparisonRef
+      level,
+      level === "warn"
         ? `touched root file '${firstSegment}' sits outside the allowed root-file set for this module`
         : `new root file '${firstSegment}' is outside the allowed root-file set; place it under a whitelisted subtree`,
       contractReason

@@ -14,6 +14,13 @@ test("finds the protocol declaration for nextclaw-ui src", () => {
   assert.equal(isProtocolContract(contract), true);
 });
 
+test("finds the protocol declaration for nextclaw cli src", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/index.ts");
+  assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
+  assert.equal(contract?.protocol, "cli-command-first");
+  assert.equal(isProtocolContract(contract), true);
+});
+
 test("blocks a new root directory outside the L3 skeleton", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/runtime-control/runtime-control.manager.ts");
   const findings = evaluateModuleStructureFindings({
@@ -206,6 +213,90 @@ test("allows shared component file imports", () => {
     filePath: "packages/nextclaw-ui/src/app.tsx",
     contract,
     source: `import { Button } from "@/shared/components/button";\n`,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(findings.length, 0);
+});
+
+test("blocks a new root directory outside the CLI command-first skeleton", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/gateway/controller.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/gateway/controller.ts",
+    contract,
+    existedInComparisonRef: true,
+    rootEntryExistedInComparisonRef: true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /outside the module structure whitelist/);
+});
+
+test("blocks new root files outside the CLI command-first skeleton", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/runtime.ts",
+    contract,
+    existedInComparisonRef: true,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /outside the allowed root-file set/);
+});
+
+test("blocks reserved role names under commands", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/services/index.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/commands/services/index.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /commands must use business directory names/);
+});
+
+test("requires command index entry when adding files under a command role directory", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/services/service-runner.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/commands/service/services/service-runner.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: (repoPath) => repoPath.endsWith("/services/service-runner.service.ts")
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /command 'service\/' is missing 'index\.ts' or 'index\.tsx'/);
+});
+
+test("blocks new deep imports into another command", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/app/bootstrap.ts");
+  const findings = evaluateProtocolImportBoundaryFindings({
+    filePath: "packages/nextclaw/src/cli/app/bootstrap.ts",
+    contract,
+    source: `import { runServiceCommand } from "@/commands/service/services/service-runner.service";\n`,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /command imports must go through 'commands\/service'/);
+});
+
+test("allows deep imports inside the same command boundary", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/controllers/service.controller.ts");
+  const findings = evaluateProtocolImportBoundaryFindings({
+    filePath: "packages/nextclaw/src/cli/commands/service/controllers/service.controller.ts",
+    contract,
+    source: `import { runService } from "../services/service-runner.service";\n`,
     addedLines: new Set([1])
   });
 
