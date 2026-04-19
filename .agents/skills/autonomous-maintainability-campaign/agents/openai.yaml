@@ -1,0 +1,7 @@
+interface:
+  display_name: "自治可维护性战役"
+  short_description: "让仓库内的可维护性治理按批次持续推进，并能跨上下文压缩和整夜续跑"
+  default_prompt: "使用 $autonomous-maintainability-campaign 为当前仓库启动或继续一次长期可维护性治理战役。按批次推进高置信治理问题，维护 work/working-notes.md 与 work/state.json，并在每轮后执行验证、可维护性守卫和可维护性复核。"
+
+policy:
+  allow_implicit_invocation: true
