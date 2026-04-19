@@ -18,7 +18,8 @@ describe("ServiceCommands marketplace plugin management", () => {
     });
     const marketplace = installer.createInstaller();
 
-    await expect(marketplace.installPlugin("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk")).resolves.toEqual({
+    expect(marketplace.installPlugin).toBeTypeOf("function");
+    await expect(marketplace.installPlugin!("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk")).resolves.toEqual({
       message: "Installed plugin: codex",
     });
     expect(installSpy).toHaveBeenCalledWith("@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk");
@@ -45,13 +46,17 @@ describe("ServiceCommands marketplace plugin management", () => {
     });
     const marketplace = installer.createInstaller();
 
-    await expect(marketplace.enablePlugin("codex")).resolves.toEqual({
+    expect(marketplace.enablePlugin).toBeTypeOf("function");
+    expect(marketplace.disablePlugin).toBeTypeOf("function");
+    expect(marketplace.uninstallPlugin).toBeTypeOf("function");
+
+    await expect(marketplace.enablePlugin!("codex")).resolves.toEqual({
       message: 'Enabled plugin "codex".',
     });
-    await expect(marketplace.disablePlugin("codex")).resolves.toEqual({
+    await expect(marketplace.disablePlugin!("codex")).resolves.toEqual({
       message: 'Disabled plugin "codex".',
     });
-    await expect(marketplace.uninstallPlugin("codex")).resolves.toEqual({
+    await expect(marketplace.uninstallPlugin!("codex")).resolves.toEqual({
       message: 'Uninstalled plugin "codex". Removed: config entry.',
     });
 

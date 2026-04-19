@@ -28,6 +28,11 @@
     - 顶层空壳 `compat/` 已删除，兼容性相关测试与辅助逻辑统一收回 `commands/ncp/compat/`。
     - `service-support/` 已整体回收进 `commands/service/{services,types,utils}/`。
     - `remote-support/` 已整体回收进 `commands/remote/{services,utils}/`，并由 `commands/remote/index.ts` 统一暴露 `resolvePlatformApiBase`、`buildPlatformApiBaseErrorMessage`、`resolveNextclawRemoteStatusSnapshot`、`hasRunningNextclawManagedService` 等真实公共出口。
+- 同批次续改继续纠正了 CLI 运行态命令的 owner 归属，而不是把历史垃圾从一个伪目录挪到另一个伪目录：
+  - `commands/service/` 不再继续承载 `gateway / ui / start / restart / serve / stop` 这一坨运行态逻辑，只保留真实 `service` 子命令 owner，也就是宿主服务安装、卸载、自启动状态与诊断。
+  - 针对 `start / restart / serve / stop` 这组“运行态命令高度同构、允许特殊聚合”的情况，本轮新增 `commands/runtime/` 作为受控特殊分组，集中承载 `gateway / ui / start / restart / serve / stop` 的共享 owner，而不是再把它们错误挂到 `app/` 或 `service/` 下。
+  - `app/runtime.ts` 现在只做编排，真实运行态逻辑改为委托给 `commands/runtime/index.ts`；这次同步把整批 `gateway / runtime / session / ui / marketplace / plugin` 相关服务与测试从 `commands/service/` 迁到 `commands/runtime/`，并把目录挪动后的相对 import 全量归正。
+  - 这次命中的根因不是“某几个路径没改干净”，而是早期把“运行态命令 owner”和“service 命令 owner”混为一谈，导致 `service-support/` 被动长成一坨没有真实命令对应的垃圾目录；这轮修的是 owner 归属本身，而不是继续给错误归属补一层中转。
 - 根因记录：
   - 根因不是“仓库完全没有结构治理脚本”，而是此前只有命名治理、flat-directory、frozen-directory、topology report 等分散机制，没有一份模块级结构 contract 作为单一事实来源，也没有一条默认 diff-only gate 去判断“这个模块允许怎么长”。
   - 同时，早期 contract 还是“目录级白名单手写配置”形态，还没有上升到“固定协议模板 + 包级声明 + 唯一导入入口检查”这一层，所以即便补上了 root 白名单，也还不能严格表达你们现在确认的 `L3` 前端协议。
@@ -74,6 +79,19 @@
   - 观察点：返回 `{"ok":true,"data":{"status":"ok","services":{"ncpAgent":"ready","cronService":"ready"}}}`。
 - 已通过：`node scripts/dev/dev-process-status.mjs --kill`
   - 观察点：成功清理本轮冒烟拉起的 dev 进程组，后续 `node scripts/dev/dev-process-status.mjs --json` 返回空 `groups`。
+- 已通过：`pnpm --filter nextclaw tsc`
+- 已通过：`pnpm --filter nextclaw test -- --run src/cli/commands/service/services/autostart/tests/linux-systemd-autostart.service.test.ts src/cli/commands/service/services/autostart/tests/macos-launch-agent-autostart.service.test.ts src/cli/commands/service/services/autostart/tests/windows-task-autostart.service.test.ts src/cli/commands/runtime/services/tests/service-gateway-startup.test.ts src/cli/commands/runtime/services/tests/service-gateway-bootstrap.test.ts src/cli/commands/runtime/services/tests/service-capability-hydration.test.ts src/cli/commands/runtime/services/tests/service-startup-support.test.ts src/cli/commands/runtime/services/runtime/tests/service-managed-startup.test.ts src/cli/commands/runtime/services/runtime/tests/service-port-probe.test.ts src/cli/commands/runtime/services/runtime/tests/service-remote-runtime.test.ts src/cli/commands/runtime/services/ui/tests/runtime-control-host.service.test.ts src/cli/commands/runtime/services/marketplace/tests/service.marketplace-skill-args.test.ts src/cli/commands/runtime/services/marketplace/tests/service.marketplace-plugin-management.test.ts src/cli/commands/runtime/services/marketplace/tests/service.summary.test.ts src/cli/commands/runtime/services/tests/nextclaw-app.test.ts`
+- 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only --diff-filter=ACMRT -- packages/nextclaw/src/cli/app/runtime.ts packages/nextclaw/src/cli/commands)`
+  - 观察点：错误为 `0`；仅保留 `app/runtime.ts` 仍超过预算但未继续增长的 warning。
+- 已通过：`pnpm lint:new-code:governance -- $(git diff --name-only --diff-filter=ACMRT -- packages/nextclaw/src/cli/app/runtime.ts packages/nextclaw/src/cli/commands)`
+- 已通过：`pnpm dev start`
+  - 观察点：在 `18792/5174` 已被旧实例占用时，本轮新实例自动回退到 `API base: http://127.0.0.1:18793`、`Frontend: http://127.0.0.1:5175`，运行日志出现 `✓ UI API`、`✓ Capability hydration: scheduled in background`、`✓ UI NCP agent: ready`，且不再出现旧入口 `src/cli/index.ts` 或错误 owner 目录导致的导入失败。
+- 已通过：`curl -sf http://127.0.0.1:18793/api/health`
+  - 观察点：返回 `{"ok":true,"data":{"status":"ok","services":{"ncpAgent":"ready","cronService":"ready"}}}`。
+- 已通过：`curl -I -sf http://127.0.0.1:5175/`
+  - 观察点：返回 `HTTP/1.1 200 OK`。
+- 已通过：`node scripts/dev/dev-process-status.mjs --kill`
+  - 观察点：成功清理 `18792/5174` 与 `18793/5175` 两组 dev-start 进程；随后 `node scripts/dev/dev-process-status.mjs` 返回 `groups: 0`。
 - 当前未作为 blocking gate 接入的项：`pnpm check:topology`
   - 原因：仓库现状仍有历史 cross-layer violation backlog，本次按根因优先顺序先补“目录层级 contract + diff gate + PR workflow”，把 topology 继续保留为 PR 报告产物，而不是直接炸掉全仓准入。
 
@@ -105,6 +123,7 @@
 - 目录结构与文件组织是否满足当前项目治理要求：本次新增内容满足。新增治理能力已放入独立子树 `scripts/governance/module-structure/`，模块采纳关系也已下放到各模块根自己的 `module-structure.config.json`；保留债务是测试文件增长较快，以及协议模块本身已接近预算上限，后续若继续扩协议类型，应优先按“结构检查 / 导入检查 / 模板定义 / 配置发现”再拆一层。
 - 同批次 CLI 续改后的结构状态：更接近目标。`packages/nextclaw` 的真实入口事实来源已统一为 `src/cli/app/index.ts` / `dist/cli/app/index.js`，不再让 dev / release / smoke / autostart 测试各自保留一套旧入口字符串；仍待继续清算的是 CLI 命令目录内剩余命名治理与历史平铺债务。
 - 同批次 CLI 命令根层债务状态：已继续下降。`config/`、`cron/`、`diagnostics/`、`platform-auth/`、`remote/`、`service/` 都已向“根层仅 index + 内部 role 目录化”继续收敛，`compat/`、`remote-support/`、`service-support/` 三个伪根目录已被清除；后续剩余债务主要转为命令内部的命名一致性与更深层角色边界收敛，而不再是根层 support 树横飞。
+- 同批次 CLI 运行态 owner 状态：已明显更正。`service/` 被收窄回真实 service 命令，`runtime/` 作为受控特殊分组开始承载 `gateway / ui / start / restart / serve / stop`，避免继续把“运行态命令 owner”和“service 命令 owner”混成一坨。剩余债务是 `runtime/` 子树内部仍有一批历史 `service-*` 命名尚未统一成更准确的 runtime 命名，但这已经属于命名债务，不再是根层归属错误。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：是。结论如下：
   - 长期目标对齐 / 可维护性推进：是，这次顺着“目录边界更明确、默认入口更统一、review 更可预测”的方向推进了一步。它增强的是 NextClaw 作为长期统一入口产品的内部演进能力，因为后续新能力更不容易继续掉进平铺失控目录。
   - 可维护性复核结论：通过

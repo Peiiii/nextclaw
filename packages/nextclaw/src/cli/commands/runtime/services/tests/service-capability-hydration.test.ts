@@ -35,16 +35,16 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   };
 });
 
-vi.mock("../../../../plugin/plugin-registry-loader.js", () => ({
+vi.mock("../../../plugin/plugin-registry-loader.js", () => ({
   discoverPluginRegistryStatus: mocks.discoverPluginRegistryStatusMock,
   loadPluginRegistryProgressively: mocks.loadPluginRegistryProgressivelyMock
 }));
 
-vi.mock("../../../../plugin/plugin-reload.js", () => ({
+vi.mock("../../../plugin/plugin-reload.js", () => ({
   shouldRestartChannelsForPluginReload: mocks.shouldRestartChannelsForPluginReloadMock
 }));
 
-vi.mock("../../../../plugin/index.js", () => ({
+vi.mock("../../../plugin/index.js", () => ({
   logPluginDiagnostics: mocks.logPluginDiagnosticsMock,
   toExtensionRegistry: mocks.toExtensionRegistryMock
 }));

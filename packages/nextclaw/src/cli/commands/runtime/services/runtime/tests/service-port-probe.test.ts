@@ -13,7 +13,7 @@ vi.mock("@nextclaw/core", async (importOriginal) => {
   };
 });
 
-import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "../../../utils/runtime/service-port-probe.utils.js";
+import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "../../../utils/service-port-probe.utils.js";
 
 describe("service-port-probe", () => {
   beforeEach(() => {
