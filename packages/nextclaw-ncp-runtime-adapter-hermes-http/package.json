@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-adapter-hermes-http",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "description": "Standalone NCP HTTP adapter server that bridges NextClaw http-runtime sessions to Hermes API Server.",
   "type": "module",

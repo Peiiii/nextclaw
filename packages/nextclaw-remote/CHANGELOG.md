@@ -1,5 +1,54 @@
 # @nextclaw/remote
 
+## 0.1.87
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/channel-plugin-dingtalk
+  - @nextclaw/channel-plugin-discord
+  - @nextclaw/channel-plugin-email
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-mochat
+  - @nextclaw/channel-plugin-qq
+  - @nextclaw/channel-plugin-slack
+  - @nextclaw/channel-plugin-telegram
+  - @nextclaw/channel-plugin-wecom
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/channel-plugin-whatsapp
+  - @nextclaw/channel-runtime
+  - @nextclaw/core
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/openclaw-compat
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/core@0.12.10
+  - @nextclaw/server@0.12.10
+
 ## 0.1.86
 
 ### Patch Changes
@@ -7,7 +56,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -73,7 +121,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -121,7 +168,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -170,7 +216,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -211,7 +256,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -375,7 +419,6 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
-
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -676,7 +719,6 @@
 ### Patch Changes
 
 - Publish the transparent app transport boundary fix so local and remote streaming remain a true transport-only replacement.
-
   - keep SSE and multiplex adapters transport-only instead of interpreting upper-layer terminal events
   - preserve `final` as a normal streamed event while keeping `openStream().finished` stable
   - ship the repaired local chat UX and remote request-multiplex behavior in the released CLI/UI/runtime chain
