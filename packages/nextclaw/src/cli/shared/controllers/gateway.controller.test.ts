@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   writeRestartSentinel: vi.fn(async (_payload: unknown) => "/tmp/restart-sentinel.json")
 }));
 
-vi.mock("../services/restart-sentinel.service.js", () => ({
+vi.mock("../services/restart/restart-sentinel.service.js", () => ({
   parseSessionKey: () => null,
   writeRestartSentinel: (payload: unknown) => mocks.writeRestartSentinel(payload)
 }));

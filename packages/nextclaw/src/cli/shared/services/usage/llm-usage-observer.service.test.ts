@@ -5,8 +5,8 @@ import { mkdtempSync } from "node:fs";
 import { LLMProvider, ProviderManager, type LLMResponse, type LLMStreamEvent } from "@nextclaw/core";
 import { LlmUsageObserver, ObservedProviderManager } from "./llm-usage-observer.service.js";
 import { LlmUsageRecorder } from "./llm-usage-recorder.service.js";
-import { LlmUsageHistoryStore } from "../stores/llm-usage-history.store.js";
-import { LlmUsageSnapshotStore } from "../stores/llm-usage-snapshot.store.js";
+import { LlmUsageHistoryStore } from "@/cli/shared/stores/llm-usage-history.store.js";
+import { LlmUsageSnapshotStore } from "@/cli/shared/stores/llm-usage-snapshot.store.js";
 
 class StaticUsageProvider extends LLMProvider {
   constructor(private readonly response: LLMResponse) {

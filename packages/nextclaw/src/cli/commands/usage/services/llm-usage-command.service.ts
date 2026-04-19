@@ -1,9 +1,9 @@
-import type { UsageCommandOptions } from "../../../shared/types/cli.types.js";
+import type { UsageCommandOptions } from "@/cli/shared/types/cli.types.js";
 import {
   llmUsageQueryService,
   type LlmUsageQueryService,
   type LlmUsageStats,
-} from "../../../shared/services/llm-usage-query.service.js";
+} from "@/cli/shared/services/usage/llm-usage-query.service.js";
 
 export class LlmUsageCommandService {
   constructor(

@@ -2,13 +2,22 @@ import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } fr
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { APP_NAME, getDataDir } from "@nextclaw/core";
-import { which } from "../utils/cli.utils.js";
+import { which } from "@/cli/shared/utils/cli.utils.js";
 import { spawnSync } from "node:child_process";
 
 export class WorkspaceManager {
   constructor(private logo: string) {}
 
-  createWorkspaceTemplates(workspace: string, options: { force?: boolean } = {}): { created: string[] } {
+  private readonly pkgRoot = resolve(
+    fileURLToPath(new URL(".", import.meta.url)),
+    "..",
+    "..",
+    "..",
+    "..",
+    ".."
+  );
+
+  readonly createWorkspaceTemplates = (workspace: string, options: { force?: boolean } = {}): { created: string[] } => {
     const created: string[] = [];
     const force = Boolean(options.force);
     const templateDir = this.resolveTemplateDir();
@@ -58,51 +67,30 @@ export class WorkspaceManager {
       created.push(join("skills", ""));
     }
     return { created };
-  }
+  };
 
-  private resolveTemplateDir(): string | null {
+  private readonly resolveTemplateDir = (): string | null => {
     const override = process.env.NEXTCLAW_TEMPLATE_DIR?.trim();
     if (override) {
       return override;
     }
-    const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-    const pkgRoot = resolve(cliDir, "..", "..", "..", "..");
-    const candidates = [join(pkgRoot, "templates")];
+    const candidates = [join(this.pkgRoot, "templates")];
     for (const candidate of candidates) {
       if (existsSync(candidate)) {
         return candidate;
       }
     }
     return null;
-  }
+  };
 
-  getBridgeDir(): string {
+  readonly getBridgeDir = (): string => {
     const userBridge = join(getDataDir(), "bridge");
     if (existsSync(join(userBridge, "dist", "index.js"))) {
       return userBridge;
     }
 
-    if (!which("npm")) {
-      console.error("npm not found. Please install Node.js >= 18.");
-      process.exit(1);
-    }
-
-    const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-    const pkgRoot = resolve(cliDir, "..", "..", "..", "..");
-    const pkgBridge = join(pkgRoot, "bridge");
-    const srcBridge = join(pkgRoot, "..", "..", "bridge");
-
-    let source: string | null = null;
-    if (existsSync(join(pkgBridge, "package.json"))) {
-      source = pkgBridge;
-    } else if (existsSync(join(srcBridge, "package.json"))) {
-      source = srcBridge;
-    }
-
-    if (!source) {
-      console.error(`Bridge source not found. Try reinstalling ${APP_NAME}.`);
-      process.exit(1);
-    }
+    this.assertCommandAvailable("npm");
+    const source = this.resolveBridgeSource();
 
     console.log(`${this.logo} Setting up bridge...`);
     mkdirSync(resolve(userBridge, ".."), { recursive: true });
@@ -113,26 +101,44 @@ export class WorkspaceManager {
       recursive: true,
       filter: (src) => !src.includes("node_modules") && !src.includes("dist")
     });
-
-    const install = spawnSync("npm", ["install"], { cwd: userBridge, stdio: "pipe" });
-    if (install.status !== 0) {
-      console.error(`Bridge install failed: ${install.status ?? 1}`);
-      if (install.stderr) {
-        console.error(String(install.stderr).slice(0, 500));
-      }
-      process.exit(1);
-    }
-
-    const build = spawnSync("npm", ["run", "build"], { cwd: userBridge, stdio: "pipe" });
-    if (build.status !== 0) {
-      console.error(`Bridge build failed: ${build.status ?? 1}`);
-      if (build.stderr) {
-        console.error(String(build.stderr).slice(0, 500));
-      }
-      process.exit(1);
-    }
+    this.runBridgeCommand(userBridge, ["install"], "install");
+    this.runBridgeCommand(userBridge, ["run", "build"], "build");
 
     console.log("✓ Bridge ready\n");
     return userBridge;
-  }
+  };
+
+  private readonly resolveBridgeSource = (): string => {
+    const candidates = [join(this.pkgRoot, "bridge"), join(this.pkgRoot, "..", "..", "bridge")];
+    for (const candidate of candidates) {
+      if (existsSync(join(candidate, "package.json"))) {
+        return candidate;
+      }
+    }
+    return this.exitWithError(`Bridge source not found. Try reinstalling ${APP_NAME}.`);
+  };
+
+  private readonly assertCommandAvailable = (command: string): void => {
+    if (which(command)) {
+      return;
+    }
+    this.exitWithError(`${command} not found. Please install Node.js >= 18.`);
+  };
+
+  private readonly runBridgeCommand = (cwd: string, args: string[], step: "install" | "build"): void => {
+    const result = spawnSync("npm", args, { cwd, stdio: "pipe" });
+    if (result.status === 0) {
+      return;
+    }
+    const stderr = result.stderr ? String(result.stderr).slice(0, 500) : null;
+    this.exitWithError(`Bridge ${step} failed: ${result.status ?? 1}`, stderr);
+  };
+
+  private readonly exitWithError = (message: string, detail?: string | null): never => {
+    console.error(message);
+    if (detail) {
+      console.error(detail);
+    }
+    process.exit(1);
+  };
 }

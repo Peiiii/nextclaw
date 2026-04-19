@@ -14,7 +14,7 @@ vi.mock("@nextclaw/core", () => ({
   createExternalCommandEnv: mocks.createExternalCommandEnvMock
 }));
 
-vi.mock("../utils/cli.utils.js", () => ({
+vi.mock("../../utils/cli.utils.js", () => ({
   findExecutableOnPath: mocks.findExecutableOnPathMock
 }));
 

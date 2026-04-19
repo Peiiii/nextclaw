@@ -1,5 +1,5 @@
 import { resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
-import { RuntimeCommandService } from "@/cli/shared/services/runtime-command.service.js";
+import { RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
 import type { StartCommandOptions } from "@/cli/shared/types/cli.types.js";
 
 export class ServeCommands {

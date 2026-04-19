@@ -3,7 +3,7 @@ import { getPluginChannelBindings } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import { join } from "node:path";
 import { GatewayControllerImpl } from "@/cli/shared/controllers/gateway.controller.js";
-import { ConfigReloader } from "@/cli/shared/services/config-reloader.service.js";
+import { ConfigReloader } from "@/cli/shared/services/config/config-reloader.service.js";
 import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { resolveUiConfig, resolveUiStaticDir } from "@/cli/shared/utils/cli.utils.js";
 import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";

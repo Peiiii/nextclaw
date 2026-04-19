@@ -1,4 +1,4 @@
-import type { RestartStrategy } from "../services/restart-coordinator.service.js";
+import type { RestartStrategy } from "../services/restart/restart-coordinator.service.js";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 
 export type {

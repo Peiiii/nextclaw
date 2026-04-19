@@ -1,6 +1,6 @@
 import type { ProviderManager } from "@nextclaw/core";
 import { ProviderManager as ProviderManagerBase } from "@nextclaw/core";
-import type { LlmUsageRecord } from "../stores/llm-usage-record.js";
+import type { LlmUsageRecord } from "@/cli/shared/stores/llm-usage-record.js";
 import type { LlmUsageRecorder } from "./llm-usage-recorder.service.js";
 
 type ProviderChatParams = Parameters<ProviderManager["chat"]>[0];

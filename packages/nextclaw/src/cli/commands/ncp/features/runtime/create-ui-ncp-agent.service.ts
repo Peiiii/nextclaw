@@ -21,18 +21,18 @@ import {
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { join } from "node:path";
-import type { NextclawExtensionRegistry } from "../../../plugin/index.js";
+import type { NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
 import { createAssetTools } from "./ncp-asset-tools.js";
-import { NextclawNcpContextBuilder } from "../../nextclaw-ncp-context-builder.js";
-import { NextclawAgentSessionStore } from "../../nextclaw-agent-session-store.js";
-import { NextclawNcpToolRegistry } from "../../nextclaw-ncp-tool-registry.js";
-import { ProviderManagerNcpLLMApi } from "../../provider/provider-manager-ncp-llm-api.js";
-import { SessionCreationService } from "../../session-request/session-creation.service.js";
-import { SessionRequestBroker } from "../../session-request/session-request-broker.service.js";
-import { SessionRequestDeliveryService } from "../../session-request/session-request-delivery.service.js";
-import { SessionSearchRuntimeSupport } from "../../session-search/session-search-runtime.service.js";
-import { UiNcpRuntimeRegistry } from "../../ui-ncp-runtime-registry.js";
-import { LlmUsageObserver, ObservedProviderManager } from "../../../../shared/services/llm-usage-observer.service.js";
+import { NextclawNcpContextBuilder } from "@/cli/commands/ncp/nextclaw-ncp-context-builder.js";
+import { NextclawAgentSessionStore } from "@/cli/commands/ncp/nextclaw-agent-session-store.js";
+import { NextclawNcpToolRegistry } from "@/cli/commands/ncp/nextclaw-ncp-tool-registry.js";
+import { ProviderManagerNcpLLMApi } from "@/cli/commands/ncp/provider/provider-manager-ncp-llm-api.js";
+import { SessionCreationService } from "@/cli/commands/ncp/session-request/session-creation.service.js";
+import { SessionRequestBroker } from "@/cli/commands/ncp/session-request/session-request-broker.service.js";
+import { SessionRequestDeliveryService } from "@/cli/commands/ncp/session-request/session-request-delivery.service.js";
+import { SessionSearchRuntimeSupport } from "@/cli/commands/ncp/session-search/session-search-runtime.service.js";
+import { UiNcpRuntimeRegistry } from "@/cli/commands/ncp/ui-ncp-runtime-registry.js";
+import { LlmUsageObserver, ObservedProviderManager } from "@/cli/shared/services/usage/llm-usage-observer.service.js";
 import {
   createUiNcpAgentHandle,
   type UiNcpAgentHandle,
@@ -40,11 +40,11 @@ import {
 import {
   LearningLoopRuntimeService,
   readLearningLoopRuntimeConfig,
-} from "../../../learning-loop/index.js";
-import { PluginRuntimeRegistrationController } from "../../plugin-runtime-registration.controller.js";
-import { BuiltinNarpRuntimeRegistrationService } from "../../builtin-narp-runtime-registration.service.js";
-import { llmUsageRecorder } from "../../../../shared/services/llm-usage-recorder.service.js";
-import { resolveUiNcpRuntimeEntries } from "../../ui-ncp-runtime-entry-resolver.js";
+} from "@/cli/commands/learning-loop/index.js";
+import { PluginRuntimeRegistrationController } from "@/cli/commands/ncp/plugin-runtime-registration.controller.js";
+import { BuiltinNarpRuntimeRegistrationService } from "@/cli/commands/ncp/builtin-narp-runtime-registration.service.js";
+import { llmUsageRecorder } from "@/cli/shared/services/usage/llm-usage-recorder.service.js";
+import { resolveUiNcpRuntimeEntries } from "@/cli/commands/ncp/ui-ncp-runtime-entry-resolver.js";
 
 export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.service.js";
 

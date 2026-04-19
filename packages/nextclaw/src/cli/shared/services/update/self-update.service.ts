@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { resolve } from "node:path";
 import { createExternalCommandEnv } from "@nextclaw/core";
-import { findExecutableOnPath } from "../utils/cli.utils.js";
+import { findExecutableOnPath } from "@/cli/shared/utils/cli.utils.js";
 
 const DEFAULT_TIMEOUT_MS = 20 * 60_000;
 

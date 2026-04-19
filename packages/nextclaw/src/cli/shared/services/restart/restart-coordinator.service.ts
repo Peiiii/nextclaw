@@ -1,4 +1,4 @@
-import type { ManagedServiceState } from "../stores/managed-service-state.store.js";
+import type { ManagedServiceState } from "@/cli/shared/stores/managed-service-state.store.js";
 
 export type RestartStrategy = "background-service-or-manual" | "background-service-or-exit" | "exit-process";
 
@@ -28,7 +28,7 @@ export class RestartCoordinator {
 
   constructor(private deps: RestartCoordinatorDeps) {}
 
-  async requestRestart(request: RestartRequest): Promise<RestartResult> {
+  readonly requestRestart = async (request: RestartRequest): Promise<RestartResult> => {
     const reason = request.reason.trim() || "config changed";
     const strategy = request.strategy ?? "background-service-or-manual";
 
@@ -80,5 +80,5 @@ export class RestartCoordinator {
       status: "manual-required",
       message: request.manualMessage ?? "Restart the gateway to apply changes."
     };
-  }
+  };
 }

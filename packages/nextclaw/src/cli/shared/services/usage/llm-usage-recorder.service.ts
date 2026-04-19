@@ -1,6 +1,6 @@
-import { llmUsageHistoryStore, type LlmUsageHistoryStore } from "../stores/llm-usage-history.store.js";
-import { llmUsageRecordFactory, type LlmUsageRecord, type LlmUsageRecordFactory } from "../stores/llm-usage-record.js";
-import { llmUsageSnapshotStore, type LlmUsageSnapshotStore } from "../stores/llm-usage-snapshot.store.js";
+import { llmUsageHistoryStore, type LlmUsageHistoryStore } from "@/cli/shared/stores/llm-usage-history.store.js";
+import { llmUsageRecordFactory, type LlmUsageRecord, type LlmUsageRecordFactory } from "@/cli/shared/stores/llm-usage-record.js";
+import { llmUsageSnapshotStore, type LlmUsageSnapshotStore } from "@/cli/shared/stores/llm-usage-snapshot.store.js";
 
 export class LlmUsageRecorder {
   constructor(

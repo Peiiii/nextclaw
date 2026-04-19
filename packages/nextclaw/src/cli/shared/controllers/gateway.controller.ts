@@ -14,12 +14,12 @@ import {
   type SessionManager
 } from "@nextclaw/core";
 import { getPackageVersion } from "../utils/cli.utils.js";
-import { runSelfUpdate } from "../services/self-update.service.js";
+import { runSelfUpdate } from "../services/update/self-update.service.js";
 import {
   parseSessionKey,
   type RestartSentinelDeliveryContext,
   writeRestartSentinel
-} from "../services/restart-sentinel.service.js";
+} from "../services/restart/restart-sentinel.service.js";
 
 type ConfigReloaderLike = {
   getChannels: () => ChannelManager;

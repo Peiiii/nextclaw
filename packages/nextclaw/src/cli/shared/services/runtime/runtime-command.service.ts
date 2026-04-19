@@ -13,7 +13,7 @@ import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { ServiceMarketplaceInstaller } from "@/cli/shared/services/marketplace/service-marketplace-installer.service.js";
 import { ManagedServiceCommandService, resolveSessionRouteCandidate, type StartServiceOptions } from "@/cli/shared/services/runtime/service-managed-startup.service.js";
 import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "@/cli/shared/services/gateway/service-startup-support.js";
-import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "@/cli/shared/services/restart-sentinel.service.js";
+import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "@/cli/shared/services/restart/restart-sentinel.service.js";
 import { createServiceUiHosts } from "@/cli/shared/services/ui/service-ui-hosts.service.js";
 import { type UiNcpAgentHandle } from "@/cli/commands/ncp/index.js";
 import { createGatewayShellContext, createGatewayStartupContext } from "@/cli/shared/services/gateway/service-gateway-context.service.js";
@@ -242,27 +242,28 @@ export class RuntimeCommandService {
     note?: string;
     replyTo?: string;
   }): string => {
+    const { note, reason, replyTo, summary } = params;
     const lines = [
       "System event: the gateway has restarted successfully.",
       "Please send one short confirmation to the user that you are back online.",
       "Do not call any tools.",
       "Use the same language as the user's recent conversation.",
-      `Reference summary: ${params.summary}`
+      `Reference summary: ${summary}`
     ];
 
-    const reason = this.normalizeOptionalString(params.reason);
-    if (reason) {
-      lines.push(`Restart reason: ${reason}`);
+    const normalizedReason = this.normalizeOptionalString(reason);
+    if (normalizedReason) {
+      lines.push(`Restart reason: ${normalizedReason}`);
     }
 
-    const note = this.normalizeOptionalString(params.note);
-    if (note) {
-      lines.push(`Extra note: ${note}`);
+    const normalizedNote = this.normalizeOptionalString(note);
+    if (normalizedNote) {
+      lines.push(`Extra note: ${normalizedNote}`);
     }
 
-    const replyTo = this.normalizeOptionalString(params.replyTo);
-    if (replyTo) {
-      lines.push(`Reply target message id: ${replyTo}. If suitable, include [[reply_to:${replyTo}]].`);
+    const normalizedReplyTo = this.normalizeOptionalString(replyTo);
+    if (normalizedReplyTo) {
+      lines.push(`Reply target message id: ${normalizedReplyTo}. If suitable, include [[reply_to:${normalizedReplyTo}]].`);
     }
 
     return lines.join("\n");
@@ -272,6 +273,7 @@ export class RuntimeCommandService {
     bus: MessageBus;
     sessionManager: SessionManager;
   }): Promise<void> => {
+    const { bus, sessionManager } = params;
     const sentinel = await consumeRestartSentinel();
     if (!sentinel) {
       return;
@@ -282,7 +284,7 @@ export class RuntimeCommandService {
     const payload = sentinel.payload;
     const summary = formatRestartSentinelMessage(payload);
     const sentinelSessionKey = this.normalizeOptionalString(payload.sessionKey);
-    const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey(params.sessionManager);
+    const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey(sessionManager);
     if (!sentinelSessionKey && fallbackSessionKey) {
       console.warn(`Warning: restart sentinel missing sessionKey; fallback to ${fallbackSessionKey}.`);
     }
@@ -295,11 +297,11 @@ export class RuntimeCommandService {
     const channel =
       this.normalizeOptionalString(context?.channel) ??
       parsedSessionRoute?.channel ??
-      this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
+      this.normalizeOptionalString((sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
     const chatId =
       this.normalizeOptionalString(context?.chatId) ??
       parsedSessionRoute?.chatId ??
-      this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
+      this.normalizeOptionalString((sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
     const replyTo = this.normalizeOptionalString(context?.replyTo);
     const accountId = this.normalizeOptionalString(context?.accountId);
 
@@ -324,7 +326,7 @@ export class RuntimeCommandService {
       ...(accountId ? { account_id: accountId, accountId } : {})
     };
 
-    await params.bus.publishInbound({
+    await bus.publishInbound({
       channel: "system",
       senderId: "restart-sentinel",
       chatId: `${channel}:${chatId}`,

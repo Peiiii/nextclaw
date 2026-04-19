@@ -1,4 +1,4 @@
-import { RuntimeCommandService } from "@/cli/shared/services/runtime-command.service.js";
+import { RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
 
 export class StopCommands {
   constructor(

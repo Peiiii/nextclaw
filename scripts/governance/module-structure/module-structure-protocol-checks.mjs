@@ -40,6 +40,10 @@ const getBusinessRootLabel = (contract) => getBusinessRootDirectoryName(contract
 const getBusinessLocalDirectoryNames = (contract) => (
   contract.protocol === "cli-command-first" ? COMMAND_LOCAL_DIRECTORY_NAMES : FEATURE_LOCAL_DIRECTORY_NAMES
 );
+const getPreferredImportAliasPrefix = (contract) => {
+  const prefixes = [...(contract.importAliasPrefixes ?? [])].filter(Boolean);
+  return prefixes[0] ?? null;
+};
 
 const hasIndexEntry = (repoDirectoryPath, repoPathExists = repoPathExistsInWorkspace) => {
   for (const indexFileName of INDEX_FILE_NAMES) {
@@ -460,8 +464,23 @@ export const evaluateProtocolImportBoundaryFindings = ({
       continue;
     }
 
-    const targetRelativePath = resolveImportTargetRelativePath(statement.source.value, filePath, contract);
+    const importSource = statement.source.value;
+    const targetRelativePath = resolveImportTargetRelativePath(importSource, filePath, contract);
     if (!targetRelativePath) {
+      continue;
+    }
+
+    const aliasPrefix = getPreferredImportAliasPrefix(contract);
+    if (aliasPrefix && importSource.startsWith("../")) {
+      const importWasAdded = addedLines && hasAddedLineInRange(addedLines, statement.loc.start.line, statement.loc.end.line);
+      findings.push(buildFinding(
+        filePath,
+        importWasAdded || contract.rootPolicy === "contract-only" ? "error" : "warn",
+        `cross-directory imports must use '${aliasPrefix}' instead of parent-relative '${importSource}'; only same-directory './' imports are allowed once alias imports are configured`,
+        buildProtocolReason(contract),
+        statement.loc.start.line,
+        statement.loc.start.column + 1
+      ));
       continue;
     }
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import * as utils from "../utils/cli.utils.js";
-import { localUiRuntimeStore } from "../stores/local-ui-runtime.store.js";
-import { managedServiceStateStore } from "../stores/managed-service-state.store.js";
+import * as utils from "@/cli/shared/utils/cli.utils.js";
+import { localUiRuntimeStore } from "@/cli/shared/stores/local-ui-runtime.store.js";
+import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 import { resolveLocalUiApiBase } from "./ui-bridge-api.service.js";
 
 describe("resolveLocalUiApiBase", () => {

@@ -1,15 +1,15 @@
 import { resolveLocalUiBaseUrl, type Config } from "@nextclaw/core";
-import { isProcessRunning } from "../utils/cli.utils.js";
+import { isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
 import {
   type LocalUiRuntimeState,
   type LocalUiRuntimeStore,
   localUiRuntimeStore
-} from "../stores/local-ui-runtime.store.js";
+} from "@/cli/shared/stores/local-ui-runtime.store.js";
 import {
   type ManagedServiceState,
   type ManagedServiceStateStore,
   managedServiceStateStore
-} from "../stores/managed-service-state.store.js";
+} from "@/cli/shared/stores/managed-service-state.store.js";
 
 type DiscoveredLocalUiState = LocalUiRuntimeState | ManagedServiceState;
 

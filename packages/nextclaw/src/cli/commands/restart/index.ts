@@ -2,7 +2,7 @@ import { APP_NAME } from "@nextclaw/core";
 import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 import { isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
 import { resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
-import { describeUnmanagedHealthyTargetMessage, RuntimeCommandService } from "@/cli/shared/services/runtime-command.service.js";
+import { describeUnmanagedHealthyTargetMessage, RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
 import type { StartCommandOptions } from "@/cli/shared/types/cli.types.js";
 import { StartCommands } from "@/cli/commands/start/index.js";
 

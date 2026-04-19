@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { LlmUsageCommandService } from "./llm-usage-command.service.js";
-import { LlmUsageQueryService } from "../../../shared/services/llm-usage-query.service.js";
-import { LlmUsageHistoryStore } from "../../../shared/stores/llm-usage-history.store.js";
-import { LlmUsageSnapshotStore } from "../../../shared/stores/llm-usage-snapshot.store.js";
+import { LlmUsageQueryService } from "@/cli/shared/services/usage/llm-usage-query.service.js";
+import { LlmUsageHistoryStore } from "@/cli/shared/stores/llm-usage-history.store.js";
+import { LlmUsageSnapshotStore } from "@/cli/shared/stores/llm-usage-snapshot.store.js";
 
 describe("LlmUsageCommandService", () => {
   afterEach(() => {

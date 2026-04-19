@@ -1,4 +1,4 @@
-import type { SelfUpdateResult } from "../services/self-update.service.js";
+import type { SelfUpdateResult } from "@/cli/shared/services/update/self-update.service.js";
 
 type SelfUpdateReportParams = {
   appName: string;

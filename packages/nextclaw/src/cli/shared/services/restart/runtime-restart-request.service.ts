@@ -1,6 +1,6 @@
 import type { RestartResult } from "./restart-coordinator.service.js";
-import type { RequestRestartParams } from "../types/cli.types.js";
-import { pendingRestartStore } from "../stores/pending-restart.store.js";
+import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
+import { pendingRestartStore } from "@/cli/shared/stores/pending-restart.store.js";
 
 type RuntimeRestartRequestServiceDeps = {
   armManagedServiceRelaunch: (params: {
@@ -20,27 +20,36 @@ export class RuntimeRestartRequestService {
   constructor(private readonly deps: RuntimeRestartRequestServiceDeps) {}
 
   readonly run = async (params: RequestRestartParams): Promise<void> => {
-    if (params.mode === "notify") {
+    const {
+      changedPaths,
+      delayMs,
+      manualMessage,
+      mode,
+      reason,
+      silentOnServiceRestart,
+      strategy
+    } = params;
+    if (mode === "notify") {
       pendingRestartStore.mark({
-        changedPaths: params.changedPaths,
-        manualMessage: params.manualMessage,
-        reason: params.reason
+        changedPaths,
+        manualMessage,
+        reason
       });
-      console.warn(params.manualMessage);
+      console.warn(manualMessage);
       return;
     }
 
     this.deps.armManagedServiceRelaunch({
-      reason: params.reason,
-      strategy: params.strategy,
-      delayMs: params.delayMs
+      reason,
+      strategy,
+      delayMs
     });
 
     const result = await this.deps.requestRestartFromCoordinator({
-      reason: params.reason,
-      strategy: params.strategy,
-      delayMs: params.delayMs,
-      manualMessage: params.manualMessage
+      reason,
+      strategy,
+      delayMs,
+      manualMessage
     });
     if (result.status === "manual-required" || result.status === "restart-in-progress") {
       console.log(result.message);
@@ -49,7 +58,7 @@ export class RuntimeRestartRequestService {
 
     pendingRestartStore.clear();
     if (result.status === "service-restarted") {
-      if (!params.silentOnServiceRestart) {
+      if (!silentOnServiceRestart) {
         console.log(result.message);
       }
       return;

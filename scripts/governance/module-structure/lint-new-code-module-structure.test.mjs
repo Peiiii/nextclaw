@@ -167,12 +167,12 @@ test("blocks new deep imports into another feature", () => {
   assert.match(findings[0].message, /feature imports must go through 'features\/chat'/);
 });
 
-test("allows deep imports inside the same feature boundary", () => {
+test("allows alias imports inside the same feature boundary", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/components/chat-page.tsx");
   const findings = evaluateProtocolImportBoundaryFindings({
     filePath: "packages/nextclaw-ui/src/features/chat/components/chat-page.tsx",
     contract,
-    source: `import { useChatStore } from "../stores/chat.store";\n`,
+    source: `import { useChatStore } from "@/features/chat/stores/chat.store";\n`,
     addedLines: new Set([1])
   });
 
@@ -213,6 +213,32 @@ test("allows shared component file imports", () => {
     filePath: "packages/nextclaw-ui/src/app.tsx",
     contract,
     source: `import { Button } from "@/shared/components/button";\n`,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(findings.length, 0);
+});
+
+test("blocks parent-relative imports when alias imports are configured", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.ts");
+  const findings = evaluateProtocolImportBoundaryFindings({
+    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.ts",
+    contract,
+    source: `import { which } from "../../utils/cli.utils.js";\n`,
+    addedLines: new Set([1])
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /cross-directory imports must use '@\/'/);
+});
+
+test("allows same-directory relative imports when alias imports are configured", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.test.ts");
+  const findings = evaluateProtocolImportBoundaryFindings({
+    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.test.ts",
+    contract,
+    source: `import { runSelfUpdate } from "./self-update.service.js";\n`,
     addedLines: new Set([1])
   });
 
@@ -302,19 +328,19 @@ test("allows explicit index imports at a command boundary", () => {
   const findings = evaluateProtocolImportBoundaryFindings({
     filePath: "packages/nextclaw/src/cli/app/bootstrap.ts",
     contract,
-    source: `import { runCliAgentCommand } from "../commands/agent/index.js";\n`,
+    source: `import { runCliAgentCommand } from "@/commands/agent/index.js";\n`,
     addedLines: new Set([1])
   });
 
   assert.equal(findings.length, 0);
 });
 
-test("allows deep imports inside the same command boundary", () => {
+test("allows alias imports inside the same command boundary", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/controllers/service.controller.ts");
   const findings = evaluateProtocolImportBoundaryFindings({
     filePath: "packages/nextclaw/src/cli/commands/service/controllers/service.controller.ts",
     contract,
-    source: `import { runService } from "../services/service-runner.service";\n`,
+    source: `import { runService } from "@/commands/service/services/service-runner.service";\n`,
     addedLines: new Set([1])
   });
 

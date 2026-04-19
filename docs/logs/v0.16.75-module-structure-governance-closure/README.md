@@ -16,6 +16,13 @@
   - 新增协议辅助模块 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs)，把协议结构检查与导入边界检查拆成独立职责，避免主检查器继续膨胀。
   - 将该检查接入 [`scripts/governance/lint-new-code-governance.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-governance.mjs) 与根 [`package.json`](/Users/peiwang/Projects/nextbot/package.json) 的 `pnpm lint:new-code:governance` 主链路，再补充 PR workflow [`structure-governance.yml`](/Users/peiwang/Projects/nextbot/.github/workflows/structure-governance.yml)，让 review 阶段也能自动执行 diff-only 结构治理。
 - 新增治理说明文档 [`docs/designs/2026-04-19-module-structure-contracts.md`](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-19-module-structure-contracts.md)，把 contract 字段、shared 容器边界和“什么时候先改 contract 再落目录”写成明确结构规范。
+- 同批次续改把 CLI 共享服务根层继续收紧，避免 `shared/services/` 自己退化成新的平铺垃圾层：
+  - `config-reloader`、`self-update`、`restart-*`、`runtime-*`、`llm-usage-*`、`workspace-manager`、`ui-bridge-api`、`local-ui-discovery` 等文件已按职责回收到 `shared/services/{config,restart,runtime,ui,update,usage,workspace}/`。
+  - 这次命中的根因不是“某几个 import 没改干净”，而是 `shared/services/` 根层本身仍然在继续承担历史过渡目录角色；本次修的是职责层次，而不是再给根层开白名单。
+- 同批次续改把 alias 导入协议真正接入 `module-structure` 合同，而不是只把 `importAliasPrefixes` 当成解析辅助信息：
+  - 一旦模块声明了 `importAliasPrefixes`，治理器现在会把它解释成“跨目录导入的唯一协议”，父级相对路径如 `../`、`../../` 会被直接阻断，只保留同目录 `./` 相对导入。
+  - 对应检查已落到 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs) 和单测 [`scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/lint-new-code-module-structure.test.mjs)。
+  - `packages/nextclaw/src/cli` 本轮已触达文件中的跨目录导入也已同步切到 `@/`，确保协议不是“只要求以后”，而是这轮改动自己先满足。
 - 同批次续改补齐了 `packages/nextclaw` 的真实 CLI 入口迁移收尾，避免 `cli-command-first` 债务清理后继续残留旧入口引用：
   - 开发启动链路 [`scripts/dev/dev-runner.mjs`](/Users/peiwang/Projects/nextbot/scripts/dev/dev-runner.mjs) 现已改为从 `src/cli/app/index.ts` 启动，而不是继续引用已删除的 `src/cli/index.ts`。
   - 开发进程探测脚本 [`scripts/dev/dev-process-status.mjs`](/Users/peiwang/Projects/nextbot/scripts/dev/dev-process-status.mjs) 同步切到 `src/cli/app/index.ts` / `dist/cli/app/index.js`，保证 dev 状态识别与真实入口一致。
@@ -48,6 +55,8 @@
 ## 测试/验证/验收方式
 
 - 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+- 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+  - 观察点：新增断言覆盖“alias 已配置时阻断 `../` 父级相对导入，同时允许同目录 `./` 相对导入”。
 - 已通过：`node scripts/governance/module-structure/lint-new-code-module-structure.mjs -- packages/nextclaw-ui/src/module-structure.config.json scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`pnpm lint:new-code:governance -- packages/nextclaw-ui/src/module-structure.config.json scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/module-structure-protocol-checks.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
 - 已通过：`pnpm lint:new-code:governance -- packages/nextclaw/src/cli/gateway/controller.ts packages/nextclaw/src/cli/runtime.ts packages/nextclaw/src/cli/commands/service/service.ts`
@@ -82,6 +91,12 @@
 - 已通过：`pnpm --filter nextclaw tsc`
 - 已通过：`pnpm --filter nextclaw test -- --run src/cli/commands/service/services/autostart/tests/linux-systemd-autostart.service.test.ts src/cli/commands/service/services/autostart/tests/macos-launch-agent-autostart.service.test.ts src/cli/commands/service/services/autostart/tests/windows-task-autostart.service.test.ts src/cli/shared/services/gateway/tests/service-gateway-startup.test.ts src/cli/shared/services/gateway/tests/service-gateway-bootstrap.service.test.ts src/cli/shared/services/gateway/tests/service-capability-hydration.service.test.ts src/cli/shared/services/gateway/tests/service-startup-support.test.ts src/cli/shared/services/runtime/tests/service-managed-startup.service.test.ts src/cli/shared/services/runtime/tests/service-port-probe.test.ts src/cli/shared/services/runtime/tests/service-remote-runtime.service.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts src/cli/shared/services/marketplace/tests/marketplace-skill-args.service.test.ts src/cli/shared/services/marketplace/tests/marketplace-plugin-management.service.test.ts src/cli/shared/services/marketplace/tests/marketplace-summary.service.test.ts src/cli/shared/services/gateway/tests/nextclaw-app.test.ts`
 - 已通过：`(cd packages/nextclaw && pnpm test -- --run $(find src/cli/shared/services -name '*.test.ts' | sort))`
+- 已通过：`pnpm lint:new-code:governance -- $(git diff --name-only --diff-filter=ACMRT -- docs/designs/2026-04-19-module-structure-contracts.md packages/nextclaw/src/cli/app/runtime.ts packages/nextclaw/src/cli/commands packages/nextclaw/src/cli/shared/services packages/nextclaw/src/cli/shared/utils scripts/governance/module-structure | tr '\n' ' ')`
+- 已通过：`pnpm dev start`
+  - 观察点：CLI / 后端健康检查 `http://127.0.0.1:18792/api/health` 返回 `{"ok":true,...}`，说明本轮 `shared/services` 收债与 alias 导入替换没有打断 CLI 运行链路。
+  - 已知无关阻塞：前端当前存在另一批 `packages/nextclaw-ui/src` 删除改动，Vite 启动时会报 `@/system-status/...`、`@/presenter/...`、`@/remote/...` 缺文件；这不是本轮 CLI 结构或 alias 协议引入的问题，因此未纳入本次提交。
+- 已通过：`node scripts/dev/dev-process-status.mjs --kill`
+  - 观察点：本轮真实启动验收结束后成功清理 dev 进程，随后 `node scripts/dev/dev-process-status.mjs --json` 返回空 `groups`。
 - 已通过：`pnpm lint:new-code:governance -- $(git diff --name-only --diff-filter=ACMRT -- packages/nextclaw/src/cli/app/runtime.ts packages/nextclaw/src/cli/commands/gateway/index.ts packages/nextclaw/src/cli/commands/ui/index.ts packages/nextclaw/src/cli/commands/start/index.ts packages/nextclaw/src/cli/commands/restart/index.ts packages/nextclaw/src/cli/commands/serve/index.ts packages/nextclaw/src/cli/commands/stop/index.ts packages/nextclaw/src/cli/shared/services packages/nextclaw/src/cli/shared/utils/service-port-probe.utils.ts packages/nextclaw/src/cli/commands/README.md docs/designs/2026-04-19-module-structure-contracts.md docs/logs/v0.16.75-module-structure-governance-closure/README.md | tr '\n' ' ')`
 - 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only --diff-filter=ACMRT -- packages/nextclaw/src/cli/app/runtime.ts packages/nextclaw/src/cli/commands)`
   - 观察点：错误为 `0`；仅保留 `app/runtime.ts` 仍超过预算但未继续增长的 warning。

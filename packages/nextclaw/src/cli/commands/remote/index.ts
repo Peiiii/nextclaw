@@ -8,7 +8,7 @@ import {
   type RemoteStatusSnapshot
 } from "@nextclaw/remote";
 import { hostname } from "node:os";
-import { localUiDiscoveryService } from "../../shared/services/local-ui-discovery.service.js";
+import { localUiDiscoveryService } from "@/cli/shared/services/ui/local-ui-discovery.service.js";
 import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./services/remote-runtime-support.service.js";
 
 export {

@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, GatewayTool, type Config } from "@nextclaw/core";
-import { ConfigReloader } from "../services/config-reloader.service.js";
-import { RuntimeRestartRequestService } from "../services/runtime-restart-request.service.js";
+import { ConfigReloader } from "../services/config/config-reloader.service.js";
+import { RuntimeRestartRequestService } from "../services/restart/runtime-restart-request.service.js";
 import { pendingRestartStore } from "../stores/pending-restart.store.js";
 import { GatewayControllerImpl } from "./gateway.controller.js";
 
