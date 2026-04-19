@@ -34,8 +34,8 @@ import { useChatSessionListStore } from "@/components/chat/stores/chat-session-l
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useAgents } from "@/hooks/agents/useAgents";
 import { normalizeRequestedSkills } from "@/lib/chat-runtime-utils";
-import { runtimeLifecycleManager } from "@/runtime-lifecycle/runtime-lifecycle.manager";
-import { useRuntimeLifecycleStatus } from "@/runtime-lifecycle/hooks/use-runtime-lifecycle-status";
+import { systemStatusManager } from "@/system-status/system-status.manager";
+import { useChatRuntimeAvailability } from "@/system-status/hooks/use-system-status";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -124,7 +124,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const pendingProjectRootSessionKey = useChatInputStore(
     (state) => state.snapshot.pendingProjectRootSessionKey,
   );
-  const runtimeLifecycle = useRuntimeLifecycleStatus();
+  const runtimeAvailability = useChatRuntimeAvailability();
   const agentsQuery = useAgents();
   const currentSelectedModel = useChatInputStore(
     (state) => state.snapshot.selectedModel,
@@ -190,18 +190,17 @@ export function NcpChatPage({ view }: ChatPageProps) {
   const stopDisabledReason = agent.isRunning ? null : "__preparing__";
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
-  const { chatRuntimeBlocked, chatRuntimeMessage } = runtimeLifecycle;
   const filteredLastSendError =
-    runtimeLifecycle.phase === "ready" &&
+    runtimeAvailability.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
       ? null
       : rawLastSendError;
   const lastSendError =
-    chatRuntimeBlocked
+    runtimeAvailability.isBlocked
       ? null
-      : runtimeLifecycle.phase === "ready"
+      : runtimeAvailability.phase === "ready"
       ? filteredLastSendError
-      : runtimeLifecycleManager.getDisplayMessage(filteredLastSendError);
+      : systemStatusManager.getDisplayMessage(filteredLastSendError);
 
   useEffect(() => {
     presenter.chatStreamActionsManager.bind({
@@ -355,8 +354,6 @@ export function NcpChatPage({ view }: ChatPageProps) {
     selectedSessionType,
     canEditSessionType,
     sessionTypeUnavailable,
-    chatRuntimeBlocked,
-    chatRuntimeMessage,
     skillRecords,
     isSkillsLoading: sessionSkillsQuery.isLoading,
     sessionTypeUnavailableMessage,

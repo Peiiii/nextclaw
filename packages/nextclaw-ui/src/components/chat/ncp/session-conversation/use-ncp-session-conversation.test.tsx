@@ -5,7 +5,7 @@ import { fetchNcpSessionConversationSeed, useNcpSessionConversation } from "./us
 const mocks = vi.hoisted(() => ({
   fetchNcpSessionMessages: vi.fn(),
   hydratedCalls: [] as Array<{ client: unknown; loadSeed: unknown }>,
-  runtimeLifecycle: {
+  runtimeAvailability: {
     phase: "cold-starting" as "cold-starting" | "ready",
     lastReadyAt: null as number | null,
   },
@@ -46,8 +46,8 @@ vi.mock("@nextclaw/ncp-http-agent-client", () => ({
   }),
 }));
 
-vi.mock("@/runtime-lifecycle/hooks/use-runtime-lifecycle-status", () => ({
-  useRuntimeLifecycleStatus: vi.fn(() => mocks.runtimeLifecycle),
+vi.mock("@/system-status/hooks/use-system-status", () => ({
+  useChatRuntimeAvailability: vi.fn(() => mocks.runtimeAvailability),
 }));
 
 describe("useNcpSessionConversation", () => {
@@ -56,8 +56,8 @@ describe("useNcpSessionConversation", () => {
     mocks.useHydratedNcpAgent.mockClear();
     mocks.hydratedCalls.length = 0;
     mocks.clientInstances.length = 0;
-    mocks.runtimeLifecycle.phase = "cold-starting";
-    mocks.runtimeLifecycle.lastReadyAt = null;
+    mocks.runtimeAvailability.phase = "cold-starting";
+    mocks.runtimeAvailability.lastReadyAt = null;
   });
 
   it("hydrates seed from the shared session messages endpoint payload", async () => {
@@ -132,8 +132,8 @@ describe("useNcpSessionConversation", () => {
     const initialLoadSeed = mocks.hydratedCalls[0]?.loadSeed;
 
     act(() => {
-      mocks.runtimeLifecycle.phase = "ready";
-      mocks.runtimeLifecycle.lastReadyAt = 123;
+      mocks.runtimeAvailability.phase = "ready";
+      mocks.runtimeAvailability.lastReadyAt = 123;
     });
     rerender();
 

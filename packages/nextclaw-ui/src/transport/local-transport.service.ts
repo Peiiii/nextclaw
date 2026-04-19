@@ -1,7 +1,7 @@
 import { API_BASE } from '@/api/api-base';
 import { requestRawApiResponse } from '@/api/raw-client.utils';
 import type { ApiResponse } from '@/api/types';
-import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { readSseStreamResult } from './sse-stream';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url';
@@ -197,7 +197,7 @@ export class LocalAppTransport implements AppTransport {
           signal: controller.signal
         });
       } catch (error) {
-        runtimeLifecycleManager.reportTransportFailure(formatUnknownTransportError(error));
+        systemStatusManager.reportTransportFailure(formatUnknownTransportError(error));
         throw createErrorWithCause(
           `Stream request failed for ${input.method} ${input.path} | ${formatUnknownTransportError(error)}`,
           error

@@ -26,6 +26,7 @@ import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.ma
 import { chatRecentSkillsManager } from '@/components/chat/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/components/chat/chat-input.types';
 import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 
 export class NcpChatInputManager {
   private readonly sessionPreferenceSync = new ChatSessionPreferenceSync(updateNcpSession);
@@ -140,7 +141,7 @@ export class NcpChatInputManager {
     if (attachments.length === 0) {
       return [];
     }
-    const snapshot = useChatInputStore.getState().snapshot;
+    const { snapshot } = useChatInputStore.getState();
     const existingSignatures = new Set(snapshot.attachments.map(this.buildAttachmentSignature));
     const nextAttachments = this.dedupeAttachments([...snapshot.attachments, ...attachments]);
     const insertedAttachments = nextAttachments.filter(
@@ -174,7 +175,7 @@ export class NcpChatInputManager {
     const sessionSnapshot = useChatSessionListStore.getState().snapshot;
     const threadSnapshot = useChatThreadStore.getState().snapshot;
     const message = inputSnapshot.draft.trim();
-    const attachments = inputSnapshot.attachments;
+    const { attachments } = inputSnapshot;
     const parts = deriveNcpMessagePartsFromComposer(inputSnapshot.composerNodes, attachments);
     const hasSendableContent = parts.some(
       (part) => part.type !== 'text' || part.text.trim().length > 0
@@ -183,6 +184,7 @@ export class NcpChatInputManager {
       isNcpChatSendDisabled({
         snapshot: inputSnapshot,
         hasSendableDraft: hasSendableContent,
+        isRuntimeBlocked: systemStatusManager.isChatInteractionBlocked(),
       })
     ) {
       return;
@@ -243,7 +245,7 @@ export class NcpChatInputManager {
   };
 
   setSelectedSkills = (next: SetStateAction<string[]>) => {
-    const snapshot = useChatInputStore.getState().snapshot;
+    const { snapshot } = useChatInputStore.getState();
     const { selectedSkills: prev } = snapshot;
     const value = this.resolveUpdateValue(prev, next);
     if (this.isSameStringArray(value, prev)) {
@@ -298,7 +300,7 @@ export class NcpChatInputManager {
   };
 
   private reconcileThinkingForModel = (model: string): void => {
-    const snapshot = useChatInputStore.getState().snapshot;
+    const { snapshot } = useChatInputStore.getState();
     const modelOption = snapshot.modelOptions.find((option) => option.value === model);
     const { selectedThinkingLevel } = snapshot;
     const nextThinking = this.resolveThinkingForModel(modelOption, selectedThinkingLevel);

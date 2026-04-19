@@ -1,29 +1,28 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { useRuntimeLifecycleStore } from '@/runtime-lifecycle/runtime-lifecycle.store';
-import { resolveBootstrapStatusPollInterval } from './hooks/use-runtime-bootstrap-status';
+import { systemStatusManager } from './system-status.manager';
+import { useSystemStatusStore } from './system-status.store';
 
-describe('resolveBootstrapStatusPollInterval', () => {
+describe('getRuntimeBootstrapPollInterval', () => {
   beforeEach(() => {
-    useRuntimeLifecycleStore.setState({
-      snapshot: {
-        phase: 'cold-starting',
+    useSystemStatusStore.setState({
+      state: {
+        ...useSystemStatusStore.getState().state,
+        lifecyclePhase: 'cold-starting',
         hasReachedReady: false,
-        lastReadyAt: null,
-        recoveryStartedAt: null,
-        bootstrapStatus: null,
-        lastError: null,
-        lastTransportError: null,
+        activeSystemAction: null,
       },
     });
   });
 
   it('keeps polling while bootstrap status is missing', () => {
-    expect(resolveBootstrapStatusPollInterval(undefined)).toBe(500);
+    expect(systemStatusManager.getRuntimeBootstrapPollInterval(undefined)).toBe(
+      500
+    );
   });
 
   it('keeps polling while ncp agent is still initializing', () => {
     expect(
-      resolveBootstrapStatusPollInterval({
+      systemStatusManager.getRuntimeBootstrapPollInterval({
         phase: 'shell-ready',
         ncpAgent: {
           state: 'running',
@@ -46,7 +45,7 @@ describe('resolveBootstrapStatusPollInterval', () => {
 
   it('continues polling even when bootstrap status reports an ncp agent error', () => {
     expect(
-      resolveBootstrapStatusPollInterval({
+      systemStatusManager.getRuntimeBootstrapPollInterval({
         phase: 'error',
         ncpAgent: {
           state: 'error',
@@ -71,7 +70,7 @@ describe('resolveBootstrapStatusPollInterval', () => {
 
   it('stops polling once the ncp agent is ready', () => {
     expect(
-      resolveBootstrapStatusPollInterval({
+      systemStatusManager.getRuntimeBootstrapPollInterval({
         phase: 'ready',
         ncpAgent: {
           state: 'ready',
@@ -93,20 +92,18 @@ describe('resolveBootstrapStatusPollInterval', () => {
   });
 
   it('keeps polling while the runtime is recovering even if the last bootstrap status was ready', () => {
-    useRuntimeLifecycleStore.setState({
-      snapshot: {
-        phase: 'recovering',
+    useSystemStatusStore.setState({
+      state: {
+        ...useSystemStatusStore.getState().state,
+        lifecyclePhase: 'recovering',
         hasReachedReady: true,
         lastReadyAt: Date.now(),
         recoveryStartedAt: Date.now(),
-        bootstrapStatus: null,
-        lastError: null,
-        lastTransportError: null,
       },
     });
 
     expect(
-      resolveBootstrapStatusPollInterval({
+      systemStatusManager.getRuntimeBootstrapPollInterval({
         phase: 'ready',
         ncpAgent: {
           state: 'ready',

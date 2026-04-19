@@ -2,7 +2,7 @@ import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.stor
 
 type NcpChatInputAvailabilitySnapshot = Pick<
   ChatInputSnapshot,
-  'chatRuntimeBlocked' | 'isProviderStateResolved' | 'modelOptions' | 'sessionTypeUnavailable'
+  'isProviderStateResolved' | 'modelOptions' | 'sessionTypeUnavailable'
 >;
 
 export function hasNcpChatModelOptions(
@@ -32,10 +32,12 @@ export function isNcpChatComposerDisabled(
 export function isNcpChatSendDisabled(params: {
   hasSendableDraft: boolean;
   snapshot: NcpChatInputAvailabilitySnapshot;
+  isRuntimeBlocked: boolean;
 }): boolean {
-  const { hasSendableDraft, snapshot } = params;
+  const { hasSendableDraft, isRuntimeBlocked, snapshot } = params;
+
   return (
-    snapshot.chatRuntimeBlocked ||
+    isRuntimeBlocked ||
     !hasSendableDraft ||
     !hasNcpChatModelOptions(snapshot) ||
     snapshot.sessionTypeUnavailable

@@ -31,7 +31,7 @@ import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useDocBrowser } from '@/components/doc-browser';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/components/layout/sidebar-items';
-import { useRuntimeLifecycleStatus } from '@/runtime-lifecycle/hooks/use-runtime-lifecycle-status';
+import { useSystemStatus } from '@/system-status/hooks/use-system-status';
 import {
   AlarmClock,
   Bot,
@@ -175,7 +175,7 @@ export function ChatSidebar() {
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const inputSnapshot = useChatInputStore((state) => state.snapshot);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
-  const runtimeLifecycle = useRuntimeLifecycleStatus();
+  const systemStatus = useSystemStatus();
   const agentsQuery = useAgents();
   const { isLoading, items } = useNcpSessionListView();
   const { language, setLanguage } = useI18n();
@@ -282,7 +282,7 @@ export function ChatSidebar() {
       <div className="px-5 pt-5 pb-3">
         <BrandHeader
           className="flex items-center gap-2.5 min-w-0"
-          suffix={<StatusBadge status={runtimeLifecycle.connectionStatus} />}
+          suffix={<StatusBadge status={systemStatus.connectionStatus} />}
         />
       </div>
 

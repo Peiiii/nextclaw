@@ -41,8 +41,6 @@ export type ChatInputSnapshot = {
   stopReason?: string;
   canEditSessionType: boolean;
   sessionTypeUnavailable: boolean;
-  chatRuntimeBlocked: boolean;
-  chatRuntimeMessage: string | null;
   skillRecords: SessionSkillEntryView[];
   isSkillsLoading: boolean;
   selectedSkills: string[];
@@ -75,8 +73,6 @@ const initialSnapshot: ChatInputSnapshot = {
   stopReason: undefined,
   canEditSessionType: false,
   sessionTypeUnavailable: false,
-  chatRuntimeBlocked: false,
-  chatRuntimeMessage: null,
   skillRecords: [],
   isSkillsLoading: false,
   selectedSkills: []

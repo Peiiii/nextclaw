@@ -1,4 +1,4 @@
-import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 
 type FetchLike = typeof fetch;
 
@@ -40,7 +40,7 @@ export function createNcpAppClientFetch(): FetchLike {
         ...init
       });
     } catch (error) {
-      runtimeLifecycleManager.reportTransportFailure(formatUnknownFetchError(error));
+      systemStatusManager.reportTransportFailure(formatUnknownFetchError(error));
       const method = (init?.method || 'GET').toUpperCase();
       const target = formatFetchTarget(input);
       throw createErrorWithCause(

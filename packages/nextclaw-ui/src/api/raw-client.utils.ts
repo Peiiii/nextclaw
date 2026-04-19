@@ -1,6 +1,6 @@
 import { API_BASE } from './api-base';
 import type { ApiResponse } from './types';
-import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 
 function compactSnippet(text: string) {
   return text.replace(/\s+/g, ' ').trim().slice(0, 200);
@@ -70,7 +70,7 @@ export async function requestRawApiResponse<T>(
     });
   } catch (error) {
     const formatted = formatUnknownFetchError(error);
-    runtimeLifecycleManager.reportTransportFailure(formatted.summary);
+    systemStatusManager.reportTransportFailure(formatted.summary);
     return {
       ok: false,
       error: {

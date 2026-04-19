@@ -3,10 +3,10 @@ import type { BootstrapStatusView } from '@/api/types';
 import { appQueryClient } from '@/app-query-client';
 import { t } from '@/lib/i18n';
 import {
-  runtimeLifecycleManager,
   isTransientRuntimeConnectionErrorMessage,
-} from '@/runtime-lifecycle/runtime-lifecycle.manager';
-import { useRuntimeLifecycleStore } from '@/runtime-lifecycle/runtime-lifecycle.store';
+  systemStatusManager,
+} from './system-status.manager';
+import { useSystemStatusStore } from './system-status.store';
 
 const readyBootstrapStatus: BootstrapStatusView = {
   phase: 'ready',
@@ -27,28 +27,30 @@ const readyBootstrapStatus: BootstrapStatusView = {
   },
 };
 
-describe('runtimeLifecycleManager', () => {
+describe('systemStatusManager', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    runtimeLifecycleManager.resetForTests();
+    systemStatusManager.resetForTests();
   });
 
   afterEach(() => {
-    runtimeLifecycleManager.resetForTests();
+    systemStatusManager.resetForTests();
     vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   it('keeps cold start in cold-starting when transport fails before the first ready state', () => {
     expect(
-      runtimeLifecycleManager.reportTransportFailure(new Error('Failed to fetch'))
+      systemStatusManager.reportTransportFailure(new Error('Failed to fetch'))
     ).toBe(true);
 
-    expect(useRuntimeLifecycleStore.getState().snapshot.phase).toBe('cold-starting');
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe(
+      'cold-starting'
+    );
   });
 
   it('enters startup-failed when bootstrap explicitly reports an error before the first ready state', () => {
-    runtimeLifecycleManager.reportBootstrapStatus({
+    systemStatusManager.reportBootstrapStatus({
       phase: 'error',
       ncpAgent: {
         state: 'error',
@@ -69,7 +71,9 @@ describe('runtimeLifecycleManager', () => {
       lastError: 'startup failed',
     });
 
-    expect(useRuntimeLifecycleStore.getState().snapshot.phase).toBe('startup-failed');
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe(
+      'startup-failed'
+    );
   });
 
   it('enters recovering only after the page has previously reached ready', async () => {
@@ -80,40 +84,57 @@ describe('runtimeLifecycleManager', () => {
       .spyOn(appQueryClient, 'refetchQueries')
       .mockResolvedValue(undefined as never);
 
-    runtimeLifecycleManager.reportBootstrapStatus(readyBootstrapStatus);
-    runtimeLifecycleManager.handleConnectionInterrupted('websocket error');
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('websocket error');
 
-    expect(useRuntimeLifecycleStore.getState().snapshot.phase).toBe('recovering');
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe(
+      'recovering'
+    );
 
-    runtimeLifecycleManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
 
-    expect(useRuntimeLifecycleStore.getState().snapshot.phase).toBe('ready');
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('ready');
     expect(invalidateQueriesSpy).toHaveBeenCalled();
     expect(refetchQueriesSpy).toHaveBeenCalledWith({ type: 'active' });
   });
 
   it('marks recovery as stalled after the timeout window elapses', async () => {
-    runtimeLifecycleManager.reportBootstrapStatus(readyBootstrapStatus);
-    runtimeLifecycleManager.handleConnectionInterrupted('websocket error');
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('websocket error');
 
     await vi.advanceTimersByTimeAsync(30_000);
 
-    expect(useRuntimeLifecycleStore.getState().snapshot.phase).toBe('stalled');
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('stalled');
   });
 
   it('maps transient chat errors to friendly recovery copy while recovering', () => {
-    runtimeLifecycleManager.reportBootstrapStatus(readyBootstrapStatus);
-    runtimeLifecycleManager.handleConnectionInterrupted('Failed to fetch');
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('Failed to fetch');
 
     expect(
-      runtimeLifecycleManager.getDisplayMessage(
+      systemStatusManager.getDisplayMessage(
         'NCP fetch failed for POST /api/ncp/agent: Error: Failed to fetch'
       )
     ).toBe(t('runtimeControlRecoveringHelp'));
   });
 
+  it('suppresses transient transport errors after recovery stalls', async () => {
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('Failed to fetch');
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(
+      systemStatusManager.getDisplayMessage(
+        'NCP fetch failed for POST /api/ncp/agent: Error: Failed to fetch'
+      )
+    ).toBeNull();
+  });
+
   it('keeps only transport-level failures in the recovery flow', () => {
-    expect(isTransientRuntimeConnectionErrorMessage('Failed to fetch')).toBe(true);
+    expect(isTransientRuntimeConnectionErrorMessage('Failed to fetch')).toBe(
+      true
+    );
     expect(
       isTransientRuntimeConnectionErrorMessage('HTTP 500 internal server error')
     ).toBe(false);

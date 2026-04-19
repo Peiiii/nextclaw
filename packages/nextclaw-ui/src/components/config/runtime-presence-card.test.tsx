@@ -6,13 +6,13 @@ import { useDesktopPresenceStore } from '@/desktop/stores/desktop-presence.store
 import { setLanguage } from '@/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
-  useRuntimeControl: vi.fn(),
+  useSystemStatus: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn()
 }));
 
-vi.mock('@/hooks/use-runtime-control', () => ({
-  useRuntimeControl: (...args: unknown[]) => mocks.useRuntimeControl(...args)
+vi.mock('@/system-status/hooks/use-system-status', () => ({
+  useSystemStatus: (...args: unknown[]) => mocks.useSystemStatus(...args)
 }));
 
 vi.mock('sonner', () => ({
@@ -32,8 +32,8 @@ describe('RuntimePresenceCard', () => {
       busyAction: null,
       snapshot: null
     });
-    mocks.useRuntimeControl.mockReturnValue({
-      data: {
+    mocks.useSystemStatus.mockReturnValue({
+      runtimeControlView: {
         environment: 'managed-local-service',
         lifecycle: 'healthy',
         serviceState: 'running',
@@ -61,9 +61,7 @@ describe('RuntimePresenceCard', () => {
           reasonIfUnavailable: 'desktop only'
         },
         managementHint: 'managed service hint'
-      },
-      isError: false,
-      error: null
+      }
     });
     window.nextclawDesktop = undefined;
   });
@@ -106,8 +104,8 @@ describe('RuntimePresenceCard', () => {
       onUpdateStateChanged: vi.fn(() => () => {})
     };
 
-    mocks.useRuntimeControl.mockReturnValue({
-      data: {
+    mocks.useSystemStatus.mockReturnValue({
+      runtimeControlView: {
         environment: 'desktop-embedded',
         lifecycle: 'healthy',
         serviceState: 'running',
@@ -133,9 +131,7 @@ describe('RuntimePresenceCard', () => {
           impact: 'full-app-relaunch'
         },
         managementHint: 'desktop hint'
-      },
-      isError: false,
-      error: null
+      }
     });
 
     render(<RuntimePresenceCard />);

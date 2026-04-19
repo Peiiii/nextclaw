@@ -107,8 +107,8 @@ vi.mock('@/components/providers/ThemeProvider', () => ({
   })
 }));
 
-vi.mock('@/runtime-lifecycle/hooks/use-runtime-lifecycle-status', () => ({
-  useRuntimeLifecycleStatus: () => ({
+vi.mock('@/system-status/hooks/use-system-status', () => ({
+  useSystemStatus: () => ({
     connectionStatus: 'connected'
   })
 }));

@@ -306,15 +306,6 @@ describe("ChatConversationPanel", () => {
   });
 
   it("does not render runtime lifecycle copy in the conversation alert strip", () => {
-    useChatThreadStore.setState({
-      snapshot: {
-        ...useChatThreadStore.getState().snapshot,
-        chatRuntimeBlocked: true,
-        chatRuntimeMessage:
-          "聊天能力正在初始化。你可以先输入内容，完成后即可发送。",
-      },
-    });
-
     render(<ChatConversationPanel />);
 
     expect(

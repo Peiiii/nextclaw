@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { applyNcpSessionRealtimeEvent } from '@/api/ncp-session-query-cache';
-import { runtimeLifecycleManager } from '@/runtime-lifecycle/runtime-lifecycle.manager';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 import { appClient } from '@/transport';
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -52,7 +52,7 @@ function handleRealtimeEvent(
     event,
   } = params;
   if (event.type === 'connection.open') {
-    runtimeLifecycleManager.handleConnectionRestored();
+    systemStatusManager.handleConnectionRestored();
     if (shouldResyncSessions) {
       clearShouldResyncSessions();
       queryClient?.invalidateQueries({ queryKey: ['ncp-sessions'] });
@@ -60,7 +60,7 @@ function handleRealtimeEvent(
     return;
   }
   if (event.type === 'connection.close' || event.type === 'connection.error') {
-    runtimeLifecycleManager.handleConnectionInterrupted(
+    systemStatusManager.handleConnectionInterrupted(
       event.type === 'connection.error' ? event.payload?.message : null
     );
     markShouldResyncSessions();

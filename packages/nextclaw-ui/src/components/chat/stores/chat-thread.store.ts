@@ -34,8 +34,6 @@ export type ChatThreadSnapshot = {
   modelOptions: ChatModelOption[];
   sessionTypeUnavailable: boolean;
   sessionTypeUnavailableMessage?: string | null;
-  chatRuntimeBlocked: boolean;
-  chatRuntimeMessage?: string | null;
   sessionTypeLabel?: string | null;
   sessionTypeIcon?: SessionTypeIconView | null;
   sessionKey: string | null;
@@ -72,8 +70,6 @@ const initialSnapshot: ChatThreadSnapshot = {
   modelOptions: [],
   sessionTypeUnavailable: false,
   sessionTypeUnavailableMessage: null,
-  chatRuntimeBlocked: false,
-  chatRuntimeMessage: null,
   sessionTypeLabel: null,
   sessionTypeIcon: null,
   sessionKey: null,

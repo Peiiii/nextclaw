@@ -34,6 +34,7 @@ import {
 } from '@/components/chat/chat-recent-skills.manager';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatRuntimeAvailability } from '@/system-status/hooks/use-system-status';
 import type { SessionSkillEntryView } from '@/api/types';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
@@ -90,6 +91,7 @@ export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
   const snapshot = useChatInputStore((state) => state.snapshot);
+  const runtimeAvailability = useChatRuntimeAvailability();
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -304,12 +306,13 @@ export function ChatInputBarContainer() {
           ],
           skillPicker,
           actions: {
-            sendError: snapshot.chatRuntimeBlocked ? null : snapshot.sendError,
+            sendError: runtimeAvailability.isBlocked ? null : snapshot.sendError,
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
             sendDisabled: isNcpChatSendDisabled({
               snapshot,
               hasSendableDraft,
+              isRuntimeBlocked: runtimeAvailability.isBlocked,
             }),
             stopDisabled: !snapshot.canStopGeneration,
             stopHint: resolvedStopHint,

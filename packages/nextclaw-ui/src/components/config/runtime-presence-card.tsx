@@ -11,8 +11,8 @@ import { SettingRow } from "@/components/ui/setting-row";
 import { Switch } from "@/components/ui/switch";
 import { desktopPresenceManager } from "@/desktop/managers/desktop-presence.manager";
 import { useDesktopPresenceStore } from "@/desktop/stores/desktop-presence.store";
-import { useRuntimeControl } from "@/hooks/use-runtime-control";
 import { t } from "@/lib/i18n";
+import { useSystemStatus } from "@/system-status/hooks/use-system-status";
 
 function PresenceHint(props: { title: string; description: string }) {
   const { description, title } = props;
@@ -20,8 +20,8 @@ function PresenceHint(props: { title: string; description: string }) {
 }
 
 export function RuntimePresenceCard() {
-  const runtimeControlQuery = useRuntimeControl();
-  const environment = runtimeControlQuery.data?.environment;
+  const systemStatus = useSystemStatus();
+  const environment = systemStatus.runtimeControlView?.environment;
   const supported = useDesktopPresenceStore((state) => state.supported);
   const initialized = useDesktopPresenceStore((state) => state.initialized);
   const busyAction = useDesktopPresenceStore((state) => state.busyAction);

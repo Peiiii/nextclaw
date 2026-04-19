@@ -4,6 +4,7 @@ import { NcpChatInputManager } from '@/components/chat/ncp/ncp-chat-input.manage
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
+import { useSystemStatusStore } from '@/system-status/system-status.store';
 
 describe('NcpChatInputManager', () => {
   beforeEach(() => {
@@ -26,7 +27,12 @@ describe('NcpChatInputManager', () => {
             thinkingCapability: null,
           },
         ],
-        chatRuntimeBlocked: false,
+      },
+    });
+    useSystemStatusStore.setState({
+      state: {
+        ...useSystemStatusStore.getState().state,
+        lifecyclePhase: 'ready',
       },
     });
     useChatSessionListStore.setState({
@@ -111,9 +117,14 @@ describe('NcpChatInputManager', () => {
     useChatInputStore.setState({
       snapshot: {
         ...useChatInputStore.getState().snapshot,
-        chatRuntimeBlocked: true,
         isProviderStateResolved: false,
         modelOptions: [],
+      },
+    });
+    useSystemStatusStore.setState({
+      state: {
+        ...useSystemStatusStore.getState().state,
+        lifecyclePhase: 'cold-starting',
       },
     });
     const streamActionsManager = {

@@ -33,8 +33,6 @@ function createSnapshot(
     stopReason: undefined,
     canEditSessionType: true,
     sessionTypeUnavailable: false,
-    chatRuntimeBlocked: false,
-    chatRuntimeMessage: null,
     skillRecords: [],
     isSkillsLoading: false,
     selectedSkills: [],
@@ -45,7 +43,6 @@ function createSnapshot(
 describe('ncp-chat-input-availability.utils', () => {
   it('keeps the composer editable during cold start while send remains blocked', () => {
     const snapshot = createSnapshot({
-      chatRuntimeBlocked: true,
       isProviderStateResolved: false,
       modelOptions: [],
       sessionTypeUnavailable: false,
@@ -58,6 +55,7 @@ describe('ncp-chat-input-availability.utils', () => {
       isNcpChatSendDisabled({
         snapshot,
         hasSendableDraft: true,
+        isRuntimeBlocked: true,
       })
     ).toBe(true);
   });
@@ -87,6 +85,7 @@ describe('ncp-chat-input-availability.utils', () => {
       isNcpChatSendDisabled({
         snapshot,
         hasSendableDraft: true,
+        isRuntimeBlocked: false,
       })
     ).toBe(true);
   });

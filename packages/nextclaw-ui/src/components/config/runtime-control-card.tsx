@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import type {
   RuntimeActionCapability,
   RuntimeControlAction,
@@ -9,9 +7,11 @@ import type {
 } from '@/api/runtime-control.types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRuntimeControl, useRuntimeServiceAction } from '@/hooks/use-runtime-control';
 import { t } from '@/lib/i18n';
-import { runtimeControlManager } from '@/runtime-control/runtime-control.manager';
+import {
+  useRuntimeControlPanelView,
+} from '@/system-status/hooks/use-system-status';
+import { systemStatusManager } from '@/system-status/system-status.manager';
 import { Loader2, RotateCw, Square, Play } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -117,19 +117,6 @@ function resolveVisibleActions(controlView: RuntimeControlView | undefined): Vis
   return actions.filter((item) => item.capability.available || Boolean(item.capability.reasonIfUnavailable));
 }
 
-function resolveActionHelp(action: RuntimeControlAction): string {
-  if (action === 'start-service') {
-    return t('runtimeControlStartingServiceHelp');
-  }
-  if (action === 'restart-service') {
-    return t('runtimeControlRestartingServiceHelp');
-  }
-  if (action === 'stop-service') {
-    return t('runtimeControlStoppingServiceHelp');
-  }
-  return t('runtimeControlRestartingAppHelp');
-}
-
 function RuntimeActionIcon(props: { icon: VisibleRuntimeAction['icon']; busy: boolean }) {
   const { busy, icon } = props;
   if (busy) {
@@ -145,28 +132,17 @@ function RuntimeActionIcon(props: { icon: VisibleRuntimeAction['icon']; busy: bo
 }
 
 export function RuntimeControlCard() {
-  const queryClient = useQueryClient();
-  const runtimeControlQuery = useRuntimeControl();
-  const serviceActionMutation = useRuntimeServiceAction();
-  const [localLifecycle, setLocalLifecycle] = useState<RuntimeLifecycleState | null>(null);
-  const [localServiceState, setLocalServiceState] = useState<RuntimeServiceState | null>(null);
-  const [localMessage, setLocalMessage] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState<RuntimeControlAction | null>(null);
-
-  const controlView = runtimeControlQuery.data;
-  const displayedLifecycle = localLifecycle ?? controlView?.lifecycle ?? 'healthy';
-  const displayedServiceState = localServiceState ?? controlView?.serviceState ?? 'unknown';
-  const displayedMessage = localMessage ?? controlView?.message ?? t('runtimeControlDescription');
-  const busy = serviceActionMutation.isPending || busyAction !== null || displayedLifecycle === 'recovering';
-  const visibleActions = resolveVisibleActions(controlView);
-  const pendingRestart = controlView?.pendingRestart ?? null;
-
-  const resetLocalState = () => {
-    setLocalLifecycle(null);
-    setLocalServiceState(null);
-    setLocalMessage(null);
-    setBusyAction(null);
-  };
+  const {
+    busy,
+    busyAction,
+    controlView,
+    errorMessage,
+    pendingRestart,
+    visibleLifecycle: displayedLifecycle,
+    visibleMessage: displayedMessage,
+    visibleServiceState: displayedServiceState,
+  } = useRuntimeControlPanelView();
+  const visibleActions = resolveVisibleActions(controlView ?? undefined);
 
   const handleServiceAction = async (action: Extract<RuntimeControlAction, 'start-service' | 'restart-service' | 'stop-service'>) => {
     const capability = action === 'start-service'
@@ -183,30 +159,11 @@ export function RuntimeControlCard() {
       return;
     }
 
-    setBusyAction(action);
-    setLocalLifecycle(action === 'start-service' ? 'starting-service' : action === 'stop-service' ? 'stopping-service' : 'restarting-service');
-    setLocalServiceState(action === 'start-service' ? 'starting' : action === 'stop-service' ? 'stopping' : 'restarting');
-    setLocalMessage(resolveActionHelp(action));
-
     try {
-      const result = await serviceActionMutation.mutateAsync(action);
+      const result = await systemStatusManager.runRuntimeControlAction(action);
       toast.success(result.message);
-      if (action === 'stop-service') {
-        return;
-      }
-      setLocalLifecycle('recovering');
-      setLocalMessage(t('runtimeControlRecoveringHelp'));
-      const recoveredView = await runtimeControlManager.waitForRecovery();
-      queryClient.setQueryData(['runtime-control'], recoveredView);
-      await queryClient.invalidateQueries({ queryKey: ['runtime-control'] });
-      resetLocalState();
-      toast.success(t('runtimeControlRecovered'));
     } catch (error) {
       const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
-      setLocalLifecycle('failed');
-      setLocalServiceState(action === 'stop-service' ? 'running' : 'unknown');
-      setLocalMessage(message);
-      setBusyAction(null);
       toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
     }
   };
@@ -220,18 +177,11 @@ export function RuntimeControlCard() {
       return;
     }
 
-    setBusyAction('restart-app');
-    setLocalLifecycle('restarting-app');
-    setLocalMessage(t('runtimeControlRestartingAppHelp'));
-
     try {
-      const result = await runtimeControlManager.restartApp();
+      const result = await systemStatusManager.runRuntimeControlAction('restart-app');
       toast.success(result.message);
     } catch (error) {
       const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
-      setLocalLifecycle('failed');
-      setLocalMessage(message);
-      setBusyAction(null);
       toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
     }
   };
@@ -255,9 +205,9 @@ export function RuntimeControlCard() {
           {controlView?.managementHint ? (
             <p className="text-xs text-gray-500">{controlView.managementHint}</p>
           ) : null}
-          {runtimeControlQuery.isError && !busy ? (
+          {errorMessage && !busy ? (
             <p className="text-sm text-amber-700">
-              {runtimeControlQuery.error instanceof Error ? runtimeControlQuery.error.message : t('runtimeControlLoadFailed')}
+              {errorMessage}
             </p>
           ) : null}
         </div>

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AccountPanel } from "@/account/components/account-panel";
 import { appQueryClient } from "@/app-query-client";
@@ -14,12 +14,10 @@ import {
   PwaInstallBanner,
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
-import { runtimeLifecycleManager } from "@/runtime-lifecycle/runtime-lifecycle.manager";
-import { useRuntimeBootstrapStatus } from "@/runtime-lifecycle/hooks/use-runtime-bootstrap-status";
 import { startNextClawPwa } from "@/pwa/register-pwa";
+import { useSystemStatusSources } from "@/system-status/hooks/use-system-status";
 import { Toaster } from "sonner";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/components/config/ModelConfig")).ModelConfig,
@@ -226,21 +224,7 @@ function ProtectedRoutes() {
 
 function ProtectedApp() {
   useRealtimeQueryBridge(appQueryClient);
-  const runtimeBootstrapStatus = useRuntimeBootstrapStatus();
-
-  useEffect(() => {
-    if (!runtimeBootstrapStatus.data) {
-      return;
-    }
-    runtimeLifecycleManager.reportBootstrapStatus(runtimeBootstrapStatus.data);
-  }, [runtimeBootstrapStatus.data]);
-
-  useEffect(() => {
-    if (!runtimeBootstrapStatus.error) {
-      return;
-    }
-    runtimeLifecycleManager.reportBootstrapQueryError(runtimeBootstrapStatus.error);
-  }, [runtimeBootstrapStatus.error]);
+  useSystemStatusSources();
 
   return (
     <AppPresenterProvider>
