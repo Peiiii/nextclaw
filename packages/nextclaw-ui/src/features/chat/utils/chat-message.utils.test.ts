@@ -1,6 +1,6 @@
 import { ToolInvocationStatus, type UiMessage } from "@nextclaw/agent-chat";
-import { adaptChatMessages } from "@/components/chat/adapters/chat-message.adapter";
-import type { ChatMessageSource } from "@/components/chat/adapters/chat-message.adapter";
+import { adaptChatMessages } from "./chat-message.utils";
+import type { ChatMessageSource } from "./chat-message.utils";
 
 function toSource(uiMessages: UiMessage[]): ChatMessageSource[] {
   return uiMessages as unknown as ChatMessageSource[];

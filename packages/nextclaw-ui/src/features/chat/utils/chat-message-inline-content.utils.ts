@@ -1,12 +1,12 @@
 import {
   splitTextByInlineTokens,
   type ChatInlineTokenSource,
-} from "@/components/chat/chat-inline-token.utils";
+} from "@/features/chat/utils/chat-inline-token.utils";
 import type {
   ChatInlineContentSegmentViewModel,
   ChatMessagePartViewModel,
 } from "@nextclaw/agent-chat-ui";
-import type { ChatMessagePartSource } from "@/components/chat/adapters/chat-message-part.adapter";
+import type { ChatMessagePartSource } from "./chat-message-part.utils";
 
 const INVISIBLE_ONLY_TEXT_PATTERN = /\u200B|\u200C|\u200D|\u2060|\uFEFF/g;
 

@@ -626,6 +626,30 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `components/chat/adapters` 与 `components/chat/session-header` 中不需要触碰历史非 kebab 文件的 owner 链；`ProviderForm.tsx` 相关路径仍保持低置信降级
 
+- 第三十七批已经完成并通过验证：
+  - 完成 `components/chat/adapters/` 整个 legacy adapter 子树迁移：`chat-input-bar`、`chat-message`、`chat-message-part`、`chat-message-inline-content`、`chat-message-tool-agent-id`、`chat-message-partial-json`、`chat-message-session-request-tool-card` 与 `file-operation/*` 的真实实现现统一落到 `features/chat/utils/`、`features/chat/utils/file-operation/` 与 `features/chat/types/`
+  - 完成 `features/chat` 内部真实消费方切根：`chat-input-bar.container.tsx`、`chat-message-list.container.tsx`、`chat-session-workspace-file-preview.tsx` 与两条 `ncp-session-adapter` 相邻测试现在直接依赖新的 feature-root utils / types
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以两条精确 alias 承接 `@/components/chat/adapters/chat-input-bar.adapter` 与 `@/components/chat/adapters/chat-message.adapter`，继续服务 `components/chat/nextclaw/index.ts` 这类尚未迁出的历史入口
+  - 明确记录两次中途治理阻断并在同批内收敛：
+    - 先尝试把新实现落到 `features/chat/adapters/`，但 governance 明确阻断未批准的 `adapter` 角色后缀，因此最终严格收敛为 `utils` / `types`
+    - `chat-input-bar`、`chat-message-part` 与 `file-operation/diff` 迁入后命中 file-budget，因此继续把工具条逻辑、消息部件类型/工具卡、文件变更块组装拆成更小的 utils / types 文件，而不是放宽规则
+  - 通过第三十七批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/utils/chat-input-bar.utils.test.ts src/features/chat/utils/chat-message.utils.test.ts src/features/chat/utils/chat-message-tool-agent-id.utils.test.ts src/features/chat/utils/chat-message-session-spawn-tool-card.utils.test.ts src/features/chat/utils/chat-message-summary-truncation.utils.test.ts src/features/chat/utils/ncp-session-adapter.utils.test.ts src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts src/features/chat/components/chat-session-workspace-file-preview.test.tsx src/features/chat/components/conversation/chat-message-list.container.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --name-only -- packages/nextclaw-ui/src/components/chat/adapters packages/nextclaw-ui/src/features/chat/components packages/nextclaw-ui/src/features/chat/utils packages/nextclaw-ui/src/features/chat/types packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only -- packages/nextclaw-ui/src/components/chat/adapters packages/nextclaw-ui/src/features/chat/components packages/nextclaw-ui/src/features/chat/utils packages/nextclaw-ui/src/features/chat/types packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十七批代码净变化：`-4297`
+  - 第三十七批非测试代码净变化：`-2819`
+  - 第三十七批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `9` 行，删除 `4306` 行，净增 `-4297` 行
+    - 非测试代码增减报告：新增 `7` 行，删除 `2826` 行，净增 `-2819` 行
+    - 可维护性总结：`no maintainability findings`。这批不是把 adapter 原样平移，而是把整个 legacy adapter 子树严格收口到 `utils / types` 白名单结构，并在同一批里吃掉 naming gate 与 file-budget 阻断，最终把 `components/chat/adapters/` 整层清空
+
+- 当前已自动进入下一轮扫描：优先评估 `components/chat/session-header` 与 `components/chat/nextclaw/index.ts` 周边仍未脱离 legacy root 的消费链；仅处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能整组迁出真实消费方与 dead legacy 入口的高置信子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

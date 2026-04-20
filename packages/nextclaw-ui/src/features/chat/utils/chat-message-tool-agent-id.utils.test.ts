@@ -1,5 +1,5 @@
 import { ToolInvocationStatus } from "@nextclaw/agent-chat";
-import { adaptChatMessages, type ChatMessageSource } from "@/components/chat/adapters/chat-message.adapter";
+import { adaptChatMessages, type ChatMessageSource } from "./chat-message.utils";
 
 const defaultTexts = {
   roleLabels: {

@@ -1,5 +1,5 @@
-import { adaptChatMessagePart } from "@/components/chat/adapters/chat-message-part.adapter";
-import type { ChatInlineTokenSource } from "@/components/chat/chat-inline-token.utils";
+import { adaptChatMessagePart } from "./chat-message-part.utils";
+import type { ChatInlineTokenSource } from "@/features/chat/utils/chat-inline-token.utils";
 import type {
   ChatMessageRole,
   ChatMessageViewModel,
@@ -7,12 +7,12 @@ import type {
 import type {
   ChatMessageAdapterTexts,
   ChatMessagePartSource,
-} from "@/components/chat/adapters/chat-message-part.adapter";
+} from "@/features/chat/types/chat-message.types";
 
 export type {
   ChatMessageAdapterTexts,
   ChatMessagePartSource,
-} from "@/components/chat/adapters/chat-message-part.adapter";
+} from "@/features/chat/types/chat-message.types";
 
 export type ChatMessageSource = {
   id: string;

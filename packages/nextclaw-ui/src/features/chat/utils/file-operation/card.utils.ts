@@ -4,7 +4,7 @@ import {
   buildRawPreviewBlock,
   parsePatchBlocks,
   type ParsedBlock,
-} from "@/components/chat/adapters/file-operation/diff";
+} from "./diff.utils";
 import {
   isRecord,
   readAfterText,
@@ -17,8 +17,8 @@ import {
   readPatchText,
   readPath,
   readRecordPayload,
-} from "@/components/chat/adapters/file-operation/record-readers";
-import { readPartialJsonStringField } from "@/components/chat/adapters/chat-message.partial-json";
+} from "./record-readers.utils";
+import { readPartialJsonStringField } from "../chat-message-partial-json.utils";
 
 type ToolInvocationSource = {
   toolName: string;

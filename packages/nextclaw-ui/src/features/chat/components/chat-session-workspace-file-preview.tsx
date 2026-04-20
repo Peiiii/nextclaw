@@ -4,7 +4,7 @@ import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-c
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./workspace/chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/hooks/server-path/use-server-path-read";
-import { buildLineDiff, buildPreviewLines } from "@/components/chat/adapters/file-operation/line-builder";
+import { buildLineDiff, buildPreviewLines } from "@/features/chat/utils/file-operation/line-builder.utils";
 import { t } from "@/lib/i18n";
 import { buildWorkspaceFileBreadcrumb } from "@/lib/session-project/workspace-file-breadcrumb";
 import { cn } from "@/lib/utils";

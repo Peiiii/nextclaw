@@ -1,4 +1,4 @@
-import { readPartialJsonStringField } from "@/components/chat/adapters/chat-message.partial-json";
+import { readPartialJsonStringField } from "../chat-message-partial-json.utils";
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

@@ -10,7 +10,7 @@ import {
   adaptChatMessage,
   type ChatMessageAdapterTexts,
   type ChatMessageSource,
-} from "@/components/chat/adapters/chat-message.adapter";
+} from "@/features/chat/utils/chat-message.utils";
 import { readInlineTokensFromMetadata } from "@/features/chat/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/utils/ncp-session-adapter.utils";
 import { AgentIdentityAvatar } from "@/components/common/agent-identity";

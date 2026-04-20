@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adaptChatMessage } from '@/components/chat/adapters/chat-message.adapter';
+import { adaptChatMessage } from '@/features/chat/utils/chat-message.utils';
 import { adaptNcpMessageToUiMessage } from './ncp-session-adapter.utils';
 
 const texts = {

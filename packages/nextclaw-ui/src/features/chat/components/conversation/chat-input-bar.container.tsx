@@ -3,7 +3,7 @@ import { ChatInputBar, type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '@nextclaw/ncp-react';
 import { uploadNcpAssets } from '@/api/ncp-attachments';
 import type { SessionSkillEntryView } from '@/api/types';
-import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/components/chat/adapters/chat-input-bar.adapter';
+import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/utils/chat-input-bar.utils';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useI18n } from '@/components/providers/I18nProvider';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';

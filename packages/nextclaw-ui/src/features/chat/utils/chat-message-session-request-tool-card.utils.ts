@@ -3,7 +3,7 @@ import {
   summarizeToolArgs,
   type ToolCard,
 } from "@/lib/chat-message";
-import { resolveToolInvocationAgentId } from "@/components/chat/adapters/chat-message-tool-agent-id";
+import { resolveToolInvocationAgentId } from "./chat-message-tool-agent-id.utils";
 import type { ChatToolPartViewModel } from "@nextclaw/agent-chat-ui";
 
 type ToolCardViewSource = ToolCard & {

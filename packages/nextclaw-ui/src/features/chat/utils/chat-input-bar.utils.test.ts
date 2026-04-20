@@ -3,8 +3,8 @@ import {
   buildModelToolbarSelect,
   buildSelectedSkillItems,
   buildSkillPickerModel
-} from '@/components/chat/adapters/chat-input-bar.adapter';
-import type { ChatSkillRecord } from '@/components/chat/adapters/chat-input-bar.adapter';
+} from './chat-input-bar.utils';
+import type { ChatSkillRecord } from './chat-input-bar.utils';
 
 function createSkillRecord(partial: Partial<ChatSkillRecord>): ChatSkillRecord {
   return {
