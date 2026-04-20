@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "components/config allowed-root 连续迁移",
-    "原因": "security-config 已证明“真实实现迁入 feature、旧路径收窄为薄转发”可以稳定通过治理闸门，接下来继续沿这条路径推进；并且用户明确要求每完成一轮后自动进入下一轮、不等待再次发话，同时把每批任务量提升到之前的五倍以上，因此后续默认按语义线成组推进。",
+    "名称": "components/chat feature-root 连续迁移",
+    "原因": "features/chat 已连续承接 utils、types、manager、tests 与稳定组件子块，并且第十四批已证明真实消费方只要统一走 `@/features/chat` 根入口，就能同时满足 module-structure 合同与 non-feature 净增 <= 0 的硬约束；用户又明确要求每完成一轮后自动进入下一轮且放大批次规模，因此当前优先继续扫描更大的 chat / system-status 成组候选。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "受影响测试或类型检查",
@@ -51,7 +51,8 @@
     "完成 channel-form-fields.test.ts 的 feature-root 测试归位并通过最小验证集",
     "完成 runtime-control-card 与 runtime-presence 相关测试的 system-status 成组归位并通过最小验证集",
     "完成 features/chat 入口建立与 chat 纯支撑线的成组 feature-root 迁移并通过最小验证集",
-    "完成 chat session-preference 支撑线的成组 feature-root 迁移并通过最小验证集"
+    "完成 chat session-preference 支撑线的成组 feature-root 迁移并通过最小验证集",
+    "完成 chat 稳定组件子块与真实消费方切换的成组 feature-root 迁移并通过最小验证集"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -62,7 +63,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/config 与 components/chat 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用支撑件，但不再以单文件为单位推进；默认按一条语义线把实现、测试与相邻薄转发入口打包成更大的高置信批次，再推进下一提交。",
-  "最近一次停机原因": "第十三批已沿 features/chat 完成 session-preference 支撑线的第二轮成组迁移，并通过测试、类型、治理与非功能净增长闸门；过程中已确认同一批次里只要把新文件行数压到最小、并遵守 *.utils / *.manager / feature index 约束，就能在不扩张功能的前提下继续保持 non-test 净增为负。当前已拿到十三个连续提交。",
+  "下一步": "继续扫描 components/chat 与 components/config 中尚未归位、但已能语义挂入 features/chat、features/system-status、features/channels 或 shared/components 的更大候选组；默认把实现、测试、真实消费方与 legacy 薄转发入口一起打包，完成一批就验证、提交、自动进入下一批。",
+  "最近一次停机原因": "第十四批已沿 features/chat 完成稳定组件子块与真实消费方切根入口的成组迁移，并通过测试、类型、治理与非功能净增长闸门；过程中已确认 feature 消费必须走 `@/features/chat` 根入口，同时只要压缩 feature index 与新文件行数，就能在不扩张功能的前提下继续保持 non-test 净增为负。当前已拿到十四个连续提交。",
   "最近更新时间": "2026-04-21"
 }

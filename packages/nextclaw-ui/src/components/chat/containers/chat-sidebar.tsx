@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SelectItem } from '@/components/ui/select';
 import { ChatSidebarSessionItem } from '@/components/chat/chat-sidebar-session-item';
-import { ChatSessionTypeOptionItem } from '@/components/chat/chat-session-type-option-item';
+import { ChatSessionTypeOptionItem } from '@/features/chat';
 import { ChatSidebarListModeSwitch } from '@/components/chat/chat-sidebar-list-mode-switch';
 import {
   ChatSidebarProjectGroups,

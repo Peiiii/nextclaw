@@ -33,6 +33,7 @@
 - 第十一批通过治理的落点是按 `system-status` 语义线成组收敛：把 `runtime-control-card.tsx` 的真实实现迁入 `features/system-status/components/runtime-control-card.tsx`，同时把 `runtime-control-card.test.tsx` 与 `runtime-presence-card.test.tsx` 一并迁入 `features/system-status/components/`，旧路径只保留兼容导出
 - 第十二批通过治理的落点是建立 `features/chat/index.ts`，并把 `chat-inline-token.utils`、`chat-composer-state`、`chat-session-display`、`chat-session-route`、`chat-recent-models.manager`、`chat-recent-skills.manager` 这条纯支撑线连同三份测试一起迁入 `features/chat`，旧路径只保留薄转发入口
 - 第十三批通过治理的落点是继续沿 `features/chat` 扩张第二条支撑线：把 `chat-input.types.ts`、`chat-session-preference-governance.ts`、`chat-session-preference-sync.ts` 连同同步测试一起迁入 `features/chat/types`、`features/chat/utils` 与 `features/chat/managers`，旧路径只保留薄转发入口
+- 第十四批通过治理的落点是继续沿 `features/chat` 扩张稳定组件线：把 `chat-session-type-option-item.tsx`、`chat-session-workspace-file-preview.tsx` 及其测试一起迁入 `features/chat/components`，把 `chat-sidebar-project-groups.tsx`、`containers/chat-sidebar.tsx` 与 `chat-session-workspace-panel.tsx` 的真实消费改到 `@/features/chat` 根入口，同时把旧路径收窄为薄转发入口
 
 # 测试 / 验证 / 验收方式
 
@@ -143,6 +144,7 @@
   - `system-status` 第十一批验证通过，`runtime-control-card` 实现与两份运行时测试同时归位，非测试代码净变化为负值
   - `chat` feature 第十二批验证通过，`features/chat` 入口与一整条纯支撑线同时建立，非测试代码净变化继续为负值
   - `chat` feature 第十三批验证通过，`session-preference` 支撑线完成归位，非测试代码净变化继续为负值
+  - `chat` feature 第十四批验证通过，稳定组件子块与真实消费方一起切到 feature 根入口，非测试代码净变化为 `-14`
 
 # 发布 / 部署方式
 
@@ -154,7 +156,7 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到十三处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card`、`runtime-control-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 的真实实现位于 `shared/components`，`channel-form-fields` 与 `channel-form-fields-section` 的真实实现位于 `features/channels`，`runtime-config-agent.utils` 的真实实现位于 `features/system-status/utils`，而 `features/chat` 现已承接 `chat-inline-token.utils`、`chat-composer-state`、`chat-session-display`、`chat-session-route`、recent managers、`chat-input.types` 与 `session-preference` 支撑线；对应测试也已经进入各自 feature 目录。
+5. 当前至少应看到十四处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card`、`runtime-control-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 的真实实现位于 `shared/components`，`channel-form-fields` 与 `channel-form-fields-section` 的真实实现位于 `features/channels`，`runtime-config-agent.utils` 的真实实现位于 `features/system-status/utils`，而 `features/chat` 现已承接 `chat-inline-token.utils`、`chat-composer-state`、`chat-session-display`、`chat-session-route`、recent managers、`chat-input.types`、`session-preference` 支撑线以及 `chat-session-type-option-item`、`chat-session-workspace-file-preview` 这组稳定组件；对应测试也已经进入各自 feature 目录。
 
 # 可维护性总结汇总
 
@@ -162,11 +164,11 @@
 
 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本批次没有新增用户能力，只做实现归位与兼容出口收窄；旧文件由完整页面实现降为单行转发，复杂度明显下降。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十三个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；`components/config/security-config.tsx`、`components/config/runtime-presence-card.tsx`、`components/config/runtime-control-card.tsx`、`components/config/config-split-page.tsx`、`components/config/provider-pill-selector.tsx`、`components/config/provider-status-badge.tsx`、`components/config/provider-enabled-field.tsx`、`components/config/provider-advanced-settings-section.tsx`、`components/config/provider-auth-section.tsx`、`components/config/channel-form-fields.ts`、`components/config/channel-form-fields-section.tsx` 与 `components/config/runtime-config-agent.utils.ts` 都已经收窄为兼容出口；`components/chat` 现在已经把两条完整的纯支撑线迁入 `features/chat`。`components/config` 与 `components/chat` 顶层文件数虽仍未收敛到预算内，但都没有继续恶化，并且已拿到可复制的 feature 化路径。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十四个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；`components/config/security-config.tsx`、`components/config/runtime-presence-card.tsx`、`components/config/runtime-control-card.tsx`、`components/config/config-split-page.tsx`、`components/config/provider-pill-selector.tsx`、`components/config/provider-status-badge.tsx`、`components/config/provider-enabled-field.tsx`、`components/config/provider-advanced-settings-section.tsx`、`components/config/provider-auth-section.tsx`、`components/config/channel-form-fields.ts`、`components/config/channel-form-fields-section.tsx` 与 `components/config/runtime-config-agent.utils.ts` 都已经收窄为兼容出口；`components/chat` 现在已经把两条完整的纯支撑线和一组稳定组件子块迁入 `features/chat`。`components/config` 与 `components/chat` 顶层文件数虽仍未收敛到预算内，但都没有继续恶化，并且已拿到可复制的 feature 化路径。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 则是跨多个配置页面复用的 UI 原件或稳定子区块，迁入 `shared/components` 后边界更清晰；`channel-form-fields` 与 `channel-form-fields-section` 开始形成独立的 `features/channels` 语义边界；`runtime-config-agent.utils` 进一步把运行时配置辅助逻辑收回 `features/system-status`。整个过程没有引入新的假角色目录或额外 helper。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 则是跨多个配置页面复用的 UI 原件或稳定子区块，迁入 `shared/components` 后边界更清晰；`channel-form-fields` 与 `channel-form-fields-section` 开始形成独立的 `features/channels` 语义边界；`runtime-config-agent.utils` 进一步把运行时配置辅助逻辑收回 `features/system-status`；`chat-session-type-option-item` 与 `chat-session-workspace-file-preview` 则让 `features/chat` 从纯支撑线扩展到可被侧栏与工作区面板直接消费的稳定组件边界。整个过程没有引入新的假角色目录或额外 helper。
 
-目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；当前已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，并且 allowed roots 现已同时打通 `features` 与 `shared` 两条迁移路径。按照最新执行约束，后续批次不再以单文件为单位推进，而是尽量按一条语义线成组收敛；除了 `features/system-status`、`features/channels` 与 `shared/components`，`features/chat` 现在也已经具备承接 manager / types / utils / tests 的稳定能力，下一步应继续沿这四条线挑选可一起归位的页面、卡片、测试与支撑件。
+目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；当前已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，并且 allowed roots 现已同时打通 `features` 与 `shared` 两条迁移路径。按照最新执行约束，后续批次不再以单文件为单位推进，而是尽量按一条语义线成组收敛；除了 `features/system-status`、`features/channels` 与 `shared/components`，`features/chat` 现在也已经具备承接 manager / types / utils / tests / stable components 的稳定能力，下一步应继续沿这四条线挑选可一起归位的页面、卡片、测试与支撑件。
 
 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。本批次独立复核结论为“通过，继续推进下一层级”。原因是这一步确实减少了 legacy 目录中的实质实现代码，且没有把复杂度转移成新的横向耦合；唯一保留风险是 `components/config` 的目录预算债务仍在，需要后续连续批次继续偿还。
 

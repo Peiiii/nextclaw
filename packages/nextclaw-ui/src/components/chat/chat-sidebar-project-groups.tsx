@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ChatSessionTypeOptionItem } from '@/components/chat/chat-session-type-option-item';
+import { ChatSessionTypeOptionItem } from '@/features/chat';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 import type { NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';

@@ -211,10 +211,24 @@
 - `runtime-control-card` 与 `runtime-presence-card` 的测试现已随 `system-status` feature 一起归位，说明后续可以按“同一语义线的实现 + 测试 + 薄转发入口”成组推进，而不是继续一批只搬一个点
 - `features/chat` 已建立且通过闸门，说明 `components/chat` 不再只能靠局部子目录消化复杂度；后续可以继续把 chat 的纯支撑线、manager 与稳定子块按 feature 语义收回 allowed root
 - `session-preference` 支撑线已完成，说明 `features/chat` 不只承接纯 utils，也能稳定承接 types、manager、治理逻辑与相邻测试
+- `chat-session-type-option-item` 与 `chat-session-workspace-file-preview` 已完成，说明 `features/chat` 现在也能稳定承接被侧栏与工作区面板直接消费的组件子块；只要消费方导入走 `@/features/chat` 根入口，就能同时满足 module-structure 合同与 non-feature 净增闸门
 
 # 下一步
 
 - 继续扫描 `components/config` 与 `components/chat` 里已是 kebab-case 的页面、卡片或通用支撑件，优先按语义线成组打包，而不是单点迁移；当前优先观察 `system-status` 剩余卡片、`channels` 页面壳、`chat` 里尚未归位的稳定组件子块，以及 `shared/components` 中可连带迁移的小型原件
+- 补记第十四批：
+  - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
+  - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`
+  - 完成 `components/chat/chat-session-workspace-file-preview.tsx -> features/chat/components/chat-session-workspace-file-preview.tsx`
+  - 完成 `components/chat/chat-session-workspace-file-preview.test.tsx -> features/chat/components/chat-session-workspace-file-preview.test.tsx`
+  - 完成真实消费方切根入口：`components/chat/chat-sidebar-project-groups.tsx`、`components/chat/containers/chat-sidebar.tsx`、`components/chat/chat-session-workspace-panel.tsx` 现改为从 `@/features/chat` 导入
+  - 通过第十四批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/chat-session-type-option-item.test.tsx src/features/chat/components/chat-session-workspace-file-preview.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/components/chat-session-type-option-item.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-type-option-item.test.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-file-preview.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-file-preview.test.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/chat-session-type-option-item.tsx packages/nextclaw-ui/src/components/chat/chat-session-type-option-item.test.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-file-preview.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-file-preview.test.tsx packages/nextclaw-ui/src/components/chat/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-panel.tsx`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/chat-session-type-option-item.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-type-option-item.test.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-file-preview.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-file-preview.test.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/chat-session-type-option-item.tsx packages/nextclaw-ui/src/components/chat/chat-session-type-option-item.test.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-file-preview.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-file-preview.test.tsx packages/nextclaw-ui/src/components/chat/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-panel.tsx`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第十四批非测试代码净变化为 `-14`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞

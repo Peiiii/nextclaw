@@ -26,7 +26,7 @@ import {
   WorkspaceTabsBar,
 } from "@/components/chat/chat-session-workspace-panel-nav";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
-import { ChatSessionWorkspaceFilePreview } from "@/components/chat/chat-session-workspace-file-preview";
+import { ChatSessionWorkspaceFilePreview } from "@/features/chat";
 import { AgentIdentityAvatar } from "@/components/common/agent-identity";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
