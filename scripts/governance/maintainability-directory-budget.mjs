@@ -1,5 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
+import {
+  isProtocolFlatRoleDirectory
+} from "./module-structure/module-structure-flat-role-directories.mjs";
 
 export const DIRECTORY_BUDGET_WARNING_COUNT = 12;
 export const DIRECTORY_BUDGET_ERROR_COUNT = 12;
@@ -211,6 +214,10 @@ export function evaluateDirectoryBudget(params) {
     previousCount,
     exception
   } = params;
+
+  if (isProtocolFlatRoleDirectory(directoryPath)) {
+    return null;
+  }
 
   if (currentCount < Math.min(DIRECTORY_BUDGET_WARNING_COUNT, DIRECTORY_BUDGET_ERROR_COUNT)) {
     return null;

@@ -141,3 +141,43 @@ test("blocks touched strict flat directories even when they are not newly growin
   assert.equal(finding?.level, "error");
   assert.match(finding?.message ?? "", /strict flat-directory governance/);
 });
+
+test("skips subtree enforcement for protocol flat role directories", () => {
+  const finding = evaluateFlatDirectoryFinding({
+    directoryPath: "packages/nextclaw-kernel/src/services",
+    currentShape: {
+      directCodeFiles: [
+        "packages/nextclaw-kernel/src/services/agent.service.ts",
+        "packages/nextclaw-kernel/src/services/runtime.service.ts",
+        "packages/nextclaw-kernel/src/services/session.service.ts",
+        "packages/nextclaw-kernel/src/services/provider.service.ts",
+        "packages/nextclaw-kernel/src/services/model.service.ts",
+        "packages/nextclaw-kernel/src/services/plugin.service.ts",
+        "packages/nextclaw-kernel/src/services/skill.service.ts",
+        "packages/nextclaw-kernel/src/services/context.service.ts"
+      ],
+      directSubdirectories: []
+    },
+    previousShape: {
+      directCodeFiles: [
+        "packages/nextclaw-kernel/src/services/agent.service.ts",
+        "packages/nextclaw-kernel/src/services/runtime.service.ts",
+        "packages/nextclaw-kernel/src/services/session.service.ts",
+        "packages/nextclaw-kernel/src/services/provider.service.ts",
+        "packages/nextclaw-kernel/src/services/model.service.ts",
+        "packages/nextclaw-kernel/src/services/plugin.service.ts",
+        "packages/nextclaw-kernel/src/services/skill.service.ts",
+        "packages/nextclaw-kernel/src/services/context.service.ts"
+      ],
+      directSubdirectories: []
+    },
+    exception: {
+      readmePath: "packages/nextclaw-kernel/src/services/README.md",
+      found: false,
+      missingFields: ["原因"],
+      reason: null
+    }
+  });
+
+  assert.equal(finding, null);
+});

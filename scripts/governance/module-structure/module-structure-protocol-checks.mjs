@@ -10,6 +10,7 @@ import {
   RESERVED_PROTOCOL_DIRECTORY_NAMES,
   toModuleRelativePath
 } from "./module-structure-contracts.mjs";
+import { evaluateFlatRoleDirectoryFindings } from "./module-structure-flat-role-findings.mjs";
 
 const INDEX_FILE_NAMES = new Set(["index.ts", "index.tsx"]);
 const AST_PARSE_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]);
@@ -162,7 +163,17 @@ const evaluateBusinessProtocolFindings = ({
     }
   }
 
-  return findings;
+  return [
+    ...findings,
+    ...evaluateFlatRoleDirectoryFindings({
+      filePath,
+      segments,
+      level: getProtocolViolationLevel(contract, existedInComparisonRef),
+      reason: buildProtocolReason(contract),
+      roleDirectoryIndex: 2,
+      ownerLabel: `${label} '${segments[1]}/' role directory '`
+    })
+  ];
 };
 
 const evaluateSharedProtocolFindings = ({
@@ -238,7 +249,17 @@ const evaluateSharedProtocolFindings = ({
     ));
   }
 
-  return findings;
+  return [
+    ...findings,
+    ...evaluateFlatRoleDirectoryFindings({
+      filePath,
+      segments,
+      level: getProtocolViolationLevel(contract, existedInComparisonRef),
+      reason: buildProtocolReason(contract),
+      roleDirectoryIndex: 1,
+      ownerLabel: "shared role directory '"
+    })
+  ];
 };
 
 const evaluatePlatformProtocolFindings = ({
@@ -248,20 +269,30 @@ const evaluatePlatformProtocolFindings = ({
   existedInComparisonRef,
   repoPathExists
 }) => {
-  return evaluateNamedProtocolRootFindings({
-    filePath,
-    contract,
-    segments,
-    existedInComparisonRef,
-    repoPathExists,
-    rootDirectoryName: "platforms",
-    allowedChildDirectories: FIXED_ROLE_DIRECTORY_NAMES,
-    invalidRootFileMessage: "files cannot live directly under 'platforms/'; create a platform directory first",
-    reservedNameMessage: (platformName) => `platform directory '${platformName}/' uses a reserved structure name; platforms should use actual platform names`,
-    invalidRootEntryMessage: (platformName, childEntry) => `platform '${platformName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
-    missingIndexMessage: (platformName) => `platform '${platformName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
-    invalidChildDirectoryMessage: (platformName, childEntry) => `platform '${platformName}/' may only contain role directories from the fixed whitelist; found '${childEntry}/'`
-  });
+  return [
+    ...evaluateNamedProtocolRootFindings({
+      filePath,
+      contract,
+      segments,
+      existedInComparisonRef,
+      repoPathExists,
+      rootDirectoryName: "platforms",
+      allowedChildDirectories: FIXED_ROLE_DIRECTORY_NAMES,
+      invalidRootFileMessage: "files cannot live directly under 'platforms/'; create a platform directory first",
+      reservedNameMessage: (platformName) => `platform directory '${platformName}/' uses a reserved structure name; platforms should use actual platform names`,
+      invalidRootEntryMessage: (platformName, childEntry) => `platform '${platformName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
+      missingIndexMessage: (platformName) => `platform '${platformName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
+      invalidChildDirectoryMessage: (platformName, childEntry) => `platform '${platformName}/' may only contain role directories from the fixed whitelist; found '${childEntry}/'`
+    }),
+    ...evaluateFlatRoleDirectoryFindings({
+      filePath,
+      segments,
+      level: getProtocolViolationLevel(contract, existedInComparisonRef),
+      reason: buildProtocolReason(contract),
+      roleDirectoryIndex: 2,
+      ownerLabel: `platform '${segments[1]}/' role directory '`
+    })
+  ];
 };
 
 export const evaluateProtocolStructureFindings = ({
@@ -293,7 +324,14 @@ export const evaluateProtocolStructureFindings = ({
   if (segments[0] === "platforms") {
     return evaluatePlatformProtocolFindings({ filePath, contract, segments, existedInComparisonRef, repoPathExists });
   }
-  return [];
+  return evaluateFlatRoleDirectoryFindings({
+    filePath,
+    segments,
+    level: getProtocolViolationLevel(contract, existedInComparisonRef),
+    reason: buildProtocolReason(contract),
+    roleDirectoryIndex: 0,
+    ownerLabel: "root role directory '"
+  });
 };
 
 const resolveImportTargetRelativePath = (importSource, filePath, contract) => {

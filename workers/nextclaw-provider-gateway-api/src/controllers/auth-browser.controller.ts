@@ -10,7 +10,7 @@ import {
   isPlatformAuthServiceError,
   issuePlatformTokenResult,
   registerPlatformUser
-} from "@/services/platform/platform-auth.service";
+} from "@/services/platform-auth.service";
 import { ensurePlatformBootstrap } from "@/services/platform.service";
 import {
   DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS,

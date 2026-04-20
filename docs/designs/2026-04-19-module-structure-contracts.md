@@ -233,6 +233,14 @@ src/
 - `hooks/` 不要求额外追加 `.hook`
 - 这两个目录本身已经有足够强的职责语义，再叠一层同义后缀只会制造冗余
 
+同时补充一个强约束：
+
+- 只要某个通用职责目录拥有固定的角色后缀映射，它的根下就只能直接放文件，不能再按领域继续套子目录
+- 适用目录包括：`configs/`、`presenters/`、`stores/`、`managers/`、`services/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
+- 例如允许 `services/chat-session.service.ts`，禁止 `services/chat/session/chat-session.service.ts` 与 `services/chat/chat-session.service.ts`
+- 如果某个领域已经复杂到需要继续分层，就应该把它提升为真正的业务 owner 根目录，例如 `features/<feature>/`、`commands/<command>/`、`platforms/<platform>/`，而不是躲进通用职责目录里继续长结构
+- `components/`、`hooks/`、`pages/` 不在这个“只能直放文件”的约束内，因为它们没有对应的固定 `.role.ts(x)` 后缀映射
+
 推荐映射如下：
 
 - `components/` -> `<name>.ts(x)`
@@ -411,7 +419,7 @@ src/
 - 这意味着该协议不是“防止以后继续长歪”的软冻结，而是“从现在开始按目标结构强制收债”
 - 因此只有在团队确认要正式推进 CLI 结构治理时，才应为 CLI 模块新增 `module-structure.config.json`
 - `commands/` 下禁止出现 `runtime/`、`support/`、`compat/` 这类不代表真实命令 owner 的伪 feature 根目录
-- `gateway / ui / start / restart / serve / stop` 这组运行态命令虽然共享大量底层实现，但根目录仍必须各自独立存在；共享实现应进入 `shared/services/*` 或 `shared/utils/*`
+- `gateway / ui / start / restart / serve / stop` 这组运行态命令虽然共享大量底层实现，但根目录仍必须各自独立存在；共享实现应进入 `shared/services/*.service.ts` 或 `shared/utils/*.utils.ts`
 
 默认禁止继续把下面这些目录长期平铺在 CLI 根下：
 
@@ -772,6 +780,7 @@ commands/
 - 该 `index.ts(x)` 是这个 root 对外的唯一公共导入出口
 - 外部禁止绕过 `index.ts(x)` 直接导入内部文件
 - feature 内部允许继续按固定通用职责目录总白名单组织，如 `components/`、`configs/`、`hooks/`、`presenters/`、`stores/`、`managers/`、`services/`、`pages/`、`types/`、`utils/`、`providers/`、`controllers/`、`repositories/`、`routes/`
+- 其中拥有固定 `.role.ts(x)` 映射的角色目录仍必须保持“目录内只直放文件、不再继续套领域子目录”
 
 推荐示例：
 

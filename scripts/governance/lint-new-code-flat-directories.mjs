@@ -11,6 +11,9 @@ import {
   toPosixPath
 } from "./lint-new-code-governance-support.mjs";
 import {
+  isProtocolFlatRoleDirectory
+} from "./module-structure/module-structure-flat-role-directories.mjs";
+import {
   isPathWithinPrefixes,
   STRICT_TOUCHED_FLAT_DIRECTORY_PATHS
 } from "./touched-legacy-governance-contracts.mjs";
@@ -58,7 +61,6 @@ const isCodeFile = (filePath) => {
   }
   return CODE_EXTENSIONS.has(path.posix.extname(normalized).toLowerCase());
 };
-
 const listCurrentDirectoryShape = (directoryPath) => {
   const normalized = normalizeDirectoryPath(directoryPath);
   if (!normalized || !shouldCheckDirectory(normalized)) {
@@ -211,6 +213,10 @@ const inspectTreeException = (directoryPath) => {
 };
 
 export const evaluateFlatDirectoryFinding = ({ directoryPath, currentShape, previousShape, exception }) => {
+  if (isProtocolFlatRoleDirectory(directoryPath)) {
+    return null;
+  }
+
   const currentSignals = summarizeDirectoryTreeSignals(currentShape);
   if (!currentSignals.needsSubtree) {
     return null;

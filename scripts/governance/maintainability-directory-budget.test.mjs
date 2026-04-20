@@ -9,6 +9,7 @@ import {
   evaluateDirectoryBudget,
   inspectDirectoryBudgetExceptionText
 } from "./maintainability-directory-budget.mjs";
+import { isProtocolFlatRoleDirectory } from "./module-structure/module-structure-flat-role-directories.mjs";
 
 function withTempRoot(run) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-directory-budget-"));
@@ -87,6 +88,24 @@ test("evaluateDirectoryBudget downgrades to warn when a complete exception is re
   assert.equal(finding?.level, "warn");
   assert.equal(finding?.exception_reason, "目录由框架路由约束，保留扁平页面文件结构。");
   assert.equal(finding?.scope, "diff");
+});
+
+test("protocol flat role directories are exempt from directory budget escalation", () => {
+  assert.equal(isProtocolFlatRoleDirectory("packages/nextclaw-kernel/src/services"), true);
+
+  const finding = evaluateDirectoryBudget({
+    directoryPath: "packages/nextclaw-kernel/src/services",
+    currentCount: 16,
+    previousCount: 11,
+    exception: {
+      readmePath: "packages/nextclaw-kernel/src/services/README.md",
+      found: false,
+      missingFields: ["原因"],
+      reason: null
+    }
+  });
+
+  assert.equal(finding, null);
 });
 
 test("collectDirectoryBudgetHotspots reports real hotspots and ignores generated directories", () => {

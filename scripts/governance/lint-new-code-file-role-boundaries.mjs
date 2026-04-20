@@ -23,8 +23,10 @@ const ROLE_SUFFIX_ALLOWLIST = new Set([
   "config",
   "controller",
   "manager",
+  "presenter",
   "provider",
   "repository",
+  "route",
   "service",
   "store",
   "test",
@@ -37,6 +39,16 @@ const DIRECTORY_ROLE_RULES = {
     type: "role-suffix",
     role: "controller",
     expectedLabel: "*.controller.ts"
+  },
+  managers: {
+    type: "role-suffix",
+    role: "manager",
+    expectedLabel: "*.manager.ts"
+  },
+  presenters: {
+    type: "role-suffix",
+    role: "presenter",
+    expectedLabel: "*.presenter.ts(x)"
   },
   configs: {
     type: "role-suffix",
@@ -52,6 +64,11 @@ const DIRECTORY_ROLE_RULES = {
     type: "role-suffix",
     role: "repository",
     expectedLabel: "*.repository.ts"
+  },
+  routes: {
+    type: "role-suffix",
+    role: "route",
+    expectedLabel: "*.route.ts(x)"
   },
   services: {
     type: "role-suffix",

@@ -1,12 +1,12 @@
 import type { Context } from "hono";
-import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform/platform-email-otp.service";
+import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform-email-otp.service";
 import { ensurePlatformBootstrap } from "@/services/platform.service";
 import {
   issuePlatformTokenResult,
   isPlatformAuthServiceError,
   registerPlatformUser,
   updatePlatformUserPassword,
-} from "@/services/platform/platform-auth.service";
+} from "@/services/platform-auth.service";
 import type { Env } from "@/types/platform";
 import { apiError, readClientIp, readJson, readString } from "@/utils/platform.utils";
 

@@ -3,7 +3,7 @@ import {
   renderBrowserAuthPage,
   type BrowserAuthLocale,
   type BrowserAuthMode,
-} from "@/services/auth-browser/auth-browser-page-renderer.service.js";
+} from "@/services/auth-browser-page-renderer.service.js";
 import {
   createPlatformAuthSession,
   getPlatformAuthSessionById,

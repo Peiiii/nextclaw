@@ -5,22 +5,22 @@ import {
   resolveBrowserAuthLocale,
   resolveBrowserAuthMode,
   type BrowserAuthLocale,
-} from "@/services/auth-browser/auth-browser-page-renderer.service.js";
+} from "@/services/auth-browser-page-renderer.service.js";
 import {
   authorizeBrowserSessionForUser,
   createBrowserAuthSession,
   loadPendingBrowserAuthSession,
   loadPlatformAuthSession,
   renderMissingSessionPage,
-} from "@/services/auth-browser/auth-browser-session.service.js";
-import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform/platform-email-otp.service";
+} from "@/services/auth-browser-session.service.js";
+import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform-email-otp.service";
 import {
   authenticatePlatformUser,
   isPlatformAuthServiceError,
   issuePlatformTokenResult,
   registerPlatformUser,
   updatePlatformUserPassword,
-} from "@/services/platform/platform-auth.service";
+} from "@/services/platform-auth.service";
 import { ensurePlatformBootstrap } from "@/services/platform.service";
 import { DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS, type Env } from "@/types/platform";
 import { apiError, readClientIp, readJson, readString } from "@/utils/platform.utils";

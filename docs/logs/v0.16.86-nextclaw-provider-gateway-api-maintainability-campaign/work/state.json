@@ -1,36 +1,39 @@
 {
-  "campaignGoal": "持续治理 workers/nextclaw-provider-gateway-api 的高置信可维护性债务，优先解决目录平铺、命名漂移、确定性 lint 告警与结构预算问题，不引入新用户能力。",
+  "campaignGoal": "持续治理 workers/nextclaw-provider-gateway-api 的高置信可维护性债务，优先解决目录平铺、命名漂移、治理规则缺口与检测冲突，不引入新用户能力。",
   "status": "completed",
   "currentBatch": "completed",
-  "batchShape": "目录治理 + 命名治理 + lint 债务治理 + 结构预算收口",
+  "batchShape": "严格 package-l1 结构治理 + 角色目录扁平约束补齐 + 治理器一致性修复",
   "confirmedFacts": [
     "src 根层直接源码文件数已从 25 降到 2",
-    "src/services 根层直接文件数已回落到 11",
-    "module-structure.config.json 已放在包根，并切成真实 package-l1 协议；legacy contract 不再允许伪装成 protocol-*",
+    "configs/controllers/services/utils 下的领域子目录已全部清空",
+    "module-structure 文档与检测现已明确：固定 .role.ts(x) 映射目录内部只能直放文件",
+    "file-role-boundaries 已补齐 managers/presenters/routes 角色映射",
+    "flat-directories-subtree 已不再和协议 flat role dir 发生规则冲突",
+    "node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs 已通过（36/36）",
+    "node --test scripts/governance/lint-new-code-file-role-boundaries.test.mjs 已通过（19/19）",
+    "node --test scripts/governance/lint-new-code-flat-directories.test.mjs 已通过（5/5）",
     "pnpm -C workers/nextclaw-provider-gateway-api lint 已通过",
     "pnpm -C workers/nextclaw-provider-gateway-api tsc 已通过",
     "pnpm -C workers/nextclaw-provider-gateway-api test:quota 已通过（10/10）",
-    "worker 范围的 new-code governance 与 non-feature maintainability guard 已通过（0 error / 8 warning）",
-    "module-structure 定向测试 31/31 已通过",
-    "governance 脚本范围的 new-code governance、non-feature maintainability guard 与 backlog ratchet 已通过"
+    "pnpm lint:new-code:governance -- ... 已通过",
+    "pnpm check:governance-backlog-ratchet 已通过"
   ],
   "completed": [
-    "完成 docs/logs 版本基线确认",
-    "完成 worker maintainability 基线扫描",
-    "完成 module config 落位并改正自造 organizationModel",
-    "完成 auth-browser、remote-quota、remote-relay 角色化拆分并清空 src 顶层领域目录",
-    "完成 controller / repository / service / utils / routes 命名治理",
-    "完成 context destructuring lint 债务清理",
-    "完成 services/platform 子树下沉并压回 services 根层预算",
-    "完成 lint、tsc、quota test、governance、maintainability guard 验证",
-    "完成 module-structure legacy/protocol 伪装检测修复与定向测试回归",
-    "完成 package-l1 alias/build contract 补齐并让 dist test 链路重新通过"
+    "完成 package-l1 顶层结构收口",
+    "完成角色目录内部子树压平",
+    "完成 routes 命名回正",
+    "完成 module-structure flat role dir 规则补齐",
+    "完成 file-role-boundaries 的 routes/presenters/managers 漏检修复",
+    "完成 flat-directories-subtree 与严格协议的冲突修复",
+    "完成相关治理脚本定向测试回归",
+    "完成 worker lint/tsc/quota 与 new-code governance 验证"
   ],
   "rejectedPaths": [
-    "继续保留自造 organizationModel",
-    "只用 README 例外绕过 services 目录预算",
-    "只修 lint warning 而不治理目录与命名根因"
+    "继续保留 services/platform 或 controllers/marketplace 这类角色目录内部子树",
+    "只改文档不改检测器",
+    "只改检测器不改当前 worker",
+    "通过 README 例外或 legacy 壳继续放水"
   ],
-  "nextStep": "若继续治理，优先评估 types/platform.ts、platform.repository.ts、remote.controller.ts 等剩余热点文件，以及 module-structure-protocol-checks.mjs 是否值得拆成更细的结构/导入边界子模块。",
-  "stopReason": "本轮高置信结构与治理债务已闭环，验证全部通过。"
+  "nextStep": "若继续治理，优先处理 platform.repository.ts、remote.controller.ts、types/platform.ts 等热点大文件，而不是再回到协议落位问题。",
+  "stopReason": "当前严格预期已被文档、检测器、测试与目标 worker 同步落实，验证全部通过。"
 }

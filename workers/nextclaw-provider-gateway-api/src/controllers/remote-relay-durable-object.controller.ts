@@ -1,11 +1,11 @@
 import { touchRemoteInstance } from "@/repositories/remote.repository";
-import { dispatchRemoteRelayClientFrame } from "@/utils/remote-relay/remote-relay-client-frame.utils.js";
-import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay/remote-relay-message.utils.js";
+import { dispatchRemoteRelayClientFrame } from "@/utils/remote-relay-client-frame.utils.js";
+import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay-message.utils.js";
 import {
   consumeRemoteBrowserFrameQuota,
   readRemoteBrowserAttachment,
   releaseRemoteClientQuota,
-} from "@/utils/remote-relay/remote-relay-quota.utils.js";
+} from "@/utils/remote-relay-quota.utils.js";
 import {
   type PendingRelay,
   type BrowserCommandFrame,

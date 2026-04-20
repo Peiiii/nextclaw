@@ -12,7 +12,7 @@ import {
   issuePlatformTokenResult,
   registerPlatformUser,
   updatePlatformUserProfile
-} from "@/services/platform/platform-auth.service";
+} from "@/services/platform-auth.service";
 import {
   apiError,
   readClientIp,

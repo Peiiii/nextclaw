@@ -14,7 +14,7 @@ import {
   completeRegisterHandler,
   sendPasswordResetCodeHandler,
   sendRegisterCodeHandler,
-} from "@/controllers/auth/auth-email-code-route-handlers.controller.js";
+} from "@/controllers/auth-email-code-route-handlers.controller.js";
 import {
   adminOverviewHandler,
   adminProfitOverviewHandler,
@@ -36,22 +36,22 @@ import {
   adminMarketplaceAppDetailHandler,
   adminMarketplaceAppsHandler,
   reviewAdminMarketplaceAppHandler,
-} from "@/controllers/marketplace/admin-marketplace-app.controller.js";
+} from "@/controllers/admin-marketplace-app.controller.js";
 import {
   adminMarketplaceSkillDetailHandler,
   adminMarketplaceSkillsHandler,
   reviewAdminMarketplaceSkillHandler,
-} from "@/controllers/marketplace/admin-marketplace.controller.js";
+} from "@/controllers/admin-marketplace.controller.js";
 import {
   manageOwnerMarketplaceAppHandler,
   ownerMarketplaceAppDetailHandler,
   ownerMarketplaceAppsHandler,
-} from "@/controllers/marketplace/user-marketplace-app.controller.js";
+} from "@/controllers/user-marketplace-app.controller.js";
 import {
   manageOwnerMarketplaceSkillHandler,
   ownerMarketplaceSkillDetailHandler,
   ownerMarketplaceSkillsHandler,
-} from "@/controllers/marketplace/user-marketplace.controller.js";
+} from "@/controllers/user-marketplace.controller.js";
 import { loginHandler, meHandler, patchProfileHandler } from "@/controllers/auth.controller.js";
 import {
   billingLedgerHandler,

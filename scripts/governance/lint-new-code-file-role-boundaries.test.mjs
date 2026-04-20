@@ -36,6 +36,30 @@ test("allows .config files inside configs directories", () => {
   }), null);
 });
 
+test("allows .route files inside routes directories", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/routes/app.route.ts",
+    status: "A"
+  }), null);
+});
+
+test("allows .presenter files inside presenters directories", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/presenters/chat-session.presenter.tsx",
+    status: "A"
+  }), null);
+});
+
+test("requires .route suffix inside routes directories", () => {
+  const violation = inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/routes/app.controller.ts",
+    status: "A"
+  });
+
+  assert.ok(violation);
+  assert.match(violation.message, /routes\/' must match '\*\.route\.ts\(x\)'/);
+});
+
 test("allows test files whose underlying role still matches the directory", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/services/chat.service.contract.test.ts",

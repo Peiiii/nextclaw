@@ -2,7 +2,7 @@ import type {
   RemoteQuotaError,
   RemoteQuotaPlatformSummary,
   RemoteQuotaUserSummary,
-} from "@/services/remote-quota/remote-quota.service.js";
+} from "@/services/remote-quota.service.js";
 import type { Env } from "@/types/platform";
 import { isRecord } from "@/utils/platform.utils";
 

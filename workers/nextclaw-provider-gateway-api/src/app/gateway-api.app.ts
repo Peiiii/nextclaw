@@ -4,9 +4,9 @@ import { remoteProxyHandler } from "@/controllers/remote.controller.js";
 import {
   NextclawQuotaDurableObject,
   NextclawRemoteQuotaDurableObject,
-} from "@/controllers/remote/remote-quota-durable-object.controller.js";
-import { NextclawRemoteRelayDurableObject } from "@/controllers/remote/remote-relay-durable-object.controller.js";
-import { registerAppRoutes } from "@/routes/app.routes.js";
+} from "@/controllers/remote-quota-durable-object.controller.js";
+import { NextclawRemoteRelayDurableObject } from "@/controllers/remote-relay-durable-object.controller.js";
+import { registerAppRoutes } from "@/routes/app.route.js";
 import type { Env } from "@/types/platform.js";
 import { openaiError } from "@/utils/platform.utils.js";
 

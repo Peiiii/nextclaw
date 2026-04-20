@@ -21,7 +21,7 @@ import {
   type RemoteQuotaDecision,
   type RemoteQuotaOperationCost,
   type RemoteQuotaState,
-} from "@/services/remote-quota/remote-quota.service.js";
+} from "@/services/remote-quota.service.js";
 import type { Env } from "@/types/platform";
 import { isRecord, jsonErrorResponse, parseBoundedInt } from "@/utils/platform.utils";
 

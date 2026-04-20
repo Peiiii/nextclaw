@@ -7,9 +7,9 @@ import type {
   RemoteQuotaUserState,
   RemoteQuotaWindow,
   RequestWindowUsage,
-} from "@/configs/remote-quota/remote-quota.config.js";
+} from "@/configs/remote-quota.config.js";
 
-import { REMOTE_QUOTA_WINDOW_MS } from "@/configs/remote-quota/remote-quota.config.js";
+import { REMOTE_QUOTA_WINDOW_MS } from "@/configs/remote-quota.config.js";
 
 export function createEmptyRemoteQuotaState(nowMs: number): RemoteQuotaState {
   return {

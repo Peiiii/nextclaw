@@ -73,6 +73,20 @@ export const FIXED_ROLE_DIRECTORY_NAMES = new Set([
   "routes"
 ]);
 
+export const FLAT_ROLE_DIRECTORY_NAMES = new Set([
+  "configs",
+  "presenters",
+  "stores",
+  "managers",
+  "services",
+  "types",
+  "utils",
+  "providers",
+  "controllers",
+  "repositories",
+  "routes"
+]);
+
 export const PACKAGE_STRUCTURE_SKELETON_DIRECTORIES = new Set([
   "app",
   "commands",
