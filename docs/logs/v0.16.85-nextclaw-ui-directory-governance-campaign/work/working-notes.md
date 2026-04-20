@@ -428,15 +428,36 @@
 
 # 停止原因 / 阻塞
 
-- 第二十七批已经完成；当前真正的阻塞不再是 `ModelConfig` / `CronConfig` 这组小页面，而是剩余候选里 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
+- 第二十八批已经完成；当前真正的阻塞不再是 `SearchConfig.tsx` 这类带测试的稳定页面，而是剩余候选里 `SessionsConfig.tsx`、`SecretsConfig.tsx` 与 `chat-sidebar.tsx` 这类更重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
 - 已尝试并回退 `chat-sidebar` 切根候选：行为测试与类型检查通过，但 strict guard 明确报出 `packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx` 的 `file-budget`、`function-budget` 与非功能净增 `> 0`，因此本轮已把相关未提交改动全部回退，只保留第二十五批成功提交
 - 第二十四批已经完成，并额外暴露出 strict 合同里的一个真实边界：`app.tsx` 这类 root file 不能作为直接切根消费方被触达；后续若再遇到这类页面级候选，默认先沿精确 alias 路径判断可行性
 - 第二十三批已经完成，但更大批次的 `features/channels` 候选并不属于“高置信 allowed-root 迁移”，因为它要求顺手重写 effect 边界、拆函数预算并且无法守住非功能净增 `<= 0`
 - 当前已完成批次本身都已通过验证；剩余阻塞在于后续候选项仍必须同时满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，但 `ModelConfig` 与 `CronConfig` 已经移走；后续批次必须继续优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
 - `components/chat/ncp` 的 manager / adapter / list-view 主链已经移走，但仍有若干 legacy 消费方通过精确 alias 承接新实现；下一批应优先判断这些消费方里哪些能在不触碰更多 legacy 文件的前提下继续切根，哪些更适合转向 `components/config` 页面级实现治理
-- `components/chat` 的输入栏单链已经移走，`components/config` 的 `ModelConfig` / `CronConfig` 也已移走，但剩余高层页面候选更重；下一轮优先筛 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 是否存在可独立拆出的 allowed-root 子链，若没有就回到 `components/config` 页面级实现继续找更高置信批次
+- `components/chat` 的输入栏单链已经移走，`components/config` 的 `ModelConfig` / `CronConfig` / `SearchConfig` 也已移走，但剩余高层页面候选更重；下一轮优先筛 `SessionsConfig.tsx` 与 `SecretsConfig.tsx` 是否存在可独立拆出的 allowed-root 子链，若没有再回到 `features/system-status` / `shared/components` 里寻找更高置信的稳定配置子链
 - `chat-sidebar` 已被验证为当前形态下的低置信候选；下一轮不要再次直接迁它，优先回到 `components/config` 的页面级实现或评估 `features/system-status` / `shared/components` 里仍可整组承接的配置页子链，前提仍是 allowed-root、非功能净增 `<= 0` 与 strict guard 全通过
+
+- 补记第二十八批：
+  - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
+  - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/SearchConfig` 指向新的 allowed-root 实现
+  - 完成结构减债：移除 `SearchConfig` 的 effect 型本地状态修补，改为 keyed 表单初始化；同时把 provider 侧栏、provider fields 与表单装配拆成清晰子块，避免新 shared 页面继续携带超长函数与 file-budget 违规
+  - 明确记录一次失败路径：尝试让 `app.tsx` 直接改指向 `@/shared/components/search-config` 会被 strict `module-structure` 以 `new root file 'app.tsx' is outside the allowed root-file set` 阻断，因此本批最终仍沿精确 alias 承接旧导入，而不是触碰 root file
+  - 通过第二十八批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/shared/components/search-config.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/SearchConfig.tsx packages/nextclaw-ui/src/components/config/SearchConfig.test.tsx packages/nextclaw-ui/src/shared/components/search-config.tsx packages/nextclaw-ui/src/shared/components/search-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/SearchConfig.tsx packages/nextclaw-ui/src/components/config/SearchConfig.test.tsx packages/nextclaw-ui/src/shared/components/search-config.tsx packages/nextclaw-ui/src/shared/components/search-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十八批代码净变化：`-35`
+  - 第二十八批非测试代码净变化：`-36`
+  - 第二十八批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `628` 行，删除 `663` 行，净增 `-35` 行
+    - 非测试代码增减报告：新增 `477` 行，删除 `513` 行，净增 `-36` 行
+    - 可维护性总结：`no maintainability findings`。这批不是只把搜索配置页换目录，而是同时消除了 effect 边界问题和超长函数；当前唯一保留观察点是 `shared/components/search-config.tsx` 已接近 file-budget，后续若继续扩张 provider 详情，应优先沿 provider-specific fields 再拆小
 
 # 交接提醒
 

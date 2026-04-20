@@ -3,14 +3,15 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-config-page pair strict scan",
-    "原因": "第二十七批已经把 ModelConfig 与 CronConfig 连同相邻测试迁入 shared/components，并完成 allowed-root 真实消费方切换；过程中已验证 `ModelConfig` 的 effect 型本地状态修补与 `CronConfig` 的超长函数都需要顺手减债，不能把旧页面复杂度原样搬到新根。因此后续需要继续在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
+    "名称": "post-search-config strict scan",
+    "原因": "第二十八批已经把 SearchConfig 连同相邻测试迁入 shared/components，并完成 strict 合同下的 legacy 导入承接；过程中已验证 `SearchConfig` 的 effect 型本地状态修补与超长函数都必须顺手减债，同时再次确认 `app.tsx` 这类 root file 不能被直接触达。因此后续需要继续在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig、SecretsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
       "若候选迁移需要额外修 effect / 函数预算 / 结构净增，立即降级为低置信并写回否决记录",
       "若消费方位于 strict root-file 集合外且触达会触发 module-structure 阻断，优先改用精确 alias 承接",
       "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
+      "若尝试直接触达 `app.tsx` 这类 strict root-file 消费方，立即回退并改用精确 alias 承接",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
       "pnpm lint:new-code:governance -- <target-paths...>",
@@ -68,7 +69,8 @@
     "完成 desktop-update-config 与相邻测试的 system-status feature-root 迁移，并用精确 alias 承接 legacy 导入",
     "完成 chat-session-list manager/store、chat-message-list.container 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
     "完成 chat-input-bar.container、ncp-chat-input-availability.utils 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
-    "完成 ModelConfig、CronConfig 与相邻测试的 shared-root 迁移，并把真实消费方切到新路径"
+    "完成 ModelConfig、CronConfig 与相邻测试的 shared-root 迁移，并把真实消费方切到新路径",
+    "完成 SearchConfig 与相邻测试的 shared-root 迁移，并通过精确 alias 承接 legacy 导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -81,7 +83,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx、SecretsConfig.tsx 与 SearchConfig.tsx 这几条仍在一级目录里的配置页，优先寻找不需要大规模页面拆分、也不会触发 file-budget / 非功能净增 > 0 的 allowed-root 迁移批次；若没有，再回到 features/system-status / shared/components 里找还能整组承接的稳定配置子链。",
-  "最近一次停机原因": "第二十七批已经完成并待提交：ModelConfig 与 CronConfig 已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过。当前没有治理硬失败；只是下一轮仍需先做高置信候选扫描，避免直接整搬 SessionsConfig 或 chat-sidebar。",
+  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx 与 SecretsConfig.tsx 这两条仍在一级目录里的配置页，优先寻找不需要大规模页面拆分、也不会触发 file-budget / 非功能净增 > 0 的 allowed-root 迁移批次；若没有，再回到 features/system-status / shared/components 里找还能整组承接的稳定配置子链。",
+  "最近一次停机原因": "第二十八批已经完成并待提交：SearchConfig 与相邻测试已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过；过程中还确认了 `app.tsx` 不能直接作为切根消费方触达。当前没有治理硬失败；只是下一轮仍需先做高置信候选扫描，避免直接整搬 SessionsConfig、SecretsConfig 或 chat-sidebar。",
   "最近更新时间": "2026-04-21"
 }

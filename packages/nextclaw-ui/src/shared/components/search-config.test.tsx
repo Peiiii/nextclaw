@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SearchConfig } from '@/components/config/SearchConfig';
+import { SearchConfig } from '@/shared/components/search-config';
 import { setLanguage } from '@/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
