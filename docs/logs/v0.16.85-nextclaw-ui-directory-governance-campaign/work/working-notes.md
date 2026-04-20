@@ -215,6 +215,7 @@
 - `chat-sidebar-list-mode-switch`、`chat-sidebar-session-item`、`chat-sidebar-project-groups`、`chat-session-workspace-panel-nav`、`chat-session-workspace-panel` 与 `workspace/chat-session-workspace-file-breadcrumbs` 已完成，说明 `features/chat` 已经能承接整条侧栏与工作区面板组件线；消费方只要统一走 `@/features/chat` 根入口，旧路径就可以持续收窄成 shim 而不破坏验证链路
 - 第十六批关键决策：不再接受 `nextclaw-ui` 的“历史 legacy root 触达只 warning”策略，直接把合同切到 `contract-only`；从这一刻开始，后续批次必须避免再触碰任何 legacy root 文件，否则治理会直接失败
 - 第十七批关键决策：在 strict `contract-only` 下，不再尝试通过新建 legacy shim 或继续回写 legacy 消费方完成迁移；改为“allowed-root 新实现 + 直接删除 legacy 文件 + 配置层精确路径映射承接旧导入”。这条路径已经在 `ChatWelcome` / `useChatSessionTypeState` 上验证通过，后续更高层入口链也优先沿这条路线推进
+- 第十八批关键决策：更高层入口链不再一次性全搬。`chat-page-shell`、`chat-page`、`ncp-chat-page` 这组入口链里，只先拿走最重、最稳定的 `chat-conversation-panel` 主面板和 `chat-page-runtime` 测试；其余页面壳暂时保持未触达，通过一条精确 alias 指向新 panel 实现，先把高层债务减下来再继续往上收
 
 # 下一步
 
@@ -267,13 +268,25 @@
     - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/chat-welcome.tsx packages/nextclaw-ui/src/features/chat/components/chat-welcome.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.test.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/ChatWelcome.tsx packages/nextclaw-ui/src/components/chat/ChatWelcome.test.tsx packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.ts packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
     - `pnpm check:governance-backlog-ratchet`
   - 第十七批非测试代码净变化为 `-11`
+- 补记第十八批：
+  - 完成 `components/chat/chat-conversation-panel.tsx -> features/chat/components/conversation/chat-conversation-panel.tsx`
+  - 完成 `components/chat/chat-conversation-panel.test.tsx -> features/chat/components/conversation/chat-conversation-panel.test.tsx`
+  - 完成 `components/chat/chat-page-runtime.test.ts -> features/chat/pages/ncp-chat-page.test.ts`
+  - 只为 `components/chat/chat-page-shell.tsx` 补一条精确 alias 到新 panel 实现，legacy 页面壳本身保持未触达
+  - 通过第十八批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts src/components/chat/ncp/ncp-chat-page-data.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts packages/nextclaw-ui/src/components/chat/chat-conversation-panel.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/chat/chat-page-runtime.test.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts packages/nextclaw-ui/src/components/chat/chat-conversation-panel.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/chat/chat-page-runtime.test.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第十八批非测试代码净变化为 `-1`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
 - 当前前两个高置信批次都已形成并通过验证，剩余阻塞不在已完成批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
-- `components/chat` 顶层虽然继续变薄，但高层入口链仍留在 legacy root；下一批应优先评估 `chat-page-shell.tsx`、`chat-page.tsx`、`ncp-chat-page.tsx`、`chat-conversation-panel.tsx` 的整组迁移缝，而不是继续处理零散小件
+- `components/chat` 顶层虽然继续变薄，但高层入口链仍留在 legacy root；下一批应优先评估 `chat-page-shell.tsx`、`chat-page.tsx`、`ncp-chat-page.tsx` 的整组迁移缝，而不是回头处理低收益小件
 
 # 交接提醒
 

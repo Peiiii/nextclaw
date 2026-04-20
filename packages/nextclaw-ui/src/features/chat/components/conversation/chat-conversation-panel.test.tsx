@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
+import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";

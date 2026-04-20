@@ -119,7 +119,6 @@ type ChatParentSessionBannerProps = {
   parentSessionLabel: string | null;
   onGoToParentSession: () => void;
 };
-
 function ChatParentSessionBanner({
   parentSessionLabel,
   onGoToParentSession,
@@ -155,7 +154,6 @@ type ChatConversationHeaderProps = {
   onOpenChildSessions: () => void;
   onDeleteSession: ChatHeaderDeleteHandler;
 };
-
 function ChatConversationHeader({
   snapshot,
   childSessionCount,
@@ -234,7 +232,6 @@ type ChatConversationAlertsProps = {
   sessionTypeUnavailableMessage: string | null;
   onGoToProviders: () => void;
 };
-
 function ChatConversationAlerts({
   shouldShowProviderHint,
   sessionTypeUnavailable,
@@ -280,7 +277,6 @@ type ChatConversationContentProps = {
   onToolAction: ChatToolActionHandler;
   onFileOpen: ChatFileOpenHandler;
 };
-
 function ChatConversationContent({
   snapshot,
   availableAgents,
