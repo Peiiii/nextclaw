@@ -3,13 +3,14 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-desktop-update strict scan",
-    "原因": "第二十四批已经把 desktop-update-config 与相邻测试迁入 features/system-status/components，并确认 strict 合同下 app.tsx 这条消费链不能直接触达，只能继续通过精确 alias 承接 legacy 导入；下一步继续扫描能在同一路径下成组切根的高置信候选。",
+    "名称": "post-session-list strict scan",
+    "原因": "第二十五批已经把 chat-session-list manager/store 与 chat-message-list.container 连同相邻测试迁入 features/chat，并完成 allowed-root 真实消费方切换；下一步需要在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
       "若候选迁移需要额外修 effect / 函数预算 / 结构净增，立即降级为低置信并写回否决记录",
       "若消费方位于 strict root-file 集合外且触达会触发 module-structure 阻断，优先改用精确 alias 承接",
+      "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
       "pnpm lint:new-code:governance -- <target-paths...>",
@@ -64,7 +65,8 @@
     "完成 session-conversation 运行时 hooks、ncp-app-client-fetch 与两条 runtime contract 测试的 feature-root / utils-root 迁移",
     "完成 components/chat/ncp manager / adapter / list-view 主链与四个相邻测试的 feature-root / utils-root / hook-root 迁移，并用精确 alias 承接 legacy 导入",
     "完成 runtime-security-card 的 system-status feature-root 迁移，并验证拒绝一次低置信的 channels 大批次方案",
-    "完成 desktop-update-config 与相邻测试的 system-status feature-root 迁移，并用精确 alias 承接 legacy 导入"
+    "完成 desktop-update-config 与相邻测试的 system-status feature-root 迁移，并用精确 alias 承接 legacy 导入",
+    "完成 chat-session-list manager/store、chat-message-list.container 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -76,7 +78,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/config/SessionsConfig.tsx、components/chat/containers/chat-sidebar.tsx、components/chat/chat-message-list.container.tsx、components/chat/managers/chat-session-list.manager.ts 与 components/chat/stores/chat-session-list.store.ts，优先判断哪些能在 strict 合同下通过 allowed-root 新实现 + 精确 alias 或既有 allowed-root 直链继续切根；对仍要求直接触达 app.tsx 之类 strict root-file 的候选先降级。",
-  "最近一次停机原因": "第二十四批已经完成并验证通过：desktop-update-config 与相邻测试已脱离 components/config 进入 features/system-status/components；同时确认 strict 合同下 app.tsx 不能作为直接切根消费方触达，后续同类页面需继续走精确 alias 承接。",
+  "下一步": "继续扫描 components/config/SessionsConfig.tsx 与 components/chat/containers/chat-sidebar.tsx，优先判断是否存在不需要大规模页面拆分的子链可单独切到 features/chat；若没有，就继续回到 components/config 页面级实现中寻找更高置信的小批次。",
+  "最近一次停机原因": "第二十五批已经完成并验证通过：chat-session-list manager/store 与 chat-message-list.container 已脱离 legacy root，features/chat 内部真实消费全部切到新路径；剩余高层页面候选（如 SessionsConfig、chat-sidebar）体量偏大，下一轮需先做高置信筛选。",
   "最近更新时间": "2026-04-21"
 }

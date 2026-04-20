@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appQueryClient } from '@/app-query-client';
 import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 
 const { deleteNcpSessionMock, deleteSummaryMock } = vi.hoisted(() => ({

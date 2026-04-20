@@ -5,7 +5,7 @@ import { ChatConversationPanel } from "@/features/chat/components/conversation/c
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
-import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
+import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
 
 const mocks = vi.hoisted(() => ({
@@ -47,7 +47,7 @@ vi.mock("@/components/chat/nextclaw", () => ({
   ChatMessageListContainer: () => <div data-testid="chat-message-list" />,
 }));
 
-vi.mock("@/components/chat/containers/chat-message-list.container", () => ({
+vi.mock("@/features/chat/components/conversation/chat-message-list.container", () => ({
   ChatMessageListContainer: () => <div data-testid="child-chat-message-list" />,
 }));
 

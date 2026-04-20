@@ -1,4 +1,4 @@
-import { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
+import { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';

@@ -14,12 +14,12 @@ import {
   syncComposerSkills
 } from '@/features/chat/utils/chat-composer-state.utils';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
-import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
+import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';

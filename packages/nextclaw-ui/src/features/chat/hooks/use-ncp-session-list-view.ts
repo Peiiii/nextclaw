@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { SessionEntryView } from '@/api/types';
 import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useNcpSessions } from '@/hooks/useConfig';
 import type { SessionRunStatus } from '@/lib/session-run-status';
 

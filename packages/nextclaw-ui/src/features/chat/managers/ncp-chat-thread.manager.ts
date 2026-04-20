@@ -5,10 +5,10 @@ import type {
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
 } from '@nextclaw/agent-chat-ui';
-import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
+import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
   ChatThreadSnapshot,
   ChatWorkspaceFileTab,

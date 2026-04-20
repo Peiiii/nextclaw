@@ -5,7 +5,7 @@ import type {
   ChatToolActionViewModel,
 } from "@nextclaw/agent-chat-ui";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
-import { ChatMessageListContainer } from "@/components/chat/containers/chat-message-list.container";
+import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import {
   useNcpChildSessionTabsView,
   type ResolvedChildSessionTab,
@@ -14,7 +14,7 @@ import { useNcpSessionConversation } from "@/features/chat/hooks/runtime/use-ncp
 import {
   shouldShowUnreadSessionIndicator,
   useChatSessionListStore,
-} from "@/components/chat/stores/chat-session-list.store";
+} from "@/features/chat/stores/chat-session-list.store";
 import type {
   ChatChildSessionTab,
   ChatWorkspaceFileTab,

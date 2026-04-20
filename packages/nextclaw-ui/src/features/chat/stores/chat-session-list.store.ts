@@ -1,9 +1,7 @@
 import { create, type StateCreator } from 'zustand';
-import { createNcpSessionId } from '@/components/chat/ncp/ncp-session-adapter';
+import { createNcpSessionId } from '@/features/chat/utils/ncp-session-adapter.utils';
 import type { SessionRunStatus } from '@/lib/session-run-status';
-
 export type ChatSessionListMode = 'time-first' | 'project-first';
-
 export type ChatSessionListSnapshot = {
   selectedSessionKey: string | null;
   draftSessionKey: string;
