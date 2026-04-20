@@ -46,6 +46,7 @@
 - 第二十四批通过治理的落点是继续从 `components/config` 吃掉桌面更新页实现：把 `desktop-update-config.tsx` 与相邻测试一起迁入 `features/system-status/components/`，并在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补精确 alias 承接 `@/components/config/desktop-update-config`；这一批同时确认 strict 合同下 `app.tsx` 不能直接作为切根消费方触达，所以同类页面后续仍应优先沿“allowed-root 新实现 + 精确 alias”路径推进
 - 第二十五批通过治理的落点是继续从 `components/chat` 吃掉 session-list 与 message-list 这条高层支撑链：把 `chat-session-list.manager.ts`、`chat-session-list.store.ts`、`chat-message-list.container.tsx` 与相邻测试一起迁入 `features/chat`，把 `ncp-chat-page.tsx`、`use-ncp-session-list-view.ts`、`ncp-chat-presenter.manager.ts`、`ncp-chat-input.manager.ts`、`ncp-chat-thread.manager.ts`、`chat-session-preference-sync.manager.ts` 与 `chat-session-workspace-panel.tsx` 等真实 `features/chat` 消费方全部切到新路径，并在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补三条精确 alias 承接剩余 legacy 导入；这一批同时确认 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面已进入下一轮高置信筛查，而不是继续盲目整组搬运
 - 第二十六批通过治理的落点是继续从 `components/chat` 吃掉输入栏单链：把 `chat-input/ncp-chat-input-availability.utils.ts` 与相邻测试迁入 `features/chat/utils/`，把 `containers/chat-input-bar.container.tsx` 迁入 `features/chat/components/conversation/`，让 `chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx` 与 `ncp-chat-input.manager.ts` 直接消费新路径，并只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/chat/containers/chat-input-bar.container`；这一批还验证并回避了两个低置信方向：`components/chat/nextclaw/index.ts` 不能作为 strict `contract-only` 下的 legacy 改写入口，`chat-input-bar` 的独立 view-model hook 也会触发 file-budget，因此最终方案是把输入栏逻辑压回新的 feature 容器内并把非测试净增收敛到 `-3`
+- 第二十七批通过治理的落点是继续从 `components/config` 吃掉两个一级页面入口：把 `ModelConfig.tsx` 与相邻测试迁入 `shared/components/model-config.tsx` / `model-config.test.tsx`，把 `CronConfig.tsx` 迁入 `shared/components/cron-config.tsx`，让 `features/chat/components/layout/chat-page-shell.tsx` 直接消费新的 `CronConfig`，并只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/config/ModelConfig`；这一批还顺手完成两项治理收口：用 keyed 子表单消除了 `ModelConfig` 原本的 effect 型本地状态修补，并把 `CronConfig` 的 job 卡片渲染抽成独立组件，避免新 shared 页面把旧函数预算问题原样搬过去
 
 # 测试 / 验证 / 验收方式
 
@@ -128,6 +129,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/components/chat/containers/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/components/chat/containers/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二十七批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/shared/components/model-config.test.tsx src/app.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/ModelConfig.tsx packages/nextclaw-ui/src/components/config/ModelConfig.test.tsx packages/nextclaw-ui/src/components/config/CronConfig.tsx packages/nextclaw-ui/src/shared/components/model-config.tsx packages/nextclaw-ui/src/shared/components/model-config.test.tsx packages/nextclaw-ui/src/shared/components/cron-config.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/ModelConfig.tsx packages/nextclaw-ui/src/components/config/ModelConfig.test.tsx packages/nextclaw-ui/src/components/config/CronConfig.tsx packages/nextclaw-ui/src/shared/components/model-config.tsx packages/nextclaw-ui/src/shared/components/model-config.test.tsx packages/nextclaw-ui/src/shared/components/cron-config.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -229,6 +236,7 @@
   - 第二十三批验证通过，`runtime-security-card` 已脱离 `components/config` 并由 `features/system-status/components` 直接承接；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-12`
   - 第二十五批验证通过，`chat-session-list` manager/store 与 `chat-message-list.container` 已脱离 `components/chat`；`features/chat` 内部真实消费统一切到新路径，剩余 legacy 导入仅通过三条精确 alias 承接，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `+1`、非测试代码净变化为 `-1`
   - 第二十六批验证通过，`chat-input-bar.container` 与 `ncp-chat-input-availability.utils` 已脱离 `components/chat`；输入栏真实消费方与 `ncp-chat-input.manager.ts` 统一切到新路径，只保留一条精确 alias 承接 legacy 容器导入，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-3`、非测试代码净变化为 `-3`
+  - 第二十七批验证通过，`ModelConfig` 与 `CronConfig` 已脱离 `components/config` 一级目录；`chat-page-shell` 直接消费新的 shared `CronConfig`，`ModelConfig` 通过一条精确 alias 继续供 app 懒加载解析，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-33`、非测试代码净变化为 `-34`
 
 # 发布 / 部署方式
 
@@ -240,21 +248,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到二十六处 contract-aligned 的治理结果：除了前二十五处治理样例外，还应看到 `components/chat/chat-input/ncp-chat-input-availability.utils.ts`、`components/chat/chat-input/ncp-chat-input-availability.utils.test.ts` 与 `components/chat/containers/chat-input-bar.container.tsx` 已移入 `features/chat` 的 `utils` / `components/conversation`，真实 `features/chat` 消费方与 `ncp-chat-input.manager.ts` 已直接切到新路径，而剩余 legacy 容器导入只通过一条精确 alias 继续解析到 allowed-root 实现。
+5. 当前至少应看到二十七处 contract-aligned 的治理结果：除了前二十六处治理样例外，还应看到 `components/config/ModelConfig.tsx`、`components/config/ModelConfig.test.tsx` 与 `components/config/CronConfig.tsx` 已移入 `shared/components`，`chat-page-shell` 已直接消费新的 `cron-config.tsx`，`ModelConfig` 则通过一条精确 alias 继续供 app 懒加载解析到 allowed-root 实现。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第二十六批继续从 `components/chat` 吃掉输入栏单链，把 availability util、相邻测试与 `chat-input-bar.container` 一起迁入 `features/chat`，并让真实 `features/chat` 消费方与 `ncp-chat-input.manager.ts` 直接切到新路径；最终只保留一条精确 alias 承接 legacy 容器导入，比继续改写 `components/chat/nextclaw/index.ts` 更符合 strict 合同。
+本次是否已尽最大努力优化可维护性：是。第二十七批继续从 `components/config` 吃掉两个一级页面入口，把 `ModelConfig` 与 `CronConfig` 一起迁入 `shared/components`，并让 `chat-page-shell` 直接消费新的 `CronConfig`；`ModelConfig` 只保留一条精确 alias 承接 app 懒加载，比继续让一级目录里保留这些页面实现更符合 strict 合同。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十六批没有新增用户能力，只做 util、container、测试与真实消费链的归位；在第一次守卫提示 `module-structure`、file-budget 与非测试净增阻塞后，已经明确回退 `components/chat/nextclaw/index.ts` 改写方案、删除独立 view-model hook 方案，并把新容器压回 `338` 行，最终把非测试净增收敛到 `-3`。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十七批没有新增用户能力，只做页面、测试与真实消费链的归位；迁移过程中没有保留 `ModelConfig` 的 effect 型本地状态修补，也没有把 `CronConfig` 的超长函数原样搬到 shared，而是顺手把这两处结构债务一起收掉，最终把非测试净增收敛到 `-34`。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十六批代码净变化为 `-3`，非测试代码净变化为 `-3`；`components/chat` 再少一条输入栏支撑链，`features/chat` 对输入栏、消息列表与会话列表这三条主链的聚合继续加强，同时守住了非功能批次不膨胀的硬门槛。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十七批代码净变化为 `-33`，非测试代码净变化为 `-34`；`components/config` 再少两个一级页面实现，`shared/components` 对稳定配置页的承接继续加强，同时守住了非功能批次不膨胀的硬门槛。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`ncp-chat-input-availability.utils` 与 `chat-input-bar.container` 现在归位到 `features/chat`，输入栏禁用判定与 conversation 输入容器不再留在 `components/chat`；同时没有保留额外 view-model hook 层，避免了只是把复杂度平移到新文件的补丁式叠加。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`ModelConfig` 与 `CronConfig` 现在归位到 `shared/components`，稳定配置页不再继续平铺在 `components/config` 一级目录；同时没有增加新的中间层，`ModelConfig` 改为 keyed 子表单，`CronConfig` 只把 job 卡片渲染抽成独立组件，避免了补丁式叠加。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十六批之后 `components/chat` 又少了一条 conversation 输入链，`features/chat` 对输入栏、消息列表与会话列表这三条主链的承接更加完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面仍被明确列为下一轮高置信筛查对象，但不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十七批之后 `components/config` 又少了两个一级页面实现，`shared/components` 对稳定配置页的承接更加完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面仍被明确列为下一轮高置信筛查对象，但不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十六批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `485` 行，删除 `488` 行，净增 `-3` 行。非测试代码增减报告：新增 `390` 行，删除 `393` 行，净增 `-3` 行。可维护性总结：这一批把输入栏容器与 availability util 连同相邻测试拖进了 `features/chat`，并把真实 `features/chat` 消费方统一切到新路径；治理守卫、非功能净增和 backlog ratchet 全部通过，同时确认 `chat-sidebar` 与 `SessionsConfig` 这类重页面仍需先做高置信拆链，不能因为 alias 路径已掌握就直接整页搬运。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十七批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `649` 行，删除 `682` 行，净增 `-33` 行。非测试代码增减报告：新增 `403` 行，删除 `437` 行，净增 `-34` 行。可维护性总结：这一批把 `ModelConfig` 与 `CronConfig` 连同相邻测试拖进了 `shared/components`，并让 `chat-page-shell` 与 app 懒加载都改为承接 allowed-root 实现；治理守卫、非功能净增和 backlog ratchet 全部通过，同时确认 `SessionsConfig` 与 `chat-sidebar` 这类重页面仍需先做高置信拆链，不能因为 alias 路径已掌握就直接整页搬运。
 
 # NPM 包发布记录
 

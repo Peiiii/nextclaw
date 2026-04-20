@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { ProviderScopedModelInput } from '@/components/common/ProviderScopedModelInput';
-import { ModelConfig } from '@/components/config/ModelConfig';
+import { ModelConfig } from '@/shared/components/model-config';
 import { setLanguage } from '@/lib/i18n';
 
 const mocks = vi.hoisted(() => ({

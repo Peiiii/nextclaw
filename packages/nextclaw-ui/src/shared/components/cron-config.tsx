@@ -80,6 +80,58 @@ function filterByStatus(job: CronJobView, status: StatusFilter): boolean {
   return !job.enabled;
 }
 
+function CronJobCard(props: {
+  job: CronJobView;
+  onDelete: (job: CronJobView) => void;
+  onRun: (job: CronJobView) => void;
+  onToggle: (job: CronJobView) => void;
+}) {
+  const { job, onDelete, onRun, onToggle } = props;
+  return (
+    <Card className="border border-gray-200">
+      <CardContent className="pt-5 pb-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-[220px] flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-gray-900">{job.name || job.id}</span>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500">{job.id}</span>
+              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-semibold', job.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')}>
+                {job.enabled ? t('enabled') : t('disabled')}
+              </span>
+              {job.deleteAfterRun ? (
+                <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{t('cronOneShot')}</span>
+              ) : null}
+            </div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeSchedule(job)}</div>
+            <div className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{job.payload.message}</div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronDeliverTo')}: {describeDelivery(job)}</div>
+          </div>
+          <div className="min-w-[220px] space-y-2 text-xs text-gray-500">
+            <div><span className="font-medium text-gray-700">{t('cronNextRun')}:</span> {formatDate(job.state.nextRunAt)}</div>
+            <div><span className="font-medium text-gray-700">{t('cronLastRun')}:</span> {formatDate(job.state.lastRunAt)}</div>
+            <div><span className="font-medium text-gray-700">{t('cronLastStatus')}:</span> {job.state.lastStatus ?? '-'}</div>
+            {job.state.lastError ? <div className="break-words text-[11px] text-red-500">{job.state.lastError}</div> : null}
+          </div>
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            <Button variant="subtle" size="sm" onClick={() => onRun(job)} className="gap-1">
+              <Play className="h-3.5 w-3.5" />
+              {t('cronRunNow')}
+            </Button>
+            <Button variant={job.enabled ? 'outline' : 'primary'} size="sm" onClick={() => onToggle(job)} className="gap-1">
+              <Power className="h-3.5 w-3.5" />
+              {job.enabled ? t('cronDisable') : t('cronEnable')}
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => onDelete(job)} className="gap-1">
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('delete')}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CronConfig() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('all');
@@ -184,92 +236,7 @@ export function CronConfig() {
         ) : (
           <div className="space-y-4">
             {jobs.map((job) => (
-              <Card key={job.id} className="border border-gray-200">
-                <CardContent className="pt-5 pb-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-[220px] flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-gray-900">
-                          {job.name || job.id}
-                        </span>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                          {job.id}
-                        </span>
-                        <span
-                          className={cn(
-                            'text-[10px] font-semibold px-2 py-0.5 rounded-full',
-                            job.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                          )}
-                        >
-                          {job.enabled ? t('enabled') : t('disabled')}
-                        </span>
-                        {job.deleteAfterRun && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                            {t('cronOneShot')}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {t('cronScheduleLabel')}: {describeSchedule(job)}
-                      </div>
-                      <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap break-words">
-                        {job.payload.message}
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {t('cronDeliverTo')}: {describeDelivery(job)}
-                      </div>
-                    </div>
-                    <div className="min-w-[220px] text-xs text-gray-500 space-y-2">
-                      <div>
-                        <span className="font-medium text-gray-700">{t('cronNextRun')}:</span>{' '}
-                        {formatDate(job.state.nextRunAt)}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">{t('cronLastRun')}:</span>{' '}
-                        {formatDate(job.state.lastRunAt)}
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-700">{t('cronLastStatus')}:</span>{' '}
-                        {job.state.lastStatus ?? '-'}
-                      </div>
-                      {job.state.lastError && (
-                        <div className="text-[11px] text-red-500 break-words">
-                          {job.state.lastError}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-start gap-2 flex-wrap justify-end">
-                      <Button
-                        variant="subtle"
-                        size="sm"
-                        onClick={() => handleRun(job)}
-                        className="gap-1"
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        {t('cronRunNow')}
-                      </Button>
-                      <Button
-                        variant={job.enabled ? 'outline' : 'primary'}
-                        size="sm"
-                        onClick={() => handleToggle(job)}
-                        className="gap-1"
-                      >
-                        <Power className="h-3.5 w-3.5" />
-                        {job.enabled ? t('cronDisable') : t('cronEnable')}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(job)}
-                        className="gap-1"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {t('delete')}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <CronJobCard key={job.id} job={job} onDelete={handleDelete} onRun={handleRun} onToggle={handleToggle} />
             ))}
           </div>
         )}

@@ -3,7 +3,7 @@ import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { ChatSidebar } from "@/components/chat/containers/chat-sidebar";
 import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
 import { AgentsPage } from "@/components/agents/agents-page";
-import { CronConfig } from "@/components/config/CronConfig";
+import { CronConfig } from "@/shared/components/cron-config";
 import { MarketplacePage } from "@/components/marketplace/marketplace-page";
 export type MainPanelView = "chat" | "cron" | "skills" | "agents";
 export type ChatPageProps = {
