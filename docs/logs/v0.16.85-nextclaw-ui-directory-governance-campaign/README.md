@@ -25,6 +25,7 @@
 - 第三批通过治理的落点是把通用布局壳 `components/config/config-split-page.tsx` 的真实实现迁入 `shared/components/config-split-page.tsx`，旧路径仅保留兼容导出，为多个配置页面后续继续脱离 legacy root 铺平道路
 - 第四批通过治理的落点是把 `provider-pill-selector.tsx` 与 `provider-status-badge.tsx` 迁入 `shared/components/`，旧路径只保留兼容导出，开始把 provider 相关小型通用 UI 原件从 `components/config` 中剥离出来
 - 第五批通过治理的落点是把 `provider-enabled-field.tsx` 迁入 `shared/components/`，旧路径只保留兼容导出，继续把 provider 配置表单中的通用开关行从 `components/config` 中抽离
+- 第六批通过治理的落点是把 `provider-advanced-settings-section.tsx` 迁入 `shared/components/`，旧路径只保留兼容导出，开始把 provider 表单中的较大子区块从 `components/config` 中迁出
 
 # 测试 / 验证 / 验收方式
 
@@ -71,6 +72,12 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 第六批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/providers-list.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 - 验证结果：
   - 路由相关测试通过，说明配置页入口仍可正常装载
   - 类型检查通过
@@ -80,6 +87,7 @@
   - `config-split-page` 迁移后受影响页面测试仍通过，且第三批非测试代码净变化为 `0`
   - `provider` 相关列表测试通过，且第四批非测试代码净变化为负值
   - `provider-enabled-field` 第五批验证通过，非测试代码净变化继续为负值
+  - `provider-advanced-settings-section` 第六批验证通过，非测试代码净变化继续为负值
 
 # 发布 / 部署方式
 
@@ -91,7 +99,7 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到五处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field` 的真实实现位于 `shared/components`，而 legacy 路径只保留兼容导出。
+5. 当前至少应看到六处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section` 的真实实现位于 `shared/components`，而 legacy 路径只保留兼容导出。
 
 # 可维护性总结汇总
 
@@ -99,9 +107,9 @@
 
 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本批次没有新增用户能力，只做实现归位与兼容出口收窄；旧文件由完整页面实现降为单行转发，复杂度明显下降。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前五个成功批次中，除第三批为零增长外，其余批次都实现了非测试代码负增长；`components/config/security-config.tsx`、`components/config/runtime-presence-card.tsx`、`components/config/config-split-page.tsx`、`components/config/provider-pill-selector.tsx`、`components/config/provider-status-badge.tsx` 与 `components/config/provider-enabled-field.tsx` 都已经收窄为兼容出口。`components/config` 顶层文件数仍未下降，需要后续继续把其它实现在 allowed roots 中沉淀下来。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前六个成功批次中，除第三批为零增长外，其余批次都实现了非测试代码负增长；`components/config/security-config.tsx`、`components/config/runtime-presence-card.tsx`、`components/config/config-split-page.tsx`、`components/config/provider-pill-selector.tsx`、`components/config/provider-status-badge.tsx`、`components/config/provider-enabled-field.tsx` 与 `components/config/provider-advanced-settings-section.tsx` 都已经收窄为兼容出口。`components/config` 顶层文件数仍未下降，需要后续继续把其它实现在 allowed roots 中沉淀下来。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field` 则是跨多个配置页面复用的 UI 原件，迁入 `shared/components` 后边界更清晰。整个过程没有引入新的假角色目录或额外 helper。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section` 则是跨多个配置页面复用的 UI 原件或稳定子区块，迁入 `shared/components` 后边界更清晰。整个过程没有引入新的假角色目录或额外 helper。
 
 目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；当前已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，并且 allowed roots 现已同时打通 `features` 与 `shared` 两条迁移路径。下一步应继续挑选 `components/config` 中已是 kebab-case、语义上可并入既有 feature 或 shared 的页面、卡片与小型 UI 原件推进。
 

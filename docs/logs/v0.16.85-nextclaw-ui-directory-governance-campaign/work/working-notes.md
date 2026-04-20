@@ -42,6 +42,7 @@
 - [x] `config-split-page` 迁入 `shared/components` 并保留 legacy 薄转发入口
 - [x] `provider-pill-selector` 与 `provider-status-badge` 迁入 `shared/components`
 - [x] `provider-enabled-field` 迁入 `shared/components`
+- [x] `provider-advanced-settings-section` 迁入 `shared/components`
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -99,6 +100,14 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/provider-advanced-settings-section.tsx -> shared/components/provider-advanced-settings-section.tsx` 的真实实现迁移
+- `shared/components` 开始承接 provider 表单里的稳定子区块，不再只接小型原件
+- 通过第六批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/providers-list.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -117,6 +126,7 @@
 - `config-split-page` 证明通用布局壳也可以按“真实实现迁入 shared + legacy 薄转发”模式抽离，allowed roots 不只限于 feature
 - `provider-pill-selector` 与 `provider-status-badge` 证明 `shared/components` 可以继续承接更细粒度的通用 UI 原件，而不需要把所有复用都留在 `components/config`
 - `provider-enabled-field` 进一步证明 provider 表单中的小型通用控件也可以稳定迁入 `shared/components`
+- `provider-advanced-settings-section` 进一步证明 provider 表单里的稳定子区块也可以迁入 `shared/components`，后续可以继续抽离 `provider-auth-section`
 
 # 下一步
 
