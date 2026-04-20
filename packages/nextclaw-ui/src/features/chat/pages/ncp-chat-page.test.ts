@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionEntryView, ThinkingLevel } from '@/api/types';
+import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
   resolveRecentSessionPreferredModel,
   resolveRecentSessionPreferredThinking,
@@ -7,10 +8,12 @@ import {
   resolveSelectedThinkingLevelValue
 } from '@/components/chat/chat-session-preference-governance';
 import {
+  buildNcpSendMetadata,
   shouldClearPendingProjectRootOverride
-} from '@/components/chat/ncp/ncp-chat-page';
+} from '@/features/chat/pages/ncp-chat-page';
+import { filterModelOptionsBySessionType } from '@/features/chat/hooks/use-ncp-chat-page-data';
 
-const modelOptions = [
+const modelOptions: ChatModelOption[] = [
   {
     value: 'anthropic/claude-sonnet-4',
     modelLabel: 'claude-sonnet-4',
@@ -24,6 +27,68 @@ const modelOptions = [
     thinkingCapability: null
   }
 ];
+
+describe('filterModelOptionsBySessionType', () => {
+  it('keeps the full model catalog when the session type does not publish a supportedModels whitelist', () => {
+    expect(
+      filterModelOptionsBySessionType({
+        modelOptions
+      })
+    ).toEqual(modelOptions);
+  });
+
+  it('keeps only session-type-supported models when the runtime publishes a filtered list', () => {
+    expect(
+      filterModelOptionsBySessionType({
+        modelOptions,
+        supportedModels: ['anthropic/claude-sonnet-4']
+      })
+    ).toEqual([modelOptions[0]]);
+  });
+
+  it('falls back to the full model catalog when the advertised models do not match the current catalog', () => {
+    expect(
+      filterModelOptionsBySessionType({
+        modelOptions,
+        supportedModels: ['unknown/model']
+      })
+    ).toEqual(modelOptions);
+  });
+});
+
+describe('buildNcpSendMetadata', () => {
+  it('includes the project root in the first-message metadata when present', () => {
+    expect(
+      buildNcpSendMetadata({
+        agentId: 'engineer',
+        sessionType: 'codex',
+        projectRoot: ' /tmp/project-alpha ',
+      }),
+    ).toMatchObject({
+      agent_id: 'engineer',
+      session_type: 'codex',
+      project_root: '/tmp/project-alpha',
+    });
+  });
+
+  it('omits project_root when the input is blank', () => {
+    expect(
+      buildNcpSendMetadata({
+        projectRoot: '   ',
+      }),
+    ).not.toHaveProperty('project_root');
+  });
+
+  it('sends requested skill refs instead of legacy requested skill names', () => {
+    expect(
+      buildNcpSendMetadata({
+        requestedSkills: ['project:/tmp/project-alpha/.agents/skills/review'],
+      }),
+    ).toMatchObject({
+      requested_skill_refs: ['project:/tmp/project-alpha/.agents/skills/review'],
+    });
+  });
+});
 
 function createSession(overrides: Partial<SessionEntryView> & Pick<SessionEntryView, 'key'>): SessionEntryView {
   return {

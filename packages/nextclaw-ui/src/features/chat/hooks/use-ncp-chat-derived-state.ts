@@ -5,14 +5,14 @@ import type {
   SessionEntryView,
   SessionSkillEntryView
 } from '@/api/types';
-import { sessionDisplayName } from '@/components/chat/chat-session-display';
+import { sessionDisplayName } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummary } from '@/components/chat/ncp/ncp-session-adapter';
 import type { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter';
 import type { UseHydratedNcpAgentResult } from '@nextclaw/ncp-react';
-import type { ChatModelOption } from '@/components/chat/chat-input.types';
+import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import type { ChatChildSessionTab } from '@/components/chat/stores/chat-thread.store';
-import type { ChatSessionTypeOption } from '@/components/chat/useChatSessionTypeState';
-import { resolveSessionTypeLabel } from '@/components/chat/useChatSessionTypeState';
+import type { ChatSessionTypeOption } from '@/features/chat/hooks/use-chat-session-type-state';
+import { resolveSessionTypeLabel } from '@/features/chat/hooks/use-chat-session-type-state';
 
 function buildChildSessionTabs(params: {
   parentSessionKey: string | null;

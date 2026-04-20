@@ -217,10 +217,11 @@
 - 第十七批关键决策：在 strict `contract-only` 下，不再尝试通过新建 legacy shim 或继续回写 legacy 消费方完成迁移；改为“allowed-root 新实现 + 直接删除 legacy 文件 + 配置层精确路径映射承接旧导入”。这条路径已经在 `ChatWelcome` / `useChatSessionTypeState` 上验证通过，后续更高层入口链也优先沿这条路线推进
 - 第十八批关键决策：更高层入口链不再一次性全搬。`chat-page-shell`、`chat-page`、`ncp-chat-page` 这组入口链里，只先拿走最重、最稳定的 `chat-conversation-panel` 主面板和 `chat-page-runtime` 测试；其余页面壳暂时保持未触达，通过一条精确 alias 指向新 panel 实现，先把高层债务减下来再继续往上收
 - 第十九批关键决策：在第十八批验证过 panel alias 路径后，继续顺着同一条链上收 `chat-page-shell` 与 `chat-page`。这一步不再引入新 shim，只保留精确 alias，让 `app.tsx` 与 legacy `ncp-chat-page.tsx` 继续消费新入口实现
+- 第二十批关键决策：`ncp` 页面装配链不再拆成更多小点，而是一次性把 `ncp-chat-page.tsx`、`ncp-chat-page-data.ts` 与 `page/ncp-chat-derived-state.ts` 整组迁入 `features/chat`；同时把散落的 `ncp-chat-page-data.test.ts` 合并进现有 `ncp-chat-page.test.ts`，直接减少文件数
 
 # 下一步
 
-- 继续扫描 `components/config` 与 `components/chat` 里已是 kebab-case 的页面、卡片或通用支撑件，优先按语义线成组打包，而不是单点迁移；当前优先观察 `system-status` 剩余卡片、`channels` 页面壳、`chat` 里尚未归位的稳定组件子块，以及 `shared/components` 中可连带迁移的小型原件
+- 继续扫描 `components/chat` 剩余的高层运行时债务，优先评估 `useHydratedNcpAgent.test.tsx`、`useNcpAgentRuntime.test.tsx` 与 `components/chat/ncp/session-conversation` 相邻链路，看看能否继续按 `features/chat` 角色位整组收拢
 - 补记第十四批：
   - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
   - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`
@@ -292,15 +293,30 @@
     - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/components/chat/chat-page-shell.tsx packages/nextclaw-ui/src/components/chat/chat-page.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
     - `pnpm check:governance-backlog-ratchet`
   - 第十九批非测试代码净变化为 `-1`
+- 补记第二十批：
+  - 完成 `components/chat/ncp/ncp-chat-page.tsx -> features/chat/pages/ncp-chat-page.tsx`
+  - 完成 `components/chat/ncp/ncp-chat-page-data.ts -> features/chat/hooks/use-ncp-chat-page-data.ts`
+  - 完成 `components/chat/ncp/page/ncp-chat-derived-state.ts -> features/chat/hooks/use-ncp-chat-derived-state.ts`
+  - 完成 `components/chat/ncp/ncp-chat-page-data.test.ts` 删除，并把相关断言并入 `features/chat/pages/ncp-chat-page.test.ts`
+  - 完成真实消费方切根入口：`features/chat/pages/chat-page.tsx` 现在直接消费 `@/features/chat/pages/ncp-chat-page`
+  - 新页面实现已改为优先消费 `features/chat` 自身的 hooks / utils，而不是继续反向依赖 legacy `components/chat` 下的支撑件
+  - 通过第二十批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/pages/ncp-chat-page.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page.tsx packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.test.ts packages/nextclaw-ui/src/components/chat/ncp/page/ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十批代码净变化：`-14`
+  - 第二十批非测试代码净变化：`0`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
 - 当前前两个高置信批次都已形成并通过验证，剩余阻塞不在已完成批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
-- `components/chat` 顶层虽然继续变薄，但 `ncp` 运行时入口链仍留在 legacy root；下一批应优先评估 `ncp-chat-page.tsx`、`ncp-chat-page-data.ts` 与两条运行时测试的整组迁移缝
+- `components/chat` 顶层与 `components/chat/ncp` 里最重的页面装配链已经移走，但两条运行时测试与 `session-conversation` 相邻链路仍留在 legacy root；下一批应优先评估 `useHydratedNcpAgent.test.tsx`、`useNcpAgentRuntime.test.tsx` 与 `components/chat/ncp/session-conversation` 的整组迁移缝
 
 # 交接提醒
 
 - 若上下文压缩，下一轮先重读本文件和 `state.json`
-- 下一轮不要再从 legacy roots 里直接长新目录，也不要再新建 shim；要延续“真实实现迁入 allowed roots + legacy 文件直接删除 + 配置层或整组入口切换承接旧导入”的模式
+- 下一轮不要再从 legacy roots 里直接长新目录，也不要再新建 shim；要延续“真实实现迁入 allowed roots + legacy 文件直接删除 + 整组入口切换承接旧导入”的模式
