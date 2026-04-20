@@ -482,6 +482,29 @@
     - 非测试代码增减报告：新增 `432` 行，删除 `437` 行，净增 `-5` 行
     - 可维护性总结：`no maintainability findings`。这一批不是只把会话页换目录，而是同时消除了两段 effect 型本地状态修补，并把详情子块顺手收进 `config/` 子域；当前没有新增预算观察点
 - 当前已自动进入下一轮扫描：`RuntimeConfig.tsx` 现在成为 `components/config` 的最高优先级剩余重页面。它的 `runtime-control-card`、`runtime-presence-card` 与 `runtime-config-agent.utils` 已经归到 `features/system-status`，说明语义边界是清晰的；但页面本体仍带三段 effect 型本地状态灌入、agent/binding/runtime-entry 三条编辑链和一个长保存分支。当前判断是：下一轮不要直接整页迁移，优先从 overview 壳、runtime entry 编辑段或保存归一化链里挑一条高置信子链先拆
+- 第三十一批已经完成并通过验证：
+  - 完成 `components/config/RuntimeConfig.tsx -> features/system-status/pages/runtime-config-page.tsx`
+  - 完成 `features/system-status/components/config/runtime-config-overview.tsx`、`runtime-settings-card.tsx`、`runtime-entry-list-card.tsx`、`runtime-agent-list-card.tsx` 与 `runtime-binding-list-card.tsx`，把 overview、默认 runtime 设置、runtime entry 编辑、agent 列表与 binding 列表收束到 `config/` 子域
+  - 完成 `features/system-status/components/config/runtime-config-editor.tsx`，让页面壳只保留数据装配与保存入口
+  - 完成 `features/system-status/pages/runtime-config-page.test.tsx`，补上最小运行时页面保存测试
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/RuntimeConfig` 指向新的 allowed-root 实现
+  - 完成结构减债：把页面里原有的三段 effect 型本地状态灌入改为单次初始化态；把 agent / binding / runtime-entry 的保存归一化链统一收束到 `runtime-config-agent.utils.ts`
+  - 明确记录一次失败路径：第一版迁移在测试、类型检查、governance 与 ratchet 都通过，但 `post-edit-maintainability-guard` 报出 non-feature 非测试净增 `+32`，同时提示 `runtime-config-agent.utils.ts` 出现 material growth；第二版继续压缩类型声明、对象字面量与 editor 包装层后，最终把非测试净变化压到 `-41`
+  - 通过第三十一批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/system-status/pages/runtime-config-page.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/RuntimeConfig.tsx packages/nextclaw-ui/src/features/system-status/pages/runtime-config-page.tsx packages/nextclaw-ui/src/features/system-status/pages/runtime-config-page.test.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-config-editor.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-config-overview.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-settings-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-entry-list-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-agent-list-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-binding-list-card.tsx packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/RuntimeConfig.tsx packages/nextclaw-ui/src/features/system-status/pages/runtime-config-page.tsx packages/nextclaw-ui/src/features/system-status/pages/runtime-config-page.test.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-config-editor.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-config-overview.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-settings-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-entry-list-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-agent-list-card.tsx packages/nextclaw-ui/src/features/system-status/components/config/runtime-binding-list-card.tsx packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十一批代码净变化：`+100`
+  - 第三十一批非测试代码净变化：`-41`
+  - 第三十一批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `717` 行，删除 `617` 行，净增 `+100` 行
+    - 非测试代码增减报告：新增 `576` 行，删除 `617` 行，净增 `-41` 行
+    - 可维护性总结：`no maintainability findings`。这一批不是只把运行时页换目录，而是同时把五段稳定子块与保存归一化链收束到 `system-status` 子域，并在第一次守卫失败后继续压缩到非测试净减债
+- 当前已自动进入下一轮扫描：`ChannelsList.tsx`、`ChannelForm.tsx` 与 `weixin-channel-auth-section.tsx` 共享既有 `features/channels` 语义边界，且已经有 `channel-form-fields` / `channel-form-fields-section` / 相邻测试落在 allowed roots。当前判断是：下一轮优先评估能否按 `features/channels/pages + components/config + utils` 一次性承接列表页、详情表单与微信授权子块，做成比前几轮更大的高置信批次；如果 channels 页面线仍会触发 effect-boundary、file-budget 或 non-feature 净增硬阻塞，再回到 provider 页面链继续扫描
 
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
