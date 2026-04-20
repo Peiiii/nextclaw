@@ -7,7 +7,7 @@ import {
   ChatMessageListContainer,
 } from "@/components/chat/nextclaw";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
-import { ChatSessionWorkspacePanel } from "@/components/chat/chat-session-workspace-panel";
+import { ChatSessionWorkspacePanel } from "@/features/chat";
 import { AgentAvatar } from "@/components/common/AgentAvatar";
 import { SessionContextIconNode } from "@/components/common/session-context-icon";
 import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";

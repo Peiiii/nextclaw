@@ -1,3 +1,4 @@
-export * from "./components/chat-session-type-option-item"; export * from "./components/chat-session-workspace-file-preview";
+export * from "./components/chat-sidebar-list-mode-switch"; export * from "./components/chat-sidebar-project-groups"; export * from "./components/chat-sidebar-session-item";
+export * from "./components/chat-session-type-option-item"; export * from "./components/chat-session-workspace-file-preview"; export * from "./components/chat-session-workspace-panel"; export * from "./components/chat-session-workspace-panel-nav";
 export * from "./managers/chat-recent-models.manager"; export * from "./managers/chat-recent-skills.manager"; export * from "./managers/chat-session-preference-sync.manager";
 export * from "./types/chat-input.types"; export * from "./utils/chat-composer-state.utils"; export * from "./utils/chat-inline-token.utils"; export * from "./utils/chat-session-display.utils"; export * from "./utils/chat-session-preference-governance.utils"; export * from "./utils/chat-session-route.utils";

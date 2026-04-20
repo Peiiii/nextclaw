@@ -6,13 +6,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SelectItem } from '@/components/ui/select';
-import { ChatSidebarSessionItem } from '@/components/chat/chat-sidebar-session-item';
-import { ChatSessionTypeOptionItem } from '@/features/chat';
-import { ChatSidebarListModeSwitch } from '@/components/chat/chat-sidebar-list-mode-switch';
-import {
-  ChatSidebarProjectGroups,
-  type ChatSidebarProjectGroup
-} from '@/components/chat/chat-sidebar-project-groups';
+import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, ChatSidebarSessionItem, type ChatSidebarProjectGroup } from '@/features/chat';
 import { resolveSessionContextView } from '@/lib/session-context.utils';
 import { useChatSidebarSessionLabelEditor } from '@/components/chat/hooks/use-chat-sidebar-session-label-editor';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';

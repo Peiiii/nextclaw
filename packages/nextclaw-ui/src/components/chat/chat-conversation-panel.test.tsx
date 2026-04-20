@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel";
-import { ChatSessionWorkspacePanel } from "@/components/chat/chat-session-workspace-panel";
+import { ChatSessionWorkspacePanel } from "@/features/chat";
 import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
@@ -51,7 +51,7 @@ vi.mock("@/components/chat/containers/chat-message-list.container", () => ({
   ChatMessageListContainer: () => <div data-testid="child-chat-message-list" />,
 }));
 
-vi.mock("@/components/chat/chat-session-workspace-file-preview", () => ({
+vi.mock("@/features/chat/components/chat-session-workspace-file-preview", () => ({
   ChatSessionWorkspaceFilePreview: ({
     file,
   }: {
