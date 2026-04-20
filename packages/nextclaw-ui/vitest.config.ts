@@ -6,6 +6,8 @@ export default defineConfig({
     alias: {
       '@/components/chat/ChatWelcome': path.resolve(__dirname, './src/features/chat/components/chat-welcome.tsx'),
       '@/components/chat/chat-conversation-panel': path.resolve(__dirname, './src/features/chat/components/conversation/chat-conversation-panel.tsx'),
+      '@/components/chat/chat-page': path.resolve(__dirname, './src/features/chat/pages/chat-page.tsx'),
+      '@/components/chat/chat-page-shell': path.resolve(__dirname, './src/features/chat/components/layout/chat-page-shell.tsx'),
       '@/components/chat/useChatSessionTypeState': path.resolve(__dirname, './src/features/chat/hooks/use-chat-session-type-state.ts'),
       '@': path.resolve(__dirname, './src'),
       '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts')

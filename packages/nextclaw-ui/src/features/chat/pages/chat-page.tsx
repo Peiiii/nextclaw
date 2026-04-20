@@ -1,4 +1,4 @@
-import type { ChatPageProps } from '@/components/chat/chat-page-shell';
+import type { ChatPageProps } from '@/features/chat/components/layout/chat-page-shell';
 import { NcpChatPage } from '@/components/chat/ncp/ncp-chat-page';
 
 export function ChatPage({ view }: ChatPageProps) {

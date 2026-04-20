@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "components/chat page entry chain scan",
-    "原因": "第十八批已经先拿下 chat-conversation-panel 主面板线，并验证了“高层面板实现下沉 + legacy 页面壳通过精确 alias 消费新实现”这条 strict 路径。下一批继续锁定剩余页面入口链。",
+    "名称": "components/chat ncp entry chain scan",
+    "原因": "第十九批已经拿下 chat-page-shell 与 chat-page，components/chat 顶层只剩 ncp 入口链和两条运行时测试。下一批直接锁定剩余 ncp 入口链。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -56,7 +56,8 @@
     "完成 chat 稳定组件子块与真实消费方切换的成组 feature-root 迁移并通过最小验证集",
     "完成 chat 侧栏与 workspace panel 组件线的成组 feature-root 迁移并通过最小验证集",
     "完成 ChatWelcome 与 useChatSessionTypeState 的 strict feature-root 迁移，并用精确路径映射承接旧导入",
-    "完成 chat-conversation-panel 主面板线与 chat-page-runtime 测试的 feature-root 迁移，并通过精确 alias 让 legacy 页面壳消费新 panel 实现"
+    "完成 chat-conversation-panel 主面板线与 chat-page-runtime 测试的 feature-root 迁移，并通过精确 alias 让 legacy 页面壳消费新 panel 实现",
+    "完成 chat-page-shell 与 chat-page 的 feature-root 迁移，并通过精确 alias 让 legacy 入口继续解析到新实现"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -67,7 +68,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描并打包 components/chat 顶层剩余页面入口链，优先评估 chat-page-shell.tsx、chat-page.tsx、ncp-chat-page.tsx 能否在不回写 legacy 文件的前提下一次性成组下沉。",
-  "最近一次停机原因": "第十八批已经完成并验证通过：chat-conversation-panel 主面板线与 chat-page-runtime 测试已脱离 components/chat 顶层，strict 合同未被放宽，下一步继续剩余页面入口链。",
+  "下一步": "继续扫描并打包 components/chat/ncp 入口链，优先评估 ncp-chat-page.tsx、ncp-chat-page-data.ts 与两条运行时测试能否在不回写 legacy 文件的前提下一次性成组下沉。",
+  "最近一次停机原因": "第十九批已经完成并验证通过：chat-page-shell 与 chat-page 已脱离 components/chat 顶层，strict 合同未被放宽，下一步继续剩余 ncp 入口链。",
   "最近更新时间": "2026-04-21"
 }

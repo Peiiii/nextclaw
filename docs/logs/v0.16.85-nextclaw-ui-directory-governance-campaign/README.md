@@ -38,6 +38,7 @@
 - 第十六批通过治理的落点是收紧模块结构合同本身：把 `packages/nextclaw-ui/module-structure.config.json` 的 `rootPolicy` 从 `legacy-frozen` 提升到 `contract-only`，并把治理测试改成“触达已存在 legacy root 文件也直接报错”，彻底关闭“历史问题只 warning、不拦截”的放水路径
 - 第十七批通过治理的落点是沿 `features/chat` 继续吃掉顶层入口支撑件：把 `ChatWelcome.tsx` 与 `useChatSessionTypeState.ts` 连同测试一起迁入 `features/chat/components` 与 `features/chat/hooks`，直接删除 legacy 实现文件，并在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补精确路径映射，让尚未迁出的旧导入在 strict `contract-only` 下继续解析到 allowed roots，而不是再次触碰 legacy 文件
 - 第十八批通过治理的落点是继续吃掉 `components/chat` 顶层最高权重面板线：把 `chat-conversation-panel.tsx` 与 `chat-conversation-panel.test.tsx` 迁入 `features/chat/components/conversation/`，把 `chat-page-runtime.test.ts` 迁入 `features/chat/pages/ncp-chat-page.test.ts`，并仅为仍保留在 legacy 的 `chat-page-shell.tsx` 补一条精确路径映射到新 panel 实现，避免继续回写 legacy 页面壳
+- 第十九批通过治理的落点是继续吃掉剩余页面入口链：把 `chat-page-shell.tsx` 迁入 `features/chat/components/layout/chat-page-shell.tsx`，把 `chat-page.tsx` 迁入 `features/chat/pages/chat-page.tsx`，并通过精确路径映射让 `app.tsx` 与 legacy `ncp-chat-page.tsx` 继续解析到 allowed roots 下的新实现
 
 # 测试 / 验证 / 验收方式
 
@@ -72,6 +73,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts packages/nextclaw-ui/src/components/chat/chat-conversation-panel.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/chat/chat-page-runtime.test.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts packages/nextclaw-ui/src/components/chat/chat-conversation-panel.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/chat/chat-page-runtime.test.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第十九批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts src/components/chat/ncp/ncp-chat-page-data.test.ts`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/components/chat/chat-page-shell.tsx packages/nextclaw-ui/src/components/chat/chat-page.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/components/chat/chat-page-shell.tsx packages/nextclaw-ui/src/components/chat/chat-page.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -166,6 +173,7 @@
   - 第十六批验证通过后，`nextclaw-ui` 将进入严格 `contract-only` 模式；后续再触碰 legacy root 文件会被治理闸门直接拦截，不再只是 warning
   - 第十七批验证通过，`ChatWelcome` 与 `useChatSessionTypeState` 已从 `components/chat` 顶层移入 `features/chat`；模块结构治理测试、UI 用例、类型检查、治理守卫与 maintainability guard 全部通过，非测试代码净变化为 `-11`
   - 第十八批验证通过，`chat-conversation-panel` 面板线与 `chat-page-runtime` 测试已脱离 `components/chat` 顶层；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-1`
+  - 第十九批验证通过，`chat-page-shell` 与 `chat-page` 已脱离 `components/chat` 顶层；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-1`
 
 # 发布 / 部署方式
 
@@ -177,21 +185,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到十八处 contract-aligned 的治理结果：除了前十七处治理样例外，还应看到 `chat-conversation-panel` 与 `chat-page-runtime` 测试已从 `components/chat` 顶层移走，`chat-page-shell.tsx` 通过精确路径映射消费 `features/chat/components/conversation/chat-conversation-panel.tsx`，而不是继续依赖 legacy 面板实现。
+5. 当前至少应看到十九处 contract-aligned 的治理结果：除了前十八处治理样例外，还应看到 `chat-page-shell.tsx` 与 `chat-page.tsx` 已从 `components/chat` 顶层移走，旧入口通过 `packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 精确映射到 `features/chat/components/layout/chat-page-shell.tsx` 与 `features/chat/pages/chat-page.tsx`。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第十八批优先处理的是 `components/chat` 顶层最厚的面板线，而不是继续捡小件。我们只给 `chat-page-shell.tsx` 增加了一条精确映射来承接新 panel 实现，其余 legacy 页面壳保持未触达，strict 合同没有被放宽。
+本次是否已尽最大努力优化可维护性：是。第十九批继续沿剩余页面入口链推进，把 `chat-page-shell` 和 `chat-page` 一起从 `components/chat` 顶层拿走；这一步优先解决的是最高层页面装配边界，而不是继续在子组件层打补丁。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第十八批没有新增用户能力，只做面板实现与测试归位；没有为通过治理去新建 shim，也没有保留额外兼容壳。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第十九批没有新增用户能力，只做页面装配归位；同样没有新建 shim，只保留精确 alias 让旧入口解析到新实现。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十八个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；第十八批单批次非测试代码净变化为 `-1`。`components/chat` 顶层又减少了一个 480+ 行的面板实现和一条 500+ 行测试文件，最高优先级已经进一步收敛到 `chat-page-shell.tsx`、`chat-page.tsx` 与 `ncp-chat-page.tsx` 这一组剩余页面入口链。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十九个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；第十九批单批次非测试代码净变化为 `-1`。`components/chat` 顶层现在只剩 `ncp` 入口链和两条运行时测试；页面壳与主面板已经基本收回 allowed roots。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`chat-conversation-panel` 本质上已经是 `chat` feature 下的对话主面板，实现归到 `features/chat/components/conversation/` 后，面板边界终于不再挂在 `components/chat` 顶层。为了不回写 legacy 页面壳，本批次只用一条精确路径映射承接旧导入，没有再叠一层 shim。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`chat-page-shell` 本质上是 chat feature 的页面布局壳，进入 `features/chat/components/layout/` 后边界终于和 `conversation/`、`workspace/` 这些子结构对齐；`chat-page` 则进入 `features/chat/pages/`，页面入口和页面布局的分层更自然。整个过程没有再新增 shim。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第十八批之后 `components/chat` 顶层又收掉了一块最重的面板实现。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的剩余优先级已进一步锁到 `chat-page-shell.tsx`、`chat-page.tsx` 与 `ncp-chat-page.tsx`。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成，并通过精确路径映射或整组入口切换避免再次回写 legacy 文件。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第十九批之后 `components/chat` 顶层只剩 `ncp` 入口链和两条运行时测试。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的下一优先级已继续收窄到 `ncp-chat-page.tsx`、`ncp-chat-page-data.ts` 与两条运行时测试。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成，并通过精确路径映射或整组入口切换避免再次回写 legacy 文件。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第十八批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `1341` 行，删除 `1340` 行，净增 `+1` 行。非测试代码增减报告：新增 `481` 行，删除 `482` 行，净增 `-1` 行。可维护性总结：这一批真正削掉了 `components/chat` 顶层的一块大面板实现与其测试，同时保持 strict 合同和非功能净增闸门都通过；唯一保留风险是 `chat-page-shell` / `chat-page` / `ncp-chat-page` 入口链仍在 legacy。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第十九批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `105` 行，删除 `106` 行，净增 `-1` 行。非测试代码增减报告：新增 `105` 行，删除 `106` 行，净增 `-1` 行。可维护性总结：这一批把最高层页面壳也拖进了 allowed roots，并保持 strict 合同、治理闸门和非功能净增全部通过；剩余风险集中在 `ncp` 运行时入口链。
 
 # NPM 包发布记录
 

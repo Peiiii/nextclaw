@@ -5,13 +5,10 @@ import { ChatConversationPanel } from "@/components/chat/chat-conversation-panel
 import { AgentsPage } from "@/components/agents/agents-page";
 import { CronConfig } from "@/components/config/CronConfig";
 import { MarketplacePage } from "@/components/marketplace/marketplace-page";
-
 export type MainPanelView = "chat" | "cron" | "skills" | "agents";
-
 export type ChatPageProps = {
   view: MainPanelView;
 };
-
 type UseChatSessionSyncParams = {
   view: MainPanelView;
   routeSessionKey: string | null;
@@ -20,7 +17,6 @@ type UseChatSessionSyncParams = {
   selectedSessionKeyRef: MutableRefObject<string | null>;
   resetStreamState: () => void;
 };
-
 export function useChatSessionSync(params: UseChatSessionSyncParams): void {
   const {
     view,
@@ -57,12 +53,10 @@ export function useChatSessionSync(params: UseChatSessionSyncParams): void {
     selectedSessionKeyRef.current = selectedSessionKey;
   }, [selectedSessionKey, selectedSessionKeyRef]);
 }
-
 type ChatPageLayoutProps = {
   view: MainPanelView;
   confirmDialog: JSX.Element;
 };
-
 export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
   return (
     <div className="h-full flex">
@@ -93,7 +87,6 @@ export function ChatPageLayout({ view, confirmDialog }: ChatPageLayoutProps) {
           )}
         </section>
       )}
-
       {confirmDialog}
     </div>
   );
