@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { Env, RechargeIntentRow, UserRow } from "../types/platform";
+import type { Env, RechargeIntentRow, UserRow } from "@/types/platform";
 import {
   appendAuditLog,
   createProviderAccount,
@@ -18,7 +18,7 @@ import {
   toUserPublicView,
   upsertModelCatalog,
   writePlatformNumberSetting
-} from "../repositories/platform.repository";
+} from "@/repositories/platform.repository";
 import {
   applyUserBalanceDelta,
   parseAdminModelUpsertInput,
@@ -26,8 +26,8 @@ import {
   updateUserFreeLimit,
   validateAdminModelUpsertInput,
   validateAdminProviderCreateInput
-} from "../services/admin-controller-support.service";
-import { ensurePlatformBootstrap, requireAdminUser } from "../services/platform.service";
+} from "@/services/admin-controller-support.service";
+import { ensurePlatformBootstrap, requireAdminUser } from "@/services/platform.service";
 import {
   apiError,
   decodeCursorToken,
@@ -39,7 +39,7 @@ import {
   readNumber,
   readUnknown,
   roundUsd
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 export async function adminOverviewHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);

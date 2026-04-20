@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { appendAuditLog } from "../repositories/platform.repository";
+import { appendAuditLog } from "@/repositories/platform.repository";
 import {
   archiveRemoteInstance,
   createRemoteAccessSession,
@@ -13,19 +13,19 @@ import {
   toRemoteInstanceView,
   unarchiveRemoteInstance,
   upsertRemoteInstance,
-} from "../repositories/remote.repository";
-import { ensurePlatformBootstrap, requireAuthUser } from "../services/platform.service";
+} from "@/repositories/remote.repository";
+import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   buildRemoteAccessUrlSet,
-} from "../services/remote-access.service";
-import type { Env } from "../types/platform";
-import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "../types/platform";
+} from "@/services/remote-access.service";
+import type { Env } from "@/types/platform";
+import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "@/types/platform";
 import {
   apiError,
   randomOpaqueToken,
   readJson,
   readString,
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 function requireRemoteAccessUrls(
   c: Context<{ Bindings: Env }>,

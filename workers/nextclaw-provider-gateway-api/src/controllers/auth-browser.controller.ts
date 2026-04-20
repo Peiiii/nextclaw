@@ -1,29 +1,29 @@
 import type { Context } from "hono";
-import { getUserById } from "../repositories/platform.repository";
+import { getUserById } from "@/repositories/platform.repository";
 import {
   createPlatformAuthSession,
   getPlatformAuthSessionById,
   updatePlatformAuthSessionStatus
-} from "../repositories/platform-auth-session-repository";
+} from "@/repositories/platform-auth-session.repository";
 import {
   authenticatePlatformUser,
   isPlatformAuthServiceError,
   issuePlatformTokenResult,
   registerPlatformUser
-} from "../services/platform/platform-auth.service";
-import { ensurePlatformBootstrap } from "../services/platform.service";
+} from "@/services/platform/platform-auth.service";
+import { ensurePlatformBootstrap } from "@/services/platform.service";
 import {
   DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS,
   DEFAULT_PLATFORM_AUTH_SESSION_TTL_SECONDS,
   type Env
-} from "../types/platform";
+} from "@/types/platform";
 import {
   apiError,
   randomOpaqueToken,
   readClientIp,
   readJson,
   readString
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 type BrowserAuthMode = "login" | "register";
 

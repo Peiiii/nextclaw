@@ -1,20 +1,10 @@
 {
-  "contractKind": "legacy",
-  "organizationModel": "legacy-package-shell",
+  "contractKind": "protocol",
+  "protocol": "package-l1",
   "rootPolicy": "contract-only",
   "enforcement": "error",
-  "allowedRootDirectories": [
-    "dist",
-    "migrations",
-    "node_modules",
-    "src",
-    "tests"
-  ],
   "allowedRootFiles": [
-    "README.md",
-    "package.json",
-    "tsconfig.json",
-    "wrangler.toml"
-  ],
-  "sharedDirectories": []
+    "index.ts",
+    "main.ts"
+  ]
 }

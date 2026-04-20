@@ -5,8 +5,8 @@ import type {
   RemoteQuotaError,
   RemoteQuotaOperationCost,
   RemoteQuotaSessionState,
-} from "./remote-quota.config.js";
-import { REMOTE_QUOTA_RELAY_WS_MESSAGE_DO_MILLI_UNITS } from "./remote-quota.config.js";
+} from "@/configs/remote-quota/remote-quota.config.js";
+import { REMOTE_QUOTA_RELAY_WS_MESSAGE_DO_MILLI_UNITS } from "@/configs/remote-quota/remote-quota.config.js";
 import { readRequestWindowUsage, secondsUntilDayReset, secondsUntilWindowReset } from "./remote-quota-state.utils.js";
 
 export function createWsLeaseCost(messages: number): RemoteQuotaOperationCost {

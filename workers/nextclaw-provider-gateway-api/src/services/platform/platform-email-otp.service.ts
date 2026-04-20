@@ -1,7 +1,7 @@
-import { getUserByEmail } from "../../repositories/platform.repository";
+import { getUserByEmail } from "@/repositories/platform.repository";
 import { PlatformAuthServiceError } from "./platform-auth.service";
-import type { Env } from "../../types/platform";
-import { isValidEmail, normalizeEmail } from "../../utils/platform.utils";
+import type { Env } from "@/types/platform";
+import { isValidEmail, normalizeEmail } from "@/utils/platform.utils";
 
 export type EmailCodePurpose = "register" | "password_reset";
 

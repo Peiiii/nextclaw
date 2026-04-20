@@ -1,29 +1,29 @@
 import type { Context } from "hono";
-import { getUserById } from "../repositories/platform.repository";
+import { getUserById } from "@/repositories/platform.repository";
 import {
   renderBrowserAuthPage,
   resolveBrowserAuthLocale,
   resolveBrowserAuthMode,
   type BrowserAuthLocale,
-} from "./auth-browser-page-renderer.service";
+} from "@/services/auth-browser/auth-browser-page-renderer.service.js";
 import {
   authorizeBrowserSessionForUser,
   createBrowserAuthSession,
   loadPendingBrowserAuthSession,
   loadPlatformAuthSession,
   renderMissingSessionPage,
-} from "./auth-browser-session.service";
-import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "../services/platform/platform-email-otp.service";
+} from "@/services/auth-browser/auth-browser-session.service.js";
+import { sendPlatformEmailAuthCode, verifyPlatformEmailAuthCode } from "@/services/platform/platform-email-otp.service";
 import {
   authenticatePlatformUser,
   isPlatformAuthServiceError,
   issuePlatformTokenResult,
   registerPlatformUser,
   updatePlatformUserPassword,
-} from "../services/platform/platform-auth.service";
-import { ensurePlatformBootstrap } from "../services/platform.service";
-import { DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS, type Env } from "../types/platform";
-import { apiError, readClientIp, readJson, readString } from "../utils/platform.utils";
+} from "@/services/platform/platform-auth.service";
+import { ensurePlatformBootstrap } from "@/services/platform.service";
+import { DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS, type Env } from "@/types/platform";
+import { apiError, readClientIp, readJson, readString } from "@/utils/platform.utils";
 
 function resolveRequestBrowserAuthLocale(
   c: Context<{ Bindings: Env }>,

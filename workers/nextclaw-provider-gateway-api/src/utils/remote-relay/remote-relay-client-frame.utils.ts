@@ -1,4 +1,4 @@
-import type { ConnectorClientFrame } from "./remote-relay.types";
+import type { ConnectorClientFrame } from "@/types/remote-relay.types.js";
 
 export function dispatchRemoteRelayClientFrame(params: {
   frame: ConnectorClientFrame;

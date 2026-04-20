@@ -6,13 +6,13 @@ import {
   type SupportedModelSpec,
   type UsageCounters,
   type UserRow
-} from "../types/platform";
+} from "@/types/platform";
 import {
   appendLedger,
   getLedgerByRequestId,
   getUserById,
   readBillingSnapshot
-} from "../repositories/platform.repository";
+} from "@/repositories/platform.repository";
 import {
   extractUsageCounters,
   getGlobalFreeLimit,
@@ -25,7 +25,7 @@ import {
   readAuthSecret,
   roundUsd,
   verifySessionToken
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 const bootstrapReady = new WeakMap<D1Database, Promise<void>>();
 

@@ -1,5 +1,5 @@
-import { browserAuthCopy, supportedBrowserAuthLocales } from "./auth-browser-page-copy.config";
-import { browserAuthPageStyles } from "./auth-browser-page-styles.config";
+import { browserAuthCopy, supportedBrowserAuthLocales } from "@/configs/auth-browser/auth-browser-page-copy.config.js";
+import { browserAuthPageStyles } from "@/configs/auth-browser/auth-browser-page-styles.config.js";
 import {
   browserAuthLocaleCookie,
   escapeAttribute,
@@ -12,7 +12,7 @@ import {
   resolveBrowserAuthErrorKey,
   resolveBrowserAuthSuccessKey,
   type CopyParams,
-} from "./auth-browser-page-support.utils";
+} from "@/utils/auth-browser/auth-browser-page-support.utils.js";
 
 export type BrowserAuthMode = "login" | "register" | "reset_password";
 export type BrowserAuthLocale = "zh-CN" | "en-US";
@@ -43,7 +43,7 @@ export function resolveBrowserAuthMode(raw: string | null | undefined): BrowserA
   return "login";
 }
 
-export { resolveBrowserAuthLocale } from "./auth-browser-page-support.utils";
+export { resolveBrowserAuthLocale } from "@/utils/auth-browser/auth-browser-page-support.utils.js";
 
 class BrowserAuthPageRenderer {
   constructor(private readonly params: RenderBrowserAuthPageParams) {}

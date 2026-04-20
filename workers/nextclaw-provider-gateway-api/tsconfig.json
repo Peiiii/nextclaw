@@ -7,6 +7,10 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": ["@cloudflare/workers-types"],

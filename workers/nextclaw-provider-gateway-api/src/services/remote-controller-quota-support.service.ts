@@ -1,11 +1,11 @@
-import type { RemoteAccessSessionRow } from "../types/platform";
-import type { Env } from "../types/platform";
+import type { RemoteAccessSessionRow } from "@/types/platform";
+import type { Env } from "@/types/platform";
 import {
   acquireRemoteQuotaBrowserConnection,
   buildRemoteQuotaHttpRejection,
   consumeRemoteQuotaRequest,
   releaseRemoteQuotaBrowserConnection,
-} from "../services/remote-quota-guard.service";
+} from "@/services/remote-quota-guard.service";
 
 export async function enforceRemoteSessionQuota(
   env: Env,

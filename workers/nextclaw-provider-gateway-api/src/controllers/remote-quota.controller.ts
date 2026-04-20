@@ -1,8 +1,8 @@
 import type { Context } from "hono";
-import { readRemoteQuotaPlatformSummary, readRemoteQuotaUserSummary } from "../services/remote-quota-guard.service";
-import { ensurePlatformBootstrap, requireAuthUser } from "../services/platform.service";
-import type { Env } from "../types/platform";
-import { apiError } from "../utils/platform.utils";
+import { readRemoteQuotaPlatformSummary, readRemoteQuotaUserSummary } from "@/services/remote-quota-guard.service";
+import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
+import type { Env } from "@/types/platform";
+import { apiError } from "@/utils/platform.utils";
 
 export async function remoteQuotaSummaryHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);

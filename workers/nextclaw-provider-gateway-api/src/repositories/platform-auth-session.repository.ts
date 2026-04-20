@@ -1,4 +1,4 @@
-import type { PlatformAuthSessionRow, PlatformAuthSessionStatus } from "../types/platform";
+import type { PlatformAuthSessionRow, PlatformAuthSessionStatus } from "@/types/platform";
 
 export async function createPlatformAuthSession(
   db: D1Database,

@@ -9,7 +9,7 @@ import {
   registerUserLoginFailure,
   resetUserLoginSecurity,
   toUserPublicView
-} from "../../repositories/platform.repository";
+} from "@/repositories/platform.repository";
 import {
   ACCOUNT_LOCK_MINUTES,
   IP_FAILED_ATTEMPT_WINDOW_MINUTES,
@@ -17,7 +17,7 @@ import {
   MAX_FAILED_LOGIN_ATTEMPTS_PER_USER,
   type Env,
   type UserRow
-} from "../../types/platform";
+} from "@/types/platform";
 import {
   getDefaultUserFreeLimit,
   hashPassword,
@@ -27,8 +27,8 @@ import {
   normalizeEmail,
   parseIsoDate,
   verifyPassword
-} from "../../utils/platform.utils";
-import { normalizePlatformUsername, validatePlatformUsername } from "../../utils/platform-username";
+} from "@/utils/platform.utils";
+import { normalizePlatformUsername, validatePlatformUsername } from "@/utils/platform-username";
 
 export class PlatformAuthServiceError extends Error {
   constructor(

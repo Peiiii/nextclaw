@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { appendProfitLedger, listRuntimeModelSpecs, readBillingSnapshot } from "../repositories/platform.repository";
-import { chargeFromStream, chargeUsage, computeChargeSplit, ensurePlatformBootstrap, requireAuthUser } from "../services/platform.service";
+import { appendProfitLedger, listRuntimeModelSpecs, readBillingSnapshot } from "@/repositories/platform.repository";
+import { chargeFromStream, chargeUsage, computeChargeSplit, ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   MODEL_MAP,
   SUPPORTED_MODELS,
@@ -9,7 +9,7 @@ import {
   type Env,
   type RuntimeModelSpec,
   type SupportedModelSpec
-} from "../types/platform";
+} from "@/types/platform";
 import {
   extractUsageCounters,
   getDashscopeApiBase,
@@ -21,7 +21,7 @@ import {
   sanitizeResponseHeaders,
   withTrailingSlash,
   estimateUsage
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 type ChatRequestParseResult =
   | { ok: true; body: ChatCompletionRequest }

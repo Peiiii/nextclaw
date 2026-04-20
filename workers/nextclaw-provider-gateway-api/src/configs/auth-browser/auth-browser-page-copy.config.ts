@@ -1,4 +1,4 @@
-import type { BrowserAuthLocale } from "./auth-browser-page-renderer.service";
+import type { BrowserAuthLocale } from "@/services/auth-browser/auth-browser-page-renderer.service.js";
 
 export type BrowserAuthCopyTree = {
   [key: string]: string | BrowserAuthCopyTree;

@@ -32,7 +32,7 @@ export {
   type RemoteQuotaUserSummary,
   type RemoteQuotaWindow,
   type RequestWindowUsage,
-} from "./remote-quota.config.js";
+} from "@/configs/remote-quota/remote-quota.config.js";
 
 import {
   REMOTE_BROWSER_CONNECT_COST,
@@ -42,13 +42,13 @@ import {
   type RemoteQuotaError,
   type RemoteQuotaOperationCost,
   type RemoteQuotaState,
-} from "./remote-quota.config.js";
+} from "@/configs/remote-quota/remote-quota.config.js";
 import {
   computeMaxGrantableWsMessages,
   createWsLeaseCost,
   evaluateDailyBudget,
   resolveWsLeaseBlockingError,
-} from "./remote-quota-budget.utils.js";
+} from "@/utils/remote-quota/remote-quota-budget.utils.js";
 import {
   addDailyUsage,
   addWindowCount,
@@ -60,13 +60,13 @@ import {
   normalizeRemoteQuotaState,
   readRequestWindowUsage,
   secondsUntilWindowReset,
-} from "./remote-quota-state.utils.js";
+} from "@/utils/remote-quota/remote-quota-state.utils.js";
 
-export { createEmptyRemoteQuotaState } from "./remote-quota-state.utils.js";
+export { createEmptyRemoteQuotaState } from "@/utils/remote-quota/remote-quota-state.utils.js";
 export {
   readRemoteQuotaPlatformSummary,
   readRemoteQuotaUserSummary
-} from "./remote-quota-summary.utils.js";
+} from "@/utils/remote-quota/remote-quota-summary.utils.js";
 
 export function acquireRemoteBrowserConnection(
   state: RemoteQuotaState | null | undefined,

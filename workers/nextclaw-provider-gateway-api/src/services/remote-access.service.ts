@@ -3,10 +3,10 @@ import {
   createRemoteAccessSession,
   getRemoteAccessSessionByToken,
   getRemoteShareGrantById,
-} from "../repositories/remote.repository";
+} from "@/repositories/remote.repository";
 import { requireAuthUser } from "./platform.service";
-import type { Env, RemoteAccessSessionRow, RemoteShareGrantRow } from "../types/platform";
-import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "../types/platform";
+import type { Env, RemoteAccessSessionRow, RemoteShareGrantRow } from "@/types/platform";
+import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "@/types/platform";
 import {
   apiError,
   optionalTrimmedString,
@@ -14,7 +14,7 @@ import {
   parseCookieHeader,
   randomOpaqueToken,
   verifySessionToken,
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 import { resolveHostBoundRemoteAccessSession } from "./remote-access-session-binding.service";
 
 export const REMOTE_SESSION_COOKIE = "nextclaw_remote_session";

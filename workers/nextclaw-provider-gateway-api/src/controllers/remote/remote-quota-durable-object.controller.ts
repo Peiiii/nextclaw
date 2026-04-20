@@ -21,9 +21,9 @@ import {
   type RemoteQuotaDecision,
   type RemoteQuotaOperationCost,
   type RemoteQuotaState,
-} from "./remote-quota.service.js";
-import type { Env } from "../types/platform";
-import { isRecord, jsonErrorResponse, parseBoundedInt } from "../utils/platform.utils";
+} from "@/services/remote-quota/remote-quota.service.js";
+import type { Env } from "@/types/platform";
+import { isRecord, jsonErrorResponse, parseBoundedInt } from "@/utils/platform.utils";
 
 const REMOTE_QUOTA_STATE_STORAGE_KEY = "remote-quota-state";
 

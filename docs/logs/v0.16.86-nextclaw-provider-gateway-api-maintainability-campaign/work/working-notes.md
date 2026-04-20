@@ -5,15 +5,15 @@
 # 最终事实
 
 - 迭代版本：`v0.16.86-nextclaw-provider-gateway-api-maintainability-campaign`
-- `src/` 根层直接源码文件数：`25 -> 5`
-- `src/services/` 根层直接文件数：回落到 `12`
-- `module-structure.config.json` 已放到包根；在续改里进一步确认 `legacy + protocol-package-l1` 属于伪协议配置，现已收回为 `legacy-package-shell`
+- `src/` 根层直接源码文件数：`25 -> 2`
+- `src/services/` 根层直接文件数：回落到 `11`
+- `module-structure.config.json` 已放到包根；严格续改后已切成真实 `protocol + package-l1`
 - `module-structure` 检测系统已补齐：legacy contract 不再允许复用 `protocol-*`，坏配置会产出 `invalid-module-structure-config`，协议结构检查分支也已顺手压缩
 - `pnpm -C workers/nextclaw-provider-gateway-api lint` 已通过
 - `pnpm -C workers/nextclaw-provider-gateway-api tsc` 已通过
 - `pnpm -C workers/nextclaw-provider-gateway-api test:quota` 已通过，`10/10`
 - `pnpm lint:new-code:governance -- $(git diff --name-only --diff-filter=AMDR -- workers/nextclaw-provider-gateway-api | sort | tr '\n' ' ')` 已通过
-- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only --diff-filter=AMDR -- workers/nextclaw-provider-gateway-api | sort)` 已通过，`0 error / 0 warning`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only --diff-filter=AMDR -- workers/nextclaw-provider-gateway-api | sort)` 已通过，`0 error / 8 warning`
 - `node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs` 已通过，`31/31`
 - `pnpm lint:new-code:governance -- scripts/governance/module-structure/...` 已通过
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths scripts/governance/module-structure/...` 已通过，`0 error / 1 warning`，非测试代码净变化 `-15`
@@ -21,12 +21,12 @@
 
 # 关键动作
 
-- 把 `auth-browser*` 收回 [`src/auth-browser/`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/auth-browser)
-- 把 `remote-quota*` 收回 [`src/remote-quota/`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/remote-quota)
-- 把 `remote-relay*` 收回 [`src/remote-relay/`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/remote-relay)
+- 把 `auth-browser*`、`remote-quota*`、`remote-relay*` 彻底拆回 [`src/configs`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/configs)、[`src/controllers`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/controllers)、[`src/services`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/services)、[`src/types`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/types)、[`src/utils`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/utils)
 - 把 controller / repository / service / utils / routes 相关旧命名全部改成治理允许的后缀
 - 清空全部 `params` 顶层解构 lint warning
 - 为了压回 `src/services/` 预算，把平台认证相关逻辑继续收进 [`src/services/platform/`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/services/platform)
+- 增加 [`src/app/gateway-api.app.ts`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/app/gateway-api.app.ts) 与 [`src/routes/app.routes.ts`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/src/routes/app.routes.ts)，把装配逻辑收回合法职责层
+- 增加 [`scripts/rewrite-dist-aliases.mjs`](/Users/peiwang/Projects/nextbot/workers/nextclaw-provider-gateway-api/scripts/rewrite-dist-aliases.mjs)，补齐 `@/` alias 的 dist 落地链路
 
 # 关键判断
 
@@ -36,10 +36,10 @@
 
 # 剩余边界
 
-- 当前 worker 仍使用 `legacy-package-shell`，而不是正式 `protocol` 模块；这是刻意保留的边界，不再伪装成 `package-l1`。
+- 当前 worker 已是严格 `package-l1` 协议模块，不再存在 legacy 壳。
 - `module-structure` 检测系统已补齐一致性校验，后续不会再把 legacy 伪装配置误当成“已经对齐 package-l1”。
 - 当前唯一剩余提醒是 [`scripts/governance/module-structure/module-structure-protocol-checks.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-protocol-checks.mjs) 接近文件预算，下一轮若继续治理可考虑拆成更细的结构/导入边界子模块。
-- 后续若要真的升级为 `package-l1` 协议，需要先统一 alias / build contract，再把剩余 legacy root 也收敛到协议允许结构。
+- worker 侧的下一轮重点不再是协议落位，而是热点大文件继续拆分，例如 `types/platform.ts`、`platform.repository.ts`、`remote.controller.ts`。
 
 # 本轮结论
 

@@ -1,5 +1,5 @@
-import { appendLedger } from "../repositories/platform.repository";
-import { readUnknown, roundUsd } from "../utils/platform.utils";
+import { appendLedger } from "@/repositories/platform.repository";
+import { readUnknown, roundUsd } from "@/utils/platform.utils";
 
 type AdminProviderCreateInput = {
   provider: string;

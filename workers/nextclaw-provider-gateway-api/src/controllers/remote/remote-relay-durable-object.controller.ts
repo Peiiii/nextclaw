@@ -1,11 +1,11 @@
-import { touchRemoteInstance } from "../repositories/remote.repository";
-import { dispatchRemoteRelayClientFrame } from "./remote-relay-client-frame.utils";
-import { decodeRelayBase64, decodeRelayMessageData } from "./remote-relay-message.utils";
+import { touchRemoteInstance } from "@/repositories/remote.repository";
+import { dispatchRemoteRelayClientFrame } from "@/utils/remote-relay/remote-relay-client-frame.utils.js";
+import { decodeRelayBase64, decodeRelayMessageData } from "@/utils/remote-relay/remote-relay-message.utils.js";
 import {
   consumeRemoteBrowserFrameQuota,
   readRemoteBrowserAttachment,
   releaseRemoteClientQuota,
-} from "./remote-relay-quota.utils";
+} from "@/utils/remote-relay/remote-relay-quota.utils.js";
 import {
   type PendingRelay,
   type BrowserCommandFrame,
@@ -16,8 +16,8 @@ import {
   type RelayRequestFrame,
   type RelayResponseFrame,
   type WebSocketMessageData
-} from "./remote-relay.types";
-import type { Env } from "../types/platform";
+} from "@/types/remote-relay.types.js";
+import type { Env } from "@/types/platform";
 
 const CONNECTOR_TAG = "connector"; const CLIENT_TAG = "client";
 

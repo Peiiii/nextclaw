@@ -1,9 +1,9 @@
 import type { Context } from "hono";
-import { appendAuditLog } from "../../repositories/platform.repository";
-import { MarketplaceOwnerSkillService } from "../../services/marketplace-owner-skill.service";
-import { ensurePlatformBootstrap, requireAuthUser } from "../../services/platform.service";
-import type { Env, OwnerMarketplaceSkillManageAction } from "../../types/platform";
-import { apiError, readJson, readString } from "../../utils/platform.utils";
+import { appendAuditLog } from "@/repositories/platform.repository";
+import { MarketplaceOwnerSkillService } from "@/services/marketplace-owner-skill.service";
+import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
+import type { Env, OwnerMarketplaceSkillManageAction } from "@/types/platform";
+import { apiError, readJson, readString } from "@/utils/platform.utils";
 
 const OWNER_MARKETPLACE_MANAGE_ACTIONS = ["hide", "show", "delete"] as const;
 

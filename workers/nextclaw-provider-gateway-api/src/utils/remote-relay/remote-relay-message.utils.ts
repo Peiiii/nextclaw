@@ -1,4 +1,4 @@
-import type { WebSocketMessageData } from "./remote-relay.types";
+import type { WebSocketMessageData } from "@/types/remote-relay.types.js";
 
 export function decodeRelayBase64(base64: string | undefined): Uint8Array {
   if (!base64) {

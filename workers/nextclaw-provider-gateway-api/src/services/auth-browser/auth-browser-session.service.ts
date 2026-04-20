@@ -3,18 +3,18 @@ import {
   renderBrowserAuthPage,
   type BrowserAuthLocale,
   type BrowserAuthMode,
-} from "./auth-browser-page-renderer.service";
+} from "@/services/auth-browser/auth-browser-page-renderer.service.js";
 import {
   createPlatformAuthSession,
   getPlatformAuthSessionById,
   updatePlatformAuthSessionStatus,
-} from "../repositories/platform-auth-session-repository";
+} from "@/repositories/platform-auth-session.repository";
 import {
   DEFAULT_PLATFORM_AUTH_POLL_INTERVAL_MS,
   DEFAULT_PLATFORM_AUTH_SESSION_TTL_SECONDS,
   type Env,
-} from "../types/platform";
-import { randomOpaqueToken } from "../utils/platform.utils";
+} from "@/types/platform";
+import { randomOpaqueToken } from "@/utils/platform.utils";
 
 export async function createBrowserAuthSession(c: Context<{ Bindings: Env }>): Promise<{
   sessionId: string;

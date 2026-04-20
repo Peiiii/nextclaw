@@ -1,13 +1,13 @@
 import type { Context } from "hono";
-import { appendAuditLog } from "../../repositories/platform.repository";
-import { MarketplaceAdminService } from "../../services/marketplace-admin.service";
-import { ensurePlatformBootstrap, requireAdminUser } from "../../services/platform.service";
+import { appendAuditLog } from "@/repositories/platform.repository";
+import { MarketplaceAdminService } from "@/services/marketplace-admin.service";
+import { ensurePlatformBootstrap, requireAdminUser } from "@/services/platform.service";
 import type {
   AdminMarketplaceSkillPublishStatus,
   AdminMarketplaceSkillReviewStatus,
   Env,
-} from "../../types/platform";
-import { apiError, parseBoundedInt, readJson, readString } from "../../utils/platform.utils";
+} from "@/types/platform";
+import { apiError, parseBoundedInt, readJson, readString } from "@/utils/platform.utils";
 
 const ADMIN_MARKETPLACE_SKILL_STATUS_VALUES = ["pending", "published", "rejected", "all"] as const;
 const ADMIN_MARKETPLACE_SKILL_REVIEW_STATUS_VALUES = ["published", "rejected"] as const;

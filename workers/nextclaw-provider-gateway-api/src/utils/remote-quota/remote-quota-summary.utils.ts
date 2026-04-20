@@ -4,7 +4,7 @@ import type {
   RemoteQuotaState,
   RemoteQuotaUsageSummary,
   RemoteQuotaUserSummary,
-} from "./remote-quota.config.js";
+} from "@/configs/remote-quota/remote-quota.config.js";
 import { readDailyBudgets } from "./remote-quota-budget.utils.js";
 import { getUserState, normalizeRemoteQuotaState } from "./remote-quota-state.utils.js";
 

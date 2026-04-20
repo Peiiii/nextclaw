@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node scripts/rewrite-dist-aliases.mjs",
     "lint": "eslint src --max-warnings=0",
     "tsc": "tsc -p tsconfig.json --noEmit",
     "test:quota": "pnpm run build && node tests/remote-quota-policy-runner.test.mjs",

@@ -1,24 +1,24 @@
 import type { Context } from "hono";
 import {
   toUserPublicView
-} from "../repositories/platform.repository";
+} from "@/repositories/platform.repository";
 import {
   type Env
-} from "../types/platform";
-import { ensurePlatformBootstrap, requireAuthUser } from "../services/platform.service";
+} from "@/types/platform";
+import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   authenticatePlatformUser,
   isPlatformAuthServiceError,
   issuePlatformTokenResult,
   registerPlatformUser,
   updatePlatformUserProfile
-} from "../services/platform/platform-auth.service";
+} from "@/services/platform/platform-auth.service";
 import {
   apiError,
   readClientIp,
   readJson,
   readString,
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 export async function registerHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);

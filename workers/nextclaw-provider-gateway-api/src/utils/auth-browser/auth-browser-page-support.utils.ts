@@ -1,5 +1,5 @@
-import type { BrowserAuthLocale } from "./auth-browser-page-renderer.service";
-import type { BrowserAuthCopyTree } from "./auth-browser-page-copy.config";
+import type { BrowserAuthLocale } from "@/services/auth-browser/auth-browser-page-renderer.service.js";
+import type { BrowserAuthCopyTree } from "@/configs/auth-browser/auth-browser-page-copy.config.js";
 
 export type CopyParams = Record<string, string | number>;
 

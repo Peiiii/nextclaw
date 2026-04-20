@@ -3,10 +3,10 @@ import {
   buildRemoteQuotaStreamErrorFrame,
   leaseRemoteQuotaBrowserMessages,
   releaseRemoteQuotaBrowserConnection,
-} from "../services/remote-quota-guard.service";
-import type { BrowserCommandFrame, ClientAttachment } from "./remote-relay.types";
-import type { Env } from "../types/platform";
-import { parseBoundedInt } from "../utils/platform.utils";
+} from "@/services/remote-quota-guard.service";
+import type { BrowserCommandFrame, ClientAttachment } from "@/types/remote-relay.types.js";
+import type { Env } from "@/types/platform";
+import { parseBoundedInt } from "@/utils/platform.utils";
 
 type RemoteRelayLeaseConsumeResult =
   | {

@@ -2,9 +2,9 @@ import type { Context } from "hono";
 import {
   enforceRemoteSessionQuota,
   openRemoteBrowserRelaySocket,
-} from "../services/remote-controller-quota-support.service";
-import { appendAuditLog } from "../repositories/platform.repository";
-import { renderRemoteAccessErrorPage } from "../services/remote-access-error-page-renderer.service";
+} from "@/services/remote-controller-quota-support.service";
+import { appendAuditLog } from "@/repositories/platform.repository";
+import { renderRemoteAccessErrorPage } from "@/services/remote-access-error-page-renderer.service";
 import {
   closeRemoteAccessSessionsByGrantId,
   createRemoteShareGrant,
@@ -17,8 +17,8 @@ import {
   toRemoteShareGrantView,
   touchRemoteAccessSession,
   toRemoteAccessSessionView,
-} from "../repositories/remote.repository";
-import { ensurePlatformBootstrap, requireAuthUser } from "../services/platform.service";
+} from "@/repositories/remote.repository";
+import { ensurePlatformBootstrap, requireAuthUser } from "@/services/platform.service";
 import {
   buildRemoteAccessUrlSet,
   buildRemoteShareUrl,
@@ -33,9 +33,9 @@ import {
   requireAuthUserFromConnectToken,
   resolveRemoteAccessSession,
   validateRemoteAccessSession,
-} from "../services/remote-access.service";
-import type { Env } from "../types/platform";
-import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "../types/platform";
+} from "@/services/remote-access.service";
+import type { Env } from "@/types/platform";
+import { DEFAULT_REMOTE_SESSION_TTL_SECONDS } from "@/types/platform";
 import {
   apiError,
   buildCookie,
@@ -44,7 +44,7 @@ import {
   readJson,
   readNumber,
   sanitizeResponseHeaders,
-} from "../utils/platform.utils";
+} from "@/utils/platform.utils";
 
 const REMOTE_DOCUMENT_CACHE_CONTROL = "private, no-store, max-age=0, must-revalidate";
 

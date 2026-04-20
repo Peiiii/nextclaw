@@ -13,7 +13,7 @@ import {
   type SupportedModelSpec,
   type UsageCounters,
   type UserRow
-} from "../types/platform";
+} from "@/types/platform";
 
 export async function readJson(c: { req: { json: <T>() => Promise<T> } }): Promise<Record<string, unknown>> {
   try {

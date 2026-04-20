@@ -3,7 +3,7 @@ import type {
   OwnerMarketplaceSkillDetailView,
   OwnerMarketplaceSkillListView,
   OwnerMarketplaceSkillManageAction,
-} from "../types/platform";
+} from "@/types/platform";
 
 const DEFAULT_MARKETPLACE_API_BASE = "https://marketplace-api.nextclaw.io";
 

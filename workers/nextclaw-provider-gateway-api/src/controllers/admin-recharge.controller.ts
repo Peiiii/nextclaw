@@ -1,8 +1,8 @@
 import type { Context } from "hono";
-import type { Env } from "../types/platform";
-import { appendAuditLog, appendLedger, getRechargeIntentById } from "../repositories/platform.repository";
-import { ensurePlatformBootstrap, requireAdminUser } from "../services/platform.service";
-import { apiError, roundUsd } from "../utils/platform.utils";
+import type { Env } from "@/types/platform";
+import { appendAuditLog, appendLedger, getRechargeIntentById } from "@/repositories/platform.repository";
+import { ensurePlatformBootstrap, requireAdminUser } from "@/services/platform.service";
+import { apiError, roundUsd } from "@/utils/platform.utils";
 
 export async function confirmRechargeIntentHandler(c: Context<{ Bindings: Env }>): Promise<Response> {
   await ensurePlatformBootstrap(c.env);

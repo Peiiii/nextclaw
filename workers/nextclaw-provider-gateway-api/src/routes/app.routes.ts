@@ -8,13 +8,13 @@ import {
   sendBrowserPasswordResetCodeHandler,
   sendBrowserRegisterCodeHandler,
   startBrowserAuthHandler,
-} from "./auth-browser/auth-browser-route.controller";
+} from "@/controllers/auth-browser-route.controller.js";
 import {
   completePasswordResetHandler,
   completeRegisterHandler,
   sendPasswordResetCodeHandler,
   sendRegisterCodeHandler,
-} from "./auth-email-code-route-handlers.controller";
+} from "@/controllers/auth/auth-email-code-route-handlers.controller.js";
 import {
   adminOverviewHandler,
   adminProfitOverviewHandler,
@@ -27,39 +27,39 @@ import {
   patchAdminProviderHandler,
   patchAdminUserHandler,
   putAdminModelHandler,
-} from "./controllers/admin.controller";
+} from "@/controllers/admin.controller.js";
 import {
   confirmRechargeIntentHandler,
   rejectRechargeIntentHandler,
-} from "./controllers/admin-recharge.controller";
+} from "@/controllers/admin-recharge.controller.js";
 import {
   adminMarketplaceAppDetailHandler,
   adminMarketplaceAppsHandler,
   reviewAdminMarketplaceAppHandler,
-} from "./controllers/marketplace/admin-marketplace-app.controller";
+} from "@/controllers/marketplace/admin-marketplace-app.controller.js";
 import {
   adminMarketplaceSkillDetailHandler,
   adminMarketplaceSkillsHandler,
   reviewAdminMarketplaceSkillHandler,
-} from "./controllers/marketplace/admin-marketplace.controller";
+} from "@/controllers/marketplace/admin-marketplace.controller.js";
 import {
   manageOwnerMarketplaceAppHandler,
   ownerMarketplaceAppDetailHandler,
   ownerMarketplaceAppsHandler,
-} from "./controllers/marketplace/user-marketplace-app.controller";
+} from "@/controllers/marketplace/user-marketplace-app.controller.js";
 import {
   manageOwnerMarketplaceSkillHandler,
   ownerMarketplaceSkillDetailHandler,
   ownerMarketplaceSkillsHandler,
-} from "./controllers/marketplace/user-marketplace.controller";
-import { loginHandler, meHandler, patchProfileHandler } from "./controllers/auth.controller";
+} from "@/controllers/marketplace/user-marketplace.controller.js";
+import { loginHandler, meHandler, patchProfileHandler } from "@/controllers/auth.controller.js";
 import {
   billingLedgerHandler,
   billingOverviewHandler,
   billingRechargeIntentsHandler,
   createRechargeIntentHandler,
-} from "./controllers/billing.controller";
-import { chatCompletionsHandler, healthHandler, modelsHandler, usageHandler } from "./controllers/openai.controller";
+} from "@/controllers/billing.controller.js";
+import { chatCompletionsHandler, healthHandler, modelsHandler, usageHandler } from "@/controllers/openai.controller.js";
 import {
   createRemoteShareGrantHandler,
   listRemoteShareGrantsHandler,
@@ -69,7 +69,7 @@ import {
   remoteBrowserWebSocketHandler,
   revokeRemoteShareGrantHandler,
   remoteConnectorWebSocketHandler,
-} from "./controllers/remote.controller";
+} from "@/controllers/remote.controller.js";
 import {
   archiveRemoteInstanceHandler,
   deleteRemoteInstanceHandler,
@@ -80,9 +80,9 @@ import {
   registerRemoteDeviceHandler,
   registerRemoteInstanceHandler,
   unarchiveRemoteInstanceHandler,
-} from "./controllers/remote-instance.controller";
-import { adminRemoteQuotaSummaryHandler, remoteQuotaSummaryHandler } from "./controllers/remote-quota.controller";
-import type { Env } from "./types/platform";
+} from "@/controllers/remote-instance.controller.js";
+import { adminRemoteQuotaSummaryHandler, remoteQuotaSummaryHandler } from "@/controllers/remote-quota.controller.js";
+import type { Env } from "@/types/platform";
 
 function registerPlatformAuthRoutes(app: Hono<{ Bindings: Env }>): void {
   app.post("/platform/auth/login", loginHandler);

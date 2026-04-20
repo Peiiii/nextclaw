@@ -5,8 +5,8 @@ import type {
   RemoteInstanceView,
   RemoteShareGrantRow,
   RemoteShareGrantView,
-} from "../types/platform";
-import type { RemoteAccessUrlSet } from "../services/remote-access.service";
+} from "@/types/platform";
+import type { RemoteAccessUrlSet } from "@/services/remote-access.service";
 
 function normalizeRemoteAccessSessionStatus(row: RemoteAccessSessionRow): RemoteAccessSessionView["status"] {
   if (row.revoked_at) {
