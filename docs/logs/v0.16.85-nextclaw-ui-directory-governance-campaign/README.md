@@ -29,6 +29,7 @@
 - 第七批通过治理的落点是把 `provider-auth-section.tsx` 迁入 `shared/components/`，旧路径只保留兼容导出，provider 表单中最稳定的授权子区块也开始脱离 `components/config`
 - 第八批通过治理的落点是建立 `features/channels`，并把 `channel-form-fields.ts` 与 `channel-form-fields-section.tsx` 的真实实现迁入 `features/channels/utils` 与 `features/channels/components`，legacy 路径只保留兼容导出
 - 第九批通过治理的落点是把 `runtime-config-agent.utils.ts` 的真实实现迁入 `features/system-status/utils`，legacy 路径只保留兼容导出，进一步把运行时配置支撑逻辑从 `components/config` 中抽离
+- 第十批通过治理的落点是把 `channel-form-fields.test.ts` 迁入 `features/channels/utils/channel-form-fields.utils.test.ts`，让 `channels` feature 的测试与其真实实现一起归位
 
 # 测试 / 验证 / 验收方式
 
@@ -98,6 +99,12 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts`
   - `pnpm check:governance-backlog-ratchet`
+- 第十批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `pnpm check:governance-backlog-ratchet`
 - 验证结果：
   - 路由相关测试通过，说明配置页入口仍可正常装载
   - 类型检查通过
@@ -111,6 +118,7 @@
   - `provider-auth-section` 第七批验证通过，非测试代码净变化继续为负值
   - `channels` feature 第八批验证通过，非测试代码净变化继续为负值
   - `runtime-config-agent.utils` 第九批验证通过，非测试代码净变化继续为负值
+  - `channels` feature 的测试第十批验证通过，且非测试代码净变化为 `0`
 
 # 发布 / 部署方式
 
@@ -122,7 +130,7 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到九处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 的真实实现位于 `shared/components`，`channel-form-fields` 与 `channel-form-fields-section` 的真实实现位于 `features/channels`，`runtime-config-agent.utils` 的真实实现位于 `features/system-status/utils`，而 legacy 路径只保留兼容导出。
+5. 当前至少应看到十处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 的真实实现位于 `shared/components`，`channel-form-fields` 与 `channel-form-fields-section` 的真实实现位于 `features/channels`，`runtime-config-agent.utils` 的真实实现位于 `features/system-status/utils`，而 `channel-form-fields` 的测试也已经进入 `features/channels/utils`。
 
 # 可维护性总结汇总
 

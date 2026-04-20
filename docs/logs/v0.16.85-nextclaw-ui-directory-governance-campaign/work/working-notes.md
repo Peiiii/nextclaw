@@ -47,6 +47,7 @@
 - [x] `provider-auth-section` 迁入 `shared/components`
 - [x] 建立 `features/channels`，并迁入 `channel-form-fields` 与 `channel-form-fields-section`
 - [x] `runtime-config-agent.utils` 迁入 `features/system-status/utils`
+- [x] `channel-form-fields.test.ts` 迁入 `features/channels/utils`
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -137,6 +138,14 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/features/system-status/utils/runtime-config-agent.utils.ts`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/channel-form-fields.test.ts -> features/channels/utils/channel-form-fields.utils.test.ts` 的测试归位
+- `features/channels` 不再只有实现文件，测试也开始跟着真实实现一起沉淀到 feature 内部
+- 通过第十批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -159,6 +168,7 @@
 - `provider-auth-section` 已经完成，说明 `provider-form-support.ts` 之外的主要 provider 表单子块都在向 `shared/components` 收拢
 - `features/channels` 已经建立，说明 `components/config` 不只是能向 `shared` 收缩，也能向新的 feature root 收缩；下一步可以继续评估 `ChannelForm` / `ChannelsList` 周边子模块是否适合并入这个 feature
 - `runtime-config-agent.utils` 已完成，说明除了 UI 子块外，`components/config` 里的纯工具逻辑也能按语义回收到既有 feature
+- `channel-form-fields.utils.test.ts` 已完成，说明 `features/channels` 这条线现在可以继续同时承接实现与测试，不必长期让测试挂在 legacy 根目录
 
 # 下一步
 

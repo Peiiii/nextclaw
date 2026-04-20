@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildChannelFormDefinitions } from './channel-form-fields';
+import { buildChannelFormDefinitions } from './channel-form-fields.utils';
 
 describe('buildChannelFormDefinitions', () => {
   it('keeps default channels on a single all-fields layout', () => {
