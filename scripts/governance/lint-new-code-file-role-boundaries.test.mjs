@@ -68,6 +68,33 @@ test("allows root entry files without role suffixes", () => {
   }), null);
 });
 
+test("allows module-contract root files without role suffixes", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/nextclaw-kernel.ts",
+    status: "A"
+  }, {
+    moduleContract: {
+      modulePath: "packages/demo/src",
+      allowedRootFiles: new Set(["index.ts", "nextclaw-kernel.ts"])
+    }
+  }), null);
+});
+
+test("does not treat nested files as module-contract root files", () => {
+  const violation = inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/services/nextclaw-kernel.ts",
+    status: "A"
+  }, {
+    moduleContract: {
+      modulePath: "packages/demo/src",
+      allowedRootFiles: new Set(["nextclaw-kernel.ts"])
+    }
+  });
+
+  assert.ok(violation);
+  assert.match(violation.message, /services\/' must match '\*\.service\.ts'/);
+});
+
 test("allows sitecustomize bridge entry files without role suffixes", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/hermes-acp-route-bridge/sitecustomize.py",

@@ -117,6 +117,16 @@ const FRONTEND_L3_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
+const PACKAGE_L1_PROTOCOL = {
+  protocolName: "package-l1",
+  organizationModel: "protocol-package-l1",
+  governedRoot: "src",
+  allowedRootDirectories: ["app", ...FIXED_ROLE_DIRECTORY_NAMES],
+  allowedRootFiles: [],
+  sharedDirectories: [],
+  importAliasPrefixes: ["@/"]
+};
+
 const CLI_COMMAND_FIRST_PROTOCOL = {
   protocolName: "cli-command-first",
   organizationModel: "protocol-cli-command-first",
@@ -128,6 +138,7 @@ const CLI_COMMAND_FIRST_PROTOCOL = {
 };
 
 export const MODULE_STRUCTURE_PROTOCOLS = new Map([
+  [PACKAGE_L1_PROTOCOL.protocolName, PACKAGE_L1_PROTOCOL],
   [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL],
   [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL]
 ]);

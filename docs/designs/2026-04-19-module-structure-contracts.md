@@ -443,6 +443,12 @@ src/
 
 - [`scripts/governance/module-structure/module-structure-contracts.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-contracts.mjs)
 
+当前已落地的固定协议模板包括：
+
+- `package-l1`
+- `frontend-l3`
+- `cli-command-first`
+
 具体采用哪种结构约束，不再由中心脚本手写绑定，而是由每个包在自己的包根下声明：
 
 - `module-structure.config.json`
@@ -487,6 +493,7 @@ src/
 
 - `modulePath` 不再手填，治理器会以配置文件所在包根 + 协议模板内置源码根推导出真正的治理根
 - 协议模板仍然是中心定义的通用能力，但“哪个模块采纳哪个模板”由模块自己管理
+- 一旦模块显式声明了 `allowedRootFiles`，`file-role-boundaries` 也必须同步把这些文件视为该模块治理根下的合法 owner/root entry 文件，而不是继续只认全局固定的 `app`/`main`
 - 一旦协议模块声明了 `importAliasPrefixes`，就等于同时声明“跨目录导入必须使用 alias 前缀”；相对导入默认只允许同目录 `./`，禁止再用 `../`、`../../` 这类父级回退路径访问模块内部其它目录
 
 ## 包内导入路径协议

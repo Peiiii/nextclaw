@@ -1,0 +1,11 @@
+{
+  "contractKind": "protocol",
+  "protocol": "package-l1",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootFiles": [
+    "index.ts",
+    "nextclaw-kernel.ts"
+  ],
+  "importAliasPrefixes": ["@/"]
+}

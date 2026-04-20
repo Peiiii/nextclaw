@@ -14,6 +14,13 @@ test("finds the protocol declaration for nextclaw-ui package root config", () =>
   assert.equal(isProtocolContract(contract), true);
 });
 
+test("finds the protocol declaration for nextclaw-kernel package root config", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/managers/agent.manager.ts");
+  assert.equal(contract?.modulePath, "packages/nextclaw-kernel/src");
+  assert.equal(contract?.protocol, "package-l1");
+  assert.equal(isProtocolContract(contract), true);
+});
+
 test("finds the protocol declaration for nextclaw cli package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
@@ -33,6 +40,34 @@ test("blocks a new root directory outside the L3 skeleton", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /outside the module structure whitelist/);
+});
+
+test("blocks a new root directory outside the L1 minimal skeleton", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/kernel/runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/kernel/runtime.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /outside the module structure whitelist/);
+});
+
+test("blocks new root files outside the L1 minimal allowed root-file set", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/runtime.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /allowed root-file set/);
 });
 
 test("blocks a new file added under an existing legacy root directory", () => {

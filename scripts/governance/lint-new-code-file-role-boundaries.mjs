@@ -4,6 +4,10 @@ import { fileURLToPath } from "node:url";
 
 import { defaultSortByLocation, parseDiffCheckArgs } from "./lint-new-code-governance-support.mjs";
 import { collectChangedFileNameEntries } from "./lint-new-code-file-names.mjs";
+import {
+  findModuleStructureContract,
+  toModuleRelativePath
+} from "./module-structure/module-structure-contracts.mjs";
 
 const usage = `Usage:
   node scripts/governance/lint-new-code-file-role-boundaries.mjs
@@ -86,7 +90,7 @@ const DIRECTORY_ROLE_RULES = {
 };
 
 const EXACT_ALLOWLIST_ANYWHERE = new Set(["index", "sitecustomize"]);
-const ROOT_ENTRY_ALLOWLIST = new Set(["app", "main"]);
+const ROOT_ENTRY_STEM_ALLOWLIST = new Set(["app", "main"]);
 const TEST_QUALIFIER_PATTERN = "[a-z0-9-]+";
 const SOURCE_ROOT_SEGMENTS = new Set(["src"]);
 
@@ -158,11 +162,8 @@ const isPageFileName = (stem) => {
   return /-page(?:\.[a-z0-9-]+)*(\.test)?$/.test(stem);
 };
 
-const isRootEntryFile = (segments, stem) => {
-  if (!ROOT_ENTRY_ALLOWLIST.has(stem)) {
-    return false;
-  }
-  if (segments.length === 0) {
+const isLegacyRootEntryStem = (segments, stem) => {
+  if (!ROOT_ENTRY_STEM_ALLOWLIST.has(stem) || segments.length === 0) {
     return false;
   }
 
@@ -173,14 +174,31 @@ const isRootEntryFile = (segments, stem) => {
   return lastSrcIndex >= 0 && lastSrcIndex === segments.length - 1;
 };
 
-const isDefaultRoleSuffixExempt = (segments, stem, nearestRule) => {
+const isContractAllowedRootFile = (normalizedPath, contract) => {
+  if (!contract) {
+    return false;
+  }
+
+  const moduleRelativePath = toModuleRelativePath(normalizedPath, contract);
+  if (!moduleRelativePath || moduleRelativePath.includes("/")) {
+    return false;
+  }
+
+  return contract.allowedRootFiles?.has(moduleRelativePath) ?? false;
+};
+
+const isRootEntryFile = (normalizedPath, segments, stem, contract) => (
+  isLegacyRootEntryStem(segments, stem) || isContractAllowedRootFile(normalizedPath, contract)
+);
+
+const isDefaultRoleSuffixExempt = (normalizedPath, segments, stem, nearestRule, contract) => {
   if (EXACT_ALLOWLIST_ANYWHERE.has(stem)) {
     return true;
   }
   if (nearestRule?.segment === "components" || nearestRule?.segment === "pages" || nearestRule?.segment === "hooks") {
     return true;
   }
-  return isRootEntryFile(segments, stem) || nearestRule?.segment === "app";
+  return isRootEntryFile(normalizedPath, segments, stem, contract) || nearestRule?.segment === "app";
 };
 
 const buildViolation = (entry, message) => ({
@@ -205,7 +223,7 @@ const buildDefaultSuffixMessage = (entry) => (
     : "touched non-component/page/hook file lacks an approved secondary suffix or allowed app/root entry name; rename it before continuing"
 );
 
-export const inspectFileRoleBoundaryEntry = (entry) => {
+export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
   const normalizedPath = toPosixPath(entry.filePath);
   const segments = getDirectorySegments(normalizedPath);
   if (shouldSkipRoleBoundaryCheck(normalizedPath, segments)) {
@@ -214,6 +232,7 @@ export const inspectFileRoleBoundaryEntry = (entry) => {
 
   const stem = getStem(normalizedPath);
   const nearestRule = getNearestDirectoryRule(segments);
+  const moduleContract = options.moduleContract ?? findModuleStructureContract(normalizedPath);
 
   if (nearestRule) {
     const { segment, rule } = nearestRule;
@@ -228,7 +247,7 @@ export const inspectFileRoleBoundaryEntry = (entry) => {
     }
   }
 
-  if (isDefaultRoleSuffixExempt(segments, stem, nearestRule)) {
+  if (isDefaultRoleSuffixExempt(normalizedPath, segments, stem, nearestRule, moduleContract)) {
     return null;
   }
 

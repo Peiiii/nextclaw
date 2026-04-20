@@ -22,6 +22,10 @@
   - 新增并明确了包内导入路径协议：同目录使用 `./`，跨目录统一使用 `@/`，禁止父级相对路径回退，且禁止显式导入 `index.ts(x)` 入口。
   - 新增 `configs/` 为正式通用职责目录，并明确 `*.config.ts(x)` 作为其文件后缀契约。
   - 同时纠正了两个特殊目录例外：`components/` 不再要求 `.component` 后缀，`hooks/` 不再要求 `.hook` 后缀，而是继续采用 `use-<domain>.ts(x)` 约定。
+- 同批次续改继续把 `package-l1` 协议正式落到 [`packages/nextclaw-kernel`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel)：
+  - 新增 [`packages/nextclaw-kernel/module-structure.config.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/module-structure.config.json)，由包根自声明采用 `package-l1`，并将根级 owner 文件限定为 `index.ts` 与 `nextclaw-kernel.ts`。
+  - [`packages/nextclaw-kernel/tsconfig.json`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/tsconfig.json) 已接入 `@/` alias；本轮触达的 kernel manager 与类型导入也同步按“同目录 `./`、跨目录 `@/`”协议收敛。
+  - 对应地，[`scripts/governance/lint-new-code-file-role-boundaries.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-file-role-boundaries.mjs) 不再只认固定的 `app/main` 根文件，而是会读取模块自己的 `allowedRootFiles`，让协议声明真正成为唯一事实来源。
 - 同批次续改继续把规范落到检测脚本，而不是只留在文档：
   - [`scripts/governance/lint-new-code-file-role-boundaries.mjs`](/Users/peiwang/Projects/nextbot/scripts/governance/lint-new-code-file-role-boundaries.mjs) 已补齐 `configs/ -> *.config.ts(x)` 的目录职责检查。
   - 现有 `components/` 与 `hooks/` 特殊例外仍保留：`components/` 允许无额外角色后缀，`hooks/` 继续要求 `use-*` 命名，但不再要求 `.hook`。
@@ -69,7 +73,13 @@
 ## 测试/验证/验收方式
 
 - 已通过：`node --test scripts/governance/lint-new-code-file-role-boundaries.test.mjs`
-  - 观察点：`14/14` 全通过，说明 `configs/` 目录后缀规则和 `components/hooks` 特殊例外已被脚本正确表达。
+  - 观察点：`16/16` 全通过，说明 `configs/` 目录后缀规则、`components/hooks` 特殊例外，以及模块合同声明的根级 owner 文件白名单都已被脚本正确表达。
+- 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+  - 观察点：`29/29` 全通过，新增覆盖了 `package-l1` 协议声明、L1 根目录白名单和根级源码文件白名单约束。
+- 已通过：`node scripts/governance/lint-new-code-governance.mjs packages/nextclaw-kernel/module-structure.config.json packages/nextclaw-kernel/tsconfig.json packages/nextclaw-kernel/src/index.ts packages/nextclaw-kernel/src/nextclaw-kernel.ts packages/nextclaw-kernel/src/managers/agent.manager.ts packages/nextclaw-kernel/src/managers/automation.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/context.manager.ts packages/nextclaw-kernel/src/managers/llm-provider.manager.ts packages/nextclaw-kernel/src/managers/session.manager.ts packages/nextclaw-kernel/src/managers/skill.manager.ts packages/nextclaw-kernel/src/managers/task.manager.ts packages/nextclaw-kernel/src/managers/tool.manager.ts scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs scripts/governance/lint-new-code-file-role-boundaries.mjs scripts/governance/lint-new-code-file-role-boundaries.test.mjs docs/designs/2026-04-19-module-structure-contracts.md`
+  - 观察点：本次 `nextclaw-kernel` 相关增量治理检查全绿，`file-role-boundaries` 与 `module-structure-drift` 都已正确识别 `package-l1 + allowedRootFiles`。
+- 已通过：`node node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc -p packages/nextclaw-kernel/tsconfig.json --typeRoots ./node_modules/.pnpm/@types+node@20.19.33/node_modules/@types`
+  - 观察点：`nextclaw-kernel` 当前源码可通过 TypeScript 编译检查；之所以没有直接用 `pnpm --filter @nextclaw/kernel tsc`，是因为该包尚未安装自己的本地 `node_modules`，直接执行时找不到包内 `tsc` 二进制。
 - 已通过：`node scripts/governance/lint-new-code-governance.mjs scripts/governance/lint-new-code-file-role-boundaries.mjs scripts/governance/lint-new-code-file-role-boundaries.test.mjs scripts/governance/module-structure/module-structure-contracts.mjs docs/designs/2026-04-19-module-structure-contracts.md .agents/skills/collapsible-feature-root-architecture/SKILL.md`
   - 观察点：本次变更对应的增量治理检查全绿，没有新增目录结构或文件角色边界回归。
 - 已通过：`node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
