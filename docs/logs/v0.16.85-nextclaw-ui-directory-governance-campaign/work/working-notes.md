@@ -559,6 +559,27 @@
 
 - 当前已自动进入下一轮扫描：provider 全链整组迁移已被降级为低置信候选，后续若再触达 provider 主链，只允许挑可独立净减债的子块；下一轮优先回到 `components/config` 其它一级页面或 `lib` / `api` 热点，寻找更高置信的 allowed-root 子链
 
+- 第三十四批已经完成并通过验证：
+  - 完成 `components/config/runtime-config-agent.utils.ts`、`runtime-control-card.tsx`、`runtime-presence-card.tsx` 与 `security-config.tsx` 的 legacy 旧入口清理；这四个文件都已确认只是指向 `features/system-status` 的薄转发或死入口
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/security-config` 指向 `features/system-status/components/security-config.tsx`，继续承接 `app.tsx` 的 root import
+  - 明确记录一次失败路径：尝试顺手让 `ProviderForm.tsx` 直接依赖 shared 组件以清理 provider 那组薄转发入口，但 governance 立刻因为触碰到历史非 kebab 文件 `ProviderForm.tsx` 而阻断；本批因此明确收缩，不再继续在这条低收益路径上消耗
+  - 通过第三十四批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx src/features/system-status/components/runtime-control-card.test.tsx src/features/system-status/components/runtime-presence-card.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/components/config/runtime-control-card.tsx packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-config-agent.utils.ts packages/nextclaw-ui/src/components/config/runtime-control-card.tsx packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十四批代码净变化：`-9`
+  - 第三十四批非测试代码净变化：`-9`
+  - 第三十四批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `2` 行，删除 `11` 行，净增 `-9` 行
+    - 非测试代码增减报告：新增 `2` 行，删除 `11` 行，净增 `-9` 行
+    - 可维护性总结：`no maintainability findings`。这批没有继续扩张任何 system-status 实现，只是把四个已经完成使命的旧入口文件清掉，并确认 provider 薄转发清理当前要避开 `ProviderForm.tsx` 这类命名债务热点
+
+- 当前已自动进入下一轮扫描：provider 薄转发清理再次被降级为低置信，因为它会强迫触碰 `ProviderForm.tsx` 这种历史非 kebab 文件；下一轮优先回到 `components/config`、`components/chat` 与 `lib` 里不依赖这类历史命名债务的 allowed-root 子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

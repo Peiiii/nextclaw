@@ -10,6 +10,7 @@ export default defineConfig({
       '@/components/config/SecretsConfig': path.resolve(__dirname, './src/shared/components/config/secrets-config.tsx'),
       '@/components/config/SearchConfig': path.resolve(__dirname, './src/shared/components/search-config.tsx'),
       '@/components/config/ProvidersList': path.resolve(__dirname, './src/shared/components/config/providers-list.tsx'),
+      '@/components/config/security-config': path.resolve(__dirname, './src/features/system-status/components/security-config.tsx'),
       '@/components/config/SessionsConfig': path.resolve(__dirname, './src/features/chat/pages/sessions-config-page.tsx'),
       '@/components/config/RuntimeConfig': path.resolve(__dirname, './src/features/system-status/pages/runtime-config-page.tsx'),
       '@/components/config/ChannelsList': path.resolve(__dirname, './src/features/channels/pages/channels-list-page.tsx'),

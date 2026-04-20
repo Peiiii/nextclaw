@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-provider-list-page rescan",
-    "原因": "第三十三批已完成：先尝试把 `ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 整组迁入 `shared/components/config`，但很快被 non-feature 非测试净增 `+437`、`ProviderFormEditor` 函数预算与 `ProviderFormFields` 函数预算一起阻断，因此降级为只迁移最高层页面入口 `ProvidersList.tsx` 与相邻测试，并继续用精确 alias 承接 app 懒加载导入。最终 `ProvidersList` 已迁入 `shared/components/config/providers-list.tsx`，列表选中态继续维持纯派生，整批 non-feature 非测试净变化压到 `-2`。",
+    "名称": "post-system-status legacy-reexport scan",
+    "原因": "第三十四批已完成：`components/config/runtime-config-agent.utils.ts`、`runtime-control-card.tsx`、`runtime-presence-card.tsx` 与 `security-config.tsx` 这四个 legacy 顶层文件都已确认只是指向 `features/system-status` 的薄转发或 dead alias，于是本批直接删除旧入口，并仅为 `@/components/config/security-config` 补上一条精确 alias 继续承接 `app.tsx` 的 root import。尝试顺手清理 provider 那组薄转发时，又被 `ProviderForm.tsx` 的非 kebab 文件名命名治理阻断，因此本批明确收缩为 system-status 旧入口清理，最终 non-feature 非测试净变化为 `-9`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -13,7 +13,7 @@
       "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
       "若候选会把 feature 根目录推到目录预算硬上限，必须先拆出 `components/config`、`components/runtime` 或同等子域，再继续迁移",
       "若尝试直接触达 `app.tsx` 这类 strict root-file 消费方，立即回退并改用精确 alias 承接",
-      "优先评估 provider 页面主链是否还有比整组迁移更小但仍高价值的 allowed-root 子链；若仍会触发 non-feature 净增或函数预算，立即转向其它更高置信热点",
+      "优先选择不需要触碰历史非 kebab 文件的高置信清理；若某条路径会因为命名治理而强迫触碰 `ProviderForm.tsx` 这类旧文件，立即降级为低置信",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
       "pnpm lint:new-code:governance -- <target-paths...>",
@@ -77,7 +77,8 @@
     "完成 SessionsConfig、相邻测试与会话详情子块的 feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 RuntimeConfig、相邻测试与 runtime config 子域拆分的 system-status feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 ChannelsList / ChannelForm / weixin-channel-auth-section、相邻测试与频道页面主链的 channels feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
-    "完成 ProvidersList 与相邻测试的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
+    "完成 ProvidersList 与相邻测试的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
+    "完成 system-status 旧入口薄转发清理，并删除 runtime/security 四个 legacy re-export 文件"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -85,13 +86,14 @@
     "desktop-update-config 当前版本的直接迁移方案",
     "直接把 ChannelForm / ChannelsList / weixin-channel-auth-section 整组迁入 features/channels",
     "直接把 chat-sidebar 整组迁入 features/chat/components/layout",
-    "直接把 ProvidersList / ProviderForm / provider-models-section / provider-form-support 整组迁入 shared/components/config"
+    "直接把 ProvidersList / ProviderForm / provider-models-section / provider-form-support 整组迁入 shared/components/config",
+    "通过触碰 `ProviderForm.tsx` 顺手清理 provider 薄转发入口"
   ],
   "阻塞项": [
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "放弃继续硬推 provider 全链整组迁移，转向重新扫描 `components/config` 剩余一级页面与 `lib` / `api` 热点中更高置信的 allowed-root 子链；若后续再次触达 provider 主链，默认只允许挑可独立净减债的子块，而不是再整组搬迁 `ProviderForm`。",
-  "最近一次停机原因": "第三十三批完成后，provider 全链整组迁移已被明确记为低置信：第一次尝试虽然通过 vitest、tsc 与 governance，但 `post-edit-maintainability-guard` 报出 non-feature 非测试净增 `+437`，同时 `ProviderFormEditor` 与 `ProviderFormFields` 命中函数预算，因此回退到只迁移 `ProvidersList` 与相邻测试。当前批次已验证通过并可提交，下一轮应切到新的更高置信候选。",
+  "下一步": "继续扫描 `components/config`、`components/chat` 与 `lib` 中不依赖非 kebab 历史文件的高置信 allowed-root 子链；优先选择还能整组迁出测试、真实消费方与 dead legacy 入口的批次。",
+  "最近一次停机原因": "第三十四批完成后，system-status 旧入口薄转发已经清掉；同时也确认 provider 薄转发清理并不是当前高置信路径，因为一旦触碰 `ProviderForm.tsx` 就会被 file-name governance 以非 kebab 文件名阻断。当前批次已验证通过并可提交，下一轮应继续绕开这类历史命名债务热点，选择新的高置信候选。",
   "最近更新时间": "2026-04-21"
 }
