@@ -5,7 +5,7 @@ import {
   isNcpChatModelOptionsEmpty,
   isNcpChatModelOptionsLoading,
   isNcpChatSendDisabled,
-} from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
+} from '@/features/chat/utils/ncp-chat-input-availability.utils';
 import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
 
 function createSnapshot(

@@ -21,7 +21,7 @@ import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-s
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
-import { isNcpChatSendDisabled } from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
+import { isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager } from '@/features/chat/managers/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';

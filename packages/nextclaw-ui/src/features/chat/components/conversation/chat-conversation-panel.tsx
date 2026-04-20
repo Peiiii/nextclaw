@@ -2,10 +2,8 @@ import { type ComponentProps, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
-import {
-  ChatInputBarContainer,
-  ChatMessageListContainer,
-} from "@/components/chat/nextclaw";
+import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
+import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import { ChatWelcome } from "@/components/chat/ChatWelcome";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import { AgentAvatar } from "@/components/common/AgentAvatar";

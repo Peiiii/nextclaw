@@ -221,6 +221,7 @@
 - 第二十一批关键决策：继续按整组运行时链推进，不只搬 `session-conversation` hooks，还把 `ncp-app-client-fetch` 和两条 runtime contract 测试一并拖进 `features/chat`；这样页面、workspace 面板和 contract 测试都落在同一个 feature 语义边界内
 - 第二十二批关键决策：在 strict `contract-only` 下，`components/chat/ncp` 的核心实现不再拆成零散小点，而是一次性把 presenter / managers / adapter / list-view 与四个相邻测试整组迁入 `features/chat`；仍留在 legacy roots 的真实消费方先不回写文件本体，而是通过 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 的精确 alias 承接旧导入，避免为切根再次触碰 legacy 文件
 - 第二十五批关键决策：继续沿 `features/chat` 的高层主链往上收，但只拿高置信的 session-list / message-list owner 边界，不把 `SessionsConfig.tsx` 或 `chat-sidebar.tsx` 这种重页面一起硬搬。真实 `features/chat` 消费方全部直接切到新路径，剩余 legacy 消费才交给三条精确 alias 承接；这样既能继续减少顶层 legacy 债务，又不会让下一批误滑成页面重构
+- `chat-sidebar` 尝试批次的关键决策已经更新为“降级否决”：虽然 `chat-page-shell -> chat-sidebar` 的消费链很短，迁移本身也能通过测试和类型检查，但它一旦进入新的 feature-root 文件，就会同时暴露 `file-budget`、`function-budget` 与非功能净增 `> 0` 三项严格阻塞；因此这条链当前不能再被视为高置信目录迁移批次，必须等专门的 sidebar 拆分治理再处理，而不是继续硬搬
 
 # 下一步
 
@@ -393,17 +394,34 @@
     - `pnpm check:governance-backlog-ratchet`
   - 第二十五批代码净变化：`+1`
   - 第二十五批非测试代码净变化：`-1`
+- 补记第二十六批：
+  - 完成 `components/chat/chat-input/ncp-chat-input-availability.utils.ts -> features/chat/utils/ncp-chat-input-availability.utils.ts`
+  - 完成 `components/chat/chat-input/ncp-chat-input-availability.utils.test.ts -> features/chat/utils/ncp-chat-input-availability.utils.test.ts`
+  - 完成 `components/chat/containers/chat-input-bar.container.tsx -> features/chat/components/conversation/chat-input-bar.container.tsx`
+  - 完成 allowed-root 真实消费方切根：`features/chat/components/conversation/chat-conversation-panel.tsx`、`features/chat/components/conversation/chat-conversation-panel.test.tsx` 与 `features/chat/managers/ncp-chat-input.manager.ts` 现全部直接消费新路径
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/chat/containers/chat-input-bar.container` 指向新的 allowed-root 实现
+  - 明确拒绝两条低置信方案：`components/chat/nextclaw/index.ts` 的 legacy 改写会触发 strict `module-structure`；独立 `use-chat-input-bar-view-model.ts` 方案会触发 file-budget 与非功能净增阻塞，因此最终改为把逻辑压回新的 feature 容器内
+  - 通过第二十六批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/utils/ncp-chat-input-availability.utils.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/components/chat/containers/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/components/chat/chat-input/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/components/chat/containers/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-input-bar.container.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-chat-input-availability.utils.test.ts packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十六批代码净变化：`-3`
+  - 第二十六批非测试代码净变化：`-3`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
-- 第二十五批已经完成；当前真正的阻塞不再是 session-list / message-list 这条链，而是剩余候选里 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
+- 第二十六批已经完成；当前真正的阻塞不再是输入栏单链，而是剩余候选里 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 这类重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
+- 已尝试并回退 `chat-sidebar` 切根候选：行为测试与类型检查通过，但 strict guard 明确报出 `packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx` 的 `file-budget`、`function-budget` 与非功能净增 `> 0`，因此本轮已把相关未提交改动全部回退，只保留第二十五批成功提交
 - 第二十四批已经完成，并额外暴露出 strict 合同里的一个真实边界：`app.tsx` 这类 root file 不能作为直接切根消费方被触达；后续若再遇到这类页面级候选，默认先沿精确 alias 路径判断可行性
 - 第二十三批已经完成，但更大批次的 `features/channels` 候选并不属于“高置信 allowed-root 迁移”，因为它要求顺手重写 effect 边界、拆函数预算并且无法守住非功能净增 `<= 0`
 - 当前已完成批次本身都已通过验证；剩余阻塞在于后续候选项仍必须同时满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
 - `components/chat/ncp` 的 manager / adapter / list-view 主链已经移走，但仍有若干 legacy 消费方通过精确 alias 承接新实现；下一批应优先判断这些消费方里哪些能在不触碰更多 legacy 文件的前提下继续切根，哪些更适合转向 `components/config` 页面级实现治理
-- `components/chat` 的 session-list / message-list 主链已经移走，但剩余高层页面候选更重；下一轮优先筛 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 是否存在可独立拆出的 allowed-root 子链，若没有就回到 `components/config` 页面级实现继续找更高置信批次
+- `components/chat` 的输入栏单链已经移走，但剩余高层页面候选更重；下一轮优先筛 `SessionsConfig.tsx` 与 `chat-sidebar.tsx` 是否存在可独立拆出的 allowed-root 子链，若没有就回到 `components/config` 页面级实现继续找更高置信批次
+- `chat-sidebar` 已被验证为当前形态下的低置信候选；下一轮不要再次直接迁它，优先回到 `components/config` 的页面级实现或评估 `features/system-status` / `shared/components` 里仍可整组承接的配置页子链，前提仍是 allowed-root、非功能净增 `<= 0` 与 strict guard 全通过
 
 # 交接提醒
 

@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-session-list strict scan",
-    "原因": "第二十五批已经把 chat-session-list manager/store 与 chat-message-list.container 连同相邻测试迁入 features/chat，并完成 allowed-root 真实消费方切换；下一步需要在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
+    "名称": "post-input-bar strict scan",
+    "原因": "第二十六批已经把 ncp-chat-input-availability.utils 与 chat-input-bar.container 连同相邻测试迁入 features/chat，并完成 allowed-root 真实消费方切换；过程中已验证 `components/chat/nextclaw/index.ts` 改写与独立 view-model hook 都会触发 strict guard 阻塞，因此后续需要继续在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -66,19 +66,21 @@
     "完成 components/chat/ncp manager / adapter / list-view 主链与四个相邻测试的 feature-root / utils-root / hook-root 迁移，并用精确 alias 承接 legacy 导入",
     "完成 runtime-security-card 的 system-status feature-root 迁移，并验证拒绝一次低置信的 channels 大批次方案",
     "完成 desktop-update-config 与相邻测试的 system-status feature-root 迁移，并用精确 alias 承接 legacy 导入",
-    "完成 chat-session-list manager/store、chat-message-list.container 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径"
+    "完成 chat-session-list manager/store、chat-message-list.container 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
+    "完成 chat-input-bar.container、ncp-chat-input-availability.utils 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
     "继续在 components/config 下直接新增 provider 子树",
     "desktop-update-config 当前版本的直接迁移方案",
-    "直接把 ChannelForm / ChannelsList / weixin-channel-auth-section 整组迁入 features/channels"
+    "直接把 ChannelForm / ChannelsList / weixin-channel-auth-section 整组迁入 features/channels",
+    "直接把 chat-sidebar 整组迁入 features/chat/components/layout"
   ],
   "阻塞项": [
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/config/SessionsConfig.tsx 与 components/chat/containers/chat-sidebar.tsx，优先判断是否存在不需要大规模页面拆分的子链可单独切到 features/chat；若没有，就继续回到 components/config 页面级实现中寻找更高置信的小批次。",
-  "最近一次停机原因": "第二十五批已经完成并验证通过：chat-session-list manager/store 与 chat-message-list.container 已脱离 legacy root，features/chat 内部真实消费全部切到新路径；剩余高层页面候选（如 SessionsConfig、chat-sidebar）体量偏大，下一轮需先做高置信筛选。",
+  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx 与 features/system-status / shared/components 里仍能整组承接的配置页子链，优先寻找不需要大规模页面拆分、也不会触发 file-budget / 非功能净增 > 0 的 allowed-root 迁移批次；若没有，再回到 components/config 页面级实现继续找更高置信的小批次。",
+  "最近一次停机原因": "第二十六批已经完成并待提交：chat-input-bar.container 与 ncp-chat-input-availability.utils 已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过。当前没有治理硬失败；只是下一轮仍需先做高置信候选扫描，避免直接整搬 SessionsConfig 或 chat-sidebar。",
   "最近更新时间": "2026-04-21"
 }

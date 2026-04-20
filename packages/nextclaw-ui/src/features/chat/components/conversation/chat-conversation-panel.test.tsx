@@ -42,13 +42,12 @@ vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
   };
 });
 
-vi.mock("@/components/chat/nextclaw", () => ({
+vi.mock("@/features/chat/components/conversation/chat-input-bar.container", () => ({
   ChatInputBarContainer: () => <div data-testid="chat-input-bar" />,
-  ChatMessageListContainer: () => <div data-testid="chat-message-list" />,
 }));
 
 vi.mock("@/features/chat/components/conversation/chat-message-list.container", () => ({
-  ChatMessageListContainer: () => <div data-testid="child-chat-message-list" />,
+  ChatMessageListContainer: () => <div data-testid="chat-message-list" />,
 }));
 
 vi.mock("@/features/chat/components/chat-session-workspace-file-preview", () => ({
