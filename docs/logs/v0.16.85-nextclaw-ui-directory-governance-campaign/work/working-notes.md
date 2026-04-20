@@ -604,6 +604,28 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `components/chat/hooks` 与 `components/chat/adapters` 中不需要触碰历史非 kebab 文件的 owner 链；`ProviderForm.tsx` 相关路径仍保持低置信降级
 
+- 第三十六批已经完成并通过验证：
+  - 完成 chat hooks owner 链迁移：`components/chat/hooks/use-chat-session-update.ts`、`use-chat-session-label.ts`、`use-chat-session-project.ts`、`use-chat-sidebar-session-label-editor.ts` 与两条相邻测试已迁入 `features/chat/hooks`
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 承接 `@/components/chat/hooks/use-chat-session-update`、`use-chat-session-label`、`use-chat-session-project` 与 `use-chat-sidebar-session-label-editor`
+  - 维持 allowed-root 真实消费清洁：`features/chat` 内部没有再依赖任何 legacy chat hooks；`session-header` 与 `chat-sidebar` 等遗留消费方暂由 alias 承接，避免回写 legacy 文件
+  - 明确记录一次中途治理阻断：`use-chat-session-project.ts` 迁入后命中 `context-destructuring` 规则，需要先顶层解构 `params`，不能把 legacy `params.*` 重复读取原样带进新路径
+  - 通过第三十六批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/hooks/use-chat-session-update.test.tsx src/features/chat/hooks/use-chat-session-project.test.tsx src/components/chat/containers/chat-sidebar.test.tsx src/components/chat/session-header/chat-session-project-badge.test.tsx src/components/chat/session-header/chat-session-header-actions.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-update.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-label.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-project.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-sidebar-session-label-editor.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-update.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-project.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-update.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-label.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-project.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-sidebar-session-label-editor.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-update.test.tsx packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-project.test.tsx`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-update.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-label.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-project.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-sidebar-session-label-editor.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-update.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-project.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-update.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-label.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-project.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-sidebar-session-label-editor.ts packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-update.test.tsx packages/nextclaw-ui/src/components/chat/hooks/use-chat-session-project.test.tsx`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十六批代码净变化：`-1`
+  - 第三十六批非测试代码净变化：`0`
+  - 第三十六批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `327` 行，删除 `328` 行，净增 `-1` 行
+    - 非测试代码增减报告：新增 `136` 行，删除 `136` 行，净增 `0` 行
+    - 可维护性总结：chat hooks owner 链已经整体脱离 `components/chat/hooks`；本批没有引入任何新的 legacy shim，只保留精确 alias 承接旧消费，同时顺手把 `use-chat-session-project.ts` 调整到符合 `context-destructuring` 的新代码标准
+
+- 当前已自动进入下一轮扫描：优先评估 `components/chat/adapters` 与 `components/chat/session-header` 中不需要触碰历史非 kebab 文件的 owner 链；`ProviderForm.tsx` 相关路径仍保持低置信降级
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

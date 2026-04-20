@@ -3,27 +3,27 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
-import { useChatSessionUpdate } from '@/components/chat/hooks/use-chat-session-update';
+import { useChatSessionUpdate } from '@/features/chat/hooks/use-chat-session-update';
 
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
-  upsertNcpSessionSummaryInQueryClient: vi.fn(),
+  upsertNcpSessionSummaryInQueryClient: vi.fn()
 }));
 
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
-    error: vi.fn(),
-  },
+    error: vi.fn()
+  }
 }));
 
 vi.mock('@/api/ncp-session', () => ({
-  updateNcpSession: (...args: unknown[]) => mocks.updateNcpSession(...args),
+  updateNcpSession: (...args: unknown[]) => mocks.updateNcpSession(...args)
 }));
 
 vi.mock('@/api/ncp-session-query-cache', () => ({
   upsertNcpSessionSummaryInQueryClient: (...args: unknown[]) =>
-    mocks.upsertNcpSessionSummaryInQueryClient(...args),
+    mocks.upsertNcpSessionSummaryInQueryClient(...args)
 }));
 
 function createWrapper(queryClient: QueryClient) {
@@ -44,31 +44,28 @@ describe('useChatSessionUpdate', () => {
       sessionId: 'session-1',
       updatedAt: '2026-04-09T00:00:00.000Z',
       status: 'idle',
-      metadata: { project_root: '/tmp/project-alpha' },
+      metadata: { project_root: '/tmp/project-alpha' }
     };
     mocks.updateNcpSession.mockResolvedValue(updatedSession);
 
     const { result } = renderHook(() => useChatSessionUpdate(), {
-      wrapper: createWrapper(queryClient),
+      wrapper: createWrapper(queryClient)
     });
 
     await act(async () => {
       await result.current({
         sessionKey: 'session-1',
         patch: { projectRoot: '/tmp/project-alpha' },
-        successMessage: 'Project directory updated',
+        successMessage: 'Project directory updated'
       });
     });
 
     expect(mocks.updateNcpSession).toHaveBeenCalledWith('session-1', {
-      projectRoot: '/tmp/project-alpha',
+      projectRoot: '/tmp/project-alpha'
     });
-    expect(mocks.upsertNcpSessionSummaryInQueryClient).toHaveBeenCalledWith(
-      queryClient,
-      updatedSession,
-    );
+    expect(mocks.upsertNcpSessionSummaryInQueryClient).toHaveBeenCalledWith(queryClient, updatedSession);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
-      queryKey: ['ncp-session-skills', 'session-1'],
+      queryKey: ['ncp-session-skills', 'session-1']
     });
     expect(toast.success).toHaveBeenCalledWith('Project directory updated');
   });

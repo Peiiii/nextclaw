@@ -1,11 +1,10 @@
 import { t } from '@/lib/i18n';
-import { useChatSessionUpdate } from '@/components/chat/hooks/use-chat-session-update';
+import { useChatSessionUpdate } from '@/features/chat/hooks/use-chat-session-update';
 
 type UpdateChatSessionLabelParams = {
   sessionKey: string;
   label: string | null;
 };
-
 export function useChatSessionLabel() {
   const updateSession = useChatSessionUpdate();
 
@@ -13,7 +12,7 @@ export function useChatSessionLabel() {
     await updateSession({
       sessionKey: params.sessionKey,
       patch: { label: params.label },
-      successMessage: t('configSavedApplied'),
+      successMessage: t('configSavedApplied')
     });
   };
 }

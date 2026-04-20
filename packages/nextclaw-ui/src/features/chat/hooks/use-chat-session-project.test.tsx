@@ -1,21 +1,21 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
-import { useChatSessionProject } from '@/components/chat/hooks/use-chat-session-project';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
+import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
 
 const mocks = vi.hoisted(() => ({
-  updateSession: vi.fn(),
+  updateSession: vi.fn()
 }));
 
 vi.mock('sonner', () => ({
   toast: {
-    success: vi.fn(),
-  },
+    success: vi.fn()
+  }
 }));
 
-vi.mock('@/components/chat/hooks/use-chat-session-update', () => ({
-  useChatSessionUpdate: () => mocks.updateSession,
+vi.mock('@/features/chat/hooks/use-chat-session-update', () => ({
+  useChatSessionUpdate: () => mocks.updateSession
 }));
 
 describe('useChatSessionProject', () => {
@@ -24,8 +24,8 @@ describe('useChatSessionProject', () => {
       snapshot: {
         ...state.snapshot,
         pendingProjectRoot: null,
-        pendingProjectRootSessionKey: null,
-      },
+        pendingProjectRootSessionKey: null
+      }
     }));
   });
 
@@ -40,14 +40,14 @@ describe('useChatSessionProject', () => {
       await result.current({
         sessionKey: 'draft-session-1',
         projectRoot: '/tmp/project-alpha',
-        persistToServer: false,
+        persistToServer: false
       });
     });
 
     expect(mocks.updateSession).not.toHaveBeenCalled();
     expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: '/tmp/project-alpha',
-      pendingProjectRootSessionKey: 'draft-session-1',
+      pendingProjectRootSessionKey: 'draft-session-1'
     });
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
@@ -59,14 +59,14 @@ describe('useChatSessionProject', () => {
       await result.current({
         sessionKey: 'draft-session-1',
         projectRoot: null,
-        persistToServer: false,
+        persistToServer: false
       });
     });
 
     expect(mocks.updateSession).not.toHaveBeenCalled();
     expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: null,
-      pendingProjectRootSessionKey: 'draft-session-1',
+      pendingProjectRootSessionKey: 'draft-session-1'
     });
     expect(toast.success).toHaveBeenCalledTimes(1);
   });
@@ -78,18 +78,18 @@ describe('useChatSessionProject', () => {
       await result.current({
         sessionKey: 'session-1',
         projectRoot: '/tmp/project-beta',
-        persistToServer: true,
+        persistToServer: true
       });
     });
 
     expect(mocks.updateSession).toHaveBeenCalledWith({
       sessionKey: 'session-1',
       patch: { projectRoot: '/tmp/project-beta' },
-      successMessage: 'Project directory updated',
+      successMessage: 'Project directory updated'
     });
     expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: null,
-      pendingProjectRootSessionKey: null,
+      pendingProjectRootSessionKey: null
     });
   });
 
@@ -100,18 +100,18 @@ describe('useChatSessionProject', () => {
       await result.current({
         sessionKey: 'session-1',
         projectRoot: null,
-        persistToServer: true,
+        persistToServer: true
       });
     });
 
     expect(mocks.updateSession).toHaveBeenCalledWith({
       sessionKey: 'session-1',
       patch: { projectRoot: null },
-      successMessage: 'Project directory cleared',
+      successMessage: 'Project directory cleared'
     });
     expect(useChatInputStore.getState().snapshot).toMatchObject({
       pendingProjectRoot: null,
-      pendingProjectRootSessionKey: null,
+      pendingProjectRootSessionKey: null
     });
   });
 });

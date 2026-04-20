@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { SessionEntryView } from '@/api/types';
-import { useChatSessionLabel } from '@/components/chat/hooks/use-chat-session-label';
+import { useChatSessionLabel } from '@/features/chat/hooks/use-chat-session-label';
 
 export function useChatSidebarSessionLabelEditor() {
   const updateSessionLabel = useChatSessionLabel();
@@ -29,7 +29,7 @@ export function useChatSidebarSessionLabelEditor() {
     try {
       await updateSessionLabel({
         sessionKey: session.key,
-        label: normalizedLabel || null,
+        label: normalizedLabel || null
       });
       cancelEditingSessionLabel();
     } catch {
@@ -44,6 +44,6 @@ export function useChatSidebarSessionLabelEditor() {
     setDraftLabel,
     startEditingSessionLabel,
     cancelEditingSessionLabel,
-    saveSessionLabel,
+    saveSessionLabel
   };
 }

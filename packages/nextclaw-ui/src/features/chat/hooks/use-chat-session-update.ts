@@ -1,8 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { SessionPatchUpdate } from '@/api/types';
-import { upsertNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
 import { updateNcpSession } from '@/api/ncp-session';
+import { upsertNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
 import { t } from '@/lib/i18n';
 
 type UpdateChatSessionParams = {
@@ -22,9 +22,7 @@ export function useChatSessionUpdate() {
       await queryClient.invalidateQueries({ queryKey: ['ncp-session-skills', sessionKey] });
       toast.success(successMessage ?? t('configSavedApplied'));
     } catch (error) {
-      toast.error(
-        t('configSaveFailed') + ': ' + (error instanceof Error ? error.message : String(error)),
-      );
+      toast.error(t('configSaveFailed') + ': ' + (error instanceof Error ? error.message : String(error)));
       throw error;
     }
   };
