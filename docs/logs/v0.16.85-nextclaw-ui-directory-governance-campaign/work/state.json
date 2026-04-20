@@ -1,0 +1,43 @@
+{
+  "战役名称": "nextclaw-ui 目录组织自治治理战役",
+  "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
+  "状态": "进行中",
+  "当前活跃批次": {
+    "名称": "components/config allowed-root 连续迁移",
+    "原因": "security-config 已证明“真实实现迁入 feature、旧路径收窄为薄转发”可以稳定通过治理闸门，接下来继续沿这条路径推进。",
+    "验证计划": [
+      "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
+      "受影响测试或类型检查",
+      "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
+      "pnpm lint:new-code:governance -- <target-paths...>",
+      "pnpm check:governance-backlog-ratchet",
+      "post-edit-maintainability-review"
+    ]
+  },
+  "候选批次": [
+    "components/config 合同校准与失败路径回收",
+    "security-config 迁入 features/system-status 并保留 legacy 薄转发入口",
+    "从 components/config 中继续挑选已是 kebab-case 的小文件，迁入 features/shared allowed roots",
+    "components/chat 顶层平铺目录收敛",
+    "lib 混合关注点收敛",
+    "api 契约/客户端/类型拆分"
+  ],
+  "已完成批次": [
+    "建立 v0.16.85 迭代留痕与自治状态文件",
+    "完成 nextclaw-ui 目录热点盘点并锁定首批目标",
+    "确认 nextclaw-ui 受 frontend-l3 协议和 legacy-frozen rootPolicy 约束",
+    "验证并回撤一次无效的 legacy-root 子树扩张尝试",
+    "完成 security-config 的 allowed-root 迁移并通过最小验证集"
+  ],
+  "已否决批次": [
+    "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
+    "继续在 components/config 下直接新增 provider 子树"
+  ],
+  "阻塞项": [
+    "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
+    "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
+  ],
+  "下一步": "继续扫描 components/config 中已是 kebab-case 且语义上可并入既有 feature 的页面文件，复用“真实实现迁入 feature + legacy 薄转发”的模式推进下一提交。",
+  "最近一次停机原因": "上一条错误路径是 components/config 直拆；当前已修正为 contract-aligned 迁移路径，并形成首个可提交批次。",
+  "最近更新时间": "2026-04-20"
+}
