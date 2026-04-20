@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { RuntimePresenceCard } from '@/components/config/runtime-presence-card';
+import { RuntimePresenceCard } from './runtime-presence-card';
 import { setLanguage } from '@/lib/i18n';
 import { useDesktopPresenceStore } from '@/platforms/desktop';
 

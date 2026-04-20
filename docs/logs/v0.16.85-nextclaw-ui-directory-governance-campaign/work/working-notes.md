@@ -48,6 +48,7 @@
 - [x] 建立 `features/channels`，并迁入 `channel-form-fields` 与 `channel-form-fields-section`
 - [x] `runtime-config-agent.utils` 迁入 `features/system-status/utils`
 - [x] `channel-form-fields.test.ts` 迁入 `features/channels/utils`
+- [x] 按 `system-status` 语义线成组迁入 `runtime-control-card` 与相关测试
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -146,6 +147,16 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/channel-form-fields.test.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/runtime-control-card.tsx -> features/system-status/components/runtime-control-card.tsx` 的真实实现迁移
+- 完成 `components/config/runtime-control-card.test.tsx -> features/system-status/components/runtime-control-card.test.tsx` 的测试归位
+- 完成 `components/config/runtime-presence-card.test.tsx -> features/system-status/components/runtime-presence-card.test.tsx` 的测试归位
+- 这一批不再按单文件推进，而是按 `system-status` 语义线成组收敛，实现 + 相邻测试一起归位，吞吐量显著高于前一轮
+- 通过第十一批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/system-status/components/runtime-control-card.test.tsx src/features/system-status/components/runtime-presence-card.test.tsx src/app.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-control-card.tsx packages/nextclaw-ui/src/components/config/runtime-control-card.test.tsx packages/nextclaw-ui/src/components/config/runtime-presence-card.test.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-control-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-control-card.test.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.test.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-control-card.tsx packages/nextclaw-ui/src/components/config/runtime-control-card.test.tsx packages/nextclaw-ui/src/components/config/runtime-presence-card.test.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-control-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-control-card.test.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.test.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -169,10 +180,11 @@
 - `features/channels` 已经建立，说明 `components/config` 不只是能向 `shared` 收缩，也能向新的 feature root 收缩；下一步可以继续评估 `ChannelForm` / `ChannelsList` 周边子模块是否适合并入这个 feature
 - `runtime-config-agent.utils` 已完成，说明除了 UI 子块外，`components/config` 里的纯工具逻辑也能按语义回收到既有 feature
 - `channel-form-fields.utils.test.ts` 已完成，说明 `features/channels` 这条线现在可以继续同时承接实现与测试，不必长期让测试挂在 legacy 根目录
+- `runtime-control-card` 与 `runtime-presence-card` 的测试现已随 `system-status` feature 一起归位，说明后续可以按“同一语义线的实现 + 测试 + 薄转发入口”成组推进，而不是继续一批只搬一个点
 
 # 下一步
 
-- 继续扫描 `components/config` 里已是 kebab-case 的页面、卡片或通用 UI 原件，优先挑选可挂入 `features/system-status`、`features/account`、`features/remote` 或 `shared` 的候选项，并在每轮提交后自动进入下一轮
+- 继续扫描 `components/config` 里已是 kebab-case 的页面、卡片或通用 UI 原件，优先按语义线成组打包，而不是单点迁移；当前优先观察 `system-status` 剩余卡片、`channels` 页面壳与 `shared/components` 中可连带迁移的小型原件
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞

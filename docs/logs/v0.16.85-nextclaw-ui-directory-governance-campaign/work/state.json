@@ -4,7 +4,7 @@
   "状态": "进行中",
   "当前活跃批次": {
     "名称": "components/config allowed-root 连续迁移",
-    "原因": "security-config 已证明“真实实现迁入 feature、旧路径收窄为薄转发”可以稳定通过治理闸门，接下来继续沿这条路径推进；并且用户明确要求每完成一轮后自动进入下一轮，不等待再次发话。",
+    "原因": "security-config 已证明“真实实现迁入 feature、旧路径收窄为薄转发”可以稳定通过治理闸门，接下来继续沿这条路径推进；并且用户明确要求每完成一轮后自动进入下一轮、不等待再次发话，同时把每批任务量提升到之前的五倍以上，因此后续默认按语义线成组推进。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "受影响测试或类型检查",
@@ -26,6 +26,7 @@
     "建立 features/channels 并迁入 channel-form-fields 与 channel-form-fields-section",
     "runtime-config-agent.utils 迁入 features/system-status/utils",
     "channel-form-fields.test.ts 迁入 features/channels/utils",
+    "按 system-status 语义线成组迁入 runtime-control-card 与相关测试",
     "从 components/config 中继续挑选已是 kebab-case 的小文件，迁入 features/shared allowed roots",
     "components/chat 顶层平铺目录收敛",
     "lib 混合关注点收敛",
@@ -45,7 +46,8 @@
     "完成 provider-auth-section 的 shared-root 迁移并通过最小验证集",
     "建立 features/channels 并完成 channel-form 支撑模块的 feature-root 迁移",
     "完成 runtime-config-agent.utils 的 feature-root 迁移并通过最小验证集",
-    "完成 channel-form-fields.test.ts 的 feature-root 测试归位并通过最小验证集"
+    "完成 channel-form-fields.test.ts 的 feature-root 测试归位并通过最小验证集",
+    "完成 runtime-control-card 与 runtime-presence 相关测试的 system-status 成组归位并通过最小验证集"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -56,7 +58,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/config 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用 UI 原件，优先挑选能挂入既有 feature 的低风险页面或卡片，复用“真实实现迁入 allowed root + legacy 薄转发”的模式推进下一提交，并在每轮提交后自动进入下一轮。",
-  "最近一次停机原因": "第十批已完成 channel-form-fields.test.ts 的测试归位，当前没有卡在实现或验证阶段；下一轮应直接从 components/config 里继续挑选高置信候选，保持连续推进。当前已拿到十个连续提交。",
+  "下一步": "继续扫描 components/config 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用 UI 原件，但不再以单文件为单位推进；默认按一条语义线把实现、测试与相邻薄转发入口打包成更大的高置信批次，再推进下一提交。",
+  "最近一次停机原因": "第十一批已按 system-status 语义线完成 runtime-control-card 实现归位与两份测试归位，并验证通过；过程中已确认 RuntimeConfig 这类历史非 kebab-case 文件不适合顺手触达，runtime-security-card 直接迁新文件也会撞新文件函数预算，因此下一轮继续挑选同样能成组推进且可通过闸门的候选。当前已拿到十一个连续提交。",
   "最近更新时间": "2026-04-21"
 }
