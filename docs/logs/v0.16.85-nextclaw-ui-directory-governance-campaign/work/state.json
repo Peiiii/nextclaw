@@ -20,6 +20,7 @@
     "runtime-presence-card 迁入 features/system-status/components 并保留 legacy 薄转发入口",
     "config-split-page 迁入 shared/components 并保留 legacy 薄转发入口",
     "provider-pill-selector 与 provider-status-badge 迁入 shared/components",
+    "provider-enabled-field 迁入 shared/components",
     "从 components/config 中继续挑选已是 kebab-case 的小文件，迁入 features/shared allowed roots",
     "components/chat 顶层平铺目录收敛",
     "lib 混合关注点收敛",
@@ -33,7 +34,8 @@
     "完成 security-config 的 allowed-root 迁移并通过最小验证集",
     "完成 runtime-presence-card 的 allowed-root 迁移并通过最小验证集",
     "完成 config-split-page 的 shared-root 迁移并通过最小验证集",
-    "完成 provider 相关小型 UI 原件的 shared-root 迁移并通过最小验证集"
+    "完成 provider 相关小型 UI 原件的 shared-root 迁移并通过最小验证集",
+    "完成 provider-enabled-field 的 shared-root 迁移并通过最小验证集"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -44,7 +46,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/config 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用 UI 原件，复用“真实实现迁入 allowed root + legacy 薄转发”的模式推进下一提交。",
-  "最近一次停机原因": "desktop-update-config 的当前迁移方案被否决，原因是会引入新文件长函数预算问题与循环依赖风险；当前已同时验证 features 与 shared 两条 allowed-root 迁移路径可行，并拿到四个连续提交。",
+  "下一步": "继续扫描 components/config 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用 UI 原件，复用“真实实现迁入 allowed root + legacy 薄转发”的模式推进下一提交，并在每轮提交后自动进入下一轮。",
+  "最近一次停机原因": "desktop-update-config 的当前迁移方案被否决，原因是会引入新文件长函数预算问题与循环依赖风险；当前已同时验证 features 与 shared 两条 allowed-root 迁移路径可行，并拿到五个连续提交。",
   "最近更新时间": "2026-04-20"
 }

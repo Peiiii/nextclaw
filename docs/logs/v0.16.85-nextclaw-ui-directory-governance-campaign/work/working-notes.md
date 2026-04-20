@@ -32,6 +32,7 @@
 - 本轮直接依赖的命令 / skill：`/validate`、`/maintainability-review`、`autonomous-maintainability-campaign`、`iteration-work-notes`、`post-edit-maintainability-guard`、`post-edit-maintainability-review`、`file-organization-governance`、`role-first-file-organization`、`collapsible-feature-root-architecture`
 - 本轮是否属于非功能改动：是
 - 本轮是否命中 hotspot / 目录预算 / 命名治理等专项场景：命中目录预算、命名治理和 module-structure 合同治理
+- 执行节奏约定：每一轮完成、验证、提交后自动进入下一轮；只有在低置信阻塞或治理硬失败时才暂停并记录
 
 # 候选问题批次
 
@@ -40,6 +41,7 @@
 - [x] `runtime-presence-card` 迁入 `features/system-status/components` 并保留 legacy 薄转发入口
 - [x] `config-split-page` 迁入 `shared/components` 并保留 legacy 薄转发入口
 - [x] `provider-pill-selector` 与 `provider-status-badge` 迁入 `shared/components`
+- [x] `provider-enabled-field` 迁入 `shared/components`
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -89,6 +91,14 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-pill-selector.tsx packages/nextclaw-ui/src/components/config/provider-status-badge.tsx packages/nextclaw-ui/src/shared/components/provider-pill-selector.tsx packages/nextclaw-ui/src/shared/components/provider-status-badge.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-pill-selector.tsx packages/nextclaw-ui/src/components/config/provider-status-badge.tsx packages/nextclaw-ui/src/shared/components/provider-pill-selector.tsx packages/nextclaw-ui/src/shared/components/provider-status-badge.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/provider-enabled-field.tsx -> shared/components/provider-enabled-field.tsx` 的真实实现迁移
+- `shared/components` 继续承接 provider 配置表单里的通用开关行，证明可以逐步把 provider 表单拆成更细颗粒度的共享原件
+- 通过第五批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/providers-list.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-enabled-field.tsx packages/nextclaw-ui/src/shared/components/provider-enabled-field.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -106,10 +116,11 @@
 - `runtime-presence-card` 证明除了整页配置入口外，较小的运行时卡片也可以按“真实实现迁入 feature + legacy 薄转发”模式逐步抽离
 - `config-split-page` 证明通用布局壳也可以按“真实实现迁入 shared + legacy 薄转发”模式抽离，allowed roots 不只限于 feature
 - `provider-pill-selector` 与 `provider-status-badge` 证明 `shared/components` 可以继续承接更细粒度的通用 UI 原件，而不需要把所有复用都留在 `components/config`
+- `provider-enabled-field` 进一步证明 provider 表单中的小型通用控件也可以稳定迁入 `shared/components`
 
 # 下一步
 
-- 继续扫描 `components/config` 里已是 kebab-case 的页面、卡片或通用 UI 原件，优先挑选可挂入 `features/system-status`、`features/account`、`features/remote` 或 `shared` 的候选项
+- 继续扫描 `components/config` 里已是 kebab-case 的页面、卡片或通用 UI 原件，优先挑选可挂入 `features/system-status`、`features/account`、`features/remote` 或 `shared` 的候选项，并在每轮提交后自动进入下一轮
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
