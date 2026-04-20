@@ -2,6 +2,11 @@
 
 ## 迭代完成说明
 
+- 同批次补充验收修正：
+  - 聊天页在 `stalled` 阶段不再主动展示“等待运行时恢复超时，请稍后重试或查看日志。”横幅。
+  - 这条文案继续保留给运行时控制等明确需要诊断的场景，但不再作为聊天主路径里的默认干扰提示。
+  - 根因已进一步确认：`RuntimeLifecycleManager.getDisplayMessage()` 与 `resolveChatRuntimeMessage()` 把内部恢复超时态直接映射成聊天可见文案，导致系统内部恢复噪音被前端主入口放大展示。
+  - 本次修复命中根因而不是只改表象：直接删掉聊天链路里对 `stalled -> timeout banner` 的派生映射，同时保留 `stalled` 状态本身，因此发送 gate、连接状态、运行时控制诊断能力都不受影响。
 - 本次没有继续在旧的 `runtime-recovery` 上补条件，而是把 NextClaw UI 的运行时启动、可用、短暂断开恢复、恢复超时、启动失败统一收敛成一个生命周期 owner：`packages/nextclaw-ui/src/runtime-lifecycle/runtime-lifecycle.manager.ts`。
 - 新增统一 feature root：`packages/nextclaw-ui/src/runtime-lifecycle/`。
   - `runtime-lifecycle.manager.ts`：唯一业务 owner，统一解释 lifecycle 语义
@@ -44,6 +49,12 @@
 ## 测试/验证/验收方式
 
 - 已执行：
+  - `pnpm -C packages/nextclaw-ui test -- src/runtime-lifecycle/runtime-lifecycle.manager.test.ts src/runtime-lifecycle/use-runtime-lifecycle-status.test.ts`
+  - `pnpm -C packages/nextclaw-ui exec eslint src/runtime-lifecycle/runtime-lifecycle.manager.ts src/runtime-lifecycle/hooks/use-runtime-lifecycle-status.ts src/runtime-lifecycle/runtime-lifecycle.manager.test.ts src/runtime-lifecycle/use-runtime-lifecycle-status.test.ts`
+  - `pnpm -C packages/nextclaw-ui tsc`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/runtime-lifecycle/runtime-lifecycle.manager.ts packages/nextclaw-ui/src/runtime-lifecycle/hooks/use-runtime-lifecycle-status.ts packages/nextclaw-ui/src/runtime-lifecycle/use-runtime-lifecycle-status.test.ts packages/nextclaw-ui/src/runtime-lifecycle/runtime-lifecycle.manager.test.ts`
+  - `pnpm lint:new-code:governance`
+  - `pnpm check:governance-backlog-ratchet`
   - `pnpm -C packages/nextclaw-ui tsc`
   - `pnpm -C packages/nextclaw-ui exec vitest run src/runtime-lifecycle/runtime-lifecycle.manager.test.ts src/runtime-lifecycle/use-runtime-lifecycle-status.test.ts src/runtime-lifecycle/use-runtime-bootstrap-status.test.ts src/components/chat/containers/chat-sidebar.test.tsx src/api/raw-client.test.ts src/transport/app-client.test.ts src/components/chat/ncp/ncp-app-client-fetch.test.ts`
   - `pnpm -C packages/nextclaw-ui exec vitest run src/components/chat/chat-input/ncp-chat-input-availability.utils.test.ts src/components/chat/ncp/session-conversation/use-ncp-session-conversation.test.tsx src/components/chat/ncp/tests/ncp-chat-input.manager.test.ts`
@@ -54,6 +65,12 @@
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
 - 结果：
+  - 本轮定向 vitest 通过，`14` 个测试通过
+  - 本轮定向 ESLint 通过，无 error / warning
+  - 本轮 `tsc` 通过
+  - 本轮 `--non-feature --paths ...` maintainability guard 通过；代码增减 `+16 / -6 / 净增 +10`，非测试代码增减 `+1 / -4 / 净增 -3`
+  - 本轮 `lint:new-code:governance` 通过，仅提示 `runtime-lifecycle/` 仍位于历史 legacy root，未新增治理违规
+  - 本轮 `check:governance-backlog-ratchet` 通过
   - `tsc` 通过
   - 定向 vitest 通过，`37` 个测试通过
   - 启动期输入/发送合同与 ready 后自动重试的定向 vitest 通过，新增 `10` 个测试通过
@@ -81,7 +98,8 @@
 5. 在 UI 已经正常可用后，触发一次本地服务重启或模拟短暂断线。
 6. 确认聊天区进入恢复态，输入区暂时禁发；不要出现全局恢复卡片闪烁。
 7. 等待服务恢复完成，确认页面自动恢复可用，无需手动刷新。
-8. 若故意让恢复时间超过阈值，确认页面进入超时态而不是无限闪烁或反复切换。
+8. 若故意让恢复时间超过阈值，确认聊天页不会再冒出“等待运行时恢复超时，请稍后重试或查看日志。”这类干扰横幅。
+9. 如需诊断，再进入运行时控制或日志路径查看恢复失败信息；聊天主路径保持干净，不把内部恢复噪音直接抛给用户。
 
 ## 可维护性总结汇总
 
@@ -91,6 +109,24 @@
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。生命周期解释权统一收回 `RuntimeLifecycleManager`；request / websocket / bootstrap 只上报事实；UI 只读派生状态；sidebar 标签编辑逻辑单独下沉到 hook。
 - 目录结构与文件组织是否满足当前项目治理要求：本次触达范围内已按治理要求收口到合适子树与命名规范；启动期输入/发送共享规则放入现有 `components/chat/chat-input/` 角色目录，而没有继续把 `components/chat/ncp/` 顶层铺平；仍存在 `src/api`、`src/hooks` 的历史目录预算警告，但本次未继续恶化。
 - 基于一次独立于实现阶段的 `post-edit-maintainability-review` 主观复核结论：
+  - 同批次本轮补充验收修正：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 长期目标对齐 / 可维护性推进：
+      - 这轮不是再加一层“超时提示例外”，而是把聊天页对内部恢复状态的过度暴露直接删掉，顺着“主入口更安静、系统内部噪音更少、状态 owner 更单一”的方向继续收敛。
+      - 下一步观察点仍是 `runtime-lifecycle/` 目录后续是否需要正式迁回治理白名单结构；本轮没有扩大这笔历史债务。
+    - 代码增减报告：
+      - 新增：16 行
+      - 删除：6 行
+      - 净增：10 行
+    - 非测试代码增减报告：
+      - 新增：1 行
+      - 删除：4 行
+      - 净增：-3 行
+    - no maintainability findings
+    - 可维护性总结：
+      - 这次修正把一条干扰性的超时提示从聊天主链路里移除，同时保留状态机与诊断入口，没有引入新的 fallback、旁路判断或双路径。
+      - 作为非功能修正，排除测试后的非测试代码保持净减，符合“删减优先、简化优先”的要求。
   - 可维护性复核结论：通过
   - 本次顺手减债：是
   - 长期目标对齐 / 可维护性推进：
