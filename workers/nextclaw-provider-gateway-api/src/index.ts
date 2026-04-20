@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { remoteProxyHandler } from "./controllers/remote-controller";
-import { NextclawRemoteQuotaDurableObject } from "./remote-quota-do";
-import { NextclawRemoteRelayDurableObject } from "./remote-relay-do";
+import { remoteProxyHandler } from "./controllers/remote.controller";
+import { NextclawRemoteQuotaDurableObject } from "./remote-quota/remote-quota.controller";
+import { NextclawRemoteRelayDurableObject } from "./remote-relay/remote-relay.controller";
 import { registerAppRoutes } from "./register-app-routes.service";
 import type { Env } from "./types/platform";
-import { openaiError } from "./utils/platform-utils";
+import { openaiError } from "./utils/platform.utils";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,6 +31,6 @@ app.onError((error, c) => openaiError(c, 500, error.message || "internal error",
 
 export { NextclawRemoteRelayDurableObject };
 export { NextclawRemoteQuotaDurableObject };
-export { NextclawQuotaDurableObject } from "./remote-quota-do";
+export { NextclawQuotaDurableObject } from "./remote-quota/remote-quota.controller";
 
 export default app;

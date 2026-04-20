@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import { findModuleStructureContract, isProtocolContract } from "./module-structure-contracts.mjs";
@@ -6,6 +8,21 @@ import {
   evaluateModuleStructureFindings,
   evaluateProtocolImportBoundaryFindings
 } from "./lint-new-code-module-structure.mjs";
+
+const withTemporaryModuleFixture = (fixtureName, config, run) => {
+  const repoFixtureRoot = path.join("scripts/governance/module-structure/.tmp-test-fixtures", fixtureName);
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify(config, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src/example.ts"), "export const example = true;\n");
+
+  try {
+    return run(`${repoFixtureRoot}/src/example.ts`);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
+};
 
 test("finds the protocol declaration for nextclaw-ui package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/index.ts");
@@ -26,6 +43,36 @@ test("finds the protocol declaration for nextclaw cli package root config", () =
   assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
   assert.equal(contract?.protocol, "cli-command-first");
   assert.equal(isProtocolContract(contract), true);
+});
+
+test("rejects legacy configs that reuse protocol organizationModel names", () => {
+  withTemporaryModuleFixture("invalid-legacy-protocol-prefix", {
+    contractKind: "legacy",
+    organizationModel: "protocol-package-l1",
+    rootPolicy: "contract-only",
+    allowedRootDirectories: ["src"],
+    allowedRootFiles: []
+  }, (fixtureEntryPath) => {
+    assert.throws(
+      () => findModuleStructureContract(fixtureEntryPath),
+      /cannot reuse protocol organizationModel 'protocol-package-l1' in a legacy contract/,
+    );
+  });
+});
+
+test("accepts legacy configs that use the reserved legacy-\\* namespace", () => {
+  withTemporaryModuleFixture("valid-legacy-package-shell", {
+    contractKind: "legacy",
+    organizationModel: "legacy-package-shell",
+    rootPolicy: "contract-only",
+    allowedRootDirectories: ["src", "tests"],
+    allowedRootFiles: ["package.json"]
+  }, (fixtureEntryPath) => {
+    const contract = findModuleStructureContract(fixtureEntryPath);
+    assert.equal(contract?.modulePath, "scripts/governance/module-structure/.tmp-test-fixtures/valid-legacy-package-shell");
+    assert.equal(contract?.organizationModel, "legacy-package-shell");
+    assert.equal(isProtocolContract(contract), false);
+  });
 });
 
 test("blocks a new root directory outside the L3 skeleton", () => {

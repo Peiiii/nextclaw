@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src --max-warnings=0",
     "tsc": "tsc -p tsconfig.json --noEmit",
-    "test:quota": "pnpm run build && node tests/run-remote-quota-policy-test.mjs",
+    "test:quota": "pnpm run build && node tests/remote-quota-policy-runner.test.mjs",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply NEXTCLAW_PLATFORM_DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply NEXTCLAW_PLATFORM_DB --remote"

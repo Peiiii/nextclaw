@@ -35,11 +35,9 @@ const getProtocolViolationLevel = (contract, existedInComparisonRef) => (
     ? "error"
     : existedInComparisonRef ? "warn" : "error"
 );
-const getBusinessRootDirectoryName = (contract) => contract.protocol === "cli-command-first" ? "commands" : "features";
-const getBusinessRootLabel = (contract) => getBusinessRootDirectoryName(contract) === "commands" ? "command" : "feature";
-const getBusinessLocalDirectoryNames = (contract) => (
-  contract.protocol === "cli-command-first" ? COMMAND_LOCAL_DIRECTORY_NAMES : FEATURE_LOCAL_DIRECTORY_NAMES
-);
+const getBusinessRootConfig = (contract) => contract.protocol === "cli-command-first"
+  ? { rootDirectoryName: "commands", label: "command", localDirectoryNames: COMMAND_LOCAL_DIRECTORY_NAMES }
+  : { rootDirectoryName: "features", label: "feature", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES };
 const getPreferredImportAliasPrefix = (contract) => {
   const prefixes = [...(contract.importAliasPrefixes ?? [])].filter(Boolean);
   return prefixes[0] ?? null;
@@ -78,6 +76,57 @@ const getSharedLibBoundaryKey = (relativePath) => {
     : null;
 };
 
+const evaluateNamedProtocolRootFindings = ({
+  filePath,
+  contract,
+  segments,
+  existedInComparisonRef,
+  repoPathExists,
+  rootDirectoryName,
+  allowedChildDirectories,
+  invalidRootFileMessage,
+  reservedNameMessage,
+  invalidRootEntryMessage,
+  missingIndexMessage,
+  invalidChildDirectoryMessage
+}) => {
+  const findings = [];
+  const name = segments[1];
+  const reason = buildProtocolReason(contract);
+  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
+
+  if (!name) {
+    return findings;
+  }
+  if (looksLikeFileSegment(name)) {
+    findings.push(buildFinding(filePath, level, invalidRootFileMessage, reason));
+    return findings;
+  }
+  if (isReservedProtocolName(name)) {
+    findings.push(buildFinding(filePath, level, reservedNameMessage(name), reason));
+    return findings;
+  }
+
+  const childEntry = segments[2];
+  if (!childEntry) {
+    return findings;
+  }
+  if (segments.length === 3) {
+    if (!INDEX_FILE_NAMES.has(childEntry)) {
+      findings.push(buildFinding(filePath, level, invalidRootEntryMessage(name, childEntry), reason));
+    }
+    return findings;
+  }
+
+  if (!hasIndexEntry(path.posix.join(contract.modulePath, rootDirectoryName, name), repoPathExists)) {
+    findings.push(buildFinding(filePath, level, missingIndexMessage(name), reason));
+  }
+  if (!allowedChildDirectories.has(childEntry)) {
+    findings.push(buildFinding(filePath, level, invalidChildDirectoryMessage(name, childEntry), reason));
+  }
+  return findings;
+};
+
 const evaluateBusinessProtocolFindings = ({
   filePath,
   contract,
@@ -85,83 +134,30 @@ const evaluateBusinessProtocolFindings = ({
   existedInComparisonRef,
   repoPathExists
 }) => {
-  const findings = [];
-  const businessRootDirectoryName = getBusinessRootDirectoryName(contract);
-  const businessRootLabel = getBusinessRootLabel(contract);
-  const localDirectoryNames = getBusinessLocalDirectoryNames(contract);
-  const businessName = segments[1];
-  const reason = buildProtocolReason(contract);
-  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
-
-  if (!businessName) {
-    return findings;
-  }
-
-  if (looksLikeFileSegment(businessName)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `files cannot live directly under '${businessRootDirectoryName}/'; create a business ${businessRootLabel} directory first`,
-      reason
-    ));
-    return findings;
-  }
-
-  if (isReservedProtocolName(businessName)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `${businessRootLabel} directory '${businessName}/' uses a reserved structure name; ${businessRootDirectoryName} must use business directory names`,
-      reason
-    ));
-    return findings;
-  }
-
-  const businessRootPath = path.posix.join(contract.modulePath, businessRootDirectoryName, businessName);
+  const { rootDirectoryName, label, localDirectoryNames } = getBusinessRootConfig(contract);
   const childEntry = segments[2];
-  if (!childEntry) {
-    return findings;
-  }
-
-  if (segments.length === 3) {
-    if (!INDEX_FILE_NAMES.has(childEntry)) {
-      findings.push(buildFinding(
-        filePath,
-        level,
-        `${businessRootLabel} '${businessName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
-        reason
-      ));
-    }
-    return findings;
-  }
-
-  if (!hasIndexEntry(businessRootPath, repoPathExists)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `${businessRootLabel} '${businessName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
-      reason
-    ));
-  }
-
-  if (!localDirectoryNames.has(childEntry)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `directory '${childEntry}/' is outside the ${businessRootLabel}-local whitelist for '${businessName}/'`,
-      reason
-    ));
-    return findings;
-  }
-
+  const findings = evaluateNamedProtocolRootFindings({
+    filePath,
+    contract,
+    segments,
+    existedInComparisonRef,
+    repoPathExists,
+    rootDirectoryName,
+    allowedChildDirectories: localDirectoryNames,
+    invalidRootFileMessage: `files cannot live directly under '${rootDirectoryName}/'; create a business ${label} directory first`,
+    reservedNameMessage: (businessName) => `${label} directory '${businessName}/' uses a reserved structure name; ${rootDirectoryName} must use business directory names`,
+    invalidRootEntryMessage: (businessName, childEntry) => `${label} '${businessName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
+    missingIndexMessage: (businessName) => `${label} '${businessName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
+    invalidChildDirectoryMessage: (businessName, childEntry) => `directory '${childEntry}/' is outside the ${label}-local whitelist for '${businessName}/'`
+  });
   if (childEntry === "features") {
     const subFeatureName = segments[3];
     if (subFeatureName && !looksLikeFileSegment(subFeatureName) && isReservedProtocolName(subFeatureName)) {
       findings.push(buildFinding(
         filePath,
-        level,
+        getProtocolViolationLevel(contract, existedInComparisonRef),
         `subfeature directory '${subFeatureName}/' uses a reserved structure name; subfeatures must use business directory names`,
-        reason
+        buildProtocolReason(contract)
       ));
     }
   }
@@ -252,72 +248,20 @@ const evaluatePlatformProtocolFindings = ({
   existedInComparisonRef,
   repoPathExists
 }) => {
-  const findings = [];
-  const platformName = segments[1];
-  const reason = buildProtocolReason(contract);
-  const level = getProtocolViolationLevel(contract, existedInComparisonRef);
-
-  if (!platformName) {
-    return findings;
-  }
-
-  if (looksLikeFileSegment(platformName)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      "files cannot live directly under 'platforms/'; create a platform directory first",
-      reason
-    ));
-    return findings;
-  }
-
-  if (isReservedProtocolName(platformName)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `platform directory '${platformName}/' uses a reserved structure name; platforms should use actual platform names`,
-      reason
-    ));
-    return findings;
-  }
-
-  const platformRootPath = path.posix.join(contract.modulePath, "platforms", platformName);
-  const childEntry = segments[2];
-  if (!childEntry) {
-    return findings;
-  }
-
-  if (segments.length === 3) {
-    if (!INDEX_FILE_NAMES.has(childEntry)) {
-      findings.push(buildFinding(
-        filePath,
-        level,
-        `platform '${platformName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
-        reason
-      ));
-    }
-    return findings;
-  }
-
-  if (!hasIndexEntry(platformRootPath, repoPathExists)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `platform '${platformName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
-      reason
-    ));
-  }
-
-  if (!FIXED_ROLE_DIRECTORY_NAMES.has(childEntry)) {
-    findings.push(buildFinding(
-      filePath,
-      level,
-      `platform '${platformName}/' may only contain role directories from the fixed whitelist; found '${childEntry}/'`,
-      reason
-    ));
-  }
-
-  return findings;
+  return evaluateNamedProtocolRootFindings({
+    filePath,
+    contract,
+    segments,
+    existedInComparisonRef,
+    repoPathExists,
+    rootDirectoryName: "platforms",
+    allowedChildDirectories: FIXED_ROLE_DIRECTORY_NAMES,
+    invalidRootFileMessage: "files cannot live directly under 'platforms/'; create a platform directory first",
+    reservedNameMessage: (platformName) => `platform directory '${platformName}/' uses a reserved structure name; platforms should use actual platform names`,
+    invalidRootEntryMessage: (platformName, childEntry) => `platform '${platformName}/' may only expose 'index.ts' or 'index.tsx' at its root; move '${childEntry}' under a role directory`,
+    missingIndexMessage: (platformName) => `platform '${platformName}/' is missing 'index.ts' or 'index.tsx' as its唯一导出入口`,
+    invalidChildDirectoryMessage: (platformName, childEntry) => `platform '${platformName}/' may only contain role directories from the fixed whitelist; found '${childEntry}/'`
+  });
 };
 
 export const evaluateProtocolStructureFindings = ({
@@ -379,6 +323,21 @@ const resolveImportTargetRelativePath = (importSource, filePath, contract) => {
   return resolved.replace(/\/+$/, "");
 };
 
+const getDeepImportBoundaryMessage = ({
+  currentBoundary,
+  targetBoundary,
+  targetSegments,
+  boundaryIndex,
+  targetRelativePath,
+  label
+}) => (
+  currentBoundary === targetBoundary ||
+  targetSegments.length <= boundaryIndex ||
+  (targetSegments.length === boundaryIndex + 1 && isIndexLikeImportSegment(targetSegments[boundaryIndex]))
+)
+  ? null
+  : `${label} imports must go through '${targetBoundary}' instead of deep importing '${targetRelativePath}'`;
+
 const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath }) => {
   const currentBusinessBoundary = getBusinessBoundaryKey(currentRelativePath);
   const currentPlatformBoundary = getPlatformBoundaryKey(currentRelativePath);
@@ -386,40 +345,36 @@ const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath 
   const targetSegments = targetRelativePath.split("/").filter(Boolean);
 
   if ((targetSegments[0] === "features" || targetSegments[0] === "commands") && targetSegments[1]) {
-    const targetBusinessBoundary = `${targetSegments[0]}/${targetSegments[1]}`;
-    const targetBusinessLabel = targetSegments[0] === "commands" ? "command" : "feature";
-    if (
-      currentBusinessBoundary !== targetBusinessBoundary &&
-      targetSegments.length > 2 &&
-      !(targetSegments.length === 3 && isIndexLikeImportSegment(targetSegments[2]))
-    ) {
-      return `${targetBusinessLabel} imports must go through '${targetBusinessBoundary}' instead of deep importing '${targetRelativePath}'`;
-    }
-    return null;
+    return getDeepImportBoundaryMessage({
+      currentBoundary: currentBusinessBoundary,
+      targetBoundary: `${targetSegments[0]}/${targetSegments[1]}`,
+      targetSegments,
+      boundaryIndex: 2,
+      targetRelativePath,
+      label: targetSegments[0] === "commands" ? "command" : "feature"
+    });
   }
 
   if (targetSegments[0] === "platforms" && targetSegments[1]) {
-    const targetPlatformBoundary = `platforms/${targetSegments[1]}`;
-    if (
-      currentPlatformBoundary !== targetPlatformBoundary &&
-      targetSegments.length > 2 &&
-      !(targetSegments.length === 3 && isIndexLikeImportSegment(targetSegments[2]))
-    ) {
-      return `platform imports must go through '${targetPlatformBoundary}' instead of deep importing '${targetRelativePath}'`;
-    }
-    return null;
+    return getDeepImportBoundaryMessage({
+      currentBoundary: currentPlatformBoundary,
+      targetBoundary: `platforms/${targetSegments[1]}`,
+      targetSegments,
+      boundaryIndex: 2,
+      targetRelativePath,
+      label: "platform"
+    });
   }
 
   if (targetSegments[0] === "shared" && targetSegments[1] === "lib" && targetSegments[2]) {
-    const targetSharedLibBoundary = `shared/lib/${targetSegments[2]}`;
-    if (
-      currentSharedLibBoundary !== targetSharedLibBoundary &&
-      targetSegments.length > 3 &&
-      !(targetSegments.length === 4 && isIndexLikeImportSegment(targetSegments[3]))
-    ) {
-      return `shared/lib imports must go through '${targetSharedLibBoundary}' instead of deep importing '${targetRelativePath}'`;
-    }
-    return null;
+    return getDeepImportBoundaryMessage({
+      currentBoundary: currentSharedLibBoundary,
+      targetBoundary: `shared/lib/${targetSegments[2]}`,
+      targetSegments,
+      boundaryIndex: 3,
+      targetRelativePath,
+      label: "shared/lib"
+    });
   }
 
   if (

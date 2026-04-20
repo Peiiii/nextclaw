@@ -186,7 +186,18 @@ export const collectModuleStructureViolations = (changedFiles, addedLinesByFile,
   const violations = [];
 
   for (const filePath of changedFiles.map((entry) => normalizePath(entry))) {
-    const contract = findModuleStructureContract(filePath);
+    let contract;
+    try {
+      contract = findModuleStructureContract(filePath);
+    } catch (error) {
+      violations.push(buildFinding(
+        filePath,
+        "error",
+        error instanceof Error ? error.message : String(error),
+        "invalid-module-structure-config"
+      ));
+      continue;
+    }
     if (!contract) {
       continue;
     }

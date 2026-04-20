@@ -35,6 +35,8 @@ const normalizeStringArrayField = (value, fieldName, repoPath) => {
   return value;
 };
 
+const LEGACY_ORGANIZATION_MODEL_PATTERN = /^legacy-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 const defineLegacyContract = ({
   modulePath,
   organizationModel,
@@ -85,11 +87,7 @@ export const FEATURE_LOCAL_DIRECTORY_NAMES = new Set([
   ...FIXED_ROLE_DIRECTORY_NAMES
 ]);
 
-export const COMMAND_LOCAL_DIRECTORY_NAMES = new Set([
-  "features",
-  "shared",
-  ...FIXED_ROLE_DIRECTORY_NAMES
-]);
+export const COMMAND_LOCAL_DIRECTORY_NAMES = FEATURE_LOCAL_DIRECTORY_NAMES;
 
 export const SHARED_CONTAINER_DIRECTORY_NAMES = new Set([
   "shared",
@@ -226,12 +224,18 @@ const buildContractFromConfigFile = (configRepoPath) => {
   const config = readJsonFile(configRepoPath);
   const configDirectory = normalizePath(path.posix.dirname(configRepoPath));
   const contractKind = config.contractKind ?? (typeof config.protocol === "string" ? "protocol" : "legacy");
+  const organizationModel = typeof config.organizationModel === "string" ? config.organizationModel.trim() : "";
 
   let contract;
   if (contractKind === "protocol") {
     const protocol = MODULE_STRUCTURE_PROTOCOLS.get(config.protocol);
     if (!protocol) {
       throw new Error(`Unknown module-structure protocol '${config.protocol}'.`);
+    }
+    if (organizationModel && organizationModel !== protocol.organizationModel) {
+      throw new Error(
+        `Module-structure config '${configRepoPath}' declares protocol '${config.protocol}' but organizationModel '${config.organizationModel}' does not match '${protocol.organizationModel}'.`,
+      );
     }
     contract = defineProtocolDeclaration({
       modulePath: normalizePath(path.posix.join(configDirectory, protocol.governedRoot ?? "")),
@@ -243,12 +247,27 @@ const buildContractFromConfigFile = (configRepoPath) => {
       importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath)
     });
   } else if (contractKind === "legacy") {
-    if (typeof config.organizationModel !== "string" || !config.organizationModel.trim()) {
+    if (!organizationModel) {
       throw new Error(`Module-structure config '${configRepoPath}' must define a non-empty 'organizationModel'.`);
+    }
+    if (typeof config.protocol === "string" && config.protocol.trim()) {
+      throw new Error(
+        `Module-structure config '${configRepoPath}' cannot declare protocol '${config.protocol}' when contractKind is 'legacy'.`,
+      );
+    }
+    if (organizationModel.startsWith("protocol-")) {
+      throw new Error(
+        `Module-structure config '${configRepoPath}' cannot reuse protocol organizationModel '${organizationModel}' in a legacy contract; switch to contractKind 'protocol' or rename it into the reserved legacy-* namespace.`,
+      );
+    }
+    if (!LEGACY_ORGANIZATION_MODEL_PATTERN.test(organizationModel)) {
+      throw new Error(
+        `Module-structure config '${configRepoPath}' legacy organizationModel '${organizationModel}' must use the reserved legacy-* namespace.`,
+      );
     }
     contract = defineLegacyContract({
       modulePath: configDirectory,
-      organizationModel: config.organizationModel,
+      organizationModel,
       rootPolicy: config.rootPolicy,
       enforcement: config.enforcement,
       allowedRootDirectories: normalizeStringArrayField(config.allowedRootDirectories, "allowedRootDirectories", configRepoPath),

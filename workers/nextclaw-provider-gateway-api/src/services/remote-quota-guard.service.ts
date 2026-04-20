@@ -2,9 +2,9 @@ import type {
   RemoteQuotaError,
   RemoteQuotaPlatformSummary,
   RemoteQuotaUserSummary,
-} from "../remote-quota-policy";
+} from "../remote-quota/remote-quota.service.js";
 import type { Env } from "../types/platform";
-import { isRecord } from "../utils/platform-utils";
+import { isRecord } from "../utils/platform.utils";
 
 const REMOTE_QUOTA_GUARD_OBJECT_NAME = "remote-platform-budget-v1";
 

@@ -479,7 +479,7 @@ src/
 每个包根下的 `module-structure.config.json` 至少应明确：
 
 - `contractKind`：`legacy` 或 `protocol`
-- `organizationModel`：当前模块采用的组织模型（`legacy` 必填）
+- `organizationModel`：当前模块采用的组织模型（`legacy` 必填，且必须使用保留的 `legacy-*` 命名空间，禁止复用任何 `protocol-*` 名称）
 - `protocol`：当前模块采用的固定协议名（`protocol` 必填）
 - `rootPolicy`：
   - `contract-only`：根级只允许显式白名单文件
@@ -493,6 +493,7 @@ src/
 
 - `modulePath` 不再手填，治理器会以配置文件所在包根 + 协议模板内置源码根推导出真正的治理根
 - 协议模板仍然是中心定义的通用能力，但“哪个模块采纳哪个模板”由模块自己管理
+- `legacy` contract 不得通过 `organizationModel=protocol-*` 伪装成协议模块；若要采纳固定协议，必须显式写成 `contractKind: "protocol"` + `protocol: "<name>"`
 - 一旦模块显式声明了 `allowedRootFiles`，`file-role-boundaries` 也必须同步把这些文件视为该模块治理根下的合法 owner/root entry 文件，而不是继续只认全局固定的 `app`/`main`
 - 一旦协议模块声明了 `importAliasPrefixes`，就等于同时声明“跨目录导入必须使用 alias 前缀”；相对导入默认只允许同目录 `./`，禁止再用 `../`、`../../` 这类父级回退路径访问模块内部其它目录
 

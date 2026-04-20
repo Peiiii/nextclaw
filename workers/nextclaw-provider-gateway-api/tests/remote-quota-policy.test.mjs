@@ -20,7 +20,7 @@ import {
   REMOTE_BROWSER_CONNECT_COST,
   REMOTE_PROXY_REQUEST_COST,
   REMOTE_RUNTIME_REQUEST_COST
-} from "../dist/remote-quota-policy.js";
+} from "../dist/remote-quota/remote-quota.service.js";
 
 const CONFIG = {
   sessionRequestsPerMinute: DEFAULT_REMOTE_QUOTA_SESSION_REQUESTS_PER_MINUTE,
