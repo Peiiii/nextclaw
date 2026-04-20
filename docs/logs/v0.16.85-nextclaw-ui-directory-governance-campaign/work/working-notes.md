@@ -43,6 +43,7 @@
 - [x] `provider-pill-selector` 与 `provider-status-badge` 迁入 `shared/components`
 - [x] `provider-enabled-field` 迁入 `shared/components`
 - [x] `provider-advanced-settings-section` 迁入 `shared/components`
+- [x] `provider-auth-section` 迁入 `shared/components`
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -108,6 +109,14 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-advanced-settings-section.tsx packages/nextclaw-ui/src/shared/components/provider-advanced-settings-section.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/provider-auth-section.tsx -> shared/components/provider-auth-section.tsx` 的真实实现迁移
+- provider 表单中的授权区块也已进入 `shared/components`，说明这条路径已经覆盖到 provider 表单的大部分稳定子区块
+- 通过第七批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/providers-list.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-auth-section.tsx packages/nextclaw-ui/src/shared/components/provider-auth-section.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-auth-section.tsx packages/nextclaw-ui/src/shared/components/provider-auth-section.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -127,6 +136,7 @@
 - `provider-pill-selector` 与 `provider-status-badge` 证明 `shared/components` 可以继续承接更细粒度的通用 UI 原件，而不需要把所有复用都留在 `components/config`
 - `provider-enabled-field` 进一步证明 provider 表单中的小型通用控件也可以稳定迁入 `shared/components`
 - `provider-advanced-settings-section` 进一步证明 provider 表单里的稳定子区块也可以迁入 `shared/components`，后续可以继续抽离 `provider-auth-section`
+- `provider-auth-section` 已经完成，说明 `provider-form-support.ts` 之外的主要 provider 表单子块都在向 `shared/components` 收拢
 
 # 下一步
 
