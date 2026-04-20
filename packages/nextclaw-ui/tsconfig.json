@@ -14,6 +14,7 @@
       "@/components/chat/ChatWelcome": ["./src/features/chat/components/chat-welcome.tsx"],
       "@/components/chat/chat-conversation-panel": ["./src/features/chat/components/conversation/chat-conversation-panel.tsx"], "@/components/chat/containers/chat-input-bar.container": ["./src/features/chat/components/conversation/chat-input-bar.container.tsx"], "@/components/chat/containers/chat-message-list.container": ["./src/features/chat/components/conversation/chat-message-list.container.tsx"],
       "@/components/config/ModelConfig": ["./src/shared/components/model-config.tsx"],
+      "@/components/config/SecretsConfig": ["./src/shared/components/config/secrets-config.tsx"],
       "@/components/config/SearchConfig": ["./src/shared/components/search-config.tsx"],
       "@/components/chat/chat-page": ["./src/features/chat/pages/chat-page.tsx"],
       "@/components/chat/chat-page-shell": ["./src/features/chat/components/layout/chat-page-shell.tsx"], "@/components/chat/managers/chat-session-list.manager": ["./src/features/chat/managers/chat-session-list.manager.ts"],

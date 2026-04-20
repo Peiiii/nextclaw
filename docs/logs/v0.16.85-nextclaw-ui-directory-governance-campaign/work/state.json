@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-search-config strict scan",
-    "原因": "第二十八批已经把 SearchConfig 连同相邻测试迁入 shared/components，并完成 strict 合同下的 legacy 导入承接；过程中已验证 `SearchConfig` 的 effect 型本地状态修补与超长函数都必须顺手减债，同时再次确认 `app.tsx` 这类 root file 不能被直接触达。因此后续需要继续在剩余高层页面候选里重新筛选高置信批次，避免把 SessionsConfig、SecretsConfig 或 chat-sidebar 这种重页面直接误当成纯目录迁移。",
+    "名称": "post-secrets-config next-candidate scan",
+    "原因": "第二十九批已经把 `SecretsConfig` 迁入 `shared/components/config/`，并通过拆分 `secrets-config-form.tsx` 同时消除了 shared 根目录预算与表单函数预算阻塞。当前剩余的一级配置页重页面里，`SessionsConfig` 已成为最高优先级候选，但它仍带 chat 运行时依赖与两段 effect 型本地状态修补，需要先判断是否只能拆支撑子链而不能整页迁移。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -70,7 +70,8 @@
     "完成 chat-session-list manager/store、chat-message-list.container 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
     "完成 chat-input-bar.container、ncp-chat-input-availability.utils 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
     "完成 ModelConfig、CronConfig 与相邻测试的 shared-root 迁移，并把真实消费方切到新路径",
-    "完成 SearchConfig 与相邻测试的 shared-root 迁移，并通过精确 alias 承接 legacy 导入"
+    "完成 SearchConfig 与相邻测试的 shared-root 迁移，并通过精确 alias 承接 legacy 导入",
+    "完成 SecretsConfig、相邻测试与 secrets 表单装配链的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -83,7 +84,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx 与 SecretsConfig.tsx 这两条仍在一级目录里的配置页，优先寻找不需要大规模页面拆分、也不会触发 file-budget / 非功能净增 > 0 的 allowed-root 迁移批次；若没有，再回到 features/system-status / shared/components 里找还能整组承接的稳定配置子链。",
-  "最近一次停机原因": "第二十八批已经完成并待提交：SearchConfig 与相邻测试已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过；过程中还确认了 `app.tsx` 不能直接作为切根消费方触达。当前没有治理硬失败；只是下一轮仍需先做高置信候选扫描，避免直接整搬 SessionsConfig、SecretsConfig 或 chat-sidebar。",
+  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx；优先判断能否先把会话筛选、会话元信息编辑或消息渲染支撑链单独迁入 `features/chat`，而不是直接整页迁移。若 `SessionsConfig.tsx` 仍无法在非功能净增 <= 0、effect-boundary 和 file-budget 下成立，则回到 features/system-status / shared/components/config 中寻找还能整组承接的稳定配置子链。",
+  "最近一次停机原因": "第二十九批已经完成并待提交：SecretsConfig 已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过；过程中还确认了第一版 shared 根目录落点会触发 directory-budget 与 function-budget，因此最终改为 `shared/components/config/` 子域 + `secrets-config-form.tsx` 拆分。",
   "最近更新时间": "2026-04-21"
 }

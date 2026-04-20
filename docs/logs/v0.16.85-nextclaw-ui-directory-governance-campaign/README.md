@@ -48,6 +48,7 @@
 - 第二十六批通过治理的落点是继续从 `components/chat` 吃掉输入栏单链：把 `chat-input/ncp-chat-input-availability.utils.ts` 与相邻测试迁入 `features/chat/utils/`，把 `containers/chat-input-bar.container.tsx` 迁入 `features/chat/components/conversation/`，让 `chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx` 与 `ncp-chat-input.manager.ts` 直接消费新路径，并只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/chat/containers/chat-input-bar.container`；这一批还验证并回避了两个低置信方向：`components/chat/nextclaw/index.ts` 不能作为 strict `contract-only` 下的 legacy 改写入口，`chat-input-bar` 的独立 view-model hook 也会触发 file-budget，因此最终方案是把输入栏逻辑压回新的 feature 容器内并把非测试净增收敛到 `-3`
 - 第二十七批通过治理的落点是继续从 `components/config` 吃掉两个一级页面入口：把 `ModelConfig.tsx` 与相邻测试迁入 `shared/components/model-config.tsx` / `model-config.test.tsx`，把 `CronConfig.tsx` 迁入 `shared/components/cron-config.tsx`，让 `features/chat/components/layout/chat-page-shell.tsx` 直接消费新的 `CronConfig`，并只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/config/ModelConfig`；这一批还顺手完成两项治理收口：用 keyed 子表单消除了 `ModelConfig` 原本的 effect 型本地状态修补，并把 `CronConfig` 的 job 卡片渲染抽成独立组件，避免新 shared 页面把旧函数预算问题原样搬过去
 - 第二十八批通过治理的落点是继续从 `components/config` 吃掉另一个一级页面入口：把 `SearchConfig.tsx` 与相邻测试迁入 `shared/components/search-config.tsx` / `search-config.test.tsx`，并只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/config/SearchConfig`；这一批还顺手完成两项治理收口：用 keyed 表单初始化彻底移除了 `SearchConfig` 原本的 effect 型本地状态修补，并把 provider 侧栏、详情表单与 provider-specific fields 拆成清晰子块，避免新 shared 页面继续携带超长函数与 file-budget 违规
+- 第二十九批通过治理的落点是继续从 `components/config` 吃掉 `SecretsConfig.tsx` 这条一级页面入口：把真实实现迁入 `shared/components/config/secrets-config.tsx`，把表单主体拆到 `shared/components/config/secrets-config-form.tsx`，并补一条 `shared/components/config/secrets-config.test.tsx` 作为最小测试锚点；同时只在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补一条精确 alias 承接 `@/components/config/SecretsConfig`。这一批还顺手完成两项治理收口：用 keyed 表单初始化消除了 `SecretsConfig` 原本的 effect 型本地状态修补，并把目录从 `shared/components` 根下进一步收束到 `shared/components/config/` 子域，避免直接把 shared 一级目录文件数再次推爆
 
 # 测试 / 验证 / 验收方式
 
@@ -142,6 +143,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/SearchConfig.tsx packages/nextclaw-ui/src/components/config/SearchConfig.test.tsx packages/nextclaw-ui/src/shared/components/search-config.tsx packages/nextclaw-ui/src/shared/components/search-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/SearchConfig.tsx packages/nextclaw-ui/src/components/config/SearchConfig.test.tsx packages/nextclaw-ui/src/shared/components/search-config.tsx packages/nextclaw-ui/src/shared/components/search-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二十九批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/shared/components/config/secrets-config.test.tsx src/app.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/SecretsConfig.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config-form.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/SecretsConfig.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config-form.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -245,6 +252,7 @@
   - 第二十六批验证通过，`chat-input-bar.container` 与 `ncp-chat-input-availability.utils` 已脱离 `components/chat`；输入栏真实消费方与 `ncp-chat-input.manager.ts` 统一切到新路径，只保留一条精确 alias 承接 legacy 容器导入，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-3`、非测试代码净变化为 `-3`
   - 第二十七批验证通过，`ModelConfig` 与 `CronConfig` 已脱离 `components/config` 一级目录；`chat-page-shell` 直接消费新的 shared `CronConfig`，`ModelConfig` 通过一条精确 alias 继续供 app 懒加载解析，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-33`、非测试代码净变化为 `-34`
   - 第二十八批验证通过，`SearchConfig` 与相邻测试已脱离 `components/config` 一级目录；`SearchConfig` 继续通过一条精确 alias 供 app 懒加载解析，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-35`、非测试代码净变化为 `-36`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`，仅保留一条 near-budget 观察点提醒后续继续拆小 provider 详情块
+  - 第二十九批验证通过，`SecretsConfig` 已脱离 `components/config` 一级目录；`SecretsConfig` 继续通过一条精确 alias 供 app 懒加载解析，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `+58`、非测试代码净变化为 `-33`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`，仅保留一条 near-budget 观察点提醒后续若再扩张 secrets 表单，应继续把 normalization helpers 或 section shell 从 `secrets-config-form.tsx` 中外提
 
 # 发布 / 部署方式
 
@@ -256,21 +264,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到二十八处 contract-aligned 的治理结果：除了前二十七处治理样例外，还应看到 `components/config/SearchConfig.tsx` 与 `components/config/SearchConfig.test.tsx` 已移入 `shared/components`，新的 `search-config.tsx` 已通过 keyed 表单初始化消除 effect 型本地状态修补，并通过一条精确 alias 继续供 app 懒加载解析到 allowed-root 实现。
+5. 当前至少应看到二十九处 contract-aligned 的治理结果：除了前二十八处治理样例外，还应看到 `components/config/SecretsConfig.tsx` 已移入 `shared/components/config/`，新的 `secrets-config.tsx` 通过 keyed 表单初始化消除了 effect 型本地状态修补，`shared/components` 根目录文件数没有因这次迁移继续膨胀，并通过一条精确 alias 继续供 app 懒加载解析到 allowed-root 实现。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第二十八批继续从 `components/config` 吃掉 `SearchConfig` 这条一级页面入口，把实现与测试一起迁入 `shared/components`，并只保留一条精确 alias 承接 app 懒加载；相比继续把搜索配置页平铺在 legacy root，下沉到 shared root 更符合 strict 合同，也让配置页 shared 承接线更完整。
+本次是否已尽最大努力优化可维护性：是。第二十九批继续从 `components/config` 吃掉 `SecretsConfig` 这条一级页面入口，把实现迁入 `shared/components/config/` 并补上最小测试锚点；相比继续把 secrets 配置页平铺在 legacy root，这条路径既符合 strict 合同，也顺手把 shared 一级目录的预算风险压住了。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十八批没有新增用户能力，只做页面、测试与真实消费链的归位；迁移过程中没有保留 `SearchConfig` 的 effect 型本地状态修补，也没有把 provider 侧栏和详情表单继续堆在一个超长函数里，而是顺手拆成侧栏、详情与 provider fields 三个稳定子块，最终把非测试净增收敛到 `-36`。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十九批没有新增用户能力，只做页面、测试与真实消费链的归位；迁移过程中没有保留 `SecretsConfig` 的 effect 型本地状态修补，也没有因为 shared 根目录预算受限就把表单继续堆回一个大组件里，而是顺手拆成 `secrets-config.tsx` 装配层和 `secrets-config-form.tsx` 表单层，最终把非测试净增收敛到 `-33`。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十八批代码净变化为 `-35`，非测试代码净变化为 `-36`；`components/config` 再少一个一级页面实现，`shared/components` 对稳定配置页的承接继续加强，同时守住了非功能批次不膨胀的硬门槛。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十九批总代码净变化为 `+58`，但测试代码增加与目录拆分共同导致非测试代码净变化仍为 `-33`；`components/config` 再少一个一级页面实现，同时 `shared/components` 根目录没有被这次迁移继续压爆，整体平铺度继续下降。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`SearchConfig` 现在归位到 `shared/components`，稳定配置页不再继续平铺在 `components/config` 一级目录；同时没有增加新的假角色或中间层，只把 provider 侧栏、provider fields 与表单装配拆成同文件内的稳定子块，既避免补丁式叠加，也把超长函数直接收掉。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`SecretsConfig` 现在归位到 `shared/components/config/`，稳定配置页不再继续平铺在 `components/config` 一级目录；同时没有增加新的假角色或 shim，只把 shared 装配层和表单层拆开，让 payload 归一化、providers/refs 编辑与页面装配边界更清晰。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十八批之后 `components/config` 又少了一个一级页面实现，`shared/components` 对稳定配置页的承接更加完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `SessionsConfig.tsx` 与 `SecretsConfig.tsx` 现在成为 `components/config` 的下一轮高置信筛查对象，`chat-sidebar.tsx` 仍明确属于低置信重页面，不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十九批之后 `components/config` 又少了一个一级页面实现，`shared/components/config/` 也开始承接配置页子域，`shared/components` 根目录文件数没有继续膨胀。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `SessionsConfig.tsx` 现在成为 `components/config` 的最高优先级剩余重页面，`chat-sidebar.tsx` 仍明确属于低置信重页面，不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十八批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `628` 行，删除 `663` 行，净增 `-35` 行。非测试代码增减报告：新增 `477` 行，删除 `513` 行，净增 `-36` 行。可维护性总结：这一批把 `SearchConfig` 连同相邻测试拖进了 `shared/components`，并通过 keyed 表单初始化消除了 effect 型本地状态修补；治理守卫、非功能净增和 backlog ratchet 全部通过，同时确认 `SearchConfig` 已不再属于下一轮候选，后续优先改扫 `SessionsConfig` 与 `SecretsConfig`。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十九批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `527` 行，删除 `469` 行，净增 `+58` 行。非测试代码增减报告：新增 `436` 行，删除 `469` 行，净增 `-33` 行。可维护性总结：这一批把 `SecretsConfig` 拖进了 `shared/components/config/`，通过 keyed 表单初始化消除了 effect 型本地状态修补，同时用子目录与表单拆分一起消除了 shared 根目录预算与函数预算阻塞；治理守卫、非功能净减债和 backlog ratchet 全部通过，后续优先改扫 `SessionsConfig`。
 
 # NPM 包发布记录
 

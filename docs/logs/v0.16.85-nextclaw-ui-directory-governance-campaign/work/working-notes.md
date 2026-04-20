@@ -428,7 +428,7 @@
 
 # 停止原因 / 阻塞
 
-- 第二十八批已经完成；当前真正的阻塞不再是 `SearchConfig.tsx` 这类带测试的稳定页面，而是剩余候选里 `SessionsConfig.tsx`、`SecretsConfig.tsx` 与 `chat-sidebar.tsx` 这类更重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
+- 第二十八批已经提交（`13137035`, `refactor(ui): move search config page into shared roots`）；当前真正的阻塞不再是 `SearchConfig.tsx` 这类带测试的稳定页面，而是剩余候选里 `SessionsConfig.tsx`、`SecretsConfig.tsx` 与 `chat-sidebar.tsx` 这类更重页面是否还能拆出高置信子链。下一轮必须先做高置信筛选，而不是直接把整页搬到 feature root
 - 已尝试并回退 `chat-sidebar` 切根候选：行为测试与类型检查通过，但 strict guard 明确报出 `packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx` 的 `file-budget`、`function-budget` 与非功能净增 `> 0`，因此本轮已把相关未提交改动全部回退，只保留第二十五批成功提交
 - 第二十四批已经完成，并额外暴露出 strict 合同里的一个真实边界：`app.tsx` 这类 root file 不能作为直接切根消费方被触达；后续若再遇到这类页面级候选，默认先沿精确 alias 路径判断可行性
 - 第二十三批已经完成，但更大批次的 `features/channels` 候选并不属于“高置信 allowed-root 迁移”，因为它要求顺手重写 effect 边界、拆函数预算并且无法守住非功能净增 `<= 0`
@@ -437,6 +437,27 @@
 - `components/chat/ncp` 的 manager / adapter / list-view 主链已经移走，但仍有若干 legacy 消费方通过精确 alias 承接新实现；下一批应优先判断这些消费方里哪些能在不触碰更多 legacy 文件的前提下继续切根，哪些更适合转向 `components/config` 页面级实现治理
 - `components/chat` 的输入栏单链已经移走，`components/config` 的 `ModelConfig` / `CronConfig` / `SearchConfig` 也已移走，但剩余高层页面候选更重；下一轮优先筛 `SessionsConfig.tsx` 与 `SecretsConfig.tsx` 是否存在可独立拆出的 allowed-root 子链，若没有再回到 `features/system-status` / `shared/components` 里寻找更高置信的稳定配置子链
 - `chat-sidebar` 已被验证为当前形态下的低置信候选；下一轮不要再次直接迁它，优先回到 `components/config` 的页面级实现或评估 `features/system-status` / `shared/components` 里仍可整组承接的配置页子链，前提仍是 allowed-root、非功能净增 `<= 0` 与 strict guard 全通过
+- 当前已自动进入下一轮扫描：`SecretsConfig.tsx` 依赖主要集中在 `useConfig`、`useUpdateSecrets` 与通用 UI 组件，形态上更接近已完成的 `SearchConfig` / `ModelConfig`；当前扫描未发现相邻测试文件，这是它相对风险最高的一点。`SessionsConfig.tsx` 则仍依赖 `adaptNcpSessionSummaries`、`sessionDisplayName`、`sessionMatchesQuery` 与两段 effect 型本地状态修补，风险明显更高。因此当前优先级先给 `SecretsConfig.tsx`，除非后续验证表明它的测试缺口或 file-budget 问题无法用一批收口
+- 第二十九批已经完成并通过验证：
+  - 完成 `components/config/SecretsConfig.tsx -> shared/components/config/secrets-config.tsx`
+  - 完成 `shared/components/config/secrets-config-form.tsx`，把 secrets 表单主体、providers/refs 编辑与 payload 归一化从页面装配层拆开，直接解除函数预算阻塞
+  - 完成 `shared/components/config/secrets-config.test.tsx`，补上最小测试锚点，避免 `SecretsConfig` 继续以“无相邻测试”的形态迁移
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/SecretsConfig` 指向新的 allowed-root 实现
+  - 明确记录一次失败路径：第一版把 `secrets-config.tsx` 直接放在 `shared/components/` 根下，并把全部逻辑塞在 `SecretsConfigForm` 里，虽然测试和 governance 通过，但 maintainability guard 明确报出 `shared/components` 目录预算越界和 `SecretsConfigForm` 函数预算超限；第二版改为 `shared/components/config/` 子域 + `secrets-config-form.tsx` 拆分后全部通过
+  - 通过第二十九批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/shared/components/config/secrets-config.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/SecretsConfig.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config-form.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/SecretsConfig.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config-form.tsx packages/nextclaw-ui/src/shared/components/config/secrets-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十九批代码净变化：`+58`
+  - 第二十九批非测试代码净变化：`-33`
+  - 第二十九批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `527` 行，删除 `469` 行，净增 `+58` 行
+    - 非测试代码增减报告：新增 `436` 行，删除 `469` 行，净增 `-33` 行
+    - 可维护性总结：`no maintainability findings`。当前唯一保留观察点是 `shared/components/config/secrets-config-form.tsx` 已接近 file-budget，若后续 secrets 表单继续增长，应优先沿 normalization helpers、providers section 或 refs section 再拆小
 
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`

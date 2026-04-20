@@ -7,6 +7,7 @@ export default defineConfig({
       '@/components/chat/ChatWelcome': path.resolve(__dirname, './src/features/chat/components/chat-welcome.tsx'),
       '@/components/chat/chat-conversation-panel': path.resolve(__dirname, './src/features/chat/components/conversation/chat-conversation-panel.tsx'), '@/components/chat/containers/chat-input-bar.container': path.resolve(__dirname, './src/features/chat/components/conversation/chat-input-bar.container.tsx'), '@/components/chat/containers/chat-message-list.container': path.resolve(__dirname, './src/features/chat/components/conversation/chat-message-list.container.tsx'),
       '@/components/config/ModelConfig': path.resolve(__dirname, './src/shared/components/model-config.tsx'),
+      '@/components/config/SecretsConfig': path.resolve(__dirname, './src/shared/components/config/secrets-config.tsx'),
       '@/components/config/SearchConfig': path.resolve(__dirname, './src/shared/components/search-config.tsx'),
       '@/components/chat/chat-page': path.resolve(__dirname, './src/features/chat/pages/chat-page.tsx'),
       '@/components/chat/chat-page-shell': path.resolve(__dirname, './src/features/chat/components/layout/chat-page-shell.tsx'), '@/components/chat/managers/chat-session-list.manager': path.resolve(__dirname, './src/features/chat/managers/chat-session-list.manager.ts'),
