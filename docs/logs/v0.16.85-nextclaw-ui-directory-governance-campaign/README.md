@@ -43,6 +43,7 @@
 - 第二十一批通过治理的落点是继续吃掉 `ncp` 运行时 hooks 与 contract 测试链：把 `session-conversation` 子树整体迁入 `features/chat/hooks/runtime/`，把 `ncp-app-client-fetch.ts` 与其测试迁入 `features/chat/utils/ncp-app-client-fetch.utils.ts`，把 `useHydratedNcpAgent.test.tsx` 与 `useNcpAgentRuntime.test.tsx` 一并迁入 `features/chat/hooks/runtime/`，并把 `ncp-chat-page.tsx`、`chat-session-workspace-panel.tsx`、`chat-session-workspace-panel-nav.tsx` 与 `chat-conversation-panel.test.tsx` 的真实消费全部切到新路径
 - 第二十二批通过治理的落点是一次性吃掉 `components/chat/ncp` 的 manager / adapter / list-view 主链：把 `ncp-chat.presenter.ts`、`ncp-chat-input.manager.ts`、`ncp-chat-thread.manager.ts` 迁入 `features/chat/managers/`，把 `ncp-session-adapter.ts` 迁入 `features/chat/utils/ncp-session-adapter.utils.ts`，把 `use-ncp-session-list-view.ts` 迁入 `features/chat/hooks/use-ncp-session-list-view.ts`，并把四个相邻测试一起迁入 feature 内部；对仍留在 legacy roots 的真实消费方不再回写文件本体，而是通过 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 的精确 alias 承接旧导入，继续保持 strict `contract-only`
 - 第二十三批通过治理的落点是继续从 `components/config` 吃掉页面级卡片实现：把 `runtime-security-card.tsx` 迁入 `features/system-status/components/runtime-security-card.tsx`，让 `security-config.tsx` 直接消费新的 allowed-root 实现，并在新落点内顺手收敛卡片壳与 setup / configured 两段稳定结构；同轮还确认 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 的整组迁移当前会触发 effect-boundary、函数预算与非功能净增阻塞，因此被明确降级为否决候选，而不是带病推进
+- 第二十四批通过治理的落点是继续从 `components/config` 吃掉桌面更新页实现：把 `desktop-update-config.tsx` 与相邻测试一起迁入 `features/system-status/components/`，并在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补精确 alias 承接 `@/components/config/desktop-update-config`；这一批同时确认 strict 合同下 `app.tsx` 不能直接作为切根消费方触达，所以同类页面后续仍应优先沿“allowed-root 新实现 + 精确 alias”路径推进
 
 # 测试 / 验证 / 验收方式
 
@@ -107,6 +108,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二十四批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/system-status/components/desktop-update-config.test.tsx src/app.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.test.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.test.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -217,21 +224,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到二十三处 contract-aligned 的治理结果：除了前二十二处治理样例外，还应看到 `components/config/runtime-security-card.tsx` 已从 legacy root 移入 `features/system-status/components/runtime-security-card.tsx`，`security-config.tsx` 直接消费新的 allowed-root 实现，而被证伪的 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 大批次方案已明确记入否决候选，不再作为“带病也推进”的路径。
+5. 当前至少应看到二十四处 contract-aligned 的治理结果：除了前二十三处治理样例外，还应看到 `components/config/desktop-update-config.tsx` 与相邻测试已从 legacy root 移入 `features/system-status/components/`，而 `@/components/config/desktop-update-config` 通过精确 alias 继续解析到新的 allowed-root 实现；同时 `app.tsx` 不能直接触达的 strict 合同边界也已经被明确记录。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第二十三批继续从 `components/config` 吃掉页面级实现，把 `runtime-security-card` 迁入 `features/system-status/components`，并同步把 `security-config` 的真实消费切到 allowed roots；同时没有硬推那条已经被验证为低置信的 `features/channels` 大批次路径，而是把它明确降级为否决候选。
+本次是否已尽最大努力优化可维护性：是。第二十四批继续从 `components/config` 吃掉页面级实现，把 `desktop-update-config` 与相邻测试迁入 `features/system-status/components`，并且在 strict 合同下找到了仍可持续复制的承接模式：allowed-root 新实现 + 精确 alias，而不是再次硬碰 `app.tsx`。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十三批没有新增用户能力，只做卡片实现归位与消费方切根；新文件内部顺手收敛出稳定的卡片壳与两段局部结构，没有把复杂度换个目录继续保留。对于 `ChannelForm` 这条线，当前选择的是及时止损而不是继续叠补丁。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十四批没有新增用户能力，只做页面实现、测试与旧导入承接的归位；同时把新 `desktop-update-config.tsx` 从 285 行压到 219 行，避免把旧复杂度原样搬进 feature root。对直接改 `app.tsx` 的方案也没有硬顶，而是在验证失败后及时回到更可维护的 alias 路线。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十三批代码净变化为 `-12`，非测试代码净变化为 `-12`；`components/config` 再少一个页面级实现文件，`features/system-status/components` 的语义聚合继续加强，且这次没有引入新的 alias 或 shim 膨胀。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十四批代码净变化为 `-50`，非测试代码净变化为 `-51`；`components/config` 再少一条桌面更新页面实现与相邻测试，`features/system-status/components` 对运行时/桌面状态相关 UI 的聚合继续加强。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`runtime-security-card` 现在与 `security-config` 同属 `features/system-status/components/`，运行时安全相关 UI 不再散落在 `components/config`；新文件内部把重复卡片壳与两段稳定内容提成局部子组件，属于就地减复杂度，而不是再抽一层无意义公共件。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`desktop-update-config` 与其测试现在归位到 `features/system-status/components/`，桌面更新 UI 不再留在 `components/config`；同时保留 `platforms/desktop` 作为状态 owner，不额外引入多余 manager / helper，只在组件内部做了必要的显示层压缩。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十三批之后 `components/config` 又少了一块运行时安全卡片实现，`features/system-status` 对这一语义线的承接更完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 当前不是高置信目录迁移候选，后续要么等待更成组的 feature-root 方案，要么先转向 `components/chat` 与其它 `components/config` 页面级实现。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十四批之后 `components/config` 又少了一条桌面更新页面实现，`features/system-status` 对系统状态 / 桌面运行时相关 UI 的承接更加完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `app.tsx` 不能直接触达的新约束已经被坐实，后续页面级迁移需要优先判断能否沿精确 alias 路线推进。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十三批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `265` 行，删除 `277` 行，净增 `-12` 行。非测试代码增减报告：新增 `265` 行，删除 `277` 行，净增 `-12` 行。可维护性总结：这一批把 `runtime-security-card` 彻底拖进了 `features/system-status/components`，并把真实消费切到 allowed roots；strict 合同、治理守卫、非功能净增和 backlog ratchet 全部通过。同步记录的结论是：`ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 这条线在当前形态下需要结构重写才能过治理，因此被明确从“高置信自动推进”队列移除，避免后续继续吞吐浪费。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十四批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `314` 行，删除 `364` 行，净增 `-50` 行。非测试代码增减报告：新增 `222` 行，删除 `273` 行，净增 `-51` 行。可维护性总结：这一批把 `desktop-update-config` 与相邻测试彻底拖进了 `features/system-status/components`，并用精确 alias 在 strict 合同下承接旧导入；治理守卫、非功能净增和 backlog ratchet 全部通过。同步确认的新规则事实是：`app.tsx` 不能直接作为这类页面迁移的切根消费方，因此后续页面级整理需要优先沿 alias 路线，而不是重复踩 module-structure 阻断。
 
 # NPM 包发布记录
 

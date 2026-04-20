@@ -361,10 +361,25 @@
     - `pnpm check:governance-backlog-ratchet`
   - 第二十三批代码净变化：`-12`
   - 第二十三批非测试代码净变化：`-12`
+- 补记第二十四批：
+  - 完成 `components/config/desktop-update-config.tsx -> features/system-status/components/desktop-update-config.tsx`
+  - 完成 `components/config/desktop-update-config.test.tsx -> features/system-status/components/desktop-update-config.test.tsx`
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/desktop-update-config` 指向新的 allowed-root 实现
+  - 验证并确认 strict 合同细节：`app.tsx` 作为 root file 不能直接成为切根消费方；本批次必须沿用“allowed-root 新实现 + 精确 alias 承接旧导入”的路径，不能走直接改 `app.tsx` 的方案
+  - 在新落点内压缩 `desktop-update-config.tsx`：文件行数从 285 收敛到 219，避免新 feature 文件把旧复杂度原样复制过去
+  - 通过第二十四批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/system-status/components/desktop-update-config.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.test.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.tsx packages/nextclaw-ui/src/features/system-status/components/desktop-update-config.test.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.tsx packages/nextclaw-ui/src/components/config/desktop-update-config.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十四批代码净变化：`-50`
+  - 第二十四批非测试代码净变化：`-51`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
+- 第二十四批已经完成，并额外暴露出 strict 合同里的一个真实边界：`app.tsx` 这类 root file 不能作为直接切根消费方被触达；后续若再遇到这类页面级候选，默认先沿精确 alias 路径判断可行性
 - 第二十三批已经完成，但更大批次的 `features/channels` 候选并不属于“高置信 allowed-root 迁移”，因为它要求顺手重写 effect 边界、拆函数预算并且无法守住非功能净增 `<= 0`
 - 当前已完成批次本身都已通过验证；剩余阻塞在于后续候选项仍必须同时满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
