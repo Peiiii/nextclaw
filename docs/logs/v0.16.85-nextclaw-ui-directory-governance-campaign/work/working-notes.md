@@ -37,6 +37,7 @@
 
 - [x] `components/config` 合同校准与失败路径回收
 - [x] `security-config` 迁入 `features/system-status` 并保留 legacy 薄转发入口
+- [x] `runtime-presence-card` 迁入 `features/system-status/components` 并保留 legacy 薄转发入口
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -62,12 +63,21 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/runtime-presence-card.tsx -> features/system-status/components/runtime-presence-card.tsx` 的真实实现迁移
+- 在新文件中新增 `PresenceCardFrame`，消除重复的卡片壳结构，确保不是只换目录而是顺手降低重复度
+- 通过第二批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
 - 暂不触达已有未提交的内核相关改动路径
 - 暂不把低置信的跨 feature 重组和产品语义调整混入本轮目录治理
 - 排除继续在 `components/config`、`components/chat`、`lib`、`api` 等 legacy roots 下直接新增子树的做法
+- 排除 `desktop-update-config` 当前版本的直接迁移方案：会引入新的长函数文件预算问题，并通过平台根导出带来循环依赖/测试语义偏移风险
 
 # 关键决策
 
@@ -75,15 +85,16 @@
 - 第一批原定直拆 `components/config`，但经真实验证后确认与模块结构合同冲突，必须改成“先迁入 allowed roots，再做子树收敛”
 - 在新的高置信批次形成前，不保留任何未通过治理闸门的代码结构尝试
 - `security-config` 这一步不再修改 `app.tsx`，而是通过 legacy 薄转发过渡，避免触发 `src/app.tsx` 与 `src/app/` 的 file-directory collision 治理规则
+- `runtime-presence-card` 证明除了整页配置入口外，较小的运行时卡片也可以按“真实实现迁入 feature + legacy 薄转发”模式逐步抽离
 
 # 下一步
 
-- 继续扫描 `components/config` 里已是 kebab-case 的页面文件，优先挑选可挂入 `features/system-status`、`features/account` 或 `features/remote` 的候选项
+- 继续扫描 `components/config` 里已是 kebab-case 的页面或卡片文件，优先挑选可挂入 `features/system-status`、`features/account` 或 `features/remote` 的候选项
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
-- 当前首个高置信批次已经形成并通过验证，剩余阻塞不在本批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
+- 当前前两个高置信批次都已形成并通过验证，剩余阻塞不在已完成批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
 
 # 交接提醒

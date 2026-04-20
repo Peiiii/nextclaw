@@ -20,6 +20,7 @@
 - 当前 `rootPolicy=legacy-frozen`，因此不能继续在 legacy roots（如 `components`、`lib`、`api`、`hooks`）下直接新增目录层级
 - 首批尝试在 `components/config` 下新建 provider 子树已被治理闸门阻断，并已回撤代码尝试；后续必须改成 contract-aligned 的迁移路径
 - 第一批真正通过治理的落点是把 `components/config/security-config.tsx` 的真实实现迁入 `features/system-status/components/security-config.tsx`，旧路径只保留薄转发入口，从而在不碰 `app.tsx` 历史命名冲突的前提下完成一次 allowed-root 迁移
+- 第二批通过治理的落点是把 `components/config/runtime-presence-card.tsx` 的真实实现迁入 `features/system-status/components/runtime-presence-card.tsx`，旧路径收窄为兼容导出，并顺手消除了重复的卡片壳结构
 
 # 测试 / 验证 / 验收方式
 
@@ -36,16 +37,24 @@
 - 已执行一次真实失败验证，确认 legacy-root 直拆会同时触发 `module-structure`、目录预算和非功能净增闸门
 - 已回撤失败代码路径，当前仓库未保留这次未通过治理检查的半成品结构
 - 当前首个成功批次已完成以下验证：
+- 当前第二个成功批次已完成以下验证：
   - `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx`
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
   - `pnpm check:governance-backlog-ratchet`
 - 验证结果：
   - 路由相关测试通过，说明配置页入口仍可正常装载
   - 类型检查通过
   - 治理检查通过；仅保留一条历史告警，提示 `components/config` 目录本身仍超预算，但本批次没有继续恶化该问题
   - 非测试代码净变化为负值，符合“非功能批次不得净增”的要求
+  - `runtime-presence-card` 的测试通过，说明桌面态与本地服务态的关键展示/交互仍可工作
 
 # 发布 / 部署方式
 
@@ -57,7 +66,7 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到一处 contract-aligned 的迁移样例：`security-config` 的真实实现位于 `features/system-status/components`，而 legacy 路径只保留兼容导出。
+5. 当前至少应看到两处 contract-aligned 的迁移样例：`security-config` 与 `runtime-presence-card` 的真实实现都位于 `features/system-status/components`，而 legacy 路径只保留兼容导出。
 
 # 可维护性总结汇总
 
@@ -65,11 +74,11 @@
 
 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本批次没有新增用户能力，只做实现归位与兼容出口收窄；旧文件由完整页面实现降为单行转发，复杂度明显下降。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。本批次非测试代码净变化为负值，`components/config/security-config.tsx` 从页面实现收敛为兼容出口，目录平铺度开始向 `features/system-status` 转移，但 `components/config` 顶层文件数仍未下降，需要在后续批次继续搬迁其它同类页面。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前两个成功批次的非测试代码净变化都为负值；`components/config/security-config.tsx` 与 `components/config/runtime-presence-card.tsx` 已从真实实现收敛为兼容出口，其中 `runtime-presence-card` 还去掉了重复的卡片壳结构。`components/config` 顶层文件数仍未下降，需要后续继续把其它实现在 allowed roots 中沉淀下来。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 属于系统状态与运行安全展示面，落到既有 `features/system-status` 比继续滞留在超载的 `components/config` 更符合模块边界；同时没有引入新的假角色目录或额外 helper。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 比继续滞留在超载的 `components/config` 更符合模块边界；同时没有引入新的假角色目录或额外 helper，反而顺手收敛了重复 UI 壳层。
 
-目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；本批次已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，下一步应继续挑选 `components/config` 中已是 kebab-case、语义上可并入既有 feature 的页面文件推进。
+目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；当前已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，下一步应继续挑选 `components/config` 中已是 kebab-case、语义上可并入既有 feature 的页面或卡片推进。
 
 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。本批次独立复核结论为“通过，继续推进下一层级”。原因是这一步确实减少了 legacy 目录中的实质实现代码，且没有把复杂度转移成新的横向耦合；唯一保留风险是 `components/config` 的目录预算债务仍在，需要后续连续批次继续偿还。
 
