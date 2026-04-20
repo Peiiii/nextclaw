@@ -3,14 +3,15 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-secrets-config next-candidate scan",
-    "原因": "第二十九批已经把 `SecretsConfig` 迁入 `shared/components/config/`，并通过拆分 `secrets-config-form.tsx` 同时消除了 shared 根目录预算与表单函数预算阻塞。当前剩余的一级配置页重页面里，`SessionsConfig` 已成为最高优先级候选，但它仍带 chat 运行时依赖与两段 effect 型本地状态修补，需要先判断是否只能拆支撑子链而不能整页迁移。",
+    "名称": "post-sessions-config runtime-config scan",
+    "原因": "第三十批已完成：`SessionsConfig` 已迁入 `features/chat/pages/`，详情子块进一步收束到 `features/chat/components/config/`，并通过派生选中态 + keyed 元信息编辑器一起消除了两段 effect 型本地状态修补。当前剩余的一级配置页重页面里，`RuntimeConfig.tsx` 已成为新的最高优先级候选：它的 `runtime-control-card`、`runtime-presence-card` 与 `runtime-config-agent.utils` 已经落到 `features/system-status`，语义归属清晰，但页面本体仍保留三段 effect 型本地状态灌入、agent/binding/runtime-entry 三条编辑链和一个超长保存分支，更适合先扫描 `features/system-status` 子域拆分点，再决定是否整页迁移。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
       "若候选迁移需要额外修 effect / 函数预算 / 结构净增，立即降级为低置信并写回否决记录",
       "若消费方位于 strict root-file 集合外且触达会触发 module-structure 阻断，优先改用精确 alias 承接",
       "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
+      "若候选会把 feature 根目录推到目录预算硬上限，必须先拆出 `components/config`、`components/runtime` 或同等子域，再继续迁移",
       "若尝试直接触达 `app.tsx` 这类 strict root-file 消费方，立即回退并改用精确 alias 承接",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
@@ -71,7 +72,8 @@
     "完成 chat-input-bar.container、ncp-chat-input-availability.utils 与相邻测试的 feature-root 迁移，并把 features/chat 真实消费方切到新路径",
     "完成 ModelConfig、CronConfig 与相邻测试的 shared-root 迁移，并把真实消费方切到新路径",
     "完成 SearchConfig 与相邻测试的 shared-root 迁移，并通过精确 alias 承接 legacy 导入",
-    "完成 SecretsConfig、相邻测试与 secrets 表单装配链的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
+    "完成 SecretsConfig、相邻测试与 secrets 表单装配链的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
+    "完成 SessionsConfig、相邻测试与会话详情子块的 feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -84,7 +86,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "跳过 chat-sidebar 这条已被 strict guard 否决的重页面候选，继续扫描 components/config/SessionsConfig.tsx；优先判断能否先把会话筛选、会话元信息编辑或消息渲染支撑链单独迁入 `features/chat`，而不是直接整页迁移。若 `SessionsConfig.tsx` 仍无法在非功能净增 <= 0、effect-boundary 和 file-budget 下成立，则回到 features/system-status / shared/components/config 中寻找还能整组承接的稳定配置子链。",
-  "最近一次停机原因": "第二十九批已经完成并待提交：SecretsConfig 已脱离 legacy root，治理守卫、类型检查、UI 用例、非功能净增和 backlog ratchet 全部通过；过程中还确认了第一版 shared 根目录落点会触发 directory-budget 与 function-budget，因此最终改为 `shared/components/config/` 子域 + `secrets-config-form.tsx` 拆分。",
+  "下一步": "继续扫描 `components/config/RuntimeConfig.tsx` 的可拆子链；优先判断 overview 壳、agent/binding/runtime-entry 编辑段与保存归一化链能否先分别迁入 `features/system-status/pages`、`features/system-status/components/config` 或 `features/system-status/utils`，并补一条最小测试锚点，再决定是否扩大到整页迁移。若 `RuntimeConfig.tsx` 仍无法在非功能净增 <= 0、effect-boundary 和 file-budget 下成立，则回到 `shared/components/config` 继续寻找更高置信的 provider 页面链。",
+  "最近一次停机原因": "第三十批已完成验证：`SessionsConfig` 已迁入 `features/chat/pages/sessions-config-page.tsx`，详情子块落到 `features/chat/components/config/sessions-config-detail-pane.tsx`，并用精确 alias 承接 `@/components/config/SessionsConfig`。当前没有治理硬失败，已自动进入下一轮高置信候选扫描；初筛确认 `RuntimeConfig` 语义归属清晰，但应先做 `system-status` 子域拆分扫描，而不是直接整页搬运。",
   "最近更新时间": "2026-04-21"
 }

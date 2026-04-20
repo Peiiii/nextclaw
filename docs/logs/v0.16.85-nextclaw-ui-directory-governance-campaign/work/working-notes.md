@@ -458,6 +458,30 @@
     - 代码增减报告：新增 `527` 行，删除 `469` 行，净增 `+58` 行
     - 非测试代码增减报告：新增 `436` 行，删除 `469` 行，净增 `-33` 行
     - 可维护性总结：`no maintainability findings`。当前唯一保留观察点是 `shared/components/config/secrets-config-form.tsx` 已接近 file-budget，若后续 secrets 表单继续增长，应优先沿 normalization helpers、providers section 或 refs section 再拆小
+  - 已提交：`1faee57c` (`refactor(ui): move secrets config page into shared roots`)
+- 当前已自动进入下一轮扫描：`SessionsConfig.tsx` 已经部分消费 `features/chat` 里的 `adaptNcpSessionSummaries`、`sessionDisplayName` 与 `sessionMatchesQuery`，说明它并不是完全孤立的配置页；但它同时把列表筛选、消息渲染与会话元信息编辑三条链堆在一个页面里，并带两段 effect 型本地状态修补，还没有相邻测试。当前判断是：下一轮不要直接整页迁移，优先从会话元信息编辑段、列表筛选段或消息渲染段里挑一条高置信子链先拆
+- 第三十批已经完成并通过验证：
+  - 完成 `components/config/SessionsConfig.tsx -> features/chat/pages/sessions-config-page.tsx`
+  - 完成 `features/chat/components/config/sessions-config-detail-pane.tsx`，把详情与消息历史子块收束到 `config/` 子域，避免新实现继续平铺在 `features/chat/components` 根目录
+  - 完成 `features/chat/pages/sessions-config-page.test.tsx`，补上最小会话列表/元信息保存/删除交互测试
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/SessionsConfig` 指向新的 allowed-root 实现
+  - 完成结构减债：用派生 `selectedSessionKey` 删掉“会话消失后再用 effect 清空选中态”的状态修补；用 keyed `SessionMetadataEditor` 删掉 `draftLabel` / `draftModel` 跟随选中会话同步的 effect 修补
+  - 明确记录一次失败路径：第一版把详情子块直接放在 `features/chat/components/` 根下，governance 与 non-test 净减债都通过，但 maintainability guard 明确报出 `features/chat/components` 从预算内跨到目录上限；第二版改为 `features/chat/components/config/` 子域后全部通过
+  - 通过第三十批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/pages/sessions-config-page.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/SessionsConfig.tsx packages/nextclaw-ui/src/features/chat/pages/sessions-config-page.tsx packages/nextclaw-ui/src/features/chat/components/config/sessions-config-detail-pane.tsx packages/nextclaw-ui/src/features/chat/pages/sessions-config-page.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/SessionsConfig.tsx packages/nextclaw-ui/src/features/chat/pages/sessions-config-page.tsx packages/nextclaw-ui/src/features/chat/components/config/sessions-config-detail-pane.tsx packages/nextclaw-ui/src/features/chat/pages/sessions-config-page.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十批代码净变化：`+148`
+  - 第三十批非测试代码净变化：`-5`
+  - 第三十批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `585` 行，删除 `437` 行，净增 `+148` 行
+    - 非测试代码增减报告：新增 `432` 行，删除 `437` 行，净增 `-5` 行
+    - 可维护性总结：`no maintainability findings`。这一批不是只把会话页换目录，而是同时消除了两段 effect 型本地状态修补，并把详情子块顺手收进 `config/` 子域；当前没有新增预算观察点
+- 当前已自动进入下一轮扫描：`RuntimeConfig.tsx` 现在成为 `components/config` 的最高优先级剩余重页面。它的 `runtime-control-card`、`runtime-presence-card` 与 `runtime-config-agent.utils` 已经归到 `features/system-status`，说明语义边界是清晰的；但页面本体仍带三段 effect 型本地状态灌入、agent/binding/runtime-entry 三条编辑链和一个长保存分支。当前判断是：下一轮不要直接整页迁移，优先从 overview 壳、runtime entry 编辑段或保存归一化链里挑一条高置信子链先拆
 
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`

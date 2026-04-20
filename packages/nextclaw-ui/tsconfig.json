@@ -16,6 +16,7 @@
       "@/components/config/ModelConfig": ["./src/shared/components/model-config.tsx"],
       "@/components/config/SecretsConfig": ["./src/shared/components/config/secrets-config.tsx"],
       "@/components/config/SearchConfig": ["./src/shared/components/search-config.tsx"],
+      "@/components/config/SessionsConfig": ["./src/features/chat/pages/sessions-config-page.tsx"],
       "@/components/chat/chat-page": ["./src/features/chat/pages/chat-page.tsx"],
       "@/components/chat/chat-page-shell": ["./src/features/chat/components/layout/chat-page-shell.tsx"], "@/components/chat/managers/chat-session-list.manager": ["./src/features/chat/managers/chat-session-list.manager.ts"],
       "@/components/chat/ncp/ncp-chat.presenter": ["./src/features/chat/managers/ncp-chat-presenter.manager.ts"], "@/components/chat/ncp/ncp-chat-input.manager": ["./src/features/chat/managers/ncp-chat-input.manager.ts"], "@/components/chat/ncp/ncp-chat-thread.manager": ["./src/features/chat/managers/ncp-chat-thread.manager.ts"], "@/components/chat/ncp/ncp-session-adapter": ["./src/features/chat/utils/ncp-session-adapter.utils.ts"], "@/components/chat/ncp/use-ncp-session-list-view": ["./src/features/chat/hooks/use-ncp-session-list-view.ts"], "@/components/chat/stores/chat-session-list.store": ["./src/features/chat/stores/chat-session-list.store.ts"],
