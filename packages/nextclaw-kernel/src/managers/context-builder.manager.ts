@@ -12,10 +12,6 @@ export class ContextBuilder {
     task?: TaskRecord | null;
     agent: AgentRecord;
   }): ContextRecord => {
-    // TODO(kernel):
-    // 1. Resolve the session aggregate from SessionManager.
-    // 2. Derive a run context from session/task/agent state.
-    // 3. Return the assembled context snapshot without owning persistence.
     void this.sessions;
     void input;
     throw new Error("ContextBuilder.build is not implemented.");

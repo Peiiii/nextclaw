@@ -8,10 +8,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": [
-        "./src/*"
+        "./src/*",
+        "../nextclaw-kernel/src/*"
       ],
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
+      ],
+      "@nextclaw/kernel": [
+        "../nextclaw-kernel/src/index.ts"
       ],
       "@nextclaw/feishu-core": [
         "../extensions/nextclaw-feishu-core/src/index.ts"

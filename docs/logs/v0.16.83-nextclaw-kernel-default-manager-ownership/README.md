@@ -36,6 +36,16 @@
   - `ContextBuilder` 现在明确依赖 `SessionManager`，只负责从 `session/task/agent` 组装 `ContextRecord`，不再伪装成拥有 `get/save/patch` 状态面的 manager
 - 设计文档也同步修正为“kernel 默认自带 owner，不把默认 ownership 让渡给外部装配层”，并明确当前阶段只保留骨架不写实逻辑：
   - [docs/designs/2026-04-20-nextclaw-kernel-architecture.md](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-20-nextclaw-kernel-architecture.md)
+- 当前这条长链路设计讨论的目标锚文件：
+  - [work/goal-progress.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.83-nextclaw-kernel-default-manager-ownership/work/goal-progress.md)
+- 同批次续改继续落“阶段 1：Kernel 最小闭环”的第一步，而且这次是实代码接线，不再只是讨论：
+  - `nextclaw` 现在显式依赖 `@nextclaw/kernel`
+  - [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts) 现在会先实例化 `NextclawKernel`
+  - `gateway / ui / start / restart / serve / stop` 这组六个产品运行控制入口，已经先通过 `kernel.control` 进入 owner 边界，再回到原有命令实现
+  - 这一步只迁移了“谁拥有这组入口”的边界，没有改 `RuntimeCommandService`、没有重写 `NCP runtime`、没有改 agent 内部 tool loop
+- 为了满足“纯结构治理不能让代码继续膨胀”的约束，这一批还同步做了两件收敛动作：
+  - 删除了一批 `nextclaw-kernel` 骨架 manager 里低信息密度、重复性的 TODO 注释噪音
+  - 把 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts) 里多组纯薄包装方法压成更紧凑的单行委托，使这个超预算文件本次净减少 37 行，而不是继续变大
 
 ## 测试/验证/验收方式
 
@@ -46,6 +56,14 @@
   - 观察点：在删除具体实现逻辑、仅保留骨架和注释之后，增量治理依然全绿。
 - 已通过：`node node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc -p packages/nextclaw-kernel/tsconfig.json`
   - 观察点：当前骨架代码能够通过 TypeScript 编译检查。
+- 已通过：`node node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc -p packages/nextclaw/tsconfig.json`
+  - 观察点：`nextclaw` 引入 `@nextclaw/kernel` 后，CLI 入口与内核包之间的源码依赖链可正常通过编译。
+- 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/managers/agent.manager.ts packages/nextclaw-kernel/src/managers/automation.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/context-builder.manager.ts packages/nextclaw-kernel/src/managers/llm-provider.manager.ts packages/nextclaw-kernel/src/managers/session.manager.ts packages/nextclaw-kernel/src/managers/skill.manager.ts packages/nextclaw-kernel/src/managers/task.manager.ts packages/nextclaw-kernel/src/managers/tool.manager.ts packages/nextclaw/package.json packages/nextclaw/tsconfig.json packages/nextclaw/src/cli/app/runtime.ts`
+  - 观察点：本次非功能结构治理最终 `Non-test line changes = net -57`，且 `runtime.ts` 本次净减少 37 行；剩余只有“文件仍高于预算”的历史债务提醒，没有新增阻断。
+- 已通过：`pnpm lint:new-code:governance -- packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/managers/agent.manager.ts packages/nextclaw-kernel/src/managers/automation.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/context-builder.manager.ts packages/nextclaw-kernel/src/managers/llm-provider.manager.ts packages/nextclaw-kernel/src/managers/session.manager.ts packages/nextclaw-kernel/src/managers/skill.manager.ts packages/nextclaw-kernel/src/managers/task.manager.ts packages/nextclaw-kernel/src/managers/tool.manager.ts packages/nextclaw/package.json packages/nextclaw/tsconfig.json packages/nextclaw/src/cli/app/runtime.ts`
+  - 观察点：本次新增的 kernel owner 接线与同批次骨架清理没有触发任何增量治理错误。
+- 已通过：`pnpm dev start`
+  - 观察点：本次实测启动落到了 `http://127.0.0.1:18793/api/health` 与 `http://127.0.0.1:5175/`，其中 `/api/health` 返回 `{"ok":true,"data":{"status":"ok","services":{"ncpAgent":"ready","cronService":"ready"}}}`，前端首页返回 `200 OK`；说明 `CliRuntime -> kernel control surface -> 原运行命令` 这条链路没有打断真实启动。
 
 ## 发布/部署方式
 
@@ -60,17 +78,18 @@
 3. 查看 [`packages/nextclaw-kernel/src/managers/context-builder.manager.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/src/managers/context-builder.manager.ts)，确认 `context` 已被收回成依赖 `SessionManager` 的 builder，而不是继续保留状态 owner 心智。
 4. 查看 [`packages/nextclaw-kernel/src/managers/`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/src/managers)，确认剩余 manager 只表达职责边界，没有提前写入真实存储或状态迁移实现。
 5. 查看 `run()` 方法体，确认当前只有结构说明 / 伪代码，而没有具体业务逻辑。
-6. 执行 TypeScript 编译，确认骨架本身可通过静态检查。
+6. 查看 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts)，确认 `gateway / ui / start / restart / serve / stop` 这组六个 CLI 入口已经先通过 `kernel.control` 再进入原有命令实现。
+7. 执行 `pnpm dev start`，确认服务可正常拉起，`/api/health` 返回 `ok=true`，前端首页可访问。
 
 ## 可维护性总结汇总
 
 - 是否已尽最大努力优化可维护性：是。本次没有继续保留 “abstract manager shell + constructor 注入” 这层假边界，而是直接删掉了错误装配模型。
-- 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本轮进一步删除了具体内存实现、删除了 `kernel-manager.utils.ts`，并把 `kernel` 顶层动作继续收敛到只剩 `run()`。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：有改善。此前临时加进去的具体实现辅助模块已被删除，`nextclaw-kernel` 回到了“结构先行”的更轻状态。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。`NextclawKernel` 现在只表达 owner 结构和唯一核心动作；`run` 协议也已经收敛成事件本体模型；`context` 相关概念也已从伪状态 owner 收回成依赖 `SessionManager` 的 `ContextBuilder`。
+- 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本轮不仅把控制入口先收到了 `kernel` owner 边界，还同步删除了重复 TODO 注释噪音，并把超大 `runtime.ts` 压薄到了净减少 37 行。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：有改善。本批最终 `Non-test line changes = net -57`；也就是说，这次非功能结构治理没有让代码继续长胖，而是在引入 kernel owner 接线的同时实现了净收敛。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。`NextclawKernel` 现在除了默认 manager skeleton 之外，还真正开始拥有一层产品运行控制面的 owner；`nextclaw` 入口包仍保留原命令实现，但不再直接宣称自己拥有这组六个核心控制入口。
 - 目录结构与文件组织是否满足当前项目治理要求：满足。`nextclaw-kernel` 继续遵循 `package-l1`；当前 `NextclawKernel` owner 已从根层收回 `app/`，根级只保留 `index.ts` 入口，结构与协议描述一致。
-- 独立于实现阶段的可维护性复核结论：通过。第二遍复核重点检查的是“是否虽然删掉 facade 和 constructor 注入，却又偷偷把具体实现写死在骨架里，或把过多内部参数泄漏进 `run` 协议”；结论是否定的。当前主路径已经变成 `kernel skeleton -> default manager boundaries + minimal run protocol`。
-  - 当前最小 `run` 协议也已经稳定为“`sessionId + messages + metadata(agentId/model/skills) + extra`”，避免再把内部装配细节泄漏到 public surface。
+- 独立于实现阶段的可维护性复核结论：通过。第二遍复核重点检查的是“这次 owner 迁移是否只是加了一层新壳、却让 `runtime.ts` 更大、让 kernel 更噪、或偷偷改了内部执行逻辑”；结论是否定的。当前主路径已经变成 `CliRuntime -> NextclawKernel.control -> 原命令实现`，并且在真实启动链路里已验证无行为回归。
+  - 当前最小 `run` 协议仍稳定为“`sessionId + messages + metadata(agentId/model/skills) + extra`”，避免这轮为了 owner 迁移又把内部装配细节泄漏到 public surface。
 
 ## NPM 包发布记录
 

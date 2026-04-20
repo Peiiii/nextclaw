@@ -25,10 +25,13 @@
 - 已识别刚才的偏航点是开始重造 agent runtime / tool loop
 - 已新增目标锚机制，后续用这个文件防漂移
 - 已把最短 3 阶段落地战略写回目标架构文档
+- 已完成阶段 1 的第一步落地：`nextclaw` 现在会实例化 `NextclawKernel`，并把 `gateway/ui/start/restart/serve/stop` 这组六个运行控制入口先接入 `kernel.control`
+- 已验证这一步没有改动 `RuntimeCommandService` 和 `NCP` 内部 runtime，真实启动链路仍然正常
+- 已把这次非功能治理压成净收敛：`Non-test line changes = net -57`
 
 ## 当前下一步
 
-- 进入阶段 1，只做 `kernel` 最小闭环的第一步，不碰 agent 内部 loop
+- 继续阶段 1，但下一步只迁下一个最小的产品本体编排切片，不碰 agent 内部 loop
 
 ## 执行闸口
 
@@ -38,4 +41,4 @@
 
 ## 锚点计数器
 
-- 当前值：13/20
+- 当前值：0/20

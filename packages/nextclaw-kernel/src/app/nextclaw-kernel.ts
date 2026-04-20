@@ -9,11 +9,62 @@ import { TaskManager } from "@/managers/task.manager.js";
 import { ToolManager } from "@/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@/types/nextclaw-kernel.types.js";
 
-export class NextclawKernel {
+type NextclawKernelRuntimeControl<
+  TGatewayInput,
+  TUiInput,
+  TStartInput,
+> = {
+  gateway: (input: TGatewayInput) => Promise<void>;
+  ui: (input: TUiInput) => Promise<void>;
+  start: (input: TStartInput) => Promise<void>;
+  restart: (input: TStartInput) => Promise<void>;
+  serve: (input: TStartInput) => Promise<void>;
+  stop: () => Promise<void>;
+};
+
+class NextclawKernelControlManager<
+  TGatewayInput,
+  TUiInput,
+  TStartInput,
+> {
+  private runtimeControl: NextclawKernelRuntimeControl<
+    TGatewayInput,
+    TUiInput,
+    TStartInput
+  > | null = null;
+
+  readonly installRuntimeControl = (
+    runtimeControl: NextclawKernelRuntimeControl<
+      TGatewayInput,
+      TUiInput,
+      TStartInput
+    >,
+  ) => {
+    this.runtimeControl = runtimeControl;
+  };
+
+  readonly requireRuntimeControl = () => {
+    if (!this.runtimeControl) {
+      throw new Error("Kernel runtime control is not installed.");
+    }
+    return this.runtimeControl;
+  };
+}
+
+export class NextclawKernel<
+  TGatewayInput = unknown,
+  TUiInput = unknown,
+  TStartInput = unknown,
+> {
   readonly agents = new AgentManager();
   readonly tasks = new TaskManager();
   readonly sessions = new SessionManager();
   readonly contextBuilder = new ContextBuilder(this.sessions);
+  readonly control = new NextclawKernelControlManager<
+    TGatewayInput,
+    TUiInput,
+    TStartInput
+  >();
   readonly tools = new ToolManager();
   readonly skills = new SkillManager();
   readonly llmProviders = new LlmProviderManager();
@@ -21,13 +72,6 @@ export class NextclawKernel {
   readonly channels = new ChannelManager();
 
   readonly run = (input: NextclawKernelRunInput): NextclawKernelRun => {
-    // TODO(kernel):
-    // 1. Accept an event payload expressed as sessionId + messages.
-    // 2. Interpret metadata / extra as optional hints, not as hard-coded protocol fields.
-    // 3. Resolve or assemble execution context through ContextBuilder when the protocol settles.
-    // 4. Resolve internal agent / provider / capability decisions from kernel-owned state.
-    // 5. Create the task/session/context side effects behind the owner boundary.
-    // 6. Return only a minimal task handle to the caller.
     void input;
     throw new Error("NextclawKernel.run is not implemented.");
   };
