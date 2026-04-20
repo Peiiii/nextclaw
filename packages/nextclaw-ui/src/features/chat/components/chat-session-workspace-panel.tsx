@@ -9,8 +9,8 @@ import { ChatMessageListContainer } from "@/components/chat/containers/chat-mess
 import {
   useNcpChildSessionTabsView,
   type ResolvedChildSessionTab,
-} from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
-import { useNcpSessionConversation } from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
+} from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
+import { useNcpSessionConversation } from "@/features/chat/hooks/runtime/use-ncp-session-conversation";
 import {
   shouldShowUnreadSessionIndicator,
   useChatSessionListStore,

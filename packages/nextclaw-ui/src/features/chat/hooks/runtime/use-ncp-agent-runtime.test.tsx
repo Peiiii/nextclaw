@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
-import { useNcpAgentRuntime } from "../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-ncp-agent-runtime.ts";
+import { useNcpAgentRuntime } from "../../../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-ncp-agent-runtime.ts";
 
 function createEvent(type: NcpEventType, delta: string): NcpEndpointEvent {
   return {

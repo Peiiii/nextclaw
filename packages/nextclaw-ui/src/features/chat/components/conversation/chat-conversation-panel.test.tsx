@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
-import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
+import type { ResolvedChildSessionTab } from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
@@ -124,14 +124,14 @@ vi.mock("@/components/chat/session-header/chat-session-project-badge", () => ({
 }));
 
 vi.mock(
-  "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view",
+  "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view",
   () => ({
     useNcpChildSessionTabsView: () => mocks.resolvedChildTabs,
   }),
 );
 
 vi.mock(
-  "@/components/chat/ncp/session-conversation/use-ncp-session-conversation",
+  "@/features/chat/hooks/runtime/use-ncp-session-conversation",
   () => ({
     useNcpSessionConversation: () => ({
       visibleMessages: [],

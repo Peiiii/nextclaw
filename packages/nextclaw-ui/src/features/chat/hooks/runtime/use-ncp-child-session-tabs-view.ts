@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import type { SessionEntryView } from "@/api/types";
-import { sessionDisplayName } from "@/components/chat/chat-session-display";
+import { sessionDisplayName } from "@/features/chat/utils/chat-session-display.utils";
 import { adaptNcpSessionSummaries } from "@/components/chat/ncp/ncp-session-adapter";
-import { resolveSessionTypeLabel } from "@/components/chat/useChatSessionTypeState";
+import { resolveSessionTypeLabel } from "@/features/chat/hooks/use-chat-session-type-state";
 import type { ChatChildSessionTab } from "@/components/chat/stores/chat-thread.store";
 import { useNcpSessions } from "@/hooks/useConfig";
 import type { SessionRunStatus } from "@/lib/session-run-status";

@@ -1,5 +1,5 @@
 import { FileCode2, MessageSquareText, X } from "lucide-react";
-import type { ResolvedChildSessionTab } from "@/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view";
+import type { ResolvedChildSessionTab } from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
 import type { ChatWorkspaceFileTab } from "@/components/chat/stores/chat-thread.store";
 import { AgentIdentityAvatar } from "@/components/common/agent-identity";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";

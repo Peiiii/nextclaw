@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createNcpAppClientFetch } from '@/components/chat/ncp/ncp-app-client-fetch';
+import { createNcpAppClientFetch } from '@/features/chat/utils/ncp-app-client-fetch.utils';
 
 const fetchMock = vi.fn<typeof fetch>();
 

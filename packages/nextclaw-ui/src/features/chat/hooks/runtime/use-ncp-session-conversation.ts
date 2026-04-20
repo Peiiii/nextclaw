@@ -3,7 +3,7 @@ import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent, type NcpConversationSeed } from "@nextclaw/ncp-react";
 import { API_BASE } from "@/api/api-base";
 import { fetchNcpSessionMessages } from "@/api/ncp-session";
-import { createNcpAppClientFetch } from "@/components/chat/ncp/ncp-app-client-fetch";
+import { createNcpAppClientFetch } from "@/features/chat/utils/ncp-app-client-fetch.utils";
 import { useChatRuntimeAvailability } from "@/features/system-status";
 
 const DEFAULT_MESSAGE_LIMIT = 300;
@@ -63,29 +63,51 @@ export async function fetchNcpSessionConversationSeed(
   }
 }
 
+function useSyncReadyRetryVersion(
+  readyRetrySignature: string | null,
+  bumpRetryVersion: () => void,
+): void {
+  const retriedReadySignatureRef = useRef<string | null>(null);
+  const syncReadyRetryVersion = useCallback(
+    (nextSignature: string | null) => {
+      if (!nextSignature) {
+        retriedReadySignatureRef.current = null;
+        return;
+      }
+      if (retriedReadySignatureRef.current === nextSignature) {
+        return;
+      }
+      retriedReadySignatureRef.current = nextSignature;
+      bumpRetryVersion();
+    },
+    [bumpRetryVersion],
+  );
+
+  useEffect(() => {
+    syncReadyRetryVersion(readyRetrySignature);
+  }, [readyRetrySignature, syncReadyRetryVersion]);
+}
+
 export function useNcpSessionConversation(
   sessionId: string,
   options: UseNcpSessionConversationOptions = {},
 ) {
   const [client] = useState(() => createNcpSessionConversationClient());
   const runtimeAvailability = useChatRuntimeAvailability();
-  const [hydrationRetryNonce, setHydrationRetryNonce] = useState(0);
-  const retriedReadySignatureRef = useRef<string | null>(null);
+  const [hydrationRetryVersion, setHydrationRetryVersion] = useState(0);
   const messageLimit = options.messageLimit ?? DEFAULT_MESSAGE_LIMIT;
   const loadSeed = useCallback(
     (targetSessionId: string, signal: AbortSignal) => {
-      void hydrationRetryNonce;
+      void hydrationRetryVersion;
       return fetchNcpSessionConversationSeed(targetSessionId, signal, messageLimit);
     },
-    [hydrationRetryNonce, messageLimit],
+    [hydrationRetryVersion, messageLimit],
   );
-
   const agent = useHydratedNcpAgent({
     sessionId,
     client,
     loadSeed,
   });
-
   const currentAgentError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const readyRetrySignature =
@@ -93,18 +115,8 @@ export function useNcpSessionConversation(
     isNcpAgentStartupUnavailableErrorMessage(currentAgentError)
       ? `${sessionId}:${runtimeAvailability.lastReadyAt ?? 0}`
       : null;
-
-  useEffect(() => {
-    if (!readyRetrySignature) {
-      retriedReadySignatureRef.current = null;
-      return;
-    }
-    if (retriedReadySignatureRef.current === readyRetrySignature) {
-      return;
-    }
-    retriedReadySignatureRef.current = readyRetrySignature;
-    setHydrationRetryNonce((current) => current + 1);
-  }, [readyRetrySignature]);
-
+  useSyncReadyRetryVersion(readyRetrySignature, () => {
+    setHydrationRetryVersion((current) => current + 1);
+  });
   return agent;
 }

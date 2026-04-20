@@ -25,7 +25,7 @@ import { NcpChatPresenter } from "@/components/chat/ncp/ncp-chat.presenter";
 import {
   isNcpAgentStartupUnavailableErrorMessage,
   useNcpSessionConversation,
-} from "@/components/chat/ncp/session-conversation/use-ncp-session-conversation";
+} from "@/features/chat/hooks/runtime/use-ncp-session-conversation";
 import {
   useNcpChatDerivedState,
   useNcpChatSnapshotSync,

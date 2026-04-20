@@ -40,6 +40,7 @@
 - 第十八批通过治理的落点是继续吃掉 `components/chat` 顶层最高权重面板线：把 `chat-conversation-panel.tsx` 与 `chat-conversation-panel.test.tsx` 迁入 `features/chat/components/conversation/`，把 `chat-page-runtime.test.ts` 迁入 `features/chat/pages/ncp-chat-page.test.ts`，并仅为仍保留在 legacy 的 `chat-page-shell.tsx` 补一条精确路径映射到新 panel 实现，避免继续回写 legacy 页面壳
 - 第十九批通过治理的落点是继续吃掉剩余页面入口链：把 `chat-page-shell.tsx` 迁入 `features/chat/components/layout/chat-page-shell.tsx`，把 `chat-page.tsx` 迁入 `features/chat/pages/chat-page.tsx`，并通过精确路径映射让 `app.tsx` 与 legacy `ncp-chat-page.tsx` 继续解析到 allowed roots 下的新实现
 - 第二十批通过治理的落点是一次性吃掉剩余 `ncp` 页面装配链：把 `ncp-chat-page.tsx` 迁入 `features/chat/pages/ncp-chat-page.tsx`，把 `ncp-chat-page-data.ts` 与 `page/ncp-chat-derived-state.ts` 迁入 `features/chat/hooks/`，把散落的 `ncp-chat-page-data.test.ts` 合并回 `features/chat/pages/ncp-chat-page.test.ts`，并让新页面实现只依赖 `features/chat` 自己的 utils / hooks 根
+- 第二十一批通过治理的落点是继续吃掉 `ncp` 运行时 hooks 与 contract 测试链：把 `session-conversation` 子树整体迁入 `features/chat/hooks/runtime/`，把 `ncp-app-client-fetch.ts` 与其测试迁入 `features/chat/utils/ncp-app-client-fetch.utils.ts`，把 `useHydratedNcpAgent.test.tsx` 与 `useNcpAgentRuntime.test.tsx` 一并迁入 `features/chat/hooks/runtime/`，并把 `ncp-chat-page.tsx`、`chat-session-workspace-panel.tsx`、`chat-session-workspace-panel-nav.tsx` 与 `chat-conversation-panel.test.tsx` 的真实消费全部切到新路径
 
 # 测试 / 验证 / 验收方式
 
@@ -86,6 +87,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page.tsx packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page-data.test.ts packages/nextclaw-ui/src/components/chat/ncp/page/ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/pages/chat-page.tsx packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二十一批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/hooks/runtime/use-ncp-session-conversation.test.tsx src/features/chat/utils/ncp-app-client-fetch.utils.test.ts src/features/chat/hooks/runtime/use-hydrated-ncp-agent.test.tsx src/features/chat/hooks/runtime/use-ncp-agent-runtime.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-session-conversation.ts packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-session-conversation.test.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-hydrated-ncp-agent.test.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-agent-runtime.test.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-app-client-fetch.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-app-client-fetch.utils.test.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel-nav.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/ncp/ncp-app-client-fetch.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-app-client-fetch.test.ts packages/nextclaw-ui/src/components/chat/ncp/session-conversation/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/components/chat/ncp/session-conversation/use-ncp-session-conversation.ts packages/nextclaw-ui/src/components/chat/ncp/session-conversation/use-ncp-session-conversation.test.tsx packages/nextclaw-ui/src/components/chat/useHydratedNcpAgent.test.tsx packages/nextclaw-ui/src/components/chat/useNcpAgentRuntime.test.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-session-conversation.ts packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-session-conversation.test.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-hydrated-ncp-agent.test.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-agent-runtime.test.tsx packages/nextclaw-ui/src/features/chat/utils/ncp-app-client-fetch.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-app-client-fetch.utils.test.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel-nav.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -192,21 +199,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到二十处 contract-aligned 的治理结果：除了前十九处治理样例外，还应看到 `ncp-chat-page.tsx`、`ncp-chat-page-data.ts` 与 `page/ncp-chat-derived-state.ts` 已从 `components/chat/ncp` 页面装配链移走，页面测试统一收敛到 `features/chat/pages/ncp-chat-page.test.ts`。
+5. 当前至少应看到二十一处 contract-aligned 的治理结果：除了前二十处治理样例外，还应看到 `session-conversation` 子树、`ncp-app-client-fetch` 以及两条 NCP runtime contract 测试都已从 legacy `components/chat` 路径移走，真实消费方统一切到 `features/chat/hooks/runtime` 与 `features/chat/utils/ncp-app-client-fetch.utils.ts`。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第二十批继续沿剩余 `ncp` 页面装配链推进，把 `ncp-chat-page`、页面数据 hook 和页面派生状态一起从 legacy root 拿走；这一步优先解决的是 `components/chat/ncp` 里最高层的页面装配边界，而不是继续在子组件层打补丁。
+本次是否已尽最大努力优化可维护性：是。第二十一批继续沿剩余 `ncp` 运行时链推进，把 `session-conversation` hooks、`ncp-app-client-fetch` 与两条 runtime contract 测试一起从 legacy root 拿走；这一步优先解决的是 `components/chat` 里仍然贴着页面与工作区消费方的运行时子树。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十批没有新增用户能力，只做页面装配归位；同时顺手删掉了一份分散的小测试文件，没有新建 shim，也没有放宽 strict 合同。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十一批没有新增用户能力，只做运行时 hooks / util / contract 测试归位；没有新建 shim，也没有放宽 strict 合同。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十批单批次代码净变化为 `-14`，非测试代码净变化为 `0`；`components/chat/ncp` 里最重的页面装配链已经收回 allowed roots，散落页面测试文件数也减少了一个。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十一批单批次代码净变化为 `0`，非测试代码净变化为 `0`；虽然这批主要是目录归位，但 `components/chat` 顶层又少了两条 runtime 测试，`components/chat/ncp/session-conversation/` 与 `ncp-app-client-fetch` 也一并脱离 legacy root。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`ncp-chat-page` 进入 `features/chat/pages/` 后，页面壳、页面数据 hook 和页面派生状态分别落在 `pages/` 与 `hooks/`，角色边界终于和目录角色对齐；同时新页面实现已经切到 `features/chat` 自己的 utils / hooks，而不是继续回头依赖 legacy chat 根。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`session-conversation` 两个 hooks 进入 `features/chat/hooks/runtime/` 后，页面和工作区消费方终于直接依赖 feature 内的 runtime hooks；`ncp-app-client-fetch` 也以 `*.utils.ts` 角色名归位到 `features/chat/utils/`，避免了 legacy `ncp/` 里继续混放 hook、util 与测试。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十批之后 `components/chat` 的高优先级债务已经继续收窄到两条运行时测试和 `components/chat/ncp/session-conversation` 相邻链路。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的下一优先级已进一步收窄到 `useHydratedNcpAgent.test.tsx`、`useNcpAgentRuntime.test.tsx` 与 `session-conversation` 子树。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十一批之后 `components/chat` 的高优先级债务已经进一步收窄到 `ncp-chat.presenter.ts`、`ncp-chat-thread.manager.ts`、`ncp-chat-input.manager.ts`、`ncp-session-adapter.ts` 与 `use-ncp-session-list-view.ts` 这条 manager / adapter 链。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的下一优先级已继续聚焦到 `components/chat/ncp` 剩余 manager / adapter / list-view 子树。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `68` 行，删除 `82` 行，净增 `-14` 行。非测试代码增减报告：新增 `1` 行，删除 `1` 行，净增 `0` 行。可维护性总结：这一批把 `ncp` 页面装配链整体拖进了 allowed roots，并保持 strict 合同、治理闸门和非功能净增全部通过；剩余风险进一步收缩到运行时测试与 `session-conversation` 相邻链路。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十一批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `7` 行，删除 `7` 行，净增 `0` 行。非测试代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行。可维护性总结：这一批把 `ncp` 运行时 hooks / util / contract 测试整体拖进了 allowed roots，并保持 strict 合同、治理闸门和非功能净增全部通过；剩余风险继续收缩到 `components/chat/ncp` 剩余的 manager / adapter / list-view 链。
 
 # NPM 包发布记录
 
