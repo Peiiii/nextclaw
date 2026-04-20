@@ -33,6 +33,7 @@
 - 本轮是否属于非功能改动：是
 - 本轮是否命中 hotspot / 目录预算 / 命名治理等专项场景：命中目录预算、命名治理和 module-structure 合同治理
 - 执行节奏约定：每一轮完成、验证、提交后自动进入下一轮；只有在低置信阻塞或治理硬失败时才暂停并记录
+- 用户明确追加要求：不要等待用户再次发话。后续默认策略是“每完成一轮之后自动进行下一轮”，把这条要求视为本战役的持续执行约束，而不是一次性提醒
 
 # 候选问题批次
 
@@ -44,6 +45,7 @@
 - [x] `provider-enabled-field` 迁入 `shared/components`
 - [x] `provider-advanced-settings-section` 迁入 `shared/components`
 - [x] `provider-auth-section` 迁入 `shared/components`
+- [x] 建立 `features/channels`，并迁入 `channel-form-fields` 与 `channel-form-fields-section`
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -117,6 +119,16 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/provider-auth-section.tsx packages/nextclaw-ui/src/shared/components/provider-auth-section.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/provider-auth-section.tsx packages/nextclaw-ui/src/shared/components/provider-auth-section.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 建立 `features/channels/index.ts`
+- 完成 `components/config/channel-form-fields.ts -> features/channels/utils/channel-form-fields.utils.ts` 的真实实现迁移
+- 完成 `components/config/channel-form-fields-section.tsx -> features/channels/components/channel-form-fields-section.tsx` 的真实实现迁移
+- `ChannelForm` 这条链开始形成自己的 feature 语义边界，不再只是在 `components/config` 下堆内部支撑件
+- 通过第八批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/channel-form-fields.test.ts`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/channel-form-fields.ts packages/nextclaw-ui/src/components/config/channel-form-fields-section.tsx packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/src/features/channels/components/channel-form-fields-section.tsx packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/channel-form-fields.ts packages/nextclaw-ui/src/components/config/channel-form-fields-section.tsx packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/src/features/channels/components/channel-form-fields-section.tsx packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -137,6 +149,7 @@
 - `provider-enabled-field` 进一步证明 provider 表单中的小型通用控件也可以稳定迁入 `shared/components`
 - `provider-advanced-settings-section` 进一步证明 provider 表单里的稳定子区块也可以迁入 `shared/components`，后续可以继续抽离 `provider-auth-section`
 - `provider-auth-section` 已经完成，说明 `provider-form-support.ts` 之外的主要 provider 表单子块都在向 `shared/components` 收拢
+- `features/channels` 已经建立，说明 `components/config` 不只是能向 `shared` 收缩，也能向新的 feature root 收缩；下一步可以继续评估 `ChannelForm` / `ChannelsList` 周边子模块是否适合并入这个 feature
 
 # 下一步
 
