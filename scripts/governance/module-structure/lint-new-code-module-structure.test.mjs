@@ -117,6 +117,20 @@ test("blocks new root files outside the L1 minimal allowed root-file set", () =>
   assert.match(findings[0].message, /allowed root-file set/);
 });
 
+test("blocks nested directories under flat role dirs at package root", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/services/runtime/runtime.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/services/runtime/runtime.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /may only contain direct files/);
+});
+
 test("blocks a new file added under an existing legacy root directory", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/components/chat/new-toolbar.tsx");
   const findings = evaluateModuleStructureFindings({
@@ -131,7 +145,7 @@ test("blocks a new file added under an existing legacy root directory", () => {
   assert.match(findings[0].message, /new file was added under legacy root directory/);
 });
 
-test("downgrades touched legacy files under old roots to warnings", () => {
+test("blocks touched legacy files under old roots for nextclaw-ui", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page.tsx");
   const findings = evaluateModuleStructureFindings({
     filePath: "packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-page.tsx",
@@ -141,7 +155,7 @@ test("downgrades touched legacy files under old roots to warnings", () => {
   });
 
   assert.equal(findings.length, 1);
-  assert.equal(findings[0].level, "warn");
+  assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /legacy root directory/);
 });
 
@@ -190,6 +204,21 @@ test("requires feature index entry when adding files under a feature role direct
   assert.match(findings[0].message, /missing 'index\.ts' or 'index\.tsx'/);
 });
 
+test("blocks nested directories under flat role dirs inside features", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/services/runtime/chat-runtime.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-ui/src/features/chat/services/runtime/chat-runtime.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /may only contain direct files/);
+});
+
 test("blocks shared root barrel index files", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/shared/components/index.ts");
   const findings = evaluateModuleStructureFindings({
@@ -202,6 +231,21 @@ test("blocks shared root barrel index files", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /forbids root-level 'index\.ts' or 'index\.tsx'/);
+});
+
+test("blocks nested directories under flat role dirs inside shared", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /may only contain direct files/);
 });
 
 test("blocks direct files under shared lib root", () => {
@@ -233,6 +277,21 @@ test("requires platform index entry and role directories", () => {
   assert.equal(findings[1].level, "error");
   assert.match(findings[0].message, /missing 'index\.ts' or 'index\.tsx'/);
   assert.match(findings[1].message, /may only contain role directories/);
+});
+
+test("blocks nested directories under flat role dirs inside platforms", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-ui/src/platforms/desktop/services/runtime/desktop-runtime.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-ui/src/platforms/desktop/services/runtime/desktop-runtime.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /may only contain direct files/);
 });
 
 test("blocks new deep imports into another feature", () => {
@@ -275,7 +334,7 @@ test("blocks new deep imports into shared lib internals", () => {
   assert.match(findings[0].message, /shared\/lib imports must go through 'shared\/lib\/date-format'/);
 });
 
-test("warns when a touched file still carries a legacy deep import", () => {
+test("errors when a contract-only module still carries a deep import", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/app.tsx");
   const findings = evaluateProtocolImportBoundaryFindings({
     filePath: "packages/nextclaw-ui/src/app.tsx",
@@ -285,7 +344,7 @@ test("warns when a touched file still carries a legacy deep import", () => {
   });
 
   assert.equal(findings.length, 1);
-  assert.equal(findings[0].level, "warn");
+  assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /feature imports must go through 'features\/chat'/);
 });
 
@@ -302,11 +361,11 @@ test("allows shared component file imports", () => {
 });
 
 test("blocks parent-relative imports when alias imports are configured", () => {
-  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.ts");
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/self-update.service.ts");
   const findings = evaluateProtocolImportBoundaryFindings({
-    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.ts",
+    filePath: "packages/nextclaw/src/cli/shared/services/self-update.service.ts",
     contract,
-    source: `import { which } from "../../utils/cli.utils.js";\n`,
+    source: `import { which } from "../utils/cli.utils.js";\n`,
     addedLines: new Set([1])
   });
 
@@ -316,9 +375,9 @@ test("blocks parent-relative imports when alias imports are configured", () => {
 });
 
 test("allows same-directory relative imports when alias imports are configured", () => {
-  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.test.ts");
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/self-update.service.test.ts");
   const findings = evaluateProtocolImportBoundaryFindings({
-    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.test.ts",
+    filePath: "packages/nextclaw/src/cli/shared/services/self-update.service.test.ts",
     contract,
     source: `import { runSelfUpdate } from "./self-update.service.js";\n`,
     addedLines: new Set([1])
@@ -389,6 +448,21 @@ test("requires command index entry when adding files under a command role direct
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /command 'service\/' is missing 'index\.ts' or 'index\.tsx'/);
+});
+
+test("blocks nested directories under flat role dirs inside commands", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/commands/service/services/runtime/service-runner.service.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/commands/service/services/runtime/service-runner.service.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /may only contain direct files/);
 });
 
 test("blocks new deep imports into another command", () => {

@@ -18,7 +18,7 @@
 
 - [packages/nextclaw-ui/module-structure.config.json](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/module-structure.config.json) 将该模块声明为 `frontend-l3`
 - 该协议下 allowed roots 只有 `app`、`features`、`shared`、`platforms`
-- 当前 `rootPolicy=legacy-frozen`，因此不能继续在 legacy roots（如 `components`、`lib`、`api`、`hooks`）下直接新增目录层级
+- 当前 `rootPolicy=contract-only`，因此 `nextclaw-ui` 后续不再允许触碰 legacy roots（如 `components`、`lib`、`api`、`hooks`）中的文件；所有新增与后续迁移都必须直接落在 allowed roots（`app`、`features`、`shared`、`platforms`）
 - 首批尝试在 `components/config` 下新建 provider 子树已被治理闸门阻断，并已回撤代码尝试；后续必须改成 contract-aligned 的迁移路径
 - 第一批真正通过治理的落点是把 `components/config/security-config.tsx` 的真实实现迁入 `features/system-status/components/security-config.tsx`，旧路径只保留薄转发入口，从而在不碰 `app.tsx` 历史命名冲突的前提下完成一次 allowed-root 迁移
 - 第二批通过治理的落点是把 `components/config/runtime-presence-card.tsx` 的真实实现迁入 `features/system-status/components/runtime-presence-card.tsx`，旧路径收窄为兼容导出，并顺手消除了重复的卡片壳结构
@@ -35,6 +35,7 @@
 - 第十三批通过治理的落点是继续沿 `features/chat` 扩张第二条支撑线：把 `chat-input.types.ts`、`chat-session-preference-governance.ts`、`chat-session-preference-sync.ts` 连同同步测试一起迁入 `features/chat/types`、`features/chat/utils` 与 `features/chat/managers`，旧路径只保留薄转发入口
 - 第十四批通过治理的落点是继续沿 `features/chat` 扩张稳定组件线：把 `chat-session-type-option-item.tsx`、`chat-session-workspace-file-preview.tsx` 及其测试一起迁入 `features/chat/components`，把 `chat-sidebar-project-groups.tsx`、`containers/chat-sidebar.tsx` 与 `chat-session-workspace-panel.tsx` 的真实消费改到 `@/features/chat` 根入口，同时把旧路径收窄为薄转发入口
 - 第十五批通过治理的落点是继续沿 `features/chat` 扩张侧栏与工作区面板组件线：把 `chat-sidebar-list-mode-switch.tsx`、`chat-sidebar-session-item.tsx`、`chat-sidebar-project-groups.tsx`、`chat-session-workspace-panel-nav.tsx`、`chat-session-workspace-panel.tsx` 与 `workspace/chat-session-workspace-file-breadcrumbs.tsx` 一起迁入 `features/chat/components`，把 `chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx` 与 `containers/chat-sidebar.tsx` 的真实消费统一切到 `@/features/chat` 根入口，同时把旧路径收窄为薄转发入口
+- 第十六批通过治理的落点是收紧模块结构合同本身：把 `packages/nextclaw-ui/module-structure.config.json` 的 `rootPolicy` 从 `legacy-frozen` 提升到 `contract-only`，并把治理测试改成“触达已存在 legacy root 文件也直接报错”，彻底关闭“历史问题只 warning、不拦截”的放水路径
 
 # 测试 / 验证 / 验收方式
 
@@ -147,6 +148,7 @@
   - `chat` feature 第十三批验证通过，`session-preference` 支撑线完成归位，非测试代码净变化继续为负值
   - `chat` feature 第十四批验证通过，稳定组件子块与真实消费方一起切到 feature 根入口，非测试代码净变化为 `-14`
   - `chat` feature 第十五批验证通过，侧栏与工作区面板组件线完成归位，非测试代码净变化为 `-30`
+  - 第十六批验证通过后，`nextclaw-ui` 将进入严格 `contract-only` 模式；后续再触碰 legacy root 文件会被治理闸门直接拦截，不再只是 warning
 
 # 发布 / 部署方式
 
@@ -158,7 +160,7 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到十五处 contract-aligned 的迁移样例：`security-config`、`runtime-presence-card`、`runtime-control-card` 的真实实现位于 `features/system-status/components`，`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 的真实实现位于 `shared/components`，`channel-form-fields` 与 `channel-form-fields-section` 的真实实现位于 `features/channels`，`runtime-config-agent.utils` 的真实实现位于 `features/system-status/utils`，而 `features/chat` 现已承接 `chat-inline-token.utils`、`chat-composer-state`、`chat-session-display`、`chat-session-route`、recent managers、`chat-input.types`、`session-preference` 支撑线，以及 `chat-session-type-option-item`、`chat-session-workspace-file-preview`、`chat-sidebar-list-mode-switch`、`chat-sidebar-session-item`、`chat-sidebar-project-groups`、`chat-session-workspace-panel-nav`、`chat-session-workspace-panel`、`chat-session-workspace-file-breadcrumbs` 这一整条侧栏与工作区组件线；对应测试也已经进入各自 feature 目录或真实消费链验证中。
+5. 当前至少应看到十六处 contract-aligned 的治理结果：除了前十五处迁移样例外，还应看到 `packages/nextclaw-ui/module-structure.config.json` 已切到严格 `contract-only`，后续任何 legacy root 触达都会被治理闸门直接阻断。
 
 # 可维护性总结汇总
 
@@ -170,7 +172,7 @@
 
 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 则是跨多个配置页面复用的 UI 原件或稳定子区块，迁入 `shared/components` 后边界更清晰；`channel-form-fields` 与 `channel-form-fields-section` 开始形成独立的 `features/channels` 语义边界；`runtime-config-agent.utils` 进一步把运行时配置辅助逻辑收回 `features/system-status`；`chat-session-type-option-item` 与 `chat-session-workspace-file-preview` 让 `features/chat` 从纯支撑线扩展到可被侧栏与工作区面板直接消费的稳定组件边界；本批次继续把 `chat` 侧栏与 workspace panel 的成组组件收回 `features/chat/components`，让 `features/chat` 开始具备承接完整面板子系统的能力。整个过程没有引入新的假角色目录或额外 helper。
 
-目录结构与文件组织是否满足当前项目治理要求：部分改善，但仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录仍是热点；当前已经证明正确入口是“迁入 allowed roots，再把旧路径缩成兼容层”，并且 allowed roots 现已同时打通 `features` 与 `shared` 两条迁移路径。按照最新执行约束，后续批次不再以单文件为单位推进，而是尽量按一条语义线成组收敛；除了 `features/system-status`、`features/channels` 与 `shared/components`，`features/chat` 现在也已经具备承接 manager / types / utils / tests / stable components / workspace-panel components 的稳定能力，后续只需要继续围绕剩余页面壳和 hooks 继续收束。
+目录结构与文件组织是否满足当前项目治理要求：治理合同已经收紧到严格模式，但现状仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录依旧是历史债务热点；区别在于从这一批开始，`nextclaw-ui` 不再允许继续触碰这些 legacy roots 并“边改边过”，后续所有整理都必须直接在 allowed roots 完成并沿真实消费链整体切换。
 
 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。本批次独立复核结论为“通过，继续推进下一层级”。原因是这一步确实减少了 legacy 目录中的实质实现代码，且没有把复杂度转移成新的横向耦合；唯一保留风险是 `components/config` 的目录预算债务仍在，需要后续连续批次继续偿还。
 

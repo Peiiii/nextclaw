@@ -12,7 +12,7 @@
 - `packages/nextclaw-ui/src/api` 当前直接代码文件数为 `26`
 - `packages/nextclaw-ui/src/components/ui` 当前直接代码文件数为 `22`
 - `packages/nextclaw-ui/module-structure.config.json` 将该包声明为 `frontend-l3` 协议，allowed roots 只有 `app`、`features`、`shared`、`platforms`
-- 当前 `rootPolicy=legacy-frozen`，不能继续在 `components`、`lib`、`api`、`hooks` 等 legacy roots 下新增新层级或新文件
+- 当前 `rootPolicy=contract-only`，`nextclaw-ui` 后续不再允许触碰 `components`、`lib`、`api`、`hooks` 等 legacy roots 中的文件；只能在 allowed roots 内继续推进并通过真实消费链完成切换
 - 首批尝试在 `components/config` 下新建 provider 子树，真实验证后被 `module-structure`、目录预算和非功能净增闸门阻断，代码尝试已回撤
 - 当前仓库存在与本战役无关的未提交改动，本轮必须避免触碰这些路径
 
@@ -66,7 +66,7 @@
 
 - 新建本次战役的迭代留痕目录与 `work/` 状态文件
 - 盘点 `nextclaw-ui` 目录热点，确认首批目标为 `components/config`
-- 验证并确认 `nextclaw-ui` 受 `frontend-l3 + legacy-frozen` 合同约束
+- 验证并确认 `nextclaw-ui` 已从 `frontend-l3 + legacy-frozen` 收紧到 `frontend-l3 + contract-only`
 - 完整跑过一次失败路径并回撤代码尝试，避免把未通过治理检查的半成品留在工作区
 - 完成 `components/config/security-config.tsx -> features/system-status/components/security-config.tsx` 的真实实现迁移
 - 把 legacy 路径收窄为兼容导出，避免触碰 `app.tsx` 与 `src/app/` 的历史命名冲突
@@ -213,6 +213,7 @@
 - `session-preference` 支撑线已完成，说明 `features/chat` 不只承接纯 utils，也能稳定承接 types、manager、治理逻辑与相邻测试
 - `chat-session-type-option-item` 与 `chat-session-workspace-file-preview` 已完成，说明 `features/chat` 现在也能稳定承接被侧栏与工作区面板直接消费的组件子块；只要消费方导入走 `@/features/chat` 根入口，就能同时满足 module-structure 合同与 non-feature 净增闸门
 - `chat-sidebar-list-mode-switch`、`chat-sidebar-session-item`、`chat-sidebar-project-groups`、`chat-session-workspace-panel-nav`、`chat-session-workspace-panel` 与 `workspace/chat-session-workspace-file-breadcrumbs` 已完成，说明 `features/chat` 已经能承接整条侧栏与工作区面板组件线；消费方只要统一走 `@/features/chat` 根入口，旧路径就可以持续收窄成 shim 而不破坏验证链路
+- 第十六批关键决策：不再接受 `nextclaw-ui` 的“历史 legacy root 触达只 warning”策略，直接把合同切到 `contract-only`；从这一刻开始，后续批次必须避免再触碰任何 legacy root 文件，否则治理会直接失败
 
 # 下一步
 
@@ -245,6 +246,11 @@
     - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/chat-sidebar-list-mode-switch.tsx packages/nextclaw-ui/src/features/chat/components/chat-sidebar-session-item.tsx packages/nextclaw-ui/src/features/chat/components/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel-nav.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-panel.tsx packages/nextclaw-ui/src/features/chat/components/workspace/chat-session-workspace-file-breadcrumbs.tsx packages/nextclaw-ui/src/features/chat/components/chat-session-workspace-file-preview.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/chat-sidebar-list-mode-switch.tsx packages/nextclaw-ui/src/components/chat/chat-sidebar-session-item.tsx packages/nextclaw-ui/src/components/chat/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-panel-nav.tsx packages/nextclaw-ui/src/components/chat/chat-session-workspace-panel.tsx packages/nextclaw-ui/src/components/chat/workspace/chat-session-workspace-file-breadcrumbs.tsx packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.tsx packages/nextclaw-ui/src/components/chat/chat-conversation-panel.test.tsx`
     - `pnpm check:governance-backlog-ratchet`
   - 第十五批非测试代码净变化为 `-30`
+- 补记第十六批：
+  - 完成 `packages/nextclaw-ui/module-structure.config.json: legacy-frozen -> contract-only`
+  - 完成治理测试同步收紧：`scripts/governance/module-structure/lint-new-code-module-structure.test.mjs` 现在要求 `nextclaw-ui` 触达历史 legacy root 文件时直接报 `error`
+  - 这一批不是目录迁移，而是把治理合同本身切到严格模式，消除“检测到了但只 warning”的放水路径
+  - 第十六批之后，后续任何 `nextclaw-ui` 整理都必须直接在 `app/features/shared/platforms` 内推进，并按真实消费链整体切换；薄转发 shim 不再能作为默认迁移手段
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞

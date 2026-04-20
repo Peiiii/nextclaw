@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "components/chat feature-root 连续迁移",
-    "原因": "features/chat 已连续承接 utils、types、manager、tests、稳定组件子块和整条侧栏 / workspace panel 组件线，并且第十五批已证明真实消费方只要统一走 `@/features/chat` 根入口，就能同时满足 module-structure 合同与 non-feature 净增 <= 0 的硬约束；用户又明确要求每完成一轮后自动进入下一轮且放大批次规模，因此当前优先继续扫描更大的 chat / system-status 成组候选。",
+    "名称": "strict contract cutover + next admissible batch scan",
+    "原因": "用户要求 nextclaw-ui 严格按规范执行、禁止放水，因此本轮先把模块结构合同从 legacy-frozen 收紧到 contract-only，消除“历史 legacy root 触达只 warning”的路径；随后继续扫描在严格合同下仍可推进的下一批 allowed-root 切换候选。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "受影响测试或类型检查",
@@ -37,7 +37,7 @@
   "已完成批次": [
     "建立 v0.16.85 迭代留痕与自治状态文件",
     "完成 nextclaw-ui 目录热点盘点并锁定首批目标",
-    "确认 nextclaw-ui 受 frontend-l3 协议和 legacy-frozen rootPolicy 约束",
+    "确认 nextclaw-ui 已收紧到 frontend-l3 协议和 contract-only rootPolicy 约束",
     "验证并回撤一次无效的 legacy-root 子树扩张尝试",
     "完成 security-config 的 allowed-root 迁移并通过最小验证集",
     "完成 runtime-presence-card 的 allowed-root 迁移并通过最小验证集",
@@ -64,7 +64,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 components/chat 与 components/config 中尚未归位、但已能语义挂入 features/chat、features/system-status、features/channels 或 shared/components 的更大候选组；默认把实现、测试、真实消费方与 legacy 薄转发入口一起打包，完成一批就验证、提交、自动进入下一批。",
-  "最近一次停机原因": "第十五批已沿 features/chat 完成侧栏与 workspace panel 组件线的成组迁移，并通过测试、类型、治理与非功能净增长闸门；过程中已确认测试 mock 也必须跟随真实实现切到 feature 路径，同时继续压缩 feature 文件换行后，仍可在不扩张功能的前提下保持 non-test 净增为负。当前已拿到十五个连续提交。",
+  "下一步": "继续扫描在 strict contract-only 下仍可推进的下一批候选，优先寻找已经主要落在 allowed roots、只差少量真实消费链切换的成组目标；避免再设计依赖 legacy shim 的迁移路径。",
+  "最近一次停机原因": "用户明确要求 nextclaw-ui 严格按规范执行、禁止放水，因此本轮先收紧模块结构合同本身，再继续扫描严格模式下可执行的下一批。当前已拿到十五个连续提交，并进入第十六批严格合同切换。",
   "最近更新时间": "2026-04-21"
 }
