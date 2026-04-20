@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { fireEvent } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ChatWelcome } from '@/components/chat/ChatWelcome';
+import { ChatWelcome } from './chat-welcome';
 
 describe('ChatWelcome', () => {
   it('renders a lightweight draft agent select and allows switching', () => {

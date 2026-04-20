@@ -3,10 +3,11 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "strict contract cutover + next admissible batch scan",
-    "原因": "用户要求 nextclaw-ui 严格按规范执行、禁止放水，因此本轮先把模块结构合同从 legacy-frozen 收紧到 contract-only，消除“历史 legacy root 触达只 warning”的路径；随后继续扫描在严格合同下仍可推进的下一批 allowed-root 切换候选。",
+    "名称": "components/chat page-shell entry chain scan",
+    "原因": "第十七批已经证明 strict contract-only 下可通过“allowed-root 新实现 + 删除 legacy 文件 + 配置层精确路径映射”继续减债。下一批应优先吃掉 components/chat 顶层更高层的 page/panel 入口链，而不是继续处理小型支撑件。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
+      "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用配置映射或整组入口切换",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
       "pnpm lint:new-code:governance -- <target-paths...>",
@@ -29,8 +30,8 @@
     "按 system-status 语义线成组迁入 runtime-control-card 与相关测试",
     "建立 features/chat 并成组迁入 chat 纯支撑线与相关测试",
     "沿 features/chat 继续成组迁入 session-preference 支撑线",
-    "从 components/config 中继续挑选已是 kebab-case 的小文件，迁入 features/shared allowed roots",
-    "components/chat 顶层平铺目录收敛",
+    "继续从 components/config 中迁出页面/卡片级实现",
+    "components/chat page-shell / page / ncp page / conversation panel 入口链收敛",
     "lib 混合关注点收敛",
     "api 契约/客户端/类型拆分"
   ],
@@ -53,7 +54,8 @@
     "完成 features/chat 入口建立与 chat 纯支撑线的成组 feature-root 迁移并通过最小验证集",
     "完成 chat session-preference 支撑线的成组 feature-root 迁移并通过最小验证集",
     "完成 chat 稳定组件子块与真实消费方切换的成组 feature-root 迁移并通过最小验证集",
-    "完成 chat 侧栏与 workspace panel 组件线的成组 feature-root 迁移并通过最小验证集"
+    "完成 chat 侧栏与 workspace panel 组件线的成组 feature-root 迁移并通过最小验证集",
+    "完成 ChatWelcome 与 useChatSessionTypeState 的 strict feature-root 迁移，并用精确路径映射承接旧导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -61,10 +63,10 @@
     "desktop-update-config 当前版本的直接迁移方案"
   ],
   "阻塞项": [
-    "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级",
+    "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描在 strict contract-only 下仍可推进的下一批候选，优先寻找已经主要落在 allowed roots、只差少量真实消费链切换的成组目标；避免再设计依赖 legacy shim 的迁移路径。",
-  "最近一次停机原因": "用户明确要求 nextclaw-ui 严格按规范执行、禁止放水，因此本轮先收紧模块结构合同本身，再继续扫描严格模式下可执行的下一批。当前已拿到十五个连续提交，并进入第十六批严格合同切换。",
+  "下一步": "扫描并打包 components/chat 顶层 page/panel 入口链，优先评估 chat-page-shell.tsx、chat-page.tsx、ncp-chat-page.tsx、chat-conversation-panel.tsx 是否能通过 feature root 承接与配置映射一次性成组下沉。",
+  "最近一次停机原因": "第十七批已经完成并验证通过：ChatWelcome 与 useChatSessionTypeState 已从 components/chat 顶层删除，strict 合同未被放宽，下一步转入更高层入口链扫描。",
   "最近更新时间": "2026-04-21"
 }

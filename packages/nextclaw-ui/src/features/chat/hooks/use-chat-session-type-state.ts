@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type {
-  AgentProfileView,
-  ChatSessionTypeOptionView,
-  SessionEntryView,
-  SessionTypeIconView
-} from '@/api/types';
+import type { AgentProfileView, ChatSessionTypeOptionView, SessionEntryView, SessionTypeIconView } from '@/api/types';
 import { t } from '@/lib/i18n';
 
 export const DEFAULT_SESSION_TYPE = 'native';
@@ -26,15 +21,7 @@ export type ChatSessionTypeOption = {
   } | null;
 };
 
-type UseChatSessionTypeStateParams = {
-  selectedSession: SessionEntryView | null;
-  pendingSessionType: string;
-  setPendingSessionType: Dispatch<SetStateAction<string>>;
-  sessionTypesData?: {
-    defaultType?: string;
-    options?: ChatSessionTypeOptionView[];
-  } | null;
-};
+type UseChatSessionTypeStateParams = { selectedSession: SessionEntryView | null; pendingSessionType: string; setPendingSessionType: Dispatch<SetStateAction<string>>; sessionTypesData?: { defaultType?: string; options?: ChatSessionTypeOptionView[] } | null };
 
 export function normalizeSessionType(value: unknown): string {
   if (typeof value !== 'string') {

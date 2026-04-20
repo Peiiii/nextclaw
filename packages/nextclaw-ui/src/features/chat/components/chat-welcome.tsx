@@ -4,12 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/u
 import { t } from '@/lib/i18n';
 import { Bot, BrainCircuit, AlarmClock, MessageCircle } from 'lucide-react';
 
-type ChatWelcomeProps = {
-  onCreateSession: () => void;
-  agents: AgentProfileView[];
-  selectedAgentId: string;
-  onSelectAgent: (agentId: string) => void;
-};
+type ChatWelcomeProps = { onCreateSession: () => void; agents: AgentProfileView[]; selectedAgentId: string; onSelectAgent: (agentId: string) => void };
 
 const capabilities = [
   {

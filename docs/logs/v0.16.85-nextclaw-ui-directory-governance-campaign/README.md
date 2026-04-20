@@ -36,6 +36,7 @@
 - 第十四批通过治理的落点是继续沿 `features/chat` 扩张稳定组件线：把 `chat-session-type-option-item.tsx`、`chat-session-workspace-file-preview.tsx` 及其测试一起迁入 `features/chat/components`，把 `chat-sidebar-project-groups.tsx`、`containers/chat-sidebar.tsx` 与 `chat-session-workspace-panel.tsx` 的真实消费改到 `@/features/chat` 根入口，同时把旧路径收窄为薄转发入口
 - 第十五批通过治理的落点是继续沿 `features/chat` 扩张侧栏与工作区面板组件线：把 `chat-sidebar-list-mode-switch.tsx`、`chat-sidebar-session-item.tsx`、`chat-sidebar-project-groups.tsx`、`chat-session-workspace-panel-nav.tsx`、`chat-session-workspace-panel.tsx` 与 `workspace/chat-session-workspace-file-breadcrumbs.tsx` 一起迁入 `features/chat/components`，把 `chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx` 与 `containers/chat-sidebar.tsx` 的真实消费统一切到 `@/features/chat` 根入口，同时把旧路径收窄为薄转发入口
 - 第十六批通过治理的落点是收紧模块结构合同本身：把 `packages/nextclaw-ui/module-structure.config.json` 的 `rootPolicy` 从 `legacy-frozen` 提升到 `contract-only`，并把治理测试改成“触达已存在 legacy root 文件也直接报错”，彻底关闭“历史问题只 warning、不拦截”的放水路径
+- 第十七批通过治理的落点是沿 `features/chat` 继续吃掉顶层入口支撑件：把 `ChatWelcome.tsx` 与 `useChatSessionTypeState.ts` 连同测试一起迁入 `features/chat/components` 与 `features/chat/hooks`，直接删除 legacy 实现文件，并在 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中补精确路径映射，让尚未迁出的旧导入在 strict `contract-only` 下继续解析到 allowed roots，而不是再次触碰 legacy 文件
 
 # 测试 / 验证 / 验收方式
 
@@ -57,6 +58,13 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
+  - `pnpm check:governance-backlog-ratchet`
+- 第十七批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/chat/chat-conversation-panel.test.tsx src/features/chat/components/chat-welcome.test.tsx src/features/chat/hooks/use-chat-session-type-state.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `node --test scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/components/chat-welcome.tsx packages/nextclaw-ui/src/features/chat/components/chat-welcome.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.test.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/ChatWelcome.tsx packages/nextclaw-ui/src/components/chat/ChatWelcome.test.tsx packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.ts packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/components/chat-welcome.tsx packages/nextclaw-ui/src/features/chat/components/chat-welcome.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-session-type-state.test.tsx packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/components/chat/ChatWelcome.tsx packages/nextclaw-ui/src/components/chat/ChatWelcome.test.tsx packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.ts packages/nextclaw-ui/src/components/chat/useChatSessionTypeState.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -149,6 +157,7 @@
   - `chat` feature 第十四批验证通过，稳定组件子块与真实消费方一起切到 feature 根入口，非测试代码净变化为 `-14`
   - `chat` feature 第十五批验证通过，侧栏与工作区面板组件线完成归位，非测试代码净变化为 `-30`
   - 第十六批验证通过后，`nextclaw-ui` 将进入严格 `contract-only` 模式；后续再触碰 legacy root 文件会被治理闸门直接拦截，不再只是 warning
+  - 第十七批验证通过，`ChatWelcome` 与 `useChatSessionTypeState` 已从 `components/chat` 顶层移入 `features/chat`；模块结构治理测试、UI 用例、类型检查、治理守卫与 maintainability guard 全部通过，非测试代码净变化为 `-11`
 
 # 发布 / 部署方式
 
@@ -160,21 +169,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到十六处 contract-aligned 的治理结果：除了前十五处迁移样例外，还应看到 `packages/nextclaw-ui/module-structure.config.json` 已切到严格 `contract-only`，后续任何 legacy root 触达都会被治理闸门直接阻断。
+5. 当前至少应看到十七处 contract-aligned 的治理结果：除了前十六处治理样例外，还应看到 `ChatWelcome` 与 `useChatSessionTypeState` 已从 `components/chat` 顶层删除，旧导入由 `packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 精确映射到 `features/chat` 下的新实现。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是，就当前这一批次而言已经做到最小必要收敛。我们没有继续扩张 legacy roots，而是把一个已有系统状态页面的真实实现迁入 allowed root，并保留最薄兼容入口，避免一次性撕裂历史调用面。
+本次是否已尽最大努力优化可维护性：是。第十七批没有再去碰 strict 模式下的 legacy 消费方，而是把 `ChatWelcome` 与 `useChatSessionTypeState` 这两个仍然占据 `components/chat` 顶层的入口支撑件整体迁入 `features/chat`，并用精确路径映射承接旧导入，做到目录减债和严格合同同时成立。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本批次没有新增用户能力，只做实现归位与兼容出口收窄；旧文件由完整页面实现降为单行转发，复杂度明显下降。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第十七批没有新增用户能力，只做实现归位与解析路径调整；相比继续保留 shim，这一批直接删掉了四个 legacy 文件，避免在 strict 合同下继续堆兼容壳。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十五个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；`components/config/security-config.tsx`、`components/config/runtime-presence-card.tsx`、`components/config/runtime-control-card.tsx`、`components/config/config-split-page.tsx`、`components/config/provider-pill-selector.tsx`、`components/config/provider-status-badge.tsx`、`components/config/provider-enabled-field.tsx`、`components/config/provider-advanced-settings-section.tsx`、`components/config/provider-auth-section.tsx`、`components/config/channel-form-fields.ts`、`components/config/channel-form-fields-section.tsx` 与 `components/config/runtime-config-agent.utils.ts` 都已经收窄为兼容出口；`components/chat` 现在已经把两条完整的纯支撑线、稳定组件子块和一整条侧栏/工作区面板组件线迁入 `features/chat`。`components/config` 与 `components/chat` 顶层文件数虽仍未收敛到预算内，但都没有继续恶化，并且已拿到可复制的 feature 化路径。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。当前十七个成功批次中，除第三批与第十批为零增长外，其余批次都实现了非测试代码负增长；第十七批单批次非测试代码净变化为 `-11`。`components/chat` 顶层已经继续减少两个高耦合入口支撑件，后续最高优先级将转到 `chat-page-shell.tsx`、`chat-page.tsx`、`ncp-chat-page.tsx` 与 `chat-conversation-panel.tsx` 这一组页面/面板入口链。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`security-config` 与 `runtime-presence-card` 都属于系统状态与运行环境展示面，落到既有 `features/system-status` 更符合模块边界；`config-split-page`、`provider-pill-selector`、`provider-status-badge`、`provider-enabled-field`、`provider-advanced-settings-section`、`provider-auth-section` 则是跨多个配置页面复用的 UI 原件或稳定子区块，迁入 `shared/components` 后边界更清晰；`channel-form-fields` 与 `channel-form-fields-section` 开始形成独立的 `features/channels` 语义边界；`runtime-config-agent.utils` 进一步把运行时配置辅助逻辑收回 `features/system-status`；`chat-session-type-option-item` 与 `chat-session-workspace-file-preview` 让 `features/chat` 从纯支撑线扩展到可被侧栏与工作区面板直接消费的稳定组件边界；本批次继续把 `chat` 侧栏与 workspace panel 的成组组件收回 `features/chat/components`，让 `features/chat` 开始具备承接完整面板子系统的能力。整个过程没有引入新的假角色目录或额外 helper。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`ChatWelcome` 本质上是 chat 首页欢迎视图，`useChatSessionTypeState` 是 chat 会话类型选择的稳定支撑逻辑，它们进入 `features/chat` 后与既有的 `components` / `hooks` / `utils` / `managers` 边界终于对齐。为了不再在 strict 合同下回写 legacy 文件，本批次选择“配置映射承接旧导入”而不是再造一层 shim，避免了补丁式叠加。
 
-目录结构与文件组织是否满足当前项目治理要求：治理合同已经收紧到严格模式，但现状仍未完全满足。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 等目录依旧是历史债务热点；区别在于从这一批开始，`nextclaw-ui` 不再允许继续触碰这些 legacy roots 并“边改边过”，后续所有整理都必须直接在 allowed roots 完成并沿真实消费链整体切换。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第十七批之后路径更清楚了。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的下一优先级已明确锁到页面/面板入口链，而不是继续处理零散小件。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成，并通过路径映射或整组入口切换避免再次回写 legacy 文件。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。本批次独立复核结论为“通过，继续推进下一层级”。原因是这一步确实减少了 legacy 目录中的实质实现代码，且没有把复杂度转移成新的横向耦合；唯一保留风险是 `components/config` 的目录预算债务仍在，需要后续连续批次继续偿还。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第十七批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `439` 行，删除 `448` 行，净增 `-9` 行。非测试代码增减报告：新增 `323` 行，删除 `334` 行，净增 `-11` 行。可维护性总结：这一批确实让 `components/chat` 顶层更薄、更少，也没有为了 strict 模式去偷偷放宽治理器；剩余风险集中在更高层的页面/面板入口链，下一步应继续按整组入口推进。
 
 # NPM 包发布记录
 
