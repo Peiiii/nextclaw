@@ -28,6 +28,7 @@
     "channel-form-fields.test.ts 迁入 features/channels/utils",
     "按 system-status 语义线成组迁入 runtime-control-card 与相关测试",
     "建立 features/chat 并成组迁入 chat 纯支撑线与相关测试",
+    "沿 features/chat 继续成组迁入 session-preference 支撑线",
     "从 components/config 中继续挑选已是 kebab-case 的小文件，迁入 features/shared allowed roots",
     "components/chat 顶层平铺目录收敛",
     "lib 混合关注点收敛",
@@ -49,7 +50,8 @@
     "完成 runtime-config-agent.utils 的 feature-root 迁移并通过最小验证集",
     "完成 channel-form-fields.test.ts 的 feature-root 测试归位并通过最小验证集",
     "完成 runtime-control-card 与 runtime-presence 相关测试的 system-status 成组归位并通过最小验证集",
-    "完成 features/chat 入口建立与 chat 纯支撑线的成组 feature-root 迁移并通过最小验证集"
+    "完成 features/chat 入口建立与 chat 纯支撑线的成组 feature-root 迁移并通过最小验证集",
+    "完成 chat session-preference 支撑线的成组 feature-root 迁移并通过最小验证集"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -61,6 +63,6 @@
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
   "下一步": "继续扫描 components/config 与 components/chat 中已是 kebab-case 且语义上可并入既有 feature 或 shared 的页面、卡片与通用支撑件，但不再以单文件为单位推进；默认按一条语义线把实现、测试与相邻薄转发入口打包成更大的高置信批次，再推进下一提交。",
-  "最近一次停机原因": "第十二批已建立 features/chat，并把一条完整的 chat 纯支撑线成组迁入 allowed root，同时通过测试、类型、治理与非功能净增长闸门；过程中已确认新 feature 需要 index.ts 入口，utils 目录必须使用 *.utils 命名，且普通 helper 不得原地改入参。当前已拿到十二个连续提交。",
+  "最近一次停机原因": "第十三批已沿 features/chat 完成 session-preference 支撑线的第二轮成组迁移，并通过测试、类型、治理与非功能净增长闸门；过程中已确认同一批次里只要把新文件行数压到最小、并遵守 *.utils / *.manager / feature index 约束，就能在不扩张功能的前提下继续保持 non-test 净增为负。当前已拿到十三个连续提交。",
   "最近更新时间": "2026-04-21"
 }
