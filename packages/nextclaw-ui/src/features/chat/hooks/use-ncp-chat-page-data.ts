@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { SessionEntryView, ThinkingLevel } from '@/api/types';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.utils';
-import { adaptNcpSessionSummaries } from '@/components/chat/ncp/ncp-session-adapter';
+import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionTypeState } from '@/features/chat/hooks/use-chat-session-type-state';
 import {
   resolveRecentSessionPreferredThinking,

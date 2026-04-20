@@ -1,8 +1,8 @@
 # 当前目标
 
 - 战役名称：`nextclaw-ui` 目录组织自治治理战役
-- 本轮目标：沿着已经验证通过的 contract-aligned 路径，继续把 `components/config` 中适合归入既有 feature 的页面实现迁入 allowed roots
-- 成功判定：每完成一个 legacy 页面实现的真实迁移，就通过最小验证、更新状态记录，并提交一个独立 commit
+- 本轮目标：沿着已经验证通过的 contract-aligned 路径，继续减少 `packages/nextclaw-ui` 的高优先级 legacy-root 债务，优先吃掉 `components/chat` 与 `components/config` 中能整组迁入既有 allowed roots 的实现、测试与真实消费链
+- 成功判定：每完成一个高置信目录批次的真实迁移，就通过最小验证、更新状态记录，并提交一个独立 commit
 
 # 当前事实
 
@@ -219,10 +219,11 @@
 - 第十九批关键决策：在第十八批验证过 panel alias 路径后，继续顺着同一条链上收 `chat-page-shell` 与 `chat-page`。这一步不再引入新 shim，只保留精确 alias，让 `app.tsx` 与 legacy `ncp-chat-page.tsx` 继续消费新入口实现
 - 第二十批关键决策：`ncp` 页面装配链不再拆成更多小点，而是一次性把 `ncp-chat-page.tsx`、`ncp-chat-page-data.ts` 与 `page/ncp-chat-derived-state.ts` 整组迁入 `features/chat`；同时把散落的 `ncp-chat-page-data.test.ts` 合并进现有 `ncp-chat-page.test.ts`，直接减少文件数
 - 第二十一批关键决策：继续按整组运行时链推进，不只搬 `session-conversation` hooks，还把 `ncp-app-client-fetch` 和两条 runtime contract 测试一并拖进 `features/chat`；这样页面、workspace 面板和 contract 测试都落在同一个 feature 语义边界内
+- 第二十二批关键决策：在 strict `contract-only` 下，`components/chat/ncp` 的核心实现不再拆成零散小点，而是一次性把 presenter / managers / adapter / list-view 与四个相邻测试整组迁入 `features/chat`；仍留在 legacy roots 的真实消费方先不回写文件本体，而是通过 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 的精确 alias 承接旧导入，避免为切根再次触碰 legacy 文件
 
 # 下一步
 
-- 继续扫描 `components/chat/ncp` 剩余的 manager / adapter / list-view 债务，优先评估 `ncp-chat.presenter.ts`、`ncp-chat-thread.manager.ts`、`ncp-chat-input.manager.ts`、`ncp-session-adapter.ts` 与 `use-ncp-session-list-view.ts` 的整组迁移缝
+- 继续扫描 batch 22 之后仍留在 legacy root 的真实消费方，优先评估 `components/config/SessionsConfig.tsx`、`components/chat/containers/chat-sidebar.tsx`、`components/chat/containers/chat-message-list.container.tsx`、`components/chat/managers/chat-session-list.manager.ts` 与 `components/chat/stores/chat-session-list.store.ts` 的下一组高置信切根路径
 - 补记第十四批：
   - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
   - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`
@@ -327,13 +328,33 @@
     - `pnpm check:governance-backlog-ratchet`
   - 第二十一批代码净变化：`0`
   - 第二十一批非测试代码净变化：`0`
+- 补记第二十二批：
+  - 完成 `components/chat/ncp/ncp-chat.presenter.ts -> features/chat/managers/ncp-chat-presenter.manager.ts`
+  - 完成 `components/chat/ncp/ncp-chat-input.manager.ts -> features/chat/managers/ncp-chat-input.manager.ts`
+  - 完成 `components/chat/ncp/ncp-chat-thread.manager.ts -> features/chat/managers/ncp-chat-thread.manager.ts`
+  - 完成 `components/chat/ncp/ncp-session-adapter.ts -> features/chat/utils/ncp-session-adapter.utils.ts`
+  - 完成 `components/chat/ncp/use-ncp-session-list-view.ts -> features/chat/hooks/use-ncp-session-list-view.ts`
+  - 完成 `components/chat/ncp/tests/ncp-chat-input.manager.test.ts -> features/chat/managers/ncp-chat-input.manager.test.ts`
+  - 完成 `components/chat/ncp/tests/ncp-chat-thread.manager.test.ts -> features/chat/managers/ncp-chat-thread.manager.test.ts`
+  - 完成 `components/chat/ncp/ncp-session-adapter.test.ts -> features/chat/utils/ncp-session-adapter.utils.test.ts`
+  - 完成 `components/chat/ncp/__tests__/ncp-session-adapter.cancelled-tool.test.ts -> features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts`
+  - 完成 allowed-root 真实消费方切根：`features/chat/pages/ncp-chat-page.tsx`、`features/chat/hooks/use-ncp-chat-page-data.ts`、`features/chat/hooks/use-ncp-chat-derived-state.ts`、`features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts`、`features/chat/components/chat-sidebar-project-groups.tsx`
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`packages/nextclaw-ui/vite.config.ts` 与 `packages/nextclaw-ui/vitest.config.ts` 现以精确 alias 把 `@/components/chat/ncp/*` 指向新的 allowed-root 实现
+  - 通过第二十二批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/managers/ncp-chat-thread.manager.test.ts src/features/chat/managers/ncp-chat-input.manager.test.ts src/features/chat/utils/ncp-session-adapter.utils.test.ts src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts src/features/chat/pages/ncp-chat-page.test.ts src/components/chat/containers/chat-sidebar.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/managers/ncp-chat-presenter.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-session-list-view.ts packages/nextclaw-ui/src/features/chat/components/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/ncp/ncp-chat.presenter.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-input.manager.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-session-adapter.ts packages/nextclaw-ui/src/components/chat/ncp/use-ncp-session-list-view.ts packages/nextclaw-ui/src/components/chat/ncp/tests/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/components/chat/ncp/tests/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-session-adapter.test.ts packages/nextclaw-ui/src/components/chat/ncp/__tests__/ncp-session-adapter.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-presenter.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-session-list-view.ts packages/nextclaw-ui/src/features/chat/components/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十二批代码净变化：`+2`
+  - 第二十二批非测试代码净变化：`-2`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
 - 当前前两个高置信批次都已形成并通过验证，剩余阻塞不在已完成批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
-- `components/chat` 顶层的 runtime hooks / util / contract 测试已经移走，但 `components/chat/ncp` 里剩余 manager / adapter / list-view 仍留在 legacy root；下一批应优先评估 `ncp-chat.presenter.ts`、`ncp-chat-thread.manager.ts`、`ncp-chat-input.manager.ts`、`ncp-session-adapter.ts` 与 `use-ncp-session-list-view.ts` 的整组迁移缝
+- `components/chat/ncp` 的 manager / adapter / list-view 主链已经移走，但仍有若干 legacy 消费方通过精确 alias 承接新实现；下一批应优先判断这些消费方里哪些能在不触碰更多 legacy 文件的前提下继续切根，哪些更适合转向 `components/config` 页面级实现治理
 
 # 交接提醒
 

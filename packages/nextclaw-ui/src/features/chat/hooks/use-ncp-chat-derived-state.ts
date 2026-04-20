@@ -6,8 +6,8 @@ import type {
   SessionSkillEntryView
 } from '@/api/types';
 import { sessionDisplayName } from '@/features/chat/utils/chat-session-display.utils';
-import { adaptNcpSessionSummary } from '@/components/chat/ncp/ncp-session-adapter';
-import type { NcpChatPresenter } from '@/components/chat/ncp/ncp-chat.presenter';
+import { adaptNcpSessionSummary } from '@/features/chat/utils/ncp-session-adapter.utils';
+import type { NcpChatPresenter } from '@/features/chat/managers/ncp-chat-presenter.manager';
 import type { UseHydratedNcpAgentResult } from '@nextclaw/ncp-react';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import type { ChatChildSessionTab } from '@/components/chat/stores/chat-thread.store';

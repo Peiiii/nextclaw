@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { appQueryClient } from '@/app-query-client';
-import { NcpChatThreadManager } from '@/components/chat/ncp/ncp-chat-thread.manager';
+import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
 

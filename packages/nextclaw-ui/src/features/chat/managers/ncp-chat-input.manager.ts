@@ -12,7 +12,7 @@ import {
   pruneComposerAttachments,
   syncComposerAttachments,
   syncComposerSkills
-} from '@/components/chat/chat-composer-state';
+} from '@/features/chat/utils/chat-composer-state.utils';
 import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
@@ -20,12 +20,12 @@ import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.stor
 import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
-import { ChatSessionPreferenceSync } from '@/components/chat/chat-session-preference-sync';
+import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/components/chat/chat-input/ncp-chat-input-availability.utils';
-import { chatRecentModelsManager } from '@/components/chat/chat-recent-models.manager';
-import { chatRecentSkillsManager } from '@/components/chat/chat-recent-skills.manager';
-import type { ChatModelOption } from '@/components/chat/chat-input.types';
-import { normalizeSessionType } from '@/components/chat/useChatSessionTypeState';
+import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
+import { chatRecentSkillsManager } from '@/features/chat/managers/chat-recent-skills.manager';
+import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
+import { normalizeSessionType } from '@/features/chat/hooks/use-chat-session-type-state';
 import { systemStatusManager } from '@/features/system-status';
 
 export class NcpChatInputManager {

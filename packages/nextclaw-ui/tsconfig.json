@@ -15,6 +15,7 @@
       "@/components/chat/chat-conversation-panel": ["./src/features/chat/components/conversation/chat-conversation-panel.tsx"],
       "@/components/chat/chat-page": ["./src/features/chat/pages/chat-page.tsx"],
       "@/components/chat/chat-page-shell": ["./src/features/chat/components/layout/chat-page-shell.tsx"],
+      "@/components/chat/ncp/ncp-chat.presenter": ["./src/features/chat/managers/ncp-chat-presenter.manager.ts"], "@/components/chat/ncp/ncp-chat-input.manager": ["./src/features/chat/managers/ncp-chat-input.manager.ts"], "@/components/chat/ncp/ncp-chat-thread.manager": ["./src/features/chat/managers/ncp-chat-thread.manager.ts"], "@/components/chat/ncp/ncp-session-adapter": ["./src/features/chat/utils/ncp-session-adapter.utils.ts"], "@/components/chat/ncp/use-ncp-session-list-view": ["./src/features/chat/hooks/use-ncp-session-list-view.ts"],
       "@/components/chat/useChatSessionTypeState": ["./src/features/chat/hooks/use-chat-session-type-state.ts"],
       "@/*": ["./src/*"],
       "@nextclaw/agent-chat": ["../nextclaw-agent-chat/src/index.ts"],

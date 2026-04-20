@@ -1,8 +1,8 @@
 import { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
 import { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
 import { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
-import { NcpChatInputManager } from '@/components/chat/ncp/ncp-chat-input.manager';
-import { NcpChatThreadManager } from '@/components/chat/ncp/ncp-chat-thread.manager';
+import { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
+import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 
 export class NcpChatPresenter {
   chatUiManager = new ChatUiManager();

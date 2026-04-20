@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { adaptChatMessage } from '@/components/chat/adapters/chat-message.adapter';
-import { adaptNcpMessageToUiMessage } from '../ncp-session-adapter';
+import { adaptNcpMessageToUiMessage } from './ncp-session-adapter.utils';
 
 const texts = {
   roleLabels: {

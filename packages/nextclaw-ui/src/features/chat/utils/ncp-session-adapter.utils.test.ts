@@ -2,7 +2,7 @@ import {
   adaptNcpMessageToUiMessage,
   adaptNcpSessionSummary,
   readNcpSessionPreferredThinking
-} from '@/components/chat/ncp/ncp-session-adapter';
+} from '@/features/chat/utils/ncp-session-adapter.utils';
 import { adaptChatMessage } from '@/components/chat/adapters/chat-message.adapter';
 import type { NcpSessionSummaryView } from '@/api/types';
 

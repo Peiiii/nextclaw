@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "components/chat ncp manager and adapter scan",
-    "原因": "第二十一批已经拿下 runtime hooks、ncp-app-client-fetch 与两条 runtime contract 测试，components/chat/ncp 剩余的高优先级债务继续收窄到 manager / adapter / list-view 子树。",
+    "名称": "components/chat legacy consumer cutover scan",
+    "原因": "第二十二批已经把 components/chat/ncp 的 manager / adapter / list-view 主链与四个相邻测试迁入 allowed roots，下一步继续扫描仍通过精确 alias 承接新实现的 legacy 消费方，寻找下一组高置信切根路径。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -59,7 +59,8 @@
     "完成 chat-conversation-panel 主面板线与 chat-page-runtime 测试的 feature-root 迁移，并通过精确 alias 让 legacy 页面壳消费新 panel 实现",
     "完成 chat-page-shell 与 chat-page 的 feature-root 迁移，并通过精确 alias 让 legacy 入口继续解析到新实现",
     "完成 ncp-chat-page 页面装配链的 feature-root 迁移，并把分散页面测试并回 ncp-chat-page.test.ts",
-    "完成 session-conversation 运行时 hooks、ncp-app-client-fetch 与两条 runtime contract 测试的 feature-root / utils-root 迁移"
+    "完成 session-conversation 运行时 hooks、ncp-app-client-fetch 与两条 runtime contract 测试的 feature-root / utils-root 迁移",
+    "完成 components/chat/ncp manager / adapter / list-view 主链与四个相邻测试的 feature-root / utils-root / hook-root 迁移，并用精确 alias 承接 legacy 导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -70,7 +71,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 ncp-chat.presenter.ts、ncp-chat-thread.manager.ts、ncp-chat-input.manager.ts、ncp-session-adapter.ts 与 use-ncp-session-list-view.ts 的真实消费方，优先评估能否在不回写 legacy 文件的前提下一次性成组下沉。",
-  "最近一次停机原因": "第二十一批已经完成并验证通过：runtime hooks、ncp-app-client-fetch 与两条 runtime contract 测试已脱离 legacy root，strict 合同未被放宽，下一步继续剩余 manager / adapter / list-view 链路。",
+  "下一步": "继续扫描 components/config/SessionsConfig.tsx、components/chat/containers/chat-sidebar.tsx、components/chat/containers/chat-message-list.container.tsx、components/chat/managers/chat-session-list.manager.ts 与 components/chat/stores/chat-session-list.store.ts，优先判断哪些可以在 strict 合同下继续切到 features/chat 直链，哪些只应暂时保留 alias 承接。",
+  "最近一次停机原因": "第二十二批已经完成并验证通过：components/chat/ncp 的 manager / adapter / list-view 主链和四个相邻测试已脱离 legacy root，strict 合同未被放宽，下一步转向仍通过 alias 承接新实现的 legacy 消费方。",
   "最近更新时间": "2026-04-21"
 }
