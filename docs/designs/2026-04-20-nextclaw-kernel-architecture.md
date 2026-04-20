@@ -343,6 +343,174 @@ user -> nextclaw -> runtime -> kernel -> core
 `runtime` 负责“官方系统默认给它装什么能力”，  
 `nextclaw` 和 `server` 负责“用户从哪些入口接触它”。
 
+## Kernel 的默认装配原则
+
+`kernel` 既然是唯一 owner，它就不能只是一个“外部传九个 manager 进来再帮忙串一下”的空壳。
+
+更准确的原则应该是：
+
+- `NextclawKernel` 自己直接拥有默认 manager 实例
+- 这些实例在 class field 初始化阶段创建
+- 不是通过 constructor 依赖注入从外部传入
+
+也就是说，长期推荐形态应该更接近：
+
+```ts
+export class NextclawKernel {
+  readonly agents = new AgentManager();
+  readonly tasks = new TaskManager();
+  readonly sessions = new SessionManager();
+  readonly contextBuilder = new ContextBuilder(this.sessions);
+}
+```
+
+而不应该是：
+
+```ts
+new NextclawKernel({
+  agents,
+  tasks,
+  sessions,
+  context,
+});
+```
+
+原因很简单：
+
+- 如果 manager 必须由外部装进来，那么真正的 owner 其实还是外部装配层
+- `kernel` 会退化成 facade，而不是系统本体
+- 长期会把“谁负责默认系统状态”和“谁负责默认子系统边界”重新搞混
+
+这不意味着以后完全不能支持更复杂的 runtime assembly。
+它的意思只是：
+
+**默认主路径上，kernel 必须先自带一套明确的默认子系统 owner。**
+
+后续如果要支持持久化后端、远程状态后端、可插拔 store，再在 `runtime` 或更高层做替换式装配，但那应该是在默认 owner 已经清晰之后的下一层扩展，而不是从第一版就把 kernel 设计成纯注入容器。
+
+## Kernel 的 public surface 原则
+
+默认 manager owner 明确之后，`kernel` 顶层 public API 还必须继续收敛。
+
+原则如下：
+
+- manager 自己的局部状态动作，直接通过 manager 访问
+- `kernel` 顶层不再重复包装一层同义 API
+- `kernel` 顶层只保留真正的 OS 级动作
+
+因此，下面这类接口不应长期挂在 `kernel` 顶层：
+
+- `appendSessionMessage()`
+- `scheduleAutomation()`
+- `enableChannel()`
+- 其它只是把 `manager.method()` 再转发一遍的 facade 方法
+
+这些动作分别属于：
+
+- `kernel.sessions.*`
+- `kernel.automation.*`
+- `kernel.channels.*`
+
+它们不应该再伪装成 `kernel` 自己的系统级能力。
+
+当前骨架阶段，推荐的 `kernel` public surface 应先收敛到最小形态：
+
+```ts
+export class NextclawKernel {
+  readonly agents = new AgentManager();
+  readonly tasks = new TaskManager();
+  readonly sessions = new SessionManager();
+  readonly contextBuilder = new ContextBuilder(this.sessions);
+  readonly tools = new ToolManager();
+  readonly skills = new SkillManager();
+  readonly llmProviders = new LlmProviderManager();
+  readonly automation = new AutomationManager();
+  readonly channels = new ChannelManager();
+
+  readonly run = (input: NextclawKernelRunInput) => NextclawKernelRun;
+}
+```
+
+这里的含义是：
+
+- manager 负责状态面
+- `contextBuilder` 依赖 `sessions`，只负责从 session/task/agent 派生上下文快照，不拥有 context 持久化状态；当前文件落点临时放在 `managers/` 目录
+- `run(...)` 负责编排面
+
+也就是说，`kernel` 顶层不应该是 CRUD facade 集合，而应该先只有：
+
+**manager 直出 + 一个核心系统动作。**
+
+其中第一核心动作，就是：
+
+**`run(input)`**
+
+## 为什么 `run(input)` 才是核心动作
+
+如果从 Agent OS 的角度看，`kernel` 最通用的公共能力，不是“开 session”“建 task”“prepare execution”这些中间步骤，而是：
+
+- 在某个 session 里接收到一组 messages
+- 触发一次 run
+- 让系统自己决定 agent / task / context / provider / capability 的内部编排
+
+因此，长期更合理的抽象不是：
+
+- `openSession()`
+- `createTask()`
+- `prepareAgentExecution()`
+
+而是：
+
+```ts
+type NextclawKernelRunInput = {
+  sessionId: SessionId;
+  messages: NcpMessage[];
+  metadata?: {
+    agentId?: AgentId;
+    model?: string;
+    skills?: SkillId[];
+  };
+  extra?: Record<string, unknown>;
+};
+
+type NextclawKernelRun = {
+  taskId: TaskId;
+};
+```
+
+由 `run(input)` 统一负责：
+
+- 接收“某个 session 里发生了一组 messages”这件事
+- 把 `metadata.agentId / model / skills` 视作稳定偏好，把其它不稳定扩展放进 `extra`
+- 在 kernel 内部决定 agent / provider / capability / task / context 的具体编排
+- 返回一个最小任务句柄，而不是把内部运行结构整包暴露出去
+
+这样 `session`、`task`、`context` 就不再是外部必须手工推进的 public workflow，而是 run 编排链路里的系统性组成部分。
+
+## 当前骨架阶段的实现约束
+
+在 `kernel` 设计尚未完全稳定之前，当前代码应停在“骨架表达”阶段，而不是提前写入具体实现逻辑。
+
+也就是说：
+
+- manager 可以先是 class
+- method body 可以先只有注释、伪代码或 `Not implemented`
+- `run()` 可以先只保留编排步骤说明
+- 不要在这个阶段引入具体的内存存储、具体 ID 生成、具体状态迁移细节
+
+原因是：
+
+- 一旦具体逻辑先落进去，就会反过来约束后续真正的架构讨论
+- 很多实现细节会制造“既成事实”，让后面的职责拆分被迫围着早期代码让步
+- 当前阶段的目标是把 public surface 和 owner 关系定准，而不是把默认实现抢先写完
+
+所以当前最合理的状态是：
+
+- `kernel` 的结构和命名已经稳定下来
+- `run(input)` 已经成为唯一核心 public action
+- manager 边界已经清晰
+- 但具体行为实现仍然故意留白
+
 ## `@nextclaw/kernel` 的唯一职责清单
 
 为了避免 `kernel` 概念再次膨胀，本设计要求 `@nextclaw/kernel` 只拥有下面这些唯一职责，且这些职责必须由它统一 owner。

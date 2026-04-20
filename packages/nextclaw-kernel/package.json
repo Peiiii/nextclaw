@@ -21,6 +21,9 @@
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
+  "dependencies": {
+    "@nextclaw/ncp": "workspace:*"
+  },
   "devDependencies": {
     "@types/node": "^20.17.6",
     "prettier": "^3.3.3",

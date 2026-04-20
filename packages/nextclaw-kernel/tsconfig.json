@@ -2,10 +2,11 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"],
+    "lib": ["ES2022", "DOM"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },
   "include": ["src"]
