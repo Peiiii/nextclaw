@@ -42,6 +42,7 @@
 - 第二十批通过治理的落点是一次性吃掉剩余 `ncp` 页面装配链：把 `ncp-chat-page.tsx` 迁入 `features/chat/pages/ncp-chat-page.tsx`，把 `ncp-chat-page-data.ts` 与 `page/ncp-chat-derived-state.ts` 迁入 `features/chat/hooks/`，把散落的 `ncp-chat-page-data.test.ts` 合并回 `features/chat/pages/ncp-chat-page.test.ts`，并让新页面实现只依赖 `features/chat` 自己的 utils / hooks 根
 - 第二十一批通过治理的落点是继续吃掉 `ncp` 运行时 hooks 与 contract 测试链：把 `session-conversation` 子树整体迁入 `features/chat/hooks/runtime/`，把 `ncp-app-client-fetch.ts` 与其测试迁入 `features/chat/utils/ncp-app-client-fetch.utils.ts`，把 `useHydratedNcpAgent.test.tsx` 与 `useNcpAgentRuntime.test.tsx` 一并迁入 `features/chat/hooks/runtime/`，并把 `ncp-chat-page.tsx`、`chat-session-workspace-panel.tsx`、`chat-session-workspace-panel-nav.tsx` 与 `chat-conversation-panel.test.tsx` 的真实消费全部切到新路径
 - 第二十二批通过治理的落点是一次性吃掉 `components/chat/ncp` 的 manager / adapter / list-view 主链：把 `ncp-chat.presenter.ts`、`ncp-chat-input.manager.ts`、`ncp-chat-thread.manager.ts` 迁入 `features/chat/managers/`，把 `ncp-session-adapter.ts` 迁入 `features/chat/utils/ncp-session-adapter.utils.ts`，把 `use-ncp-session-list-view.ts` 迁入 `features/chat/hooks/use-ncp-session-list-view.ts`，并把四个相邻测试一起迁入 feature 内部；对仍留在 legacy roots 的真实消费方不再回写文件本体，而是通过 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 的精确 alias 承接旧导入，继续保持 strict `contract-only`
+- 第二十三批通过治理的落点是继续从 `components/config` 吃掉页面级卡片实现：把 `runtime-security-card.tsx` 迁入 `features/system-status/components/runtime-security-card.tsx`，让 `security-config.tsx` 直接消费新的 allowed-root 实现，并在新落点内顺手收敛卡片壳与 setup / configured 两段稳定结构；同轮还确认 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 的整组迁移当前会触发 effect-boundary、函数预算与非功能净增阻塞，因此被明确降级为否决候选，而不是带病推进
 
 # 测试 / 验证 / 验收方式
 
@@ -100,6 +101,12 @@
   - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
   - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/chat/managers/ncp-chat-presenter.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-session-list-view.ts packages/nextclaw-ui/src/features/chat/components/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/chat/ncp/ncp-chat.presenter.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-input.manager.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-session-adapter.ts packages/nextclaw-ui/src/components/chat/ncp/use-ncp-session-list-view.ts packages/nextclaw-ui/src/components/chat/ncp/tests/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/components/chat/ncp/tests/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/components/chat/ncp/ncp-session-adapter.test.ts packages/nextclaw-ui/src/components/chat/ncp/__tests__/ncp-session-adapter.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-presenter.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-input.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/ncp-chat-thread.manager.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.test.ts packages/nextclaw-ui/src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-session-list-view.ts packages/nextclaw-ui/src/features/chat/components/chat-sidebar-project-groups.tsx packages/nextclaw-ui/src/features/chat/hooks/runtime/use-ncp-child-session-tabs-view.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-derived-state.ts packages/nextclaw-ui/src/features/chat/hooks/use-ncp-chat-page-data.ts packages/nextclaw-ui/src/features/chat/index.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+  - `pnpm check:governance-backlog-ratchet`
+- 第二十三批验证命令：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts`
   - `pnpm check:governance-backlog-ratchet`
 - 第二批验证命令：
   - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/runtime-presence-card.test.tsx`
@@ -195,6 +202,10 @@
   - 第十七批验证通过，`ChatWelcome` 与 `useChatSessionTypeState` 已从 `components/chat` 顶层移入 `features/chat`；模块结构治理测试、UI 用例、类型检查、治理守卫与 maintainability guard 全部通过，非测试代码净变化为 `-11`
   - 第十八批验证通过，`chat-conversation-panel` 面板线与 `chat-page-runtime` 测试已脱离 `components/chat` 顶层；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-1`
   - 第十九批验证通过，`chat-page-shell` 与 `chat-page` 已脱离 `components/chat` 顶层；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-1`
+  - 第二十批验证通过，`ncp-chat-page` 页面装配链已脱离 `components/chat/ncp`；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `0`
+  - 第二十一批验证通过，`session-conversation` 运行时 hooks、`ncp-app-client-fetch` 与两条 runtime contract 测试已归位到 `features/chat`；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `0`
+  - 第二十二批验证通过，`components/chat/ncp` 的 manager / adapter / list-view 主链与四个相邻测试已脱离 legacy root；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-2`
+  - 第二十三批验证通过，`runtime-security-card` 已脱离 `components/config` 并由 `features/system-status/components` 直接承接；治理守卫、类型检查、UI 用例与 ratchet 全部通过，非测试代码净变化为 `-12`
 
 # 发布 / 部署方式
 
@@ -206,21 +217,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到二十二处 contract-aligned 的治理结果：除了前二十一处治理样例外，还应看到 `components/chat/ncp` 的 manager / adapter / list-view 主链和四个相邻测试都已从 legacy root 移走，`features/chat/managers`、`features/chat/utils`、`features/chat/hooks` 成为新的实现归位点，而 legacy 消费方通过精确 alias 继续解析到 allowed roots。
+5. 当前至少应看到二十三处 contract-aligned 的治理结果：除了前二十二处治理样例外，还应看到 `components/config/runtime-security-card.tsx` 已从 legacy root 移入 `features/system-status/components/runtime-security-card.tsx`，`security-config.tsx` 直接消费新的 allowed-root 实现，而被证伪的 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 大批次方案已明确记入否决候选，不再作为“带病也推进”的路径。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第二十二批继续沿剩余 `ncp` 主链推进，把 manager / adapter / list-view 以及相邻测试一起从 legacy root 拿走；这一步优先解决的是 `components/chat/ncp` 里仍然直接承载页面 presenter、输入编排、线程管理和会话适配的核心实现。
+本次是否已尽最大努力优化可维护性：是。第二十三批继续从 `components/config` 吃掉页面级实现，把 `runtime-security-card` 迁入 `features/system-status/components`，并同步把 `security-config` 的真实消费切到 allowed roots；同时没有硬推那条已经被验证为低置信的 `features/channels` 大批次路径，而是把它明确降级为否决候选。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十二批没有新增用户能力，只做 manager / adapter / list-view / tests 归位；没有回写 legacy 文件本体，也没有放宽 strict 合同，反而把旧导入承接压缩为配置层的精确 alias。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第二十三批没有新增用户能力，只做卡片实现归位与消费方切根；新文件内部顺手收敛出稳定的卡片壳与两段局部结构，没有把复杂度换个目录继续保留。对于 `ChannelForm` 这条线，当前选择的是及时止损而不是继续叠补丁。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十二批代码净变化为 `+2`，非测试代码净变化为 `-2`；新增的少量 alias 行数被其它位置的压缩与旧实现删除抵消，`components/chat/ncp` 一次性少掉五个核心实现文件和四个相邻测试，legacy 子树平铺度继续下降。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第二十三批代码净变化为 `-12`，非测试代码净变化为 `-12`；`components/config` 再少一个页面级实现文件，`features/system-status/components` 的语义聚合继续加强，且这次没有引入新的 alias 或 shim 膨胀。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`NcpChatPresenter`、`NcpChatInputManager`、`NcpChatThreadManager` 现在统一落到 `features/chat/managers/`，`ncp-session-adapter` 以 `*.utils.ts` 角色名归位到 `features/chat/utils/`，`use-ncp-session-list-view` 归位到 `features/chat/hooks/`；这让 presenter / manager / hook / utils 的角色边界第一次在 `ncp` 主链上严格按目录角色对齐。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`runtime-security-card` 现在与 `security-config` 同属 `features/system-status/components/`，运行时安全相关 UI 不再散落在 `components/config`；新文件内部把重复卡片壳与两段稳定内容提成局部子组件，属于就地减复杂度，而不是再抽一层无意义公共件。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十二批之后 `components/chat/ncp` 的高优先级实现债务已经基本脱离，只剩 legacy 消费方仍通过精确 alias 承接新实现。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `components/chat` 的下一优先级将转向仍在 legacy root 的消费方与相邻容器链，`components/config` 仍需要继续吃掉页面级实现。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第二十三批之后 `components/config` 又少了一块运行时安全卡片实现，`features/system-status` 对这一语义线的承接更完整。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中 `ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 当前不是高置信目录迁移候选，后续要么等待更成组的 feature-root 方案，要么先转向 `components/chat` 与其它 `components/config` 页面级实现。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十二批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `1784` 行，删除 `1782` 行，净增 `2` 行。非测试代码增减报告：新增 `1031` 行，删除 `1033` 行，净增 `-2` 行。可维护性总结：这一批把 `components/chat/ncp` 的 manager / adapter / list-view 主链整体拖进了 allowed roots，并把旧导入承接压缩到配置层精确 alias；strict 合同、治理闸门、非功能净增和 backlog ratchet 全部通过，剩余风险已从“核心实现仍在 legacy root”收缩到“部分 legacy 消费方仍待切根”。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第二十三批独立复核结论为“通过，继续推进下一层级”。代码增减报告：新增 `265` 行，删除 `277` 行，净增 `-12` 行。非测试代码增减报告：新增 `265` 行，删除 `277` 行，净增 `-12` 行。可维护性总结：这一批把 `runtime-security-card` 彻底拖进了 `features/system-status/components`，并把真实消费切到 allowed roots；strict 合同、治理守卫、非功能净增和 backlog ratchet 全部通过。同步记录的结论是：`ChannelForm` / `ChannelsList` / `weixin-channel-auth-section` 这条线在当前形态下需要结构重写才能过治理，因此被明确从“高置信自动推进”队列移除，避免后续继续吞吐浪费。
 
 # NPM 包发布记录
 

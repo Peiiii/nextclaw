@@ -348,11 +348,25 @@
     - `pnpm check:governance-backlog-ratchet`
   - 第二十二批代码净变化：`+2`
   - 第二十二批非测试代码净变化：`-2`
+- 补记第二十三批：
+  - 完成 `components/config/runtime-security-card.tsx -> features/system-status/components/runtime-security-card.tsx`
+  - 完成 allowed-root 真实消费方切根：`features/system-status/components/security-config.tsx` 现直接消费 `@/features/system-status/components/runtime-security-card`
+  - 在新落点内把卡片壳与 setup / configured 两段稳定结构收敛为局部子组件，避免只换目录不降复杂度
+  - 验证并否决更大批次候选：`ChannelForm.tsx`、`ChannelsList.tsx` 与 `weixin-channel-auth-section.tsx` 当前形态会同时触发 `react-effects-owner-boundary`、函数预算与非测试净增 `> 0`，因此不再视为高置信目录迁移批次
+  - 通过第二十三批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-security-card.tsx packages/nextclaw-ui/src/features/system-status/components/security-config.tsx packages/nextclaw-ui/src/features/system-status/index.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第二十三批代码净变化：`-12`
+  - 第二十三批非测试代码净变化：`-12`
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
 
-- 当前前两个高置信批次都已形成并通过验证，剩余阻塞不在已完成批次本身，而在后续候选项必须继续满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
+- 第二十三批已经完成，但更大批次的 `features/channels` 候选并不属于“高置信 allowed-root 迁移”，因为它要求顺手重写 effect 边界、拆函数预算并且无法守住非功能净增 `<= 0`
+- 当前已完成批次本身都已通过验证；剩余阻塞在于后续候选项仍必须同时满足：allowed roots、目录预算、命名治理、非功能净增 `<= 0`
 - `components/config` 的历史目录预算债务依旧存在，意味着后续批次必须优先搬实现在旧根目录的页面，而不是新增任何新平铺文件
 - `components/chat/ncp` 的 manager / adapter / list-view 主链已经移走，但仍有若干 legacy 消费方通过精确 alias 承接新实现；下一批应优先判断这些消费方里哪些能在不触碰更多 legacy 文件的前提下继续切根，哪些更适合转向 `components/config` 页面级实现治理
 

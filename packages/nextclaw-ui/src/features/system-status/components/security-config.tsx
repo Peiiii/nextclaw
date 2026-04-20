@@ -1,6 +1,6 @@
 import { PageHeader, PageLayout } from '@/components/layout/page-layout';
 import { t } from '@/lib/i18n';
-import { RuntimeSecurityCard } from '@/components/config/runtime-security-card';
+import { RuntimeSecurityCard } from '@/features/system-status/components/runtime-security-card';
 
 export function SecurityConfig() {
   return (
