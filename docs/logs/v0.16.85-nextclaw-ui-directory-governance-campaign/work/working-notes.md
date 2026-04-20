@@ -38,6 +38,7 @@
 - [x] `components/config` 合同校准与失败路径回收
 - [x] `security-config` 迁入 `features/system-status` 并保留 legacy 薄转发入口
 - [x] `runtime-presence-card` 迁入 `features/system-status/components` 并保留 legacy 薄转发入口
+- [x] `config-split-page` 迁入 `shared/components` 并保留 legacy 薄转发入口
 - [ ] 继续从 `components/config` 里挑选下一个已是 kebab-case、能挂入既有 feature 的页面
 - [ ] `components/chat` 顶层平铺目录收敛
 - [ ] `lib` 混合关注点收敛
@@ -71,6 +72,14 @@
   - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/runtime-presence-card.tsx packages/nextclaw-ui/src/features/system-status/components/runtime-presence-card.tsx`
   - `pnpm check:governance-backlog-ratchet`
+- 完成 `components/config/config-split-page.tsx -> shared/components/config-split-page.tsx` 的真实实现迁移
+- 打通 `shared` 允许根路径，后续 `ChannelForm`、`ProvidersList`、`SearchConfig` 等多个页面都可沿这条路径继续脱离 legacy root
+- 通过第三批最小验证：
+  - `pnpm --filter @nextclaw/ui exec vitest run src/components/config/SearchConfig.test.tsx`
+  - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+  - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/components/config/config-split-page.tsx packages/nextclaw-ui/src/shared/components/config-split-page.tsx`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/config-split-page.tsx packages/nextclaw-ui/src/shared/components/config-split-page.tsx`
+  - `pnpm check:governance-backlog-ratchet`
 
 # 已排除项
 
@@ -86,10 +95,11 @@
 - 在新的高置信批次形成前，不保留任何未通过治理闸门的代码结构尝试
 - `security-config` 这一步不再修改 `app.tsx`，而是通过 legacy 薄转发过渡，避免触发 `src/app.tsx` 与 `src/app/` 的 file-directory collision 治理规则
 - `runtime-presence-card` 证明除了整页配置入口外，较小的运行时卡片也可以按“真实实现迁入 feature + legacy 薄转发”模式逐步抽离
+- `config-split-page` 证明通用布局壳也可以按“真实实现迁入 shared + legacy 薄转发”模式抽离，allowed roots 不只限于 feature
 
 # 下一步
 
-- 继续扫描 `components/config` 里已是 kebab-case 的页面或卡片文件，优先挑选可挂入 `features/system-status`、`features/account` 或 `features/remote` 的候选项
+- 继续扫描 `components/config` 里已是 kebab-case 的页面或卡片文件，优先挑选可挂入 `features/system-status`、`features/account`、`features/remote` 或 `shared` 的候选项
 - 只有当无法找到可挂入既有 feature 的小文件时，才重新评估是否需要新增 `shared` 或新的 feature root
 
 # 停止原因 / 阻塞
