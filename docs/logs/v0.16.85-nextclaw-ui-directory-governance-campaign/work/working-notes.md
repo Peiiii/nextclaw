@@ -536,6 +536,29 @@
     - 可维护性总结：`no maintainability findings`。这一批不是只把频道页换目录，而是同时消除了 effect 型选中态修补、表单 hydration 修补与二维码本地状态修补；当前没有新增预算观察点
 - 当前已自动进入下一轮扫描：`ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 现在成为 `components/config` 的最高优先级剩余主链。它们共享既有的 `shared/components/config` 语义延长线，且 `provider-enabled-field`、`provider-auth-section`、`provider-advanced-settings-section` 等稳定子块已经在 shared roots。当前判断是：下一轮优先评估能否按 `shared/components/config` 一次性承接 provider 列表页、详情表单、models section 与 form support helpers；如果 provider 页面线仍会触发 effect-boundary、file-budget 或 non-feature 净增硬阻塞，再回到 `lib` / `api` 热点继续扫描
 
+- 第三十三批已经完成并通过验证：
+  - 第一次尝试把 `ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 整组迁入 `shared/components/config`，但 `post-edit-maintainability-guard` 明确报出 non-feature 非测试净增 `+437`，同时 `ProviderFormEditor` 与 `ProviderFormFields` 命中函数预算，因此认定“provider 全链整组迁移”当前不是高置信批次并回退
+  - 最终降级为只迁移最高层页面入口：`components/config/ProvidersList.tsx -> shared/components/config/providers-list.tsx`
+  - 完成 `shared/components/config/providers-list.test.tsx`，把相邻测试一起归位
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/ProvidersList` 指向新的 allowed-root 实现
+  - 保留 `ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 在原路径不动，明确避免把低置信的大体量 provider 表单迁移硬塞进这一批
+  - 通过第三十三批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/shared/components/config/providers-list.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/ProvidersList.tsx packages/nextclaw-ui/src/components/config/providers-list.test.tsx packages/nextclaw-ui/src/shared/components/config/providers-list.tsx packages/nextclaw-ui/src/shared/components/config/providers-list.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/ProvidersList.tsx packages/nextclaw-ui/src/components/config/providers-list.test.tsx packages/nextclaw-ui/src/shared/components/config/providers-list.tsx packages/nextclaw-ui/src/shared/components/config/providers-list.test.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十三批代码净变化：`-1`
+  - 第三十三批非测试代码净变化：`-2`
+  - 第三十三批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `266` 行，删除 `267` 行，净增 `-1` 行
+    - 非测试代码增减报告：新增 `197` 行，删除 `199` 行，净增 `-2` 行
+    - 可维护性总结：`no maintainability findings`。这批明确拒绝了 provider 全链整搬的低置信方案，只拿下最高层列表页入口迁移，并且继续维持非功能净减债
+
+- 当前已自动进入下一轮扫描：provider 全链整组迁移已被降级为低置信候选，后续若再触达 provider 主链，只允许挑可独立净减债的子块；下一轮优先回到 `components/config` 其它一级页面或 `lib` / `api` 热点，寻找更高置信的 allowed-root 子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

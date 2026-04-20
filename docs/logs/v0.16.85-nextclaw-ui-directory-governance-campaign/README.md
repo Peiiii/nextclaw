@@ -277,6 +277,7 @@
   - 第三十批验证通过，`SessionsConfig` 已脱离 `components/config` 一级目录；`SessionsConfig` 继续通过一条精确 alias 供 app 懒加载解析，治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `+148`、非测试代码净变化为 `-5`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`，同时确认新详情子块必须落在 `features/chat/components/config/` 子域，不能继续平铺到 `features/chat/components` 根目录
   - 第三十一批验证通过，`RuntimeConfig` 已脱离 `components/config` 一级目录；`RuntimeConfig` 继续通过一条精确 alias 供 app 懒加载解析，治理守卫、类型检查、UI 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `+100`、非测试代码净变化为 `-41`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`，同时确认运行时页面应继续沿 `features/system-status/components/config/` 子域扩张，而不是把新卡片重新平铺到 feature 根目录
   - 第三十二批验证通过，`ChannelsList` / `ChannelForm` / `weixin-channel-auth-section` 已一起脱离 `components/config` 一级目录；三条 legacy 导入继续通过精确 alias 供 app 懒加载和历史测试解析，治理守卫、类型检查、UI 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-57`、非测试代码净变化为 `-42`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`，同时确认 channels 页面主链现在已经能稳定待在 `features/channels/pages + components/config + utils` 组合内
+  - 第三十三批验证通过，`ProvidersList` 已脱离 `components/config` 一级目录；`ProvidersList` 继续通过一条精确 alias 供 app 懒加载解析，治理守卫、类型检查、UI 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-1`、非测试代码净变化为 `-2`；独立可维护性复核结论为“通过，继续推进下一层级”，`no maintainability findings`。同时明确记录：provider 全链整组迁移曾尝试落到 `shared/components/config`，但被 non-feature 非测试净增 `+437` 与函数预算一起阻断，因此本批只拿下最高层列表页入口迁移，不对 `ProviderForm` 及其内部支撑线放水
 
 # 发布 / 部署方式
 
@@ -288,21 +289,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到三十二处 contract-aligned 的治理结果：除了前三十一处治理样例外，还应看到 `components/config/ChannelsList.tsx`、`ChannelForm.tsx` 与 `weixin-channel-auth-section.tsx` 已成组移入 `features/channels/pages/` 与 `features/channels/components/config/`，频道页选中态改成纯派生值，实时应用状态改成外部订阅快照，二维码渲染改成 query 驱动，并通过三条精确 alias 继续供 app 懒加载与历史导入解析到 allowed-root 实现。
+5. 当前至少应看到三十三处 contract-aligned 的治理结果：除了前三十二处治理样例外，还应看到 `components/config/ProvidersList.tsx` 已移入 `shared/components/config/providers-list.tsx`，相邻测试也一起归位，并通过一条精确 alias 继续供 app 懒加载与历史导入解析到 allowed-root 实现；同时工作记录应明确写出 provider 全链整组迁移因为 non-feature 净增与函数预算硬失败而被降级，没有为了追求推进速度去放水整搬 `ProviderForm`。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第三十二批继续从 `components/config` 吃掉频道页面主链，把 `ChannelsList`、`ChannelForm` 与 `weixin-channel-auth-section` 一起迁入 `features/channels` 并补上最小测试锚点；相比继续把频道配置主链平铺在 legacy root，这条路径既符合 strict 合同，也顺手把 `channels` 语义线真正收口到了 `pages + components/config + utils` 组合内。
+本次是否已尽最大努力优化可维护性：是。第三十三批没有继续硬推 provider 全链整组迁移，而是在 `post-edit-maintainability-guard` 明确报出 non-feature 非测试净增 `+437` 与函数预算硬失败后立刻回退，最终只把最高层 `ProvidersList` 页面入口与相邻测试迁入 `shared/components/config` 并补上最小验证；相比为了追求吞吐把 `ProviderForm` 一起硬搬，这条路径更符合 strict 合同和“高置信批次先落地”的战役规则。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第三十二批没有新增用户能力，只做页面、测试与真实消费链的归位；迁移过程中没有保留频道页里的 effect 型选中态修补、表单 hydration 修补或二维码本地状态修补，而是把选中态改成纯派生值、把表单初始化改成 keyed editor、把二维码渲染改成 query 驱动，并把频道应用状态改成外部订阅快照，最终把非测试净增收敛到 `-42`。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第三十三批没有新增用户能力，只做列表页入口、相邻测试与真实消费链的归位；当发现 provider 全链迁移需要额外增加大量 wrapper / editor / hook 才能过守卫时，没有继续叠抽象，而是直接撤回到只迁移 `ProvidersList` 的更小批次，最终把非测试净增收敛到 `-2`。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第三十二批总代码净变化为 `-57`，非测试代码净变化为 `-42`；`components/config` 再少三条一级页面/表单实现，同时新的实现全部落到 `features/channels/pages/` 与 `features/channels/components/config/` 子域，没有继续把 feature 根目录推平，整体平铺度继续下降。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第三十三批总代码净变化为 `-1`，非测试代码净变化为 `-2`；`components/config` 再少一条一级页面实现，同时没有引入新的 shared/provider 表单碎片文件，整体平铺度继续下降。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。`ChannelsList` 现在归位到 `features/channels/pages/`，`ChannelForm` 与 `weixin-channel-auth-section` 归位到 `features/channels/components/config/`；同时没有增加新的假角色或 shim，而是把频道页面壳、字段渲染、微信授权子块与外部订阅快照边界拆清，让频道页主链不再继续平铺在 `components/config` 一级目录。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第三十三批只迁移 `ProvidersList`，并明确把 `ProviderForm` 及其内部 helper 继续留在原路径，避免为了强行过渡而引入一批额外的 editor / fields / auth-controller 中间层。新的页面入口直接落在 `shared/components/config/`，旧导入继续通过精确 alias 解析到新入口，没有新增假角色或补丁式桥接。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第三十二批之后 `components/config` 又少了三条一级页面/表单实现，`features/channels/components/config/` 已开始承接频道配置子域，`features/channels` 根目录没有继续膨胀。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点；其中接下来的高优先级候选将转向 `ProvidersList.tsx` / `ProviderForm.tsx` / `provider-models-section.tsx` / `provider-form-support.ts` 这条 provider 页面主链，而 `chat-sidebar.tsx` 仍明确属于低置信重页面，不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第三十三批之后 `components/config` 又少了一条一级页面实现。provider 主链里现在只有 `ProvidersList` 被安全迁入 `shared/components/config/`；`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 仍是历史债务热点，不过本批已经明确证明“整组迁移”当前不是高置信路径，后续若再处理 provider 主链，必须选择更小且可独立净减债的子块。`packages/nextclaw-ui/src/components/config`、`components/chat`、`components/ui`、`lib`、`api` 依旧是历史债务热点，而 `chat-sidebar.tsx` 仍明确属于低置信重页面，不会为了追求推进速度而直接放水整搬。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第三十二批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `1341` 行，删除 `1398` 行，净增 `-57` 行。非测试代码增减报告：新增 `784` 行，删除 `826` 行，净增 `-42` 行。可维护性总结：这一批把频道页面主链拖进了 `features/channels/pages + components/config` 组合里，同时把 effect 型状态修补全部收掉；中途暴露过函数预算与 effect-boundary 阻塞，最终通过 keyed editor、外部订阅快照和 query 驱动二维码一起收口到净减债。后续优先改扫 provider 页面主链。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第三十三批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `266` 行，删除 `267` 行，净增 `-1` 行。非测试代码增减报告：新增 `197` 行，删除 `199` 行，净增 `-2` 行。可维护性总结：这一批不是只把 provider 列表页换目录，还明确否决了一次会导致 non-feature 膨胀与函数预算失败的 provider 全链整搬方案；最终只保留高置信的 `ProvidersList` 入口迁移，并继续把 provider 表单主链列为待拆小的后续债务。
 
 # NPM 包发布记录
 

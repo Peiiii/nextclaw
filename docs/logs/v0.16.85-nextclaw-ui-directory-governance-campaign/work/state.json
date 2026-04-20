@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-channels-page provider-page scan",
-    "原因": "第三十二批已完成：`ChannelsList.tsx`、`ChannelForm.tsx` 与 `weixin-channel-auth-section.tsx` 已整体迁入 `features/channels/pages/channels-list-page.tsx` 与 `features/channels/components/config/` 子域，三份相邻测试也已归位。迁移过程中曾先后暴露语法缺口、函数预算、effect-boundary 与重连/授权状态分流问题，但最终通过 keyed editor、外部订阅快照、query 驱动二维码与 `sessionStartedWhileConnected` 一起收口，并把 non-feature 非测试净变化压到 `-42`。当前剩余的一级配置页重页面里，`ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 共享既有 `shared/components/config` 语义延长线，是新的最高优先级大批次候选。",
+    "名称": "post-provider-list-page rescan",
+    "原因": "第三十三批已完成：先尝试把 `ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 整组迁入 `shared/components/config`，但很快被 non-feature 非测试净增 `+437`、`ProviderFormEditor` 函数预算与 `ProviderFormFields` 函数预算一起阻断，因此降级为只迁移最高层页面入口 `ProvidersList.tsx` 与相邻测试，并继续用精确 alias 承接 app 懒加载导入。最终 `ProvidersList` 已迁入 `shared/components/config/providers-list.tsx`，列表选中态继续维持纯派生，整批 non-feature 非测试净变化压到 `-2`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -13,7 +13,7 @@
       "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
       "若候选会把 feature 根目录推到目录预算硬上限，必须先拆出 `components/config`、`components/runtime` 或同等子域，再继续迁移",
       "若尝试直接触达 `app.tsx` 这类 strict root-file 消费方，立即回退并改用精确 alias 承接",
-      "优先评估 `shared/components/config` 是否能一起承接 `ProvidersList` / `ProviderForm` / `provider-models-section`，以及 `provider-form-support.ts` 是否应同步归到 shared config 子域而不是继续留在 legacy root",
+      "优先评估 provider 页面主链是否还有比整组迁移更小但仍高价值的 allowed-root 子链；若仍会触发 non-feature 净增或函数预算，立即转向其它更高置信热点",
       "受影响测试或类型检查",
       "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
       "pnpm lint:new-code:governance -- <target-paths...>",
@@ -76,20 +76,22 @@
     "完成 SecretsConfig、相邻测试与 secrets 表单装配链的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 SessionsConfig、相邻测试与会话详情子块的 feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 RuntimeConfig、相邻测试与 runtime config 子域拆分的 system-status feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
-    "完成 ChannelsList / ChannelForm / weixin-channel-auth-section、相邻测试与频道页面主链的 channels feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
+    "完成 ChannelsList / ChannelForm / weixin-channel-auth-section、相邻测试与频道页面主链的 channels feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
+    "完成 ProvidersList 与相邻测试的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
     "继续在 components/config 下直接新增 provider 子树",
     "desktop-update-config 当前版本的直接迁移方案",
     "直接把 ChannelForm / ChannelsList / weixin-channel-auth-section 整组迁入 features/channels",
-    "直接把 chat-sidebar 整组迁入 features/chat/components/layout"
+    "直接把 chat-sidebar 整组迁入 features/chat/components/layout",
+    "直接把 ProvidersList / ProviderForm / provider-models-section / provider-form-support 整组迁入 shared/components/config"
   ],
   "阻塞项": [
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 `components/config/ProvidersList.tsx`、`components/config/ProviderForm.tsx`、`components/config/provider-models-section.tsx` 与 `components/config/provider-form-support.ts` 的整组迁移可行性；优先判断 `shared/components/config` 是否能一起承接 provider 列表页、详情表单、models section 与 form support helpers，并补一条最小测试锚点。若 provider 页面线仍无法在非功能净增 <= 0、effect-boundary 和 file-budget 下成立，则回到 `lib` / `api` 热点中寻找更高置信的 shared 契约链。",
-  "最近一次停机原因": "第三十二批已完成验证：`ChannelsList`、`ChannelForm` 与 `weixin-channel-auth-section` 已迁入 `features/channels/pages/channels-list-page.tsx` 与 `features/channels/components/config/`，并用精确 alias 承接三个 legacy 导入。当前没有治理硬失败，已自动进入下一轮高置信候选扫描；初筛确认 provider 页面主链共享既有 shared config 语义延长线，是新的更大批次候选。",
+  "下一步": "放弃继续硬推 provider 全链整组迁移，转向重新扫描 `components/config` 剩余一级页面与 `lib` / `api` 热点中更高置信的 allowed-root 子链；若后续再次触达 provider 主链，默认只允许挑可独立净减债的子块，而不是再整组搬迁 `ProviderForm`。",
+  "最近一次停机原因": "第三十三批完成后，provider 全链整组迁移已被明确记为低置信：第一次尝试虽然通过 vitest、tsc 与 governance，但 `post-edit-maintainability-guard` 报出 non-feature 非测试净增 `+437`，同时 `ProviderFormEditor` 与 `ProviderFormFields` 命中函数预算，因此回退到只迁移 `ProvidersList` 与相邻测试。当前批次已验证通过并可提交，下一轮应切到新的更高置信候选。",
   "最近更新时间": "2026-04-21"
 }
