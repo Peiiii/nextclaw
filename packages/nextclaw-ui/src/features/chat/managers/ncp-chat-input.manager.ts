@@ -13,12 +13,12 @@ import {
   syncComposerAttachments,
   syncComposerSkills
 } from '@/features/chat/utils/chat-composer-state.utils';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
-import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
-import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
-import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
+import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';

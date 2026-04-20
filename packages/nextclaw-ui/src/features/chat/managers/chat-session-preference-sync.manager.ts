@@ -1,7 +1,7 @@
 import type { SessionPatchUpdate, ThinkingLevel } from '@/api/types';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
 type QueuedSessionPreferenceSync = { sessionKey: string; patch: SessionPatchUpdate };
 

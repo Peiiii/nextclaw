@@ -1,6 +1,6 @@
 import { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
-import { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
+import { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { NcpChatInputManager } from '@/features/chat/managers/ncp-chat-input.manager';
 import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 

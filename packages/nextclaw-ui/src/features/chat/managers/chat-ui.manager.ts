@@ -1,5 +1,5 @@
-import { buildSessionPath } from '@/components/chat/chat-session-route';
 import type { NavigateFunction, NavigateOptions } from 'react-router-dom';
+import { buildSessionPath } from '@/features/chat/utils/chat-session-route.utils';
 
 type ChatUiState = {
   pathname: string;
@@ -7,10 +7,18 @@ type ChatUiState = {
 
 type ChatUiActions = {
   navigate: NavigateFunction | null;
-  confirm: (params: { title: string; variant: 'destructive'; confirmLabel: string }) => Promise<boolean>;
+  confirm: (params: {
+    title: string;
+    variant: 'destructive';
+    confirmLabel: string;
+  }) => Promise<boolean>;
 };
 
-const noopConfirm = async (_params: { title: string; variant: 'destructive'; confirmLabel: string }) => false;
+const noopConfirm = async (_params: {
+  title: string;
+  variant: 'destructive';
+  confirmLabel: string;
+}) => false;
 
 export class ChatUiManager {
   private state: ChatUiState = {

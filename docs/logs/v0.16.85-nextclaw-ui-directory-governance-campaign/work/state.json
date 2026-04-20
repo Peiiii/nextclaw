@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-system-status legacy-reexport scan",
-    "原因": "第三十四批已完成：`components/config/runtime-config-agent.utils.ts`、`runtime-control-card.tsx`、`runtime-presence-card.tsx` 与 `security-config.tsx` 这四个 legacy 顶层文件都已确认只是指向 `features/system-status` 的薄转发或 dead alias，于是本批直接删除旧入口，并仅为 `@/components/config/security-config` 补上一条精确 alias 继续承接 `app.tsx` 的 root import。尝试顺手清理 provider 那组薄转发时，又被 `ProviderForm.tsx` 的非 kebab 文件名命名治理阻断，因此本批明确收缩为 system-status 旧入口清理，最终 non-feature 非测试净变化为 `-9`。",
+    "名称": "chat infrastructure owner-chain migration",
+    "原因": "第三十五批已完成：`components/chat/stores/chat-input.store.ts`、`chat-thread.store.ts`、`presenter/chat-presenter-context.tsx`、`managers/chat-stream-actions.manager.ts`、`managers/chat-ui.manager.ts` 与 `chat-stream/types.ts` 这六条 chat 基础 owner 链已整体迁入 `features/chat` allowed roots；`features/chat` 内部真实消费方同步改到新路径，legacy 导入则继续通过精确 alias 承接。中途命中过一次目录 / 后缀治理阻断：`presenter/` 子目录不在 chat feature 白名单内，`providers/` 目录又要求 `*.provider.tsx` 后缀，因此最终把 provider 收敛到 `features/chat/components/providers/chat-presenter.provider.tsx`。本批治理守卫、类型检查、UI 用例、maintainability guard 与 ratchet 全部通过，non-feature 非测试净变化为 `-4`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -37,6 +37,8 @@
     "建立 features/chat 并成组迁入 chat 纯支撑线与相关测试",
     "沿 features/chat 继续成组迁入 session-preference 支撑线",
     "继续从 components/config 中迁出页面/卡片级实现",
+    "components/chat hooks owner 链迁入 features/chat/hooks",
+    "components/chat presenter / adapter 余量迁入 features/chat/adapters 或 components/providers",
     "components/chat page-shell / page / ncp page / conversation panel 入口链收敛",
     "lib 混合关注点收敛",
     "api 契约/客户端/类型拆分"
@@ -78,7 +80,8 @@
     "完成 RuntimeConfig、相邻测试与 runtime config 子域拆分的 system-status feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 ChannelsList / ChannelForm / weixin-channel-auth-section、相邻测试与频道页面主链的 channels feature-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
     "完成 ProvidersList 与相邻测试的 shared-root/config-subtree 迁移，并通过精确 alias 承接 legacy 导入",
-    "完成 system-status 旧入口薄转发清理，并删除 runtime/security 四个 legacy re-export 文件"
+    "完成 system-status 旧入口薄转发清理，并删除 runtime/security 四个 legacy re-export 文件",
+    "完成 chat infrastructure owner 链的 feature-root 迁移，并删除六个 legacy chat stores/presenter/manager/type 入口"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -93,7 +96,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 `components/config`、`components/chat` 与 `lib` 中不依赖非 kebab 历史文件的高置信 allowed-root 子链；优先选择还能整组迁出测试、真实消费方与 dead legacy 入口的批次。",
-  "最近一次停机原因": "第三十四批完成后，system-status 旧入口薄转发已经清掉；同时也确认 provider 薄转发清理并不是当前高置信路径，因为一旦触碰 `ProviderForm.tsx` 就会被 file-name governance 以非 kebab 文件名阻断。当前批次已验证通过并可提交，下一轮应继续绕开这类历史命名债务热点，选择新的高置信候选。",
+  "下一步": "继续扫描 `components/chat/hooks`、`components/chat/adapters` 与 `components/config` 中不依赖 `ProviderForm.tsx` 等历史非 kebab 文件的高置信 owner 链；优先选择还能整组迁出测试、真实消费方与 dead legacy 入口的批次。",
+  "最近一次停机原因": "第三十五批完成后，chat stores/presenter/manager/type 这条基础 owner 链已经脱离 `components/chat`。本轮同时验证出两个重要边界：`chat` feature 不能新增 `presenter/` 子目录，且 `components/providers/` 下的新文件必须使用 `*.provider.tsx` 后缀。当前批次已验证通过并可提交，下一轮应沿这些边界继续吃 `components/chat/hooks` 或 adapters 这类高置信链。",
   "最近更新时间": "2026-04-21"
 }

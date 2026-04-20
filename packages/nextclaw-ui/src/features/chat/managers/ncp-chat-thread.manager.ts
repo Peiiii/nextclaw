@@ -6,14 +6,14 @@ import type {
   ChatToolActionViewModel,
 } from '@nextclaw/agent-chat-ui';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
-import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
+import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import type {
   ChatThreadSnapshot,
   ChatWorkspaceFileTab,
-} from '@/components/chat/stores/chat-thread.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
+} from '@/features/chat/stores/chat-thread.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { t } from '@/lib/i18n';
 
 export class NcpChatThreadManager {

@@ -1,4 +1,4 @@
-import type { ChatStreamActions } from '@/components/chat/chat-stream/types';
+import type { ChatStreamActions } from '@/features/chat/types/chat-stream.types';
 
 const noopAsync = async () => {};
 const noop = () => {};
@@ -19,7 +19,8 @@ export class ChatStreamActionsManager {
     };
   };
 
-  sendMessage = (payload: Parameters<ChatStreamActions['sendMessage']>[0]) => this.actions.sendMessage(payload);
+  sendMessage = (payload: Parameters<ChatStreamActions['sendMessage']>[0]) =>
+    this.actions.sendMessage(payload);
 
   stopCurrentRun = () => this.actions.stopCurrentRun();
 

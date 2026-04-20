@@ -1,4 +1,4 @@
-import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
+import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 
 type NcpChatInputAvailabilitySnapshot = Pick<
   ChatInputSnapshot,

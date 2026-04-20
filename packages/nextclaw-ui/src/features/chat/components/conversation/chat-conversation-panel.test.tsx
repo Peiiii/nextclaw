@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
-import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
+import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import { useChatThreadStore } from "@/components/chat/stores/chat-thread.store";
+import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
@@ -77,7 +77,7 @@ vi.mock("@/components/chat/ChatWelcome", () => ({
   ),
 }));
 
-vi.mock("@/components/chat/presenter/chat-presenter-context", () => ({
+vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatThreadManager: {
       deleteSession: mocks.deleteSession,

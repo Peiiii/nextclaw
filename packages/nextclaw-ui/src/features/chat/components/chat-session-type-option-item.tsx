@@ -1,4 +1,4 @@
-import type { ChatInputSnapshot } from "@/components/chat/stores/chat-input.store";
+import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { SessionContextIconNode } from "@/components/common/session-context-icon";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";

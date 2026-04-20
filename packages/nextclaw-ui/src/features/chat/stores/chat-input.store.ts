@@ -2,8 +2,8 @@ import { create } from 'zustand';
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { SessionSkillEntryView, SessionTypeIconView, ThinkingLevel } from '@/api/types';
-import type { ChatModelOption } from '@/components/chat/chat-input.types';
-import { createInitialChatComposerNodes } from '@/components/chat/chat-composer-state';
+import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
+import { createInitialChatComposerNodes } from '@/features/chat/utils/chat-composer-state.utils';
 
 export type ChatInputSnapshot = {
   isProviderStateResolved: boolean;

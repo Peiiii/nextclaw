@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { ChatFileOpenActionViewModel, ChatFileOperationBlockViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatMessageMarkdown, FileOperationCodeSurface } from "@nextclaw/agent-chat-ui";
-import type { ChatWorkspaceFileTab } from "@/components/chat/stores/chat-thread.store";
+import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./workspace/chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/hooks/server-path/use-server-path-read";
 import { buildLineDiff, buildPreviewLines } from "@/components/chat/adapters/file-operation/line-builder";

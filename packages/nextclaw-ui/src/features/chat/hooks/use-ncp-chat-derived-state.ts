@@ -10,7 +10,7 @@ import { adaptNcpSessionSummary } from '@/features/chat/utils/ncp-session-adapte
 import type { NcpChatPresenter } from '@/features/chat/managers/ncp-chat-presenter.manager';
 import type { UseHydratedNcpAgentResult } from '@nextclaw/ncp-react';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
-import type { ChatChildSessionTab } from '@/components/chat/stores/chat-thread.store';
+import type { ChatChildSessionTab } from '@/features/chat/stores/chat-thread.store';
 import type { ChatSessionTypeOption } from '@/features/chat/hooks/use-chat-session-type-state';
 import { resolveSessionTypeLabel } from '@/features/chat/hooks/use-chat-session-type-state';
 

@@ -4,9 +4,9 @@ import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } fr
 import { uploadNcpAssets } from '@/api/ncp-attachments';
 import type { SessionSkillEntryView } from '@/api/types';
 import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/components/chat/adapters/chat-input-bar.adapter';
-import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
+import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useI18n } from '@/components/providers/I18nProvider';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/utils/chat-composer-state.utils';

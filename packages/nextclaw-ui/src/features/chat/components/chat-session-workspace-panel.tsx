@@ -18,14 +18,14 @@ import {
 import type {
   ChatChildSessionTab,
   ChatWorkspaceFileTab,
-} from "@/components/chat/stores/chat-thread.store";
+} from "@/features/chat/stores/chat-thread.store";
 import {
   readWorkspaceFileTitle,
   resolveWorkspaceSelection,
   type WorkspaceTabViewModel,
   WorkspaceTabsBar,
 } from "./chat-session-workspace-panel-nav";
-import { usePresenter } from "@/components/chat/presenter/chat-presenter-context";
+import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
 import { AgentIdentityAvatar } from "@/components/common/agent-identity";
 import { t } from "@/lib/i18n";

@@ -6,7 +6,7 @@ import {
   isNcpChatModelOptionsLoading,
   isNcpChatSendDisabled,
 } from '@/features/chat/utils/ncp-chat-input-availability.utils';
-import type { ChatInputSnapshot } from '@/components/chat/stores/chat-input.store';
+import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 
 function createSnapshot(
   overrides: Partial<ChatInputSnapshot> = {}

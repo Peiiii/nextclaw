@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
 const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),

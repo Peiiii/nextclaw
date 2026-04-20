@@ -1,27 +1,18 @@
-import type {
-  ChatComposerNode,
-  ChatFileOpenActionViewModel,
-  ChatToolActionViewModel,
-} from '@nextclaw/agent-chat-ui';
+import { createContext, useContext, type ReactNode, type SetStateAction } from 'react';
+import type { ChatComposerNode, ChatFileOpenActionViewModel, ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-import { createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
-import type { SetStateAction } from 'react';
-import type { ChatSessionListManager } from '@/components/chat/managers/chat-session-list.manager';
-import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
-import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
-import type { ChatThreadSnapshot } from '@/components/chat/stores/chat-thread.store';
 import type { ThinkingLevel } from '@/api/types';
+import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
+import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
+import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
+import type { ChatThreadSnapshot } from '@/features/chat/stores/chat-thread.store';
 
 export type ChatInputManagerLike = {
   syncSnapshot: (patch: Record<string, unknown>) => void;
   setDraft: (next: SetStateAction<string>) => void;
   setComposerNodes: (next: SetStateAction<ChatComposerNode[]>) => void;
   addAttachments?: (attachments: NcpDraftAttachment[]) => NcpDraftAttachment[];
-  restoreComposerState?: (
-    nodes: ChatComposerNode[],
-    attachments: NcpDraftAttachment[]
-  ) => void;
+  restoreComposerState?: (nodes: ChatComposerNode[], attachments: NcpDraftAttachment[]) => void;
   setPendingSessionType: (next: SetStateAction<string>) => void;
   send: () => Promise<void>;
   stop: () => Promise<void>;
@@ -41,10 +32,7 @@ export type ChatThreadManagerLike = {
   deleteSession: () => void;
   createSession: () => void;
   goToProviders: () => void;
-  openChildSessionPanel: (params: {
-    parentSessionKey: string;
-    activeChildSessionKey?: string | null;
-  }) => void;
+  openChildSessionPanel: (params: { parentSessionKey: string; activeChildSessionKey?: string | null }) => void;
   openFilePreview: (action: ChatFileOpenActionViewModel) => void;
   openSessionFromToolAction: (action: ChatToolActionViewModel) => void;
   selectChildSessionDetail: (sessionKey: string) => void;
@@ -63,13 +51,7 @@ export type ChatPresenterLike = {
 };
 
 const ChatPresenterContext = createContext<ChatPresenterLike | null>(null);
-
-type ChatPresenterProviderProps = {
-  presenter: ChatPresenterLike;
-  children: ReactNode;
-};
-
-export function ChatPresenterProvider({ presenter, children }: ChatPresenterProviderProps) {
+export function ChatPresenterProvider({ presenter, children }: { presenter: ChatPresenterLike; children: ReactNode }) {
   return <ChatPresenterContext.Provider value={presenter}>{children}</ChatPresenterContext.Provider>;
 }
 
@@ -80,6 +62,3 @@ export function usePresenter(): ChatPresenterLike {
   }
   return presenter;
 }
-
-// Backward-compatible alias with the name from project notes.
-export const usePresneter = usePresenter;

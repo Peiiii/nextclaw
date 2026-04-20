@@ -1,9 +1,9 @@
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
-import type { ChatUiManager } from '@/components/chat/managers/chat-ui.manager';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
-import type { ChatStreamActionsManager } from '@/components/chat/managers/chat-stream-actions.manager';
+import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import { normalizeSessionProjectRootValue } from '@/lib/session-project/session-project.utils';
 import { createNcpSessionId } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { updateNcpSession } from '@/api/ncp-session';

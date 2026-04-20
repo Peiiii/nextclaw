@@ -21,9 +21,9 @@ import {
   useNcpChatDerivedState,
   useNcpChatSnapshotSync,
 } from "@/features/chat/hooks/use-ncp-chat-derived-state";
-import { ChatPresenterProvider } from "@/components/chat/presenter/chat-presenter-context";
-import type { ResumeRunParams } from "@/components/chat/chat-stream/types";
-import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
+import { ChatPresenterProvider } from "@/features/chat/components/providers/chat-presenter.provider";
+import type { ResumeRunParams } from "@/features/chat/types/chat-stream.types";
+import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useAgents } from "@/hooks/agents/useAgents";

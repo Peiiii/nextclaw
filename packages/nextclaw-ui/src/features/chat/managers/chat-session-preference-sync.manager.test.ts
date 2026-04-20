@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { updateNcpSession } from '@/api/ncp-session';
 import { ChatSessionPreferenceSync } from './chat-session-preference-sync.manager';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useChatThreadStore } from '@/components/chat/stores/chat-thread.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
 vi.mock('@/api/ncp-session', () => ({
   updateNcpSession: vi.fn(async () => ({
