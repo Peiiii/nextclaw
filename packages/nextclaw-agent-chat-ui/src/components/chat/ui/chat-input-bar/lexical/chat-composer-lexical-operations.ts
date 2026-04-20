@@ -30,8 +30,9 @@ function insertToken(params: {
 }): ChatComposerEditorSnapshot {
   const { label, nodes, selection, tokenKey, tokenKind, trigger } = params;
   const documentLength = getDocumentLength(nodes);
-  const replaceStart = trigger?.start ?? selection?.start ?? documentLength;
-  const replaceEnd = trigger?.end ?? selection?.end ?? replaceStart;
+  const [selectionStart, selectionEnd] = selection ? [Math.min(selection.start, selection.end), Math.max(selection.start, selection.end)] : [documentLength, documentLength];
+  const replaceStart = trigger?.start ?? selectionStart;
+  const replaceEnd = trigger?.end ?? selectionEnd;
 
   return {
     nodes: replaceChatComposerRange(
@@ -69,17 +70,15 @@ export function replaceChatComposerSelectionWithText(params: {
   text: string;
 }): ChatComposerEditorSnapshot {
   const { nodes, selection, text } = params;
-  const currentSelection = selection ?? {
-    start: getDocumentLength(nodes),
-    end: getDocumentLength(nodes),
-  };
-  const nextOffset = currentSelection.start + text.length;
+  const documentLength = getDocumentLength(nodes);
+  const [selectionStart, selectionEnd] = selection ? [Math.min(selection.start, selection.end), Math.max(selection.start, selection.end)] : [documentLength, documentLength];
+  const nextOffset = selectionStart + text.length;
 
   return {
     nodes: replaceChatComposerRange(
       nodes,
-      currentSelection.start,
-      currentSelection.end,
+      selectionStart,
+      selectionEnd,
       [createChatComposerTextNode(text)],
     ),
     selection: {
@@ -175,19 +174,19 @@ export function deleteChatComposerContent(params: {
 }): ChatComposerEditorSnapshot {
   const { direction, nodes, selection: currentSelection } = params;
   const documentLength = getDocumentLength(nodes);
-  const selection = currentSelection ?? { start: documentLength, end: documentLength };
-  let rangeStart = selection.start;
-  let rangeEnd = selection.end;
+  const [selectionStart, selectionEnd] = currentSelection ? [Math.min(currentSelection.start, currentSelection.end), Math.max(currentSelection.start, currentSelection.end)] : [documentLength, documentLength];
+  let rangeStart = selectionStart;
+  let rangeEnd = selectionEnd;
 
-  if (selection.start === selection.end) {
-    if (direction === 'backward' && selection.start > 0) {
-      rangeStart = selection.start - 1;
-    } else if (direction === 'forward' && selection.end < documentLength) {
-      rangeEnd = selection.end + 1;
+  if (rangeStart === rangeEnd) {
+    if (direction === 'backward' && rangeStart > 0) {
+      rangeStart -= 1;
+    } else if (direction === 'forward' && rangeEnd < documentLength) {
+      rangeEnd += 1;
     } else {
       return {
         nodes: normalizeChatComposerNodes(nodes),
-        selection,
+        selection: { start: rangeStart, end: rangeEnd },
       };
     }
   }

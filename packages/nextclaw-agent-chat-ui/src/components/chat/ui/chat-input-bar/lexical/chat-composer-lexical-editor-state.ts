@@ -278,8 +278,8 @@ export function readChatComposerSnapshotFromEditorState(
     return {
       nodes,
       selection: {
-        start: getOffsetFromPoint(selection.anchor),
-        end: getOffsetFromPoint(selection.focus),
+        start: Math.min(getOffsetFromPoint(selection.anchor), getOffsetFromPoint(selection.focus)),
+        end: Math.max(getOffsetFromPoint(selection.anchor), getOffsetFromPoint(selection.focus)),
       },
     };
   });
