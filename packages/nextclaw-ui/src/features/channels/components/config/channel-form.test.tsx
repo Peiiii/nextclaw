@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { ChannelForm } from './ChannelForm';
+import { ChannelForm } from '@/features/channels/components/config/channel-form';
 
 const updateChannelMutate = vi.fn();
 const updateChannelMutateAsync = vi.fn();
@@ -63,7 +63,7 @@ vi.mock('@/transport', () => ({
   }
 }));
 
-vi.mock('./weixin-channel-auth-section', () => ({
+vi.mock('@/features/channels/components/config/weixin-channel-auth-section', () => ({
   WeixinChannelAuthSection: () => null
 }));
 

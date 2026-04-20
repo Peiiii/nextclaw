@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactQueryModule from '@tanstack/react-query';
-import { WeixinChannelAuthSection } from './weixin-channel-auth-section';
+import { WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
 
 const mocks = vi.hoisted(() => ({
   startChannelAuthMutateAsync: vi.fn(),
@@ -15,6 +15,9 @@ vi.mock('@tanstack/react-query', async () => {
     ...actual,
     useQueryClient: () => ({
       invalidateQueries: mocks.invalidateQueries
+    }),
+    useQuery: () => ({
+      data: 'data:image/png;base64,weixin-qr'
     })
   };
 });
@@ -91,7 +94,7 @@ describe('WeixinChannelAuthSection', () => {
     });
   });
 
-  it('shows connected-but-inactive state when account is authorized but channel is disabled', async () => {
+  it('shows connected-but-inactive state when account is authorized but channel is disabled', () => {
     render(
       <WeixinChannelAuthSection
         channelConfig={{

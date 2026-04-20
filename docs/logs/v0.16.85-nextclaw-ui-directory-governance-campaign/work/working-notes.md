@@ -505,6 +505,36 @@
     - 非测试代码增减报告：新增 `576` 行，删除 `617` 行，净增 `-41` 行
     - 可维护性总结：`no maintainability findings`。这一批不是只把运行时页换目录，而是同时把五段稳定子块与保存归一化链收束到 `system-status` 子域，并在第一次守卫失败后继续压缩到非测试净减债
 - 当前已自动进入下一轮扫描：`ChannelsList.tsx`、`ChannelForm.tsx` 与 `weixin-channel-auth-section.tsx` 共享既有 `features/channels` 语义边界，且已经有 `channel-form-fields` / `channel-form-fields-section` / 相邻测试落在 allowed roots。当前判断是：下一轮优先评估能否按 `features/channels/pages + components/config + utils` 一次性承接列表页、详情表单与微信授权子块，做成比前几轮更大的高置信批次；如果 channels 页面线仍会触发 effect-boundary、file-budget 或 non-feature 净增硬阻塞，再回到 provider 页面链继续扫描
+- 第三十二批已经完成并通过验证：
+  - 完成 `components/config/ChannelsList.tsx -> features/channels/pages/channels-list-page.tsx`
+  - 完成 `components/config/ChannelForm.tsx -> features/channels/components/config/channel-form.tsx`
+  - 完成 `components/config/weixin-channel-auth-section.tsx -> features/channels/components/config/weixin-channel-auth-section.tsx`
+  - 完成 `features/channels/pages/channels-list-page.test.tsx`、`features/channels/components/config/channel-form.test.tsx` 与 `features/channels/components/config/weixin-channel-auth-section.test.tsx`，把三份相邻测试一起归位
+  - 完成 legacy 导入承接：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 现以精确 alias 把 `@/components/config/ChannelsList`、`@/components/config/ChannelForm` 与 `@/components/config/weixin-channel-auth-section` 指向新的 allowed-root 实现
+  - 完成结构减债：
+    - 把列表页选中频道状态改成纯派生值，删掉原本的 effect 型本地状态修补
+    - 把频道配置实时应用状态改成外部订阅快照，删掉 effect 里直接 `setChannelApplyState`
+    - 把表单 hydration 改成 keyed editor 初始化，删掉 effect 里直接 `setFormData` / `setJsonDrafts`
+    - 把二维码渲染改成 query 驱动，同时用 `sessionStartedWhileConnected` 明确区分“已有账号重连扫码”和“新授权完成后回到 connected”两条路径
+  - 明确记录三次失败路径：
+    - 第一版迁移直接落文件后，三份新测试文件末尾漏了 `});`，被 vitest / tsc 立即阻断；补齐语法后恢复
+    - 第二版迁移在测试通过前先被 `post-edit-maintainability-guard` 报出 `ChannelForm` / `WeixinChannelAuthSection` 的函数预算超标，同时 governance 报出 effect-boundary；最终通过 keyed editor、外部订阅快照与 query 驱动二维码一起收口
+    - 第三版在 `WeixinChannelAuthSection` 中把“已有账号重连扫码”和“新授权完成后回到 connected”混成一条路径，导致频道页测试拿不到二维码；最终通过 `sessionStartedWhileConnected` 拆分这两种场景后恢复
+  - 通过第三十二批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/channels/pages/channels-list-page.test.tsx src/features/channels/components/config/channel-form.test.tsx src/features/channels/components/config/weixin-channel-auth-section.test.tsx src/app.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/components/config/ChannelForm.tsx packages/nextclaw-ui/src/components/config/ChannelForm.test.tsx packages/nextclaw-ui/src/components/config/ChannelsList.tsx packages/nextclaw-ui/src/components/config/ChannelsList.test.tsx packages/nextclaw-ui/src/components/config/weixin-channel-auth-section.tsx packages/nextclaw-ui/src/components/config/weixin-channel-auth-section.test.tsx packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx packages/nextclaw-ui/src/features/channels/components/config/channel-form.test.tsx packages/nextclaw-ui/src/features/channels/components/config/weixin-channel-auth-section.tsx packages/nextclaw-ui/src/features/channels/components/config/weixin-channel-auth-section.test.tsx packages/nextclaw-ui/src/features/channels/pages/channels-list-page.tsx packages/nextclaw-ui/src/features/channels/pages/channels-list-page.test.tsx packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/components/config/ChannelForm.tsx packages/nextclaw-ui/src/components/config/ChannelForm.test.tsx packages/nextclaw-ui/src/components/config/ChannelsList.tsx packages/nextclaw-ui/src/components/config/ChannelsList.test.tsx packages/nextclaw-ui/src/components/config/weixin-channel-auth-section.tsx packages/nextclaw-ui/src/components/config/weixin-channel-auth-section.test.tsx packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx packages/nextclaw-ui/src/features/channels/components/config/channel-form.test.tsx packages/nextclaw-ui/src/features/channels/components/config/weixin-channel-auth-section.tsx packages/nextclaw-ui/src/features/channels/components/config/weixin-channel-auth-section.test.tsx packages/nextclaw-ui/src/features/channels/pages/channels-list-page.tsx packages/nextclaw-ui/src/features/channels/pages/channels-list-page.test.tsx packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十二批代码净变化：`-57`
+  - 第三十二批非测试代码净变化：`-42`
+  - 第三十二批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `1341` 行，删除 `1398` 行，净增 `-57` 行
+    - 非测试代码增减报告：新增 `784` 行，删除 `826` 行，净增 `-42` 行
+    - 可维护性总结：`no maintainability findings`。这一批不是只把频道页换目录，而是同时消除了 effect 型选中态修补、表单 hydration 修补与二维码本地状态修补；当前没有新增预算观察点
+- 当前已自动进入下一轮扫描：`ProvidersList.tsx`、`ProviderForm.tsx`、`provider-models-section.tsx` 与 `provider-form-support.ts` 现在成为 `components/config` 的最高优先级剩余主链。它们共享既有的 `shared/components/config` 语义延长线，且 `provider-enabled-field`、`provider-auth-section`、`provider-advanced-settings-section` 等稳定子块已经在 shared roots。当前判断是：下一轮优先评估能否按 `shared/components/config` 一次性承接 provider 列表页、详情表单、models section 与 form support helpers；如果 provider 页面线仍会触发 effect-boundary、file-budget 或 non-feature 净增硬阻塞，再回到 `lib` / `api` 热点继续扫描
 
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
