@@ -787,6 +787,29 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `chat-page.tsx` alias 是否仍被 strict root-file `app.tsx` 硬阻塞；若是，则切换到 `components/config`、`api` 或 `lib` 等剩余热点目录做下一批更大体量的 allowed-root 迁移扫描
 
+- 第四十四批已经完成并通过验证：
+  - 完成 dead shim 清理：`components/config/channel-form-fields.ts` 与 `components/config/channel-form-fields-section.tsx` 这两条 legacy 兼容导出已经零消费，因此直接物理删除，不再继续占住一级目录名额
+  - 完成失败路径定性：尝试顺手把 provider 薄转发一起清掉时，再次确认 `ProviderForm.tsx` 在 strict 模式下存在双重硬冲突
+    - 只要直接触碰 `ProviderForm.tsx`，`file-name-kebab-case` 就会因为历史非 kebab 文件名阻断
+    - 若尝试在同一 legacy root 内把它改名为 `provider-form.tsx`，`module-structure-drift` 又会把新文件视作“在 legacy root 新增文件”并阻断
+  - 因此本批明确收缩为纯高置信删除，不再在 `ProviderForm` 这条低收益路径上继续消耗
+  - 通过第四十四批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/channels/utils/channel-form-fields.utils.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/channels/index.ts packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.ts packages/nextclaw-ui/src/features/channels/utils/channel-form-fields.utils.test.ts docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/README.md`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十四批代码净变化：`-2`
+  - 第四十四批非测试代码净变化：`-2`
+  - 第四十四批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `0` 行，删除 `2` 行，净增 `-2` 行
+    - 非测试代码增减报告：新增 `0` 行，删除 `2` 行，净增 `-2` 行
+    - 可维护性总结：`no maintainability findings`。这批虽然删得不大，但直接把 `components/config` 一级目录里两条已经退化成空壳的 channel 入口物理清掉，并额外确认了 `ProviderForm` 当前不是可硬推的高置信批次
+
+- 当前已自动进入下一轮扫描：`chat-page.tsx` alias 若仍被 `app.tsx` 卡住，就不再继续在 chat alias 层打转；同时 `ProviderForm` 相关路径现在升级为“命名治理 + module-structure 双硬阻塞”案例。下一轮优先切去 `api` / `lib` 或其它不依赖这两类阻塞的更大批次热点
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
