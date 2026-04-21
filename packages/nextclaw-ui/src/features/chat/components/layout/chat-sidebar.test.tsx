@@ -1,10 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatSidebar } from '@/components/chat/containers/chat-sidebar';
-import type { NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
-import { useChatSessionListStore } from '@/components/chat/stores/chat-session-list.store';
+import { ChatSidebar } from '@/features/chat/components/layout/chat-sidebar';
+import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -26,7 +26,7 @@ function createSessionItem(
   return { session, runStatus };
 }
 
-vi.mock('@/components/chat/presenter/chat-presenter-context', () => ({
+vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   usePresenter: () => ({
     chatSessionListManager: {
       createSession: mocks.createSession,
@@ -50,7 +50,7 @@ vi.mock('@/components/doc-browser', () => ({
   })
 }));
 
-vi.mock('@/components/chat/hooks/use-chat-session-label', () => ({
+vi.mock('@/features/chat/hooks/use-chat-session-label', () => ({
   useChatSessionLabel: () => async (params: {
     sessionKey: string;
     label: string | null;
@@ -70,7 +70,7 @@ vi.mock('@/components/chat/hooks/use-chat-session-label', () => ({
   }
 }));
 
-vi.mock('@/components/chat/ncp/use-ncp-session-list-view', () => ({
+vi.mock('@/features/chat/hooks/use-ncp-session-list-view', () => ({
   useNcpSessionListView: () => ({
     isLoading: mocks.isLoading,
     items: mocks.sessionItems

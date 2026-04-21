@@ -7,15 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SelectItem } from '@/components/ui/select';
 import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, ChatSidebarSessionItem, type ChatSidebarProjectGroup } from '@/features/chat';
-import { resolveSessionContextView } from '@/lib/session-context.utils';
-import { useChatSidebarSessionLabelEditor } from '@/components/chat/hooks/use-chat-sidebar-session-label-editor';
-import { useNcpSessionListView, type NcpSessionListItemView } from '@/components/chat/ncp/use-ncp-session-list-view';
-import { usePresenter } from '@/components/chat/presenter/chat-presenter-context';
-import { useChatInputStore } from '@/components/chat/stores/chat-input.store';
+import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat-sidebar-session-label-editor';
+import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
+import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
+import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import {
   shouldShowUnreadSessionIndicator,
   useChatSessionListStore
-} from '@/components/chat/stores/chat-session-list.store';
+} from '@/features/chat/stores/chat-session-list.store';
+import { useSystemStatus } from '@/features/system-status';
+import { resolveSessionContextView } from '@/lib/session-context.utils';
 import { useAgents } from '@/hooks/agents/useAgents';
 import { getSessionProjectName } from '@/lib/session-project/session-project.utils';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,6 @@ import { useI18n } from '@/components/providers/I18nProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useDocBrowser } from '@/components/doc-browser';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/components/layout/sidebar-items';
-import { useSystemStatus } from '@/features/system-status';
 import {
   AlarmClock,
   Bot,

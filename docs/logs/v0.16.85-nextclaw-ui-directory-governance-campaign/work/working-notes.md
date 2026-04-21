@@ -719,6 +719,30 @@
 
 - 当前已自动进入下一轮扫描：优先评估仍有真实实现体量、且处于一级 legacy 目录高位的 `components/chat/containers/chat-sidebar.tsx` 与它的测试/消费链；如果这条链因为 file-budget 或依赖面过大不够高置信，再回退到 `chat-page.tsx` / `chat-conversation-panel` 周边做更小的真实 owner 收敛
 
+- 第四十一批已经完成并通过验证：
+  - 完成 `ChatSidebar` 主链迁移：`components/chat/containers/chat-sidebar.tsx` 与 `chat-sidebar.test.tsx` 已整体迁入 `features/chat/components/layout/`
+  - 完成真实消费方切根：`features/chat/components/layout/chat-page-shell.tsx` 现在直接依赖新的 `./chat-sidebar`
+  - 完成 feature-root 直连：迁移后的 `chat-sidebar.tsx` 已直接依赖 `features/chat/hooks/use-chat-sidebar-session-label-editor`、`features/chat/hooks/use-ncp-session-list-view`、`features/chat/components/providers/chat-presenter.provider` 与 `features/chat/stores/*`，不再绕回 legacy import 名字
+  - 完成空层清理：`components/chat/containers/` 已被顺手清空
+  - 明确记录一次口径结论：
+    - 这批属于真实 rename 迁移，必须先按 rename 形态暂存后再跑治理守卫和 maintainability guard；否则新测试文件会因为未跟踪状态而脱离 diff 口径
+  - 通过第四十一批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/layout/chat-sidebar.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts src/components/agents/agents-page.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.tsx packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.test.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.test.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.tsx packages/nextclaw-ui/src/components/chat/containers/chat-sidebar.test.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.test.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十一批代码净变化：`0`
+  - 第四十一批非测试代码净变化：`0`
+  - 第四十一批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `15` 行，删除 `15` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `8` 行，删除 `8` 行，净增 `0` 行
+    - 可维护性总结：`no maintainability findings`。这批不是只换目录，而是把布局层真实侧栏 owner 连同测试与页面壳一起压回 feature-root
+
+- 当前已自动进入下一轮扫描：优先评估 `chat-page.tsx`、`chat-conversation-panel.tsx` 与剩余 chat 高层页面装配链；若整组迁移不够高置信，则先做更小的真实消费切根或 alias 回收
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
