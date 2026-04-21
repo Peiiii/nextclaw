@@ -975,3 +975,26 @@
 - 若上下文压缩，下一轮先重读本文件和 `state.json`
 - 下一轮不要再从 legacy roots 里直接长新目录，也不要再新建 shim；要延续“真实实现迁入 allowed roots + legacy 文件直接删除 + 整组入口切换承接旧导入”的模式
 - 若后续环境再次不允许写 `.git`，不要重复尝试新批次；先把提交阻塞作为硬失败处理
+
+- 第五十二批已经完成并通过验证：
+  - 完成 `src/hooks` 顶层整组回收：`use-realtime-query-bridge` 迁入 `app/hooks/`；`use-auth` 迁入 `features/account/hooks/`；`use-channel-auth` 迁入 `features/channels/hooks/`；`use-ncp-chat-session-types` 迁入 `features/chat/hooks/`
+  - 完成 marketplace hooks 与 helper 归位：`use-marketplace`、`use-mcp-marketplace` 与 `marketplace-installed-cache` / `marketplace-list-pages` 已收敛到 `features/marketplace/`
+  - 完成稳定共享 hooks 归位：`use-config`、`use-confirm-dialog`、`use-infinite-scroll-loader`、`use-agents` 与 `server-path/*` 已收敛到 `shared/hooks/`
+  - 完成真实消费方切根：`features/channels`、`features/chat`、`features/system-status` 与 `shared/components` 下的 config / auth / file-preview / sidebar 主链已直接依赖新路径
+  - 完成 legacy 顶层清空：`src/hooks/README.md`、全部旧 hooks 文件与未消费的 `useObservable.ts` 已删除；`src/` 顶层目录现只剩 `api`、`app`、`components`、`features`、`lib`、`platforms`、`shared`
+  - 通过第五十二批最小验证：
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx src/features/account/hooks/use-auth.test.ts src/features/system-status/pages/runtime-config-page.test.tsx src/features/channels/pages/channels-list-page.test.tsx src/features/channels/components/config/channel-form.test.tsx src/features/channels/components/config/weixin-channel-auth-section.test.tsx src/features/chat/pages/sessions-config-page.test.tsx src/features/chat/components/chat-session-workspace-file-preview.test.tsx src/features/chat/components/layout/chat-sidebar.test.tsx src/shared/components/model-config.test.tsx src/shared/components/search-config.test.tsx src/shared/components/config/providers-list.test.tsx src/shared/components/config/secrets-config.test.tsx src/features/marketplace/utils/marketplace-installed-cache.utils.test.ts src/components/marketplace/marketplace-page.test.tsx src/components/agents/agents-page.test.tsx src/components/path-picker/server-path-picker-dialog.test.tsx`
+    - `git -C /Users/peiwang/Projects/nextbot diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs pnpm lint:new-code:governance -- --files`
+    - `git -C /Users/peiwang/Projects/nextbot diff --name-only -- packages/nextclaw-ui | xargs node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第五十二批代码净变化：`-1480`
+  - 第五十二批非测试代码净变化：`-1337`
+  - 第五十二批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `60` 行，删除 `1540` 行，净增 `-1480` 行
+    - 非测试代码增减报告：新增 `47` 行，删除 `1384` 行，净增 `-1337` 行
+    - 可维护性总结：这一批不是“迁完继续留一个 `hooks/` 空壳”的假收敛，而是直接清空 `src` 顶层一个完整 legacy root；当前仅保留三条观察点：`chat-sidebar.tsx` 接近 file-budget、`features/chat/hooks` 目录预算仍超线、`shared/components/search-config.tsx` 接近 file-budget，但本批没有继续恶化它们
+
+- 当前已自动进入下一轮扫描：顶层 legacy roots 现只剩 `lib`、`api`、`components`；下一轮优先扫描 `src/lib` 中仍明显属于单一 feature 私产或稳定共享基础设施的整组迁移路径，其次再看 `src/api`

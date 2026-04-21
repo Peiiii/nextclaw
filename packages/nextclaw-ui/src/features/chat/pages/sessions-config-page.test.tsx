@@ -23,14 +23,14 @@ const mocks = vi.hoisted(() => ({
   }
 }));
 
-vi.mock('@/hooks/useConfirmDialog', () => ({
+vi.mock('@/shared/hooks/use-confirm-dialog', () => ({
   useConfirmDialog: () => ({
     confirm: mocks.confirm,
     ConfirmDialog: () => null
   })
 }));
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock('@/shared/hooks/use-config', () => ({
   useNcpSessions: () => mocks.sessionsQuery,
   useNcpSessionMessages: () => mocks.messagesQuery,
   useUpdateNcpSession: () => ({

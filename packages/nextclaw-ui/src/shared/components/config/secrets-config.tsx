@@ -1,4 +1,4 @@
-import { useConfig, useUpdateSecrets } from '@/hooks/useConfig';
+import { useConfig, useUpdateSecrets } from '@/shared/hooks/use-config';
 import { t } from '@/lib/i18n';
 import { buildSecretsFormState, buildSecretsSubmitPayload, SecretsConfigForm } from '@/shared/components/config/secrets-config-form';
 

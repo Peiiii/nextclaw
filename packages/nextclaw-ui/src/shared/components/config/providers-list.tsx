@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { KeyRound, Plus, Search } from 'lucide-react';
-import { useConfig, useConfigMeta, useConfigSchema, useCreateProvider } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema, useCreateProvider } from '@/shared/hooks/use-config';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { PageHeader, PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';

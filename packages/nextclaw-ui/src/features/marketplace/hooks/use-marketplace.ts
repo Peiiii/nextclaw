@@ -4,7 +4,7 @@ import { t } from '@/lib/i18n';
 import {
   applyInstallResultToInstalledView,
   applyManageResultToInstalledView
-} from '@/components/marketplace/marketplace-installed-cache';
+} from '../utils/marketplace-installed-cache.utils';
 import {
   fetchMarketplaceItem,
   fetchMarketplaceInstalled,
@@ -20,7 +20,7 @@ import type {
   MarketplaceItemType,
   MarketplaceManageRequest
 } from '@/api/types';
-import { collapseMarketplaceListPages } from '@/hooks/marketplace-list-pages';
+import { collapseMarketplaceListPages } from '../utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
 
 export function useMarketplaceItems(params: MarketplaceListParams) {

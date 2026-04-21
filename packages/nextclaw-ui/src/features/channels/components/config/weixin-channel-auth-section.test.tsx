@@ -26,7 +26,7 @@ vi.mock('qrcode', () => ({
   toDataURL: vi.fn().mockResolvedValue('data:image/png;base64,weixin-qr')
 }));
 
-vi.mock('@/hooks/use-channel-auth', () => ({
+vi.mock('@/features/channels/hooks/use-channel-auth', () => ({
   useStartChannelAuth: () => ({
     mutateAsync: mocks.startChannelAuthMutateAsync,
     isPending: false

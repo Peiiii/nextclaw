@@ -12,7 +12,7 @@ import {
   type McpMarketplaceListParams
 } from '@/api/mcp-marketplace';
 import { t } from '@/lib/i18n';
-import { collapseMarketplaceListPages } from '@/hooks/marketplace-list-pages';
+import { collapseMarketplaceListPages } from '../utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
 
 export function useMcpMarketplaceItems(params: McpMarketplaceListParams) {

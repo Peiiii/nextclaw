@@ -6,7 +6,7 @@ import { LogoBadge } from '@/components/common/LogoBadge';
 import { Button } from '@/components/ui/button';
 import { StatusDot } from '@/components/ui/status-dot';
 import { appClient } from '@/transport';
-import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
 import type { ConfigActionManifest, ConfigUiHints } from '@/api/types';
 import { ChannelFormFieldsSection } from '@/features/channels/components/channel-form-fields-section';
 import { WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';

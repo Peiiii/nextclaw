@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView } from '@/api/types';
-import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import { useDeleteNcpSession, useNcpSessionMessages, useUpdateNcpSession } from '@/hooks/useConfig';
+import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
+import { useDeleteNcpSession, useNcpSessionMessages, useUpdateNcpSession } from '@/shared/hooks/use-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';

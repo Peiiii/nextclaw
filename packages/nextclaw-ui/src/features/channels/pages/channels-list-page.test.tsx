@@ -71,7 +71,7 @@ vi.mock('@tanstack/react-query', async () => {
   };
 });
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => mocks.configQuery,
   useConfigMeta: () => mocks.metaQuery,
   useConfigSchema: () => mocks.schemaQuery,
@@ -86,7 +86,7 @@ vi.mock('@/hooks/useConfig', () => ({
   })
 }));
 
-vi.mock('@/hooks/use-channel-auth', () => ({
+vi.mock('@/features/channels/hooks/use-channel-auth', () => ({
   useStartChannelAuth: () => ({
     mutateAsync: mocks.startChannelAuthMutateAsync,
     isPending: false

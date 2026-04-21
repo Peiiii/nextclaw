@@ -3,7 +3,7 @@ import type { SessionEntryView } from '@/api/types';
 import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
-import { useNcpSessions } from '@/hooks/useConfig';
+import { useNcpSessions } from '@/shared/hooks/use-config';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 
 export type NcpSessionListItemView = {

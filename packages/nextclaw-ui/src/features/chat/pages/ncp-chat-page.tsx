@@ -29,8 +29,8 @@ import { ChatPresenterProvider } from "@/features/chat/components/providers/chat
 import type { ResumeRunParams } from "@/features/chat/types/chat-stream.types";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
-import { useConfirmDialog } from "@/hooks/useConfirmDialog";
-import { useAgents } from "@/hooks/agents/useAgents";
+import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
+import { useAgents } from "@/shared/hooks/agents/use-agents";
 import { normalizeRequestedSkills } from "@/features/chat/utils/chat-runtime.utils";
 import {
   systemStatusManager,

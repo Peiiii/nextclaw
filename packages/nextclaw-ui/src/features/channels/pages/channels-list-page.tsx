@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { StatusDot } from '@/components/ui/status-dot';
 import { Tabs } from '@/components/ui/tabs-custom';
 import { ChannelForm } from '@/features/channels/components/config/channel-form';
-import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema } from '@/shared/hooks/use-config';
 import { ConfigSelectionCard, ConfigSplitEmptyState, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneHeader, ConfigSplitSidebar } from '@/shared/components/config-split-page';
 import { hintForPath } from '@/lib/config-hints';
 import { resolveChannelTutorialUrl } from '@/features/channels/utils/channel-tutorials.utils';

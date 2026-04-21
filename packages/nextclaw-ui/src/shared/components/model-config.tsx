@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProviderScopedModelInput } from '@/components/common/ProviderScopedModelInput';
-import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/hooks/useConfig';
+import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/shared/hooks/use-config';
 import { hintForPath } from '@/lib/config-hints';
 import { t } from '@/lib/i18n';
 import { buildProviderModelCatalog } from '@/lib/provider-models';

@@ -4,7 +4,7 @@
   "状态": "进行中",
   "当前活跃批次": {
     "名称": "src top-level liquidation",
-    "原因": "第五十一批已完成并进入可提交状态：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`，`platforms/transport` 已被完全清空。该批严格按照目录治理规范执行：`platforms` 只承载平台差异，`transport` 作为稳定共享基础设施改为收敛到 `shared/lib` 模块，并通过精确 alias 承接既有消费链。",
+    "原因": "第五十二批已完成并进入可提交状态：`src/hooks` 已按 `app/hooks`、`features/account/hooks`、`features/channels/hooks`、`features/chat/hooks`、`features/marketplace/hooks` 与 `shared/hooks` 分流归位，legacy `src/hooks` 根与未消费的 `useObservable.ts` 已被物理删除。该批不是零碎 leaf 搬迁，而是一次性清空一个 `src` 顶层 legacy root，并用精确 alias 承接尚未迁出的旧消费入口。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -96,7 +96,8 @@
     "完成 chat session 显示链从 components/common 与 lib 迁入 features/chat，并通过 components/session 子域化消除目录预算阻塞",
     "完成 chat-message/chat-runtime-utils 从 lib 迁入 features/chat/utils，并用 HistoryMessageBuilder owner class 满足严格治理",
     "完成 src/components/chat 空壳子树回收：测试归位到 features/chat，并删除两份过期 README 与空目录",
-    "完成 lib/channel-tutorials 迁入 features/channels/utils，并切根两处真实消费方"
+    "完成 lib/channel-tutorials 迁入 features/channels/utils，并切根两处真实消费方",
+    "完成 src/hooks 顶层整组回收：hooks 已按 app / features / shared 分流归位，marketplace helper 同步脱离 legacy 组件目录，并删除空的 hooks 根"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -112,7 +113,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "先提交第五十一批；随后进入 `hooks` 整组清空扫描，优先把业务私产 hooks 回收进各自 feature，把稳定共享 hooks 收进 shared 白名单角色目录。`lib` / `api` 与 `components` 继续暂后。",
-  "最近一次停机原因": "之前的提交链阻塞已经解除，本轮已连续完成第四十七批与第四十八批提交收口，并继续推进到第四十九批的 `lib/channel-tutorials` feature-root 迁移。",
-  "最近更新时间": "2026-04-21（第五十一批待提交，已清空 platforms/transport 并纠偏到 shared/lib/transport）"
+  "下一步": "先提交第五十二批；随后优先扫描 `src/lib` 与 `src/api` 的整组清空路径，继续按顶层 root 清空优先推进；`src/components` 暂后。",
+  "最近一次停机原因": "本轮没有治理硬失败；第五十二批已经通过类型检查、主链测试、governance、maintainability guard 与 ratchet，当前停在提交前的留痕更新阶段。",
+  "最近更新时间": "2026-04-21（第五十二批待提交，`src/hooks` 已清空，顶层只剩 `api`、`components`、`lib` 三个 legacy roots）"
 }

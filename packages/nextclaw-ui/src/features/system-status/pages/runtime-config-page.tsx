@@ -1,4 +1,4 @@
-import { useConfig, useConfigSchema, useUpdateRuntime } from '@/hooks/useConfig';
+import { useConfig, useConfigSchema, useUpdateRuntime } from '@/shared/hooks/use-config';
 import { RuntimeConfigEditor } from '@/features/system-status/components/config/runtime-config-editor';
 import { t } from '@/lib/i18n';
 

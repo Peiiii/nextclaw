@@ -14,7 +14,7 @@ let subscribeHandler:
   }) => void)
   | null = null;
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => ({
     data: {
       channels: {

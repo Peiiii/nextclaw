@@ -3,7 +3,7 @@ import {
   AUTH_STATUS_BOOTSTRAP_RETRY_DELAY_MS,
   isTransientAuthStatusBootstrapError,
   shouldRetryAuthStatusBootstrap
-} from '@/hooks/use-auth';
+} from './use-auth';
 
 describe('auth status bootstrap retry policy', () => {
   it('retries transient transport failures during startup', () => {

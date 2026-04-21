@@ -8,7 +8,7 @@ import type {
 import {
   applyInstallResultToInstalledView,
   applyManageResultToInstalledView
-} from '@/components/marketplace/marketplace-installed-cache';
+} from './marketplace-installed-cache.utils';
 
 describe('marketplace-installed-cache', () => {
   it('adds a plugin record immediately after install success', () => {

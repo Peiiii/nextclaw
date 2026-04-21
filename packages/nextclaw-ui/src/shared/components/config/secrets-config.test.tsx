@@ -31,7 +31,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@/hooks/useConfig', () => ({
+vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => mocks.useConfigData,
   useUpdateSecrets: () => ({
     mutate: mocks.mutate,

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { NcpSessionSummaryView, SessionEntryView } from '@/api/types';
-import { useNcpSessions } from '@/hooks/useConfig';
+import { useNcpSessions } from '@/shared/hooks/use-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

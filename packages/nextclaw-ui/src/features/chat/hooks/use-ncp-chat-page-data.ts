@@ -16,8 +16,8 @@ import {
   useConfigMeta,
   useNcpSessionSkills,
   useNcpSessions
-} from '@/hooks/useConfig';
-import { useNcpChatSessionTypes } from '@/hooks/use-ncp-chat-session-types';
+} from '@/shared/hooks/use-config';
+import { useNcpChatSessionTypes } from './use-ncp-chat-session-types';
 import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/lib/provider-models';
 
 export type { ChatModelOption } from '@/features/chat/types/chat-input.types';

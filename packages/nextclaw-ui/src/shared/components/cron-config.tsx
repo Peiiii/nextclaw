@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { CronJobView } from '@/api/types';
-import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import { useCronJobs, useDeleteCronJob, useToggleCronJob, useRunCronJob } from '@/hooks/useConfig';
+import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
+import { useCronJobs, useDeleteCronJob, useToggleCronJob, useRunCronJob } from '@/shared/hooks/use-config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

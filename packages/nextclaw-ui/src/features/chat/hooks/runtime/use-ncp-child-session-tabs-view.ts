@@ -4,7 +4,7 @@ import { sessionDisplayName } from "@/features/chat/utils/chat-session-display.u
 import { adaptNcpSessionSummaries } from "@/features/chat/utils/ncp-session-adapter.utils";
 import { resolveSessionTypeLabel } from "@/features/chat/hooks/use-chat-session-type-state";
 import type { ChatChildSessionTab } from "@/features/chat/stores/chat-thread.store";
-import { useNcpSessions } from "@/hooks/useConfig";
+import { useNcpSessions } from "@/shared/hooks/use-config";
 import type { SessionRunStatus } from "@/features/chat/types/session-run-status.types";
 
 export type ResolvedChildSessionTab = {
