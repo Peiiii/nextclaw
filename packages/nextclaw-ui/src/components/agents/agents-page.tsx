@@ -19,7 +19,7 @@ import {
   normalizeSessionType,
   resolveAgentRuntimeSessionType,
   resolveSessionTypeLabel,
-} from "@/components/chat/useChatSessionTypeState";
+} from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/components/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/components/chat/stores/chat-session-list.store";
 import { AgentAvatar } from "@/components/common/AgentAvatar";

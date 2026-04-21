@@ -8,7 +8,11 @@ import {
   buildNcpRequestEnvelope,
 } from "@nextclaw/ncp-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ChatPageLayout, type ChatPageProps, useChatSessionSync } from "@/components/chat/chat-page-shell";
+import {
+  ChatPageLayout,
+  type ChatPageProps,
+  useChatSessionSync,
+} from "@/features/chat/components/layout/chat-page-shell";
 import { buildInlineSkillTokensFromComposer, CHAT_UI_INLINE_TOKENS_METADATA_KEY } from "@/features/chat/utils/chat-inline-token.utils";
 import { parseSessionKeyFromRoute } from "@/features/chat/utils/chat-session-route.utils";
 import { useNcpChatPageData } from "@/features/chat/hooks/use-ncp-chat-page-data";

@@ -696,6 +696,29 @@
 
 - 当前已自动进入下一轮扫描：优先评估仍然承担真实职责的 chat 高层入口链，例如 `chat-page-shell`、`ChatWelcome`、`useChatSessionTypeState`、`chat-sidebar.tsx` 与它们的真实消费方；继续只处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能在 allowed roots 内整组收敛的高置信子链
 
+- 第四十批已经完成并通过验证：
+  - 完成高层 alias 消费切根：`ncp-chat-page.tsx`、`chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx`、`agents-page.tsx` 与 `agent-dialogs.tsx` 已全部改为直接依赖 `features/chat/components/layout/chat-page-shell`、`features/chat/components/chat-welcome` 与 `features/chat/hooks/use-chat-session-type-state`
+  - 完成构建配置回收：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中对应 `@/components/chat/ChatWelcome`、`@/components/chat/chat-page-shell`、`@/components/chat/useChatSessionTypeState` 的三条精确 alias 已同步删除
+  - 本批不保留 shim：先回扫确认这三条旧导入名在 `nextclaw-ui` 包内已经归零，再回收 alias；不允许继续靠配置兜底让旧名字默默存活
+  - 明确记录一次口径结论：
+    - 这批虽然触达了 source 与 config 文件，但仍然没有新增实现文件，所以 `post-edit-maintainability-guard` 继续返回 `no changed code-like files found`；减债规模仍以 diff 统计记录
+  - 通过第四十批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/pages/ncp-chat-page.test.ts src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/components/agents/agents-page.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --name-only -- packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/agents/agents-page.tsx packages/nextclaw-ui/src/components/agents/agent-dialogs.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only -- packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx packages/nextclaw-ui/src/components/agents/agents-page.tsx packages/nextclaw-ui/src/components/agents/agent-dialogs.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十批代码净变化：`-2`
+  - 第四十批非测试代码净变化：`-4`
+  - 第四十批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `13` 行，删除 `15` 行，净增 `-2` 行
+    - 非测试代码增减报告：新增 `11` 行，删除 `15` 行，净增 `-4` 行
+    - 可维护性总结：`no maintainability findings`。这批的价值在于把三条高层旧导入名从真实消费链和构建配置里一起清空，而不是继续让 alias 永久存在
+
+- 当前已自动进入下一轮扫描：优先评估仍有真实实现体量、且处于一级 legacy 目录高位的 `components/chat/containers/chat-sidebar.tsx` 与它的测试/消费链；如果这条链因为 file-budget 或依赖面过大不够高置信，再回退到 `chat-page.tsx` / `chat-conversation-panel` 周边做更小的真实 owner 收敛
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

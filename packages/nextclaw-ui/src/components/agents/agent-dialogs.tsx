@@ -4,7 +4,7 @@ import {
   normalizeSessionType,
   resolveSessionTypeLabel,
   type ChatSessionTypeOption,
-} from "@/components/chat/useChatSessionTypeState";
+} from "@/features/chat/hooks/use-chat-session-type-state";
 import { ProviderScopedModelInput } from "@/components/common/ProviderScopedModelInput";
 import { Button } from "@/components/ui/button";
 import { NoticeCard } from "@/components/ui/notice-card";

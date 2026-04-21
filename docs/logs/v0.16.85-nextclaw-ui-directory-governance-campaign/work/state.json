@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "chat real-owner top-level scan",
-    "原因": "第三十九批已完成：`components/chat` 一级目录里一整组 dead legacy 薄转发与测试壳已经被直接物理删除，`components/chat/nextclaw/index.ts` 也确认无真实消费并一并清空；唯一残留真实消费 `features/chat/pages/ncp-chat-page.test.ts` 已切到 `features/chat/utils/chat-session-preference-governance.utils`。这一轮同时确认了另一条治理口径：纯删减批次下 `post-edit-maintainability-guard` 会返回 `no changed code-like files found`，需要结合 diff 统计记录减债规模；最终治理守卫、类型检查、feature 用例与 ratchet 全部通过，non-feature 非测试净变化为 `-58`。",
+    "名称": "chat-sidebar real-owner scan",
+    "原因": "第四十批已完成：`ChatWelcome`、`useChatSessionTypeState` 与 `chat-page-shell` 三条高层旧导入名已从真实消费方和 `tsconfig` / `vite` / `vitest` 三处 alias 中一起退出；`ncp-chat-page.tsx`、`chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx`、`agents-page.tsx` 与 `agent-dialogs.tsx` 全部改为直接依赖 `features/chat` 的真实实现路径。当前又确认了一条延续边界：只要批次本身没有新增实现文件，`post-edit-maintainability-guard` 仍会给出 `no changed code-like files found`，减债规模继续用 diff 统计记录；最终治理守卫、类型检查、UI 用例与 ratchet 全部通过，non-feature 非测试净变化为 `-4`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -85,7 +85,8 @@
     "完成 chat hooks owner 链的 feature-root 迁移，并删除四个 legacy chat hooks 与两条相邻测试入口",
     "完成 chat adapter 子树的 feature-root utils/types 迁移，并清空整个 components/chat/adapters legacy 子树",
     "完成 chat session-header 子树的 feature-root conversation 迁移，并清空整个 components/chat/session-header legacy 子树",
-    "完成 components/chat 一级 dead shim 与 nextclaw 导出面的整组删除，并把唯一残留测试消费切到 feature-root 实现"
+    "完成 components/chat 一级 dead shim 与 nextclaw 导出面的整组删除，并把唯一残留测试消费切到 feature-root 实现",
+    "完成 ChatWelcome/useChatSessionTypeState/chat-page-shell 三条高层 alias 的消费切根与配置回收"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -100,7 +101,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描 `chat-page-shell`、`ChatWelcome`、`useChatSessionTypeState`、`chat-sidebar.tsx` 与它们的真实消费链，优先选择还能整组迁出真实实现与测试、且不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件的高置信批次。",
-  "最近一次停机原因": "第三十九批完成后，`components/chat/nextclaw/index.ts` 与一整组顶层 dead shim 已经直接脱离代码路径。当前追加边界已经明确：对于纯删减批次，maintainability guard 不会给出新增样本报告，需改以 diff 统计证明减债规模。下一轮不应再花时间扫描已经清空的顶层薄转发，而应直接上提到仍承担真实职责的 chat 高层 owner 入口链。",
+  "下一步": "继续扫描 `components/chat/containers/chat-sidebar.tsx` 与它的测试/消费链，优先判断能否整组迁入 `features/chat/components/layout` 或相邻白名单子域；若 file-budget、依赖面或 owner 边界不够高置信，则回退到 `chat-page.tsx` / `chat-conversation-panel` 周边做更小的真实 owner 收敛。",
+  "最近一次停机原因": "第四十批完成后，`ChatWelcome`、`useChatSessionTypeState` 与 `chat-page-shell` 这三条高层旧导入名已经完全退出真实代码路径和构建配置。当前追加边界已经明确：下一轮不能再浪费在 alias 回收上，而应直接处理仍有真实实现体量的一级 legacy owner，首选 `chat-sidebar.tsx` 这条更高层的真实主链。 ",
   "最近更新时间": "2026-04-21"
 }

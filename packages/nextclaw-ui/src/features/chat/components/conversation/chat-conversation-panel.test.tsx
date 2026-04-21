@@ -58,7 +58,7 @@ vi.mock("@/features/chat/components/chat-session-workspace-file-preview", () => 
   }) => <div data-testid="workspace-file-preview">{file.path}</div>,
 }));
 
-vi.mock("@/components/chat/ChatWelcome", () => ({
+vi.mock("@/features/chat/components/chat-welcome", () => ({
   ChatWelcome: ({
     onCreateSession,
     onSelectAgent,
