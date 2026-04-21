@@ -292,6 +292,7 @@
   - 第四十五批验证通过，`lib/recent-selection.manager.ts` 与相邻测试已整体脱离 `lib` 并收敛到 `features/chat/managers/`；`chat-recent-models.manager.ts` 与 `chat-recent-skills.manager.ts` 现已直接依赖新的 `./recent-selection.manager`，不再经过 legacy `lib` 私产工具名回跳。治理守卫、类型检查、chat manager 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批在迁移过程中顺手命中 `class-methods-arrow` 治理，因此 `RecentSelectionManager` 的全部实例方法已统一改成箭头 class field，避免把旧结构债务原样带进 feature-root
   - 第四十六批验证通过，`components/common/SessionRunBadge.tsx`、`components/common/session-context-icon.tsx`、`lib/session-context.utils.ts`、`lib/session-context.utils.test.ts` 与 `lib/session-run-status.ts` 已整体脱离 legacy roots 并收敛到 `features/chat`；`chat-sidebar-session-item.tsx`、`chat-conversation-panel.tsx`、`chat-session-type-option-item.tsx`、`sessions-config-detail-pane.tsx`、`sessions-config-page.tsx`、`use-ncp-child-session-tabs-view.ts`、`use-ncp-session-list-view.ts`、`chat-session-list.store.ts` 与 `chat-sidebar.tsx` 已全部切到新的 feature-root 组件 / utils / types。治理守卫、类型检查、chat 页面与组件用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批初版把两个新组件直接放进 `features/chat/components/` 顶层时触发了目录预算硬阻塞，因此最终已进一步收进 `features/chat/components/session/`，没有为了过关而放宽守卫
   - 第四十七批验证通过，`lib/chat-message.ts` 与 `lib/chat-runtime-utils.ts` 已整体脱离 `lib` 并收敛到 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts`；`ncp-chat-page.tsx`、`chat-message-part.utils.ts`、`chat-message-session-request-tool-card.utils.ts` 与 `chat-message-tool-card.utils.ts` 已全部切到新的 feature-root utils。治理守卫、类型检查、chat 页面与 utils 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-15`、非测试代码净变化为 `-15`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批首版曾尝试落到 `features/chat/utils/message/`，被 `module-structure` 直接阻断；随后又因缩函数长度时引入普通函数改入参，被 `param-mutations-owner-boundary` 拦截，最终改为 `HistoryMessageBuilder` owner class 才在不放宽规则的前提下通过全部治理。
+  - 第四十八批验证通过，`src/components/chat` 这一层已被彻底回收：最后一个真实文件 `chat-attachment-upload-limit.test.ts` 已迁入 `features/chat/components/conversation/chat-attachment-upload-limit.test.ts`，`components/chat/README.md` 与 `components/chat/ncp/README.md` 两份过期豁免说明已同步删除，迁移后 `components/chat/ncp/` 与 `components/chat/` 空目录继续向上回收。治理守卫、对应测试、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批不是只清理叶子目录，而是把 `src/components` 当前层下面已经退化成空壳的 chat 子树完整清掉，符合“从 `src` 开始自上而下逐层治理”的新约束。
 
 # 发布 / 部署方式
 
@@ -307,17 +308,17 @@
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第四十七批没有停留在“chat 私产还在 `lib` 里也能工作”的模糊状态，而是把 `chat-message` 与 `chat-runtime-utils` 整条链一次性收回 `features/chat/utils`，并在两次治理失败后继续收口到合规形态：先放弃 `utils/message/` 这种未批准子目录，再把为缩函数长度而引入的普通函数改入参回收成 `HistoryMessageBuilder` owner class，而不是为了赶进度放宽规则。与此同时，第四十四批确认的 `ProviderForm.tsx` 双硬阻塞边界仍然保留。
+本次是否已尽最大努力优化可维护性：是。第四十八批没有停留在“`components/chat` 里面反正已经没实现，先留着也行”的模糊状态，而是把最后一条测试文件归位到 `features/chat`，并继续把两层空目录向上回收到 `src/components` 当前层；加上第四十七批对 `lib` 私产链的回收，当前战役已经开始同时覆盖 `src` 顶层与次顶层，而不是只在深层局部打转。与此同时，第四十四批确认的 `ProviderForm.tsx` 双硬阻塞边界仍然保留。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十七批没有新增用户能力、没有补 shim，也没有保留 `lib` 回跳；最终非测试代码净变化为 `-15`。更关键的是，`chat-runtime.utils.ts` 没有靠继续堆 helper 过关，而是压到旧实现以下并回收到一个明确的 class owner，减少了 `lib` 与 `features/chat` 之间的职责漂移。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十八批没有新增用户能力、没有补 shim，也没有留下“README + 空目录”式假结构；虽然净变化是 `0`，但 `components/chat` 这一层已经从源码树中彻底消失。和第四十七批的 `lib` 收口一起看，当前是在用更少的顶层/次顶层目录承载同样能力。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十七批总代码净变化为 `-15`，非测试代码净变化也为 `-15`；`lib` 顶层又少了两条只服务 chat 的私产工具链，而且 `features/chat/utils` 没有因为迁移继续长出 `message/` 之类的新平铺子目录。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十七批总代码净变化为 `-15`，第四十八批总代码净变化为 `0`；虽然第四十八批行数不变，但 `src/components` 当前层下少了一整棵 `chat` 子树，目录平铺度进一步下降，而且没有通过新增别名目录把复杂度换位置保留。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十七批让 `extractMessageText`、tool-card 摘要逻辑与 history message 构建逻辑都围绕 `features/chat/utils` 聚合；其中 history 构建不再靠一组互相改状态的普通函数拼接，而是由 `HistoryMessageBuilder` 统一持有状态与步骤，边界比原来继续挂在 `lib` 或拆成多层 helper 更清晰。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十七批让 `extractMessageText`、tool-card 摘要逻辑与 history message 构建逻辑都围绕 `features/chat/utils` 聚合；第四十八批进一步让附件上传上限测试直接跟随 chat conversation 相关实现留在 `features/chat/components/conversation/`，不再借 `components/chat` 这个历史根目录寄存孤立测试。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十七批之后 `lib` 顶层又少了两条 chat 私产工具链；剩余历史债务进一步集中到 `chat-page.tsx` 这类被 strict root-file 消费卡住的 alias 周边、`ProviderForm.tsx` 这种命名治理与 module-structure 同时冲突的历史热点，以及 `api` 中其它尚未 feature 化的混合关注点。当前 strict 合同没有被放宽；下一步应回到 `src/` 顶层重新排序，而不是继续只追局部链路。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十七批之后 `lib` 顶层少了两条 chat 私产工具链，第四十八批之后 `src/components` 当前层又少了一整棵 `chat` 子树；剩余历史债务进一步集中到 `components/config`、`components/common`、`lib`、`api` 等仍未 feature/shared 化的根目录，以及 `ProviderForm.tsx` 这类命名治理与 module-structure 同时冲突的历史热点。当前 strict 合同没有被放宽；下一步继续回到 `src/` 顶层和其下一层重新排序。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十七批独立复核结论为“通过，继续推进下一层级”；无错误，仅保留一条 near-budget 提醒：`chat-message-session-request-tool-card.utils.ts` 接近 file-budget，但本批没有继续恶化。代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。非测试代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。可维护性总结：这一批不是只换 import，而是把 chat message/runtime 私产工具链整体收回 feature-root，并把 history message 构建逻辑收回 class owner；当前下一步不是继续追局部 lib 链，而是先回到 `src/` 顶层按自上而下顺序重新筛批。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十七批独立复核结论为“通过，继续推进下一层级”；无错误，仅保留一条 near-budget 提醒：`chat-message-session-request-tool-card.utils.ts` 接近 file-budget，但本批没有继续恶化。代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。非测试代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。第四十八批独立复核结论同样为“通过，继续推进下一层级”；无错误无警告。代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行。非测试代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行。可维护性总结：第四十八批的价值不在代码行数，而在于把 `src/components/chat` 当前层彻底清空并继续向上回收空目录，使“从 `src` 开始自上而下逐层治理”不再停留在口号上。
 
 # NPM 包发布记录
 

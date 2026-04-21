@@ -882,6 +882,24 @@
   - 第四十七批索引已按真实落点重建：错误的 `features/chat/utils/message/*` 暂存 rename 已清理，当前以 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts` 为准
   - 当前停机结论已解除：第四十七批提交后，下一步回到 `src/` 顶层重新排序，把“自上而下逐层治理”落实到下一批批次选择上
 
+- 第四十八批已经完成并通过验证：
+  - 完成 `src/components/chat` 当前层回收：最后一个真实文件 `chat-attachment-upload-limit.test.ts` 已迁入 `features/chat/components/conversation/chat-attachment-upload-limit.test.ts`
+  - 完成过期豁免清理：`components/chat/README.md` 与 `components/chat/ncp/README.md` 已一起删除
+  - 完成空目录向上回收：迁移后 `components/chat/ncp/` 与 `components/chat/` 均已物理删除，没有再停留在“只删叶子、不收上层空壳”的状态
+  - 通过第四十八批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-attachment-upload-limit.test.ts`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat packages/nextclaw-ui/src/features/chat/components/conversation/chat-attachment-upload-limit.test.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat packages/nextclaw-ui/src/features/chat/components/conversation/chat-attachment-upload-limit.test.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十八批代码净变化：`0`
+  - 第四十八批非测试代码净变化：`0`
+  - 第四十八批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行
+    - 可维护性总结：这批的关键价值不在行数，而在于把 `src/components/chat` 这一层彻底清空并继续向上回收空目录，使“从 `src` 开始自上而下逐层治理”第一次明确落实到次顶层目录回收
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

@@ -1,8 +1,5 @@
+import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '@nextclaw/ncp-react';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  DEFAULT_NCP_ATTACHMENT_MAX_BYTES,
-  uploadFilesAsNcpDraftAttachments
-} from '../../../../ncp-packages/nextclaw-ncp-react/src/attachments/ncp-attachments.ts';
 
 describe('ncp attachment upload limit', () => {
   it('accepts files larger than the previous 10MB cap', async () => {
