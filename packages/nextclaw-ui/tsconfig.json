@@ -11,7 +11,7 @@
     "types": ["vite/client", "vitest/globals"],
     "baseUrl": ".",
     "paths": {
-      "@/components/chat/chat-conversation-panel": ["./src/features/chat/components/conversation/chat-conversation-panel.tsx"], "@/components/chat/containers/chat-input-bar.container": ["./src/features/chat/components/conversation/chat-input-bar.container.tsx"], "@/components/chat/containers/chat-message-list.container": ["./src/features/chat/components/conversation/chat-message-list.container.tsx"],
+      "@/components/chat/containers/chat-input-bar.container": ["./src/features/chat/components/conversation/chat-input-bar.container.tsx"], "@/components/chat/containers/chat-message-list.container": ["./src/features/chat/components/conversation/chat-message-list.container.tsx"],
       "@/components/chat/chat-stream/types": ["./src/features/chat/types/chat-stream.types.ts"], "@/components/chat/managers/chat-stream-actions.manager": ["./src/features/chat/managers/chat-stream-actions.manager.ts"], "@/components/chat/managers/chat-ui.manager": ["./src/features/chat/managers/chat-ui.manager.ts"], "@/components/chat/presenter/chat-presenter-context": ["./src/features/chat/components/providers/chat-presenter.provider.tsx"], "@/components/chat/stores/chat-input.store": ["./src/features/chat/stores/chat-input.store.ts"], "@/components/chat/stores/chat-thread.store": ["./src/features/chat/stores/chat-thread.store.ts"],
       "@/components/config/ModelConfig": ["./src/shared/components/model-config.tsx"],
       "@/components/config/SecretsConfig": ["./src/shared/components/config/secrets-config.tsx"],

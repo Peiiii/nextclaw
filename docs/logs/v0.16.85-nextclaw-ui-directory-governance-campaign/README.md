@@ -286,6 +286,7 @@
   - 第三十九批验证通过，`components/chat` 一级目录里一整组已经退化成 dead legacy 薄转发的入口与测试壳已被直接删除：`chat-composer-state`、`chat-inline-token.utils`、`chat-input.types`、`chat-recent-models.manager`、`chat-recent-skills.manager`、`chat-session-display`、`chat-session-preference-governance`、`chat-session-preference-sync`、`chat-session-route`、`chat-session-type-option-item`、`chat-session-workspace-file-preview`、`chat-session-workspace-panel`、`chat-session-workspace-panel-nav`、`chat-sidebar-list-mode-switch`、`chat-sidebar-project-groups`、`chat-sidebar-session-item`、`workspace/chat-session-workspace-file-breadcrumbs`、`components/chat/index.ts` 与 `components/chat/nextclaw/index.ts` 现已全部脱离代码路径；唯一残留真实消费 `features/chat/pages/ncp-chat-page.test.ts` 也已直接切到 `features/chat/utils/chat-session-preference-governance.utils`。治理守卫、类型检查、feature 用例与 ratchet 全部通过，代码净变化为 `-66`、非测试代码净变化为 `-58`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批不是继续保留 shim 或 alias，而是先用 repo 级引用扫描确认这些顶层入口已经没有真实消费，再整组物理删除，因此 `maintainability guard` 会将其识别为“无新增代码样本、纯删减批次”，不再需要像 rename 批次那样先靠暂存口径纠偏
   - 第四十批验证通过，`ChatWelcome`、`useChatSessionTypeState` 与 `chat-page-shell` 这三条高层 legacy 导入名已不再被任何真实消费方使用：`ncp-chat-page.tsx`、`chat-conversation-panel.tsx`、`chat-conversation-panel.test.tsx`、`agents-page.tsx` 与 `agent-dialogs.tsx` 现已全部直接切到 `features/chat/components/layout/chat-page-shell`、`features/chat/components/chat-welcome` 与 `features/chat/hooks/use-chat-session-type-state`；对应的 `tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 三处精确 alias 也已同步删除。治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `-2`、非测试代码净变化为 `-4`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这一批仍属于纯减债回收，没有新增实现文件，因此 `maintainability guard` 继续返回 `no changed code-like files found`，减债规模以 diff 统计为准
   - 第四十一批验证通过，`components/chat/containers/chat-sidebar.tsx` 与相邻测试已整体脱离 legacy root：`ChatSidebar` 与 `chat-sidebar.test.tsx` 现统一收敛到 `features/chat/components/layout/`，`chat-page-shell.tsx` 已同步直接依赖新的 feature-root 布局组件，`components/chat/containers/` 空层也被顺手清空。治理守卫、类型检查、UI 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这一批必须先按真实 rename 形态暂存后再跑守卫，否则新测试文件会因为未跟踪状态而落不到 diff 口径；暂存后可稳定核算为零净增迁移
+  - 第四十二批验证通过，`chat-conversation-panel` 这条高层 legacy 导入名已不再被任何真实消费方使用：`chat-page-shell.tsx` 现已直接依赖 `features/chat/components/conversation/chat-conversation-panel`，`tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中对应 `@/components/chat/chat-conversation-panel` 的三条精确 alias 已同步删除。治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：`chat-page.tsx` 这条 alias 仍被 `app.tsx` 这样的 strict root-file 消费，因此当前不属于同一批次的高置信直接回收目标
 
 # 发布 / 部署方式
 
@@ -297,21 +298,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到四十一处 contract-aligned 的治理结果：除了前四十处治理样例外，还应看到 `ChatSidebar` 主链已经整体落到 `features/chat/components/layout/chat-sidebar.tsx`，其相邻测试也随之归位，`components/chat/containers/` 不再保留 `chat-sidebar` 这条真实 owner。工作记录还应明确写出三条边界：provider 薄转发清理仍因 `ProviderForm.tsx` 的历史非 kebab 命名而被降级，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，而后续 chat 高层真实 owner 若继续上提，只能直接落在 `features/chat` 的白名单结构里，禁止为了追求速度重新补回新的顶层 shim 或 alias。
+5. 当前至少应看到四十二处 contract-aligned 的治理结果：除了前四十一处治理样例外，还应看到 `chat-conversation-panel` 这条高层旧导入名已经从真实消费和三处构建配置 alias 中一起退出；`chat-page-shell.tsx` 只再直连 feature-root conversation 组件，而不再绕回 legacy 名字。工作记录还应明确写出三条边界：provider 薄转发清理仍因 `ProviderForm.tsx` 的历史非 kebab 命名而被降级，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，而后续 chat 高层真实 owner 若继续上提，只能直接落在 `features/chat` 的白名单结构里，禁止为了追求速度重新补回新的顶层 shim 或 alias。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第四十一批没有继续让 `ChatSidebar` 作为一级 legacy owner 留在 `components/chat/containers/`，而是顺着第四十批已经清空高层 alias 的边界，把 `ChatSidebar` 与测试一并收进 `features/chat/components/layout/`。真实页面壳也同步切到新路径，因此这一轮没有再保留 shim、alias 或空目录。
+本次是否已尽最大努力优化可维护性：是。第四十二批没有继续容忍 `chat-conversation-panel` 通过构建 alias 存活，而是顺着第四十一批已经完成的布局层收口，让 `chat-page-shell.tsx` 直接依赖 `features/chat/components/conversation/chat-conversation-panel`，并同步删掉三处 alias。这样处理后，聊天页面装配链又少了一层历史名字跳板。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十一批没有新增用户能力，也没有再补桥接层，而是用一组真实 rename 把 `ChatSidebar` 主链和测试整体迁入 feature-root，顺手清空了 `components/chat/containers/` 空层，最终把代码净变化和非测试净变化都收敛到 `0`。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十二批没有新增用户能力，也没有补桥接层，而是以一处真实消费切根换掉三处 alias 配置，让代码净变化和非测试净变化都收敛到 `0`。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十一批总代码净变化为 `0`，非测试代码净变化为 `0`；虽然没有继续压低代码行数，但 `components/chat/containers/` 这一层已经被清空，目录平铺度继续下降，没有新增任何新目录或流程分支。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十二批总代码净变化为 `0`，非测试代码净变化为 `0`；虽然代码行数不变，但一条高层 alias 配置链已经完全退出，真实消费和构建配置都更短，没有新增任何目录、文件或流程分支。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十一批的核心不是新增抽象，而是让 `features/chat/components/layout/chat-sidebar.tsx` 成为聊天页面布局层唯一真实侧栏 owner；它内部也已直接依赖 `features/chat` 下的 hook / provider / store，而不是继续穿过 legacy import 名字跳转，边界更直接、更可读。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十二批的核心不是新增抽象，而是让 `features/chat/components/conversation/chat-conversation-panel.tsx` 成为聊天页面壳的唯一真实 conversation owner；布局层不再借助 legacy import 名字做中转，边界更直接、更可读。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十一批之后 `ChatSidebar` 也已经退出 legacy root；chat 侧剩余的高层历史债务进一步集中到仍然存在真实实现文件的 `chat-conversation-panel`、`chat-page.tsx` 与少数配置 alias 周边。provider 主链仍是历史债务热点，不过当前已经明确：凡是需要触碰 `ProviderForm.tsx` 这类历史非 kebab 文件的路径，都不属于高置信批次。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十二批之后 `chat-conversation-panel` 这条高层 legacy 导入名也已经退出真实代码路径与构建配置；chat 侧剩余的高层历史债务进一步集中到 `chat-page.tsx` 及少数仍被 strict root-file 消费卡住的 alias 周边。provider 主链仍是历史债务热点，不过当前已经明确：凡是需要触碰 `ProviderForm.tsx` 这类历史非 kebab 文件的路径，都不属于高置信批次。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十一批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `15` 行，删除 `15` 行，净增 `0` 行。非测试代码增减报告：新增 `8` 行，删除 `8` 行，净增 `0` 行。可维护性总结：这一批不是继续靠 alias 承接，而是把一级 legacy owner 真正搬到 feature-root 布局层；当前真正还值得处理的下一层已经进一步缩小为 `chat-page.tsx` / `chat-conversation-panel` 这类更高层页面装配链。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十二批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行。非测试代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行。可维护性总结：这一批不是继续堆 alias，而是继续回收 alias；当前真正还值得处理的下一层已经进一步缩小为被 `app.tsx` 卡住的 `chat-page.tsx` 入口与极少数其它 strict root-file 承接点。
 
 # NPM 包发布记录
 

@@ -743,6 +743,29 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `chat-page.tsx`、`chat-conversation-panel.tsx` 与剩余 chat 高层页面装配链；若整组迁移不够高置信，则先做更小的真实消费切根或 alias 回收
 
+- 第四十二批已经完成并通过验证：
+  - 完成高层 alias 消费切根：`features/chat/components/layout/chat-page-shell.tsx` 已改为直接依赖 `features/chat/components/conversation/chat-conversation-panel`
+  - 完成构建配置回收：`packages/nextclaw-ui/tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中对应 `@/components/chat/chat-conversation-panel` 的三条精确 alias 已同步删除
+  - 本批不保留 shim：先回扫确认这条旧导入名在 `nextclaw-ui` 包内已经归零，再回收 alias；不允许继续靠配置兜底让旧名字默默存活
+  - 明确记录一次边界结论：
+    - `chat-page.tsx` 仍被 `app.tsx` 这样的 strict root-file 消费，因此当前不属于同一批次的高置信直接回收目标；本批只拿下更干净的 `chat-conversation-panel` alias
+  - 通过第四十二批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts src/components/agents/agents-page.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/features/chat/components/layout/chat-page-shell.tsx packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十二批代码净变化：`0`
+  - 第四十二批非测试代码净变化：`0`
+  - 第四十二批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行
+    - 可维护性总结：`no maintainability findings`。这批的价值在于继续收回高层页面装配链上的 legacy 导入名，而不是停留在前一批的侧栏迁移结果上
+
+- 当前已自动进入下一轮扫描：优先评估仍被 strict root-file 消费卡住的 `chat-page.tsx` alias 与其它剩余高层承接点；若 `app.tsx` 仍构成硬阻塞，则回退到 `components/chat/chat-input/chat-input-bar.controller.ts` 这类仍留在 legacy root 的真实实现链做下一批高置信迁移扫描
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
