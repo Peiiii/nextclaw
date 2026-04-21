@@ -112,11 +112,11 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   }),
 }));
 
-vi.mock("@/components/chat/session-header/chat-session-header-actions", () => ({
+vi.mock("@/features/chat/components/conversation/session-header/chat-session-header-actions", () => ({
   ChatSessionHeaderActions: () => <button aria-label="More actions" />,
 }));
 
-vi.mock("@/components/chat/session-header/chat-session-project-badge", () => ({
+vi.mock("@/features/chat/components/conversation/session-header/chat-session-project-badge", () => ({
   ChatSessionProjectBadge: ({ projectName }: { projectName: string }) => (
     <button>{projectName}</button>
   ),

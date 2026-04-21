@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ChatSessionHeaderActions } from '@/components/chat/session-header/chat-session-header-actions';
+import { ChatSessionHeaderActions } from './chat-session-header-actions';
 
 const mocks = vi.hoisted(() => ({
   updateSessionProject: vi.fn(),
@@ -9,11 +9,11 @@ const mocks = vi.hoisted(() => ({
   onOpenChildSessions: vi.fn(),
 }));
 
-vi.mock('@/components/chat/hooks/use-chat-session-project', () => ({
+vi.mock('@/features/chat/hooks/use-chat-session-project', () => ({
   useChatSessionProject: () => mocks.updateSessionProject,
 }));
 
-vi.mock('@/components/chat/session-header/chat-session-project-dialog', () => ({
+vi.mock('./chat-session-project-dialog', () => ({
   ChatSessionProjectDialog: () => null,
 }));
 

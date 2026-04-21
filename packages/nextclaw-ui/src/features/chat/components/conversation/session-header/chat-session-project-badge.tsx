@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { ChevronDown, FolderOpen, FolderX, Pencil } from 'lucide-react';
-import { useChatSessionProject } from '@/components/chat/hooks/use-chat-session-project';
-import { ChatSessionHeaderMenuItem } from '@/components/chat/session-header/chat-session-header-menu-item';
-import { ChatSessionProjectDialog } from '@/components/chat/session-header/chat-session-project-dialog';
+import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
+import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
+import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { t } from '@/lib/i18n';
 

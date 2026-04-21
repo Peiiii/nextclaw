@@ -650,6 +650,29 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `components/chat/session-header` 与 `components/chat/nextclaw/index.ts` 周边仍未脱离 legacy root 的消费链；仅处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能整组迁出真实消费方与 dead legacy 入口的高置信子链
 
+- 第三十八批已经完成并通过验证：
+  - 完成 `components/chat/session-header/` 整个 legacy 会话头子树迁移：`chat-session-header-actions`、`chat-session-header-menu-item`、`chat-session-project-badge` 与 `chat-session-project-dialog` 连同两条相邻测试已统一迁入 `features/chat/components/conversation/session-header/`
+  - 完成 `features/chat` 内部真实消费方切根：`chat-conversation-panel.tsx` 与 `chat-conversation-panel.test.tsx` 现在直接依赖新的 feature-root session-header 组件路径
+  - 本批不保留 shim：确认 `components/chat/session-header/` 不再有任何残留真实消费方，因此没有再补精确 alias，而是直接清空整个 legacy 子树
+  - 明确记录一次中途治理阻断并在同批内收敛：
+    - `post-edit-maintainability-guard` 在未暂存 rename 状态下把迁移后的 session-header 文件误记成 non-feature 非测试净增 `+288`；将这批文件按真实 rename 形态暂存后复跑，口径收敛到代码净变化 `0`、非测试净变化 `0`
+  - 通过第三十八批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/session-header/chat-session-header-actions.test.tsx src/features/chat/components/conversation/session-header/chat-session-project-badge.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/session-header packages/nextclaw-ui/src/features/chat/components/conversation/session-header packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/session-header packages/nextclaw-ui/src/features/chat/components/conversation/session-header packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.tsx packages/nextclaw-ui/src/features/chat/components/conversation/chat-conversation-panel.test.tsx | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十八批代码净变化：`0`
+  - 第三十八批非测试代码净变化：`0`
+  - 第三十八批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `4` 行，删除 `4` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `2` 行，删除 `2` 行，净增 `0` 行
+    - 可维护性总结：`no maintainability findings`。这批不是在 legacy root 里继续补导出，而是把会话头子树整体压回真正的 conversation owner 边界；当前唯一观察点是 `chat-conversation-panel.tsx` 仍接近 file-budget，后续若继续扩张 conversation 壳层，应优先拆 hooks 或子块
+
+- 当前已自动进入下一轮扫描：优先评估 `components/chat/nextclaw/index.ts` 导出面与 `components/chat` 顶层残余入口周边仍未脱离 legacy root 的消费链；仅处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能整组迁出真实消费方与 dead legacy 入口的高置信子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
