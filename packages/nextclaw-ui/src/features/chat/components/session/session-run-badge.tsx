@@ -1,7 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { t } from '@/lib/i18n';
-import type { SessionRunStatus } from '@/lib/session-run-status';
+import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 
 type SessionRunBadgeProps = {
   status: SessionRunStatus;

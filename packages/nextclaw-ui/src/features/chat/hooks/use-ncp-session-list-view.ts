@@ -4,7 +4,7 @@ import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useNcpSessions } from '@/hooks/useConfig';
-import type { SessionRunStatus } from '@/lib/session-run-status';
+import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 
 export type NcpSessionListItemView = {
   session: SessionEntryView;

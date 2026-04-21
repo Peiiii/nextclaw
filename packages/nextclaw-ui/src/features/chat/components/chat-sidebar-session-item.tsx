@@ -1,11 +1,11 @@
 import type { SessionEntryView } from '@/api/types';
 import { AgentAvatar } from '@/components/common/AgentAvatar';
-import { SessionContextIconNode } from '@/components/common/session-context-icon';
-import { SessionRunBadge } from '@/components/common/SessionRunBadge';
+import { SessionContextIconNode } from '@/features/chat/components/session/session-context-icon';
+import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { type SessionContextView } from '@/lib/session-context.utils';
-import type { SessionRunStatus } from '@/lib/session-run-status';
+import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
+import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/lib/utils';
 import { formatDateTime, t } from '@/lib/i18n';
 import { Check, GitBranch, Pencil, X } from 'lucide-react';

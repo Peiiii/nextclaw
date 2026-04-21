@@ -4,7 +4,7 @@ import { useNcpSessions } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SessionRunBadge } from '@/components/common/SessionRunBadge';
+import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
 import { adaptNcpSessionSummaries, sessionDisplayName, sessionMatchesQuery } from '@/features/chat';
 import { cn } from '@/lib/utils';
 import { formatDateShort, t } from '@/lib/i18n';

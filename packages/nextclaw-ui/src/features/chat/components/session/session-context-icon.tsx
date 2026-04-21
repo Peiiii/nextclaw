@@ -1,4 +1,4 @@
-import { type SessionContextIcon } from '@/lib/session-context.utils';
+import { type SessionContextIcon } from '@/features/chat/utils/session-context.utils';
 import { resolveAppResourceUri } from '@/lib/app-resource-uri';
 import { LogoBadge } from '@/components/common/LogoBadge';
 import { getChannelLogo } from '@/lib/logos';

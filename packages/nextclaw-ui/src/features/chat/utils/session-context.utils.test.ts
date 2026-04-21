@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveSessionContextView } from "@/lib/session-context.utils";
+import { resolveSessionContextView } from "./session-context.utils";
 
 vi.mock("@/lib/logos", () => ({
   getChannelLogo: vi.fn(() => null),

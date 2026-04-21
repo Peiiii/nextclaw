@@ -4,7 +4,7 @@ import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useDeleteNcpSession, useNcpSessionMessages, useUpdateNcpSession } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { SessionRunBadge } from '@/components/common/SessionRunBadge';
+import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
 import { cn } from '@/lib/utils';
 import { formatDateTime, t } from '@/lib/i18n';
 import { Bot, Hash, Inbox, MessageCircle, RefreshCw, Settings as SettingsIcon, User } from 'lucide-react';

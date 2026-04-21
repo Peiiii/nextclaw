@@ -7,7 +7,7 @@ import { ChatMessageListContainer } from "@/features/chat/components/conversatio
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import { AgentAvatar } from "@/components/common/AgentAvatar";
-import { SessionContextIconNode } from "@/components/common/session-context-icon";
+import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
 import { ChatSessionProjectBadge } from "@/features/chat/components/conversation/session-header/chat-session-project-badge";
