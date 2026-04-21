@@ -1,6 +1,6 @@
 import { API_BASE } from '@/api/api-base';
 import { LocalAppTransport } from './local-transport.service';
-import { RemoteSessionMultiplexTransport } from './remote.transport';
+import { RemoteSessionMultiplexTransport } from './remote-transport.service';
 import type { AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 
 const REMOTE_RUNTIME_PATH = '/_remote/runtime';

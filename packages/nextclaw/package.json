@@ -49,7 +49,6 @@
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",
-    "@nextclaw/kernel": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",

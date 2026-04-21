@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import { isPwaInstallBannerDismissed } from '@/pwa/pwa-install-banner.storage';
-import type { PwaInstallStateSnapshot } from '@/pwa/pwa.types';
+import { isPwaInstallBannerDismissed } from '@/platforms/pwa/pwa-install-banner.utils';
+import type { PwaInstallStateSnapshot } from '@/platforms/pwa/pwa.types';
 
 export function createInitialPwaState(): PwaInstallStateSnapshot {
   return {

@@ -1,7 +1,7 @@
 import { API_BASE } from '@/api/api-base';
 import type { ApiError } from '@/api/types';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
-import { resolveTransportWebSocketUrl } from './transport-websocket-url';
+import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
 type RemoteTarget = {
   method: string;

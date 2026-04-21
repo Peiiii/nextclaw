@@ -1,8 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePwaStore } from '@/pwa/stores/pwa.store';
-import { pwaInstallManager } from '@/pwa/managers/pwa-install.manager';
-import { pwaRuntimeManager } from '@/pwa/managers/pwa-runtime.manager';
+import { usePwaStore } from '@/platforms/pwa/stores/pwa.store';
+import { pwaInstallManager } from '@/platforms/pwa/managers/pwa-install.manager';
+import { pwaRuntimeManager } from '@/platforms/pwa/managers/pwa-runtime.manager';
 import { t } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Download, RefreshCw, Smartphone, X } from 'lucide-react';

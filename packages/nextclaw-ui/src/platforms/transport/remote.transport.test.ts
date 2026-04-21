@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RemoteSessionMultiplexTransport } from '@/transport/remote.transport';
+import { RemoteSessionMultiplexTransport } from '@/platforms/transport/remote-transport.service';
 
 class MockWebSocket {
   static readonly CONNECTING = 0;

@@ -38,14 +38,13 @@
   - [docs/designs/2026-04-20-nextclaw-kernel-architecture.md](/Users/peiwang/Projects/nextbot/docs/designs/2026-04-20-nextclaw-kernel-architecture.md)
 - 当前这条长链路设计讨论的目标锚文件：
   - [work/goal-progress.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.83-nextclaw-kernel-default-manager-ownership/work/goal-progress.md)
-- 同批次续改继续落“阶段 1：Kernel 最小闭环”的第一步，而且这次是实代码接线，不再只是讨论：
-  - `nextclaw` 现在显式依赖 `@nextclaw/kernel`
-  - [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts) 现在会先实例化 `NextclawKernel`
-  - `gateway / ui / start / restart / serve / stop` 这组六个产品运行控制入口，已经先通过 `kernel.control` 进入 owner 边界，再回到原有命令实现
-  - 这一步只迁移了“谁拥有这组入口”的边界，没有改 `RuntimeCommandService`、没有重写 `NCP runtime`、没有改 agent 内部 tool loop
-- 为了满足“纯结构治理不能让代码继续膨胀”的约束，这一批还同步做了两件收敛动作：
-  - 删除了一批 `nextclaw-kernel` 骨架 manager 里低信息密度、重复性的 TODO 注释噪音
-  - 把 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts) 里多组纯薄包装方法压成更紧凑的单行委托，使这个超预算文件本次净减少 37 行，而不是继续变大
+- 同批次续改里，我一度把 `nextclaw` 的 host 控制面尝试接到了 `kernel`，但用户随后明确决定先暂停迁移、先把 `CliRuntime` 和相关运行时代码在包内原地重构清楚。
+- 因此这次最终落地结果不是“继续推进运行链路迁移”，而是：
+  - 保留 `@nextclaw/kernel` 的设计文档、骨架和目标边界
+  - 撤回 `nextclaw -> kernel` 的真实运行链路接线
+  - 恢复 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts) 直接持有 `gateway / ui / start / restart / serve / stop` 这组六个运行控制命令
+  - 恢复 `packages/nextclaw/src/cli/commands/{gateway,ui,start,restart,serve,stop}/index.ts` 这 6 个命令文件
+  - 把下一步收敛策略调整为“先原地重构 `CliRuntime`，后迁移”，避免架构尚未理清时进入半迁移状态
 
 ## 测试/验证/验收方式
 
@@ -62,8 +61,6 @@
   - 观察点：本次非功能结构治理最终 `Non-test line changes = net -57`，且 `runtime.ts` 本次净减少 37 行；剩余只有“文件仍高于预算”的历史债务提醒，没有新增阻断。
 - 已通过：`pnpm lint:new-code:governance -- packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/managers/agent.manager.ts packages/nextclaw-kernel/src/managers/automation.manager.ts packages/nextclaw-kernel/src/managers/channel.manager.ts packages/nextclaw-kernel/src/managers/context-builder.manager.ts packages/nextclaw-kernel/src/managers/llm-provider.manager.ts packages/nextclaw-kernel/src/managers/session.manager.ts packages/nextclaw-kernel/src/managers/skill.manager.ts packages/nextclaw-kernel/src/managers/task.manager.ts packages/nextclaw-kernel/src/managers/tool.manager.ts packages/nextclaw/package.json packages/nextclaw/tsconfig.json packages/nextclaw/src/cli/app/runtime.ts`
   - 观察点：本次新增的 kernel owner 接线与同批次骨架清理没有触发任何增量治理错误。
-- 已通过：`pnpm dev start`
-  - 观察点：本次实测启动落到了 `http://127.0.0.1:18793/api/health` 与 `http://127.0.0.1:5175/`，其中 `/api/health` 返回 `{"ok":true,"data":{"status":"ok","services":{"ncpAgent":"ready","cronService":"ready"}}}`，前端首页返回 `200 OK`；说明 `CliRuntime -> kernel control surface -> 原运行命令` 这条链路没有打断真实启动。
 
 ## 发布/部署方式
 
@@ -78,18 +75,19 @@
 3. 查看 [`packages/nextclaw-kernel/src/managers/context-builder.manager.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/src/managers/context-builder.manager.ts)，确认 `context` 已被收回成依赖 `SessionManager` 的 builder，而不是继续保留状态 owner 心智。
 4. 查看 [`packages/nextclaw-kernel/src/managers/`](/Users/peiwang/Projects/nextbot/packages/nextclaw-kernel/src/managers)，确认剩余 manager 只表达职责边界，没有提前写入真实存储或状态迁移实现。
 5. 查看 `run()` 方法体，确认当前只有结构说明 / 伪代码，而没有具体业务逻辑。
-6. 查看 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts)，确认 `gateway / ui / start / restart / serve / stop` 这组六个 CLI 入口已经先通过 `kernel.control` 再进入原有命令实现。
-7. 执行 `pnpm dev start`，确认服务可正常拉起，`/api/health` 返回 `ok=true`，前端首页可访问。
+6. 查看 [`packages/nextclaw/src/cli/app/runtime.ts`](/Users/peiwang/Projects/nextbot/packages/nextclaw/src/cli/app/runtime.ts)，确认它已经恢复为直接持有 `GatewayCommands / UiCommands / StartCommands / RestartCommands / ServeCommands / StopCommands`。
+7. 查看 `packages/nextclaw/src/cli/commands/{gateway,ui,start,restart,serve,stop}/index.ts`，确认这 6 个运行控制命令文件已经恢复。
+8. 执行 `pnpm dev start`，确认服务可正常拉起，`/api/health` 返回 `ok=true`，前端首页可访问。
 
 ## 可维护性总结汇总
 
 - 是否已尽最大努力优化可维护性：是。本次没有继续保留 “abstract manager shell + constructor 注入” 这层假边界，而是直接删掉了错误装配模型。
-- 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本轮不仅把控制入口先收到了 `kernel` owner 边界，还同步删除了重复 TODO 注释噪音，并把超大 `runtime.ts` 压薄到了净减少 37 行。
-- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：有改善。本批最终 `Non-test line changes = net -57`；也就是说，这次非功能结构治理没有让代码继续长胖，而是在引入 kernel owner 接线的同时实现了净收敛。
-- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。`NextclawKernel` 现在除了默认 manager skeleton 之外，还真正开始拥有一层产品运行控制面的 owner；`nextclaw` 入口包仍保留原命令实现，但不再直接宣称自己拥有这组六个核心控制入口。
+- 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。本轮没有硬把一个还没完全理清的运行时类继续往外迁，而是主动撤回半迁移状态，把“先理清内部结构、再做跨包迁移”作为更稳定的下一步。
+- 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：本次以“回到稳定边界”为优先，不以净删代码为唯一目标；但撤回之后，运行链路重新回到更可理解的单一入口，没有继续维持双轨主路径。
+- 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：更清晰。`kernel` 重新退回骨架与目标边界，`nextclaw` 重新显式拥有当前真实运行链路；这样下一轮重构可以先在包内把 `CliRuntime` 切清，再决定哪些块应该迁出。
 - 目录结构与文件组织是否满足当前项目治理要求：满足。`nextclaw-kernel` 继续遵循 `package-l1`；当前 `NextclawKernel` owner 已从根层收回 `app/`，根级只保留 `index.ts` 入口，结构与协议描述一致。
-- 独立于实现阶段的可维护性复核结论：通过。第二遍复核重点检查的是“这次 owner 迁移是否只是加了一层新壳、却让 `runtime.ts` 更大、让 kernel 更噪、或偷偷改了内部执行逻辑”；结论是否定的。当前主路径已经变成 `CliRuntime -> NextclawKernel.control -> 原命令实现`，并且在真实启动链路里已验证无行为回归。
-  - 当前最小 `run` 协议仍稳定为“`sessionId + messages + metadata(agentId/model/skills) + extra`”，避免这轮为了 owner 迁移又把内部装配细节泄漏到 public surface。
+- 独立于实现阶段的可维护性复核结论：通过。第二遍复核重点检查的是“在用户已经决定暂停迁移之后，是否还继续维持一个半迁移、双轨、难理解的运行链路”；结论是否定的。当前主路径已经回到 `CliRuntime -> 运行控制命令 -> RuntimeCommandService / 既有 runtime`，而 `kernel` 则保留为独立骨架与设计目标，不再混在真实运行链路里。
+  - 当前最小 `run` 协议仍稳定为“`sessionId + messages + metadata(agentId/model/skills) + extra`”，但暂时不再让真实 CLI 运行链路强行穿过 `kernel`。
 
 ## NPM 包发布记录
 

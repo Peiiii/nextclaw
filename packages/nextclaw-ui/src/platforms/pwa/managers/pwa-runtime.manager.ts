@@ -1,4 +1,4 @@
-import { usePwaStore } from '@/pwa/stores/pwa.store';
+import { usePwaStore } from '@/platforms/pwa/stores/pwa.store';
 
 const PWA_DEV_RESET_SESSION_KEY = 'nextclaw-pwa-dev-sw-reset';
 

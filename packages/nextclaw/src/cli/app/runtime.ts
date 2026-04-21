@@ -1,5 +1,4 @@
 import { loadConfig, saveConfig, getConfigPath, getDataDir, type Config, getWorkspacePath, expandHome, ProviderManager, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
-import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
@@ -114,7 +113,6 @@ export class CliRuntime {
   private restartCommands: RestartCommands;
   private serveCommands: ServeCommands;
   private stopCommands: StopCommands;
-  private kernel: NextclawKernel<GatewayCommandOptions, UiCommandOptions, StartCommandOptions>;
   constructor(options: { logo?: string } = {}) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? LOGO;
@@ -149,18 +147,6 @@ export class CliRuntime {
     this.stopCommands = measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
       runtimeCommandService: this.runtimeCommandService
     }));
-    this.kernel = measureStartupSync("cli.runtime.kernel", () => {
-      const kernel = new NextclawKernel<GatewayCommandOptions, UiCommandOptions, StartCommandOptions>();
-      kernel.control.installRuntimeControl({
-        gateway: async (opts) => await this.gatewayCommands.run(opts),
-        ui: async (opts) => await this.uiCommands.run(opts),
-        start: async (opts) => await this.startCommands.run(opts),
-        restart: async (opts) => await this.restartCommands.run(opts),
-        serve: async (opts) => await this.serveCommands.run(opts),
-        stop: async () => await this.stopCommands.run(),
-      });
-      return kernel;
-    });
     this.serviceCommands = measureStartupSync("cli.runtime.service_commands", () => new ServiceCommands());
     this.configCommands = measureStartupSync("cli.runtime.config_commands", () => new ConfigCommands({
       requestRestart: (params) => this.requestRestart(params),
@@ -457,12 +443,12 @@ export class CliRuntime {
     await this.init({ source: "login", auto: true });
     await this.platformAuthCommands.login(opts);
   };
-  gateway = async (opts: GatewayCommandOptions): Promise<void> => { await this.kernel.control.requireRuntimeControl().gateway(opts); };
-  ui = async (opts: UiCommandOptions): Promise<void> => { await this.kernel.control.requireRuntimeControl().ui(opts); };
-  start = async (opts: StartCommandOptions): Promise<void> => { await this.kernel.control.requireRuntimeControl().start(opts); };
-  restart = async (opts: StartCommandOptions): Promise<void> => { await this.kernel.control.requireRuntimeControl().restart(opts); };
-  serve = async (opts: StartCommandOptions): Promise<void> => { await this.kernel.control.requireRuntimeControl().serve(opts); };
-  stop = async (): Promise<void> => { await this.kernel.control.requireRuntimeControl().stop(); };
+  gateway = async (opts: GatewayCommandOptions): Promise<void> => { await this.gatewayCommands.run(opts); };
+  ui = async (opts: UiCommandOptions): Promise<void> => { await this.uiCommands.run(opts); };
+  start = async (opts: StartCommandOptions): Promise<void> => { await this.startCommands.run(opts); };
+  restart = async (opts: StartCommandOptions): Promise<void> => { await this.restartCommands.run(opts); };
+  serve = async (opts: StartCommandOptions): Promise<void> => { await this.serveCommands.run(opts); };
+  stop = async (): Promise<void> => { await this.stopCommands.run(); };
 
   agent = async (opts: AgentCommandOptions): Promise<void> => {
     const configPath = getConfigPath();

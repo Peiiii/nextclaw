@@ -27,6 +27,13 @@ export default defineConfig({
       '@/components/chat/managers/chat-session-list.manager': path.resolve(__dirname, './src/features/chat/managers/chat-session-list.manager.ts'), '@/components/chat/hooks/use-chat-session-update': path.resolve(__dirname, './src/features/chat/hooks/use-chat-session-update.ts'), '@/components/chat/hooks/use-chat-session-label': path.resolve(__dirname, './src/features/chat/hooks/use-chat-session-label.ts'), '@/components/chat/hooks/use-chat-session-project': path.resolve(__dirname, './src/features/chat/hooks/use-chat-session-project.ts'), '@/components/chat/hooks/use-chat-sidebar-session-label-editor': path.resolve(__dirname, './src/features/chat/hooks/use-chat-sidebar-session-label-editor.ts'),
       '@/components/chat/ncp/ncp-chat.presenter': path.resolve(__dirname, './src/features/chat/managers/ncp-chat-presenter.manager.ts'), '@/components/chat/ncp/ncp-chat-input.manager': path.resolve(__dirname, './src/features/chat/managers/ncp-chat-input.manager.ts'), '@/components/chat/ncp/ncp-chat-thread.manager': path.resolve(__dirname, './src/features/chat/managers/ncp-chat-thread.manager.ts'), '@/components/chat/ncp/ncp-session-adapter': path.resolve(__dirname, './src/features/chat/utils/ncp-session-adapter.utils.ts'), '@/components/chat/ncp/use-ncp-session-list-view': path.resolve(__dirname, './src/features/chat/hooks/use-ncp-session-list-view.ts'), '@/components/chat/stores/chat-session-list.store': path.resolve(__dirname, './src/features/chat/stores/chat-session-list.store.ts'),
       '@/components/config/desktop-update-config': path.resolve(__dirname, './src/features/system-status/components/desktop-update-config.tsx'),
+      '@/pwa/components/pwa-install-entry': path.resolve(__dirname, './src/platforms/pwa/components/pwa-install-entry.tsx'),
+      '@/pwa/register-pwa': path.resolve(__dirname, './src/platforms/pwa/managers/pwa-bootstrap.manager.ts'),
+      '@/pwa/managers/pwa-shell-theme.manager': path.resolve(__dirname, './src/platforms/pwa/managers/pwa-shell-theme.manager.ts'),
+      '@/transport': path.resolve(__dirname, './src/platforms/transport/index.ts'),
+      '@/transport/app-client.service': path.resolve(__dirname, './src/platforms/transport/app-client.service.ts'),
+      '@/transport/local-transport.service': path.resolve(__dirname, './src/platforms/transport/local-transport.service.ts'),
+      '@/transport/remote.transport': path.resolve(__dirname, './src/platforms/transport/remote-transport.service.ts'),
       '@': path.resolve(__dirname, './src'),
       '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts'),
       '@nextclaw/agent-chat-ui': path.resolve(__dirname, '../nextclaw-agent-chat-ui/src/index.ts')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readSseStreamResult } from './sse-stream';
+import { readSseStreamResult } from './sse-stream.utils';
 
 function createSseResponse(frames: string[]): Response {
   const payload = new TextEncoder().encode(frames.join(''));
