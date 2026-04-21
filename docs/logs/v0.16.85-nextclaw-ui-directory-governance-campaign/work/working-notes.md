@@ -832,6 +832,28 @@
 
 - 当前已自动进入下一轮扫描：继续优先评估 `lib` 中仍明显偏向 feature 私产的工具链，如 `channel-tutorials.ts`、`chat-runtime-utils.ts`、`chat-message.ts`、`session-context.utils.ts` 等；只拿真实消费面足够收敛、且不需要额外补 shim 的高置信子链
 
+- 第四十六批已经完成并通过验证：
+  - 完成 chat session 显示链迁移：`components/common/SessionRunBadge.tsx`、`components/common/session-context-icon.tsx`、`lib/session-context.utils.ts`、`lib/session-context.utils.test.ts` 与 `lib/session-run-status.ts` 已整体收敛到 `features/chat`
+  - 完成真实消费方切根：`chat-sidebar-session-item.tsx`、`chat-conversation-panel.tsx`、`chat-session-type-option-item.tsx`、`sessions-config-detail-pane.tsx`、`sessions-config-page.tsx`、`use-ncp-child-session-tabs-view.ts`、`use-ncp-session-list-view.ts`、`chat-session-list.store.ts` 与 `chat-sidebar.tsx` 已全部改为直接依赖新的 feature-root 组件 / utils / types
+  - 完成目录预算收口：初版把 `session-context-icon.tsx` 与 `session-run-badge.tsx` 直接放进 `features/chat/components/` 顶层时，`post-edit-maintainability-guard` 报出 `features/chat/components` 跨过硬文件数上限；本批已把它们进一步收进 `features/chat/components/session/`，避免为了迁移而继续增加顶层平铺
+  - 本批不保留 shim：`components/common` 与 `lib` 旧入口均直接删除，chat 侧不再经过 legacy 通用名回跳
+  - 通过第四十六批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/utils/session-context.utils.test.ts src/features/chat/components/layout/chat-sidebar.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/sessions-config-page.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only | rg 'packages/nextclaw-ui/src/(components/common|lib|features/chat)' | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only | rg 'packages/nextclaw-ui/src/(components/common|lib|features/chat)' | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十六批代码净变化：`0`
+  - 第四十六批非测试代码净变化：`0`
+  - 第四十六批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `15` 行，删除 `15` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `12` 行，删除 `12` 行，净增 `0` 行
+    - 可维护性总结：本批真正减少的是跨根目录的职责漂移，而不是代码行数。当前仅保留三条已知提醒：`chat-conversation-panel.tsx` 与 `chat-sidebar.tsx` 接近 file-budget、`features/chat/hooks` 目录仍高于预算，但本批没有继续恶化它们
+
+- 当前已自动进入下一轮扫描：继续优先评估 `lib` 中消费面已经彻底收敛到单一 feature 的工具链，下一候选优先看 `channel-tutorials.ts`（channels 私产）以及 `chat-message.ts` / `chat-runtime-utils.ts`（chat 私产）；只处理不需要回补 legacy shim 的整组切根路径
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
