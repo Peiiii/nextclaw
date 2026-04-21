@@ -1,5 +1,5 @@
 /* Import Design System - must be first */
-@import './styles/design-system.css';
+@import './app/styles/design-system.css';
 
 @tailwind base;
 @tailwind components;

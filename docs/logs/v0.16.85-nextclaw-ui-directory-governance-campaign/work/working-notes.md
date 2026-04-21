@@ -10,10 +10,10 @@
 - 因此后续批次排序切换为“按 root 是否能被整组清空”而不是“按单文件是否容易搬”
 - 当前 `src` 顶层 legacy roots 盘点：`api`、`components`、`hooks`、`lib`、`pwa`、`stores`、`styles`、`test`、`transport`
 - 当前清空优先级：
-- 第一梯队：`stores`、`styles`、`test`
-- 第二梯队：`hooks`、`pwa`、`transport`
-- 第三梯队：`lib`、`api`
-- 第四梯队：`components`
+- 已完成第一梯队：`stores`、`styles`、`test`
+- 当前第二梯队：`hooks`、`pwa`、`transport`
+- 后续第三梯队：`lib`、`api`
+- 最后第四梯队：`components`
 - 排序理由：先减少 `src` 顶层违规 root 数量，再去处理体量更大的 legacy 子树，整体收敛速度比继续零碎搬叶子更快
 
 # 当前事实
@@ -241,8 +241,22 @@
 - 先补齐第四十九批留痕并提交：
 - `packages/nextclaw-ui/src/lib/channel-tutorials.ts -> packages/nextclaw-ui/src/features/channels/utils/channel-tutorials.utils.ts`
 - 真实消费方已切到新路径：`packages/nextclaw-ui/src/features/channels/pages/channels-list-page.tsx`、`packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx`
-- 第四十九批提交后，立即转入 `src` 顶层 root 清空扫描，不再继续按单个叶子文件找候选
-- 顶层 root 清空优先级：`stores` / `styles` / `test` -> `hooks` / `pwa` / `transport` -> `lib` / `api` -> `components`
+- 第四十九批已提交：`refactor(ui): move channel tutorial resolver`
+- 第五十批已完成待提交：`src/styles/design-system.css -> src/app/styles/design-system.css`、`src/test/setup.ts -> src/app/test/vitest-setup.ts`、删除未消费的 `src/stores/ui.store.ts`
+- 当前已经把 `src/styles`、`src/test`、`src/stores` 三个顶层 legacy roots 向上回收到 `src` 当前层
+- 第五十批验证结果：
+- `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx`
+- `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+- `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/index.css packages/nextclaw-ui/src/app/styles/design-system.css packages/nextclaw-ui/vitest.config.ts packages/nextclaw-ui/src/app/test/vitest-setup.ts`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/index.css packages/nextclaw-ui/src/app/styles/design-system.css packages/nextclaw-ui/vitest.config.ts packages/nextclaw-ui/src/app/test/vitest-setup.ts packages/nextclaw-ui/src/stores/ui.store.ts packages/nextclaw-ui/src/styles/design-system.css packages/nextclaw-ui/src/test/setup.ts`
+- `pnpm check:governance-backlog-ratchet`
+- 第五十批独立可维护性复核：
+- 结论：通过
+- 本次顺手减债：是
+- 代码增减报告：新增 `5` 行，删除 `19` 行，净增 `-14` 行
+- 非测试代码增减报告：新增 `1` 行，删除 `15` 行，净增 `-14` 行
+- 可维护性总结：这批没有新增任何产品能力，而是把全局样式与测试 setup 收回 `app` 根，把一条无消费的全局 store 直接删除，一次性清空三个 `src` 顶层 legacy roots；复杂度是实打实减少，不是换目录保留
+- 下一步转入第二梯队：优先找能整组清空的 `hooks` / `pwa` / `transport`
 - 补记第十四批：
   - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
   - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`

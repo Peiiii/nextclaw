@@ -6,11 +6,11 @@ Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
 });
 
 class MockResizeObserver {
-  observe() {}
+  observe = () => {}
 
-  unobserve() {}
+  unobserve = () => {}
 
-  disconnect() {}
+  disconnect = () => {}
 }
 
 vi.stubGlobal('ResizeObserver', MockResizeObserver);
