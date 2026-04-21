@@ -13,7 +13,7 @@ type VisibleRecentSelectionParams = {
 export class RecentSelectionManager {
   constructor(private readonly options: RecentSelectionManagerOptions) {}
 
-  read(): string[] {
+  read = (): string[] => {
     const storage = this.getStorage();
     if (!storage) {
       return [];
@@ -23,9 +23,9 @@ export class RecentSelectionManager {
     } catch {
       return [];
     }
-  }
+  };
 
-  remember(value: string): string[] {
+  remember = (value: string): string[] => {
     const normalizedValue = this.normalizeValue(value);
     if (!normalizedValue) {
       return this.read();
@@ -33,9 +33,9 @@ export class RecentSelectionManager {
     const next = [normalizedValue, ...this.read().filter((item) => item !== normalizedValue)].slice(0, this.options.limit);
     this.write(next);
     return next;
-  }
+  };
 
-  resolveVisible(params: VisibleRecentSelectionParams): string[] {
+  resolveVisible = (params: VisibleRecentSelectionParams): string[] => {
     const availableValues = this.normalizeList(params.availableValues, Number.POSITIVE_INFINITY);
     if (availableValues.length <= params.minAvailableCount) {
       return [];
@@ -53,9 +53,9 @@ export class RecentSelectionManager {
       }
     }
     return visible;
-  }
+  };
 
-  private write(values: string[]): void {
+  private write = (values: string[]): void => {
     const storage = this.getStorage();
     if (!storage) {
       return;
@@ -65,9 +65,9 @@ export class RecentSelectionManager {
     } catch {
       // Ignore storage write failures and keep the runtime behavior deterministic.
     }
-  }
+  };
 
-  private getStorage(): Storage | null {
+  private getStorage = (): Storage | null => {
     if (Object.prototype.hasOwnProperty.call(this.options, 'storage')) {
       return (this.options.storage as Storage | null | undefined) ?? null;
     }
@@ -75,9 +75,9 @@ export class RecentSelectionManager {
       return null;
     }
     return window.localStorage;
-  }
+  };
 
-  private normalizeList(values: unknown, limit = this.options.limit): string[] {
+  private normalizeList = (values: unknown, limit = this.options.limit): string[] => {
     if (!Array.isArray(values)) {
       return [];
     }
@@ -93,13 +93,13 @@ export class RecentSelectionManager {
       }
     }
     return deduped;
-  }
+  };
 
-  private normalizeValue(value: unknown): string | null {
+  private normalizeValue = (value: unknown): string | null => {
     if (typeof value !== 'string') {
       return null;
     }
     const normalized = value.trim();
     return normalized.length > 0 ? normalized : null;
-  }
+  };
 }

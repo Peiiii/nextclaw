@@ -289,6 +289,7 @@
   - 第四十二批验证通过，`chat-conversation-panel` 这条高层 legacy 导入名已不再被任何真实消费方使用：`chat-page-shell.tsx` 现已直接依赖 `features/chat/components/conversation/chat-conversation-panel`，`tsconfig.json`、`vite.config.ts` 与 `vitest.config.ts` 中对应 `@/components/chat/chat-conversation-panel` 的三条精确 alias 已同步删除。治理守卫、类型检查、UI 用例与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：`chat-page.tsx` 这条 alias 仍被 `app.tsx` 这样的 strict root-file 消费，因此当前不属于同一批次的高置信直接回收目标
   - 第四十三批验证通过，`components/chat/chat-input/chat-input-bar.controller.ts` 与相邻测试已整体脱离 legacy root：`useChatInputBarController` 与它的测试现统一收敛到 `features/chat/hooks/`，`components/chat/chat-input/` 空层也被顺手清空。治理守卫、类型检查、hook 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这条链没有任何真实消费方或配置 alias，只剩自测依赖，因此当前采用“直接迁移 + 直接删除旧入口”的高置信路径，而不是再补一层 shim
   - 第四十四批验证通过，`components/config/channel-form-fields.ts` 与 `components/config/channel-form-fields-section.tsx` 这两条 legacy 兼容导出已被直接删除；`features/channels` 内的真实实现、测试与消费链保持不变，治理守卫、类型检查、channels 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-2`、非测试代码净变化为 `-2`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：provider 薄转发清理又验证出一条更硬的边界，`ProviderForm.tsx` 只要直接触碰就会被历史非 kebab 文件名阻断，若试图在 legacy root 内改名又会被 `module-structure-drift` 视为新增 legacy 文件阻断，因此这条路径当前应整体降级，而不是继续硬推
+  - 第四十五批验证通过，`lib/recent-selection.manager.ts` 与相邻测试已整体脱离 `lib` 并收敛到 `features/chat/managers/`；`chat-recent-models.manager.ts` 与 `chat-recent-skills.manager.ts` 现已直接依赖新的 `./recent-selection.manager`，不再经过 legacy `lib` 私产工具名回跳。治理守卫、类型检查、chat manager 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批在迁移过程中顺手命中 `class-methods-arrow` 治理，因此 `RecentSelectionManager` 的全部实例方法已统一改成箭头 class field，避免把旧结构债务原样带进 feature-root
 
 # 发布 / 部署方式
 
@@ -300,21 +301,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到四十四处 contract-aligned 的治理结果：除了前四十三处治理样例外，还应看到 `components/config/channel-form-fields.ts` 与 `components/config/channel-form-fields-section.tsx` 这两条 channel legacy 兼容导出已经被物理删除，`components/config` 不再为它们保留一级目录入口。工作记录还应明确写出三条边界：provider 薄转发清理已升级为 `ProviderForm.tsx` 命名治理与 `module-structure-drift` 的双硬阻塞，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，而后续 chat 高层真实 owner 若继续上提，只能直接落在 `features/chat` 的白名单结构里，禁止为了追求速度重新补回新的顶层 shim 或 alias。
+5. 当前至少应看到四十五处 contract-aligned 的治理结果：除了前四十四处治理样例外，还应看到 `lib/recent-selection.manager.ts` 与相邻测试已经整体迁入 `features/chat/managers/`，chat 最近选择状态不再占据 `lib` 顶层。工作记录还应明确写出三条边界：provider 薄转发清理已升级为 `ProviderForm.tsx` 命名治理与 `module-structure-drift` 的双硬阻塞，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，而后续 chat 高层真实 owner 若继续上提，只能直接落在 `features/chat` 的白名单结构里，禁止为了追求速度重新补回新的顶层 shim 或 alias。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第四十四批没有为了追求“顺手多删几条 provider shim”而继续在 `ProviderForm.tsx` 这条双硬阻塞路径上硬推，而是把真正零消费、零风险的两条 channel legacy 入口先直接清掉，同时把新的 provider 边界明确记录回战役锚点，避免后续反复试错。
+本次是否已尽最大努力优化可维护性：是。第四十五批没有继续停留在“`lib` 里还能先放着”的模糊状态，而是把只服务 chat 的 `RecentSelectionManager` 主链直接收回 `features/chat/managers/`，并且顺手把 class 方法形态一并治理到位。与此同时，第四十四批确认的 `ProviderForm.tsx` 双硬阻塞边界仍然保留，避免本轮又滑回低置信失败路径。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十四批没有新增用户能力，也没有补新的 shim 或 alias，而是直接把两条已经完成历史使命的 `components/config` 兼容导出物理删除，让代码净变化和非测试净变化都收敛到 `-2`。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十五批没有新增用户能力、没有补 shim，也没有为了迁移偷留 `lib` 别名，而是通过真实 rename 把 chat 私产 manager 与测试一起搬进 feature-root；净变化虽然是 `0`，但目录职责明显更清晰。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十四批总代码净变化为 `-2`，非测试代码净变化为 `-2`；`components/config` 一级目录文件数继续下降，没有新增任何目录、文件或流程分支。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十五批总代码净变化为 `0`，非测试代码净变化为 `0`；虽然行数未下降，但 `lib` 顶层少了一条 chat 私产 manager 及其测试，feature-root 聚合度上升，没有新增任何桥接层或流程分支。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十四批没有引入任何新抽象，只是让 `features/channels` 继续成为 channel form fields 的唯一真实 owner，并把 legacy `components/config` 下对应的空壳完全退休；同时把 `ProviderForm` 的真实治理冲突显式定性为“非高置信批次”，避免补丁式叠加。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十五批让 `RecentSelectionManager` 从通用 `lib` 回到 `features/chat/managers/`，与 `chat-recent-models.manager.ts`、`chat-recent-skills.manager.ts` 形成清晰的 owner 邻接关系；同时由于 touched class 必须满足箭头方法规则，class 边界与方法形态都比迁移前更一致，没有留下“只是换目录”的半成品。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十四批之后 `components/config` 与 `components/chat` 中已经越来越少保留真实 owner 或空壳入口；剩余历史债务进一步集中到 `chat-page.tsx` 这类被 strict root-file 消费卡住的 alias 周边、`ProviderForm.tsx` 这种命名治理与 module-structure 同时冲突的历史热点，以及仓库内其它 `api` / `lib` legacy roots。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十五批之后 `lib` 顶层又少了一条 chat 私产 manager；剩余历史债务进一步集中到 `chat-page.tsx` 这类被 strict root-file 消费卡住的 alias 周边、`ProviderForm.tsx` 这种命名治理与 module-structure 同时冲突的历史热点，以及 `lib` / `api` 中其它尚未 feature 化的混合关注点。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十四批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `0` 行，删除 `2` 行，净增 `-2` 行。非测试代码增减报告：新增 `0` 行，删除 `2` 行，净增 `-2` 行。可维护性总结：这一批不是继续停留在“已经迁完但还留着空壳入口”的状态，而是继续回收 `components/config` 一级 legacy 目录中的已死入口；同时明确把 `ProviderForm` 双硬阻塞写回记录，避免后续把时间重复消耗在低置信失败路径上。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十五批独立复核结论为“通过，继续推进下一层级”；`no maintainability findings`。代码增减报告：新增 `17` 行，删除 `17` 行，净增 `0` 行。非测试代码增减报告：新增 `16` 行，删除 `16` 行，净增 `0` 行。可维护性总结：这一批不是简单挪 test，而是让只服务 chat 的 stateful manager 从 `lib` 回归 `features/chat/managers/`，并顺手消除了迁移后立即暴露的 class 方法形态治理差异；下一层仍优先看 `lib` 中消费面已经明显收敛到单一 feature 的工具链。
 
 # NPM 包发布记录
 

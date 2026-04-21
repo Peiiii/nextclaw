@@ -4,7 +4,7 @@
   "状态": "进行中",
   "当前活跃批次": {
     "名称": "cross-hotspot rescan",
-    "原因": "第四十四批已完成：`components/config/channel-form-fields.ts` 与 `components/config/channel-form-fields-section.tsx` 这两条已零消费的 channel legacy 兼容导出已被直接删除，`features/channels` 继续作为唯一真实 owner，治理守卫、类型检查、channels 用例与 ratchet 全部通过，non-feature 非测试净变化为 `-2`。这一轮同时把 `ProviderForm.tsx` 的 provider 薄转发清理路径正式定性为双硬阻塞：直接触碰会被历史非 kebab 文件名阻断，尝试在 legacy root 内改名又会被 module-structure 当成新增 legacy 文件阻断，因此这条路径当前必须整体降级。",
+    "原因": "第四十五批已完成：`lib/recent-selection.manager.ts` 与相邻测试已经整体脱离 `lib`，并统一收敛到 `features/chat/managers/`；`chat-recent-models.manager.ts` 与 `chat-recent-skills.manager.ts` 现已直接依赖新的 `./recent-selection.manager`。这一轮不仅确认了 `lib` 中确实还存在 feature 私产可继续清理，也顺手命中了 `class-methods-arrow`，因此迁入后的 `RecentSelectionManager` 全部实例方法已同步改成箭头 class field。最终治理守卫、类型检查、chat manager 用例与 ratchet 全部通过，non-feature 非测试净变化为 `0`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -91,7 +91,8 @@
     "完成 ChatSidebar 与相邻测试的 layout feature-root 迁移，并清空 components/chat/containers 空层",
     "完成 chat-conversation-panel 高层 alias 的消费切根与配置回收",
     "完成 useChatInputBarController 与相邻测试的 hook-root 迁移，并清空 components/chat/chat-input 空层",
-    "完成 components/config 下两条 channel dead shim 删除，并确认 ProviderForm 路径存在命名治理与 module-structure 双硬阻塞"
+    "完成 components/config 下两条 channel dead shim 删除，并确认 ProviderForm 路径存在命名治理与 module-structure 双硬阻塞",
+    "完成 chat 私产 RecentSelectionManager 与相邻测试迁入 features/chat/managers，并同步收敛 class arrow methods"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -107,7 +108,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "先确认 `chat-page.tsx` alias 是否仍被 strict root-file `app.tsx` 硬阻塞；若是，则直接切去 `api`、`lib` 或其它不依赖 `ProviderForm.tsx` 与 strict root-file 的更大批量高置信热点目录，优先选择能整组迁出实现、测试与真实消费方的 allowed-root 迁移批次。",
-  "最近一次停机原因": "第四十四批完成后，`components/config` 中两条已死的 channel shim 已经被回收，同时 provider 路径的真实边界也进一步收紧：`ProviderForm.tsx` 不是单纯的历史命名债务，而是命名治理与 module-structure 同时冲突的双硬阻塞。若 `chat-page.tsx` 也继续被 `app.tsx` 卡住，下一轮就不该再在 chat/provider 这两条阻塞线上打转，而应切去其它热点目录吃更大批量债务。",
+  "下一步": "继续优先扫描 `lib` 中消费面已经明显收敛到单一 feature 的工具链，例如 `channel-tutorials.ts`、`chat-runtime-utils.ts`、`chat-message.ts`、`session-context.utils.ts`；若这些链条的真实消费方足够集中，就继续按 feature 语义整组迁入 allowed roots。只有当 `chat-page.tsx` alias 或 `ProviderForm.tsx` 的阻塞条件发生变化时，才重新回到那两条历史热点。",
+  "最近一次停机原因": "第四十五批完成后，`lib` 中确认仍有可高置信迁走的 feature 私产，但 `ProviderForm.tsx` 与 `chat-page.tsx` 两条历史热点的阻塞条件都没有变化：前者仍是命名治理与 module-structure 双硬阻塞，后者仍可能被 strict root-file `app.tsx` 卡住。下一轮不应在这两条线上反复试错，而应继续吃 `lib` / `api` 中消费面更集中的混合关注点。",
   "最近更新时间": "2026-04-21"
 }

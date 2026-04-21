@@ -1,4 +1,4 @@
-import { RecentSelectionManager } from '@/lib/recent-selection.manager';
+import { RecentSelectionManager } from './recent-selection.manager';
 
 describe('RecentSelectionManager', () => {
   const storageKey = 'test.recent-selection-manager';

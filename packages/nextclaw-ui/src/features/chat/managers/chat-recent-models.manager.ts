@@ -1,4 +1,4 @@
-import { RecentSelectionManager } from '@/lib/recent-selection.manager';
+import { RecentSelectionManager } from './recent-selection.manager';
 
 export const chatRecentModelsManager = new RecentSelectionManager({
   storageKey: 'nextclaw.chat.recent-models',

@@ -810,6 +810,28 @@
 
 - 当前已自动进入下一轮扫描：`chat-page.tsx` alias 若仍被 `app.tsx` 卡住，就不再继续在 chat alias 层打转；同时 `ProviderForm` 相关路径现在升级为“命名治理 + module-structure 双硬阻塞”案例。下一轮优先切去 `api` / `lib` 或其它不依赖这两类阻塞的更大批次热点
 
+- 第四十五批已经完成并通过验证：
+  - 完成 chat 私产链迁移：`lib/recent-selection.manager.ts` 与相邻测试已整体迁入 `features/chat/managers/`
+  - 完成真实消费方切根：`chat-recent-models.manager.ts` 与 `chat-recent-skills.manager.ts` 现在直接依赖 `./recent-selection.manager`
+  - 完成治理顺手收口：迁入后的 `RecentSelectionManager` 因为命中 touched class 规则，已把全部实例方法统一改成箭头 class field，避免把结构债务原样搬进 feature-root
+  - 本批不保留 shim：`lib/` 旧入口已直接删除，chat 侧不再经过 legacy `lib` 私有工具名回跳
+  - 通过第四十五批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/managers/recent-selection.manager.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/lib/recent-selection.manager.ts packages/nextclaw-ui/src/lib/recent-selection.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/recent-selection.manager.ts packages/nextclaw-ui/src/features/chat/managers/recent-selection.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/chat-recent-models.manager.ts packages/nextclaw-ui/src/features/chat/managers/chat-recent-skills.manager.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/lib/recent-selection.manager.ts packages/nextclaw-ui/src/lib/recent-selection.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/recent-selection.manager.ts packages/nextclaw-ui/src/features/chat/managers/recent-selection.manager.test.ts packages/nextclaw-ui/src/features/chat/managers/chat-recent-models.manager.ts packages/nextclaw-ui/src/features/chat/managers/chat-recent-skills.manager.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十五批代码净变化：`0`
+  - 第四十五批非测试代码净变化：`0`
+  - 第四十五批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `17` 行，删除 `17` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `16` 行，删除 `16` 行，净增 `0` 行
+    - 可维护性总结：`no maintainability findings`。这批的核心价值不是代码行减少，而是把只服务 chat 的 stateful manager 从 `lib` 彻底收回 `features/chat/managers/`，让 `lib` 少一条 feature 私产
+
+- 当前已自动进入下一轮扫描：继续优先评估 `lib` 中仍明显偏向 feature 私产的工具链，如 `channel-tutorials.ts`、`chat-runtime-utils.ts`、`chat-message.ts`、`session-context.utils.ts` 等；只拿真实消费面足够收敛、且不需要额外补 shim 的高置信子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
