@@ -2,7 +2,7 @@ import {
   stringifyUnknown,
   summarizeToolArgs,
   type ToolCard,
-} from "@/lib/chat-message";
+} from "@/features/chat/utils/chat-message-core.utils";
 import { resolveToolInvocationAgentId } from "./chat-message-tool-agent-id.utils";
 import type { ChatToolPartViewModel } from "@nextclaw/agent-chat-ui";
 

@@ -1,10 +1,10 @@
 {
   "战役名称": "nextclaw-ui 目录组织自治治理战役",
-  "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
+  "目标": "从 packages/nextclaw-ui/src 开始，按自上而下的层级顺序逐层收敛目录平铺与角色混杂问题；每一层先满足 contract-only 规范，再继续下一层，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
     "名称": "cross-hotspot rescan",
-    "原因": "第四十六批已完成：`components/common/SessionRunBadge.tsx`、`components/common/session-context-icon.tsx`、`lib/session-context.utils.ts`、`lib/session-context.utils.test.ts` 与 `lib/session-run-status.ts` 已整体脱离 legacy roots 并统一收敛到 `features/chat`。这一轮进一步确认了 `components/common` 与 `lib` 中仍有一整组 chat 私产可以高置信收口；同时在首版把两个新组件直接放进 `features/chat/components/` 顶层时，maintainability guard 立即报出目录预算硬阻塞，因此本批已顺手把它们进一步收进 `features/chat/components/session/`，在不放宽规则的前提下完成零净增迁移。最终治理守卫、类型检查、chat 组件/页面用例与 ratchet 全部通过，non-feature 非测试净变化为 `0`。",
+    "原因": "第四十七批已完成并进入可提交状态：`lib/chat-message.ts` 与 `lib/chat-runtime-utils.ts` 已迁入 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts`，`ncp-chat-page.tsx`、`chat-message-part.utils.ts`、`chat-message-session-request-tool-card.utils.ts` 与 `chat-message-tool-card.utils.ts` 也都切到新的 feature-root utils。过程中先后确认两条治理边界：`features/chat/utils/` 下不允许再建 `message/` 子目录，且为了压缩函数长度而引入的普通函数改入参会被 `param-mutations-owner-boundary` 直接拦截，因此最终已改为 `HistoryMessageBuilder` owner class，并把 non-feature 非测试净变化压到 `-15`。当前下一步不再是处理提交阻塞，而是提交第四十七批后回到 `src/` 顶层继续自上而下排序。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -93,7 +93,8 @@
     "完成 useChatInputBarController 与相邻测试的 hook-root 迁移，并清空 components/chat/chat-input 空层",
     "完成 components/config 下两条 channel dead shim 删除，并确认 ProviderForm 路径存在命名治理与 module-structure 双硬阻塞",
     "完成 chat 私产 RecentSelectionManager 与相邻测试迁入 features/chat/managers，并同步收敛 class arrow methods",
-    "完成 chat session 显示链从 components/common 与 lib 迁入 features/chat，并通过 components/session 子域化消除目录预算阻塞"
+    "完成 chat session 显示链从 components/common 与 lib 迁入 features/chat，并通过 components/session 子域化消除目录预算阻塞",
+    "完成 chat-message/chat-runtime-utils 从 lib 迁入 features/chat/utils，并用 HistoryMessageBuilder owner class 满足严格治理"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -109,7 +110,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续优先扫描 `lib` 中消费面已经明显收敛到单一 feature 的工具链，下一候选优先看 `channel-tutorials.ts`（channels 私产）以及 `chat-message.ts` / `chat-runtime-utils.ts`（chat 私产）；若这些链条的真实消费方足够集中，就继续按 feature 语义整组迁入 allowed roots。只有当 `chat-page.tsx` alias 或 `ProviderForm.tsx` 的阻塞条件发生变化时，才重新回到那两条历史热点。",
-  "最近一次停机原因": "第四十六批完成后，`components/common` 与 `lib` 中又少了一整组 chat 私产，但两条历史热点的阻塞条件仍未变化：`ProviderForm.tsx` 仍是命名治理与 module-structure 双硬阻塞，`chat-page.tsx` 仍可能被 strict root-file `app.tsx` 卡住。下一轮不应在这两条线上反复试错，而应继续吃 `lib` / `api` 中消费面更集中的混合关注点；同时需要继续注意 `features/chat/components` 与 `features/chat/hooks` 的目录预算。",
-  "最近更新时间": "2026-04-21"
+  "下一步": "提交第四十七批后，先回到 `src/` 这一层重新排序：优先评估还能继续收空或收平的顶层 legacy roots，再按当前顶层之下的下一层目录继续自上而下推进。只有当当前层已无高置信批次时，才下降到更深一层继续处理 `channel-tutorials.ts`、`ProviderForm.tsx` 周边或其它局部链路。",
+  "最近一次停机原因": "之前的提交链阻塞已经解除，本轮重新取得 `.git` 写权限并恢复第四十七批的真实索引状态。",
+  "最近更新时间": "2026-04-21（第四十七批待提交）"
 }

@@ -1,7 +1,7 @@
 import {
   stringifyUnknown,
   summarizeToolArgs,
-} from "@/lib/chat-message";
+} from "@/features/chat/utils/chat-message-core.utils";
 import { type ChatInlineTokenSource } from "@/features/chat/utils/chat-inline-token.utils";
 import {
   buildRenderableText,

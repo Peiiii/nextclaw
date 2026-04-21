@@ -1,7 +1,7 @@
 # 当前目标
 
 - 战役名称：`nextclaw-ui` 目录组织自治治理战役
-- 本轮目标：沿着已经验证通过的 contract-aligned 路径，继续减少 `packages/nextclaw-ui` 的高优先级 legacy-root 债务，优先吃掉 `components/chat` 与 `components/config` 中能整组迁入既有 allowed roots 的实现、测试与真实消费链
+- 本轮目标：从 `packages/nextclaw-ui/src` 开始，按自上而下的层级顺序继续减少高优先级 legacy-root 债务；不是只挑局部热点，而是每一层先尽量收平、满足 contract-only，再下降到下一层处理能整组迁入既有 allowed roots 的实现、测试与真实消费链
 - 成功判定：每完成一个高置信目录批次的真实迁移，就通过最小验证、更新状态记录，并提交一个独立 commit
 
 # 当前事实
@@ -34,6 +34,7 @@
 - 本轮是否命中 hotspot / 目录预算 / 命名治理等专项场景：命中目录预算、命名治理和 module-structure 合同治理
 - 执行节奏约定：每一轮完成、验证、提交后自动进入下一轮；只有在低置信阻塞或治理硬失败时才暂停并记录
 - 用户明确追加要求：不要等待用户再次发话。后续默认策略是“每完成一轮之后自动进行下一轮”，把这条要求视为本战役的持续执行约束，而不是一次性提醒
+- 用户最新澄清：治理顺序必须“自上而下每一层，不过是从 `src` 开始”。这不是措辞偏好，而是后续批次选择的硬约束；如果某轮只清了叶子目录、没有继续把空壳向上回收到当前层级，就视为目标未完成
 
 # 候选问题批次
 
@@ -854,6 +855,33 @@
 
 - 当前已自动进入下一轮扫描：继续优先评估 `lib` 中消费面已经彻底收敛到单一 feature 的工具链，下一候选优先看 `channel-tutorials.ts`（channels 私产）以及 `chat-message.ts` / `chat-runtime-utils.ts`（chat 私产）；只处理不需要回补 legacy shim 的整组切根路径
 
+- 第四十七批已经完成并通过验证：
+  - 完成 chat message 私产链迁移：`lib/chat-message.ts` 已迁入 `features/chat/utils/chat-message-core.utils.ts`
+  - 完成 chat runtime 私产链迁移：`lib/chat-runtime-utils.ts` 已迁入 `features/chat/utils/chat-runtime.utils.ts`
+  - 完成真实消费方切根：`ncp-chat-page.tsx`、`chat-message-part.utils.ts`、`chat-message-session-request-tool-card.utils.ts` 与 `chat-message-tool-card.utils.ts` 已全部改为直接依赖新的 feature-root utils 路径
+  - 完成失败路径定性：
+    - 首版曾尝试落到 `features/chat/utils/message/`，但 `module-structure` 明确阻断 `utils/` 下再建未批准子目录
+    - 首版为缩短新文件函数长度而引入普通函数改入参，随后被 `param-mutations-owner-boundary` 拦截；最终已改为 `HistoryMessageBuilder` owner class，既满足 `business-logic-must-use-class`，也把非功能净增长压回负值
+  - 本批不保留 shim：repo 内已无 `@/lib/chat-message`、`@/lib/chat-runtime-utils` 或 `features/chat/utils/message/*` 的真实导入
+  - 通过第四十七批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/pages/ncp-chat-page.test.ts src/features/chat/utils/chat-message.utils.test.ts src/features/chat/utils/ncp-session-adapter.utils.test.ts src/features/chat/utils/ncp-session-adapter.utils.cancelled-tool.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/lib/chat-message.ts packages/nextclaw-ui/src/lib/chat-runtime-utils.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/utils/chat-message-core.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-runtime.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-part.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-session-request-tool-card.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-tool-card.utils.ts`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/lib/chat-message.ts packages/nextclaw-ui/src/lib/chat-runtime-utils.ts packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.tsx packages/nextclaw-ui/src/features/chat/utils/chat-message-core.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-runtime.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-part.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-session-request-tool-card.utils.ts packages/nextclaw-ui/src/features/chat/utils/chat-message-tool-card.utils.ts`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十七批代码净变化：`-15`
+  - 第四十七批非测试代码净变化：`-15`
+  - 第四十七批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行
+    - 非测试代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行
+    - 可维护性总结：`chat-message` / `chat-runtime-utils` 已从 `lib` 收回 `features/chat/utils`，而且 `chat-runtime.utils.ts` 已压缩到旧实现以下；当前仅保留一条 near-budget 提醒：`chat-message-session-request-tool-card.utils.ts` 接近 file-budget，但本批没有继续恶化
+- 提交链恢复记录（2026-04-21）：
+  - 当前环境已重新获得 `.git` 写权限，`touch .git/codex-resume-test` 成功
+  - 第四十七批索引已按真实落点重建：错误的 `features/chat/utils/message/*` 暂存 rename 已清理，当前以 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts` 为准
+  - 当前停机结论已解除：第四十七批提交后，下一步回到 `src/` 顶层重新排序，把“自上而下逐层治理”落实到下一批批次选择上
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`
@@ -879,3 +907,4 @@
 
 - 若上下文压缩，下一轮先重读本文件和 `state.json`
 - 下一轮不要再从 legacy roots 里直接长新目录，也不要再新建 shim；要延续“真实实现迁入 allowed roots + legacy 文件直接删除 + 整组入口切换承接旧导入”的模式
+- 若后续环境再次不允许写 `.git`，不要重复尝试新批次；先把提交阻塞作为硬失败处理

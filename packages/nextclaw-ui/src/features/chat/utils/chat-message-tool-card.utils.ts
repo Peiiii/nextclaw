@@ -1,7 +1,7 @@
 import {
   stringifyUnknown,
   type ToolCard,
-} from "@/lib/chat-message";
+} from "@/features/chat/utils/chat-message-core.utils";
 import type {
   ChatMessagePartViewModel,
   ChatToolPartViewModel,

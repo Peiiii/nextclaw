@@ -291,6 +291,7 @@
   - 第四十四批验证通过，`components/config/channel-form-fields.ts` 与 `components/config/channel-form-fields-section.tsx` 这两条 legacy 兼容导出已被直接删除；`features/channels` 内的真实实现、测试与消费链保持不变，治理守卫、类型检查、channels 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-2`、非测试代码净变化为 `-2`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：provider 薄转发清理又验证出一条更硬的边界，`ProviderForm.tsx` 只要直接触碰就会被历史非 kebab 文件名阻断，若试图在 legacy root 内改名又会被 `module-structure-drift` 视为新增 legacy 文件阻断，因此这条路径当前应整体降级，而不是继续硬推
   - 第四十五批验证通过，`lib/recent-selection.manager.ts` 与相邻测试已整体脱离 `lib` 并收敛到 `features/chat/managers/`；`chat-recent-models.manager.ts` 与 `chat-recent-skills.manager.ts` 现已直接依赖新的 `./recent-selection.manager`，不再经过 legacy `lib` 私产工具名回跳。治理守卫、类型检查、chat manager 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批在迁移过程中顺手命中 `class-methods-arrow` 治理，因此 `RecentSelectionManager` 的全部实例方法已统一改成箭头 class field，避免把旧结构债务原样带进 feature-root
   - 第四十六批验证通过，`components/common/SessionRunBadge.tsx`、`components/common/session-context-icon.tsx`、`lib/session-context.utils.ts`、`lib/session-context.utils.test.ts` 与 `lib/session-run-status.ts` 已整体脱离 legacy roots 并收敛到 `features/chat`；`chat-sidebar-session-item.tsx`、`chat-conversation-panel.tsx`、`chat-session-type-option-item.tsx`、`sessions-config-detail-pane.tsx`、`sessions-config-page.tsx`、`use-ncp-child-session-tabs-view.ts`、`use-ncp-session-list-view.ts`、`chat-session-list.store.ts` 与 `chat-sidebar.tsx` 已全部切到新的 feature-root 组件 / utils / types。治理守卫、类型检查、chat 页面与组件用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批初版把两个新组件直接放进 `features/chat/components/` 顶层时触发了目录预算硬阻塞，因此最终已进一步收进 `features/chat/components/session/`，没有为了过关而放宽守卫
+  - 第四十七批验证通过，`lib/chat-message.ts` 与 `lib/chat-runtime-utils.ts` 已整体脱离 `lib` 并收敛到 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts`；`ncp-chat-page.tsx`、`chat-message-part.utils.ts`、`chat-message-session-request-tool-card.utils.ts` 与 `chat-message-tool-card.utils.ts` 已全部切到新的 feature-root utils。治理守卫、类型检查、chat 页面与 utils 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-15`、非测试代码净变化为 `-15`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批首版曾尝试落到 `features/chat/utils/message/`，被 `module-structure` 直接阻断；随后又因缩函数长度时引入普通函数改入参，被 `param-mutations-owner-boundary` 拦截，最终改为 `HistoryMessageBuilder` owner class 才在不放宽规则的前提下通过全部治理。
 
 # 发布 / 部署方式
 
@@ -302,21 +303,21 @@
 2. 检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)，确认当前活跃批次、已完成批次与下一步持续更新。
 3. 检查对应 commit 与验证记录，确认每一层目录优化都在可运行前提下独立收敛。
 4. 若当前尚未出现目录优化 commit，先检查 [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md) 中记录的阻塞与下一步，确认战役没有在错误路径上继续累积垃圾改动。
-5. 当前至少应看到四十六处 contract-aligned 的治理结果：除了前四十五处治理样例外，还应看到 chat session 显示链已经整体回收到 `features/chat`，其中 `SessionRunBadge` 与 `session-context-icon` 不再停留在 `components/common`，`session-context.utils` 与 `session-run-status` 也不再停留在 `lib`。工作记录还应明确写出三条边界：provider 薄转发清理已升级为 `ProviderForm.tsx` 命名治理与 `module-structure-drift` 的双硬阻塞，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，而后续 chat 高层真实 owner 若继续上提，只能直接落在 `features/chat` 的白名单结构里，禁止为了追求速度重新补回新的顶层 shim 或 alias。
+5. 当前至少应看到四十七处 contract-aligned 的治理结果：除了前四十六处治理样例外，还应看到 `chat-message` 与 `chat-runtime-utils` 已整体回收到 `features/chat/utils/`，repo 内不再有 `@/lib/chat-message`、`@/lib/chat-runtime-utils` 或 `features/chat/utils/message/*` 的真实导入。工作记录还应明确写出四条边界：provider 薄转发清理已升级为 `ProviderForm.tsx` 命名治理与 `module-structure-drift` 的双硬阻塞，chat presenter provider 必须落在 `features/chat/components/providers/*.provider.tsx`，`features/chat/utils/` 下不能为了迁移方便继续增设未批准子目录，而当前线程若继续无法写 `.git`，则应先处理提交链阻塞，禁止带着未提交批次继续扩张下一轮。
 
 # 可维护性总结汇总
 
-本次是否已尽最大努力优化可维护性：是。第四十六批没有满足于“已经是 chat 在用，但暂时挂在 common/lib 也行”的模糊状态，而是把整条 session 显示链一次性收回 `features/chat`，并在首次命中 `features/chat/components` 目录预算硬阻塞后立刻顺手拆出 `components/session/` 子域，而不是为了省事放宽规则。与此同时，第四十四批确认的 `ProviderForm.tsx` 双硬阻塞边界仍然保留，避免本轮又滑回低置信失败路径。
+本次是否已尽最大努力优化可维护性：是。第四十七批没有停留在“chat 私产还在 `lib` 里也能工作”的模糊状态，而是把 `chat-message` 与 `chat-runtime-utils` 整条链一次性收回 `features/chat/utils`，并在两次治理失败后继续收口到合规形态：先放弃 `utils/message/` 这种未批准子目录，再把为缩函数长度而引入的普通函数改入参回收成 `HistoryMessageBuilder` owner class，而不是为了赶进度放宽规则。与此同时，第四十四批确认的 `ProviderForm.tsx` 双硬阻塞边界仍然保留。
 
-是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十六批没有新增用户能力、没有补 shim，也没有在 `components/common` / `lib` 留别名；虽然净变化仍是 `0`，但 `features/chat` 现在成为 session icon / badge / status / context view 的唯一真实 owner，跨根目录职责漂移进一步收敛。
+是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则：是。第四十七批没有新增用户能力、没有补 shim，也没有保留 `lib` 回跳；最终非测试代码净变化为 `-15`。更关键的是，`chat-runtime.utils.ts` 没有靠继续堆 helper 过关，而是压到旧实现以下并回收到一个明确的 class owner，减少了 `lib` 与 `features/chat` 之间的职责漂移。
 
-是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十六批总代码净变化为 `0`，非测试代码净变化为 `0`；虽然行数未下降，但 `components/common` 与 `lib` 各自都少了 chat 私产文件，同时 `features/chat/components` 没有因为迁移继续顶层平铺，而是收敛到 `components/session/` 子域。
+是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：是。第四十七批总代码净变化为 `-15`，非测试代码净变化也为 `-15`；`lib` 顶层又少了两条只服务 chat 的私产工具链，而且 `features/chat/utils` 没有因为迁移继续长出 `message/` 之类的新平铺子目录。
 
-抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十六批让 `SessionRunBadge`、`SessionContextIconNode`、`resolveSessionContextView` 与 `SessionRunStatus` 这些只服务 chat session UI 的资产围绕 `features/chat` 聚合；组件与类型/工具的邻接关系比原来分散在 `components/common` + `lib` 更清晰，而且没有为了迁移额外引入中间层。
+抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。第四十七批让 `extractMessageText`、tool-card 摘要逻辑与 history message 构建逻辑都围绕 `features/chat/utils` 聚合；其中 history 构建不再靠一组互相改状态的普通函数拼接，而是由 `HistoryMessageBuilder` 统一持有状态与步骤，边界比原来继续挂在 `lib` 或拆成多层 helper 更清晰。
 
-目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十六批之后 `components/common` 与 `lib` 顶层又各少了一组 chat 私产资产；剩余历史债务进一步集中到 `chat-page.tsx` 这类被 strict root-file 消费卡住的 alias 周边、`ProviderForm.tsx` 这种命名治理与 module-structure 同时冲突的历史热点，以及 `lib` / `api` 中其它尚未 feature 化的混合关注点。当前 strict 合同没有被放宽，后续整理仍必须直接在 allowed roots 完成。
+目录结构与文件组织是否满足当前项目治理要求：仍未完全满足，但第四十七批之后 `lib` 顶层又少了两条 chat 私产工具链；剩余历史债务进一步集中到 `chat-page.tsx` 这类被 strict root-file 消费卡住的 alias 周边、`ProviderForm.tsx` 这种命名治理与 module-structure 同时冲突的历史热点，以及 `api` 中其它尚未 feature 化的混合关注点。当前 strict 合同没有被放宽；下一步应回到 `src/` 顶层重新排序，而不是继续只追局部链路。
 
-若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十六批独立复核结论为“通过，继续推进下一层级”；无错误，仅保留三条既有提醒：`chat-conversation-panel.tsx` 与 `chat-sidebar.tsx` 接近 file-budget、`features/chat/hooks` 目录仍高于预算，但本批没有继续恶化它们。代码增减报告：新增 `15` 行，删除 `15` 行，净增 `0` 行。非测试代码增减报告：新增 `12` 行，删除 `12` 行，净增 `0` 行。可维护性总结：这一批不是只换 import，而是把 chat session 显示链的组件、类型与上下文解析整体收回 feature-root，同时在目录预算触线时当场拆出 `components/session/` 子域；下一层仍优先看 `lib` 中消费面已经明显收敛到单一 feature 的工具链。
+若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十七批独立复核结论为“通过，继续推进下一层级”；无错误，仅保留一条 near-budget 提醒：`chat-message-session-request-tool-card.utils.ts` 接近 file-budget，但本批没有继续恶化。代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。非测试代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。可维护性总结：这一批不是只换 import，而是把 chat message/runtime 私产工具链整体收回 feature-root，并把 history message 构建逻辑收回 class owner；当前下一步不是继续追局部 lib 链，而是先回到 `src/` 顶层按自上而下顺序重新筛批。
 
 # NPM 包发布记录
 

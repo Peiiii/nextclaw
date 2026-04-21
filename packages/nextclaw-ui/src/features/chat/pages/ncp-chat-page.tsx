@@ -31,7 +31,7 @@ import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { useAgents } from "@/hooks/agents/useAgents";
-import { normalizeRequestedSkills } from "@/lib/chat-runtime-utils";
+import { normalizeRequestedSkills } from "@/features/chat/utils/chat-runtime.utils";
 import {
   systemStatusManager,
   useChatRuntimeAvailability,
