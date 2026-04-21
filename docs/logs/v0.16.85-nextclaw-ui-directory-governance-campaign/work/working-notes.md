@@ -766,6 +766,27 @@
 
 - 当前已自动进入下一轮扫描：优先评估仍被 strict root-file 消费卡住的 `chat-page.tsx` alias 与其它剩余高层承接点；若 `app.tsx` 仍构成硬阻塞，则回退到 `components/chat/chat-input/chat-input-bar.controller.ts` 这类仍留在 legacy root 的真实实现链做下一批高置信迁移扫描
 
+- 第四十三批已经完成并通过验证：
+  - 完成 `useChatInputBarController` 主链迁移：`components/chat/chat-input/chat-input-bar.controller.ts` 与 `chat-input-bar.controller.test.tsx` 已整体迁入 `features/chat/hooks/`
+  - 本批不保留 shim：这条链没有任何真实消费方或配置 alias，只剩自测依赖，因此直接迁移并删除旧入口
+  - 完成空层清理：`components/chat/chat-input/` 已被顺手清空
+  - 通过第四十三批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/hooks/use-chat-input-bar-controller.test.tsx`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/chat-input/chat-input-bar.controller.ts packages/nextclaw-ui/src/components/chat/chat-input/chat-input-bar.controller.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-input-bar-controller.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-input-bar-controller.test.tsx | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --cached --name-only -- packages/nextclaw-ui/src/components/chat/chat-input/chat-input-bar.controller.ts packages/nextclaw-ui/src/components/chat/chat-input/chat-input-bar.controller.test.tsx packages/nextclaw-ui/src/features/chat/hooks/use-chat-input-bar-controller.ts packages/nextclaw-ui/src/features/chat/hooks/use-chat-input-bar-controller.test.tsx | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第四十三批代码净变化：`0`
+  - 第四十三批非测试代码净变化：`0`
+  - 第四十三批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `1` 行，删除 `1` 行，净增 `0` 行
+    - 非测试代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行
+    - 可维护性总结：`no maintainability findings`。这批不是再补 alias，而是直接清掉 legacy root 中一条孤立但真实的 hook 实现链
+
+- 当前已自动进入下一轮扫描：优先评估 `chat-page.tsx` alias 是否仍被 strict root-file `app.tsx` 硬阻塞；若是，则切换到 `components/config`、`api` 或 `lib` 等剩余热点目录做下一批更大体量的 allowed-root 迁移扫描
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

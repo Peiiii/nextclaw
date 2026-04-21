@@ -3,8 +3,8 @@
   "目标": "按高置信批次逐层收敛 packages/nextclaw-ui 的目录平铺与角色混杂问题，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "post-chat-page-alias scan",
-    "原因": "第四十二批已完成：`chat-conversation-panel` 这条高层旧导入名已从真实消费方和 `tsconfig` / `vite` / `vitest` 三处 alias 中一起退出；`chat-page-shell.tsx` 现在直接依赖 `features/chat/components/conversation/chat-conversation-panel`。这一轮同时确认了新的高低置信边界：`chat-page.tsx` 仍被 `app.tsx` 这样的 strict root-file 消费，因此当前不属于同一批次的高置信直接回收目标；最终治理守卫、类型检查、UI 用例与 ratchet 全部通过，non-feature 非测试净变化为 `0`。",
+    "名称": "cross-hotspot rescan",
+    "原因": "第四十三批已完成：`useChatInputBarController` 与相邻测试已经整体脱离 `components/chat/chat-input`，并统一收敛到 `features/chat/hooks/`；`components/chat/chat-input/` 空层已被顺手清空。这一轮进一步确认了当前 chat 侧的高低置信边界：`chat-page.tsx` alias 仍被 strict root-file `app.tsx` 卡住，不适合在同一批次直接回收；而孤立的真实 hook 实现链则可以用纯 rename 路径稳定收敛到净变化 `0`。最终治理守卫、类型检查、hook 用例与 ratchet 全部通过，non-feature 非测试净变化为 `0`。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -88,7 +88,8 @@
     "完成 components/chat 一级 dead shim 与 nextclaw 导出面的整组删除，并把唯一残留测试消费切到 feature-root 实现",
     "完成 ChatWelcome/useChatSessionTypeState/chat-page-shell 三条高层 alias 的消费切根与配置回收",
     "完成 ChatSidebar 与相邻测试的 layout feature-root 迁移，并清空 components/chat/containers 空层",
-    "完成 chat-conversation-panel 高层 alias 的消费切根与配置回收"
+    "完成 chat-conversation-panel 高层 alias 的消费切根与配置回收",
+    "完成 useChatInputBarController 与相邻测试的 hook-root 迁移，并清空 components/chat/chat-input 空层"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -103,7 +104,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "继续扫描仍被 strict root-file 消费卡住的 `chat-page.tsx` alias 与其它剩余高层承接点；若 `app.tsx` 仍构成硬阻塞，则回退到 `components/chat/chat-input/chat-input-bar.controller.ts` 这类仍留在 legacy root 的真实实现链，优先选择能整组迁出实现、测试与真实消费方的高置信批次。",
-  "最近一次停机原因": "第四十二批完成后，`chat-conversation-panel` 这条高层 legacy 导入名已经完全退出真实代码路径和构建配置。当前追加边界已经明确：`chat-page.tsx` 仍被 strict root-file `app.tsx` 卡住，下一轮若无法安全上提页面入口，就应改扫 legacy root 里剩余的真实实现链，而不是继续停留在 alias 回收层。 ",
+  "下一步": "继续扫描 `chat-page.tsx` alias 是否仍被 strict root-file `app.tsx` 硬阻塞；若是，则切换到 `components/config`、`api` 或 `lib` 等剩余热点目录，优先选择能整组迁出实现、测试与真实消费方的更大批量高置信 allowed-root 迁移批次。",
+  "最近一次停机原因": "第四十三批完成后，`components/chat` 目录下的真实实现链已经基本清空，只剩文档和一条独立附件上限测试。当前追加边界已经明确：若 `chat-page.tsx` 仍被 `app.tsx` 卡住，下一轮就不该继续在 chat alias 回收层打转，而应切去其它热点目录吃更大批量债务。 ",
   "最近更新时间": "2026-04-21"
 }

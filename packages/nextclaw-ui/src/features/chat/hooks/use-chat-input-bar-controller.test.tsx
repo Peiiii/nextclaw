@@ -1,6 +1,6 @@
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { renderHook, act } from '@testing-library/react';
-import { useChatInputBarController } from '@/components/chat/chat-input/chat-input-bar.controller';
+import { useChatInputBarController } from '@/features/chat/hooks/use-chat-input-bar-controller';
 
 function createKeyEvent(
   key: string,
