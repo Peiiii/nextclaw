@@ -4,7 +4,7 @@ import { readSseStreamResult } from './sse-stream.utils';
 function createSseResponse(frames: string[]): Response {
   const payload = new TextEncoder().encode(frames.join(''));
   const stream = new ReadableStream<Uint8Array>({
-    start(controller) {
+    start: (controller) => {
       controller.enqueue(payload);
       controller.close();
     }

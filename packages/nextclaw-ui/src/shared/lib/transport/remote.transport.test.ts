@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { RemoteSessionMultiplexTransport } from '@/platforms/transport/remote-transport.service';
+import { RemoteSessionMultiplexTransport } from './remote-transport.service';
 
 class MockWebSocket {
   static readonly CONNECTING = 0;
@@ -19,21 +19,21 @@ class MockWebSocket {
     MockWebSocket.instances.push(this);
   }
 
-  send(data: string): void {
+  send = (data: string): void => {
     this.sent.push(data);
   }
 
-  close(): void {
+  close = (): void => {
     this.readyState = MockWebSocket.CLOSED;
     this.onclose?.({} as CloseEvent);
   }
 
-  open(): void {
+  open = (): void => {
     this.readyState = MockWebSocket.OPEN;
     this.onopen?.({} as Event);
   }
 
-  receive(frame: unknown): void {
+  receive = (frame: unknown): void => {
     this.onmessage?.({
       data: JSON.stringify(frame)
     } as MessageEvent);

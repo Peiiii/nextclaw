@@ -4,7 +4,7 @@
   "状态": "进行中",
   "当前活跃批次": {
     "名称": "src top-level liquidation",
-    "原因": "第五十批已完成并进入可提交状态：`src/styles/design-system.css` 已迁入 `src/app/styles/design-system.css`，`src/test/setup.ts` 已迁入 `src/app/test/vitest-setup.ts`，未消费的 `src/stores/ui.store.ts` 已直接删除并回收空目录。该批一次性清空了 `src` 顶层的 `styles`、`test`、`stores` 三个 legacy roots，符合“优先解决上层问题、快速收敛”的新节奏。",
+    "原因": "第五十一批已完成并进入可提交状态：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`，`platforms/transport` 已被完全清空。该批严格按照目录治理规范执行：`platforms` 只承载平台差异，`transport` 作为稳定共享基础设施改为收敛到 `shared/lib` 模块，并通过精确 alias 承接既有消费链。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -112,7 +112,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "先提交第五十批；随后进入第二梯队 `hooks` / `pwa` / `transport` 的整组扫描，优先选择能继续直接减少 `src` 顶层 legacy roots 数量的大批次。`lib` / `api` 与 `components` 暂后，除非第二梯队存在治理硬阻塞。",
+  "下一步": "先提交第五十一批；随后进入 `hooks` 整组清空扫描，优先把业务私产 hooks 回收进各自 feature，把稳定共享 hooks 收进 shared 白名单角色目录。`lib` / `api` 与 `components` 继续暂后。",
   "最近一次停机原因": "之前的提交链阻塞已经解除，本轮已连续完成第四十七批与第四十八批提交收口，并继续推进到第四十九批的 `lib/channel-tutorials` feature-root 迁移。",
-  "最近更新时间": "2026-04-21（第五十批待提交，已清空 src/stores + src/styles + src/test）"
+  "最近更新时间": "2026-04-21（第五十一批待提交，已清空 platforms/transport 并纠偏到 shared/lib/transport）"
 }

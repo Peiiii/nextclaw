@@ -20,16 +20,17 @@
 - 已把 `rootPolicy` 收紧到 `contract-only`
 - 已持续把 `components/config`、`components/chat`、`lib` 的多条实现链迁入 `features/*` 与 `shared/*`
 - 第四十九批已提交：`src/lib/channel-tutorials.ts -> src/features/channels/utils/channel-tutorials.utils.ts`
-- 第五十批已完成待提交：`src/styles`、`src/test`、`src/stores` 已从顶层清空并向上回收
+- 第五十批已提交：`src/styles`、`src/test`、`src/stores` 已从顶层清空并向上回收
+- 第五十一批已完成待提交：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`，`platforms/transport` 已被清空
 
 # 当前下一步
 
-- 先提交第五十批
+- 先提交第五十一批
 - 然后继续按“顶层 root 清空优先”推进：
-- 下一梯队：`hooks`、`pwa`、`transport`
+- 下一梯队：`hooks`
 - 后续梯队：`lib`、`api`
 - 最后处理：`components`
 
 # 锚点计数器
 
-- 当前计数：17/20
+- 当前计数：15/20

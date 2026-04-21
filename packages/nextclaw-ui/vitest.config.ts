@@ -25,10 +25,10 @@ export default defineConfig({
       '@/pwa/components/pwa-install-entry': path.resolve(__dirname, './src/platforms/pwa/components/pwa-install-entry.tsx'),
       '@/pwa/register-pwa': path.resolve(__dirname, './src/platforms/pwa/managers/pwa-bootstrap.manager.ts'),
       '@/pwa/managers/pwa-shell-theme.manager': path.resolve(__dirname, './src/platforms/pwa/managers/pwa-shell-theme.manager.ts'),
-      '@/transport': path.resolve(__dirname, './src/platforms/transport/index.ts'),
-      '@/transport/app-client.service': path.resolve(__dirname, './src/platforms/transport/app-client.service.ts'),
-      '@/transport/local-transport.service': path.resolve(__dirname, './src/platforms/transport/local-transport.service.ts'),
-      '@/transport/remote.transport': path.resolve(__dirname, './src/platforms/transport/remote-transport.service.ts'),
+      '@/transport': path.resolve(__dirname, './src/shared/lib/transport/index.ts'),
+      '@/transport/app-client.service': path.resolve(__dirname, './src/shared/lib/transport/app-client.service.ts'),
+      '@/transport/local-transport.service': path.resolve(__dirname, './src/shared/lib/transport/local-transport.service.ts'),
+      '@/transport/remote.transport': path.resolve(__dirname, './src/shared/lib/transport/remote-transport.service.ts'),
       '@': path.resolve(__dirname, './src'),
       '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts')
     }

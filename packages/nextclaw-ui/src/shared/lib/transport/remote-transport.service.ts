@@ -87,7 +87,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     private readonly apiBase: string = API_BASE
   ) {}
 
-  async request<T>(input: RequestInput): Promise<T> {
+  request = async <T>(input: RequestInput): Promise<T> => {
     await this.ensureSocket();
     const id = createId('req');
     const timeoutMs = Number.isFinite(input.timeoutMs) && (input.timeoutMs ?? 0) > 0
@@ -115,7 +115,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     });
   }
 
-  openStream<TFinal = unknown>(input: StreamInput): StreamSession<TFinal> {
+  openStream = <TFinal = unknown>(input: StreamInput): StreamSession<TFinal> => {
     const streamId = createId('stream');
     let settled = false;
     const rejectEarly = (error: Error) => {
@@ -198,7 +198,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     };
   }
 
-  subscribe(handler: (event: AppEvent) => void): () => void {
+  subscribe = (handler: (event: AppEvent) => void): () => void => {
     this.subscribers.add(handler);
     void this.ensureSocket().catch((error) => {
       handler({
@@ -211,20 +211,20 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     };
   }
 
-  private emit(event: AppEvent): void {
+  private emit = (event: AppEvent): void => {
     for (const subscriber of this.subscribers) {
       subscriber(event);
     }
   }
 
-  private send(frame: RemoteBrowserCommand): void {
+  private send = (frame: RemoteBrowserCommand): void => {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       throw new Error('Remote transport websocket is not connected.');
     }
     this.socket.send(JSON.stringify(frame));
   }
 
-  private async ensureSocket(): Promise<void> {
+  private ensureSocket = async (): Promise<void> => {
     if (this.socket?.readyState === WebSocket.OPEN && this.connectPromise === null) {
       return;
     }
@@ -296,7 +296,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     return await connectPromise;
   }
 
-  private scheduleReconnect(): void {
+  private scheduleReconnect = (): void => {
     if (this.reconnectTimer !== null) {
       return;
     }
@@ -306,7 +306,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     }, 3_000);
   }
 
-  private failPendingWork(error: Error): void {
+  private failPendingWork = (error: Error): void => {
     for (const pending of this.pendingRequests.values()) {
       window.clearTimeout(pending.timeoutId);
       pending.reject(error);
@@ -319,7 +319,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     this.pendingStreams.clear();
   }
 
-  private handleFrame(frame: RemoteBrowserFrame): void {
+  private handleFrame = (frame: RemoteBrowserFrame): void => {
     if (frame.type === 'response' || frame.type === 'request.error') {
       this.handleRequestFrame(frame);
       return;
@@ -337,7 +337,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     }
   }
 
-  private handleRequestFrame(frame: Extract<RemoteBrowserFrame, { type: 'response' | 'request.error' }>): void {
+  private handleRequestFrame = (frame: Extract<RemoteBrowserFrame, { type: 'response' | 'request.error' }>): void => {
     const pending = this.pendingRequests.get(frame.id);
     if (!pending) {
       return;
@@ -359,7 +359,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
     }
   }
 
-  private handleStreamFrame(frame: Extract<RemoteBrowserFrame, { type: 'stream.event' | 'stream.end' | 'stream.error' }>): void {
+  private handleStreamFrame = (frame: Extract<RemoteBrowserFrame, { type: 'stream.event' | 'stream.end' | 'stream.error' }>): void => {
     const pending = this.pendingStreams.get(frame.streamId);
     if (!pending) {
       return;

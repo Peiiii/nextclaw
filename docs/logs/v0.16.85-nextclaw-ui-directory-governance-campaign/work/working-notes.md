@@ -11,7 +11,8 @@
 - 当前 `src` 顶层 legacy roots 盘点：`api`、`components`、`hooks`、`lib`、`pwa`、`stores`、`styles`、`test`、`transport`
 - 当前清空优先级：
 - 已完成第一梯队：`stores`、`styles`、`test`
-- 当前第二梯队：`hooks`、`pwa`、`transport`
+- 第二梯队进展：`pwa` 保留在 `platforms/pwa`，`transport` 已纠偏进入 `shared/lib/transport`
+- 当前下一优先级：`hooks`
 - 后续第三梯队：`lib`、`api`
 - 最后第四梯队：`components`
 - 排序理由：先减少 `src` 顶层违规 root 数量，再去处理体量更大的 legacy 子树，整体收敛速度比继续零碎搬叶子更快
@@ -256,7 +257,25 @@
 - 代码增减报告：新增 `5` 行，删除 `19` 行，净增 `-14` 行
 - 非测试代码增减报告：新增 `1` 行，删除 `15` 行，净增 `-14` 行
 - 可维护性总结：这批没有新增任何产品能力，而是把全局样式与测试 setup 收回 `app` 根，把一条无消费的全局 store 直接删除，一次性清空三个 `src` 顶层 legacy roots；复杂度是实打实减少，不是换目录保留
-- 下一步转入第二梯队：优先找能整组清空的 `hooks` / `pwa` / `transport`
+- 第五十批已提交：`refactor(ui): clear top-level style test store roots`
+- 第五十一批已完成待提交：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`
+- 第五十一批落点：
+- `packages/nextclaw-ui/src/platforms/transport/* -> packages/nextclaw-ui/src/shared/lib/transport/*`
+- 保留 `@/transport`、`@/transport/app-client.service`、`@/transport/local-transport.service`、`@/transport/remote.transport` 作为精确 alias，避免外部消费链无意义扩触
+- 第五十一批验证结果：
+- `pnpm --filter @nextclaw/ui exec vitest run src/app.test.tsx src/shared/lib/transport/app-client.test.ts src/shared/lib/transport/remote.transport.test.ts src/shared/lib/transport/sse-stream.test.ts`
+- `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+- `pnpm lint:new-code:governance -- --files packages/nextclaw-ui/src/shared/lib/transport/app-client.service.ts packages/nextclaw-ui/src/shared/lib/transport/app-client.test.ts packages/nextclaw-ui/src/shared/lib/transport/index.ts packages/nextclaw-ui/src/shared/lib/transport/local-transport.service.ts packages/nextclaw-ui/src/shared/lib/transport/remote-transport.service.ts packages/nextclaw-ui/src/shared/lib/transport/remote.transport.test.ts packages/nextclaw-ui/src/shared/lib/transport/sse-stream.test.ts packages/nextclaw-ui/src/shared/lib/transport/sse-stream.utils.ts packages/nextclaw-ui/src/shared/lib/transport/transport-websocket-url.utils.ts packages/nextclaw-ui/src/shared/lib/transport/transport.types.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/platforms/transport/app-client.service.ts packages/nextclaw-ui/src/platforms/transport/app-client.test.ts packages/nextclaw-ui/src/platforms/transport/index.ts packages/nextclaw-ui/src/platforms/transport/local-transport.service.ts packages/nextclaw-ui/src/platforms/transport/remote-transport.service.ts packages/nextclaw-ui/src/platforms/transport/remote.transport.test.ts packages/nextclaw-ui/src/platforms/transport/sse-stream.test.ts packages/nextclaw-ui/src/platforms/transport/sse-stream.utils.ts packages/nextclaw-ui/src/platforms/transport/transport-websocket-url.utils.ts packages/nextclaw-ui/src/platforms/transport/transport.types.ts packages/nextclaw-ui/src/shared/lib/transport/app-client.service.ts packages/nextclaw-ui/src/shared/lib/transport/app-client.test.ts packages/nextclaw-ui/src/shared/lib/transport/index.ts packages/nextclaw-ui/src/shared/lib/transport/local-transport.service.ts packages/nextclaw-ui/src/shared/lib/transport/remote-transport.service.ts packages/nextclaw-ui/src/shared/lib/transport/remote.transport.test.ts packages/nextclaw-ui/src/shared/lib/transport/sse-stream.test.ts packages/nextclaw-ui/src/shared/lib/transport/sse-stream.utils.ts packages/nextclaw-ui/src/shared/lib/transport/transport-websocket-url.utils.ts packages/nextclaw-ui/src/shared/lib/transport/transport.types.ts packages/nextclaw-ui/tsconfig.json packages/nextclaw-ui/vite.config.ts packages/nextclaw-ui/vitest.config.ts`
+- `pnpm check:governance-backlog-ratchet`
+- 第五十一批独立可维护性复核：
+- 结论：通过
+- 本次顺手减债：是
+- 代码增减报告：新增 `8` 行，删除 `8` 行，净增 `0` 行
+- 非测试代码增减报告：新增 `8` 行，删除 `8` 行，净增 `0` 行
+- 可维护性总结：这批不是继续为错误目录找借口，而是把 `transport` 从错误的 `platforms` 语义层撤回到 `shared/lib` 稳定共享模块；外部消费继续走精确 alias，因此结构边界变清晰了，但没有把复杂度扩散到业务文件里
+- 当前 `src` 顶层剩余 legacy roots：`api`、`components`、`hooks`、`lib`
+- 下一步转入 `hooks` 整组清空扫描
 - 补记第十四批：
   - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
   - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`

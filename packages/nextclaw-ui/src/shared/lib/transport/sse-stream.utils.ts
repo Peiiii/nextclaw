@@ -52,16 +52,18 @@ function processSseFrame(
 }
 
 function flushBufferedFrames(
-  bufferState: { value: string },
+  buffer: string,
   onEvent: (event: StreamEvent) => void,
   setFinalResult: FinalResultSink
-): void {
-  let boundary = bufferState.value.indexOf('\n\n');
+): string {
+  let remainingBuffer = buffer;
+  let boundary = remainingBuffer.indexOf('\n\n');
   while (boundary !== -1) {
-    processSseFrame(bufferState.value.slice(0, boundary), onEvent, setFinalResult);
-    bufferState.value = bufferState.value.slice(boundary + 2);
-    boundary = bufferState.value.indexOf('\n\n');
+    processSseFrame(remainingBuffer.slice(0, boundary), onEvent, setFinalResult);
+    remainingBuffer = remainingBuffer.slice(boundary + 2);
+    boundary = remainingBuffer.indexOf('\n\n');
   }
+  return remainingBuffer;
 }
 
 export async function readSseStreamResult<TFinal>(
@@ -74,7 +76,7 @@ export async function readSseStreamResult<TFinal>(
   }
 
   const decoder = new TextDecoder();
-  const bufferState = { value: '' };
+  let buffer = '';
   let finalResult: unknown = undefined;
   try {
     while (true) {
@@ -82,13 +84,13 @@ export async function readSseStreamResult<TFinal>(
       if (done) {
         break;
       }
-      bufferState.value += decoder.decode(value, { stream: true });
-      flushBufferedFrames(bufferState, onEvent, (nextValue) => {
+      buffer += decoder.decode(value, { stream: true });
+      buffer = flushBufferedFrames(buffer, onEvent, (nextValue) => {
         finalResult = nextValue;
       });
     }
-    if (bufferState.value.trim()) {
-      processSseFrame(bufferState.value, onEvent, (nextValue) => {
+    if (buffer.trim()) {
+      processSseFrame(buffer, onEvent, (nextValue) => {
         finalResult = nextValue;
       });
     }
