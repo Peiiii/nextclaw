@@ -5,6 +5,7 @@
 当前战役范围：
 
 - 优先处理 `nextclaw-ui` 中直接代码文件数超预算、可稳定按子域/角色收拢的热点目录
+- 当前执行策略已经收紧为“从 `src` 顶层开始自上而下快速收敛”：先优先减少 `src` 这一层 legacy roots 数量，再继续下降处理次顶层与子域
 - 每次只推进一个高置信批次，完成后立即验证、执行治理守卫与主观复核
 - 每完成一个目录层级优化并确认仍可正常运行，就提交一个独立 commit
 - 执行约定：每一轮完成并提交后自动进入下一轮，不等待额外人工催促；只有遇到低置信阻塞或治理硬失败时才停下并记录原因
@@ -293,6 +294,7 @@
   - 第四十六批验证通过，`components/common/SessionRunBadge.tsx`、`components/common/session-context-icon.tsx`、`lib/session-context.utils.ts`、`lib/session-context.utils.test.ts` 与 `lib/session-run-status.ts` 已整体脱离 legacy roots 并收敛到 `features/chat`；`chat-sidebar-session-item.tsx`、`chat-conversation-panel.tsx`、`chat-session-type-option-item.tsx`、`sessions-config-detail-pane.tsx`、`sessions-config-page.tsx`、`use-ncp-child-session-tabs-view.ts`、`use-ncp-session-list-view.ts`、`chat-session-list.store.ts` 与 `chat-sidebar.tsx` 已全部切到新的 feature-root 组件 / utils / types。治理守卫、类型检查、chat 页面与组件用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批初版把两个新组件直接放进 `features/chat/components/` 顶层时触发了目录预算硬阻塞，因此最终已进一步收进 `features/chat/components/session/`，没有为了过关而放宽守卫
   - 第四十七批验证通过，`lib/chat-message.ts` 与 `lib/chat-runtime-utils.ts` 已整体脱离 `lib` 并收敛到 `features/chat/utils/chat-message-core.utils.ts` 与 `features/chat/utils/chat-runtime.utils.ts`；`ncp-chat-page.tsx`、`chat-message-part.utils.ts`、`chat-message-session-request-tool-card.utils.ts` 与 `chat-message-tool-card.utils.ts` 已全部切到新的 feature-root utils。治理守卫、类型检查、chat 页面与 utils 用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `-15`、非测试代码净变化为 `-15`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：本批首版曾尝试落到 `features/chat/utils/message/`，被 `module-structure` 直接阻断；随后又因缩函数长度时引入普通函数改入参，被 `param-mutations-owner-boundary` 拦截，最终改为 `HistoryMessageBuilder` owner class 才在不放宽规则的前提下通过全部治理。
   - 第四十八批验证通过，`src/components/chat` 这一层已被彻底回收：最后一个真实文件 `chat-attachment-upload-limit.test.ts` 已迁入 `features/chat/components/conversation/chat-attachment-upload-limit.test.ts`，`components/chat/README.md` 与 `components/chat/ncp/README.md` 两份过期豁免说明已同步删除，迁移后 `components/chat/ncp/` 与 `components/chat/` 空目录继续向上回收。治理守卫、对应测试、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批不是只清理叶子目录，而是把 `src/components` 当前层下面已经退化成空壳的 chat 子树完整清掉，符合“从 `src` 开始自上而下逐层治理”的新约束。
+  - 第四十九批验证通过，`src/lib/channel-tutorials.ts` 已整体脱离 `lib` 并收敛到 `features/channels/utils/channel-tutorials.utils.ts`；`features/channels/pages/channels-list-page.tsx` 与 `features/channels/components/config/channel-form.tsx` 已全部切到新的 feature-root utils。治理守卫、类型检查、channels 页面与表单用例、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批属于 `src/lib` 当前层的私产工具链切根，为后续继续清空 `src/lib` 顶层创造条件，也把战役节奏正式切换到“优先减少 `src` 顶层 legacy roots 数量”的快速收敛模式。
 
 # 发布 / 部署方式
 

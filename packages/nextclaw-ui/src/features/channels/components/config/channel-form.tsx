@@ -13,7 +13,7 @@ import { WeixinChannelAuthSection } from '@/features/channels/components/config/
 import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from '@/features/channels/utils/channel-form-fields.utils';
 import { ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader } from '@/shared/components/config-split-page';
 import { hintForPath } from '@/lib/config-hints';
-import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
+import { resolveChannelTutorialUrl } from '@/features/channels/utils/channel-tutorials.utils';
 import { t } from '@/lib/i18n';
 import { getChannelLogo } from '@/lib/logos';
 import { cn } from '@/lib/utils';

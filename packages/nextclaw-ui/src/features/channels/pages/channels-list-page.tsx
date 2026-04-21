@@ -9,7 +9,7 @@ import { ChannelForm } from '@/features/channels/components/config/channel-form'
 import { useConfig, useConfigMeta, useConfigSchema } from '@/hooks/useConfig';
 import { ConfigSelectionCard, ConfigSplitEmptyState, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneHeader, ConfigSplitSidebar } from '@/shared/components/config-split-page';
 import { hintForPath } from '@/lib/config-hints';
-import { resolveChannelTutorialUrl } from '@/lib/channel-tutorials';
+import { resolveChannelTutorialUrl } from '@/features/channels/utils/channel-tutorials.utils';
 import { t } from '@/lib/i18n';
 import { getChannelLogo } from '@/lib/logos';
 import { cn } from '@/lib/utils';

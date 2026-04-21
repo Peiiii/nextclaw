@@ -4,6 +4,18 @@
 - 本轮目标：从 `packages/nextclaw-ui/src` 开始，按自上而下的层级顺序继续减少高优先级 legacy-root 债务；不是只挑局部热点，而是每一层先尽量收平、满足 contract-only，再下降到下一层处理能整组迁入既有 allowed roots 的实现、测试与真实消费链
 - 成功判定：每完成一个高置信目录批次的真实迁移，就通过最小验证、更新状态记录，并提交一个独立 commit
 
+# 顶层收敛优先级
+
+- 用户已明确确认：当前战役的第一优先级不是继续做“蚂蚁搬家”式叶子迁移，而是先解决 `src` 上层结构问题，用最快速度减少 `src` 这一层 legacy roots 数量
+- 因此后续批次排序切换为“按 root 是否能被整组清空”而不是“按单文件是否容易搬”
+- 当前 `src` 顶层 legacy roots 盘点：`api`、`components`、`hooks`、`lib`、`pwa`、`stores`、`styles`、`test`、`transport`
+- 当前清空优先级：
+- 第一梯队：`stores`、`styles`、`test`
+- 第二梯队：`hooks`、`pwa`、`transport`
+- 第三梯队：`lib`、`api`
+- 第四梯队：`components`
+- 排序理由：先减少 `src` 顶层违规 root 数量，再去处理体量更大的 legacy 子树，整体收敛速度比继续零碎搬叶子更快
+
 # 当前事实
 
 - `packages/nextclaw-ui/src/components/config` 当前直接代码文件数为 `37`
@@ -226,7 +238,11 @@
 
 # 下一步
 
-- 继续扫描 batch 22 之后仍留在 legacy root 的真实消费方，优先评估 `components/config/SessionsConfig.tsx`、`components/chat/containers/chat-sidebar.tsx`、`components/chat/containers/chat-message-list.container.tsx`、`components/chat/managers/chat-session-list.manager.ts` 与 `components/chat/stores/chat-session-list.store.ts` 的下一组高置信切根路径
+- 先补齐第四十九批留痕并提交：
+- `packages/nextclaw-ui/src/lib/channel-tutorials.ts -> packages/nextclaw-ui/src/features/channels/utils/channel-tutorials.utils.ts`
+- 真实消费方已切到新路径：`packages/nextclaw-ui/src/features/channels/pages/channels-list-page.tsx`、`packages/nextclaw-ui/src/features/channels/components/config/channel-form.tsx`
+- 第四十九批提交后，立即转入 `src` 顶层 root 清空扫描，不再继续按单个叶子文件找候选
+- 顶层 root 清空优先级：`stores` / `styles` / `test` -> `hooks` / `pwa` / `transport` -> `lib` / `api` -> `components`
 - 补记第十四批：
   - 完成 `components/chat/chat-session-type-option-item.tsx -> features/chat/components/chat-session-type-option-item.tsx`
   - 完成 `components/chat/chat-session-type-option-item.test.tsx -> features/chat/components/chat-session-type-option-item.test.tsx`

@@ -3,8 +3,8 @@
   "目标": "从 packages/nextclaw-ui/src 开始，按自上而下的层级顺序逐层收敛目录平铺与角色混杂问题；每一层先满足 contract-only 规范，再继续下一层，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
   "状态": "进行中",
   "当前活跃批次": {
-    "名称": "cross-hotspot rescan",
-    "原因": "第四十八批已完成并进入可提交状态：`src/components/chat` 这一层的最后一个真实文件 `chat-attachment-upload-limit.test.ts` 已迁入 `features/chat/components/conversation/chat-attachment-upload-limit.test.ts`，两份已经失效的 `components/chat/README.md` 与 `components/chat/ncp/README.md` 也已一起删除，迁移后 `components/chat/` 与 `components/chat/ncp/` 空壳目录已继续向上回收到当前层级。该批属于“从 `src/components` 这一层向下回收已空壳的 legacy 子树”，验证结果为零净增、零新增治理问题。",
+    "名称": "src top-level liquidation",
+    "原因": "第四十九批已完成并进入可提交状态：`lib/channel-tutorials.ts` 已迁入 `features/channels/utils/channel-tutorials.utils.ts`，`channels-list-page.tsx` 与 `channel-form.tsx` 已全部切到新的 feature-root utils。用户已进一步明确：当前战役必须优先解决 `src` 上层结构问题，以最快速度减少 `src` 顶层 legacy roots 数量，而不是继续按单个叶子文件慢搬。",
     "验证计划": [
       "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
       "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
@@ -95,7 +95,8 @@
     "完成 chat 私产 RecentSelectionManager 与相邻测试迁入 features/chat/managers，并同步收敛 class arrow methods",
     "完成 chat session 显示链从 components/common 与 lib 迁入 features/chat，并通过 components/session 子域化消除目录预算阻塞",
     "完成 chat-message/chat-runtime-utils 从 lib 迁入 features/chat/utils，并用 HistoryMessageBuilder owner class 满足严格治理",
-    "完成 src/components/chat 空壳子树回收：测试归位到 features/chat，并删除两份过期 README 与空目录"
+    "完成 src/components/chat 空壳子树回收：测试归位到 features/chat，并删除两份过期 README 与空目录",
+    "完成 lib/channel-tutorials 迁入 features/channels/utils，并切根两处真实消费方"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -111,7 +112,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "提交第四十八批后，继续停留在 `src/` 顶层和 `src/components` 当前层之间重新排序：优先评估还能继续收空或收平的 legacy 顶层/次顶层目录，再按自上而下顺序决定是继续回收 `src/components` 的其它子树，还是转向 `src/lib` / `src/api` 等仍能整组迁入 allowed roots 的高置信批次。",
-  "最近一次停机原因": "之前的提交链阻塞已经解除，本轮已连续完成第四十七批提交收口，并继续推进到第四十八批的 `src/components/chat` 空壳子树回收。",
-  "最近更新时间": "2026-04-21（第四十八批待提交）"
+  "下一步": "先提交第四十九批；随后改按 `src` 顶层 root 清空优先级推进：第一梯队 `stores` / `styles` / `test`，第二梯队 `hooks` / `pwa` / `transport`，第三梯队 `lib` / `api`，第四梯队 `components`。目标是不再继续零碎搬叶子，而是优先减少 `src` 这一层 legacy roots 数量。",
+  "最近一次停机原因": "之前的提交链阻塞已经解除，本轮已连续完成第四十七批与第四十八批提交收口，并继续推进到第四十九批的 `lib/channel-tutorials` feature-root 迁移。",
+  "最近更新时间": "2026-04-21（第四十九批待提交，顶层优先级已重排）"
 }
