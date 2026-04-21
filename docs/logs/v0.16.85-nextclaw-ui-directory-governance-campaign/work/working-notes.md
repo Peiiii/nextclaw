@@ -673,6 +673,29 @@
 
 - 当前已自动进入下一轮扫描：优先评估 `components/chat/nextclaw/index.ts` 导出面与 `components/chat` 顶层残余入口周边仍未脱离 legacy root 的消费链；仅处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能整组迁出真实消费方与 dead legacy 入口的高置信子链
 
+- 第三十九批已经完成并通过验证：
+  - 完成 `components/chat` 一级目录 dead legacy surface 清理：`chat-composer-state`、`chat-inline-token.utils`、`chat-input.types`、`chat-recent-models.manager`、`chat-recent-skills.manager`、`chat-session-display`、`chat-session-preference-governance`、`chat-session-preference-sync`、`chat-session-route`、`chat-session-type-option-item`、`chat-session-workspace-file-preview`、`chat-session-workspace-panel`、`chat-session-workspace-panel-nav`、`chat-sidebar-list-mode-switch`、`chat-sidebar-project-groups`、`chat-sidebar-session-item`、`workspace/chat-session-workspace-file-breadcrumbs`、`components/chat/index.ts` 与 `components/chat/nextclaw/index.ts` 已整组删除
+  - 完成唯一残留真实消费切根：`packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts` 改为直接依赖 `@/features/chat/utils/chat-session-preference-governance.utils`
+  - 本批不保留 shim：先通过 repo 级引用扫描确认上述 legacy 文件已无真实消费，再直接物理删除；不再补任何精确 alias 或测试代理
+  - 明确记录一次口径结论：
+    - 对于这种“只有删除、没有新增实现文件”的纯删减批次，`post-edit-maintainability-guard` 会直接判定为 `no changed code-like files found`；这不是漏检，而是说明本批没有产生新的非功能增长样本，需要结合 diff 统计来记录减债规模
+  - 通过第三十九批最小验证：
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/chat/pages/ncp-chat-page.test.ts src/features/chat/utils/chat-composer-state.utils.test.ts src/features/chat/utils/chat-inline-token.utils.test.ts src/features/chat/utils/chat-session-display.utils.test.ts src/features/chat/components/chat-session-type-option-item.test.tsx src/features/chat/components/chat-session-workspace-file-preview.test.tsx src/features/chat/managers/chat-session-preference-sync.manager.test.ts`
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm lint:new-code:governance -- --files $(git diff --name-only -- packages/nextclaw-ui/src/components/chat packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts | tr '\n' ' ')`
+    - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths $(git diff --name-only -- packages/nextclaw-ui/src/components/chat packages/nextclaw-ui/src/features/chat/pages/ncp-chat-page.test.ts | tr '\n' ' ')`
+    - `pnpm check:governance-backlog-ratchet`
+  - 第三十九批代码净变化：`-66`
+  - 第三十九批非测试代码净变化：`-58`
+  - 第三十九批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `1` 行，删除 `67` 行，净增 `-66` 行
+    - 非测试代码增减报告：新增 `1` 行，删除 `59` 行，净增 `-58` 行
+    - 可维护性总结：`no maintainability findings`。这批不是继续搬实现，而是把一整层已经没有真实 owner 的顶层 chat 薄转发与测试壳直接物理清空
+
+- 当前已自动进入下一轮扫描：优先评估仍然承担真实职责的 chat 高层入口链，例如 `chat-page-shell`、`ChatWelcome`、`useChatSessionTypeState`、`chat-sidebar.tsx` 与它们的真实消费方；继续只处理不需要触碰 `ProviderForm.tsx` 等历史非 kebab 文件、且能在 allowed roots 内整组收敛的高置信子链
+
 - 补记第二十八批：
   - 完成 `components/config/SearchConfig.tsx -> shared/components/search-config.tsx`
   - 完成 `components/config/SearchConfig.test.tsx -> shared/components/search-config.test.tsx`

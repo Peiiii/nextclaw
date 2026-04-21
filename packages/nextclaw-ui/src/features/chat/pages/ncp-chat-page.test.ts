@@ -6,7 +6,7 @@ import {
   resolveRecentSessionPreferredThinking,
   resolveSelectedModelValue,
   resolveSelectedThinkingLevelValue
-} from '@/components/chat/chat-session-preference-governance';
+} from '@/features/chat/utils/chat-session-preference-governance.utils';
 import {
   buildNcpSendMetadata,
   shouldClearPendingProjectRootOverride
