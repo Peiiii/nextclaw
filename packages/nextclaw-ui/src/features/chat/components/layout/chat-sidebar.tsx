@@ -22,8 +22,8 @@ import { getSessionProjectName } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
-import { useI18n } from '@/app/components/providers/i18n-provider';
-import { useTheme } from '@/app/components/providers/theme-provider';
+import { useI18n } from '@/app/components/i18n-provider';
+import { useTheme } from '@/app/components/theme-provider';
 import { useDocBrowser } from '@/shared/components/doc-browser';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/app/components/layout/sidebar-items';
 import {

@@ -13,7 +13,7 @@ import {
   fetchMarketplaceSkillContent,
 } from "@/shared/lib/api";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { useI18n } from "@/app/components/providers/i18n-provider";
+import { useI18n } from "@/app/components/i18n-provider";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import {
   useInstallMarketplaceItem,

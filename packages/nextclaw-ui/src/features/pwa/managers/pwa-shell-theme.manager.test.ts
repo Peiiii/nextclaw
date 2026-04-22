@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { pwaShellThemeManager } from '@/platforms/pwa';
+import { pwaShellThemeManager } from '@/features/pwa';
 
 describe('PwaShellThemeManager', () => {
   beforeEach(() => {

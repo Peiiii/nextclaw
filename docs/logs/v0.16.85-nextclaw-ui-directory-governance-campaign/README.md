@@ -10,13 +10,16 @@
 - 每完成一个目录层级优化并确认仍可正常运行，就提交一个独立 commit
 - 执行约定：每一轮完成并提交后自动进入下一轮，不等待额外人工催促；只有遇到低置信阻塞或治理硬失败时才停下并记录原因
 
-最新收口结果（2026-04-22）：
+最新收口结果（2026-04-23）：
 
 - 本轮已一次性完成 `src` 顶层 contract-only 收口：`src/api`、`src/lib`、`src/components` 已整组迁入 allowed roots，顶层现只剩 `src/app`、`src/features`、`src/platforms`、`src/shared`
 - 迁移后的空目录已继续向上回收；最后残留的空 `src/components` 已物理删除，没有保留空壳 legacy root
 - 为避免继续触碰 strict root files，保留了精确 alias 承接少量高层旧导入；真实实现、测试与真实消费链已经切到 allowed roots
 - 本轮完整验证已通过：`tsc`、`vitest`、增量 governance、maintainability guard、governance backlog ratchet
 - 顶层收口后，已继续完成 allowed roots 下一层治理：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 已拍平成平铺 hooks，`shared/lib` 根直出文件已全部收进目录模块；当前 `shared/lib` 根文件与所有 `hooks/*` 子目录都已清空
+- 第五十三批继续沿 `nextclaw-ui` 目录治理主线收口：`platforms/pwa` 已整体迁入 `features/pwa`，并把 `pwa-install-banner.utils.ts` / `pwa.types.ts` 继续下沉到 `features/pwa/utils/` 与 `features/pwa/types/`，使 `PWA` 在当前模块里明确回到 feature 语义，而不是继续占着平台差异层
+- 同批次还顺手纠正了两个被这次迁移直接触发的目录角色误判：`theme-provider.tsx` 与 `i18n-provider.tsx` 不再继续挂在 `app/components/providers/`，而是直接回收到 `app/components/`，保留旧 alias 只做稳定入口承接，避免把“组件名里带 provider”误判成必须单独挂角色目录
+- 这一批没有触碰 `platforms/desktop`，也没有提前引入 `mobile` 目录；当前只解决 `PWA` 的真实归属和同批次暴露出的 provider 组件落点，不把 scope 扩成第二条治理线
 
 当前进展请见：
 
@@ -28,6 +31,8 @@
 - [packages/nextclaw-ui/module-structure.config.json](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/module-structure.config.json) 将该模块声明为 `frontend-l3`
 - 该协议下 allowed roots 只有 `app`、`features`、`shared`、`platforms`
 - 当前 `rootPolicy=contract-only`，因此 `nextclaw-ui` 后续不再允许触碰 legacy roots（如 `components`、`lib`、`api`、`hooks`）中的文件；所有新增与后续迁移都必须直接落在 allowed roots（`app`、`features`、`shared`、`platforms`）
+- `PWA` 在 `nextclaw-ui` 的产品语义更接近 feature，而不是宿主差异层；继续放在 `platforms/pwa` 会把“设备/平台差异”与“可安装壳能力”混为一谈，因此本批次按高置信路径把其收回 `features/pwa`
+- `theme-provider` / `i18n-provider` 的根因也不是“名字里带 provider 就必须放进 providers 目录”，而是历史上把 React provider 组件的命名词误当成目录角色；这次已按“它们首先是组件”这一事实收回 `app/components/`
 - 首批尝试在 `components/config` 下新建 provider 子树已被治理闸门阻断，并已回撤代码尝试；后续必须改成 contract-aligned 的迁移路径
 - 第一批真正通过治理的落点是把 `components/config/security-config.tsx` 的真实实现迁入 `features/system-status/components/security-config.tsx`，旧路径只保留薄转发入口，从而在不碰 `app.tsx` 历史命名冲突的前提下完成一次 allowed-root 迁移
 - 第二批通过治理的落点是把 `components/config/runtime-presence-card.tsx` 的真实实现迁入 `features/system-status/components/runtime-presence-card.tsx`，旧路径收窄为兼容导出，并顺手消除了重复的卡片壳结构
@@ -306,6 +311,7 @@
   - 第五十批验证通过，`src/styles/design-system.css` 已迁入 `src/app/styles/design-system.css`，`src/test/setup.ts` 已迁入 `src/app/test/vitest-setup.ts`，未消费的 `src/stores/ui.store.ts` 已直接删除；迁移后 `src/styles`、`src/test` 与 `src/stores` 三个空目录已继续向上回收到 `src` 当前层。治理守卫、类型检查、`app.test.tsx` 冒烟、maintainability guard 与 ratchet 全部通过，代码净变化为 `-14`、非测试代码净变化为 `-14`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批不是做局部叶子迁移，而是一次性清空三个 `src` 顶层 legacy roots，用最短路径压缩上层结构债务。
   - 第五十一批验证通过，`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`；`platforms/transport` 已被完全清空，`pwa` 则继续稳定留在 `platforms/pwa`。治理守卫、类型检查、`app.test.tsx` 与 transport 三条相邻测试、maintainability guard 与 ratchet 全部通过，代码净变化为 `0`、非测试代码净变化为 `0`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批不是简单换目录，而是按规范修正语义边界。`platforms` 只承载平台差异层，所以 `transport` 不能留在 `platforms`，也不能在 `shared` 根下再造 `transport/` 假角色目录；最终落点改为 `shared/lib/transport`，并通过精确 alias 承接外部消费，确保纠偏不扩散到业务层。
   - 第五十二批验证通过，`src/hooks` 已被整组拆散并彻底清空：`use-realtime-query-bridge` 已迁入 `app/hooks/`，`use-auth`、`use-channel-auth`、`use-ncp-chat-session-types` 已分别迁入 `features/account`、`features/channels` 与 `features/chat`，`use-marketplace` / `use-mcp-marketplace` 与 `marketplace-installed-cache` / `marketplace-list-pages` 已收敛到 `features/marketplace`，`use-config`、`use-confirm-dialog`、`use-infinite-scroll-loader`、`use-agents` 与 `server-path/*` 已收敛到 `shared/hooks/`；legacy `src/hooks` 根、全部旧 hooks 文件与未消费的 `useObservable.ts` 已物理删除。治理守卫、类型检查、auth/config/channels/chat/marketplace/path-picker 主链测试、maintainability guard 与 ratchet 全部通过，代码净变化为 `-1480`、非测试代码净变化为 `-1337`；独立可维护性复核结论为“通过，继续推进下一层级”。同时明确记录：这批是一次性清空一个 `src` 顶层 legacy root，而不是继续做零碎 leaf 搬迁；当前 `src` 顶层只剩 `api`、`components` 与 `lib` 三个 legacy roots。
+  - 第五十三批验证通过，`platforms/pwa` 已整体迁入 `features/pwa`，`pwa-install-banner.utils.ts` 与 `pwa.types.ts` 已继续落到 `features/pwa/utils/` 与 `features/pwa/types/`，同时 `theme-provider.tsx` / `i18n-provider.tsx` 已从 `app/components/providers/` 回收到 `app/components/`；`app.tsx`、`main.tsx` 与 `app.test.tsx` 仍通过精确 alias 保持稳定入口，不需要为这批目录治理再去扩散 root-file 改动。`tsc`、`build`、PWA 定向测试、`app-layout`/`sidebar` 定向测试、maintainability guard 与 ratchet 全部通过；独立可维护性复核结论为“通过，继续推进下一层级”，代码净变化为 `0`、非测试代码净变化为 `0`。同时明确记录：`pnpm lint:new-code:governance` 本轮被工作树里两条无关已改文件 `apps/desktop/src/preload.ts` 与 `packages/nextclaw-ui/src/shared/lib/i18n/runtime/i18n-language-owner.ts` 阻断，这不是本批 `PWA` / provider 迁移引入的新问题。
 
 # 发布 / 部署方式
 
@@ -334,6 +340,8 @@
 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：适用。第四十七批独立复核结论为“通过，继续推进下一层级”；无错误，仅保留一条 near-budget 提醒：`chat-message-session-request-tool-card.utils.ts` 接近 file-budget，但本批没有继续恶化。代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。非测试代码增减报告：新增 `239` 行，删除 `254` 行，净增 `-15` 行。第四十八批独立复核结论同样为“通过，继续推进下一层级”；无错误无警告。代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行。非测试代码增减报告：新增 `0` 行，删除 `0` 行，净增 `0` 行。可维护性总结：第四十八批的价值不在代码行数，而在于把 `src/components/chat` 当前层彻底清空并继续向上回收空目录，使“从 `src` 开始自上而下逐层治理”不再停留在口号上。
 
 第五十二批独立复核结论同样为“通过，继续推进下一层级”；无错误，仅保留三条未恶化的观察点：`features/chat/components/layout/chat-sidebar.tsx` 接近 file-budget、`features/chat/hooks` 目录预算仍超线、`shared/components/search-config.tsx` 接近 file-budget。代码增减报告：新增 `60` 行，删除 `1540` 行，净增 `-1480` 行。非测试代码增减报告：新增 `47` 行，删除 `1384` 行，净增 `-1337` 行。可维护性总结：这一批不是把旧 hooks 原样平移到另一个总目录，而是按装配层 / feature / shared 三类职责重新落位，并把整个 `src/hooks` 顶层从源码树中抹掉；这让 `src` 当前层的违规 root 数量再次下降，而且没有为了兼容去扩张新的 shim 链。
+
+第五十三批独立复核结论同样为“通过，继续推进下一层级”；无错误，仅保留两条未恶化的观察点：`features/chat/components/layout/chat-sidebar.tsx` 与 `features/marketplace/components/marketplace-page.tsx` 接近 file-budget。代码增减报告：新增 `22` 行，删除 `22` 行，净增 `0` 行。非测试代码增减报告：新增 `14` 行，删除 `14` 行，净增 `0` 行。可维护性总结：这批不是再造 `runtime`/`host` 新轴，而是把 `PWA` 直接并回 feature 语义，并顺手把两个 provider 组件从错误的角色目录里收回来；目录边界更清晰了，同时保持了非功能改动零净增，没有把复杂度换位置保留。
 
 # NPM 包发布记录
 

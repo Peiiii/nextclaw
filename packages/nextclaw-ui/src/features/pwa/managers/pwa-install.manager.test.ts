@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { PwaInstallManager } from '@/platforms/pwa/managers/pwa-install.manager';
+import { PwaInstallManager } from '@/features/pwa/managers/pwa-install.manager';
 import {
   PWA_INSTALL_BANNER_DISMISS_STORAGE_KEY,
   PWA_INSTALL_BANNER_LEGACY_UNTIL_STORAGE_KEY
-} from '@/platforms/pwa/pwa-install-banner.utils';
-import { usePwaStore, createInitialPwaState } from '@/platforms/pwa/stores/pwa.store';
+} from '@/features/pwa/utils/pwa-install-banner.utils';
+import { usePwaStore, createInitialPwaState } from '@/features/pwa/stores/pwa.store';
 
 function createMatchMedia(matches = false): typeof window.matchMedia {
   return vi.fn().mockImplementation(() => ({

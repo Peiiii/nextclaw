@@ -1,11 +1,11 @@
-import { usePwaStore, createInitialPwaState } from '@/platforms/pwa/stores/pwa.store';
-import type { PwaInstallBlockedReason, PwaInstallMethod, PwaInstallPromptOutcome, PwaInstallabilityState } from '@/platforms/pwa/pwa.types';
-import { pwaRuntimeManager } from '@/platforms/pwa/managers/pwa-runtime.manager';
+import { usePwaStore, createInitialPwaState } from '@/features/pwa/stores/pwa.store';
+import type { PwaInstallBlockedReason, PwaInstallMethod, PwaInstallPromptOutcome, PwaInstallabilityState } from '@/features/pwa/types/pwa.types';
+import { pwaRuntimeManager } from '@/features/pwa/managers/pwa-runtime.manager';
 import {
   clearPwaInstallBannerDismissal,
   dismissPwaInstallBanner,
   isPwaInstallBannerDismissed
-} from '@/platforms/pwa/pwa-install-banner.utils';
+} from '@/features/pwa/utils/pwa-install-banner.utils';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 

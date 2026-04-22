@@ -14,7 +14,7 @@ import {
 import { readInlineTokensFromMetadata } from "@/features/chat/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/utils/ncp-session-adapter.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
-import { useI18n } from "@/app/components/providers/i18n-provider";
+import { useI18n } from "@/app/components/i18n-provider";
 import { formatDateTime, t } from "@/shared/lib/i18n";
 
 type ChatMessageListContainerProps = {

@@ -93,14 +93,14 @@ vi.mock('@/shared/hooks/use-agents', () => ({
   })
 }));
 
-vi.mock('@/app/components/providers/i18n-provider', () => ({
+vi.mock('@/app/components/i18n-provider', () => ({
   useI18n: () => ({
     language: 'en',
     setLanguage: vi.fn()
   })
 }));
 
-vi.mock('@/app/components/providers/theme-provider', () => ({
+vi.mock('@/app/components/theme-provider', () => ({
   useTheme: () => ({
     theme: 'warm',
     setTheme: vi.fn()

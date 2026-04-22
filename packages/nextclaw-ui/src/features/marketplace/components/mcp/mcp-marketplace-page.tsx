@@ -38,7 +38,7 @@ import {
   useMcpMarketplaceItems,
 } from "@/features/marketplace/hooks/use-mcp-marketplace";
 import { useDocBrowser } from "@/shared/components/doc-browser";
-import { useI18n } from "@/app/components/providers/i18n-provider";
+import { useI18n } from "@/app/components/i18n-provider";
 import { t } from "@/shared/lib/i18n";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
 import { cn } from "@/shared/lib/utils";

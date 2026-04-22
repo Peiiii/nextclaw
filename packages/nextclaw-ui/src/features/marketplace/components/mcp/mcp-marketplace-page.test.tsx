@@ -49,7 +49,7 @@ vi.mock("@tanstack/react-query", async (importOriginal) => {
   };
 });
 
-vi.mock("@/app/components/providers/i18n-provider", () => ({
+vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({
     language: "zh",
     setLanguage: vi.fn(),

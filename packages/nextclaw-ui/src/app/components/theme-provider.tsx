@@ -14,7 +14,7 @@ import {
   subscribeThemeChange,
   type UiTheme,
 } from '@/shared/lib/theme';
-import { pwaShellThemeManager } from '@/platforms/pwa';
+import { pwaShellThemeManager } from '@/features/pwa';
 
 type ThemeContextValue = {
   theme: UiTheme;

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { PwaInstallBanner, PwaInstallCard, PwaUpdateBanner } from '@/platforms/pwa';
-import { usePwaStore, createInitialPwaState } from '@/platforms/pwa/stores/pwa.store';
+import { PwaInstallBanner, PwaInstallCard, PwaUpdateBanner } from '@/features/pwa';
+import { usePwaStore, createInitialPwaState } from '@/features/pwa/stores/pwa.store';
 
 describe('PwaInstallCard', () => {
   beforeEach(() => {

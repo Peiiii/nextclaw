@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/app/components/layout/app-layout";
-import { I18nProvider } from "@/app/components/providers/i18n-provider";
+import { I18nProvider } from "@/app/components/i18n-provider";
 
 vi.mock("@/app/components/layout/sidebar", () => ({
   Sidebar: () => (

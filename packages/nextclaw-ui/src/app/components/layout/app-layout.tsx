@@ -6,7 +6,7 @@ import {
   useDocBrowser,
 } from "@/shared/components/doc-browser/doc-browser-context";
 import { useDocLinkInterceptor } from "@/shared/components/doc-browser/use-doc-link-interceptor";
-import { useI18n } from "@/app/components/providers/i18n-provider";
+import { useI18n } from "@/app/components/i18n-provider";
 import { resolveUiDocumentTitle } from "@/shared/lib/ui-document-title";
 
 const DocBrowser = lazy(async () => ({

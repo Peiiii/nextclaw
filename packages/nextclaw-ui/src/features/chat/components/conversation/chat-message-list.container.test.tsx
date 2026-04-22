@@ -15,7 +15,7 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
   },
 }));
 
-vi.mock("@/app/components/providers/i18n-provider", () => ({
+vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
 }));
 

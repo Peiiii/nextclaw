@@ -5,7 +5,7 @@ import { uploadNcpAssets } from '@/shared/lib/api';
 import type { SessionSkillEntryView } from '@/shared/lib/api';
 import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/utils/chat-input-bar.utils';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
-import { useI18n } from '@/app/components/providers/i18n-provider';
+import { useI18n } from '@/app/components/i18n-provider';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
