@@ -1,7 +1,7 @@
 # 当前目标
 
 - 已完成：`packages/nextclaw-ui/src` 已严格自上而下收敛到只剩 allowed roots（`app`、`features`、`platforms`、`shared`）
-- 当前顶层 legacy roots 只剩 `api`、`components`、`lib`
+- 当前顶层 legacy roots：已清空
 
 # 明确非目标
 
@@ -25,8 +25,8 @@
 
 # 当前下一步
 
-- 提交第五十三批，并关闭本线程的 `nextclaw-ui` 心跳自动化
+- 本轮无需继续动作；如后续继续治理，应从 `app` / `features` / `shared` / `platforms` 的下一层开始新一轮自上而下扫描
 
 # 锚点计数器
 
-- 当前计数：16/20
+- 当前计数：0/20
