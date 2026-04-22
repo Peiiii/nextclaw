@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Folder, FolderUp, Home, RefreshCcw, Search } from 'lucide-react';
-import { useServerPathBrowse } from '@/shared/hooks/server-path/use-server-path-browse';
+import { useServerPathBrowse } from '@/shared/hooks/use-server-path-browse';
 import { Button } from '@/shared/components/ui/button';
 import {
   Dialog,

@@ -22,10 +22,11 @@
 - 第五十一批已提交：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`
 - 第五十二批已提交：`src/hooks` 已整组拆散到 `app/hooks`、`features/account`、`features/channels`、`features/chat`、`features/marketplace` 与 `shared/hooks`，`src/hooks` 与未消费的 `useObservable.ts` 已物理删除
 - 第五十三批已完成：`src/api`、`src/lib`、`src/components` 已一次性迁入 allowed roots，空目录已继续向上回收；`src` 顶层现只剩 `app`、`features`、`platforms`、`shared`
+- 第五十四批已完成：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 已拍平成平铺 hooks；`shared/lib` 根直出文件已全部收进目录模块，空目录已继续向上回收
 
 # 当前下一步
 
-- 本轮无需继续动作；如后续继续治理，应从 `app` / `features` / `shared` / `platforms` 的下一层开始新一轮自上而下扫描
+- 继续从 `app` / `features` / `shared` / `platforms` 的下一层做自上而下扫描，优先处理仍违反 flat-directory、module-container 或 feature-root 入口边界的高层目录
 
 # 锚点计数器
 

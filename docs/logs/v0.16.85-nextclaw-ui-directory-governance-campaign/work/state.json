@@ -1,17 +1,18 @@
 {
   "战役名称": "nextclaw-ui 目录组织自治治理战役",
   "目标": "从 packages/nextclaw-ui/src 开始，按自上而下的层级顺序逐层收敛目录平铺与角色混杂问题；每一层先满足 contract-only 规范，再继续下一层，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
-  "状态": "已完成",
+  "状态": "进行中",
   "当前活跃批次": {
-    "名称": "src top-level contract-only closeout",
-    "原因": "第五十三批已一次性完成 `src/api`、`src/lib` 与 `src/components` 的顶层清算：真实实现、测试与真实消费方已整组迁入 `app`、`features`、`shared`、`platforms`，旧顶层目录已物理删除，最后残留的空 `src/components` 也已回收到 `src` 当前层。`packages/nextclaw-ui/src` 顶层现只剩 `app`、`features`、`platforms`、`shared` 四个 allowed roots。",
+    "名称": "allowed-root second-layer flattening",
+    "原因": "第五十四批继续按自上而下原则治理 allowed roots 的下一层：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 已拍平成平铺 hooks，`shared/lib` 根文件也已全部收进模块目录。",
     "验证计划": [
       "pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false",
-      "pnpm --filter @nextclaw/ui exec vitest run",
+      "pnpm --filter @nextclaw/ui exec vitest run src/features/agents/components/agents-page.test.tsx src/features/chat/hooks/use-ncp-session-conversation.test.tsx src/features/chat/hooks/use-hydrated-ncp-agent.test.tsx src/features/chat/hooks/use-ncp-agent-runtime.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/components/layout/chat-sidebar.test.tsx src/features/chat/components/chat-session-workspace-file-preview.test.tsx src/shared/components/path-picker/server-path-picker-dialog.test.tsx src/shared/lib/app-resource-uri/app-resource-uri.test.ts",
       "git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs pnpm lint:new-code:governance -- --files",
       "git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths",
       "pnpm check:governance-backlog-ratchet",
-      "find packages/nextclaw-ui/src -maxdepth 1 -mindepth 1 -type d | sort"
+      "find packages/nextclaw-ui/src -type d -path '*/hooks/*' | sort",
+      "find packages/nextclaw-ui/src/shared/lib -maxdepth 1 -type f | sort"
     ]
   },
   "候选批次": [
@@ -89,7 +90,8 @@
     "完成 src/components/chat 空壳子树回收：测试归位到 features/chat，并删除两份过期 README 与空目录",
     "完成 lib/channel-tutorials 迁入 features/channels/utils，并切根两处真实消费方",
     "完成 src/hooks 顶层整组回收：hooks 已按 app / features / shared 分流归位，marketplace helper 同步脱离 legacy 组件目录，并删除空的 hooks 根",
-    "完成 src 顶层 contract-only 收口：`api`、`lib`、`components` 已一次性迁入 allowed roots、消费链与测试同步切根，空目录已继续向上回收，`src` 顶层现只剩 `app`、`features`、`platforms`、`shared`"
+    "完成 src 顶层 contract-only 收口：`api`、`lib`、`components` 已一次性迁入 allowed roots、消费链与测试同步切根，空目录已继续向上回收，`src` 顶层现只剩 `app`、`features`、`platforms`、`shared`",
+    "完成 allowed-root 下一层收口：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 已拍平成平铺 hooks，`shared/lib` 根直出文件已全部收进目录模块"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -105,7 +107,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "本轮目标已完成；若继续治理，下一阶段应从 `app` / `features` / `shared` / `platforms` 的次级目录开始新一轮自上而下扫描，而不是再回到已清空的 `src` 顶层 legacy roots。",
-  "最近一次停机原因": "本轮不是失败中断，而是治理目标完成后正常收尾：`src` 顶层已满足 contract-only，验证通过，后续只需提交并关闭本战役的心跳自动化。",
-  "最近更新时间": "2026-04-22（第五十二批提交状态已纠正；第五十三批已完成 `src` 顶层 contract-only 收口，顶层只剩 `app`、`features`、`platforms`、`shared`）"
+  "下一步": "继续从 `app` / `features` / `shared` / `platforms` 的次级目录做自上而下扫描，优先处理仍违反 flat-directory、module-container 或 feature-root 入口边界的高层目录。",
+  "最近一次停机原因": "当前未停机；第五十四批已完成并通过验证，战役继续进入 allowed roots 下一层扫描。",
+  "最近更新时间": "2026-04-22（第五十四批已完成 hooks 平铺与 shared/lib 模块容器收口，`shared/lib` 根文件与 hooks 子目录均已清空）"
 }

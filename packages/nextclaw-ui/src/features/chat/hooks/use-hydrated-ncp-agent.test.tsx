@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import type { NcpAgentClientEndpoint } from "@nextclaw/ncp";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useHydratedNcpAgent } from "../../../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-hydrated-ncp-agent.ts";
+import { useHydratedNcpAgent } from "../../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-hydrated-ncp-agent.ts";
 
 const mocks = vi.hoisted(() => ({
   manager: {
@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock(
-  "../../../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-ncp-agent-runtime.js",
+  "../../../../../ncp-packages/nextclaw-ncp-react/src/hooks/use-ncp-agent-runtime.js",
   () => ({
     useScopedAgentManager: () => mocks.manager,
     useNcpAgentRuntime: () => mocks.runtime,

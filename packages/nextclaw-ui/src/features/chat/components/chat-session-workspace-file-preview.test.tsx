@@ -6,7 +6,7 @@ import { t } from "@/shared/lib/i18n";
 
 const serverPathReadMock = vi.fn();
 
-vi.mock("@/shared/hooks/server-path/use-server-path-read", () => ({
+vi.mock("@/shared/hooks/use-server-path-read", () => ({
   useServerPathRead: (...args: unknown[]) => serverPathReadMock(...args),
 }));
 

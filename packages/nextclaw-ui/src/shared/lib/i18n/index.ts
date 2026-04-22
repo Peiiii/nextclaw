@@ -1,7 +1,7 @@
-import { AGENT_LABELS } from './i18n.agents';
-import { CHANNEL_LABELS } from './i18n.channels';
-import { CHANNEL_AUTH_LABELS } from './i18n.channel-auth';
-import { CHAT_LABELS } from './i18n.chat';
+import { AGENT_LABELS } from './agents';
+import { CHANNEL_LABELS } from './channels';
+import { CHANNEL_AUTH_LABELS } from './channel-auth';
+import { CHAT_LABELS } from './chat';
 import {
   getLanguage,
   getLocale,
@@ -11,14 +11,14 @@ import {
   setLanguage,
   subscribeLanguageChange,
   type I18nLanguage
-} from './i18n-runtime/i18n-language-owner';
+} from './runtime/i18n-language-owner';
 import { DESKTOP_UPDATE_LABELS } from './desktop-update-labels.utils';
-import { MARKETPLACE_LABELS } from './i18n.marketplace';
-import { PATH_PICKER_LABELS } from './i18n-runtime/i18n.path-picker';
-import { PWA_LABELS } from './i18n.pwa';
-import { REMOTE_LABELS } from './i18n.remote';
-import { RUNTIME_CONTROL_LABELS } from './i18n.runtime-control';
-import { SEARCH_LABELS } from './i18n.search';
+import { MARKETPLACE_LABELS } from './marketplace';
+import { PATH_PICKER_LABELS } from './runtime/i18n.path-picker';
+import { PWA_LABELS } from './pwa';
+import { REMOTE_LABELS } from './remote';
+import { RUNTIME_CONTROL_LABELS } from './runtime-control';
+import { SEARCH_LABELS } from './search';
 export type { I18nLanguage };
 export { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange };
 export function formatDateTime(value?: string | Date, lang: I18nLanguage = getLanguage()): string {

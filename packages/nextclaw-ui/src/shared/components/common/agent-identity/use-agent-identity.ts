@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { AgentProfileView } from '@/shared/lib/api';
-import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
-import { useAgents } from '@/shared/hooks/agents/use-agents';
+import { useChatThreadStore } from '@/features/chat';
+import { useAgents } from '@/shared/hooks/use-agents';
 
 export type ResolvedAgentIdentity = {
   agentId: string;

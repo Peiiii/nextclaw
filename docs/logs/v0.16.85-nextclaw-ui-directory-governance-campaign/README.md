@@ -16,6 +16,7 @@
 - 迁移后的空目录已继续向上回收；最后残留的空 `src/components` 已物理删除，没有保留空壳 legacy root
 - 为避免继续触碰 strict root files，保留了精确 alias 承接少量高层旧导入；真实实现、测试与真实消费链已经切到 allowed roots
 - 本轮完整验证已通过：`tsc`、`vitest`、增量 governance、maintainability guard、governance backlog ratchet
+- 顶层收口后，已继续完成 allowed roots 下一层治理：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 已拍平成平铺 hooks，`shared/lib` 根直出文件已全部收进目录模块；当前 `shared/lib` 根文件与所有 `hooks/*` 子目录都已清空
 
 当前进展请见：
 

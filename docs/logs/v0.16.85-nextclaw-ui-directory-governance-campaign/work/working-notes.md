@@ -1012,3 +1012,26 @@
     - 可维护性总结：这一批不是“迁完继续留一个 `hooks/` 空壳”的假收敛，而是直接清空 `src` 顶层一个完整 legacy root；当前仅保留三条观察点：`chat-sidebar.tsx` 接近 file-budget、`features/chat/hooks` 目录预算仍超线、`shared/components/search-config.tsx` 接近 file-budget，但本批没有继续恶化它们
 
 - 当前已自动进入下一轮扫描：顶层 legacy roots 现只剩 `lib`、`api`、`components`；下一轮优先扫描 `src/lib` 中仍明显属于单一 feature 私产或稳定共享基础设施的整组迁移路径，其次再看 `src/api`
+
+- 第五十四批已经完成并通过验证：
+  - 完成 `features/chat/hooks/runtime/` 当前层回收：`use-ncp-session-conversation`、`use-ncp-child-session-tabs-view` 与两条 runtime contract 测试已拍平到 `features/chat/hooks/`
+  - 完成 `shared/hooks/agents/` 与 `shared/hooks/server-path/` 当前层回收：`use-agents`、`use-server-path-browse`、`use-server-path-read` 已拍平到 `shared/hooks/`
+  - 完成 `shared/lib/` 模块容器收口：`app-resource-uri`、`config-hints`、`i18n`、`logos`、`provider-models`、`theme`、`ui-document-title`、`utils` 已全部改为目录模块；`shared/lib` 根上不再保留文件
+  - 完成真实消费方切根：`ncp-chat-page`、workspace panel / preview、`agents-page`、`use-agent-identity`、path picker 与相邻测试 / mock 已切到新的平铺 hooks 或 `features/chat` 根入口
+  - 完成空目录向上回收：`features/chat/hooks/runtime`、`shared/hooks/agents`、`shared/hooks/server-path` 与旧的 `shared/lib/i18n-runtime` 已物理删除
+  - 通过第五十四批最小验证：
+    - `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+    - `pnpm --filter @nextclaw/ui exec vitest run src/features/agents/components/agents-page.test.tsx src/features/chat/hooks/use-ncp-session-conversation.test.tsx src/features/chat/hooks/use-hydrated-ncp-agent.test.tsx src/features/chat/hooks/use-ncp-agent-runtime.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx src/features/chat/components/layout/chat-sidebar.test.tsx src/features/chat/components/chat-session-workspace-file-preview.test.tsx src/shared/components/path-picker/server-path-picker-dialog.test.tsx src/shared/lib/app-resource-uri/app-resource-uri.test.ts`
+    - `git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui/src | xargs pnpm lint:new-code:governance -- --files`
+    - `git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui/src | xargs node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths`
+    - `pnpm check:governance-backlog-ratchet`
+    - `find packages/nextclaw-ui/src -type d -path '*/hooks/*' | sort`
+    - `find packages/nextclaw-ui/src/shared/lib -maxdepth 1 -type f | sort`
+  - 第五十四批代码净变化：`+3`
+  - 第五十四批非测试代码净变化：`0`
+  - 第五十四批独立可维护性复核：
+    - 可维护性复核结论：通过
+    - 本次顺手减债：是
+    - 代码增减报告：新增 `32` 行，删除 `29` 行，净增 `+3` 行
+    - 非测试代码增减报告：新增 `17` 行，删除 `17` 行，净增 `0` 行
+    - 可维护性总结：这批不是只把文件挪位，而是把 `hooks` 平铺规则和 `lib` 模块容器规则真正落到了 `nextclaw-ui` 代码结构上；当前残留观察点只有 `chat-sidebar.tsx` 仍接近 file-budget，但本批没有继续恶化

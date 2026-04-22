@@ -3,8 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
-import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+import { useChatInputStore, useChatSessionListStore } from "@/features/chat";
 import { setLanguage } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
@@ -85,7 +84,7 @@ const mocks = vi.hoisted(() => ({
   },
 }));
 
-vi.mock("@/shared/hooks/agents/use-agents", () => ({
+vi.mock("@/shared/hooks/use-agents", () => ({
   useAgents: () => mocks.agentsQuery,
   useCreateAgent: () => ({
     mutateAsync: mocks.createAgent,
@@ -106,9 +105,13 @@ vi.mock("@/shared/hooks/use-config", () => ({
   useConfigMeta: () => mocks.configMetaQuery,
 }));
 
-vi.mock("@/features/chat/hooks/use-ncp-chat-session-types", () => ({
-  useNcpChatSessionTypes: () => mocks.sessionTypesQuery,
-}));
+vi.mock("@/features/chat", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/chat")>();
+  return {
+    ...actual,
+    useNcpChatSessionTypes: () => mocks.sessionTypesQuery,
+  };
+});
 
 describe("AgentsPage", () => {
   beforeEach(() => {

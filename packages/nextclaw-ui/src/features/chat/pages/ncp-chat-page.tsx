@@ -20,7 +20,7 @@ import { NcpChatPresenter } from "@/features/chat/managers/ncp-chat-presenter.ma
 import {
   isNcpAgentStartupUnavailableErrorMessage,
   useNcpSessionConversation,
-} from "@/features/chat/hooks/runtime/use-ncp-session-conversation";
+} from "@/features/chat/hooks/use-ncp-session-conversation";
 import {
   useNcpChatDerivedState,
   useNcpChatSnapshotSync,
@@ -30,7 +30,7 @@ import type { ResumeRunParams } from "@/features/chat/types/chat-stream.types";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
-import { useAgents } from "@/shared/hooks/agents/use-agents";
+import { useAgents } from "@/shared/hooks/use-agents";
 import { normalizeRequestedSkills } from "@/features/chat/utils/chat-runtime.utils";
 import {
   systemStatusManager,

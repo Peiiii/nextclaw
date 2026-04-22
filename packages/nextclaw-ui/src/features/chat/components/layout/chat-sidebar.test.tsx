@@ -85,7 +85,7 @@ vi.mock('@/shared/components/common/status-badge', () => ({
   StatusBadge: () => <div data-testid="status-badge" />
 }));
 
-vi.mock('@/shared/hooks/agents/use-agents', () => ({
+vi.mock('@/shared/hooks/use-agents', () => ({
   useAgents: () => ({
     data: {
       agents: mocks.agents

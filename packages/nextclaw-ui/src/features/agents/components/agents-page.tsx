@@ -5,7 +5,7 @@ import {
   useDeleteAgent,
   useAgents,
   useUpdateAgent,
-} from "@/shared/hooks/agents/use-agents";
+} from "@/shared/hooks/use-agents";
 import { useConfig, useConfigMeta } from "@/shared/hooks/use-config";
 import type { AgentProfileView } from "@/shared/lib/api";
 import {
@@ -19,15 +19,15 @@ import {
   normalizeSessionType,
   resolveAgentRuntimeSessionType,
   resolveSessionTypeLabel,
-} from "@/features/chat/hooks/use-chat-session-type-state";
-import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
-import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
+  useChatInputStore,
+  useChatSessionListStore,
+  useNcpChatSessionTypes,
+} from "@/features/chat";
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
 import { NoticeCard } from "@/shared/components/ui/notice-card";
 import { TagChip } from "@/shared/components/ui/tag-chip";
-import { useNcpChatSessionTypes } from "@/features/chat/hooks/use-ncp-chat-session-types";
 import { PageLayout } from "@/app/components/layout/page-layout";
 import { t } from "@/shared/lib/i18n";
 import { buildProviderModelCatalog } from "@/shared/lib/provider-models";

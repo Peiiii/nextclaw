@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   refetch: vi.fn(),
 }));
 
-vi.mock('@/shared/hooks/server-path/use-server-path-browse', () => ({
+vi.mock('@/shared/hooks/use-server-path-browse', () => ({
   useServerPathBrowse: mocks.useServerPathBrowse,
 }));
 

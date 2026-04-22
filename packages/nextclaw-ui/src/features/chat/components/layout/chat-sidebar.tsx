@@ -17,7 +17,7 @@ import {
 } from '@/features/chat/stores/chat-session-list.store';
 import { useSystemStatus } from '@/features/system-status';
 import { resolveSessionContextView } from '@/features/chat/utils/session-context.utils';
-import { useAgents } from '@/shared/hooks/agents/use-agents';
+import { useAgents } from '@/shared/hooks/use-agents';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
