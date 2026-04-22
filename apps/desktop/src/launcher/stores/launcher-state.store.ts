@@ -23,6 +23,7 @@ export type DesktopLauncherState = {
     closeToBackground: boolean;
     launchAtLogin: boolean;
   };
+  languagePreference?: DesktopUiLanguagePreference | null;
 };
 
 const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
@@ -45,13 +46,19 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   presencePreferences: {
     closeToBackground: true,
     launchAtLogin: false
-  }
+  },
+  languagePreference: null
 };
 
 export type DesktopReleaseChannel = "stable" | "beta";
+export type DesktopUiLanguagePreference = "en" | "zh";
 
 export function normalizeDesktopReleaseChannel(value: unknown): DesktopReleaseChannel {
   return typeof value === "string" && value.trim().toLowerCase() === "beta" ? "beta" : "stable";
+}
+
+export function normalizeDesktopUiLanguagePreference(value: unknown): DesktopUiLanguagePreference | null {
+  return value === "en" || value === "zh" ? value : null;
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -90,7 +97,8 @@ function normalizeState(parsed: unknown): DesktopLauncherState {
     downloadedVersion: normalizeOptionalString(record.downloadedVersion),
     downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl),
     updatePreferences: normalizeUpdatePreferences(record.updatePreferences),
-    presencePreferences: normalizePresencePreferences(record.presencePreferences)
+    presencePreferences: normalizePresencePreferences(record.presencePreferences),
+    languagePreference: normalizeDesktopUiLanguagePreference(record.languagePreference)
   };
 }
 

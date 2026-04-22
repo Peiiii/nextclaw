@@ -12,8 +12,11 @@ import {
 } from "electron";
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
-import type { DesktopLauncherStateStore } from "../launcher/stores/launcher-state.store";
+import type { DesktopLauncherStateStore, DesktopUiLanguagePreference } from "../launcher/stores/launcher-state.store";
+import { normalizeDesktopUiLanguagePreference } from "../launcher/stores/launcher-state.store";
 import {
+  DESKTOP_LOCALE_GET_CHANNEL,
+  DESKTOP_LOCALE_SET_CHANNEL,
   DESKTOP_PRESENCE_GET_STATE_CHANNEL,
   DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL
 } from "../utils/desktop-ipc.utils";
@@ -53,9 +56,18 @@ export class DesktopPresenceService {
   constructor(private readonly options: DesktopPresenceServiceOptions) {}
 
   registerIpcHandlers = (): void => {
+    ipcMain.removeAllListeners(DESKTOP_LOCALE_GET_CHANNEL);
+    ipcMain.removeHandler(DESKTOP_LOCALE_SET_CHANNEL);
     ipcMain.removeHandler(DESKTOP_PRESENCE_GET_STATE_CHANNEL);
     ipcMain.removeHandler(DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL);
 
+    ipcMain.on(DESKTOP_LOCALE_GET_CHANNEL, (event) => {
+      event.returnValue = this.readLocalePreference();
+    });
+    ipcMain.handle(
+      DESKTOP_LOCALE_SET_CHANNEL,
+      async (_event, language: unknown) => await this.updateLocalePreference(language)
+    );
     ipcMain.handle(DESKTOP_PRESENCE_GET_STATE_CHANNEL, async () => this.getSnapshot());
     ipcMain.handle(
       DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL,
@@ -223,6 +235,19 @@ export class DesktopPresenceService {
   private readPreferences = (): DesktopPresencePreferences => {
     const state = this.options.createLauncherStateStore().read();
     return state.presencePreferences ?? { ...DEFAULT_PRESENCE_PREFERENCES };
+  };
+
+  private readLocalePreference = (): DesktopUiLanguagePreference | null => {
+    return this.options.createLauncherStateStore().read().languagePreference ?? null;
+  };
+
+  private updateLocalePreference = async (language: unknown): Promise<DesktopUiLanguagePreference | null> => {
+    const normalizedLanguage = normalizeDesktopUiLanguagePreference(language);
+    const nextState = await this.options.createLauncherStateStore().update((state) => ({
+      ...state,
+      languagePreference: normalizedLanguage
+    }));
+    return nextState.languagePreference ?? null;
   };
 
   private supportsLaunchAtLogin = (): boolean => {

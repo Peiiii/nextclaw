@@ -9,3 +9,5 @@ export const DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL = "nextclaw-desktop:runtime
 export const DESKTOP_RUNTIME_RESTART_APP_CHANNEL = "nextclaw-desktop:runtime:restart-app";
 export const DESKTOP_PRESENCE_GET_STATE_CHANNEL = "nextclaw-desktop:presence:get-state";
 export const DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL = "nextclaw-desktop:presence:update-preferences";
+export const DESKTOP_LOCALE_GET_CHANNEL = "nextclaw-desktop:locale:get";
+export const DESKTOP_LOCALE_SET_CHANNEL = "nextclaw-desktop:locale:set";

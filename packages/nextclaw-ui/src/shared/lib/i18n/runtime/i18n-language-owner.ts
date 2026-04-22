@@ -28,9 +28,20 @@ class I18nLanguageOwner {
     return preferred.startsWith('zh') ? 'zh' : 'en';
   };
 
+  private getDesktopBridge = () => {
+    return typeof window === 'undefined' ? null : window.nextclawDesktop ?? null;
+  };
+
   resolveInitialLanguage = (): I18nLanguage => {
     if (typeof window === 'undefined') {
       return 'en';
+    }
+
+    const desktopBridge = this.getDesktopBridge();
+    if (desktopBridge) {
+      return this.isLanguage(desktopBridge.localePreference)
+        ? desktopBridge.localePreference
+        : this.detectBrowserLanguage();
     }
 
     try {
@@ -63,7 +74,10 @@ class I18nLanguageOwner {
 
     this.activeLanguage = lang;
 
-    if (typeof window !== 'undefined') {
+    const desktopBridge = this.getDesktopBridge();
+    if (desktopBridge) {
+      void desktopBridge.setLocalePreference?.(lang);
+    } else if (typeof window !== 'undefined') {
       try {
         window.localStorage.setItem(I18N_STORAGE_KEY, lang);
       } catch {

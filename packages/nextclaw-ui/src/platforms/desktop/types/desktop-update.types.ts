@@ -44,9 +44,12 @@ export type DesktopPresenceSnapshot = DesktopPresencePreferences & {
   launchAtLoginReason: string | null;
 };
 
+export type DesktopUiLanguagePreference = 'en' | 'zh';
+
 export type NextClawDesktopBridge = {
   platform: string;
   version: string;
+  localePreference?: DesktopUiLanguagePreference | null;
   getUpdateState: () => Promise<DesktopUpdateSnapshot>;
   checkForUpdates: () => Promise<DesktopUpdateSnapshot>;
   downloadUpdate: () => Promise<DesktopUpdateSnapshot>;
@@ -57,5 +60,6 @@ export type NextClawDesktopBridge = {
   restartApp: () => Promise<DesktopRuntimeControlResult>;
   getPresenceState: () => Promise<DesktopPresenceSnapshot>;
   updatePresencePreferences: (preferences: Partial<DesktopPresencePreferences>) => Promise<DesktopPresenceSnapshot>;
+  setLocalePreference?: (language: DesktopUiLanguagePreference | null) => Promise<DesktopUiLanguagePreference | null>;
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void) => () => void;
 };
