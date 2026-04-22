@@ -1,4 +1,4 @@
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 export type ChannelFieldType = 'boolean' | 'text' | 'email' | 'password' | 'number' | 'tags' | 'select' | 'json';
 export type ChannelOption = { value: string; label: string };

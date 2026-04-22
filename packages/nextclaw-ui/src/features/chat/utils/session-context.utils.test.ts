@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { resolveSessionContextView } from "./session-context.utils";
 
-vi.mock("@/lib/logos", () => ({
+vi.mock("@/shared/lib/logos", () => ({
   getChannelLogo: vi.fn(() => null),
 }));
 
-vi.mock("@/lib/i18n", () => ({
+vi.mock("@/shared/lib/i18n", () => ({
   t: (key: string) => key,
 }));
 

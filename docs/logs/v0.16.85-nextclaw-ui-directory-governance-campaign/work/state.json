@@ -1,26 +1,17 @@
 {
   "战役名称": "nextclaw-ui 目录组织自治治理战役",
   "目标": "从 packages/nextclaw-ui/src 开始，按自上而下的层级顺序逐层收敛目录平铺与角色混杂问题；每一层先满足 contract-only 规范，再继续下一层，每完成一个目录层级优化并验证通过就提交一个独立 commit。",
-  "状态": "进行中",
+  "状态": "已完成",
   "当前活跃批次": {
-    "名称": "src top-level liquidation",
-    "原因": "第五十二批已完成并进入可提交状态：`src/hooks` 已按 `app/hooks`、`features/account/hooks`、`features/channels/hooks`、`features/chat/hooks`、`features/marketplace/hooks` 与 `shared/hooks` 分流归位，legacy `src/hooks` 根与未消费的 `useObservable.ts` 已被物理删除。该批不是零碎 leaf 搬迁，而是一次性清空一个 `src` 顶层 legacy root，并用精确 alias 承接尚未迁出的旧消费入口。",
+    "名称": "src top-level contract-only closeout",
+    "原因": "第五十三批已一次性完成 `src/api`、`src/lib` 与 `src/components` 的顶层清算：真实实现、测试与真实消费方已整组迁入 `app`、`features`、`shared`、`platforms`，旧顶层目录已物理删除，最后残留的空 `src/components` 也已回收到 `src` 当前层。`packages/nextclaw-ui/src` 顶层现只剩 `app`、`features`、`platforms`、`shared` 四个 allowed roots。",
     "验证计划": [
-      "先确认目标的真实实现落在 allowed roots: app/features/shared/platforms",
-      "优先避免再触碰 legacy root 文件；若必须承接旧导入，优先使用精确路径映射或整组入口切换",
-      "若候选迁移需要额外修 effect / 函数预算 / 结构净增，立即降级为低置信并写回否决记录",
-      "若消费方位于 strict root-file 集合外且触达会触发 module-structure 阻断，优先改用精确 alias 承接",
-      "若候选本体已经是重页面且缺少相邻测试或会触发大规模页面拆分，先降级为低置信而不是直接迁移",
-      "若候选会把 feature 根目录推到目录预算硬上限，必须先拆出 `components/config`、`components/runtime`、`utils/file-operation` 或同等子域，再继续迁移",
-      "若尝试直接触达 `app.tsx` 这类 strict root-file 消费方，立即回退并改用精确 alias 承接",
-      "优先选择不需要触碰历史非 kebab 文件的高置信清理；若某条路径会因为命名治理而强迫触碰 `ProviderForm.tsx` 这类旧文件，立即降级为低置信",
-      "若某条路径同时命中历史非 kebab 文件名与 legacy-root 新文件双冲突，直接记录为治理硬阻塞，不再在同一轮内反复试错",
-      "受影响测试或类型检查",
-      "node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <old-and-new-paths...>",
-      "pnpm lint:new-code:governance -- <target-paths...>",
+      "pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false",
+      "pnpm --filter @nextclaw/ui exec vitest run",
+      "git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs pnpm lint:new-code:governance -- --files",
+      "git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths",
       "pnpm check:governance-backlog-ratchet",
-      "post-edit-maintainability-review",
-      "若命中命名治理，必须把新实现收敛到 `utils` / `types` / `components` 等白名单角色，禁止为了迁移方便继续引入 `adapter` 一类假角色"
+      "find packages/nextclaw-ui/src -maxdepth 1 -mindepth 1 -type d | sort"
     ]
   },
   "候选批次": [
@@ -97,7 +88,8 @@
     "完成 chat-message/chat-runtime-utils 从 lib 迁入 features/chat/utils，并用 HistoryMessageBuilder owner class 满足严格治理",
     "完成 src/components/chat 空壳子树回收：测试归位到 features/chat，并删除两份过期 README 与空目录",
     "完成 lib/channel-tutorials 迁入 features/channels/utils，并切根两处真实消费方",
-    "完成 src/hooks 顶层整组回收：hooks 已按 app / features / shared 分流归位，marketplace helper 同步脱离 legacy 组件目录，并删除空的 hooks 根"
+    "完成 src/hooks 顶层整组回收：hooks 已按 app / features / shared 分流归位，marketplace helper 同步脱离 legacy 组件目录，并删除空的 hooks 根",
+    "完成 src 顶层 contract-only 收口：`api`、`lib`、`components` 已一次性迁入 allowed roots、消费链与测试同步切根，空目录已继续向上回收，`src` 顶层现只剩 `app`、`features`、`platforms`、`shared`"
   ],
   "已否决批次": [
     "把当前战役并回 v0.16.80-autonomous-maintainability-campaign",
@@ -113,7 +105,7 @@
     "nextclaw-ui 的 module-structure 合同禁止在 legacy roots 下新增新层级或继续触达 legacy 文件",
     "非功能目录迁移批次必须同时满足 non-test 净增 <= 0 和目录预算限制"
   ],
-  "下一步": "先提交第五十二批；随后优先扫描 `src/lib` 与 `src/api` 的整组清空路径，继续按顶层 root 清空优先推进；`src/components` 暂后。",
-  "最近一次停机原因": "本轮没有治理硬失败；第五十二批已经通过类型检查、主链测试、governance、maintainability guard 与 ratchet，当前停在提交前的留痕更新阶段。",
-  "最近更新时间": "2026-04-21（第五十二批待提交，`src/hooks` 已清空，顶层只剩 `api`、`components`、`lib` 三个 legacy roots）"
+  "下一步": "本轮目标已完成；若继续治理，下一阶段应从 `app` / `features` / `shared` / `platforms` 的次级目录开始新一轮自上而下扫描，而不是再回到已清空的 `src` 顶层 legacy roots。",
+  "最近一次停机原因": "本轮不是失败中断，而是治理目标完成后正常收尾：`src` 顶层已满足 contract-only，验证通过，后续只需提交并关闭本战役的心跳自动化。",
+  "最近更新时间": "2026-04-22（第五十二批提交状态已纠正；第五十三批已完成 `src` 顶层 contract-only 收口，顶层只剩 `app`、`features`、`platforms`、`shared`）"
 }

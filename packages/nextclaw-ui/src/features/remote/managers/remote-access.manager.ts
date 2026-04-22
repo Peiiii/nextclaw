@@ -1,7 +1,7 @@
-import { controlRemoteService, fetchRemoteDoctor, updateRemoteSettings } from '@/api/remote';
-import type { RemoteAccessView } from '@/api/remote.types';
+import { controlRemoteService, fetchRemoteDoctor, updateRemoteSettings } from '@/shared/lib/api';
+import type { RemoteAccessView } from '@/shared/lib/api';
 import type { AccountManager, AccountPendingAction } from '@/features/account';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 import { refreshRemoteStatus } from '@/features/remote/services/remote-access-query.service';
 import { useRemoteAccessStore } from '@/features/remote/stores/remote-access.store';

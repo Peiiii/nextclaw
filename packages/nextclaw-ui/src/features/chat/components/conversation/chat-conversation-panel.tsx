@@ -6,7 +6,7 @@ import { ChatInputBarContainer } from "@/features/chat/components/conversation/c
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
-import { AgentAvatar } from "@/components/common/AgentAvatar";
+import { AgentAvatar } from "@/shared/components/common/agent-avatar";
 import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
@@ -14,9 +14,9 @@ import { ChatSessionProjectBadge } from "@/features/chat/components/conversation
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
-import { Skeleton } from "@/components/ui/skeleton";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { Skeleton } from "@/shared/components/ui/skeleton";
+import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 const CHAT_CONVERSATION_SKELETON_BUBBLES = [
   {

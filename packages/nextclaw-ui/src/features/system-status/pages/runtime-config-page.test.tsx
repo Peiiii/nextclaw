@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RuntimeConfig } from '@/features/system-status/pages/runtime-config-page';
-import { setLanguage } from '@/lib/i18n';
+import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
   mutate: vi.fn(),

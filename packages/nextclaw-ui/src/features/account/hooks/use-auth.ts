@@ -7,10 +7,10 @@ import {
   setupAuth,
   updateAuthEnabled,
   updateAuthPassword
-} from '@/api/config';
-import type { AuthStatusView } from '@/api/types';
+} from '@/shared/lib/api';
+import type { AuthStatusView } from '@/shared/lib/api';
 import { toast } from 'sonner';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 const AUTH_STATUS_BOOTSTRAP_MAX_RETRIES = 40;
 const AUTH_STATUS_BOOTSTRAP_TIMEOUT_MS = 400;

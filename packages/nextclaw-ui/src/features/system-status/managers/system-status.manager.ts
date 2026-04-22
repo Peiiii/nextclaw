@@ -1,18 +1,18 @@
-import type { BootstrapStatusView } from '@/api/types';
+import type { BootstrapStatusView } from '@/shared/lib/api';
 import {
   fetchRuntimeControl,
   restartRuntimeService,
   startRuntimeService,
   stopRuntimeService,
-} from '@/api/runtime-control';
+} from '@/shared/lib/api';
 import type {
   RuntimeControlAction,
   RuntimeControlActionResult,
   RuntimeControlView,
-} from '@/api/runtime-control.types';
+} from '@/shared/lib/api';
 import { appQueryClient } from '@/app-query-client';
 import type { NextClawDesktopBridge } from '@/platforms/desktop';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import {
   buildActiveSystemActionState,
   resolveChatRuntimeMessage,

@@ -1,6 +1,6 @@
 import { appQueryClient } from '@/app-query-client';
-import { deleteNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
-import { deleteNcpSession as deleteNcpSessionApi } from '@/api/ncp-session';
+import { deleteNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
+import { deleteNcpSession as deleteNcpSessionApi } from '@/shared/lib/api';
 import type {
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
@@ -14,7 +14,7 @@ import type {
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 export class NcpChatThreadManager {
   constructor(

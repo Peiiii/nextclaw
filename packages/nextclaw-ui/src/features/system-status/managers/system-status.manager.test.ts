@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { BootstrapStatusView } from '@/api/types';
+import type { BootstrapStatusView } from '@/shared/lib/api';
 import { appQueryClient } from '@/app-query-client';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import {
   isTransientRuntimeConnectionErrorMessage,
   systemStatusManager,

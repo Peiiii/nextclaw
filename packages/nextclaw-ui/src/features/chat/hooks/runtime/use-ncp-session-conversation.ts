@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent, type NcpConversationSeed } from "@nextclaw/ncp-react";
-import { API_BASE } from "@/api/api-base";
-import { fetchNcpSessionMessages } from "@/api/ncp-session";
+import { API_BASE } from "@/shared/lib/api";
+import { fetchNcpSessionMessages } from "@/shared/lib/api";
 import { createNcpAppClientFetch } from "@/features/chat/utils/ncp-app-client-fetch.utils";
 import { useChatRuntimeAvailability } from "@/features/system-status";
 

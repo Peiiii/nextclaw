@@ -1,5 +1,5 @@
-import { StatusDot } from '@/components/ui/status-dot';
-import { t } from '@/lib/i18n';
+import { StatusDot } from '@/shared/components/ui/status-dot';
+import { t } from '@/shared/lib/i18n';
 
 type ProviderStatusBadgeProps = {
   enabled: boolean;

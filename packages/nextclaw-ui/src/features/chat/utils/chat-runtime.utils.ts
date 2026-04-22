@@ -1,4 +1,4 @@
-import type { SessionMessageView } from '@/api/types';
+import type { SessionMessageView } from '@/shared/lib/api';
 import { extractMessageText } from './chat-message-core.utils';
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 

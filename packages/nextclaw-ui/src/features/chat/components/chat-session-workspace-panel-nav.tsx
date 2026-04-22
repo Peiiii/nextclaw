@@ -1,10 +1,10 @@
 import { FileCode2, MessageSquareText, X } from "lucide-react";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/runtime/use-ncp-child-session-tabs-view";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
-import { AgentIdentityAvatar } from "@/components/common/agent-identity";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 export type WorkspaceSelection =
   | {

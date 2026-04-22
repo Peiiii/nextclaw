@@ -1,7 +1,7 @@
 import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store";
 import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
 

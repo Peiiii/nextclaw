@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
 import { KeyRound, Plus, Search } from 'lucide-react';
 import { useConfig, useConfigMeta, useConfigSchema, useCreateProvider } from '@/shared/hooks/use-config';
-import { LogoBadge } from '@/components/common/LogoBadge';
-import { PageHeader, PageLayout } from '@/components/layout/page-layout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs } from '@/components/ui/tabs-custom';
-import { StatusDot } from '@/components/ui/status-dot';
-import { hintForPath } from '@/lib/config-hints';
-import { t } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
-import { ProviderForm } from '@/components/config/ProviderForm';
+import { LogoBadge } from '@/shared/components/common/logo-badge';
+import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Tabs } from '@/shared/components/ui/tabs-custom';
+import { StatusDot } from '@/shared/components/ui/status-dot';
+import { hintForPath } from '@/shared/lib/config-hints';
+import { t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
+import { ProviderForm } from '@/shared/components/config/provider-form';
 import {
   ConfigSelectionCard,
   ConfigSplitEmptyState,

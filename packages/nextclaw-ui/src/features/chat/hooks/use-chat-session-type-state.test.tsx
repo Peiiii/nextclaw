@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { resolveSessionTypeLabel, useChatSessionTypeState } from './use-chat-session-type-state';
 
-vi.mock('@/lib/i18n', () => ({
+vi.mock('@/shared/lib/i18n', () => ({
   t: (key: string) => key
 }));
 

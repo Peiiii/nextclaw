@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { SessionEntryView, ThinkingLevel } from '@/api/types';
+import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
@@ -18,7 +18,7 @@ import {
   useNcpSessions
 } from '@/shared/hooks/use-config';
 import { useNcpChatSessionTypes } from './use-ncp-chat-session-types';
-import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/lib/provider-models';
+import { buildProviderModelCatalog, composeProviderModel, resolveModelThinkingCapability } from '@/shared/lib/provider-models';
 
 export type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 

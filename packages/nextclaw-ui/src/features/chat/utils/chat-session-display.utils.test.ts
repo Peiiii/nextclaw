@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SessionEntryView } from '@/api/types';
+import type { SessionEntryView } from '@/shared/lib/api';
 import { sessionDisplayName, sessionMatchesQuery } from './chat-session-display.utils';
 
 function createSession(overrides: Partial<SessionEntryView> = {}): SessionEntryView {

@@ -1,13 +1,13 @@
 import type { Dispatch, SetStateAction } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { TagInput } from "@/components/common/tag-input";
-import { hintForPath } from "@/lib/config-hints";
-import { t } from "@/lib/i18n";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { Switch } from "@/shared/components/ui/switch";
+import { TagInput } from "@/shared/components/common/tag-input";
+import { hintForPath } from "@/shared/lib/config-hints";
+import { t } from "@/shared/lib/i18n";
 import { Globe, Hash, KeyRound, Mail, Settings, ToggleLeft } from "lucide-react";
-import type { ConfigUiHints } from "@/api/types";
+import type { ConfigUiHints } from "@/shared/lib/api";
 import type { ChannelField } from "@/features/channels";
 
 function getFieldIcon(fieldName: string) {

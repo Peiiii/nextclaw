@@ -1,9 +1,9 @@
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import type {
   RuntimeControlAction,
   RuntimeLifecycleState,
   RuntimeServiceState,
-} from '@/api/runtime-control.types';
+} from '@/shared/lib/api';
 import type {
   RuntimeControlPanelView,
   RuntimeStatusBadgeView,

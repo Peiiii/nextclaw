@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SessionsConfig } from '@/features/chat/pages/sessions-config-page';
-import type { NcpMessageView, NcpSessionMessagesView, NcpSessionsListView } from '@/api/types';
-import { setLanguage } from '@/lib/i18n';
+import type { NcpMessageView, NcpSessionMessagesView, NcpSessionsListView } from '@/shared/lib/api';
+import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
   confirm: vi.fn(),

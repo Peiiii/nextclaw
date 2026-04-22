@@ -1,5 +1,5 @@
-import { fetchRemoteStatus } from '@/api/remote';
-import type { RemoteAccessView } from '@/api/remote.types';
+import { fetchRemoteStatus } from '@/shared/lib/api';
+import type { RemoteAccessView } from '@/shared/lib/api';
 import { appQueryClient } from '@/app-query-client';
 
 export const REMOTE_STATUS_QUERY_KEY = ['remote-status'] as const;

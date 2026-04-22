@@ -1,5 +1,5 @@
-import { ServerPathPickerDialog } from '@/components/path-picker/server-path-picker-dialog';
-import { t } from '@/lib/i18n';
+import { ServerPathPickerDialog } from '@/shared/components/path-picker/server-path-picker-dialog';
+import { t } from '@/shared/lib/i18n';
 
 type ChatSessionProjectDialogProps = {
   open: boolean;

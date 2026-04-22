@@ -17,14 +17,15 @@ vi.mock('sonner', () => ({
   }
 }));
 
-vi.mock('@/api/ncp-session', () => ({
-  updateNcpSession: (...args: unknown[]) => mocks.updateNcpSession(...args)
-}));
-
-vi.mock('@/api/ncp-session-query-cache', () => ({
-  upsertNcpSessionSummaryInQueryClient: (...args: unknown[]) =>
-    mocks.upsertNcpSessionSummaryInQueryClient(...args)
-}));
+vi.mock('@/shared/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  return {
+    ...actual,
+    updateNcpSession: (...args: unknown[]) => mocks.updateNcpSession(...args),
+    upsertNcpSessionSummaryInQueryClient: (...args: unknown[]) =>
+      mocks.upsertNcpSessionSummaryInQueryClient(...args)
+  };
+});
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {

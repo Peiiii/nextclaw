@@ -1,4 +1,4 @@
-import type { SessionPatchUpdate, ThinkingLevel } from '@/api/types';
+import type { SessionPatchUpdate, ThinkingLevel } from '@/shared/lib/api';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';

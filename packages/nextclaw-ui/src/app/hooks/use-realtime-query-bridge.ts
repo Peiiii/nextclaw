@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { applyNcpSessionRealtimeEvent } from '@/api/ncp-session-query-cache';
+import { applyNcpSessionRealtimeEvent } from '@/shared/lib/api';
 import { systemStatusManager } from '@/features/system-status';
-import { appClient } from '@/transport';
+import { appClient } from '@/shared/lib/transport';
 import type { QueryClient } from '@tanstack/react-query';
 
 function shouldInvalidateConfigQuery(configPath: string) {

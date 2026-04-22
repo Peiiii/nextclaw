@@ -1,4 +1,4 @@
-import type { SessionEventView, SessionMessageView } from '@/api/types';
+import type { SessionEventView, SessionMessageView } from '@/shared/lib/api';
 
 export type ChatRole = 'user' | 'assistant' | 'tool' | 'system' | 'other';
 

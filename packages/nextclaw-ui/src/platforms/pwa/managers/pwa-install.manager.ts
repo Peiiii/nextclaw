@@ -6,7 +6,7 @@ import {
   dismissPwaInstallBanner,
   isPwaInstallBannerDismissed
 } from '@/platforms/pwa/pwa-install-banner.utils';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 type InstallabilityResolution = {

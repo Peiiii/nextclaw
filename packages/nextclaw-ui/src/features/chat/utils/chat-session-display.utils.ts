@@ -1,4 +1,4 @@
-import type { SessionEntryView } from '@/api/types';
+import type { SessionEntryView } from '@/shared/lib/api';
 
 export function sessionDisplayName(session: SessionEntryView): string {
   const label = session.label?.trim();

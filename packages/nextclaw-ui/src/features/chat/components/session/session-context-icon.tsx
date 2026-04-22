@@ -1,8 +1,8 @@
 import { type SessionContextIcon } from '@/features/chat/utils/session-context.utils';
-import { resolveAppResourceUri } from '@/lib/app-resource-uri';
-import { LogoBadge } from '@/components/common/LogoBadge';
-import { getChannelLogo } from '@/lib/logos';
-import { cn } from '@/lib/utils';
+import { resolveAppResourceUri } from '@/shared/lib/app-resource-uri';
+import { LogoBadge } from '@/shared/components/common/logo-badge';
+import { getChannelLogo } from '@/shared/lib/logos';
+import { cn } from '@/shared/lib/utils';
 import { AlarmClock, Bot, HeartPulse } from 'lucide-react';
 
 export function SessionContextIconNode({ icon, className }: { icon: SessionContextIcon; className?: string }) {

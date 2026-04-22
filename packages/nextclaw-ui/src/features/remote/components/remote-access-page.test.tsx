@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { RemoteAccessPage, useRemoteAccessStore } from "@/features/remote";
-import { setLanguage } from "@/lib/i18n";
+import { setLanguage } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
   reauthorizeRemoteAccess: vi.fn(),

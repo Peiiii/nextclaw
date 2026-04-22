@@ -1,5 +1,5 @@
-import { t } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
+import { t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
 
 type ChatSidebarListModeSwitchProps = { isProjectFirstView: boolean; onSelectMode: (mode: 'time-first' | 'project-first') => void };
 

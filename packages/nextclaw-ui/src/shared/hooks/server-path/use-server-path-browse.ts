@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchServerPathBrowse } from '@/api/server-path';
+import { fetchServerPathBrowse } from '@/shared/lib/api';
 
 export function useServerPathBrowse(params: {
   path?: string | null;

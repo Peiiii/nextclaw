@@ -1,8 +1,8 @@
 import { Fragment } from "react";
 import { ChevronRight, FileCode2, FolderTree } from "lucide-react";
-import type { WorkspaceFileBreadcrumbViewModel } from "@/lib/session-project/workspace-file-breadcrumb";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import type { WorkspaceFileBreadcrumbViewModel } from "@/shared/lib/session-project";
+import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 function WorkspaceBreadcrumbMetaChip({ tone = "neutral", value }: { tone?: "neutral" | "warning"; value: string }) {
   return (

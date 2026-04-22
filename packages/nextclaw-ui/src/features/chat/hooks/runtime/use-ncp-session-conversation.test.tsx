@@ -29,9 +29,13 @@ const mocks = vi.hoisted(() => ({
   clientInstances: [] as unknown[],
 }));
 
-vi.mock("@/api/ncp-session", () => ({
-  fetchNcpSessionMessages: mocks.fetchNcpSessionMessages,
-}));
+vi.mock("@/shared/lib/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/shared/lib/api")>();
+  return {
+    ...actual,
+    fetchNcpSessionMessages: mocks.fetchNcpSessionMessages,
+  };
+});
 
 vi.mock("@nextclaw/ncp-react", () => ({
   useHydratedNcpAgent: vi.fn((params: { client: unknown; loadSeed: unknown }) => {

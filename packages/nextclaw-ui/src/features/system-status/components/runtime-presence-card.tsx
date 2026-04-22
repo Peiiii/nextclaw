@@ -5,16 +5,16 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { NoticeCard } from "@/components/ui/notice-card";
-import { SettingRow } from "@/components/ui/setting-row";
-import { Switch } from "@/components/ui/switch";
+} from "@/shared/components/ui/card";
+import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { SettingRow } from "@/shared/components/ui/setting-row";
+import { Switch } from "@/shared/components/ui/switch";
 import {
   desktopPresenceManager,
   useDesktopPresenceStore,
 } from "@/platforms/desktop";
 import { useSystemStatus } from "@/features/system-status";
-import { t } from "@/lib/i18n";
+import { t } from "@/shared/lib/i18n";
 
 function PresenceHint(props: { title: string; description: string }) {
   const { description, title } = props;

@@ -9,13 +9,14 @@ const { deleteNcpSessionMock, deleteSummaryMock } = vi.hoisted(() => ({
   deleteSummaryMock: vi.fn(),
 }));
 
-vi.mock('@/api/ncp-session', () => ({
-  deleteNcpSession: deleteNcpSessionMock,
-}));
-
-vi.mock('@/api/ncp-session-query-cache', () => ({
-  deleteNcpSessionSummaryInQueryClient: deleteSummaryMock,
-}));
+vi.mock('@/shared/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  return {
+    ...actual,
+    deleteNcpSession: deleteNcpSessionMock,
+    deleteNcpSessionSummaryInQueryClient: deleteSummaryMock,
+  };
+});
 
 describe('NcpChatThreadManager', () => {
   beforeEach(() => {

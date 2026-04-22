@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView } from '@/api/types';
+import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView } from '@/shared/lib/api';
 import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
 import { useDeleteNcpSession, useNcpSessionMessages, useUpdateNcpSession } from '@/shared/hooks/use-config';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
 import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
-import { cn } from '@/lib/utils';
-import { formatDateTime, t } from '@/lib/i18n';
+import { cn } from '@/shared/lib/utils';
+import { formatDateTime, t } from '@/shared/lib/i18n';
 import { Bot, Hash, Inbox, MessageCircle, RefreshCw, Settings as SettingsIcon, User } from 'lucide-react';
 function normalizeNcpRole(role: NcpMessageView['role']): 'user' | 'assistant' | 'system' | 'tool' {
   if (role === 'service') {

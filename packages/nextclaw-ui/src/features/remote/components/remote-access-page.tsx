@@ -1,14 +1,14 @@
-import { PageHeader, PageLayout } from "@/components/layout/page-layout";
-import { Button } from "@/components/ui/button";
+import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
+import { Button } from "@/shared/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { NoticeCard } from "@/components/ui/notice-card";
-import { StatusDot } from "@/components/ui/status-dot";
+} from "@/shared/components/ui/card";
+import { NoticeCard } from "@/shared/components/ui/notice-card";
+import { StatusDot } from "@/shared/components/ui/status-dot";
 import { useAppManager } from "@/app/components/app-manager-provider";
 import {
   buildRemoteAccessFeedbackView,
@@ -16,7 +16,7 @@ import {
   useRemoteAccessStore,
 } from "@/features/remote";
 import { useRemoteStatus } from "@/features/remote/hooks/use-remote-access";
-import { formatDateTime, t } from "@/lib/i18n";
+import { formatDateTime, t } from "@/shared/lib/i18n";
 import { Laptop, RefreshCcw, SquareArrowOutUpRight } from "lucide-react";
 import { useEffect, useMemo } from "react";
 

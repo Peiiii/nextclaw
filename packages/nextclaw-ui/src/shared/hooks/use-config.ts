@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   deleteNcpSessionSummaryInQueryClient,
   upsertNcpSessionSummaryInQueryClient
-} from '@/api/ncp-session-query-cache';
+} from '@/shared/lib/api';
 import {
   fetchAppMeta,
   fetchConfig,
@@ -25,16 +25,16 @@ import {
   deleteCronJob,
   setCronJobEnabled,
   runCronJob
-} from '@/api/config';
+} from '@/shared/lib/api';
 import {
   deleteNcpSession,
   fetchNcpSessionMessages,
   fetchNcpSessionSkills,
   fetchNcpSessions,
   updateNcpSession
-} from '@/api/ncp-session';
+} from '@/shared/lib/api';
 import { toast } from 'sonner';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 export function useConfig() {
   return useQuery({

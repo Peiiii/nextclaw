@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchBootstrapStatus } from '@/api/config';
-import type { BootstrapStatusView } from '@/api/types';
+import { fetchBootstrapStatus } from '@/shared/lib/api';
+import type { BootstrapStatusView } from '@/shared/lib/api';
 import {
   toRuntimeControlPanelView,
   toRuntimeStatusBadgeView,

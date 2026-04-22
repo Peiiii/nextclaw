@@ -1,5 +1,5 @@
 import type { InfiniteData } from '@tanstack/react-query';
-import type { MarketplaceListView } from '@/api/types';
+import type { MarketplaceListView } from '@/shared/lib/api';
 
 export type InfiniteMarketplaceListView = MarketplaceListView & {
   pages: MarketplaceListView[];

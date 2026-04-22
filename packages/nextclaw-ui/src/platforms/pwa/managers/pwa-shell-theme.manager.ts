@@ -1,4 +1,4 @@
-import type { UiTheme } from '@/lib/theme';
+import type { UiTheme } from '@/shared/lib/theme';
 
 const PWA_SHELL_THEME_COLORS: Record<UiTheme, string> = {
   warm: '#F9F8F5',

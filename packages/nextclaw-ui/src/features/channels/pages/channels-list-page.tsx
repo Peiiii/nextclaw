@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
 import { ExternalLink, MessageSquare, Search } from 'lucide-react';
-import { LogoBadge } from '@/components/common/LogoBadge';
-import { PageHeader, PageLayout } from '@/components/layout/page-layout';
-import { Input } from '@/components/ui/input';
-import { StatusDot } from '@/components/ui/status-dot';
-import { Tabs } from '@/components/ui/tabs-custom';
+import { LogoBadge } from '@/shared/components/common/logo-badge';
+import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
+import { Input } from '@/shared/components/ui/input';
+import { StatusDot } from '@/shared/components/ui/status-dot';
+import { Tabs } from '@/shared/components/ui/tabs-custom';
 import { ChannelForm } from '@/features/channels/components/config/channel-form';
 import { useConfig, useConfigMeta, useConfigSchema } from '@/shared/hooks/use-config';
 import { ConfigSelectionCard, ConfigSplitEmptyState, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneHeader, ConfigSplitSidebar } from '@/shared/components/config-split-page';
-import { hintForPath } from '@/lib/config-hints';
+import { hintForPath } from '@/shared/lib/config-hints';
 import { resolveChannelTutorialUrl } from '@/features/channels/utils/channel-tutorials.utils';
-import { t } from '@/lib/i18n';
-import { getChannelLogo } from '@/lib/logos';
-import { cn } from '@/lib/utils';
+import { t } from '@/shared/lib/i18n';
+import { getChannelLogo } from '@/shared/lib/logos';
+import { cn } from '@/shared/lib/utils';
 
 const channelDescriptionKeys: Record<string, string> = {
   telegram: 'channelDescTelegram',

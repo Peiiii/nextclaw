@@ -1,3 +1,17 @@
+# 最新状态（2026-04-22，第五十三批已完成）
+
+- 第五十二批不是“待提交”，而是已提交：`8784e3a2 refactor(ui): clear top-level hooks root`
+- 第五十三批已一次性完成 `src/api`、`src/lib`、`src/components` 的顶层收口；真实实现、测试、真实消费方与薄承接入口已切到 `app`、`features`、`shared`、`platforms`
+- `packages/nextclaw-ui/src` 顶层现只剩 `app`、`features`、`platforms`、`shared`
+- 迁移后残留的空 `src/components` 已继续向上回收到 `src` 当前层，没有保留空壳顶层目录
+- 本轮完整验证已通过：
+- `pnpm --filter @nextclaw/ui exec tsc --noEmit --pretty false`
+- `pnpm --filter @nextclaw/ui exec vitest run`
+- `git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs pnpm lint:new-code:governance -- --files`
+- `git diff --name-only --diff-filter=AMR -- packages/nextclaw-ui | xargs node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths`
+- `pnpm check:governance-backlog-ratchet`
+- maintainability guard 结果：`Inspected files: 146`，`Errors: 0`，`Warnings: 7`，`Non-test net: -35`
+
 # 当前目标
 
 - 战役名称：`nextclaw-ui` 目录组织自治治理战役
@@ -8,13 +22,13 @@
 
 - 用户已明确确认：当前战役的第一优先级不是继续做“蚂蚁搬家”式叶子迁移，而是先解决 `src` 上层结构问题，用最快速度减少 `src` 这一层 legacy roots 数量
 - 因此后续批次排序切换为“按 root 是否能被整组清空”而不是“按单文件是否容易搬”
-- 当前 `src` 顶层 legacy roots 盘点：`api`、`components`、`hooks`、`lib`、`pwa`、`stores`、`styles`、`test`、`transport`
+- 当前 `src` 顶层 legacy roots 盘点：已清空，`src` 顶层只剩 `app`、`features`、`platforms`、`shared`
 - 当前清空优先级：
 - 已完成第一梯队：`stores`、`styles`、`test`
 - 第二梯队进展：`pwa` 保留在 `platforms/pwa`，`transport` 已纠偏进入 `shared/lib/transport`
-- 当前下一优先级：`hooks`
-- 后续第三梯队：`lib`、`api`
-- 最后第四梯队：`components`
+- 当前下一优先级：无；`src` 顶层已完成 contract-only 收口
+- 后续第三梯队：不适用
+- 最后第四梯队：不适用
 - 排序理由：先减少 `src` 顶层违规 root 数量，再去处理体量更大的 legacy 子树，整体收敛速度比继续零碎搬叶子更快
 
 # 当前事实
@@ -25,7 +39,7 @@
 - `packages/nextclaw-ui/src/api` 当前直接代码文件数为 `26`
 - `packages/nextclaw-ui/src/components/ui` 当前直接代码文件数为 `22`
 - `packages/nextclaw-ui/module-structure.config.json` 将该包声明为 `frontend-l3` 协议，allowed roots 只有 `app`、`features`、`shared`、`platforms`
-- 当前 `rootPolicy=contract-only`，`nextclaw-ui` 后续不再允许触碰 `components`、`lib`、`api`、`hooks` 等 legacy roots 中的文件；只能在 allowed roots 内继续推进并通过真实消费链完成切换
+- 当前 `rootPolicy=contract-only`，`nextclaw-ui` 后续不再允许触碰 `components`、`lib`、`api`、`hooks` 等 legacy roots 中的文件；本轮已把这些顶层 roots 清空，后续只允许在 allowed roots 内继续推进下一层治理
 - 首批尝试在 `components/config` 下新建 provider 子树，真实验证后被 `module-structure`、目录预算和非功能净增闸门阻断，代码尝试已回撤
 - 当前仓库存在与本战役无关的未提交改动，本轮必须避免触碰这些路径
 

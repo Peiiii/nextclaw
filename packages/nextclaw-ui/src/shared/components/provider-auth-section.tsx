@@ -1,8 +1,8 @@
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { t } from '@/lib/i18n';
-import type { ProviderSpecView } from '@/api/types';
+import { Button } from '@/shared/components/ui/button';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { t } from '@/shared/lib/i18n';
+import type { ProviderSpecView } from '@/shared/lib/api';
 import { ProviderPillSelector } from './provider-pill-selector';
 
 type ProviderAuthSectionProps = { providerAuth: ProviderSpecView['auth']; providerAuthNote: string; providerAuthMethodOptions: Array<{ value: string; label: string }>; providerAuthMethodsCount: number; selectedAuthMethodHint: string; shouldUseAuthMethodPills: boolean; resolvedAuthMethodId: string; onAuthMethodChange: (value: string) => void; onStartProviderAuth: () => void; onImportProviderAuthFromCli: () => void; startPending: boolean; importPending: boolean; authSessionId: string | null; authStatusMessage: string };

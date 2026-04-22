@@ -10,6 +10,13 @@
 - 每完成一个目录层级优化并确认仍可正常运行，就提交一个独立 commit
 - 执行约定：每一轮完成并提交后自动进入下一轮，不等待额外人工催促；只有遇到低置信阻塞或治理硬失败时才停下并记录原因
 
+最新收口结果（2026-04-22）：
+
+- 本轮已一次性完成 `src` 顶层 contract-only 收口：`src/api`、`src/lib`、`src/components` 已整组迁入 allowed roots，顶层现只剩 `src/app`、`src/features`、`src/platforms`、`src/shared`
+- 迁移后的空目录已继续向上回收；最后残留的空 `src/components` 已物理删除，没有保留空壳 legacy root
+- 为避免继续触碰 strict root files，保留了精确 alias 承接少量高层旧导入；真实实现、测试与真实消费链已经切到 allowed roots
+- 本轮完整验证已通过：`tsc`、`vitest`、增量 governance、maintainability guard、governance backlog ratchet
+
 当前进展请见：
 
 - [work/working-notes.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.85-nextclaw-ui-directory-governance-campaign/work/working-notes.md)

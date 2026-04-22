@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { createAgent, deleteAgent, fetchAgents, updateAgent } from '@/api/agents';
+import { createAgent, deleteAgent, fetchAgents, updateAgent } from '@/shared/lib/api';
 import { toast } from 'sonner';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 export function useAgents() {
   return useQuery({

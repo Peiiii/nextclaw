@@ -1,4 +1,4 @@
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { useChatSessionUpdate } from '@/features/chat/hooks/use-chat-session-update';
 
 type UpdateChatSessionLabelParams = {

@@ -10,9 +10,9 @@ import {
   installMcpMarketplaceItem,
   manageMcpMarketplaceItem,
   type McpMarketplaceListParams
-} from '@/api/mcp-marketplace';
-import { t } from '@/lib/i18n';
-import { collapseMarketplaceListPages } from '../utils/marketplace-list-pages.utils';
+} from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
+import { collapseMarketplaceListPages } from '@/features/marketplace/utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
 
 export function useMcpMarketplaceItems(params: McpMarketplaceListParams) {

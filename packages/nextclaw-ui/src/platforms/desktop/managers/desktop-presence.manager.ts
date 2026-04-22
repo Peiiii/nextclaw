@@ -3,7 +3,7 @@ import type {
   NextClawDesktopBridge
 } from '@/platforms/desktop/types/desktop-update.types';
 import { useDesktopPresenceStore } from '@/platforms/desktop/stores/desktop-presence.store';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 export class DesktopPresenceManager {

@@ -1,10 +1,10 @@
-import type { AgentBindingView } from '@/api/types';
+import type { AgentBindingView } from '@/shared/lib/api';
 import { Plus, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { t } from '@/lib/i18n';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { t } from '@/shared/lib/i18n';
 import type { PeerKind } from '@/features/system-status/utils/runtime-config-agent.utils';
 
 export function RuntimeBindingListCard(props: {

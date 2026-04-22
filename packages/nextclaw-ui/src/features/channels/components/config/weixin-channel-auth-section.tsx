@@ -3,11 +3,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toDataURL } from 'qrcode';
 import { ExternalLink, Loader2, MessageCircleMore, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { usePollChannelAuth, useStartChannelAuth } from '@/features/channels/hooks/use-channel-auth';
-import { formatDateTime, t } from '@/lib/i18n';
-import { cn } from '@/lib/utils';
-import type { ChannelAuthPollResult, ChannelAuthStartResult } from '@/api/channel-auth.types';
+import { formatDateTime, t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
+import type { ChannelAuthPollResult, ChannelAuthStartResult } from '@/shared/lib/api';
 
 type WeixinChannelAuthSectionProps = {
   channelConfig: Record<string, unknown>;

@@ -1,10 +1,10 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import {
   applyInstallResultToInstalledView,
   applyManageResultToInstalledView
-} from '../utils/marketplace-installed-cache.utils';
+} from '@/features/marketplace/utils/marketplace-installed-cache.utils';
 import {
   fetchMarketplaceItem,
   fetchMarketplaceInstalled,
@@ -13,14 +13,14 @@ import {
   installMarketplaceItem,
   manageMarketplaceItem,
   type MarketplaceListParams
-} from '@/api/marketplace';
+} from '@/shared/lib/api';
 import type {
   MarketplaceInstallRequest,
   MarketplaceInstalledView,
   MarketplaceItemType,
   MarketplaceManageRequest
-} from '@/api/types';
-import { collapseMarketplaceListPages } from '../utils/marketplace-list-pages.utils';
+} from '@/shared/lib/api';
+import { collapseMarketplaceListPages } from '@/features/marketplace/utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
 
 export function useMarketplaceItems(params: MarketplaceListParams) {

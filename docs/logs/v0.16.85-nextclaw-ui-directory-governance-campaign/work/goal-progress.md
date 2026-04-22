@@ -1,6 +1,6 @@
 # 当前目标
 
-- 从 `packages/nextclaw-ui/src` 开始，严格自上而下逐层治理，先把 `src` 这一层收敛到只剩 allowed roots
+- 已完成：`packages/nextclaw-ui/src` 已严格自上而下收敛到只剩 allowed roots（`app`、`features`、`platforms`、`shared`）
 - 当前顶层 legacy roots 只剩 `api`、`components`、`lib`
 
 # 明确非目标
@@ -20,14 +20,13 @@
 - 第四十九批已提交：`src/lib/channel-tutorials.ts -> src/features/channels/utils/channel-tutorials.utils.ts`
 - 第五十批已提交：`src/styles`、`src/test`、`src/stores` 已从顶层清空并向上回收
 - 第五十一批已提交：`transport` 已从错误的 `platforms/transport` 纠偏到 `shared/lib/transport`
-- 第五十二批已完成待提交：`src/hooks` 已整组拆散到 `app/hooks`、`features/account`、`features/channels`、`features/chat`、`features/marketplace` 与 `shared/hooks`，`src/hooks` 与未消费的 `useObservable.ts` 已物理删除
+- 第五十二批已提交：`src/hooks` 已整组拆散到 `app/hooks`、`features/account`、`features/channels`、`features/chat`、`features/marketplace` 与 `shared/hooks`，`src/hooks` 与未消费的 `useObservable.ts` 已物理删除
+- 第五十三批已完成：`src/api`、`src/lib`、`src/components` 已一次性迁入 allowed roots，空目录已继续向上回收；`src` 顶层现只剩 `app`、`features`、`platforms`、`shared`
 
 # 当前下一步
 
-- 先提交第五十二批
-- 然后继续按顶层 root 清空优先推进：先扫 `src/lib`，再扫 `src/api`
-- `src/components` 放到 `lib/api` 之后处理
+- 提交第五十三批，并关闭本线程的 `nextclaw-ui` 心跳自动化
 
 # 锚点计数器
 
-- 当前计数：6/20
+- 当前计数：16/20

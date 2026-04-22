@@ -1,15 +1,15 @@
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ProviderScopedModelInput } from '@/components/common/ProviderScopedModelInput';
+import { Button } from '@/shared/components/ui/button';
+import { Card } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Skeleton } from '@/shared/components/ui/skeleton';
+import { ProviderScopedModelInput } from '@/shared/components/common/provider-scoped-model-input';
 import { useConfig, useConfigMeta, useConfigSchema, useUpdateModel } from '@/shared/hooks/use-config';
-import { hintForPath } from '@/lib/config-hints';
-import { t } from '@/lib/i18n';
-import { buildProviderModelCatalog } from '@/lib/provider-models';
-import { PageLayout, PageHeader } from '@/components/layout/page-layout';
-import { DOCS_DEFAULT_BASE_URL } from '@/components/doc-browser/DocBrowserContext';
+import { hintForPath } from '@/shared/lib/config-hints';
+import { t } from '@/shared/lib/i18n';
+import { buildProviderModelCatalog } from '@/shared/lib/provider-models';
+import { PageLayout, PageHeader } from '@/app/components/layout/page-layout';
+import { DOCS_DEFAULT_BASE_URL } from '@/shared/components/doc-browser/doc-browser-context';
 import { BookOpen, Folder, Loader2, Sparkles } from 'lucide-react';
 import { useMemo, useState } from 'react';
 

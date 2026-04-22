@@ -1,10 +1,10 @@
 import { Plus, Trash2 } from 'lucide-react';
-import type { AgentProfileView } from '@/api/types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { t } from '@/lib/i18n';
+import type { AgentProfileView } from '@/shared/lib/api';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
+import { Switch } from '@/shared/components/ui/switch';
+import { t } from '@/shared/lib/i18n';
 import { parseOptionalInt } from '@/features/system-status/utils/runtime-config-agent.utils';
 
 export function RuntimeAgentListCard(props: {

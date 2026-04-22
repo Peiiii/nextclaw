@@ -1,5 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { pollChannelAuth, startChannelAuth } from '@/api/channel-auth';
+import { pollChannelAuth, startChannelAuth } from '@/shared/lib/api';
 
 export function useStartChannelAuth() {
   return useMutation({

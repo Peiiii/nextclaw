@@ -44,7 +44,7 @@ vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   })
 }));
 
-vi.mock('@/components/doc-browser', () => ({
+vi.mock('@/shared/components/doc-browser', () => ({
   useDocBrowser: () => ({
     open: mocks.docOpen
   })
@@ -77,11 +77,11 @@ vi.mock('@/features/chat/hooks/use-ncp-session-list-view', () => ({
   })
 }));
 
-vi.mock('@/components/common/BrandHeader', () => ({
+vi.mock('@/shared/components/common/brand-header', () => ({
   BrandHeader: () => <div data-testid="brand-header" />
 }));
 
-vi.mock('@/components/common/StatusBadge', () => ({
+vi.mock('@/shared/components/common/status-badge', () => ({
   StatusBadge: () => <div data-testid="status-badge" />
 }));
 
@@ -93,14 +93,14 @@ vi.mock('@/shared/hooks/agents/use-agents', () => ({
   })
 }));
 
-vi.mock('@/components/providers/I18nProvider', () => ({
+vi.mock('@/app/components/providers/i18n-provider', () => ({
   useI18n: () => ({
     language: 'en',
     setLanguage: vi.fn()
   })
 }));
 
-vi.mock('@/components/providers/ThemeProvider', () => ({
+vi.mock('@/app/components/providers/theme-provider', () => ({
   useTheme: () => ({
     theme: 'warm',
     setTheme: vi.fn()

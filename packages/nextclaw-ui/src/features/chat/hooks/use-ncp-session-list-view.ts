@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { SessionEntryView } from '@/api/types';
+import type { SessionEntryView } from '@/shared/lib/api';
 import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';

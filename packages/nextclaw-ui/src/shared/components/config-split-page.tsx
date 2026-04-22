@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import type { LucideIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/shared/lib/utils";
 
 const CARD_CLASS = "min-w-0 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-card xl:h-[calc(100vh-180px)] xl:max-h-[860px]";
 type DivProps = HTMLAttributes<HTMLDivElement>; type SectionProps = HTMLAttributes<HTMLElement>;

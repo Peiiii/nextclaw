@@ -1,6 +1,6 @@
-import type { SessionEntryView, SessionTypeIconView } from '@/api/types';
-import { t } from '@/lib/i18n';
-import { getChannelLogo } from '@/lib/logos';
+import type { SessionEntryView, SessionTypeIconView } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
+import { getChannelLogo } from '@/shared/lib/logos';
 
 type SessionContextSymbolIcon = 'heartbeat' | 'cron';
 

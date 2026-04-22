@@ -8,9 +8,9 @@ import {
   pollRemoteBrowserAuth,
   startRemoteBrowserAuth,
   updateRemoteSettings
-} from '@/api/remote';
+} from '@/shared/lib/api';
 import { REMOTE_STATUS_QUERY_KEY } from '@/features/remote';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 export function useRemoteStatus() {

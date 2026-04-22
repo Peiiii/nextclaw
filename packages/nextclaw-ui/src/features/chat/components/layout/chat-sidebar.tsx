@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { SessionEntryView } from '@/api/types';
-import { Button } from '@/components/ui/button';
-import { BrandHeader } from '@/components/common/BrandHeader';
-import { StatusBadge } from '@/components/common/StatusBadge';
-import { Input } from '@/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SelectItem } from '@/components/ui/select';
+import type { SessionEntryView } from '@/shared/lib/api';
+import { Button } from '@/shared/components/ui/button';
+import { BrandHeader } from '@/shared/components/common/brand-header';
+import { StatusBadge } from '@/shared/components/common/status-badge';
+import { Input } from '@/shared/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
+import { SelectItem } from '@/shared/components/ui/select';
 import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, ChatSidebarSessionItem, type ChatSidebarProjectGroup } from '@/features/chat';
 import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat-sidebar-session-label-editor';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
@@ -18,14 +18,14 @@ import {
 import { useSystemStatus } from '@/features/system-status';
 import { resolveSessionContextView } from '@/features/chat/utils/session-context.utils';
 import { useAgents } from '@/shared/hooks/agents/use-agents';
-import { getSessionProjectName } from '@/lib/session-project/session-project.utils';
-import { cn } from '@/lib/utils';
-import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/lib/i18n';
-import { THEME_OPTIONS, type UiTheme } from '@/lib/theme';
-import { useI18n } from '@/components/providers/I18nProvider';
-import { useTheme } from '@/components/providers/ThemeProvider';
-import { useDocBrowser } from '@/components/doc-browser';
-import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/components/layout/sidebar-items';
+import { getSessionProjectName } from '@/shared/lib/session-project';
+import { cn } from '@/shared/lib/utils';
+import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
+import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
+import { useI18n } from '@/app/components/providers/i18n-provider';
+import { useTheme } from '@/app/components/providers/theme-provider';
+import { useDocBrowser } from '@/shared/components/doc-browser';
+import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/app/components/layout/sidebar-items';
 import {
   AlarmClock,
   Bot,

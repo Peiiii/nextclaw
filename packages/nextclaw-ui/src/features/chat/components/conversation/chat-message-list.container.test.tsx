@@ -15,11 +15,11 @@ vi.mock("@nextclaw/agent-chat-ui", () => ({
   },
 }));
 
-vi.mock("@/components/providers/I18nProvider", () => ({
+vi.mock("@/app/components/providers/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
 }));
 
-vi.mock("@/lib/i18n", () => ({
+vi.mock("@/shared/lib/i18n", () => ({
   formatDateTime: (value: string) => `formatted:${value}`,
   t: (key: string) => key,
 }));

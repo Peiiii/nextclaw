@@ -1,16 +1,16 @@
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { NoticeCard } from "@/components/ui/notice-card";
+} from "@/shared/components/ui/dialog";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { NoticeCard } from "@/shared/components/ui/notice-card";
 import { useRemoteStatus } from "@/features/remote";
-import { formatDateTime, t } from "@/lib/i18n";
+import { formatDateTime, t } from "@/shared/lib/i18n";
 import { useAppManager } from "@/app/components/app-manager-provider";
 import { useAccountStore } from "@/features/account/stores/account.store";
 import { KeyRound, LogOut, SquareArrowOutUpRight } from "lucide-react";

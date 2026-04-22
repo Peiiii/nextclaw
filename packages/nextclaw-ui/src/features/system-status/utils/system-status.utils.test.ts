@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import {
   resolveChatRuntimeMessage,
   resolveSystemConnectionStatus,

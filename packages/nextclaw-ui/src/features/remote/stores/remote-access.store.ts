@@ -1,4 +1,4 @@
-import type { RemoteDoctorView } from '@/api/remote.types';
+import type { RemoteDoctorView } from '@/shared/lib/api';
 import { create } from 'zustand';
 
 type RemoteAccessStoreState = {

@@ -1,4 +1,4 @@
-import type { ThinkingLevel } from '@/api/types';
+import type { ThinkingLevel } from '@/shared/lib/api';
 
 export type ChatModelThinkingCapability = {
   supported: ThinkingLevel[];

@@ -1,10 +1,10 @@
-import type { BootstrapStatusView } from '@/api/types';
+import type { BootstrapStatusView } from '@/shared/lib/api';
 import type {
   RuntimeControlAction,
   RuntimeControlView,
   RuntimeLifecycleState,
   RuntimeServiceState,
-} from '@/api/runtime-control.types';
+} from '@/shared/lib/api';
 
 export type SystemStatusLifecyclePhase =
   | 'cold-starting'

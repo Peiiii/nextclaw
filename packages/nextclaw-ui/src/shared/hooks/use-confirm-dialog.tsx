@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { t } from '@/lib/i18n';
+import { ConfirmDialog } from '@/shared/components/ui/confirm-dialog';
+import { t } from '@/shared/lib/i18n';
 
 export type ConfirmOptions = {
   title: string;

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast } from 'sonner';
 import { RuntimeControlCard } from './runtime-control-card';
-import { setLanguage } from '@/lib/i18n';
+import { setLanguage } from '@/shared/lib/i18n';
 
 const baseControlView = {
   environment: 'managed-local-service' as const,

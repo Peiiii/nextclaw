@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ProvidersList } from '@/components/config/ProvidersList';
+import { ProvidersList } from '@/shared/components/config/providers-list';
 
 const mocks = vi.hoisted(() => ({
   createProviderMutateAsync: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
   }),
 }));
 
-vi.mock('@/components/config/ProviderForm', () => ({
+vi.mock('@/shared/components/config/provider-form', () => ({
   ProviderForm: ({ providerName }: { providerName?: string }) => (
     <div data-testid="provider-form">{providerName ?? 'none'}</div>
   ),

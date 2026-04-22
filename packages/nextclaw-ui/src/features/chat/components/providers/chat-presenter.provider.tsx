@@ -1,7 +1,7 @@
 import { createContext, useContext, type ReactNode, type SetStateAction } from 'react';
 import type { ChatComposerNode, ChatFileOpenActionViewModel, ChatToolActionViewModel } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-import type { ThinkingLevel } from '@/api/types';
+import type { ThinkingLevel } from '@/shared/lib/api';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';

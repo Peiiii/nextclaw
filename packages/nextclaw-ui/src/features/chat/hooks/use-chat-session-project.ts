@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionUpdate } from '@/features/chat/hooks/use-chat-session-update';
 

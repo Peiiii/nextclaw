@@ -1,1 +1,0 @@
-export { ConfigSelectionCard, ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitEmptyState, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader, ConfigSplitPage, ConfigSplitSidebar } from "@/shared/components/config-split-page";

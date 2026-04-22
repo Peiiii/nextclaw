@@ -1,5 +1,5 @@
-import type { RemoteAccessView } from '@/api/remote.types';
-import { t } from '@/lib/i18n';
+import type { RemoteAccessView } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
 
 type RemoteHeroView = {
   badgeStatus: 'active' | 'inactive' | 'ready' | 'setup' | 'warning';

@@ -1,11 +1,11 @@
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 import type { NcpMessagePart } from '@nextclaw/ncp';
-import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView, ThinkingLevel } from '@/api/types';
-import { API_BASE } from '@/api/api-base';
+import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
+import { API_BASE } from '@/shared/lib/api';
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
-} from '@/lib/session-project/session-project.utils';
+} from '@/shared/lib/session-project';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
 

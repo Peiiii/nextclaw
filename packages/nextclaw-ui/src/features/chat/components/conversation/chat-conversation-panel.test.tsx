@@ -141,13 +141,13 @@ vi.mock(
   }),
 );
 
-vi.mock("@/components/common/AgentAvatar", () => ({
+vi.mock("@/shared/components/common/agent-avatar", () => ({
   AgentAvatar: ({ agentId }: { agentId: string }) => (
     <div data-testid="agent-avatar">{agentId}</div>
   ),
 }));
 
-vi.mock("@/components/common/agent-identity", () => ({
+vi.mock("@/shared/components/common/agent-identity", () => ({
   AgentIdentityAvatar: ({ agentId }: { agentId: string }) => (
     <div data-testid="agent-identity-avatar">{agentId}</div>
   ),

@@ -52,7 +52,7 @@ vi.mock('@/shared/hooks/use-config', () => ({
   })
 }));
 
-vi.mock('@/transport', () => ({
+vi.mock('@/shared/lib/transport', () => ({
   appClient: {
     subscribe: (handler: typeof subscribeHandler) => {
       subscribeHandler = handler;

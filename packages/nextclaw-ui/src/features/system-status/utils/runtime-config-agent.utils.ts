@@ -1,5 +1,5 @@
-import type { AgentBindingView, AgentProfileView, ConfigView, RuntimeConfigUpdate, RuntimeEntryView } from '@/api/types';
-import { t } from '@/lib/i18n';
+import type { AgentBindingView, AgentProfileView, ConfigView, RuntimeConfigUpdate, RuntimeEntryView } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
 
 export type DmScope = 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
 export type PeerKind = '' | 'direct' | 'group' | 'channel';

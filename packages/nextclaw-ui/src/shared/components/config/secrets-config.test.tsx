@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SecretsConfig } from '@/shared/components/config/secrets-config';
-import { setLanguage } from '@/lib/i18n';
+import { setLanguage } from '@/shared/lib/i18n';
 
 const mocks = vi.hoisted(() => ({
   mutate: vi.fn(),

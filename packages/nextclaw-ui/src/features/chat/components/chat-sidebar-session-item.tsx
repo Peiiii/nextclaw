@@ -1,13 +1,13 @@
-import type { SessionEntryView } from '@/api/types';
-import { AgentAvatar } from '@/components/common/AgentAvatar';
+import type { SessionEntryView } from '@/shared/lib/api';
+import { AgentAvatar } from '@/shared/components/common/agent-avatar';
 import { SessionContextIconNode } from '@/features/chat/components/session/session-context-icon';
 import { SessionRunBadge } from '@/features/chat/components/session/session-run-badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
-import { cn } from '@/lib/utils';
-import { formatDateTime, t } from '@/lib/i18n';
+import { cn } from '@/shared/lib/utils';
+import { formatDateTime, t } from '@/shared/lib/i18n';
 import { Check, GitBranch, Pencil, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {

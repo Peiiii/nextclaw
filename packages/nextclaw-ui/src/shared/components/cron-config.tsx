@@ -1,14 +1,14 @@
 import { useMemo, useState } from 'react';
-import type { CronJobView } from '@/api/types';
+import type { CronJobView } from '@/shared/lib/api';
 import { useConfirmDialog } from '@/shared/hooks/use-confirm-dialog';
 import { useCronJobs, useDeleteCronJob, useToggleCronJob, useRunCronJob } from '@/shared/hooks/use-config';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import { formatDateTime, t } from '@/lib/i18n';
-import { PageLayout, PageHeader } from '@/components/layout/page-layout';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Card, CardContent } from '@/shared/components/ui/card';
+import { cn } from '@/shared/lib/utils';
+import { formatDateTime, t } from '@/shared/lib/i18n';
+import { PageLayout, PageHeader } from '@/app/components/layout/page-layout';
 import { AlarmClock, RefreshCw, Trash2, Play, Power } from 'lucide-react';
 
 type StatusFilter = 'all' | 'enabled' | 'disabled';

@@ -8,9 +8,13 @@ const mocks = vi.hoisted(() => ({
   updateNcpSession: vi.fn(),
 }));
 
-vi.mock('@/api/ncp-session', () => ({
-  updateNcpSession: mocks.updateNcpSession,
-}));
+vi.mock('@/shared/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  return {
+    ...actual,
+    updateNcpSession: mocks.updateNcpSession,
+  };
+});
 
 describe('ChatSessionListManager', () => {
   beforeEach(() => {

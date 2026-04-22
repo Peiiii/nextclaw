@@ -27,9 +27,9 @@ import {
 } from "./chat-session-workspace-panel-nav";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
-import { AgentIdentityAvatar } from "@/components/common/agent-identity";
-import { t } from "@/lib/i18n";
-import { cn } from "@/lib/utils";
+import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { t } from "@/shared/lib/i18n";
+import { cn } from "@/shared/lib/utils";
 
 type ChatSessionWorkspacePanelProps = {
   childSessionTabs: readonly ChatChildSessionTab[];

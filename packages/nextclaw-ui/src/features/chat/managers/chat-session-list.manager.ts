@@ -4,9 +4,9 @@ import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
-import { normalizeSessionProjectRootValue } from '@/lib/session-project/session-project.utils';
+import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
 import { createNcpSessionId } from '@/features/chat/utils/ncp-session-adapter.utils';
-import { updateNcpSession } from '@/api/ncp-session';
+import { updateNcpSession } from '@/shared/lib/api';
 export class ChatSessionListManager {
   constructor(
     private uiManager: ChatUiManager,

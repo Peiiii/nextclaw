@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchServerPathRead } from '@/api/server-path';
+import { fetchServerPathRead } from '@/shared/lib/api';
 
 export function useServerPathRead(params: {
   path?: string | null;

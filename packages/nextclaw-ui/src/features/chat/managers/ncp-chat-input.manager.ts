@@ -1,8 +1,8 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
 import type { SetStateAction } from 'react';
-import type { ThinkingLevel } from '@/api/types';
-import { updateNcpSession } from '@/api/ncp-session';
+import type { ThinkingLevel } from '@/shared/lib/api';
+import { updateNcpSession } from '@/shared/lib/api';
 import {
   createChatComposerNodesFromDraft,
   createInitialChatComposerNodes,

@@ -4,7 +4,7 @@ import {
   readNcpSessionPreferredThinking
 } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { adaptChatMessage } from '@/features/chat/utils/chat-message.utils';
-import type { NcpSessionSummaryView } from '@/api/types';
+import type { NcpSessionSummaryView } from '@/shared/lib/api';
 
 function createSummary(partial: Partial<NcpSessionSummaryView> = {}): NcpSessionSummaryView {
   return {

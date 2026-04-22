@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { ExternalLink, KeyRound, Search as SearchIcon } from "lucide-react";
-import { PageHeader, PageLayout } from "@/components/layout/page-layout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
+import { Button } from "@/shared/components/ui/button";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { useConfig, useConfigMeta, useUpdateSearch } from "@/shared/hooks/use-config";
-import { t } from "@/lib/i18n";
-import type { SearchConfigUpdate, SearchProviderName, TavilySearchDepthValue } from "@/api/types";
+import { t } from "@/shared/lib/i18n";
+import type { SearchConfigUpdate, SearchProviderName, TavilySearchDepthValue } from "@/shared/lib/api";
 import { ConfigSelectionCard, ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader, ConfigSplitSidebar } from "@/shared/components/config-split-page";
 
 const FRESHNESS_OPTIONS = [

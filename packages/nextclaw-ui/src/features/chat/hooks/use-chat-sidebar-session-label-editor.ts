@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { SessionEntryView } from '@/api/types';
+import type { SessionEntryView } from '@/shared/lib/api';
 import { useChatSessionLabel } from '@/features/chat/hooks/use-chat-session-label';
 
 export function useChatSidebarSessionLabelEditor() {

@@ -1,7 +1,7 @@
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { t } from '@/lib/i18n';
+import { Input } from '@/shared/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { t } from '@/shared/lib/i18n';
 import type { DmScope } from '@/features/system-status/utils/runtime-config-agent.utils';
 
 const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [

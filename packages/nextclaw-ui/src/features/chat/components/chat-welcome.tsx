@@ -1,7 +1,7 @@
-import type { AgentProfileView } from '@/api/types';
-import { AgentAvatar } from '@/components/common/AgentAvatar';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { t } from '@/lib/i18n';
+import type { AgentProfileView } from '@/shared/lib/api';
+import { AgentAvatar } from '@/shared/components/common/agent-avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/shared/components/ui/select';
+import { t } from '@/shared/lib/i18n';
 import { Bot, BrainCircuit, AlarmClock, MessageCircle } from 'lucide-react';
 
 type ChatWelcomeProps = { onCreateSession: () => void; agents: AgentProfileView[]; selectedAgentId: string; onSelectAgent: (agentId: string) => void };

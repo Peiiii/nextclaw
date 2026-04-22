@@ -39,7 +39,7 @@ import {
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
-} from "@/lib/session-project/session-project.utils";
+} from "@/shared/lib/session-project";
 
 export function buildNcpSendMetadata(payload: {
   agentId?: string;

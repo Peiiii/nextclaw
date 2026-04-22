@@ -1,4 +1,4 @@
-import type { WsEvent } from '@/api/types';
+import type { WsEvent } from '@/shared/lib/api';
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

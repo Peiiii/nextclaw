@@ -1,7 +1,7 @@
-import { KeyValueEditor } from '@/components/common/KeyValueEditor';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { t } from '@/lib/i18n';
+import { KeyValueEditor } from '@/shared/components/common/key-value-editor';
+import { Label } from '@/shared/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
+import { t } from '@/shared/lib/i18n';
 import { ChevronDown, Settings2 } from 'lucide-react';
 import { ProviderPillSelector } from './provider-pill-selector';
 

@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
+import { Label } from '@/shared/components/ui/label';
+import { Switch } from '@/shared/components/ui/switch';
 import {
   useAuthStatus,
   useLogoutAuth,
@@ -11,7 +11,7 @@ import {
   useUpdateAuthEnabled,
   useUpdateAuthPassword
 } from '@/hooks/use-auth';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 const MIN_PASSWORD_LENGTH = 8;

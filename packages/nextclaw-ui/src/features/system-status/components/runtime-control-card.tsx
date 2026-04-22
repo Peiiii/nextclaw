@@ -4,11 +4,11 @@ import type {
   RuntimeControlView,
   RuntimeLifecycleState,
   RuntimeServiceState
-} from '@/api/runtime-control.types';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+} from '@/shared/lib/api';
+import { Button } from '@/shared/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useRuntimeControlPanelView, systemStatusManager } from '@/features/system-status';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { Loader2, Play, RotateCw, Square } from 'lucide-react';
 import { toast } from 'sonner';
 

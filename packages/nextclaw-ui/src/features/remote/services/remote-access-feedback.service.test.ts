@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { RemoteAccessView } from '@/api/remote.types';
-import { setLanguage } from '@/lib/i18n';
+import type { RemoteAccessView } from '@/shared/lib/api';
+import { setLanguage } from '@/shared/lib/i18n';
 import { buildRemoteAccessFeedbackView, requiresRemoteReauthorization } from './remote-access-feedback.service';
 
 function createRemoteAccessView(overrides: Partial<RemoteAccessView> = {}): RemoteAccessView {

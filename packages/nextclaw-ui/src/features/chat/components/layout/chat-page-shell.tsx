@@ -2,9 +2,9 @@ import { useEffect } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { ChatSidebar } from "@/features/chat/components/layout/chat-sidebar";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
-import { AgentsPage } from "@/components/agents/agents-page";
+import { AgentsPage } from "@/features/agents";
 import { CronConfig } from "@/shared/components/cron-config";
-import { MarketplacePage } from "@/components/marketplace/marketplace-page";
+import { MarketplacePage } from "@/features/marketplace";
 export type MainPanelView = "chat" | "cron" | "skills" | "agents";
 export type ChatPageProps = {
   view: MainPanelView;

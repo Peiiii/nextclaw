@@ -1,18 +1,18 @@
 import { useCallback, useMemo, useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { ChatInputBar, type ChatInputBarHandle } from '@nextclaw/agent-chat-ui';
 import { DEFAULT_NCP_ATTACHMENT_MAX_BYTES, uploadFilesAsNcpDraftAttachments } from '@nextclaw/ncp-react';
-import { uploadNcpAssets } from '@/api/ncp-attachments';
-import type { SessionSkillEntryView } from '@/api/types';
+import { uploadNcpAssets } from '@/shared/lib/api';
+import type { SessionSkillEntryView } from '@/shared/lib/api';
 import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/utils/chat-input-bar.utils';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
-import { useI18n } from '@/components/providers/I18nProvider';
+import { useI18n } from '@/app/components/providers/i18n-provider';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
 import { useChatRuntimeAvailability } from '@/features/system-status';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 type ChatInputStoreSnapshot = ReturnType<typeof useChatInputStore.getState>['snapshot']; type ChatPresenter = ReturnType<typeof usePresenter>;

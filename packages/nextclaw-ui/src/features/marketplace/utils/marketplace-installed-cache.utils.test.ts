@@ -4,7 +4,7 @@ import type {
   MarketplaceInstallResult,
   MarketplaceManageRequest,
   MarketplaceManageResult
-} from '@/api/types';
+} from '@/shared/lib/api';
 import {
   applyInstallResultToInstalledView,
   applyManageResultToInstalledView

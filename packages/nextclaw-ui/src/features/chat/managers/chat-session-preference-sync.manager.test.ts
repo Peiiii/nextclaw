@@ -1,19 +1,23 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { updateNcpSession } from '@/api/ncp-session';
+import { updateNcpSession } from '@/shared/lib/api';
 import { ChatSessionPreferenceSync } from './chat-session-preference-sync.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 
-vi.mock('@/api/ncp-session', () => ({
-  updateNcpSession: vi.fn(async () => ({
-    sessionId: 'session-1',
-    messageCount: 0,
-    updatedAt: new Date().toISOString(),
-    status: 'idle',
-    metadata: {}
-  }))
-}));
+vi.mock('@/shared/lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  return {
+    ...actual,
+    updateNcpSession: vi.fn(async () => ({
+      sessionId: 'session-1',
+      messageCount: 0,
+      updatedAt: new Date().toISOString(),
+      status: 'idle',
+      metadata: {}
+    }))
+  };
+});
 
 describe('ChatSessionPreferenceSync', () => {
   afterEach(() => {

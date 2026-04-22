@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { SessionPatchUpdate } from '@/api/types';
-import { updateNcpSession } from '@/api/ncp-session';
-import { upsertNcpSessionSummaryInQueryClient } from '@/api/ncp-session-query-cache';
-import { t } from '@/lib/i18n';
+import type { SessionPatchUpdate } from '@/shared/lib/api';
+import { updateNcpSession } from '@/shared/lib/api';
+import { upsertNcpSessionSummaryInQueryClient } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
 
 type UpdateChatSessionParams = {
   sessionKey: string;

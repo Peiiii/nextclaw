@@ -4,7 +4,7 @@ import type {
   NcpSessionSummaryView,
   SessionEntryView,
   SessionSkillEntryView
-} from '@/api/types';
+} from '@/shared/lib/api';
 import { sessionDisplayName } from '@/features/chat/utils/chat-session-display.utils';
 import { adaptNcpSessionSummary } from '@/features/chat/utils/ncp-session-adapter.utils';
 import type { NcpChatPresenter } from '@/features/chat/managers/ncp-chat-presenter.manager';

@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
-import type { ConfigUiHints, ConfigView, RuntimeConfigUpdate } from '@/api/types';
-import { Button } from '@/components/ui/button';
-import { PageLayout } from '@/components/layout/page-layout';
-import { hintForPath } from '@/lib/config-hints';
-import { t } from '@/lib/i18n';
+import type { ConfigUiHints, ConfigView, RuntimeConfigUpdate } from '@/shared/lib/api';
+import { Button } from '@/shared/components/ui/button';
+import { PageLayout } from '@/app/components/layout/page-layout';
+import { hintForPath } from '@/shared/lib/config-hints';
+import { t } from '@/shared/lib/i18n';
 import { RuntimeConfigOverview } from '@/features/system-status/components/config/runtime-config-overview';
 import { RuntimeAgentListCard } from '@/features/system-status/components/config/runtime-agent-list-card';
 import { RuntimeBindingListCard } from '@/features/system-status/components/config/runtime-binding-list-card';

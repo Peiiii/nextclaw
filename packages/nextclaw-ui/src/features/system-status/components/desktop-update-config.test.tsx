@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DesktopUpdateConfig } from '@/features/system-status/components/desktop-update-config';
-import { setLanguage } from '@/lib/i18n';
+import { setLanguage } from '@/shared/lib/i18n';
 import { useDesktopUpdateStore } from '@/platforms/desktop';
 
 const mocks = vi.hoisted(() => ({

@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
-import { t } from "@/lib/i18n";
+import { t } from "@/shared/lib/i18n";
 
 const serverPathReadMock = vi.fn();
 

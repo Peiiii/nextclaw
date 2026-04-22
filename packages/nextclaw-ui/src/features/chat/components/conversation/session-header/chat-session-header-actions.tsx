@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/shared/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
 import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 type ChatSessionHeaderActionsProps = {
   sessionKey: string;

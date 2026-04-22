@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchNcpChatSessionTypes } from '@/api/config';
+import { fetchNcpChatSessionTypes } from '@/shared/lib/api';
 
 export function useNcpChatSessionTypes() {
   return useQuery({

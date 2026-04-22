@@ -1,12 +1,12 @@
-import { logoutRemote, pollRemoteBrowserAuth, startRemoteBrowserAuth, updateRemoteAccountProfile } from '@/api/remote';
-import type { RemoteAccessView } from '@/api/remote.types';
+import { logoutRemote, pollRemoteBrowserAuth, startRemoteBrowserAuth, updateRemoteAccountProfile } from '@/shared/lib/api';
+import type { RemoteAccessView } from '@/shared/lib/api';
 import {
   ensureRemoteStatus,
   refreshRemoteStatus,
   resolveRemotePlatformApiBase,
   resolveRemoteWebBase
 } from '@/features/remote';
-import { formatDateTime, t } from '@/lib/i18n';
+import { formatDateTime, t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 import type { AccountPendingAction } from '@/features/account/stores/account.store';
 import { useAccountStore } from '@/features/account/stores/account.store';

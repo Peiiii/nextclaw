@@ -5,9 +5,9 @@ import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.st
 import { ChatSessionWorkspaceFileBreadcrumbs } from "./workspace/chat-session-workspace-file-breadcrumbs";
 import { useServerPathRead } from "@/shared/hooks/server-path/use-server-path-read";
 import { buildLineDiff, buildPreviewLines } from "@/features/chat/utils/file-operation/line-builder.utils";
-import { t } from "@/lib/i18n";
-import { buildWorkspaceFileBreadcrumb } from "@/lib/session-project/workspace-file-breadcrumb";
-import { cn } from "@/lib/utils";
+import { t } from "@/shared/lib/i18n";
+import { buildWorkspaceFileBreadcrumb } from "@/shared/lib/session-project";
+import { cn } from "@/shared/lib/utils";
 
 function inferPreviewKind(params: {
   path: string;

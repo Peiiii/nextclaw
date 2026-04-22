@@ -1,7 +1,7 @@
 import type { ChatComposerNode } from '@nextclaw/agent-chat-ui';
 import type { NcpMessagePart } from '@nextclaw/ncp';
 import type { NcpDraftAttachment } from '@nextclaw/ncp-react';
-import type { ThinkingLevel } from '@/api/types';
+import type { ThinkingLevel } from '@/shared/lib/api';
 
 export type SendMessageParams = {
   message: string;

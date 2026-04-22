@@ -1,6 +1,6 @@
-import { SettingRow } from "@/components/ui/setting-row";
-import { Switch } from "@/components/ui/switch";
-import { t } from "@/lib/i18n";
+import { SettingRow } from "@/shared/components/ui/setting-row";
+import { Switch } from "@/shared/components/ui/switch";
+import { t } from "@/shared/lib/i18n";
 
 type ProviderEnabledFieldProps = { enabled: boolean; onChange: (enabled: boolean) => void };
 

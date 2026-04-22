@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { AgentProfileView, ChatSessionTypeOptionView, SessionEntryView, SessionTypeIconView } from '@/api/types';
-import { t } from '@/lib/i18n';
+import type { AgentProfileView, ChatSessionTypeOptionView, SessionEntryView, SessionTypeIconView } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
 
 export const DEFAULT_SESSION_TYPE = 'native';
 

@@ -6,7 +6,7 @@ import type {
   MarketplaceManageRequest,
   MarketplaceManageResult,
   MarketplaceItemType
-} from '@/api/types';
+} from '@/shared/lib/api';
 
 function dedupeSpecs(records: MarketplaceInstalledRecord[]): string[] {
   return Array.from(new Set(records.map((record) => record.spec).filter(Boolean)));

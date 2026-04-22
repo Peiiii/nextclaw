@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { SessionEntryView, ThinkingLevel } from '@/api/types';
+import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
   resolveRecentSessionPreferredModel,

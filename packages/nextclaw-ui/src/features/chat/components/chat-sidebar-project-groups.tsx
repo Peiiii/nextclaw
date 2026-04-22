@@ -1,11 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { ChatSessionTypeOptionItem } from "./chat-session-type-option-item";
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import type { ChatInputSnapshot } from '@/features/chat/stores/chat-input.store';
 import type { NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 
 export type ChatSidebarProjectGroup = {
   projectRoot: string;

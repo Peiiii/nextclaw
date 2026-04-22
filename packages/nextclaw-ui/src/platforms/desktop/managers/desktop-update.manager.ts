@@ -5,7 +5,7 @@ import type {
   NextClawDesktopBridge
 } from '@/platforms/desktop/types/desktop-update.types';
 import { useDesktopUpdateStore } from '@/platforms/desktop/stores/desktop-update.store';
-import { t } from '@/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving-preferences' | 'switching-channel';
