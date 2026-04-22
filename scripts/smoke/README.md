@@ -6,6 +6,9 @@
 
 - `pnpm smoke:ncp-chat`
   - 用于验证运行中的 NextClaw 服务是否能通过指定 `session-type + model` 返回真实回复。
+- `pnpm smoke:startup-readiness`
+  - 用于冷启动测量“从启动开始到可用”的基线时间。
+  - 默认隔离 `NEXTCLAW_HOME`，并同时输出 `UI API 可达 / auth status ok / health ok / ncpAgent.ready / bootstrap ready` 五个时间点。
 - `pnpm smoke:prompt-cache`
   - 用于验证真实模型的 prompt cache telemetry。
   - `provider-direct` 模式：直连 provider，适合隔离 provider 本身是否吐出 `*_cached_tokens`。

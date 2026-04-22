@@ -1,0 +1,7 @@
+interface:
+  display_name: "启动可用性治理"
+  short_description: "测量启动到可用耗时，并维护长期目标与基线。"
+  default_prompt: "使用 $startup-readiness-governance 建立或更新 NextClaw 启动到可用的基线，记录长期目标，并基于测量结果排序优化优先级。"
+
+policy:
+  allow_implicit_invocation: true

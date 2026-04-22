@@ -87,6 +87,7 @@
     "smoke:maintainability:console": "pnpm -C apps/maintainability-console smoke",
     "smoke:remote-relay": "node scripts/smoke/remote-relay-hibernation-smoke.mjs",
     "smoke:ncp-chat": "node scripts/smoke/chat-capability-smoke.mjs",
+    "smoke:startup-readiness": "node scripts/smoke/startup-readiness/measure-startup-readiness.mjs",
     "smoke:prompt-cache": "pnpm -C packages/nextclaw exec tsx ../../scripts/smoke/prompt-cache-smoke.mjs",
     "smoke:codex-plugin:local": "node scripts/smoke/local-codex-plugin-smoke.mjs",
     "smoke:ncp-demo": "pnpm -C apps/ncp-demo smoke",
