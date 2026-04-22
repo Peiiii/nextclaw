@@ -1,4 +1,3 @@
-import { API_BASE } from '@/shared/lib/api';
 import type { ApiError } from '@/shared/lib/api';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
@@ -84,7 +83,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
 
   constructor(
     private readonly runtime: RemoteRuntimeInfo,
-    private readonly apiBase: string = API_BASE
+    private readonly apiBase: string = import.meta.env.VITE_API_BASE?.trim().replace(/\/$/, '') || (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:55667')
   ) {}
 
   request = async <T>(input: RequestInput): Promise<T> => {

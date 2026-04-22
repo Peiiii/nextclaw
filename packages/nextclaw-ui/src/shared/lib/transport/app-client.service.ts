@@ -1,4 +1,3 @@
-import { API_BASE } from '@/shared/lib/api';
 import { LocalAppTransport } from './local-transport.service';
 import { RemoteSessionMultiplexTransport } from './remote-transport.service';
 import type { AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
@@ -57,7 +56,7 @@ async function resolveRuntime(apiBase: string): Promise<AppTransport> {
 class AppClient {
   private transportPromise: Promise<AppTransport> | null = null;
 
-  constructor(private readonly apiBase: string = API_BASE) {}
+  constructor(private readonly apiBase: string = import.meta.env.VITE_API_BASE?.trim().replace(/\/$/, '') || (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:55667')) {}
 
   private getTransport = async (): Promise<AppTransport> => {
     if (!this.transportPromise) {

@@ -10,6 +10,12 @@ describe('appClient runtime detection', () => {
     vi.unstubAllGlobals();
   });
 
+  it('imports without triggering an API_BASE initialization cycle', async () => {
+    const { appClient } = await import('./app-client.service');
+
+    expect(appClient).toBeDefined();
+  });
+
   it('falls back to LocalAppTransport when runtime probe returns html', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response('<html>ui shell</html>', {

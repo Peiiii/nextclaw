@@ -1,6 +1,3 @@
-import { API_BASE } from '@/shared/lib/api';
-import { requestRawApiResponse } from '@/shared/lib/api';
-import type { ApiResponse } from '@/shared/lib/api';
 import { systemStatusManager } from '@/features/system-status';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { readSseStreamResult } from './sse-stream.utils';
@@ -8,9 +5,9 @@ import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
 type EventHandler = (event: AppEvent) => void;
 
-function createTransportError(response: ApiResponse<unknown>, fallback: string): Error {
+function createTransportError(response: { ok: boolean; error?: { message?: string } }, fallback: string): Error {
   if (!response.ok) {
-    return new Error(response.error.message);
+    return new Error(response.error?.message || fallback);
   }
   return new Error(fallback);
 }
@@ -130,7 +127,7 @@ export class LocalAppTransport implements AppTransport {
       wsPath?: string;
     } = {}
   ) {
-    this.apiBase = options.apiBase ?? API_BASE;
+    this.apiBase = options.apiBase ?? (import.meta.env.VITE_API_BASE?.trim().replace(/\/$/, '') || (typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1:55667'));
     this.realtimeGateway = new LocalRealtimeGateway(resolveTransportWebSocketUrl(this.apiBase, options.wsPath ?? '/ws'));
   }
 
@@ -144,6 +141,7 @@ export class LocalAppTransport implements AppTransport {
       : null;
 
     try {
+      const { requestRawApiResponse } = await import('@/shared/lib/api');
       const response = await requestRawApiResponse<T>(input.path, {
         method: input.method,
         ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
