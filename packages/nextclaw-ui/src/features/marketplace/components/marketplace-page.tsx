@@ -12,7 +12,6 @@ import {
   fetchMarketplacePluginContent,
   fetchMarketplaceSkillContent,
 } from "@/shared/lib/api";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
 import { useDocBrowser } from "@/shared/components/doc-browser";
 import { useI18n } from "@/app/components/providers/i18n-provider";
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
@@ -46,12 +45,11 @@ import {
   type ManageState,
 } from "@/features/marketplace/components/marketplace-list-card";
 import { t } from "@/shared/lib/i18n";
-import { PageLayout } from "@/app/components/layout/page-layout";
+import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
-import { cn } from "@/shared/lib/utils";
-import { Sparkles, PackageCheck } from "lucide-react";
+import { Tabs } from "@/shared/components/ui/tabs-custom";
 
 const PAGE_SIZE = 12;
 const SKELETON_CARD_COUNT = PAGE_SIZE;
@@ -265,14 +263,13 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   };
 
   const scopeTabs = [
-    { id: "all", label: t(copyKeys.tabMarketplace), icon: Sparkles },
+    { id: "all", label: t(copyKeys.tabMarketplace) },
     {
       id: "installed",
       label: t(copyKeys.tabInstalled),
-      icon: PackageCheck,
       count: installedQuery.data?.total ?? 0,
     },
-  ] as const;
+  ];
 
   const handleInstall = async (item: MarketplaceItemSummary) => {
     const installSpec = item.install.spec;
@@ -463,183 +460,130 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   };
 
   return (
-    <PageLayout className="flex h-full min-h-0 flex-col pb-0 px-0">
-      <div className="flex flex-col gap-6 w-full max-w-[1400px] h-full min-h-0 mx-auto">
-        
-        {/* Modern App Store Hero */}
-        <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#020617] px-10 py-14 text-white shadow-xl isolate">
-          <div className="absolute top-0 right-0 -m-32 opacity-30 pointer-events-none mix-blend-screen scale-150 transform-gpu">
-            <div className="w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-indigo-500/40 via-blue-500/30 to-purple-500/20 blur-[80px]"></div>
-          </div>
-          <div className="absolute bottom-0 left-0 -m-32 opacity-20 pointer-events-none mix-blend-screen transform-gpu">
-            <div className="w-[400px] h-[400px] rounded-full bg-gradient-to-tr from-cyan-500/40 to-emerald-500/20 blur-[80px]"></div>
-          </div>
-          
-          <div className="relative z-10 flex flex-col gap-3">
-            <h1 className="text-[38px] font-extrabold tracking-[-0.02em] leading-tight drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/70">
-              {t(copyKeys.pageTitle)}
-            </h1>
-            <p className="text-[17px] font-medium text-blue-100/70 max-w-2xl leading-relaxed tracking-wide">
-              {t(copyKeys.pageDescription)}
-            </p>
-          </div>
+    <PageLayout className="flex h-full min-h-0 flex-col pb-0">
+      <PageHeader
+        title={t(copyKeys.pageTitle)}
+        description={t(copyKeys.pageDescription)}
+      />
+
+      <Tabs
+        tabs={scopeTabs}
+        activeTab={scope}
+        onChange={(value) => setScope(value as ScopeType)}
+        className="mb-4"
+      />
+
+      <FilterPanel
+        scope={scope}
+        searchText={searchText}
+        searchPlaceholder={t(copyKeys.searchPlaceholder)}
+        sort={sort}
+        onSearchTextChange={setSearchText}
+        onSortChange={setSort}
+      />
+
+      <section className="flex min-h-0 flex-1 flex-col">
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-[14px] font-semibold text-gray-900">
+            {scope === "installed"
+              ? t(copyKeys.sectionInstalled)
+              : t(copyKeys.sectionCatalog)}
+          </h3>
+          <span className="text-[12px] text-gray-500">{listSummary}</span>
         </div>
 
-        {/* Custom Nav & Filter Row */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-2">
-          {/* Custom App Store Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-gray-100/60 backdrop-blur-sm rounded-2xl w-fit border border-gray-200/50 shadow-inner">
-            {scopeTabs.map((tab) => {
-              const isActive = scope === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setScope(tab.id as ScopeType)}
-                  className={cn(
-                    "relative flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-[14px] transition-all duration-300",
-                    isActive
-                      ? "text-gray-900 bg-white shadow-[0_2px_10px_rgb(0,0,0,0.06)]"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/40"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-gray-400")} />
-                  {tab.label}
-                  {tab.id === 'installed' && typeof tab.count === 'number' && (
-                    <span className={cn(
-                      "ml-1 flex items-center justify-center h-5 px-1.5 min-w-5 rounded-full text-[11px] font-bold transition-colors",
-                      isActive ? "bg-primary/10 text-primary" : "bg-gray-200 text-gray-500"
-                    )}>
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+        {scope === "all" && itemsQuery.isError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {t(copyKeys.errorLoadData)}: {itemsQuery.error.message}
           </div>
-
-          <div className="flex-1 w-full md:max-w-md">
-            <FilterPanel
-              scope={scope}
-              searchText={searchText}
-              searchPlaceholder={t(copyKeys.searchPlaceholder)}
-              sort={sort}
-              onSearchTextChange={setSearchText}
-              onSortChange={setSort}
-            />
+        )}
+        {scope === "installed" && installedQuery.isError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {t(copyKeys.errorLoadInstalled)}: {installedQuery.error.message}
           </div>
-        </div>
+        )}
 
-        <section className="flex min-h-0 flex-1 flex-col mt-2">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h3 className="text-[18px] font-bold tracking-tight text-gray-900 flex items-center gap-2">
-              {scope === "installed"
-                ? t(copyKeys.sectionInstalled)
-                : t(copyKeys.sectionCatalog)}
-              <span className="flex items-center justify-center h-6 px-2 rounded-lg bg-gray-100 text-[12px] font-semibold text-gray-500">
-                {listSummary}
-              </span>
-            </h3>
-          </div>
-
-          {scope === "all" && itemsQuery.isError && (
-            <NoticeCard
-              tone="danger"
-              title={t(copyKeys.errorLoadData)}
-              description={itemsQuery.error.message}
-            />
-          )}
-          {scope === "installed" && installedQuery.isError && (
-            <NoticeCard
-              tone="danger"
-              title={t(copyKeys.errorLoadInstalled)}
-              description={installedQuery.error.message}
-            />
-          )}
-
+        <div
+          ref={infiniteScroll.containerRef}
+          className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1"
+          aria-busy={showListSkeleton || itemsQuery.isFetchingNextPage}
+        >
           <div
-            ref={infiniteScroll.containerRef}
-            className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-3 pb-8 -mx-1 px-1"
-            aria-busy={showListSkeleton || itemsQuery.isFetchingNextPage}
+            data-testid={
+              showListSkeleton ? "marketplace-list-skeleton" : undefined
+            }
+            className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
           >
-            <div
-              data-testid={
-                showListSkeleton ? "marketplace-list-skeleton" : undefined
-              }
-              className="grid grid-cols-1 gap-[22px] md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 items-stretch"
-            >
-              {showListSkeleton && (
-                <MarketplaceListSkeleton count={SKELETON_CARD_COUNT} />
-              )}
+            {showListSkeleton && (
+              <MarketplaceListSkeleton count={SKELETON_CARD_COUNT} />
+            )}
 
-              {!showListSkeleton &&
-                scope === "all" &&
-                allItems.map((item) => (
-                  <MarketplaceListCard
-                    key={item.id}
-                    item={item}
-                    record={findInstalledRecordForItem(
+            {!showListSkeleton &&
+              scope === "all" &&
+              allItems.map((item) => (
+                <MarketplaceListCard
+                  key={item.id}
+                  item={item}
+                  record={findInstalledRecordForItem(item, installedRecordLookup)}
+                  language={language}
+                  installState={installState}
+                  manageState={manageState}
+                  onOpen={() =>
+                    void openItemDetail(
                       item,
-                      installedRecordLookup,
-                    )}
-                    language={language}
-                    installState={installState}
-                    manageState={manageState}
-                    onOpen={() =>
-                      void openItemDetail(
-                        item,
-                        findInstalledRecordForItem(item, installedRecordLookup),
-                      )
-                    }
-                    onInstall={handleInstall}
-                    onManage={handleManage}
-                  />
-                ))}
+                      findInstalledRecordForItem(item, installedRecordLookup),
+                    )
+                  }
+                  onInstall={handleInstall}
+                  onManage={handleManage}
+                />
+              ))}
 
-              {!showListSkeleton &&
-                scope === "installed" &&
-                installedEntries.map((entry) => (
-                  <MarketplaceListCard
-                    key={entry.key}
-                    item={entry.item}
-                    record={entry.record}
-                    language={language}
-                    installState={installState}
-                    manageState={manageState}
-                    onOpen={() => void openItemDetail(entry.item, entry.record)}
-                    onInstall={handleInstall}
-                    onManage={handleManage}
-                  />
-                ))}
-            </div>
+            {!showListSkeleton &&
+              scope === "installed" &&
+              installedEntries.map((entry) => (
+                <MarketplaceListCard
+                  key={entry.key}
+                  item={entry.item}
+                  record={entry.record}
+                  language={language}
+                  installState={installState}
+                  manageState={manageState}
+                  onOpen={() => void openItemDetail(entry.item, entry.record)}
+                  onInstall={handleInstall}
+                  onManage={handleManage}
+                />
+              ))}
+          </div>
 
-            {scope === "all" &&
-              !showListSkeleton &&
-              !itemsQuery.isError &&
-              allItems.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 mt-4">
-                  <p className="text-[15px] font-medium text-gray-500">{t(copyKeys.emptyData)}</p>
-                </div>
-              )}
-            {scope === "installed" &&
-              !showListSkeleton &&
-              !installedQuery.isError &&
-              installedEntries.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 mt-4">
-                  <p className="text-[15px] font-medium text-gray-500">{t(copyKeys.emptyInstalled)}</p>
-                </div>
-              )}
+          {scope === "all" &&
+            !showListSkeleton &&
+            !itemsQuery.isError &&
+            allItems.length === 0 && (
+              <div className="py-8 text-center text-[13px] text-gray-500">
+                {t(copyKeys.emptyData)}
+              </div>
+            )}
+          {scope === "installed" &&
+            !showListSkeleton &&
+            !installedQuery.isError &&
+            installedEntries.length === 0 && (
+              <div className="py-8 text-center text-[13px] text-gray-500">
+                {t(copyKeys.emptyInstalled)}
+              </div>
+            )}
 
-            {scope === "all" && !showCatalogSkeleton && !itemsQuery.isError && (
+          {scope === "all" &&
+            !showCatalogSkeleton &&
+            !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus
                 hasMore={Boolean(itemsQuery.hasNextPage)}
                 loading={itemsQuery.isFetchingNextPage}
                 sentinelRef={infiniteScroll.sentinelRef}
               />
             )}
-          </div>
-        </section>
-      </div>
+        </div>
+      </section>
       <ConfirmDialog />
     </PageLayout>
   );
