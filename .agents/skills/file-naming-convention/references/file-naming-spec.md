@@ -49,8 +49,10 @@ Examples:
 - `types/` should only contain `*.types.ts` files.
 - `utils/` should only contain `*.utils.ts` files.
 - `hooks/` should contain `use-<domain>.ts` or `use-<domain>.tsx`.
+- `hooks/` must stay flat and may not contain nested directories.
 - `pages/` should contain `<domain>-page.tsx`.
 - `components/` may keep plain kebab-case names, but still require one clear primary responsibility per file.
+- `lib/` should contain only module directories; direct files under `lib/` are not allowed.
 
 ## 5. Test File Naming
 
@@ -80,6 +82,8 @@ Examples:
 - `chat.service.manager.ts` (mixed roles)
 - `services/chat-manager.ts` (directory and suffix do not match)
 - `hooks/chat-session.ts` (hook directory but not `use-*`)
+- `hooks/runtime/use-chat-runtime.ts` (hook directory is nested)
+- `lib/date-format.utils.ts` (direct file under `lib/`)
 - `pages/chat.tsx` (page directory but not `*-page.tsx`)
 
 ## 8. Migration Policy

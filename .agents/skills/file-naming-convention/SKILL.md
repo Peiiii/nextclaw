@@ -53,6 +53,8 @@ For this repository specifically:
   - `types/` -> `*.types.ts`
   - `utils/` -> `*.utils.ts`
 - React hook 模块例外：凡文件主职责是导出可复用 React hook，必须放在 `hooks/` 目录下，并命名为 `use-<domain>.ts` 或 `use-<domain>.tsx`；此类文件不使用 `.service.ts` 等角色后缀。
+- `hooks/` 必须保持平铺：目录下禁止再出现任何子目录，只允许直接 hook 文件；需要分类时，应拆到不同业务边界各自的 `hooks/` 目录，而不是写成 `hooks/<subtree>/...`。
+- `lib/` 必须保持模块容器边界：目录下只能出现模块目录，不能直接放文件；共享能力应先落到 `lib/<module>/`，再由该模块目录自己的 `index.ts` / `index.tsx` 暴露公共出口。
 - 页面模块例外：`pages/` 目录下文件必须命名为 `<domain>-page.tsx`；`index.ts` 仅可作为页面导出聚合。
 - 组件模块例外：`components/` 目录下可使用 kebab-case 文件名，不强制二级角色后缀，但仍要求一文件一主职责。
 - `app.ts`、`main.ts(x)` 与 `index.ts` 是少量明确例外：分别只用于应用入口或导出聚合，不能承载模糊业务逻辑。

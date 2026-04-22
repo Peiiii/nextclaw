@@ -131,6 +131,20 @@ test("blocks nested directories under flat role dirs at package root", () => {
   assert.match(findings[0].message, /may only contain direct files/);
 });
 
+test("blocks nested directories under hooks at package root", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/hooks/runtime/use-runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/hooks/runtime/use-runtime.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /hooks\/ may only contain direct files/);
+});
+
 test("blocks a new file added under an existing legacy root directory", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/components/chat/new-toolbar.tsx");
   const findings = evaluateModuleStructureFindings({
@@ -219,6 +233,21 @@ test("blocks nested directories under flat role dirs inside features", () => {
   assert.match(findings[0].message, /may only contain direct files/);
 });
 
+test("blocks nested directories under hooks inside features", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/hooks/runtime/use-chat-runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-ui/src/features/chat/hooks/runtime/use-chat-runtime.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /hooks\/ may only contain direct files/);
+});
+
 test("blocks shared root barrel index files", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/shared/components/index.ts");
   const findings = evaluateModuleStructureFindings({
@@ -246,6 +275,21 @@ test("blocks nested directories under flat role dirs inside shared", () => {
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /may only contain direct files/);
+});
+
+test("blocks nested directories under hooks inside shared", () => {
+  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/hooks/runtime/use-runtime.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw/src/cli/shared/hooks/runtime/use-runtime.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false,
+    repoPathExists: () => true
+  });
+
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].level, "error");
+  assert.match(findings[0].message, /hooks\/ may only contain direct files/);
 });
 
 test("blocks direct files under shared lib root", () => {

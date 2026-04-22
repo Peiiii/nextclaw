@@ -74,7 +74,7 @@ export const FIXED_ROLE_DIRECTORY_NAMES = new Set([
 ]);
 
 export const FLAT_ROLE_DIRECTORY_NAMES = new Set([
-  "configs",
+  "configs", "hooks",
   "presenters",
   "stores",
   "managers",

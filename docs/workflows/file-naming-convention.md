@@ -44,6 +44,8 @@ React hook 文件例外：
 - 如果文件主职责是导出可复用 React hook，必须放在 `hooks/` 目录下。
 - 命名必须使用 `use-<domain>.ts` 或 `use-<domain>.tsx`。
 - 这类文件不使用 `.service.ts`、`.utils.ts` 等角色后缀。
+- `hooks/` 目录必须保持平铺，下面禁止再出现任何子目录；需要分类时，应在业务边界层拆分到不同的 `hooks/` 目录，而不是写成 `hooks/<subtree>/...`。
+- `lib/` 目录必须只承载模块目录，下面禁止直接出现文件；需要沉淀共享能力时，应先创建 `lib/<module>/`，再由该模块目录自己的 `index.ts` / `index.tsx` 暴露公共出口。
 
 ## 4. 目录与后缀联动规则
 
@@ -57,6 +59,8 @@ React hook 文件例外：
 - `types/` 下只允许 `*.types.ts`
 - `utils/` 下只允许 `*.utils.ts`
 - `hooks/` 下只允许 `use-<domain>.ts` / `use-<domain>.tsx`
+- `hooks/` 下禁止再建子目录，只允许直接文件
+- `lib/` 下只允许模块目录，不允许直接文件
 - `pages/` 下只允许 `<domain>-page.tsx`
 - `components/` 下允许普通 kebab-case 组件文件名，但仍要求一文件一主职责
 
