@@ -1,0 +1,26 @@
+{
+  "slug": "gemigo-cli",
+  "name": "GemiGo CLI",
+  "summary": "Use the local GemiGo CLI through NextClaw to publish a built static app with guided setup, auth checks, deploy confirmation, and hosted URL reporting.",
+  "summaryI18n": {
+    "en": "Use the local GemiGo CLI through NextClaw to publish a built static app with guided setup, auth checks, deploy confirmation, and hosted URL reporting.",
+    "zh": "在 NextClaw 中使用本地 GemiGo CLI，覆盖静态产物发布所需的安装引导、登录检查、部署确认与最终 URL 回传。"
+  },
+  "description": "Use this skill when the user wants to publish a built static app through the local GemiGo CLI. The skill distinguishes marketplace install from local CLI install, validates the static output directory and gemigo.app.json, verifies login with gemigo whoami, and keeps remote deploy actions behind explicit confirmation before reporting the hosted URL.",
+  "descriptionI18n": {
+    "en": "Use this skill when the user wants to publish a built static app through the local GemiGo CLI. The skill distinguishes marketplace install from local CLI install, validates the static output directory and gemigo.app.json, verifies login with gemigo whoami, and keeps remote deploy actions behind explicit confirmation before reporting the hosted URL.",
+    "zh": "当用户希望通过本地 GemiGo CLI 发布自己已经构建好的静态应用时使用此技能。它会明确区分 marketplace skill 安装与本机 CLI 安装，校验静态输出目录与 gemigo.app.json，用 gemigo whoami 检查登录状态，并把真正的远端部署动作放在显式确认之后，再把最终托管 URL 返回给用户。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "gemigo",
+    "deployment",
+    "static-site",
+    "cli",
+    "external-tool",
+    "onboarding"
+  ],
+  "sourceRepo": "https://github.com/Peiiii/deploy-your-app",
+  "homepage": "https://gemigo.io"
+}
