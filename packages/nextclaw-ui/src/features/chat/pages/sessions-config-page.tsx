@@ -11,6 +11,8 @@ import { formatDateShort, t } from '@/shared/lib/i18n';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { Clock, Inbox, MessageCircle, RefreshCw, Search } from 'lucide-react';
 import { SessionsConfigDetailPane } from '@/features/chat/components/config/sessions-config-detail-pane';
+import { ConfigSplitPage, ConfigSplitSidebar, ConfigSplitPaneBody, ConfigSplitPaneHeader } from '@/shared/components/config-split-page';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 const UNKNOWN_CHANNEL_KEY = '__unknown_channel__';
 function resolveChannelFromSessionKey(key: string): string {
   const separator = key.indexOf(':');
@@ -71,6 +73,7 @@ function SessionListItem(props: {
   );
 }
 export function SessionsConfig() {
+  const { isMobile } = useViewportLayout();
   const [query, setQuery] = useState('');
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState('all');
@@ -113,11 +116,16 @@ export function SessionsConfig() {
   const selectedSummary = selectedSessionKey ? sessionSummaryById.get(selectedSessionKey) ?? null : null;
   const selectedChannelLabel = selectedSession ? displayChannelName(resolveChannelFromSessionKey(selectedSession.key)) : null;
   return (
-    <PageLayout fullHeight>
+    <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
       <PageHeader title={t('sessionsPageTitle')} description={t('sessionsPageDescription')} />
-      <div className="flex-1 flex gap-6 min-h-0 relative">
-        <div className="w-[320px] flex flex-col shrink-0 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-4 py-4 border-b border-gray-100 bg-white z-10 shrink-0 space-y-3">
+      <ConfigSplitPage
+        className="xl:min-h-0"
+        mobileView={isMobile ? (selectedSessionKey ? 'detail' : 'list') : undefined}
+        onMobileBack={() => setSelectedSessionId(null)}
+        mobileListLabel={t('sessionsPageTitle')}
+      >
+        <ConfigSplitSidebar className="xl:w-[320px] xl:flex-none">
+          <ConfigSplitPaneHeader className="space-y-3 px-4 py-4">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{sessionEntries.length} {t('sessionsListTitle')}</span>
               <Button
@@ -151,8 +159,8 @@ export function SessionsConfig() {
                 className="pl-8 h-8.5 rounded-lg bg-gray-50/50 border-gray-200 focus-visible:bg-white text-xs"
               />
             </div>
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-1 pb-10 custom-scrollbar relative">
+          </ConfigSplitPaneHeader>
+          <ConfigSplitPaneBody className="space-y-1 p-3 pb-10">
             {sessionsQuery.isLoading ? (
               <div className="text-sm text-gray-400 p-4 text-center">{t('sessionsLoading')}</div>
             ) : filteredSessions.length === 0 ? (
@@ -169,8 +177,8 @@ export function SessionsConfig() {
                 return <SessionListItem key={session.key} session={session} summary={summary} channelLabel={displayChannelName(resolveChannelFromSessionKey(session.key))} isSelected={selectedSessionKey === session.key} onSelect={() => setSelectedSessionId(session.key)} />;
               })
             )}
-          </div>
-        </div>
+          </ConfigSplitPaneBody>
+        </ConfigSplitSidebar>
         <SessionsConfigDetailPane
           sessionKey={selectedSessionKey}
           session={selectedSession}
@@ -178,7 +186,7 @@ export function SessionsConfig() {
           channelLabel={selectedChannelLabel}
           onClearSelection={() => setSelectedSessionId(null)}
         />
-      </div>
+      </ConfigSplitPage>
     </PageLayout>
   );
 }

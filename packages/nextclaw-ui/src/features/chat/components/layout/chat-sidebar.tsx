@@ -6,7 +6,7 @@ import { StatusBadge } from '@/shared/components/common/status-badge';
 import { Input } from '@/shared/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { SelectItem } from '@/shared/components/ui/select';
-import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, ChatSidebarSessionItem, type ChatSidebarProjectGroup } from '@/features/chat';
+import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, type ChatSidebarProjectGroup } from '@/features/chat';
 import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat-sidebar-session-label-editor';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
@@ -16,7 +16,6 @@ import {
   useChatSessionListStore
 } from '@/features/chat/stores/chat-session-list.store';
 import { useSystemStatus } from '@/features/system-status';
-import { resolveSessionContextView } from '@/features/chat/utils/session-context.utils';
 import { useAgents } from '@/shared/hooks/use-agents';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
@@ -39,6 +38,7 @@ import {
   Search,
   Settings
 } from 'lucide-react';
+import { ChatSidebarSessionEntry } from '@/features/chat/components/layout/chat-sidebar-session-entry';
 
 type DateGroup = {
   label: string;
@@ -131,6 +131,8 @@ const navItems = [
   { target: '/agents', label: () => t('agentsPageTitle'), icon: Bot },
 ];
 
+type ChatSidebarVariant = 'desktop' | 'mobile';
+
 function useChatSessionUnreadState(
   items: readonly NcpSessionListItemView[],
   selectedSessionKey: string | null,
@@ -163,7 +165,13 @@ function useChatSessionUnreadState(
 
   return optimisticReadAtBySessionKey;
 }
-export function ChatSidebar() {
+
+export function ChatSidebar({
+  variant = 'desktop',
+}: {
+  variant?: ChatSidebarVariant;
+}) {
+  const isMobileVariant = variant === 'mobile';
   const presenter = usePresenter();
   const docBrowser = useDocBrowser();
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
@@ -224,61 +232,49 @@ export function ChatSidebar() {
     setLanguage(nextLang);
     window.location.reload();
   };
-  const renderSessionItem = ({ session, runStatus }: NcpSessionListItemView) => {
-    const active = listSnapshot.selectedSessionKey === session.key;
-    const optimisticReadAt = optimisticReadAtBySessionKey[session.key];
-    const effectiveReadAt =
-      optimisticReadAt && session.readAt
-        ? (optimisticReadAt.localeCompare(session.readAt) > 0 ? optimisticReadAt : session.readAt)
-        : optimisticReadAt ?? session.readAt;
-    const showUnreadDot = shouldShowUnreadSessionIndicator({
-      active,
-      lastMessageAt: session.lastMessageAt,
-      readAt: effectiveReadAt,
-      runStatus,
-    });
-    const context = resolveSessionContextView(session, inputSnapshot.sessionTypeOptions);
-    const isEditing = editingSessionKey === session.key;
-    const isSaving = savingSessionKey === session.key;
-    const childSessions = childSessionsByParentKey.get(session.key) ?? [];
-    return (
-      <ChatSidebarSessionItem
-        key={session.key}
-        session={session}
-        active={active}
-        showUnreadDot={showUnreadDot}
-        runStatus={runStatus}
-        context={context}
-        title={sessionTitle(session)}
-        agentId={session.agentId ?? null}
-        agentLabel={session.agentId ? (agentsById.get(session.agentId)?.displayName ?? session.agentId) : null}
-        agentAvatarUrl={session.agentId ? (agentsById.get(session.agentId)?.avatarUrl ?? null) : null}
-        childSessionCount={childSessions.length}
-        isEditing={isEditing}
+  const renderSessionItem = (item: NcpSessionListItemView) =>
+    (
+      <ChatSidebarSessionEntry
+        key={item.session.key}
+        item={item}
+        selectedSessionKey={listSnapshot.selectedSessionKey}
+        optimisticReadAtBySessionKey={optimisticReadAtBySessionKey}
+        agentsById={agentsById}
+        childSessionsByParentKey={childSessionsByParentKey}
+        editingSessionKey={editingSessionKey}
         draftLabel={draftLabel}
-        isSaving={isSaving}
-        onSelect={() => presenter.chatSessionListManager.selectSession(session.key)}
-        onOpenChildSessions={() =>
+        savingSessionKey={savingSessionKey}
+        sessionTitle={sessionTitle}
+        onSelectSession={presenter.chatSessionListManager.selectSession}
+        onOpenChildSessions={(parentSessionKey, activeChildSessionKey) =>
           presenter.chatThreadManager.openChildSessionPanel({
-            parentSessionKey: session.key,
-            activeChildSessionKey: childSessions[0]?.session.key ?? null,
+            parentSessionKey,
+            activeChildSessionKey,
           })
         }
-        onStartEditing={() => startEditingSessionLabel(session)}
+        onStartEditingSessionLabel={startEditingSessionLabel}
         onDraftLabelChange={setDraftLabel}
-        onSave={() => saveSessionLabel(session)}
-        onCancel={cancelEditingSessionLabel}
+        onSaveSessionLabel={saveSessionLabel}
+        onCancelEditingSessionLabel={cancelEditingSessionLabel}
       />
     );
-  };
   return (
-    <aside className="w-[280px] shrink-0 flex flex-col h-full bg-secondary border-r border-gray-200/60">
-      <div className="px-5 pt-5 pb-3">
-        <BrandHeader
-          className="flex items-center gap-2.5 min-w-0"
-          suffix={<StatusBadge status={systemStatus.connectionStatus} />}
-        />
-      </div>
+    <aside
+      className={cn(
+        'flex h-full min-h-0 flex-col bg-secondary',
+        isMobileVariant
+          ? 'flex-1 overflow-hidden'
+          : 'w-[280px] shrink-0 border-r border-gray-200/60',
+      )}
+    >
+      {!isMobileVariant ? (
+        <div className="px-5 pt-5 pb-3">
+          <BrandHeader
+            className="flex items-center gap-2.5 min-w-0"
+            suffix={<StatusBadge status={systemStatus.connectionStatus} />}
+          />
+        </div>
+      ) : null}
 
       <div className="px-4 pb-3">
         <div className="flex items-center gap-2">
@@ -345,24 +341,28 @@ export function ChatSidebar() {
         </div>
       </div>
 
-      <div className="px-3 pb-2">
-        <ul className="space-y-0.5">
-          {navItems.map((item) => {
-            return (
-              <li key={item.target}>
-                <SidebarNavLinkItem
-                  to={item.target}
-                  label={item.label()}
-                  icon={item.icon}
-                  density="compact"
-                />
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      {!isMobileVariant ? (
+        <div className="px-3 pb-2">
+          <ul className="space-y-0.5">
+            {navItems.map((item) => {
+              return (
+                <li key={item.target}>
+                  <SidebarNavLinkItem
+                    to={item.target}
+                    label={item.label()}
+                    icon={item.icon}
+                    density="compact"
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
 
-      <div className="mx-4 border-t border-gray-200/60" />
+      {!isMobileVariant ? (
+        <div className="mx-4 border-t border-gray-200/60" />
+      ) : null}
 
       <div className="flex items-center justify-between px-5 pb-2 pt-3">
         <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
@@ -413,44 +413,46 @@ export function ChatSidebar() {
         )}
       </div>
 
-      <div className="px-3 py-3 border-t border-gray-200/60 space-y-0.5">
-        <SidebarNavLinkItem
-          to="/settings"
-          label={t('settings')}
-          icon={Settings}
-          density="compact"
-        />
-        <SidebarActionItem
-          onClick={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
-          icon={BookOpen}
-          label={t('docBrowserHelp')}
-          density="compact"
-        />
-        <SidebarSelectItem
-          value={theme}
-          onValueChange={(value) => setTheme(value as UiTheme)}
-          icon={Palette}
-          label={t('theme')}
-          valueLabel={currentThemeLabel}
-          density="compact"
-        >
-          {THEME_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className="text-xs">{t(option.labelKey)}</SelectItem>
-          ))}
-        </SidebarSelectItem>
-        <SidebarSelectItem
-          value={language}
-          onValueChange={(value) => handleLanguageSwitch(value as I18nLanguage)}
-          icon={Languages}
-          label={t('language')}
-          valueLabel={currentLanguageLabel}
-          density="compact"
-        >
-          {LANGUAGE_OPTIONS.map((option) => (
-            <SelectItem key={option.value} value={option.value} className="text-xs">{option.label}</SelectItem>
-          ))}
-        </SidebarSelectItem>
-      </div>
+      {!isMobileVariant ? (
+        <div className="px-3 py-3 border-t border-gray-200/60 space-y-0.5">
+          <SidebarNavLinkItem
+            to="/settings"
+            label={t('settings')}
+            icon={Settings}
+            density="compact"
+          />
+          <SidebarActionItem
+            onClick={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
+            icon={BookOpen}
+            label={t('docBrowserHelp')}
+            density="compact"
+          />
+          <SidebarSelectItem
+            value={theme}
+            onValueChange={(value) => setTheme(value as UiTheme)}
+            icon={Palette}
+            label={t('theme')}
+            valueLabel={currentThemeLabel}
+            density="compact"
+          >
+            {THEME_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value} className="text-xs">{t(option.labelKey)}</SelectItem>
+            ))}
+          </SidebarSelectItem>
+          <SidebarSelectItem
+            value={language}
+            onValueChange={(value) => handleLanguageSwitch(value as I18nLanguage)}
+            icon={Languages}
+            label={t('language')}
+            valueLabel={currentLanguageLabel}
+            density="compact"
+          >
+            {LANGUAGE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value} className="text-xs">{option.label}</SelectItem>
+            ))}
+          </SidebarSelectItem>
+        </div>
+      ) : null}
     </aside>
   );
 }

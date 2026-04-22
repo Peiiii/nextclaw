@@ -4,6 +4,18 @@ import { describe, expect, it, vi } from "vitest";
 import { AppLayout } from "@/app/components/layout/app-layout";
 import { I18nProvider } from "@/app/components/i18n-provider";
 
+const { useViewportLayoutMock } = vi.hoisted(() => ({
+  useViewportLayoutMock: vi.fn(() => ({
+    mode: "desktop" as "mobile" | "desktop",
+    isMobile: false,
+    isDesktop: true,
+  })),
+}));
+
+vi.mock("@/app/hooks/use-viewport-layout", () => ({
+  useViewportLayout: useViewportLayoutMock,
+}));
+
 vi.mock("@/app/components/layout/sidebar", () => ({
   Sidebar: () => (
     <aside data-testid="settings-sidebar-header">Settings Sidebar</aside>
@@ -58,5 +70,40 @@ describe("AppLayout", () => {
     expect(main).toBeTruthy();
     expect(main?.className).toContain("overflow-auto");
     expect(main?.className).not.toContain("xl:overflow-hidden");
+  });
+
+  it("switches to the mobile shell when the viewport layout is mobile", () => {
+    useViewportLayoutMock.mockReturnValue({
+      mode: "mobile",
+      isMobile: true,
+      isDesktop: false,
+    });
+
+    const { container } = render(
+      <I18nProvider>
+        <MemoryRouter initialEntries={["/chat"]}>
+          <Routes>
+            <Route
+              path="*"
+              element={
+                <AppLayout>
+                  <div data-testid="chat-content">Chat Content</div>
+                </AppLayout>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </I18nProvider>,
+    );
+
+    expect(screen.getByTestId("chat-content")).toBeTruthy();
+    expect(screen.queryByTestId("settings-sidebar-header")).toBeNull();
+    expect(container.querySelector("aside")).toBeNull();
+
+    useViewportLayoutMock.mockReturnValue({
+      mode: "desktop",
+      isMobile: false,
+      isDesktop: true,
+    });
   });
 });

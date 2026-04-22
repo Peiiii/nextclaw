@@ -9,6 +9,7 @@ import { useConfig, useConfigMeta, useUpdateSearch } from "@/shared/hooks/use-co
 import { t } from "@/shared/lib/i18n";
 import type { SearchConfigUpdate, SearchProviderName, TavilySearchDepthValue } from "@/shared/lib/api";
 import { ConfigSelectionCard, ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPage, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader, ConfigSplitSidebar } from "@/shared/components/config-split-page";
+import { useViewportLayout } from "@/app/hooks/use-viewport-layout";
 
 const FRESHNESS_OPTIONS = [
   { value: "noLimit", label: "searchFreshnessNoLimit" },
@@ -334,11 +335,25 @@ function SearchConfigForm(props: {
   isPending: boolean;
 }) {
   const { initialDraft, providers, search, onSubmit, isPending } = props;
-  const [selectedProvider, setSelectedProvider] = useState<SearchProviderName>(search.provider);
+  const { isMobile } = useViewportLayout();
+  const [selectedProvider, setSelectedProvider] = useState<SearchProviderName | null>(
+    isMobile ? null : search.provider,
+  );
   const [draft, setDraft] = useState(initialDraft);
-  const selectedMeta = providers.find((provider) => provider.name === selectedProvider) ?? null;
-  const selectedView = search.providers[selectedProvider];
-  const selectedEnabled = draft.enabledProviders.includes(selectedProvider);
+  const resolvedSelectedProvider =
+    selectedProvider && providers.some((provider) => provider.name === selectedProvider)
+      ? selectedProvider
+      : isMobile
+        ? null
+        : search.provider;
+  const selectedMeta =
+    providers.find((provider) => provider.name === resolvedSelectedProvider) ?? null;
+  const selectedView = resolvedSelectedProvider
+    ? search.providers[resolvedSelectedProvider]
+    : null;
+  const selectedEnabled = resolvedSelectedProvider
+    ? draft.enabledProviders.includes(resolvedSelectedProvider)
+    : false;
   const selectedDocsUrl = selectedView?.docsUrl ?? selectedMeta?.docsUrl;
 
   const updateProviderDraft: UpdateProviderDraft = (provider, patch) => {
@@ -353,20 +368,27 @@ function SearchConfigForm(props: {
 
   const handleToggleEnabled = () => {
     const enabledProviders = selectedEnabled
-      ? draft.enabledProviders.filter((provider) => provider !== selectedProvider)
-      : [...draft.enabledProviders, selectedProvider];
+      ? draft.enabledProviders.filter((provider) => provider !== resolvedSelectedProvider)
+      : resolvedSelectedProvider
+        ? [...draft.enabledProviders, resolvedSelectedProvider]
+        : draft.enabledProviders;
     const nextDraft = { ...draft, enabledProviders };
     setDraft(nextDraft);
     onSubmit(nextDraft);
   };
 
   return (
-    <ConfigSplitPage className="xl:min-h-0">
+    <ConfigSplitPage
+      className="xl:min-h-0"
+      mobileView={isMobile ? (resolvedSelectedProvider ? "detail" : "list") : undefined}
+      onMobileBack={() => setSelectedProvider(null)}
+      mobileListLabel={t("searchPageTitle")}
+    >
       <SearchProviderSidebar
         draft={draft}
         providers={providers}
         search={search}
-        selectedProvider={selectedProvider}
+        selectedProvider={resolvedSelectedProvider ?? search.provider}
         onSelect={setSelectedProvider}
       />
       {!selectedMeta ? (
@@ -427,7 +449,7 @@ function SearchConfigForm(props: {
 
               <SearchProviderFields
                 draft={draft}
-                provider={selectedProvider}
+                provider={resolvedSelectedProvider as SearchProviderName}
                 search={search}
                 selectedDocsUrl={selectedDocsUrl}
                 updateProviderDraft={updateProviderDraft}

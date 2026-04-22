@@ -1,5 +1,6 @@
-import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
-import type { LucideIcon } from "lucide-react";
+import { Children, type ButtonHTMLAttributes, type HTMLAttributes } from "react";
+import { ArrowLeft, type LucideIcon } from "lucide-react";
+import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 const CARD_CLASS = "min-w-0 overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-card xl:h-[calc(100vh-180px)] xl:max-h-[860px]";
@@ -9,7 +10,52 @@ function ConfigSplitPane({ className, ...props }: SectionProps) {
   return <section className={cn(CARD_CLASS, "flex flex-col", className)} {...props} />;
 }
 
-export function ConfigSplitPage({ className, ...props }: DivProps) {
+export function ConfigSplitPage({
+  className,
+  children,
+  mobileView,
+  onMobileBack,
+  mobileListLabel,
+  ...props
+}: DivProps & {
+  mobileView?: "list" | "detail";
+  onMobileBack?: () => void;
+  mobileListLabel?: string;
+}) {
+  const childArray = Children.toArray(children);
+  const [sidebarChild, detailChild, ...remainingChildren] = childArray;
+
+  if (mobileView && sidebarChild && detailChild) {
+    return (
+      <div
+        className={cn("grid min-h-0 grid-cols-1 gap-4", className)}
+        {...props}
+      >
+        {mobileView === "detail" ? (
+          <>
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={onMobileBack}
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>{mobileListLabel ?? t("backToMain")}</span>
+              </button>
+            </div>
+            {detailChild}
+            {remainingChildren}
+          </>
+        ) : (
+          <>
+            {sidebarChild}
+            {remainingChildren}
+          </>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -17,7 +63,9 @@ export function ConfigSplitPage({ className, ...props }: DivProps) {
         className,
       )}
       {...props}
-    />
+    >
+      {children}
+    </div>
   );
 }
 

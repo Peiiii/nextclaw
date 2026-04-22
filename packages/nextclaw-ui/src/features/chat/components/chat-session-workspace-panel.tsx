@@ -37,6 +37,7 @@ type ChatSessionWorkspacePanelProps = {
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeWorkspaceFileKey: string | null;
   sessionProjectRoot: string | null;
+  displayMode?: "docked" | "overlay";
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onCloseFile: (fileKey: string) => void;
@@ -163,12 +164,77 @@ function WorkspaceActiveChildHeader({
   );
 }
 
+function buildWorkspaceTabsViewModel(params: {
+  resolvedChildTabs: ResolvedChildSessionTab[];
+  workspaceFileTabs: readonly ChatWorkspaceFileTab[];
+  activeSelection: ReturnType<typeof resolveWorkspaceSelection>;
+  optimisticReadAtBySessionKey: Record<string, string>;
+  onSelectSession: (sessionKey: string) => void;
+  onSelectFile: (fileKey: string) => void;
+  onCloseFile: (fileKey: string) => void;
+}): WorkspaceTabViewModel[] {
+  const {
+    resolvedChildTabs,
+    workspaceFileTabs,
+    activeSelection,
+    optimisticReadAtBySessionKey,
+    onSelectSession,
+    onSelectFile,
+    onCloseFile,
+  } = params;
+
+  const childTabs = resolvedChildTabs.map((tab) => {
+    const optimisticReadAt = optimisticReadAtBySessionKey[tab.sessionKey];
+    const effectiveReadAt =
+      optimisticReadAt && tab.readAt
+        ? optimisticReadAt.localeCompare(tab.readAt) > 0
+          ? optimisticReadAt
+          : tab.readAt
+        : optimisticReadAt ?? tab.readAt;
+    return {
+      key: `child:${tab.sessionKey}`,
+      kind: "child-session" as const,
+      title: tab.title,
+      tooltip: tab.title,
+      agentId: tab.agentId,
+      active:
+        activeSelection?.kind === "child-session" &&
+        activeSelection.tab.sessionKey === tab.sessionKey,
+      showUnreadDot: shouldShowUnreadSessionIndicator({
+        active:
+          activeSelection?.kind === "child-session" &&
+          activeSelection.tab.sessionKey === tab.sessionKey,
+        lastMessageAt: tab.lastMessageAt,
+        readAt: effectiveReadAt,
+        runStatus: tab.runStatus,
+      }),
+      onSelect: () => onSelectSession(tab.sessionKey),
+    };
+  });
+
+  const fileTabs = workspaceFileTabs.map((file) => ({
+    key: `file:${file.key}`,
+    kind: "file" as const,
+    title: readWorkspaceFileTitle(file),
+    tooltip: file.path,
+    viewMode: file.viewMode,
+    active:
+      activeSelection?.kind === "file" &&
+      activeSelection.file.key === file.key,
+    onSelect: () => onSelectFile(file.key),
+    onClose: () => onCloseFile(file.key),
+  }));
+
+  return [...childTabs, ...fileTabs];
+}
+
 export function ChatSessionWorkspacePanel({
   childSessionTabs,
   activeChildSessionKey,
   workspaceFileTabs,
   activeWorkspaceFileKey,
   sessionProjectRoot,
+  displayMode = "docked",
   onSelectSession,
   onSelectFile,
   onCloseFile,
@@ -207,66 +273,40 @@ export function ChatSessionWorkspacePanel({
     );
   }, [activeSelection, presenter]);
 
-  const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(() => {
-    const childTabs = resolvedChildTabs.map((tab) => {
-      const optimisticReadAt = optimisticReadAtBySessionKey[tab.sessionKey];
-      const effectiveReadAt =
-        optimisticReadAt && tab.readAt
-          ? optimisticReadAt.localeCompare(tab.readAt) > 0
-            ? optimisticReadAt
-            : tab.readAt
-          : optimisticReadAt ?? tab.readAt;
-      return {
-        key: `child:${tab.sessionKey}`,
-        kind: "child-session" as const,
-        title: tab.title,
-        tooltip: tab.title,
-        agentId: tab.agentId,
-        active:
-          activeSelection?.kind === "child-session" &&
-          activeSelection.tab.sessionKey === tab.sessionKey,
-        showUnreadDot: shouldShowUnreadSessionIndicator({
-          active:
-            activeSelection?.kind === "child-session" &&
-            activeSelection.tab.sessionKey === tab.sessionKey,
-          lastMessageAt: tab.lastMessageAt,
-          readAt: effectiveReadAt,
-          runStatus: tab.runStatus,
-        }),
-        onSelect: () => onSelectSession(tab.sessionKey),
-      };
-    });
-
-    const fileTabs = workspaceFileTabs.map((file) => ({
-      key: `file:${file.key}`,
-      kind: "file" as const,
-      title: readWorkspaceFileTitle(file),
-      tooltip: file.path,
-      viewMode: file.viewMode,
-      active:
-        activeSelection?.kind === "file" &&
-        activeSelection.file.key === file.key,
-      onSelect: () => onSelectFile(file.key),
-      onClose: () => onCloseFile(file.key),
-    }));
-
-    return [...childTabs, ...fileTabs];
-  }, [
-    activeSelection,
-    onCloseFile,
-    onSelectFile,
-    onSelectSession,
-    optimisticReadAtBySessionKey,
-    resolvedChildTabs,
-    workspaceFileTabs,
-  ]);
+  const workspaceTabs = useMemo<WorkspaceTabViewModel[]>(
+    () =>
+      buildWorkspaceTabsViewModel({
+        resolvedChildTabs,
+        workspaceFileTabs,
+        activeSelection,
+        optimisticReadAtBySessionKey,
+        onSelectSession,
+        onSelectFile,
+        onCloseFile,
+      }),
+    [
+      activeSelection,
+      onCloseFile,
+      onSelectFile,
+      onSelectSession,
+      optimisticReadAtBySessionKey,
+      resolvedChildTabs,
+      workspaceFileTabs,
+    ],
+  );
 
   if (!activeSelection) {
     return null;
   }
 
   return (
-    <aside className="hidden shrink-0 border-l border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex md:w-[26rem] lg:w-[30rem] xl:w-[34rem]">
+    <aside
+      className={cn(
+        displayMode === "overlay"
+          ? "fixed inset-0 z-40 flex bg-white"
+          : "hidden shrink-0 border-l border-gray-200/70 bg-white/95 backdrop-blur-sm md:flex md:w-[26rem] lg:w-[30rem] xl:w-[34rem]",
+      )}
+    >
       <div className="flex h-full min-h-0 w-full flex-col">
         <div className="flex items-center justify-between gap-3 border-b border-gray-200/70 px-4 py-2.5">
           <button

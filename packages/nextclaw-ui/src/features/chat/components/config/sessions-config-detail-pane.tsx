@@ -171,7 +171,7 @@ export function SessionsConfigDetailPane(props: {
       ) : null}
       {props.sessionKey && props.session && props.summary && props.channelLabel ? (
         <>
-          <div className="shrink-0 border-b border-gray-100 bg-white px-8 py-5 z-10 space-y-4">
+          <div className="shrink-0 border-b border-gray-100 bg-white px-4 py-4 z-10 space-y-4 sm:px-8 sm:py-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 rounded-[14px] bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
@@ -208,7 +208,7 @@ export function SessionsConfigDetailPane(props: {
               </div>
             </div>
           </div>
-          <div className="flex-1 overflow-y-auto p-6 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300/80 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-y-auto p-4 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300/80 [&::-webkit-scrollbar-thumb]:rounded-full sm:p-6">
             {historyQuery.isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-50/50 backdrop-blur-sm z-10">
                 <div className="flex flex-col items-center gap-3 animate-pulse">

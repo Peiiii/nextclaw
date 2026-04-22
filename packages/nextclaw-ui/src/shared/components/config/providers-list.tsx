@@ -11,6 +11,7 @@ import { hintForPath } from '@/shared/lib/config-hints';
 import { t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import { ProviderForm } from '@/shared/components/config/provider-form';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import {
   ConfigSelectionCard,
   ConfigSplitEmptyState,
@@ -44,12 +45,13 @@ function sortProvidersForDisplay<T extends { name: string }>(providers: T[]) {
 }
 
 export function ProvidersList() {
+  const { isMobile } = useViewportLayout();
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
   const { data: schema } = useConfigSchema();
   const createProvider = useCreateProvider();
   const [activeTab, setActiveTab] = useState('installed');
-  const [selectedProvider, setSelectedProvider] = useState<string>();
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const providers = useMemo(() => sortProvidersForDisplay(meta?.providers ?? []), [meta?.providers]);
   const providersConfig = config?.providers ?? {};
@@ -71,11 +73,11 @@ export function ProvidersList() {
   }, [activeTab, providers, providersConfig, query]);
 
   const resolvedSelectedProvider = useMemo(() => {
-    if (filteredProviders.some((provider) => provider.name === selectedProvider)) {
+    if (selectedProvider && filteredProviders.some((provider) => provider.name === selectedProvider)) {
       return selectedProvider;
     }
-    return filteredProviders[0]?.name;
-  }, [filteredProviders, selectedProvider]);
+    return isMobile ? null : filteredProviders[0]?.name ?? null;
+  }, [filteredProviders, isMobile, selectedProvider]);
 
   if (!config || !meta) {
     return <div className="p-8">{t('providersLoading')}</div>;
@@ -84,7 +86,12 @@ export function ProvidersList() {
   return (
     <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
       <PageHeader title={t('providersPageTitle')} description={t('providersPageDescription')} />
-      <ConfigSplitPage className="xl:min-h-0">
+      <ConfigSplitPage
+        className="xl:min-h-0"
+        mobileView={isMobile ? (resolvedSelectedProvider ? 'detail' : 'list') : undefined}
+        onMobileBack={() => setSelectedProvider(null)}
+        mobileListLabel={t('providersPageTitle')}
+      >
         <ConfigSplitSidebar>
           <ConfigSplitPaneHeader className="space-y-3 px-4 pb-3 pt-4">
             <Tabs
@@ -181,10 +188,10 @@ export function ProvidersList() {
         </ConfigSplitSidebar>
 
         <ProviderForm
-          providerName={resolvedSelectedProvider}
+          providerName={resolvedSelectedProvider ?? undefined}
           onProviderDeleted={(deletedProvider) => {
             if (deletedProvider === resolvedSelectedProvider) {
-              setSelectedProvider(undefined);
+              setSelectedProvider(null);
             }
           }}
         />

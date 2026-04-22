@@ -1,7 +1,7 @@
 import { cn } from '@/shared/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
-import { Cpu, GitBranch, History, MessageCircle, MessageSquare, Sparkles, BookOpen, Plug, BrainCircuit, AlarmClock, Languages, Palette, KeyRound, Settings, ArrowLeft, Search, Shield, Wrench, Wifi, Bot, Download } from 'lucide-react';
+import { MessageCircle, BookOpen, BrainCircuit, AlarmClock, Languages, Palette, KeyRound, Settings, ArrowLeft, Bot } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useDocBrowser } from '@/shared/components/doc-browser';
 import { BrandHeader } from '@/shared/components/common/brand-header';
@@ -11,6 +11,7 @@ import { useTheme } from '@/app/components/theme-provider';
 import { SelectItem } from '@/shared/components/ui/select';
 import { useAppManager } from '@/app/components/app-manager-provider';
 import { useRemoteStatus } from '@/features/remote';
+import { getSettingsNavItems } from '@/app/configs/app-navigation.config';
 
 type SidebarMode = 'main' | 'settings';
 
@@ -69,68 +70,7 @@ export function Sidebar({ mode }: SidebarProps) {
     }
   ];
 
-  const settingsNavItems = [
-    {
-      target: '/model',
-      label: t('model'),
-      icon: Cpu,
-    },
-    {
-      target: '/providers',
-      label: t('providers'),
-      icon: Sparkles,
-    },
-    {
-      target: '/channels',
-      label: t('channels'),
-      icon: MessageSquare,
-    },
-    {
-      target: '/search',
-      label: t('searchChannels'),
-      icon: Search,
-    },
-    {
-      target: '/marketplace/plugins',
-      label: t('marketplaceFilterPlugins'),
-      icon: Plug,
-    },
-    {
-      target: '/marketplace/mcp',
-      label: t('marketplaceFilterMcp'),
-      icon: Wrench,
-    },
-    {
-      target: '/runtime',
-      label: t('runtime'),
-      icon: GitBranch,
-    },
-    {
-      target: '/updates',
-      label: t('updates'),
-      icon: Download,
-    },
-    {
-      target: '/remote',
-      label: t('remote'),
-      icon: Wifi,
-    },
-    {
-      target: '/security',
-      label: t('security'),
-      icon: Shield,
-    },
-    {
-      target: '/sessions',
-      label: t('sessions'),
-      icon: History,
-    },
-    {
-      target: '/secrets',
-      label: t('secrets'),
-      icon: KeyRound,
-    }
-  ];
+  const settingsNavItems = getSettingsNavItems(t);
   const navItems = isSettingsMode ? settingsNavItems : mainNavItems;
   const sidebarDensity = isSettingsMode ? 'compact' : 'default';
 

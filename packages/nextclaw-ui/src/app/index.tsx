@@ -1,9 +1,13 @@
 import { lazy, Suspense, useEffect } from "react";
+import type { ReactElement } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { Toaster } from "sonner";
 import { appQueryClient } from "@/app-query-client";
 import { AppManagerProvider } from "@/app/components/app-manager-provider";
+import { AppLayout } from "@/app/components/layout/app-layout";
+import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { AccountPanel } from "@/features/account";
 import { useSystemStatusSources } from "@/features/system-status";
 import {
@@ -16,8 +20,6 @@ import {
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
-import { Toaster } from "sonner";
-import { Routes, Route, Navigate } from "react-router-dom";
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/components/config/ModelConfig")).ModelConfig,
@@ -62,163 +64,146 @@ const McpMarketplacePage = lazy(async () => ({
     .McpMarketplacePage,
 }));
 
+type RedirectRouteDefinition = {
+  path: string;
+  redirectTo: string;
+};
+
+type ElementRouteDefinition = {
+  path: string;
+  element: ReactElement;
+};
+
+type ProtectedRouteDefinition =
+  | RedirectRouteDefinition
+  | ElementRouteDefinition;
+
 function RouteFallback() {
   return (
     <div className="h-full w-full animate-pulse rounded-2xl border border-border/40 bg-card/40" />
   );
 }
 
-function LazyRoute({ children }: { children: JSX.Element }) {
+function LazyRoute({ children }: { children: ReactElement }) {
   return <Suspense fallback={<RouteFallback />}>{children}</Suspense>;
 }
 
-function ProtectedRoutes() {
+function createLazyElement(element: ReactElement): ReactElement {
+  return <LazyRoute>{element}</LazyRoute>;
+}
+
+const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
+  { path: "/chat/skills", redirectTo: "/skills" },
+  { path: "/chat/cron", redirectTo: "/cron" },
+  { path: "/chat/agents", redirectTo: "/agents" },
+  {
+    path: "/chat/:sessionId?",
+    element: createLazyElement(<ChatPage view="chat" />),
+  },
+  {
+    path: "/agents",
+    element: createLazyElement(<ChatPage view="agents" />),
+  },
+  {
+    path: "/skills",
+    element: createLazyElement(<ChatPage view="skills" />),
+  },
+  {
+    path: "/cron",
+    element: createLazyElement(<ChatPage view="cron" />),
+  },
+  {
+    path: "/model",
+    element: createLazyElement(<ModelConfigPage />),
+  },
+  {
+    path: "/search",
+    element: createLazyElement(<SearchConfigPage />),
+  },
+  {
+    path: "/providers",
+    element: createLazyElement(<ProvidersListPage />),
+  },
+  {
+    path: "/channels",
+    element: createLazyElement(<ChannelsListPage />),
+  },
+  {
+    path: "/runtime",
+    element: createLazyElement(<RuntimeConfigPage />),
+  },
+  {
+    path: "/updates",
+    element: createLazyElement(<DesktopUpdateConfigPage />),
+  },
+  {
+    path: "/remote",
+    element: createLazyElement(<RemoteAccessPage />),
+  },
+  {
+    path: "/security",
+    element: createLazyElement(<SecurityConfigPage />),
+  },
+  {
+    path: "/sessions",
+    element: createLazyElement(<SessionsConfigPage />),
+  },
+  {
+    path: "/secrets",
+    element: createLazyElement(<SecretsConfigPage />),
+  },
+  {
+    path: "/settings",
+    element: <SettingsEntryPage />,
+  },
+  {
+    path: "/marketplace/skills",
+    redirectTo: "/skills",
+  },
+  {
+    path: "/marketplace",
+    redirectTo: "/marketplace/plugins",
+  },
+  {
+    path: "/marketplace/mcp",
+    element: createLazyElement(<McpMarketplacePage />),
+  },
+  {
+    path: "/marketplace/:type",
+    element: createLazyElement(<MarketplacePage />),
+  },
+  {
+    path: "/",
+    redirectTo: "/chat",
+  },
+  {
+    path: "*",
+    redirectTo: "/chat",
+  },
+];
+
+function renderProtectedRoute(definition: ProtectedRouteDefinition) {
+  if ("redirectTo" in definition) {
+    return (
+      <Route
+        key={definition.path}
+        path={definition.path}
+        element={<Navigate to={definition.redirectTo} replace />}
+      />
+    );
+  }
+
   return (
-    <Routes>
-      <Route path="/chat/skills" element={<Navigate to="/skills" replace />} />
-      <Route path="/chat/cron" element={<Navigate to="/cron" replace />} />
-      <Route path="/chat/agents" element={<Navigate to="/agents" replace />} />
-      <Route
-        path="/chat/:sessionId?"
-        element={
-          <LazyRoute>
-            <ChatPage view="chat" />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/agents"
-        element={
-          <LazyRoute>
-            <ChatPage view="agents" />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/skills"
-        element={
-          <LazyRoute>
-            <ChatPage view="skills" />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/cron"
-        element={
-          <LazyRoute>
-            <ChatPage view="cron" />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/model"
-        element={
-          <LazyRoute>
-            <ModelConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/search"
-        element={
-          <LazyRoute>
-            <SearchConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/providers"
-        element={
-          <LazyRoute>
-            <ProvidersListPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/channels"
-        element={
-          <LazyRoute>
-            <ChannelsListPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/runtime"
-        element={
-          <LazyRoute>
-            <RuntimeConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/updates"
-        element={
-          <LazyRoute>
-            <DesktopUpdateConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/remote"
-        element={
-          <LazyRoute>
-            <RemoteAccessPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/security"
-        element={
-          <LazyRoute>
-            <SecurityConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/sessions"
-        element={
-          <LazyRoute>
-            <SessionsConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/secrets"
-        element={
-          <LazyRoute>
-            <SecretsConfigPage />
-          </LazyRoute>
-        }
-      />
-      <Route path="/settings" element={<Navigate to="/model" replace />} />
-      <Route
-        path="/marketplace/skills"
-        element={<Navigate to="/skills" replace />}
-      />
-      <Route
-        path="/marketplace"
-        element={<Navigate to="/marketplace/plugins" replace />}
-      />
-      <Route
-        path="/marketplace/mcp"
-        element={
-          <LazyRoute>
-            <McpMarketplacePage />
-          </LazyRoute>
-        }
-      />
-      <Route
-        path="/marketplace/:type"
-        element={
-          <LazyRoute>
-            <MarketplacePage />
-          </LazyRoute>
-        }
-      />
-      <Route path="/" element={<Navigate to="/chat" replace />} />
-      <Route path="*" element={<Navigate to="/chat" replace />} />
-    </Routes>
+    <Route
+      key={definition.path}
+      path={definition.path}
+      element={definition.element}
+    />
   );
+}
+
+function ProtectedRoutes() {
+  return <Routes>{protectedRouteDefinitions.map(renderProtectedRoute)}</Routes>;
 }
 
 function ProtectedApp() {

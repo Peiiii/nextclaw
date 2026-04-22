@@ -14,6 +14,7 @@ import type {
   ChatWorkspaceFileTab,
 } from '@/features/chat/stores/chat-thread.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import { viewportLayoutManager } from '@/app/managers/viewport-layout.manager';
 import { t } from '@/shared/lib/i18n';
 
 export class NcpChatThreadManager {
@@ -281,10 +282,7 @@ export class NcpChatThreadManager {
   };
 
   private isCompactViewport = (): boolean => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
-      return false;
-    }
-    return window.matchMedia('(max-width: 767px)').matches;
+    return viewportLayoutManager.getSnapshot().mode === 'mobile';
   };
 
   private deleteCurrentSession = async () => {

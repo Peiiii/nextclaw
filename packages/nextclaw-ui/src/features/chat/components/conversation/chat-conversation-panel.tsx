@@ -126,7 +126,7 @@ function ChatParentSessionBanner({
   }
   const trimmedLabel = parentSessionLabel.trim();
   return (
-    <div className="border-b border-gray-200/60 bg-white/75 px-5 py-2 backdrop-blur-sm">
+    <div className="border-b border-gray-200/60 bg-white/75 px-4 py-2 backdrop-blur-sm sm:px-5">
       <button
         type="button"
         onClick={onGoToParentSession}
@@ -165,7 +165,7 @@ function ChatConversationHeader({
   return (
     <div
       className={cn(
-        "px-5 border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-all duration-200",
+        "px-4 border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-all duration-200 sm:px-5",
         shouldShowSessionHeader ? "py-3 opacity-100" : "h-0 py-0 opacity-0 border-b-0",
       )}
     >
@@ -239,7 +239,7 @@ function ChatConversationAlerts({
   return (
     <>
       {shouldShowProviderHint ? (
-        <div className="px-5 py-2.5 border-b border-amber-200/70 bg-amber-50/70 flex items-center justify-between gap-3 shrink-0">
+        <div className="px-4 py-2.5 border-b border-amber-200/70 bg-amber-50/70 flex items-center justify-between gap-3 shrink-0 sm:px-5">
           <span className="text-xs text-amber-800">
             {t("chatModelNoOptions")}
           </span>
@@ -253,7 +253,7 @@ function ChatConversationAlerts({
         </div>
       ) : null}
       {sessionTypeUnavailable && sessionTypeUnavailableMessage?.trim() ? (
-        <div className="px-5 py-2.5 border-b border-amber-200/70 bg-amber-50/70 shrink-0">
+        <div className="px-4 py-2.5 border-b border-amber-200/70 bg-amber-50/70 shrink-0 sm:px-5">
           <span className="text-xs text-amber-800">
             {sessionTypeUnavailableMessage}
           </span>
@@ -301,11 +301,11 @@ function ChatConversationContent({
           onSelectAgent={onSelectAgent}
         />
       ) : hideEmptyHint ? null : snapshot.messages.length === 0 ? (
-        <div className="px-5 py-5 text-sm text-gray-500">
+        <div className="px-4 py-4 text-sm text-gray-500 sm:px-5 sm:py-5">
           {t("chatNoMessages")}
         </div>
       ) : (
-        <div className="mx-auto w-full max-w-[min(1120px,100%)] px-6 py-5">
+        <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
           <ChatMessageListContainer
             key={snapshot.sessionKey ?? "draft"}
             messages={snapshot.messages}
@@ -330,7 +330,11 @@ function shouldShowWorkspacePanel(
   return childSessionTabs.length > 0 || workspaceFileTabs.length > 0;
 }
 
-export function ChatConversationPanel() {
+export function ChatConversationPanel({
+  layoutMode = "desktop",
+}: {
+  layoutMode?: "desktop" | "mobile";
+}) {
   const presenter = usePresenter();
   const defaultSessionType = useChatInputStore(
     (state) => state.snapshot.defaultSessionType,
@@ -462,6 +466,7 @@ export function ChatConversationPanel() {
           workspaceFileTabs={workspaceFileTabs}
           activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
           sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
+          displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
           onSelectSession={presenter.chatThreadManager.selectChildSessionDetail}
           onSelectFile={presenter.chatThreadManager.selectWorkspaceFile}
           onCloseFile={presenter.chatThreadManager.closeWorkspaceFile}

@@ -13,6 +13,7 @@ import { resolveChannelTutorialUrl } from '@/features/channels/utils/channel-tut
 import { t } from '@/shared/lib/i18n';
 import { getChannelLogo } from '@/shared/lib/logos';
 import { cn } from '@/shared/lib/utils';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 
 const channelDescriptionKeys: Record<string, string> = {
   telegram: 'channelDescTelegram',
@@ -39,11 +40,12 @@ function sortChannelsForDisplay<T extends { name: string }>(channels: T[]) {
 }
 
 export function ChannelsList() {
+  const { isMobile } = useViewportLayout();
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
   const { data: schema } = useConfigSchema();
   const [activeTab, setActiveTab] = useState('enabled');
-  const [selectedChannel, setSelectedChannel] = useState<string>();
+  const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const channels = useMemo(() => sortChannelsForDisplay(meta?.channels ?? []), [meta?.channels]);
   const channelConfigs = config?.channels;
@@ -61,7 +63,12 @@ export function ChannelsList() {
       });
   }, [activeTab, channelConfigs, channels, query]);
 
-  const resolvedSelectedChannel = filteredChannels.some((channel) => channel.name === selectedChannel) ? selectedChannel : filteredChannels[0]?.name;
+  const resolvedSelectedChannel =
+    selectedChannel && filteredChannels.some((channel) => channel.name === selectedChannel)
+      ? selectedChannel
+      : isMobile
+        ? null
+        : filteredChannels[0]?.name ?? null;
 
   if (!config || !meta) {
     return <div className="p-8 text-gray-400">{t('channelsLoading')}</div>;
@@ -70,7 +77,12 @@ export function ChannelsList() {
   return (
     <PageLayout className="pb-0 xl:flex xl:h-full xl:min-h-0 xl:flex-col">
       <PageHeader title={t('channelsPageTitle')} description={t('channelsPageDescription')} />
-      <ConfigSplitPage className="xl:min-h-0">
+      <ConfigSplitPage
+        className="xl:min-h-0"
+        mobileView={isMobile ? (resolvedSelectedChannel ? 'detail' : 'list') : undefined}
+        onMobileBack={() => setSelectedChannel(null)}
+        mobileListLabel={t('channelsPageTitle')}
+      >
         <ConfigSplitSidebar>
           <ConfigSplitPaneHeader className="px-4 pt-4">
             <Tabs
@@ -138,7 +150,7 @@ export function ChannelsList() {
           </ConfigSplitPaneBody>
         </ConfigSplitSidebar>
 
-        <ChannelForm channelName={resolvedSelectedChannel} />
+        <ChannelForm channelName={resolvedSelectedChannel ?? undefined} />
       </ConfigSplitPage>
     </PageLayout>
   );
