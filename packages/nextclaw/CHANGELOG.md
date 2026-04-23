@@ -1,5 +1,15 @@
 # nextclaw
 
+## 0.18.5
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/ui
+  - nextclaw
+
 ## 0.18.4
 
 ### Patch Changes
