@@ -1,13 +1,13 @@
 ---
 name: gemigo-cli
-description: Use when the user wants to install, log in to, configure, or operate the local GemiGo CLI (`gemigo`) through NextClaw, especially to publish a built static app and obtain a hosted public URL.
+description: Use when the user wants to publish an already-built static website or front-end app through GemiGo, such as a Vite/React/Vue static build, plain HTML/CSS/JS page, landing page, demo, docs site, or small browser app, and get a hosted public URL.
 ---
 
 # GemiGo CLI
 
 ## Overview
 
-Use this skill when the user wants to publish a built static app through the local `gemigo` CLI from inside NextClaw.
+Use this skill when the user wants to publish an already-built static website or front-end app through the local `gemigo` CLI from inside NextClaw, then get a hosted public URL.
 
 This skill is intentionally decoupled:
 
@@ -24,6 +24,28 @@ From the user's point of view, the experience should feel complete:
 - then deploy and report the resulting hosted URL.
 
 Do not pretend the environment is ready when it is not.
+
+## What Users Can Deploy
+
+Use plain language with the user: this skill helps them put a finished front-end app online.
+
+Good fits:
+
+- a Vite, React, Vue, Svelte, Astro, or similar front-end app after it has been built into `dist`, `build`, `out`, or another static output directory
+- a plain HTML/CSS/JavaScript page or mini app
+- a landing page, portfolio page, product demo, prototype, docs site, or static dashboard
+- a small browser-only tool that does not need its own server process
+- a zipped or generated static folder that contains `index.html`
+
+Not a fit unless the project is first converted to static output:
+
+- a raw source repository root
+- a Node/Express/Nest server app
+- a Next.js app that still needs server-side rendering at runtime
+- a backend API, database service, worker service, or long-running process
+- anything that requires secrets or server code to run after deployment
+
+If the user says "deploy my app" and gives you source code, first help them build it. Only deploy the generated static output folder.
 
 ## Current Product Boundary
 

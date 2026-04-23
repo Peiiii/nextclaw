@@ -1,15 +1,15 @@
 {
   "slug": "gemigo-cli",
   "name": "GemiGo CLI",
-  "summary": "Use the local GemiGo CLI through NextClaw to publish a built static app with guided setup, auth checks, deploy confirmation, and hosted URL reporting.",
+  "summary": "Deploy an already-built static website or front-end app with GemiGo, then get a hosted public URL.",
   "summaryI18n": {
-    "en": "Use the local GemiGo CLI through NextClaw to publish a built static app with guided setup, auth checks, deploy confirmation, and hosted URL reporting.",
-    "zh": "在 NextClaw 中使用本地 GemiGo CLI，覆盖静态产物发布所需的安装引导、登录检查、部署确认与最终 URL 回传。"
+    "en": "Deploy an already-built static website or front-end app with GemiGo, then get a hosted public URL.",
+    "zh": "用 GemiGo 部署已经构建好的静态网站或前端小应用，并拿到可访问的公开 URL。"
   },
-  "description": "Use this skill when the user wants to publish a built static app through the local GemiGo CLI. The skill distinguishes marketplace install from local CLI install, validates the static output directory and gemigo.app.json, verifies login with gemigo whoami, and keeps remote deploy actions behind explicit confirmation before reporting the hosted URL.",
+  "description": "Use this skill when the user wants to put a finished front-end project online: Vite/React/Vue/Svelte/Astro static builds, plain HTML/CSS/JS pages, landing pages, portfolios, demos, prototypes, docs sites, or small browser-only tools. It guides the user through installing and logging in to the local GemiGo CLI, checking the static output folder, preparing gemigo.app.json, confirming the remote deploy action, and reporting the final hosted URL. It does not deploy raw source repos, server-side apps, APIs, databases, or apps that still need a backend process.",
   "descriptionI18n": {
-    "en": "Use this skill when the user wants to publish a built static app through the local GemiGo CLI. The skill distinguishes marketplace install from local CLI install, validates the static output directory and gemigo.app.json, verifies login with gemigo whoami, and keeps remote deploy actions behind explicit confirmation before reporting the hosted URL.",
-    "zh": "当用户希望通过本地 GemiGo CLI 发布自己已经构建好的静态应用时使用此技能。它会明确区分 marketplace skill 安装与本机 CLI 安装，校验静态输出目录与 gemigo.app.json，用 gemigo whoami 检查登录状态，并把真正的远端部署动作放在显式确认之后，再把最终托管 URL 返回给用户。"
+    "en": "Use this skill when the user wants to put a finished front-end project online: Vite/React/Vue/Svelte/Astro static builds, plain HTML/CSS/JS pages, landing pages, portfolios, demos, prototypes, docs sites, or small browser-only tools. It guides the user through installing and logging in to the local GemiGo CLI, checking the static output folder, preparing gemigo.app.json, confirming the remote deploy action, and reporting the final hosted URL. It does not deploy raw source repos, server-side apps, APIs, databases, or apps that still need a backend process.",
+    "zh": "当用户想把一个已经做好的前端项目上线时使用这个技能，例如 Vite/React/Vue/Svelte/Astro 构建后的静态目录、纯 HTML/CSS/JS 页面、落地页、作品集、Demo、原型、文档站或不需要后端进程的小工具。它会引导用户安装并登录本地 GemiGo CLI，检查静态产物目录，准备 gemigo.app.json，确认远端部署动作，并在成功后返回最终可访问的托管 URL。它不负责部署未构建的源码仓库、服务端应用、API、数据库，或仍需要后端进程运行的应用。"
   },
   "author": "NextClaw",
   "tags": [

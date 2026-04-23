@@ -18,6 +18,10 @@
 - 已将该 skill 正式发布到 NextClaw marketplace：
   - canonical package：`@nextclaw/gemigo-cli`
   - alias：`gemigo-cli`
+- 同批次续改：
+  - 根据用户反馈，补强 marketplace 对普通用户可见的介绍文案，明确说明它可以部署的对象包括：Vite/React/Vue/Svelte/Astro 等前端静态构建产物、纯 HTML/CSS/JS 页面、落地页、作品集、Demo、原型、文档站和无需后端进程的小工具。
+  - 同时明确排除未构建的源码仓库、服务端应用、API、数据库和仍需要后端进程运行的应用，避免用户误以为它是通用云部署平台。
+  - 在 [`skills/gemigo-cli/SKILL.md`](../../../skills/gemigo-cli/SKILL.md) 新增 `What Users Can Deploy` 章节，让助手对用户解释时更直白。
 
 ## 测试/验证/验收方式
 
@@ -39,6 +43,23 @@ nextclaw skills publish skills/gemigo-cli --meta skills/gemigo-cli/marketplace.j
   - `✓ Published new skill: @nextclaw/gemigo-cli`
   - `Alias: gemigo-cli`
   - `Files: 2`
+
+### 同批次文案更新验证
+
+```bash
+nextclaw skills update skills/gemigo-cli --meta skills/gemigo-cli/marketplace.json --package-name @nextclaw/gemigo-cli --api-base https://marketplace-api.nextclaw.io
+```
+
+- 结果：
+  - `✓ Updated skill: @nextclaw/gemigo-cli`
+  - `Alias: gemigo-cli`
+  - `Files: 2`
+- 远端 `updatedAt` 更新为 `2026-04-23T01:28:22.456Z`
+- 远端中文描述已明确写出可部署对象：
+  - Vite/React/Vue/Svelte/Astro 构建后的静态目录
+  - 纯 HTML/CSS/JS 页面
+  - 落地页、作品集、Demo、原型、文档站
+  - 不需要后端进程的小工具
 
 ### 远端条目校验
 
