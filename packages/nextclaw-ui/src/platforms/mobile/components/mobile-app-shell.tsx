@@ -35,7 +35,7 @@ export function MobileAppShell({
       <MobileBottomNav />
       {isDocBrowserOpen ? (
         <Suspense fallback={null}>
-          <DocBrowser />
+          <DocBrowser displayMode="fullscreen" />
         </Suspense>
       ) : null}
     </div>

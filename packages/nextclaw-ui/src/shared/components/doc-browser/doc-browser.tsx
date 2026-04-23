@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type CSSProperties } from 'react';
 import { DOCS_DEFAULT_BASE_URL, isDocsUrl, useDocBrowser } from './doc-browser-context';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
@@ -22,8 +22,44 @@ import {
  * - multi-tab browsing
  * - `docked`: right sidebar panel (horizontally resizable)
  * - `floating`: draggable, resizable overlay
+ * - `fullscreen`: full viewport overlay for narrow mobile shells
  */
-export function DocBrowser() {
+type DocBrowserProps = {
+  displayMode?: 'desktop' | 'fullscreen';
+};
+
+function getPanelClassName(isFullscreen: boolean, isDocked: boolean): string {
+  return cn(
+    'flex flex-col bg-white overflow-hidden relative',
+    isFullscreen
+      ? 'fixed inset-0 z-[9999] h-[100dvh] w-screen rounded-none border-0 shadow-2xl'
+      : isDocked
+        ? 'h-full border-l border-gray-200 shrink-0'
+        : 'rounded-2xl shadow-2xl border border-gray-200',
+  );
+}
+
+function getPanelStyle(params: {
+  isFullscreen: boolean;
+  isDocked: boolean;
+  dockedWidth: number;
+  floatPos: { x: number; y: number };
+  floatSize: { w: number; h: number };
+}): CSSProperties | undefined {
+  const { isFullscreen, isDocked, dockedWidth, floatPos, floatSize } = params;
+  if (isFullscreen) return undefined;
+  if (isDocked) return { width: dockedWidth };
+  return {
+    position: 'fixed',
+    left: floatPos.x,
+    top: floatPos.y,
+    width: floatSize.w,
+    height: floatSize.h,
+    zIndex: 9999,
+  };
+}
+
+export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
   const {
     isOpen,
     mode,
@@ -236,29 +272,16 @@ export function DocBrowser() {
   if (!isOpen) return null;
 
   const isDocked = mode === 'docked';
+  const isFullscreen = displayMode === 'fullscreen';
+  const canDragPanel = !isDocked && !isFullscreen;
 
   const panel = (
     <div
-      className={cn(
-        'flex flex-col bg-white overflow-hidden relative',
-        isDocked
-          ? 'h-full border-l border-gray-200 shrink-0'
-          : 'rounded-2xl shadow-2xl border border-gray-200',
-      )}
-      style={
-        isDocked
-          ? { width: dockedWidth }
-          : {
-            position: 'fixed',
-            left: floatPos.x,
-            top: floatPos.y,
-            width: floatSize.w,
-            height: floatSize.h,
-            zIndex: 9999,
-          }
-      }
+      data-testid="doc-browser-panel"
+      className={getPanelClassName(isFullscreen, isDocked)}
+      style={getPanelStyle({ isFullscreen, isDocked, dockedWidth, floatPos, floatSize })}
     >
-      {isDocked && (
+      {isDocked && !isFullscreen && (
         <div
           className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors"
           onMouseDown={onDockResizeStart}
@@ -268,22 +291,25 @@ export function DocBrowser() {
       <div
         className={cn(
           'flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-200 shrink-0 select-none',
-          !isDocked && 'cursor-grab active:cursor-grabbing',
+          canDragPanel && 'cursor-grab active:cursor-grabbing',
+          isFullscreen && 'pt-[calc(env(safe-area-inset-top,0px)+0.625rem)]',
         )}
-        onMouseDown={!isDocked ? onDragStart : undefined}
+        onMouseDown={canDragPanel ? onDragStart : undefined}
       >
         <div className="flex items-center gap-2.5 min-w-0">
           <BookOpen className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-semibold text-gray-900 truncate">{t('docBrowserTitle')}</span>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            onClick={toggleMode}
-            className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
-            title={isDocked ? t('docBrowserFloatMode') : t('docBrowserDockMode')}
-          >
-            {isDocked ? <Maximize2 className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
-          </button>
+          {!isFullscreen ? (
+            <button
+              onClick={toggleMode}
+              className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+              title={isDocked ? t('docBrowserFloatMode') : t('docBrowserDockMode')}
+            >
+              {isDocked ? <Maximize2 className="w-3.5 h-3.5" /> : <PanelRightOpen className="w-3.5 h-3.5" />}
+            </button>
+          ) : null}
           <button
             onClick={close}
             className="hover:bg-gray-200 rounded-md p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
@@ -398,7 +424,7 @@ export function DocBrowser() {
         </div>
       )}
 
-      {!isDocked && (
+      {!isDocked && !isFullscreen && (
         <>
           <div className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onLeftResizeStart} />
           <div className="absolute top-0 right-0 w-1.5 h-full cursor-ew-resize z-20 hover:bg-primary/10 transition-colors" onMouseDown={onResizeStart} data-axis="x" />

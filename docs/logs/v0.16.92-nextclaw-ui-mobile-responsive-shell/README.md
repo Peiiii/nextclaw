@@ -23,6 +23,9 @@
 - 同批次顺手修复了两处运行链路收口问题：
   - 修正了 `vitest.config.ts` 中仍指向旧 `providers / pwa` 路径的 alias
   - 把 `marketplace-page-detail.test.tsx` 中不兼容当前 `ES2020` 目标的 `.at()` 改为等价索引写法，保证包级 `tsc` 通过
+- 同批次继续修复了移动端打开文档浏览器后的布局问题：
+  - 根因已确认：`MobileAppShell` 只是渲染了共享 `DocBrowser`，但 `DocBrowser` 本身只有桌面 `docked / floating` 呈现，仍保留固定桌面宽度、拖拽、resize 与模式切换控件，手机端没有全屏覆盖契约。
+  - 修复方式：为 [packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx) 增加 `displayMode="fullscreen"` 展示契约；[packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx) 在手机壳层中显式传入该模式，让文档浏览器以全视口覆盖层显示，并隐藏桌面 resize / drag / dock-toggle 控件。
 
 # 测试/验证/验收方式
 
@@ -34,6 +37,12 @@
 
 - 运行：`pnpm -C packages/nextclaw-ui build`
 - 结果：通过。
+
+- 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/shared/components/doc-browser/doc-browser.test.tsx src/app/components/layout/app-layout.test.tsx`
+- 结果：通过，`2` 个测试文件、`4` 个测试用例全部通过。
+
+- 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx`
+- 结果：通过，无错误，保留 `2` 条 warning，均为 `DocBrowser` 历史体量接近预算/函数体量偏大；本次通过抽出布局 class/style helper，未继续恶化 `DocBrowser` 函数体量。
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次移动端适配相关文件>`
 - 结果：通过，无错误，保留 `4` 条 warning；统计结果为：
@@ -64,6 +73,7 @@
 6. 进入 `/settings`，确认先看到设置入口列表；点击某个设置项后进入详情页；返回时回到设置列表。
 7. 进入 `providers / channels / search / sessions` 等典型 split 页面，确认手机端不再出现被横向压缩的双栏。
 8. 切回桌面尺寸，确认原有桌面壳层、桌面侧栏与主内容区仍可正常工作。
+9. 在手机尺寸下点击文档入口，确认文档浏览器以全屏覆盖层打开，不出现桌面侧边栏宽度、拖拽 resize 控件或 dock/floating 切换按钮。
 
 # 可维护性总结汇总
 
@@ -73,6 +83,7 @@
 - 抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰，是否避免了过度抽象或补丁式叠加：是。业务逻辑仍留在 `features/*`，通用能力仍留在 `shared/*`，`platforms/mobile` 只承接设备差异壳层；没有把聊天 manager、session store、配置数据 owner 搬进移动端目录。入口路由也改成配置驱动声明，减少继续在壳层里堆硬编码分支的风险。
 - 目录结构与文件组织是否满足当前项目治理要求：本次触达范围满足。`src` 根目录不再继续增长新的业务入口文件；移动端差异集中在 `platforms/mobile`，没有引入新的 `runtime/host` 轴。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：本次已基于守卫结果做独立复核，结论为 `通过`，`no maintainability findings`。当前仍保留的风险不是结构性错误，而是若后续继续触达 `ChatConversationPanel`、`ChatSidebar` 与 `search-config`，应优先拆出更细的局部模块，避免它们越过文件预算。
+- 移动端文档浏览器修复的可维护性复核：结论为 `通过`。本次没有复制一份 mobile-only doc browser，也没有把设备判断散落到业务调用点，而是给共享 `DocBrowser` 增加一个明确展示契约，由 mobile shell 组合使用。当前 `DocBrowser` 文件仍接近预算，后续若继续增强文档浏览器，应优先拆分 header / tab strip / iframe surface / resize handles。
 
 # NPM 包发布记录
 
