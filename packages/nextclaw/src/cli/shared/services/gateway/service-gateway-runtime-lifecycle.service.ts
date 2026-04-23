@@ -1,10 +1,10 @@
 import { setPluginRuntimeBridge, stopPluginChannelGateways } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
-import { localUiRuntimeStore } from "../../../shared/stores/local-ui-runtime.store.js";
+import { localUiRuntimeStore } from "@/cli/shared/stores/local-ui-runtime.store.js";
 import type { ServiceFileWatcherRegistry } from "./service-startup-support.js";
 import type { UiStartupHandle } from "./service-gateway-startup.service.js";
 import type { GatewayRuntimeState } from "./service-gateway-bootstrap.service.js";
-import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.js";
+import type { ServiceBootstrapStatusStore } from "./service-bootstrap-status.service.js";
 
 export function handleGatewayDeferredStartupError(params: {
   bootstrapStatus: ServiceBootstrapStatusStore;

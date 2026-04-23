@@ -37,8 +37,12 @@ export function summarizeRuns(runs) {
     "uiApiReachableMs",
     "authStatusOkMs",
     "healthOkMs",
+    "frontendServerReadyMs",
+    "frontendAuthStatusOkMs",
     "ncpAgentReadyMs",
     "bootstrapReadyMs",
+    "pluginHydrationReadyMs",
+    "channelsReadyMs",
   ];
   return Object.fromEntries(
     keys.map((key) => [
@@ -82,6 +86,8 @@ export function formatCommand(template, params) {
   return template
     .replaceAll("{host}", params.host)
     .replaceAll("{port}", String(params.port))
+    .replaceAll("{frontendPort}", String(params.frontendPort ?? ""))
+    .replaceAll("{frontendUrl}", params.frontendUrl ?? "")
     .replaceAll("{baseUrl}", params.baseUrl)
     .replaceAll("{home}", params.home);
 }
@@ -153,6 +159,30 @@ export async function fetchJson(url) {
       status: null,
       body: null,
       text: "",
+      error: error instanceof Error ? error.message : String(error),
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function fetchHttp(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 800);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    await response.arrayBuffer();
+    return {
+      ok: response.ok,
+      status: response.status,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: null,
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {

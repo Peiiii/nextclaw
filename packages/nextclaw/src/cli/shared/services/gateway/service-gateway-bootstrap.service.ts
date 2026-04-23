@@ -14,7 +14,7 @@ import {
   type GatewayStartupContext
 } from "@/cli/shared/services/gateway/service-gateway-context.service.js";
 import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
-import { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
+import { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.service.js";
 import { hydrateServiceCapabilities } from "@/cli/shared/services/gateway/service-capability-hydration.service.js";
 import { installPluginRuntimeBridge } from "@/cli/shared/services/plugin/service-plugin-runtime-bridge.service.js";
 import { reloadServicePlugins } from "@/cli/shared/services/plugin/service-plugin-reload.service.js";

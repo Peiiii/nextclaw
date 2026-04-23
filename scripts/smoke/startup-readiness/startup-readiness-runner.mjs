@@ -2,6 +2,7 @@ import { rmSync } from "node:fs";
 import { spawn } from "node:child_process";
 import {
   createArtifactHome,
+  fetchHttp,
   fetchJson,
   findAvailablePort,
   formatCommand,
@@ -11,6 +12,7 @@ import {
   summarizeRuns,
   terminateChild,
 } from "./startup-readiness-support.mjs";
+import { printRunWaterfall } from "./startup-readiness-waterfall.mjs";
 
 const STARTUP_TRACE_ENV_KEY = "NEXTCLAW_STARTUP_TRACE";
 
@@ -21,27 +23,45 @@ function getCriterionValue(run, criterion) {
   if (criterion === "auth-status") {
     return run.authStatusOkMs;
   }
+  if (criterion === "frontend-auth-status") {
+    return run.frontendAuthStatusOkMs;
+  }
   if (criterion === "health") {
     return run.healthOkMs;
   }
   if (criterion === "bootstrap-ready") {
     return run.bootstrapReadyMs;
   }
+  if (criterion === "plugin-hydration-ready") {
+    return run.pluginHydrationReadyMs;
+  }
+  if (criterion === "channels-ready") {
+    return run.channelsReadyMs;
+  }
   return run.ncpAgentReadyMs;
 }
 
-function createRunRecord(runIndex, port, homeDir, baseUrl, command) {
+function createRunRecord(runIndex, port, homeDir, baseUrl, command, frontend) {
   return {
     runIndex,
     port,
     homeDir,
     baseUrl,
     command,
+    frontendPort: frontend?.port ?? null,
+    frontendUrl: frontend?.url ?? null,
+    frontendCommand: frontend?.command ?? null,
     uiApiReachableMs: null,
     authStatusOkMs: null,
+    frontendServerReadyMs: null,
+    frontendAuthStatusOkMs: null,
+    frontendAuthStatusFailureCount: 0,
+    frontendAuthStatusLastError: null,
     healthOkMs: null,
     ncpAgentReadyMs: null,
     bootstrapReadyMs: null,
+    pluginHydrationReadyMs: null,
+    channelsReadyMs: null,
     startupTrace: [],
     stdoutLines: [],
     stderrLines: [],
@@ -52,7 +72,7 @@ function createRunRecord(runIndex, port, homeDir, baseUrl, command) {
   };
 }
 
-function spawnBenchmarkChild(homeDir, command) {
+function spawnBenchmarkChild(homeDir, command, extraEnv = {}) {
   const shell = process.platform === "win32" ? "cmd.exe" : process.env.SHELL || "zsh";
   const shellArgs = process.platform === "win32" ? ["/d", "/s", "/c", command] : ["-lc", command];
   return spawn(shell, shellArgs, {
@@ -61,12 +81,13 @@ function spawnBenchmarkChild(homeDir, command) {
       ...process.env,
       NEXTCLAW_HOME: homeDir,
       [STARTUP_TRACE_ENV_KEY]: "1",
+      ...extraEnv,
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
 }
 
-function attachChildOutput(child, run) {
+function attachChildOutput(child, run, prefix = "") {
   const buffers = {
     stdout: "",
     stderr: "",
@@ -76,7 +97,7 @@ function attachChildOutput(child, run) {
   child.stderr.setEncoding("utf8");
   child.stdout.on("data", (chunk) => {
     buffers.stdout = normalizeLineBuffer(buffers.stdout, chunk, (line) => {
-      run.stdoutLines.push(line);
+      run.stdoutLines.push(prefix ? `${prefix}${line}` : line);
       const trace = parseStartupTraceLine(line);
       if (trace) {
         run.startupTrace.push(trace);
@@ -85,7 +106,7 @@ function attachChildOutput(child, run) {
   });
   child.stderr.on("data", (chunk) => {
     buffers.stderr = normalizeLineBuffer(buffers.stderr, chunk, (line) => {
-      run.stderrLines.push(line);
+      run.stderrLines.push(prefix ? `${prefix}${line}` : line);
     });
   });
 
@@ -103,6 +124,12 @@ function recordBootstrapMilestones(run, elapsedMs, bootstrap) {
   if (bootstrapData?.phase === "ready" && run.bootstrapReadyMs === null) {
     run.bootstrapReadyMs = elapsedMs;
   }
+  if (bootstrapData?.pluginHydration?.state === "ready" && run.pluginHydrationReadyMs === null) {
+    run.pluginHydrationReadyMs = elapsedMs;
+  }
+  if (bootstrapData?.channels?.state === "ready" && run.channelsReadyMs === null) {
+    run.channelsReadyMs = elapsedMs;
+  }
 }
 
 function recordHealthMilestone(run, elapsedMs, health) {
@@ -119,9 +146,40 @@ function recordAuthStatusMilestone(run, elapsedMs, authStatus) {
   }
 }
 
-async function pollRunUntilCriterion(options, run, child, startedAt) {
+function recordFrontendServerMilestone(run, elapsedMs, frontendResponse) {
+  if (!run.frontendUrl || run.frontendServerReadyMs !== null) {
+    return;
+  }
+  if (frontendResponse.ok) {
+    run.frontendServerReadyMs = elapsedMs;
+  }
+}
+
+function recordFrontendAuthStatusMilestone(run, elapsedMs, authStatus) {
+  if (run.frontendServerReadyMs === null || run.frontendAuthStatusOkMs !== null) {
+    return;
+  }
+  const authStatusOk = authStatus.ok && authStatus.body?.ok === true && typeof authStatus.body?.data === "object";
+  if (authStatusOk) {
+    run.frontendAuthStatusOkMs = elapsedMs;
+    return;
+  }
+  run.frontendAuthStatusFailureCount += 1;
+  run.frontendAuthStatusLastError = authStatus.error ?? `HTTP ${String(authStatus.status)}`;
+}
+
+async function pollRunUntilCriterion(options, run, processes, startedAt) {
   while (Date.now() - startedAt < options.timeoutMs) {
     const elapsedMs = Date.now() - startedAt;
+    if (run.frontendUrl) {
+      recordFrontendServerMilestone(
+        run,
+        elapsedMs,
+        await fetchHttp(run.frontendUrl)
+      );
+    }
+    const authStatus = await fetchJson(`${run.baseUrl}/api/auth/status`);
+    recordFrontendAuthStatusMilestone(run, elapsedMs, authStatus);
     recordBootstrapMilestones(
       run,
       elapsedMs,
@@ -130,7 +188,7 @@ async function pollRunUntilCriterion(options, run, child, startedAt) {
     recordAuthStatusMilestone(
       run,
       elapsedMs,
-      await fetchJson(`${run.baseUrl}/api/auth/status`)
+      authStatus
     );
     recordHealthMilestone(
       run,
@@ -143,8 +201,11 @@ async function pollRunUntilCriterion(options, run, child, startedAt) {
       return;
     }
 
-    if (child.exitCode !== null || child.signalCode !== null) {
-      run.failureReason = `startup process exited before criterion was reached (exit=${child.exitCode ?? "null"}, signal=${child.signalCode ?? "null"})`;
+    const exitedProcess = processes.find((processInfo) =>
+      processInfo.child.exitCode !== null || processInfo.child.signalCode !== null
+    );
+    if (exitedProcess) {
+      run.failureReason = `${exitedProcess.label} process exited before criterion was reached (exit=${exitedProcess.child.exitCode ?? "null"}, signal=${exitedProcess.child.signalCode ?? "null"})`;
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, options.pollMs));
@@ -153,42 +214,97 @@ async function pollRunUntilCriterion(options, run, child, startedAt) {
   run.failureReason = `criterion ${options.criterion} not reached within ${options.timeoutMs}ms`;
 }
 
-async function finalizeRun(options, run, child, buffers) {
-  await terminateChild(child);
+async function finalizeRun(options, run, processes) {
+  for (const processInfo of processes) {
+    await terminateChild(processInfo.child);
+  }
   run.childExit = {
-    exitCode: child.exitCode,
-    signalCode: child.signalCode,
+    exitCode: processes[0]?.child.exitCode ?? null,
+    signalCode: processes[0]?.child.signalCode ?? null,
   };
   run.serviceLogTail = readServiceLogTail(run.homeDir).tail;
-  if (buffers.stdout.trim()) {
-    run.stdoutLines.push(buffers.stdout.trim());
+  for (const processInfo of processes) {
+    if (processInfo.buffers.stdout.trim()) {
+      run.stdoutLines.push(`${processInfo.prefix}${processInfo.buffers.stdout.trim()}`);
+    }
+    if (processInfo.buffers.stderr.trim()) {
+      run.stderrLines.push(`${processInfo.prefix}${processInfo.buffers.stderr.trim()}`);
+    }
   }
-  if (buffers.stderr.trim()) {
-    run.stderrLines.push(buffers.stderr.trim());
-  }
-  if (!options.keepArtifacts && run.success) {
+  if (!options.home && !options.keepArtifacts && run.success) {
     rmSync(run.homeDir, { recursive: true, force: true });
   }
 }
 
 async function measureSingleRun(options, runIndex) {
-  const homeDir = createArtifactHome();
+  const homeDir = options.home ?? createArtifactHome();
   const port = options.port ?? await findAvailablePort(options.host);
+  let frontendPort = options.frontendServer
+    ? options.frontendPort ?? await findAvailablePort(options.host)
+    : null;
+  while (frontendPort === port) {
+    frontendPort = await findAvailablePort(options.host);
+  }
   const baseUrl = `http://${options.host}:${port}`;
+  const frontendUrl = frontendPort ? `http://${options.host}:${frontendPort}` : null;
   const command = formatCommand(options.commandTemplate, {
     host: options.host,
     port,
+    frontendPort,
+    frontendUrl,
     baseUrl,
     home: homeDir,
   });
-  const run = createRunRecord(runIndex, port, homeDir, baseUrl, command);
+  const frontendCommand = frontendUrl
+    ? formatCommand(options.frontendCommandTemplate, {
+      host: options.host,
+      port,
+      frontendPort,
+      frontendUrl,
+      baseUrl,
+      home: homeDir,
+    })
+    : null;
+  const run = createRunRecord(
+    runIndex,
+    port,
+    homeDir,
+    baseUrl,
+    command,
+    frontendUrl && frontendPort
+      ? {
+        port: frontendPort,
+        url: frontendUrl,
+        command: frontendCommand,
+      }
+      : null
+  );
   const child = spawnBenchmarkChild(homeDir, command);
-  const buffers = attachChildOutput(child, run);
+  const processes = [
+    {
+      label: "backend",
+      child,
+      buffers: attachChildOutput(child, run),
+      prefix: "",
+    },
+  ];
+  if (frontendCommand && frontendUrl && !options.frontendManagedByCommand) {
+    const frontendChild = spawnBenchmarkChild(homeDir, frontendCommand, {
+      VITE_API_BASE: baseUrl,
+    });
+    processes.push({
+      label: "frontend",
+      child: frontendChild,
+      buffers: attachChildOutput(frontendChild, run, "[frontend] "),
+      prefix: "[frontend] ",
+    });
+  }
+  const startedAt = Date.now();
 
   try {
-    await pollRunUntilCriterion(options, run, child, Date.now());
+    await pollRunUntilCriterion(options, run, processes, startedAt);
   } finally {
-    await finalizeRun(options, run, child, buffers);
+    await finalizeRun(options, run, processes);
   }
 
   return run;
@@ -203,6 +319,10 @@ export async function runBenchmark(options) {
   return {
     criterion: options.criterion,
     commandTemplate: options.commandTemplate,
+    devRunner: options.devRunner,
+    frontendCommandTemplate: options.frontendCommandTemplate,
+    frontendManagedByCommand: options.frontendManagedByCommand,
+    frontendServer: options.frontendServer,
     runs,
     aggregate: summarizeRuns(runs),
   };
@@ -211,15 +331,25 @@ export async function runBenchmark(options) {
 export function printPrettySummary(summary) {
   console.log(`criterion: ${summary.criterion}`);
   console.log(`commandTemplate: ${summary.commandTemplate}`);
+  if (summary.devRunner) {
+    console.log("mode: dev-runner");
+  }
+  if (summary.frontendServer && !summary.frontendManagedByCommand) {
+    console.log(`frontendCommandTemplate: ${summary.frontendCommandTemplate}`);
+  }
   console.log(`runs: ${summary.runs.length}`);
   for (const run of summary.runs) {
     const status = run.success ? "ok" : "failed";
     console.log(
-      `run #${run.runIndex} [${status}] port=${run.port} uiApi=${run.uiApiReachableMs ?? "-"}ms authStatus=${run.authStatusOkMs ?? "-"}ms health=${run.healthOkMs ?? "-"}ms ncpReady=${run.ncpAgentReadyMs ?? "-"}ms ready=${run.bootstrapReadyMs ?? "-"}ms`
+      `run #${run.runIndex} [${status}] port=${run.port} uiApi=${run.uiApiReachableMs ?? "-"}ms authStatus=${run.authStatusOkMs ?? "-"}ms frontendServer=${run.frontendServerReadyMs ?? "-"}ms frontendAuthStatus=${run.frontendAuthStatusOkMs ?? "-"}ms frontendAuthFailures=${run.frontendAuthStatusFailureCount} health=${run.healthOkMs ?? "-"}ms ncpReady=${run.ncpAgentReadyMs ?? "-"}ms ready=${run.bootstrapReadyMs ?? "-"}ms pluginReady=${run.pluginHydrationReadyMs ?? "-"}ms channelsReady=${run.channelsReadyMs ?? "-"}ms`
     );
+    if (run.frontendAuthStatusLastError && run.frontendAuthStatusOkMs === null) {
+      console.log(`  frontendAuthLastError: ${run.frontendAuthStatusLastError}`);
+    }
     if (!run.success && run.failureReason) {
       console.log(`  failure: ${run.failureReason}`);
     }
+    printRunWaterfall(run);
   }
   console.log("aggregate:");
   for (const [key, stats] of Object.entries(summary.aggregate)) {

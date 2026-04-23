@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { NextclawApp } from "../nextclaw-app.service.js";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { NextclawApp } from "@/cli/shared/services/gateway/nextclaw-app.service.js";
 
 function createAgentHandle() {
   return {
@@ -28,13 +28,19 @@ function createAgentHandle() {
 }
 
 describe("NextclawApp", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("marks the NCP agent ready immediately after kernel bootstrap and before capability hydration", async () => {
+    vi.useFakeTimers();
     const order: string[] = [];
     const ncpAgent = createAgentHandle();
     const app = new NextclawApp({
       bootstrapStatus: {
         markNcpAgentRunning: vi.fn(() => order.push("mark-running")),
         markNcpAgentReady: vi.fn(() => order.push("mark-ready")),
+        markReady: vi.fn(() => order.push("mark-core-ready")),
         markNcpAgentError: vi.fn(),
       } as never,
       uiStartup: {
@@ -86,7 +92,14 @@ describe("NextclawApp", () => {
 
     expect(order).toContain("mark-ready");
     expect(order.indexOf("mark-ready")).toBeGreaterThan(order.indexOf("activate-ui-agent"));
+    expect(order.indexOf("mark-core-ready")).toBeGreaterThan(order.indexOf("recover-durable-state"));
+    expect(order).not.toContain("hydrate-capabilities");
+
+    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.waitFor(() => expect(order).toContain("hydrate-capabilities"));
+
     expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("hydrate-capabilities"));
+    expect(order.indexOf("mark-core-ready")).toBeLessThan(order.indexOf("hydrate-capabilities"));
     expect(order).toEqual(
       expect.arrayContaining([
         "bootstrap-kernel",
@@ -97,6 +110,7 @@ describe("NextclawApp", () => {
         "wake-restart-sentinel",
       ]),
     );
+    vi.useRealTimers();
   });
 
   it("records kernel startup errors but still continues deferred capability work", async () => {
@@ -110,6 +124,7 @@ describe("NextclawApp", () => {
       bootstrapStatus: {
         markNcpAgentRunning: vi.fn(),
         markNcpAgentReady: vi.fn(),
+        markReady: vi.fn(),
         markNcpAgentError,
       } as never,
       uiStartup: null,
@@ -142,9 +157,9 @@ describe("NextclawApp", () => {
     await app.start();
 
     expect(markNcpAgentError).toHaveBeenCalledWith("kernel failed");
-    expect(hydrateCapabilities).toHaveBeenCalledTimes(1);
-    expect(startPluginGateways).toHaveBeenCalledTimes(1);
-    expect(startChannels).toHaveBeenCalledTimes(1);
-    expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => expect(hydrateCapabilities).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(startPluginGateways).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(startChannels).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() => expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1));
   });
 });

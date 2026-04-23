@@ -32,17 +32,35 @@ description: 当用户要求评估、监测、复盘或持续优化 NextClaw “
 
 ## 核心口径
 
-默认同时记录五个时间点：
+默认同时记录七个后端时间点：
 
 1. `UI API 可达`
 2. `auth status ok`
 3. `health ok`
 4. `ncpAgent.ready`
 5. `bootstrap ready`
+6. `plugin hydration ready`
+7. `channels ready`
 
-默认“主优化口径”使用 `bootstrap-ready`，因为它最接近“整条启动链真正 ready”。
+当用户反馈“前端 server 已经起来，但 status 还一直红”时，必须补充真实前端开发链路口径：
 
-但不要只看一个数。每次都要一起看这五个时间点，避免把小头误判成大头。
+1. `frontend server ready`
+2. `frontend auth status ok`
+3. `frontend auth status failure count`
+
+默认命令：
+
+```bash
+pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --runs 1 --timeout-ms 90000 --criterion frontend-auth-status
+```
+
+这个口径用于测 `pnpm dev start` 下“前端 server ready -> /api/auth/status OK”的红色窗口。不要用隔离 `dev:build serve` 的数据解释用户当前默认 HOME 的 dev-runner 体验。
+
+默认“主可用口径”使用 `bootstrap-ready`，它代表 core app 已经可用。
+
+插件是后置热插拔能力，不能阻塞 `bootstrap-ready`。需要继续看 `plugin-hydration-ready` 和 `channels-ready`，但它们是后台插件口径，不是 core app 可用口径。
+
+但不要只看一个数。每次都要一起看这些时间点，避免把小头误判成大头，也避免后置插件加载退化而无人发现。
 
 如果用户明确改口径，例如把“最终可用”定义成“首条消息真正可发成功”，必须：
 
@@ -79,6 +97,18 @@ description: 当用户要求评估、监测、复盘或持续优化 NextClaw “
 
 ```bash
 pnpm smoke:startup-readiness -- --runs 3 --timeout-ms 90000 --criterion bootstrap-ready
+```
+
+补一条后台插件完成口径：
+
+```bash
+pnpm smoke:startup-readiness -- --runs 1 --timeout-ms 90000 --criterion plugin-hydration-ready
+```
+
+补一条用户真实 dev-runner 口径：
+
+```bash
+pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --runs 1 --timeout-ms 90000 --criterion frontend-auth-status
 ```
 
 补一条聊天主链 ready 口径：
@@ -128,6 +158,12 @@ pnpm smoke:startup-readiness -- --runs 3 --timeout-ms 90000 --criterion bootstra
 默认要把“当前最大瓶颈”写成一句明确判断，例如：
 
 `当前最大耗时不在 UI API bring-up，而在 ncpAgent.ready 之后到 bootstrap ready 之间的能力水合。`
+
+默认还要保留瀑布流判断：
+
+- observed milestones：外部探测到的 `frontend server`、`auth status`、`health`、`bootstrap`、`plugin hydration` 等时间点
+- startup trace waterfall：后端 `NEXTCLAW_STARTUP_TRACE=1` 输出的持续时间段
+- 当前 top owner：用一句话说明最长 span 是谁，以及它是否影响主可用链路
 
 如果 `/api/auth/status` 启动初期直接不可达或明显晚于 `UI API 可达`，必须把它单独写成一个问题节点，不能被并入泛化的“接口慢”描述里。
 

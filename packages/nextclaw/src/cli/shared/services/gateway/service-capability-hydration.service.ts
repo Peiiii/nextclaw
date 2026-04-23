@@ -15,7 +15,7 @@ import {
   type NextclawExtensionRegistry,
 } from "@/cli/commands/plugin/index.js";
 import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
-import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
+import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.service.js";
 import { waitForUiShellGraceWindow } from "@/cli/shared/services/gateway/service-ui-shell-grace.js";
 import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
 
