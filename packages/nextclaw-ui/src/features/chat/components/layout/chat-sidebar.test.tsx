@@ -208,6 +208,48 @@ describe('ChatSidebar create and list basics', () => {
     expect(mocks.setListMode).toHaveBeenCalledWith('project-first');
   });
 
+  it('uses a compact mobile search and create toolbar', () => {
+    render(
+      <MemoryRouter>
+        <ChatSidebar variant="mobile" />
+      </MemoryRouter>
+    );
+
+    const searchInput = screen.getByPlaceholderText('Search conversations...');
+    const createButton = screen.getByRole('button', { name: 'New Task' });
+
+    expect(searchInput.className).toContain('rounded-full');
+    expect(createButton.textContent).toBe('');
+    expect(screen.queryByText('New Task')).toBeNull();
+
+    fireEvent.change(searchInput, { target: { value: 'release notes' } });
+    fireEvent.click(createButton);
+    fireEvent.click(screen.getByText('Codex'));
+
+    expect(mocks.setQuery).toHaveBeenCalledWith('release notes');
+    expect(mocks.createSession).toHaveBeenCalledWith('codex');
+  });
+
+  it('creates the default session directly from the compact mobile add button when no menu is needed', () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        defaultSessionType: 'native',
+        sessionTypeOptions: [{ value: 'native', label: 'Native', ready: true }]
+      }
+    });
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar variant="mobile" />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
+
+    expect(mocks.createSession).toHaveBeenCalledWith('native');
+  });
+
   it('shows a session type badge for non-native sessions in the list', () => {
     mocks.sessionItems = [
       createSessionItem({

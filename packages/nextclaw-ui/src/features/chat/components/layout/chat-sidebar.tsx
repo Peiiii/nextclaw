@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { SessionEntryView } from '@/shared/lib/api';
-import { Button } from '@/shared/components/ui/button';
 import { BrandHeader } from '@/shared/components/common/brand-header';
 import { StatusBadge } from '@/shared/components/common/status-badge';
-import { Input } from '@/shared/components/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { SelectItem } from '@/shared/components/ui/select';
-import { ChatSessionTypeOptionItem, ChatSidebarListModeSwitch, ChatSidebarProjectGroups, type ChatSidebarProjectGroup } from '@/features/chat';
+import { ChatSidebarListModeSwitch, ChatSidebarProjectGroups, type ChatSidebarProjectGroup } from '@/features/chat';
 import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat-sidebar-session-label-editor';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
@@ -30,15 +27,16 @@ import {
   Bot,
   BookOpen,
   BrainCircuit,
-  ChevronDown,
   Languages,
   MessageSquareText,
   Palette,
-  Plus,
-  Search,
   Settings
 } from 'lucide-react';
 import { ChatSidebarSessionEntry } from '@/features/chat/components/layout/chat-sidebar-session-entry';
+import {
+  ChatSidebarDesktopToolbar,
+  ChatSidebarMobileToolbar,
+} from '@/features/chat/components/layout/chat-sidebar-toolbar';
 
 type DateGroup = {
   label: string;
@@ -276,70 +274,29 @@ export function ChatSidebar({
         </div>
       ) : null}
 
-      <div className="px-4 pb-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            className={cn(
-              'min-w-0 rounded-xl',
-              nonDefaultSessionTypeOptions.length > 0 ? 'flex-1 rounded-r-md' : 'w-full'
-            )}
-            onClick={() => {
-              setIsCreateMenuOpen(false);
-              presenter.chatSessionListManager.createSession(defaultSessionType);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {t('chatSidebarNewTask')}
-          </Button>
-          {nonDefaultSessionTypeOptions.length > 0 ? (
-            <Popover open={isCreateMenuOpen} onOpenChange={setIsCreateMenuOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="primary"
-                  size="icon"
-                  className="h-9 w-10 shrink-0 rounded-xl rounded-l-md"
-                  aria-label={t('chatSessionTypeLabel')}
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="end"
-                className="w-56 rounded-2xl border border-gray-200/80 bg-white p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,0.38)]"
-              >
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400">
-                  {t('chatSessionTypeLabel')}
-                </div>
-                <div className="space-y-1">
-                  {nonDefaultSessionTypeOptions.map((option) => (
-                    <ChatSessionTypeOptionItem
-                      key={option.value}
-                      option={option}
-                      onSelect={() => {
-                        presenter.chatSessionListManager.createSession(option.value);
-                        setIsCreateMenuOpen(false);
-                      }}
-                    />
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="px-4 pb-3">
-        <div className="relative">
-          <Search className="h-3.5 w-3.5 absolute left-3 top-2.5 text-gray-400" />
-          <Input
-            value={listSnapshot.query}
-            onChange={(event) => presenter.chatSessionListManager.setQuery(event.target.value)}
-            placeholder={t('chatSidebarSearchPlaceholder')}
-            className="pl-8 h-9 rounded-lg text-xs"
-          />
-        </div>
-      </div>
+      {isMobileVariant ? (
+        <ChatSidebarMobileToolbar
+          query={listSnapshot.query}
+          defaultSessionType={defaultSessionType}
+          sessionTypeOptions={inputSnapshot.sessionTypeOptions}
+          nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
+          isCreateMenuOpen={isCreateMenuOpen}
+          onCreateMenuOpenChange={setIsCreateMenuOpen}
+          onCreateSession={presenter.chatSessionListManager.createSession}
+          onQueryChange={presenter.chatSessionListManager.setQuery}
+        />
+      ) : (
+        <ChatSidebarDesktopToolbar
+          query={listSnapshot.query}
+          defaultSessionType={defaultSessionType}
+          sessionTypeOptions={inputSnapshot.sessionTypeOptions}
+          nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
+          isCreateMenuOpen={isCreateMenuOpen}
+          onCreateMenuOpenChange={setIsCreateMenuOpen}
+          onCreateSession={presenter.chatSessionListManager.createSession}
+          onQueryChange={presenter.chatSessionListManager.setQuery}
+        />
+      )}
 
       {!isMobileVariant ? (
         <div className="px-3 pb-2">

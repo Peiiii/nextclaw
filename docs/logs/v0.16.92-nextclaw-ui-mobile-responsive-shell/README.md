@@ -33,6 +33,10 @@
 - 同批次继续校准了底部导航反馈区域：
   - 将 hover/selected 的视觉反馈从整格 tab 收敛为包裹“图标 + 文字”的紧凑圆角矩形。
   - 外层 `Link` 仍保留完整触控面积，避免为了视觉收缩牺牲手机端可点性。
+- 同批次继续优化了手机端会话列表顶部区域：
+  - 将会话列表顶部的新建/搜索区拆成桌面与移动两套 toolbar 展示组件，`ChatSidebar` 继续共享同一套 presenter/store/hook 数据流。
+  - 手机端改为更轻量的“圆角搜索胶囊 + 紧凑加号入口”，避免直接照搬桌面端大号新建按钮和独立搜索块。
+  - 多会话类型时，手机端加号打开类型选择菜单；只有默认类型时，加号直接创建默认会话。
 
 # 测试/验证/验收方式
 
@@ -60,6 +64,12 @@
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
 - 结果：通过，无错误、无 warning；非测试代码新增 `5` 行、删除 `5` 行，净增 `0` 行。
 
+- 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/features/chat/components/layout/chat-sidebar.test.tsx`
+- 结果：通过，`1` 个测试文件、`17` 个测试用例全部通过。
+
+- 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar-toolbar.tsx packages/nextclaw-ui/src/features/chat/components/layout/chat-sidebar.test.tsx`
+- 结果：通过，无错误，保留 `2` 条 warning，均为 `ChatSidebar` 历史体量接近预算/函数体量偏大；本次将顶部 toolbar 拆出后，`ChatSidebar` 从 `459` 行降到 `416` 行，主函数从 `283` 行降到 `243` 行。
+
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/app/configs/app-navigation.config.ts packages/nextclaw-ui/src/platforms/mobile/components/mobile-topbar.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/chat-mobile-shell.tsx`
 - 结果：通过，无错误、无 warning。
 
@@ -74,7 +84,10 @@
   - [packages/nextclaw-ui/src/shared/components/search-config.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/shared/components/search-config.tsx) 接近文件预算
 
 - 运行：`pnpm lint:new-code:governance`
-- 结果：本次移动端相关的 `module-structure-drift` 已通过，但仓库级命令仍被当前工作区内与本批次无关的 `scripts/smoke/startup-readiness/*` 参数 mutation 治理问题阻塞，因此未将仓库级治理全绿作为本次迭代通过前提。
+- 结果：基础命名与文件角色检查通过；仓库级命令仍被当前工作区内与本批次无关的 `packages/nextclaw/src/cli/shared/services/gateway/*`、`packages/nextclaw/src/cli/shared/services/runtime/*` 目录层级治理问题阻塞，因此未将仓库级治理全绿作为本次迭代通过前提。
+
+- 运行：`pnpm check:governance-backlog-ratchet`
+- 结果：通过，`ratchet status: OK`。
 
 # 发布/部署方式
 
@@ -96,6 +109,7 @@
 10. 在手机尺寸下进入任意非聊天详情页，确认顶部栏和底部栏高度更紧凑，底部选中态只在图标和文字组成的紧凑圆角区域内反馈。
 11. 在手机尺寸下进入 `/chat/:sessionId` 聊天详情，确认底部主导航隐藏；点击顶部返回后回到 `/chat` 会话列表，底部主导航重新显示。
 12. 在手机尺寸下 hover 或按下底部导航项，确认反馈区域只包裹图标与文字，不铺满整个四等分 tab 区域。
+13. 在手机尺寸下进入 `/chat` 会话列表，确认顶部区域为圆角搜索胶囊和紧凑加号入口，不再出现桌面式大号新建按钮。
 
 # 可维护性总结汇总
 
@@ -107,6 +121,7 @@
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：本次已基于守卫结果做独立复核，结论为 `通过`，`no maintainability findings`。当前仍保留的风险不是结构性错误，而是若后续继续触达 `ChatConversationPanel`、`ChatSidebar` 与 `search-config`，应优先拆出更细的局部模块，避免它们越过文件预算。
 - 移动端文档浏览器修复的可维护性复核：结论为 `通过`。本次没有复制一份 mobile-only doc browser，也没有把设备判断散落到业务调用点，而是给共享 `DocBrowser` 增加一个明确展示契约，由 mobile shell 组合使用。当前 `DocBrowser` 文件仍接近预算，后续若继续增强文档浏览器，应优先拆分 header / tab strip / iframe surface / resize handles。
 - 移动端顶部/底部栏与聊天详情沉浸式调整的可维护性复核：结论为 `通过`，`no maintainability findings`。本次把聊天详情路由判断收敛到 [packages/nextclaw-ui/src/app/configs/app-navigation.config.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/app/configs/app-navigation.config.ts)，由 mobile shell 与 chat mobile shell 复用同一判断，避免了路径规则散落；底部选中态也通过现有配置驱动导航渲染，没有新增平行导航实现。
+- 手机端会话列表顶部区域的可维护性复核：结论为 `通过`，`no maintainability findings`。本次没有把手机端样式继续塞进 `ChatSidebar` 的大段条件 class，而是抽出桌面/移动 toolbar 纯展示组件，保留同一套数据 owner 和 action 入口；新增文件用于降低主组件体量，并让后续移动端会话列表继续按组合方式演进。
 
 # NPM 包发布记录
 
