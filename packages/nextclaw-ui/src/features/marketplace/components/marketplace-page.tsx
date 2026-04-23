@@ -46,7 +46,7 @@ import {
 } from "@/features/marketplace/components/marketplace-list-card";
 import { t } from "@/shared/lib/i18n";
 import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
 import { Tabs } from "@/shared/components/ui/tabs-custom";
@@ -135,6 +135,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   const [managingTargets, setManagingTargets] = useState<
     ReadonlyMap<string, MarketplaceManageAction>
   >(new Map());
+  const detailRequestRef = useRef({ byKey: new Map<string, number>(), seq: 0 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -226,11 +227,12 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     scope === "installed"
       ? installedEntries.length
       : (itemsQuery.data?.total ?? 0);
-  const showCatalogSkeleton =
-    scope === "all" && itemsQuery.isLoading && !itemsQuery.data;
-  const showInstalledSkeleton =
-    scope === "installed" && installedQuery.isLoading && !installedQuery.data;
-  const showListSkeleton = showCatalogSkeleton || showInstalledSkeleton;
+  const skeletonState = {
+    showCatalog: scope === "all" && itemsQuery.isLoading && !itemsQuery.data,
+    showInstalled: scope === "installed" && installedQuery.isLoading && !installedQuery.data,
+  };
+  const showListSkeleton =
+    skeletonState.showCatalog || skeletonState.showInstalled;
 
   const listSummary = useMemo(() => {
     if (scope === "installed") {
@@ -368,6 +370,11 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       record?.id ??
       record?.spec ??
       t("marketplaceUnknownItem");
+    const dedupeKey = item
+      ? `marketplace:${item.type}:${item.slug}`
+      : `marketplace:${record?.type ?? "unknown"}:${record?.id ?? record?.spec ?? title}`;
+    const openOptions = { title, kind: "content" as const, dedupeKey };
+    const updateOptions = { ...openOptions, activate: false };
 
     if (!item) {
       const url = buildGenericDetailDataUrl({
@@ -381,71 +388,71 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         metadataRaw: JSON.stringify(record ?? {}, null, 2),
         contentRaw: "-",
       });
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, openOptions);
       return;
     }
 
+    const requestId = detailRequestRef.current.seq + 1;
+    detailRequestRef.current.seq = requestId;
+    detailRequestRef.current.byKey.set(dedupeKey, requestId);
     const summary = pickLocalizedText(
       item.summaryI18n,
       item.summary,
       localeFallbacks,
     );
-
-    if (item.type === "skill") {
-      try {
-        const content: MarketplaceSkillContentView =
-          await fetchMarketplaceSkillContent(item.slug);
-        const url = buildGenericDetailDataUrl({
-          title,
-          typeLabel: t("marketplaceTypeSkill"),
-          spec: item.install.spec,
-          summary,
-          metadataRaw: content.metadataRaw,
-          contentRaw: content.bodyRaw || content.raw,
-          sourceUrl: content.sourceUrl,
-          sourceLabel: `Source (${content.source})`,
-          tags: item.tags,
-          author: item.author,
-        });
-        docBrowser.open(url, { newTab: true, title, kind: "content" });
-      } catch (error) {
-        const url = buildGenericDetailDataUrl({
-          title,
-          typeLabel: t("marketplaceTypeSkill"),
-          spec: item.install.spec,
-          summary,
-          metadataRaw: JSON.stringify(
-            { error: error instanceof Error ? error.message : String(error) },
-            null,
-            2,
-          ),
-          contentRaw: t("marketplaceOperationFailed"),
-        });
-        docBrowser.open(url, { newTab: true, title, kind: "content" });
-      }
-      return;
-    }
-
+    const detailConfig =
+      item.type === "skill"
+        ? {
+            typeLabel: t("marketplaceTypeSkill"),
+            loadContent: () => fetchMarketplaceSkillContent(item.slug),
+            fallbackContent: t("marketplaceOperationFailed"),
+            defaultContent: undefined,
+          }
+        : {
+            typeLabel: t("marketplaceTypePlugin"),
+            loadContent: () => fetchMarketplacePluginContent(item.slug),
+            fallbackContent: "-",
+            defaultContent: item.summary,
+          };
+    docBrowser.open(
+      buildGenericDetailDataUrl({
+        title,
+        typeLabel: detailConfig.typeLabel,
+        spec: item.install.spec,
+        summary,
+        metadataRaw: t("loading"),
+        contentRaw: t("loading"),
+        tags: item.tags,
+        author: item.author,
+      }),
+      openOptions,
+    );
     try {
-      const content: MarketplacePluginContentView =
-        await fetchMarketplacePluginContent(item.slug);
+      const content: MarketplaceSkillContentView | MarketplacePluginContentView =
+        await detailConfig.loadContent();
+      if (detailRequestRef.current.byKey.get(dedupeKey) !== requestId) {
+        return;
+      }
       const url = buildGenericDetailDataUrl({
         title,
-        typeLabel: t("marketplaceTypePlugin"),
+        typeLabel: detailConfig.typeLabel,
         spec: item.install.spec,
         summary,
         metadataRaw: content.metadataRaw,
-        contentRaw: content.bodyRaw || content.raw || item.summary,
+        contentRaw: content.bodyRaw || content.raw || detailConfig.defaultContent,
         sourceUrl: content.sourceUrl,
         sourceLabel: `Source (${content.source})`,
         tags: item.tags,
         author: item.author,
       });
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, updateOptions);
     } catch (error) {
+      if (detailRequestRef.current.byKey.get(dedupeKey) !== requestId) {
+        return;
+      }
       const url = buildGenericDetailDataUrl({
         title,
-        typeLabel: t("marketplaceTypePlugin"),
+        typeLabel: detailConfig.typeLabel,
         spec: item.install.spec,
         summary,
         metadataRaw: JSON.stringify(
@@ -453,9 +460,9 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
           null,
           2,
         ),
-        contentRaw: "-",
+        contentRaw: detailConfig.fallbackContent,
       });
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, updateOptions);
     }
   };
 
@@ -574,7 +581,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             )}
 
           {scope === "all" &&
-            !showCatalogSkeleton &&
+            !skeletonState.showCatalog &&
             !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus
                 hasMore={Boolean(itemsQuery.hasNextPage)}

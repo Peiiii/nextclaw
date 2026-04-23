@@ -21,6 +21,7 @@ export type DocBrowserTab = {
   kind: DocBrowserTabKind;
   title: string;
   currentUrl: string;
+  dedupeKey?: string;
   history: string[];
   historyIndex: number;
   /** Increments on parent-initiated navigation to trigger iframe remount */
@@ -28,6 +29,8 @@ export type DocBrowserTab = {
 };
 
 export type DocBrowserOpenOptions = {
+  activate?: boolean;
+  dedupeKey?: string;
   newTab?: boolean;
   title?: string;
   kind?: DocBrowserTabKind;
@@ -133,7 +136,12 @@ function inferTabTitle(url: string, kind: DocBrowserTabKind, fallback = 'Docs'):
   }
 }
 
-function createTab(url: string, kind: DocBrowserTabKind, title?: string): DocBrowserTab {
+function createTab(
+  url: string,
+  kind: DocBrowserTabKind,
+  title?: string,
+  dedupeKey?: string,
+): DocBrowserTab {
   const tabTitle = title?.trim() || inferTabTitle(url, kind, kind === 'docs' ? 'Docs' : 'Detail');
 
   return {
@@ -141,6 +149,7 @@ function createTab(url: string, kind: DocBrowserTabKind, title?: string): DocBro
     kind,
     title: tabTitle,
     currentUrl: url,
+    dedupeKey,
     history: [url],
     historyIndex: 0,
     navVersion: 0,
@@ -148,9 +157,44 @@ function createTab(url: string, kind: DocBrowserTabKind, title?: string): DocBro
 }
 
 function updateActiveTab(state: DocBrowserState, updater: (tab: DocBrowserTab) => DocBrowserTab): DocBrowserState {
+  return updateTab(state, state.activeTabId, updater);
+}
+
+function updateTab(
+  state: DocBrowserState,
+  tabId: string,
+  updater: (tab: DocBrowserTab) => DocBrowserTab,
+): DocBrowserState {
   return {
     ...state,
-    tabs: state.tabs.map((tab) => (tab.id === state.activeTabId ? updater(tab) : tab)),
+    tabs: state.tabs.map((tab) => (tab.id === tabId ? updater(tab) : tab)),
+  };
+}
+
+function updateTabForOpen(
+  tab: DocBrowserTab,
+  url: string,
+  kind: DocBrowserTabKind,
+  options?: DocBrowserOpenOptions,
+  dedupeKey?: string,
+): DocBrowserTab {
+  const baseTab = {
+    ...tab,
+    title: options?.title || tab.title,
+    kind,
+    dedupeKey,
+  };
+
+  if (normalizeDocUrl(url) === normalizeDocUrl(tab.currentUrl)) {
+    return baseTab;
+  }
+
+  return {
+    ...baseTab,
+    currentUrl: url,
+    history: [...tab.history.slice(0, tab.historyIndex + 1), url],
+    historyIndex: tab.historyIndex + 1,
+    navVersion: tab.navVersion + 1,
   };
 }
 
@@ -197,6 +241,56 @@ function resolveOpenTargetUrl(params: {
   return params.activeTab?.currentUrl ?? getDefaultDocsUrl();
 }
 
+function openDocBrowserState(
+  prev: DocBrowserState,
+  url?: string,
+  options?: DocBrowserOpenOptions,
+): DocBrowserState {
+  const {
+    activate,
+    dedupeKey: rawDedupeKey,
+    kind,
+    newTab: shouldForceNewTab,
+    title,
+  } = options ?? {};
+  const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
+  const targetKind = kind ?? (url ? inferTabKind(url) : activeTab?.kind ?? 'docs');
+  const targetUrl = resolveOpenTargetUrl({ url, kind: targetKind, activeTab });
+  const dedupeKey = rawDedupeKey?.trim() || undefined;
+  const matchedTab = dedupeKey
+    ? prev.tabs.find((tab) => tab.dedupeKey === dedupeKey)
+    : undefined;
+
+  if (matchedTab) {
+    const next = updateTab(
+      prev,
+      matchedTab.id,
+      (tab) => updateTabForOpen(tab, targetUrl, targetKind, options, dedupeKey),
+    );
+    return {
+      ...next,
+      activeTabId: activate === false ? prev.activeTabId : matchedTab.id,
+      isOpen: true,
+    };
+  }
+
+  if (shouldForceNewTab || dedupeKey || !activeTab || activeTab.kind !== targetKind) {
+    const newTab = createTab(targetUrl, targetKind, title, dedupeKey);
+    return {
+      ...prev,
+      isOpen: true,
+      tabs: [...prev.tabs, newTab],
+      activeTabId: newTab.id,
+    };
+  }
+
+  const next = updateActiveTab(
+    prev,
+    (tab) => updateTabForOpen(tab, targetUrl, targetKind, options, dedupeKey),
+  );
+  return { ...next, isOpen: true };
+}
+
 export function DocBrowserProvider({ children }: { children: ReactNode }) {
   const initialUrl = getDefaultDocsUrl();
   const initialTab = createTab(initialUrl, 'docs', 'Docs');
@@ -213,48 +307,7 @@ export function DocBrowserProvider({ children }: { children: ReactNode }) {
   }, [state.tabs, state.activeTabId]);
 
   const open = useCallback((url?: string, options?: DocBrowserOpenOptions) => {
-    setState((prev) => {
-      const activeTab = prev.tabs.find((tab) => tab.id === prev.activeTabId) ?? prev.tabs[0];
-      const targetKind = options?.kind ?? (url ? inferTabKind(url) : activeTab?.kind ?? 'docs');
-      const targetUrl = resolveOpenTargetUrl({
-        url,
-        kind: targetKind,
-        activeTab
-      });
-
-      const shouldOpenNewTab = Boolean(options?.newTab || !activeTab || activeTab.kind !== targetKind);
-
-      if (shouldOpenNewTab) {
-        const newTab = createTab(targetUrl, targetKind, options?.title);
-        return {
-          ...prev,
-          isOpen: true,
-          tabs: [...prev.tabs, newTab],
-          activeTabId: newTab.id,
-        };
-      }
-
-      const next = updateActiveTab(prev, (tab) => {
-        if (normalizeDocUrl(targetUrl) === normalizeDocUrl(tab.currentUrl)) {
-          return options?.title ? { ...tab, title: options.title } : tab;
-        }
-
-        return {
-          ...tab,
-          title: options?.title || tab.title,
-          kind: targetKind,
-          currentUrl: targetUrl,
-          history: [...tab.history.slice(0, tab.historyIndex + 1), targetUrl],
-          historyIndex: tab.historyIndex + 1,
-          navVersion: tab.navVersion + 1,
-        };
-      });
-
-      return {
-        ...next,
-        isOpen: true,
-      };
-    });
+    setState((prev) => openDocBrowserState(prev, url, options));
   }, []);
 
   const close = useCallback(() => {

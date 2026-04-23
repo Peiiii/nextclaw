@@ -133,6 +133,10 @@ export function McpMarketplacePage() {
     record?: MarketplaceInstalledRecord,
   ) => {
     const title = item?.name ?? record?.label ?? record?.id ?? "MCP";
+    const dedupeKey = item
+      ? `marketplace:mcp:${item.slug}`
+      : `marketplace:mcp:${record?.id ?? record?.spec ?? title}`;
+    const openOptions = { title, kind: "content" as const, dedupeKey };
     const summary = readSummary(localeFallbacks, item, record);
     if (!item) {
       const url = buildDocDataUrl(
@@ -142,7 +146,7 @@ export function McpMarketplacePage() {
         record?.docsUrl,
         summary,
       );
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, openOptions);
       return;
     }
     try {
@@ -154,7 +158,7 @@ export function McpMarketplacePage() {
         content.sourceUrl,
         summary,
       );
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, openOptions);
     } catch (error) {
       const url = buildDocDataUrl(
         title,
@@ -167,7 +171,7 @@ export function McpMarketplacePage() {
         undefined,
         summary,
       );
-      docBrowser.open(url, { newTab: true, title, kind: "content" });
+      docBrowser.open(url, openOptions);
     }
   };
 
