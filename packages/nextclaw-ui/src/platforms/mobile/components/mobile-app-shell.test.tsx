@@ -23,6 +23,15 @@ describe("MobileAppShell", () => {
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
   });
 
+  it("does not reserve back-button spacer on primary mobile routes", () => {
+    renderShell("/skills");
+
+    const topbar = screen.getByTestId("mobile-topbar");
+
+    expect(screen.getByRole("heading", { name: "Skills" })).toBeTruthy();
+    expect(topbar.querySelector('[aria-hidden="true"]')).toBeNull();
+  });
+
   it("hides the shared mobile chrome on chat session detail routes", () => {
     renderShell("/chat/demo-session");
 

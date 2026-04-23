@@ -27,14 +27,14 @@ export function MobileTopbar() {
             <ArrowLeft className="h-4 w-4" />
           </button>
         ) : (
-          <div className="h-8 w-8 shrink-0" aria-hidden="true" />
+          null
         )}
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[15px] font-semibold text-gray-900">
             {routeMeta.title}
           </h1>
         </div>
-        <div className="h-8 w-8 shrink-0" aria-hidden="true" />
+        {routeMeta.backTarget ? <div className="h-8 w-8 shrink-0" aria-hidden="true" /> : null}
       </div>
     </header>
   );
