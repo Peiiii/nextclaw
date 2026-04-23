@@ -1,10 +1,10 @@
 import type { Config } from "@nextclaw/core";
-import type { NcpAgentRunInput, NcpEndpointEvent } from "@nextclaw/ncp";
+import type { NcpAgentRunInput, NcpEndpointEvent, OpenAITool } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import type {
   PluginConfigUiHint,
   PluginDiagnostic,
-  PluginOrigin,
+  PluginRegistry,
   PluginRecord,
 } from "@nextclaw/openclaw-compat";
 
@@ -53,6 +53,7 @@ export type ExtensionHostSnapshot = {
   diagnostics: PluginDiagnostic[];
   tools: ExtensionHostToolDescriptor[];
   channels: ExtensionHostChannelDescriptor[];
+  providers: PluginRegistry["providers"];
   ncpAgentRuntimes: ExtensionHostRuntimeDescriptor[];
 };
 
@@ -115,7 +116,9 @@ export type ExtensionHostRuntimeRunRequest = {
   streamId: string;
   kind: string;
   entry?: ExtensionHostRuntimeDescribeRequest["entry"];
-  runtimeParams: Pick<RuntimeFactoryParams, "sessionId" | "agentId" | "sessionMetadata">;
+  runtimeParams: Pick<RuntimeFactoryParams, "sessionId" | "agentId" | "sessionMetadata"> & {
+    resolvedTools?: OpenAITool[];
+  };
   input: NcpAgentRunInput;
 };
 
@@ -131,11 +134,8 @@ export type ExtensionHostMessage =
   | { type: "response"; id: number; ok: true; payload?: unknown }
   | { type: "response"; id: number; ok: false; error: string }
   | { type: "event"; event: "load.progress"; payload: ExtensionHostLoadProgress }
+  | { type: "event"; event: "runtime.state.dispatchBatch"; payload: { streamId: string; events: NcpEndpointEvent[] } }
   | { type: "event"; event: "runtime.event"; payload: { streamId: string; event: NcpEndpointEvent } }
   | { type: "event"; event: "runtime.metadata"; payload: { streamId: string; metadata: Record<string, unknown> } }
   | { type: "event"; event: "runtime.done"; payload: { streamId: string } }
   | { type: "event"; event: "runtime.error"; payload: { streamId: string; error: string } };
-
-export type SerializablePluginRecord = Omit<PluginRecord, "origin"> & {
-  origin: PluginOrigin;
-};

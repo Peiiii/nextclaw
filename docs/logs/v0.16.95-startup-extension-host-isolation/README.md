@@ -18,17 +18,21 @@
 - Vite dev proxy 在后端尚未 listen 时会把 `/api` 请求返回为受控 `503 backend_starting`，并关闭早期 WS 连接，避免短暂启动竞态刷出误导性的 `ECONNREFUSED` 红色 proxy error。
 - service deferred startup 不再自动执行 `warm_ncp_capabilities`，避免 MCP/server prewarm 与 session-search warmup 卡住 status/front 可用路径。
 - 新增常态化启动瀑布流脚本 `scripts/smoke/startup-waterfall.mjs`。
+- 后续收口了 Extension Host 第一版遗漏的 3 个契约问题：
+  - plugin runtime 在子进程内改为把会话事件批量回写父进程 `stateManager`，不再只在子进程本地维护会话状态。
+  - runtime 每次运行前由父进程预解析 `resolveTools(input)`，子进程消费同一次 run 的已解析工具集合；`resolveAssetContentPath` 改为在子进程直接复用同一套本地资产存储路径规则。
+  - service plugin reload 不再回退到主进程重新 `loadPluginRegistry`，而是统一走 Extension Host `load + proxy registry + gateway restart`。
+  - Extension Host snapshot/proxy 现在完整保留 `providers` 契约，不再固定成空数组。
 - 过程性目标锚与后续收敛入口见 [work/goal-progress.md](./work/goal-progress.md)。
 
 ## 测试/验证/验收方式
 
 - `pnpm -C packages/nextclaw tsc --pretty false --noEmit`
-- `pnpm -C packages/nextclaw exec eslint src/cli/shared/types/extension-host.types.ts src/cli/shared/services/extension-host-child.service.ts src/cli/shared/services/extension-host-client.service.ts src/cli/shared/services/extension-host-snapshot.service.ts src/cli/shared/services/extension-host-proxy-registry.service.ts src/cli/shared/services/gateway/nextclaw-app.service.ts src/cli/shared/services/gateway/service-capability-hydration.service.ts src/cli/shared/services/gateway/service-gateway-bootstrap.service.ts src/cli/shared/services/runtime/runtime-command.service.ts`
-- `pnpm -C packages/nextclaw test -- --run src/cli/shared/services/gateway/tests/nextclaw-app.test.ts src/cli/shared/services/gateway/tests/service-capability-hydration.service.test.ts src/cli/shared/services/gateway/tests/service-gateway-bootstrap.service.test.ts`
+- `pnpm -C packages/nextclaw test -- --run src/cli/shared/services/extension-host-client.service.test.ts src/cli/shared/services/extension-host-proxy-registry.service.test.ts src/cli/shared/services/plugin/service-plugin-reload.service.test.ts src/cli/shared/services/gateway/tests/nextclaw-app.test.ts src/cli/shared/services/gateway/tests/service-capability-hydration.service.test.ts src/cli/shared/services/gateway/tests/service-gateway-bootstrap.service.test.ts`
 - `node scripts/smoke/startup-waterfall.mjs --duration-ms 7000 --isolated-home`
 - `node scripts/smoke/startup-waterfall.mjs --duration-ms 20000`
-- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`
-- `pnpm lint:new-code:governance -- packages/nextclaw/src/cli/shared/types/extension-host.types.ts packages/nextclaw/src/cli/shared/services/extension-host-child.service.ts packages/nextclaw/src/cli/shared/services/extension-host-client.service.ts packages/nextclaw/src/cli/shared/services/extension-host-snapshot.service.ts packages/nextclaw/src/cli/shared/services/extension-host-proxy-registry.service.ts scripts/dev/dev-runner.mjs scripts/smoke/startup-waterfall.mjs`
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw/src/cli/shared/types/extension-host.types.ts packages/nextclaw/src/cli/shared/services/extension-host-snapshot.service.ts packages/nextclaw/src/cli/shared/services/extension-host-proxy-registry.service.ts packages/nextclaw/src/cli/shared/services/extension-host-client.service.ts packages/nextclaw/src/cli/shared/services/extension-host-child.service.ts packages/nextclaw/src/cli/shared/services/plugin/service-plugin-reload.service.ts packages/nextclaw/src/cli/shared/services/gateway/service-gateway-bootstrap.service.ts packages/nextclaw/src/cli/shared/services/gateway/service-capability-hydration.service.ts packages/nextclaw/src/cli/shared/services/runtime/runtime-command.service.ts`
+- `pnpm lint:new-code:governance -- packages/nextclaw/src/cli/shared/types/extension-host.types.ts packages/nextclaw/src/cli/shared/services/extension-host-snapshot.service.ts packages/nextclaw/src/cli/shared/services/extension-host-proxy-registry.service.ts packages/nextclaw/src/cli/shared/services/extension-host-client.service.ts packages/nextclaw/src/cli/shared/services/extension-host-child.service.ts packages/nextclaw/src/cli/shared/services/plugin/service-plugin-reload.service.ts packages/nextclaw/src/cli/shared/services/gateway/service-gateway-bootstrap.service.ts packages/nextclaw/src/cli/shared/services/gateway/service-capability-hydration.service.ts packages/nextclaw/src/cli/shared/services/runtime/runtime-command.service.ts`
 - `pnpm -C packages/nextclaw-ui tsc --pretty false --noEmit`
 - `pnpm -C packages/nextclaw-ui exec eslint vite.config.ts`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/vite.config.ts`
@@ -67,8 +71,8 @@
 - 是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”：是。实现前删除了同进程 warmup 启动依赖，并将新逻辑压到明确 owner class；但由于新增进程隔离与常态化探针属于新增基础能力，代码量净增长不可避免。
 - 是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化：代码量净增长，原因是最小必要地新增 Extension Host IPC/proxy 与瀑布流脚本；同步偿还了“无量化启动指标”和“插件同进程阻塞 status”的维护债。
 - 抽象、模块边界、class / helper / service / store 职责划分是否更合适、更清晰：是。`ExtensionHostClient` 负责主进程 IPC，`ExtensionHostChildRuntime` 负责子进程调度，`ExtensionHostProxyRegistryService` 负责代理 registry，`ExtensionHostSnapshotService` 负责可序列化 snapshot。
-- 目录结构与文件组织是否满足当前项目治理要求：新增文件满足 direct service/type 路径要求；既有 touched gateway/runtime 嵌套目录仍是历史治理债务，本次未跨范围搬迁。
-- 本次涉及代码可维护性评估，已基于 `post-edit-maintainability-review` 执行独立复核：结论为通过；保留观察点是 `runtime-command.service.ts` 已接近文件预算，后续继续动 runtime orchestration 时应优先拆 owner。
+- 目录结构与文件组织是否满足当前项目治理要求：Extension Host 新增文件满足 direct service/type 路径要求；但 `packages/nextclaw/src/cli/shared/services/gateway/`、`plugin/`、`runtime/` 仍属于既有嵌套目录历史债，范围化 governance 会继续提示 module-structure drift，本次未跨问题域搬迁。
+- 本次涉及代码可维护性评估，已基于 `post-edit-maintainability-review` 与 maintainability guard 复核：功能和定向测试已通过，但非功能改动净新增非测试代码仍为正值，守卫未完全转绿；同时 `runtime-command.service.ts` 仍接近文件预算，后续继续动 runtime orchestration 时应优先拆 owner。
 
 ## NPM 包发布记录
 

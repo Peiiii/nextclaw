@@ -14,7 +14,7 @@ import {
   toExtensionRegistry,
   type NextclawExtensionRegistry,
 } from "@/cli/commands/plugin/index.js";
-import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
+import { discoverPluginRegistryStatus } from "@/cli/commands/plugin/plugin-registry-loader.js";
 import type { ExtensionHostClient } from "@/cli/shared/services/extension-host-client.service.js";
 import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
 import { waitForUiShellGraceWindow } from "@/cli/shared/services/gateway/service-ui-shell-grace.js";
@@ -37,7 +37,7 @@ export async function hydrateServiceCapabilities(params: {
   state: ServiceCapabilityHydrationState;
   bootstrapStatus: ServiceBootstrapStatusStore;
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
-  extensionHost?: ExtensionHostClient;
+  extensionHost: ExtensionHostClient;
 }): Promise<void> {
   const {
     bootstrapStatus,
@@ -59,22 +59,12 @@ export async function hydrateServiceCapabilities(params: {
   bootstrapStatus.markChannelsPending();
 
   try {
-    const nextPluginRegistry = extensionHost
-      ? extensionHost.createProxyPluginRegistry(
-          await extensionHost.load({
-            config: nextConfig,
-            workspaceDir: nextWorkspace,
-          }),
-        )
-      : await loadPluginRegistryProgressively(nextConfig, nextWorkspace, {
-          onPluginProcessed: ({ loadedPluginCount: nextCount }) => {
-            loadedPluginCount = nextCount;
-            bootstrapStatus.markPluginHydrationProgress({
-              loadedPluginCount: nextCount,
-              totalPluginCount
-            });
-          }
-        });
+    const nextPluginRegistry = extensionHost.createProxyPluginRegistry(
+      await extensionHost.load({
+        config: nextConfig,
+        workspaceDir: nextWorkspace,
+      }),
+    );
     loadedPluginCount = loadedPluginCount || nextPluginRegistry.plugins.filter((plugin) => plugin.status === "loaded").length;
     logPluginDiagnostics(nextPluginRegistry);
 

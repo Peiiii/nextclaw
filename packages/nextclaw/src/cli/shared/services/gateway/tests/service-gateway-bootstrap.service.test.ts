@@ -6,10 +6,8 @@ const mocks = vi.hoisted(() => ({
   getPluginUiMetadataFromRegistryMock: vi.fn(),
   installPluginRuntimeBridgeMock: vi.fn(),
   loadConfigMock: vi.fn(),
-  logPluginGatewayDiagnosticsMock: vi.fn(),
   reloadServicePluginsMock: vi.fn(),
   resolveConfigSecretsMock: vi.fn(),
-  startPluginChannelGatewaysMock: vi.fn()
 }));
 
 vi.mock("@nextclaw/core", async (importOriginal) => {
@@ -26,7 +24,6 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   return {
     ...actual,
     getPluginUiMetadataFromRegistry: mocks.getPluginUiMetadataFromRegistryMock,
-    startPluginChannelGateways: mocks.startPluginChannelGatewaysMock
   };
 });
 
@@ -43,7 +40,6 @@ vi.mock("@/cli/shared/services/plugin/service-plugin-runtime-bridge.service.js",
 }));
 
 vi.mock("../service-startup-support.js", () => ({
-  logPluginGatewayDiagnostics: mocks.logPluginGatewayDiagnosticsMock,
   pluginGatewayLogger: {
     info: vi.fn(),
     warn: vi.fn(),
@@ -75,13 +71,11 @@ describe("configureGatewayPluginRuntime", () => {
         channel: { id: "weixin" }
       }
     ];
-    const nextPluginGatewayHandles = [{ pluginId: "nextclaw-channel-weixin", channelId: "weixin", accountId: "bot" }];
     const nextPluginUiMetadata = [{ id: "nextclaw-channel-weixin" }];
     mocks.reloadServicePluginsMock.mockResolvedValue({
       pluginRegistry: nextPluginRegistry,
       extensionRegistry: nextExtensionRegistry,
       pluginChannelBindings: nextPluginChannelBindings,
-      pluginGatewayHandles: nextPluginGatewayHandles,
       restartChannels: true
     });
     mocks.getPluginUiMetadataFromRegistryMock.mockReturnValue(nextPluginUiMetadata);
@@ -107,16 +101,22 @@ describe("configureGatewayPluginRuntime", () => {
       extensionRegistry: { channels: [] },
       pluginChannelBindings: [],
       pluginUiMetadata: [],
-      pluginGatewayHandles: []
     };
     const uiNcpAgent = {
       applyExtensionRegistry: vi.fn()
+    };
+    const extensionHost = {
+      load: vi.fn(),
+      createProxyPluginRegistry: vi.fn(),
+      startPluginGateways: vi.fn(),
+      stopPluginGateways: vi.fn(),
     };
 
     configureGatewayPluginRuntime({
       gateway: gateway as never,
       state: state as never,
-      getLiveUiNcpAgent: () => uiNcpAgent as never
+      getLiveUiNcpAgent: () => uiNcpAgent as never,
+      extensionHost: extensionHost as never,
     });
 
     expect(mocks.installPluginRuntimeBridgeMock).toHaveBeenCalledTimes(1);
@@ -135,7 +135,11 @@ describe("configureGatewayPluginRuntime", () => {
     expect(state.extensionRegistry).toBe(nextExtensionRegistry);
     expect(state.pluginChannelBindings).toBe(nextPluginChannelBindings);
     expect(state.pluginUiMetadata).toBe(nextPluginUiMetadata);
-    expect(state.pluginGatewayHandles).toBe(nextPluginGatewayHandles);
     expect(uiNcpAgent.applyExtensionRegistry).toHaveBeenCalledWith(nextExtensionRegistry);
+    expect(mocks.reloadServicePluginsMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extensionHost,
+      }),
+    );
   });
 });

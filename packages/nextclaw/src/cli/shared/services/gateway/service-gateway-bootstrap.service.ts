@@ -18,7 +18,6 @@ import { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/servi
 import { hydrateServiceCapabilities } from "@/cli/shared/services/gateway/service-capability-hydration.service.js";
 import { installPluginRuntimeBridge } from "@/cli/shared/services/plugin/service-plugin-runtime-bridge.service.js";
 import { reloadServicePlugins } from "@/cli/shared/services/plugin/service-plugin-reload.service.js";
-import { logPluginGatewayDiagnostics, pluginGatewayLogger } from "@/cli/shared/services/gateway/service-startup-support.js";
 import type { NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
 import type { ExtensionHostClient } from "@/cli/shared/services/extension-host-client.service.js";
 
@@ -49,7 +48,7 @@ export function createGatewayRuntimeState(gateway: GatewayStartupContext): Gatew
     extensionRegistry: gateway.extensionRegistry,
     pluginChannelBindings: gateway.pluginChannelBindings,
     pluginUiMetadata: getPluginUiMetadataFromRegistry(gateway.pluginRegistry),
-    pluginGatewayHandles: []
+    pluginGatewayHandles: [],
   };
 }
 
@@ -69,17 +68,15 @@ export function configureGatewayPluginRuntime(params: {
   gateway: GatewayStartupContext;
   state: GatewayRuntimeState;
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
+  extensionHost: ExtensionHostClient;
 }): void {
   params.gateway.reloader.setReloadPlugins(async ({ config: nextConfig, changedPaths }) => {
     const result = await reloadServicePlugins({
       nextConfig,
       changedPaths,
-      pluginRegistry: params.state.pluginRegistry,
       extensionRegistry: params.state.extensionRegistry,
       pluginChannelBindings: params.state.pluginChannelBindings,
-      pluginGatewayHandles: params.state.pluginGatewayHandles,
-      pluginGatewayLogger,
-      logPluginGatewayDiagnostics
+      extensionHost: params.extensionHost,
     });
     applyGatewayRuntimeCapabilityState({
       gateway: params.gateway,
@@ -91,7 +88,6 @@ export function configureGatewayPluginRuntime(params: {
       }
     });
     params.state.pluginUiMetadata = getPluginUiMetadataFromRegistry(result.pluginRegistry);
-    params.state.pluginGatewayHandles = result.pluginGatewayHandles;
     params.getLiveUiNcpAgent()?.applyExtensionRegistry?.(result.extensionRegistry);
     if (result.restartChannels) {
       console.log("Config reload: plugin channel gateways restarted.");
@@ -125,7 +121,7 @@ export function createDeferredGatewayStartupHooks(params: {
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
   setLiveUiNcpAgent: (agent: UiNcpAgentHandle) => void;
   wakeFromRestartSentinel: () => Promise<void>;
-  extensionHost?: ExtensionHostClient;
+  extensionHost: ExtensionHostClient;
 }) {
   return {
     hydrateCapabilities: async () => {
@@ -139,20 +135,9 @@ export function createDeferredGatewayStartupHooks(params: {
       });
     },
     startPluginGateways: async () => {
-      if (params.extensionHost) {
-        await params.extensionHost.startPluginGateways(
-          resolveConfigSecrets(loadConfig(), { configPath: params.gateway.runtimeConfigPath }),
-        );
-        params.state.pluginGatewayHandles = [];
-        return;
-      }
-      const startedPluginGateways = await startPluginChannelGateways({
-        registry: params.state.pluginRegistry,
-        config: resolveConfigSecrets(loadConfig(), { configPath: params.gateway.runtimeConfigPath }),
-        logger: pluginGatewayLogger
-      });
-      params.state.pluginGatewayHandles = startedPluginGateways.handles;
-      logPluginGatewayDiagnostics(startedPluginGateways.diagnostics);
+      await params.extensionHost.startPluginGateways(
+        resolveConfigSecrets(loadConfig(), { configPath: params.gateway.runtimeConfigPath }),
+      );
     },
     startChannels: async () => {
       await params.gateway.reloader.getChannels().startAll();

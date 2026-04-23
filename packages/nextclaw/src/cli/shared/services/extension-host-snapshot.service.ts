@@ -81,6 +81,11 @@ export class ExtensionHostSnapshotService {
     diagnostics: registry.diagnostics,
     tools: this.createToolDescriptors(registry, request),
     channels: this.createChannelDescriptors(registry),
+    providers: registry.providers.map((registration) => ({
+      pluginId: registration.pluginId,
+      source: registration.source,
+      provider: registration.provider,
+    })),
     ncpAgentRuntimes: registry.ncpAgentRuntimes.map((runtime, index) => ({
       registrationId: createExtensionHostRegistrationId({
         kind: "runtime",

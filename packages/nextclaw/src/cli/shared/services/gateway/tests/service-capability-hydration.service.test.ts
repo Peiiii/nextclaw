@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   getPluginUiMetadataFromRegistryMock: vi.fn(),
   getWorkspacePathMock: vi.fn(),
   loadConfigMock: vi.fn(),
-  loadPluginRegistryProgressivelyMock: vi.fn(),
   logPluginDiagnosticsMock: vi.fn(),
   resolveConfigSecretsMock: vi.fn(),
   shouldRestartChannelsForPluginReloadMock: vi.fn(),
@@ -37,7 +36,6 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
 
 vi.mock("@/cli/commands/plugin/plugin-registry-loader.js", () => ({
   discoverPluginRegistryStatus: mocks.discoverPluginRegistryStatusMock,
-  loadPluginRegistryProgressively: mocks.loadPluginRegistryProgressivelyMock
 }));
 
 vi.mock("@/cli/commands/plugin/plugin-reload.js", () => ({
@@ -90,7 +88,6 @@ describe("hydrateServiceCapabilities", () => {
     ];
     const nextPluginUiMetadata = [{ id: "nextclaw-channel-weixin" }];
 
-    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue(nextPluginRegistry);
     mocks.toExtensionRegistryMock.mockReturnValue(nextExtensionRegistry);
     mocks.getPluginChannelBindingsMock.mockReturnValue(nextPluginChannelBindings);
     mocks.getPluginUiMetadataFromRegistryMock.mockReturnValue(nextPluginUiMetadata);
@@ -124,13 +121,25 @@ describe("hydrateServiceCapabilities", () => {
     const uiNcpAgent = {
       applyExtensionRegistry: vi.fn()
     };
+    const extensionHost = {
+      load: vi.fn(async () => ({
+        plugins: [],
+        diagnostics: [],
+        tools: [],
+        channels: [],
+        providers: [],
+        ncpAgentRuntimes: [],
+      })),
+      createProxyPluginRegistry: vi.fn(() => nextPluginRegistry),
+    };
 
     await hydrateServiceCapabilities({
       uiStartup: null,
       gateway: gateway as never,
       state: state as never,
       bootstrapStatus: bootstrapStatus as never,
-      getLiveUiNcpAgent: () => uiNcpAgent as never
+      getLiveUiNcpAgent: () => uiNcpAgent as never,
+      extensionHost: extensionHost as never,
     });
 
     expect(gateway.pluginRegistry).toBe(nextPluginRegistry);
@@ -140,6 +149,7 @@ describe("hydrateServiceCapabilities", () => {
     expect(state.extensionRegistry).toBe(nextExtensionRegistry);
     expect(state.pluginChannelBindings).toBe(nextPluginChannelBindings);
     expect(state.pluginUiMetadata).toBe(nextPluginUiMetadata);
+    expect(extensionHost.load).toHaveBeenCalledTimes(1);
     expect(gateway.reloader.rebuildChannels).toHaveBeenCalledWith(
       expect.objectContaining({
         agents: expect.any(Object)

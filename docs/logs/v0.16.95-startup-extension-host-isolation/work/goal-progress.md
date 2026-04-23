@@ -19,9 +19,12 @@
 - 推迟重型 capability warmup，不阻塞 status。
 - 增加启动瀑布流脚本。
 - Dev proxy 对后端启动竞态做受控处理。
+- 补齐 extension host runtime state/tools/asset 契约。
+- plugin reload 改为统一走 extension host。
+- proxy registry 保留 providers 契约并补测试。
 
 ## 当前下一步
-- 审查本次实现的解耦质量、可维护性和剩余复杂度，指出需要继续收敛的点。
+- 若继续本链路，优先处理前端 `bootstrap-status` 持续轮询 / “未连接” 状态机根因。
 
 ## 锚点计数器
-- 当前：8/20
+- 当前：14/20

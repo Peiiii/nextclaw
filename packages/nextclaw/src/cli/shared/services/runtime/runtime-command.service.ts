@@ -152,7 +152,12 @@ export class RuntimeCommandService {
     runtimeState = gatewayRuntimeState;
     uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
     uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    configureGatewayPluginRuntime({ gateway, state: gatewayRuntimeState, getLiveUiNcpAgent: () => this.liveUiNcpAgent });
+    configureGatewayPluginRuntime({
+      gateway,
+      state: gatewayRuntimeState,
+      getLiveUiNcpAgent: () => this.liveUiNcpAgent,
+      extensionHost,
+    });
     console.log("✓ Capability hydration: scheduled in background");
     await measureStartupAsync("service.start_gateway_support_services", async () =>
       await startGatewayRuntimeSupport({

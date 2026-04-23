@@ -26,6 +26,7 @@ type RuntimeStreamState = {
   queue: Array<NcpEndpointEvent | Error | null>;
   wake: (() => void) | null;
   onMetadata: (metadata: Record<string, unknown>) => void;
+  applyStateBatch: (events: NcpEndpointEvent[]) => Promise<void>;
 };
 
 function resolveChildEntryPath(): string {
@@ -89,6 +90,9 @@ export class ExtensionHostClient {
       queue: [],
       wake: null,
       onMetadata: runtimeParams.setSessionMetadata,
+      applyStateBatch: async (events) => {
+        await runtimeParams.stateManager.dispatchBatch(events);
+      },
     };
     this.runtimeStreams.set(streamId, state);
     const abortListener = () => {
@@ -106,6 +110,9 @@ export class ExtensionHostClient {
         sessionId: runtimeParams.sessionId,
         agentId: runtimeParams.agentId,
         sessionMetadata: runtimeParams.sessionMetadata,
+        ...(runtimeParams.resolveTools
+          ? { resolvedTools: Array.from(runtimeParams.resolveTools(input) ?? []) }
+          : {}),
       },
       input,
     } satisfies ExtensionHostRuntimeRunRequest);
@@ -190,6 +197,10 @@ export class ExtensionHostClient {
     }
     if (message.event === "load.progress") {
       this.params.onProgress?.(message.payload);
+      return;
+    }
+    if (message.event === "runtime.state.dispatchBatch") {
+      this.runtimeStreams.get(message.payload.streamId)?.applyStateBatch(message.payload.events);
       return;
     }
     const state = this.runtimeStreams.get(message.payload.streamId);

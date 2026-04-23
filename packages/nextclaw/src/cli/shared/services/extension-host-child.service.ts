@@ -1,10 +1,14 @@
+import { getDataDir } from "@nextclaw/core";
 import {
   startPluginChannelGateways,
   stopPluginChannelGateways,
   type PluginChannelGatewayHandle,
   type PluginRegistry,
 } from "@nextclaw/openclaw-compat";
-import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
+import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
+import { type NcpEndpointEvent } from "@nextclaw/ncp";
+import { DefaultNcpAgentConversationStateManager, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import { join } from "node:path";
 import { loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
 import {
   createExtensionHostRegistrationId,
@@ -51,6 +55,9 @@ class ExtensionHostChildRuntime {
   private pluginRegistry: PluginRegistry | null = null;
   private pluginGatewayHandles: PluginChannelGatewayHandle[] = [];
   private readonly runtimeAbortControllers = new Map<string, AbortController>();
+  private readonly assetStore = new LocalAssetStore({
+    rootDir: join(getDataDir(), "assets"),
+  });
   private readonly snapshotService = new ExtensionHostSnapshotService();
 
   handleMessage = (message: ExtensionHostMessage): void => {
@@ -235,7 +242,18 @@ class ExtensionHostChildRuntime {
   ): Promise<void> => {
     try {
       const registration = this.findRuntime(request.kind);
-      const stateManager = new DefaultNcpAgentConversationStateManager();
+      const stateManager = createMirroredStateManager({
+        dispatchBatchToParent: (events) => {
+          send({
+            type: "event",
+            event: "runtime.state.dispatchBatch",
+            payload: {
+              streamId: request.streamId,
+              events,
+            },
+          });
+        },
+      });
       stateManager.hydrate({
         sessionId: request.input.sessionId,
         messages: request.input.messages,
@@ -243,6 +261,10 @@ class ExtensionHostChildRuntime {
       const runtimeParams = {
         ...request.runtimeParams,
         stateManager,
+        resolveAssetContentPath: (assetUri: string) => this.assetStore.resolveContentPath(assetUri),
+        resolveTools: request.runtimeParams.resolvedTools
+          ? () => request.runtimeParams.resolvedTools
+          : undefined,
         setSessionMetadata: (metadata: Record<string, unknown>) => {
           send({
             type: "event",
@@ -303,6 +325,28 @@ class ExtensionHostChildRuntime {
     }
     return this.pluginRegistry;
   };
+}
+
+function createMirroredStateManager(params: {
+  dispatchBatchToParent: (events: NcpEndpointEvent[]) => void;
+}): RuntimeFactoryParams["stateManager"] {
+  const local = new DefaultNcpAgentConversationStateManager();
+  return {
+    getSnapshot: () => local.getSnapshot(),
+    subscribe: (listener: Parameters<DefaultNcpAgentConversationStateManager["subscribe"]>[0]) =>
+      local.subscribe(listener),
+    reset: () => local.reset(),
+    hydrate: (payload: Parameters<DefaultNcpAgentConversationStateManager["hydrate"]>[0]) => local.hydrate(payload),
+    dispatch: async (event: NcpEndpointEvent) => {
+      await local.dispatchBatch([event]);
+      params.dispatchBatchToParent([event]);
+    },
+    dispatchBatch: async (events: readonly NcpEndpointEvent[]) => {
+      const normalized = [...events];
+      await local.dispatchBatch(normalized);
+      params.dispatchBatchToParent(normalized);
+    },
+  } as unknown as RuntimeFactoryParams["stateManager"];
 }
 
 const runtime = new ExtensionHostChildRuntime();

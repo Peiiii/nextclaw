@@ -120,7 +120,11 @@ export class ExtensionHostProxyRegistryService {
         outbound: this.createChannelOutbound(descriptor),
       },
     })),
-    providers: [],
+    providers: snapshot.providers.map((descriptor) => ({
+      pluginId: descriptor.pluginId,
+      source: descriptor.source,
+      provider: descriptor.provider,
+    })),
     ncpAgentRuntimes: snapshot.ncpAgentRuntimes.map((descriptor) => ({
       pluginId: descriptor.pluginId,
       source: descriptor.source,
