@@ -211,22 +211,34 @@ async function waitForChildExit(child, timeoutMs) {
   });
 }
 
+function signalChild(child, signal) {
+  if (process.platform !== "win32" && child.pid) {
+    try {
+      process.kill(-child.pid, signal);
+      return;
+    } catch {
+      // Fall back to signaling the direct child below.
+    }
+  }
+  child.kill(signal);
+}
+
 export async function terminateChild(child) {
   if (child.exitCode !== null || child.signalCode !== null) {
     return;
   }
 
-  child.kill("SIGINT");
+  signalChild(child, "SIGINT");
   if (await waitForChildExit(child, 3_000)) {
     return;
   }
 
-  child.kill("SIGTERM");
+  signalChild(child, "SIGTERM");
   if (await waitForChildExit(child, 3_000)) {
     return;
   }
 
-  child.kill("SIGKILL");
+  signalChild(child, "SIGKILL");
   await waitForChildExit(child, 1_000);
 }
 

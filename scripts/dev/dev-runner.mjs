@@ -316,8 +316,6 @@ const backendProcess = spawnProcess(
   }
 );
 
-await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
-
 spawnProcess(
   "frontend",
   frontendBin,
@@ -325,6 +323,17 @@ spawnProcess(
   frontendDir,
   { VITE_DEV_PROXY_API_BASE: `http://127.0.0.1:${backendPort}` }
 );
+
+try {
+  await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
+} catch (error) {
+  for (const child of children) {
+    if (child.exitCode === null && !child.killed) {
+      child.kill("SIGTERM");
+    }
+  }
+  throw error;
+}
 
 const stopAll = (signal) => {
   if (shuttingDown) {

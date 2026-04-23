@@ -51,6 +51,8 @@ function createRunRecord(runIndex, port, homeDir, baseUrl, command, frontend) {
     frontendPort: frontend?.port ?? null,
     frontendUrl: frontend?.url ?? null,
     frontendCommand: frontend?.command ?? null,
+    devRunnerApiBaseResolved: false,
+    devRunnerFrontendResolved: false,
     uiApiReachableMs: null,
     authStatusOkMs: null,
     frontendServerReadyMs: null,
@@ -83,8 +85,27 @@ function spawnBenchmarkChild(homeDir, command, extraEnv = {}) {
       [STARTUP_TRACE_ENV_KEY]: "1",
       ...extraEnv,
     },
+    detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
   });
+}
+
+function applyDevRunnerUrlLine(run, line) {
+  const apiBaseMatch = /^\[dev\] API base: (http:\/\/\S+)\s*$/.exec(line);
+  if (apiBaseMatch) {
+    run.baseUrl = apiBaseMatch[1];
+    run.devRunnerApiBaseResolved = true;
+    const port = Number.parseInt(new URL(run.baseUrl).port, 10);
+    run.port = Number.isFinite(port) ? port : run.port;
+    return;
+  }
+  const frontendMatch = /^\[dev\] Frontend: (http:\/\/\S+)\s*$/.exec(line);
+  if (frontendMatch) {
+    run.frontendUrl = frontendMatch[1];
+    run.devRunnerFrontendResolved = true;
+    const port = Number.parseInt(new URL(run.frontendUrl).port, 10);
+    run.frontendPort = Number.isFinite(port) ? port : run.frontendPort;
+  }
 }
 
 function attachChildOutput(child, run, prefix = "") {
@@ -98,6 +119,7 @@ function attachChildOutput(child, run, prefix = "") {
   child.stdout.on("data", (chunk) => {
     buffers.stdout = normalizeLineBuffer(buffers.stdout, chunk, (line) => {
       run.stdoutLines.push(prefix ? `${prefix}${line}` : line);
+      applyDevRunnerUrlLine(run, line);
       const trace = parseStartupTraceLine(line);
       if (trace) {
         run.startupTrace.push(trace);
@@ -171,6 +193,17 @@ function recordFrontendAuthStatusMilestone(run, elapsedMs, authStatus) {
 async function pollRunUntilCriterion(options, run, processes, startedAt) {
   while (Date.now() - startedAt < options.timeoutMs) {
     const elapsedMs = Date.now() - startedAt;
+    const exitedProcess = processes.find((processInfo) =>
+      processInfo.child.exitCode !== null || processInfo.child.signalCode !== null
+    );
+    if (exitedProcess) {
+      run.failureReason = `${exitedProcess.label} process exited before criterion was reached (exit=${exitedProcess.child.exitCode ?? "null"}, signal=${exitedProcess.child.signalCode ?? "null"})`;
+      return;
+    }
+    if (options.devRunner && (!run.devRunnerApiBaseResolved || !run.devRunnerFrontendResolved)) {
+      await new Promise((resolve) => setTimeout(resolve, options.pollMs));
+      continue;
+    }
     if (run.frontendUrl) {
       recordFrontendServerMilestone(
         run,
@@ -179,7 +212,13 @@ async function pollRunUntilCriterion(options, run, processes, startedAt) {
       );
     }
     const authStatus = await fetchJson(`${run.baseUrl}/api/auth/status`);
-    recordFrontendAuthStatusMilestone(run, elapsedMs, authStatus);
+    if (run.frontendUrl && run.frontendServerReadyMs !== null) {
+      recordFrontendAuthStatusMilestone(
+        run,
+        elapsedMs,
+        await fetchJson(`${run.frontendUrl}/api/auth/status`)
+      );
+    }
     recordBootstrapMilestones(
       run,
       elapsedMs,
@@ -201,13 +240,6 @@ async function pollRunUntilCriterion(options, run, processes, startedAt) {
       return;
     }
 
-    const exitedProcess = processes.find((processInfo) =>
-      processInfo.child.exitCode !== null || processInfo.child.signalCode !== null
-    );
-    if (exitedProcess) {
-      run.failureReason = `${exitedProcess.label} process exited before criterion was reached (exit=${exitedProcess.child.exitCode ?? "null"}, signal=${exitedProcess.child.signalCode ?? "null"})`;
-      return;
-    }
     await new Promise((resolve) => setTimeout(resolve, options.pollMs));
   }
 
@@ -279,6 +311,8 @@ async function measureSingleRun(options, runIndex) {
       }
       : null
   );
+  run.devRunnerApiBaseResolved = !options.devRunner;
+  run.devRunnerFrontendResolved = !options.devRunner || !frontendUrl;
   const child = spawnBenchmarkChild(homeDir, command);
   const processes = [
     {
@@ -341,7 +375,7 @@ export function printPrettySummary(summary) {
   for (const run of summary.runs) {
     const status = run.success ? "ok" : "failed";
     console.log(
-      `run #${run.runIndex} [${status}] port=${run.port} uiApi=${run.uiApiReachableMs ?? "-"}ms authStatus=${run.authStatusOkMs ?? "-"}ms frontendServer=${run.frontendServerReadyMs ?? "-"}ms frontendAuthStatus=${run.frontendAuthStatusOkMs ?? "-"}ms frontendAuthFailures=${run.frontendAuthStatusFailureCount} health=${run.healthOkMs ?? "-"}ms ncpReady=${run.ncpAgentReadyMs ?? "-"}ms ready=${run.bootstrapReadyMs ?? "-"}ms pluginReady=${run.pluginHydrationReadyMs ?? "-"}ms channelsReady=${run.channelsReadyMs ?? "-"}ms`
+      `run #${run.runIndex} [${status}] api=${run.baseUrl} frontend=${run.frontendUrl ?? "-"} uiApi=${run.uiApiReachableMs ?? "-"}ms authStatus=${run.authStatusOkMs ?? "-"}ms frontendServer=${run.frontendServerReadyMs ?? "-"}ms frontendAuthStatus=${run.frontendAuthStatusOkMs ?? "-"}ms frontendAuthFailures=${run.frontendAuthStatusFailureCount} health=${run.healthOkMs ?? "-"}ms ncpReady=${run.ncpAgentReadyMs ?? "-"}ms ready=${run.bootstrapReadyMs ?? "-"}ms pluginReady=${run.pluginHydrationReadyMs ?? "-"}ms channelsReady=${run.channelsReadyMs ?? "-"}ms`
     );
     if (run.frontendAuthStatusLastError && run.frontendAuthStatusOkMs === null) {
       console.log(`  frontendAuthLastError: ${run.frontendAuthStatusLastError}`);

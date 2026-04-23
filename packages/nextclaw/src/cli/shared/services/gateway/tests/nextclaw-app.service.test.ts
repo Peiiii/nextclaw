@@ -95,7 +95,7 @@ describe("NextclawApp", () => {
     expect(order.indexOf("mark-core-ready")).toBeGreaterThan(order.indexOf("recover-durable-state"));
     expect(order).not.toContain("hydrate-capabilities");
 
-    await vi.advanceTimersByTimeAsync(10_000);
+    await vi.advanceTimersByTimeAsync(120_000);
     await vi.waitFor(() => expect(order).toContain("hydrate-capabilities"));
 
     expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("hydrate-capabilities"));

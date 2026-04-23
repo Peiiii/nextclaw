@@ -139,7 +139,7 @@ pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --r
 瀑布流：
 
 - `0ms~2.5s`: UI API、`/api/auth/status`、health、NCP agent、bootstrap status、前端 server 全部 ready。
-- `99ms~10099ms`: UI 启动场景 post-ready delay，插件/渠道激活刻意延后。
+- UI 启动场景 post-ready delay 当前为 `120000ms`，插件/渠道激活刻意延后，避免在用户刚进入前端时再次抢占主事件循环。
 - `10100ms~17240ms`: `warm_ncp_capabilities`，约 `7140ms`。
 - `10106ms~21484ms`: `hydrate_capabilities`，约 `11378ms`。
 - `21484ms~21498ms`: plugin gateways / channels / restart sentinel 收尾，约 `14ms`。
@@ -158,3 +158,20 @@ pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --r
 2. 下一步优化后台插件激活：减少 `hydrate_capabilities` 的串行动态加载耗时，并评估按需 activation event。
 3. 保持主链路不依赖 channelId；静态 `packageName -> pluginId/channelId` 只作为后台跳过禁用渠道的减负优化。
 4. 中长期评估 worker / 子进程 extension host，让插件 discovery、activation 与运行隔离不再占用主 API 事件循环。
+
+## 口径修正记录
+
+- `frontend-auth-status` 已修正为真实请求 `frontendUrl/api/auth/status`，不再用后端直连 `/api/auth/status` 代替前端口径。
+- `dev-runner` 端口 fallback 时，脚本会解析 `[dev] API base` 和 `[dev] Frontend`，并输出实际探测 URL，避免默认端口已有旧实例时误测旧进程。
+- 最新复测命令：
+
+```bash
+pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --port 18792 --frontend-port 5174 --poll-ms 50 --runs 1 --timeout-ms 90000 --criterion frontend-auth-status
+```
+
+- 最新复测结果：
+  - `api=http://127.0.0.1:18793`
+  - `frontend=http://127.0.0.1:5175`
+  - `frontendServerReadyMs=606ms`
+  - `frontendAuthStatusOkMs=2333ms`
+  - `frontendAuthStatusFailureCount=17`

@@ -72,10 +72,14 @@
   - 真实三轮复测：`bootstrapReadyMs` 为 `2439 / 1616 / 2020`，中位数约 `2.0s`。
   - 后台插件完成单轮复测：`pluginHydrationReadyMs=25080ms`、`channelsReadyMs=25080ms`。
 - 已完成第二刀：
-  - UI 启动场景默认在 core ready 后等待 `10s` 再启动插件/渠道后台激活，避免动态 import / hydration 抢占主可用窗口。
+  - UI 启动场景默认在 core ready 后等待 `120s` 再启动插件/渠道后台激活，避免动态 import / hydration 在用户刚进入前端时再次抢占主可用窗口。
   - 真实 dev-runner 复测：`uiApi/authStatus/health/ncpReady/bootstrapReady=2039ms`，`frontendServer/frontendAuthStatus=2475ms`，`frontendAuthStatusFailureCount=0`。
   - 后台插件完成复测：`pluginHydrationReady/channelsReady=23646ms`。
   - 当前瀑布流最大后台 owner：`hydrate_capabilities=11378ms`，其次 `warm_ncp_capabilities=7140ms` / `service.ui_shell_grace_window=7095ms`。
+- 已修正验收口径：
+  - `frontend-auth-status` 现在真实请求 `frontendUrl/api/auth/status`，不再用后端直连结果冒充前端结果。
+  - `dev-runner` 端口 fallback 时，smoke 脚本解析 `[dev] API base` 和 `[dev] Frontend`，只测实际启动出来的 URL，避免误测旧实例。
+  - 复测样本：实际 URL `api=http://127.0.0.1:18793`、`frontend=http://127.0.0.1:5175`，`frontendAuthStatusOkMs=2333ms`。
 
 ## 同链路验收
 

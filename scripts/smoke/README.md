@@ -11,6 +11,7 @@
   - 默认隔离 `NEXTCLAW_HOME`，并同时输出 `UI API 可达 / auth status ok / health ok / ncpAgent.ready / bootstrap ready / plugin hydration ready / channels ready` 时间点。
   - 默认输出瀑布流，包括外部可观察 milestone 与后端 `startup-trace` 持续时间段，用于排序当前最大启动耗时 owner。
   - 若要测真实 `pnpm dev start` 入口下“前端 server ready 后 status 仍飘红多久”，使用 `pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --criterion frontend-auth-status`。
+  - `--dev-runner` 会解析 `pnpm dev start` 实际打印的 `API base` 和 `Frontend` URL；如果默认端口被旧实例占用并 fallback，输出中的 `api=... frontend=...` 才是本次真实探测对象。
 - `pnpm smoke:prompt-cache`
   - 用于验证真实模型的 prompt cache telemetry。
   - `provider-direct` 模式：直连 provider，适合隔离 provider 本身是否吐出 `*_cached_tokens`。
