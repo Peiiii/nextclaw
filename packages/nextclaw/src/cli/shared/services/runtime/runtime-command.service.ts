@@ -4,7 +4,11 @@ import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { MissingProvider } from "@/cli/shared/providers/missing-provider.js";
-import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
+import {
+  getPackageVersion,
+  resolveUiConfig,
+  resolveUiStaticDir,
+} from "@/cli/shared/utils/cli.utils.js";
 import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { ServiceMarketplaceInstaller } from "@/cli/shared/services/marketplace/service-marketplace-installer.service.js";
 import { ManagedServiceCommandService, resolveSessionRouteCandidate, type StartServiceOptions } from "@/cli/shared/services/runtime/service-managed-startup.service.js";
@@ -18,7 +22,6 @@ import { createServiceNcpSessionRealtimeBridge } from "@/cli/shared/services/ses
 import { createEmptyPluginRegistry } from "@/cli/commands/plugin/index.js";
 import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "@/cli/shared/services/gateway/service-gateway-bootstrap.service.js";
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "@/cli/shared/services/gateway/service-gateway-runtime-lifecycle.js";
-import { ExtensionHostClient } from "@/cli/shared/services/extension-host-client.service.js";
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@/cli/shared/utils/service-port-probe.utils.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { resolveCliSubcommandEntry } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
@@ -90,14 +93,6 @@ export class RuntimeCommandService {
     const applyLiveConfigReload = async () => { await this.applyLiveConfigReload?.(); };
     let runtimeState: GatewayRuntimeState | null = null;
     const bootstrapStatus = createBootstrapStatus(shellContext.config.remote.enabled);
-    const extensionHost = new ExtensionHostClient({
-      onProgress: ({ loadedPluginCount, totalPluginCount }) => {
-        bootstrapStatus.markPluginHydrationProgress({
-          loadedPluginCount,
-          totalPluginCount,
-        });
-      },
-    });
     const ncpSessionRealtimeBridge = createServiceNcpSessionRealtimeBridge({ sessionManager: shellContext.sessionManager });
     const marketplaceInstaller = new ServiceMarketplaceInstaller({
       applyLiveConfigReload,
@@ -152,12 +147,7 @@ export class RuntimeCommandService {
     runtimeState = gatewayRuntimeState;
     uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
     uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    configureGatewayPluginRuntime({
-      gateway,
-      state: gatewayRuntimeState,
-      getLiveUiNcpAgent: () => this.liveUiNcpAgent,
-      extensionHost,
-    });
+    configureGatewayPluginRuntime({ gateway, state: gatewayRuntimeState, getLiveUiNcpAgent: () => this.liveUiNcpAgent });
     console.log("✓ Capability hydration: scheduled in background");
     await measureStartupAsync("service.start_gateway_support_services", async () =>
       await startGatewayRuntimeSupport({
@@ -182,7 +172,6 @@ export class RuntimeCommandService {
       bootstrapStatus,
       getLiveUiNcpAgent: () => this.liveUiNcpAgent,
       setLiveUiNcpAgent: (ncpAgent) => { this.liveUiNcpAgent = ncpAgent; },
-      extensionHost,
       wakeFromRestartSentinel: async () =>
         await this.wakeFromRestartSentinel({ bus: gateway.bus, sessionManager: gateway.sessionManager })
     });
@@ -217,8 +206,6 @@ export class RuntimeCommandService {
           uiStartup,
           remoteModule: gateway.remoteModule,
           runtimeState,
-        }).finally(async () => {
-          await extensionHost.dispose();
         }),
     });
     logStartupTrace("service.start_gateway.end");

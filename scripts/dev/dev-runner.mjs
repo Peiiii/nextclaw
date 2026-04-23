@@ -236,7 +236,6 @@ let exitCode = 0;
 const developmentNodeOptions = [process.env.NODE_OPTIONS, "--conditions=development"]
   .filter((value) => typeof value === "string" && value.trim().length > 0)
   .join(" ");
-const useBackendWatch = process.env.NEXTCLAW_DEV_BACKEND_WATCH === "1";
 
 function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
@@ -293,12 +292,8 @@ const backendProcess = spawnProcess(
   "backend",
   backendBin,
   [
-    ...(useBackendWatch
-      ? [
-          "watch",
-          ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob]),
-        ]
-      : []),
+    "watch",
+    ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob]),
     "--tsconfig",
     "tsconfig.json",
     "src/cli/app/index.ts",
@@ -321,6 +316,8 @@ const backendProcess = spawnProcess(
   }
 );
 
+await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
+
 spawnProcess(
   "frontend",
   frontendBin,
@@ -328,8 +325,6 @@ spawnProcess(
   frontendDir,
   { VITE_DEV_PROXY_API_BASE: `http://127.0.0.1:${backendPort}` }
 );
-
-await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
 
 const stopAll = (signal) => {
   if (shuttingDown) {

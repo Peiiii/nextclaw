@@ -14,8 +14,7 @@ import {
   toExtensionRegistry,
   type NextclawExtensionRegistry,
 } from "@/cli/commands/plugin/index.js";
-import { discoverPluginRegistryStatus } from "@/cli/commands/plugin/plugin-registry-loader.js";
-import type { ExtensionHostClient } from "@/cli/shared/services/extension-host-client.service.js";
+import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
 import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
 import { waitForUiShellGraceWindow } from "@/cli/shared/services/gateway/service-ui-shell-grace.js";
 import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
@@ -37,35 +36,28 @@ export async function hydrateServiceCapabilities(params: {
   state: ServiceCapabilityHydrationState;
   bootstrapStatus: ServiceBootstrapStatusStore;
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
-  extensionHost: ExtensionHostClient;
 }): Promise<void> {
-  const {
-    bootstrapStatus,
-    extensionHost,
-    gateway,
-    getLiveUiNcpAgent,
-    state,
-    uiStartup,
-  } = params;
-  await waitForUiShellGraceWindow(uiStartup);
-  const nextConfig = resolveConfigSecrets(loadConfig(), { configPath: gateway.runtimeConfigPath });
+  await waitForUiShellGraceWindow(params.uiStartup);
+  const nextConfig = resolveConfigSecrets(loadConfig(), { configPath: params.gateway.runtimeConfigPath });
   const nextWorkspace = getWorkspacePath(nextConfig.agents.defaults.workspace);
   const totalPluginCount = countEnabledPlugins(nextConfig, nextWorkspace);
   let loadedPluginCount = 0;
 
-  bootstrapStatus.markPluginHydrationRunning({
+  params.bootstrapStatus.markPluginHydrationRunning({
     totalPluginCount
   });
-  bootstrapStatus.markChannelsPending();
+  params.bootstrapStatus.markChannelsPending();
 
   try {
-    const nextPluginRegistry = extensionHost.createProxyPluginRegistry(
-      await extensionHost.load({
-        config: nextConfig,
-        workspaceDir: nextWorkspace,
-      }),
-    );
-    loadedPluginCount = loadedPluginCount || nextPluginRegistry.plugins.filter((plugin) => plugin.status === "loaded").length;
+    const nextPluginRegistry = await loadPluginRegistryProgressively(nextConfig, nextWorkspace, {
+      onPluginProcessed: ({ loadedPluginCount: nextCount }) => {
+        loadedPluginCount = nextCount;
+        params.bootstrapStatus.markPluginHydrationProgress({
+          loadedPluginCount: nextCount,
+          totalPluginCount
+        });
+      }
+    });
     logPluginDiagnostics(nextPluginRegistry);
 
     const nextExtensionRegistry = toExtensionRegistry(nextPluginRegistry);
@@ -73,37 +65,37 @@ export async function hydrateServiceCapabilities(params: {
     const nextPluginUiMetadata = getPluginUiMetadataFromRegistry(nextPluginRegistry);
     const shouldRebuildChannels = shouldRestartChannelsForPluginReload({
       changedPaths: [],
-      currentPluginChannelBindings: state.pluginChannelBindings,
+      currentPluginChannelBindings: params.state.pluginChannelBindings,
       nextPluginChannelBindings,
-      currentExtensionChannels: state.extensionRegistry.channels,
+      currentExtensionChannels: params.state.extensionRegistry.channels,
       nextExtensionChannels: nextExtensionRegistry.channels,
     });
 
-    applyGatewayCapabilityState(gateway, {
+    applyGatewayCapabilityState(params.gateway, {
       pluginRegistry: nextPluginRegistry,
       extensionRegistry: nextExtensionRegistry,
       pluginChannelBindings: nextPluginChannelBindings,
     });
-    state.pluginRegistry = nextPluginRegistry;
-    state.extensionRegistry = nextExtensionRegistry;
-    state.pluginChannelBindings = nextPluginChannelBindings;
-    state.pluginUiMetadata = nextPluginUiMetadata;
+    params.state.pluginRegistry = nextPluginRegistry;
+    params.state.extensionRegistry = nextExtensionRegistry;
+    params.state.pluginChannelBindings = nextPluginChannelBindings;
+    params.state.pluginUiMetadata = nextPluginUiMetadata;
 
-    getLiveUiNcpAgent()?.applyExtensionRegistry?.(nextExtensionRegistry);
+    params.getLiveUiNcpAgent()?.applyExtensionRegistry?.(nextExtensionRegistry);
 
     if (shouldRebuildChannels) {
-      await gateway.reloader.rebuildChannels(nextConfig, { start: false });
+      await params.gateway.reloader.rebuildChannels(nextConfig, { start: false });
     }
 
-    uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
-    uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    bootstrapStatus.markPluginHydrationReady({
+    params.uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
+    params.uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
+    params.bootstrapStatus.markPluginHydrationReady({
       loadedPluginCount: loadedPluginCount || totalPluginCount,
       totalPluginCount
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    bootstrapStatus.markPluginHydrationError(message);
+    params.bootstrapStatus.markPluginHydrationError(message);
     throw error;
   }
 }
