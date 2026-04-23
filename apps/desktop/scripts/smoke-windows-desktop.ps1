@@ -87,11 +87,13 @@ function Get-RuntimeScriptPath {
   $resourcesRoot = Join-Path $desktopRoot "resources"
   $asarRoot = Join-Path $resourcesRoot "app.asar"
   if (Test-Path -LiteralPath $asarRoot) {
-    return (Join-Path $asarRoot "node_modules\nextclaw\dist\cli\index.js")
+    return (Join-Path $asarRoot "node_modules\nextclaw\dist\cli\app\index.js")
   }
 
   $candidates = @(
+    (Join-Path $resourcesRoot "app\node_modules\nextclaw\dist\cli\app\index.js"),
     (Join-Path $resourcesRoot "app\node_modules\nextclaw\dist\cli\index.js"),
+    (Join-Path $resourcesRoot "node_modules\nextclaw\dist\cli\app\index.js"),
     (Join-Path $resourcesRoot "node_modules\nextclaw\dist\cli\index.js")
   )
 

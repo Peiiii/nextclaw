@@ -223,8 +223,11 @@ find_running_app_pid() {
 
 find_runtime_script() {
   local candidates=(
+    "${INSTALLED_APP}/Contents/Resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
     "${INSTALLED_APP}/Contents/Resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
+    "${INSTALLED_APP}/Contents/Resources/app/node_modules/nextclaw/dist/cli/app/index.js"
     "${INSTALLED_APP}/Contents/Resources/app/node_modules/nextclaw/dist/cli/index.js"
+    "${INSTALLED_APP}/Contents/Resources/node_modules/nextclaw/dist/cli/app/index.js"
     "${INSTALLED_APP}/Contents/Resources/node_modules/nextclaw/dist/cli/index.js"
   )
   local candidate

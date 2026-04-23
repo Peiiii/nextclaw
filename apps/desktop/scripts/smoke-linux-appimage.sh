@@ -48,10 +48,15 @@ trap cleanup EXIT
 find_runtime_script() {
   local extract_dir="$1"
   local candidates=(
+    "${extract_dir}/resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
     "${extract_dir}/resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
+    "${extract_dir}/resources/app/node_modules/nextclaw/dist/cli/app/index.js"
     "${extract_dir}/resources/app/node_modules/nextclaw/dist/cli/index.js"
+    "${extract_dir}/resources/node_modules/nextclaw/dist/cli/app/index.js"
     "${extract_dir}/resources/node_modules/nextclaw/dist/cli/index.js"
+    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
     "${extract_dir}/usr/lib/nextclaw-desktop/resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
+    "${extract_dir}/usr/lib/nextclaw-desktop/resources/app/node_modules/nextclaw/dist/cli/app/index.js"
     "${extract_dir}/usr/lib/nextclaw-desktop/resources/app/node_modules/nextclaw/dist/cli/index.js"
   )
 
