@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { appQueryClient } from "@/app-query-client";
 import { AppManagerProvider } from "@/app/components/app-manager-provider";
 import { AppLayout } from "@/app/components/layout/app-layout";
+import { LanguageSettingsPage } from "@/features/settings";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { AccountPanel } from "@/features/account";
@@ -151,6 +152,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/secrets",
     element: createLazyElement(<SecretsConfigPage />),
+  },
+  {
+    path: "/language",
+    element: <LanguageSettingsPage />,
   },
   {
     path: "/settings",

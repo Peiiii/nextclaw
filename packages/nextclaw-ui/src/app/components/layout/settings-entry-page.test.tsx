@@ -53,6 +53,7 @@ describe("SettingsEntryPage", () => {
     );
 
     expect(screen.getByTestId("mobile-settings-shell")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Language" })).toBeTruthy();
 
     useViewportLayoutMock.mockReturnValue({
       mode: "desktop",

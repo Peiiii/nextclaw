@@ -1,17 +1,17 @@
 import { cn } from '@/shared/lib/utils';
-import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
 import { MessageCircle, BookOpen, BrainCircuit, AlarmClock, Languages, Palette, KeyRound, Settings, ArrowLeft, Bot } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useDocBrowser } from '@/shared/components/doc-browser';
 import { BrandHeader } from '@/shared/components/common/brand-header';
 import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/app/components/layout/sidebar-items';
-import { useI18n } from '@/app/components/i18n-provider';
 import { useTheme } from '@/app/components/theme-provider';
 import { SelectItem } from '@/shared/components/ui/select';
 import { useAppManager } from '@/app/components/app-manager-provider';
 import { useRemoteStatus } from '@/features/remote';
 import { getSettingsNavItems } from '@/app/configs/app-navigation.config';
+import { useLanguagePreference } from '@/features/settings';
 
 type SidebarMode = 'main' | 'settings';
 
@@ -23,21 +23,17 @@ export function Sidebar({ mode }: SidebarProps) {
   const manager = useAppManager();
   const docBrowser = useDocBrowser();
   const remoteStatus = useRemoteStatus();
-  const { language, setLanguage } = useI18n();
+  const {
+    currentLanguage,
+    currentLanguageLabel,
+    languageOptions,
+    selectLanguage,
+  } = useLanguagePreference();
   const { theme, setTheme } = useTheme();
   const isSettingsMode = mode === 'settings';
-  const currentLanguageLabel = LANGUAGE_OPTIONS.find((option) => option.value === language)?.label ?? language;
   const currentThemeLabel = t(THEME_OPTIONS.find((option) => option.value === theme)?.labelKey ?? 'themeWarm');
   const accountEmail = remoteStatus.data?.account.email?.trim();
   const accountConnected = Boolean(remoteStatus.data?.account.loggedIn);
-
-  const handleLanguageSwitch = (nextLanguage: I18nLanguage) => {
-    if (language === nextLanguage) {
-      return;
-    }
-    setLanguage(nextLanguage);
-    window.location.reload();
-  };
 
   const handleThemeSwitch = (nextTheme: UiTheme) => {
     if (theme === nextTheme) {
@@ -160,14 +156,14 @@ export function Sidebar({ mode }: SidebarProps) {
           </div>
           <div className="mb-2">
             <SidebarSelectItem
-              value={language}
-              onValueChange={(value) => handleLanguageSwitch(value as I18nLanguage)}
+              value={currentLanguage}
+              onValueChange={(value) => selectLanguage(value as typeof currentLanguage)}
               icon={Languages}
               label={t('language')}
               valueLabel={currentLanguageLabel}
               density={sidebarDensity}
             >
-              {LANGUAGE_OPTIONS.map((option) => (
+              {languageOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value} className="text-xs">
                   {option.label}
                 </SelectItem>

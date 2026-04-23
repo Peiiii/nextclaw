@@ -46,6 +46,10 @@
   - 修复方式：一级路由不再渲染返回占位；只有存在返回目标的二级页才保留返回按钮和右侧平衡占位。
 - 同批次继续将一级功能页 topbar 标题居中：
   - 在一级页没有返回按钮和右侧操作的前提下，标题统一居中，避免标题左侧出现“空但不稳”的视觉感受。
+- 同批次继续补出手机端语言切换入口：
+  - 根因已确认：桌面端已有语言切换能力，但移动端设置首页没有暴露对应入口，导致手机端无法通过壳层完成同一项偏好设置。
+  - 修复方式：把语言偏好状态与切换动作抽为 [packages/nextclaw-ui/src/features/settings/hooks/use-language-preference.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/features/settings/hooks/use-language-preference.ts)，桌面 Sidebar 与移动端语言设置页共用该 hook；手机端仅新增 [packages/nextclaw-ui/src/features/settings/pages/language-settings-page.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/features/settings/pages/language-settings-page.tsx) 作为展示层入口。
+  - 移动端设置列表新增 `Language`，并复用同一份 `getMobileSettingsNavItems()` 导航配置，避免新增一套语言业务逻辑或移动端专属状态。
 
 # 测试/验证/验收方式
 
@@ -70,6 +74,9 @@
 - 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
 - 结果：通过，`1` 个测试文件、`2` 个测试用例全部通过。
 
+- 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/app/components/layout/settings-entry-page.test.tsx src/features/settings/pages/language-settings-page.test.tsx src/app/components/layout/sidebar.layout.test.tsx src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
+- 结果：通过，`4` 个测试文件、`9` 个测试用例全部通过。
+
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
 - 结果：通过，无错误、无 warning；非测试代码新增 `5` 行、删除 `5` 行，净增 `0` 行。
 
@@ -93,6 +100,9 @@
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/app/configs/app-navigation.config.ts packages/nextclaw-ui/src/platforms/mobile/components/mobile-topbar.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/chat-mobile-shell.tsx`
 - 结果：通过，无错误、无 warning。
+
+- 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/settings/index.ts packages/nextclaw-ui/src/features/settings/hooks/use-language-preference.ts packages/nextclaw-ui/src/features/settings/pages/language-settings-page.tsx packages/nextclaw-ui/src/features/settings/pages/language-settings-page.test.tsx packages/nextclaw-ui/src/app/components/layout/sidebar.tsx packages/nextclaw-ui/src/app/components/layout/sidebar.layout.test.tsx packages/nextclaw-ui/src/app/components/layout/settings-entry-page.test.tsx packages/nextclaw-ui/src/app/configs/app-navigation.config.ts packages/nextclaw-ui/src/platforms/mobile/components/mobile-settings-shell.tsx packages/nextclaw-ui/src/app/index.tsx`
+- 结果：通过，无错误，保留 `1` 条 warning；该 warning 为 `Sidebar` 历史函数体量偏大，本次触达后函数体量从 `158` 降到 `155`，未继续恶化；非测试代码新增 `125` 行、删除 `19` 行、净增 `+106` 行，增长集中在新增移动端语言入口这一用户可见能力。
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次移动端适配相关文件>`
 - 结果：通过，无错误，保留 `4` 条 warning；统计结果为：
@@ -133,6 +143,7 @@
 13. 在手机尺寸下进入 `/chat` 会话列表，确认顶部区域为圆角搜索胶囊和紧凑加号入口，不再出现桌面式大号新建按钮。
 14. 在手机尺寸下进入 `/chat/:sessionId` 聊天详情，确认顶部只有一条聊天 header；该 header 内包含返回按钮与会话标题，不再叠加外层 `MobileTopbar`。
 15. 在手机尺寸下切换 `聊天 / 技能 / Agent / 设置` 等一级功能页，确认标题居中，且左侧不再预留无返回按钮的空白占位。
+16. 在手机尺寸下进入 `/settings`，确认列表中存在 `Language` 入口；进入后能看到当前语言并切换到另一个语言选项，桌面 Sidebar 的语言下拉仍使用同一套切换逻辑。
 
 # 可维护性总结汇总
 
@@ -147,6 +158,7 @@
 - 手机端会话列表顶部区域的可维护性复核：结论为 `通过`，`no maintainability findings`。本次没有把手机端样式继续塞进 `ChatSidebar` 的大段条件 class，而是抽出桌面/移动 toolbar 纯展示组件，保留同一套数据 owner 和 action 入口；新增文件用于降低主组件体量，并让后续移动端会话列表继续按组合方式演进。
 - 手机端聊天详情单 header 优化的可维护性复核：结论为 `通过`，`no maintainability findings`。本次删除了聊天详情上的共享顶部栏渲染路径，没有新增第二套聊天详情壳；返回路由动作仍由 `ChatMobileShell` 注入，`ChatConversationPanel` 只负责展示 mobile header 控件，边界保持清晰。
 - 一级功能页 topbar 左侧空白收紧与标题居中的可维护性复核：结论为 `通过`，`no maintainability findings`。本次删除无返回场景的占位 DOM，并用现有标题元素完成居中，未新增状态、分支 owner 或平台特化组件。
+- 手机端语言入口的可维护性复核：结论为 `通过`，`no maintainability findings`。本次没有复制桌面语言切换逻辑，也没有在 mobile shell 里新增业务状态；语言偏好被收敛为 `features/settings` 的共享 hook，桌面 Sidebar 和移动端设置页仅组合不同展示。
 
 # NPM 包发布记录
 

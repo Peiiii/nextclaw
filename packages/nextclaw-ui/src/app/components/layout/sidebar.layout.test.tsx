@@ -112,14 +112,15 @@ describe('Sidebar', () => {
       'Providers',
       'Channels',
       'Search Channels',
-      'Plugins',
-      'MCP',
       'Routing & Runtime',
       'Updates',
       'Remote Access',
       'Security',
       'Sessions',
-      'Secrets'
+      'Secrets',
+      'Cron Jobs',
+      'Plugins',
+      'MCP'
     ]);
   });
 

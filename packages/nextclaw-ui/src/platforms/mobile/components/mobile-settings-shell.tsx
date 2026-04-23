@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
-import { getSettingsNavItems } from "@/app/configs/app-navigation.config";
+import { getMobileSettingsNavItems } from "@/app/configs/app-navigation.config";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
 export function MobileSettingsShell() {
-  const settingsNavItems = getSettingsNavItems(t);
+  const settingsNavItems = getMobileSettingsNavItems(t);
 
   return (
     <div
