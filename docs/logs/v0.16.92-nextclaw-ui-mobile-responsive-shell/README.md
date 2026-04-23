@@ -28,8 +28,11 @@
   - 修复方式：为 [packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx) 增加 `displayMode="fullscreen"` 展示契约；[packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx) 在手机壳层中显式传入该模式，让文档浏览器以全视口覆盖层显示，并隐藏桌面 resize / drag / dock-toggle 控件。
 - 同批次继续优化了移动端顶部栏、底部栏和聊天详情页空间：
   - 顶部栏降低为更接近微信一类高频移动应用的紧凑高度，减少纵向空间占用。
-  - 底部主导航降低高度，并把选中态反馈从“整块 tab 背景”收缩到图标小胶囊区域，降低视觉压迫感。
+  - 底部主导航降低高度，并把选中态反馈从“整块 tab 背景”收缩到包裹图标和文字的紧凑圆角区域，降低视觉压迫感。
   - 新增统一 `isChatSessionDetailRoute()` 路由判断；`/chat` 会话列表仍展示底部主导航，`/chat/:sessionId` 会话详情隐藏底部主导航，只保留顶部返回入口，形成更接近微信聊天详情的沉浸式体验。
+- 同批次继续校准了底部导航反馈区域：
+  - 将 hover/selected 的视觉反馈从整格 tab 收敛为包裹“图标 + 文字”的紧凑圆角矩形。
+  - 外层 `Link` 仍保留完整触控面积，避免为了视觉收缩牺牲手机端可点性。
 
 # 测试/验证/验收方式
 
@@ -50,6 +53,12 @@
 
 - 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/platforms/mobile/components/mobile-bottom-nav.test.tsx src/platforms/mobile/components/mobile-app-shell.test.tsx src/features/chat/components/layout/chat-page-shell.test.tsx`
 - 结果：通过，`3` 个测试文件、`5` 个测试用例全部通过。
+
+- 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
+- 结果：通过，`1` 个测试文件、`2` 个测试用例全部通过。
+
+- 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx`
+- 结果：通过，无错误、无 warning；非测试代码新增 `5` 行、删除 `5` 行，净增 `0` 行。
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/app/configs/app-navigation.config.ts packages/nextclaw-ui/src/platforms/mobile/components/mobile-topbar.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/chat-mobile-shell.tsx`
 - 结果：通过，无错误、无 warning。
@@ -84,8 +93,9 @@
 7. 进入 `providers / channels / search / sessions` 等典型 split 页面，确认手机端不再出现被横向压缩的双栏。
 8. 切回桌面尺寸，确认原有桌面壳层、桌面侧栏与主内容区仍可正常工作。
 9. 在手机尺寸下点击文档入口，确认文档浏览器以全屏覆盖层打开，不出现桌面侧边栏宽度、拖拽 resize 控件或 dock/floating 切换按钮。
-10. 在手机尺寸下进入任意非聊天详情页，确认顶部栏和底部栏高度更紧凑，底部选中态只在图标区域有小面积反馈。
+10. 在手机尺寸下进入任意非聊天详情页，确认顶部栏和底部栏高度更紧凑，底部选中态只在图标和文字组成的紧凑圆角区域内反馈。
 11. 在手机尺寸下进入 `/chat/:sessionId` 聊天详情，确认底部主导航隐藏；点击顶部返回后回到 `/chat` 会话列表，底部主导航重新显示。
+12. 在手机尺寸下 hover 或按下底部导航项，确认反馈区域只包裹图标与文字，不铺满整个四等分 tab 区域。
 
 # 可维护性总结汇总
 

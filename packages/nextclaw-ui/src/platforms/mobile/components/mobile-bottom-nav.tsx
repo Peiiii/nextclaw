@@ -40,17 +40,17 @@ export function MobileBottomNav() {
                 to={item.target}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-[2.875rem] flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-[10px] font-medium transition-colors",
+                  "group flex min-h-[2.875rem] items-center justify-center rounded-xl px-1 py-1 text-[10px] font-medium transition-colors",
                   active
                     ? "text-gray-900"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-800",
+                    : "text-gray-500 hover:text-gray-800",
                 )}
               >
                 <span
                   data-testid={active ? "mobile-nav-active-indicator" : undefined}
                   className={cn(
-                    "inline-flex h-6 min-w-7 items-center justify-center rounded-full transition-colors",
-                    active ? "bg-gray-100" : "bg-transparent",
+                    "inline-flex max-w-full min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 transition-colors",
+                    active ? "bg-gray-100" : "bg-transparent group-hover:bg-gray-50",
                   )}
                 >
                   <item.icon
@@ -59,8 +59,8 @@ export function MobileBottomNav() {
                       active ? "text-gray-900" : "text-gray-400",
                     )}
                   />
+                  <span className="max-w-full truncate">{item.label}</span>
                 </span>
-                <span className="truncate">{item.label}</span>
               </Link>
             </li>
           );

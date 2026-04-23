@@ -24,6 +24,9 @@ describe("MobileBottomNav", () => {
     expect(screen.getByRole("link", { name: /settings/i }).className).not.toContain(
       "bg-gray-100",
     );
+    expect(screen.getByTestId("mobile-nav-active-indicator").textContent).toMatch(
+      /settings/i,
+    );
   });
 
   it("highlights the chat tab for chat routes", () => {
