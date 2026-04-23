@@ -98,6 +98,19 @@ describe('systemStatusManager', () => {
     expect(refetchQueriesSpy).toHaveBeenCalledWith({ type: 'active' });
   });
 
+  it('keeps the last ready bootstrap status while recovering so websocket reopen can restore readiness', () => {
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('websocket error');
+
+    expect(useSystemStatusStore.getState().state.bootstrapStatus).toEqual(
+      readyBootstrapStatus
+    );
+
+    systemStatusManager.handleConnectionRestored();
+
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('ready');
+  });
+
   it('marks recovery as stalled after the timeout window elapses', async () => {
     systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
     systemStatusManager.handleConnectionInterrupted('websocket error');
@@ -129,6 +142,19 @@ describe('systemStatusManager', () => {
         'NCP fetch failed for POST /api/ncp/agent: Error: Failed to fetch'
       )
     ).toBeNull();
+  });
+
+  it('restores readiness from stalled once the realtime connection reopens', async () => {
+    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
+    systemStatusManager.handleConnectionInterrupted('websocket error');
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('stalled');
+
+    systemStatusManager.handleConnectionRestored();
+
+    expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('ready');
   });
 
   it('keeps only transport-level failures in the recovery flow', () => {

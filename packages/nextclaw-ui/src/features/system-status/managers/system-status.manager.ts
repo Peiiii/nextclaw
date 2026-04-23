@@ -347,9 +347,7 @@ export class SystemStatusManager {
       lifecyclePhase:
         state.lifecyclePhase === 'stalled' ? 'stalled' : 'recovering',
       recoveryStartedAt: state.recoveryStartedAt ?? Date.now(),
-      bootstrapStatus:
-        bootstrapStatus ??
-        (state.lifecyclePhase === 'ready' ? null : state.bootstrapStatus),
+      bootstrapStatus: bootstrapStatus ?? state.bootstrapStatus,
       lastError: errorMessage?.trim() || state.lastError,
       lastTransportError: errorMessage?.trim() || state.lastTransportError,
     });
