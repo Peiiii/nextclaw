@@ -365,7 +365,7 @@ export class AppRuntimeCliService {
   };
 
   private writeUsage = (): void => {
-    this.write("Usage: napp create <app-dir> [--template starter|ts-http] [--json]\n");
+    this.write("Usage: napp create <app-dir> [--template starter|ts-http|ts-http-lite] [--json]\n");
     this.write("       napp inspect <app-dir> [--json]\n");
     this.write("       napp build <app-dir> [--install] [--json]\n");
     this.write("       napp doctor [--json]\n");

@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/app-runtime",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": false,
   "description": "Standalone micro app runtime and CLI for NextClaw apps.",
   "type": "module",

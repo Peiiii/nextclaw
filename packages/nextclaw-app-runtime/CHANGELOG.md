@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.6.0
+
+### Minor Changes
+
+- Add a `ts-http-lite` scaffold template for users who want a smaller official TypeScript WASI HTTP backend path, while keeping the default `ts-http` template for the Hono-based experience.
+
 ## 0.5.0
 
 ### Minor Changes

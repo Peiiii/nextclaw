@@ -44,8 +44,8 @@ napp --version
 manifest.json
 main/
   app.wasm
-  package.json     # ts-http 模板存在
-  src/             # ts-http 模板存在
+  package.json     # ts-http / ts-http-lite 模板存在
+  src/             # ts-http / ts-http-lite 模板存在
 ui/
   index.html
 assets/
@@ -79,6 +79,16 @@ napp validate-publish ./my-first-napp
 napp run ./my-first-napp --data ./my-first-napp/.napp/data
 napp pack ./my-first-napp
 napp publish ./my-first-napp
+```
+
+体积优先工作流：
+
+```bash
+napp doctor
+napp create ./my-small-napp --template ts-http-lite
+napp build ./my-small-napp --install
+napp validate-publish ./my-small-napp
+napp run ./my-small-napp --data ./my-small-napp/.napp/data
 ```
 
 本地安装工作流：
@@ -121,6 +131,11 @@ napp info nextclaw.my-first-napp
 napp permissions nextclaw.my-first-napp
 napp run nextclaw.my-first-napp
 ```
+
+模板选择建议：
+
+- `ts-http`：默认推荐，开发体验优先，适合大多数普通前后端小应用
+- `ts-http-lite`：体积优先，继续走官方 WASI HTTP 路线，但不使用默认 Hono 路由层
 
 已有示例应用：
 

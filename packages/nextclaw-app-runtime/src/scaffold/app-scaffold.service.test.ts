@@ -1,4 +1,4 @@
-import { access, rm } from "node:fs/promises";
+import { access, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -70,5 +70,25 @@ describe("AppScaffoldService", () => {
     expect(result.template).toBe("ts-http");
     expect(bundle.manifest.main.kind).toBe("wasi-http-component");
     expect(bundle.manifest.ui.entry).toBe("ui/index.html");
+  });
+
+  it("creates a lightweight TypeScript WASI HTTP app scaffold", async () => {
+    const service = new AppScaffoldService();
+    const appDirectory = path.join(
+      tmpdir(),
+      `napp-ts-http-lite-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    createdDirectories.push(appDirectory);
+
+    const result = await service.scaffold(appDirectory, { template: "ts-http-lite" });
+    const manifestService = new AppManifestService();
+    const bundle = await manifestService.load(result.appDirectory);
+    const packageJson = JSON.parse(
+      await readFile(path.join(result.appDirectory, "main", "package.json"), "utf-8"),
+    ) as { dependencies?: Record<string, string> };
+
+    expect(result.template).toBe("ts-http-lite");
+    expect(bundle.manifest.main.kind).toBe("wasi-http-component");
+    expect(packageJson.dependencies?.hono).toBeUndefined();
   });
 });

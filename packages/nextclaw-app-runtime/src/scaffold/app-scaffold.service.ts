@@ -1,8 +1,9 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AppTsHttpLiteScaffoldTemplateService } from "./app-ts-http-lite-scaffold-template.service.js";
 import { AppTsHttpScaffoldTemplateService } from "./app-ts-http-scaffold-template.service.js";
 
-export type AppScaffoldTemplate = "starter" | "ts-http";
+export type AppScaffoldTemplate = "starter" | "ts-http" | "ts-http-lite";
 
 export type AppScaffoldResult = {
   appDirectory: string;
@@ -13,6 +14,7 @@ export type AppScaffoldResult = {
 export class AppScaffoldService {
   constructor(
     private readonly tsHttpTemplateService: AppTsHttpScaffoldTemplateService = new AppTsHttpScaffoldTemplateService(),
+    private readonly tsHttpLiteTemplateService: AppTsHttpLiteScaffoldTemplateService = new AppTsHttpLiteScaffoldTemplateService(),
   ) {}
 
   scaffold = async (
@@ -35,6 +37,20 @@ export class AppScaffoldService {
       await this.writeTemplateFiles(
         appDirectory,
         this.tsHttpTemplateService.buildFiles({
+          appId,
+          appName,
+        }),
+      );
+      return {
+        appDirectory,
+        manifestPath,
+        template,
+      };
+    }
+    if (template === "ts-http-lite") {
+      await this.writeTemplateFiles(
+        appDirectory,
+        this.tsHttpLiteTemplateService.buildFiles({
           appId,
           appName,
         }),

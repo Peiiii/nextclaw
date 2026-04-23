@@ -18,8 +18,9 @@
 - 新增分阶段优化方案：[NApp 分阶段优化执行方案](../../plans/2026-04-23-napp-phase-optimization-plan.md)
 - 新增目标锚点：[goal-progress.md](work/goal-progress.md)
 - `manifest.main.kind` 新增 `wasi-http-component`，`inspect` 可展示 `mainKind`
-- `napp create` 新增显式模板参数：`--template starter|ts-http`
+- `napp create` 新增显式模板参数：`--template starter|ts-http|ts-http-lite`
 - 新增 `ts-http` 模板，生成 TypeScript/Hono 后端、WIT world、JCO/ComponentizeJS 构建脚本、普通 `fetch("/api/todos")` 前端和 Todo List 示例
+- 新增 `ts-http-lite` 模板，继续使用官方 `jco-std` WASI HTTP adapter，但不走默认 Hono 路由层，提供体积优先路径
 - 新增 `napp doctor`，普通用户/skill 可以先检查 NApp 开发运行环境是否就绪
 - 新增 `napp build <app-dir> --install`，自动安装模板依赖并构建 TS/WASI HTTP 后端
 - 修复 apps marketplace 发布协议，使其支持 `wasi-http-component` manifest，不再要求旧 `wasm action` 字段
@@ -39,6 +40,9 @@
 - `pnpm -C packages/nextclaw-app-runtime test`
 - `pnpm -C packages/nextclaw-app-runtime lint`
 - `pnpm -C packages/nextclaw-app-runtime build`
+- `node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/lite-app" --template ts-http-lite --json`
+- `node packages/nextclaw-app-runtime/dist/main.js build "$lite_appdir" --install --json`
+- `node packages/nextclaw-app-runtime/dist/main.js pack "$lite_appdir" --out "$lite_bundle" --json`
 - `node packages/nextclaw-app-runtime/dist/main.js create "$tmpdir/todo-app" --template ts-http --json`
 - `node packages/nextclaw-app-runtime/dist/main.js doctor --json`
 - `node packages/nextclaw-app-runtime/dist/main.js build "$appdir" --install --json`
@@ -66,7 +70,7 @@
 
 关键结果：
 
-- 包级全量单测通过：10 个测试文件，13 条测试
+- 包级全量单测通过：11 个测试文件，17 条测试
 - 包级 lint / tsc / build 通过
 - 生成模板的 `npm run build` 成功产出 `main/app.wasm`
 - `napp doctor --json` 能识别 `npm`、`wasmtime`、`wkg` 并返回机器可读结果
@@ -82,6 +86,7 @@
 - marketplace skill 安装冒烟通过：非仓库临时目录可安装出 `SKILL.md` 与 `marketplace.json`
 - marketplace worker 类型检查通过，`wasi-http-component` app manifest 能通过新的发布协议编译约束
 - 真实 ts-http 打包 smoke 显示：构建后的 `main/app.wasm` 约 13.3 MB，但最终 `.napp` 约 4.2 MB，archive 内只有 7 个运行时文件，不再包含 `main/node_modules`
+- 真实模板对比显示：`ts-http-lite` 可正常 `create -> build -> pack`，并把 `main/app.wasm` 从约 `13.34 MB` 降到约 `13.25 MB`，`.napp` 从约 `4.43 MB` 降到约 `4.36 MB`
 - `napp validate-publish` 真实冒烟通过：可输出 `mainEntrySizeBytes`、`bundleSizeBytes`、`bundleFilePaths`，并在当前模板上给出 `main-entry-large` warning
 - `wkg wit fetch` 在当前环境出现 OCI token warning，但不阻塞构建
 - `jco componentize` 出现 componentize-js 0.19.3 fallback warning，原因是当前 WIT 使用 WASI Preview 2 旧于 0.2.10 的包；不阻塞本次验收，后续可升级 WIT 版本处理
@@ -108,7 +113,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 
 ## 用户/产品视角的验收步骤
 
-1. 用户运行 `napp create ./todo-app --template ts-http`
+1. 用户运行 `napp create ./todo-app --template ts-http`；若更看重包体，可改用 `--template ts-http-lite`
 2. 用户看到目录仍是 `manifest.json + main/ + ui/ + assets/`
 3. AI/skill 执行 `napp doctor --json`，确认本机运行环境就绪
 4. AI/skill 执行 `napp build ./todo-app --install`，产出 `main/app.wasm`
@@ -147,7 +152,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 独立可维护性复核：
 
 - no maintainability findings
-- 当前保留两个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`app-ts-http-scaffold-template.service.ts` 当前 517 行，继续扩展时应优先拆成 main/ui/readme 三个模板 owner
+- 当前保留三个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`app-ts-http-scaffold-template.service.ts` 当前 517 行，继续扩展时应优先拆成 main/ui/readme 三个模板 owner；`ts-http-lite` 当前只带来小幅体积下降，后续若继续追求数量级缩减，应优先研究 componentize/JCO 产物而不是继续替换上层路由
 - 本次没有进一步拆模板文件，因为用户明确要求避免非必要结构变更，且当前模板仍是单一职责的 scaffold 内容；后续新增 `--mount` 或更多模板内容时必须先拆分
 
 ## NPM 包发布记录
@@ -155,7 +160,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 本次涉及 NPM 包：`@nextclaw/app-runtime`
 
 - 本次是否需要发包：需要，因为 `napp create`、`napp run/dev` 命令面、manifest 类型和运行链路都发生变化
-- 当前是否已发布：已发布 `@nextclaw/app-runtime@0.5.0`
+- 当前是否已发布：phase 1 已发布 `@nextclaw/app-runtime@0.5.0`；phase 2 计划发布 `@nextclaw/app-runtime@0.6.0`
 - marketplace skill：已更新 `nextclaw-app-runtime`
 - 后续状态：不需要待统一发布
 - 触发条件：无
