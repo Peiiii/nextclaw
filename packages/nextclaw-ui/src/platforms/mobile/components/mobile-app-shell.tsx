@@ -22,11 +22,12 @@ export function MobileAppShell({
   children,
 }: MobileAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
+  const showTopbar = !isChatSessionDetailRoute(pathname);
   const showBottomNav = !isChatSessionDetailRoute(pathname);
 
   return (
     <div className="flex h-screen flex-col bg-background font-sans text-foreground">
-      <MobileTopbar />
+      {showTopbar ? <MobileTopbar /> : null}
       <div className="relative flex-1 min-h-0 overflow-hidden">
         {isMainRoute ? (
           <div className="h-full min-h-0 overflow-hidden">{children}</div>

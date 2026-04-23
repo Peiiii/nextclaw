@@ -1,16 +1,15 @@
 import { type ComponentProps, useRef } from "react";
-import { ArrowLeft } from "lucide-react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
+import {
+  ChatConversationHeader,
+  ChatParentSessionBanner,
+} from "@/features/chat/components/conversation/chat-conversation-header";
 import { ChatWelcome } from "@/features/chat/components/chat-welcome";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
-import { AgentAvatar } from "@/shared/components/common/agent-avatar";
-import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
-import { ChatSessionHeaderActions } from "@/features/chat/components/conversation/session-header/chat-session-header-actions";
-import { ChatSessionProjectBadge } from "@/features/chat/components/conversation/session-header/chat-session-project-badge";
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
@@ -103,126 +102,12 @@ function ChatConversationSkeleton() {
 }
 
 type ChatThreadSnapshot = ReturnType<typeof useChatThreadStore.getState>["snapshot"];
-type ChatHeaderDeleteHandler = ComponentProps<
-  typeof ChatSessionHeaderActions
->["onDeleteSession"];
 type ChatToolActionHandler = ComponentProps<
   typeof ChatMessageListContainer
 >["onToolAction"];
 type ChatFileOpenHandler = ComponentProps<
   typeof ChatMessageListContainer
 >["onFileOpen"];
-
-type ChatParentSessionBannerProps = {
-  parentSessionLabel: string | null;
-  onGoToParentSession: () => void;
-};
-function ChatParentSessionBanner({
-  parentSessionLabel,
-  onGoToParentSession,
-}: ChatParentSessionBannerProps) {
-  if (!parentSessionLabel) {
-    return null;
-  }
-  const trimmedLabel = parentSessionLabel.trim();
-  return (
-    <div className="border-b border-gray-200/60 bg-white/75 px-4 py-2 backdrop-blur-sm sm:px-5">
-      <button
-        type="button"
-        onClick={onGoToParentSession}
-        className="inline-flex items-center gap-2 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900"
-      >
-        <ArrowLeft className="h-3.5 w-3.5" />
-        <span>
-          {t("chatBackToParent")}
-          {trimmedLabel ? ` · ${trimmedLabel}` : ""}
-        </span>
-      </button>
-    </div>
-  );
-}
-
-type ChatConversationHeaderProps = {
-  snapshot: ChatThreadSnapshot;
-  childSessionCount: number;
-  normalizedAgentId: string;
-  sessionHeaderTitle: string;
-  shouldShowHeaderAgentAvatar: boolean;
-  shouldShowSessionHeader: boolean;
-  onOpenChildSessions: () => void;
-  onDeleteSession: ChatHeaderDeleteHandler;
-};
-function ChatConversationHeader({
-  snapshot,
-  childSessionCount,
-  normalizedAgentId,
-  sessionHeaderTitle,
-  shouldShowHeaderAgentAvatar,
-  shouldShowSessionHeader,
-  onOpenChildSessions,
-  onDeleteSession,
-}: ChatConversationHeaderProps) {
-  return (
-    <div
-      className={cn(
-        "px-4 border-b border-gray-200/60 bg-white/80 backdrop-blur-sm flex items-center justify-between shrink-0 overflow-hidden transition-all duration-200 sm:px-5",
-        shouldShowSessionHeader ? "py-3 opacity-100" : "h-0 py-0 opacity-0 border-b-0",
-      )}
-    >
-      <div className="min-w-0 flex-1 flex items-center gap-2">
-        {shouldShowHeaderAgentAvatar ? (
-          <div className="inline-flex shrink-0 items-center">
-            <AgentAvatar
-              agentId={normalizedAgentId}
-              displayName={snapshot.agentDisplayName}
-              avatarUrl={snapshot.agentAvatarUrl}
-              className="h-5 w-5"
-            />
-          </div>
-        ) : null}
-        <span className="text-sm font-medium text-gray-700 truncate">
-          {sessionHeaderTitle}
-        </span>
-        {snapshot.sessionTypeLabel ? (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
-            {snapshot.sessionTypeIcon?.src ? (
-              <span className="inline-flex h-[1.125rem] w-[1.125rem] items-center justify-center">
-                <SessionContextIconNode
-                  icon={{
-                    kind: "runtime-image",
-                    src: snapshot.sessionTypeIcon.src,
-                    alt: snapshot.sessionTypeIcon.alt ?? null,
-                    name: snapshot.sessionTypeLabel
-                  }}
-                />
-              </span>
-            ) : null}
-            {snapshot.sessionTypeLabel}
-          </span>
-        ) : null}
-        {snapshot.sessionProjectName ? (
-          <ChatSessionProjectBadge
-            sessionKey={snapshot.sessionKey ?? "draft"}
-            projectName={snapshot.sessionProjectName}
-            projectRoot={snapshot.sessionProjectRoot}
-            persistToServer={snapshot.canDeleteSession}
-          />
-        ) : null}
-      </div>
-      {snapshot.sessionKey ? (
-        <ChatSessionHeaderActions
-          sessionKey={snapshot.sessionKey}
-          canDeleteSession={snapshot.canDeleteSession}
-          isDeletePending={snapshot.isDeletePending}
-          projectRoot={snapshot.sessionProjectRoot}
-          childSessionCount={childSessionCount}
-          onOpenChildSessions={onOpenChildSessions}
-          onDeleteSession={onDeleteSession}
-        />
-      ) : null}
-    </div>
-  );
-}
 
 type ChatConversationAlertsProps = {
   shouldShowProviderHint: boolean;
@@ -332,8 +217,10 @@ function shouldShowWorkspacePanel(
 
 export function ChatConversationPanel({
   layoutMode = "desktop",
+  onBackToList,
 }: {
   layoutMode?: "desktop" | "mobile";
+  onBackToList?: () => void;
 }) {
   const presenter = usePresenter();
   const defaultSessionType = useChatInputStore(
@@ -430,10 +317,12 @@ export function ChatConversationPanel({
         <ChatConversationHeader
           snapshot={snapshot}
           childSessionCount={childSessionTabs.length}
+          layoutMode={layoutMode}
           normalizedAgentId={normalizedAgentId}
           sessionHeaderTitle={sessionHeaderTitle}
           shouldShowHeaderAgentAvatar={shouldShowHeaderAgentAvatar}
           shouldShowSessionHeader={shouldShowSessionHeader}
+          onBackToList={onBackToList}
           onOpenChildSessions={openChildSessions}
           onDeleteSession={presenter.chatThreadManager.deleteSession}
         />

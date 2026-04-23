@@ -220,6 +220,19 @@ describe("ChatConversationPanel", () => {
     expect(screen.getByLabelText("More actions")).toBeTruthy();
   });
 
+  it("uses the mobile conversation header as the chat detail back entry", async () => {
+    const user = userEvent.setup();
+    const onBackToList = vi.fn();
+
+    render(
+      <ChatConversationPanel layoutMode="mobile" onBackToList={onBackToList} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Chat" }));
+
+    expect(onBackToList).toHaveBeenCalledTimes(1);
+  });
+
   it("shows the selected session project badge and more actions trigger", () => {
     useChatThreadStore.setState({
       snapshot: {

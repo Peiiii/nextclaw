@@ -23,11 +23,10 @@ describe("MobileAppShell", () => {
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
   });
 
-  it("hides the bottom navigation on chat session detail routes", () => {
+  it("hides the shared mobile chrome on chat session detail routes", () => {
     renderShell("/chat/demo-session");
 
     expect(screen.queryByTestId("mobile-bottom-nav")).toBeNull();
-    expect(screen.getByTestId("mobile-topbar")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /chat/i })).toBeTruthy();
+    expect(screen.queryByTestId("mobile-topbar")).toBeNull();
   });
 });
