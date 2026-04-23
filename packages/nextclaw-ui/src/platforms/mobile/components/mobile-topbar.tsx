@@ -10,30 +10,31 @@ export function MobileTopbar() {
 
   return (
     <header
+      data-testid="mobile-topbar"
       className="shrink-0 border-b border-gray-200/80 bg-white/95 backdrop-blur-sm"
       style={{
-        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.5rem)",
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 0.25rem)",
       }}
     >
-      <div className="flex min-h-[3.75rem] items-center gap-3 px-4 py-3">
+      <div className="flex min-h-[2.75rem] items-center gap-2 px-3 py-1.5">
         {routeMeta.backTarget ? (
           <button
             type="button"
             onClick={() => navigate(routeMeta.backTarget as string)}
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
             aria-label={routeMeta.backLabel ?? t("backToMain")}
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
         ) : (
-          <div className="h-9 w-9 shrink-0" aria-hidden="true" />
+          <div className="h-8 w-8 shrink-0" aria-hidden="true" />
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-base font-semibold text-gray-900">
+          <h1 className="truncate text-[15px] font-semibold text-gray-900">
             {routeMeta.title}
           </h1>
         </div>
-        <div className="h-9 w-9 shrink-0" aria-hidden="true" />
+        <div className="h-8 w-8 shrink-0" aria-hidden="true" />
       </div>
     </header>
   );

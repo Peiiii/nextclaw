@@ -1,5 +1,8 @@
 import { lazy, Suspense } from "react";
-import { isMainWorkspaceRoute } from "@/app/configs/app-navigation.config";
+import {
+  isChatSessionDetailRoute,
+  isMainWorkspaceRoute,
+} from "@/app/configs/app-navigation.config";
 import { MobileBottomNav } from "@/platforms/mobile/components/mobile-bottom-nav";
 import { MobileTopbar } from "@/platforms/mobile/components/mobile-topbar";
 
@@ -19,6 +22,7 @@ export function MobileAppShell({
   children,
 }: MobileAppShellProps) {
   const isMainRoute = isMainWorkspaceRoute(pathname);
+  const showBottomNav = !isChatSessionDetailRoute(pathname);
 
   return (
     <div className="flex h-screen flex-col bg-background font-sans text-foreground">
@@ -32,7 +36,7 @@ export function MobileAppShell({
           </main>
         )}
       </div>
-      <MobileBottomNav />
+      {showBottomNav ? <MobileBottomNav /> : null}
       {isDocBrowserOpen ? (
         <Suspense fallback={null}>
           <DocBrowser displayMode="fullscreen" />

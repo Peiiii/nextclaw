@@ -26,6 +26,10 @@
 - 同批次继续修复了移动端打开文档浏览器后的布局问题：
   - 根因已确认：`MobileAppShell` 只是渲染了共享 `DocBrowser`，但 `DocBrowser` 本身只有桌面 `docked / floating` 呈现，仍保留固定桌面宽度、拖拽、resize 与模式切换控件，手机端没有全屏覆盖契约。
   - 修复方式：为 [packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx) 增加 `displayMode="fullscreen"` 展示契约；[packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx) 在手机壳层中显式传入该模式，让文档浏览器以全视口覆盖层显示，并隐藏桌面 resize / drag / dock-toggle 控件。
+- 同批次继续优化了移动端顶部栏、底部栏和聊天详情页空间：
+  - 顶部栏降低为更接近微信一类高频移动应用的紧凑高度，减少纵向空间占用。
+  - 底部主导航降低高度，并把选中态反馈从“整块 tab 背景”收缩到图标小胶囊区域，降低视觉压迫感。
+  - 新增统一 `isChatSessionDetailRoute()` 路由判断；`/chat` 会话列表仍展示底部主导航，`/chat/:sessionId` 会话详情隐藏底部主导航，只保留顶部返回入口，形成更接近微信聊天详情的沉浸式体验。
 
 # 测试/验证/验收方式
 
@@ -43,6 +47,12 @@
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx`
 - 结果：通过，无错误，保留 `2` 条 warning，均为 `DocBrowser` 历史体量接近预算/函数体量偏大；本次通过抽出布局 class/style helper，未继续恶化 `DocBrowser` 函数体量。
+
+- 运行：`pnpm -C packages/nextclaw-ui exec vitest run src/platforms/mobile/components/mobile-bottom-nav.test.tsx src/platforms/mobile/components/mobile-app-shell.test.tsx src/features/chat/components/layout/chat-page-shell.test.tsx`
+- 结果：通过，`3` 个测试文件、`5` 个测试用例全部通过。
+
+- 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/app/configs/app-navigation.config.ts packages/nextclaw-ui/src/platforms/mobile/components/mobile-topbar.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-bottom-nav.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.tsx packages/nextclaw-ui/src/platforms/mobile/components/mobile-app-shell.test.tsx packages/nextclaw-ui/src/platforms/mobile/components/chat-mobile-shell.tsx`
+- 结果：通过，无错误、无 warning。
 
 - 运行：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次移动端适配相关文件>`
 - 结果：通过，无错误，保留 `4` 条 warning；统计结果为：
@@ -74,6 +84,8 @@
 7. 进入 `providers / channels / search / sessions` 等典型 split 页面，确认手机端不再出现被横向压缩的双栏。
 8. 切回桌面尺寸，确认原有桌面壳层、桌面侧栏与主内容区仍可正常工作。
 9. 在手机尺寸下点击文档入口，确认文档浏览器以全屏覆盖层打开，不出现桌面侧边栏宽度、拖拽 resize 控件或 dock/floating 切换按钮。
+10. 在手机尺寸下进入任意非聊天详情页，确认顶部栏和底部栏高度更紧凑，底部选中态只在图标区域有小面积反馈。
+11. 在手机尺寸下进入 `/chat/:sessionId` 聊天详情，确认底部主导航隐藏；点击顶部返回后回到 `/chat` 会话列表，底部主导航重新显示。
 
 # 可维护性总结汇总
 
@@ -84,6 +96,7 @@
 - 目录结构与文件组织是否满足当前项目治理要求：本次触达范围满足。`src` 根目录不再继续增长新的业务入口文件；移动端差异集中在 `platforms/mobile`，没有引入新的 `runtime/host` 轴。
 - 若本次涉及代码可维护性评估，默认应基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写，而不是只复述守卫结果：本次已基于守卫结果做独立复核，结论为 `通过`，`no maintainability findings`。当前仍保留的风险不是结构性错误，而是若后续继续触达 `ChatConversationPanel`、`ChatSidebar` 与 `search-config`，应优先拆出更细的局部模块，避免它们越过文件预算。
 - 移动端文档浏览器修复的可维护性复核：结论为 `通过`。本次没有复制一份 mobile-only doc browser，也没有把设备判断散落到业务调用点，而是给共享 `DocBrowser` 增加一个明确展示契约，由 mobile shell 组合使用。当前 `DocBrowser` 文件仍接近预算，后续若继续增强文档浏览器，应优先拆分 header / tab strip / iframe surface / resize handles。
+- 移动端顶部/底部栏与聊天详情沉浸式调整的可维护性复核：结论为 `通过`，`no maintainability findings`。本次把聊天详情路由判断收敛到 [packages/nextclaw-ui/src/app/configs/app-navigation.config.ts](/Users/peiwang/Projects/nextbot/packages/nextclaw-ui/src/app/configs/app-navigation.config.ts)，由 mobile shell 与 chat mobile shell 复用同一判断，避免了路径规则散落；底部选中态也通过现有配置驱动导航渲染，没有新增平行导航实现。
 
 # NPM 包发布记录
 

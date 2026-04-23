@@ -20,6 +20,10 @@ describe("MobileBottomNav", () => {
     expect(
       screen.getByRole("link", { name: /chat/i }).getAttribute("aria-current"),
     ).toBeNull();
+    expect(screen.getByTestId("mobile-nav-active-indicator")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /settings/i }).className).not.toContain(
+      "bg-gray-100",
+    );
   });
 
   it("highlights the chat tab for chat routes", () => {
