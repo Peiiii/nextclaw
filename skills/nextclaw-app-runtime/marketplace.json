@@ -1,15 +1,15 @@
 {
   "slug": "nextclaw-app-runtime",
   "name": "NextClaw App Runtime",
-  "summary": "Create, inspect, publish, install, run, and share NextClaw Apps through the local napp CLI with official registry workflows, platform-login publish identity, and explicit permission mapping.",
+  "summary": "Create, preview, publish, install, and run NextClaw Apps without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
   "summaryI18n": {
-    "en": "Create, inspect, publish, install, run, and share NextClaw Apps through the local napp CLI with official registry workflows, platform-login publish identity, and explicit permission mapping.",
-    "zh": "通过本地 napp CLI 创建、检查、发布、安装、运行和分享 NextClaw Apps，覆盖官方 registry 工作流、平台登录态发布身份与显式权限映射。"
+    "en": "Create, preview, publish, install, and run NextClaw Apps without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
+    "zh": "创建、预览、发布、安装和运行 NextClaw Apps，用户不需要理解 napp、WASI、Wasmtime、JCO、npm、registry 或 marketplace 细节。"
   },
-  "description": "Use this skill when the user wants to build, publish, install, or use a local NextClaw App through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, `napp publish`, platform-login-based personal publish, official-scope admin publish, registry install flows, explicit document permission mapping, and first-run troubleshooting.",
+  "description": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, TypeScript/Hono WASI HTTP scaffolding, automated `napp build --install`, local preview links, marketplace publish through platform login, registry install flows, explicit permission mapping, and first-run troubleshooting.",
   "descriptionI18n": {
-    "en": "Use this skill when the user wants to build, publish, install, or use a local NextClaw App through the standalone @nextclaw/app-runtime package. The skill covers npm installation, napp readiness checks, `napp create` starter scaffolding, inspect-before-run workflow, `napp publish`, platform-login-based personal publish, official-scope admin publish, registry install flows, explicit document permission mapping, and first-run troubleshooting.",
-    "zh": "当用户希望通过独立的 @nextclaw/app-runtime 包来构建、发布、安装或使用本地 NextClaw App 时使用此技能。它覆盖 npm 安装、napp 就绪检查、`napp create` 起步脚手架、先 inspect 后 run 的工作流、`napp publish`、基于平台登录态的个人发布、官方 scope 管理员发布、官方 registry 安装流程、显式文档权限映射以及首轮运行排障。"
+    "en": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, TypeScript/Hono WASI HTTP scaffolding, automated `napp build --install`, local preview links, marketplace publish through platform login, registry install flows, explicit permission mapping, and first-run troubleshooting.",
+    "zh": "当用户希望通过 @nextclaw/app-runtime 构建、发布、安装或使用 NextClaw App 时使用此技能。它负责普通用户旅程：通过 `napp doctor` 检查环境、生成 TypeScript/Hono WASI HTTP 应用、自动 `napp build --install`、返回本地预览链接、通过平台登录态发布到应用商店、从 registry 安装应用、显式权限映射和首轮排障。"
   },
   "author": "NextClaw",
   "tags": [
@@ -22,7 +22,9 @@
     "cli",
     "registry",
     "local-runtime",
-    "onboarding"
+    "onboarding",
+    "typescript",
+    "wasi-http"
   ],
   "sourceRepo": "https://github.com/Peiiii/nextclaw",
   "homepage": "https://github.com/Peiiii/nextclaw",

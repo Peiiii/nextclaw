@@ -15,12 +15,19 @@ export type AppPermissions = {
   };
 };
 
-export type AppMainManifest = {
+export type AppCoreWasmMainManifest = {
   kind: "wasm";
   entry: string;
   export: string;
   action: string;
 };
+
+export type AppWasiHttpComponentMainManifest = {
+  kind: "wasi-http-component";
+  entry: string;
+};
+
+export type AppMainManifest = AppCoreWasmMainManifest | AppWasiHttpComponentMainManifest;
 
 export type AppUiManifest = {
   entry: string;
@@ -54,7 +61,8 @@ export type AppManifestSummary = {
   name: string;
   version: string;
   description?: string;
-  action: string;
+  mainKind: AppMainManifest["kind"];
+  action?: string;
   manifestPath: string;
   mainEntryPath: string;
   uiEntryPath: string;

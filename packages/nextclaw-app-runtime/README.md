@@ -6,6 +6,8 @@
 
 - `napp create <app-dir>`：生成一个最小可跑的微应用骨架
 - `napp inspect <app-dir>`：校验应用目录与 manifest
+- `napp doctor`：检查本机 NApp/WASI HTTP 开发运行环境
+- `napp build <app-dir> --install`：安装模板依赖并构建 TS/WASI HTTP 后端
 - `napp run <app-dir|app-id>`：启动本地宿主，支持目录运行和已安装应用运行
 - `napp dev <app-dir>`：当前等价于 `run`
 - `napp pack <app-dir>`：把应用目录打成 `.napp` bundle
@@ -33,7 +35,7 @@ napp --help
 napp --version
 ```
 
-第一版先聚焦“独立可运行的微应用宿主 + 可分发、可安装、可更新、可授权的 CLI/runtime 闭环”，不接入现有 NextClaw 主产品路由、服务或 GUI app store。
+当前版本先聚焦“独立可运行的微应用宿主 + 可分发、可安装、可更新、可授权的 CLI/runtime 闭环”。普通用户入口推荐通过 NextClaw 的 `nextclaw-app-runtime` skill 编排这些命令。
 
 ## 应用目录
 
@@ -41,6 +43,8 @@ napp --version
 manifest.json
 main/
   app.wasm
+  package.json     # ts-http 模板存在
+  src/             # ts-http 模板存在
 ui/
   index.html
 assets/
@@ -48,11 +52,12 @@ assets/
 
 ## 当前 MVP 范围
 
-- `main` 执行形态：`wasm`
+- `main` 执行形态：`wasm` 或 `wasi-http-component`
 - UI 装载：本地静态服务
 - 宿主桥接：`/__napp/*`
+- WASI HTTP 业务 API：`/api/*`
 - 权限词汇：`documentAccess`、`allowedDomains`、`storage`、`capabilities`
-- 当前 Wasm 执行底座：Node 原生 `WebAssembly`
+- 当前 Wasm 执行底座：Node 原生 `WebAssembly` 与 Wasmtime `serve`
 - 分发包形态：`.napp`（底层为 zip）
 - 安装目录：`~/.nextclaw/apps/packages/<app-id>/<version>/`
 - 用户数据目录：`~/.nextclaw/apps/data/<app-id>/`
@@ -65,8 +70,11 @@ assets/
 开发者工作流：
 
 ```bash
-napp create ./my-first-napp
+napp doctor
+napp create ./my-first-napp --template ts-http
+napp build ./my-first-napp --install
 napp inspect ./my-first-napp
+napp run ./my-first-napp --data ./my-first-napp/.napp/data
 napp pack ./my-first-napp
 napp publish ./my-first-napp
 ```

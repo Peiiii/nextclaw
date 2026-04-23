@@ -259,6 +259,7 @@ export class AppInstallationService {
     return {
       appDirectory: activeVersion.installDirectory,
       appId: appRecord.appId,
+      dataDirectory: appRecord.dataDirectory,
       documentGrantMap: {
         ...appRecord.grants,
         ...explicitDocumentGrantMap,

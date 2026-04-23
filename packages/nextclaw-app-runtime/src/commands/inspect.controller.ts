@@ -19,7 +19,10 @@ export class InspectCommand {
     }
     write(`App: ${summary.name} (${summary.id})\n`);
     write(`Version: ${summary.version}\n`);
-    write(`Action: ${summary.action}\n`);
+    write(`Main Kind: ${summary.mainKind}\n`);
+    if (summary.action) {
+      write(`Action: ${summary.action}\n`);
+    }
     write(`Main: ${summary.mainEntryPath}\n`);
     write(`UI: ${summary.uiEntryPath}\n`);
   };

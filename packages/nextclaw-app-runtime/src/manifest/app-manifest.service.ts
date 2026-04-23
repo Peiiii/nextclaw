@@ -49,7 +49,8 @@ export class AppManifestService {
       name: bundle.manifest.name,
       version: bundle.manifest.version,
       description: bundle.manifest.description,
-      action: bundle.manifest.main.action,
+      mainKind: bundle.manifest.main.kind,
+      action: bundle.manifest.main.kind === "wasm" ? bundle.manifest.main.action : undefined,
       manifestPath: bundle.manifestPath,
       mainEntryPath: bundle.mainEntryPath,
       uiEntryPath: bundle.uiEntryPath,
@@ -87,15 +88,21 @@ export class AppManifestService {
   private parseMain = (rawMain: unknown): AppManifest["main"] => {
     const candidate = this.assertObject(rawMain, "main");
     const kind = this.readRequiredString(candidate.kind, "main.kind");
-    if (kind !== "wasm") {
-      throw new Error("当前 main.kind 只支持 wasm。");
+    if (kind === "wasm") {
+      return {
+        kind: "wasm",
+        entry: this.readRequiredString(candidate.entry, "main.entry"),
+        export: this.readRequiredString(candidate.export, "main.export"),
+        action: this.readRequiredString(candidate.action, "main.action"),
+      };
     }
-    return {
-      kind: "wasm",
-      entry: this.readRequiredString(candidate.entry, "main.entry"),
-      export: this.readRequiredString(candidate.export, "main.export"),
-      action: this.readRequiredString(candidate.action, "main.action"),
-    };
+    if (kind === "wasi-http-component") {
+      return {
+        kind: "wasi-http-component",
+        entry: this.readRequiredString(candidate.entry, "main.entry"),
+      };
+    }
+    throw new Error("当前 main.kind 只支持 wasm 或 wasi-http-component。");
   };
 
   private parseUi = (rawUi: unknown): AppManifest["ui"] => {

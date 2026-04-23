@@ -50,6 +50,9 @@ export class AppInstanceService {
   };
 
   runAction = async (action?: string): Promise<AppRunResult> => {
+    if (this.bundle.manifest.main.kind !== "wasm") {
+      throw new Error("当前应用不支持 __napp/run action，请通过 /api/* 调用 WASI HTTP 后端。");
+    }
     const expectedAction = this.bundle.manifest.main.action;
     if (action && action !== expectedAction) {
       throw new Error(`当前应用只支持动作 ${expectedAction}。`);

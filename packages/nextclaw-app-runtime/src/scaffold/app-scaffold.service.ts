@@ -1,14 +1,28 @@
 import { access, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { AppTsHttpScaffoldTemplateService } from "./app-ts-http-scaffold-template.service.js";
+
+export type AppScaffoldTemplate = "starter" | "ts-http";
 
 export type AppScaffoldResult = {
   appDirectory: string;
   manifestPath: string;
+  template: AppScaffoldTemplate;
 };
 
 export class AppScaffoldService {
-  scaffold = async (targetDirectory: string): Promise<AppScaffoldResult> => {
+  constructor(
+    private readonly tsHttpTemplateService: AppTsHttpScaffoldTemplateService = new AppTsHttpScaffoldTemplateService(),
+  ) {}
+
+  scaffold = async (
+    targetDirectory: string,
+    options?: {
+      template?: AppScaffoldTemplate;
+    },
+  ): Promise<AppScaffoldResult> => {
     const appDirectory = path.resolve(targetDirectory);
+    const template = options?.template ?? "starter";
     await this.assertTargetDoesNotExist(appDirectory);
     await mkdir(path.join(appDirectory, "main"), { recursive: true });
     await mkdir(path.join(appDirectory, "ui"), { recursive: true });
@@ -17,6 +31,20 @@ export class AppScaffoldService {
     const appName = this.buildAppName(appDirectory);
     const appId = this.buildAppId(appDirectory);
     const manifestPath = path.join(appDirectory, "manifest.json");
+    if (template === "ts-http") {
+      await this.writeTemplateFiles(
+        appDirectory,
+        this.tsHttpTemplateService.buildFiles({
+          appId,
+          appName,
+        }),
+      );
+      return {
+        appDirectory,
+        manifestPath,
+        template,
+      };
+    }
 
     await Promise.all([
       writeFile(
@@ -47,7 +75,21 @@ export class AppScaffoldService {
     return {
       appDirectory,
       manifestPath,
+      template,
     };
+  };
+
+  private writeTemplateFiles = async (
+    appDirectory: string,
+    files: Array<{ relativePath: string; content: string | Buffer }>,
+  ): Promise<void> => {
+    await Promise.all(
+      files.map(async (file) => {
+        const filePath = path.join(appDirectory, file.relativePath);
+        await mkdir(path.dirname(filePath), { recursive: true });
+        await writeFile(filePath, file.content);
+      }),
+    );
   };
 
   private assertTargetDoesNotExist = async (targetDirectory: string): Promise<void> => {

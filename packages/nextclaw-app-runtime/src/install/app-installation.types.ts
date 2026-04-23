@@ -55,6 +55,7 @@ export type AppUninstallResult = {
 export type AppLaunchResolution = {
   appDirectory: string;
   appId?: string;
+  dataDirectory?: string;
   documentGrantMap: AppDocumentGrantMap;
 };
 

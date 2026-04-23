@@ -10,6 +10,9 @@ export class WasmMainRunnerService extends MainRunnerService {
   }
 
   runDocumentSummary = async (request: MainRunRequest): Promise<MainRunResult> => {
+    if (request.bundle.manifest.main.kind !== "wasm") {
+      throw new Error("runDocumentSummary 只支持 main.kind=wasm。");
+    }
     const output = await this.sidecarClient.runExport({
       wasmPath: request.bundle.mainEntryPath,
       exportName: request.bundle.manifest.main.export,

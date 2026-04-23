@@ -14,6 +14,8 @@ import { RevokeCommand } from "../commands/revoke.controller.js";
 import { RunCommand } from "../commands/run.controller.js";
 import { UninstallCommand } from "../commands/uninstall.controller.js";
 import { UpdateCommand } from "../commands/update.controller.js";
+import { AppBuildService } from "../runtime/app-build.service.js";
+import { AppRuntimeToolchainService } from "../runtime/app-runtime-toolchain.service.js";
 import { AppRuntimeOptionsService } from "./app-runtime-options.service.js";
 
 export class AppRuntimeCliService {
@@ -46,6 +48,12 @@ export class AppRuntimeCliService {
         return;
       case "inspect":
         await this.handleInspect(restArgs);
+        return;
+      case "build":
+        await this.handleBuild(restArgs);
+        return;
+      case "doctor":
+        await this.handleDoctor(restArgs);
         return;
       case "run":
         await this.handleRun(restArgs);
@@ -97,6 +105,7 @@ export class AppRuntimeCliService {
     const options = this.optionsService.readCreateOptions(optionArgs);
     await new CreateCommand().run({
       appDirectory: target,
+      template: options.template,
       json: options.json,
       write: this.write,
     });
@@ -112,6 +121,52 @@ export class AppRuntimeCliService {
     });
   };
 
+  private handleBuild = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("build", restArgs);
+    const options = this.optionsService.readBuildOptions(optionArgs);
+    const result = await new AppBuildService().build({
+      appDirectory: target,
+      install: options.install,
+    });
+    if (options.json) {
+      this.write(`${JSON.stringify({ ok: true, build: result }, null, 2)}\n`);
+      return;
+    }
+    if (!result.built) {
+      this.write(`Build skipped: ${result.skippedReason ?? result.mainKind}\n`);
+      return;
+    }
+    this.write(`Built ${result.mainKind} app\n`);
+    this.write(`Main: ${result.mainEntryPath}\n`);
+    if (result.installedDependencies) {
+      this.write("Dependencies: installed\n");
+    }
+  };
+
+  private handleDoctor = async (restArgs: string[]): Promise<void> => {
+    const options = this.optionsService.readJsonOnlyOptions(restArgs);
+    const result = await new AppRuntimeToolchainService().doctor();
+    if (options.json) {
+      this.write(`${JSON.stringify({ ok: result.ok, doctor: result }, null, 2)}\n`);
+      if (!result.ok) {
+        process.exitCode = 1;
+      }
+      return;
+    }
+    this.write(`NApp runtime doctor: ${result.ok ? "ok" : "not ready"}\n`);
+    for (const tool of result.tools) {
+      this.write(
+        `${tool.ok ? "ok" : "missing"} ${tool.name}${tool.version ? ` ${tool.version}` : ""}\n`,
+      );
+      if (!tool.ok) {
+        this.write(`  ${tool.installHint}\n`);
+      }
+    }
+    if (!result.ok) {
+      process.exitCode = 1;
+    }
+  };
+
   private handleRun = async (restArgs: string[]): Promise<void> => {
     const { target, optionArgs } = this.optionsService.readTarget("run", restArgs);
     const options = this.optionsService.readRuntimeOptions(optionArgs);
@@ -119,6 +174,7 @@ export class AppRuntimeCliService {
       appReference: target,
       host: options.host,
       port: options.port,
+      dataDirectory: options.dataDirectory,
       json: options.json,
       documentGrantMap: options.documentGrantMap,
       write: this.write,
@@ -132,6 +188,7 @@ export class AppRuntimeCliService {
       appReference: target,
       host: options.host,
       port: options.port,
+      dataDirectory: options.dataDirectory,
       json: options.json,
       documentGrantMap: options.documentGrantMap,
       write: this.write,
@@ -293,9 +350,11 @@ export class AppRuntimeCliService {
   };
 
   private writeUsage = (): void => {
-    this.write("Usage: napp create <app-dir> [--json]\n");
+    this.write("Usage: napp create <app-dir> [--template starter|ts-http] [--json]\n");
     this.write("       napp inspect <app-dir> [--json]\n");
-    this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--json] [--document scope=/path]\n");
+    this.write("       napp build <app-dir> [--install] [--json]\n");
+    this.write("       napp doctor [--json]\n");
+    this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--data /path] [--json] [--document scope=/path]\n");
     this.write("       napp pack <app-dir> [--out bundle.napp] [--json]\n");
     this.write("       napp publish <app-dir> [--meta marketplace.json] [--api-base <url>] [--token <token>] [--json]\n");
     this.write("       napp install <app-dir|bundle.napp|app-id[@version]> [--registry <url>] [--json]\n");

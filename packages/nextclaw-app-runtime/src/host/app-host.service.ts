@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { HostBridgeServer } from "../bridge/host-bridge.service.js";
 import type { AppInstanceService } from "./app-instance.service.js";
 import { UiServerService } from "../ui/ui-server.service.js";
+import type { WasmtimeWasiHttpComponentService } from "../runtime/wasmtime-wasi-http-component.service.js";
 
 export type AppHostStartOptions = {
   host: string;
@@ -20,7 +21,10 @@ export class AppHostService {
   private readonly bridgeServer: HostBridgeServer;
   private readonly uiServer: UiServerService;
 
-  constructor(private readonly appInstance: AppInstanceService) {
+  constructor(
+    private readonly appInstance: AppInstanceService,
+    private readonly wasiHttpComponentService?: WasmtimeWasiHttpComponentService,
+  ) {
     this.bridgeServer = new HostBridgeServer(appInstance);
     this.uiServer = new UiServerService(appInstance.bundle);
   }
@@ -73,6 +77,12 @@ export class AppHostService {
     response: ServerResponse,
   ): Promise<void> => {
     try {
+      if (this.wasiHttpComponentService) {
+        const backendHandled = await this.wasiHttpComponentService.handleRequest(request, response);
+        if (backendHandled) {
+          return;
+        }
+      }
       const bridgeHandled = await this.bridgeServer.handle(request, response);
       if (bridgeHandled) {
         return;

@@ -1,19 +1,27 @@
 import type { AppDocumentGrantMap } from "../permissions/app-permissions.types.js";
+import type { AppScaffoldTemplate } from "../scaffold/app-scaffold.service.js";
 
 export type RuntimeCliOptions = {
   host: string;
   port: number;
+  dataDirectory?: string;
   json: boolean;
   documentGrantMap: AppDocumentGrantMap;
 };
 
 export type CreateCliOptions = {
   json: boolean;
+  template: AppScaffoldTemplate;
 };
 
 export type PackCliOptions = {
   json: boolean;
   outputPath?: string;
+};
+
+export type BuildCliOptions = {
+  json: boolean;
+  install: boolean;
 };
 
 export type JsonOnlyCliOptions = {
@@ -74,15 +82,22 @@ export class AppRuntimeOptionsService {
   readCreateOptions = (rawArgs: string[]): CreateCliOptions => {
     const options: CreateCliOptions = {
       json: false,
+      template: "starter",
     };
 
-    for (const current of rawArgs) {
+    for (let index = 0; index < rawArgs.length; index += 1) {
+      const current = rawArgs[index];
       if (!current?.startsWith("--")) {
         throw new Error(`未知参数：${current}`);
       }
+      const nextValue = rawArgs[index + 1];
       switch (current) {
         case "--json":
           options.json = true;
+          break;
+        case "--template":
+          options.template = this.readCreateTemplate(this.requireOptionValue(current, nextValue));
+          index += 1;
           break;
         default:
           throw new Error(`未知参数：${current}`);
@@ -90,6 +105,13 @@ export class AppRuntimeOptionsService {
     }
 
     return options;
+  };
+
+  private readCreateTemplate = (rawTemplate: string): AppScaffoldTemplate => {
+    if (rawTemplate === "starter" || rawTemplate === "ts-http") {
+      return rawTemplate;
+    }
+    throw new Error("--template 只支持 starter 或 ts-http。");
   };
 
   readPackOptions = (rawArgs: string[]): PackCliOptions => {
@@ -109,6 +131,29 @@ export class AppRuntimeOptionsService {
         case "--out":
           options.outputPath = this.requireOptionValue(current, nextValue);
           index += 1;
+          break;
+        default:
+          throw new Error(`未知参数：${current}`);
+      }
+    }
+    return options;
+  };
+
+  readBuildOptions = (rawArgs: string[]): BuildCliOptions => {
+    const options: BuildCliOptions = {
+      json: false,
+      install: false,
+    };
+    for (const current of rawArgs) {
+      if (!current?.startsWith("--")) {
+        throw new Error(`未知参数：${current}`);
+      }
+      switch (current) {
+        case "--json":
+          options.json = true;
+          break;
+        case "--install":
+          options.install = true;
           break;
         default:
           throw new Error(`未知参数：${current}`);
@@ -217,6 +262,7 @@ export class AppRuntimeOptionsService {
     const options: RuntimeCliOptions = {
       host: "127.0.0.1",
       port: 3100,
+      dataDirectory: undefined,
       json: false,
       documentGrantMap: {},
     };
@@ -241,6 +287,10 @@ export class AppRuntimeOptionsService {
           break;
         case "--json":
           options.json = true;
+          break;
+        case "--data":
+          options.dataDirectory = this.requireOptionValue(current, nextValue);
+          index += 1;
           break;
         case "--document":
           this.assignDocumentGrant(

@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppScaffoldService } from "../scaffold/app-scaffold.service.js";
 import { AppPublishService } from "./app-publish.service.js";
-import { PlatformAuthStateService } from "./platform-auth-state.service.js";
+import type { PlatformAuthStateService } from "./platform-auth-state.service.js";
 
 describe("AppPublishService", () => {
   const cleanupPaths: string[] = [];

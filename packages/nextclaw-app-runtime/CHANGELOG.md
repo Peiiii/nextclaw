@@ -1,5 +1,11 @@
 # @nextclaw/app-runtime
 
+## 0.5.0
+
+### Minor Changes
+
+- Add TypeScript/Hono WASI HTTP app scaffolding, `napp doctor`, and `napp build --install` so ordinary users can create, build, preview, package, install, and run sandboxed NextClaw Apps through the app runtime skill.
+
 ## 0.4.0
 
 ### Minor Changes
