@@ -158,12 +158,12 @@ export function getMobileSettingsNavItems(
   translate: Translate,
 ): AppNavigationItem[] {
   return [
-    ...getSettingsNavItems(translate),
     {
       target: "/language",
       label: translate("language"),
       icon: Languages,
     },
+    ...getSettingsNavItems(translate),
   ];
 }
 
