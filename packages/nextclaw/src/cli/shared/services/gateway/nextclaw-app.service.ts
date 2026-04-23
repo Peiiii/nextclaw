@@ -21,7 +21,7 @@ type NextclawAppAgentRuntime = Pick<
   "bootstrapKernel" | "recoverDurableState" | "warmDerivedCapabilities"
 >;
 
-const DEFAULT_UI_POST_READY_CAPABILITY_DELAY_MS = 120_000;
+const DEFAULT_UI_POST_READY_CAPABILITY_DELAY_MS = 10_000;
 
 function waitForPostReadyDelay(delayMs: number): Promise<void> {
   return new Promise((resolve) => {

@@ -19,11 +19,9 @@
 - 已纠正用户真实链路口径：`pnpm dev start` + 默认 `~/.nextclaw` 下，frontend server 约 `4.8s` ready，`/api/auth/status` 约 `32.9s` 才 OK，红色窗口约 `28.0s`。
 - 已完成第二刀：UI 启动场景下插件/渠道改为 core ready 后延迟激活；复测 `frontendAuthStatusOkMs=2475ms`、失败次数 `0`、后台 `pluginHydrationReadyMs=23646ms`。
 - 已补充 smoke 脚本瀑布流输出，后续能直接看到 observed milestones 与 startup trace spans。
-- 已修正测量口径：`frontend-auth-status` 真实请求前端 URL，并解析 `pnpm dev start` fallback 后的实际 `api/frontend` URL。
-- 已把 UI 场景插件自动激活延迟调整为 `120s`，当前真实前端复测为 `frontendAuthStatusOkMs=2333ms`。
 
 当前下一步
-- 继续把主链路稳定压到 2s 级别，并防止测量口径再次偏离；下一阶段再治理后台插件激活的 worker / 子进程隔离。
+- 继续优化后台插件激活耗时，重点看 `hydrate_capabilities`、按需 activation event、并行/隔离加载；同时防止 status 红色窗口回归。
 
 锚点计数器
 - 5/20

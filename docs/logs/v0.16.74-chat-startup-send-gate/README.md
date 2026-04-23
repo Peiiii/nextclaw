@@ -41,7 +41,7 @@
   - 后续用户又明确指出 `/api/auth/status` 在刚启动时本身会“直接调用不通”，因此该接口被提升为正式监测节点，不能再只作为泛化的“status 很慢”描述的一部分。
   - 首轮 3 次 `bootstrap-ready` 基线结果表明，`UI API / health / ncpAgent.ready` 中位数约 `1.82s`，而 `bootstrap ready` 中位数约 `26.8s`；这说明当前最大耗时头部不是最开始的 UI/API bring-up，而是 `ncpAgent.ready` 之后到 `bootstrap ready` 之间约 `24s~26s` 的能力水合阶段。
   - 用户真实 `pnpm dev start + /Users/peiwang/.nextclaw` 口径进一步确认：前端 server 约 `4.8s` ready，但 `/api/auth/status` 约 `32.9s` 才 OK，红色窗口约 `28.0s`；根因不是 status 接口业务本身依赖插件，而是插件水合和 bundled channel plugin 动态加载仍在同一个 Node 主进程内抢占启动窗口。
-  - 本轮第二刀改为“插件/渠道延迟激活”：`NextclawApp.start()` 在 kernel 和必要状态恢复后立即 `bootstrapStatus.markReady()`，UI 场景默认延迟 `120s` 再后台执行能力水合、plugin gateways、channels 和 restart sentinel。
+  - 本轮第二刀改为“插件/渠道延迟激活”：`NextclawApp.start()` 在 kernel 和必要状态恢复后立即 `bootstrapStatus.markReady()`，UI 场景默认延迟 `10s` 再后台执行能力水合、plugin gateways、channels 和 restart sentinel。
   - 修复命中根因的方式：主前端、`/api/auth/status`、`/api/health` 和 bootstrap status 不再等待插件水合；插件继续作为后台热插拔能力最终生效。
   - 复测显示，真实 `pnpm dev start` 口径下 `frontendAuthStatusOkMs` 降到约 `2.5s`，`frontendAuthStatusFailureCount=0`；后台 `pluginHydrationReady/channelsReady` 仍约 `23.6s`，因此下一步大头已经从“status 红色窗口”转移到“后台插件激活耗时”。
 - 设计文档：
@@ -101,13 +101,7 @@
     - `frontendServerReadyMs=2866ms`
     - `frontendAuthStatusOkMs=2866ms`
     - `frontendAuthStatusFailureCount=0`
-  - 修正验收口径后补充复测：
-    - `pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --port 18792 --frontend-port 5174 --poll-ms 50 --runs 1 --timeout-ms 90000 --criterion frontend-auth-status`
-    - 实际探测 URL：`api=http://127.0.0.1:18793`、`frontend=http://127.0.0.1:5175`
-    - `frontendServerReadyMs=606ms`
-    - `frontendAuthStatusOkMs=2333ms`
-    - `frontendAuthStatusFailureCount=17`
-  - 新版 `smoke:startup-readiness` 输出瀑布流：外部 observed milestones 加后端 `startup-trace` spans；最新样本显示 post-ready delay 为 `120000ms`，后台插件激活是下一阶段大头。
+  - 新版 `smoke:startup-readiness` 输出瀑布流：外部 observed milestones 加后端 `startup-trace` spans；最新样本显示 post-ready delay 为 `10000ms`，`hydrate_capabilities` 为 `11378ms`，后台插件激活是下一阶段大头。
   - 新增脚本相关 ESLint 通过。
   - 本次针对新增脚本与入口的维护性守卫通过，无 error / warning。
   - 已新增仓库级 skill：

@@ -83,7 +83,7 @@
 
 1. `bootstrapKernel()` 成功后立即激活 NCP session service 和 UI NCP agent。
 2. `recoverDurableState()` 完成后立即 `bootstrapStatus.markReady()`。
-3. 对 UI 启动场景，默认延迟 `120s` 后后台执行 `warmDerivedCapabilities()`，避免插件水合在用户刚进入前端时再次抢占主事件循环。
+3. 对 UI 启动场景，默认延迟 `10s` 后后台执行 `warmDerivedCapabilities()`。
 4. 后台阶段依次完成能力水合、plugin gateways、channels 和 restart sentinel。
 5. 后台阶段失败时只标记 plugin hydration error，不反向阻塞 core ready。
 
@@ -109,7 +109,7 @@ pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --r
 
 - 主链路：`uiApi/authStatus/health/ncpReady/bootstrapReady` 约 `2.4s`，`frontendAuthStatus` 约 `2.7s`，失败次数 `0`。
 - 后台链路：`pluginHydrationReady/channelsReady` 约 `23.8s-28.1s`。
-- 后端 trace：core ready 约 `0.1s`，随后 `120s` post-ready delay；插件能力水合仍是后台大头，后续应通过 worker / 子进程化或按需 activation event 继续治理。
+- 后端 trace：core ready 约 `0.1s`，随后 `10s` post-ready delay，插件能力水合约 `16s`，UI shell grace / NCP capability warmup 约 `11s`。
 
 这说明当前最大用户可见问题已经从“前端红色窗口”转移为“后台插件激活仍然慢”。下一步优化应该针对后台插件激活的并行化、按需激活和隔离，而不是重新把插件发现放回启动主链路。
 
