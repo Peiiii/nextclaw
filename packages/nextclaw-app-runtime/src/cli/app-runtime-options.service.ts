@@ -1,4 +1,5 @@
 import type { AppDocumentGrantMap } from "../permissions/app-permissions.types.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import type { AppScaffoldTemplate } from "../scaffold/app-scaffold.service.js";
 
 export type RuntimeCliOptions = {
@@ -17,6 +18,7 @@ export type CreateCliOptions = {
 export type PackCliOptions = {
   json: boolean;
   outputPath?: string;
+  mode: AppDistributionMode;
 };
 
 export type BuildCliOptions = {
@@ -59,6 +61,7 @@ export type PublishCliOptions = {
   metadataPath?: string;
   apiBaseUrl?: string;
   token?: string;
+  mode: AppDistributionMode;
 };
 
 export class AppRuntimeOptionsService {
@@ -117,6 +120,7 @@ export class AppRuntimeOptionsService {
   readPackOptions = (rawArgs: string[]): PackCliOptions => {
     const options: PackCliOptions = {
       json: false,
+      mode: "source",
     };
     for (let index = 0; index < rawArgs.length; index += 1) {
       const current = rawArgs[index];
@@ -130,6 +134,10 @@ export class AppRuntimeOptionsService {
           break;
         case "--out":
           options.outputPath = this.requireOptionValue(current, nextValue);
+          index += 1;
+          break;
+        case "--mode":
+          options.mode = this.readDistributionMode(this.requireOptionValue(current, nextValue));
           index += 1;
           break;
         default:
@@ -373,6 +381,7 @@ export class AppRuntimeOptionsService {
   readPublishOptions = (rawArgs: string[]): PublishCliOptions => {
     const options: PublishCliOptions = {
       json: false,
+      mode: "source",
     };
     for (let index = 0; index < rawArgs.length; index += 1) {
       const current = rawArgs[index];
@@ -396,11 +405,22 @@ export class AppRuntimeOptionsService {
           options.token = this.requireOptionValue(current, nextValue);
           index += 1;
           break;
+        case "--mode":
+          options.mode = this.readDistributionMode(this.requireOptionValue(current, nextValue));
+          index += 1;
+          break;
         default:
           throw new Error(`未知参数：${current}`);
       }
     }
     return options;
+  };
+
+  private readDistributionMode = (rawMode: string): AppDistributionMode => {
+    if (rawMode === "source" || rawMode === "bundle") {
+      return rawMode;
+    }
+    throw new Error("--mode 只支持 source 或 bundle。");
   };
 
   private assignDocumentGrant = (

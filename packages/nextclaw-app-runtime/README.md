@@ -10,9 +10,9 @@
 - `napp build <app-dir> --install`：安装模板依赖并构建 TS/WASI HTTP 后端
 - `napp run <app-dir|app-id>`：启动本地宿主，支持目录运行和已安装应用运行
 - `napp dev <app-dir>`：当前等价于 `run`
-- `napp pack <app-dir>`：把应用目录打成 `.napp` bundle
+- `napp pack <app-dir>`：把应用目录打成 `.napp` 分发包，默认使用轻量 `source` 模式
 - `napp validate-publish <app-dir>`：本地做发布前校验并输出体积/包内容 warning
-- `napp publish <app-dir>`：把应用目录发布到官方 apps registry
+- `napp publish <app-dir>`：把应用目录发布到官方 apps registry，默认发布轻量 `source` 分发包
 - `napp install <app-dir|bundle.napp|app-id[@version]>`：从本地或 registry 安装应用
 - `napp update <app-id>`：更新已安装应用
 - `napp uninstall <app-id>`：卸载已安装应用
@@ -59,7 +59,7 @@ assets/
 - WASI HTTP 业务 API：`/api/*`
 - 权限词汇：`documentAccess`、`allowedDomains`、`storage`、`capabilities`
 - 当前 Wasm 执行底座：Node 原生 `WebAssembly` 与 Wasmtime `serve`
-- 分发包形态：`.napp`（底层为 zip）
+- 分发包形态：`.napp`（底层为 zip，支持 `source` / `bundle` 双模式）
 - 安装目录：`~/.nextclaw/apps/packages/<app-id>/<version>/`
 - 用户数据目录：`~/.nextclaw/apps/data/<app-id>/`
 - 本地 registry：`~/.nextclaw/apps/registry.json`
@@ -176,6 +176,22 @@ assets/
   checksums.json
 ```
 
+## 分发模式
+
+`.napp` 仍然是统一容器，但现在支持两种分发模式：
+
+- `source`：默认模式。包里主要是用户源码、UI、资源和 manifest；安装时本地物化成运行态，适合轻量分发。
+- `bundle`：显式模式。包里直接带运行态 `main/app.wasm`，适合高级用户、确定性发布或离线场景。
+
+命令示例：
+
+```bash
+napp validate-publish ./my-first-napp --mode source
+napp pack ./my-first-napp --mode source
+napp publish ./my-first-napp --mode source
+napp pack ./my-first-napp --mode bundle
+```
+
 ## Registry Metadata 结构
 
 registry 按 npm 风格使用一个 base URL，再按 app id 拉取 metadata 文档。metadata 的最小结构如下：
@@ -196,6 +212,7 @@ registry 按 npm 风格使用一个 base URL，再按 app id 拉取 metadata 文
         "name": "NextClaw Official"
       },
       "dist": {
+        "kind": "source",
         "bundle": "./-/hello-notes-0.2.0.napp",
         "sha256": "<sha256>"
       }

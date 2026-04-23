@@ -34,6 +34,7 @@ export class MarketplaceAppPayloadParser {
       publisher: this.readPublisherInput(candidate.publisher),
       manifest: this.readManifest(candidate.manifest),
       permissions: this.readPermissions(candidate.permissions),
+      distributionMode: this.readDistributionMode(candidate.distributionMode),
       bundleBase64: this.readString(candidate.bundleBase64, "bundleBase64"),
       bundleSha256: this.readString(candidate.bundleSha256, "bundleSha256"),
       files: this.readFileInputs(candidate.files),
@@ -199,6 +200,14 @@ export class MarketplaceAppPayloadParser {
       throw new DomainValidationError(`${path} must be a boolean`);
     }
     return value;
+  };
+
+  private readDistributionMode = (value: unknown): "bundle" | "source" => {
+    const mode = this.readString(value, "distributionMode");
+    if (mode !== "bundle" && mode !== "source") {
+      throw new DomainValidationError("distributionMode must be bundle or source");
+    }
+    return mode;
   };
 
   private readSlug = (value: unknown, path: string): string => {

@@ -65,6 +65,7 @@ export class MarketplaceAppRecordMapper {
         version: versionRow.version,
         publishedAt: versionRow.published_at,
         updatedAt: versionRow.updated_at,
+        distributionMode: versionRow.distribution_mode,
         bundleSha256: versionRow.bundle_sha256,
         downloadPath: `/api/v1/apps/items/${encodeURIComponent(row.slug)}/bundles/${encodeURIComponent(versionRow.version)}`,
       })),

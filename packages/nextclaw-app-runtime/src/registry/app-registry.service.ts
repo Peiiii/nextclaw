@@ -73,6 +73,7 @@ export class AppRegistryService {
     sourceKind: AppInstallSourceKind;
     sourceRef: string;
     installedAt: string;
+    distributionMode?: AppRegistryInstalledVersion["distributionMode"];
     permissions: AppPermissions;
     registryUrl?: string;
     bundleUrl?: string;
@@ -89,6 +90,7 @@ export class AppRegistryService {
       sourceKind,
       sourceRef,
       installedAt,
+      distributionMode,
       permissions,
       registryUrl,
       bundleUrl,
@@ -111,6 +113,7 @@ export class AppRegistryService {
           sourceKind,
           sourceRef,
           installedAt,
+          distributionMode,
           permissions,
           registryUrl,
           bundleUrl,

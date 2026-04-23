@@ -8,19 +8,22 @@ export class ValidatePublishCommand {
   run = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    mode: "source" | "bundle";
     json: boolean;
     write: (text: string) => void;
   }): Promise<void> => {
-    const { appDirectory, metadataPath, json, write } = params;
+    const { appDirectory, metadataPath, mode, json, write } = params;
     const result = await this.validationService.validate({
       appDirectory,
       metadataPath,
+      mode,
     });
     if (json) {
       write(`${JSON.stringify({ ok: true, validation: result }, null, 2)}\n`);
       return;
     }
     write(`Publish validation ok for ${result.appId}@${result.version}\n`);
+    write(`Distribution mode: ${result.distributionMode}\n`);
     write(`Main kind: ${result.mainKind}\n`);
     write(`Main: ${result.mainEntryPath}\n`);
     write(`Metadata: ${result.metadataPath}\n`);

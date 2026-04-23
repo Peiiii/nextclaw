@@ -3,6 +3,8 @@ import path from "node:path";
 import { AppBundleService } from "../bundle/app-bundle.service.js";
 import { AppManifestService } from "../manifest/app-manifest.service.js";
 import { AppHomeService } from "../paths/app-home.service.js";
+import { AppBuildService } from "../runtime/app-build.service.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import type { AppDocumentGrantMap } from "../permissions/app-permissions.types.js";
 import { AppRegistryConfigService } from "../registry/app-registry-config.service.js";
 import { AppRemoteRegistryClientService } from "../registry/app-remote-registry-client.service.js";
@@ -21,6 +23,7 @@ export class AppInstallationService {
     private readonly appHomeService: AppHomeService = new AppHomeService(),
     private readonly bundleService: AppBundleService = new AppBundleService(),
     private readonly manifestService: AppManifestService = new AppManifestService(),
+    private readonly buildService: AppBuildService = new AppBuildService(),
     private readonly registryService: AppRegistryService = new AppRegistryService(appHomeService),
     private readonly registryConfigService: AppRegistryConfigService = new AppRegistryConfigService(
       appHomeService,
@@ -54,9 +57,13 @@ export class AppInstallationService {
                 })
               ).bundlePath;
       const extractedDirectory = path.join(tempDirectory, "bundle");
-      await this.bundleService.extractBundle({
+      const extractedMetadata = await this.bundleService.extractBundle({
         bundlePath,
         targetDirectory: extractedDirectory,
+      });
+      await this.materializeDistribution({
+        appDirectory: extractedDirectory,
+        distributionMode: extractedMetadata.metadata.distributionMode,
       });
       const manifestBundle = await this.manifestService.load(extractedDirectory);
       const installDirectory = this.appHomeService.getInstallDirectory(
@@ -84,6 +91,10 @@ export class AppInstallationService {
         installDirectory,
         dataDirectory,
         sourceKind: source.kind,
+        distributionMode:
+          source.kind === "registry"
+            ? source.registryResolution.distributionMode
+            : extractedMetadata.metadata.distributionMode,
         sourceRef: source.sourceRef,
         installedAt: new Date().toISOString(),
         permissions: manifestBundle.manifest.permissions ?? {},
@@ -103,6 +114,8 @@ export class AppInstallationService {
         dataDirectory,
         sourceKind: source.kind,
         sourceRef: source.sourceRef,
+        distributionMode:
+          registryRecord.installedVersions[registryRecord.activeVersion]?.distributionMode,
         permissions:
           registryRecord.installedVersions[registryRecord.activeVersion]?.permissions ?? {},
         registryUrl:
@@ -204,6 +217,8 @@ export class AppInstallationService {
       activeVersion: appRecord.activeVersion,
       sourceKind:
         appRecord.installedVersions[appRecord.activeVersion]?.sourceKind ?? "directory",
+      distributionMode:
+        appRecord.installedVersions[appRecord.activeVersion]?.distributionMode,
     }));
   };
 
@@ -225,6 +240,7 @@ export class AppInstallationService {
         version: versionRecord.version,
         installDirectory: versionRecord.installDirectory,
         sourceKind: versionRecord.sourceKind,
+        distributionMode: versionRecord.distributionMode,
         sourceRef: versionRecord.sourceRef,
         installedAt: versionRecord.installedAt,
         permissions: versionRecord.permissions,
@@ -404,5 +420,22 @@ export class AppInstallationService {
       appSource.startsWith("/") ||
       appSource.includes(path.sep)
     );
+  };
+
+  private materializeDistribution = async (params: {
+    appDirectory: string;
+    distributionMode: AppDistributionMode;
+  }): Promise<void> => {
+    if (params.distributionMode !== "source") {
+      return;
+    }
+    const manifestBundle = await this.manifestService.load(params.appDirectory);
+    if (manifestBundle.manifest.main.kind !== "wasi-http-component") {
+      return;
+    }
+    await this.buildService.build({
+      appDirectory: params.appDirectory,
+      install: true,
+    });
   };
 }

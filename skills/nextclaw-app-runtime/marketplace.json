@@ -1,15 +1,15 @@
 {
   "slug": "nextclaw-app-runtime",
   "name": "NextClaw App Runtime",
-  "summary": "Create, preview, validate, publish, install, and run NextClaw Apps without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
+  "summary": "Create, preview, validate, publish, install, and run NextClaw Apps with lightweight source-first distribution, without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
   "summaryI18n": {
-    "en": "Create, preview, validate, publish, install, and run NextClaw Apps without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
-    "zh": "创建、预览、校验、发布、安装和运行 NextClaw Apps，用户不需要理解 napp、WASI、Wasmtime、JCO、npm、registry 或 marketplace 细节。"
+    "en": "Create, preview, validate, publish, install, and run NextClaw Apps with lightweight source-first distribution, without needing to understand napp, WASI, Wasmtime, JCO, npm, registry, or marketplace details.",
+    "zh": "创建、预览、校验、发布、安装和运行 NextClaw Apps，并默认使用轻量 source-first 分发；用户不需要理解 napp、WASI、Wasmtime、JCO、npm、registry 或 marketplace 细节。"
   },
-  "description": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, choosing between `ts-http` and `ts-http-lite`, automated `napp build --install`, `napp validate-publish`, local preview links, marketplace publish through platform login, registry install flows, explicit permission mapping, and first-run troubleshooting.",
+  "description": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, choosing between `ts-http` and `ts-http-lite`, automated `napp build --install`, source-first `napp validate-publish` and `napp publish`, local preview links, registry install flows that materialize source distributions locally, explicit permission mapping, and first-run troubleshooting.",
   "descriptionI18n": {
-    "en": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, choosing between `ts-http` and `ts-http-lite`, automated `napp build --install`, `napp validate-publish`, local preview links, marketplace publish through platform login, registry install flows, explicit permission mapping, and first-run troubleshooting.",
-    "zh": "当用户希望通过 @nextclaw/app-runtime 构建、发布、安装或使用 NextClaw App 时使用此技能。它负责普通用户旅程：通过 `napp doctor` 检查环境、在 `ts-http` 与 `ts-http-lite` 之间做选择、自动 `napp build --install`、执行 `napp validate-publish`、返回本地预览链接、通过平台登录态发布到应用商店、从 registry 安装应用、显式权限映射和首轮排障。"
+    "en": "Use this skill when the user wants to build, publish, install, or use a NextClaw App through @nextclaw/app-runtime. The skill owns the ordinary-user journey: readiness checks with `napp doctor`, choosing between `ts-http` and `ts-http-lite`, automated `napp build --install`, source-first `napp validate-publish` and `napp publish`, local preview links, registry install flows that materialize source distributions locally, explicit permission mapping, and first-run troubleshooting.",
+    "zh": "当用户希望通过 @nextclaw/app-runtime 构建、发布、安装或使用 NextClaw App 时使用此技能。它负责普通用户旅程：通过 `napp doctor` 检查环境、在 `ts-http` 与 `ts-http-lite` 之间做选择、自动 `napp build --install`、默认执行 source-first 的 `napp validate-publish` 与 `napp publish`、返回本地预览链接、从 registry 安装后本地物化 source 分发包、显式权限映射和首轮排障。"
   },
   "author": "NextClaw",
   "tags": [

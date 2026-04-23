@@ -20,15 +20,17 @@ export class MarketplaceAppPersistence {
             manifest_json,
             permissions_json,
             description,
+            distribution_mode,
             bundle_sha256,
             bundle_storage_key,
             published_at,
             updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(item_id, version) DO UPDATE SET
             manifest_json = excluded.manifest_json,
             permissions_json = excluded.permissions_json,
             description = excluded.description,
+            distribution_mode = excluded.distribution_mode,
             bundle_sha256 = excluded.bundle_sha256,
             bundle_storage_key = excluded.bundle_storage_key,
             updated_at = excluded.updated_at
@@ -40,6 +42,7 @@ export class MarketplaceAppPersistence {
         JSON.stringify(input.manifest),
         JSON.stringify(input.permissions ?? {}),
         input.description ?? null,
+        input.distributionMode,
         input.bundleSha256,
         bundleStorageKey,
         publishedAt,

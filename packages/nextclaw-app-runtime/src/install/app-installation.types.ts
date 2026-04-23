@@ -1,5 +1,6 @@
 import type { AppPermissions } from "../manifest/app-manifest.types.js";
 import type { AppDocumentGrantMap } from "../permissions/app-permissions.types.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import type { AppInstallSourceKind } from "../registry/app-registry.types.js";
 import type { AppPublisher } from "../registry/app-remote-registry.types.js";
 
@@ -10,6 +11,7 @@ export type AppInstallResult = {
   installDirectory: string;
   dataDirectory: string;
   sourceKind: AppInstallSourceKind;
+  distributionMode?: AppDistributionMode;
   sourceRef: string;
   permissions: AppPermissions;
   registryUrl?: string;
@@ -28,6 +30,7 @@ export type AppInfoResult = {
     version: string;
     installDirectory: string;
     sourceKind: AppInstallSourceKind;
+    distributionMode?: AppDistributionMode;
     sourceRef: string;
     installedAt: string;
     permissions: AppPermissions;
@@ -44,6 +47,7 @@ export type InstalledAppListItem = {
   name: string;
   activeVersion: string;
   sourceKind: AppInstallSourceKind;
+  distributionMode?: AppDistributionMode;
 };
 
 export type AppUninstallResult = {

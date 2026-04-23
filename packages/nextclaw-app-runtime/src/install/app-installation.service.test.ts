@@ -8,6 +8,7 @@ import { AppHomeService } from "../paths/app-home.service.js";
 import { AppBundleService } from "../bundle/app-bundle.service.js";
 import { AppScaffoldService } from "../scaffold/app-scaffold.service.js";
 import { AppInstallationService } from "./app-installation.service.js";
+import type { AppBuildService } from "../runtime/app-build.service.js";
 
 describe("AppInstallationService", () => {
   const cleanupPaths: string[] = [];
@@ -67,6 +68,7 @@ describe("AppInstallationService", () => {
         registryUrl: registryFixture.registryUrl,
       });
       expect(installed.sourceKind).toBe("registry");
+      expect(installed.distributionMode).toBe("bundle");
       expect(installed.version).toBe("0.1.0");
       expect(installed.registryUrl).toBe(registryFixture.registryUrl);
 
@@ -87,6 +89,47 @@ describe("AppInstallationService", () => {
     } finally {
       await closeServer(registryFixture.server);
     }
+  });
+
+  it("materializes source distributions before installing", async () => {
+    const appDirectory = createTemporaryPath("napp-source-install-app");
+    const appHomeDirectory = createTemporaryPath("napp-source-install-home");
+    const bundlePath = `${createTemporaryPath("napp-source-install-bundle")}.napp`;
+    cleanupPaths.push(appDirectory, appHomeDirectory, bundlePath);
+
+    await new AppScaffoldService().scaffold(appDirectory, { template: "ts-http" });
+    const build = async ({ appDirectory: buildDirectory }: { appDirectory: string; install: boolean }) => {
+      await writeFile(path.join(buildDirectory, "main", "app.wasm"), Buffer.alloc(2048));
+      return {
+        appDirectory: buildDirectory,
+        mainKind: "wasi-http-component",
+        mainEntryPath: path.join(buildDirectory, "main", "app.wasm"),
+        installedDependencies: true,
+        built: true,
+      };
+    };
+    await new AppBundleService().packAppDirectory({
+      appDirectory,
+      outputPath: bundlePath,
+      mode: "source",
+    });
+
+    const appHomeService = new AppHomeService(appHomeDirectory);
+    const installationService = new AppInstallationService(
+      appHomeService,
+      undefined,
+      undefined,
+      {
+        build,
+      } as AppBuildService,
+    );
+
+    const installed = await installationService.install(bundlePath);
+    expect(installed.sourceKind).toBe("bundle");
+    expect(installed.distributionMode).toBe("source");
+    await expect(access(path.join(installed.installDirectory, "main", "src", "component.ts"))).resolves.toBeUndefined();
+    const installedWasmBytes = await readFile(path.join(installed.installDirectory, "main", "app.wasm"));
+    expect(installedWasmBytes.byteLength).toBe(2048);
   });
 });
 
@@ -163,6 +206,7 @@ async function createRegistryFixture(): Promise<{
               description: "Registry Demo",
               publisher,
               dist: {
+                kind: "bundle",
                 bundle: "./-/registry-demo-0.1.0.napp",
                 sha256: version1Sha256,
               },
@@ -173,6 +217,7 @@ async function createRegistryFixture(): Promise<{
               description: "Registry Demo",
               publisher,
               dist: {
+                kind: "bundle",
                 bundle: "./-/registry-demo-0.2.0.napp",
                 sha256: version2Sha256,
               },

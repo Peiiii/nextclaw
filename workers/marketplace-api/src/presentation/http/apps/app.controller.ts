@@ -87,6 +87,7 @@ export function registerAppRoutes(
         "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${payload.item.slug}-${version}.napp`)}`,
         "cache-control": "public, max-age=300",
         "x-app-bundle-sha256": payload.version.bundle_sha256,
+        "x-app-distribution-mode": payload.version.distribution_mode,
       },
     });
   });

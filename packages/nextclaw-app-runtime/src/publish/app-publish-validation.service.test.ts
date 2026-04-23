@@ -69,10 +69,12 @@ describe("AppPublishValidationService", () => {
 
     expect(result.ok).toBe(true);
     expect(result.mainKind).toBe("wasi-http-component");
+    expect(result.distributionMode).toBe("source");
     expect(result.bundleFilePaths).toEqual([
       "assets/icon.svg",
       "main/app.wasm",
       "manifest.json",
+      "marketplace.json",
       "ui/index.html",
     ]);
     expect(result.warnings.map((warning) => warning.code)).toContain("main-entry-large");

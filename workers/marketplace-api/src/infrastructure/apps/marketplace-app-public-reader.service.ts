@@ -189,6 +189,7 @@ export class MarketplaceAppPublicReader {
             publisher: this.recordMapper.readPublisher(itemRow),
             permissions: this.recordMapper.parsePermissions(row.permissions_json, `${itemRow.slug}.permissions_json`),
             dist: {
+              kind: row.distribution_mode,
               bundle: `/api/v1/apps/items/${encodeURIComponent(itemRow.slug)}/bundles/${encodeURIComponent(row.version)}`,
               sha256: row.bundle_sha256,
             },

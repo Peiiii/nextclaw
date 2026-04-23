@@ -3,7 +3,13 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { unzipSync, zipSync, strToU8 } from "fflate";
 import { AppManifestService } from "../manifest/app-manifest.service.js";
-import type { AppBundleChecksums, AppBundleExtractResult, AppBundleMetadata, AppBundlePackResult } from "./app-bundle.types.js";
+import type {
+  AppBundleChecksums,
+  AppBundleExtractResult,
+  AppBundleMetadata,
+  AppBundlePackResult,
+  AppDistributionMode,
+} from "./app-bundle.types.js";
 
 export class AppBundleService {
   constructor(
@@ -13,10 +19,21 @@ export class AppBundleService {
   packAppDirectory = async (params: {
     appDirectory: string;
     outputPath?: string;
+    mode?: AppDistributionMode;
   }): Promise<AppBundlePackResult> => {
-    const bundle = await this.manifestService.load(params.appDirectory);
-    const { appFiles, filePaths } = await this.collectAppFiles(bundle);
-    const metadata = this.buildMetadata(bundle.manifest.id, bundle.manifest.name, bundle.manifest.version);
+    const { appDirectory, outputPath, mode: requestedMode } = params;
+    const bundle = await this.manifestService.load(appDirectory);
+    const mode = requestedMode ?? "bundle";
+    const { appFiles, filePaths } =
+      mode === "source"
+        ? await this.collectSourceFiles(bundle)
+        : await this.collectRuntimeFiles(bundle);
+    const metadata = this.buildMetadata(
+      bundle.manifest.id,
+      bundle.manifest.name,
+      bundle.manifest.version,
+      mode,
+    );
     const bundleJsonPath = ".napp/bundle.json";
     const checksumsJsonPath = ".napp/checksums.json";
     const bundleJsonBytes = strToU8(`${JSON.stringify(metadata, null, 2)}\n`);
@@ -35,16 +52,16 @@ export class AppBundleService {
         level: 9,
       },
     );
-    const outputPath = params.outputPath
-      ? path.resolve(params.outputPath)
+    const resolvedOutputPath = outputPath
+      ? path.resolve(outputPath)
       : path.join(
           path.dirname(bundle.appDirectory),
           `${this.normalizeBundleFileName(bundle.manifest.id)}-${bundle.manifest.version}.napp`,
         );
-    await mkdir(path.dirname(outputPath), { recursive: true });
-    await writeFile(outputPath, Buffer.from(archiveBytes));
+    await mkdir(path.dirname(resolvedOutputPath), { recursive: true });
+    await writeFile(resolvedOutputPath, Buffer.from(archiveBytes));
     return {
-      bundlePath: outputPath,
+      bundlePath: resolvedOutputPath,
       metadata,
       sizeBytes: archiveBytes.byteLength,
       filePaths,
@@ -67,10 +84,11 @@ export class AppBundleService {
       await mkdir(path.dirname(targetPath), { recursive: true });
       await writeFile(targetPath, Buffer.from(archive[entryName]));
     }
-    const metadata = await this.readJsonFile<AppBundleMetadata>(
+    const rawMetadata = await this.readJsonFile<Partial<AppBundleMetadata>>(
       path.join(targetDirectory, ".napp", "bundle.json"),
       "bundle metadata",
     );
+    const metadata = this.normalizeMetadata(rawMetadata);
     const checksums = await this.readJsonFile<AppBundleChecksums>(
       path.join(targetDirectory, ".napp", "checksums.json"),
       "bundle checksums",
@@ -84,7 +102,7 @@ export class AppBundleService {
     };
   };
 
-  private collectAppFiles = async (
+  private collectRuntimeFiles = async (
     bundle: AppBundleMetadataBundleSource,
   ): Promise<{
     appFiles: Record<string, Uint8Array>;
@@ -104,6 +122,32 @@ export class AppBundleService {
     const appFiles: Record<string, Uint8Array> = {};
     for (const relativePath of sortedPaths) {
       appFiles[relativePath] = new Uint8Array(await readFile(path.join(appDirectory, relativePath)));
+    }
+    return {
+      appFiles,
+      filePaths: sortedPaths,
+    };
+  };
+
+  private collectSourceFiles = async (
+    bundle: AppBundleMetadataBundleSource,
+  ): Promise<{
+    appFiles: Record<string, Uint8Array>;
+    filePaths: string[];
+  }> => {
+    const filePaths = new Set<string>();
+    await this.collectSourceDirectoryPaths(bundle.appDirectory, bundle.appDirectory, filePaths);
+    const sortedPaths = Array.from(filePaths).sort((left, right) => left.localeCompare(right));
+    const appFiles: Record<string, Uint8Array> = {};
+    for (const relativePath of sortedPaths) {
+      if (
+        bundle.manifest.main.kind === "wasi-http-component" &&
+        relativePath === bundle.manifest.main.entry
+      ) {
+        appFiles[relativePath] = SOURCE_WASM_PLACEHOLDER_BYTES;
+        continue;
+      }
+      appFiles[relativePath] = new Uint8Array(await readFile(path.join(bundle.appDirectory, relativePath)));
     }
     return {
       appFiles,
@@ -134,16 +178,73 @@ export class AppBundleService {
     }
   };
 
+  private collectSourceDirectoryPaths = async (
+    directoryPath: string,
+    appDirectory: string,
+    filePaths: Set<string>,
+  ): Promise<void> => {
+    try {
+      const entries = await readdir(directoryPath, { withFileTypes: true });
+      for (const entry of entries) {
+        const entryPath = path.join(directoryPath, entry.name);
+        const relativePath = path.relative(appDirectory, entryPath).replace(/\\/g, "/");
+        if (entry.isDirectory()) {
+          if (this.shouldExcludeSourcePath(relativePath)) {
+            continue;
+          }
+          await this.collectSourceDirectoryPaths(entryPath, appDirectory, filePaths);
+          continue;
+        }
+        if (!entry.isFile()) {
+          continue;
+        }
+        if (this.shouldExcludeSourcePath(relativePath)) {
+          continue;
+        }
+        filePaths.add(relativePath);
+      }
+    } catch {
+      return;
+    }
+  };
+
+  private shouldExcludeSourcePath = (relativePath: string): boolean => {
+    return (
+      relativePath === ".napp" ||
+      relativePath.startsWith(".napp/") ||
+      relativePath === "main/node_modules" ||
+      relativePath.startsWith("main/node_modules/") ||
+      relativePath === "main/dist" ||
+      relativePath.startsWith("main/dist/") ||
+      relativePath === "main/generated" ||
+      relativePath.startsWith("main/generated/")
+    );
+  };
+
   private buildMetadata = (
     appId: string,
     name: string,
     version: string,
+    distributionMode: AppDistributionMode,
   ): AppBundleMetadata => {
     return {
       bundleFormatVersion: 1,
+      distributionMode,
       appId,
       name,
       version,
+      entryManifest: "manifest.json",
+      checksumsFile: ".napp/checksums.json",
+    };
+  };
+
+  private normalizeMetadata = (rawMetadata: Partial<AppBundleMetadata>): AppBundleMetadata => {
+    return {
+      bundleFormatVersion: 1,
+      distributionMode: rawMetadata.distributionMode === "source" ? "source" : "bundle",
+      appId: String(rawMetadata.appId ?? ""),
+      name: String(rawMetadata.name ?? ""),
+      version: String(rawMetadata.version ?? ""),
       entryManifest: "manifest.json",
       checksumsFile: ".napp/checksums.json",
     };
@@ -206,3 +307,10 @@ export class AppBundleService {
 }
 
 type AppBundleMetadataBundleSource = Awaited<ReturnType<AppManifestService["load"]>>;
+
+const SOURCE_WASM_PLACEHOLDER_BYTES = Uint8Array.from(
+  Buffer.from(
+    "AGFzbQEAAAABBwFgAn9/AX8DAgEABxMBD3N1bW1hcml6ZV9ub3RlcwAACg0BCwAgACABakHIAWoL",
+    "base64",
+  ),
+);

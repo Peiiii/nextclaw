@@ -43,7 +43,13 @@ export class AppRemoteRegistryClientService {
       description: versionRecord.description ?? document.description,
       publisher: versionRecord.publisher,
       permissions: versionRecord.permissions,
-      bundleUrl: new URL(versionRecord.dist.bundle, metadataUrl).toString(),
+      distributionMode: versionRecord.dist.kind === "source" ? "source" : "bundle",
+      bundleUrl: new URL(
+        versionRecord.dist.artifact ??
+          versionRecord.dist.source ??
+          versionRecord.dist.bundle,
+        metadataUrl,
+      ).toString(),
       sha256: versionRecord.dist.sha256,
     };
   };
@@ -148,9 +154,21 @@ export class AppRemoteRegistryClientService {
       publisher: this.parsePublisher(candidate.publisher, version),
       permissions: candidate.permissions as AppRemoteRegistryVersion["permissions"],
       dist: {
+        kind:
+          distCandidate.kind === "source" || distCandidate.kind === "bundle"
+            ? distCandidate.kind
+            : undefined,
+        artifact: this.readOptionalString(
+          distCandidate.artifact,
+          `versions.${version}.dist.artifact`,
+        ),
         bundle: this.readRequiredString(
           distCandidate.bundle,
           `versions.${version}.dist.bundle`,
+        ),
+        source: this.readOptionalString(
+          distCandidate.source,
+          `versions.${version}.dist.source`,
         ),
         sha256: this.readRequiredString(
           distCandidate.sha256,

@@ -205,6 +205,7 @@ export class AppRuntimeCliService {
     await new PackCommand().run({
       appDirectory: target,
       outputPath: options.outputPath,
+      mode: options.mode,
       json: options.json,
       write: this.write,
     });
@@ -218,6 +219,7 @@ export class AppRuntimeCliService {
       metadataPath: options.metadataPath,
       apiBaseUrl: options.apiBaseUrl,
       token: options.token,
+      mode: options.mode,
       json: options.json,
       write: this.write,
     });
@@ -229,6 +231,7 @@ export class AppRuntimeCliService {
     await new ValidatePublishCommand().run({
       appDirectory: target,
       metadataPath: options.metadataPath,
+      mode: options.mode,
       json: options.json,
       write: this.write,
     });
@@ -370,9 +373,9 @@ export class AppRuntimeCliService {
     this.write("       napp build <app-dir> [--install] [--json]\n");
     this.write("       napp doctor [--json]\n");
     this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--data /path] [--json] [--document scope=/path]\n");
-    this.write("       napp pack <app-dir> [--out bundle.napp] [--json]\n");
-    this.write("       napp publish <app-dir> [--meta marketplace.json] [--api-base <url>] [--token <token>] [--json]\n");
-    this.write("       napp validate-publish <app-dir> [--meta marketplace.json] [--json]\n");
+    this.write("       napp pack <app-dir> [--mode source|bundle] [--out bundle.napp] [--json]\n");
+    this.write("       napp publish <app-dir> [--mode source|bundle] [--meta marketplace.json] [--api-base <url>] [--token <token>] [--json]\n");
+    this.write("       napp validate-publish <app-dir> [--mode source|bundle] [--meta marketplace.json] [--json]\n");
     this.write("       napp install <app-dir|bundle.napp|app-id[@version]> [--registry <url>] [--json]\n");
     this.write("       napp update <app-id> [--version <version>] [--registry <url>] [--json]\n");
     this.write("       napp uninstall <app-id> [--purge-data] [--json]\n");

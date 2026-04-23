@@ -3,6 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { AppBundleService } from "../bundle/app-bundle.service.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import { AppManifestService } from "../manifest/app-manifest.service.js";
 import { AppMarketplaceMetadataService } from "./app-marketplace-metadata.service.js";
 
@@ -24,6 +25,7 @@ export type AppPublishValidationResult = {
   metadataPath: string;
   appId: string;
   version: string;
+  distributionMode: AppDistributionMode;
   mainKind: string;
   mainEntryPath: string;
   mainEntrySizeBytes: number;
@@ -42,11 +44,18 @@ export class AppPublishValidationService {
   validate = async (params: {
     appDirectory: string;
     metadataPath?: string;
+    mode?: AppDistributionMode;
   }): Promise<AppPublishValidationResult> => {
-    const appDirectory = path.resolve(params.appDirectory);
+    const {
+      appDirectory: inputAppDirectory,
+      metadataPath: inputMetadataPath,
+      mode,
+    } = params;
+    const appDirectory = path.resolve(inputAppDirectory);
+    const distributionMode = mode ?? "source";
     const bundle = await this.manifestService.load(appDirectory);
-    const metadataPath = params.metadataPath
-      ? path.resolve(params.metadataPath)
+    const metadataPath = inputMetadataPath
+      ? path.resolve(inputMetadataPath)
       : path.join(appDirectory, "marketplace.json");
     await this.metadataService.load({
       appDirectory,
@@ -59,6 +68,7 @@ export class AppPublishValidationService {
       const packResult = await this.bundleService.packAppDirectory({
         appDirectory,
         outputPath: path.join(tempDirectory, `${bundle.manifest.id}-${bundle.manifest.version}.napp`),
+        mode: distributionMode,
       });
       const mainEntryStats = await stat(bundle.mainEntryPath);
       const warnings = this.buildWarnings({
@@ -71,6 +81,7 @@ export class AppPublishValidationService {
         metadataPath,
         appId: bundle.manifest.id,
         version: bundle.manifest.version,
+        distributionMode,
         mainKind: bundle.manifest.main.kind,
         mainEntryPath: bundle.mainEntryPath,
         mainEntrySizeBytes: mainEntryStats.size,

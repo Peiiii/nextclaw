@@ -1,5 +1,6 @@
 import type { AppPermissions } from "../manifest/app-manifest.types.js";
 import type { AppDocumentGrantMap } from "../permissions/app-permissions.types.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import type { AppPublisher } from "./app-remote-registry.types.js";
 
 export type AppInstallSourceKind = "bundle" | "directory" | "registry";
@@ -10,6 +11,7 @@ export type AppRegistryInstalledVersion = {
   sourceKind: AppInstallSourceKind;
   sourceRef: string;
   installedAt: string;
+  distributionMode?: AppDistributionMode;
   permissions: AppPermissions;
   registryUrl?: string;
   bundleUrl?: string;

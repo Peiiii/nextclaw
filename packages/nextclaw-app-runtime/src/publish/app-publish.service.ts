@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { AppBundleService } from "../bundle/app-bundle.service.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import { AppManifestService } from "../manifest/app-manifest.service.js";
 import { AppMarketplaceClientService } from "./app-marketplace-client.service.js";
 import { AppMarketplaceMetadataService } from "./app-marketplace-metadata.service.js";
@@ -29,8 +30,10 @@ export class AppPublishService {
     metadataPath?: string;
     apiBaseUrl?: string;
     token?: string;
+    mode?: AppDistributionMode;
   }): Promise<AppPublishResult> => {
     const { appDirectory: inputAppDirectory, metadataPath, apiBaseUrl, token } = params;
+    const distributionMode = params.mode ?? "source";
     const appDirectory = path.resolve(inputAppDirectory);
     const manifestBundle = await this.manifestService.load(appDirectory);
     const metadata = await this.metadataService.load({
@@ -45,6 +48,7 @@ export class AppPublishService {
     });
     const bundle = await this.bundleService.packAppDirectory({
       appDirectory,
+      mode: distributionMode,
     });
     const bundleBytes = Buffer.from(await readFile(bundle.bundlePath));
     const bundleSha256 = createHash("sha256").update(bundleBytes).digest("hex");
@@ -67,6 +71,7 @@ export class AppPublishService {
       homepage: metadata.homepage,
       featured: metadata.featured ?? false,
       publisher: actor.publisher,
+      distributionMode,
       manifest: manifestBundle.manifest,
       permissions: manifestBundle.manifest.permissions ?? {},
       bundleBase64: bundleBytes.toString("base64"),
@@ -83,9 +88,10 @@ export class AppPublishService {
     });
     return {
       ...result,
-      bundle: {
+      distribution: {
         path: bundle.bundlePath,
         sha256: bundleSha256,
+        mode: distributionMode,
       },
     };
   };

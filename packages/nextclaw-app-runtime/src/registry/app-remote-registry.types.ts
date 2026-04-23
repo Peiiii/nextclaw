@@ -1,4 +1,5 @@
 import type { AppPermissions } from "../manifest/app-manifest.types.js";
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 
 export const DEFAULT_APP_REGISTRY_URL =
   "https://apps-registry.nextclaw.io/api/v1/apps/registry/";
@@ -29,7 +30,10 @@ export type AppRemoteRegistryVersion = {
   publisher?: AppPublisher;
   permissions?: AppPermissions;
   dist: {
+    kind?: AppDistributionMode;
+    artifact?: string;
     bundle: string;
+    source?: string;
     sha256: string;
   };
 };
@@ -51,6 +55,7 @@ export type AppRemoteRegistryResolution = {
   description?: string;
   publisher?: AppPublisher;
   permissions?: AppPermissions;
+  distributionMode: AppDistributionMode;
   bundleUrl: string;
   sha256: string;
 };

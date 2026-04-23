@@ -45,9 +45,10 @@ describe("AppPublishService", () => {
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },
-      bundle: {
+      distribution: {
         path: "",
         sha256: "",
+        mode: "source",
       },
       fileCount: 2,
     });
@@ -84,12 +85,14 @@ describe("AppPublishService", () => {
 
     expect(result.item.appId).toBe("nextclaw.app");
     expect(result.item.webUrl).toBe("https://apps.nextclaw.io/apps/app");
-    expect(result.bundle.sha256).toHaveLength(64);
+    expect(result.distribution.sha256).toHaveLength(64);
+    expect(result.distribution.mode).toBe("source");
     expect(publish).toHaveBeenCalledTimes(1);
     expect(publish.mock.calls[0]?.[0]).toMatchObject({
       payload: {
         appId: "nextclaw.app",
         slug: "app",
+        distributionMode: "source",
         publisher: {
           id: "alice",
           name: "alice",
@@ -127,9 +130,10 @@ describe("AppPublishService", () => {
           registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
         },
       },
-      bundle: {
+      distribution: {
         path: "",
         sha256: "",
+        mode: "source",
       },
       fileCount: 2,
     });
@@ -168,6 +172,7 @@ describe("AppPublishService", () => {
     expect(publish.mock.calls[0]?.[0]).toMatchObject({
       payload: {
         appId: "nextclaw.todo-app",
+        distributionMode: "source",
         manifest: {
           main: {
             kind: "wasi-http-component",
@@ -178,5 +183,86 @@ describe("AppPublishService", () => {
     });
     expect(publish.mock.calls[0]?.[0]?.payload.manifest.main).not.toHaveProperty("export");
     expect(publish.mock.calls[0]?.[0]?.payload.manifest.main).not.toHaveProperty("action");
+  });
+
+});
+
+describe("AppPublishService bundle mode", () => {
+  const cleanupPaths: string[] = [];
+
+  afterEach(async () => {
+    vi.restoreAllMocks();
+    await Promise.all(
+      cleanupPaths.map((entryPath) =>
+        rm(entryPath, {
+          recursive: true,
+          force: true,
+        }),
+      ),
+    );
+    cleanupPaths.length = 0;
+  });
+
+  it("allows explicit bundle publishing mode", async () => {
+    const workspaceDirectory = await mkdtemp(path.join(tmpdir(), "napp-publish-bundle-"));
+    const appDirectory = path.join(workspaceDirectory, "todo-app");
+    cleanupPaths.push(workspaceDirectory);
+    await new AppScaffoldService().scaffold(appDirectory);
+
+    const publish = vi.fn().mockResolvedValue({
+      created: true,
+      item: {
+        slug: "todo-app",
+        appId: "nextclaw.todo-app",
+        name: "Todo App",
+        latestVersion: "0.1.0",
+        install: {
+          kind: "registry",
+          spec: "nextclaw.todo-app",
+          command: "napp install nextclaw.todo-app",
+          registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+        },
+      },
+      distribution: {
+        path: "",
+        sha256: "",
+        mode: "bundle",
+      },
+      fileCount: 2,
+    });
+    const service = new AppPublishService(
+      undefined,
+      undefined,
+      undefined,
+      {
+        publish,
+      } as never,
+      {
+        readCurrentAuthState: () => ({
+          token: "user-token",
+          apiBaseUrl: "https://ai-gateway-api.nextclaw.io/v1",
+        }),
+      } as PlatformAuthStateService,
+    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          user: {
+            id: "user-1",
+            username: "alice",
+            role: "user",
+          },
+        },
+      }),
+    }));
+
+    const result = await service.publish({
+      appDirectory,
+      mode: "bundle",
+    });
+
+    expect(result.distribution.mode).toBe("bundle");
+    expect(publish.mock.calls[0]?.[0]?.payload.distributionMode).toBe("bundle");
   });
 });

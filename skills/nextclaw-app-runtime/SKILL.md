@@ -95,13 +95,14 @@ When the user wants to distribute their app:
 ```bash
 napp build <app-dir> --install
 napp inspect <app-dir> --json
-napp validate-publish <app-dir> --json
-napp publish <app-dir>
+napp validate-publish <app-dir> --mode source --json
+napp publish <app-dir> --mode source
 ```
 
 Rules:
 
 - Do not publish before build, inspect, and validate-publish all pass.
+- Default to `--mode source` unless the user explicitly asks for a prebuilt deterministic bundle.
 - If `validate-publish` returns warnings, surface them in plain language before continuing. Do not silently ignore size warnings.
 - If publishing fails because login is missing, tell the user to run `nextclaw login`; do not ask them to manage raw tokens unless they explicitly want that.
 - Personal publish requires a platform username and a non-official app id scope.
@@ -131,8 +132,8 @@ When the user wants a file they can send directly:
 
 ```bash
 napp build <app-dir> --install
-napp validate-publish <app-dir> --json
-napp pack <app-dir>
+napp validate-publish <app-dir> --mode source --json
+napp pack <app-dir> --mode source
 ```
 
 The output `.napp` file can be installed with:
@@ -164,6 +165,7 @@ How to explain failures:
 - Say what is blocked now, what single action unblocks it, and whether the app files are still usable.
 - If publishing is blocked by login, say the app itself is fine and only the publish step is blocked.
 - If `validate-publish` warns that the backend is large, explain that the app can still work and publish, but download/install may be heavier.
+- If the user explicitly wants a prebuilt artifact, switch to `--mode bundle` and explain that it will usually be larger than the default `source` mode.
 
 Common outcomes:
 

@@ -16,6 +16,7 @@
 - 新增方案计划文档：[NApp WASI Component TS HTTP 方案计划](../../plans/2026-04-23-napp-wasi-component-ts-http-plan.md)
 - 新增普通用户产品化方案：[NApp 普通用户产品化方案计划](../../plans/2026-04-23-napp-ordinary-user-productization-plan.md)
 - 新增分阶段优化方案：[NApp 分阶段优化执行方案](../../plans/2026-04-23-napp-phase-optimization-plan.md)
+- 新增轻量 source 分发方案：[NApp Source Distribution 方案计划](../../plans/2026-04-24-napp-source-distribution-plan.md)
 - 新增目标锚点：[goal-progress.md](work/goal-progress.md)
 - `manifest.main.kind` 新增 `wasi-http-component`，`inspect` 可展示 `mainKind`
 - `napp create` 新增显式模板参数：`--template starter|ts-http|ts-http-lite`
@@ -26,6 +27,10 @@
 - 修复 apps marketplace 发布协议，使其支持 `wasi-http-component` manifest，不再要求旧 `wasm action` 字段
 - 收紧 `.napp` 打包范围，只包含 `manifest.json`、`main.entry`、`ui/`、`assets/` 与 icon，不再把 `main/node_modules`、源码和 lockfile 打进发行包
 - 新增 `napp validate-publish <app-dir>`，本地统一做发布前检查，并输出 bundle 文件列表与体积 warning
+- 新增 `.napp` 双模式分发合同：`distributionMode=source|bundle`
+- `napp pack` / `napp publish` / `napp validate-publish` 默认切到 `source`；显式 `--mode bundle` 保留预构建发布
+- `source` 模式下 `.napp` 默认只携带用户源码/配置/UI/assets，安装时再本地物化成现有运行态目录，不改变 `manifest.json + main/ + ui/ + assets/` 运行合同
+- marketplace app registry 文档新增 `dist.kind`，worker 版本记录新增 `distribution_mode` 落库与下载响应头回显
 - `napp run/dev` 新增 `--data <path>`，用于把 host 数据目录挂载到 WASI guest `/data`
 - 新增 Wasmtime WASI HTTP component runner，启动 `wasmtime serve` 并启用 WASI CLI/HTTP/network 能力
 - NApp host 把 `/api/*` 代理给 WASM 后端，其它路径继续服务 UI 和 `__napp/*`
@@ -66,10 +71,17 @@
 - `node packages/nextclaw-app-runtime/dist/main.js validate-publish "$appdir" --json`
 - `node packages/nextclaw-app-runtime/dist/main.js pack "$appdir" --out "$bundle" --json`
 - `unzip -l "$bundle"`
+- `node packages/nextclaw-app-runtime/dist/main.js validate-publish "$appdir" --mode source --json`
+- `node packages/nextclaw-app-runtime/dist/main.js pack "$appdir" --mode source --out "$bundle" --json`
+- `NEXTCLAW_APP_HOME="$apphome" node packages/nextclaw-app-runtime/dist/main.js install "$bundle" --json`
+- `NEXTCLAW_APP_HOME="$apphome" node packages/nextclaw-app-runtime/dist/main.js run nextclaw.todo-app --port 0`
+- `curl "$url/api/todos"`
 - `pnpm lint:maintainability:guard`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次触达 app-runtime 文件>`
 - `node scripts/governance/lint-new-code-governance.mjs -- <本次触达 app-runtime 文件>`
 - `pnpm check:governance-backlog-ratchet`
+- `pnpm -C workers/marketplace-api db:migrate:skills:remote`
+- `pnpm -C workers/marketplace-api run deploy`
 
 关键结果：
 
@@ -86,6 +98,7 @@
 - `skills/nextclaw-app-runtime` marketplace 校验通过：0 error、0 warning
 - `@nextclaw/app-runtime@0.5.0` 已发布到 npm latest
 - `@nextclaw/app-runtime@0.6.0` 已发布到 npm latest
+- `@nextclaw/app-runtime@0.7.0` 已发布到 npm latest
 - `skills/nextclaw-app-runtime` 已更新到 NextClaw marketplace，远端 metadata 与安装文件校验通过
 - `skills/nextclaw-app-runtime` 已按 phase 3 新工作流再次更新到 NextClaw marketplace
 - marketplace skill 安装冒烟通过：非仓库临时目录可安装出 `SKILL.md` 与 `marketplace.json`
@@ -93,6 +106,9 @@
 - 真实 ts-http 打包 smoke 显示：构建后的 `main/app.wasm` 约 13.3 MB，但最终 `.napp` 约 4.2 MB，archive 内只有 7 个运行时文件，不再包含 `main/node_modules`
 - 真实模板对比显示：`ts-http-lite` 可正常 `create -> build -> pack`，并把 `main/app.wasm` 从约 `13.34 MB` 降到约 `13.25 MB`，`.napp` 从约 `4.43 MB` 降到约 `4.36 MB`
 - `napp validate-publish` 真实冒烟通过：可输出 `mainEntrySizeBytes`、`bundleSizeBytes`、`bundleFilePaths`，并在当前模板上给出 `main-entry-large` warning
+- 默认 `source` 真实冒烟通过：`validate-publish -> pack -> install -> run -> GET /api/todos` 全链路打通
+- 真实 `source` 包校验结果：`distributionMode=source`，构建后的 `main/app.wasm` 约 `12.7 MB`，但默认 `.napp` 约 `44.7 KB`
+- 真实安装态校验结果：安装记录写入 `distributionMode=source`，安装时本地物化，再通过 app id 正常启动并返回 `[]`
 - `wkg wit fetch` 在当前环境出现 OCI token warning，但不阻塞构建
 - `jco componentize` 出现 componentize-js 0.19.3 fallback warning，原因是当前 WIT 使用 WASI Preview 2 旧于 0.2.10 的包；不阻塞本次验收，后续可升级 WIT 版本处理
 - Scoped 治理检查有效覆盖 21 个本次触达文件，0 error
@@ -103,8 +119,9 @@
 
 已执行发布：
 
-- NPM：`@nextclaw/app-runtime@0.5.0`、`@nextclaw/app-runtime@0.6.0`
+- NPM：`@nextclaw/app-runtime@0.5.0`、`@nextclaw/app-runtime@0.6.0`、`@nextclaw/app-runtime@0.7.0`
 - NextClaw marketplace skill：`nextclaw-app-runtime`
+- Marketplace API worker：已执行远端 D1 migration `0009_marketplace_app_distribution_mode_20260424.sql` 并部署到 `marketplace-api.nextclaw.io` / `apps-registry.nextclaw.io`
 
 本地体验方式：
 
@@ -126,7 +143,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 6. 用户打开应用 UI，前端通过普通 `fetch("/api/todos")` 调后端
 7. 用户新增 Todo 后，后端在 WASI 沙箱内写 guest `/data/todos.json`
 8. 用户在宿主机看到实际数据文件位于 `./todo-app/.napp/data/todos.json`
-9. 用户要分发时，AI/skill 执行 `napp build --install`、`napp inspect --json`、`napp publish`
+9. 用户要分发时，AI/skill 执行 `napp build --install`、`napp inspect --json`、`napp validate-publish --mode source --json`、`napp publish --mode source`
 10. 用户要安装商店应用时，AI/skill 执行 `napp install <app-id>`、`napp run <app-id> --port 0 --json`
 
 ## 可维护性总结汇总
@@ -137,36 +154,36 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 
 代码增减报告：
 
-- 新增：1229 行
-- 删除：27 行
-- 净增：+1202 行
+- 新增：504 行
+- 删除：47 行
+- 净增：+457 行
 
 非测试代码增减报告：
 
-- 新增：1152 行
-- 删除：26 行
-- 净增：+1126 行
+- 新增：312 行
+- 删除：44 行
+- 净增：+268 行
 
 长期目标对齐 / 可维护性推进：
 
 - 本次顺着“统一入口 + 能力编排 + 生态扩展”的长期方向推进了一步，把 NApp 从 action demo 变成可承载普通全栈应用的轻量运行容器。
-- 这次是新增用户能力，因此非测试代码净增为正是必要的；增长集中在 manifest contract、一个 TS/Hono scaffold owner、一个 Wasmtime runner owner、一个 build/toolchain owner 和 run/host 接入点，没有扩散成多套并行协议。
+- 这次是新增用户能力，因此非测试代码净增为正是必要的；增长集中在分发合同、安装物化、registry 协议和 worker 持久化，没有把平台扩展成远端构建系统。
 - 主路径保持显式：只有 `main.kind=wasi-http-component` 才启动 Wasmtime runner，缺少 `--data` 直接失败，不做隐藏 fallback 或环境猜测。
 - 普通用户入口由现有 `nextclaw-app-runtime` skill 承接，skill 负责工作流和排障，runtime 负责执行，避免把 AI 指令和执行逻辑混在一起。
 
 独立可维护性复核：
 
 - no maintainability findings
-- 当前保留三个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`app-ts-http-scaffold-template.service.ts` 当前 517 行，继续扩展时应优先拆成 main/ui/readme 三个模板 owner；`ts-http-lite` 当前只带来小幅体积下降，后续若继续追求数量级缩减，应优先研究 componentize/JCO 产物而不是继续替换上层路由
+- 当前保留三个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`workers/marketplace-api/src/infrastructure/apps/marketplace-app-record.repository.ts` 接近 400 行预算；`ts-http-lite` 当前只带来小幅体积下降，后续若继续追求数量级缩减，应优先研究 componentize/JCO 产物而不是继续替换上层路由
 - phase 3 的 skill 收口刻意只改用户路径文案与执行顺序，没有再改 runtime 协议、模板合同或本地运行链路，避免体验层与底层机制继续耦合
-- 本次没有进一步拆模板文件，因为用户明确要求避免非必要结构变更，且当前模板仍是单一职责的 scaffold 内容；后续新增 `--mount` 或更多模板内容时必须先拆分
+- `pnpm lint:maintainability:guard` 与 `pnpm lint:new-code:governance` 均通过；`pnpm check:governance-backlog-ratchet` 因仓库范围外的既有文档 `docs/logs/v0.16.96-unified-release-0-18-4/GITHUB_RELEASE.md` 仍是 tracked legacy violation 而失败，本次未触碰该无关路径
 
 ## NPM 包发布记录
 
 本次涉及 NPM 包：`@nextclaw/app-runtime`
 
 - 本次是否需要发包：需要，因为 `napp create`、`napp run/dev` 命令面、manifest 类型和运行链路都发生变化
-- 当前是否已发布：phase 1 已发布 `@nextclaw/app-runtime@0.5.0`；phase 2 已发布 `@nextclaw/app-runtime@0.6.0`
+- 当前是否已发布：phase 1 已发布 `@nextclaw/app-runtime@0.5.0`；phase 2 已发布 `@nextclaw/app-runtime@0.6.0`；本次 source-first 双模式分发已发布 `@nextclaw/app-runtime@0.7.0`
 - marketplace skill：已更新 `nextclaw-app-runtime`，并在 phase 3 收口后再次更新
 - 后续状态：不需要待统一发布
 - 触发条件：无

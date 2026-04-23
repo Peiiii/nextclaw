@@ -9,6 +9,8 @@ export type AppPublisher = {
   url?: string;
 };
 
+export type AppDistributionMode = "bundle" | "source";
+
 export type AppInstallSpec = {
   kind: "registry";
   spec: string;
@@ -78,6 +80,7 @@ export type MarketplaceAppPublishInput = {
   publisher: AppPublisher;
   manifest: MarketplaceAppManifest;
   permissions: AppPermissions;
+  distributionMode: AppDistributionMode;
   bundleBase64: string;
   bundleSha256: string;
   files: MarketplaceAppFileInput[];
@@ -118,6 +121,7 @@ export type MarketplaceAppItemDetail = MarketplaceAppItemSummary & {
     version: string;
     publishedAt: string;
     updatedAt: string;
+    distributionMode: AppDistributionMode;
     bundleSha256: string;
     downloadPath: string;
   }>;
@@ -202,6 +206,7 @@ export type MarketplaceAppVersionRow = {
   manifest_json: string;
   permissions_json: string;
   description: string | null;
+  distribution_mode: AppDistributionMode;
   bundle_sha256: string;
   bundle_storage_key: string;
   published_at: string;
@@ -252,6 +257,7 @@ export type MarketplaceOwnerAppDetail = MarketplaceOwnerAppSummary & {
     version: string;
     publishedAt: string;
     updatedAt: string;
+    distributionMode: AppDistributionMode;
     bundleSha256: string;
     downloadPath: string;
   }>;

@@ -1,3 +1,4 @@
+import type { AppDistributionMode } from "../bundle/app-bundle.types.js";
 import type { AppManifest, AppPermissions } from "../manifest/app-manifest.types.js";
 import type { AppPublisher } from "../registry/app-remote-registry.types.js";
 
@@ -37,6 +38,7 @@ export type AppPublishPayload = {
   homepage?: string;
   featured: boolean;
   publisher: AppPublisher;
+  distributionMode: AppDistributionMode;
   manifest: AppManifest;
   permissions: AppPermissions;
   bundleBase64: string;
@@ -59,9 +61,10 @@ export type AppPublishResult = {
       registry: string;
     };
   };
-  bundle: {
+  distribution: {
     path: string;
     sha256: string;
+    mode: AppDistributionMode;
   };
   fileCount: number;
 };

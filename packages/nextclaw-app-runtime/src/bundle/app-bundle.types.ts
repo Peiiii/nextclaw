@@ -1,5 +1,8 @@
+export type AppDistributionMode = "bundle" | "source";
+
 export type AppBundleMetadata = {
   bundleFormatVersion: 1;
+  distributionMode: AppDistributionMode;
   appId: string;
   name: string;
   version: string;
