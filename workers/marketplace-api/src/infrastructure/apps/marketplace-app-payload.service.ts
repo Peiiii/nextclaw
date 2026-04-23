@@ -79,6 +79,7 @@ export class MarketplaceAppPayloadParser {
     }
     const mainCandidate = main as Record<string, unknown>;
     const uiCandidate = ui as Record<string, unknown>;
+    const mainKind = this.readString(mainCandidate.kind, "manifest.main.kind");
     return {
       schemaVersion: 1,
       id: this.readString(candidate.id, "manifest.id"),
@@ -86,17 +87,33 @@ export class MarketplaceAppPayloadParser {
       version: this.readString(candidate.version, "manifest.version"),
       description: this.readOptionalString(candidate.description, "manifest.description"),
       icon: this.readOptionalString(candidate.icon, "manifest.icon"),
-      main: {
-        kind: "wasm",
-        entry: this.readString(mainCandidate.entry, "manifest.main.entry"),
-        export: this.readString(mainCandidate.export, "manifest.main.export"),
-        action: this.readString(mainCandidate.action, "manifest.main.action"),
-      },
+      main: this.readMainManifest(mainKind, mainCandidate),
       ui: {
         entry: this.readString(uiCandidate.entry, "manifest.ui.entry"),
       },
       permissions: this.readPermissions(candidate.permissions),
     };
+  };
+
+  private readMainManifest = (
+    kind: string,
+    mainCandidate: Record<string, unknown>,
+  ): MarketplaceAppManifest["main"] => {
+    if (kind === "wasm") {
+      return {
+        kind: "wasm",
+        entry: this.readString(mainCandidate.entry, "manifest.main.entry"),
+        export: this.readString(mainCandidate.export, "manifest.main.export"),
+        action: this.readString(mainCandidate.action, "manifest.main.action"),
+      };
+    }
+    if (kind === "wasi-http-component") {
+      return {
+        kind: "wasi-http-component",
+        entry: this.readString(mainCandidate.entry, "manifest.main.entry"),
+      };
+    }
+    throw new DomainValidationError("manifest.main.kind must be wasm or wasi-http-component");
   };
 
   private readPermissions = (value: unknown): NonNullable<MarketplaceAppManifest["permissions"]> => {

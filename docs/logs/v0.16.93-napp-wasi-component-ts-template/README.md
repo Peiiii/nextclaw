@@ -9,17 +9,22 @@
 - 根因是什么：旧 NApp main 只有固定 Wasm export/action demo，没有 WASI HTTP 后端运行器、没有 `/api/*` 同源代理、没有运行时指定数据目录挂载，所以无法实现“前端普通 fetch 后端，后端持久化 Todo 数据”的基础全栈应用。
 - 如何确认：代码路径上 `manifest.main.kind` 只支持 `wasm` action；`AppHostService` 只服务 `__napp/*` 和 UI；`RunCommand` 没有启动 WASI HTTP component；模板也没有 TS/Hono 后端构建链路。
 - 为什么命中根因：本次补齐了 manifest contract、TS/Hono scaffold、Wasmtime `serve` runner、`/api/*` proxy、`--data` 到 guest `/data` 的挂载，并用真实 Todo HTTP 请求验证数据落盘。
+- 后续补充根因：Apps marketplace 的 app publish 协议仍只接受旧的 `main.kind="wasm"` + `export/action` manifest，导致新的 `wasi-http-component` 应用在上架时会被直接拒绝；同时 `.napp` 打包原先会递归收集整个 `main/` 目录，把 `node_modules` 等构建期文件一并带入 bundle，放大上传体积与用户困惑。
 
 核心改动：
 
 - 新增方案计划文档：[NApp WASI Component TS HTTP 方案计划](../../plans/2026-04-23-napp-wasi-component-ts-http-plan.md)
 - 新增普通用户产品化方案：[NApp 普通用户产品化方案计划](../../plans/2026-04-23-napp-ordinary-user-productization-plan.md)
+- 新增分阶段优化方案：[NApp 分阶段优化执行方案](../../plans/2026-04-23-napp-phase-optimization-plan.md)
 - 新增目标锚点：[goal-progress.md](work/goal-progress.md)
 - `manifest.main.kind` 新增 `wasi-http-component`，`inspect` 可展示 `mainKind`
 - `napp create` 新增显式模板参数：`--template starter|ts-http`
 - 新增 `ts-http` 模板，生成 TypeScript/Hono 后端、WIT world、JCO/ComponentizeJS 构建脚本、普通 `fetch("/api/todos")` 前端和 Todo List 示例
 - 新增 `napp doctor`，普通用户/skill 可以先检查 NApp 开发运行环境是否就绪
 - 新增 `napp build <app-dir> --install`，自动安装模板依赖并构建 TS/WASI HTTP 后端
+- 修复 apps marketplace 发布协议，使其支持 `wasi-http-component` manifest，不再要求旧 `wasm action` 字段
+- 收紧 `.napp` 打包范围，只包含 `manifest.json`、`main.entry`、`ui/`、`assets/` 与 icon，不再把 `main/node_modules`、源码和 lockfile 打进发行包
+- 新增 `napp validate-publish <app-dir>`，本地统一做发布前检查，并输出 bundle 文件列表与体积 warning
 - `napp run/dev` 新增 `--data <path>`，用于把 host 数据目录挂载到 WASI guest `/data`
 - 新增 Wasmtime WASI HTTP component runner，启动 `wasmtime serve` 并启用 WASI CLI/HTTP/network 能力
 - NApp host 把 `/api/*` 代理给 WASM 后端，其它路径继续服务 UI 和 `__napp/*`
@@ -50,6 +55,10 @@
 - `node packages/nextclaw/dist/cli/app/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`
 - `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/nextclaw-app-runtime`
 - `node packages/nextclaw/dist/cli/app/index.js skills install nextclaw-app-runtime --api-base https://marketplace-api.nextclaw.io --workdir "$tmp_dir"`
+- `pnpm -C workers/marketplace-api tsc`
+- `node packages/nextclaw-app-runtime/dist/main.js validate-publish "$appdir" --json`
+- `node packages/nextclaw-app-runtime/dist/main.js pack "$appdir" --out "$bundle" --json`
+- `unzip -l "$bundle"`
 - `pnpm lint:maintainability:guard`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次触达 app-runtime 文件>`
 - `node scripts/governance/lint-new-code-governance.mjs -- <本次触达 app-runtime 文件>`
@@ -71,6 +80,9 @@
 - `@nextclaw/app-runtime@0.5.0` 已发布到 npm latest
 - `skills/nextclaw-app-runtime` 已更新到 NextClaw marketplace，远端 metadata 与安装文件校验通过
 - marketplace skill 安装冒烟通过：非仓库临时目录可安装出 `SKILL.md` 与 `marketplace.json`
+- marketplace worker 类型检查通过，`wasi-http-component` app manifest 能通过新的发布协议编译约束
+- 真实 ts-http 打包 smoke 显示：构建后的 `main/app.wasm` 约 13.3 MB，但最终 `.napp` 约 4.2 MB，archive 内只有 7 个运行时文件，不再包含 `main/node_modules`
+- `napp validate-publish` 真实冒烟通过：可输出 `mainEntrySizeBytes`、`bundleSizeBytes`、`bundleFilePaths`，并在当前模板上给出 `main-entry-large` warning
 - `wkg wit fetch` 在当前环境出现 OCI token warning，但不阻塞构建
 - `jco componentize` 出现 componentize-js 0.19.3 fallback warning，原因是当前 WIT 使用 WASI Preview 2 旧于 0.2.10 的包；不阻塞本次验收，后续可升级 WIT 版本处理
 - Scoped 治理检查有效覆盖 21 个本次触达文件，0 error

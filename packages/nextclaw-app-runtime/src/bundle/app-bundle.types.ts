@@ -15,6 +15,8 @@ export type AppBundleChecksums = {
 export type AppBundlePackResult = {
   bundlePath: string;
   metadata: AppBundleMetadata;
+  sizeBytes: number;
+  filePaths: string[];
 };
 
 export type AppBundleExtractResult = {

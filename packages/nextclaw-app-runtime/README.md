@@ -11,6 +11,7 @@
 - `napp run <app-dir|app-id>`：启动本地宿主，支持目录运行和已安装应用运行
 - `napp dev <app-dir>`：当前等价于 `run`
 - `napp pack <app-dir>`：把应用目录打成 `.napp` bundle
+- `napp validate-publish <app-dir>`：本地做发布前校验并输出体积/包内容 warning
 - `napp publish <app-dir>`：把应用目录发布到官方 apps registry
 - `napp install <app-dir|bundle.napp|app-id[@version]>`：从本地或 registry 安装应用
 - `napp update <app-id>`：更新已安装应用
@@ -74,6 +75,7 @@ napp doctor
 napp create ./my-first-napp --template ts-http
 napp build ./my-first-napp --install
 napp inspect ./my-first-napp
+napp validate-publish ./my-first-napp
 napp run ./my-first-napp --data ./my-first-napp/.napp/data
 napp pack ./my-first-napp
 napp publish ./my-first-napp

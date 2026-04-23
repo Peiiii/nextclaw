@@ -106,4 +106,77 @@ describe("AppPublishService", () => {
       },
     });
   });
+
+  it("publishes ts-http manifests with wasi-http-component main", async () => {
+    const workspaceDirectory = await mkdtemp(path.join(tmpdir(), "napp-publish-ts-http-"));
+    const appDirectory = path.join(workspaceDirectory, "todo-app");
+    cleanupPaths.push(workspaceDirectory);
+    await new AppScaffoldService().scaffold(appDirectory, { template: "ts-http" });
+
+    const publish = vi.fn().mockResolvedValue({
+      created: true,
+      item: {
+        slug: "todo-app",
+        appId: "nextclaw.todo-app",
+        name: "Todo App",
+        latestVersion: "0.1.0",
+        install: {
+          kind: "registry",
+          spec: "nextclaw.todo-app",
+          command: "napp install nextclaw.todo-app",
+          registry: "https://apps-registry.nextclaw.io/api/v1/apps/registry/",
+        },
+      },
+      bundle: {
+        path: "",
+        sha256: "",
+      },
+      fileCount: 2,
+    });
+    const service = new AppPublishService(
+      undefined,
+      undefined,
+      undefined,
+      {
+        publish,
+      } as never,
+      {
+        readCurrentAuthState: () => ({
+          token: "user-token",
+          apiBaseUrl: "https://ai-gateway-api.nextclaw.io/v1",
+        }),
+      } as PlatformAuthStateService,
+    );
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: {
+          user: {
+            id: "user-1",
+            username: "alice",
+            role: "user",
+          },
+        },
+      }),
+    }));
+
+    await service.publish({
+      appDirectory,
+    });
+
+    expect(publish).toHaveBeenCalledTimes(1);
+    expect(publish.mock.calls[0]?.[0]).toMatchObject({
+      payload: {
+        appId: "nextclaw.todo-app",
+        manifest: {
+          main: {
+            kind: "wasi-http-component",
+            entry: "main/app.wasm",
+          },
+        },
+      },
+    });
+    expect(publish.mock.calls[0]?.[0]?.payload.manifest.main).not.toHaveProperty("export");
+    expect(publish.mock.calls[0]?.[0]?.payload.manifest.main).not.toHaveProperty("action");
+  });
 });

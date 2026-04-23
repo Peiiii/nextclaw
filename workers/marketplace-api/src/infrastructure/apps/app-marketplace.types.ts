@@ -37,12 +37,17 @@ export type MarketplaceAppManifest = {
   name: string;
   version: string;
   description?: string;
-  main: {
-    kind: "wasm";
-    entry: string;
-    export: string;
-    action: string;
-  };
+  main:
+    | {
+        kind: "wasm";
+        entry: string;
+        export: string;
+        action: string;
+      }
+    | {
+        kind: "wasi-http-component";
+        entry: string;
+      };
   ui: {
     entry: string;
   };

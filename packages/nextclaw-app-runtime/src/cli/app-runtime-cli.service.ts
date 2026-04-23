@@ -14,6 +14,7 @@ import { RevokeCommand } from "../commands/revoke.controller.js";
 import { RunCommand } from "../commands/run.controller.js";
 import { UninstallCommand } from "../commands/uninstall.controller.js";
 import { UpdateCommand } from "../commands/update.controller.js";
+import { ValidatePublishCommand } from "../commands/validate-publish.controller.js";
 import { AppBuildService } from "../runtime/app-build.service.js";
 import { AppRuntimeToolchainService } from "../runtime/app-runtime-toolchain.service.js";
 import { AppRuntimeOptionsService } from "./app-runtime-options.service.js";
@@ -66,6 +67,9 @@ export class AppRuntimeCliService {
         return;
       case "publish":
         await this.handlePublish(restArgs);
+        return;
+      case "validate-publish":
+        await this.handleValidatePublish(restArgs);
         return;
       case "install":
         await this.handleInstall(restArgs);
@@ -219,6 +223,17 @@ export class AppRuntimeCliService {
     });
   };
 
+  private handleValidatePublish = async (restArgs: string[]): Promise<void> => {
+    const { target, optionArgs } = this.optionsService.readTarget("validate-publish", restArgs);
+    const options = this.optionsService.readPublishOptions(optionArgs);
+    await new ValidatePublishCommand().run({
+      appDirectory: target,
+      metadataPath: options.metadataPath,
+      json: options.json,
+      write: this.write,
+    });
+  };
+
   private handleInstall = async (restArgs: string[]): Promise<void> => {
     const { target, optionArgs } = this.optionsService.readTarget("install", restArgs);
     const options = this.optionsService.readInstallOptions(optionArgs);
@@ -357,6 +372,7 @@ export class AppRuntimeCliService {
     this.write("       napp <run|dev> <app-dir|app-id> [--host 127.0.0.1] [--port 3100] [--data /path] [--json] [--document scope=/path]\n");
     this.write("       napp pack <app-dir> [--out bundle.napp] [--json]\n");
     this.write("       napp publish <app-dir> [--meta marketplace.json] [--api-base <url>] [--token <token>] [--json]\n");
+    this.write("       napp validate-publish <app-dir> [--meta marketplace.json] [--json]\n");
     this.write("       napp install <app-dir|bundle.napp|app-id[@version]> [--registry <url>] [--json]\n");
     this.write("       napp update <app-id> [--version <version>] [--registry <url>] [--json]\n");
     this.write("       napp uninstall <app-id> [--purge-data] [--json]\n");

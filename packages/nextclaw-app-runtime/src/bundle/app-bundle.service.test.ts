@@ -1,4 +1,4 @@
-import { access, readFile, rm } from "node:fs/promises";
+import { access, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -50,9 +50,56 @@ describe("AppBundleService", () => {
     await expect(access(path.join(extractedDirectory, ".napp", "checksums.json"))).resolves.toBeUndefined();
     expect(packed.metadata.appId.startsWith("nextclaw.napp-bundle-app-")).toBe(true);
     expect(extracted.metadata.appId).toBe(packed.metadata.appId);
+    expect(packed.sizeBytes).toBeGreaterThan(0);
+    expect(packed.filePaths).toContain("manifest.json");
+    expect(packed.filePaths).toContain("main/app.wasm");
     const bundleJson = JSON.parse(
       await readFile(path.join(extractedDirectory, ".napp", "bundle.json"), "utf-8"),
     ) as { checksumsFile: string };
     expect(bundleJson.checksumsFile).toBe(".napp/checksums.json");
+  });
+
+  it("excludes TypeScript build toolchain files from ts-http bundles", async () => {
+    const appDirectory = path.join(
+      tmpdir(),
+      `napp-ts-http-bundle-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    const bundlePath = path.join(
+      tmpdir(),
+      `napp-ts-http-bundle-${Date.now()}-${Math.random().toString(16).slice(2)}.napp`,
+    );
+    const extractedDirectory = path.join(
+      tmpdir(),
+      `napp-ts-http-extracted-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    cleanupPaths.push(appDirectory, bundlePath, extractedDirectory);
+
+    await new AppScaffoldService().scaffold(appDirectory, { template: "ts-http" });
+    await mkdir(path.join(appDirectory, "main", "node_modules", "fake-package"), { recursive: true });
+    await writeFile(
+      path.join(appDirectory, "main", "node_modules", "fake-package", "index.js"),
+      "export const fake = true;\n",
+      "utf-8",
+    );
+    await writeFile(
+      path.join(appDirectory, "main", "package-lock.json"),
+      "{\"name\":\"fake-lock\"}\n",
+      "utf-8",
+    );
+
+    const bundleService = new AppBundleService();
+    await bundleService.packAppDirectory({
+      appDirectory,
+      outputPath: bundlePath,
+    });
+    await bundleService.extractBundle({
+      bundlePath,
+      targetDirectory: extractedDirectory,
+    });
+
+    await expect(access(path.join(extractedDirectory, "main", "app.wasm"))).resolves.toBeUndefined();
+    await expect(access(path.join(extractedDirectory, "main", "node_modules"))).rejects.toThrow();
+    await expect(access(path.join(extractedDirectory, "main", "package-lock.json"))).rejects.toThrow();
+    await expect(access(path.join(extractedDirectory, "main", "src", "component.ts"))).rejects.toThrow();
   });
 });

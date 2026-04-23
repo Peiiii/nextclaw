@@ -15,7 +15,7 @@ export class AppBundleService {
     outputPath?: string;
   }): Promise<AppBundlePackResult> => {
     const bundle = await this.manifestService.load(params.appDirectory);
-    const appFiles = await this.collectAppFiles(bundle.appDirectory);
+    const { appFiles, filePaths } = await this.collectAppFiles(bundle);
     const metadata = this.buildMetadata(bundle.manifest.id, bundle.manifest.name, bundle.manifest.version);
     const bundleJsonPath = ".napp/bundle.json";
     const checksumsJsonPath = ".napp/checksums.json";
@@ -46,6 +46,8 @@ export class AppBundleService {
     return {
       bundlePath: outputPath,
       metadata,
+      sizeBytes: archiveBytes.byteLength,
+      filePaths,
     };
   };
 
@@ -83,18 +85,30 @@ export class AppBundleService {
   };
 
   private collectAppFiles = async (
-    appDirectory: string,
-  ): Promise<Record<string, Uint8Array>> => {
-    const filePaths = new Set<string>(["manifest.json"]);
-    await this.collectDirectoryPaths(path.join(appDirectory, "main"), appDirectory, filePaths);
-    await this.collectDirectoryPaths(path.join(appDirectory, "ui"), appDirectory, filePaths);
-    await this.collectDirectoryPaths(path.join(appDirectory, "assets"), appDirectory, filePaths);
+    bundle: AppBundleMetadataBundleSource,
+  ): Promise<{
+    appFiles: Record<string, Uint8Array>;
+    filePaths: string[];
+  }> => {
+    const appDirectory = bundle.appDirectory;
+    const filePaths = new Set<string>([
+      path.relative(appDirectory, bundle.manifestPath),
+      path.relative(appDirectory, bundle.mainEntryPath),
+    ]);
+    await this.collectDirectoryPaths(bundle.uiDirectoryPath, appDirectory, filePaths);
+    await this.collectDirectoryPaths(bundle.assetsDirectoryPath, appDirectory, filePaths);
+    if (bundle.iconPath) {
+      filePaths.add(path.relative(appDirectory, bundle.iconPath));
+    }
     const sortedPaths = Array.from(filePaths).sort((left, right) => left.localeCompare(right));
     const appFiles: Record<string, Uint8Array> = {};
     for (const relativePath of sortedPaths) {
       appFiles[relativePath] = new Uint8Array(await readFile(path.join(appDirectory, relativePath)));
     }
-    return appFiles;
+    return {
+      appFiles,
+      filePaths: sortedPaths,
+    };
   };
 
   private collectDirectoryPaths = async (
@@ -190,3 +204,5 @@ export class AppBundleService {
     }
   };
 }
+
+type AppBundleMetadataBundleSource = Awaited<ReturnType<AppManifestService["load"]>>;
