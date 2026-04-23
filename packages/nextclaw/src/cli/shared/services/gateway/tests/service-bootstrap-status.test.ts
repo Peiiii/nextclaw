@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.service.js";
+import { ServiceBootstrapStatusStore } from "../service-bootstrap-status.js";
 
 describe("ServiceBootstrapStatusStore", () => {
   it("tracks shell readiness and capability hydration progress", () => {
@@ -53,44 +53,6 @@ describe("ServiceBootstrapStatusStore", () => {
       },
       channels: {
         enabled: []
-      }
-    });
-  });
-
-  it("keeps core readiness while plugin hydration continues in the background", () => {
-    const store = new ServiceBootstrapStatusStore();
-
-    store.markShellReady();
-    store.markNcpAgentRunning();
-    store.markNcpAgentReady();
-    store.markReady();
-    store.markPluginHydrationRunning({ totalPluginCount: 11 });
-    store.markPluginHydrationProgress({ loadedPluginCount: 2 });
-
-    expect(store.getStatus()).toMatchObject({
-      phase: "ready",
-      pluginHydration: {
-        state: "running",
-        loadedPluginCount: 2,
-        totalPluginCount: 11
-      }
-    });
-  });
-
-  it("does not turn a core-ready app into a startup failure when background plugins fail", () => {
-    const store = new ServiceBootstrapStatusStore();
-
-    store.markNcpAgentRunning();
-    store.markNcpAgentReady();
-    store.markReady();
-    store.markPluginHydrationRunning({ totalPluginCount: 1 });
-    store.markPluginHydrationError("plugin failed");
-
-    expect(store.getStatus()).toMatchObject({
-      phase: "ready",
-      pluginHydration: {
-        state: "error",
-        error: "plugin failed"
       }
     });
   });

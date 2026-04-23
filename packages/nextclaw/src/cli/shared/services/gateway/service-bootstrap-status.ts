@@ -87,9 +87,7 @@ export class ServiceBootstrapStatusStore {
   markPluginHydrationRunning(params: {
     totalPluginCount: number;
   }): void {
-    if (this.state.phase !== "ready") {
-      this.state.phase = "hydrating-capabilities";
-    }
+    this.state.phase = "hydrating-capabilities";
     this.state.pluginHydration = {
       ...this.state.pluginHydration,
       state: "running",
@@ -128,10 +126,8 @@ export class ServiceBootstrapStatusStore {
   }
 
   markPluginHydrationError(error: string): void {
-    if (this.state.phase !== "ready") {
-      this.state.phase = "error";
-      this.state.lastError = error;
-    }
+    this.state.phase = "error";
+    this.state.lastError = error;
     this.state.pluginHydration = {
       ...this.state.pluginHydration,
       state: "error",
@@ -152,17 +148,15 @@ export class ServiceBootstrapStatusStore {
       state: "ready",
       enabled: [...enabled]
     };
-    if (this.state.phase !== "ready" && this.state.pluginHydration.state === "ready") {
+    if (this.state.pluginHydration.state === "ready") {
       this.state.phase = "ready";
       this.state.lastError = undefined;
     }
   }
 
   markChannelsError(error: string): void {
-    if (this.state.phase !== "ready") {
-      this.state.phase = "error";
-      this.state.lastError = error;
-    }
+    this.state.phase = "error";
+    this.state.lastError = error;
     this.state.channels = {
       state: "error",
       enabled: [...this.state.channels.enabled],

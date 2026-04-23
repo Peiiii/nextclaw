@@ -8,7 +8,7 @@ import {
 } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
 import type { DeferredUiNcpSessionServiceController } from "@/cli/shared/services/session/service-deferred-ncp-session-service.js";
 import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
-import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.service.js";
+import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
 
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
@@ -20,29 +20,6 @@ type NextclawAppAgentRuntime = Pick<
   UiNcpAgentRuntimeService,
   "bootstrapKernel" | "recoverDurableState" | "warmDerivedCapabilities"
 >;
-
-const DEFAULT_UI_POST_READY_CAPABILITY_DELAY_MS = 10_000;
-
-function waitForPostReadyDelay(delayMs: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, delayMs);
-  });
-}
-
-function resolvePostReadyCapabilityDelayMs(uiStartup: UiStartupHandle | null): number {
-  if (!uiStartup) {
-    return 0;
-  }
-  const rawValue = process.env.NEXTCLAW_POST_READY_CAPABILITY_DELAY_MS?.trim();
-  if (!rawValue) {
-    return DEFAULT_UI_POST_READY_CAPABILITY_DELAY_MS;
-  }
-  const parsed = Number(rawValue);
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return DEFAULT_UI_POST_READY_CAPABILITY_DELAY_MS;
-  }
-  return Math.trunc(parsed);
-}
 
 export class NextclawApp {
   private readonly ncpAgentRuntime: NextclawAppAgentRuntime;
@@ -104,12 +81,9 @@ export class NextclawApp {
       this.handleKernelStartupError(error);
     }
 
-    if (this.kernelReady) {
-      this.params.bootstrapStatus.markReady();
-      logStartupTrace("service.deferred_startup.core_ready");
-    }
-
-    this.schedulePostReadyCapabilities();
+    await this.warmDerivedCapabilities();
+    console.log("✓ Deferred startup: plugin gateways and channels settled");
+    logStartupTrace("service.deferred_startup.end");
   };
 
   bootstrapKernel = async (): Promise<void> => {
@@ -168,32 +142,6 @@ export class NextclawApp {
       this.params.wakeFromRestartSentinel,
     );
     await runtimeWarmupTask;
-  };
-
-  private schedulePostReadyCapabilities = (): void => {
-    const delayMs = resolvePostReadyCapabilityDelayMs(this.params.uiStartup);
-    void this.runPostReadyCapabilitiesAfterDelay(delayMs);
-  };
-
-  private runPostReadyCapabilitiesAfterDelay = async (delayMs: number): Promise<void> => {
-    try {
-      if (delayMs > 0) {
-        logStartupTrace("service.deferred_startup.post_ready_delay", {
-          duration_ms: delayMs,
-        });
-        await waitForPostReadyDelay(delayMs);
-      }
-      await this.warmDerivedCapabilities();
-      console.log("✓ Deferred startup: plugin gateways and channels settled");
-      logStartupTrace("service.deferred_startup.end");
-    } catch (error) {
-      this.params.bootstrapStatus.markPluginHydrationError(
-        error instanceof Error ? error.message : String(error),
-      );
-      console.error(
-        `Deferred capability startup failed: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
   };
 
   private handleKernelStartupError(error: unknown): void {

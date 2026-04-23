@@ -18,7 +18,7 @@ import { createDeferredUiNcpAgent, type DeferredUiNcpAgentController } from "@/c
 import type { DeferredUiNcpSessionServiceController } from "@/cli/shared/services/session/service-deferred-ncp-session-service.js";
 import { logStartupTrace } from "@/cli/shared/utils/startup-trace.js";
 import type { ConfigReloader } from "@/cli/shared/services/config/config-reloader.service.js";
-import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.service.js";
+import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
 import { NextclawApp } from "@/cli/shared/services/gateway/nextclaw-app.service.js";
 
 type Config = NextclawCore.Config;

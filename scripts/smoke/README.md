@@ -8,9 +8,7 @@
   - 用于验证运行中的 NextClaw 服务是否能通过指定 `session-type + model` 返回真实回复。
 - `pnpm smoke:startup-readiness`
   - 用于冷启动测量“从启动开始到可用”的基线时间。
-  - 默认隔离 `NEXTCLAW_HOME`，并同时输出 `UI API 可达 / auth status ok / health ok / ncpAgent.ready / bootstrap ready / plugin hydration ready / channels ready` 时间点。
-  - 默认输出瀑布流，包括外部可观察 milestone 与后端 `startup-trace` 持续时间段，用于排序当前最大启动耗时 owner。
-  - 若要测真实 `pnpm dev start` 入口下“前端 server ready 后 status 仍飘红多久”，使用 `pnpm smoke:startup-readiness -- --dev-runner --home /Users/peiwang/.nextclaw --criterion frontend-auth-status`。
+  - 默认隔离 `NEXTCLAW_HOME`，并同时输出 `UI API 可达 / auth status ok / health ok / ncpAgent.ready / bootstrap ready` 五个时间点。
 - `pnpm smoke:prompt-cache`
   - 用于验证真实模型的 prompt cache telemetry。
   - `provider-direct` 模式：直连 provider，适合隔离 provider 本身是否吐出 `*_cached_tokens`。
