@@ -91,7 +91,6 @@ describe("NextclawApp", () => {
       expect.arrayContaining([
         "bootstrap-kernel",
         "recover-durable-state",
-        "warm-derived-capabilities",
         "start-plugin-gateways",
         "start-channels",
         "wake-restart-sentinel",

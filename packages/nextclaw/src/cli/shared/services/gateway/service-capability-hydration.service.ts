@@ -15,6 +15,7 @@ import {
   type NextclawExtensionRegistry,
 } from "@/cli/commands/plugin/index.js";
 import { discoverPluginRegistryStatus, loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
+import type { ExtensionHostClient } from "@/cli/shared/services/extension-host-client.service.js";
 import type { ServiceBootstrapStatusStore } from "@/cli/shared/services/gateway/service-bootstrap-status.js";
 import { waitForUiShellGraceWindow } from "@/cli/shared/services/gateway/service-ui-shell-grace.js";
 import type { UiStartupHandle } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
@@ -36,28 +37,45 @@ export async function hydrateServiceCapabilities(params: {
   state: ServiceCapabilityHydrationState;
   bootstrapStatus: ServiceBootstrapStatusStore;
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
+  extensionHost?: ExtensionHostClient;
 }): Promise<void> {
-  await waitForUiShellGraceWindow(params.uiStartup);
-  const nextConfig = resolveConfigSecrets(loadConfig(), { configPath: params.gateway.runtimeConfigPath });
+  const {
+    bootstrapStatus,
+    extensionHost,
+    gateway,
+    getLiveUiNcpAgent,
+    state,
+    uiStartup,
+  } = params;
+  await waitForUiShellGraceWindow(uiStartup);
+  const nextConfig = resolveConfigSecrets(loadConfig(), { configPath: gateway.runtimeConfigPath });
   const nextWorkspace = getWorkspacePath(nextConfig.agents.defaults.workspace);
   const totalPluginCount = countEnabledPlugins(nextConfig, nextWorkspace);
   let loadedPluginCount = 0;
 
-  params.bootstrapStatus.markPluginHydrationRunning({
+  bootstrapStatus.markPluginHydrationRunning({
     totalPluginCount
   });
-  params.bootstrapStatus.markChannelsPending();
+  bootstrapStatus.markChannelsPending();
 
   try {
-    const nextPluginRegistry = await loadPluginRegistryProgressively(nextConfig, nextWorkspace, {
-      onPluginProcessed: ({ loadedPluginCount: nextCount }) => {
-        loadedPluginCount = nextCount;
-        params.bootstrapStatus.markPluginHydrationProgress({
-          loadedPluginCount: nextCount,
-          totalPluginCount
+    const nextPluginRegistry = extensionHost
+      ? extensionHost.createProxyPluginRegistry(
+          await extensionHost.load({
+            config: nextConfig,
+            workspaceDir: nextWorkspace,
+          }),
+        )
+      : await loadPluginRegistryProgressively(nextConfig, nextWorkspace, {
+          onPluginProcessed: ({ loadedPluginCount: nextCount }) => {
+            loadedPluginCount = nextCount;
+            bootstrapStatus.markPluginHydrationProgress({
+              loadedPluginCount: nextCount,
+              totalPluginCount
+            });
+          }
         });
-      }
-    });
+    loadedPluginCount = loadedPluginCount || nextPluginRegistry.plugins.filter((plugin) => plugin.status === "loaded").length;
     logPluginDiagnostics(nextPluginRegistry);
 
     const nextExtensionRegistry = toExtensionRegistry(nextPluginRegistry);
@@ -65,37 +83,37 @@ export async function hydrateServiceCapabilities(params: {
     const nextPluginUiMetadata = getPluginUiMetadataFromRegistry(nextPluginRegistry);
     const shouldRebuildChannels = shouldRestartChannelsForPluginReload({
       changedPaths: [],
-      currentPluginChannelBindings: params.state.pluginChannelBindings,
+      currentPluginChannelBindings: state.pluginChannelBindings,
       nextPluginChannelBindings,
-      currentExtensionChannels: params.state.extensionRegistry.channels,
+      currentExtensionChannels: state.extensionRegistry.channels,
       nextExtensionChannels: nextExtensionRegistry.channels,
     });
 
-    applyGatewayCapabilityState(params.gateway, {
+    applyGatewayCapabilityState(gateway, {
       pluginRegistry: nextPluginRegistry,
       extensionRegistry: nextExtensionRegistry,
       pluginChannelBindings: nextPluginChannelBindings,
     });
-    params.state.pluginRegistry = nextPluginRegistry;
-    params.state.extensionRegistry = nextExtensionRegistry;
-    params.state.pluginChannelBindings = nextPluginChannelBindings;
-    params.state.pluginUiMetadata = nextPluginUiMetadata;
+    state.pluginRegistry = nextPluginRegistry;
+    state.extensionRegistry = nextExtensionRegistry;
+    state.pluginChannelBindings = nextPluginChannelBindings;
+    state.pluginUiMetadata = nextPluginUiMetadata;
 
-    params.getLiveUiNcpAgent()?.applyExtensionRegistry?.(nextExtensionRegistry);
+    getLiveUiNcpAgent()?.applyExtensionRegistry?.(nextExtensionRegistry);
 
     if (shouldRebuildChannels) {
-      await params.gateway.reloader.rebuildChannels(nextConfig, { start: false });
+      await gateway.reloader.rebuildChannels(nextConfig, { start: false });
     }
 
-    params.uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
-    params.uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    params.bootstrapStatus.markPluginHydrationReady({
+    uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
+    uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
+    bootstrapStatus.markPluginHydrationReady({
       loadedPluginCount: loadedPluginCount || totalPluginCount,
       totalPluginCount
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    params.bootstrapStatus.markPluginHydrationError(message);
+    bootstrapStatus.markPluginHydrationError(message);
     throw error;
   }
 }

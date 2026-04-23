@@ -115,17 +115,6 @@ export class NextclawApp {
   };
 
   warmDerivedCapabilities = async (): Promise<void> => {
-    const runtimeWarmupTask = this.kernelReady
-      ? measureStartupAsync(
-          "service.deferred_startup.warm_ncp_capabilities",
-          async () => await this.ncpAgentRuntime.warmDerivedCapabilities(),
-        ).catch((error) => {
-          console.warn(
-            `UI NCP derived capability warmup failed: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        })
-      : Promise.resolve();
-
     if (this.params.hydrateCapabilities) {
       await measureStartupAsync(
         "service.deferred_startup.hydrate_capabilities",
@@ -141,7 +130,6 @@ export class NextclawApp {
       "service.deferred_startup.wake_restart_sentinel",
       this.params.wakeFromRestartSentinel,
     );
-    await runtimeWarmupTask;
   };
 
   private handleKernelStartupError(error: unknown): void {

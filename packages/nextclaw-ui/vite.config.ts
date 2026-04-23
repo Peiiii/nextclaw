@@ -1,9 +1,43 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Socket } from 'node:net';
 
 const devProxyApiBase = process.env.VITE_DEV_PROXY_API_BASE ?? 'http://127.0.0.1:18792';
 const devProxyWsBase = devProxyApiBase.replace(/^http/i, 'ws');
+
+function isBackendNotReadyError(error: Error & { code?: string }): boolean {
+  return error.code === 'ECONNREFUSED';
+}
+
+function writeBackendStartingResponse(res: ServerResponse): void {
+  if (res.headersSent) {
+    res.end();
+    return;
+  }
+  res.writeHead(503, {
+    'content-type': 'application/json',
+  });
+  res.end(JSON.stringify({
+    error: 'backend_starting',
+    message: 'NextClaw backend is still starting. Please retry shortly.',
+  }));
+}
+
+function handleDevProxyError(error: Error & { code?: string }, _req: IncomingMessage, res?: ServerResponse | Socket): void {
+  if (!isBackendNotReadyError(error)) {
+    console.warn(`[vite] proxy error: ${error.message}`);
+  }
+  if (!res) {
+    return;
+  }
+  if ('writeHead' in res) {
+    writeBackendStartingResponse(res);
+    return;
+  }
+  res.destroy();
+}
 
 export default defineConfig({
   plugins: [react()],
@@ -41,11 +75,17 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: devProxyApiBase,
-        changeOrigin: true
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', handleDevProxyError);
+        }
       },
       '/ws': {
         target: devProxyWsBase,
-        ws: true
+        ws: true,
+        configure: (proxy) => {
+          proxy.on('error', handleDevProxyError);
+        }
       }
     }
   }
