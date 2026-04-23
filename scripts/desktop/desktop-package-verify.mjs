@@ -138,7 +138,7 @@ function verifySeedBundleRuntimeInit(seedBundlePath) {
   const runtimeHome = resolve(tempRoot, "home");
   try {
     run("ditto", ["-x", "-k", seedBundlePath, extractRoot]);
-    const runtimeScriptPath = resolve(extractRoot, "bundle", "runtime", "dist", "cli", "index.js");
+    const runtimeScriptPath = resolve(extractRoot, "bundle", "runtime", "dist", "cli", "app", "index.js");
     if (!existsSync(runtimeScriptPath)) {
       throw new Error(`Packaged seed runtime script missing: ${runtimeScriptPath}`);
     }

@@ -196,8 +196,17 @@ function buildGenericMessage(
   };
 }
 
-function attachToolResult(target: NcpMessage, toolCallId: string, result: unknown, toolName?: string): void {
+function attachToolResult(
+  target: NcpMessage,
+  toolCallId: string,
+  result: unknown,
+  toolName?: string,
+  resultContentItems?: unknown,
+): void {
   const normalizedResult = normalizeToolResultPayload(result);
+  const normalizedContentItems = Array.isArray(resultContentItems)
+    ? structuredClone(resultContentItems)
+    : undefined;
   target.parts = target.parts.map((part) => {
     if (part.type !== "tool-invocation" || part.toolCallId !== toolCallId) {
       return part;
@@ -214,7 +223,8 @@ function attachToolResult(target: NcpMessage, toolCallId: string, result: unknow
       ...part,
       toolName: toolName ?? part.toolName,
       state: "result",
-      result: normalizedResult
+      result: normalizedResult,
+      ...(normalizedContentItems ? { resultContentItems: normalizedContentItems } : {})
     };
   });
 }
@@ -234,7 +244,8 @@ export function toNcpMessages(sessionId: string, messages: SessionMessage[]): Nc
             ncpMessages[assistantIndex] as NcpMessage,
             toolCallId,
             structuredClone(message.content),
-            normalizeString(message.name) ?? undefined
+            normalizeString(message.name) ?? undefined,
+            message.ncp_tool_result_content_items
           );
           return;
         }

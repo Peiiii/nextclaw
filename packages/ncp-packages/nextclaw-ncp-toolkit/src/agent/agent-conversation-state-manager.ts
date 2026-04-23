@@ -374,11 +374,11 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
           state: "result" as const,
           args: existingPart.args,
           result: payload.content,
+          resultContentItems: payload.contentItems,
         };
         return upsertToolInvocationPart(targetMessage.parts, mergedPart);
       },
     );
-
     if (!updated) {
       const fallbackMessage = this.resolveToolCallTargetMessage(
         payload.sessionId,
@@ -390,6 +390,7 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
         toolName: "unknown",
         state: "result",
         result: payload.content,
+        resultContentItems: payload.contentItems,
       });
       this.replaceStreamingMessage({
         ...fallbackMessage,
@@ -398,7 +399,6 @@ export class DefaultNcpAgentConversationStateManager implements NcpAgentConversa
       });
     }
   };
-
   handleRunStarted = (payload: NcpRunStartedPayload): void => {
     if (this.isSettledRunId(payload.runId)) return;
     this.setError(null);

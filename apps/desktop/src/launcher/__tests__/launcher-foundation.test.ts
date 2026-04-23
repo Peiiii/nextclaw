@@ -75,7 +75,7 @@ test("parses a valid desktop bundle manifest", () => {
         minVersion: "0.1.0"
       },
       entrypoints: {
-        runtimeScript: "runtime/dist/cli/index.js"
+        runtimeScript: "runtime/dist/cli/app/index.js"
       },
       migrationVersion: 1
     }),
@@ -90,7 +90,7 @@ test("parses a valid desktop bundle manifest", () => {
         minVersion: "0.1.0"
       },
       entrypoints: {
-        runtimeScript: "runtime/dist/cli/index.js"
+        runtimeScript: "runtime/dist/cli/app/index.js"
       },
       migrationVersion: 1
     }

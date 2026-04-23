@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/desktop",
-  "version": "0.0.146",
+  "version": "0.0.147",
   "private": true,
   "description": "NextClaw desktop shell powered by Electron.",
   "author": "NextClaw Team",
@@ -16,7 +16,7 @@
     "bundle:seed": "node scripts/update/services/prepare-seed-bundle.service.mjs",
     "icons:generate": "node scripts/generate-icons.mjs",
     "bundle:manifest": "node scripts/update/services/build-update-manifest.service.mjs",
-    "dev": "node scripts/ensure-runtime.mjs && pnpm build:main && NEXTCLAW_DESKTOP_RUNTIME_SCRIPT=../../packages/nextclaw/dist/cli/index.js env -u ELECTRON_RUN_AS_NODE electron .",
+    "dev": "node scripts/ensure-runtime.mjs && pnpm build:main && NEXTCLAW_DESKTOP_RUNTIME_SCRIPT=../../packages/nextclaw/dist/cli/app/index.js env -u ELECTRON_RUN_AS_NODE electron .",
     "build": "pnpm build:main",
     "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
     "lint": "eslint \"src/**/*.ts\"",

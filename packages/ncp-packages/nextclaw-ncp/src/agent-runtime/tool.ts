@@ -1,3 +1,5 @@
+import type { NcpToolOutputContentItem } from "../types/message.js";
+
 export type NcpToolDefinition = {
   name: string;
   description?: string;
@@ -18,6 +20,7 @@ export type NcpToolCallResult = {
   args: Record<string, unknown> | null;
   rawArgsText: string;
   result: unknown;
+  contentItems?: NcpToolOutputContentItem[];
 };
 
 export type NcpInvalidToolArgumentsResult = {

@@ -279,6 +279,9 @@ function buildLegacyAssistantMessages(message: NcpMessage, timestamp: string): S
         typeof toolInvocation.result === "string"
           ? toolInvocation.result
           : JSON.stringify(toolInvocation.result ?? null),
+      ...(toolInvocation.resultContentItems
+        ? { ncp_tool_result_content_items: structuredClone(toolInvocation.resultContentItems) }
+        : {}),
       timestamp,
       ncp_message_id: message.id,
     });

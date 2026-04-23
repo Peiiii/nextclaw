@@ -4,6 +4,7 @@ import type {
   NcpContextPrepareOptions,
   NcpLLMApiInput,
   NcpMessagePart,
+  NcpToolOutputContentItem,
   OpenAIChatMessage,
   OpenAITool,
 } from "@nextclaw/ncp";
@@ -11,6 +12,7 @@ import type { NcpAgentRunInput } from "@nextclaw/ncp";
 import type { NcpToolRegistry } from "@nextclaw/ncp";
 import type { LocalAssetStore } from "./asset-store.js";
 import { buildNcpUserContent } from "./user-content.js";
+import { defaultToolResultContentManager } from "./tool-result-content.manager.js";
 import { buildOpenAiFunctionTool } from "./utils.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -102,6 +104,7 @@ function messageToOpenAI(
       toolName: string;
       args: unknown;
       result: unknown;
+      resultContentItems?: NcpToolOutputContentItem[];
     }> = [];
 
     for (const p of parts) {
@@ -117,6 +120,7 @@ function messageToOpenAI(
           toolName: p.toolName,
           args: p.args ?? {},
           result: p.result,
+          resultContentItems: p.resultContentItems,
         });
       }
     }
@@ -147,6 +151,23 @@ function messageToOpenAI(
           tool_call_id: t.toolCallId,
         });
       }
+      out.push(
+        ...defaultToolResultContentManager.toVisualObservationMessages(
+          toolInvocations.map((toolInvocation) => ({
+            toolCallId: toolInvocation.toolCallId,
+            toolName: toolInvocation.toolName,
+            args: isRecord(toolInvocation.args)
+              ? (toolInvocation.args as Record<string, unknown>)
+              : null,
+            rawArgsText:
+              typeof toolInvocation.args === "string"
+                ? toolInvocation.args
+                : JSON.stringify(toolInvocation.args ?? {}),
+            result: toolInvocation.result,
+            contentItems: toolInvocation.resultContentItems,
+          })),
+        ),
+      );
     } else {
       out.push({
         role: "assistant",

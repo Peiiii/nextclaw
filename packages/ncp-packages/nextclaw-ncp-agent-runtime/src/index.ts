@@ -9,8 +9,13 @@ export { DefaultNcpRoundBuffer } from "./round-buffer.js";
 export { DefaultNcpStreamEncoder } from "./stream-encoder.js";
 export { DefaultNcpToolRegistry } from "./tool-registry.js";
 export { EchoNcpLLMApi } from "./llm-api-echo.js";
-export { DefaultNcpAgentRuntime } from "./runtime.js";
-export type { DefaultNcpAgentRuntimeConfig } from "./runtime.js";
+export { DefaultNcpAgentRuntime } from "./agent-runtime.service.js";
+export type { DefaultNcpAgentRuntimeConfig } from "./agent-runtime.service.js";
+export {
+  defaultToolResultContentManager,
+  ToolResultContentManager,
+} from "./tool-result-content.manager.js";
+export type { ToolResultContentManagerOptions } from "./tool-result-content.manager.js";
 export type {
   AssetMeta,
   AssetPutInput,

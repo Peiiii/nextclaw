@@ -85,6 +85,24 @@ export type NcpReasoningPart = {
   text: string;
 };
 
+export type NcpToolOutputTextItem = {
+  type: "input_text";
+  text: string;
+};
+
+export type NcpToolOutputImageItem = {
+  type: "input_image";
+  imageUrl: string;
+  mimeType?: string;
+  detail?: "low" | "high" | "auto" | "original";
+  originalDataChars?: number;
+  dataOmitted?: boolean;
+};
+
+export type NcpToolOutputContentItem =
+  | NcpToolOutputTextItem
+  | NcpToolOutputImageItem;
+
 /**
  * Represents a tool call and its lifecycle.
  *
@@ -103,6 +121,8 @@ export type NcpToolInvocationPart = {
   args?: unknown;
   /** Tool output. Populated when `state === "result"`. */
   result?: unknown;
+  /** Model-visible structured output items. Text is bounded; images remain image items. */
+  resultContentItems?: NcpToolOutputContentItem[];
 };
 
 // ---------------------------------------------------------------------------

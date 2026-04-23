@@ -9,21 +9,21 @@ export type DesktopReleaseInfo = {
 };
 
 export const DESKTOP_RELEASE_FALLBACK: DesktopReleaseInfo = {
-  tag: 'v0.18.0-desktop.1',
-  version: '0.0.143',
-  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.18.0-desktop.1',
+  tag: 'v0.18.4-desktop.1',
+  version: '0.0.147',
+  url: 'https://github.com/Peiiii/nextclaw/releases/tag/v0.18.4-desktop.1',
   assets: {
     macArm64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.0-desktop.1/NextClaw.Desktop-0.0.143-arm64.dmg',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.4-desktop.1/NextClaw.Desktop-0.0.147-arm64.dmg',
     macX64Dmg:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.0-desktop.1/NextClaw.Desktop-0.0.143-x64.dmg',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.4-desktop.1/NextClaw.Desktop-0.0.147-x64.dmg',
     windowsX64Installer:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.0-desktop.1/NextClaw.Desktop-Setup-0.0.143-x64.exe',
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.4-desktop.1/NextClaw.Desktop-Setup-0.0.147-x64.exe',
     linuxX64AppImage:
-      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.0-desktop.1/NextClaw.Desktop-0.0.143-linux-x64.AppImage'
+      'https://github.com/Peiiii/nextclaw/releases/download/v0.18.4-desktop.1/NextClaw.Desktop-0.0.147-linux-x64.AppImage'
   },
   windowsPortableZipUrl:
-    'https://github.com/Peiiii/nextclaw/releases/download/v0.18.0-desktop.1/NextClaw.Desktop-0.0.143-win32-x64-unpacked.zip'
+    'https://github.com/Peiiii/nextclaw/releases/download/v0.18.4-desktop.1/NextClaw.Desktop-0.0.147-win32-x64-unpacked.zip'
 };
 
 const GITHUB_RELEASES_API = 'https://api.github.com/repos/Peiiii/nextclaw/releases?per_page=20';

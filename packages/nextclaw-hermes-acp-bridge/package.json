@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-hermes-acp-bridge",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": false,
   "description": "Hermes-specific ACP bridge helpers used by NextClaw runtime integrations.",
   "type": "module",

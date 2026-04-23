@@ -54,6 +54,7 @@
     "dev:kill": "node scripts/dev/dev-process-status.mjs --kill",
     "dev:plugin:local": "node scripts/local/local-plugin-dev-server.mjs",
     "dev:ncp-demo": "pnpm -C apps/ncp-demo dev",
+    "dev:apps-web": "pnpm -C apps/nextclaw-apps-web dev",
     "dev:backend": "pnpm -C packages/nextclaw dev serve --ui-port 18792",
     "dev:frontend": "pnpm -C packages/nextclaw-ui dev --host 127.0.0.1 --port 5174 --strictPort",
     "dev:platform": "pnpm -C apps/platform-console dev --host 127.0.0.1 --port 5176 --strictPort",

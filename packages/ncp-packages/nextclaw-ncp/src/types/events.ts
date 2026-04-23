@@ -1,6 +1,6 @@
 import type { OpenAITool } from "../agent-runtime/llm-api.js";
 import type { NcpError } from "./errors.js";
-import type { NcpMessage } from "./message.js";
+import type { NcpMessage, NcpToolOutputContentItem } from "./message.js";
 
 /**
  * NCP event and payload definitions.
@@ -250,6 +250,7 @@ export type NcpToolCallResultPayload = {
   sessionId: string;
   toolCallId: string;
   content: unknown;
+  contentItems?: NcpToolOutputContentItem[];
 };
 
 // ---------------------------------------------------------------------------

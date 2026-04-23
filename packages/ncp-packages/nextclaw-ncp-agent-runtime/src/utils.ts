@@ -7,6 +7,10 @@ import type {
   OpenAIChatMessage,
   OpenAITool,
 } from "@nextclaw/ncp";
+import {
+  defaultToolResultContentManager,
+  type ToolResultContentManager,
+} from "./tool-result-content.manager.js";
 
 export type ParsedToolArgs =
   | {
@@ -273,6 +277,7 @@ export function appendToolRoundToInput(
   reasoning: string,
   text: string,
   toolResults: ReadonlyArray<NcpToolCallResult>,
+  toolResultContentManager: ToolResultContentManager = defaultToolResultContentManager,
 ): NcpLLMApiInput {
   const assistantMsg: OpenAIChatMessage = {
     role: "assistant",
@@ -289,12 +294,15 @@ export function appendToolRoundToInput(
   };
   const toolMsgs: OpenAIChatMessage[] = toolResults.map((tr) => ({
     role: "tool" as const,
-    content:
-      typeof tr.result === "string" ? tr.result : JSON.stringify(tr.result ?? {}),
+    content: toolResultContentManager.toModelContent(tr.result, {
+      toolCallId: tr.toolCallId,
+      toolName: tr.toolName,
+    }),
     tool_call_id: tr.toolCallId,
   }));
-  return {
+  const visualMessages = toolResultContentManager.toVisualObservationMessages(toolResults);
+  return toolResultContentManager.compactInput({
     ...input,
-    messages: [...input.messages, assistantMsg, ...toolMsgs],
-  };
+    messages: [...input.messages, assistantMsg, ...toolMsgs, ...visualMessages],
+  });
 }

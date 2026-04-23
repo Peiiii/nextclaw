@@ -7,7 +7,15 @@ import { fileURLToPath } from "node:url";
 const desktopDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const workspaceRoot = resolve(desktopDir, "..", "..");
 const runtimePackageRoot = resolve(desktopDir, "node_modules", "nextclaw");
-const runtimeEntrypoint = resolve(desktopDir, "node_modules", "nextclaw", "dist", "cli", "index.js");
+const runtimeEntrypoint = resolve(
+  desktopDir,
+  "node_modules",
+  "nextclaw",
+  "dist",
+  "cli",
+  "app",
+  "index.js"
+);
 const runtimeUiEntrypoint = resolve(desktopDir, "node_modules", "nextclaw", "ui-dist", "index.html");
 const runtimeBinShim = resolve(desktopDir, "node_modules", "nextclaw", "bin", "nextclaw");
 
@@ -19,7 +27,7 @@ function ensureRuntimeBinShim() {
   mkdirSync(resolve(runtimeBinShim, ".."), { recursive: true });
   writeFileSync(
     runtimeBinShim,
-    ['#!/usr/bin/env node', 'import "../dist/cli/index.js";', ""].join("\n"),
+    ['#!/usr/bin/env node', 'import "../dist/cli/app/index.js";', ""].join("\n"),
     "utf8"
   );
 

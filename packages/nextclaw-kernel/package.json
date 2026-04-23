@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/kernel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "description": "NextClaw product kernel skeleton for agents, tasks, sessions, context, tools, skills, providers, automation, and channels.",
   "type": "module",
