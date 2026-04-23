@@ -54,10 +54,25 @@ If `doctor` reports missing tools, explain the exact missing tool and the instal
 
 ## Create A New App
 
-When the user wants to create their own small app, prefer the TypeScript full-stack template:
+When the user wants to create their own small app, choose the template explicitly:
+
+- Prefer `ts-http` for the normal path when the user wants an ordinary full-stack app and did not ask about size.
+- Prefer `ts-http-lite` when the user explicitly cares about package size, a thinner backend, or asks for the lightest official path.
+- If the user does not care, default to `ts-http`.
+
+Normal full-stack path:
 
 ```bash
 napp create <app-dir> --template ts-http
+napp build <app-dir> --install
+napp inspect <app-dir> --json
+napp run <app-dir> --data <app-dir>/.napp/data --port 0 --json
+```
+
+Size-first path:
+
+```bash
+napp create <app-dir> --template ts-http-lite
 napp build <app-dir> --install
 napp inspect <app-dir> --json
 napp run <app-dir> --data <app-dir>/.napp/data --port 0 --json
@@ -68,7 +83,8 @@ Then return:
 - the local URL,
 - the app directory,
 - the data directory,
-- and one sentence explaining that the backend is running as WASM and data is stored in the chosen data directory.
+- the chosen template,
+- and one short sentence explaining that the backend is sandboxed and data is stored in the chosen data directory.
 
 If the user asks for a custom app idea, edit the generated `ui/` and `main/src/component.ts`, then run `napp build <app-dir> --install` again before previewing.
 
@@ -79,12 +95,14 @@ When the user wants to distribute their app:
 ```bash
 napp build <app-dir> --install
 napp inspect <app-dir> --json
+napp validate-publish <app-dir> --json
 napp publish <app-dir>
 ```
 
 Rules:
 
-- Do not publish before build and inspect both pass.
+- Do not publish before build, inspect, and validate-publish all pass.
+- If `validate-publish` returns warnings, surface them in plain language before continuing. Do not silently ignore size warnings.
 - If publishing fails because login is missing, tell the user to run `nextclaw login`; do not ask them to manage raw tokens unless they explicitly want that.
 - Personal publish requires a platform username and a non-official app id scope.
 - Official `nextclaw.*` publish requires admin permission.
@@ -113,6 +131,7 @@ When the user wants a file they can send directly:
 
 ```bash
 napp build <app-dir> --install
+napp validate-publish <app-dir> --json
 napp pack <app-dir>
 ```
 
@@ -139,6 +158,13 @@ If something fails:
 3. Run `napp build <app-dir> --install` for `wasi-http-component` apps.
 4. Surface the first concrete error and the next single action.
 
+How to explain failures:
+
+- Use ordinary user language first. Mention WASI/JCO/WIT only if the user asks or the tool output makes it necessary.
+- Say what is blocked now, what single action unblocks it, and whether the app files are still usable.
+- If publishing is blocked by login, say the app itself is fine and only the publish step is blocked.
+- If `validate-publish` warns that the backend is large, explain that the app can still work and publish, but download/install may be heavier.
+
 Common outcomes:
 
 - Missing `wasmtime`: the app cannot run WASI HTTP backends yet.
@@ -150,7 +176,7 @@ Common outcomes:
 
 Do not claim NApp is a full Docker replacement. The current user-ready path supports:
 
-- TypeScript/Hono WASI HTTP apps,
+- TypeScript WASI HTTP apps (`ts-http` and `ts-http-lite`),
 - same-origin frontend `fetch("/api/...")`,
 - app data mounted as guest `/data`,
 - marketplace publish/install,

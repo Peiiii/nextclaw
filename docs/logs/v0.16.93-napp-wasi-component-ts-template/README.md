@@ -31,6 +31,7 @@
 - NApp host 把 `/api/*` 代理给 WASM 后端，其它路径继续服务 UI 和 `__napp/*`
 - 保留默认 `starter` 行为不变，避免影响当前 demo
 - 更新 `skills/nextclaw-app-runtime`，把它从旧的 napp 说明升级为普通用户端到端 workflow：创建、构建预览、发布、安装运行、排障
+- 进一步收口 `skills/nextclaw-app-runtime`：创建时显式推荐 `ts-http` / `ts-http-lite`，发布前强制先走 `napp validate-publish`，并把失败提示改成普通用户语言
 
 ## 测试/验证/验收方式
 
@@ -57,6 +58,8 @@
 - `npm view @nextclaw/app-runtime version`
 - `pnpm publish --access public --no-git-checks`（在 `packages/nextclaw-app-runtime` 下执行）
 - `node packages/nextclaw/dist/cli/app/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`
+- `python3 .agents/skills/marketplace-skill-publisher/scripts/validate_marketplace_skill.py --skill-dir skills/nextclaw-app-runtime`（phase 3 收口后复跑）
+- `node packages/nextclaw/dist/cli/app/index.js skills update skills/nextclaw-app-runtime --meta skills/nextclaw-app-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`（phase 3 收口后复发）
 - `curl -sS https://marketplace-api.nextclaw.io/api/v1/skills/items/nextclaw-app-runtime`
 - `node packages/nextclaw/dist/cli/app/index.js skills install nextclaw-app-runtime --api-base https://marketplace-api.nextclaw.io --workdir "$tmp_dir"`
 - `pnpm -C workers/marketplace-api tsc`
@@ -82,7 +85,9 @@
 - UI 首页可从同一个 NApp host 访问
 - `skills/nextclaw-app-runtime` marketplace 校验通过：0 error、0 warning
 - `@nextclaw/app-runtime@0.5.0` 已发布到 npm latest
+- `@nextclaw/app-runtime@0.6.0` 已发布到 npm latest
 - `skills/nextclaw-app-runtime` 已更新到 NextClaw marketplace，远端 metadata 与安装文件校验通过
+- `skills/nextclaw-app-runtime` 已按 phase 3 新工作流再次更新到 NextClaw marketplace
 - marketplace skill 安装冒烟通过：非仓库临时目录可安装出 `SKILL.md` 与 `marketplace.json`
 - marketplace worker 类型检查通过，`wasi-http-component` app manifest 能通过新的发布协议编译约束
 - 真实 ts-http 打包 smoke 显示：构建后的 `main/app.wasm` 约 13.3 MB，但最终 `.napp` 约 4.2 MB，archive 内只有 7 个运行时文件，不再包含 `main/node_modules`
@@ -98,7 +103,7 @@
 
 已执行发布：
 
-- NPM：`@nextclaw/app-runtime@0.5.0`
+- NPM：`@nextclaw/app-runtime@0.5.0`、`@nextclaw/app-runtime@0.6.0`
 - NextClaw marketplace skill：`nextclaw-app-runtime`
 
 本地体验方式：
@@ -153,6 +158,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 
 - no maintainability findings
 - 当前保留三个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`app-ts-http-scaffold-template.service.ts` 当前 517 行，继续扩展时应优先拆成 main/ui/readme 三个模板 owner；`ts-http-lite` 当前只带来小幅体积下降，后续若继续追求数量级缩减，应优先研究 componentize/JCO 产物而不是继续替换上层路由
+- phase 3 的 skill 收口刻意只改用户路径文案与执行顺序，没有再改 runtime 协议、模板合同或本地运行链路，避免体验层与底层机制继续耦合
 - 本次没有进一步拆模板文件，因为用户明确要求避免非必要结构变更，且当前模板仍是单一职责的 scaffold 内容；后续新增 `--mount` 或更多模板内容时必须先拆分
 
 ## NPM 包发布记录
@@ -160,7 +166,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 本次涉及 NPM 包：`@nextclaw/app-runtime`
 
 - 本次是否需要发包：需要，因为 `napp create`、`napp run/dev` 命令面、manifest 类型和运行链路都发生变化
-- 当前是否已发布：phase 1 已发布 `@nextclaw/app-runtime@0.5.0`；phase 2 计划发布 `@nextclaw/app-runtime@0.6.0`
-- marketplace skill：已更新 `nextclaw-app-runtime`
+- 当前是否已发布：phase 1 已发布 `@nextclaw/app-runtime@0.5.0`；phase 2 已发布 `@nextclaw/app-runtime@0.6.0`
+- marketplace skill：已更新 `nextclaw-app-runtime`，并在 phase 3 收口后再次更新
 - 后续状态：不需要待统一发布
 - 触发条件：无
