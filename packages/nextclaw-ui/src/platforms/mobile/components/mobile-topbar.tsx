@@ -30,7 +30,7 @@ export function MobileTopbar() {
           null
         )}
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[15px] font-semibold text-gray-900">
+          <h1 className="truncate text-center text-[15px] font-semibold text-gray-900">
             {routeMeta.title}
           </h1>
         </div>

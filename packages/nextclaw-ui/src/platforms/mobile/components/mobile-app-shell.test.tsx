@@ -23,12 +23,13 @@ describe("MobileAppShell", () => {
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
   });
 
-  it("does not reserve back-button spacer on primary mobile routes", () => {
+  it("centers primary route titles without reserving back-button spacers", () => {
     renderShell("/skills");
 
     const topbar = screen.getByTestId("mobile-topbar");
+    const heading = screen.getByRole("heading", { name: "Skills" });
 
-    expect(screen.getByRole("heading", { name: "Skills" })).toBeTruthy();
+    expect(heading.className).toContain("text-center");
     expect(topbar.querySelector('[aria-hidden="true"]')).toBeNull();
   });
 
