@@ -13,6 +13,7 @@
 - 同批次续改：将 [`README.md`](../../../README.md) 与 [`README.zh-CN.md`](../../../README.zh-CN.md) 的社群二维码入口统一改回微信群二维码，避免仓库首页和 landing 页对外展示的社群入口不一致。
 - 同批次续改：继续使用你 2026-04-16 提供的最新微信群二维码覆盖仓库根资源与 landing 基础资源，并新增 [`nextclaw-contact-wechat-group-2026-04-16.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-16.png) 作为新的防缓存 landing 入口；[`apps/landing/src/main.ts`](../../../apps/landing/src/main.ts) 中的 `wechatGroupImage` 同步更新为 `'/contact/nextclaw-contact-wechat-group-2026-04-16.png'`。
 - 同批次续改：继续使用你 2026-04-24 提供的最新微信群二维码覆盖仓库根资源 [`images/contact/nextclaw-contact-wechat-group.png`](../../../images/contact/nextclaw-contact-wechat-group.png) 与 landing 基础资源 [`apps/landing/public/contact/nextclaw-contact-wechat-group.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group.png)，并新增 [`nextclaw-contact-wechat-group-2026-04-24.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-24.png) 作为新的防缓存 landing 入口；[`apps/landing/src/main.ts`](../../../apps/landing/src/main.ts) 中的 `wechatGroupImage` 同步更新为 `'/contact/nextclaw-contact-wechat-group-2026-04-24.png'`。
+- 同批次续改：将 GitHub 首页 [`README.md`](../../../README.md) 与 [`README.zh-CN.md`](../../../README.zh-CN.md) 中的“社群 / 微信群”模块整体前移到产品卖点之后、快速开始之前，降低用户在仓库首页找到入群入口的滚动成本。
 
 ## 测试/验证/验收方式
 - 类型检查：
@@ -46,6 +47,9 @@
   - Pages 预览资源可达：`curl -I https://5ab828af.nextclaw-landing.pages.dev/contact/nextclaw-contact-wechat-group-2026-04-24.png`
   - 线上资源可达：`curl -I https://nextclaw.io/contact/nextclaw-contact-wechat-group-2026-04-24.png`
   - 结果：桌面源图转换得到的新 PNG、仓库根二维码、landing 基础资源与新的日期资源 SHA-256 一致；本地 build 产物与线上 landing 资源均命中新二维码路径和微信群文案。
+- 本次 GitHub 模块前移补充验证：
+  - 结构检查：`rg -n "^## Community|^## Quick Start|^## 社群|^## 快速开始" README.md README.zh-CN.md -n`
+  - 结果：英文与中文 README 中的社群模块都已位于快速开始之前。
 - 图标资源检查（本次补充）：
   - `rg -n "🐾" apps/landing/public/logo.svg apps/docs/public/logo.svg`
   - 结果：两处 `logo.svg` 均命中 paw emoji 叠加层。

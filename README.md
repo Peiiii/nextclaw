@@ -42,6 +42,13 @@ NextClaw orchestrates the entire internet and raw compute from your machine — 
 - **Local & private** — Runs entirely on your machine; configs, history, and tokens stay with you
 - **Ultra-lightweight** — ~1/20 the codebase of OpenClaw, easier to maintain and extend
 
+## Community
+
+- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
+- **WeChat Group** — Scan to join:
+
+  <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="WeChat Group QR" />
+
 ## Quick Start
 
 ### 0. Prerequisites
@@ -126,13 +133,6 @@ Visit **[docs.nextclaw.io](https://docs.nextclaw.io/en/)** for the full document
 - [Vision & Roadmap](https://docs.nextclaw.io/en/guide/vision)
 - [Feishu Setup Tutorial](https://docs.nextclaw.io/en/guide/tutorials/feishu)
 - GitHub planning docs: [Roadmap](docs/ROADMAP.md) · [TODO Backlog](docs/TODO.md) · [File Naming Convention](docs/workflows/file-naming-convention.md)
-
-## Community
-
-- **Discord** — [NextClaw / OpenClaw](https://discord.gg/j4Skbgye)
-- **WeChat Group** — Scan to join:
-
-  <img src="images/contact/nextclaw-contact-wechat-group.png" width="180" alt="WeChat Group QR" />
 
 ## Contributing
 
