@@ -43,4 +43,20 @@ describe("ChatSessionTypeOptionItem", () => {
 
     expect(screen.getAllByText("Ready")).toHaveLength(1);
   });
+
+  it("renders a built-in fallback icon when the session type has no runtime image", () => {
+    render(
+      <ChatSessionTypeOptionItem
+        option={{
+          value: "native",
+          label: "Native",
+          ready: true,
+        }}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /native/i })).toBeTruthy();
+    expect(screen.getByText("Native")).toBeTruthy();
+  });
 });

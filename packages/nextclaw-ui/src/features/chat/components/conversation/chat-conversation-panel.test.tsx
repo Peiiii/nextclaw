@@ -11,7 +11,8 @@ import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
 const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
   goToProviders: vi.fn(),
-  createSession: vi.fn(),
+  createSession: vi.fn(() => "draft-session-2"),
+  goToSession: vi.fn(),
   setSelectedAgentId: vi.fn(),
   setPendingSessionType: vi.fn(),
   stickyBottomScroll: vi.fn(() => ({
@@ -79,6 +80,9 @@ vi.mock("@/features/chat/components/chat-welcome", () => ({
 
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
+    chatUiManager: {
+      goToSession: mocks.goToSession,
+    },
     chatThreadManager: {
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
@@ -158,6 +162,8 @@ describe("ChatConversationPanel", () => {
     mocks.deleteSession.mockReset();
     mocks.goToProviders.mockReset();
     mocks.createSession.mockReset();
+    mocks.createSession.mockReturnValue("draft-session-2");
+    mocks.goToSession.mockReset();
     mocks.setSelectedAgentId.mockReset();
     mocks.setPendingSessionType.mockReset();
     mocks.stickyBottomScroll.mockClear();
@@ -231,6 +237,17 @@ describe("ChatConversationPanel", () => {
     await user.click(screen.getByRole("button", { name: "Chat" }));
 
     expect(onBackToList).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the new draft session immediately when mobile welcome creates a session", async () => {
+    const user = userEvent.setup();
+
+    render(<ChatConversationPanel layoutMode="mobile" />);
+
+    await user.click(screen.getByRole("button", { name: "create draft session" }));
+
+    expect(mocks.createSession).toHaveBeenCalledWith("native");
+    expect(mocks.goToSession).toHaveBeenCalledWith("draft-session-2");
   });
 
   it("shows the selected session project badge and more actions trigger", () => {

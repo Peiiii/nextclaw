@@ -7,7 +7,8 @@ import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 
 const mocks = vi.hoisted(() => ({
-  createSession: vi.fn(),
+  createSession: vi.fn(() => 'draft-session-key'),
+  goToSession: vi.fn(),
   setQuery: vi.fn(),
   setListMode: vi.fn(),
   selectSession: vi.fn(),
@@ -28,6 +29,9 @@ function createSessionItem(
 
 vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   usePresenter: () => ({
+    chatUiManager: {
+      goToSession: mocks.goToSession,
+    },
     chatSessionListManager: {
       createSession: mocks.createSession,
       setQuery: mocks.setQuery,
@@ -115,6 +119,8 @@ vi.mock('@/features/system-status', () => ({
 
 function resetSidebarTestState() {
   mocks.createSession.mockReset();
+  mocks.createSession.mockReturnValue('draft-session-key');
+  mocks.goToSession.mockReset();
   mocks.setQuery.mockReset();
   mocks.setListMode.mockReset();
   mocks.selectSession.mockReset();
@@ -228,6 +234,7 @@ describe('ChatSidebar create and list basics', () => {
 
     expect(mocks.setQuery).toHaveBeenCalledWith('release notes');
     expect(mocks.createSession).toHaveBeenCalledWith('codex');
+    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
   });
 
   it('creates the default session directly from the compact mobile add button when no menu is needed', () => {
@@ -248,6 +255,7 @@ describe('ChatSidebar create and list basics', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
 
     expect(mocks.createSession).toHaveBeenCalledWith('native');
+    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
   });
 
   it('shows a session type badge for non-native sessions in the list', () => {
@@ -408,6 +416,7 @@ describe('ChatSidebar project-first mode', () => {
     fireEvent.click(screen.getByText('Codex'));
 
     expect(mocks.createSession).toHaveBeenCalledWith('codex', '/tmp/project-beta');
+    expect(mocks.goToSession).not.toHaveBeenCalled();
   });
 
   it('creates immediately when there is only one available runtime type', () => {
@@ -447,6 +456,41 @@ describe('ChatSidebar project-first mode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New Task · project-gamma' }));
 
     expect(mocks.createSession).toHaveBeenCalledWith('native', '/tmp/project-gamma');
+    expect(mocks.goToSession).not.toHaveBeenCalled();
+  });
+
+  it('opens the draft detail after creating a project-bound session on mobile', () => {
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        listMode: 'project-first'
+      }
+    });
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:project-mobile-1',
+        createdAt: '2026-03-19T09:00:00.000Z',
+        updatedAt: '2026-03-19T11:05:00.000Z',
+        label: 'Grouped Mobile Task',
+        projectRoot: '/tmp/project-mobile',
+        projectName: 'project-mobile',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 2
+      })
+    ];
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar variant="mobile" />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Task · project-mobile' }));
+    fireEvent.click(screen.getByText('Codex'));
+
+    expect(mocks.createSession).toHaveBeenCalledWith('codex', '/tmp/project-mobile');
+    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
   });
 });
 

@@ -8,10 +8,7 @@ import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
-import {
-  shouldShowUnreadSessionIndicator,
-  useChatSessionListStore
-} from '@/features/chat/stores/chat-session-list.store';
+import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useSystemStatus } from '@/features/system-status';
 import { useAgents } from '@/shared/hooks/use-agents';
 import { getSessionProjectName } from '@/shared/lib/session-project';
@@ -230,32 +227,33 @@ export function ChatSidebar({
     setLanguage(nextLang);
     window.location.reload();
   };
-  const renderSessionItem = (item: NcpSessionListItemView) =>
-    (
-      <ChatSidebarSessionEntry
-        key={item.session.key}
-        item={item}
-        selectedSessionKey={listSnapshot.selectedSessionKey}
-        optimisticReadAtBySessionKey={optimisticReadAtBySessionKey}
-        agentsById={agentsById}
-        childSessionsByParentKey={childSessionsByParentKey}
-        editingSessionKey={editingSessionKey}
-        draftLabel={draftLabel}
-        savingSessionKey={savingSessionKey}
-        sessionTitle={sessionTitle}
-        onSelectSession={presenter.chatSessionListManager.selectSession}
-        onOpenChildSessions={(parentSessionKey, activeChildSessionKey) =>
-          presenter.chatThreadManager.openChildSessionPanel({
-            parentSessionKey,
-            activeChildSessionKey,
-          })
-        }
-        onStartEditingSessionLabel={startEditingSessionLabel}
-        onDraftLabelChange={setDraftLabel}
-        onSaveSessionLabel={saveSessionLabel}
-        onCancelEditingSessionLabel={cancelEditingSessionLabel}
-      />
-    );
+  const renderSessionItem = (item: NcpSessionListItemView) => (
+    <ChatSidebarSessionEntry
+      key={item.session.key}
+      item={item}
+      selectedSessionKey={listSnapshot.selectedSessionKey}
+      optimisticReadAtBySessionKey={optimisticReadAtBySessionKey}
+      agentsById={agentsById}
+      childSessionsByParentKey={childSessionsByParentKey}
+      editingSessionKey={editingSessionKey}
+      draftLabel={draftLabel}
+      savingSessionKey={savingSessionKey}
+      sessionTitle={sessionTitle}
+      onSelectSession={presenter.chatSessionListManager.selectSession}
+      onOpenChildSessions={(parentSessionKey, activeChildSessionKey) => presenter.chatThreadManager.openChildSessionPanel({ parentSessionKey, activeChildSessionKey })}
+      onStartEditingSessionLabel={startEditingSessionLabel}
+      onDraftLabelChange={setDraftLabel}
+      onSaveSessionLabel={saveSessionLabel}
+      onCancelEditingSessionLabel={cancelEditingSessionLabel}
+    />
+  );
+  const createSessionAndOpenIfNeeded = (sessionType: string, projectRoot?: string | null) => {
+    const sessionKey = typeof projectRoot === "string"
+      ? presenter.chatSessionListManager.createSession(sessionType, projectRoot)
+      : presenter.chatSessionListManager.createSession(sessionType);
+    if (isMobileVariant) presenter.chatUiManager.goToSession(sessionKey);
+  };
+
   return (
     <aside
       className={cn(
@@ -282,7 +280,7 @@ export function ChatSidebar({
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
-          onCreateSession={presenter.chatSessionListManager.createSession}
+          onCreateSession={createSessionAndOpenIfNeeded}
           onQueryChange={presenter.chatSessionListManager.setQuery}
         />
       ) : (
@@ -293,7 +291,7 @@ export function ChatSidebar({
           nonDefaultSessionTypeOptions={nonDefaultSessionTypeOptions}
           isCreateMenuOpen={isCreateMenuOpen}
           onCreateMenuOpenChange={setIsCreateMenuOpen}
-          onCreateSession={presenter.chatSessionListManager.createSession}
+          onCreateSession={createSessionAndOpenIfNeeded}
           onQueryChange={presenter.chatSessionListManager.setQuery}
         />
       )}
@@ -301,18 +299,11 @@ export function ChatSidebar({
       {!isMobileVariant ? (
         <div className="px-3 pb-2">
           <ul className="space-y-0.5">
-            {navItems.map((item) => {
-              return (
-                <li key={item.target}>
-                  <SidebarNavLinkItem
-                    to={item.target}
-                    label={item.label()}
-                    icon={item.icon}
-                    density="compact"
-                  />
-                </li>
-              );
-            })}
+            {navItems.map((item) => (
+              <li key={item.target}>
+                <SidebarNavLinkItem to={item.target} label={item.label()} icon={item.icon} density="compact" />
+              </li>
+            ))}
           </ul>
         </div>
       ) : null}
@@ -346,7 +337,7 @@ export function ChatSidebar({
               defaultSessionType={defaultSessionType}
               sessionTypeOptions={inputSnapshot.sessionTypeOptions}
               renderSessionItem={renderSessionItem}
-              onCreateSession={presenter.chatSessionListManager.createSession}
+              onCreateSession={createSessionAndOpenIfNeeded}
             />
           )
         ) : groups.length === 0 ? (

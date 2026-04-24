@@ -2,6 +2,7 @@ import type { ChatInputSnapshot } from "@/features/chat/stores/chat-input.store"
 import { SessionContextIconNode } from "@/features/chat/components/session/session-context-icon";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
+import { Bot } from "lucide-react";
 
 type SessionTypeOption = ChatInputSnapshot["sessionTypeOptions"][number];
 
@@ -34,7 +35,9 @@ export function ChatSessionTypeOptionItem(props: {
                 }}
               />
             </span>
-          ) : null}
+          ) : (
+            <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center pt-0.5 text-gray-400"><Bot className="h-4 w-4" /></span>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-3">
               <div className="truncate text-[13px] font-semibold text-gray-900">
