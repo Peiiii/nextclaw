@@ -154,7 +154,7 @@ const LINKS: Record<'github' | 'npm' | 'discord' | 'wechatGroupImage', string> &
   github: 'https://github.com/Peiiii/nextclaw',
   npm: 'https://www.npmjs.com/package/nextclaw',
   discord: 'https://discord.gg/j4Skbgye',
-  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-04-16.png',
+  wechatGroupImage: '/contact/nextclaw-contact-wechat-group-2026-04-24.png',
   docs: {
     en: 'https://docs.nextclaw.io/en/',
     zh: 'https://docs.nextclaw.io/zh/'

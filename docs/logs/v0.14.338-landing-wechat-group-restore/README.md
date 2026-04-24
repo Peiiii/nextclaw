@@ -12,6 +12,7 @@
 - 同批次续改：继续沿用日期后缀防缓存策略，新增 [`nextclaw-contact-wechat-group-2026-04-08.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-08.png)，并将 [`apps/landing/src/main.ts`](../../../apps/landing/src/main.ts) 中的 `wechatGroupImage` 更新为 `'/contact/nextclaw-contact-wechat-group-2026-04-08.png'`。
 - 同批次续改：将 [`README.md`](../../../README.md) 与 [`README.zh-CN.md`](../../../README.zh-CN.md) 的社群二维码入口统一改回微信群二维码，避免仓库首页和 landing 页对外展示的社群入口不一致。
 - 同批次续改：继续使用你 2026-04-16 提供的最新微信群二维码覆盖仓库根资源与 landing 基础资源，并新增 [`nextclaw-contact-wechat-group-2026-04-16.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-16.png) 作为新的防缓存 landing 入口；[`apps/landing/src/main.ts`](../../../apps/landing/src/main.ts) 中的 `wechatGroupImage` 同步更新为 `'/contact/nextclaw-contact-wechat-group-2026-04-16.png'`。
+- 同批次续改：继续使用你 2026-04-24 提供的最新微信群二维码覆盖仓库根资源 [`images/contact/nextclaw-contact-wechat-group.png`](../../../images/contact/nextclaw-contact-wechat-group.png) 与 landing 基础资源 [`apps/landing/public/contact/nextclaw-contact-wechat-group.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group.png)，并新增 [`nextclaw-contact-wechat-group-2026-04-24.png`](../../../apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-24.png) 作为新的防缓存 landing 入口；[`apps/landing/src/main.ts`](../../../apps/landing/src/main.ts) 中的 `wechatGroupImage` 同步更新为 `'/contact/nextclaw-contact-wechat-group-2026-04-24.png'`。
 
 ## 测试/验证/验收方式
 - 类型检查：
@@ -38,6 +39,13 @@
   - 引用检查：`rg -n "nextclaw-contact-wechat-group-2026-04-16|nextclaw-contact-wechat-group\\.png|WeChat Group|微信群" README.md README.zh-CN.md apps/landing/src/main.ts apps/landing/dist -S`
   - 线上资源可达：`curl -I https://1fa92228.nextclaw-landing.pages.dev/contact/nextclaw-contact-wechat-group-2026-04-16.png`
   - 结果：导入源图、仓库根二维码、landing 基础资源与新的日期资源 SHA-256 一致；本地 preview 与已发布 Pages 资源均返回 `200`；README 与 landing 构建产物均命中新二维码路径和微信群文案。
+- 本次 2026-04-24 二维码续改补充验证：
+  - 哈希一致性：`shasum -a 256 /tmp/nextclaw-wechat-qr-2026-04-24/source.png images/contact/nextclaw-contact-wechat-group.png apps/landing/public/contact/nextclaw-contact-wechat-group.png apps/landing/public/contact/nextclaw-contact-wechat-group-2026-04-24.png`
+  - Landing 资源可达：`curl -I http://127.0.0.1:4173/contact/nextclaw-contact-wechat-group-2026-04-24.png`
+  - 引用检查：`rg -n "nextclaw-contact-wechat-group-2026-04-24|nextclaw-contact-wechat-group\\.png|WeChat Group|微信群" README.md README.zh-CN.md apps/landing/src/main.ts apps/landing/dist -S`
+  - Pages 预览资源可达：`curl -I https://5ab828af.nextclaw-landing.pages.dev/contact/nextclaw-contact-wechat-group-2026-04-24.png`
+  - 线上资源可达：`curl -I https://nextclaw.io/contact/nextclaw-contact-wechat-group-2026-04-24.png`
+  - 结果：桌面源图转换得到的新 PNG、仓库根二维码、landing 基础资源与新的日期资源 SHA-256 一致；本地 build 产物与线上 landing 资源均命中新二维码路径和微信群文案。
 - 图标资源检查（本次补充）：
   - `rg -n "🐾" apps/landing/public/logo.svg apps/docs/public/logo.svg`
   - 结果：两处 `logo.svg` 均命中 paw emoji 叠加层。
@@ -45,7 +53,7 @@
 ## 发布/部署方式
 - 本次续改已按 landing 发布流程执行正式部署：
   - `pnpm deploy:landing`
-  - Pages 部署结果：`https://1fa92228.nextclaw-landing.pages.dev`
+  - Pages 部署结果：`https://5ab828af.nextclaw-landing.pages.dev`
   - 如需让仓库首页同步对外生效，再推送包含本次资源替换的 Git 提交。
 
 ## 用户/产品视角的验收步骤
