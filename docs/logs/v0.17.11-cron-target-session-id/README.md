@@ -36,8 +36,9 @@
 
 ## 发布/部署方式
 
-- 本次暂未执行发布。
-- 后续发布时至少需要随包发布 `@nextclaw/core`、`@nextclaw/server`、`@nextclaw/ui`、`nextclaw`。
+- 已执行 `pnpm release:version` 生成发布版本变更，并提交为 `4bde6d72 chore: release nextclaw 0.18.10`。
+- 已执行 `pnpm release:publish`，发布脚本完成 `release:sync-readmes`、`release:check-readmes`、`release:check:groups`、`release:check`、`changeset publish`、`release:verify:published`、`changeset tag`。
+- 发布后验证结果：`[release:verify:published] published 21/21 package versions.`。
 - `packages/nextclaw/resources/USAGE.md` 已同步，打包时会携带新的 `--session` 自管理说明。
 
 ## 用户/产品视角的验收步骤
@@ -59,11 +60,28 @@
 
 ## NPM 包发布记录
 
-- 本次是否需要发包：当前未立即发布；功能影响 CLI、core、server、ui 与内置资源，后续用户可用需要统一发包。
-- 需要发布的包：
-  - `@nextclaw/core`：待统一发布。
-  - `@nextclaw/server`：待统一发布。
-  - `@nextclaw/ui`：待统一发布。
-  - `nextclaw`：待统一发布。
-- 当前发布状态：均未发布。
-- 未发布原因：本次只完成代码实现与本地验证，未执行 release 流程。
+- 本次需要发包：是。功能影响 CLI、core、server、ui 与内置资源，用户可用需要通过 NPM 包发布交付。
+- 本次 cron session 目标能力直接相关包已发布：
+  - `@nextclaw/core@0.12.12`：已发布。
+  - `@nextclaw/server@0.12.12`：已发布。
+  - `@nextclaw/ui@0.12.19`：已发布。
+  - `nextclaw@0.18.10`：已发布。
+- changeset 依赖联动同批发布包：
+  - `@nextclaw/channel-plugin-dingtalk@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-discord@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-email@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-mochat@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-qq@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-slack@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-telegram@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-wecom@0.2.43`：已发布。
+  - `@nextclaw/channel-plugin-weixin@0.1.37`：已发布。
+  - `@nextclaw/channel-plugin-whatsapp@0.2.43`：已发布。
+  - `@nextclaw/channel-runtime@0.4.29`：已发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.56`：已发布。
+  - `@nextclaw/ncp-mcp@0.1.79`：已发布。
+  - `@nextclaw/mcp@0.1.77`：已发布。
+  - `@nextclaw/openclaw-compat@1.0.12`：已发布。
+  - `@nextclaw/remote@0.1.89`：已发布。
+  - `@nextclaw/runtime@0.2.44`：已发布。
+- 发布验证：`pnpm release:publish` 已完成发布后 registry 校验，确认本批 `21/21` 个包版本已发布。
