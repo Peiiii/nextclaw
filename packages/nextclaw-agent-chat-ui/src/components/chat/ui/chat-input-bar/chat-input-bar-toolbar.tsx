@@ -10,43 +10,33 @@ import { ChatInputBarActions } from './chat-input-bar-actions';
 import { ChatInputBarSkillPicker } from './chat-input-bar-skill-picker';
 
 function ToolbarIcon({ icon }: { icon?: ChatToolbarIcon }) {
-  if (icon === 'sparkles') {
-    return <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />;
-  }
-  if (icon === 'brain') {
-    return <Brain className="h-3.5 w-3.5 shrink-0 text-gray-500" />;
-  }
-  return null;
+  return icon === 'sparkles'
+    ? <Sparkles className="h-3.5 w-3.5 shrink-0 text-primary" />
+    : icon === 'brain'
+      ? <Brain className="h-3.5 w-3.5 shrink-0 text-gray-500" />
+      : null;
 }
 
 function AccessoryIcon({ icon }: { icon?: ChatToolbarAccessoryIcon }) {
-  if (icon === 'paperclip') {
-    return <Paperclip className="h-4 w-4" />;
-  }
-  return <ToolbarIcon icon={icon} />;
+  return icon === 'paperclip' ? <Paperclip className="h-4 w-4" /> : <ToolbarIcon icon={icon} />;
 }
 
-function resolveTriggerWidth(key: string): string {
-  if (key === 'model') {
-    return 'min-w-0 flex-1';
-  }
-  if (key === 'session-type' || key === 'thinking') {
-    return 'shrink-0';
-  }
-  return '';
-}
+const TRIGGER_WIDTH_BY_KEY: Record<string, string> = {
+  model: 'min-w-0 flex-1 sm:min-w-[220px] sm:flex-none',
+  'session-type': 'shrink-0',
+  thinking: 'shrink-0'
+};
 
-function resolveContentWidth(key: string): string {
-  if (key === 'model') {
-    return 'w-[320px]';
-  }
-  if (key === 'session-type') {
-    return 'w-[220px]';
-  }
-  if (key === 'thinking') {
-    return 'w-[180px]';
-  }
-  return '';
+const CONTENT_WIDTH_BY_KEY: Record<string, string> = {
+  model: 'w-[min(18rem,calc(100vw-1rem))] sm:w-[320px]',
+  'session-type': 'w-[220px]',
+  thinking: 'w-[180px]'
+};
+
+function resolveMobileSelectedLabel(item: ChatToolbarSelect): string | undefined {
+  return item.key === 'model' && item.selectedLabel
+    ? item.selectedLabel.split('/').slice(1).join('/').trim() || item.selectedLabel
+    : item.selectedLabel;
 }
 
 function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
@@ -56,16 +46,18 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
     item.groups?.filter((group) => group.options.length > 0) ??
     (item.options.length > 0 ? [{ key: `${item.key}-default`, options: item.options }] : []);
   const hasOptions = groups.some((group) => group.options.length > 0);
+  const mobileSelectedLabel = resolveMobileSelectedLabel(item);
 
   return (
     <Select value={item.value} onValueChange={item.onValueChange} disabled={item.disabled}>
       <SelectTrigger
-        className={`h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 ${resolveTriggerWidth(item.key)}`}
+        className={`h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 ${TRIGGER_WIDTH_BY_KEY[item.key] ?? ''}`}
       >
         {item.selectedLabel ? (
           <div className="flex min-w-0 items-center gap-2 text-left">
             <ToolbarIcon icon={item.icon} />
-            <span className="truncate text-xs font-semibold text-gray-700">{item.selectedLabel}</span>
+            <span className="truncate text-xs font-semibold text-gray-700 sm:hidden">{mobileSelectedLabel}</span>
+            <span className="hidden truncate text-xs font-semibold text-gray-700 sm:inline">{item.selectedLabel}</span>
           </div>
         ) : item.loading ? (
           <div className="h-3 w-24 animate-pulse rounded bg-gray-200" />
@@ -73,7 +65,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
           <SelectValue placeholder={item.placeholder} />
         )}
       </SelectTrigger>
-      <SelectContent className={resolveContentWidth(item.key)}>
+      <SelectContent className={CONTENT_WIDTH_BY_KEY[item.key] ?? ''}>
         {!hasOptions ? (
           item.loading ? (
             <div className="space-y-2 px-3 py-2">

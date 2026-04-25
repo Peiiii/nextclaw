@@ -212,14 +212,14 @@ describe('buildModelToolbarSelect', () => {
     });
 
     expect(select.value).toBe('minimax/MiniMax-M2.7');
-    expect(select.selectedLabel).toBe('MiniMax-M2.7');
+    expect(select.selectedLabel).toBe('MiniMax/MiniMax-M2.7');
     expect(select.options[0]).toEqual({
       value: 'minimax/MiniMax-M2.7',
       label: 'MiniMax/MiniMax-M2.7'
     });
   });
 
-  it('keeps provider labels in the dropdown while using only the model name in the trigger', () => {
+  it('keeps the full provider/model label in shared state while exposing a compact mobile label', () => {
     const select = buildModelToolbarSelect({
       modelOptions: [
         {
@@ -241,7 +241,7 @@ describe('buildModelToolbarSelect', () => {
       }
     });
 
-    expect(select.selectedLabel).toBe('claude-sonnet-4-very-long-name');
+    expect(select.selectedLabel).toBe('Anthropic/claude-sonnet-4-very-long-name');
     expect(select.options[0]?.label).toBe('Anthropic/claude-sonnet-4-very-long-name');
   });
 

@@ -67,7 +67,8 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
     zh: '聊天能力启动失败，请稍后重试或检查服务日志。',
     en: 'Chat startup failed. Please retry in a moment or inspect the service logs.'
   },
-  chatInputPlaceholder: { zh: '发消息...', en: 'Message NextClaw...' },
+  chatInputPlaceholder: { zh: '输入消息，输入 / 选择技能，Enter 发送，Shift + Enter 换行', en: 'Type a message, type / to select skills, Enter to send, Shift + Enter for newline' },
+  chatInputPlaceholderCompact: { zh: '发消息...', en: 'Message NextClaw...' },
   chatInputHint: { zh: '支持多轮上下文，默认走当前会话。', en: 'Multi-turn context is preserved in the current session.' },
   chatSlashSectionCommands: { zh: '命令', en: 'Commands' },
   chatSlashSectionSkills: { zh: '技能', en: 'Skills' },

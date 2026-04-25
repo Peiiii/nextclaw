@@ -6,6 +6,7 @@ import type { SessionSkillEntryView } from '@/shared/lib/api';
 import { buildChatSlashItems, buildModelStateHint, buildModelToolbarSelect, buildSkillPickerModel, buildThinkingToolbarSelect, type ChatModelRecord, type ChatSkillRecord, type ChatThinkingLevel } from '@/features/chat/utils/chat-input-bar.utils';
 import { usePresenter } from '@/features/chat/components/providers/chat-presenter.provider';
 import { useI18n } from '@/app/components/i18n-provider';
+import { useViewportLayout } from '@/app/hooks/use-viewport-layout';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
@@ -203,6 +204,7 @@ function buildSkillPicker(params: { allSkillsLabel: string; presenter: ChatPrese
 export function ChatInputBarContainer() {
   const presenter = usePresenter();
   const { language } = useI18n();
+  const { isMobile } = useViewportLayout();
   const snapshot = useChatInputStore((state) => state.snapshot);
   const runtimeAvailability = useChatRuntimeAvailability();
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
@@ -215,7 +217,9 @@ export function ChatInputBarContainer() {
   const isModelOptionsEmpty = isNcpChatModelOptionsEmpty(snapshot);
   const inputDisabled = isNcpChatComposerDisabled(snapshot);
   const attachmentSupported = typeof presenter.chatInputManager.addAttachments === 'function';
-  const textareaPlaceholder = isModelOptionsEmpty ? t('chatModelNoOptions') : t('chatInputPlaceholder');
+  const textareaPlaceholder = isModelOptionsEmpty
+    ? t('chatModelNoOptions')
+    : t(isMobile ? 'chatInputPlaceholderCompact' : 'chatInputPlaceholder');
   const slashItems = useMemo(
     () => buildChatSlashItems(skillRecords, slashQuery ?? '', labels.slashTexts, recentSkillValues),
     [labels.slashTexts, recentSkillValues, skillRecords, slashQuery]

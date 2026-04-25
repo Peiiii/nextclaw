@@ -6,6 +6,11 @@ import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatCom
 import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from './lexical/chat-composer-lexical-adapter';
 import { handleLexicalComposerKeyboardCommand } from './lexical/chat-composer-lexical-controller';
 
+Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+  value: vi.fn(),
+  writable: true,
+});
+
 function setCursorToEnd(element: HTMLElement, text: string) {
   const textNode = element.firstChild;
   if (!textNode) {
@@ -626,6 +631,49 @@ it('switches between send and stop controls', () => {
   expect(screen.getByTestId('chat-stop-icon').className).toContain('bg-gray-700');
   fireEvent.click(screen.getByRole('button', { name: 'Stop' }));
   expect(onStop).toHaveBeenCalled();
+});
+
+it('keeps the model dropdown narrower on mobile while preserving desktop width', async () => {
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        toolbar: {
+          selects: [
+            {
+              key: 'model',
+              value: 'minimax/minimax-m2.7',
+              placeholder: 'Select model',
+              selectedLabel: 'MiniMax/MiniMax-M2.7',
+              options: [
+                {
+                  value: 'minimax/minimax-m2.7',
+                  label: 'MiniMax/MiniMax-M2.7',
+                },
+              ],
+              onValueChange: vi.fn(),
+            },
+          ],
+          actions: {
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            onSend: vi.fn(),
+            onStop: vi.fn(),
+          },
+        },
+      })}
+    />
+  );
+
+  fireEvent.click(screen.getByRole('combobox'));
+
+  const listbox = await screen.findByRole('listbox');
+  expect(listbox.className).toContain('w-[min(18rem,calc(100vw-1rem))]');
+  expect(listbox.className).toContain('sm:w-[320px]');
 });
 
 it('renders disabled accessories as icon-only triggers when tooltip copy exists', () => {

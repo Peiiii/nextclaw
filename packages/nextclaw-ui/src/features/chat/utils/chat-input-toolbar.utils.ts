@@ -113,7 +113,7 @@ export function buildModelToolbarSelect({
     value: resolvedValue,
     placeholder: texts.modelSelectPlaceholder,
     selectedLabel: resolvedModelOption
-      ? resolvedModelOption.modelLabel.trim() || formatModelOptionLabel(resolvedModelOption)
+      ? formatModelOptionLabel(resolvedModelOption)
       : undefined,
     icon: "sparkles",
     options: modelOptions.map((option) => ({
