@@ -115,7 +115,7 @@ function ChatSidebarSessionDisplayView({
   onOpenChildSessions,
   onStartEditing
 }: ChatSidebarSessionDisplayViewProps) {
-  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-16' : 'pr-8';
+  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-14' : 'pr-6';
 
   return (
     <div className="group/session relative">
@@ -177,7 +177,7 @@ function ChatSidebarSessionDisplayView({
             onOpenChildSessions();
           }}
           className={cn(
-            'absolute right-7 top-0 inline-flex h-7 items-center gap-1 rounded-lg px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
+            'absolute right-6 top-0 inline-flex h-5 items-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-gray-400 transition-all hover:bg-white hover:text-gray-900',
             active
               ? 'opacity-100'
               : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
@@ -196,14 +196,14 @@ function ChatSidebarSessionDisplayView({
           onStartEditing();
         }}
         className={cn(
-          'absolute right-0 top-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition-all hover:bg-white hover:text-gray-900',
+          'absolute right-0 top-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-gray-400 transition-all hover:bg-white hover:text-gray-900',
           active
             ? 'opacity-100'
             : 'opacity-0 group-hover/session:opacity-100 group-focus-within/session:opacity-100'
         )}
         aria-label={t('edit')}
       >
-        <Pencil className="h-3.5 w-3.5" />
+        <Pencil className="h-3 w-3" />
       </button>
     </div>
   );
