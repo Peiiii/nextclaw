@@ -22,8 +22,25 @@ For this repository, pure bugfixes, pure refactors, and other non-feature change
 
 - after excluding tests, non-test net lines must be `<= 0`
 - if non-test net lines are positive, the review must fail
+- satisfying this line gate is only a minimum threshold; the change must also show a real maintainability gain produced by deletion, simplification, reuse, responsibility convergence, or a necessary decoupling abstraction
 
 Do not use for pure docs, wording tweaks, or trivial metadata edits.
+
+## Positive Resolution Requirement
+
+For non-feature changes, the goal is not to make the line-count number smaller. The goal is to make production code cheaper to understand, change, and verify.
+
+Before accepting a non-feature change, identify which positive maintenance action produced the reduction or offset, in this order of preference:
+
+1. Delete obsolete, unreachable, duplicated, or no-longer-needed production code.
+2. Simplify branches, state sources, parameters, lifecycle paths, or data flow so there is less behavior to reason about.
+3. Reuse an existing stable component, manager, service, utility, type, or configuration path instead of adding a parallel implementation.
+4. Converge scattered responsibility into the correct class / manager / presenter / service owner.
+5. Add or adjust a decoupling abstraction only when it removes real duplication, lowers coupling, clarifies ownership, or makes call sites simpler.
+
+Deletion and simplification are preferred over new abstractions. A new abstraction only counts as maintainability improvement when it reduces real complexity instead of adding another layer to inspect.
+
+If the diff reaches non-test net lines `<= 0` mainly by making code denser, harder to read, less typed, less observable, less explicit, or by moving complexity outside the counted production surface, the review must still conclude `需继续修改`.
 
 ## Review Questions
 
@@ -42,6 +59,7 @@ Answer these in order:
 9. Did the change duplicate existing logic or an existing component surface that should have been reused or factored into a stable shared core?
 10. If React code was touched, are `useEffect` / `useLayoutEffect` still limited to external-system sync, or is business coordination still leaking through effects instead of store / manager / presenter / query-view ownership?
 11. If this is a pure bugfix, pure refactor, or other non-feature change, is `非测试代码增减报告` already `净增：0 行` or negative? If not, the review must conclude `需继续修改`.
+12. If this is a non-feature change that passes the line gate, which positive resolution action made it pass: deletion, simplification, reuse, responsibility convergence, or a necessary decoupling abstraction? If none is identifiable, the review must conclude `需继续修改`.
 
 ## Output
 
@@ -77,6 +95,12 @@ For this repository, there is one stricter exception:
 - if the change is not a new user-facing capability and non-test code is net positive, you must not accept the change as `通过`
 - in that case you must output `可维护性复核结论：需继续修改`
 - do not use `保留债务经说明接受` to waive this gate
+- if the change is not a new user-facing capability and the line gate passes without an identifiable positive resolution action, you must also output `可维护性复核结论：需继续修改`
+
+For non-feature changes that pass, the summary must name the positive action that made the change acceptable:
+
+- `正向减债动作：删除 / 简化 / 复用 / 职责收敛 / 必要解耦抽象`
+- `为何不是单纯压缩行数：...`
 
 If issues exist, list:
 
@@ -102,6 +126,7 @@ Then add a short maintainability summary in 1-3 sentences covering:
 - Treating `lint passed` as proof that the structure is already good enough
 - Accepting code growth in a non-feature change without explaining why deletion or simplification was insufficient
 - Marking a pure bugfix or pure refactor as passed when non-test code is still net positive
+- Marking a non-feature change as passed only because the line count is `<= 0`, without naming the deletion, simplification, reuse, responsibility convergence, or necessary decoupling abstraction that reduced maintenance cost
 - Calling something “refactored” when complexity was only renamed or moved
 - Copying an existing helper or component with minor edits instead of reusing it or extracting a shared core
 - Leaving business coordination in React effects while only renaming nearby helpers or moving setters to a different file

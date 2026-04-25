@@ -99,6 +99,22 @@ node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-wr
 
 这里的代码统计默认仍属于“补充信号”，用于增强 maintainability report；但在 `--non-feature` 模式下，`非测试代码净增 <= 0` 会升级为真实阻塞逻辑。
 
+## 非功能改动的正确解法
+
+`--non-feature` 模式下，非测试代码净增 `<= 0` 只是最低门槛，不是最终目标。真正目标是让生产代码维护成本下降。
+
+当非功能改动被 line-change gate 阻塞时，默认按以下顺序解决：
+
+1. 删除：移除死代码、重复路径、过期兼容、无用状态、无效分支或不再需要的生产代码。
+2. 简化：减少条件分支、状态来源、参数传递、生命周期入口、数据流转换和需要同时理解的行为面。
+3. 复用：优先使用已有稳定组件、manager、service、utility、类型或配置路径，避免复制平行实现。
+4. 职责收敛：把散落的业务逻辑收回正确的 class / manager / presenter / service owner。
+5. 必要解耦抽象：只有当抽象能消除重复、降低耦合、澄清 owner 或让调用方更简单时，才作为有效减债手段。
+
+删除和简化优先于新增抽象。新增抽象若只是多一层间接调用，不能算通过 line-change gate 的正向解法。
+
+收尾复核时必须能说清楚本次是哪一种正向减债动作让非功能改动通过，而不是只报告行数达标。
+
 ## 检查模型
 
 默认检查模型分为六层。
@@ -174,6 +190,8 @@ node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-wr
 
 文档上应把它明确纳入 maintainability 体系。默认模式下，它仍不与文件预算、复杂度、红区治理共享同一阻塞级别；但在 `--non-feature` 模式下，排除测试后的非测试代码净增若大于 `0`，就必须直接阻断。
 
+即使 `--non-feature` 模式下非测试净增已经 `<= 0`，后续 `post-edit-maintainability-review` 仍必须判断减债方式是否真实有效：能否对应到删除、简化、复用、职责收敛或必要解耦抽象；若只是让代码更密、更难读，或把复杂度移到统计口径之外，不能视为通过。
+
 ## 阻塞项
 
 以下情况默认视为阻塞项：
@@ -192,6 +210,7 @@ node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-wr
 - 本次触达红区文件，但未在本次迭代日志里记录红区触达与减债状态
 - 本次触达红区文件，但日志块缺少 `本次是否减债`、`说明` 或 `下一步拆分缝`
 - 在 `--non-feature` 模式下，排除测试后的非测试代码净增大于 `0`
+- 非功能改动虽然满足非测试代码净增 `<= 0`，但后续复核无法指出任何正向减债动作：删除、简化、复用、职责收敛或必要解耦抽象
 
 ## 警告项
 
