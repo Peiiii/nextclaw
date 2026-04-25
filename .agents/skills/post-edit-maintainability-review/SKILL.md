@@ -30,6 +30,8 @@ Do not use for pure docs, wording tweaks, or trivial metadata edits.
 
 For non-feature changes, the goal is not to make the line-count number smaller. The goal is to make production code cheaper to understand, change, and verify.
 
+The completion standard is improved code quality and maintainability. A non-feature change only passes when the diff makes the production code better in an observable way: clearer ownership, simpler behavior, fewer branches or states, better reuse, lower coupling, easier verification, or less code to maintain. Line count and positive maintenance actions are evidence for that outcome; they are not the outcome by themselves.
+
 Before accepting a non-feature change, identify which positive maintenance action produced the reduction or offset, in this order of preference:
 
 1. Delete obsolete, unreachable, duplicated, or no-longer-needed production code.
@@ -60,6 +62,7 @@ Answer these in order:
 10. If React code was touched, are `useEffect` / `useLayoutEffect` still limited to external-system sync, or is business coordination still leaking through effects instead of store / manager / presenter / query-view ownership?
 11. If this is a pure bugfix, pure refactor, or other non-feature change, is `非测试代码增减报告` already `净增：0 行` or negative? If not, the review must conclude `需继续修改`.
 12. If this is a non-feature change that passes the line gate, which positive resolution action made it pass: deletion, simplification, reuse, responsibility convergence, or a necessary decoupling abstraction? If none is identifiable, the review must conclude `需继续修改`.
+13. What is the observable code-quality or maintainability improvement after the change? If the answer is only “the line count is lower,” the review must conclude `需继续修改`.
 
 ## Output
 
@@ -100,6 +103,7 @@ For this repository, there is one stricter exception:
 For non-feature changes that pass, the summary must name the positive action that made the change acceptable:
 
 - `正向减债动作：删除 / 简化 / 复用 / 职责收敛 / 必要解耦抽象`
+- `质量与可维护性提升证明：...`
 - `为何不是单纯压缩行数：...`
 
 If issues exist, list:
