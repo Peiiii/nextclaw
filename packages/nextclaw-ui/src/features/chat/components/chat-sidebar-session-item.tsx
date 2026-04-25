@@ -7,7 +7,7 @@ import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
-import { formatDateTime, t } from '@/shared/lib/i18n';
+import { formatDateShort, t } from '@/shared/lib/i18n';
 import { Check, GitBranch, Pencil, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {
@@ -115,20 +115,16 @@ function ChatSidebarSessionDisplayView({
   onOpenChildSessions,
   onStartEditing
 }: ChatSidebarSessionDisplayViewProps) {
-  const iconTone = active ? 'text-gray-700' : 'text-gray-500';
-  const normalizedAgentId = agentId?.trim() ?? '';
-  const shouldShowAgentAvatar = Boolean(
-    normalizedAgentId && normalizedAgentId.toLowerCase() !== 'main',
-  );
+  const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-16' : 'pr-8';
 
   return (
     <div className="group/session relative">
       <button type="button" onClick={onSelect} className="w-full text-left">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 pr-8">
+        <div className={cn('grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2', trailingControlsClassName)}>
           <span className="flex min-w-0 items-center gap-1.5">
-            {shouldShowAgentAvatar ? (
+            {agentId?.trim() && agentId.trim().toLowerCase() !== 'main' ? (
               <AgentAvatar
-                agentId={normalizedAgentId}
+                agentId={agentId}
                 displayName={agentLabel}
                 avatarUrl={agentAvatarUrl}
                 className="h-5 w-5 shrink-0"
@@ -149,26 +145,28 @@ function ChatSidebarSessionDisplayView({
             ) : null}
             {context.icon ? (
               <span className="inline-flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center">
-                <SessionContextIconNode icon={context.icon} className={iconTone} />
+                <SessionContextIconNode icon={context.icon} className={active ? 'text-gray-700' : 'text-gray-500'} />
               </span>
             ) : null}
           </span>
-          <span className="inline-flex shrink-0 items-center justify-end gap-1.5">
-            {showUnreadDot ? (
-              <span
-                aria-label={t('chatSessionUnread')}
-                className="h-2 w-2 rounded-full bg-primary"
-              />
-            ) : null}
-            <span className="inline-flex h-3.5 w-3.5 items-center justify-center">
-              {runStatus ? <SessionRunBadge status={runStatus} /> : null}
+          {runStatus ? (
+            <span className="inline-flex shrink-0 items-center justify-end gap-1.5 pt-0.5">
+              <SessionRunBadge status={runStatus} />
             </span>
-          </span>
+          ) : null}
         </div>
-        <div className="mt-0.5 text-[11px] text-gray-400 truncate">
-          <span>
-            {agentLabel?.trim() ? `${agentLabel} · ` : ''}{session.messageCount} · {formatDateTime(session.updatedAt)}
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
+          <span className="min-w-0 truncate">
+            {agentLabel?.trim() ? `${agentLabel} · ` : ''}{session.messageCount}
           </span>
+          {showUnreadDot ? (
+            <span
+              aria-label={t('chatSessionUnread')}
+              className="ml-auto h-2 w-2 shrink-0 rounded-full bg-primary"
+            />
+          ) : (
+            <span className="ml-auto shrink-0">{formatDateShort(session.updatedAt)}</span>
+          )}
         </div>
       </button>
       {childSessionCount > 0 && onOpenChildSessions ? (
@@ -235,7 +233,7 @@ export function ChatSidebarSessionItem({
   return (
     <div
       className={cn(
-        'w-full rounded-xl px-3 py-2 text-left transition-all text-[13px]',
+        'w-full rounded-xl px-3 py-2.5 text-left transition-all text-[13px]',
         active
           ? 'bg-gray-200 text-gray-900 font-semibold shadow-sm'
           : 'text-gray-700 hover:bg-gray-200/60 hover:text-gray-900'

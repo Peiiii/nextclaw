@@ -103,12 +103,13 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
         <button
           type="button"
           aria-haspopup="listbox"
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+          aria-label={picker.title}
+          className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg px-0 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 sm:w-auto sm:gap-1.5 sm:px-3"
         >
           <BrainCircuit className="h-4 w-4" />
-          <span>{picker.title}</span>
+          <span className="hidden sm:inline">{picker.title}</span>
           {selectedCount > 0 ? (
-            <span className="ml-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+            <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-white shadow-sm sm:static sm:ml-0.5 sm:bg-primary/10 sm:text-primary sm:shadow-none">
               {selectedCount}
             </span>
           ) : null}

@@ -212,11 +212,37 @@ describe('buildModelToolbarSelect', () => {
     });
 
     expect(select.value).toBe('minimax/MiniMax-M2.7');
-    expect(select.selectedLabel).toBe('MiniMax/MiniMax-M2.7');
+    expect(select.selectedLabel).toBe('MiniMax-M2.7');
     expect(select.options[0]).toEqual({
       value: 'minimax/MiniMax-M2.7',
       label: 'MiniMax/MiniMax-M2.7'
     });
+  });
+
+  it('keeps provider labels in the dropdown while using only the model name in the trigger', () => {
+    const select = buildModelToolbarSelect({
+      modelOptions: [
+        {
+          value: 'anthropic/claude-sonnet-4-very-long-name',
+          modelLabel: 'claude-sonnet-4-very-long-name',
+          providerLabel: 'Anthropic'
+        }
+      ],
+      recentModelValues: [],
+      selectedModel: 'anthropic/claude-sonnet-4-very-long-name',
+      isModelOptionsLoading: false,
+      hasModelOptions: true,
+      onValueChange: vi.fn(),
+      texts: {
+        modelSelectPlaceholder: 'Select model',
+        modelNoOptionsLabel: 'No models',
+        recentModelsLabel: 'Recent',
+        allModelsLabel: 'All models'
+      }
+    });
+
+    expect(select.selectedLabel).toBe('claude-sonnet-4-very-long-name');
+    expect(select.options[0]?.label).toBe('Anthropic/claude-sonnet-4-very-long-name');
   });
 
   it('groups recent models ahead of the remaining catalog', () => {

@@ -6,6 +6,7 @@ import {
   type ClipboardEvent,
   type FormEvent,
 } from 'react';
+import type { LexicalEditor } from 'lexical';
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { EditorRefPlugin } from '@lexical/react/LexicalEditorRefPlugin';
@@ -62,7 +63,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
   ChatInputBarTokenizedComposerHandle,
   ChatInputBarTokenizedComposerProps
 >(function ChatInputBarTokenizedComposer(props, ref) {
-  const editorRef = useRef<import('lexical').LexicalEditor | null>(null);
+  const editorRef = useRef<LexicalEditor | null>(null);
   const selectionRef = useRef<ChatComposerSelection | null>(null);
   const pendingSelectionRef = useRef<ChatComposerSelection | null>(null);
   const shouldFocusAfterSyncRef = useRef(false);
@@ -165,8 +166,8 @@ export const ChatInputBarTokenizedComposer = forwardRef<
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="px-4 py-2.5">
-        <div className="min-h-[60px]">
+      <div className="px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="min-h-11 sm:min-h-[60px]">
           <PlainTextPlugin
             contentEditable={
               <ContentEditable
@@ -208,7 +209,7 @@ export const ChatInputBarTokenizedComposer = forwardRef<
               />
             }
             placeholder={
-              <div className="pointer-events-none absolute left-4 top-2.5 select-none text-sm leading-6 text-gray-400">
+              <div className="pointer-events-none absolute left-3 top-2 select-none text-sm leading-6 text-gray-400 sm:left-4 sm:top-2.5">
                 {props.placeholder}
               </div>
             }

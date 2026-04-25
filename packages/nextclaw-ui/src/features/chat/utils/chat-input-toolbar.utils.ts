@@ -52,7 +52,9 @@ export function buildModelStateHint(params: {
   };
 }
 
-export function buildModelToolbarSelect(params: {
+export function buildModelToolbarSelect({
+  modelOptions, recentModelValues, selectedModel, isModelOptionsLoading, hasModelOptions, onValueChange, texts,
+}: {
   modelOptions: ChatModelRecord[];
   recentModelValues?: string[];
   selectedModel: string;
@@ -67,22 +69,21 @@ export function buildModelToolbarSelect(params: {
     | "allModelsLabel"
   >;
 }): ChatToolbarSelect {
-  const selectedModelOption = params.modelOptions.find(
-    (option) => option.value === params.selectedModel,
+  const selectedModelOption = modelOptions.find(
+    (option) => option.value === selectedModel,
   );
-  const fallbackModelOption = params.modelOptions[0];
-  const resolvedModelOption = selectedModelOption ?? fallbackModelOption;
-  const resolvedValue = params.hasModelOptions
+  const resolvedModelOption = selectedModelOption ?? modelOptions[0];
+  const resolvedValue = hasModelOptions
     ? resolvedModelOption?.value
     : undefined;
-  const recentValueSet = new Set(params.recentModelValues ?? []);
+  const recentValueSet = new Set(recentModelValues ?? []);
   const modelOptionMap = new Map(
-    params.modelOptions.map((option) => [option.value, option] as const),
+    modelOptions.map((option) => [option.value, option] as const),
   );
-  const recentOptions = (params.recentModelValues ?? [])
+  const recentOptions = (recentModelValues ?? [])
     .map((value) => modelOptionMap.get(value))
     .filter((option): option is ChatModelRecord => Boolean(option));
-  const remainingOptions = params.modelOptions.filter(
+  const remainingOptions = modelOptions.filter(
     (option) => !recentValueSet.has(option.value),
   );
   const optionGroups =
@@ -90,7 +91,7 @@ export function buildModelToolbarSelect(params: {
       ? [
           {
             key: "recent-models",
-            label: params.texts.recentModelsLabel,
+            label: texts.recentModelsLabel,
             options: recentOptions.map((option) => ({
               value: option.value,
               label: formatModelOptionLabel(option),
@@ -98,7 +99,7 @@ export function buildModelToolbarSelect(params: {
           },
           {
             key: "all-models",
-            label: params.texts.allModelsLabel,
+            label: texts.allModelsLabel,
             options: remainingOptions.map((option) => ({
               value: option.value,
               label: formatModelOptionLabel(option),
@@ -110,20 +111,20 @@ export function buildModelToolbarSelect(params: {
   return {
     key: "model",
     value: resolvedValue,
-    placeholder: params.texts.modelSelectPlaceholder,
+    placeholder: texts.modelSelectPlaceholder,
     selectedLabel: resolvedModelOption
-      ? formatModelOptionLabel(resolvedModelOption)
+      ? resolvedModelOption.modelLabel.trim() || formatModelOptionLabel(resolvedModelOption)
       : undefined,
     icon: "sparkles",
-    options: params.modelOptions.map((option) => ({
+    options: modelOptions.map((option) => ({
       value: option.value,
       label: formatModelOptionLabel(option),
     })),
     groups: optionGroups,
-    disabled: !params.hasModelOptions,
-    loading: params.isModelOptionsLoading,
-    emptyLabel: params.texts.modelNoOptionsLabel,
-    onValueChange: params.onValueChange,
+    disabled: !hasModelOptions,
+    loading: isModelOptionsLoading,
+    emptyLabel: texts.modelNoOptionsLabel,
+    onValueChange,
   };
 }
 

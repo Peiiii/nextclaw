@@ -28,13 +28,10 @@ function AccessoryIcon({ icon }: { icon?: ChatToolbarAccessoryIcon }) {
 
 function resolveTriggerWidth(key: string): string {
   if (key === 'model') {
-    return 'min-w-[220px]';
+    return 'min-w-0 flex-1';
   }
-  if (key === 'session-type') {
-    return 'min-w-[140px]';
-  }
-  if (key === 'thinking') {
-    return 'min-w-[150px]';
+  if (key === 'session-type' || key === 'thinking') {
+    return 'shrink-0';
   }
   return '';
 }
@@ -63,7 +60,7 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
   return (
     <Select value={item.value} onValueChange={item.onValueChange} disabled={item.disabled}>
       <SelectTrigger
-        className={`h-8 w-auto rounded-lg border-0 bg-transparent px-3 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 ${resolveTriggerWidth(item.key)}`}
+        className={`h-8 w-auto rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-gray-600 shadow-none hover:bg-gray-100 focus:ring-0 sm:px-3 ${resolveTriggerWidth(item.key)}`}
       >
         {item.selectedLabel ? (
           <div className="flex min-w-0 items-center gap-2 text-left">
@@ -113,16 +110,16 @@ function ToolbarSelect({ item }: { item: ChatToolbarSelect }) {
   );
 }
 
-export function ChatInputBarToolbar(props: ChatInputBarToolbarProps) {
+export function ChatInputBarToolbar({ actions, accessories, selects, skillPicker }: ChatInputBarToolbarProps) {
   const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
   return (
-    <div className="flex items-center justify-between px-3 pb-3">
-      <div className="flex items-center gap-1">
-        {props.skillPicker ? <ChatInputBarSkillPicker picker={props.skillPicker} /> : null}
-        {props.selects.map((item) => (
+    <div className="flex items-center justify-between gap-2 px-3 pb-3">
+      <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+        {skillPicker ? <ChatInputBarSkillPicker picker={skillPicker} /> : null}
+        {selects.map((item) => (
           <ToolbarSelect key={item.key} item={item} />
         ))}
-        {props.accessories?.map((item) => {
+        {accessories?.map((item) => {
           const button = (
             <button
               type="button"
@@ -153,7 +150,7 @@ export function ChatInputBarToolbar(props: ChatInputBarToolbarProps) {
           );
         })}
       </div>
-      <ChatInputBarActions {...props.actions} />
+      <ChatInputBarActions {...actions} />
     </div>
   );
 }
