@@ -60,6 +60,14 @@ export class CronTool extends Tool {
           type: "string",
           description: "Optional target agent id for the scheduled job. Omit to use the default agent."
         },
+        sessionId: {
+          type: "string",
+          description: "Optional target NCP session id. Omit to use the job-owned cron:<jobId> session."
+        },
+        session_id: {
+          type: "string",
+          description: "Alias of sessionId."
+        },
         accountId: { type: "string" },
         account_id: { type: "string" },
         includeDisabled: { type: "boolean", description: "For list only. When omitted, disabled jobs are included by default." },
@@ -140,6 +148,7 @@ export class CronTool extends Tool {
       schedule: parsed.schedule,
       message: parsed.message,
       agentId: parsed.agentId,
+      sessionId: parsed.sessionId,
       deliver: parsed.deliver,
       channel: this.channel,
       to: this.chatId,
@@ -162,6 +171,7 @@ export class CronTool extends Tool {
         schedule: CronSchedule;
         deliver: boolean;
         agentId?: string;
+        sessionId?: string;
         accountId?: string;
       }
     | { error: string } => {
@@ -180,6 +190,7 @@ export class CronTool extends Tool {
       schedule,
       deliver: Boolean(params.deliver ?? false),
       agentId: this.readString(params, "agentId"),
+      sessionId: this.readSessionId(params),
       accountId: this.readAccountId(params),
     };
   };
@@ -227,6 +238,10 @@ export class CronTool extends Tool {
 
   private readAccountId = (params: Record<string, unknown>): string | undefined => {
     return this.readString(params, "accountId") ?? this.readString(params, "account_id") ?? this.accountId;
+  };
+
+  private readSessionId = (params: Record<string, unknown>): string | undefined => {
+    return this.readString(params, "sessionId") ?? this.readString(params, "session_id");
   };
 
   private readString = (params: Record<string, unknown>, key: string): string | undefined => {

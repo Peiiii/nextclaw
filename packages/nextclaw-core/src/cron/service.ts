@@ -285,6 +285,7 @@ export class CronService {
     schedule: CronSchedule;
     message: string;
     agentId?: string;
+    sessionId?: string;
     deliver?: boolean;
     channel?: string;
     to?: string;
@@ -302,6 +303,7 @@ export class CronService {
         kind: "agent_turn",
         message: params.message,
         agentId: params.agentId,
+        sessionId: params.sessionId,
         deliver: params.deliver ?? false,
         channel: params.channel,
         to: params.to,

@@ -3,7 +3,7 @@ import { NcpEventType } from "@nextclaw/ncp";
 import {
   createCronJobHandler,
   createHeartbeatJobHandler,
-} from "../service-cron-job-handler.js";
+} from "@/cli/shared/services/gateway/cron-job-handler.service.js";
 
 function createAssistantMessage(text: string) {
   return {
@@ -105,6 +105,45 @@ describe("createCronJobHandler", () => {
     ).rejects.toThrow("NCP agent is not ready for cron execution.");
 
     expect(publishOutbound).not.toHaveBeenCalled();
+  });
+
+  it("uses a configured target session id instead of the job-owned cron session", async () => {
+    const send = vi.fn((_envelope: unknown) =>
+      (async function* () {
+        yield {
+          type: NcpEventType.MessageCompleted,
+          payload: {
+            message: createAssistantMessage("continued"),
+          },
+        } as never;
+      })());
+    const handler = createCronJobHandler({
+      resolveNcpAgent: () =>
+        ({
+          runApi: { send },
+        }) as never,
+      bus: {
+        publishOutbound: vi.fn(async () => undefined),
+      } as never,
+    });
+
+    await handler({
+      id: "job-session",
+      name: "continue-existing-thread",
+      payload: {
+        message: "continue",
+        sessionId: "session-existing",
+      },
+    });
+
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-existing",
+        message: expect.objectContaining({
+          sessionId: "session-existing",
+        }),
+      }),
+    );
   });
 
   it("fails fast when the NCP stream finishes without a completed assistant message", async () => {

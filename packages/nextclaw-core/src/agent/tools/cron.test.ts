@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { CronTool } from "./cron.js";
+import { CronTool } from "./cron-tool.service.js";
 
 describe("CronTool", () => {
   it("documents that relative times must be based on checked current time", () => {
@@ -96,6 +96,27 @@ describe("CronTool", () => {
     expect(cronService.addJob).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: "engineer",
+      })
+    );
+  });
+
+  it("passes target session ownership through when adding a job", async () => {
+    const cronService = {
+      addJob: vi.fn().mockReturnValue({ id: "job-session", name: "continue" })
+    };
+    const tool = new CronTool(cronService as never);
+
+    await tool.execute({
+      action: "add",
+      name: "continue",
+      message: "continue the thread",
+      every: 300,
+      session_id: "session-existing"
+    });
+
+    expect(cronService.addJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-existing",
       })
     );
   });

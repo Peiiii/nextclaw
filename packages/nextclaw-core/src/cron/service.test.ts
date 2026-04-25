@@ -33,6 +33,21 @@ describe("CronService", () => {
     rmSync(tempDir, { recursive: true, force: true });
   });
 
+  it("stores the target session id on created jobs", () => {
+    vi.setSystemTime(Date.parse("2026-04-08T02:00:00.000Z"));
+    const service = new CronService(storePath);
+
+    const job = service.addJob({
+      name: "continue-session",
+      schedule: { kind: "every", everyMs: 60_000 },
+      message: "continue the existing thread",
+      sessionId: "session-existing",
+    });
+
+    expect(job.payload.sessionId).toBe("session-existing");
+    expect(readStore(storePath).jobs[0]?.payload.sessionId).toBe("session-existing");
+  });
+
   it("preserves every-job cadence across service start without replaying missed runs", async () => {
     const firstScheduledRunAtMs = Date.parse("2026-04-08T02:10:00.000Z");
     const everyMs = 120_000;

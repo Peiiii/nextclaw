@@ -94,6 +94,7 @@ function readCronCreateParams(input: CronCreateRequest): { params: CronCreatePar
       message,
       schedule,
       agentId: readNonEmptyString(input.agentId),
+      sessionId: readNonEmptyString(input.sessionId),
       deliver: input.deliver === true,
       channel: readNonEmptyString(input.channel),
       to: readNonEmptyString(input.to),

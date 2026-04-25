@@ -11,6 +11,7 @@ type CronJobLike = {
   payload: {
     message: string;
     agentId?: string | null;
+    sessionId?: string | null;
     deliver?: boolean;
     channel?: string | null;
     to?: string | null;
@@ -138,7 +139,7 @@ export function createCronJobHandler(params: {
     }
     const accountId = normalizeOptionalString(job.payload.accountId);
     const agentId = normalizeOptionalString(job.payload.agentId) ?? "main";
-    const sessionId = `cron:${job.id}`;
+    const sessionId = normalizeOptionalString(job.payload.sessionId) ?? `cron:${job.id}`;
     const metadata = buildCronSessionMetadata({
       job,
       agentId,

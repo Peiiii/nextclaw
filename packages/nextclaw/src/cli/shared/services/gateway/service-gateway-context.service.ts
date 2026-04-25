@@ -9,7 +9,7 @@ import { resolveUiConfig, resolveUiStaticDir } from "@/cli/shared/utils/cli.util
 import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
 import { resolveChannelConfigView } from "@/cli/commands/channel/channel-config-view.js";
 import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
-import { createCronJobHandler, createHeartbeatJobHandler } from "@/cli/shared/services/gateway/service-cron-job-handler.js";
+import { createCronJobHandler, createHeartbeatJobHandler } from "@/cli/shared/services/gateway/cron-job-handler.service.js";
 import { createManagedRemoteModuleForUi } from "@/cli/shared/services/runtime/service-remote-runtime.service.js";
 import { measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 

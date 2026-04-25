@@ -430,9 +430,11 @@ export type CronPayloadView = {
   kind?: "system_event" | "agent_turn";
   message: string;
   agentId?: string | null;
+  sessionId?: string | null;
   deliver?: boolean;
   channel?: string | null;
   to?: string | null;
+  accountId?: string | null;
 };
 
 export type CronJobStateView = {
@@ -454,18 +456,11 @@ export type CronJobView = {
   deleteAfterRun: boolean;
 };
 
-export type CronListView = {
-  jobs: CronJobView[];
-  total: number;
-};
+export type CronListView = { jobs: CronJobView[]; total: number };
 
-export type CronEnableRequest = {
-  enabled: boolean;
-};
+export type CronEnableRequest = { enabled: boolean };
 
-export type CronRunRequest = {
-  force?: boolean;
-};
+export type CronRunRequest = { force?: boolean };
 
 export type CronActionResult = {
   job: CronJobView | null;

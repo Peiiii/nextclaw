@@ -1,8 +1,8 @@
 import { CronService, getDataDir } from "@nextclaw/core";
 import type { CronCreateRequest } from "@nextclaw/server";
 import { join } from "node:path";
-import type { CronAddOptions } from "../../../shared/types/cli.types.js";
-import type { CronJobView } from "../utils/cron-job.utils.js";
+import type { CronAddOptions } from "@/cli/shared/types/cli.types.js";
+import type { CronJobView } from "@/cli/commands/cron/utils/cron-job.utils.js";
 
 function createCronService(): CronService {
   const storePath = join(getDataDir(), "cron", "jobs.json");
@@ -58,6 +58,7 @@ export function createCronCreateRequest(opts: CronAddOptions): { request?: CronC
       message,
       schedule: schedule.schedule,
       agentId: readTrimmed(opts.agent),
+      sessionId: readTrimmed(opts.session),
       deliver: Boolean(opts.deliver),
       channel: readTrimmed(opts.channel),
       to: readTrimmed(opts.to),
@@ -79,6 +80,7 @@ export class CronLocalService {
       schedule: request.schedule,
       message: request.message,
       agentId: request.agentId ?? undefined,
+      sessionId: request.sessionId ?? undefined,
       deliver: request.deliver === true,
       channel: request.channel ?? undefined,
       to: request.to ?? undefined,

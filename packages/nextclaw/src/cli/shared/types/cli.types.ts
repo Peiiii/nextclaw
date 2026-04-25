@@ -1,4 +1,4 @@
-import type { RestartStrategy } from "../services/restart/restart-coordinator.service.js";
+import type { RestartStrategy } from "@/cli/shared/services/restart/restart-coordinator.service.js";
 import type { RemoteRuntimeState } from "@nextclaw/remote";
 
 export type {
@@ -226,6 +226,7 @@ export type CronAddOptions = {
   name: string;
   message: string;
   agent?: string;
+  session?: string;
   every?: string;
   cron?: string;
   at?: string;

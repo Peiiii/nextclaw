@@ -61,6 +61,10 @@ function describeDelivery(job: CronJobView): string {
   return `${channel}:${target}`;
 }
 
+function describeSession(job: CronJobView): string {
+  return job.payload.sessionId?.trim() || `cron:${job.id}`;
+}
+
 function matchQuery(job: CronJobView, query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
@@ -68,6 +72,7 @@ function matchQuery(job: CronJobView, query: string): boolean {
     job.id,
     job.name,
     job.payload.message,
+    job.payload.sessionId ?? '',
     job.payload.channel ?? '',
     job.payload.to ?? ''
   ].join(' ').toLowerCase();
@@ -104,6 +109,7 @@ function CronJobCard(props: {
             </div>
             <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeSchedule(job)}</div>
             <div className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{job.payload.message}</div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronSessionLabel')}: {describeSession(job)}</div>
             <div className="mt-2 text-xs text-gray-500">{t('cronDeliverTo')}: {describeDelivery(job)}</div>
           </div>
           <div className="min-w-[220px] space-y-2 text-xs text-gray-500">

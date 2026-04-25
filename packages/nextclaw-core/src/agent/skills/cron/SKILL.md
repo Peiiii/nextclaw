@@ -26,6 +26,8 @@ When filling `message`, write the runtime instruction for the agent, not just th
 
 If the user wants an exact message sent through WeChat or another channel, the instruction should explicitly say to send that exact text.
 
+If the user wants the scheduled task to continue an existing conversation or explicitly provides a session id, pass it as `sessionId`. Omit `sessionId` when the task should use its own job-owned `cron:<jobId>` session.
+
 ## Actions
 
 - `add`: create a scheduled job
@@ -44,6 +46,11 @@ cron(action="add", name="break-reminder", message="Time to take a break!", every
 Dynamic task (agent executes each time):
 ```
 cron(action="add", name="github-stars", message="Check Peiiii/nextclaw GitHub stars and report", every=600)
+```
+
+Continue an existing session:
+```
+cron(action="add", name="session-follow-up", message="Continue the existing investigation", every=3600, sessionId="session-existing")
 ```
 
 One-time reminder:

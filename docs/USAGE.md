@@ -1062,6 +1062,12 @@ Add a job that runs every N seconds:
 nextclaw cron add -n "ping" -m "Ping" -e 3600
 ```
 
+Optional: run the job in a specific NCP session:
+
+```bash
+nextclaw cron add -n "follow-up" -m "Continue the existing work" -e 3600 --session <session-id>
+```
+
 Optional: deliver the agent’s reply to a channel:
 
 ```bash

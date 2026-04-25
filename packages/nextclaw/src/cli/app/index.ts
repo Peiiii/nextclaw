@@ -2,15 +2,15 @@
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
-import { LlmUsageCommandService } from "../commands/usage/index.js";
+import { LlmUsageCommandService } from "@/cli/commands/usage/index.js";
 import { CliRuntime, LOGO } from "./runtime.js";
-import { registerSkillsCommands } from "../commands/skills/index.js";
+import { registerSkillsCommands } from "@/cli/commands/skills/index.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
-import { registerLearningLoopCommands } from "../commands/learning-loop/index.js";
+import { registerLearningLoopCommands } from "@/cli/commands/learning-loop/index.js";
 import { registerServiceCommands } from "./service-command-registration.service.js";
-import { logStartupTrace, measureStartupSync } from "../shared/utils/startup-trace.js";
-import { getPackageVersion } from "../shared/utils/cli.utils.js";
-import type { ServiceCommands } from "../commands/service/index.js";
+import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
+import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
+import type { ServiceCommands } from "@/cli/commands/service/index.js";
 
 logStartupTrace("cli.index.module_loaded");
 
@@ -352,6 +352,7 @@ cron
   .requiredOption("-n, --name <name>", "Job name")
   .requiredOption("-m, --message <message>", "Message for agent")
   .option("--agent <id>", "Target agent id")
+  .option("--session <id>", "Target NCP session id")
   .option("-e, --every <seconds>", "Run every N seconds")
   .option("-c, --cron <expr>", "Cron expression")
   .option("--at <iso>", "Run once at time (ISO format)")

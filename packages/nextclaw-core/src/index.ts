@@ -14,7 +14,7 @@ export * from "./agent/silent-reply-policy.js";
 export * from "./agent/subagent.js";
 export * from "./agent/agent-thinking.js";
 export * from "./agent/tools/base.js";
-export * from "./agent/tools/cron.js";
+export * from "./agent/tools/cron-tool.service.js";
 export * from "./agent/tools/filesystem.js";
 export * from "./agent/tools/message.js";
 export * from "./agent/tools/registry.js";

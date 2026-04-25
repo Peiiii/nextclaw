@@ -461,7 +461,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
     zh: '从左侧列表选择一个会话以查看聊天历史并配置其元信息。',
     en: 'Select a session from the list on the left to view its chat history and configure its metadata.'
   },
-
   // Chat
   ...AGENT_LABELS,
   ...CHAT_LABELS,
@@ -478,6 +477,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   cronLoading: { zh: '加载定时任务中...', en: 'Loading cron jobs...' },
   cronEmpty: { zh: '暂无定时任务。', en: 'No cron jobs yet.' },
   cronScheduleLabel: { zh: '计划', en: 'Schedule' },
+  cronSessionLabel: { zh: '会话', en: 'Session' },
   cronDeliverTo: { zh: '投递到', en: 'Deliver to' },
   cronNextRun: { zh: '下次执行', en: 'Next run' },
   cronLastRun: { zh: '上次执行', en: 'Last run' },
