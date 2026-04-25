@@ -1,13 +1,13 @@
 export default {
-  "generatedAt": "2026-04-16T02:02:34.287Z",
+  "generatedAt": "2026-04-25T18:21:41.214Z",
   "hero": {
     "currentLoc": 182759,
     "trackedFiles": 1321,
-    "recentCommitCount": 607,
+    "recentCommitCount": 640,
     "activeDays30": 30,
-    "recentReleaseCount": 52,
-    "latestReleaseDate": "2026-04-14",
-    "latestNoteDate": "2026-04-03",
+    "recentReleaseCount": 61,
+    "latestReleaseDate": "2026-04-26",
+    "latestNoteDate": "2026-04-26",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1842003,
     "basePercentOfBenchmark": 9.92,
@@ -299,54 +299,54 @@ export default {
         "key": "2026-04-16",
         "label": "04-16",
         "value": 182759
+      },
+      {
+        "key": "2026-04-17",
+        "label": "04-17",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-18",
+        "label": "04-18",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-19",
+        "label": "04-19",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-20",
+        "label": "04-20",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-21",
+        "label": "04-21",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-22",
+        "label": "04-22",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-23",
+        "label": "04-23",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-24",
+        "label": "04-24",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-25",
+        "label": "04-25",
+        "value": 182759
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-03-18",
-        "label": "03-18",
-        "value": 6
-      },
-      {
-        "key": "2026-03-19",
-        "label": "03-19",
-        "value": 60
-      },
-      {
-        "key": "2026-03-20",
-        "label": "03-20",
-        "value": 8
-      },
-      {
-        "key": "2026-03-21",
-        "label": "03-21",
-        "value": 9
-      },
-      {
-        "key": "2026-03-22",
-        "label": "03-22",
-        "value": 21
-      },
-      {
-        "key": "2026-03-23",
-        "label": "03-23",
-        "value": 17
-      },
-      {
-        "key": "2026-03-24",
-        "label": "03-24",
-        "value": 28
-      },
-      {
-        "key": "2026-03-25",
-        "label": "03-25",
-        "value": 29
-      },
-      {
-        "key": "2026-03-26",
-        "label": "03-26",
-        "value": 24
-      },
       {
         "key": "2026-03-27",
         "label": "03-27",
@@ -450,15 +450,55 @@ export default {
       {
         "key": "2026-04-16",
         "label": "04-16",
-        "value": 7
+        "value": 12
+      },
+      {
+        "key": "2026-04-17",
+        "label": "04-17",
+        "value": 32
+      },
+      {
+        "key": "2026-04-18",
+        "label": "04-18",
+        "value": 40
+      },
+      {
+        "key": "2026-04-19",
+        "label": "04-19",
+        "value": 32
+      },
+      {
+        "key": "2026-04-20",
+        "label": "04-20",
+        "value": 19
+      },
+      {
+        "key": "2026-04-21",
+        "label": "04-21",
+        "value": 50
+      },
+      {
+        "key": "2026-04-22",
+        "label": "04-22",
+        "value": 4
+      },
+      {
+        "key": "2026-04-23",
+        "label": "04-23",
+        "value": 25
+      },
+      {
+        "key": "2026-04-24",
+        "label": "04-24",
+        "value": 17
+      },
+      {
+        "key": "2026-04-25",
+        "label": "04-25",
+        "value": 11
       }
     ],
     "commitWeekly": [
-      {
-        "key": "2026-01-26",
-        "label": "01-26",
-        "value": 0
-      },
       {
         "key": "2026-02-02",
         "label": "02-02",
@@ -512,7 +552,12 @@ export default {
       {
         "key": "2026-04-13",
         "label": "04-13",
-        "value": 79
+        "value": 188
+      },
+      {
+        "key": "2026-04-20",
+        "label": "04-20",
+        "value": 127
       }
     ],
     "releaseMonthly": [
@@ -569,12 +614,12 @@ export default {
       {
         "key": "2026-03",
         "label": "03/26",
-        "value": 27
+        "value": 28
       },
       {
         "key": "2026-04",
         "label": "04/26",
-        "value": 8
+        "value": 17
       }
     ]
   },
@@ -637,63 +682,82 @@ export default {
     },
     "recentReleaseBatches": [
       {
-        "date": "2026-04-14",
-        "tagCount": 38,
-        "sampleTags": [
-          "v0.17.11-desktop.1",
-          "@nextclaw/agent-chat-ui@0.3.5",
-          "@nextclaw/agent-chat@0.1.10"
-        ]
-      },
-      {
-        "date": "2026-04-13",
-        "tagCount": 59,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.3",
-          "@nextclaw/channel-plugin-dingtalk@0.2.35",
-          "@nextclaw/channel-plugin-discord@0.2.35"
-        ]
-      },
-      {
-        "date": "2026-04-12",
+        "date": "2026-04-26",
         "tagCount": 5,
         "sampleTags": [
-          "v0.17.6-desktop-beta.2",
-          "v0.17.6-desktop-beta.3",
-          "v0.17.6-desktop-beta.4"
+          "@nextclaw/agent-chat-ui@0.3.12",
+          "@nextclaw/ui@0.12.17",
+          "nextclaw@0.18.8"
         ]
       },
       {
-        "date": "2026-04-10",
-        "tagCount": 31,
+        "date": "2026-04-25",
+        "tagCount": 7,
         "sampleTags": [
-          "v0.15.62-desktop-beta.3",
-          "v0.15.73-desktop-beta.1",
-          "@nextclaw/agent-chat-ui@0.3.2"
+          "@nextclaw/app-runtime@0.7.0",
+          "@nextclaw/app-sdk@0.1.0",
+          "@nextclaw/agent-chat-ui@0.3.10"
         ]
       },
       {
-        "date": "2026-04-09",
-        "tagCount": 34,
+        "date": "2026-04-24",
+        "tagCount": 43,
         "sampleTags": [
-          "@nextclaw/channel-plugin-dingtalk@0.2.33",
-          "@nextclaw/channel-plugin-discord@0.2.33",
-          "@nextclaw/agent-chat@0.1.8"
+          "@nextclaw/channel-plugin-dingtalk@0.2.42",
+          "@nextclaw/channel-plugin-discord@0.2.42",
+          "@nextclaw/channel-plugin-email@0.2.42"
         ]
       },
       {
-        "date": "2026-04-08",
-        "tagCount": 56,
+        "date": "2026-04-20",
+        "tagCount": 38,
         "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.0",
-          "@nextclaw/channel-plugin-dingtalk@0.2.31",
-          "@nextclaw/channel-plugin-discord@0.2.31"
+          "@nextclaw/agent-chat-ui@0.3.8",
+          "@nextclaw/channel-plugin-dingtalk@0.2.41",
+          "@nextclaw/channel-plugin-discord@0.2.41"
+        ]
+      },
+      {
+        "date": "2026-04-18",
+        "tagCount": 38,
+        "sampleTags": [
+          "v0.18.0-desktop.1",
+          "@nextclaw/channel-plugin-dingtalk@0.2.40",
+          "@nextclaw/agent-chat-ui@0.3.7"
+        ]
+      },
+      {
+        "date": "2026-04-17",
+        "tagCount": 59,
+        "sampleTags": [
+          "@nextclaw/channel-plugin-dingtalk@0.2.38",
+          "@nextclaw/agent-chat-ui@0.3.6",
+          "@nextclaw/channel-plugin-discord@0.2.38"
         ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-04-26-mobile-experience-update",
+        "date": "2026-04-26",
+        "tags": [
+          "release",
+          "mobile",
+          "chat"
+        ],
+        "en": {
+          "title": "2026-04-26 · NextClaw Feels Better on Mobile",
+          "description": "NextClaw recently shipped a mobile experience update. Once deployed, opening NextClaw from a mobile browser now shows a cleaner chat, session, and input experience for small screens.",
+          "href": "/en/notes/2026-04-26-mobile-experience-update"
+        },
+        "zh": {
+          "title": "2026-04-26 · 手机端访问更顺手了",
+          "description": "NextClaw 最近完成了一轮移动端体验适配。部署后的 NextClaw 用手机浏览器打开，会自动呈现更适合手机的聊天、会话和输入体验。",
+          "href": "/zh/notes/2026-04-26-mobile-experience-update"
+        }
+      },
       {
         "slug": "2026-04-03-project-aware-sessions-and-unified-patch-release",
         "date": "2026-04-03",
@@ -835,7 +899,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-04-14T03:21:09.237Z",
     "sourceCount": {
-      "notes": 3,
+      "notes": 4,
       "scopes": 8
     }
   }
