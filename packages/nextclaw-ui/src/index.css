@@ -220,6 +220,16 @@
   --md-code-toolbar-bg: rgba(15, 23, 42, 0.56);
   --md-code-toolbar-border: rgba(148, 163, 184, 0.3);
   --md-code-text: #e5e7eb;
+  --md-code-muted: #9ca3af;
+  --md-code-keyword: #c084fc;
+  --md-code-title: #93c5fd;
+  --md-code-string: #86efac;
+  --md-code-number: #fbbf24;
+  --md-code-comment: #94a3b8;
+  --md-code-attr: #67e8f9;
+  --md-code-meta: #f0abfc;
+  --md-code-deletion: #fca5a5;
+  --md-code-addition: #86efac;
   --md-table-head-bg: rgba(148, 163, 184, 0.14);
 
   color: var(--md-text);
@@ -241,6 +251,16 @@
   --md-code-toolbar-bg: rgba(2, 6, 23, 0.88);
   --md-code-toolbar-border: rgba(191, 219, 254, 0.26);
   --md-code-text: #e2e8f0;
+  --md-code-muted: #a5b4fc;
+  --md-code-keyword: #d8b4fe;
+  --md-code-title: #bfdbfe;
+  --md-code-string: #bbf7d0;
+  --md-code-number: #fde68a;
+  --md-code-comment: #cbd5e1;
+  --md-code-attr: #a5f3fc;
+  --md-code-meta: #f5d0fe;
+  --md-code-deletion: #fecaca;
+  --md-code-addition: #bbf7d0;
   --md-table-head-bg: rgba(191, 219, 254, 0.16);
 }
 
@@ -394,9 +414,12 @@
 .chat-codeblock {
   margin: 0.2rem 0 0.1rem;
   border: 1px solid var(--md-code-toolbar-border);
-  border-radius: 0.78rem;
+  border-radius: 0.5rem;
   overflow: hidden;
-  background: var(--md-code-surface);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0)),
+    var(--md-code-surface);
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.13);
 }
 
 .chat-codeblock-toolbar {
@@ -426,7 +449,7 @@
   font-weight: 600;
   color: var(--md-code-text);
   border: 1px solid var(--md-code-toolbar-border);
-  border-radius: 0.48rem;
+  border-radius: 0.42rem;
   padding: 0.18rem 0.36rem;
   background: transparent;
   cursor: pointer;
@@ -439,17 +462,86 @@
 
 .chat-codeblock pre {
   margin: 0;
-  padding: 0.75rem 0.82rem 0.8rem;
+  padding: 0.8rem 0.9rem 0.86rem;
   overflow-x: auto;
   background: transparent;
+  scrollbar-color: rgba(148, 163, 184, 0.48) transparent;
+  scrollbar-width: thin;
 }
 
 .chat-codeblock code {
   display: block;
   min-width: max-content;
   white-space: pre;
-  line-height: 1.58;
+  line-height: 1.62;
   color: var(--md-code-text);
+  font-size: 0.79rem;
+  font-variant-ligatures: none;
+  tab-size: 2;
+}
+
+.chat-codeblock .hljs-keyword,
+.chat-codeblock .hljs-built_in,
+.chat-codeblock .hljs-type,
+.chat-codeblock .hljs-literal,
+.chat-codeblock .hljs-selector-tag {
+  color: var(--md-code-keyword);
+}
+
+.chat-codeblock .hljs-title,
+.chat-codeblock .hljs-title.function_,
+.chat-codeblock .hljs-title.class_,
+.chat-codeblock .hljs-section,
+.chat-codeblock .hljs-selector-id {
+  color: var(--md-code-title);
+}
+
+.chat-codeblock .hljs-string,
+.chat-codeblock .hljs-regexp,
+.chat-codeblock .hljs-symbol,
+.chat-codeblock .hljs-bullet {
+  color: var(--md-code-string);
+}
+
+.chat-codeblock .hljs-number,
+.chat-codeblock .hljs-variable,
+.chat-codeblock .hljs-template-variable,
+.chat-codeblock .hljs-params {
+  color: var(--md-code-number);
+}
+
+.chat-codeblock .hljs-comment,
+.chat-codeblock .hljs-quote {
+  color: var(--md-code-comment);
+  font-style: italic;
+}
+
+.chat-codeblock .hljs-attr,
+.chat-codeblock .hljs-attribute,
+.chat-codeblock .hljs-property,
+.chat-codeblock .hljs-name,
+.chat-codeblock .hljs-selector-class {
+  color: var(--md-code-attr);
+}
+
+.chat-codeblock .hljs-meta,
+.chat-codeblock .hljs-doctag,
+.chat-codeblock .hljs-tag {
+  color: var(--md-code-meta);
+}
+
+.chat-codeblock .hljs-subst,
+.chat-codeblock .hljs-punctuation,
+.chat-codeblock .hljs-operator {
+  color: var(--md-code-muted);
+}
+
+.chat-codeblock .hljs-deletion {
+  color: var(--md-code-deletion);
+}
+
+.chat-codeblock .hljs-addition {
+  color: var(--md-code-addition);
 }
 
 .chat-table-wrap {
