@@ -128,18 +128,13 @@ export abstract class InMemorySectionRepositoryBase {
     }
     return score > 0;
   };
-
   private computeScore = (item: MarketplaceItem, q: string | undefined): number => {
-    if (!q) {
+    const normalized = q?.trim().toLowerCase() ?? "";
+    const compactQuery = normalized.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
+    if (!compactQuery) {
       return 0;
     }
-
-    const normalized = q.trim().toLowerCase();
-    if (!normalized) {
-      return 0;
-    }
-
-    let score = 0;
+    const terms = normalized.split(/[\s/_-]+/).map((term) => term.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "")).filter(Boolean);
     const name = item.name.toLowerCase();
     const slug = item.slug.toLowerCase();
     const summary = item.summary.toLowerCase();
@@ -148,25 +143,26 @@ export abstract class InMemorySectionRepositoryBase {
     const description = item.description?.toLowerCase() ?? "";
     const descriptionLocalized = Object.values(item.descriptionI18n ?? {}).map((text) => text.toLowerCase());
     const tags = item.tags.map((tag) => tag.toLowerCase());
-    score += this.scoreStringMatch(name, normalized, 8);
-    score += this.scoreStringMatch(slug, normalized, 5);
-    score += this.scoreStringMatch(packageName, normalized, 5);
-    score += this.scoreStringMatch(summary, normalized, 3);
-    score += this.scoreArrayMatch(summaryLocalized, normalized, 3);
-    score += this.scoreStringMatch(description, normalized, 2);
-    score += this.scoreArrayMatch(descriptionLocalized, normalized, 2);
-    score += this.scoreArrayMatch(tags, normalized, 4);
-    return score;
+    const values = [name, slug, packageName, summary, description, ...summaryLocalized, ...descriptionLocalized, ...tags];
+    if (!terms.every((term) => values.some((value) => value.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "").includes(term)))) {
+      return 0;
+    }
+    return this.scoreStringMatch(name, normalized, compactQuery, terms, 8)
+      + this.scoreStringMatch(slug, normalized, compactQuery, terms, 5)
+      + this.scoreStringMatch(packageName, normalized, compactQuery, terms, 5)
+      + this.scoreStringMatch(summary, normalized, compactQuery, terms, 3)
+      + this.scoreArrayMatch(summaryLocalized, normalized, compactQuery, terms, 3)
+      + this.scoreStringMatch(description, normalized, compactQuery, terms, 2)
+      + this.scoreArrayMatch(descriptionLocalized, normalized, compactQuery, terms, 2)
+      + this.scoreArrayMatch(tags, normalized, compactQuery, terms, 4);
   };
-
-  private scoreStringMatch = (value: string, query: string, score: number): number => {
-    return value.includes(query) ? score : 0;
+  private scoreStringMatch = (value: string, query: string, compactQuery: string, terms: string[], score: number): number => {
+    const compact = value.replace(/[^a-z0-9\u4e00-\u9fff]+/g, "");
+    return value.includes(query) || compact.includes(compactQuery) || terms.every((term) => compact.includes(term)) ? score : 0;
   };
-
-  private scoreArrayMatch = (values: string[], query: string, score: number): number => {
-    return values.some((value) => value.includes(query)) ? score : 0;
+  private scoreArrayMatch = (values: string[], query: string, compactQuery: string, terms: string[], score: number): number => {
+    return values.some((value) => this.scoreStringMatch(value, query, compactQuery, terms, score) > 0) ? score : 0;
   };
-
   private sortItems = (entries: ScoreEntry[], sort: MarketplaceSort, q: string | undefined): ScoreEntry[] => {
     const next = [...entries];
 

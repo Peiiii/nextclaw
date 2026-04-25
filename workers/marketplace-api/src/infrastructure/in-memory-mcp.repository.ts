@@ -1,6 +1,6 @@
 import type { McpRepository } from "../domain/mcp-repository";
 import type { MarketplaceSectionDataSource } from "../domain/repository";
-import { InMemorySectionRepositoryBase } from "./in-memory-section-repository-base";
+import { InMemorySectionRepositoryBase } from "./in-memory-section-repository-base.service";
 
 type RepositoryOptions = {
   cacheTtlMs?: number;

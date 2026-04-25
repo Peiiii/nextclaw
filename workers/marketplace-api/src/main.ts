@@ -15,9 +15,9 @@ import {
   D1MarketplaceSkillDataSource,
 } from "./infrastructure/d1-data-source";
 import { D1MarketplaceMcpDataSource } from "./infrastructure/d1-mcp-data-source";
-import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp-repository";
-import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin-repository";
-import { InMemorySkillRepository } from "./infrastructure/in-memory-skill-repository";
+import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp.repository";
+import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin.repository";
+import { InMemorySkillRepository } from "./infrastructure/in-memory-skill.repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
 import { registerAdminAppRoutes } from "./presentation/http/admin-app-routes";
 import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes";
