@@ -18,7 +18,7 @@ import type { AdminOverview, UserView } from '@/api/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TableWrap } from '@/components/ui/table';
-import { formatUsd } from '@/lib/utils';
+import { compactId, formatDateTime, formatUsd } from '@/lib/utils';
 
 type Props = {
   token: string;
@@ -30,13 +30,15 @@ type UpdateQuotaPayload = {
   paidBalanceDeltaUsd?: number;
 };
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [20, 50, 100];
 
 export function AdminUserQuotaPage({ token }: Props): JSX.Element {
   const queryClient = useQueryClient();
   const [globalLimitDraft, setGlobalLimitDraft] = useState('');
   const [userSearchInput, setUserSearchInput] = useState('');
   const [userSearch, setUserSearch] = useState('');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [userCursor, setUserCursor] = useState<string | null>(null);
   const [userCursorHistory, setUserCursorHistory] = useState<Array<string | null>>([]);
   const [freeLimitEdits, setFreeLimitEdits] = useState<Record<string, string>>({});
@@ -47,9 +49,9 @@ export function AdminUserQuotaPage({ token }: Props): JSX.Element {
     queryFn: async () => await fetchAdminOverview(token)
   });
   const usersQuery = useQuery({
-    queryKey: ['admin-users', userSearch, userCursor],
+    queryKey: ['admin-users', userSearch, pageSize, userCursor],
     queryFn: async () => await fetchAdminUsers(token, {
-      limit: PAGE_SIZE,
+      limit: pageSize,
       q: userSearch,
       cursor: userCursor
     })
@@ -81,7 +83,20 @@ export function AdminUserQuotaPage({ token }: Props): JSX.Element {
     }
   });
 
-  const users = usersQuery.data?.items ?? [];
+  const usersPage = usersQuery.data;
+  const users = usersPage?.items ?? [];
+  const currentPage = userCursorHistory.length + 1;
+  const totalUsers = usersPage?.total ?? (userSearch ? users.length : overviewQuery.data?.userCount ?? 0);
+  const currentPageStart = totalUsers === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const currentPageEnd = totalUsers === 0 ? 0 : currentPageStart + users.length - 1;
+  const currentPageAdminCount = users.filter((user) => user.role === 'admin').length;
+  const currentPageUserCount = users.length - currentPageAdminCount;
+  const savingUserId = updateQuotaMutation.isPending ? updateQuotaMutation.variables?.userId ?? null : null;
+
+  const resetUserListState = (): void => {
+    setUserCursor(null);
+    setUserCursorHistory([]);
+  };
 
   return (
     <AdminPage>
@@ -100,34 +115,52 @@ export function AdminUserQuotaPage({ token }: Props): JSX.Element {
         />
       </AdminSection>
 
-      <AdminSection title="用户额度表格" description="以表格为主进行搜索、分页和行内额度调整。">
+      <AdminSection
+        title="用户额度表格"
+        description="支持按账号检索、查看注册时间与额度状态，并在同一页完成额度治理。"
+      >
         <UserQuotaManagementCard
           users={users}
+          totalUsers={totalUsers}
+          pageSize={pageSize}
+          currentPage={currentPage}
+          currentPageStart={currentPageStart}
+          currentPageEnd={currentPageEnd}
+          currentPageAdminCount={currentPageAdminCount}
+          currentPageUserCount={currentPageUserCount}
+          activeSearch={userSearch}
           searchInput={userSearchInput}
           freeLimitEdits={freeLimitEdits}
           paidDeltaEdits={paidDeltaEdits}
+          savingUserId={savingUserId}
           isLoading={usersQuery.isLoading}
           listErrorMessage={usersQuery.error instanceof Error ? usersQuery.error.message : null}
           updateErrorMessage={updateQuotaMutation.error instanceof Error ? updateQuotaMutation.error.message : null}
           canPrev={userCursorHistory.length > 0}
-          canNext={Boolean(usersQuery.data?.hasMore && usersQuery.data?.nextCursor)}
+          canNext={Boolean(usersPage?.hasMore && usersPage.nextCursor)}
           onSearchInputChange={setUserSearchInput}
           onSearch={() => {
             setUserSearch(userSearchInput.trim());
-            setUserCursor(null);
-            setUserCursorHistory([]);
+            resetUserListState();
           }}
           onClearSearch={() => {
             setUserSearchInput('');
             setUserSearch('');
-            setUserCursor(null);
-            setUserCursorHistory([]);
+            resetUserListState();
+          }}
+          onPageSizeChange={(value) => {
+            setPageSize(value);
+            resetUserListState();
           }}
           onFreeLimitEditChange={(userId, value) => {
             setFreeLimitEdits((prev) => ({ ...prev, [userId]: value }));
           }}
           onPaidDeltaEditChange={(userId, value) => {
             setPaidDeltaEdits((prev) => ({ ...prev, [userId]: value }));
+          }}
+          onResetUserEdits={(userId) => {
+            setFreeLimitEdits((prev) => clearEdit(prev, userId));
+            setPaidDeltaEdits((prev) => clearEdit(prev, userId));
           }}
           onSaveUserQuota={(user) => {
             updateQuotaMutation.mutate(buildUpdateQuotaPayload(user, freeLimitEdits, paidDeltaEdits));
@@ -139,7 +172,7 @@ export function AdminUserQuotaPage({ token }: Props): JSX.Element {
           }}
           onNextPage={() => {
             setUserCursorHistory((prev) => [...prev, userCursor]);
-            setUserCursor(usersQuery.data?.nextCursor ?? null);
+            setUserCursor(usersPage?.nextCursor ?? null);
           }}
         />
       </AdminSection>
@@ -187,9 +220,18 @@ function GlobalQuotaCard(props: {
 
 function UserQuotaManagementCard(props: {
   users: UserView[];
+  totalUsers: number;
+  pageSize: number;
+  currentPage: number;
+  currentPageStart: number;
+  currentPageEnd: number;
+  currentPageAdminCount: number;
+  currentPageUserCount: number;
+  activeSearch: string;
   searchInput: string;
   freeLimitEdits: Record<string, string>;
   paidDeltaEdits: Record<string, string>;
+  savingUserId: string | null;
   isLoading: boolean;
   listErrorMessage: string | null;
   updateErrorMessage: string | null;
@@ -198,34 +240,59 @@ function UserQuotaManagementCard(props: {
   onSearchInputChange: (value: string) => void;
   onSearch: () => void;
   onClearSearch: () => void;
+  onPageSizeChange: (value: number) => void;
   onFreeLimitEditChange: (userId: string, value: string) => void;
   onPaidDeltaEditChange: (userId: string, value: string) => void;
+  onResetUserEdits: (userId: string) => void;
   onSaveUserQuota: (user: UserView) => void;
   onPrevPage: () => void;
   onNextPage: () => void;
 }): JSX.Element {
+  const resultLabel = props.activeSearch
+    ? `检索 "${props.activeSearch}" 命中 ${props.totalUsers} 位用户`
+    : `共 ${props.totalUsers} 位用户`;
+
   return (
     <AdminSurface className="space-y-4 p-5">
-      <AdminToolbar
-        className="flex flex-wrap gap-2"
-      >
+      <AdminToolbar className="flex flex-wrap justify-between gap-3">
         <form
-          className="flex flex-wrap gap-2"
+          className="flex flex-1 flex-wrap gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             props.onSearch();
           }}
         >
           <Input
-            className="max-w-sm"
-            placeholder="按邮箱搜索"
+            className="min-w-[260px] flex-1"
+            placeholder="按邮箱、用户名或用户 ID 搜索"
             value={props.searchInput}
             onChange={(event) => props.onSearchInputChange(event.target.value)}
           />
           <Button type="submit" variant="secondary">搜索</Button>
           <Button type="button" variant="ghost" onClick={props.onClearSearch}>清空</Button>
         </form>
+
+        <label className="flex items-center gap-2 text-sm text-[#656561]">
+          每页数量
+          <select
+            className="h-10 rounded-lg border border-[#d9d3c5] bg-white px-3 text-sm text-[#1f1f1d] outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            value={props.pageSize}
+            onChange={(event) => props.onPageSizeChange(Number(event.target.value))}
+          >
+            {PAGE_SIZE_OPTIONS.map((option) => (
+              <option key={option} value={option}>{option} 条</option>
+            ))}
+          </select>
+        </label>
       </AdminToolbar>
+
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl bg-[#f6f3ec] px-4 py-3 text-sm text-[#4d4a43]">
+        <span>{resultLabel}</span>
+        <span>第 {props.currentPage} 页</span>
+        <span>当前展示 {props.currentPageStart}-{props.currentPageEnd}</span>
+        <span>本页管理员 {props.currentPageAdminCount} 位</span>
+        <span>本页普通用户 {props.currentPageUserCount} 位</span>
+      </div>
 
       {props.isLoading ? <p className="text-sm text-[#8f8a7d]">加载用户中...</p> : null}
       {props.listErrorMessage ? <p className="text-sm text-rose-600">{props.listErrorMessage}</p> : null}
@@ -234,16 +301,24 @@ function UserQuotaManagementCard(props: {
         users={props.users}
         freeLimitEdits={props.freeLimitEdits}
         paidDeltaEdits={props.paidDeltaEdits}
+        savingUserId={props.savingUserId}
         onFreeLimitEditChange={props.onFreeLimitEditChange}
         onPaidDeltaEditChange={props.onPaidDeltaEditChange}
+        onResetUserEdits={props.onResetUserEdits}
         onSaveUserQuota={props.onSaveUserQuota}
       />
 
+      {!props.isLoading && props.users.length === 0 ? (
+        <p className="text-sm text-[#8f8a7d]">当前条件下没有用户记录。</p>
+      ) : null}
       {props.updateErrorMessage ? <p className="text-sm text-rose-600">{props.updateErrorMessage}</p> : null}
 
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="ghost" className="h-8 px-3" disabled={!props.canPrev} onClick={props.onPrevPage}>上一页</Button>
-        <Button variant="secondary" className="h-8 px-3" disabled={!props.canNext} onClick={props.onNextPage}>下一页</Button>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-[#656561]">分页摘要：第 {props.currentPage} 页，每页 {props.pageSize} 条。</p>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" className="h-8 px-3" disabled={!props.canPrev} onClick={props.onPrevPage}>上一页</Button>
+          <Button variant="secondary" className="h-8 px-3" disabled={!props.canNext} onClick={props.onNextPage}>下一页</Button>
+        </div>
       </div>
     </AdminSurface>
   );
@@ -253,51 +328,96 @@ function UserQuotaTable(props: {
   users: UserView[];
   freeLimitEdits: Record<string, string>;
   paidDeltaEdits: Record<string, string>;
+  savingUserId: string | null;
   onFreeLimitEditChange: (userId: string, value: string) => void;
   onPaidDeltaEditChange: (userId: string, value: string) => void;
+  onResetUserEdits: (userId: string) => void;
   onSaveUserQuota: (user: UserView) => void;
 }): JSX.Element {
   return (
     <TableWrap>
-      <table className="w-full text-left text-sm">
+      <table className="min-w-[1240px] w-full text-left text-sm">
         <thead className="bg-[#f3f2ee] text-xs uppercase tracking-wide text-[#8f8a7d]">
           <tr>
-            <th className="px-3 py-2">邮箱</th>
+            <th className="px-3 py-2">账号</th>
             <th className="px-3 py-2">角色</th>
-            <th className="px-3 py-2">免费上限</th>
-            <th className="px-3 py-2">免费剩余</th>
+            <th className="px-3 py-2">注册时间</th>
+            <th className="px-3 py-2">最近更新</th>
+            <th className="px-3 py-2">免费额度概览</th>
             <th className="px-3 py-2">付费余额</th>
+            <th className="px-3 py-2">调整免费上限</th>
             <th className="px-3 py-2">余额增减</th>
             <th className="px-3 py-2">操作</th>
           </tr>
         </thead>
         <tbody>
-          {props.users.map((user) => (
-            <tr key={user.id} className="border-t border-[#ece7dd]">
-              <td className="px-3 py-2">{user.email}</td>
-              <td className="px-3 py-2">{user.role}</td>
-              <td className="px-3 py-2">
-                <Input
-                  className="h-8 w-28"
-                  value={props.freeLimitEdits[user.id] ?? String(user.freeLimitUsd)}
-                  onChange={(event) => props.onFreeLimitEditChange(user.id, event.target.value)}
-                />
-              </td>
-              <td className="px-3 py-2">{formatUsd(user.freeRemainingUsd)}</td>
-              <td className="px-3 py-2">{formatUsd(user.paidBalanceUsd)}</td>
-              <td className="px-3 py-2">
-                <Input
-                  className="h-8 w-28"
-                  placeholder="如 10 / -5"
-                  value={props.paidDeltaEdits[user.id] ?? '0'}
-                  onChange={(event) => props.onPaidDeltaEditChange(user.id, event.target.value)}
-                />
-              </td>
-              <td className="px-3 py-2">
-                <Button variant="secondary" className="h-8 px-2" onClick={() => props.onSaveUserQuota(user)}>保存</Button>
-              </td>
-            </tr>
-          ))}
+          {props.users.map((user) => {
+            const freeLimitValue = props.freeLimitEdits[user.id] ?? String(user.freeLimitUsd);
+            const paidDeltaValue = props.paidDeltaEdits[user.id] ?? '';
+            const saveValidationMessage = getSaveValidationMessage(user, freeLimitValue, paidDeltaValue);
+            const canSave = saveValidationMessage === null && hasEditableChange(user, freeLimitValue, paidDeltaValue);
+            const isSaving = props.savingUserId === user.id;
+
+            return (
+              <tr key={user.id} className="border-t border-[#ece7dd] align-top">
+                <td className="px-3 py-3">
+                  <div className="space-y-1">
+                    <p className="font-medium text-[#1f1f1d]">{user.email}</p>
+                    <p className="text-xs text-[#656561]">用户名：{user.username ?? '未设置'}</p>
+                    <p className="text-xs text-[#8f8a7d]">ID：{compactId(user.id)}</p>
+                  </div>
+                </td>
+                <td className="px-3 py-3">
+                  <span className={roleBadgeClassName(user.role)}>
+                    {user.role === 'admin' ? '管理员' : '普通用户'}
+                  </span>
+                </td>
+                <td className="px-3 py-3 text-[#4d4a43]">{formatDateTime(user.createdAt)}</td>
+                <td className="px-3 py-3 text-[#4d4a43]">{formatDateTime(user.updatedAt)}</td>
+                <td className="px-3 py-3">
+                  <div className="space-y-1 text-[#4d4a43]">
+                    <p>上限：{formatUsd(user.freeLimitUsd)}</p>
+                    <p>已用：{formatUsd(user.freeUsedUsd)}</p>
+                    <p>剩余：{formatUsd(user.freeRemainingUsd)}</p>
+                  </div>
+                </td>
+                <td className="px-3 py-3 font-medium text-[#1f1f1d]">{formatUsd(user.paidBalanceUsd)}</td>
+                <td className="px-3 py-3">
+                  <Input
+                    className={inputClassName(saveValidationMessage !== null && !isValidFreeLimitInput(freeLimitValue))}
+                    value={freeLimitValue}
+                    onChange={(event) => props.onFreeLimitEditChange(user.id, event.target.value)}
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <Input
+                    className={inputClassName(saveValidationMessage !== null && !isValidPaidDeltaInput(paidDeltaValue))}
+                    placeholder="如 10 / -5"
+                    value={paidDeltaValue}
+                    onChange={(event) => props.onPaidDeltaEditChange(user.id, event.target.value)}
+                  />
+                </td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-col items-start gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-8 px-3"
+                      disabled={!canSave || isSaving}
+                      onClick={() => props.onSaveUserQuota(user)}
+                    >
+                      {isSaving ? '保存中...' : '保存'}
+                    </Button>
+                    <Button variant="ghost" className="h-8 px-3" onClick={() => props.onResetUserEdits(user.id)}>重置</Button>
+                    {saveValidationMessage ? (
+                      <p className="max-w-[180px] text-xs leading-5 text-rose-600">{saveValidationMessage}</p>
+                    ) : !canSave ? (
+                      <p className="text-xs text-[#8f8a7d]">未检测到有效改动</p>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </TableWrap>
@@ -330,4 +450,47 @@ function clearEdit(edits: Record<string, string>, key: string): Record<string, s
   const next = { ...edits };
   delete next[key];
   return next;
+}
+
+function hasEditableChange(user: UserView, freeLimitValue: string, paidDeltaValue: string): boolean {
+  const freeLimitNumber = Number(freeLimitValue);
+  const paidDeltaNumber = Number(paidDeltaValue || '0');
+  const freeLimitChanged = Number.isFinite(freeLimitNumber) && freeLimitNumber >= 0 && freeLimitNumber !== user.freeLimitUsd;
+  const paidDeltaChanged = Number.isFinite(paidDeltaNumber) && paidDeltaNumber !== 0;
+  return freeLimitChanged || paidDeltaChanged;
+}
+
+function getSaveValidationMessage(user: UserView, freeLimitValue: string, paidDeltaValue: string): string | null {
+  if (!isValidFreeLimitInput(freeLimitValue)) {
+    return '免费上限必须是大于等于 0 的数字。';
+  }
+  if (!isValidPaidDeltaInput(paidDeltaValue)) {
+    return '余额增减必须是数字，可留空表示不调整。';
+  }
+  if (!hasEditableChange(user, freeLimitValue, paidDeltaValue)) {
+    return null;
+  }
+  return null;
+}
+
+function isValidFreeLimitInput(value: string): boolean {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0;
+}
+
+function isValidPaidDeltaInput(value: string): boolean {
+  if (value.trim().length === 0) {
+    return true;
+  }
+  return Number.isFinite(Number(value));
+}
+
+function inputClassName(hasError: boolean): string {
+  return hasError ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : '';
+}
+
+function roleBadgeClassName(role: UserView['role']): string {
+  return role === 'admin'
+    ? 'inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800'
+    : 'inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700';
 }

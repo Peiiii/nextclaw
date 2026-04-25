@@ -1,4 +1,5 @@
 import type {
+  AdminUsersPage,
   AdminOverview,
   ApiEnvelope,
   ApiFailure,
@@ -307,7 +308,7 @@ export async function fetchAdminRemoteQuotaSummary(token: string): Promise<Admin
 export async function fetchAdminUsers(
   token: string,
   options: { limit?: number; q?: string; cursor?: string | null } = {}
-): Promise<CursorPage<UserView>> {
+): Promise<AdminUsersPage> {
   const params = new URLSearchParams();
   params.set('limit', String(options.limit ?? 20));
   if (options.q && options.q.trim().length > 0) {
@@ -316,7 +317,7 @@ export async function fetchAdminUsers(
   if (options.cursor) {
     params.set('cursor', options.cursor);
   }
-  const data = await request<ApiEnvelope<CursorPage<UserView>>>(`/platform/admin/users?${params.toString()}`, {}, token);
+  const data = await request<ApiEnvelope<AdminUsersPage>>(`/platform/admin/users?${params.toString()}`, {}, token);
   return unwrap(data);
 }
 

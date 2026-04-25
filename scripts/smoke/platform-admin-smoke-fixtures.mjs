@@ -126,6 +126,8 @@ export const PLATFORM_ADMIN_SMOKE_FIXTURES = {
         updatedAt: "2026-04-18T09:00:00.000Z"
       }
     ],
+    total: 1,
+    pageSize: 20,
     nextCursor: null,
     hasMore: false
   },

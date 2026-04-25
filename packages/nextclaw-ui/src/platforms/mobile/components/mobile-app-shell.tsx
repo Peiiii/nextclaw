@@ -26,7 +26,7 @@ export function MobileAppShell({
   const showBottomNav = !isChatSessionDetailRoute(pathname);
 
   return (
-    <div className="flex h-screen flex-col bg-background font-sans text-foreground">
+    <div className="flex h-[100svh] flex-col bg-background font-sans text-foreground supports-[height:100dvh]:h-[100dvh]">
       {showTopbar ? <MobileTopbar /> : null}
       <div className="relative flex-1 min-h-0 overflow-hidden">
         {isMainRoute ? (

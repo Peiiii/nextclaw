@@ -278,6 +278,14 @@ export type OwnerMarketplaceAppListView = {
   items: OwnerMarketplaceAppSummaryView[];
 };
 
+export type AdminUsersPage = {
+  items: UserView[];
+  total: number;
+  pageSize: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+};
+
 export type CursorPage<T> = {
   items: T[];
   nextCursor: string | null;

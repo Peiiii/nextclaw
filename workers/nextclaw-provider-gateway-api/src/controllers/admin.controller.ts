@@ -309,18 +309,21 @@ export async function adminUsersHandler(c: Context<{ Bindings: Env }>): Promise<
   const query = optionalTrimmedString(c.req.query("q") ?? "");
   const cursor = decodeCursorToken(c.req.query("cursor"));
 
-  const conditions: string[] = [];
-  const binds: unknown[] = [];
+  const filterConditions: string[] = [];
+  const filterBinds: unknown[] = [];
   if (query) {
-    conditions.push("(email LIKE ? OR username LIKE ?)");
-    binds.push(`%${query}%`, `%${query}%`);
+    filterConditions.push("(email LIKE ? OR username LIKE ? OR id LIKE ?)");
+    filterBinds.push(`%${query}%`, `%${query}%`, `%${query}%`);
   }
+  const conditions = [...filterConditions];
+  const binds = [...filterBinds];
   if (cursor) {
     conditions.push("(created_at < ? OR (created_at = ? AND id < ?))");
     binds.push(cursor.createdAt, cursor.createdAt, cursor.id);
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const filterWhereClause = filterConditions.length > 0 ? `WHERE ${filterConditions.join(" AND ")}` : "";
   const sql = `SELECT id, email, username, password_hash, password_salt, role,
                       free_limit_usd, free_used_usd, paid_balance_usd,
                       created_at, updated_at
@@ -329,15 +332,23 @@ export async function adminUsersHandler(c: Context<{ Bindings: Env }>): Promise<
                 ORDER BY created_at DESC, id DESC
                 LIMIT ?`;
 
-  const result = await c.env.NEXTCLAW_PLATFORM_DB.prepare(sql)
-    .bind(...binds, limit + 1)
-    .all<UserRow>();
+  const [result, totalRow] = await Promise.all([
+    c.env.NEXTCLAW_PLATFORM_DB.prepare(sql)
+      .bind(...binds, limit + 1)
+      .all<UserRow>(),
+    c.env.NEXTCLAW_PLATFORM_DB.prepare(`SELECT COUNT(*) AS total FROM users ${filterWhereClause}`)
+      .bind(...filterBinds)
+      .first<{ total: number | string }>()
+  ]);
   const pagination = paginateRows(result.results ?? [], limit);
+  const total = Number(totalRow?.total ?? 0);
 
   return c.json({
     ok: true,
     data: {
       items: pagination.items.map(toUserPublicView),
+      total: Number.isFinite(total) ? total : 0,
+      pageSize: limit,
       nextCursor: pagination.nextCursor,
       hasMore: pagination.hasMore
     }

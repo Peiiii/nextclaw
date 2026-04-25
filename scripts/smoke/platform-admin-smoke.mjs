@@ -118,6 +118,10 @@ async function assertConsoleShell(browser) {
 
   await page.getByRole("link", { name: /用户与额度/ }).first().click();
   await page.waitForFunction(() => document.body.innerText.includes("用户额度表格"));
+  await page.waitForFunction(() => document.body.innerText.includes("每页数量"));
+  await page.waitForFunction(() => document.body.innerText.includes("分页摘要：第 1 页，每页 20 条。"));
+  await page.waitForFunction(() => document.body.innerText.includes("注册时间"));
+  await page.waitForFunction(() => document.body.innerText.includes("alice@example.com"));
 
   await page.getByRole("link", { name: /充值审核/ }).first().click();
   await page.waitForFunction(() => document.body.innerText.includes("充值审核表"));

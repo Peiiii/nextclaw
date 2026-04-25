@@ -1,5 +1,19 @@
 # @nextclaw/desktop
 
+## 0.0.152
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw@0.18.9
+
+## 0.0.151
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw@0.18.8
+
 ## 0.0.150
 
 ### Patch Changes

@@ -5,7 +5,7 @@ import { I18nProvider } from "@/app/components/i18n-provider";
 import { MobileAppShell } from "@/platforms/mobile/components/mobile-app-shell";
 
 function renderShell(pathname: string) {
-  return render(
+  const view = render(
     <I18nProvider>
       <MemoryRouter initialEntries={[pathname]}>
         <MobileAppShell pathname={pathname} isDocBrowserOpen={false}>
@@ -14,12 +14,19 @@ function renderShell(pathname: string) {
       </MemoryRouter>
     </I18nProvider>,
   );
+  return {
+    ...view,
+    shell: view.container.firstElementChild as HTMLElement,
+  };
 }
 
 describe("MobileAppShell", () => {
   it("shows the bottom navigation on the chat list route", () => {
-    renderShell("/chat");
+    const { shell } = renderShell("/chat");
 
+    expect(shell.className).toContain("h-[100svh]");
+    expect(shell.className).toContain("supports-[height:100dvh]:h-[100dvh]");
+    expect(shell.className).not.toContain("h-screen");
     expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
   });
 

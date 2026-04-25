@@ -1,5 +1,22 @@
 # nextclaw
 
+## 0.18.9
+
+### Patch Changes
+
+- Fix mobile Chrome viewport sizing so the bottom navigation and chat input stay visible.
+
+## 0.18.8
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/ui
+  - nextclaw
+
 ## 0.18.7
 
 ### Patch Changes
