@@ -1,4 +1,5 @@
 import { cn } from '@/shared/lib/utils';
+import { Bot } from 'lucide-react';
 
 type AgentAvatarProps = {
   agentId: string;
@@ -25,14 +26,6 @@ function hashText(value: string): number {
   return Math.abs(hash);
 }
 
-function resolveLetter(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return 'A';
-  }
-  return trimmed.slice(0, 1).toUpperCase();
-}
-
 export function AgentAvatar({ agentId, displayName, avatarUrl, className }: AgentAvatarProps) {
   const seed = displayName?.trim() || agentId;
   const [bgClass, textClass] = PALETTE[hashText(agentId) % PALETTE.length] ?? PALETTE[0];
@@ -57,7 +50,11 @@ export function AgentAvatar({ agentId, displayName, avatarUrl, className }: Agen
       )}
       aria-label={displayName?.trim() || agentId}
     >
-      {resolveLetter(seed)}
+      {agentId.trim().toLowerCase() === 'main' ? (
+        <Bot className="h-[55%] w-[55%]" strokeWidth={2.4} />
+      ) : (
+        (seed.trim() || 'A').slice(0, 1).toUpperCase()
+      )}
     </div>
   );
 }
