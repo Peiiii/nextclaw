@@ -1,5 +1,32 @@
 # @nextclaw/ui
 
+## 0.12.16
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/ui
+
+- Updated dependencies
+  - @nextclaw/agent-chat-ui@0.3.11
+
+## 0.12.15
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/agent-chat-ui@0.3.10
+
 ## 0.12.14
 
 ### Patch Changes

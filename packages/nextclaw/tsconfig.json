@@ -43,14 +43,17 @@
       "@nextclaw/openclaw-compat": [
         "../nextclaw-openclaw-compat/src/index.ts"
       ],
+      "@nextclaw/nextclaw-hermes-acp-bridge": [
+        "../nextclaw-hermes-acp-bridge/src/index.ts"
+      ],
       "@nextclaw/channel-runtime": [
         "../extensions/nextclaw-channel-runtime/src/index.ts"
       ],
       "@nextclaw/nextclaw-ncp-runtime-http-client": [
-        "../extensions/nextclaw-ncp-runtime-http-client/src/index.ts"
+        "../nextclaw-ncp-runtime-http-client/src/index.ts"
       ],
       "@nextclaw/nextclaw-ncp-runtime-stdio-client": [
-        "../extensions/nextclaw-ncp-runtime-stdio-client/src/index.ts"
+        "../nextclaw-ncp-runtime-stdio-client/src/index.ts"
       ],
       "@nextclaw/nextclaw-ncp-runtime-codex-sdk": [
         "../extensions/nextclaw-ncp-runtime-codex-sdk/src/index.ts"
