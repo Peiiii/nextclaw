@@ -24,9 +24,9 @@ export function isNcpChatModelOptionsEmpty(
 }
 
 export function isNcpChatComposerDisabled(
-  snapshot: NcpChatInputAvailabilitySnapshot
+  _snapshot: NcpChatInputAvailabilitySnapshot
 ): boolean {
-  return snapshot.sessionTypeUnavailable;
+  return false;
 }
 
 export function isNcpChatSendDisabled(params: {
@@ -34,12 +34,10 @@ export function isNcpChatSendDisabled(params: {
   snapshot: NcpChatInputAvailabilitySnapshot;
   isRuntimeBlocked: boolean;
 }): boolean {
-  const { hasSendableDraft, isRuntimeBlocked, snapshot } = params;
+  const { hasSendableDraft, isRuntimeBlocked } = params;
 
   return (
     isRuntimeBlocked ||
-    !hasSendableDraft ||
-    !hasNcpChatModelOptions(snapshot) ||
-    snapshot.sessionTypeUnavailable
+    !hasSendableDraft
   );
 }

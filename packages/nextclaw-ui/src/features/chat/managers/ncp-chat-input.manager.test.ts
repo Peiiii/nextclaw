@@ -146,4 +146,33 @@ describe('NcpChatInputManager', () => {
     expect(streamActionsManager.sendMessage).not.toHaveBeenCalled();
     expect(sessionListManager.promoteRootDraftSessionRoute).not.toHaveBeenCalled();
   });
+
+  it('still attempts to send when provider metadata is stale or the session type is marked unavailable', async () => {
+    useChatInputStore.setState({
+      snapshot: {
+        ...useChatInputStore.getState().snapshot,
+        isProviderStateResolved: true,
+        modelOptions: [],
+        sessionTypeUnavailable: true,
+      },
+    });
+    const streamActionsManager = {
+      sendMessage: vi.fn().mockResolvedValue(undefined),
+      stopCurrentRun: vi.fn().mockResolvedValue(undefined),
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
+    const sessionListManager = {
+      ensureDraftSession: vi.fn(() => 'draft-session'),
+      promoteRootDraftSessionRoute: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
+    const manager = new NcpChatInputManager(
+      {} as ConstructorParameters<typeof NcpChatInputManager>[0],
+      streamActionsManager,
+      sessionListManager,
+    );
+
+    await manager.send();
+
+    expect(streamActionsManager.sendMessage).toHaveBeenCalledTimes(1);
+    expect(sessionListManager.promoteRootDraftSessionRoute).toHaveBeenCalledWith('current-route-session');
+  });
 });

@@ -41,7 +41,7 @@ function createSnapshot(
 }
 
 describe('ncp-chat-input-availability.utils', () => {
-  it('keeps the composer editable during cold start while send remains blocked', () => {
+  it('keeps the composer editable during cold start while runtime blocking still prevents send', () => {
     const snapshot = createSnapshot({
       isProviderStateResolved: false,
       modelOptions: [],
@@ -60,6 +60,22 @@ describe('ncp-chat-input-availability.utils', () => {
     ).toBe(true);
   });
 
+  it('does not block send only because model options have not loaded yet', () => {
+    const snapshot = createSnapshot({
+      isProviderStateResolved: false,
+      modelOptions: [],
+      sessionTypeUnavailable: false,
+    });
+
+    expect(
+      isNcpChatSendDisabled({
+        snapshot,
+        hasSendableDraft: true,
+        isRuntimeBlocked: false,
+      })
+    ).toBe(false);
+  });
+
   it('marks model options as empty only after provider state resolves', () => {
     const loadingSnapshot = createSnapshot({
       isProviderStateResolved: false,
@@ -74,17 +90,33 @@ describe('ncp-chat-input-availability.utils', () => {
     expect(isNcpChatModelOptionsEmpty(emptySnapshot)).toBe(true);
   });
 
-  it('disables both editing and sending when the session type is unavailable', () => {
+  it('keeps editing and sending available when the selected session type reports unavailable', () => {
     const snapshot = createSnapshot({
       isProviderStateResolved: true,
       sessionTypeUnavailable: true,
     });
 
-    expect(isNcpChatComposerDisabled(snapshot)).toBe(true);
+    expect(isNcpChatComposerDisabled(snapshot)).toBe(false);
     expect(
       isNcpChatSendDisabled({
         snapshot,
         hasSendableDraft: true,
+        isRuntimeBlocked: false,
+      })
+    ).toBe(false);
+  });
+
+  it('blocks send when there is no sendable draft', () => {
+    const snapshot = createSnapshot({
+      isProviderStateResolved: true,
+      modelOptions: [],
+      sessionTypeUnavailable: true,
+    });
+
+    expect(
+      isNcpChatSendDisabled({
+        snapshot,
+        hasSendableDraft: false,
         isRuntimeBlocked: false,
       })
     ).toBe(true);
