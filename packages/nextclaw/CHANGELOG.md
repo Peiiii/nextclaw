@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.18.10
+
+### Patch Changes
+
+- Add target session support for cron jobs across CLI, API, UI, and agent tooling.
+- Updated dependencies
+  - @nextclaw/core@0.12.12
+  - @nextclaw/server@0.12.12
+  - @nextclaw/mcp@0.1.77
+  - @nextclaw/openclaw-compat@1.0.12
+  - @nextclaw/remote@0.1.89
+  - @nextclaw/runtime@0.2.44
+  - @nextclaw/ncp-mcp@0.1.79
+
 ## 0.18.9
 
 ### Patch Changes

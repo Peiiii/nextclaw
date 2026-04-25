@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.12.19
+
+### Patch Changes
+
+- Add target session support for cron jobs across CLI, API, UI, and agent tooling.
+
 ## 0.12.18
 
 ### Patch Changes
