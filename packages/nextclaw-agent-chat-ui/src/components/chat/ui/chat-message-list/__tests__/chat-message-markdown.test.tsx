@@ -47,3 +47,35 @@ it("leaves external links alone when file preview interception is enabled", () =
   expect(link.getAttribute("href")).toBe("https://nextclaw.io");
   expect(onFileOpen).not.toHaveBeenCalled();
 });
+
+it("renders fenced code blocks with syntax highlighting", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"```ts\nconst value: number = 1;\n```"}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  const code = container.querySelector(".chat-codeblock code");
+
+  expect(code?.getAttribute("data-highlighted")).toBe("true");
+  expect(code?.className).toContain("language-ts");
+  expect(container.querySelector(".hljs-keyword")?.textContent).toBe("const");
+  expect(container.querySelector(".hljs-number")?.textContent).toBe("1");
+});
+
+it("keeps highlighted code content escaped", () => {
+  const { container } = render(
+    <ChatMessageMarkdown
+      text={"```html\n<img src=x onerror=alert(1)>\n```"}
+      role="assistant"
+      texts={defaultTexts}
+    />,
+  );
+
+  const code = container.querySelector(".chat-codeblock code");
+
+  expect(code?.textContent).toBe("<img src=x onerror=alert(1)>");
+  expect(code?.querySelector("img")).toBeNull();
+});
