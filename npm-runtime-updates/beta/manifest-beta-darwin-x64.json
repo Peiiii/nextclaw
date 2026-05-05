@@ -6,8 +6,8 @@
   "latestVersion": "0.18.12-beta.1",
   "minimumLauncherVersion": "0.18.11",
   "bundleUrl": "https://Peiiii.github.io/nextclaw/npm-runtime-updates/beta/nextclaw-runtime-darwin-x64-0.18.12-beta.1.zip",
-  "bundleSha256": "3cc7942ad3e1fa9c8ca2507e6aba50f46db76b24b356895af12a0ac36f1dd60b",
-  "bundleSignature": "8d8w0Xnipem9qLcEcst+z+PQoRjCUIRBxUXRKZtfZET0bC2mD8p9rql6iDfhS3HWpQXlEZSy0RqKx/FdvBP/Cw==",
+  "bundleSha256": "aae452f83e5ff51a32962a52f0879cd87bd1c9938244edd7f6fc802a4f354684",
+  "bundleSignature": "6DwwWMwMm+GdyHXP1LttCnzglcb5+1YHEExAFKl570wdo7yp/9SoiBZD0kcvpM/s0oHPDOijLPqx7JFVG3twCw==",
   "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/v0.18.12-npm-beta.1",
-  "manifestSignature": "ExAKkhTbwlazKk2orUGuAbX+eg2h4AAgovTPhIG5STEgF4G/MzJqE77mKeuHSgqungw0TO6kgPYxufpGMItXAQ=="
+  "manifestSignature": "dqzkN/5+Hdqr/GD7O9LeRbtDJSrPPyOx3sH/JEn7Fpx4GfjRz1of7UFOKC8fbOrHRx5v0CeHMxFeUZnpHKHDDg=="
 }
