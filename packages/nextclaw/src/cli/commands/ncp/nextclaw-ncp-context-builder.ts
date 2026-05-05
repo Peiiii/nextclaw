@@ -70,7 +70,7 @@ type NextclawNcpContextBuilderOptions = {
   getConfig: () => Config;
   resolveMessageToolHints?: MessageToolHintsResolver;
   assetStore?: LocalAssetStore | null;
-  onSessionUpdated?: (sessionKey: string) => void;
+  onSessionUpdated?: (sessionKey: string, metadata: Record<string, unknown>) => void;
 };
 
 type ResolvedAgentProfile = {
@@ -494,6 +494,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     session: PreparedRunContext["session"],
   ): void => {
     this.options.sessionManager.save(session);
-    this.options.onSessionUpdated?.(runContext.sessionKey);
+    this.options.onSessionUpdated?.(runContext.sessionKey, structuredClone(session.metadata));
   };
 }

@@ -199,7 +199,7 @@ function createNativeRuntimeFactory(
         getConfig: params.getConfig,
         resolveMessageToolHints: params.resolveMessageToolHints,
         assetStore,
-        onSessionUpdated: params.onSessionUpdated,
+        onSessionUpdated: (sessionKey, metadata) => { setSessionMetadata(metadata); params.onSessionUpdated?.(sessionKey); },
       }),
       llmApi: new ProviderManagerNcpLLMApi(observedProviderManager),
       toolRegistry,

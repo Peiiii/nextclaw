@@ -4,10 +4,12 @@
 - 这条条目在前端不渲染成普通消息卡片，而是在消息流中渲染成一条轻量分割线，明确表达“到这里为止，前面的较早上下文已被压缩替代”。
 - 存储层继续完整保留原始消息，不做删除式压缩；只有在构建模型输入时，才会用 checkpoint 摘要临时替换更早历史。
 - `usedContextTokens` 和 `totalContextTokens` 继续保持为独立字段，压缩检查点没有和上下文窗口统计绑死。上下文占用圆环仍然读 `last_context_window`，消息流分割线则读特殊 timeline item。
+- 修复上下文占用圆环在继续对话后停留在旧百分比的问题：上下文窗口统计由 `NextclawNcpContextBuilder` 计算后同步写回当前 live session metadata，再由后续会话摘要与持久化沿同一路径读取，避免落盘 session 与 runtime session 各持一份旧状态。
 - 根因说明：
   - 根因不是“缺一个压缩提示 UI”，而是系统缺少一种既有顺序位置、又不破坏原始消息存储、还能在模型输入阶段替代旧历史的会话管理结构。
   - 如果只做顶部 metadata 或普通 `system` message，都无法同时满足“消息流可定位”“不原样送给 AI”“原始消息不删”这三件事。
   - 本次修复命中根因的方式，是引入 `service` role 的特殊 timeline message 作为位置载体，再由 builder / bridge 显式过滤它，保证它只参与 UI 顺序和模型输入投影，而不污染普通消息协议。
+  - 上下文圆环不更新的根因，是上下文窗口统计只更新了 `SessionManager` 中的会话 metadata，没有同步到 NCP runtime 当前持有的 live session metadata；会话摘要读取 live metadata 时继续拿到旧的 `last_context_window`，因此用户继续追问后仍看到旧百分比。本次修复没有在持久化层增加字段特判或 merge 补丁，而是把写入职责收回到 builder 的单一主路径：计算后立即同步当前 live session metadata。
 - 相关设计文档：
   - [2026-05-05-context-compaction-checkpoint-design.md](../../designs/2026-05-05-context-compaction-checkpoint-design.md)
 
@@ -16,7 +18,9 @@
 - 已通过：
   - `pnpm -C packages/nextclaw-ui test -- --run src/features/chat/utils/ncp-session-adapter.utils.test.ts src/features/chat/components/conversation/chat-message-list.container.test.tsx src/features/chat/components/conversation/chat-conversation-panel.test.tsx`
   - `pnpm -C packages/nextclaw test -- --run src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts`
+  - `pnpm -C packages/nextclaw test -- --run src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts src/cli/commands/ncp/session/nextclaw-agent-session-store.test.ts`
   - `pnpm -C packages/nextclaw tsc -p tsconfig.json --pretty false`
+  - `pnpm -C packages/nextclaw exec eslint src/cli/commands/ncp/nextclaw-ncp-context-builder.ts src/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.ts src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts src/cli/commands/ncp/session/nextclaw-agent-session-store.test.ts`
   - `pnpm lint:new-code:governance`
 - 本次流程补正：
   - 初版收尾时漏跑了 `pnpm -C packages/nextclaw tsc -p tsconfig.json --pretty false`，导致两处纯类型错误没有被拦住。
@@ -26,6 +30,13 @@
   - 验证压缩条目会以消息流 divider 方式出现在正确边界
   - 验证 `coveredUntilMessageId` 由后端压缩 owner 真实产出
   - 验证特殊 timeline message 不会被原样送给上游模型输入
+  - 验证未触发压缩时，`last_context_window` 也会同步写入当前 live session metadata，避免前端圆环继续展示旧占比
+- 上下文圆环不更新修复的补充验证：
+  - `pnpm -C packages/nextclaw test -- --run src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts src/cli/commands/ncp/session/nextclaw-agent-session-store.test.ts`
+  - `pnpm -C packages/nextclaw tsc -p tsconfig.json --pretty false`
+  - `pnpm -C packages/nextclaw exec eslint src/cli/commands/ncp/nextclaw-ncp-context-builder.ts src/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.ts src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts src/cli/commands/ncp/session/nextclaw-agent-session-store.test.ts`
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw/src/cli/commands/ncp/nextclaw-ncp-context-builder.ts packages/nextclaw/src/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.ts packages/nextclaw/src/cli/commands/ncp/context/nextclaw-ncp-context-builder.test.ts packages/nextclaw/src/cli/commands/ncp/session/nextclaw-agent-session-store.test.ts docs/logs/v0.17.15-context-compaction-checkpoints/README.md`
+  - `pnpm lint:new-code:governance` 本轮受工作区内其它未提交改动阻断，阻断文件为 `packages/nextclaw-core/src/agent/context.ts`、`packages/nextclaw-core/src/agent/tools/sessions.ts`、`packages/nextclaw-core/src/config/schema.help.ts`、`packages/nextclaw-core/src/config/schema.labels.ts`、`packages/nextclaw-core/src/config/schema.ts`、`packages/nextclaw/src/cli/shared/services/gateway/service-startup-support.ts`；这些文件不属于本次上下文圆环修复范围。
 
 ## 发布/部署方式
 

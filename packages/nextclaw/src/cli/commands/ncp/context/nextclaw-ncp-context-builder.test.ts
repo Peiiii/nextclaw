@@ -52,15 +52,10 @@ afterEach(() => {
 
 it("injects runtime tool definitions into the system prompt", () => {
     const { workspace } = createWorkspace();
-    writeGitConfig(
-      workspace,
-      [
-        '[remote "origin"]',
-        "  url = https://github.com/Peiiii/nextclaw.git",
-      ].join("\n"),
-    );
+    writeGitConfig(workspace, ['[remote "origin"]', "  url = https://github.com/Peiiii/nextclaw.git"].join("\n"));
     const config = createNcpTestConfig(workspace);
     const prepareForRun = vi.fn();
+    const onSessionUpdated = vi.fn();
     const builder = new NextclawNcpContextBuilder({
       sessionManager: new SessionManager(workspace),
       toolRegistry: {
@@ -79,6 +74,7 @@ it("injects runtime tool definitions into the system prompt", () => {
         ],
       } as never,
       getConfig: () => config,
+      onSessionUpdated,
     });
 
     const prepared = builder.prepare({
@@ -101,6 +97,9 @@ it("injects runtime tool definitions into the system prompt", () => {
     expect(String(systemMessage?.content)).toContain("## Tool Use Enforcement");
     expect(String(systemMessage?.content)).toContain("## OpenAI/Codex Execution Discipline");
     expect(prepareForRun).toHaveBeenCalledTimes(1);
+    expect(onSessionUpdated.mock.calls.at(-1)?.[1]).toMatchObject({
+      last_context_window: { compacted: false, totalContextTokens: expect.any(Number), usedContextTokens: expect.any(Number) },
+    });
 });
 
 it("injects session orchestration guidance into the NCP system prompt", () => {
@@ -211,7 +210,7 @@ it("compacts older model input into an auxiliary checkpoint without deleting sto
       coveredUntilMessageId: sessionMessages[11]?.id,
       summary: expect.stringContaining("Compressed Earlier Context"),
     });
-    expect(onSessionUpdated).toHaveBeenCalledWith(sessionId);
+    expect(onSessionUpdated.mock.calls.at(-1)).toMatchObject([sessionId, { last_context_window: { compacted: true } }]);
     expect(prepared.messages.length).toBeGreaterThan(0);
   });
 
@@ -436,7 +435,6 @@ it("keeps host workspace context and skills when a session is bound to a project
           bootstrap: {
             files: ["AGENTS.md"],
             minimalFiles: ["AGENTS.md"],
-            heartbeatFiles: [],
             perFileChars: 1000,
             totalChars: 3000,
           },
