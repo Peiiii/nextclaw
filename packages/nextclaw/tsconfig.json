@@ -13,6 +13,9 @@
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
       ],
+      "@nextclaw/kernel/update-contract": [
+        "../nextclaw-kernel/src/types/update-contract.types.ts"
+      ],
       "@nextclaw/feishu-core": [
         "../extensions/nextclaw-feishu-core/src/index.ts"
       ],

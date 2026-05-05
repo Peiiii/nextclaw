@@ -25,6 +25,7 @@
     "dist": "node scripts/ensure-runtime.mjs && pnpm bundle:public-key:ensure && pnpm bundle:seed -- --channel stable && pnpm build:main && electron-builder",
     "smoke": "pnpm build:main && node scripts/smoke-runtime.mjs",
     "smoke:update": "node scripts/smoke-product-update.mjs",
+    "validation:dev-update": "node scripts/update/services/dev-update-validation.service.mjs",
     "validation:prepare-manual-update": "node scripts/prepare-manual-update-validation.mjs",
     "validation:serve-local-update": "node scripts/run-local-update-server.mjs"
   },
@@ -41,6 +42,7 @@
     "@nextclaw/channel-plugin-whatsapp": "workspace:*",
     "@nextclaw/channel-runtime": "workspace:*",
     "@nextclaw/core": "workspace:*",
+    "@nextclaw/kernel": "workspace:*",
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/server": "workspace:*",
     "jszip": "^3.10.1",

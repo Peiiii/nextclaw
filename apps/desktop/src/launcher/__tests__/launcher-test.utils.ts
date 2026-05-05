@@ -59,6 +59,7 @@ export function createLauncherState(overrides: Partial<DesktopLauncherState> = {
       closeToBackground: true,
       launchAtLogin: false
     },
+    languagePreference: null,
     ...overrides
   };
 }
@@ -73,8 +74,8 @@ export function writeBundleFixture(options: BundleFixtureOptions): string {
     includePlugins = true
   } = options;
   const bundleDir = join(rootDir, version);
-  mkdirSync(join(bundleDir, "runtime", "dist", "cli"), { recursive: true });
-  writeFileSync(join(bundleDir, "runtime", "dist", "cli", "index.js"), "console.log('runtime');\n");
+  mkdirSync(join(bundleDir, "runtime", "dist", "cli", "app"), { recursive: true });
+  writeFileSync(join(bundleDir, "runtime", "dist", "cli", "app", "index.js"), "console.log('runtime');\n");
 
   if (includeUi) {
     mkdirSync(join(bundleDir, "ui"), { recursive: true });
@@ -118,7 +119,7 @@ export async function createBundleArchive(options: BundleFixtureOptions): Promis
   const bundlePrefix = "bundle";
   const files = [
     "manifest.json",
-    join("runtime", "dist", "cli", "index.js"),
+    join("runtime", "dist", "cli", "app", "index.js"),
     join("ui", "index.html"),
     join("plugins", ".keep")
   ];

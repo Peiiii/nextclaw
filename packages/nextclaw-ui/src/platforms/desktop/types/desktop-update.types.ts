@@ -1,29 +1,31 @@
-export type DesktopUpdateStatus =
-  | 'idle'
-  | 'checking'
-  | 'update-available'
-  | 'downloading'
-  | 'downloaded'
-  | 'up-to-date'
-  | 'failed';
+import type {
+  InstallationKind,
+  UpdateBlockReason,
+  UpdatePreferences,
+  UpdateProgress,
+  UpdateSnapshot,
+  UpdateStatus,
+} from '@nextclaw/kernel';
+
+export type DesktopUpdateStatus = Extract<
+  UpdateStatus,
+  'idle' | 'checking' | 'update-available' | 'downloading' | 'downloaded' | 'blocked' | 'up-to-date' | 'failed'
+>;
 
 export type DesktopReleaseChannel = 'stable' | 'beta';
 
-export type DesktopUpdatePreferences = {
-  automaticChecks: boolean;
-  autoDownload: boolean;
-};
+export type DesktopInstallationKind = InstallationKind;
 
-export type DesktopUpdateSnapshot = {
+export type DesktopUpdateBlockReason = UpdateBlockReason;
+
+export type DesktopUpdateProgress = UpdateProgress;
+
+export type DesktopUpdatePreferences = UpdatePreferences;
+
+export type DesktopUpdateSnapshot = UpdateSnapshot & {
   status: DesktopUpdateStatus;
   channel: DesktopReleaseChannel;
   launcherVersion: string;
-  currentVersion: string | null;
-  availableVersion: string | null;
-  downloadedVersion: string | null;
-  releaseNotesUrl: string | null;
-  lastCheckedAt: string | null;
-  errorMessage: string | null;
   preferences: DesktopUpdatePreferences;
 };
 

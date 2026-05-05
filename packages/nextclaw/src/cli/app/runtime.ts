@@ -14,9 +14,8 @@ import { initializeConfigIfMissing } from "@/cli/shared/services/runtime/runtime
 import { writeRestartSentinel } from "@/cli/shared/services/restart/restart-sentinel.service.js";
 import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
 import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
-import { reportSelfUpdateResult } from "@/cli/shared/utils/self-update-report.utils.js";
-import { runSelfUpdate } from "@/cli/shared/services/update/self-update.service.js";
 import { getPackageVersion, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
+import { NpmRuntimeUpdateCommandService } from "@/cli/launcher/npm-runtime-update-command.service.js";
 import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 import {
   loadPluginRegistry,
@@ -517,38 +516,17 @@ export class CliRuntime {
   };
 
   update = async (opts: UpdateCommandOptions): Promise<void> => {
-    let timeoutMs: number | undefined;
-    if (opts.timeout !== undefined) {
-      const parsed = Number(opts.timeout);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        console.error(
-          "Invalid --timeout value. Provide milliseconds (e.g. 1200000).",
-        );
-        process.exit(1);
-      }
-      timeoutMs = parsed;
-    }
-
     const versionBefore = getPackageVersion();
-    console.log(`Current version: ${versionBefore}`);
-
-    const result = runSelfUpdate({
-      timeoutMs,
-      cwd: process.cwd(),
-      currentVersion: versionBefore
-    });
-    const report = reportSelfUpdateResult({
-      appName: APP_NAME,
-      currentVersion: versionBefore,
-      result,
-      readInstalledVersion: getPackageVersion
-    });
-    if (!report.ok) {
+    if (!opts.json) {
+      console.log(`Current npm launcher version: ${versionBefore}`);
+    }
+    const snapshot = await new NpmRuntimeUpdateCommandService().run(opts);
+    if (snapshot.status === "blocked" || snapshot.status === "failed") {
       process.exit(1);
     }
 
     const state = managedServiceStateStore.read();
-    if (report.shouldSuggestRestart && state && isProcessRunning(state.pid)) {
+    if (snapshot.requiresRestart && state && isProcessRunning(state.pid)) {
       console.log(`Tip: restart ${APP_NAME} to apply the update.`);
     }
   };

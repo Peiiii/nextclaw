@@ -26,7 +26,14 @@ export const DESKTOP_UPDATE_LABELS: Record<string, { zh: string; en: string }> =
   desktopUpdatesStatusDownloading: { zh: '下载中', en: 'Downloading' },
   desktopUpdatesStatusDownloaded: { zh: '已下载待应用', en: 'Downloaded' },
   desktopUpdatesStatusUpToDate: { zh: '已是最新', en: 'Up to Date' },
+  desktopUpdatesStatusBlocked: { zh: '更新被阻塞', en: 'Blocked' },
   desktopUpdatesStatusFailed: { zh: '更新失败', en: 'Failed' },
+  desktopUpdatesInlineDownload: { zh: '下载', en: 'Download' },
+  desktopUpdatesInlineDownloading: { zh: '下载中', en: 'Downloading' },
+  desktopUpdatesInlineDownloadingPercent: { zh: '下载 {percent}%', en: '{percent}%' },
+  desktopUpdatesInlineReady: { zh: '更新', en: 'Update' },
+  desktopUpdatesInlineApplying: { zh: '应用中', en: 'Applying' },
+  desktopUpdatesInlineAttention: { zh: '更新异常', en: 'Update Issue' },
   desktopUpdatesLauncherVersion: { zh: '桌面壳版本', en: 'Launcher Version' },
   desktopUpdatesCurrentBundleVersion: { zh: '当前内核版本', en: 'Current Kernel Version' },
   desktopUpdatesAvailableVersion: { zh: '可用版本', en: 'Available Version' },
@@ -36,6 +43,22 @@ export const DESKTOP_UPDATE_LABELS: Record<string, { zh: string; en: string }> =
   desktopUpdatesDownloadedBannerDescription: {
     zh: '版本 {version} 已下载完成，等你确认后即可重启应用并完成更新。',
     en: 'Version {version} is ready. Restart the app whenever you want to apply it.'
+  },
+  desktopUpdatesDownloadProgressPercent: {
+    zh: '正在下载 {percent}%',
+    en: 'Downloading {percent}%'
+  },
+  desktopUpdatesDownloadProgressUnknown: {
+    zh: '正在下载',
+    en: 'Downloading'
+  },
+  desktopUpdatesBlockedTitle: {
+    zh: '更新暂时无法继续',
+    en: 'Update Blocked'
+  },
+  desktopUpdatesBlockedDescription: {
+    zh: '当前安装环境需要先处理阻塞项，之后才能继续更新。',
+    en: 'Resolve the current installation requirement before continuing the update.'
   },
   desktopUpdatesPreferencesTitle: { zh: '更新偏好', en: 'Update Preferences' },
   desktopUpdatesPreferencesDescription: {

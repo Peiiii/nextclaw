@@ -10,6 +10,7 @@ import { cn } from '@/shared/lib/utils';
 import {
   desktopUpdateManager,
   type DesktopReleaseChannel,
+  type DesktopUpdateSnapshot,
   useDesktopUpdateStore,
 } from '@/platforms/desktop';
 import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
@@ -20,6 +21,7 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   downloading: 'desktopUpdatesStatusDownloading',
   downloaded: 'desktopUpdatesStatusDownloaded',
   'up-to-date': 'desktopUpdatesStatusUpToDate',
+  blocked: 'desktopUpdatesStatusBlocked',
   failed: 'desktopUpdatesStatusFailed',
 };
 
@@ -29,6 +31,28 @@ function StatusBadge({ status }: { status: string }) {
 
 function OverviewStat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"><p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{label}</p><p className="mt-2 text-base font-semibold text-gray-900">{value}</p></div>;
+}
+
+function DownloadProgress({ snapshot }: { snapshot: DesktopUpdateSnapshot }) {
+  if (snapshot.status !== 'downloading') {
+    return null;
+  }
+  const percent = snapshot.progress?.percent;
+  const progressLabel = percent === null || percent === undefined
+    ? t('desktopUpdatesDownloadProgressUnknown')
+    : t('desktopUpdatesDownloadProgressPercent').replace('{percent}', String(percent));
+  const byteLabel = formatDownloadBytes(snapshot.progress?.downloadedBytes ?? 0, snapshot.progress?.totalBytes ?? null);
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm font-semibold text-amber-800">{progressLabel}</p>
+        <p className="text-xs font-medium text-amber-700">{byteLabel}</p>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-amber-100">
+        <div className="h-full rounded-full bg-amber-500 transition-[width]" style={{ width: `${percent ?? 0}%` }} />
+      </div>
+    </div>
+  );
 }
 
 function PreferenceToggle({
@@ -61,6 +85,23 @@ function formatVersion(value: string | null): string {
 function formatLastCheckedAt(value: string | null): string {
   return value ? formatDateTime(value) : '-';
 }
+function formatDownloadBytes(downloadedBytes: number, totalBytes: number | null): string {
+  const downloaded = formatBytes(downloadedBytes);
+  return totalBytes && totalBytes > 0 ? `${downloaded} / ${formatBytes(totalBytes)}` : downloaded;
+}
+function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let cursor = value;
+  let unitIndex = 0;
+  while (cursor >= 1024 && unitIndex < units.length - 1) {
+    cursor /= 1024;
+    unitIndex += 1;
+  }
+  return `${cursor >= 10 || unitIndex === 0 ? cursor.toFixed(0) : cursor.toFixed(1)} ${units[unitIndex]}`;
+}
 function getChannelLabel(channel: DesktopReleaseChannel): string {
   return channel === 'beta' ? t('desktopUpdatesChannelBeta') : t('desktopUpdatesChannelStable');
 }
@@ -74,7 +115,7 @@ function getStatusTone(status: string): string {
   if (status === 'update-available' || status === 'downloading' || status === 'checking') {
     return 'bg-amber-50 text-amber-700 ring-amber-100';
   }
-  if (status === 'failed') {
+  if (status === 'failed' || status === 'blocked') {
     return 'bg-red-50 text-red-700 ring-red-100';
   }
   return 'bg-gray-100 text-gray-700 ring-gray-200';
@@ -150,7 +191,15 @@ export function DesktopUpdateConfig() {
               <p className="mt-1 text-sm text-emerald-700">{t('desktopUpdatesDownloadedBannerDescription').replace('{version}', snapshot.downloadedVersion)}</p>
             </div>
           ) : null}
-          {snapshot.errorMessage ? <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">{snapshot.errorMessage}</div> : null}
+          <DownloadProgress snapshot={snapshot} />
+          {snapshot.status === 'blocked' ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4">
+              <p className="text-sm font-semibold text-red-800">{t('desktopUpdatesBlockedTitle')}</p>
+              <p className="mt-1 text-sm text-red-700">{snapshot.errorMessage ?? t('desktopUpdatesBlockedDescription')}</p>
+              {snapshot.recoveryCommand ? <code className="mt-3 block rounded-lg bg-white/70 px-3 py-2 text-xs text-red-800">{snapshot.recoveryCommand}</code> : null}
+            </div>
+          ) : null}
+          {snapshot.errorMessage && snapshot.status !== 'blocked' ? <div className="rounded-2xl border border-red-200 bg-red-50/70 p-4 text-sm text-red-700">{snapshot.errorMessage}</div> : null}
         </CardContent>
       </Card>
       <Card>

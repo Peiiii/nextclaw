@@ -123,6 +123,9 @@ importers:
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../../packages/nextclaw-core
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-kernel
       '@nextclaw/openclaw-compat':
         specifier: workspace:*
         version: link:../../packages/nextclaw-openclaw-compat
@@ -925,6 +928,9 @@ importers:
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../nextclaw-kernel
       '@nextclaw/mcp':
         specifier: workspace:*
         version: link:../nextclaw-mcp
@@ -967,6 +973,9 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       yaml:
         specifier: ^2.8.1
         version: 2.8.2
@@ -1468,6 +1477,9 @@ importers:
       '@nextclaw/agent-chat-ui':
         specifier: workspace:*
         version: link:../nextclaw-agent-chat-ui
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../nextclaw-kernel
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
@@ -7794,11 +7806,12 @@ packages:
 
   uuid@3.4.0:
     resolution: {integrity: sha512-HjSDRw6gZE5JMggctHBcjVak08+KEVhSIiDzFnT9S9aegmp85S/bReBVTb4QTFaRNptJ9kuYaNhnbNEOkbKb/A==}
-    deprecated: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   vary@1.1.2:

@@ -4,31 +4,24 @@ import type { DesktopReleaseChannel } from "../stores/launcher-state.store";
 import type { DesktopAvailableUpdate, DesktopUpdateService } from "./update.service";
 import type { DesktopBundleLifecycleService } from "./bundle-lifecycle.service";
 import type { DesktopBundleService } from "./bundle.service";
+import type {
+  UpdatePreferences,
+  UpdateProgress,
+  UpdateSnapshot,
+  UpdateStatus
+} from "@nextclaw/kernel";
 
-export type DesktopUpdateStatus =
-  | "idle"
-  | "checking"
-  | "update-available"
-  | "downloading"
-  | "downloaded"
-  | "up-to-date"
-  | "failed";
+export type DesktopUpdateStatus = Extract<
+  UpdateStatus,
+  "idle" | "checking" | "update-available" | "downloading" | "downloaded" | "up-to-date" | "blocked" | "failed"
+>;
 
-export type DesktopUpdatePreferences = {
-  automaticChecks: boolean;
-  autoDownload: boolean;
-};
+export type DesktopUpdatePreferences = UpdatePreferences;
 
-export type DesktopUpdateSnapshot = {
+export type DesktopUpdateSnapshot = UpdateSnapshot & {
   status: DesktopUpdateStatus;
   channel: DesktopReleaseChannel;
   launcherVersion: string;
-  currentVersion: string | null;
-  availableVersion: string | null;
-  downloadedVersion: string | null;
-  releaseNotesUrl: string | null;
-  lastCheckedAt: string | null;
-  errorMessage: string | null;
   preferences: DesktopUpdatePreferences;
 };
 
@@ -53,6 +46,9 @@ type DesktopDownloadUpdateOptions = {
   autoTriggered?: boolean;
 };
 
+type PersistedDesktopLauncherState = ReturnType<DesktopLauncherStateStore["read"]>;
+type DesktopUpdateSnapshotPatch = Partial<DesktopUpdateSnapshot> & Pick<DesktopUpdateSnapshot, "status">;
+
 const DEFAULT_STATUS: DesktopUpdateStatus = "idle";
 
 export class DesktopUpdateCoordinatorService {
@@ -65,13 +61,22 @@ export class DesktopUpdateCoordinatorService {
     const persistedState = options.stateStore.read();
     this.snapshot = {
       status: persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS,
+      installationKind: "desktop-bundle",
       channel: options.initialChannel,
+      hostVersion: options.launcherVersion,
       launcherVersion: options.launcherVersion,
       currentVersion: persistedState.currentVersion,
       availableVersion: null,
       downloadedVersion: persistedState.downloadedVersion,
+      minimumHostVersion: null,
       releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
       lastCheckedAt: persistedState.lastUpdateCheckAt,
+      progress: null,
+      canAutoDownload: persistedState.updatePreferences.autoDownload,
+      canApplyInApp: Boolean(persistedState.downloadedVersion),
+      requiresRestart: Boolean(persistedState.downloadedVersion),
+      blockReason: null,
+      recoveryCommand: null,
       errorMessage: null,
       preferences: { ...persistedState.updatePreferences }
     };
@@ -129,17 +134,14 @@ export class DesktopUpdateCoordinatorService {
     await this.options.bundleLifecycle.activateVersion(downloadedVersion);
     const nextState = this.options.stateStore.read();
     this.availableManifest = null;
-    this.snapshot = {
-      ...this.snapshot,
+    this.snapshot = this.toSnapshotFromState(nextState, {
       status: "idle",
-      currentVersion: nextState.currentVersion,
       availableVersion: null,
       downloadedVersion: null,
       releaseNotesUrl: null,
-      errorMessage: null,
-      lastCheckedAt: nextState.lastUpdateCheckAt,
-      preferences: { ...nextState.updatePreferences }
-    };
+      canApplyInApp: false,
+      requiresRestart: false,
+    });
     this.publishSnapshot();
     return this.getSnapshot();
   };
@@ -178,18 +180,15 @@ export class DesktopUpdateCoordinatorService {
       downloadedReleaseNotesUrl: null
     }));
     this.availableManifest = null;
-    this.snapshot = {
-      ...this.snapshot,
+    this.snapshot = this.toSnapshotFromState(nextState, {
       status: DEFAULT_STATUS,
       channel: nextState.channel,
-      currentVersion: nextState.currentVersion,
       availableVersion: null,
       downloadedVersion: null,
       releaseNotesUrl: null,
-      lastCheckedAt: nextState.lastUpdateCheckAt,
-      errorMessage: null,
-      preferences: { ...nextState.updatePreferences }
-    };
+      canApplyInApp: false,
+      requiresRestart: false,
+    });
     this.publishSnapshot();
     return await this.checkForUpdates({
       allowAutoDownload: false
@@ -202,6 +201,9 @@ export class DesktopUpdateCoordinatorService {
     this.snapshot = {
       ...this.snapshot,
       status: "checking",
+      progress: null,
+      blockReason: null,
+      recoveryCommand: null,
       errorMessage: null
     };
     this.publishSnapshot();
@@ -230,16 +232,9 @@ export class DesktopUpdateCoordinatorService {
       const persistedState = await this.recordLastCheckedAt(checkedAt);
       const errorMessage = error instanceof Error ? error.message : String(error);
       const preservedStatus = persistedState.downloadedVersion ? "downloaded" : DEFAULT_STATUS;
-      this.snapshot = {
-        ...this.snapshot,
+      this.snapshot = this.toSnapshotFromState(persistedState, {
         status: preservedStatus,
-        currentVersion: persistedState.currentVersion,
-        downloadedVersion: persistedState.downloadedVersion,
-        releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
-        errorMessage: null,
-        preferences: { ...persistedState.updatePreferences }
-      };
+      });
       this.publishSnapshot();
       if (options.manual) {
         throw error instanceof Error ? error : new Error(errorMessage);
@@ -255,29 +250,34 @@ export class DesktopUpdateCoordinatorService {
     this.snapshot = {
       ...this.snapshot,
       status: "downloading",
+      progress: this.createProgress(0, null),
+      canApplyInApp: false,
+      requiresRestart: false,
+      blockReason: null,
+      recoveryCommand: null,
       errorMessage: null
     };
     this.publishSnapshot();
 
     try {
-      const downloadedUpdate = await this.options.updateService.downloadAndInstallUpdate(manifest);
+      const downloadedUpdate = await this.options.updateService.downloadAndInstallUpdate(manifest, (progress) => {
+        this.publishDownloadProgress(progress);
+      });
       const nextState = await this.options.stateStore.update((state) => ({
         ...state,
         downloadedVersion: downloadedUpdate.downloadedVersion,
         downloadedReleaseNotesUrl: downloadedUpdate.manifest.releaseNotesUrl
       }));
       await this.options.bundleService.pruneRetainedArtifacts();
-      this.snapshot = {
-        ...this.snapshot,
+      this.snapshot = this.toSnapshotFromState(nextState, {
         status: "downloaded",
-        currentVersion: nextState.currentVersion,
         availableVersion: downloadedUpdate.downloadedVersion,
         downloadedVersion: downloadedUpdate.downloadedVersion,
+        minimumHostVersion: downloadedUpdate.manifest.minimumLauncherVersion,
         releaseNotesUrl: downloadedUpdate.manifest.releaseNotesUrl,
-        lastCheckedAt: nextState.lastUpdateCheckAt,
-        errorMessage: null,
-        preferences: { ...nextState.updatePreferences }
-      };
+        canApplyInApp: true,
+        requiresRestart: true,
+      });
       this.publishSnapshot();
       if (options.autoTriggered) {
         this.options.onAutoDownloadedUpdateReady?.(this.getSnapshot());
@@ -285,16 +285,11 @@ export class DesktopUpdateCoordinatorService {
       return this.getSnapshot();
     } catch (error) {
       const persistedState = this.options.stateStore.read();
-      this.snapshot = {
-        ...this.snapshot,
+      this.snapshot = this.toSnapshotFromState(persistedState, {
         status: persistedState.downloadedVersion ? "downloaded" : "failed",
-        currentVersion: persistedState.currentVersion,
-        downloadedVersion: persistedState.downloadedVersion,
-        releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
+        minimumHostVersion: manifest.minimumLauncherVersion,
         errorMessage: error instanceof Error ? error.message : String(error),
-        preferences: { ...persistedState.updatePreferences }
-      };
+      });
       this.publishSnapshot();
       return this.getSnapshot();
     }
@@ -317,91 +312,108 @@ export class DesktopUpdateCoordinatorService {
 
   private toSnapshotAfterCheck = (
     availableUpdate: DesktopAvailableUpdate | null,
-    persistedState: ReturnType<DesktopLauncherStateStore["read"]>
+    persistedState: PersistedDesktopLauncherState
   ): DesktopUpdateSnapshot => {
     if (persistedState.downloadedVersion) {
       this.availableManifest =
         availableUpdate?.kind === "bundle-update" ? availableUpdate.manifest : this.availableManifest;
-      return {
-        ...this.snapshot,
+      return this.toSnapshotFromState(persistedState, {
         status: "downloaded",
-        currentVersion: persistedState.currentVersion,
         availableVersion:
           availableUpdate?.kind === "bundle-update" ? availableUpdate.manifest.latestVersion : persistedState.downloadedVersion,
-        downloadedVersion: persistedState.downloadedVersion,
-        releaseNotesUrl: persistedState.downloadedReleaseNotesUrl,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
-        errorMessage: null,
-        preferences: { ...persistedState.updatePreferences }
-      };
+        minimumHostVersion:
+          availableUpdate?.kind === "bundle-update" ? availableUpdate.manifest.minimumLauncherVersion : null,
+        canApplyInApp: true,
+        requiresRestart: true,
+      });
     }
 
     if (!availableUpdate) {
       this.availableManifest = null;
-      return {
-        ...this.snapshot,
+      return this.toSnapshotFromState(persistedState, {
         status: "up-to-date",
-        currentVersion: persistedState.currentVersion,
         availableVersion: null,
         downloadedVersion: null,
         releaseNotesUrl: null,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
-        errorMessage: null,
-        preferences: { ...persistedState.updatePreferences }
-      };
+        canApplyInApp: false,
+        requiresRestart: false,
+      });
     }
 
     if (availableUpdate.kind === "launcher-update-required") {
       this.availableManifest = null;
-      return {
-        ...this.snapshot,
-        status: "failed",
-        currentVersion: persistedState.currentVersion,
+      return this.toSnapshotFromState(persistedState, {
+        status: "blocked",
         availableVersion: availableUpdate.manifest.latestVersion,
         downloadedVersion: null,
+        minimumHostVersion: availableUpdate.manifest.minimumLauncherVersion,
         releaseNotesUrl: availableUpdate.manifest.releaseNotesUrl,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
+        canApplyInApp: false,
+        requiresRestart: false,
+        blockReason: "host-too-old",
         errorMessage: `Desktop launcher ${this.options.launcherVersion} is too old for bundle ${availableUpdate.manifest.latestVersion}.`,
-        preferences: { ...persistedState.updatePreferences }
-      };
+      });
     }
 
     if (availableUpdate.kind === "quarantined-bad-version") {
       this.availableManifest = null;
-      return {
-        ...this.snapshot,
+      return this.toSnapshotFromState(persistedState, {
         status: "failed",
-        currentVersion: persistedState.currentVersion,
         availableVersion: availableUpdate.manifest.latestVersion,
         downloadedVersion: null,
+        minimumHostVersion: availableUpdate.manifest.minimumLauncherVersion,
         releaseNotesUrl: availableUpdate.manifest.releaseNotesUrl,
-        lastCheckedAt: persistedState.lastUpdateCheckAt,
+        canApplyInApp: false,
+        requiresRestart: false,
         errorMessage: `Version ${availableUpdate.manifest.latestVersion} was quarantined after a failed launch.`,
-        preferences: { ...persistedState.updatePreferences }
-      };
+      });
     }
 
     this.availableManifest = availableUpdate.manifest;
-    return {
-      ...this.snapshot,
+    return this.toSnapshotFromState(persistedState, {
       status: "update-available",
-      currentVersion: persistedState.currentVersion,
       availableVersion: availableUpdate.manifest.latestVersion,
       downloadedVersion: null,
+      minimumHostVersion: availableUpdate.manifest.minimumLauncherVersion,
       releaseNotesUrl: availableUpdate.manifest.releaseNotesUrl,
-      lastCheckedAt: persistedState.lastUpdateCheckAt,
-      errorMessage: null,
-      preferences: { ...persistedState.updatePreferences }
-    };
+      canApplyInApp: false,
+      requiresRestart: false,
+    });
   };
 
   private recordLastCheckedAt = async (
     checkedAt: string
-  ): Promise<ReturnType<DesktopLauncherStateStore["read"]>> => {
+  ): Promise<PersistedDesktopLauncherState> => {
     return await this.options.stateStore.update((state) => ({
       ...state,
       lastUpdateCheckAt: checkedAt
     }));
+  };
+
+  private toSnapshotFromState = (
+    state: PersistedDesktopLauncherState,
+    patch: DesktopUpdateSnapshotPatch
+  ): DesktopUpdateSnapshot => {
+    const hasDownloadedVersion = Boolean(state.downloadedVersion);
+    return {
+      ...this.snapshot,
+      hostVersion: this.options.launcherVersion,
+      currentVersion: state.currentVersion,
+      availableVersion: this.snapshot.availableVersion,
+      downloadedVersion: state.downloadedVersion,
+      minimumHostVersion: null,
+      releaseNotesUrl: state.downloadedReleaseNotesUrl,
+      lastCheckedAt: state.lastUpdateCheckAt,
+      progress: null,
+      canAutoDownload: state.updatePreferences.autoDownload,
+      canApplyInApp: hasDownloadedVersion,
+      requiresRestart: hasDownloadedVersion,
+      blockReason: null,
+      recoveryCommand: null,
+      errorMessage: null,
+      preferences: { ...state.updatePreferences },
+      ...patch
+    };
   };
 
   private reconcilePersistedDownloadedState = (): void => {
@@ -423,9 +435,31 @@ export class DesktopUpdateCoordinatorService {
         ...this.snapshot,
         downloadedVersion: null,
         releaseNotesUrl: null,
+        progress: null,
+        canApplyInApp: false,
+        requiresRestart: false,
         status: DEFAULT_STATUS
       };
     }
+  };
+
+  private publishDownloadProgress = (progress: UpdateProgress): void => {
+    this.snapshot = {
+      ...this.snapshot,
+      status: "downloading",
+      progress,
+      canApplyInApp: false,
+      requiresRestart: false
+    };
+    this.publishSnapshot();
+  };
+
+  private createProgress = (downloadedBytes: number, totalBytes: number | null): UpdateProgress => {
+    return {
+      downloadedBytes,
+      totalBytes,
+      percent: totalBytes && totalBytes > 0 ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)) : null
+    };
   };
 
   private publishSnapshot = (): void => {

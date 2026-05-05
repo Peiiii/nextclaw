@@ -69,7 +69,12 @@ export type MarketplaceSkillsRecommendCommandOptions = {
 };
 
 export type UpdateCommandOptions = {
-  timeout?: string | number;
+  check?: boolean;
+  download?: boolean;
+  apply?: boolean;
+  channel?: string;
+  manifestUrl?: string;
+  json?: boolean;
 };
 
 export type LoginCommandOptions = {

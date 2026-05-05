@@ -21,6 +21,7 @@ import {
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
+import { desktopUpdateManager } from "@/platforms/desktop";
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/components/config/ModelConfig")).ModelConfig,
@@ -214,6 +215,12 @@ function ProtectedRoutes() {
 function ProtectedApp() {
   useRealtimeQueryBridge(appQueryClient);
   useSystemStatusSources();
+  useEffect(() => {
+    void desktopUpdateManager.start();
+    return () => {
+      desktopUpdateManager.stop();
+    };
+  }, []);
 
   return (
     <AppManagerProvider>

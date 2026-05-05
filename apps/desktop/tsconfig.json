@@ -5,7 +5,10 @@
     "moduleResolution": "Node",
     "verbatimModuleSyntax": false,
     "types": ["node", "electron"],
-    "baseUrl": "."
+    "baseUrl": ".",
+    "paths": {
+      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/src/types/update.types.ts"]
+    }
   },
   "include": ["src/**/*.ts"]
 }

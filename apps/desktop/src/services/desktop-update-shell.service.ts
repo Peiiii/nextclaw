@@ -204,6 +204,15 @@ export class DesktopUpdateShellService {
         await this.showDownloadedUpdateDialog(snapshot);
         return;
       }
+      if (snapshot.status === "blocked" && snapshot.errorMessage) {
+        await dialog.showMessageBox({
+          type: "warning",
+          title: "Desktop update blocked",
+          message: snapshot.errorMessage,
+          buttons: ["OK"]
+        });
+        return;
+      }
       if (snapshot.status === "failed" && snapshot.errorMessage) {
         await dialog.showMessageBox({
           type: "warning",

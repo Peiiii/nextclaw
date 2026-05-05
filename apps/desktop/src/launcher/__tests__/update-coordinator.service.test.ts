@@ -71,6 +71,54 @@ test("downloads and installs an update without changing the active version", asy
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.18.1" });
   }));
 
+test("download service reports streamed bundle progress", async () =>
+  await withTempDir("nextclaw-update-download-progress-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const archiveBytes = await createBundleArchive({
+      rootDir: join(rootDir, "source"),
+      version: "0.18.2"
+    });
+    const archiveSha256 = createHash("sha256").update(archiveBytes).digest("hex");
+    const manifest = createSignedUpdateManifest({
+      latestVersion: "0.18.2",
+      bundleSha256: archiveSha256,
+      bundleSignature: signBundleArchive(archiveBytes)
+    });
+    const progressEvents: Array<{ downloadedBytes: number; totalBytes: number | null; percent: number | null }> = [];
+    const updateClient = new DesktopUpdateService({
+      layout,
+      launcherVersion: "0.1.0",
+      bundlePublicKey,
+      fetchImpl: async () =>
+        new Response(
+          new ReadableStream<Uint8Array>({
+            start: (controller) => {
+              controller.enqueue(archiveBytes.subarray(0, 10));
+              controller.enqueue(archiveBytes.subarray(10));
+              controller.close();
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-length": String(archiveBytes.byteLength)
+            }
+          }
+        ),
+      now: () => 321
+    });
+
+    await updateClient.downloadAndInstallUpdate(manifest, (progress) => {
+      progressEvents.push(progress);
+    });
+
+    assert.equal(progressEvents[0]?.downloadedBytes, 0);
+    assert.equal(progressEvents.at(-1)?.downloadedBytes, archiveBytes.byteLength);
+    assert.equal(progressEvents.at(-1)?.totalBytes, archiveBytes.byteLength);
+    assert.equal(progressEvents.at(-1)?.percent, 100);
+  }));
+
 test("coordinator reports an available update without downloading by default", async () =>
   await withTempDir("nextclaw-update-coordinator-check-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
@@ -153,6 +201,7 @@ test("coordinator downloads an update and waits for user-triggered apply", async
       latestVersion: "0.18.1",
       releaseNotesUrl: "https://example.com/release-notes"
     });
+    const snapshots: Array<{ status: string; progress?: { percent: number | null } | null }> = [];
     const bundleService = new DesktopBundleService({
       layout,
       stateStore,
@@ -168,23 +217,37 @@ test("coordinator downloads an update and waits for user-triggered apply", async
           kind: "bundle-update",
           manifest
         }),
-        downloadAndInstallUpdate: async () => ({
-          kind: "bundle-update-downloaded",
-          manifest,
-          downloadedVersion: manifest.latestVersion,
-          bundleDirectory: layout.getVersionDir(manifest.latestVersion)
-        })
+        downloadAndInstallUpdate: async (
+          _manifest: unknown,
+          reportProgress?: (progress: { downloadedBytes: number; totalBytes: number | null; percent: number | null }) => void
+        ) => {
+          reportProgress?.({ downloadedBytes: 5, totalBytes: 10, percent: 50 });
+          return {
+            kind: "bundle-update-downloaded",
+            manifest,
+            downloadedVersion: manifest.latestVersion,
+            bundleDirectory: layout.getVersionDir(manifest.latestVersion)
+          };
+        }
       } as unknown as DesktopUpdateService,
       bundleLifecycle: new DesktopBundleLifecycleService({
         layout,
         stateStore,
         bundleService
       }),
-      bundleService
+      bundleService,
+      publishSnapshot: (snapshot) => {
+        snapshots.push({ status: snapshot.status, progress: snapshot.progress });
+      }
     });
 
     const downloadedSnapshot = await coordinator.downloadUpdate();
+    assert.deepEqual(
+      snapshots.some((snapshot) => snapshot.status === "downloading" && snapshot.progress?.percent === 50),
+      true
+    );
     assert.equal(downloadedSnapshot.status, "downloaded");
+    assert.equal(downloadedSnapshot.progress, null);
     assert.equal(stateStore.read().currentVersion, "0.18.0");
     assert.equal(stateStore.read().downloadedVersion, "0.18.1");
     assert.equal(existsSync(layout.getVersionDir("0.17.9")), false);

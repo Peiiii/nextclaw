@@ -19,3 +19,5 @@ export * from "@/types/llm-provider.types.js";
 export * from "@/types/automation.types.js";
 export * from "@/types/channel.types.js";
 export * from "@/types/nextclaw-kernel.types.js";
+export * from "@/types/update.types.js";
+export * from "@/types/update-manifest.types.js";

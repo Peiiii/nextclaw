@@ -14,7 +14,7 @@ import {
   type SessionManager
 } from "@nextclaw/core";
 import { getPackageVersion } from "../utils/cli.utils.js";
-import { runSelfUpdate } from "../services/update/self-update.service.js";
+import { NpmRuntimeUpdateCommandService } from "@/cli/launcher/npm-runtime-update-command.service.js";
 import {
   parseSessionKey,
   type RestartSentinelDeliveryContext,
@@ -383,12 +383,17 @@ export class GatewayControllerImpl implements GatewayController {
     sessionKey?: string;
   }): Promise<Record<string, unknown>> => {
     const versionBefore = getPackageVersion();
-    const result = runSelfUpdate({ timeoutMs: params.timeoutMs });
-    if (!result.ok) {
+    void params.timeoutMs;
+    const updateCommand = new NpmRuntimeUpdateCommandService();
+    const downloadedSnapshot = await updateCommand.runManaged({ download: true });
+    const snapshot = downloadedSnapshot.status === "downloaded"
+      ? await updateCommand.runManaged({ apply: true })
+      : downloadedSnapshot;
+    if (snapshot.status === "blocked" || snapshot.status === "failed") {
       return {
         ok: false,
-        error: result.error ?? "update failed",
-        steps: result.steps,
+        error: snapshot.errorMessage ?? snapshot.blockReason ?? "update failed",
+        snapshot,
         version: {
           before: versionBefore,
           after: getPackageVersion(),
@@ -405,15 +410,15 @@ export class GatewayControllerImpl implements GatewayController {
       sessionKey: params.sessionKey,
       note: params.note,
       reason: "update.run",
-      strategy: result.strategy
+      strategy: "runtime-bundle"
     });
     await this.requestRestart({ delayMs, reason: "update.run" });
     return {
       ok: true,
       note: params.note ?? null,
       restart: { scheduled: true, delayMs },
-      strategy: result.strategy,
-      steps: result.steps,
+      strategy: "runtime-bundle",
+      snapshot,
       version: {
         before: versionBefore,
         after: versionAfter,

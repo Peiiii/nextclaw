@@ -12,8 +12,10 @@ type DesktopUpdateBusyAction = 'checking' | 'downloading' | 'applying' | 'saving
 
 export class DesktopUpdateManager {
   private unsubscribe: (() => void) | null = null;
+  private subscriptionCount = 0;
 
   start = async () => {
+    this.subscriptionCount += 1;
     const desktopApi = this.getDesktopApi();
     if (!desktopApi) {
       useDesktopUpdateStore.setState({
@@ -56,6 +58,10 @@ export class DesktopUpdateManager {
   };
 
   stop = () => {
+    this.subscriptionCount = Math.max(0, this.subscriptionCount - 1);
+    if (this.subscriptionCount > 0) {
+      return;
+    }
     this.unsubscribe?.();
     this.unsubscribe = null;
   };

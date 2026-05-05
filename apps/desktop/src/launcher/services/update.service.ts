@@ -14,6 +14,7 @@ import {
 import { compareDesktopVersions } from "../utils/version.utils";
 import type { DesktopBundleLayoutStore } from "../stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "../stores/launcher-state.store";
+import type { UpdateProgress } from "@nextclaw/kernel";
 
 type FetchLike = typeof fetch;
 
@@ -67,6 +68,8 @@ export type DownloadedDesktopBundleUpdate = {
   downloadedVersion: string;
   bundleDirectory: string;
 };
+
+export type DesktopUpdateProgressReporter = (progress: UpdateProgress) => void;
 
 export class DesktopUpdateService {
   private readonly platform: NodeJS.Platform;
@@ -129,12 +132,15 @@ export class DesktopUpdateService {
     };
   };
 
-  downloadBundle = async (manifest: DesktopUpdateManifest): Promise<DownloadedDesktopBundle> => {
+  downloadBundle = async (
+    manifest: DesktopUpdateManifest,
+    reportProgress?: DesktopUpdateProgressReporter
+  ): Promise<DownloadedDesktopBundle> => {
     const response = await this.fetchImpl(manifest.bundleUrl);
     if (!response.ok) {
       throw new Error(`bundle download failed with status ${response.status}`);
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
+    const bytes = await this.readResponseBytes(response, reportProgress);
     const sha256 = createHash("sha256").update(bytes).digest("hex");
     if (sha256 !== manifest.bundleSha256) {
       throw new Error(`bundle sha256 mismatch: expected ${manifest.bundleSha256} but got ${sha256}`);
@@ -187,9 +193,10 @@ export class DesktopUpdateService {
   };
 
   downloadAndInstallUpdate = async (
-    manifest: DesktopUpdateManifest
+    manifest: DesktopUpdateManifest,
+    reportProgress?: DesktopUpdateProgressReporter
   ): Promise<DownloadedDesktopBundleUpdate> => {
-    const downloadedBundle = await this.downloadBundle(manifest);
+    const downloadedBundle = await this.downloadBundle(manifest, reportProgress);
     try {
       const installedBundle = await this.installDownloadedBundle(downloadedBundle);
       return {
@@ -257,6 +264,55 @@ export class DesktopUpdateService {
     const manifest = this.manifestReader.parse(payload, manifestUrl);
     this.assertManifestSignature(manifest);
     return manifest;
+  };
+
+  private readResponseBytes = async (
+    response: Response,
+    reportProgress?: DesktopUpdateProgressReporter
+  ): Promise<Buffer> => {
+    const totalBytes = this.readContentLength(response);
+    const body = response.body;
+    if (!body) {
+      const bytes = Buffer.from(await response.arrayBuffer());
+      this.reportDownloadProgress(reportProgress, bytes.byteLength, totalBytes ?? bytes.byteLength);
+      return bytes;
+    }
+
+    const reader = body.getReader();
+    const chunks: Uint8Array[] = [];
+    let downloadedBytes = 0;
+    this.reportDownloadProgress(reportProgress, downloadedBytes, totalBytes);
+    while (true) {
+      const next = await reader.read();
+      if (next.done) {
+        break;
+      }
+      chunks.push(next.value);
+      downloadedBytes += next.value.byteLength;
+      this.reportDownloadProgress(reportProgress, downloadedBytes, totalBytes);
+    }
+    return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+  };
+
+  private readContentLength = (response: Response): number | null => {
+    const raw = response.headers.get("content-length");
+    if (!raw) {
+      return null;
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  };
+
+  private reportDownloadProgress = (
+    reportProgress: DesktopUpdateProgressReporter | undefined,
+    downloadedBytes: number,
+    totalBytes: number | null
+  ): void => {
+    reportProgress?.({
+      downloadedBytes,
+      totalBytes,
+      percent: totalBytes && totalBytes > 0 ? Math.min(100, Math.round((downloadedBytes / totalBytes) * 100)) : null
+    });
   };
 
   private assertManifestTarget = (manifest: DesktopUpdateManifest, channel: string): void => {

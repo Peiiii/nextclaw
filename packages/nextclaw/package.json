@@ -5,7 +5,7 @@
   "private": false,
   "type": "module",
   "bin": {
-    "nextclaw": "dist/cli/app/index.js"
+    "nextclaw": "dist/cli/launcher/index.js"
   },
   "license": "MIT",
   "repository": {
@@ -39,7 +39,8 @@
   "scripts": {
     "dev": "tsx watch --tsconfig tsconfig.json src/cli/app/index.ts",
     "dev:build": "tsx src/cli/app/index.ts",
-    "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/app/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
+    "build": "node scripts/sync-usage-resource.mjs && tsdown src/index.ts src/cli/app/index.ts src/cli/launcher/index.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-ui-dist.mjs",
+    "smoke:npm-runtime-update": "node scripts/smoke-npm-runtime-update.mjs",
     "prepack": "node ../../scripts/release/verify-package-release-artifacts.mjs",
     "start": "node dist/cli/app/index.js",
     "lint": "eslint .",
@@ -49,6 +50,7 @@
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",
+    "@nextclaw/kernel": "workspace:*",
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
@@ -63,6 +65,7 @@
     "@nextclaw/server": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",
+    "jszip": "^3.10.1",
     "yaml": "^2.8.1"
   },
   "devDependencies": {
