@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-保留两个发布 skill：桌面使用现有 `desktop-release-contract-guard`，NPM 使用新增 `npm-release-contract-guard`，不再增加总控抽象。
+发布 `nextclaw@0.18.12-beta.0` 到 NPM beta tag，并触发 NPM runtime beta update channel，供用户验收后再发正式版。
 
 ## 锚点计数器
 
-3/20
+14/20

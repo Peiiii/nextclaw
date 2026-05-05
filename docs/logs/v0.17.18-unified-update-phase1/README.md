@@ -169,11 +169,11 @@ pnpm -C apps/desktop validation:dev-update
 
 ## NPM 包发布记录
 
-本次需要后续随统一发布补发相关包，但当前未执行发布。
+本次开始发布 NPM beta 版本，先提供给用户侧验证；用户确认 beta 没问题后再发布正式版。
 
 - `@nextclaw/kernel`：待统一发布。本次新增共享更新契约类型并导出。
 - `@nextclaw/ui`：待统一发布。本次更新桌面更新配置 UI 与共享契约依赖。
-- `nextclaw`：待统一发布。本次 bin 入口改为 npm runtime launcher，并新增 runtime bundle 更新/切换能力。
+- `nextclaw`：准备发布 `0.18.12-beta.0`，dist-tag 为 `beta`。本次 bin 入口改为 npm runtime launcher，并新增 runtime bundle 更新/切换能力；包内已加入与当前公开 update channel 一致的 `resources/update-bundle-public.pem`。
 - `@nextclaw/desktop`：桌面应用构建受影响，不作为普通公开 NPM 包记录；需要走桌面 release 构建流程。
 
-当前未发布原因：本次是实现阶段验证，尚未进入统一 release / NPM publish 流程。
+当前发布策略：先发布 `nextclaw@beta` 供真实用户路径验证；正式版等待 beta 验收通过后再发布。
