@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
 
+## 0.1.56
+
+### Patch Changes
+
+- Preserve explicit empty reasoning content across DeepSeek-compatible tool replay paths.
+
 ## 0.1.55
 
 ### Patch Changes

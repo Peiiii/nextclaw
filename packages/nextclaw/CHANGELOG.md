@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.11
+
+### Patch Changes
+
+- Preserve explicit empty reasoning content across DeepSeek-compatible tool replay paths.
+
 ## 0.18.10
 
 ### Patch Changes
