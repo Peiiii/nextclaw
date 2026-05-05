@@ -1,6 +1,6 @@
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 import type { NcpMessagePart } from '@nextclaw/ncp';
-import type { NcpMessageView, NcpSessionSummaryView, SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
+import type { NcpMessageView, NcpSessionSummaryView, SessionContextWindowView, SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import { API_BASE } from '@/shared/lib/api';
 import {
   getSessionProjectName,
@@ -8,6 +8,7 @@ import {
 } from '@/shared/lib/session-project';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
+const CONTEXT_WINDOW_METADATA_KEY = 'last_context_window';
 
 function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
@@ -105,6 +106,45 @@ function readNcpSessionType(summary: NcpSessionSummaryView): string {
     readOptionalString(metadata.sessionType) ??
     'native'
   );
+}
+
+function readNonNegativeInteger(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+  const normalized = Math.trunc(value);
+  return normalized >= 0 ? normalized : null;
+}
+
+function readBoolean(value: unknown): boolean {
+  return value === true;
+}
+
+function readNcpSessionContextWindow(summary: NcpSessionSummaryView): SessionContextWindowView | null {
+  const metadata = readMetadata(summary);
+  const rawContextWindow = metadata?.[CONTEXT_WINDOW_METADATA_KEY];
+  if (!rawContextWindow || typeof rawContextWindow !== 'object' || Array.isArray(rawContextWindow)) {
+    return null;
+  }
+  const contextWindow = rawContextWindow as Record<string, unknown>;
+  const usedContextTokens = readNonNegativeInteger(contextWindow.usedContextTokens);
+  const totalContextTokens = readNonNegativeInteger(contextWindow.totalContextTokens);
+  const prunedUsedContextTokens = readNonNegativeInteger(contextWindow.prunedUsedContextTokens);
+  const updatedAt = readOptionalString(contextWindow.updatedAt);
+  if (usedContextTokens === null || totalContextTokens === null || prunedUsedContextTokens === null || !updatedAt) {
+    return null;
+  }
+  return {
+    usedContextTokens,
+    totalContextTokens,
+    prunedUsedContextTokens,
+    availableContextTokens: readNonNegativeInteger(contextWindow.availableContextTokens) ?? Math.max(0, totalContextTokens - usedContextTokens),
+    droppedHistoryCount: readNonNegativeInteger(contextWindow.droppedHistoryCount) ?? 0,
+    truncatedToolResultCount: readNonNegativeInteger(contextWindow.truncatedToolResultCount) ?? 0,
+    truncatedSystemPrompt: readBoolean(contextWindow.truncatedSystemPrompt),
+    truncatedUserMessage: readBoolean(contextWindow.truncatedUserMessage),
+    updatedAt
+  };
 }
 
 function readNcpParentSessionId(summary: NcpSessionSummaryView): string | null {
@@ -284,6 +324,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const parentSessionId = readNcpParentSessionId(summary);
   const spawnedByRequestId = readNcpSpawnedByRequestId(summary);
   const isPromotedChildSession = readPromotedChildSession(summary);
+  const contextWindow = readNcpSessionContextWindow(summary);
   return {
     key: summary.sessionId,
     createdAt: summary.updatedAt,
@@ -303,6 +344,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(isPromotedChildSession ? { isPromotedChildSession } : {}),
     ...(parentSessionId ? { parentSessionId } : {}),
     ...(spawnedByRequestId ? { spawnedByRequestId } : {}),
+    ...(contextWindow ? { contextWindow } : {}),
     messageCount: summary.messageCount
   };
 }

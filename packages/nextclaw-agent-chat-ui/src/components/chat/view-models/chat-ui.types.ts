@@ -124,8 +124,17 @@ export type ChatInputBarActionsProps = {
   stopHint: string;
   sendButtonLabel: string;
   stopButtonLabel: string;
+  contextWindow?: ChatContextWindowIndicator | null;
   onSend: () => Promise<void> | void;
   onStop: () => Promise<void> | void;
+};
+
+export type ChatContextWindowIndicator = {
+  label: string;
+  percentLabel: string;
+  ratio: number;
+  tone: "neutral" | "warning" | "danger";
+  details: Array<{ label: string; value: string }>;
 };
 
 export type ChatInputBarToolbarProps = {

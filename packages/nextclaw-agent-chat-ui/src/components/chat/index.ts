@@ -48,6 +48,7 @@ export type {
   ChatInlineHint,
   ChatSlashMenuProps,
   ChatInputBarProps,
+  ChatContextWindowIndicator,
   ChatMessageRole,
   ChatFileOperationLineViewModel,
   ChatFileOperationBlockViewModel,

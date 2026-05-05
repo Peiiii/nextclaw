@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { SubagentManager } from "../subagent.js";
+import { SubagentManager } from "../subagent.manager.js";
 
 describe("SubagentManager announce routing", () => {
   it("publishes completion message with origin session metadata", async () => {

@@ -1,6 +1,6 @@
 import { ChatButton } from '../../default-skin/button';
 import { ChatUiPrimitives } from '../primitives/chat-ui-primitives';
-import type { ChatInputBarActionsProps } from '../../view-models/chat-ui.types';
+import type { ChatContextWindowIndicator, ChatInputBarActionsProps } from '../../view-models/chat-ui.types';
 import { ArrowUp } from 'lucide-react';
 
 const SEND_ERROR_PREVIEW_MAX_CHARS = 120;
@@ -23,6 +23,49 @@ function StopIcon() {
   );
 }
 
+function ContextWindowIndicator({ contextWindow }: { contextWindow: ChatContextWindowIndicator }) {
+  const { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } = ChatUiPrimitives;
+  const clampedRatio = Math.max(0, Math.min(1, contextWindow.ratio));
+  const angle = Math.round(clampedRatio * 360);
+  const ringColor = '#9ca3af';
+
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+            aria-label={contextWindow.label}
+            title={contextWindow.label}
+          >
+            <span
+              aria-hidden="true"
+              className="absolute inset-[7px] rounded-full"
+              style={{ background: `conic-gradient(${ringColor} ${angle}deg, #e5e7eb 0deg)` }}
+            />
+            <span aria-hidden="true" className="absolute inset-[10px] rounded-full bg-white" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[18rem]">
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between gap-5 font-semibold text-gray-800">
+              <span>{contextWindow.label}</span>
+              <span>{contextWindow.percentLabel}</span>
+            </div>
+            {contextWindow.details.map((detail) => (
+              <div key={detail.label} className="flex items-center justify-between gap-5 text-gray-600">
+                <span>{detail.label}</span>
+                <span className="font-medium text-gray-800">{detail.value}</span>
+              </div>
+            ))}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export function ChatInputBarActions({
   sendError,
   sendErrorDetailsLabel,
@@ -33,6 +76,7 @@ export function ChatInputBarActions({
   stopHint,
   sendButtonLabel,
   stopButtonLabel,
+  contextWindow,
   onSend,
   onStop
 }: ChatInputBarActionsProps) {
@@ -87,6 +131,7 @@ export function ChatInputBarActions({
         </div>
       ) : null}
       <div className="flex items-center gap-2">
+        {contextWindow ? <ContextWindowIndicator contextWindow={contextWindow} /> : null}
         {isSending ? (
           canStopGeneration ? (
             <ChatButton

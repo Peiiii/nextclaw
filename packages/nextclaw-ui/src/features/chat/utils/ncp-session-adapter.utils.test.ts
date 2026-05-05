@@ -69,6 +69,39 @@ describe('adaptNcpSessionSummary', () => {
       spawnedByRequestId: 'request-1',
     });
   });
+
+  it('hydrates context window metadata into a decoupled used/total session view', () => {
+    const adapted = adaptNcpSessionSummary(
+      createSummary({
+        metadata: {
+          last_context_window: {
+            version: 1,
+            usedContextTokens: 76000,
+            totalContextTokens: 200000,
+            prunedUsedContextTokens: 61200,
+            availableContextTokens: 124000,
+            droppedHistoryCount: 3,
+            truncatedToolResultCount: 1,
+            truncatedSystemPrompt: false,
+            truncatedUserMessage: false,
+            updatedAt: '2026-05-05T12:34:56.000Z',
+          },
+        },
+      }),
+    );
+
+    expect(adapted.contextWindow).toEqual({
+      usedContextTokens: 76000,
+      totalContextTokens: 200000,
+      prunedUsedContextTokens: 61200,
+      availableContextTokens: 124000,
+      droppedHistoryCount: 3,
+      truncatedToolResultCount: 1,
+      truncatedSystemPrompt: false,
+      truncatedUserMessage: false,
+      updatedAt: '2026-05-05T12:34:56.000Z',
+    });
+  });
 });
 
 describe('adaptNcpMessageToUiMessage file rendering', () => {

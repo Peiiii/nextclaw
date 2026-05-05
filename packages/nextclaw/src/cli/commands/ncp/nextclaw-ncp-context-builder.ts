@@ -69,6 +69,21 @@ type ResolvedAgentProfile = {
   workspace: string;
 };
 
+const CONTEXT_WINDOW_METADATA_KEY = "last_context_window";
+
+type ContextWindowMetadata = {
+  version: 1;
+  usedContextTokens: number;
+  totalContextTokens: number;
+  prunedUsedContextTokens: number;
+  availableContextTokens: number;
+  droppedHistoryCount: number;
+  truncatedToolResultCount: number;
+  truncatedSystemPrompt: boolean;
+  truncatedUserMessage: boolean;
+  updatedAt: string;
+};
+
 const TIME_HINT_TRIGGER_PATTERNS = [
   /\b(now|right now|current time|what time|today|tonight|tomorrow|yesterday|this morning|this afternoon|this evening|date)\b/i,
   /(现在|此刻|当前时间|现在几点|几点了|今天|今晚|今早|今晨|明天|昨天|日期)/,
@@ -336,6 +351,23 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       messages,
       contextTokens: profile.contextTokens,
     });
+    const estimate = this.inputBudgetPruner.estimate({
+      messages,
+      contextTokens: profile.contextTokens,
+    });
+    const contextWindow: ContextWindowMetadata = {
+      version: 1,
+      usedContextTokens: estimate.estimatedTokens,
+      totalContextTokens: profile.contextTokens,
+      prunedUsedContextTokens: pruned.estimatedTokens,
+      availableContextTokens: Math.max(0, profile.contextTokens - estimate.estimatedTokens),
+      droppedHistoryCount: pruned.droppedHistoryCount,
+      truncatedToolResultCount: pruned.truncatedToolResultCount,
+      truncatedSystemPrompt: pruned.truncatedSystemPrompt,
+      truncatedUserMessage: pruned.truncatedUserMessage,
+      updatedAt: new Date().toISOString(),
+    };
+    session.metadata[CONTEXT_WINDOW_METADATA_KEY] = contextWindow;
 
     return {
       messages: pruned.messages as OpenAIChatMessage[],

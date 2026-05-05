@@ -1,5 +1,5 @@
 import { Tool } from "./base.js";
-import type { SubagentManager } from "../subagent.js";
+import type { SubagentManager } from "../subagent.manager.js";
 
 export class SpawnTool extends Tool {
   private channel = "cli";
@@ -47,9 +47,10 @@ export class SpawnTool extends Tool {
   };
 
   execute = async (params: Record<string, unknown>, toolCallId?: string): Promise<unknown> => {
-    const task = String(params.task ?? "");
-    const label = params.label ? String(params.label) : undefined;
-    const model = typeof params.model === "string" && params.model.trim().length > 0 ? params.model.trim() : undefined;
+    const { task: taskParam, label: labelParam, model: modelParam } = params;
+    const task = String(taskParam ?? "");
+    const label = labelParam ? String(labelParam) : undefined;
+    const model = typeof modelParam === "string" && modelParam.trim().length > 0 ? modelParam.trim() : undefined;
     return this.manager.spawn({
       task,
       label,

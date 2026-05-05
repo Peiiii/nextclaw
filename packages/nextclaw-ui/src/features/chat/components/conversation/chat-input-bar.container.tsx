@@ -12,11 +12,13 @@ import { chatRecentModelsManager, CHAT_RECENT_MODELS_MIN_OPTIONS } from '@/featu
 import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/features/chat/managers/chat-recent-skills.manager';
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
+import { useSelectedSessionContextWindowIndicator } from '@/features/chat/hooks/use-selected-session-context-window-indicator';
 import { useChatRuntimeAvailability } from '@/features/system-status';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
 type ChatInputStoreSnapshot = ReturnType<typeof useChatInputStore.getState>['snapshot']; type ChatPresenter = ReturnType<typeof usePresenter>;
+
 function buildThinkingLabels(): Record<ChatThinkingLevel, string> {
   return {
     off: t('chatThinkingLevelOff'),
@@ -224,6 +226,7 @@ export function ChatInputBarContainer() {
     () => buildChatSlashItems(skillRecords, slashQuery ?? '', labels.slashTexts, recentSkillValues),
     [labels.slashTexts, recentSkillValues, skillRecords, slashQuery]
   );
+  const contextWindowIndicator = useSelectedSessionContextWindowIndicator();
   const selectedModelOption = modelRecords.find((option) => option.value === snapshot.selectedModel);
   const thinkingSupportedLevels = selectedModelOption?.thinkingCapability?.supported ?? [];
   const resolvedStopHint = snapshot.stopDisabledReason === '__preparing__'
@@ -323,6 +326,7 @@ export function ChatInputBarContainer() {
             stopHint: resolvedStopHint,
             sendButtonLabel: t('chatSend'),
             stopButtonLabel: t('chatStop'),
+            contextWindow: contextWindowIndicator,
             onSend: presenter.chatInputManager.send,
             onStop: presenter.chatInputManager.stop
           }

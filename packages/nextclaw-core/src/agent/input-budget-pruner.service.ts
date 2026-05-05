@@ -12,6 +12,21 @@ const MIN_USER_KEEP_CHARS = 1_000;
 
 type RuntimeMessage = Record<string, unknown>;
 
+export type InputBudgetEstimate = {
+  estimatedTokens: number;
+  budgetTokens: number;
+};
+
+type InputBudgetPruneState = {
+  work: RuntimeMessage[];
+  contextTokens: number;
+  budgetTokens: number;
+  droppedHistoryCount: number;
+  truncatedToolResultCount: number;
+  truncatedSystemPrompt: boolean;
+  truncatedUserMessage: boolean;
+};
+
 export type InputBudgetPruneResult = {
   messages: RuntimeMessage[];
   estimatedTokens: number;
@@ -23,93 +38,153 @@ export type InputBudgetPruneResult = {
 };
 
 export class InputBudgetPruner {
+  estimate(params: {
+    messages: RuntimeMessage[];
+    contextTokens?: number | null;
+    reserveTokensFloor?: number;
+    softThresholdTokens?: number;
+  }): InputBudgetEstimate {
+    return {
+      estimatedTokens: estimateTokens(params.messages),
+      budgetTokens: this.resolveBudgetTokens(params),
+    };
+  }
+
   prune(params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
   }): InputBudgetPruneResult {
-    const contextTokens = sanitizePositiveInt(params.contextTokens) ?? DEFAULT_CONTEXT_TOKENS;
-    const reserveTokens = sanitizeNonNegativeInt(params.reserveTokensFloor) ?? DEFAULT_RESERVE_TOKENS_FLOOR;
-    const softThreshold = sanitizeNonNegativeInt(params.softThresholdTokens) ?? DEFAULT_SOFT_THRESHOLD_TOKENS;
-    const budgetTokens = Math.max(1, contextTokens - reserveTokens - softThreshold);
+    const state = this.createPruneState(params);
+    this.truncateToolResults(state);
+    this.dropInvalidToolHistory(state);
+    this.dropOldHistoryUntilWithinBudget(state);
+    this.truncateBoundaryMessagesUntilWithinBudget(state);
 
-    const work = params.messages.map(cloneMessage);
+    return {
+      messages: state.work,
+      estimatedTokens: estimateTokens(state.work),
+      budgetTokens: state.budgetTokens,
+      droppedHistoryCount: state.droppedHistoryCount,
+      truncatedToolResultCount: state.truncatedToolResultCount,
+      truncatedSystemPrompt: state.truncatedSystemPrompt,
+      truncatedUserMessage: state.truncatedUserMessage
+    };
+  }
+
+  private createPruneState = (params: {
+    messages: RuntimeMessage[];
+    contextTokens?: number | null;
+    reserveTokensFloor?: number;
+    softThresholdTokens?: number;
+  }): InputBudgetPruneState => {
+    const contextTokens = this.resolveContextTokens(params.contextTokens);
+    return {
+      work: params.messages.map(cloneMessage),
+      contextTokens,
+      budgetTokens: this.resolveBudgetTokens(params),
+      droppedHistoryCount: 0,
+      truncatedToolResultCount: 0,
+      truncatedSystemPrompt: false,
+      truncatedUserMessage: false
+    };
+  };
+
+  private truncateToolResults = (state: InputBudgetPruneState): void => {
     const maxToolResultChars = Math.min(
       HARD_MAX_TOOL_RESULT_CHARS,
-      Math.max(2_000, Math.floor(contextTokens * MAX_TOOL_RESULT_CONTEXT_SHARE * DEFAULT_CHARS_PER_TOKEN))
+      Math.max(2_000, Math.floor(state.contextTokens * MAX_TOOL_RESULT_CONTEXT_SHARE * DEFAULT_CHARS_PER_TOKEN))
     );
 
-    let truncatedToolResultCount = 0;
-    for (let index = 0; index < work.length; index += 1) {
-      const message = work[index];
-      if (message.role !== "tool") {
-        continue;
-      }
+    for (let index = 0; index < state.work.length; index += 1) {
+      const message = state.work[index];
       const content = typeof message.content === "string" ? message.content : "";
-      if (!content || content.length <= maxToolResultChars) {
+      if (message.role !== "tool" || !content || content.length <= maxToolResultChars) {
         continue;
       }
-      work[index] = {
+      state.work[index] = {
         ...message,
         content: truncateText(content, maxToolResultChars, TOOL_RESULT_TRUNCATION_SUFFIX)
       };
-      truncatedToolResultCount += 1;
+      state.truncatedToolResultCount += 1;
     }
+  };
 
-    const normalized = sanitizeHistoricalToolProtocol(work);
-    let droppedHistoryCount = work.length - normalized.length;
-    work.splice(0, work.length, ...normalized);
+  private dropInvalidToolHistory = (state: InputBudgetPruneState): void => {
+    const normalized = sanitizeHistoricalToolProtocol(state.work);
+    state.droppedHistoryCount += state.work.length - normalized.length;
+    state.work.splice(0, state.work.length, ...normalized);
+  };
 
-    while (estimateTokens(work) > budgetTokens && work.length > 2) {
-      work.splice(1, 1);
-      droppedHistoryCount += 1;
+  private dropOldHistoryUntilWithinBudget = (state: InputBudgetPruneState): void => {
+    while (estimateTokens(state.work) > state.budgetTokens && state.work.length > 2) {
+      state.work.splice(1, 1);
+      state.droppedHistoryCount += 1;
     }
+  };
 
-    let truncatedSystemPrompt = false;
-    let truncatedUserMessage = false;
+  private truncateBoundaryMessagesUntilWithinBudget = (state: InputBudgetPruneState): void => {
     let guard = 0;
-    while (estimateTokens(work) > budgetTokens && guard < 8) {
+    while (estimateTokens(state.work) > state.budgetTokens && guard < 8) {
       guard += 1;
-
-      const systemIndex = work.findIndex((message) => message.role === "system");
-      if (systemIndex >= 0) {
-        const systemContent = typeof work[systemIndex].content === "string" ? work[systemIndex].content : "";
-        if (systemContent.length > MIN_SYSTEM_KEEP_CHARS) {
-          work[systemIndex] = {
-            ...work[systemIndex],
-            content: truncateText(systemContent, Math.max(MIN_SYSTEM_KEEP_CHARS, Math.floor(systemContent.length * 0.8)))
-          };
-          truncatedSystemPrompt = true;
-          continue;
-        }
+      if (this.truncateSystemPrompt(state)) {
+        continue;
       }
-
-      const userIndex = findLastIndex(work, (message) => message.role === "user");
-      if (userIndex >= 0) {
-        const userContent = typeof work[userIndex].content === "string" ? work[userIndex].content : "";
-        if (userContent.length > MIN_USER_KEEP_CHARS) {
-          work[userIndex] = {
-            ...work[userIndex],
-            content: truncateText(userContent, Math.max(MIN_USER_KEEP_CHARS, Math.floor(userContent.length * 0.8)))
-          };
-          truncatedUserMessage = true;
-          continue;
-        }
+      if (this.truncateLastUserMessage(state)) {
+        continue;
       }
-
       break;
     }
+  };
 
-    return {
-      messages: work,
-      estimatedTokens: estimateTokens(work),
-      budgetTokens,
-      droppedHistoryCount,
-      truncatedToolResultCount,
-      truncatedSystemPrompt,
-      truncatedUserMessage
+  private truncateSystemPrompt = (state: InputBudgetPruneState): boolean => {
+    const systemIndex = state.work.findIndex((message) => message.role === "system");
+    if (systemIndex < 0) {
+      return false;
+    }
+    const systemContent = typeof state.work[systemIndex].content === "string" ? state.work[systemIndex].content : "";
+    if (systemContent.length <= MIN_SYSTEM_KEEP_CHARS) {
+      return false;
+    }
+    state.work[systemIndex] = {
+      ...state.work[systemIndex],
+      content: truncateText(systemContent, Math.max(MIN_SYSTEM_KEEP_CHARS, Math.floor(systemContent.length * 0.8)))
     };
+    state.truncatedSystemPrompt = true;
+    return true;
+  };
+
+  private truncateLastUserMessage = (state: InputBudgetPruneState): boolean => {
+    const userIndex = findLastIndex(state.work, (message) => message.role === "user");
+    if (userIndex < 0) {
+      return false;
+    }
+    const userContent = typeof state.work[userIndex].content === "string" ? state.work[userIndex].content : "";
+    if (userContent.length <= MIN_USER_KEEP_CHARS) {
+      return false;
+    }
+    state.work[userIndex] = {
+      ...state.work[userIndex],
+      content: truncateText(userContent, Math.max(MIN_USER_KEEP_CHARS, Math.floor(userContent.length * 0.8)))
+    };
+    state.truncatedUserMessage = true;
+    return true;
+  };
+
+  private resolveBudgetTokens(params: {
+    contextTokens?: number | null;
+    reserveTokensFloor?: number;
+    softThresholdTokens?: number;
+  }): number {
+    const contextTokens = this.resolveContextTokens(params.contextTokens);
+    const reserveTokens = sanitizeNonNegativeInt(params.reserveTokensFloor) ?? DEFAULT_RESERVE_TOKENS_FLOOR;
+    const softThreshold = sanitizeNonNegativeInt(params.softThresholdTokens) ?? DEFAULT_SOFT_THRESHOLD_TOKENS;
+    return Math.max(1, contextTokens - reserveTokens - softThreshold);
+  }
+
+  private resolveContextTokens(value: number | null | undefined): number {
+    return sanitizePositiveInt(value) ?? DEFAULT_CONTEXT_TOKENS;
   }
 }
 

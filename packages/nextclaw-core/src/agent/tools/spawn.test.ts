@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SubagentManager } from "../subagent.js";
-import { SpawnTool } from "./spawn.js";
+import type { SubagentManager } from "../subagent.manager.js";
+import { SpawnTool } from "./spawn.service.js";
 
 describe("SpawnTool", () => {
   it("forwards explicit model override and session model context", async () => {

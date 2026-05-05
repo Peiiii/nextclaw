@@ -788,3 +788,43 @@ it('reveals the original send error on hover even when the summary stays on one 
   expect(screen.getByRole('button', { name: 'View details' })).toBeTruthy();
   expect((document.querySelector('span[title]') as HTMLElement | null)?.getAttribute('title')).toBe(hoverError);
 });
+
+it('renders a subtle context window indicator without persistent percent text', () => {
+  render(
+    <ChatInputBar
+      {...createInputBarProps({
+        toolbar: {
+          selects: [],
+          actions: {
+            isSending: false,
+            canStopGeneration: false,
+            sendDisabled: false,
+            stopDisabled: true,
+            stopHint: 'Stop unavailable',
+            sendButtonLabel: 'Send',
+            stopButtonLabel: 'Stop',
+            contextWindow: {
+              label: 'Context window',
+              percentLabel: '38%',
+              ratio: 0.38,
+              tone: 'neutral',
+              details: [
+                { label: 'Used', value: '76k' },
+                { label: 'Total', value: '200k' },
+                { label: 'Available', value: '124k' }
+              ]
+            },
+            onSend: vi.fn(),
+            onStop: vi.fn()
+          }
+        }
+      })}
+    />
+  );
+
+  const indicator = screen.getByRole('button', { name: 'Context window' });
+  expect(indicator).toBeTruthy();
+  expect(indicator.className).toContain('rounded-lg');
+  expect(indicator.querySelector('span')?.getAttribute('style')).toContain('#9ca3af');
+  expect(screen.queryByText('38%')).toBeNull();
+});

@@ -10,6 +10,7 @@ export * from './marketplace';
 export * from './mcp-marketplace';
 export * from './ncp-attachments';
 export * from './ncp-session';
+export * from './ncp-session.types';
 export * from './ncp-session-query-cache';
 export * from './raw-client.utils';
 export * from './remote';

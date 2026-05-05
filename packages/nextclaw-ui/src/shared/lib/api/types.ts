@@ -1,4 +1,6 @@
-import type { NcpMessage, NcpSessionStatus, NcpSessionSummary } from '@nextclaw/ncp';
+import type { NcpSessionStatus } from '@nextclaw/ncp';
+import type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView } from './ncp-session.types';
+export type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView, NcpSessionsListView, NcpMessageView, NcpSessionMessagesView, SessionContextWindowView } from './ncp-session.types';
 
 // API Types - matching backend response format
 export type ApiError = {
@@ -284,78 +286,6 @@ export type AgentBindingView = {
 
 export type SessionConfigView = {
   dmScope?: "main" | "per-peer" | "per-channel-peer" | "per-account-channel-peer";
-};
-
-export type SessionTypeIconView = {
-  kind: "image";
-  src: string;
-  alt?: string | null;
-};
-
-export type RuntimeEntryView = {
-  enabled?: boolean;
-  label?: string;
-  icon?: SessionTypeIconView | null;
-  type: string;
-  config?: Record<string, unknown>;
-};
-
-export type SessionEntryView = {
-  key: string;
-  createdAt: string;
-  updatedAt: string;
-  lastMessageAt?: string;
-  readAt?: string;
-  agentId?: string;
-  label?: string;
-  channel?: string;
-  type?: string;
-  preferredModel?: string;
-  preferredThinking?: ThinkingLevel | null;
-  projectRoot?: string | null;
-  projectName?: string | null;
-  sessionType: string;
-  sessionTypeMutable: boolean;
-  isChildSession?: boolean;
-  isPromotedChildSession?: boolean;
-  parentSessionId?: string | null;
-  spawnedByRequestId?: string | null;
-  messageCount: number;
-  lastRole?: string;
-  lastTimestamp?: string;
-};
-
-export type SessionMessageView = {
-  role: string;
-  content: unknown;
-  timestamp: string;
-  name?: string;
-  tool_call_id?: string;
-  tool_calls?: Array<Record<string, unknown>>;
-  reasoning_content?: string;
-};
-
-export type SessionEventView = {
-  seq: number;
-  type: string;
-  timestamp: string;
-  message?: SessionMessageView;
-};
-
-export type NcpSessionSummaryView = NcpSessionSummary;
-
-export type NcpSessionsListView = {
-  sessions: NcpSessionSummaryView[];
-  total: number;
-};
-
-export type NcpMessageView = NcpMessage;
-
-export type NcpSessionMessagesView = {
-  sessionId: string;
-  status: NcpSessionStatus;
-  messages: NcpMessageView[];
-  total: number;
 };
 
 export type SessionSkillEntryView = {
