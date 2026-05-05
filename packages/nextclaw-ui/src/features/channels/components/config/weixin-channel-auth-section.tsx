@@ -17,7 +17,7 @@ type WeixinChannelAuthSectionProps = {
 };
 
 function resolveConnectedAccountIds(channelConfig: Record<string, unknown>): string[] {
-  const accounts = channelConfig.accounts;
+  const { accounts } = channelConfig;
   const ids = new Set<string>();
   if (typeof channelConfig.defaultAccountId === 'string' && channelConfig.defaultAccountId.trim()) {
     ids.add(channelConfig.defaultAccountId.trim());

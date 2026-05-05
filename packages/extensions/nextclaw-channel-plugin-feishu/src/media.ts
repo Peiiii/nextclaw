@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Readable } from "stream";
+import type { Readable } from "stream";
 import { withTempDownloadPath, type ClawdbotConfig } from "./nextclaw-sdk/feishu.js";
 import { resolveFeishuAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";

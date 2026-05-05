@@ -83,7 +83,7 @@ describe('DocBrowserProvider dedupe keys', () => {
         title: 'Skill B',
       });
     });
-    const activeTabId = result.current.activeTabId;
+    const { activeTabId } = result.current;
 
     act(() => {
       result.current.open('data:text/html,A-loaded', {

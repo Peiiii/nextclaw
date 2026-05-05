@@ -291,7 +291,7 @@ export class RemoteSessionMultiplexTransport implements AppTransport {
         };
       });
 
-    const connectPromise = this.connectPromise;
+    const { connectPromise } = this;
     return await connectPromise;
   }
 

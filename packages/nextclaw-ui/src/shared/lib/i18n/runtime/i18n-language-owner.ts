@@ -100,9 +100,9 @@ class I18nLanguageOwner {
 
 const owner = new I18nLanguageOwner();
 
-export const resolveInitialLanguage = owner.resolveInitialLanguage;
+export const { resolveInitialLanguage } = owner;
 export const initializeI18n = owner.initialize;
-export const getLanguage = owner.getLanguage;
-export const setLanguage = owner.setLanguage;
-export const subscribeLanguageChange = owner.subscribeLanguageChange;
-export const getLocale = owner.getLocale;
+export const { getLanguage } = owner;
+export const { setLanguage } = owner;
+export const { subscribeLanguageChange } = owner;
+export const { getLocale } = owner;

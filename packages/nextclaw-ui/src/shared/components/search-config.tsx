@@ -179,7 +179,7 @@ function SearchProviderFields(props: {
   const { draft, provider, search, selectedDocsUrl, updateProviderDraft } = props;
 
   if (provider === "bocha") {
-    const bocha = draft.providers.bocha;
+    const { bocha } = draft.providers;
     return (
       <>
         <SearchTextField
@@ -214,7 +214,7 @@ function SearchProviderFields(props: {
   }
 
   if (provider === "tavily") {
-    const tavily = draft.providers.tavily;
+    const { tavily } = draft.providers;
     return (
       <>
         <SearchTextField
@@ -252,7 +252,7 @@ function SearchProviderFields(props: {
     );
   }
 
-  const brave = draft.providers.brave;
+  const { brave } = draft.providers;
   return (
     <>
       <SearchTextField

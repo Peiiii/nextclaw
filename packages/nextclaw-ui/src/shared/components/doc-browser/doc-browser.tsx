@@ -203,7 +203,7 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
     e.preventDefault();
     e.stopPropagation();
     setIsResizing(true);
-    const axis = (e.currentTarget as HTMLElement).dataset.axis;
+    const { axis } = (e.currentTarget as HTMLElement).dataset;
     resizeRef.current = {
       startX: e.clientX,
       startY: e.clientY,

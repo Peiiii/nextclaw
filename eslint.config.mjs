@@ -106,6 +106,7 @@ const commonJsGlobals = {
 const jsBaseRules = {
   ...js.configs.recommended.rules,
   ...prettier.rules,
+  "object-curly-spacing": ["error", "always"],
   "max-lines": ["warn", { max: 800, skipBlankLines: true, skipComments: true }],
   "max-lines-per-function": [
     "warn",
@@ -121,6 +122,7 @@ const baseRules = {
   ...tsEslintRecommendedOverrideRules,
   ...tsEslintPlugin.configs.recommended.rules,
   ...prettier.rules,
+  "object-curly-spacing": ["error", "always"],
   "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
   "@typescript-eslint/consistent-type-imports": "error",
   "max-lines": ["warn", { max: 800, skipBlankLines: true, skipComments: true }],

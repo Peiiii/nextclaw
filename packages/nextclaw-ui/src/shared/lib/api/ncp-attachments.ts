@@ -6,11 +6,11 @@ function readErrorMessage(payload: unknown, fallback: string): string {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return fallback;
   }
-  const error = (payload as { error?: unknown }).error;
+  const { error } = (payload as { error?: unknown });
   if (!error || typeof error !== "object" || Array.isArray(error)) {
     return fallback;
   }
-  const message = (error as { message?: unknown }).message;
+  const { message } = (error as { message?: unknown });
   return typeof message === "string" && message.trim().length > 0 ? message : fallback;
 }
 

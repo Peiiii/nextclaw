@@ -39,7 +39,7 @@ function formatEveryDuration(ms?: number | null): string {
 }
 
 function describeSchedule(job: CronJobView): string {
-  const schedule = job.schedule;
+  const { schedule } = job;
   if (schedule.kind === 'cron') {
     return schedule.expr ? `cron ${schedule.expr}` : 'cron';
   }

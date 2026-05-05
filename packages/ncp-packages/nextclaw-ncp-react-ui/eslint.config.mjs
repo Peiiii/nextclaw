@@ -25,6 +25,7 @@ export default [
       ...tsEslintRecommendedOverrideRules,
       ...tsEslintPlugin.configs.recommended.rules,
       ...prettier.rules,
+      "object-curly-spacing": ["error", "always"],
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
       "@typescript-eslint/consistent-type-imports": "error",
       "max-lines": ["warn", { max: 800, skipBlankLines: true, skipComments: true }],

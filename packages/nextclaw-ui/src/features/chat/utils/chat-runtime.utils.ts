@@ -179,7 +179,7 @@ class HistoryMessageBuilder {
   };
 
   private appendAssistantMessage = (message: SessionMessageView): void => {
-    const timestamp = message.timestamp;
+    const { timestamp } = message;
     const text = extractMessageText(message.content).trim();
     if (text) {
       this.appendAssistantText(timestamp, text);
