@@ -27,7 +27,7 @@ function log(message) {
 function run(command, args, options = {}) {
   log(`running ${command} ${args.join(" ")}`);
   const result = spawnSync(command, args, {
-    cwd: workspaceRoot,
+    cwd: options.cwd ?? workspaceRoot,
     env: {
       ...process.env,
       ...options.env
@@ -149,6 +149,17 @@ function createManifest(bundle, bundleUrl, privateKey) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
+  if (args.has("--published-beta")) {
+    const fixture = await createPublishedBetaFixture();
+    try {
+      verifyPublishedBetaInstall(fixture);
+      log("published beta install smoke passed");
+    } finally {
+      rmSync(fixture.tempRoot, { recursive: true, force: true });
+    }
+    return;
+  }
+
   run("pnpm", ["-C", "packages/nextclaw-kernel", "build"]);
   run("pnpm", ["-C", "packages/nextclaw", "build"]);
 
@@ -202,6 +213,21 @@ async function createUpdateFixture() {
   return { binDirectory, env, manifestPath, nextclawShimPath, nextclawHome, publicKeyPath, tempRoot };
 }
 
+async function createPublishedBetaFixture() {
+  const tempRoot = await mkdtemp(join(tmpdir(), "nextclaw-published-beta-smoke-"));
+  const prefix = join(tempRoot, "prefix");
+  mkdirSync(prefix, { recursive: true });
+  run("npm", ["install", "-g", "nextclaw@beta", "--prefix", prefix], { cwd: tempRoot });
+  const packageDirectory = join(prefix, "lib/node_modules/nextclaw");
+  const binaryPath = join(prefix, "bin/nextclaw");
+  return {
+    binaryPath,
+    packageDirectory,
+    prefix,
+    tempRoot
+  };
+}
+
 async function verifyRuntimeUpdateFlow(fixture) {
   const { env, nextclawHome } = fixture;
   const checkSnapshot = parseLauncherJson(["update", "--check", "--json"], env);
@@ -230,6 +256,45 @@ async function assertLauncherUsesAppliedRuntime(env, nextclawHome) {
   const topLevelEntries = await readdir(nextclawHome);
   const forbiddenEntries = topLevelEntries.filter((entry) => ["config.json", "sessions", "skills", "workspace"].includes(entry));
   assert(forbiddenEntries.length === 0, `runtime update touched user-owned entries: ${forbiddenEntries.join(", ")}`);
+}
+
+function verifyPublishedBetaInstall(fixture) {
+  const expectedVersion = JSON.parse(run("npm", ["view", "nextclaw@beta", "version", "--json"]).stdout.trim());
+  const installedVersion = run(fixture.binaryPath, ["--version"], {
+    cwd: fixture.packageDirectory
+  }).stdout.trim();
+  assert(installedVersion === expectedVersion, `expected nextclaw@beta ${expectedVersion}, got ${installedVersion}`);
+
+  const apiProbe = run(
+    process.execPath,
+    [
+      "--input-type=module",
+      "-e",
+      [
+        "import { InputBudgetPruner } from '@nextclaw/core';",
+        "const pruner = new InputBudgetPruner();",
+        "console.log(JSON.stringify({ estimateType: typeof pruner.estimate, pruneType: typeof pruner.prune }));"
+      ].join(" ")
+    ],
+    {
+      cwd: fixture.packageDirectory
+    }
+  );
+  const apiSnapshot = JSON.parse(apiProbe.stdout.trim());
+  assert(apiSnapshot.estimateType === "function", `expected estimate() to exist, got ${apiSnapshot.estimateType}`);
+  assert(apiSnapshot.pruneType === "function", `expected prune() to exist, got ${apiSnapshot.pruneType}`);
+
+  console.log(`
+[validation:npm-update --published-beta] Published beta install verified.
+
+- installed binary: ${fixture.binaryPath}
+- installed version: ${installedVersion}
+- InputBudgetPruner.estimate: ${apiSnapshot.estimateType}
+- InputBudgetPruner.prune: ${apiSnapshot.pruneType}
+
+Clean up when finished:
+rm -rf "${fixture.tempRoot}"
+`);
 }
 
 function printManualValidationGuide(fixture) {

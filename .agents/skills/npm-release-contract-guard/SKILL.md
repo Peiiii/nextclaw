@@ -26,6 +26,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - The published package must include both launcher and app runtime entries:
   - `dist/cli/launcher/index.js`
   - `dist/cli/app/index.js`
+- If `nextclaw` imports newly added APIs from workspace packages, those packages must be versioned and published in the same beta batch before `nextclaw`.
 - NPM runtime update manifests must use `hostKind: "npm-runtime-bundle"`.
 - `minimumLauncherVersion` for NPM runtime bundles comes from `packages/nextclaw/npm-runtime-compatibility.json`.
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
@@ -52,6 +53,33 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - After publish, verify the tag directly:
   - `npm view nextclaw@beta version`
   - `npm view nextclaw dist-tags --json`
+
+## Pre-Publish Blocker Scan
+Before publishing `nextclaw@beta`, run a blocker scan and resolve everything found:
+
+- workspace dependency closure: compare `nextclaw` imports against changed workspace packages; any package providing a new runtime API must get its own beta version and dist-tag,
+- packed API check: install the exact packed or published dependency closure in a temp prefix and verify critical APIs exist, especially recently added methods,
+- real install smoke: from a temp prefix, install `nextclaw@beta` or the candidate tarball and run at least `nextclaw --version` plus one minimal command path touching the changed runtime area,
+- runtime update smoke: after channel publication, run check/download/apply/new-process from a temp `NEXTCLAW_HOME`.
+
+For the published beta install smoke, prefer the repo command:
+
+```bash
+pnpm -C packages/nextclaw validation:npm-update -- --published-beta
+```
+
+If a scan item would be slow manually, create or improve a script instead of skipping it. The goal of the retrospective loop is to turn slow release surprises into one-command preflight checks.
+
+## Retrospective Loop
+After every NPM beta/stable release attempt, record the blockers that consumed time and convert at least one repeated blocker into a concrete mechanism:
+
+- skill rule update,
+- release preflight script,
+- CI gate,
+- smoke command,
+- or explicit follow-up if the improvement is larger than the current release window.
+
+Do not close a release attempt with only a narrative retrospective when the blocker can be cheaply automated or encoded as a release gate.
 
 ## Runtime Update Channel Flow
 1. Trigger `.github/workflows/npm-runtime-update-release.yml` for the target channel.
@@ -82,6 +110,7 @@ nextclaw --version
 
 ## Completion Gate
 - The NPM registry shows the intended package version and dist-tag.
+- The published `nextclaw` dependency closure contains the runtime APIs used by the `nextclaw` package.
 - The runtime update workflow finished successfully.
 - The public manifest URL shows the expected version and compatibility floor.
 - A real `nextclaw@beta` or stable install can check, download, and apply without custom manifest URL or public key env vars.

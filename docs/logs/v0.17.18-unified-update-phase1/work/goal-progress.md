@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-补强 runtime channel builder 的 pnpm workspace 快照刷新，重新触发 beta channel workflow，并复验 download/apply 后的新进程启动。
+修复真实 `nextclaw@beta` 发消息时 `this.inputBudgetPruner.estimate is not a function`，确认是否由 beta package / runtime bundle 依赖版本不匹配引起，并重新复验 npm beta 聊天路径。
 
 ## 锚点计数器
 
-3/20
+0/20
