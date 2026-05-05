@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-发布 `nextclaw@0.18.12-beta.0` 到 NPM beta tag，并触发 NPM runtime beta update channel，供用户验收后再发正式版。
+补发 `@nextclaw/kernel@0.1.2-beta.0` 与 `nextclaw@0.18.12-beta.1`，修复真实安装验证中发现的 `./update-contract` export 缺失问题，然后触发 NPM runtime beta channel。
 
 ## 锚点计数器
 
-14/20
+1/20
