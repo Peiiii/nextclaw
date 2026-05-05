@@ -128,7 +128,7 @@ export const builtinProviderPlugin: ProviderCatalogPlugin = { id: "builtin-runti
       detectByKeyPrefix: "",
       detectByBaseKeyword: "",
       defaultApiBase: "https://api.deepseek.com",
-      defaultModels: ["deepseek/deepseek-chat", "deepseek/deepseek-reasoner"],
+      defaultModels: ["deepseek/deepseek-chat", "deepseek/deepseek-reasoner", "deepseek/deepseek-v4-flash", "deepseek/deepseek-v4-pro"],
       stripModelPrefix: false,
       modelOverrides: [],
       logo: "deepseek.png"
