@@ -1,16 +1,61 @@
 # Commands
 
-本文件只记录“本项目管理/协作/治理相关”的元指令，定位与 Rulebook 类似。
-不收录 package 命令、产品 CLI 命令、部署脚本命令或其它业务执行命令；这类内容应写入对应产品文档、使用文档或发布文档。
+本文件只记录“本项目管理/协作/治理相关”的元指令，定位类似项目协作协议。不要收录 package 命令、产品 CLI 命令、部署脚本命令或业务执行命令；这些内容应写入对应产品、功能或发布文档。
 
-- `/new-command`: 新建一条项目管理元指令的元指令。流程：先判断该命令是否属于本项目管理/协作/治理范围；仅当符合范围时，确认名称、用途、输入格式、输出/期望行为，写入本文件并保持 `AGENTS.md` 索引同步。
-- `/config-meta`: 调整或更新 `AGENTS.md` 中的机制/元信息（如规则、流程、索引等）的指令。执行时必须先自行判断：应修正已有规则，还是在 Rulebook/Project Rulebook 中删减/新增规则条目；必须先分析深层原因并优先处理更本质的问题，避免只做表层修补；若已开启深思模式，还需推理用户潜在意图、读懂暗示并直接执行高概率期望动作，以减少沟通成本；并明确变更点与预期影响。迭代记录策略严格遵循 `AGENTS.md` 中“迭代制度（docs/logs）”的完整判定，不得自行简化；若调整涉及迭代模板或日志机制，需同步检查强制模块是否仍完整覆盖，例如 `NPM 包发布记录` 这类面向后续统一发布判断的留痕模块。
-- `/add-to-plan`: 将想法或用户建议纳入规划体系。输入：`/add-to-plan <一句话事项>`（可选：来源、优先级、owner）。输出/期望行为：先写入 `docs/TODO.md` 的 `Inbox`，给出 `Now/Next/Later/Roadmap Candidate` 分流建议，并生成对应 Issue 草案；若属于中长期方向，同步更新 `docs/ROADMAP.md`。
-- `/check-meta`: 检查 `AGENTS.md` 机制是否自洽、是否符合自身规范的指令。输出需包含发现的问题与修复建议（若无问题需明确说明）。
-- `/new-rule`: 创建新规则条目的指令。执行时必须先判断该规则属于可跨项目复用的通用规则，还是依赖本项目路径/工具链/发布方式的项目规则；随后按 Rulebook 模板写全字段并更新 `AGENTS.md` 规则区。若规则本质是在约束系统行为原则，应优先固化“行为明确、清晰、可预测，不依赖隐藏兜底或环境状态制造 surprise success / surprise failure”这类高层约束，而不是只记录单次问题的表层补丁。
-- `/commit`: 进行提交操作（提交信息需使用英文）。
-- `/maintainability-review`: 对本次改动执行一轮独立于实现阶段的可维护性复核。输入：`/maintainability-review`（可选：`<paths...>` 作为聚焦范围）。输出/期望行为：使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](../.agents/skills/post-edit-maintainability-review/SKILL.md) 检查“能否删减、能否简化、是否让代码继续膨胀、非功能改动的增长是否最小必要、抽象与职责边界是否更清晰”，并给出固定模块 `长期目标对齐 / 可维护性推进`、`可维护性复核结论：通过 / 需继续修改 / 保留债务经说明接受`、`本次顺手减债：是/否`、`代码增减报告`、`非测试代码增减报告`，以及一段简短的 `可维护性总结`。`长期目标对齐 / 可维护性推进` 至少必须说明：本次是否顺着“代码更少、架构更简单、边界更清晰、复用更通用、复杂点更少”的长期方向推进了一小步；若没有，阻碍是什么、下一步准备从哪里推进。若总代码或非测试代码净增长，必须额外说明是否已做到最佳删减、此前已删除/收敛了什么、以及剩余增长为何仍属最小必要。
-- `/validate`: 对项目进行验证，按改动影响范围执行最小充分验证；仅当改动触达构建/类型/运行链路时，执行 `build`、`lint`、`tsc` 的相关项，必要时补充冒烟测试。只要本次改动触达 TypeScript 源码、类型声明、导入导出边界或运行链路，`tsc` 就是必跑项，不能被测试、`eslint`、`pnpm lint:new-code:governance` 或其它治理命令替代；最终留痕里必须明确写出实际执行过的 `tsc` 命令。代码改动在动手前，默认先按 Rulebook 的 `business-logic-class-first`、`stateless-utility-first`、`ordinary-function-no-input-mutation`、`class-arrow-methods-by-default`、`react-effect-boundary-only` 做一次结构自检：先判断业务逻辑是否应落到 class、普通函数是否只剩纯工具/纯无状态/纯业务无关辅助能力、是否存在普通函数原地改入参、若采用 class 则实例方法是否从第一版起就使用箭头函数、React effect 是否只承担外部系统同步。代码改动收尾默认执行 `pnpm lint:maintainability:guard`，并通过统一入口 `pnpm lint:new-code:governance` 运行新改动治理规则（当前包含 touched 文件 kebab-case 文件名阻断、touched parent directory kebab-case 阻断、受治理文档命名阻断、touched file role-boundary 阻断、touched class / touched object 箭头函数治理、普通函数入参 mutation 阻断、React effect owner 边界治理、closure-object-to-class、flat-directory-needs-subtree、stateful-orchestrator-must-have-owner），再通过 `pnpm check:governance-backlog-ratchet` 确认 tracked 历史命名债务总量没有反弹；这些后置检查是兜底，不是允许先违背再返工的默认流程。在守卫之后，还应使用 skill [`.agents/skills/post-edit-maintainability-review/SKILL.md`](../.agents/skills/post-edit-maintainability-review/SKILL.md) 再做一轮主观可维护性复核，并在最终回复中附上一段简短的 `可维护性总结`。执行前需确认验证范围和可跳过项。
-- `/release-frontend`: 前端一键发布（仅 UI 变更场景）。输入：`/release-frontend`。输出：生成 UI changeset，并执行 `pnpm release:version` + `pnpm release:publish`，最终发布 `@nextclaw/ui` 与 `nextclaw`。
+命令细节应尽量指向可触发 skill，而不是在本文件展开长流程。
 
-（后续指令在此追加，保持格式一致。） 
+## `/new-command`
+
+- 用途：新增一条项目管理/协作/治理元指令。
+- 输入格式：`/new-command <command-name> <purpose>`
+- 输出/期望行为：先判断是否属于本文件范围；若属于，补齐名称、用途、输入格式、输出/期望行为，并同步 `AGENTS.md` 命令索引。
+
+## `/config-meta`
+
+- 用途：调整或更新 `AGENTS.md`、命令机制、Rulebook / Project Rulebook 遗留内容、skill 分层或项目 AI 指令。
+- 输入格式：`/config-meta <要调整的问题或目标>`
+- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；先判断应删减、合并、迁入 skill、修正已有规则还是新增常驻规则；优先处理深层机制问题，避免表层补丁。收尾时按 `nextclaw-iteration-log-governance` 判断是否需要 `docs/logs` 留痕。
+
+## `/add-to-plan`
+
+- 用途：将想法或用户建议纳入规划体系。
+- 输入格式：`/add-to-plan <一句话事项>`，可附来源、优先级、owner。
+- 输出/期望行为：默认写入 `docs/TODO.md` 的 `Inbox`，给出 `Now / Next / Later / Roadmap Candidate` 分流建议，并生成 Issue 草案；若属于中长期方向，同步更新 `docs/ROADMAP.md`。
+
+## `/check-meta`
+
+- 用途：检查 `AGENTS.md`、命令机制和 skill 分层是否自洽。
+- 输入格式：`/check-meta`，可附聚焦范围。
+- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；检查过度常驻、重复规则、普通文档承载强制流程、skill 触发描述缺失、命令索引漂移等问题，并给出修复建议或直接修复低风险问题。
+
+## `/new-rule`
+
+- 用途：新增或固化一条项目协作/治理规则。
+- 输入格式：`/new-rule <规则意图>`
+- 输出/期望行为：必须先判断规则应进入 `AGENTS.md` 常驻内核、已有 skill、新 skill，还是普通文档；只有“每轮都必须知道”的高优先级规则才进入 `AGENTS.md`。规则本质若是约束系统行为，应优先固化清晰、可预测、无隐藏兜底的高层原则。
+
+## `/commit`
+
+- 用途：提交当前变更。
+- 输入格式：`/commit`，可附提交范围或说明。
+- 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；提交信息必须使用英文。提交前确认暂存范围，不纳入无关用户改动。
+
+## `/maintainability-review`
+
+- 用途：对本次代码相关改动执行独立于实现阶段的可维护性复核。
+- 输入格式：`/maintainability-review`，可附 `<paths...>` 聚焦范围。
+- 输出/期望行为：使用 `post-edit-maintainability-review`；输出固定模块 `长期目标对齐 / 可维护性推进`、`可维护性复核结论`、`本次顺手减债`、`代码增减报告`、`非测试代码增减报告` 与简短 `可维护性总结`。
+
+## `/validate`
+
+- 用途：按改动影响范围执行最小充分验证。
+- 输入格式：`/validate`，可附验证范围。
+- 输出/期望行为：使用 `nextclaw-validation-workflow`；若触达 TypeScript 源码、类型声明、导入导出边界或运行链路，必须包含实际执行的 `tsc` 命令；代码改动需覆盖 maintainability guard、governance ratchet、主观可维护性复核和必要冒烟。
+
+## `/release-frontend`
+
+- 用途：前端一键发布，仅 UI 变更场景。
+- 输入格式：`/release-frontend`
+- 输出/期望行为：生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
+
+后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。
