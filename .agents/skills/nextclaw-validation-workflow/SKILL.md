@@ -111,6 +111,16 @@ For release or deployment:
 - docs review is part of release closure,
 - skipped steps must be marked `不适用` with reason.
 
+## Retrospective Closure
+
+After a bugfix, abnormal-behavior fix, or release closure, do a short retrospective before the final answer:
+
+- name the workflow gap or repeated friction, if any,
+- decide whether the improvement belongs in `AGENTS.md`, an existing skill, a new skill, automation, validation command, or ordinary docs,
+- directly apply small rule or skill improvements when they are clearly needed,
+- create a follow-up only when the improvement is larger than the current safe scope,
+- say when no mechanism change is needed and why.
+
 ## Final Response Checklist
 
 Include only the relevant items:
@@ -119,5 +129,6 @@ Include only the relevant items:
 - exact `tsc` command if TypeScript path was touched,
 - smoke scenario and observation,
 - maintainability guard/review outcome,
+- retrospective result and any mechanism/skill improvement,
 - release/deploy/NPM state,
 - skipped validation with `不适用` reason.

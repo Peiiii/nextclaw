@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-修正 runtime channel builder 在打包前未构建 `nextclaw` workspace runtime 依赖的问题，重新触发 beta channel workflow，并复验 download/apply 后的新进程启动。
+补强 runtime channel builder 的 pnpm workspace 快照刷新，重新触发 beta channel workflow，并复验 download/apply 后的新进程启动。
 
 ## 锚点计数器
 
-10/20
+3/20

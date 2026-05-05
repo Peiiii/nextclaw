@@ -258,7 +258,7 @@ class NpmRuntimeUpdateChannelBuilder {
   };
 
   ensureFreshRuntimeArtifacts = () => {
-    runCommand("pnpm", ["--filter", "nextclaw...", "build"]);
+    [["--filter", "nextclaw...", "build"], ["install", "--frozen-lockfile", "--offline"]].forEach((args) => runCommand("pnpm", args));
   };
 
   writePublicKey = (privateKey) => {
