@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, readFile, readdir } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,6 +15,10 @@ const runtimeVersion = "0.99.1";
 const channel = "stable";
 const platform = process.platform;
 const arch = process.arch;
+
+function parseArgs(argv) {
+  return new Set(argv.filter((arg) => arg.startsWith("--")));
+}
 
 function log(message) {
   console.log(`[smoke:npm-runtime-update] ${message}`);
@@ -144,10 +148,16 @@ function createManifest(bundle, bundleUrl, privateKey) {
 }
 
 async function main() {
+  const args = parseArgs(process.argv.slice(2));
   run("pnpm", ["-C", "packages/nextclaw-kernel", "build"]);
   run("pnpm", ["-C", "packages/nextclaw", "build"]);
 
   const fixture = await createUpdateFixture();
+  if (args.has("--manual") || args.has("--validation")) {
+    printManualValidationGuide(fixture);
+    return;
+  }
+
   try {
     await verifyRuntimeUpdateFlow(fixture);
     log("npm runtime update smoke passed");
@@ -164,21 +174,32 @@ async function createUpdateFixture() {
   mkdirSync(channelDirectory, { recursive: true });
 
   const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" });
+  const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
   const bundle = await createRuntimeBundle(privateKey);
   const bundleName = `nextclaw-runtime-${runtimeVersion}-${platform}-${arch}.zip`;
   const bundlePath = join(channelDirectory, bundleName);
   writeFileSync(bundlePath, bundle.bytes);
   const manifestPath = join(channelDirectory, `manifest-${channel}-${platform}-${arch}.json`);
+  const publicKeyPath = join(tempRoot, "update-public-key.pem");
+  writeFileSync(publicKeyPath, publicKeyPem, "utf8");
+  const binDirectory = join(tempRoot, "bin");
+  const nextclawShimPath = join(binDirectory, "nextclaw");
+  mkdirSync(binDirectory, { recursive: true });
+  writeFileSync(
+    nextclawShimPath,
+    ["#!/usr/bin/env sh", `exec "${process.execPath}" "${join(packageRoot, "dist/cli/launcher/index.js")}" "$@"`, ""].join("\n"),
+    "utf8"
+  );
+  chmodSync(nextclawShimPath, 0o755);
   const env = {
     NEXTCLAW_HOME: nextclawHome,
-    NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY: publicKeyPem,
+    NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH: publicKeyPath,
     NEXTCLAW_UPDATE_MANIFEST_URL: pathToFileURL(manifestPath).toString()
   };
   const manifest = createManifest(bundle, pathToFileURL(bundlePath).toString(), privateKey);
   writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
-  return { env, nextclawHome, tempRoot };
+  return { binDirectory, env, manifestPath, nextclawShimPath, nextclawHome, publicKeyPath, tempRoot };
 }
 
 async function verifyRuntimeUpdateFlow(fixture) {
@@ -209,6 +230,46 @@ async function assertLauncherUsesAppliedRuntime(env, nextclawHome) {
   const topLevelEntries = await readdir(nextclawHome);
   const forbiddenEntries = topLevelEntries.filter((entry) => ["config.json", "sessions", "skills", "workspace"].includes(entry));
   assert(forbiddenEntries.length === 0, `runtime update touched user-owned entries: ${forbiddenEntries.join(", ")}`);
+}
+
+function printManualValidationGuide(fixture) {
+  console.log(`
+[validation:npm-update] Prepared local npm runtime update fixture.
+
+This keeps all state in a temporary NEXTCLAW_HOME and adds a temporary nextclaw shim to PATH.
+It does not touch your real ~/.nextclaw or global npm installation.
+
+Run these commands in a shell:
+
+export PATH="${fixture.binDirectory}:$PATH"
+export NEXTCLAW_HOME="${fixture.nextclawHome}"
+export NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH="${fixture.publicKeyPath}"
+export NEXTCLAW_UPDATE_MANIFEST_URL="${fixture.env.NEXTCLAW_UPDATE_MANIFEST_URL}"
+
+nextclaw --version
+nextclaw update --check
+nextclaw --version
+nextclaw update
+nextclaw --version
+nextclaw update --apply
+nextclaw --version
+
+Expected user-facing behavior:
+1. The first nextclaw --version prints the packaged npm launcher runtime version.
+2. nextclaw update --check reports runtime update ${runtimeVersion} without downloading or switching.
+3. nextclaw update downloads runtime update ${runtimeVersion} and asks you to run nextclaw update --apply.
+4. The next nextclaw --version is still the old packaged runtime, proving download did not apply.
+5. nextclaw update --apply switches the current runtime pointer and asks for a restart/new process.
+6. The final nextclaw --version prints smoke-runtime-${runtimeVersion}.
+
+Useful files:
+- NEXTCLAW_HOME: ${fixture.nextclawHome}
+- manifest: ${fixture.manifestPath}
+- temporary nextclaw shim: ${fixture.nextclawShimPath}
+
+Clean up when finished:
+rm -rf "${fixture.tempRoot}"
+`);
 }
 
 main().catch((error) => {
