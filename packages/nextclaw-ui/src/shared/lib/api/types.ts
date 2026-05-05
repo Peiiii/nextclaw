@@ -398,6 +398,9 @@ export type CronActionResult = {
 };
 
 export type RuntimeConfigUpdate = {
+  companion?: {
+    enabled?: boolean;
+  };
   agents?: {
     defaults?: {
       contextTokens?: number;
@@ -467,6 +470,9 @@ export type SecretsConfigUpdate = {
 export type ChannelConfigUpdate = Record<string, unknown>;
 
 export type ConfigView = {
+  companion?: {
+    enabled?: boolean;
+  };
   agents: {
     defaults: {
       model: string;

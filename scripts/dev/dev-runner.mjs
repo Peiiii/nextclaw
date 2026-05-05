@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { join, relative, resolve } from "node:path";
+import { basename, join, relative, resolve } from "node:path";
 import { createServer as createNetServer, Socket } from "node:net";
 import { homedir } from "node:os";
 import {
@@ -22,11 +22,15 @@ if (command !== "start") {
 const rootDir = resolveRepoPath(import.meta.url);
 const backendDir = resolve(rootDir, "packages/nextclaw");
 const frontendDir = resolve(rootDir, "packages/nextclaw-ui");
+const companionDir = resolve(rootDir, "apps/companion");
+const defaultDevHome = join(homedir(), ".nextclaw-dev-home", basename(rootDir));
 const explicitNextclawHome =
   typeof process.env.NEXTCLAW_HOME === "string" && process.env.NEXTCLAW_HOME.trim().length > 0
     ? process.env.NEXTCLAW_HOME
+    : typeof process.env.NEXTCLAW_DEV_HOME === "string" && process.env.NEXTCLAW_DEV_HOME.trim().length > 0
+      ? process.env.NEXTCLAW_DEV_HOME
     : null;
-const nextclawHome = resolve(explicitNextclawHome ?? join(homedir(), ".nextclaw"));
+const nextclawHome = resolve(explicitNextclawHome ?? defaultDevHome);
 const normalizeWatchPath = (filePath) => filePath.replaceAll("\\", "/");
 const toRelativeWatchPath = (baseDir, targetPath) => {
   const normalizedRelative = normalizeWatchPath(relative(baseDir, targetPath));
@@ -69,8 +73,12 @@ const BACKEND_READY_POLL_MS = 100;
 const binName = process.platform === "win32" ? (name) => `${name}.cmd` : (name) => name;
 const backendBin = resolve(backendDir, "node_modules/.bin", binName("tsx"));
 const frontendBin = resolve(frontendDir, "node_modules/.bin", binName("vite"));
+const pnpmCliPath =
+  typeof process.env.npm_execpath === "string" && process.env.npm_execpath.trim().length > 0
+    ? process.env.npm_execpath
+    : null;
 
-if (!existsSync(backendBin) || !existsSync(frontendBin)) {
+if (!existsSync(backendBin) || !existsSync(frontendBin) || !pnpmCliPath) {
   console.error("Missing local dev binaries. Run `pnpm install` at repo root first.");
   process.exit(1);
 }
@@ -111,9 +119,14 @@ function parsePluginOverrideArg(rawValue) {
 function parseDevStartOptions(argv) {
   const pluginOverrides = [];
   const seenPluginIds = new Set();
+  let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === "--companion") {
+      companionEnabled = true;
+      continue;
+    }
     if (arg === "--plugin-override") {
       const next = argv[index + 1];
       if (!next) {
@@ -132,7 +145,7 @@ function parseDevStartOptions(argv) {
     throw new Error(`Unsupported dev option: ${arg}`);
   }
 
-  return { pluginOverrides };
+  return { companionEnabled, pluginOverrides };
 }
 
 let devStartOptions;
@@ -220,6 +233,9 @@ if (backendPort !== preferredBackendPort || frontendPort !== preferredFrontendPo
 
 console.log(`[dev] API base: http://127.0.0.1:${backendPort}`);
 console.log(`[dev] Frontend: http://127.0.0.1:${frontendPort}`);
+console.log(
+  `[dev] Companion: ${devStartOptions.companionEnabled ? "enabled" : "disabled (pass --companion or set NEXTCLAW_DEV_ENABLE_COMPANION=1 to enable)"}`
+);
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
 if (devStartOptions.pluginOverrides.length > 0) {
   console.log(
@@ -241,7 +257,8 @@ function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
 }
 
-const spawnProcess = (label, cmd, args, cwd, extraEnv = {}) => {
+const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
+  const critical = options.critical !== false;
   const child = spawn(cmd, args, {
     cwd,
     stdio: "inherit",
@@ -253,6 +270,14 @@ const spawnProcess = (label, cmd, args, cwd, extraEnv = {}) => {
 
   child.on("exit", (code, signal) => {
     if (requestedStop || shuttingDown) {
+      return;
+    }
+    if (!critical) {
+      if (typeof code === "number" && code !== 0) {
+        console.error(`[dev:${label}] exited with code ${code}`);
+      } else if (signal) {
+        console.error(`[dev:${label}] exited with signal ${signal}`);
+      }
       return;
     }
 
@@ -325,6 +350,17 @@ spawnProcess(
   frontendDir,
   { VITE_DEV_PROXY_API_BASE: `http://127.0.0.1:${backendPort}` }
 );
+
+if (devStartOptions.companionEnabled) {
+  spawnProcess(
+    "companion",
+    process.execPath,
+    [pnpmCliPath, "-C", companionDir, "dev", "--", "--base-url", `http://127.0.0.1:${backendPort}`],
+    rootDir,
+    {},
+    { critical: false }
+  );
+}
 
 const stopAll = (signal) => {
   if (shuttingDown) {

@@ -343,14 +343,13 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   authPasswordAction: { zh: '更新密码', en: 'Update Password' },
   authPasswordUpdating: { zh: '更新中...', en: 'Updating...' },
   authLogoutAction: { zh: '退出当前标签页', en: 'Sign Out This Tab' },
-  authSessionMemoryNotice: {
-    zh: '当前版本的会话只保存在服务端内存里。NextClaw UI 进程重启后，需要重新登录。',
-    en: 'Sessions are stored only in server memory for now. You will need to sign in again after the NextClaw UI process restarts.'
-  },
+  authSessionMemoryNotice: { zh: '当前版本的会话只保存在服务端内存里。NextClaw UI 进程重启后，需要重新登录。', en: 'Sessions are stored only in server memory for now. You will need to sign in again after the NextClaw UI process restarts.' },
   dmScope: { zh: '私聊范围', en: 'DM Scope' },
   dmScopeHelp: { zh: '控制私聊会话如何隔离。', en: 'Control how direct-message sessions are isolated.' },
   defaultContextTokens: { zh: '默认上下文 Token', en: 'Default Context Tokens' },
   defaultContextTokensHelp: { zh: '当 Agent 未设置单独值时使用该上下文预算。', en: 'Input context budget for agents when no per-agent override is set.' },
+  runtimeCompanionEnabled: { zh: '桌宠 Companion', en: 'Companion' },
+  runtimeCompanionEnabledHelp: { zh: '开启后会自动拉起悬浮 Companion；关闭后会立即停止，并在下次启动时保持关闭。', en: 'When enabled, NextClaw auto-starts the floating companion. When disabled, it stops immediately and stays off after restart.' },
   defaultEngine: { zh: '默认 Runtime', en: 'Default Runtime' },
   defaultEngineHelp: { zh: '默认使用的 Agent Runtime，例如 native、codex 或 claude。', en: 'Default agent runtime, for example native, codex, or claude.' },
   agentList: { zh: 'Agent 列表', en: 'Agent List' },

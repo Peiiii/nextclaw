@@ -31,6 +31,7 @@ export class ConfigReloader {
       resolveChannelConfig?: (config: Config) => Config;
       getExtensionChannels?: () => ExtensionRegistry["channels"];
       applyAgentRuntimeConfig?: (config: Config) => void;
+      reloadCompanion?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
       reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
       reloadPlugins?: (params: { config: Config; changedPaths: string[] }) => Promise<{ restartChannels?: boolean } | void> | { restartChannels?: boolean } | void;
       onRestartRequired: (paths: string[]) => void;
@@ -64,6 +65,14 @@ export class ConfigReloader {
     this.options.reloadMcp = callback;
   }
 
+  setReloadCompanion(
+    callback:
+      | ((params: { config: Config; changedPaths: string[] }) => Promise<void> | void)
+      | undefined
+  ): void {
+    this.options.reloadCompanion = callback;
+  }
+
   async applyReloadPlan(nextConfig: Config): Promise<void> {
     const changedPaths = diffConfigPaths(this.currentConfig, nextConfig);
     if (!changedPaths.length) {
@@ -87,6 +96,13 @@ export class ConfigReloader {
         changedPaths
       });
       console.log("Config reload: MCP servers reloaded.");
+    }
+    if (plan.reloadCompanion) {
+      await this.reloadCompanion({
+        config: nextConfig,
+        changedPaths
+      });
+      console.log("Config reload: companion setting applied.");
     }
     if (plan.restartChannels || reloadPluginsResult?.restartChannels) {
       await this.reloadChannels(nextConfig, { start: true });
@@ -214,5 +230,15 @@ export class ConfigReloader {
       return;
     }
     await this.options.reloadMcp(params);
+  }
+
+  private async reloadCompanion(params: {
+    config: Config;
+    changedPaths: string[];
+  }): Promise<void> {
+    if (!this.options.reloadCompanion) {
+      return;
+    }
+    await this.options.reloadCompanion(params);
   }
 }

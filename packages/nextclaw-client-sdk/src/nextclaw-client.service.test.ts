@@ -1,0 +1,102 @@
+import { describe, expect, it, vi } from "vitest";
+import { createNextClawClient, NextClawClientError } from "./index.js";
+
+describe("@nextclaw/client-sdk", () => {
+  it("lists sessions from the existing ncp api", async () => {
+    const fetchImpl = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            sessions: [{ sessionId: "session-1", messageCount: 3, updatedAt: "2026-05-06T00:00:00.000Z" }],
+            total: 1
+          }
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    });
+    const client = createNextClawClient({
+      baseUrl: "http://127.0.0.1:55667/",
+      fetchImpl
+    });
+
+    const result = await client.sessions.list();
+
+    expect(result.total).toBe(1);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "http://127.0.0.1:55667/api/ncp/sessions",
+      expect.objectContaining({ method: "GET" })
+    );
+  });
+
+  it("builds agent avatar urls without adding new api shapes", () => {
+    const client = createNextClawClient({
+      baseUrl: "http://127.0.0.1:55667"
+    });
+
+    expect(client.agents.resolveAvatarUrl("writer/default")).toBe(
+      "http://127.0.0.1:55667/api/agents/writer%2Fdefault/avatar"
+    );
+  });
+
+  it("reconnects websocket subscriptions through the shared realtime service", () => {
+    vi.useFakeTimers();
+    const sockets: Array<{
+      url: string;
+      close: ReturnType<typeof vi.fn>;
+      onopen: ((event: unknown) => void) | null;
+      onmessage: ((event: { data?: unknown }) => void) | null;
+      onerror: ((event: unknown) => void) | null;
+      onclose: ((event: unknown) => void) | null;
+    }> = [];
+    const client = createNextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      webSocketFactory: (url) => {
+        const socket = {
+          url,
+          close: vi.fn(),
+          onopen: null,
+          onmessage: null,
+          onerror: null,
+          onclose: null
+        };
+        sockets.push(socket);
+        return socket;
+      }
+    });
+    const handler = vi.fn();
+    const subscription = client.sessions.subscribe(handler, { reconnectDelayMs: 10 });
+
+    sockets[0]?.onmessage?.({
+      data: JSON.stringify({ type: "session.run-status", payload: { sessionKey: "s1", status: "running" } })
+    });
+    sockets[0]?.onclose?.({});
+    vi.advanceTimersByTime(15);
+
+    subscription.close();
+    vi.useRealTimers();
+
+    expect(sockets[0]?.url).toBe("ws://127.0.0.1:55667/ws");
+    expect(handler).toHaveBeenCalledWith({
+      type: "session.run-status",
+      payload: { sessionKey: "s1", status: "running" }
+    });
+  });
+
+  it("throws a typed client error for api failures", async () => {
+    const client = createNextClawClient({
+      baseUrl: "http://127.0.0.1:55667",
+      fetchImpl: vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            ok: false,
+            error: { code: "FORBIDDEN", message: "forbidden" }
+          }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        );
+      })
+    });
+
+    await expect(client.sessions.list()).rejects.toBeInstanceOf(NextClawClientError);
+  });
+});

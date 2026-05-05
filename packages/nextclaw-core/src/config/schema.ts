@@ -394,6 +394,10 @@ export const RemoteConfigSchema = z.object({
   autoReconnect: z.boolean().default(true)
 });
 
+export const CompanionConfigSchema = z.object({
+  enabled: z.boolean().default(false)
+});
+
 const mcpNamedStringSchema = z.string().trim().min(1);
 
 export const McpServerScopeSchema = z.object({
@@ -586,6 +590,7 @@ export const ConfigSchema = z.object({
   gateway: GatewayConfigSchema.default({}),
   ui: UiConfigSchema.default({}),
   remote: RemoteConfigSchema.default({}),
+  companion: CompanionConfigSchema.default({}),
   tools: ToolsConfigSchema.default({}),
   secrets: SecretsConfigSchema.default({})
 });

@@ -591,12 +591,10 @@ export type CronEnableRequest = { enabled: boolean };
 
 export type CronRunRequest = { force?: boolean };
 
-export type CronActionResult = {
-  job: CronJobView | null;
-  executed?: boolean;
-};
+export type CronActionResult = { job: CronJobView | null; executed?: boolean };
 
 export type RuntimeConfigUpdate = {
+  companion?: { enabled?: boolean };
   agents?: {
     defaults?: {
       contextTokens?: number;
@@ -699,6 +697,7 @@ export type UiNcpAgent = {
 };
 
 export type ConfigView = {
+  companion?: { enabled?: boolean };
   agents: {
     defaults: {
       model: string;

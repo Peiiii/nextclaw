@@ -4,7 +4,7 @@ import { t } from '@/shared/lib/i18n';
 export type DmScope = 'main' | 'per-peer' | 'per-channel-peer' | 'per-account-channel-peer';
 export type PeerKind = '' | 'direct' | 'group' | 'channel';
 export type RuntimeEntryDraft = RuntimeEntryView & { id: string; configText: string };
-export type RuntimeConfigEditorState = { agents: AgentProfileView[]; bindings: AgentBindingView[]; runtimeEntries: RuntimeEntryDraft[]; dmScope: DmScope; defaultContextTokens: number; defaultEngine: string };
+export type RuntimeConfigEditorState = { companionEnabled: boolean; agents: AgentProfileView[]; bindings: AgentBindingView[]; runtimeEntries: RuntimeEntryDraft[]; dmScope: DmScope; defaultContextTokens: number; defaultEngine: string };
 
 const DEFAULT_NARP_STDIO_ENTRY_CONFIG = {
   wireDialect: 'acp',
@@ -56,6 +56,7 @@ export function parseOptionalInt(value: string): number | undefined {
 
 export function createRuntimeConfigEditorState(config: ConfigView): RuntimeConfigEditorState {
   return {
+    companionEnabled: config.companion?.enabled === true,
     agents: (config.agents.list ?? []).map(hydrateRuntimeAgent),
     bindings: (config.bindings ?? []).map(hydrateRuntimeBinding),
     runtimeEntries: Object.entries(config.agents.runtimes?.entries ?? {}).map(([id, entry]) => ({ id, enabled: entry.enabled !== false, label: entry.label ?? '', type: entry.type, config: entry.config ?? {}, configText: JSON.stringify(entry.config ?? {}, null, 2) })),
@@ -81,6 +82,7 @@ export function toPersistedRuntimeAgent(agent: AgentProfileView): AgentProfileVi
 }
 
 export function createRuntimeConfigUpdatePayload(input: {
+  companionEnabled: boolean;
   agents: AgentProfileView[];
   bindings: AgentBindingView[];
   runtimeEntries: RuntimeEntryDraft[];
@@ -134,6 +136,9 @@ export function createRuntimeConfigUpdatePayload(input: {
     return entries;
   }, {});
   return {
+    companion: {
+      enabled: input.companionEnabled
+    },
     agents: {
       defaults: {
         contextTokens: Math.max(1000, input.defaultContextTokens),

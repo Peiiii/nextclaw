@@ -42,6 +42,25 @@ importers:
         specifier: ^8.18.0
         version: 8.19.0
 
+  apps/companion:
+    dependencies:
+      '@nextclaw/client-sdk':
+        specifier: workspace:*
+        version: link:../../packages/nextclaw-client-sdk
+      electron:
+        specifier: ^32.2.1
+        version: 32.3.3
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
   apps/competitive-leaderboard:
     dependencies:
       '@hono/node-server':
@@ -925,6 +944,9 @@ importers:
 
   packages/nextclaw:
     dependencies:
+      '@nextclaw/companion':
+        specifier: workspace:*
+        version: link:../../apps/companion
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
@@ -1120,6 +1142,19 @@ importers:
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-app-sdk:
+    devDependencies:
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@25.5.0)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@25.5.0)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
+  packages/nextclaw-client-sdk:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp
     devDependencies:
       typescript:
         specifier: ^5.6.3

@@ -7,6 +7,7 @@ import { CliRuntime, LOGO } from "./runtime.js";
 import { registerSkillsCommands } from "@/cli/commands/skills/index.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerLearningLoopCommands } from "@/cli/commands/learning-loop/index.js";
+import { registerCompanionCommands } from "./register-companion-commands.js";
 import { registerServiceCommands } from "./service-command-registration.service.js";
 import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
@@ -123,6 +124,8 @@ program
   .command("stop")
   .description(`Stop the ${APP_NAME} background service`)
   .action(async () => runtime.stop());
+
+registerCompanionCommands(program, runtime);
 
 registerServiceCommands({
   program,
@@ -392,4 +395,4 @@ logs.command("path").description("Show local log file paths").action(() => runti
 logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.logsTail(opts));
 program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => llmUsageCommands.show(opts));
 
-program.parseAsync(process.argv);
+await program.parseAsync(process.argv);

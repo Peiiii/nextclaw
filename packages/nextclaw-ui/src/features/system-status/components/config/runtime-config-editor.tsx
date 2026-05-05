@@ -35,6 +35,7 @@ export function RuntimeConfigEditor(props: {
   const [bindings, setBindings] = useState(initialState.bindings);
   const [runtimeEntries, setRuntimeEntries] = useState(initialState.runtimeEntries);
   const [dmScope, setDmScope] = useState<DmScope>(initialState.dmScope);
+  const [companionEnabled, setCompanionEnabled] = useState(initialState.companionEnabled);
   const [defaultContextTokens, setDefaultContextTokens] = useState(initialState.defaultContextTokens);
   const [defaultEngine, setDefaultEngine] = useState(initialState.defaultEngine);
 
@@ -60,6 +61,7 @@ export function RuntimeConfigEditor(props: {
   const handleSave = () => {
     try {
       const data = createRuntimeConfigUpdatePayload({
+        companionEnabled,
         agents,
         bindings,
         runtimeEntries,
@@ -78,12 +80,16 @@ export function RuntimeConfigEditor(props: {
     <PageLayout className="space-y-6">
       <RuntimeConfigOverview />
       <RuntimeSettingsCard
+        companionEnabled={companionEnabled}
         dmScope={dmScope}
         defaultContextTokens={defaultContextTokens}
         defaultEngine={defaultEngine}
+        onCompanionEnabledChange={setCompanionEnabled}
         onDmScopeChange={setDmScope}
         onDefaultContextTokensChange={setDefaultContextTokens}
         onDefaultEngineChange={setDefaultEngine}
+        companionEnabledLabel={hintForPath('companion.enabled', props.uiHints)?.label}
+        companionEnabledHelp={hintForPath('companion.enabled', props.uiHints)?.help}
         dmScopeLabel={hintForPath('session.dmScope', props.uiHints)?.label}
         dmScopeHelp={hintForPath('session.dmScope', props.uiHints)?.help}
         defaultContextTokensLabel={hintForPath('agents.defaults.contextTokens', props.uiHints)?.label}

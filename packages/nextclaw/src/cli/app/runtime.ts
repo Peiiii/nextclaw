@@ -1,4 +1,4 @@
-import { loadConfig, saveConfig, getConfigPath, getDataDir, type Config, getWorkspacePath, expandHome, ProviderManager, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
+import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, ProviderManager, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
@@ -12,7 +12,6 @@ import { spawn } from "node:child_process";
 import { RestartCoordinator, type RestartStrategy } from "@/cli/shared/services/restart/restart-coordinator.service.js";
 import { initializeConfigIfMissing } from "@/cli/shared/services/runtime/runtime-config-init.service.js";
 import { writeRestartSentinel } from "@/cli/shared/services/restart/restart-sentinel.service.js";
-import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
 import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { getPackageVersion, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@/cli/launcher/npm-runtime-update-command.service.js";
@@ -48,6 +47,7 @@ import { StartCommands } from "@/cli/commands/start/index.js";
 import { RestartCommands } from "@/cli/commands/restart/index.js";
 import { ServeCommands } from "@/cli/commands/serve/index.js";
 import { StopCommands } from "@/cli/commands/stop/index.js";
+import { CompanionCommands } from "@/cli/commands/companion/index.js";
 import type {
   AgentCommandOptions,
   AgentsListCommandOptions,
@@ -57,6 +57,11 @@ import type {
   AgentsUpdateCommandOptions,
   ChannelsAddOptions,
   ChannelsLoginOptions,
+  CompanionStartCommandOptions,
+  CompanionEnableCommandOptions,
+  CompanionDisableCommandOptions,
+  CompanionStatusCommandOptions,
+  CompanionStopCommandOptions,
   ConfigGetOptions,
   ConfigSetOptions,
   CronAddOptions,
@@ -112,6 +117,7 @@ export class CliRuntime {
   private restartCommands: RestartCommands;
   private serveCommands: ServeCommands;
   private stopCommands: StopCommands;
+  private companionCommands: CompanionCommands;
   constructor(options: { logo?: string } = {}) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? LOGO;
@@ -146,6 +152,7 @@ export class CliRuntime {
     this.stopCommands = measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
       runtimeCommandService: this.runtimeCommandService
     }));
+    this.companionCommands = measureStartupSync("cli.runtime.companion_commands", () => new CompanionCommands());
     this.serviceCommands = measureStartupSync("cli.runtime.service_commands", () => new ServiceCommands());
     this.configCommands = measureStartupSync("cli.runtime.config_commands", () => new ConfigCommands({
       requestRestart: (params) => this.requestRestart(params),
@@ -448,6 +455,11 @@ export class CliRuntime {
   restart = async (opts: StartCommandOptions): Promise<void> => { await this.restartCommands.run(opts); };
   serve = async (opts: StartCommandOptions): Promise<void> => { await this.serveCommands.run(opts); };
   stop = async (): Promise<void> => { await this.stopCommands.run(); };
+  companionStart = async (opts: CompanionStartCommandOptions = {}): Promise<void> => { await this.companionCommands.start(opts); };
+  companionEnable = async (opts: CompanionEnableCommandOptions = {}): Promise<void> => { await this.companionCommands.enable(opts); };
+  companionDisable = async (opts: CompanionDisableCommandOptions = {}): Promise<void> => { await this.companionCommands.disable(opts); };
+  companionStatus = async (opts: CompanionStatusCommandOptions = {}): Promise<void> => { await this.companionCommands.status(opts); };
+  companionStop = async (opts: CompanionStopCommandOptions = {}): Promise<void> => { await this.companionCommands.stop(opts); };
 
   agent = async (opts: AgentCommandOptions): Promise<void> => {
     const configPath = getConfigPath();

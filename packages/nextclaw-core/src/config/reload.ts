@@ -16,13 +16,14 @@ export type ReloadPlan = {
   reloadAgent: boolean;
   reloadPlugins: boolean;
   reloadMcp: boolean;
+  reloadCompanion: boolean;
   restartRequired: string[];
   noopPaths: string[];
 };
 
 type ReloadRule = {
   prefix: string;
-  kind: "restart-channels" | "reload-providers" | "reload-agent" | "reload-plugins" | "reload-mcp" | "restart-required" | "none";
+  kind: "restart-channels" | "reload-providers" | "reload-agent" | "reload-plugins" | "reload-mcp" | "reload-companion" | "restart-required" | "none";
 };
 
 const RELOAD_RULES: ReloadRule[] = [
@@ -44,6 +45,7 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "session", kind: "reload-agent" },
   { prefix: "search", kind: "reload-agent" },
   { prefix: "tools", kind: "reload-agent" },
+  { prefix: "companion", kind: "reload-companion" },
   { prefix: "secrets", kind: "none" },
   { prefix: "plugins", kind: "reload-plugins" },
   { prefix: "gateway", kind: "none" },
@@ -96,6 +98,7 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     reloadAgent: false,
     reloadPlugins: false,
     reloadMcp: false,
+    reloadCompanion: false,
     restartRequired: [],
     noopPaths: []
   };
@@ -128,6 +131,10 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     }
     if (rule.kind === "reload-mcp") {
       plan.reloadMcp = true;
+      continue;
+    }
+    if (rule.kind === "reload-companion") {
+      plan.reloadCompanion = true;
       continue;
     }
     if (rule.kind === "restart-required") {

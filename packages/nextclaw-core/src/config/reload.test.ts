@@ -27,4 +27,10 @@ describe("buildReloadPlan", () => {
     expect(plan.reloadAgent).toBe(true);
     expect(plan.restartRequired).toEqual([]);
   });
+
+  it("hot applies companion feature changes without requiring restart", () => {
+    const plan = buildReloadPlan(["companion.enabled"]);
+    expect(plan.reloadCompanion).toBe(true);
+    expect(plan.restartRequired).toEqual([]);
+  });
 });

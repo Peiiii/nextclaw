@@ -24,6 +24,7 @@ import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@/cli/sh
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { resolveCliSubcommandEntry } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { isLoopbackHost, resolvePublicIp } from "@/cli/shared/utils/cli.utils.js";
+import { companionRuntimeService } from "@/cli/shared/services/ui/companion-runtime.service.js";
 
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@/cli/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
@@ -111,6 +112,7 @@ export class RuntimeCommandService {
       getRuntimeConfig,
       getRuntimeState: () => runtimeState
     });
+    await companionRuntimeService.applyConfig(shellContext.config);
     bootstrapStatus.markShellReady();
     await waitForNextTick();
     const gateway = measureStartupSync("service.create_gateway_startup_context", () =>
@@ -132,6 +134,9 @@ export class RuntimeCommandService {
     const loadGatewayConfig = () => resolveConfigSecrets(loadConfig(), { configPath: gateway.runtimeConfigPath });
     const gatewayRuntimeState = createGatewayRuntimeState(gateway);
     runtimeState = gatewayRuntimeState;
+    gateway.reloader.setReloadCompanion(async ({ config: nextConfig }) => {
+      await companionRuntimeService.applyConfig(nextConfig);
+    });
     await this.hydrateGatewayRuntime({
       gateway,
       gatewayRuntimeState,
@@ -174,12 +179,15 @@ export class RuntimeCommandService {
             this.applyLiveConfigReload = null;
             this.liveUiNcpAgent = null;
           },
-          clearRealtimeBridge: () => ncpSessionRealtimeBridge.clear(),
+          clearRealtimeBridge: () => {
+            ncpSessionRealtimeBridge.clear();
+          },
           uiStartup,
           remoteModule: gateway.remoteModule,
           runtimeState,
         }),
     });
+    await companionRuntimeService.ensureStopped();
     logStartupTrace("service.start_gateway.end");
   };
 

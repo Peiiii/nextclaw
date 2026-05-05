@@ -1,6 +1,7 @@
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
+import { Switch } from '@/shared/components/ui/switch';
 import { t } from '@/shared/lib/i18n';
 import type { DmScope } from '@/features/system-status/utils/runtime-config-agent.utils';
 
@@ -13,11 +14,15 @@ const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [
 
 export function RuntimeSettingsCard(props: {
   dmScope: DmScope;
+  companionEnabled: boolean;
   defaultContextTokens: number;
   defaultEngine: string;
+  onCompanionEnabledChange: (value: boolean) => void;
   onDmScopeChange: (value: DmScope) => void;
   onDefaultContextTokensChange: (value: number) => void;
   onDefaultEngineChange: (value: string) => void;
+  companionEnabledLabel?: string;
+  companionEnabledHelp?: string;
   dmScopeLabel?: string;
   dmScopeHelp?: string;
   defaultContextTokensLabel?: string;
@@ -32,6 +37,13 @@ export function RuntimeSettingsCard(props: {
         <CardDescription>{props.dmScopeHelp ?? t('dmScopeHelp')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="flex items-start justify-between gap-4 rounded-md border border-gray-200 px-4 py-3">
+          <div className="space-y-1">
+            <div className="text-sm font-medium text-gray-800">{props.companionEnabledLabel ?? t('runtimeCompanionEnabled')}</div>
+            <p className="text-xs text-gray-500">{props.companionEnabledHelp ?? t('runtimeCompanionEnabledHelp')}</p>
+          </div>
+          <Switch checked={props.companionEnabled} onCheckedChange={props.onCompanionEnabledChange} />
+        </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-800">{props.defaultContextTokensLabel ?? t('defaultContextTokens')}</label>
           <Input

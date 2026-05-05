@@ -25,6 +25,24 @@ export type StartCommandOptions = {
   startTimeout?: string | number;
 };
 
+export type CompanionStartCommandOptions = {
+  baseUrl?: string;
+};
+
+export type CompanionEnableCommandOptions = {
+  baseUrl?: string;
+};
+
+export type CompanionDisableCommandOptions = {};
+
+export type CompanionStatusCommandOptions = {
+  json?: boolean;
+};
+
+export type CompanionStopCommandOptions = {
+  force?: boolean;
+};
+
 export type ServiceAutostartCommandOptions = {
   user?: boolean;
   system?: boolean;

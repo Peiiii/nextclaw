@@ -1,0 +1,31 @@
+{
+  "name": "@nextclaw/companion",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Standalone Electron companion shell for active NextClaw agents.",
+  "author": "NextClaw Team",
+  "homepage": "https://github.com/Peiiii/nextclaw",
+  "main": "dist/src/main.js",
+  "bin": {
+    "nextclaw-companion": "dist/src/launcher/index.js"
+  },
+  "license": "MIT",
+  "scripts": {
+    "dev": "pnpm build:main && node dist/src/launcher/index.js",
+    "build": "pnpm build:main",
+    "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
+    "lint": "eslint \"src/**/*.ts\"",
+    "tsc": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run src/companion-session-view.service.test.ts",
+    "smoke": "pnpm build:main && node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@nextclaw/client-sdk": "workspace:*",
+    "electron": "^32.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

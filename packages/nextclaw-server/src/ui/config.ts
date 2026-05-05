@@ -475,6 +475,7 @@ export function buildConfigView(config: Config, options?: PluginConfigProjection
     providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
   }
   return {
+    companion: sanitizePublicConfigValue(config.companion, "companion", uiHints),
     agents: sanitizePublicConfigValue(config.agents, "agents", uiHints),
     providers,
     search: buildSearchView(config),
@@ -1360,29 +1361,27 @@ export function deleteSession(configPath: string, key: string): boolean {
   return sessionManager.delete(normalizedKey);
 }
 
-export function updateRuntime(
-  configPath: string,
-  patch: RuntimeConfigUpdate
-): Pick<ConfigView, "agents" | "bindings" | "session"> {
-  const config = loadConfigOrDefault(configPath);
+type RuntimeAgentDefaultsPatch = NonNullable<NonNullable<RuntimeConfigUpdate["agents"]>["defaults"]>;
 
-  const defaultsPatch = patch.agents?.defaults;
-  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "contextTokens")) {
+function applyRuntimeAgentDefaultsPatch(config: Config, defaultsPatch: RuntimeAgentDefaultsPatch | undefined): void {
+  if (!defaultsPatch) {
+    return;
+  }
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "contextTokens")) {
     const nextContextTokens = defaultsPatch.contextTokens;
-    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) {
-      config.agents.defaults.contextTokens = Math.max(1000, Math.trunc(nextContextTokens));
-    }
+    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) config.agents.defaults.contextTokens = Math.max(1000, Math.trunc(nextContextTokens));
   }
-  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "engine")) {
-    config.agents.defaults.engine = normalizeOptionalString(defaultsPatch.engine) ?? "native";
-  }
-  if (defaultsPatch && Object.prototype.hasOwnProperty.call(defaultsPatch, "engineConfig")) {
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engine")) config.agents.defaults.engine = normalizeOptionalString(defaultsPatch.engine) ?? "native";
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engineConfig")) {
     const nextEngineConfig = defaultsPatch.engineConfig;
-    if (nextEngineConfig && typeof nextEngineConfig === "object" && !Array.isArray(nextEngineConfig)) {
-      config.agents.defaults.engineConfig = { ...nextEngineConfig };
-    }
+    if (nextEngineConfig && typeof nextEngineConfig === "object" && !Array.isArray(nextEngineConfig)) config.agents.defaults.engineConfig = { ...nextEngineConfig };
   }
+}
 
+export function updateRuntime(configPath: string, patch: RuntimeConfigUpdate): Pick<ConfigView, "companion" | "agents" | "bindings" | "session"> {
+  const config = loadConfigOrDefault(configPath);
+  if (patch.companion && Object.prototype.hasOwnProperty.call(patch.companion, "enabled")) config.companion.enabled = Boolean(patch.companion.enabled);
+  applyRuntimeAgentDefaultsPatch(config, patch.agents?.defaults);
   if (patch.agents && Object.prototype.hasOwnProperty.call(patch.agents, "list")) {
     config.agents.list = (patch.agents.list ?? []).map((entry) => {
       const normalizedEngine = normalizeOptionalString(entry.engine);
@@ -1419,8 +1418,8 @@ export function updateRuntime(
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   const view = buildConfigView(next);
-
   return {
+    companion: view.companion,
     agents: view.agents,
     bindings: view.bindings ?? [],
     session: view.session ?? {}
