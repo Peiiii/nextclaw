@@ -3,8 +3,8 @@ import { t } from '@/shared/lib/i18n';
 
 type ChatRuntimeStatus = Pick<SystemStatusView, 'activeSystemAction' | 'bootstrapStatus' | 'lastError' | 'lastReadyAt' | 'lifecyclePhase' | 'phase'>;
 
-export function isNcpChatRuntimeBlocked(status: Pick<SystemStatusView, 'phase'>): boolean {
-  return status.phase !== 'ready';
+export function isNcpChatRuntimeBlocked(status: Pick<SystemStatusView, 'bootstrapStatus'>): boolean {
+  return status.bootstrapStatus?.ncpAgent.state !== 'ready';
 }
 
 export function resolveNcpChatRuntimeMessage(

@@ -15,7 +15,24 @@ function createStatus(overrides: Partial<SystemStatusView> = {}): SystemStatusVi
     hasReachedReady: true,
     lastReadyAt: Date.now(),
     recoveryStartedAt: null,
-    bootstrapStatus: null,
+    bootstrapStatus: {
+      phase: 'ready',
+      ncpAgent: {
+        state: 'ready',
+      },
+      pluginHydration: {
+        state: 'ready',
+        loadedPluginCount: 1,
+        totalPluginCount: 1,
+      },
+      channels: {
+        state: 'ready',
+        enabled: [],
+      },
+      remote: {
+        state: 'pending',
+      },
+    },
     lastError: null,
     lastTransportError: null,
     runtimeControlView: null,
@@ -27,7 +44,7 @@ function createStatus(overrides: Partial<SystemStatusView> = {}): SystemStatusVi
 }
 
 describe('ncp-chat-runtime-availability.utils', () => {
-  it('derives chat blocking from system facts in the chat view model layer', () => {
+  it('allows chat send when the NCP agent is ready even if the aggregate phase is stalled', () => {
     expect(isNcpChatRuntimeBlocked(createStatus())).toBe(false);
     expect(
       isNcpChatRuntimeBlocked(
@@ -36,6 +53,16 @@ describe('ncp-chat-runtime-availability.utils', () => {
           phase: 'stalled',
           connectionStatus: 'disconnected',
           recoveryStartedAt: Date.now(),
+        })
+      )
+    ).toBe(false);
+  });
+
+  it('blocks chat send while the NCP agent is not ready', () => {
+    expect(
+      isNcpChatRuntimeBlocked(
+        createStatus({
+          bootstrapStatus: null,
         })
       )
     ).toBe(true);

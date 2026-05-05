@@ -33,6 +33,24 @@ describe('NcpChatInputManager', () => {
       state: {
         ...useSystemStatusStore.getState().state,
         lifecyclePhase: 'ready',
+        bootstrapStatus: {
+          phase: 'ready',
+          ncpAgent: {
+            state: 'ready',
+          },
+          pluginHydration: {
+            state: 'ready',
+            loadedPluginCount: 1,
+            totalPluginCount: 1,
+          },
+          channels: {
+            state: 'ready',
+            enabled: [],
+          },
+          remote: {
+            state: 'pending',
+          },
+        },
       },
     });
     useChatSessionListStore.setState({
@@ -125,6 +143,13 @@ describe('NcpChatInputManager', () => {
       state: {
         ...useSystemStatusStore.getState().state,
         lifecyclePhase: 'cold-starting',
+        bootstrapStatus: {
+          ...useSystemStatusStore.getState().state.bootstrapStatus!,
+          phase: 'kernel-starting',
+          ncpAgent: {
+            state: 'pending',
+          },
+        },
       },
     });
     const streamActionsManager = {

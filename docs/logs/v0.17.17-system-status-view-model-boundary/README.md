@@ -5,6 +5,7 @@
 - 删除 `SystemStatusManager.isChatInteractionBlocked()` 与 `SystemStatusManager.getDisplayMessage()`，避免系统 manager 暴露聊天 UI 策略。
 - 在 chat feature 内新增 `ncp-chat-runtime-availability.utils.ts`，由聊天层根据系统事实推导 `isRuntimeBlocked`、runtime 消息与 send error 展示文案。
 - 更新聊天输入栏、会话 hydration retry 与发送 manager，统一读取系统事实后在 chat 层做策略推导；本次不改变发送时机和现有禁用行为。
+- 续改：发送按钮与 `send()` 内部校验不再使用聚合 `phase === "ready"` 判断，而是只用 `bootstrapStatus.ncpAgent.state === "ready"` 判断 NCP 发送 runtime 是否可用；realtime 断线、`stalled` 等聚合状态不再单独阻止发送。
 - 根因说明：
   - 根因是系统事实层混入了聊天场景化展示/交互策略，把 `phase !== "ready"` 这种 chat UI 决策固化成 `SystemStatusView.isChatBlocked`，导致调用方把策略误当成系统事实。
   - 根因通过代码路径确认：`toSystemStatusView()` 直接生成 `isChatBlocked` / `chatMessage`，`useChatRuntimeAvailability()` 与 `NcpChatInputManager.send()` 又依赖这些系统层聊天判断。
@@ -14,10 +15,13 @@
 
 - 已通过：
   - `pnpm -C packages/nextclaw-ui test -- src/features/chat/utils/ncp-chat-runtime-availability.utils.test.ts src/features/chat/utils/ncp-chat-input-availability.utils.test.ts src/features/chat/hooks/use-ncp-session-conversation.test.tsx src/features/system-status/utils/system-status.utils.test.ts src/features/system-status/managers/system-status.manager.test.ts`
+  - 续改验证：`pnpm -C packages/nextclaw-ui test -- src/features/chat/utils/ncp-chat-runtime-availability.utils.test.ts src/features/chat/utils/ncp-chat-input-availability.utils.test.ts src/features/chat/managers/ncp-chat-input.manager.test.ts`
   - `pnpm -C packages/nextclaw-ui tsc`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <touched production files>`
+  - 续改 guard：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/chat/utils/ncp-chat-runtime-availability.utils.ts`
   - `pnpm lint:new-code:governance`
 - 未完全通过项：
+  - 续改后 `pnpm lint:new-code:governance` 失败，阻塞点为工作区已有改动 `packages/nextclaw/src/cli/launcher/npm-runtime-update-source.service.ts` 位于 legacy root `launcher/`；本次发送按钮判断改动未触达该文件。
   - `pnpm check:governance-backlog-ratchet` 失败，原因是仓库当前 tracked doc file-name violations 为 `13`，高于 baseline `11`；失败项均为历史文档命名债务，本次新增方案文档通过了 `doc-file-name-kebab-case` diff 检查，未新增该类违规。
 
 ## 发布/部署方式
@@ -27,10 +31,11 @@
 
 ## 用户/产品视角的验收步骤
 
-1. 打开聊天页面，确认 runtime ready 且输入非空时仍可正常发送。
-2. 在 runtime 非 ready 阶段确认输入框仍可编辑，发送按钮仍按当前策略禁用。
-3. 制造 transient runtime error，确认恢复中与 stalled 阶段的聊天错误展示仍与之前一致。
-4. 检查系统状态相关 UI，确认 runtime badge/control 仍只依赖系统事实字段正常展示。
+1. 打开聊天页面，确认 `bootstrapStatus.ncpAgent.state === "ready"` 且输入非空时可正常发送。
+2. 在 aggregate `phase` 进入 `stalled/recovering` 但 `ncpAgent.state` 仍为 `ready` 时，确认发送按钮不再因此被禁用。
+3. 在 `ncpAgent.state` 非 `ready` 阶段确认输入框仍可编辑，发送按钮仍按 runtime 能力禁用。
+4. 制造 transient runtime error，确认恢复中与 stalled 阶段的聊天错误展示仍与之前一致。
+5. 检查系统状态相关 UI，确认 runtime badge/control 仍只依赖系统事实字段正常展示。
 
 ## 可维护性总结汇总
 

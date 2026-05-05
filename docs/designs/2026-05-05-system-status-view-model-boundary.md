@@ -24,7 +24,7 @@
 - 从 `SystemStatusView` 移除 `isChatBlocked` 与 `chatMessage`。
 - 从 `SystemStatusManager` 移除聊天策略方法。
 - 新增 chat feature 内的 runtime availability view model：
-  - 根据 `SystemStatusView` 推导 `isBlocked`。
+  - 根据 `bootstrapStatus.ncpAgent.state` 推导聊天发送是否被 runtime 阻止。
   - 根据 lifecycle/action/error 推导聊天运行时消息。
   - 根据 runtime phase 与发送错误推导最终展示错误。
 - 更新聊天输入与发送 manager，统一使用 chat 层 availability。
@@ -38,6 +38,6 @@
 ## 验收标准
 
 - 系统状态 view 不再包含聊天特定字段。
-- 聊天发送禁用行为保持现状：runtime 非 ready 时仍 blocked，无内容时仍 disabled。
+- 聊天发送禁用行为改为只按 `ncpAgent.state !== "ready"` 阻止 runtime 发送能力；无内容时仍 disabled。
 - 原有聊天运行时错误显示语义保持现状。
 - 相关单测和 TypeScript 检查通过。
