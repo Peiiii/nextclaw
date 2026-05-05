@@ -1,0 +1,21 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-cli-launcher",
+  "rootPolicy": "legacy-frozen",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "index.ts",
+    "npm-runtime-bundle-layout.store.ts",
+    "npm-runtime-bundle-manifest.service.ts",
+    "npm-runtime-bundle.service.ts",
+    "npm-runtime-bundle.types.ts",
+    "npm-runtime-launcher.service.ts",
+    "npm-runtime-update-command.service.ts",
+    "npm-runtime-update-source.service.ts",
+    "npm-runtime-update-state.store.ts",
+    "npm-runtime-update.manager.test.ts",
+    "npm-runtime-update.manager.ts",
+    "npm-runtime-update.service.ts"
+  ],
+  "sharedDirectories": []
+}

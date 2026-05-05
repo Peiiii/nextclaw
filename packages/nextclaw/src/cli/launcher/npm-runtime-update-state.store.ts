@@ -15,7 +15,7 @@ const DEFAULT_NPM_RUNTIME_UPDATE_STATE: NpmRuntimeUpdateState = {
   downloadedReleaseNotesUrl: null,
   updatePreferences: {
     automaticChecks: true,
-    autoDownload: false
+    autoDownload: true
   }
 };
 

@@ -21,11 +21,12 @@
 - 桌面已有 `validation:dev-update` 手动验收入口。
 - 已补 NPM `validation:npm-update` 用户视角入口。
 - 已补 NPM runtime update channel builder、默认公网 update source 和发布 workflow。
+- 已补齐 NPM 安装态 UI 更新链路：统一 runtime update host/API、统一 manager/store、版本号旁边进度与更新按钮、`/updates` 页入口。
 
 ## 当前下一步
 
-修复真实 `nextclaw@beta` 发消息时 `this.inputBudgetPruner.estimate is not a function`，确认是否由 beta package / runtime bundle 依赖版本不匹配引起，并重新复验 npm beta 聊天路径。
+完成收尾验证、精确暂存本次统一更新链路改动，并在验证结论清晰后提交。
 
 ## 锚点计数器
 
-0/20
+18/20

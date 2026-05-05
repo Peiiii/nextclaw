@@ -1,0 +1,20 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-cli-shared-services",
+  "rootPolicy": "legacy-frozen",
+  "allowedRootDirectories": [
+    "config",
+    "gateway",
+    "marketplace",
+    "plugin",
+    "restart",
+    "runtime",
+    "session",
+    "telemetry",
+    "ui",
+    "update",
+    "workspace"
+  ],
+  "allowedRootFiles": [],
+  "sharedDirectories": []
+}

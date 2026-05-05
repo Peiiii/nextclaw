@@ -4,4 +4,4 @@ export * from "./ui/config.js";
 export * from "./ui/types.js";
 export * from "./ui/runtime-control.types.js";
 export * from "./ui/auth-bridge.js";
-export type { UiRemoteAccessHost, UiRuntimeControlHost } from "./ui/ui-routes/types.js";
+export type { UiRemoteAccessHost, UiRuntimeControlHost, UiRuntimeUpdateHost } from "./ui/ui-routes/types.js";

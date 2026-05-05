@@ -17,6 +17,7 @@ import {
 } from "./ui-routes/marketplace/index.js";
 import { RemoteRoutesController } from "./ui-routes/remote.controller.js";
 import { RuntimeControlRoutesController } from "./ui-routes/runtime-control.controller.js";
+import { RuntimeUpdateRoutesController } from "./ui-routes/runtime-update.controller.js";
 import { err } from "./ui-routes/response.js";
 import { ServerPathRoutesController } from "./ui-routes/server-path.controller.js";
 import type { UiRouterOptions } from "./ui-routes/types.js";
@@ -128,11 +129,25 @@ function registerRuntimeControlRoutes(app: Hono, runtimeControlController: Runti
   app.post("/api/runtime/control/stop-service", runtimeControlController.stopService);
 }
 
+function registerRuntimeUpdateRoutes(app: Hono, runtimeUpdateController: RuntimeUpdateRoutesController | null): void {
+  if (!runtimeUpdateController) {
+    return;
+  }
+
+  app.get("/api/runtime/update", runtimeUpdateController.getState);
+  app.post("/api/runtime/update/check", runtimeUpdateController.checkForUpdates);
+  app.post("/api/runtime/update/download", runtimeUpdateController.downloadUpdate);
+  app.post("/api/runtime/update/apply", runtimeUpdateController.applyDownloadedUpdate);
+  app.put("/api/runtime/update/preferences", runtimeUpdateController.updatePreferences);
+  app.put("/api/runtime/update/channel", runtimeUpdateController.updateChannel);
+}
+
 function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
   marketplaceBaseUrl: string
 ) {
+  const { remoteAccess, runtimeControl, runtimeUpdate } = options;
   return {
     app: new AppRoutesController(options),
     agents: new AgentsRoutesController(options),
@@ -142,8 +157,9 @@ function createUiRouteControllers(
     ncpSession: new NcpSessionRoutesController(options),
     ncpAsset: new NcpAssetRoutesController(options),
     serverPath: new ServerPathRoutesController(),
-    remote: options.remoteAccess ? new RemoteRoutesController(options.remoteAccess) : null,
-    runtimeControl: options.runtimeControl ? new RuntimeControlRoutesController(options.runtimeControl) : null,
+    remote: remoteAccess ? new RemoteRoutesController(remoteAccess) : null,
+    runtimeControl: runtimeControl ? new RuntimeControlRoutesController(runtimeControl) : null,
+    runtimeUpdate: runtimeUpdate ? new RuntimeUpdateRoutesController(runtimeUpdate) : null,
     pluginMarketplace: new PluginMarketplaceController(options, marketplaceBaseUrl),
     skillMarketplace: new SkillMarketplaceController(options, marketplaceBaseUrl),
     mcpMarketplace: new McpMarketplaceController(options, marketplaceBaseUrl)
@@ -184,6 +200,7 @@ export function createUiRouter(options: UiRouterOptions): Hono {
   registerCronRoutes(app, controllers.cron);
   registerRemoteRoutes(app, controllers.remote);
   registerRuntimeControlRoutes(app, controllers.runtimeControl);
+  registerRuntimeUpdateRoutes(app, controllers.runtimeUpdate);
 
   mountMarketplaceRoutes(app, {
     plugin: controllers.pluginMarketplace,

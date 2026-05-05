@@ -1,4 +1,5 @@
 import type * as NextclawCore from "@nextclaw/core";
+import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { UiAuthService } from "../auth.service.js";
 import type {
@@ -34,6 +35,7 @@ export type UiRouterOptions = {
   authService?: UiAuthService;
   remoteAccess?: UiRemoteAccessHost;
   runtimeControl?: UiRuntimeControlHost;
+  runtimeUpdate?: UiRuntimeUpdateHost;
   getBootstrapStatus?: () => BootstrapStatusView;
   getPluginChannelBindings?: () => PluginChannelBinding[];
   getPluginUiMetadata?: () => PluginUiMetadata[];
@@ -56,6 +58,15 @@ export type UiRuntimeControlHost = {
   startService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
   restartService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
   stopService: () => Promise<RuntimeControlActionResult> | RuntimeControlActionResult;
+};
+
+export type UiRuntimeUpdateHost = {
+  getState: () => Promise<UpdateSnapshot> | UpdateSnapshot;
+  checkForUpdates: () => Promise<UpdateSnapshot> | UpdateSnapshot;
+  downloadUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
+  applyDownloadedUpdate: () => Promise<UpdateSnapshot> | UpdateSnapshot;
+  updatePreferences: (preferences: Partial<UpdatePreferences>) => Promise<UpdateSnapshot> | UpdateSnapshot;
+  updateChannel: (channel: UpdateSnapshot["channel"]) => Promise<UpdateSnapshot> | UpdateSnapshot;
 };
 
 export type CronJobEntry = {

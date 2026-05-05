@@ -1,9 +1,10 @@
+import type { UpdateSnapshot } from '@nextclaw/kernel';
+import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { useAppMeta } from '@/shared/hooks/use-config';
 import type { ReactNode } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
 import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
-import { desktopUpdateManager, useDesktopUpdateStore, type DesktopUpdateSnapshot } from '@/platforms/desktop';
 
 type BrandHeaderProps = {
   className?: string;
@@ -24,20 +25,20 @@ export function BrandHeader({ className, suffix }: BrandHeaderProps) {
       <div className="flex items-baseline gap-2 min-w-0">
         <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-gray-800">{productName}</span>
         {productVersion ? <span className="text-[13px] font-medium text-gray-500">v{productVersion}</span> : null}
-        <DesktopUpdateInlineStatus />
+        <RuntimeUpdateInlineStatus />
         {resolvedSuffix ? <span className="inline-flex items-center shrink-0">{resolvedSuffix}</span> : null}
       </div>
     </div>
   );
 }
 
-function DesktopUpdateInlineStatus() {
-  const { supported, busyAction, snapshot } = useDesktopUpdateStore();
+function RuntimeUpdateInlineStatus() {
+  const { supported, busyAction, snapshot } = useRuntimeUpdateStore();
   if (!supported || !snapshot) {
     return null;
   }
-  if (snapshot.status === 'downloading') {
-    return <DesktopUpdateInlineBadge snapshot={snapshot} />;
+  if (snapshot.status === 'downloading' || snapshot.status === 'blocked' || snapshot.status === 'failed') {
+    return <RuntimeUpdateInlineBadge snapshot={snapshot} />;
   }
   if (snapshot.status === 'downloaded') {
     return (
@@ -48,7 +49,7 @@ function DesktopUpdateInlineStatus() {
           resolveInlineUpdateTone(snapshot.status)
         )}
         disabled={busyAction === 'applying'}
-        onClick={() => void desktopUpdateManager.applyDownloadedUpdate()}
+        onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()}
       >
         {busyAction === 'applying' ? t('desktopUpdatesInlineApplying') : t('desktopUpdatesInlineReady')}
       </button>
@@ -63,19 +64,16 @@ function DesktopUpdateInlineStatus() {
           resolveInlineUpdateTone(snapshot.status)
         )}
         disabled={busyAction === 'downloading'}
-        onClick={() => void desktopUpdateManager.downloadUpdate()}
+        onClick={() => void runtimeUpdateManager.downloadUpdate()}
       >
         {busyAction === 'downloading' ? t('desktopUpdatesInlineDownloading') : t('desktopUpdatesInlineDownload')}
       </button>
     );
   }
-  if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
-    return <DesktopUpdateInlineBadge snapshot={snapshot} />;
-  }
   return null;
 }
 
-function DesktopUpdateInlineBadge({ snapshot }: { snapshot: DesktopUpdateSnapshot }) {
+function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
   const label = resolveInlineUpdateLabel(snapshot);
   if (!label) {
     return null;
@@ -93,7 +91,7 @@ function DesktopUpdateInlineBadge({ snapshot }: { snapshot: DesktopUpdateSnapsho
   );
 }
 
-function resolveInlineUpdateLabel(snapshot: DesktopUpdateSnapshot): string | null {
+function resolveInlineUpdateLabel(snapshot: UpdateSnapshot): string | null {
   if (snapshot.status === 'downloading') {
     const percent = snapshot.progress?.percent;
     return percent === null || percent === undefined
@@ -112,7 +110,7 @@ function resolveInlineUpdateLabel(snapshot: DesktopUpdateSnapshot): string | nul
   return null;
 }
 
-function resolveInlineUpdateTone(status: DesktopUpdateSnapshot['status']): string {
+function resolveInlineUpdateTone(status: UpdateSnapshot['status']): string {
   if (status === 'downloaded') {
     return 'bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100 disabled:opacity-70';
   }

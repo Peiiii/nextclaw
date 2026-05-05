@@ -10,7 +10,7 @@ import { LanguageSettingsPage } from "@/features/settings";
 import { SettingsEntryPage } from "@/app/components/layout/settings-entry-page";
 import { LoginPage } from "@/components/auth/login-page";
 import { AccountPanel } from "@/features/account";
-import { useSystemStatusSources } from "@/features/system-status";
+import { runtimeUpdateManager, useSystemStatusSources } from "@/features/system-status";
 import {
   isTransientAuthStatusBootstrapError,
   useAuthStatus,
@@ -21,7 +21,6 @@ import {
   PwaUpdateBanner,
 } from "@/pwa/components/pwa-install-entry";
 import { startNextClawPwa } from "@/pwa/register-pwa";
-import { desktopUpdateManager } from "@/platforms/desktop";
 
 const ModelConfigPage = lazy(async () => ({
   default: (await import("@/components/config/ModelConfig")).ModelConfig,
@@ -216,9 +215,9 @@ function ProtectedApp() {
   useRealtimeQueryBridge(appQueryClient);
   useSystemStatusSources();
   useEffect(() => {
-    void desktopUpdateManager.start();
+    void runtimeUpdateManager.start();
     return () => {
-      desktopUpdateManager.stop();
+      runtimeUpdateManager.stop();
     };
   }, []);
 

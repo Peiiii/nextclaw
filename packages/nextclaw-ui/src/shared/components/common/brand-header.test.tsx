@@ -3,23 +3,23 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useRuntimeUpdateStore } from '@/features/system-status';
 import { BrandHeader } from '@/shared/components/common/brand-header';
 import { setLanguage } from '@/shared/lib/i18n';
-import { useDesktopUpdateStore } from '@/platforms/desktop';
 
 const mocks = vi.hoisted(() => ({
   applyDownloadedUpdate: vi.fn(),
   downloadUpdate: vi.fn()
 }));
 
-vi.mock('@/platforms/desktop', async () => {
-  const actual = await vi.importActual<typeof import('@/platforms/desktop')>(
-    '@/platforms/desktop'
+vi.mock('@/features/system-status', async () => {
+  const actual = await vi.importActual<typeof import('@/features/system-status')>(
+    '@/features/system-status'
   );
   return {
     ...actual,
-    desktopUpdateManager: {
-      ...actual.desktopUpdateManager,
+    runtimeUpdateManager: {
+      ...actual.runtimeUpdateManager,
       applyDownloadedUpdate: mocks.applyDownloadedUpdate,
       downloadUpdate: mocks.downloadUpdate
     }
@@ -50,7 +50,7 @@ function renderBrandHeader() {
 describe('BrandHeader', () => {
   beforeEach(() => {
     setLanguage('zh');
-    useDesktopUpdateStore.setState({
+    useRuntimeUpdateStore.setState({
       supported: false,
       initialized: false,
       busyAction: null,
@@ -61,7 +61,7 @@ describe('BrandHeader', () => {
   });
 
   it('shows update progress next to the product version', () => {
-    useDesktopUpdateStore.setState({
+    useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
       busyAction: null,
@@ -70,7 +70,6 @@ describe('BrandHeader', () => {
         installationKind: 'desktop-bundle',
         channel: 'stable',
         hostVersion: '0.0.138',
-        launcherVersion: '0.0.138',
         currentVersion: '0.18.11',
         availableVersion: '0.18.12',
         downloadedVersion: null,
@@ -104,7 +103,7 @@ describe('BrandHeader', () => {
 
   it('applies the downloaded update from the version-adjacent update button', async () => {
     const user = userEvent.setup();
-    useDesktopUpdateStore.setState({
+    useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
       busyAction: null,
@@ -113,7 +112,6 @@ describe('BrandHeader', () => {
         installationKind: 'desktop-bundle',
         channel: 'stable',
         hostVersion: '0.0.138',
-        launcherVersion: '0.0.138',
         currentVersion: '0.18.11',
         availableVersion: null,
         downloadedVersion: '0.18.12',

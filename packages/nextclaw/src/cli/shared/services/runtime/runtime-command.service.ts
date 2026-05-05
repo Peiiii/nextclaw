@@ -102,31 +102,14 @@ export class RuntimeCommandService {
       runCliSubcommand: (args) => this.runCliSubcommand(args),
       installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force)
     }).createInstaller();
-    const { remoteAccess, runtimeControl } = createServiceUiHosts({ serviceCommands: this, requestRestart: this.deps.requestRestart, uiConfig: shellContext.uiConfig, remoteModule: shellContext.remoteModule });
-    const uiStartup = await measureStartupAsync("service.start_ui_shell", async () =>
-      await startUiShell({
-        uiConfig: shellContext.uiConfig,
-        uiStaticDir: shellContext.uiStaticDir,
-        cronService: shellContext.cron,
-        getConfig: getRuntimeConfig,
-        configPath: getConfigPath(),
-        productVersion: getPackageVersion(),
-        getPluginChannelBindings: () => runtimeState?.pluginChannelBindings ?? [],
-        getPluginUiMetadata: () => runtimeState?.pluginUiMetadata ?? [],
-        marketplace: { apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE, installer: marketplaceInstaller },
-        remoteAccess,
-        runtimeControl,
-        getBootstrapStatus: () => bootstrapStatus.getStatus(),
-        openBrowserWindow: shellContext.uiConfig.open,
-        applyLiveConfigReload,
-        ncpSessionService: ncpSessionRealtimeBridge.sessionService,
-        initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
-      })
-    );
-    finalizeLocalUiStartup({
-      uiStartup,
-      setUiEventPublisher: (publish) => ncpSessionRealtimeBridge.setUiEventPublisher(publish),
-      uiConfig: shellContext.uiConfig
+    const uiStartup = await this.startGatewayUiShell({
+      shellContext,
+      applyLiveConfigReload,
+      bootstrapStatus,
+      marketplaceInstaller,
+      ncpSessionRealtimeBridge,
+      getRuntimeConfig,
+      getRuntimeState: () => runtimeState
     });
     bootstrapStatus.markShellReady();
     await waitForNextTick();
@@ -149,25 +132,11 @@ export class RuntimeCommandService {
     const loadGatewayConfig = () => resolveConfigSecrets(loadConfig(), { configPath: gateway.runtimeConfigPath });
     const gatewayRuntimeState = createGatewayRuntimeState(gateway);
     runtimeState = gatewayRuntimeState;
-    uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
-    uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    configureGatewayPluginRuntime({ gateway, state: gatewayRuntimeState, getLiveUiNcpAgent: () => this.liveUiNcpAgent });
-    console.log("✓ Capability hydration: scheduled in background");
-    await measureStartupAsync("service.start_gateway_support_services", async () =>
-      await startGatewayRuntimeSupport({
-        cronJobs: gateway.cron.status().jobs,
-        remoteModule: gateway.remoteModule,
-        watchConfigFile: () => watchServiceConfigFile({
-          configPath: resolve(getConfigPath()),
-          watcherRegistry: this.fileWatchers,
-          scheduleReload: (reason) => gateway.reloader.scheduleReload(reason)
-        }),
-        startCron: () => gateway.cron.start(),
-        cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")),
-        reloadCronStore: () => gateway.cron.reloadFromStore(),
-        watcherRegistry: this.fileWatchers
-      })
-    );
+    await this.hydrateGatewayRuntime({
+      gateway,
+      gatewayRuntimeState,
+      uiStartup
+    });
     const deferredGatewayStartupHooks = createDeferredGatewayStartupHooks({
       uiStartup,
       gateway,
@@ -212,6 +181,90 @@ export class RuntimeCommandService {
         }),
     });
     logStartupTrace("service.start_gateway.end");
+  };
+
+  private startGatewayUiShell = async (params: {
+    shellContext: ReturnType<typeof createGatewayShellContext>;
+    applyLiveConfigReload: () => Promise<void>;
+    bootstrapStatus: ReturnType<typeof createBootstrapStatus>;
+    marketplaceInstaller: ReturnType<ServiceMarketplaceInstaller["createInstaller"]>;
+    ncpSessionRealtimeBridge: ReturnType<typeof createServiceNcpSessionRealtimeBridge>;
+    getRuntimeConfig: () => Config;
+    getRuntimeState: () => GatewayRuntimeState | null;
+  }): ReturnType<typeof startUiShell> => {
+    const {
+      applyLiveConfigReload,
+      bootstrapStatus,
+      getRuntimeConfig,
+      getRuntimeState,
+      marketplaceInstaller,
+      ncpSessionRealtimeBridge,
+      shellContext
+    } = params;
+    const { remoteAccess, runtimeControl, runtimeUpdate } = createServiceUiHosts({
+      serviceCommands: this,
+      requestRestart: this.deps.requestRestart,
+      uiConfig: shellContext.uiConfig,
+      remoteModule: shellContext.remoteModule
+    });
+    const uiStartup = await measureStartupAsync("service.start_ui_shell", async () =>
+      await startUiShell({
+        uiConfig: shellContext.uiConfig,
+        uiStaticDir: shellContext.uiStaticDir,
+        cronService: shellContext.cron,
+        getConfig: getRuntimeConfig,
+        configPath: getConfigPath(),
+        productVersion: getPackageVersion(),
+        getPluginChannelBindings: () => getRuntimeState()?.pluginChannelBindings ?? [],
+        getPluginUiMetadata: () => getRuntimeState()?.pluginUiMetadata ?? [],
+        marketplace: { apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE, installer: marketplaceInstaller },
+        remoteAccess,
+        runtimeControl,
+        runtimeUpdate,
+        getBootstrapStatus: () => bootstrapStatus.getStatus(),
+        openBrowserWindow: shellContext.uiConfig.open,
+        applyLiveConfigReload,
+        ncpSessionService: ncpSessionRealtimeBridge.sessionService,
+        initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
+      })
+    );
+    finalizeLocalUiStartup({
+      uiStartup,
+      setUiEventPublisher: (publish) => ncpSessionRealtimeBridge.setUiEventPublisher(publish),
+      uiConfig: shellContext.uiConfig
+    });
+    return uiStartup;
+  };
+
+  private hydrateGatewayRuntime = async (params: {
+    gateway: ReturnType<typeof createGatewayStartupContext>;
+    gatewayRuntimeState: GatewayRuntimeState;
+    uiStartup: Awaited<ReturnType<typeof startUiShell>>;
+  }): Promise<void> => {
+    const { gateway, gatewayRuntimeState, uiStartup } = params;
+    uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
+    uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
+    configureGatewayPluginRuntime({
+      gateway,
+      state: gatewayRuntimeState,
+      getLiveUiNcpAgent: () => this.liveUiNcpAgent
+    });
+    console.log("✓ Capability hydration: scheduled in background");
+    await measureStartupAsync("service.start_gateway_support_services", async () =>
+      await startGatewayRuntimeSupport({
+        cronJobs: gateway.cron.status().jobs,
+        remoteModule: gateway.remoteModule,
+        watchConfigFile: () => watchServiceConfigFile({
+          configPath: resolve(getConfigPath()),
+          watcherRegistry: this.fileWatchers,
+          scheduleReload: (reason) => gateway.reloader.scheduleReload(reason)
+        }),
+        startCron: () => gateway.cron.start(),
+        cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")),
+        reloadCronStore: () => gateway.cron.reloadFromStore(),
+        watcherRegistry: this.fileWatchers
+      })
+    );
   };
 
   private normalizeOptionalString = (value: unknown): string | undefined => {

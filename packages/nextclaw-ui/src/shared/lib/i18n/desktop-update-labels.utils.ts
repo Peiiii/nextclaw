@@ -1,5 +1,47 @@
 export const DESKTOP_UPDATE_LABELS: Record<string, { zh: string; en: string }> = {
   updates: { zh: '更新', en: 'Updates' },
+  runtimeUpdatesPageTitle: { zh: '版本更新', en: 'Runtime Updates' },
+  runtimeUpdatesPageDescription: {
+    zh: '自动检查并后台下载新版本，由你决定何时切换到新的运行版本。',
+    en: 'Check and download new versions automatically, then decide when to switch to the new runtime.'
+  },
+  runtimeUpdatesUnavailableTitle: { zh: '当前环境暂不支持更新', en: 'Updates Are Currently Unavailable' },
+  runtimeUpdatesUnavailableDescription: {
+    zh: '这个运行环境暂时没有可用的更新宿主。',
+    en: 'This runtime environment does not currently expose an update host.'
+  },
+  runtimeUpdatesUnavailableHint: {
+    zh: '更新入口会在宿主支持后自动出现，不需要前端单独区分环境。',
+    en: 'The update entry appears automatically once the host supports updates.'
+  },
+  runtimeUpdatesHostVersion: { zh: '宿主版本', en: 'Host Version' },
+  runtimeUpdatesDownloadedBannerDescription: {
+    zh: '版本 {version} 已下载完成，确认后即可切换到新版本。',
+    en: 'Version {version} has finished downloading and is ready to switch over when you confirm.'
+  },
+  runtimeUpdatesActionsDescription: {
+    zh: '支持手动检查、手动下载，以及在你准备好之后切换到已下载的新版本。',
+    en: 'Manually check, manually download, and switch to a downloaded version whenever you are ready.'
+  },
+  runtimeUpdatesApplyNow: { zh: '立即更新', en: 'Update Now' },
+  runtimeUpdatesLoadFailed: { zh: '读取更新状态失败', en: 'Failed to load update state' },
+  runtimeUpdatesCheckFailed: { zh: '检查更新失败', en: 'Failed to check for updates' },
+  runtimeUpdatesDownloadFailed: { zh: '下载更新失败', en: 'Failed to download update' },
+  runtimeUpdatesApplyFailed: { zh: '应用更新失败', en: 'Failed to apply update' },
+  runtimeUpdatesPreferencesFailed: { zh: '保存更新偏好失败', en: 'Failed to save update preferences' },
+  runtimeUpdatesChannelChangeFailed: { zh: '切换更新通道失败', en: 'Failed to change the release channel' },
+  runtimeUpdatesAlreadyLatest: { zh: '当前已经是最新版本。', en: 'You already have the latest version.' },
+  runtimeUpdatesReadyToApply: { zh: '更新已下载完成，已经可以切换到新版本。', en: 'The update is ready and can be applied now.' },
+  runtimeUpdatesAvailable: { zh: '发现新版本 {version}。', en: 'Version {version} is available.' },
+  runtimeUpdatesUnknownVersion: { zh: '新版本', en: 'a new version' },
+  runtimeUpdatesChannelChanged: {
+    zh: '已切换到 {channel} 更新通道。',
+    en: 'Switched to the {channel} release channel.'
+  },
+  runtimeUpdatesChannelChangedWithUpdate: {
+    zh: '已切换到 {channel} 通道，发现版本 {version}。',
+    en: 'Switched to the {channel} channel and found version {version}.'
+  },
   desktopUpdatesPageTitle: { zh: '桌面端更新', en: 'Desktop Updates' },
   desktopUpdatesPageDescription: {
     zh: '在应用内检查、下载并决定何时应用新的桌面端版本。',

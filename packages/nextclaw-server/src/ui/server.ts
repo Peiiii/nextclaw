@@ -9,10 +9,12 @@ import type { Server } from "node:http";
 import { UiAuthService } from "./auth.service.js";
 import { createUiRouter } from "./router.js";
 import type { UiServerEvent, UiServerHandle, UiServerOptions } from "./types.js";
+import type { UiRuntimeUpdateHost } from "./ui-routes/types.js";
 import { serveStatic } from "hono/serve-static";
 
 type UiServerStartOptions = UiServerOptions & {
   applyLiveConfigReload?: () => Promise<void>;
+  runtimeUpdate?: UiRuntimeUpdateHost;
 };
 
 const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
@@ -81,11 +83,103 @@ function applyCorsHeaders(params: {
   appendVaryHeader(params.headers, "Access-Control-Request-Headers");
 }
 
+function createUiEventPublisher(clients: Set<WebSocket>): (event: UiServerEvent) => void {
+  return (event) => {
+    const payload = JSON.stringify(event);
+    for (const client of clients) {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(payload);
+      }
+    }
+  };
+}
+
+function mountUiStaticAssets(app: Hono, staticDir: string): void {
+  if (!existsSync(join(staticDir, "index.html"))) {
+    return;
+  }
+
+  const indexHtml = readFileSync(join(staticDir, "index.html"), "utf-8");
+  app.use(
+    "/*",
+    serveStatic({
+      root: staticDir,
+      join,
+      getContent: async (path) => {
+        try {
+          return await readFile(path);
+        } catch {
+          return null;
+        }
+      },
+      isDir: async (path) => {
+        try {
+          return (await stat(path)).isDirectory();
+        } catch {
+          return false;
+        }
+      }
+    })
+  );
+  app.get("*", (c) => {
+    const path = c.req.path;
+    if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote")) {
+      return c.notFound();
+    }
+    return c.html(indexHtml);
+  });
+}
+
+function attachUiSocketServer(httpServer: Server, authService: UiAuthService, clients: Set<WebSocket>): WebSocketServer {
+  const wss = new WebSocketServer({ noServer: true });
+  httpServer.on("upgrade", (request, socket, head) => {
+    const host = request.headers.host ?? "127.0.0.1";
+    const url = request.url ?? "/";
+    const pathname = new URL(url, `http://${host}`).pathname;
+    if (pathname !== "/ws") {
+      return;
+    }
+    if (!authService.isSocketAuthenticated(request)) {
+      socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request);
+    });
+  });
+  wss.on("connection", (socket) => {
+    clients.add(socket);
+    socket.on("close", () => clients.delete(socket));
+  });
+  return wss;
+}
+
 export function startUiServer(options: UiServerStartOptions): UiServerHandle {
+  const {
+    applyLiveConfigReload,
+    configPath,
+    corsOrigins,
+    cronService,
+    getBootstrapStatus,
+    getPluginChannelBindings,
+    getPluginUiMetadata,
+    host,
+    initializeAgentHomeDirectory,
+    marketplace,
+    ncpAgent,
+    ncpSessionService,
+    port,
+    productVersion,
+    remoteAccess,
+    runtimeControl,
+    runtimeUpdate,
+    staticDir
+  } = options;
   const app = new Hono();
   app.use("/*", compress());
-  const corsPolicy = options.corsOrigins ?? DEFAULT_CORS_ORIGINS;
-  const authService = new UiAuthService(options.configPath);
+  const corsPolicy = corsOrigins ?? DEFAULT_CORS_ORIGINS;
+  const authService = new UiAuthService(configPath);
   app.use("/api/*", async (c, next) => {
     const allowOrigin = resolveAllowedCorsOrigin(readRequestHeader(c.req.raw, "origin"), corsPolicy);
     const allowHeaders = readRequestHeader(c.req.raw, "access-control-request-headers");
@@ -115,108 +209,52 @@ export function startUiServer(options: UiServerStartOptions): UiServerHandle {
   });
 
   const clients = new Set<WebSocket>();
-
-  const publish = (event: UiServerEvent) => {
-    const payload = JSON.stringify(event);
-    for (const client of clients) {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(payload);
-      }
-    }
-  };
+  const publish = createUiEventPublisher(clients);
 
   app.route(
     "/",
     createUiRouter({
-      configPath: options.configPath,
-      productVersion: options.productVersion,
+      configPath,
+      productVersion,
       publish,
-      applyLiveConfigReload: options.applyLiveConfigReload,
-      initializeAgentHomeDirectory: options.initializeAgentHomeDirectory,
-      marketplace: options.marketplace,
-      cronService: options.cronService,
-      ncpAgent: options.ncpAgent,
-      ncpSessionService: options.ncpSessionService,
+      applyLiveConfigReload,
+      initializeAgentHomeDirectory,
+      marketplace,
+      cronService,
+      ncpAgent,
+      ncpSessionService,
       authService,
-      remoteAccess: options.remoteAccess,
-      runtimeControl: options.runtimeControl,
-      getBootstrapStatus: options.getBootstrapStatus,
-      getPluginChannelBindings: options.getPluginChannelBindings,
-      getPluginUiMetadata: options.getPluginUiMetadata
+      remoteAccess,
+      runtimeControl,
+      runtimeUpdate,
+      getBootstrapStatus,
+      getPluginChannelBindings,
+      getPluginUiMetadata
     })
   );
 
-  const staticDir = options.staticDir;
-  if (staticDir && existsSync(join(staticDir, "index.html"))) {
-    const indexHtml = readFileSync(join(staticDir, "index.html"), "utf-8");
-    app.use(
-      "/*",
-      serveStatic({
-        root: staticDir,
-        join,
-        getContent: async (path) => {
-          try {
-            return await readFile(path);
-          } catch {
-            return null;
-          }
-        },
-        isDir: async (path) => {
-          try {
-            return (await stat(path)).isDirectory();
-          } catch {
-            return false;
-          }
-        }
-      })
-    );
-    app.get("*", (c) => {
-      const path = c.req.path;
-      if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote")) {
-        return c.notFound();
-      }
-      return c.html(indexHtml);
-    });
+  if (staticDir) {
+    mountUiStaticAssets(app, staticDir);
   }
 
   const server = serve({
     fetch: app.fetch,
-    port: options.port,
-    hostname: options.host
+    port,
+    hostname: host
   });
 
   const httpServer = server as unknown as Server;
-  const wss = new WebSocketServer({ noServer: true });
-  httpServer.on("upgrade", (request, socket, head) => {
-    const host = request.headers.host ?? "127.0.0.1";
-    const url = request.url ?? "/";
-    const pathname = new URL(url, `http://${host}`).pathname;
-    if (pathname !== "/ws") {
-      return;
-    }
-    if (!authService.isSocketAuthenticated(request)) {
-      socket.write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n");
-      socket.destroy();
-      return;
-    }
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      wss.emit("connection", ws, request);
-    });
-  });
-  wss.on("connection", (socket) => {
-    clients.add(socket);
-    socket.on("close", () => clients.delete(socket));
-  });
+  const wss = attachUiSocketServer(httpServer, authService, clients);
 
   return {
-    host: options.host,
-    port: options.port,
+    host,
+    port,
     publish,
     close: () =>
       new Promise((resolve) => {
         wss.close(() => {
           server.close(() => {
-            Promise.resolve(options.ncpAgent?.agentClientEndpoint.stop())
+            Promise.resolve(ncpAgent?.agentClientEndpoint.stop())
               .catch(() => undefined)
               .finally(() => resolve());
           });

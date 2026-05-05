@@ -10,6 +10,12 @@
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
       ],
+      "@nextclaw/kernel": [
+        "../nextclaw-kernel/src/types/update.types.ts"
+      ],
+      "@nextclaw/kernel/update-contract": [
+        "../nextclaw-kernel/src/types/update-contract.types.ts"
+      ],
       "@nextclaw/runtime": [
         "../nextclaw-runtime/src/index.ts"
       ],

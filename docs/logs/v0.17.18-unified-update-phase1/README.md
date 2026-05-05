@@ -18,6 +18,8 @@
 - npm runtime update manifest 支持 `file://` 本地源，与 bundle 的 `file://` 支持保持一致，便于离线 release 候选包和本地签名 smoke 验证。
 - 新增 `pnpm -C packages/nextclaw smoke:npm-runtime-update`，在临时 `NEXTCLAW_HOME` 中生成签名 key、manifest、runtime bundle zip，完整验证 check、download、apply 与新版 runtime 生效。
 - UI 产品版本号旁边新增更新状态入口：下载中只展示百分比；下载完成后显示“更新”按钮，点击后直接执行 `applyDownloadedUpdate`，不会只是跳转到更新页。
+- 同批次补充：NPM 安装态的 UI 更新链路正式接通。前端不再自己判断“桌面还是 NPM”，而是统一只消费 `UpdateSnapshot` 和统一动作；桌面端继续走 desktop bridge，managed local service / NPM 安装态通过 `/api/runtime/update` host 暴露同一套状态、下载、应用、偏好与 channel 接口。产品版本号旁边的进度/更新按钮与 `/updates` 页现在都会走统一 runtime update manager。
+- 同批次补充：NPM managed local service update host 改为后台任务模型。自动检查开启时会自动检查；`autoDownload=true` 时会后台自动下载并持续更新 `progress`；点击“更新”会应用已下载 bundle 并请求 managed service 重启，让新版本真正生效，而不是只切指针不切进程。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
 设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
@@ -49,6 +51,10 @@
   - 已在 `/tmp` 通过 `pnpm install --frozen-lockfile --offline` 后的 `pnpm --config.node-linker=hoisted --filter nextclaw --prod deploy <tmp>` 验证，产物中存在 `@nextclaw/core/dist/index.js`、`@nextclaw/server/dist/index.js`、`@nextclaw/remote/dist/index.js`。
 - `pnpm -C packages/nextclaw-ui test -- --run src/features/system-status/components/desktop-update-config.test.tsx`：通过，1 个测试文件、2 个用例。
 - `pnpm -C packages/nextclaw-ui test -- --run src/shared/components/common/brand-header.test.tsx src/features/system-status/components/desktop-update-config.test.tsx`：通过，2 个测试文件、4 个用例，验证版本号旁边下载进度展示与“更新”按钮应用动作。
+- `pnpm -C packages/nextclaw-ui tsc`：通过（同批次补充后复验）。
+- `pnpm -C packages/nextclaw-server tsc`：通过（同批次补充后复验）。
+- `pnpm -C packages/nextclaw-server test src/ui/router.runtime-control.test.ts src/ui/ui-routes/runtime-update-routes.test.ts`：通过，2 个测试文件、6 个用例，覆盖统一 runtime update route。
+- `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts`：通过，2 个测试文件、5 个用例，确认 runtime bundle download/apply 语义未被 UI 接线破坏。
 - 新增 `pnpm -C apps/desktop validation:dev-update`：开发态手动验收入口。该命令会在临时目录中准备本地签名更新源、隔离 `NEXTCLAW_HOME` 与桌面 launcher 数据目录、启动本地 update server，并拉起桌面 dev app。开发者可像真实用户一样在“设置 > 桌面端更新”中切到 Beta、下载更新，并在产品版本号旁边观察下载进度和“更新”按钮；点击“更新”后验证 launcher state / current pointer 切到新版本。自动化验证可使用 `--prepare-only` 只准备并检查本地更新源。
 - `node --check apps/desktop/scripts/update/services/dev-update-validation.service.mjs`：通过。
 - `pnpm -C apps/desktop validation:dev-update -- --prepare-only --stable-seed-bundle /tmp/nextclaw-dev-update-fixture-seed.zip --beta-version 0.18.51`：通过。验证脚本可基于指定 seed bundle 生成 stable/beta 本地更新源；检查 beta/stable manifest 均包含 `bundleUrl`、`bundleSha256`、`bundleSignature`、`manifestSignature`，且 minimum launcher version 仍由既有治理服务计算。
@@ -151,6 +157,7 @@ pnpm -C apps/desktop validation:dev-update
 7. 对 npm 安装态，运行 `nextclaw --version` 或其它命令时，如果存在 current runtime bundle，应从 current 指向的 bundle runtime script 启动；如果不存在 current bundle，应启动包内 app。
 8. 开发者本机亲自验收 NPM 更新时，运行 `pnpm -C packages/nextclaw validation:npm-update` 并按输出命令操作。这个入口从 CLI 用户视角验证“检查、下载、手动 apply、新进程生效”，不是走真实 npm registry，也不依赖 `npm install -g` 覆盖安装。
 9. 对真实 NPM beta 用户，只需要安装 `nextclaw@beta` 并运行 `nextclaw update --channel beta`；默认 manifest base URL 和默认 public key 都由包内发布材料提供。
+10. 对 NPM managed local service UI，启动本地服务后打开产品界面：如果有新版本且 `autoDownload=true`，版本号旁边会先出现下载百分比；下载完成后版本号旁边出现“更新”按钮；进入 `/updates` 页应能看到同一份状态、进度和操作入口，不再显示“当前仅桌面端可用”。
 
 开发者本机亲自验收桌面更新时，优先运行 `pnpm -C apps/desktop validation:dev-update`。预期流程是：桌面窗口打开后，Stable 初始版本可用；切到 Beta 后可检测到新版本；点击下载时版本号旁边出现百分比；下载完成后版本号旁边出现“更新”；点击“更新”后应用重启，隔离目录里的 launcher state 与 current pointer 指向 Beta 版本。该开发态入口默认用本地源码 runtime 验证 UI 和更新控制面，因此用于确认“交互、状态、进度展示、手动应用入口”是否正确；完整 bundle 启动后的真实切换仍由 `pnpm -C apps/desktop smoke:update` 覆盖。
 
@@ -169,6 +176,8 @@ pnpm -C apps/desktop validation:dev-update
 独立可维护性复核结论：保留债务经说明接受。no maintainability findings for update-system-owned files。长期目标对齐 / 可维护性推进：本次顺着“统一入口、统一契约、不同 launcher 只替换具体实现”的方向推进，删除了旧 `npm install -g` self-update 主路径，避免继续保留双更新体系，并补上可重复 smoke 作为长期回归入口。保留债务：npm runtime bundle 的 release 产物生成/发布流水线仍需后续接入；当前工作区已有 NCP 脏改和历史 doc ratchet 仍需单独治理。
 
 同批次补充：为 NPM 安装态新增 `validation:npm-update` 手动验收入口时，没有新增第二套 fixture 生成脚本，而是在既有 `smoke-npm-runtime-update.mjs` 上增加 `--manual` 模式，复用同一组签名 manifest/runtime bundle fixture。定向 maintainability guard 对本次补充文件无 findings；本次补充属于开发者可见验收能力，非测试代码净增主要来自用户指令打印、临时 shim 与公钥文件路径输出，已保持在单脚本内，避免扩散新的目录或服务层。
+
+同批次补充：本次把 NPM 安装态 UI 更新链路补齐后，针对新增代码路径重新执行了 `tsc` 与定向 UI / server / launcher 测试，均通过。`pnpm lint:maintainability:guard` 在 update 相关文件上已清掉本次新增 error；最终仍被工作区中与本次无关的已有脏改阻塞：`packages/nextclaw-core/src/config/reload.ts` 与 `packages/nextclaw-core/src/config/schema.ts` 触发 file-role-boundary 错误。这两处不是本次 runtime update 改动引入的问题，但会导致整仓治理命令无法在当前工作区全绿。
 
 ## NPM 包发布记录
 

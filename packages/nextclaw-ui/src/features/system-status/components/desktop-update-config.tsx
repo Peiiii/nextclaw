@@ -1,4 +1,6 @@
+import type { UpdateSnapshot } from '@nextclaw/kernel';
 import { useEffect } from 'react';
+import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { Label } from '@/shared/components/ui/label';
@@ -7,12 +9,6 @@ import { Switch } from '@/shared/components/ui/switch';
 import { PageHeader, PageLayout } from '@/app/components/layout/page-layout';
 import { formatDateTime, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
-import {
-  desktopUpdateManager,
-  type DesktopReleaseChannel,
-  type DesktopUpdateSnapshot,
-  useDesktopUpdateStore,
-} from '@/platforms/desktop';
 import { Download, ExternalLink, RefreshCw, RotateCw } from 'lucide-react';
 
 const STATUS_LABEL_KEYS: Record<string, string> = {
@@ -33,7 +29,7 @@ function OverviewStat({ label, value }: { label: string; value: string }) {
   return <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"><p className="text-xs font-medium uppercase tracking-[0.08em] text-gray-500">{label}</p><p className="mt-2 text-base font-semibold text-gray-900">{value}</p></div>;
 }
 
-function DownloadProgress({ snapshot }: { snapshot: DesktopUpdateSnapshot }) {
+function DownloadProgress({ snapshot }: { snapshot: UpdateSnapshot }) {
   if (snapshot.status !== 'downloading') {
     return null;
   }
@@ -102,7 +98,7 @@ function formatBytes(value: number): string {
   }
   return `${cursor >= 10 || unitIndex === 0 ? cursor.toFixed(0) : cursor.toFixed(1)} ${units[unitIndex]}`;
 }
-function getChannelLabel(channel: DesktopReleaseChannel): string {
+function getChannelLabel(channel: UpdateSnapshot['channel']): string {
   return channel === 'beta' ? t('desktopUpdatesChannelBeta') : t('desktopUpdatesChannelStable');
 }
 function getStatusLabel(status: string): string {
@@ -121,34 +117,34 @@ function getStatusTone(status: string): string {
   return 'bg-gray-100 text-gray-700 ring-gray-200';
 }
 
-function DesktopOnlyState() {
+function RuntimeUpdateUnavailableState() {
   return (
     <PageLayout className="space-y-6">
-      <PageHeader title={t('desktopUpdatesPageTitle')} description={t('desktopUpdatesPageDescription')} />
+      <PageHeader title={t('runtimeUpdatesPageTitle')} description={t('runtimeUpdatesPageDescription')} />
       <Card>
         <CardHeader>
-          <CardTitle>{t('desktopUpdatesDesktopOnlyTitle')}</CardTitle>
-          <CardDescription>{t('desktopUpdatesDesktopOnlyDescription')}</CardDescription>
+          <CardTitle>{t('runtimeUpdatesUnavailableTitle')}</CardTitle>
+          <CardDescription>{t('runtimeUpdatesUnavailableDescription')}</CardDescription>
         </CardHeader>
-        <CardContent><p className="text-sm text-gray-500">{t('desktopUpdatesDesktopOnlyFutureHint')}</p></CardContent>
+        <CardContent><p className="text-sm text-gray-500">{t('runtimeUpdatesUnavailableHint')}</p></CardContent>
       </Card>
     </PageLayout>
   );
 }
 
 export function DesktopUpdateConfig() {
-  const { supported, initialized, busyAction, snapshot } = useDesktopUpdateStore();
+  const { supported, initialized, busyAction, snapshot } = useRuntimeUpdateStore();
   useEffect(() => {
-    void desktopUpdateManager.start();
+    void runtimeUpdateManager.start();
     return () => {
-      desktopUpdateManager.stop();
+      runtimeUpdateManager.stop();
     };
   }, []);
   if (!initialized) {
     return <div className="p-8 text-gray-400">{t('loading')}</div>;
   }
   if (!supported || !snapshot) {
-    return <DesktopOnlyState />;
+    return <RuntimeUpdateUnavailableState />;
   }
   const isChecking = busyAction === 'checking';
   const isDownloading = busyAction === 'downloading';
@@ -158,7 +154,7 @@ export function DesktopUpdateConfig() {
   const canDownload = snapshot.status === 'update-available' && !isDownloading && !isApplying;
   const canApply = snapshot.status === 'downloaded' && !isApplying;
   const overviewStats = [
-    [t('desktopUpdatesLauncherVersion'), formatVersion(snapshot.launcherVersion)],
+    [t('runtimeUpdatesHostVersion'), formatVersion(snapshot.hostVersion)],
     [t('desktopUpdatesCurrentBundleVersion'), formatVersion(snapshot.currentVersion)],
     [t('desktopUpdatesAvailableVersion'), formatVersion(snapshot.availableVersion)],
     [t('desktopUpdatesLastCheckedAt'), formatLastCheckedAt(snapshot.lastCheckedAt)],
@@ -167,9 +163,9 @@ export function DesktopUpdateConfig() {
   return (
     <PageLayout className="space-y-6">
       <PageHeader
-        title={t('desktopUpdatesPageTitle')}
-        description={t('desktopUpdatesPageDescription')}
-        actions={<Button variant="outline" onClick={() => void desktopUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
+        title={t('runtimeUpdatesPageTitle')}
+        description={t('runtimeUpdatesPageDescription')}
+        actions={<Button variant="outline" onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}><RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />{t('desktopUpdatesCheckNow')}</Button>}
       />
       <Card>
         <CardHeader>
@@ -188,7 +184,7 @@ export function DesktopUpdateConfig() {
           {snapshot.downloadedVersion ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
               <p className="text-sm font-semibold text-emerald-800">{t('desktopUpdatesDownloadedBannerTitle')}</p>
-              <p className="mt-1 text-sm text-emerald-700">{t('desktopUpdatesDownloadedBannerDescription').replace('{version}', snapshot.downloadedVersion)}</p>
+              <p className="mt-1 text-sm text-emerald-700">{t('runtimeUpdatesDownloadedBannerDescription').replace('{version}', snapshot.downloadedVersion)}</p>
             </div>
           ) : null}
           <DownloadProgress snapshot={snapshot} />
@@ -214,7 +210,7 @@ export function DesktopUpdateConfig() {
                 <Label>{t('desktopUpdatesReleaseChannel')}</Label>
                 <p className="text-sm text-gray-500">{t('desktopUpdatesReleaseChannelHelp')}</p>
               </div>
-              <Select value={snapshot.channel} disabled={isSwitchingChannel || isChecking || isDownloading || isApplying} onValueChange={(value) => void desktopUpdateManager.updateChannel(value as DesktopReleaseChannel)}>
+              <Select value={snapshot.channel} disabled={isSwitchingChannel || isChecking || isDownloading || isApplying} onValueChange={(value) => void runtimeUpdateManager.updateChannel(value as UpdateSnapshot['channel'])}>
                 <SelectTrigger className="w-full max-w-sm">
                   <SelectValue placeholder={t('desktopUpdatesReleaseChannel')} />
                 </SelectTrigger>
@@ -231,34 +227,34 @@ export function DesktopUpdateConfig() {
             help={t('desktopUpdatesAutomaticChecksHelp')}
             checked={snapshot.preferences.automaticChecks}
             disabled={isSavingPreferences || isSwitchingChannel}
-            onCheckedChange={(checked) => void desktopUpdateManager.updatePreferences({ automaticChecks: checked })}
+            onCheckedChange={(checked) => void runtimeUpdateManager.updatePreferences({ automaticChecks: checked })}
           />
           <PreferenceToggle
             label={t('desktopUpdatesAutoDownload')}
             help={t('desktopUpdatesAutoDownloadHelp')}
             checked={snapshot.preferences.autoDownload}
             disabled={isSavingPreferences || isSwitchingChannel}
-            onCheckedChange={(checked) => void desktopUpdateManager.updatePreferences({ autoDownload: checked })}
+            onCheckedChange={(checked) => void runtimeUpdateManager.updatePreferences({ autoDownload: checked })}
           />
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
           <CardTitle>{t('desktopUpdatesActionsTitle')}</CardTitle>
-          <CardDescription>{t('desktopUpdatesActionsDescription')}</CardDescription>
+          <CardDescription>{t('runtimeUpdatesActionsDescription')}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={() => void desktopUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}>
+          <Button variant="outline" onClick={() => void runtimeUpdateManager.checkForUpdates()} disabled={isChecking || isDownloading || isApplying}>
             <RefreshCw className={cn('mr-2 h-4 w-4', isChecking && 'animate-spin')} />
             {t('desktopUpdatesCheckNow')}
           </Button>
-          <Button onClick={() => void desktopUpdateManager.downloadUpdate()} disabled={!canDownload}>
+          <Button onClick={() => void runtimeUpdateManager.downloadUpdate()} disabled={!canDownload}>
             <Download className={cn('mr-2 h-4 w-4', isDownloading && 'animate-bounce')} />
             {t('desktopUpdatesDownloadNow')}
           </Button>
-          <Button variant="secondary" onClick={() => void desktopUpdateManager.applyDownloadedUpdate()} disabled={!canApply}>
+          <Button variant="secondary" onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()} disabled={!canApply}>
             <RotateCw className={cn('mr-2 h-4 w-4', isApplying && 'animate-spin')} />
-            {t('desktopUpdatesApplyNow')}
+            {t('runtimeUpdatesApplyNow')}
           </Button>
           {snapshot.releaseNotesUrl ? <Button variant="ghost" onClick={() => window.open(snapshot.releaseNotesUrl ?? '', '_blank', 'noopener,noreferrer')}><ExternalLink className="mr-2 h-4 w-4" />{t('desktopUpdatesReleaseNotes')}</Button> : null}
         </CardContent>

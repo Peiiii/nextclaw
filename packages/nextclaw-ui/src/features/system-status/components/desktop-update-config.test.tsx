@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useRuntimeUpdateStore } from '@/features/system-status';
 import { DesktopUpdateConfig } from '@/features/system-status/components/desktop-update-config';
 import { setLanguage } from '@/shared/lib/i18n';
-import { useDesktopUpdateStore } from '@/platforms/desktop';
 
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
@@ -15,13 +15,13 @@ const mocks = vi.hoisted(() => ({
   updateChannel: vi.fn()
 }));
 
-vi.mock('@/platforms/desktop', async () => {
-  const actual = await vi.importActual<typeof import('@/platforms/desktop')>(
-    '@/platforms/desktop'
+vi.mock('@/features/system-status', async () => {
+  const actual = await vi.importActual<typeof import('@/features/system-status')>(
+    '@/features/system-status'
   );
   return {
     ...actual,
-    desktopUpdateManager: mocks,
+    runtimeUpdateManager: mocks,
   };
 });
 
@@ -46,16 +46,15 @@ describe('DesktopUpdateConfig', () => {
       HTMLElement.prototype.releasePointerCapture = () => {};
     }
 
-    useDesktopUpdateStore.setState({
+    useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
       busyAction: null,
       snapshot: {
         status: 'idle',
-        installationKind: 'desktop-bundle',
+        installationKind: 'npm-runtime-bundle',
         channel: 'beta',
         hostVersion: '0.0.138',
-        launcherVersion: '0.0.138',
         currentVersion: '0.18.0',
         availableVersion: '0.18.2-beta.1',
         downloadedVersion: null,
@@ -81,6 +80,8 @@ describe('DesktopUpdateConfig', () => {
     render(<DesktopUpdateConfig />);
 
     expect(mocks.start).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('版本更新')).toBeTruthy();
+    expect(screen.getByText('宿主版本')).toBeTruthy();
     expect(screen.getByText('当前更新通道')).toBeTruthy();
     expect(screen.getAllByText('Beta').length).toBeGreaterThan(0);
     expect(screen.getByText('当前正在跟随 Beta 通道')).toBeTruthy();
