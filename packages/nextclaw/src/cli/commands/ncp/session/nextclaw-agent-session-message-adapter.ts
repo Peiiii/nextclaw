@@ -142,11 +142,10 @@ function buildAssistantMessage(params: { sessionId: string; index: number; messa
 
   const toolCalls = parseLegacyToolCalls(params.message.tool_calls);
   const parts: NcpMessagePart[] = [...contentToParts(params.message.content)];
-  const reasoning = normalizeString(params.message.reasoning_content);
-  if (reasoning) {
+  if (typeof params.message.reasoning_content === "string") {
     parts.push({
       type: "reasoning",
-      text: reasoning
+      text: params.message.reasoning_content
     });
   }
 

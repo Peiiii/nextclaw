@@ -48,6 +48,7 @@ function appendMessageInputItem(params: {
   systemContent: OpenAiChatContent;
   assistantTextParts: string[];
   assistantToolCalls: Array<Record<string, unknown>>;
+  assistantReasoningContent: { present: boolean; value: string };
   item: OpenResponsesItemRecord;
   flushAssistant: () => void;
 }): OpenAiChatContent {
@@ -74,6 +75,25 @@ function appendMessageInputItem(params: {
   }
   return params.systemContent;
 }
+
+function appendReasoningItem(params: {
+  assistantReasoningContent: { present: boolean; value: string };
+  item: OpenResponsesItemRecord;
+}): void {
+  const content = readArray(params.item.content);
+  const reasoningText = content
+    .map((entry) => {
+      const record = readRecord(entry);
+      if (!record || readString(record.type) !== "reasoning_text") {
+        return "";
+      }
+      return typeof record.text === "string" ? record.text : "";
+    })
+    .join("");
+  params.assistantReasoningContent.present = true;
+  params.assistantReasoningContent.value = reasoningText;
+}
+
 function appendFunctionCallItem(params: {
   assistantToolCalls: Array<Record<string, unknown>>;
   item: OpenResponsesItemRecord;
@@ -134,13 +154,23 @@ function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Recor
 
   const assistantTextParts: string[] = [];
   const assistantToolCalls: Array<Record<string, unknown>> = [];
+  const assistantReasoningContent = { present: false, value: "" };
   const flushAssistant = () => {
-    if (assistantTextParts.length === 0 && assistantToolCalls.length === 0) {
+    if (
+      assistantTextParts.length === 0 &&
+      assistantToolCalls.length === 0 &&
+      !assistantReasoningContent.present
+    ) {
       return;
     }
     messages.push({
       role: "assistant",
       content: assistantTextParts.join("\n").trim() || null,
+      ...(assistantReasoningContent.present
+        ? {
+            reasoning_content: assistantReasoningContent.value,
+          }
+        : {}),
       ...(assistantToolCalls.length > 0
         ? {
             tool_calls: structuredClone(assistantToolCalls),
@@ -149,6 +179,8 @@ function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Recor
     });
     assistantTextParts.length = 0;
     assistantToolCalls.length = 0;
+    assistantReasoningContent.present = false;
+    assistantReasoningContent.value = "";
   };
 
   for (const rawItem of readArray(input)) {
@@ -163,8 +195,17 @@ function buildOpenAiMessages(input: unknown, instructions: unknown): Array<Recor
         systemContent,
         assistantTextParts,
         assistantToolCalls,
+        assistantReasoningContent,
         item,
         flushAssistant,
+      });
+      continue;
+    }
+
+    if (type === "reasoning") {
+      appendReasoningItem({
+        assistantReasoningContent,
+        item,
       });
       continue;
     }

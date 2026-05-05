@@ -234,10 +234,10 @@ export function extractAttachmentsFromNcpMessage(message: NcpMessage | undefined
 
 function buildLegacyAssistantMessages(message: NcpMessage, timestamp: string): SessionMessage[] {
   const textContent = extractTextFromNcpMessage(message);
-  const reasoningContent = message.parts
-    .filter((part): part is Extract<NcpMessagePart, { type: "reasoning" }> => part.type === "reasoning")
-    .map((part) => part.text)
-    .join("");
+  const reasoningParts = message.parts.filter(
+    (part): part is Extract<NcpMessagePart, { type: "reasoning" }> => part.type === "reasoning"
+  );
+  const reasoningContent = reasoningParts.map((part) => part.text).join("");
   const toolInvocations = message.parts.filter(
     (part): part is NcpToolInvocationPart => part.type === "tool-invocation"
   );
@@ -252,7 +252,7 @@ function buildLegacyAssistantMessages(message: NcpMessage, timestamp: string): S
   if (typeof message.metadata?.reply_to === "string" && message.metadata.reply_to.trim().length > 0) {
     assistantMessage.reply_to = message.metadata.reply_to.trim();
   }
-  if (reasoningContent.length > 0) {
+  if (reasoningParts.length > 0) {
     assistantMessage.reasoning_content = reasoningContent;
   }
   if (toolInvocations.length > 0) {

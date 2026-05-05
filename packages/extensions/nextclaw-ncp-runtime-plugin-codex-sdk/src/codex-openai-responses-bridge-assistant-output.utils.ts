@@ -4,6 +4,7 @@ import {
   nextSequenceNumber,
   readArray,
   readRecord,
+  readRawString,
   readString,
   writeSseEvent,
   type OpenAiChatCompletionChoiceMessage,
@@ -40,10 +41,11 @@ function extractAssistantOutput(message: OpenAiChatCompletionChoiceMessage | und
 } {
   const rawText = extractAssistantText(message?.content);
   const normalized = normalizeAssistantText(rawText, "think-tags");
-  const explicitReasoning = readString(message?.reasoning_content);
+  const explicitReasoning = readRawString(message?.reasoning_content);
+  const hasExplicitReasoning = explicitReasoning !== undefined;
   const reasoning = explicitReasoning ?? readString(normalized.reasoning) ?? "";
   const text =
-    explicitReasoning
+    hasExplicitReasoning
       ? readString(normalized.text) ?? readString(rawText) ?? ""
       : normalized.reasoning
         ? readString(normalized.text) ?? ""
@@ -70,8 +72,9 @@ export function buildAssistantOutputItems(params: {
 }): OpenResponsesOutputItem[] {
   const { text, reasoning } = extractAssistantOutput(params.message);
   const outputItems: OpenResponsesOutputItem[] = [];
+  const hasExplicitReasoning = typeof params.message?.reasoning_content === "string";
 
-  if (reasoning) {
+  if (hasExplicitReasoning || reasoning) {
     outputItems.push({
       type: "reasoning",
       id: `${params.responseId}:reasoning:0`,

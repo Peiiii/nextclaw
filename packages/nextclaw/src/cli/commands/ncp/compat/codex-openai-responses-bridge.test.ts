@@ -231,6 +231,39 @@ function expectReasoningEvents(events: Array<Record<string, unknown>>): void {
   });
 }
 
+function expectEmptyReasoningToolCallUpstreamRequest(request: RecordedRequest | undefined): void {
+  expect(request?.body).toEqual({
+    model: "qwen3-coder-next",
+    messages: [
+      {
+        role: "assistant",
+        content: null,
+        reasoning_content: "",
+        tool_calls: [
+          {
+            id: "call_shell_0",
+            type: "function",
+            function: {
+              name: "shell",
+              arguments: "{\"command\":\"ls\"}",
+            },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "call_shell_0",
+        content: "done",
+      },
+      {
+        role: "user",
+        content: "continue",
+      },
+    ],
+    tool_choice: "auto",
+  });
+}
+
 function expectToolCallUpstreamRequest(request: RecordedRequest | undefined): void {
   expect(request?.body).toEqual({
     model: "qwen3-coder-next",
@@ -306,7 +339,7 @@ function expectToolCallEvents(events: Array<Record<string, unknown>>): void {
   });
 }
 
-describe("ensureCodexOpenAiResponsesBridge", () => {
+describe("ensureCodexOpenAiResponsesBridge assistant output mapping", () => {
   it("maps OpenResponses requests into chat/completions and streams assistant output back", async () => {
     const upstream = await startUpstreamServer({
       responder: () => ({
@@ -404,6 +437,9 @@ describe("ensureCodexOpenAiResponsesBridge", () => {
     expectReasoningEvents(result.events);
   });
 
+});
+
+describe("ensureCodexOpenAiResponsesBridge tool round mapping", () => {
   it("maps tool calls and tool outputs between responses and chat/completions", async () => {
     const upstream = await startUpstreamServer({
       responder: () => ({
@@ -484,6 +520,77 @@ describe("ensureCodexOpenAiResponsesBridge", () => {
     expect(result.status).toBe(200);
     expect(upstream.requests).toHaveLength(1);
     expectToolCallUpstreamRequest(upstream.requests[0]);
+    expectToolCallEvents(result.events);
+  });
+
+  it("preserves empty reasoning_content across tool rounds for DeepSeek-compatible upstreams", async () => {
+    const upstream = await startUpstreamServer({
+      responder: () => ({
+        id: "chatcmpl-empty-reasoning-1",
+        choices: [
+          {
+            message: {
+              role: "assistant",
+              tool_calls: [
+                {
+                  id: "call_shell_1",
+                  type: "function",
+                  function: {
+                    name: "shell",
+                    arguments: "{\"command\":\"pwd\"}",
+                  },
+                },
+              ],
+            },
+          },
+        ],
+        usage: {
+          prompt_tokens: 4,
+          completion_tokens: 2,
+          total_tokens: 6,
+        },
+      }),
+    });
+    const bridge = await createBridge({
+      baseUrl: upstream.baseUrl,
+    });
+    const result = await postBridgeRequest({
+      bridgeBaseUrl: bridge.baseUrl,
+      body: {
+        model: "dashscope/qwen3-coder-next",
+        input: [
+          {
+            type: "reasoning",
+            id: "rs_1",
+            content: [{ type: "reasoning_text", text: "" }],
+            summary: [],
+            status: "completed",
+          },
+          {
+            type: "function_call",
+            call_id: "call_shell_0",
+            name: "shell",
+            arguments: "{\"command\":\"ls\"}",
+          },
+          {
+            type: "function_call_output",
+            call_id: "call_shell_0",
+            output: "done",
+          },
+          {
+            type: "message",
+            role: "user",
+            content: [{ type: "input_text", text: "continue" }],
+          },
+        ],
+        tool_choice: "auto",
+        stream: true,
+      },
+    });
+
+    expect(result.status).toBe(200);
+    expect(upstream.requests).toHaveLength(1);
+    expectEmptyReasoningToolCallUpstreamRequest(upstream.requests[0]);
     expectToolCallEvents(result.events);
   });
 });
