@@ -258,8 +258,7 @@ class NpmRuntimeUpdateChannelBuilder {
   };
 
   ensureFreshRuntimeArtifacts = () => {
-    runCommand("pnpm", ["--filter", "@nextclaw/ui...", "build"]);
-    runCommand("pnpm", ["-C", "packages/nextclaw", "build"]);
+    runCommand("pnpm", ["--filter", "nextclaw...", "build"]);
   };
 
   writePublicKey = (privateKey) => {

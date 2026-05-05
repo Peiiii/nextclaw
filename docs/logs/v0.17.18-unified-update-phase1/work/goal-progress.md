@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-修正 runtime channel builder 在干净 CI 中未构建 UI workspace 依赖的问题，重新触发 beta channel workflow，然后复验 `nextclaw update --channel beta --check`。
+修正 runtime channel builder 在打包前未构建 `nextclaw` workspace runtime 依赖的问题，重新触发 beta channel workflow，并复验 download/apply 后的新进程启动。
 
 ## 锚点计数器
 
-14/20
+10/20
