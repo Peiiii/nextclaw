@@ -258,7 +258,7 @@ class NpmRuntimeUpdateChannelBuilder {
   };
 
   ensureFreshRuntimeArtifacts = () => {
-    runCommand("pnpm", ["-C", "packages/nextclaw-ui", "build"]);
+    runCommand("pnpm", ["--filter", "@nextclaw/ui...", "build"]);
     runCommand("pnpm", ["-C", "packages/nextclaw", "build"]);
   };
 

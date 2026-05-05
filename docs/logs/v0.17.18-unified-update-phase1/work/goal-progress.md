@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-修正 `npm-runtime-update-release` checkout ref，重新触发 runtime beta channel workflow，然后复验 `nextclaw update --channel beta --check`。
+修正 runtime channel builder 在干净 CI 中未构建 UI workspace 依赖的问题，重新触发 beta channel workflow，然后复验 `nextclaw update --channel beta --check`。
 
 ## 锚点计数器
 
-9/20
+14/20
