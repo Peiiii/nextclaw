@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-推送 beta 发布提交，触发 `npm-runtime-update-release` workflow 发布 runtime beta manifest，然后复验 `nextclaw update --channel beta --check`。
+修正 `npm-runtime-update-release` checkout ref，重新触发 runtime beta channel workflow，然后复验 `nextclaw update --channel beta --check`。
 
 ## 锚点计数器
 
-4/20
+9/20

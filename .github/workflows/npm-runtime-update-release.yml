@@ -52,7 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref_name }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
