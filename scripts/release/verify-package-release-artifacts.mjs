@@ -34,8 +34,11 @@ const assertNextclawUiArtifacts = () => {
 const assertNextclawArtifacts = () => {
   assertPath("dist/index.js", "dist/index.js");
   assertPath("dist/cli/app/index.js", "dist/cli/app/index.js");
+  assertPath("dist/cli/launcher/index.js", "dist/cli/launcher/index.js");
   assertPath("dist/index.d.ts", "dist/index.d.ts");
   assertPath("dist/cli/app/index.d.ts", "dist/cli/app/index.d.ts");
+  assertPath("dist/cli/launcher/index.d.ts", "dist/cli/launcher/index.d.ts");
+  assertPath("resources/update-bundle-public.pem", "runtime update public key");
   assertPath("ui-dist/index.html", "ui-dist index.html");
   assertDirectoryHasEntries("ui-dist/assets", "ui-dist/assets");
 };

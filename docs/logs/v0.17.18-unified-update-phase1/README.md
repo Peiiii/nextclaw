@@ -38,6 +38,12 @@
   - 下一次 `nextclaw --version` 从已应用 runtime bundle 启动，输出 smoke runtime 版本。
   - 更新链路不创建或修改 `config.json`、`sessions`、`skills`、`workspace` 等用户拥有目录。
 - `pnpm -C packages/nextclaw validation:npm-update`：通过。该命令复用 NPM runtime update smoke fixture，准备本地签名 manifest、runtime bundle、临时 `NEXTCLAW_HOME` 和临时 `nextclaw` shim，然后打印可直接复制执行的命令序列：`nextclaw --version`、`nextclaw update --check`、`nextclaw update`、`nextclaw update --apply`、再次 `nextclaw --version`。已按输出命令实际手动执行一遍，观察到：初始 `nextclaw --version` 为 `0.18.11`；`update --check` 提示 `none -> 0.99.1`；`update` 下载后仍保持 `0.18.11`；`update --apply` 后最终 `nextclaw --version` 输出 `smoke-runtime-0.99.1`。
+- 新增 NPM runtime update 正式发布链路：
+  - `packages/nextclaw/scripts/build-npm-runtime-update-channel.mjs` 负责构建自包含 runtime bundle、生成 `hostKind=npm-runtime-bundle` 的签名 manifest，并写入包内 `resources/update-bundle-public.pem`。
+  - `packages/nextclaw/npm-runtime-compatibility.json` 固化 NPM runtime update 的 stable / beta launcher floor，默认均保持 `0.18.11`，避免发布时随意提升 minimum launcher version。
+  - `.github/workflows/npm-runtime-update-release.yml` 负责把 stable / beta NPM runtime update channel 发布到 `gh-pages` 的 `npm-runtime-updates/<channel>`。
+  - NPM launcher 默认从 `https://Peiiii.github.io/nextclaw/npm-runtime-updates` 读取 manifest，并默认读取包内 public key；用户不再需要理解或手动配置 manifest URL / 验签公钥。
+  - 已用临时 ed25519 key 在 `/tmp` 生成 beta `manifest-beta-darwin-arm64.json` 与 `nextclaw-runtime-darwin-arm64-0.18.11.zip`，并通过 `nextclaw update --channel beta --check --json` 验证 manifest 读取与签名校验链路。
 - `pnpm -C packages/nextclaw-ui test -- --run src/features/system-status/components/desktop-update-config.test.tsx`：通过，1 个测试文件、2 个用例。
 - `pnpm -C packages/nextclaw-ui test -- --run src/shared/components/common/brand-header.test.tsx src/features/system-status/components/desktop-update-config.test.tsx`：通过，2 个测试文件、4 个用例，验证版本号旁边下载进度展示与“更新”按钮应用动作。
 - 新增 `pnpm -C apps/desktop validation:dev-update`：开发态手动验收入口。该命令会在临时目录中准备本地签名更新源、隔离 `NEXTCLAW_HOME` 与桌面 launcher 数据目录、启动本地 update server，并拉起桌面 dev app。开发者可像真实用户一样在“设置 > 桌面端更新”中切到 Beta、下载更新，并在产品版本号旁边观察下载进度和“更新”按钮；点击“更新”后验证 launcher state / current pointer 切到新版本。自动化验证可使用 `--prepare-only` 只准备并检查本地更新源。
@@ -96,6 +102,27 @@ pnpm -C packages/nextclaw validation:npm-update
 5. `nextclaw update --apply`：切换 current pointer，并提示重启或新进程生效。
 6. 最后 `nextclaw --version`：应显示 smoke runtime 新版本。
 
+NPM beta 发布/测试方式：
+
+1. 发布带 runtime update public key 的 `nextclaw` NPM 包。发布前必须运行 NPM runtime update channel builder，确保 `resources/update-bundle-public.pem` 已写入包内；`prepack` 会检查该文件存在。
+2. 触发 `npm-runtime-update-release` workflow，选择 `channel=beta`。workflow 会生成并发布：
+   - `npm-runtime-updates/beta/manifest-beta-darwin-arm64.json`
+   - `npm-runtime-updates/beta/manifest-beta-darwin-x64.json`
+   - `npm-runtime-updates/beta/manifest-beta-linux-x64.json`
+   - `npm-runtime-updates/beta/manifest-beta-win32-x64.json`
+   - 对应 `nextclaw-runtime-<platform>-<arch>-<version>.zip`
+3. 用户侧测试不需要理解更新源，只需：
+
+```bash
+npm install -g nextclaw@beta
+nextclaw update --channel beta --check
+nextclaw update --channel beta
+nextclaw update --apply
+nextclaw --version
+```
+
+`nextclaw update --channel beta` 会自动读取公网 beta manifest 并使用包内 public key 验签。下载完成不会立即生效，只有 `nextclaw update --apply` 后的新进程才会切到 beta runtime。
+
 桌面开发态手动验收命令：
 
 ```bash
@@ -120,6 +147,7 @@ pnpm -C apps/desktop validation:dev-update
 6. 对 npm 安装态，运行 `nextclaw update --check` 应只检查状态；运行 `nextclaw update` 应下载 runtime bundle 但不切 current；运行 `nextclaw update --apply` 才切换 current pointer。
 7. 对 npm 安装态，运行 `nextclaw --version` 或其它命令时，如果存在 current runtime bundle，应从 current 指向的 bundle runtime script 启动；如果不存在 current bundle，应启动包内 app。
 8. 开发者本机亲自验收 NPM 更新时，运行 `pnpm -C packages/nextclaw validation:npm-update` 并按输出命令操作。这个入口从 CLI 用户视角验证“检查、下载、手动 apply、新进程生效”，不是走真实 npm registry，也不依赖 `npm install -g` 覆盖安装。
+9. 对真实 NPM beta 用户，只需要安装 `nextclaw@beta` 并运行 `nextclaw update --channel beta`；默认 manifest base URL 和默认 public key 都由包内发布材料提供。
 
 开发者本机亲自验收桌面更新时，优先运行 `pnpm -C apps/desktop validation:dev-update`。预期流程是：桌面窗口打开后，Stable 初始版本可用；切到 Beta 后可检测到新版本；点击下载时版本号旁边出现百分比；下载完成后版本号旁边出现“更新”；点击“更新”后应用重启，隔离目录里的 launcher state 与 current pointer 指向 Beta 版本。该开发态入口默认用本地源码 runtime 验证 UI 和更新控制面，因此用于确认“交互、状态、进度展示、手动应用入口”是否正确；完整 bundle 启动后的真实切换仍由 `pnpm -C apps/desktop smoke:update` 覆盖。
 

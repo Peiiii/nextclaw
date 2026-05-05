@@ -1,6 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type NpmRuntimeReleaseChannel = "stable" | "beta";
+
+const DEFAULT_NPM_RUNTIME_UPDATE_BASE_URL = "https://Peiiii.github.io/nextclaw/npm-runtime-updates";
 
 type NpmRuntimeUpdateSourceServiceOptions = {
   env?: NodeJS.ProcessEnv;
@@ -18,6 +22,10 @@ function normalizeOptionalString(value: unknown): string | null {
 
 function normalizeChannel(value: unknown): NpmRuntimeReleaseChannel {
   return typeof value === "string" && value.trim().toLowerCase() === "beta" ? "beta" : "stable";
+}
+
+function resolvePackagedPublicKeyPath(): string {
+  return resolve(dirname(fileURLToPath(import.meta.url)), "../../..", "resources", "update-bundle-public.pem");
 }
 
 export class NpmRuntimeUpdateSourceService {
@@ -40,10 +48,7 @@ export class NpmRuntimeUpdateSourceService {
     if (manifestUrl) {
       return manifestUrl;
     }
-    const baseUrl = normalizeOptionalString(this.env.NEXTCLAW_UPDATE_MANIFEST_BASE_URL);
-    if (!baseUrl) {
-      return null;
-    }
+    const baseUrl = normalizeOptionalString(this.env.NEXTCLAW_UPDATE_MANIFEST_BASE_URL) ?? DEFAULT_NPM_RUNTIME_UPDATE_BASE_URL;
     return new URL(`${channel}/manifest-${channel}-${this.platform}-${this.arch}.json`, `${baseUrl.replace(/\/+$/, "")}/`).toString();
   };
 
@@ -54,7 +59,8 @@ export class NpmRuntimeUpdateSourceService {
     }
     const publicKeyPath = normalizeOptionalString(this.env.NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH);
     if (!publicKeyPath || !existsSync(publicKeyPath)) {
-      return null;
+      const packagedPublicKeyPath = resolvePackagedPublicKeyPath();
+      return existsSync(packagedPublicKeyPath) ? readFileSync(packagedPublicKeyPath, "utf8").trim() : null;
     }
     return readFileSync(publicKeyPath, "utf8").trim();
   };

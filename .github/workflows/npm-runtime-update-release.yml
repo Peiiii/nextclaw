@@ -1,0 +1,149 @@
+name: npm-runtime-update-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to use in release notes URLs, e.g. v0.18.12-npm-beta.1"
+        required: false
+        type: string
+      channel:
+        description: "Runtime update channel"
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - stable
+  release:
+    types:
+      - published
+
+permissions:
+  contents: write
+
+jobs:
+  build-npm-runtime-update:
+    name: npm-runtime-${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    env:
+      NPM_RUNTIME_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+      NPM_RUNTIME_UPDATE_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.channel || contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'npm-beta') && 'beta' || 'stable' }}
+      NPM_RUNTIME_UPDATE_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/npm-runtime-updates
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+          - os: macos-14
+            platform: darwin
+            arch: x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build signed NPM runtime update channel
+        shell: bash
+        env:
+          NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY || secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
+        run: |
+          pnpm -C packages/nextclaw runtime-update:build -- \
+            --channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
+            --platform ${{ matrix.platform }} \
+            --arch ${{ matrix.arch }} \
+            --base-url "$NPM_RUNTIME_UPDATE_BASE_URL" \
+            --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}" \
+            --output-dir dist/npm-runtime-updates
+
+      - name: Upload NPM runtime update artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-runtime-update-${{ matrix.platform }}-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            packages/nextclaw/dist/npm-runtime-updates
+
+  publish-npm-runtime-update-channel:
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    needs: [build-npm-runtime-update]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download NPM runtime update artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: npm-runtime-update-*
+          path: dist/npm-runtime-updates
+          merge-multiple: true
+
+      - name: Prepare gh-pages worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/gh-pages
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add .tmp/gh-pages origin/gh-pages
+          else
+            git worktree add --detach .tmp/gh-pages
+            git -C .tmp/gh-pages checkout --orphan gh-pages
+            git -C .tmp/gh-pages rm -rf . >/dev/null 2>&1 || true
+            find .tmp/gh-pages -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          fi
+
+      - name: Stage NPM runtime update channel files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! find dist/npm-runtime-updates -type f -name 'manifest-*.json' | grep -q .; then
+            echo "No NPM runtime update manifests were downloaded."
+            exit 1
+          fi
+
+          mkdir -p .tmp/gh-pages/npm-runtime-updates
+          cp -R dist/npm-runtime-updates/. .tmp/gh-pages/npm-runtime-updates/
+          touch .tmp/gh-pages/.nojekyll
+
+      - name: Publish NPM runtime update channel to gh-pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C .tmp/gh-pages config user.name "github-actions[bot]"
+          git -C .tmp/gh-pages config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C .tmp/gh-pages add npm-runtime-updates .nojekyll
+          if git -C .tmp/gh-pages diff --cached --quiet; then
+            echo "No NPM runtime update channel changes to publish."
+            exit 0
+          fi
+          git -C .tmp/gh-pages commit -m "chore: publish npm runtime update channel"
+          git -C .tmp/gh-pages push origin HEAD:gh-pages

@@ -31,6 +31,26 @@ pnpm release:version
 pnpm release:publish
 ```
 
+### nextclaw runtime update public key
+
+The `nextclaw` package contains the stable launcher for NPM installs. Before publishing any release batch that includes `nextclaw`, generate the packaged runtime update public key with the same signing key used by the runtime update channel:
+
+```bash
+NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY=... pnpm -C packages/nextclaw runtime-update:build -- --channel beta --skip-build --output-dir tmp/npm-runtime-update-key-check
+```
+
+This writes `packages/nextclaw/resources/update-bundle-public.pem`. `prepack` verifies this file so a package without the verifier key is not published by accident.
+
+After publishing a beta package, trigger the `npm-runtime-update-release` workflow with `channel=beta`. Users can then test with:
+
+```bash
+npm install -g nextclaw@beta
+nextclaw update --channel beta --check
+nextclaw update --channel beta
+nextclaw update --apply
+nextclaw --version
+```
+
 Notes:
 - `release:version` and `release:publish` automatically run README sync/check.
 - `release:check:groups` now only gates the explicit release batch from pending changesets or freshly versioned packages.
