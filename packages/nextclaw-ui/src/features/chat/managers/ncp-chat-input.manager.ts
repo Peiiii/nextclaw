@@ -22,6 +22,7 @@ import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { ChatSessionPreferenceSync } from '@/features/chat/managers/chat-session-preference-sync.manager';
 import { isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
+import { isNcpChatRuntimeBlocked } from '@/features/chat/utils/ncp-chat-runtime-availability.utils';
 import { chatRecentModelsManager } from '@/features/chat/managers/chat-recent-models.manager';
 import { chatRecentSkillsManager } from '@/features/chat/managers/chat-recent-skills.manager';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
@@ -66,6 +67,9 @@ export class NcpChatInputManager {
 
   private isSameStringArray = (left: string[], right: string[]): boolean =>
     left.length === right.length && left.every((value, index) => value === right[index]);
+
+  private isRuntimeBlockedForSend = (): boolean =>
+    isNcpChatRuntimeBlocked(systemStatusManager.getStatusView());
 
   private syncComposerSnapshot = (nodes: ChatComposerNode[]) => {
     const currentAttachments = useChatInputStore.getState().snapshot.attachments;
@@ -184,7 +188,7 @@ export class NcpChatInputManager {
       isNcpChatSendDisabled({
         snapshot: inputSnapshot,
         hasSendableDraft: hasSendableContent,
-        isRuntimeBlocked: systemStatusManager.isChatInteractionBlocked(),
+        isRuntimeBlocked: this.isRuntimeBlockedForSend(),
       })
     ) {
       return;

@@ -3,7 +3,7 @@ import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent, type NcpConversationSeed } from "@nextclaw/ncp-react";
 import { API_BASE, fetchNcpSessionMessages } from "@/shared/lib/api";
 import { createNcpAppClientFetch } from "@/features/chat/utils/ncp-app-client-fetch.utils";
-import { useChatRuntimeAvailability } from "@/features/system-status";
+import { useSystemStatus } from "@/features/system-status";
 
 const DEFAULT_MESSAGE_LIMIT = 300;
 const NCP_AGENT_UNAVAILABLE_DURING_STARTUP = "ncp agent unavailable during startup";
@@ -92,7 +92,7 @@ export function useNcpSessionConversation(
   options: UseNcpSessionConversationOptions = {},
 ) {
   const [client] = useState(() => createNcpSessionConversationClient());
-  const runtimeAvailability = useChatRuntimeAvailability();
+  const systemStatus = useSystemStatus();
   const [hydrationRetryVersion, setHydrationRetryVersion] = useState(0);
   const messageLimit = options.messageLimit ?? DEFAULT_MESSAGE_LIMIT;
   const loadSeed = useCallback(
@@ -110,9 +110,9 @@ export function useNcpSessionConversation(
   const currentAgentError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const readyRetrySignature =
-    runtimeAvailability.phase === "ready" &&
+    systemStatus.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(currentAgentError)
-      ? `${sessionId}:${runtimeAvailability.lastReadyAt ?? 0}`
+      ? `${sessionId}:${systemStatus.lastReadyAt ?? 0}`
       : null;
   useSyncReadyRetryVersion(readyRetrySignature, () => {
     setHydrationRetryVersion((current) => current + 1);

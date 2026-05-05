@@ -1,9 +1,9 @@
-import { t } from '@/shared/lib/i18n';
 import type {
   RuntimeControlAction,
   RuntimeLifecycleState,
   RuntimeServiceState,
 } from '@/shared/lib/api';
+import { t } from '@/shared/lib/i18n';
 import type {
   RuntimeControlPanelView,
   RuntimeStatusBadgeView,
@@ -29,26 +29,6 @@ export function resolveSystemConnectionStatus(
   return 'connecting';
 }
 
-export function resolveChatRuntimeMessage(
-  state: SystemStatusState
-): string | null {
-  if (state.activeSystemAction?.message?.trim()) {
-    return state.activeSystemAction.message.trim();
-  }
-  if (state.lifecyclePhase === 'cold-starting') {
-    return t('chatRuntimeInitializing');
-  }
-  if (state.lifecyclePhase === 'startup-failed') {
-    return (
-      state.bootstrapStatus?.ncpAgent.error?.trim() ||
-      state.bootstrapStatus?.lastError?.trim() ||
-      state.lastError?.trim() ||
-      t('chatRuntimeInitializationFailed')
-    );
-  }
-  return null;
-}
-
 export function toSystemStatusView(
   state: SystemStatusState
 ): SystemStatusView {
@@ -57,8 +37,6 @@ export function toSystemStatusView(
     ...state,
     phase,
     connectionStatus: resolveSystemConnectionStatus(phase),
-    isChatBlocked: phase !== 'ready',
-    chatMessage: resolveChatRuntimeMessage(state),
   };
 }
 

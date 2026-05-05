@@ -32,10 +32,8 @@ import { useChatSessionListStore } from "@/features/chat/stores/chat-session-lis
 import { useConfirmDialog } from "@/shared/hooks/use-confirm-dialog";
 import { useAgents } from "@/shared/hooks/use-agents";
 import { normalizeRequestedSkills } from "@/features/chat/utils/chat-runtime.utils";
-import {
-  systemStatusManager,
-  useChatRuntimeAvailability,
-} from "@/features/system-status";
+import { useSystemStatus } from "@/features/system-status";
+import { isNcpChatRuntimeBlocked, resolveNcpChatSendErrorMessage } from "@/features/chat/utils/ncp-chat-runtime-availability.utils";
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
@@ -126,7 +124,8 @@ function useNcpChatPageBaseState(presenter: NcpChatPresenter) {
   const currentSelectedModel = useChatInputStore(
     (state) => state.snapshot.selectedModel,
   );
-  const runtimeAvailability = useChatRuntimeAvailability();
+  const systemStatus = useSystemStatus();
+  const isRuntimeBlocked = isNcpChatRuntimeBlocked(systemStatus);
   const agentsQuery = useAgents();
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const location = useLocation();
@@ -163,7 +162,8 @@ function useNcpChatPageBaseState(presenter: NcpChatPresenter) {
     selectedAgentId,
     pendingProjectRoot,
     pendingProjectRootSessionKey,
-    runtimeAvailability,
+    systemStatus,
+    isRuntimeBlocked,
     agentsQuery,
     confirm,
     ConfirmDialog,
@@ -186,7 +186,8 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
     agentsQuery,
     hasSessionProjectRootOverride,
     pendingProjectRoot,
-    runtimeAvailability,
+    isRuntimeBlocked,
+    systemStatus,
     selectedAgentId,
     selectedSession,
     selectedSessionType,
@@ -204,7 +205,7 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
   const rawLastSendError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const filteredLastSendError =
-    runtimeAvailability.phase === "ready" &&
+    systemStatus.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(rawLastSendError)
       ? null
       : rawLastSendError;
@@ -231,11 +232,14 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
     canStopCurrentRun: agent.isRunning,
     stopDisabledReason: agent.isRunning ? null : "__preparing__",
     lastSendError:
-      runtimeAvailability.isBlocked
+      isRuntimeBlocked
         ? null
-        : runtimeAvailability.phase === "ready"
+        : systemStatus.phase === "ready"
         ? filteredLastSendError
-        : systemStatusManager.getDisplayMessage(filteredLastSendError),
+        : resolveNcpChatSendErrorMessage({
+            message: filteredLastSendError,
+            status: systemStatus,
+          }),
     ...derivedState,
   };
 }

@@ -82,17 +82,6 @@ export function useSystemStatus() {
   return toSystemStatusView(state);
 }
 
-export function useChatRuntimeAvailability() {
-  const state = useSystemStatusStore((store) => store.state);
-  const view = toSystemStatusView(state);
-  return {
-    isBlocked: view.isChatBlocked,
-    message: view.chatMessage,
-    phase: view.phase,
-    lastReadyAt: view.lastReadyAt,
-  };
-}
-
 export function useRuntimeStatusBadgeView() {
   const state = useSystemStatusStore((store) => store.state);
   return toRuntimeStatusBadgeView(state);

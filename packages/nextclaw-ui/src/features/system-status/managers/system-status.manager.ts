@@ -15,7 +15,6 @@ import type { NextClawDesktopBridge } from '@/platforms/desktop';
 import { t } from '@/shared/lib/i18n';
 import {
   buildActiveSystemActionState,
-  resolveChatRuntimeMessage,
   toSystemStatusView,
 } from '@/features/system-status/utils/system-status.utils';
 import {
@@ -245,35 +244,7 @@ export class SystemStatusManager {
     }
   };
 
-  isChatInteractionBlocked = (): boolean => {
-    return toSystemStatusView(this.getState()).isChatBlocked;
-  };
-
-  getDisplayMessage = (message: string | null | undefined): string | null => {
-    if (!message?.trim()) {
-      return resolveChatRuntimeMessage(this.getState());
-    }
-    const { phase } = toSystemStatusView(this.getState());
-    if (
-      phase === 'service-transitioning' &&
-      this.getState().activeSystemAction?.message?.trim()
-    ) {
-      return this.getState().activeSystemAction?.message?.trim() ?? null;
-    }
-    if (
-      phase === 'recovering' &&
-      isTransientRuntimeConnectionErrorMessage(message)
-    ) {
-      return t('runtimeControlRecoveringHelp');
-    }
-    if (
-      phase === 'stalled' &&
-      isTransientRuntimeConnectionErrorMessage(message)
-    ) {
-      return null;
-    }
-    return message;
-  };
+  getStatusView = () => toSystemStatusView(this.getState());
 
   resetForTests = (): void => {
     this.clearRecoveryTimeout();

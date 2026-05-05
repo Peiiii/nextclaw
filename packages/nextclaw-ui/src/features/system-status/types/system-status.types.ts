@@ -46,8 +46,6 @@ export type SystemStatusState = {
 export type SystemStatusView = SystemStatusState & {
   phase: SystemStatusPhase;
   connectionStatus: SystemConnectionStatus;
-  isChatBlocked: boolean;
-  chatMessage: string | null;
 };
 
 export type RuntimeStatusTone = 'healthy' | 'attention' | 'inactive';

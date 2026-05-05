@@ -13,7 +13,8 @@ import { chatRecentSkillsManager, CHAT_RECENT_SKILLS_MIN_OPTIONS } from '@/featu
 import { deriveSelectedSkillsFromComposer } from '@/features/chat/utils/chat-composer-state.utils';
 import { hasNcpChatModelOptions, isNcpChatComposerDisabled, isNcpChatModelOptionsEmpty, isNcpChatModelOptionsLoading, isNcpChatSendDisabled } from '@/features/chat/utils/ncp-chat-input-availability.utils';
 import { useSelectedSessionContextWindowIndicator } from '@/features/chat/hooks/use-selected-session-context-window-indicator';
-import { useChatRuntimeAvailability } from '@/features/system-status';
+import { useSystemStatus } from '@/features/system-status';
+import { isNcpChatRuntimeBlocked } from '@/features/chat/utils/ncp-chat-runtime-availability.utils';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 
@@ -208,7 +209,7 @@ export function ChatInputBarContainer() {
   const { language } = useI18n();
   const { isMobile } = useViewportLayout();
   const snapshot = useChatInputStore((state) => state.snapshot);
-  const runtimeAvailability = useChatRuntimeAvailability();
+  const isRuntimeBlocked = isNcpChatRuntimeBlocked(useSystemStatus());
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const inputBarRef = useRef<ChatInputBarHandle | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -314,13 +315,13 @@ export function ChatInputBarContainer() {
           ],
           skillPicker,
           actions: {
-            sendError: runtimeAvailability.isBlocked ? null : snapshot.sendError,
+            sendError: isRuntimeBlocked ? null : snapshot.sendError,
             isSending: snapshot.isSending,
             canStopGeneration: snapshot.canStopGeneration,
             sendDisabled: isNcpChatSendDisabled({
               snapshot,
               hasSendableDraft,
-              isRuntimeBlocked: runtimeAvailability.isBlocked
+              isRuntimeBlocked
             }),
             stopDisabled: !snapshot.canStopGeneration,
             stopHint: resolvedStopHint,

@@ -51,7 +51,13 @@ vi.mock("@nextclaw/ncp-http-agent-client", () => ({
 }));
 
 vi.mock("@/features/system-status", () => ({
-  useChatRuntimeAvailability: vi.fn(() => mocks.runtimeAvailability),
+  useSystemStatus: vi.fn(() => ({
+    ...mocks.runtimeAvailability,
+    lifecyclePhase: mocks.runtimeAvailability.phase,
+    activeSystemAction: null,
+    bootstrapStatus: null,
+    lastError: null,
+  })),
 }));
 
 describe("useNcpSessionConversation", () => {

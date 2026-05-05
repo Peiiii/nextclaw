@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BootstrapStatusView } from '@/shared/lib/api';
 import { appQueryClient } from '@/app-query-client';
-import { t } from '@/shared/lib/i18n';
 import {
   isTransientRuntimeConnectionErrorMessage,
   systemStatusManager,
@@ -118,30 +117,6 @@ describe('systemStatusManager', () => {
     await vi.advanceTimersByTimeAsync(30_000);
 
     expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('stalled');
-  });
-
-  it('maps transient chat errors to friendly recovery copy while recovering', () => {
-    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
-    systemStatusManager.handleConnectionInterrupted('Failed to fetch');
-
-    expect(
-      systemStatusManager.getDisplayMessage(
-        'NCP fetch failed for POST /api/ncp/agent: Error: Failed to fetch'
-      )
-    ).toBe(t('runtimeControlRecoveringHelp'));
-  });
-
-  it('suppresses transient transport errors after recovery stalls', async () => {
-    systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
-    systemStatusManager.handleConnectionInterrupted('Failed to fetch');
-
-    await vi.advanceTimersByTimeAsync(30_000);
-
-    expect(
-      systemStatusManager.getDisplayMessage(
-        'NCP fetch failed for POST /api/ncp/agent: Error: Failed to fetch'
-      )
-    ).toBeNull();
   });
 
   it('restores readiness from stalled once the realtime connection reopens', async () => {
