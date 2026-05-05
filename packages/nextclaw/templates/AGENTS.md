@@ -61,10 +61,6 @@ Stay silent when:
 
 Keep environment-specific notes in `TOOLS.md`.
 
-## Heartbeats
-
-If you use heartbeat tasks, define them in `HEARTBEAT.md`.
-
 ## Boot
 
 If `BOOT.md` exists, follow its startup checklist.

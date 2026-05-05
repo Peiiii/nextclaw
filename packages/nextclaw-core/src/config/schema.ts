@@ -285,11 +285,9 @@ export const ContextBootstrapSchema = z.object({
       "IDENTITY.md",
       "TOOLS.md",
       "BOOT.md",
-      "BOOTSTRAP.md",
-      "HEARTBEAT.md"
+      "BOOTSTRAP.md"
     ]),
   minimalFiles: z.array(z.string()).default(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"]),
-  heartbeatFiles: z.array(z.string()).default(["HEARTBEAT.md"]),
   perFileChars: z.number().int().default(4000),
   totalChars: z.number().int().default(12000)
 });

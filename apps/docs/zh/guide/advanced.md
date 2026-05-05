@@ -73,7 +73,7 @@
 nextclaw init
 ```
 
-常见文件：`AGENTS.md`、`SOUL.md`、`TOOLS.md`、`HEARTBEAT.md`、`memory/MEMORY.md`、`skills/`。
+常见文件：`AGENTS.md`、`SOUL.md`、`TOOLS.md`、`memory/MEMORY.md`、`skills/`。
 
 ## 多 Agent 说明（持续演进中）
 

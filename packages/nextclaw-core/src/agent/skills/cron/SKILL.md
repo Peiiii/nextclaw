@@ -7,6 +7,8 @@ description: Schedule reminders and recurring tasks.
 
 Use the `cron` tool to schedule reminders or recurring tasks.
 
+`cron` is the only built-in automation scheduler. Do not refer users to Heartbeat or `HEARTBEAT.md`.
+
 Before creating a job, decide whether the user wants a one-time action or a recurring action:
 
 - Use `at` for one-time tasks such as "in 5 minutes", "at 6pm today", "tomorrow morning", or "only once".
@@ -27,6 +29,14 @@ When filling `message`, write the runtime instruction for the agent, not just th
 If the user wants an exact message sent through WeChat or another channel, the instruction should explicitly say to send that exact text.
 
 If the user wants the scheduled task to continue an existing conversation or explicitly provides a session id, pass it as `sessionId`. Omit `sessionId` when the task should use its own job-owned `cron:<jobId>` session.
+
+If the user asks for a periodic follow-up, recurring check, or “continue this later” workflow, prefer binding the cron job to the existing `sessionId` instead of inventing a second automation mechanism.
+
+If the user wants a periodic review of a file, workflow, inbox, or project board, express that directly in `message`.
+
+- Good: `Read docs/TODO.md, check what changed since the last run, and summarize only actionable updates.`
+- Good: `Continue the current release investigation, inspect the latest logs, and report only new blockers.`
+- Bad: `heartbeat`
 
 ## Actions
 

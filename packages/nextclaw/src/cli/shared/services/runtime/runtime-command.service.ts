@@ -159,7 +159,6 @@ export class RuntimeCommandService {
           scheduleReload: (reason) => gateway.reloader.scheduleReload(reason)
         }),
         startCron: () => gateway.cron.start(),
-        startHeartbeat: () => gateway.heartbeat.start(),
         cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")),
         reloadCronStore: () => gateway.cron.reloadFromStore(),
         watcherRegistry: this.fileWatchers

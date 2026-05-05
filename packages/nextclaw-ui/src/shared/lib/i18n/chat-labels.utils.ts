@@ -24,7 +24,6 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatSessionTypeClaude: { zh: 'Claude Code', en: 'Claude Code' },
   chatSessionTypeWeixin: { zh: '微信', en: 'WeChat' },
   chatSessionTypeFeishu: { zh: '飞书', en: 'Feishu' },
-  chatSessionTypeHeartbeat: { zh: '心跳', en: 'Heartbeat' },
   chatSessionTypeCron: { zh: '定时任务', en: 'Cron' },
   chatSessionTypeUnavailableSuffix: {
     zh: '当前不可用，请启用对应插件或新建 Native 会话。',

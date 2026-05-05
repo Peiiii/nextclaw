@@ -1,4 +1,4 @@
-# Cron & Heartbeat
+# Automation with Cron
 
 This page explains how to make your assistant run tasks automatically.
 
@@ -27,12 +27,16 @@ Restart behavior for recurring interval jobs:
 2. Add one recurring task (for example once per day).
 3. Add advanced rules only after baseline is stable.
 
-## Heartbeat: Periodic Workspace Task Check
+## Session-Bound Follow-Up
 
-When the gateway is running, NextClaw checks `HEARTBEAT.md` in workspace periodically.
-If actionable tasks are found, the agent processes them.
+If you want automation to continue an existing conversation, create the cron job with a target session id.
+That keeps the follow-up in the same investigation thread instead of creating a separate special mechanism.
 
-If you do not need Heartbeat for now, keep the file empty.
+Typical pattern:
+
+- use `every` for periodic checks
+- pass `sessionId` when the automation should continue a live investigation
+- omit `sessionId` when the automation should use its own dedicated background session
 
 ## Advanced Entry (Optional)
 

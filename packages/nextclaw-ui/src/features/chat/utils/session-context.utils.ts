@@ -2,7 +2,7 @@ import type { SessionEntryView, SessionTypeIconView } from '@/shared/lib/api';
 import { t } from '@/shared/lib/i18n';
 import { getChannelLogo } from '@/shared/lib/logos';
 
-type SessionContextSymbolIcon = 'heartbeat' | 'cron';
+type SessionContextSymbolIcon = 'cron';
 
 export type SessionContextIcon =
   | { kind: 'channel-logo'; channel: string }
@@ -20,7 +20,6 @@ const CHANNEL_ALIAS_REGISTRY: Record<string, string> = {
 };
 
 const TYPE_CONTEXT_REGISTRY: Record<string, { icon: SessionContextSymbolIcon }> = {
-  heartbeat: { icon: 'heartbeat' },
   cron: { icon: 'cron' },
 };
 

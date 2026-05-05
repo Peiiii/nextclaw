@@ -3,7 +3,7 @@ import { resolveAppResourceUri } from '@/shared/lib/app-resource-uri';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { getChannelLogo } from '@/shared/lib/logos';
 import { cn } from '@/shared/lib/utils';
-import { AlarmClock, Bot, HeartPulse } from 'lucide-react';
+import { AlarmClock, Bot } from 'lucide-react';
 
 export function SessionContextIconNode({ icon, className }: { icon: SessionContextIcon; className?: string }) {
   if (icon.kind === 'channel-logo') {
@@ -20,9 +20,6 @@ export function SessionContextIconNode({ icon, className }: { icon: SessionConte
         fallback={<Bot className={cn('h-3 w-3 text-gray-500', className)} />}
       />
     );
-  }
-  if (icon.icon === 'heartbeat') {
-    return <HeartPulse className={cn('h-3.5 w-3.5', className)} />;
   }
   return <AlarmClock className={cn('h-3.5 w-3.5', className)} />;
 }

@@ -24,7 +24,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "agents.context.bootstrap": "Bootstrap Files",
   "agents.context.bootstrap.files": "Bootstrap Files",
   "agents.context.bootstrap.minimalFiles": "Minimal Files",
-  "agents.context.bootstrap.heartbeatFiles": "Heartbeat Files",
   "agents.context.bootstrap.perFileChars": "Max Chars per File",
   "agents.context.bootstrap.totalChars": "Total Bootstrap Chars",
   "agents.context.memory": "Memory",

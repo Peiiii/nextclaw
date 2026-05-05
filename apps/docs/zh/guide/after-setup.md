@@ -36,7 +36,7 @@ nextclaw doctor --json
 
 给自己加一个低风险、高频的定时任务，比如“每天 9:30 提醒当天重点”。
 
-- 文档入口：[Cron 与 Heartbeat](/zh/guide/cron)
+- 文档入口：[Cron](/zh/guide/cron)
 
 ## 5. 看资源导航，抄一条现成方案
 

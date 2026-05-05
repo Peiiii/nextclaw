@@ -82,7 +82,7 @@
 ## 8. 自动化能力
 
 - Cron 任务：`list` / `add` / `remove` / `enable` / `run`
-- Heartbeat 周期任务检查
+- 会话绑定定时任务：通过 `sessionId` 让 cron 持续跟进既有对话/调查
 
 ## 9. Skills 能力
 

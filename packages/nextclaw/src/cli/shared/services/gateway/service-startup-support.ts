@@ -31,16 +31,13 @@ export async function startGatewaySupportServices(params: {
   remoteModule: RemoteServiceModule | null;
   watchConfigFile: () => void;
   startCron: () => Promise<void>;
-  startHeartbeat: () => Promise<void>;
 }): Promise<void> {
   if (params.cronJobs > 0) {
     console.log(`✓ Cron: ${params.cronJobs} scheduled jobs`);
   }
-  console.log("✓ Heartbeat: every 30m");
   params.remoteModule?.start();
   params.watchConfigFile();
   await params.startCron();
-  await params.startHeartbeat();
 }
 
 export function watchCronStoreFile(params: {
@@ -132,7 +129,6 @@ export async function startGatewayRuntimeSupport(params: {
   remoteModule: RemoteServiceModule | null;
   watchConfigFile: () => void;
   startCron: () => Promise<void>;
-  startHeartbeat: () => Promise<void>;
   cronStorePath: string;
   reloadCronStore: () => void;
   watcherRegistry: ServiceFileWatcherRegistry;
@@ -143,7 +139,6 @@ export async function startGatewayRuntimeSupport(params: {
     reloadCronStore,
     remoteModule,
     startCron,
-    startHeartbeat,
     watchConfigFile,
     watcherRegistry
   } = params;
@@ -151,8 +146,7 @@ export async function startGatewayRuntimeSupport(params: {
     cronJobs,
     remoteModule,
     watchConfigFile,
-    startCron,
-    startHeartbeat
+    startCron
   });
   watcherRegistry.remember(
     watchCronStoreFile({

@@ -25,7 +25,7 @@ features:
   - title: 🚀 新手友好
     details: 一条命令启动，主要配置都在浏览器里完成，不需要先理解复杂配置文件。
   - title: 🛠️ 可扩展
-    details: 内置 Web 搜索、命令执行、Cron/Heartbeat，并兼容 OpenClaw 插件生态。
+    details: 内置 Web 搜索、命令执行、Cron 自动化，并兼容 OpenClaw 插件生态。
   - title: ⚡ 热更新
     details: 提供商、渠道、模型与插件配置可热应用，减少重启成本。
 ---

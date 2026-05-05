@@ -193,7 +193,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 ## 8. 自动化
 
 - **Cron**：一次性（`--at`）、cron 表达式（`-c`）、固定间隔秒（`-e`）；可选 `--deliver --to --channel` 将回复投递到渠道。
-- **Heartbeat**：助理服务运行期间周期读取工作区 `HEARTBEAT.md`（如约 30 分钟），若有可执行任务则交给 Agent 执行。
+- **Session-bound automation**：可通过 `--session` 让 cron 延续既有对话/调查线程，而不是启动独立特殊机制。
 
 ---
 
@@ -227,7 +227,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 
 ## 12. 工作区与 Skills
 
-- **init 生成**：AGENTS.md、SOUL.md、USER.md、IDENTITY.md、TOOLS.md、BOOT.md/BOOTSTRAP.md、HEARTBEAT.md、memory/MEMORY.md、skills/。
+- **init 生成**：AGENTS.md、SOUL.md、USER.md、IDENTITY.md、TOOLS.md、BOOT.md/BOOTSTRAP.md、memory/MEMORY.md、skills/。
 - **Context**：bootstrap 文件、memory 片段、skills（always + 按需）注入系统提示。
 - **Skills**：从 marketplace 安装或工作区 `skills/` 放置，由 ContextBuilder 加载并参与提示。
 

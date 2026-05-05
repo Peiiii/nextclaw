@@ -716,7 +716,6 @@ export type ConfigView = {
       bootstrap?: {
         files?: string[];
         minimalFiles?: string[];
-        heartbeatFiles?: string[];
         perFileChars?: number;
         totalChars?: number;
       };

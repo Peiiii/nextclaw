@@ -9,7 +9,7 @@ import { resolveUiConfig, resolveUiStaticDir } from "@/cli/shared/utils/cli.util
 import type { UiNcpAgentHandle } from "@/cli/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
 import { resolveChannelConfigView } from "@/cli/commands/channel/channel-config-view.js";
 import { loadPluginRegistry, logPluginDiagnostics, toExtensionRegistry, type NextclawExtensionRegistry } from "@/cli/commands/plugin/index.js";
-import { createCronJobHandler, createHeartbeatJobHandler } from "@/cli/shared/services/gateway/cron-job-handler.service.js";
+import { createCronJobHandler } from "@/cli/shared/services/gateway/cron-job-handler.service.js";
 import { createManagedRemoteModuleForUi } from "@/cli/shared/services/runtime/service-remote-runtime.service.js";
 import { measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 
@@ -19,12 +19,10 @@ const {
   getConfigPath,
   getDataDir,
   getWorkspacePath,
-  HeartbeatService,
   loadConfig,
   MessageBus,
   ProviderManager,
   resolveConfigSecrets,
-  resolveDefaultAgentProfileId,
   saveConfig,
   SessionManager,
 } = NextclawCore;
@@ -48,7 +46,6 @@ export type GatewayStartupContext = {
   remoteModule: RemoteServiceModule | null;
   reloader: ConfigReloader;
   gatewayController: GatewayControllerImpl;
-  heartbeat: InstanceType<typeof HeartbeatService>;
   applyLiveConfigReload: () => Promise<void>;
 };
 
@@ -69,34 +66,6 @@ export function applyGatewayCapabilityState(
   gateway.pluginRegistry = next.pluginRegistry;
   gateway.pluginChannelBindings = next.pluginChannelBindings;
   gateway.extensionRegistry = next.extensionRegistry;
-}
-
-function normalizeAgentId(value: string | undefined): string {
-  const text = (value ?? "").trim().toLowerCase();
-  return text || "main";
-}
-
-function createGatewayHeartbeat(state: Pick<
-  GatewayStartupContext,
-  "workspace" | "runtimeConfigPath"
->, params: {
-  getLiveUiNcpAgent?: () => UiNcpAgentHandle | null;
-}): InstanceType<typeof HeartbeatService> {
-  const handleHeartbeat = createHeartbeatJobHandler({
-    resolveNcpAgent: () => params.getLiveUiNcpAgent?.() ?? null,
-    resolveAgentId: () =>
-      normalizeAgentId(
-        resolveDefaultAgentProfileId(
-          resolveConfigSecrets(loadConfig(), { configPath: state.runtimeConfigPath }),
-        ),
-      ),
-  });
-  return new HeartbeatService(
-    state.workspace,
-    async (promptText) => await handleHeartbeat(promptText),
-    30 * 60,
-    true,
-  );
 }
 
 function createGatewayCronJobHandler(params: {
@@ -264,7 +233,6 @@ export function createGatewayStartupContext(params: {
   );
 
   state.cron.onJob = createGatewayCronJobHandler({ bus: state.bus, getLiveUiNcpAgent });
-  state.heartbeat = createGatewayHeartbeat(state, { getLiveUiNcpAgent });
 
   return state;
 }

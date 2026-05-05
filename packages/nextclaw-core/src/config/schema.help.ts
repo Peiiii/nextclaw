@@ -25,7 +25,6 @@ export const FIELD_HELP: Record<string, string> = {
   "agents.list.*.maxToolIterations": "Optional per-agent max tool iterations.",
   "agents.context.bootstrap.files": "Files injected into the system prompt at startup.",
   "agents.context.bootstrap.minimalFiles": "Minimal file set used for low-context runs.",
-  "agents.context.bootstrap.heartbeatFiles": "Files checked periodically for tasks.",
   "agents.context.bootstrap.perFileChars": "Max chars per bootstrap file.",
   "agents.context.bootstrap.totalChars": "Max total chars across bootstrap files.",
   "agents.context.memory.enabled": "Enable memory injection from memory files.",

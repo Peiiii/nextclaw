@@ -1,4 +1,3 @@
-export const HEARTBEAT_TOKEN = "HEARTBEAT_OK";
 export const SILENT_REPLY_TOKEN = "<noreply/>";
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

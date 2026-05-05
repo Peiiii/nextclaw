@@ -150,9 +150,6 @@ function readPromotedChildSession(summary: NcpSessionSummaryView): boolean {
 }
 
 function parseSessionContext(sessionKey: string): { channel?: string; type?: string } {
-  if (sessionKey === 'heartbeat') {
-    return { type: 'heartbeat' };
-  }
   if (sessionKey.startsWith('cron:')) {
     return { type: 'cron' };
   }

@@ -72,7 +72,7 @@ Looking for the public-facing dashboard of shipping rhythm, code growth, release
 - **Landing page**: Product value proposition and key entry point optimization.
 - **UI and interaction**: Config UI, information architecture, consistent experience.
 - **OpenClaw compatibility**: Track plugin SDK and channel protocols.
-- **Cron / Heartbeat**: Harden automation and docs.
+- **Cron / Automation**: Harden automation and docs.
 - **Observability and ops**: `doctor`, `status`, config hot-reload, deployment docs.
 - **Documentation and tutorials**: Complete path for install, config, first bot, first cron.
 

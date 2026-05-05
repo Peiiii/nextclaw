@@ -73,7 +73,7 @@ Initialize workspace:
 nextclaw init
 ```
 
-Common files: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `HEARTBEAT.md`, `memory/MEMORY.md`, and `skills/`.
+Common files: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `memory/MEMORY.md`, and `skills/`.
 
 ## Multi-agent note (still evolving)
 

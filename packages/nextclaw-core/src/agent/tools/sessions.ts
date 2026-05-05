@@ -28,7 +28,7 @@ const stringsEqual = (left: unknown, right: unknown): boolean => {
 };
 
 const classifySessionKind = (key: string): string => {
-  if (key.startsWith("cron:") || key === "heartbeat") {
+  if (key.startsWith("cron:")) {
     return "cron";
   }
   if (key.startsWith("hook:")) {

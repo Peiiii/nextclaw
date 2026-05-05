@@ -33,7 +33,6 @@ export class WorkspaceManager {
       { source: "TOOLS.md", target: "TOOLS.md" },
       { source: "BOOT.md", target: "BOOT.md" },
       { source: "BOOTSTRAP.md", target: "BOOTSTRAP.md" },
-      { source: "HEARTBEAT.md", target: "HEARTBEAT.md" },
       { source: "MEMORY.md", target: "MEMORY.md" },
       { source: "memory/MEMORY.md", target: "memory/MEMORY.md" }
     ];

@@ -42,9 +42,8 @@ function dedupeStrings(values: string[]): string[] {
 }
 
 export const DEFAULT_BOOTSTRAP_CONTEXT_CONFIG: BootstrapContextConfig = {
-  files: ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "TOOLS.md", "BOOT.md", "BOOTSTRAP.md", "HEARTBEAT.md"],
+  files: ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "TOOLS.md", "BOOT.md", "BOOTSTRAP.md"],
   minimalFiles: ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"],
-  heartbeatFiles: ["HEARTBEAT.md"],
   perFileChars: 4000,
   totalChars: 12000,
 };
@@ -255,12 +254,9 @@ export class BootstrapContextBuilder {
     contextConfig?: ContextConfig,
     sessionKey?: string,
   ): string[] => {
-    const { files, minimalFiles, heartbeatFiles } = this.resolveConfig(contextConfig);
+    const { files, minimalFiles } = this.resolveConfig(contextConfig);
     if (!sessionKey) {
       return files;
-    }
-    if (sessionKey === "heartbeat") {
-      return dedupeStrings([...minimalFiles, ...heartbeatFiles]);
     }
     if (sessionKey.startsWith("cron:") || sessionKey.startsWith("subagent:")) {
       return minimalFiles;

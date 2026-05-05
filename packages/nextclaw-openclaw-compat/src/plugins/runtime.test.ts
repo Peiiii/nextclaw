@@ -36,7 +36,6 @@ describe("createPluginRuntime agent helpers", () => {
             bootstrap: {
               files: [],
               minimalFiles: [],
-              heartbeatFiles: [],
               perFileChars: 1000,
               totalChars: 1000,
             },
@@ -206,7 +205,6 @@ describe("createPluginRuntime workspace context", () => {
             bootstrap: {
               files: ["AGENTS.md"],
               minimalFiles: ["AGENTS.md"],
-              heartbeatFiles: [],
               perFileChars: 1000,
               totalChars: 3000,
             },

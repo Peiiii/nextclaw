@@ -36,7 +36,7 @@ Start with the platform you check every day (Discord / Telegram / Slack).
 
 Create a low-risk, high-frequency task like "daily 9:30 reminder for priorities".
 
-- Entry doc: [Cron & Heartbeat](/en/guide/cron)
+- Entry doc: [Cron](/en/guide/cron)
 
 ## 5. Copy one proven setup from the resource hub
 

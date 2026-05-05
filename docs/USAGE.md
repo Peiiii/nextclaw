@@ -30,7 +30,7 @@ When NextClaw AI needs to operate the product itself (version/status/doctor/serv
 - [Commands](#commands)
 - [Channels](#channels)
 - [Tools](#tools)
-- [Cron & Heartbeat](#cron--heartbeat)
+- [Cron](#cron)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -433,7 +433,6 @@ Created under the workspace:
 | `IDENTITY.md`   | Identity context                  |
 | `TOOLS.md`      | Tool usage guidelines             |
 | `BOOT.md` / `BOOTSTRAP.md` | Boot context               |
-| `HEARTBEAT.md`  | Tasks checked periodically        |
 | `memory/MEMORY.md` | Long-term notes                |
 | `skills/`       | Custom skills                     |
 
@@ -453,7 +452,6 @@ Skill loading contract:
 - If you want to install into a specific project workspace, pass `--workdir <workspace>`.
 - Upstream commands such as `npx skills add ... -g` do not install a skill into NextClaw's workspace and do not make it selectable in NextClaw by themselves.
 
-**Heartbeat:** When the gateway is running, `HEARTBEAT.md` in the workspace is checked every 30 minutes. If it contains actionable tasks, the agent will process them.
 
 ---
 
@@ -509,7 +507,7 @@ Skill loading contract:
 | `nextclaw channels login` | Open QR login for supported channels |
 | `nextclaw channels add --channel <id> ...` | Configure plugin channel via setup adapter |
 | `nextclaw cron list` | List all scheduled jobs, including disabled ones |
-| `nextclaw cron add ...` | Add a cron job (see [Cron](#cron--heartbeat)) |
+| `nextclaw cron add ...` | Add a cron job (see [Cron](#cron)) |
 | `nextclaw cron remove <jobId>` | Remove a job |
 | `nextclaw cron enable <jobId>` | Enable a disabled job |
 | `nextclaw cron disable <jobId>` | Disable a job without deleting it |
@@ -1032,7 +1030,7 @@ Allow the agent to run shell commands:
 
 ---
 
-## Cron & Heartbeat
+## Cron
 
 ### Cron
 
@@ -1095,9 +1093,15 @@ Run a job once (e.g. for testing):
 nextclaw cron run <jobId>
 ```
 
-### Heartbeat
+### Session-Bound Follow-Up
 
-When the gateway is running, it checks the workspace file `HEARTBEAT.md` periodically (e.g. every 30 minutes). If the file contains actionable tasks, the agent processes them. Edit `HEARTBEAT.md` in your workspace to add or change tasks.
+If you want a scheduled task to continue an existing investigation or conversation, pass `--session <session-id>` when creating the job.
+
+Example:
+
+```bash
+nextclaw cron add -n "follow-up" -m "Continue the existing work and report only meaningful changes" -e 1800 --session <session-id>
+```
 
 ---
 
