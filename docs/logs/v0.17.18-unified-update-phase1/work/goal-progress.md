@@ -24,8 +24,8 @@
 
 ## 当前下一步
 
-补发 `@nextclaw/kernel@0.1.2-beta.0` 与 `nextclaw@0.18.12-beta.1`，修复真实安装验证中发现的 `./update-contract` export 缺失问题，然后触发 NPM runtime beta channel。
+推送 beta 发布提交，触发 `npm-runtime-update-release` workflow 发布 runtime beta manifest，然后复验 `nextclaw update --channel beta --check`。
 
 ## 锚点计数器
 
-1/20
+4/20

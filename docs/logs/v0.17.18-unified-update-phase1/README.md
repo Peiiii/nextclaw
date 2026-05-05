@@ -171,9 +171,9 @@ pnpm -C apps/desktop validation:dev-update
 
 本次开始发布 NPM beta 版本，先提供给用户侧验证；用户确认 beta 没问题后再发布正式版。
 
-- `@nextclaw/kernel`：准备发布 `0.1.2-beta.0`，dist-tag 为 `beta`。本次新增共享更新契约类型与 `./update-contract` export，供 `nextclaw` beta runtime 使用。
+- `@nextclaw/kernel`：已发布 `0.1.2-beta.0`，dist-tag 为 `beta`。本次新增共享更新契约类型与 `./update-contract` export，供 `nextclaw` beta runtime 使用。
 - `@nextclaw/ui`：待统一发布。本次更新桌面更新配置 UI 与共享契约依赖。
-- `nextclaw`：已发布 `0.18.12-beta.0`，但真实安装验证发现它依赖的公网 `@nextclaw/kernel@0.1.1` 缺少 `./update-contract` export，启动会报 `ERR_PACKAGE_PATH_NOT_EXPORTED`；准备补发 `0.18.12-beta.1`，dist-tag 为 `beta`，并依赖 `@nextclaw/kernel@0.1.2-beta.0`。本次 bin 入口改为 npm runtime launcher，并新增 runtime bundle 更新/切换能力；包内已加入与当前公开 update channel 一致的 `resources/update-bundle-public.pem`。
+- `nextclaw`：已发布 `0.18.12-beta.1`，dist-tag 为 `beta`，并依赖 `@nextclaw/kernel@0.1.2-beta.0`。`0.18.12-beta.0` 已 deprecated；真实安装验证发现该版本依赖的公网 `@nextclaw/kernel@0.1.1` 缺少 `./update-contract` export，启动会报 `ERR_PACKAGE_PATH_NOT_EXPORTED`。本次 bin 入口改为 npm runtime launcher，并新增 runtime bundle 更新/切换能力；包内已加入与当前公开 update channel 一致的 `resources/update-bundle-public.pem`。
 - `@nextclaw/desktop`：桌面应用构建受影响，不作为普通公开 NPM 包记录；需要走桌面 release 构建流程。
 
-当前发布策略：先发布 `nextclaw@beta` 供真实用户路径验证；正式版等待 beta 验收通过后再发布。
+当前发布策略：先发布 `nextclaw@beta` 供真实用户路径验证；正式版等待 beta 验收通过后再发布。已验证全新临时目录 `npm install nextclaw@beta` 后 `nextclaw --version` 输出 `0.18.12-beta.1`；`nextclaw update --channel beta --check --json` 当前因公网 runtime beta manifest 尚未发布返回 404，需等待 `npm-runtime-update-release` workflow 发布 channel 后复验。
