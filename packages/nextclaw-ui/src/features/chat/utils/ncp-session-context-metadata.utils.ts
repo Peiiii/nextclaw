@@ -79,7 +79,6 @@ export type ContextCompactionTimelineView = {
   summary: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
-  coveredUntilMessageId?: string;
   originalEstimatedTokens: number;
   projectedEstimatedTokens: number;
   createdAt: string;
@@ -107,7 +106,6 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
   const projectedEstimatedTokens = readNonNegativeInteger(rawCheckpoint.projectedEstimatedTokens);
   const createdAt = readOptionalString(rawCheckpoint.createdAt);
   const updatedAt = readOptionalString(rawCheckpoint.updatedAt);
-  const coveredUntilMessageId = readOptionalString(rawCheckpoint.coveredUntilMessageId) ?? undefined;
   if (
     !id ||
     !status ||
@@ -127,7 +125,6 @@ export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'met
     summary,
     coveredMessageCount,
     coveredSessionMessageCount,
-    ...(coveredUntilMessageId ? { coveredUntilMessageId } : {}),
     originalEstimatedTokens,
     projectedEstimatedTokens,
     createdAt,

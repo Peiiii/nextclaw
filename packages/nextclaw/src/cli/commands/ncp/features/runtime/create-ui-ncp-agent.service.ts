@@ -18,6 +18,7 @@ import {
   readAssistantReasoningNormalizationModeFromMetadata,
   writeAssistantReasoningNormalizationModeToMetadata,
   type NcpAssistantReasoningNormalizationMode,
+  NcpEventType,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { join } from "node:path";
@@ -45,6 +46,7 @@ import { PluginRuntimeRegistrationController } from "@/cli/commands/ncp/plugin-r
 import { BuiltinNarpRuntimeRegistrationService } from "@/cli/commands/ncp/builtin-narp-runtime-registration.service.js";
 import { llmUsageRecorder } from "@/cli/shared/services/telemetry/llm-usage-recorder.service.js";
 import { resolveUiNcpRuntimeEntries } from "@/cli/commands/ncp/ui-ncp-runtime-entry-resolver.js";
+import { ContextCompactionPreflightService } from "@/cli/commands/ncp/context/context-compaction-preflight.service.js";
 
 export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.service.js";
 
@@ -192,20 +194,57 @@ function createNativeRuntimeFactory(
         }),
       ],
     });
-    return new DefaultNcpAgentRuntime({
+    const runtime = new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
         sessionManager: params.sessionManager,
         toolRegistry,
         getConfig: params.getConfig,
         resolveMessageToolHints: params.resolveMessageToolHints,
         assetStore,
-        onSessionUpdated: (sessionKey, metadata) => { setSessionMetadata(metadata); params.onSessionUpdated?.(sessionKey); },
       }),
       llmApi: new ProviderManagerNcpLLMApi(observedProviderManager),
       toolRegistry,
       stateManager,
       reasoningNormalizationMode,
     });
+    const contextCompactionPreflight = new ContextCompactionPreflightService({
+      getConfig: params.getConfig,
+      providerManager: observedProviderManager,
+      sessionManager: params.sessionManager,
+    });
+    return {
+      run: async function* (input, options) {
+        const result = await contextCompactionPreflight.run({
+          contextWindowOwner: "nextclaw",
+          inputMessages: input.messages,
+          requestMetadata: input.metadata ?? {},
+          sessionId: input.sessionId,
+          sessionMessages: stateManager.getSnapshot().messages,
+        });
+        if (result) {
+          setSessionMetadata(result.metadata);
+          params.onSessionUpdated?.(input.sessionId);
+          if (result.timelineMessage) {
+            const activeRun = stateManager.getSnapshot().activeRun;
+            stateManager.hydrate({
+              sessionId: input.sessionId,
+              messages: result.sessionMessages,
+              activeRun,
+            });
+            const timelineEvent = {
+              type: NcpEventType.MessageSent,
+              payload: {
+                sessionId: input.sessionId,
+                message: result.timelineMessage,
+              },
+            } as const;
+            await stateManager.dispatch(timelineEvent);
+            yield timelineEvent;
+          }
+        }
+        yield* runtime.run(input, options);
+      },
+    };
   };
 }
 
@@ -267,7 +306,6 @@ function createResolveOpenAiToolsForRuntime(params: {
     getConfig,
     resolveMessageToolHints,
     assetStore,
-    onSessionUpdated: undefined,
   });
 
   return (input: NcpAgentRunInput) => contextBuilder.prepare(input).tools;

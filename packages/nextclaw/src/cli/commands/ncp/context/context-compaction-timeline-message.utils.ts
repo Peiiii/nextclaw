@@ -1,15 +1,16 @@
 import type { Session, SessionEvent, SessionMessage } from "@nextclaw/core";
+import type { NcpMessage } from "@nextclaw/ncp";
 
 export const NEXTCLAW_TIMELINE_KIND_METADATA_KEY = "nextclaw_timeline_kind";
 export const CONTEXT_COMPACTION_TIMELINE_KIND = "context_compaction";
 
 export type ContextCompactionTimelineCheckpoint = {
+  version: 1;
   id: string;
   status: "compressing" | "compressed";
   summary: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
-  coveredUntilMessageId?: string;
   originalEstimatedTokens: number;
   projectedEstimatedTokens: number;
   createdAt: string;
@@ -67,11 +68,35 @@ function buildTimelineMessage(checkpoint: ContextCompactionTimelineCheckpoint): 
   };
 }
 
+export function buildContextCompactionTimelineNcpMessage(params: {
+  sessionId: string;
+  checkpoint: ContextCompactionTimelineCheckpoint;
+}): NcpMessage {
+  const { checkpoint, sessionId } = params;
+  const text =
+    checkpoint.status === "compressing"
+      ? "正在压缩较早上下文"
+      : "较早上下文已自动压缩";
+  return {
+    id: `${sessionId}:service:context-compaction:${checkpoint.id}`,
+    sessionId,
+    role: "service",
+    status: "final",
+    timestamp: checkpoint.updatedAt,
+    parts: [{ type: "text", text }],
+    metadata: {
+      [NEXTCLAW_TIMELINE_KIND_METADATA_KEY]: CONTEXT_COMPACTION_TIMELINE_KIND,
+      checkpoint,
+    },
+  };
+}
+
 export function upsertContextCompactionTimelineMessage(params: {
   session: Session;
   checkpoint: ContextCompactionTimelineCheckpoint;
+  insertBeforeMessageIds?: readonly string[];
 }): void {
-  const { checkpoint, session } = params;
+  const { checkpoint, insertBeforeMessageIds = [], session } = params;
   const nextMessage = buildTimelineMessage(checkpoint);
   for (let index = session.events.length - 1; index >= 0; index -= 1) {
     const event = session.events[index];
@@ -102,8 +127,27 @@ export function upsertContextCompactionTimelineMessage(params: {
     },
   };
   session.nextSeq += 1;
-  session.events.push(event);
-  session.messages.push(nextMessage);
+  const insertionIds = new Set(insertBeforeMessageIds);
+  const messageIndex = session.messages.findIndex(
+    (message) => typeof message.ncp_message_id === "string" && insertionIds.has(message.ncp_message_id),
+  );
+  if (messageIndex >= 0) {
+    session.messages.splice(messageIndex, 0, nextMessage);
+  } else {
+    session.messages.push(nextMessage);
+  }
+  const eventIndex = session.events.findIndex((candidateEvent) => {
+    const message =
+      candidateEvent?.data?.message && typeof candidateEvent.data.message === "object" && !Array.isArray(candidateEvent.data.message)
+        ? (candidateEvent.data.message as SessionMessage)
+        : null;
+    return typeof message?.ncp_message_id === "string" && insertionIds.has(message.ncp_message_id);
+  });
+  if (eventIndex >= 0) {
+    session.events.splice(eventIndex, 0, event);
+  } else {
+    session.events.push(event);
+  }
   session.updatedAt = new Date(checkpoint.updatedAt);
 }
 

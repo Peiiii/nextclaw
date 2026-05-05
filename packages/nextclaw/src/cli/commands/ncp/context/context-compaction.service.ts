@@ -1,6 +1,9 @@
 import { InputBudgetPruner } from "@nextclaw/core";
 
 type RuntimeMessage = Record<string, unknown>;
+type ContextCompactionSummaryGenerator = (params: {
+  messages: RuntimeMessage[];
+}) => Promise<string>;
 
 export const CONTEXT_COMPACTION_METADATA_KEY = "last_context_compaction";
 
@@ -11,7 +14,6 @@ export type ContextCompactionCheckpoint = {
   summary: string;
   coveredMessageCount: number;
   coveredSessionMessageCount: number;
-  coveredUntilMessageId?: string;
   originalEstimatedTokens: number;
   projectedEstimatedTokens: number;
   createdAt: string;
@@ -25,50 +27,31 @@ export type ContextCompactionResult = {
 
 const MIN_MESSAGES_TO_COMPACT = 8;
 const RECENT_TAIL_MESSAGES = 6;
-const MAX_SUMMARY_CHARS = 12_000;
-const MAX_MESSAGE_EXCERPT_CHARS = 900;
-
-function readString(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function stringifyContent(value: unknown): string {
-  if (typeof value === "string") {
-    return value;
-  }
-  try {
-    return JSON.stringify(value ?? "");
-  } catch {
-    return String(value ?? "");
-  }
-}
-
-function truncateText(value: string, maxChars: number): string {
-  if (value.length <= maxChars) {
-    return value;
-  }
-  return `${value.slice(0, Math.max(0, maxChars - 32)).trimEnd()}\n[truncated]`;
-}
-
 function createCheckpointId(createdAt: string, coveredMessageCount: number): string {
   return `ctx-${createdAt.replace(/[^0-9]/g, "").slice(0, 14)}-${coveredMessageCount}`;
+}
+
+function isSystemMessage(message: RuntimeMessage | undefined): boolean {
+  return message?.role === "system";
 }
 
 export class ContextCompactionService {
   private readonly inputBudgetPruner = new InputBudgetPruner();
 
-  compactForModelInput = (params: {
+  compactForModelInput = async (params: {
     messages: RuntimeMessage[];
     contextTokens: number;
-    sessionHistoryMessageIds?: string[];
+    compactionThresholdTokens?: number;
+    generateSummary: ContextCompactionSummaryGenerator;
     now?: Date;
-  }): ContextCompactionResult => {
-    const { contextTokens, messages, now, sessionHistoryMessageIds } = params;
+  }): Promise<ContextCompactionResult> => {
+    const { compactionThresholdTokens, contextTokens, generateSummary, messages, now } = params;
     const originalEstimate = this.inputBudgetPruner.estimate({
       messages,
       contextTokens,
     });
-    if (originalEstimate.estimatedTokens <= originalEstimate.budgetTokens) {
+    const thresholdTokens = compactionThresholdTokens ?? originalEstimate.budgetTokens;
+    if (originalEstimate.estimatedTokens < thresholdTokens) {
       return {
         messages,
         checkpoint: null,
@@ -84,15 +67,18 @@ export class ContextCompactionService {
     }
 
     const createdAt = (now ?? new Date()).toISOString();
-    const summary = this.buildSummary(coveredMessages);
+    const summary = await generateSummary({
+      messages: coveredMessages.map((message) => structuredClone(message)),
+    });
     const checkpointMessage: RuntimeMessage = {
       role: "user",
       content: summary,
     };
     const recentHistory = keptMessages.slice(0, -1);
     const currentTurn = keptMessages.at(-1);
+    const leadingSystemMessage = isSystemMessage(messages[0]) ? messages[0] : null;
     const projectedMessages = [
-      messages[0],
+      leadingSystemMessage,
       checkpointMessage,
       ...recentHistory,
       currentTurn,
@@ -101,21 +87,13 @@ export class ContextCompactionService {
       messages: projectedMessages,
       contextTokens,
     });
-    const coveredSessionMessageCount = Array.isArray(sessionHistoryMessageIds)
-      ? Math.max(0, sessionHistoryMessageIds.length - RECENT_TAIL_MESSAGES)
-      : coveredMessages.length;
-    const coveredUntilMessageId =
-      coveredSessionMessageCount > 0 && Array.isArray(sessionHistoryMessageIds)
-        ? sessionHistoryMessageIds[coveredSessionMessageCount - 1]
-        : undefined;
     const checkpoint: ContextCompactionCheckpoint = {
       version: 1,
       id: createCheckpointId(createdAt, coveredMessages.length),
       status: "compressed",
       summary,
       coveredMessageCount: coveredMessages.length,
-      coveredSessionMessageCount,
-      ...(coveredUntilMessageId ? { coveredUntilMessageId } : {}),
+      coveredSessionMessageCount: coveredMessages.length,
       originalEstimatedTokens: originalEstimate.estimatedTokens,
       projectedEstimatedTokens: projectedEstimate.estimatedTokens,
       createdAt,
@@ -131,7 +109,8 @@ export class ContextCompactionService {
   private splitMessages = (
     messages: RuntimeMessage[],
   ): { coveredMessages: RuntimeMessage[]; keptMessages: RuntimeMessage[] } => {
-    const history = messages.slice(1, -1);
+    const historyStartIndex = isSystemMessage(messages[0]) ? 1 : 0;
+    const history = messages.slice(historyStartIndex, -1);
     const currentTurn = messages.at(-1);
     const tailStart = Math.max(0, history.length - RECENT_TAIL_MESSAGES);
     return {
@@ -143,26 +122,14 @@ export class ContextCompactionService {
     };
   };
 
-  private buildSummary = (messages: RuntimeMessage[]): string => {
-    const lines = [
-      "# Compressed Earlier Context",
-      "",
-      "The following is a compact checkpoint of earlier conversation turns. Original session messages are preserved in storage; this checkpoint only replaces the covered older turns for the current model input.",
-      "",
-      `Covered messages: ${messages.length}`,
-      "",
-    ];
-    for (const [index, message] of messages.entries()) {
-      const role = readString(message.role) || "message";
-      const name = readString(message.name);
-      const content = truncateText(stringifyContent(message.content).trim(), MAX_MESSAGE_EXCERPT_CHARS);
-      if (!content) {
-        continue;
-      }
-      lines.push(`## ${index + 1}. ${role}${name ? ` (${name})` : ""}`);
-      lines.push(content);
-      lines.push("");
-    }
-    return truncateText(lines.join("\n").trim(), MAX_SUMMARY_CHARS);
-  };
+}
+
+export function readCompressedContextCompactionCheckpoint(value: unknown): ContextCompactionCheckpoint | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const checkpoint = value as Partial<ContextCompactionCheckpoint>;
+  return checkpoint.version === 1 && checkpoint.status === "compressed" && typeof checkpoint.summary === "string"
+    ? (checkpoint as ContextCompactionCheckpoint)
+    : null;
 }

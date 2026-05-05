@@ -247,7 +247,6 @@ it("renders context compaction as an in-flow divider instead of a chat message",
         summary: "Compressed Earlier Context",
         coveredMessageCount: 8,
         coveredSessionMessageCount: 8,
-        coveredUntilMessageId: "message-before",
         originalEstimatedTokens: 76000,
         projectedEstimatedTokens: 51000,
         createdAt: "2026-05-05T11:59:50.000Z",
@@ -259,7 +258,7 @@ it("renders context compaction as an in-flow divider instead of a chat message",
 
   const { getByText } = render(
     <ChatMessageListContainer
-      messages={[beforeMessage, afterMessage, compactionMessage]}
+      messages={[beforeMessage, compactionMessage, afterMessage]}
       isSending={false}
     />,
   );
@@ -267,6 +266,6 @@ it("renders context compaction as an in-flow divider instead of a chat message",
   expect(getByText("chatContextCompactionCompressed")).toBeTruthy();
   const renderedGroups = captures.renders.map((rendered) => rendered.messages);
   expect(renderedGroups).toHaveLength(2);
-  expect(renderedGroups[0]).toHaveLength(1);
-  expect(renderedGroups[1]).toHaveLength(1);
+  expect(renderedGroups[0]).toMatchObject([{ id: "message-before" }]);
+  expect(renderedGroups[1]).toMatchObject([{ id: "message-after" }]);
 });

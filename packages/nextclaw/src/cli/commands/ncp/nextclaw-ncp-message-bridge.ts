@@ -6,7 +6,6 @@ import {
   type NcpToolInvocationPart,
   sanitizeAssistantReplyTags,
 } from "@nextclaw/ncp";
-import { isContextCompactionTimelineMessage } from "./context/context-compaction-timeline-message.utils.js";
 
 export function normalizeString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -192,6 +191,7 @@ function resolveImageUrl(part: Extract<NcpMessagePart, { type: "file" }>): strin
 
 type LegacyContentBuildOptions = {
   assetStore?: LocalAssetStore | null;
+  serviceRole?: "service" | "system";
 };
 
 export function buildLegacyUserContent(
@@ -295,13 +295,14 @@ function buildLegacyNonAssistantMessage(
   timestamp: string,
   options: LegacyContentBuildOptions,
 ): SessionMessage {
-  const role = message.role === "service" ? "system" : message.role;
+  const role = message.role === "service" && options.serviceRole === "system" ? "system" : message.role;
   return {
     role,
     content: buildLegacyUserContent(message.parts, options),
     timestamp,
     ncp_message_id: message.id,
     ncp_parts: structuredClone(message.parts),
+    ...(message.metadata ? { ncp_metadata: structuredClone(message.metadata) } : {}),
   };
 }
 
@@ -312,9 +313,6 @@ export function toLegacyMessages(
   const legacyMessages: SessionMessage[] = [];
 
   for (const rawMessage of messages) {
-    if (isContextCompactionTimelineMessage(rawMessage)) {
-      continue;
-    }
     const message = rawMessage.role === "assistant" ? sanitizeAssistantReplyTags(rawMessage) : rawMessage;
     const timestamp = ensureIsoTimestamp(message.timestamp, new Date().toISOString());
 

@@ -105,6 +105,18 @@ function createMessageId(sessionId: string, index: number, role: string, timesta
   return `${sessionId}:${role.trim().toLowerCase() || "message"}:${index}:${timestamp}`;
 }
 
+function resolveMessageId(params: {
+  sessionId: string;
+  index: number;
+  role: string;
+  timestamp: string;
+  message: SessionMessage;
+}): string {
+  const { index, message, role, sessionId, timestamp } = params;
+  return normalizeString(message.ncp_message_id) ??
+    createMessageId(sessionId, index, role, timestamp);
+}
+
 function isNcpMessagePart(value: unknown): value is NcpMessagePart {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value) && typeof (value as { type?: unknown }).type === "string";
 }
@@ -130,16 +142,17 @@ function readStoredNcpMetadata(message: SessionMessage): Record<string, unknown>
 }
 
 function buildAssistantMessage(params: { sessionId: string; index: number; message: SessionMessage }): NcpMessage {
-  const timestamp = ensureIsoTimestamp(params.message.timestamp, new Date().toISOString());
+  const { index, message, sessionId } = params;
+  const timestamp = ensureIsoTimestamp(message.timestamp, new Date().toISOString());
   const replyTo =
-    typeof params.message.reply_to === "string" && params.message.reply_to.trim().length > 0
-      ? params.message.reply_to.trim()
+    typeof message.reply_to === "string" && message.reply_to.trim().length > 0
+      ? message.reply_to.trim()
       : undefined;
-  const storedParts = readStoredNcpParts(params.message);
+  const storedParts = readStoredNcpParts(message);
   if (storedParts) {
     return sanitizeAssistantReplyTags({
-      id: createMessageId(params.sessionId, params.index, "assistant", timestamp),
-      sessionId: params.sessionId,
+      id: resolveMessageId({ index, message, role: "assistant", sessionId, timestamp }),
+      sessionId,
       role: "assistant",
       status: "final",
       timestamp,
@@ -148,12 +161,12 @@ function buildAssistantMessage(params: { sessionId: string; index: number; messa
     });
   }
 
-  const toolCalls = parseLegacyToolCalls(params.message.tool_calls);
-  const parts: NcpMessagePart[] = [...contentToParts(params.message.content)];
-  if (typeof params.message.reasoning_content === "string") {
+  const toolCalls = parseLegacyToolCalls(message.tool_calls);
+  const parts: NcpMessagePart[] = [...contentToParts(message.content)];
+  if (typeof message.reasoning_content === "string") {
     parts.push({
       type: "reasoning",
-      text: params.message.reasoning_content
+      text: message.reasoning_content
     });
   }
 
@@ -168,8 +181,8 @@ function buildAssistantMessage(params: { sessionId: string; index: number; messa
   }
 
   return sanitizeAssistantReplyTags({
-    id: createMessageId(params.sessionId, params.index, "assistant", timestamp),
-    sessionId: params.sessionId,
+    id: resolveMessageId({ index, message, role: "assistant", sessionId, timestamp }),
+    sessionId,
     role: "assistant",
     status: "final",
     timestamp,
@@ -181,31 +194,29 @@ function buildAssistantMessage(params: { sessionId: string; index: number; messa
 function buildGenericMessage(
   params: { sessionId: string; index: number; role: NcpMessage["role"]; message: SessionMessage },
 ): NcpMessage {
-  const timestamp = ensureIsoTimestamp(params.message.timestamp, new Date().toISOString());
-  const storedParts = readStoredNcpParts(params.message);
+  const { index, message, role, sessionId } = params;
+  const timestamp = ensureIsoTimestamp(message.timestamp, new Date().toISOString());
+  const storedParts = readStoredNcpParts(message);
+  const storedMetadata = readStoredNcpMetadata(message);
   if (storedParts) {
     return {
-      id: createMessageId(params.sessionId, params.index, params.role, timestamp),
-      sessionId: params.sessionId,
-      role: params.role,
+      id: resolveMessageId({ index, message, role, sessionId, timestamp }),
+      sessionId,
+      role,
       status: "final",
       timestamp,
       parts: storedParts,
-      ...(readStoredNcpMetadata(params.message)
-        ? { metadata: readStoredNcpMetadata(params.message) }
-        : {}),
+      ...(storedMetadata ? { metadata: storedMetadata } : {}),
     };
   }
   return {
-    id: createMessageId(params.sessionId, params.index, params.role, timestamp),
-    sessionId: params.sessionId,
-    role: params.role,
+    id: resolveMessageId({ index, message, role, sessionId, timestamp }),
+    sessionId,
+    role,
     status: "final",
     timestamp,
-    parts: contentToParts(params.message.content),
-    ...(readStoredNcpMetadata(params.message)
-      ? { metadata: readStoredNcpMetadata(params.message) }
-      : {}),
+    parts: contentToParts(message.content),
+    ...(storedMetadata ? { metadata: storedMetadata } : {}),
   };
 }
 

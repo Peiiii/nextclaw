@@ -140,24 +140,12 @@ function resolveCompactionBoundaryIndex(params: {
   rawMessages: readonly NcpMessage[];
   normalRawMessages: readonly NcpMessage[];
   rawMessageId: string;
-  checkpoint: ContextCompactionTimelineView;
 }): number {
   const {
-    checkpoint,
     normalRawMessages,
     rawMessageId,
     rawMessages,
   } = params;
-  const boundaryMessageId = checkpoint.coveredUntilMessageId;
-  if (boundaryMessageId) {
-    const boundaryIndex = normalRawMessages.findIndex(
-      (message) => message.id === boundaryMessageId,
-    );
-    if (boundaryIndex >= 0) {
-      return boundaryIndex;
-    }
-  }
-
   const physicalIndex = rawMessages.findIndex(
     (message) => message.id === rawMessageId,
   );
@@ -193,7 +181,6 @@ function buildTimelineItems(params: {
         rawMessages: params.rawMessages,
         normalRawMessages,
         rawMessageId: entry.rawMessageId,
-        checkpoint: entry.checkpoint,
       }),
     }))
     .sort((left, right) => left.boundaryIndex - right.boundaryIndex);

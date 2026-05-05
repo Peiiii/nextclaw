@@ -6,6 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { ConfigSchema, SessionManager } from "@nextclaw/core";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { NextclawNcpContextBuilder } from "../nextclaw-ncp-context-builder.js";
+import { buildContextCompactionTimelineNcpMessage } from "./context-compaction-timeline-message.utils.js";
 import {
   createNcpTestConfig,
   writeSkillFixture,
@@ -55,7 +56,6 @@ it("injects runtime tool definitions into the system prompt", () => {
     writeGitConfig(workspace, ['[remote "origin"]', "  url = https://github.com/Peiiii/nextclaw.git"].join("\n"));
     const config = createNcpTestConfig(workspace);
     const prepareForRun = vi.fn();
-    const onSessionUpdated = vi.fn();
     const builder = new NextclawNcpContextBuilder({
       sessionManager: new SessionManager(workspace),
       toolRegistry: {
@@ -74,7 +74,6 @@ it("injects runtime tool definitions into the system prompt", () => {
         ],
       } as never,
       getConfig: () => config,
-      onSessionUpdated,
     });
 
     const prepared = builder.prepare({
@@ -97,9 +96,6 @@ it("injects runtime tool definitions into the system prompt", () => {
     expect(String(systemMessage?.content)).toContain("## Tool Use Enforcement");
     expect(String(systemMessage?.content)).toContain("## OpenAI/Codex Execution Discipline");
     expect(prepareForRun).toHaveBeenCalledTimes(1);
-    expect(onSessionUpdated.mock.calls.at(-1)?.[1]).toMatchObject({
-      last_context_window: { compacted: false, totalContextTokens: expect.any(Number), usedContextTokens: expect.any(Number) },
-    });
 });
 
 it("injects session orchestration guidance into the NCP system prompt", () => {
@@ -149,10 +145,10 @@ it("injects session orchestration guidance into the NCP system prompt", () => {
     expect(systemPrompt).toContain("`sessions_request.target` must be an object shaped like");
   });
 
-it("compacts older model input into an auxiliary checkpoint without deleting stored messages", () => {
+it("projects the latest in-flow compaction checkpoint without mutating stored messages", () => {
     const { workspace } = createWorkspace();
     const config = createNcpTestConfig(workspace, {
-      contextTokens: 1400,
+      contextTokens: 50_000,
     });
     const sessionManager = new SessionManager(workspace);
     const sessionId = `session-${randomUUID()}`;
@@ -164,9 +160,24 @@ it("compacts older model input into an auxiliary checkpoint without deleting sto
         `historical message ${index} ${"details ".repeat(100)}`,
       );
     }
+    const sessionMessages = toNcpMessages(sessionId, session.messages);
+    const checkpointMessage = buildContextCompactionTimelineNcpMessage({
+      sessionId,
+      checkpoint: {
+        version: 1,
+        id: "ctx-existing",
+        status: "compressed",
+        summary: "# Compressed Earlier Context\n\nImportant old context.",
+        coveredMessageCount: 12,
+        coveredSessionMessageCount: 12,
+        originalEstimatedTokens: 2200,
+        projectedEstimatedTokens: 700,
+        createdAt: "2026-03-25T09:00:00.000Z",
+        updatedAt: "2026-03-25T09:00:00.000Z",
+      },
+    });
     sessionManager.save(session);
     const prepareForRun = vi.fn();
-    const onSessionUpdated = vi.fn();
     const builder = new NextclawNcpContextBuilder({
       sessionManager,
       toolRegistry: {
@@ -174,10 +185,8 @@ it("compacts older model input into an auxiliary checkpoint without deleting sto
         getToolDefinitions: () => [],
       } as never,
       getConfig: () => config,
-      onSessionUpdated,
     });
 
-    const sessionMessages = toNcpMessages(sessionId, session.messages);
     const prepared = builder.prepare(
       {
         sessionId,
@@ -191,27 +200,20 @@ it("compacts older model input into an auxiliary checkpoint without deleting sto
         metadata: {},
       } as never,
       {
-        sessionMessages,
+        sessionMessages: [
+          ...sessionMessages.slice(0, 12),
+          checkpointMessage,
+          ...sessionMessages.slice(12),
+        ],
       },
     );
 
     const updatedSession = sessionManager.getOrCreate(sessionId);
     expect(updatedSession.messages.filter((message) => message.role !== "service")).toHaveLength(18);
-    expect(updatedSession.messages.some((message) => message.role === "service")).toBe(true);
-    expect(updatedSession.metadata.last_context_window).toMatchObject({
-      version: 1,
-      compacted: true,
-      compactedMessageCount: expect.any(Number),
-    });
-    expect(updatedSession.metadata.last_context_compaction).toMatchObject({
-      version: 1,
-      status: "compressed",
-      coveredMessageCount: expect.any(Number),
-      coveredUntilMessageId: sessionMessages[11]?.id,
-      summary: expect.stringContaining("Compressed Earlier Context"),
-    });
-    expect(onSessionUpdated.mock.calls.at(-1)).toMatchObject([sessionId, { last_context_window: { compacted: true } }]);
-    expect(prepared.messages.length).toBeGreaterThan(0);
+    expect(updatedSession.messages.some((message) => message.role === "service")).toBe(false);
+    expect(updatedSession.metadata.last_context_window).toBeUndefined();
+    expect(String(prepared.messages.map((message) => message.content).join("\n"))).toContain("Important old context.");
+    expect(String(prepared.messages.map((message) => message.content).join("\n"))).not.toContain("historical message 0");
   });
 
 it("preserves requested skill refs and learning guidance in the NCP prompt", () => {

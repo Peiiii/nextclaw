@@ -16,12 +16,17 @@
 - 压缩条目可以被认为是“特殊 message / timeline item”，但不是普通用户消息，也不是送给 AI 的 `system message`。
 - 模型输入构造时，可以用压缩检查点替代其覆盖范围内的旧历史。
 - 前端只做轻量分割线式展示，不做普通聊天气泡。
+- 上下文压缩与 context build 解耦：发送前预检负责判断和写入压缩状态，builder 只消费已有 checkpoint 构建模型输入。
+- 支持运行时上下文所有权策略：NextClaw 只管理自己负责模型输入的 runtime；Codex、Claude Code 这类自带上下文管理的 runtime 不做外层二次压缩。
+- 为未来用户手动触发压缩保留同一个后端入口。
 
 ## 非目标
 
 - 这次不做异步 LLM 二次摘要任务编排。
 - 这次不做多检查点链式重算优化。
 - 这次不做原始历史展开回放面板。
+- 这次不为 Codex、Claude Code 等 runtime-owned 会话强行注入 NextClaw 压缩。
+- 这次不做前端手动压缩按钮，但后端接口边界要能承接未来手动触发。
 
 ## 核心定义
 
@@ -35,12 +40,12 @@
   metadata: {
     nextclaw_timeline_kind: "context_compaction",
     checkpoint: {
+      version: 1,
       id: string,
       status: "compressing" | "compressed",
       summary: string,
       coveredMessageCount: number,
       coveredSessionMessageCount: number,
-      coveredUntilMessageId?: string,
       originalEstimatedTokens: number,
       projectedEstimatedTokens: number,
       createdAt: string,
@@ -53,7 +58,7 @@
 这里最关键的是两点：
 
 - `context_compaction` 是一种**特殊 timeline item**。
-- `coveredUntilMessageId` 或等价覆盖边界信息，定义它在消息流里的准确位置与覆盖范围。
+- 这条 timeline item 的**物理位置**就是覆盖边界：它之前的普通消息由摘要替代，它之后的普通消息继续原样参与模型输入。
 
 ## 为什么它既像 message，又不是普通 message
 
@@ -95,6 +100,48 @@
 - timeline item 是消息流位置锚点
 - `last_context_window` 是输入框占用指标锚点
 
+## 职责边界
+
+上下文压缩必须和模型输入构建分开：
+
+1. `ContextCompactionPreflightService`
+   - 发送前预检 owner。
+   - 在用户消息进入会话、模型输入构建之前执行。
+   - 负责读取 session、agent profile、上下文窗口配置和当前 runtime ownership。
+   - 负责判断是否需要压缩、写入 `compressing -> compressed`、更新 timeline item、更新 `last_context_compaction` 与 `last_context_window`。
+   - 未来手动压缩也走这个 service，只是触发来源从 `send-preflight` 变成 `manual`。
+
+2. `ContextCompactionService`
+   - 压缩算法 owner。
+   - 负责将可压缩旧历史投影成 checkpoint summary，并产出覆盖消息数与 token 估算。
+   - 不关心 UI、runtime、会话存储触发方式。
+
+3. `NextclawNcpContextBuilder`
+   - 只做模型输入构建。
+   - 不触发压缩。
+   - 不写 session。
+   - 不插 timeline message。
+   - 只消费预检阶段已经存在的 checkpoint，把被覆盖的旧历史替换成摘要。
+
+这个边界避免 builder 同时承担 build、压缩、写入、通知四种职责。
+
+## Runtime Context Ownership
+
+不同 runtime 对上下文的职责不同：
+
+- `nextclaw-managed`：NextClaw 负责构建完整模型输入、估算窗口、触发压缩和最终裁剪。第一版主要对应 native runtime。
+- `runtime-managed`：runtime 自己负责上下文窗口、压缩、裁剪和缓存策略。Codex、Claude Code 这类专业 agent runtime 属于这一类。
+
+预检规则：
+
+- `nextclaw-managed` 会话：每次发送前执行 NextClaw 压缩预检。
+- `runtime-managed` 会话：跳过 NextClaw 外层压缩，避免二次压缩、缓存破坏和责任冲突。
+
+UI 展示规则：
+
+- `nextclaw-managed` 会话可以展示 NextClaw 的压缩 checkpoint。
+- `runtime-managed` 会话如果 runtime 能提供自己的上下文状态，未来接入 runtime-reported metadata；如果不能，只展示轻量说明“上下文由运行时管理”，不伪装成 NextClaw 已压缩。
+
 ## 前端展示方案
 
 前端不要把它渲染成聊天气泡，而是在消息流内部渲染成一条轻量分割线：
@@ -110,15 +157,39 @@
 - 中间一个浅灰背景的小标签
 - hover/title 可看覆盖消息数、压缩前后 token 估算
 
+## 发送前预检
+
+发送前预检发生在用户消息进入会话之后、模型输入构建之前：
+
+1. 读取当前 session 历史和当前用户消息。
+2. 根据 agent profile 获取 `contextTokens`。
+3. 构造一次与 builder 一致的可估算输入视图。
+4. 当上下文占用达到压缩阈值，并且存在足够旧历史时，生成 checkpoint。
+5. 写入特殊 timeline item 与 metadata。
+6. 通知当前 live session metadata 更新，让前端上下文圆环立即刷新。
+
+触发来源第一版包含：
+
+- `send-preflight`
+
+未来可扩展：
+
+- `manual`
+- `scheduled-maintenance`
+- `runtime-reported`
+
+手动触发时复用同一个 service，避免另起一套压缩路径。
+
 ## 模型输入投影
 
 `NextclawNcpContextBuilder` 在构建请求时：
 
 1. 读取完整历史时间线
-2. 识别 `context_compaction` 特殊条目
-3. 对它覆盖范围之前的旧历史不再直接拼进 prompt
+2. 查找消息流中最近一条 `compressed` 的 `context_compaction` checkpoint
+3. 对这条 checkpoint 之前的旧历史不再直接拼进 prompt
 4. 使用 checkpoint `summary` 作为临时替代内容
-5. 再交给现有 `InputBudgetPruner` 做最终兜底裁剪
+5. 保留 checkpoint 之后的普通消息
+6. 再交给现有 `InputBudgetPruner` 做最终安全裁剪
 
 也就是说：
 
@@ -142,9 +213,7 @@
 - `compressing`
 - `compressed`
 
-当 builder 发现上下文超预算并准备构建 checkpoint 时，先写入 `compressing` 条目；完成后更新为 `compressed`。
-
-虽然当前实现仍是同步快速完成，但这个生命周期设计是必要的，因为后续升级为真正异步摘要时，UI 和数据模型不需要重做。
+第一版同步完成 LLM 摘要，因此通常直接写入 `compressed` 条目；数据结构保留 `compressing` 状态，用于后续升级为后台异步摘要时复用同一条 timeline item。
 
 前端在消息流中只展示两种文案：
 
@@ -156,24 +225,35 @@
 ## 可维护性原则
 
 - 后端压缩逻辑集中在一个 owner class 中。
+- 触发时机集中在一个 preflight service 中。
+- builder 保持纯构建，不再承担压缩写入副作用。
 - 不新增第二套会话存储模型。
 - 不把 checkpoint 伪装成普通 `system` message。
-- 不让前端从 metadata 猜位置，而是让 timeline item 自带顺序语义。
+- 不让前端从 metadata 猜位置，也不再维护第二套覆盖边界字段，而是让 timeline item 的消息流位置自带顺序语义。
 - `usedContextTokens` 和 `totalContextTokens` 继续保持为独立字段，不与 checkpoint 结构耦合。
 
 补充约束：
 
 - 命中压缩后，原始 session message 绝不删除。
-- timeline item 虽然采用 `service` role 承载，但 builder / bridge 必须显式过滤，防止它被误当成普通上游历史消息送给模型。
-- `coveredUntilMessageId` 必须由压缩 owner 真实产出，而不是由前端或其它层做近似猜测。
+- timeline item 虽然采用 `service` role 承载，但 builder 必须显式识别，防止它被误当成普通上游历史消息送给模型；普通 `service` 历史仍按既有合同转成上游 `system` 历史。
+- checkpoint ID 只用于更新同一条压缩记录和展示追踪，不参与模型输入边界判断。
 
 ## 第一版实现策略
 
-第一版摘要使用确定性压缩，而不是额外发起一次 LLM 摘要请求。原因：
+第一版摘要必须使用 LLM 生成结构化 summary，而不是确定性摘录或裁剪。原因：
 
-- 现有 `prepare()` 路径是同步构造模型输入。
-- 如果这次强行引入二次异步摘要，会把 runtime 主链路大幅改大。
-- 先把“特殊条目 + 正确位置 + builder 替代逻辑”这套骨架做好，后续再把摘要生成器升级成 LLM 版本即可。
+- 上下文压缩的核心价值是语义保真和信息重组，简单截取旧消息只能算裁剪，不能算压缩。
+- 编程 Agent 的长会话摘要需要保留用户目标、显式约束、关键决策、已读/已改文件、命令与测试结果、失败尝试、风险和下一步。
+- checkpoint 仍然只是一条消息流位置锚点；真正进入后续模型输入的是 LLM 生成的 summary。
+
+第一版仍然采用同步 preflight 方式：
+
+1. 先估算当前输入是否达到压缩阈值。
+2. 只有需要压缩时，才用当前 Agent 模型发起一次 summary 请求。
+3. summary 请求成功后写入 `compressed` checkpoint。
+4. 后续业务模型输入使用 summary 替代 checkpoint 之前的历史。
+
+如果 summary 生成失败，不写入假的压缩 checkpoint；请求应保留可观察失败，而不是把裁剪结果伪装成压缩结果。
 
 ## 失败与兜底
 
@@ -188,19 +268,21 @@
 
 ## 当前实现落点
 
-第一版代码落点如下：
+代码落点如下：
 
-- 后端 owner：
+- 后端压缩 owner：
   - `context-compaction.service.ts`
+- 发送前预检 owner：
+  - `context-compaction-preflight.service.ts`
 - timeline 特殊条目工具：
   - `context-compaction-timeline-message.utils.ts`
 - 上下文窗口 metadata 工具：
   - `context-window-metadata.utils.ts`
-- builder 接入：
+- builder 投影消费：
   - `nextclaw-ncp-context-builder.ts`
 - 前端 timeline 解析：
   - `ncp-session-context-metadata.utils.ts`
 - 前端消息流 divider 渲染：
   - `chat-message-list.container.tsx`
 
-这样做的目的，是把“压缩策略”“timeline 挂载”“UI 读取”三层分开，但仍然保持在很小的实现面内，不引入额外 orchestrator。
+这样做的目的，是把“触发时机”“压缩策略”“timeline 挂载”“模型输入投影”“UI 读取”分开，但仍然保持在很小的实现面内，不引入通用 pipeline 或多层 orchestrator。

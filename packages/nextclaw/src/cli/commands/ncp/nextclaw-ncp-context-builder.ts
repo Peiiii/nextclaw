@@ -37,20 +37,7 @@ import {
   syncSessionThinkingPreference,
 } from "./context/nextclaw-ncp-session-preferences.js";
 import { buildCurrentTurnState } from "./context/nextclaw-ncp-current-turn.js";
-import {
-  ContextCompactionService,
-} from "./context/context-compaction.service.js";
-import {
-  isContextCompactionTimelineMessage,
-  upsertContextCompactionTimelineMessage,
-} from "./context/context-compaction-timeline-message.utils.js";
-import {
-  buildCompressingCompactionCheckpoint,
-  buildContextWindowMetadata,
-  buildPersistedCompactionCheckpoint,
-  CONTEXT_COMPACTION_METADATA_KEY,
-  CONTEXT_WINDOW_METADATA_KEY,
-} from "./context/context-window-metadata.utils.js";
+import { projectNcpMessagesWithContextCompaction } from "./context/context-compaction-projection.utils.js";
 import {
   readAccountIdForHints,
   resolveAgentHandoffDepth,
@@ -70,7 +57,6 @@ type NextclawNcpContextBuilderOptions = {
   getConfig: () => Config;
   resolveMessageToolHints?: MessageToolHintsResolver;
   assetStore?: LocalAssetStore | null;
-  onSessionUpdated?: (sessionKey: string, metadata: Record<string, unknown>) => void;
 };
 
 type ResolvedAgentProfile = {
@@ -103,7 +89,6 @@ type PreparedRunContext = {
 
 type BuiltNcpModelMessages = {
   messages: Record<string, unknown>[];
-  sessionMessages: NonNullable<NcpContextPrepareOptions["sessionMessages"]>;
   toolDefinitions: readonly NcpToolDefinition[];
 };
 
@@ -263,7 +248,6 @@ function buildRequestedOpenAiTools(
 
 export class NextclawNcpContextBuilder implements NcpContextBuilder {
   private readonly inputBudgetPruner = new InputBudgetPruner();
-  private readonly contextCompactionService = new ContextCompactionService();
 
   constructor(
     private readonly options: NextclawNcpContextBuilderOptions,
@@ -272,7 +256,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
   prepare = (input: NcpAgentRunInput, _options?: NcpContextPrepareOptions): NcpLLMApiInput => {
     const runContext = this.prepareRunContext(input);
     const modelMessages = this.buildModelMessages(input, _options, runContext);
-    const pruned = this.compactAndPruneModelMessages(runContext, modelMessages);
+    const pruned = this.pruneModelMessages(runContext, modelMessages);
 
     return {
       messages: pruned.messages as OpenAIChatMessage[],
@@ -398,12 +382,14 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
         sessionProjectRoot: readSessionProjectRoot(session.metadata),
       },
     );
-    const sessionMessages = (_options?.sessionMessages ?? []).filter(
-      (message) => !isContextCompactionTimelineMessage(message),
-    );
+    const sessionMessages = projectNcpMessagesWithContextCompaction({
+      sessionId: input.sessionId,
+      sessionMessages: _options?.sessionMessages ?? [],
+    });
     const messages = contextBuilder.buildMessages({
       history: toLegacyMessages([...sessionMessages], {
         assetStore: this.options.assetStore,
+        serviceRole: "system",
       }),
       currentMessage: "",
       attachments: [],
@@ -422,78 +408,17 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     };
     return {
       messages,
-      sessionMessages,
       toolDefinitions,
     };
   };
 
-  private compactAndPruneModelMessages = (
+  private pruneModelMessages = (
     runContext: PreparedRunContext,
     modelMessages: BuiltNcpModelMessages,
   ) => {
-    const { messages, sessionMessages } = modelMessages;
-    const { profile, session } = runContext;
-    const estimate = this.inputBudgetPruner.estimate({
-      messages,
-      contextTokens: profile.contextTokens,
+    return this.inputBudgetPruner.prune({
+      messages: modelMessages.messages,
+      contextTokens: runContext.profile.contextTokens,
     });
-    if (estimate.estimatedTokens > estimate.budgetTokens) {
-      const compressingCheckpoint = buildCompressingCompactionCheckpoint(
-        session.metadata[CONTEXT_COMPACTION_METADATA_KEY],
-      );
-      session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = compressingCheckpoint;
-      upsertContextCompactionTimelineMessage({
-        session,
-        checkpoint: compressingCheckpoint,
-      });
-      this.notifySessionUpdated(runContext, session);
-    }
-    const compacted = this.contextCompactionService.compactForModelInput({
-      messages,
-      contextTokens: profile.contextTokens,
-      sessionHistoryMessageIds: sessionMessages.map((message) => message.id),
-    });
-    const pruned = this.inputBudgetPruner.prune({
-      messages: compacted.messages,
-      contextTokens: profile.contextTokens,
-    });
-    const compactedEstimate =
-      compacted.checkpoint?.projectedEstimatedTokens ??
-      this.inputBudgetPruner.estimate({
-        messages: compacted.messages,
-        contextTokens: profile.contextTokens,
-      }).estimatedTokens;
-    session.metadata[CONTEXT_WINDOW_METADATA_KEY] = buildContextWindowMetadata({
-      usedContextTokens: estimate.estimatedTokens,
-      totalContextTokens: profile.contextTokens,
-      prunedUsedContextTokens: pruned.estimatedTokens,
-      droppedHistoryCount: pruned.droppedHistoryCount,
-      truncatedToolResultCount: pruned.truncatedToolResultCount,
-      truncatedSystemPrompt: pruned.truncatedSystemPrompt,
-      truncatedUserMessage: pruned.truncatedUserMessage,
-      checkpoint: compacted.checkpoint,
-      compactedUsedContextTokens: compacted.checkpoint ? compactedEstimate : undefined,
-    });
-    const persistedCheckpoint = buildPersistedCompactionCheckpoint(
-      compacted.checkpoint,
-      session.metadata[CONTEXT_COMPACTION_METADATA_KEY],
-    );
-    session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = persistedCheckpoint;
-    if (persistedCheckpoint) {
-      upsertContextCompactionTimelineMessage({
-        session,
-        checkpoint: persistedCheckpoint,
-      });
-    }
-    this.notifySessionUpdated(runContext, session);
-    return pruned;
-  };
-
-  private notifySessionUpdated = (
-    runContext: PreparedRunContext,
-    session: PreparedRunContext["session"],
-  ): void => {
-    this.options.sessionManager.save(session);
-    this.options.onSessionUpdated?.(runContext.sessionKey, structuredClone(session.metadata));
   };
 }
