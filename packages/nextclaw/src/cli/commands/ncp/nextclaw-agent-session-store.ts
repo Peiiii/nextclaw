@@ -8,7 +8,7 @@ import {
 import {
   resolveLegacyEventType,
   toNcpMessages,
-} from "./session/nextclaw-agent-session-message-adapter.js";
+} from "./session/nextclaw-agent-session-message-adapter.utils.js";
 import { resolvePersistedSessionMetadata } from "./session/nextclaw-agent-session-metadata.utils.js";
 
 function readAgentIdFromMetadata(metadata: Record<string, unknown> | undefined): string | undefined {

@@ -121,6 +121,14 @@ function readStoredNcpParts(message: SessionMessage): NcpMessagePart[] | null {
   return structuredClone(parts);
 }
 
+function readStoredNcpMetadata(message: SessionMessage): Record<string, unknown> | undefined {
+  const rawMetadata = message.ncp_metadata;
+  if (!rawMetadata || typeof rawMetadata !== "object" || Array.isArray(rawMetadata)) {
+    return undefined;
+  }
+  return structuredClone(rawMetadata as Record<string, unknown>);
+}
+
 function buildAssistantMessage(params: { sessionId: string; index: number; message: SessionMessage }): NcpMessage {
   const timestamp = ensureIsoTimestamp(params.message.timestamp, new Date().toISOString());
   const replyTo =
@@ -183,6 +191,9 @@ function buildGenericMessage(
       status: "final",
       timestamp,
       parts: storedParts,
+      ...(readStoredNcpMetadata(params.message)
+        ? { metadata: readStoredNcpMetadata(params.message) }
+        : {}),
     };
   }
   return {
@@ -191,7 +202,10 @@ function buildGenericMessage(
     role: params.role,
     status: "final",
     timestamp,
-    parts: contentToParts(params.message.content)
+    parts: contentToParts(params.message.content),
+    ...(readStoredNcpMetadata(params.message)
+      ? { metadata: readStoredNcpMetadata(params.message) }
+      : {}),
   };
 }
 

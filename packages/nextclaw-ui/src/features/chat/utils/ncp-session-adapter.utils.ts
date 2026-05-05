@@ -1,14 +1,19 @@
 import { ToolInvocationStatus, type UIMessage } from '@nextclaw/agent-chat';
 import type { NcpMessagePart } from '@nextclaw/ncp';
-import type { NcpMessageView, NcpSessionSummaryView, SessionContextWindowView, SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
+import type {
+  NcpMessageView,
+  NcpSessionSummaryView,
+  SessionEntryView,
+  ThinkingLevel
+} from '@/shared/lib/api';
 import { API_BASE } from '@/shared/lib/api';
 import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
 } from '@/shared/lib/session-project';
+import { readNcpSessionContextWindow } from './ncp-session-context-metadata.utils';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
-const CONTEXT_WINDOW_METADATA_KEY = 'last_context_window';
 
 function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
@@ -118,33 +123,6 @@ function readNonNegativeInteger(value: unknown): number | null {
 
 function readBoolean(value: unknown): boolean {
   return value === true;
-}
-
-function readNcpSessionContextWindow(summary: NcpSessionSummaryView): SessionContextWindowView | null {
-  const metadata = readMetadata(summary);
-  const rawContextWindow = metadata?.[CONTEXT_WINDOW_METADATA_KEY];
-  if (!rawContextWindow || typeof rawContextWindow !== 'object' || Array.isArray(rawContextWindow)) {
-    return null;
-  }
-  const contextWindow = rawContextWindow as Record<string, unknown>;
-  const usedContextTokens = readNonNegativeInteger(contextWindow.usedContextTokens);
-  const totalContextTokens = readNonNegativeInteger(contextWindow.totalContextTokens);
-  const prunedUsedContextTokens = readNonNegativeInteger(contextWindow.prunedUsedContextTokens);
-  const updatedAt = readOptionalString(contextWindow.updatedAt);
-  if (usedContextTokens === null || totalContextTokens === null || prunedUsedContextTokens === null || !updatedAt) {
-    return null;
-  }
-  return {
-    usedContextTokens,
-    totalContextTokens,
-    prunedUsedContextTokens,
-    availableContextTokens: readNonNegativeInteger(contextWindow.availableContextTokens) ?? Math.max(0, totalContextTokens - usedContextTokens),
-    droppedHistoryCount: readNonNegativeInteger(contextWindow.droppedHistoryCount) ?? 0,
-    truncatedToolResultCount: readNonNegativeInteger(contextWindow.truncatedToolResultCount) ?? 0,
-    truncatedSystemPrompt: readBoolean(contextWindow.truncatedSystemPrompt),
-    truncatedUserMessage: readBoolean(contextWindow.truncatedUserMessage),
-    updatedAt
-  };
 }
 
 function readNcpParentSessionId(summary: NcpSessionSummaryView): string | null {

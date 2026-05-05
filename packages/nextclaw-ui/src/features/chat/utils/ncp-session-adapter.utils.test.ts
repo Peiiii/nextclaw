@@ -84,6 +84,10 @@ describe('adaptNcpSessionSummary', () => {
             truncatedToolResultCount: 1,
             truncatedSystemPrompt: false,
             truncatedUserMessage: false,
+            compacted: true,
+            checkpointId: 'ctx-20260505123456-8',
+            compactedMessageCount: 8,
+            compactedUsedContextTokens: 51000,
             updatedAt: '2026-05-05T12:34:56.000Z',
           },
         },
@@ -99,6 +103,10 @@ describe('adaptNcpSessionSummary', () => {
       truncatedToolResultCount: 1,
       truncatedSystemPrompt: false,
       truncatedUserMessage: false,
+      compacted: true,
+      checkpointId: 'ctx-20260505123456-8',
+      compactedMessageCount: 8,
+      compactedUsedContextTokens: 51000,
       updatedAt: '2026-05-05T12:34:56.000Z',
     });
   });

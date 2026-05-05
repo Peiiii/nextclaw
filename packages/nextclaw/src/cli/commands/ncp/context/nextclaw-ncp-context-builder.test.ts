@@ -10,6 +10,7 @@ import {
   createNcpTestConfig,
   writeSkillFixture,
 } from "./nextclaw-ncp-context-builder.test-support.js";
+import { toNcpMessages } from "../session/nextclaw-agent-session-message-adapter.utils.js";
 
 const tempWorkspaces: string[] = [];
 const originalNextclawHome = process.env.NEXTCLAW_HOME;
@@ -147,6 +148,71 @@ it("injects session orchestration guidance into the NCP system prompt", () => {
     expect(systemPrompt).toContain("Add `request: { notify: \"none\" | \"final_reply\" }`");
     expect(systemPrompt).toContain("`sessions_spawn.scope=\"child\"` and `sessions_spawn.request.notify=\"final_reply\"`");
     expect(systemPrompt).toContain("`sessions_request.target` must be an object shaped like");
+  });
+
+it("compacts older model input into an auxiliary checkpoint without deleting stored messages", () => {
+    const { workspace } = createWorkspace();
+    const config = createNcpTestConfig(workspace, {
+      contextTokens: 1400,
+    });
+    const sessionManager = new SessionManager(workspace);
+    const sessionId = `session-${randomUUID()}`;
+    const session = sessionManager.getOrCreate(sessionId);
+    for (let index = 0; index < 18; index += 1) {
+      sessionManager.addMessage(
+        session,
+        index % 2 === 0 ? "user" : "assistant",
+        `historical message ${index} ${"details ".repeat(100)}`,
+      );
+    }
+    sessionManager.save(session);
+    const prepareForRun = vi.fn();
+    const onSessionUpdated = vi.fn();
+    const builder = new NextclawNcpContextBuilder({
+      sessionManager,
+      toolRegistry: {
+        prepareForRun,
+        getToolDefinitions: () => [],
+      } as never,
+      getConfig: () => config,
+      onSessionUpdated,
+    });
+
+    const sessionMessages = toNcpMessages(sessionId, session.messages);
+    const prepared = builder.prepare(
+      {
+        sessionId,
+        messages: [
+          {
+            role: "user",
+            timestamp: new Date("2026-03-25T10:00:00.000Z").toISOString(),
+            parts: [{ type: "text", text: "continue from here" }],
+          },
+        ],
+        metadata: {},
+      } as never,
+      {
+        sessionMessages,
+      },
+    );
+
+    const updatedSession = sessionManager.getOrCreate(sessionId);
+    expect(updatedSession.messages.filter((message) => message.role !== "service")).toHaveLength(18);
+    expect(updatedSession.messages.some((message) => message.role === "service")).toBe(true);
+    expect(updatedSession.metadata.last_context_window).toMatchObject({
+      version: 1,
+      compacted: true,
+      compactedMessageCount: expect.any(Number),
+    });
+    expect(updatedSession.metadata.last_context_compaction).toMatchObject({
+      version: 1,
+      status: "compressed",
+      coveredMessageCount: expect.any(Number),
+      coveredUntilMessageId: sessionMessages[11]?.id,
+      summary: expect.stringContaining("Compressed Earlier Context"),
+    });
+    expect(onSessionUpdated).toHaveBeenCalledWith(sessionId);
+    expect(prepared.messages.length).toBeGreaterThan(0);
   });
 
 it("preserves requested skill refs and learning guidance in the NCP prompt", () => {

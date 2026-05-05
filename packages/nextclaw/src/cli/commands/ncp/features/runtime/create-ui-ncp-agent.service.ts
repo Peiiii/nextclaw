@@ -199,6 +199,7 @@ function createNativeRuntimeFactory(
         getConfig: params.getConfig,
         resolveMessageToolHints: params.resolveMessageToolHints,
         assetStore,
+        onSessionUpdated: params.onSessionUpdated,
       }),
       llmApi: new ProviderManagerNcpLLMApi(observedProviderManager),
       toolRegistry,
@@ -266,6 +267,7 @@ function createResolveOpenAiToolsForRuntime(params: {
     getConfig,
     resolveMessageToolHints,
     assetStore,
+    onSessionUpdated: undefined,
   });
 
   return (input: NcpAgentRunInput) => contextBuilder.prepare(input).tools;

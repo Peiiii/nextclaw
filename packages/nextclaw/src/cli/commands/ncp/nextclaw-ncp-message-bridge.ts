@@ -6,6 +6,7 @@ import {
   type NcpToolInvocationPart,
   sanitizeAssistantReplyTags,
 } from "@nextclaw/ncp";
+import { isContextCompactionTimelineMessage } from "./context/context-compaction-timeline-message.utils.js";
 
 export function normalizeString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -311,6 +312,9 @@ export function toLegacyMessages(
   const legacyMessages: SessionMessage[] = [];
 
   for (const rawMessage of messages) {
+    if (isContextCompactionTimelineMessage(rawMessage)) {
+      continue;
+    }
     const message = rawMessage.role === "assistant" ? sanitizeAssistantReplyTags(rawMessage) : rawMessage;
     const timestamp = ensureIsoTimestamp(message.timestamp, new Date().toISOString());
 

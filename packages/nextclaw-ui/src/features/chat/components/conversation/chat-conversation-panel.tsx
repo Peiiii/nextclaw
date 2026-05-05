@@ -160,6 +160,7 @@ type ChatConversationContentProps = {
   onToolAction: ChatToolActionHandler;
   onFileOpen: ChatFileOpenHandler;
 };
+
 function ChatConversationContent({
   snapshot,
   availableAgents,

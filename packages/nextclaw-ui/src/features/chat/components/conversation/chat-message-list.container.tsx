@@ -13,6 +13,10 @@ import {
 } from "@/features/chat/utils/chat-message.utils";
 import { readInlineTokensFromMetadata } from "@/features/chat/utils/chat-inline-token.utils";
 import { adaptNcpMessageToUiMessage } from "@/features/chat/utils/ncp-session-adapter.utils";
+import {
+  readContextCompactionTimeline,
+  type ContextCompactionTimelineView,
+} from "@/features/chat/utils/ncp-session-context-metadata.utils";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
 import { useI18n } from "@/app/components/i18n-provider";
 import { formatDateTime, t } from "@/shared/lib/i18n";
@@ -29,6 +33,24 @@ const messageViewModelCache = new WeakMap<
   NcpMessage,
   { language: string; viewModel: ChatMessageViewModel }
 >();
+
+type ChatTimelineItem =
+  | {
+      kind: "messages";
+      key: string;
+      messages: ChatMessageViewModel[];
+    }
+  | {
+      kind: "compaction";
+      key: string;
+      checkpoint: ContextCompactionTimelineView;
+    };
+
+type TimelineCheckpointPlacement = {
+  key: string;
+  checkpoint: ContextCompactionTimelineView;
+  boundaryIndex: number;
+};
 
 function buildChatMessageAdapterTexts(
   language: string,
@@ -84,6 +106,150 @@ function buildChatMessageTexts(language: string) {
   };
 }
 
+function ChatContextCompactionDivider({
+  checkpoint,
+}: {
+  checkpoint: ContextCompactionTimelineView;
+}) {
+  const title = [
+    `${t("chatContextCompactionCoveredMessages")}: ${checkpoint.coveredSessionMessageCount}`,
+    `${t("chatContextCompactionOriginalTokens")}: ${checkpoint.originalEstimatedTokens}`,
+    `${t("chatContextCompactionProjectedTokens")}: ${checkpoint.projectedEstimatedTokens}`,
+  ].join("\n");
+  return (
+    <div className="my-4 flex items-center gap-3 text-[11px] text-gray-500" title={title}>
+      <div className="h-px flex-1 bg-gray-200" />
+      <div className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-1">
+        {checkpoint.status === "compressing" ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse" />
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+        )}
+        <span>
+          {checkpoint.status === "compressing"
+            ? t("chatContextCompactionCompressing")
+            : t("chatContextCompactionCompressed")}
+        </span>
+      </div>
+      <div className="h-px flex-1 bg-gray-200" />
+    </div>
+  );
+}
+
+function resolveCompactionBoundaryIndex(params: {
+  rawMessages: readonly NcpMessage[];
+  normalRawMessages: readonly NcpMessage[];
+  rawMessageId: string;
+  checkpoint: ContextCompactionTimelineView;
+}): number {
+  const {
+    checkpoint,
+    normalRawMessages,
+    rawMessageId,
+    rawMessages,
+  } = params;
+  const boundaryMessageId = checkpoint.coveredUntilMessageId;
+  if (boundaryMessageId) {
+    const boundaryIndex = normalRawMessages.findIndex(
+      (message) => message.id === boundaryMessageId,
+    );
+    if (boundaryIndex >= 0) {
+      return boundaryIndex;
+    }
+  }
+
+  const physicalIndex = rawMessages.findIndex(
+    (message) => message.id === rawMessageId,
+  );
+  if (physicalIndex < 0) {
+    return normalRawMessages.length - 1;
+  }
+  const previousNormalCount = rawMessages
+    .slice(0, physicalIndex)
+    .filter((message) => !readContextCompactionTimeline(message)).length;
+  return previousNormalCount - 1;
+}
+
+function buildTimelineItems(params: {
+  rawMessages: readonly NcpMessage[];
+  messages: ChatMessageViewModel[];
+}): ChatTimelineItem[] {
+  const normalRawMessages = params.rawMessages.filter(
+    (message) => !readContextCompactionTimeline(message),
+  );
+  const checkpoints = params.rawMessages
+    .map((message) => ({
+      rawMessageId: message.id,
+      checkpoint: readContextCompactionTimeline(message),
+    }))
+    .filter(
+      (entry): entry is { rawMessageId: string; checkpoint: ContextCompactionTimelineView } =>
+        Boolean(entry.checkpoint),
+    )
+    .map((entry) => ({
+      key: entry.rawMessageId,
+      checkpoint: entry.checkpoint,
+      boundaryIndex: resolveCompactionBoundaryIndex({
+        rawMessages: params.rawMessages,
+        normalRawMessages,
+        rawMessageId: entry.rawMessageId,
+        checkpoint: entry.checkpoint,
+      }),
+    }))
+    .sort((left, right) => left.boundaryIndex - right.boundaryIndex);
+
+  const items: ChatTimelineItem[] = [];
+  let pendingMessages: ChatMessageViewModel[] = [];
+  let checkpointCursor = 0;
+  const flushPendingMessages = (key: string) => {
+    if (pendingMessages.length === 0) {
+      return;
+    }
+    items.push({
+      kind: "messages",
+      key,
+      messages: pendingMessages,
+    });
+    pendingMessages = [];
+  };
+
+  normalRawMessages.forEach((rawMessage, index) => {
+    const message = params.messages[index];
+    if (message) {
+      pendingMessages.push(message);
+    }
+    while (checkpointCursor < checkpoints.length && checkpoints[checkpointCursor]?.boundaryIndex <= index) {
+      const currentCheckpoint = checkpoints[checkpointCursor];
+      flushPendingMessages(`messages-before-${currentCheckpoint.key}`);
+      items.push({
+        kind: "compaction",
+        key: currentCheckpoint.key,
+        checkpoint: currentCheckpoint.checkpoint,
+      });
+      checkpointCursor += 1;
+    }
+  });
+  while (checkpointCursor < checkpoints.length) {
+    const currentCheckpoint = checkpoints[checkpointCursor];
+    flushPendingMessages(`messages-before-${currentCheckpoint.key}`);
+    items.push({
+      kind: "compaction",
+      key: currentCheckpoint.key,
+      checkpoint: currentCheckpoint.checkpoint,
+    });
+    checkpointCursor += 1;
+  }
+  flushPendingMessages("messages-final");
+  if (items.length === 0) {
+    items.push({
+      kind: "messages",
+      key: "messages-empty",
+      messages: [],
+    });
+  }
+  return items;
+}
+
 export function ChatMessageListContainer({
   messages: rawMessages,
   isSending,
@@ -98,10 +264,13 @@ export function ChatMessageListContainer({
   );
 
   const messages = useMemo(() => {
-    return rawMessages.map((message) => {
+    return rawMessages.flatMap((message) => {
+      if (readContextCompactionTimeline(message)) {
+        return [];
+      }
       const cached = messageViewModelCache.get(message);
       if (cached && cached.language === language) {
-        return cached.viewModel;
+        return [cached.viewModel];
       }
 
       const uiMessage = adaptNcpMessageToUiMessage(message);
@@ -121,7 +290,7 @@ export function ChatMessageListContainer({
       });
 
       messageViewModelCache.set(message, { language, viewModel });
-      return viewModel;
+      return [viewModel];
     });
   }, [language, rawMessages, texts]);
 
@@ -138,22 +307,34 @@ export function ChatMessageListContainer({
     () => buildChatMessageTexts(language),
     [language],
   );
+  const timelineItems = useMemo(
+    () => buildTimelineItems({ rawMessages, messages }),
+    [messages, rawMessages],
+  );
 
   return (
-    <ChatMessageList
-      messages={messages}
-      isSending={isSending}
-      hasAssistantDraft={hasAssistantDraft}
-      className={className}
-      texts={messageTexts}
-      onToolAction={onToolAction}
-      onFileOpen={onFileOpen}
-      renderToolAgent={(agentId) => (
-        <AgentIdentityAvatar
-          agentId={agentId}
-          className="h-4 w-4 shrink-0"
-        />
+    <div className={className}>
+      {timelineItems.map((item, index) =>
+        item.kind === "compaction" ? (
+          <ChatContextCompactionDivider key={item.key} checkpoint={item.checkpoint} />
+        ) : (
+          <ChatMessageList
+            key={item.key}
+            messages={item.messages}
+            isSending={index === timelineItems.length - 1 ? isSending : false}
+            hasAssistantDraft={hasAssistantDraft}
+            texts={messageTexts}
+            onToolAction={onToolAction}
+            onFileOpen={onFileOpen}
+            renderToolAgent={(agentId) => (
+              <AgentIdentityAvatar
+                agentId={agentId}
+                className="h-4 w-4 shrink-0"
+              />
+            )}
+          />
+        ),
       )}
-    />
+    </div>
   );
 }

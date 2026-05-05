@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import type { MutableRefObject } from 'react';
 import type { NcpMessage } from '@nextclaw/ncp';
 import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
-import type { AgentProfileView, SessionTypeIconView } from '@/shared/lib/api';
+import type {
+  AgentProfileView,
+  SessionTypeIconView
+} from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 
 export type ChatChildSessionTab = {

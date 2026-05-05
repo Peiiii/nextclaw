@@ -24,6 +24,10 @@ export type SessionContextWindowView = {
   truncatedToolResultCount: number;
   truncatedSystemPrompt: boolean;
   truncatedUserMessage: boolean;
+  compacted: boolean;
+  checkpointId?: string;
+  compactedMessageCount: number;
+  compactedUsedContextTokens?: number;
   updatedAt: string;
 };
 

@@ -46,7 +46,7 @@
     - `cron.ts` 把 `execute` 拆成 `handleList / handleToggle / handleRemove / handleAdd / readAddJobParams`
     - `session-creation.service.ts` 抽出 Agent 解析、title/sessionType 解析、metadata 覆写 helper
     - [create-ui-ncp-agent.ts](../../../../packages/nextclaw/src/cli/commands/ncp/create-ui-ncp-agent.ts) 拆出 [ui-ncp-agent-handle.ts](../../../../packages/nextclaw/src/cli/commands/ncp/ui-ncp-agent-handle.ts)
-    - [nextclaw-agent-session-store.ts](../../../../packages/nextclaw/src/cli/commands/ncp/nextclaw-agent-session-store.ts) 拆出 [nextclaw-agent-session-message-adapter.ts](../../../../packages/nextclaw/src/cli/commands/ncp/nextclaw-agent-session-message-adapter.ts)
+    - [nextclaw-agent-session-store.ts](../../../../packages/nextclaw/src/cli/commands/ncp/nextclaw-agent-session-store.ts) 拆出 [nextclaw-agent-session-message-adapter.utils.ts](../../../../packages/nextclaw/src/cli/commands/ncp/session/nextclaw-agent-session-message-adapter.utils.ts)
   - 复核：
     - `pnpm exec eslint packages/nextclaw-core/src/agent/tools/cron.ts packages/nextclaw/src/cli/commands/ncp/session-request/session-creation.service.ts --rule 'max-statements:["error",30]'`
     - 结果：通过，无 `max-statements` error

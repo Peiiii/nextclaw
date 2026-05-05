@@ -8,12 +8,16 @@ const captures = vi.hoisted(() => ({
   language: "en",
 }));
 
-vi.mock("@nextclaw/agent-chat-ui", () => ({
-  ChatMessageList: (props: { messages: unknown[]; texts?: Record<string, unknown> }) => {
-    captures.renders.push(props);
-    return <div data-testid="chat-message-list" />;
-  },
-}));
+vi.mock("@nextclaw/agent-chat-ui", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as object),
+    ChatMessageList: (props: { messages: unknown[]; texts?: Record<string, unknown> }) => {
+      captures.renders.push(props);
+      return <div data-testid="chat-message-list" />;
+    },
+  };
+});
 
 vi.mock("@/app/components/i18n-provider", () => ({
   useI18n: () => ({ language: captures.language }),
@@ -210,4 +214,59 @@ it("passes localized attachment card texts to the shared chat UI", () => {
       generic: "chatAttachmentCategoryGeneric",
     },
   });
+});
+
+it("renders context compaction as an in-flow divider instead of a chat message", () => {
+  const beforeMessage = {
+    id: "message-before",
+    sessionId: "session-1",
+    role: "user",
+    status: "final",
+    timestamp: "2026-05-05T11:59:00.000Z",
+    parts: [{ type: "text", text: "before" }],
+  } satisfies NcpMessage;
+  const afterMessage = {
+    id: "message-after",
+    sessionId: "session-1",
+    role: "assistant",
+    status: "final",
+    timestamp: "2026-05-05T12:01:00.000Z",
+    parts: [{ type: "text", text: "after" }],
+  } satisfies NcpMessage;
+  const compactionMessage = {
+    id: "ctx-message",
+    sessionId: "session-1",
+    role: "service",
+    status: "final",
+    timestamp: "2026-05-05T12:00:00.000Z",
+    metadata: {
+      nextclaw_timeline_kind: "context_compaction",
+      checkpoint: {
+        id: "ctx-1",
+        status: "compressed",
+        summary: "Compressed Earlier Context",
+        coveredMessageCount: 8,
+        coveredSessionMessageCount: 8,
+        coveredUntilMessageId: "message-before",
+        originalEstimatedTokens: 76000,
+        projectedEstimatedTokens: 51000,
+        createdAt: "2026-05-05T11:59:50.000Z",
+        updatedAt: "2026-05-05T12:00:00.000Z",
+      },
+    },
+    parts: [{ type: "text", text: "较早上下文已自动压缩" }],
+  } satisfies NcpMessage;
+
+  const { getByText } = render(
+    <ChatMessageListContainer
+      messages={[beforeMessage, afterMessage, compactionMessage]}
+      isSending={false}
+    />,
+  );
+
+  expect(getByText("chatContextCompactionCompressed")).toBeTruthy();
+  const renderedGroups = captures.renders.map((rendered) => rendered.messages);
+  expect(renderedGroups).toHaveLength(2);
+  expect(renderedGroups[0]).toHaveLength(1);
+  expect(renderedGroups[1]).toHaveLength(1);
 });

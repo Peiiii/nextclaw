@@ -38,6 +38,20 @@ import {
 } from "./context/nextclaw-ncp-session-preferences.js";
 import { buildCurrentTurnState } from "./context/nextclaw-ncp-current-turn.js";
 import {
+  ContextCompactionService,
+} from "./context/context-compaction.service.js";
+import {
+  isContextCompactionTimelineMessage,
+  upsertContextCompactionTimelineMessage,
+} from "./context/context-compaction-timeline-message.utils.js";
+import {
+  buildCompressingCompactionCheckpoint,
+  buildContextWindowMetadata,
+  buildPersistedCompactionCheckpoint,
+  CONTEXT_COMPACTION_METADATA_KEY,
+  CONTEXT_WINDOW_METADATA_KEY,
+} from "./context/context-window-metadata.utils.js";
+import {
   readAccountIdForHints,
   resolveAgentHandoffDepth,
 } from "./nextclaw-ncp-tool-registry.js";
@@ -56,6 +70,7 @@ type NextclawNcpContextBuilderOptions = {
   getConfig: () => Config;
   resolveMessageToolHints?: MessageToolHintsResolver;
   assetStore?: LocalAssetStore | null;
+  onSessionUpdated?: (sessionKey: string) => void;
 };
 
 type ResolvedAgentProfile = {
@@ -69,19 +84,27 @@ type ResolvedAgentProfile = {
   workspace: string;
 };
 
-const CONTEXT_WINDOW_METADATA_KEY = "last_context_window";
+type PreparedRunContext = {
+  accountId?: string | null;
+  channel: string;
+  chatId: string;
+  config: Config;
+  currentTurn: ReturnType<typeof buildCurrentTurnState>;
+  effectiveModel: string;
+  effectiveWorkspace: string;
+  profile: ResolvedAgentProfile;
+  requestMetadata: Record<string, unknown>;
+  requestedSkills: ReturnType<RequestedSkillsMetadataReader["readSelection"]>;
+  requestedToolNames: string[];
+  runtimeThinking: ReturnType<typeof resolveThinkingLevel>;
+  session: ReturnType<SessionManager["getOrCreate"]>;
+  sessionKey: string;
+};
 
-type ContextWindowMetadata = {
-  version: 1;
-  usedContextTokens: number;
-  totalContextTokens: number;
-  prunedUsedContextTokens: number;
-  availableContextTokens: number;
-  droppedHistoryCount: number;
-  truncatedToolResultCount: number;
-  truncatedSystemPrompt: boolean;
-  truncatedUserMessage: boolean;
-  updatedAt: string;
+type BuiltNcpModelMessages = {
+  messages: Record<string, unknown>[];
+  sessionMessages: NonNullable<NcpContextPrepareOptions["sessionMessages"]>;
+  toolDefinitions: readonly NcpToolDefinition[];
 };
 
 const TIME_HINT_TRIGGER_PATTERNS = [
@@ -240,12 +263,26 @@ function buildRequestedOpenAiTools(
 
 export class NextclawNcpContextBuilder implements NcpContextBuilder {
   private readonly inputBudgetPruner = new InputBudgetPruner();
+  private readonly contextCompactionService = new ContextCompactionService();
 
   constructor(
     private readonly options: NextclawNcpContextBuilderOptions,
   ) {}
 
   prepare = (input: NcpAgentRunInput, _options?: NcpContextPrepareOptions): NcpLLMApiInput => {
+    const runContext = this.prepareRunContext(input);
+    const modelMessages = this.buildModelMessages(input, _options, runContext);
+    const pruned = this.compactAndPruneModelMessages(runContext, modelMessages);
+
+    return {
+      messages: pruned.messages as OpenAIChatMessage[],
+      tools: buildRequestedOpenAiTools(modelMessages.toolDefinitions, runContext.requestedToolNames),
+      model: runContext.effectiveModel,
+      thinkingLevel: runContext.runtimeThinking,
+    };
+  };
+
+  private prepareRunContext = (input: NcpAgentRunInput): PreparedRunContext => {
     const config = this.options.getConfig();
     const requestMetadata = mergeInputMetadata(input);
     const session = this.options.sessionManager.getOrCreate(input.sessionId);
@@ -268,9 +305,7 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       session,
       requestMetadata,
     });
-
     const requestedSkills = REQUESTED_SKILLS_METADATA_READER.readSelection(requestMetadata);
-    const requestedToolNames = resolveRequestedToolNames(requestMetadata);
     const currentTurn = buildCurrentTurnState({
       input,
       currentModel: effectiveModel,
@@ -307,6 +342,42 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     });
 
     const accountId = readAccountIdForHints(requestMetadata, session.metadata);
+    return {
+      accountId,
+      channel,
+      chatId,
+      config,
+      currentTurn,
+      effectiveModel,
+      effectiveWorkspace,
+      profile,
+      requestMetadata,
+      requestedSkills,
+      requestedToolNames: resolveRequestedToolNames(requestMetadata),
+      runtimeThinking,
+      session,
+      sessionKey: input.sessionId,
+    };
+  };
+
+  private buildModelMessages = (
+    input: NcpAgentRunInput,
+    _options: NcpContextPrepareOptions | undefined,
+    runContext: PreparedRunContext,
+  ): BuiltNcpModelMessages => {
+    const {
+      accountId,
+      channel,
+      chatId,
+      config,
+      currentTurn,
+      effectiveModel,
+      effectiveWorkspace,
+      profile,
+      requestedSkills,
+      runtimeThinking,
+      session,
+    } = runContext;
     const messageToolHints = this.options.resolveMessageToolHints?.({
       sessionKey: input.sessionId,
       channel,
@@ -327,7 +398,9 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
         sessionProjectRoot: readSessionProjectRoot(session.metadata),
       },
     );
-    const sessionMessages = _options?.sessionMessages ?? [];
+    const sessionMessages = (_options?.sessionMessages ?? []).filter(
+      (message) => !isContextCompactionTimelineMessage(message),
+    );
     const messages = contextBuilder.buildMessages({
       history: toLegacyMessages([...sessionMessages], {
         assetStore: this.options.assetStore,
@@ -347,33 +420,80 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       role: currentTurn.currentRole,
       content: currentTurn.currentUserContent,
     };
-    const pruned = this.inputBudgetPruner.prune({
+    return {
       messages,
-      contextTokens: profile.contextTokens,
-    });
+      sessionMessages,
+      toolDefinitions,
+    };
+  };
+
+  private compactAndPruneModelMessages = (
+    runContext: PreparedRunContext,
+    modelMessages: BuiltNcpModelMessages,
+  ) => {
+    const { messages, sessionMessages } = modelMessages;
+    const { profile, session } = runContext;
     const estimate = this.inputBudgetPruner.estimate({
       messages,
       contextTokens: profile.contextTokens,
     });
-    const contextWindow: ContextWindowMetadata = {
-      version: 1,
+    if (estimate.estimatedTokens > estimate.budgetTokens) {
+      const compressingCheckpoint = buildCompressingCompactionCheckpoint(
+        session.metadata[CONTEXT_COMPACTION_METADATA_KEY],
+      );
+      session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = compressingCheckpoint;
+      upsertContextCompactionTimelineMessage({
+        session,
+        checkpoint: compressingCheckpoint,
+      });
+      this.notifySessionUpdated(runContext, session);
+    }
+    const compacted = this.contextCompactionService.compactForModelInput({
+      messages,
+      contextTokens: profile.contextTokens,
+      sessionHistoryMessageIds: sessionMessages.map((message) => message.id),
+    });
+    const pruned = this.inputBudgetPruner.prune({
+      messages: compacted.messages,
+      contextTokens: profile.contextTokens,
+    });
+    const compactedEstimate =
+      compacted.checkpoint?.projectedEstimatedTokens ??
+      this.inputBudgetPruner.estimate({
+        messages: compacted.messages,
+        contextTokens: profile.contextTokens,
+      }).estimatedTokens;
+    session.metadata[CONTEXT_WINDOW_METADATA_KEY] = buildContextWindowMetadata({
       usedContextTokens: estimate.estimatedTokens,
       totalContextTokens: profile.contextTokens,
       prunedUsedContextTokens: pruned.estimatedTokens,
-      availableContextTokens: Math.max(0, profile.contextTokens - estimate.estimatedTokens),
       droppedHistoryCount: pruned.droppedHistoryCount,
       truncatedToolResultCount: pruned.truncatedToolResultCount,
       truncatedSystemPrompt: pruned.truncatedSystemPrompt,
       truncatedUserMessage: pruned.truncatedUserMessage,
-      updatedAt: new Date().toISOString(),
-    };
-    session.metadata[CONTEXT_WINDOW_METADATA_KEY] = contextWindow;
+      checkpoint: compacted.checkpoint,
+      compactedUsedContextTokens: compacted.checkpoint ? compactedEstimate : undefined,
+    });
+    const persistedCheckpoint = buildPersistedCompactionCheckpoint(
+      compacted.checkpoint,
+      session.metadata[CONTEXT_COMPACTION_METADATA_KEY],
+    );
+    session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = persistedCheckpoint;
+    if (persistedCheckpoint) {
+      upsertContextCompactionTimelineMessage({
+        session,
+        checkpoint: persistedCheckpoint,
+      });
+    }
+    this.notifySessionUpdated(runContext, session);
+    return pruned;
+  };
 
-    return {
-      messages: pruned.messages as OpenAIChatMessage[],
-      tools: buildRequestedOpenAiTools(toolDefinitions, requestedToolNames),
-      model: effectiveModel,
-      thinkingLevel: runtimeThinking,
-    };
+  private notifySessionUpdated = (
+    runContext: PreparedRunContext,
+    session: PreparedRunContext["session"],
+  ): void => {
+    this.options.sessionManager.save(session);
+    this.options.onSessionUpdated?.(runContext.sessionKey);
   };
 }
