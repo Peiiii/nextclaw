@@ -174,6 +174,11 @@ export type NcpRunMetadataPayload = {
   metadata: Record<string, unknown>;
 };
 
+export type NcpContextWindowUpdatedPayload = {
+  sessionId: string;
+  contextWindow: Record<string, unknown>;
+};
+
 // ---------------------------------------------------------------------------
 // Text stream (aligned with agent-chat TEXT_*)
 // Streaming: text-start → text-delta sequence → text-end. Alternative: message.incoming / message.completed with full NcpMessage.
@@ -287,6 +292,7 @@ export enum NcpEventType {
   RunFinished = "run.finished",
   RunError = "run.error",
   RunMetadata = "run.metadata",
+  ContextWindowUpdated = "context-window.updated",
   TypingStart = "typing.start",
   TypingEnd = "typing.end",
   PresenceUpdated = "presence.updated",
@@ -311,6 +317,7 @@ export type NcpEndpointEvent =
   | { type: NcpEventType.RunFinished; payload: NcpRunFinishedPayload }
   | { type: NcpEventType.RunError; payload: NcpRunErrorPayload }
   | { type: NcpEventType.RunMetadata; payload: NcpRunMetadataPayload }
+  | { type: NcpEventType.ContextWindowUpdated; payload: NcpContextWindowUpdatedPayload }
   | { type: NcpEventType.MessageTextStart; payload: NcpTextStartPayload }
   | { type: NcpEventType.MessageTextDelta; payload: NcpTextDeltaPayload }
   | { type: NcpEventType.MessageTextEnd; payload: NcpTextEndPayload }

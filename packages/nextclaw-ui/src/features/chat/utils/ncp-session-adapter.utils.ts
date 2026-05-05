@@ -11,7 +11,6 @@ import {
   getSessionProjectName,
   normalizeSessionProjectRootValue,
 } from '@/shared/lib/session-project';
-import { readNcpSessionContextWindow } from './ncp-session-context-metadata.utils';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
 
@@ -111,18 +110,6 @@ function readNcpSessionType(summary: NcpSessionSummaryView): string {
     readOptionalString(metadata.sessionType) ??
     'native'
   );
-}
-
-function readNonNegativeInteger(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return null;
-  }
-  const normalized = Math.trunc(value);
-  return normalized >= 0 ? normalized : null;
-}
-
-function readBoolean(value: unknown): boolean {
-  return value === true;
 }
 
 function readNcpParentSessionId(summary: NcpSessionSummaryView): string | null {
@@ -299,7 +286,6 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const parentSessionId = readNcpParentSessionId(summary);
   const spawnedByRequestId = readNcpSpawnedByRequestId(summary);
   const isPromotedChildSession = readPromotedChildSession(summary);
-  const contextWindow = readNcpSessionContextWindow(summary);
   return {
     key: summary.sessionId,
     createdAt: summary.updatedAt,
@@ -319,7 +305,6 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(isPromotedChildSession ? { isPromotedChildSession } : {}),
     ...(parentSessionId ? { parentSessionId } : {}),
     ...(spawnedByRequestId ? { spawnedByRequestId } : {}),
-    ...(contextWindow ? { contextWindow } : {}),
     messageCount: summary.messageCount
   };
 }

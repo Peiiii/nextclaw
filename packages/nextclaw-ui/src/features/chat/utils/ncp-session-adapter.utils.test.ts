@@ -70,7 +70,7 @@ describe('adaptNcpSessionSummary', () => {
     });
   });
 
-  it('hydrates context window metadata into a decoupled used/total session view', () => {
+  it('does not hydrate context window metadata from persisted session summaries', () => {
     const adapted = adaptNcpSessionSummary(
       createSummary({
         metadata: {
@@ -94,21 +94,7 @@ describe('adaptNcpSessionSummary', () => {
       }),
     );
 
-    expect(adapted.contextWindow).toEqual({
-      usedContextTokens: 76000,
-      totalContextTokens: 200000,
-      prunedUsedContextTokens: 61200,
-      availableContextTokens: 124000,
-      droppedHistoryCount: 3,
-      truncatedToolResultCount: 1,
-      truncatedSystemPrompt: false,
-      truncatedUserMessage: false,
-      compacted: true,
-      checkpointId: 'ctx-20260505123456-8',
-      compactedMessageCount: 8,
-      compactedUsedContextTokens: 51000,
-      updatedAt: '2026-05-05T12:34:56.000Z',
-    });
+    expect(adapted.contextWindow).toBeUndefined();
   });
 });
 

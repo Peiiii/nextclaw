@@ -23,18 +23,28 @@ export function buildChatContextWindowIndicator(
   const percentLabel = `${Math.round(clampedRatio * 100)}%`;
   const tone: ChatContextWindowIndicator['tone'] =
     clampedRatio >= 0.9 ? 'danger' : clampedRatio >= 0.75 ? 'warning' : 'neutral';
+  const details: ChatContextWindowIndicator['details'] = [
+    { label: t('chatContextWindowUsed'), value: formatTokenCount(contextWindow.usedContextTokens) },
+    { label: t('chatContextWindowTotal'), value: formatTokenCount(contextWindow.totalContextTokens) },
+    { label: t('chatContextWindowAvailable'), value: formatTokenCount(contextWindow.availableContextTokens) }
+  ];
+  if (contextWindow.prunedUsedContextTokens !== contextWindow.usedContextTokens) {
+    details.push({
+      label: t('chatContextWindowPruned'),
+      value: formatTokenCount(contextWindow.prunedUsedContextTokens)
+    });
+  }
+  if (contextWindow.droppedHistoryCount > 0) {
+    details.push({ label: t('chatContextWindowDroppedHistory'), value: String(contextWindow.droppedHistoryCount) });
+  }
+  if (contextWindow.truncatedToolResultCount > 0) {
+    details.push({ label: t('chatContextWindowTruncatedTools'), value: String(contextWindow.truncatedToolResultCount) });
+  }
   return {
     label: t('chatContextWindow'),
     percentLabel,
     ratio: clampedRatio,
     tone,
-    details: [
-      { label: t('chatContextWindowUsed'), value: formatTokenCount(contextWindow.usedContextTokens) },
-      { label: t('chatContextWindowTotal'), value: formatTokenCount(contextWindow.totalContextTokens) },
-      { label: t('chatContextWindowAvailable'), value: formatTokenCount(contextWindow.availableContextTokens) },
-      { label: t('chatContextWindowPruned'), value: formatTokenCount(contextWindow.prunedUsedContextTokens) },
-      { label: t('chatContextWindowDroppedHistory'), value: String(contextWindow.droppedHistoryCount) },
-      { label: t('chatContextWindowTruncatedTools'), value: String(contextWindow.truncatedToolResultCount) }
-    ]
+    details
   };
 }

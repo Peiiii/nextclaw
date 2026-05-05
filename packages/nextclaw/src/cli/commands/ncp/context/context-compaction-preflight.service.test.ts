@@ -110,11 +110,17 @@ it("creates an LLM-generated context compaction checkpoint during nextclaw-owned
   expect(currentIndex).toBeGreaterThan(serviceIndex);
   expect(updatedSession.messages.filter((message) => message.role !== "service")).toHaveLength(19);
   expect(updatedSession.messages.some((message) => message.role === "service")).toBe(true);
-  expect(updatedSession.metadata.last_context_window).toMatchObject({
+  expect(updatedSession.metadata.last_context_window).toBeUndefined();
+  expect(result?.contextWindow).toMatchObject({
     version: 1,
     compacted: true,
     compactedMessageCount: expect.any(Number),
   });
+  const contextWindow = result?.contextWindow as Record<string, unknown>;
+  const checkpointWindow = updatedSession.metadata.last_context_compaction as Record<string, unknown>;
+  expect(contextWindow.usedContextTokens).toBe(contextWindow.prunedUsedContextTokens);
+  expect(Number(contextWindow.usedContextTokens)).toBeLessThan(Number(checkpointWindow.originalEstimatedTokens));
+  expect(Number(contextWindow.usedContextTokens)).toBeLessThanOrEqual(Number(contextWindow.totalContextTokens));
   expect(updatedSession.metadata.last_context_compaction).toMatchObject({
     version: 1,
     status: "compressed",
@@ -151,6 +157,53 @@ it("skips nextclaw compaction for runtime-owned context windows", async () => {
   })).resolves.toBeNull();
   expect(providerManager.calls).toHaveLength(0);
   expect(sessionManager.getOrCreate(sessionId).metadata.last_context_compaction).toBeUndefined();
+});
+
+it("previews a context window snapshot without persisting metadata or calling the LLM", () => {
+  const workspace = createWorkspace();
+  const sessionManager = new SessionManager(workspace);
+  const providerManager = new SummaryProviderManager();
+  const service = new ContextCompactionPreflightService({
+    getConfig: () => createNcpTestConfig(workspace, { contextTokens: 1000 }),
+    providerManager: providerManager as unknown as ProviderManager,
+    sessionManager,
+  });
+  const sessionId = `session-${randomUUID()}`;
+  const session = sessionManager.getOrCreate(sessionId);
+  sessionManager.addMessage(session, "user", `hello ${"details ".repeat(120)}`);
+  sessionManager.save(session);
+
+  const contextWindow = service.preview({
+    contextWindowOwner: "nextclaw",
+    requestMetadata: {},
+    sessionId,
+    sessionMessages: toNcpMessages(sessionId, session.messages),
+  });
+
+  expect(contextWindow).toMatchObject({
+    version: 1,
+    totalContextTokens: 1000,
+  });
+  expect(contextWindow?.usedContextTokens).toBeLessThanOrEqual(1000);
+  expect(sessionManager.getOrCreate(sessionId).metadata.last_context_window).toBeUndefined();
+  expect(sessionManager.getOrCreate(sessionId).metadata.last_context_compaction).toBeUndefined();
+  expect(providerManager.calls).toHaveLength(0);
+});
+
+it("skips context window preview for runtime-owned context windows", () => {
+  const workspace = createWorkspace();
+  const sessionManager = new SessionManager(workspace);
+  const service = new ContextCompactionPreflightService({
+    getConfig: () => createNcpTestConfig(workspace, { contextTokens: 1000 }),
+    sessionManager,
+  });
+
+  expect(service.preview({
+    contextWindowOwner: "runtime",
+    requestMetadata: {},
+    sessionId: "runtime-session",
+    sessionMessages: [],
+  })).toBeNull();
 });
 
 it("keeps leading system messages out of the LLM compaction source", async () => {

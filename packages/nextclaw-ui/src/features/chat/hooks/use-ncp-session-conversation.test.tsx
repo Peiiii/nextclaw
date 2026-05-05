@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type * as SharedApi from "@/shared/lib/api";
 import { fetchNcpSessionConversationSeed, useNcpSessionConversation } from "./use-ncp-session-conversation";
 
 const mocks = vi.hoisted(() => ({
@@ -30,7 +31,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/shared/lib/api", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/shared/lib/api")>();
+  const actual = await importOriginal<typeof SharedApi>();
   return {
     ...actual,
     fetchNcpSessionMessages: mocks.fetchNcpSessionMessages,
@@ -76,6 +77,19 @@ describe("useNcpSessionConversation", () => {
       status: "running",
       total: 1,
       messages: [{ id: "msg-1" }],
+      contextWindow: {
+        usedContextTokens: 42,
+        totalContextTokens: 100,
+        prunedUsedContextTokens: 42,
+        availableContextTokens: 58,
+        droppedHistoryCount: 0,
+        truncatedToolResultCount: 0,
+        truncatedSystemPrompt: false,
+        truncatedUserMessage: false,
+        compacted: false,
+        compactedMessageCount: 0,
+        updatedAt: "2026-05-05T00:00:00.000Z",
+      },
     });
 
     const result = await fetchNcpSessionConversationSeed(
@@ -88,6 +102,19 @@ describe("useNcpSessionConversation", () => {
     expect(result).toEqual({
       messages: [{ id: "msg-1" }],
       status: "running",
+      contextWindow: {
+        usedContextTokens: 42,
+        totalContextTokens: 100,
+        prunedUsedContextTokens: 42,
+        availableContextTokens: 58,
+        droppedHistoryCount: 0,
+        truncatedToolResultCount: 0,
+        truncatedSystemPrompt: false,
+        truncatedUserMessage: false,
+        compacted: false,
+        compactedMessageCount: 0,
+        updatedAt: "2026-05-05T00:00:00.000Z",
+      },
     });
   });
 
@@ -117,6 +144,45 @@ describe("useNcpSessionConversation", () => {
     expect(mocks.clientInstances[0]).not.toBe(mocks.clientInstances[1]);
     expect(mocks.hydratedCalls[0]?.client).toBe(mocks.clientInstances[0]);
     expect(mocks.hydratedCalls[1]?.client).toBe(mocks.clientInstances[1]);
+  });
+
+  it("exposes the hydrated session context window without changing the generic ncp agent seed", async () => {
+    const contextWindow = {
+      usedContextTokens: 42,
+      totalContextTokens: 100,
+      prunedUsedContextTokens: 42,
+      availableContextTokens: 58,
+      droppedHistoryCount: 0,
+      truncatedToolResultCount: 0,
+      truncatedSystemPrompt: false,
+      truncatedUserMessage: false,
+      compacted: false,
+      compactedMessageCount: 0,
+      updatedAt: "2026-05-05T00:00:00.000Z",
+    };
+    mocks.fetchNcpSessionMessages.mockResolvedValue({
+      sessionId: "session-1",
+      status: "idle",
+      total: 0,
+      messages: [],
+      contextWindow,
+    });
+
+    const { result, rerender } = renderHook(() => useNcpSessionConversation("session-1"));
+    const loadSeed = mocks.hydratedCalls[0]?.loadSeed as (
+      sessionId: string,
+      signal: AbortSignal
+    ) => Promise<{ messages: unknown[]; status: string }>;
+
+    await act(async () => {
+      await expect(loadSeed("session-1", new AbortController().signal)).resolves.toEqual({
+        messages: [],
+        status: "idle",
+      });
+    });
+    rerender();
+
+    expect(result.current.snapshot.contextWindow).toEqual(contextWindow);
   });
 
   it("retries hydration once the runtime becomes ready after a startup placeholder error", async () => {

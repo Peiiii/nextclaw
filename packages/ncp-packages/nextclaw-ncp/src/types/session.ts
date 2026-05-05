@@ -10,6 +10,7 @@ export type NcpSessionSummary = {
   lastMessageAt?: string;
   status?: NcpSessionStatus;
   metadata?: Record<string, unknown>;
+  contextWindow?: Record<string, unknown> | null;
 };
 
 export type ListSessionsOptions = {

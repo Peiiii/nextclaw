@@ -1,21 +1,20 @@
 import { useMemo } from 'react';
 import type { ChatContextWindowIndicator } from '@nextclaw/agent-chat-ui';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
+import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
 import { buildChatContextWindowIndicator } from '@/features/chat/utils/chat-context-window-indicator.utils';
-import { adaptNcpSessionSummary } from '@/features/chat/utils/ncp-session-adapter.utils';
-import { useNcpSessions } from '@/shared/hooks/use-config';
 
 export function useSelectedSessionContextWindowIndicator(): ChatContextWindowIndicator | null {
   const selectedSessionKey = useChatSessionListStore((state) => state.snapshot.selectedSessionKey);
   const draftSessionKey = useChatSessionListStore((state) => state.snapshot.draftSessionKey);
-  const sessionsQuery = useNcpSessions({ limit: 200 });
+  const liveSessionKey = useChatThreadStore((state) => state.snapshot.sessionKey);
+  const liveContextWindow = useChatThreadStore((state) => state.snapshot.contextWindow);
   const currentSessionKey = selectedSessionKey ?? draftSessionKey;
 
   return useMemo(() => {
-    const summary = sessionsQuery.data?.sessions.find((session) => session.sessionId === currentSessionKey);
-    if (!summary) {
-      return null;
+    if (liveSessionKey === currentSessionKey && liveContextWindow) {
+      return buildChatContextWindowIndicator(liveContextWindow);
     }
-    return buildChatContextWindowIndicator(adaptNcpSessionSummary(summary).contextWindow);
-  }, [currentSessionKey, sessionsQuery.data?.sessions]);
+    return null;
+  }, [currentSessionKey, liveContextWindow, liveSessionKey]);
 }

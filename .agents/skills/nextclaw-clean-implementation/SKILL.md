@@ -37,6 +37,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 目录落点或文件角色拿不准
 - 业务逻辑开始散落到组件 / hook / effect / 多个函数里
 - 准备复制一段相似实现再小改
+- 准备为一个字段或局部状态新增跨层参数、回调、wrapper、proxy 或接口转发对象
 - 改动不大，但会继续推高复杂度
 
 ## 写代码前固定要回答的问题
@@ -67,6 +68,23 @@ description: Use when implementing or refactoring code in this repository, espec
 
 - 业务主干进 class owner
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
+- 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
+
+### 2.1 这是语义建模还是结构搬运
+
+先回答：
+
+- 这次新增的是一个新语义，还是只是把一个字段从 A 搬到 B
+- 中间层是否拥有决策、生命周期、权限、协议转换或持久化责任
+- 是否正在手写接口 proxy、wrapper、adapter，只为了改其中一个方法
+- 是否有一个现成的数据生成者 / summary builder / view service 可以自然加上这个字段
+
+默认原则：
+
+- 在语义 owner 上加字段或行为，而不是在路由、启动参数、bridge、controller 里穿针引线
+- 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
+- 若一个字段需要经过 `3` 层以上且多数层只是透传，必须先停下重新找 owner
+- 若确实需要 adapter，必须有真实语义转换；没有语义转换的 adapter / proxy 默认删除
 
 ### 3. 这是不是在制造隐藏路径
 
@@ -141,6 +159,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 为了通过当前 case，增加事故特判或日志关键字分支
 - 业务逻辑散在组件、hook、effect 和 helper 之间，没有 owner
 - 为了“先快一点”复制一份旧实现
+- 为了一个字段手写完整接口 proxy，绝大多数方法只是原样转发
+- 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数
 - 为了一个新领域词发明一个新目录或新角色
 - 用 `utils`、`helpers`、`common` 掩盖真实业务职责
 - 这不是新增能力，但排除测试后的非测试代码净增还是正数
@@ -153,8 +173,9 @@ description: Use when implementing or refactoring code in this repository, espec
 1. 先删减
 2. 再简化
 3. 再收敛 owner 和边界
-4. 再决定目录落点和命名
-5. 最后才是新增实现
+4. 再判断这是语义建模还是结构搬运
+5. 再决定目录落点和命名
+6. 最后才是新增实现
 
 如果当前方案跳过了前四步，直接来到“加一个新东西”，大概率就是风险信号。
 
@@ -174,11 +195,12 @@ description: Use when implementing or refactoring code in this repository, espec
 
 1. 这次准备删什么 / 不删的原因是什么
 2. 这段逻辑的 owner 是谁
-3. 主路径是什么，为什么不是双路径
-4. 为什么这不是隐藏 fallback 或补丁式修复
-5. 文件为什么放在这里
-6. 最小可信验证是什么
-7. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
+3. 这次是在语义 owner 上建模，还是在做结构搬运；若不是结构搬运，证据是什么
+4. 主路径是什么，为什么不是双路径
+5. 为什么这不是隐藏 fallback 或补丁式修复
+6. 文件为什么放在这里
+7. 最小可信验证是什么
+8. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
 
 如果这些问题里有 2 个以上答不清，先不要写代码。
 

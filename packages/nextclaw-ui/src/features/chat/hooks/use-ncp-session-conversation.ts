@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NcpHttpAgentClientEndpoint } from "@nextclaw/ncp-http-agent-client";
 import { useHydratedNcpAgent, type NcpConversationSeed } from "@nextclaw/ncp-react";
-import { API_BASE, fetchNcpSessionMessages } from "@/shared/lib/api";
+import { API_BASE, fetchNcpSessionMessages, type SessionContextWindowView } from "@/shared/lib/api";
 import { createNcpAppClientFetch } from "@/features/chat/utils/ncp-app-client-fetch.utils";
 import { useSystemStatus } from "@/features/system-status";
 
@@ -10,6 +10,10 @@ const NCP_AGENT_UNAVAILABLE_DURING_STARTUP = "ncp agent unavailable during start
 
 type UseNcpSessionConversationOptions = {
   messageLimit?: number;
+};
+
+type NcpConversationSeedWithContextWindow = NcpConversationSeed & {
+  contextWindow?: SessionContextWindowView | null;
 };
 
 function isMissingNcpSessionError(error: unknown): boolean {
@@ -40,7 +44,7 @@ export async function fetchNcpSessionConversationSeed(
   sessionId: string,
   signal: AbortSignal,
   messageLimit = DEFAULT_MESSAGE_LIMIT,
-): Promise<NcpConversationSeed> {
+): Promise<NcpConversationSeedWithContextWindow> {
   signal.throwIfAborted();
 
   try {
@@ -49,6 +53,7 @@ export async function fetchNcpSessionConversationSeed(
     return {
       messages: response.messages,
       status: response.status ?? "idle",
+      contextWindow: response.contextWindow ?? null,
     };
   } catch (error) {
     signal.throwIfAborted();
@@ -94,11 +99,22 @@ export function useNcpSessionConversation(
   const [client] = useState(() => createNcpSessionConversationClient());
   const systemStatus = useSystemStatus();
   const [hydrationRetryVersion, setHydrationRetryVersion] = useState(0);
+  const [seedContextWindow, setSeedContextWindow] = useState<SessionContextWindowView | null>(null);
   const messageLimit = options.messageLimit ?? DEFAULT_MESSAGE_LIMIT;
+  useEffect(() => {
+    setSeedContextWindow(null);
+  }, [sessionId]);
   const loadSeed = useCallback(
-    (targetSessionId: string, signal: AbortSignal) => {
+    async (targetSessionId: string, signal: AbortSignal) => {
       void hydrationRetryVersion;
-      return fetchNcpSessionConversationSeed(targetSessionId, signal, messageLimit);
+      const seed = await fetchNcpSessionConversationSeed(targetSessionId, signal, messageLimit);
+      if (!signal.aborted) {
+        setSeedContextWindow(seed.contextWindow ?? null);
+      }
+      return {
+        messages: seed.messages,
+        status: seed.status,
+      };
     },
     [hydrationRetryVersion, messageLimit],
   );
@@ -117,5 +133,11 @@ export function useNcpSessionConversation(
   useSyncReadyRetryVersion(readyRetrySignature, () => {
     setHydrationRetryVersion((current) => current + 1);
   });
-  return agent;
+  return useMemo(() => ({
+    ...agent,
+    snapshot: {
+      ...agent.snapshot,
+      contextWindow: agent.snapshot.contextWindow ?? seedContextWindow,
+    },
+  }), [agent, seedContextWindow]);
 }

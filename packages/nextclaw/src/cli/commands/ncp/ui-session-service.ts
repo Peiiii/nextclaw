@@ -25,24 +25,34 @@ function buildUpdatedMetadata(params: {
   existingMetadata?: Record<string, unknown>;
   patch: NcpSessionPatch;
 }): Record<string, unknown> {
-  if (params.patch.metadata === null) {
+  const { existingMetadata, patch } = params;
+  if (patch.metadata === null) {
     return {};
   }
-  if (params.patch.metadata) {
-    return structuredClone(params.patch.metadata);
+  if (patch.metadata) {
+    return structuredClone(patch.metadata);
   }
-  return structuredClone(params.existingMetadata ?? {});
+  return structuredClone(existingMetadata ?? {});
 }
+
+type UiSessionContextWindowResolver = (params: {
+  messages: readonly NcpMessage[];
+  metadata: Record<string, unknown>;
+  sessionId: string;
+}) => Record<string, unknown> | null;
 
 export class UiSessionService implements NcpSessionApi {
   private readonly sessionStore: NextclawAgentSessionStore;
+  private readonly resolveContextWindow?: UiSessionContextWindowResolver;
 
   constructor(
     sessionManager: SessionManager,
     options: {
       onSessionUpdated?: (sessionKey: string) => void;
+      resolveContextWindow?: UiSessionContextWindowResolver;
     } = {},
   ) {
+    this.resolveContextWindow = options.resolveContextWindow;
     this.sessionStore = new NextclawAgentSessionStore(sessionManager, {
       onSessionUpdated: options.onSessionUpdated,
     });
@@ -87,7 +97,12 @@ export class UiSessionService implements NcpSessionApi {
       messages: session.messages,
       updatedAt: session.updatedAt,
       status: "idle",
-      metadata: session.metadata
+      metadata: session.metadata,
+      contextWindow: this.resolveContextWindow?.({
+        messages: session.messages,
+        metadata: session.metadata ?? {},
+        sessionId,
+      }) ?? null,
     });
   };
 

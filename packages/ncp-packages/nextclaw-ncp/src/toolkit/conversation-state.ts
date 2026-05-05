@@ -20,6 +20,9 @@ export interface NcpConversationSnapshot {
 
   /** Latest error, if any (e.g. from message.failed or endpoint.error). */
   readonly error: NcpError | null;
+
+  /** Latest context-window usage snapshot for this conversation, if known. */
+  readonly contextWindow: Record<string, unknown> | null;
 }
 
 /**

@@ -2,8 +2,7 @@ import type { Context } from "hono";
 import type {
   ChatSessionTypesView,
   SessionPatchUpdate,
-  UiNcpSessionListView,
-  UiNcpSessionMessagesView
+  UiNcpSessionListView
 } from "../types.js";
 import { applySessionPreferencePatch } from "../session-preference-patch.js";
 import {
@@ -168,10 +167,11 @@ export class NcpSessionRoutesController {
     const messages = await sessionApi.listSessionMessages(sessionId, {
       limit: readPositiveInt(c.req.query("limit")),
     });
-    const payload: UiNcpSessionMessagesView = {
+    const payload = {
       sessionId,
       status: session.status ?? "idle",
       messages,
+      ...(session.contextWindow ? { contextWindow: session.contextWindow } : {}),
       total: messages.length,
     };
     return c.json(ok(payload));

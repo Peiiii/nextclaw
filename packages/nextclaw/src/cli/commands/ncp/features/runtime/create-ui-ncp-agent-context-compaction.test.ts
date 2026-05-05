@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, it } from "vitest";
@@ -10,10 +10,11 @@ import {
   type ProviderManager,
   SessionManager,
 } from "@nextclaw/core";
-import type { NcpEndpointEvent, NcpRequestEnvelope } from "@nextclaw/ncp";
+import { type NcpEndpointEvent, NcpEventType, type NcpRequestEnvelope } from "@nextclaw/ncp";
 import { createUiNcpAgent } from "./create-ui-ncp-agent.service.js";
 
 const tempDirs: string[] = [];
+const originalNextclawHome = process.env.NEXTCLAW_HOME;
 
 type RecordedCall = {
   kind: "chat" | "stream";
@@ -26,10 +27,18 @@ type RecordedCall = {
 function createTempWorkspace(): string {
   const dir = mkdtempSync(join(tmpdir(), "nextclaw-ncp-native-context-compaction-"));
   tempDirs.push(dir);
+  const home = join(dir, "home");
+  mkdirSync(home, { recursive: true });
+  process.env.NEXTCLAW_HOME = home;
   return dir;
 }
 
 afterEach(() => {
+  if (originalNextclawHome) {
+    process.env.NEXTCLAW_HOME = originalNextclawHome;
+  } else {
+    delete process.env.NEXTCLAW_HOME;
+  }
   while (tempDirs.length > 0) {
     const dir = tempDirs.pop();
     if (dir) {
@@ -134,6 +143,7 @@ async function sendAndCollectEvents(
 
 it("runs context compaction preflight before native model input is built", async () => {
   const workspace = createTempWorkspace();
+  const sessionId = `session-context-preflight-${Date.now()}`;
   const config = ConfigSchema.parse({
     agents: {
       defaults: {
@@ -146,7 +156,7 @@ it("runs context compaction preflight before native model input is built", async
   });
   const providerManager = new DirectAnswerProviderManager();
   const sessionManager = new SessionManager(workspace);
-  const session = sessionManager.getOrCreate("session-context-preflight");
+  const session = sessionManager.getOrCreate(sessionId);
   for (let index = 0; index < 24; index += 1) {
     sessionManager.addMessage(
       session,
@@ -162,25 +172,36 @@ it("runs context compaction preflight before native model input is built", async
     getConfig: () => config,
   });
 
-  await sendAndCollectEvents(
+  const events = await sendAndCollectEvents(
     ncpAgent.agentClientEndpoint,
     createEnvelope({
-      sessionId: "session-context-preflight",
+      sessionId,
       text: "continue after compaction",
     }),
   );
 
-  const persistedSession = sessionManager.getOrCreate("session-context-preflight");
+  const persistedSession = sessionManager.getOrCreate(sessionId);
   const serviceIndex = persistedSession.messages.findIndex((message) => message.role === "service");
   const currentIndex = persistedSession.messages.findIndex(
     (message) => message.content === "continue after compaction",
   );
+  const compactionCheckpoints = events.flatMap((event) => {
+    if (event.type !== NcpEventType.MessageSent || event.payload.message.role !== "service") {
+      return [];
+    }
+    return [event.payload.message.metadata?.checkpoint];
+  });
   expect(persistedSession.metadata.last_context_compaction).toMatchObject({
     status: "compressed",
     summary: expect.stringContaining("Compressed Earlier Context"),
   });
   expect(serviceIndex).toBeGreaterThanOrEqual(0);
   expect(currentIndex).toBeGreaterThan(serviceIndex);
+  expect(events.map((event) => event.type)).toContain(NcpEventType.ContextWindowUpdated);
+  expect(compactionCheckpoints).toMatchObject([
+    { status: "compressing" },
+    { status: "compressed" },
+  ]);
   expect(providerManager.calls.map((call) => call.kind)).toEqual(["chat", "stream"]);
   expect(String(providerManager.calls[0]?.messages[1]?.content)).toContain("historical message 0");
   const combinedModelInput = providerManager.calls[1]?.messages

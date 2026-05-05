@@ -3,9 +3,7 @@ import {
   type ContextCompactionCheckpoint,
 } from "./context-compaction.service.js";
 
-export const CONTEXT_WINDOW_METADATA_KEY = "last_context_window";
-
-export type ContextWindowMetadata = {
+export type ContextWindowSnapshot = {
   version: 1;
   usedContextTokens: number;
   totalContextTokens: number;
@@ -22,7 +20,7 @@ export type ContextWindowMetadata = {
   updatedAt: string;
 };
 
-export function buildContextWindowMetadata(params: {
+export function buildContextWindowSnapshot(params: {
   usedContextTokens: number;
   totalContextTokens: number;
   prunedUsedContextTokens: number;
@@ -33,7 +31,7 @@ export function buildContextWindowMetadata(params: {
   checkpoint: ContextCompactionCheckpoint | null;
   compactedUsedContextTokens?: number;
   now?: Date;
-}): ContextWindowMetadata {
+}): ContextWindowSnapshot {
   const {
     checkpoint,
     compactedUsedContextTokens,

@@ -12,8 +12,10 @@ import { McpRegistryService, McpServerLifecycleManager, type McpServerWarmResult
 import { DefaultNcpAgentRuntime, LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
 import {
+  type NcpEndpointEvent,
   type NcpAgentRunInput,
   type NcpAgentRuntime,
+  type NcpMessage,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   writeAssistantReasoningNormalizationModeToMetadata,
@@ -47,6 +49,7 @@ import { BuiltinNarpRuntimeRegistrationService } from "@/cli/commands/ncp/builti
 import { llmUsageRecorder } from "@/cli/shared/services/telemetry/llm-usage-recorder.service.js";
 import { resolveUiNcpRuntimeEntries } from "@/cli/commands/ncp/ui-ncp-runtime-entry-resolver.js";
 import { ContextCompactionPreflightService } from "@/cli/commands/ncp/context/context-compaction-preflight.service.js";
+import type { ContextWindowSnapshot } from "@/cli/commands/ncp/context/context-window-snapshot.utils.js";
 
 export type { UiNcpAgentHandle } from "./ui-ncp-agent-handle.service.js";
 
@@ -82,6 +85,19 @@ type McpRuntimeSupport = {
   prewarmEnabledServers: () => Promise<McpServerWarmResult[]>;
   dispose: () => Promise<void>;
 };
+
+function createContextWindowUpdatedEvent(params: {
+  contextWindow: ContextWindowSnapshot;
+  sessionId: string;
+}): NcpEndpointEvent {
+  return {
+    type: NcpEventType.ContextWindowUpdated,
+    payload: {
+      sessionId: params.sessionId,
+      contextWindow: params.contextWindow,
+    },
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -214,38 +230,73 @@ function createNativeRuntimeFactory(
     });
     return {
       run: async function* (input, options) {
-        const result = await contextCompactionPreflight.run({
+        const beginResult = contextCompactionPreflight.begin({
           contextWindowOwner: "nextclaw",
           inputMessages: input.messages,
           requestMetadata: input.metadata ?? {},
           sessionId: input.sessionId,
           sessionMessages: stateManager.getSnapshot().messages,
         });
-        if (result) {
-          setSessionMetadata(result.metadata);
+        if (beginResult) {
+          setSessionMetadata(beginResult.metadata);
           params.onSessionUpdated?.(input.sessionId);
-          if (result.timelineMessage) {
-            const activeRun = stateManager.getSnapshot().activeRun;
-            stateManager.hydrate({
-              sessionId: input.sessionId,
-              messages: result.sessionMessages,
-              activeRun,
+          yield* publishPreflightResult({
+            input,
+            result: beginResult,
+            stateManager,
+          });
+          if (beginResult.pendingCompaction) {
+            const finishResult = await contextCompactionPreflight.finish(beginResult.pendingCompaction);
+            setSessionMetadata(finishResult.metadata);
+            params.onSessionUpdated?.(input.sessionId);
+            yield* publishPreflightResult({
+              input,
+              result: finishResult,
+              stateManager,
             });
-            const timelineEvent = {
-              type: NcpEventType.MessageSent,
-              payload: {
-                sessionId: input.sessionId,
-                message: result.timelineMessage,
-              },
-            } as const;
-            await stateManager.dispatch(timelineEvent);
-            yield timelineEvent;
           }
         }
         yield* runtime.run(input, options);
       },
     };
   };
+}
+
+async function* publishPreflightResult(params: {
+  input: NcpAgentRunInput;
+  result: {
+    contextWindow: ContextWindowSnapshot;
+    sessionMessages: readonly NcpMessage[];
+    timelineMessage: NcpMessage | null;
+  };
+  stateManager: RuntimeFactoryParams["stateManager"];
+}): AsyncGenerator<NcpEndpointEvent> {
+  const { input, result, stateManager } = params;
+  const contextWindowEvent = createContextWindowUpdatedEvent({
+    contextWindow: result.contextWindow,
+    sessionId: input.sessionId,
+  });
+  await stateManager.dispatch(contextWindowEvent);
+  yield contextWindowEvent;
+  if (!result.timelineMessage) {
+    return;
+  }
+  const activeRun = stateManager.getSnapshot().activeRun;
+  stateManager.hydrate({
+    sessionId: input.sessionId,
+    messages: result.sessionMessages,
+    activeRun,
+    contextWindow: result.contextWindow,
+  });
+  const timelineEvent = {
+    type: NcpEventType.MessageSent,
+    payload: {
+      sessionId: input.sessionId,
+      message: result.timelineMessage,
+    },
+  } as const;
+  await stateManager.dispatch(timelineEvent);
+  yield timelineEvent;
 }
 
 function createResolveOpenAiToolsForRuntime(params: {
@@ -380,11 +431,22 @@ export class UiNcpAgentRuntimeService {
       return this.handle;
     }
     this.registerCoreRuntimes();
+    const contextWindowPreview = new ContextCompactionPreflightService({
+      getConfig: this.params.getConfig,
+      sessionManager: this.params.sessionManager,
+    });
 
     this.backend = new DefaultNcpAgentBackend({
       endpointId: "nextclaw-ui-agent",
       sessionStore: this.sessionStore,
       onSessionRunStatusChanged: this.params.onSessionRunStatusChanged,
+      resolveSessionContextWindow: ({ messages, metadata, sessionId }) =>
+        contextWindowPreview.preview({
+          contextWindowOwner: "nextclaw",
+          requestMetadata: metadata,
+          sessionId,
+          sessionMessages: messages,
+        }),
       createRuntime: (runtimeParams) => {
         this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
         this.refreshConfiguredRuntimeEntries();

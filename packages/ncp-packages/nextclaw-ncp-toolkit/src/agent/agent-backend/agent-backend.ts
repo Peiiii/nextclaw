@@ -33,13 +33,13 @@ import {
   normalizeSendRunEvent,
   now,
   readMessages,
+  type SessionContextWindowResolver,
   toLiveSessionSummary,
+  toLiveSessionSummaryWithContextWindow,
   toSessionSummary,
+  withSessionContextWindow,
 } from "./agent-backend-session-utils.js";
-import {
-  buildPersistedLiveSessionRecord,
-  buildUpdatedSessionRecord,
-} from "./agent-backend-session-persistence.js";
+import { buildPersistedLiveSessionRecord, buildUpdatedSessionRecord } from "./agent-backend-session-persistence.js";
 import { EventPublisher } from "./event-publisher.js";
 
 const DEFAULT_SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = ["text", "file", "source", "step-start", "reasoning", "tool-invocation", "card", "rich-text", "action", "extension"];
@@ -47,6 +47,7 @@ const DEFAULT_SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = 
 export type DefaultNcpAgentBackendConfig = {
   createRuntime: CreateRuntimeFn;
   sessionStore: AgentSessionStore;
+  resolveSessionContextWindow?: SessionContextWindowResolver;
   onSessionRunStatusChanged?: (payload: {
     sessionKey: string;
     status: "running" | "idle";
@@ -75,10 +76,11 @@ export class DefaultNcpAgentBackend
   private readonly executor: AgentRunExecutor;
   private readonly publisher: EventPublisher;
   private readonly sessionRealtime: AgentBackendSessionRealtime;
+  private readonly resolveSessionContextWindow: DefaultNcpAgentBackendConfig["resolveSessionContextWindow"];
   private started = false;
-
   constructor(config: DefaultNcpAgentBackendConfig) {
     this.sessionStore = config.sessionStore;
+    this.resolveSessionContextWindow = config.resolveSessionContextWindow;
     this.onSessionRunStatusChanged = config.onSessionRunStatusChanged;
     this.sessionRegistry = new AgentLiveSessionRegistry(
       this.sessionStore,
@@ -234,10 +236,7 @@ export class DefaultNcpAgentBackend
   listSessions = async (): Promise<NcpSessionSummary[]> => {
     const storedSessions = await this.sessionStore.listSessions();
     const summaries = storedSessions.map((session) =>
-      toSessionSummary(
-        session,
-        this.sessionRegistry.getSession(session.sessionId),
-      ),
+      toSessionSummary(session, this.sessionRegistry.getSession(session.sessionId)),
     );
 
     for (const liveSession of this.sessionRegistry.listSessions()) {
@@ -266,10 +265,17 @@ export class DefaultNcpAgentBackend
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const liveSession = this.sessionRegistry.getSession(sessionId);
     const storedSession = await this.sessionStore.getSession(sessionId);
+    const liveMessages = liveSession
+      ? readMessages(liveSession.stateManager.getSnapshot())
+      : null;
     return storedSession
-      ? toSessionSummary(storedSession, liveSession)
+      ? withSessionContextWindow(
+          toSessionSummary(storedSession, liveSession),
+          liveMessages ?? storedSession.messages,
+          this.resolveSessionContextWindow,
+        )
       : liveSession
-        ? toLiveSessionSummary(liveSession)
+        ? toLiveSessionSummaryWithContextWindow(liveSession, this.resolveSessionContextWindow)
         : null;
   };
 

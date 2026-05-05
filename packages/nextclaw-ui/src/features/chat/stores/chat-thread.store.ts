@@ -4,6 +4,7 @@ import type { NcpMessage } from '@nextclaw/ncp';
 import type { ChatFileOperationLineViewModel } from '@nextclaw/agent-chat-ui';
 import type {
   AgentProfileView,
+  SessionContextWindowView,
   SessionTypeIconView
 } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
@@ -61,6 +62,7 @@ export type ChatThreadSnapshot = {
   activeChildSessionKey?: string | null;
   workspaceFileTabs: ChatWorkspaceFileTab[];
   activeWorkspaceFileKey?: string | null;
+  contextWindow?: SessionContextWindowView | null;
 };
 
 type ChatThreadStore = {
@@ -96,7 +98,8 @@ const initialSnapshot: ChatThreadSnapshot = {
   childSessionTabs: [],
   activeChildSessionKey: null,
   workspaceFileTabs: [],
-  activeWorkspaceFileKey: null
+  activeWorkspaceFileKey: null,
+  contextWindow: null
 };
 
 export const useChatThreadStore = create<ChatThreadStore>((set) => ({

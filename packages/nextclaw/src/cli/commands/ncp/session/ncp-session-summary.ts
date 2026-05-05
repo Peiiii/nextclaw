@@ -7,8 +7,9 @@ export function createNcpSessionSummary(params: {
   updatedAt: string;
   status: NcpSessionStatus;
   metadata?: Record<string, unknown>;
+  contextWindow?: Record<string, unknown> | null;
 }): NcpSessionSummary {
-  const { sessionId, agentId, messages, updatedAt, status, metadata } = params;
+  const { sessionId, agentId, messages, updatedAt, status, metadata, contextWindow } = params;
   return {
     sessionId,
     ...(agentId ? { agentId } : {}),
@@ -22,5 +23,6 @@ export function createNcpSessionSummary(params: {
       : {}),
     status,
     ...(metadata ? { metadata: structuredClone(metadata) } : {}),
+    ...(contextWindow ? { contextWindow: structuredClone(contextWindow) } : {}),
   };
 }

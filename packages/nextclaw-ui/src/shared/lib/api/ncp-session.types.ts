@@ -87,5 +87,6 @@ export type NcpSessionMessagesView = {
   sessionId: string;
   status: NcpSessionStatus;
   messages: NcpMessageView[];
+  contextWindow?: SessionContextWindowView | null;
   total: number;
 };

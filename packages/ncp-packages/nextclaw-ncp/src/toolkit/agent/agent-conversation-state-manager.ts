@@ -1,4 +1,5 @@
 import type {
+  NcpContextWindowUpdatedPayload,
   NcpMessageAbortPayload,
   NcpMessageSentPayload,
   NcpRunErrorPayload,
@@ -29,6 +30,7 @@ export type NcpAgentConversationHydrationParams = {
   sessionId: string;
   messages: ReadonlyArray<NcpMessage>;
   activeRun?: NcpRunContext | null;
+  contextWindow?: Record<string, unknown> | null;
 };
 
 /**
@@ -64,6 +66,7 @@ export interface NcpAgentConversationStateManager extends NcpConversationStateMa
   handleRunFinished(payload: NcpRunFinishedPayload): void;
   handleRunError(payload: NcpRunErrorPayload): void;
   handleRunMetadata(payload: NcpRunMetadataPayload): void;
+  handleContextWindowUpdated(payload: NcpContextWindowUpdatedPayload): void;
 
   handleEndpointError(payload: NcpError): void;
 }

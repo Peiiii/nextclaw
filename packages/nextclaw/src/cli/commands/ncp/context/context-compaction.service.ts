@@ -25,6 +25,13 @@ export type ContextCompactionResult = {
   checkpoint: ContextCompactionCheckpoint | null;
 };
 
+export type ContextCompactionPlan = {
+  messages: RuntimeMessage[];
+  coveredMessages: RuntimeMessage[];
+  keptMessages: RuntimeMessage[];
+  originalEstimatedTokens: number;
+};
+
 const MIN_MESSAGES_TO_COMPACT = 8;
 const RECENT_TAIL_MESSAGES = 6;
 function createCheckpointId(createdAt: string, coveredMessageCount: number): string {
@@ -38,6 +45,34 @@ function isSystemMessage(message: RuntimeMessage | undefined): boolean {
 export class ContextCompactionService {
   private readonly inputBudgetPruner = new InputBudgetPruner();
 
+  prepareForModelInput = (params: {
+    messages: RuntimeMessage[];
+    contextTokens: number;
+    compactionThresholdTokens?: number;
+  }): ContextCompactionPlan | null => {
+    const { compactionThresholdTokens, contextTokens, messages } = params;
+    const originalEstimate = this.inputBudgetPruner.estimate({
+      messages,
+      contextTokens,
+    });
+    const thresholdTokens = compactionThresholdTokens ?? originalEstimate.budgetTokens;
+    if (originalEstimate.estimatedTokens < thresholdTokens) {
+      return null;
+    }
+
+    const { coveredMessages, keptMessages } = this.splitMessages(messages);
+    if (coveredMessages.length < MIN_MESSAGES_TO_COMPACT) {
+      return null;
+    }
+
+    return {
+      messages,
+      coveredMessages,
+      keptMessages,
+      originalEstimatedTokens: originalEstimate.estimatedTokens,
+    };
+  };
+
   compactForModelInput = async (params: {
     messages: RuntimeMessage[];
     contextTokens: number;
@@ -46,26 +81,34 @@ export class ContextCompactionService {
     now?: Date;
   }): Promise<ContextCompactionResult> => {
     const { compactionThresholdTokens, contextTokens, generateSummary, messages, now } = params;
-    const originalEstimate = this.inputBudgetPruner.estimate({
+    const plan = this.prepareForModelInput({
       messages,
       contextTokens,
+      compactionThresholdTokens,
     });
-    const thresholdTokens = compactionThresholdTokens ?? originalEstimate.budgetTokens;
-    if (originalEstimate.estimatedTokens < thresholdTokens) {
+    if (!plan) {
       return {
         messages,
         checkpoint: null,
       };
     }
 
-    const { coveredMessages, keptMessages } = this.splitMessages(messages);
-    if (coveredMessages.length < MIN_MESSAGES_TO_COMPACT) {
-      return {
-        messages,
-        checkpoint: null,
-      };
-    }
+    return await this.compactPreparedForModelInput({
+      contextTokens,
+      generateSummary,
+      now,
+      plan,
+    });
+  };
 
+  compactPreparedForModelInput = async (params: {
+    contextTokens: number;
+    generateSummary: ContextCompactionSummaryGenerator;
+    now?: Date;
+    plan: ContextCompactionPlan;
+  }): Promise<ContextCompactionResult> => {
+    const { contextTokens, generateSummary, now, plan } = params;
+    const { coveredMessages, keptMessages, messages, originalEstimatedTokens } = plan;
     const createdAt = (now ?? new Date()).toISOString();
     const summary = await generateSummary({
       messages: coveredMessages.map((message) => structuredClone(message)),
@@ -94,7 +137,7 @@ export class ContextCompactionService {
       summary,
       coveredMessageCount: coveredMessages.length,
       coveredSessionMessageCount: coveredMessages.length,
-      originalEstimatedTokens: originalEstimate.estimatedTokens,
+      originalEstimatedTokens,
       projectedEstimatedTokens: projectedEstimate.estimatedTokens,
       createdAt,
       updatedAt: createdAt,

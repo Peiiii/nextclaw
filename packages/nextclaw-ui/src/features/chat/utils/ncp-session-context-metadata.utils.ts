@@ -1,10 +1,7 @@
 import type {
   NcpMessageView,
-  NcpSessionSummaryView,
   SessionContextWindowView,
 } from '@/shared/lib/api';
-
-const CONTEXT_WINDOW_METADATA_KEY = 'last_context_window';
 
 function readOptionalString(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -26,17 +23,8 @@ function readBoolean(value: unknown): boolean {
   return value === true;
 }
 
-function readMetadata(summary: NcpSessionSummaryView): Record<string, unknown> | null {
-  const { metadata } = summary;
-  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
-    return null;
-  }
-  return metadata as Record<string, unknown>;
-}
-
-export function readNcpSessionContextWindow(summary: NcpSessionSummaryView): SessionContextWindowView | null {
-  const metadata = readMetadata(summary);
-  const rawContextWindow = metadata?.[CONTEXT_WINDOW_METADATA_KEY];
+export function readNcpContextWindowValue(value: unknown): SessionContextWindowView | null {
+  const rawContextWindow = value;
   if (!rawContextWindow || typeof rawContextWindow !== 'object' || Array.isArray(rawContextWindow)) {
     return null;
   }
@@ -86,7 +74,7 @@ export type ContextCompactionTimelineView = {
 };
 
 export function readContextCompactionTimeline(message: Pick<NcpMessageView, 'metadata'>): ContextCompactionTimelineView | null {
-  const metadata = message.metadata;
+  const { metadata } = message;
   if (!metadata || metadata[NEXTCLAW_TIMELINE_KIND_METADATA_KEY] !== CONTEXT_COMPACTION_TIMELINE_KIND) {
     return null;
   }

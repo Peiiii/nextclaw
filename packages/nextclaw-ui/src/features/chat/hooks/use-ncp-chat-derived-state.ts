@@ -13,6 +13,7 @@ import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import type { ChatChildSessionTab } from '@/features/chat/stores/chat-thread.store';
 import type { ChatSessionTypeOption } from '@/features/chat/hooks/use-chat-session-type-state';
 import { resolveSessionTypeLabel } from '@/features/chat/hooks/use-chat-session-type-state';
+import { readNcpContextWindowValue } from '@/features/chat/utils/ncp-session-context-metadata.utils';
 
 function buildChildSessionTabs(params: {
   parentSessionKey: string | null;
@@ -121,7 +122,7 @@ export function useNcpChatSnapshotSync(params: {
   effectiveSessionProjectName: string | null;
   selectedSession: SessionEntryView | null;
   threadRef: MutableRefObject<HTMLDivElement | null>;
-  agent: Pick<UseHydratedNcpAgentResult, 'isHydrating' | 'visibleMessages'>;
+  agent: Pick<UseHydratedNcpAgentResult, 'isHydrating' | 'snapshot' | 'visibleMessages'>;
   isAwaitingAssistantOutput: boolean;
   parentSession: SessionEntryView | null;
   childSessionTabs: ChatChildSessionTab[];
@@ -165,6 +166,7 @@ export function useNcpChatSnapshotSync(params: {
       messages: params.agent.visibleMessages,
       isSending: params.isSending,
       isAwaitingAssistantOutput: params.isAwaitingAssistantOutput,
+      contextWindow: readNcpContextWindowValue(params.agent.snapshot.contextWindow),
       parentSessionKey: params.parentSession?.key ?? null,
       parentSessionLabel: params.parentSession
         ? sessionDisplayName(params.parentSession)

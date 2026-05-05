@@ -9,6 +9,12 @@ import type { AgentSessionRecord, LiveSessionState } from "./agent-backend-types
 
 const AUTO_SESSION_LABEL_MAX_LENGTH = 64;
 
+export type SessionContextWindowResolver = (params: {
+  messages: readonly NcpMessage[];
+  metadata: Record<string, unknown>;
+  sessionId: string;
+}) => Record<string, unknown> | null;
+
 function readOptionalAgentId(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -91,6 +97,27 @@ export function toLiveSessionSummary(session: LiveSessionState): NcpSessionSumma
   };
 }
 
+export function withSessionContextWindow(
+  summary: NcpSessionSummary,
+  messages: readonly NcpMessage[],
+  resolver?: SessionContextWindowResolver,
+): NcpSessionSummary {
+  const contextWindow = resolver?.({
+    messages,
+    metadata: summary.metadata ?? {},
+    sessionId: summary.sessionId,
+  });
+  return contextWindow ? { ...summary, contextWindow } : summary;
+}
+
+export function toLiveSessionSummaryWithContextWindow(
+  session: LiveSessionState,
+  resolver?: SessionContextWindowResolver,
+): NcpSessionSummary {
+  const messages = readMessages(session.stateManager.getSnapshot());
+  return withSessionContextWindow(toLiveSessionSummary(session), messages, resolver);
+}
+
 export function now(): string {
   return new Date().toISOString();
 }
@@ -134,16 +161,17 @@ export function withAutoSessionLabel(params: {
   metadata: Record<string, unknown>;
   messages: readonly NcpMessage[];
 }): Record<string, unknown> {
-  const existingLabel = readOptionalString(params.metadata.label);
+  const { metadata, messages } = params;
+  const existingLabel = readOptionalString(metadata.label);
   if (existingLabel) {
-    return params.metadata;
+    return metadata;
   }
-  const nextLabel = resolveAutoSessionLabelFromMessages(params.messages);
+  const nextLabel = resolveAutoSessionLabelFromMessages(messages);
   if (!nextLabel) {
-    return params.metadata;
+    return metadata;
   }
   return {
-    ...params.metadata,
+    ...metadata,
     label: nextLabel,
   };
 }

@@ -6,8 +6,6 @@ import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { MissingProvider } from "@/cli/shared/providers/missing-provider.js";
 import {
   getPackageVersion,
-  resolveUiConfig,
-  resolveUiStaticDir,
 } from "@/cli/shared/utils/cli.utils.js";
 import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { ServiceMarketplaceInstaller } from "@/cli/shared/services/marketplace/service-marketplace-installer.service.js";
@@ -93,7 +91,12 @@ export class RuntimeCommandService {
     const applyLiveConfigReload = async () => { await this.applyLiveConfigReload?.(); };
     let runtimeState: GatewayRuntimeState | null = null;
     const bootstrapStatus = createBootstrapStatus(shellContext.config.remote.enabled);
-    const ncpSessionRealtimeBridge = createServiceNcpSessionRealtimeBridge({ sessionManager: shellContext.sessionManager });
+    const getRuntimeConfig = () =>
+      resolveConfigSecrets(loadConfig(), { configPath: shellContext.runtimeConfigPath });
+    const ncpSessionRealtimeBridge = createServiceNcpSessionRealtimeBridge({
+      getConfig: getRuntimeConfig,
+      sessionManager: shellContext.sessionManager,
+    });
     const marketplaceInstaller = new ServiceMarketplaceInstaller({
       applyLiveConfigReload,
       runCliSubcommand: (args) => this.runCliSubcommand(args),
@@ -105,7 +108,7 @@ export class RuntimeCommandService {
         uiConfig: shellContext.uiConfig,
         uiStaticDir: shellContext.uiStaticDir,
         cronService: shellContext.cron,
-        getConfig: () => resolveConfigSecrets(loadConfig(), { configPath: shellContext.runtimeConfigPath }),
+        getConfig: getRuntimeConfig,
         configPath: getConfigPath(),
         productVersion: getPackageVersion(),
         getPluginChannelBindings: () => runtimeState?.pluginChannelBindings ?? [],
@@ -116,7 +119,8 @@ export class RuntimeCommandService {
         getBootstrapStatus: () => bootstrapStatus.getStatus(),
         openBrowserWindow: shellContext.uiConfig.open,
         applyLiveConfigReload,
-        ncpSessionService: ncpSessionRealtimeBridge.sessionService, initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory
+        ncpSessionService: ncpSessionRealtimeBridge.sessionService,
+        initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
       })
     );
     finalizeLocalUiStartup({

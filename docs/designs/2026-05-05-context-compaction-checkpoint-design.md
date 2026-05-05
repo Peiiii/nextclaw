@@ -17,6 +17,7 @@
 - 模型输入构造时，可以用压缩检查点替代其覆盖范围内的旧历史。
 - 前端只做轻量分割线式展示，不做普通聊天气泡。
 - 上下文压缩与 context build 解耦：发送前预检负责判断和写入压缩状态，builder 只消费已有 checkpoint 构建模型输入。
+- 上下文窗口占用变化必须通过独立事件实时通知前端，不能依赖工具结果、run metadata 或会话列表刷新间接同步。
 - 支持运行时上下文所有权策略：NextClaw 只管理自己负责模型输入的 runtime；Codex、Claude Code 这类自带上下文管理的 runtime 不做外层二次压缩。
 - 为未来用户手动触发压缩保留同一个后端入口。
 
@@ -74,15 +75,15 @@
 
 ## 存储方案
 
-保留两层信息：
+保留两类信息：
 
 1. `session.messages` / `session.events` 中存储特殊 timeline 条目，用于 UI 顺序渲染。
-2. `session.metadata.last_context_window` 中保留上下文窗口统计信息，用于输入框旁边的上下文占用指示器。
+2. 上下文窗口统计不写入 session metadata，而是在需要展示或发送前预检时按当前消息流、checkpoint 和 agent context 配置实时计算，并通过 `context-window.updated` 写入 live snapshot。
 
 这样职责是分开的：
 
 - timeline item 管位置与生命周期
-- context window metadata 管整体窗口统计
+- context window snapshot 管整体窗口统计，其中 `usedContextTokens` 表示“如果此刻立刻发起模型请求，当前会话会形成的有效模型输入占用”，不能用压缩前原始全量历史估算替代，也不能理解为“已经实际发给模型的 token”。
 
 同时保留一份最近检查点元数据：
 
@@ -98,7 +99,7 @@
 
 - `last_context_compaction` 是后端状态锚点
 - timeline item 是消息流位置锚点
-- `last_context_window` 是输入框占用指标锚点
+- `context-window.updated` / hydration seed live snapshot 是输入框占用指标锚点
 
 ## 职责边界
 
@@ -108,7 +109,7 @@
    - 发送前预检 owner。
    - 在用户消息进入会话、模型输入构建之前执行。
    - 负责读取 session、agent profile、上下文窗口配置和当前 runtime ownership。
-   - 负责判断是否需要压缩、写入 `compressing -> compressed`、更新 timeline item、更新 `last_context_compaction` 与 `last_context_window`。
+   - 负责判断是否需要压缩、写入 `compressing -> compressed`、更新 timeline item、更新 `last_context_compaction`，并发布实时 context window snapshot。
    - 未来手动压缩也走这个 service，只是触发来源从 `send-preflight` 变成 `manual`。
 
 2. `ContextCompactionService`
@@ -166,7 +167,14 @@ UI 展示规则：
 3. 构造一次与 builder 一致的可估算输入视图。
 4. 当上下文占用达到压缩阈值，并且存在足够旧历史时，生成 checkpoint。
 5. 写入特殊 timeline item 与 metadata。
-6. 通知当前 live session metadata 更新，让前端上下文圆环立即刷新。
+6. 发布 `context-window.updated`，让前端上下文圆环立即刷新。
+
+实时通知分两类：
+
+- `context-window.updated`：独立 NCP 事件，只携带 `sessionId` 和最新 `contextWindow`；前端输入框圆环优先读取 live snapshot，避免长时间运行时继续展示会话列表里的旧百分比。
+- `message.sent` + `service/context_compaction`：用于把同一条 timeline item 的 `compressing -> compressed` 生命周期送到消息流；前端按消息顺序渲染分割线。
+
+页面刷新或重新进入会话时不依赖历史事件重放，也不读取持久 `last_context_window`。`contextWindow` 由会话摘要生成者在 `getSession()` 的 session view 中实时派生：runtime 未就绪时由 `UiSessionService` 生成，runtime 就绪后由 `DefaultNcpAgentBackend` 生成。`listSessions()` 不计算 `contextWindow`，避免会话列表加载时对所有历史会话做上下文估算。`GET /api/ncp/sessions/:sessionId/messages` 只读取当前会话的 session view 并把它随 messages seed 返回，不再通过 runtime / shell / server / router 逐层传递 callback，也不在 bridge 里手写 `NcpSessionApi` proxy。前端只在 NextClaw UI 的会话 hook 中把该 snapshot 合并为展示状态，不扩展通用 NCP React hydration contract。这样既保持“不落盘”，又保证刷新后能立即显示上下文窗口。
 
 触发来源第一版包含：
 
@@ -191,6 +199,14 @@ UI 展示规则：
 5. 保留 checkpoint 之后的普通消息
 6. 再交给现有 `InputBudgetPruner` 做最终安全裁剪
 
+上下文窗口占用指标必须和这条投影链路一致：
+
+- 主圆环展示 `usedContextTokens / totalContextTokens`。
+- `usedContextTokens` 是“当前若发请求”的有效占用快照，不是历史总量。
+- 如果已经有最近的 compressed checkpoint，估算范围从 checkpoint 摘要加其后的消息开始。
+- 如果没有 checkpoint，估算范围是当前可用历史经安全裁剪后的请求视图。
+- 压缩前原始历史估算只保留在 checkpoint 的 `originalEstimatedTokens` 中，用于诊断和压缩效果对比，不作为主占用值。
+
 也就是说：
 
 - 存储不删历史
@@ -213,7 +229,7 @@ UI 展示规则：
 - `compressing`
 - `compressed`
 
-第一版同步完成 LLM 摘要，因此通常直接写入 `compressed` 条目；数据结构保留 `compressing` 状态，用于后续升级为后台异步摘要时复用同一条 timeline item。
+第一版在同一次发送前预检中同步完成 LLM 摘要，但必须先写入并发送 `compressing` 条目；摘要 LLM 返回后，再用同一个 checkpoint ID 更新为 `compressed`。这样用户在长时间摘要时能看到“正在压缩较早上下文”，而不是只在结束后突然看到已压缩结果。
 
 前端在消息流中只展示两种文案：
 
@@ -276,8 +292,8 @@ UI 展示规则：
   - `context-compaction-preflight.service.ts`
 - timeline 特殊条目工具：
   - `context-compaction-timeline-message.utils.ts`
-- 上下文窗口 metadata 工具：
-  - `context-window-metadata.utils.ts`
+- 上下文窗口实时快照工具：
+  - `context-window-snapshot.utils.ts`
 - builder 投影消费：
   - `nextclaw-ncp-context-builder.ts`
 - 前端 timeline 解析：

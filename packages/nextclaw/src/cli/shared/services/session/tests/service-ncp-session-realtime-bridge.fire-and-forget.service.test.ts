@@ -38,6 +38,7 @@ describe("createServiceNcpSessionRealtimeBridge", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     createServiceNcpSessionRealtimeBridge({
+      getConfig: () => ({} as never),
       sessionManager: {} as never
     });
 

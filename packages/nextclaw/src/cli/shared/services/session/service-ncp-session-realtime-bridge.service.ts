@@ -1,6 +1,7 @@
-import type { SessionManager } from "@nextclaw/core";
+import type { Config, SessionManager } from "@nextclaw/core";
 import type { NcpSessionApi } from "@nextclaw/ncp";
 import type { UiServerEvent } from "@nextclaw/server";
+import { ContextCompactionPreflightService } from "@/cli/commands/ncp/context/context-compaction-preflight.service.js";
 import { createNcpSessionRealtimeChangePublisher } from "@/cli/commands/ncp/session/ncp-session-realtime-change.js";
 import { UiSessionService } from "@/cli/commands/ncp/ui-session-service.js";
 import {
@@ -62,21 +63,34 @@ export type ServiceNcpSessionRealtimeBridge = {
 };
 
 export function createServiceNcpSessionRealtimeBridge(params: {
+  getConfig: () => Config;
   sessionManager: SessionManager;
   publishUiEvent?: PublishUiEvent;
 }): ServiceNcpSessionRealtimeBridge {
-  let publishUiEvent = params.publishUiEvent;
+  const { getConfig, publishUiEvent: initialPublishUiEvent, sessionManager } = params;
+  let publishUiEvent = initialPublishUiEvent;
   let publishSessionChange = async (_sessionKey: string): Promise<void> => {};
   let scheduleSessionChange = async (_sessionKey: string): Promise<void> => {};
 
-  const persistedSessionService = new UiSessionService(params.sessionManager, {
+  const contextWindowPreview = new ContextCompactionPreflightService({
+    getConfig,
+    sessionManager,
+  });
+  const persistedSessionService = new UiSessionService(sessionManager, {
     onSessionUpdated: (sessionKey) => {
       void scheduleSessionChange(sessionKey).catch((error) => {
         console.error(
           `[session-realtime] failed to publish session change for ${sessionKey}: ${formatBackgroundTaskError(error)}`
         );
       });
-    }
+    },
+    resolveContextWindow: ({ messages, metadata, sessionId }) =>
+      contextWindowPreview.preview({
+        contextWindowOwner: "nextclaw",
+        requestMetadata: metadata,
+        sessionId,
+        sessionMessages: messages,
+      }),
   });
   const deferredSessionService = createDeferredUiNcpSessionService(persistedSessionService);
 

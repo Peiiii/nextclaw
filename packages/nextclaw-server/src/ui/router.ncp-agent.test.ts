@@ -79,6 +79,7 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
   readonly abortCalls: Array<{ sessionId: string; messageId?: string }> = [];
   readonly sessionTypeListCalls: Array<{ describeMode?: "observation" | "probe" } | undefined> = [];
   readonly sessionMetadata = new Map<string, Record<string, unknown>>();
+  readonly contextWindowBySession = new Map<string, Record<string, unknown>>();
   readonly assetApi = {
     put: async (input: { fileName: string; mimeType?: string | null; bytes: Uint8Array }) => {
       const id = `asset_${this.assets.size + 1}`;
@@ -194,6 +195,9 @@ class StubNcpAgent implements NcpAgentClientEndpoint, NcpSessionApi {
       status: "idle" as const,
       ...(this.sessionMetadata.has(sessionId)
         ? { metadata: this.sessionMetadata.get(sessionId) }
+        : {}),
+      ...(this.contextWindowBySession.has(sessionId)
+        ? { contextWindow: this.contextWindowBySession.get(sessionId) }
         : {}),
     };
   };
@@ -361,6 +365,38 @@ it("mounts parallel ncp agent and session routes", async () => {
     ],
   });
   expect(agent.sessionTypeListCalls).toEqual([{ describeMode: "observation" }]);
+});
+
+it("includes a derived context window snapshot in the session messages seed", async () => {
+  const { app, agent } = createTestApp();
+  agent.contextWindowBySession.set("session-1", {
+    usedContextTokens: 42,
+    totalContextTokens: 1000,
+    prunedUsedContextTokens: 42,
+    availableContextTokens: 958,
+    droppedHistoryCount: 0,
+    truncatedToolResultCount: 0,
+    truncatedSystemPrompt: false,
+    truncatedUserMessage: false,
+    compacted: false,
+    compactedMessageCount: 0,
+    updatedAt: "session-1:now",
+  });
+
+  const messagesResponse = await app.request("http://localhost/api/ncp/sessions/session-1/messages");
+  const messagesPayload = await messagesResponse.json() as {
+    ok: boolean;
+    data: {
+      contextWindow?: { usedContextTokens: number; totalContextTokens: number; updatedAt: string };
+    };
+  };
+
+  expect(messagesPayload.ok).toBe(true);
+  expect(messagesPayload.data.contextWindow).toMatchObject({
+    usedContextTokens: 42,
+    totalContextTokens: 1000,
+    updatedAt: "session-1:now",
+  });
 });
 
 it("keeps session routes readable before the runtime agent is mounted", async () => {
