@@ -80,11 +80,16 @@ const routeSyncScript = `
 
 const enSidebar = [
   {
-    text: 'Start Using',
+    text: 'Understand NextClaw',
     items: [
-      { text: 'Introduction', link: '/en/guide/introduction' },
+      { text: 'Introduction', link: '/en/guide/introduction' }
+    ]
+  },
+  {
+    text: 'Get Started',
+    items: [
       { text: 'Quick Start', link: '/en/guide/getting-started' },
-      { text: 'What To Do After Setup', link: '/en/guide/after-setup' },
+      { text: 'What To Do After Setup', link: '/en/guide/after-setup' }
     ]
   },
   {
@@ -98,7 +103,7 @@ const enSidebar = [
     ]
   },
   {
-    text: 'Use & Automate',
+    text: 'Use NextClaw',
     items: [
       { text: 'Chat Capabilities', link: '/en/guide/chat' },
       { text: 'Session Management', link: '/en/guide/sessions' },
@@ -126,7 +131,6 @@ const enSidebar = [
       { text: 'Remote Access UI Tutorial', link: '/en/guide/tutorials/remote-access-ui' },
       { text: 'MCP Tutorial', link: '/en/guide/tutorials/mcp-marketplace' },
       { text: 'Local Ollama + Qwen3 (macOS)', link: '/en/guide/tutorials/local-ollama-qwen3' },
-      { text: 'Unsigned Desktop Install', link: '/en/guide/tutorials/desktop-install-unsigned' },
       { text: 'Linux Desktop Install (.deb + APT)', link: '/en/guide/tutorials/linux-desktop-deb-apt' },
       { text: 'Resource Hub', link: '/en/guide/resources' }
     ]
@@ -146,12 +150,18 @@ const enSidebar = [
       { text: 'Multi-Agent Routing', link: '/en/guide/multi-agent' }
     ]
   },
+]
+
+const enProjectSidebar = [
   {
-    text: 'Project',
+    text: 'Project & Ecosystem',
     items: [
-      { text: 'Project Pulse', link: '/en/guide/project-pulse' },
-      { text: 'Vision', link: '/en/guide/vision' },
-      { text: 'Roadmap', link: '/en/guide/roadmap' }
+      { text: 'Overview', link: '/en/project/' },
+      { text: 'Project Pulse', link: '/en/project/project-pulse' },
+      { text: 'Vision', link: '/en/project/vision' },
+      { text: 'Roadmap', link: '/en/project/roadmap' },
+      { text: 'Release Notes', link: '/en/project/release-notes' },
+      { text: 'Community', link: '/en/project/community' }
     ]
   }
 ]
@@ -182,11 +192,16 @@ const enBlogSidebar = [
 
 const zhSidebar = [
   {
+    text: '认识 NextClaw',
+    items: [
+      { text: '介绍', link: '/zh/guide/introduction' }
+    ]
+  },
+  {
     text: '开始使用',
     items: [
-      { text: '介绍', link: '/zh/guide/introduction' },
       { text: '上手', link: '/zh/guide/getting-started' },
-      { text: '配置后做什么', link: '/zh/guide/after-setup' },
+      { text: '配置后做什么', link: '/zh/guide/after-setup' }
     ]
   },
   {
@@ -200,7 +215,7 @@ const zhSidebar = [
     ]
   },
   {
-    text: '使用与自动化',
+    text: '使用 NextClaw',
     items: [
       { text: '对话能力', link: '/zh/guide/chat' },
       { text: '会话管理', link: '/zh/guide/sessions' },
@@ -228,7 +243,6 @@ const zhSidebar = [
       { text: '远程访问 UI 教程', link: '/zh/guide/tutorials/remote-access-ui' },
       { text: 'MCP 教程', link: '/zh/guide/tutorials/mcp-marketplace' },
       { text: '本地 Ollama + Qwen3 教程（macOS）', link: '/zh/guide/tutorials/local-ollama-qwen3' },
-      { text: '桌面端无签名安装教程', link: '/zh/guide/tutorials/desktop-install-unsigned' },
       { text: 'Linux 桌面安装（.deb + APT）', link: '/zh/guide/tutorials/linux-desktop-deb-apt' },
       { text: '生态资源', link: '/zh/guide/resources' }
     ]
@@ -248,12 +262,18 @@ const zhSidebar = [
       { text: '多 Agent 路由', link: '/zh/guide/multi-agent' }
     ]
   },
+]
+
+const zhProjectSidebar = [
   {
-    text: '项目',
+    text: '项目与生态背景',
     items: [
-      { text: 'Project Pulse', link: '/zh/guide/project-pulse' },
-      { text: '愿景', link: '/zh/guide/vision' },
-      { text: '路线图', link: '/zh/guide/roadmap' }
+      { text: '总览', link: '/zh/project/' },
+      { text: 'Project Pulse', link: '/zh/project/project-pulse' },
+      { text: '愿景', link: '/zh/project/vision' },
+      { text: '路线图', link: '/zh/project/roadmap' },
+      { text: '更新笔记', link: '/zh/project/release-notes' },
+      { text: '社区', link: '/zh/project/community' }
     ]
   }
 ]
@@ -310,17 +330,17 @@ export default defineConfig({
       description: 'Effortlessly Simple Personal AI Assistant — Documentation',
       themeConfig: {
         nav: [
-          { text: 'Start Using', link: '/en/guide/getting-started' },
-          { text: 'Features', link: '/en/guide/channels' },
-          { text: 'Notes', link: '/en/notes/' },
-          { text: 'Blog', link: '/en/blog/' },
+          { text: 'Get Started', link: '/en/guide/getting-started' },
+          { text: 'Connect', link: '/en/guide/configuration' },
+          { text: 'Run & Host', link: '/en/guide/runtime-hosting' },
           { text: 'Learn & Resources', link: '/en/guide/tutorials' },
           { text: 'Reference', link: '/en/guide/commands' },
           { text: 'Advanced', link: '/en/guide/advanced' },
-          { text: 'Project', link: '/en/guide/project-pulse' },
+          { text: 'Project', link: '/en/project/' },
         ],
         sidebar: {
           '/en/guide/': enSidebar,
+          '/en/project/': enProjectSidebar,
           '/en/notes/': enNotesSidebar,
           '/en/blog/': enBlogSidebar
         },
@@ -340,16 +360,16 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '开始使用', link: '/zh/guide/getting-started' },
-          { text: '功能', link: '/zh/guide/channels' },
-          { text: '更新笔记', link: '/zh/notes/' },
-          { text: '博客', link: '/zh/blog/' },
+          { text: '接入与配置', link: '/zh/guide/configuration' },
+          { text: '运行与托管', link: '/zh/guide/runtime-hosting' },
           { text: '学习与资源', link: '/zh/guide/tutorials' },
           { text: '参考与排错', link: '/zh/guide/commands' },
           { text: '进阶', link: '/zh/guide/advanced' },
-          { text: '项目', link: '/zh/guide/project-pulse' },
+          { text: '项目', link: '/zh/project/' },
         ],
         sidebar: {
           '/zh/guide/': zhSidebar,
+          '/zh/project/': zhProjectSidebar,
           '/zh/notes/': zhNotesSidebar,
           '/zh/blog/': zhBlogSidebar
         },

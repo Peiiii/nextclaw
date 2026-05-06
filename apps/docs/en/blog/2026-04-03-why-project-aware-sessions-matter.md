@@ -86,5 +86,5 @@ Once the project boundary is reliable, skills, tools, automation, and multi-turn
 ## More posts like this
 
 - [Sessions Now Actually Stay Project-Aware](/en/notes/2026-04-03-project-aware-sessions-and-unified-patch-release)
-- [Project Roadmap](/en/guide/roadmap)
-- [Product Vision](/en/guide/vision)
+- [Project Roadmap](/en/project/roadmap)
+- [Product Vision](/en/project/vision)

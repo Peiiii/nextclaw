@@ -8,6 +8,10 @@ description: Short, user-facing updates between changelog and blog posts.
 `Notes` is where we publish short product updates worth announcing.
 Each note focuses on user impact, how to use the change, and where to learn more.
 
+If you want the broader project information layer rather than just the latest updates, start here:
+
+- [Project Overview](/en/project/)
+
 ## Latest
 
 - [2026-05-06 · Auto Updates and Long-Context Awareness](./2026-05-06-auto-update-and-context-awareness)

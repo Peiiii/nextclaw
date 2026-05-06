@@ -32,4 +32,4 @@ description: 集成 Bocha（博查）搜索，新增可配置搜索提供商、U
 
 - [配置指南](/zh/guide/configuration)
 - [工具能力](/zh/guide/tools)
-- [路线图](/zh/guide/roadmap)
+- [路线图](/zh/project/roadmap)

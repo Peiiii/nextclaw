@@ -32,4 +32,4 @@ Tags: `new feature` `improvement`
 
 - [Provider Configuration Guide](/en/guide/configuration)
 - [Tools Overview](/en/guide/tools)
-- [Project Roadmap](/en/guide/roadmap)
+- [Project Roadmap](/en/project/roadmap)

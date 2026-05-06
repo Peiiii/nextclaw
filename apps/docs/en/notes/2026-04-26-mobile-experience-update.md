@@ -33,4 +33,4 @@ Open your deployed NextClaw address from a mobile browser. The chat list, conver
 ## Links
 
 - [Chat Guide](/en/guide/chat)
-- [Project Pulse](/en/guide/project-pulse)
+- [Project Pulse](/en/project/project-pulse)

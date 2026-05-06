@@ -86,5 +86,5 @@ description: 一个不能真正贴着项目工作的 AI 助手，并不是在帮
 ## 更多相关文章
 
 - [更新笔记：会话现在会真正带着项目一起工作](/zh/notes/2026-04-03-project-aware-sessions-and-unified-patch-release)
-- [产品路线图](/zh/guide/roadmap)
-- [产品愿景](/zh/guide/vision)
+- [产品路线图](/zh/project/roadmap)
+- [产品愿景](/zh/project/vision)

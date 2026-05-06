@@ -10,8 +10,8 @@ hero:
       text: Get Started
       link: /en/guide/getting-started
     - theme: alt
-      text: Project Pulse
-      link: /en/guide/project-pulse
+      text: Runtime & Hosting
+      link: /en/guide/runtime-hosting
     - theme: alt
       text: Product Notes
       link: /en/notes/
@@ -20,12 +20,12 @@ hero:
       link: https://github.com/Peiiii/nextclaw
 
 features:
-  - title: 🔌 Multi-Channel
-    details: Connect to Discord, Telegram, Slack, Feishu, DingTalk, WhatsApp, Email, and more — all from one gateway.
-  - title: 🚀 Beginner-Friendly
-    details: One-command startup and UI-first setup. You can get value without editing config files first.
-  - title: 🛠️ Extensible
-    details: Built-in tools for web search, command execution, cron jobs, and an OpenClaw-compatible plugin system.
-  - title: ⚡ Zero-Restart Config
-    details: Hot-reload providers, channels, models, and plugins without restarting the service.
+  - title: 🚀 Get Value First
+    details: Start with one command, finish setup in the browser, and reach a real task before diving into deeper system details.
+  - title: 🔌 Connect Your Stack
+    details: Bring in providers, models, channels, tools, and skills by task, not by forcing users through internal system mechanics first.
+  - title: 🏠 Stay Available
+    details: When NextClaw becomes part of your routine, move into background runtime, autostart, Docker, and remote access with a clearer hosting path.
+  - title: 🛠️ Orchestrate and Extend
+    details: Built-in search, command execution, cron automation, and an OpenClaw-compatible plugin ecosystem help NextClaw act like an operating layer.
 ---

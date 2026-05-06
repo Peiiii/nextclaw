@@ -10,8 +10,8 @@ hero:
       text: 快速开始
       link: /zh/guide/getting-started
     - theme: alt
-      text: Project Pulse
-      link: /zh/guide/project-pulse
+      text: 运行与托管
+      link: /zh/guide/runtime-hosting
     - theme: alt
       text: 更新笔记
       link: /zh/notes/
@@ -20,12 +20,12 @@ hero:
       link: https://github.com/Peiiii/nextclaw
 
 features:
-  - title: 🔌 多渠道
-    details: 一处配置，连接 Discord、Telegram、Slack、飞书、钉钉、企业微信、WhatsApp、Email、QQ、Mochat 等。
-  - title: 🚀 新手友好
-    details: 一条命令启动，主要配置都在浏览器里完成，不需要先理解复杂配置文件。
-  - title: 🛠️ 可扩展
-    details: 内置 Web 搜索、命令执行、Cron 自动化，并兼容 OpenClaw 插件生态。
-  - title: ⚡ 热更新
-    details: 提供商、渠道、模型与插件配置可热应用，减少重启成本。
+  - title: 🚀 先用起来
+    details: 一条命令启动，主要配置在浏览器里完成，先获得真实价值，再逐步深入。
+  - title: 🔌 接入你的能力栈
+    details: Provider、模型、渠道、工具和 Skills 按任务接入，而不是先理解一整套底层机制。
+  - title: 🏠 长期可用
+    details: 当你开始稳定使用，再进入后台运行、自启动、Docker 和远程访问这条更可靠的路径。
+  - title: 🛠️ 能力编排与扩展
+    details: 内置搜索、命令执行、Cron 自动化，并兼容 OpenClaw 插件生态与未来扩展能力。
 ---

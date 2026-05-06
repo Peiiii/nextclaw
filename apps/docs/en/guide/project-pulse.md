@@ -1,16 +1,8 @@
----
-title: Project Pulse
-description: Track NextClaw's code growth, shipping rhythm, release cadence, product notes, and current screenshots in one public dashboard.
----
+# Page Moved
 
-# Project Pulse
+`Project Pulse` has moved out of the main `guide` path and into the project information layer.
 
-`Project Pulse` is the public dashboard for how NextClaw keeps evolving as an AI operating layer.
+Use the canonical pages here:
 
-It combines engineering movement and product signals into one page: code volume trend, commit rhythm, release cadence, recent product notes, and current automated screenshots.
-
-<ProjectPulsePage locale="en" />
-
-<script setup>
-import ProjectPulsePage from '../../.vitepress/components/project-pulse/ProjectPulsePage.vue'
-</script>
+- [Project Pulse](/en/project/project-pulse)
+- [Project Overview](/en/project/)

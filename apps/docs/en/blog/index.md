@@ -8,6 +8,10 @@ description: Longer posts about product judgment, design trade-offs, and how we 
 `Blog` is where we publish longer-form writing.
 This is where we explain the reasoning behind product decisions, not just the shipped output.
 
+If you want the broader public project layer first, start here:
+
+- [Project Overview](/en/project/)
+
 ## Latest
 
 - [2026-04-03 · Why Project-Aware Sessions Matter More Than One More AI Feature](./2026-04-03-why-project-aware-sessions-matter)
