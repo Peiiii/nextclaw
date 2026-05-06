@@ -38,6 +38,7 @@ Default behavior:
 }
 
 function parseArgs(argv) {
+  const normalizedArgv = argv[0] === "--" ? argv.slice(1) : argv;
   const options = {
     branch: null,
     dryRun: false,
@@ -47,8 +48,8 @@ function parseArgs(argv) {
     skipRuntimeChannel: false
   };
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index];
+  for (let index = 0; index < normalizedArgv.length; index += 1) {
+    const arg = normalizedArgv[index];
     switch (arg) {
       case "--dry-run":
         options.dryRun = true;
@@ -61,15 +62,15 @@ function parseArgs(argv) {
         options.help = true;
         break;
       case "--release-tag":
-        options.releaseTag = argv[index + 1] ?? null;
+        options.releaseTag = normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
       case "--minimum-launcher-version-override":
-        options.minimumLauncherVersionOverride = argv[index + 1] ?? null;
+        options.minimumLauncherVersionOverride = normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
       case "--branch":
-        options.branch = argv[index + 1] ?? null;
+        options.branch = normalizedArgv[index + 1] ?? null;
         index += 1;
         break;
       default:
