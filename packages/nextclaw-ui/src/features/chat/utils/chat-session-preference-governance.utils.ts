@@ -160,37 +160,14 @@ export function resolveRecentSessionPreferredValue<T>(params: {
   return bestValue;
 }
 
-export function resolveRecentSessionPreferredModel(params: {
-  sessions: readonly SessionEntryView[];
-  selectedSessionKey?: string | null;
-  sessionType?: string | null;
-}): string | undefined {
-  const { sessions, selectedSessionKey, sessionType } = params;
-  return resolveRecentSessionPreferredValue<string>({
-    sessions,
-    selectedSessionKey,
-    sessionType,
-    readPreference: (session) => session.preferredModel?.trim() || undefined
-  });
-}
-
-export function resolveRecentSessionPreferredThinking(params: {
-  sessions: readonly SessionEntryView[];
-  selectedSessionKey?: string | null;
-  sessionType?: string | null;
-}): ThinkingLevel | undefined {
-  const { sessions, selectedSessionKey, sessionType } = params;
-  return resolveRecentSessionPreferredValue<ThinkingLevel>({
-    sessions,
-    selectedSessionKey,
-    sessionType,
-    readPreference: (session) => session.preferredThinking ?? undefined
-  });
+function buildSyncKey(parts: unknown[]): string {
+  return parts.map((part) => (part == null ? '' : String(part))).join('\u0002');
 }
 
 type UseSyncSessionPreferenceParams<T> = {
   isPreferenceAvailable: boolean;
   emptyValue: T;
+  syncKey: string;
   selectedSessionKey?: string | null;
   selectedSessionExists?: boolean;
   setValue: Dispatch<SetStateAction<T>>;
@@ -201,6 +178,7 @@ function useSyncSessionPreference<T>(params: UseSyncSessionPreferenceParams<T>) 
   const {
     isPreferenceAvailable,
     emptyValue,
+    syncKey,
     selectedSessionKey,
     selectedSessionExists = false,
     setValue,
@@ -208,27 +186,31 @@ function useSyncSessionPreference<T>(params: UseSyncSessionPreferenceParams<T>) 
   } = params;
   const previousSessionKeyRef = useRef<string | null | undefined>(undefined);
   const resolveValueRef = useRef(resolveValue);
-
-  useEffect(() => {
-    resolveValueRef.current = resolveValue;
-  }, [resolveValue]);
+  const lastSyncedValueRef = useRef<T>(emptyValue);
+  resolveValueRef.current = resolveValue;
 
   useEffect(() => {
     const sessionChanged = previousSessionKeyRef.current !== selectedSessionKey;
     if (!isPreferenceAvailable) {
       setValue(emptyValue);
+      lastSyncedValueRef.current = emptyValue;
       previousSessionKeyRef.current = selectedSessionKey;
       return;
     }
-    setValue((prev) =>
-      resolveValueRef.current({
-        currentValue: prev,
+    setValue((prev) => {
+      const next = resolveValueRef.current({
+        currentValue:
+          !sessionChanged && Object.is(prev, lastSyncedValueRef.current)
+            ? emptyValue
+            : prev,
         sessionChanged,
         preserveCurrentValueOnSessionChange: sessionChanged && Boolean(selectedSessionKey) && !selectedSessionExists
-      })
-    );
+      });
+      lastSyncedValueRef.current = next;
+      return next;
+    });
     previousSessionKeyRef.current = selectedSessionKey;
-  }, [emptyValue, isPreferenceAvailable, selectedSessionExists, selectedSessionKey, setValue]);
+  }, [emptyValue, isPreferenceAvailable, selectedSessionExists, selectedSessionKey, setValue, syncKey]);
 }
 
 export function useSyncSelectedModel(params: {
@@ -244,6 +226,12 @@ export function useSyncSelectedModel(params: {
   useSyncSessionPreference<string>({
     isPreferenceAvailable: modelOptions.length > 0,
     emptyValue: '',
+    syncKey: buildSyncKey([
+      modelOptions.map((option) => option.value).join('\u0001'),
+      selectedSessionPreferredModel,
+      fallbackPreferredModel,
+      defaultModel
+    ]),
     selectedSessionKey,
     selectedSessionExists,
     setValue: setSelectedModel,
@@ -273,6 +261,12 @@ export function useSyncSelectedThinking(params: {
   useSyncSessionPreference<ThinkingLevel | null>({
     isPreferenceAvailable: supportedThinkingLevels.length > 0,
     emptyValue: null,
+    syncKey: buildSyncKey([
+      supportedThinkingLevels.join('\u0001'),
+      selectedSessionPreferredThinking,
+      fallbackPreferredThinking,
+      defaultThinkingLevel
+    ]),
     selectedSessionKey,
     selectedSessionExists,
     setValue: setSelectedThinkingLevel,

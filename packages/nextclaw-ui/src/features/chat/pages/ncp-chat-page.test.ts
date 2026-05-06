@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { SessionEntryView, ThinkingLevel } from '@/shared/lib/api';
 import type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 import {
-  resolveRecentSessionPreferredModel,
-  resolveRecentSessionPreferredThinking,
+  resolveRecentSessionPreferredValue,
   resolveSelectedModelValue,
   resolveSelectedThinkingLevelValue
 } from '@/features/chat/utils/chat-session-preference-governance.utils';
@@ -24,6 +23,18 @@ const modelOptions: ChatModelOption[] = [
     value: 'openai/gpt-5',
     modelLabel: 'gpt-5',
     providerLabel: 'OpenAI',
+    thinkingCapability: null
+  },
+  {
+    value: 'minimax/MiniMax-M2.7',
+    modelLabel: 'MiniMax-M2.7',
+    providerLabel: 'MiniMax',
+    thinkingCapability: null
+  },
+  {
+    value: 'deepseek/deepseek-v4-flash',
+    modelLabel: 'deepseek-v4-flash',
+    providerLabel: 'DeepSeek',
     thinkingCapability: null
   }
 ];
@@ -270,10 +281,11 @@ describe('resolveRecentSessionPreferredModel', () => {
     ];
 
     expect(
-      resolveRecentSessionPreferredModel({
+      resolveRecentSessionPreferredValue<string>({
         sessions,
         selectedSessionKey: 'draft',
-        sessionType: 'codex'
+        sessionType: 'codex',
+        readPreference: (session) => session.preferredModel?.trim() || undefined
       })
     ).toBe('openai/gpt-5');
   });
@@ -300,10 +312,11 @@ describe('resolveRecentSessionPreferredModel', () => {
     ];
 
     expect(
-      resolveRecentSessionPreferredModel({
+      resolveRecentSessionPreferredValue<string>({
         sessions,
         selectedSessionKey: 'codex-current',
-        sessionType: 'codex'
+        sessionType: 'codex',
+        readPreference: (session) => session.preferredModel?.trim() || undefined
       })
     ).toBe('anthropic/claude-sonnet-4');
   });
@@ -384,10 +397,11 @@ describe('resolveRecentSessionPreferredThinking', () => {
     ];
 
     expect(
-      resolveRecentSessionPreferredThinking({
+      resolveRecentSessionPreferredValue<ThinkingLevel>({
         sessions,
         selectedSessionKey: 'draft',
-        sessionType: 'codex'
+        sessionType: 'codex',
+        readPreference: (session) => session.preferredThinking ?? undefined
       })
     ).toBe('high');
   });

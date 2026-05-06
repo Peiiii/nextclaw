@@ -6,8 +6,7 @@ import { sessionMatchesQuery } from '@/features/chat/utils/chat-session-display.
 import { adaptNcpSessionSummaries } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { useChatSessionTypeState } from '@/features/chat/hooks/use-chat-session-type-state';
 import {
-  resolveRecentSessionPreferredThinking,
-  resolveRecentSessionPreferredModel,
+  resolveRecentSessionPreferredValue,
   useSyncSelectedModel,
   useSyncSelectedThinking
 } from '@/features/chat/utils/chat-session-preference-governance.utils';
@@ -83,19 +82,21 @@ function useRecentSessionPreferences(params: {
   const { sessions, sessionKey, sessionType } = params;
   const recentSessionPreferredModel = useMemo(
     () =>
-      resolveRecentSessionPreferredModel({
+      resolveRecentSessionPreferredValue<string>({
         sessions,
         selectedSessionKey: sessionKey,
-        sessionType
+        sessionType,
+        readPreference: (session) => session.preferredModel?.trim() || undefined
       }),
     [sessionKey, sessionType, sessions]
   );
   const recentSessionPreferredThinking = useMemo(
     () =>
-      resolveRecentSessionPreferredThinking({
+      resolveRecentSessionPreferredValue<ThinkingLevel>({
         sessions,
         selectedSessionKey: sessionKey,
-        sessionType
+        sessionType,
+        readPreference: (session) => session.preferredThinking ?? undefined
       }),
     [sessionKey, sessionType, sessions]
   );
