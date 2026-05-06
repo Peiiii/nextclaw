@@ -87,8 +87,10 @@ nextclaw start
 ## 下一步
 
 - [配置后做什么](/zh/guide/after-setup) — 配置完成后的第一批任务建议
+- [核心命令](/zh/guide/core-commands) — 只保留最常用的少量命令
+- [运行与托管总览](/zh/guide/runtime-hosting) — 什么时候该用后台运行、自启动、Docker 或远程访问
 - [生态资源](/zh/guide/resources) — OpenClaw 生态项目与 awesome 资源导航
 - [配置](/zh/guide/configuration) — Provider、模型、工作区
 - [密钥管理](/zh/guide/secrets) — 避免明文密钥，支持安全轮换
 - [渠道](/zh/guide/channels) — 连接 Discord、Telegram、Slack 等
-- [命令](/zh/guide/commands) — CLI 参考
+- [命令索引](/zh/guide/commands) — 完整 CLI 查询参考

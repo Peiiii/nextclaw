@@ -87,8 +87,10 @@ nextclaw start
 ## What's Next?
 
 - [What To Do After Setup](/en/guide/after-setup) — First actions after configuration
+- [Core Commands](/en/guide/core-commands) — The small set of commands most users actually need
+- [Runtime & Hosting](/en/guide/runtime-hosting) — When to use background runtime, autostart, Docker, or remote access
 - [Resource Hub](/en/guide/resources) — OpenClaw ecosystem projects and curated lists
 - [Configuration](/en/guide/configuration) — Set up providers, models, and workspace
 - [Secrets Management](/en/guide/secrets) — Keep keys out of config and rotate safely
 - [Channels](/en/guide/channels) — Connect to Discord, Telegram, Slack, and more
-- [Commands](/en/guide/commands) — Full CLI reference
+- [Command Index](/en/guide/commands) — Full CLI lookup reference

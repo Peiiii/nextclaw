@@ -2,6 +2,10 @@
 
 远程访问的目标很明确：把本地 NextClaw UI 变成一套可以从其他设备接入的个人控制台，而且主流程要在界面里完成，而不是依赖命令行经验。
 
+如果你现在还在判断“到底先做后台运行、自启动，还是远程访问”，建议先看：
+
+- [运行与托管总览](/zh/guide/runtime-hosting)
+
 ## 这个页面解决什么
 
 `设置 -> 远程访问` 现在把下面四件事放进了一个页面：
@@ -55,5 +59,7 @@
 
 ## 相关文档
 
+- [运行与托管总览](/zh/guide/runtime-hosting)
+- [后台运行与自启动](/zh/guide/background-autostart)
 - 实操教程：[远程访问 UI 教程](/zh/guide/tutorials/remote-access-ui)
 - 通用排错：[故障排查](/zh/guide/troubleshooting)

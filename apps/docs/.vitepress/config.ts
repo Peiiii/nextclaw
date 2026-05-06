@@ -84,21 +84,34 @@ const enSidebar = [
     items: [
       { text: 'Introduction', link: '/en/guide/introduction' },
       { text: 'Quick Start', link: '/en/guide/getting-started' },
-      { text: 'Configuration', link: '/en/guide/configuration' },
-      { text: 'Model Selection', link: '/en/guide/model-selection' },
       { text: 'What To Do After Setup', link: '/en/guide/after-setup' },
     ]
   },
   {
-    text: 'Features',
+    text: 'Connect & Configure',
     items: [
-      { text: 'Chat Capabilities', link: '/en/guide/chat' },
+      { text: 'Configuration', link: '/en/guide/configuration' },
+      { text: 'Model Selection', link: '/en/guide/model-selection' },
       { text: 'Channels', link: '/en/guide/channels' },
       { text: 'Secrets Management', link: '/en/guide/secrets' },
+      { text: 'Tools', link: '/en/guide/tools' }
+    ]
+  },
+  {
+    text: 'Use & Automate',
+    items: [
+      { text: 'Chat Capabilities', link: '/en/guide/chat' },
+      { text: 'Session Management', link: '/en/guide/sessions' },
+      { text: 'Cron & Heartbeat', link: '/en/guide/cron' }
+    ]
+  },
+  {
+    text: 'Run & Host',
+    items: [
+      { text: 'Runtime & Hosting', link: '/en/guide/runtime-hosting' },
+      { text: 'Background & Autostart', link: '/en/guide/background-autostart' },
       { text: 'Remote Access', link: '/en/guide/remote-access' },
-      { text: 'Tools', link: '/en/guide/tools' },
-      { text: 'Cron & Heartbeat', link: '/en/guide/cron' },
-      { text: 'Session Management', link: '/en/guide/sessions' }
+      { text: 'Docker One-Click Deployment', link: '/en/guide/tutorials/docker-one-click' }
     ]
   },
   {
@@ -107,7 +120,6 @@ const enSidebar = [
       { text: 'Tutorial Hub', link: '/en/guide/tutorials' },
       { text: 'First Step: Pick Provider Path', link: '/en/guide/tutorials/provider-options' },
       { text: 'Claude Code / Codex / Hermes', link: '/en/guide/tutorials/claude-codex-hermes' },
-      { text: 'Docker One-Click Deployment', link: '/en/guide/tutorials/docker-one-click' },
       { text: 'Qwen Portal Setup', link: '/en/guide/tutorials/qwen-portal' },
       { text: 'Feishu Setup', link: '/en/guide/tutorials/feishu' },
       { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
@@ -122,7 +134,8 @@ const enSidebar = [
   {
     text: 'Reference & Troubleshooting',
     items: [
-      { text: 'Commands', link: '/en/guide/commands' },
+      { text: 'Core Commands', link: '/en/guide/core-commands' },
+      { text: 'Command Index', link: '/en/guide/commands' },
       { text: 'Troubleshooting', link: '/en/guide/troubleshooting' }
     ]
   },
@@ -173,21 +186,34 @@ const zhSidebar = [
     items: [
       { text: '介绍', link: '/zh/guide/introduction' },
       { text: '上手', link: '/zh/guide/getting-started' },
-      { text: '配置', link: '/zh/guide/configuration' },
-      { text: '模型选型', link: '/zh/guide/model-selection' },
       { text: '配置后做什么', link: '/zh/guide/after-setup' },
     ]
   },
   {
-    text: '功能',
+    text: '接入与配置',
     items: [
-      { text: '对话能力', link: '/zh/guide/chat' },
+      { text: '配置', link: '/zh/guide/configuration' },
+      { text: '模型选型', link: '/zh/guide/model-selection' },
       { text: '渠道', link: '/zh/guide/channels' },
       { text: '密钥管理', link: '/zh/guide/secrets' },
+      { text: '工具', link: '/zh/guide/tools' }
+    ]
+  },
+  {
+    text: '使用与自动化',
+    items: [
+      { text: '对话能力', link: '/zh/guide/chat' },
+      { text: '会话管理', link: '/zh/guide/sessions' },
+      { text: 'Cron 与 Heartbeat', link: '/zh/guide/cron' }
+    ]
+  },
+  {
+    text: '运行与托管',
+    items: [
+      { text: '运行与托管总览', link: '/zh/guide/runtime-hosting' },
+      { text: '后台运行与自启动', link: '/zh/guide/background-autostart' },
       { text: '远程访问', link: '/zh/guide/remote-access' },
-      { text: '工具', link: '/zh/guide/tools' },
-      { text: 'Cron 与 Heartbeat', link: '/zh/guide/cron' },
-      { text: '会话管理', link: '/zh/guide/sessions' }
+      { text: 'Docker 一键部署教程', link: '/zh/guide/tutorials/docker-one-click' }
     ]
   },
   {
@@ -196,7 +222,6 @@ const zhSidebar = [
       { text: '教程总览', link: '/zh/guide/tutorials' },
       { text: '安装后第一步：先选接入方式', link: '/zh/guide/tutorials/provider-options' },
       { text: 'Claude Code / Codex / Hermes 集成', link: '/zh/guide/tutorials/claude-codex-hermes' },
-      { text: 'Docker 一键部署教程', link: '/zh/guide/tutorials/docker-one-click' },
       { text: 'Qwen Portal 免费配置教程', link: '/zh/guide/tutorials/qwen-portal' },
       { text: '飞书配置教程', link: '/zh/guide/tutorials/feishu' },
       { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
@@ -211,7 +236,8 @@ const zhSidebar = [
   {
     text: '参考与排错',
     items: [
-      { text: '命令', link: '/zh/guide/commands' },
+      { text: '核心命令', link: '/zh/guide/core-commands' },
+      { text: '命令索引', link: '/zh/guide/commands' },
       { text: '故障排查', link: '/zh/guide/troubleshooting' }
     ]
   },

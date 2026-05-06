@@ -2,6 +2,10 @@
 
 Remote Access turns the local NextClaw UI into a personal console you can open from other devices through your own network path. The core product rule is simple: the primary workflow should live in the UI, not in CLI-only knowledge.
 
+If you are still deciding whether your next step is background runtime, autostart, or remote access, start here first:
+
+- [Runtime & Hosting](/en/guide/runtime-hosting)
+
 ## What This Page Covers
 
 The `Settings -> Remote Access` page now combines:
@@ -55,5 +59,7 @@ The overview and diagnostics panels help confirm:
 
 ## Related Docs
 
+- [Runtime & Hosting](/en/guide/runtime-hosting)
+- [Background & Autostart](/en/guide/background-autostart)
 - Step-by-step walkthrough: [Remote Access UI Tutorial](/en/guide/tutorials/remote-access-ui)
 - General troubleshooting: [Troubleshooting](/en/guide/troubleshooting)

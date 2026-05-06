@@ -9,8 +9,8 @@ If you just installed NextClaw and have not configured any provider yet, start h
 ## 1. Confirm runtime health
 
 ```bash
-nextclaw status --json
-nextclaw doctor --json
+nextclaw status
+nextclaw doctor
 ```
 
 This quickly verifies process state, config loading, and runtime readiness.
@@ -38,7 +38,20 @@ Create a low-risk, high-frequency task like "daily 9:30 reminder for priorities"
 
 - Entry doc: [Cron](/en/guide/cron)
 
-## 5. Copy one proven setup from the resource hub
+## 5. Decide whether you need "always available" runtime
+
+If NextClaw is becoming part of your real workflow, the next question is often not "what other command exists?" but:
+
+- should it start automatically after login
+- should it stay available in the background
+- should other devices be able to reach this machine
+
+Entry docs:
+
+- [Runtime & Hosting](/en/guide/runtime-hosting)
+- [Background & Autostart](/en/guide/background-autostart)
+
+## Then copy one proven setup from the resource hub
 
 If you are unsure what to build next, start from existing ecosystem projects and adapt.
 
@@ -54,4 +67,4 @@ This page is intentionally minimal for now. OpenClaw docs/repository links are n
 2. One real task
 3. One channel
 4. One automation
-5. One copied pattern from resources
+5. Decide whether you need always-on runtime

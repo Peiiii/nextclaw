@@ -83,5 +83,7 @@ nextclaw init
 
 ## 相关文档
 
-- [命令](/zh/guide/commands)
+- [核心命令](/zh/guide/core-commands)
+- [命令索引](/zh/guide/commands)
+- [运行与托管总览](/zh/guide/runtime-hosting)
 - [故障排查](/zh/guide/troubleshooting)

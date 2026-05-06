@@ -83,5 +83,7 @@ Multi-agent routing is still being refined. Enable it only when you clearly need
 
 ## Related docs
 
-- [Commands](/en/guide/commands)
+- [Core Commands](/en/guide/core-commands)
+- [Command Index](/en/guide/commands)
+- [Runtime & Hosting](/en/guide/runtime-hosting)
 - [Troubleshooting](/en/guide/troubleshooting)

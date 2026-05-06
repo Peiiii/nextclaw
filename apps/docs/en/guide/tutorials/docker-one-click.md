@@ -138,6 +138,8 @@ Re-run with custom ports. See customization examples above.
 
 ## Related Docs
 
+- [Runtime & Hosting](/en/guide/runtime-hosting)
+- [Background & Autostart](/en/guide/background-autostart)
 - [Quick Start](/en/guide/getting-started)
 - [Configuration](/en/guide/configuration)
 - [Troubleshooting](/en/guide/troubleshooting)

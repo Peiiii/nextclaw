@@ -9,8 +9,8 @@
 ## 1. 先确认运行健康
 
 ```bash
-nextclaw status --json
-nextclaw doctor --json
+nextclaw status
+nextclaw doctor
 ```
 
 这一步能快速确认进程、配置与关键依赖都正常。
@@ -38,7 +38,20 @@ nextclaw doctor --json
 
 - 文档入口：[Cron](/zh/guide/cron)
 
-## 5. 看资源导航，抄一条现成方案
+## 5. 判断你是否需要“长期可用”
+
+如果你已经开始稳定使用 NextClaw，下一步通常不是继续记更多命令，而是判断：
+
+- 我是否希望它登录后自动起来
+- 我是否希望它长期在后台可用
+- 我是否希望别的设备访问这台机器上的 NextClaw
+
+文档入口：
+
+- [运行与托管总览](/zh/guide/runtime-hosting)
+- [后台运行与自启动](/zh/guide/background-autostart)
+
+## 再下一步：看资源导航，抄一条现成方案
 
 如果你不知道下一步做什么，优先参考生态项目与案例，再按你的场景改造。
 
@@ -54,4 +67,4 @@ nextclaw doctor --json
 2. 做一个真实小任务
 3. 接入一个消息渠道
 4. 加一个定时自动化
-5. 从资源页复制一条可落地方案
+5. 判断是否需要长期可用

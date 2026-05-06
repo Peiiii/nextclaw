@@ -138,6 +138,8 @@ docker logs --tail 120 nextclaw
 
 ## 相关文档
 
+- [运行与托管总览](/zh/guide/runtime-hosting)
+- [后台运行与自启动](/zh/guide/background-autostart)
 - [上手](/zh/guide/getting-started)
 - [配置](/zh/guide/configuration)
 - [故障排查](/zh/guide/troubleshooting)
