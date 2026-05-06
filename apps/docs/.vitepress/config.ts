@@ -80,39 +80,38 @@ const routeSyncScript = `
 
 const enSidebar = [
   {
-    text: 'Understand NextClaw',
+    text: 'Why NextClaw',
     items: [
       { text: 'Introduction', link: '/en/guide/introduction' }
     ]
   },
   {
-    text: 'Get Started',
+    text: 'Quick Start',
     items: [
       { text: 'Quick Start', link: '/en/guide/getting-started' },
-      { text: 'What To Do After Setup', link: '/en/guide/after-setup' }
+      { text: 'What To Do After Setup', link: '/en/guide/after-setup' },
+      { text: 'Linux Desktop Install (.deb + APT)', link: '/en/guide/tutorials/linux-desktop-deb-apt' }
     ]
   },
   {
-    text: 'Connect & Configure',
+    text: 'Connect Your World',
     items: [
       { text: 'Configuration', link: '/en/guide/configuration' },
       { text: 'Model Selection', link: '/en/guide/model-selection' },
       { text: 'Channels', link: '/en/guide/channels' },
       { text: 'Secrets Management', link: '/en/guide/secrets' },
-      { text: 'Tools', link: '/en/guide/tools' }
+      { text: 'Tools', link: '/en/guide/tools' },
+      { text: 'Pick a Provider Path', link: '/en/guide/tutorials/provider-options' },
+      { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
+      { text: 'Resource Hub', link: '/en/guide/resources' }
     ]
   },
   {
-    text: 'Use NextClaw',
+    text: 'Let It Work For You',
     items: [
       { text: 'Chat Capabilities', link: '/en/guide/chat' },
       { text: 'Session Management', link: '/en/guide/sessions' },
-      { text: 'Cron & Heartbeat', link: '/en/guide/cron' }
-    ]
-  },
-  {
-    text: 'Run & Host',
-    items: [
+      { text: 'Cron & Heartbeat', link: '/en/guide/cron' },
       { text: 'Runtime & Hosting', link: '/en/guide/runtime-hosting' },
       { text: 'Background & Autostart', link: '/en/guide/background-autostart' },
       { text: 'Remote Access', link: '/en/guide/remote-access' },
@@ -120,32 +119,16 @@ const enSidebar = [
     ]
   },
   {
-    text: 'Learn & Resources',
+    text: 'When Something Breaks',
     items: [
-      { text: 'Tutorial Hub', link: '/en/guide/tutorials' },
-      { text: 'First Step: Pick Provider Path', link: '/en/guide/tutorials/provider-options' },
-      { text: 'Claude Code / Codex / Hermes', link: '/en/guide/tutorials/claude-codex-hermes' },
-      { text: 'Qwen Portal Setup', link: '/en/guide/tutorials/qwen-portal' },
-      { text: 'Feishu Setup', link: '/en/guide/tutorials/feishu' },
-      { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
-      { text: 'Remote Access UI Tutorial', link: '/en/guide/tutorials/remote-access-ui' },
-      { text: 'MCP Tutorial', link: '/en/guide/tutorials/mcp-marketplace' },
-      { text: 'Local Ollama + Qwen3 (macOS)', link: '/en/guide/tutorials/local-ollama-qwen3' },
-      { text: 'Linux Desktop Install (.deb + APT)', link: '/en/guide/tutorials/linux-desktop-deb-apt' },
-      { text: 'Resource Hub', link: '/en/guide/resources' }
-    ]
-  },
-  {
-    text: 'Reference & Troubleshooting',
-    items: [
-      { text: 'Core Commands', link: '/en/guide/core-commands' },
-      { text: 'Command Index', link: '/en/guide/commands' },
       { text: 'Troubleshooting', link: '/en/guide/troubleshooting' }
     ]
   },
   {
-    text: 'Advanced',
+    text: 'Reference',
     items: [
+      { text: 'Core Commands', link: '/en/guide/core-commands' },
+      { text: 'Command Index', link: '/en/guide/commands' },
       { text: 'Advanced Configuration', link: '/en/guide/advanced' },
       { text: 'Multi-Agent Routing', link: '/en/guide/multi-agent' }
     ]
@@ -154,7 +137,7 @@ const enSidebar = [
 
 const enProjectSidebar = [
   {
-    text: 'Project & Ecosystem',
+    text: 'Project',
     items: [
       { text: 'Overview', link: '/en/project/' },
       { text: 'Project Pulse', link: '/en/project/project-pulse' },
@@ -192,39 +175,38 @@ const enBlogSidebar = [
 
 const zhSidebar = [
   {
-    text: '认识 NextClaw',
+    text: '为什么用 NextClaw',
     items: [
       { text: '介绍', link: '/zh/guide/introduction' }
     ]
   },
   {
-    text: '开始使用',
+    text: '快速开始',
     items: [
       { text: '上手', link: '/zh/guide/getting-started' },
-      { text: '配置后做什么', link: '/zh/guide/after-setup' }
+      { text: '配置后做什么', link: '/zh/guide/after-setup' },
+      { text: 'Linux 桌面安装（.deb + APT）', link: '/zh/guide/tutorials/linux-desktop-deb-apt' }
     ]
   },
   {
-    text: '接入与配置',
+    text: '连接你的世界',
     items: [
       { text: '配置', link: '/zh/guide/configuration' },
       { text: '模型选型', link: '/zh/guide/model-selection' },
       { text: '渠道', link: '/zh/guide/channels' },
       { text: '密钥管理', link: '/zh/guide/secrets' },
-      { text: '工具', link: '/zh/guide/tools' }
+      { text: '工具', link: '/zh/guide/tools' },
+      { text: '先选接入方式', link: '/zh/guide/tutorials/provider-options' },
+      { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
+      { text: '生态资源', link: '/zh/guide/resources' }
     ]
   },
   {
-    text: '使用 NextClaw',
+    text: '让它持续为你工作',
     items: [
       { text: '对话能力', link: '/zh/guide/chat' },
       { text: '会话管理', link: '/zh/guide/sessions' },
-      { text: 'Cron 与 Heartbeat', link: '/zh/guide/cron' }
-    ]
-  },
-  {
-    text: '运行与托管',
-    items: [
+      { text: 'Cron 与 Heartbeat', link: '/zh/guide/cron' },
       { text: '运行与托管总览', link: '/zh/guide/runtime-hosting' },
       { text: '后台运行与自启动', link: '/zh/guide/background-autostart' },
       { text: '远程访问', link: '/zh/guide/remote-access' },
@@ -232,32 +214,16 @@ const zhSidebar = [
     ]
   },
   {
-    text: '学习与资源',
+    text: '出问题怎么办',
     items: [
-      { text: '教程总览', link: '/zh/guide/tutorials' },
-      { text: '安装后第一步：先选接入方式', link: '/zh/guide/tutorials/provider-options' },
-      { text: 'Claude Code / Codex / Hermes 集成', link: '/zh/guide/tutorials/claude-codex-hermes' },
-      { text: 'Qwen Portal 免费配置教程', link: '/zh/guide/tutorials/qwen-portal' },
-      { text: '飞书配置教程', link: '/zh/guide/tutorials/feishu' },
-      { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
-      { text: '远程访问 UI 教程', link: '/zh/guide/tutorials/remote-access-ui' },
-      { text: 'MCP 教程', link: '/zh/guide/tutorials/mcp-marketplace' },
-      { text: '本地 Ollama + Qwen3 教程（macOS）', link: '/zh/guide/tutorials/local-ollama-qwen3' },
-      { text: 'Linux 桌面安装（.deb + APT）', link: '/zh/guide/tutorials/linux-desktop-deb-apt' },
-      { text: '生态资源', link: '/zh/guide/resources' }
-    ]
-  },
-  {
-    text: '参考与排错',
-    items: [
-      { text: '核心命令', link: '/zh/guide/core-commands' },
-      { text: '命令索引', link: '/zh/guide/commands' },
       { text: '故障排查', link: '/zh/guide/troubleshooting' }
     ]
   },
   {
-    text: '进阶',
+    text: '查询参考',
     items: [
+      { text: '核心命令', link: '/zh/guide/core-commands' },
+      { text: '命令索引', link: '/zh/guide/commands' },
       { text: '进阶配置', link: '/zh/guide/advanced' },
       { text: '多 Agent 路由', link: '/zh/guide/multi-agent' }
     ]
@@ -266,7 +232,7 @@ const zhSidebar = [
 
 const zhProjectSidebar = [
   {
-    text: '项目与生态背景',
+    text: '项目信息',
     items: [
       { text: '总览', link: '/zh/project/' },
       { text: 'Project Pulse', link: '/zh/project/project-pulse' },
@@ -330,12 +296,12 @@ export default defineConfig({
       description: 'Effortlessly Simple Personal AI Assistant — Documentation',
       themeConfig: {
         nav: [
-          { text: 'Get Started', link: '/en/guide/getting-started' },
-          { text: 'Connect', link: '/en/guide/configuration' },
-          { text: 'Run & Host', link: '/en/guide/runtime-hosting' },
-          { text: 'Learn & Resources', link: '/en/guide/tutorials' },
+          { text: 'Why NextClaw', link: '/en/guide/introduction' },
+          { text: 'Quick Start', link: '/en/guide/getting-started' },
+          { text: 'Connect Your World', link: '/en/guide/configuration' },
+          { text: 'Let It Work For You', link: '/en/guide/runtime-hosting' },
+          { text: 'When Something Breaks', link: '/en/guide/troubleshooting' },
           { text: 'Reference', link: '/en/guide/commands' },
-          { text: 'Advanced', link: '/en/guide/advanced' },
           { text: 'Project', link: '/en/project/' },
         ],
         sidebar: {
@@ -359,12 +325,12 @@ export default defineConfig({
       description: '轻量、易用、兼容 OpenClaw 的个人 AI 助手文档',
       themeConfig: {
         nav: [
-          { text: '开始使用', link: '/zh/guide/getting-started' },
-          { text: '接入与配置', link: '/zh/guide/configuration' },
-          { text: '运行与托管', link: '/zh/guide/runtime-hosting' },
-          { text: '学习与资源', link: '/zh/guide/tutorials' },
-          { text: '参考与排错', link: '/zh/guide/commands' },
-          { text: '进阶', link: '/zh/guide/advanced' },
+          { text: '为什么用 NextClaw', link: '/zh/guide/introduction' },
+          { text: '快速开始', link: '/zh/guide/getting-started' },
+          { text: '连接你的世界', link: '/zh/guide/configuration' },
+          { text: '让它持续为你工作', link: '/zh/guide/runtime-hosting' },
+          { text: '出问题怎么办', link: '/zh/guide/troubleshooting' },
+          { text: '查询参考', link: '/zh/guide/commands' },
           { text: '项目', link: '/zh/project/' },
         ],
         sidebar: {

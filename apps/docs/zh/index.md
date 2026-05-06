@@ -3,29 +3,29 @@ layout: home
 
 hero:
   name: NextClaw
-  text: 个人 AI 助手文档
-  tagline: 你的数字世界全能管家。在你自己的机器上调度互联网与算力。
+  text: 让 AI 真正替你连接和调度数字世界
+  tagline: 先跑通一个真实任务，再把它接进你的模型、渠道、工具和长期工作流。
   actions:
     - theme: brand
       text: 快速开始
       link: /zh/guide/getting-started
     - theme: alt
-      text: 运行与托管
-      link: /zh/guide/runtime-hosting
+      text: 连接你的世界
+      link: /zh/guide/configuration
     - theme: alt
-      text: 更新笔记
-      link: /zh/notes/
+      text: 让它持续为你工作
+      link: /zh/guide/runtime-hosting
     - theme: alt
       text: GitHub
       link: https://github.com/Peiiii/nextclaw
 
 features:
-  - title: 🚀 先用起来
-    details: 一条命令启动，主要配置在浏览器里完成，先获得真实价值，再逐步深入。
-  - title: 🔌 接入你的能力栈
-    details: Provider、模型、渠道、工具和 Skills 按任务接入，而不是先理解一整套底层机制。
-  - title: 🏠 长期可用
-    details: 当你开始稳定使用，再进入后台运行、自启动、Docker 和远程访问这条更可靠的路径。
-  - title: 🛠️ 能力编排与扩展
-    details: 内置搜索、命令执行、Cron 自动化，并兼容 OpenClaw 插件生态与未来扩展能力。
+  - title: 为什么用 NextClaw
+    details: 它不是另一个聊天壳，而是把模型、渠道、工具、服务和宿主机器收拢成你的统一入口。
+  - title: 快速开始
+    details: 一条命令启动，主要配置在浏览器里完成，目标不是学会系统，而是 10 分钟内看到真实价值。
+  - title: 连接你的世界
+    details: Provider、模型、渠道、工具和 Skills 都应该按你的任务接入，而不是先背一套实现细节。
+  - title: 让它持续为你工作
+    details: 当它开始有价值，再进入 Cron、后台运行、自启动、Docker 和远程访问这条长期路径。
 ---
