@@ -5,12 +5,12 @@ import { resolve } from "node:path";
 
 const loadModule = createRequire(__filename);
 const electronBinary = loadModule("electron") as string;
-const appRoot = resolve(__dirname, "..", "..", "..");
+const mainEntryPath = resolve(__dirname, "main.js");
 const env = { ...process.env };
 
 delete env.ELECTRON_RUN_AS_NODE;
 
-const child = spawn(electronBinary, [appRoot, ...process.argv.slice(2)], {
+const child = spawn(electronBinary, [mainEntryPath, ...process.argv.slice(2)], {
   stdio: "inherit",
   env
 });

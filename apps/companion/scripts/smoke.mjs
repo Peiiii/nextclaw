@@ -2,9 +2,10 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const requiredFiles = [
-  resolve("dist/src/main.js"),
-  resolve("dist/src/launcher/index.js"),
-  resolve("dist/src/preload/index.js")
+  resolve("dist/electron/main.js"),
+  resolve("dist/electron/launcher.js"),
+  resolve("dist/electron/preload.js"),
+  resolve("dist/ui/index.html")
 ];
 
 const missingFiles = requiredFiles.filter((filePath) => !existsSync(filePath));

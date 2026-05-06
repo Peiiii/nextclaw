@@ -182,41 +182,129 @@ export const evaluateModuleStructureFindings = (params) => {
 
 export { evaluateProtocolImportBoundaryFindings } from "./module-structure-protocol-checks.mjs";
 
+const collectRequiredRootDirectoryFindings = ({
+  contract,
+  filePath
+}) => {
+  if (!isProtocolContract(contract)) {
+    return { findings: [], modulePathToMark: null };
+  }
+
+  const missingRequiredRootDirectories = [...(contract.requiredRootDirectories ?? [])]
+    .filter((directoryName) => !existsSync(path.resolve(rootDir, contract.modulePath, directoryName)));
+  if (missingRequiredRootDirectories.length === 0) {
+    return { findings: [], modulePathToMark: null };
+  }
+
+  return {
+    findings: [buildFinding(
+      filePath,
+      "error",
+      `module '${contract.modulePath}' is missing required root directories: ${missingRequiredRootDirectories.map((entry) => `'${entry}/'`).join(", ")}`,
+      `protocol=${contract.protocol} module=${contract.modulePath} rule=missing-required-root-directories`
+    )],
+    modulePathToMark: contract.modulePath
+  };
+};
+
+const collectMissingWorkspaceConfigFindings = ({
+  filePath,
+  reportedMissingWorkspaceRoots
+}) => {
+  const workspaceRoot = findWorkspaceRootForPath(filePath);
+  if (!workspaceRoot || workspaceHasModuleStructureConfig(workspaceRoot) || reportedMissingWorkspaceRoots.has(workspaceRoot)) {
+    return { findings: [], shouldSkip: false, workspaceRootToMark: null };
+  }
+  return {
+    findings: [buildFinding(
+      filePath,
+      "error",
+      `workspace root '${workspaceRoot}' is missing '${"module-structure.config.json"}'; every app/package workspace must declare an explicit module-structure contract`,
+      `workspace=${workspaceRoot} rule=missing-module-structure-config`
+    )],
+    shouldSkip: true,
+    workspaceRootToMark: workspaceRoot
+  };
+};
+
+const resolveContractForFile = (filePath) => {
+  try {
+    return {
+      contract: findModuleStructureContract(filePath),
+      findings: []
+    };
+  } catch (error) {
+    return {
+      contract: null,
+      findings: [buildFinding(
+        filePath,
+        "error",
+        error instanceof Error ? error.message : String(error),
+        "invalid-module-structure-config"
+      )]
+    };
+  }
+};
+
+const collectProtocolImportFindings = ({
+  addedLinesByFile,
+  contract,
+  filePath
+}) => {
+  if (!isProtocolContract(contract) || !isGovernedImportFile(filePath)) {
+    return [];
+  }
+
+  const absoluteFilePath = path.resolve(rootDir, filePath);
+  if (!existsSync(absoluteFilePath)) {
+    return [];
+  }
+
+  const source = readFileSync(absoluteFilePath, "utf8");
+  return evaluateProtocolImportBoundaryFindings({
+    filePath,
+    source,
+    addedLines: addedLinesByFile.get(filePath) ?? new Set(),
+    contract
+  });
+};
+
 export const collectModuleStructureViolations = (changedFiles, addedLinesByFile, options) => {
   const comparisonRef = options.baseRef ?? "HEAD";
   const pathExistsInRef = createPathExistsInRef();
   const violations = [];
   const reportedMissingWorkspaceRoots = new Set();
+  const reportedMissingRequiredRootDirectories = new Set();
 
   for (const filePath of changedFiles.map((entry) => normalizePath(entry))) {
-    const workspaceRoot = findWorkspaceRootForPath(filePath);
-    if (workspaceRoot && !workspaceHasModuleStructureConfig(workspaceRoot)) {
-      if (!reportedMissingWorkspaceRoots.has(workspaceRoot)) {
-        violations.push(buildFinding(
-          filePath,
-          "error",
-          `workspace root '${workspaceRoot}' is missing '${"module-structure.config.json"}'; every app/package workspace must declare an explicit module-structure contract`,
-          `workspace=${workspaceRoot} rule=missing-module-structure-config`
-        ));
-        reportedMissingWorkspaceRoots.add(workspaceRoot);
-      }
+    const missingWorkspaceConfigResult = collectMissingWorkspaceConfigFindings({
+      filePath,
+      reportedMissingWorkspaceRoots
+    });
+    if (missingWorkspaceConfigResult.workspaceRootToMark) {
+      reportedMissingWorkspaceRoots.add(missingWorkspaceConfigResult.workspaceRootToMark);
+    }
+    violations.push(...missingWorkspaceConfigResult.findings);
+    if (missingWorkspaceConfigResult.shouldSkip) {
       continue;
     }
 
-    let contract;
-    try {
-      contract = findModuleStructureContract(filePath);
-    } catch (error) {
-      violations.push(buildFinding(
-        filePath,
-        "error",
-        error instanceof Error ? error.message : String(error),
-        "invalid-module-structure-config"
-      ));
-      continue;
-    }
+    const { contract, findings: invalidContractFindings } = resolveContractForFile(filePath);
+    violations.push(...invalidContractFindings);
     if (!contract) {
       continue;
+    }
+
+    const requiredRootDirectoryResult = collectRequiredRootDirectoryFindings({
+      contract,
+      filePath
+    });
+    if (
+      requiredRootDirectoryResult.modulePathToMark &&
+      !reportedMissingRequiredRootDirectories.has(requiredRootDirectoryResult.modulePathToMark)
+    ) {
+      reportedMissingRequiredRootDirectories.add(requiredRootDirectoryResult.modulePathToMark);
+      violations.push(...requiredRootDirectoryResult.findings);
     }
 
     const rootEntryPath = getModuleRootEntryPath(filePath, contract);
@@ -232,22 +320,10 @@ export const collectModuleStructureViolations = (changedFiles, addedLinesByFile,
           : false
       })
     );
-
-    if (!isProtocolContract(contract) || !isGovernedImportFile(filePath)) {
-      continue;
-    }
-
-    const absoluteFilePath = path.resolve(rootDir, filePath);
-    if (!existsSync(absoluteFilePath)) {
-      continue;
-    }
-
-    const source = readFileSync(absoluteFilePath, "utf8");
     violations.push(
-      ...evaluateProtocolImportBoundaryFindings({
+      ...collectProtocolImportFindings({
         filePath,
-        source,
-        addedLines: addedLinesByFile.get(filePath) ?? new Set(),
+        addedLinesByFile,
         contract
       })
     );

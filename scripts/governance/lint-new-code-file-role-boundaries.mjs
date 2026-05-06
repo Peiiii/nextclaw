@@ -108,6 +108,7 @@ const DIRECTORY_ROLE_RULES = {
 
 const EXACT_ALLOWLIST_ANYWHERE = new Set(["index", "sitecustomize"]);
 const ROOT_ENTRY_STEM_ALLOWLIST = new Set(["app", "main"]);
+const ELECTRON_ROOT_ENTRY_STEM_ALLOWLIST = new Set(["main", "preload", "launcher"]);
 const TEST_QUALIFIER_PATTERN = "[a-z0-9-]+";
 const SOURCE_ROOT_SEGMENTS = new Set(["src"]);
 
@@ -191,6 +192,13 @@ const isLegacyRootEntryStem = (segments, stem) => {
   return lastSrcIndex >= 0 && lastSrcIndex === segments.length - 1;
 };
 
+const isElectronRootEntryStem = (segments, stem) => {
+  if (!ELECTRON_ROOT_ENTRY_STEM_ALLOWLIST.has(stem) || segments.length === 0) {
+    return false;
+  }
+  return segments.at(-1) === "electron";
+};
+
 const isContractAllowedRootFile = (normalizedPath, contract) => {
   if (!contract) {
     return false;
@@ -205,7 +213,9 @@ const isContractAllowedRootFile = (normalizedPath, contract) => {
 };
 
 const isRootEntryFile = (normalizedPath, segments, stem, contract) => (
-  isLegacyRootEntryStem(segments, stem) || isContractAllowedRootFile(normalizedPath, contract)
+  isLegacyRootEntryStem(segments, stem) ||
+  isElectronRootEntryStem(segments, stem) ||
+  isContractAllowedRootFile(normalizedPath, contract)
 );
 
 const isDefaultRoleSuffixExempt = (normalizedPath, segments, stem, nearestRule, contract) => {

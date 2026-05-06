@@ -25,13 +25,3 @@ export type CompanionSessionSummary = {
   messageCount: number;
   status?: "idle" | "running";
 };
-
-export type CompanionSessionViewInput = {
-  agents: CompanionAgentProfile[];
-  sessions: CompanionSessionSummary[];
-};
-
-export type CompanionAppOptions = {
-  baseUrl: string;
-  runtimeStatePath?: string;
-};

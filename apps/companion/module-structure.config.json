@@ -1,6 +1,25 @@
 {
-  "contractKind": "protocol",
-  "protocol": "electron-shell-l1",
+  "contractKind": "legacy",
+  "organizationModel": "legacy-apps-companion-workspace-root",
   "rootPolicy": "contract-only",
-  "enforcement": "error"
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "electron",
+    "scripts",
+    "src"
+  ],
+  "requiredRootDirectories": [
+    "electron",
+    "src"
+  ],
+  "allowedRootFiles": [
+    "CHANGELOG.md",
+    "index.html",
+    "module-structure.config.json",
+    "package.json",
+    "postcss.config.mjs",
+    "tailwind.config.mjs",
+    "tsconfig.json",
+    "vite.config.mts"
+  ]
 }

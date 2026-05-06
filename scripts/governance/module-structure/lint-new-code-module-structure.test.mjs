@@ -67,11 +67,21 @@ test("finds the protocol declaration for nextclaw cli package root config", () =
   assert.equal(isProtocolContract(contract), true);
 });
 
-test("finds the protocol declaration for companion electron shell config", () => {
+test("finds the renderer root declaration for companion src config", () => {
   const contract = findModuleStructureContract("apps/companion/src/services/companion-runtime-client.service.ts");
   assert.equal(contract?.modulePath, "apps/companion/src");
-  assert.equal(contract?.protocol, "electron-shell-l1");
-  assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.organizationModel, "legacy-apps-companion-renderer-root");
+  assert.equal(isProtocolContract(contract), false);
+  assert.equal(contract?.requiredRootDirectories.has("presenters"), true);
+  assert.equal(contract?.requiredRootDirectories.has("managers"), true);
+  assert.equal(contract?.requiredRootDirectories.has("stores"), true);
+});
+
+test("finds the workspace-root legacy declaration for companion electron shell files", () => {
+  const contract = findModuleStructureContract("apps/companion/electron/main.ts");
+  assert.equal(contract?.modulePath, "apps/companion");
+  assert.equal(contract?.organizationModel, "legacy-apps-companion-workspace-root");
+  assert.equal(isProtocolContract(contract), false);
 });
 
 test("finds the protocol declaration for desktop electron shell config", () => {
@@ -183,10 +193,10 @@ test("allows package-l1 root index files as package boundary entries", () => {
   assert.equal(findings.length, 0);
 });
 
-test("allows electron shell launcher entry directories", () => {
-  const contract = findModuleStructureContract("apps/companion/src/launcher/index.ts");
+test("allows electron shell launcher entry files", () => {
+  const contract = findModuleStructureContract("apps/desktop/src/launcher/README.md");
   const findings = evaluateModuleStructureFindings({
-    filePath: "apps/companion/src/launcher/index.ts",
+    filePath: "apps/desktop/src/launcher/README.md",
     contract,
     existedInComparisonRef: false,
     rootEntryExistedInComparisonRef: false
@@ -212,6 +222,48 @@ test("blocks touched workspaces that are missing module-structure config", () =>
     assert.equal(findings[0].level, "error");
     assert.match(findings[0].message, /missing 'module-structure\.config\.json'/);
     assert.match(findings[0].reason, /rule=missing-module-structure-config/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
+});
+
+test("blocks protocol modules that are missing required root directories", () => {
+  const repoFixtureRoot = path.join("apps", ".tmp-test-workspaces", "missing-electron-roles");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "services"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/missing-electron-roles\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "legacy",
+    organizationModel: "legacy-apps-missing-electron-roles-renderer-root",
+    rootPolicy: "contract-only",
+    enforcement: "error",
+    allowedRootDirectories: ["services"],
+    requiredRootDirectories: ["presenters", "managers", "stores"]
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "legacy",
+    organizationModel: "legacy-apps-missing-electron-roles-workspace-root",
+    rootPolicy: "contract-only",
+    enforcement: "error",
+    allowedRootDirectories: ["src"],
+    requiredRootDirectories: ["src"],
+    allowedRootFiles: ["module-structure.config.json", "package.json"]
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "services", "example.service.ts"), "export const example = true;\n");
+
+  try {
+    const findings = collectModuleStructureViolations([
+      `${repoFixtureRoot}/src/services/example.service.ts`
+    ], new Map(), {});
+
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].level, "error");
+    assert.match(findings[0].message, /missing required root directories/);
+    assert.match(findings[0].message, /'presenters\/'/);
+    assert.match(findings[0].message, /'managers\/'/);
+    assert.match(findings[0].message, /'stores\/'/);
+    assert.match(findings[0].reason, /rule=missing-required-root-directories/);
   } finally {
     rmSync(absoluteFixtureRoot, { recursive: true, force: true });
   }

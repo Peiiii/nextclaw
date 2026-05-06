@@ -5,28 +5,40 @@
   "description": "Standalone Electron companion shell for active NextClaw agents.",
   "author": "NextClaw Team",
   "homepage": "https://github.com/Peiiii/nextclaw",
-  "main": "dist/src/main.js",
+  "main": "dist/electron/main.js",
   "bin": {
-    "nextclaw-companion": "dist/src/launcher/index.js"
+    "nextclaw-companion": "dist/electron/launcher.js"
   },
   "license": "MIT",
   "scripts": {
-    "dev": "pnpm build:main && node dist/src/launcher/index.js",
-    "build": "pnpm build:main",
+    "dev": "pnpm build && node dist/electron/launcher.js",
+    "build": "pnpm build:main && pnpm build:renderer",
     "build:main": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json --outDir dist --noEmit false",
-    "lint": "eslint \"src/**/*.ts\"",
+    "build:renderer": "vite build --config vite.config.mts",
+    "lint": "eslint \"electron/**/*.ts\" \"src/**/*.{ts,tsx}\" vite.config.mts",
     "tsc": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run src/companion-session-view.service.test.ts",
+    "test": "vitest run src/managers/companion-runtime.manager.test.ts",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs",
-    "smoke": "pnpm build:main && node scripts/smoke.mjs"
+    "smoke": "pnpm build && node scripts/smoke.mjs"
   },
   "dependencies": {
     "@nextclaw/client-sdk": "workspace:*",
-    "electron": "^32.2.1"
+    "electron": "^32.2.1",
+    "lucide-react": "^0.462.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.4.20",
     "@types/node": "^20.17.6",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
     "typescript": "^5.6.3",
+    "vite": "^8.0.3",
     "vitest": "^4.1.2"
   }
 }

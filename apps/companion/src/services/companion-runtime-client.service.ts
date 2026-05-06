@@ -1,9 +1,4 @@
-import type {
-  CompanionAgentProfile,
-  CompanionAvatarView,
-  CompanionSessionSummary
-} from "../types/companion.types.js";
-import { CompanionSessionViewService } from "./companion-session-view.service.js";
+import type { CompanionAgentProfile, CompanionSessionSummary } from "../types/companion.types.js";
 
 type CompanionSdkClient = {
   agents: {
@@ -21,98 +16,40 @@ type CompanionSdkClient = {
 
 export class CompanionRuntimeClientService {
   private client: CompanionSdkClient | null = null;
-  private viewService: CompanionSessionViewService | null = null;
-  private refreshTimer: ReturnType<typeof setInterval> | null = null;
-  private subscription: { close: () => void } | null = null;
 
   constructor(private readonly baseUrl: string) {}
 
-  readonly start = async (onView: (view: CompanionAvatarView) => void): Promise<void> => {
-    await this.ensureClient();
-    await this.refresh(onView);
-    const client = await this.ensureClient();
-    this.subscription = client.sessions.subscribe(
-      async () => {
-        await this.refresh(onView);
-      },
-      {
-        reconnectDelayMs: 1000,
-        onError: async () => {
-          await this.refresh(onView);
-        }
-      }
-    );
-    this.refreshTimer = setInterval(() => {
-      void this.refresh(onView);
-    }, 10000);
+  readonly listAgents = async (): Promise<CompanionAgentProfile[]> => {
+    return await this.ensureClient().agents.list();
   };
 
-  readonly stop = (): void => {
-    this.subscription?.close();
-    this.subscription = null;
-    if (this.refreshTimer !== null) {
-      clearInterval(this.refreshTimer);
-      this.refreshTimer = null;
-    }
+  readonly listSessions = async (): Promise<{ sessions: CompanionSessionSummary[] }> => {
+    return await this.ensureClient().sessions.list();
   };
 
-  private readonly refresh = async (onView: (view: CompanionAvatarView) => void): Promise<void> => {
-    try {
-      const client = await this.ensureClient();
-      const [agents, sessions] = await Promise.all([
-        client.agents.list(),
-        client.sessions.list()
-      ]);
-      onView(
-        this.ensureViewService(client).selectView({
-          agents,
-          sessions: sessions.sessions
-        })
-      );
-    } catch (error) {
-      console.error("[companion] refresh failed", error);
-      onView(
-        this.createOfflineView(
-          error instanceof Error
-            ? { summary: this.summarizeOfflineError(error.message) }
-            : undefined
-        )
-      );
-    }
+  readonly subscribeToSessions = (
+    handler: (event: unknown) => void,
+    options: { reconnectDelayMs?: number; onError?: (error: unknown) => void }
+  ): { close: () => void } => {
+    return this.ensureClient().sessions.subscribe(handler, options);
   };
 
-  private readonly ensureClient = async (): Promise<CompanionSdkClient> => {
+  readonly resolveAvatarUrl = (agentId: string): string => {
+    return `${this.baseUrl}/api/agents/${encodeURIComponent(agentId)}/avatar`;
+  };
+
+  private readonly ensureClient = (): CompanionSdkClient => {
     if (this.client) {
       return this.client;
     }
+    throw new Error("Companion runtime client has not been initialized.");
+  };
+
+  readonly initialize = async (): Promise<void> => {
+    if (this.client) {
+      return;
+    }
     const sdkModule = await import("@nextclaw/client-sdk");
     this.client = sdkModule.createNextClawClient({ baseUrl: this.baseUrl }) as CompanionSdkClient;
-    return this.client;
-  };
-
-  private readonly ensureViewService = (client: CompanionSdkClient): CompanionSessionViewService => {
-    if (this.viewService) {
-      return this.viewService;
-    }
-    this.viewService = new CompanionSessionViewService(this.baseUrl, client.agents.resolveAvatarUrl);
-    return this.viewService;
-  };
-
-  private readonly createOfflineView = (reason?: { summary: string }): CompanionAvatarView => {
-    const viewService =
-      this.viewService ??
-      new CompanionSessionViewService(this.baseUrl, (agentId) => `${this.baseUrl}/api/agents/${encodeURIComponent(agentId)}/avatar`);
-    return viewService.createOfflineView(reason);
-  };
-
-  private readonly summarizeOfflineError = (message: string): string => {
-    if (/fetch failed/i.test(message)) {
-      return "Cannot reach runtime";
-    }
-    if (/timed out/i.test(message)) {
-      return "Runtime timeout";
-    }
-    const trimmed = message.trim();
-    return trimmed.length > 28 ? `${trimmed.slice(0, 25)}...` : trimmed || "Runtime unavailable";
   };
 }

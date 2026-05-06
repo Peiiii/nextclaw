@@ -64,6 +64,12 @@ Treat the governance system as including at least:
 
 If a rule change affects executable behavior, do not stop at text edits. Update the corresponding script surface in the same change, or explicitly state why it is not applicable.
 
+The reverse direction is also mandatory:
+
+- if a script/governance change introduces, removes, or relaxes a rule surface, do not stop at script edits;
+- update the owning skill / command / governance doc in the same change, or explicitly state why no owner text exists;
+- do not let executable governance drift ahead of the documented rule model.
+
 ## AGENTS.md Rewrite Rules
 
 - Keep `AGENTS.md` concise and startup-oriented.

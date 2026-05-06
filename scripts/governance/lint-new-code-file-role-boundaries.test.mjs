@@ -92,6 +92,23 @@ test("allows root entry files without role suffixes", () => {
   }), null);
 });
 
+test("allows electron shell root entry files without role suffixes", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "apps/companion/electron/main.ts",
+    status: "A"
+  }), null);
+
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "apps/companion/electron/preload.ts",
+    status: "A"
+  }), null);
+
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "apps/companion/electron/launcher.ts",
+    status: "A"
+  }), null);
+});
+
 test("allows module-contract root files without role suffixes", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/nextclaw-kernel.ts",

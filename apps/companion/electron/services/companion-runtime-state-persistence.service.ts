@@ -7,7 +7,7 @@ type CompanionRuntimeState = {
   baseUrl: string;
 };
 
-export class CompanionRuntimeStateStore {
+export class CompanionRuntimeStatePersistenceService {
   constructor(private readonly filePath: string) {}
 
   readonly write = (state: CompanionRuntimeState): void => {

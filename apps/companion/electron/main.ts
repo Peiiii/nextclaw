@@ -1,3 +1,4 @@
+import type { CompanionAppOptions } from "./types/companion-shell.types.js";
 import { CompanionApplicationService } from "./services/companion-application.service.js";
 
 function resolveBaseUrl(argv: string[]): string {
@@ -13,11 +14,11 @@ function resolveBaseUrl(argv: string[]): string {
 }
 
 async function main(): Promise<void> {
-  const application = new CompanionApplicationService({
+  const options: CompanionAppOptions = {
     baseUrl: resolveBaseUrl(process.argv.slice(1)),
     runtimeStatePath: process.env.NEXTCLAW_COMPANION_RUNTIME_STATE_PATH?.trim() || undefined
-  });
-  await application.run();
+  };
+  await new CompanionApplicationService(options).run();
 }
 
 void main();

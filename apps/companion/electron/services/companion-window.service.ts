@@ -1,23 +1,25 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
-import type { CompanionAvatarView } from "../types/companion.types.js";
-import type { CompanionWindowPositionStore } from "../stores/companion-window-position.store.js";
-import { renderCompanionHtml } from "../utils/companion-renderer-html.utils.js";
+import { BrowserWindow, ipcMain, shell } from "electron";
+
+import type { CompanionShellBootstrap } from "../types/companion-shell.types.js";
+import type { CompanionWindowPositionPersistenceService } from "./companion-window-position-persistence.service.js";
 
 export class CompanionWindowService {
   private window: BrowserWindow | null = null;
-  private currentView: CompanionAvatarView | null = null;
 
-  constructor(
-    private readonly preloadPath: string,
-    private readonly positionStore: CompanionWindowPositionStore
-  ) {}
+  constructor(private readonly options: {
+    preloadPath: string;
+    rendererEntryPath: string;
+    positionPersistenceService: CompanionWindowPositionPersistenceService;
+    baseUrl: string;
+    onQuit: () => void;
+  }) {}
 
   readonly create = async (): Promise<void> => {
     if (this.window) {
       return;
     }
 
-    const bounds = this.positionStore.read();
+    const bounds = this.options.positionPersistenceService.read();
     this.window = new BrowserWindow({
       width: 112,
       height: 132,
@@ -31,7 +33,7 @@ export class CompanionWindowService {
       skipTaskbar: true,
       hasShadow: false,
       webPreferences: {
-        preload: this.preloadPath,
+        preload: this.options.preloadPath,
         contextIsolation: true,
         nodeIntegration: false
       }
@@ -52,26 +54,22 @@ export class CompanionWindowService {
 
     ipcMain.removeHandler("companion:open");
     ipcMain.handle("companion:open", async () => {
-      const openUrl = this.currentView?.openUrl;
-      if (openUrl) {
-        await shell.openExternal(openUrl);
-      }
+      await shell.openExternal(this.options.baseUrl);
       return null;
     });
     ipcMain.removeHandler("companion:quit");
     ipcMain.handle("companion:quit", async () => {
-      app.quit();
+      this.options.onQuit();
       return null;
     });
-
-    ipcMain.removeAllListeners("companion:ready");
-    ipcMain.on("companion:ready", () => {
-      if (this.currentView) {
-        this.window?.webContents.send("companion:view", this.currentView);
-      }
+    ipcMain.removeHandler("companion:get-bootstrap");
+    ipcMain.handle("companion:get-bootstrap", async (): Promise<CompanionShellBootstrap> => {
+      return {
+        baseUrl: this.options.baseUrl
+      };
     });
 
-    await this.window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderCompanionHtml())}`);
+    await this.window.loadFile(this.options.rendererEntryPath);
   };
 
   readonly show = (): void => {
@@ -89,15 +87,10 @@ export class CompanionWindowService {
     this.window.showInactive();
   };
 
-  readonly updateView = (view: CompanionAvatarView): void => {
-    this.currentView = view;
-    this.window?.webContents.send("companion:view", view);
-  };
-
   readonly destroy = (): void => {
     ipcMain.removeHandler("companion:open");
     ipcMain.removeHandler("companion:quit");
-    ipcMain.removeAllListeners("companion:ready");
+    ipcMain.removeHandler("companion:get-bootstrap");
     this.window?.destroy();
     this.window = null;
   };
@@ -107,7 +100,7 @@ export class CompanionWindowService {
     if (!bounds) {
       return;
     }
-    this.positionStore.write({
+    this.options.positionPersistenceService.write({
       x: bounds.x,
       y: bounds.y
     });

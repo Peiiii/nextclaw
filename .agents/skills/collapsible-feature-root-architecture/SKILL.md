@@ -106,6 +106,8 @@ src/
 - 边界文件例如 `index.ts` 或少量 package 级装配入口；如果某个文件本质上是 `service`、`store`、`utils`、`config`、`types` 等角色实现，它应进入对应职责目录
 - 不要把某个抽象概念名直接提升为新的顶层目录名；若它本质仍属于既有职责角色，应回到已有职责目录表达
 - 不要再造一个单独的 `<business-root>/` 目录把全部实现包起来
+- 如果该 `L1` 作用域本身是前端展示层项目，那么 `presenters/`、`managers/`、`stores/` 不是可选项，而是必备 owner 目录
+- 如果某个 Electron workspace 同时包含前端展示层与主进程壳层，不要把两者混在同一个 `src/` root；前端展示层应保留在 `src/` 并按前端 owner 规则组织，主进程壳层应进入独立 root（例如 `electron/`），再分别用各自的 contract 约束
 - 注意：这只是示意结构，不代表所有目录都必须出现
 
 ### `L2`：Single-Platform Multi-Feature
@@ -171,6 +173,7 @@ src/
 - 默认应先共享业务实现，只有平台专属适配、桥接、provider wiring 与平台 API 接入才进入 `platforms/`
 - `platforms/<platform>/` 根下应只出现通用职责目录，不应出现业务目录名
 - `L3` 不是新增一套专属规则，而是把包内通用规则与平台差异规则同时展开的全集场景
+- 如果该 `L3` 作用域是前端展示层，那么 presenter-manager-store 三层 owner 也必须真实存在；只是它们不一定平铺在应用根，而应落到 `app/`、具体 feature root、或平台作用域中各自拥有视图编排的地方
 
 只有当前端平台差异已经成为稳定的一等边界时，才进入 `L3`。  
 不要因为少量 UI 差异或单个入口函数不同，就过早升级到 `L3`。

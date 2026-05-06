@@ -1,7 +1,8 @@
 ## 迭代完成说明
 
 - 本轮把“workspace 根必须显式声明 `module-structure.config.json`”从口头要求落成了真实脚本约束，并把现有 workspace 一次性补齐到了全覆盖。
-- 根因是现有 `module-structure` 治理只会检查已经声明 contract 的模块，导致 `apps/companion` 这类 workspace 即使完全没有结构协议，也会落在脚本盲区里。
+- 根因一是现有 `module-structure` 治理只会检查已经声明 contract 的模块，导致 `apps/companion` 这类 workspace 即使完全没有结构协议，也会落在脚本盲区里。
+- 根因二是我们一度先在脚本层新增了 `electron-shell-l1` 这类 protocol，但没有先把它和高层目录结构规范做一一对应说明，暴露出“文档 owner 与脚本协议不同步”的治理缺口。
 - 通过方式：
   - 在 `scripts/governance/module-structure/module-structure-contracts.mjs` 增加 workspace root 识别与缺失 config 判断能力。
   - 在 `scripts/governance/module-structure/lint-new-code-module-structure.mjs` 增加“被触达 workspace 若缺失 `module-structure.config.json` 则直接报错”的规则。
@@ -10,6 +11,7 @@
   - 为全部 58 个 workspace 显式声明了 root contract；其中 `apps/companion`、`apps/desktop` 走 `electron-shell-l1`，大部分 `src` 形态 workspace 走 `source-root-open`，非 `src` 形态 workspace 则冻结为 legacy root contract。
   - 同步补全 [/.agents/skills/file-organization-governance/SKILL.md](/Users/peiwang/Projects/nextbot/.agents/skills/file-organization-governance/SKILL.md) 中的仓库级规则说明。
 - 这次修的是根因，不是症状：不是只给 `apps/companion` 加一个配置文件，而是让脚本以后能直接拦住“新/改 workspace 仍未声明 contract”的情况。
+- 同时也补上了一条元规则：以后目录结构规范的高层文档、脚本协议、workspace contract 引用必须一一对应，不能再只在脚本层偷偷长出新 protocol。
 - 当前仓库盘点结果：58 个 workspace 已全部显式声明 `module-structure.config.json`，当前 `missing = []`。
 
 ## 测试/验证/验收方式

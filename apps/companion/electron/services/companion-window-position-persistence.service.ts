@@ -6,7 +6,7 @@ type WindowBounds = {
   y?: number;
 };
 
-export class CompanionWindowPositionStore {
+export class CompanionWindowPositionPersistenceService {
   constructor(private readonly filePath: string) {}
 
   readonly read = (): WindowBounds | null => {
@@ -25,7 +25,7 @@ export class CompanionWindowPositionStore {
     writeFileSync(this.filePath, JSON.stringify(bounds, null, 2));
   };
 
-  static readonly fromUserData = (userDataPath: string): CompanionWindowPositionStore => {
-    return new CompanionWindowPositionStore(resolve(userDataPath, "companion-window.json"));
+  static readonly fromUserData = (userDataPath: string): CompanionWindowPositionPersistenceService => {
+    return new CompanionWindowPositionPersistenceService(resolve(userDataPath, "companion-window.json"));
   };
 }

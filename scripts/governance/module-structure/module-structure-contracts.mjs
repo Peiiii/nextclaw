@@ -43,6 +43,7 @@ const defineLegacyContract = ({
   organizationModel,
   allowedRootDirectories,
   allowedRootFiles,
+  requiredRootDirectories,
   sharedDirectories,
   rootPolicy,
   enforcement
@@ -52,6 +53,7 @@ const defineLegacyContract = ({
   organizationModel,
   allowedRootDirectories: toNormalizedSet(allowedRootDirectories),
   allowedRootFiles: new Set(allowedRootFiles ?? []),
+  requiredRootDirectories: toNormalizedSet(requiredRootDirectories),
   sharedDirectories: new Set(sharedDirectories ?? []),
   rootPolicy: rootPolicy ?? "legacy-frozen",
   enforcement: enforcement ?? "error"
@@ -126,6 +128,7 @@ const FRONTEND_L3_PROTOCOL = {
   governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared", "platforms"],
   allowedRootFiles: [],
+  requiredRootDirectories: [],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
@@ -136,6 +139,7 @@ const PACKAGE_L1_PROTOCOL = {
   governedRoot: "src",
   allowedRootDirectories: ["app", ...FIXED_ROLE_DIRECTORY_NAMES],
   allowedRootFiles: ["index.ts"],
+  requiredRootDirectories: [],
   sharedDirectories: [],
   importAliasPrefixes: ["@/"]
 };
@@ -146,6 +150,7 @@ const CLI_COMMAND_FIRST_PROTOCOL = {
   governedRoot: "src/cli",
   allowedRootDirectories: ["app", "commands", "shared"],
   allowedRootFiles: [],
+  requiredRootDirectories: [],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
@@ -156,6 +161,7 @@ const SOURCE_ROOT_OPEN_PROTOCOL = {
   governedRoot: "src",
   allowedRootDirectories: [],
   allowedRootFiles: [],
+  requiredRootDirectories: [],
   sharedDirectories: [],
   importAliasPrefixes: []
 };
@@ -164,8 +170,9 @@ const ELECTRON_SHELL_L1_PROTOCOL = {
   protocolName: "electron-shell-l1",
   organizationModel: "protocol-electron-shell-l1",
   governedRoot: "src",
-  allowedRootDirectories: ["launcher", "preload", "configs", "services", "stores", "types", "utils"],
-  allowedRootFiles: ["index.ts", "main.ts", "preload.ts"],
+  allowedRootDirectories: ["launcher", "configs", "services", "types", "utils"],
+  allowedRootFiles: ["index.ts", "main.ts", "preload.ts", "launcher.ts"],
+  requiredRootDirectories: [],
   sharedDirectories: [],
   importAliasPrefixes: []
 };
@@ -197,6 +204,10 @@ const defineProtocolDeclaration = (declaration) => {
     allowedRootFiles: new Set([
       ...(protocol.allowedRootFiles ?? []),
       ...(declaration.allowedRootFiles ?? [])
+    ]),
+    requiredRootDirectories: toNormalizedSet([
+      ...(protocol.requiredRootDirectories ?? []),
+      ...(declaration.requiredRootDirectories ?? [])
     ]),
     sharedDirectories: new Set([
       ...(protocol.sharedDirectories ?? []),
@@ -315,6 +326,7 @@ const buildContractFromConfigFile = (configRepoPath) => {
       enforcement: config.enforcement,
       allowedRootDirectories: normalizeStringArrayField(config.allowedRootDirectories, "allowedRootDirectories", configRepoPath),
       allowedRootFiles: normalizeStringArrayField(config.allowedRootFiles, "allowedRootFiles", configRepoPath),
+      requiredRootDirectories: normalizeStringArrayField(config.requiredRootDirectories, "requiredRootDirectories", configRepoPath),
       sharedDirectories: normalizeStringArrayField(config.sharedDirectories, "sharedDirectories", configRepoPath),
       importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath)
     });
@@ -344,6 +356,7 @@ const buildContractFromConfigFile = (configRepoPath) => {
       enforcement: config.enforcement,
       allowedRootDirectories: normalizeStringArrayField(config.allowedRootDirectories, "allowedRootDirectories", configRepoPath),
       allowedRootFiles: normalizeStringArrayField(config.allowedRootFiles, "allowedRootFiles", configRepoPath),
+      requiredRootDirectories: normalizeStringArrayField(config.requiredRootDirectories, "requiredRootDirectories", configRepoPath),
       sharedDirectories: normalizeStringArrayField(config.sharedDirectories, "sharedDirectories", configRepoPath)
     });
   } else {

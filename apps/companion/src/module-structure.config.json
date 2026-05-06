@@ -1,0 +1,22 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-apps-companion-renderer-root",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "app",
+    "managers",
+    "presenters",
+    "services",
+    "stores",
+    "types"
+  ],
+  "requiredRootDirectories": [
+    "presenters",
+    "managers",
+    "stores"
+  ],
+  "allowedRootFiles": [
+    "module-structure.config.json"
+  ]
+}
