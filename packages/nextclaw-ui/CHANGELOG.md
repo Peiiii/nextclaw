@@ -1,5 +1,17 @@
 # @nextclaw/ui
 
+## 0.12.20-beta.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/agent-chat@0.1.11-beta.0
+  - @nextclaw/client-sdk@0.1.1-beta.1
+  - @nextclaw/kernel@0.1.2-beta.2
+  - @nextclaw/ncp-http-agent-client@0.3.18-beta.1
+  - @nextclaw/ncp-react@0.4.26-beta.1
+  - @nextclaw/server@0.12.13-beta.1
+
 ## 0.12.20-beta.0
 
 ### Patch Changes

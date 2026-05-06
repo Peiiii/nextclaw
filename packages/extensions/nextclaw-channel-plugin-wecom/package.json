@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-wecom",
-  "version": "0.2.44-beta.0",
+  "version": "0.2.44-beta.1",
   "private": false,
   "description": "NextClaw WeCom channel plugin (OpenClaw-compatible)",
   "type": "module",

@@ -1,5 +1,15 @@
 # nextclaw-server
 
+## 0.12.13-beta.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/kernel@0.1.2-beta.2
+  - @nextclaw/mcp@0.1.78-beta.1
+  - @nextclaw/ncp-http-agent-server@0.3.18-beta.1
+  - @nextclaw/openclaw-compat@1.0.13-beta.1
+
 ## 0.12.13-beta.0
 
 ### Patch Changes

@@ -1,5 +1,23 @@
 # nextclaw
 
+## 0.18.12-beta.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/companion@0.1.1-beta.1
+  - @nextclaw/kernel@0.1.2-beta.2
+  - @nextclaw/mcp@0.1.78-beta.1
+  - @nextclaw/ncp-agent-runtime@0.3.16-beta.1
+  - @nextclaw/ncp-mcp@0.1.80-beta.1
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.1.5-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.1.5-beta.1
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.1.6-beta.1
+  - @nextclaw/openclaw-compat@1.0.13-beta.1
+  - @nextclaw/remote@0.1.90-beta.1
+  - @nextclaw/server@0.12.13-beta.1
+  - @nextclaw/ncp-toolkit@0.5.11-beta.0
+
 ## 0.18.12-beta.3
 
 ### Patch Changes
