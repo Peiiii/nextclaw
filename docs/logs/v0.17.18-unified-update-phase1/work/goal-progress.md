@@ -1,6 +1,6 @@
 ## 当前目标
 
-补齐统一更新系统的用户可用闭环，重点是 NPM beta 也能发布、验签、下载、手动应用。
+文件化统一更新闭环验证法，并用接口层复现“已发布 beta 打开即显示更新失败”问题；现已完成修复、发布新的 beta，并通过真实已发布安装物的接口层闭环验收。
 
 ## 明确非目标
 
@@ -26,11 +26,19 @@
 - 已统一发布 NPM beta 批次：`nextclaw@0.18.12-beta.3`、`@nextclaw/core@0.12.13-beta.1`、`@nextclaw/server@0.12.13-beta.0`、`@nextclaw/remote@0.1.90-beta.0` 等已上 npm。
 - 已修复 runtime channel 发布链路：大 zip 改走 GitHub Release assets，`gh-pages` 只保留 manifest 与 public key。
 - 已完成真实用户路径验收：`nextclaw@0.18.12-beta.2 -> check beta.3 -> download -> apply -> 新进程版本 0.18.12-beta.3`。
+- 已把目标模式新增规则冻结为 skill 约束：`0/20` 和 `20/20` 都是强制 review 点。
+- 已完成真实问题复现：公开 `nextclaw@0.18.12-beta.3` 启动后 `/api/runtime/update` 返回 `channel=stable`、`status=failed`、`404`。
+- 已修复默认 channel 归属：beta launcher 现在默认走 beta channel，而不是 stable。
+- 已修复新构建 shared chunk 下的包内 public key 路径兼容；本地打包安装物启动后 `/api/runtime/update` 已进入 `channel=beta`、`status=downloading`，并带连续 progress。
+- 已提交并推送修复：`493b7de7 fix: default beta launcher updates to beta channel`。
+- 已发布 `nextclaw@0.18.12-beta.4` 到 npm `beta` dist-tag，并 deprecated `0.18.12-beta.3`。
+- 已重新发布 NPM runtime beta channel；workflow `25435357020` 成功，`gh-pages` 最新 commit 为 `95d29a83`。
+- 已完成真实已发布安装物 API 闭环验收：全新安装 `nextclaw@beta` 得到 `0.18.12-beta.4`；`GET /api/runtime/update` 启动即返回 `channel=beta`、`status=downloading`、连续 `progress`；下载完成后变为 `downloaded`；`POST /api/runtime/update/apply` 返回 `restart-required`；同一 `NEXTCLAW_HOME` 重启后 `currentVersion=0.18.12-beta.4`、`status=up-to-date`。
 
 ## 当前下一步
 
-等待用户继续做 beta 体验验收；若用户确认没问题，再发布正式版。
+更新迭代留痕并提交/推送本次收尾文档。
 
 ## 锚点计数器
 
-0/20
+18/20

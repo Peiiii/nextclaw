@@ -21,6 +21,8 @@
 - 同批次补充：NPM 安装态的 UI 更新链路正式接通。前端不再自己判断“桌面还是 NPM”，而是统一只消费 `UpdateSnapshot` 和统一动作；桌面端继续走 desktop bridge，managed local service / NPM 安装态通过 `/api/runtime/update` host 暴露同一套状态、下载、应用、偏好与 channel 接口。产品版本号旁边的进度/更新按钮与 `/updates` 页现在都会走统一 runtime update manager。
 - 同批次补充：NPM managed local service update host 改为后台任务模型。自动检查开启时会自动检查；`autoDownload=true` 时会后台自动下载并持续更新 `progress`；点击“更新”会应用已下载 bundle 并请求 managed service 重启，让新版本真正生效，而不是只切指针不切进程。
 - 同批次补充：开发态 `pnpm dev start` 默认重新对齐到真实 `~/.nextclaw`，不再偷偷改用 `~/.nextclaw-dev-home/<repo>`。根因通过对比 `scripts/dev/dev-runner.mjs`、README 文案、`/api/config` 实际返回和 `~/.nextclaw-dev-home/nextbot/config.json` 现场确认：实现与文档漂移导致开发态加载了另一套 home，用户看到“配置没加载”；同时 runtime update host 在 dev 启动后会自动检查公网 manifest，而当 manifest 尚未发布时会把 404 持久化为 `failed`，前端左上角因此显示“更新异常”。本次修复命中根因：直接把 dev-runner 默认 home 改回 `~/.nextclaw`，并让 dev-runner 显式禁用 runtime update host，使开发态不再把“未发布 manifest”误判为产品更新失败。
+- 同批次补充：已发布 `nextclaw@0.18.12-beta.3` 的“打开界面即显示更新失败”问题已通过接口层复现并命中根因。隔离安装公开 beta 后启动 `nextclaw serve`，`GET /api/runtime/update` 返回 `channel=stable`、`status=failed`、`errorMessage=runtime update manifest request failed with status 404`；同时公网 `beta` manifest 存在，而同平台 `stable` manifest 为 `404`。根因不是 UI 映射，而是 beta launcher 的默认 update channel 仍落成 `stable`。修复方式是在 launcher update source / state 默认值中引入“beta launcher 默认走 beta channel”的统一规则，并把这条默认同时用于 CLI `update`、managed service runtime update host 与 launcher state store。
+- 同批次补充：修复默认 channel 后，本地新构建安装物一度继续卡在 `signature-verification-unavailable`。根因通过比对已发布 beta 与当前构建产物确认：新的 tsdown 产物把 `NpmRuntimeUpdateSourceService` 拆到了 `dist/*.js` 共享 chunk，`import.meta.url` 所在目录从 `dist/cli/app` 变成了 `dist`，原先只兼容 `dist/cli/app|launcher -> ../../../resources` 的相对路径不再命中包根 `resources/update-bundle-public.pem`。修复后包内 public key 路径会同时兼容 `dist/*.js` 共享 chunk 与 `dist/cli/*` 旧布局。
 - 同批次补充：统一 beta 发版前再次命中 release contract 缺口。`release:check:groups` 现场确认 `@nextclaw/companion` 缺少标准 `prepublishOnly`，而当前仓库里的 `nextclaw` 依赖图已经包含 `@nextclaw/companion`。这意味着继续发布新的 `nextclaw` 而不补 companion publish guard，会把 release batch 卡在 guard 阶段，且未来一旦 `nextclaw` 的发布 manifest 真带上 companion 依赖，还会把“统一 beta 发布”拖成安装事故。修复方式是给 `apps/companion/package.json` 补齐标准 `prepublishOnly`，把 companion 拉回既有 pnpm release contract。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
@@ -43,6 +45,17 @@
   - 更新链路不创建或修改 `config.json`、`sessions`、`skills`、`workspace` 等用户拥有目录。
 - `pnpm -C packages/nextclaw validation:npm-update`：通过。该命令复用 NPM runtime update smoke fixture，准备本地签名 manifest、runtime bundle、临时 `NEXTCLAW_HOME` 和临时 `nextclaw` shim，然后打印可直接复制执行的命令序列：`nextclaw --version`、`nextclaw update --check`、`nextclaw update`、`nextclaw update --apply`、再次 `nextclaw --version`。已按输出命令实际手动执行一遍，观察到：初始 `nextclaw --version` 为 `0.18.11`；`update --check` 提示 `none -> 0.99.1`；`update` 下载后仍保持 `0.18.11`；`update --apply` 后最终 `nextclaw --version` 输出 `smoke-runtime-0.99.1`。
 - `pnpm -C packages/nextclaw validation:npm-update -- --published-beta`：通过。该命令从真实 npm registry 全新安装 `nextclaw@beta`，验证 `nextclaw --version` 输出已发布 beta 版本，并在已安装包目录内直接探测 `InputBudgetPruner`，确认 `estimate` / `prune` 都存在，覆盖“已发布 beta 包的依赖闭包与关键运行时 API”这条用户真实安装路径。
+- 真实接口层复现（公开 beta）：
+  - 隔离安装 `nextclaw@0.18.12-beta.3` 到临时 prefix / `NEXTCLAW_HOME`。
+  - 启动 `nextclaw serve --ui-port 18777`。
+  - `GET /api/runtime/update` 返回 `channel=stable`、`status=failed`、`errorMessage=runtime update manifest request failed with status 404`。
+  - 同时现场确认当前平台 `beta` manifest 存在而 `stable` manifest 返回 `404`，因此问题归因到默认 channel 错误，而不是 UI。
+- 本地安装物同链路验收（修后）：
+  - `pnpm -C packages/nextclaw tsc`：通过。
+  - `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts`：通过，2 个测试文件、7 个用例。
+  - `pnpm -C packages/nextclaw build`：通过。
+  - 以修后源码重新 `pack + npm install -g <tgz> --prefix <tmp>`，启动 `nextclaw serve --ui-port 18781`。
+  - `GET /api/runtime/update` 返回 `channel=beta`、`status=downloading`，并出现连续 `progress`（例如 `17% -> 25%`）；`errorMessage=null`。这直接证明修后安装物已经从“打开即更新失败”切到“后台自动下载并上报进度”。
 - 新增 NPM runtime update 正式发布链路：
   - `packages/nextclaw/scripts/build-npm-runtime-update-channel.mjs` 负责构建自包含 runtime bundle、生成 `hostKind=npm-runtime-bundle` 的签名 manifest，并写入包内 `resources/update-bundle-public.pem`。
   - `packages/nextclaw/npm-runtime-compatibility.json` 固化 NPM runtime update 的 stable / beta launcher floor，默认均保持 `0.18.11`，避免发布时随意提升 minimum launcher version。
@@ -208,6 +221,10 @@ pnpm -C apps/desktop validation:dev-update
 
 当前发布策略：先发布 `nextclaw@beta` 供真实用户路径验证；正式版等待 beta 验收通过后再发布。已验证全新临时目录从真实 registry 安装 `nextclaw@beta` 后，`nextclaw --version` 输出当前 beta 版本，且关键运行时 API `InputBudgetPruner.estimate` 存在。首次 workflow dispatch 因把 `release_tag` 错误用于 checkout ref 而在 checkout 阶段失败，已修正为 dispatch 时 checkout 当前分支、`release_tag` 只用于 release notes URL。第二次 workflow dispatch 进入构建阶段后发现 runtime channel builder 在干净 CI 中只构建 `@nextclaw/ui` 而未先构建其 workspace 依赖，导致 Vite 解析 `@nextclaw/ncp-toolkit` 的 `dist` 失败；真实下载/apply 验证又发现 runtime bundle 中 `@nextclaw/core` 等 workspace runtime 依赖即使已构建，也可能没有被 `pnpm deploy` 带入 bundle。builder 已改为 `pnpm --filter nextclaw... build`，按拓扑构建 `nextclaw` 及其 workspace 依赖，并在 deploy 前刷新 pnpm workspace package 快照。随后又在发布 `gh-pages` 阶段命中 GitHub 100MB 单文件限制：四个平台 zip 中，两个 Darwin 包约 299MB，Linux/Windows 也超过 100MB，导致 push 被 pre-receive hook 拒绝。最终修复是保持 `gh-pages` 只承载小体积 manifest 与 `update-bundle-public.pem`，把 `nextclaw-runtime-*.zip` 改为上传到与 release tag 对应的 GitHub Release assets，再由 manifest 的 `bundleUrl` 直接指向 release 下载地址。第三次 workflow dispatch `25412612830` 已成功完成：四个平台 bundle 构建成功、release assets 上传成功、`gh-pages` manifest 发布成功。
 
+当前新增未发布修复状态：
+
+- `nextclaw`：无。`0.18.12-beta.4` 已发布并包含“beta launcher 默认 channel 归属”和“shared chunk 下包内 public key 路径兼容”修复；旧的 `0.18.12-beta.3` 已 deprecated。
+
 最终真实用户路径验收（隔离目录）：
 
 - 从真实 npm registry 安装 `nextclaw@0.18.12-beta.2`，初始 `nextclaw --version` 为 `0.18.12-beta.2`。
@@ -217,3 +234,15 @@ pnpm -C apps/desktop validation:dev-update
 - 新进程再次执行 `nextclaw --version`，输出 `0.18.12-beta.3`，确认真实用户路径的 check / download / apply / 新版本生效闭环成立。
 
 本次发布复盘：慢点不是单一构建速度，而是缺少发布前阻断机制，导致问题按“beta0 依赖缺 export -> workflow checkout ref -> CI workspace dist -> runtime apply 缺 dist -> 真实发消息 API 版本不匹配”的顺序串行暴露。已把 NPM release skill 增加为发布前必须做依赖闭包 API 检查、真实安装 smoke、runtime update check/download/apply/new-process 验证，并要求每次 release attempt 后把耗时堵点转成 skill rule、preflight script、CI gate 或 smoke command，不能只写复盘叙述。
+
+同批次新增真实已发布 API 自动更新验收（`0.18.12-beta.4`）：
+
+- `gh run view 25435357020 --json status,conclusion,url,jobs` 返回 `status=completed`、`conclusion=success`，确认新的 runtime beta channel 已发布。
+- `curl -fsSL 'https://peiiii.github.io/nextclaw/npm-runtime-updates/beta/manifest-beta-darwin-arm64.json?ts=<unix>'` 返回 `latestVersion=0.18.12-beta.4`、`minimumLauncherVersion=0.18.11`、`bundleUrl` 指向 `nextclaw@0.18.12-beta.4` release asset。
+- `gh release view 'nextclaw@0.18.12-beta.4' --json url,isPrerelease,assets` 确认四个平台 `nextclaw-runtime-*-0.18.12-beta.4.zip` assets 已上传；release 上旧的 beta.3 资产仍在，但 manifest 已切到 beta.4 资产，不影响用户更新路径。
+- 用全新临时 prefix / `NEXTCLAW_HOME` 安装 `nextclaw@beta` 后，`nextclaw --version` 输出 `0.18.12-beta.4`。
+- 启动 `nextclaw serve --ui-port 18784` 后，`GET /api/runtime/update` 首次即返回 `channel=beta`、`status=downloading`、`errorMessage=null`，并连续上报 `progress`（实际观察到 `16% -> 19% -> ... -> 100%`）。
+- 轮询直到状态变为 `downloaded`，此时 `downloadedVersion=0.18.12-beta.4`、`canApplyInApp=true`。
+- `POST /api/runtime/update/apply` 返回 `status=restart-required`、`currentVersion=0.18.12-beta.4`；旧服务进程随即退出。
+- 用同一 `NEXTCLAW_HOME` 重启 `serve` 后，再次查询 `/api/runtime/update` 得到 `currentVersion=0.18.12-beta.4`、`status=up-to-date`。这条链路直接证明“自动下载但手动应用生效”的真实已发布 beta 用户路径已经闭环。
+- 另外记录一个发布核对细节：GitHub Pages 存在短时缓存，裸 `curl` 可能暂时看到旧 manifest；验收时应使用 cache-busting query，或直接核对 `gh-pages` 最新 commit `95d29a83` 的 manifest 内容。
