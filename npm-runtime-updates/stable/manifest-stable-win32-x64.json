@@ -1,0 +1,13 @@
+{
+  "channel": "stable",
+  "platform": "win32",
+  "arch": "x64",
+  "hostKind": "npm-runtime-bundle",
+  "latestVersion": "0.18.12-beta.4",
+  "minimumLauncherVersion": "0.18.12-beta.3",
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.4/nextclaw-runtime-win32-x64-0.18.12-beta.4.zip",
+  "bundleSha256": "2cf4a2136493f60da466c550b93765de6c7f28113833c00edcd48d086a091a9c",
+  "bundleSignature": "tIV3Z3msKBEleIOaMsSlM+9KRLLfMXNL9ItN52Qs/9ho6HxA0yzUGM7l7ysSfifEs/DNzVvgg+JueoCvSuOUAA==",
+  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.4",
+  "manifestSignature": "hUPiQ2zvpNNhJ7LPjR/RobD6/HYNxW3wmK/8htGYnijiP2TFT+dX4tP1V8qOODNi05DqFYPSCjU/6t9Bv7VlBw=="
+}
