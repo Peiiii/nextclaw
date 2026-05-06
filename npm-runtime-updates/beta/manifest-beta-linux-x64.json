@@ -3,11 +3,11 @@
   "platform": "linux",
   "arch": "x64",
   "hostKind": "npm-runtime-bundle",
-  "latestVersion": "0.18.12-beta.6",
+  "latestVersion": "0.18.12-beta.7",
   "minimumLauncherVersion": "0.18.11",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.6/nextclaw-runtime-linux-x64-0.18.12-beta.6.zip",
-  "bundleSha256": "6531c075b3428cf64d4292a139acc0da9de808718707f4f32d0e65c25690450c",
-  "bundleSignature": "RR0U+lCG1zZY7zwT3rIdSnR20IXuUP2SMlLKJMD36BvwEAPMz7dKuK1B49lpOrRWWP9iWsdIvyFL6TDD6CjvBQ==",
-  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.6",
-  "manifestSignature": "5YvRLd66mt7QWDDp6oIDy8p1HLSSqB/0a4aA0hhnbJgbhS7bpV9LXJC8B5rCNgH1yoMiWy7PZ9Qlfl6qpvSbAg=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.7/nextclaw-runtime-linux-x64-0.18.12-beta.7.zip",
+  "bundleSha256": "fb8cd4985620f50cb5efe686a78ab5e8171a647f5ad48b34d42868eb88c6d363",
+  "bundleSignature": "ENYWuZ90uId5jAFfevu9Zuj6pXBEAS/FZrAqQQyhllMHy79pv02mQl9W29PlNldOl9vp7xAbbzSnorNn5kg9AA==",
+  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.7",
+  "manifestSignature": "W+E83rb7OE5Lpu/BLOu6JBeS9wzqbggZME+0I9MuSGwWjRl/XnAZguYiy8f0m1J51Jd8hZL5KyOPzEpiCVqJAQ=="
 }
