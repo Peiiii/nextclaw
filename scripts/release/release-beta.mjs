@@ -149,11 +149,6 @@ function commitReleaseArtifactsIfNeeded() {
   return run("git", ["rev-parse", "HEAD"], { capture: true }).trim();
 }
 
-function pushReleaseState(branch) {
-  run("git", ["push", "origin", `HEAD:${branch}`]);
-  run("git", ["push", "origin", "--tags"]);
-}
-
 function readLatestCheckpointBatch() {
   const latestCheckpoint = readLatestReleaseCheckpoint();
   if (!latestCheckpoint) {
@@ -166,6 +161,35 @@ function readLatestCheckpointBatch() {
 function readNextclawVersionFromCheckpoint(checkpoint) {
   const packageState = checkpoint?.packages?.nextclaw;
   return typeof packageState?.version === "string" ? packageState.version : null;
+}
+
+function buildReleaseTagsFromCheckpoint(checkpoint) {
+  const packages = checkpoint?.packages;
+  if (!packages || typeof packages !== "object") {
+    return [];
+  }
+
+  return Object.entries(packages)
+    .map(([packageName, packageState]) => {
+      const version =
+        packageState && typeof packageState === "object" ? packageState.version : null;
+      return typeof version === "string" ? `${packageName}@${version}` : null;
+    })
+    .filter(Boolean)
+    .sort();
+}
+
+function pushReleaseState(branch, checkpoint) {
+  run("git", ["push", "origin", `HEAD:${branch}`]);
+  const releaseTags = buildReleaseTagsFromCheckpoint(checkpoint);
+  if (releaseTags.length === 0) {
+    return;
+  }
+  run("git", [
+    "push",
+    "origin",
+    ...releaseTags.map((tag) => `refs/tags/${tag}`)
+  ]);
 }
 
 function sleep(ms) {
@@ -310,7 +334,7 @@ function runLocalBetaRelease(branch) {
   const checkpoint = readLatestCheckpointBatch();
   const nextclawVersion = readNextclawVersionFromCheckpoint(checkpoint);
   const releaseCommit = commitReleaseArtifactsIfNeeded();
-  pushReleaseState(branch);
+  pushReleaseState(branch, checkpoint);
   return {
     nextclawVersion,
     releaseCommit

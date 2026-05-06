@@ -219,6 +219,44 @@
   4. 若 batch 包含 `nextclaw`，自动触发 `npm-runtime-update-release` 的 `beta` channel
   5. 等待 workflow 成功，并验证 runtime release assets 与 GitHub Pages 公网 beta manifest
 
+## 追加记录：beta.7 发布闭环与脚本修正
+
+### 发布结果
+
+- 真实发布命令：`pnpm release:beta -- --branch master`
+- npm registry 已发布：
+  - `nextclaw@beta = 0.18.12-beta.7`
+- release commit：
+  - `a11f4fd1 chore: release beta batch`
+- runtime workflow：
+  - `25449644478`
+- runtime release：
+  - `nextclaw@0.18.12-beta.7`
+
+### 暴露出来的自动化缺口
+
+- `release-beta.mjs` 在 npm publish 成功后执行了 `git push origin --tags`
+- 这会把仓库里的历史 tag 一并推送
+- 远端若已存在不相关旧 tag，就会在“其实发布已成功”的情况下被 tag push reject 打断后续闭环
+
+### 修复
+
+- `release-beta.mjs` 改为只根据最新 release checkpoint 计算“本次 batch 的 package tags”
+- 推送逻辑改成：
+  - 先推 `HEAD:${branch}`
+  - 再只推本次 batch 的 `refs/tags/<package>@<version>`
+- 这样后续复用 `pnpm release:beta` 时，不会再因为历史 tag 冲突把成功发布误报为失败
+
+### 发布后验证
+
+- `gh release view nextclaw@0.18.12-beta.7 --repo Peiiii/nextclaw --json url,isPrerelease,assets`
+  - 四个平台 runtime zip assets 齐全
+- `git show origin/gh-pages:npm-runtime-updates/beta/manifest-beta-<platform>-<arch>.json`
+  - gh-pages 分支上的四个平台 manifest 已全部指向 `0.18.12-beta.7`
+- 额外观察：
+  - GitHub Pages 公网 CDN 在 workflow 刚完成后的短时间内仍会返回 `beta.6`
+  - 因此发布验收应优先区分“gh-pages 分支内容是否已更新”和“公网 CDN 是否已传播完成”，避免把传播延迟误判成发布失败
+
 ### 验证
 
 - `node scripts/release/release-beta.mjs --help`：通过

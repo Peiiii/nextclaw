@@ -61,6 +61,10 @@
 - 本机 LaunchAgent 现场验收：通过。重新安装/加载本地构建出的 LaunchAgent 后，`~/Library/LaunchAgents/io.nextclaw.host-agent.plist` 已变为 `KeepAlive=false`；`launchctl print gui/501/io.nextclaw.host-agent` 显示 `state = not running`，stdout/stderr 日志行数在数秒轮询内保持不变，证明之前那条无限重拉 `nextclaw serve` 的冲突链已停止；随后直接运行全局 `nextclaw restart`，不再报 `healthy unmanaged instance`，并成功恢复 `http://127.0.0.1:55667/api/health = ok`。
 - `node scripts/release/release-beta.mjs --help`：通过，输出一键 beta 发布入口、参数和默认闭环步骤。
 - `node scripts/release/release-beta.mjs --dry-run`：通过，输出“release:auto / release commit / push / runtime workflow 验证”这条计划链，确认脚本入口可直接自解释。
+- `pnpm release:beta -- --branch master`：已完成真实发布。NPM registry 现已看到 `nextclaw@beta = 0.18.12-beta.7`，并完成当前 release batch 的 npm publish、release commit 推送与 beta runtime workflow dispatch。
+- `gh workflow run npm-runtime-update-release.yml --repo Peiiii/nextclaw --ref master -f channel=beta -f release_tag=nextclaw@0.18.12-beta.7`：通过。对应 workflow run 为 `25449644478`，四个平台构建与 publish job 全部成功。
+- `gh release view nextclaw@0.18.12-beta.7 --repo Peiiii/nextclaw --json url,isPrerelease,assets`：通过，确认 prerelease release 下已有四个平台 runtime zip asset。
+- `git show origin/gh-pages:npm-runtime-updates/beta/manifest-beta-<platform>-<arch>.json`：通过，确认 gh-pages 分支上的四个平台 beta manifest 都已指向 `0.18.12-beta.7` 且 `hostKind=npm-runtime-bundle`。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths AGENTS.md commands/commands.md docs/workflows/npm-release-process.md package.json scripts/release/release-beta.mjs .agents/skills/npm-beta-release/SKILL.md .agents/skills/npm-release-contract-guard/SKILL.md`：通过，0 error / 1 warning。warning 为 `scripts/release/release-beta.mjs` 接近文件预算，但无 function budget / owner 边界 error。
 - `pnpm lint:new-code:governance`：通过（本轮 beta 发布入口相关改动）。
 - `pnpm check:governance-backlog-ratchet`：未通过，仍为仓库历史 `docFileNameViolations 13 > baseline 11`，与本轮 beta 发布入口改动无关。
@@ -117,7 +121,14 @@
 
 ## 发布/部署方式
 
-本次尚未发布。后续发布需要随统一 release 流程构建桌面包，并按普通 NPM 发布流程发布受影响 workspace 包。
+本次已完成 NPM beta 发布闭环，当前公开状态如下：
+
+- npm dist-tag：`nextclaw@beta = 0.18.12-beta.7`
+- release commit：`a11f4fd1 chore: release beta batch`
+- runtime workflow：[25449644478](https://github.com/Peiiii/nextclaw/actions/runs/25449644478)
+- runtime release：[nextclaw@0.18.12-beta.7](https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.18.12-beta.7)
+
+其中 NPM 包发布和 runtime channel 发布都已经成功；GitHub Pages 的公网 CDN 传播存在短暂延迟，可能在几分钟内仍返回旧的 `beta.6` manifest，但 `gh-pages` 分支上的真实发布内容已更新为 `beta.7`。
 
 桌面端仍沿用既有 launcher bundle layout：下载后的 bundle 安装到 launcher 管理的版本目录，由用户点击应用后切换 current pointer 并重启生效。本次未改变用户数据目录、插件目录或现有 bundle 保留策略。
 
