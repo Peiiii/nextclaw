@@ -7,6 +7,10 @@ on:
         description: "Release tag to use in release notes URLs, e.g. v0.18.12-npm-beta.1"
         required: false
         type: string
+      minimum_launcher_version_override:
+        description: "Optional recovery-only minimum launcher floor override for the published manifest"
+        required: false
+        type: string
       channel:
         description: "Runtime update channel"
         required: true
@@ -31,6 +35,7 @@ jobs:
       NPM_RUNTIME_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
       NPM_RUNTIME_UPDATE_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.channel || contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'npm-beta') && 'beta' || 'stable' }}
       NPM_RUNTIME_UPDATE_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
+      NPM_RUNTIME_MINIMUM_LAUNCHER_VERSION_OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.minimum_launcher_version_override || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -72,13 +77,22 @@ jobs:
         env:
           NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_UPDATE_BUNDLE_PRIVATE_KEY || secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: |
+          extra_args=()
+          if [ -n "$NPM_RUNTIME_MINIMUM_LAUNCHER_VERSION_OVERRIDE" ]; then
+            extra_args+=(
+              --minimum-launcher-version "$NPM_RUNTIME_MINIMUM_LAUNCHER_VERSION_OVERRIDE"
+              --allow-minimum-launcher-version-override true
+            )
+          fi
+
           pnpm -C packages/nextclaw runtime-update:build -- \
             --channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
             --bundle-base-url "$NPM_RUNTIME_UPDATE_BASE_URL" \
             --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}" \
-            --output-dir dist/npm-runtime-updates
+            --output-dir dist/npm-runtime-updates \
+            "${extra_args[@]}"
 
       - name: Upload NPM runtime update artifacts
         uses: actions/upload-artifact@v4
