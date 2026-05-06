@@ -100,7 +100,7 @@ describe("ui server weixin plugin channel wiring", () => {
     const port = await reservePort();
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const handle = startUiServer({
+    const handle = await startUiServer({
       host: "127.0.0.1",
       port,
       configPath,

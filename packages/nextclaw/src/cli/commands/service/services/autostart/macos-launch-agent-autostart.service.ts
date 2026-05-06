@@ -413,7 +413,7 @@ export class MacosLaunchAgentAutostartService {
       `    <string>${this.escapeXml(homeDir)}</string>`,
       "  </dict>",
       "  <key>RunAtLoad</key><true/>",
-      "  <key>KeepAlive</key><true/>",
+      "  <key>KeepAlive</key><false/>",
       `  <key>StandardOutPath</key><string>${this.escapeXml(stdoutPath)}</string>`,
       `  <key>StandardErrorPath</key><string>${this.escapeXml(stderrPath)}</string>`,
       "</dict>",

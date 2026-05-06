@@ -88,7 +88,7 @@ export async function startUiShell(params: {
 
   let publishUiEvent: ((event: UiServerEvent) => void) | null = null;
   const deferredNcpAgent = createDeferredUiNcpAgent();
-  const uiServer = startUiServer({
+  const uiServer = await startUiServer({
     host: uiConfig.host,
     port: uiConfig.port,
     configPath,

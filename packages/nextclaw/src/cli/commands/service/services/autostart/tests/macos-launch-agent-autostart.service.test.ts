@@ -37,7 +37,7 @@ describe("MacosLaunchAgentAutostartService", () => {
     const plist = String(writeFileSync.mock.calls[0]?.[1]);
     expect(plist).toContain("<key>Label</key><string>io.nextclaw.host-agent</string>");
     expect(plist).toContain("<key>RunAtLoad</key><true/>");
-    expect(plist).toContain("<key>KeepAlive</key><true/>");
+    expect(plist).toContain("<key>KeepAlive</key><false/>");
     expect(plist).toContain("<key>NEXTCLAW_HOME</key>");
     expect(plist).toContain("<string>/Users/alice/.nextclaw</string>");
     expect(runCommand).toHaveBeenNthCalledWith(1, "launchctl", ["print", "gui/501"]);

@@ -21,9 +21,12 @@
 - 同批次补充：NPM 安装态的 UI 更新链路正式接通。前端不再自己判断“桌面还是 NPM”，而是统一只消费 `UpdateSnapshot` 和统一动作；桌面端继续走 desktop bridge，managed local service / NPM 安装态通过 `/api/runtime/update` host 暴露同一套状态、下载、应用、偏好与 channel 接口。产品版本号旁边的进度/更新按钮与 `/updates` 页现在都会走统一 runtime update manager。
 - 同批次补充：NPM managed local service update host 改为后台任务模型。自动检查开启时会自动检查；`autoDownload=true` 时会后台自动下载并持续更新 `progress`；点击“更新”会应用已下载 bundle 并请求 managed service 重启，让新版本真正生效，而不是只切指针不切进程。
 - 同批次补充：开发态 `pnpm dev start` 默认重新对齐到真实 `~/.nextclaw`，不再偷偷改用 `~/.nextclaw-dev-home/<repo>`。根因通过对比 `scripts/dev/dev-runner.mjs`、README 文案、`/api/config` 实际返回和 `~/.nextclaw-dev-home/nextbot/config.json` 现场确认：实现与文档漂移导致开发态加载了另一套 home，用户看到“配置没加载”；同时 runtime update host 在 dev 启动后会自动检查公网 manifest，而当 manifest 尚未发布时会把 404 持久化为 `failed`，前端左上角因此显示“更新异常”。本次修复命中根因：直接把 dev-runner 默认 home 改回 `~/.nextclaw`，并让 dev-runner 显式禁用 runtime update host，使开发态不再把“未发布 manifest”误判为产品更新失败。
+- 同批次补充：已修复“前台 `nextclaw serve` 点击版本号旁更新按钮后服务自杀、刷新页面卡死”的真实用户问题。接口层复现结果是：公开 `nextclaw@0.18.12-beta.4` 在 `downloaded` 状态下调用 `POST /api/runtime/update/apply` 会先返回 `200 + status=restart-required`，随后同端口 `GET /api/runtime/update` 直接 `fetch failed`。根因不是前端按钮，而是 `NpmRuntimeUpdateHost.applyDownloadedUpdate()` 无条件调用 `requestManagedServiceRestart(... background-service-or-exit ...)`，导致前台 `serve` 进程在没有托管后台 service 可重启时直接走了 exit 分支。修复方式是在 `createServiceUiHosts()` 中显式区分“当前进程是否就是 managed service owner”，并把这个分流下沉给 `NpmRuntimeUpdateHost`：managed service 继续执行重启；前台 `serve` 只返回 `restart-required` 和手动重启提示，不再主动退出当前进程。
 - 同批次补充：已发布 `nextclaw@0.18.12-beta.3` 的“打开界面即显示更新失败”问题已通过接口层复现并命中根因。隔离安装公开 beta 后启动 `nextclaw serve`，`GET /api/runtime/update` 返回 `channel=stable`、`status=failed`、`errorMessage=runtime update manifest request failed with status 404`；同时公网 `beta` manifest 存在，而同平台 `stable` manifest 为 `404`。根因不是 UI 映射，而是 beta launcher 的默认 update channel 仍落成 `stable`。修复方式是在 launcher update source / state 默认值中引入“beta launcher 默认走 beta channel”的统一规则，并把这条默认同时用于 CLI `update`、managed service runtime update host 与 launcher state store。
 - 同批次补充：修复默认 channel 后，本地新构建安装物一度继续卡在 `signature-verification-unavailable`。根因通过比对已发布 beta 与当前构建产物确认：新的 tsdown 产物把 `NpmRuntimeUpdateSourceService` 拆到了 `dist/*.js` 共享 chunk，`import.meta.url` 所在目录从 `dist/cli/app` 变成了 `dist`，原先只兼容 `dist/cli/app|launcher -> ../../../resources` 的相对路径不再命中包根 `resources/update-bundle-public.pem`。修复后包内 public key 路径会同时兼容 `dist/*.js` 共享 chunk 与 `dist/cli/*` 旧布局。
 - 同批次补充：统一 beta 发版前再次命中 release contract 缺口。`release:check:groups` 现场确认 `@nextclaw/companion` 缺少标准 `prepublishOnly`，而当前仓库里的 `nextclaw` 依赖图已经包含 `@nextclaw/companion`。这意味着继续发布新的 `nextclaw` 而不补 companion publish guard，会把 release batch 卡在 guard 阶段，且未来一旦 `nextclaw` 的发布 manifest 真带上 companion 依赖，还会把“统一 beta 发布”拖成安装事故。修复方式是给 `apps/companion/package.json` 补齐标准 `prepublishOnly`，把 companion 拉回既有 pnpm release contract。
+- 同批次补充：已修复 `nextclaw restart` 会把我们自己的前台 `nextclaw serve` 误判成“healthy unmanaged instance”的问题。根因不是端口真被外部服务占用，而是 `RestartCommands` 之前只认 `managedServiceStateStore`，完全忽略前台 `serve` 写入的 `localUiRuntimeStore`。因此当用户升级全局 npm 包后，对仍在运行的前台 `serve` 执行 `nextclaw restart`，CLI 会看到健康端口，却因为没有 `run/service.json` 就把它当成 unmanaged external listener 拒绝重启。修复方式是在 `RestartCommands` owner 内优先读取 `localUiRuntimeStore`：若目标端口就是 NextClaw 自己的前台 runtime，则先停掉该 PID，再按既有主路径拉起受管后台 service；只有既非 managed state、也非本地前台 runtime 时，才继续报真正的 unmanaged listener 错误。
+- 同批次补充：进一步确认并修复了导致 `ui-runtime.json` 持续被死进程污染的更深层根因。第一层根因是 `startUiServer()` 之前在真正 listen 成功前就返回，导致后来会因 `EADDRINUSE` 崩掉的失败进程，仍然能继续执行并把自己写进 `ui-runtime.json`；第二层根因是 macOS LaunchAgent 之前生成的是 `KeepAlive=true` 且直接执行 `nextclaw serve`，在同一端口已被受管后台 service 占用时会被 `launchd` 无限重拉，持续制造 `EADDRINUSE` 并反复覆盖本地 runtime owner。修复方式分别是：让 `startUiServer()` 只在 Hono `serve()` 真正进入 listening 回调后才 resolve、在 listen error 时直接 reject；同时把 LaunchAgent 改成“登录时启动一次但不做 KeepAlive 监督重拉”。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
 设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
@@ -45,6 +48,19 @@
   - 更新链路不创建或修改 `config.json`、`sessions`、`skills`、`workspace` 等用户拥有目录。
 - `pnpm -C packages/nextclaw validation:npm-update`：通过。该命令复用 NPM runtime update smoke fixture，准备本地签名 manifest、runtime bundle、临时 `NEXTCLAW_HOME` 和临时 `nextclaw` shim，然后打印可直接复制执行的命令序列：`nextclaw --version`、`nextclaw update --check`、`nextclaw update`、`nextclaw update --apply`、再次 `nextclaw --version`。已按输出命令实际手动执行一遍，观察到：初始 `nextclaw --version` 为 `0.18.11`；`update --check` 提示 `none -> 0.99.1`；`update` 下载后仍保持 `0.18.11`；`update --apply` 后最终 `nextclaw --version` 输出 `smoke-runtime-0.99.1`。
 - `pnpm -C packages/nextclaw validation:npm-update -- --published-beta`：通过。该命令从真实 npm registry 全新安装 `nextclaw@beta`，验证 `nextclaw --version` 输出已发布 beta 版本，并在已安装包目录内直接探测 `InputBudgetPruner`，确认 `estimate` / `prune` 都存在，覆盖“已发布 beta 包的依赖闭包与关键运行时 API”这条用户真实安装路径。
+- `pnpm -C packages/nextclaw test src/cli/shared/services/ui/tests/npm-runtime-update-host.service.test.ts src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts`：通过，覆盖“前台 `serve` apply 后不退出当前进程”和“managed service apply 后继续请求重启”这两条分流。
+- `pnpm -C packages/nextclaw tsc`：通过。
+- `pnpm -C packages/nextclaw build`：通过。
+- 真实接口层定向验收：通过。本地签名更新源下启动 `node packages/nextclaw/dist/cli/app/index.js serve --ui-port 18892`，轮询 `/api/runtime/update` 直到 `downloaded`，调用 `POST /api/runtime/update/apply` 后返回 `status=restart-required`、`recoveryCommand="Restart this NextClaw process to launch the downloaded runtime."`；等待 1.2 秒后再次 `GET /api/runtime/update` 仍返回 `200`，且状态保持 `restart-required`，直接证明前台 `serve` 不会再因 apply 自行退出。
+- `pnpm -C packages/nextclaw test tests/cli/restart-commands.test.ts`：通过，覆盖“`restart` 遇到目标端口上的前台 `serve` 时，会先停止该 PID 再拉起受管后台 service；遇到无关健康 listener 时，仍然拒绝重启”的分支。
+- 真实前台重启 smoke（隔离 `NEXTCLAW_HOME`、非仓库工作目录）：先启动 `node packages/nextclaw/dist/cli/app/index.js serve --ui-port 18795`，确认 `/tmp/.../run/ui-runtime.json` 写入当前前台 PID 与 `uiPort=18795`；随后在第二个进程执行 `node packages/nextclaw/dist/cli/app/index.js restart --ui-port 18795`，观察到 CLI 先输出 `Restarting nextclaw foreground runtime (PID ...)` 再成功拉起后台 service；最终 `/tmp/.../run/service.json` 与 `ui-runtime.json` 都更新为新的后台 PID，`curl http://127.0.0.1:18795/api/health` 返回 `200 {"status":"ok"}`。
+- `pnpm -C packages/nextclaw-server test src/ui/server.cors.test.ts src/ui/server.weixin-channel.test.ts`：通过。
+- `pnpm -C packages/nextclaw-server tsc`：通过。
+- 本地 `ui-runtime.json` 污染防回归 smoke：通过。隔离 `NEXTCLAW_HOME` 下先启动一个健康 `serve --ui-port 53282`，再启动第二个同端口 `serve`；第二个进程现在会直接因 `EADDRINUSE` 退出，且不会再输出 `✓ UI API/UI frontend`，`run/ui-runtime.json` 仍保持第一条健康进程的 PID 与端口，没有被失败进程覆盖。
+- 本机 LaunchAgent 现场验收：通过。重新安装/加载本地构建出的 LaunchAgent 后，`~/Library/LaunchAgents/io.nextclaw.host-agent.plist` 已变为 `KeepAlive=false`；`launchctl print gui/501/io.nextclaw.host-agent` 显示 `state = not running`，stdout/stderr 日志行数在数秒轮询内保持不变，证明之前那条无限重拉 `nextclaw serve` 的冲突链已停止；随后直接运行全局 `nextclaw restart`，不再报 `healthy unmanaged instance`，并成功恢复 `http://127.0.0.1:55667/api/health = ok`。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <touched-files>`：通过，0 error / 0 warning，非测试代码净增 0。
+- `pnpm lint:new-code:governance`：未通过，但失败来自工作区无关文件 `apps/companion/src/launcher.ts` 的既有 role-boundary 问题，不是本次 update host 修复引入。
+- `pnpm check:governance-backlog-ratchet`：未通过，仍是仓库历史 `docFileNameViolations 13 > baseline 11`，与本次修复无关。
 - 真实接口层复现（公开 beta）：
   - 隔离安装 `nextclaw@0.18.12-beta.3` 到临时 prefix / `NEXTCLAW_HOME`。
   - 启动 `nextclaw serve --ui-port 18777`。
@@ -223,7 +239,7 @@ pnpm -C apps/desktop validation:dev-update
 
 当前新增未发布修复状态：
 
-- `nextclaw`：无。`0.18.12-beta.4` 已发布并包含“beta launcher 默认 channel 归属”和“shared chunk 下包内 public key 路径兼容”修复；旧的 `0.18.12-beta.3` 已 deprecated。
+- `nextclaw`：有。当前工作区额外包含“`nextclaw restart` 识别并接管前台 `serve` runtime”“`startUiServer` 真实 ready 契约修复”以及“macOS LaunchAgent 取消 `KeepAlive` 反复拉起 `serve`”三项未发布修复；待本次提交并随下一次 beta 统一发布。
 
 最终真实用户路径验收（隔离目录）：
 
@@ -265,3 +281,4 @@ pnpm -C apps/desktop validation:dev-update
   - `POST /api/runtime/update/apply` 返回 `status=restart-required`、`currentVersion=0.18.12-beta.4`。
   - 同一安装体的新进程 `nextclaw --version` 输出 `0.18.12-beta.4`。
 - 这条验证证明：之前复现的旧 `beta.3` 真实故障场景，已经通过恢复发布被修复；旧版本不仅能升到高版本，而且现在会在原本失败的 stable 自动检查链路里直接恢复。
+- 本次额外发现：当前公网 `beta` 与 `stable` runtime manifest 指向的 `0.18.12-beta.4` bundle 都会在下载末端报 `sha256 mismatch`。这会阻塞新的在线自动下载，但不是这次“点击更新后前台服务退出”的代码根因；后者已通过本地签名更新源完成真实接口验收。公网 bundle 合同问题需要在下一次 runtime channel 发布时单独纠正。

@@ -155,7 +155,7 @@ function attachUiSocketServer(httpServer: Server, authService: UiAuthService, cl
   return wss;
 }
 
-export function startUiServer(options: UiServerStartOptions): UiServerHandle {
+export async function startUiServer(options: UiServerStartOptions): Promise<UiServerHandle> {
   const {
     applyLiveConfigReload,
     configPath,
@@ -237,10 +237,16 @@ export function startUiServer(options: UiServerStartOptions): UiServerHandle {
     mountUiStaticAssets(app, staticDir);
   }
 
-  const server = serve({
-    fetch: app.fetch,
-    port,
-    hostname: host
+  const server = await new Promise<Server>((resolve, reject) => {
+    const httpServer = serve(
+      {
+        fetch: app.fetch,
+        port,
+        hostname: host
+      },
+      () => resolve(httpServer as unknown as Server)
+    ) as unknown as Server;
+    httpServer.once("error", reject);
   });
 
   const httpServer = server as unknown as Server;

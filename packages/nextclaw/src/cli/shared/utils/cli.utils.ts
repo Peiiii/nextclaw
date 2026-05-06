@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { isIP } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
@@ -87,6 +87,129 @@ export async function waitForExit(pid: number, timeoutMs: number): Promise<boole
     await new Promise((resolve) => setTimeout(resolve, 200));
   }
   return !isProcessRunning(pid);
+}
+
+export type ListeningProcessInfo = {
+  pid: number;
+  command: string | null;
+};
+
+type CommandResult = {
+  ok: boolean;
+  stdout: string;
+};
+
+function runLookupCommand(command: string, args: string[]): CommandResult {
+  try {
+    const result = spawnSync(command, args, {
+      encoding: "utf8",
+      env: createExternalCommandEnv(process.env)
+    });
+    if (result.error || result.status !== 0) {
+      return {
+        ok: false,
+        stdout: ""
+      };
+    }
+    return {
+      ok: true,
+      stdout: result.stdout ?? ""
+    };
+  } catch {
+    return {
+      ok: false,
+      stdout: ""
+    };
+  }
+}
+
+function parseListeningPidFromLsof(raw: string): number | null {
+  for (const line of raw.split("\n")) {
+    if (!line.startsWith("p")) {
+      continue;
+    }
+    const pid = Number(line.slice(1));
+    if (Number.isFinite(pid) && pid > 0) {
+      return pid;
+    }
+  }
+  return null;
+}
+
+function parseListeningPidFromNetstat(raw: string, port: number): number | null {
+  const portSuffix = `:${port}`;
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || !trimmed.includes("LISTEN")) {
+      continue;
+    }
+    const columns = trimmed.split(/\s+/);
+    if (columns.length < 5) {
+      continue;
+    }
+    const localAddress = columns[1] ?? "";
+    if (!localAddress.endsWith(portSuffix)) {
+      continue;
+    }
+    const pid = Number(columns[4]);
+    if (Number.isFinite(pid) && pid > 0) {
+      return pid;
+    }
+  }
+  return null;
+}
+
+function lookupProcessCommandByPid(pid: number): string | null {
+  if (!Number.isFinite(pid) || pid <= 0) {
+    return null;
+  }
+
+  if (process.platform === "win32") {
+    const script = `(Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}").CommandLine`;
+    const result = runLookupCommand("powershell", ["-NoProfile", "-Command", script]);
+    if (!result.ok) {
+      return null;
+    }
+    const command = result.stdout.trim();
+    return command.length > 0 ? command : null;
+  }
+
+  const result = runLookupCommand("ps", ["-p", String(pid), "-o", "command="]);
+  if (!result.ok) {
+    return null;
+  }
+  const command = result.stdout.trim();
+  return command.length > 0 ? command : null;
+}
+
+export function findListeningProcessByPort(port: number): ListeningProcessInfo | null {
+  if (!Number.isFinite(port) || port <= 0) {
+    return null;
+  }
+
+  let pid: number | null = null;
+  if (process.platform === "win32") {
+    const result = runLookupCommand("netstat", ["-ano", "-p", "tcp"]);
+    if (!result.ok) {
+      return null;
+    }
+    pid = parseListeningPidFromNetstat(result.stdout, port);
+  } else {
+    const result = runLookupCommand("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-F", "p"]);
+    if (!result.ok) {
+      return null;
+    }
+    pid = parseListeningPidFromLsof(result.stdout);
+  }
+
+  if (!pid) {
+    return null;
+  }
+
+  return {
+    pid,
+    command: lookupProcessCommandByPid(pid)
+  };
 }
 
 function findNearestPackageManifest(

@@ -529,7 +529,7 @@ Autostart notes:
 
 - `npm i -g nextclaw` installs the CLI only. It does not register host autostart by itself.
 - On Linux, use `nextclaw service install-systemd --user` for a user-level login autostart path.
-- On macOS, use `nextclaw service install-launch-agent` for a LaunchAgent-based login autostart path.
+- On macOS, use `nextclaw service install-launch-agent` for a LaunchAgent-based login autostart path. The agent runs once at login and does not supervise retries after the runtime exits.
 - On Windows, use `nextclaw service install-task` for a Scheduled Task based login autostart path.
 - For machine-wide Linux startup after boot, use `sudo nextclaw service install-systemd --system`.
 - `nextclaw service autostart status` and `nextclaw service autostart doctor` are read-only inspection commands; add `--user` or `--system` only when you need an explicit Linux `systemd` scope.

@@ -57,7 +57,7 @@ describe("ui server api cors", () => {
   it("returns explicit cors headers for allowed origins and preflight requests", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-cors-")), "config.json");
-    const handle = startUiServer({
+    const handle = await startUiServer({
       host: "127.0.0.1",
       port,
       configPath,
@@ -95,7 +95,7 @@ describe("ui server api cors", () => {
   it("uses the built-in localhost policy and omits cors headers for disallowed origins", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-default-cors-")), "config.json");
-    const handle = startUiServer({
+    const handle = await startUiServer({
       host: "127.0.0.1",
       port,
       configPath
@@ -129,7 +129,7 @@ describe("ui server api cors", () => {
     mkdirSync(staticDir, { recursive: true });
     writeFileSync(join(staticDir, "index.html"), "<!doctype html><html><body>ui shell</body></html>");
     const configPath = join(rootDir, "config.json");
-    const handle = startUiServer({
+    const handle = await startUiServer({
       host: "127.0.0.1",
       port,
       configPath,
@@ -146,5 +146,24 @@ describe("ui server api cors", () => {
     const pageResponse = await fetch(`${baseUrl}/chat`);
     expect(pageResponse.status).toBe(200);
     expect(await pageResponse.text()).toContain("ui shell");
+  });
+
+  it("rejects startup when the target port is already in use", async () => {
+    const port = await reservePort();
+    const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-port-conflict-")), "config.json");
+    const firstHandle = await startUiServer({
+      host: "127.0.0.1",
+      port,
+      configPath
+    });
+    handles.push(firstHandle);
+
+    await expect(
+      startUiServer({
+        host: "127.0.0.1",
+        port,
+        configPath
+      })
+    ).rejects.toThrow(/EADDRINUSE|address already in use/i);
   });
 });
