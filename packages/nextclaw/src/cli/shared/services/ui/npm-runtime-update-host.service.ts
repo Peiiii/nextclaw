@@ -25,8 +25,10 @@ type NpmRuntimeUpdateHostDeps = {
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
   private readonly source = new NpmRuntimeUpdateSourceService();
   private readonly layout = new NpmRuntimeBundleLayoutStore();
-  private readonly stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath());
   private readonly launcherVersion = getPackageVersion();
+  private readonly stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
+    defaultChannel: this.source.resolveChannel(undefined, this.launcherVersion)
+  });
   private readonly bundleService = new NpmRuntimeBundleService({
     layout: this.layout,
     stateStore: this.stateStore,

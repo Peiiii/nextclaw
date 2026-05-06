@@ -1,23 +1,26 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import type { NpmRuntimeUpdateState } from "./npm-runtime-bundle.types.js";
+import type { NpmRuntimeReleaseChannel } from "./npm-runtime-update-source.service.js";
 
-const DEFAULT_NPM_RUNTIME_UPDATE_STATE: NpmRuntimeUpdateState = {
-  channel: "stable",
-  currentVersion: null,
-  previousVersion: null,
-  candidateVersion: null,
-  candidateLaunchCount: 0,
-  lastKnownGoodVersion: null,
-  badVersions: [],
-  lastUpdateCheckAt: null,
-  downloadedVersion: null,
-  downloadedReleaseNotesUrl: null,
-  updatePreferences: {
-    automaticChecks: true,
-    autoDownload: true
-  }
-};
+function createDefaultState(channel: NpmRuntimeReleaseChannel): NpmRuntimeUpdateState {
+  return {
+    channel,
+    currentVersion: null,
+    previousVersion: null,
+    candidateVersion: null,
+    candidateLaunchCount: 0,
+    lastKnownGoodVersion: null,
+    badVersions: [],
+    lastUpdateCheckAt: null,
+    downloadedVersion: null,
+    downloadedReleaseNotesUrl: null,
+    updatePreferences: {
+      automaticChecks: true,
+      autoDownload: true
+    }
+  };
+}
 
 function normalizeOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -27,8 +30,18 @@ function normalizeOptionalString(value: unknown): string | null {
   return trimmed ? trimmed : null;
 }
 
-function normalizeChannel(value: unknown): "stable" | "beta" {
-  return typeof value === "string" && value.trim().toLowerCase() === "beta" ? "beta" : "stable";
+function normalizeChannel(value: unknown, fallback: NpmRuntimeReleaseChannel): NpmRuntimeReleaseChannel {
+  if (typeof value !== "string") {
+    return fallback;
+  }
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === "beta") {
+    return "beta";
+  }
+  if (trimmed === "stable") {
+    return "stable";
+  }
+  return fallback;
 }
 
 function normalizeStringArray(value: unknown): string[] {
@@ -39,30 +52,31 @@ function normalizeStringArray(value: unknown): string[] {
 }
 
 function normalizeUpdatePreferences(value: unknown): NpmRuntimeUpdateState["updatePreferences"] {
+  const defaultState = createDefaultState("stable");
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { ...DEFAULT_NPM_RUNTIME_UPDATE_STATE.updatePreferences };
+    return { ...defaultState.updatePreferences };
   }
   const record = value as Record<string, unknown>;
   return {
     automaticChecks:
       typeof record.automaticChecks === "boolean"
         ? record.automaticChecks
-        : DEFAULT_NPM_RUNTIME_UPDATE_STATE.updatePreferences.automaticChecks,
+        : defaultState.updatePreferences.automaticChecks,
     autoDownload:
       typeof record.autoDownload === "boolean"
         ? record.autoDownload
-        : DEFAULT_NPM_RUNTIME_UPDATE_STATE.updatePreferences.autoDownload
+        : defaultState.updatePreferences.autoDownload
   };
 }
 
-function normalizeState(input: unknown): NpmRuntimeUpdateState {
+function normalizeState(input: unknown, defaultChannel: NpmRuntimeReleaseChannel): NpmRuntimeUpdateState {
   if (!input || typeof input !== "object" || Array.isArray(input)) {
     throw new Error("npm runtime update state must be an object");
   }
   const record = input as Record<string, unknown>;
   const candidateLaunchCount = Number(record.candidateLaunchCount);
   return {
-    channel: normalizeChannel(record.channel),
+    channel: normalizeChannel(record.channel, defaultChannel),
     currentVersion: normalizeOptionalString(record.currentVersion),
     previousVersion: normalizeOptionalString(record.previousVersion),
     candidateVersion: normalizeOptionalString(record.candidateVersion),
@@ -76,14 +90,26 @@ function normalizeState(input: unknown): NpmRuntimeUpdateState {
   };
 }
 
+type NpmRuntimeUpdateStateStoreOptions = {
+  defaultChannel?: NpmRuntimeReleaseChannel;
+};
+
 export class NpmRuntimeUpdateStateStore {
-  constructor(private readonly statePath: string) {}
+  private readonly defaultChannel: NpmRuntimeReleaseChannel;
+
+  constructor(
+    private readonly statePath: string,
+    options: NpmRuntimeUpdateStateStoreOptions = {}
+  ) {
+    this.defaultChannel = options.defaultChannel ?? "stable";
+  }
 
   read = (): NpmRuntimeUpdateState => {
     if (!existsSync(this.statePath)) {
-      return { ...DEFAULT_NPM_RUNTIME_UPDATE_STATE, updatePreferences: { ...DEFAULT_NPM_RUNTIME_UPDATE_STATE.updatePreferences } };
+      const defaultState = createDefaultState(this.defaultChannel);
+      return { ...defaultState, updatePreferences: { ...defaultState.updatePreferences } };
     }
-    return normalizeState(JSON.parse(readFileSync(this.statePath, "utf8")));
+    return normalizeState(JSON.parse(readFileSync(this.statePath, "utf8")), this.defaultChannel);
   };
 
   write = (state: NpmRuntimeUpdateState): void => {

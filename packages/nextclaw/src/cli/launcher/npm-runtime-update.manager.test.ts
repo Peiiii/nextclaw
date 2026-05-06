@@ -13,6 +13,7 @@ import {
 import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
 import { NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
 import { NpmRuntimeUpdateManager } from "./npm-runtime-update.manager.js";
+import { inferDefaultNpmRuntimeReleaseChannel, NpmRuntimeUpdateSourceService } from "./npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateService } from "./npm-runtime-update.service.js";
 import { NpmRuntimeUpdateStateStore } from "./npm-runtime-update-state.store.js";
 
@@ -190,4 +191,37 @@ describe("NpmRuntimeUpdateManager", () => {
       expect(snapshot.blockReason).toBe("host-too-old");
       expect(snapshot.recoveryCommand).toBe("npm install -g nextclaw@latest");
     }));
+});
+
+describe("Npm runtime update defaults", () => {
+  it("defaults beta launchers to the beta channel when no state file exists", async () =>
+    await withTempDir(async (rootDir) => {
+      const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"), {
+        defaultChannel: inferDefaultNpmRuntimeReleaseChannel("0.18.12-beta.3")
+      });
+
+      expect(stateStore.read().channel).toBe("beta");
+    }));
+
+  it("keeps an existing persisted channel instead of overwriting it with the launcher default", async () =>
+    await withTempDir(async (rootDir) => {
+      const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"), {
+        defaultChannel: "beta"
+      });
+      stateStore.write({
+        ...stateStore.read(),
+        channel: "stable"
+      });
+
+      expect(stateStore.read().channel).toBe("stable");
+    }));
+
+  it("infers beta as the default channel for beta launcher versions", () => {
+    const source = new NpmRuntimeUpdateSourceService({
+      env: {}
+    });
+
+    expect(source.resolveChannel(undefined, "0.18.12-beta.3")).toBe("beta");
+    expect(source.resolveChannel(undefined, "0.18.12")).toBe("stable");
+  });
 });

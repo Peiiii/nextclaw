@@ -24,8 +24,18 @@ function normalizeChannel(value: unknown): NpmRuntimeReleaseChannel {
   return typeof value === "string" && value.trim().toLowerCase() === "beta" ? "beta" : "stable";
 }
 
+export function inferDefaultNpmRuntimeReleaseChannel(launcherVersion?: string | null): NpmRuntimeReleaseChannel {
+  return typeof launcherVersion === "string" && launcherVersion.toLowerCase().includes("-beta") ? "beta" : "stable";
+}
+
 function resolvePackagedPublicKeyPath(): string {
-  return resolve(dirname(fileURLToPath(import.meta.url)), "../../..", "resources", "update-bundle-public.pem");
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(moduleDir, "..", "resources", "update-bundle-public.pem"),
+    resolve(moduleDir, "../../..", "resources", "update-bundle-public.pem"),
+    resolve(moduleDir, "../../../..", "resources", "update-bundle-public.pem")
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 }
 
 export class NpmRuntimeUpdateSourceService {
@@ -39,8 +49,11 @@ export class NpmRuntimeUpdateSourceService {
     this.arch = options.arch ?? process.arch;
   }
 
-  resolveChannel = (explicitChannel?: unknown): NpmRuntimeReleaseChannel => {
-    return normalizeChannel(explicitChannel ?? this.env.NEXTCLAW_UPDATE_CHANNEL);
+  resolveChannel = (explicitChannel?: unknown, launcherVersion?: string | null): NpmRuntimeReleaseChannel => {
+    if (explicitChannel !== undefined || this.env.NEXTCLAW_UPDATE_CHANNEL !== undefined) {
+      return normalizeChannel(explicitChannel ?? this.env.NEXTCLAW_UPDATE_CHANNEL);
+    }
+    return inferDefaultNpmRuntimeReleaseChannel(launcherVersion);
   };
 
   resolveManifestUrl = (channel: NpmRuntimeReleaseChannel, explicitManifestUrl?: unknown): string | null => {

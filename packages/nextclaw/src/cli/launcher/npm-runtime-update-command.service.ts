@@ -21,11 +21,13 @@ export class NpmRuntimeUpdateCommandService {
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
     const source = new NpmRuntimeUpdateSourceService();
-    const channel = source.resolveChannel(opts.channel);
+    const launcherVersion = getPackageVersion();
+    const channel = source.resolveChannel(opts.channel, launcherVersion);
     const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
     const layout = new NpmRuntimeBundleLayoutStore();
-    const stateStore = new NpmRuntimeUpdateStateStore(layout.getStatePath());
-    const launcherVersion = getPackageVersion();
+    const stateStore = new NpmRuntimeUpdateStateStore(layout.getStatePath(), {
+      defaultChannel: channel
+    });
     const bundleService = new NpmRuntimeBundleService({
       layout,
       stateStore,
