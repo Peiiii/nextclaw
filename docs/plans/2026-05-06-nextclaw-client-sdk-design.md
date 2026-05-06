@@ -44,7 +44,57 @@
 6. **把请求、订阅、流式链路、上传链路收敛到统一抽象下面**
 7. **把类型 owner 收回到 server / kernel contract，而不是让 UI 和 SDK 各维护一份**
 
-### 3.2 非目标
+## 3.2 本次需求范围
+
+本次不是只做一个“未来可用的 SDK 雏形”，而是要完成一轮**可真实接入、可真实验收**的 SDK 收口。
+
+本次交付范围明确包括：
+
+1. **补全 `@nextclaw/client-sdk`**
+   - 补齐当前前端实际使用到的后端能力
+   - 建立正式的 `transport + domain services + server-owned contracts` 结构
+
+2. **前端接入 SDK**
+   - `packages/nextclaw-ui` 必须开始真实接入 SDK
+   - `shared/lib/api` 必须收敛为 SDK 的薄适配层，而不是继续独立维护请求 owner
+   - 至少要完成一轮对当前真实 UI 能力面的收口，而不是只把 SDK 写完放在那里
+
+3. **companion 接入 SDK**
+   - `apps/companion` 必须通过 SDK 访问后端能力
+   - 不再保留 companion 侧平行的 request / websocket owner
+
+4. **保持现有行为不退化**
+   - UI 当前 local / remote transport 语义不能退化
+   - realtime 不能退化
+   - upload 不能退化
+
+5. **结构治理同步成立**
+   - SDK 包内结构必须符合当前目录与角色规范
+   - 不允许为了 SDK 便利临时突破目录治理规则
+6. **迁移期主动简化与删减**
+   - SDK 接入过程中，已经失去 owner 意义的旧实现、无效兼容层、重复胶水代码、无人使用的访问路径，应主动删除
+   - 不允许为了“先接上”而长期保留一堆已经没有必要的平行实现
+
+### 3.3 本次不在交付范围内
+
+以下内容本次明确不做：
+
+- React hooks 层统一改造
+- TanStack Query 层统一改造
+- Zustand / store 层统一改造
+- 页面 presenter / manager / view model 的整体重构
+- 顺手重写整个 frontend 数据流
+- 新增后端 API，只为 SDK 设计服务
+
+这次的目标是：
+
+**把 SDK 变成正式 owner，并完成第一轮真实接入，而不是借 SDK 之名重做整个前端架构。**
+
+同时，这次不是纯搬运迁移。
+
+**凡是因为 SDK 接入而已经失去存在理由的旧代码，应在同一轮里积极删除、收口或重构，不应消极保留。**
+
+### 3.4 非目标
 
 以下内容不属于本次 SDK 设计范围：
 
@@ -635,6 +685,7 @@ export const fetchAgents = () => client.agents.list();
 - 不再新增新的 `shared/lib/api/*.ts` 直接请求实现
 - 不再新增新的 `appClient.request(...)` 业务调用点
 - 新能力先进入 SDK，再由 UI 消费
+- 对于已经被 SDK 覆盖、且已无真实消费价值的旧 API 包装、薄转发、重复 request helper、无效兼容胶水，默认应直接删除，而不是继续长期保留
 
 ## 12. 与 companion / desktop / 其他壳的关系
 
@@ -681,6 +732,15 @@ SDK 只负责：
 3. 再逐步收掉直接 `appClient.subscribe(...)` 的调用点
 4. 最后删除失去 owner 意义的旧实现
 
+这里的“删除旧实现”不是可选清理项，而是本次迁移的一部分。
+
+只要满足下面任一条件，就应默认删除或重构，而不是挂着不动：
+
+- 该实现已经被 SDK 完整替代
+- 该实现只剩一层无意义薄转发
+- 该实现只是为了旧结构存活而保留的胶水代码
+- 该兼容层已经没有真实消费方
+
 ### 13.2 为什么不直接全量替换调用点
 
 因为 UI 当前已经有较多模块依赖 `shared/lib/api` 的导出形态。
@@ -705,6 +765,32 @@ SDK 只负责：
 6. stream 能力进入 SDK 正式 transport contract
 7. 新增前端能力时，默认先进入 SDK
 8. 不产生第二套平行 contract types
+9. `packages/nextclaw-ui` 已有真实模块通过 SDK 工作，而不是只有 SDK 包本身完成
+10. `apps/companion` 已通过 SDK 工作，而不是继续保留平行访问层
+11. 因 SDK 接入而失去 owner 意义的旧访问层、重复胶水、无效兼容代码已被积极删除或收口，而不是继续滞留
+
+## 14.1 本次交付的通过线
+
+本次工作只有同时满足下面四组条件，才算验收通过：
+
+1. **SDK 完整**
+   - `@nextclaw/client-sdk` 覆盖当前前端真实使用面
+   - transport / realtime / upload / domain services 全部到位
+
+2. **真实接入**
+   - frontend 已开始真实通过 SDK 访问后端
+   - companion 已真实通过 SDK 访问后端
+
+3. **owner 收口**
+   - SDK 成为唯一正式 client contract owner
+   - UI 的 `shared/lib/api` 退化为薄适配层
+   - 不再新增新的前端直调 API owner
+
+4. **行为与结构都不退化**
+   - UI 与 companion 行为不退化
+   - local / remote / realtime / upload 不退化
+   - 代码组织符合当前目录治理规范
+   - 迁移后代码比迁移前更收敛、更少、更清晰，而不是新增一层 SDK 后旧垃圾继续原样堆着
 
 ## 15. 验证要求
 

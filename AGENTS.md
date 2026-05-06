@@ -31,14 +31,38 @@
 
 - `AGENTS.md` 是常驻内核：只放每轮都必须知道的高优先级约束。
 - 场景相关、流程较长、例子很多、只在特定任务需要的规则，必须做成 `.agents/skills/<skill>/SKILL.md`。
+- 项目内新增或重写 skill 默认使用中文；只有在明确面向外部英文受众、外部协议字段要求英文，或用户明确要求时，才使用英文。
 - 普通文档只用于人类说明、长期沉淀或被 skill 明确引用；不要把强制流程只拆到普通文档里，因为 AI 不一定会主动读取。
 - 修改 `AGENTS.md`、命令机制、Rulebook 或 skill 分层时，必须使用 `nextclaw-agent-instructions-governance` skill。
 - 触达 `docs/logs` 迭代记录、NPM 发布记录、工作笔记、目标锚点时，必须使用 `nextclaw-iteration-log-governance` skill。
+- 执行源码、脚本、测试或运行链路配置相关任务时，默认使用 `nextclaw-delivery-workflow` 作为总流程 owner，统一约束实现前删减判断、验证、可维护性披露、复盘与最终汇报；细节再分别联动对应专项 skill。
 - 运行 `/validate`、代码改动收尾验证、bugfix 定向验收、冒烟测试或发布闭环判断时，必须使用 `nextclaw-validation-workflow` skill。
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
+
+## 标准交付流程
+
+- 适用范围：源码、脚本、测试、运行链路配置相关任务，默认都按这条标准流程推进；`nextclaw-delivery-workflow` 负责条件细节和收尾强制检查。
+- 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
+  默认联动：`nextclaw-delivery-workflow`。
+  条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
+- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`。
+  默认联动：`nextclaw-clean-implementation`。
+  条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
+- 第三步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
+  默认联动：继续遵守 `nextclaw-clean-implementation` 的 owner / 删减 / 单路径约束。
+  条件联动：触达 NextClaw 自管理命令语义时，同步维护 `docs/USAGE.md`、`packages/nextclaw/resources/USAGE.md` 与 `nextclaw-self-manage` skill，并说明是否运行 `sync-usage-resource`。
+- 第四步：改完后做最小充分验证；触达 TypeScript 源码、类型边界或运行链路时 `tsc` 必跑；用户可见或可运行行为必须有冒烟或最贴近链路的定向验收。
+  默认联动：`nextclaw-validation-workflow`。
+  条件联动：代码改动收尾默认再跑 `post-edit-maintainability-guard` 与 `post-edit-maintainability-review`；发布闭环场景继续按发布原则执行 migration / deploy / smoke / NPM release 判断。
+- 第五步：收尾时必须主动披露可维护性结果，包括总代码增减、非测试代码增减、是否满足非功能改动行数门槛，以及本次正向减债动作。
+  默认联动：`post-edit-maintainability-review`。
+  条件联动：若非功能改动的非测试代码净增大于 `0`，不得收尾，必须继续简化或删除。
+- 第六步：最后做复盘，判断是否要改进规则、skill、命令、自动化或文档，并决定是否需要 `docs/logs` 留痕、发布闭环说明和最终汇报中的不适用项说明。
+  默认联动：`nextclaw-iteration-log-governance`。
+  条件联动：若复盘结论涉及 `AGENTS.md`、命令机制、Rulebook、skill 分层或治理脚本，必须用 `nextclaw-agent-instructions-governance` 落实；若是长期自治推进类任务，再考虑 `goal-mode`。
 
 ## 实现常驻原则
 
@@ -80,6 +104,7 @@
 - `/check-meta`：检查 `AGENTS.md` 机制问题、自相矛盾、过度常驻、skill 触发缺失或规则漂移。
 - `/new-rule`：创建新规则条目；优先判断是否应写入 AGENTS 常驻内核、已有 skill、新 skill，还是普通文档。
 - `/commit`：进行提交操作，提交信息使用英文；只有用户明确要求才执行。
+- `/close-task`：对当前任务执行标准交付收尾流程，使用 `nextclaw-delivery-workflow`。
 - `/maintainability-review`：执行独立于实现阶段的可维护性复核，使用 `post-edit-maintainability-review`。
 - `/validate`：运行项目验证，使用 `nextclaw-validation-workflow`。
 - `/release-frontend`：前端一键发布，仅 UI 变更场景。

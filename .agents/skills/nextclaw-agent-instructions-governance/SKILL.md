@@ -77,6 +77,7 @@ If a rule change affects executable behavior, do not stop at text edits. Update 
 
 When creating or updating a skill:
 
+- 项目内 skill 默认使用中文；只有在 skill 明确面向外部英文受众、外部协议/字段强制要求英文，或用户明确要求英文时，才使用英文。
 - Make the YAML `description` explicit enough to trigger on real user requests.
 - Keep `SKILL.md` procedural and concise.
 - Do not create extra README/changelog files inside a skill.
