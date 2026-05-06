@@ -13,7 +13,7 @@ hero:
       text: 第一个有用工作流
       link: /zh/guide/after-setup
     - theme: alt
-      text: 指南
+      text: 教程
       link: /zh/guide/tutorials
     - theme: alt
       text: 参考
@@ -23,7 +23,9 @@ features:
   - title: 开始
     details: 先完成安装、启动、打开界面和第一条可用回复。这里不要求你先理解全部配置和命令。
   - title: 指南
-    details: 按任务推进：选模型提供方、接聊天入口、做自动化、远程访问、Docker 部署。
+    details: 按任务理解能力：模型提供方、聊天入口、自动化、后台运行、远程访问。
+  - title: 教程
+    details: 按场景照着跑通：Docker、一键接入模型、本地 Ollama、飞书、MCP Marketplace、远程访问 UI。
   - title: 手册
     details: 当你已经在用，需要理解配置、运行方式、会话、密钥和资源边界时，从这里查正式说明。
   - title: 参考

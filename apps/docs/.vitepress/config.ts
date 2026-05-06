@@ -90,14 +90,27 @@ const enSidebar = [
   {
     text: 'Guides',
     items: [
-      { text: 'Pick a Provider Path', link: '/en/guide/tutorials/provider-options' },
       { text: 'Set Up Providers', link: '/en/guide/model-selection' },
       { text: 'Connect Channels', link: '/en/guide/channels' },
       { text: 'Run Automations', link: '/en/guide/cron' },
       { text: 'Background & Autostart', link: '/en/guide/background-autostart' },
-      { text: 'Remote Access', link: '/en/guide/remote-access' },
+      { text: 'Remote Access', link: '/en/guide/remote-access' }
+    ]
+  },
+  {
+    text: 'Tutorials',
+    items: [
+      { text: 'Overview', link: '/en/guide/tutorials' },
+      { text: 'Pick a Provider Path', link: '/en/guide/tutorials/provider-options' },
       { text: 'Docker Deployment', link: '/en/guide/tutorials/docker-one-click' },
-      { text: 'Common Scenarios', link: '/en/guide/tutorials' }
+      { text: 'Qwen Portal Setup', link: '/en/guide/tutorials/qwen-portal' },
+      { text: 'Local Ollama + Qwen3', link: '/en/guide/tutorials/local-ollama-qwen3' },
+      { text: 'Feishu Setup', link: '/en/guide/tutorials/feishu' },
+      { text: 'MCP Marketplace', link: '/en/guide/tutorials/mcp-marketplace' },
+      { text: 'Remote Access UI', link: '/en/guide/tutorials/remote-access-ui' },
+      { text: 'Skills', link: '/en/guide/tutorials/skills' },
+      { text: 'Linux Desktop Install', link: '/en/guide/tutorials/linux-desktop-deb-apt' },
+      { text: 'Claude, Codex, and Hermes', link: '/en/guide/tutorials/claude-codex-hermes' }
     ]
   },
   {
@@ -172,14 +185,27 @@ const zhSidebar = [
   {
     text: '指南',
     items: [
-      { text: '先选接入方式', link: '/zh/guide/tutorials/provider-options' },
       { text: '配置模型提供方', link: '/zh/guide/model-selection' },
       { text: '接入聊天入口', link: '/zh/guide/channels' },
       { text: '运行自动化', link: '/zh/guide/cron' },
       { text: '后台运行与自启动', link: '/zh/guide/background-autostart' },
-      { text: '远程访问', link: '/zh/guide/remote-access' },
+      { text: '远程访问', link: '/zh/guide/remote-access' }
+    ]
+  },
+  {
+    text: '教程',
+    items: [
+      { text: '总览', link: '/zh/guide/tutorials' },
+      { text: '先选接入方式', link: '/zh/guide/tutorials/provider-options' },
       { text: 'Docker 部署', link: '/zh/guide/tutorials/docker-one-click' },
-      { text: '常见场景', link: '/zh/guide/tutorials' }
+      { text: 'Qwen Portal 配置', link: '/zh/guide/tutorials/qwen-portal' },
+      { text: '本地 Ollama + Qwen3', link: '/zh/guide/tutorials/local-ollama-qwen3' },
+      { text: '飞书配置', link: '/zh/guide/tutorials/feishu' },
+      { text: 'MCP Marketplace', link: '/zh/guide/tutorials/mcp-marketplace' },
+      { text: '远程访问 UI', link: '/zh/guide/tutorials/remote-access-ui' },
+      { text: 'Skills', link: '/zh/guide/tutorials/skills' },
+      { text: 'Linux 桌面安装', link: '/zh/guide/tutorials/linux-desktop-deb-apt' },
+      { text: 'Claude、Codex 与 Hermes', link: '/zh/guide/tutorials/claude-codex-hermes' }
     ]
   },
   {
@@ -271,7 +297,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: 'Get Started', link: '/en/guide/getting-started' },
-          { text: 'Guides', link: '/en/guide/tutorials' },
+          { text: 'Guides', link: '/en/guide/model-selection' },
+          { text: 'Tutorials', link: '/en/guide/tutorials' },
           { text: 'Manuals', link: '/en/guide/configuration' },
           { text: 'Reference', link: '/en/guide/commands' },
           { text: 'Project', link: '/en/project/' },
@@ -298,7 +325,8 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: '开始', link: '/zh/guide/getting-started' },
-          { text: '指南', link: '/zh/guide/tutorials' },
+          { text: '指南', link: '/zh/guide/model-selection' },
+          { text: '教程', link: '/zh/guide/tutorials' },
           { text: '手册', link: '/zh/guide/configuration' },
           { text: '参考', link: '/zh/guide/commands' },
           { text: '项目', link: '/zh/project/' },

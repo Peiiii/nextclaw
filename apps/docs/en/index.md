@@ -13,7 +13,7 @@ hero:
       text: First Useful Workflow
       link: /en/guide/after-setup
     - theme: alt
-      text: Guides
+      text: Tutorials
       link: /en/guide/tutorials
     - theme: alt
       text: Reference
@@ -23,7 +23,9 @@ features:
   - title: Get Started
     details: Install, start, open the UI, and get one useful reply before learning every setting or command.
   - title: Guides
-    details: Follow task-based paths for providers, chat channels, automations, remote access, and Docker deployment.
+    details: Understand task areas such as providers, chat channels, automations, background operation, and remote access.
+  - title: Tutorials
+    details: Follow scenario paths for Docker, provider setup, local Ollama, Feishu, MCP Marketplace, and remote access UI.
   - title: Manuals
     details: Use the manuals when you need the formal explanation of configuration, runtime, sessions, secrets, and resources.
   - title: Reference

@@ -1,6 +1,6 @@
-# Guides Overview
+# Tutorials Overview
 
-Guides help you complete a specific task. You do not need to read the full manuals first; choose the task you are trying to finish now.
+Tutorials help you run NextClaw in concrete scenarios. They are different from guides: guides explain how to understand and choose a capability, while tutorials give you a path you can follow step by step.
 
 ## The common path for new users
 
@@ -10,34 +10,39 @@ Guides help you complete a specific task. You do not need to read the full manua
 4. [Run Automations](/en/guide/cron)
 5. [Background & Autostart](/en/guide/background-autostart)
 
-## Choose by task
+## Classic tutorials
 
-### I want to connect a model
+### Connect a model
 
 - [Pick a Provider Path](/en/guide/tutorials/provider-options)
 - [Qwen Portal Setup](/en/guide/tutorials/qwen-portal)
 - [Local Ollama + Qwen3](/en/guide/tutorials/local-ollama-qwen3)
 
-### I want to connect a daily entry point
+### Connect a daily entry point
 
 - [Connect Channels](/en/guide/channels)
 - [Feishu Setup](/en/guide/tutorials/feishu)
 
-### I want NextClaw to act proactively
+### Run and access NextClaw
 
-- [Run Automations](/en/guide/cron)
-- [Sessions and Context](/en/guide/sessions)
-
-### I want it to stay available
-
+- [Docker One-Click Deployment](/en/guide/tutorials/docker-one-click)
 - [Background & Autostart](/en/guide/background-autostart)
 - [Remote Access](/en/guide/remote-access)
-- [Docker Deployment](/en/guide/tutorials/docker-one-click)
+- [Remote Access UI](/en/guide/tutorials/remote-access-ui)
 - [Linux Desktop Install](/en/guide/tutorials/linux-desktop-deb-apt)
 
-## Guides versus manuals
+### Extend capabilities
 
+- [MCP Marketplace](/en/guide/tutorials/mcp-marketplace)
+- [Skills](/en/guide/tutorials/skills)
+- [Claude, Codex, and Hermes](/en/guide/tutorials/claude-codex-hermes)
+
+## Tutorials, guides, and manuals
+
+Tutorials answer "which path can I follow to run a classic scenario?"  
 Guides answer "how do I finish this task?"  
 Manuals answer "what is this capability, what are the rules, and where are the boundaries?"
 
+If you want to get something running first, start with tutorials.  
+If you need to understand how to choose a capability, use [Guides](/en/guide/model-selection).  
 For formal explanations, use [Configuration Manual](/en/guide/configuration) or [Runtime & Hosting Manual](/en/guide/runtime-hosting).
