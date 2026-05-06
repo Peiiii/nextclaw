@@ -4,9 +4,7 @@ import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { MissingProvider } from "@/cli/shared/providers/missing-provider.js";
-import {
-  getPackageVersion,
-} from "@/cli/shared/utils/cli.utils.js";
+import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
 import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { ServiceMarketplaceInstaller } from "@/cli/shared/services/marketplace/service-marketplace-installer.service.js";
 import { ManagedServiceCommandService, resolveSessionRouteCandidate, type StartServiceOptions } from "@/cli/shared/services/runtime/service-managed-startup.service.js";
@@ -18,14 +16,14 @@ import { createGatewayShellContext, createGatewayStartupContext } from "@/cli/sh
 import { runConfiguredGatewayRuntime, startUiShell } from "@/cli/shared/services/gateway/service-gateway-startup.service.js";
 import { createServiceNcpSessionRealtimeBridge } from "@/cli/shared/services/session/service-ncp-session-realtime-bridge.service.js";
 import { createEmptyPluginRegistry } from "@/cli/commands/plugin/index.js";
-import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, type GatewayRuntimeState } from "@/cli/shared/services/gateway/service-gateway-bootstrap.service.js";
+import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, reloadGatewayPluginRuntimeForChanges, type GatewayRuntimeState } from "@/cli/shared/services/gateway/service-gateway-bootstrap.service.js";
 import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "@/cli/shared/services/gateway/service-gateway-runtime-lifecycle.js";
+import { wrapStartChannelsWithDevPluginHotReload } from "@/cli/shared/services/plugin/service-plugin-dev-hot-reload.service.js";
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@/cli/shared/utils/service-port-probe.utils.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { resolveCliSubcommandEntry } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { isLoopbackHost, resolvePublicIp } from "@/cli/shared/utils/cli.utils.js";
 import { companionRuntimeService } from "@/cli/shared/services/ui/companion-runtime.service.js";
-
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@/cli/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
 const {
@@ -41,7 +39,7 @@ const {
   SessionManager,
   parseAgentScopedSessionKey
 } = NextclawCore;
-
+const DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS = 5_000;
 type Config = NextclawCore.Config;
 type LLMProvider = NextclawCore.LLMProvider;
 type LiteLLMProvider = NextclawCore.LiteLLMProvider;
@@ -56,7 +54,6 @@ type SkillsLoaderInstance = {
   listSkills: (filterUnavailable?: boolean) => SkillInfo[];
 };
 type SkillsLoaderConstructor = new (workspace: string, builtinSkillsDir?: string) => SkillsLoaderInstance;
-
 function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
   const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
   if (!ctor) {
@@ -151,6 +148,20 @@ export class RuntimeCommandService {
       setLiveUiNcpAgent: (ncpAgent) => { this.liveUiNcpAgent = ncpAgent; },
       wakeFromRestartSentinel: async () =>
         await this.wakeFromRestartSentinel({ bus: gateway.bus, sessionManager: gateway.sessionManager })
+    });
+    deferredGatewayStartupHooks.startChannels = wrapStartChannelsWithDevPluginHotReload({
+      startChannels: deferredGatewayStartupHooks.startChannels,
+      watcherRegistry: this.fileWatchers,
+      isRuntimeActive: () => Boolean(this.applyLiveConfigReload),
+      reloadPlugins: async (pluginIds) => {
+        await reloadGatewayPluginRuntimeForChanges({
+          gateway,
+          state: gatewayRuntimeState,
+          getLiveUiNcpAgent: () => this.liveUiNcpAgent,
+          changedPaths: pluginIds.map((pluginId) => `plugins.entries.${pluginId}.source`),
+        });
+      },
+      startupSettleMs: DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS,
     });
     await runConfiguredGatewayRuntime({
       uiStartup,

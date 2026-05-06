@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, resolve, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
 
 function readOptionalString(value) {
   if (typeof value !== "string") {
@@ -78,18 +78,6 @@ function readExtensionEntries(packageJson, source) {
   return entries
     .map((entry) => readOptionalString(entry))
     .filter((entry) => Boolean(entry));
-}
-
-function collectSourceWatchPaths(pluginPath) {
-  const sourcePaths = [
-    join(pluginPath, "package.json"),
-    join(pluginPath, "openclaw.plugin.json"),
-  ];
-  const sourceDir = join(pluginPath, "src");
-  if (ensureDirectoryExists(sourceDir)) {
-    sourcePaths.push(sourceDir);
-  }
-  return sourcePaths;
 }
 
 export function inspectProductionBuildStatus(pluginPath) {
@@ -279,6 +267,28 @@ export function pluginHasBuildScript(pluginPath) {
   return Boolean(readOptionalString(packageJson?.scripts?.build));
 }
 
+function pluginHasDevBuildScript(pluginPath) {
+  const { packageJson } = readPluginPackage(resolve(pluginPath));
+  return Boolean(readOptionalString(packageJson?.scripts?.["dev:build"]));
+}
+
+function resolveProductionWatchPaths(pluginPath) {
+  const normalizedPluginPath = resolve(pluginPath);
+  const { packageJson } = readPluginPackage(normalizedPluginPath);
+  const productionEntries = readExtensionEntries(packageJson, "production");
+  const watchPaths = [];
+  for (const entry of productionEntries) {
+    const resolvedEntryPath = resolve(normalizedPluginPath, entry);
+    const watchPath = existsSync(resolvedEntryPath) && statSync(resolvedEntryPath).isDirectory()
+      ? resolvedEntryPath
+      : dirname(resolvedEntryPath);
+    if (!watchPaths.includes(watchPath)) {
+      watchPaths.push(watchPath);
+    }
+  }
+  return watchPaths;
+}
+
 export function createPluginOverrideValue({ pluginId, pluginPath, source }) {
   return `${pluginId}=${pluginPath}${source === "development" ? "#development" : ""}`;
 }
@@ -290,8 +300,19 @@ export function readPluginOverrideMetadata(pluginPath) {
     pluginId,
     pluginPath: normalizedPluginPath,
     packageName: readOptionalString(packageJson?.name),
-    supportsDevelopmentSource: readExtensionEntries(packageJson, "development").length > 0,
-    hasBuildScript: Boolean(readOptionalString(packageJson?.scripts?.build)),
-    sourceWatchPaths: collectSourceWatchPaths(normalizedPluginPath),
   };
+}
+
+export function resolveWatchableFirstPartyPluginTargets(rootDir) {
+  return collectFirstPartyPluginRecords(resolve(rootDir))
+    .map((entry) => entry.pluginPath)
+    .filter((pluginPath) => pluginSupportsDevelopmentSource(pluginPath) && pluginHasBuildScript(pluginPath) && pluginHasDevBuildScript(pluginPath))
+    .map((pluginPath) => {
+      const metadata = readPluginOverrideMetadata(pluginPath);
+      return {
+        pluginId: metadata.pluginId,
+        pluginPath: metadata.pluginPath,
+        watchPaths: resolveProductionWatchPaths(metadata.pluginPath),
+      };
+    });
 }

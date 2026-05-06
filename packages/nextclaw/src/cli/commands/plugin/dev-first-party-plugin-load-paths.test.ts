@@ -162,9 +162,6 @@ describe("resolveDevFirstPartyPluginLoadPaths", () => {
 
     const nextConfig = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
     expect(nextConfig.plugins.load?.paths).toEqual([workspacePluginDir]);
-    expect(nextConfig.plugins.entries?.["nextclaw-ncp-runtime-plugin-codex-sdk"]).toEqual({
-      source: "development",
-    });
   });
 
   it("prepends resolved dev plugin paths ahead of existing config load paths", () => {
@@ -202,7 +199,7 @@ describe("resolveDevFirstPartyPluginLoadPaths", () => {
     ]);
   });
 
-  it("defaults matched first-party plugins to development source when they declare one", () => {
+  it("keeps matched first-party plugins on production source unless explicitly overridden", () => {
     const workspaceExtensionsDir = createTempDir();
     writeWorkspacePluginPackage(
       workspaceExtensionsDir,
@@ -228,9 +225,7 @@ describe("resolveDevFirstPartyPluginLoadPaths", () => {
     });
 
     const nextConfig = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
-    expect(nextConfig.plugins.entries?.["nextclaw-ncp-runtime-plugin-codex-sdk"]).toEqual({
-      source: "development",
-    });
+    expect(nextConfig.plugins.entries).toBeUndefined();
   });
 
   it("keeps explicit production source overrides instead of forcing development", () => {

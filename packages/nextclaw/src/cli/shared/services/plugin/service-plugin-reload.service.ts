@@ -8,11 +8,11 @@ import {
 } from "@nextclaw/openclaw-compat";
 import { shouldRestartChannelsForPluginReload } from "@/cli/commands/plugin/plugin-reload.js";
 import {
-  loadPluginRegistry,
   logPluginDiagnostics,
   toExtensionRegistry,
   type NextclawExtensionRegistry,
 } from "@/cli/commands/plugin/index.js";
+import { loadPluginRegistryProgressively } from "@/cli/commands/plugin/plugin-registry-loader.js";
 
 type PluginGatewayHandles = Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"];
 type PluginGatewayDiagnostics = Awaited<ReturnType<typeof startPluginChannelGateways>>["diagnostics"];
@@ -39,7 +39,10 @@ export async function reloadServicePlugins(params: {
   restartChannels: boolean;
 }> {
   const nextWorkspace = getWorkspacePath(params.nextConfig.agents.defaults.workspace);
-  const nextPluginRegistry = loadPluginRegistry(params.nextConfig, nextWorkspace);
+  const nextPluginRegistry = await loadPluginRegistryProgressively(
+    params.nextConfig,
+    nextWorkspace,
+  );
   const nextExtensionRegistry = toExtensionRegistry(nextPluginRegistry);
   const nextPluginChannelBindings = getPluginChannelBindings(nextPluginRegistry);
   const shouldRestartChannels = shouldRestartChannelsForPluginReload({

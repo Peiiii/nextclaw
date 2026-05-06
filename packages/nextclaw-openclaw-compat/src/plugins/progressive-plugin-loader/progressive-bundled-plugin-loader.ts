@@ -1,9 +1,11 @@
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "../bundled-channel-plugin-packages.constants.js";
 import { resolveEnableState } from "../config-state.js";
 import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.js";
+import { getPackageManifestExtensions, type PackageManifest } from "../manifest.js";
 import { createPluginRecord } from "../plugin-loader-utils.js";
 import { registerPluginWithApi } from "../registry.js";
 import type { PluginRegistry, PluginRecord } from "../types.js";
@@ -71,6 +73,24 @@ function finalizeBundledPluginRecord(params: {
   });
 }
 
+function resolveProgressiveBundledEntryFile(rootDir: string, entryFile: string): string {
+  const manifestPath = path.join(rootDir, "package.json");
+  if (!fs.existsSync(manifestPath)) {
+    return entryFile;
+  }
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as PackageManifest;
+    const [productionEntry] = getPackageManifestExtensions(manifest, "production");
+    if (!productionEntry) {
+      return entryFile;
+    }
+    const productionEntryFile = path.resolve(rootDir, productionEntry);
+    return fs.existsSync(productionEntryFile) ? productionEntryFile : entryFile;
+  } catch {
+    return entryFile;
+  }
+}
+
 async function resolveBundledPluginRegistrationCandidate(params: {
   context: ProgressivePluginLoadContext;
   require: NodeRequire;
@@ -97,7 +117,8 @@ async function resolveBundledPluginRegistrationCandidate(params: {
     return { done: true };
   }
 
-  const { entryFile, rootDir } = resolvedEntry;
+  const rootDir = resolvedEntry.rootDir;
+  const entryFile = resolveProgressiveBundledEntryFile(rootDir, resolvedEntry.entryFile);
   try {
     const resolved = resolvePluginModuleExport(
       [".js", ".mjs", ".cjs"].includes(path.extname(entryFile).toLowerCase())

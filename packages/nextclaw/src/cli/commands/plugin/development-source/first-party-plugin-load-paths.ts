@@ -11,11 +11,9 @@ type WorkspacePluginPackage = {
 };
 
 type InstalledFirstPartyPluginMatch = {
-  pluginId: string;
   packageName: string;
   workspaceDir: string;
   installPath: string;
-  supportsDevelopmentSource: boolean;
 };
 
 const readJsonFile = (filePath: string): Record<string, unknown> | null => {
@@ -176,11 +174,9 @@ const readInstalledFirstPartyPluginMatches = (
       continue;
     }
     matches.push({
-      pluginId: workspacePackage.pluginId,
       packageName,
       workspaceDir: workspacePackage.dir,
       installPath: packageDir,
-      supportsDevelopmentSource: workspacePackage.supportsDevelopmentSource,
     });
   }
   return matches;
@@ -221,61 +217,6 @@ const findWorkspacePackageForInstallRecord = (
   return workspacePackages.find((workspacePackage) =>
     installPathCandidates.has(path.resolve(workspacePackage.dir)),
   );
-};
-
-const buildDevelopmentSourceEntryDefaults = (
-  config: Config,
-  workspacePackages: WorkspacePluginPackage[],
-  installedPluginMatches: InstalledFirstPartyPluginMatch[],
-): {
-  didDefaultDevelopmentSource: boolean;
-  nextEntries: NonNullable<Config["plugins"]["entries"]>;
-  } => {
-  const packageByName = new Map(
-    workspacePackages.map((entry) => [entry.packageName, entry]),
-  );
-  const nextEntries = { ...(config.plugins.entries ?? {}) };
-  let didDefaultDevelopmentSource = false;
-
-  for (const installedPlugin of installedPluginMatches) {
-    if (!installedPlugin.supportsDevelopmentSource) {
-      continue;
-    }
-    const existingEntry = nextEntries[installedPlugin.pluginId];
-    if (existingEntry?.source) {
-      continue;
-    }
-    nextEntries[installedPlugin.pluginId] = {
-      ...existingEntry,
-      source: "development",
-    };
-    didDefaultDevelopmentSource = true;
-  }
-
-  for (const [pluginId, installRecord] of Object.entries(config.plugins.installs ?? {})) {
-    const workspacePackage = findWorkspacePackageForInstallRecord(
-      installRecord,
-      workspacePackages,
-      packageByName,
-    );
-    if (!workspacePackage?.supportsDevelopmentSource) {
-      continue;
-    }
-    const existingEntry = nextEntries[pluginId];
-    if (existingEntry?.source) {
-      continue;
-    }
-    nextEntries[pluginId] = {
-      ...existingEntry,
-      source: "development",
-    };
-    didDefaultDevelopmentSource = true;
-  }
-
-  return {
-    didDefaultDevelopmentSource,
-    nextEntries,
-  };
 };
 
 export const resolveDevFirstPartyPluginLoadPaths = (
@@ -405,14 +346,10 @@ export const applyDevFirstPartyPluginLoadPaths = (
       )
     : [];
   const mergedLoadPaths = mergeLoadPaths(existingLoadPaths, devLoadPaths);
-  const { didDefaultDevelopmentSource, nextEntries } =
-    buildDevelopmentSourceEntryDefaults(config, workspacePackages, installedPluginMatches);
-
   return {
     ...config,
     plugins: {
       ...config.plugins,
-      entries: didDefaultDevelopmentSource ? nextEntries : config.plugins.entries,
       load: {
         ...config.plugins.load,
         paths: mergedLoadPaths,

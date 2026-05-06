@@ -28,6 +28,7 @@
   },
   "scripts": {
     "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --deps.never-bundle @nextclaw/core",
+    "dev:build": "tsdown src/index.ts --dts --target es2022 --no-fixedExtension --deps.never-bundle @nextclaw/core --no-clean --watch",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "test": "vitest run",

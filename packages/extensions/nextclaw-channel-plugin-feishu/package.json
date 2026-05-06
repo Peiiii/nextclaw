@@ -6,11 +6,13 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./index.ts"
+      "development": "./index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [
-    "index.ts",
+    "dist",
     "openclaw.plugin.json",
     "README.md",
     "skills",
@@ -18,7 +20,7 @@
   ],
   "openclaw": {
     "extensions": [
-      "./index.ts"
+      "./dist/index.js"
     ],
     "development": {
       "extensions": [
@@ -45,7 +47,10 @@
     }
   },
   "scripts": {
+    "build": "tsdown index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "dev:build": "tsdown index.ts --dts --target es2022 --no-fixedExtension --unbundle --no-clean --watch",
     "lint": "eslint index.ts",
+    "prepack": "pnpm run build",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {

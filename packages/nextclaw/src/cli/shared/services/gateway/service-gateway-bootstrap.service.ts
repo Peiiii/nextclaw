@@ -63,34 +63,73 @@ function applyGatewayRuntimeCapabilityState(params: {
   params.state.pluginChannelBindings = params.next.pluginChannelBindings;
 }
 
+async function applyGatewayPluginReload(params: {
+  gateway: GatewayStartupContext;
+  state: GatewayRuntimeState;
+  getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
+  nextConfig: NextclawCore.Config;
+  changedPaths: string[];
+}): Promise<{ restartChannels: boolean }> {
+  const result = await reloadServicePlugins({
+    nextConfig: params.nextConfig,
+    changedPaths: params.changedPaths,
+    pluginRegistry: params.state.pluginRegistry,
+    extensionRegistry: params.state.extensionRegistry,
+    pluginChannelBindings: params.state.pluginChannelBindings,
+    pluginGatewayHandles: params.state.pluginGatewayHandles,
+    pluginGatewayLogger,
+    logPluginGatewayDiagnostics,
+  });
+  applyGatewayRuntimeCapabilityState({
+    gateway: params.gateway,
+    state: params.state,
+    next: {
+      pluginRegistry: result.pluginRegistry,
+      extensionRegistry: result.extensionRegistry,
+      pluginChannelBindings: result.pluginChannelBindings,
+    },
+  });
+  params.state.pluginUiMetadata = getPluginUiMetadataFromRegistry(result.pluginRegistry);
+  params.state.pluginGatewayHandles = result.pluginGatewayHandles;
+  params.getLiveUiNcpAgent()?.applyExtensionRegistry?.(result.extensionRegistry);
+  return { restartChannels: result.restartChannels };
+}
+
+export async function reloadGatewayPluginRuntimeForChanges(params: {
+  gateway: GatewayStartupContext;
+  state: GatewayRuntimeState;
+  getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
+  changedPaths: string[];
+}): Promise<{ restartChannels: boolean }> {
+  const nextConfig = resolveConfigSecrets(loadConfig(), {
+    configPath: params.gateway.runtimeConfigPath,
+  });
+  const result = await applyGatewayPluginReload({
+    gateway: params.gateway,
+    state: params.state,
+    getLiveUiNcpAgent: params.getLiveUiNcpAgent,
+    nextConfig,
+    changedPaths: params.changedPaths,
+  });
+  if (result.restartChannels) {
+    await params.gateway.reloader.rebuildChannels(nextConfig, { start: true });
+  }
+  return result;
+}
+
 export function configureGatewayPluginRuntime(params: {
   gateway: GatewayStartupContext;
   state: GatewayRuntimeState;
   getLiveUiNcpAgent: () => UiNcpAgentHandle | null;
 }): void {
   params.gateway.reloader.setReloadPlugins(async ({ config: nextConfig, changedPaths }) => {
-    const result = await reloadServicePlugins({
-      nextConfig,
-      changedPaths,
-      pluginRegistry: params.state.pluginRegistry,
-      extensionRegistry: params.state.extensionRegistry,
-      pluginChannelBindings: params.state.pluginChannelBindings,
-      pluginGatewayHandles: params.state.pluginGatewayHandles,
-      pluginGatewayLogger,
-      logPluginGatewayDiagnostics
-    });
-    applyGatewayRuntimeCapabilityState({
+    const result = await applyGatewayPluginReload({
       gateway: params.gateway,
       state: params.state,
-      next: {
-        pluginRegistry: result.pluginRegistry,
-        extensionRegistry: result.extensionRegistry,
-        pluginChannelBindings: result.pluginChannelBindings
-      }
+      getLiveUiNcpAgent: params.getLiveUiNcpAgent,
+      nextConfig,
+      changedPaths,
     });
-    params.state.pluginUiMetadata = getPluginUiMetadataFromRegistry(result.pluginRegistry);
-    params.state.pluginGatewayHandles = result.pluginGatewayHandles;
-    params.getLiveUiNcpAgent()?.applyExtensionRegistry?.(result.extensionRegistry);
     if (result.restartChannels) {
       console.log("Config reload: plugin channel gateways restarted.");
     }

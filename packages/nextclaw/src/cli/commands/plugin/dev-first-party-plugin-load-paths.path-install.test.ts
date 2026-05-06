@@ -71,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("path-installed first-party plugin load paths", () => {
-  it("defaults path-installed first-party plugins to development source when installPath matches the workspace package", () => {
+  it("keeps path-installed first-party plugins on production source when installPath matches the workspace package", () => {
     const workspaceExtensionsDir = createTempDir();
     const pluginDir = path.join(
       workspaceExtensionsDir,
@@ -102,9 +102,7 @@ describe("path-installed first-party plugin load paths", () => {
     });
 
     const nextConfig = applyDevFirstPartyPluginLoadPaths(config, workspaceExtensionsDir);
-    expect(nextConfig.plugins.entries?.["nextclaw-ncp-runtime-plugin-codex-sdk"]).toEqual({
-      source: "development",
-    });
+    expect(nextConfig.plugins.entries).toBeUndefined();
     expect(nextConfig.plugins.load?.paths).toEqual([pluginDir]);
   });
 

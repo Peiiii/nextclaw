@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
 import { createServer as createNetServer, Socket } from "node:net";
 import { homedir } from "node:os";
 import {
   createPluginOverrideValue,
+  inspectProductionBuildStatus,
+  resolveWatchableFirstPartyPluginTargets,
   validatePluginOverride,
 } from "./dev-plugin-overrides-support.mjs";
 import { resolveRepoPath } from "../shared/repo-paths.mjs";
@@ -13,6 +15,7 @@ import { resolveRepoPath } from "../shared/repo-paths.mjs";
 const command = process.argv[2] ?? "start";
 const commandArgs = process.argv.slice(3);
 const DEV_PLUGIN_OVERRIDES_ENV = "NEXTCLAW_DEV_PLUGIN_OVERRIDES";
+const DEV_PLUGIN_HOT_RELOAD_TARGETS_ENV = "NEXTCLAW_DEV_PLUGIN_HOT_RELOAD_TARGETS";
 
 if (command !== "start") {
   console.error("Unsupported dev command. Use: pnpm dev start");
@@ -36,12 +39,18 @@ const toRelativeWatchPath = (baseDir, targetPath) => {
   }
   return `./${normalizedRelative}`;
 };
-const buildTsxWatchExcludeGlobs = (homePath, baseDir) => {
-  const candidates = new Set([normalizeWatchPath(homePath)]);
+const addWatchPathCandidates = (candidates, targetPath) => {
+  candidates.add(normalizeWatchPath(targetPath));
   try {
-    candidates.add(normalizeWatchPath(realpathSync(homePath)));
+    candidates.add(normalizeWatchPath(realpathSync(targetPath)));
   } catch {
-    // Ignore realpath failures for non-existent or inaccessible home paths.
+    // Ignore realpath failures for non-existent or inaccessible paths.
+  }
+};
+const buildTsxWatchExcludeGlobs = (baseDir, targetPaths) => {
+  const candidates = new Set();
+  for (const targetPath of targetPaths) {
+    addWatchPathCandidates(candidates, targetPath);
   }
   const allPatterns = new Set();
   for (const candidate of candidates) {
@@ -55,8 +64,13 @@ const buildTsxWatchExcludeGlobs = (homePath, baseDir) => {
   }
   return [...allPatterns];
 };
-const tsxWatchExcludeGlobs = buildTsxWatchExcludeGlobs(nextclawHome, backendDir);
 const firstPartyPluginDir = resolve(rootDir, "packages/extensions");
+const workspaceWatchablePluginTargets = resolveWatchableFirstPartyPluginTargets(rootDir);
+const workspaceWatchablePluginPaths = workspaceWatchablePluginTargets.map((entry) => entry.pluginPath);
+const tsxWatchExcludeGlobs = buildTsxWatchExcludeGlobs(backendDir, [
+  nextclawHome,
+  ...workspaceWatchablePluginTargets.flatMap((entry) => entry.watchPaths),
+]);
 
 const DEFAULT_BACKEND_PORT = 18792;
 const DEFAULT_FRONTEND_PORT = 5174;
@@ -251,6 +265,24 @@ function shouldUseShell(command) {
   return process.platform === "win32" && command.toLowerCase().endsWith(".cmd");
 }
 
+function ensureWatchablePluginBuilds(pluginPaths) {
+  for (const pluginPath of pluginPaths) {
+    const buildStatus = inspectProductionBuildStatus(pluginPath);
+    if (!buildStatus.stale) {
+      continue;
+    }
+    console.log(`[dev] Rebuilding stale plugin dist: ${pluginPath}`);
+    const result = spawnSync(process.execPath, [pnpmCliPath, "-C", pluginPath, "build"], {
+      cwd: rootDir,
+      stdio: "inherit",
+      env: process.env,
+    });
+    if (result.status !== 0) {
+      process.exit(result.status ?? 1);
+    }
+  }
+}
+
 const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
   const critical = options.critical !== false;
   const child = spawn(cmd, args, {
@@ -293,6 +325,19 @@ const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
   return child;
 };
 
+function startPluginBuildWatchers(pluginPaths) {
+  for (const pluginPath of pluginPaths) {
+    spawnProcess(
+      `plugin:${relative(rootDir, pluginPath) || pluginPath}`,
+      process.execPath,
+      [pnpmCliPath, "-C", pluginPath, "run", "dev:build"],
+      rootDir,
+      {},
+      { critical: false },
+    );
+  }
+}
+
 async function waitForBackendReady(child, port, timeoutMs) {
   const startedAt = Date.now();
   while (Date.now() - startedAt < timeoutMs) {
@@ -306,6 +351,8 @@ async function waitForBackendReady(child, port, timeoutMs) {
   }
   throw new Error(`[dev:backend] timed out waiting for port ${port} to accept connections after ${timeoutMs}ms.`);
 }
+
+ensureWatchablePluginBuilds(workspaceWatchablePluginPaths);
 
 const backendProcess = spawnProcess(
   "backend",
@@ -324,6 +371,7 @@ const backendProcess = spawnProcess(
   {
     NODE_OPTIONS: developmentNodeOptions,
     NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR: firstPartyPluginDir,
+    [DEV_PLUGIN_HOT_RELOAD_TARGETS_ENV]: JSON.stringify(workspaceWatchablePluginTargets),
     ...(devStartOptions.pluginOverrides.length > 0
       ? {
           [DEV_PLUGIN_OVERRIDES_ENV]: JSON.stringify(devStartOptions.pluginOverrides),
@@ -337,6 +385,7 @@ const backendProcess = spawnProcess(
 );
 
 await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
+startPluginBuildWatchers(workspaceWatchablePluginPaths);
 
 spawnProcess(
   "frontend",
