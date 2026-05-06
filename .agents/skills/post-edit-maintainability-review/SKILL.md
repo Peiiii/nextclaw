@@ -34,6 +34,8 @@ The completion standard is improved code quality and maintainability. A non-feat
 
 Before accepting a non-feature change, identify which positive maintenance action produced the reduction or offset, in this order of preference:
 
+The reduction does not need to happen only in the exact edited lines or file. It can come from related code in the same responsibility chain or problem area, as long as the batch leaves the system genuinely simpler.
+
 1. Delete obsolete, unreachable, duplicated, or no-longer-needed production code.
 2. Simplify branches, state sources, parameters, lifecycle paths, or data flow so there is less behavior to reason about.
 3. Reuse an existing stable component, manager, service, utility, type, or configuration path instead of adding a parallel implementation.

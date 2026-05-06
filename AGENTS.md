@@ -48,7 +48,7 @@
 - 第一步：先对齐目标与成功标准，明确这是新增用户能力还是非功能改动，并先定义可观察验收条件。
   默认联动：`nextclaw-delivery-workflow`。
   条件联动：复杂 debug 用 `long-chain-debugging`；复杂跨轮或易漂移任务用 `iteration-work-notes`，必要时加 `goal-progress-anchor`。
-- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`。
+- 第二步：实现前先判断能删什么、能合并什么、owner 是谁；若不是新增用户能力，默认目标是 `非测试代码净增 <= 0`，并优先通过删旧实现、重构收敛或相关链路减债达成；不要求删减只发生在当前改动点，但禁止靠 hack、强行压行或牺牲可读性硬过线。
   默认联动：`nextclaw-clean-implementation`。
   条件联动：涉及 fallback / compatibility / rescue path 用 `predictable-behavior-first`；涉及命名、目录、文件组织时按场景用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
 - 第三步：再进入实现，优先单一路径、清晰 owner、避免补丁式分支和重复实现。
@@ -67,7 +67,7 @@
 ## 实现常驻原则
 
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
-- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长。
+- 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但禁止通过 hack、把复杂度外移、缩短命名/折叠语句等强行压缩来伪造净减。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
