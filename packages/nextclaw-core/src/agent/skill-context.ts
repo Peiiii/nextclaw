@@ -82,8 +82,8 @@ export function buildAvailableSkillsSystemSection(skills: SkillsLoader): string 
   return [
     "## Skills (mandatory)",
     "Always-on skills in <active_skills> take precedence over this list.",
-    "Before replying: scan <available_skills> entries.",
-    "- If exactly one skill clearly applies: read its SKILL.md at <location> with `read_file`, then follow it.",
+    "Before replying: first check whether any entry in <available_skills> may be relevant to the user's intent, task type, or requested output. Do not skip this check just because the task seems familiar.",
+    "- If one skill looks like the best relevant match, read its SKILL.md at <location> with `read_file`, then decide whether following it is actually helpful.",
     "- If the user is asking to manage NextClaw itself, read the built-in NextClaw self-management guide first and do not open unrelated generic skills before that.",
     "- If multiple skills share the same <name>, use <ref> to distinguish them. Never assume duplicate names mean the same skill.",
     "- If none clearly apply: do not read any SKILL.md.",

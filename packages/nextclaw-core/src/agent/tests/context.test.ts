@@ -62,6 +62,8 @@ describe("ContextBuilder tool catalog", () => {
     expect(prompt).toContain("<available_skills>");
     expect(prompt).toContain("# Active Skills");
     expect(prompt).toContain("<active_skills>");
+    expect(prompt).toContain("first check whether any entry in <available_skills> may be relevant");
+    expect(prompt).toContain("then decide whether following it is actually helpful");
     expect(prompt).toContain("# Skill Learning Loop");
     expect(prompt).toContain("Decide exactly one outcome");
     expect(prompt).toContain("clear trigger, repeatable steps, and failure signals/checks");
