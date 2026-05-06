@@ -20,6 +20,7 @@ const INITIAL_DOWNLOAD_PROGRESS: UpdateProgress = {
 type NpmRuntimeUpdateHostDeps = {
   requestRestart: (params: RequestRestartParams) => Promise<void>;
   uiConfig: Pick<Config["ui"], "port">;
+  applyRestartMode: "managed-service-restart" | "manual-process-restart";
 };
 
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
@@ -75,11 +76,19 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
     };
     try {
       const snapshot = this.createManager().applyDownloadedUpdate();
-      this.snapshot = snapshot;
-      await requestManagedServiceRestart(this.deps.requestRestart, {
-        reason: "runtime update apply",
-        uiPort: this.deps.uiConfig.port
-      });
+      this.snapshot =
+        this.deps.applyRestartMode === "managed-service-restart"
+          ? snapshot
+          : {
+              ...snapshot,
+              recoveryCommand: "Restart this NextClaw process to launch the downloaded runtime."
+            };
+      if (this.deps.applyRestartMode === "managed-service-restart") {
+        await requestManagedServiceRestart(this.deps.requestRestart, {
+          reason: "runtime update apply",
+          uiPort: this.deps.uiConfig.port
+        });
+      }
       return this.snapshot;
     } catch (error) {
       this.snapshot = this.toFailedSnapshot(error);

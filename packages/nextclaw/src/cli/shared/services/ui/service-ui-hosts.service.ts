@@ -5,6 +5,7 @@ import type { RequestRestartParams } from "@/cli/shared/types/cli.types.js";
 import { createNpmRuntimeUpdateHost } from "@/cli/shared/services/ui/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@/cli/shared/services/ui/runtime-control-host.service.js";
 import { createRemoteAccessHost } from "@/cli/shared/services/ui/service-remote-access.service.js";
+import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 
 export function createServiceUiHosts(params: {
   serviceCommands: {
@@ -20,6 +21,8 @@ export function createServiceUiHosts(params: {
   runtimeUpdate?: UiRuntimeUpdateHost;
 } {
   const { requestRestart, serviceCommands, uiConfig } = params;
+  const applyRestartMode =
+    managedServiceStateStore.read()?.pid === process.pid ? "managed-service-restart" : "manual-process-restart";
   return {
     remoteAccess: createRemoteAccessHost(params),
     runtimeControl: createRuntimeControlHost({
@@ -31,6 +34,7 @@ export function createServiceUiHosts(params: {
       process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST === "1"
         ? undefined
         : createNpmRuntimeUpdateHost({
+            applyRestartMode,
             requestRestart,
             uiConfig
           })
