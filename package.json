@@ -135,6 +135,8 @@
     "release:auto:prepare": "pnpm release:sync:published-tags:write && pnpm release:auto:changeset",
     "release:auto": "pnpm release:auto:prepare && pnpm release:version && pnpm release:publish",
     "release:beta": "node scripts/release/release-beta.mjs",
+    "release:beta:npm": "node scripts/release/release-beta-npm.mjs",
+    "release:beta:runtime": "node scripts/release/release-beta-runtime.mjs",
     "release:frontend": "node scripts/release/release-frontend.mjs && pnpm release:version && pnpm release:publish:frontend",
     "release": "pnpm changeset && pnpm release:version && pnpm release:publish",
     "docker:start": "bash scripts/dev/docker-start.sh",

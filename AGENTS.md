@@ -108,6 +108,8 @@
 - `/maintainability-review`：执行独立于实现阶段的可维护性复核，使用 `post-edit-maintainability-review`。
 - `/validate`：运行项目验证，使用 `nextclaw-validation-workflow`。
 - `/release-beta`：执行 NextClaw NPM beta 一键发布闭环，使用 `npm-beta-release`。
+- `/release-beta-npm`：只发布 NPM beta 包，不触发 runtime update channel。
+- `/release-beta-runtime`：只发布 beta runtime update channel，不重复发 NPM 包。
 - `/release-frontend`：前端一键发布，仅 UI 变更场景。
 
 ## 发布常驻原则

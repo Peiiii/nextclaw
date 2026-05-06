@@ -70,4 +70,16 @@
 - 输入格式：`/release-beta`，可附 `--skip-runtime-channel`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
 - 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
 
+## `/release-beta-npm`
+
+- 用途：只发布 NextClaw NPM beta 包，不触发 runtime update channel。
+- 输入格式：`/release-beta-npm`，可附 dry-run 说明。
+- 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；执行 `pnpm release:beta:npm`。适用于“先把 npm beta 包发出去，但暂时不开放自动更新通道”的场景。
+
+## `/release-beta-runtime`
+
+- 用途：只发布 NextClaw beta runtime update channel，不重复发 npm 包。
+- 输入格式：`/release-beta-runtime`，可附 `--version <nextclaw-version>`、`--release-tag <tag>`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
+- 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；执行 `pnpm release:beta:runtime`。默认读取已发布的 `nextclaw@beta` 版本并闭合 runtime workflow / release assets / gh-pages manifest / 公网 manifest。
+
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

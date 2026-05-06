@@ -34,6 +34,8 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 ## Package Release Flow
 0. Prefer the reusable beta owner when the request is specifically "发布 beta / 统一 beta 发版":
    - `pnpm release:beta`
+   - `pnpm release:beta:npm`
+   - `pnpm release:beta:runtime`
 1. Sync and check package README content:
    - `pnpm release:sync-readmes`
    - `pnpm release:check-readmes`
@@ -51,6 +53,8 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 ## Beta Package Rule
 - Prefer the repo changeset/pre-release flow for beta releases.
 - Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`.
+- Prefer `pnpm release:beta:npm` when the need is only “publish beta packages now, do not yet open the runtime update channel”.
+- Prefer `pnpm release:beta:runtime` when `nextclaw@beta` is already published and the remaining work is only the runtime update channel.
 - If a single-package beta publish is unavoidable, use pnpm:
   - `pnpm -C packages/nextclaw publish --tag beta`
 - After publish, verify the tag directly:
@@ -86,6 +90,7 @@ Do not close a release attempt with only a narrative retrospective when the bloc
 
 ## Runtime Update Channel Flow
 1. Trigger `.github/workflows/npm-runtime-update-release.yml` for the target channel.
+   - Or use the reusable owner command: `pnpm release:beta:runtime`
 2. Wait for the workflow conclusion to be `success`; dispatch alone is not a release.
 3. Verify `gh-pages` contains the channel files:
    - `npm-runtime-updates/<channel>/manifest-<channel>-<platform>-<arch>.json`

@@ -320,3 +320,68 @@
 - 这条入口复用既有 `release:auto` 与 `npm-runtime-update-release.yml`，没有额外新造一条发布机制
 - 仍然禁止默认抬高 `minimumLauncherVersion`
 - `--minimum-launcher-version-override` 只保留给 recovery publish
+
+## 追加记录：beta release 的 runtime workflow 为什么慢
+
+### 结论
+
+- `pnpm release:beta` 里真正慢的不是 npm publish 本身
+- 慢的是 `nextclaw` 进入“自动更新通道闭环”后的 runtime workflow
+- 这条 workflow 不是单纯写 manifest 元数据，而是要：
+  - 在 4 个平台 runner 上分别构建真实 runtime bundle
+  - 给 bundle 签名
+  - 上传到 GitHub Release assets
+  - 再把小体积 manifest 与公钥发布到 `gh-pages`
+
+### 必要耗时
+
+- 四个平台 runtime bundle 构建本身就是实打实的产物构建，不是纯元数据写入
+- GitHub Pages 在 `gh-pages` 推送后还会有一段 `building` / CDN 传播延迟
+
+### 已确认的非必要耗时
+
+- 原 `release-beta.mjs` 会在 workflow 成功后立刻强校验公网 Pages URL
+- 如果 `gh-pages` 分支上的 manifest 已经更新到新版本，但 GitHub Pages 还在 `building` 或 CDN 还没刷新，脚本就会误报“public manifest mismatch”
+- 这种误报会逼人重复 rerun `release:beta`，属于非必要发布耗时
+
+### 本次优化
+
+- 新增 `scripts/release/release-runtime-manifest-verify.mjs`
+- `release-beta.mjs` 现在先验证 `gh-pages` 分支内容是否已正确指向新版本
+- 再短轮询公网 Pages URL
+- 如果 `gh-pages` 已正确、Pages 仍处于 `building`，则输出提醒而不是把整个 beta 发布误判为失败
+
+### 收益
+
+- 消除了“workflow 明明成功了，但因为 Pages 传播延迟被脚本误判失败”的重复发版损耗
+- 保留了真正的发布合同：`gh-pages` 内容必须正确；公网 URL 在 Pages 构建完成后也必须对上
+
+## 追加记录：beta 发布入口按语义拆分
+
+### 用户需求
+
+- 有时只想先把 npm beta 包快速发出去
+- 不想每次都立即开放自动更新通道
+- 需要把“发包”和“发 runtime bundle/update channel”从一个笼统动作拆成清晰的两步
+
+### 本次落地
+
+- 保留全闭环入口：
+  - `pnpm release:beta`
+- 新增 npm-only 快速入口：
+  - `pnpm release:beta:npm`
+- 新增 runtime-only 补发入口：
+  - `pnpm release:beta:runtime`
+
+### 语义
+
+- `release:beta`：包 + runtime update channel 全闭环
+- `release:beta:npm`：只发 npm beta 包，不触发 runtime workflow
+- `release:beta:runtime`：读取当前已发布的 `nextclaw@beta` 版本，只补发 runtime workflow / release assets / gh-pages / 公网 manifest
+
+### 配套同步
+
+- `package.json` scripts 已补齐
+- `commands/commands.md` 已新增 `/release-beta-npm` 与 `/release-beta-runtime`
+- `npm-beta-release` / `npm-release-contract-guard` skill 已同步新语义
+- `AGENTS.md` 命令索引已补齐新入口

@@ -146,3 +146,48 @@ Notes:
 - `release:beta` requires a clean worktree before it starts, because it may create a release commit and push tags.
 - The runtime workflow is only triggered when the release batch includes `nextclaw`; pure package batches do not pay that extra closure cost.
 - This command still follows the `minimumLauncherVersion` governance from `packages/nextclaw/npm-runtime-compatibility.json`; do not pass the override unless you are doing a deliberate recovery publish.
+
+## Split beta shortcuts
+
+If you only want to publish beta packages and do **not** want to open the auto-update channel yet, use:
+
+```bash
+pnpm release:beta:npm
+```
+
+This is the fast path for:
+
+- shipping an npm beta quickly,
+- validating package install / manual upgrade first,
+- deferring the runtime workflow until later.
+
+It is equivalent to the full beta owner with `--skip-runtime-channel`, but the command name makes the intent explicit.
+
+If `nextclaw@beta` is already published and you later want to open or refresh the runtime update channel only, use:
+
+```bash
+pnpm release:beta:runtime
+```
+
+By default it:
+
+1. reads the currently published `nextclaw@beta` version,
+2. triggers `npm-runtime-update-release` for `channel=beta`,
+3. waits for workflow success,
+4. verifies GitHub release assets,
+5. verifies `gh-pages` manifests and the public beta manifest URL.
+
+Useful flags:
+
+```bash
+pnpm release:beta:runtime -- --dry-run
+pnpm release:beta:runtime -- --version 0.18.12-beta.8
+pnpm release:beta:runtime -- --release-tag nextclaw@0.18.12-beta.8
+pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
+```
+
+Recommended semantics:
+
+- `pnpm release:beta` = full closure, package + runtime channel
+- `pnpm release:beta:npm` = package only
+- `pnpm release:beta:runtime` = runtime channel only

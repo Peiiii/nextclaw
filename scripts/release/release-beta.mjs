@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readLatestReleaseCheckpoint } from "./release-checkpoints.mjs";
+import { verifyPublicRuntimeManifests } from "./release-runtime-manifest-verify.mjs";
 
 const ROOT_DIR = process.cwd();
 const REPO = "Peiiii/nextclaw";
@@ -289,21 +290,16 @@ function verifyRuntimeReleaseAssets(releaseTag, nextclawVersion) {
   return releaseSummary;
 }
 
-function verifyPublicBetaManifests(nextclawVersion) {
-  for (const target of RUNTIME_MANIFEST_TARGETS) {
-    const manifestUrl = `https://peiiii.github.io/nextclaw/npm-runtime-updates/${BETA_CHANNEL}/manifest-${BETA_CHANNEL}-${target.platform}-${target.arch}.json?ts=${Date.now()}`;
-    const manifest = readJsonCommand("curl", ["-fsSL", manifestUrl]);
-    if (manifest.latestVersion !== nextclawVersion) {
-      throw new Error(
-        `Public manifest version mismatch for ${target.platform}-${target.arch}: expected ${nextclawVersion}, got ${manifest.latestVersion}`
-      );
-    }
-    if (manifest.hostKind !== "npm-runtime-bundle") {
-      throw new Error(
-        `Public manifest hostKind mismatch for ${target.platform}-${target.arch}: ${manifest.hostKind}`
-      );
-    }
-  }
+async function verifyPublicBetaManifests(nextclawVersion) {
+  return verifyPublicRuntimeManifests({
+    channel: BETA_CHANNEL,
+    expectedVersion: nextclawVersion,
+    readJsonCommand,
+    repo: REPO,
+    run,
+    sleep,
+    targets: RUNTIME_MANIFEST_TARGETS
+  });
 }
 
 function buildDryRunPlan(branch, options) {
@@ -344,6 +340,7 @@ function runLocalBetaRelease(branch) {
 async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
   if (options.skipRuntimeChannel || !nextclawVersion) {
     return {
+      publicManifestSummary: null,
       runtimeReleaseSummary: null,
       runtimeRunSummary: null
     };
@@ -360,14 +357,22 @@ async function runRuntimeReleaseClosure(branch, nextclawVersion, options) {
   const workflowRun = await waitForWorkflowRun(branch, dispatchStartedAtMs);
   const runtimeRunSummary = watchWorkflowRun(workflowRun.databaseId);
   const runtimeReleaseSummary = verifyRuntimeReleaseAssets(releaseTag, nextclawVersion);
-  verifyPublicBetaManifests(nextclawVersion);
+  const publicManifestSummary = await verifyPublicBetaManifests(nextclawVersion);
   return {
+    publicManifestSummary,
     runtimeReleaseSummary,
     runtimeRunSummary
   };
 }
 
-function printCompletionSummary({ branch, nextclawVersion, releaseCommit, runtimeReleaseSummary, runtimeRunSummary }) {
+function printCompletionSummary({
+  branch,
+  nextclawVersion,
+  publicManifestSummary,
+  releaseCommit,
+  runtimeReleaseSummary,
+  runtimeRunSummary
+}) {
   console.log("release:beta completed");
   console.log(`- branch: ${branch}`);
   console.log(`- release commit: ${releaseCommit ?? "no local release artifact diff"}`);
@@ -377,6 +382,9 @@ function printCompletionSummary({ branch, nextclawVersion, releaseCommit, runtim
   }
   if (runtimeReleaseSummary) {
     console.log(`- runtime release: ${runtimeReleaseSummary.url}`);
+  }
+  if (publicManifestSummary) {
+    console.log(`- runtime manifest verification: ${publicManifestSummary.source} (${publicManifestSummary.pagesStatus})`);
   }
 }
 
@@ -399,7 +407,7 @@ async function main() {
 
   ensureLocalReleaseCommandPrerequisites();
   const { nextclawVersion, releaseCommit } = runLocalBetaRelease(branch);
-  const { runtimeReleaseSummary, runtimeRunSummary } = await runRuntimeReleaseClosure(
+  const { publicManifestSummary, runtimeReleaseSummary, runtimeRunSummary } = await runRuntimeReleaseClosure(
     branch,
     nextclawVersion,
     options
@@ -408,6 +416,7 @@ async function main() {
   printCompletionSummary({
     branch,
     nextclawVersion,
+    publicManifestSummary,
     releaseCommit,
     runtimeReleaseSummary,
     runtimeRunSummary

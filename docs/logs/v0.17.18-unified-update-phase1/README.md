@@ -303,3 +303,30 @@ pnpm -C apps/desktop validation:dev-update
   - 同一安装体的新进程 `nextclaw --version` 输出 `0.18.12-beta.4`。
 - 这条验证证明：之前复现的旧 `beta.3` 真实故障场景，已经通过恢复发布被修复；旧版本不仅能升到高版本，而且现在会在原本失败的 stable 自动检查链路里直接恢复。
 - 本次额外发现：当前公网 `beta` 与 `stable` runtime manifest 指向的 `0.18.12-beta.4` bundle 都会在下载末端报 `sha256 mismatch`。这会阻塞新的在线自动下载，但不是这次“点击更新后前台服务退出”的代码根因；后者已通过本地签名更新源完成真实接口验收。公网 bundle 合同问题需要在下一次 runtime channel 发布时单独纠正。
+
+同批次发布链路提速补充（`release:beta` / runtime workflow）：
+
+- 已再次确认：`pnpm release:beta` 分两段
+  - 本地 `release:auto` / npm publish
+  - 若 batch 含 `nextclaw`，再走远端 `npm-runtime-update-release` workflow
+- runtime workflow 慢的根因不是“写一点 manifest 元数据”，而是必须在 4 个平台 runner 上构建、签名并上传真实 runtime bundle，然后再发布 `gh-pages` manifest。
+- 本次识别并消除了一段非必要耗时：原 `scripts/release/release-beta.mjs` 会在 workflow 成功后立刻强校验公网 Pages URL；如果 `gh-pages` 分支已经是新版本，但 GitHub Pages 仍处于 `building` / CDN 传播延迟，脚本会误判失败，逼人重复 rerun 整个 beta 发布。
+- 已把 manifest 校验职责拆到 `scripts/release/release-runtime-manifest-verify.mjs`，并改成：
+  - 先验证 `gh-pages` 分支上的 manifest 是否已正确指向新版本
+  - 再短轮询公网 Pages URL
+  - 若 `gh-pages` 正确且 Pages 仍在 `building`，输出提示而不是把整次发布判失败
+- 本次真实发布 `nextclaw@0.18.12-beta.8` 时已命中并验证这条优化：`gh-pages` 分支先更新到 `beta.8`，随后 GitHub Pages 从 `building` 进入 `built`，公网 URL 最终也返回 `beta.8`。这次之后，Pages 传播延迟不再会把已成功的 runtime workflow 误报成发布失败。
+
+同批次发布入口拆分补充：
+
+- 为了满足“有时只想快速发 npm beta 包，不想立即开放自动更新通道”的需求，本次把 beta 发布入口按语义拆成三类：
+  - `pnpm release:beta`：完整闭环，发 npm 包并闭合 runtime update channel
+  - `pnpm release:beta:npm`：只发 npm beta 包
+  - `pnpm release:beta:runtime`：只补发 beta runtime update channel
+- `release:beta:npm` 通过包装 `release-beta.mjs --skip-runtime-channel` 提供一个显式、短路径的 npm-only 命令，不再要求发布者记忆参数语义。
+- `release:beta:runtime` 会默认读取当前已发布的 `nextclaw@beta` 版本，然后单独触发 `npm-runtime-update-release`，等待 workflow 成功，并校验 release assets、`gh-pages` manifest 与公网 manifest。
+- 相关入口已同步到：
+  - `package.json`
+  - `commands/commands.md`
+  - `AGENTS.md` 命令索引
+  - `npm-beta-release` / `npm-release-contract-guard` skill
