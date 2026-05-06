@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.8
+
+### Patch Changes
+
+- 4178381: Prefer the packaged npm runtime when the installed launcher version is newer than the stale current bundle pointer, so upgrading `nextclaw@beta` no longer keeps booting an older runtime bundle and showing the old product version.
+
 ## 0.18.12-beta.7
 
 ### Patch Changes
