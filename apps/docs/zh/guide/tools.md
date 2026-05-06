@@ -1,41 +1,10 @@
-# 工具
+# 扩展能力
 
-工具让 Agent 不只“回答问题”，还能“执行动作”。
+这个页面保留给旧链接和搜索入口。公开文档不再把内部 `tools` 作为用户主路径概念。
 
-## 工具分两类
+如果你想扩展 NextClaw 的能力，优先看：
 
-### 1) 信息获取类
-
-- Web 搜索（如 Brave）
-- 网页抓取与信息整理
-
-适合场景：查资料、对比信息、汇总来源。
-
-### 2) 执行动作类
-
-- 文件读写与编辑
-- 命令执行（`exec`）
-- 消息发送、任务调度
-
-适合场景：批量处理文件、自动化重复任务。
-
-## 新手建议
-
-1. 先开启“信息获取类”工具。
-2. 跑通后再开启“执行动作类”工具。
-3. 涉及 `exec` 时先缩小权限范围，再逐步放开。
-
-## 关于 `exec` 的安全建议
-
-- 设置合理超时，避免长时间阻塞。
-- 优先限制在工作区内执行。
-- 生产环境默认最小权限。
-
-## 进阶入口（可选）
-
-如果你希望通过配置文件精细控制工具参数（如 `timeout`、`restrictToWorkspace`），
-可参考：[配置](/zh/guide/configuration) 与 [命令](/zh/guide/commands)。
-
-如果你是第一次接触 MCP，建议先看：
-
-- [MCP 教程（不碰命令行）](/zh/guide/tutorials/mcp-marketplace)
+- [指南总览](/zh/guide/tutorials)
+- [Skills 教程](/zh/guide/tutorials/skills)
+- [MCP 教程](/zh/guide/tutorials/mcp-marketplace)
+- [命令索引](/zh/guide/commands)

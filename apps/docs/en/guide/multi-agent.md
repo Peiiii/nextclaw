@@ -1,63 +1,28 @@
 # Multi-Agent Routing
 
-You can configure OpenClaw-style multi-agent runtime behavior in the UI (**Routing & Runtime**) or in `config.json`.
+Multi-agent routing is an advanced capability. Use it after NextClaw is already working and you want different tasks to use different agents or runtimes.
 
-## Key Settings
+## When it helps
 
-- `agents.list`: run multiple resident agent roles in one gateway process
-- `bindings`: route inbound messages by `channel + accountId (+peer)` to a target `agentId`
-- `session.dmScope`: DM isolation strategy
+- different tasks need different models or runtimes
+- a session should bind to a specific agent
+- you are testing Claude Code, Codex, Hermes, or other runtime paths
+- you want to keep experiments separate from the daily main entry point
 
-## Example Config
+## When it is unnecessary
 
-```json
-{
-  "agents": {
-    "defaults": { "model": "openai/gpt-5.2-codex" },
-    "list": [
-      { "id": "main", "default": true },
-      { "id": "engineer", "workspace": "~/workspace-engineer", "model": "openai/gpt-5.2-codex" }
-    ]
-  },
-  "bindings": [
-    {
-      "agentId": "engineer",
-      "match": {
-        "channel": "discord",
-        "accountId": "default",
-        "peer": { "kind": "channel", "id": "dev-room" }
-      }
-    }
-  ],
-  "session": {
-    "dmScope": "per-account-channel-peer"
-  }
-}
-```
+First setup does not need multi-agent routing.  
+Most daily single-user workflows do not need many agents at the beginning.
 
-## DM Scope Values
+## Usage principles
 
-> ⚠️ `session.dmScope` accepts **only** these 4 values:
+- Keep one reliable main entry point.
+- Add agents only for clear scenarios.
+- Each agent should have a clear responsibility.
+- Do not use routing as a workaround for messy configuration.
 
-| Value | Isolation |
-|-------|-----------|
-| `main` | All DMs share one session |
-| `per-peer` | One session per peer |
-| `per-channel-peer` | One session per channel + peer |
-| `per-account-channel-peer` | Full isolation per account + channel + peer |
+## Related docs
 
-## Binding Match Semantics
-
-`bindings` are processed in array order — **first matching rule wins**.
-
-- `match.channel` is required
-- `match.accountId`: omit = match `default` only, `"*"` = match all
-- `match.peer`: omit = match all peers
-- No match = falls back to default agent
-
-## Recommended Setup
-
-1. Keep `main` as the default fallback role
-2. Add specialist agents (`engineer`, `ops`, `support`)
-3. Route with `bindings` (channel/account/peer based)
-4. Use `dmScope="per-account-channel-peer"` for multi-account isolation
+- [Chat & Sessions](/en/guide/chat)
+- [Command Index](/en/guide/commands)
+- [Claude Code / Codex / Hermes Integration](/en/guide/tutorials/claude-codex-hermes)

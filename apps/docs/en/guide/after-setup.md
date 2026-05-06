@@ -1,70 +1,52 @@
-# What To Do After Setup
+# First Useful Workflow
 
-After you finish provider + default model configuration, do these 5 things to move from "it works" to "I use it every day".
+The quickstart proves that NextClaw runs. This page proves that it is worth continuing with.
 
-If you just installed NextClaw and have not configured any provider yet, start here first:
+The goal is a small but real workflow: configure a model, complete one useful conversation, then create one low-risk automation.
 
-- [First Step After Install: Choose Provider Path (Qwen Portal or API Key)](/en/guide/tutorials/provider-options)
-
-## 1. Confirm runtime health
+## 1. Check health first
 
 ```bash
 nextclaw status
 nextclaw doctor
 ```
 
-This quickly verifies process state, config loading, and runtime readiness.
+If this already reports a problem, go to [Troubleshooting](/en/guide/troubleshooting).
 
-## 2. Run one 10-minute real task
+## 2. Do one real conversation
 
-Send a request you actually do every day, for example:
+Open the UI and ask for something you would actually use today, for example:
 
-- summarize today's priorities
-- draft a short status update
-- turn a requirement note into an actionable checklist
+```text
+Turn these rough notes into an execution checklist I can send to a teammate.
+```
 
-Keep it simple. The goal is habit, not complexity.
+Avoid toy prompts. The first useful workflow should be connected to real work.
 
-## 3. Connect one channel you already use
+## 3. Create one reminder or scheduled job
 
-Start with the platform you check every day (Discord / Telegram / Slack).
+Now let NextClaw do one small thing proactively, for example:
 
-- Channel overview: [Channels](/en/guide/channels)
-- Walkthroughs: [Tutorials](/en/guide/tutorials)
+```text
+Every weekday at 9:30, remind me to choose the most important task for the day.
+```
 
-## 4. Add one minimal automation
+To understand automation more formally, see [Run Automations](/en/guide/cron).
 
-Create a low-risk, high-frequency task like "daily 9:30 reminder for priorities".
+## 4. Decide whether to connect a channel
 
-- Entry doc: [Cron](/en/guide/cron)
+If you already live in a messaging app every day, connect a channel next:
 
-## 5. Decide whether you need "always available" runtime
+- [Connect Channels](/en/guide/channels)
 
-If NextClaw is becoming part of your real workflow, the next question is often not "what other command exists?" but:
+If you only need the local UI for now, skip channels.
 
-- should it start automatically after login
-- should it stay available in the background
-- should other devices be able to reach this machine
+## 5. Decide whether it should stay running
 
-Entry docs:
+When you want NextClaw to become part of your daily setup, continue with:
 
-- [Runtime & Hosting](/en/guide/runtime-hosting)
 - [Background & Autostart](/en/guide/background-autostart)
+- [Remote Access](/en/guide/remote-access)
+- [Docker Deployment](/en/guide/tutorials/docker-one-click)
 
-## Then copy one proven setup from the resource hub
-
-If you are unsure what to build next, start from existing ecosystem projects and adapt.
-
-- Resource page: [Resource Hub](/en/guide/resources)
-
-## External Tutorials and Community Shares (To Be Added Later)
-
-This page is intentionally minimal for now. OpenClaw docs/repository links are not pre-filled and will be added manually later.
-
-## Recommended order (no overthinking)
-
-1. Health check
-2. One real task
-3. One channel
-4. One automation
-5. Decide whether you need always-on runtime
+At this point, you have moved from "it runs" to "it is useful."

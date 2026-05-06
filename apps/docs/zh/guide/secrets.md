@@ -1,51 +1,35 @@
-# 密钥管理（Secrets）
+# 密钥管理
 
-## 为什么要用 Secrets
+密钥管理用于保存 API Key、token 和其他敏感值。它的目标是减少明文散落，让配置更容易轮换和检查。
 
-如果把 key 直接写在配置里，常见风险是：
+## 什么应该放进密钥管理
 
-- 截图时误暴露
-- 复制配置给同事时泄露
-- 提交代码时带出敏感信息
+- 模型提供方 API Key
+- 渠道 token
+- 平台登录凭据
+- 需要在多个配置中复用的敏感值
 
-Secrets 的思路是：配置里只放“引用关系”，真实密钥放在外部安全来源。
+## 基本原则
 
-## 真实密钥可以放哪里
+- 不把密钥写进公开文档、聊天记录或截图里。
+- 一个密钥只服务它应该服务的能力。
+- 需要撤销时，能明确知道影响范围。
+- 定期用诊断命令检查引用是否可解析。
 
-- `env`：系统环境变量
-- `file`：外部 JSON 文件
-- `exec`：外部命令输出（常用于对接密钥系统）
+## 常用检查
 
-`config.json` 中只保留：
+```bash
+nextclaw secrets audit
+nextclaw doctor
+```
 
-- `secrets.providers`
-- `secrets.defaults`
-- `secrets.refs`
+## 和配置的关系
 
-## 小白可用路径（UI 优先）
+配置说明“使用哪个密钥”。  
+密钥管理保存“密钥本身从哪里来、怎么解析”。
 
-1. 打开 Web UI 的 `/secrets` 页面。
-2. 打开 `enabled`。
-3. 配置一个默认 provider（通常先用 `env`）。
-4. 把 `providers.<name>.apiKey` 这类敏感路径改为 `refs` 引用。
-5. 保存后执行一次连接测试，确认业务功能正常。
+## 相关文档
 
-## 典型收益
-
-- 团队共享配置模板时，不再传播真实 key。
-- 多环境切换时，不用反复改业务配置。
-- 密钥轮换更简单，变更集中在密钥来源。
-
-## 旧方式还能用吗
-
-能用。直接配置 `providers.<name>.apiKey` 仍可运行。
-
-建议：
-
-- 个人临时调试：可直接写 key。
-- 团队协作或长期环境：优先使用 secrets refs。
-
-## 进阶入口（可选）
-
-如果你需要自动化批量管理 secrets，可使用 `nextclaw secrets` 子命令。
-详细参数与示例见：[命令](/zh/guide/commands)。
+- [配置手册](/zh/guide/configuration)
+- [配置模型提供方](/zh/guide/model-selection)
+- [命令索引](/zh/guide/commands)

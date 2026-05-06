@@ -1,37 +1,78 @@
 # 故障排查
 
-## 常见问题
+排错页用于恢复问题，不是学习主路径。遇到异常时，先按下面顺序缩小范围。
 
-### 服务无法启动
-- 先执行 `nextclaw status --json`，检查是否有残留进程占用端口
-- 使用 `nextclaw status --fix` 清理残留服务状态
-- 查看 `~/.nextclaw/logs/service.log` 获取错误详情
-
-### 配置修改未生效
-- 大部分配置路径支持热更新（providers、channels、model、tools、plugins）
-- UI 端口变更需要 `nextclaw restart`
-- 观察日志里的 `Config reload:` 记录确认热更新是否触发
-
-### 渠道连不上
-- 运行 `nextclaw channels status` 查看连接状态
-- 检查 API token 是否正确
-- Telegram 防火墙场景可配置 `"proxy": "http://localhost:7890"`
-
-### Agent 无响应
-- 执行 `nextclaw doctor --json` 做完整诊断
-- 确认至少一个 provider 配置了有效 API key
-- 确认当前模型在目标 provider 上可用
-
-## 诊断命令
+## 1. 服务是否在运行
 
 ```bash
-nextclaw status --json    # 机器可读状态；命令成功时退出 0，状态看 JSON 的 level 字段
-nextclaw status --verbose # 详细状态
-nextclaw doctor --json    # 全量诊断
-nextclaw doctor --fix     # 自动修复常见问题
+nextclaw status
+nextclaw doctor
 ```
 
-## 静默回复行为
+如果服务没有运行，先执行：
 
-- 模型输出包含 `<noreply/>` 时，不会向渠道发送回复
-- 空字符串或全空白回复也不会发送
+```bash
+nextclaw start
+```
+
+如果状态异常，再尝试：
+
+```bash
+nextclaw restart
+```
+
+## 2. UI 打不开
+
+检查：
+
+- 地址是否是 `http://127.0.0.1:55667`
+- 服务是否真的已启动
+- 端口是否被占用
+- 日志里是否有启动错误
+
+## 3. 模型没有回复
+
+检查：
+
+- provider 是否保存成功
+- API Key 或登录状态是否有效
+- 默认模型是否存在
+- 当前网络是否能访问 provider
+
+## 4. 渠道连不上
+
+检查：
+
+- token 是否过期
+- 渠道权限是否完整
+- 平台回调或网络是否可达
+- `nextclaw channels status` 是否显示异常
+
+## 5. 自动化没有触发
+
+检查：
+
+- job 是否启用
+- 时间表达是否符合预期
+- 服务是否在计划触发时运行
+- 任务是否绑定了错误的会话
+
+## 常用诊断命令
+
+```bash
+nextclaw status --verbose
+nextclaw doctor --verbose
+nextclaw service autostart doctor
+nextclaw remote doctor
+```
+
+## 仍然无法定位
+
+带着下面信息再反馈问题：
+
+- NextClaw 版本
+- 操作系统
+- 安装方式
+- `nextclaw status` 输出
+- `nextclaw doctor` 输出
+- 复现步骤

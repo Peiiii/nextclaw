@@ -1,46 +1,26 @@
-# Skills Tutorial (Install + Use)
+# Skills Tutorial
 
-This page is the simple ordinary-user path:
+Skills add task-specific rules or working styles to the AI. Use them after basic chat already works.
 
-**install a skill in the UI, then use it in chat.**
+## When to use a skill
 
-## 1) Install a skill from Marketplace
+- you want a type of task to follow a fixed format
+- you want the AI to load extra instructions for a specific scenario
+- you want to reuse a working method instead of prompting from scratch every time
 
-1. Open NextClaw
-2. Go to `Marketplace -> Skills`
-3. Search for the skill you want
-4. Click `Install`
+## Basic flow
 
-For ordinary users, this is the main thing to remember:
+1. Complete a normal conversation first.
+2. Install or enable one skill.
+3. Select it for the relevant task.
+4. Compare the output before and after enabling it.
 
-- skills are installed from `Marketplace -> Skills`
-- after install, go back to chat and use them there
-- you do not need to learn command-line setup first
+## Note
 
-## 2) Enable the skill in chat
-
-1. Open the chat page
-2. Click `Skills` under the input box
-3. Select the skill you just installed
-4. Send your request
-
-Examples:
-
-- if it is a writing skill, send the writing task directly
-- if it is a Hermes-related skill, ask it to help connect or check Hermes
-
-## 3) Verify it is applied
-
-- the reply should clearly reflect that skill's capability or constraints
-- unselect the same skill and ask a similar question again; the result should be observably different
-
-## 4) Ordinary-user recommendation
-
-- install one skill first instead of many
-- run it once in chat before adding more
-- if a skill looks too technical, skip it and choose one whose summary matches your task more directly
+Skills are not required for first setup.  
+Confirm models and sessions work before adding skills.
 
 ## Related docs
 
-- [Chat Capabilities](/en/guide/chat)
-- [Tutorial Hub](/en/guide/tutorials)
+- [Chat & Sessions](/en/guide/chat)
+- [Command Index](/en/guide/commands)

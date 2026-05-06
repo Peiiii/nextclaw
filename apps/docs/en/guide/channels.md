@@ -1,55 +1,42 @@
-# Channels
+# Connect Channels
 
-This page is organized for a "connect first, optimize later" path.
+Channels let you use NextClaw from the messaging surfaces you already use, not only from the local UI.
 
-## One-Line Definition
+For the first channel, choose one place you actually open every day. Do not connect many channels at once.
 
-A channel connects the same NextClaw assistant to different message entry points (for example Telegram, Discord, Slack).
+## Before connecting a channel
 
-## Minimal First Success
+You should already have:
 
-1. Pick one channel in the UI (start with the one you use most).
-2. Fill in only required credentials (for example token / appId / appSecret).
-3. Save and run one real send/receive test.
-4. After it works, add allowlist and group policies.
+- completed the [Quickstart](/en/guide/getting-started)
+- one working model provider
+- `nextclaw status` showing the service is running
 
-## Common Safety Field: `allowFrom`
+## Connection flow
 
-- Empty `allowFrom` (`[]`): allow all senders.
-- Non-empty `allowFrom`: only listed user IDs are accepted.
+1. Choose the channel type in the UI or configuration.
+2. Add the required account, token, or login details.
+3. Save the configuration.
+4. Run `nextclaw channels status`.
+5. Send one test message from the target channel.
 
-Recommendation: set `allowFrom` for higher-risk channels before production use.
+## Which channel should I choose?
 
-## What You Need Per Channel (First Step)
+Start with the place where you already work:
 
-### Discord
+- team collaboration: Slack, Feishu, enterprise chat
+- personal messaging: Telegram, Discord
+- custom or experimental flows: webhook, MCP, or another extension entry
 
-- Bot token
-- Enable `MESSAGE CONTENT INTENT`
-- Basic read/send message permissions for the bot
+## Common failure points
 
-### Telegram
+- token is wrong or expired
+- the platform permissions are incomplete
+- the local machine cannot reach the platform
+- the service is not staying online
 
-- Bot token from BotFather
-- Your user ID (if using allowlist)
+## Related docs
 
-### Slack
-
-- Bot token
-- App-Level token with `connections:write`
-
-### Feishu (Lark)
-
-- `appId` / `appSecret` from a Feishu Open Platform app
-
-### WhatsApp (whatsapp-web.js)
-
-- QR scan on first login
-
-## Advanced Config (Optional)
-
-For batch management or versioned config, maintain channel settings under `channels` in `~/.nextclaw/config.json`.
-
-Full parameter references:
-- [Configuration](/en/guide/configuration)
-- [Commands](/en/guide/commands)
+- [Feishu Setup](/en/guide/tutorials/feishu)
+- [Secrets Management](/en/guide/secrets)
+- [Troubleshooting](/en/guide/troubleshooting)

@@ -6,34 +6,27 @@
 
 ## Final Decision
 
-经过第一性原理收敛，公开文档站最终不再按“我们有什么内容”组织，而按“用户此刻想解决什么问题”组织。
+经过第一性原理收敛，并参考 Docker 文档的成熟分层，公开文档站最终不再按“我们有什么功能”组织，而按“用户处在什么使用阶段、需要哪种文档形态”组织。
 
-最终公开站骨架收敛为 `5 个主模块 + 2 个尾部层`：
+最终公开站骨架收敛为 `Get Started / Guides / Manuals / Reference / Project`：
 
 ```text
-主模块
-1. 为什么用 NextClaw
-2. 快速开始
-3. 连接你的世界
-4. 让它持续为你工作
-5. 出问题怎么办
-
-尾部层
-6. 查询参考
-7. 项目信息
+1. Get Started / 开始
+2. Guides / 指南
+3. Manuals / 手册
+4. Reference / 参考
+5. Project / 项目
 ```
 
-这 7 层的含义是：
+这 5 层的含义是：
 
-- `为什么用 NextClaw`：先回答价值，不先回答机制
-- `快速开始`：只负责最短跑通路径
-- `连接你的世界`：接 provider、模型、渠道、工具、skills
-- `让它持续为你工作`：承接 chat、session、cron、后台运行、自启动、Docker、远程访问
-- `出问题怎么办`：承接排错、诊断、恢复
-- `查询参考`：完整命令索引、核心命令、进阶配置，默认降级为旁路层
-- `项目信息`：Project Pulse、Vision、Roadmap、Release Notes、Community，默认不进入用户主路径前排
+- `Get Started / 开始`：最短跑通路径，以及第一个有用工作流
+- `Guides / 指南`：按任务带用户完成 provider、渠道、自动化、远程访问、Docker 等具体目标
+- `Manuals / 手册`：解释配置、运行、会话、密钥和资源等稳定能力的正式说明
+- `Reference / 参考`：排错、核心命令、完整命令索引和进阶配置
+- `Project / 项目`：Project Pulse、Vision、Roadmap、Release Notes、Community，默认不进入用户主路径前排
 
-这份 final decision 优先于本文档中更早出现的中间态模块命名讨论。后文如果仍出现更细的旧命名，应以这里的 5+2 终版骨架为准。
+这份 final decision 优先于本文档中更早出现的中间态模块命名讨论。后文如果仍出现更细的旧命名，应以这里的 Docker-style 终版骨架为准。
 
 ---
 

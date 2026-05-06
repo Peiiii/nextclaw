@@ -1,80 +1,49 @@
-# Model Selection Guide
+# Set Up Providers
 
-This page gives copy-paste model strings for NextClaw and explains the exact format.
+A provider tells NextClaw which model service to call. For the first setup, do not try to design the perfect stack. Choose the path most likely to work quickly.
 
-Last verified: **February 28, 2026**.
+## Recommended order
 
-## Copy-Paste First (Frontier Picks)
+1. If you want the fastest path, start with [Pick a Provider Path](/en/guide/tutorials/provider-options).
+2. If you already have an API key, configure that provider.
+3. If you want a local model, use [Local Ollama + Qwen3](/en/guide/tutorials/local-ollama-qwen3).
 
-These are selected from official provider docs and OpenRouter's live model catalog on **2026-02-28**.
+## Minimum setup
 
-```text
-# OpenRouter frontier routes (recommended when you use multi-provider)
-openrouter/openai/gpt-5.3-codex
-openrouter/anthropic/claude-opus-4.6
-openrouter/google/gemini-3.1-pro-preview
-openrouter/deepseek/deepseek-v3.2
-openrouter/qwen/qwen3.5-397b-a17b
-openrouter/z-ai/glm-5
-openrouter/minimax/minimax-m2.5
-openrouter/moonshotai/kimi-k2.5
+- provider name
+- API base or platform entry point
+- authentication method
+- default model
 
-# Direct provider routes (stable/common)
-openai/gpt-5.1
-openai/gpt-5-pro
-anthropic/claude-opus-4-1
-anthropic/claude-sonnet-4
-gemini/gemini-2.5-pro
-deepseek/deepseek-chat
-deepseek/deepseek-reasoner
-dashscope/qwen-max-latest
-zai/glm-5
-minimax/MiniMax-M2.5
-groq/openai/gpt-oss-120b
+After saving, return to the UI and send one real message.
+
+## When to add multiple models
+
+Do not start by configuring every model you can find. Multiple models make sense when:
+
+- one model is for fast drafts
+- one model is for harder reasoning
+- one model is local or offline
+- different sessions need different bindings
+
+## Common issue
+
+### The model is configured but no reply arrives
+
+Run:
+
+```bash
+nextclaw doctor
 ```
 
-## Format Rules
+Then check:
 
-1. Multi-provider setup: prefer explicit routes like `openrouter/...`, `deepseek/...`, `dashscope/...`.
-2. Single-provider setup: provider-native model id usually works.
-3. Model ids are case-sensitive; always copy from official docs or `/v1/models`.
+- whether the API key is valid
+- whether the model name exists for that provider
+- whether the default model was saved
 
-## OpenRouter Rule (Exact)
+## Related docs
 
-Use this format in NextClaw:
-
-- `openrouter/<upstream-provider>/<model-id>`
-
-Examples:
-
-- `openrouter/openai/gpt-5.3-codex`
-- `openrouter/anthropic/claude-opus-4.6`
-- `openrouter/deepseek/deepseek-v3.2`
-
-## Why Some IDs Differ Between Direct Provider and OpenRouter
-
-OpenRouter's latest ids can appear earlier than provider direct docs aliases.
-So keep two habits:
-
-- If you route through OpenRouter, copy from OpenRouter model catalog.
-- If you route directly to a provider, copy from that provider's official model docs.
-
-## Official Sources
-
-- OpenRouter models: https://openrouter.ai/models
-- OpenRouter models API: `GET https://openrouter.ai/api/v1/models`
-- OpenAI models: https://platform.openai.com/docs/models
-- Anthropic models: https://docs.anthropic.com/en/docs/about-claude/models/all-models
-- Google Gemini models: https://ai.google.dev/gemini-api/docs/models
-- Google Gemini release notes: https://ai.google.dev/gemini-api/docs/release-notes
-- DeepSeek reasoning model guide: https://api-docs.deepseek.com/guides/reasoning_model
-- DashScope model list: https://www.alibabacloud.com/help/en/model-studio/getting-started/models
-- MiniMax model list: https://www.minimax.io/platform/document/ChatCompletion_v2
-- Zhipu model overview: https://docs.bigmodel.cn/cn/guide/models/model-overview
-- Groq models: https://console.groq.com/docs/models
-
-## Troubleshooting
-
-- `404 model not found`: verify spelling/case first.
-- Routed to wrong provider: switch to explicit route (for example `deepseek/...` or `openrouter/...`).
-- Works in provider console but fails in NextClaw: re-check API key/base URL in **Providers** page for the intended provider.
+- [Configuration Manual](/en/guide/configuration)
+- [Secrets Management](/en/guide/secrets)
+- [Troubleshooting](/en/guide/troubleshooting)

@@ -1,26 +1,17 @@
-# Quick Start
+# Quickstart
 
-## 0. Prerequisites (Read First)
+This page has one job: help you prove that NextClaw can run, open, and return one useful reply.
 
-NextClaw requires Node.js and npm.
+## 1. Prepare Node.js
 
-1. Install Node.js (LTS recommended): [nodejs.org](https://nodejs.org/)
-2. After installation, open a terminal and run:
+The NPM install path requires Node.js and npm.
 
 ```bash
 node -v
 npm -v
 ```
 
-If you see versions (for example `v20.x` and `10.x`), your environment is ready.
-
-## 1. Open a Terminal
-
-- Windows:
-  - Press `Win + R`, type `cmd`, then press Enter;
-  - or open `PowerShell` from search.
-- macOS: Press `Command + Space`, type `Terminal`, then press Enter.
-- Linux: Usually `Ctrl + Alt + T`, or open `Terminal` from the app menu.
+If either command is missing, install the Node.js LTS release and reopen your terminal.
 
 ## 2. Install NextClaw
 
@@ -28,69 +19,52 @@ If you see versions (for example `v20.x` and `10.x`), your environment is ready.
 npm i -g nextclaw
 ```
 
-If you are installing the Linux desktop app on Debian / Ubuntu instead of the CLI, use:
+This installs the CLI. It does not automatically register a login or boot-time autostart entry.
 
-- [Linux Desktop Install (.deb + APT)](/en/guide/tutorials/linux-desktop-deb-apt)
-
-## 3. Start the Service
-
-Start the gateway + config UI in the background:
+## 3. Start the service
 
 ```bash
 nextclaw start
 ```
 
-## 4. Open the UI and Complete First-Time Setup
+Then open:
 
-Open **http://127.0.0.1:55667** in your browser, then:
+```text
+http://127.0.0.1:55667
+```
 
-1. Add a provider (such as Qwen Portal / MiniMax / OpenRouter / OpenAI)
-   - If you are unsure which path to choose after install, follow: [First Step After Install: Choose Provider Path (Qwen Portal or API Key)](/en/guide/tutorials/provider-options)
-   - If your goal is `Claude Code / Codex / Hermes`, go here directly: [Claude Code / Codex / Hermes Integrations](/en/guide/tutorials/claude-codex-hermes)
-2. Select a default model
-3. Save and send your first message
+## 4. Finish the minimum setup
 
-## 5. Useful Verification and Stop Commands
+In the UI, do three things:
+
+1. Add one model provider.
+2. Select a default model.
+3. Save the configuration.
+
+If you are not sure which provider path to choose, start with [Pick a Provider Path](/en/guide/tutorials/provider-options).
+
+## 5. Send the first message
+
+Use a real request, for example:
+
+```text
+Turn the three things I need to do today into a short checklist.
+```
+
+If you get a normal reply, the minimum setup is complete.
+
+## Useful checks
 
 ```bash
-nextclaw --version
 nextclaw status
+nextclaw doctor
 nextclaw stop
 ```
 
-## 6. Common Issues
+For the complete command surface, see [Command Index](/en/guide/commands).
 
-### `npm` / `node` command not found
+## Next step
 
-Node.js is not installed correctly, or the terminal session was not restarted. Reinstall Node.js and reopen the terminal.
-
-### `EACCES` on macOS/Linux (global npm install permission)
-
-Try reinstalling Node.js using the official installer first. If it persists, follow npm official docs to configure a user-level global directory.
-
-### `http://127.0.0.1:55667` cannot be opened
-
-1. Run `nextclaw status` to confirm the service is running.
-2. If it is not running, start it:
-
-```bash
-nextclaw start
-```
-
-3. If it still does not open, restart:
-
-```bash
-nextclaw stop
-nextclaw start
-```
-
-## What's Next?
-
-- [What To Do After Setup](/en/guide/after-setup) — First actions after configuration
-- [Core Commands](/en/guide/core-commands) — The small set of commands most users actually need
-- [Runtime & Hosting](/en/guide/runtime-hosting) — When to use background runtime, autostart, Docker, or remote access
-- [Resource Hub](/en/guide/resources) — OpenClaw ecosystem projects and curated lists
-- [Configuration](/en/guide/configuration) — Set up providers, models, and workspace
-- [Secrets Management](/en/guide/secrets) — Keep keys out of config and rotate safely
-- [Channels](/en/guide/channels) — Connect to Discord, Telegram, Slack, and more
-- [Command Index](/en/guide/commands) — Full CLI lookup reference
+- [First Useful Workflow](/en/guide/after-setup)
+- [Set Up Providers](/en/guide/model-selection)
+- [Background & Autostart](/en/guide/background-autostart)

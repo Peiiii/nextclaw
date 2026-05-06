@@ -3,29 +3,29 @@ layout: home
 
 hero:
   name: NextClaw
-  text: 让 AI 真正替你连接和调度数字世界
-  tagline: 先跑通一个真实任务，再把它接进你的模型、渠道、工具和长期工作流。
+  text: 个人 AI 操作层文档
+  tagline: 从一次可用回复开始，把模型、渠道、自动化和本机能力逐步接成你的个人工作入口。
   actions:
     - theme: brand
       text: 快速开始
       link: /zh/guide/getting-started
     - theme: alt
-      text: 连接你的世界
-      link: /zh/guide/configuration
+      text: 第一个有用工作流
+      link: /zh/guide/after-setup
     - theme: alt
-      text: 让它持续为你工作
-      link: /zh/guide/runtime-hosting
+      text: 指南
+      link: /zh/guide/tutorials
     - theme: alt
-      text: GitHub
-      link: https://github.com/Peiiii/nextclaw
+      text: 参考
+      link: /zh/guide/commands
 
 features:
-  - title: 为什么用 NextClaw
-    details: 它不是另一个聊天壳，而是把模型、渠道、工具、服务和宿主机器收拢成你的统一入口。
-  - title: 快速开始
-    details: 一条命令启动，主要配置在浏览器里完成，目标不是学会系统，而是 10 分钟内看到真实价值。
-  - title: 连接你的世界
-    details: Provider、模型、渠道、工具和 Skills 都应该按你的任务接入，而不是先背一套实现细节。
-  - title: 让它持续为你工作
-    details: 当它开始有价值，再进入 Cron、后台运行、自启动、Docker 和远程访问这条长期路径。
+  - title: 开始
+    details: 先完成安装、启动、打开界面和第一条可用回复。这里不要求你先理解全部配置和命令。
+  - title: 指南
+    details: 按任务推进：选模型提供方、接聊天入口、做自动化、远程访问、Docker 部署。
+  - title: 手册
+    details: 当你已经在用，需要理解配置、运行方式、会话、密钥和资源边界时，从这里查正式说明。
+  - title: 参考
+    details: 出问题、查命令、看高级配置时使用。参考层存在，但不抢新用户主路径。
 ---

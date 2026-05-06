@@ -1,51 +1,35 @@
 # Secrets Management
 
-## Why Use Secrets
+Secrets management stores API keys, tokens, and other sensitive values. The goal is to avoid scattered plaintext and make rotation and diagnostics easier.
 
-If keys are stored directly in config, common leak paths are:
+## What belongs in secrets
 
-- screenshots
-- shared config files
-- accidental commits
+- model provider API keys
+- channel tokens
+- platform credentials
+- sensitive values reused across configuration
 
-Secrets keep references in config while real values stay in external secure sources.
+## Basic rules
 
-## Where Real Values Can Live
+- Do not put secrets in public docs, chat history, or screenshots.
+- A secret should serve only the capability it needs to serve.
+- When a secret is revoked, the impact should be understandable.
+- Use diagnostics to check whether references still resolve.
 
-- `env`: operating system environment variables
-- `file`: external JSON file
-- `exec`: command output (commonly used with secret systems)
+## Useful checks
 
-`config.json` keeps only:
+```bash
+nextclaw secrets audit
+nextclaw doctor
+```
 
-- `secrets.providers`
-- `secrets.defaults`
-- `secrets.refs`
+## Relationship with configuration
 
-## Beginner Path (UI First)
+Configuration says which secret to use.  
+Secrets management says where the secret comes from and how it resolves.
 
-1. Open `/secrets` in the Web UI.
-2. Enable `enabled`.
-3. Configure one default provider (usually `env` first).
-4. Convert sensitive paths like `providers.<name>.apiKey` to `refs`.
-5. Save and run a connection test to confirm behavior.
+## Related docs
 
-## Typical Benefits
-
-- Safe team templates without exposing real keys.
-- Easier multi-environment switching.
-- Simpler key rotation by updating secret sources only.
-
-## Is the Old Style Still Valid?
-
-Yes. Direct `providers.<name>.apiKey` still works.
-
-Recommended usage:
-
-- quick local experiments: direct key is acceptable
-- team/shared/long-running environments: use secrets refs
-
-## Advanced Entry (Optional)
-
-For automated/batch secret operations, use `nextclaw secrets` subcommands.
-See full options in [Commands](/en/guide/commands).
+- [Configuration Manual](/en/guide/configuration)
+- [Set Up Providers](/en/guide/model-selection)
+- [Command Index](/en/guide/commands)

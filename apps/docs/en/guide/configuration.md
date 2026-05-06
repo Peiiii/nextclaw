@@ -1,55 +1,54 @@
-# Configuration
+# Configuration Manual
 
-This page is beginner-first: you do not need to edit config files to get started.
+This manual explains the configuration surfaces in NextClaw. It is not the first page for new users; if you have not run NextClaw yet, start with [Quickstart](/en/guide/getting-started).
 
-## 1. Start and open the UI
+## Configuration areas
+
+### Model providers
+
+Providers decide which model service NextClaw calls. This includes provider identity, API base, authentication, and default model.
+
+Related guides:
+
+- [Set Up Providers](/en/guide/model-selection)
+- [Pick a Provider Path](/en/guide/tutorials/provider-options)
+
+### Channels
+
+Channels decide where users enter NextClaw, such as the local UI, a messaging platform, or another entry point.
+
+Related guide:
+
+- [Connect Channels](/en/guide/channels)
+
+### Secrets
+
+Secrets store API keys, tokens, and other sensitive values. Keep them managed centrally instead of scattering them through plain text docs or chat history.
+
+Related manual:
+
+- [Secrets Management](/en/guide/secrets)
+
+### Automations
+
+Automations decide which tasks can run on a schedule and whether they should bind to session context.
+
+Related guide:
+
+- [Run Automations](/en/guide/cron)
+
+## Check configuration changes
 
 ```bash
-nextclaw start
+nextclaw status
+nextclaw doctor
 ```
 
-Open `http://127.0.0.1:55667`.
+If a change does not take effect, see [Troubleshooting](/en/guide/troubleshooting).
 
-## 2. Add one provider
+## When to use commands for configuration
 
-Go to `Providers` and add one provider with a key you already have (OpenRouter or OpenAI is a good first choice).
+Most users should prefer the UI.  
+Use `nextclaw config` when you need scripting, remote maintenance, or exact path-level edits.
 
-Start with one provider only. Expand later.
-
-## 3. Choose a default model
-
-Go to `Models`, pick a default model, and save.
-
-Need help choosing ids? See [Model Selection](/en/guide/model-selection).
-
-## 4. Test connection and send first message
-
-Use the UI test button, then send your first message once the test passes.
-
-## 5. Add channels when ready
-
-After local UI flow works, connect Discord/Telegram/Slack and others:
-
-- [Channels](/en/guide/channels)
-- [Tutorials](/en/guide/tutorials)
-
-## How to read connection test failures
-
-When UI shows "Connection test failed", check `status / method / endpoint / body` first:
-
-- `404` + `POST /api/config/providers/<provider>/test`: local runtime is outdated; upgrade and retry.
-- `401` / `403`: usually invalid/expired `apiKey` or wrong `extraHeaders`.
-- `429`: provider rate limit; retry later or switch model/provider.
-- `5xx`: upstream service error; retry and check gateway logs.
-- `Non-JSON response`: body is not standard JSON; inspect returned body snippet.
-
-## Advanced entry
-
-If you need config files, secret refs, workspace templates, context budgets, or multi-agent setup:
-
-- [Advanced Configuration](/en/guide/advanced)
-
-## What to do next
-
-- [What To Do After Setup](/en/guide/after-setup)
-- [Resource Hub](/en/guide/resources)
+For all commands, see [Command Index](/en/guide/commands).

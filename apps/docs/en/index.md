@@ -3,29 +3,29 @@ layout: home
 
 hero:
   name: NextClaw
-  text: Let AI actually connect and operate your digital world
-  tagline: Start by completing one real task, then connect models, channels, tools, and long-running workflows around it.
+  text: Personal AI Operating Layer Docs
+  tagline: Start with one useful reply, then connect models, channels, automations, and your own machine into a personal work entry point.
   actions:
     - theme: brand
-      text: Get Started
+      text: Quickstart
       link: /en/guide/getting-started
     - theme: alt
-      text: Connect Your World
-      link: /en/guide/configuration
+      text: First Useful Workflow
+      link: /en/guide/after-setup
     - theme: alt
-      text: Let It Work For You
-      link: /en/guide/runtime-hosting
+      text: Guides
+      link: /en/guide/tutorials
     - theme: alt
-      text: View on GitHub
-      link: https://github.com/Peiiii/nextclaw
+      text: Reference
+      link: /en/guide/commands
 
 features:
-  - title: Why NextClaw
-    details: It is not just another chat shell. It is a unified entry point for models, channels, tools, services, and your host machine.
-  - title: Quick Start
-    details: Start with one command, finish setup in the browser, and reach a real task before learning deeper system details.
-  - title: Connect Your World
-    details: Bring in providers, models, channels, tools, and skills by task, not by forcing users through internal mechanics first.
-  - title: Let It Work For You
-    details: Once it becomes useful, move into cron, background runtime, autostart, Docker, and remote access for long-term use.
+  - title: Get Started
+    details: Install, start, open the UI, and get one useful reply before learning every setting or command.
+  - title: Guides
+    details: Follow task-based paths for providers, chat channels, automations, remote access, and Docker deployment.
+  - title: Manuals
+    details: Use the manuals when you need the formal explanation of configuration, runtime, sessions, secrets, and resources.
+  - title: Reference
+    details: Use this layer for troubleshooting, command lookup, and advanced configuration. It exists, but it is not the onboarding path.
 ---

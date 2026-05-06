@@ -1,80 +1,49 @@
-# 模型选型指南
+# 配置模型提供方
 
-本页给你“可直接复制”的模型串，并说明 NextClaw 里的正确格式。
+模型提供方决定 NextClaw 调用哪个模型来回复你。第一次配置时，不要追求一步到位，先选一条最容易跑通的路径。
 
-最后校验时间：**2026 年 2 月 28 日**。
+## 推荐选择顺序
 
-## 先复制可用的（前沿优先）
+1. 如果你想最快体验，先看 [先选接入方式](/zh/guide/tutorials/provider-options)。
+2. 如果你有现成 API Key，配置对应 provider。
+3. 如果你想本地运行模型，看 [本地 Ollama + Qwen3](/zh/guide/tutorials/local-ollama-qwen3)。
 
-以下模型基于 **2026-02-28** 的官方文档 + OpenRouter 实时模型目录整理。
+## 最小配置要完成什么
 
-```text
-# OpenRouter 前沿路由（多 provider 场景优先推荐）
-openrouter/openai/gpt-5.3-codex
-openrouter/anthropic/claude-opus-4.6
-openrouter/google/gemini-3.1-pro-preview
-openrouter/deepseek/deepseek-v3.2
-openrouter/qwen/qwen3.5-397b-a17b
-openrouter/z-ai/glm-5
-openrouter/minimax/minimax-m2.5
-openrouter/moonshotai/kimi-k2.5
+- provider 名称
+- API base 或平台入口
+- 认证方式
+- 默认模型
 
-# 直连 provider 路由（稳定/常用）
-openai/gpt-5.1
-openai/gpt-5-pro
-anthropic/claude-opus-4-1
-anthropic/claude-sonnet-4
-gemini/gemini-2.5-pro
-deepseek/deepseek-chat
-deepseek/deepseek-reasoner
-dashscope/qwen-max-latest
-zai/glm-5
-minimax/MiniMax-M2.5
-groq/openai/gpt-oss-120b
-```
+保存后回到 UI，发一条真实消息验证。
 
-## 格式规则
+## 什么时候需要多模型
 
-1. 多 provider 同时配置时，优先写显式路由：`openrouter/...`、`deepseek/...`、`dashscope/...`。
-2. 单 provider 场景下，通常可直接用该 provider 的模型 id。
-3. 模型 id 区分大小写，务必从官方文档或 `/v1/models` 复制。
+先不要一开始就配置很多模型。多模型适合这些场景：
 
-## OpenRouter 规则（精确格式）
-
-在 NextClaw 中请使用：
-
-- `openrouter/<上游-provider>/<模型-id>`
-
-示例：
-
-- `openrouter/openai/gpt-5.3-codex`
-- `openrouter/anthropic/claude-opus-4.6`
-- `openrouter/deepseek/deepseek-v3.2`
-
-## 为什么“直连 provider”和“OpenRouter”模型名会不同
-
-同一时期，OpenRouter 的新模型 id 往往会比某些 provider 直连文档 alias 更早可用。
-因此建议：
-
-- 走 OpenRouter：从 OpenRouter 模型目录复制。
-- 直连 provider：从该 provider 官方模型文档复制。
-
-## 官方来源
-
-- OpenRouter 模型目录：https://openrouter.ai/models
-- OpenRouter 模型 API：`GET https://openrouter.ai/api/v1/models`
-- OpenAI 模型：https://platform.openai.com/docs/models
-- Anthropic 模型：https://docs.anthropic.com/en/docs/about-claude/models/all-models
-- Google Gemini 模型：https://ai.google.dev/gemini-api/docs/models
-- Google Gemini 更新日志：https://ai.google.dev/gemini-api/docs/release-notes
-- DeepSeek 推理模型指南：https://api-docs.deepseek.com/guides/reasoning_model
-- DashScope 模型列表：https://www.alibabacloud.com/help/en/model-studio/getting-started/models
-- MiniMax 模型列表：https://www.minimax.io/platform/document/ChatCompletion_v2
-- 智谱模型总览：https://docs.bigmodel.cn/cn/guide/models/model-overview
-- Groq 模型列表：https://console.groq.com/docs/models
+- 一个模型用于快速草稿
+- 一个模型用于复杂推理
+- 一个模型用于本地或离线场景
+- 不同会话绑定不同模型
 
 ## 常见问题
 
-- `404 model not found`：先检查拼写和大小写。
-- 路由到错误 provider：改用显式路由（如 `deepseek/...` 或 `openrouter/...`）。
-- 在 provider 控制台可用但 NextClaw 不可用：检查 **Providers** 页该 provider 的 API Key / API Base。
+### 配完之后没有回复
+
+先运行：
+
+```bash
+nextclaw doctor
+```
+
+再确认：
+
+- API Key 是否有效
+- 模型名称是否在该 provider 下存在
+- 默认模型是否已经保存
+
+## 相关文档
+
+- [配置手册](/zh/guide/configuration)
+- [密钥管理](/zh/guide/secrets)
+- [故障排查](/zh/guide/troubleshooting)

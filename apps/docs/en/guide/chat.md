@@ -1,24 +1,29 @@
-# Chat Capabilities
+# Chat & Sessions
 
-This page focuses on what you can use immediately, without requiring CLI-first setup.
+Chat is the interaction surface between you and NextClaw. A session keeps context so multi-step work does not need to be re-explained every turn.
 
-## What You Can Do
+## Concepts users need
 
-- Multi-turn context: each session keeps context across turns.
-- Model switching: choose a model per session to balance speed and quality.
-- Skill injection: select installed `skills` before sending to guide this turn.
-- Tool calling: chat can invoke enabled tools (for example search, web fetch, task execution).
-- Channel consistency: the same core chat behavior works in UI and connected channels.
-- Session operations: search, inspect history, clear, delete, and rename sessions.
+- Chat: one or more message turns.
+- Session: the work unit that holds context, model binding, and history.
+- Model binding: a session can use a specific model.
+- Automation session: a scheduled job can continue an existing session or use its own context.
 
-## Beginner Path
+## First use
 
-1. Start one UI session and run 3-5 continuous turns.
-2. Switch one model and compare speed/quality.
-3. Add one skill and compare answers for the same prompt.
+1. Open or create a session in the UI.
+2. Ask for a real task.
+3. Continue for two or three turns to confirm context is preserved.
+4. If the task should continue over time, consider automation or channels.
 
-## Related Docs
+## When to use multiple sessions
 
-- Skills onboarding: [Skills Tutorial](/en/guide/tutorials/skills)
-- Session operations: [Session Management](/en/guide/sessions)
-- Advanced command reference: [Commands](/en/guide/commands)
+- keep different projects separate
+- separate different model strategies
+- keep temporary testing away from long-running work
+
+## Related docs
+
+- [First Useful Workflow](/en/guide/after-setup)
+- [Run Automations](/en/guide/cron)
+- [Multi-Agent Routing](/en/guide/multi-agent)

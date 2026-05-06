@@ -1,55 +1,54 @@
-# 配置
+# 配置手册
 
-默认按“新手路径”来：你不需要先改配置文件，直接在 UI 里完成即可。
+配置手册解释 NextClaw 的配置面。它不是新手第一步；如果你还没跑通，先看 [快速开始](/zh/guide/getting-started)。
 
-## 1. 启动并打开 UI
+## 配置分成几类
+
+### 模型提供方
+
+决定 NextClaw 调用哪个模型服务。包括 provider、API base、认证方式、默认模型。
+
+相关指南：
+
+- [配置模型提供方](/zh/guide/model-selection)
+- [先选接入方式](/zh/guide/tutorials/provider-options)
+
+### 渠道
+
+决定用户从哪里进入 NextClaw，例如本地 UI、聊天平台或其他入口。
+
+相关指南：
+
+- [接入聊天入口](/zh/guide/channels)
+
+### 密钥
+
+保存 API Key、token 和其他敏感信息。密钥应该集中管理，避免直接散落在普通文档和聊天记录里。
+
+相关手册：
+
+- [密钥管理](/zh/guide/secrets)
+
+### 自动化
+
+决定哪些任务可以按计划触发，以及是否需要绑定会话上下文。
+
+相关指南：
+
+- [运行自动化](/zh/guide/cron)
+
+## 配置修改后如何确认
 
 ```bash
-nextclaw start
+nextclaw status
+nextclaw doctor
 ```
 
-浏览器访问 `http://127.0.0.1:55667`。
+如果配置未生效，先看 [故障排查](/zh/guide/troubleshooting)。
 
-## 2. 添加 Provider
+## 什么时候用命令改配置
 
-进入 `Providers`，先添加一个你已有 Key 的提供商（推荐先用 OpenRouter 或 OpenAI）。
+普通用户优先使用 UI。  
+当你需要脚本化、远程维护或精确修改配置路径时，再使用 `nextclaw config`。
 
-建议先只配 1 个 Provider，跑通后再扩展。
-
-## 3. 选择默认模型
-
-进入 `Models`，选择默认模型并保存。
-
-如需挑模型，参考：[模型选型](/zh/guide/model-selection)。
-
-## 4. 测试连接并发第一条消息
-
-在 UI 中点击连接测试，确认通过后直接发第一条消息。
-
-## 5. 需要时再接入渠道
-
-当本地 UI 跑通后，再去接 Discord/Telegram/Slack 等渠道：
-
-- [渠道](/zh/guide/channels)
-- [教程](/zh/guide/tutorials)
-
-## 测试连接失败怎么判断
-
-当 UI 提示“连接测试失败”时，优先看 `status / method / endpoint / body`：
-
-- `404` + `POST /api/config/providers/<provider>/test`：本地运行版本过旧，先升级再试。
-- `401` / `403`：通常是 `apiKey` 错误、过期，或 `extraHeaders` 配置不正确。
-- `429`：提供商限流，稍后重试或换模型/提供商。
-- `5xx`：上游服务异常，先重试并看网关日志。
-- `Non-JSON response`：返回不是标准 JSON，重点看 body 片段。
-
-## 进阶用户入口
-
-如果你需要配置文件、Secrets refs、工作区模板、上下文预算、多 Agent 等高级能力，见：
-
-- [进阶配置](/zh/guide/advanced)
-
-## 配置完成后的下一步
-
-- [配置后做什么](/zh/guide/after-setup)
-- [生态资源](/zh/guide/resources)
+完整命令见 [命令索引](/zh/guide/commands)。

@@ -1,28 +1,21 @@
 # Resource Hub
 
-This page keeps skill repositories only (no project main repositories).
+The resource hub collects nearby entry points around NextClaw. It is not the quickstart and not the formal reference.
 
-Notes:
+## When to use it
 
-- Scope: skills repos, skills awesome lists, and skills/usecase aggregations
-- Star counts are from GitHub API, checked on **2026-03-05**
+- you have already run NextClaw and want more scenarios
+- you want reusable ideas from the OpenClaw ecosystem
+- you want more tutorials, project updates, or community entry points
 
-## Official Skill Repositories
+## Recommended entries
 
-- Anthropic Skills: https://github.com/anthropics/skills
-  - Note: official Anthropic agent skills repository (~84,500 stars)
-- Vercel Agent Skills: https://github.com/vercel-labs/agent-skills
-  - Note: official Vercel agent skills collection (~22,110 stars)
-- OpenAI Skills: https://github.com/openai/skills
-  - Note: OpenAI Codex Skills Catalog (~10,835 stars)
+- [Guides Overview](/en/guide/tutorials)
+- [Project Overview](/en/project/)
+- [Release Notes](/en/project/release-notes)
+- [Community](/en/project/community)
 
-## Top-Starred Agent Skills Collections
+## Usage principle
 
-- awesome-claude-skills: https://github.com/ComposioHQ/awesome-claude-skills
-  - Note: highest-starred agent skills collection in current query (~40,944 stars)
-- antigravity-awesome-skills: https://github.com/sickn33/antigravity-awesome-skills
-  - Note: large cross-tool agent skills collection (~20,185 stars)
-
-## Note
-
-OpenClaw docs and OpenClaw repository links are intentionally removed for now and can be added manually later.
+Run the quickstart and first useful workflow from this documentation first.  
+Then use external resources and deeper tutorials based on the scenario you actually need.

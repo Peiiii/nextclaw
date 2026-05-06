@@ -1,44 +1,46 @@
-# Automation with Cron
+# Run Automations
 
-This page explains how to make your assistant run tasks automatically.
+Automations let NextClaw act on a schedule, not only when you send a message.
 
-## Cron: Trigger Tasks on Schedule
+For the first automation, start with a low-risk reminder. Do not begin with a high-impact task.
 
-You can create:
+## Good first automation tasks
 
-- one-time tasks (run once at a specific time)
-- recurring tasks (daily/weekly pattern)
+- remind you to choose the most important task each morning
+- draft a daily status update
+- summarize a project on a schedule
+- continue a session at a later time
 
-Typical uses:
+## Recommended first step
 
-- daily summary draft
-- scheduled reminders
-- periodic checks and reports
+Create a simple reminder:
 
-Restart behavior for recurring interval jobs:
+```text
+Every weekday at 9:30, remind me to choose the most important task for the day.
+```
 
-- On restart or hot reload, existing interval jobs do not replay missed runs from downtime.
-- After service recovery, the next trigger stays aligned with the existing interval cadence instead of restarting the timer from the recovery moment.
-- If the service is already running, including foreground `nextclaw serve` or `pnpm -C packages/nextclaw dev serve`, `nextclaw cron add / enable / disable / remove / run` now applies through the live service API immediately instead of waiting for local file watcher reloads.
+After that triggers correctly, add more complex jobs.
 
-## Recommended Order (UI First)
+## Automations and sessions
 
-1. Create one one-time task and verify the full path.
-2. Add one recurring task (for example once per day).
-3. Add advanced rules only after baseline is stable.
+If a job should continue existing context, bind it to a session.  
+If it should be independent, let it use its own automation session.
 
-## Session-Bound Follow-Up
+## Command entry points
 
-If you want automation to continue an existing conversation, create the cron job with a target session id.
-That keeps the follow-up in the same investigation thread instead of creating a separate special mechanism.
+Common operations include:
 
-Typical pattern:
+```bash
+nextclaw cron list
+nextclaw cron add
+nextclaw cron run <jobId>
+nextclaw cron disable <jobId>
+```
 
-- use `every` for periodic checks
-- pass `sessionId` when the automation should continue a live investigation
-- omit `sessionId` when the automation should use its own dedicated background session
+For all options, see [Command Index](/en/guide/commands).
 
-## Advanced Entry (Optional)
+## Related docs
 
-For script-based task management, use `nextclaw cron` subcommands.
-See details in [Commands](/en/guide/commands).
+- [First Useful Workflow](/en/guide/after-setup)
+- [Chat & Sessions](/en/guide/chat)
+- [Runtime & Hosting](/en/guide/runtime-hosting)

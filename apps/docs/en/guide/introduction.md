@@ -1,54 +1,30 @@
-# Why NextClaw
+# What is NextClaw?
 
-NextClaw is not trying to be one more chat window. It is trying to bring the models, channels, tools, websites, and host capabilities you already rely on into one working entry point.
+NextClaw is a personal AI operating layer that runs on your own machine. It is not just a chat window. It brings models, channels, automations, and host-machine capabilities into one entry point.
 
-It runs on your own machine. You can configure it in the browser first, then decide whether it should expand into messaging channels, automation, remote access, and long-running hosting paths.
+You can start small: install the CLI, start the service, open the browser UI, configure one model provider, and get one useful reply. After that, you can connect chat channels, scheduled jobs, remote access, and long-running hosting.
 
-## Where the value actually comes from
+## What problem does it solve?
 
-- you start from the goal, not from "which app should I open?"
-- models, channels, tools, and your host machine can become one execution path
-- you can begin with one real task instead of learning the whole system first
-- once it becomes useful, it can grow into a longer-lived personal operating layer
+- You do not want to switch between multiple models, tools, and messaging surfaces for every task.
+- You want AI to do more than answer text; you want it to keep working through channels, jobs, and local capabilities.
+- You want to prove it on your own machine first, then decide whether to keep it running, expose it remotely, or connect more capabilities.
 
-## What you get first
+## What it is not
 
-- a local AI control surface that actually runs on your machine
-- a browser-based setup path for providers and default models
-- a working foundation that can later expand into channels, tools, and scheduled automation
-- a natural path from "just get it running" to "keep it available"
+- It is not an SDK-only documentation set.
+- It is not a tool that requires learning the entire command surface before first use.
+- It is not a feature dump where every capability competes for the first page.
 
-## The best place to start
+## Where to start
 
-If your first question is whether this is worth using at all, go here next:
+If you are new, read in this order:
 
-- [Quick Start](/en/guide/getting-started)
-- [Connect Your World](/en/guide/configuration)
-- [Let It Work For You](/en/guide/runtime-hosting)
+1. [Quickstart](/en/guide/getting-started)
+2. [First Useful Workflow](/en/guide/after-setup)
+3. [Guides Overview](/en/guide/tutorials)
 
-## Get one real task working first
+If you already know what you need to look up, go straight to:
 
-Do not start with the full command surface or the deeper architecture. The first goal is simpler: get it running and finish one real task.
-
-```bash
-npm i -g nextclaw
-nextclaw start
-```
-
-Open `http://127.0.0.1:55667` in your browser.
-
-## Suggested reading order
-
-1. [Quick Start](/en/guide/getting-started)
-2. [What To Do After Setup](/en/guide/after-setup)
-3. [Configuration](/en/guide/configuration)
-4. [Channels](/en/guide/channels)
-5. [Runtime & Hosting](/en/guide/runtime-hosting)
-6. [Troubleshooting](/en/guide/troubleshooting)
-
-## If you want the deeper details
-
-The full command surface and advanced configuration still exist, but they are not the first step:
-
+- [Configuration Manual](/en/guide/configuration)
 - [Command Index](/en/guide/commands)
-- [Advanced Configuration](/en/guide/advanced)

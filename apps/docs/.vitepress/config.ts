@@ -80,53 +80,40 @@ const routeSyncScript = `
 
 const enSidebar = [
   {
-    text: 'Why NextClaw',
+    text: 'Get Started',
     items: [
-      { text: 'Introduction', link: '/en/guide/introduction' }
+      { text: 'What is NextClaw?', link: '/en/guide/introduction' },
+      { text: 'Quickstart', link: '/en/guide/getting-started' },
+      { text: 'First Useful Workflow', link: '/en/guide/after-setup' }
     ]
   },
   {
-    text: 'Quick Start',
+    text: 'Guides',
     items: [
-      { text: 'Quick Start', link: '/en/guide/getting-started' },
-      { text: 'What To Do After Setup', link: '/en/guide/after-setup' },
-      { text: 'Linux Desktop Install (.deb + APT)', link: '/en/guide/tutorials/linux-desktop-deb-apt' }
-    ]
-  },
-  {
-    text: 'Connect Your World',
-    items: [
-      { text: 'Configuration', link: '/en/guide/configuration' },
-      { text: 'Model Selection', link: '/en/guide/model-selection' },
-      { text: 'Channels', link: '/en/guide/channels' },
-      { text: 'Secrets Management', link: '/en/guide/secrets' },
-      { text: 'Tools', link: '/en/guide/tools' },
       { text: 'Pick a Provider Path', link: '/en/guide/tutorials/provider-options' },
-      { text: 'Skills Tutorial', link: '/en/guide/tutorials/skills' },
-      { text: 'Resource Hub', link: '/en/guide/resources' }
-    ]
-  },
-  {
-    text: 'Let It Work For You',
-    items: [
-      { text: 'Chat Capabilities', link: '/en/guide/chat' },
-      { text: 'Session Management', link: '/en/guide/sessions' },
-      { text: 'Cron & Heartbeat', link: '/en/guide/cron' },
-      { text: 'Runtime & Hosting', link: '/en/guide/runtime-hosting' },
+      { text: 'Set Up Providers', link: '/en/guide/model-selection' },
+      { text: 'Connect Channels', link: '/en/guide/channels' },
+      { text: 'Run Automations', link: '/en/guide/cron' },
       { text: 'Background & Autostart', link: '/en/guide/background-autostart' },
       { text: 'Remote Access', link: '/en/guide/remote-access' },
-      { text: 'Docker One-Click Deployment', link: '/en/guide/tutorials/docker-one-click' }
+      { text: 'Docker Deployment', link: '/en/guide/tutorials/docker-one-click' },
+      { text: 'Common Scenarios', link: '/en/guide/tutorials' }
     ]
   },
   {
-    text: 'When Something Breaks',
+    text: 'Manuals',
     items: [
-      { text: 'Troubleshooting', link: '/en/guide/troubleshooting' }
+      { text: 'Configuration', link: '/en/guide/configuration' },
+      { text: 'Runtime & Hosting', link: '/en/guide/runtime-hosting' },
+      { text: 'Chat & Sessions', link: '/en/guide/chat' },
+      { text: 'Secrets Management', link: '/en/guide/secrets' },
+      { text: 'Resource Hub', link: '/en/guide/resources' }
     ]
   },
   {
     text: 'Reference',
     items: [
+      { text: 'Troubleshooting', link: '/en/guide/troubleshooting' },
       { text: 'Core Commands', link: '/en/guide/core-commands' },
       { text: 'Command Index', link: '/en/guide/commands' },
       { text: 'Advanced Configuration', link: '/en/guide/advanced' },
@@ -175,53 +162,40 @@ const enBlogSidebar = [
 
 const zhSidebar = [
   {
-    text: '为什么用 NextClaw',
+    text: '开始',
     items: [
-      { text: '介绍', link: '/zh/guide/introduction' }
+      { text: 'NextClaw 是什么', link: '/zh/guide/introduction' },
+      { text: '快速开始', link: '/zh/guide/getting-started' },
+      { text: '第一个有用工作流', link: '/zh/guide/after-setup' }
     ]
   },
   {
-    text: '快速开始',
+    text: '指南',
     items: [
-      { text: '上手', link: '/zh/guide/getting-started' },
-      { text: '配置后做什么', link: '/zh/guide/after-setup' },
-      { text: 'Linux 桌面安装（.deb + APT）', link: '/zh/guide/tutorials/linux-desktop-deb-apt' }
+      { text: '先选接入方式', link: '/zh/guide/tutorials/provider-options' },
+      { text: '配置模型提供方', link: '/zh/guide/model-selection' },
+      { text: '接入聊天入口', link: '/zh/guide/channels' },
+      { text: '运行自动化', link: '/zh/guide/cron' },
+      { text: '后台运行与自启动', link: '/zh/guide/background-autostart' },
+      { text: '远程访问', link: '/zh/guide/remote-access' },
+      { text: 'Docker 部署', link: '/zh/guide/tutorials/docker-one-click' },
+      { text: '常见场景', link: '/zh/guide/tutorials' }
     ]
   },
   {
-    text: '连接你的世界',
+    text: '手册',
     items: [
       { text: '配置', link: '/zh/guide/configuration' },
-      { text: '模型选型', link: '/zh/guide/model-selection' },
-      { text: '渠道', link: '/zh/guide/channels' },
+      { text: '运行与托管', link: '/zh/guide/runtime-hosting' },
+      { text: '对话与会话', link: '/zh/guide/chat' },
       { text: '密钥管理', link: '/zh/guide/secrets' },
-      { text: '工具', link: '/zh/guide/tools' },
-      { text: '先选接入方式', link: '/zh/guide/tutorials/provider-options' },
-      { text: 'Skills 教程', link: '/zh/guide/tutorials/skills' },
       { text: '生态资源', link: '/zh/guide/resources' }
     ]
   },
   {
-    text: '让它持续为你工作',
+    text: '参考',
     items: [
-      { text: '对话能力', link: '/zh/guide/chat' },
-      { text: '会话管理', link: '/zh/guide/sessions' },
-      { text: 'Cron 与 Heartbeat', link: '/zh/guide/cron' },
-      { text: '运行与托管总览', link: '/zh/guide/runtime-hosting' },
-      { text: '后台运行与自启动', link: '/zh/guide/background-autostart' },
-      { text: '远程访问', link: '/zh/guide/remote-access' },
-      { text: 'Docker 一键部署教程', link: '/zh/guide/tutorials/docker-one-click' }
-    ]
-  },
-  {
-    text: '出问题怎么办',
-    items: [
-      { text: '故障排查', link: '/zh/guide/troubleshooting' }
-    ]
-  },
-  {
-    text: '查询参考',
-    items: [
+      { text: '故障排查', link: '/zh/guide/troubleshooting' },
       { text: '核心命令', link: '/zh/guide/core-commands' },
       { text: '命令索引', link: '/zh/guide/commands' },
       { text: '进阶配置', link: '/zh/guide/advanced' },
@@ -296,11 +270,9 @@ export default defineConfig({
       description: 'Effortlessly Simple Personal AI Assistant — Documentation',
       themeConfig: {
         nav: [
-          { text: 'Why NextClaw', link: '/en/guide/introduction' },
-          { text: 'Quick Start', link: '/en/guide/getting-started' },
-          { text: 'Connect Your World', link: '/en/guide/configuration' },
-          { text: 'Let It Work For You', link: '/en/guide/runtime-hosting' },
-          { text: 'When Something Breaks', link: '/en/guide/troubleshooting' },
+          { text: 'Get Started', link: '/en/guide/getting-started' },
+          { text: 'Guides', link: '/en/guide/tutorials' },
+          { text: 'Manuals', link: '/en/guide/configuration' },
           { text: 'Reference', link: '/en/guide/commands' },
           { text: 'Project', link: '/en/project/' },
         ],
@@ -325,12 +297,10 @@ export default defineConfig({
       description: '轻量、易用、兼容 OpenClaw 的个人 AI 助手文档',
       themeConfig: {
         nav: [
-          { text: '为什么用 NextClaw', link: '/zh/guide/introduction' },
-          { text: '快速开始', link: '/zh/guide/getting-started' },
-          { text: '连接你的世界', link: '/zh/guide/configuration' },
-          { text: '让它持续为你工作', link: '/zh/guide/runtime-hosting' },
-          { text: '出问题怎么办', link: '/zh/guide/troubleshooting' },
-          { text: '查询参考', link: '/zh/guide/commands' },
+          { text: '开始', link: '/zh/guide/getting-started' },
+          { text: '指南', link: '/zh/guide/tutorials' },
+          { text: '手册', link: '/zh/guide/configuration' },
+          { text: '参考', link: '/zh/guide/commands' },
           { text: '项目', link: '/zh/project/' },
         ],
         sidebar: {

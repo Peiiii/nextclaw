@@ -1,89 +1,36 @@
 # Advanced Configuration
 
-Who this is for: users who already completed the beginner flow and need deeper customization.
+Advanced configuration is for users who already have NextClaw running and know what they need to change.
 
-## Config file and data directory
+If you have not received the first useful reply yet, start with [Quickstart](/en/guide/getting-started).
 
-- Default config file: `~/.nextclaw/config.json`
-- Default data directory: `~/.nextclaw`
-- Override with `NEXTCLAW_HOME=/path/to/dir`
+## What belongs here
 
-Minimal example:
+- workspace templates
+- exact configuration paths
+- multiple models or session bindings
+- advanced runtime parameters
+- local debugging and scripted maintenance
 
-```json
-{
-  "providers": {
-    "openrouter": { "apiKey": "sk-or-v1-xxx" }
-  },
-  "agents": {
-    "defaults": { "model": "minimax/MiniMax-M2.5" }
-  }
-}
-```
+## What should not start here
 
-## Secret refs (OpenClaw-style)
+Do not use advanced configuration for first install.  
+Do not change many settings at once just to be "complete."  
+Do not write secrets directly into ordinary config files.
 
-Supports `env` / `file` / `exec`. Recommended pattern is mapping sensitive paths via `secrets.refs`.
+## Recommended order
 
-```json
-{
-  "providers": {
-    "openai": { "apiKey": "" }
-  },
-  "secrets": {
-    "providers": {
-      "env-main": { "source": "env" }
-    },
-    "refs": {
-      "providers.openai.apiKey": {
-        "source": "env",
-        "provider": "env-main",
-        "id": "OPENAI_API_KEY"
-      }
-    }
-  }
-}
-```
+1. Finish the basic setup in the UI.
+2. Confirm health with `nextclaw doctor`.
+3. Edit exact configuration paths only when needed.
+4. Change one direction at a time and verify the result.
 
-## Runtime hot-reload scope
-
-When gateway is running, changes from UI or `nextclaw config set` hot-apply for:
-
-- `providers.*`
-- `channels.*`
-- `agents.defaults.model`
-- `agents.defaults.maxToolIterations`
-- `agents.defaults.contextTokens`
-- `agents.context.*`
-- `tools.*`
-- `plugins.*`
-
-Still requires restart: UI bind port (`--port` / `--ui-port`).
-
-## Context budget
-
-- `agents.defaults.contextTokens`: model input budget (default `200000`)
-- When over budget, tool outputs are trimmed first, then older history.
-
-## Workspace templates
-
-Initialize workspace:
+## Command entry points
 
 ```bash
-nextclaw init
+nextclaw config get <path>
+nextclaw config set <path> <value>
+nextclaw config unset <path>
 ```
 
-Common files: `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `memory/MEMORY.md`, and `skills/`.
-
-## Multi-agent note (still evolving)
-
-Multi-agent routing is still being refined. Enable it only when you clearly need identity/workflow isolation.
-
-- Reference: [Multi-Agent Routing](/en/guide/multi-agent)
-
-## Related docs
-
-- [Core Commands](/en/guide/core-commands)
-- [Command Index](/en/guide/commands)
-- [Runtime & Hosting](/en/guide/runtime-hosting)
-- [Troubleshooting](/en/guide/troubleshooting)
+For all commands, see [Command Index](/en/guide/commands).
