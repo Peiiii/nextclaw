@@ -1,0 +1,21 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "codex-access-mode.ts",
+    "codex-model-provider.ts",
+    "codex-openai-responses-bridge-assistant-output.utils.ts",
+    "codex-openai-responses-bridge-message-content.utils.ts",
+    "codex-openai-responses-bridge-request.utils.ts",
+    "codex-openai-responses-bridge-shared.utils.ts",
+    "codex-openai-responses-bridge-stream.utils.ts",
+    "codex-openai-responses-bridge.utils.ts",
+    "codex-responses-capability.utils.ts",
+    "codex-runtime-plugin-types.ts",
+    "codex-session-type.ts",
+    "index.ts"
+  ]
+}

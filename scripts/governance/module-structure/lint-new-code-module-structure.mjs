@@ -13,12 +13,14 @@ import {
 } from "../lint-new-code-governance-support.mjs";
 import {
   findModuleStructureContract,
+  findWorkspaceRootForPath,
   getModuleRootEntryPath,
   isProtocolContract,
   normalizePath,
   SHARED_CONTAINER_DIRECTORY_NAMES,
   splitModuleRelativePath,
-  toModuleRelativePath
+  toModuleRelativePath,
+  workspaceHasModuleStructureConfig
 } from "./module-structure-contracts.mjs";
 import {
   evaluateProtocolImportBoundaryFindings,
@@ -184,8 +186,23 @@ export const collectModuleStructureViolations = (changedFiles, addedLinesByFile,
   const comparisonRef = options.baseRef ?? "HEAD";
   const pathExistsInRef = createPathExistsInRef();
   const violations = [];
+  const reportedMissingWorkspaceRoots = new Set();
 
   for (const filePath of changedFiles.map((entry) => normalizePath(entry))) {
+    const workspaceRoot = findWorkspaceRootForPath(filePath);
+    if (workspaceRoot && !workspaceHasModuleStructureConfig(workspaceRoot)) {
+      if (!reportedMissingWorkspaceRoots.has(workspaceRoot)) {
+        violations.push(buildFinding(
+          filePath,
+          "error",
+          `workspace root '${workspaceRoot}' is missing '${"module-structure.config.json"}'; every app/package workspace must declare an explicit module-structure contract`,
+          `workspace=${workspaceRoot} rule=missing-module-structure-config`
+        ));
+        reportedMissingWorkspaceRoots.add(workspaceRoot);
+      }
+      continue;
+    }
+
     let contract;
     try {
       contract = findModuleStructureContract(filePath);

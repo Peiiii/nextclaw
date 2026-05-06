@@ -1,0 +1,21 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "accounts.test.ts",
+    "accounts.ts",
+    "config-schema.ts",
+    "content-converter-rich-text.ts",
+    "content-converter-types.ts",
+    "content-converter-utils.ts",
+    "content-converter.test.ts",
+    "content-converter.ts",
+    "index.ts",
+    "lark-client.test.ts",
+    "lark-client.ts",
+    "probe.ts"
+  ]
+}

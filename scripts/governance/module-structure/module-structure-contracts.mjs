@@ -13,6 +13,7 @@ const toNormalizedSet = (values) => new Set((values ?? []).map(normalizePath).fi
 const repoRootDir = resolveRepoPath(import.meta.url);
 
 export const MODULE_STRUCTURE_CONFIG_FILE_NAME = "module-structure.config.json";
+const WORKSPACE_ROOT_PARENT_NAMES = new Set(["apps", "packages", "workers"]);
 
 const isStringArray = (value) => Array.isArray(value) && value.every((item) => typeof item === "string");
 
@@ -149,10 +150,32 @@ const CLI_COMMAND_FIRST_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
+const SOURCE_ROOT_OPEN_PROTOCOL = {
+  protocolName: "source-root-open",
+  organizationModel: "protocol-source-root-open",
+  governedRoot: "src",
+  allowedRootDirectories: [],
+  allowedRootFiles: [],
+  sharedDirectories: [],
+  importAliasPrefixes: []
+};
+
+const ELECTRON_SHELL_L1_PROTOCOL = {
+  protocolName: "electron-shell-l1",
+  organizationModel: "protocol-electron-shell-l1",
+  governedRoot: "src",
+  allowedRootDirectories: ["launcher", "preload", "configs", "services", "stores", "types", "utils"],
+  allowedRootFiles: ["index.ts", "main.ts", "preload.ts"],
+  sharedDirectories: [],
+  importAliasPrefixes: []
+};
+
 export const MODULE_STRUCTURE_PROTOCOLS = new Map([
   [PACKAGE_L1_PROTOCOL.protocolName, PACKAGE_L1_PROTOCOL],
   [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL],
-  [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL]
+  [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL],
+  [SOURCE_ROOT_OPEN_PROTOCOL.protocolName, SOURCE_ROOT_OPEN_PROTOCOL],
+  [ELECTRON_SHELL_L1_PROTOCOL.protocolName, ELECTRON_SHELL_L1_PROTOCOL]
 ]);
 
 const defineProtocolDeclaration = (declaration) => {
@@ -167,7 +190,10 @@ const defineProtocolDeclaration = (declaration) => {
     protocol: declaration.protocol,
     organizationModel: protocol.organizationModel,
     rootPolicy: declaration.rootPolicy ?? "legacy-frozen",
-    allowedRootDirectories: toNormalizedSet(protocol.allowedRootDirectories),
+    allowedRootDirectories: toNormalizedSet([
+      ...(protocol.allowedRootDirectories ?? []),
+      ...(declaration.allowedRootDirectories ?? [])
+    ]),
     allowedRootFiles: new Set([
       ...(protocol.allowedRootFiles ?? []),
       ...(declaration.allowedRootFiles ?? [])
@@ -229,6 +255,37 @@ const findNearestModuleStructureConfigPath = (filePath) => {
   }
 };
 
+export const findWorkspaceRootForPath = (filePath) => {
+  const normalized = normalizePath(filePath);
+  if (!normalized) {
+    return null;
+  }
+
+  let currentDirectory = getModuleLookupStartDirectory(normalized);
+  while (currentDirectory) {
+    const packageJsonCandidate = path.posix.join(currentDirectory, "package.json");
+    if (existsSync(path.resolve(repoRootDir, packageJsonCandidate))) {
+      const topLevelDirectory = currentDirectory.split("/")[0];
+      return WORKSPACE_ROOT_PARENT_NAMES.has(topLevelDirectory) ? currentDirectory : null;
+    }
+    const parentDirectory = normalizePath(path.posix.dirname(currentDirectory));
+    if (!parentDirectory || parentDirectory === currentDirectory || parentDirectory === ".") {
+      return null;
+    }
+    currentDirectory = parentDirectory;
+  }
+
+  return null;
+};
+
+export const workspaceHasModuleStructureConfig = (workspaceRoot) => {
+  const normalizedRoot = normalizePath(workspaceRoot);
+  if (!normalizedRoot) {
+    return false;
+  }
+  return existsSync(path.resolve(repoRootDir, path.posix.join(normalizedRoot, MODULE_STRUCTURE_CONFIG_FILE_NAME)));
+};
+
 const buildContractFromConfigFile = (configRepoPath) => {
   const cached = contractCache.get(configRepoPath);
   if (cached) {
@@ -256,6 +313,7 @@ const buildContractFromConfigFile = (configRepoPath) => {
       protocol: config.protocol,
       rootPolicy: config.rootPolicy,
       enforcement: config.enforcement,
+      allowedRootDirectories: normalizeStringArrayField(config.allowedRootDirectories, "allowedRootDirectories", configRepoPath),
       allowedRootFiles: normalizeStringArrayField(config.allowedRootFiles, "allowedRootFiles", configRepoPath),
       sharedDirectories: normalizeStringArrayField(config.sharedDirectories, "sharedDirectories", configRepoPath),
       importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath)

@@ -1,0 +1,24 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "anthropic-openai-bridge-payload.ts",
+    "anthropic-openai-bridge-stream.ts",
+    "anthropic-openai-bridge.ts",
+    "claude-code-capability-probe.ts",
+    "claude-code-execution-probe.ts",
+    "claude-code-process-resolution.ts",
+    "claude-code-query-runtime.ts",
+    "claude-code-runtime-utils.ts",
+    "claude-code-sdk-types.ts",
+    "claude-sdk-event-mapper-shared.ts",
+    "claude-sdk-event-mapper-snapshots.ts",
+    "claude-sdk-event-mapper-stream.ts",
+    "claude-sdk-ncp-event-mapper.ts",
+    "completed-assistant-message.utils.ts",
+    "index.ts"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-apps-docs-workspace-root",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    ".vitepress",
+    "en",
+    "public",
+    "zh"
+  ],
+  "allowedRootFiles": [
+    "index.md",
+    "package.json"
+  ],
+  "sharedDirectories": []
+}

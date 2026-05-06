@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
 import { findModuleStructureContract, isProtocolContract } from "./module-structure-contracts.mjs";
 import {
+  collectModuleStructureViolations,
   evaluateModuleStructureFindings,
   evaluateProtocolImportBoundaryFindings
 } from "./lint-new-code-module-structure.mjs";
@@ -22,6 +23,26 @@ const withTemporaryModuleFixture = (fixtureName, config, run) => {
   } finally {
     rmSync(absoluteFixtureRoot, { recursive: true, force: true });
   }
+};
+
+const listWorkspaceRoots = () => {
+  const repoRoot = process.cwd();
+  const collectImmediateWorkspaceRoots = (relativeDirectory) => {
+    const absoluteDirectory = path.join(repoRoot, relativeDirectory);
+    return readdirSync(absoluteDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => path.posix.join(relativeDirectory, entry.name))
+      .filter((workspaceRoot) => readdirSync(path.join(repoRoot, workspaceRoot)).includes("package.json"));
+  };
+
+  return [
+    ...collectImmediateWorkspaceRoots("apps"),
+    ...collectImmediateWorkspaceRoots("apps/ncp-demo"),
+    ...collectImmediateWorkspaceRoots("packages"),
+    ...collectImmediateWorkspaceRoots("packages/extensions"),
+    ...collectImmediateWorkspaceRoots("packages/ncp-packages"),
+    ...collectImmediateWorkspaceRoots("workers")
+  ].sort();
 };
 
 test("finds the protocol declaration for nextclaw-ui package root config", () => {
@@ -44,6 +65,38 @@ test("finds the protocol declaration for nextclaw cli package root config", () =
   assert.equal(contract?.modulePath, "packages/nextclaw/src/cli");
   assert.equal(contract?.protocol, "cli-command-first");
   assert.equal(isProtocolContract(contract), true);
+});
+
+test("finds the protocol declaration for companion electron shell config", () => {
+  const contract = findModuleStructureContract("apps/companion/src/services/companion-runtime-client.service.ts");
+  assert.equal(contract?.modulePath, "apps/companion/src");
+  assert.equal(contract?.protocol, "electron-shell-l1");
+  assert.equal(isProtocolContract(contract), true);
+});
+
+test("finds the protocol declaration for desktop electron shell config", () => {
+  const contract = findModuleStructureContract("apps/desktop/src/services/desktop-runtime-control.service.ts");
+  assert.equal(contract?.modulePath, "apps/desktop/src");
+  assert.equal(contract?.protocol, "electron-shell-l1");
+  assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootFiles.has("runtime-config.ts"), true);
+  assert.equal(contract?.allowedRootFiles.has("runtime-service.ts"), true);
+});
+
+test("finds the protocol declaration for source-root-open configs", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-server/src/index.ts");
+  assert.equal(contract?.modulePath, "packages/nextclaw-server/src");
+  assert.equal(contract?.protocol, "source-root-open");
+  assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootDirectories.has("ui"), true);
+  assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
+});
+
+test("every workspace root declares module-structure config", () => {
+  const missing = listWorkspaceRoots()
+    .filter((workspaceRoot) => !findModuleStructureContract(`${workspaceRoot}/module-structure.config.json`));
+
+  assert.deepEqual(missing, []);
 });
 
 test("rejects legacy configs that reuse protocol organizationModel names", () => {
@@ -128,6 +181,40 @@ test("allows package-l1 root index files as package boundary entries", () => {
   });
 
   assert.equal(findings.length, 0);
+});
+
+test("allows electron shell launcher entry directories", () => {
+  const contract = findModuleStructureContract("apps/companion/src/launcher/index.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "apps/companion/src/launcher/index.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 0);
+});
+
+test("blocks touched workspaces that are missing module-structure config", () => {
+  const repoFixtureRoot = path.join("apps", ".tmp-test-workspaces", "missing-workspace-config");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/missing-workspace-config\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "src/index.ts"), "export const example = true;\n");
+
+  try {
+    const findings = collectModuleStructureViolations([
+      `${repoFixtureRoot}/src/index.ts`
+    ], new Map(), {});
+
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].level, "error");
+    assert.match(findings[0].message, /missing 'module-structure\.config\.json'/);
+    assert.match(findings[0].reason, /rule=missing-module-structure-config/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
 });
 
 test("blocks nested directories under flat role dirs at package root", () => {

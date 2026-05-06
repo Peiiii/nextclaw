@@ -1,0 +1,18 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "cli.ts",
+    "hermes-http-adapter-config.utils.ts",
+    "hermes-http-adapter-message.utils.ts",
+    "hermes-http-adapter-session-store.service.ts",
+    "hermes-http-adapter.service.test.ts",
+    "hermes-http-adapter.service.ts",
+    "hermes-http-adapter.types.ts",
+    "hermes-openai-stream-parser.utils.ts",
+    "index.ts"
+  ]
+}

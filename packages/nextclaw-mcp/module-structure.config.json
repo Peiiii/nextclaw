@@ -1,0 +1,20 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "client",
+    "config",
+    "doctor",
+    "install",
+    "lifecycle",
+    "manage",
+    "registry",
+    "view"
+  ],
+  "allowedRootFiles": [
+    "index.ts",
+    "types.ts"
+  ]
+}

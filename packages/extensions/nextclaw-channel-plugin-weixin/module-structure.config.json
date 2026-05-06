@@ -1,0 +1,21 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "media",
+    "tests"
+  ],
+  "allowedRootFiles": [
+    "index.ts",
+    "weixin-account.store.ts",
+    "weixin-api.client.ts",
+    "weixin-channel.ts",
+    "weixin-chat.ts",
+    "weixin-config.ts",
+    "weixin-inbound-media.service.ts",
+    "weixin-login.service.ts",
+    "weixin-typing-controller.ts"
+  ]
+}

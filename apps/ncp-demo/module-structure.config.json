@@ -1,0 +1,16 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-apps-ncp-demo-workspace-root",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "backend",
+    "frontend",
+    "scripts"
+  ],
+  "allowedRootFiles": [
+    "eslint.config.mjs",
+    "package.json"
+  ],
+  "sharedDirectories": []
+}

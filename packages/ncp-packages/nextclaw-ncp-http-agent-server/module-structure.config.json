@@ -1,0 +1,21 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "async-queue.ts",
+    "controller.ts",
+    "handler-interface.ts",
+    "index.test.ts",
+    "index.ts",
+    "parsers.ts",
+    "router.ts",
+    "scope.ts",
+    "sse-stream.ts",
+    "stream-handlers.ts",
+    "types.ts",
+    "utils.ts"
+  ]
+}

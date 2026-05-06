@@ -1,0 +1,13 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "attachments",
+    "hooks"
+  ],
+  "allowedRootFiles": [
+    "index.ts"
+  ]
+}

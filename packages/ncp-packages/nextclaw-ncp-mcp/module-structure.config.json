@@ -1,0 +1,13 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "index.ts",
+    "mcp-ncp-tool-registry-adapter.test.ts",
+    "mcp-ncp-tool-registry-adapter.ts",
+    "mcp-ncp-tool.ts"
+  ]
+}

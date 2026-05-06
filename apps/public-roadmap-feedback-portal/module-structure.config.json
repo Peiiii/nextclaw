@@ -1,0 +1,18 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "app",
+    "features",
+    "managers",
+    "services",
+    "shared",
+    "stores"
+  ],
+  "allowedRootFiles": [
+    "index.css",
+    "main.tsx"
+  ]
+}

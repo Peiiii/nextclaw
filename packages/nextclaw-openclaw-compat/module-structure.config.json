@@ -1,0 +1,14 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "plugin-sdk",
+    "plugins"
+  ],
+  "allowedRootFiles": [
+    "index.ts",
+    "package-manifest.test.ts"
+  ]
+}

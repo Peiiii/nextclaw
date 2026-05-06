@@ -1,0 +1,13 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "http-runtime-config.utils.ts",
+    "http-runtime.service.ts",
+    "http-runtime.test.ts",
+    "index.ts"
+  ]
+}

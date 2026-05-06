@@ -1,0 +1,10 @@
+{
+  "contractKind": "protocol",
+  "protocol": "electron-shell-l1",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootFiles": [
+    "runtime-config.ts",
+    "runtime-service.ts"
+  ]
+}

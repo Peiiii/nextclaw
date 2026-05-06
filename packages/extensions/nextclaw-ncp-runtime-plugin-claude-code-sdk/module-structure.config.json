@@ -1,0 +1,14 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [],
+  "allowedRootFiles": [
+    "claude-provider-routing.utils.ts",
+    "claude-route-probe.utils.ts",
+    "claude-runtime-context.utils.ts",
+    "claude-runtime-shared.utils.ts",
+    "index.ts"
+  ]
+}

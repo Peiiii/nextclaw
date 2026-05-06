@@ -1,0 +1,20 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "hermes-acp-route-bridge",
+    "test-fixtures"
+  ],
+  "allowedRootFiles": [
+    "index.ts",
+    "stdio-runtime-abort.test.ts",
+    "stdio-runtime-config.utils.ts",
+    "stdio-runtime-error.utils.ts",
+    "stdio-runtime-probe.utils.ts",
+    "stdio-runtime-tool-name.utils.ts",
+    "stdio-runtime.service.ts",
+    "stdio-runtime.test.ts"
+  ]
+}

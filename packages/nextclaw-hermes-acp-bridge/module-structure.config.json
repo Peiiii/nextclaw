@@ -1,0 +1,14 @@
+{
+  "contractKind": "protocol",
+  "protocol": "source-root-open",
+  "rootPolicy": "contract-only",
+  "enforcement": "error",
+  "allowedRootDirectories": [
+    "hermes-acp-route-bridge"
+  ],
+  "allowedRootFiles": [
+    "hermes-acp-route-bridge.test.ts",
+    "hermes-acp-route-bridge.utils.ts",
+    "index.ts"
+  ]
+}
