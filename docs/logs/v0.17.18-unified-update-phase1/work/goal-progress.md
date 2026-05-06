@@ -34,11 +34,13 @@
 - 已发布 `nextclaw@0.18.12-beta.4` 到 npm `beta` dist-tag，并 deprecated `0.18.12-beta.3`。
 - 已重新发布 NPM runtime beta channel；workflow `25435357020` 成功，`gh-pages` 最新 commit 为 `95d29a83`。
 - 已完成真实已发布安装物 API 闭环验收：全新安装 `nextclaw@beta` 得到 `0.18.12-beta.4`；`GET /api/runtime/update` 启动即返回 `channel=beta`、`status=downloading`、连续 `progress`；下载完成后变为 `downloaded`；`POST /api/runtime/update/apply` 返回 `restart-required`；同一 `NEXTCLAW_HOME` 重启后 `currentVersion=0.18.12-beta.4`、`status=up-to-date`。
+- 已发布 stable recovery manifest：workflow `25436582081` 成功，`gh-pages` 最新 commit 为 `0e0288eb`。
+- 已确认旧 `nextclaw@0.18.12-beta.3` 自动恢复生效：原样走 stable channel 启动后，`/api/runtime/update` 直接返回 `availableVersion=0.18.12-beta.4`、`status=downloading`，随后自动到 `downloaded`；`POST /api/runtime/update/apply` 后同一安装体新进程版本为 `0.18.12-beta.4`。
 
 ## 当前下一步
 
-更新迭代留痕并提交/推送本次收尾文档。
+更新恢复发布留痕并提交/推送本次最终收尾文档。
 
 ## 锚点计数器
 
-18/20
+20/20

@@ -55,9 +55,11 @@
 ## 下一步
 
 1. 只更新本迭代留痕，不误带用户当前工作区里的其它在途改动。
-2. 提交并推送收尾文档。
+2. 提交并推送恢复发布与最终验证文档。
 
 ## 剩余缺口 / 交接提醒
 
 - 真实 npm beta 用户修复已落地到 `nextclaw@0.18.12-beta.4`，且新的 runtime beta channel 已发布完成。
 - 本次额外发现 GitHub Pages 缓存会让裸 `curl` 短时间看到旧 manifest；核对最新发布结果时需要加 cache-busting query，或直接核对 `gh-pages` 最新 commit 内容。
+- 旧 `beta.3` 的“默认 stable -> 404 -> failed”问题最终通过 stable recovery manifest 修复，不需要再尝试修改旧安装体代码本身。
+- recovery manifest 的边界是：`minimumLauncherVersion=0.18.12-beta.3`，因此只会命中坏掉的 `beta.3+` launcher，不会把 `0.18.11` 这类普通 stable 用户误拉到 beta runtime。

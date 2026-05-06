@@ -246,3 +246,22 @@ pnpm -C apps/desktop validation:dev-update
 - `POST /api/runtime/update/apply` 返回 `status=restart-required`、`currentVersion=0.18.12-beta.4`；旧服务进程随即退出。
 - 用同一 `NEXTCLAW_HOME` 重启 `serve` 后，再次查询 `/api/runtime/update` 得到 `currentVersion=0.18.12-beta.4`、`status=up-to-date`。这条链路直接证明“自动下载但手动应用生效”的真实已发布 beta 用户路径已经闭环。
 - 另外记录一个发布核对细节：GitHub Pages 存在短时缓存，裸 `curl` 可能暂时看到旧 manifest；验收时应使用 cache-busting query，或直接核对 `gh-pages` 最新 commit `95d29a83` 的 manifest 内容。
+
+同批次新增旧 `beta.3` 自动恢复验收（stable recovery manifest）：
+
+- 根因再确认：真实已发布 `nextclaw@0.18.12-beta.3` 原样启动后，`GET /api/runtime/update` 返回 `channel=stable`、`status=failed`、`errorMessage=runtime update manifest request failed with status 404`。
+- 修复策略不是改旧安装体，而是发布一个 recovery-only 的 stable manifest：`latestVersion=0.18.12-beta.4`，`minimumLauncherVersion=0.18.12-beta.3`。这样只有坏掉的 `beta.3+` launcher 会命中，`0.18.11` 等普通 stable 用户不会被拉到 beta runtime。
+- 为此补充 `.github/workflows/npm-runtime-update-release.yml` 的 `minimum_launcher_version_override` workflow_dispatch 输入，并在 build 步骤把 override 透传给 `packages/nextclaw/scripts/build-npm-runtime-update-channel.mjs`。
+- 恢复发布 workflow：`25436582081`，成功后 `gh-pages` 最新 commit 为 `0e0288ebd9b833c44b0e3fd04801fa37b8d42f06`。
+- `origin/gh-pages:npm-runtime-updates/stable/manifest-stable-darwin-arm64.json` 已确认包含：
+  - `latestVersion = 0.18.12-beta.4`
+  - `minimumLauncherVersion = 0.18.12-beta.3`
+  - `bundleUrl` 指向 `nextclaw@0.18.12-beta.4` release asset
+- 等待 GitHub Pages 从 `building` 变为 `built` 后，公开 stable manifest URL 变为 `200`。
+- 真实旧安装体验证：
+  - 使用原始已发布 `nextclaw@0.18.12-beta.3` 安装体，不改代码，只换新的空 `NEXTCLAW_HOME`。
+  - 启动 `serve` 后，`GET /api/runtime/update` 首次即返回 `channel=stable`、`availableVersion=0.18.12-beta.4`、`minimumHostVersion=0.18.12-beta.3`、`status=downloading`，并出现连续下载进度。
+  - 自动下载完成后状态变为 `downloaded`。
+  - `POST /api/runtime/update/apply` 返回 `status=restart-required`、`currentVersion=0.18.12-beta.4`。
+  - 同一安装体的新进程 `nextclaw --version` 输出 `0.18.12-beta.4`。
+- 这条验证证明：之前复现的旧 `beta.3` 真实故障场景，已经通过恢复发布被修复；旧版本不仅能升到高版本，而且现在会在原本失败的 stable 自动检查链路里直接恢复。
