@@ -30,7 +30,7 @@ jobs:
     env:
       NPM_RUNTIME_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
       NPM_RUNTIME_UPDATE_CHANNEL: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.channel || contains(github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name, 'npm-beta') && 'beta' || 'stable' }}
-      NPM_RUNTIME_UPDATE_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/npm-runtime-updates
+      NPM_RUNTIME_UPDATE_BASE_URL: https://github.com/${{ github.repository }}/releases/download/${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
     strategy:
       fail-fast: false
       matrix:
@@ -92,6 +92,8 @@ jobs:
     if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     needs: [build-npm-runtime-update]
     runs-on: ubuntu-latest
+    env:
+      NPM_RUNTIME_RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || github.event.inputs.release_tag || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -104,6 +106,34 @@ jobs:
           pattern: npm-runtime-update-*
           path: dist/npm-runtime-updates
           merge-multiple: true
+
+      - name: Ensure NPM runtime release exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$NPM_RUNTIME_RELEASE_TAG" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          gh release create "$NPM_RUNTIME_RELEASE_TAG" \
+            --title "$NPM_RUNTIME_RELEASE_TAG" \
+            --prerelease \
+            --notes "NPM runtime update assets for $NPM_RUNTIME_RELEASE_TAG."
+
+      - name: Upload NPM runtime bundle assets to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mapfile -t bundle_files < <(find dist/npm-runtime-updates -type f -name 'nextclaw-runtime-*.zip' | sort)
+          if [ "${#bundle_files[@]}" -eq 0 ]; then
+            echo "No NPM runtime bundle archives were downloaded."
+            exit 1
+          fi
+          gh release upload "$NPM_RUNTIME_RELEASE_TAG" "${bundle_files[@]}" --clobber
 
       - name: Prepare gh-pages worktree
         shell: bash
@@ -132,6 +162,7 @@ jobs:
 
           mkdir -p .tmp/gh-pages/npm-runtime-updates
           cp -R dist/npm-runtime-updates/. .tmp/gh-pages/npm-runtime-updates/
+          find .tmp/gh-pages/npm-runtime-updates -type f -name 'nextclaw-runtime-*.zip' -delete
           touch .tmp/gh-pages/.nojekyll
 
       - name: Publish NPM runtime update channel to gh-pages

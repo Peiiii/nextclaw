@@ -51,6 +51,11 @@ nextclaw update --apply
 nextclaw --version
 ```
 
+Runtime channel storage rule:
+- signed manifests and `update-bundle-public.pem` stay on `gh-pages`,
+- large `nextclaw-runtime-*.zip` bundle files are uploaded to GitHub Release assets for the matching release tag,
+- this avoids GitHub Pages / git push file-size limits while keeping the public manifest URL stable.
+
 Notes:
 - `release:version` and `release:publish` automatically run README sync/check.
 - `release:check:groups` now only gates the explicit release batch from pending changesets or freshly versioned packages.
