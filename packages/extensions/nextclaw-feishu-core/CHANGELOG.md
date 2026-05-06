@@ -1,5 +1,25 @@
 # @nextclaw/feishu-core
 
+## 0.2.7-beta.0
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/ncp
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
 ## 0.2.6
 
 ### Patch Changes

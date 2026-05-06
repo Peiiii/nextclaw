@@ -8,6 +8,12 @@
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
       ],
+      "@nextclaw/kernel": [
+        "../nextclaw-kernel/src/index.ts"
+      ],
+      "@nextclaw/kernel/update-contract": [
+        "../nextclaw-kernel/src/types/update-contract.types.ts"
+      ],
       "@nextclaw/server": [
         "../nextclaw-server/src/index.ts"
       ]

@@ -64,6 +64,7 @@
   - `curl http://127.0.0.1:18892/api/runtime/update` 返回 `404 Not Found`，确认开发态 runtime update host 已禁用，不再把未发布 manifest 误报为“更新异常”。
   - `curl http://127.0.0.1:18892/api/config` 返回的 provider keys / channels 与 `~/.nextclaw/config.json` 对齐，确认开发态读取的是同一套配置。
 - `pnpm release:check:groups`：最初失败，错误为 `apps/companion/package.json` 缺少标准 `prepublishOnly`；补齐后可继续进入统一 beta 发布预检。
+- `pnpm release:check`：首次失败，根因为 `@nextclaw/remote` 在消费 `@nextclaw/server` 的公开类型时，命中了 `@nextclaw/kernel/update-contract` 子路径，但 `packages/nextclaw-remote/tsconfig.json` 只把 `@nextclaw/server` 映到源码，没有同时映射 `@nextclaw/kernel` 与 `@nextclaw/kernel/update-contract`。这会让 release batch 在 `remote tsc` 阶段直接报 `TS2307`。本次修复是在 `packages/nextclaw-remote/tsconfig.json` 中补齐这两条 path contract，并同步保留 `package.json` 中对 `@nextclaw/kernel` 的 direct dependency。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths scripts/dev/dev-runner.mjs packages/nextclaw/src/cli/shared/services/ui/service-ui-hosts.service.ts packages/nextclaw/src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts README.md README.zh-CN.md`：通过，`Non-test line changes: +12 / -14 / net -2`，no maintainability findings。
 - `pnpm lint:new-code:governance`：通过。
 - `pnpm check:governance-backlog-ratchet`：未通过；当前仓库的 `docFileNameViolations` 为 `13`，高于 baseline `11`，属于既有治理基线差异，本次改动未新增 governed doc 文件。

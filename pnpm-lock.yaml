@@ -1416,6 +1416,9 @@ importers:
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../nextclaw-kernel
       '@nextclaw/server':
         specifier: workspace:*
         version: link:../nextclaw-server
@@ -1463,6 +1466,9 @@ importers:
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../nextclaw-kernel
       '@nextclaw/mcp':
         specifier: workspace:*
         version: link:../nextclaw-mcp

@@ -1,5 +1,11 @@
 # @nextclaw/channel-plugin-slack
 
+## 0.2.44-beta.0
+
+### Patch Changes
+
+- @nextclaw/channel-runtime@0.4.30-beta.0
+
 ## 0.2.43
 
 ### Patch Changes

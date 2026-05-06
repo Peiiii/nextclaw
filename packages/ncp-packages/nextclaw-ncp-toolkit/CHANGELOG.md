@@ -1,5 +1,28 @@
 # @nextclaw/ncp-toolkit
 
+## 0.5.11-beta.0
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/ncp
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/ncp@0.5.6-beta.0
+
 ## 0.5.10
 
 ### Patch Changes

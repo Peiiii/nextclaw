@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/remote",
-  "version": "0.1.89",
+  "version": "0.1.90-beta.0",
   "private": false,
   "description": "Remote access runtime for NextClaw device registration, relay bridging, and service-managed connectivity.",
   "type": "module",
@@ -36,6 +36,7 @@
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",
+    "@nextclaw/kernel": "workspace:*",
     "@nextclaw/server": "workspace:*",
     "commander": "^12.1.0",
     "ws": "^8.18.0"

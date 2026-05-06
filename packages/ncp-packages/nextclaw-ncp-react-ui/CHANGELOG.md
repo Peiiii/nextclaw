@@ -1,5 +1,28 @@
 # @nextclaw/ncp-react-ui
 
+## 0.2.18-beta.0
+
+### Patch Changes
+
+- Auto-generated patch release for packages with meaningful drift after their latest version commit.
+
+  Packages:
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/ncp
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/ncp@0.5.6-beta.0
+
 ## 0.2.17
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @nextclaw/channel-runtime
 
+## 0.4.30-beta.0
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/core@0.12.13-beta.1
+
 ## 0.4.29
 
 ### Patch Changes
