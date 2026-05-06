@@ -20,6 +20,8 @@
 - UI 产品版本号旁边新增更新状态入口：下载中只展示百分比；下载完成后显示“更新”按钮，点击后直接执行 `applyDownloadedUpdate`，不会只是跳转到更新页。
 - 同批次补充：NPM 安装态的 UI 更新链路正式接通。前端不再自己判断“桌面还是 NPM”，而是统一只消费 `UpdateSnapshot` 和统一动作；桌面端继续走 desktop bridge，managed local service / NPM 安装态通过 `/api/runtime/update` host 暴露同一套状态、下载、应用、偏好与 channel 接口。产品版本号旁边的进度/更新按钮与 `/updates` 页现在都会走统一 runtime update manager。
 - 同批次补充：NPM managed local service update host 改为后台任务模型。自动检查开启时会自动检查；`autoDownload=true` 时会后台自动下载并持续更新 `progress`；点击“更新”会应用已下载 bundle 并请求 managed service 重启，让新版本真正生效，而不是只切指针不切进程。
+- 同批次补充：开发态 `pnpm dev start` 默认重新对齐到真实 `~/.nextclaw`，不再偷偷改用 `~/.nextclaw-dev-home/<repo>`。根因通过对比 `scripts/dev/dev-runner.mjs`、README 文案、`/api/config` 实际返回和 `~/.nextclaw-dev-home/nextbot/config.json` 现场确认：实现与文档漂移导致开发态加载了另一套 home，用户看到“配置没加载”；同时 runtime update host 在 dev 启动后会自动检查公网 manifest，而当 manifest 尚未发布时会把 404 持久化为 `failed`，前端左上角因此显示“更新异常”。本次修复命中根因：直接把 dev-runner 默认 home 改回 `~/.nextclaw`，并让 dev-runner 显式禁用 runtime update host，使开发态不再把“未发布 manifest”误判为产品更新失败。
+- 同批次补充：统一 beta 发版前再次命中 release contract 缺口。`release:check:groups` 现场确认 `@nextclaw/companion` 缺少标准 `prepublishOnly`，而当前仓库里的 `nextclaw` 依赖图已经包含 `@nextclaw/companion`。这意味着继续发布新的 `nextclaw` 而不补 companion publish guard，会把 release batch 卡在 guard 阶段，且未来一旦 `nextclaw` 的发布 manifest 真带上 companion 依赖，还会把“统一 beta 发布”拖成安装事故。修复方式是给 `apps/companion/package.json` 补齐标准 `prepublishOnly`，把 companion 拉回既有 pnpm release contract。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
 设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
@@ -55,6 +57,16 @@
 - `pnpm -C packages/nextclaw-server tsc`：通过（同批次补充后复验）。
 - `pnpm -C packages/nextclaw-server test src/ui/router.runtime-control.test.ts src/ui/ui-routes/runtime-update-routes.test.ts`：通过，2 个测试文件、6 个用例，覆盖统一 runtime update route。
 - `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts`：通过，2 个测试文件、5 个用例，确认 runtime bundle download/apply 语义未被 UI 接线破坏。
+- `pnpm -C packages/nextclaw test src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts`：通过，2 个测试文件、5 个用例，覆盖“默认暴露 runtime update host / 开发态禁用 runtime update host”的宿主边界。
+- `pnpm -C packages/nextclaw tsc`：通过（本轮开发态修复后复验）。
+- `pnpm dev start`（使用 `NEXTCLAW_DEV_BACKEND_PORT=18892 NEXTCLAW_DEV_FRONTEND_PORT=5184` 隔离端口）：
+  - 终端打印 `NEXTCLAW_HOME: /Users/peiwang/.nextclaw`，确认开发态默认落到真实 home。
+  - `curl http://127.0.0.1:18892/api/runtime/update` 返回 `404 Not Found`，确认开发态 runtime update host 已禁用，不再把未发布 manifest 误报为“更新异常”。
+  - `curl http://127.0.0.1:18892/api/config` 返回的 provider keys / channels 与 `~/.nextclaw/config.json` 对齐，确认开发态读取的是同一套配置。
+- `pnpm release:check:groups`：最初失败，错误为 `apps/companion/package.json` 缺少标准 `prepublishOnly`；补齐后可继续进入统一 beta 发布预检。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths scripts/dev/dev-runner.mjs packages/nextclaw/src/cli/shared/services/ui/service-ui-hosts.service.ts packages/nextclaw/src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts README.md README.zh-CN.md`：通过，`Non-test line changes: +12 / -14 / net -2`，no maintainability findings。
+- `pnpm lint:new-code:governance`：通过。
+- `pnpm check:governance-backlog-ratchet`：未通过；当前仓库的 `docFileNameViolations` 为 `13`，高于 baseline `11`，属于既有治理基线差异，本次改动未新增 governed doc 文件。
 - 新增 `pnpm -C apps/desktop validation:dev-update`：开发态手动验收入口。该命令会在临时目录中准备本地签名更新源、隔离 `NEXTCLAW_HOME` 与桌面 launcher 数据目录、启动本地 update server，并拉起桌面 dev app。开发者可像真实用户一样在“设置 > 桌面端更新”中切到 Beta、下载更新，并在产品版本号旁边观察下载进度和“更新”按钮；点击“更新”后验证 launcher state / current pointer 切到新版本。自动化验证可使用 `--prepare-only` 只准备并检查本地更新源。
 - `node --check apps/desktop/scripts/update/services/dev-update-validation.service.mjs`：通过。
 - `pnpm -C apps/desktop validation:dev-update -- --prepare-only --stable-seed-bundle /tmp/nextclaw-dev-update-fixture-seed.zip --beta-version 0.18.51`：通过。验证脚本可基于指定 seed bundle 生成 stable/beta 本地更新源；检查 beta/stable manifest 均包含 `bundleUrl`、`bundleSha256`、`bundleSignature`、`manifestSignature`，且 minimum launcher version 仍由既有治理服务计算。
@@ -158,6 +170,8 @@ pnpm -C apps/desktop validation:dev-update
 8. 开发者本机亲自验收 NPM 更新时，运行 `pnpm -C packages/nextclaw validation:npm-update` 并按输出命令操作。这个入口从 CLI 用户视角验证“检查、下载、手动 apply、新进程生效”，不是走真实 npm registry，也不依赖 `npm install -g` 覆盖安装。
 9. 对真实 NPM beta 用户，只需要安装 `nextclaw@beta` 并运行 `nextclaw update --channel beta`；默认 manifest base URL 和默认 public key 都由包内发布材料提供。
 10. 对 NPM managed local service UI，启动本地服务后打开产品界面：如果有新版本且 `autoDownload=true`，版本号旁边会先出现下载百分比；下载完成后版本号旁边出现“更新”按钮；进入 `/updates` 页应能看到同一份状态、进度和操作入口，不再显示“当前仅桌面端可用”。
+11. 对开发态 `pnpm dev start`，终端应直接打印 `NEXTCLAW_HOME: ~/.nextclaw`；如果本机 `~/.nextclaw/config.json` 已配置 provider / channel，开发态应直接读到同一套配置，不再出现“像是没加载配置”的情况。
+12. 对开发态 `pnpm dev start`，左上角不应再出现“更新异常”；因为开发态不会暴露 runtime update host，`/api/runtime/update` 应返回 `404`，前端会把它视为“当前环境无更新宿主”，而不是产品更新失败。
 
 开发者本机亲自验收桌面更新时，优先运行 `pnpm -C apps/desktop validation:dev-update`。预期流程是：桌面窗口打开后，Stable 初始版本可用；切到 Beta 后可检测到新版本；点击下载时版本号旁边出现百分比；下载完成后版本号旁边出现“更新”；点击“更新”后应用重启，隔离目录里的 launcher state 与 current pointer 指向 Beta 版本。该开发态入口默认用本地源码 runtime 验证 UI 和更新控制面，因此用于确认“交互、状态、进度展示、手动应用入口”是否正确；完整 bundle 启动后的真实切换仍由 `pnpm -C apps/desktop smoke:update` 覆盖。
 
@@ -178,6 +192,8 @@ pnpm -C apps/desktop validation:dev-update
 同批次补充：为 NPM 安装态新增 `validation:npm-update` 手动验收入口时，没有新增第二套 fixture 生成脚本，而是在既有 `smoke-npm-runtime-update.mjs` 上增加 `--manual` 模式，复用同一组签名 manifest/runtime bundle fixture。定向 maintainability guard 对本次补充文件无 findings；本次补充属于开发者可见验收能力，非测试代码净增主要来自用户指令打印、临时 shim 与公钥文件路径输出，已保持在单脚本内，避免扩散新的目录或服务层。
 
 同批次补充：本次把 NPM 安装态 UI 更新链路补齐后，针对新增代码路径重新执行了 `tsc` 与定向 UI / server / launcher 测试，均通过。`pnpm lint:maintainability:guard` 在 update 相关文件上已清掉本次新增 error；最终仍被工作区中与本次无关的已有脏改阻塞：`packages/nextclaw-core/src/config/reload.ts` 与 `packages/nextclaw-core/src/config/schema.ts` 触发 file-role-boundary 错误。这两处不是本次 runtime update 改动引入的问题，但会导致整仓治理命令无法在当前工作区全绿。
+
+同批次补充：开发态修复属于非功能性收口，不新增用户能力。独立可维护性复核结论：通过；本次顺手减债：是。代码增减报告：新增 97 行、删除 14 行、净增 +83 行；非测试代码增减报告：新增 12 行、删除 14 行、净增 -2 行。正向减债动作：简化。质量与可维护性提升证明：删除了错误的默认 `~/.nextclaw-dev-home/<repo>` 心智与 `NEXTCLAW_DEV_HOME` 额外入口，开发态现在只保留“默认走 `~/.nextclaw`，需要覆盖时只认 `NEXTCLAW_HOME`”这一条清晰主路径；同时把“开发态没有发布 manifest”这个环境事实收敛到宿主层，不再污染前端状态。为何不是单纯压缩行数：这次不是靠把代码写密，而是靠删掉一条多余配置路径和一条错误宿主暴露路径，减少了需要理解和排查的分叉。
 
 ## NPM 包发布记录
 

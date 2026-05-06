@@ -22,11 +22,12 @@
 - 已补 NPM `validation:npm-update` 用户视角入口。
 - 已补 NPM runtime update channel builder、默认公网 update source 和发布 workflow。
 - 已补齐 NPM 安装态 UI 更新链路：统一 runtime update host/API、统一 manager/store、版本号旁边进度与更新按钮、`/updates` 页入口。
+- 已修正开发态 `pnpm dev start`：默认重新使用 `~/.nextclaw`，并禁用 dev runtime update host，避免左上角误报“更新异常”。
 
 ## 当前下一步
 
-完成收尾验证、精确暂存本次统一更新链路改动，并在验证结论清晰后提交。
+等待用户确认是否提交当前开发态修复，并按需要继续做后续验收或发布动作。
 
 ## 锚点计数器
 
-18/20
+5/20

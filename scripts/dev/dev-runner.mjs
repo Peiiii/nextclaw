@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { existsSync, realpathSync } from "node:fs";
 import { spawn } from "node:child_process";
-import { basename, join, relative, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { createServer as createNetServer, Socket } from "node:net";
 import { homedir } from "node:os";
 import {
@@ -23,14 +23,8 @@ const rootDir = resolveRepoPath(import.meta.url);
 const backendDir = resolve(rootDir, "packages/nextclaw");
 const frontendDir = resolve(rootDir, "packages/nextclaw-ui");
 const companionDir = resolve(rootDir, "apps/companion");
-const defaultDevHome = join(homedir(), ".nextclaw-dev-home", basename(rootDir));
-const explicitNextclawHome =
-  typeof process.env.NEXTCLAW_HOME === "string" && process.env.NEXTCLAW_HOME.trim().length > 0
-    ? process.env.NEXTCLAW_HOME
-    : typeof process.env.NEXTCLAW_DEV_HOME === "string" && process.env.NEXTCLAW_DEV_HOME.trim().length > 0
-      ? process.env.NEXTCLAW_DEV_HOME
-    : null;
-const nextclawHome = resolve(explicitNextclawHome ?? defaultDevHome);
+const explicitNextclawHome = typeof process.env.NEXTCLAW_HOME === "string" && process.env.NEXTCLAW_HOME.trim().length > 0 ? process.env.NEXTCLAW_HOME : null;
+const nextclawHome = resolve(explicitNextclawHome ?? join(homedir(), ".nextclaw"));
 const normalizeWatchPath = (filePath) => filePath.replaceAll("\\", "/");
 const toRelativeWatchPath = (baseDir, targetPath) => {
   const normalizedRelative = normalizeWatchPath(relative(baseDir, targetPath));
@@ -336,6 +330,7 @@ const backendProcess = spawnProcess(
         }
       : {}),
     NEXTCLAW_DISABLE_STATIC_UI: "1",
+    NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST: "1",
     NEXTCLAW_REMOTE_LOCAL_ORIGIN: `http://127.0.0.1:${frontendPort}`,
     NEXTCLAW_HOME: nextclawHome
   }

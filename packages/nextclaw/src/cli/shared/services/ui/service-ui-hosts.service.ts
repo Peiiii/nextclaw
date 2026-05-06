@@ -17,7 +17,7 @@ export function createServiceUiHosts(params: {
 }): {
   remoteAccess: UiRemoteAccessHost;
   runtimeControl: UiRuntimeControlHost;
-  runtimeUpdate: UiRuntimeUpdateHost;
+  runtimeUpdate?: UiRuntimeUpdateHost;
 } {
   const { requestRestart, serviceCommands, uiConfig } = params;
   return {
@@ -27,9 +27,12 @@ export function createServiceUiHosts(params: {
       requestRestart,
       uiConfig
     }),
-    runtimeUpdate: createNpmRuntimeUpdateHost({
-      requestRestart,
-      uiConfig
-    })
+    runtimeUpdate:
+      process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST === "1"
+        ? undefined
+        : createNpmRuntimeUpdateHost({
+            requestRestart,
+            uiConfig
+          })
   };
 }

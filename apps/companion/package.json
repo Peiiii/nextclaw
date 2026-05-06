@@ -17,6 +17,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "tsc": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run src/companion-session-view.service.test.ts",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs",
     "smoke": "pnpm build:main && node scripts/smoke.mjs"
   },
   "dependencies": {

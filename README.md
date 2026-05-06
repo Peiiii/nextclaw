@@ -91,7 +91,9 @@ pnpm dev
 ```
 
 This starts the NextClaw development stack and prints the local URLs in the terminal.
-By default it uses `~/.nextclaw`. Set `NEXTCLAW_HOME=/path/to/home` if you want to run development against a different data directory.
+By default it uses `~/.nextclaw`, the same data directory as the normal local app. Set `NEXTCLAW_HOME=/path/to/home` if you want development to run against a different data directory.
+
+`pnpm dev start` intentionally disables the runtime update host so development builds do not show a false "Update Issue" state before a release manifest exists.
 
 If you only need one side, you can run them separately:
 

@@ -82,6 +82,20 @@ nextclaw stop    # 停止服务
 
 如遇 `npm` 命令不存在，请先安装/重装 Node.js，并重开终端。
 
+### 运行开发环境
+
+在仓库根目录执行：
+
+```bash
+pnpm install
+pnpm dev start
+```
+
+这会启动 NextClaw 的开发态前后端，并在终端打印本地访问地址。
+开发态默认直接使用 `~/.nextclaw`，也就是和你平时本地使用同一套数据目录；如果需要切换到其他目录，可设置 `NEXTCLAW_HOME=/path/to/home`。
+
+`pnpm dev start` 会主动禁用 runtime update host，避免开发态在发布 manifest 尚不存在时误显示“更新异常”。
+
 > 完整配置指南：[docs.nextclaw.io](https://docs.nextclaw.io/zh/guide/configuration)
 >
 > 新手分步教程（含常见问题）：[快速开始文档](https://docs.nextclaw.io/zh/guide/getting-started)
