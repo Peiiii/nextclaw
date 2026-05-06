@@ -15,6 +15,10 @@ Default structure:
 - `.agents/skills/*/SKILL.md`: scenario workflows that Codex can trigger by description.
 - `docs/*`: human-facing or long-lived references, only authoritative when a skill or AGENTS explicitly points to them.
 
+For the full governance-system map, use:
+
+- `docs/internal/governance-system-sources-of-truth.md`
+
 ## Before Editing
 
 1. Read `docs/VISION.md` enough to align with the product direction.
@@ -27,6 +31,11 @@ Default structure:
    - stale command index,
    - rule that belongs in a scenario skill,
    - ordinary documentation that should not be a hard rule.
+5. When the request changes project governance, inspect whether the change also touches:
+   - `commands/commands.md`,
+   - `scripts/governance/*`,
+   - governance baseline / test files,
+   - linked internal governance docs.
 
 ## Placement Decision
 
@@ -39,6 +48,21 @@ Use this decision order:
 5. Delete or merge it if it duplicates a stronger rule.
 
 Do not move hard rules into ordinary docs unless a skill explicitly requires reading that doc at the right moment.
+
+## Governance System Scope
+
+When users say "规范", "治理规则", "规则系统", "调整元规范", or similar, do not assume they only mean prose documents.
+
+Treat the governance system as including at least:
+
+- `AGENTS.md`
+- `.agents/skills/*/SKILL.md`
+- `commands/commands.md`
+- relevant `docs/*` references
+- `scripts/governance/*`
+- related baselines, fixtures, and tests
+
+If a rule change affects executable behavior, do not stop at text edits. Update the corresponding script surface in the same change, or explicitly state why it is not applicable.
 
 ## AGENTS.md Rewrite Rules
 
@@ -79,4 +103,5 @@ Before finishing:
 1. Recount `AGENTS.md` size.
 2. Confirm details moved out of `AGENTS.md` are still reachable through skill descriptions.
 3. Confirm no hard rule was moved only to an ordinary doc.
-4. State whether build/lint/tsc are not applicable because the change was instruction/skill text only.
+4. Confirm whether command entries, governance scripts, and baselines/tests were intentionally updated or intentionally left untouched with reason.
+5. State whether build/lint/tsc are not applicable because the change was instruction/skill text only.

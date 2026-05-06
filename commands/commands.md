@@ -14,7 +14,7 @@
 
 - 用途：调整或更新 `AGENTS.md`、命令机制、Rulebook / Project Rulebook 遗留内容、skill 分层或项目 AI 指令。
 - 输入格式：`/config-meta <要调整的问题或目标>`
-- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；先判断应删减、合并、迁入 skill、修正已有规则还是新增常驻规则；优先处理深层机制问题，避免表层补丁。收尾时按 `nextclaw-iteration-log-governance` 判断是否需要 `docs/logs` 留痕。
+- 输出/期望行为：必须使用 `nextclaw-agent-instructions-governance`；先判断应删减、合并、迁入 skill、修正已有规则还是新增常驻规则；优先处理深层机制问题，避免表层补丁。默认把“规范”理解为包含 `AGENTS.md`、skills、`commands/commands.md`、相关 `docs/*`、`scripts/governance/*` 与对应 baseline/test 的完整系统，不能只改文档不检查脚本侧影响。收尾时按 `nextclaw-iteration-log-governance` 判断是否需要 `docs/logs` 留痕。
 
 ## `/add-to-plan`
 
@@ -39,6 +39,12 @@
 - 用途：提交当前变更。
 - 输入格式：`/commit`，可附提交范围或说明。
 - 输出/期望行为：只有用户明确发出该命令或等价提交请求时才执行；提交信息必须使用英文。提交前确认暂存范围，不纳入无关用户改动。
+
+## `/close-task`
+
+- 用途：对当前任务执行标准交付收尾流程。
+- 输入格式：`/close-task`，可附聚焦范围或说明。
+- 输出/期望行为：使用 `nextclaw-delivery-workflow` 作为总流程 owner；统一检查是否完成实现前删减判断、定向验证、`tsc` 适用性、maintainability guard/review、总代码与非测试代码增减披露、复盘机制改进、迭代留痕决策与最终主动汇报。若相关项缺失，不得视为真正收尾完成。
 
 ## `/maintainability-review`
 

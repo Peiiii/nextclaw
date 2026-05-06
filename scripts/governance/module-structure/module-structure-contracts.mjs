@@ -134,7 +134,7 @@ const PACKAGE_L1_PROTOCOL = {
   organizationModel: "protocol-package-l1",
   governedRoot: "src",
   allowedRootDirectories: ["app", ...FIXED_ROLE_DIRECTORY_NAMES],
-  allowedRootFiles: [],
+  allowedRootFiles: ["index.ts"],
   sharedDirectories: [],
   importAliasPrefixes: ["@/"]
 };

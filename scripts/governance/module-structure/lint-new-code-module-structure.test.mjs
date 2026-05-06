@@ -36,6 +36,7 @@ test("finds the protocol declaration for nextclaw-kernel package root config", (
   assert.equal(contract?.modulePath, "packages/nextclaw-kernel/src");
   assert.equal(contract?.protocol, "package-l1");
   assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
 });
 
 test("finds the protocol declaration for nextclaw cli package root config", () => {
@@ -115,6 +116,18 @@ test("blocks new root files outside the L1 minimal allowed root-file set", () =>
   assert.equal(findings.length, 1);
   assert.equal(findings[0].level, "error");
   assert.match(findings[0].message, /allowed root-file set/);
+});
+
+test("allows package-l1 root index files as package boundary entries", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-kernel/src/index.ts");
+  const findings = evaluateModuleStructureFindings({
+    filePath: "packages/nextclaw-kernel/src/index.ts",
+    contract,
+    existedInComparisonRef: false,
+    rootEntryExistedInComparisonRef: false
+  });
+
+  assert.equal(findings.length, 0);
 });
 
 test("blocks nested directories under flat role dirs at package root", () => {
