@@ -234,7 +234,7 @@ class NpmRuntimeUpdateChannelBuilder {
       allowOverride: args["allow-minimum-launcher-version-override"] === "true"
     });
     this.outputRoot = resolve(args["output-dir"]?.trim() || resolve(packageRoot, "dist-npm-runtime-updates"));
-    this.baseUrl = args["base-url"]?.trim() || DEFAULT_BASE_URL;
+    this.baseUrl = args["bundle-base-url"]?.trim() || args["base-url"]?.trim() || DEFAULT_BASE_URL;
     this.releaseNotesUrl = args["release-notes-url"]?.trim() || null;
   }
 
@@ -334,7 +334,7 @@ class NpmRuntimeUpdateChannelBuilder {
       hostKind: "npm-runtime-bundle",
       latestVersion: this.version,
       minimumLauncherVersion: this.minimumLauncherVersion,
-      bundleUrl: `${this.baseUrl.replace(/\/+$/, "")}/${this.channel}/${basename(bundlePath)}`,
+      bundleUrl: `${this.args["bundle-base-url"]?.trim() ? this.baseUrl.replace(/\/+$/, "") : `${this.baseUrl.replace(/\/+$/, "")}/${this.channel}`}/${basename(bundlePath)}`,
       bundleSha256: createHash("sha256").update(bundleBytes).digest("hex"),
       bundleSignature: sign(null, bundleBytes, privateKey).toString("base64"),
       releaseNotesUrl: this.releaseNotesUrl

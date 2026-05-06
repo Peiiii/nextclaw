@@ -76,7 +76,7 @@ jobs:
             --channel "$NPM_RUNTIME_UPDATE_CHANNEL" \
             --platform ${{ matrix.platform }} \
             --arch ${{ matrix.arch }} \
-            --base-url "$NPM_RUNTIME_UPDATE_BASE_URL" \
+            --bundle-base-url "$NPM_RUNTIME_UPDATE_BASE_URL" \
             --release-notes-url "https://github.com/${{ github.repository }}/releases/tag/${NPM_RUNTIME_RELEASE_TAG}" \
             --output-dir dist/npm-runtime-updates
 
