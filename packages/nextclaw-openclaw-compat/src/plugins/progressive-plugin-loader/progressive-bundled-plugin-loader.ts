@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { BUNDLED_CHANNEL_PLUGIN_PACKAGES } from "../bundled-channel-plugin-packages.constants.js";
 import { resolveEnableState } from "../config-state.js";
 import { loadBundledPluginModule, resolveBundledPluginEntry } from "../bundled-plugin-loader.js";
@@ -12,14 +14,6 @@ import {
   resolvePluginModuleExport,
   type ProgressivePluginLoadContext
 } from "./progressive-plugin-loader-context.js";
-
-function pushBundledPluginLoadError(registry: PluginRegistry, entryFile: string, error: unknown): void {
-  registry.diagnostics.push({
-    level: "error",
-    source: entryFile,
-    message: `failed to load bundled plugin: ${String(error)}`
-  });
-}
 
 function buildBundledPluginRecord(params: {
   pluginId: string;
@@ -40,12 +34,6 @@ function buildBundledPluginRecord(params: {
     configSchema: Boolean(params.definition?.configSchema),
     configJsonSchema: params.definition?.configSchema
   });
-}
-
-function disableBundledPluginRecord(record: PluginRecord, reason: string): PluginRecord {
-  record.status = "disabled";
-  record.error = reason;
-  return record;
 }
 
 function markBundledPluginError(params: {
@@ -83,12 +71,12 @@ function finalizeBundledPluginRecord(params: {
   });
 }
 
-function resolveBundledPluginRegistrationCandidate(params: {
+async function resolveBundledPluginRegistrationCandidate(params: {
   context: ProgressivePluginLoadContext;
   require: NodeRequire;
   packageName: string;
   packageStartedAt: number;
-}):
+}): Promise<
   | { done: true; pluginId?: string }
   | {
       done: false;
@@ -97,7 +85,8 @@ function resolveBundledPluginRegistrationCandidate(params: {
       pluginId: string;
       record: PluginRecord;
       register: NonNullable<ReturnType<typeof resolvePluginModuleExport>["register"]>;
-    } {
+    }
+> {
   const resolvedEntry = resolveBundledPluginEntry(
     params.require,
     params.packageName,
@@ -109,69 +98,74 @@ function resolveBundledPluginRegistrationCandidate(params: {
   }
 
   const { entryFile, rootDir } = resolvedEntry;
-  let loadedModule;
   try {
-    loadedModule = loadBundledPluginModule(entryFile, rootDir);
-  } catch (error) {
-    pushBundledPluginLoadError(params.context.registry, entryFile, error);
-    return { done: true };
-  }
+    const resolved = resolvePluginModuleExport(
+      [".js", ".mjs", ".cjs"].includes(path.extname(entryFile).toLowerCase())
+        ? await import(pathToFileURL(entryFile).href)
+        : loadBundledPluginModule(entryFile, rootDir)
+    );
+    const pluginId = typeof resolved.definition?.id === "string" ? resolved.definition.id.trim() : "";
+    if (!pluginId) {
+      params.context.registry.diagnostics.push({
+        level: "error",
+        source: entryFile,
+        message: "bundled plugin definition missing id"
+      });
+      return { done: true };
+    }
 
-  const resolved = resolvePluginModuleExport(loadedModule);
-  const pluginId = typeof resolved.definition?.id === "string" ? resolved.definition.id.trim() : "";
-  if (!pluginId) {
+    const enableState = resolveEnableState(pluginId, params.context.normalizedConfig);
+    const record = buildBundledPluginRecord({
+      pluginId,
+      definition: resolved.definition,
+      entryFile,
+      context: params.context
+    });
+
+    if (!enableState.enabled) {
+      finalizeBundledPluginRecord({
+        packageName: params.packageName,
+        pluginId,
+        record: Object.assign(record, { status: "disabled", error: enableState.reason ?? "disabled" }),
+        context: params.context,
+        packageStartedAt: params.packageStartedAt,
+      });
+      return { done: true, pluginId };
+    }
+
+    if (typeof resolved.register !== "function") {
+      finalizeBundledPluginRecord({
+        packageName: params.packageName,
+        pluginId,
+        record: markBundledPluginError({
+          record,
+          registry: params.context.registry,
+          pluginId,
+          entryFile,
+          message: "plugin export missing register/activate"
+        }),
+        context: params.context,
+        packageStartedAt: params.packageStartedAt,
+      });
+      return { done: true, pluginId };
+    }
+
+    return {
+      done: false,
+      entryFile,
+      rootDir,
+      pluginId,
+      record,
+      register: resolved.register
+    };
+  } catch (error) {
     params.context.registry.diagnostics.push({
       level: "error",
       source: entryFile,
-      message: "bundled plugin definition missing id"
+      message: `failed to load bundled plugin: ${String(error)}`
     });
     return { done: true };
   }
-
-  const enableState = resolveEnableState(pluginId, params.context.normalizedConfig);
-  const record = buildBundledPluginRecord({
-    pluginId,
-    definition: resolved.definition,
-    entryFile,
-    context: params.context
-  });
-
-  if (!enableState.enabled) {
-    finalizeBundledPluginRecord({
-      packageName: params.packageName,
-      pluginId,
-      record: disableBundledPluginRecord(record, enableState.reason ?? "disabled"),
-      context: params.context,
-      packageStartedAt: params.packageStartedAt
-    });
-    return { done: true, pluginId };
-  }
-
-  if (typeof resolved.register !== "function") {
-    finalizeBundledPluginRecord({
-      packageName: params.packageName,
-      pluginId,
-      record: markBundledPluginError({
-        record,
-        registry: params.context.registry,
-        pluginId,
-        entryFile,
-        message: "plugin export missing register/activate"
-      }),
-      context: params.context,
-      packageStartedAt: params.packageStartedAt
-    });
-    return { done: true, pluginId };
-  }
-
-  return {
-    done: false,
-    entryFile,
-    rootDir,
-    pluginId,
-    record,
-    register: resolved.register
-  };
 }
 
 async function processBundledPluginPackage(
@@ -180,11 +174,11 @@ async function processBundledPluginPackage(
   packageName: string
 ): Promise<void> {
   const packageStartedAt = Date.now();
-  const candidate = resolveBundledPluginRegistrationCandidate({
+  const candidate = await resolveBundledPluginRegistrationCandidate({
     context,
     require,
     packageName,
-    packageStartedAt
+    packageStartedAt,
   });
   if (candidate.done) {
     await markPluginProcessed(context.tracker, candidate.pluginId);
