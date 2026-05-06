@@ -107,6 +107,7 @@
 - `/close-task`：对当前任务执行标准交付收尾流程，使用 `nextclaw-delivery-workflow`。
 - `/maintainability-review`：执行独立于实现阶段的可维护性复核，使用 `post-edit-maintainability-review`。
 - `/validate`：运行项目验证，使用 `nextclaw-validation-workflow`。
+- `/release-beta`：执行 NextClaw NPM beta 一键发布闭环，使用 `npm-beta-release`。
 - `/release-frontend`：前端一键发布，仅 UI 变更场景。
 
 ## 发布常驻原则

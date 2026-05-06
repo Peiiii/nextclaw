@@ -193,3 +193,41 @@
 - 随后真实执行全局 `nextclaw restart`：
   - 不再报 `healthy unmanaged instance`
   - 最终恢复 `http://127.0.0.1:55667/api/health = ok`
+
+## 追加记录：beta 发布入口收敛
+
+### 目标
+
+- 把“以后直接发一个 beta”从口头流程收敛成可复用入口
+- 同时给 AI 与人类各一条稳定入口
+
+### 落地
+
+- 新增仓库命令：
+  - `pnpm release:beta`
+- 新增元指令：
+  - `/release-beta`
+- 新增 skill：
+  - `npm-beta-release`
+
+### 入口契约
+
+- `pnpm release:beta` 默认执行：
+  1. `pnpm release:auto`
+  2. 如有 version/changelog 变更，自动创建 release commit
+  3. 推送当前分支与 local tags
+  4. 若 batch 包含 `nextclaw`，自动触发 `npm-runtime-update-release` 的 `beta` channel
+  5. 等待 workflow 成功，并验证 runtime release assets 与 GitHub Pages 公网 beta manifest
+
+### 验证
+
+- `node scripts/release/release-beta.mjs --help`：通过
+- `node scripts/release/release-beta.mjs --dry-run`：通过
+- `pnpm lint:new-code:governance`：通过
+- maintainability guard：通过，只有文件预算 warning，无 error
+
+### 边界
+
+- 这条入口复用既有 `release:auto` 与 `npm-runtime-update-release.yml`，没有额外新造一条发布机制
+- 仍然禁止默认抬高 `minimumLauncherVersion`
+- `--minimum-launcher-version-override` 只保留给 recovery publish

@@ -116,3 +116,33 @@ Behavior is intentionally explicit:
   release batch;
 - only packages with real post-version drift are auto-added to the new changeset;
 - existing pending changesets are reused instead of duplicated.
+
+## Beta closure shortcut
+
+If you want the reusable "one command" beta flow for NPM packages, use:
+
+```bash
+pnpm release:beta
+```
+
+This owner command reuses the existing release contracts instead of inventing a second publish path:
+
+1. run `pnpm release:auto`
+2. create a release commit if version / changelog files changed
+3. push the current branch and local package tags
+4. if the published batch includes `nextclaw`, trigger `npm-runtime-update-release` with `channel=beta`
+5. wait for workflow success, verify runtime bundle assets on the matching GitHub release, and verify the public beta manifests on GitHub Pages
+
+Useful flags:
+
+```bash
+pnpm release:beta -- --dry-run
+pnpm release:beta -- --skip-runtime-channel
+pnpm release:beta -- --minimum-launcher-version-override 0.18.12-beta.3
+```
+
+Notes:
+
+- `release:beta` requires a clean worktree before it starts, because it may create a release commit and push tags.
+- The runtime workflow is only triggered when the release batch includes `nextclaw`; pure package batches do not pay that extra closure cost.
+- This command still follows the `minimumLauncherVersion` governance from `packages/nextclaw/npm-runtime-compatibility.json`; do not pass the override unless you are doing a deliberate recovery publish.

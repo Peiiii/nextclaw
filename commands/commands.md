@@ -64,4 +64,10 @@
 - 输入格式：`/release-frontend`
 - 输出/期望行为：生成 UI changeset，并执行既有前端发布流程；最终说明发布包、版本、验证和不适用项。
 
+## `/release-beta`
+
+- 用途：执行 NextClaw NPM beta 一键发布闭环。
+- 输入格式：`/release-beta`，可附 `--skip-runtime-channel`、`--minimum-launcher-version-override <version>` 或 dry-run 说明。
+- 输出/期望行为：使用 `npm-beta-release` 与 `npm-release-contract-guard`；默认走 `pnpm release:beta`，必要时补充当前 batch / runtime channel / 发布后验收结果说明。若 batch 包含 `nextclaw`，默认要求同时闭合 beta runtime update channel，而不是只停在 npm registry 发布。
+
 后续指令在此追加，保持“用途 / 输入格式 / 输出期望”结构，并同步 `AGENTS.md` 索引。

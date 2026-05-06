@@ -32,6 +32,8 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 - Do not raise `minimumLauncherVersion` unless the launcher-side contract really broke.
 
 ## Package Release Flow
+0. Prefer the reusable beta owner when the request is specifically "发布 beta / 统一 beta 发版":
+   - `pnpm release:beta`
 1. Sync and check package README content:
    - `pnpm release:sync-readmes`
    - `pnpm release:check-readmes`
@@ -48,6 +50,7 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Beta Package Rule
 - Prefer the repo changeset/pre-release flow for beta releases.
+- Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`.
 - If a single-package beta publish is unavoidable, use pnpm:
   - `pnpm -C packages/nextclaw publish --tag beta`
 - After publish, verify the tag directly:

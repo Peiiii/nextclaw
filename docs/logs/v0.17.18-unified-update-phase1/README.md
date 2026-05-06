@@ -27,6 +27,7 @@
 - 同批次补充：统一 beta 发版前再次命中 release contract 缺口。`release:check:groups` 现场确认 `@nextclaw/companion` 缺少标准 `prepublishOnly`，而当前仓库里的 `nextclaw` 依赖图已经包含 `@nextclaw/companion`。这意味着继续发布新的 `nextclaw` 而不补 companion publish guard，会把 release batch 卡在 guard 阶段，且未来一旦 `nextclaw` 的发布 manifest 真带上 companion 依赖，还会把“统一 beta 发布”拖成安装事故。修复方式是给 `apps/companion/package.json` 补齐标准 `prepublishOnly`，把 companion 拉回既有 pnpm release contract。
 - 同批次补充：已修复 `nextclaw restart` 会把我们自己的前台 `nextclaw serve` 误判成“healthy unmanaged instance”的问题。根因不是端口真被外部服务占用，而是 `RestartCommands` 之前只认 `managedServiceStateStore`，完全忽略前台 `serve` 写入的 `localUiRuntimeStore`。因此当用户升级全局 npm 包后，对仍在运行的前台 `serve` 执行 `nextclaw restart`，CLI 会看到健康端口，却因为没有 `run/service.json` 就把它当成 unmanaged external listener 拒绝重启。修复方式是在 `RestartCommands` owner 内优先读取 `localUiRuntimeStore`：若目标端口就是 NextClaw 自己的前台 runtime，则先停掉该 PID，再按既有主路径拉起受管后台 service；只有既非 managed state、也非本地前台 runtime 时，才继续报真正的 unmanaged listener 错误。
 - 同批次补充：进一步确认并修复了导致 `ui-runtime.json` 持续被死进程污染的更深层根因。第一层根因是 `startUiServer()` 之前在真正 listen 成功前就返回，导致后来会因 `EADDRINUSE` 崩掉的失败进程，仍然能继续执行并把自己写进 `ui-runtime.json`；第二层根因是 macOS LaunchAgent 之前生成的是 `KeepAlive=true` 且直接执行 `nextclaw serve`，在同一端口已被受管后台 service 占用时会被 `launchd` 无限重拉，持续制造 `EADDRINUSE` 并反复覆盖本地 runtime owner。修复方式分别是：让 `startUiServer()` 只在 Hono `serve()` 真正进入 listening 回调后才 resolve、在 listen error 时直接 reject；同时把 LaunchAgent 改成“登录时启动一次但不做 KeepAlive 监督重拉”。
+- 同批次补充：把 NPM beta 发布闭环收敛成了可复用入口，而不是继续依赖“记住一串步骤”。新增仓库命令 `pnpm release:beta`，它默认串起 `release:auto -> release commit -> push branch/tags -> nextclaw runtime beta workflow -> release asset / public manifest 验证`；同时新增 `/release-beta` 元指令与 `npm-beta-release` skill，后续再遇到“发一个 beta”时可以直接复用这条 owner，而不是重新人工拼流程。该入口仍复用既有 `release:auto` 与 `npm-runtime-update-release.yml`，没有新造第二套发布机制。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
 设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
@@ -58,6 +59,11 @@
 - `pnpm -C packages/nextclaw-server tsc`：通过。
 - 本地 `ui-runtime.json` 污染防回归 smoke：通过。隔离 `NEXTCLAW_HOME` 下先启动一个健康 `serve --ui-port 53282`，再启动第二个同端口 `serve`；第二个进程现在会直接因 `EADDRINUSE` 退出，且不会再输出 `✓ UI API/UI frontend`，`run/ui-runtime.json` 仍保持第一条健康进程的 PID 与端口，没有被失败进程覆盖。
 - 本机 LaunchAgent 现场验收：通过。重新安装/加载本地构建出的 LaunchAgent 后，`~/Library/LaunchAgents/io.nextclaw.host-agent.plist` 已变为 `KeepAlive=false`；`launchctl print gui/501/io.nextclaw.host-agent` 显示 `state = not running`，stdout/stderr 日志行数在数秒轮询内保持不变，证明之前那条无限重拉 `nextclaw serve` 的冲突链已停止；随后直接运行全局 `nextclaw restart`，不再报 `healthy unmanaged instance`，并成功恢复 `http://127.0.0.1:55667/api/health = ok`。
+- `node scripts/release/release-beta.mjs --help`：通过，输出一键 beta 发布入口、参数和默认闭环步骤。
+- `node scripts/release/release-beta.mjs --dry-run`：通过，输出“release:auto / release commit / push / runtime workflow 验证”这条计划链，确认脚本入口可直接自解释。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths AGENTS.md commands/commands.md docs/workflows/npm-release-process.md package.json scripts/release/release-beta.mjs .agents/skills/npm-beta-release/SKILL.md .agents/skills/npm-release-contract-guard/SKILL.md`：通过，0 error / 1 warning。warning 为 `scripts/release/release-beta.mjs` 接近文件预算，但无 function budget / owner 边界 error。
+- `pnpm lint:new-code:governance`：通过（本轮 beta 发布入口相关改动）。
+- `pnpm check:governance-backlog-ratchet`：未通过，仍为仓库历史 `docFileNameViolations 13 > baseline 11`，与本轮 beta 发布入口改动无关。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths <touched-files>`：通过，0 error / 0 warning，非测试代码净增 0。
 - `pnpm lint:new-code:governance`：未通过，但失败来自工作区无关文件 `apps/companion/src/launcher.ts` 的既有 role-boundary 问题，不是本次 update host 修复引入。
 - `pnpm check:governance-backlog-ratchet`：未通过，仍是仓库历史 `docFileNameViolations 13 > baseline 11`，与本次修复无关。
@@ -240,6 +246,7 @@ pnpm -C apps/desktop validation:dev-update
 当前新增未发布修复状态：
 
 - `nextclaw`：有。当前工作区额外包含“`nextclaw restart` 识别并接管前台 `serve` runtime”“`startUiServer` 真实 ready 契约修复”以及“macOS LaunchAgent 取消 `KeepAlive` 反复拉起 `serve`”三项未发布修复；待本次提交并随下一次 beta 统一发布。
+- 发布入口侧：有。当前工作区额外包含 `pnpm release:beta`、`/release-beta` 与 `npm-beta-release` skill 三项未发布发布闭环收敛；目的是让后续 beta 发版可以直接复用，不再靠人工回忆流程。
 
 最终真实用户路径验收（隔离目录）：
 
