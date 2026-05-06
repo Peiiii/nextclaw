@@ -189,6 +189,7 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `agents.defaults.model`
 - `agents.context.*`
 - `tools.*`
+- `companion.enabled`
 - `plugins.*` (v1 hot plugin runtime: plugin registry/channel gateways/channels are hot-reloaded)
 
 Restart is still required for:
@@ -210,6 +211,40 @@ Useful commands:
 - `nextclaw logs tail --crash`
 
 UI note: **Model** page save persists `agents.defaults.model` only.
+
+### Companion feature
+
+NextClaw companion is a persistent system feature backed by `companion.enabled`, not just a one-off background process.
+
+Recommended control path:
+
+- Open the runtime settings page in the UI.
+- Toggle **Companion enabled**.
+- Save the runtime settings.
+
+Behavior:
+
+- enabling starts the companion immediately when a local runtime is available
+- disabling stops any running companion process
+- if it remains enabled, it auto-starts again after the NextClaw runtime restarts
+
+CLI equivalents:
+
+```bash
+nextclaw companion enable
+nextclaw companion disable
+nextclaw companion status --json
+```
+
+Lower-level process controls are also available:
+
+```bash
+nextclaw companion start
+nextclaw companion stop
+```
+
+Use `enable/disable` when you want the feature state to persist in config.
+Use `start/stop` only for direct process control or debugging.
 
 ### Multi-agent routing & session isolation (OpenClaw-aligned)
 
@@ -464,6 +499,11 @@ Skill loading contract:
 | `nextclaw start` | Start gateway + UI in the background |
 | `nextclaw restart` | Restart the background service with optional start flags |
 | `nextclaw stop` | Stop the background service |
+| `nextclaw companion enable` | Persistently enable the companion feature and start it when a local runtime is available |
+| `nextclaw companion disable` | Persistently disable the companion feature and stop any running companion process |
+| `nextclaw companion status` | Show current companion process/config status (`--json`) |
+| `nextclaw companion start` | Start the companion process without changing the persisted feature toggle |
+| `nextclaw companion stop` | Stop the companion process without changing the persisted feature toggle (`--force` supported) |
 | `nextclaw service install-systemd --user` | Install a user-level Linux `systemd` service for NextClaw |
 | `sudo nextclaw service install-systemd --system` | Install a system-wide Linux `systemd` service for NextClaw |
 | `nextclaw service uninstall-systemd --user` | Remove a user-level Linux `systemd` service |
