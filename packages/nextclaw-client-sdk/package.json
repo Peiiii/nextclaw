@@ -26,6 +26,7 @@
     ".": {
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
   },
@@ -42,6 +43,8 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/kernel": "workspace:*",
+    "@nextclaw/server": "workspace:*",
     "@nextclaw/ncp": "workspace:*"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-import type { ApiError } from '@/shared/lib/api';
+import type { ApiError } from '@nextclaw/server';
 import type { AppEvent, AppTransport, RemoteRuntimeInfo, RequestInput, StreamInput, StreamSession } from './transport.types';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 

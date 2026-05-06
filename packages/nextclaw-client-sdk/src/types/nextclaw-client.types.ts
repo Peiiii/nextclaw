@@ -1,0 +1,29 @@
+import type { AgentsService } from "../services/agents.service.js";
+import type { AppService } from "../services/app.service.js";
+import type { AuthService } from "../services/auth.service.js";
+import type { ChannelAuthService } from "../services/channel-auth.service.js";
+import type { ConfigService } from "../services/config.service.js";
+import type { MarketplaceService } from "../services/marketplace.service.js";
+import type { McpMarketplaceService } from "../services/mcp-marketplace.service.js";
+import type { RealtimeService } from "../services/realtime.service.js";
+import type { RemoteService } from "../services/remote.service.js";
+import type { RuntimeControlService } from "../services/runtime-control.service.js";
+import type { RuntimeUpdateService } from "../services/runtime-update.service.js";
+import type { ServerPathsService } from "../services/server-paths.service.js";
+import type { SessionsService } from "../services/sessions.service.js";
+
+export type NextClawClient = {
+  readonly app: AppService;
+  readonly agents: AgentsService;
+  readonly auth: AuthService;
+  readonly channelAuth: ChannelAuthService;
+  readonly config: ConfigService;
+  readonly marketplace: MarketplaceService;
+  readonly mcpMarketplace: McpMarketplaceService;
+  readonly realtime: RealtimeService;
+  readonly remote: RemoteService;
+  readonly runtimeControl: RuntimeControlService;
+  readonly runtimeUpdate: RuntimeUpdateService;
+  readonly serverPaths: ServerPathsService;
+  readonly sessions: SessionsService;
+};

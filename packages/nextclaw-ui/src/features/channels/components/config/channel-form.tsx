@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
 import { Button } from '@/shared/components/ui/button';
 import { StatusDot } from '@/shared/components/ui/status-dot';
-import { appClient } from '@/shared/lib/transport';
+import { nextclawClient } from '@/shared/lib/api';
 import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
 import type { ConfigActionManifest, ConfigUiHints } from '@/shared/lib/api';
 import { ChannelFormFieldsSection } from '@/features/channels/components/channel-form-fields-section';
@@ -77,7 +77,7 @@ function ensureChannelApplySubscription() {
   if (channelApplyUnsubscribe) {
     return;
   }
-  channelApplyUnsubscribe = appClient.subscribe((event) => {
+  channelApplyUnsubscribe = nextclawClient.realtime.subscribe((event) => {
     if (event.type !== 'channel.config.apply-status') {
       return;
     }
@@ -90,7 +90,7 @@ function ensureChannelApplySubscription() {
           : { status: 'failed', message: event.payload.message }
     );
     channelApplyListeners.forEach((listener) => listener());
-  });
+  }).close;
 }
 
 function subscribeChannelApplyStore(listener: () => void) {

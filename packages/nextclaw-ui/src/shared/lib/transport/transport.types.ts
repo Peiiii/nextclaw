@@ -1,4 +1,4 @@
-import type { WsEvent } from '@/shared/lib/api';
+import type { UiServerEvent } from '@nextclaw/server';
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -6,6 +6,8 @@ export type RequestInput = {
   method: RequestMethod;
   path: string;
   body?: unknown;
+  headers?: Record<string, string>;
+  signal?: AbortSignal;
   timeoutMs?: number;
 };
 
@@ -27,7 +29,11 @@ export type StreamSession<TFinal = unknown> = {
   cancel: () => void;
 };
 
-export type AppEvent = WsEvent;
+export type AppEvent =
+  | UiServerEvent
+  | { type: 'connection.open'; payload?: Record<string, never> }
+  | { type: 'connection.close'; payload?: Record<string, never> }
+  | { type: 'connection.error'; payload?: { message?: string } };
 
 export type AppTransport = {
   request<T>(input: RequestInput): Promise<T>;

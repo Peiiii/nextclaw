@@ -181,6 +181,11 @@ export type MarketplaceMcpInstallRequest = {
   template?: MarketplaceMcpInstallSpec;
 };
 
+export type MarketplaceInstallRequest =
+  | MarketplacePluginInstallRequest
+  | MarketplaceSkillInstallRequest
+  | MarketplaceMcpInstallRequest;
+
 export type MarketplacePluginInstallResult = {
   type: "plugin";
   spec: string;
@@ -203,9 +208,19 @@ export type MarketplaceMcpInstallResult = {
   output?: string;
 };
 
+export type MarketplaceInstallResult =
+  | MarketplacePluginInstallResult
+  | MarketplaceSkillInstallResult
+  | MarketplaceMcpInstallResult;
+
 export type MarketplacePluginManageAction = "enable" | "disable" | "uninstall";
 export type MarketplaceSkillManageAction = "uninstall";
 export type MarketplaceMcpManageAction = "enable" | "disable" | "remove";
+
+export type MarketplaceManageAction =
+  | MarketplacePluginManageAction
+  | MarketplaceSkillManageAction
+  | MarketplaceMcpManageAction;
 
 export type MarketplacePluginManageRequest = {
   type?: "plugin";
@@ -227,6 +242,11 @@ export type MarketplaceMcpManageRequest = {
   id?: string;
   spec?: string;
 };
+
+export type MarketplaceManageRequest =
+  | MarketplacePluginManageRequest
+  | MarketplaceSkillManageRequest
+  | MarketplaceMcpManageRequest;
 
 export type MarketplacePluginManageResult = {
   type: "plugin";
@@ -251,6 +271,11 @@ export type MarketplaceMcpManageResult = {
   message: string;
   output?: string;
 };
+
+export type MarketplaceManageResult =
+  | MarketplacePluginManageResult
+  | MarketplaceSkillManageResult
+  | MarketplaceMcpManageResult;
 
 export type MarketplaceMcpDoctorResult = {
   name: string;

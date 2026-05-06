@@ -1,37 +1,36 @@
-import { fetchNcpSessionSkills } from './ncp-session';
-import { api } from './client';
+import { fetchNcpSessionSkills } from './services/ncp-session.service';
+import { nextclawClient } from './services/client.service';
 
-vi.mock('./client', () => ({
-  api: {
-    get: vi.fn()
+vi.mock('./services/client.service', () => ({
+  nextclawClient: {
+    sessions: {
+      listSkills: vi.fn()
+    }
   }
 }));
 
 describe('api/ncp-session', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset();
-    vi.mocked(api.get).mockResolvedValue({
-      ok: true,
-      data: {
-        sessionId: 'session-1',
-        total: 0,
-        refs: [],
-        records: []
-      }
+    vi.mocked(nextclawClient.sessions.listSkills).mockReset();
+    vi.mocked(nextclawClient.sessions.listSkills).mockResolvedValue({
+      sessionId: 'session-1',
+      total: 0,
+      refs: [],
+      records: []
     });
   });
 
   it('does not send an empty projectRoot query when no override is provided', async () => {
     await fetchNcpSessionSkills('session-1', { projectRoot: null });
 
-    expect(api.get).toHaveBeenCalledWith('/api/ncp/sessions/session-1/skills');
+    expect(nextclawClient.sessions.listSkills).toHaveBeenCalledWith('session-1', { projectRoot: null });
   });
 
   it('sends projectRoot only when the override is non-empty', async () => {
     await fetchNcpSessionSkills('session-1', { projectRoot: ' /tmp/project-alpha ' });
 
-    expect(api.get).toHaveBeenCalledWith(
-      '/api/ncp/sessions/session-1/skills?projectRoot=%2Ftmp%2Fproject-alpha'
-    );
+    expect(nextclawClient.sessions.listSkills).toHaveBeenCalledWith('session-1', {
+      projectRoot: ' /tmp/project-alpha '
+    });
   });
 });

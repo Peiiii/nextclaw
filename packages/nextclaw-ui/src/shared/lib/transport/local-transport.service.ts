@@ -1,5 +1,6 @@
 import { systemStatusManager } from '@/features/system-status';
 import type { AppEvent, AppTransport, RequestInput, StreamInput, StreamSession } from './transport.types';
+import { requestRawApiResponse } from './request-raw-api-response.utils';
 import { readSseStreamResult } from './sse-stream.utils';
 import { resolveTransportWebSocketUrl } from './transport-websocket-url.utils';
 
@@ -139,13 +140,14 @@ export class LocalAppTransport implements AppTransport {
     const timeoutId = timeoutMs
       ? window.setTimeout(() => controller?.abort(`Request timed out after ${timeoutMs}ms: ${input.method} ${input.path}`), timeoutMs)
       : null;
+    const requestBody = normalizeRequestBody(input.body);
 
     try {
-      const { requestRawApiResponse } = await import('@/shared/lib/api');
-      const response = await requestRawApiResponse<T>(input.path, {
+      const response = await requestRawApiResponse<T>(this.apiBase, input.path, {
         method: input.method,
-        ...(input.body !== undefined ? { body: JSON.stringify(input.body) } : {}),
-        ...(controller ? { signal: controller.signal } : {})
+        ...(requestBody !== undefined ? { body: requestBody } : {}),
+        ...(input.headers ? { headers: input.headers } : {}),
+        signal: controller?.signal ?? input.signal
       });
       if (!response.ok) {
         throw createTransportError(response, `Request failed for ${input.method} ${input.path}`);
@@ -227,4 +229,22 @@ export class LocalAppTransport implements AppTransport {
   subscribe = (handler: (event: AppEvent) => void): () => void => {
     return this.realtimeGateway.subscribe(handler);
   };
+}
+
+function normalizeRequestBody(body: unknown): BodyInit | undefined {
+  if (body === undefined) {
+    return undefined;
+  }
+  if (
+    body instanceof FormData ||
+    body instanceof URLSearchParams ||
+    body instanceof Blob ||
+    body instanceof ArrayBuffer
+  ) {
+    return body;
+  }
+  if (typeof body === 'string') {
+    return body;
+  }
+  return JSON.stringify(body);
 }

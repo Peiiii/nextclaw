@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { applyNcpSessionRealtimeEvent } from '@/shared/lib/api';
+import { applyNcpSessionRealtimeEvent, nextclawClient } from '@/shared/lib/api';
 import { systemStatusManager } from '@/features/system-status';
-import { appClient } from '@/shared/lib/transport';
 import type { QueryClient } from '@tanstack/react-query';
+import type { NextClawRealtimeEvent } from '@nextclaw/client-sdk';
 
 function shouldInvalidateConfigQuery(configPath: string) {
   const normalized = configPath.trim().toLowerCase();
@@ -41,7 +41,7 @@ function handleRealtimeEvent(
     shouldResyncSessions: boolean;
     clearShouldResyncSessions: () => void;
     markShouldResyncSessions: () => void;
-    event: Parameters<Parameters<typeof appClient.subscribe>[0]>[0];
+    event: NextClawRealtimeEvent;
   }
 ): void {
   const {
@@ -88,7 +88,7 @@ export function useRealtimeQueryBridge(queryClient?: QueryClient) {
   const shouldResyncSessionsRef = useRef(false);
 
   useEffect(() => {
-    return appClient.subscribe((event) =>
+    return nextclawClient.realtime.subscribe((event) =>
       handleRealtimeEvent({
         queryClient,
         shouldResyncSessions: shouldResyncSessionsRef.current,
@@ -100,6 +100,6 @@ export function useRealtimeQueryBridge(queryClient?: QueryClient) {
         },
         event,
       })
-    );
+    ).close;
   }, [queryClient]);
 }

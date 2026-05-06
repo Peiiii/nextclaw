@@ -2,20 +2,22 @@ import type {
   NextClawRealtimeHandler,
   NextClawRealtimeSubscribeOptions,
   NextClawClientOptions
-} from "../types/client-sdk.types.js";
+} from "../types/nextclaw-request.types.js";
 import type {
   NextClawRealtimeEvent,
   NextClawRealtimeSubscription,
   NextClawWebSocketLike
-} from "../types/realtime.types.js";
+} from "../types/nextclaw-realtime.types.js";
 import { resolveWebSocketUrl } from "../utils/url.utils.js";
 
 export class RealtimeService {
   private readonly baseUrl: string;
+  private readonly transport;
   private readonly webSocketFactory?: (url: string) => NextClawWebSocketLike;
 
-  constructor(options: NextClawClientOptions) {
+  constructor(private readonly options: NextClawClientOptions) {
     this.baseUrl = options.baseUrl;
+    this.transport = options.transport;
     this.webSocketFactory = options.webSocketFactory;
   }
 
@@ -23,6 +25,15 @@ export class RealtimeService {
     handler: NextClawRealtimeHandler,
     options: NextClawRealtimeSubscribeOptions = {}
   ): NextClawRealtimeSubscription => {
+    if (this.transport?.subscribe) {
+      const unsubscribe = this.transport.subscribe(handler);
+      return {
+        close: () => {
+          unsubscribe();
+        }
+      };
+    }
+
     let socket: NextClawWebSocketLike | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let closedManually = false;

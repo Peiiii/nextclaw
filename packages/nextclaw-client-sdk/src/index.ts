@@ -1,11 +1,113 @@
-export { createNextClawClient, NextClawClientService } from "./nextclaw-client.service.js";
+export { createNextClawClient, NextClawClientService } from "./services/nextclaw-client.service.js";
 export { NextClawClientError } from "./services/request.service.js";
-export type { NextClawAgentList, NextClawAgentProfile } from "./types/agent.types.js";
+export type {
+  NextClawClient,
+} from "./types/nextclaw-client.types.js";
 export type {
   NextClawClientOptions,
   NextClawRealtimeHandler,
   NextClawRealtimeSubscribeOptions,
-  NextClawRequestOptions
-} from "./types/client-sdk.types.js";
-export type { NextClawRealtimeEvent, NextClawRealtimeSubscription, NextClawWebSocketLike } from "./types/realtime.types.js";
-export type { NextClawSessionList, NextClawSessionMessages, NextClawSessionSummary } from "./types/session.types.js";
+  NextClawRequestOptions,
+  NextClawUploadOptions
+} from "./types/nextclaw-request.types.js";
+export type {
+  NextClawRealtimeEvent,
+  NextClawRealtimeSubscription,
+  NextClawWebSocketLike
+} from "./types/nextclaw-realtime.types.js";
+export type {
+  NextClawQueryParams,
+  NextClawQueryValue,
+  NextClawRequestMethod,
+  NextClawTransport,
+  NextClawTransportRequestInput,
+  NextClawTransportUploadInput
+} from "./types/nextclaw-transport.types.js";
+export type {
+  AgentBindingView,
+  AgentCreateRequest,
+  AgentDeleteResult,
+  AgentProfileView,
+  AgentUpdateRequest,
+  ApiError,
+  AppMetaView,
+  AuthEnabledUpdateRequest,
+  AuthLoginRequest,
+  AuthPasswordUpdateRequest,
+  AuthSetupRequest,
+  AuthStatusView,
+  BootstrapStatusView,
+  ChannelAuthPollRequest,
+  ChannelAuthPollResult,
+  ChannelAuthStartRequest,
+  ChannelAuthStartResult,
+  ChatSessionTypesView,
+  ConfigActionExecuteRequest,
+  ConfigActionExecuteResult,
+  ConfigMetaView,
+  ConfigSchemaResponse,
+  ConfigUiHints,
+  ConfigView,
+  CronActionResult,
+  CronEnableRequest,
+  CronJobView,
+  CronListView,
+  CronRunRequest,
+  MarketplaceInstalledView,
+  MarketplaceInstallRequest,
+  MarketplaceInstallResult,
+  MarketplaceItemType,
+  MarketplaceItemView,
+  MarketplaceListView,
+  MarketplaceMcpContentView,
+  MarketplaceMcpDoctorResult,
+  MarketplaceMcpInstallRequest,
+  MarketplaceMcpInstallResult,
+  MarketplaceMcpManageRequest,
+  MarketplaceMcpManageResult,
+  MarketplacePluginContentView,
+  MarketplaceRecommendationView,
+  MarketplaceSkillContentView,
+  MarketplaceSort,
+  NcpSessionSkillsView,
+  ProviderAuthImportResult,
+  ProviderAuthPollRequest,
+  ProviderAuthPollResult,
+  ProviderAuthStartRequest,
+  ProviderAuthStartResult,
+  ProviderConfigUpdate,
+  ProviderConfigView,
+  ProviderConnectionTestRequest,
+  ProviderConnectionTestResult,
+  ProviderCreateRequest,
+  ProviderCreateResult,
+  ProviderDeleteResult,
+  RemoteAccessView,
+  RemoteAccountProfileUpdateRequest,
+  RemoteBrowserAuthPollRequest,
+  RemoteBrowserAuthPollResult,
+  RemoteBrowserAuthStartRequest,
+  RemoteBrowserAuthStartResult,
+  RemoteDoctorView,
+  RemoteLoginRequest,
+  RemoteServiceAction,
+  RemoteServiceActionResult,
+  RemoteSettingsUpdateRequest,
+  RuntimeConfigUpdate,
+  RuntimeControlActionResult,
+  RuntimeControlView,
+  SearchConfigUpdate,
+  SearchConfigView,
+  SecretsConfigUpdate,
+  SecretsView,
+  ServerPathBrowseView,
+  ServerPathReadView,
+  SessionPatchUpdate,
+  UiNcpAssetPutView as NcpAssetPutView,
+  UiNcpSessionListView,
+  UiNcpSessionMessagesView,
+  UiServerEvent
+} from "@nextclaw/server";
+export type { NcpSessionSummary } from "@nextclaw/ncp";
+export type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
+export type ChannelConfigUpdate = Record<string, unknown>;
