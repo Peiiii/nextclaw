@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { createExternalCommandEnv } from "@nextclaw/core";
 import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
-import { NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
+import { NpmRuntimeBundleService, shouldPreferPackagedNpmRuntime } from "./npm-runtime-bundle.service.js";
 import { inferDefaultNpmRuntimeReleaseChannel } from "./npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateStateStore } from "./npm-runtime-update-state.store.js";
 import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
@@ -49,6 +49,15 @@ export class NpmRuntimeLauncher {
     });
     try {
       const currentBundle = bundleService.resolveCurrentBundle();
+      if (
+        currentBundle &&
+        shouldPreferPackagedNpmRuntime({
+          launcherVersion: getPackageVersion(),
+          currentBundleVersion: currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion
+        })
+      ) {
+        return this.resolvePackagedAppEntrypoint();
+      }
       return currentBundle?.runtimeScriptPath ?? this.resolvePackagedAppEntrypoint();
     } catch (error) {
       console.error(`Cannot start current runtime bundle: ${error instanceof Error ? error.message : String(error)}`);

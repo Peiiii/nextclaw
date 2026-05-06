@@ -2,36 +2,40 @@
 
 ## 当前目标
 
-完成 `nextclaw@0.18.12-beta.7` 的 beta 发布闭环，并把一键 beta 发布入口补到可长期复用。
+修复“npm 全局外壳已升级到 `0.18.12-beta.7`，但产品实际仍启动 `current.json` 里的 `0.18.12-beta.4` bundle，导致版本号继续显示 beta.4”这一启动语义 bug。
 
 ## 明确非目标
 
-- 不新造第二套独立发布机制。
-- 不把桌面 release owner 混进来。
-- 不借这个入口默认抬高 `minimumLauncherVersion`。
+- 不把问题错判成纯 UI 文案 bug。
+- 不抬高 `minimumLauncherVersion`。
+- 不改变 `download` / `apply` 的既有语义。
 
 ## 冻结边界 / 不变量
 
-- NPM beta owner 仍建立在既有 `release:auto` 和 `npm-runtime-update-release.yml` 之上。
-- 如果 batch 不包含 `nextclaw`，不应强行触发 runtime update workflow。
-- 用户后续既可以通过元指令复用，也可以直接跑仓库命令。
+- 仍保持 NPM “外壳 + runtime bundle” 双层模型，不回退到 `npm install -g` 覆盖即生效的旧语义。
+- 真正的修复 owner 在 launcher / runtime update manager，而不是 brand header。
+- 必须同时校验 `nextclaw --version`、`current.json` 语义和 `/api/runtime/update` 的 `currentVersion`。
 
 ## 已完成进展
 
-- 已新增 `pnpm release:beta` 脚本入口。
-- 已新增 `/release-beta` 元指令索引。
-- 已新增 `npm-beta-release` skill。
-- 已把 NPM 发布合同 skill 与 workflow 文档对齐到新入口。
-- 已完成 `--help` / `--dry-run` / governance / maintainability 验证。
-- 已真实发布 npm beta batch，`nextclaw@beta` 现为 `0.18.12-beta.7`。
-- 已完成 runtime workflow `25449644478`，四个平台 release asset 已上传成功。
-- 已确认 `gh-pages` 分支上的 beta manifest 已全部更新为 `0.18.12-beta.7`。
-- 已修复 `release-beta.mjs` 的 tag push 过宽问题，后续只推本次 batch 的 release tags。
+- 已在用户现场复现：
+  - `NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER=1 nextclaw --version = 0.18.12-beta.7`
+  - `nextclaw --version = 0.18.12-beta.4`
+  - `current.json = 0.18.12-beta.4`
+- 已确认根因：launcher 之前无条件优先跑旧 current bundle，不比较外壳版本和 bundle 版本。
+- 已实现统一 `effective current version` 规则：
+  - 运行时版本取 `launcher version` 与 `current bundle version` 中较新的那个
+- 已完成定向验证：
+  - `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts`
+  - `pnpm -C packages/nextclaw tsc`
+  - `pnpm -C packages/nextclaw build`
+  - 隔离 home 下 `node dist/cli/launcher/index.js --version = 0.18.12-beta.7`
+  - 隔离 `serve` 下 `/api/runtime/update.currentVersion = 0.18.12-beta.7`
 
 ## 当前下一步
 
-等待 GitHub Pages 公网 CDN 追上 `beta.7`，完成最后一层公网 manifest 验收后提交并推送脚本修复留痕。
+运行本轮收尾治理校验，确认没有新的可维护性或治理回归；如果通过，再按用户意图提交这次修复。
 
 ## 锚点计数器
 
-13/20
+14/20

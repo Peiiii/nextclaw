@@ -1,5 +1,6 @@
 import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
 import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
+import { resolveEffectiveNpmRuntimeVersion } from "./npm-runtime-bundle.service.js";
 import type { NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
 import type { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
 import type { NpmRuntimeUpdateService, NpmRuntimeAvailableUpdate } from "./npm-runtime-update.service.js";
@@ -191,12 +192,16 @@ export class NpmRuntimeUpdateManager {
 
   private syncStateFromCurrentPointer = (): void => {
     const currentPointer = this.options.layout.readCurrentPointer();
-    if (!currentPointer) {
+    const effectiveCurrentVersion = resolveEffectiveNpmRuntimeVersion({
+      launcherVersion: this.launcherVersion,
+      currentBundleVersion: currentPointer?.version ?? null
+    });
+    if (!effectiveCurrentVersion) {
       return;
     }
     this.options.stateStore.update((state) => ({
       ...state,
-      currentVersion: state.currentVersion ?? currentPointer.version
+      currentVersion: effectiveCurrentVersion
     }));
   };
 

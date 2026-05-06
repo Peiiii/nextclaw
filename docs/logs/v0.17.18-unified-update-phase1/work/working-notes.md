@@ -257,6 +257,57 @@
   - GitHub Pages 公网 CDN 在 workflow 刚完成后的短时间内仍会返回 `beta.6`
   - 因此发布验收应优先区分“gh-pages 分支内容是否已更新”和“公网 CDN 是否已传播完成”，避免把传播延迟误判成发布失败
 
+## 追加记录：beta.7 外壳仍显示 beta.4
+
+### 新复现
+
+- 用户现场状态：
+  - 已安装 npm 全局 `nextclaw@0.18.12-beta.7`
+  - 但 `nextclaw --version` 仍输出 `0.18.12-beta.4`
+  - 左上角产品版本号也仍显示 beta.4
+- 现场证据：
+  - `NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER=1 nextclaw --version` 输出 `0.18.12-beta.7`
+  - 普通 `nextclaw --version` 输出 `0.18.12-beta.4`
+  - `~/.nextclaw/launcher/runtime-bundles/current.json` 仍指向 `0.18.12-beta.4`
+  - `~/.nextclaw/launcher/runtime-bundles/versions/` 下只有 `0.18.12-beta.4`
+
+### 根因
+
+- 这不是单纯的 UI 展示 bug
+- 真正的问题是 launcher 启动语义：
+  - 之前只要 `current.json` 存在，就无条件优先启动 current runtime bundle
+  - 不会比较“当前 bundle 版本”和“新装上的 npm 外壳版本”谁更新
+- 所以当用户通过 `npm install -g nextclaw@beta` 把外壳升级到 `beta.7` 后：
+  - 包内 app 已经是 `beta.7`
+  - 但 launcher 仍会先跳进旧的 `beta.4` runtime bundle
+  - 结果就是用户以为自己已经升到 beta.7，产品实际还活在 beta.4
+
+### 修复
+
+- 在 launcher / runtime update manager 里引入统一的 `effective current version` 规则：
+  - `effective current version = current bundle version` 与 `launcher version` 之间较新的那个
+- 当 `launcher version > current bundle version` 时：
+  - launcher 直接运行包内 app，而不是旧 bundle
+  - runtime update snapshot / state store 里的 `currentVersion` 同步成 launcher version
+- 这样 UI 左上角、`/api/runtime/update`、`nextclaw --version` 都会回到同一个真实版本
+
+### 修后验证
+
+- `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts`：通过，7 个用例
+- `pnpm -C packages/nextclaw tsc`：通过
+- `pnpm -C packages/nextclaw build`：通过
+- 隔离 home 真实复现 smoke：
+  - 复制一个真实 `0.18.12-beta.4` current bundle 到临时 `NEXTCLAW_HOME`
+  - 保持 `current.json = 0.18.12-beta.4`
+  - 用本地修后的 `nextclaw@0.18.12-beta.7` 构建执行 `node dist/cli/launcher/index.js --version`
+  - 结果输出 `0.18.12-beta.7`
+- 接口层 smoke：
+  - 同一隔离 home 启动 `serve`
+  - `GET /api/runtime/update` 返回：
+    - `hostVersion = 0.18.12-beta.7`
+    - `currentVersion = 0.18.12-beta.7`
+  - `launcher/npm-runtime-update-state.json` 也同步写成 `currentVersion = 0.18.12-beta.7`
+
 ### 验证
 
 - `node scripts/release/release-beta.mjs --help`：通过

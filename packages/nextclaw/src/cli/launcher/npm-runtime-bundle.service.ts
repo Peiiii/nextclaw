@@ -176,6 +176,35 @@ export function compareNpmRuntimeVersions(left: string, right: string): number {
   return left.localeCompare(right);
 }
 
+export function resolveEffectiveNpmRuntimeVersion(params: {
+  launcherVersion: string | null;
+  currentBundleVersion: string | null;
+}): string | null {
+  const launcherVersion = params.launcherVersion?.trim() || null;
+  const currentBundleVersion = params.currentBundleVersion?.trim() || null;
+  if (!launcherVersion) {
+    return currentBundleVersion;
+  }
+  if (!currentBundleVersion) {
+    return launcherVersion;
+  }
+  return compareNpmRuntimeVersions(launcherVersion, currentBundleVersion) > 0
+    ? launcherVersion
+    : currentBundleVersion;
+}
+
+export function shouldPreferPackagedNpmRuntime(params: {
+  launcherVersion: string | null;
+  currentBundleVersion: string | null;
+}): boolean {
+  const launcherVersion = params.launcherVersion?.trim() || null;
+  const currentBundleVersion = params.currentBundleVersion?.trim() || null;
+  if (!launcherVersion || !currentBundleVersion) {
+    return false;
+  }
+  return resolveEffectiveNpmRuntimeVersion(params) === launcherVersion;
+}
+
 function parseVersionParts(version: string): number[] {
   return version
     .split(/[.-]/)

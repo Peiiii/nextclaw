@@ -11,7 +11,11 @@ import {
   type UnsignedUpdateManifest
 } from "@nextclaw/kernel/update-contract";
 import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
-import { NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
+import {
+  NpmRuntimeBundleService,
+  resolveEffectiveNpmRuntimeVersion,
+  shouldPreferPackagedNpmRuntime
+} from "./npm-runtime-bundle.service.js";
 import { NpmRuntimeUpdateManager } from "./npm-runtime-update.manager.js";
 import { inferDefaultNpmRuntimeReleaseChannel, NpmRuntimeUpdateSourceService } from "./npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateService } from "./npm-runtime-update.service.js";
@@ -194,6 +198,21 @@ describe("NpmRuntimeUpdateManager", () => {
 });
 
 describe("Npm runtime update defaults", () => {
+  it("prefers the packaged npm runtime when the installed launcher is newer than current bundle", () => {
+    expect(
+      resolveEffectiveNpmRuntimeVersion({
+        launcherVersion: "0.18.12-beta.7",
+        currentBundleVersion: "0.18.12-beta.4"
+      })
+    ).toBe("0.18.12-beta.7");
+    expect(
+      shouldPreferPackagedNpmRuntime({
+        launcherVersion: "0.18.12-beta.7",
+        currentBundleVersion: "0.18.12-beta.4"
+      })
+    ).toBe(true);
+  });
+
   it("defaults beta launchers to the beta channel when no state file exists", async () =>
     await withTempDir(async (rootDir) => {
       const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"), {
@@ -224,4 +243,29 @@ describe("Npm runtime update defaults", () => {
     expect(source.resolveChannel(undefined, "0.18.12-beta.3")).toBe("beta");
     expect(source.resolveChannel(undefined, "0.18.12")).toBe("stable");
   });
+
+  it("reports the packaged runtime version as current when it is newer than the current bundle pointer", async () =>
+    await withTempDir(async (rootDir) => {
+      const layout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const stateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
+      layout.ensureLauncherDirs();
+      writeBundleFixture(layout.getVersionsDir(), "0.18.12-beta.4");
+      layout.writeCurrentPointer({ version: "0.18.12-beta.4" });
+      stateStore.write({
+        ...stateStore.read(),
+        currentVersion: "0.18.12-beta.4"
+      });
+
+      const manifest = createManifest({
+        latestVersion: "0.18.12-beta.8"
+      });
+      const { manager } = createManager({
+        rootDir,
+        manifest,
+        launcherVersion: "0.18.12-beta.7"
+      });
+
+      expect(manager.getSnapshot().currentVersion).toBe("0.18.12-beta.7");
+      expect(stateStore.read().currentVersion).toBe("0.18.12-beta.7");
+    }));
 });
