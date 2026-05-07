@@ -66,7 +66,7 @@ describe("@nextclaw/client-sdk", () => {
     });
     expect(sockets).toHaveLength(0);
     const handler = vi.fn();
-    const subscription = client.sessions.subscribe(handler, { reconnectDelayMs: 10 });
+    const subscription = client.sessions.subscribe(handler);
     const eventBusHandler = vi.fn();
     const unsubscribeEventBus = client.eventBus.on(eventKeys.sessionRunStatus, eventBusHandler);
 
@@ -74,17 +74,18 @@ describe("@nextclaw/client-sdk", () => {
       data: JSON.stringify({ type: "session.run-status", payload: { sessionKey: "s1", status: "running" } })
     });
     sockets[0]?.onclose?.({});
-    vi.advanceTimersByTime(15);
+    vi.advanceTimersByTime(1100);
 
     subscription.close();
     unsubscribeEventBus();
     vi.useRealTimers();
 
     expect(sockets[0]?.url).toBe("ws://127.0.0.1:55667/ws");
-    expect(handler).toHaveBeenCalledWith({
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({
       type: "session.run-status",
-      payload: { sessionKey: "s1", status: "running" }
-    });
+      payload: { sessionKey: "s1", status: "running" },
+      source: "realtime"
+    }));
     expect(eventBusHandler).toHaveBeenCalledWith(
       { sessionKey: "s1", status: "running" },
       expect.objectContaining({ type: "session.run-status", source: "realtime" })

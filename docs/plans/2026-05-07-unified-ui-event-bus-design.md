@@ -240,15 +240,14 @@ private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {
 
 做：
 
-1. `@nextclaw/kernel` 顶层增加 `nextclaw`、`NextClawApp`、`createNextClawApp`、`installNextClawApp`、`getNextClawApp`、`resetNextClawAppForTest`、`EventBus`、`AppEvent`、`eventKeys`。
+1. `@nextclaw/kernel` 顶层增加 `nextclaw`、`NextClawApp`、`EventBus`、`AppEvent`、`eventKeys`。
 2. 增加 `runtime.update.snapshot` key。
-3. 后端 bootstrap 创建并安装一次 `NextClawApp`。
-4. `nextclaw-server` 将 `getNextClawApp().events.subscribeAll(...)` 桥接到现有 `/ws`。
-5. NPM runtime update host 通过 `nextclaw.events.emit(...)` 发布 snapshot。
-6. `@nextclaw-client-sdk` 暴露 `client.eventBus`，并在 SDK 内部绑定 realtime event。
-7. NextClaw UI 改为 `useAppEventConsumers` 消费 `client.eventBus`。
-8. 删除 runtime update host 永久轮询和 `/updates` 页面重复 start。
-9. 补测试和接口级 smoke。
+3. `nextclaw-server` 将 `nextclaw.eventBus.subscribeAll(...)` 桥接到现有 `/ws`。
+4. NPM runtime update host 通过 `nextclaw.eventBus.emit(...)` 发布 snapshot。
+5. `@nextclaw/client-sdk` 暴露 `client.eventBus`，并在 SDK 内部绑定 realtime event。
+6. NextClaw UI 改为 `useAppEventConsumers` 消费 `client.eventBus`。
+7. 删除 runtime update host 永久轮询和 `/updates` 页面重复 start。
+8. 补测试和接口级 smoke。
 
 不做：
 
@@ -266,8 +265,7 @@ private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {
 需要覆盖：
 
 - `EventBus` 支持 `emit/on/off/once/subscribeAll`，并隔离 listener error。
-- `installNextClawApp` 保证同一进程只安装一个 `NextClawApp`。
-- 未安装时 `nextclaw.events` 抛错。
+- `client.eventBus` 第一次订阅才启动 `/ws`，最后一个订阅释放后关闭。
 - runtime update host 每次 snapshot 变化会发布 `runtime.update.snapshot`。
 - `WebSocketEventSink` 能把 `AppEventEnvelope` 发给打开的 WebSocket client。
 - `NextClawClient` 暴露 `client.eventBus`。
