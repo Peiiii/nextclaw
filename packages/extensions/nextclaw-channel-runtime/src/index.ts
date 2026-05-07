@@ -3,7 +3,7 @@ import { DingTalkChannel } from "./channels/dingtalk.js";
 import { DiscordChannel } from "./channels/discord.js";
 import { EmailChannel } from "./channels/email.js";
 import { MochatChannel } from "./channels/mochat.js";
-import { QQChannel } from "./channels/qq.js";
+import { QQChannel } from "./channels/qq.service.js";
 import { SlackChannel } from "./channels/slack.js";
 import { TelegramChannel } from "./channels/telegram.js";
 import { WeComChannel } from "./channels/wecom.js";
