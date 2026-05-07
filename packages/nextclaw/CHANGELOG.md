@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.12
+
+### Patch Changes
+
+- b5ad059: Fix managed runtime update apply to auto-restart service hosts launched through the runtime bundle launcher.
+
 ## 0.18.12-beta.11
 
 ### Patch Changes
