@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-react",
-  "version": "0.4.26-beta.2",
+  "version": "0.4.26-beta.3",
   "private": false,
   "description": "React bindings for building NCP-based agent applications.",
   "type": "module",

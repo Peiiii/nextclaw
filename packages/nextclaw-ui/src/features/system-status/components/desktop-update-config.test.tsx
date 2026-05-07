@@ -79,7 +79,8 @@ describe('DesktopUpdateConfig', () => {
   it('renders current channel information and beta guidance', () => {
     render(<DesktopUpdateConfig />);
 
-    expect(mocks.start).toHaveBeenCalledTimes(1);
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(mocks.stop).not.toHaveBeenCalled();
     expect(screen.getByText('版本更新')).toBeTruthy();
     expect(screen.getByText('宿主版本')).toBeTruthy();
     expect(screen.getByText('当前更新通道')).toBeTruthy();
@@ -97,5 +98,28 @@ describe('DesktopUpdateConfig', () => {
     await user.click(screen.getByRole('option', { name: 'Stable' }));
 
     expect(mocks.updateChannel).toHaveBeenCalledWith('stable');
+  });
+
+  it('renders runtime download progress from the shared store', () => {
+    useRuntimeUpdateStore.setState((state) => ({
+      ...state,
+      busyAction: 'downloading',
+      snapshot: state.snapshot
+        ? {
+            ...state.snapshot,
+            status: 'downloading',
+            progress: {
+              downloadedBytes: 50,
+              totalBytes: 100,
+              percent: 50
+            }
+          }
+        : null
+    }));
+
+    render(<DesktopUpdateConfig />);
+
+    expect(screen.getByText('正在下载 50%')).toBeTruthy();
+    expect(screen.getByText('50 B / 100 B')).toBeTruthy();
   });
 });

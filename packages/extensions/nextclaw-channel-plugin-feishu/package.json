@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-feishu",
-  "version": "0.2.29-beta.1",
+  "version": "0.2.29-beta.2",
   "private": false,
   "description": "NextClaw Feishu/Lark channel plugin with doc/wiki/drive tools.",
   "type": "module",

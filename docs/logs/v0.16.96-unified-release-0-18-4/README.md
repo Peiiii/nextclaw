@@ -11,7 +11,7 @@
 - 桌面 release 实际经历了两次 tag：
   - 第一次 `v0.18.4-desktop.1` 对应 workflow `24847499746`，因远端 smoke 仍引用旧入口而失败，没有形成可接受的完整稳定版闭环。
   - 第二次 `v0.18.4-desktop.2` 对应 workflow `24848029793`，四个平台 smoke、release 资产上传、stable update channel 发布与 Linux APT 仓库发布均已成功。
-- 新增本次桌面正式版 release note：[`GITHUB_RELEASE.md`](./GITHUB_RELEASE.md)
+- 新增本次桌面正式版 release note：[`github-release.md`](./github-release.md)
 - 相关设计与功能迭代文档：
   - [`Tool Result Content Items Design`](../../designs/2026-04-23-tool-result-content-items-design.md)
   - [`v0.16.94-tool-result-budget-guard`](../v0.16.94-tool-result-budget-guard/README.md)

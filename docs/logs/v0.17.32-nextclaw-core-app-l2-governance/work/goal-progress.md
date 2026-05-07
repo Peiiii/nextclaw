@@ -12,9 +12,11 @@
 ## 已完成进展
 - 已提交 `goal-mode` 规则补强：`cf3cbfda`。
 - 已确认 core 当前主要问题是 `app-l1` 与多稳定域真实形态不匹配。
+- 已将 core 切到 `app-l2`，迁移到 `app/`、`features/`、`shared/lib/` 结构。
+- 已修复 builtin skills 资源路径；`tsc` 和 core test 曾跑通，后续需对最终差异重跑。
 
 ## 当前下一步
-创建 app-l2 目标目录，移动 core 源码并修复导入导出。
+删除不合规根入口，改用 `src/app/index.ts` 后重跑最终验证。
 
 ## 锚点计数器
-1/20
+5/20

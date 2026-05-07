@@ -61,7 +61,7 @@ export class NextClawClientService implements NextClawClient {
     this.runtimeControl = new RuntimeControlService(requestService);
     this.runtimeUpdate = new RuntimeUpdateService(requestService);
     this.serverPaths = new ServerPathsService(requestService);
-    this.sessions = new SessionsService(requestService, this.realtime);
+    this.sessions = new SessionsService(requestService, this.eventBus);
   }
 }
 

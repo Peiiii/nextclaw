@@ -176,7 +176,7 @@ node packages/nextclaw-app-runtime/dist/main.js run /tmp/todo-app --data /tmp/to
 - no maintainability findings
 - 当前保留三个 watchpoint：`packages/nextclaw-app-runtime/src/commands` 是历史超预算目录；`workers/marketplace-api/src/infrastructure/apps/marketplace-app-record.repository.ts` 接近 400 行预算；`ts-http-lite` 当前只带来小幅体积下降，后续若继续追求数量级缩减，应优先研究 componentize/JCO 产物而不是继续替换上层路由
 - phase 3 的 skill 收口刻意只改用户路径文案与执行顺序，没有再改 runtime 协议、模板合同或本地运行链路，避免体验层与底层机制继续耦合
-- `pnpm lint:maintainability:guard` 与 `pnpm lint:new-code:governance` 均通过；`pnpm check:governance-backlog-ratchet` 因仓库范围外的既有文档 `docs/logs/v0.16.96-unified-release-0-18-4/GITHUB_RELEASE.md` 仍是 tracked legacy violation 而失败，本次未触碰该无关路径
+- `pnpm lint:maintainability:guard` 与 `pnpm lint:new-code:governance` 均通过；`pnpm check:governance-backlog-ratchet` 因仓库范围外的既有文档 `docs/logs/v0.16.96-unified-release-0-18-4/github-release.md` 仍是 tracked legacy violation 而失败，本次未触碰该无关路径
 
 ## NPM 包发布记录
 

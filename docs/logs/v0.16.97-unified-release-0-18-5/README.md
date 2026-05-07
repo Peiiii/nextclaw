@@ -3,7 +3,7 @@
 ## 迭代完成说明（改了什么）
 
 - 本次迭代用于记录 `nextclaw@0.18.5` 与 `@nextclaw/ui@0.12.13` 的统一 NPM 发版，以及桌面稳定版 `v0.18.5-desktop.1 / 0.0.148` 的完整发布闭环。
-- 本次桌面 release 指向提交 `5561af9c chore: release nextclaw 0.18.5`，对应 GitHub release：[`v0.18.5-desktop.1`](./GITHUB_RELEASE.md)。
+- 本次桌面 release 指向提交 `5561af9c chore: release nextclaw 0.18.5`，对应 GitHub release：[`v0.18.5-desktop.1`](./github-release.md)。
 - 桌面下载 fallback 已切到新的稳定线：
   - `apps/landing/src/desktop-release.service.ts`
   - `apps/landing/en/index.html`
@@ -19,7 +19,7 @@
   - 保留同一个 release tag `v0.18.5-desktop.1`
   - 原地重跑 `24850921704` 的 failed jobs
   - 在 Windows installer smoke 通过后继续完成 release assets、stable update channel 与 Linux APT repo 发布
-- 新增本次桌面正式版 release note：[`GITHUB_RELEASE.md`](./GITHUB_RELEASE.md)
+- 新增本次桌面正式版 release note：[`github-release.md`](./github-release.md)
 
 ## 测试/验证/验收方式
 

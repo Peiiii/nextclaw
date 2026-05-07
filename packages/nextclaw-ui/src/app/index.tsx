@@ -15,7 +15,7 @@ import {
   isTransientAuthStatusBootstrapError,
   useAuthStatus,
 } from "@/hooks/use-auth";
-import { useAppEventConsumers } from "@/hooks/use-app-event-consumers";
+import { useAppEventConsumers } from "@/app/hooks/use-app-event-consumers";
 import {
   PwaInstallBanner,
   PwaUpdateBanner,

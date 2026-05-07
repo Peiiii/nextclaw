@@ -3,8 +3,8 @@
 ## 迭代完成说明（改了什么）
 
 - 基于已发布版本，新增统一对外发布文案：
-  - GitHub Release 正文（`GITHUB_RELEASE.md`）
-  - 多渠道宣发文案（`CHANNEL_ANNOUNCEMENTS.md`）
+  - GitHub Release 正文（`github-release.md`）
+  - 多渠道宣发文案（`channel-announcements.md`）
 - 版本范围聚焦：
   - `nextclaw@0.9.8`
   - `@nextclaw/ui@0.6.6`
@@ -22,8 +22,8 @@
 ## 发布/部署方式
 
 1. 确保版本已完成 NPM 发布。
-2. 使用 `GITHUB_RELEASE_0.9.8.md` 作为正式公告正文创建 GitHub Release（tag：`nextclaw@0.9.8`）。
-3. 将 `CHANNEL_ANNOUNCEMENTS.md` 用于飞书/社群/公众号等外部渠道分发。
+2. 使用 `github-release-0.9.8.md` 作为正式公告正文创建 GitHub Release（tag：`nextclaw@0.9.8`）。
+3. 将 `channel-announcements.md` 用于飞书/社群/公众号等外部渠道分发。
 
 ## 用户/产品视角的验收步骤
 

@@ -18,8 +18,8 @@
   - 将 [`apps/landing/src/main.ts`](/Users/peiwang/Projects/nextbot/apps/landing/src/main.ts) 中的 `DESKTOP_RELEASE_FALLBACK` 从 `v0.17.8-desktop.1 / 0.0.136` 切到 `v0.17.11-desktop.1 / 0.0.140`，避免 GitHub API 不可用时继续回退到旧正式版。
 - 补齐并纠正 GitHub Release 正文：
   - 将本次桌面正式版 release note 修正为双语双区块格式，恢复仓库既有规范：`English Version` 在前，`中文版` 在后。
-  - 新增本次实际发布正文：[GITHUB_RELEASE.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/GITHUB_RELEASE.md)
-  - 新增可复用模板：[GITHUB_RELEASE_TEMPLATE.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/GITHUB_RELEASE_TEMPLATE.md)
+  - 新增本次实际发布正文：[github-release.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/github-release.md)
+  - 新增可复用模板：[github-release-template.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/github-release-template.md)
   - 本次也顺手清掉了当前线上 release note 中重复四次的 `Full Changelog` 噪音。
 - 顺手修掉三个真实阻断发布链路的问题：
   - 将 [`scripts/release/release-scope.mjs`](/Users/peiwang/Projects/nextbot/scripts/release/release-scope.mjs) 的 `prepublishOnly` 预期路径从旧的 `scripts/ensure-pnpm-publish.mjs` 对齐到当前真实路径 `scripts/release/ensure-pnpm-publish.mjs`，否则 `release:check:groups` 会持续假失败。
@@ -80,7 +80,7 @@
   - release 页面：`https://github.com/Peiiii/nextclaw/releases/tag/v0.17.11-desktop.1`
   - 发布时间：`2026-04-14T12:46:23Z`
   - 结果：`isPrerelease=false`
-  - release note 已更新为双语双区块正式说明，并对齐到 [GITHUB_RELEASE.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/GITHUB_RELEASE.md)
+  - release note 已更新为双语双区块正式说明，并对齐到 [github-release.md](/Users/peiwang/Projects/nextbot/docs/logs/v0.16.18-unified-release-0-17-11/github-release.md)
 - 桌面远端工作流：
   - 首次失败 run：`24400918045`
   - 闭环 rerun：`24401769943`

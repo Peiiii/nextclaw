@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createNextClawClient, NextClawClientError } from "./index.js";
+import { createNextClawClient, eventKeys, NextClawClientError } from "./index.js";
 
 describe("@nextclaw/client-sdk", () => {
   it("lists sessions from the existing ncp api", async () => {
@@ -66,6 +66,8 @@ describe("@nextclaw/client-sdk", () => {
     });
     const handler = vi.fn();
     const subscription = client.sessions.subscribe(handler, { reconnectDelayMs: 10 });
+    const eventBusHandler = vi.fn();
+    const unsubscribeEventBus = client.eventBus.on(eventKeys.sessionRunStatus, eventBusHandler);
 
     sockets[0]?.onmessage?.({
       data: JSON.stringify({ type: "session.run-status", payload: { sessionKey: "s1", status: "running" } })
@@ -74,6 +76,7 @@ describe("@nextclaw/client-sdk", () => {
     vi.advanceTimersByTime(15);
 
     subscription.close();
+    unsubscribeEventBus();
     vi.useRealTimers();
 
     expect(sockets[0]?.url).toBe("ws://127.0.0.1:55667/ws");
@@ -81,6 +84,11 @@ describe("@nextclaw/client-sdk", () => {
       type: "session.run-status",
       payload: { sessionKey: "s1", status: "running" }
     });
+    expect(eventBusHandler).toHaveBeenCalledWith(
+      { sessionKey: "s1", status: "running" },
+      expect.objectContaining({ type: "session.run-status", source: "realtime" })
+    );
+    expect(sockets).toHaveLength(2);
   });
 
   it("throws a typed client error for api failures", async () => {

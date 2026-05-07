@@ -7,7 +7,7 @@
 - [NextClaw 产品愿景](../VISION.md)
 - [Unified Desktop and Web Presence Lifecycle Design](../plans/2026-04-14-unified-desktop-web-presence-lifecycle-design.md)
 - [v0.16.13-desktop-web-presence-lifecycle-v1](../logs/v0.16.13-desktop-web-presence-lifecycle-v1/README.md)
-- [v0.16.18-unified-release-0-17-11](../logs/v0.16.18-unified-release-0-17-11/GITHUB_RELEASE.md)
+- [v0.16.18-unified-release-0-17-11](../logs/v0.16.18-unified-release-0-17-11/github-release.md)
 - [CLI Commands](../../apps/docs/zh/guide/commands.md)
 
 若现状代码、文档与本文冲突，以本文作为后续一轮“自启动 / 开机恢复能力”收敛的目标契约。

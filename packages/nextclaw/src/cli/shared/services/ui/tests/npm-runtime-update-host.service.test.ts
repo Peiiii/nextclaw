@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { eventKeys, nextclaw } from "@nextclaw/kernel";
 import { NpmRuntimeUpdateHost } from "../npm-runtime-update-host.service.js";
 
 const mocks = vi.hoisted(() => {
@@ -159,5 +160,25 @@ describe("NpmRuntimeUpdateHost", () => {
       reason: "runtime update apply",
       uiPort: 55667
     });
+  });
+
+  it("publishes runtime update snapshots through the app event bus", async () => {
+    const statuses: string[] = [];
+    const unsubscribe = nextclaw.eventBus.on(eventKeys.runtimeUpdateSnapshot, (snapshot) => {
+      statuses.push(snapshot.status);
+    });
+    const host = new NpmRuntimeUpdateHost({
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 }
+    });
+
+    try {
+      await host.applyDownloadedUpdate();
+    } finally {
+      unsubscribe();
+    }
+
+    expect(statuses).toEqual(["applying", "restart-required"]);
   });
 });

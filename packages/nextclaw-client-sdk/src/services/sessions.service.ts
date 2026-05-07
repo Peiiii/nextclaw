@@ -5,16 +5,16 @@ import type {
   UiNcpSessionListView,
   UiNcpSessionMessagesView
 } from "@nextclaw/server";
+import type { EventBus } from "@nextclaw/kernel";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import type { NextClawRealtimeHandler, NextClawRealtimeSubscribeOptions } from "../types/nextclaw-request.types.js";
 import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";
-import type { RealtimeService } from "./realtime.service.js";
 import type { RequestService } from "./request.service.js";
 
 export class SessionsService {
   constructor(
     private readonly requestService: RequestService,
-    private readonly realtimeService: RealtimeService
+    private readonly eventBus: EventBus
   ) {}
 
   readonly list = async (params?: { limit?: number }): Promise<UiNcpSessionListView> => {
@@ -77,8 +77,13 @@ export class SessionsService {
 
   readonly subscribe = (
     handler: NextClawRealtimeHandler,
-    options: NextClawRealtimeSubscribeOptions = {}
+    _options: NextClawRealtimeSubscribeOptions = {}
   ): NextClawRealtimeSubscription => {
-    return this.realtimeService.subscribe(handler, options);
+    const unsubscribe = this.eventBus.subscribeAll((event) => {
+      handler(event);
+    });
+    return {
+      close: unsubscribe
+    };
   };
 }

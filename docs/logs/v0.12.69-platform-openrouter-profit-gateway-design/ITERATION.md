@@ -13,8 +13,8 @@
 ### 1.1 文档与范围
 
 - 范围文档：[SCOPE.md](./SCOPE.md)
-- 接入文档：[ACCESS-DESIGN.md](./ACCESS-DESIGN.md)
-- 实施计划：[IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md)
+- 接入文档：[access-design.md](./access-design.md)
+- 实施计划：[implementation-plan.md](./implementation-plan.md)
 
 ### 1.2 后端实现（workers/nextclaw-provider-gateway-api）
 

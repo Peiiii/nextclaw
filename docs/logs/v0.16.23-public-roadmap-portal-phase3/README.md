@@ -158,7 +158,7 @@
   - 打开关联官方事项详情，确认建议联动可见
   - 给官方事项点赞并发表评论
 - 全仓 `pnpm lint:maintainability:guard` 本次未能完整通过，但阻断原因已经确认与本次无关：
-  - 当前工作区里已有他人/既有变更触发的文档命名问题：`docs/logs/v0.16.22-desktop-windows-startup-seed-metadata/GITHUB_RELEASE.md`
+  - 当前工作区里已有他人/既有变更触发的文档命名问题：`docs/logs/v0.16.22-desktop-windows-startup-seed-metadata/github-release.md`
   - 与本次相关的新增应用子树治理和目录预算问题已修正，`apps/public-roadmap-feedback-portal` 自身的 diff-only 治理检查已通过。
 
 ## 发布/部署方式

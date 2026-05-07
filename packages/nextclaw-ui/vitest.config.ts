@@ -21,7 +21,7 @@ export default defineConfig({
       '@/components/providers/I18nProvider': path.resolve(__dirname, './src/app/components/i18n-provider.tsx'),
       '@/components/providers/ThemeProvider': path.resolve(__dirname, './src/app/components/theme-provider.tsx'),
       '@/hooks/use-auth': path.resolve(__dirname, './src/features/account/hooks/use-auth.ts'),
-      '@/hooks/use-realtime-query-bridge': path.resolve(__dirname, './src/app/hooks/use-realtime-query-bridge.ts'),
+      '@/hooks/use-app-event-consumers': path.resolve(__dirname, './src/app/hooks/use-app-event-consumers.ts'),
       '@/pwa/components/pwa-install-entry': path.resolve(__dirname, './src/features/pwa/components/pwa-install-entry.tsx'),
       '@/pwa/register-pwa': path.resolve(__dirname, './src/features/pwa/managers/pwa-bootstrap.manager.ts'),
       '@': path.resolve(__dirname, './src'),
