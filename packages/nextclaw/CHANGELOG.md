@@ -1,5 +1,74 @@
 # nextclaw
 
+## 0.18.12-beta.22
+
+### Patch Changes
+
+- Auto-generated full public beta release batch.
+
+  Packages:
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/channel-plugin-dingtalk
+  - @nextclaw/channel-plugin-discord
+  - @nextclaw/channel-plugin-email
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-mochat
+  - @nextclaw/channel-plugin-qq
+  - @nextclaw/channel-plugin-slack
+  - @nextclaw/channel-plugin-telegram
+  - @nextclaw/channel-plugin-wecom
+  - @nextclaw/channel-plugin-weixin
+  - @nextclaw/channel-plugin-whatsapp
+  - @nextclaw/channel-runtime
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/core
+  - @nextclaw/feishu-core
+  - @nextclaw/kernel
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/openclaw-compat
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/companion@0.1.1-beta.6
+  - @nextclaw/core@0.12.13-beta.5
+  - @nextclaw/kernel@0.1.2-beta.6
+  - @nextclaw/mcp@0.1.78-beta.5
+  - @nextclaw/ncp@0.5.6-beta.4
+  - @nextclaw/ncp-agent-runtime@0.3.16-beta.5
+  - @nextclaw/ncp-mcp@0.1.80-beta.5
+  - @nextclaw/ncp-toolkit@0.5.11-beta.4
+  - @nextclaw/nextclaw-hermes-acp-bridge@0.1.5-beta.5
+  - @nextclaw/nextclaw-ncp-runtime-http-client@0.1.5-beta.5
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client@0.1.6-beta.5
+  - @nextclaw/openclaw-compat@1.0.13-beta.6
+  - @nextclaw/remote@0.1.90-beta.6
+  - @nextclaw/runtime@0.2.45-beta.4
+  - @nextclaw/server@0.12.13-beta.6
+
 ## 0.18.12-beta.21
 
 ### Patch Changes

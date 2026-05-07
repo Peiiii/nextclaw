@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/ncp-toolkit",
-  "version": "0.5.11-beta.3",
+  "version": "0.5.11-beta.4",
   "private": false,
   "description": "Toolkit implementations built on top of the NextClaw Communication Protocol.",
   "type": "module",

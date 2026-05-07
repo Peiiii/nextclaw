@@ -1,5 +1,27 @@
 # @nextclaw/desktop
 
+## 0.0.155-beta.16
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/channel-plugin-dingtalk@0.2.44-beta.6
+  - @nextclaw/channel-plugin-discord@0.2.44-beta.6
+  - @nextclaw/channel-plugin-email@0.2.44-beta.6
+  - @nextclaw/channel-plugin-feishu@0.2.29-beta.4
+  - @nextclaw/channel-plugin-mochat@0.2.44-beta.6
+  - @nextclaw/channel-plugin-qq@0.2.44-beta.6
+  - @nextclaw/channel-plugin-slack@0.2.44-beta.6
+  - @nextclaw/channel-plugin-telegram@0.2.44-beta.6
+  - @nextclaw/channel-plugin-wecom@0.2.44-beta.6
+  - @nextclaw/channel-plugin-whatsapp@0.2.44-beta.6
+  - @nextclaw/channel-runtime@0.4.30-beta.6
+  - @nextclaw/core@0.12.13-beta.5
+  - @nextclaw/kernel@0.1.2-beta.6
+  - @nextclaw/openclaw-compat@1.0.13-beta.6
+  - @nextclaw/server@0.12.13-beta.6
+  - nextclaw@0.18.12-beta.22
+
 ## 0.0.155-beta.15
 
 ### Patch Changes
