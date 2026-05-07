@@ -68,6 +68,7 @@
     "fix-managed-runtime-apply-version",
     "fix-packaged-runtime-prefers-newer-launcher",
     "manual-beta-npm-only-nextclaw-20260507",
-    "manual-beta11-host-verification"
+    "manual-beta11-host-verification",
+    "manual-beta13-managed-apply-verification"
   ]
 }

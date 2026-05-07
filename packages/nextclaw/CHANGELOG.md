@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.13
+
+### Patch Changes
+
+- 9802516: Queue a follow-up beta release to verify managed runtime update apply restarts the service automatically.
+
 ## 0.18.12-beta.12
 
 ### Patch Changes
