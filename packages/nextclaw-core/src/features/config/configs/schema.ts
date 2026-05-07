@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { FeishuConfigSchema as NextClawFeishuConfigSchema } from "@nextclaw/feishu-core";
-import { findProviderByName, listProviderSpecs } from "../providers/registry.js";
+import { findProviderByName, listProviderSpecs } from "../../llm-providers/providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
-import { expandHome, getPackageVersion } from "../utils/helpers.js";
+import { expandHome, getPackageVersion } from "../../../shared/lib/core-utils/utils/helpers.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
 import { buildConfigActions, type ConfigActionManifest } from "./actions.js";
 

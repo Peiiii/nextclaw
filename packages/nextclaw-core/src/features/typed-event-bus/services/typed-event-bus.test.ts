@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createGlobalTypedEventBus,
   createTypedEventKey,
-} from "./index.js";
+} from "../index.js";
 
 describe("GlobalTypedEventBus", () => {
   it("binds payload types to event keys", () => {

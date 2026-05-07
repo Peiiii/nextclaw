@@ -1,8 +1,8 @@
-import type { Config, ProviderConfig } from "../config/schema.js";
-import { getApiBase, getProvider, getProviderName } from "../config/schema.js";
+import type { Config, ProviderConfig } from "../../config/configs/schema.js";
+import { getApiBase, getProvider, getProviderName } from "../../config/configs/schema.js";
 import type { LLMProvider, LLMResponse, LLMStreamEvent } from "./base.js";
 import { LiteLLMProvider } from "./litellm_provider.js";
-import type { ThinkingLevel } from "../utils/thinking.js";
+import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
 
 type ProviderManagerOptions = {
   defaultProvider: LLMProvider;

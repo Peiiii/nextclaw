@@ -1,5 +1,6 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
+import { eventKeys } from '@nextclaw/kernel';
 import { BookOpen, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
@@ -77,20 +78,17 @@ function ensureChannelApplySubscription() {
   if (channelApplyUnsubscribe) {
     return;
   }
-  channelApplyUnsubscribe = nextclawClient.realtime.subscribe((event) => {
-    if (event.type !== 'channel.config.apply-status') {
-      return;
-    }
+  channelApplyUnsubscribe = nextclawClient.eventBus.on(eventKeys.channelConfigApplyStatus, (payload) => {
     channelApplySnapshots.set(
-      event.payload.channel,
-      event.payload.status === 'started'
+      payload.channel,
+      payload.status === 'started'
         ? { status: 'applying' }
-        : event.payload.status === 'succeeded'
+        : payload.status === 'succeeded'
           ? { status: 'applied' }
-          : { status: 'failed', message: event.payload.message }
+          : { status: 'failed', message: payload.message }
     );
     channelApplyListeners.forEach((listener) => listener());
-  }).close;
+  });
 }
 
 function subscribeChannelApplyStore(listener: () => void) {

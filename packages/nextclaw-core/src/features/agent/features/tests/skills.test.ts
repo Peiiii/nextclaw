@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { SkillsLoader } from "../skills-loader.js";
+import { SkillsLoader } from "../../services/skills-loader.js";
 
 const tempWorkspaces: string[] = [];
 

@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { SKILL_METADATA_KEY } from "../config/brand.js";
-import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "../session/session-project-context.js";
+import { SKILL_METADATA_KEY } from "../../config/configs/brand.js";
+import { DEFAULT_PROJECT_SKILLS_DIR_NAME } from "../../session/services/session-project-context.js";
 
 export type SkillScope = "builtin" | "project" | "workspace";
 
@@ -271,6 +271,7 @@ export class SkillsLoader {
   private resolveBuiltinSkillsRoot = (): string | null => {
     const currentDir = dirname(fileURLToPath(import.meta.url));
     const candidates = [
+      resolve(currentDir, "..", "shared", "skills"),
       join(currentDir, "skills"),
       resolve(currentDir, "..", "skills"),
     ];

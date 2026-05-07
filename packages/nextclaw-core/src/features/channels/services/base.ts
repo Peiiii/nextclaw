@@ -1,5 +1,5 @@
-import type { MessageBus } from "../bus/queue.js";
-import type { InboundAttachment, InboundMessage, OutboundMessage } from "../bus/events.js";
+import type { MessageBus } from "../../bus/services/queue.js";
+import type { InboundAttachment, InboundMessage, OutboundMessage } from "../../bus/services/events.js";
 
 export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
   protected running = false;

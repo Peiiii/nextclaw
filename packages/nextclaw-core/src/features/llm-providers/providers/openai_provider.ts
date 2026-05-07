@@ -10,20 +10,20 @@ import {
   buildOpenAiApiBaseCandidates,
   createEmptyChatCompletionsPayloadError,
   isSemanticallyEmptyOpenAiResponse,
-} from "../utils/openai/response.utils.js";
-import { extractLeadingJson } from "../utils/openai/responses-payload.utils.js";
+} from "../../../shared/lib/core-utils/features/openai/utils/response.utils.js";
+import { extractLeadingJson } from "../../../shared/lib/core-utils/features/openai/utils/responses-payload.utils.js";
 import {
   consumeOpenAiResponsesStream,
   executeOpenAiResponsesStreamRequest,
-} from "../utils/openai/responses-stream.utils.js";
+} from "../../../shared/lib/core-utils/features/openai/utils/responses-stream.utils.js";
 import {
   createOpenAiChatCompletionsStreamState,
   consumeOpenAiChatCompletionsChunk,
   finalizeOpenAiChatCompletionsStreamResponse,
   mergeOpenAiUsageCounters,
-} from "../utils/openai/stream.utils.js";
-import type { ThinkingLevel } from "../utils/thinking.js";
-import { mapThinkingLevelToOpenAIReasoningEffort } from "../utils/thinking.js";
+} from "../../../shared/lib/core-utils/features/openai/utils/stream.utils.js";
+import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
+import { mapThinkingLevelToOpenAIReasoningEffort } from "../../../shared/lib/core-utils/utils/thinking.js";
 
 export type OpenAIProviderOptions = {
   apiKey?: string | null;

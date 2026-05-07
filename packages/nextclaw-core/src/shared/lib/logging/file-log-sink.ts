@@ -1,6 +1,6 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, resolve } from "node:path";
-import { getLogsArchivePath, getLogsPath } from "../utils/helpers.js";
+import { getLogsArchivePath, getLogsPath } from "../core-utils/utils/helpers.js";
 import type { AppLogLevel, AppLogRecord } from "./app-logger.js";
 
 export type AppLogKind = "service" | "crash";

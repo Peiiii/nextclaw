@@ -1,5 +1,5 @@
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import type { UpdateSnapshot } from "@/types/update.types.js";
+import type { UpdateSnapshot } from "../types/update.types.js";
 import type { AppEventKey } from "./event-bus.types.js";
 
 export function createAppEventKey<T>(id: string): AppEventKey<T> {

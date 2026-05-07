@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Config } from "../config/schema.js";
-import type { OutboundMessage, InboundMessage } from "../bus/events.js";
-import { MessageBus } from "../bus/queue.js";
-import { createAssistantStreamResetControlMessage, createTypingStopControlMessage } from "../bus/control.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { OutboundMessage, InboundMessage } from "../../bus/services/events.js";
+import { MessageBus } from "../../bus/services/queue.js";
+import { createAssistantStreamResetControlMessage, createTypingStopControlMessage } from "../../bus/services/control.js";
 import { ChannelManager } from "./manager.js";
 import { BaseChannel } from "./base.js";
-import type { ExtensionChannelRegistration } from "../extensions/types.js";
+import type { ExtensionChannelRegistration } from "../../extensions/types/types.js";
 
 class MockChannel extends BaseChannel<Record<string, unknown>> {
   name = "discord";

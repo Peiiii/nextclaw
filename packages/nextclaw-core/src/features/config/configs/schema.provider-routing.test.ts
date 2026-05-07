@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { configureProviderCatalog } from "../providers/registry.js";
+import { configureProviderCatalog } from "../../llm-providers/providers/registry.js";
 import { ConfigSchema, getApiBase, getProviderName } from "./schema.js";
 
 describe("provider apiBase routing", () => {

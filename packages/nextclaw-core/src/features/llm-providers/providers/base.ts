@@ -1,4 +1,4 @@
-import type { ThinkingLevel } from "../utils/thinking.js";
+import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
 
 export type ToolCallRequest = {
   id: string;

@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SessionManager } from "../../session/manager.js";
+import { SessionManager } from "../../../session/services/manager.js";
 import { SessionsListTool } from "./sessions.js";
 
 const HOME_ENV_KEY = "NEXTCLAW_HOME";

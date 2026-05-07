@@ -1,7 +1,7 @@
-import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
-import type { Config } from "../config/schema.js";
-import type { ExtensionChannelRegistration } from "../extensions/types.js";
+import type { MessageBus } from "../../bus/services/queue.js";
+import type { OutboundMessage } from "../../bus/services/events.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { ExtensionChannelRegistration } from "../../extensions/types/types.js";
 import { BaseChannel } from "./base.js";
 
 export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>> {

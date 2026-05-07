@@ -15,7 +15,7 @@ import {
 } from "./agent-profile-runtime-fields.js";
 import { loadConfig, saveConfig } from "./loader.js";
 import type { Config } from "./schema.js";
-import { expandHome } from "../utils/helpers.js";
+import { expandHome } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export const BUILTIN_MAIN_AGENT_ID = "main";
 const AGENT_HOME_DIRECTORY_SEGMENT = "agents";

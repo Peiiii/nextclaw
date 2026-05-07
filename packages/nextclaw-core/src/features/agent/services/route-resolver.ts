@@ -1,5 +1,5 @@
-import type { InboundMessage } from "../bus/events.js";
-import type { Config } from "../config/schema.js";
+import type { InboundMessage } from "../../bus/services/events.js";
+import type { Config } from "../../config/configs/schema.js";
 
 const DEFAULT_AGENT_ID = "main";
 const DEFAULT_ACCOUNT_ID = "default";

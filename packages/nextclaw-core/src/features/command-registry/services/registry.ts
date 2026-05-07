@@ -1,10 +1,10 @@
-import type { Config } from "../config/schema.js";
-import type { SessionManager } from "../session/manager.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { SessionManager } from "../../session/services/manager.js";
 import {
   CLEAR_THINKING_TOKENS,
   THINKING_LEVELS,
   parseThinkingLevel
-} from "../utils/thinking.js";
+} from "../../../shared/lib/core-utils/utils/thinking.js";
 
 export type CommandOptionType = "string" | "boolean" | "number";
 

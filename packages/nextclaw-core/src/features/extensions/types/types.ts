@@ -1,7 +1,7 @@
-import type { Config } from "../config/schema.js";
-import type { MessageBus } from "../bus/queue.js";
-import type { SessionManager } from "../session/manager.js";
-import type { BaseChannel } from "../channels/base.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { MessageBus } from "../../bus/services/queue.js";
+import type { SessionManager } from "../../session/services/manager.js";
+import type { BaseChannel } from "../../channels/services/base.js";
 
 export type ExtensionDiagnostic = {
   level: "warn" | "error";

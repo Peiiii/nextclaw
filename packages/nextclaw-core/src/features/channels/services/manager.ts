@@ -1,13 +1,13 @@
-import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
-import type { Config } from "../config/schema.js";
+import type { MessageBus } from "../../bus/services/queue.js";
+import type { OutboundMessage } from "../../bus/services/events.js";
+import type { Config } from "../../config/configs/schema.js";
 import type { BaseChannel } from "./base.js";
-import type { SessionManager } from "../session/manager.js";
-import { sanitizeOutboundAssistantContent } from "../utils/reasoning-tags.js";
+import type { SessionManager } from "../../session/services/manager.js";
+import { sanitizeOutboundAssistantContent } from "../../../shared/lib/core-utils/utils/reasoning-tags.js";
 import { ExtensionChannelAdapter } from "./extension_channel.js";
-import type { ExtensionChannelRegistration } from "../extensions/types.js";
-import { evaluateSilentReply } from "../agent/silent-reply-policy.js";
-import { isNextclawControlMessage } from "../bus/control.js";
+import type { ExtensionChannelRegistration } from "../../extensions/types/types.js";
+import { evaluateSilentReply } from "../../agent/services/silent-reply-policy.js";
+import { isNextclawControlMessage } from "../../bus/services/control.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};

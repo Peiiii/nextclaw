@@ -1,7 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { extname, join, normalize, resolve } from "node:path";
 import type { Config } from "./schema.js";
-import { expandHome } from "../utils/helpers.js";
+import { expandHome } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export function materializeAgentAvatar(params: {
   avatar?: string;

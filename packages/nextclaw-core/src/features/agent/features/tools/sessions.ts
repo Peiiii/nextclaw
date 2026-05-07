@@ -1,11 +1,11 @@
 import { Tool } from "./base.js";
-import type { SessionManager } from "../../session/manager.js";
+import type { SessionManager } from "../../../session/services/manager.js";
 import {
   normalizeOptionalRouteString,
   parseAgentSessionDeliveryRoute,
   parseSimpleSessionKey,
   resolveSessionDeliveryRoute,
-} from "../route-resolver.js";
+} from "../../services/route-resolver.js";
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_MESSAGE_LIMIT = 0;

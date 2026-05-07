@@ -1,5 +1,4 @@
 import type { UpdateSnapshot } from '@nextclaw/kernel';
-import { useEffect } from 'react';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
@@ -134,12 +133,6 @@ function RuntimeUpdateUnavailableState() {
 
 export function DesktopUpdateConfig() {
   const { supported, initialized, busyAction, snapshot } = useRuntimeUpdateStore();
-  useEffect(() => {
-    void runtimeUpdateManager.start();
-    return () => {
-      runtimeUpdateManager.stop();
-    };
-  }, []);
   if (!initialized) {
     return <div className="p-8 text-gray-400">{t('loading')}</div>;
   }

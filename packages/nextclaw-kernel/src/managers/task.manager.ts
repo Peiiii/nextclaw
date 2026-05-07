@@ -1,5 +1,5 @@
-import type { AgentId, SessionId, TaskId } from "@/types/entity-ids.types.js";
-import type { TaskRecord, TaskStatus } from "@/types/task.types.js";
+import type { AgentId, SessionId, TaskId } from "../types/entity-ids.types.js";
+import type { TaskRecord, TaskStatus } from "../types/task.types.js";
 
 export class TaskManager {
   readonly listTasks = () => {

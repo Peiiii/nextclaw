@@ -1,4 +1,4 @@
-import type { OutboundMessage } from "../../bus/events.js";
+import type { OutboundMessage } from "../../../bus/services/events.js";
 import { Tool } from "./base.js";
 
 export class MessageTool extends Tool {

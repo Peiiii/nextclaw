@@ -1,5 +1,5 @@
 import { join, resolve } from "node:path";
-import { expandHome, getWorkspacePath } from "../utils/helpers.js";
+import { expandHome, getWorkspacePath } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export const DEFAULT_PROJECT_SKILLS_DIR_NAME = ".agents/skills";
 

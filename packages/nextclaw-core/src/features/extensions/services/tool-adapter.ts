@@ -1,11 +1,11 @@
-import { Tool } from "../agent/tools/base.js";
-import type { Config } from "../config/schema.js";
+import { Tool } from "../../agent/features/tools/base.js";
+import type { Config } from "../../config/configs/schema.js";
 import type {
   ExtensionDiagnostic,
   ExtensionTool,
   ExtensionToolContext,
   ExtensionToolRegistration
-} from "./types.js";
+} from "../types/types.js";
 
 function normalizeToolList(value: unknown): ExtensionTool[] {
   if (!value) {

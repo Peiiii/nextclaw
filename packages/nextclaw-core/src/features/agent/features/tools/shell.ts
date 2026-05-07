@@ -2,7 +2,7 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { resolve } from "node:path";
 import { Tool } from "./base.js";
-import { createExternalCommandEnv } from "../../utils/child-process-env.js";
+import { createExternalCommandEnv } from "../../../../shared/lib/core-utils/utils/child-process-env.js";
 
 const execAsync = promisify(exec);
 type ExecRunnerOptions = {

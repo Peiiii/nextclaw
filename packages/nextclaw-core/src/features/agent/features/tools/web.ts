@@ -1,7 +1,7 @@
 import { fetch } from "undici";
 import { Tool } from "./base.js";
-import { APP_USER_AGENT } from "../../config/brand.js";
-import type { SearchConfig, SearchProviderName } from "../../config/schema.js";
+import { APP_USER_AGENT } from "../../../config/configs/brand.js";
+import type { SearchConfig, SearchProviderName } from "../../../config/configs/schema.js";
 
 type SearchResultItem = {
   title: string;

@@ -1,8 +1,8 @@
 import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "./base.js";
-import { AnthropicMessagesProvider } from "./anthropic/anthropic-messages.provider.js";
+import { AnthropicMessagesProvider } from "../features/anthropic/providers/anthropic-messages.provider.js";
 import { OpenAICompatibleProvider } from "./openai_provider.js";
 import { findGateway, findProviderByModel, findProviderByName, type ProviderSpec } from "./registry.js";
-import type { ThinkingLevel } from "../utils/thinking.js";
+import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
 
 export type LiteLLMProviderOptions = {
   apiKey?: string | null;

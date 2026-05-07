@@ -1,7 +1,7 @@
 import {
   type TypedEventKey,
   readTypedEventKeyId,
-} from "./typed-event-key.types.js";
+} from "../types/typed-event-key.types.js";
 
 export type TypedEventHandler<T> = (payload: T) => void;
 

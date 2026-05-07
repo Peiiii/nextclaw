@@ -1,5 +1,5 @@
-import type { LLMResponse, LLMStreamEvent, ToolCallRequest } from "../../providers/base.js";
-import { normalizeStructuredUsageCounters } from "../../providers/chat-completions-normalizer.js";
+import type { LLMResponse, LLMStreamEvent, ToolCallRequest } from "../../../../../../features/llm-providers/providers/base.js";
+import { normalizeStructuredUsageCounters } from "../../../../../../features/llm-providers/providers/chat-completions-normalizer.js";
 
 type ToolCallBuffer = {
   id?: string;

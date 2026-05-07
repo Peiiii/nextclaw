@@ -1,14 +1,14 @@
-import type { Config } from "../config/schema.js";
+import type { Config } from "../../config/configs/schema.js";
 import {
   buildRequestedSkillsUserPrompt,
   buildSkillLearningUserPromptSection,
-} from "../agent/skill-context.js";
-import { SkillsLoader } from "../agent/skills-loader.js";
-import { buildMinimalRuntimeExecutionPrompt } from "../agent/execution-prompt.utils.js";
+} from "../../agent/services/skill-context.js";
+import { SkillsLoader } from "../../agent/services/skills-loader.js";
+import { buildMinimalRuntimeExecutionPrompt } from "../../agent/utils/execution-prompt.utils.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,
-} from "../session/session-project-context.js";
+} from "../../session/services/session-project-context.js";
 import { buildWorkspaceProjectContextSection } from "./bootstrap-context.service.js";
 
 type ContextConfig = Config["agents"]["context"];

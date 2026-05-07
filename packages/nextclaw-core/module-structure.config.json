@@ -1,6 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "app-l1",
+  "protocol": "app-l2",
   "rootPolicy": "contract-only",
   "enforcement": "error"
 }

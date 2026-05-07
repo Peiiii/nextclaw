@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
-import type { ProviderManager } from "../providers/provider_manager.js";
-import type { MessageBus } from "../bus/queue.js";
-import type { InboundMessage } from "../bus/events.js";
-import { ToolRegistry } from "./tools/registry.js";
-import { ReadFileTool, WriteFileTool, ListDirTool } from "./tools/filesystem.js";
-import { ExecTool } from "./tools/shell.js";
-import { WebSearchTool, WebFetchTool } from "./tools/web.js";
-import { InputBudgetPruner } from "./input-budget-pruner.service.js";
-import { resolveSubagentModel } from "./subagents/subagent-model.utils.js";
-import type { SearchConfig } from "../config/schema.js";
+import type { ProviderManager } from "../../llm-providers/providers/provider_manager.js";
+import type { MessageBus } from "../../bus/services/queue.js";
+import type { InboundMessage } from "../../bus/services/events.js";
+import { ToolRegistry } from "../features/tools/registry.js";
+import { ReadFileTool, WriteFileTool, ListDirTool } from "../features/tools/filesystem.js";
+import { ExecTool } from "../features/tools/shell.js";
+import { WebSearchTool, WebFetchTool } from "../features/tools/web.js";
+import { InputBudgetPruner } from "../services/input-budget-pruner.service.js";
+import { resolveSubagentModel } from "../features/subagents/subagent-model.utils.js";
+import type { SearchConfig } from "../../config/configs/schema.js";
 
 export class SubagentManager {
   private inputBudgetPruner = new InputBudgetPruner();

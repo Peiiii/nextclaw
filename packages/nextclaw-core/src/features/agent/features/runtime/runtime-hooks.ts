@@ -1,4 +1,4 @@
-import type { InboundMessage } from "../../bus/events.js";
+import type { InboundMessage } from "../../../bus/services/events.js";
 import type { Tool } from "../tools/base.js";
 import type { ToolRegistry } from "../tools/registry.js";
 

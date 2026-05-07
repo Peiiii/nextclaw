@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { extname } from "node:path";
-import type { InboundAttachment } from "../../bus/events.js";
+import type { InboundAttachment } from "../../../bus/services/events.js";
 
 export type UserContentMessage = Record<string, unknown>;
 export type ContextUserContent = string | UserContentMessage[];

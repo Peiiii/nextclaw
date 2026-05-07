@@ -1,4 +1,5 @@
 import type { CronService, ThinkingLevel } from "@nextclaw/core";
+import type { AppEvent } from "@nextclaw/kernel";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
@@ -876,7 +877,7 @@ export type ConfigActionExecuteResult = {
   nextActions?: string[];
 };
 
-export type { AppEvent as UiServerEvent } from "@nextclaw/kernel";
+export type UiServerEvent = AppEvent;
 
 export type UiServerOptions = {
   host: string;

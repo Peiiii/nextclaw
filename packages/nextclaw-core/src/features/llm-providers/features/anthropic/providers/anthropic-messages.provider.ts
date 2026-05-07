@@ -1,5 +1,5 @@
-import { LLMProvider, type LLMResponse, type ToolCallRequest } from "../base.js";
-import type { ThinkingLevel } from "../../utils/thinking.js";
+import { LLMProvider, type LLMResponse, type ToolCallRequest } from "../../../providers/base.js";
+import type { ThinkingLevel } from "../../../../../shared/lib/core-utils/utils/thinking.js";
 
 type AnthropicMessagesProviderOptions = {
   apiKey?: string | null;

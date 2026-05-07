@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import type { LLMStreamEvent } from "./base.js";
 import { OpenAICompatibleProvider } from "./openai_provider.js";
-import { parseOpenAiResponsesPayload } from "../utils/openai/responses-payload.utils.js";
+import { parseOpenAiResponsesPayload } from "../../../shared/lib/core-utils/features/openai/utils/responses-payload.utils.js";
 
 const originalFetch = globalThis.fetch;
 

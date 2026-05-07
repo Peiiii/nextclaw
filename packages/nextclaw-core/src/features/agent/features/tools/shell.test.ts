@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { ExecTool } from "./shell.js";
-import { createExternalCommandEnv, sanitizeNodeOptionsForExternalCommand } from "../../utils/child-process-env.js";
+import { createExternalCommandEnv, sanitizeNodeOptionsForExternalCommand } from "../../../../shared/lib/core-utils/utils/child-process-env.js";
 
 describe("ExecTool", () => {
   it("returns structured success output with stdout and stderr preserved", async () => {

@@ -1,5 +1,5 @@
-import type { ToolRecord } from "@/types/tool.types.js";
-import type { ToolId } from "@/types/entity-ids.types.js";
+import type { ToolId } from "../types/entity-ids.types.js";
+import type { ToolRecord } from "../types/tool.types.js";
 
 export class ToolManager {
   readonly listTools = () => {

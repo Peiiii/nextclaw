@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { ensureDir, expandHome, getSessionsPath, safeFilename } from "../utils/helpers.js";
+import { ensureDir, expandHome, getSessionsPath, safeFilename } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export type SessionMessage = {
   role: string;

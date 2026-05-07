@@ -15,7 +15,7 @@ import {
   isTransientAuthStatusBootstrapError,
   useAuthStatus,
 } from "@/hooks/use-auth";
-import { useRealtimeQueryBridge } from "@/hooks/use-realtime-query-bridge";
+import { useAppEventConsumers } from "@/hooks/use-app-event-consumers";
 import {
   PwaInstallBanner,
   PwaUpdateBanner,
@@ -212,7 +212,7 @@ function ProtectedRoutes() {
 }
 
 function ProtectedApp() {
-  useRealtimeQueryBridge(appQueryClient);
+  useAppEventConsumers(appQueryClient);
   useSystemStatusSources();
   useEffect(() => {
     void runtimeUpdateManager.start();

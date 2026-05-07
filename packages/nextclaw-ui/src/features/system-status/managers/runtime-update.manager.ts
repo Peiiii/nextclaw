@@ -25,8 +25,6 @@ interface HostRuntimeUpdateSourceContract extends RuntimeUpdateSourceBase {
   kind: 'runtime-host';
 }
 
-const RUNTIME_HOST_POLL_INTERVAL_MS = 1000;
-
 type RuntimeUpdateSource = DesktopBridgeRuntimeUpdateSourceContract | HostRuntimeUpdateSourceContract;
 
 class DesktopBridgeRuntimeUpdateSource implements DesktopBridgeRuntimeUpdateSourceContract {
@@ -93,7 +91,6 @@ class HostRuntimeUpdateSource implements HostRuntimeUpdateSourceContract {
 
 export class RuntimeUpdateManager {
   private unsubscribe: (() => void) | null = null;
-  private pollingTimer: number | null = null;
   private subscriptionCount = 0;
   private source: RuntimeUpdateSource | null = null;
 
@@ -118,10 +115,6 @@ export class RuntimeUpdateManager {
           snapshot
         });
       });
-    }
-
-    if (source.kind === 'runtime-host') {
-      this.ensurePolling();
     }
 
     useRuntimeUpdateStore.setState({
@@ -160,11 +153,25 @@ export class RuntimeUpdateManager {
     }
     this.unsubscribe?.();
     this.unsubscribe = null;
-    if (this.pollingTimer !== null && typeof window !== 'undefined') {
-      window.clearInterval(this.pollingTimer);
-    }
-    this.pollingTimer = null;
     this.source = null;
+  };
+
+  reportSnapshot = (snapshot: UpdateSnapshot): void => {
+    if (this.source?.kind === 'desktop-bridge') {
+      return;
+    }
+    useRuntimeUpdateStore.setState({
+      supported: true,
+      initialized: true,
+      snapshot
+    });
+  };
+
+  refreshAfterRealtimeReconnect = async (): Promise<void> => {
+    if (this.source?.kind !== 'runtime-host') {
+      return;
+    }
+    await this.refreshSnapshot();
   };
 
   checkForUpdates = async () => {
@@ -247,15 +254,6 @@ export class RuntimeUpdateManager {
     }
 
     toast.success(t('runtimeUpdatesChannelChanged').replace('{channel}', this.getChannelLabel(channel)));
-  };
-
-  private ensurePolling = () => {
-    if (this.pollingTimer !== null || typeof window === 'undefined') {
-      return;
-    }
-    this.pollingTimer = window.setInterval(() => {
-      void this.refreshSnapshot();
-    }, RUNTIME_HOST_POLL_INTERVAL_MS);
   };
 
   private refreshSnapshot = async () => {

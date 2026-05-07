@@ -1,5 +1,5 @@
 import { Tool } from "./base.js";
-import type { SubagentManager } from "../subagent.manager.js";
+import type { SubagentManager } from "../../managers/subagent.manager.js";
 
 export class SpawnTool extends Tool {
   private channel = "cli";

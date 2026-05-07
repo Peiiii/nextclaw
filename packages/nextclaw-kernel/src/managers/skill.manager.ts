@@ -1,5 +1,5 @@
-import type { SkillId } from "@/types/entity-ids.types.js";
-import type { SkillRecord } from "@/types/skill.types.js";
+import type { SkillId } from "../types/entity-ids.types.js";
+import type { SkillRecord } from "../types/skill.types.js";
 
 export class SkillManager {
   readonly listSkills = () => {

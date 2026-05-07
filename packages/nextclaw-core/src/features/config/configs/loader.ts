@@ -7,7 +7,7 @@ import {
   type Config,
   type ProviderConfig
 } from "./schema.js";
-import { getDataPath } from "../utils/helpers.js";
+import { getDataPath } from "../../../shared/lib/core-utils/utils/helpers.js";
 import { normalizeInlineSecretRefs } from "./secrets.js";
 
 export function getConfigPath(): string {

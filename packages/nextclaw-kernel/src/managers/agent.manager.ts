@@ -1,5 +1,5 @@
-import type { AgentId, SkillId, ToolId } from "@/types/entity-ids.types.js";
-import type { AgentRecord } from "@/types/agent.types.js";
+import type { AgentRecord } from "../types/agent.types.js";
+import type { AgentId, SkillId, ToolId } from "../types/entity-ids.types.js";
 
 export class AgentManager {
   readonly listAgents = () => {

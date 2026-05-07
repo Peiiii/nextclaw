@@ -1,4 +1,4 @@
-import { findProviderByName, type ProviderSpec } from "../providers/registry.js";
+import { findProviderByName, type ProviderSpec } from "../../llm-providers/providers/registry.js";
 import { matchProvider, type Config, type ProviderConfig } from "./schema.js";
 
 function normalizeOptionalString(value: unknown): string | null {

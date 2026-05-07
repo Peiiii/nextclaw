@@ -1,6 +1,6 @@
-import { MemoryStore } from "./memory/memory-store.js";
-import { resolveNextclawSelfManageGuidePaths } from "./self-manage/guide-path.js";
-import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "../runtime-context/bootstrap-context.service.js";
+import { MemoryStore } from "../features/memory/memory-store.js";
+import { resolveNextclawSelfManageGuidePaths } from "../features/self-manage/guide-path.js";
+import { buildWorkspaceProjectContextSection, DEFAULT_BOOTSTRAP_CONTEXT_CONFIG } from "../../runtime-context/services/bootstrap-context.service.js";
 import {
   buildActiveSkillsSystemSection,
   buildAvailableSkillsSystemSection,
@@ -8,21 +8,21 @@ import {
   buildRequestedSkillsSystemSection
 } from "./skill-context.js";
 import { SkillsLoader } from "./skills-loader.js";
-import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "./tool-catalog.utils.js";
-import { APP_NAME } from "../config/brand.js";
-import type { Config } from "../config/schema.js";
-import type { InboundAttachment } from "../bus/events.js";
-import { SILENT_REPLY_TOKEN } from "./tokens.js";
-import type { ThinkingLevel } from "../utils/thinking.js";
+import { DEFAULT_TOOL_CATALOG, normalizeToolCatalogEntries, type ToolCatalogEntry } from "../utils/tool-catalog.utils.js";
+import { APP_NAME } from "../../config/configs/brand.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { InboundAttachment } from "../../bus/services/events.js";
+import { SILENT_REPLY_TOKEN } from "../types/tokens.js";
+import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
 import {
   SessionProjectContextResolver,
   type SessionProjectContext,
-} from "../session/session-project-context.js";
+} from "../../session/services/session-project-context.js";
 import {
   DefaultUserContentBuilder,
   type ContextUserContent,
   type ContextUserContentBuilder,
-} from "./content/user-content.js";
+} from "../features/content/user-content.js";
 
 export type Message = Record<string, unknown>;
 type ContextConfig = Config["agents"]["context"];

@@ -1,7 +1,7 @@
-import type { AgentRecord } from "@/types/agent.types.js";
-import type { ContextRecord } from "@/types/context.types.js";
-import type { LlmProviderId } from "@/types/entity-ids.types.js";
-import type { LlmProviderRecord } from "@/types/llm-provider.types.js";
+import type { AgentRecord } from "../types/agent.types.js";
+import type { ContextRecord } from "../types/context.types.js";
+import type { LlmProviderId } from "../types/entity-ids.types.js";
+import type { LlmProviderRecord } from "../types/llm-provider.types.js";
 
 export class LlmProviderManager {
   readonly listProviders = () => {

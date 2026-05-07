@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SubagentManager } from "../subagent.manager.js";
+import type { SubagentManager } from "../../managers/subagent.manager.js";
 import { SpawnTool } from "./spawn.service.js";
 
 describe("SpawnTool", () => {

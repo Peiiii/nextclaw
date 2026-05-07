@@ -1,5 +1,5 @@
-import type { AutomationId } from "@/types/entity-ids.types.js";
-import type { AutomationRecord } from "@/types/automation.types.js";
+import type { AutomationRecord } from "../types/automation.types.js";
+import type { AutomationId } from "../types/entity-ids.types.js";
 
 export class AutomationManager {
   readonly listAutomations = () => {

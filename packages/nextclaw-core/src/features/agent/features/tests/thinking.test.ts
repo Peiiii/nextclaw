@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigSchema } from "../../config/schema.js";
+import { ConfigSchema } from "../../../config/configs/schema.js";
 import { resolveThinkingLevel } from "../thinking/thinking.utils.js";
 
 describe("resolveThinkingLevel", () => {

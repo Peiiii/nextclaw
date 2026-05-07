@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Config } from "../config/schema.js";
-import type { SessionProjectContext } from "../session/session-project-context.js";
+import type { Config } from "../../config/configs/schema.js";
+import type { SessionProjectContext } from "../../session/services/session-project-context.js";
 import {
   DEFAULT_WORKSPACE_REPOSITORY_IDENTITY_RESOLVER,
   type WorkspaceRepositoryIdentity,

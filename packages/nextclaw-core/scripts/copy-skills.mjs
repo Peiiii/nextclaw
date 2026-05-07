@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const src = join(root, "src", "agent", "skills");
+const src = join(root, "src", "features", "agent", "shared", "skills");
 const dest = join(root, "dist", "skills");
 
 if (!existsSync(src)) {
