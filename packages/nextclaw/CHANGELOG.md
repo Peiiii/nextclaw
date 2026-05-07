@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.14
+
+### Patch Changes
+
+- 9ff8504: Track the managed service runtime child PID after readiness so in-app runtime update apply can stop and relaunch the real serving process instead of only the launcher wrapper.
+
 ## 0.18.12-beta.13
 
 ### Patch Changes
