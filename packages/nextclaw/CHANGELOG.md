@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.10
+
+### Patch Changes
+
+- eb0bc85: Fix managed runtime update apply to restart through the launcher so the restarted service reflects the newly applied runtime version immediately.
+
 ## 0.18.12-beta.9
 
 ### Patch Changes

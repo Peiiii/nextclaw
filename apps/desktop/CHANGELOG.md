@@ -1,5 +1,12 @@
 # @nextclaw/desktop
 
+## 0.0.155-beta.4
+
+### Patch Changes
+
+- Updated dependencies [eb0bc85]
+  - nextclaw@0.18.12-beta.10
+
 ## 0.0.155-beta.3
 
 ### Patch Changes
