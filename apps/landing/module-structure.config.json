@@ -1,6 +1,7 @@
 {
   "contractKind": "protocol",
   "protocol": "app-l2",
+  "allowedRootFiles": ["main.ts"],
   "rootPolicy": "contract-only",
   "enforcement": "error"
 }
