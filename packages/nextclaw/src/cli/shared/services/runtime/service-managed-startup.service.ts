@@ -1,8 +1,9 @@
 import * as NextclawCore from "@nextclaw/core";
 import { FileLogSink } from "@nextclaw/core";
 import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { localUiRuntimeStore } from "@/cli/shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore, type ManagedServiceState } from "@/cli/shared/stores/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
@@ -36,6 +37,18 @@ export type ManagedServiceSnapshot = {
   uiPort: number;
   logPath: string;
 };
+
+function resolveLauncherCliEntry(importMetaUrl: string): string {
+  const modulePath = fileURLToPath(importMetaUrl);
+  const normalizedPath = modulePath.replace(/\\/g, "/");
+  const cliRootIndex = normalizedPath.lastIndexOf("/cli/");
+  if (cliRootIndex === -1) {
+    return fileURLToPath(new URL("../../../launcher/index.js", importMetaUrl));
+  }
+  const extension = extname(modulePath) || ".js";
+  const cliRootPath = modulePath.slice(0, cliRootIndex + "/cli/".length);
+  return resolve(cliRootPath, "launcher", `index${extension}`);
+}
 
 function toObjectRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -151,7 +164,7 @@ export function spawnManagedService(params: {
   console.log(`Starting ${appName} background service (readiness timeout ${Math.ceil(readinessTimeoutMs / 1000)}s)...`);
 
   const cliLaunch = resolveCliSubcommandLaunch({
-    argvEntry: process.argv[1],
+    argvEntry: resolveLauncherCliEntry(import.meta.url),
     importMetaUrl: import.meta.url,
     cliArgs: ["serve", "--ui-port", String(uiConfig.port)],
     nodePath: process.execPath

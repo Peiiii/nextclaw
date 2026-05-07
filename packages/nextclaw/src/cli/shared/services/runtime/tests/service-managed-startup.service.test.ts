@@ -61,9 +61,20 @@ describe("spawnManagedService", () => {
     });
 
     expect(startup?.snapshot.pid).toBe(4321);
-    expect(spawnMock).toHaveBeenCalledWith(
-      process.execPath,
-      [...process.execArgv, "/tmp/dist/cli/app/index.js", "serve", "--ui-port", "18791"],
+    expect(spawnMock).toHaveBeenCalledTimes(1);
+    const [command, args, options] = spawnMock.mock.calls[0] as unknown as [string, string[], Record<string, unknown>];
+    expect(command).toBe(process.execPath);
+    expect(args).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/[/\\]tsx[/\\]dist[/\\]cli\.(mjs|js)$/),
+        expect.stringMatching(/[/\\]cli[/\\]launcher[/\\]index\.(js|ts)$/),
+        "serve",
+        "--ui-port",
+        "18791"
+      ])
+    );
+    expect(args.some((arg) => arg === "/tmp/dist/cli/app/index.js")).toBe(false);
+    expect(options).toEqual(
       expect.objectContaining({
         env: process.env,
         stdio: "ignore",
@@ -72,7 +83,7 @@ describe("spawnManagedService", () => {
     );
     expect(appendStartupStage).toHaveBeenCalledWith(
       path.join(tempDir, "service.log"),
-      expect.stringContaining("/tmp/dist/cli/app/index.js serve --ui-port 18791")
+      expect.stringMatching(/cli[/\\]launcher[/\\]index\.(js|ts) serve --ui-port 18791/)
     );
     expect(writeInitialManagedServiceStateMock).toHaveBeenCalledWith(
       expect.objectContaining({
