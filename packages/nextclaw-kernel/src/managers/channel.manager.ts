@@ -1,5 +1,5 @@
-import type { ChannelRecord } from "../types/channel.types.js";
-import type { ChannelId } from "../types/entity-ids.types.js";
+import type { ChannelRecord } from "@kernel/types/channel.types.js";
+import type { ChannelId } from "@kernel/types/entity-ids.types.js";
 
 export class ChannelManager {
   readonly listChannels = () => {

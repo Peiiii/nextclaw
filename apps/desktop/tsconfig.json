@@ -7,7 +7,9 @@
     "types": ["node", "electron"],
     "baseUrl": ".",
     "paths": {
-      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/src/index.ts"]
+      "@nextclaw/kernel": ["../../packages/nextclaw-kernel/src/index.ts"],
+      "@kernel/*": ["../../packages/nextclaw-kernel/src/*"],
+      "@nextclaw/ncp": ["../../packages/ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts"]

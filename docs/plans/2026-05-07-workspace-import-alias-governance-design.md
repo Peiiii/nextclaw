@@ -185,9 +185,17 @@ import { EventBus } from "@nextclaw/kernel/src/events/event-bus.service.js";
 
 这条映射不代表 consumer 可以业务 import `@kernel/*`。它只是为了 TypeScript 在编译被消费源码时能正确解析 package 内部 alias。
 
-## 7. 当前试点方案
+## 7. 当前批次落地范围
 
-第一步只处理 `@nextclaw/kernel`。
+本轮不只处理一个包，而是处理当前扫描中明显违反规则、且能低风险一次性收敛的范围。
+
+### 7.1 登记 `@nextclaw/kernel`
+
+`@nextclaw/kernel` 登记短 alias：
+
+```text
+packages/nextclaw-kernel -> @kernel/*
+```
 
 原因：
 
@@ -196,34 +204,70 @@ import { EventBus } from "@nextclaw/kernel/src/events/event-bus.service.js";
 - 当前问题正是由 kernel 内部 alias 归属不清导致。
 - 它的内部结构已经足够稳定，适合登记短 alias。
 
-拟登记：
-
-```text
-packages/nextclaw-kernel -> @kernel/*
-```
-
 改动范围：
 
 - `packages/nextclaw-kernel/tsconfig.json`
+- `packages/nextclaw-kernel/module-structure.config.json`
 - `packages/nextclaw-kernel/src/**/*.ts`
-- 消费 kernel 源码的 workspace 包 tsconfig
-- 必要的 Vite / Vitest / tsdown alias 配置
+- 消费 kernel 源码的 workspace 包 tsconfig：
+  - `apps/desktop`
+  - `packages/nextclaw`
+  - `packages/nextclaw-remote`
+  - `packages/nextclaw-server`
+  - `packages/nextclaw-ui`
+- 必要的 Vite / Vitest alias 配置：
+  - `packages/nextclaw-ui`
+  - `packages/nextclaw`
+
+### 7.2 清理 `@nextclaw/agent-chat-ui`
+
+`@nextclaw/agent-chat-ui` 是被 `@nextclaw/ui` 源码消费的 reusable library。
+
+扫描结果显示：
+
+- 它的源码没有任何 `@/` import；
+- `tsconfig.json` 和 `vite.config.ts` 却保留了 app-style `@/*` / `@` alias；
+- 这会给后续维护者一个错误暗示：library 内部也可以继续使用共享 `@/*`。
+
+本轮处理方式是删除这个未使用 alias，而不是登记 `@agent-chat-ui/*`。
+
+原因：
+
+- 当前没有真实解析问题；
+- 大多数导入仍是局部相邻文件引用，使用相对路径更直接；
+- 强行改成包级 alias 会制造大量无行为价值的 churn；
+- 如果未来跨目录引用明显膨胀，再按本规则单独登记短 alias。
+
+### 7.3 明确不改的对象
+
+本轮保留以下 `@/*`：
+
+- `packages/nextclaw-ui`：UI app layer，`@/*` 表达当前 UI `src` root。
+- `packages/nextclaw`：CLI / NPM 产品入口包，属于最终运行入口，不作为 reusable source library 被其它包消费。
+- `apps/*` 和 `workers/*`：最终入口 app / worker，`@/*` 语义清晰。
 
 不做：
 
-- 不全仓批量改 alias。
+- 不全仓批量改所有 `@/*`。
 - 不把所有 library 都改成包级 alias。
 - 不引入 `#imports` 作为本轮方案。
 - 不允许其它包直接使用 `@kernel/*` 作为业务 import。
 
+`packages/nextclaw-kernel/module-structure.config.json` 同步登记：
+
+- `allowedRootDirectories: ["events"]`：`events/` 是 kernel 的稳定事件边界，而不是临时 legacy 漂移目录。
+- `importAliasPrefixes: ["@kernel/"]`：治理配置与实际短 alias 保持一致。
+
 ## 8. 验证要求
 
-试点必须至少通过：
+本轮必须至少通过：
 
 ```bash
 pnpm --filter @nextclaw/kernel test
 pnpm --filter @nextclaw/kernel tsc
 pnpm --filter @nextclaw/kernel build
+pnpm --filter @nextclaw/agent-chat-ui tsc
+pnpm --filter @nextclaw/agent-chat-ui build
 pnpm --filter @nextclaw/client-sdk tsc
 pnpm --filter @nextclaw/server tsc
 pnpm --filter @nextclaw/ui tsc
@@ -236,10 +280,14 @@ pnpm lint:maintainability:guard
 还需要加一个静态检查：
 
 ```bash
-rg "from ['\\\"]@/" packages/nextclaw-kernel/src
+rg "from ['\\\"]@/|import\\(['\\\"]@/|export .* from ['\\\"]@/|\\\"@/\\*\\\"" packages/nextclaw-kernel packages/nextclaw-agent-chat-ui
+rg "from ['\\\"]@kernel/|import\\(['\\\"]@kernel/|export .* from ['\\\"]@kernel/" apps packages workers -g '*.ts' -g '*.tsx'
 ```
 
-预期无结果。
+预期：
+
+- 第一条无结果；
+- 第二条只允许出现在 `packages/nextclaw-kernel/src`。
 
 ## 9. 后续治理
 
@@ -259,11 +307,11 @@ rg "from ['\\\"]@/" packages/nextclaw-kernel/src
 
 ## 10. 推荐落地顺序
 
-1. 以 `@nextclaw/kernel` 作为唯一试点。
-2. 把 kernel 内部相对路径恢复为 `@kernel/*` 或保留少量局部相对路径。
-3. 给 consumer tsconfig 补 `@kernel/*` 解析，仅用于编译识别。
+1. 以 `@nextclaw/kernel` 作为第一个登记短 alias 的核心库。
+2. 清理 `@nextclaw/agent-chat-ui` 中未使用的 app-style alias。
+3. 给 consumer tsconfig / Vite / Vitest 补 `@kernel/*` 解析，仅用于编译识别。
 4. 跑完整验证。
-5. 如果试点稳定，再评估 `@nextclaw-core`、`@nextclaw-server`、`@nextclaw-client-sdk` 是否需要同类治理。
+5. 后续如果 `@nextclaw-core`、`@nextclaw-server`、`@nextclaw-client-sdk` 出现源码消费下的内部 alias 归属问题，再按同一规则评估，不提前扩散。
 
 这条路线兼顾：
 

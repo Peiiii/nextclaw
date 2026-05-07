@@ -1,5 +1,5 @@
 import type { NcpSessionSummary } from "@nextclaw/ncp";
-import type { UpdateSnapshot } from "../types/update.types.js";
+import type { UpdateSnapshot } from "@kernel/types/update.types.js";
 
 export type AppEventKey<T> = {
   readonly id: string;

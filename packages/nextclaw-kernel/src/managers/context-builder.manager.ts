@@ -1,7 +1,7 @@
-import type { AgentRecord } from "../types/agent.types.js";
-import type { ContextRecord } from "../types/context.types.js";
-import type { SessionId } from "../types/entity-ids.types.js";
-import type { TaskRecord } from "../types/task.types.js";
+import type { AgentRecord } from "@kernel/types/agent.types.js";
+import type { ContextRecord } from "@kernel/types/context.types.js";
+import type { SessionId } from "@kernel/types/entity-ids.types.js";
+import type { TaskRecord } from "@kernel/types/task.types.js";
 import type { SessionManager } from "./session.manager.js";
 
 export class ContextBuilder {

@@ -1,4 +1,4 @@
-import { EventBus } from "../events/event-bus.service.js";
+import { EventBus } from "@kernel/events/event-bus.service.js";
 
 export type NextClawApp = {
   readonly eventBus: EventBus;

@@ -1,13 +1,13 @@
-import { AgentManager } from "../managers/agent.manager.js";
-import { AutomationManager } from "../managers/automation.manager.js";
-import { ChannelManager } from "../managers/channel.manager.js";
-import { ContextBuilder } from "../managers/context-builder.manager.js";
-import { LlmProviderManager } from "../managers/llm-provider.manager.js";
-import { SessionManager } from "../managers/session.manager.js";
-import { SkillManager } from "../managers/skill.manager.js";
-import { TaskManager } from "../managers/task.manager.js";
-import { ToolManager } from "../managers/tool.manager.js";
-import type { NextclawKernelRun, NextclawKernelRunInput } from "../types/nextclaw-kernel.types.js";
+import { AgentManager } from "@kernel/managers/agent.manager.js";
+import { AutomationManager } from "@kernel/managers/automation.manager.js";
+import { ChannelManager } from "@kernel/managers/channel.manager.js";
+import { ContextBuilder } from "@kernel/managers/context-builder.manager.js";
+import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
+import { SessionManager } from "@kernel/managers/session.manager.js";
+import { SkillManager } from "@kernel/managers/skill.manager.js";
+import { TaskManager } from "@kernel/managers/task.manager.js";
+import { ToolManager } from "@kernel/managers/tool.manager.js";
+import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
 
 type NextclawKernelRuntimeControl<
   TGatewayInput,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "./event-bus.service.js";
-import { createAppEventKey } from "./event.keys.js";
+import { createAppEventKey } from "./event-keys.config.js";
 
 describe("EventBus", () => {
   const key = createAppEventKey<{ value: string }>("test.event");

@@ -5,6 +5,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@kernel": path.resolve(__dirname, "../nextclaw-kernel/src"),
     },
   },
 });

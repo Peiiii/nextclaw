@@ -11,6 +11,9 @@
       "@nextclaw/kernel": [
         "../nextclaw-kernel/src/index.ts"
       ],
+      "@kernel/*": [
+        "../nextclaw-kernel/src/*"
+      ],
       "@nextclaw/kernel/update-contract": [
         "../nextclaw-kernel/src/types/update-contract.types.ts"
       ],

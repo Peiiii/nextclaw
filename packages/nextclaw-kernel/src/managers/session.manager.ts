@@ -1,5 +1,5 @@
-import type { AgentId, SessionId, TaskId } from "../types/entity-ids.types.js";
-import type { SessionMessage, SessionRecord } from "../types/session.types.js";
+import type { AgentId, SessionId, TaskId } from "@kernel/types/entity-ids.types.js";
+import type { SessionMessage, SessionRecord } from "@kernel/types/session.types.js";
 
 export class SessionManager {
   readonly listSessions = () => {

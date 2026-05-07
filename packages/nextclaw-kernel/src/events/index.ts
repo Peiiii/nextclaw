@@ -1,5 +1,5 @@
 export { EventBus } from "./event-bus.service.js";
-export { createAppEventKey, eventKeys } from "./event.keys.js";
+export { createAppEventKey, eventKeys } from "./event-keys.config.js";
 export type {
   AppEvent,
   AppEventEmitOptions,
