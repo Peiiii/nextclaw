@@ -23,11 +23,13 @@ export type AppEventEmitOptions = {
 export type AppEventHandler<T> = (payload: T, envelope: AppEventEnvelope<T>) => void;
 
 export type EventBusOptions = {
+  onFirstSubscriber?: () => void;
   onListenerError?: (params: {
     type: string;
     payload: unknown;
     error: unknown;
   }) => void;
+  onNoSubscribers?: () => void;
 };
 
 export type ConfigUpdatedEvent = AppEventEnvelope<{ path: string }> & {

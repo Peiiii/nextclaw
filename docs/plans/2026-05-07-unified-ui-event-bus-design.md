@@ -11,15 +11,14 @@
 ```text
 复用现有 /ws 通道
 在 @nextclaw/kernel 顶层导出 nextclaw facade、EventBus、eventKeys
-后端 bootstrap 安装一次 NextClawApp
-后端 runtime 代码直接通过 nextclaw.events 使用同一个事件根
-nextclaw-server 将 nextclaw.events 桥接到现有 /ws
+后端 runtime 代码直接通过 nextclaw.eventBus 使用同一个事件根
+nextclaw-server 将 nextclaw.eventBus 桥接到现有 /ws
 @nextclaw/client-sdk 暴露 client.eventBus
 NextClaw UI 通过 client.eventBus 消费事件
 runtime update 删除 host 模式永久 1s 轮询
 ```
 
-这里的核心不是“传一个参数”，而是建立一个类似 VS Code `vscode.*` 的产品级运行时入口。第一阶段只落 `nextclaw.events`，其它分支先不展开。
+这里的核心不是“传一个参数”，而是建立一个类似 VS Code `vscode.*` 的产品级运行时入口。第一阶段只落 `nextclaw.eventBus`，其它分支先不展开。
 
 ## 2. 背景
 
@@ -61,17 +60,7 @@ NextClawApp
 - `Kernel` 更像产品内核分支，不适合作为所有基础设施的顶层名字。
 - 事件分支 class 仍叫 `EventBus`，共享事件类型叫 `AppEvent`。
 
-未来可以有：
-
-```ts
-nextclaw.events
-nextclaw.runtime
-nextclaw.diagnostics
-nextclaw.services
-nextclaw.kernel
-```
-
-第一阶段只实现 `nextclaw.events`，其它分支先留空，不设计空对象。
+未来可以继续扩展其它顶级能力分支，但第一阶段只实现 `nextclaw.eventBus`，其它分支先留空，不设计空对象。
 
 ## 4. Kernel Public API
 
@@ -79,7 +68,6 @@ nextclaw.kernel
 
 ```text
 packages/nextclaw-kernel/src/app/nextclaw-app.service.ts
-packages/nextclaw-kernel/src/app/nextclaw-app.registry.ts
 packages/nextclaw-kernel/src/events/event-bus.service.ts
 packages/nextclaw-kernel/src/events/event-bus.types.ts
 packages/nextclaw-kernel/src/events/event.keys.ts
@@ -104,15 +92,11 @@ import { eventKeys, nextclaw } from "@nextclaw/kernel";
 
 ```ts
 export {
-  createNextClawApp,
-  getNextClawApp,
-  installNextClawApp,
-  nextclaw,
-  resetNextClawAppForTest
-} from "./app/nextclaw-app.registry.js";
+  nextclaw
+} from "./app/nextclaw-app.service.js";
 export { EventBus, createAppEventKey, eventKeys } from "./events/index.js";
 export type { NextClawApp } from "./app/nextclaw-app.service.js";
-export type { AppEvent, AppEventKey } from "./events/index.js";
+export type { AppEvent, AppEventEnvelope, AppEventKey } from "./events/index.js";
 ```
 
 ## 5. API Shape
@@ -139,8 +123,15 @@ export type AppEventEmitOptions = {
   source?: AppEventEnvelope["source"];
 };
 
+export type EventBusOptions = {
+  onFirstSubscriber?: () => void;
+  onListenerError?: (params: { type: string; payload: unknown; error: unknown }) => void;
+  onNoSubscribers?: () => void;
+};
+
 export class EventBus {
   emit = <T>(key: AppEventKey<T>, payload: T, options?: AppEventEmitOptions): void;
+  emitEnvelope = <T>(event: AppEventEnvelope<T>): void;
   on = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): (() => void);
   off = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): void;
   once = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): (() => void);
@@ -152,51 +143,37 @@ export class EventBus {
 
 ```ts
 export type NextClawApp = {
-  readonly events: EventBus;
+  readonly eventBus: EventBus;
 };
 
 export const nextclaw: NextClawApp;
-export function createNextClawApp(options?: CreateNextClawAppOptions): NextClawApp;
-export function installNextClawApp(app: NextClawApp): void;
-export function getNextClawApp(): NextClawApp;
-export function resetNextClawAppForTest(): void;
 ```
 
 约束：
 
-- `nextclaw` 是 facade，不是直接裸导出的可变 singleton。
-- `installNextClawApp` 必须在服务启动 bootstrap 阶段执行一次。
-- 未安装时访问 `nextclaw.events` 必须抛错，避免静默丢事件。
-- 重复安装默认抛错，避免同进程事件根被悄悄替换。
-- `resetNextClawAppForTest` 只给测试使用。
+- `nextclaw` 是产品级 facade，第一阶段只有 `eventBus`。
+- 不额外提供 public `create/install/reset`，避免每个包各自创建实例。
+- 同一 Node 进程内通过模块缓存天然共享同一个 `nextclaw.eventBus`。
+- `emitEnvelope` 用于 server/SDK bridge 保留 wire envelope；业务代码优先用 `emit(eventKeys.xxx, payload)`。
 
 ## 6. 后端使用方式
-
-bootstrap：
-
-```ts
-import { createNextClawApp, installNextClawApp } from "@nextclaw/kernel";
-
-const app = createNextClawApp();
-installNextClawApp(app);
-```
 
 任意后端 runtime 代码：
 
 ```ts
 import { eventKeys, nextclaw } from "@nextclaw/kernel";
 
-nextclaw.events.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
+nextclaw.eventBus.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
   source: "backend"
 });
 ```
 
-这样不同包不需要层层传 `appBus`，也不需要依赖 `@nextclaw/server`。同一进程内所有发布者都使用已安装的同一个 `NextClawApp.events`。
+这样不同包不需要层层传 `appBus`，也不需要依赖 `@nextclaw/server`。同一进程内所有发布者都使用同一个 `NextClawApp.eventBus`。
 
 跨进程不能共享同一个内存实例，跨进程事件只能通过明确 transport：
 
 ```text
-backend process nextclaw.events -> /ws -> client process client.eventBus
+backend process nextclaw.eventBus -> /ws -> client process client.eventBus
 ```
 
 ## 7. WebSocket Bridge
@@ -205,7 +182,7 @@ backend process nextclaw.events -> /ws -> client process client.eventBus
 
 ```ts
 const webSocketEventSink = new WebSocketEventSink(clients);
-const unsubscribeWebSocketSink = getNextClawApp().events.subscribeAll(
+const unsubscribeWebSocketSink = nextclaw.eventBus.subscribeAll(
   webSocketEventSink.publish
 );
 ```
@@ -235,7 +212,7 @@ nextclawClient.eventBus.on(eventKeys.runtimeUpdateSnapshot, (snapshot) => {
 });
 ```
 
-`RealtimeService` 是内部 transport owner。SDK 内部把 `/ws` 收到的 event 喂给 `client.eventBus`，UI 不直接管理 WebSocket 生命周期。
+`RealtimeService` 是内部 transport owner。SDK 内部把 `/ws` 收到的 event 喂给 `client.eventBus`，UI 不直接管理 WebSocket 生命周期。`client.eventBus` 懒启动 `/ws`：第一次订阅时建立连接，最后一个订阅释放后关闭连接。`sessions.subscribe` 也复用同一个 `client.eventBus`，避免 SDK 内部出现重复 WebSocket。
 
 ## 9. Runtime Update 接入
 
@@ -244,7 +221,7 @@ runtime update host 只通过 `setSnapshot` 更新状态并发布完整 snapshot
 ```ts
 private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {
   this.snapshot = snapshot;
-  nextclaw.events.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
+  nextclaw.eventBus.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
     source: "backend"
   });
   return snapshot;

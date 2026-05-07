@@ -1,6 +1,7 @@
 import { EventBus } from "@nextclaw/kernel";
 import type { NextClawClient } from "../types/nextclaw-client.types.js";
 import type { NextClawClientOptions } from "../types/nextclaw-request.types.js";
+import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";
 import { normalizeBaseUrl } from "../utils/url.utils.js";
 import { AgentsService } from "./agents.service.js";
 import { AppService } from "./app.service.js";
@@ -24,7 +25,7 @@ export class NextClawClientService implements NextClawClient {
   readonly auth: AuthService;
   readonly channelAuth: ChannelAuthService;
   readonly config: ConfigService;
-  readonly eventBus = new EventBus();
+  readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
   readonly mcpMarketplace: McpMarketplaceService;
   readonly realtime: RealtimeService;
@@ -42,13 +43,22 @@ export class NextClawClientService implements NextClawClient {
     };
     const requestService = new RequestService(normalizedOptions);
     this.realtime = new RealtimeService(normalizedOptions);
-    this.realtime.subscribe((event) => {
-      this.eventBus.emitEnvelope({
-        type: event.type,
-        payload: "payload" in event ? event.payload : undefined,
-        emittedAt: "emittedAt" in event ? event.emittedAt : new Date().toISOString(),
-        source: "source" in event ? event.source : "realtime"
-      });
+    let realtimeSubscription: NextClawRealtimeSubscription | null = null;
+    this.eventBus = new EventBus({
+      onFirstSubscriber: () => {
+        realtimeSubscription ??= this.realtime.subscribe((event) => {
+          this.eventBus.emitEnvelope({
+            type: event.type,
+            payload: "payload" in event ? event.payload : undefined,
+            emittedAt: "emittedAt" in event ? event.emittedAt : new Date().toISOString(),
+            source: "source" in event ? event.source : "realtime"
+          });
+        });
+      },
+      onNoSubscribers: () => {
+        realtimeSubscription?.close();
+        realtimeSubscription = null;
+      }
     });
     this.app = new AppService(requestService);
     this.agents = new AgentsService(requestService, this.baseUrl);

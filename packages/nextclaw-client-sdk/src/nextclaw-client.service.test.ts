@@ -64,6 +64,7 @@ describe("@nextclaw/client-sdk", () => {
         return socket;
       }
     });
+    expect(sockets).toHaveLength(0);
     const handler = vi.fn();
     const subscription = client.sessions.subscribe(handler, { reconnectDelayMs: 10 });
     const eventBusHandler = vi.fn();
@@ -89,6 +90,7 @@ describe("@nextclaw/client-sdk", () => {
       expect.objectContaining({ type: "session.run-status", source: "realtime" })
     );
     expect(sockets).toHaveLength(2);
+    expect(sockets[1]?.close).toHaveBeenCalledTimes(1);
   });
 
   it("throws a typed client error for api failures", async () => {

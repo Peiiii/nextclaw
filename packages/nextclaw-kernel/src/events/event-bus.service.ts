@@ -9,10 +9,15 @@ import type {
 export class EventBus {
   private readonly listeners = new Map<string, Set<AppEventHandler<unknown>>>();
   private readonly globalListeners = new Set<(event: AppEventEnvelope) => void>();
+  private listenerCount = 0;
+  private readonly onFirstSubscriber?: EventBusOptions["onFirstSubscriber"];
   private readonly onListenerError?: EventBusOptions["onListenerError"];
+  private readonly onNoSubscribers?: EventBusOptions["onNoSubscribers"];
 
   constructor(options: EventBusOptions = {}) {
+    this.onFirstSubscriber = options.onFirstSubscriber;
     this.onListenerError = options.onListenerError;
+    this.onNoSubscribers = options.onNoSubscribers;
   }
 
   emit = <T>(
@@ -46,8 +51,13 @@ export class EventBus {
 
   on = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): (() => void) => {
     const listeners = this.listeners.get(key.id) ?? new Set<AppEventHandler<unknown>>();
-    listeners.add(handler as AppEventHandler<unknown>);
+    const typedHandler = handler as AppEventHandler<unknown>;
+    const added = !listeners.has(typedHandler);
+    listeners.add(typedHandler);
     this.listeners.set(key.id, listeners);
+    if (added) {
+      this.registerSubscriber();
+    }
     return () => {
       this.off(key, handler);
     };
@@ -58,9 +68,12 @@ export class EventBus {
     if (!listeners) {
       return;
     }
-    listeners.delete(handler as AppEventHandler<unknown>);
+    const deleted = listeners.delete(handler as AppEventHandler<unknown>);
     if (listeners.size === 0) {
       this.listeners.delete(key.id);
+    }
+    if (deleted) {
+      this.unregisterSubscriber();
     }
   };
 
@@ -74,10 +87,30 @@ export class EventBus {
   };
 
   subscribeAll = (handler: (event: AppEventEnvelope) => void): (() => void) => {
+    const added = !this.globalListeners.has(handler);
     this.globalListeners.add(handler);
+    if (added) {
+      this.registerSubscriber();
+    }
     return () => {
-      this.globalListeners.delete(handler);
+      if (this.globalListeners.delete(handler)) {
+        this.unregisterSubscriber();
+      }
     };
+  };
+
+  private registerSubscriber = (): void => {
+    this.listenerCount += 1;
+    if (this.listenerCount === 1) {
+      this.onFirstSubscriber?.();
+    }
+  };
+
+  private unregisterSubscriber = (): void => {
+    this.listenerCount = Math.max(0, this.listenerCount - 1);
+    if (this.listenerCount === 0) {
+      this.onNoSubscribers?.();
+    }
   };
 
   private safeInvokeListener = <T>(

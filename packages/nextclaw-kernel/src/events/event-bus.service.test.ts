@@ -62,4 +62,22 @@ describe("EventBus", () => {
       expect.objectContaining({ type: "test.event" })
     );
   });
+
+  it("reports first and last subscriber lifecycle", () => {
+    const onFirstSubscriber = vi.fn();
+    const onNoSubscribers = vi.fn();
+    const bus = new EventBus({ onFirstSubscriber, onNoSubscribers });
+    const firstHandler = vi.fn();
+    const secondHandler = vi.fn();
+
+    const unsubscribeFirst = bus.on(key, firstHandler);
+    const unsubscribeSecond = bus.subscribeAll(secondHandler);
+
+    unsubscribeFirst();
+    expect(onNoSubscribers).not.toHaveBeenCalled();
+    unsubscribeSecond();
+
+    expect(onFirstSubscriber).toHaveBeenCalledTimes(1);
+    expect(onNoSubscribers).toHaveBeenCalledTimes(1);
+  });
 });
