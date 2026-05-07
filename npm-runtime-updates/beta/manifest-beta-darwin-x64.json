@@ -3,11 +3,11 @@
   "platform": "darwin",
   "arch": "x64",
   "hostKind": "npm-runtime-bundle",
-  "latestVersion": "0.18.12-beta.15",
+  "latestVersion": "0.18.12-beta.16",
   "minimumLauncherVersion": "0.18.11",
-  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.15/nextclaw-runtime-darwin-x64-0.18.12-beta.15.zip",
-  "bundleSha256": "890b05b36eefd2bd14d92247361e6911ed922ef58e62ce2d6e5ae77ab34ed369",
-  "bundleSignature": "Hiizzl/xvPRGMcW8Nge40oegCOXC2NJvKPMeGd1d3sVAm1+ck0kQ9jrjXPlFh2WCHoGNR3lZxgAx7CSs3O9xDA==",
-  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.15",
-  "manifestSignature": "6qTNeh9isekeXXn2BVSWDQnRpRH0ZwPHEKfRj/voEqtBq9ipqe8wQKwuST6IRNBwtCbdmv4JROM6UMeTrtDrDw=="
+  "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.16/nextclaw-runtime-darwin-x64-0.18.12-beta.16.zip",
+  "bundleSha256": "d444cabf8a572504ed1d9f3996236b193a380efc77955302c412e613d66171f6",
+  "bundleSignature": "dcH4TnqPV/wCHuIhv2dKYbMD/MYW14tFan3m6eLkcoHayPCUBJFtQCXfXXqpuXYXRAtgbItk8ikKy/NnPuxwAA==",
+  "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.16",
+  "manifestSignature": "B2al9t/aef1Xhk4iRmABhzJqANXdX0EqgjBddbf8JgnR002/0oiegOIRW7EaFBoRv4mHmc3QO13om6tXMgloCw=="
 }
