@@ -35,6 +35,18 @@ function readPublicManifest({ channel, readJsonCommand, target }) {
   return readJsonCommand("curl", ["-fsSL", manifestUrl]);
 }
 
+function tryReadPublicManifest(params) {
+  try {
+    return {
+      manifest: readPublicManifest(params)
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 function readGitHubPagesStatus({ readJsonCommand, repo }) {
   const pages = readJsonCommand("gh", ["api", `repos/${repo}/pages`]);
   return typeof pages.status === "string" ? pages.status : "unknown";
@@ -60,7 +72,7 @@ export async function verifyPublicRuntimeManifests({
   let lastPagesStatus = "unknown";
   let lastMismatch = null;
 
-  for (let attempt = 0; attempt < 12; attempt += 1) {
+  for (let attempt = 0; attempt < 36; attempt += 1) {
     lastPagesStatus = readGitHubPagesStatus({
       readJsonCommand,
       repo
@@ -68,11 +80,21 @@ export async function verifyPublicRuntimeManifests({
     lastMismatch = null;
 
     for (const target of targets) {
-      const manifest = readPublicManifest({
+      const publicManifestResult = tryReadPublicManifest({
         channel,
         readJsonCommand,
         target
       });
+      if (publicManifestResult.error) {
+        lastMismatch = {
+          error: publicManifestResult.error,
+          expectedVersion,
+          latestVersion: "<read failed>",
+          target
+        };
+        break;
+      }
+      const manifest = publicManifestResult.manifest;
       if (manifest.latestVersion !== expectedVersion) {
         lastMismatch = {
           expectedVersion,
@@ -95,13 +117,14 @@ export async function verifyPublicRuntimeManifests({
       };
     }
 
-    if (lastPagesStatus === "built") {
-      throw new Error(
-        `Public manifest version mismatch for ${lastMismatch.target.platform}-${lastMismatch.target.arch}: expected ${lastMismatch.expectedVersion}, got ${lastMismatch.latestVersion}`
-      );
-    }
-
     await sleep(5000);
+  }
+
+  if (lastPagesStatus === "built") {
+    const errorSuffix = lastMismatch?.error ? ` (${lastMismatch.error})` : "";
+    throw new Error(
+      `Public manifest version mismatch for ${lastMismatch.target.platform}-${lastMismatch.target.arch}: expected ${lastMismatch.expectedVersion}, got ${lastMismatch.latestVersion}${errorSuffix}`
+    );
   }
 
   console.warn(
