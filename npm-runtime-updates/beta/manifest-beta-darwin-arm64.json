@@ -6,8 +6,8 @@
   "latestVersion": "0.18.12-beta.18",
   "minimumLauncherVersion": "0.18.11",
   "bundleUrl": "https://github.com/Peiiii/nextclaw/releases/download/nextclaw@0.18.12-beta.18/nextclaw-runtime-darwin-arm64-0.18.12-beta.18.zip",
-  "bundleSha256": "d28645e73b77f0cc3331fb4e3b37ab7095fa637d6c2ce33f867861157fdd1813",
-  "bundleSignature": "ZHXQxRMoAQ6ObuhdncoIQA9EeaEsHaUbXMkHcJJL0MZWSjbnxn4/f0T0qMqjOHV4Y3GyysVvPzSYuUg9Gd8RBw==",
+  "bundleSha256": "009903d26c6917f9afcff835f299acfe5ce547436f6d0d8ef4858bbe5b6ef278",
+  "bundleSignature": "Yl+FlVbtTe0o6yBgi/0z2oda8KV50pGGhD5bxtmA0DVAYDpGxLA0uAl72X5JFdi7SvYH4toexvkWtMTdVJGNDQ==",
   "releaseNotesUrl": "https://github.com/Peiiii/nextclaw/releases/tag/nextclaw@0.18.12-beta.18",
-  "manifestSignature": "oKVZu3u9EpfhXcEQRG7KQD7Ah/78i1pquten9ZJecjDovPjCozL2r4DWYsyft9fNn9Lp5Mu3A/bBoVOUMJPQCw=="
+  "manifestSignature": "gncYA3+zB9BA4tMBjHsEhpOAedxqpxnWSK/mFWv8JkY5ofF2YkywdMKmT0jH+PcEYJ3S99N182SbOQemsq6yDA=="
 }
