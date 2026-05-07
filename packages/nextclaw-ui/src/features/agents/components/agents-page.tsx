@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   useCreateAgent,
   useDeleteAgent,
@@ -19,8 +18,7 @@ import {
   normalizeSessionType,
   resolveAgentRuntimeSessionType,
   resolveSessionTypeLabel,
-  useChatInputStore,
-  useChatSessionListStore,
+  usePresenter,
   useNcpChatSessionTypes,
 } from "@/features/chat";
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
@@ -247,7 +245,7 @@ function AgentListCard(props: {
 }
 
 export function AgentsPage() {
-  const navigate = useNavigate();
+  const presenter = usePresenter();
   const agentsQuery = useAgents();
   const configQuery = useConfig();
   const configMetaQuery = useConfigMeta();
@@ -259,10 +257,6 @@ export function AgentsPage() {
   const [editingAgent, setEditingAgent] = useState<AgentProfileView | null>(
     null,
   );
-  const setSessionListSnapshot = useChatSessionListStore(
-    (state) => state.setSnapshot,
-  );
-
   const agents = useMemo(
     () => agentsQuery.data?.agents ?? [],
     [agentsQuery.data?.agents],
@@ -340,16 +334,10 @@ export function AgentsPage() {
   };
 
   const startChatWithAgent = (agent: AgentProfileView) => {
-    setSessionListSnapshot({
-      selectedAgentId: agent.id,
-      selectedSessionKey: null,
-    });
-    useChatInputStore.getState().setSnapshot({
-      pendingSessionType: resolveAgentRuntimeSessionType(agent, defaultRuntime),
-      pendingProjectRoot: null,
-      pendingProjectRootSessionKey: null,
-    });
-    navigate("/chat");
+    presenter.chatSessionListManager.startAgentDraftChat(
+      agent.id,
+      resolveAgentRuntimeSessionType(agent, defaultRuntime),
+    );
   };
 
   return (

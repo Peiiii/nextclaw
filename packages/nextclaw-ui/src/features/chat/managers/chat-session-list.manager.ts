@@ -122,6 +122,13 @@ export class ChatSessionListManager {
     return nextSessionKey;
   };
 
+  startAgentDraftChat = (agentId: string, sessionType: string): string => {
+    const normalizedAgentId = agentId.trim() || 'main';
+    const nextSessionKey = this.createSession(sessionType);
+    this.setSelectedAgentId(normalizedAgentId);
+    return nextSessionKey;
+  };
+
   ensureDraftSession = (sessionType?: string): string => {
     const { snapshot } = useChatSessionListStore.getState();
     if (snapshot.selectedSessionKey) {

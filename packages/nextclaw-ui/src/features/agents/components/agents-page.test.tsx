@@ -3,7 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
-import { useChatInputStore, useChatSessionListStore } from "@/features/chat";
+import {
+  ChatPresenterProvider,
+  NcpChatPresenter,
+  useChatInputStore,
+  useChatSessionListStore,
+  useChatThreadStore,
+} from "@/features/chat";
 import { setLanguage } from "@/shared/lib/i18n";
 
 const mocks = vi.hoisted(() => ({
@@ -113,6 +119,17 @@ vi.mock("@/features/chat", async (importOriginal) => {
   };
 });
 
+function renderAgentsPage() {
+  const presenter = new NcpChatPresenter();
+  return render(
+    <MemoryRouter>
+      <ChatPresenterProvider presenter={presenter}>
+        <AgentsPage />
+      </ChatPresenterProvider>
+    </MemoryRouter>,
+  );
+}
+
 describe("AgentsPage", () => {
   beforeEach(() => {
     setLanguage("zh");
@@ -141,6 +158,13 @@ describe("AgentsPage", () => {
         ...useChatSessionListStore.getState().snapshot,
         selectedAgentId: "main",
         selectedSessionKey: "session-1",
+        draftSessionKey: "stale-draft-session",
+      },
+    });
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: "session-1",
       },
     });
   });
@@ -148,11 +172,7 @@ describe("AgentsPage", () => {
   it("renders the agents workspace in Chinese and keeps core actions visible", async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter>
-        <AgentsPage />
-      </MemoryRouter>,
-    );
+    renderAgentsPage();
 
     expect(screen.getByText("Agent 管理台")).toBeTruthy();
     expect(
@@ -182,11 +202,7 @@ describe("AgentsPage", () => {
   it("uses a runtime dropdown instead of manual text input when editing an agent", async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter>
-        <AgentsPage />
-      </MemoryRouter>,
-    );
+    renderAgentsPage();
 
     await user.click(screen.getAllByRole("button", { name: "编辑" })[1]);
 
@@ -216,20 +232,19 @@ describe("AgentsPage", () => {
   it("starts a draft chat with the agent runtime as the pending session type", async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter>
-        <AgentsPage />
-      </MemoryRouter>,
-    );
+    renderAgentsPage();
 
     await user.click(screen.getAllByRole("button", { name: "开始对话" })[1]);
 
+    const sessionListSnapshot = useChatSessionListStore.getState().snapshot;
     expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe(
       "researcher",
     );
-    expect(
-      useChatSessionListStore.getState().snapshot.selectedSessionKey,
-    ).toBeNull();
+    expect(sessionListSnapshot.selectedSessionKey).toBeNull();
+    expect(sessionListSnapshot.draftSessionKey).not.toBe("stale-draft-session");
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe(
+      sessionListSnapshot.draftSessionKey,
+    );
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe(
       "codex",
     );

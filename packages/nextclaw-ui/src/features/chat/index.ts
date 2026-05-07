@@ -1,4 +1,4 @@
-export * from "./components/chat-sidebar-list-mode-switch"; export * from "./components/chat-sidebar-project-groups"; export * from "./components/chat-sidebar-session-item"; export * from "./components/chat-welcome";
+export * from "./components/chat-sidebar-list-mode-switch"; export * from "./components/chat-sidebar-project-groups"; export * from "./components/chat-sidebar-session-item"; export * from "./components/chat-welcome"; export * from "./components/providers/chat-presenter.provider";
 export * from "./components/conversation/chat-conversation-panel"; export * from "./components/layout/chat-sidebar";
 export * from "./components/chat-session-type-option-item"; export * from "./components/chat-session-workspace-file-preview"; export * from "./components/chat-session-workspace-panel"; export * from "./components/chat-session-workspace-panel-nav";
 export * from "./hooks/use-chat-session-type-state"; export * from "./hooks/use-ncp-chat-session-types"; export * from "./hooks/use-ncp-session-list-view";

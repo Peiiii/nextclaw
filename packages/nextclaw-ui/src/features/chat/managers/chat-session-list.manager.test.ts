@@ -71,6 +71,30 @@ describe('ChatSessionListManager', () => {
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
+  it('starts an agent draft chat through one owner state transition', () => {
+    const uiManager = {
+      goToChatRoot: vi.fn(),
+      goToSession: vi.fn(),
+      isAtChatRoot: vi.fn(() => true),
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[0];
+    const streamActionsManager = {
+      resetStreamState: vi.fn()
+    } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
+
+    const manager = new ChatSessionListManager(uiManager, streamActionsManager);
+    const sessionKey = manager.startAgentDraftChat('researcher', 'codex');
+
+    expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
+    expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
+    expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBe(sessionKey);
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe(sessionKey);
+    expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
+    expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
+  });
+
   it('hydrates the draft project root when creating a session inside a project group', () => {
     const uiManager = {
       goToChatRoot: vi.fn(),
