@@ -72,6 +72,7 @@
     "manual-beta-npm-only-nextclaw-20260507",
     "manual-beta11-host-verification",
     "manual-beta13-managed-apply-verification",
-    "queue-beta15-managed-apply-verification"
+    "queue-beta15-managed-apply-verification",
+    "queue-beta17-managed-relaunch-verification"
   ]
 }

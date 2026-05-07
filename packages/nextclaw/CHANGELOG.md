@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.17
+
+### Patch Changes
+
+- 72ed7d0: Queue beta.17 so the fixed beta.16 managed host can be verified against a newer runtime update.
+
 ## 0.18.12-beta.16
 
 ### Patch Changes
