@@ -54,7 +54,7 @@ function BrandVersionLabel({ versionLabel }: { versionLabel: string }) {
         {versionLabel}
       </span>
       {isTooltipOpen ? (
-        <span className="pointer-events-none absolute left-0 top-full z-[var(--z-tooltip)] mt-1 max-w-[320px] rounded-md border bg-popover px-3 py-1.5 text-xs font-medium break-all text-popover-foreground shadow-md">
+        <span className="pointer-events-none absolute left-0 top-full z-[var(--z-tooltip)] mt-1 w-max max-w-none whitespace-nowrap rounded-md border bg-popover px-3 py-1.5 text-xs font-medium text-popover-foreground shadow-md">
           {versionLabel}
         </span>
       ) : null}
