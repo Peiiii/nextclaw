@@ -55,10 +55,17 @@ export function readPendingChangesetPackages() {
     return new Set();
   }
 
+  const preStatePath = join(CHANGESET_DIR, "pre.json");
+  const appliedChangesets = new Set(
+    existsSync(preStatePath) ? JSON.parse(readFileSync(preStatePath, "utf8")).changesets ?? [] : []
+  );
   const entries = readdirSync(CHANGESET_DIR, { withFileTypes: true });
   const packages = new Set();
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith(".md")) {
+      continue;
+    }
+    if (appliedChangesets.has(entry.name.replace(/\.md$/, ""))) {
       continue;
     }
     const content = readFileSync(join(CHANGESET_DIR, entry.name), "utf8");
