@@ -120,6 +120,33 @@ test("finds the package L2 declaration for single-platform multi-feature apps", 
   assert.equal(contract?.protocol, "app-l2");
   assert.equal(isProtocolContract(contract), true);
   assert.deepEqual([...contract.allowedRootDirectories].sort(), ["app", "features", "shared"]);
+  assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
+});
+
+test("requires nextclaw-core package L2 root index entry", () => {
+  const contract = findModuleStructureContract("packages/nextclaw-core/src/index.ts");
+  assert.equal(contract?.modulePath, "packages/nextclaw-core/src");
+  assert.equal(contract?.protocol, "app-l2");
+  assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
+  assert.equal(contract?.requiredRootFiles.has("index.ts"), true);
+});
+
+test("blocks package L2 configs when the required root index is missing", () => {
+  withTemporaryModuleFixture("missing-required-root-file", {
+    contractKind: "protocol",
+    protocol: "app-l2",
+    rootPolicy: "contract-only",
+    requiredRootFiles: ["index.ts"]
+  }, (fixtureEntryPath) => {
+    const contract = findModuleStructureContract(fixtureEntryPath);
+    const findings = collectModuleStructureViolations([fixtureEntryPath], new Map(), { baseRef: "HEAD" });
+    assert.equal(contract?.requiredRootFiles.has("index.ts"), true);
+    assert.match(
+      findings.map((finding) => finding.message).join("\n"),
+      /missing required root entries: 'index\.ts'/,
+    );
+  });
 });
 
 test("rejects the removed package-src-explicit protocol", () => {
@@ -300,11 +327,11 @@ test("blocks protocol modules that are missing required root directories", () =>
 
     assert.equal(findings.length, 1);
     assert.equal(findings[0].level, "error");
-    assert.match(findings[0].message, /missing required root directories/);
+    assert.match(findings[0].message, /missing required root entries/);
     assert.match(findings[0].message, /'presenters\/'/);
     assert.match(findings[0].message, /'managers\/'/);
     assert.match(findings[0].message, /'stores\/'/);
-    assert.match(findings[0].reason, /rule=missing-required-root-directories/);
+    assert.match(findings[0].reason, /rule=missing-required-root-entries/);
   } finally {
     rmSync(absoluteFixtureRoot, { recursive: true, force: true });
   }
@@ -456,18 +483,35 @@ test("blocks shared root barrel index files", () => {
 });
 
 test("blocks nested directories under flat role dirs inside shared", () => {
-  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/update/self-update.service.ts");
-  const findings = evaluateModuleStructureFindings({
-    filePath: "packages/nextclaw/src/cli/shared/services/update/self-update.service.ts",
-    contract,
-    existedInComparisonRef: false,
-    rootEntryExistedInComparisonRef: false,
-    repoPathExists: () => true
-  });
+  const repoFixtureRoot = path.join("packages", ".tmp-test-workspaces", "cli-command-shared-services");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  const filePath = `${repoFixtureRoot}/src/cli/shared/services/update/self-update.service.ts`;
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services", "update"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/cli-command-shared-services\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "protocol",
+    protocol: "cli-command-first",
+    rootPolicy: "contract-only"
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services", "update", "self-update.service.ts"), "export const example = true;\n");
 
-  assert.equal(findings.length, 1);
-  assert.equal(findings[0].level, "error");
-  assert.match(findings[0].message, /may only contain direct files/);
+  try {
+    const contract = findModuleStructureContract(filePath);
+    const findings = evaluateModuleStructureFindings({
+      filePath,
+      contract,
+      existedInComparisonRef: false,
+      rootEntryExistedInComparisonRef: false,
+      repoPathExists: () => true
+    });
+
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].level, "error");
+    assert.match(findings[0].message, /may only contain direct files/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
 });
 
 test("blocks nested directories under hooks inside shared", () => {
@@ -598,17 +642,35 @@ test("allows shared component file imports", () => {
 });
 
 test("blocks parent-relative imports when alias imports are configured", () => {
-  const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/self-update.service.ts");
-  const findings = evaluateProtocolImportBoundaryFindings({
-    filePath: "packages/nextclaw/src/cli/shared/services/self-update.service.ts",
-    contract,
-    source: `import { which } from "../utils/cli.utils.js";\n`,
-    addedLines: new Set([1])
-  });
+  const repoFixtureRoot = path.join("packages", ".tmp-test-workspaces", "cli-command-alias-imports");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  const filePath = `${repoFixtureRoot}/src/cli/shared/services/self-update.service.ts`;
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/cli-command-alias-imports\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "protocol",
+    protocol: "cli-command-first",
+    rootPolicy: "contract-only",
+    importAliasPrefixes: ["@/"]
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services", "self-update.service.ts"), "export const example = true;\n");
 
-  assert.equal(findings.length, 1);
-  assert.equal(findings[0].level, "error");
-  assert.match(findings[0].message, /cross-directory imports must use '@\/'/);
+  try {
+    const contract = findModuleStructureContract(filePath);
+    const findings = evaluateProtocolImportBoundaryFindings({
+      filePath,
+      contract,
+      source: `import { which } from "../utils/cli.utils.js";\n`,
+      addedLines: new Set([1])
+    });
+
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].level, "error");
+    assert.match(findings[0].message, /cross-directory imports must use '@\/'/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
 });
 
 test("allows same-directory relative imports when alias imports are configured", () => {

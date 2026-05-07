@@ -6,16 +6,16 @@
   "type": "module",
   "exports": {
     ".": {
-      "development": "./src/app/index.ts",
-      "types": "./dist/app/index.d.ts",
-      "default": "./dist/app/index.js"
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/app/index.ts src/features/llm-providers/providers/types.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-skills.mjs",
+    "build": "tsdown src/index.ts src/features/llm-providers/providers/types.ts --dts --clean --target es2022 --no-fixedExtension && node scripts/copy-skills.mjs",
     "prepack": "pnpm run build",
     "lint": "eslint .",
     "tsc": "tsc -p tsconfig.json",

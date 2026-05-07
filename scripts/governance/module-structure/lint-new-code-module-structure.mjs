@@ -190,9 +190,13 @@ const collectRequiredRootDirectoryFindings = ({
     return { findings: [], modulePathToMark: null };
   }
 
-  const missingRequiredRootDirectories = [...(contract.requiredRootDirectories ?? [])]
-    .filter((directoryName) => !existsSync(path.resolve(rootDir, contract.modulePath, directoryName)));
-  if (missingRequiredRootDirectories.length === 0) {
+  const missingRequiredRootEntries = [
+    ...[...(contract.requiredRootFiles ?? [])].filter((entry) => !existsSync(path.resolve(rootDir, contract.modulePath, entry))),
+    ...[...(contract.requiredRootDirectories ?? [])]
+      .filter((entry) => !existsSync(path.resolve(rootDir, contract.modulePath, entry)))
+      .map((entry) => `${entry}/`)
+  ];
+  if (missingRequiredRootEntries.length === 0) {
     return { findings: [], modulePathToMark: null };
   }
 
@@ -200,8 +204,8 @@ const collectRequiredRootDirectoryFindings = ({
     findings: [buildFinding(
       filePath,
       "error",
-      `module '${contract.modulePath}' is missing required root directories: ${missingRequiredRootDirectories.map((entry) => `'${entry}/'`).join(", ")}`,
-      `protocol=${contract.protocol} module=${contract.modulePath} rule=missing-required-root-directories`
+      `module '${contract.modulePath}' is missing required root entries: ${missingRequiredRootEntries.map((entry) => `'${entry}'`).join(", ")}`,
+      `protocol=${contract.protocol} module=${contract.modulePath} rule=missing-required-root-entries`
     )],
     modulePathToMark: contract.modulePath
   };

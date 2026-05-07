@@ -1,6 +1,5 @@
 {
-  "contractKind": "protocol",
   "protocol": "app-l2",
-  "rootPolicy": "contract-only",
-  "enforcement": "error"
+  "requiredRootFiles": ["index.ts"],
+  "rootPolicy": "contract-only"
 }

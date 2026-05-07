@@ -127,8 +127,6 @@ const APP_L3_PROTOCOL = {
   organizationModel: "protocol-app-l3",
   governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared", "platforms"],
-  allowedRootFiles: [],
-  requiredRootDirectories: [],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
@@ -139,8 +137,6 @@ const APP_L1_PROTOCOL = {
   governedRoot: "src",
   allowedRootDirectories: ["app", ...FIXED_ROLE_DIRECTORY_NAMES],
   allowedRootFiles: ["index.ts"],
-  requiredRootDirectories: [],
-  sharedDirectories: [],
   importAliasPrefixes: ["@/"]
 };
 
@@ -149,8 +145,7 @@ const APP_L2_PROTOCOL = {
   organizationModel: "protocol-app-l2",
   governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared"],
-  allowedRootFiles: [],
-  requiredRootDirectories: [],
+  allowedRootFiles: ["index.ts", "index.tsx"],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
@@ -160,8 +155,6 @@ const CLI_COMMAND_FIRST_PROTOCOL = {
   organizationModel: "protocol-cli-command-first",
   governedRoot: "src/cli",
   allowedRootDirectories: ["app", "commands", "shared"],
-  allowedRootFiles: [],
-  requiredRootDirectories: [],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
 };
@@ -172,7 +165,6 @@ const ELECTRON_SHELL_L1_PROTOCOL = {
   governedRoot: "src",
   allowedRootDirectories: ["launcher", "configs", "services", "types", "utils"],
   allowedRootFiles: ["index.ts", "main.ts", "preload.ts", "launcher.ts"],
-  requiredRootDirectories: [],
   sharedDirectories: [],
   importAliasPrefixes: []
 };
@@ -205,6 +197,7 @@ const defineProtocolDeclaration = (declaration) => {
       ...(protocol.allowedRootFiles ?? []),
       ...(declaration.allowedRootFiles ?? [])
     ]),
+    requiredRootFiles: new Set(declaration.requiredRootFiles ?? []),
     requiredRootDirectories: toNormalizedSet([
       ...(protocol.requiredRootDirectories ?? []),
       ...(declaration.requiredRootDirectories ?? [])
@@ -326,6 +319,7 @@ const buildContractFromConfigFile = (configRepoPath) => {
       enforcement: config.enforcement,
       allowedRootDirectories: normalizeStringArrayField(config.allowedRootDirectories, "allowedRootDirectories", configRepoPath),
       allowedRootFiles: normalizeStringArrayField(config.allowedRootFiles, "allowedRootFiles", configRepoPath),
+      requiredRootFiles: normalizeStringArrayField(config.requiredRootFiles, "requiredRootFiles", configRepoPath),
       requiredRootDirectories: normalizeStringArrayField(config.requiredRootDirectories, "requiredRootDirectories", configRepoPath),
       sharedDirectories: normalizeStringArrayField(config.sharedDirectories, "sharedDirectories", configRepoPath),
       importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath)
