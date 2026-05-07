@@ -1,5 +1,12 @@
 # @nextclaw/ui
 
+## 0.12.20-beta.2
+
+### Patch Changes
+
+- @nextclaw/server@0.12.13-beta.2
+- @nextclaw/client-sdk@0.1.1-beta.2
+
 ## 0.12.20-beta.1
 
 ### Patch Changes

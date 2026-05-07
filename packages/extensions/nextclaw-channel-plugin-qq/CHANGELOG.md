@@ -1,5 +1,13 @@
 # @nextclaw/channel-plugin-qq
 
+## 0.2.44-beta.2
+
+### Patch Changes
+
+- 85d8439: Fix QQ channel startup readiness so non-development services wait for the QQ bot connection, surface SDK start timeouts, and retry instead of reporting a ready channel before the bot is connected.
+- Updated dependencies [85d8439]
+  - @nextclaw/channel-runtime@0.4.30-beta.2
+
 ## 0.2.44-beta.1
 
 ### Patch Changes

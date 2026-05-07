@@ -1,5 +1,12 @@
 # nextclaw-server
 
+## 0.12.13-beta.2
+
+### Patch Changes
+
+- Updated dependencies [85d8439]
+  - @nextclaw/openclaw-compat@1.0.13-beta.2
+
 ## 0.12.13-beta.1
 
 ### Patch Changes
