@@ -10,20 +10,19 @@ const changesetDir = join(process.cwd(), ".changeset");
 const isCheckMode = process.argv.includes("--check");
 
 const pendingChangesetPackages = readPendingChangesetPackages();
-const driftEntries = collectWorkspacePackages()
+const releaseEntries = collectWorkspacePackages()
   .filter((entry) => entry.private === false)
   .map((entry) => ({
     entry,
     driftFiles: readMeaningfulPublishDrift(entry)
   }))
-  .filter(({ driftFiles }) => driftFiles.length > 0)
   .filter(({ entry }) => !pendingChangesetPackages.has(entry.pkg.name))
   .sort((left, right) => left.entry.pkg.name.localeCompare(right.entry.pkg.name));
 
-if (driftEntries.length === 0) {
+if (releaseEntries.length === 0) {
   if (pendingChangesetPackages.size > 0) {
     console.log(
-      `[release:auto:changeset] no additional drift packages. existing pending changesets cover: ${Array.from(
+      `[release:auto:changeset] no additional public packages. existing pending changesets cover: ${Array.from(
         pendingChangesetPackages
       )
         .sort((left, right) => left.localeCompare(right))
@@ -33,17 +32,17 @@ if (driftEntries.length === 0) {
   }
 
   console.error(
-    "[release:auto:changeset] no unpublished package drift found after the latest version commits."
+    "[release:auto:changeset] no public workspace packages found."
   );
   process.exit(1);
 }
 
 console.log(
-  `[release:auto:changeset] detected packages: ${driftEntries
+  `[release:auto:changeset] selected public packages: ${releaseEntries
     .map(({ entry }) => entry.pkg.name)
     .join(", ")}`
 );
-for (const { entry, driftFiles } of driftEntries) {
+for (const { entry, driftFiles } of releaseEntries) {
   console.log(`- ${entry.pkg.name}@${entry.pkg.version}`);
   for (const driftFile of driftFiles) {
     console.log(`  - ${driftFile}`);
@@ -62,11 +61,12 @@ if (!existsSync(changesetDir)) {
 const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, "");
 const fileName = `auto-release-batch-${timestamp}.md`;
 const filePath = join(changesetDir, fileName);
-const header = driftEntries
+const header = releaseEntries
   .map(({ entry }) => `"${entry.pkg.name}": patch`)
   .join("\n");
-const packageList = driftEntries.map(({ entry }) => `- ${entry.pkg.name}`).join("\n");
-const body = `---\n${header}\n---\n\nAuto-generated patch release for packages with meaningful drift after their latest version commit.\n\nPackages:\n${packageList}\n`;
+const packageList = releaseEntries.map(({ entry }) => `- ${entry.pkg.name}`).join("\n");
+const summary = "Auto-generated full public beta release batch.";
+const body = `---\n${header}\n---\n\n${summary}\n\nPackages:\n${packageList}\n`;
 
 writeFileSync(filePath, body, "utf8");
 console.log(`[release:auto:changeset] created changeset: ${fileName}`);

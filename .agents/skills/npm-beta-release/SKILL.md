@@ -38,15 +38,25 @@ pnpm release:beta:runtime
 pnpm release:beta
 ```
 
-它默认完成：
+它默认按“全量 public workspace beta batch”完成：
 
-1. `pnpm release:auto`
-2. 如有 version / changelog 变更，自动创建 release commit
-3. 推送当前分支与本地 package tags
-4. 若当前 batch 包含 `nextclaw`，自动触发 `npm-runtime-update-release` 的 `beta` channel
-5. 等待 workflow 成功，并验证：
+1. 为所有 `private=false` 的 workspace 包生成统一 beta changeset
+2. `pnpm release:version`
+3. `pnpm release:publish`
+4. 如有 version / changelog 变更，自动创建 release commit
+5. 推送当前分支与本地 package tags
+6. 若 batch 包含 `nextclaw`，自动触发 `npm-runtime-update-release` 的 `beta` channel
+7. 等待 workflow 成功，并验证：
    - GitHub release assets
    - GitHub Pages 公网 beta manifest
+
+默认原则：
+
+- 用户只说“发布 beta / 发一个新的 beta / 统一 beta 发版”时，默认一口气发布所有 public workspace 包的新 beta 版本。
+- 不要只发布“看起来改过”的少量包，因为这会让本地安装、runtime bundle、UI 静态资源和依赖闭包出现版本错觉。
+- 只有用户明确要求缩小范围，或存在 npm/CI/registry 阻塞并已向用户说明，才允许使用特殊范围。
+
+特殊范围只能作为受控例外：用户明确要求最小 batch，或 npm/CI/registry 阻塞导致全量 batch 无法继续时，先向用户说明“不走全量 public beta batch”的原因，再手工构造对应 changeset 或专门流程。
 
 如果只需要发布 beta npm 包，不需要开放自动更新通道，使用：
 
@@ -99,11 +109,29 @@ pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
    - `resources/update-bundle-public.pem` 必须进入包内
    - runtime update workflow 必须真正成功，不能只停在 dispatch
 
+## 本地安装验证契约
+
+发布后验证必须使用真实发布版本，不允许把 workspace link、源码构建或本地 `packages/nextclaw` 路径当作用户安装态：
+
+```bash
+npm install -g nextclaw@beta
+nextclaw --version
+nextclaw restart --ui-port <port> --start-timeout 45000
+```
+
+验收时必须确认：
+
+- `npm ls -g nextclaw --depth=0` 显示刚发布的 beta 版本。
+- 运行进程路径位于全局 npm 安装目录，例如 `.../lib/node_modules/nextclaw/dist/...`，不能是仓库 workspace 路径。
+- `/api/app/meta` 的 `productVersion` 与 `nextclaw --version` 一致。
+- 首页加载的 hashed UI assets 来自已发布包，必要时从全局安装目录或 npm tarball 对照。
+- 若验证 UI 修复，必须用浏览器或等效工具确认页面实际行为，而不是只 grep 源码。
+
 ## 完成判定
 
 只有同时满足下面条件，才算 beta 发布真正完成：
 
-1. npm registry 上能看到本次 beta 版本
+1. npm registry 上能看到本次全量 public beta batch 版本；若不是全量，必须说明例外原因
 2. 本地 release commit 与 tags 已推送
 3. 若 batch 包含 `nextclaw`：
    - `npm-runtime-update-release` workflow 成功
@@ -120,6 +148,7 @@ pnpm release:beta:runtime -- --minimum-launcher-version-override 0.18.12-beta.3
 - 是否触发 runtime channel
 - workflow URL
 - public manifest 校验结果
+- 真实 npm 安装验证结果，包含安装路径是否为全局 npm 包而非 workspace link
 
 ## 关系说明
 

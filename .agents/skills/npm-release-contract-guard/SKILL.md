@@ -52,9 +52,10 @@ description: Use when publishing NextClaw NPM packages or NPM runtime update cha
 
 ## Beta Package Rule
 - Prefer the repo changeset/pre-release flow for beta releases.
-- Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`.
-- Prefer `pnpm release:beta:npm` when the need is only “publish beta packages now, do not yet open the runtime update channel”.
+- Prefer `pnpm release:beta` for the full reusable closure when the batch may include `nextclaw`; by default this means one full public workspace beta batch, not a hand-picked subset.
+- Prefer `pnpm release:beta:npm` only when the need is “publish beta packages now, do not yet open the runtime update channel”; it still inherits the full-public-batch expectation unless the user explicitly asks for a narrower scope.
 - Prefer `pnpm release:beta:runtime` when `nextclaw@beta` is already published and the remaining work is only the runtime update channel.
+- Use a hand-authored changeset or dedicated one-off flow for narrower scope only after telling the user the release is not a full public beta batch.
 - If a single-package beta publish is unavoidable, use pnpm:
   - `pnpm -C packages/nextclaw publish --tag beta`
 - After publish, verify the tag directly:
@@ -100,7 +101,16 @@ Do not close a release attempt with only a narrative retrospective when the bloc
 5. Confirm the manifest has the expected `latestVersion`, `minimumLauncherVersion`, and `hostKind`.
 
 ## User-Facing Beta Validation
-- Validate from an isolated home so local development state is not involved:
+- Validate the exact published package, not a workspace link or local source build. Install or reinstall the published version first:
+
+```bash
+npm install -g nextclaw@beta
+npm ls -g nextclaw --depth=0
+nextclaw --version
+```
+
+- Confirm the running non-dev service uses the global npm package path, for example `.../lib/node_modules/nextclaw/dist/...`, not `.../Projects/nextbot/packages/nextclaw/dist/...`.
+- Validate from an isolated home when testing update behavior so local development state is not involved:
 
 ```bash
 export NEXTCLAW_HOME="$(mktemp -d)"

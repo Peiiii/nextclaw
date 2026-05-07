@@ -30,7 +30,7 @@ Options:
   --help                                Show this help
 
 Default behavior:
-  1. run pnpm release:auto
+  1. run pnpm release:auto for a full public workspace beta batch
   2. create a release commit if version/changelog files changed
   3. push the current branch and local tags
   4. if nextclaw is in the batch, trigger the beta runtime update workflow
@@ -306,7 +306,7 @@ function buildDryRunPlan(branch, options) {
   return [
     `- channel: ${BETA_CHANNEL}`,
     `- branch: ${branch}`,
-    `- command: pnpm release:auto`,
+    `- command: pnpm release:auto (full public workspace beta batch)`,
     `- commit release artifacts if version/changelog files changed`,
     `- push branch and tags`,
     options.skipRuntimeChannel
