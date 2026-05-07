@@ -668,7 +668,7 @@ importers:
         specifier: ^6.9.15
         version: 6.10.1
       qq-official-bot:
-        specifier: ^1.0.12
+        specifier: 1.0.12
         version: 1.0.12
       socket.io-client:
         specifier: ^4.7.5
