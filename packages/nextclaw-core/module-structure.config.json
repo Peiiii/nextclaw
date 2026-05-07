@@ -1,25 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [
-    "agent",
-    "bus",
-    "channels",
-    "commands",
-    "config",
-    "cron",
-    "extensions",
-    "heartbeat",
-    "logging",
-    "providers",
-    "runtime-context",
-    "session",
-    "typed-event-bus",
-    "utils"
-  ],
-  "allowedRootFiles": [
-    "index.ts"
-  ]
+  "enforcement": "error"
 }

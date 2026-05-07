@@ -1,30 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [
-    "__tests__"
-  ],
-  "allowedRootFiles": [
-    "README.md",
-    "agent-runtime.service.ts",
-    "asset-store.ts",
-    "attachment-store.test.ts",
-    "context-builder.test.ts",
-    "context-builder.ts",
-    "index.ts",
-    "llm-api-echo.ts",
-    "round-buffer.ts",
-    "round-collector.ts",
-    "stream-encoder.ts",
-    "stream-encoder.utils.ts",
-    "tool-registry.ts",
-    "tool-result-content.manager.test.ts",
-    "tool-result-content.manager.ts",
-    "tool-result-content.utils.ts",
-    "tool-result-image.service.ts",
-    "user-content.ts",
-    "utils.ts"
-  ]
+  "enforcement": "error"
 }

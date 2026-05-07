@@ -1,21 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [],
-  "allowedRootFiles": [
-    "async-queue.ts",
-    "controller.ts",
-    "handler-interface.ts",
-    "index.test.ts",
-    "index.ts",
-    "parsers.ts",
-    "router.ts",
-    "scope.ts",
-    "sse-stream.ts",
-    "stream-handlers.ts",
-    "types.ts",
-    "utils.ts"
-  ]
+  "enforcement": "error"
 }

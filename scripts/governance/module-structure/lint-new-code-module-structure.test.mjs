@@ -3,7 +3,7 @@ import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-import { findModuleStructureContract, isProtocolContract } from "./module-structure-contracts.mjs";
+import { MODULE_STRUCTURE_PROTOCOLS, findModuleStructureContract, isProtocolContract } from "./module-structure-contracts.mjs";
 import {
   collectModuleStructureViolations,
   evaluateModuleStructureFindings,
@@ -25,6 +25,14 @@ const withTemporaryModuleFixture = (fixtureName, config, run) => {
   }
 };
 
+const APPROVED_MODULE_STRUCTURE_PROTOCOLS = [
+  "app-l1",
+  "app-l2",
+  "app-l3",
+  "cli-command-first",
+  "electron-shell-l1"
+];
+
 const listWorkspaceRoots = () => {
   const repoRoot = process.cwd();
   const collectImmediateWorkspaceRoots = (relativeDirectory) => {
@@ -45,17 +53,21 @@ const listWorkspaceRoots = () => {
   ].sort();
 };
 
+test("module-structure protocols stay inside the approved fixed list", () => {
+  assert.deepEqual([...MODULE_STRUCTURE_PROTOCOLS.keys()].sort(), APPROVED_MODULE_STRUCTURE_PROTOCOLS);
+});
+
 test("finds the protocol declaration for nextclaw-ui package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw-ui/src/features/chat/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-ui/src");
-  assert.equal(contract?.protocol, "frontend-l3");
+  assert.equal(contract?.protocol, "app-l3");
   assert.equal(isProtocolContract(contract), true);
 });
 
 test("finds the protocol declaration for nextclaw-kernel package root config", () => {
   const contract = findModuleStructureContract("packages/nextclaw-kernel/src/managers/agent.manager.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-kernel/src");
-  assert.equal(contract?.protocol, "package-l1");
+  assert.equal(contract?.protocol, "app-l1");
   assert.equal(isProtocolContract(contract), true);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
 });
@@ -93,13 +105,36 @@ test("finds the protocol declaration for desktop electron shell config", () => {
   assert.equal(contract?.allowedRootFiles.has("runtime-service.ts"), true);
 });
 
-test("finds the protocol declaration for explicit package src configs", () => {
+test("finds the strict package L1 declaration for former explicit src configs", () => {
   const contract = findModuleStructureContract("packages/nextclaw-server/src/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-server/src");
-  assert.equal(contract?.protocol, "package-src-explicit");
+  assert.equal(contract?.protocol, "app-l1");
   assert.equal(isProtocolContract(contract), true);
-  assert.equal(contract?.allowedRootDirectories.has("ui"), true);
+  assert.equal(contract?.allowedRootDirectories.has("ui"), false);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
+});
+
+test("finds the package L2 declaration for single-platform multi-feature apps", () => {
+  const contract = findModuleStructureContract("apps/public-roadmap-feedback-portal/src/features/community-feedback/components/community-feedback-section.tsx");
+  assert.equal(contract?.modulePath, "apps/public-roadmap-feedback-portal/src");
+  assert.equal(contract?.protocol, "app-l2");
+  assert.equal(isProtocolContract(contract), true);
+  assert.deepEqual([...contract.allowedRootDirectories].sort(), ["app", "features", "shared"]);
+});
+
+test("rejects the removed package-src-explicit protocol", () => {
+  withTemporaryModuleFixture("removed-package-src-explicit-protocol", {
+    contractKind: "protocol",
+    protocol: "package-src-explicit",
+    rootPolicy: "contract-only",
+    allowedRootDirectories: [],
+    allowedRootFiles: ["example.ts"]
+  }, (fixtureEntryPath) => {
+    assert.throws(
+      () => findModuleStructureContract(fixtureEntryPath),
+      /Unknown module-structure protocol 'package-src-explicit'/,
+    );
+  });
 });
 
 test("rejects the removed source-root-open protocol", () => {
@@ -127,14 +162,14 @@ test("every workspace root declares module-structure config", () => {
 test("rejects legacy configs that reuse protocol organizationModel names", () => {
   withTemporaryModuleFixture("invalid-legacy-protocol-prefix", {
     contractKind: "legacy",
-    organizationModel: "protocol-package-l1",
+    organizationModel: "protocol-app-l1",
     rootPolicy: "contract-only",
     allowedRootDirectories: ["src"],
     allowedRootFiles: []
   }, (fixtureEntryPath) => {
     assert.throws(
       () => findModuleStructureContract(fixtureEntryPath),
-      /cannot reuse protocol organizationModel 'protocol-package-l1' in a legacy contract/,
+      /cannot reuse protocol organizationModel 'protocol-app-l1' in a legacy contract/,
     );
   });
 });
@@ -196,7 +231,7 @@ test("blocks new root files outside the L1 minimal allowed root-file set", () =>
   assert.match(findings[0].message, /allowed root-file set/);
 });
 
-test("allows package-l1 root index files as package boundary entries", () => {
+test("allows app-l1 root index files as package boundary entries", () => {
   const contract = findModuleStructureContract("packages/nextclaw-kernel/src/index.ts");
   const findings = evaluateModuleStructureFindings({
     filePath: "packages/nextclaw-kernel/src/index.ts",
@@ -250,7 +285,7 @@ test("blocks protocol modules that are missing required root directories", () =>
   writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/missing-electron-roles\"\n}\n");
   writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
     contractKind: "protocol",
-    protocol: "frontend-l3",
+    protocol: "app-l3",
     rootPolicy: "contract-only",
     enforcement: "error",
     allowedRootDirectories: ["services"],

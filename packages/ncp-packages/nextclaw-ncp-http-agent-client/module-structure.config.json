@@ -1,15 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [],
-  "allowedRootFiles": [
-    "client.ts",
-    "index.test.ts",
-    "index.ts",
-    "parsers.ts",
-    "sse.ts",
-    "utils.ts"
-  ]
+  "enforcement": "error"
 }

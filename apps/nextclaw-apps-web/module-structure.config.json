@@ -1,18 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l2",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [
-    "components",
-    "pages"
-  ],
-  "allowedRootFiles": [
-    "app.tsx",
-    "app.types.ts",
-    "apps-marketplace.service.ts",
-    "index.css",
-    "main.tsx",
-    "vite-env.d.ts"
-  ]
+  "enforcement": "error"
 }

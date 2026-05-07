@@ -1,15 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [],
-  "allowedRootFiles": [
-    "codex-cli-env.test.ts",
-    "codex-cli-env.ts",
-    "codex-input.utils.ts",
-    "codex-sdk-ncp-event-mapper.ts",
-    "completed-assistant-message.utils.ts",
-    "index.ts"
-  ]
+  "enforcement": "error"
 }

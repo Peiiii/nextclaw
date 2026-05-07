@@ -1,27 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [
-    "bridge",
-    "bundle",
-    "cli",
-    "commands",
-    "host",
-    "install",
-    "manifest",
-    "paths",
-    "permissions",
-    "publish",
-    "registry",
-    "runtime",
-    "scaffold",
-    "sidecar",
-    "ui"
-  ],
-  "allowedRootFiles": [
-    "index.ts",
-    "main.ts"
-  ]
+  "enforcement": "error"
 }

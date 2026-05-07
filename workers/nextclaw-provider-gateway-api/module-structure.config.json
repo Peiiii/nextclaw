@@ -1,6 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-l1",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
   "enforcement": "error",
   "allowedRootFiles": [

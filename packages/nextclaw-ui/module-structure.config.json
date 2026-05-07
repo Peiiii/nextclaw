@@ -1,6 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "frontend-l3",
+  "protocol": "app-l3",
   "rootPolicy": "contract-only",
   "enforcement": "error",
   "importAliasPrefixes": ["@/"]

@@ -122,9 +122,9 @@ export const RESERVED_PROTOCOL_DIRECTORY_NAMES = new Set([
   "lib"
 ]);
 
-const FRONTEND_L3_PROTOCOL = {
-  protocolName: "frontend-l3",
-  organizationModel: "protocol-frontend-l3",
+const APP_L3_PROTOCOL = {
+  protocolName: "app-l3",
+  organizationModel: "protocol-app-l3",
   governedRoot: "src",
   allowedRootDirectories: ["app", "features", "shared", "platforms"],
   allowedRootFiles: [],
@@ -133,9 +133,9 @@ const FRONTEND_L3_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
-const PACKAGE_L1_PROTOCOL = {
-  protocolName: "package-l1",
-  organizationModel: "protocol-package-l1",
+const APP_L1_PROTOCOL = {
+  protocolName: "app-l1",
+  organizationModel: "protocol-app-l1",
   governedRoot: "src",
   allowedRootDirectories: ["app", ...FIXED_ROLE_DIRECTORY_NAMES],
   allowedRootFiles: ["index.ts"],
@@ -144,15 +144,15 @@ const PACKAGE_L1_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
-const PACKAGE_SRC_EXPLICIT_PROTOCOL = {
-  protocolName: "package-src-explicit",
-  organizationModel: "protocol-package-src-explicit",
+const APP_L2_PROTOCOL = {
+  protocolName: "app-l2",
+  organizationModel: "protocol-app-l2",
   governedRoot: "src",
-  allowedRootDirectories: [],
+  allowedRootDirectories: ["app", "features", "shared"],
   allowedRootFiles: [],
   requiredRootDirectories: [],
-  sharedDirectories: [],
-  importAliasPrefixes: []
+  sharedDirectories: ["shared"],
+  importAliasPrefixes: ["@/"]
 };
 
 const CLI_COMMAND_FIRST_PROTOCOL = {
@@ -178,9 +178,9 @@ const ELECTRON_SHELL_L1_PROTOCOL = {
 };
 
 export const MODULE_STRUCTURE_PROTOCOLS = new Map([
-  [PACKAGE_L1_PROTOCOL.protocolName, PACKAGE_L1_PROTOCOL],
-  [PACKAGE_SRC_EXPLICIT_PROTOCOL.protocolName, PACKAGE_SRC_EXPLICIT_PROTOCOL],
-  [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL],
+  [APP_L1_PROTOCOL.protocolName, APP_L1_PROTOCOL],
+  [APP_L2_PROTOCOL.protocolName, APP_L2_PROTOCOL],
+  [APP_L3_PROTOCOL.protocolName, APP_L3_PROTOCOL],
   [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL],
   [ELECTRON_SHELL_L1_PROTOCOL.protocolName, ELECTRON_SHELL_L1_PROTOCOL]
 ]);

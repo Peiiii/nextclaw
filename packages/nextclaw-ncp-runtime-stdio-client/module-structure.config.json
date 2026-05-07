@@ -1,20 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [
-    "hermes-acp-route-bridge",
-    "test-fixtures"
-  ],
-  "allowedRootFiles": [
-    "index.ts",
-    "stdio-runtime-abort.test.ts",
-    "stdio-runtime-config.utils.ts",
-    "stdio-runtime-error.utils.ts",
-    "stdio-runtime-probe.utils.ts",
-    "stdio-runtime-tool-name.utils.ts",
-    "stdio-runtime.service.ts",
-    "stdio-runtime.test.ts"
-  ]
+  "enforcement": "error"
 }

@@ -1,25 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "package-src-explicit",
+  "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "allowedRootDirectories": [],
-  "allowedRootFiles": [
-    "index.ts",
-    "platform-session-token.ts",
-    "register-remote-commands.ts",
-    "remote-app-stream.ts",
-    "remote-app.adapter.ts",
-    "remote-connector-error.ts",
-    "remote-connector-retry.utils.ts",
-    "remote-connector-websocket-error.utils.ts",
-    "remote-connector.ts",
-    "remote-platform-client.ts",
-    "remote-relay-bridge.ts",
-    "remote-runtime-actions.ts",
-    "remote-service-module.ts",
-    "remote-status-store.ts",
-    "types.ts",
-    "ws.types.d.ts"
-  ]
+  "enforcement": "error"
 }
