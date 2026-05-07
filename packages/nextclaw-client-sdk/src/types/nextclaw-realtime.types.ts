@@ -1,11 +1,11 @@
-import type { AppEvent } from "@nextclaw/kernel";
+import type { AppEvent, AppEventEnvelope } from "@nextclaw/kernel";
 
 export type NextClawConnectionEvent =
   | { type: "connection.open"; payload?: Record<string, never> }
   | { type: "connection.close"; payload?: Record<string, never> }
   | { type: "connection.error"; payload?: { message?: string } };
 
-export type NextClawRealtimeEvent = AppEvent | NextClawConnectionEvent;
+export type NextClawRealtimeEvent = AppEvent | AppEventEnvelope | NextClawConnectionEvent;
 
 export type NextClawWebSocketLike = {
   onopen: ((event: unknown) => void) | null;
