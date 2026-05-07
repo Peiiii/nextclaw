@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-weixin",
-  "version": "0.1.38-beta.4",
+  "version": "0.1.38",
   "private": false,
   "description": "NextClaw Weixin channel plugin.",
   "type": "module",
