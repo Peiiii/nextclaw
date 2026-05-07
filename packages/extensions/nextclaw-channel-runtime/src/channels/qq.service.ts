@@ -24,7 +24,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
   private reconnectAttempt = 0;
   private readonly reconnectBaseMs = 1000;
   private readonly reconnectMaxMs = 60000;
-  protected readonly connectTimeoutMs: number = 15000;
+  protected readonly connectTimeoutMs: number = 90000;
 
   constructor(config: Config["channels"]["qq"], bus: MessageBus) {
     super(config, bus);

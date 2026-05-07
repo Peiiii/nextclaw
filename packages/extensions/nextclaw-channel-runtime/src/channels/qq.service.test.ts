@@ -89,4 +89,36 @@ describe("QQChannel startup lifecycle", () => {
     assert.equal(fakeBot.stop.mock.callCount(), 1);
     assert.equal(channel.isRunning, false);
   });
+
+  it("keeps waiting for slow QQ SDK startup before reporting failure", async () => {
+    const fakeBot = createFakeBot(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    class SlowQQChannel extends QQChannel {
+      protected override readonly connectTimeoutMs = 50;
+
+      constructor(private readonly slowFakeBot: FakeBot) {
+        super(
+          {
+            enabled: true,
+            appId: "test-app",
+            secret: "test-secret",
+            allowFrom: [],
+            markdownSupport: false
+          },
+          { publishInbound: mock.fn(async () => {}) } as unknown as MessageBus
+        );
+      }
+
+      protected override createBot = (): Bot => {
+        return this.slowFakeBot as unknown as Bot;
+      };
+    }
+    const channel = new SlowQQChannel(fakeBot);
+
+    await channel.start();
+
+    assert.equal(channel.isRunning, true);
+    await channel.stop();
+  });
 });
