@@ -29,6 +29,8 @@
 - 同批次补充：进一步确认并修复了导致 `ui-runtime.json` 持续被死进程污染的更深层根因。第一层根因是 `startUiServer()` 之前在真正 listen 成功前就返回，导致后来会因 `EADDRINUSE` 崩掉的失败进程，仍然能继续执行并把自己写进 `ui-runtime.json`；第二层根因是 macOS LaunchAgent 之前生成的是 `KeepAlive=true` 且直接执行 `nextclaw serve`，在同一端口已被受管后台 service 占用时会被 `launchd` 无限重拉，持续制造 `EADDRINUSE` 并反复覆盖本地 runtime owner。修复方式分别是：让 `startUiServer()` 只在 Hono `serve()` 真正进入 listening 回调后才 resolve、在 listen error 时直接 reject；同时把 LaunchAgent 改成“登录时启动一次但不做 KeepAlive 监督重拉”。
 - 同批次补充：把 NPM beta 发布闭环收敛成了可复用入口，而不是继续依赖“记住一串步骤”。新增仓库命令 `pnpm release:beta`，它默认串起 `release:auto -> release commit -> push branch/tags -> nextclaw runtime beta workflow -> release asset / public manifest 验证`；同时新增 `/release-beta` 元指令与 `npm-beta-release` skill，后续再遇到“发一个 beta”时可以直接复用这条 owner，而不是重新人工拼流程。该入口仍复用既有 `release:auto` 与 `npm-runtime-update-release.yml`，没有新造第二套发布机制。
 - 同批次补充：已修复“全局 npm 外壳已经升级到 `0.18.12-beta.7`，但产品实际仍启动 `current.json` 里的 `0.18.12-beta.4` bundle，导致 `nextclaw --version` 和左上角版本号都继续显示 beta.4”的启动语义 bug。根因不是 UI 展示源，而是 launcher 之前无条件优先执行 `current` runtime bundle；只要 `~/.nextclaw/launcher/runtime-bundles/current.json` 里还指着旧 bundle，新装上的 npm 外壳版本就会被静默盖住。修复方式是在 launcher / runtime update manager 里统一引入“effective current version”规则：当前 bundle 和已安装外壳之间，始终以更高版本作为有效运行版本；当外壳版本更高时，launcher 直接回落到包内 app，并把 `/api/runtime/update` 的 `currentVersion` 同步成外壳版本。
+- 同批次补充：统一 UI 实时状态入口已从“各处直接订阅 `/ws` 或轮询”收敛为 `nextclaw.eventBus -> /ws -> nextclawClient.eventBus -> UI consumers`。根因是 runtime update 进度原先依赖 host 模式固定轮询，且 SDK / UI 缺少统一事件总线契约；修复方式是在 `@nextclaw/kernel` 顶层提供 `nextclaw.eventBus`、`EventBus`、`eventKeys` 和 `AppEvent`，server 只把 event bus bridge 到既有 `/ws`，SDK 暴露懒启动的 `client.eventBus`，UI 通过 `useAppEventConsumers` 消费 `runtime.update.snapshot`，并删除 runtime update host 的永久 1s 轮询。
+- 同批次补充：补齐 UI bundling 层面的 `@nextclaw/kernel` / `@nextclaw/client-sdk` alias。验证中发现 `tsc` 能解析 tsconfig path，但 Vite build 无法从 client SDK 源码转译链路解析 `@nextclaw/kernel`，导致 `@nextclaw/ui build` 失败；修复后 Vite / Vitest / tsconfig 三者解析口径一致，并重新同步 `packages/nextclaw/ui-dist`。
 - 同步 `apps/desktop`、`@nextclaw/ui` 与 `nextclaw` 对 `@nextclaw/kernel` 的 workspace 依赖，并更新 lockfile。
 
 设计依据见 [统一更新系统设计文档](../../designs/2026-05-05-unified-update-system-design.md)。
@@ -97,6 +99,14 @@
 - `pnpm -C packages/nextclaw-ui test -- --run src/shared/components/common/brand-header.test.tsx src/features/system-status/components/desktop-update-config.test.tsx`：通过，2 个测试文件、4 个用例，验证版本号旁边下载进度展示与“更新”按钮应用动作。
 - `pnpm -C packages/nextclaw-ui tsc`：通过（同批次补充后复验）。
 - `pnpm -C packages/nextclaw-server tsc`：通过（同批次补充后复验）。
+- `pnpm --filter @nextclaw/kernel test`：通过，1 个测试文件、4 个用例，覆盖 `EventBus emit/on/off/once/subscribeAll`、listener error 隔离和首尾订阅生命周期。
+- `pnpm --filter @nextclaw/client-sdk test`：通过，1 个测试文件、4 个用例，覆盖 `client.eventBus` 懒启动 `/ws`、`sessions.subscribe` 复用同一事件总线、reconnect 与最后订阅释放后的关闭。
+- `pnpm --filter nextclaw test -- src/cli/shared/services/ui/tests/npm-runtime-update-host.service.test.ts`：通过，1 个测试文件、3 个用例，覆盖 runtime update host 应用更新时发布 `runtime.update.snapshot`。
+- `pnpm --filter @nextclaw/ui test -- src/features/system-status/components/desktop-update-config.test.tsx`：通过，1 个测试文件、3 个用例，覆盖更新页不再自己 start/stop manager，以及下载进度能从共享 store 正常展示。
+- `pnpm --filter @nextclaw/kernel tsc`、`pnpm --filter @nextclaw/client-sdk tsc`、`pnpm --filter @nextclaw/server tsc`、`pnpm --filter @nextclaw/ui tsc`、`pnpm --filter nextclaw tsc`：均通过。
+- `pnpm --filter @nextclaw/kernel build`、`pnpm --filter @nextclaw/client-sdk build`、`pnpm --filter @nextclaw/ui build`、`pnpm --filter nextclaw build`：均通过。`@nextclaw/ui build` 首次发现 Vite alias 缺口，补齐后复验通过；`nextclaw build` 已把新 UI dist 同步进 NPM 包产物。
+- `rg "RUNTIME_HOST_POLL_INTERVAL|pollingTimer|ensurePolling|use-realtime-query-bridge|setInterval\\(" packages/nextclaw-ui/src packages/nextclaw-client-sdk/src`：通过，未再发现 runtime update host 轮询实现；`/api/runtime/update` 仅保留在 SDK 的显式初始/动作 API 中。
+- `pnpm lint:maintainability:guard`：通过。事件总线相关文件无 maintainability finding；当前工作区同时包含 module-structure governance 相关未提交改动，因此全量输出 3 个 near-budget warning，来源为 `scripts/governance/module-structure/*`，非本次事件总线改造引入。
 - `pnpm -C packages/nextclaw-server test src/ui/router.runtime-control.test.ts src/ui/ui-routes/runtime-update-routes.test.ts`：通过，2 个测试文件、6 个用例，覆盖统一 runtime update route。
 - `pnpm -C packages/nextclaw test src/cli/launcher/npm-runtime-update.manager.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts`：通过，2 个测试文件、5 个用例，确认 runtime bundle download/apply 语义未被 UI 接线破坏。
 - `pnpm -C packages/nextclaw test src/cli/shared/services/ui/tests/service-ui-hosts.service.test.ts src/cli/shared/services/ui/tests/runtime-control-host.service.test.ts`：通过，2 个测试文件、5 个用例，覆盖“默认暴露 runtime update host / 开发态禁用 runtime update host”的宿主边界。

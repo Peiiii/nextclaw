@@ -2,56 +2,37 @@
 
 ## 当前目标
 
-把 beta 发布入口按语义拆成“全闭环 / 只发 npm / 只发 runtime channel”，并说明 runtime workflow 的必要成本与已消除的非必要耗时。
+一次性完成统一 UI 事件总线改造，并验证 runtime update 进度/状态通过事件链路正确分发，不再依赖 host 模式永久轮询。
 
 ## 明确非目标
 
-- 不把“runtime workflow 慢”误判成单纯 npm publish 慢。
-- 不删除真实需要的四平台 runtime bundle 构建。
+- 不新增 `/api/events`、SSE 或新的 event-bus 包。
+- 不迁移 desktop bridge 的内部更新通道。
 - 不抬高 `minimumLauncherVersion`。
+- 不把前端做成环境判断 owner；前端只消费 snapshot / eventBus。
 
 ## 冻结边界 / 不变量
 
-- `pnpm release:beta` 的“本地 npm 发包”和“远端 runtime update channel”继续分层，不强行揉成一条本地构建流水线。
-- 必须保留发布闭环：release asset、`gh-pages` manifest、公网 URL 至少要有清晰的主从校验关系。
-- 优化点只能砍掉误判/重复等待，不能牺牲真实更新通道正确性。
+- 后端公共入口是 `nextclaw.eventBus`。
+- 事件 key / envelope 契约来自 `@nextclaw/kernel` 顶层导出。
+- server 只把 event bus bridge 到既有 `/ws`。
+- SDK 暴露 `client.eventBus`，并懒启动 realtime transport。
+- UI 初始状态仍允许一次 GET，后续变化走事件。
 
 ## 已完成进展
 
-- 已确认 runtime workflow 的必要成本：4 平台 runtime bundle 构建、签名、上传 release assets、发布 `gh-pages` manifest。
-- 已确认并修掉一段非必要耗时：Pages 传播延迟导致 `release:beta` 误判失败。
-- 已新增 3 个明确入口：
-  - `pnpm release:beta`
-  - `pnpm release:beta:npm`
-  - `pnpm release:beta:runtime`
-- 已新增：
-  - `scripts/release/release-beta-npm.mjs`
-  - `scripts/release/release-beta-runtime.mjs`
-  - `scripts/release/release-runtime-manifest-verify.mjs`
-- 已同步：
-  - `package.json`
-  - `commands/commands.md`
-  - `AGENTS.md`
-  - `npm-beta-release` / `npm-release-contract-guard`
-  - `docs/workflows/npm-release-process.md`
-- 已完成定向验证：
-  - `node --check scripts/release/release-beta*.mjs scripts/release/release-runtime-manifest-verify.mjs`
-  - `pnpm release:beta:npm -- --dry-run`
-  - `pnpm release:beta:runtime -- --dry-run`
-- `pnpm lint:new-code:governance`：通过
-- maintainability guard：通过（1 个接近预算 warning，无 error）
-- `pnpm check:governance-backlog-ratchet`：仍为历史 `docFileNameViolations 13 > 11`
-- 已真实发布并闭环验证 split beta 入口：
-  - `nextclaw@beta = 0.18.12-beta.9`
-  - `pnpm release:beta:npm` 未触发新的 runtime workflow
-  - `pnpm release:beta:runtime -- --version 0.18.12-beta.9 --branch master` 成功发布 `beta.9` runtime channel
-  - runtime workflow `25454210414` 成功
-  - GitHub release assets 齐全
-  - `gh-pages` 与公网 manifest 最终均切到 `0.18.12-beta.9`
+- 已落地 `nextclaw.eventBus`、`EventBus`、`eventKeys`、`AppEvent`。
+- 已把 server `/ws` bridge 接到 `nextclaw.eventBus.subscribeAll`。
+- 已让 NPM runtime update host 通过 `runtime.update.snapshot` 发布状态。
+- 已让 SDK 暴露懒启动 `client.eventBus`，`sessions.subscribe` 复用同一 bus。
+- 已让 UI 使用 `useAppEventConsumers` 消费统一事件，并删除 host 模式 1s 轮询。
+- 已补齐 Vite / Vitest / tsconfig 对 `@nextclaw/kernel` 与 `@nextclaw/client-sdk` 的一致 alias。
+- 已同步 `packages/nextclaw/ui-dist`。
+- 已完成测试、tsc、build、rg 和 maintainability guard 验证。
 
 ## 当前下一步
 
-继续收紧 beta 发布性能：让 isolated worktree 场景自动继承项目根 `.npmrc`，并进一步缩小 `release:check` 的 batch scope，减少 package-only beta 的等待时间。
+等待用户决定是否提交 / 发布新 beta；当前实现与验证链路已闭环。
 
 ## 锚点计数器
 

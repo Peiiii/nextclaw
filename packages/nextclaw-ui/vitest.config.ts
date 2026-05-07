@@ -25,7 +25,9 @@ export default defineConfig({
       '@/pwa/components/pwa-install-entry': path.resolve(__dirname, './src/features/pwa/components/pwa-install-entry.tsx'),
       '@/pwa/register-pwa': path.resolve(__dirname, './src/features/pwa/managers/pwa-bootstrap.manager.ts'),
       '@': path.resolve(__dirname, './src'),
-      '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts')
+      '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts'),
+      '@nextclaw/client-sdk': path.resolve(__dirname, '../nextclaw-client-sdk/src/index.ts'),
+      '@nextclaw/kernel': path.resolve(__dirname, '../nextclaw-kernel/src/index.ts')
     }
   },
   test: {
