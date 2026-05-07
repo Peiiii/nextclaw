@@ -8,6 +8,7 @@ import { localUiRuntimeStore } from "@/cli/shared/stores/local-ui-runtime.store.
 import { managedServiceStateStore, type ManagedServiceState } from "@/cli/shared/stores/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "@/cli/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@/cli/shared/services/runtime/service-remote-runtime.service.js";
+import { createTopLevelNextclawCommandEnv } from "@/cli/shared/utils/top-level-nextclaw-command-env.utils.js";
 import {
   isProcessRunning,
   openBrowser,
@@ -199,7 +200,7 @@ export function spawnManagedService(params: {
   const childArgs = [...process.execArgv, ...cliLaunch.args];
   appendStartupStage(logPath, `spawning background process: ${cliLaunch.command} ${childArgs.join(" ")}`);
   const child = spawn(cliLaunch.command, childArgs, {
-    env: process.env,
+    env: createTopLevelNextclawCommandEnv(process.env),
     stdio: "ignore",
     detached: true
   });

@@ -12,6 +12,7 @@ import { spawn } from "node:child_process";
 import { RestartCoordinator, type RestartStrategy } from "@/cli/shared/services/restart/restart-coordinator.service.js";
 import { initializeConfigIfMissing } from "@/cli/shared/services/runtime/runtime-config-init.service.js";
 import { writeRestartSentinel } from "@/cli/shared/services/restart/restart-sentinel.service.js";
+import { createTopLevelNextclawCommandEnv } from "@/cli/shared/utils/top-level-nextclaw-command-env.utils.js";
 import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
 import { getPackageVersion, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@/cli/launcher/npm-runtime-update-command.service.js";
@@ -348,7 +349,7 @@ export class CliRuntime {
       const helper = spawn(process.execPath, ["-e", helperScript], {
         detached: true,
         stdio: "ignore",
-        env: process.env,
+        env: createTopLevelNextclawCommandEnv(process.env),
       });
       helper.unref();
       this.selfRelaunchArmed = true;

@@ -28,11 +28,15 @@ describe("spawnManagedService", () => {
   beforeEach(() => {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "nextclaw-service-startup-"));
     originalArgv = [...process.argv];
+    process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD = "1";
+    process.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER = "1";
     vi.clearAllMocks();
   });
 
   afterEach(() => {
     process.argv = originalArgv;
+    delete process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;
+    delete process.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER;
     fs.rmSync(tempDir, { recursive: true, force: true });
   });
 
@@ -76,11 +80,15 @@ describe("spawnManagedService", () => {
     expect(args.some((arg) => arg === "/tmp/dist/cli/app/index.js")).toBe(false);
     expect(options).toEqual(
       expect.objectContaining({
-        env: process.env,
+        env: expect.objectContaining({
+          PATH: expect.any(String)
+        }),
         stdio: "ignore",
         detached: true
       })
     );
+    expect((options.env as NodeJS.ProcessEnv).NEXTCLAW_RUNTIME_BUNDLE_CHILD).toBeUndefined();
+    expect((options.env as NodeJS.ProcessEnv).NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER).toBeUndefined();
     expect(appendStartupStage).toHaveBeenCalledWith(
       path.join(tempDir, "service.log"),
       expect.stringMatching(/cli[/\\]launcher[/\\]index\.(js|ts) serve --ui-port 18791/)
