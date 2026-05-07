@@ -249,6 +249,22 @@ pnpm -C apps/desktop validation:dev-update
 
 本次开始发布 NPM beta 版本，先提供给用户侧验证；用户确认 beta 没问题后再发布正式版。
 
+### beta.9 package-only + runtime closure
+
+- 已发布 `nextclaw@0.18.12-beta.9`，dist-tag 为 `beta`。
+- 本次先通过 `pnpm release:beta:npm` 验证“只发 NPM、不触发 runtime workflow”的快速路径，再单独执行 `pnpm release:beta:runtime -- --version 0.18.12-beta.9 --branch master` 补齐自动更新通道。
+- 真实 npm publish 一度在隔离 worktree 中因未继承项目根 `.npmrc` 失败，报 `E404 Not Found / no permission`。修复方式不是改包内容，而是在 isolated worktree 发布时显式带上 `NPM_CONFIG_USERCONFIG=/Users/peiwang/Projects/nextbot/.npmrc`；随后 `nextclaw@0.18.12-beta.9` 成功发布。
+- runtime workflow `25454210414` 已成功完成，四个平台 bundle assets 均已上传到 `nextclaw@0.18.12-beta.9` release：
+  - `nextclaw-runtime-darwin-arm64-0.18.12-beta.9.zip`
+  - `nextclaw-runtime-darwin-x64-0.18.12-beta.9.zip`
+  - `nextclaw-runtime-linux-x64-0.18.12-beta.9.zip`
+  - `nextclaw-runtime-win32-x64-0.18.12-beta.9.zip`
+- `gh-pages` 分支提交 `4808d8af` 已把 beta manifest 切到 `0.18.12-beta.9`；GitHub Pages 状态随后从 `building` 进入 `built`，公网 manifest 最终也已传播到 `0.18.12-beta.9`。
+- 这次再次验证了 split beta 入口的职责边界：
+  - `pnpm release:beta:npm`：只发 npm，不触发 runtime workflow
+  - `pnpm release:beta:runtime`：只发 runtime channel，不重复发 npm 包
+  - `pnpm release:beta`：一次闭合 package + runtime channel
+
 - `@nextclaw/kernel`：已发布 `0.1.2-beta.0`，dist-tag 为 `beta`。本次新增共享更新契约类型与 `./update-contract` export，供 `nextclaw` beta runtime 使用。
 - `@nextclaw/core`：已发布 `0.12.13-beta.1`，dist-tag 为 `beta`。真实 `nextclaw@0.18.12-beta.1` 发消息验证发现 app 已调用 `InputBudgetPruner.estimate()`，但公网旧版 `@nextclaw/core` 尚未包含该方法，导致 `this.inputBudgetPruner.estimate is not a function`。已通过检查临时 npm 安装目录中的 `@nextclaw/core/dist/index.d.ts` 与运行 `new InputBudgetPruner().estimate` 确认根因，并补发新 beta。
 - `@nextclaw/ui`：待统一发布。本次更新桌面更新配置 UI 与共享契约依赖。

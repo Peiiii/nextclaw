@@ -38,14 +38,21 @@
   - `node --check scripts/release/release-beta*.mjs scripts/release/release-runtime-manifest-verify.mjs`
   - `pnpm release:beta:npm -- --dry-run`
   - `pnpm release:beta:runtime -- --dry-run`
-  - `pnpm lint:new-code:governance`：通过
-  - maintainability guard：通过（1 个接近预算 warning，无 error）
-  - `pnpm check:governance-backlog-ratchet`：仍为历史 `docFileNameViolations 13 > 11`
+- `pnpm lint:new-code:governance`：通过
+- maintainability guard：通过（1 个接近预算 warning，无 error）
+- `pnpm check:governance-backlog-ratchet`：仍为历史 `docFileNameViolations 13 > 11`
+- 已真实发布并闭环验证 split beta 入口：
+  - `nextclaw@beta = 0.18.12-beta.9`
+  - `pnpm release:beta:npm` 未触发新的 runtime workflow
+  - `pnpm release:beta:runtime -- --version 0.18.12-beta.9 --branch master` 成功发布 `beta.9` runtime channel
+  - runtime workflow `25454210414` 成功
+  - GitHub release assets 齐全
+  - `gh-pages` 与公网 manifest 最终均切到 `0.18.12-beta.9`
 
 ## 当前下一步
 
-向用户说明这 3 个入口的推荐使用时机，并确认是否需要继续把 release batch scope 收窄，进一步提速。
+继续收紧 beta 发布性能：让 isolated worktree 场景自动继承项目根 `.npmrc`，并进一步缩小 `release:check` 的 batch scope，减少 package-only beta 的等待时间。
 
 ## 锚点计数器
 
-14/20
+20/20
