@@ -1,6 +1,6 @@
 {
   "contractKind": "protocol",
-  "protocol": "source-root-open",
+  "protocol": "package-src-explicit",
   "rootPolicy": "contract-only",
   "enforcement": "error",
   "allowedRootDirectories": [

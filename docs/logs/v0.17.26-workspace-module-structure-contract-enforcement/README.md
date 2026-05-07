@@ -6,9 +6,9 @@
 - 通过方式：
   - 在 `scripts/governance/module-structure/module-structure-contracts.mjs` 增加 workspace root 识别与缺失 config 判断能力。
   - 在 `scripts/governance/module-structure/lint-new-code-module-structure.mjs` 增加“被触达 workspace 若缺失 `module-structure.config.json` 则直接报错”的规则。
-  - 新增 `source-root-open` 协议，用于那些需要以 `src/` 为治理根、但暂时不适合强套 `package-l1` / `frontend-l3` / `cli-command-first` 的 workspace。
+  - 当时新增过开放命名的 source root 协议，用于那些需要以 `src/` 为治理根、但暂时不适合强套 `package-l1` / `frontend-l3` / `cli-command-first` 的 workspace；后续治理已确认该方向不规范，应改为命名具体且默认收紧的协议。
   - 新增 `electron-shell-l1` 协议，避免把 Electron 壳类应用硬塞进 `package-l1`。
-  - 为全部 58 个 workspace 显式声明了 root contract；其中 `apps/companion`、`apps/desktop` 走 `electron-shell-l1`，大部分 `src` 形态 workspace 走 `source-root-open`，非 `src` 形态 workspace 则冻结为 legacy root contract。
+  - 为全部 58 个 workspace 显式声明了 root contract；其中 `apps/companion`、`apps/desktop` 走 `electron-shell-l1`，当时大部分 `src` 形态 workspace 走开放命名的 source root 协议，非 `src` 形态 workspace 则冻结为 legacy root contract。
   - 同步补全 [/.agents/skills/file-organization-governance/SKILL.md](/Users/peiwang/Projects/nextbot/.agents/skills/file-organization-governance/SKILL.md) 中的仓库级规则说明。
 - 这次修的是根因，不是症状：不是只给 `apps/companion` 加一个配置文件，而是让脚本以后能直接拦住“新/改 workspace 仍未声明 contract”的情况。
 - 同时也补上了一条元规则：以后目录结构规范的高层文档、脚本协议、workspace contract 引用必须一一对应，不能再只在脚本层偷偷长出新 protocol。
@@ -18,7 +18,7 @@
 
 - 通过：
   - `node --test --test-name-pattern='companion electron shell|desktop electron shell|launcher entry|missing module-structure config' scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
-  - `node --test --test-name-pattern='every workspace root declares module-structure config|source-root-open|companion electron shell|desktop electron shell|missing module-structure config' scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
+  - `node --test --test-name-pattern='every workspace root declares module-structure config|companion electron shell|desktop electron shell|missing module-structure config' scripts/governance/module-structure/lint-new-code-module-structure.test.mjs`
   - `pnpm lint:new-code:governance -- --files scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs apps/companion/module-structure.config.json apps/desktop/module-structure.config.json .agents/skills/file-organization-governance/SKILL.md`
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --files scripts/governance/module-structure/module-structure-contracts.mjs scripts/governance/module-structure/lint-new-code-module-structure.mjs scripts/governance/module-structure/lint-new-code-module-structure.test.mjs .agents/skills/file-organization-governance/SKILL.md`
 - 全量回归现状：
@@ -41,7 +41,7 @@
 ## 用户/产品视角的验收步骤
 
 1. 打开 [apps/companion/module-structure.config.json](/Users/peiwang/Projects/nextbot/apps/companion/module-structure.config.json) 与 [apps/desktop/module-structure.config.json](/Users/peiwang/Projects/nextbot/apps/desktop/module-structure.config.json)，确认这两个 Electron workspace 已显式声明结构协议。
-2. 查看 [scripts/governance/module-structure/module-structure-contracts.mjs](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-contracts.mjs)，确认存在 `electron-shell-l1`、`source-root-open` 协议以及 workspace root 检测逻辑。
+2. 查看 [scripts/governance/module-structure/module-structure-contracts.mjs](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/module-structure-contracts.mjs)，确认存在 `electron-shell-l1` 协议以及 workspace root 检测逻辑。
 3. 查看 [scripts/governance/module-structure/lint-new-code-module-structure.mjs](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/lint-new-code-module-structure.mjs)，确认它会在触达缺失 config 的 workspace 时直接报错。
 4. 查看 [scripts/governance/module-structure/lint-new-code-module-structure.test.mjs](/Users/peiwang/Projects/nextbot/scripts/governance/module-structure/lint-new-code-module-structure.test.mjs)，确认 companion/desktop 协议识别和缺失 config 报错都已有测试覆盖。
 5. 后续若新增或修改某个 workspace，却没有声明 `module-structure.config.json`，治理脚本应阻止该改动以“未声明 contract”的状态进入仓库。

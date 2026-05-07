@@ -454,8 +454,12 @@ src/
 当前已落地的固定协议模板包括：
 
 - `package-l1`
+- `package-src-explicit`
 - `frontend-l3`
 - `cli-command-first`
+- `electron-shell-l1`
+
+其中 `package-src-explicit` 只用于尚未完成目录搬迁、但必须冻结 `src/` 根增长的包：协议本身不开放根目录，模块必须通过 `allowedRootDirectories` / `allowedRootFiles` 明确列出当前允许边界。禁止新增“开放型 source root”协议；如果现有模板表达不了某类长期结构，应新增命名具体、默认收紧的协议模板，而不是恢复无约束协议。
 
 具体采用哪种结构约束，不再由中心脚本手写绑定，而是由每个包在自己的包根下声明：
 

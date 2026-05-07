@@ -93,13 +93,28 @@ test("finds the protocol declaration for desktop electron shell config", () => {
   assert.equal(contract?.allowedRootFiles.has("runtime-service.ts"), true);
 });
 
-test("finds the protocol declaration for source-root-open configs", () => {
+test("finds the protocol declaration for explicit package src configs", () => {
   const contract = findModuleStructureContract("packages/nextclaw-server/src/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-server/src");
-  assert.equal(contract?.protocol, "source-root-open");
+  assert.equal(contract?.protocol, "package-src-explicit");
   assert.equal(isProtocolContract(contract), true);
   assert.equal(contract?.allowedRootDirectories.has("ui"), true);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
+});
+
+test("rejects the removed source-root-open protocol", () => {
+  withTemporaryModuleFixture("removed-source-root-open-protocol", {
+    contractKind: "protocol",
+    protocol: "source-root-open",
+    rootPolicy: "contract-only",
+    allowedRootDirectories: [],
+    allowedRootFiles: ["example.ts"]
+  }, (fixtureEntryPath) => {
+    assert.throws(
+      () => findModuleStructureContract(fixtureEntryPath),
+      /Unknown module-structure protocol 'source-root-open'/,
+    );
+  });
 });
 
 test("every workspace root declares module-structure config", () => {
@@ -233,22 +248,13 @@ test("blocks protocol modules that are missing required root directories", () =>
   rmSync(absoluteFixtureRoot, { recursive: true, force: true });
   mkdirSync(path.join(absoluteFixtureRoot, "src", "services"), { recursive: true });
   writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/missing-electron-roles\"\n}\n");
-  writeFileSync(path.join(absoluteFixtureRoot, "src", "module-structure.config.json"), `${JSON.stringify({
-    contractKind: "legacy",
-    organizationModel: "legacy-apps-missing-electron-roles-renderer-root",
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "protocol",
+    protocol: "frontend-l3",
     rootPolicy: "contract-only",
     enforcement: "error",
     allowedRootDirectories: ["services"],
     requiredRootDirectories: ["presenters", "managers", "stores"]
-  }, null, 2)}\n`);
-  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
-    contractKind: "legacy",
-    organizationModel: "legacy-apps-missing-electron-roles-workspace-root",
-    rootPolicy: "contract-only",
-    enforcement: "error",
-    allowedRootDirectories: ["src"],
-    requiredRootDirectories: ["src"],
-    allowedRootFiles: ["module-structure.config.json", "package.json"]
   }, null, 2)}\n`);
   writeFileSync(path.join(absoluteFixtureRoot, "src", "services", "example.service.ts"), "export const example = true;\n");
 

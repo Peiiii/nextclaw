@@ -144,6 +144,17 @@ const PACKAGE_L1_PROTOCOL = {
   importAliasPrefixes: ["@/"]
 };
 
+const PACKAGE_SRC_EXPLICIT_PROTOCOL = {
+  protocolName: "package-src-explicit",
+  organizationModel: "protocol-package-src-explicit",
+  governedRoot: "src",
+  allowedRootDirectories: [],
+  allowedRootFiles: [],
+  requiredRootDirectories: [],
+  sharedDirectories: [],
+  importAliasPrefixes: []
+};
+
 const CLI_COMMAND_FIRST_PROTOCOL = {
   protocolName: "cli-command-first",
   organizationModel: "protocol-cli-command-first",
@@ -153,17 +164,6 @@ const CLI_COMMAND_FIRST_PROTOCOL = {
   requiredRootDirectories: [],
   sharedDirectories: ["shared"],
   importAliasPrefixes: ["@/"]
-};
-
-const SOURCE_ROOT_OPEN_PROTOCOL = {
-  protocolName: "source-root-open",
-  organizationModel: "protocol-source-root-open",
-  governedRoot: "src",
-  allowedRootDirectories: [],
-  allowedRootFiles: [],
-  requiredRootDirectories: [],
-  sharedDirectories: [],
-  importAliasPrefixes: []
 };
 
 const ELECTRON_SHELL_L1_PROTOCOL = {
@@ -179,9 +179,9 @@ const ELECTRON_SHELL_L1_PROTOCOL = {
 
 export const MODULE_STRUCTURE_PROTOCOLS = new Map([
   [PACKAGE_L1_PROTOCOL.protocolName, PACKAGE_L1_PROTOCOL],
+  [PACKAGE_SRC_EXPLICIT_PROTOCOL.protocolName, PACKAGE_SRC_EXPLICIT_PROTOCOL],
   [FRONTEND_L3_PROTOCOL.protocolName, FRONTEND_L3_PROTOCOL],
   [CLI_COMMAND_FIRST_PROTOCOL.protocolName, CLI_COMMAND_FIRST_PROTOCOL],
-  [SOURCE_ROOT_OPEN_PROTOCOL.protocolName, SOURCE_ROOT_OPEN_PROTOCOL],
   [ELECTRON_SHELL_L1_PROTOCOL.protocolName, ELECTRON_SHELL_L1_PROTOCOL]
 ]);
 
