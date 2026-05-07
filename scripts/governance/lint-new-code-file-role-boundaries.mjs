@@ -109,6 +109,7 @@ const DIRECTORY_ROLE_RULES = {
 const EXACT_ALLOWLIST_ANYWHERE = new Set(["index", "sitecustomize"]);
 const ROOT_ENTRY_STEM_ALLOWLIST = new Set(["app", "main"]);
 const ELECTRON_ROOT_ENTRY_STEM_ALLOWLIST = new Set(["main", "preload", "launcher"]);
+const WEB_STANDARD_PUBLIC_FILES = new Set(["manifest.webmanifest", "sw.js"]);
 const TEST_QUALIFIER_PATTERN = "[a-z0-9-]+";
 const SOURCE_ROOT_SEGMENTS = new Set(["src"]);
 
@@ -223,6 +224,9 @@ const isDefaultRoleSuffixExempt = (normalizedPath, segments, stem, nearestRule, 
     return true;
   }
   if (nearestRule?.segment === "components" || nearestRule?.segment === "pages" || nearestRule?.segment === "hooks") {
+    return true;
+  }
+  if (segments.at(-1) === "public" && WEB_STANDARD_PUBLIC_FILES.has(path.posix.basename(normalizedPath))) {
     return true;
   }
   return isRootEntryFile(normalizedPath, segments, stem, contract) || nearestRule?.segment === "app";

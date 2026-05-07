@@ -1,8 +1,8 @@
 /* global caches, self */
 
-const SHELL_CACHE = 'nextclaw-ui-shell-v1';
-const RUNTIME_CACHE = 'nextclaw-ui-runtime-v1';
-const SHELL_ASSETS = ['/', '/offline.html', '/manifest.webmanifest', '/logo.svg', '/pwa-192.png', '/pwa-512.png'];
+const SHELL_CACHE = 'nextclaw-ui-shell-v2';
+const RUNTIME_CACHE = 'nextclaw-ui-runtime-v2';
+const SHELL_ASSETS = ['/offline.html', '/manifest.webmanifest', '/logo.svg', '/pwa-192.png', '/pwa-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -10,6 +10,7 @@ self.addEventListener('install', (event) => {
       return cache.addAll(SHELL_ASSETS);
     })
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -59,10 +60,6 @@ async function handleNavigation(request) {
     runtimeCache.put(request, response.clone());
     return response;
   } catch {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
     return caches.match('/offline.html');
   }
 }

@@ -143,6 +143,18 @@ test("allows sitecustomize bridge entry files without role suffixes", () => {
   }), null);
 });
 
+test("allows standard web public entry files without role suffixes", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/public/sw.js",
+    status: "M"
+  }), null);
+
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/public/manifest.webmanifest",
+    status: "M"
+  }), null);
+});
+
 test("allows component files without role suffixes", () => {
   assert.equal(inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/components/chat-shell.tsx",
