@@ -11,7 +11,7 @@
         "../nextclaw-core/src/index.ts"
       ],
       "@nextclaw/kernel": [
-        "../nextclaw-kernel/src/types/update.types.ts"
+        "../nextclaw-kernel/src/index.ts"
       ],
       "@nextclaw/kernel/update-contract": [
         "../nextclaw-kernel/src/types/update-contract.types.ts"

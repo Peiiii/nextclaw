@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
+import { nextclaw, type AppEventEnvelope } from "@nextclaw/kernel";
 import { WebSocketServer, WebSocket } from "ws";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
@@ -83,7 +84,15 @@ function applyCorsHeaders(params: {
   appendVaryHeader(params.headers, "Access-Control-Request-Headers");
 }
 
-function createUiEventPublisher(clients: Set<WebSocket>): (event: UiServerEvent) => void {
+function publishUiServerEvent(event: UiServerEvent): void {
+  nextclaw.eventBus.emitEnvelope({
+    ...event,
+    emittedAt: event.emittedAt ?? new Date().toISOString(),
+    source: event.source ?? "backend"
+  });
+}
+
+function createUiEventPublisher(clients: Set<WebSocket>): (event: AppEventEnvelope) => void {
   return (event) => {
     const payload = JSON.stringify(event);
     for (const client of clients) {
@@ -209,7 +218,9 @@ export async function startUiServer(options: UiServerStartOptions): Promise<UiSe
   });
 
   const clients = new Set<WebSocket>();
-  const publish = createUiEventPublisher(clients);
+  const publish = publishUiServerEvent;
+  const publishToClients = createUiEventPublisher(clients);
+  const unsubscribeEventBus = nextclaw.eventBus.subscribeAll(publishToClients);
 
   app.route(
     "/",
@@ -258,6 +269,7 @@ export async function startUiServer(options: UiServerStartOptions): Promise<UiSe
     publish,
     close: () =>
       new Promise((resolve) => {
+        unsubscribeEventBus();
         wss.close(() => {
           server.close(() => {
             Promise.resolve(ncpAgent?.agentClientEndpoint.stop())

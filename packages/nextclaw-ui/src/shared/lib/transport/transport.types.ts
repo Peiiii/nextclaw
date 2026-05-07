@@ -1,4 +1,4 @@
-import type { UiServerEvent } from '@nextclaw/server';
+import type { AppEvent as KernelAppEvent } from '@nextclaw/kernel';
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -30,7 +30,7 @@ export type StreamSession<TFinal = unknown> = {
 };
 
 export type AppEvent =
-  | UiServerEvent
+  | KernelAppEvent
   | { type: 'connection.open'; payload?: Record<string, never> }
   | { type: 'connection.close'; payload?: Record<string, never> }
   | { type: 'connection.error'; payload?: { message?: string } };

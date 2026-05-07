@@ -1,5 +1,6 @@
 export { createNextClawClient, NextClawClientService } from "./services/nextclaw-client.service.js";
 export { NextClawClientError } from "./services/request.service.js";
+export type { AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/kernel";
 export type {
   NextClawClient,
 } from "./types/nextclaw-client.types.js";

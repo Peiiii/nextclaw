@@ -1,4 +1,6 @@
 export * from "./app/nextclaw-kernel.js";
+export * from "./app/nextclaw-app.service.js";
+export * from "./events/index.js";
 export * from "@/managers/agent.manager.js";
 export * from "@/managers/task.manager.js";
 export * from "@/managers/session.manager.js";

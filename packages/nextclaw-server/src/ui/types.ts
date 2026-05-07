@@ -876,16 +876,7 @@ export type ConfigActionExecuteResult = {
   nextActions?: string[];
 };
 
-export type UiServerEvent =
-  | { type: "config.updated"; payload: { path: string } }
-  | { type: "channel.config.apply-status"; payload: { channel: string; status: "started" | "succeeded" | "failed"; message?: string } }
-  | { type: "session.updated"; payload: { sessionKey: string } }
-  | { type: "session.run-status"; payload: { sessionKey: string; status: "running" | "idle" } }
-  | { type: "session.summary.upsert"; payload: { summary: NcpSessionSummary } }
-  | { type: "session.summary.delete"; payload: { sessionKey: string } }
-  | { type: "config.reload.started"; payload?: Record<string, unknown> }
-  | { type: "config.reload.finished"; payload?: Record<string, unknown> }
-  | { type: "error"; payload: { message: string; code?: string } };
+export type { AppEvent as UiServerEvent } from "@nextclaw/kernel";
 
 export type UiServerOptions = {
   host: string;

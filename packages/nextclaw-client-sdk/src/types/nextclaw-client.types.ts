@@ -1,3 +1,4 @@
+import type { EventBus } from "@nextclaw/kernel";
 import type { AgentsService } from "../services/agents.service.js";
 import type { AppService } from "../services/app.service.js";
 import type { AuthService } from "../services/auth.service.js";
@@ -18,6 +19,7 @@ export type NextClawClient = {
   readonly auth: AuthService;
   readonly channelAuth: ChannelAuthService;
   readonly config: ConfigService;
+  readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
   readonly mcpMarketplace: McpMarketplaceService;
   readonly realtime: RealtimeService;

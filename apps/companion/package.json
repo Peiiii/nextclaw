@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/companion",
-  "version": "0.1.1-beta.2",
+  "version": "0.1.1-beta.3",
   "private": false,
   "description": "Standalone Electron companion shell for active NextClaw agents.",
   "author": "NextClaw Team",

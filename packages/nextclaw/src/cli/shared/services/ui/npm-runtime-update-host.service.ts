@@ -1,4 +1,5 @@
 import type { Config } from "@nextclaw/core";
+import { eventKeys, nextclaw } from "@nextclaw/kernel";
 import type { UpdatePreferences, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
 import type { UiRuntimeUpdateHost } from "@nextclaw/server";
 import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
@@ -68,21 +69,22 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       return this.snapshot;
     }
 
-    this.snapshot = {
+    this.setSnapshot({
       ...this.snapshot,
       status: "applying",
       progress: null,
       errorMessage: null
-    };
+    });
     try {
       const snapshot = this.createManager().applyDownloadedUpdate();
-      this.snapshot =
+      this.setSnapshot(
         this.deps.applyRestartMode === "managed-service-restart"
           ? snapshot
           : {
               ...snapshot,
               recoveryCommand: "Restart this NextClaw process to launch the downloaded runtime."
-            };
+            },
+      );
       if (this.deps.applyRestartMode === "managed-service-restart") {
         await requestManagedServiceRestart(this.deps.requestRestart, {
           reason: "runtime update apply",
@@ -91,7 +93,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       }
       return this.snapshot;
     } catch (error) {
-      this.snapshot = this.toFailedSnapshot(error);
+      this.setSnapshot(this.toFailedSnapshot(error));
       throw error;
     }
   };
@@ -104,7 +106,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
         ...preferences
       }
     }));
-    this.snapshot = this.createManager(nextState.channel).getSnapshot();
+    this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
     if (nextState.updatePreferences.automaticChecks) {
       this.startAutomaticSync({ force: true });
     }
@@ -116,7 +118,7 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       ...current,
       channel
     }));
-    this.snapshot = this.createManager(nextState.channel).getSnapshot();
+    this.setSnapshot(this.createManager(nextState.channel).getSnapshot());
     if (nextState.updatePreferences.automaticChecks) {
       return this.startCheck({ autoDownload: nextState.updatePreferences.autoDownload });
     }
@@ -143,21 +145,21 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       return this.snapshot;
     }
 
-    this.snapshot = {
+    this.setSnapshot({
       ...this.createManager().getSnapshot(),
       status: "checking",
       progress: null,
       errorMessage: null
-    };
+    });
     this.activeTask = (async () => {
       try {
         const checkedSnapshot = await this.createManager().checkForUpdate();
-        this.snapshot = checkedSnapshot;
+        this.setSnapshot(checkedSnapshot);
         if (options.autoDownload && checkedSnapshot.status === "update-available") {
           await this.runDownloadTask();
         }
       } catch (error) {
-        this.snapshot = this.toFailedSnapshot(error);
+        this.setSnapshot(this.toFailedSnapshot(error));
       } finally {
         this.activeTask = null;
       }
@@ -170,17 +172,17 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       return this.snapshot;
     }
 
-    this.snapshot = {
+    this.setSnapshot({
       ...this.createManager().getSnapshot(),
       status: "downloading",
       progress: INITIAL_DOWNLOAD_PROGRESS,
       errorMessage: null
-    };
+    });
     this.activeTask = (async () => {
       try {
         await this.runDownloadTask();
       } catch (error) {
-        this.snapshot = this.toFailedSnapshot(error);
+        this.setSnapshot(this.toFailedSnapshot(error));
       } finally {
         this.activeTask = null;
       }
@@ -190,14 +192,14 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
 
   private runDownloadTask = async (): Promise<void> => {
     const downloadedSnapshot = await this.createManager().downloadUpdate((progress) => {
-      this.snapshot = {
+      this.setSnapshot({
         ...this.snapshot,
         status: "downloading",
         progress,
         errorMessage: null
-      };
+      });
     });
-    this.snapshot = downloadedSnapshot;
+    this.setSnapshot(downloadedSnapshot);
   };
 
   private createManager = (channel = this.stateStore.read().channel): NpmRuntimeUpdateManager => {
@@ -219,6 +221,14 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
       progress: null,
       errorMessage: error instanceof Error ? error.message : String(error ?? "Unknown error")
     };
+  };
+
+  private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {
+    this.snapshot = snapshot;
+    nextclaw.eventBus.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
+      source: "backend"
+    });
+    return snapshot;
   };
 }
 
