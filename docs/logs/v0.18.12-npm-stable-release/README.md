@@ -28,12 +28,31 @@ pnpm release:version
 pnpm release:publish
 ```
 
+Runtime bundle 发布方式：
+
+```bash
+git push origin master
+git tag --points-at HEAD | sort | xargs git push origin
+gh workflow run npm-runtime-update-release.yml --ref master -f channel=stable -f release_tag=nextclaw@0.18.12
+```
+
+Runtime bundle 发布结果：
+
+- GitHub Actions run：`https://github.com/Peiiii/nextclaw/actions/runs/25507214688`
+- GitHub Release：`https://github.com/Peiiii/nextclaw/releases/tag/nextclaw%400.18.12`
+- Release assets：
+  - `nextclaw-runtime-darwin-arm64-0.18.12.zip`
+  - `nextclaw-runtime-darwin-x64-0.18.12.zip`
+  - `nextclaw-runtime-linux-x64-0.18.12.zip`
+  - `nextclaw-runtime-win32-x64-0.18.12.zip`
+- gh-pages source manifests 已更新到 `latestVersion=0.18.12`、`minimumLauncherVersion=0.18.11`、`hostKind=npm-runtime-bundle`。
+- GitHub Pages 公开 manifest 曾有短暂 CDN 延迟，随后四个平台公开 URL 均刷新到 `0.18.12`。
+
 不涉及项：
 
-- runtime update channel：用户明确要求只发布 NPM。
 - 桌面安装包/DMG/更新清单：不属于本次范围。
 - 后端 migration / 线上 deploy / 线上 API smoke：本次没有后端或数据库变更。
-- git commit / push / PR：用户没有要求，未执行。
+- PR：用户没有要求，未执行。
 
 ## 用户/产品视角的验收步骤
 
@@ -49,6 +68,7 @@ nextclaw --version
 
 - `latest` 为 `0.18.12`。
 - 新安装或隔离 home 下运行 `nextclaw --version` 输出 `0.18.12`。
+- `nextclaw@0.18.11` 使用旧版默认 `nextclaw update` 能完成 stable runtime 更新，日志显示 `Version updated: 0.18.11 -> 0.18.12`。
 
 注意：本机默认 `NEXTCLAW_HOME` 如果已有旧 runtime bundle 指针，可能显示旧 runtime 版本；隔离 `NEXTCLAW_HOME` 已确认 NPM 包本身正常。
 
@@ -119,3 +139,22 @@ nextclaw --version
   "beta": "0.18.12-beta.22"
 }
 ```
+
+## NPM runtime bundle 发布记录
+
+本次已发布 stable channel NPM runtime bundle。
+
+Manifest 状态：
+
+- `manifest-stable-darwin-arm64.json`：`latestVersion=0.18.12`，`minimumLauncherVersion=0.18.11`
+- `manifest-stable-darwin-x64.json`：`latestVersion=0.18.12`，`minimumLauncherVersion=0.18.11`
+- `manifest-stable-linux-x64.json`：`latestVersion=0.18.12`，`minimumLauncherVersion=0.18.11`
+- `manifest-stable-win32-x64.json`：`latestVersion=0.18.12`，`minimumLauncherVersion=0.18.11`
+
+验收：
+
+- `gh run watch 25507214688 --exit-status`：成功。
+- `gh release view nextclaw@0.18.12`：确认四个平台 runtime zip assets 存在。
+- `gh api repos/Peiiii/nextclaw/contents/npm-runtime-updates/stable/... --ref gh-pages`：确认 gh-pages manifest 为 `0.18.12`。
+- 公开 GitHub Pages URL 轮询后确认四个平台 manifest 为 `0.18.12`。
+- 隔离临时目录安装 `nextclaw@0.18.11` 后运行 `nextclaw update`：成功输出 `Version updated: 0.18.11 -> 0.18.12`。
