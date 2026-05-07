@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.18.12-beta.11
+
+### Patch Changes
+
+- b6c7a9c: Queue a follow-up beta so the fixed managed-service host can be verified on its next runtime update hop.
+
 ## 0.18.12-beta.10
 
 ### Patch Changes

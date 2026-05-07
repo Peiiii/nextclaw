@@ -66,6 +66,7 @@
     "auto-release-batch-20260506170214214",
     "fix-managed-runtime-apply-version",
     "fix-packaged-runtime-prefers-newer-launcher",
-    "manual-beta-npm-only-nextclaw-20260507"
+    "manual-beta-npm-only-nextclaw-20260507",
+    "manual-beta11-host-verification"
   ]
 }
