@@ -38,6 +38,33 @@ export type ManagedServiceSnapshot = {
   logPath: string;
 };
 
+export function resolveManagedServiceReadySnapshot(params: {
+  snapshot: ManagedServiceSnapshot;
+  readLocalUiRuntimeState?: typeof localUiRuntimeStore.read;
+  isProcessRunningFn?: (pid: number) => boolean;
+}): ManagedServiceSnapshot {
+  const { snapshot, readLocalUiRuntimeState, isProcessRunningFn: providedIsProcessRunningFn } = params;
+  const localUiRuntimeState = (readLocalUiRuntimeState ?? localUiRuntimeStore.read)();
+  const isProcessRunningFn = providedIsProcessRunningFn ?? isProcessRunning;
+  if (
+    !localUiRuntimeState
+    || typeof localUiRuntimeState.pid !== "number"
+    || !Number.isFinite(localUiRuntimeState.pid)
+    || localUiRuntimeState.uiPort !== snapshot.uiPort
+    || !isProcessRunningFn(localUiRuntimeState.pid)
+  ) {
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    pid: localUiRuntimeState.pid,
+    uiUrl: localUiRuntimeState.uiUrl,
+    apiUrl: localUiRuntimeState.apiUrl,
+    uiHost: localUiRuntimeState.uiHost ?? snapshot.uiHost,
+    uiPort: localUiRuntimeState.uiPort ?? snapshot.uiPort
+  };
+}
+
 function resolveLauncherCliEntry(importMetaUrl: string): string {
   const modulePath = fileURLToPath(importMetaUrl);
   const normalizedPath = modulePath.replace(/\\/g, "/");
@@ -525,10 +552,13 @@ export class ManagedServiceCommandService {
     }
 
     startup.child.unref();
+    const readySnapshot = resolveManagedServiceReadySnapshot({
+      snapshot: startup.snapshot
+    });
     const state = writeReadyManagedServiceState({
       readinessTimeoutMs: startup.readinessTimeoutMs,
       readiness,
-      snapshot: startup.snapshot
+      snapshot: readySnapshot
     });
     await reportManagedServiceStart({
       appName: APP_NAME,

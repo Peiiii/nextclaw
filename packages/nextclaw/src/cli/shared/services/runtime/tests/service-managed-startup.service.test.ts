@@ -19,7 +19,7 @@ vi.mock("../service-remote-runtime.service.js", () => ({
   writeInitialManagedServiceState: writeInitialManagedServiceStateMock
 }));
 
-import { spawnManagedService } from "../service-managed-startup.service.js";
+import { resolveManagedServiceReadySnapshot, spawnManagedService } from "../service-managed-startup.service.js";
 
 describe("spawnManagedService", () => {
   let tempDir: string;
@@ -94,5 +94,62 @@ describe("spawnManagedService", () => {
         })
       })
     );
+  });
+
+  it("tracks the ready runtime child pid when the local UI runtime matches the managed port", () => {
+    const readySnapshot = resolveManagedServiceReadySnapshot({
+      snapshot: {
+        pid: 4321,
+        uiUrl: "http://127.0.0.1:18791",
+        apiUrl: "http://127.0.0.1:18791/api",
+        uiHost: "0.0.0.0",
+        uiPort: 18791,
+        logPath: path.join(tempDir, "service.log")
+      },
+      readLocalUiRuntimeState: () => ({
+        pid: 6789,
+        startedAt: "2026-05-07T00:00:00.000Z",
+        uiUrl: "http://127.0.0.1:18791",
+        apiUrl: "http://127.0.0.1:18791/api",
+        uiHost: "0.0.0.0",
+        uiPort: 18791
+      }),
+      isProcessRunningFn: (pid) => pid === 6789
+    });
+
+    expect(readySnapshot).toEqual({
+      pid: 6789,
+      uiUrl: "http://127.0.0.1:18791",
+      apiUrl: "http://127.0.0.1:18791/api",
+      uiHost: "0.0.0.0",
+      uiPort: 18791,
+      logPath: path.join(tempDir, "service.log")
+    });
+  });
+
+  it("keeps the launcher snapshot when the local UI runtime does not match the managed port", () => {
+    const snapshot = {
+      pid: 4321,
+      uiUrl: "http://127.0.0.1:18791",
+      apiUrl: "http://127.0.0.1:18791/api",
+      uiHost: "0.0.0.0",
+      uiPort: 18791,
+      logPath: path.join(tempDir, "service.log")
+    };
+
+    const readySnapshot = resolveManagedServiceReadySnapshot({
+      snapshot,
+      readLocalUiRuntimeState: () => ({
+        pid: 6789,
+        startedAt: "2026-05-07T00:00:00.000Z",
+        uiUrl: "http://127.0.0.1:18870",
+        apiUrl: "http://127.0.0.1:18870/api",
+        uiHost: "0.0.0.0",
+        uiPort: 18870
+      }),
+      isProcessRunningFn: () => true
+    });
+
+    expect(readySnapshot).toEqual(snapshot);
   });
 });
