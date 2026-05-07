@@ -60,7 +60,8 @@ describe('BrandHeader', () => {
     mocks.downloadUpdate.mockReset();
   });
 
-  it('shows update progress next to the product version', () => {
+  it('shows update progress next to the product version', async () => {
+    const user = userEvent.setup();
     useRuntimeUpdateStore.setState({
       supported: true,
       initialized: true,
@@ -96,7 +97,11 @@ describe('BrandHeader', () => {
 
     renderBrandHeader();
 
-    expect(screen.getByText('v0.18.11')).toBeTruthy();
+    const version = screen.getByText('v0.18.11');
+    expect(version).toBeTruthy();
+    expect(screen.getAllByText('v0.18.11')).toHaveLength(1);
+    await user.hover(version);
+    expect(await screen.findAllByText('v0.18.11')).toHaveLength(2);
     expect(screen.getByText('下载 50%')).toBeTruthy();
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull();
   });
