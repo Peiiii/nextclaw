@@ -28,15 +28,21 @@ vi.mock("@/cli/shared/stores/managed-service-state.store.js", () => ({
 
 describe("createServiceUiHosts", () => {
   const originalDisableRuntimeUpdateHost = process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST;
+  const originalRuntimeBundleChild = process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;
 
   afterEach(() => {
     vi.clearAllMocks();
     mocks.managedServiceStateStore.read.mockReturnValue(null);
     if (originalDisableRuntimeUpdateHost === undefined) {
       delete process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST;
-      return;
+    } else {
+      process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST = originalDisableRuntimeUpdateHost;
     }
-    process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST = originalDisableRuntimeUpdateHost;
+    if (originalRuntimeBundleChild === undefined) {
+      delete process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD;
+    } else {
+      process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD = originalRuntimeBundleChild;
+    }
   });
 
   it("creates the runtime update host by default", () => {
@@ -77,6 +83,34 @@ describe("createServiceUiHosts", () => {
     mocks.createNpmRuntimeUpdateHost.mockReturnValue(runtimeUpdateHost);
     mocks.managedServiceStateStore.read.mockReturnValue({
       pid: process.pid
+    });
+
+    createServiceUiHosts({
+      serviceCommands: {
+        startService: vi.fn(),
+        stopService: vi.fn()
+      },
+      requestRestart: vi.fn(),
+      uiConfig: { host: "127.0.0.1", port: 55667 },
+      remoteModule: null
+    });
+
+    expect(mocks.createNpmRuntimeUpdateHost).toHaveBeenCalledWith(expect.objectContaining({
+      applyRestartMode: "managed-service-restart"
+    }));
+  });
+
+  it("treats a launcher child on the tracked managed-service port as a managed restart owner", () => {
+    const remoteAccessHost = { kind: "remote-access" };
+    const runtimeControlHost = { kind: "runtime-control" };
+    const runtimeUpdateHost = { kind: "runtime-update" };
+    process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD = "1";
+    mocks.createRemoteAccessHost.mockReturnValue(remoteAccessHost);
+    mocks.createRuntimeControlHost.mockReturnValue(runtimeControlHost);
+    mocks.createNpmRuntimeUpdateHost.mockReturnValue(runtimeUpdateHost);
+    mocks.managedServiceStateStore.read.mockReturnValue({
+      pid: process.pid + 1,
+      uiPort: 55667
     });
 
     createServiceUiHosts({

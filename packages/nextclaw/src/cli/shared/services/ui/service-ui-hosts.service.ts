@@ -7,6 +7,21 @@ import { createRuntimeControlHost } from "@/cli/shared/services/ui/runtime-contr
 import { createRemoteAccessHost } from "@/cli/shared/services/ui/service-remote-access.service.js";
 import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
 
+function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "manual-process-restart" {
+  const serviceState = managedServiceStateStore.read();
+  if (serviceState?.pid === process.pid) {
+    return "managed-service-restart";
+  }
+  if (
+    process.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1" &&
+    typeof serviceState?.uiPort === "number" &&
+    serviceState.uiPort === uiPort
+  ) {
+    return "managed-service-restart";
+  }
+  return "manual-process-restart";
+}
+
 export function createServiceUiHosts(params: {
   serviceCommands: {
     startService: (options: { uiOverrides: Record<string, unknown>; open: boolean }) => Promise<void>;
@@ -21,8 +36,7 @@ export function createServiceUiHosts(params: {
   runtimeUpdate?: UiRuntimeUpdateHost;
 } {
   const { requestRestart, serviceCommands, uiConfig } = params;
-  const applyRestartMode =
-    managedServiceStateStore.read()?.pid === process.pid ? "managed-service-restart" : "manual-process-restart";
+  const applyRestartMode = resolveApplyRestartMode(uiConfig.port);
   return {
     remoteAccess: createRemoteAccessHost(params),
     runtimeControl: createRuntimeControlHost({
