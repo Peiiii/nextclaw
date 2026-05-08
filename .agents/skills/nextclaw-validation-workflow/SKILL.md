@@ -31,6 +31,18 @@ TypeScript source, type declarations, import/export boundaries, or runtime path:
 - `tsc` is required,
 - tests, eslint, and governance commands do not replace `tsc`.
 
+Source code, scripts, tests, or runtime-path config:
+
+- ESLint is required before closeout or commit.
+- Prefer the package-level lint command for the touched package, for example `pnpm --filter nextclaw lint`.
+- If package-level lint is already blocked by unrelated existing errors, run ESLint on every file touched by the current change and report:
+  - the exact targeted ESLint command,
+  - whether targeted lint has errors or only warnings,
+  - the package-level lint command attempted,
+  - the unrelated existing package-level errors that still block full lint.
+- Governance commands do not replace ESLint. `pnpm lint:new-code:governance` catches repository governance rules, but it is not a substitute for `@typescript-eslint` / ESLint checks.
+- Do not commit code after touching source files unless package-level lint passed, or targeted ESLint for all touched files passed and the full package lint failure is explicitly identified as unrelated existing debt.
+
 User-visible or runnable behavior:
 
 - run a smoke test close to the real workflow,
