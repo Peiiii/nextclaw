@@ -127,12 +127,22 @@ function parsePluginOverrideArg(rawValue) {
 function parseDevStartOptions(argv) {
   const pluginOverrides = [];
   const seenPluginIds = new Set();
+  let backendWatchEnabled = process.env.NEXTCLAW_DEV_BACKEND_WATCH === "1";
   let companionEnabled = process.env.NEXTCLAW_DEV_ENABLE_COMPANION === "1";
+  let pluginWatchEnabled = process.env.NEXTCLAW_DEV_PLUGIN_WATCH === "1";
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
+    if (arg === "--backend-watch") {
+      backendWatchEnabled = true;
+      continue;
+    }
     if (arg === "--companion") {
       companionEnabled = true;
+      continue;
+    }
+    if (arg === "--plugin-watch") {
+      pluginWatchEnabled = true;
       continue;
     }
     if (arg === "--plugin-override") {
@@ -153,7 +163,7 @@ function parseDevStartOptions(argv) {
     throw new Error(`Unsupported dev option: ${arg}`);
   }
 
-  return { companionEnabled, pluginOverrides };
+  return { backendWatchEnabled, companionEnabled, pluginOverrides, pluginWatchEnabled };
 }
 
 let devStartOptions;
@@ -243,6 +253,12 @@ console.log(`[dev] API base: http://127.0.0.1:${backendPort}`);
 console.log(`[dev] Frontend: http://127.0.0.1:${frontendPort}`);
 console.log(
   `[dev] Companion: ${devStartOptions.companionEnabled ? "enabled" : "disabled (pass --companion or set NEXTCLAW_DEV_ENABLE_COMPANION=1 to enable)"}`
+);
+console.log(
+  `[dev] Backend watch: ${devStartOptions.backendWatchEnabled ? "enabled" : "disabled (pass --backend-watch or set NEXTCLAW_DEV_BACKEND_WATCH=1 to enable)"}`
+);
+console.log(
+  `[dev] Plugin watch: ${devStartOptions.pluginWatchEnabled ? "enabled" : "disabled (pass --plugin-watch or set NEXTCLAW_DEV_PLUGIN_WATCH=1 to enable)"}`
 );
 console.log(`[dev] NEXTCLAW_HOME: ${nextclawHome}`);
 if (devStartOptions.pluginOverrides.length > 0) {
@@ -358,8 +374,9 @@ const backendProcess = spawnProcess(
   "backend",
   backendBin,
   [
-    "watch",
-    ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob]),
+    ...(devStartOptions.backendWatchEnabled
+      ? ["watch", ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob])]
+      : []),
     "--tsconfig",
     "tsconfig.json",
     "src/cli/app/index.ts",
@@ -385,7 +402,9 @@ const backendProcess = spawnProcess(
 );
 
 await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
-startPluginBuildWatchers(workspaceWatchablePluginPaths);
+if (devStartOptions.pluginWatchEnabled) {
+  startPluginBuildWatchers(workspaceWatchablePluginPaths);
+}
 
 spawnProcess(
   "frontend",
