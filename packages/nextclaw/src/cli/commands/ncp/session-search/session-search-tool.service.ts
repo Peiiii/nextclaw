@@ -1,9 +1,10 @@
 import type { NcpTool } from "@nextclaw/ncp";
 import { normalizeString } from "../nextclaw-ncp-message-bridge.js";
-import type { SessionSearchQueryService } from "./session-search-query.service.js";
 import {
   DEFAULT_SESSION_SEARCH_LIMIT,
   MAX_SESSION_SEARCH_LIMIT,
+  type SessionSearchRequest,
+  type SessionSearchResult,
 } from "./session-search.types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -48,7 +49,9 @@ export class SessionSearchTool implements NcpTool {
   };
 
   constructor(
-    private readonly queryService: SessionSearchQueryService,
+    private readonly queryService: {
+      search: (request: SessionSearchRequest) => Promise<SessionSearchResult>;
+    },
     private readonly context: {
       currentSessionId?: string;
     },

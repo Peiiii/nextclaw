@@ -8,6 +8,13 @@ export type SessionSearchDocument = {
   updatedAt: string;
 };
 
+export type SessionSearchIndexedMetadata = {
+  sessionId: string;
+  updatedAt: string;
+  contentHash: string;
+  indexedAt: string;
+};
+
 export type SessionSearchStoreQuery = {
   matchExpression: string;
   limit: number;

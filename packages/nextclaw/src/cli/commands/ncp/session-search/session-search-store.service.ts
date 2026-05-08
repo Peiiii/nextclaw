@@ -2,12 +2,14 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import type {
   SessionSearchDocument,
+  SessionSearchIndexedMetadata,
   SessionSearchStoreHit,
   SessionSearchStoreQuery,
   SessionSearchStoreResult,
 } from "./session-search.types.js";
 
 const SESSION_SEARCH_TABLE = "session_search_index";
+const SESSION_SEARCH_META_TABLE = "session_search_meta";
 
 type SessionSearchStatement = {
   all: (...params: unknown[]) => unknown[];
@@ -94,6 +96,12 @@ export class SessionSearchStoreService {
         updated_at UNINDEXED,
         tokenize = 'unicode61'
       );
+      CREATE TABLE IF NOT EXISTS ${SESSION_SEARCH_META_TABLE} (
+        session_id TEXT PRIMARY KEY,
+        updated_at TEXT NOT NULL,
+        content_hash TEXT NOT NULL,
+        indexed_at TEXT NOT NULL
+      );
     `);
   };
 
@@ -109,26 +117,63 @@ export class SessionSearchStoreService {
       .filter((sessionId) => sessionId.length > 0);
   };
 
+  listIndexedMetadata = async (): Promise<SessionSearchIndexedMetadata[]> => {
+    const database = this.requireDatabase();
+    const statement = database.prepare(`
+      SELECT
+        session_id AS sessionId,
+        updated_at AS updatedAt,
+        content_hash AS contentHash,
+        indexed_at AS indexedAt
+      FROM ${SESSION_SEARCH_META_TABLE}
+    `);
+    const rows = statement.all() as Array<Partial<SessionSearchIndexedMetadata>>;
+    return rows
+      .map((row) => ({
+        sessionId: typeof row.sessionId === "string" ? row.sessionId : "",
+        updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : "",
+        contentHash: typeof row.contentHash === "string" ? row.contentHash : "",
+        indexedAt: typeof row.indexedAt === "string" ? row.indexedAt : "",
+      }))
+      .filter((row) => row.sessionId.length > 0);
+  };
+
   upsertDocument = async (document: SessionSearchDocument): Promise<void> => {
+    this.withTransaction(() => {
+      this.upsertDocumentRow(document);
+    });
+  };
+
+  upsertDocumentWithMetadata = async (
+    document: SessionSearchDocument,
+    metadata: SessionSearchIndexedMetadata,
+  ): Promise<void> => {
     const database = this.requireDatabase();
     this.withTransaction(() => {
+      this.upsertDocumentRow(document);
       database.prepare(`
-        DELETE FROM ${SESSION_SEARCH_TABLE}
-        WHERE session_id = ?
-      `).run(document.sessionId);
-      database.prepare(`
-        INSERT INTO ${SESSION_SEARCH_TABLE} (session_id, label, content, updated_at)
+        INSERT INTO ${SESSION_SEARCH_META_TABLE} (session_id, updated_at, content_hash, indexed_at)
         VALUES (?, ?, ?, ?)
-      `).run(document.sessionId, document.label, document.content, document.updatedAt);
+        ON CONFLICT(session_id) DO UPDATE SET
+          updated_at = excluded.updated_at,
+          content_hash = excluded.content_hash,
+          indexed_at = excluded.indexed_at
+      `).run(metadata.sessionId, metadata.updatedAt, metadata.contentHash, metadata.indexedAt);
     });
   };
 
   deleteDocument = async (sessionId: string): Promise<void> => {
     const database = this.requireDatabase();
-    database.prepare(`
-      DELETE FROM ${SESSION_SEARCH_TABLE}
-      WHERE session_id = ?
-    `).run(sessionId);
+    this.withTransaction(() => {
+      database.prepare(`
+        DELETE FROM ${SESSION_SEARCH_TABLE}
+        WHERE session_id = ?
+      `).run(sessionId);
+      database.prepare(`
+        DELETE FROM ${SESSION_SEARCH_META_TABLE}
+        WHERE session_id = ?
+      `).run(sessionId);
+    });
   };
 
   searchDocuments = async (query: SessionSearchStoreQuery): Promise<SessionSearchStoreResult> => {
@@ -167,10 +212,10 @@ export class SessionSearchStoreService {
     this.database = null;
   };
 
-  private buildSearchSql(params: {
+  private readonly buildSearchSql = (params: {
     includeLimit: boolean;
     excludeSessionId: boolean;
-  }): string {
+  }): string => {
     const extraFilter = params.excludeSessionId ? "AND session_id <> ?" : "";
     if (!params.includeLimit) {
       return `
@@ -194,9 +239,9 @@ export class SessionSearchStoreService {
       ORDER BY rank, updated_at DESC
       LIMIT ?
     `;
-  }
+  };
 
-  private withTransaction(work: () => void): void {
+  private readonly withTransaction = (work: () => void): void => {
     const database = this.requireDatabase();
     database.exec("BEGIN IMMEDIATE");
     try {
@@ -206,12 +251,24 @@ export class SessionSearchStoreService {
       database.exec("ROLLBACK");
       throw error;
     }
-  }
+  };
 
-  private requireDatabase(): SessionSearchDatabase {
+  private readonly upsertDocumentRow = (document: SessionSearchDocument): void => {
+    const database = this.requireDatabase();
+    database.prepare(`
+      DELETE FROM ${SESSION_SEARCH_TABLE}
+      WHERE session_id = ?
+    `).run(document.sessionId);
+    database.prepare(`
+      INSERT INTO ${SESSION_SEARCH_TABLE} (session_id, label, content, updated_at)
+      VALUES (?, ?, ?, ?)
+    `).run(document.sessionId, document.label, document.content, document.updatedAt);
+  };
+
+  private readonly requireDatabase = (): SessionSearchDatabase => {
     if (!this.database) {
       throw new Error("Session search store has not been initialized.");
     }
     return this.database;
-  }
+  };
 }

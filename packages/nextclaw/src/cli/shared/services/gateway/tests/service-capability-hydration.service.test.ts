@@ -12,8 +12,7 @@ const mocks = vi.hoisted(() => ({
   logPluginDiagnosticsMock: vi.fn(),
   resolveConfigSecretsMock: vi.fn(),
   shouldRestartChannelsForPluginReloadMock: vi.fn(),
-  toExtensionRegistryMock: vi.fn(),
-  waitForUiShellGraceWindowMock: vi.fn()
+  toExtensionRegistryMock: vi.fn()
 }));
 
 vi.mock("@nextclaw/core", async (importOriginal) => {
@@ -49,16 +48,11 @@ vi.mock("@/cli/commands/plugin/index.js", () => ({
   toExtensionRegistry: mocks.toExtensionRegistryMock
 }));
 
-vi.mock("@/cli/shared/services/gateway/service-ui-shell-grace.js", () => ({
-  waitForUiShellGraceWindow: mocks.waitForUiShellGraceWindowMock
-}));
-
 import { hydrateServiceCapabilities } from "../service-capability-hydration.service.js";
 
 describe("hydrateServiceCapabilities", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.waitForUiShellGraceWindowMock.mockResolvedValue(undefined);
     mocks.loadConfigMock.mockReturnValue({
       agents: {
         defaults: {

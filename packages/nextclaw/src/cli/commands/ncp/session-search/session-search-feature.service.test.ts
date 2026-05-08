@@ -160,7 +160,7 @@ describe("SessionSearchFeatureService", () => {
     };
 
     expect(result.totalHits).toBe(2);
-    expect(result.hits.map((hit) => hit.sessionId)).toEqual([
+    expect(result.hits.map((hit) => hit.sessionId).sort()).toEqual([
       "current-session",
       "past-session",
     ]);

@@ -27,6 +27,24 @@ function createAgentHandle() {
   };
 }
 
+function createDeferred(): {
+  promise: Promise<void>;
+  resolve: () => void;
+} {
+  let resolvePromise!: () => void;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+  return {
+    promise,
+    resolve: resolvePromise,
+  };
+}
+
+async function waitForScheduledWarmup(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe("NextclawApp", () => {
   it("marks the NCP agent ready immediately after kernel bootstrap and before capability hydration", async () => {
     const order: string[] = [];
@@ -91,12 +109,63 @@ describe("NextclawApp", () => {
       expect.arrayContaining([
         "bootstrap-kernel",
         "recover-durable-state",
-        "warm-derived-capabilities",
         "start-plugin-gateways",
         "start-channels",
         "wake-restart-sentinel",
       ]),
     );
+  });
+
+  it("does not wait for derived NCP capability warmup before finishing deferred startup", async () => {
+    const ncpAgent = createAgentHandle();
+    const warmup = createDeferred();
+    const startPluginGateways = vi.fn(async () => undefined);
+    const startChannels = vi.fn(async () => undefined);
+    const wakeFromRestartSentinel = vi.fn(async () => undefined);
+    const warmDerivedCapabilities = vi.fn(() => warmup.promise);
+
+    const app = new NextclawApp({
+      bootstrapStatus: {
+        markNcpAgentRunning: vi.fn(),
+        markNcpAgentReady: vi.fn(),
+        markNcpAgentError: vi.fn(),
+      } as never,
+      uiStartup: null,
+      deferredNcpSessionService: {
+        activate: vi.fn(),
+      } as never,
+      bus: {} as never,
+      sessionManager: {} as never,
+      providerManager: {} as never,
+      cronService: {} as never,
+      gatewayController: {} as never,
+      getConfig: () => ({}) as never,
+      getExtensionRegistry: () => undefined,
+      resolveMessageToolHints: () => [],
+      hydrateCapabilities: vi.fn(async () => undefined),
+      startPluginGateways,
+      startChannels,
+      wakeFromRestartSentinel,
+      onNcpAgentReady: vi.fn(),
+      publishSessionChange: vi.fn(),
+      ncpAgentRuntime: {
+        bootstrapKernel: vi.fn(async () => ncpAgent as never),
+        recoverDurableState: vi.fn(async () => undefined),
+        warmDerivedCapabilities,
+      },
+    });
+
+    await expect(app.start()).resolves.toBeUndefined();
+
+    expect(warmDerivedCapabilities).not.toHaveBeenCalled();
+    expect(startPluginGateways).toHaveBeenCalledTimes(1);
+    expect(startChannels).toHaveBeenCalledTimes(1);
+    expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);
+
+    await waitForScheduledWarmup();
+    expect(warmDerivedCapabilities).toHaveBeenCalledTimes(1);
+
+    warmup.resolve();
   });
 
   it("records kernel startup errors but still continues deferred capability work", async () => {

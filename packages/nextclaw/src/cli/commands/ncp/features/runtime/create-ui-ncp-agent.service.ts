@@ -518,7 +518,7 @@ export class UiNcpAgentRuntimeService {
     await this.mcpRuntimeSupport.dispose();
   };
 
-  private registerCoreRuntimes(): void {
+  private readonly registerCoreRuntimes = (): void => {
     if (this.kernelBootstrapped) {
       return;
     }
@@ -539,13 +539,11 @@ export class UiNcpAgentRuntimeService {
     this.builtinNarpRegistrations = builtinNarpRegistrationService.registerInto(this.runtimeRegistry);
     this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations();
     this.refreshConfiguredRuntimeEntries();
-  }
+  };
 
   private runDerivedCapabilityWarmup = async (): Promise<void> => {
-    const [, mcpWarmResults] = await Promise.all([
-      this.sessionSearchRuntimeSupport.initialize(),
-      this.mcpRuntimeSupport.prewarmEnabledServers(),
-    ]);
+    await this.sessionSearchRuntimeSupport.initialize();
+    const mcpWarmResults = await this.mcpRuntimeSupport.prewarmEnabledServers();
     for (const result of mcpWarmResults) {
       if (!result.ok) {
         console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);
@@ -553,11 +551,11 @@ export class UiNcpAgentRuntimeService {
     }
   };
 
-  private assertNotDisposed(): void {
+  private readonly assertNotDisposed = (): void => {
     if (this.disposed) {
       throw new Error("UI NCP agent runtime has already been disposed.");
     }
-  }
+  };
 }
 
 export async function createUiNcpAgent(params: CreateUiNcpAgentParams): Promise<UiNcpAgentHandle> {
