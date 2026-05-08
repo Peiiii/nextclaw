@@ -6,6 +6,7 @@ describe("ConfigSchema plugin channel compatibility", () => {
     const parsed = ConfigSchema.parse({});
 
     expect(parsed.agents.defaults.model).toBe("");
+    expect(parsed.agents.defaults.reservedContextTokens).toBeUndefined();
   });
 
   it("exposes weixin as a default builtin channel slot", () => {

@@ -37,31 +37,46 @@ export type InputBudgetPruneResult = {
   truncatedUserMessage: boolean;
 };
 
+export type InputBudgetPrepareResult = InputBudgetPruneResult;
+
 export class InputBudgetPruner {
-  estimate(params: {
+  estimate = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
-  }): InputBudgetEstimate {
+  }): InputBudgetEstimate => {
     return {
       estimatedTokens: estimateTokens(params.messages),
       budgetTokens: this.resolveBudgetTokens(params),
     };
-  }
+  };
 
-  prune(params: {
+  prepareForBudget = (params: {
     messages: RuntimeMessage[];
     contextTokens?: number | null;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
-  }): InputBudgetPruneResult {
+  }): InputBudgetPrepareResult => {
     const state = this.createPruneState(params);
-    this.truncateToolResults(state);
-    this.dropInvalidToolHistory(state);
+    this.prepareStateForBudget(state);
+    return this.toPruneResult(state);
+  };
+
+  prune = (params: {
+    messages: RuntimeMessage[];
+    contextTokens?: number | null;
+    reserveTokensFloor?: number;
+    softThresholdTokens?: number;
+  }): InputBudgetPruneResult => {
+    const state = this.createPruneState(params);
+    this.prepareStateForBudget(state);
     this.dropOldHistoryUntilWithinBudget(state);
     this.truncateBoundaryMessagesUntilWithinBudget(state);
+    return this.toPruneResult(state);
+  };
 
+  private toPruneResult = (state: InputBudgetPruneState): InputBudgetPruneResult => {
     return {
       messages: state.work,
       estimatedTokens: estimateTokens(state.work),
@@ -71,7 +86,7 @@ export class InputBudgetPruner {
       truncatedSystemPrompt: state.truncatedSystemPrompt,
       truncatedUserMessage: state.truncatedUserMessage
     };
-  }
+  };
 
   private createPruneState = (params: {
     messages: RuntimeMessage[];
@@ -109,6 +124,11 @@ export class InputBudgetPruner {
       };
       state.truncatedToolResultCount += 1;
     }
+  };
+
+  private prepareStateForBudget = (state: InputBudgetPruneState): void => {
+    this.truncateToolResults(state);
+    this.dropInvalidToolHistory(state);
   };
 
   private dropInvalidToolHistory = (state: InputBudgetPruneState): void => {
@@ -172,20 +192,20 @@ export class InputBudgetPruner {
     return true;
   };
 
-  private resolveBudgetTokens(params: {
+  private resolveBudgetTokens = (params: {
     contextTokens?: number | null;
     reserveTokensFloor?: number;
     softThresholdTokens?: number;
-  }): number {
+  }): number => {
     const contextTokens = this.resolveContextTokens(params.contextTokens);
     const reserveTokens = sanitizeNonNegativeInt(params.reserveTokensFloor) ?? DEFAULT_RESERVE_TOKENS_FLOOR;
     const softThreshold = sanitizeNonNegativeInt(params.softThresholdTokens) ?? DEFAULT_SOFT_THRESHOLD_TOKENS;
     return Math.max(1, contextTokens - reserveTokens - softThreshold);
-  }
+  };
 
-  private resolveContextTokens(value: number | null | undefined): number {
+  private resolveContextTokens = (value: number | null | undefined): number => {
     return sanitizePositiveInt(value) ?? DEFAULT_CONTEXT_TOKENS;
-  }
+  };
 }
 
 function sanitizePositiveInt(value: unknown): number | null {

@@ -1,6 +1,5 @@
 import {
   findEffectiveAgentProfile,
-  InputBudgetPruner,
   resolveDefaultAgentProfileId,
   type Config,
   type ProviderManager,
@@ -13,6 +12,7 @@ import {
 } from "../nextclaw-ncp-message-bridge.js";
 import { toNcpMessages } from "../session/nextclaw-agent-session-message-adapter.utils.js";
 import {
+  type ContextCompactionCheckpoint,
   type ContextCompactionPlan,
   ContextCompactionService,
   readCompressedContextCompactionCheckpoint,
@@ -29,6 +29,7 @@ import {
   type ContextWindowSnapshot,
 } from "./context-window-snapshot.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "./context-compaction-projection.utils.js";
+import { ContextWindowBudgetService, type ContextWindowBudgetEvaluation } from "./context-window-budget.service.js";
 
 export type ContextWindowOwner = "nextclaw" | "runtime";
 
@@ -49,16 +50,17 @@ export type ContextCompactionPendingWork = {
   inputMessageIds: string[];
   model: string;
   plan: ContextCompactionPlan;
+  reservedContextTokens: number;
   sessionId: string;
 };
 
-const DEFAULT_COMPACTION_TRIGGER_RATIO = 0.8;
 const SUMMARY_MAX_TOKENS = 4000;
 const SUMMARY_SOURCE_MAX_CHARS = 120_000;
 
 type ResolvedCompactionProfile = {
   contextTokens: number;
   model: string;
+  reservedContextTokens: number;
 };
 
 function readRequestedAgentId(metadata: Record<string, unknown>): string | null {
@@ -83,6 +85,10 @@ function resolveCompactionProfile(params: {
   return {
     contextTokens: profile?.contextTokens ?? defaults.contextTokens,
     model: profile?.model ?? defaults.model,
+    reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
+      contextTokens: profile?.contextTokens ?? defaults.contextTokens,
+      configuredReservedContextTokens: profile?.reservedContextTokens ?? defaults.reservedContextTokens,
+    }),
   };
 }
 
@@ -109,9 +115,28 @@ function stringifyCompactionSource(messages: readonly Record<string, unknown>[])
   return `${json.slice(0, SUMMARY_SOURCE_MAX_CHARS).trimEnd()}\n[truncated_source]`;
 }
 
+function buildContextWindowSnapshotFromBudget(params: {
+  budget: ContextWindowBudgetEvaluation;
+  checkpoint: ContextCompactionCheckpoint | null;
+  totalContextTokens: number;
+}): ContextWindowSnapshot {
+  const { budget, checkpoint, totalContextTokens } = params;
+  return buildContextWindowSnapshot({
+    usedContextTokens: budget.estimatedTokens,
+    totalContextTokens,
+    prunedUsedContextTokens: budget.estimatedTokens,
+    droppedHistoryCount: budget.droppedHistoryCount,
+    truncatedToolResultCount: budget.truncatedToolResultCount,
+    truncatedSystemPrompt: budget.truncatedSystemPrompt,
+    truncatedUserMessage: budget.truncatedUserMessage,
+    checkpoint,
+    compactedUsedContextTokens: checkpoint ? budget.estimatedTokens : undefined,
+  });
+}
+
 export class ContextCompactionPreflightService {
   private readonly compactionService = new ContextCompactionService();
-  private readonly inputBudgetPruner = new InputBudgetPruner();
+  private readonly contextWindowBudgetService = new ContextWindowBudgetService();
 
   constructor(
     private readonly options: {
@@ -166,6 +191,7 @@ export class ContextCompactionPreflightService {
     return this.buildContextWindowSnapshotForMessages({
       checkpoint: existingCheckpoint,
       contextTokens: profile.contextTokens,
+      reservedContextTokens: profile.reservedContextTokens,
       sessionId,
       sessionMessages,
     });
@@ -195,7 +221,7 @@ export class ContextCompactionPreflightService {
       requestMetadata,
       storedAgentId: session.agentId,
     });
-    const { contextTokens } = profile;
+    const { contextTokens, reservedContextTokens } = profile;
     const ncpMessages = mergeInputMessages({
       inputMessages,
       sessionMessages,
@@ -213,17 +239,18 @@ export class ContextCompactionPreflightService {
         })
       : modelCandidateMessages;
     const messages = toLegacyMessages(projectedMessages) as Record<string, unknown>[];
-    const plan = existingCheckpoint
-      ? null
-      : this.compactionService.prepareForModelInput({
-          messages,
-          contextTokens,
-          compactionThresholdTokens: Math.floor(contextTokens * DEFAULT_COMPACTION_TRIGGER_RATIO),
-        });
-    const pruned = this.inputBudgetPruner.prune({
+    const budget = this.contextWindowBudgetService.evaluate({
       messages,
       contextTokens,
+      reservedContextTokens,
     });
+    const plan = existingCheckpoint || !budget.shouldCompact
+      ? null
+      : this.compactionService.prepareForModelInput({
+          messages: budget.messages,
+          contextTokens,
+          compactionThresholdTokens: budget.triggerTokens,
+        });
     const checkpoint = plan
       ? {
           ...buildCompressingCompactionCheckpoint(
@@ -232,20 +259,14 @@ export class ContextCompactionPreflightService {
           coveredMessageCount: plan.coveredMessages.length,
           coveredSessionMessageCount: plan.coveredMessages.length,
           originalEstimatedTokens: plan.originalEstimatedTokens,
-          projectedEstimatedTokens: pruned.estimatedTokens,
+          projectedEstimatedTokens: budget.estimatedTokens,
         }
       : existingCheckpoint;
 
-    const contextWindow = buildContextWindowSnapshot({
-      usedContextTokens: pruned.estimatedTokens,
-      totalContextTokens: contextTokens,
-      prunedUsedContextTokens: pruned.estimatedTokens,
-      droppedHistoryCount: pruned.droppedHistoryCount,
-      truncatedToolResultCount: pruned.truncatedToolResultCount,
-      truncatedSystemPrompt: pruned.truncatedSystemPrompt,
-      truncatedUserMessage: pruned.truncatedUserMessage,
+    const contextWindow = buildContextWindowSnapshotFromBudget({
+      budget,
       checkpoint,
-      compactedUsedContextTokens: checkpoint ? pruned.estimatedTokens : undefined,
+      totalContextTokens: contextTokens,
     });
     if (plan && checkpoint) {
       session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = checkpoint;
@@ -274,6 +295,7 @@ export class ContextCompactionPreflightService {
             inputMessageIds: inputMessages.map((message) => message.id),
             model: profile.model,
             plan,
+            reservedContextTokens,
             sessionId,
           }
         : null,
@@ -283,10 +305,11 @@ export class ContextCompactionPreflightService {
   private buildContextWindowSnapshotForMessages = (params: {
     checkpoint: ReturnType<typeof readCompressedContextCompactionCheckpoint>;
     contextTokens: number;
+    reservedContextTokens: number;
     sessionId: string;
     sessionMessages: readonly NcpMessage[];
   }): ContextWindowSnapshot => {
-    const { checkpoint, contextTokens, sessionId, sessionMessages } = params;
+    const { checkpoint, contextTokens, reservedContextTokens, sessionId, sessionMessages } = params;
     const modelCandidateMessages = sessionMessages.filter(
       (message) => !isContextCompactionTimelineMessage(message),
     );
@@ -297,20 +320,15 @@ export class ContextCompactionPreflightService {
         })
       : modelCandidateMessages;
     const messages = toLegacyMessages(projectedMessages) as Record<string, unknown>[];
-    const pruned = this.inputBudgetPruner.prune({
+    const budget = this.contextWindowBudgetService.evaluate({
       messages,
       contextTokens,
+      reservedContextTokens,
     });
-    return buildContextWindowSnapshot({
-      usedContextTokens: pruned.estimatedTokens,
-      totalContextTokens: contextTokens,
-      prunedUsedContextTokens: pruned.estimatedTokens,
-      droppedHistoryCount: pruned.droppedHistoryCount,
-      truncatedToolResultCount: pruned.truncatedToolResultCount,
-      truncatedSystemPrompt: pruned.truncatedSystemPrompt,
-      truncatedUserMessage: pruned.truncatedUserMessage,
+    return buildContextWindowSnapshotFromBudget({
+      budget,
       checkpoint,
-      compactedUsedContextTokens: checkpoint ? pruned.estimatedTokens : undefined,
+      totalContextTokens: contextTokens,
     });
   };
 
@@ -336,20 +354,15 @@ export class ContextCompactionPreflightService {
       createdAt: pending.checkpoint.createdAt,
       status: "compressed" as const,
     };
-    const pruned = this.inputBudgetPruner.prune({
+    const budget = this.contextWindowBudgetService.evaluate({
       messages: compacted.messages,
       contextTokens: pending.contextTokens,
+      reservedContextTokens: pending.reservedContextTokens,
     });
-    const contextWindow = buildContextWindowSnapshot({
-      usedContextTokens: pruned.estimatedTokens,
-      totalContextTokens: pending.contextTokens,
-      prunedUsedContextTokens: pruned.estimatedTokens,
-      droppedHistoryCount: pruned.droppedHistoryCount,
-      truncatedToolResultCount: pruned.truncatedToolResultCount,
-      truncatedSystemPrompt: pruned.truncatedSystemPrompt,
-      truncatedUserMessage: pruned.truncatedUserMessage,
+    const contextWindow = buildContextWindowSnapshotFromBudget({
+      budget,
       checkpoint,
-      compactedUsedContextTokens: pruned.estimatedTokens,
+      totalContextTokens: pending.contextTokens,
     });
     const session = this.options.sessionManager.getOrCreate(pending.sessionId);
     session.metadata[CONTEXT_COMPACTION_METADATA_KEY] = checkpoint;

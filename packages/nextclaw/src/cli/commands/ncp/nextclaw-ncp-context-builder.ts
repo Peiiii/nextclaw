@@ -37,6 +37,7 @@ import {
   syncSessionThinkingPreference,
 } from "./context/nextclaw-ncp-session-preferences.js";
 import { buildCurrentTurnState } from "./context/nextclaw-ncp-current-turn.js";
+import { ContextWindowBudgetService } from "./context/context-window-budget.service.js";
 import { projectNcpMessagesWithContextCompaction } from "./context/context-compaction-projection.utils.js";
 import {
   readAccountIdForHints,
@@ -63,8 +64,8 @@ type ResolvedAgentProfile = {
   agentId: string;
   contextTokens: number;
   execTimeoutSeconds: number;
-  maxIterations: number;
   model: string;
+  reservedContextTokens: number;
   restrictToWorkspace: boolean;
   searchConfig: Config["search"];
   workspace: string;
@@ -157,12 +158,16 @@ function resolveAgentProfile(params: {
   if (!profile) {
     throw new Error(`default agent profile not found: ${defaultAgentId}`);
   }
+  const contextTokens = profile.contextTokens ?? defaults.contextTokens;
   return {
     agentId: profile.id,
     workspace: getWorkspacePath(profile.workspace ?? defaults.workspace),
     model: profile.model ?? defaults.model,
-    maxIterations: profile.maxToolIterations ?? defaults.maxToolIterations,
-    contextTokens: profile.contextTokens ?? defaults.contextTokens,
+    contextTokens,
+    reservedContextTokens: ContextWindowBudgetService.resolveReservedContextTokens({
+      contextTokens,
+      configuredReservedContextTokens: profile.reservedContextTokens ?? defaults.reservedContextTokens,
+    }),
     restrictToWorkspace,
     searchConfig,
     execTimeoutSeconds,
@@ -221,29 +226,20 @@ function buildSessionOrchestrationSection(): string {
   ].join("\n");
 }
 
-function filterTools(
-  toolDefinitions: ReadonlyArray<OpenAITool>,
-  requestedToolNames: string[],
-): OpenAITool[] | undefined {
-  if (toolDefinitions.length === 0) {
-    return undefined;
-  }
-  if (requestedToolNames.length === 0) {
-    return [...toolDefinitions];
-  }
-  const requested = new Set(requestedToolNames);
-  const filtered = toolDefinitions.filter((tool) => requested.has(tool.function.name));
-  return filtered.length > 0 ? filtered : undefined;
-}
-
 function buildRequestedOpenAiTools(
   toolDefinitions: ReadonlyArray<NcpToolDefinition>,
   requestedToolNames: string[],
 ): OpenAITool[] | undefined {
-  return filterTools(
-    toolDefinitions.map(buildOpenAiFunctionTool),
-    requestedToolNames,
-  );
+  const tools = toolDefinitions.map(buildOpenAiFunctionTool);
+  if (tools.length === 0) {
+    return undefined;
+  }
+  if (requestedToolNames.length === 0) {
+    return tools;
+  }
+  const requested = new Set(requestedToolNames);
+  const filtered = tools.filter((tool) => requested.has(tool.function.name));
+  return filtered.length > 0 ? filtered : undefined;
 }
 
 export class NextclawNcpContextBuilder implements NcpContextBuilder {
@@ -317,7 +313,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
       contextTokens: profile.contextTokens,
       execTimeoutSeconds: profile.execTimeoutSeconds,
       handoffDepth: resolveAgentHandoffDepth(requestMetadata),
-      maxTokens: undefined,
       metadata: requestMetadata,
       model: effectiveModel,
       restrictToWorkspace: profile.restrictToWorkspace,
@@ -392,7 +387,6 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
         serviceRole: "system",
       }),
       currentMessage: "",
-      attachments: [],
       channel,
       chatId,
       sessionKey: input.sessionId,
@@ -419,6 +413,8 @@ export class NextclawNcpContextBuilder implements NcpContextBuilder {
     return this.inputBudgetPruner.prune({
       messages: modelMessages.messages,
       contextTokens: runContext.profile.contextTokens,
+      reserveTokensFloor: runContext.profile.reservedContextTokens,
+      softThresholdTokens: 0,
     });
   };
 }
