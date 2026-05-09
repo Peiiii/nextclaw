@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Config } from "../../config/configs/schema.js";
-import type { SessionProjectContext } from "../../session/services/session-project-context.js";
+import type { Config } from "@core/features/config/index.js";
+import type { SessionProjectContext } from "@core/features/session/index.js";
 import {
   DEFAULT_WORKSPACE_REPOSITORY_IDENTITY_RESOLVER,
   type WorkspaceRepositoryIdentity,
@@ -24,21 +24,6 @@ function truncateText(text: string, limit: number): string {
   }
   const head = text.slice(0, limit - suffix.length).trimEnd();
   return `${head}${suffix}`;
-}
-
-function dedupeStrings(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const value of values) {
-    if (seen.has(value)) {
-      continue;
-    }
-    seen.add(value);
-    result.push(value);
-  }
-
-  return result;
 }
 
 export const DEFAULT_BOOTSTRAP_CONTEXT_CONFIG: BootstrapContextConfig = {
