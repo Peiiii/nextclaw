@@ -17,7 +17,8 @@ const usage = `Usage:
   node scripts/governance/lint-doc-file-names.mjs -- docs apps/docs
 
 Blocks changed governed documentation files whose file names are not kebab-case.
-Once a doc file is touched, legacy non-kebab names must be renamed in the same change.`;
+Design and plan docs under docs/designs or docs/plans must also start with YYYY-MM-DD-.
+Once a doc file is touched, legacy non-compliant names must be renamed in the same change.`;
 
 const getNameStatusArgs = (pathArgs, options) => {
   if (options.baseRef) {
@@ -55,21 +56,12 @@ export const collectChangedDocFileEntries = (options) => {
 
     const parts = trimmedLine.split("\t");
     const status = parts[0];
-    if (status.startsWith("R")) {
-      const nextPath = parts[2];
-      if (!nextPath || !isGovernedDocFile(nextPath)) {
-        continue;
-      }
-      entryByFile.set(nextPath, { filePath: nextPath, status: "R" });
-      continue;
-    }
-
-    const nextPath = parts[1];
+    const nextPath = status.startsWith("R") ? parts[2] : parts[1];
     if (!nextPath || !isGovernedDocFile(nextPath)) {
       continue;
     }
 
-    entryByFile.set(nextPath, { filePath: nextPath, status });
+    entryByFile.set(nextPath, { filePath: nextPath, status: status.startsWith("R") ? "R" : status });
   }
 
   for (const filePath of untrackedFiles) {
@@ -83,13 +75,6 @@ export const collectChangedDocFileEntries = (options) => {
     entries
   };
 };
-
-const isBlockingDocEntry = (entry) => (
-  entry.status === "A" ||
-  entry.status === "R" ||
-  entry.status === "U" ||
-  entry.status === "M"
-);
 
 export const collectDocFileNameDiffViolations = (entries) => defaultSortByLocation(
   entries.flatMap((entry) => {
@@ -107,8 +92,8 @@ export const collectDocFileNameDiffViolations = (entries) => defaultSortByLocati
       level: "error",
       suggestedPath: finding.suggestedPath,
       message: entry.status === "M"
-        ? `touched doc file name is not kebab-case (${finding.reason}); rename to '${finding.suggestedPath}' before continuing`
-        : `new or renamed doc file name is not kebab-case (${finding.reason}); rename to '${finding.suggestedPath}'`
+        ? `touched doc file name is not governed (${finding.reason}); rename to '${finding.suggestedPath}' before continuing`
+        : `new or renamed doc file name is not governed (${finding.reason}); rename to '${finding.suggestedPath}'`
     }];
   })
 );
@@ -128,11 +113,11 @@ export const printViolations = ({ changedFiles, violations }) => {
   }
 
   if (violations.length === 0) {
-    console.log(`Doc file-name kebab-case diff check passed for ${changedFiles.length} changed file(s).`);
+    console.log(`Doc file-name governance diff check passed for ${changedFiles.length} changed file(s).`);
     return 0;
   }
 
-  console.error("Doc file-name kebab-case diff check blocked changed files with non-kebab names.");
+  console.error("Doc file-name governance diff check blocked changed files with non-compliant names.");
   for (const violation of violations) {
     console.error(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
   }

@@ -30,6 +30,14 @@ Do not automatically create an iteration record when all of these are true:
 
 Design/plan/PRD documents normally belong under `docs/plans`, `docs/designs`, or `docs/prd`, not `docs/logs`.
 
+## Design / Plan Date Prefix
+
+The iteration mechanism requires dated anchors for design and plan deposits:
+
+- design and plan document file names must use a `YYYY-MM-DD-` date prefix,
+- files under `docs/designs` and `docs/plans` must satisfy this by default,
+- this rule applies even when the work does not need a `docs/logs` iteration record.
+
 ## Same-Batch Rule
 
 If the work is a micro-adjustment, verification fix, or follow-up in the same problem domain and same closing window as the most recent related iteration, update that iteration `README.md`.

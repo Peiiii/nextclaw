@@ -32,6 +32,7 @@ Trigger this skill when requests include any of these intents:
 For this repository specifically:
 
 - `pnpm lint:new-code:file-names` blocks touched non-kebab source/script/test files, not only new names.
+- `pnpm lint:new-code:doc-file-names` blocks touched governed docs with non-kebab names, and requires `docs/designs` / `docs/plans` files to carry a `YYYY-MM-DD-` date prefix.
 - `pnpm lint:new-code:directory-names` blocks touched files whose parent directory chain is not governed.
 - `pnpm lint:new-code:file-role-boundaries` blocks touched non-component/page/hook files that do not use an approved secondary suffix, and also blocks directory-to-suffix mismatches such as `services/foo-manager.ts`.
 - `pnpm report:file-naming` prints the current legacy non-kebab backlog for gradual migration.

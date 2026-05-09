@@ -13,7 +13,7 @@ const usage = `Usage:
   node scripts/governance/report-doc-file-name-violations.mjs --limit 50
   node scripts/governance/report-doc-file-name-violations.mjs --tracked-only
 
-Scans governed documentation files, then reports legacy non-kebab document file names with suggested rename targets.`;
+Scans governed documentation files, then reports legacy non-compliant document file names with suggested rename targets.`;
 
 const parseArgs = (argv) => {
   const options = {
@@ -97,12 +97,12 @@ const printTextReport = (violations, limit) => {
   const shownViolations = limit == null ? violations : violations.slice(0, limit);
   const directories = new Set(violations.map((item) => path.posix.dirname(item.filePath)));
 
-  console.log("Doc file-name kebab-case legacy report");
+  console.log("Doc file-name governance legacy report");
   console.log(`- scanned violations: ${violations.length}`);
   console.log(`- affected directories: ${directories.size}`);
 
   if (violations.length === 0) {
-    console.log("- no legacy non-kebab document file names found");
+    console.log("- no legacy non-compliant document file names found");
     return;
   }
 
