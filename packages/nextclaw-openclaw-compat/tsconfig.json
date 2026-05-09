@@ -7,8 +7,14 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@core/features/typed-event-bus/*": [
+        "../nextclaw-core/src/features/typed-event-bus/*"
+      ],
       "@nextclaw/core": [
         "../nextclaw-core/src/index.ts"
+      ],
+      "@nextclaw/shared": [
+        "../nextclaw-shared/src/index.ts"
       ],
       "@nextclaw/channel-runtime": [
         "../extensions/nextclaw-channel-runtime/src/index.ts"

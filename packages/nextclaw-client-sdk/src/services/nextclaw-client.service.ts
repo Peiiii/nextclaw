@@ -1,4 +1,4 @@
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import type { NextClawClient } from "../types/nextclaw-client.types.js";
 import type { NextClawClientOptions } from "../types/nextclaw-request.types.js";
 import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";

@@ -7,6 +7,9 @@
     ],
     "baseUrl": ".",
     "paths": {
+      "@core/features/typed-event-bus/*": [
+        "../nextclaw-core/src/features/typed-event-bus/*"
+      ],
       "@/*": [
         "./src/*"
       ],
@@ -15,6 +18,9 @@
       ],
       "@nextclaw/kernel": [
         "../nextclaw-kernel/src/index.ts"
+      ],
+      "@nextclaw/shared": [
+        "../nextclaw-shared/src/index.ts"
       ],
       "@kernel/*": [
         "../nextclaw-kernel/src/*"

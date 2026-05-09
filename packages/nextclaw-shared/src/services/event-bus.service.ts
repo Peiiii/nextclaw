@@ -1,10 +1,11 @@
 import type {
-  AppEventEnvelope,
   AppEventEmitOptions,
+  AppEventEnvelope,
   AppEventHandler,
   AppEventKey,
   EventBusOptions,
-} from "./event-bus.types.js";
+  Unsubscribe,
+} from "../types/event-bus.types.js";
 
 export class EventBus {
   private readonly listeners = new Map<string, Set<AppEventHandler<unknown>>>();
@@ -49,7 +50,7 @@ export class EventBus {
     }
   };
 
-  on = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): (() => void) => {
+  on = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): Unsubscribe => {
     const listeners = this.listeners.get(key.id) ?? new Set<AppEventHandler<unknown>>();
     const typedHandler = handler as AppEventHandler<unknown>;
     const added = !listeners.has(typedHandler);
@@ -77,7 +78,7 @@ export class EventBus {
     }
   };
 
-  once = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): (() => void) => {
+  once = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): Unsubscribe => {
     const wrappedHandler: AppEventHandler<T> = (payload, envelope) => {
       unsubscribe();
       handler(payload, envelope);
@@ -86,7 +87,7 @@ export class EventBus {
     return unsubscribe;
   };
 
-  subscribeAll = (handler: (event: AppEventEnvelope) => void): (() => void) => {
+  subscribeAll = (handler: (event: AppEventEnvelope) => void): Unsubscribe => {
     const added = !this.globalListeners.has(handler);
     this.globalListeners.add(handler);
     if (added) {

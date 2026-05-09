@@ -1,6 +1,6 @@
 ---
 name: collapsible-feature-root-architecture
-description: 用于定义或重构基于 feature 的代码组织架构，尤其适用于判断当前作用域应保持单 feature root、何时引入 features/ 聚合层、何时拆稳定子 feature、何时严格限制 shared 目录，以及如何分别处理包内部结构与仓库级组织边界。
+description: 用于定义或重构基于 feature 的代码组织架构，尤其适用于判断当前作用域应保持单 feature root、何时引入 features/ 聚合层、何时拆稳定子 feature、何时严格限制 shared 目录、如何处理可被其他 workspace 源码依赖的 package/SDK/shared library 的导入 alias，以及如何分别处理包内部结构与仓库级组织边界。
 ---
 
 # 可折叠 Feature-Root 架构
@@ -394,9 +394,27 @@ import { formatDate } from "@/shared/lib/date-format/index";
 对已经显式采纳目录结构协议、并声明了 `importAliasPrefixes` 的模块，包内导入应遵守统一协议：
 
 - 同目录文件之间使用 `./`
-- 只要跨目录，就使用 `@/`
+- 只要跨目录，就使用该模块声明的 alias
 - 禁止使用 `../`、`../../` 这类父级相对路径在包内跨目录穿透
 - 导入目录型公共入口时，直接导入目录名本身，禁止显式写 `index`、`index.ts(x)`
+
+### 可被源码依赖的 Package Alias 例外
+
+`@/` 只适合 app / worker / CLI 应用层这类拥有唯一应用根的模块。可被其他 workspace 包以源码方式依赖的 package、SDK、shared library，禁止使用泛化 `@/` 作为内部导入 alias。
+
+原因：
+
+- 这些包常被 consumer 的 `tsconfig.paths` 直接指向 `src/index.ts`。
+- 包内部的 `@/types/*`、`@/services/*` 会被 consumer 自己的 `@/*` 抢走解析。
+- 在 consumer tsconfig 里补 `@/services/*`、`@/types/*` 这类窄映射只是掩盖冲突，不是正确结构。
+
+正确选择：
+
+- 小型 SDK / shared library：优先使用相对路径。
+- 确实需要 alias 的可复用 package：使用包级唯一 alias，例如 `@kernel/*`，并在该 package 的 `module-structure.config.json` 中声明。
+- 不要为了通过治理，把 library 临时套成 app-l1 的 `@/` 规则。
+
+判断一句话：**只要这个包可能被别的 workspace 以源码形式消费，就不能用通用 `@/`；要么相对路径，要么包级唯一 alias。**
 
 允许：
 
@@ -404,6 +422,7 @@ import { formatDate } from "@/shared/lib/date-format/index";
 import { localHelper } from "./local-helper";
 import { setupApp } from "@/app/setup-app";
 import { formatDate } from "@/shared/lib/date-format";
+import { createKernel } from "@kernel/app/create-kernel";
 ```
 
 禁止：
@@ -412,6 +431,7 @@ import { formatDate } from "@/shared/lib/date-format";
 import { setupApp } from "../app/setup-app";
 import { formatDate } from "../../shared/lib/date-format";
 import { formatDate } from "@/shared/lib/date-format/index";
+import type { ClientOptions } from "@/types/client.types"; // 出现在可复用 SDK/package 内时禁止
 ```
 
 ## 白名单规则

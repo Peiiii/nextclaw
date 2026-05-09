@@ -5,7 +5,9 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@nextclaw/core": ["../nextclaw-core/src/index.ts"]
+      "@core/features/typed-event-bus/*": ["../nextclaw-core/src/features/typed-event-bus/*"],
+      "@nextclaw/core": ["../nextclaw-core/src/index.ts"],
+      "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
     }
   },
   "include": ["src", "tests"]

@@ -1,7 +1,8 @@
+import { EventBus, type EventHandler } from "@nextclaw/shared";
 import {
   type TypedEventKey,
   readTypedEventKeyId,
-} from "../types/typed-event-key.types.js";
+} from "@core/features/typed-event-bus/types/typed-event-key.types.js";
 
 export type TypedEventHandler<T> = (payload: T) => void;
 
@@ -19,102 +20,70 @@ export type GlobalTypedEventBusOptions = {
 };
 
 export class GlobalTypedEventBus {
-  private readonly listeners = new Map<string, Set<TypedEventHandler<unknown>>>();
-  private readonly globalListeners = new Set<(event: TypedEventEnvelope) => void>();
-  private readonly onListenerError?: GlobalTypedEventBusOptions["onListenerError"];
+  private readonly bus: EventBus;
+  private readonly handlers = new WeakMap<
+    TypedEventHandler<unknown>,
+    Map<string, EventHandler<unknown>>
+  >();
 
   constructor(options: GlobalTypedEventBusOptions = {}) {
-    this.onListenerError = options.onListenerError;
+    this.bus = new EventBus({
+      onListenerError: options.onListenerError
+        ? ({ type, payload, error }) =>
+            options.onListenerError?.({
+              key: type,
+              payload,
+              error,
+            })
+        : undefined,
+    });
   }
 
   emit = <T>(key: TypedEventKey<T>, payload: T): void => {
-    const eventKey = readTypedEventKeyId(key);
-    const listeners = this.listeners.get(eventKey);
-    if (listeners) {
-      for (const listener of listeners) {
-        this.safeInvokeListener(eventKey, payload, listener);
-      }
-    }
-    if (this.globalListeners.size === 0) {
-      return;
-    }
-    const envelope: TypedEventEnvelope = {
-      key: eventKey,
-      payload,
-    };
-    for (const listener of this.globalListeners) {
-      this.safeInvokeGlobalListener(envelope, listener);
-    }
+    this.bus.emit({ id: readTypedEventKeyId(key) }, payload);
   };
 
   on = <T>(key: TypedEventKey<T>, handler: TypedEventHandler<T>): (() => void) => {
     const eventKey = readTypedEventKeyId(key);
-    const listeners =
-      this.listeners.get(eventKey) ?? new Set<TypedEventHandler<unknown>>();
-    listeners.add(handler as TypedEventHandler<unknown>);
-    this.listeners.set(eventKey, listeners);
-    return () => {
-      this.off(key, handler);
+    const wrappedHandler: EventHandler<T> = (payload) => {
+      handler(payload);
     };
+    const handlersByKey =
+      this.handlers.get(handler as TypedEventHandler<unknown>) ??
+      new Map<string, EventHandler<unknown>>();
+    handlersByKey.set(eventKey, wrappedHandler as EventHandler<unknown>);
+    this.handlers.set(handler as TypedEventHandler<unknown>, handlersByKey);
+    return this.bus.on({ id: eventKey }, wrappedHandler);
   };
 
   off = <T>(key: TypedEventKey<T>, handler: TypedEventHandler<T>): void => {
     const eventKey = readTypedEventKeyId(key);
-    const listeners = this.listeners.get(eventKey);
-    if (!listeners) {
+    const handlersByKey = this.handlers.get(handler as TypedEventHandler<unknown>);
+    const wrappedHandler = handlersByKey?.get(eventKey);
+    if (!handlersByKey || !wrappedHandler) {
       return;
     }
-    listeners.delete(handler as TypedEventHandler<unknown>);
-    if (listeners.size === 0) {
-      this.listeners.delete(eventKey);
+    this.bus.off({ id: eventKey }, wrappedHandler);
+    handlersByKey.delete(eventKey);
+    if (handlersByKey.size === 0) {
+      this.handlers.delete(handler as TypedEventHandler<unknown>);
     }
   };
 
   once = <T>(key: TypedEventKey<T>, handler: TypedEventHandler<T>): (() => void) => {
-    const wrappedHandler: TypedEventHandler<T> = (payload) => {
-      unsubscribe();
-      handler(payload);
-    };
-    const unsubscribe = this.on(key, wrappedHandler);
-    return unsubscribe;
+    const eventKey = readTypedEventKeyId(key);
+    return this.bus.once({ id: eventKey }, (payload) => {
+      handler(payload as T);
+    });
   };
 
   subscribeAll = (handler: (event: TypedEventEnvelope) => void): (() => void) => {
-    this.globalListeners.add(handler);
-    return () => {
-      this.globalListeners.delete(handler);
-    };
-  };
-
-  private safeInvokeListener = <T>(
-    key: string,
-    payload: T,
-    listener: TypedEventHandler<T>,
-  ): void => {
-    try {
-      listener(payload);
-    } catch (error) {
-      this.onListenerError?.({
-        key,
-        payload,
-        error,
-      });
-    }
-  };
-
-  private safeInvokeGlobalListener = (
-    event: TypedEventEnvelope,
-    listener: (event: TypedEventEnvelope) => void,
-  ): void => {
-    try {
-      listener(event);
-    } catch (error) {
-      this.onListenerError?.({
-        key: event.key,
+    return this.bus.subscribeAll((event) => {
+      handler({
+        key: event.type,
         payload: event.payload,
-        error,
       });
-    }
+    });
   };
 }
 

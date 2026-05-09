@@ -1,34 +1,28 @@
 {
-  "name": "@nextclaw/kernel",
-  "version": "0.1.2",
+  "name": "@nextclaw/shared",
+  "version": "0.1.0",
   "private": false,
-  "description": "NextClaw product kernel skeleton for agents, tasks, sessions, context, tools, skills, providers, automation, and channels.",
+  "description": "Shared lightweight primitives and contracts for NextClaw packages.",
   "type": "module",
   "exports": {
     ".": {
       "development": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./update-contract": {
-      "development": "./src/types/update-contract.types.ts",
-      "types": "./dist/types/update-contract.types.d.ts",
-      "default": "./dist/types/update-contract.types.js"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build": "tsdown src/index.ts src/types/update-contract.types.ts --dts --clean --target es2022 --no-fixedExtension",
+    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension",
     "prepack": "pnpm run build",
-    "lint": "eslint .",
+    "lint": "eslint src --max-warnings=0",
     "test": "vitest run",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
-    "@nextclaw/shared": "workspace:*",
     "@nextclaw/ncp": "workspace:*"
   },
   "devDependencies": {

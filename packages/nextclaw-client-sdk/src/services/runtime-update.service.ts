@@ -1,4 +1,4 @@
-import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
+import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
 import type { RequestService } from "./request.service.js";
 
 export class RuntimeUpdateService {

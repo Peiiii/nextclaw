@@ -1,5 +1,6 @@
 {
   "protocol": "app-l2",
   "requiredRootFiles": ["index.ts"],
-  "rootPolicy": "contract-only"
+  "rootPolicy": "contract-only",
+  "importAliasPrefixes": ["@core/"]
 }

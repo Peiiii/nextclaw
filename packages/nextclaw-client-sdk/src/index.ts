@@ -1,7 +1,7 @@
 export { createNextClawClient, NextClawClientService } from "./services/nextclaw-client.service.js";
 export { NextClawClientError } from "./services/request.service.js";
-export { eventKeys } from "@nextclaw/kernel";
-export type { AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/kernel";
+export { eventKeys } from "@nextclaw/shared";
+export type { AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
 export type {
   NextClawClient,
 } from "./types/nextclaw-client.types.js";
@@ -111,5 +111,5 @@ export type {
   UiServerEvent
 } from "@nextclaw/server";
 export type { NcpSessionSummary } from "@nextclaw/ncp";
-export type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
+export type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
 export type ChannelConfigUpdate = Record<string, unknown>;

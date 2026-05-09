@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@core/*": ["./src/*"],
+      "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

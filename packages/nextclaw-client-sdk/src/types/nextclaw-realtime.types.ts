@@ -1,4 +1,4 @@
-import type { AppEvent, AppEventEnvelope } from "@nextclaw/kernel";
+import type { AppEvent, AppEventEnvelope } from "@nextclaw/shared";
 
 export type NextClawConnectionEvent =
   | { type: "connection.open"; payload?: Record<string, never> }

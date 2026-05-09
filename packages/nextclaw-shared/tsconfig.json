@@ -5,9 +5,7 @@
     "lib": ["ES2022", "DOM"],
     "baseUrl": ".",
     "paths": {
-      "@kernel/*": ["./src/*"],
-      "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"],
-      "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
+      "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },
   "include": ["src"],

@@ -5,7 +5,7 @@ import type {
   UiNcpSessionListView,
   UiNcpSessionMessagesView
 } from "@nextclaw/server";
-import type { EventBus } from "@nextclaw/kernel";
+import type { EventBus } from "@nextclaw/shared";
 import type { NcpSessionSummary } from "@nextclaw/ncp";
 import type { NextClawRealtimeHandler, NextClawRealtimeSubscribeOptions } from "../types/nextclaw-request.types.js";
 import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";

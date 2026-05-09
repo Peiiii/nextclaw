@@ -1,4 +1,4 @@
-import type { EventBus } from "@nextclaw/kernel";
+import type { EventBus } from "@nextclaw/shared";
 import type { AgentsService } from "../services/agents.service.js";
 import type { AppService } from "../services/app.service.js";
 import type { AuthService } from "../services/auth.service.js";
