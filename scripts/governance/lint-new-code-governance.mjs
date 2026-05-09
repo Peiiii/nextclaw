@@ -34,6 +34,11 @@ const checks = [
     args: [path.join(scriptDir, "module-structure/lint-new-code-module-structure.mjs")],
   },
   {
+    name: "package-public-imports",
+    command: "node",
+    args: [path.join(scriptDir, "lint-new-code-package-public-imports.mjs")],
+  },
+  {
     name: "class-methods-arrow",
     command: "node",
     args: [path.join(scriptDir, "lint-new-code-class-methods.mjs")],

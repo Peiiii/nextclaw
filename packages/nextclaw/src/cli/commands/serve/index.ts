@@ -1,6 +1,6 @@
-import { resolveManagedServiceUiOverrides } from "@nextclaw-service/shared/utils/runtime-helpers.js";
-import type { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
-import type { StartCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
+import { resolveManagedServiceUiOverrides } from "@nextclaw-service";
+import type { RuntimeCommandService } from "@nextclaw-service";
+import type { StartCommandOptions } from "@nextclaw-service";
 
 export class ServeCommands {
   constructor(

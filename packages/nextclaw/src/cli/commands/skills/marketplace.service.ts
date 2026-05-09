@@ -7,7 +7,7 @@ import {
   readMarketplaceMetadataFile,
   type LocalizedTextMap
 } from "./marketplace.metadata.js";
-import { PlatformAuthCommands } from "@nextclaw-service/commands/platform-auth/index.js";
+import { PlatformAuthCommands } from "@nextclaw-service";
 import {
   fetchMarketplaceSkillFileBlob,
   fetchMarketplaceSkillFiles,

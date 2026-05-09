@@ -116,6 +116,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 当前目录是不是正确的 feature root / 角色目录
 - 文件主职责是什么
 - 有没有现成位置可以直接复用，而不是新增散点
+- 如果这是跨 workspace package 依赖，是否只通过对方 package 根公共入口导入，而不是 deep import 对方内部文件
 
 目录结构不清时联动 `collapsible-feature-root-architecture`。  
 角色和命名不清时联动 `role-first-file-organization` 与 `file-naming-convention`。

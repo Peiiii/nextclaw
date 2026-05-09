@@ -13,19 +13,19 @@ import {
   isProcessRunning,
   resolveUiApiBase,
   resolveUiConfig
-} from "@nextclaw-service/shared/utils/cli.utils.js";
+} from "@nextclaw-service";
 import {
   managedServiceStateStore,
   type ManagedServiceState
-} from "@nextclaw-service/shared/stores/managed-service-state.store.js";
+} from "@nextclaw-service";
 import { printDoctorReport, printStatusReport, type DoctorCheck } from "../utils/diagnostics-render.utils.js";
-import { resolveNextclawRemoteStatusSnapshot } from "@nextclaw-service/commands/remote/index.js";
+import { resolveNextclawRemoteStatusSnapshot } from "@nextclaw-service";
 import type {
   DoctorCommandOptions,
   HealthProbe,
   RuntimeStatusReport,
   StatusCommandOptions
-} from "@nextclaw-service/shared/types/cli.types.js";
+} from "@nextclaw-service";
 
 export class DiagnosticsCommands {
   constructor(private deps: { logo: string }) {}

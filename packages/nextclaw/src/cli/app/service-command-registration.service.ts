@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { ServiceCommands } from "@nextclaw-service/commands/service/index.js";
+import type { ServiceCommands } from "@nextclaw-service";
 
 type RegisterServiceCommandsParams = {
   program: Command;

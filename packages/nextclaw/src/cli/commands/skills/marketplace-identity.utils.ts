@@ -1,4 +1,4 @@
-import type { PlatformMeResult } from "@nextclaw-service/commands/platform-auth/index.js";
+import type { PlatformMeResult } from "@nextclaw-service";
 
 export function resolvePublishPackageName(params: {
   explicitPackageName?: string;

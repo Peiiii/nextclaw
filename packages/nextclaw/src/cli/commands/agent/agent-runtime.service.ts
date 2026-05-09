@@ -2,27 +2,27 @@ import { getWorkspacePath, loadConfig } from "@nextclaw/core";
 import { loadOpenClawPlugins } from "@nextclaw/openclaw-compat";
 import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
-import { buildReservedPluginLoadOptions } from "@nextclaw-service/commands/plugin/plugin-command-utils.js";
+import { buildReservedPluginLoadOptions } from "@nextclaw-service";
 import {
   resolveDevPluginLoadingContext,
-} from "@nextclaw-service/commands/plugin/development-source/dev-plugin-overrides.utils.js";
-import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.js";
+} from "@nextclaw-service";
+import { resolveDevFirstPartyPluginDir } from "@nextclaw-service";
 import {
   DEFAULT_UI_NCP_RUNTIME_ENTRY_ID,
   UiNcpRuntimeRegistry,
   type UiNcpSessionTypeDescribeParams,
   type UiNcpSessionTypeOption,
-} from "@nextclaw-service/commands/ncp/ui-ncp-runtime-registry.js";
-import { resolveUiNcpRuntimeEntries } from "@nextclaw-service/commands/ncp/ui-ncp-runtime-entry-resolver.js";
-import { BuiltinNarpRuntimeRegistrationService } from "@nextclaw-service/commands/ncp/builtin-narp-runtime-registration.service.js";
+} from "@nextclaw-service";
+import { resolveUiNcpRuntimeEntries } from "@nextclaw-service";
+import { BuiltinNarpRuntimeRegistrationService } from "@nextclaw-service";
 import {
   NARP_HTTP_RUNTIME_KIND,
   NARP_STDIO_RUNTIME_KIND,
-} from "@nextclaw-service/commands/ncp/builtin-narp-runtime-types.js";
+} from "@nextclaw-service";
 import {
   logPluginDiagnostics,
   toExtensionRegistry,
-} from "@nextclaw-service/commands/plugin/index.js";
+} from "@nextclaw-service";
 
 export type AgentRuntimeListEntry = UiNcpSessionTypeOption & {
   default: boolean;

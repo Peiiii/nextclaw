@@ -416,6 +416,15 @@ import { formatDate } from "@/shared/lib/date-format/index";
 
 判断一句话：**只要这个包可能被别的 workspace 以源码形式消费，就不能用通用 `@/`；要么相对路径，要么包级唯一 alias。**
 
+### 跨 Package 公共入口原则
+
+一个 workspace package 导入另一个 workspace package 时，只能使用对方 package 根公共入口。
+
+- 允许：`import { RuntimeCommandService } from "@nextclaw-service"`
+- 禁止：`import { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js"`
+
+包内部可以继续使用该包已有的内部 alias 或相对路径；这条规则约束的是跨 workspace 依赖边界。新增或触达跨包导入时，必须确认 `pnpm lint:new-code:package-public-imports` 或 `pnpm lint:new-code:governance` 能拦住 deep import 漂移。
+
 允许：
 
 ```ts

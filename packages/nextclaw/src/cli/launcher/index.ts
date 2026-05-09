@@ -1,4 +1,4 @@
 #!/usr/bin/env node
-import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launcher.service.js";
+import { NpmRuntimeLauncher } from "@nextclaw-service";
 
 new NpmRuntimeLauncher({ argv: process.argv }).run();

@@ -6,10 +6,10 @@ import {
   parseRequiredConfigPath,
   setAtConfigPath,
   unsetAtConfigPath
-} from "@nextclaw-service/shared/utils/config-path.js";
-import { resolveChannelConfigView } from "@nextclaw-service/commands/channel/index.js";
-import { loadPluginRegistry, mergePluginConfigView } from "@nextclaw-service/commands/plugin/index.js";
-import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
+} from "@nextclaw-service";
+import { resolveChannelConfigView } from "@nextclaw-service";
+import { loadPluginRegistry, mergePluginConfigView } from "@nextclaw-service";
+import type { ConfigGetOptions, ConfigSetOptions, RequestRestartParams } from "@nextclaw-service";
 
 export class ConfigCommands {
   constructor(

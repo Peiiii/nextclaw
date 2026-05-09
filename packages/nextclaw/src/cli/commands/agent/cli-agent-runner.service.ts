@@ -8,11 +8,11 @@ import {
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
-import type { AgentCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
-import { printAgentResponse, prompt } from "@nextclaw-service/shared/utils/cli.utils.js";
-import { createUiNcpAgent } from "@nextclaw-service/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
-import { dispatchPromptOverNcp } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.js";
-import type { NextclawExtensionRegistry } from "@nextclaw-service/commands/plugin/index.js";
+import type { AgentCommandOptions } from "@nextclaw-service";
+import { printAgentResponse, prompt } from "@nextclaw-service";
+import { createUiNcpAgent } from "@nextclaw-service";
+import { dispatchPromptOverNcp } from "@nextclaw-service";
+import type { NextclawExtensionRegistry } from "@nextclaw-service";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
 

@@ -1,4 +1,4 @@
-import type { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
+import type { RuntimeCommandService } from "@nextclaw-service";
 
 export class StopCommands {
   constructor(

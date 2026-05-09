@@ -5,11 +5,11 @@ import type {
   CompanionStartCommandOptions,
   CompanionStatusCommandOptions,
   CompanionStopCommandOptions
-} from "@nextclaw-service/shared/types/cli.types.js";
+} from "@nextclaw-service";
 import {
   companionRuntimeService,
   type CompanionRuntimeService
-} from "@nextclaw-service/shared/services/ui/companion-runtime.service.js";
+} from "@nextclaw-service";
 
 export class CompanionProcessService {
   constructor(private readonly runtimeService: CompanionRuntimeService = companionRuntimeService) {}

@@ -1,6 +1,6 @@
 import type { Config } from "@nextclaw/core";
-import type { GatewayCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
-import type { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
+import type { GatewayCommandOptions } from "@nextclaw-service";
+import type { RuntimeCommandService } from "@nextclaw-service";
 
 export class GatewayCommands {
   constructor(

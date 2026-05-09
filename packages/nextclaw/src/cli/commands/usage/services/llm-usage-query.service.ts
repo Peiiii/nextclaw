@@ -1,6 +1,6 @@
-import { llmUsageHistoryStore, type LlmUsageHistoryStore } from "@nextclaw-service/shared/stores/llm-usage-history.store.js";
-import type { LlmUsageRecord } from "@nextclaw-service/shared/stores/llm-usage-record.js";
-import { llmUsageSnapshotStore, type LlmUsageSnapshotStore } from "@nextclaw-service/shared/stores/llm-usage-snapshot.store.js";
+import { llmUsageHistoryStore, type LlmUsageHistoryStore } from "@nextclaw-service";
+import type { LlmUsageRecord } from "@nextclaw-service";
+import { llmUsageSnapshotStore, type LlmUsageSnapshotStore } from "@nextclaw-service";
 
 export type LlmUsageStats = {
   totalRecords: number;
