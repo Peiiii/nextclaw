@@ -1,7 +1,7 @@
 import type { Command } from "commander";
-import type { CliRuntime } from "./runtime.js";
+import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-export function registerAgentsCommands(program: Command, runtime: CliRuntime): void {
+export function registerAgentsCommands(program: Command, runtime: NextclawServiceRuntime): void {
   const agents = program.command("agents").description("Manage agents");
 
   agents

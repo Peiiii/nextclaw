@@ -2,35 +2,25 @@
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
-import { LlmUsageCommandService } from "@/cli/commands/usage/index.js";
-import { CliRuntime, LOGO } from "./runtime.js";
-import { registerSkillsCommands } from "@/cli/commands/skills/index.js";
+import {
+  createNextclawServiceRuntime,
+  registerLearningLoopCommands,
+  registerSkillsCommands,
+} from "@nextclaw-service";
 import { registerAgentsCommands } from "./register-agents-commands.js";
-import { registerLearningLoopCommands } from "@nextclaw-service";
 import { registerCompanionCommands } from "./register-companion-commands.js";
-import { registerServiceCommands } from "./service-command-registration.service.js";
-import { logStartupTrace, measureStartupSync } from "@nextclaw-service";
-import { getPackageVersion } from "@nextclaw-service";
-import type { ServiceCommands } from "@nextclaw-service";
+import { registerHostServiceControls } from "./service-command-registration.service.js";
 
-logStartupTrace("cli.index.module_loaded");
+const LOGO = "🤖";
 
 const program = new Command();
-const runtime = measureStartupSync("cli.runtime.construct", () => new CliRuntime({ logo: LOGO }));
-const llmUsageCommands = new LlmUsageCommandService();
+const runtime = createNextclawServiceRuntime({ logo: LOGO });
 const withRepeatableTag = (value: string, previous: string[] = []) => [...previous, value];
-const getServiceCommands = (): ServiceCommands => {
-  const serviceCommands = (runtime as unknown as { serviceCommands?: ServiceCommands }).serviceCommands;
-  if (!serviceCommands) {
-    throw new Error("Service commands are unavailable.");
-  }
-  return serviceCommands;
-};
 
 program
   .name(APP_NAME)
   .description(`${LOGO} ${APP_NAME} - ${APP_TAGLINE}`)
-  .version(getPackageVersion(), "-v, --version", "show version");
+  .version(runtime.version, "-v, --version", "show version");
 
 program
   .command("onboard")
@@ -59,24 +49,14 @@ account
   .description("Show account status and personal marketplace publish readiness")
   .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
   .option("--json", "Output JSON", false)
-  .action(async (opts) => {
-    await runtime.init({ source: "account status", auto: true });
-    await runtime.platformAuthCommands.accountStatus(opts);
-  });
+  .action(async (opts) => runtime.accountStatus(opts));
 
 account
   .command("set-username <username>")
   .description("Set your NextClaw username for personal marketplace publishing")
   .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
   .option("--json", "Output JSON", false)
-  .action(async (username, opts) => {
-    await runtime.init({ source: "account set-username", auto: true });
-    await runtime.platformAuthCommands.accountSetUsername({
-      apiBase: opts.apiBase,
-      json: opts.json,
-      username
-    });
-  });
+  .action(async (username, opts) => runtime.accountSetUsername(username, opts));
 
 registerRemoteCommands(program, runtime.remote);
 
@@ -127,9 +107,9 @@ program
 
 registerCompanionCommands(program, runtime);
 
-registerServiceCommands({
+registerHostServiceControls({
   program,
-  getServiceCommands,
+  runtime,
 });
 
 program
@@ -152,7 +132,7 @@ program
   .option("--json", "Output JSON", false)
   .action(async (opts) => runtime.update(opts));
 
-registerSkillsCommands(program, runtime.skillsCommands);
+registerSkillsCommands(program, runtime);
 
 registerAgentsCommands(program, runtime);
 
@@ -393,6 +373,6 @@ program.command("doctor").description(`Run ${APP_NAME} diagnostics`).option("--j
 const logs = program.command("logs").description("Inspect local runtime logs");
 logs.command("path").description("Show local log file paths").action(() => runtime.logsPath());
 logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.logsTail(opts));
-program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => llmUsageCommands.show(opts));
+program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => runtime.usageShow(opts));
 
 await program.parseAsync(process.argv);

@@ -1,15 +1,15 @@
 import type { Command } from "commander";
-import type { ServiceCommands } from "@nextclaw-service";
+import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-type RegisterServiceCommandsParams = {
+type RegisterHostServiceControlsParams = {
   program: Command;
-  getServiceCommands: () => ServiceCommands;
+  runtime: NextclawServiceRuntime;
 };
 
-export const registerServiceCommands = ({
+export const registerHostServiceControls = ({
   program,
-  getServiceCommands,
-}: RegisterServiceCommandsParams): void => {
+  runtime,
+}: RegisterHostServiceControlsParams): void => {
   const service = program.command("service").description("Manage host service integrations");
 
   service
@@ -19,7 +19,7 @@ export const registerServiceCommands = ({
     .option("--system", "Install a system-wide systemd unit", false)
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().installSystemd(opts));
+    .action(async (opts) => runtime.serviceInstallSystemd(opts));
 
   service
     .command("uninstall-systemd")
@@ -28,35 +28,35 @@ export const registerServiceCommands = ({
     .option("--system", "Remove a system-wide systemd unit", false)
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().uninstallSystemd(opts));
+    .action(async (opts) => runtime.serviceUninstallSystemd(opts));
 
   service
     .command("install-launch-agent")
     .description("Install a managed macOS LaunchAgent for NextClaw")
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().installLaunchAgent(opts));
+    .action(async (opts) => runtime.serviceInstallLaunchAgent(opts));
 
   service
     .command("uninstall-launch-agent")
     .description("Remove a managed macOS LaunchAgent for NextClaw")
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().uninstallLaunchAgent(opts));
+    .action(async (opts) => runtime.serviceUninstallLaunchAgent(opts));
 
   service
     .command("install-task")
     .description("Install a managed Windows Scheduled Task for NextClaw")
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().installWindowsTask(opts));
+    .action(async (opts) => runtime.serviceInstallWindowsTask(opts));
 
   service
     .command("uninstall-task")
     .description("Remove a managed Windows Scheduled Task for NextClaw")
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().uninstallWindowsTask(opts));
+    .action(async (opts) => runtime.serviceUninstallWindowsTask(opts));
 
   const autostart = service.command("autostart").description("Inspect host autostart status");
 
@@ -66,7 +66,7 @@ export const registerServiceCommands = ({
     .option("--user", "Inspect the user-level autostart owner", false)
     .option("--system", "Inspect the system-level autostart owner", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().autostartStatus(opts));
+    .action(async (opts) => runtime.serviceAutostartStatus(opts));
 
   autostart
     .command("doctor")
@@ -74,5 +74,5 @@ export const registerServiceCommands = ({
     .option("--user", "Inspect the user-level autostart owner", false)
     .option("--system", "Inspect the system-level autostart owner", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => getServiceCommands().autostartDoctor(opts));
+    .action(async (opts) => runtime.serviceAutostartDoctor(opts));
 };

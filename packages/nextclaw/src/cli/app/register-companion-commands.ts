@@ -1,7 +1,7 @@
 import type { Command } from "commander";
-import type { CliRuntime } from "./runtime.js";
+import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-export function registerCompanionCommands(program: Command, runtime: CliRuntime): void {
+export function registerCompanionCommands(program: Command, runtime: NextclawServiceRuntime): void {
   const companion = program
     .command("companion")
     .description("Manage the standalone NextClaw companion shell");
