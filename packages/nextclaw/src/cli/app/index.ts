@@ -49,14 +49,14 @@ account
   .description("Show account status and personal marketplace publish readiness")
   .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
   .option("--json", "Output JSON", false)
-  .action(async (opts) => runtime.accountStatus(opts));
+  .action(async (opts) => runtime.account.status(opts));
 
 account
   .command("set-username <username>")
   .description("Set your NextClaw username for personal marketplace publishing")
   .option("--api-base <url>", "Platform API base (supports /v1 suffix)")
   .option("--json", "Output JSON", false)
-  .action(async (username, opts) => runtime.accountSetUsername(username, opts));
+  .action(async (username, opts) => runtime.account.setUsername(username, opts));
 
 registerRemoteCommands(program, runtime.remote);
 
@@ -68,14 +68,14 @@ program
   .option("--ui", "Enable UI server", false)
   .option("--ui-port <port>", "UI port")
   .option("--ui-open", "Open browser when UI starts", false)
-  .action(async (opts) => runtime.gateway(opts));
+  .action(async (opts) => runtime.gateway.run(opts));
 
 program
   .command("ui")
   .description(`Start the ${APP_NAME} UI with gateway`)
   .option("--port <port>", "UI port")
   .option("--no-open", "Disable opening browser")
-  .action(async (opts) => runtime.ui(opts));
+  .action(async (opts) => runtime.ui.run(opts));
 
 program
   .command("start")
@@ -83,7 +83,7 @@ program
   .option("--ui-port <port>", "UI port")
   .option("--start-timeout <ms>", "Maximum wait time for startup readiness in milliseconds")
   .option("--open", "Open browser after start", false)
-  .action(async (opts) => runtime.start(opts));
+  .action(async (opts) => runtime.start.run(opts));
 
 program
   .command("restart")
@@ -91,25 +91,25 @@ program
   .option("--ui-port <port>", "UI port")
   .option("--start-timeout <ms>", "Maximum wait time for startup readiness in milliseconds")
   .option("--open", "Open browser after restart", false)
-  .action(async (opts) => runtime.restart(opts));
+  .action(async (opts) => runtime.restart.run(opts));
 
 program
   .command("serve")
   .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
   .option("--ui-port <port>", "UI port")
   .option("--open", "Open browser after start", false)
-  .action(async (opts) => runtime.serve(opts));
+  .action(async (opts) => runtime.serve.run(opts));
 
 program
   .command("stop")
   .description(`Stop the ${APP_NAME} background service`)
-  .action(async () => runtime.stop());
+  .action(async () => runtime.stop.run());
 
-registerCompanionCommands(program, runtime);
+registerCompanionCommands(program, runtime.companion);
 
 registerHostServiceControls({
   program,
-  runtime,
+  serviceCommands: runtime.service,
 });
 
 program
@@ -132,9 +132,9 @@ program
   .option("--json", "Output JSON", false)
   .action(async (opts) => runtime.update(opts));
 
-registerSkillsCommands(program, runtime);
+registerSkillsCommands(program, runtime.skills);
 
-registerAgentsCommands(program, runtime);
+registerAgentsCommands(program, runtime.agents);
 
 const plugins = program.command("plugins").description("Manage OpenClaw-compatible plugins");
 
@@ -144,23 +144,23 @@ plugins
   .option("--json", "Print JSON")
   .option("--enabled", "Only show enabled plugins", false)
   .option("--verbose", "Show detailed entries", false)
-  .action((opts) => runtime.pluginsList(opts));
+  .action((opts) => runtime.plugins.list(opts));
 
 plugins
   .command("info <id>")
   .description("Show plugin details")
   .option("--json", "Print JSON")
-  .action((id, opts) => runtime.pluginsInfo(id, opts));
+  .action((id, opts) => runtime.plugins.info(id, opts));
 
 plugins
   .command("enable <id>")
   .description("Enable a plugin in config")
-  .action((id) => runtime.pluginsEnable(id));
+  .action((id) => runtime.plugins.enable(id));
 
 plugins
   .command("disable <id>")
   .description("Disable a plugin in config")
-  .action((id) => runtime.pluginsDisable(id));
+  .action((id) => runtime.plugins.disable(id));
 
 plugins
   .command("uninstall <id>")
@@ -169,18 +169,18 @@ plugins
   .option("--keep-config", "Deprecated alias for --keep-files", false)
   .option("--force", "Skip confirmation prompt", false)
   .option("--dry-run", "Show what would be removed without making changes", false)
-  .action(async (id, opts) => runtime.pluginsUninstall(id, opts));
+  .action(async (id, opts) => runtime.plugins.uninstall(id, opts));
 
 plugins
   .command("install <path-or-spec>")
   .description("Install a plugin (path, archive, or npm spec)")
   .option("-l, --link", "Link a local path instead of copying", false)
-  .action(async (pathOrSpec, opts) => runtime.pluginsInstall(pathOrSpec, opts));
+  .action(async (pathOrSpec, opts) => runtime.plugins.install(pathOrSpec, opts));
 
 plugins
   .command("doctor")
   .description("Report plugin load issues")
-  .action(() => runtime.pluginsDoctor());
+  .action(() => runtime.plugins.doctor());
 
 const config = program.command("config").description("Manage config values");
 
@@ -188,20 +188,22 @@ config
   .command("get <path>")
   .description("Get a config value by dot path")
   .option("--json", "Output JSON", false)
-  .action((path, opts) => runtime.configGet(path, opts));
+  .action((path, opts) => runtime.config.get(path, opts));
 
 config
   .command("set <path> <value>")
   .description("Set a config value by dot path")
   .option("--json", "Parse value as JSON", false)
-  .action((path, value, opts) => runtime.configSet(path, value, opts));
+  .action((path, value, opts) => runtime.config.set(path, value, opts));
 
 config
   .command("unset <path>")
   .description("Remove a config value by dot path")
-  .action((path) => runtime.configUnset(path));
+  .action((path) => runtime.config.unset(path));
 
-registerLearningLoopCommands(program, runtime);
+registerLearningLoopCommands(program, {
+  configSet: runtime.config.set,
+});
 
 const mcp = program.command("mcp").description("Manage MCP servers");
 
@@ -209,7 +211,7 @@ mcp
   .command("list")
   .description("List configured MCP servers")
   .option("--json", "Output JSON", false)
-  .action((opts) => runtime.mcpList(opts));
+  .action((opts) => runtime.mcp.list(opts));
 
 mcp
   .command("add <name> [command...]")
@@ -226,28 +228,28 @@ mcp
   .option("--all-agents", "Expose this server to all agents", false)
   .option("--agent <id>", "Expose to an agent id (repeatable)", withRepeatableTag, [])
   .option("--insecure", "Disable TLS verification for HTTP/SSE", false)
-  .action(async (name, command, opts) => runtime.mcpAdd(name, command ?? [], opts));
+  .action(async (name, command, opts) => runtime.mcp.add(name, command ?? [], opts));
 
 mcp
   .command("remove <name>")
   .description("Remove an MCP server")
-  .action(async (name) => runtime.mcpRemove(name));
+  .action(async (name) => runtime.mcp.remove(name));
 
 mcp
   .command("enable <name>")
   .description("Enable an MCP server")
-  .action(async (name) => runtime.mcpEnable(name));
+  .action(async (name) => runtime.mcp.enable(name));
 
 mcp
   .command("disable <name>")
   .description("Disable an MCP server")
-  .action(async (name) => runtime.mcpDisable(name));
+  .action(async (name) => runtime.mcp.disable(name));
 
 mcp
   .command("doctor [name]")
   .description("Check MCP server connectivity and tool discovery")
   .option("--json", "Output JSON", false)
-  .action(async (name, opts) => runtime.mcpDoctor(name, opts));
+  .action(async (name, opts) => runtime.mcp.doctor(name, opts));
 
 const secrets = program.command("secrets").description("Manage secrets refs/providers");
 
@@ -256,7 +258,7 @@ secrets
   .description("Audit secret refs resolution status")
   .option("--json", "Output JSON", false)
   .option("--strict", "Exit non-zero when unresolved refs exist", false)
-  .action((opts) => runtime.secretsAudit(opts));
+  .action((opts) => runtime.secrets.audit(opts));
 
 secrets
   .command("configure")
@@ -277,7 +279,7 @@ secrets
   .option("--set-default", "Set as default alias for this source", false)
   .option("--remove", "Remove provider alias", false)
   .option("--json", "Output JSON", false)
-  .action((opts) => runtime.secretsConfigure(opts));
+  .action((opts) => runtime.secrets.configure(opts));
 
 secrets
   .command("apply")
@@ -291,13 +293,13 @@ secrets
   .option("--enable", "Enable secrets resolution", false)
   .option("--disable", "Disable secrets resolution", false)
   .option("--json", "Output JSON", false)
-  .action((opts) => runtime.secretsApply(opts));
+  .action((opts) => runtime.secrets.apply(opts));
 
 secrets
   .command("reload")
   .description("Trigger runtime secrets reload signal")
   .option("--json", "Output JSON", false)
-  .action((opts) => runtime.secretsReload(opts));
+  .action((opts) => runtime.secrets.reload(opts));
 
 const channels = program.command("channels").description("Manage channels");
 
@@ -310,12 +312,12 @@ channels
   .option("--name <name>", "Display name")
   .option("--url <url>", "API base URL")
   .option("--http-url <url>", "Alias for --url")
-  .action((opts) => runtime.channelsAdd(opts));
+  .action((opts) => runtime.channels.add(opts));
 
 channels
   .command("status")
   .description("Show channel status")
-  .action(() => runtime.channelsStatus());
+  .action(() => runtime.channels.status());
 
 channels
   .command("login")
@@ -325,7 +327,7 @@ channels
   .option("--url <url>", "Channel API base URL")
   .option("--http-url <url>", "Alias for --url")
   .option("-v, --verbose", "Verbose output", false)
-  .action(async (opts) => runtime.channelsLogin(opts));
+  .action(async (opts) => runtime.channels.login(opts));
 
 const cron = program.command("cron").description("Manage scheduled tasks");
 
@@ -333,7 +335,7 @@ cron
   .command("list")
   .option("--enabled-only", "Show only enabled jobs", false)
   .option("-a, --all", "Deprecated: list all jobs (default behavior)", false)
-  .action(async (opts) => runtime.cronList({ enabledOnly: Boolean(opts.enabledOnly) }));
+  .action(async (opts) => runtime.cron.list({ enabledOnly: Boolean(opts.enabledOnly) }));
 
 cron
   .command("add")
@@ -348,31 +350,31 @@ cron
   .option("--to <recipient>", "Recipient for delivery")
   .option("--channel <channel>", "Channel for delivery")
   .option("--account <id>", "Account id for channel delivery")
-  .action(async (opts) => runtime.cronAdd(opts));
+  .action(async (opts) => runtime.cron.add(opts));
 
 cron
   .command("remove <jobId>")
-  .action(async (jobId) => runtime.cronRemove(jobId));
+  .action(async (jobId) => runtime.cron.remove(jobId));
 
 cron
   .command("enable <jobId>")
   .option("--disable", "Disable instead of enable")
-  .action(async (jobId, opts) => runtime.cronEnable(jobId, opts));
+  .action(async (jobId, opts) => runtime.cron.enable(jobId, opts));
 
 cron
   .command("disable <jobId>")
-  .action(async (jobId) => runtime.cronEnable(jobId, { disable: true }));
+  .action(async (jobId) => runtime.cron.enable(jobId, { disable: true }));
 
 cron
   .command("run <jobId>")
   .option("-f, --force", "Run even if disabled")
-  .action(async (jobId, opts) => runtime.cronRun(jobId, opts));
+  .action(async (jobId, opts) => runtime.cron.run(jobId, opts));
 
-program.command("status").description(`Show ${APP_NAME} status`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.status(opts));
-program.command("doctor").description(`Run ${APP_NAME} diagnostics`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.doctor(opts));
+program.command("status").description(`Show ${APP_NAME} status`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.diagnostics.status(opts));
+program.command("doctor").description(`Run ${APP_NAME} diagnostics`).option("--json", "Output JSON", false).option("--verbose", "Show extra diagnostics", false).option("--fix", "Fix stale service state when safe", false).action(async (opts) => runtime.diagnostics.doctor(opts));
 const logs = program.command("logs").description("Inspect local runtime logs");
-logs.command("path").description("Show local log file paths").action(() => runtime.logsPath());
-logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.logsTail(opts));
-program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => runtime.usageShow(opts));
+logs.command("path").description("Show local log file paths").action(() => runtime.logs.path());
+logs.command("tail").description("Show recent local log entries").option("--lines <n>", "Number of lines to show", "40").option("--crash", "Tail crash.log instead of service.log", false).action((opts) => runtime.logs.tail(opts));
+program.command("usage").description("Show observed LLM usage snapshots, history, and prompt cache stats").option("--history", "Show recent usage history", false).option("--stats", "Show aggregated usage stats from local history", false).option("--limit <n>", "Maximum number of history records to show", "10").option("--json", "Output JSON", false).action(async (opts) => runtime.usage.show(opts));
 
 await program.parseAsync(process.argv);

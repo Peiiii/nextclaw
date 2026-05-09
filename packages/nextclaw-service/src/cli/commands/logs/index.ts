@@ -4,7 +4,7 @@ import type { LogsTailCommandOptions } from "@nextclaw-service/shared/types/cli.
 export class LogsCommands {
   constructor(private readonly runtime: LoggingRuntime = getLoggingRuntime()) {}
 
-  logsPath = (): void => {
+  path = (): void => {
     const paths = this.runtime.getPaths();
     console.log([
       `Logs directory: ${paths.logsDir}`,
@@ -14,7 +14,7 @@ export class LogsCommands {
     ].join("\n"));
   };
 
-  logsTail = (opts: LogsTailCommandOptions = {}): void => {
+  tail = (opts: LogsTailCommandOptions = {}): void => {
     const kind: AppLogKind = opts.crash ? "crash" : "service";
     const rawLines = Number(opts.lines);
     const lines = Number.isFinite(rawLines) && rawLines > 0 ? Math.floor(rawLines) : 40;

@@ -12,7 +12,7 @@ export class ConfigCommands {
     }
   ) {}
 
-  readonly configGet = (pathExpr: string, opts: ConfigGetOptions = {}): void => {
+  get = (pathExpr: string, opts: ConfigGetOptions = {}): void => {
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -48,7 +48,7 @@ export class ConfigCommands {
     console.log(JSON.stringify(result.value ?? null, null, 2));
   };
 
-  readonly configSet = async (pathExpr: string, value: string, opts: ConfigSetOptions = {}): Promise<void> => {
+  set = async (pathExpr: string, value: string, opts: ConfigSetOptions = {}): Promise<void> => {
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -92,7 +92,7 @@ export class ConfigCommands {
     });
   };
 
-  readonly configUnset = async (pathExpr: string): Promise<void> => {
+  unset = async (pathExpr: string): Promise<void> => {
     let parsedPath: string[];
     try {
       parsedPath = parseRequiredConfigPath(pathExpr);
@@ -126,7 +126,7 @@ export class ConfigCommands {
     });
   };
 
-  private readonly resolveReadConfigView = (config: Config, parsedPath: string[]): Config => {
+  private resolveReadConfigView = (config: Config, parsedPath: string[]): Config => {
     if (parsedPath[0] !== "channels") {
       return config;
     }
@@ -134,7 +134,7 @@ export class ConfigCommands {
     return resolveChannelConfigView(config, bindings);
   };
 
-  private readonly resolveProjectedChannelContext = (config: Config, parsedPath: string[]): {
+  private resolveProjectedChannelContext = (config: Config, parsedPath: string[]): {
     bindings: ReturnType<typeof getPluginChannelBindings>;
     view: Config;
   } | null => {
@@ -154,7 +154,7 @@ export class ConfigCommands {
     };
   };
 
-  private readonly loadPluginChannelBindings = (config: Config): {
+  private loadPluginChannelBindings = (config: Config): {
     bindings: ReturnType<typeof getPluginChannelBindings>;
   } => {
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
@@ -164,7 +164,7 @@ export class ConfigCommands {
     };
   };
 
-  private readonly requestRestartForConfigDiff = async (params: {
+  private requestRestartForConfigDiff = async (params: {
     prevConfig: Config;
     nextConfig: Config;
     reason: string;

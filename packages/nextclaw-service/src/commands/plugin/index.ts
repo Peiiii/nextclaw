@@ -29,13 +29,15 @@ import {
   disablePluginMutation,
   enablePluginMutation,
   installPluginMutation,
-  type PluginMutationResult,
-  type PluginUninstallMutationResult,
   uninstallPluginMutation,
 } from "./plugin-mutation-actions.js";
 export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.js";
 export { createEmptyPluginRegistry } from "./plugin-registry-loader.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
+
+type PluginStatusReport = ReturnType<typeof buildPluginStatusReport>;
+type PluginStatusEntry = PluginStatusReport["plugins"][number];
+type PluginInstallRecord = NonNullable<Config["plugins"]["installs"]>[string];
 
 export function loadPluginRegistry(config: Config, workspaceDir: string): PluginRegistry {
   const workspaceExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
@@ -66,42 +68,12 @@ export function logPluginDiagnostics(registry: PluginRegistry): void {
     } else {
       console.warn(`[plugins] ${text}`);
     }
-  }
+  };
 }
 
 export class PluginCommands {
-  constructor() {}
-
-  async enablePlugin(id: string): Promise<PluginMutationResult> {
-    return await enablePluginMutation(id);
-  }
-
-  async disablePlugin(id: string): Promise<PluginMutationResult> {
-    return await disablePluginMutation(id);
-  }
-
-  async uninstallPlugin(
-    id: string,
-    opts: PluginsUninstallOptions = {},
-  ): Promise<PluginUninstallMutationResult> {
-    return await uninstallPluginMutation(id, opts);
-  }
-
-  async installPlugin(
-    pathOrSpec: string,
-    opts: PluginsInstallOptions = {},
-  ): Promise<PluginMutationResult> {
-    return await installPluginMutation(pathOrSpec, opts);
-  }
-
-  pluginsList(opts: PluginsListOptions = {}): void {
-    const config = loadConfig();
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const report = buildPluginStatusReport({
-      config,
-      workspaceDir,
-      ...buildReservedPluginLoadOptions()
-    });
+  list = (opts: PluginsListOptions = {}): void => {
+    const { report, workspaceDir } = this.loadStatusReport();
 
     const list = opts.enabled ? report.plugins.filter((plugin) => plugin.status === "loaded") : report.plugins;
 
@@ -154,17 +126,10 @@ export class PluginCommands {
       }
       console.log("");
     }
-  }
+  };
 
-  pluginsInfo(id: string, opts: PluginsInfoOptions = {}): void {
-    const config = loadConfig();
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const report = buildPluginStatusReport({
-      config,
-      workspaceDir,
-      ...buildReservedPluginLoadOptions()
-    });
-
+  info = (id: string, opts: PluginsInfoOptions = {}): void => {
+    const { config, report } = this.loadStatusReport();
     const plugin = report.plugins.find((entry) => entry.id === id || entry.name === id);
     if (!plugin) {
       console.error(`Plugin not found: ${id}`);
@@ -176,84 +141,37 @@ export class PluginCommands {
       return;
     }
 
-    const install = config.plugins.installs?.[plugin.id];
-    const lines: string[] = [];
-    lines.push(plugin.name || plugin.id);
-    if (plugin.name && plugin.name !== plugin.id) {
-      lines.push(`id: ${plugin.id}`);
-    }
-    if (plugin.description) {
-      lines.push(plugin.description);
-    }
-    lines.push("");
-    lines.push(`Status: ${plugin.status}`);
-    lines.push(`Source: ${plugin.source}`);
-    lines.push(`Origin: ${plugin.origin}`);
-    if (plugin.version) {
-      lines.push(`Version: ${plugin.version}`);
-    }
-    appendPluginCapabilityLines(lines, plugin);
-    if (plugin.error) {
-      lines.push(`Error: ${plugin.error}`);
-    }
+    console.log(this.buildPluginInfoLines(plugin, config).join("\n"));
+  };
 
-    if (install) {
-      lines.push("");
-      lines.push(`Install: ${install.source}`);
-      if (install.spec) {
-        lines.push(`Spec: ${install.spec}`);
-      }
-      if (install.sourcePath) {
-        lines.push(`Source path: ${install.sourcePath}`);
-      }
-      if (install.installPath) {
-        lines.push(`Install path: ${install.installPath}`);
-      }
-      if (install.version) {
-        lines.push(`Recorded version: ${install.version}`);
-      }
-      if (install.installedAt) {
-        lines.push(`Installed at: ${install.installedAt}`);
-      }
-    }
-
-    console.log(lines.join("\n"));
-  }
-
-  async pluginsEnable(id: string): Promise<void> {
+  enable = async (id: string): Promise<void> => {
     try {
-      const result = await this.enablePlugin(id);
+      const result = await enablePluginMutation(id);
       console.log(result.message);
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
     console.log("If gateway is running, plugin changes are hot-applied automatically.");
-  }
+  };
 
-  async pluginsDisable(id: string): Promise<void> {
+  disable = async (id: string): Promise<void> => {
     try {
-      const result = await this.disablePlugin(id);
+      const result = await disablePluginMutation(id);
       console.log(result.message);
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
     console.log("If gateway is running, plugin changes are hot-applied automatically.");
-  }
+  };
 
-  async pluginsUninstall(id: string, opts: PluginsUninstallOptions = {}): Promise<void> {
+  uninstall = async (id: string, opts: PluginsUninstallOptions = {}): Promise<void> => {
     if (opts.keepConfig) {
       console.log("`--keep-config` is deprecated, use `--keep-files`.");
     }
 
-    const config = loadConfig();
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const report = buildPluginStatusReport({
-      config,
-      workspaceDir,
-      ...buildReservedPluginLoadOptions()
-    });
+    const { config, report } = this.loadStatusReport();
 
     const keepFiles = Boolean(opts.keepFiles || opts.keepConfig);
     const plugin = report.plugins.find((entry) => entry.id === id || entry.name === id);
@@ -262,48 +180,10 @@ export class PluginCommands {
     const hasEntry = pluginId in (config.plugins.entries ?? {});
     const hasInstall = pluginId in (config.plugins.installs ?? {});
 
-    if (!hasEntry && !hasInstall) {
-      if (plugin) {
-        console.error(
-          `Plugin "${pluginId}" is not managed by plugins config/install records and cannot be uninstalled.`
-        );
-      } else {
-        console.error(`Plugin not found: ${id}`);
-      }
-      process.exit(1);
-    }
+    this.assertPluginCanUninstall(id, pluginId, plugin, hasEntry, hasInstall);
 
     const install = config.plugins.installs?.[pluginId];
-    const isLinked =
-      install?.source === "path" &&
-      (!install.installPath || !install.sourcePath || resolve(install.installPath) === resolve(install.sourcePath));
-
-    const preview: string[] = [];
-    if (hasEntry) {
-      preview.push("config entry");
-    }
-    if (hasInstall) {
-      preview.push("install record");
-    }
-    if (config.plugins.allow?.includes(pluginId)) {
-      preview.push("allowlist entry");
-    }
-    if (isLinked && install?.sourcePath && config.plugins.load?.paths?.includes(install.sourcePath)) {
-      preview.push("load path");
-    }
-
-    const deleteTargets = !keepFiles
-      ? resolveUninstallDirectoryTargets({
-          config,
-          pluginId,
-          hasInstall,
-          installRecord: install
-        })
-      : [];
-
-    for (const deleteTarget of deleteTargets) {
-      preview.push(`directory: ${deleteTarget}`);
-    }
+    const preview = this.buildUninstallPreview({ config, hasEntry, hasInstall, install, keepFiles, pluginId });
 
     const pluginName = plugin?.name || pluginId;
     const pluginTitle = pluginName !== pluginId ? `${pluginName} (${pluginId})` : pluginName;
@@ -315,46 +195,26 @@ export class PluginCommands {
       return;
     }
 
-    if (!opts.force) {
-      const confirmed = await this.confirmYesNo(`Uninstall plugin "${pluginId}"?`);
-      if (!confirmed) {
-        console.log("Cancelled.");
-        return;
-      }
+    if (!(await this.confirmUninstall(pluginId, opts))) {
+      return;
     }
+    await this.runUninstallMutation(id, opts);
+    console.log("If gateway is running, plugin changes are hot-applied automatically.");
+  };
 
+  install = async (pathOrSpec: string, opts: PluginsInstallOptions = {}): Promise<void> => {
     try {
-      const result = await this.uninstallPlugin(id, opts);
-      for (const warning of result.warnings) {
-        console.warn(warning);
-      }
+      const result = await installPluginMutation(pathOrSpec, opts);
       console.log(result.message);
     } catch (error) {
       console.error(error instanceof Error ? error.message : String(error));
       process.exit(1);
     }
     console.log("If gateway is running, plugin changes are hot-applied automatically.");
-  }
+  };
 
-  async pluginsInstall(pathOrSpec: string, opts: PluginsInstallOptions = {}): Promise<void> {
-    try {
-      const result = await this.installPlugin(pathOrSpec, opts);
-      console.log(result.message);
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    }
-    console.log("If gateway is running, plugin changes are hot-applied automatically.");
-  }
-
-  pluginsDoctor(): void {
-    const config = loadConfig();
-    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
-    const report = buildPluginStatusReport({
-      config,
-      workspaceDir,
-      ...buildReservedPluginLoadOptions()
-    });
+  doctor = (): void => {
+    const { report } = this.loadStatusReport();
 
     const pluginErrors = report.plugins.filter((plugin) => plugin.status === "error");
     const diagnostics = report.diagnostics.filter((diag) => diag.level === "error");
@@ -381,9 +241,9 @@ export class PluginCommands {
         console.log(`- ${prefix}${diag.message}`);
       }
     }
-  }
+  };
 
-  private async confirmYesNo(question: string): Promise<boolean> {
+  private confirmYesNo = async (question: string): Promise<boolean> => {
     const rl = createInterface({
       input: process.stdin,
       output: process.stdout
@@ -396,6 +256,142 @@ export class PluginCommands {
     rl.close();
     const normalized = answer.trim().toLowerCase();
     return normalized === "y" || normalized === "yes";
-  }
+  };
 
+  private confirmUninstall = async (pluginId: string, opts: PluginsUninstallOptions): Promise<boolean> => {
+    if (opts.force) {
+      return true;
+    }
+    const confirmed = await this.confirmYesNo(`Uninstall plugin "${pluginId}"?`);
+    if (!confirmed) {
+      console.log("Cancelled.");
+    }
+    return confirmed;
+  };
+
+  private runUninstallMutation = async (id: string, opts: PluginsUninstallOptions): Promise<void> => {
+    try {
+      const result = await uninstallPluginMutation(id, opts);
+      for (const warning of result.warnings) {
+        console.warn(warning);
+      }
+      console.log(result.message);
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    }
+  };
+
+  private loadStatusReport = (): { config: Config; report: PluginStatusReport; workspaceDir: string } => {
+    const config = loadConfig();
+    const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
+    return {
+      config,
+      workspaceDir,
+      report: buildPluginStatusReport({
+        config,
+        workspaceDir,
+        ...buildReservedPluginLoadOptions()
+      })
+    };
+  };
+
+  private buildPluginInfoLines = (plugin: PluginStatusEntry, config: Config): string[] => {
+    const install = config.plugins.installs?.[plugin.id];
+    const lines = this.buildPluginSummaryLines(plugin);
+    if (install) {
+      lines.push("");
+      lines.push(`Install: ${install.source}`);
+      this.pushOptionalLine(lines, "Spec", install.spec);
+      this.pushOptionalLine(lines, "Source path", install.sourcePath);
+      this.pushOptionalLine(lines, "Install path", install.installPath);
+      this.pushOptionalLine(lines, "Recorded version", install.version);
+      this.pushOptionalLine(lines, "Installed at", install.installedAt);
+    }
+    return lines;
+  };
+
+  private buildPluginSummaryLines = (plugin: PluginStatusEntry): string[] => {
+    const lines = [plugin.name || plugin.id];
+    if (plugin.name && plugin.name !== plugin.id) {
+      lines.push(`id: ${plugin.id}`);
+    }
+    if (plugin.description) {
+      lines.push(plugin.description);
+    }
+    lines.push("", `Status: ${plugin.status}`, `Source: ${plugin.source}`, `Origin: ${plugin.origin}`);
+    this.pushOptionalLine(lines, "Version", plugin.version);
+    appendPluginCapabilityLines(lines, plugin);
+    this.pushOptionalLine(lines, "Error", plugin.error);
+    return lines;
+  };
+
+  private pushOptionalLine = (lines: string[], label: string, value: string | undefined): void => {
+    if (value) {
+      lines.push(`${label}: ${value}`);
+    }
+  };
+
+  private assertPluginCanUninstall = (
+    requestedId: string,
+    pluginId: string,
+    plugin: PluginStatusEntry | undefined,
+    hasEntry: boolean,
+    hasInstall: boolean,
+  ): void => {
+    if (hasEntry || hasInstall) {
+      return;
+    }
+    if (plugin) {
+      console.error(`Plugin "${pluginId}" is not managed by plugins config/install records and cannot be uninstalled.`);
+    } else {
+      console.error(`Plugin not found: ${requestedId}`);
+    }
+    process.exit(1);
+  };
+
+  private buildUninstallPreview = (params: {
+    config: Config;
+    pluginId: string;
+    hasEntry: boolean;
+    hasInstall: boolean;
+    keepFiles: boolean;
+    install: PluginInstallRecord | undefined;
+  }): string[] => {
+    const { config, hasEntry, hasInstall, install, keepFiles, pluginId } = params;
+    const preview = this.buildUninstallConfigPreview({ config, hasEntry, hasInstall, install, pluginId });
+    if (!keepFiles) {
+      for (const deleteTarget of resolveUninstallDirectoryTargets({ config, pluginId, hasInstall, installRecord: install })) {
+        preview.push(`directory: ${deleteTarget}`);
+      }
+    }
+    return preview;
+  };
+
+  private buildUninstallConfigPreview = (params: {
+    config: Config;
+    pluginId: string;
+    hasEntry: boolean;
+    hasInstall: boolean;
+    install: PluginInstallRecord | undefined;
+  }): string[] => {
+    const { config, hasEntry, hasInstall, install, pluginId } = params;
+    const preview: string[] = [];
+    const isLinked =
+      install?.source === "path" &&
+      (!install.installPath || !install.sourcePath || resolve(install.installPath) === resolve(install.sourcePath));
+    if (hasEntry) {
+      preview.push("config entry");
+    }
+    if (hasInstall) {
+      preview.push("install record");
+    }
+    if (config.plugins.allow?.includes(pluginId)) {
+      preview.push("allowlist entry");
+    }
+    if (isLinked && install?.sourcePath && config.plugins.load?.paths?.includes(install.sourcePath)) {
+      preview.push("load path");
+    }
+    return preview;
+  };
 }

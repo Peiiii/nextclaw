@@ -15,7 +15,7 @@ export class AgentCommands {
     initializeAgentHomeDirectory: (homeDirectory: string) => void;
   }) {}
 
-  agentsList = (opts: AgentsListCommandOptions = {}): void => {
+  list = (opts: AgentsListCommandOptions = {}): void => {
     const config = loadConfig();
     const agents = resolveEffectiveAgentProfiles(config).map((agent) => this.toAgentListEntry(agent));
     if (opts.json) {
@@ -33,7 +33,7 @@ export class AgentCommands {
     }
   };
 
-  agentsRuntimes = async (opts: AgentsRuntimesCommandOptions = {}): Promise<void> => {
+  runtimes = async (opts: AgentsRuntimesCommandOptions = {}): Promise<void> => {
     const describeMode = opts.probe ? "probe" : "observation";
     const listed = await listAvailableAgentRuntimes({ describeMode });
     if (opts.json) {
@@ -61,7 +61,7 @@ export class AgentCommands {
     }
   };
 
-  agentsNew = async (agentId: string, opts: AgentsNewCommandOptions = {}): Promise<void> => {
+  create = async (agentId: string, opts: AgentsNewCommandOptions = {}): Promise<void> => {
     const created = createAgentProfile(
       {
         id: agentId,
@@ -89,7 +89,7 @@ export class AgentCommands {
     console.log(`  runtime: ${created.runtime ?? created.engine ?? "-"}`);
   };
 
-  agentsUpdate = async (agentId: string, opts: AgentsUpdateCommandOptions = {}): Promise<void> => {
+  update = async (agentId: string, opts: AgentsUpdateCommandOptions = {}): Promise<void> => {
     const updated = updateAgentProfile({
       id: agentId,
       displayName: opts.name,
@@ -111,7 +111,7 @@ export class AgentCommands {
     console.log(`  runtime: ${updated.runtime ?? updated.engine ?? "-"}`);
   };
 
-  agentsRemove = async (agentId: string, opts: AgentsRemoveCommandOptions = {}): Promise<void> => {
+  remove = async (agentId: string, opts: AgentsRemoveCommandOptions = {}): Promise<void> => {
     if (agentId.trim().toLowerCase() === BUILTIN_MAIN_AGENT_ID) {
       throw new Error(`agent id '${BUILTIN_MAIN_AGENT_ID}' is reserved`);
     }

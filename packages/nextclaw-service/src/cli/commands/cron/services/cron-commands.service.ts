@@ -23,10 +23,10 @@ function readErrorMessage(error: unknown): string {
 
 export class CronCommands {
   constructor(
-    private readonly local = new CronLocalService()
+    private local = new CronLocalService()
   ) {}
 
-  private readonly createApiClient = (): UiBridgeApiClient | null => {
+  private createApiClient = (): UiBridgeApiClient | null => {
     const apiBase = resolveLocalUiApiBase();
     if (!apiBase) {
       return null;
@@ -34,7 +34,7 @@ export class CronCommands {
     return new UiBridgeApiClient(apiBase);
   };
 
-  readonly cronList = async (opts: { enabledOnly?: boolean }): Promise<void> => {
+  list = async (opts: { enabledOnly?: boolean }): Promise<void> => {
     const includeDisabled = opts.enabledOnly !== true;
     const apiClient = this.createApiClient();
     if (apiClient) {
@@ -52,7 +52,7 @@ export class CronCommands {
     printCronJobs(this.local.list(includeDisabled));
   };
 
-  readonly cronAdd = async (opts: CronAddOptions): Promise<void> => {
+  add = async (opts: CronAddOptions): Promise<void> => {
     const request = createCronCreateRequest(opts);
     if (!request.request) {
       console.error(request.error ?? "Error: Failed to add job");
@@ -77,7 +77,7 @@ export class CronCommands {
     console.log(`✓ Added job '${job.name}' (${job.id})`);
   };
 
-  readonly cronRemove = async (jobId: string): Promise<void> => {
+  remove = async (jobId: string): Promise<void> => {
     const apiClient = this.createApiClient();
     if (apiClient) {
       try {
@@ -101,7 +101,7 @@ export class CronCommands {
     }
   };
 
-  readonly cronEnable = async (jobId: string, opts: { disable?: boolean }): Promise<void> => {
+  enable = async (jobId: string, opts: { disable?: boolean }): Promise<void> => {
     const apiClient = this.createApiClient();
     const enabled = !opts.disable;
     if (apiClient) {
@@ -128,7 +128,7 @@ export class CronCommands {
     }
   };
 
-  readonly cronRun = async (jobId: string, opts: { force?: boolean }): Promise<void> => {
+  run = async (jobId: string, opts: { force?: boolean }): Promise<void> => {
     const apiClient = this.createApiClient();
     if (apiClient) {
       try {

@@ -3,12 +3,12 @@ import type { NextclawServiceRuntime } from "@nextclaw-service";
 
 type RegisterHostServiceControlsParams = {
   program: Command;
-  runtime: NextclawServiceRuntime;
+  serviceCommands: NextclawServiceRuntime["service"];
 };
 
 export const registerHostServiceControls = ({
   program,
-  runtime,
+  serviceCommands,
 }: RegisterHostServiceControlsParams): void => {
   const service = program.command("service").description("Manage host service integrations");
 
@@ -19,7 +19,7 @@ export const registerHostServiceControls = ({
     .option("--system", "Install a system-wide systemd unit", false)
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceInstallSystemd(opts));
+    .action(async (opts) => serviceCommands.installSystemd(opts));
 
   service
     .command("uninstall-systemd")
@@ -28,35 +28,35 @@ export const registerHostServiceControls = ({
     .option("--system", "Remove a system-wide systemd unit", false)
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceUninstallSystemd(opts));
+    .action(async (opts) => serviceCommands.uninstallSystemd(opts));
 
   service
     .command("install-launch-agent")
     .description("Install a managed macOS LaunchAgent for NextClaw")
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceInstallLaunchAgent(opts));
+    .action(async (opts) => serviceCommands.installLaunchAgent(opts));
 
   service
     .command("uninstall-launch-agent")
     .description("Remove a managed macOS LaunchAgent for NextClaw")
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceUninstallLaunchAgent(opts));
+    .action(async (opts) => serviceCommands.uninstallLaunchAgent(opts));
 
   service
     .command("install-task")
     .description("Install a managed Windows Scheduled Task for NextClaw")
     .option("--dry-run", "Show what would be installed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceInstallWindowsTask(opts));
+    .action(async (opts) => serviceCommands.installWindowsTask(opts));
 
   service
     .command("uninstall-task")
     .description("Remove a managed Windows Scheduled Task for NextClaw")
     .option("--dry-run", "Show what would be removed without making changes", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceUninstallWindowsTask(opts));
+    .action(async (opts) => serviceCommands.uninstallWindowsTask(opts));
 
   const autostart = service.command("autostart").description("Inspect host autostart status");
 
@@ -66,7 +66,7 @@ export const registerHostServiceControls = ({
     .option("--user", "Inspect the user-level autostart owner", false)
     .option("--system", "Inspect the system-level autostart owner", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceAutostartStatus(opts));
+    .action(async (opts) => serviceCommands.autostartStatus(opts));
 
   autostart
     .command("doctor")
@@ -74,5 +74,5 @@ export const registerHostServiceControls = ({
     .option("--user", "Inspect the user-level autostart owner", false)
     .option("--system", "Inspect the system-level autostart owner", false)
     .option("--json", "Output JSON", false)
-    .action(async (opts) => runtime.serviceAutostartDoctor(opts));
+    .action(async (opts) => serviceCommands.autostartDoctor(opts));
 };

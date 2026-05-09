@@ -139,7 +139,7 @@ function buildMcpServerDefinition(command: string[], opts: McpAddCommandOptions)
 }
 
 export class McpCommands {
-  mcpList(opts: McpListOptions = {}): void {
+  list = (opts: McpListOptions = {}): void => {
     const registry = new McpRegistryService({
       getConfig: () => loadConfig()
     });
@@ -168,9 +168,9 @@ export class McpCommands {
           : "default-agent";
       console.log(`${server.enabled ? "ENABLED " : "DISABLED"} ${server.name} (${server.transport}, ${scope})`);
     }
-  }
+  };
 
-  async mcpAdd(name: string, command: string[], opts: McpAddCommandOptions): Promise<void> {
+  add = async (name: string, command: string[], opts: McpAddCommandOptions): Promise<void> => {
     const mutation = new McpMutationService({
       getConfig: () => loadConfig(),
       saveConfig: (config) => saveConfig(config)
@@ -181,9 +181,9 @@ export class McpCommands {
       return;
     }
     console.log(result.message);
-  }
+  };
 
-  async mcpRemove(name: string): Promise<void> {
+  remove = async (name: string): Promise<void> => {
     const mutation = new McpMutationService({
       getConfig: () => loadConfig(),
       saveConfig: (config) => saveConfig(config)
@@ -194,17 +194,17 @@ export class McpCommands {
       return;
     }
     console.log(result.message);
-  }
+  };
 
-  async mcpEnable(name: string): Promise<void> {
+  enable = async (name: string): Promise<void> => {
     await this.toggleEnabled(name, true);
-  }
+  };
 
-  async mcpDisable(name: string): Promise<void> {
+  disable = async (name: string): Promise<void> => {
     await this.toggleEnabled(name, false);
-  }
+  };
 
-  async mcpDoctor(name?: string, opts: McpDoctorOptions = {}): Promise<void> {
+  doctor = async (name?: string, opts: McpDoctorOptions = {}): Promise<void> => {
     const registry = new McpRegistryService({
       getConfig: () => loadConfig()
     });
@@ -235,9 +235,9 @@ export class McpCommands {
     } finally {
       await registry.close();
     }
-  }
+  };
 
-  private async toggleEnabled(name: string, enabled: boolean): Promise<void> {
+  private toggleEnabled = async (name: string, enabled: boolean): Promise<void> => {
     const mutation = new McpMutationService({
       getConfig: () => loadConfig(),
       saveConfig: (config) => saveConfig(config)
@@ -248,7 +248,7 @@ export class McpCommands {
       return;
     }
     console.log(result.message);
-  }
+  };
 }
 
 function reportUserInputIssue(message: string): void {

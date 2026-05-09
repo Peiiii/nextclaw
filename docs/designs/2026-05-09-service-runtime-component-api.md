@@ -35,6 +35,9 @@ Expose command components as first-level runtime properties:
 - `runtime.channels.status(...)`
 - `runtime.cron.list(...)`
 - `runtime.agents.list(...)`
+- `runtime.agents.create(...)`
+- `runtime.agents.update(...)`
+- `runtime.agents.remove(...)`
 - `runtime.skills.install(...)`
 - `runtime.diagnostics.status(...)`
 - `runtime.logs.tail(...)`

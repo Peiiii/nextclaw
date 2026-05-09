@@ -138,7 +138,7 @@ export class SecretsCommands {
     }
   ) {}
 
-  secretsAudit(opts: SecretsAuditOptions = {}): void {
+  audit = (opts: SecretsAuditOptions = {}): void => {
     const config = loadConfig();
     const configPath = getConfigPath();
     const refs = config.secrets.refs;
@@ -208,9 +208,9 @@ export class SecretsCommands {
     if (strict && summary.failed > 0) {
       process.exitCode = 1;
     }
-  }
+  };
 
-  async secretsConfigure(opts: SecretsConfigureOptions): Promise<void> {
+  configure = async (opts: SecretsConfigureOptions): Promise<void> => {
     const alias = normalizeOptionalString(opts.provider);
     if (!alias) {
       throw new Error("provider alias is required");
@@ -221,50 +221,9 @@ export class SecretsCommands {
     const remove = Boolean(opts.remove);
 
     if (remove) {
-      delete nextConfig.secrets.providers[alias];
-      for (const source of SECRET_SOURCES) {
-        if (nextConfig.secrets.defaults[source] === alias) {
-          delete nextConfig.secrets.defaults[source];
-        }
-      }
+      this.removeProvider(nextConfig, alias);
     } else {
-      const source = normalizeSecretSource(opts.source);
-      if (!source) {
-        throw new Error("source is required and must be one of env/file/exec");
-      }
-
-      if (source === "env") {
-        nextConfig.secrets.providers[alias] = {
-          source,
-          ...(normalizeOptionalString(opts.prefix) ? { prefix: normalizeOptionalString(opts.prefix) } : {})
-        };
-      } else if (source === "file") {
-        const path = normalizeOptionalString(opts.path);
-        if (!path) {
-          throw new Error("file source requires --path");
-        }
-        nextConfig.secrets.providers[alias] = {
-          source,
-          path,
-          format: "json"
-        };
-      } else {
-        const command = normalizeOptionalString(opts.command);
-        if (!command) {
-          throw new Error("exec source requires --command");
-        }
-        nextConfig.secrets.providers[alias] = {
-          source,
-          command,
-          args: Array.isArray(opts.arg) ? opts.arg : [],
-          ...(normalizeOptionalString(opts.cwd) ? { cwd: normalizeOptionalString(opts.cwd) } : {}),
-          timeoutMs: parseTimeoutMs(opts.timeoutMs) ?? 5000
-        };
-      }
-
-      if (opts.setDefault) {
-        nextConfig.secrets.defaults[source] = alias;
-      }
+      this.configureProvider(nextConfig, alias, opts);
     }
 
     resolveConfigSecrets(nextConfig, { configPath: getConfigPath() });
@@ -281,63 +240,15 @@ export class SecretsCommands {
       return;
     }
     console.log(`Secrets provider ${remove ? "removed" : "configured"}: ${alias}`);
-  }
+  };
 
-  async secretsApply(opts: SecretsApplyOptions): Promise<void> {
+  apply = async (opts: SecretsApplyOptions): Promise<void> => {
     const prevConfig = loadConfig();
     const nextConfig = structuredClone(prevConfig);
 
-    if (opts.enable && opts.disable) {
-      throw new Error("cannot set --enable and --disable at the same time");
-    }
-    if (opts.enable) {
-      nextConfig.secrets.enabled = true;
-    }
-    if (opts.disable) {
-      nextConfig.secrets.enabled = false;
-    }
-
-    if (opts.file) {
-      const raw = readFileSync(opts.file, "utf-8");
-      const patch = parseApplyFile(raw);
-      if (patch.defaults) {
-        nextConfig.secrets.defaults = patch.defaults;
-      }
-      if (patch.providers) {
-        nextConfig.secrets.providers = patch.providers;
-      }
-      if (patch.refs) {
-        nextConfig.secrets.refs = {
-          ...nextConfig.secrets.refs,
-          ...patch.refs
-        };
-      }
-    }
-
-    if (opts.path) {
-      const path = opts.path.trim();
-      if (!path) {
-        throw new Error("path is empty");
-      }
-
-      if (opts.remove) {
-        delete nextConfig.secrets.refs[path];
-      } else {
-        const source = normalizeSecretSource(opts.source);
-        const id = normalizeOptionalString(opts.id);
-        if (!source || !id) {
-          throw new Error("apply single ref requires --source and --id");
-        }
-        const provider = normalizeOptionalString(opts.provider);
-        nextConfig.secrets.refs[path] = {
-          source,
-          id,
-          ...(provider ? { provider } : {})
-        };
-      }
-    } else if (opts.remove && !opts.file) {
-      throw new Error("--remove requires --path");
-    }
+    this.applyEnabledPatch(nextConfig, opts);
+    this.applyFilePatch(nextConfig, opts);
+    this.applySingleRefPatch(nextConfig, opts);
 
     resolveConfigSecrets(nextConfig, { configPath: getConfigPath() });
     saveConfig(nextConfig);
@@ -353,9 +264,9 @@ export class SecretsCommands {
       return;
     }
     console.log("Secrets applied.");
-  }
+  };
 
-  async secretsReload(opts: SecretsReloadOptions = {}): Promise<void> {
+  reload = async (opts: SecretsReloadOptions = {}): Promise<void> => {
     const config = loadConfig();
     const configPath = getConfigPath();
     resolveConfigSecrets(config, { configPath });
@@ -366,15 +277,111 @@ export class SecretsCommands {
       return;
     }
     console.log("Secrets reload signal emitted.");
-  }
+  };
 
-  private async requestRestartForConfigDiff(params: {
+  private removeProvider = (config: Config, alias: string): void => {
+    delete config.secrets.providers[alias];
+    for (const source of SECRET_SOURCES) {
+      if (config.secrets.defaults[source] === alias) {
+        delete config.secrets.defaults[source];
+      }
+    }
+  };
+
+  private configureProvider = (config: Config, alias: string, opts: SecretsConfigureOptions): void => {
+    const source = normalizeSecretSource(opts.source);
+    if (!source) {
+      throw new Error("source is required and must be one of env/file/exec");
+    }
+    config.secrets.providers[alias] = this.buildProviderConfig(source, opts);
+    if (opts.setDefault) {
+      config.secrets.defaults[source] = alias;
+    }
+  };
+
+  private buildProviderConfig = (source: SecretSource, opts: SecretsConfigureOptions): Config["secrets"]["providers"][string] => {
+    if (source === "env") {
+      return {
+        source,
+        ...(normalizeOptionalString(opts.prefix) ? { prefix: normalizeOptionalString(opts.prefix) } : {})
+      };
+    }
+    if (source === "file") {
+      const path = normalizeOptionalString(opts.path);
+      if (!path) {
+        throw new Error("file source requires --path");
+      }
+      return { source, path, format: "json" };
+    }
+    const command = normalizeOptionalString(opts.command);
+    if (!command) {
+      throw new Error("exec source requires --command");
+    }
+    return {
+      source,
+      command,
+      args: Array.isArray(opts.arg) ? opts.arg : [],
+      ...(normalizeOptionalString(opts.cwd) ? { cwd: normalizeOptionalString(opts.cwd) } : {}),
+      timeoutMs: parseTimeoutMs(opts.timeoutMs) ?? 5000
+    };
+  };
+
+  private applyEnabledPatch = (config: Config, opts: SecretsApplyOptions): void => {
+    const { disable, enable } = opts;
+    if (enable && disable) {
+      throw new Error("cannot set --enable and --disable at the same time");
+    }
+    if (enable || disable) {
+      config.secrets.enabled = Boolean(enable);
+    }
+  };
+
+  private applyFilePatch = (config: Config, opts: SecretsApplyOptions): void => {
+    if (!opts.file) {
+      return;
+    }
+    const { defaults, providers, refs } = parseApplyFile(readFileSync(opts.file, "utf-8"));
+    if (defaults) config.secrets.defaults = defaults;
+    if (providers) config.secrets.providers = providers;
+    if (refs) config.secrets.refs = { ...config.secrets.refs, ...refs };
+  };
+
+  private applySingleRefPatch = (config: Config, opts: SecretsApplyOptions): void => {
+    if (!opts.path) {
+      if (opts.remove && !opts.file) {
+        throw new Error("--remove requires --path");
+      }
+      return;
+    }
+    const path = opts.path.trim();
+    if (!path) {
+      throw new Error("path is empty");
+    }
+    if (opts.remove) {
+      delete config.secrets.refs[path];
+      return;
+    }
+    const source = normalizeSecretSource(opts.source);
+    const id = normalizeOptionalString(opts.id);
+    if (!source || !id) {
+      throw new Error("apply single ref requires --source and --id");
+    }
+    const provider = normalizeOptionalString(opts.provider);
+    config.secrets.refs[path] = {
+      source,
+      id,
+      ...(provider ? { provider } : {})
+    };
+  };
+
+  private requestRestartForConfigDiff = async (params: {
     prevConfig: Config;
     nextConfig: Config;
     reason: string;
     manualMessage: string;
-  }): Promise<void> {
-    const changedPaths = diffConfigPaths(params.prevConfig, params.nextConfig);
+  }): Promise<void> => {
+    const { manualMessage, nextConfig, prevConfig, reason } = params;
+    const changedPaths = diffConfigPaths(prevConfig, nextConfig);
     if (!changedPaths.length) {
       return;
     }
@@ -385,8 +392,8 @@ export class SecretsCommands {
     await this.deps.requestRestart({
       changedPaths: plan.restartRequired,
       mode: "notify",
-      reason: `${params.reason} (${plan.restartRequired.join(", ")})`,
-      manualMessage: params.manualMessage
+      reason: `${reason} (${plan.restartRequired.join(", ")})`,
+      manualMessage
     });
-  }
+  };
 }

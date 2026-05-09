@@ -47,7 +47,7 @@ describe("AgentCommands", () => {
       initializeAgentHomeDirectory: vi.fn()
     });
 
-    await commands.agentsUpdate("researcher", {
+    await commands.update("researcher", {
       name: "Researcher",
       description: "负责调研",
       avatar: "https://example.com/avatar.png",
@@ -80,7 +80,7 @@ describe("AgentCommands", () => {
       initializeAgentHomeDirectory: vi.fn()
     });
 
-    await commands.agentsUpdate("main", {
+    await commands.update("main", {
       description: "负责统筹"
     });
 
@@ -102,7 +102,7 @@ describe("AgentCommands", () => {
       initializeAgentHomeDirectory: vi.fn()
     });
 
-    await commands.agentsNew("engineer", {
+    await commands.create("engineer", {
       runtime: "codex",
       json: true
     });
@@ -163,7 +163,7 @@ describe("AgentCommands", () => {
       initializeAgentHomeDirectory: vi.fn()
     });
 
-    await commands.agentsRuntimes({
+    await commands.runtimes({
       json: true,
       probe: true,
     });

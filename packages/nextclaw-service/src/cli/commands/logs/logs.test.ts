@@ -28,7 +28,7 @@ describe("LogsCommands", () => {
     const commands = new LogsCommands(runtime);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    commands.logsPath();
+    commands.path();
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Service log:"));
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Crash log:"));
@@ -48,7 +48,7 @@ describe("LogsCommands", () => {
     const commands = new LogsCommands(runtime);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 
-    commands.logsTail({ crash: true, lines: 1 });
+    commands.tail({ crash: true, lines: 1 });
 
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("fatal two"));
   });

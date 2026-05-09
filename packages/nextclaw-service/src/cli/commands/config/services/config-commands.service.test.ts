@@ -4,6 +4,7 @@ import type { Config } from "@nextclaw/core";
 const mocks = vi.hoisted(() => ({
   loadConfigMock: vi.fn<() => Config>(),
   saveConfigMock: vi.fn<(config: Config) => void>(),
+  getDataPathMock: vi.fn<() => string>(),
   getWorkspacePathMock: vi.fn<(workspace?: string) => string>(),
   diffConfigPathsMock: vi.fn<(prev: Config, next: Config) => string[]>(),
   buildReloadPlanMock: vi.fn<(paths: string[]) => { restartRequired: string[] }>(),
@@ -16,6 +17,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@nextclaw/core", () => ({
   buildReloadPlan: mocks.buildReloadPlanMock,
   diffConfigPaths: mocks.diffConfigPathsMock,
+  getDataPath: mocks.getDataPathMock,
   getWorkspacePath: mocks.getWorkspacePathMock,
   loadConfig: mocks.loadConfigMock,
   saveConfig: mocks.saveConfigMock,
@@ -30,12 +32,12 @@ vi.mock("@nextclaw/runtime", () => ({
   builtinProviderIds: () => []
 }));
 
-vi.mock("../../plugin/index.js", () => ({
+vi.mock("@nextclaw-service/commands/plugin/index.js", () => ({
   loadPluginRegistry: mocks.loadPluginRegistryMock,
   mergePluginConfigView: mocks.mergePluginConfigViewMock,
 }));
 
-vi.mock("../../channel/channel-config-view.js", () => ({
+vi.mock("@nextclaw-service/commands/channel/index.js", () => ({
   resolveChannelConfigView: mocks.resolveChannelConfigViewMock,
 }));
 
@@ -67,6 +69,7 @@ describe("ConfigCommands", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadConfigMock.mockReturnValue(BASE_CONFIG);
+    mocks.getDataPathMock.mockReturnValue("/tmp/nextclaw-data");
     mocks.getWorkspacePathMock.mockReturnValue("/tmp/workspace");
     mocks.loadPluginRegistryMock.mockReturnValue({ channels: [] });
     mocks.getPluginChannelBindingsMock.mockReturnValue([
@@ -100,7 +103,7 @@ describe("ConfigCommands", () => {
       requestRestart: vi.fn(async () => undefined)
     });
 
-    commands.configGet("channels.weixin.baseUrl");
+    commands.get("channels.weixin.baseUrl");
 
     expect(mocks.resolveChannelConfigViewMock).toHaveBeenCalledWith(
       BASE_CONFIG,
@@ -113,7 +116,7 @@ describe("ConfigCommands", () => {
     const requestRestart = vi.fn(async () => undefined);
     const commands = new ConfigCommands({ requestRestart });
 
-    await commands.configSet("channels.weixin.baseUrl", "\"https://new.example\"", { json: true });
+    await commands.set("channels.weixin.baseUrl", "\"https://new.example\"", { json: true });
 
     expect(mocks.mergePluginConfigViewMock).toHaveBeenCalledTimes(1);
     expect(mocks.mergePluginConfigViewMock.mock.calls[0]?.[1]).toMatchObject({
@@ -152,7 +155,7 @@ describe("ConfigCommands", () => {
       requestRestart: vi.fn(async () => undefined)
     });
 
-    await expect(commands.configSet("agents.list[3].id", "\"researcher\"", { json: true }))
+    await expect(commands.set("agents.list[3].id", "\"researcher\"", { json: true }))
       .rejects.toThrow("process.exit");
 
     expect(errorSpy).toHaveBeenCalledWith(

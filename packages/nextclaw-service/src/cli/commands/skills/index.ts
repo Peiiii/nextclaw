@@ -13,7 +13,7 @@ import type { MarketplaceSkillsRecommendCommandOptions, MarketplaceSkillsSearchC
 export class SkillsCommands {
   private readonly skillsQueryService = new SkillsQueryService();
 
-  skillsInstalled = async (options: SkillsInstalledCommandOptions = {}): Promise<void> => {
+  installed = async (options: SkillsInstalledCommandOptions = {}): Promise<void> => {
     const config = loadConfig();
     const workdir = resolveSkillsInstallWorkdir({
       explicitWorkdir: options.workdir,
@@ -46,7 +46,7 @@ export class SkillsCommands {
     }
   };
 
-  skillsInfo = async (selector: string, options: SkillsInfoCommandOptions = {}): Promise<void> => {
+  info = async (selector: string, options: SkillsInfoCommandOptions = {}): Promise<void> => {
     const config = loadConfig();
     const workdir = resolveSkillsInstallWorkdir({
       explicitWorkdir: options.workdir,
@@ -72,24 +72,25 @@ export class SkillsCommands {
     console.log(`  always: ${result.always ? "yes" : "no"}`);
   };
 
-  skillsInstall = async (options: {
+  install = async (options: {
     slug: string;
     workdir?: string;
     dir?: string;
     force?: boolean;
     apiBaseUrl?: string;
   }): Promise<void> => {
+    const { apiBaseUrl, dir, force, slug, workdir: explicitWorkdir } = options;
     const config = loadConfig();
     const workdir = resolveSkillsInstallWorkdir({
-      explicitWorkdir: options.workdir,
+      explicitWorkdir,
       configuredWorkspace: config.agents.defaults.workspace,
     });
     const result = await installMarketplaceSkill({
-      slug: options.slug,
+      slug,
       workdir,
-      dir: options.dir,
-      force: options.force,
-      apiBaseUrl: options.apiBaseUrl,
+      dir,
+      force,
+      apiBaseUrl,
     });
 
     if (result.alreadyInstalled) {
@@ -100,7 +101,7 @@ export class SkillsCommands {
     console.log(`  Path: ${result.destinationDir}`);
   };
 
-  marketplaceSkillsSearch = async (options: MarketplaceSkillsSearchCommandOptions = {}): Promise<void> => {
+  marketplaceSearch = async (options: MarketplaceSkillsSearchCommandOptions = {}): Promise<void> => {
     const result = await this.skillsQueryService.searchMarketplaceSkills({
       apiBaseUrl: options.apiBase,
       query: options.query,
@@ -129,7 +130,7 @@ export class SkillsCommands {
     }
   };
 
-  marketplaceSkillsInfo = async (slug: string, options: { apiBase?: string; json?: boolean } = {}): Promise<void> => {
+  marketplaceInfo = async (slug: string, options: { apiBase?: string; json?: boolean } = {}): Promise<void> => {
     const result = await this.skillsQueryService.getMarketplaceSkillInfo({
       apiBaseUrl: options.apiBase,
       slug,
@@ -154,7 +155,7 @@ export class SkillsCommands {
     }
   };
 
-  marketplaceSkillsRecommend = async (options: MarketplaceSkillsRecommendCommandOptions = {}): Promise<void> => {
+  marketplaceRecommend = async (options: MarketplaceSkillsRecommendCommandOptions = {}): Promise<void> => {
     const result = await this.skillsQueryService.recommendMarketplaceSkills({
       apiBaseUrl: options.apiBase,
       scene: options.scene,
@@ -175,12 +176,12 @@ export class SkillsCommands {
     }
   };
 
-  skillsPublish = async (options: MarketplacePublishCommandOptions): Promise<void> => {
+  publish = async (options: MarketplacePublishCommandOptions): Promise<void> => {
     const result = await publishMarketplaceSkill(buildMarketplacePublishOptions(options));
     console.log(`${result.created ? `✓ Published new skill: ${result.packageName}` : `✓ Updated skill: ${result.packageName}`}\n  Alias: ${result.slug}\n  Files: ${result.fileCount}`);
   };
 
-  skillsUpdate = async (options: Omit<MarketplacePublishCommandOptions, "publishedAt">): Promise<void> => {
+  update = async (options: Omit<MarketplacePublishCommandOptions, "publishedAt">): Promise<void> => {
     const result = await publishMarketplaceSkill(buildMarketplaceUpdateOptions(options));
     console.log(`✓ Updated skill: ${result.packageName}`);
     console.log(`  Alias: ${result.slug}`);
@@ -190,14 +191,14 @@ export class SkillsCommands {
 
 type SkillsCommandHandler = Pick<
   SkillsCommands,
-  | "skillsInstalled"
-  | "skillsInfo"
-  | "skillsInstall"
-  | "skillsPublish"
-  | "skillsUpdate"
-  | "marketplaceSkillsSearch"
-  | "marketplaceSkillsInfo"
-  | "marketplaceSkillsRecommend"
+  | "installed"
+  | "info"
+  | "install"
+  | "publish"
+  | "update"
+  | "marketplaceSearch"
+  | "marketplaceInfo"
+  | "marketplaceRecommend"
 >;
 
 export function registerSkillsCommands(program: Command, skillsCommands: SkillsCommandHandler): void {
@@ -209,14 +210,14 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--scope <scope>", "Filter by scope: all|builtin|project|workspace", "all")
     .option("-q, --query <text>", "Filter installed skills by query")
     .option("--json", "Output JSON", false)
-    .action(async (opts) => await skillsCommands.skillsInstalled(opts));
+    .action(async (opts) => await skillsCommands.installed(opts));
 
   skills
     .command("info <selector>")
     .description("Show installed skill details from the local runtime")
     .option("--workdir <dir>", "Workspace directory to inspect")
     .option("--json", "Output JSON", false)
-    .action(async (selector, opts) => await skillsCommands.skillsInfo(selector, opts));
+    .action(async (selector, opts) => await skillsCommands.info(selector, opts));
 
   skills
     .command("install <slug>")
@@ -225,7 +226,7 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--workdir <dir>", "Workspace directory to install into")
     .option("--dir <dir>", "Skills directory name (default: skills)")
     .option("-f, --force", "Overwrite existing skill files", false)
-    .action(async (slug, opts) => await skillsCommands.skillsInstall({ slug, ...opts, apiBaseUrl: opts.apiBase }));
+    .action(async (slug, opts) => await skillsCommands.install({ slug, ...opts, apiBaseUrl: opts.apiBase }));
 
   const withRepeatableTag = (value: string, previous: string[] = []) => [...previous, value];
 
@@ -247,7 +248,7 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--updated-at <datetime>", "Updated time (ISO datetime)")
     .option("--api-base <url>", "Marketplace API base URL")
     .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
-    .action(async (dir, opts) => await skillsCommands.skillsPublish({ dir, ...opts, apiBaseUrl: opts.apiBase }));
+    .action(async (dir, opts) => await skillsCommands.publish({ dir, ...opts, apiBaseUrl: opts.apiBase }));
 
   skills
     .command("update <dir>")
@@ -266,7 +267,7 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--updated-at <datetime>", "Updated time (ISO datetime)")
     .option("--api-base <url>", "Marketplace API base URL")
     .option("--token <token>", "Marketplace admin token for official @nextclaw/* publishing")
-    .action(async (dir, opts) => await skillsCommands.skillsUpdate({ dir, ...opts, apiBaseUrl: opts.apiBase }));
+    .action(async (dir, opts) => await skillsCommands.update({ dir, ...opts, apiBaseUrl: opts.apiBase }));
 
   const marketplace = program.command("marketplace").description("Browse and install marketplace items");
   const marketplaceSkills = marketplace.command("skills").description("Browse marketplace skill catalog");
@@ -281,14 +282,14 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--page <n>", "Page number")
     .option("--page-size <n>", "Page size")
     .option("--json", "Output JSON", false)
-    .action(async (opts) => await skillsCommands.marketplaceSkillsSearch(opts));
+    .action(async (opts) => await skillsCommands.marketplaceSearch(opts));
 
   marketplaceSkills
     .command("info <slug>")
     .description("Show marketplace skill details")
     .option("--api-base <url>", "Marketplace API base URL")
     .option("--json", "Output JSON", false)
-    .action(async (slug, opts) => await skillsCommands.marketplaceSkillsInfo(slug, opts));
+    .action(async (slug, opts) => await skillsCommands.marketplaceInfo(slug, opts));
 
   marketplaceSkills
     .command("recommend")
@@ -297,7 +298,7 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--scene <scene>", "Recommendation scene")
     .option("--limit <n>", "Maximum number of items")
     .option("--json", "Output JSON", false)
-    .action(async (opts) => await skillsCommands.marketplaceSkillsRecommend(opts));
+    .action(async (opts) => await skillsCommands.marketplaceRecommend(opts));
 
   marketplaceSkills
     .command("install <slug>")
@@ -306,5 +307,5 @@ export function registerSkillsCommands(program: Command, skillsCommands: SkillsC
     .option("--workdir <dir>", "Workspace directory to install into")
     .option("--dir <dir>", "Skills directory name (default: skills)")
     .option("-f, --force", "Overwrite existing skill files", false)
-    .action(async (slug, opts) => await skillsCommands.skillsInstall({ slug, ...opts, apiBaseUrl: opts.apiBase }));
+    .action(async (slug, opts) => await skillsCommands.install({ slug, ...opts, apiBaseUrl: opts.apiBase }));
 }

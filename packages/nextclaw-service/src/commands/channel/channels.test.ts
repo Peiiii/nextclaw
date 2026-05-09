@@ -52,7 +52,7 @@ vi.mock("../channel/channel-config-view.js", () => ({
 
 import { ChannelCommands } from "./index.js";
 
-describe("ChannelCommands.channelsStatus", () => {
+describe("ChannelCommands.status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.loadConfigMock.mockReturnValue({
@@ -91,7 +91,7 @@ describe("ChannelCommands.channelsStatus", () => {
       requestRestart: vi.fn(async () => undefined)
     });
 
-    commands.channelsStatus();
+    commands.status();
 
     expect(logSpy.mock.calls.flat()).toContain("Weixin: ✗");
   });
