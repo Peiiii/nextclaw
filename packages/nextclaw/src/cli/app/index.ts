@@ -6,12 +6,12 @@ import { LlmUsageCommandService } from "@/cli/commands/usage/index.js";
 import { CliRuntime, LOGO } from "./runtime.js";
 import { registerSkillsCommands } from "@/cli/commands/skills/index.js";
 import { registerAgentsCommands } from "./register-agents-commands.js";
-import { registerLearningLoopCommands } from "@/cli/commands/learning-loop/index.js";
+import { registerLearningLoopCommands } from "@nextclaw-service/commands/learning-loop/index.js";
 import { registerCompanionCommands } from "./register-companion-commands.js";
 import { registerServiceCommands } from "./service-command-registration.service.js";
-import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
-import { getPackageVersion } from "@/cli/shared/utils/cli.utils.js";
-import type { ServiceCommands } from "@/cli/commands/service/index.js";
+import { logStartupTrace, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
+import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
+import type { ServiceCommands } from "@nextclaw-service/commands/service/index.js";
 
 logStartupTrace("cli.index.module_loaded");
 

@@ -1,4 +1,4 @@
-import type { UsageCommandOptions } from "@/cli/shared/types/cli.types.js";
+import type { UsageCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import {
   llmUsageQueryService,
   type LlmUsageQueryService,

@@ -977,6 +977,9 @@ importers:
 
   packages/nextclaw:
     dependencies:
+      '@nextclaw-service':
+        specifier: workspace:*
+        version: link:../nextclaw-service
       '@nextclaw/companion':
         specifier: workspace:*
         version: link:../../apps/companion
@@ -1545,6 +1548,79 @@ importers:
       '@types/ws':
         specifier: ^8.5.14
         version: 8.18.1
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
+  packages/nextclaw-service:
+    dependencies:
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../nextclaw-core
+      '@nextclaw/kernel':
+        specifier: workspace:*
+        version: link:../nextclaw-kernel
+      '@nextclaw/mcp':
+        specifier: workspace:*
+        version: link:../nextclaw-mcp
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp
+      '@nextclaw/ncp-agent-runtime':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp-agent-runtime
+      '@nextclaw/ncp-mcp':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp-mcp
+      '@nextclaw/ncp-toolkit':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp-toolkit
+      '@nextclaw/nextclaw-hermes-acp-bridge':
+        specifier: workspace:*
+        version: link:../nextclaw-hermes-acp-bridge
+      '@nextclaw/nextclaw-ncp-runtime-http-client':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-http-client
+      '@nextclaw/nextclaw-ncp-runtime-stdio-client':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-stdio-client
+      '@nextclaw/openclaw-compat':
+        specifier: workspace:*
+        version: link:../nextclaw-openclaw-compat
+      '@nextclaw/remote':
+        specifier: workspace:*
+        version: link:../nextclaw-remote
+      '@nextclaw/runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-runtime
+      '@nextclaw/server':
+        specifier: workspace:*
+        version: link:../nextclaw-server
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
+      yaml:
+        specifier: ^2.8.1
+        version: 2.8.2
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
       prettier:
         specifier: ^3.3.3
         version: 3.8.1

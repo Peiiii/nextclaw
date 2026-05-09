@@ -2,6 +2,7 @@ import path from "node:path";
 
 import {
   ROOT,
+  getPreviousHeadPath,
   isCodePath,
   normalizePath,
   runGit
@@ -47,6 +48,17 @@ function listHeadDirectCodeFilesInDirectory(directoryPath) {
     .sort();
 }
 
+function countPreviousDirectCodeFiles(directoryPath, currentFiles) {
+  const previousFiles = listHeadDirectCodeFilesInDirectory(directoryPath);
+  if (previousFiles.length > 0) {
+    return previousFiles.length;
+  }
+
+  return currentFiles
+    .filter((filePath) => getPreviousHeadPath(filePath) !== normalizePath(filePath))
+    .length;
+}
+
 export function collectDirectoryBudgetFindings(paths) {
   const touchedDirectories = new Set();
 
@@ -59,14 +71,14 @@ export function collectDirectoryBudgetFindings(paths) {
 
   return [...touchedDirectories]
     .sort()
-    .map((directoryPath) => evaluateDirectoryBudget({
-      directoryPath,
-      currentCount: listDirectCodeFilesInDirectory({ rootDir: ROOT, directoryPath, isCodePath }).length,
-      previousCount: (() => {
-        const previousFiles = listHeadDirectCodeFilesInDirectory(directoryPath);
-        return previousFiles.length === 0 ? 0 : previousFiles.length;
-      })(),
-      exception: inspectDirectoryBudgetException({ rootDir: ROOT, directoryPath })
-    }))
+    .map((directoryPath) => {
+      const currentFiles = listDirectCodeFilesInDirectory({ rootDir: ROOT, directoryPath, isCodePath });
+      return evaluateDirectoryBudget({
+        directoryPath,
+        currentCount: currentFiles.length,
+        previousCount: countPreviousDirectCodeFiles(directoryPath, currentFiles),
+        exception: inspectDirectoryBudgetException({ rootDir: ROOT, directoryPath })
+      });
+    })
     .filter(Boolean);
 }

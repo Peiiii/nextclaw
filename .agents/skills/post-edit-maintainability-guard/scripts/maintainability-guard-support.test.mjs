@@ -49,3 +49,14 @@ test("summarizeRepoLineChanges respects scoped paths", () => {
   assert.deepEqual(summary.non_test, { added: 10, deleted: 3, net: 7 });
   assert.deepEqual(summary.code_paths, ["packages/demo/src/chat.service.ts"]);
 });
+
+test("summarizeRepoLineChanges normalizes git brace rename paths to the target path", () => {
+  const summary = summarizeRepoLineChanges({
+    diffNumstatOutput: "2\t1\tpackages/{old/src => new/src}/chat.service.ts",
+    statusOutput: ""
+  });
+
+  assert.deepEqual(summary.total, { added: 2, deleted: 1, net: 1 });
+  assert.deepEqual(summary.non_test, { added: 2, deleted: 1, net: 1 });
+  assert.deepEqual(summary.code_paths, ["packages/new/src/chat.service.ts"]);
+});

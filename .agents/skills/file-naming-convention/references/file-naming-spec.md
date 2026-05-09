@@ -90,6 +90,7 @@ Examples:
 
 - New files: must follow this spec immediately.
 - Existing files: apply rename when touched.
+- Structural Git renames that only move an existing legacy role-boundary violation may preserve the old filename temporarily, as long as the move does not introduce a new violation kind.
 - Large-scale rename: execute by module batches to reduce conflicts.
 
 ## 9. Automated Enforcement

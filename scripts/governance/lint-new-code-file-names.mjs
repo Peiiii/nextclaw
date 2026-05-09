@@ -51,12 +51,14 @@ export const collectChangedFileNameEntries = (options) => {
     const parts = trimmedLine.split("\t");
     const status = parts[0];
     if (status.startsWith("R")) {
+      const previousPath = parts[1];
       const nextPath = parts[2];
       if (!nextPath || !isGovernedWorkspaceFile(nextPath)) {
         continue;
       }
       entryByFile.set(nextPath, {
         filePath: nextPath,
+        oldFilePath: previousPath,
         status: "R"
       });
       continue;

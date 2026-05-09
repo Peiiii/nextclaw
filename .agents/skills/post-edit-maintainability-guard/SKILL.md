@@ -134,6 +134,7 @@ node scripts/metrics/code-volume-metrics.mjs --scope-profile repo-volume --no-wr
 
 - 比较被触达目录的“直接手写代码文件数”是否达到 `12` 个硬限制
 - 按 diff-only 原则判断目录是否继续膨胀
+- 对纯结构迁移中的 Git rename，使用旧路径作为历史基线，避免把包拆分或目录搬迁误判成全新文件/目录债务；若目标目录本身已有历史文件，仍按目标目录真实增长检查。
 
 ### 3. 函数级规则
 

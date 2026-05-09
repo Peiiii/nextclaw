@@ -1,0 +1,9 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-cli-agent-command",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": ["services"],
+  "allowedRootFiles": ["index.ts", "agent-runtime.service.ts", "cli-agent-runner.service.ts"],
+  "sharedDirectories": []
+}

@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import { loadConfig } from "@nextclaw/core";
-import { resolveSkillsInstallWorkdir } from "../../shared/utils/runtime-helpers.js";
+import { resolveSkillsInstallWorkdir } from "@nextclaw-service/shared/utils/runtime-helpers.js";
 import {
   buildMarketplacePublishOptions,
   buildMarketplaceUpdateOptions,
@@ -13,7 +13,7 @@ import type {
   MarketplaceSkillsSearchCommandOptions,
   SkillsInfoCommandOptions,
   SkillsInstalledCommandOptions,
-} from "../../shared/types/cli.types.js";
+} from "@nextclaw-service/shared/types/cli.types.js";
 
 export class SkillsCommands {
   private readonly skillsQueryService = new SkillsQueryService();

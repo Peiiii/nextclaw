@@ -222,3 +222,28 @@ test("blocks touched files outside page naming rules too", () => {
   assert.equal(violation.level, "error");
   assert.match(violation.message, /touched file in 'pages\//);
 });
+
+test("does not turn a package move into a forced legacy role-boundary rename", () => {
+  const violations = collectFileRoleBoundaryViolations([
+    {
+      oldFilePath: "packages/old/src/services/service-bootstrap-status.ts",
+      filePath: "packages/new/src/services/service-bootstrap-status.ts",
+      status: "R"
+    }
+  ]);
+
+  assert.deepEqual(violations, []);
+});
+
+test("still blocks renames that introduce a role-boundary violation", () => {
+  const violations = collectFileRoleBoundaryViolations([
+    {
+      oldFilePath: "packages/demo/src/providers/openai.provider.ts",
+      filePath: "packages/demo/src/providers/openai.ts",
+      status: "R"
+    }
+  ]);
+
+  assert.equal(violations.length, 1);
+  assert.match(violations[0].message, /providers\/' must match '\*\.provider\.ts/);
+});

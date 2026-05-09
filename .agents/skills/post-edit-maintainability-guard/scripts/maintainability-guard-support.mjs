@@ -176,6 +176,34 @@ export function listChangedPaths() {
   return [...new Set(paths)];
 }
 
+let renamedHeadPathByCurrentPath = null;
+
+function loadRenamedHeadPathByCurrentPath() {
+  if (renamedHeadPathByCurrentPath) {
+    return renamedHeadPathByCurrentPath;
+  }
+
+  renamedHeadPathByCurrentPath = new Map();
+  const output = runGit(["diff", "--name-status", "--find-renames", "HEAD"], false);
+  for (const line of output.split(/\r?\n/)) {
+    if (!line.trim()) {
+      continue;
+    }
+    const parts = line.split("\t");
+    if (!parts[0]?.startsWith("R") || parts.length < 3) {
+      continue;
+    }
+    renamedHeadPathByCurrentPath.set(normalizePath(parts[2]), normalizePath(parts[1]));
+  }
+
+  return renamedHeadPathByCurrentPath;
+}
+
+export function getPreviousHeadPath(pathText) {
+  const normalized = normalizePath(pathText);
+  return loadRenamedHeadPathByCurrentPath().get(normalized) ?? normalized;
+}
+
 export function readFileText(pathText) {
   return fs.readFileSync(path.resolve(ROOT, pathText), "utf8");
 }
@@ -188,7 +216,8 @@ export function countLinesInText(text) {
 }
 
 export function getHeadContent(pathText) {
-  const result = spawnSync("git", ["show", `HEAD:${pathText}`], {
+  const previousPath = getPreviousHeadPath(pathText);
+  const result = spawnSync("git", ["show", `HEAD:${previousPath}`], {
     cwd: ROOT,
     encoding: "utf8"
   });

@@ -14,7 +14,7 @@ import type {
   AgentsRemoveCommandOptions,
   AgentsRuntimesCommandOptions,
   AgentsUpdateCommandOptions
-} from "../../../shared/types/cli.types.js";
+} from "@nextclaw-service/shared/types/cli.types.js";
 
 export class AgentCommands {
   constructor(private readonly deps: {

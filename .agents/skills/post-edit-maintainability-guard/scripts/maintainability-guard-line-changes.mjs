@@ -51,6 +51,15 @@ function shouldIncludeLineChangePath(pathText, scopeSet) {
   return scopeSet.has(normalizePath(pathText));
 }
 
+function resolveDiffTargetPath(pathText) {
+  const normalized = normalizePath(pathText);
+  const renameMatch = normalized.match(/^(.*)\{([^{}]+) => ([^{}]+)\}(.*)$/);
+  if (!renameMatch) {
+    return normalized;
+  }
+  return normalizePath(`${renameMatch[1]}${renameMatch[3]}${renameMatch[4]}`);
+}
+
 export function summarizeRepoLineChanges({
   candidatePaths = null,
   diffNumstatOutput = null,
@@ -89,7 +98,7 @@ export function summarizeRepoLineChanges({
     if (addedText === "-" || deletedText === "-") {
       continue;
     }
-    const pathText = normalizePath(pathColumns[pathColumns.length - 1]);
+    const pathText = resolveDiffTargetPath(pathColumns[pathColumns.length - 1]);
     if (!shouldIncludeLineChangePath(pathText, scopeSet)) {
       continue;
     }

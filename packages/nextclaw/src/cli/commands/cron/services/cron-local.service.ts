@@ -1,7 +1,7 @@
 import { CronService, getDataDir } from "@nextclaw/core";
 import type { CronCreateRequest } from "@nextclaw/server";
 import { join } from "node:path";
-import type { CronAddOptions } from "@/cli/shared/types/cli.types.js";
+import type { CronAddOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import type { CronJobView } from "@/cli/commands/cron/utils/cron-job.utils.js";
 
 function createCronService(): CronService {

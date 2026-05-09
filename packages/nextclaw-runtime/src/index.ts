@@ -1,5 +1,3 @@
-import { installBuiltinProviderRegistry } from "./providers/index.js";
-
 export type { ProviderCatalogPlugin, ProviderSpec } from "@nextclaw/core";
 
 export {
@@ -14,6 +12,4 @@ export {
   installBuiltinProviderRegistry,
   listBuiltinProviderPlugins,
   listBuiltinProviders
-} from "./providers/index.js";
-
-installBuiltinProviderRegistry();
+} from "./providers/builtin-provider-registry.provider.js";

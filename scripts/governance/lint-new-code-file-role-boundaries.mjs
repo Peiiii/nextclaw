@@ -232,13 +232,14 @@ const isDefaultRoleSuffixExempt = (normalizedPath, segments, stem, nearestRule, 
   return isRootEntryFile(normalizedPath, segments, stem, contract) || nearestRule?.segment === "app";
 };
 
-const buildViolation = (entry, message) => ({
+const buildViolation = (entry, message, ruleId) => ({
   filePath: entry.filePath,
   line: 1,
   column: 1,
   ownerLine: 1,
   status: entry.status,
   level: "error",
+  ruleId,
   message
 });
 
@@ -268,13 +269,13 @@ export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
   if (nearestRule) {
     const { segment, rule } = nearestRule;
     if (rule.type === "role-suffix" && !isRoleDirectoryMatch(stem, rule.role)) {
-      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel));
+      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel), `directory:${segment}:${rule.expectedLabel}`);
     }
     if (rule.type === "hook" && !isHookFileName(stem)) {
-      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel));
+      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel), `directory:${segment}:${rule.expectedLabel}`);
     }
     if (rule.type === "page" && !isPageFileName(stem)) {
-      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel));
+      return buildViolation(entry, buildDirectoryMismatchMessage(entry, segment, rule.expectedLabel), `directory:${segment}:${rule.expectedLabel}`);
     }
   }
 
@@ -286,12 +287,26 @@ export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
     return null;
   }
 
-  return buildViolation(entry, buildDefaultSuffixMessage(entry));
+  return buildViolation(entry, buildDefaultSuffixMessage(entry), "default-role-suffix");
+};
+
+const preservesExistingRenameViolation = (entry, violation) => {
+  if (entry.status !== "R" || !entry.oldFilePath) {
+    return false;
+  }
+
+  const previousViolation = inspectFileRoleBoundaryEntry({
+    filePath: entry.oldFilePath,
+    status: "M"
+  });
+
+  return previousViolation?.ruleId === violation.ruleId;
 };
 
 export const collectFileRoleBoundaryViolations = (entries) => defaultSortByLocation(
   entries
     .map(inspectFileRoleBoundaryEntry)
+    .filter((violation, index) => violation && !preservesExistingRenameViolation(entries[index], violation))
     .filter(Boolean)
 );
 

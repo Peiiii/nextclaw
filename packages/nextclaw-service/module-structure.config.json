@@ -1,0 +1,9 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-service-host",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": ["src"],
+  "allowedRootFiles": ["vitest.config.ts"],
+  "sharedDirectories": ["shared"]
+}

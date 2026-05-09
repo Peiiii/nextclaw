@@ -1,6 +1,6 @@
 import type { Config } from "@nextclaw/core";
-import type { UiCommandOptions } from "@/cli/shared/types/cli.types.js";
-import type { RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
+import type { UiCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
+import type { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
 
 export class UiCommands {
   constructor(

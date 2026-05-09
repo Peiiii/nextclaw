@@ -1,10 +1,10 @@
 import { APP_NAME, loadConfig } from "@nextclaw/core";
-import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
-import { localUiRuntimeStore } from "@/cli/shared/stores/local-ui-runtime.store.js";
-import { findListeningProcessByPort, isProcessRunning, resolveUiConfig, waitForExit } from "@/cli/shared/utils/cli.utils.js";
-import { resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
-import { describeUnmanagedHealthyTargetMessage, type RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
-import type { StartCommandOptions } from "@/cli/shared/types/cli.types.js";
+import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
+import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
+import { findListeningProcessByPort, isProcessRunning, resolveUiConfig, waitForExit } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { resolveManagedServiceUiOverrides } from "@nextclaw-service/shared/utils/runtime-helpers.js";
+import { describeUnmanagedHealthyTargetMessage, type RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
+import type { StartCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import type { StartCommands } from "@/cli/commands/start/index.js";
 
 export class RestartCommands {

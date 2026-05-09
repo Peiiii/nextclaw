@@ -4,7 +4,7 @@ import type {
   CompanionStartCommandOptions,
   CompanionStatusCommandOptions,
   CompanionStopCommandOptions
-} from "@/cli/shared/types/cli.types.js";
+} from "@nextclaw-service/shared/types/cli.types.js";
 import { CompanionProcessService } from "./services/companion-process.service.js";
 
 export class CompanionCommands {

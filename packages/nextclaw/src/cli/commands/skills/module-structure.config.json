@@ -1,0 +1,22 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-cli-skills-command",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": ["services", "utils"],
+  "allowedRootFiles": [
+    "index.ts",
+    "marketplace-client.ts",
+    "marketplace-command-options.utils.ts",
+    "marketplace-identity.test.ts",
+    "marketplace-identity.utils.ts",
+    "marketplace-network-retry.ts",
+    "marketplace.install.test.ts",
+    "marketplace.metadata.ts",
+    "marketplace.publish.test.ts",
+    "marketplace.service.ts",
+    "skills-query.service.test.ts",
+    "skills-query.service.ts"
+  ],
+  "sharedDirectories": []
+}

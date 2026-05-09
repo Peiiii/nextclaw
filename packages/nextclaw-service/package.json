@@ -1,0 +1,62 @@
+{
+  "name": "@nextclaw-service",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NextClaw long-running service host and runtime lifecycle.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*.js": {
+      "development": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    },
+    "./*": {
+      "development": "./src/*",
+      "types": "./dist/*",
+      "default": "./dist/*"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsdown $(find src -name '*.ts' ! -name '*.test.ts' ! -path '*/tests/*') --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint .",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/kernel": "workspace:*",
+    "@nextclaw/mcp": "workspace:*",
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-mcp": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*",
+    "@nextclaw/nextclaw-hermes-acp-bridge": "workspace:*",
+    "@nextclaw/nextclaw-ncp-runtime-http-client": "workspace:*",
+    "@nextclaw/nextclaw-ncp-runtime-stdio-client": "workspace:*",
+    "@nextclaw/openclaw-compat": "workspace:*",
+    "@nextclaw/remote": "workspace:*",
+    "@nextclaw/runtime": "workspace:*",
+    "@nextclaw/server": "workspace:*",
+    "chokidar": "^3.6.0",
+    "commander": "^12.1.0",
+    "jszip": "^3.10.1",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

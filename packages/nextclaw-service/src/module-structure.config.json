@@ -1,0 +1,9 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-service-host-src",
+  "rootPolicy": "legacy-frozen",
+  "enforcement": "error",
+  "allowedRootDirectories": ["commands", "launcher", "shared"],
+  "allowedRootFiles": ["index.ts"],
+  "sharedDirectories": ["shared"]
+}

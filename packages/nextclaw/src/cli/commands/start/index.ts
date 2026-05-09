@@ -1,6 +1,6 @@
-import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "@/cli/shared/utils/runtime-helpers.js";
-import type { StartCommandOptions } from "@/cli/shared/types/cli.types.js";
-import type { RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
+import { parseStartTimeoutMs, resolveManagedServiceUiOverrides } from "@nextclaw-service/shared/utils/runtime-helpers.js";
+import type { StartCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
+import type { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
 
 export class StartCommands {
   constructor(

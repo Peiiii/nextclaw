@@ -9,14 +9,14 @@ import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
-import { RestartCoordinator, type RestartStrategy } from "@/cli/shared/services/restart/restart-coordinator.service.js";
-import { initializeConfigIfMissing } from "@/cli/shared/services/runtime/runtime-config-init.service.js";
-import { writeRestartSentinel } from "@/cli/shared/services/restart/restart-sentinel.service.js";
-import { createTopLevelNextclawCommandEnv } from "@/cli/shared/utils/top-level-nextclaw-command-env.utils.js";
-import { logStartupTrace, measureStartupSync } from "@/cli/shared/utils/startup-trace.js";
-import { getPackageVersion, isProcessRunning } from "@/cli/shared/utils/cli.utils.js";
-import { NpmRuntimeUpdateCommandService } from "@/cli/launcher/npm-runtime-update-command.service.js";
-import { managedServiceStateStore } from "@/cli/shared/stores/managed-service-state.store.js";
+import { RestartCoordinator, type RestartStrategy } from "@nextclaw-service/shared/services/restart/restart-coordinator.service.js";
+import { initializeConfigIfMissing } from "@nextclaw-service/shared/services/runtime/runtime-config-init.service.js";
+import { writeRestartSentinel } from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
+import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
+import { logStartupTrace, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
+import { getPackageVersion, isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
+import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import {
   loadPluginRegistry,
   logPluginDiagnostics,
@@ -24,23 +24,23 @@ import {
   toExtensionRegistry,
   toPluginConfigView,
   PluginCommands,
-} from "@/cli/commands/plugin/index.js";
+} from "@nextclaw-service/commands/plugin/index.js";
 import { ConfigCommands } from "@/cli/commands/config/index.js";
 import { McpCommands } from "@/cli/commands/mcp/index.js";
 import { SecretsCommands } from "@/cli/commands/secrets/index.js";
-import { ChannelCommands } from "@/cli/commands/channel/index.js";
+import { ChannelCommands } from "@nextclaw-service/commands/channel/index.js";
 import { CronCommands } from "@/cli/commands/cron/index.js";
 import { AgentCommands, runCliAgentCommand } from "@/cli/commands/agent/index.js";
-import { PlatformAuthCommands } from "@/cli/commands/platform-auth/index.js";
-import { RemoteCommands, hasRunningNextclawManagedService } from "@/cli/commands/remote/index.js";
+import { PlatformAuthCommands } from "@nextclaw-service/commands/platform-auth/index.js";
+import { RemoteCommands, hasRunningNextclawManagedService } from "@nextclaw-service/commands/remote/index.js";
 import { DiagnosticsCommands } from "@/cli/commands/diagnostics/index.js";
 import { LogsCommands } from "@/cli/commands/logs/index.js";
-import { RuntimeCommandService } from "@/cli/shared/services/runtime/runtime-command.service.js";
-import { ServiceCommands } from "@/cli/commands/service/index.js";
-import { WorkspaceManager } from "@/cli/shared/services/workspace/workspace-manager.service.js";
-import { LlmUsageObserver, ObservedProviderManager } from "@/cli/shared/services/telemetry/llm-usage-observer.service.js";
-import { llmUsageRecorder } from "@/cli/shared/services/telemetry/llm-usage-recorder.service.js";
-import { RuntimeRestartRequestService } from "@/cli/shared/services/restart/runtime-restart-request.service.js";
+import { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
+import { ServiceCommands } from "@nextclaw-service/commands/service/index.js";
+import { WorkspaceManager } from "@nextclaw-service/shared/services/workspace/workspace-manager.service.js";
+import { LlmUsageObserver, ObservedProviderManager } from "@nextclaw-service/shared/services/telemetry/llm-usage-observer.service.js";
+import { llmUsageRecorder } from "@nextclaw-service/shared/services/telemetry/llm-usage-recorder.service.js";
+import { RuntimeRestartRequestService } from "@nextclaw-service/shared/services/restart/runtime-restart-request.service.js";
 import { SkillsCommands } from "@/cli/commands/skills/index.js";
 import { GatewayCommands } from "@/cli/commands/gateway/index.js";
 import { UiCommands } from "@/cli/commands/ui/index.js";
@@ -86,7 +86,7 @@ import type {
   StatusCommandOptions,
   UiCommandOptions,
   UpdateCommandOptions,
-} from "@/cli/shared/types/cli.types.js";
+} from "@nextclaw-service/shared/types/cli.types.js";
 export const LOGO = "🤖";
 const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 
