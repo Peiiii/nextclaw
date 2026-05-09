@@ -6,7 +6,6 @@
   "allowedRootDirectories": ["commands", "launcher", "shared"],
   "allowedRootFiles": [
     "index.ts",
-    "public-command-registrations.service.ts",
     "public-contract.types.ts",
     "service-runtime.service.ts"
   ],

@@ -6,6 +6,8 @@
 
 根因：原 runtime 同时承担组合根和命令代理职责，每新增一个命令都容易多一层手写转发，导致 API 重复、职责不清、测试也跟着绑定旧命名。
 
+同批次补充修正：`registerSkillsCommands` 和 `registerLearningLoopCommands` 属于 CLI commander 装配职责，已从 `@nextclaw-service` 移回 `packages/nextclaw/src/cli/app`，service 包不再导出 command registration。
+
 确认方式：全局搜索旧 wrapper 名称已无命中，CLI 注册点已切到组件 API，类型检查、lint、治理和 smoke 均通过。
 
 ## 测试/验证/验收方式
@@ -23,6 +25,8 @@
 - `pnpm --filter nextclaw build`
 - `node packages/nextclaw/dist/cli/app/index.js --version`
 - `node packages/nextclaw/dist/cli/app/index.js plugins list --help`
+- `node packages/nextclaw/dist/cli/app/index.js skills --help`
+- `node packages/nextclaw/dist/cli/app/index.js learning-loop --help`
 
 ## 发布/部署方式
 
@@ -37,6 +41,8 @@
 ## 可维护性总结汇总
 
 本次是非功能改动，遵守先删减和职责收敛原则。最终非测试代码净减少，`NextclawServiceRuntime` 删除大量重复 wrapper，组件 owner 方法直接承载能力。
+
+同批次补充修正后，service 包继续减少 CLI 注册职责，非测试代码保持净减少。
 
 可维护性 guard 已运行，错误为 0；剩余仅为既有或临近预算 warning，包括若干 legacy CLI 目录和接近文件行数预算的文件。
 

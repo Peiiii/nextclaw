@@ -2,13 +2,11 @@
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
-import {
-  createNextclawServiceRuntime,
-  registerLearningLoopCommands,
-  registerSkillsCommands,
-} from "@nextclaw-service";
+import { createNextclawServiceRuntime } from "@nextclaw-service";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerCompanionCommands } from "./register-companion-commands.js";
+import { registerLearningLoopCommands } from "./register-learning-loop-commands.js";
+import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.service.js";
 
 const LOGO = "🤖";

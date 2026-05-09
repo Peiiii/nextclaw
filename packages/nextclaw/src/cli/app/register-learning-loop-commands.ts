@@ -1,13 +1,9 @@
 import { loadConfig } from "@nextclaw/core";
 import type { Command } from "commander";
-import { readLearningLoopRuntimeConfig } from "./learning-loop.config.js";
+import { readLearningLoopRuntimeConfig, type NextclawServiceRuntime } from "@nextclaw-service";
 
 type LearningLoopCommandRuntime = {
-  configSet: (
-    pathExpr: string,
-    value: string,
-    opts?: { json?: boolean },
-  ) => Promise<void>;
+  configSet: NextclawServiceRuntime["config"]["set"];
 };
 
 function readLearningLoopThresholdOrExit(value: string): number {
