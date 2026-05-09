@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ToolResultContentManager } from "../tool-result-content.manager.js";
-import { appendToolRoundToInput, validateToolArgs } from "../utils.js";
+import { ToolResultContentManager } from "../tool-result/tool-result-content.manager.js";
+import { appendToolRoundToInput, validateToolArgs } from "../runtime/utils.js";
 
 describe("validateToolArgs", () => {
   it("validates a flat object schema with additionalProperties false", () => {

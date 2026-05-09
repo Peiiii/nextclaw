@@ -10,9 +10,9 @@ import type {
 } from "@nextclaw/ncp";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
 import type { NcpToolRegistry } from "@nextclaw/ncp";
-import type { LocalAssetStore } from "./asset-store.js";
+import type { LocalAssetStore } from "../assets/asset-store.js";
 import { buildNcpUserContent } from "./user-content.js";
-import { defaultToolResultContentManager } from "./tool-result-content.manager.js";
+import { defaultToolResultContentManager } from "../tool-result/tool-result-content.manager.js";
 import { buildOpenAiFunctionTool } from "./utils.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {

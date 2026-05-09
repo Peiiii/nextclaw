@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildOpenAiFunctionTool,
   getOpenAiFunctionParametersSchemaIssues,
-} from "../utils.js";
+} from "../runtime/utils.js";
 
 describe("openai tool schema guard", () => {
   it("accepts a root object schema without forbidden top-level keywords", () => {

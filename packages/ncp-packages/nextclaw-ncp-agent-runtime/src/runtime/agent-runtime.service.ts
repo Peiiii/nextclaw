@@ -32,7 +32,7 @@ import {
 import {
   defaultToolResultContentManager,
   type ToolResultContentManager,
-} from "./tool-result-content.manager.js";
+} from "../tool-result/tool-result-content.manager.js";
 
 export type DefaultNcpAgentRuntimeConfig = {
   contextBuilder: NcpContextBuilder;

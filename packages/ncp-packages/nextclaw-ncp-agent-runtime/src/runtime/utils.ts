@@ -10,7 +10,7 @@ import type {
 import {
   defaultToolResultContentManager,
   type ToolResultContentManager,
-} from "./tool-result-content.manager.js";
+} from "../tool-result/tool-result-content.manager.js";
 
 export type ParsedToolArgs =
   | {

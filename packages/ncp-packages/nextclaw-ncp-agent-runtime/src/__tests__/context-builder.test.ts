@@ -2,8 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { LocalAssetStore } from "./asset-store.js";
-import { DefaultNcpContextBuilder } from "./context-builder.js";
+import { LocalAssetStore } from "../assets/asset-store.js";
+import { DefaultNcpContextBuilder } from "../runtime/context-builder.js";
 
 const tempDirs: string[] = [];
 

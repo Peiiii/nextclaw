@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { NcpMessagePart, OpenAIContentPart } from "@nextclaw/ncp";
-import type { LocalAssetStore } from "./asset-store.js";
+import type { LocalAssetStore } from "../assets/asset-store.js";
 
 function readOptionalString(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -17,13 +17,14 @@ function formatAssetReferenceBlock(params: {
   url?: string | null;
   sizeBytes?: number;
 }): string {
-  const fileName = readOptionalString(params.fileName) ?? "asset";
-  const mimeType = readOptionalString(params.mimeType) ?? "application/octet-stream";
-  const assetUri = readOptionalString(params.assetUri);
-  const url = readOptionalString(params.url);
+  const { fileName: rawFileName, mimeType: rawMimeType, assetUri: rawAssetUri, url: rawUrl, sizeBytes } = params;
+  const fileName = readOptionalString(rawFileName) ?? "asset";
+  const mimeType = readOptionalString(rawMimeType) ?? "application/octet-stream";
+  const assetUri = readOptionalString(rawAssetUri);
+  const url = readOptionalString(rawUrl);
   const sizeText =
-    typeof params.sizeBytes === "number" && Number.isFinite(params.sizeBytes)
-      ? String(params.sizeBytes)
+    typeof sizeBytes === "number" && Number.isFinite(sizeBytes)
+      ? String(sizeBytes)
       : null;
 
   const lines = [
