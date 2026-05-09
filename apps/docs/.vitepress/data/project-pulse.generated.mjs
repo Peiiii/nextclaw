@@ -1,13 +1,13 @@
 export default {
-  "generatedAt": "2026-04-25T18:21:41.214Z",
+  "generatedAt": "2026-05-09T15:05:34.296Z",
   "hero": {
     "currentLoc": 182759,
     "trackedFiles": 1321,
-    "recentCommitCount": 640,
-    "activeDays30": 30,
-    "recentReleaseCount": 61,
-    "latestReleaseDate": "2026-04-26",
-    "latestNoteDate": "2026-04-26",
+    "recentCommitCount": 520,
+    "activeDays30": 22,
+    "recentReleaseCount": 65,
+    "latestReleaseDate": "2026-05-07",
+    "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
     "benchmarkCodeLines": 1842003,
     "basePercentOfBenchmark": 9.92,
@@ -344,79 +344,79 @@ export default {
         "key": "2026-04-25",
         "label": "04-25",
         "value": 182759
+      },
+      {
+        "key": "2026-04-26",
+        "label": "04-26",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-27",
+        "label": "04-27",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-28",
+        "label": "04-28",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-29",
+        "label": "04-29",
+        "value": 182759
+      },
+      {
+        "key": "2026-04-30",
+        "label": "04-30",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-01",
+        "label": "05-01",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-02",
+        "label": "05-02",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-03",
+        "label": "05-03",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-04",
+        "label": "05-04",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-05",
+        "label": "05-05",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-06",
+        "label": "05-06",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-07",
+        "label": "05-07",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-08",
+        "label": "05-08",
+        "value": 182759
+      },
+      {
+        "key": "2026-05-09",
+        "label": "05-09",
+        "value": 182759
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-03-27",
-        "label": "03-27",
-        "value": 12
-      },
-      {
-        "key": "2026-03-28",
-        "label": "03-28",
-        "value": 37
-      },
-      {
-        "key": "2026-03-29",
-        "label": "03-29",
-        "value": 17
-      },
-      {
-        "key": "2026-03-30",
-        "label": "03-30",
-        "value": 12
-      },
-      {
-        "key": "2026-03-31",
-        "label": "03-31",
-        "value": 46
-      },
-      {
-        "key": "2026-04-01",
-        "label": "04-01",
-        "value": 17
-      },
-      {
-        "key": "2026-04-02",
-        "label": "04-02",
-        "value": 19
-      },
-      {
-        "key": "2026-04-03",
-        "label": "04-03",
-        "value": 12
-      },
-      {
-        "key": "2026-04-04",
-        "label": "04-04",
-        "value": 12
-      },
-      {
-        "key": "2026-04-05",
-        "label": "04-05",
-        "value": 1
-      },
-      {
-        "key": "2026-04-06",
-        "label": "04-06",
-        "value": 22
-      },
-      {
-        "key": "2026-04-07",
-        "label": "04-07",
-        "value": 5
-      },
-      {
-        "key": "2026-04-08",
-        "label": "04-08",
-        "value": 19
-      },
-      {
-        "key": "2026-04-09",
-        "label": "04-09",
-        "value": 24
-      },
       {
         "key": "2026-04-10",
         "label": "04-10",
@@ -496,19 +496,79 @@ export default {
         "key": "2026-04-25",
         "label": "04-25",
         "value": 11
-      }
-    ],
-    "commitWeekly": [
+      },
       {
-        "key": "2026-02-02",
-        "label": "02-02",
+        "key": "2026-04-26",
+        "label": "04-26",
+        "value": 6
+      },
+      {
+        "key": "2026-04-27",
+        "label": "04-27",
         "value": 0
       },
       {
-        "key": "2026-02-09",
-        "label": "02-09",
-        "value": 73
+        "key": "2026-04-28",
+        "label": "04-28",
+        "value": 0
       },
+      {
+        "key": "2026-04-29",
+        "label": "04-29",
+        "value": 0
+      },
+      {
+        "key": "2026-04-30",
+        "label": "04-30",
+        "value": 0
+      },
+      {
+        "key": "2026-05-01",
+        "label": "05-01",
+        "value": 0
+      },
+      {
+        "key": "2026-05-02",
+        "label": "05-02",
+        "value": 0
+      },
+      {
+        "key": "2026-05-03",
+        "label": "05-03",
+        "value": 0
+      },
+      {
+        "key": "2026-05-04",
+        "label": "05-04",
+        "value": 0
+      },
+      {
+        "key": "2026-05-05",
+        "label": "05-05",
+        "value": 14
+      },
+      {
+        "key": "2026-05-06",
+        "label": "05-06",
+        "value": 41
+      },
+      {
+        "key": "2026-05-07",
+        "label": "05-07",
+        "value": 59
+      },
+      {
+        "key": "2026-05-08",
+        "label": "05-08",
+        "value": 7
+      },
+      {
+        "key": "2026-05-09",
+        "label": "05-09",
+        "value": 8
+      }
+    ],
+    "commitWeekly": [
       {
         "key": "2026-02-16",
         "label": "02-16",
@@ -557,15 +617,20 @@ export default {
       {
         "key": "2026-04-20",
         "label": "04-20",
-        "value": 127
+        "value": 132
+      },
+      {
+        "key": "2026-04-27",
+        "label": "04-27",
+        "value": 0
+      },
+      {
+        "key": "2026-05-04",
+        "label": "05-04",
+        "value": 129
       }
     ],
     "releaseMonthly": [
-      {
-        "key": "2025-05",
-        "label": "05/25",
-        "value": 0
-      },
       {
         "key": "2025-06",
         "label": "06/25",
@@ -620,6 +685,11 @@ export default {
         "key": "2026-04",
         "label": "04/26",
         "value": 17
+      },
+      {
+        "key": "2026-05",
+        "label": "05/26",
+        "value": 3
       }
     ]
   },
@@ -682,8 +752,34 @@ export default {
     },
     "recentReleaseBatches": [
       {
+        "date": "2026-05-07",
+        "tagCount": 282,
+        "sampleTags": [
+          "@nextclaw/channel-plugin-dingtalk@0.2.44-beta.1",
+          "@nextclaw/channel-plugin-discord@0.2.44-beta.1",
+          "@nextclaw/channel-plugin-email@0.2.44-beta.1"
+        ]
+      },
+      {
+        "date": "2026-05-06",
+        "tagCount": 44,
+        "sampleTags": [
+          "@nextclaw/kernel@0.1.2-beta.0",
+          "@nextclaw/agent-chat-ui@0.3.13-beta.0",
+          "@nextclaw/channel-plugin-dingtalk@0.2.44-beta.0"
+        ]
+      },
+      {
+        "date": "2026-05-05",
+        "tagCount": 2,
+        "sampleTags": [
+          "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.56",
+          "nextclaw@0.18.11"
+        ]
+      },
+      {
         "date": "2026-04-26",
-        "tagCount": 5,
+        "tagCount": 27,
         "sampleTags": [
           "@nextclaw/agent-chat-ui@0.3.12",
           "@nextclaw/ui@0.12.17",
@@ -692,53 +788,46 @@ export default {
       },
       {
         "date": "2026-04-25",
-        "tagCount": 7,
+        "tagCount": 3,
         "sampleTags": [
-          "@nextclaw/app-runtime@0.7.0",
-          "@nextclaw/app-sdk@0.1.0",
-          "@nextclaw/agent-chat-ui@0.3.10"
+          "@nextclaw/agent-chat-ui@0.3.10",
+          "@nextclaw/ui@0.12.15",
+          "nextclaw@0.18.7"
         ]
       },
       {
         "date": "2026-04-24",
-        "tagCount": 43,
+        "tagCount": 47,
         "sampleTags": [
-          "@nextclaw/channel-plugin-dingtalk@0.2.42",
-          "@nextclaw/channel-plugin-discord@0.2.42",
-          "@nextclaw/channel-plugin-email@0.2.42"
-        ]
-      },
-      {
-        "date": "2026-04-20",
-        "tagCount": 38,
-        "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.8",
-          "@nextclaw/channel-plugin-dingtalk@0.2.41",
-          "@nextclaw/channel-plugin-discord@0.2.41"
-        ]
-      },
-      {
-        "date": "2026-04-18",
-        "tagCount": 38,
-        "sampleTags": [
-          "v0.18.0-desktop.1",
-          "@nextclaw/channel-plugin-dingtalk@0.2.40",
-          "@nextclaw/agent-chat-ui@0.3.7"
-        ]
-      },
-      {
-        "date": "2026-04-17",
-        "tagCount": 59,
-        "sampleTags": [
-          "@nextclaw/channel-plugin-dingtalk@0.2.38",
-          "@nextclaw/agent-chat-ui@0.3.6",
-          "@nextclaw/channel-plugin-discord@0.2.38"
+          "@nextclaw/app-runtime@0.6.0",
+          "v0.18.4-desktop.1",
+          "@nextclaw/channel-plugin-dingtalk@0.2.42"
         ]
       }
     ]
   },
   "timeline": {
     "notes": [
+      {
+        "slug": "2026-05-06-auto-update-and-context-awareness",
+        "date": "2026-05-06",
+        "tags": [
+          "release",
+          "updates",
+          "context",
+          "chat"
+        ],
+        "en": {
+          "title": "2026-05-06 · Auto Updates and Long-Context Awareness",
+          "description": "NextClaw now supports auto updates, context window usage, and automatic long-session compaction so daily use feels easier and long tasks stay more continuous.",
+          "href": "/en/notes/2026-05-06-auto-update-and-context-awareness"
+        },
+        "zh": {
+          "title": "2026-05-06 · 自动更新与长会话上下文管理上线",
+          "description": "NextClaw 现在支持自动更新、上下文窗口统计和长会话自动压缩，让日常使用更省心，也让长任务更连续。",
+          "href": "/zh/notes/2026-05-06-auto-update-and-context-awareness"
+        }
+      },
       {
         "slug": "2026-04-26-mobile-experience-update",
         "date": "2026-04-26",
@@ -899,7 +988,7 @@ export default {
     "locProfile": "source",
     "locGeneratedAt": "2026-04-14T03:21:09.237Z",
     "sourceCount": {
-      "notes": 4,
+      "notes": 5,
       "scopes": 8
     }
   }
