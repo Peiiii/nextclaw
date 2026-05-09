@@ -36,7 +36,7 @@ jobs:
 
       - name: Generate source LOC metrics
         run: |
-          node scripts/code-volume-metrics.mjs \
+          node scripts/metrics/code-volume-metrics.mjs \
             --append-history \
             --summary-file "$RUNNER_TEMP/code-volume-summary.md" \
             --benchmark-name openclaw \
