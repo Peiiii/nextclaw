@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-05-10T08:21:29.408Z",
+  "generatedAt": "2026-05-10T08:29:19.024Z",
   "hero": {
     "currentLoc": 187293,
     "testLoc": 59141,
     "trackedFiles": 1888,
-    "recentCommitCount": 501,
+    "recentCommitCount": 502,
     "activeDays30": 22,
     "recentReleaseCount": 65,
     "latestReleaseDate": "2026-05-07",
@@ -419,7 +419,14 @@ export default {
       {
         "key": "2026-05-10",
         "label": "05-10",
-        "value": 245505
+        "value": 187293
+      }
+    ],
+    "testLocDaily": [
+      {
+        "key": "2026-05-10",
+        "label": "05-10",
+        "value": 59141
       }
     ],
     "commitDaily": [
@@ -571,7 +578,7 @@ export default {
       {
         "key": "2026-05-10",
         "label": "05-10",
-        "value": 4
+        "value": 5
       }
     ],
     "commitWeekly": [
@@ -633,7 +640,7 @@ export default {
       {
         "key": "2026-05-04",
         "label": "05-04",
-        "value": 137
+        "value": 138
       }
     ],
     "releaseMonthly": [

@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import {
   copyGalleryAssets,
   createDayRange,
+  mergeLatestLocSnapshot,
   readCommitSeries,
   readJson,
   readLocHistory,
@@ -149,13 +150,15 @@ const releaseMetrics = readReleaseSeries({ rootDir, now });
 const notesTimeline = readNotesTimeline({ notesRootEn, notesRootZh });
 const gallery = copyGalleryAssets({ rootDir, docsPublicGalleryDir, galleryItems });
 const productionCodeLines = safeNumber(latestMetrics.totals?.codeLines);
+const testCodeLines = safeNumber(latestMetrics.totals?.testCodeLines);
+const visibleLocHistory = mergeLatestLocSnapshot(locHistory, latestMetrics);
 
-const dailyLocSeries = (() => {
+const createDailyLocSeries = (metricKey) => {
   const fallbackDays = createDayRange(now, 120);
-  const firstHistoryDate = locHistory[0]?.date ?? "";
+  const firstHistoryDate = visibleLocHistory[0]?.date ?? "";
   const firstVisibleDate = firstHistoryDate && firstHistoryDate > fallbackDays[0] ? firstHistoryDate : fallbackDays[0];
   const recentDays = fallbackDays.filter((day) => day >= firstVisibleDate);
-  const historyByDay = new Map(locHistory.map((entry) => [entry.date, entry.value]));
+  const historyByDay = new Map(visibleLocHistory.map((entry) => [entry.date, safeNumber(entry[metricKey])]));
   let lastValue = 0;
   return recentDays.map((day) => {
     if (historyByDay.has(day)) {
@@ -167,7 +170,16 @@ const dailyLocSeries = (() => {
       value: lastValue
     };
   });
-})();
+};
+
+const dailyLocSeries = createDailyLocSeries("productionCodeLines");
+const dailyTestLocSeries = visibleLocHistory
+  .filter((entry) => safeNumber(entry.testCodeLines) > 0)
+  .map((entry) => ({
+    key: entry.date,
+    label: entry.date.slice(5),
+    value: safeNumber(entry.testCodeLines)
+  }));
 
 const topScopes = (latestMetrics.byScope ?? []).slice(0, 8).map((scope) => ({
   name: scope.name,
@@ -183,7 +195,8 @@ const topScopes = (latestMetrics.byScope ?? []).slice(0, 8).map((scope) => ({
 const payload = {
   generatedAt: now.toISOString(),
   hero: {
-    currentLoc: productionCodeLines, testLoc: safeNumber(latestMetrics.totals?.testCodeLines),
+    currentLoc: productionCodeLines,
+    testLoc: testCodeLines,
     trackedFiles: safeNumber(latestMetrics.totals?.files),
     recentCommitCount: commitMetrics.totals.recent30Count,
     activeDays30: commitMetrics.totals.activeDays30,
@@ -197,6 +210,7 @@ const payload = {
   },
   trends: {
     locDaily: dailyLocSeries,
+    testLocDaily: dailyTestLocSeries,
     commitDaily: commitMetrics.dailySeries,
     commitWeekly: commitMetrics.weeklySeries,
     releaseMonthly: releaseMetrics.monthlySeries

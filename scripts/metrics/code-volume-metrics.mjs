@@ -160,8 +160,10 @@ if (options.appendHistory && !options.noWrite) {
   const historyEntry = {
     generatedAt: snapshotWithDelta.generatedAt,
     codeLines: totals.codeLines,
+    testCodeLines: totals.testCodeLines,
     totalLines: totals.totalLines,
     files: totals.files,
+    codeLineSemantics: snapshotWithDelta.scope.codeLineSemantics,
     sha: snapshotWithDelta.git.sha,
     ref: snapshotWithDelta.git.ref
   };

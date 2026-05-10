@@ -122,6 +122,18 @@ const trendCards = computed(() => [
     featured: true
   },
   {
+    key: 'test-loc',
+    title: t.value.cards.testLoc.title,
+    description: t.value.cards.testLoc.description,
+    headline: pulseData.hero.testLoc.toLocaleString(),
+    series: pulseData.trends.testLocDaily,
+    accentStart: '#16a34a',
+    accentEnd: '#14b8a6',
+    valueUnit: t.value.chart.locUnit,
+    deltaLabel: t.value.chart.locDeltaLabel,
+    windowLabel: t.value.chart.testLocWindow
+  },
+  {
     key: 'commits',
     title: t.value.cards.commits.title,
     description: t.value.cards.commits.description,

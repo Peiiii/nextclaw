@@ -24,6 +24,10 @@ export const projectPulseCopy = {
         title: 'Production LOC trend',
         description: 'A running signal of implementation scope, not a quality score by itself.'
       },
+      testLoc: {
+        title: 'Test LOC trend',
+        description: 'A separate signal for verification investment so tests do not inflate production scope.'
+      },
       commits: {
         title: 'Commit rhythm',
         description: 'Switch between daily and weekly views to read short-term execution and broader delivery cadence.'
@@ -77,6 +81,7 @@ export const projectPulseCopy = {
       commitWeeklyDeltaLabel: 'vs previous week',
       releaseDeltaLabel: 'vs previous month',
       locWindow: 'Recent production source snapshot window',
+      testLocWindow: 'Recent test source snapshot window',
       commitDailyWindow: '30-day daily commit rhythm',
       commitWeeklyWindow: '12-week delivery rhythm',
       releaseWindow: '12-month release rhythm'
@@ -115,6 +120,10 @@ export const projectPulseCopy = {
       loc: {
         title: '生产源码 LOC 趋势',
         description: '这是实现范围的持续信号，不是单独的质量评分。'
+      },
+      testLoc: {
+        title: '测试 LOC 趋势',
+        description: '单独展示验证投入，避免测试代码抬高生产复杂度曲线。'
       },
       commits: {
         title: 'commit 节奏',
@@ -169,6 +178,7 @@ export const projectPulseCopy = {
       commitWeeklyDeltaLabel: '较上一周',
       releaseDeltaLabel: '较上一月',
       locWindow: '近期生产源码快照窗口',
+      testLocWindow: '近期测试源码快照窗口',
       commitDailyWindow: '近 30 天每日 commit 节奏',
       commitWeeklyWindow: '近 12 周交付节奏',
       releaseWindow: '近 12 个月发版节奏'

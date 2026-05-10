@@ -131,13 +131,34 @@ export const readLocHistory = (historyMetricsPath) => {
       }
       latestByDay.set(dayKey, {
         date: dayKey,
-        value: safeNumber(entry.codeLines)
+        productionCodeLines: safeNumber(entry.codeLines),
+        testCodeLines: safeNumber(entry.testCodeLines)
       });
     } catch {
       // Ignore malformed history rows.
     }
   }
 
+  return [...latestByDay.values()].sort((left, right) => left.date.localeCompare(right.date));
+};
+
+export const mergeLatestLocSnapshot = (history, latestMetrics) => {
+  const dayKey =
+    typeof latestMetrics?.generatedAt === "string" ? latestMetrics.generatedAt.slice(0, 10) : "";
+
+  if (!dayKey) {
+    return history;
+  }
+
+  const productionCodeLines = safeNumber(latestMetrics.totals?.codeLines);
+  const testCodeLines = safeNumber(latestMetrics.totals?.testCodeLines);
+  const latestEntry = {
+    date: dayKey,
+    productionCodeLines,
+    testCodeLines
+  };
+  const latestByDay = new Map(history.map((entry) => [entry.date, entry]));
+  latestByDay.set(dayKey, latestEntry);
   return [...latestByDay.values()].sort((left, right) => left.date.localeCompare(right.date));
 };
 
