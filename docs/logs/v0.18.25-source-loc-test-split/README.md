@@ -19,6 +19,8 @@
 - Project Pulse 生成数据验收：`hero.currentLoc = 187293`，`trends.locDaily.at(-1).value = 187293`，`trends.testLocDaily.at(-1).value = 59141`。
 - `pnpm exec eslint apps/docs/.vitepress/config.ts --max-warnings=0`：通过。
 - `pnpm -C apps/docs build`：通过，确认统一侧边栏配置可正常构建；保留 VitePress chunk size warning。
+- `pnpm deploy:docs`：通过，Cloudflare Pages 部署完成，预览地址 `https://aeb3fce0.nextclaw-docs.pages.dev`。
+- 线上冒烟：`https://aeb3fce0.nextclaw-docs.pages.dev/zh/project/project-pulse` 与 `https://docs.nextclaw.io/zh/project/project-pulse` 均返回 `200`；预览页 HTML 中确认 `项目信息` 与 `Project Pulse` 出现在同一左侧目录。
 - `node scripts/governance/lint-new-code-governance.mjs --staged`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `post-edit-maintainability-guard --non-feature --paths ...`：通过，非测试代码净增 `-2`。
@@ -26,7 +28,11 @@
 
 ## 发布/部署方式
 
-不涉及线上部署。文档站下一次正常构建会使用新的 Project Pulse 生成逻辑。
+已部署到 Cloudflare Pages 项目 `nextclaw-docs`：
+
+- 预览地址：`https://aeb3fce0.nextclaw-docs.pages.dev`
+- 正式域名：`https://docs.nextclaw.io`
+- 本次不涉及数据库 migration、后端 worker 发布或 NPM 包发布。
 
 ## 用户/产品视角的验收步骤
 
