@@ -1,5 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
-import { nextclaw, type EventBus } from "@nextclaw/kernel";
+import { nextclaw, type EventBus, type Ingress } from "@nextclaw/kernel";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
@@ -29,7 +29,6 @@ import { companionRuntimeService } from "@nextclaw-service/shared/services/ui/co
 import { handleGatewayDeferredStartupError } from "@nextclaw-service/shared/services/gateway/utils/gateway-runtime-lifecycle.utils.js";
 import { NextclawApp, type UiStartupHandle } from "@nextclaw-service/shared/services/gateway/nextclaw-app.service.js";
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.js";
-import { WebhookService } from "@nextclaw-service/shared/services/webhook/webhook.service.js";
 import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import { ServiceNcpSessionRealtimeBridge } from "@nextclaw-service/shared/services/session/service-ncp-session-realtime-bridge.service.js";
 import { createDeferredUiNcpAgent } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
@@ -101,7 +100,7 @@ export class NextclawGatewayRuntime {
   readonly cron: CronService;
   readonly runtimeControl: UiRuntimeControlHost;
   readonly runtimeUpdate: UiRuntimeUpdateHost | null;
-  readonly webhook: WebhookService;
+  readonly ingress: Ingress;
   readonly productVersion: string;
   readonly providerManager: ProviderManager;
   readonly gatewayController: GatewayControllerImpl;
@@ -134,13 +133,13 @@ export class NextclawGatewayRuntime {
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
     });
     this.appEventBus = nextclaw.eventBus;
+    this.ingress = nextclaw.ingress;
     this.messageBus = new MessageBus();
     this.sessionManager = measureStartupSync(
       "service.gateway.session_manager",
       () => new SessionManager({ workspace: this.workspaceManager.workspace, homeDir: getDataDir() })
     );
     this.cron = new CronService(join(getDataDir(), "cron", "jobs.json"));
-    this.webhook = new WebhookService();
     this.productVersion = getPackageVersion();
     this.plugins = new GatewayPluginManager(this);
     this.providerManager = this.createProviderManager(config);
@@ -190,7 +189,7 @@ export class NextclawGatewayRuntime {
     installBuiltinProviderRegistry();
     logStartupTrace("service.start_gateway.begin");
     await this.reset();
-    this.configureWebhookHandlers();
+    this.configureIngressHandlers();
     this.uiStartup = await this.startUiRuntime();
     await companionRuntimeService.applyConfig(this.configManager.config);
     await this.markUiRuntimeReady();
@@ -278,6 +277,7 @@ export class NextclawGatewayRuntime {
   private createUiRouterOptions = (): UiRouterOptions => ({
     configPath: this.configManager.configPath,
     appEventBus: this.appEventBus,
+    ingress: this.ingress,
     uiConfig: this.configManager.uiConfig,
     uiStaticDir: this.configManager.uiStaticDir,
     productVersion: this.productVersion,
@@ -290,7 +290,6 @@ export class NextclawGatewayRuntime {
     remoteAccess: this.remoteManager.remoteAccess,
     runtimeControl: this.runtimeControl,
     ...(this.runtimeUpdate ? { runtimeUpdate: this.runtimeUpdate } : {}),
-    webhook: this.webhook,
     bootstrapStatus: this.bootstrapStatus,
     plugins: this.plugins,
   });
@@ -415,8 +414,8 @@ export class NextclawGatewayRuntime {
     installPluginRuntimeBridge(this);
   };
 
-  private configureWebhookHandlers = (): void => {
-    this.extensions.registerWebhookHandlers(this.webhook);
+  private configureIngressHandlers = (): void => {
+    this.extensions.registerIngressHandlers(this.ingress);
   };
 
 }

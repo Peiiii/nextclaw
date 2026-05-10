@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { mountNcpHttpAgentRoutes } from "@nextclaw/ncp-http-agent-server";
+import type { IngressEnvelope } from "@nextclaw/kernel";
 import { UiAuthService } from "./auth.service.js";
 import { AgentsRoutesController } from "./ui-routes/agents.controller.js";
 import { AppRoutesController } from "./ui-routes/app.controller.js";
@@ -20,7 +21,7 @@ import { RuntimeControlRoutesController } from "./ui-routes/runtime-control.cont
 import { RuntimeUpdateRoutesController } from "./ui-routes/runtime-update.controller.js";
 import { err, ok, readJson } from "./ui-routes/response.js";
 import { ServerPathRoutesController } from "./ui-routes/server-path.controller.js";
-import type { UiRouterOptions, UiWebhookEnvelope, UiWebhookHost } from "./ui-routes/types.js";
+import type { UiRouterOptions } from "./ui-routes/types.js";
 
 function registerAuthRoutes(app: Hono, authController: AuthRoutesController): void {
   app.get("/api/auth/status", authController.getStatus);
@@ -148,25 +149,25 @@ function readBearerToken(request: Request): string | null {
   return match?.[1]?.trim() || null;
 }
 
-function isValidWebhookEnvelope(value: UiWebhookEnvelope): boolean {
+function isValidIngressEnvelope(value: IngressEnvelope): boolean {
   return typeof value.type === "string" && value.type.trim().length > 0;
 }
 
-function registerWebhookRoutes(app: Hono, webhook: UiWebhookHost | undefined): void {
+function registerIngressRoutes(app: Hono, gateway: UiRouterOptions): void {
   app.post("/webhook", async (c) => {
-    if (!webhook) {
-      return c.json(err("WEBHOOK_UNAVAILABLE", "webhook is not configured"), 503);
+    if (!gateway.ingress) {
+      return c.json(err("INGRESS_UNAVAILABLE", "ingress is not configured"), 503);
     }
 
-    const body = await readJson<UiWebhookEnvelope>(c.req.raw);
-    if (!body.ok || !isValidWebhookEnvelope(body.data)) {
-      return c.json(err("INVALID_BODY", "invalid webhook body"), 400);
+    const body = await readJson<IngressEnvelope>(c.req.raw);
+    if (!body.ok || !isValidIngressEnvelope(body.data)) {
+      return c.json(err("INVALID_BODY", "invalid ingress body"), 400);
     }
 
     try {
-      const result = await webhook.handleWebhook(body.data, {
+      const result = await gateway.ingress.handle(body.data, {
+        source: "webhook",
         token: readBearerToken(c.req.raw),
-        request: c.req.raw,
       });
       return c.json(ok(result ?? { accepted: true }));
     } catch (error) {
@@ -236,7 +237,7 @@ export function createUiRouter(options: UiRouterOptions, authServiceOverride?: U
   registerRemoteRoutes(app, controllers.remote);
   registerRuntimeControlRoutes(app, controllers.runtimeControl);
   registerRuntimeUpdateRoutes(app, controllers.runtimeUpdate);
-  registerWebhookRoutes(app, options.webhook);
+  registerIngressRoutes(app, options);
 
   mountMarketplaceRoutes(app, {
     plugin: controllers.pluginMarketplace,

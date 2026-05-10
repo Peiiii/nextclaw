@@ -1,4 +1,4 @@
-export { createAppEventKey, EventBus, eventKeys } from "@nextclaw/shared";
+export { createAppEventKey, EventBus, Ingress, eventKeys } from "@nextclaw/shared";
 export type {
   AppEvent,
   AppEventEmitOptions,
@@ -10,5 +10,8 @@ export type {
   EventEnvelope,
   EventHandler,
   EventKey,
+  IngressContext,
+  IngressEnvelope,
+  IngressHandler,
   Unsubscribe,
 } from "@nextclaw/shared";

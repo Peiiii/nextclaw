@@ -9,7 +9,4 @@ export type {
   UiRouterOptions,
   UiRuntimeControlHost,
   UiRuntimeUpdateHost,
-  UiWebhookContext,
-  UiWebhookEnvelope,
-  UiWebhookHost,
 } from "./ui/ui-routes/types.js";

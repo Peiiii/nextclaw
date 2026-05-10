@@ -49,7 +49,7 @@ export class ExtensionTransportService {
     }
   }
 
-  readonly postWebhook = async <TResponse = unknown>(
+  readonly postIngress = async <TResponse = unknown>(
     type: string,
     payload: unknown,
   ): Promise<TResponse> => {
@@ -70,7 +70,7 @@ export class ExtensionTransportService {
     });
     const body = (await response.json().catch(() => null)) as unknown;
     if (!response.ok) {
-      throw new Error(this.readErrorMessage(body, `NextClaw webhook failed with ${response.status}`));
+      throw new Error(this.readErrorMessage(body, `NextClaw ingress failed with ${response.status}`));
     }
     return body as TResponse;
   };

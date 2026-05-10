@@ -41,7 +41,7 @@ class ChannelConfigService implements ExtensionChannelConfigService {
   ) {}
 
   readonly get = async <TConfig = unknown>(): Promise<TConfig> => {
-    const response = await this.params.transport.postWebhook<ChannelConfigGetResponse<TConfig>>(
+    const response = await this.params.transport.postIngress<ChannelConfigGetResponse<TConfig>>(
       CONFIG_GET_EVENT_TYPE,
       { channelId: this.params.channelId },
     );
@@ -101,7 +101,7 @@ export class ExtensionChannelService implements ExtensionChannel {
   readonly submitMessage = async (
     input: Omit<ChannelSubmittedMessage, "channelId">,
   ): Promise<void> => {
-    await this.params.transport.postWebhook(MESSAGE_SUBMIT_EVENT_TYPE, {
+    await this.params.transport.postIngress(MESSAGE_SUBMIT_EVENT_TYPE, {
       ...input,
       channelId: this.id,
     });

@@ -1,5 +1,5 @@
 export * from "@kernel/app/nextclaw-kernel.js";
-export * from "@kernel/app/nextclaw-app.service.js";
+export * from "@kernel/app/nextclaw-app.js";
 export * from "@kernel/events/index.js";
 export * from "@kernel/managers/agent.manager.js";
 export * from "@kernel/managers/task.manager.js";

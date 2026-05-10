@@ -1,4 +1,10 @@
 export { EventBus } from "./services/event-bus.service.js";
+export { Ingress } from "./services/ingress.service.js";
+export type {
+  IngressContext,
+  IngressEnvelope,
+  IngressHandler,
+} from "./services/ingress.service.js";
 export type {
   AppEventEmitOptions,
   AppEventEnvelope,

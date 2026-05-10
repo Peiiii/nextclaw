@@ -2,7 +2,7 @@
 
 ## 当前目标
 
-把 gateway 启动链路收敛成“直接传 gateway 对象”，并继续推进 extension SDK / gateway runtime 方案，不再通过换名制造临时 host/runtime/gateway 类型。
+把 extension 外部入口收敛成通用 `Ingress`：HTTP `/webhook` 只做路由绑定，内部直接进入 `gateway.ingress`，删除旧 `WebhookService` / `UiWebhook*` / extension 专属 webhook 抽象。
 
 ## 明确非目标
 
@@ -14,6 +14,7 @@
 - webhook 是通用入口，不是 extension 专属。
 - `/ws` 复用现有实时通道。
 - 非新增能力改动必须优先删除重复结构。
+- 不新增 adapter / host / context 换皮层；能直接访问 owner 就直接访问。
 
 ## 已完成进展
 
@@ -29,11 +30,17 @@
 - 已通过 `@nextclaw-service` / `@nextclaw/server` / `nextclaw` TypeScript 验证、targeted gateway/plugin/NCP tests、三包 ESLint、`pnpm lint:new-code:governance`、maintainability guard、governance ratchet 与 `git diff --check`。
 - 已定位并修复 dev start 左上角版本与更新状态问题：禁用 runtime update host 时不再注册 update 路由；产品版本解析优先读取 `nextclaw` 产品包版本。
 - 已修正 service 包真实发布名为 `@nextclaw/service`，`@nextclaw-service` 仅保留为源码内部 alias。
+- 已新增共享 `Ingress`，并挂到 `nextclaw.ingress`，与 `nextclaw.eventBus` 同级。
+- 已让 `NextclawGatewayRuntime` 持有 `nextclaw.ingress` 并传给 server；server 的 `/webhook` 路由直接调用 `gateway.ingress.handle()`。
+- 已删除 service 侧 `WebhookService` 及其测试，删除 server 侧 `UiWebhookEnvelope` / `UiWebhookContext` / `UiWebhookHost` 导出。
+- 已把 extension runtime 的 channel config / submit message handler 注册到 `Ingress`，extension SDK 内部提交命名从 webhook 调整为 ingress，HTTP 路径仍保留通用 `/webhook`。
+- 已避免为测试批量污染 legacy root 测试文件，保留旧测试默认不需要传 ingress；新增 route 级 ingress 测试落到 `ui-routes/` 子树。
+- 已通过相关 tsc / lint / maintainability / governance / diff-check；server route test 当前受既有 Vitest alias 解析问题阻塞，已记录在验证结果中。
 
 ## 当前下一步
 
-等待 review；当前 dev server 需要重启后才能看到版本与更新状态修复生效。
+最终复核 diff 和验证结果，确认没有旧 webhook 抽象残留后交付 review。
 
 ## 锚点计数器
 
-13/20
+2/20

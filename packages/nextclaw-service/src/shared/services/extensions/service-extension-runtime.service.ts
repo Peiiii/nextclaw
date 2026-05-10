@@ -1,6 +1,6 @@
 import type * as NextclawCore from "@nextclaw/core";
 import { getDataPath } from "@nextclaw/core";
-import type { UiWebhookContext, UiWebhookEnvelope } from "@nextclaw/server";
+import type { Ingress, IngressContext, IngressEnvelope } from "@nextclaw/kernel";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import {
@@ -9,14 +9,13 @@ import {
   type RunningExtensionProcess,
 } from "./extension-lifecycle.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
-import type { WebhookService } from "@nextclaw-service/shared/services/webhook/webhook.service.js";
 
 type Config = NextclawCore.Config;
 type InboundAttachment = NextclawCore.InboundAttachment;
 type InboundMessage = NextclawCore.InboundMessage;
 
-const EXTENSION_CONFIG_GET_WEBHOOK_TYPE = "extension.channel.config.get";
-const EXTENSION_MESSAGE_SUBMIT_WEBHOOK_TYPE = "extension.channel.message.submit";
+const EXTENSION_CONFIG_GET_INGRESS_TYPE = "extension.channel.config.get";
+const EXTENSION_MESSAGE_SUBMIT_INGRESS_TYPE = "extension.channel.message.submit";
 
 type ChannelSubmittedMessagePayload = {
   channelId?: unknown;
@@ -56,7 +55,7 @@ function readRequiredString(value: unknown, name: string): string {
 function readTextContent(value: unknown): string {
   const content = readRecord(value);
   if (content.type !== "text" || typeof content.text !== "string") {
-    throw new Error("only text channel messages are supported by the first webhook bridge");
+    throw new Error("only text channel messages are supported by the first ingress bridge");
   }
   return content.text;
 }
@@ -122,13 +121,13 @@ export class ServiceExtensionRuntime {
 
   constructor(private readonly gateway: NextclawGatewayRuntime) {}
 
-  readonly registerWebhookHandlers = (webhook: WebhookService): void => {
-    webhook.addHandler(
-      EXTENSION_CONFIG_GET_WEBHOOK_TYPE,
+  readonly registerIngressHandlers = (ingress: Ingress): void => {
+    ingress.addHandler(
+      EXTENSION_CONFIG_GET_INGRESS_TYPE,
       this.handleChannelConfigGet,
     );
-    webhook.addHandler(
-      EXTENSION_MESSAGE_SUBMIT_WEBHOOK_TYPE,
+    ingress.addHandler(
+      EXTENSION_MESSAGE_SUBMIT_INGRESS_TYPE,
       this.handleChannelMessageSubmit,
     );
   };
@@ -157,8 +156,8 @@ export class ServiceExtensionRuntime {
   };
 
   private readonly handleChannelConfigGet = (
-    envelope: UiWebhookEnvelope,
-    context: UiWebhookContext,
+    envelope: IngressEnvelope,
+    context: IngressContext,
   ) => {
     this.assertAuthorized(context);
     const payload = readRecord(envelope.payload);
@@ -169,17 +168,17 @@ export class ServiceExtensionRuntime {
   };
 
   private readonly handleChannelMessageSubmit = async (
-    envelope: UiWebhookEnvelope,
-    context: UiWebhookContext,
+    envelope: IngressEnvelope,
+    context: IngressContext,
   ) => {
     this.assertAuthorized(context);
     await this.gateway.messageBus.publishInbound(toInboundMessage(readRecord(envelope.payload)));
     return { accepted: true };
   };
 
-  private readonly assertAuthorized = (context: UiWebhookContext): void => {
+  private readonly assertAuthorized = (context: IngressContext): void => {
     if (context.token !== this.token) {
-      throw new Error("Unauthorized webhook token");
+      throw new Error("Unauthorized ingress token");
     }
   };
 }

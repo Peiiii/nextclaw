@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { NextClawExtensionService } from "./index.js";
 
 describe("@nextclaw/extension-sdk", () => {
-  it("submits channel messages through the generic webhook", async () => {
+  it("submits channel messages through the ingress endpoint", async () => {
     const fetchImpl = vi.fn(async () =>
       new Response(JSON.stringify({ ok: true, data: { accepted: true } }), {
         status: 200,

@@ -49,7 +49,7 @@ describe("resolveExtensionManifestRoots", () => {
 });
 
 describe("startDiscoveredExtensions", () => {
-  it("starts discovered manifest processes with the shared webhook token", async () => {
+  it("starts discovered manifest processes with the shared ingress token", async () => {
     const root = createTempDir();
     const extensionDir = join(root, "fake-extension");
     mkdirSync(extensionDir);

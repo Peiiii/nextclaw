@@ -154,9 +154,6 @@ function createTestGateway(params: {
       updatePreferences: () => updateSnapshot,
       updateChannel: () => updateSnapshot,
     },
-    webhook: {
-      handleWebhook: unavailable,
-    },
     bootstrapStatus: {
       getStatus: () => ({
         phase: "ready",
