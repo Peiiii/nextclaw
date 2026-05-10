@@ -1,5 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
-import { nextclaw, type EventBus, type UpdateSnapshot } from "@nextclaw/kernel";
+import { nextclaw, type EventBus } from "@nextclaw/kernel";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
@@ -69,44 +69,6 @@ function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "m
   return "manual-process-restart";
 }
 
-class DisabledRuntimeUpdateHost implements UiRuntimeUpdateHost {
-  private readonly snapshot: UpdateSnapshot = {
-    status: "blocked",
-    installationKind: "unknown",
-    channel: "stable",
-    hostVersion: null,
-    currentVersion: null,
-    availableVersion: null,
-    downloadedVersion: null,
-    minimumHostVersion: null,
-    releaseNotesUrl: null,
-    lastCheckedAt: null,
-    progress: null,
-    canAutoDownload: false,
-    canApplyInApp: false,
-    requiresRestart: false,
-    blockReason: "unsupported-installation",
-    recoveryCommand: null,
-    errorMessage: "Runtime update host is disabled.",
-    preferences: {
-      automaticChecks: false,
-      autoDownload: false,
-    },
-  };
-
-  getState = (): UpdateSnapshot => this.snapshot;
-
-  checkForUpdates = (): UpdateSnapshot => this.snapshot;
-
-  downloadUpdate = (): UpdateSnapshot => this.snapshot;
-
-  applyDownloadedUpdate = (): UpdateSnapshot => this.snapshot;
-
-  updatePreferences = (): UpdateSnapshot => this.snapshot;
-
-  updateChannel = (): UpdateSnapshot => this.snapshot;
-}
-
 type Config = NextclawCore.Config;
 type LLMProvider = NextclawCore.LLMProvider;
 type LiteLLMProvider = NextclawCore.LiteLLMProvider;
@@ -138,7 +100,7 @@ export class NextclawGatewayRuntime {
   readonly sessionManager: SessionManager;
   readonly cron: CronService;
   readonly runtimeControl: UiRuntimeControlHost;
-  readonly runtimeUpdate: UiRuntimeUpdateHost;
+  readonly runtimeUpdate: UiRuntimeUpdateHost | null;
   readonly webhook: WebhookService;
   readonly productVersion: string;
   readonly providerManager: ProviderManager;
@@ -210,7 +172,7 @@ export class NextclawGatewayRuntime {
     });
     this.runtimeUpdate =
       process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST === "1"
-        ? new DisabledRuntimeUpdateHost()
+        ? null
         : createNpmRuntimeUpdateHost({
             applyRestartMode: resolveApplyRestartMode(this.configManager.uiConfig.port),
             requestRestart: this.deps.requestRestart,
@@ -327,7 +289,7 @@ export class NextclawGatewayRuntime {
     sessions: this.sessions,
     remoteAccess: this.remoteManager.remoteAccess,
     runtimeControl: this.runtimeControl,
-    runtimeUpdate: this.runtimeUpdate,
+    ...(this.runtimeUpdate ? { runtimeUpdate: this.runtimeUpdate } : {}),
     webhook: this.webhook,
     bootstrapStatus: this.bootstrapStatus,
     plugins: this.plugins,

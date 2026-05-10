@@ -27,10 +27,12 @@
 - 已把 constructor 胶水 owner 拆到 `gateway/managers/` 独立文件。
 - 已把 classless `.service.ts` 改为 `.utils.ts` 并移动到对应 `utils/` 目录。
 - 已通过 `@nextclaw-service` / `@nextclaw/server` / `nextclaw` TypeScript 验证、targeted gateway/plugin/NCP tests、三包 ESLint、`pnpm lint:new-code:governance`、maintainability guard、governance ratchet 与 `git diff --check`。
+- 已定位并修复 dev start 左上角版本与更新状态问题：禁用 runtime update host 时不再注册 update 路由；产品版本解析优先读取 `nextclaw` 产品包版本。
+- 已修正 service 包真实发布名为 `@nextclaw/service`，`@nextclaw-service` 仅保留为源码内部 alias。
 
 ## 当前下一步
 
-等待 review；下一步应继续从新版微信 extension 包接入开始，不要回退到旧插件机制或新增切换开关。
+等待 review；当前 dev server 需要重启后才能看到版本与更新状态修复生效。
 
 ## 锚点计数器
 

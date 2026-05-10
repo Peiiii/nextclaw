@@ -1,5 +1,5 @@
 {
-  "name": "@nextclaw-service",
+  "name": "@nextclaw/service",
   "version": "0.1.0",
   "private": false,
   "description": "NextClaw long-running service host and runtime lifecycle.",

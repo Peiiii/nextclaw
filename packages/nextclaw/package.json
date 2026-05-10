@@ -65,7 +65,7 @@
     "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/remote": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
-    "@nextclaw-service": "workspace:*",
+    "@nextclaw/service": "workspace:*",
     "@nextclaw/server": "workspace:*",
     "chokidar": "^3.6.0",
     "commander": "^12.1.0",

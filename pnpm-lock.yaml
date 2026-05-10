@@ -977,7 +977,7 @@ importers:
 
   packages/nextclaw:
     dependencies:
-      '@nextclaw-service':
+      '@nextclaw/service':
         specifier: workspace:*
         version: link:../nextclaw-service
       '@nextclaw/companion':

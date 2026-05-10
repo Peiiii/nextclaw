@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { isIP } from "node:net";
@@ -7,10 +7,12 @@ import { fileURLToPath } from "node:url";
 import {
   createExternalCommandEnv,
   getLogsPath,
-  getPackageVersion as getCorePackageVersion,
   resolveLocalUiBaseUrl,
   type Config
 } from "@nextclaw/core";
+import { findNearestPackageManifest } from "./package/package-manifest.utils.js";
+
+export { getPackageVersion } from "./package/package-manifest.utils.js";
 
 export function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]>): Config["ui"] {
   const base = config.ui ?? { enabled: false, host: "127.0.0.1", port: 55667, open: false };
@@ -212,38 +214,6 @@ export function findListeningProcessByPort(port: number): ListeningProcessInfo |
   };
 }
 
-function findNearestPackageManifest(
-  startDir: string,
-  expectedName?: string
-): { rootDir: string; version?: string } | null {
-  let current = resolve(startDir);
-  while (current.length > 0) {
-    const pkgPath = join(current, "package.json");
-    if (existsSync(pkgPath)) {
-      try {
-        const raw = readFileSync(pkgPath, "utf-8");
-        const parsed = JSON.parse(raw) as { name?: string; version?: string };
-        const matchesExpectedName = !expectedName || parsed.name === expectedName;
-        if (matchesExpectedName) {
-          return {
-            rootDir: current,
-            version: typeof parsed.version === "string" ? parsed.version : undefined
-          };
-        }
-      } catch {
-        // Ignore malformed package.json and continue searching upwards.
-      }
-    }
-
-    const parent = resolve(current, "..");
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  return null;
-}
-
 export function resolveUiStaticDir(importMetaUrl = import.meta.url): string | null {
   if (process.env.NEXTCLAW_DISABLE_STATIC_UI === "1") {
     return null;
@@ -367,17 +337,6 @@ export function findExecutableOnPath(
   }
 
   return null;
-}
-
-export function getPackageVersion(): string {
-  const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-  const packageVersion =
-    findNearestPackageManifest(cliDir, "nextclaw")?.version ??
-    findNearestPackageManifest(cliDir)?.version;
-  return (
-    packageVersion ??
-    getCorePackageVersion()
-  );
 }
 
 export function printAgentResponse(response: string): void {
