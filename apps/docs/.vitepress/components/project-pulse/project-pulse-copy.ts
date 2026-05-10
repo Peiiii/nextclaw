@@ -6,7 +6,7 @@ export const projectPulseCopy = {
       'This page turns engineering movement into a product signal: how the codebase grows, how often we ship, what we are improving, and what the product looks like right now.',
     heroCaption: 'Not a metrics wall. A product pulse for a unified AI operating layer.',
     stats: {
-      loc: 'Current source LOC',
+      loc: 'Current production LOC',
       commits: 'Commits in 30 days',
       releases: 'Release batches in 90 days',
       note: 'Latest product note',
@@ -21,7 +21,7 @@ export const projectPulseCopy = {
     },
     cards: {
       loc: {
-        title: 'Source LOC trend',
+        title: 'Production LOC trend',
         description: 'A running signal of implementation scope, not a quality score by itself.'
       },
       commits: {
@@ -38,7 +38,7 @@ export const projectPulseCopy = {
       },
       benchmark: {
         title: 'Benchmark snapshot',
-        description: 'We compare source LOC against OpenClaw to keep complexity visible.'
+        description: 'We compare production source LOC against OpenClaw to keep complexity visible.'
       },
       releaseBatches: {
         title: 'Recent release batches',
@@ -53,11 +53,12 @@ export const projectPulseCopy = {
         description: 'These images are refreshed through our existing screenshot automation.'
       }
     },
-    benchmarkLine: 'NextClaw is {percent}% of {name} source LOC.',
-    lighterLine: '{percent}% lighter by source LOC.',
+    benchmarkLine: 'NextClaw is {percent}% of {name} production source LOC.',
+    lighterLine: '{percent}% lighter by production source LOC.',
     tags: 'Tags',
     releaseCountSuffix: 'packages',
     filesSuffix: 'files',
+    testLocSuffix: 'test LOC',
     activeDays: '{count} active days',
     updatedOn: 'Updated',
     screenshotRefresh: 'Latest screenshot refresh',
@@ -75,7 +76,7 @@ export const projectPulseCopy = {
       commitDailyDeltaLabel: 'vs previous day',
       commitWeeklyDeltaLabel: 'vs previous week',
       releaseDeltaLabel: 'vs previous month',
-      locWindow: 'Recent source snapshot window',
+      locWindow: 'Recent production source snapshot window',
       commitDailyWindow: '30-day daily commit rhythm',
       commitWeeklyWindow: '12-week delivery rhythm',
       releaseWindow: '12-month release rhythm'
@@ -87,7 +88,7 @@ export const projectPulseCopy = {
     trustPoints: [
       'We intentionally expose a small set of metrics with product meaning instead of publishing every internal engineering signal.',
       'Release rhythm is grouped by release days, because raw tag counts would mostly reflect monorepo package count rather than product cadence.',
-      'Source LOC is tracked as a maintainability trend, not as a vanity metric. We use it together with scope distribution and note timelines.'
+      'Production source LOC is tracked as a maintainability trend, while test LOC is shown separately so coverage work is not misread as product complexity.'
     ]
   },
   zh: {
@@ -97,7 +98,7 @@ export const projectPulseCopy = {
       '这个页面把工程变化变成产品信号：代码规模怎么变化、最近发版有多频繁、产品最近在推进什么、现在的产品长什么样。',
     heroCaption: '不是报表墙，而是面向统一 AI 操作层的产品脉搏页。',
     stats: {
-      loc: '当前源码 LOC',
+      loc: '当前生产源码 LOC',
       commits: '近 30 天 commits',
       releases: '近 90 天 release 批次',
       note: '最近产品更新',
@@ -112,7 +113,7 @@ export const projectPulseCopy = {
     },
     cards: {
       loc: {
-        title: '源码 LOC 趋势',
+        title: '生产源码 LOC 趋势',
         description: '这是实现范围的持续信号，不是单独的质量评分。'
       },
       commits: {
@@ -144,11 +145,12 @@ export const projectPulseCopy = {
         description: '这些截图与现有截图自动化链路保持一致。'
       }
     },
-    benchmarkLine: 'NextClaw 当前是 {name} 源码 LOC 的 {percent}%。',
-    lighterLine: '按源码 LOC 计算，当前轻了 {percent}%。',
+    benchmarkLine: 'NextClaw 当前是 {name} 生产源码 LOC 的 {percent}%。',
+    lighterLine: '按生产源码 LOC 计算，当前轻了 {percent}%。',
     tags: '标签',
     releaseCountSuffix: '个包',
     filesSuffix: '个文件',
+    testLocSuffix: '测试 LOC',
     activeDays: '{count} 个活跃日',
     updatedOn: '更新于',
     screenshotRefresh: '最近截图刷新时间',
@@ -166,7 +168,7 @@ export const projectPulseCopy = {
       commitDailyDeltaLabel: '较上一天',
       commitWeeklyDeltaLabel: '较上一周',
       releaseDeltaLabel: '较上一月',
-      locWindow: '近期源码快照窗口',
+      locWindow: '近期生产源码快照窗口',
       commitDailyWindow: '近 30 天每日 commit 节奏',
       commitWeeklyWindow: '近 12 周交付节奏',
       releaseWindow: '近 12 个月发版节奏'
@@ -178,7 +180,7 @@ export const projectPulseCopy = {
     trustPoints: [
       '这里故意只公开少量真正有产品叙事价值的指标，而不是把所有内部工程噪音都摊出来。',
       'release 节奏按“发版日”而不是 tag 总数统计，否则在 monorepo 下只会放大包数量，而不是产品节奏。',
-      '源码 LOC 只是可维护性趋势信号之一，需要结合 scope 分布和产品时间线一起看。'
+      '生产源码 LOC 是可维护性趋势信号之一；测试 LOC 单独展示，避免把补测试误读成产品复杂度增长。'
     ]
   }
 } as const

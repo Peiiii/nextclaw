@@ -102,7 +102,8 @@ const toScopeSignature = (scope) =>
     profile: scope?.profile ?? null,
     includePaths: scope?.includePaths ?? [],
     includeExtensions: scope?.includeExtensions ?? [],
-    excludeDirs: scope?.excludeDirs ?? []
+    excludeDirs: scope?.excludeDirs ?? [],
+    codeLineSemantics: scope?.codeLineSemantics ?? null
   });
 
 const generatedAt = new Date().toISOString();
@@ -241,8 +242,8 @@ if (options.benchmarkRoot) {
     "",
     `## Benchmark vs ${benchmarkName}`,
     "",
-    `- Base (${baseScanConfig.title}) LOC: ${baseCodeLines}`,
-    `- Benchmark (${benchmarkName}) LOC: ${benchmarkCodeLines}`,
+    `- Base (${baseScanConfig.title}) production LOC: ${baseCodeLines}`,
+    `- Benchmark (${benchmarkName}) production LOC: ${benchmarkCodeLines}`,
     `- NextClaw ${baseScanConfig.title} / ${benchmarkName}: ${basePercentOfBenchmark === null ? "N/A" : `${basePercentOfBenchmark}%`}`,
     `- ${benchmarkName} / NextClaw: ${benchmarkMultipleOfBase === null ? "N/A" : `${benchmarkMultipleOfBase}x`}`,
     `- NextClaw lighter by: ${baseIsLighterByPercent === null ? "N/A" : `${baseIsLighterByPercent}%`}`
@@ -267,7 +268,8 @@ const summaryLines = [
   `- Profile: ${scopeProfile}`,
   `- Generated at: ${snapshotWithDelta.generatedAt}`,
   `- Tracked files: ${totals.files}`,
-  `- Code lines (LOC): ${totals.codeLines}`,
+  `- Production code lines (LOC): ${totals.codeLines}`,
+  `- Test code lines: ${totals.testCodeLines}`,
   `- Total lines: ${totals.totalLines}`,
   hasPrevious
     ? `- Delta vs previous: ${deltaCodeLines >= 0 ? "+" : ""}${deltaCodeLines} LOC${
@@ -277,9 +279,9 @@ const summaryLines = [
   "",
   "## Top scopes by LOC",
   "",
-  "| Scope | Files | LOC | Total lines |",
-  "| --- | ---: | ---: | ---: |",
-  ...topScopes.map((item) => `| ${item.name} | ${item.files} | ${item.codeLines} | ${item.totalLines} |`),
+  "| Scope | Files | Production LOC | Test LOC | Total lines |",
+  "| --- | ---: | ---: | ---: | ---: |",
+  ...topScopes.map((item) => `| ${item.name} | ${item.files} | ${item.codeLines} | ${item.testCodeLines} | ${item.totalLines} |`),
   ...benchmarkSummaryLines
 ];
 const summary = summaryLines.join("\n");
@@ -298,7 +300,8 @@ if (!options.noWrite) {
 }
 console.log(`Profile: ${scopeProfile}`);
 console.log(`Tracked files: ${totals.files}`);
-console.log(`Code lines (LOC): ${totals.codeLines}`);
+console.log(`Production code lines (LOC): ${totals.codeLines}`);
+console.log(`Test code lines: ${totals.testCodeLines}`);
 if (hasPrevious) {
   console.log(`Delta vs previous: ${deltaCodeLines >= 0 ? "+" : ""}${deltaCodeLines} (${deltaPercent ?? "N/A"}%)`);
 }

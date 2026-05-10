@@ -1,9 +1,10 @@
 export default {
-  "generatedAt": "2026-05-10T07:55:00.868Z",
+  "generatedAt": "2026-05-10T08:21:29.408Z",
   "hero": {
-    "currentLoc": 245505,
-    "trackedFiles": 1872,
-    "recentCommitCount": 499,
+    "currentLoc": 187293,
+    "testLoc": 59141,
+    "trackedFiles": 1888,
+    "recentCommitCount": 501,
     "activeDays30": 22,
     "recentReleaseCount": 65,
     "latestReleaseDate": "2026-05-07",
@@ -570,7 +571,7 @@ export default {
       {
         "key": "2026-05-10",
         "label": "05-10",
-        "value": 2
+        "value": 4
       }
     ],
     "commitWeekly": [
@@ -632,7 +633,7 @@ export default {
       {
         "key": "2026-05-04",
         "label": "05-04",
-        "value": 135
+        "value": 137
       }
     ],
     "releaseMonthly": [
@@ -702,51 +703,59 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 45979,
+        "codeLines": 34417,
+        "testCodeLines": 11562,
         "files": 400,
-        "sharePercent": 18.7
+        "sharePercent": 18.4
       },
       {
         "name": "packages/nextclaw-service",
-        "codeLines": 42367,
-        "files": 293,
-        "sharePercent": 17.3
+        "codeLines": 26680,
+        "testCodeLines": 15743,
+        "files": 300,
+        "sharePercent": 14.2
       },
       {
         "name": "packages/extensions/nextclaw-channel-plugin-feishu",
-        "codeLines": 23961,
+        "codeLines": 16113,
+        "testCodeLines": 7848,
         "files": 143,
-        "sharePercent": 9.8
+        "sharePercent": 8.6
       },
       {
         "name": "packages/nextclaw-core",
-        "codeLines": 17664,
+        "codeLines": 13678,
+        "testCodeLines": 3986,
         "files": 142,
-        "sharePercent": 7.2
-      },
-      {
-        "name": "packages/nextclaw-server",
-        "codeLines": 13630,
-        "files": 68,
-        "sharePercent": 5.6
+        "sharePercent": 7.3
       },
       {
         "name": "workers/nextclaw-provider-gateway-api",
         "codeLines": 11595,
+        "testCodeLines": 0,
         "files": 54,
-        "sharePercent": 4.7
+        "sharePercent": 6.2
+      },
+      {
+        "name": "packages/nextclaw-server",
+        "codeLines": 8685,
+        "testCodeLines": 5287,
+        "files": 69,
+        "sharePercent": 4.6
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 9121,
+        "codeLines": 6182,
+        "testCodeLines": 2939,
         "files": 67,
-        "sharePercent": 3.7
+        "sharePercent": 3.3
       },
       {
         "name": "packages/nextclaw-openclaw-compat",
-        "codeLines": 7545,
+        "codeLines": 5963,
+        "testCodeLines": 1582,
         "files": 45,
-        "sharePercent": 3.1
+        "sharePercent": 3.2
       }
     ],
     "benchmark": {
@@ -991,7 +1000,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-05-10T03:22:06.815Z",
+    "locGeneratedAt": "2026-05-10T08:21:18.297Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8

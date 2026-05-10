@@ -206,6 +206,13 @@ test("skips role-boundary enforcement for script support paths", () => {
   }), null);
 });
 
+test("skips generated VitePress data files", () => {
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath: "apps/docs/.vitepress/data/project-pulse.generated.mjs",
+    status: "M"
+  }), null);
+});
+
 test("requires use-* naming inside hooks directories", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/hooks/chat-session.ts",

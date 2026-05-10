@@ -148,6 +148,7 @@ const commitMetrics = readCommitSeries({ rootDir, now });
 const releaseMetrics = readReleaseSeries({ rootDir, now });
 const notesTimeline = readNotesTimeline({ notesRootEn, notesRootZh });
 const gallery = copyGalleryAssets({ rootDir, docsPublicGalleryDir, galleryItems });
+const productionCodeLines = safeNumber(latestMetrics.totals?.codeLines);
 
 const dailyLocSeries = (() => {
   const fallbackDays = createDayRange(now, 120);
@@ -171,17 +172,18 @@ const dailyLocSeries = (() => {
 const topScopes = (latestMetrics.byScope ?? []).slice(0, 8).map((scope) => ({
   name: scope.name,
   codeLines: safeNumber(scope.codeLines),
+  testCodeLines: safeNumber(scope.testCodeLines),
   files: safeNumber(scope.files),
   sharePercent:
-    safeNumber(latestMetrics.totals?.codeLines) > 0
-      ? Number(((safeNumber(scope.codeLines) / safeNumber(latestMetrics.totals.codeLines)) * 100).toFixed(1))
+    productionCodeLines > 0
+      ? Number(((safeNumber(scope.codeLines) / productionCodeLines) * 100).toFixed(1))
       : 0
 }));
 
 const payload = {
   generatedAt: now.toISOString(),
   hero: {
-    currentLoc: safeNumber(latestMetrics.totals?.codeLines),
+    currentLoc: productionCodeLines, testLoc: safeNumber(latestMetrics.totals?.testCodeLines),
     trackedFiles: safeNumber(latestMetrics.totals?.files),
     recentCommitCount: commitMetrics.totals.recent30Count,
     activeDays30: commitMetrics.totals.activeDays30,

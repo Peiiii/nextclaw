@@ -24,7 +24,7 @@ const COMMON_EXCLUDE_DIRS = [
 ];
 const REPO_VOLUME_EXTRA_INCLUDE_PATHS = ["bridge", "scripts"];
 const DEFAULT_BENCHMARK_INCLUDE_PATHS = ["src", "extensions"];
-const SOURCE_ROOT_DIR_CANDIDATES = ["src", "bridge/src", ".vitepress"];
+const SOURCE_ROOT_DIR_CANDIDATES = ["src", "bridge/src"];
 const SOURCE_ROOT_FILE_CANDIDATES = ["index.ts", "index.tsx", "index.js", "index.jsx", "index.mjs", "index.cjs"];
 
 const readWorkspacePatterns = (repoRoot) => {

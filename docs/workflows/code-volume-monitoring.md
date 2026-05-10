@@ -4,12 +4,12 @@
 
 ## 指标定义
 
-- 默认口径：源码 LOC（不是仓库总体积）
+- 默认口径：生产源码 LOC（不是仓库总体积，测试代码单独统计）
 - 文档站不算代码：`apps/docs` 默认不纳入任何 code metrics profile
+- `.vitepress` 不算代码：默认 source profile 不纳入任何 workspace 的 `.vitepress/`
 - 统计范围：
   - workspace 内的 `src/`
   - workspace 内的 `bridge/src/`
-  - workspace 内的 `.vitepress/`
   - 无 `src/` 的极简包入口文件（如根级 `index.js`）
   - 根目录 `bridge/src/`
 - scope 粒度：
@@ -25,7 +25,8 @@
   - `totalLines`（总行数）
   - `blankLines`（空行）
   - `commentLines`（注释行）
-  - `codeLines`（代码行）
+  - `codeLines`（生产代码行，排除 `*.test.*`、`*.spec.*`、`__tests__/`、`test/`、`tests/`）
+  - `testCodeLines`（测试代码行）
 
 ## 本地执行
 
@@ -76,7 +77,7 @@ pnpm metrics:repo:local
   - `apps/docs/public/project-pulse/gallery/*`
 - 结果展示：自动写入 GitHub Actions Job Summary
 - 自动回写：仅在 `schedule` / `workflow_dispatch` 且位于 `master/main` 时提交快照更新；`push`/`pull_request` 只做统计与展示，不写回分支，避免干扰日常推送
-- 对比来源：workflow 会自动 checkout `openclaw/openclaw`，并按 `src,extensions` 做源码 LOC 基准对比
+- 对比来源：workflow 会自动 checkout `openclaw/openclaw`，并按 `src,extensions` 做生产源码 LOC 基准对比
 - `Project Pulse` 聚合：workflow 会额外生成 commit / release / notes / screenshot 聚合数据，供文档站专题页直接消费
 
 ## Project Pulse 本地更新
@@ -97,7 +98,7 @@ pnpm project:pulse
 
 ## README 实时展示
 
-- README 徽章通过 `shields.io` 的 dynamic JSON 模式读取源码 LOC：
+- README 徽章通过 `shields.io` 的 dynamic JSON 模式读取生产源码 LOC：
   - `docs/metrics/code-volume/latest.json` 中的 `$.totals.codeLines`
   - `docs/metrics/code-volume/comparison.json` 中的 `$.benchmark.totals.codeLines`
   - `docs/metrics/code-volume/comparison.json` 中的 `$.comparison.basePercentOfBenchmark`
@@ -105,7 +106,7 @@ pnpm project:pulse
 
 ## 解释建议
 
-- 单看源码 LOC 不代表质量，建议与 `lint/tsc`、缺陷率、变更频率一起看。
+- 单看生产源码 LOC 不代表质量，建议与测试 LOC、`lint/tsc`、缺陷率、变更频率一起看。
 - 更关注“增速”和“突增来源（byScope）”，避免长期复杂度无感上升。
 - `byScope` 应反映真实子项目边界；若某个多层工作区被错误合并成父目录（例如 `packages/extensions`），需要优先修正统计口径，再解释数据。
 - 当默认口径从一种 profile 切到另一种 profile 时，delta 会自动视为“无可比基线”，避免把不同统计语义硬算成涨跌。

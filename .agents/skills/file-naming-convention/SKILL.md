@@ -36,6 +36,7 @@ For this repository specifically:
 - `pnpm lint:new-code:directory-names` blocks touched files whose parent directory chain is not governed.
 - `pnpm lint:new-code:file-role-boundaries` blocks touched non-component/page/hook files that do not use an approved secondary suffix, and also blocks directory-to-suffix mismatches such as `services/foo-manager.ts`.
 - For Git renames that only move existing legacy role-boundary debt without changing the violation kind, the role-boundary check does not force an unrelated rename during the structural move.
+- Generated VitePress data under `apps/docs/.vitepress/data/` is exempt from role-suffix enforcement; the generator owner and generated file naming are validated by the docs build path instead.
 - `pnpm report:file-naming` prints the current legacy non-kebab backlog for gradual migration.
 
 ## Decision Rules

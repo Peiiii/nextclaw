@@ -35,6 +35,9 @@ export const detectScope = (relativePath) => {
   return "root";
 };
 
+export const detectFileClassification = (relativePath) =>
+  /(?:^|\/)(?:__tests__|tests?)(?:\/|$)|\.(?:test|spec)\./i.test(relativePath.split("\\").join("/")) ? "test" : "source";
+
 export const countLines = (content, extension) => {
   const lines = content.split(/\r?\n/);
   let blankLines = 0;
@@ -145,12 +148,29 @@ export const listTrackedFiles = (repoRoot, includePaths, includeExtensions, excl
   return [...files].sort();
 };
 
-const mergeMetrics = (target, increment) => {
-  target.files += increment.files;
-  target.totalLines += increment.totalLines;
-  target.blankLines += increment.blankLines;
-  target.commentLines += increment.commentLines;
-  target.codeLines += increment.codeLines;
+const createMetricBucket = () => Object.fromEntries(
+  ["files", "totalLines", "blankLines", "commentLines", "codeLines", "testCodeLines"]
+    .map((key) => [key, 0])
+);
+
+const mergeMetrics = (target, increment, classification) => {
+  const nextMetrics = {
+    ...target,
+    files: target.files + increment.files,
+    totalLines: target.totalLines + increment.totalLines,
+    blankLines: target.blankLines + increment.blankLines,
+    commentLines: target.commentLines + increment.commentLines
+  };
+  if (classification === "test") {
+    return {
+      ...nextMetrics,
+      testCodeLines: target.testCodeLines + increment.codeLines
+    };
+  }
+  return {
+    ...nextMetrics,
+    codeLines: target.codeLines + increment.codeLines
+  };
 };
 
 const toSortedArray = (map) =>
@@ -158,7 +178,7 @@ const toSortedArray = (map) =>
     .map(([name, metrics]) => ({ name, ...metrics }))
     .sort((left, right) => right.codeLines - left.codeLines || right.files - left.files || left.name.localeCompare(right.name));
 
-export const collectSnapshot = ({
+export function collectDetailedSnapshot({
   repoRoot,
   scopeProfile,
   includePaths,
@@ -167,31 +187,9 @@ export const collectSnapshot = ({
   gitSha,
   gitRef,
   generatedAt
-}) => {
-  return collectDetailedSnapshot({
-    repoRoot,
-    scopeProfile,
-    includePaths,
-    includeExtensions,
-    excludeDirs,
-    gitSha,
-    gitRef,
-    generatedAt
-  });
-};
-
-export const collectDetailedSnapshot = ({
-  repoRoot,
-  scopeProfile,
-  includePaths,
-  includeExtensions,
-  excludeDirs,
-  gitSha,
-  gitRef,
-  generatedAt
-}) => {
+}) {
   const trackedFiles = listTrackedFiles(repoRoot, includePaths, includeExtensions, excludeDirs);
-  const totals = { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 };
+  let totals = createMetricBucket();
   const byLanguage = new Map();
   const byScope = new Map();
   const byFile = [];
@@ -201,6 +199,7 @@ export const collectDetailedSnapshot = ({
     const language = detectLanguage(extension);
     const relativePath = relative(repoRoot, filePath).split("\\").join("/");
     const scope = detectScope(relativePath);
+    const classification = detectFileClassification(relativePath);
     const content = readFileSync(filePath, "utf8");
     const lineMetrics = countLines(content, extension);
     const increment = {
@@ -211,23 +210,16 @@ export const collectDetailedSnapshot = ({
       codeLines: lineMetrics.codeLines
     };
 
-    mergeMetrics(totals, increment);
-
-    if (!byLanguage.has(language)) {
-      byLanguage.set(language, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-    }
-    mergeMetrics(byLanguage.get(language), increment);
-
-    if (!byScope.has(scope)) {
-      byScope.set(scope, { files: 0, totalLines: 0, blankLines: 0, commentLines: 0, codeLines: 0 });
-    }
-    mergeMetrics(byScope.get(scope), increment);
+    totals = mergeMetrics(totals, increment, classification);
+    byLanguage.set(language, mergeMetrics(byLanguage.get(language) ?? createMetricBucket(), increment, classification));
+    byScope.set(scope, mergeMetrics(byScope.get(scope) ?? createMetricBucket(), increment, classification));
 
     byFile.push({
       path: relativePath,
       scope,
       language,
-      ...increment
+      ...increment,
+      codeLines: classification === "test" ? 0 : lineMetrics.codeLines
     });
   }
 
@@ -242,7 +234,8 @@ export const collectDetailedSnapshot = ({
       profile: scopeProfile,
       includePaths,
       includeExtensions,
-      excludeDirs
+      excludeDirs,
+      codeLineSemantics: "production-code-with-tests-separated"
     },
     totals,
     byLanguage: toSortedArray(byLanguage),
@@ -254,4 +247,6 @@ export const collectDetailedSnapshot = ({
         left.path.localeCompare(right.path)
     )
   };
-};
+}
+
+export const collectSnapshot = collectDetailedSnapshot;

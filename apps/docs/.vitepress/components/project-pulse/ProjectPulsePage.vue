@@ -18,7 +18,7 @@ const heroStats = computed(() => [
   {
     label: t.value.stats.loc,
     value: pulseData.hero.currentLoc.toLocaleString(),
-    meta: `${pulseData.hero.trackedFiles.toLocaleString()} ${t.value.filesSuffix}`
+    meta: `${pulseData.hero.trackedFiles.toLocaleString()} ${t.value.filesSuffix} · ${pulseData.hero.testLoc.toLocaleString()} ${t.value.testLocSuffix}`
   },
   {
     label: t.value.stats.commits,
@@ -51,8 +51,8 @@ const scopeItems = computed(() =>
     value: scope.codeLines,
     meta:
       props.locale === 'zh'
-        ? `${scope.sharePercent}% · ${scope.files.toLocaleString()} 个文件`
-        : `${scope.sharePercent}% · ${scope.files.toLocaleString()} files`
+        ? `${scope.sharePercent}% · 测试 ${scope.testCodeLines.toLocaleString()} LOC · ${scope.files.toLocaleString()} 个文件`
+        : `${scope.sharePercent}% · tests ${scope.testCodeLines.toLocaleString()} LOC · ${scope.files.toLocaleString()} files`
   }))
 )
 

@@ -104,9 +104,7 @@ const getDirectorySegments = (filePath) => {
 };
 
 const shouldSkipRoleBoundaryCheck = (normalizedPath, segments) => (
-  normalizedPath.startsWith(".agents/") ||
-  normalizedPath.startsWith("bridge/") ||
-  segments.includes("scripts")
+  [".agents/", "bridge/", "apps/docs/.vitepress/data/"].some((prefix) => normalizedPath.startsWith(prefix)) || segments.includes("scripts")
 );
 
 const getNearestDirectoryRule = (segments) => {
