@@ -173,6 +173,13 @@ const enBlogSidebar = [
   }
 ]
 
+const enDocsSidebar = [
+  ...enSidebar,
+  ...enProjectSidebar,
+  ...enNotesSidebar,
+  ...enBlogSidebar
+]
+
 const zhSidebar = [
   {
     text: '开始',
@@ -268,6 +275,13 @@ const zhBlogSidebar = [
   }
 ]
 
+const zhDocsSidebar = [
+  ...zhSidebar,
+  ...zhProjectSidebar,
+  ...zhNotesSidebar,
+  ...zhBlogSidebar
+]
+
 export default defineConfig({
   title: 'NextClaw',
   description: 'NextClaw documentation',
@@ -301,13 +315,9 @@ export default defineConfig({
           { text: 'Tutorials', link: '/en/guide/tutorials' },
           { text: 'Manuals', link: '/en/guide/configuration' },
           { text: 'Reference', link: '/en/guide/commands' },
-          { text: 'Project', link: '/en/project/' },
         ],
         sidebar: {
-          '/en/guide/': enSidebar,
-          '/en/project/': enProjectSidebar,
-          '/en/notes/': enNotesSidebar,
-          '/en/blog/': enBlogSidebar
+          '/en/': enDocsSidebar
         },
         outline: { level: [2, 3], label: 'On this page' },
         footer: {
@@ -329,13 +339,9 @@ export default defineConfig({
           { text: '教程', link: '/zh/guide/tutorials' },
           { text: '手册', link: '/zh/guide/configuration' },
           { text: '参考', link: '/zh/guide/commands' },
-          { text: '项目', link: '/zh/project/' },
         ],
         sidebar: {
-          '/zh/guide/': zhSidebar,
-          '/zh/project/': zhProjectSidebar,
-          '/zh/notes/': zhNotesSidebar,
-          '/zh/blog/': zhBlogSidebar
+          '/zh/': zhDocsSidebar
         },
         outline: { level: [2, 3], label: '本页目录' },
         footer: {

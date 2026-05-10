@@ -6,6 +6,7 @@
 - 修复：默认 source profile 移除 `.vitepress`；metrics snapshot 将 `codeLines` 收敛为生产 LOC，并新增 `testCodeLines` 单独输出。
 - Project Pulse 已适配生产 LOC / 测试 LOC 展示，生成数据同步刷新。
 - 补充修复：Project Pulse 曲线之前仍直接读取 `history.jsonl` 的旧总 LOC，导致当天曲线继续显示 `245505`；现在生成链路会用 `latest.json` 的生产 LOC 覆盖当天历史点，并输出测试 LOC 独立趋势。
+- 文档站信息架构补齐：Project Pulse 不再作为顶部独立入口；英文与中文文档站改为同一套侧边栏目录，`Project/项目信息` 与指南、手册、参考、更新笔记、博客在同一个左侧目录里展示。
 - 治理补齐：`apps/docs/.vitepress/data/*.generated.mjs` 属于文档站生成物，file-role-boundary 不再要求它使用业务角色后缀，并补了回归测试。
 - 失败复盘：第一次修复只验了 hero 当前值，没有把趋势曲线的最后一点纳入验收；本次把这个缺口落到 `scripts/project-pulse/data-core.test.mjs`，后续数据 owner 测试会自动覆盖同类回归。
 
@@ -16,6 +17,8 @@
 - Targeted ESLint：通过。
 - `pnpm -C apps/docs build`：通过；保留 VitePress chunk size warning。
 - Project Pulse 生成数据验收：`hero.currentLoc = 187293`，`trends.locDaily.at(-1).value = 187293`，`trends.testLocDaily.at(-1).value = 59141`。
+- `pnpm exec eslint apps/docs/.vitepress/config.ts --max-warnings=0`：通过。
+- `pnpm -C apps/docs build`：通过，确认统一侧边栏配置可正常构建；保留 VitePress chunk size warning。
 - `node scripts/governance/lint-new-code-governance.mjs --staged`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `post-edit-maintainability-guard --non-feature --paths ...`：通过，非测试代码净增 `-2`。
@@ -30,6 +33,7 @@
 1. 运行 `pnpm metrics:local`。
 2. 确认输出包含 `Production code lines (LOC)` 与 `Test code lines`。
 3. 打开 Project Pulse，确认主 LOC 文案与生产 LOC 曲线最后一点都是 `187293`，测试 LOC 单独显示为 `59141`。
+4. 打开任意指南页与 `/zh/project/project-pulse`，确认左侧目录都包含同一组 `项目信息` 入口，Project Pulse 不再只能靠顶部独立导航进入。
 
 ## 可维护性总结汇总
 
