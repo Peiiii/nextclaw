@@ -1,14 +1,13 @@
 import { EventBus } from "@nextclaw/shared";
 import type {
-  ExtensionChannelsService,
+  ExtensionChannels,
   ExtensionTransportEnvelope,
-  NextClawExtension,
   NextClawExtensionOptions,
 } from "../types/extension-sdk.types.js";
 import { ExtensionChannelService } from "./extension-channel.service.js";
 import { ExtensionTransportService } from "./extension-transport.service.js";
 
-class ExtensionChannels implements ExtensionChannelsService {
+class ExtensionChannelRegistry implements ExtensionChannels {
   private readonly channels = new Map<string, ExtensionChannelService>();
 
   constructor(
@@ -37,9 +36,9 @@ class ExtensionChannels implements ExtensionChannelsService {
   };
 }
 
-export class NextClawExtensionService implements NextClawExtension {
+export class NextClawExtension {
   readonly eventBus: EventBus;
-  readonly channels: ExtensionChannelsService;
+  readonly channels: ExtensionChannels;
   readonly extensionId: string;
   private readonly transport: ExtensionTransportService;
   private realtimeSubscription: { close: () => void } | null = null;
@@ -58,7 +57,7 @@ export class NextClawExtensionService implements NextClawExtension {
         this.realtimeSubscription = null;
       },
     });
-    this.channels = new ExtensionChannels({
+    this.channels = new ExtensionChannelRegistry({
       eventBus: this.eventBus,
       transport: this.transport,
     });

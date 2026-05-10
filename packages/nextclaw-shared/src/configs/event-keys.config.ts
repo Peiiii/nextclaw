@@ -1,4 +1,4 @@
-import type { NcpSessionSummary } from "@nextclaw/ncp";
+import type { NcpEndpointEvent, NcpSessionSummary } from "@nextclaw/ncp";
 import type { AppEventKey, EventKey } from "../types/event-bus.types.js";
 import type { UpdateSnapshot } from "../types/update.types.js";
 
@@ -22,6 +22,7 @@ export const eventKeys = {
     sessionKey: string;
     status: "running" | "idle";
   }>("session.run-status"),
+  ncpEvent: createAppEventKey<NcpEndpointEvent>("ncp.event"),
   sessionSummaryUpsert: createAppEventKey<{ summary: NcpSessionSummary }>(
     "session.summary.upsert",
   ),

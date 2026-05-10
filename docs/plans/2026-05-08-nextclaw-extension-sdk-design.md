@@ -134,9 +134,9 @@ server.type = "stdio"
 ## 5. SDK API
 
 ```ts
-import { NextClawExtensionService } from "@nextclaw/extension-sdk";
+import { NextClawExtension } from "@nextclaw/extension-sdk";
 
-const extension = new NextClawExtensionService();
+const extension = new NextClawExtension();
 
 extension.eventBus.subscribeAll((event) => {
   // 可选：观察 SDK 收到的全部实时事件。
@@ -186,7 +186,7 @@ Extension
   eventBus.subscribeAll(handler)
 ```
 
-`channel.config.onChange(...)`、`channel.onNcpEvent(...)` 不是各自维护一套平行监听器；它们都基于 `extension.eventBus` 过滤当前 channel 的事件。这样和 client SDK 的 `client.eventBus` 心智保持一致：WebSocket 只负责接收实时事件，SDK 的领域 service 基于 event bus 提供更易用的订阅 API。
+`channel.config.onChange(...)`、`channel.onNcpEvent(...)` 不是各自维护一套平行监听器；它们都基于 `extension.eventBus`。`config.onChange(...)` 监听通用 `config.updated` 后重新 `config.get()`；`onNcpEvent(...)` 监听通用 `ncp.event` 并把原始 `NcpEndpointEvent` 交给 handler。这样和 client SDK 的 `client.eventBus` 心智保持一致：WebSocket 只负责接收实时事件，SDK 的领域对象基于 event bus 提供更易用的订阅 API。
 
 ## 6. Channel 配置
 
@@ -595,17 +595,19 @@ SDK 类型描述开发者使用的公开 API：
 
 ```text
 NextClawExtension
-ExtensionChannelsService
+ExtensionChannels
 ExtensionChannel
+ExtensionChannelConfig
 ExtensionEventBus
 ExtensionTransport
 ```
 
 其中：
 
-- `NextClawExtensionService` 是 extension server 进程内直接创建的根对象。
-- `ExtensionChannelsService` 提供 `channels.use(channelId)`。
+- `NextClawExtension` 是 extension server 进程内直接创建的根对象。
+- `ExtensionChannels` 提供 `channels.use(channelId)`。
 - `ExtensionChannel` 提供 `submitMessage`、`onNcpEvent`、`config.get` 和 `config.onChange`。
+- `ExtensionChannelConfig` 提供配置读取和基于 `config.updated` 的配置失效监听；配置变化不再有 extension 专属事件通道。
 - `ExtensionEventBus` 是 SDK 内部和高级用户共享的事件订阅入口。
 - `ExtensionTransport` 封装 webhook 和 WebSocket 通信。
 
@@ -618,8 +620,7 @@ ExtensionEventEnvelope
 ExtensionEventSource
 ExtensionEventType
 ChannelSubmittedMessage
-ChannelConfigChangedEvent
-ChannelNcpEvent
+NcpEndpointEvent
 ```
 
 其中：
@@ -627,8 +628,7 @@ ChannelNcpEvent
 - `ExtensionEventEnvelope` 是所有事件的统一外壳。
 - `ExtensionEventSource` 标识事件来源 extension、channel 和 run context。
 - `ChannelSubmittedMessage` 表示渠道收到真实用户消息后提交给 NextClaw。
-- `ChannelConfigChangedEvent` 表示 channel 配置变化。
-- `ChannelNcpEvent` 表示 NextClaw/NCP run 产生并需要推给 channel 的事件。
+- `NcpEndpointEvent` 表示 NextClaw/NCP run 产生并需要推给 channel 的原始 NCP 事件；`ncp.event` 不包裹、不重命名、不混入 channel 路由字段。
 
 ### 12.4 Channel 类型
 

@@ -45,6 +45,12 @@ export class NextclawApp {
             source: "backend",
           });
         },
+        onNcpEvent: (event) => {
+          gateway.appEventBus.emit(eventKeys.ncpEvent, event, {
+            emittedAt: new Date().toISOString(),
+            source: "backend",
+          });
+        },
         resolveMessageToolHints: ({ channel, accountId }) =>
           resolvePluginChannelMessageToolHints({
             registry: gateway.plugins.getRegistry(),

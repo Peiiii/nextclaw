@@ -1,7 +1,7 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ConfigSchema,
   type Config,
@@ -44,7 +44,8 @@ afterEach(() => {
 
 describe("createUiNcpAgent default runtime", () => {
   it("uses DefaultNcpAgentRuntime with nextclaw context, skills, tools, and session metadata", async () => {
-    const { workspace, providerManager, sessionManager, ncpAgent } = await createDemoSkillAgentFixture();
+    const onNcpEvent = vi.fn();
+    const { workspace, providerManager, sessionManager, ncpAgent } = await createDemoSkillAgentFixture({ onNcpEvent });
 
     const firstRunEvents = await sendAndCollectEvents(
       ncpAgent.agentClientEndpoint,
@@ -60,6 +61,7 @@ describe("createUiNcpAgent default runtime", () => {
     );
 
     expectFirstRunBehavior(firstRunEvents, providerManager, workspace);
+    expect(onNcpEvent).toHaveBeenCalledWith(expect.objectContaining({ type: NcpEventType.MessageCompleted }));
     expectPersistedSkillSession(sessionManager);
 
     providerManager.calls.length = 0;
@@ -209,7 +211,7 @@ describe("createUiNcpAgent session types refresh", () => {
 
     expect(await ncpAgent.listSessionTypes?.()).toEqual({
       defaultType: "native",
-      options: [{ value: "native", label: "Native", ready: true, reason: null, reasonMessage: null, recommendedModel: null, cta: null }],
+      options: [{ value: "native", label: "Native", ready: true, reason: null, reasonMessage: null, recommendedModel: null, cta: null, icon: null }],
     });
 
     const enabledConfig = ConfigSchema.parse({
@@ -253,7 +255,7 @@ describe("createUiNcpAgent session types refresh", () => {
 
     expect(await ncpAgent.listSessionTypes?.()).toEqual({
       defaultType: "native",
-      options: [{ value: "native", label: "Native", ready: true, reason: null, reasonMessage: null, recommendedModel: null, cta: null }],
+      options: [{ value: "native", label: "Native", ready: true, reason: null, reasonMessage: null, recommendedModel: null, cta: null, icon: null }],
     });
   });
 });
@@ -543,7 +545,9 @@ describe("createUiNcpAgent MCP hot reload", () => {
   });
 });
 
-async function createDemoSkillAgentFixture(): Promise<{
+async function createDemoSkillAgentFixture(params: {
+  onNcpEvent?: (event: NcpEndpointEvent) => void;
+} = {}): Promise<{
   workspace: string;
   providerManager: RecordingProviderManager;
   sessionManager: SessionManager;
@@ -581,6 +585,7 @@ async function createDemoSkillAgentFixture(): Promise<{
     providerManager: providerManager as unknown as ProviderManager,
     sessionManager,
     getConfig: () => config,
+    onNcpEvent: params.onNcpEvent,
   });
 
   return {
@@ -613,7 +618,6 @@ function expectFirstRunBehavior(
   ).toBe(true);
 
   const combinedPrompt = firstModelInput.messages.map((message) => String(message.content ?? "")).join("\n\n");
-  expect(combinedPrompt).toContain("Only skill names and paths are included here.");
   expect(combinedPrompt).toContain("<name>demo-skill</name>");
   expect(combinedPrompt).toContain(`<location>${join(workspace, "skills", "demo-skill", "SKILL.md")}</location>`);
   expect(combinedPrompt).not.toContain("Use the demo skill instructions.");

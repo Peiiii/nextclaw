@@ -1,86 +1,102 @@
 ---
 name: classic-software-design-principles
-description: 当讨论或修改架构、模块职责、owner、生命周期、对象边界、状态归属、helper/service/class 拆分、重构方案，或用户要求“编程原则”“最佳实践”“底层思想”“不要张口就来”时使用。用于用 GRASP、SOLID、Tell Don't Ask、Law of Demeter、封装、高内聚低耦合等经典原则先校准设计，再进入代码。
+description: 当讨论或修改架构、模块职责、owner、生命周期、对象边界、状态归属、helper/service/class 拆分、重构方案，或用户要求“编程原则”“最佳实践”“底层思想”“不要张口就来”时使用。用于先深挖用户真实意图与约束，再用 GRASP、SOLID、Tell Don't Ask、Law of Demeter、封装、高内聚低耦合等经典原则校准设计，避免空心 owner、假注入、乱兼容和重复职责。
 ---
 
 # Classic Software Design Principles
 
 ## 目标
 
-用成熟软件工程原则约束设计判断，避免临时发明概念、换名包装、字段搬运、setter 包装和过度拆层。
+用成熟软件工程原则约束设计判断，避免临时发明概念、换名包装、字段搬运、setter 包装、过度拆层、空心 owner 和内部兼容路径长期并存。
 
 使用本 skill 时，先做原则校准，再写方案或代码。用户指出“偏航、过度设计、职责不清、最佳实践是什么”时，必须暂停实现，先用本 skill 复盘。
 
-## 核心原则
+## 深层意图对齐
 
-### GRASP
+架构讨论、用户连续纠偏、用户质疑方案“为什么这样做”时，即使没有显式启动“深思模式”，也必须自动进入深思模式并深挖方案：
 
-- **Information Expert**：职责交给拥有完成该职责所需信息的对象。不要让路过的 runtime/helper/controller 搬运别人的状态。
-- **Creator**：如果一个对象聚合、持有、初始化或强依赖另一个对象，由它创建这个对象。不要由外层拼好再塞入。
-- **Controller**：入口 controller 只接住系统事件并委派，不变成所有业务状态的专家。
-- **High Cohesion / Low Coupling**：强相关状态和不变量放在同一 owner；调用方知道的内部细节越少越好。
-- **Protected Variations**：把容易变化的点封装在稳定边界后面，不把变化扩散到主流程。
-- **Pure Fabrication**：只有为降低耦合、提高复用或隔离外部协议时才创建非领域类；不能为了换名或藏字段而创建。
+- 先复述用户真正要守住的工程原则，而不是只回答表层问题。
+- 先判断用户是在要求方案讨论、机制改进、代码实现、还是持久化规则；不要过早落盘或动代码。
+- 至少给出一个推荐方案和必要取舍；如果方案空间确实存在分歧，给出多个方案并明确推荐。
+- 用户已经指出方向时，优先顺着其核心原则举一反三，而不是用局部技术名词重新发明一层。
+- 如果现有 skill 本应挡住问题却没有挡住，联动 `learning-from-failures` 做机制修正。
 
-### SOLID
+## 原则清单
 
-- **SRP**：一个模块只有一个主要变化原因。生命周期编排、插件索引、进程监督、协议适配不要塞进同一个对象。
-- **OCP**：新增能力应通过扩展明确 owner，而不是反复改主流程分支。
-- **LSP**：替代实现必须保持调用方依赖的行为契约。
-- **ISP**：调用方只依赖它真正需要的接口，避免传入大包对象再只用几个字段。
-- **DIP**：高层策略依赖稳定抽象或职责对象，不依赖低层散字段和内部数据形状。
+- `deletion-first`：能删代码就尽量删代码；新增结构前先找可以删除、合并或收敛的旧路径。
+  - 关键点：非新增用户能力的改动，默认应通过删除旧实现、合并重复入口、收敛 owner 或减少分支来完成。
+  - 关键点：如果必须新增代码，要同时说明它删除了什么重复职责，或为什么当前没有可删路径。
+  - 关键点：不要靠缩短命名、折叠语句、隐藏复杂度或把复杂度外移来伪造净减。
+  - 坏味道：旧 manager、旧 registry、旧 helper、旧 adapter 还在，又新增一套“更干净”的平行实现。
 
-### 其他经典原则
+- `information-expert`：职责交给拥有完成该职责所需信息的对象。
+  - 关键点：状态、不变量、派生规则和失效规则应归同一个 owner。
+  - 关键点：不要让路过的 runtime/helper/controller 搬运别人的状态。
+  - 坏味道：`Result` 返回多组必须同步的字段，然后调用方逐个赋值。
 
-- **Encapsulation / Information Hiding**：封装不是 `private` 字段，而是让外部不需要知道内部状态如何同步。
-- **Tell, Don't Ask**：告诉对象你的意图，让它自己做；不要问出一堆数据后替它做。
-- **Law of Demeter**：少知道原则。避免 `a.b.c.d` 或多层透传。
-- **Composition over Inheritance**：用组合表达职责模块和生命周期，不用继承或平铺字段承载所有变化。
-- **CQS**：查询和命令分离。读状态的方法不应暗中改变状态，改变状态的方法应表达业务意图。
+- `complete-owner`：真正的 owner 必须覆盖自己的领域闭环，不做空心壳。
+  - 关键点：owner 自己创建/持有核心对象，维护状态、不变量、生命周期和对外语义。
+  - 关键点：上层只传 owner 无法自知的外部事实，例如用户输入、配置快照、环境路径、观测端口或明确策略。
+  - 关键点：不要把 owner 应该会做的创建、路由、缓存、恢复、reload 逻辑拆成 `createXxx` / `resolveXxx` / `getXxx` 参数塞进去。
+  - 坏味道：新 owner 的构造参数里塞满 factory/deps，而这些正是该 owner 的核心职责。
 
-### Owner 组合规则
+- `single-domain-owner`：同一领域只保留一个事实 owner。
+  - 关键点：不能同时存在两个 `XxxManager` / `XxxRuntime` / `XxxRegistry` 都能管理同一能力。
+  - 关键点：迁移时必须明确最终 owner、旧 owner 删除点和调用方切换路径。
+  - 坏味道：新旧 manager 都能 resolve/create/mutate 同一领域对象。
 
-- 顶层 owner 可以在 `constructor` 中创建并持有下级 owner；下级 owner 承担某一块内聚职责。
-- 在职责拆分场景中，下级 owner 可以持有上级 owner 引用，用于访问同一启动周期内的共享组件、生命周期状态和协作能力；这比给下级 owner 的每个方法传一堆参数更清晰。
-- 如果下级 owner 已经存在，父级不要再为它的每个方法写同名透传，例如 `getPluginRegistry = () => this.plugins.getRegistry()`。调用方应直接通过 `runtime.plugins.getRegistry()` 访问该职责 owner。
-- 删除重复表面不能用 getter / proxy / alias 假装完成。例如把字段改成 `get cronService() { return this.cron; }` 仍然保留了两个公共入口；必须改调用方使用唯一语义入口，或承认底层 contract 名称应保留。
-- 父级只负责协调大生命周期；属于下级职责的 load/reload/start/stop/apply/publish 不应散落在父级。
-- 业务层之间优先传递具体 owner 对象，而不是把 owner 拆成多个小参数再到处传。小参数只适合纯工具函数、纯计算函数或明确的跨业务解耦协议边界。
+- `direct-child-access`：下级 owner 已存在时，调用方应直接访问该职责 owner，不要让父级重复包一层。
+  - 关键点：父级 owner 负责组合和生命周期编排，下级 owner 负责领域能力。
+  - 关键点：不要写 `getPluginRegistry = () => this.plugins.getRegistry()` 这类同名透传。
+  - 关键点：调用方需要领域能力时用 `runtime.plugins.getRegistry()`，而不是父级重新暴露一套 API。
+  - 坏味道：父级继续写一批 forwarding 方法，或新增 `asOldManager()` / `getLegacyXxx()`。
+
+- `constructor-builds-graph`：`constructor` 建立同步、确定、长期持有的对象图；生命周期方法驱动状态装配和副作用。
+  - 关键点：顶层 owner 可以在 `constructor` 中创建并持有强内聚下级 owner。
+  - 关键点：`load/reload/start/stop/dispose` 负责配置装载、状态恢复、订阅、进程、网络等副作用。
+  - 坏味道：`hydrateXxx(...)` 说不清是 load、start、reload、warm 还是 sync。
+
+- `no-compatibility-by-default`：兼容不是默认选项，内部重构不应为了少改调用方长期保留双入口。
+  - 关键点：除非有外部契约约束，否则直接改调用方并删除旧路径。
+  - 关键点：临时兼容必须有必要性、范围、owner、删除点。
+  - 坏味道：getter alias、proxy、adapter、`asXxx()`、旧字段和新字段长期并存。
+
+- `tell-dont-ask`：告诉对象你的意图，让它自己做；不要问出一堆数据后替它做。
+  - 关键点：调用 owner 的业务方法，而不是读散字段后在外层拼流程。
+  - 关键点：业务层之间优先传具体 owner 对象，不把 owner 拆成多个小参数。
+  - 坏味道：业务对象之间传 `configPath`、`bus`、`sessionManager`、`getXxx` 等碎片参数，而调用方其实已有上级 owner。
+
+- `high-cohesion-low-coupling`：强相关状态和变化原因放在同一 owner，调用方知道的内部细节越少越好。
+  - 关键点：一个模块只有一个主要变化原因。
+  - 关键点：生命周期编排、插件索引、进程监督、协议适配不要塞进同一个对象。
+  - 坏味道：上层 controller/runtime 既加载数据、又派生索引、又启动进程、又处理 reload。
+
+- `protected-variations`：把容易变化的点封装在稳定边界后面，不把变化扩散到主流程。
+  - 关键点：新增能力应扩展明确 owner，而不是反复改主流程分支。
+  - 关键点：非领域类只有在降低耦合、提高复用或隔离外部协议时才成立。
+  - 坏味道：`Manager/Runtime/Host/Context/Options/Props` 只是换名承载同一批字段。
+
+- `protocol-event-purity`：当事件名引用既有协议或领域事实时，payload 应保持该事实本体。
+  - 关键点：路由上下文、展示字段、权限信息和派生 metadata 属于独立职责。
+  - 关键点：不要把独立职责混入同名协议事件。
+  - 坏味道：为了少传一个上下文对象，把 channel/account/display 字段塞进协议 payload。
+
+- `cqs-pure-read`：查询和命令分离，读状态的方法不应暗中改变状态。
+  - 关键点：`read/get/list/status/discover/report` 路径应保持纯读。
+  - 关键点：改变状态的方法应表达业务意图。
+  - 坏味道：页面加载或 status 请求顺手注册能力、写状态或启动外部系统。
 
 ## 设计检查顺序
 
-1. **先找不变量**
-   哪些字段必须始终同步变化？这些字段通常属于同一个 owner。
-
-2. **再找 Information Expert**
-   谁最知道这些不变量如何产生、更新、校验和失效？它就是首选 owner。
-
-3. **区分对象图创建和生命周期**
-   `constructor` 建立同步、确定、长期持有的对象图；`start/stop/reload/dispose` 只驱动生命周期副作用。
-
-4. **区分职责对象和数据包**
-   好的依赖是职责对象：`catalog.reload(config)`。
-   坏的依赖是数据搬运：`const result = load(); this.a = result.a; this.b = result.b`。
-
-5. **判断 helper 是否越界**
-   helper 只能做纯计算、纯转换、纯协议适配。只要它改状态、维护生命周期、缓存或协调多个对象，就应该回到 owner class。
-
-6. **检查命名是否有真实语义**
-   新名字必须对应真实职责：生命周期 owner、协议边界、持久化边界、权限边界、外部系统适配或稳定变化点。否则是结构搬运。
-
-## 常见坏味道
-
-- `params.runtime.xxx = ...`、`params.gateway.xxx = ...`：外部函数在改 owner 状态。
-- `applyXxx(...)` 只包一堆字段赋值：setter 包装，不是业务行为。
-- `hydrateXxx(...)` 说不清是 load、start、reload、warm 还是 sync：生命周期语义模糊。
-- `createXxx()` 返回一坨字段给主流程继续传：对象图没有 owner。
-- `Result` 里有多组必须同步的字段，然后调用方逐个赋值：不变量泄漏。
-- 下级 owner 已存在，但父级继续写一批同名 forwarding 方法：多此一举，职责没有真正归位。
-- 用 getter alias 隐藏重复 contract：`get xxxService() { return this.xxx; }`、`get foo() { return this.bar.foo; }` 如果只是兼容旧名字或满足另一个散字段 contract，就不是收敛，而是重复表面换皮。
-- 下级 owner 每个方法都要求父级传入相同上下文参数：说明 owner 没有在 constructor 获得它的稳定依赖。
-- 业务对象之间传 `configPath`、`bus`、`sessionManager`、`getXxx` 等碎片参数，而调用方其实已经拥有上级 owner：说明对象边界被拆散，应改为依赖 owner。
-- `Manager/Runtime/Host/Context/Options/Props` 只是换名承载同一批字段：结构搬运。
-- 上层 controller/runtime 既加载数据、又派生索引、又启动进程、又处理 reload：违反 SRP 和 High Cohesion。
+1. 先找可删路径：哪些旧实现、重复入口、兼容桥或无意义中间层可以直接删除？
+2. 找不变量：哪些字段必须始终同步变化？它们通常属于同一个 owner。
+3. 找 `information-expert`：谁最知道这些不变量如何产生、更新、校验和失效？
+4. 查 `complete-owner`：新 owner 是否拥有领域闭环，还是空心注入？
+5. 查 `single-domain-owner`：同一领域是否存在两个事实 owner？
+6. 查 `direct-child-access`：父级是否在重复转发下级 owner 的能力？
+7. 区分对象图创建和生命周期：`constructor` 建图，`load/reload/start/stop/dispose` 驱动副作用。
+8. 检查兼容：旧入口是否应该删除，而不是保留 alias/proxy/adapter。
+9. 检查命名：新名字是否对应真实职责，否则就是结构搬运。
 
 ## 推荐模式
 
@@ -124,10 +140,13 @@ class GatewayRuntime {
 
 讨论方案时先给出：
 
-- 命中的经典原则；
+- 命中的原则 key，例如 `complete-owner` / `single-domain-owner`；
 - 当前设计违反了什么原则；
 - 正确 owner 是谁；
+- 能删除哪些旧路径、重复入口、兼容桥或无意义中间层；
 - constructor 负责什么，生命周期方法负责什么；
 - 哪些名字、helper、result、setter 应该删除或改成职责对象。
+- 为什么这个 owner 是完整闭环，而不是空心壳；
+- 哪些兼容/迁移桥不应该保留，旧路径删除点是什么。
 
 写代码前必须用一句话确认：这次是在落实哪个经典原则，而不是新增包装层。

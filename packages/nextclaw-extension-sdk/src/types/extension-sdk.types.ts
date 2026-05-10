@@ -1,4 +1,5 @@
-import type { EventBus, Unsubscribe } from "@nextclaw/shared";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { Unsubscribe } from "@nextclaw/shared";
 
 export type NextClawExtensionOptions = {
   endpoint?: string;
@@ -66,41 +67,20 @@ export type ChannelConfigGetResponse<TConfig = unknown> = {
   config: TConfig;
 };
 
-export type ChannelConfigChangedEvent<TConfig = unknown> = {
-  extensionId?: string;
-  channelId: string;
-  config: TConfig;
-};
-
-export type ChannelNcpEvent<TEvent = unknown> = {
-  extensionId?: string;
-  channelId: string;
-  event: TEvent;
-};
-
-export type ExtensionChannelConfigService = {
+export type ExtensionChannelConfig = {
   get: <TConfig = unknown>() => Promise<TConfig>;
   onChange: <TConfig = unknown>(
-    handler: (config: TConfig, event: ChannelConfigChangedEvent<TConfig>) => void | Promise<void>,
+    handler: (config: TConfig) => void | Promise<void>,
   ) => Unsubscribe;
 };
 
 export type ExtensionChannel = {
   id: string;
   submitMessage: (input: Omit<ChannelSubmittedMessage, "channelId">) => Promise<void>;
-  onNcpEvent: <TEvent = unknown>(
-    handler: (event: TEvent, envelope: ChannelNcpEvent<TEvent>) => void | Promise<void>,
-  ) => Unsubscribe;
-  config: ExtensionChannelConfigService;
+  onNcpEvent: (handler: (event: NcpEndpointEvent) => void | Promise<void>) => Unsubscribe;
+  config: ExtensionChannelConfig;
 };
 
-export type ExtensionChannelsService = {
+export type ExtensionChannels = {
   use: (channelId: string) => ExtensionChannel;
-};
-
-export type NextClawExtension = {
-  extensionId: string;
-  eventBus: EventBus;
-  channels: ExtensionChannelsService;
-  close: () => void;
 };

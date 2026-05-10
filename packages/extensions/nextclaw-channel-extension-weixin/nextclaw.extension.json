@@ -1,0 +1,47 @@
+{
+  "id": "nextclaw-channel-extension-weixin",
+  "name": "NextClaw Weixin Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "weixin",
+        "name": "Weixin",
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "defaultAccountId": { "type": "string" },
+            "baseUrl": { "type": "string" },
+            "pollTimeoutMs": { "type": "number" },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "accounts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "baseUrl": { "type": "string" },
+                  "allowFrom": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { NextClawExtensionService } from "./index.js";
+import { NextClawExtension } from "./index.js";
 
 describe("@nextclaw/extension-sdk", () => {
   it("submits channel messages through the ingress endpoint", async () => {
@@ -9,7 +9,7 @@ describe("@nextclaw/extension-sdk", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    const extension = new NextClawExtensionService({
+    const extension = new NextClawExtension({
       endpoint: "http://127.0.0.1:55667",
       extensionId: "fake-extension",
       token: "secret",
@@ -63,7 +63,7 @@ describe("@nextclaw/extension-sdk", () => {
         headers: { "content-type": "application/json" },
       }),
     );
-    const extension = new NextClawExtensionService({
+    const extension = new NextClawExtension({
       endpoint: "http://127.0.0.1:55667",
       extensionId: "fake-extension",
       token: "secret",
@@ -89,11 +89,14 @@ describe("@nextclaw/extension-sdk", () => {
     channel.config.onChange(configHandler);
     sockets[0]?.onmessage?.({
       data: JSON.stringify({
-        type: "extension.channel.ncp.event",
+        type: "ncp.event",
         payload: {
-          extensionId: "fake-extension",
-          channelId: "fake",
-          event: { type: "message.delta", delta: "hi" },
+          type: "message.text-delta",
+          payload: {
+            sessionId: "session-1",
+            messageId: "message-1",
+            delta: "hi",
+          },
         },
       }),
     });
@@ -107,12 +110,17 @@ describe("@nextclaw/extension-sdk", () => {
 
     expect(sockets[0]?.url).toBe("ws://127.0.0.1:55667/ws");
     expect(ncpHandler).toHaveBeenCalledWith(
-      { type: "message.delta", delta: "hi" },
-      expect.objectContaining({ channelId: "fake" }),
+      {
+        type: "message.text-delta",
+        payload: {
+          sessionId: "session-1",
+          messageId: "message-1",
+          delta: "hi",
+        },
+      },
     );
     expect(configHandler).toHaveBeenCalledWith(
       { enabled: true, token: "updated" },
-      expect.objectContaining({ channelId: "fake" }),
     );
   });
 });

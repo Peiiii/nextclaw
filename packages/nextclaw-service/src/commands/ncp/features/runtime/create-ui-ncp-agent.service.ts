@@ -74,6 +74,7 @@ export type CreateUiNcpAgentParams = {
     sessionKey: string;
     status: "running" | "idle";
   }) => void;
+  onNcpEvent?: (event: NcpEndpointEvent) => void;
   globalEventBus?: GlobalTypedEventBus;
 };
 
@@ -388,6 +389,7 @@ export class UiNcpAgentRuntimeService {
   private builtinNarpRegistrations: Array<{ dispose: () => void }> = [];
   private kernelBootstrapped = false;
   private warmupPromise: Promise<void> | null = null;
+  private unsubscribeNcpEvents: (() => void) | null = null;
   private disposed = false;
 
   constructor(private readonly params: CreateUiNcpAgentParams) {
@@ -471,6 +473,9 @@ export class UiNcpAgentRuntimeService {
         });
       },
     });
+    if (this.params.onNcpEvent) {
+      this.unsubscribeNcpEvents = this.backend.subscribe(this.params.onNcpEvent);
+    }
 
     await this.backend.start();
     this.learningLoopRuntime.attachBackend(this.backend);
@@ -509,6 +514,8 @@ export class UiNcpAgentRuntimeService {
     this.disposed = true;
     await this.warmupPromise?.catch(() => undefined);
     this.learningLoopRuntime.dispose();
+    this.unsubscribeNcpEvents?.();
+    this.unsubscribeNcpEvents = null;
     for (const registration of this.builtinNarpRegistrations) {
       registration.dispose();
     }

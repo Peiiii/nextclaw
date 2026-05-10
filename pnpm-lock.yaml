@@ -547,6 +547,25 @@ importers:
         specifier: ^4.45.0
         version: 4.67.0(@cloudflare/workers-types@4.20260228.0)
 
+  packages/extensions/nextclaw-channel-extension-weixin:
+    dependencies:
+      '@nextclaw/extension-sdk':
+        specifier: workspace:*
+        version: link:../../nextclaw-extension-sdk
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
   packages/extensions/nextclaw-channel-plugin-dingtalk:
     dependencies:
       '@nextclaw/channel-runtime':
@@ -977,9 +996,6 @@ importers:
 
   packages/nextclaw:
     dependencies:
-      '@nextclaw/service':
-        specifier: workspace:*
-        version: link:../nextclaw-service
       '@nextclaw/companion':
         specifier: workspace:*
         version: link:../../apps/companion
@@ -1025,6 +1041,9 @@ importers:
       '@nextclaw/server':
         specifier: workspace:*
         version: link:../nextclaw-server
+      '@nextclaw/service':
+        specifier: workspace:*
+        version: link:../nextclaw-service
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -1253,6 +1272,25 @@ importers:
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
+  packages/nextclaw-extension-sdk:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../nextclaw-shared
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
       typescript:
         specifier: ^5.6.3
         version: 5.9.3

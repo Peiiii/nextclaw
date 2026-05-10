@@ -23,6 +23,7 @@ Default stance:
 - Prefer one clear source of truth over multiple fallback sources.
 - Prefer explicit dev-only switches over automatic environment sniffing.
 - Prefer fixing release/build/deploy contracts at the source over teaching shipped runtime to recognize incident signatures.
+- Compatibility is not the default for internal refactors. If a new owner or primary path is chosen, migrate callers to it and delete the old path instead of keeping aliases, adapters, proxies, or `asXxx()` bridges for convenience.
 
 ## When To Use
 
@@ -31,6 +32,7 @@ Trigger this skill when work includes any of these patterns:
 - Adding or changing fallback paths.
 - Keeping old and new implementations alive at the same time.
 - Backward compatibility requests without a clearly proven need.
+- Keeping an old manager, registry, factory, getter, or adapter after a new owner has been chosen.
 - Runtime behavior that depends on `cwd`, local repo files, or ambient machine state.
 - Graceful degradation that can turn a broken release into a "works on my machine" illusion.
 - "Just in case" retries, defaults, silent recovery, or legacy code preservation.
@@ -51,6 +53,7 @@ Trigger this skill when work includes any of these patterns:
    If the failure is a protocol mismatch, fix the primary contract from the first request instead of probing one mode and switching after an error.
 5. If compatibility still seems necessary, apply the exception bar from [references/predictable-behavior-policy.md](references/predictable-behavior-policy.md).
 6. When keeping any compatibility path, record its trigger, scope, owner, and removal condition in the change summary.
+7. For internal owner migrations, prefer editing all known callers in the same change. If a temporary bridge is unavoidable, it must have a named deletion point and must not become a second public entry.
 
 ## Read vs Action Checklist
 
@@ -104,6 +107,8 @@ If the problem is a broken published package, broken installer, broken deploy, o
 - Do not add silent fallbacks that turn release defects into environment-specific behavior.
 - Do not encode one-off incident knowledge into runtime conditionals just because the current failure is easy to pattern-match.
 - Do not keep dual paths unless the old path has a real, current, externally constrained purpose.
+- Do not keep internal compatibility bridges merely to avoid updating callers.
+- Do not preserve two managers/registries that can both mutate or resolve the same domain.
 - If a fallback is only for development, require an explicit switch or explicit environment variable.
 - Do not let read-shaped APIs hide load/register/write/execute behavior.
 - Do not let frontend automatic requests trigger side effects.

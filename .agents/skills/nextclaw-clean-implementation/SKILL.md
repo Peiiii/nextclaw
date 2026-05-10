@@ -39,6 +39,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 准备复制一段相似实现再小改
 - 准备为一个字段或局部状态新增跨层参数、回调、wrapper、proxy 或接口转发对象
 - 改动不大，但会继续推高复杂度
+- 准备把一个领域 owner 改成只接收 `createXxx` / `resolveXxx` / `getXxx` 参数的空心壳
+- 准备为了迁移方便保留旧 manager、旧入口、alias、adapter、`asXxx()` 或双路径
 
 如果讨论重点已经进入 owner、生命周期、模块边界、职责对象、状态归属或经典编程最佳实践，先联动 `classic-software-design-principles`，用 GRASP / SOLID / Tell Don't Ask / Law of Demeter 校准后再写代码。
 
@@ -66,6 +68,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 这段逻辑是不是业务规则或业务编排
 - 它的状态、上下文、生命周期由谁拥有
 - 主流程现在是在一个清晰 owner 里，还是散落在函数 / hook / effect / action 中
+- 这个 owner 是否完整覆盖领域闭环，还是核心能力仍由上层通过 factory/deps 临时塞进来
 
 如果答案说不清，先收敛 owner，再写增量逻辑。
 
@@ -74,6 +77,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 业务主干进 class owner
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
+- 领域 owner 要自己拥有创建、缓存、状态恢复、reload、dispose 等领域闭环；上层只传它无法自知的外部事实，例如配置快照、用户输入、路径、观测端口或明确策略
 
 ### 2.1 这是语义建模还是结构搬运
 
@@ -83,18 +87,23 @@ description: Use when implementing or refactoring code in this repository, espec
 - 中间层是否拥有决策、生命周期、权限、协议转换或持久化责任
 - 是否正在手写接口 proxy、wrapper、adapter，只为了改其中一个方法
 - 是否只是把一个问题类型、参数对象、contract 或 wrapper 换了一个新名字，却没有删除重复字段清单、重复 owner 或重复装配链路
+- 是否只是把核心职责外包给上层传入的 `createXxx` / `resolveXxx` / `getXxx`，导致新类只有名字像 owner、能力却不内聚
 - 是否有一个现成的数据生成者 / summary builder / view service 可以自然加上这个字段
 
 默认原则：
 
 - 在语义 owner 上加字段或行为，而不是在路由、启动参数、bridge、controller 里穿针引线
+- 事件名如果声明承载某个既有协议事件，payload 必须保持该协议事件本体；路由、权限、展示上下文、派生 metadata 属于独立 owner 或独立事件，不能混进同名协议事件里
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
 - 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。
 - Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
+- 清晰性本身是重要原则。不要为了机械消灭 `null` / `undefined`、减少一行判断或追求形式统一，把真实状态改成 no-op、假默认值、哨兵对象或更隐晦的间接表达；只有半初始化、职责逃逸或 contract 不确定时才应收敛掉可空状态。
 - 禁止用重命名替代结构修复；如果旧类型和新类型承载同一批字段或同一段装配职责，必须删除重复 contract，让字段回到真正 owner，而不是引入 `XxxHost`、`XxxRuntime`、`XxxGateway`、`XxxOptions`、`XxxProps` 这类换皮中间名
 - 新命名只有在引入了新的语义 owner、生命周期、权限边界、协议转换或持久化责任时才成立；否则默认是结构搬运，必须回退
 - 若一个字段需要经过 `3` 层以上且多数层只是透传，必须先停下重新找 owner
 - 若确实需要 adapter，必须有真实语义转换；没有语义转换的 adapter / proxy 默认删除
+- 只负责 `subscribe(handler)` / `onXxx(handler)` / 调用转发、没有协议转换或生命周期决策的 bridge / listener wrapper 默认删除；订阅、退订和状态归属应回到真实 runtime / manager owner。
+- 不用空心依赖注入冒充职责收敛。除非依赖代表外部系统边界、测试替身、权限边界或用户可配置策略，否则 owner 的核心创建/路由/缓存/生命周期逻辑应回到 owner 内部。
 
 ### 3. 这是不是在制造隐藏路径
 
@@ -113,6 +122,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 当前实现能否收敛成一条显式主路径
 - 是不是只因为“稳妥”就在保留旧实现
 - 新旧两条路是否真的都还有长期价值
+- 如果新 owner 已经确定，旧 owner、旧入口、兼容 adapter、alias、`asXxx()` 的删除点是什么
 
 不要把“暂时先留着”当默认答案。
 
@@ -175,6 +185,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 为了一个字段手写完整接口 proxy，绝大多数方法只是原样转发
 - 删除重复字段时只改成 getter alias，导致两个名字继续长期存在
 - 导出 `createXxx()` 但函数体只是 `return new Xxx(...)` 或 `=> new Xxx(...)`，没有缓存、依赖注入、环境选择、异步初始化、权限封装等真实语义
+- 新增 `XxxManager` / `XxxOwner`，但核心能力靠上层传 `createXxx` / `resolveXxx` / `getXxx` 完成，自己不持有领域闭环
+- 为了迁移省事长期保留 `asOldXxx()`、旧 manager、旧 registry、旧 getter、旧入口和新入口并存
 - 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数
 - 为了一个新领域词发明一个新目录或新角色
 - 用 `utils`、`helpers`、`common` 掩盖真实业务职责
@@ -212,11 +224,12 @@ description: Use when implementing or refactoring code in this repository, espec
 2. 这段逻辑的 owner 是谁
 3. 这次是在语义 owner 上建模，还是在做结构搬运；若不是结构搬运，证据是什么
 4. 是否引入或改名了类型 / 参数对象 / wrapper；如果是，它删除了哪个重复 contract 或新增了什么真实语义 owner，证据是什么
-5. 主路径是什么，为什么不是双路径
-6. 为什么这不是隐藏 fallback 或补丁式修复
-7. 文件为什么放在这里
-8. 最小可信验证是什么
-9. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
+5. 新 owner 是否完整内聚；如果依赖上层传入 factory/deps，为什么这是必要外部边界而不是空心注入
+6. 主路径是什么，为什么不是双路径；如果保留兼容路径，删除点是什么
+7. 为什么这不是隐藏 fallback 或补丁式修复
+8. 文件为什么放在这里
+9. 最小可信验证是什么
+10. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
    同时说明准备在哪个相关责任链、旧实现或冗余路径上完成这次减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
 
 如果这些问题里有 2 个以上答不清，先不要写代码。
