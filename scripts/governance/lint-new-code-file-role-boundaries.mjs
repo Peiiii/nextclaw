@@ -28,6 +28,7 @@ Once a file is touched, legacy role-boundary debt must be fixed in the same chan
 
 const ROLE_SUFFIX_ALLOWLIST = new Set([
   "config",
+  "constants",
   "controller",
   "manager",
   "presenter",

@@ -9,5 +9,5 @@ export const BUNDLED_CHANNEL_PLUGIN_PACKAGES = [
   "@nextclaw/channel-plugin-email",
   "@nextclaw/channel-plugin-slack",
   "@nextclaw/channel-plugin-qq",
-  "@nextclaw/channel-plugin-weixin",
+  // "@nextclaw/channel-plugin-weixin",
 ] as const;

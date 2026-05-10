@@ -35,9 +35,7 @@
       "@nextclaw/agent-chat": ["../nextclaw-agent-chat/src/index.ts"],
       "@nextclaw/agent-chat-ui": ["../nextclaw-agent-chat-ui/src/index.ts"],
       "@nextclaw/client-sdk": ["../nextclaw-client-sdk/src/index.ts"],
-      "@nextclaw/kernel": ["../nextclaw-kernel/src/index.ts"],
       "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"],
-      "@kernel/*": ["../nextclaw-kernel/src/*"],
       "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-http-agent-client": ["../ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts"],
       "@nextclaw/ncp-react": ["../ncp-packages/nextclaw-ncp-react/src/index.ts"]

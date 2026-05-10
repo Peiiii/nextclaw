@@ -1,4 +1,5 @@
 import type { ExtensionChannel } from "@nextclaw/extension-sdk";
+import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import type {
   WeixinChannelAdapter,
   WeixinChannelConfig,
@@ -16,14 +17,12 @@ export class WeixinExtensionRuntime {
   ) {}
 
   readonly start = async (): Promise<void> => {
-    await this.applyConfig();
+    this.unsubscribeMessages = this.adapter.onMessage(this.submitMessage);
+    this.unsubscribeNcpEvents = this.channel.onNcpEvent(this.sendNcpEvent);
     this.unsubscribeConfig = this.channel.config.onChange(async () => {
       await this.applyConfig();
     });
-    this.unsubscribeMessages = this.adapter.onMessage(this.submitMessage);
-    this.unsubscribeNcpEvents = this.channel.onNcpEvent(async (event) => {
-      await this.adapter.sendNcpEvent(event);
-    });
+    await this.applyConfig();
   };
 
   readonly stop = async (): Promise<void> => {
@@ -54,10 +53,21 @@ export class WeixinExtensionRuntime {
         type: "text",
         text: message.text,
       },
+      ...(message.attachments ? { attachments: message.attachments } : {}),
       metadata: {
         ...(message.accountId ? { accountId: message.accountId, account_id: message.accountId } : {}),
+        ...(message.contextToken ? { context_token: message.contextToken } : {}),
         ...(message.raw === undefined ? {} : { raw: message.raw }),
       },
     });
+  };
+
+  private readonly sendNcpEvent = async (event: NcpEndpointEvent): Promise<void> => {
+    try {
+      await this.adapter.sendNcpEvent(event);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[weixin] failed to send NCP event: ${message}`);
+    }
   };
 }

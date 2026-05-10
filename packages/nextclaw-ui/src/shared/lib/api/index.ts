@@ -17,6 +17,6 @@ export * from './services/remote.service';
 export * from './remote.types';
 export * from './services/runtime-control.service';
 export * from './runtime-control.types';
-export * from './services/runtime-update.service';
+export * from './runtime-update.utils';
 export * from './services/server-path.service';
 export * from './types';

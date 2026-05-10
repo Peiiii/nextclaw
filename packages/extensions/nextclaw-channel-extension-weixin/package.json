@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "@nextclaw/extension-sdk": "workspace:*",
-    "@nextclaw/ncp": "workspace:*"
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",

@@ -673,6 +673,37 @@ test("blocks parent-relative imports when alias imports are configured", () => {
   }
 });
 
+test("prefers explicit config import alias over protocol default alias", () => {
+  const repoFixtureRoot = path.join("packages", ".tmp-test-workspaces", "explicit-alias-imports");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  const filePath = `${repoFixtureRoot}/src/cli/shared/services/self-update.service.ts`;
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/explicit-alias-imports\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "protocol",
+    protocol: "cli-command-first",
+    rootPolicy: "contract-only",
+    importAliasPrefixes: ["@custom/"]
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "cli", "shared", "services", "self-update.service.ts"), "export const example = true;\n");
+
+  try {
+    const contract = findModuleStructureContract(filePath);
+    const findings = evaluateProtocolImportBoundaryFindings({
+      filePath,
+      contract,
+      source: `import { which } from "../utils/cli.utils.js";\n`,
+      addedLines: new Set([1])
+    });
+
+    assert.equal(findings.length, 1);
+    assert.match(findings[0].message, /cross-directory imports must use '@custom\/'/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
+});
+
 test("allows same-directory relative imports when alias imports are configured", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/self-update.service.test.ts");
   const findings = evaluateProtocolImportBoundaryFindings({

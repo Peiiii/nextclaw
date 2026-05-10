@@ -1,6 +1,6 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import type { Dispatch, FormEvent, SetStateAction } from 'react';
-import { eventKeys } from '@nextclaw/kernel';
+import { eventKeys } from '@nextclaw/shared';
 import { BookOpen, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { LogoBadge } from '@/shared/components/common/logo-badge';
@@ -285,7 +285,11 @@ function ChannelFormEditor(props: ChannelFormEditorProps) {
       }
       const result = await executeAction.mutateAsync({ actionId: action.id, data: { scope, draftConfig: buildScopeDraft(scope, nextData) } });
       applyActionPatchToForm(result.patch);
-      result.ok ? toast.success(result.message || t('success')) : toast.error(result.message || t('error'));
+      if (result.ok) {
+        toast.success(result.message || t('success'));
+      } else {
+        toast.error(result.message || t('error'));
+      }
     } catch (error) {
       toast.error(`${t('error')}: ${error instanceof Error ? error.message : String(error)}`);
     } finally {

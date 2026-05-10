@@ -36,6 +36,7 @@ Examples:
 - `.store.ts`: state container.
 - `.repository.ts`: persistence/data access layer.
 - `.config.ts`: configuration assembly.
+- `.constants.ts`: exported constants or immutable lookup tables.
 - `.controller.ts`: route/request entry layer, protocol adaptation, input validation.
 - `.provider.ts`: provider-facing integration capability.
 

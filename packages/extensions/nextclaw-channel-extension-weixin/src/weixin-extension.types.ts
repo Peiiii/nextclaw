@@ -1,4 +1,5 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import type { ChannelSubmittedAttachment } from "@nextclaw/extension-sdk";
 
 export type WeixinAccountConfig = {
   enabled?: boolean;
@@ -19,8 +20,19 @@ export type WeixinInboundMessage = {
   conversationId: string;
   senderId: string;
   text: string;
+  attachments?: ChannelSubmittedAttachment[];
   accountId?: string;
+  contextToken?: string;
   raw?: unknown;
+};
+
+export type WeixinRuntimeAccount = {
+  accountId: string;
+  token: string;
+  enabled: boolean;
+  baseUrl: string;
+  pollTimeoutMs: number;
+  allowFrom: string[];
 };
 
 export type WeixinChannelAdapter = {

@@ -58,7 +58,7 @@ describe("@nextclaw/extension-sdk", () => {
       close: ReturnType<typeof vi.fn>;
     }> = [];
     const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify({ config: { enabled: true, token: "updated" } }), {
+      new Response(JSON.stringify({ ok: true, data: { config: { enabled: true, token: "updated" } } }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),

@@ -207,8 +207,8 @@ const defineProtocolDeclaration = (declaration) => {
       ...(declaration.sharedDirectories ?? [])
     ]),
     importAliasPrefixes: new Set([
-      ...(protocol.importAliasPrefixes ?? []),
-      ...(declaration.importAliasPrefixes ?? [])
+      ...(declaration.importAliasPrefixes ?? []),
+      ...(protocol.importAliasPrefixes ?? [])
     ]),
     enforcement: declaration.enforcement ?? "error"
   };

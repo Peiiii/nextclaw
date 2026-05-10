@@ -51,11 +51,25 @@ export type ChannelMessageContent =
   | ChannelImageContent
   | ChannelFileContent;
 
+export type ChannelSubmittedAttachment = {
+  id?: string;
+  name?: string;
+  path?: string;
+  url?: string;
+  assetUri?: string;
+  mimeType?: string;
+  size?: number;
+  source?: string;
+  status?: "ready" | "remote-only";
+  errorCode?: "too_large" | "download_failed" | "http_error" | "invalid_payload";
+};
+
 export type ChannelSubmittedMessage = {
   channelId: string;
   conversationId: string;
   senderId: string;
   content: ChannelMessageContent;
+  attachments?: ChannelSubmittedAttachment[];
   metadata?: Record<string, unknown>;
 };
 

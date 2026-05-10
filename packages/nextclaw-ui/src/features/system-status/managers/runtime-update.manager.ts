@@ -1,11 +1,9 @@
-import type { UpdatePreferences, UpdateSnapshot } from '@nextclaw/kernel';
+import type { UpdatePreferences, UpdateSnapshot } from '@nextclaw/shared';
 import { applyRuntimeUpdate, checkRuntimeUpdate, downloadRuntimeUpdate, fetchRuntimeUpdate, updateRuntimeUpdateChannel, updateRuntimeUpdatePreferences } from '@/shared/lib/api';
 import type { NextClawDesktopBridge } from '@/platforms/desktop';
 import { t } from '@/shared/lib/i18n';
 import { toast } from 'sonner';
 import { useRuntimeUpdateStore, type RuntimeUpdateBusyAction } from '@/features/system-status/stores/runtime-update.store';
-
-type RuntimeUpdateSourceKind = 'desktop-bridge' | 'runtime-host';
 
 interface RuntimeUpdateSourceBase {
   getState: () => Promise<UpdateSnapshot>;

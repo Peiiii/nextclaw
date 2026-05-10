@@ -1,4 +1,4 @@
-import type { UpdateSnapshot } from '@nextclaw/kernel';
+import type { UpdateSnapshot } from '@nextclaw/shared';
 import { create } from 'zustand';
 
 export type RuntimeUpdateBusyAction =

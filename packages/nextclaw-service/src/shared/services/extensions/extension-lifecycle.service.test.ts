@@ -46,6 +46,7 @@ describe("ExtensionManifestDiscoveryService", () => {
     await expect(new ExtensionManifestDiscoveryService().discover([root])).resolves.toEqual([
       expect.objectContaining({
         id: "fake-extension",
+        rootDir: extensionDir,
         server: expect.objectContaining({
           command: "node",
           args: ["dist/index.js"],
@@ -57,6 +58,8 @@ describe("ExtensionManifestDiscoveryService", () => {
 
 describe("ExtensionLifecycleService", () => {
   it("starts extension server commands with injected connection env", () => {
+    const originalNodeOptions = process.env.NODE_OPTIONS;
+    process.env.NODE_OPTIONS = "--conditions=development --max-old-space-size=4096";
     const child = new EventEmitter() as EventEmitter & {
       once: EventEmitter["once"];
       kill: ReturnType<typeof vi.fn>;
@@ -73,28 +76,39 @@ describe("ExtensionLifecycleService", () => {
       spawnProcess: spawnProcess as never,
     });
 
-    service.start({
-      id: "fake-extension",
-      server: {
-        type: "stdio",
-        command: "node",
-        args: ["dist/index.js"],
-        env: { EXTRA: "1" },
-      },
-    });
+    try {
+      service.start({
+        id: "fake-extension",
+        rootDir: "/tmp/fake-extension",
+        server: {
+          type: "stdio",
+          command: "node",
+          args: ["dist/index.js"],
+          env: { EXTRA: "1" },
+        },
+      });
 
-    expect(spawnProcess).toHaveBeenCalledWith(
-      "node",
-      ["dist/index.js"],
-      expect.objectContaining({
-        env: expect.objectContaining({
-          EXTRA: "1",
-          NEXTCLAW_EXTENSION_ID: "fake-extension",
-          NEXTCLAW_EXTENSION_ENDPOINT: "http://127.0.0.1:55667",
-          NEXTCLAW_EXTENSION_TOKEN: "secret",
+      expect(spawnProcess).toHaveBeenCalledWith(
+        "node",
+        ["dist/index.js"],
+        expect.objectContaining({
+          cwd: "/tmp/fake-extension",
+          env: expect.objectContaining({
+            EXTRA: "1",
+            NODE_OPTIONS: "--max-old-space-size=4096",
+            NEXTCLAW_EXTENSION_ID: "fake-extension",
+            NEXTCLAW_EXTENSION_ENDPOINT: "http://127.0.0.1:55667",
+            NEXTCLAW_EXTENSION_TOKEN: "secret",
+          }),
+          stdio: ["ignore", "ignore", "inherit"],
         }),
-        stdio: "ignore",
-      }),
-    );
+      );
+    } finally {
+      if (originalNodeOptions === undefined) {
+        delete process.env.NODE_OPTIONS;
+      } else {
+        process.env.NODE_OPTIONS = originalNodeOptions;
+      }
+    }
   });
 });

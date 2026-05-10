@@ -72,7 +72,7 @@ export class ExtensionTransportService {
     if (!response.ok) {
       throw new Error(this.readErrorMessage(body, `NextClaw ingress failed with ${response.status}`));
     }
-    return body as TResponse;
+    return this.readResponseData<TResponse>(body);
   };
 
   readonly subscribe = (handler: RealtimeHandler): { close: () => void } => {
@@ -116,5 +116,15 @@ export class ExtensionTransportService {
     }
     const error = (body as { error?: { message?: unknown } }).error;
     return typeof error?.message === "string" && error.message.trim() ? error.message : fallback;
+  };
+
+  private readonly readResponseData = <TResponse>(body: unknown): TResponse => {
+    if (body && typeof body === "object" && !Array.isArray(body)) {
+      const record = body as { ok?: unknown; data?: unknown };
+      if (record.ok === true && "data" in record) {
+        return record.data as TResponse;
+      }
+    }
+    return body as TResponse;
   };
 }

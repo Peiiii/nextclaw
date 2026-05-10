@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 export type ExtensionServerConfig = {
   type: "stdio";
@@ -13,6 +13,7 @@ export type ExtensionManifest = {
   id: string;
   name?: string;
   version?: string;
+  rootDir: string;
   server: ExtensionServerConfig;
   contributes?: {
     channels?: Array<{
@@ -59,7 +60,27 @@ function readStringRecord(value: unknown): Record<string, string> | undefined {
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
-function toManifest(value: unknown): ExtensionManifest {
+function sanitizeExtensionNodeOptions(value: string | undefined): string | undefined {
+  if (!value?.trim()) {
+    return undefined;
+  }
+  const tokens = value.split(/\s+/).filter(Boolean);
+  const sanitized: string[] = [];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === "--conditions=development" || token === "-C=development") {
+      continue;
+    }
+    if ((token === "--conditions" || token === "-C") && tokens[index + 1] === "development") {
+      index += 1;
+      continue;
+    }
+    sanitized.push(token);
+  }
+  return sanitized.length > 0 ? sanitized.join(" ") : undefined;
+}
+
+function toManifest(value: unknown, rootDir: string): ExtensionManifest {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("extension manifest must be an object");
   }
@@ -82,6 +103,7 @@ function toManifest(value: unknown): ExtensionManifest {
   }
   return {
     id,
+    rootDir,
     ...(readString(record.name) ? { name: readString(record.name) } : {}),
     ...(readString(record.version) ? { version: readString(record.version) } : {}),
     server: {
@@ -122,7 +144,7 @@ export class ExtensionManifestDiscoveryService {
 
   private readonly readManifestIfExists = async (path: string): Promise<ExtensionManifest | null> => {
     try {
-      return toManifest(JSON.parse(await readFile(path, "utf-8")));
+      return toManifest(JSON.parse(await readFile(path, "utf-8")), dirname(path));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return null;
@@ -156,14 +178,16 @@ export class ExtensionLifecycleService {
       return existing;
     }
     const child = this.spawnProcess(manifest.server.command, manifest.server.args ?? [], {
+      cwd: manifest.rootDir,
       env: {
         ...process.env,
+        NODE_OPTIONS: sanitizeExtensionNodeOptions(process.env.NODE_OPTIONS),
         ...manifest.server.env,
         NEXTCLAW_EXTENSION_ID: manifest.id,
         NEXTCLAW_EXTENSION_ENDPOINT: this.options.endpoint,
         NEXTCLAW_EXTENSION_TOKEN: this.options.token,
       },
-      stdio: "ignore",
+      stdio: ["ignore", "ignore", "inherit"],
     });
     const running = { manifest, process: child };
     this.processes.set(manifest.id, running);
@@ -171,6 +195,7 @@ export class ExtensionLifecycleService {
       if (this.processes.get(manifest.id)?.process === child) {
         this.processes.delete(manifest.id);
       }
+      this.logger.warn(`Extension ${manifest.id} exited.`);
     });
     child.once("error", (error) => {
       this.logger.warn(`Extension ${manifest.id} failed: ${error.message}`);

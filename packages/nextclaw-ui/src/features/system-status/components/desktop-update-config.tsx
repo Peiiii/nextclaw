@@ -1,4 +1,4 @@
-import type { UpdateSnapshot } from '@nextclaw/kernel';
+import type { UpdateSnapshot } from '@nextclaw/shared';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';

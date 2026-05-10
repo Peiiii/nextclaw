@@ -1,4 +1,4 @@
-import type { AppEvent as KernelAppEvent } from '@nextclaw/kernel';
+import type { AppEvent as KernelAppEvent } from '@nextclaw/shared';
 
 export type RequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

@@ -5,7 +5,7 @@ import type {
   UpdateProgress,
   UpdateSnapshot,
   UpdateStatus,
-} from '@nextclaw/kernel';
+} from '@nextclaw/shared';
 
 export type DesktopUpdateStatus = Extract<
   UpdateStatus,

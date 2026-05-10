@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { eventKeys } from '@nextclaw/kernel';
+import { eventKeys } from '@nextclaw/shared';
 import { applyNcpSessionRealtimeEvent, nextclawClient } from '@/shared/lib/api';
 import { runtimeUpdateManager, systemStatusManager } from '@/features/system-status';
 import type { QueryClient } from '@tanstack/react-query';

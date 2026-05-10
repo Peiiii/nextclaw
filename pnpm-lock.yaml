@@ -1319,9 +1319,15 @@ importers:
 
   packages/nextclaw-kernel:
     dependencies:
+      '@nextclaw/core':
+        specifier: workspace:*
+        version: link:../nextclaw-core
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
+      '@nextclaw/runtime':
+        specifier: workspace:*
+        version: link:../nextclaw-runtime
       '@nextclaw/shared':
         specifier: workspace:*
         version: link:../nextclaw-shared
@@ -1705,9 +1711,6 @@ importers:
       '@nextclaw/client-sdk':
         specifier: workspace:*
         version: link:../nextclaw-client-sdk
-      '@nextclaw/kernel':
-        specifier: workspace:*
-        version: link:../nextclaw-kernel
       '@nextclaw/ncp':
         specifier: workspace:*
         version: link:../ncp-packages/nextclaw-ncp
@@ -1720,6 +1723,9 @@ importers:
       '@nextclaw/server':
         specifier: workspace:*
         version: link:../nextclaw-server
+      '@nextclaw/shared':
+        specifier: workspace:*
+        version: link:../nextclaw-shared
       '@radix-ui/react-dialog':
         specifier: ^1.1.2
         version: 1.1.15(@types/react-dom@18.3.7(@types/react@18.3.28))(@types/react@18.3.28)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

@@ -6,6 +6,7 @@ export type {
   ChannelImageContent,
   ChannelMessageContent,
   ChannelSubmittedMessage,
+  ChannelSubmittedAttachment,
   ChannelTextContent,
   ExtensionChannel,
   ExtensionChannelConfig,

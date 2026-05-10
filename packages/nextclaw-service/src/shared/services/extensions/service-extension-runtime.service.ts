@@ -3,6 +3,7 @@ import { getDataPath } from "@nextclaw/core";
 import type { Ingress, IngressContext, IngressEnvelope } from "@nextclaw/kernel";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
+import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.js";
 import {
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
@@ -22,6 +23,7 @@ type ChannelSubmittedMessagePayload = {
   conversationId?: unknown;
   senderId?: unknown;
   content?: unknown;
+  attachments?: unknown;
   metadata?: unknown;
 };
 
@@ -60,6 +62,40 @@ function readTextContent(value: unknown): string {
   return content.text;
 }
 
+function readOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function readOptionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function readInboundAttachments(value: unknown): InboundAttachment[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((entry): entry is Record<string, unknown> =>
+      Boolean(entry && typeof entry === "object" && !Array.isArray(entry))
+    )
+    .map((entry) => ({
+      ...(readOptionalString(entry.id) ? { id: readOptionalString(entry.id) } : {}),
+      ...(readOptionalString(entry.name) ? { name: readOptionalString(entry.name) } : {}),
+      ...(readOptionalString(entry.path) ? { path: readOptionalString(entry.path) } : {}),
+      ...(readOptionalString(entry.url) ? { url: readOptionalString(entry.url) } : {}),
+      ...(readOptionalString(entry.assetUri) ? { assetUri: readOptionalString(entry.assetUri) } : {}),
+      ...(readOptionalString(entry.mimeType) ? { mimeType: readOptionalString(entry.mimeType) } : {}),
+      ...(readOptionalNumber(entry.size) !== undefined ? { size: readOptionalNumber(entry.size) } : {}),
+      ...(readOptionalString(entry.source) ? { source: readOptionalString(entry.source) } : {}),
+      ...(entry.status === "ready" || entry.status === "remote-only" ? { status: entry.status } : {}),
+      ...(readOptionalString(entry.errorCode) ? { errorCode: readOptionalString(entry.errorCode) as InboundAttachment["errorCode"] } : {}),
+    }));
+}
+
 function toInboundMessage(payload: ChannelSubmittedMessagePayload): InboundMessage {
   const metadata = readRecord(payload.metadata);
   return {
@@ -68,7 +104,7 @@ function toInboundMessage(payload: ChannelSubmittedMessagePayload): InboundMessa
     senderId: readRequiredString(payload.senderId, "senderId"),
     content: readTextContent(payload.content),
     timestamp: new Date(),
-    attachments: [] satisfies InboundAttachment[],
+    attachments: readInboundAttachments(payload.attachments),
     metadata,
   };
 }
@@ -77,9 +113,11 @@ export function resolveExtensionManifestRoots(params: {
   config: Config;
   workspace: string;
 }): string[] {
+  const devExtensionsDir = resolveDevFirstPartyPluginDir(process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR);
   return uniquePaths([
     join(getDataPath(), "extensions"),
     join(params.workspace, ".nextclaw", "extensions"),
+    ...(devExtensionsDir ? [devExtensionsDir] : []),
     ...(params.config.plugins.load?.paths ?? []),
   ]);
 }

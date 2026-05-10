@@ -1,4 +1,4 @@
-import type { UpdateSnapshot } from '@nextclaw/kernel';
+import type { UpdateSnapshot } from '@nextclaw/shared';
 import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-status';
 import { useAppMeta } from '@/shared/hooks/use-config';
 import { type ReactNode, useState } from 'react';
