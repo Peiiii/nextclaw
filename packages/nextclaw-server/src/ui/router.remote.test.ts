@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import type { UiRemoteAccessHost } from "./ui-routes/types.js";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -176,7 +177,7 @@ describe("remote access routes", () => {
     const remoteAccess = createRemoteHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       remoteAccess
     });
 
@@ -201,7 +202,7 @@ describe("remote access routes", () => {
     const remoteAccess = createRemoteHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       remoteAccess
     });
 

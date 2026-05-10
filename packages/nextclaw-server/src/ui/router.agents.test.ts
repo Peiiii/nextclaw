@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -37,11 +38,12 @@ describe("agents routes", () => {
       }),
       configPath
     );
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
 
     const app = createUiRouter({
       configPath,
-      publish
+      appEventBus
     });
 
     const createResponse = await app.request("http://localhost/api/agents", {
@@ -66,10 +68,11 @@ describe("agents routes", () => {
     expect(createPayload.data.description).toBe("Handles research briefs and source synthesis.");
     expect(createPayload.data.model).toBe("openai/gpt-5.2");
     expect(createPayload.data.avatarUrl).toBe("/api/agents/researcher/avatar");
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "agents.list" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "agents.list" },
+      expect.any(Object)
+    );
 
     const saved = loadConfig(configPath);
     expect(saved.agents.list.some((entry) => entry.id === "researcher")).toBe(true);
@@ -89,7 +92,7 @@ describe("agents routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const app = createUiRouter({
       configPath,
-      publish: vi.fn()
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/agents/main", {
@@ -120,10 +123,11 @@ describe("agents routes", () => {
       }),
       configPath
     );
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
     const app = createUiRouter({
       configPath,
-      publish
+      appEventBus
     });
 
     const response = await app.request("http://localhost/api/agents/researcher", {
@@ -154,10 +158,11 @@ describe("agents routes", () => {
     });
     expect(payload.data.avatar).toBeUndefined();
     expect(payload.data.avatarUrl).toBeUndefined();
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "agents.list" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "agents.list" },
+      expect.any(Object)
+    );
 
     const saved = loadConfig(configPath);
     const researcher = saved.agents.list.find((entry) => entry.id === "researcher");
@@ -173,7 +178,7 @@ describe("agents routes", () => {
     saveConfig(ConfigSchema.parse({}), configPath);
     const app = createUiRouter({
       configPath,
-      publish: vi.fn()
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/agents/main", {
@@ -221,7 +226,7 @@ describe("agents routes", () => {
     );
     const app = createUiRouter({
       configPath,
-      publish: vi.fn()
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/agents");

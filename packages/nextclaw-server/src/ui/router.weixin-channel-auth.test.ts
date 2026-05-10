@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
+import { EventBus } from "@nextclaw/kernel";
 import type { PluginChannelBinding } from "@nextclaw/openclaw-compat";
 import { createUiRouter } from "./router.js";
 
@@ -73,15 +74,19 @@ describe("weixin plugin channel auth route", () => {
   it("starts qr auth and persists authorized channel config under channels.weixin", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
     const applyLiveConfigReload = vi.fn(async () => undefined);
     const { binding, start, poll } = createWeixinPluginBinding();
 
     const app = createUiRouter({
       configPath,
-      publish,
+      appEventBus,
       applyLiveConfigReload,
-      getPluginChannelBindings: () => [binding]
+      plugins: {
+        getChannelBindings: () => [binding],
+        getUiMetadata: () => [],
+      }
     });
 
     const startResponse = await app.request("http://localhost/api/config/channels/weixin/auth/start", {
@@ -148,10 +153,11 @@ describe("weixin plugin channel auth route", () => {
     expect(saved.plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
       enabled: true
     });
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "channels.weixin" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "channels.weixin" },
+      expect.any(Object)
+    );
     expect(applyLiveConfigReload).toHaveBeenCalledTimes(1);
   });
 });

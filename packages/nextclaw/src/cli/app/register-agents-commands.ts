@@ -1,7 +1,8 @@
 import type { Command } from "commander";
 import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-export function registerAgentsCommands(program: Command, agentsCommands: NextclawServiceRuntime["agents"]): void {
+export function registerAgentsCommands(program: Command, nextclaw: NextclawServiceRuntime): void {
+  const agentsCommands = nextclaw.commands.agents;
   const agents = program.command("agents").description("Manage agents");
 
   agents

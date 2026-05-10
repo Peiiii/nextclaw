@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import type { UiRuntimeUpdateHost } from "./types.js";
 import { createUiRouter } from "../router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -178,7 +179,7 @@ describe("runtime update routes", () => {
     const runtimeUpdate = createRuntimeUpdateHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeUpdate
     });
 
@@ -203,7 +204,7 @@ describe("runtime update routes", () => {
     const runtimeUpdate = createRuntimeUpdateHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeUpdate
     });
 

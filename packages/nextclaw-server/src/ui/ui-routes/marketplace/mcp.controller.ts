@@ -15,6 +15,7 @@ import type {
 import { loadConfigOrDefault } from "../../config.js";
 import { err, ok, readJson } from "../response.js";
 import type { UiRouterOptions } from "../types.js";
+import { emitConfigUpdated } from "../app-events.utils.js";
 import {
   fetchAllMcpMarketplaceItems,
   fetchMarketplaceData,
@@ -160,7 +161,7 @@ export class McpMarketplaceController {
         ...body.data,
         template
       });
-      this.options.publish({ type: "config.updated", payload: { path: "mcp" } });
+      emitConfigUpdated(this.options, "mcp");
       return c.json(ok({
         type: "mcp",
         spec: slug,
@@ -208,7 +209,7 @@ export class McpMarketplaceController {
         return c.json(err("NOT_AVAILABLE", `mcp ${action} is not configured`), 503);
       }
 
-      this.options.publish({ type: "config.updated", payload: { path: "mcp" } });
+      emitConfigUpdated(this.options, "mcp");
       return c.json(ok({
         type: "mcp",
         action,

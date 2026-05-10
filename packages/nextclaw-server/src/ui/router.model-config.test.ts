@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, DEFAULT_WORKSPACE_PATH, loadConfig, saveConfig } from "@nextclaw/core";
+import { EventBus } from "@nextclaw/kernel";
 import { createUiRouter } from "./router.js";
 
 const tempDirs: string[] = [];
@@ -27,11 +28,12 @@ describe("model config route", () => {
   it("persists workspace updates and normalizes blank values", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
 
     const app = createUiRouter({
       configPath,
-      publish
+      appEventBus
     });
 
     const updateResponse = await app.request("http://localhost/api/config/model", {
@@ -57,14 +59,16 @@ describe("model config route", () => {
     expect(updatePayload.data.model).toBe("openai/gpt-5.2");
     expect(updatePayload.data.workspace).toBe("~/projects/nextclaw-workspace");
     expect(loadConfig(configPath).agents.defaults.workspace).toBe("~/projects/nextclaw-workspace");
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "agents.defaults.model" }
-    });
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "agents.defaults.workspace" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "agents.defaults.model" },
+      expect.any(Object)
+    );
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "agents.defaults.workspace" },
+      expect.any(Object)
+    );
 
     const resetResponse = await app.request("http://localhost/api/config/model", {
       method: "PUT",

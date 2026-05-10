@@ -42,6 +42,7 @@ For this repository specifically:
 
 - Always use lowercase kebab-case for domain/subdomain segments.
 - Keep one file, one primary role.
+- `.service.ts` 只允许用于内部声明了 `class` 的服务 owner；没有 class 的纯函数、映射、解析、装配或导出聚合不得命名为 `.service.ts`，应改用 `.utils.ts`、`.manager.ts`、`.controller.ts` 或其它真实角色。
 - Use whitelist-only suffixes for this repository:
   - `.service.ts`, `.utils.ts`, `.types.ts`, `.test.ts`
   - `.manager.ts`, `.store.ts`, `.repository.ts`, `.config.ts`

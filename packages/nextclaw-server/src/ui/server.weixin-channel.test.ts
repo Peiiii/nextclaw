@@ -3,7 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { ConfigSchema, CronService, saveConfig } from "@nextclaw/core";
+import { EventBus } from "@nextclaw/kernel";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { startUiServer } from "./server.js";
 
@@ -78,6 +79,134 @@ function createWeixinPluginUiMetadata(): PluginUiMetadata {
   };
 }
 
+function createTestGateway(params: {
+  configPath: string;
+  port: number;
+  getPluginChannelBindings: () => PluginChannelBinding[];
+  getPluginUiMetadata: () => PluginUiMetadata[];
+}): Parameters<typeof startUiServer>[0] {
+  const {
+    configPath,
+    port,
+    getPluginChannelBindings,
+    getPluginUiMetadata,
+  } = params;
+  const unavailable = async (): Promise<never> => {
+    throw new Error("test gateway capability unavailable");
+  };
+  const updateSnapshot = {
+    status: "blocked",
+    installationKind: "unknown",
+    channel: "stable",
+    hostVersion: null,
+    currentVersion: null,
+    availableVersion: null,
+    downloadedVersion: null,
+    minimumHostVersion: null,
+    releaseNotesUrl: null,
+    lastCheckedAt: null,
+    progress: null,
+    canAutoDownload: false,
+    canApplyInApp: false,
+    requiresRestart: false,
+    blockReason: "unsupported-installation",
+    recoveryCommand: null,
+    errorMessage: null,
+    preferences: {
+      automaticChecks: false,
+      autoDownload: false,
+    },
+  } as const;
+  return {
+    uiConfig: {
+      enabled: true,
+      host: "127.0.0.1",
+      open: false,
+      port,
+    },
+    uiStaticDir: null,
+    configPath,
+    appEventBus: new EventBus(),
+    productVersion: "test",
+    applyLiveConfigReload: async () => {},
+    initializeAgentHomeDirectory: () => {},
+    marketplace: {},
+    cron: new CronService(`${configPath}.cron.json`),
+    ncpAgent: {
+      agentClientEndpoint: {
+        manifest: {
+          endpointKind: "agent",
+          endpointId: "test-agent",
+          version: "0.0.0",
+          supportsStreaming: false,
+          supportsAbort: false,
+          supportsProactiveMessages: false,
+          supportsLiveSessionStream: false,
+          supportedPartTypes: ["text"],
+          expectedLatency: "seconds",
+        },
+        start: async () => {},
+        stop: async () => {},
+        emit: async () => {},
+        subscribe: () => () => {},
+        send: async () => {},
+        stream: async () => {},
+        abort: async () => {},
+      },
+    },
+    sessions: {
+      sessionService: {
+        listSessions: async () => [],
+        listSessionMessages: async () => [],
+        getSession: async () => null,
+        updateSession: async () => null,
+        deleteSession: async () => {},
+      },
+    },
+    remoteAccess: {
+      getStatus: unavailable,
+      login: unavailable,
+      startBrowserAuth: unavailable,
+      pollBrowserAuth: unavailable,
+      logout: unavailable,
+      updateProfile: unavailable,
+      updateSettings: unavailable,
+      runDoctor: unavailable,
+      controlService: unavailable,
+    },
+    runtimeControl: {
+      getControl: unavailable,
+      startService: unavailable,
+      restartService: unavailable,
+      stopService: unavailable,
+    },
+    runtimeUpdate: {
+      getState: () => updateSnapshot,
+      checkForUpdates: () => updateSnapshot,
+      downloadUpdate: () => updateSnapshot,
+      applyDownloadedUpdate: () => updateSnapshot,
+      updatePreferences: () => updateSnapshot,
+      updateChannel: () => updateSnapshot,
+    },
+    webhook: {
+      handleWebhook: unavailable,
+    },
+    bootstrapStatus: {
+      getStatus: () => ({
+        phase: "ready",
+        ncpAgent: { state: "ready" },
+        pluginHydration: { state: "ready", loadedPluginCount: 0, totalPluginCount: 0 },
+        channels: { state: "ready", enabled: [] },
+        remote: { state: "disabled" },
+      }),
+    },
+    plugins: {
+      getChannelBindings: getPluginChannelBindings,
+      getUiMetadata: getPluginUiMetadata,
+    },
+  };
+}
+
 describe("ui server weixin plugin channel wiring", () => {
   const handles: Array<{ close: () => Promise<void> }> = [];
 
@@ -100,13 +229,12 @@ describe("ui server weixin plugin channel wiring", () => {
     const port = await reservePort();
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const handle = await startUiServer({
-      host: "127.0.0.1",
-      port,
+    const handle = await startUiServer(createTestGateway({
       configPath,
+      port,
       getPluginChannelBindings: () => [createWeixinPluginBinding()],
-      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()]
-    });
+      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()],
+    }));
     handles.push(handle);
 
     const baseUrl = `http://127.0.0.1:${port}`;

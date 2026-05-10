@@ -1,11 +1,8 @@
-import type { CronService, ThinkingLevel } from "@nextclaw/core";
+import type { ThinkingLevel } from "@nextclaw/core";
 import type { AppEvent } from "@nextclaw/kernel";
-import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import type { UiNcpStoredAssetRecord } from "./ncp-attachment.types.js";
-import type { MarketplaceApiConfig } from "./marketplace.types.js";
-import type { UiRemoteAccessHost, UiRuntimeControlHost } from "./ui-routes/types.js";
 export type * from "./marketplace.types.js";
 export type * from "./ncp-attachment.types.js";
 export type ApiError = {
@@ -878,24 +875,3 @@ export type ConfigActionExecuteResult = {
 };
 
 export type UiServerEvent = AppEvent;
-
-export type UiServerOptions = {
-  host: string;
-  port: number;
-  configPath: string;
-  productVersion?: string;
-  corsOrigins?: string[] | "*";
-  staticDir?: string;
-  initializeAgentHomeDirectory?: (homeDirectory: string) => void;
-  marketplace?: MarketplaceApiConfig;
-  cronService?: CronService;
-  ncpAgent?: UiNcpAgent;
-  ncpSessionService?: UiNcpSessionService;
-  remoteAccess?: UiRemoteAccessHost;
-  runtimeControl?: UiRuntimeControlHost;
-  getBootstrapStatus?: () => BootstrapStatusView;
-  getPluginChannelBindings?: () => PluginChannelBinding[];
-  getPluginUiMetadata?: () => PluginUiMetadata[];
-};
-
-export type UiServerHandle = { host: string; port: number; close: () => Promise<void>; publish: (event: UiServerEvent) => void };

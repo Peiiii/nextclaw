@@ -18,7 +18,6 @@
   - 对外提供高层方法
 - `packages/nextclaw-service/src/cli/commands` 承载原 CLI command 的执行逻辑。
 - `packages/nextclaw-service/src/index.ts` 只导出 public contract：
-  - `createNextclawServiceRuntime`
   - `NextclawServiceRuntime`
   - `NextclawServiceRuntimeOptions`
   - `registerLearningLoopCommands`

@@ -37,6 +37,7 @@ import type {
 } from "../types.js";
 import { err, ok, readJson } from "./response.js";
 import type { UiRouterOptions } from "./types.js";
+import { emitChannelConfigApplyStatus, emitConfigUpdated, emitUiError } from "./app-events.utils.js";
 
 export class ConfigRoutesController {
   private readonly channelConfigApplyTasks = new Map<string, Promise<void>>();
@@ -45,14 +46,14 @@ export class ConfigRoutesController {
 
   private readonly getPluginConfigOptions = () => {
     return {
-      pluginChannelBindings: this.options.getPluginChannelBindings?.() ?? [],
-      pluginUiMetadata: this.options.getPluginUiMetadata?.() ?? []
+      pluginChannelBindings: this.options.plugins?.getChannelBindings() ?? [],
+      pluginUiMetadata: this.options.plugins?.getUiMetadata() ?? []
     };
   };
 
   private readonly publishConfigUpdatedPaths = (paths: string[]): void => {
     for (const path of paths) {
-      this.options.publish({ type: "config.updated", payload: { path } });
+      emitConfigUpdated(this.options, path);
     }
   };
 
@@ -66,10 +67,7 @@ export class ConfigRoutesController {
     status: "started" | "succeeded" | "failed";
     message?: string;
   }): void => {
-    this.options.publish({
-      type: "channel.config.apply-status",
-      payload: params
-    });
+    emitChannelConfigApplyStatus(this.options, params);
   };
 
   private readonly enqueueChannelConfigApply = (channel: string): void => {
@@ -94,12 +92,9 @@ export class ConfigRoutesController {
             status: "failed",
             message
           });
-          this.options.publish({
-            type: "error",
-            payload: {
-              code: "CHANNEL_CONFIG_APPLY_FAILED",
-              message: `Failed to apply ${channel} channel config: ${message}`
-            }
+          emitUiError(this.options, {
+            code: "CHANNEL_CONFIG_APPLY_FAILED",
+            message: `Failed to apply ${channel} channel config: ${message}`
           });
         }
       })
@@ -332,7 +327,7 @@ export class ConfigRoutesController {
           accountId: typeof payload.accountId === "string" ? payload.accountId : undefined,
           baseUrl: typeof payload.baseUrl === "string" ? payload.baseUrl : undefined
         } satisfies ChannelAuthStartRequest,
-        bindings: this.options.getPluginChannelBindings?.() ?? []
+        bindings: this.options.plugins?.getChannelBindings() ?? []
       });
       if (!result) {
         return c.json(err("NOT_SUPPORTED", `channel auth is not supported: ${channel}`), 404);
@@ -359,7 +354,7 @@ export class ConfigRoutesController {
       configPath: this.options.configPath,
       channelId: channel,
       sessionId,
-      bindings: this.options.getPluginChannelBindings?.() ?? []
+      bindings: this.options.plugins?.getChannelBindings() ?? []
     });
     if (!result) {
       return c.json(err("NOT_FOUND", "channel auth session not found"), 404);

@@ -11,6 +11,7 @@ import type {
 } from "../../types.js";
 import { err, isRecord, ok, readJson } from "../response.js";
 import type { UiRouterOptions } from "../types.js";
+import { emitConfigUpdated } from "../app-events.utils.js";
 import {
   fetchMarketplaceData,
   normalizeMarketplaceItemForUi,
@@ -21,7 +22,7 @@ import {
   collectPluginMarketplaceInstalledView,
   isSupportedMarketplacePluginItem,
   resolvePluginManageTargetId
-} from "./installed.js";
+} from "./installed.utils.js";
 
 async function loadPluginReadmeFromNpm(spec: string): Promise<{ readme: string; sourceUrl: string; metadataRaw?: string } | null> {
   const encodedSpec = encodeURIComponent(spec);
@@ -100,12 +101,13 @@ async function installMarketplacePlugin(params: {
   options: UiRouterOptions;
   body: MarketplacePluginInstallRequest;
 }): Promise<MarketplacePluginInstallResult> {
-  const spec = typeof params.body.spec === "string" ? params.body.spec.trim() : "";
+  const { body, options } = params;
+  const spec = typeof body.spec === "string" ? body.spec.trim() : "";
   if (!spec) {
     throw new Error("INVALID_BODY:non-empty spec is required");
   }
 
-  const installer = params.options.marketplace?.installer;
+  const installer = options.marketplace?.installer;
   if (!installer) {
     throw new Error("NOT_AVAILABLE:marketplace installer is not configured");
   }
@@ -115,7 +117,7 @@ async function installMarketplacePlugin(params: {
   }
   const result = await installer.installPlugin(spec);
 
-  params.options.publish({ type: "config.updated", payload: { path: "plugins" } });
+  emitConfigUpdated(options, "plugins");
   return {
     type: "plugin",
     spec,
@@ -128,21 +130,22 @@ async function manageMarketplacePlugin(params: {
   options: UiRouterOptions;
   body: MarketplacePluginManageRequest;
 }): Promise<MarketplacePluginManageResult> {
-  const action = params.body.action;
-  const requestedTargetId = typeof params.body.id === "string" && params.body.id.trim().length > 0
-    ? params.body.id.trim()
-    : typeof params.body.spec === "string" && params.body.spec.trim().length > 0
-      ? params.body.spec.trim()
+  const { body, options } = params;
+  const action = body.action;
+  const requestedTargetId = typeof body.id === "string" && body.id.trim().length > 0
+    ? body.id.trim()
+    : typeof body.spec === "string" && body.spec.trim().length > 0
+      ? body.spec.trim()
       : "";
 
-  const rawSpec = typeof params.body.spec === "string" ? params.body.spec.trim() : "";
-  const targetId = resolvePluginManageTargetId(params.options, requestedTargetId, rawSpec);
+  const rawSpec = typeof body.spec === "string" ? body.spec.trim() : "";
+  const targetId = resolvePluginManageTargetId(options, requestedTargetId, rawSpec);
 
   if ((action !== "enable" && action !== "disable" && action !== "uninstall") || !targetId) {
     throw new Error("INVALID_BODY:action and non-empty id/spec are required");
   }
 
-  const installer = params.options.marketplace?.installer;
+  const installer = options.marketplace?.installer;
   if (!installer) {
     throw new Error("NOT_AVAILABLE:marketplace installer is not configured");
   }
@@ -166,7 +169,7 @@ async function manageMarketplacePlugin(params: {
     result = await installer.uninstallPlugin(targetId);
   }
 
-  params.options.publish({ type: "config.updated", payload: { path: "plugins" } });
+  emitConfigUpdated(options, "plugins");
 
   return {
     type: "plugin",

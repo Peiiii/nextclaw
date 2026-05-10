@@ -1,7 +1,8 @@
 import type { Command } from "commander";
 import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-export function registerCompanionCommands(program: Command, companionCommands: NextclawServiceRuntime["companion"]): void {
+export function registerCompanionCommands(program: Command, nextclaw: NextclawServiceRuntime): void {
+  const companionCommands = nextclaw.commands.companion;
   const companion = program
     .command("companion")
     .description("Manage the standalone NextClaw companion shell");

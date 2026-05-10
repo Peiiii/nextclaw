@@ -18,32 +18,51 @@ Keep lifecycle and orchestration operations at the runtime root:
 - `runtime.update(...)`
 - `runtime.remote`
 
-Expose command components as first-level runtime properties:
+Expose command adapters under `runtime.commands`:
 
-- `runtime.gateway.run(...)`
-- `runtime.ui.run(...)`
-- `runtime.start.run(...)`
-- `runtime.restart.run(...)`
-- `runtime.serve.run(...)`
-- `runtime.stop.run(...)`
-- `runtime.companion.start(...)`
-- `runtime.service.installSystemd(...)`
-- `runtime.plugins.list(...)`
-- `runtime.config.get(...)`
-- `runtime.mcp.add(...)`
-- `runtime.secrets.audit(...)`
-- `runtime.channels.status(...)`
-- `runtime.cron.list(...)`
-- `runtime.agents.list(...)`
-- `runtime.agents.create(...)`
-- `runtime.agents.update(...)`
-- `runtime.agents.remove(...)`
-- `runtime.skills.install(...)`
-- `runtime.diagnostics.status(...)`
-- `runtime.logs.tail(...)`
-- `runtime.usage.show(...)`
+- `runtime.commands.gateway.run(...)`
+- `runtime.commands.ui.run(...)`
+- `runtime.commands.start.run(...)`
+- `runtime.commands.restart.run(...)`
+- `runtime.commands.serve.run(...)`
+- `runtime.commands.stop.run(...)`
+- `runtime.commands.companion.start(...)`
+- `runtime.commands.service.installSystemd(...)`
+- `runtime.commands.plugins.list(...)`
+- `runtime.commands.config.get(...)`
+- `runtime.commands.mcp.add(...)`
+- `runtime.commands.secrets.audit(...)`
+- `runtime.commands.channels.status(...)`
+- `runtime.commands.cron.list(...)`
+- `runtime.commands.agents.list(...)`
+- `runtime.commands.agents.create(...)`
+- `runtime.commands.agents.update(...)`
+- `runtime.commands.agents.remove(...)`
+- `runtime.commands.skills.install(...)`
+- `runtime.commands.diagnostics.status(...)`
+- `runtime.commands.logs.tail(...)`
+- `runtime.commands.usage.show(...)`
 
-Do not add a `commands` namespace. It would be another wrapper layer and does not add ownership.
+Gateway runtime capabilities are not part of `NextclawServiceRuntime`. They only exist during a concrete gateway startup. `startGatewayUiShell` builds one complete `NextclawGatewayRuntime` for that startup and passes it to `startUiServer`.
+
+The gateway runtime includes:
+
+- `gateway.configPath`
+- `gateway.applyLiveConfigReload(...)`
+- `gateway.cronService`
+- `gateway.ncpAgent`
+- `gateway.ncpSessionService`
+- `gateway.remoteAccess`
+- `gateway.runtimeControl`
+- `gateway.runtimeUpdate`
+- `gateway.webhook`
+- `gateway.getBootstrapStatus(...)`
+- `gateway.getPluginChannelBindings(...)`
+- `gateway.getPluginUiMetadata(...)`
+
+Do not hang gateway runtime state on `NextclawServiceRuntime` during construction. That creates a partially initialized object and couples consumers to startup order. Cross-module CLI registration boundaries should pass `nextclaw` itself; UI server startup should pass the concrete gateway runtime for that startup.
+
+`commands` is the adapter boundary for CLI registration and user command handlers. It is not a wrapper layer around gateway capabilities.
 
 ## Boundaries
 
@@ -61,5 +80,6 @@ The runtime should not duplicate public methods that only forward to a component
 
 - CLI registration uses first-level runtime components.
 - `NextclawServiceRuntime` no longer contains flat wrappers such as `pluginsList`, `configGet`, `mcpAdd`, `cronRun`, `logsTail`, or `usageShow`.
-- Component methods use concise names within their own owner, such as `plugins.list()` instead of `plugins.pluginsList()`.
+- CLI registration helpers receive the whole `runtime` object and read from `runtime.commands` internally.
+- Component methods use concise names within their own owner, such as `commands.plugins.list()` instead of `plugins.pluginsList()`.
 - TypeScript, ESLint, governance checks, and a minimal CLI smoke pass.

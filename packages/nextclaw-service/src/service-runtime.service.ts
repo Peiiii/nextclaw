@@ -60,17 +60,7 @@ export type NextclawServiceRuntimeAccount = {
   ) => Promise<void>;
 };
 
-export class NextclawServiceRuntime {
-  private logo: string;
-  private restartCoordinator: RestartCoordinator;
-  private serviceRestartTask: Promise<boolean> | null = null;
-  private selfRelaunchArmed = false;
-  private restartRequestService: RuntimeRestartRequestService;
-  private workspaceManager: WorkspaceManager;
-  private runtimeCommandService: RuntimeCommandService;
-  private platformAuthCommands: PlatformAuthCommands;
-  private remoteCommands: RemoteCommands;
-  account: NextclawServiceRuntimeAccount;
+export type NextclawServiceCommands = {
   remote: RemoteRuntimeActions;
   skills: SkillsCommands;
   service: ServiceCommands;
@@ -91,6 +81,20 @@ export class NextclawServiceRuntime {
   stop: StopCommands;
   companion: CompanionCommands;
   usage: LlmUsageCommandService;
+};
+
+export class NextclawServiceRuntime {
+  private logo: string;
+  private restartCoordinator: RestartCoordinator;
+  private serviceRestartTask: Promise<boolean> | null = null;
+  private selfRelaunchArmed = false;
+  private restartRequestService: RuntimeRestartRequestService;
+  private workspaceManager: WorkspaceManager;
+  private runtimeCommandService: RuntimeCommandService;
+  private platformAuthCommands!: PlatformAuthCommands;
+  private remoteCommands!: RemoteCommands;
+  account: NextclawServiceRuntimeAccount;
+  commands: NextclawServiceCommands;
   constructor(options: NextclawServiceRuntimeOptions = {}) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? "🤖";
@@ -99,63 +103,7 @@ export class NextclawServiceRuntime {
       requestRestart: (params) => this.requestRestart(params),
       initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
     }));
-    this.gateway = measureStartupSync("cli.runtime.gateway_commands", () => new GatewayCommands({
-      runtimeCommandService: this.runtimeCommandService,
-      forcedPublicHost: FORCED_PUBLIC_UI_HOST
-    }));
-    this.ui = measureStartupSync("cli.runtime.ui_commands", () => new UiCommands({
-      runtimeCommandService: this.runtimeCommandService,
-      forcedPublicHost: FORCED_PUBLIC_UI_HOST
-    }));
-    this.start = measureStartupSync("cli.runtime.start_commands", () => new StartCommands({
-      runtimeCommandService: this.runtimeCommandService,
-      forcedPublicHost: FORCED_PUBLIC_UI_HOST,
-      init: (params) => this.init(params)
-    }));
-    this.restart = measureStartupSync("cli.runtime.restart_commands", () => new RestartCommands({
-      runtimeCommandService: this.runtimeCommandService,
-      startCommands: this.start,
-      forcedPublicHost: FORCED_PUBLIC_UI_HOST,
-      writeRestartSentinelFromExecContext: (reason) => this.writeRestartSentinelFromExecContext(reason)
-    }));
-    this.serve = measureStartupSync("cli.runtime.serve_commands", () => new ServeCommands({
-      runtimeCommandService: this.runtimeCommandService,
-      forcedPublicHost: FORCED_PUBLIC_UI_HOST
-    }));
-    this.stop = measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
-      runtimeCommandService: this.runtimeCommandService
-    }));
-    this.companion = measureStartupSync("cli.runtime.companion_commands", () => new CompanionCommands());
-    this.service = measureStartupSync("cli.runtime.service_commands", () => new ServiceCommands());
-    this.config = measureStartupSync("cli.runtime.config_commands", () => new ConfigCommands({
-      requestRestart: (params) => this.requestRestart(params),
-    }));
-    this.mcp = measureStartupSync("cli.runtime.mcp_commands", () => new McpCommands());
-    this.secrets = measureStartupSync("cli.runtime.secrets_commands", () => new SecretsCommands({
-      requestRestart: (params) => this.requestRestart(params),
-    }));
-    this.plugins = measureStartupSync("cli.runtime.plugin_commands", () => new PluginCommands());
-    this.agents = measureStartupSync("cli.runtime.agent_commands", () => new AgentCommands({
-      initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
-    }));
-    this.channels = measureStartupSync("cli.runtime.channel_commands", () => new ChannelCommands({
-      logo: this.logo,
-      getBridgeDir: () => this.workspaceManager.getBridgeDir(),
-      requestRestart: (params) => this.requestRestart(params),
-    }));
-    this.cron = measureStartupSync("cli.runtime.cron_commands", () => new CronCommands());
-    this.platformAuthCommands = measureStartupSync("cli.runtime.platform_auth_commands", () => new PlatformAuthCommands());
-    this.remoteCommands = measureStartupSync("cli.runtime.remote_commands", () => new RemoteCommands());
-    this.remote = measureStartupSync("cli.runtime.remote_runtime_actions", () => new RemoteRuntimeActions({
-      appName: APP_NAME,
-      initAuto: (source) => this.init({ source, auto: true }),
-      remoteCommands: this.remoteCommands,
-      restartBackgroundService: (reason) => this.restartBackgroundService(reason),
-      hasRunningManagedService: hasRunningNextclawManagedService
-    }));
-    this.diagnostics = measureStartupSync("cli.runtime.diagnostics_commands", () => new DiagnosticsCommands({ logo: this.logo }));
-    this.logs = measureStartupSync("cli.runtime.logs_commands", () => new LogsCommands());
-    this.usage = measureStartupSync("cli.runtime.usage_commands", () => new LlmUsageCommandService());
+    this.commands = this.createCommands();
 
     this.restartCoordinator = measureStartupSync("cli.runtime.restart_coordinator", () => new RestartCoordinator({
       readServiceState: managedServiceStateStore.read,
@@ -171,7 +119,6 @@ export class NextclawServiceRuntime {
       requestRestartFromCoordinator: async (params) =>
         await this.restartCoordinator.requestRestart(params)
     });
-    this.skills = measureStartupSync("cli.runtime.skills_commands", () => new SkillsCommands());
     this.account = {
       status: async (opts = {}) => {
         await this.init({ source: "account status", auto: true });
@@ -188,6 +135,70 @@ export class NextclawServiceRuntime {
     };
     logStartupTrace("cli.runtime.constructor.end");
   }
+
+  private createCommands = (): NextclawServiceCommands => {
+    const start = measureStartupSync("cli.runtime.start_commands", () => new StartCommands({
+      runtimeCommandService: this.runtimeCommandService,
+      forcedPublicHost: FORCED_PUBLIC_UI_HOST,
+      init: (params) => this.init(params)
+    }));
+    this.platformAuthCommands = measureStartupSync("cli.runtime.platform_auth_commands", () => new PlatformAuthCommands());
+    this.remoteCommands = measureStartupSync("cli.runtime.remote_commands", () => new RemoteCommands());
+    return {
+      remote: measureStartupSync("cli.runtime.remote_runtime_actions", () => new RemoteRuntimeActions({
+        appName: APP_NAME,
+        initAuto: (source) => this.init({ source, auto: true }),
+        remoteCommands: this.remoteCommands,
+        restartBackgroundService: (reason) => this.restartBackgroundService(reason),
+        hasRunningManagedService: hasRunningNextclawManagedService
+      })),
+      skills: measureStartupSync("cli.runtime.skills_commands", () => new SkillsCommands()),
+      service: measureStartupSync("cli.runtime.service_commands", () => new ServiceCommands()),
+      config: measureStartupSync("cli.runtime.config_commands", () => new ConfigCommands({
+        requestRestart: (params) => this.requestRestart(params),
+      })),
+      mcp: measureStartupSync("cli.runtime.mcp_commands", () => new McpCommands()),
+      secrets: measureStartupSync("cli.runtime.secrets_commands", () => new SecretsCommands({
+        requestRestart: (params) => this.requestRestart(params),
+      })),
+      plugins: measureStartupSync("cli.runtime.plugin_commands", () => new PluginCommands()),
+      agents: measureStartupSync("cli.runtime.agent_commands", () => new AgentCommands({
+        initializeAgentHomeDirectory: (homeDirectory) => this.workspaceManager.createWorkspaceTemplates(homeDirectory)
+      })),
+      channels: measureStartupSync("cli.runtime.channel_commands", () => new ChannelCommands({
+        logo: this.logo,
+        getBridgeDir: () => this.workspaceManager.getBridgeDir(),
+        requestRestart: (params) => this.requestRestart(params),
+      })),
+      cron: measureStartupSync("cli.runtime.cron_commands", () => new CronCommands()),
+      diagnostics: measureStartupSync("cli.runtime.diagnostics_commands", () => new DiagnosticsCommands({ logo: this.logo })),
+      logs: measureStartupSync("cli.runtime.logs_commands", () => new LogsCommands()),
+      gateway: measureStartupSync("cli.runtime.gateway_commands", () => new GatewayCommands({
+        runtimeCommandService: this.runtimeCommandService,
+        forcedPublicHost: FORCED_PUBLIC_UI_HOST
+      })),
+      ui: measureStartupSync("cli.runtime.ui_commands", () => new UiCommands({
+        runtimeCommandService: this.runtimeCommandService,
+        forcedPublicHost: FORCED_PUBLIC_UI_HOST
+      })),
+      start,
+      restart: measureStartupSync("cli.runtime.restart_commands", () => new RestartCommands({
+        runtimeCommandService: this.runtimeCommandService,
+        startCommands: start,
+        forcedPublicHost: FORCED_PUBLIC_UI_HOST,
+        writeRestartSentinelFromExecContext: (reason) => this.writeRestartSentinelFromExecContext(reason)
+      })),
+      serve: measureStartupSync("cli.runtime.serve_commands", () => new ServeCommands({
+        runtimeCommandService: this.runtimeCommandService,
+        forcedPublicHost: FORCED_PUBLIC_UI_HOST
+      })),
+      stop: measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
+        runtimeCommandService: this.runtimeCommandService
+      })),
+      companion: measureStartupSync("cli.runtime.companion_commands", () => new CompanionCommands()),
+      usage: measureStartupSync("cli.runtime.usage_commands", () => new LlmUsageCommandService()),
+    };
+  };
 
   get version(): string {
     return getPackageVersion();
@@ -523,10 +534,6 @@ export class NextclawServiceRuntime {
   private createObservedProviderManager = (providerManager: ProviderManager, source: string): ProviderManager =>
     new ObservedProviderManager(providerManager, new LlmUsageObserver(llmUsageRecorder, source));
 }
-
-export const createNextclawServiceRuntime = (
-  options: NextclawServiceRuntimeOptions = {},
-): NextclawServiceRuntime => new NextclawServiceRuntime(options);
 
 export const runNextclawNpmRuntimeLauncher = (
   argv: string[] = process.argv,

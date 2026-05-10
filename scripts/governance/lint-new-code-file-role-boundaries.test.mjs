@@ -69,6 +69,31 @@ test("allows test files whose underlying role still matches the directory", () =
   assert.equal(violation, null);
 });
 
+test("requires .service.ts files to declare a class", () => {
+  const filePath = "packages/demo/src/services/chat.service.ts";
+  const violation = inspectFileRoleBoundaryEntry({
+    filePath,
+    status: "A"
+  }, {
+    sourceByFilePath: new Map([[filePath, "export const createChat = () => true;\n"]])
+  });
+
+  assert.ok(violation);
+  assert.equal(violation.ruleId, "service-requires-class");
+  assert.match(violation.message, /\.service\.ts file must declare an internal class/);
+});
+
+test("allows .service.ts files with an internal class", () => {
+  const filePath = "packages/demo/src/services/chat.service.ts";
+
+  assert.equal(inspectFileRoleBoundaryEntry({
+    filePath,
+    status: "A"
+  }, {
+    sourceByFilePath: new Map([[filePath, "export class ChatService {}\n"]])
+  }), null);
+});
+
 test("blocks new non-component files outside exempt directories when they do not use a role suffix", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "packages/demo/src/features/chat/session-cache.ts",

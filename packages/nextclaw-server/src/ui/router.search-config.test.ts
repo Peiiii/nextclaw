@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -29,7 +30,7 @@ describe("search config route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const updateResponse = await app.request("http://localhost/api/config/search", {

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -111,7 +112,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -205,7 +206,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -289,7 +290,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -384,7 +385,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -471,7 +472,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -556,7 +557,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -646,7 +647,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }
@@ -731,7 +732,7 @@ describe("marketplace content routes", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       marketplace: {
         apiBaseUrl: "http://marketplace.example"
       }

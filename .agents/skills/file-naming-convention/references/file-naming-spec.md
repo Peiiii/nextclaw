@@ -28,7 +28,7 @@ Examples:
 
 ## 3. Allowed Role Suffixes (Whitelist)
 
-- `.service.ts`: reusable domain business capability.
+- `.service.ts`: reusable domain business capability owned by an internal class.
 - `.utils.ts`: stateless utility helpers.
 - `.types.ts`: type-only declarations.
 - `.test.ts`: test files.
@@ -69,6 +69,7 @@ Examples:
 
 - Prefer feature-first folder organization.
 - Non-component/page/hook files should default to whitelist-only secondary suffixes.
+- `.service.ts` files must declare an internal `class`; classless pure functions, mappers, parsers, assembly modules, and export aggregators must use another truthful role suffix.
 - `app.ts`, `main.ts`, `main.tsx`, and `index.ts` are the only default entry-point exceptions.
 - `index.ts` should only aggregate exports.
 - Avoid weak names like `utils.ts`, `helpers.ts`, `common.ts` in broad shared scope.
@@ -81,6 +82,7 @@ Examples:
 - `controller.ts` (missing domain context)
 - `chat.service.manager.ts` (mixed roles)
 - `services/chat-manager.ts` (directory and suffix do not match)
+- `services/chat.service.ts` that only exports functions and no class (classless module mislabeled as service)
 - `hooks/chat-session.ts` (hook directory but not `use-*`)
 - `hooks/runtime/use-chat-runtime.ts` (hook directory is nested)
 - `lib/date-format.utils.ts` (direct file under `lib/`)
@@ -97,6 +99,7 @@ Examples:
 
 - `pnpm lint:new-code:file-names` blocks new or renamed non-kebab files.
 - `pnpm lint:new-code:file-role-boundaries` blocks new or renamed files that miss an approved role suffix or violate directory-to-suffix mapping.
+- `pnpm lint:new-code:file-role-boundaries` also blocks touched `.service.ts` files that do not declare an internal class.
 - Touched legacy violations should warn first so migration can stay diff-only and incremental.
 
 ## 10. Rename Execution Checklist

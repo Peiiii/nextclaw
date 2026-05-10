@@ -1,8 +1,15 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import parser from "@typescript-eslint/parser";
 
-import { defaultSortByLocation, parseDiffCheckArgs } from "./lint-new-code-governance-support.mjs";
+import {
+  defaultSortByLocation,
+  parseDiffCheckArgs,
+  rootDir,
+  walkAst
+} from "./lint-new-code-governance-support.mjs";
 import { collectChangedFileNameEntries } from "./lint-new-code-file-names.mjs";
 import {
   findModuleStructureContract,
@@ -34,62 +41,24 @@ const ROLE_SUFFIX_ALLOWLIST = new Set([
   "utils"
 ]);
 
+const roleRule = (role, expectedLabel = `*.${role}.ts`) => ({
+  type: "role-suffix",
+  role,
+  expectedLabel
+});
+
 const DIRECTORY_ROLE_RULES = {
-  controllers: {
-    type: "role-suffix",
-    role: "controller",
-    expectedLabel: "*.controller.ts"
-  },
-  managers: {
-    type: "role-suffix",
-    role: "manager",
-    expectedLabel: "*.manager.ts"
-  },
-  presenters: {
-    type: "role-suffix",
-    role: "presenter",
-    expectedLabel: "*.presenter.ts(x)"
-  },
-  configs: {
-    type: "role-suffix",
-    role: "config",
-    expectedLabel: "*.config.ts(x)"
-  },
-  providers: {
-    type: "role-suffix",
-    role: "provider",
-    expectedLabel: "*.provider.ts(x)"
-  },
-  repositories: {
-    type: "role-suffix",
-    role: "repository",
-    expectedLabel: "*.repository.ts"
-  },
-  routes: {
-    type: "role-suffix",
-    role: "route",
-    expectedLabel: "*.route.ts(x)"
-  },
-  services: {
-    type: "role-suffix",
-    role: "service",
-    expectedLabel: "*.service.ts"
-  },
-  stores: {
-    type: "role-suffix",
-    role: "store",
-    expectedLabel: "*.store.ts"
-  },
-  types: {
-    type: "role-suffix",
-    role: "types",
-    expectedLabel: "*.types.ts"
-  },
-  utils: {
-    type: "role-suffix",
-    role: "utils",
-    expectedLabel: "*.utils.ts"
-  },
+  controllers: roleRule("controller"),
+  managers: roleRule("manager"),
+  presenters: roleRule("presenter", "*.presenter.ts(x)"),
+  configs: roleRule("config", "*.config.ts(x)"),
+  providers: roleRule("provider", "*.provider.ts(x)"),
+  repositories: roleRule("repository"),
+  routes: roleRule("route", "*.route.ts(x)"),
+  services: roleRule("service"),
+  stores: roleRule("store"),
+  types: roleRule("types"),
+  utils: roleRule("utils"),
   hooks: {
     type: "hook",
     expectedLabel: "use-<domain>.ts(x)"
@@ -165,6 +134,32 @@ const isRoleDirectoryMatch = (stem, role) => {
   const escapedRole = role.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const pattern = new RegExp(`\\.${escapedRole}(?:\\.${TEST_QUALIFIER_PATTERN})*\\.test$|\\.${escapedRole}$`);
   return pattern.test(stem);
+};
+
+const isServiceImplementationFile = (stem) => stem.endsWith(".service");
+
+const readEntrySource = (normalizedPath, options) => {
+  if (options.sourceByFilePath?.has(normalizedPath)) {
+    return options.sourceByFilePath.get(normalizedPath);
+  }
+  return readFileSync(path.resolve(rootDir, normalizedPath), "utf8");
+};
+
+const hasClassDeclaration = (source, filePath) => {
+  const ast = parser.parse(source, {
+    ecmaVersion: "latest",
+    sourceType: "module",
+    ecmaFeatures: {
+      jsx: filePath.endsWith(".tsx")
+    }
+  });
+  let hasClass = false;
+  walkAst(ast, (node) => {
+    if (node.type === "ClassDeclaration" || node.type === "ClassExpression") {
+      hasClass = true;
+    }
+  });
+  return hasClass;
 };
 
 const isHookFileName = (stem) => {
@@ -255,6 +250,12 @@ const buildDefaultSuffixMessage = (entry) => (
     : "touched non-component/page/hook file lacks an approved secondary suffix or allowed app/root entry name; rename it before continuing"
 );
 
+const buildServiceClassMessage = (entry) => (
+  isTrackedAsNewOrRename(entry.status)
+    ? "new or renamed .service.ts file must declare an internal class; use .utils.ts or another role suffix for classless modules"
+    : "touched .service.ts file must declare an internal class; rename it to .utils.ts or another role suffix if it is classless"
+);
+
 export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
   const normalizedPath = toPosixPath(entry.filePath);
   const segments = getDirectorySegments(normalizedPath);
@@ -265,6 +266,10 @@ export const inspectFileRoleBoundaryEntry = (entry, options = {}) => {
   const stem = getStem(normalizedPath);
   const nearestRule = getNearestDirectoryRule(segments);
   const moduleContract = options.moduleContract ?? findModuleStructureContract(normalizedPath);
+
+  if (isServiceImplementationFile(stem) && !hasClassDeclaration(readEntrySource(normalizedPath, options), normalizedPath)) {
+    return buildViolation(entry, buildServiceClassMessage(entry), "service-requires-class");
+  }
 
   if (nearestRule) {
     const { segment, rule } = nearestRule;
@@ -335,29 +340,18 @@ export const printViolations = ({ changedFiles, violations }) => {
   }
 
   const errors = violations.filter((item) => item.level === "error");
-  const warnings = violations.filter((item) => item.level === "warn");
 
-  if (errors.length === 0 && warnings.length === 0) {
+  if (errors.length === 0) {
     console.log(`File role-boundary diff check passed for ${changedFiles.length} changed file(s).`);
     return 0;
   }
 
-  if (errors.length > 0) {
-    console.error("File role-boundary diff check blocked changed files whose directory and suffix naming do not match.");
-    for (const violation of errors) {
-      console.error(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
-    }
+  console.error("File role-boundary diff check blocked changed files whose directory and suffix naming do not match.");
+  for (const violation of errors) {
+    console.error(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
   }
 
-  if (warnings.length > 0) {
-    const writer = errors.length > 0 ? console.error : console.log;
-    writer("Legacy file role-boundary warnings:");
-    for (const violation of warnings) {
-      writer(`- [${violation.level}] ${violation.filePath}: ${violation.message}`);
-    }
-  }
-
-  return errors.length > 0 ? 1 : 0;
+  return 1;
 };
 
 const main = () => {

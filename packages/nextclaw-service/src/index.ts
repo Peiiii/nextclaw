@@ -1,5 +1,4 @@
 export {
-  createNextclawServiceRuntime,
   NextclawServiceRuntime,
   runNextclawNpmRuntimeLauncher,
   type NextclawServiceRuntimeOptions,

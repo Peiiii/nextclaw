@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
-import { nextclaw, type AppEventEnvelope } from "@nextclaw/kernel";
+import type { AppEventEnvelope } from "@nextclaw/kernel";
 import { WebSocketServer, WebSocket } from "ws";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
@@ -9,13 +9,13 @@ import { join } from "node:path";
 import type { Server } from "node:http";
 import { UiAuthService } from "./auth.service.js";
 import { createUiRouter } from "./router.js";
-import type { UiServerEvent, UiServerHandle, UiServerOptions } from "./types.js";
-import type { UiRuntimeUpdateHost } from "./ui-routes/types.js";
+import type { UiRouterOptions } from "./ui-routes/types.js";
 import { serveStatic } from "hono/serve-static";
 
-type UiServerStartOptions = UiServerOptions & {
-  applyLiveConfigReload?: () => Promise<void>;
-  runtimeUpdate?: UiRuntimeUpdateHost;
+export type UiServerHandle = {
+  host: string;
+  port: number;
+  close: () => Promise<void>;
 };
 
 const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
@@ -30,7 +30,7 @@ const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
 
 const DEFAULT_ALLOWED_CORS_HEADERS = "Content-Type, Authorization";
 const DEFAULT_ALLOWED_CORS_METHODS = "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS";
-type CorsPolicy = Exclude<UiServerOptions["corsOrigins"], undefined> | typeof DEFAULT_CORS_ORIGINS;
+type CorsPolicy = string[] | "*" | typeof DEFAULT_CORS_ORIGINS;
 
 function readRequestHeader(request: Request, name: string): string | null {
   return request.headers.get(name)?.trim() ?? null;
@@ -73,23 +73,16 @@ function applyCorsHeaders(params: {
   allowOrigin: string;
   allowHeaders?: string | null;
 }): void {
-  params.headers.set("Access-Control-Allow-Origin", params.allowOrigin);
-  params.headers.set("Access-Control-Allow-Credentials", "true");
-  params.headers.set("Access-Control-Allow-Methods", DEFAULT_ALLOWED_CORS_METHODS);
-  params.headers.set(
+  const { headers, allowOrigin, allowHeaders } = params;
+  headers.set("Access-Control-Allow-Origin", allowOrigin);
+  headers.set("Access-Control-Allow-Credentials", "true");
+  headers.set("Access-Control-Allow-Methods", DEFAULT_ALLOWED_CORS_METHODS);
+  headers.set(
     "Access-Control-Allow-Headers",
-    params.allowHeaders?.trim() || DEFAULT_ALLOWED_CORS_HEADERS
+    allowHeaders?.trim() || DEFAULT_ALLOWED_CORS_HEADERS
   );
-  appendVaryHeader(params.headers, "Origin");
-  appendVaryHeader(params.headers, "Access-Control-Request-Headers");
-}
-
-function publishUiServerEvent(event: UiServerEvent): void {
-  nextclaw.eventBus.emitEnvelope({
-    ...event,
-    emittedAt: event.emittedAt ?? new Date().toISOString(),
-    source: event.source ?? "backend"
-  });
+  appendVaryHeader(headers, "Origin");
+  appendVaryHeader(headers, "Access-Control-Request-Headers");
 }
 
 function createUiEventPublisher(clients: Set<WebSocket>): (event: AppEventEnvelope) => void {
@@ -132,7 +125,7 @@ function mountUiStaticAssets(app: Hono, staticDir: string): void {
   );
   app.get("*", (c) => {
     const path = c.req.path;
-    if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote")) {
+    if (path.startsWith("/api") || path.startsWith("/ws") || path.startsWith("/_remote") || path.startsWith("/webhook")) {
       return c.notFound();
     }
     return c.html(indexHtml);
@@ -164,31 +157,20 @@ function attachUiSocketServer(httpServer: Server, authService: UiAuthService, cl
   return wss;
 }
 
-export async function startUiServer(options: UiServerStartOptions): Promise<UiServerHandle> {
+export async function startUiServer(gateway: UiRouterOptions): Promise<UiServerHandle> {
   const {
-    applyLiveConfigReload,
-    configPath,
     corsOrigins,
-    cronService,
-    getBootstrapStatus,
-    getPluginChannelBindings,
-    getPluginUiMetadata,
-    host,
-    initializeAgentHomeDirectory,
-    marketplace,
-    ncpAgent,
-    ncpSessionService,
-    port,
-    productVersion,
-    remoteAccess,
-    runtimeControl,
-    runtimeUpdate,
-    staticDir
-  } = options;
+    uiStaticDir,
+  } = gateway;
+  const uiConfig = gateway.uiConfig;
+  if (!uiConfig) {
+    throw new Error("uiConfig is required to start UI server");
+  }
+  const { host, port } = uiConfig;
   const app = new Hono();
   app.use("/*", compress());
   const corsPolicy = corsOrigins ?? DEFAULT_CORS_ORIGINS;
-  const authService = new UiAuthService(configPath);
+  const authService = new UiAuthService(gateway.configPath);
   app.use("/api/*", async (c, next) => {
     const allowOrigin = resolveAllowedCorsOrigin(readRequestHeader(c.req.raw, "origin"), corsPolicy);
     const allowHeaders = readRequestHeader(c.req.raw, "access-control-request-headers");
@@ -218,34 +200,16 @@ export async function startUiServer(options: UiServerStartOptions): Promise<UiSe
   });
 
   const clients = new Set<WebSocket>();
-  const publish = publishUiServerEvent;
   const publishToClients = createUiEventPublisher(clients);
-  const unsubscribeEventBus = nextclaw.eventBus.subscribeAll(publishToClients);
+  const unsubscribeEventBus = gateway.appEventBus.subscribeAll(publishToClients);
 
   app.route(
     "/",
-    createUiRouter({
-      configPath,
-      productVersion,
-      publish,
-      applyLiveConfigReload,
-      initializeAgentHomeDirectory,
-      marketplace,
-      cronService,
-      ncpAgent,
-      ncpSessionService,
-      authService,
-      remoteAccess,
-      runtimeControl,
-      runtimeUpdate,
-      getBootstrapStatus,
-      getPluginChannelBindings,
-      getPluginUiMetadata
-    })
+    createUiRouter(gateway, authService)
   );
 
-  if (staticDir) {
-    mountUiStaticAssets(app, staticDir);
+  if (uiStaticDir) {
+    mountUiStaticAssets(app, uiStaticDir);
   }
 
   const server = await new Promise<Server>((resolve, reject) => {
@@ -266,13 +230,12 @@ export async function startUiServer(options: UiServerStartOptions): Promise<UiSe
   return {
     host,
     port,
-    publish,
     close: () =>
       new Promise((resolve) => {
         unsubscribeEventBus();
         wss.close(() => {
           server.close(() => {
-            Promise.resolve(ncpAgent?.agentClientEndpoint.stop())
+            Promise.resolve(gateway.ncpAgent?.agentClientEndpoint.stop())
               .catch(() => undefined)
               .finally(() => resolve());
           });

@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EventBus } from "@nextclaw/kernel";
+import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 let capturedOnSessionUpdated: ((sessionKey: string) => void) | undefined;
 const publishSessionChangeMock = vi.fn<(sessionKey: string) => Promise<void>>();
@@ -18,15 +20,15 @@ vi.mock("@nextclaw-service/shared/services/session/service-deferred-ncp-session-
   })
 }));
 
-vi.mock("@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.js", () => ({
+vi.mock("@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.utils.js", () => ({
   createNcpSessionRealtimeChangePublisher: () => ({
     publishSessionChange: publishSessionChangeMock
   })
 }));
 
-import { createServiceNcpSessionRealtimeBridge } from "../service-ncp-session-realtime-bridge.service.js";
+import { ServiceNcpSessionRealtimeBridge } from "../service-ncp-session-realtime-bridge.service.js";
 
-describe("createServiceNcpSessionRealtimeBridge", () => {
+describe("ServiceNcpSessionRealtimeBridge", () => {
   afterEach(() => {
     capturedOnSessionUpdated = undefined;
     publishSessionChangeMock.mockReset();
@@ -37,10 +39,11 @@ describe("createServiceNcpSessionRealtimeBridge", () => {
     publishSessionChangeMock.mockRejectedValueOnce(new Error("session realtime boom"));
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    createServiceNcpSessionRealtimeBridge({
-      getConfig: () => ({} as never),
-      sessionManager: {} as never
-    });
+    new ServiceNcpSessionRealtimeBridge({
+      loadGatewayConfig: () => ({} as never),
+      sessionManager: {} as never,
+      appEventBus: new EventBus(),
+    } as unknown as NextclawGatewayRuntime);
 
     expect(capturedOnSessionUpdated).toBeTypeOf("function");
 

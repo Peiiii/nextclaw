@@ -1,15 +1,12 @@
-import type { Config, SessionManager } from "@nextclaw/core";
 import type { NcpSessionApi } from "@nextclaw/ncp";
-import type { UiServerEvent } from "@nextclaw/server";
 import { ContextCompactionPreflightService } from "@nextclaw-service/commands/ncp/context/context-compaction-preflight.service.js";
-import { createNcpSessionRealtimeChangePublisher } from "@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.js";
+import { createNcpSessionRealtimeChangePublisher } from "@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.utils.js";
 import { UiSessionService } from "@nextclaw-service/commands/ncp/ui-session-service.js";
 import {
   createDeferredUiNcpSessionService,
   type DeferredUiNcpSessionServiceController
 } from "@nextclaw-service/shared/services/session/service-deferred-ncp-session-service.js";
-
-type PublishUiEvent = ((event: UiServerEvent) => void) | undefined;
+import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 function formatBackgroundTaskError(error: unknown): string {
   if (error instanceof Error) {
@@ -54,64 +51,49 @@ export function createLatestOnlySessionChangePublisher(
   };
 }
 
-export type ServiceNcpSessionRealtimeBridge = {
-  sessionService: NcpSessionApi;
-  deferredSessionService: DeferredUiNcpSessionServiceController;
-  publishSessionChange: (sessionKey: string) => Promise<void>;
-  setUiEventPublisher: (publishUiEvent: PublishUiEvent) => void;
-  clear: () => void;
-};
+export class ServiceNcpSessionRealtimeBridge {
+  readonly sessionService: NcpSessionApi;
+  readonly deferredSessionService: DeferredUiNcpSessionServiceController;
+  readonly publishSessionChange: (sessionKey: string) => Promise<void>;
 
-export function createServiceNcpSessionRealtimeBridge(params: {
-  getConfig: () => Config;
-  sessionManager: SessionManager;
-  publishUiEvent?: PublishUiEvent;
-}): ServiceNcpSessionRealtimeBridge {
-  const { getConfig, publishUiEvent: initialPublishUiEvent, sessionManager } = params;
-  let publishUiEvent = initialPublishUiEvent;
-  let publishSessionChange = async (_sessionKey: string): Promise<void> => {};
-  let scheduleSessionChange = async (_sessionKey: string): Promise<void> => {};
+  constructor(gateway: NextclawGatewayRuntime) {
+    let scheduleSessionChange = async (_sessionKey: string): Promise<void> => {};
 
-  const contextWindowPreview = new ContextCompactionPreflightService({
-    getConfig,
-    sessionManager,
-  });
-  const persistedSessionService = new UiSessionService(sessionManager, {
-    onSessionUpdated: (sessionKey) => {
-      void scheduleSessionChange(sessionKey).catch((error) => {
-        console.error(
-          `[session-realtime] failed to publish session change for ${sessionKey}: ${formatBackgroundTaskError(error)}`
-        );
-      });
-    },
-    resolveContextWindow: ({ messages, metadata, sessionId }) =>
-      contextWindowPreview.preview({
-        contextWindowOwner: "nextclaw",
-        requestMetadata: metadata,
-        sessionId,
-        sessionMessages: messages,
-      }),
-  });
-  const deferredSessionService = createDeferredUiNcpSessionService(persistedSessionService);
+    const contextWindowPreview = new ContextCompactionPreflightService({
+      getConfig: gateway.configManager.loadGatewayConfig,
+      sessionManager: gateway.sessionManager,
+    });
+    const persistedSessionService = new UiSessionService(gateway.sessionManager, {
+      onSessionUpdated: (sessionKey) => {
+        void scheduleSessionChange(sessionKey).catch((error) => {
+          console.error(
+            `[session-realtime] failed to publish session change for ${sessionKey}: ${formatBackgroundTaskError(error)}`
+          );
+        });
+      },
+      resolveContextWindow: ({ messages, metadata, sessionId }) =>
+        contextWindowPreview.preview({
+          contextWindowOwner: "nextclaw",
+          requestMetadata: metadata,
+          sessionId,
+          sessionMessages: messages,
+        }),
+    });
+    const deferredSessionService = createDeferredUiNcpSessionService(persistedSessionService);
 
-  const publishLatestSessionChange = async (sessionKey: string) => {
-    await createNcpSessionRealtimeChangePublisher({
-      sessionApi: deferredSessionService.service,
-      publishUiEvent
-    }).publishSessionChange(sessionKey);
-  };
-  scheduleSessionChange = createLatestOnlySessionChangePublisher(publishLatestSessionChange);
-  publishSessionChange = scheduleSessionChange;
+    const publishLatestSessionChange = async (sessionKey: string) => {
+      await createNcpSessionRealtimeChangePublisher({
+        sessionApi: deferredSessionService.service,
+        appEventBus: gateway.appEventBus
+      }).publishSessionChange(sessionKey);
+    };
+    scheduleSessionChange = createLatestOnlySessionChangePublisher(publishLatestSessionChange);
+    this.sessionService = deferredSessionService.service;
+    this.deferredSessionService = deferredSessionService;
+    this.publishSessionChange = scheduleSessionChange;
+  }
 
-  return {
-    sessionService: deferredSessionService.service,
-    deferredSessionService,
-    publishSessionChange,
-    setUiEventPublisher: (nextPublishUiEvent) => {
-      publishUiEvent = nextPublishUiEvent;
-    },
-    clear: () => {
-      deferredSessionService.clear();
-    },
+  clear = (): void => {
+    this.deferredSessionService.clear();
   };
 }

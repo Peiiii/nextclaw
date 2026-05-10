@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
+import { EventBus } from "@nextclaw/kernel";
 import { NextclawApp } from "../nextclaw-app.service.js";
+import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service.js";
 
 function createAgentHandle() {
   return {
@@ -45,48 +47,94 @@ async function waitForScheduledWarmup(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
 
+function createGateway(params: {
+  order?: string[];
+  uiEnabled?: boolean;
+  loadPlugins?: () => Promise<void>;
+  startPluginGateways?: () => Promise<void>;
+  startExtensions?: () => Promise<void>;
+  startChannels?: () => Promise<void>;
+  wakeFromRestartSentinel?: () => Promise<void>;
+  markNcpAgentError?: (message: string) => void;
+} = {}): NextclawGatewayRuntime {
+  const order = params.order ?? [];
+  const gateway = {
+    appEventBus: new EventBus(),
+    bootstrapStatus: {
+      markNcpAgentRunning: vi.fn(() => order.push("mark-running")),
+      markNcpAgentReady: vi.fn(() => order.push("mark-ready")),
+      markNcpAgentError: params.markNcpAgentError ?? vi.fn(),
+    },
+    configManager: {
+      uiConfig: {
+        enabled: params.uiEnabled === true,
+      },
+      loadGatewayConfig: () => ({}),
+    },
+    uiStartup: {
+      deferredNcpAgent: {
+        activate: vi.fn(() => order.push("activate-ui-agent")),
+      },
+    },
+    sessions: {
+      deferredSessionService: {
+        activate: vi.fn(() => order.push("activate-session-service")),
+      },
+      publishSessionChange: vi.fn(),
+    },
+    messageBus: {},
+    sessionManager: {},
+    providerManager: {},
+    cron: {},
+    gatewayController: {},
+    plugins: {
+      getExtensionRegistry: () => undefined,
+      getRegistry: () => ({ plugins: [] }),
+      load: params.loadPlugins ?? vi.fn(async () => undefined),
+      startGateways: params.startPluginGateways ?? vi.fn(async () => undefined),
+    },
+    extensions: {
+      start: params.startExtensions ?? vi.fn(async () => undefined),
+    },
+    gatewayChannels: {
+      startDeferred: params.startChannels ?? vi.fn(async () => undefined),
+    },
+    restartWake: {
+      wakeFromRestartSentinel: params.wakeFromRestartSentinel ?? vi.fn(async () => undefined),
+    },
+    liveUiNcpAgent: null,
+  } as unknown as NextclawGatewayRuntime;
+  gateway.activateNcpAgent = vi.fn((agent) => {
+    gateway.sessions.deferredSessionService.activate(agent.sessionApi);
+    gateway.uiStartup.deferredNcpAgent.activate(agent);
+    gateway.bootstrapStatus.markNcpAgentReady();
+  });
+  return gateway;
+}
+
 describe("NextclawApp", () => {
-  it("marks the NCP agent ready immediately after kernel bootstrap and before capability hydration", async () => {
+  it("marks the NCP agent ready immediately after kernel bootstrap and before plugin loading", async () => {
     const order: string[] = [];
     const ncpAgent = createAgentHandle();
-    const app = new NextclawApp({
-      bootstrapStatus: {
-        markNcpAgentRunning: vi.fn(() => order.push("mark-running")),
-        markNcpAgentReady: vi.fn(() => order.push("mark-ready")),
-        markNcpAgentError: vi.fn(),
-      } as never,
-      uiStartup: {
-        deferredNcpAgent: {
-          activate: vi.fn(() => order.push("activate-ui-agent")),
-        },
-        publish: vi.fn(),
-      } as never,
-      deferredNcpSessionService: {
-        activate: vi.fn(() => order.push("activate-session-service")),
-      } as never,
-      bus: {} as never,
-      sessionManager: {} as never,
-      providerManager: {} as never,
-      cronService: {} as never,
-      gatewayController: {} as never,
-      getConfig: () => ({}) as never,
-      getExtensionRegistry: () => undefined,
-      resolveMessageToolHints: () => [],
-      hydrateCapabilities: vi.fn(async () => {
-        order.push("hydrate-capabilities");
+    const gateway = createGateway({
+      order,
+      uiEnabled: true,
+      loadPlugins: vi.fn(async () => {
+        order.push("load-plugins");
       }),
-      startPluginGateways: async () => {
+      startPluginGateways: vi.fn(async () => {
         order.push("start-plugin-gateways");
-      },
-      startChannels: async () => {
+      }),
+      startChannels: vi.fn(async () => {
         order.push("start-channels");
-      },
-      wakeFromRestartSentinel: async () => {
+      }),
+      wakeFromRestartSentinel: vi.fn(async () => {
         order.push("wake-restart-sentinel");
-      },
-      onNcpAgentReady: vi.fn(() => order.push("on-ncp-agent-ready")),
-      publishSessionChange: vi.fn(),
-      ncpAgentRuntime: {
+      }),
+    });
+    const app = new NextclawApp(
+      gateway,
+      {
         bootstrapKernel: vi.fn(async () => {
           order.push("bootstrap-kernel");
           return ncpAgent as never;
@@ -97,14 +145,14 @@ describe("NextclawApp", () => {
         warmDerivedCapabilities: vi.fn(async () => {
           order.push("warm-derived-capabilities");
         }),
-      },
-    });
+      } as never,
+    );
 
     await app.start();
 
     expect(order).toContain("mark-ready");
     expect(order.indexOf("mark-ready")).toBeGreaterThan(order.indexOf("activate-ui-agent"));
-    expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("hydrate-capabilities"));
+    expect(order.indexOf("mark-ready")).toBeLessThan(order.indexOf("load-plugins"));
     expect(order).toEqual(
       expect.arrayContaining([
         "bootstrap-kernel",
@@ -123,37 +171,20 @@ describe("NextclawApp", () => {
     const startChannels = vi.fn(async () => undefined);
     const wakeFromRestartSentinel = vi.fn(async () => undefined);
     const warmDerivedCapabilities = vi.fn(() => warmup.promise);
-
-    const app = new NextclawApp({
-      bootstrapStatus: {
-        markNcpAgentRunning: vi.fn(),
-        markNcpAgentReady: vi.fn(),
-        markNcpAgentError: vi.fn(),
-      } as never,
-      uiStartup: null,
-      deferredNcpSessionService: {
-        activate: vi.fn(),
-      } as never,
-      bus: {} as never,
-      sessionManager: {} as never,
-      providerManager: {} as never,
-      cronService: {} as never,
-      gatewayController: {} as never,
-      getConfig: () => ({}) as never,
-      getExtensionRegistry: () => undefined,
-      resolveMessageToolHints: () => [],
-      hydrateCapabilities: vi.fn(async () => undefined),
+    const gateway = createGateway({
+      loadPlugins: vi.fn(async () => undefined),
       startPluginGateways,
       startChannels,
       wakeFromRestartSentinel,
-      onNcpAgentReady: vi.fn(),
-      publishSessionChange: vi.fn(),
-      ncpAgentRuntime: {
+    });
+    const app = new NextclawApp(
+      gateway,
+      {
         bootstrapKernel: vi.fn(async () => ncpAgent as never),
         recoverDurableState: vi.fn(async () => undefined),
         warmDerivedCapabilities,
-      },
-    });
+      } as never,
+    );
 
     await expect(app.start()).resolves.toBeUndefined();
 
@@ -168,50 +199,34 @@ describe("NextclawApp", () => {
     warmup.resolve();
   });
 
-  it("records kernel startup errors but still continues deferred capability work", async () => {
-    const hydrateCapabilities = vi.fn(async () => undefined);
+  it("records kernel startup errors but still continues deferred plugin work", async () => {
+    const loadPlugins = vi.fn(async () => undefined);
     const startPluginGateways = vi.fn(async () => undefined);
     const startChannels = vi.fn(async () => undefined);
     const wakeFromRestartSentinel = vi.fn(async () => undefined);
     const markNcpAgentError = vi.fn();
-
-    const app = new NextclawApp({
-      bootstrapStatus: {
-        markNcpAgentRunning: vi.fn(),
-        markNcpAgentReady: vi.fn(),
-        markNcpAgentError,
-      } as never,
-      uiStartup: null,
-      deferredNcpSessionService: {
-        activate: vi.fn(),
-      } as never,
-      bus: {} as never,
-      sessionManager: {} as never,
-      providerManager: {} as never,
-      cronService: {} as never,
-      gatewayController: {} as never,
-      getConfig: () => ({}) as never,
-      getExtensionRegistry: () => undefined,
-      resolveMessageToolHints: () => [],
-      hydrateCapabilities,
+    const gateway = createGateway({
+      loadPlugins,
       startPluginGateways,
       startChannels,
       wakeFromRestartSentinel,
-      onNcpAgentReady: vi.fn(),
-      publishSessionChange: vi.fn(),
-      ncpAgentRuntime: {
+      markNcpAgentError,
+    });
+    const app = new NextclawApp(
+      gateway,
+      {
         bootstrapKernel: vi.fn(async () => {
           throw new Error("kernel failed");
         }),
         recoverDurableState: vi.fn(async () => undefined),
         warmDerivedCapabilities: vi.fn(async () => undefined),
-      },
-    });
+      } as never,
+    );
 
     await app.start();
 
     expect(markNcpAgentError).toHaveBeenCalledWith("kernel failed");
-    expect(hydrateCapabilities).toHaveBeenCalledTimes(1);
+    expect(loadPlugins).toHaveBeenCalledTimes(1);
     expect(startPluginGateways).toHaveBeenCalledTimes(1);
     expect(startChannels).toHaveBeenCalledTimes(1);
     expect(wakeFromRestartSentinel).toHaveBeenCalledTimes(1);

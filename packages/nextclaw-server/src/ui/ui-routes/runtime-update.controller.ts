@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
 import { err, formatUserFacingError, ok, readJson } from "./response.js";
 import type { UiRuntimeUpdateHost } from "./types.js";
 

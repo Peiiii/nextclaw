@@ -15,6 +15,7 @@
 - 所有对用户的回复必须以 `[我严格遵守规则]` 开头。
 - 与用户交流必须使用中文。
 - 用户提出需求或评价时，要主动推理深层意图，给出明确判断、推荐方案、取舍理由和最小可执行下一步。
+- 用户说“记住”“以后都要”“这是规范/原则”时，禁止只口头确认；必须判断并持久化到 `AGENTS.md`、对应 skill、命令或治理脚本等可自动触发的位置，若不落盘必须说明理由。
 - 若用户明确启动“深思模式”，后续回复前缀改为 `[我严格遵守规则][深思模式]`，直到用户明确关闭。
 - 若用户明确启动“目标模式”，后续回复前缀追加 `[目标模式]` 与 `[锚点 n/20]`，并使用 `goal-mode` skill 持续推进直到目标完成、真实阻塞或用户明确退出。
 - 思考产品和实现方案时，同时站在 CEO + CTO（架构师）+ 产品经理视角：产品价值、技术结构、交付路径都要考虑。
@@ -40,6 +41,7 @@
 - 写或改源码、脚本、测试、运行链路配置前，默认使用 `nextclaw-clean-implementation` skill；涉及 fallback / compatibility / rescue path 时，同时使用 `predictable-behavior-first`。
 - 改完源码、脚本、测试或运行链路配置后，默认使用 `post-edit-maintainability-guard`，再使用 `post-edit-maintainability-review`。
 - 涉及命名、目录、文件组织时，按场景使用 `file-naming-convention`、`role-first-file-organization`、`collapsible-feature-root-architecture`、`file-organization-governance`。
+- 用户指出同类错误反复发生、要求反思/总结教训/避免再次发生时，必须使用 `learning-from-failures`，把教训落到可自动触发的规则、skill、命令、治理脚本或验证流程。
 - 复杂 debug 用 `long-chain-debugging`；复杂跨轮任务、上下文压缩或交接风险用 `iteration-work-notes`，必要时用 `goal-progress-anchor`。
 
 ## 标准交付流程
@@ -69,6 +71,7 @@
 - 代码目标默认不是“最小 diff”，而是在满足目标前提下让系统更少、更简单、更清晰、更可预测。
 - 新增之前先判断能否删除、合并、复用、收敛职责；非新增用户能力的改动默认应避免生产代码净增长，优先通过删除旧实现、重构收敛职责或在同责任链/同问题域偿还债务达成；不要求删减只发生在当前改动点，但禁止通过 hack、把复杂度外移、缩短命名/折叠语句等强行压缩来伪造净减。
 - 业务逻辑默认必须有清晰 owner，通常落到 class / manager / service / controller / presenter；普通函数只用于纯常量、纯类型、极小纯计算、纯数据映射、纯业务无关工具。
+- 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
 - React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。

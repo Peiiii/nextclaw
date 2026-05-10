@@ -18,9 +18,9 @@ import {
 import { RemoteRoutesController } from "./ui-routes/remote.controller.js";
 import { RuntimeControlRoutesController } from "./ui-routes/runtime-control.controller.js";
 import { RuntimeUpdateRoutesController } from "./ui-routes/runtime-update.controller.js";
-import { err } from "./ui-routes/response.js";
+import { err, ok, readJson } from "./ui-routes/response.js";
 import { ServerPathRoutesController } from "./ui-routes/server-path.controller.js";
-import type { UiRouterOptions } from "./ui-routes/types.js";
+import type { UiRouterOptions, UiWebhookEnvelope, UiWebhookHost } from "./ui-routes/types.js";
 
 function registerAuthRoutes(app: Hono, authController: AuthRoutesController): void {
   app.get("/api/auth/status", authController.getStatus);
@@ -142,6 +142,41 @@ function registerRuntimeUpdateRoutes(app: Hono, runtimeUpdateController: Runtime
   app.put("/api/runtime/update/channel", runtimeUpdateController.updateChannel);
 }
 
+function readBearerToken(request: Request): string | null {
+  const authorization = request.headers.get("authorization")?.trim() ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(authorization);
+  return match?.[1]?.trim() || null;
+}
+
+function isValidWebhookEnvelope(value: UiWebhookEnvelope): boolean {
+  return typeof value.type === "string" && value.type.trim().length > 0;
+}
+
+function registerWebhookRoutes(app: Hono, webhook: UiWebhookHost | undefined): void {
+  app.post("/webhook", async (c) => {
+    if (!webhook) {
+      return c.json(err("WEBHOOK_UNAVAILABLE", "webhook is not configured"), 503);
+    }
+
+    const body = await readJson<UiWebhookEnvelope>(c.req.raw);
+    if (!body.ok || !isValidWebhookEnvelope(body.data)) {
+      return c.json(err("INVALID_BODY", "invalid webhook body"), 400);
+    }
+
+    try {
+      const result = await webhook.handleWebhook(body.data, {
+        token: readBearerToken(c.req.raw),
+        request: c.req.raw,
+      });
+      return c.json(ok(result ?? { accepted: true }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status = message.toLowerCase().includes("unauthorized") ? 401 : 400;
+      return c.json(err("WEBHOOK_FAILED", message), status);
+    }
+  });
+}
+
 function createUiRouteControllers(
   options: UiRouterOptions,
   authService: UiAuthService,
@@ -166,10 +201,10 @@ function createUiRouteControllers(
   };
 }
 
-export function createUiRouter(options: UiRouterOptions): Hono {
+export function createUiRouter(options: UiRouterOptions, authServiceOverride?: UiAuthService): Hono {
   const app = new Hono();
   const marketplaceBaseUrl = normalizeMarketplaceBaseUrl(options);
-  const authService = options.authService ?? new UiAuthService(options.configPath);
+  const authService = authServiceOverride ?? options.authService ?? new UiAuthService(options.configPath);
   const controllers = createUiRouteControllers(options, authService, marketplaceBaseUrl);
 
   app.notFound((c) => c.json(err("NOT_FOUND", "endpoint not found"), 404));
@@ -201,6 +236,7 @@ export function createUiRouter(options: UiRouterOptions): Hono {
   registerRemoteRoutes(app, controllers.remote);
   registerRuntimeControlRoutes(app, controllers.runtimeControl);
   registerRuntimeUpdateRoutes(app, controllers.runtimeUpdate);
+  registerWebhookRoutes(app, options.webhook);
 
   mountMarketplaceRoutes(app, {
     plugin: controllers.pluginMarketplace,

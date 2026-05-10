@@ -22,7 +22,6 @@ import {
   getWorkspacePathFromConfig,
   normalizeThinkingLevels,
   parseThinkingLevel,
-  type SearchConfig,
   type ThinkingLevel
 } from "@nextclaw/core";
 import { createDefaultProviderConfig } from "./provider-config.factory.js";
@@ -36,7 +35,7 @@ import {
   type PluginConfigProjectionOptions
 } from "./plugin-channel-config.projection.js";
 import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "./provider-overrides.js";
-import { buildSearchView, SEARCH_PROVIDER_META, updateSearch } from "./search-config.js";
+import { buildSearchView, SEARCH_PROVIDER_META } from "./search-config.js";
 import type {
   ConfigMetaView,
   RuntimeConfigUpdate,

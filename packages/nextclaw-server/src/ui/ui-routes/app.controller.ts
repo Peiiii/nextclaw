@@ -41,7 +41,7 @@ export class AppRoutesController {
         status: "ok",
         services: {
           ncpAgent: this.options.ncpAgent ? "ready" : "unavailable",
-          cronService: this.options.cronService ? "ready" : "unavailable"
+          cronService: this.options.cron ? "ready" : "unavailable"
         }
       })
     );
@@ -49,5 +49,5 @@ export class AppRoutesController {
   readonly appMeta = (c: Context) => c.json(ok(buildAppMetaView(this.options)));
 
   readonly bootstrapStatus = (c: Context) =>
-    c.json(ok(this.options.getBootstrapStatus?.() ?? buildFallbackBootstrapStatus()));
+    c.json(ok(this.options.bootstrapStatus?.getStatus() ?? buildFallbackBootstrapStatus()));
 }

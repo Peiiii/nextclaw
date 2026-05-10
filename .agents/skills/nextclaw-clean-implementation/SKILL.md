@@ -40,6 +40,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 准备为一个字段或局部状态新增跨层参数、回调、wrapper、proxy 或接口转发对象
 - 改动不大，但会继续推高复杂度
 
+如果讨论重点已经进入 owner、生命周期、模块边界、职责对象、状态归属或经典编程最佳实践，先联动 `classic-software-design-principles`，用 GRASP / SOLID / Tell Don't Ask / Law of Demeter 校准后再写代码。
+
 ## 写代码前固定要回答的问题
 
 ### 1. 这次真的是要新增代码吗
@@ -80,12 +82,17 @@ description: Use when implementing or refactoring code in this repository, espec
 - 这次新增的是一个新语义，还是只是把一个字段从 A 搬到 B
 - 中间层是否拥有决策、生命周期、权限、协议转换或持久化责任
 - 是否正在手写接口 proxy、wrapper、adapter，只为了改其中一个方法
+- 是否只是把一个问题类型、参数对象、contract 或 wrapper 换了一个新名字，却没有删除重复字段清单、重复 owner 或重复装配链路
 - 是否有一个现成的数据生成者 / summary builder / view service 可以自然加上这个字段
 
 默认原则：
 
 - 在语义 owner 上加字段或行为，而不是在路由、启动参数、bridge、controller 里穿针引线
 - 不用“原样转发整个接口 + 改一个方法”的方式解决局部问题
+- 不用 getter / alias / proxy 冒充删除重复入口。`get oldName() { return this.newName; }` 只有在明确保留兼容 contract 时才允许；重构收敛场景必须继续改调用方或改 contract，让公共入口真的只剩一个。
+- Owner 状态只能由 owner 自己改变。普通函数、helper、service、callback 不得出现 `params.owner.xxx = ...`、`runtime.xxx = ...`、`gateway.xxx = ...` 这类从外部改 owner 字段的写法；它们只能返回结果，或调用 owner 暴露的明确业务方法。若方法只是 setter 包装且没有业务语义，也应继续收回 owner 内部。
+- 禁止用重命名替代结构修复；如果旧类型和新类型承载同一批字段或同一段装配职责，必须删除重复 contract，让字段回到真正 owner，而不是引入 `XxxHost`、`XxxRuntime`、`XxxGateway`、`XxxOptions`、`XxxProps` 这类换皮中间名
+- 新命名只有在引入了新的语义 owner、生命周期、权限边界、协议转换或持久化责任时才成立；否则默认是结构搬运，必须回退
 - 若一个字段需要经过 `3` 层以上且多数层只是透传，必须先停下重新找 owner
 - 若确实需要 adapter，必须有真实语义转换；没有语义转换的 adapter / proxy 默认删除
 
@@ -145,6 +152,8 @@ description: Use when implementing or refactoring code in this repository, espec
 
 如果有，先把逻辑收回 owner 层。
 
+改完后必须用搜索检查是否出现外部 owner 赋值：`rg "params\\.[a-zA-Z0-9_]*(runtime|Runtime|gateway|Gateway|owner|Owner)\\.[a-zA-Z0-9_]+\\s*=" <touched paths>`。命中时默认未完成，除非该文件本身就是 owner class 且赋值发生在 `this.*` 上。
+
 ### 8. 最小可信验证是什么
 
 先回答：
@@ -164,6 +173,8 @@ description: Use when implementing or refactoring code in this repository, espec
 - 业务逻辑散在组件、hook、effect 和 helper 之间，没有 owner
 - 为了“先快一点”复制一份旧实现
 - 为了一个字段手写完整接口 proxy，绝大多数方法只是原样转发
+- 删除重复字段时只改成 getter alias，导致两个名字继续长期存在
+- 导出 `createXxx()` 但函数体只是 `return new Xxx(...)` 或 `=> new Xxx(...)`，没有缓存、依赖注入、环境选择、异步初始化、权限封装等真实语义
 - 为了一个 UI 状态让 runtime、shell、server、router、controller 多层新增同名参数
 - 为了一个新领域词发明一个新目录或新角色
 - 用 `utils`、`helpers`、`common` 掩盖真实业务职责
@@ -200,11 +211,12 @@ description: Use when implementing or refactoring code in this repository, espec
 1. 这次准备删什么 / 不删的原因是什么
 2. 这段逻辑的 owner 是谁
 3. 这次是在语义 owner 上建模，还是在做结构搬运；若不是结构搬运，证据是什么
-4. 主路径是什么，为什么不是双路径
-5. 为什么这不是隐藏 fallback 或补丁式修复
-6. 文件为什么放在这里
-7. 最小可信验证是什么
-8. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
+4. 是否引入或改名了类型 / 参数对象 / wrapper；如果是，它删除了哪个重复 contract 或新增了什么真实语义 owner，证据是什么
+5. 主路径是什么，为什么不是双路径
+6. 为什么这不是隐藏 fallback 或补丁式修复
+7. 文件为什么放在这里
+8. 最小可信验证是什么
+9. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
    同时说明准备在哪个相关责任链、旧实现或冗余路径上完成这次减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
 
 如果这些问题里有 2 个以上答不清，先不要写代码。

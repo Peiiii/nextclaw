@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { EventBus } from "@nextclaw/kernel";
 import {
   createNcpSessionRealtimeChangePublisher,
   toNcpSessionRealtimeEvent
-} from "./ncp-session-realtime-change.js";
+} from "./ncp-session-realtime-change.utils.js";
 
 describe("ncp-session-realtime-change", () => {
   it("converts upsert and delete changes into typed UI events", () => {
@@ -44,7 +45,8 @@ describe("ncp-session-realtime-change", () => {
   });
 
   it("publishes an upsert when the session still exists and delete when it does not", async () => {
-    const publishUiEvent = vi.fn();
+    const appEventBus = new EventBus();
+    const emitEnvelope = vi.spyOn(appEventBus, "emitEnvelope");
     const getSession = vi
       .fn()
       .mockResolvedValueOnce({
@@ -60,13 +62,13 @@ describe("ncp-session-realtime-change", () => {
       sessionApi: {
         getSession
       },
-      publishUiEvent
+      appEventBus
     });
 
     await publisher.publishSessionChange("session-1");
     await publisher.publishSessionChange("session-1");
 
-    expect(publishUiEvent).toHaveBeenNthCalledWith(1, {
+    expect(emitEnvelope).toHaveBeenNthCalledWith(1, {
       type: "session.summary.upsert",
       payload: {
         summary: {
@@ -78,7 +80,7 @@ describe("ncp-session-realtime-change", () => {
         }
       }
     });
-    expect(publishUiEvent).toHaveBeenNthCalledWith(2, {
+    expect(emitEnvelope).toHaveBeenNthCalledWith(2, {
       type: "session.summary.delete",
       payload: {
         sessionKey: "session-1"

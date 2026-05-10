@@ -108,7 +108,7 @@ export class CronRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
   readonly listJobs = (c: Context) => {
-    if (!this.options.cronService) {
+    if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const query = c.req.query();
@@ -120,12 +120,12 @@ export class CronRoutesController {
       query.all === "false" ||
       query.all === "no";
     const includeDisabled = !enabledOnly;
-    const jobs = this.options.cronService.listJobs(includeDisabled).map((job) => buildCronJobView(job as CronJobEntry));
+    const jobs = this.options.cron.listJobs(includeDisabled).map((job) => buildCronJobView(job as CronJobEntry));
     return c.json(ok({ jobs, total: jobs.length }));
   };
 
   readonly createJob = async (c: Context) => {
-    if (!this.options.cronService) {
+    if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const body = await readJson<CronCreateRequest>(c.req.raw);
@@ -136,17 +136,17 @@ export class CronRoutesController {
     if ("error" in normalized) {
       return c.json(err("INVALID_BODY", normalized.error), 400);
     }
-    const job = this.options.cronService.addJob(normalized.params);
+    const job = this.options.cron.addJob(normalized.params);
     const data: CronCreateResult = { job: buildCronJobView(job as CronJobEntry) };
     return c.json(ok(data), 201);
   };
 
   readonly deleteJob = (c: Context) => {
-    if (!this.options.cronService) {
+    if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const id = decodeURIComponent(c.req.param("id"));
-    const deleted = this.options.cronService.removeJob(id);
+    const deleted = this.options.cron.removeJob(id);
     if (!deleted) {
       return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
     }
@@ -154,7 +154,7 @@ export class CronRoutesController {
   };
 
   readonly enableJob = async (c: Context) => {
-    if (!this.options.cronService) {
+    if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const id = decodeURIComponent(c.req.param("id"));
@@ -165,7 +165,7 @@ export class CronRoutesController {
     if (typeof body.data.enabled !== "boolean") {
       return c.json(err("INVALID_BODY", "enabled must be boolean"), 400);
     }
-    const job = this.options.cronService.enableJob(id, body.data.enabled);
+    const job = this.options.cron.enableJob(id, body.data.enabled);
     if (!job) {
       return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
     }
@@ -174,7 +174,7 @@ export class CronRoutesController {
   };
 
   readonly runJob = async (c: Context) => {
-    if (!this.options.cronService) {
+    if (!this.options.cron) {
       return c.json(err("NOT_AVAILABLE", "cron service unavailable"), 503);
     }
     const id = decodeURIComponent(c.req.param("id"));
@@ -182,12 +182,12 @@ export class CronRoutesController {
     if (!body.ok) {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const existing = findCronJob(this.options.cronService, id);
+    const existing = findCronJob(this.options.cron, id);
     if (!existing) {
       return c.json(err("NOT_FOUND", `cron job not found: ${id}`), 404);
     }
-    const executed = await this.options.cronService.runJob(id, Boolean(body.data.force));
-    const after = findCronJob(this.options.cronService, id);
+    const executed = await this.options.cron.runJob(id, Boolean(body.data.force));
+    const after = findCronJob(this.options.cron, id);
     const data: CronActionResult = {
       job: after ? buildCronJobView(after) : null,
       executed

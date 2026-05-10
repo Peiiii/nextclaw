@@ -1,30 +1,13 @@
 import * as NextclawCore from "@nextclaw/core";
-import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat";
-import { installBuiltinProviderRegistry } from "@nextclaw/runtime";
-import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { MissingProvider } from "@nextclaw-service/shared/providers/missing-provider.js";
-import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
-import { ServiceMarketplaceInstaller } from "@nextclaw-service/shared/services/marketplace/service-marketplace-installer.service.js";
-import { ManagedServiceCommandService, resolveSessionRouteCandidate, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
-import { finalizeLocalUiStartup, ServiceFileWatcherRegistry, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/shared/services/gateway/service-startup-support.js";
-import { consumeRestartSentinel, formatRestartSentinelMessage, parseSessionKey } from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
-import { createServiceUiHosts } from "@nextclaw-service/shared/services/ui/service-ui-hosts.service.js";
-import { type UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/index.js";
-import { createGatewayShellContext, createGatewayStartupContext } from "@nextclaw-service/shared/services/gateway/service-gateway-context.service.js";
-import { runConfiguredGatewayRuntime, startUiShell } from "@nextclaw-service/shared/services/gateway/service-gateway-startup.service.js";
-import { createServiceNcpSessionRealtimeBridge } from "@nextclaw-service/shared/services/session/service-ncp-session-realtime-bridge.service.js";
-import { createEmptyPluginRegistry } from "@nextclaw-service/commands/plugin/index.js";
-import { configureGatewayPluginRuntime, createBootstrapStatus, createDeferredGatewayStartupHooks, createGatewayRuntimeState, reloadGatewayPluginRuntimeForChanges, type GatewayRuntimeState } from "@nextclaw-service/shared/services/gateway/service-gateway-bootstrap.service.js";
-import { cleanupGatewayRuntime, handleGatewayDeferredStartupError } from "@nextclaw-service/shared/services/gateway/service-gateway-runtime-lifecycle.js";
-import { wrapStartChannelsWithDevPluginHotReload } from "@nextclaw-service/shared/services/plugin/service-plugin-dev-hot-reload.service.js";
+import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
+import { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
-import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
 import { resolveCliSubcommandEntry } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { isLoopbackHost, resolvePublicIp } from "@nextclaw-service/shared/utils/cli.utils.js";
-import { companionRuntimeService } from "@nextclaw-service/shared/services/ui/companion-runtime.service.js";
+import { createSkillsLoader } from "@nextclaw-service/shared/services/runtime/utils/skills-loader.utils.js";
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
 const {
@@ -35,38 +18,12 @@ const {
   getWorkspacePath,
   loadConfig,
   LiteLLMProvider,
-  MessageBus,
-  resolveConfigSecrets,
-  SessionManager,
-  parseAgentScopedSessionKey
 } = NextclawCore;
-const DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS = 5_000;
 type Config = NextclawCore.Config;
 type LLMProvider = NextclawCore.LLMProvider;
 type LiteLLMProvider = NextclawCore.LiteLLMProvider;
-type MessageBus = NextclawCore.MessageBus;
-type SessionManager = NextclawCore.SessionManager;
-type SkillInfo = {
-  name: string;
-  path: string;
-  source: "workspace" | "builtin";
-};
-type SkillsLoaderInstance = {
-  listSkills: (filterUnavailable?: boolean) => SkillInfo[];
-};
-type SkillsLoaderConstructor = new (workspace: string, builtinSkillsDir?: string) => SkillsLoaderInstance;
-function createSkillsLoader(workspace: string): SkillsLoaderInstance | null {
-  const ctor = (NextclawCore as { SkillsLoader?: SkillsLoaderConstructor }).SkillsLoader;
-  if (!ctor) {
-    return null;
-  }
-  return new ctor(workspace);
-}
 
 export class RuntimeCommandService {
-  private applyLiveConfigReload: (() => Promise<void>) | null = null;
-  private liveUiNcpAgent: UiNcpAgentHandle | null = null;
-  private readonly fileWatchers = new ServiceFileWatcherRegistry();
   private loggingInstalled = false;
   private readonly managedServiceCommandService = new ManagedServiceCommandService({
     startGateway: async (options) => await this.startGateway(options),
@@ -75,343 +32,23 @@ export class RuntimeCommandService {
     checkUiPortPreflight: async (params) => await this.checkUiPortPreflight(params)
   });
 
-  constructor(private deps: { requestRestart: (params: RequestRestartParams) => Promise<void>; initializeAgentHomeDirectory?: (homeDirectory: string) => void }) {}
+  constructor(private deps: {
+    requestRestart: (params: RequestRestartParams) => Promise<void>;
+    initializeAgentHomeDirectory: (homeDirectory: string) => void;
+  }) {}
 
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
-    installBuiltinProviderRegistry();
     this.ensureRuntimeLoggingInstalled();
-    logStartupTrace("service.start_gateway.begin");
-    await this.fileWatchers.clear();
-    this.applyLiveConfigReload = null;
-    this.liveUiNcpAgent = null;
-    const shellContext = measureStartupSync(
-      "service.create_gateway_shell_context",
-      () => createGatewayShellContext({ uiOverrides: options.uiOverrides, uiStaticDir: options.uiStaticDir })
-    );
-    const applyLiveConfigReload = async () => { await this.applyLiveConfigReload?.(); };
-    let runtimeState: GatewayRuntimeState | null = null;
-    const bootstrapStatus = createBootstrapStatus(shellContext.config.remote.enabled);
-    const getRuntimeConfig = () =>
-      resolveConfigSecrets(loadConfig(), { configPath: shellContext.runtimeConfigPath });
-    const ncpSessionRealtimeBridge = createServiceNcpSessionRealtimeBridge({
-      getConfig: getRuntimeConfig,
-      sessionManager: shellContext.sessionManager,
-    });
-    const marketplaceInstaller = new ServiceMarketplaceInstaller({
-      applyLiveConfigReload,
-      runCliSubcommand: (args) => this.runCliSubcommand(args),
-      installBuiltinSkill: (slug, force) => this.installBuiltinMarketplaceSkill(slug, force)
-    }).createInstaller();
-    const uiStartup = await this.startGatewayUiShell({
-      shellContext,
-      applyLiveConfigReload,
-      bootstrapStatus,
-      marketplaceInstaller,
-      ncpSessionRealtimeBridge,
-      getRuntimeConfig,
-      getRuntimeState: () => runtimeState
-    });
-    await companionRuntimeService.applyConfig(shellContext.config);
-    bootstrapStatus.markShellReady();
-    await waitForNextTick();
-    const gateway = measureStartupSync("service.create_gateway_startup_context", () =>
-      createGatewayStartupContext({
-        shellContext,
-        uiOverrides: options.uiOverrides,
-        allowMissingProvider: options.allowMissingProvider,
-        uiStaticDir: options.uiStaticDir,
-        initialPluginRegistry: createEmptyPluginRegistry(),
-        makeProvider: (config, providerOptions) => providerOptions?.allowMissing === true
-          ? this.createProvider(config, { allowMissing: true })
-          : this.createProvider(config),
-        makeMissingProvider: (config) => this.createMissingProvider(config),
-        requestRestart: (params) => this.deps.requestRestart(params),
-        getLiveUiNcpAgent: () => this.liveUiNcpAgent
-      })
-    );
-    this.applyLiveConfigReload = gateway.applyLiveConfigReload;
-    const loadGatewayConfig = () => resolveConfigSecrets(loadConfig(), { configPath: gateway.runtimeConfigPath });
-    const gatewayRuntimeState = createGatewayRuntimeState(gateway);
-    runtimeState = gatewayRuntimeState;
-    gateway.reloader.setReloadCompanion(async ({ config: nextConfig }) => {
-      await companionRuntimeService.applyConfig(nextConfig);
-    });
-    await this.hydrateGatewayRuntime({
-      gateway,
-      gatewayRuntimeState,
-      uiStartup
-    });
-    const deferredGatewayStartupHooks = createDeferredGatewayStartupHooks({
-      uiStartup,
-      gateway,
-      state: gatewayRuntimeState,
-      bootstrapStatus,
-      getLiveUiNcpAgent: () => this.liveUiNcpAgent,
-      setLiveUiNcpAgent: (ncpAgent) => { this.liveUiNcpAgent = ncpAgent; },
-      wakeFromRestartSentinel: async () =>
-        await this.wakeFromRestartSentinel({ bus: gateway.bus, sessionManager: gateway.sessionManager })
-    });
-    deferredGatewayStartupHooks.startChannels = wrapStartChannelsWithDevPluginHotReload({
-      startChannels: deferredGatewayStartupHooks.startChannels,
-      watcherRegistry: this.fileWatchers,
-      isRuntimeActive: () => Boolean(this.applyLiveConfigReload),
-      reloadPlugins: async (pluginIds) => {
-        await reloadGatewayPluginRuntimeForChanges({
-          gateway,
-          state: gatewayRuntimeState,
-          getLiveUiNcpAgent: () => this.liveUiNcpAgent,
-          changedPaths: pluginIds.map((pluginId) => `plugins.entries.${pluginId}.source`),
-        });
-      },
-      startupSettleMs: DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS,
-    });
-    await runConfiguredGatewayRuntime({
-      uiStartup,
-      bootstrapStatus,
-      gateway,
-      deferredNcpSessionService: ncpSessionRealtimeBridge.deferredSessionService,
-      getConfig: loadGatewayConfig,
-      getExtensionRegistry: () => gatewayRuntimeState.extensionRegistry,
-      resolveMessageToolHints: ({ channel, accountId }) =>
-        resolvePluginChannelMessageToolHints({
-          registry: gatewayRuntimeState.pluginRegistry,
-          channel,
-          cfg: loadGatewayConfig(),
-          accountId,
-        }),
-      deferredStartupHooks: deferredGatewayStartupHooks,
-      getLiveUiNcpAgent: () => this.liveUiNcpAgent,
-      publishSessionChange: ncpSessionRealtimeBridge.publishSessionChange,
-      publishUiEvent: uiStartup?.publish,
-      onDeferredStartupError: (error) =>
-        handleGatewayDeferredStartupError({ bootstrapStatus, error }),
-      cleanup: async () =>
-        await cleanupGatewayRuntime({
-          fileWatchers: this.fileWatchers,
-          resetRuntimeState: () => {
-            this.applyLiveConfigReload = null;
-            this.liveUiNcpAgent = null;
-          },
-          clearRealtimeBridge: () => {
-            ncpSessionRealtimeBridge.clear();
-          },
-          uiStartup,
-          remoteModule: gateway.remoteModule,
-          runtimeState,
-        }),
-    });
-    await companionRuntimeService.ensureStopped();
-    logStartupTrace("service.start_gateway.end");
-  };
-
-  private startGatewayUiShell = async (params: {
-    shellContext: ReturnType<typeof createGatewayShellContext>;
-    applyLiveConfigReload: () => Promise<void>;
-    bootstrapStatus: ReturnType<typeof createBootstrapStatus>;
-    marketplaceInstaller: ReturnType<ServiceMarketplaceInstaller["createInstaller"]>;
-    ncpSessionRealtimeBridge: ReturnType<typeof createServiceNcpSessionRealtimeBridge>;
-    getRuntimeConfig: () => Config;
-    getRuntimeState: () => GatewayRuntimeState | null;
-  }): ReturnType<typeof startUiShell> => {
-    const {
-      applyLiveConfigReload,
-      bootstrapStatus,
-      getRuntimeConfig,
-      getRuntimeState,
-      marketplaceInstaller,
-      ncpSessionRealtimeBridge,
-      shellContext
-    } = params;
-    const { remoteAccess, runtimeControl, runtimeUpdate } = createServiceUiHosts({
-      serviceCommands: this,
+    await new NextclawGatewayRuntime({
       requestRestart: this.deps.requestRestart,
-      uiConfig: shellContext.uiConfig,
-      remoteModule: shellContext.remoteModule
-    });
-    const uiStartup = await measureStartupAsync("service.start_ui_shell", async () =>
-      await startUiShell({
-        uiConfig: shellContext.uiConfig,
-        uiStaticDir: shellContext.uiStaticDir,
-        cronService: shellContext.cron,
-        getConfig: getRuntimeConfig,
-        configPath: getConfigPath(),
-        productVersion: getPackageVersion(),
-        getPluginChannelBindings: () => getRuntimeState()?.pluginChannelBindings ?? [],
-        getPluginUiMetadata: () => getRuntimeState()?.pluginUiMetadata ?? [],
-        marketplace: { apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE, installer: marketplaceInstaller },
-        remoteAccess,
-        runtimeControl,
-        runtimeUpdate,
-        getBootstrapStatus: () => bootstrapStatus.getStatus(),
-        openBrowserWindow: shellContext.uiConfig.open,
-        applyLiveConfigReload,
-        ncpSessionService: ncpSessionRealtimeBridge.sessionService,
-        initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
-      })
-    );
-    finalizeLocalUiStartup({
-      uiStartup,
-      setUiEventPublisher: (publish) => ncpSessionRealtimeBridge.setUiEventPublisher(publish),
-      uiConfig: shellContext.uiConfig
-    });
-    return uiStartup;
-  };
-
-  private hydrateGatewayRuntime = async (params: {
-    gateway: ReturnType<typeof createGatewayStartupContext>;
-    gatewayRuntimeState: GatewayRuntimeState;
-    uiStartup: Awaited<ReturnType<typeof startUiShell>>;
-  }): Promise<void> => {
-    const { gateway, gatewayRuntimeState, uiStartup } = params;
-    uiStartup?.publish({ type: "config.updated", payload: { path: "channels" } });
-    uiStartup?.publish({ type: "config.updated", payload: { path: "plugins" } });
-    configureGatewayPluginRuntime({
-      gateway,
-      state: gatewayRuntimeState,
-      getLiveUiNcpAgent: () => this.liveUiNcpAgent
-    });
-    console.log("✓ Capability hydration: scheduled in background");
-    await measureStartupAsync("service.start_gateway_support_services", async () =>
-      await startGatewayRuntimeSupport({
-        cronJobs: gateway.cron.status().jobs,
-        remoteModule: gateway.remoteModule,
-        watchConfigFile: () => watchServiceConfigFile({
-          configPath: resolve(getConfigPath()),
-          watcherRegistry: this.fileWatchers,
-          scheduleReload: (reason) => gateway.reloader.scheduleReload(reason)
-        }),
-        startCron: () => gateway.cron.start(),
-        cronStorePath: resolve(join(NextclawCore.getDataDir(), "cron", "jobs.json")),
-        reloadCronStore: () => gateway.cron.reloadFromStore(),
-        watcherRegistry: this.fileWatchers
-      })
-    );
-  };
-
-  private normalizeOptionalString = (value: unknown): string | undefined => {
-    if (typeof value !== "string") {
-      return undefined;
-    }
-    const trimmed = value.trim();
-    return trimmed || undefined;
-  };
-
-  private resolveMostRecentRoutableSessionKey = (sessionManager: SessionManager): string | undefined => {
-    let best: { key: string; updatedAt: number } | null = null;
-    for (const session of sessionManager.listSessions()) {
-      const candidate = resolveSessionRouteCandidate({
-        session,
-        normalizeOptionalString: (value) => this.normalizeOptionalString(value)
-      });
-      if (!candidate) {
-        continue;
-      }
-      if (!best || candidate.updatedAt >= best.updatedAt) {
-        best = candidate;
-      }
-    }
-    return best?.key;
-  };
-
-  private buildRestartWakePrompt = (params: {
-    summary: string;
-    reason?: string;
-    note?: string;
-    replyTo?: string;
-  }): string => {
-    const { note, reason, replyTo, summary } = params;
-    const lines = [
-      "System event: the gateway has restarted successfully.",
-      "Please send one short confirmation to the user that you are back online.",
-      "Do not call any tools.",
-      "Use the same language as the user's recent conversation.",
-      `Reference summary: ${summary}`
-    ];
-
-    const normalizedReason = this.normalizeOptionalString(reason);
-    if (normalizedReason) {
-      lines.push(`Restart reason: ${normalizedReason}`);
-    }
-
-    const normalizedNote = this.normalizeOptionalString(note);
-    if (normalizedNote) {
-      lines.push(`Extra note: ${normalizedNote}`);
-    }
-
-    const normalizedReplyTo = this.normalizeOptionalString(replyTo);
-    if (normalizedReplyTo) {
-      lines.push(`Reply target message id: ${normalizedReplyTo}. If suitable, include [[reply_to:${normalizedReplyTo}]].`);
-    }
-
-    return lines.join("\n");
-  };
-
-  private wakeFromRestartSentinel = async (params: {
-    bus: MessageBus;
-    sessionManager: SessionManager;
-  }): Promise<void> => {
-    const { bus, sessionManager } = params;
-    const sentinel = await consumeRestartSentinel();
-    if (!sentinel) {
-      return;
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 750));
-
-    const payload = sentinel.payload;
-    const summary = formatRestartSentinelMessage(payload);
-    const sentinelSessionKey = this.normalizeOptionalString(payload.sessionKey);
-    const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey(sessionManager);
-    if (!sentinelSessionKey && fallbackSessionKey) {
-      console.warn(`Warning: restart sentinel missing sessionKey; fallback to ${fallbackSessionKey}.`);
-    }
-    const sessionKey = sentinelSessionKey ?? fallbackSessionKey ?? "cli:default";
-    const parsedSession = parseSessionKey(sessionKey);
-    const parsedAgentSession = parseAgentScopedSessionKey(sessionKey);
-    const parsedSessionRoute = parsedSession && parsedSession.channel !== "agent" ? parsedSession : null;
-
-    const context = payload.deliveryContext;
-    const channel =
-      this.normalizeOptionalString(context?.channel) ??
-      parsedSessionRoute?.channel ??
-      this.normalizeOptionalString((sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
-    const chatId =
-      this.normalizeOptionalString(context?.chatId) ??
-      parsedSessionRoute?.chatId ??
-      this.normalizeOptionalString((sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
-    const replyTo = this.normalizeOptionalString(context?.replyTo);
-    const accountId = this.normalizeOptionalString(context?.accountId);
-
-    if (!channel || !chatId) {
-      console.warn(`Warning: restart sentinel cannot resolve route for session ${sessionKey}.`);
-      return;
-    }
-
-    const prompt = this.buildRestartWakePrompt({
-      summary,
-      reason: this.normalizeOptionalString(payload.stats?.reason),
-      note: this.normalizeOptionalString(payload.message),
-      ...(replyTo ? { replyTo } : {})
-    });
-
-    const metadata: Record<string, unknown> = {
-      source: "restart-sentinel",
-      restart_summary: summary,
-      session_key_override: sessionKey,
-      ...(replyTo ? { reply_to: replyTo } : {}),
-      ...(parsedAgentSession ? { target_agent_id: parsedAgentSession.agentId } : {}),
-      ...(accountId ? { account_id: accountId, accountId } : {})
-    };
-
-    await bus.publishInbound({
-      channel: "system",
-      senderId: "restart-sentinel",
-      chatId: `${channel}:${chatId}`,
-      content: prompt,
-      timestamp: new Date(),
-      attachments: [],
-      metadata
-    });
+      initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
+      startService: this.startService,
+      stopService: this.stopService,
+      createProvider: this.createProvider,
+      createMissingProvider: this.createMissingProvider,
+      runCliSubcommand: this.runCliSubcommand,
+      installBuiltinMarketplaceSkill: this.installBuiltinMarketplaceSkill,
+    }, options).start();
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {

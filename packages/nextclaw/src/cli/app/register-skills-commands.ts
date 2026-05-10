@@ -1,19 +1,8 @@
 import type { Command } from "commander";
 import type { NextclawServiceRuntime } from "@nextclaw-service";
 
-type SkillsCommandHandler = Pick<
-  NextclawServiceRuntime["skills"],
-  | "installed"
-  | "info"
-  | "install"
-  | "publish"
-  | "update"
-  | "marketplaceSearch"
-  | "marketplaceInfo"
-  | "marketplaceRecommend"
->;
-
-export function registerSkillsCommands(program: Command, skillsCommands: SkillsCommandHandler): void {
+export function registerSkillsCommands(program: Command, nextclaw: NextclawServiceRuntime): void {
+  const skillsCommands = nextclaw.commands.skills;
   const skills = program.command("skills").description("Manage skills");
   skills
     .command("installed")

@@ -6,4 +6,4 @@ export type {
 export {
   dispatchPromptOverNcp,
   runGatewayInboundLoop,
-} from "./features/runtime/nextclaw-ncp-dispatch.js";
+} from "./features/runtime/nextclaw-ncp-dispatch.utils.js";

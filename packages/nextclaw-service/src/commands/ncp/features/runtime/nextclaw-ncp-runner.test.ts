@@ -6,8 +6,9 @@ import { ConfigSchema, SessionManager, type Config } from "@nextclaw/core";
 import { NcpEventType } from "@nextclaw/ncp";
 import {
   dispatchPromptOverNcp,
+  type GatewayInboundLoopRuntime,
   runGatewayInboundLoop,
-} from "./nextclaw-ncp-dispatch.js";
+} from "./nextclaw-ncp-dispatch.utils.js";
 import {
   collectPromptOverNcpReply,
   streamPromptOverNcp,
@@ -93,6 +94,30 @@ function createNcpAgent(params?: {
     },
     send,
     assetApiPut,
+  };
+}
+
+function createGatewayInboundLoopRuntime(params: {
+  workspace: string;
+  bus: GatewayInboundLoopRuntime["messageBus"];
+  ncpAgent: unknown;
+  channel?: unknown;
+  appEventBus?: GatewayInboundLoopRuntime["appEventBus"];
+}): GatewayInboundLoopRuntime {
+  const { appEventBus, bus, channel, ncpAgent, workspace } = params;
+  return {
+    messageBus: bus,
+    sessionManager: new SessionManager(workspace),
+    configManager: {
+      loadGatewayConfig: () => createConfig(workspace),
+      reloader: {
+        getChannels: () => ({
+          getChannel: vi.fn(() => channel ?? null),
+        }) as never,
+      },
+    },
+    liveUiNcpAgent: ncpAgent as never,
+    ...(appEventBus ? { appEventBus } : {}),
   };
 }
 
@@ -331,16 +356,12 @@ describe("runGatewayInboundLoop", () => {
     };
 
     await expect(
-      runGatewayInboundLoop({
+      runGatewayInboundLoop(createGatewayInboundLoopRuntime({
         bus: bus as never,
-        sessionManager: new SessionManager(workspace),
-        getConfig: () => createConfig(workspace),
-        resolveNcpAgent: () => ncpAgent.agent as never,
-        getChannels: () =>
-          ({
-            getChannel: vi.fn(() => channel),
-          }) as never,
-      }),
+        channel,
+        ncpAgent: ncpAgent.agent,
+        workspace,
+      }))
     ).rejects.toThrow("stop-loop");
 
     expect(channel.consumeNcpReply).toHaveBeenCalledTimes(1);
@@ -395,12 +416,11 @@ describe("runGatewayInboundLoop", () => {
     };
 
     await expect(
-      runGatewayInboundLoop({
+      runGatewayInboundLoop(createGatewayInboundLoopRuntime({
         bus: bus as never,
-        sessionManager: new SessionManager(workspace),
-        getConfig: () => createConfig(workspace),
-        resolveNcpAgent: () => ncpAgent.agent as never,
-      }),
+        ncpAgent: ncpAgent.agent,
+        workspace,
+      }))
     ).rejects.toThrow("stop-loop");
 
     expect(bus.publishOutbound).toHaveBeenNthCalledWith(
@@ -460,13 +480,14 @@ describe("runGatewayInboundLoop", () => {
     const sessionUpdated = vi.fn();
 
     await expect(
-      runGatewayInboundLoop({
+      runGatewayInboundLoop(createGatewayInboundLoopRuntime({
         bus: bus as never,
-        sessionManager: new SessionManager(workspace),
-        getConfig: () => createConfig(workspace),
-        resolveNcpAgent: () => ncpAgent.agent as never,
-        onSystemSessionUpdated: sessionUpdated,
-      }),
+        ncpAgent: ncpAgent.agent,
+        workspace,
+        appEventBus: {
+          emit: sessionUpdated,
+        } as never,
+      }))
     ).rejects.toThrow("stop-loop");
 
     expect(ncpAgent.send).toHaveBeenCalledWith(
@@ -482,8 +503,12 @@ describe("runGatewayInboundLoop", () => {
     );
     expect(sessionUpdated).toHaveBeenCalledWith(
       expect.objectContaining({
+        id: expect.any(String),
+      }),
+      expect.objectContaining({
         sessionKey: "agent:main:ui:direct:web-ui",
       }),
+      expect.any(Object),
     );
   });
 });

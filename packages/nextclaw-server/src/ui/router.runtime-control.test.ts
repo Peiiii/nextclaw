@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import type { UiRuntimeControlHost } from "./ui-routes/types.js";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -83,7 +84,7 @@ describe("runtime control routes", () => {
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeControl
     });
 
@@ -112,7 +113,7 @@ describe("runtime control routes", () => {
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeControl
     });
 
@@ -137,7 +138,7 @@ describe("runtime control routes", () => {
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeControl
     });
 
@@ -164,7 +165,7 @@ describe("runtime control routes", () => {
     const runtimeControl = createRuntimeControlHost();
     const app = createUiRouter({
       configPath,
-      publish: () => {},
+      appEventBus: new EventBus(),
       runtimeControl
     });
 

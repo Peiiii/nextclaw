@@ -1,0 +1,14 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-extension-sdk-package",
+  "rootPolicy": "allowlisted",
+  "allowedRootDirectories": [
+    "src"
+  ],
+  "allowedRootFiles": [
+    "README.md",
+    "package.json",
+    "tsconfig.json"
+  ],
+  "sharedDirectories": []
+}

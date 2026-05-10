@@ -10,6 +10,7 @@ import type {
 } from "../../types.js";
 import { err, ok, readJson } from "../response.js";
 import type { UiRouterOptions } from "../types.js";
+import { emitConfigUpdated } from "../app-events.utils.js";
 import {
   fetchAllSkillMarketplaceItems,
   fetchMarketplaceData,
@@ -23,18 +24,19 @@ import {
   collectSkillMarketplaceInstalledView,
   findUnsupportedSkillInstallKind,
   isSupportedMarketplaceSkillItem
-} from "./installed.js";
+} from "./installed.utils.js";
 
 async function installMarketplaceSkill(params: {
   options: UiRouterOptions;
   body: MarketplaceSkillInstallRequest;
 }): Promise<MarketplaceSkillInstallResult> {
-  const spec = typeof params.body.spec === "string" ? params.body.spec.trim() : "";
+  const { body, options } = params;
+  const spec = typeof body.spec === "string" ? body.spec.trim() : "";
   if (!spec) {
     throw new Error("INVALID_BODY:non-empty spec is required");
   }
 
-  const installer = params.options.marketplace?.installer;
+  const installer = options.marketplace?.installer;
   if (!installer) {
     throw new Error("NOT_AVAILABLE:marketplace installer is not configured");
   }
@@ -44,13 +46,13 @@ async function installMarketplaceSkill(params: {
 
   const result = await installer.installSkill({
     slug: spec,
-    kind: params.body.kind,
-    skill: params.body.skill,
-    installPath: params.body.installPath,
-    force: params.body.force
+    kind: body.kind,
+    skill: body.skill,
+    installPath: body.installPath,
+    force: body.force
   });
 
-  params.options.publish({ type: "config.updated", payload: { path: "skills" } });
+  emitConfigUpdated(options, "skills");
   return {
     type: "skill",
     spec,
@@ -63,18 +65,19 @@ async function manageMarketplaceSkill(params: {
   options: UiRouterOptions;
   body: MarketplaceSkillManageRequest;
 }): Promise<MarketplaceSkillManageResult> {
-  const action = params.body.action;
-  const targetId = typeof params.body.id === "string" && params.body.id.trim().length > 0
-    ? params.body.id.trim()
-    : typeof params.body.spec === "string" && params.body.spec.trim().length > 0
-      ? params.body.spec.trim()
+  const { body, options } = params;
+  const action = body.action;
+  const targetId = typeof body.id === "string" && body.id.trim().length > 0
+    ? body.id.trim()
+    : typeof body.spec === "string" && body.spec.trim().length > 0
+      ? body.spec.trim()
       : "";
 
   if (action !== "uninstall" || !targetId) {
     throw new Error("INVALID_BODY:skill manage requires uninstall action and non-empty id/spec");
   }
 
-  const installer = params.options.marketplace?.installer;
+  const installer = options.marketplace?.installer;
   if (!installer) {
     throw new Error("NOT_AVAILABLE:marketplace installer is not configured");
   }
@@ -83,7 +86,7 @@ async function manageMarketplaceSkill(params: {
   }
 
   const result = await installer.uninstallSkill(targetId);
-  params.options.publish({ type: "config.updated", payload: { path: "skills" } });
+  emitConfigUpdated(options, "skills");
 
   return {
     type: "skill",

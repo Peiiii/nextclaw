@@ -13,6 +13,7 @@ import {
 } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -261,8 +262,8 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
     agent,
     app: createUiRouter({
       configPath,
-      publish: () => {},
-      ncpSessionService: agent,
+      appEventBus: new EventBus(),
+      sessions: { sessionService: agent },
       ncpAgent: {
         agentClientEndpoint: agent,
         streamProvider,
@@ -406,8 +407,8 @@ it("keeps session routes readable before the runtime agent is mounted", async ()
   const sessionService = new StubNcpAgent();
   const app = createUiRouter({
     configPath,
-    publish: () => {},
-    ncpSessionService: sessionService
+    appEventBus: new EventBus(),
+    sessions: { sessionService }
   });
 
   const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
@@ -648,8 +649,8 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   agent.sessionMetadata.set("session-1", { project_root: projectRoot });
   const app = createUiRouter({
     configPath,
-    publish: () => {},
-    ncpSessionService: agent,
+    appEventBus: new EventBus(),
+    sessions: { sessionService: agent },
     ncpAgent: {
       agentClientEndpoint: agent,
       streamProvider: {
@@ -722,8 +723,8 @@ it("exposes draft session skills without requiring an empty projectRoot override
   const agent = new StubNcpAgent();
   const app = createUiRouter({
     configPath,
-    publish: () => {},
-    ncpSessionService: agent,
+    appEventBus: new EventBus(),
+    sessions: { sessionService: agent },
     ncpAgent: {
       agentClientEndpoint: agent,
       streamProvider: {

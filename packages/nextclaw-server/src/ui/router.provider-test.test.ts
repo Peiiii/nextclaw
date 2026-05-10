@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -30,7 +31,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/config/providers/not-exists/test", {
@@ -58,7 +59,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/config/providers/openai/test", {
@@ -90,7 +91,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const updateResponse = await app.request("http://localhost/api/config/providers/deepseek", {
@@ -144,7 +145,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const createResponse = await app.request("http://localhost/api/config/providers", {
@@ -230,7 +231,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -259,7 +260,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -290,7 +291,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -337,7 +338,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const startResponse = await app.request("http://localhost/api/config/providers/minimax-portal/auth/start", {
@@ -390,7 +391,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const startResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/start", {
@@ -480,7 +481,7 @@ describe("provider connection test route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const startResponse = await app.request("http://localhost/api/config/providers/minimax-portal/auth/start", {
@@ -561,7 +562,7 @@ describe("provider connection test route", () => {
     try {
       const app = createUiRouter({
         configPath,
-        publish: () => {}
+        appEventBus: new EventBus(),
       });
 
       const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
@@ -606,7 +607,7 @@ describe("provider connection test route", () => {
     try {
       const app = createUiRouter({
         configPath,
-        publish: () => {}
+        appEventBus: new EventBus(),
       });
 
       const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
@@ -652,7 +653,7 @@ describe("provider connection test route", () => {
     try {
       const app = createUiRouter({
         configPath,
-        publish: () => {}
+        appEventBus: new EventBus(),
       });
 
       const importResponse = await app.request("http://localhost/api/config/providers/qwen-portal/auth/import-cli", {
@@ -685,7 +686,7 @@ describe("provider meta catalog", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -725,7 +726,7 @@ describe("provider meta catalog", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");

@@ -31,7 +31,7 @@
 
 允许后缀（同级，无优先级）：
 
-- `.service.ts`: 服务/编排能力（有状态或跨模块协调逻辑）。
+- `.service.ts`: 服务/编排能力（有状态或跨模块协调逻辑），且文件内部必须声明 `class`。
 - `.utils.ts`: 纯工具函数（无状态、可复用、输入输出稳定）。
 - `.types.ts`: 类型定义聚合（仅类型，不放运行时逻辑）。
 - `.test.ts`: 测试文件。
@@ -46,6 +46,12 @@ React hook 文件例外：
 - 这类文件不使用 `.service.ts`、`.utils.ts` 等角色后缀。
 - `hooks/` 目录必须保持平铺，下面禁止再出现任何子目录；需要分类时，应在业务边界层拆分到不同的 `hooks/` 目录，而不是写成 `hooks/<subtree>/...`。
 - `lib/` 目录必须只承载模块目录，下面禁止直接出现文件；需要沉淀共享能力时，应先创建 `lib/<module>/`，再由该模块目录自己的 `index.ts` / `index.tsx` 暴露公共出口。
+
+`.service.ts` 强约束：
+
+- 只有内部声明了 `class` 的服务 owner 文件才允许使用 `.service.ts`。
+- 只有纯函数、纯映射、解析、归一化、装配或导出聚合的 classless 模块，不得命名为 `.service.ts`。
+- classless 模块应按真实职责改用 `.utils.ts`、`.manager.ts`、`.controller.ts`、`.config.ts` 或其它既有角色后缀。
 
 ## 4. 目录与后缀联动规则
 
@@ -106,6 +112,7 @@ React hook 文件例外：
 - `controller.ts`（无业务域前缀，语义过弱）
 - `chat.service.manager.ts`（多角色混合）
 - `services/chat-manager.ts`（目录和职责后缀不一致）
+- `services/chat.service.ts` 内部只有函数、没有 `class`（classless 模块误标为 service）
 - `hooks/chat-session.ts`（hooks 目录却不是 `use-*`）
 - `pages/chat.tsx`（pages 目录却不是 `*-page.tsx`）
 - `ui-bridge-api.client.ts`（若文件实际职责是服务编排而不是客户端职责，则命名与职责不匹配）
@@ -139,6 +146,7 @@ React hook 文件例外：
   - 若其父目录链存在不符合规范的目录段，也会直接阻断。
   - 若非组件 / 非页面 / 非 hook 文件没有使用白名单二级后缀，会直接阻断。
   - 若目录与后缀不匹配，例如 `services/foo-manager.ts`，也会直接阻断。
+  - 若 `.service.ts` 文件内部没有声明 `class`，也会直接阻断。
   - 输出会同时给出建议目标名，便于直接改名。
 - 对历史遗留且本次被触达的非 kebab-case 文件：
   - 默认直接阻断，不再保留 warning 豁免。

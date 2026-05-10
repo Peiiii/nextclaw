@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
+import { CronService } from "@nextclaw/core";
+import { EventBus } from "@nextclaw/kernel";
 import { startUiServer } from "./server.js";
 
 async function reservePort(): Promise<number> {
@@ -42,6 +44,135 @@ async function waitForServer(baseUrl: string): Promise<void> {
   throw new Error(`Timed out waiting for UI server: ${baseUrl}`);
 }
 
+function createTestGateway(params: {
+  configPath: string;
+  port: number;
+  corsOrigins?: Parameters<typeof startUiServer>[0]["corsOrigins"];
+  uiStaticDir?: string | null;
+}): Parameters<typeof startUiServer>[0] {
+  const {
+    configPath,
+    corsOrigins,
+    port,
+    uiStaticDir = null,
+  } = params;
+  const unavailable = async (): Promise<never> => {
+    throw new Error("test gateway capability unavailable");
+  };
+  const updateSnapshot = {
+    status: "blocked",
+    installationKind: "unknown",
+    channel: "stable",
+    hostVersion: null,
+    currentVersion: null,
+    availableVersion: null,
+    downloadedVersion: null,
+    minimumHostVersion: null,
+    releaseNotesUrl: null,
+    lastCheckedAt: null,
+    progress: null,
+    canAutoDownload: false,
+    canApplyInApp: false,
+    requiresRestart: false,
+    blockReason: "unsupported-installation",
+    recoveryCommand: null,
+    errorMessage: null,
+    preferences: {
+      automaticChecks: false,
+      autoDownload: false,
+    },
+  } as const;
+  return {
+    uiConfig: {
+      enabled: true,
+      host: "127.0.0.1",
+      open: false,
+      port,
+    },
+    uiStaticDir,
+    ...(corsOrigins ? { corsOrigins } : {}),
+    configPath,
+    appEventBus: new EventBus(),
+    productVersion: "test",
+    applyLiveConfigReload: async () => {},
+    initializeAgentHomeDirectory: () => {},
+    marketplace: {},
+    cron: new CronService(`${configPath}.cron.json`),
+    ncpAgent: {
+      agentClientEndpoint: {
+        manifest: {
+          endpointKind: "agent",
+          endpointId: "test-agent",
+          version: "0.0.0",
+          supportsStreaming: false,
+          supportsAbort: false,
+          supportsProactiveMessages: false,
+          supportsLiveSessionStream: false,
+          supportedPartTypes: ["text"],
+          expectedLatency: "seconds",
+        },
+        start: async () => {},
+        stop: async () => {},
+        emit: async () => {},
+        subscribe: () => () => {},
+        send: async () => {},
+        stream: async () => {},
+        abort: async () => {},
+      },
+    },
+    sessions: {
+      sessionService: {
+        listSessions: async () => [],
+        listSessionMessages: async () => [],
+        getSession: async () => null,
+        updateSession: async () => null,
+        deleteSession: async () => {},
+      },
+    },
+    remoteAccess: {
+      getStatus: unavailable,
+      login: unavailable,
+      startBrowserAuth: unavailable,
+      pollBrowserAuth: unavailable,
+      logout: unavailable,
+      updateProfile: unavailable,
+      updateSettings: unavailable,
+      runDoctor: unavailable,
+      controlService: unavailable,
+    },
+    runtimeControl: {
+      getControl: unavailable,
+      startService: unavailable,
+      restartService: unavailable,
+      stopService: unavailable,
+    },
+    runtimeUpdate: {
+      getState: () => updateSnapshot,
+      checkForUpdates: () => updateSnapshot,
+      downloadUpdate: () => updateSnapshot,
+      applyDownloadedUpdate: () => updateSnapshot,
+      updatePreferences: () => updateSnapshot,
+      updateChannel: () => updateSnapshot,
+    },
+    webhook: {
+      handleWebhook: unavailable,
+    },
+    bootstrapStatus: {
+      getStatus: () => ({
+        phase: "ready",
+        ncpAgent: { state: "ready" },
+        pluginHydration: { state: "ready", loadedPluginCount: 0, totalPluginCount: 0 },
+        channels: { state: "ready", enabled: [] },
+        remote: { state: "disabled" },
+      }),
+    },
+    plugins: {
+      getChannelBindings: () => [],
+      getUiMetadata: () => [],
+    },
+  };
+}
+
 describe("ui server api cors", () => {
   const handles: Array<{ close: () => Promise<void> }> = [];
 
@@ -57,12 +188,11 @@ describe("ui server api cors", () => {
   it("returns explicit cors headers for allowed origins and preflight requests", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-cors-")), "config.json");
-    const handle = await startUiServer({
-      host: "127.0.0.1",
-      port,
+    const handle = await startUiServer(createTestGateway({
       configPath,
+      port,
       corsOrigins: ["http://127.0.0.1:5174"]
-    });
+    }));
     handles.push(handle);
 
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -95,11 +225,10 @@ describe("ui server api cors", () => {
   it("uses the built-in localhost policy and omits cors headers for disallowed origins", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-default-cors-")), "config.json");
-    const handle = await startUiServer({
-      host: "127.0.0.1",
+    const handle = await startUiServer(createTestGateway({
+      configPath,
       port,
-      configPath
-    });
+    }));
     handles.push(handle);
 
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -129,12 +258,11 @@ describe("ui server api cors", () => {
     mkdirSync(staticDir, { recursive: true });
     writeFileSync(join(staticDir, "index.html"), "<!doctype html><html><body>ui shell</body></html>");
     const configPath = join(rootDir, "config.json");
-    const handle = await startUiServer({
-      host: "127.0.0.1",
-      port,
+    const handle = await startUiServer(createTestGateway({
       configPath,
-      staticDir
-    });
+      port,
+      uiStaticDir: staticDir,
+    }));
     handles.push(handle);
 
     const baseUrl = `http://127.0.0.1:${port}`;
@@ -151,19 +279,17 @@ describe("ui server api cors", () => {
   it("rejects startup when the target port is already in use", async () => {
     const port = await reservePort();
     const configPath = join(mkdtempSync(join(tmpdir(), "nextclaw-server-port-conflict-")), "config.json");
-    const firstHandle = await startUiServer({
-      host: "127.0.0.1",
+    const firstHandle = await startUiServer(createTestGateway({
+      configPath,
       port,
-      configPath
-    });
+    }));
     handles.push(firstHandle);
 
     await expect(
-      startUiServer({
-        host: "127.0.0.1",
+      startUiServer(createTestGateway({
+        configPath,
         port,
-        configPath
-      })
+      }))
     ).rejects.toThrow(/EADDRINUSE|address already in use/i);
   });
 });

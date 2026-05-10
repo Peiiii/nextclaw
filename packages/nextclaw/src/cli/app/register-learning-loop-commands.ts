@@ -2,10 +2,6 @@ import { loadConfig } from "@nextclaw/core";
 import type { Command } from "commander";
 import { readLearningLoopRuntimeConfig, type NextclawServiceRuntime } from "@nextclaw-service";
 
-type LearningLoopCommandRuntime = {
-  configSet: NextclawServiceRuntime["config"]["set"];
-};
-
 function readLearningLoopThresholdOrExit(value: string): number {
   const threshold = Number.parseInt(value, 10);
   if (!Number.isInteger(threshold) || threshold < 1) {
@@ -19,8 +15,9 @@ function readLearningLoopThresholdOrExit(value: string): number {
 
 export function registerLearningLoopCommands(
   program: Command,
-  runtime: LearningLoopCommandRuntime,
+  nextclaw: NextclawServiceRuntime,
 ): void {
+  const configCommands = nextclaw.commands.config;
   const learningLoop = program
     .command("learning-loop")
     .description("Manage the learning loop");
@@ -44,7 +41,7 @@ export function registerLearningLoopCommands(
     .command("enable")
     .description("Enable the learning loop")
     .action(async () => {
-      await runtime.configSet("agents.learningLoop.enabled", "true", {
+      await configCommands.set("agents.learningLoop.enabled", "true", {
         json: true,
       });
       console.log("✓ Enabled learning loop.");
@@ -54,7 +51,7 @@ export function registerLearningLoopCommands(
     .command("disable")
     .description("Disable the learning loop")
     .action(async () => {
-      await runtime.configSet("agents.learningLoop.enabled", "false", {
+      await configCommands.set("agents.learningLoop.enabled", "false", {
         json: true,
       });
       console.log("✓ Disabled learning loop.");
@@ -65,7 +62,7 @@ export function registerLearningLoopCommands(
     .description("Set the tool-call threshold that triggers a learning-loop review")
     .action(async (count: string) => {
       const threshold = readLearningLoopThresholdOrExit(count);
-      await runtime.configSet(
+      await configCommands.set(
         "agents.learningLoop.toolCallThreshold",
         String(threshold),
         { json: true },

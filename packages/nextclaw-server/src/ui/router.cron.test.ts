@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -37,15 +38,15 @@ describe("cron routes", () => {
       updatedAtMs: 2,
       deleteAfterRun: false
     };
-    const cronService = {
+    const cron = {
       addJob: vi.fn(() => createdJob),
       listJobs: vi.fn(() => [])
     };
 
     const app = createUiRouter({
       configPath,
-      cronService: cronService as never,
-      publish: () => {}
+      cron: cron as never,
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/cron", {
@@ -80,7 +81,7 @@ describe("cron routes", () => {
       name: "job created",
       enabled: true
     });
-    expect(cronService.addJob).toHaveBeenCalledWith({
+    expect(cron.addJob).toHaveBeenCalledWith({
       name: "job created",
       message: "Ping",
       schedule: { kind: "every", everyMs: 60_000 },
@@ -121,14 +122,14 @@ describe("cron routes", () => {
         deleteAfterRun: false
       }
     ];
-    const cronService = {
+    const cron = {
       listJobs: vi.fn((includeDisabled: boolean) => (includeDisabled ? jobs : jobs.filter((job) => job.enabled)))
     };
 
     const app = createUiRouter({
       configPath,
-      cronService: cronService as never,
-      publish: () => {}
+      cron: cron as never,
+      appEventBus: new EventBus(),
     });
 
     const defaultResponse = await app.request("http://localhost/api/cron");
@@ -145,7 +146,7 @@ describe("cron routes", () => {
       { id: "job-enabled", enabled: true },
       { id: "job-disabled", enabled: false }
     ]);
-    expect(cronService.listJobs).toHaveBeenNthCalledWith(1, true);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(1, true);
 
     const enabledOnlyResponse = await app.request("http://localhost/api/cron?enabledOnly=1");
     expect(enabledOnlyResponse.status).toBe(200);
@@ -158,6 +159,6 @@ describe("cron routes", () => {
     };
     expect(enabledOnlyPayload.data.total).toBe(1);
     expect(enabledOnlyPayload.data.jobs).toMatchObject([{ id: "job-enabled", enabled: true }]);
-    expect(cronService.listJobs).toHaveBeenNthCalledWith(2, false);
+    expect(cron.listJobs).toHaveBeenNthCalledWith(2, false);
   });
 });

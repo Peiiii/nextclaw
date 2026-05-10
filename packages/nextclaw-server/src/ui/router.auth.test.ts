@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { UiAuthService } from "./auth.service.js";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;
@@ -30,7 +31,7 @@ function useIsolatedHome(): string {
 function createApp(configPath: string) {
   return createUiRouter({
     configPath,
-    publish: () => {}
+    appEventBus: new EventBus(),
   });
 }
 

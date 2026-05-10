@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "./router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -122,7 +123,7 @@ describe("marketplace installed plugins route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/marketplace/plugins/installed");
@@ -174,7 +175,7 @@ describe("marketplace installed plugins route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/marketplace/plugins/installed");

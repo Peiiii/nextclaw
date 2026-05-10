@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
+import { EventBus } from "@nextclaw/kernel";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { createUiRouter } from "./router.js";
 
@@ -61,15 +62,18 @@ describe("weixin plugin channel config route", () => {
   it("projects weixin into UI config meta, schema, and update flow", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
     const applyLiveConfigReload = vi.fn(async () => undefined);
 
     const app = createUiRouter({
       configPath,
-      publish,
+      appEventBus,
       applyLiveConfigReload,
-      getPluginChannelBindings: () => [createWeixinPluginBinding()],
-      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()]
+      plugins: {
+        getChannelBindings: () => [createWeixinPluginBinding()],
+        getUiMetadata: () => [createWeixinPluginUiMetadata()],
+      }
     });
 
     const metaResponse = await app.request("http://localhost/api/config/meta");
@@ -146,26 +150,29 @@ describe("weixin plugin channel config route", () => {
     expect(saved.plugins.entries?.["nextclaw-channel-weixin"]).toEqual({
       enabled: true
     });
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "channels.weixin" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "channels.weixin" },
+      expect.any(Object)
+    );
     await flushMicrotasks();
     expect(applyLiveConfigReload).toHaveBeenCalledTimes(1);
-    expect(publish).toHaveBeenCalledWith({
-      type: "channel.config.apply-status",
-      payload: expect.objectContaining({
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "channel.config.apply-status" }),
+      expect.objectContaining({
         channel: "weixin",
         status: "started"
-      })
-    });
-    expect(publish).toHaveBeenCalledWith({
-      type: "channel.config.apply-status",
-      payload: expect.objectContaining({
+      }),
+      expect.any(Object)
+    );
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "channel.config.apply-status" }),
+      expect.objectContaining({
         channel: "weixin",
         status: "succeeded"
-      })
-    });
+      }),
+      expect.any(Object)
+    );
   });
 
   it("persists disabled weixin state through projected channel updates", async () => {
@@ -194,15 +201,18 @@ describe("weixin plugin channel config route", () => {
       }),
       configPath
     );
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
     const applyLiveConfigReload = vi.fn(async () => undefined);
 
     const app = createUiRouter({
       configPath,
-      publish,
+      appEventBus,
       applyLiveConfigReload,
-      getPluginChannelBindings: () => [createWeixinPluginBinding()],
-      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()]
+      plugins: {
+        getChannelBindings: () => [createWeixinPluginBinding()],
+        getUiMetadata: () => [createWeixinPluginUiMetadata()],
+      }
     });
 
     const updateResponse = await app.request("http://localhost/api/config/channels/weixin", {
@@ -237,10 +247,11 @@ describe("weixin plugin channel config route", () => {
         }
       }
     });
-    expect(publish).toHaveBeenCalledWith({
-      type: "config.updated",
-      payload: { path: "channels.weixin" }
-    });
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "config.updated" }),
+      { path: "channels.weixin" },
+      expect.any(Object)
+    );
     await flushMicrotasks();
     expect(applyLiveConfigReload).toHaveBeenCalledTimes(1);
   });
@@ -251,7 +262,8 @@ describe("weixin plugin channel config route background apply", () => {
   it("returns immediately while channel config apply continues in the background", async () => {
     const configPath = createTempConfigPath();
     saveConfig(ConfigSchema.parse({}), configPath);
-    const publish = vi.fn();
+    const appEventBus = new EventBus();
+    const emitAppEvent = vi.spyOn(appEventBus, "emit");
     let resolveReload: (() => void) | null = null;
     const applyLiveConfigReload = vi.fn(
       () =>
@@ -264,10 +276,12 @@ describe("weixin plugin channel config route background apply", () => {
 
     const app = createUiRouter({
       configPath,
-      publish,
+      appEventBus,
       applyLiveConfigReload,
-      getPluginChannelBindings: () => [createWeixinPluginBinding()],
-      getPluginUiMetadata: () => [createWeixinPluginUiMetadata()]
+      plugins: {
+        getChannelBindings: () => [createWeixinPluginBinding()],
+        getUiMetadata: () => [createWeixinPluginUiMetadata()],
+      }
     });
 
     const updateResponse = await app.request("http://localhost/api/config/channels/weixin", {
@@ -282,13 +296,14 @@ describe("weixin plugin channel config route background apply", () => {
 
     expect(updateResponse.status).toBe(200);
     expect(resolveReload).not.toBeNull();
-    expect(publish).toHaveBeenCalledWith({
-      type: "channel.config.apply-status",
-      payload: expect.objectContaining({
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "channel.config.apply-status" }),
+      expect.objectContaining({
         channel: "weixin",
         status: "started"
-      })
-    });
+      }),
+      expect.any(Object)
+    );
 
     if (!resolveReload) {
       throw new Error("expected background reload resolver to be available");
@@ -296,12 +311,13 @@ describe("weixin plugin channel config route background apply", () => {
     (resolveReload as () => void)();
     await flushMicrotasks();
 
-    expect(publish).toHaveBeenCalledWith({
-      type: "channel.config.apply-status",
-      payload: expect.objectContaining({
+    expect(emitAppEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "channel.config.apply-status" }),
+      expect.objectContaining({
         channel: "weixin",
         status: "succeeded"
-      })
-    });
+      }),
+      expect.any(Object)
+    );
   });
 });

@@ -1,5 +1,5 @@
 import type * as NextclawCore from "@nextclaw/core";
-import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import type { EventBus, UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { UiAuthService } from "../auth.service.js";
 import type {
@@ -17,28 +17,63 @@ import type {
   RemoteServiceActionResult,
   RemoteSettingsUpdateRequest,
   UiNcpAgent,
-  UiNcpSessionService,
-  UiServerEvent
+  UiNcpSessionService
 } from "../types.js";
 import type { RuntimeControlActionResult, RuntimeControlView } from "../runtime-control.types.js";
 
+export type UiWebhookEnvelope<TPayload = unknown> = {
+  type: string;
+  extensionId?: string;
+  payload?: TPayload;
+  emittedAt?: string;
+  source?: string;
+};
+
+export type UiWebhookContext = {
+  token: string | null;
+  request: Request;
+};
+
+export type UiWebhookHost = {
+  handleWebhook: (
+    envelope: UiWebhookEnvelope,
+    context: UiWebhookContext,
+  ) => Promise<unknown> | unknown;
+};
+
+export type UiBootstrapStatusHost = {
+  getStatus: () => BootstrapStatusView;
+};
+
+export type UiPluginHost = {
+  getChannelBindings: () => PluginChannelBinding[];
+  getUiMetadata: () => PluginUiMetadata[];
+};
+
+export type UiNcpSessionHost = {
+  sessionService: UiNcpSessionService;
+};
+
 export type UiRouterOptions = {
   configPath: string;
+  appEventBus: EventBus;
+  uiConfig?: Pick<NextclawCore.Config["ui"], "enabled" | "host" | "open" | "port">;
+  uiStaticDir?: string | null;
+  corsOrigins?: string[] | "*";
   productVersion?: string;
-  publish: (event: UiServerEvent) => void;
   applyLiveConfigReload?: () => Promise<void>;
   initializeAgentHomeDirectory?: (homeDirectory: string) => void;
   marketplace?: MarketplaceApiConfig;
-  cronService?: InstanceType<typeof NextclawCore.CronService>;
+  cron?: InstanceType<typeof NextclawCore.CronService>;
   ncpAgent?: UiNcpAgent;
-  ncpSessionService?: UiNcpSessionService;
+  sessions?: UiNcpSessionHost;
   authService?: UiAuthService;
   remoteAccess?: UiRemoteAccessHost;
   runtimeControl?: UiRuntimeControlHost;
   runtimeUpdate?: UiRuntimeUpdateHost;
-  getBootstrapStatus?: () => BootstrapStatusView;
-  getPluginChannelBindings?: () => PluginChannelBinding[];
-  getPluginUiMetadata?: () => PluginUiMetadata[];
+  webhook?: UiWebhookHost;
+  bootstrapStatus?: UiBootstrapStatusHost;
+  plugins?: UiPluginHost;
 };
 
 export type UiRemoteAccessHost = {

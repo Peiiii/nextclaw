@@ -1,20 +1,19 @@
 import type * as NextclawCore from "@nextclaw/core";
+import { eventKeys } from "@nextclaw/kernel";
+import { resolvePluginChannelMessageToolHints } from "@nextclaw/openclaw-compat";
 import { logStartupTrace, measureStartupAsync } from "@nextclaw-service/shared/utils/startup-trace.js";
-import type { NextclawExtensionRegistry } from "@nextclaw-service/commands/plugin/index.js";
 import {
-  type CreateUiNcpAgentParams,
-  type UiNcpAgentHandle,
   UiNcpAgentRuntimeService,
 } from "@nextclaw-service/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
-import type { DeferredUiNcpSessionServiceController } from "@nextclaw-service/shared/services/session/service-deferred-ncp-session-service.js";
-import type { UiStartupHandle } from "@nextclaw-service/shared/services/gateway/service-gateway-startup.service.js";
-import type { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.js";
+import type { DeferredUiNcpAgentController } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
+import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 type Config = NextclawCore.Config;
-type MessageBus = NextclawCore.MessageBus;
-type SessionManager = NextclawCore.SessionManager;
-type ProviderManager = NextclawCore.ProviderManager;
-type CronService = NextclawCore.CronService;
+
+export type UiStartupHandle = {
+  deferredNcpAgent: DeferredUiNcpAgentController;
+  endpoint: string;
+};
 
 type NextclawAppAgentRuntime = Pick<
   UiNcpAgentRuntimeService,
@@ -26,49 +25,33 @@ export class NextclawApp {
   private kernelReady = false;
 
   constructor(
-    private readonly params: {
-      bootstrapStatus: ServiceBootstrapStatusStore;
-      uiStartup: UiStartupHandle | null;
-      deferredNcpSessionService: DeferredUiNcpSessionServiceController;
-      bus: MessageBus;
-      sessionManager: SessionManager;
-      providerManager: ProviderManager;
-      cronService: CronService;
-      gatewayController: NonNullable<CreateUiNcpAgentParams["gatewayController"]>;
-      getConfig: () => Config;
-      getExtensionRegistry: () => NextclawExtensionRegistry | undefined;
-      resolveMessageToolHints: (params: {
-        channel: string;
-        accountId?: string | null;
-      }) => string[];
-      hydrateCapabilities?: () => Promise<void>;
-      startPluginGateways: () => Promise<void>;
-      startChannels: () => Promise<void>;
-      wakeFromRestartSentinel: () => Promise<void>;
-      onNcpAgentReady: (agent: UiNcpAgentHandle) => void;
-      publishSessionChange: (sessionKey: string) => void;
-      ncpAgentRuntime?: NextclawAppAgentRuntime;
-    },
+    private readonly gateway: NextclawGatewayRuntime,
+    ncpAgentRuntime?: NextclawAppAgentRuntime,
   ) {
     this.ncpAgentRuntime =
-      params.ncpAgentRuntime ??
+      ncpAgentRuntime ??
       new UiNcpAgentRuntimeService({
-        bus: params.bus,
-        providerManager: params.providerManager,
-        sessionManager: params.sessionManager,
-        cronService: params.cronService,
-        gatewayController: params.gatewayController,
-        getConfig: params.getConfig,
-        getExtensionRegistry: params.getExtensionRegistry,
-        onSessionUpdated: params.publishSessionChange,
+        bus: gateway.messageBus,
+        providerManager: gateway.providerManager,
+        sessionManager: gateway.sessionManager,
+        cronService: gateway.cron,
+        gatewayController: gateway.gatewayController,
+        getConfig: gateway.configManager.loadGatewayConfig,
+        getExtensionRegistry: () => gateway.plugins.getExtensionRegistry(),
+        onSessionUpdated: gateway.sessions.publishSessionChange,
         onSessionRunStatusChanged: (payload) => {
-          params.uiStartup?.publish({
-            type: "session.run-status",
-            payload,
+          gateway.appEventBus.emit(eventKeys.sessionRunStatus, payload, {
+            emittedAt: new Date().toISOString(),
+            source: "backend",
           });
         },
         resolveMessageToolHints: ({ channel, accountId }) =>
-          params.resolveMessageToolHints({ channel, accountId }),
+          resolvePluginChannelMessageToolHints({
+            registry: gateway.plugins.getRegistry(),
+            channel,
+            cfg: gateway.configManager.loadGatewayConfig() as Config,
+            accountId,
+          }),
       });
   }
 
@@ -87,17 +70,14 @@ export class NextclawApp {
   };
 
   bootstrapKernel = async (): Promise<void> => {
-    this.params.bootstrapStatus.markNcpAgentRunning();
+    this.gateway.bootstrapStatus.markNcpAgentRunning();
     const ncpAgent = await measureStartupAsync(
       "service.deferred_startup.bootstrap_kernel",
       async () => await this.ncpAgentRuntime.bootstrapKernel(),
     );
-    this.params.deferredNcpSessionService.activate(ncpAgent.sessionApi);
-    this.params.onNcpAgentReady(ncpAgent);
-    this.params.uiStartup?.deferredNcpAgent.activate(ncpAgent);
-    this.params.bootstrapStatus.markNcpAgentReady();
+    this.gateway.activateNcpAgent(ncpAgent);
     this.kernelReady = true;
-    if (this.params.uiStartup) {
+    if (this.gateway.configManager.uiConfig.enabled) {
       console.log("✓ UI NCP agent: ready");
       return;
     }
@@ -115,20 +95,22 @@ export class NextclawApp {
   };
 
   warmDerivedCapabilities = async (): Promise<void> => {
-    if (this.params.hydrateCapabilities) {
-      await measureStartupAsync(
-        "service.deferred_startup.hydrate_capabilities",
-        this.params.hydrateCapabilities,
-      );
-    }
+    await measureStartupAsync(
+      "service.deferred_startup.load_plugins",
+      this.gateway.plugins.load,
+    );
     await measureStartupAsync(
       "service.deferred_startup.start_plugin_gateways",
-      this.params.startPluginGateways,
+      this.gateway.plugins.startGateways,
     );
-    await measureStartupAsync("service.deferred_startup.start_channels", this.params.startChannels);
+    await measureStartupAsync(
+      "service.deferred_startup.start_extensions",
+      this.gateway.extensions.start,
+    );
+    await measureStartupAsync("service.deferred_startup.start_channels", this.gateway.gatewayChannels.startDeferred);
     await measureStartupAsync(
       "service.deferred_startup.wake_restart_sentinel",
-      this.params.wakeFromRestartSentinel,
+      this.gateway.restartWake.wakeFromRestartSentinel,
     );
     if (!this.kernelReady) {
       return;
@@ -146,12 +128,12 @@ export class NextclawApp {
     timer.unref?.();
   };
 
-  private handleKernelStartupError(error: unknown): void {
-    this.params.bootstrapStatus.markNcpAgentError(
+  private readonly handleKernelStartupError = (error: unknown): void => {
+    this.gateway.bootstrapStatus.markNcpAgentError(
       error instanceof Error ? error.message : String(error),
     );
     console.error(
       `UI NCP agent startup failed: ${error instanceof Error ? error.message : String(error)}`,
     );
-  }
+  };
 }

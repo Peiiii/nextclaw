@@ -1,0 +1,53 @@
+{
+  "name": "@nextclaw/extension-sdk",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Backend SDK for NextClaw extension server processes.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peiiii/nextclaw.git"
+  },
+  "homepage": "https://github.com/Peiiii/nextclaw/tree/master/packages/nextclaw-extension-sdk",
+  "bugs": {
+    "url": "https://github.com/Peiiii/nextclaw/issues"
+  },
+  "keywords": [
+    "nextclaw",
+    "extension-sdk",
+    "channel",
+    "realtime"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint src --max-warnings=0",
+    "tsc": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "@nextclaw/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

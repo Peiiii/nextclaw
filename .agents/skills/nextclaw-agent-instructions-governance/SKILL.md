@@ -1,6 +1,6 @@
 ---
 name: nextclaw-agent-instructions-governance
-description: Use when editing AGENTS.md, commands/commands.md, Rulebook or Project Rulebook content, project AI instructions, or deciding whether a rule belongs in AGENTS.md, a skill, or ordinary docs. Also use for /config-meta, /check-meta, /new-rule, and AGENTS token optimization.
+description: Use when editing AGENTS.md, commands/commands.md, Rulebook or Project Rulebook content, project AI instructions, or deciding whether a rule belongs in AGENTS.md, a skill, or ordinary docs. Also use when the user says to remember a rule/principle/norm, or for /config-meta, /check-meta, /new-rule, and AGENTS token optimization.
 ---
 
 # NextClaw Agent Instructions Governance
@@ -48,6 +48,15 @@ Use this decision order:
 5. Delete or merge it if it duplicates a stronger rule.
 
 Do not move hard rules into ordinary docs unless a skill explicitly requires reading that doc at the right moment.
+
+## Remember Requests
+
+当用户说“记住”“以后都要”“这是规范/原则”时，不能只在回复里说已经记住。必须把它当成规则持久化请求处理：
+
+1. 先判断它是不是每轮都必须知道；是则写入 `AGENTS.md` 的高层规则。
+2. 如果只在特定场景需要，写入对应 skill，并确保 description 能触发。
+3. 如果会影响自动检查，更新对应治理脚本或说明为什么暂不需要脚本。
+4. 如果不应落盘，必须明确说明原因，而不是口头承诺。
 
 ## Governance System Scope
 

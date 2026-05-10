@@ -3,13 +3,14 @@ import { createAgent, deleteAgent, listAgents, readAgentAvatar, updateAgent } fr
 import type { AgentCreateRequest, AgentUpdateRequest } from "../types.js";
 import { err, ok, readJson } from "./response.js";
 import type { UiRouterOptions } from "./types.js";
+import { emitConfigUpdated } from "./app-events.utils.js";
 
 export class AgentsRoutesController {
   constructor(private readonly options: UiRouterOptions) {}
 
   private publishAgentUpdates = async (paths: string[]): Promise<void> => {
     for (const path of paths) {
-      this.options.publish({ type: "config.updated", payload: { path } });
+      emitConfigUpdated(this.options, path);
     }
     await this.options.applyLiveConfigReload?.();
   };

@@ -34,7 +34,7 @@
 
 命名上先对齐已有 client SDK。Extension SDK 内部维护 `eventBus`，但 channel 开发者的常用入口固定为 `channels.use(...)`、`channel.submitMessage(...)`、`channel.onNcpEvent(...)` 和 `channel.config.*`。
 
-`@nextclaw/client-sdk` 和 `@nextclaw/extension-sdk` 都不直接依赖 `@nextclaw/kernel`。它们需要的通用 event bus 能力应该来自轻量共享包；各自不通用的事件类型、event keys 和领域 service 由各自 SDK 维护。
+`@nextclaw/client-sdk` 和 `@nextclaw/extension-sdk` 都不直接依赖 service、server 或 core 内部实现。它们需要的通用 event bus 能力应该来自轻量共享包；各自不通用的事件类型、event keys 和领域 service 由各自 SDK 维护。
 
 ## 3. Channel 是一等概念
 
@@ -134,9 +134,9 @@ server.type = "stdio"
 ## 5. SDK API
 
 ```ts
-import { createNextClawExtension } from "@nextclaw/extension-sdk";
+import { NextClawExtensionService } from "@nextclaw/extension-sdk";
 
-const extension = createNextClawExtension();
+const extension = new NextClawExtensionService();
 
 extension.eventBus.subscribeAll((event) => {
   // 可选：观察 SDK 收到的全部实时事件。
@@ -266,7 +266,7 @@ channel 监听规则
 3. 注册 manifest 中声明的能力元数据，例如 channels、config schema
 4. 按 server.type / command / args / env 启动 extension server
 5. 给 extension server 注入 NextClaw endpoint、短期 token、extensionId 等连接凭据
-6. 复用通用 webhook 接收 extension 提交的消息和事件
+6. 复用通用 `/webhook` 接收外部调用方提交的消息和事件；extension 只是调用方之一
 7. 复用现有 `/ws` event stream 向 extension 推送事件
 8. 主应用退出时停止 extension server
 ```
@@ -291,7 +291,7 @@ Channel API 是开发者主要使用的接口。底层通信由 SDK 负责维护
 extension -> NextClaw
   channel.submitMessage(...)
   HTTP POST /webhook
-  webhook 校验 extension token 后发布到 event bus。
+  通用 webhook 按 envelope type 分发；extension channel handler 校验 extension token 后提交到主链路。
 
 NextClaw -> extension
   channel.config.onChange(...)
@@ -308,7 +308,7 @@ NEXTCLAW_EXTENSION_ENDPOINT
 NEXTCLAW_EXTENSION_TOKEN
 ```
 
-SDK 使用 `NEXTCLAW_EXTENSION_ENDPOINT + /webhook` 提交消息，使用 `NEXTCLAW_EXTENSION_ENDPOINT + /ws` 监听事件。
+SDK 使用 `NEXTCLAW_EXTENSION_ENDPOINT + /webhook` 提交消息，使用 `NEXTCLAW_EXTENSION_ENDPOINT + /ws` 监听事件。这里的 `/webhook` 是 NextClaw 通用 webhook，不是 extension 专属 endpoint。
 
 SDK 内部使用 `eventBus` 作为通信抽象。第一层 channel API 不暴露 event bus。
 
@@ -358,20 +358,17 @@ channel.submitMessage(...)
 
 ## 11. 包与模块边界
 
-Extension SDK 相关能力按职责拆成六个边界：
+Extension SDK 相关能力按职责拆成五个边界：
 
 ```text
 packages/nextclaw-shared
-  共享基础能力包，只放跨 SDK、kernel、server、runtime 都稳定复用的轻量基础设施。
+  共享基础能力包，只放跨 SDK 和 server 稳定复用的轻量基础设施。
 
 packages/nextclaw-extension-sdk
   对外发布的后端 SDK，给 extension server 进程使用。
 
-packages/nextclaw-kernel
-  NextClaw 控制面，管理 extension 的系统认知、状态和能力注册。
-
-packages/nextclaw-runtime
-  NextClaw Node 运行时执行层，负责把 extension lifecycle 落到当前进程环境。
+packages/nextclaw-service
+  NextClaw 常驻服务，负责 extension manifest 发现、生命周期和通用 webhook handler 注册。
 
 packages/nextclaw-server
   复用现有 server，承载通用 webhook，并继续复用现有 /ws event stream。
@@ -380,7 +377,7 @@ packages/extensions/<channel-extension-package>
   具体渠道 extension server，例如新版微信渠道。
 ```
 
-第一版不新增独立的 `@nextclaw/extension-core` 包。公共开发者入口只暴露 `@nextclaw/extension-sdk`；共享基础设施放入 `@nextclaw/shared`；extension 生命周期控制面和运行时执行层分别归属 kernel / runtime。
+第一版不新增独立的 `@nextclaw/extension-core` 包，也不新增 extension 专属 kernel / runtime 包。公共开发者入口只暴露 `@nextclaw/extension-sdk`；共享基础设施放入 `@nextclaw/shared`；extension 生命周期归属 NextClaw 常驻 service。
 
 ### 11.1 Shared 基础包
 
@@ -409,13 +406,13 @@ src/
 
 - `@nextclaw/shared` 只放真正跨包稳定复用的轻量基础设施。
 - `EventBus`、`EventEnvelope`、`EventKey`、`Unsubscribe` 这类通用事件基础能力放在这里。
-- `eventKeys`、`UpdateSnapshot` 这类被 client、server、kernel 共同引用的应用级实时通信契约可以放在这里。
+- `eventKeys`、`UpdateSnapshot` 这类被 client、server 和服务层共同引用的应用级实时通信契约可以放在这里。
 - 不放 NextClaw 控制面对象。
 - 不放 extension 专属 event keys。
 - 不放 client SDK、extension SDK、server、runtime 的领域类型。
 - 不放 Node-only 能力，例如 `child_process`、本地路径、进程句柄。
 
-`@nextclaw/client-sdk`、`@nextclaw/extension-sdk`、`@nextclaw/kernel`、`@nextclaw/server`、`@nextclaw/runtime` 都可以依赖 `@nextclaw/shared`，但 `@nextclaw/shared` 不反向依赖它们。Shared 可以 type-only 复用稳定协议包，例如 `@nextclaw/ncp` 的公共 session summary 类型；不能依赖 kernel / runtime / server / SDK / core 内部实现。
+`@nextclaw/client-sdk`、`@nextclaw/extension-sdk`、`@nextclaw/server`、`@nextclaw-service` 都可以依赖 `@nextclaw/shared`，但 `@nextclaw/shared` 不反向依赖它们。Shared 可以 type-only 复用稳定协议包，例如 `@nextclaw/ncp` 的公共 session summary 类型；不能依赖 service / server / SDK / core 内部实现。
 
 ### 11.2 Extension SDK 包
 
@@ -455,64 +452,38 @@ src/
 - `configs/` 承载 extension SDK 自己的事件名、协议常量和 SDK 默认配置。
 - `utils/` 只放无状态、无副作用的小型纯工具。
 - SDK 复用 `@nextclaw/shared` 的 event bus 基础能力。
-- SDK 不依赖 `@nextclaw/kernel`、`@nextclaw/runtime`、`@nextclaw/server` 内部实现。
+- SDK 不依赖 `@nextclaw-service`、`@nextclaw/server` 内部实现。
 
-### 11.3 Kernel 控制面
+### 11.3 Service 生命周期管理
 
-`@nextclaw/kernel` 管理 extension 的系统认知，不直接执行 Node 运行时动作。
+新版 extension server 是 NextClaw 常驻 service 的子进程能力，不放进 `nextclaw-core`，也不新增 `kernel` / `runtime` 包分层。
 
 ```text
-packages/nextclaw-kernel/src/managers/
-  extension.manager.ts
-
-packages/nextclaw-kernel/src/types/
-  extension.types.ts
-
-packages/nextclaw-kernel/src/events/
-  extension-event-keys.config.ts
+packages/nextclaw-service/src/shared/services/extensions/
+  extension-lifecycle.service.ts
+  extension-channel-webhook.service.ts
+  service-extension-startup.service.ts
 ```
 
 职责边界：
 
-- 记录系统知道哪些 extension。
-- 管理 extension manifest、contributions、lifecycle state。
-- 定义 extension 相关 event keys。
-- 提供 extension registry / manager 这类控制面抽象。
-- 不启动进程。
-- 不处理 webhook 请求。
-- 不持有 WebSocket 连接。
-- 不包含 SDK 代码。
+- `ExtensionManifestDiscoveryService` 发现 `nextclaw.extension.json`。
+- `ExtensionLifecycleService` 按 manifest 的 `server` 启动 / 停止 extension server，并注入连接凭据。
+- `ServiceExtensionRuntime` 接到 service deferred startup：service 启动后启动已发现 extension，service 退出时停止 extension。
+- `ExtensionChannelWebhookService` 只是注册到通用 webhook dispatcher 的一个 handler，不拥有 `/webhook` endpoint。
+- 第一版不做 extension enabled / disabled；已发现且 manifest 有效即启动。
+- 第一版不根据 `config.channels[channelId].enabled` 启停 extension server，channel adapter 自己根据 channel 配置决定连接真实渠道。
 
-### 11.4 Runtime 执行层
+这里不再使用 `extension host` 作为模块名。第一版只保留 lifecycle / startup / webhook handler 三个必要对象，不拆 `process service`、`transport router`、`channel bridge` 这类过早模块。
 
-`@nextclaw/runtime` 承接 kernel 的控制面意图，并在当前 Node 环境里执行 extension 生命周期动作。
-
-```text
-packages/nextclaw-runtime/src/extensions/
-  index.ts
-  services/
-    extension-lifecycle-runtime.service.ts
-  types/
-    extension-lifecycle.types.ts
-```
-
-职责边界：
-
-- 根据 kernel 中登记的 extension manifest 启动 extension server。
-- 注入 `NEXTCLAW_EXTENSION_ID`、`NEXTCLAW_EXTENSION_ENDPOINT`、`NEXTCLAW_EXTENSION_TOKEN`。
-- 维护当前 runtime 内的进程句柄。
-- 在主应用退出时停止 extension server。
-- 把进程启动、停止、失败等状态回写给 kernel 控制面。
-
-这里不再使用 `extension host` 作为模块名。第一版只保留 lifecycle runtime，不拆 `process service`、`transport router`、`channel bridge` 这类过早模块。
-
-### 11.5 Server 传输入口
+### 11.4 Server 传输入口
 
 `nextclaw-server` 只提供通用传输入口，不承载 extension 业务逻辑：
 
 ```text
 HTTP webhook
-  extension -> NextClaw
+  外部调用方 -> NextClaw
+  extension server 是第一类调用方之一，但 webhook 本身不以 extension 命名。
 
 WebSocket event stream
   NextClaw -> extension
@@ -527,7 +498,7 @@ WebSocket event stream
 
 `/ws` 复用现有 event bus 实时流，不新增 extension 专属 WebSocket 路径。
 
-### 11.6 Channel Extension 包
+### 11.5 Channel Extension 包
 
 具体渠道 extension server 使用独立包，不复用旧插件入口。新版微信渠道建议使用描述架构的命名，而不是临时版本号：
 
@@ -559,26 +530,24 @@ src/
 - extension 包不直接依赖主进程内部服务。
 - 主进程不理解微信、Telegram、飞书等渠道私有发送协议。
 
-### 11.7 依赖方向
+### 11.6 依赖方向
 
 包之间按以下方向依赖：
 
 ```text
 @nextclaw/shared
   只承载轻量共享基础设施和公共实时通信契约。
-  不依赖 kernel / runtime / server / SDK / core 内部实现。
+  不依赖 service / server / SDK / core 内部实现。
   允许 type-only 依赖稳定协议包，例如 @nextclaw/ncp。
-
-@nextclaw/kernel
-  -> @nextclaw/shared
-
-@nextclaw/runtime
-  -> @nextclaw/kernel
-  -> @nextclaw/shared
 
 @nextclaw/server
   -> @nextclaw/shared
   -> 按现有 server 需要接入应用级 eventBus
+
+@nextclaw-service
+  -> @nextclaw/server
+  -> @nextclaw/shared
+  -> @nextclaw/extension-sdk 的协议形态保持一致，但不依赖 SDK 运行时代码
 
 @nextclaw/extension-sdk
   -> @nextclaw/shared
@@ -590,12 +559,11 @@ channel extension package
 禁止依赖方向：
 
 ```text
-@nextclaw/shared 不依赖 kernel / runtime / server / SDK。
-@nextclaw/extension-sdk 不依赖 kernel / runtime / server。
-channel extension package 不依赖 kernel / runtime / server / core 内部实现。
+@nextclaw/shared 不依赖 service / server / SDK。
+@nextclaw/extension-sdk 不依赖 service / server。
+channel extension package 不依赖 service / server / core 内部实现。
 server 不启动 extension 进程。
-runtime 不拥有 webhook 或 /ws。
-kernel 不直接 spawn 进程。
+service 不拥有 `/webhook` endpoint，只向通用 webhook dispatcher 注册 handler。
 ```
 
 ## 12. 核心类型骨架
@@ -635,7 +603,7 @@ ExtensionTransport
 
 其中：
 
-- `NextClawExtension` 是 `createNextClawExtension()` 返回的根对象。
+- `NextClawExtensionService` 是 extension server 进程内直接创建的根对象。
 - `ExtensionChannelsService` 提供 `channels.use(channelId)`。
 - `ExtensionChannel` 提供 `submitMessage`、`onNcpEvent`、`config.get` 和 `config.onChange`。
 - `ExtensionEventBus` 是 SDK 内部和高级用户共享的事件订阅入口。

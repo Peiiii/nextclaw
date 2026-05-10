@@ -1,0 +1,16 @@
+{
+  "contractKind": "legacy",
+  "organizationModel": "legacy-extension-sdk",
+  "rootPolicy": "allowlisted",
+  "allowedRootDirectories": [
+    "configs",
+    "services",
+    "types",
+    "utils"
+  ],
+  "allowedRootFiles": [
+    "extension-sdk.test.ts",
+    "index.ts"
+  ],
+  "sharedDirectories": []
+}

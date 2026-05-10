@@ -2,6 +2,8 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EventBus } from "@nextclaw/kernel";
+import type * as NextclawCoreModule from "@nextclaw/core";
 
 const tempDirs: string[] = [];
 const chatMock = vi.fn(async (params: { maxTokens?: number }) => {
@@ -15,7 +17,7 @@ const chatMock = vi.fn(async (params: { maxTokens?: number }) => {
 });
 
 vi.mock("@nextclaw/core", async () => {
-  const actual = await vi.importActual<typeof import("@nextclaw/core")>("@nextclaw/core");
+  const actual = await vi.importActual<typeof NextclawCoreModule>("@nextclaw/core");
   return {
     ...actual,
     LiteLLMProvider: class MockLiteLLMProvider extends actual.LiteLLMProvider {
@@ -50,7 +52,7 @@ describe("provider connection probe route", () => {
 
     const app = createUiRouter({
       configPath,
-      publish: () => {}
+      appEventBus: new EventBus(),
     });
 
     const response = await app.request("http://localhost/api/config/providers/openai/test", {

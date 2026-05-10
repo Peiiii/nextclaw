@@ -4,6 +4,7 @@
   "rootPolicy": "legacy-frozen",
   "allowedRootDirectories": [
     "config",
+    "extensions",
     "gateway",
     "marketplace",
     "plugin",
@@ -13,6 +14,7 @@
     "telemetry",
     "ui",
     "update",
+    "webhook",
     "workspace"
   ],
   "allowedRootFiles": [],

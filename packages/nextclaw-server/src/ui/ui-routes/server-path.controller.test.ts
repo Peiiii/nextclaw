@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import { createUiRouter } from "../router.js";
+import { EventBus } from "@nextclaw/kernel";
 
 const tempDirs: string[] = [];
 
@@ -23,7 +24,7 @@ function createTestApp() {
   saveConfig(ConfigSchema.parse({}), configPath);
   return createUiRouter({
     configPath,
-    publish: () => {},
+    appEventBus: new EventBus(),
   });
 }
 
