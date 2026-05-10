@@ -15,7 +15,7 @@ import {
   updateSecrets,
   updateRuntime
 } from "../config.js";
-import { pollChannelAuth, startChannelAuth } from "../channel-auth.js";
+import { pollChannelAuth, startChannelAuth } from "../channel-auth.utils.js";
 import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "../provider-auth.js";
 import type {
   ChannelAuthPollResult,

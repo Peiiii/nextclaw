@@ -5,6 +5,7 @@ import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
 import { resolveChannelConfigView } from "./channel-config-view.js";
 import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
+import { builtinExtensionChannelBindings } from "../../shared/services/extensions/builtin-extension-channel-bindings.service.js";
 
 export { resolveChannelConfigView } from "./channel-config-view.js";
 
@@ -38,6 +39,15 @@ type PluginChannelContext = {
   bindings: PluginChannelBinding[];
 };
 
+function resolveChannelBindings(pluginRegistry: ReturnType<typeof loadPluginRegistry>): PluginChannelBinding[] {
+  const builtinBindings = builtinExtensionChannelBindings.getChannelBindings();
+  const builtinChannelIds = new Set(builtinBindings.map((binding) => binding.channelId));
+  return [
+    ...getPluginChannelBindings(pluginRegistry).filter((binding) => !builtinChannelIds.has(binding.channelId)),
+    ...builtinBindings,
+  ];
+}
+
 export class ChannelCommands {
   constructor(
     private deps: {
@@ -51,7 +61,7 @@ export class ChannelCommands {
     const config = loadConfig();
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    const channelConfig = resolveChannelConfigView(config, getPluginChannelBindings(pluginRegistry));
+    const channelConfig = resolveChannelConfigView(config, resolveChannelBindings(pluginRegistry));
 
     console.log("Channel Status");
     const channels = channelConfig.channels as Record<string, { enabled?: boolean }>;
@@ -119,7 +129,7 @@ export class ChannelCommands {
   private resolvePluginChannelContext = (config: ReturnType<typeof loadConfig>, channelId: string): PluginChannelContext | null => {
     const workspaceDir = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = loadPluginRegistry(config, workspaceDir);
-    const bindings = getPluginChannelBindings(pluginRegistry);
+    const bindings = resolveChannelBindings(pluginRegistry);
     const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
     if (!binding) {
       return null;
@@ -259,7 +269,7 @@ export class ChannelCommands {
     pluginRegistry: ReturnType<typeof loadPluginRegistry>,
     channelId: string,
   ): PluginChannelContext => {
-    const bindings = getPluginChannelBindings(pluginRegistry);
+    const bindings = resolveChannelBindings(pluginRegistry);
     const binding = bindings.find((entry) => entry.channelId === channelId || entry.pluginId === channelId);
     if (!binding) {
       console.error(`No plugin channel found for: ${channelId}`);

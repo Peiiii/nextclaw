@@ -4,7 +4,7 @@ import type { ExtensionChannel } from "@nextclaw/extension-sdk";
 import { WeixinExtensionRuntime } from "../weixin-extension-runtime.service.js";
 import { WeixinChannelAdapter } from "../weixin-channel-adapter.service.js";
 import type { WeixinApiClient } from "../weixin-api.service.js";
-import type { WeixinAccountStore } from "../weixin-account.store.js";
+import type { StoredWeixinAccount, WeixinAccountStore } from "../weixin-account.store.js";
 
 function createChannel(config: Record<string, unknown>): ExtensionChannel {
   return {
@@ -416,14 +416,21 @@ describe("WeixinExtensionRuntime Weixin feature parity", () => {
 
 class TestWeixinAccountStore implements WeixinAccountStore {
   private cursor: string | undefined;
-
-  listAccountIds = (): string[] => ["bot-1@im.bot"];
-
-  loadAccount = () => ({
+  private account: StoredWeixinAccount = {
     accountId: "bot-1@im.bot",
     token: "token-1",
     baseUrl: "https://ilinkai.weixin.qq.com",
-  });
+  };
+
+  listAccountIds = (): string[] => ["bot-1@im.bot"];
+
+  loadAccount = () => this.account;
+
+  saveAccount = (account: StoredWeixinAccount): void => {
+    this.account = account;
+  };
+
+  deleteAccount = (): void => undefined;
 
   loadCursor = (): string | undefined => this.cursor;
 
@@ -448,6 +455,11 @@ function createIdleApi(): WeixinApiClient {
       errcode: 0,
       typing_ticket: "typing-ticket-1",
     })),
+    fetchQrCode: vi.fn(async () => ({
+      qrcode: "qr-token",
+      qrcode_img_content: "https://example.com/qr.png",
+    })),
+    fetchQrStatus: vi.fn(async () => ({ status: "wait" })),
     sendTyping: vi.fn(async () => ({ ret: 0, errcode: 0 })),
     sendMessageItem: vi.fn(async () => ({ messageId: "message-1" })),
     sendTextMessage: vi.fn(async () => ({ messageId: "message-1" })),

@@ -632,28 +632,6 @@ importers:
         specifier: workspace:*
         version: link:../nextclaw-channel-runtime
 
-  packages/extensions/nextclaw-channel-plugin-weixin:
-    dependencies:
-      '@nextclaw/core':
-        specifier: workspace:*
-        version: link:../../nextclaw-core
-      '@nextclaw/ncp':
-        specifier: workspace:*
-        version: link:../../ncp-packages/nextclaw-ncp
-      '@nextclaw/ncp-toolkit':
-        specifier: workspace:*
-        version: link:../../ncp-packages/nextclaw-ncp-toolkit
-    devDependencies:
-      '@types/node':
-        specifier: ^20.17.6
-        version: 20.19.33
-      typescript:
-        specifier: ^5.6.3
-        version: 5.9.3
-      vitest:
-        specifier: ^4.1.2
-        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
-
   packages/extensions/nextclaw-channel-plugin-whatsapp:
     dependencies:
       '@nextclaw/channel-runtime':
@@ -1462,9 +1440,6 @@ importers:
       '@nextclaw/channel-plugin-wecom':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-wecom
-      '@nextclaw/channel-plugin-weixin':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-weixin
       '@nextclaw/channel-plugin-whatsapp':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-whatsapp
@@ -1610,6 +1585,9 @@ importers:
 
   packages/nextclaw-service:
     dependencies:
+      '@nextclaw/channel-extension-weixin':
+        specifier: workspace:*
+        version: link:../extensions/nextclaw-channel-extension-weixin
       '@nextclaw/core':
         specifier: workspace:*
         version: link:../nextclaw-core

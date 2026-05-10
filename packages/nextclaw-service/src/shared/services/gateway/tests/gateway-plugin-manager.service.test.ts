@@ -102,16 +102,16 @@ describe("GatewayPluginManager", () => {
   it("owns plugin registry derived state during load", async () => {
     const gateway = createGateway();
     const manager = new GatewayPluginManager(gateway);
-    const registry = { plugins: [{ id: "nextclaw-channel-weixin" }] };
-    const extensionRegistry = { channels: [{ channel: { id: "weixin" } }] };
+    const registry = { plugins: [{ id: "nextclaw-channel-test" }] };
+    const extensionRegistry = { channels: [{ channel: { id: "test" } }] };
     const channelBindings = [
       {
-        pluginId: "nextclaw-channel-weixin",
-        channelId: "weixin",
-        channel: { id: "weixin" },
+        pluginId: "nextclaw-channel-test",
+        channelId: "test",
+        channel: { id: "test" },
       },
     ];
-    const uiMetadata = [{ id: "nextclaw-channel-weixin" }];
+    const uiMetadata = [{ id: "nextclaw-channel-test" }];
     mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue(registry);
     mocks.toExtensionRegistryMock.mockReturnValue(extensionRegistry);
     mocks.getPluginChannelBindingsMock.mockReturnValue(channelBindings);
@@ -122,25 +122,25 @@ describe("GatewayPluginManager", () => {
     expect(gateway.configManager.reloader.rebuildChannels).toHaveBeenCalledTimes(1);
     expect(manager.getRegistry()).toBe(registry);
     expect(manager.getExtensionRegistry()).toBe(extensionRegistry);
-    expect(manager.getChannelBindings()).toBe(channelBindings);
-    expect(manager.getUiMetadata()).toBe(uiMetadata);
+    expect(manager.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));
+    expect(manager.getUiMetadata()).toEqual(expect.arrayContaining(uiMetadata));
   });
 
   it("owns plugin gateway handles", async () => {
     const gateway = createGateway({
       agents: { defaults: { workspace: "~/.nextclaw/workspace" } },
       channels: {
-        weixin: { enabled: true },
+        test: { enabled: true },
       },
     });
     const manager = new GatewayPluginManager(gateway);
     const stop = vi.fn(async () => undefined);
     const startAccount = vi.fn(async () => ({ stop }));
     const binding = {
-      pluginId: "nextclaw-channel-weixin",
-      channelId: "weixin",
+      pluginId: "nextclaw-channel-test",
+      channelId: "test",
       channel: {
-        id: "weixin",
+        id: "test",
         gateway: {
           startAccount,
         },
@@ -149,11 +149,11 @@ describe("GatewayPluginManager", () => {
         },
       },
     };
-    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [{ id: "nextclaw-channel-weixin" }] });
+    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [{ id: "nextclaw-channel-test" }] });
     mocks.getPluginChannelBindingsMock.mockReturnValue([binding]);
     mocks.toPluginConfigViewMock.mockReturnValue({
       channels: {
-        weixin: { enabled: true },
+        test: { enabled: true },
       },
     });
     await manager.load();
@@ -163,7 +163,7 @@ describe("GatewayPluginManager", () => {
 
     expect(startAccount).toHaveBeenCalledWith(expect.objectContaining({
       accountId: "bot",
-      channelId: "weixin",
+      channelId: "test",
     }));
     expect(stop).toHaveBeenCalledTimes(1);
   });

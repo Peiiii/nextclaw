@@ -16,7 +16,7 @@ const CHANNEL_TUTORIAL_URLS: Record<string, ChannelTutorialUrls> = {
     zh: `${DOCS_BASE_URL}/zh/guide/tutorials/feishu`
   },
   weixin: {
-    default: "https://npmx.dev/package/@nextclaw/channel-plugin-weixin"
+    default: "https://npmx.dev/package/@nextclaw/channel-extension-weixin"
   }
 };
 

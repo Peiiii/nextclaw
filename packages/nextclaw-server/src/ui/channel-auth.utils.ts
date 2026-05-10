@@ -6,7 +6,7 @@ import {
   type PluginChannelBinding
 } from "@nextclaw/openclaw-compat";
 import { loadConfigOrDefault } from "./config.js";
-import { getProjectedConfigView } from "./plugin-channel-config.projection.js";
+import { getProjectedConfigView } from "./plugin-channel-config-projection.utils.js";
 import type {
   ChannelAuthPollResult,
   ChannelAuthStartRequest,

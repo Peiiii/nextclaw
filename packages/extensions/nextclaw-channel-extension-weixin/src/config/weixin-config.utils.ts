@@ -1,25 +1,8 @@
-import type { Config } from "@nextclaw/core";
+import type { WeixinAccountConfig, WeixinChannelConfig } from "../weixin-extension.types.js";
 
-export const WEIXIN_PLUGIN_ID = "nextclaw-channel-weixin";
+export const WEIXIN_EXTENSION_ID = "nextclaw-channel-extension-weixin";
 export const WEIXIN_CHANNEL_ID = "weixin";
 export const DEFAULT_WEIXIN_BASE_URL = "https://ilinkai.weixin.qq.com";
-export const DEFAULT_WEIXIN_BOT_TYPE = "3";
-export const DEFAULT_WEIXIN_POLL_TIMEOUT_MS = 35_000;
-
-export type WeixinAccountConfig = {
-  enabled?: boolean;
-  baseUrl?: string;
-  allowFrom?: string[];
-};
-
-export type WeixinPluginConfig = {
-  enabled?: boolean;
-  defaultAccountId?: string;
-  baseUrl?: string;
-  pollTimeoutMs?: number;
-  allowFrom?: string[];
-  accounts?: Record<string, WeixinAccountConfig>;
-};
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -40,10 +23,10 @@ function readStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
-  const items = value
+  const values = value
     .map((entry) => readString(entry))
     .filter((entry): entry is string => Boolean(entry));
-  return items.length > 0 ? items : undefined;
+  return values.length > 0 ? values : undefined;
 }
 
 function normalizeAccountConfig(value: unknown): WeixinAccountConfig | undefined {
@@ -58,20 +41,18 @@ function normalizeAccountConfig(value: unknown): WeixinAccountConfig | undefined
   };
 }
 
-export function normalizeWeixinPluginConfig(value: unknown): WeixinPluginConfig {
+export function normalizeWeixinChannelConfig(value: unknown): WeixinChannelConfig {
   const record = toRecord(value);
   if (!record) {
     return {};
   }
 
-  const accountsRecord = toRecord(record.accounts);
   const accounts: Record<string, WeixinAccountConfig> = {};
-  for (const [accountId, rawAccountConfig] of Object.entries(accountsRecord ?? {})) {
+  for (const [accountId, rawAccountConfig] of Object.entries(toRecord(record.accounts) ?? {})) {
     const normalized = normalizeAccountConfig(rawAccountConfig);
-    if (!normalized) {
-      continue;
+    if (normalized) {
+      accounts[accountId] = normalized;
     }
-    accounts[accountId] = normalized;
   }
 
   return {
@@ -87,83 +68,49 @@ export function normalizeWeixinPluginConfig(value: unknown): WeixinPluginConfig 
   };
 }
 
-export function isWeixinPluginEnabled(config: Config, pluginId = WEIXIN_PLUGIN_ID): boolean {
-  const pluginEntry = config.plugins.entries?.[pluginId];
-  if (pluginEntry?.enabled === false) {
-    return false;
-  }
-  return normalizeWeixinPluginConfig(config.channels?.[WEIXIN_CHANNEL_ID]).enabled !== false;
-}
-
-export function resolveConfiguredWeixinAccountIds(pluginConfig: WeixinPluginConfig): string[] {
-  const ids = new Set<string>();
-  if (pluginConfig.defaultAccountId) {
-    ids.add(pluginConfig.defaultAccountId);
-  }
-  for (const accountId of Object.keys(pluginConfig.accounts ?? {})) {
-    ids.add(accountId);
-  }
-  return [...ids];
-}
-
-export function resolveWeixinAccountSelection(
-  pluginConfig: WeixinPluginConfig,
-  availableAccountIds: string[],
-  requestedAccountId?: string | null,
-): string | undefined {
-  const candidate = readString(requestedAccountId);
-  if (candidate) {
-    return candidate;
-  }
-  if (pluginConfig.defaultAccountId) {
-    return pluginConfig.defaultAccountId;
-  }
-  if (availableAccountIds.length === 1) {
-    return availableAccountIds[0];
-  }
-  return undefined;
-}
-
-export function buildLoggedInWeixinPluginConfig(params: {
-  pluginConfig: WeixinPluginConfig;
+export function buildLoggedInWeixinChannelConfig(params: {
+  config: WeixinChannelConfig;
   accountId: string;
   baseUrl: string;
   allowUserId?: string;
   replaceAccountIds?: string[];
-}): WeixinPluginConfig {
-  const next = normalizeWeixinPluginConfig(params.pluginConfig);
+}): WeixinChannelConfig {
+  const { accountId, allowUserId, baseUrl, config, replaceAccountIds } = params;
+  const current = normalizeWeixinChannelConfig(config);
   const replacementIds = new Set(
-    (params.replaceAccountIds ?? [])
+    (replaceAccountIds ?? [])
       .map((accountId) => readString(accountId))
-      .filter((accountId): accountId is string => Boolean(accountId) && accountId !== params.accountId),
+      .filter((replacementAccountId): replacementAccountId is string =>
+        Boolean(replacementAccountId) && replacementAccountId !== accountId
+      ),
   );
   const accounts = Object.fromEntries(
-    Object.entries(next.accounts ?? {}).filter(([accountId]) => !replacementIds.has(accountId)),
+    Object.entries(current.accounts ?? {}).filter(([accountId]) => !replacementIds.has(accountId)),
   );
-  const currentAccount = next.accounts?.[params.accountId] ?? {};
-  const allowFrom = new Set<string>([
+  const currentAccount = current.accounts?.[accountId] ?? {};
+  const allowFrom = new Set([
     ...(currentAccount.allowFrom ?? []),
-    ...(params.allowUserId ? [params.allowUserId] : []),
+    ...(allowUserId ? [allowUserId] : []),
   ]);
 
   return {
-    ...next,
+    ...current,
     enabled: true,
-    defaultAccountId: params.accountId,
-    baseUrl: next.baseUrl ?? params.baseUrl,
+    defaultAccountId: accountId,
+    baseUrl: current.baseUrl ?? baseUrl,
     accounts: {
       ...accounts,
-      [params.accountId]: {
+      [accountId]: {
         ...currentAccount,
         enabled: true,
-        baseUrl: params.baseUrl,
+        baseUrl,
         allowFrom: allowFrom.size > 0 ? [...allowFrom] : undefined,
       },
     },
   };
 }
 
-export const WEIXIN_PLUGIN_CONFIG_SCHEMA = {
+export const WEIXIN_CHANNEL_CONFIG_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
@@ -193,7 +140,7 @@ export const WEIXIN_PLUGIN_CONFIG_SCHEMA = {
   },
 } as const;
 
-export const WEIXIN_PLUGIN_CONFIG_UI_HINTS = {
+export const WEIXIN_CHANNEL_CONFIG_UI_HINTS = {
   enabled: { label: "Enabled" },
   defaultAccountId: { label: "Default Account ID" },
   baseUrl: { label: "API Base URL" },

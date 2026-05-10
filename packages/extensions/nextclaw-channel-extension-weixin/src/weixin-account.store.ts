@@ -13,6 +13,8 @@ export type StoredWeixinAccount = {
 export type WeixinAccountStore = {
   listAccountIds: () => string[];
   loadAccount: (accountId: string) => StoredWeixinAccount | null;
+  saveAccount: (account: StoredWeixinAccount) => void;
+  deleteAccount: (accountId: string) => void;
   loadCursor: (accountId: string) => string | undefined;
   saveCursor: (accountId: string, cursor: string | undefined) => void;
   deleteCursor: (accountId: string) => void;
@@ -63,6 +65,18 @@ export class FileWeixinAccountStore implements WeixinAccountStore {
 
   readonly loadAccount = (accountId: string): StoredWeixinAccount | null => {
     return readJsonFile<StoredWeixinAccount>(join(resolveAccountsDir(), toFileName(accountId)));
+  };
+
+  readonly saveAccount = (account: StoredWeixinAccount): void => {
+    mkdirSync(resolveAccountsDir(), { recursive: true });
+    writeFileSync(
+      join(resolveAccountsDir(), toFileName(account.accountId)),
+      JSON.stringify(account, null, 2),
+    );
+  };
+
+  readonly deleteAccount = (accountId: string): void => {
+    rmSync(join(resolveAccountsDir(), toFileName(accountId)), { force: true });
   };
 
   readonly loadCursor = (accountId: string): string | undefined => {

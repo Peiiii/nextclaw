@@ -29,6 +29,7 @@ import {
   pluginGatewayLogger,
 } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
+import { builtinExtensionChannelBindings } from "@nextclaw-service/shared/services/extensions/builtin-extension-channel-bindings.service.js";
 
 type PluginSnapshot = {
   registry: PluginRegistry;
@@ -38,11 +39,21 @@ type PluginSnapshot = {
 };
 
 function buildSnapshot(registry: PluginRegistry): PluginSnapshot {
+  const builtinBindings = builtinExtensionChannelBindings.getChannelBindings();
+  const builtinUiMetadata = builtinExtensionChannelBindings.getUiMetadata();
+  const builtinChannelIds = new Set(builtinBindings.map((binding) => binding.channelId));
+  const builtinPluginIds = new Set(builtinUiMetadata.map((metadata) => metadata.id));
   return {
     registry,
     extensionRegistry: toExtensionRegistry(registry),
-    channelBindings: getPluginChannelBindings(registry),
-    uiMetadata: getPluginUiMetadataFromRegistry(registry),
+    channelBindings: [
+      ...getPluginChannelBindings(registry).filter((binding) => !builtinChannelIds.has(binding.channelId)),
+      ...builtinBindings,
+    ],
+    uiMetadata: [
+      ...getPluginUiMetadataFromRegistry(registry).filter((metadata) => !builtinPluginIds.has(metadata.id)),
+      ...builtinUiMetadata,
+    ],
   };
 }
 

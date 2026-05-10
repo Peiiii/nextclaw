@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  resolveBuiltinExtensionManifestRoots,
   resolveExtensionManifestRoots,
   startDiscoveredExtensions,
 } from "./service-extension-runtime.service.js";
@@ -30,6 +31,12 @@ afterEach(() => {
 });
 
 describe("resolveExtensionManifestRoots", () => {
+  it("includes bundled extension packages so production service installs can discover them", () => {
+    const roots = resolveBuiltinExtensionManifestRoots();
+
+    expect(roots.some((root) => root.endsWith("nextclaw-channel-extension-weixin"))).toBe(true);
+  });
+
   it("uses NextClaw extension directories and existing configured load paths", () => {
     const workspace = createTempDir();
     const roots = resolveExtensionManifestRoots({
@@ -85,13 +92,12 @@ describe("startDiscoveredExtensions", () => {
         lifecycle: lifecycle as unknown as ExtensionLifecycleService,
       });
 
-      expect(result.running).toHaveLength(1);
-      expect(lifecycle.startAll).toHaveBeenCalledWith([
+      expect(result.running.map((entry) => entry.manifest)).toEqual(expect.arrayContaining([
         expect.objectContaining({
           id: "fake-extension",
           rootDir: extensionDir,
         }),
-      ]);
+      ]));
     } finally {
       if (originalDevExtensionDir === undefined) {
         delete process.env.NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR;

@@ -52,6 +52,19 @@ export type WeixinConfigResponse = {
   typing_ticket?: string;
 };
 
+export type WeixinQrCodeResponse = {
+  qrcode?: string;
+  qrcode_img_content?: string;
+};
+
+export type WeixinQrStatusResponse = {
+  status?: string;
+  bot_token?: string;
+  ilink_bot_id?: string;
+  baseurl?: string;
+  ilink_user_id?: string;
+};
+
 export type WeixinSendTypingResponse = {
   ret?: number;
   errcode?: number;
@@ -80,6 +93,17 @@ export type WeixinApiClient = {
     contextToken: string;
     signal?: AbortSignal;
   }) => Promise<WeixinConfigResponse>;
+  fetchQrCode: (params: {
+    baseUrl: string;
+    botType?: string;
+    signal?: AbortSignal;
+  }) => Promise<WeixinQrCodeResponse>;
+  fetchQrStatus: (params: {
+    baseUrl: string;
+    qrcode: string;
+    timeoutMs?: number;
+    signal?: AbortSignal;
+  }) => Promise<WeixinQrStatusResponse>;
   sendTyping: (params: {
     baseUrl: string;
     token: string;
@@ -114,6 +138,7 @@ export const WEIXIN_MESSAGE_ITEM_TYPE_FILE = 4;
 export const WEIXIN_UPLOAD_MEDIA_TYPE_IMAGE = 1;
 export const WEIXIN_UPLOAD_MEDIA_TYPE_FILE = 3;
 export const WEIXIN_MEDIA_ENCRYPT_TYPE_PACKED = 1;
+export const DEFAULT_WEIXIN_BOT_TYPE = "3";
 const WEIXIN_MESSAGE_STATE_FINISH = 2;
 const WEIXIN_CHANNEL_VERSION = "nextclaw-weixin/0.1.0";
 
@@ -272,6 +297,53 @@ export class HttpWeixinApiClient implements WeixinApiClient {
     });
     assertSuccess(response, "sendtyping");
     return response;
+  };
+
+  readonly fetchQrCode = async (params: {
+    baseUrl: string;
+    botType?: string;
+    signal?: AbortSignal;
+  }): Promise<WeixinQrCodeResponse> => {
+    const { baseUrl, botType, signal } = params;
+    const url = new URL(
+      `ilink/bot/get_bot_qrcode?bot_type=${encodeURIComponent(botType ?? DEFAULT_WEIXIN_BOT_TYPE)}`,
+      normalizeWeixinBaseUrl(baseUrl),
+    );
+    return await fetchWeixinJson<WeixinQrCodeResponse>({
+      url: url.toString(),
+      method: "GET",
+      timeoutMs: WEIXIN_API_TIMEOUT_MS,
+      signal,
+    });
+  };
+
+  readonly fetchQrStatus = async (params: {
+    baseUrl: string;
+    qrcode: string;
+    timeoutMs?: number;
+    signal?: AbortSignal;
+  }): Promise<WeixinQrStatusResponse> => {
+    const { baseUrl, qrcode, signal, timeoutMs } = params;
+    const url = new URL(
+      `ilink/bot/get_qrcode_status?qrcode=${encodeURIComponent(qrcode)}`,
+      normalizeWeixinBaseUrl(baseUrl),
+    );
+    try {
+      return await fetchWeixinJson<WeixinQrStatusResponse>({
+        url: url.toString(),
+        method: "GET",
+        timeoutMs: timeoutMs ?? WEIXIN_API_TIMEOUT_MS,
+        headers: {
+          "iLink-App-ClientVersion": "1",
+        },
+        signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return { status: "wait" };
+      }
+      throw error;
+    }
   };
 
   readonly sendMessageItem = async (params: {

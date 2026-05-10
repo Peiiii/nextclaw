@@ -89,6 +89,42 @@ describe("HttpWeixinApiClient", () => {
     });
   });
 
+  it("fetches login QR code with the stable bot type", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ qrcode: "qr-token", qrcode_img_content: "https://example.com/qr.png" }), { status: 200 }),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+    const api = new HttpWeixinApiClient();
+
+    await api.fetchQrCode({
+      baseUrl: "https://ilinkai.weixin.qq.com",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("https://ilinkai.weixin.qq.com/ilink/bot/get_bot_qrcode?bot_type=3");
+    expect(init?.method).toBe("GET");
+  });
+
+  it("fetches login QR status with iLink client version header", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ status: "confirmed", bot_token: "bot-token", ilink_bot_id: "bot-1" }), { status: 200 }),
+    );
+    globalThis.fetch = fetchMock as typeof fetch;
+    const api = new HttpWeixinApiClient();
+
+    await api.fetchQrStatus({
+      baseUrl: "https://ilinkai.weixin.qq.com",
+      qrcode: "qr-token",
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("https://ilinkai.weixin.qq.com/ilink/bot/get_qrcode_status?qrcode=qr-token");
+    expect(init?.method).toBe("GET");
+    expect(init?.headers).toMatchObject({
+      "iLink-App-ClientVersion": "1",
+    });
+  });
+
   it("fails fast when sendmessage returns a business error", async () => {
     globalThis.fetch = vi.fn(async () =>
       new Response(JSON.stringify({ ret: -3, errcode: -3, errmsg: "invalid context" }), { status: 200 }),

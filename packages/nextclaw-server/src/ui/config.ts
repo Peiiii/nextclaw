@@ -31,7 +31,7 @@ import {
   mergeProjectedPluginChannelConfig,
   normalizePluginProjectionOptions,
   type PluginConfigProjectionOptions
-} from "./plugin-channel-config.projection.js";
+} from "./plugin-channel-config-projection.utils.js";
 import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "./provider-overrides.js";
 import { buildSearchView, SEARCH_PROVIDER_META } from "./search-config.js";
 import type {

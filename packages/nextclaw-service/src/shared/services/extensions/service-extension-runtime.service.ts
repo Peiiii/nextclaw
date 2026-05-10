@@ -2,7 +2,9 @@ import type * as NextclawCore from "@nextclaw/core";
 import { getDataPath } from "@nextclaw/core";
 import type { Ingress, IngressContext, IngressEnvelope } from "@nextclaw/kernel";
 import { randomUUID } from "node:crypto";
-import { join, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { dirname, join, resolve } from "node:path";
 import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.js";
 import {
   ExtensionLifecycleService,
@@ -17,6 +19,8 @@ type InboundMessage = NextclawCore.InboundMessage;
 
 const EXTENSION_CONFIG_GET_INGRESS_TYPE = "extension.channel.config.get";
 const EXTENSION_MESSAGE_SUBMIT_INGRESS_TYPE = "extension.channel.message.submit";
+const BUILTIN_EXTENSION_PACKAGES = ["@nextclaw/channel-extension-weixin"] as const;
+const serviceRequire = createRequire(import.meta.url);
 
 type ChannelSubmittedMessagePayload = {
   channelId?: unknown;
@@ -39,6 +43,49 @@ function uniquePaths(paths: string[]): string[] {
     unique.push(normalized);
   }
   return unique;
+}
+
+function findExtensionManifestRoot(startPath: string): string | undefined {
+  let current = resolve(startPath);
+  while (true) {
+    if (existsSync(join(current, "nextclaw.extension.json"))) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
+}
+
+function resolveWorkspaceBuiltinExtensionManifestRoot(packageName: string): string | undefined {
+  if (packageName !== "@nextclaw/channel-extension-weixin") {
+    return undefined;
+  }
+  const root = resolve(process.cwd(), "packages", "extensions", "nextclaw-channel-extension-weixin");
+  return existsSync(join(root, "nextclaw.extension.json")) ? root : undefined;
+}
+
+export function resolveBuiltinExtensionManifestRoots(): string[] {
+  const roots: string[] = [];
+  for (const packageName of BUILTIN_EXTENSION_PACKAGES) {
+    try {
+      const entryPath = serviceRequire.resolve(packageName);
+      const root = findExtensionManifestRoot(dirname(entryPath));
+      if (root) {
+        roots.push(root);
+        continue;
+      }
+    } catch {
+      // Package-manager installs may omit optional built-ins in development workspaces.
+    }
+    const workspaceRoot = resolveWorkspaceBuiltinExtensionManifestRoot(packageName);
+    if (workspaceRoot) {
+      roots.push(workspaceRoot);
+    }
+  }
+  return uniquePaths(roots);
 }
 
 function readRecord(value: unknown): Record<string, unknown> {
@@ -118,6 +165,7 @@ export function resolveExtensionManifestRoots(params: {
     join(getDataPath(), "extensions"),
     join(params.workspace, ".nextclaw", "extensions"),
     ...(devExtensionsDir ? [devExtensionsDir] : []),
+    ...resolveBuiltinExtensionManifestRoots(),
     ...(params.config.plugins.load?.paths ?? []),
   ]);
 }
