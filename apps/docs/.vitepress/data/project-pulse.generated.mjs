@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-05-10T03:22:07.762Z",
+  "generatedAt": "2026-05-10T07:55:00.868Z",
   "hero": {
     "currentLoc": 245505,
     "trackedFiles": 1872,
-    "recentCommitCount": 497,
-    "activeDays30": 21,
+    "recentCommitCount": 499,
+    "activeDays30": 22,
     "recentReleaseCount": 65,
     "latestReleaseDate": "2026-05-07",
     "latestNoteDate": "2026-05-06",
@@ -570,7 +570,7 @@ export default {
       {
         "key": "2026-05-10",
         "label": "05-10",
-        "value": 0
+        "value": 2
       }
     ],
     "commitWeekly": [
@@ -632,7 +632,7 @@ export default {
       {
         "key": "2026-05-04",
         "label": "05-04",
-        "value": 133
+        "value": 135
       }
     ],
     "releaseMonthly": [
@@ -793,16 +793,16 @@ export default {
       },
       {
         "date": "2026-04-25",
-        "tagCount": 7,
+        "tagCount": 5,
         "sampleTags": [
-          "@nextclaw/app-runtime@0.7.0",
-          "@nextclaw/app-sdk@0.1.0",
-          "@nextclaw/agent-chat-ui@0.3.10"
+          "@nextclaw/agent-chat-ui@0.3.10",
+          "@nextclaw/ui@0.12.15",
+          "nextclaw@0.18.7"
         ]
       },
       {
         "date": "2026-04-24",
-        "tagCount": 46,
+        "tagCount": 47,
         "sampleTags": [
           "@nextclaw/app-runtime@0.6.0",
           "v0.18.4-desktop.1",
