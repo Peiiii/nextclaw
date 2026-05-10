@@ -16,10 +16,10 @@ import {
 const tempDirs: string[] = [];
 
 function createSessionManager(): SessionManager {
-  const dir = mkdtempSync(join(tmpdir(), "nextclaw-lifecycle-bridge-"));
-  tempDirs.push(dir);
+  const homeDir = mkdtempSync(join(tmpdir(), "nextclaw-lifecycle-bridge-"));
+  tempDirs.push(homeDir);
   return new SessionManager({
-    sessionsDir: dir,
+    sessionsDir: join(homeDir, "sessions"),
   });
 }
 

@@ -69,6 +69,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 它的状态、上下文、生命周期由谁拥有
 - 主流程现在是在一个清晰 owner 里，还是散落在函数 / hook / effect / action 中
 - 这个 owner 是否完整覆盖领域闭环，还是核心能力仍由上层通过 factory/deps 临时塞进来
+- 这个 owner 的职责边界、感知范围、最小依赖和合理自定义表面分别是什么
 
 如果答案说不清，先收敛 owner，再写增量逻辑。
 
@@ -78,6 +79,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
 - 领域 owner 要自己拥有创建、缓存、状态恢复、reload、dispose 等领域闭环；上层只传它无法自知的外部事实，例如配置快照、用户输入、路径、观测端口或明确策略
+- `responsibility-surface-minimization`：owner 自己能推导或决定的内部实现细节不外传；只有跨边界外部事实、明确策略、用户选择、测试替身或真实扩展点才进入参数表面
 
 ### 2.1 这是语义建模还是结构搬运
 
@@ -88,6 +90,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 是否正在手写接口 proxy、wrapper、adapter，只为了改其中一个方法
 - 是否只是把一个问题类型、参数对象、contract 或 wrapper 换了一个新名字，却没有删除重复字段清单、重复 owner 或重复装配链路
 - 是否只是把核心职责外包给上层传入的 `createXxx` / `resolveXxx` / `getXxx`，导致新类只有名字像 owner、能力却不内聚
+- 是否把不同层级的信息混进同一个 options，比如让下级 owner 同时感知 `homeDir/workspace/configPath/sessionsDir/factory`，导致职责边界失真
 - 是否有一个现成的数据生成者 / summary builder / view service 可以自然加上这个字段
 
 默认原则：
@@ -225,11 +228,12 @@ description: Use when implementing or refactoring code in this repository, espec
 3. 这次是在语义 owner 上建模，还是在做结构搬运；若不是结构搬运，证据是什么
 4. 是否引入或改名了类型 / 参数对象 / wrapper；如果是，它删除了哪个重复 contract 或新增了什么真实语义 owner，证据是什么
 5. 新 owner 是否完整内聚；如果依赖上层传入 factory/deps，为什么这是必要外部边界而不是空心注入
-6. 主路径是什么，为什么不是双路径；如果保留兼容路径，删除点是什么
-7. 为什么这不是隐藏 fallback 或补丁式修复
-8. 文件为什么放在这里
-9. 最小可信验证是什么
-10. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
+6. 新 owner 的职责边界、感知范围、最小依赖和可配置/自定义表面分别是什么
+7. 主路径是什么，为什么不是双路径；如果保留兼容路径，删除点是什么
+8. 为什么这不是隐藏 fallback 或补丁式修复
+9. 文件为什么放在这里
+10. 最小可信验证是什么
+11. 如果这不是新增能力，为什么最终能保证 `非测试代码净增 <= 0`
    同时说明准备在哪个相关责任链、旧实现或冗余路径上完成这次减债；若答案只是“我会把代码写得更紧一点”，说明方案仍不合格。
 
 如果这些问题里有 2 个以上答不清，先不要写代码。

@@ -44,7 +44,7 @@ afterEach(async () => {
 describe("SessionSearchWorkerIndexerService", () => {
   it("indexes, skips unchanged files, updates changed sessions, and deletes stale rows", async () => {
     const home = createTempHome();
-    const sessionManager = new SessionManager();
+    const sessionManager = new SessionManager(join(home, "sessions"));
     const session = sessionManager.getOrCreate("release-session");
     session.metadata.label = "Release Review";
     sessionManager.addMessage(session, "user", "draft deploy checklist");

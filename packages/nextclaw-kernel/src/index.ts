@@ -3,7 +3,6 @@ export * from "@kernel/app/nextclaw-app.js";
 export * from "@kernel/events/index.js";
 export * from "@kernel/managers/agent.manager.js";
 export * from "@kernel/managers/task.manager.js";
-export * from "@kernel/managers/session.manager.js";
 export * from "@kernel/managers/context-builder.manager.js";
 export * from "@kernel/managers/tool.manager.js";
 export * from "@kernel/managers/skill.manager.js";

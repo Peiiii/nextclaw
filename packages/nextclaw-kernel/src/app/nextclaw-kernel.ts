@@ -3,12 +3,26 @@ import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ContextBuilder } from "@kernel/managers/context-builder.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
-import { SessionManager } from "@kernel/managers/session.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { TaskManager } from "@kernel/managers/task.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
+import { ensureDir, expandHome, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
+import { resolve } from "node:path";
+
+export type NextclawKernelOptions = {
+  workspace?: string;
+  homeDir?: string;
+};
+
+function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
+  const homeDir = options.homeDir?.trim();
+  if (homeDir) {
+    return ensureDir(resolve(expandHome(homeDir), "sessions"));
+  }
+  return getSessionsPath();
+}
 
 type NextclawKernelRuntimeControl<
   TGatewayInput,
@@ -52,27 +66,46 @@ class NextclawKernelControlManager<
   };
 }
 
-export class NextclawKernel<
-  TGatewayInput = unknown,
-  TUiInput = unknown,
-  TStartInput = unknown,
-> {
-  readonly eventBus = new EventBus();
-  readonly ingress = new Ingress();
-  readonly llmProviders = new LlmProviderManager();
-  readonly agents = new AgentManager();
-  readonly tasks = new TaskManager();
-  readonly sessions = new SessionManager();
-  readonly contextBuilder = new ContextBuilder(this.sessions);
-  readonly control = new NextclawKernelControlManager<
-    TGatewayInput,
-    TUiInput,
-    TStartInput
-  >();
-  readonly tools = new ToolManager();
-  readonly skills = new SkillManager();
-  readonly automation = new AutomationManager();
-  readonly channels = new ChannelManager();
+export class NextclawKernel {
+  readonly eventBus: EventBus;
+  readonly ingress: Ingress;
+  readonly messageBus: MessageBus;
+  readonly llmProviders: LlmProviderManager;
+  readonly agents: AgentManager;
+  readonly tasks: TaskManager;
+  readonly sessions: SessionManager;
+  readonly contextBuilder: ContextBuilder;
+  readonly control: NextclawKernelControlManager<
+    unknown,
+    unknown,
+    unknown
+  >;
+  readonly tools: ToolManager;
+  readonly skills: SkillManager;
+  readonly automation: AutomationManager;
+  readonly channels: ChannelManager;
+
+  constructor(options: NextclawKernelOptions = {}) {
+    this.eventBus = new EventBus();
+    this.ingress = new Ingress();
+    this.messageBus = new MessageBus();
+    this.llmProviders = new LlmProviderManager();
+    this.sessions = new SessionManager({
+      sessionsDir: resolveKernelSessionsDir(options),
+    });
+    this.agents = new AgentManager();
+    this.tasks = new TaskManager();
+    this.contextBuilder = new ContextBuilder(this.sessions);
+    this.control = new NextclawKernelControlManager<
+      unknown,
+      unknown,
+      unknown
+    >();
+    this.tools = new ToolManager();
+    this.skills = new SkillManager();
+    this.automation = new AutomationManager();
+    this.channels = new ChannelManager();
+  }
 
   readonly run = (input: NextclawKernelRunInput): NextclawKernelRun => {
     void input;

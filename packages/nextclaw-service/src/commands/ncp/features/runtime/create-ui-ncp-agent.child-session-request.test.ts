@@ -369,7 +369,7 @@ describe("createUiNcpAgent child session follow-up requests", () => {
     const firstAgent = await createUiNcpAgent({
       bus: new MessageBus(),
       providerManager: new ChildSessionFollowupProviderManager() as unknown as ProviderManager,
-      sessionManager: new SessionManager({ workspace, homeDir: home }),
+      sessionManager: new SessionManager({ sessionsDir: join(home, "sessions") }),
       getConfig: () => config,
     });
     activeAgents.push(firstAgent);
@@ -390,7 +390,7 @@ describe("createUiNcpAgent child session follow-up requests", () => {
     const secondAgent = await createUiNcpAgent({
       bus: new MessageBus(),
       providerManager: new ChildSessionFollowupProviderManager() as unknown as ProviderManager,
-      sessionManager: new SessionManager({ workspace, homeDir: home }),
+      sessionManager: new SessionManager({ sessionsDir: join(home, "sessions") }),
       getConfig: () => config,
     });
     activeAgents.push(secondAgent);

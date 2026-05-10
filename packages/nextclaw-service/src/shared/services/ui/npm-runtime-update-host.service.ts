@@ -1,6 +1,5 @@
 import type { Config } from "@nextclaw/core";
-import { eventKeys, nextclaw } from "@nextclaw/kernel";
-import type { UpdatePreferences, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import { eventKeys, type EventBus, type UpdatePreferences, type UpdateProgress, type UpdateSnapshot } from "@nextclaw/kernel";
 import type { UiRuntimeUpdateHost } from "@nextclaw/server";
 import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/launcher/npm-runtime-bundle-layout.store.js";
@@ -19,6 +18,7 @@ const INITIAL_DOWNLOAD_PROGRESS: UpdateProgress = {
 };
 
 type NpmRuntimeUpdateHostDeps = {
+  eventBus: EventBus;
   requestRestart: (params: RequestRestartParams) => Promise<void>;
   uiConfig: Pick<Config["ui"], "port">;
   applyRestartMode: "managed-service-restart" | "manual-process-restart";
@@ -225,13 +225,9 @@ export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
 
   private setSnapshot = (snapshot: UpdateSnapshot): UpdateSnapshot => {
     this.snapshot = snapshot;
-    nextclaw.eventBus.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
+    this.deps.eventBus.emit(eventKeys.runtimeUpdateSnapshot, snapshot, {
       source: "backend"
     });
     return snapshot;
   };
-}
-
-export function createNpmRuntimeUpdateHost(params: NpmRuntimeUpdateHostDeps): NpmRuntimeUpdateHost {
-  return new NpmRuntimeUpdateHost(params);
 }

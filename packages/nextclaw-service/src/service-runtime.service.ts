@@ -1,5 +1,5 @@
 import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
-import { nextclaw, type LlmProviderRuntime } from "@nextclaw/kernel";
+import { NextclawKernel, type LlmProviderRuntime } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
@@ -486,9 +486,13 @@ export class NextclawServiceRuntime {
     });
 
     try {
-      nextclaw.llmProviders.load(config);
+      const kernel = new NextclawKernel({
+        workspace,
+        homeDir: getDataDir(),
+      });
+      kernel.llmProviders.load(config);
       const providerManager = this.createObservedProviderManager(
-        nextclaw.llmProviders,
+        kernel.llmProviders,
         "cli-agent",
       );
 
@@ -496,7 +500,7 @@ export class NextclawServiceRuntime {
         logo: this.logo,
         opts,
         config,
-        workspace,
+        kernel,
         providerManager,
         extensionRegistry,
         loadResolvedConfig: () =>

@@ -1,10 +1,9 @@
 import {
-  MessageBus,
-  SessionManager,
   getDataDir,
   type Config,
+  type SessionManager,
 } from "@nextclaw/core";
-import type { LlmProviderRuntime } from "@nextclaw/kernel";
+import type { LlmProviderRuntime, NextclawKernel } from "@nextclaw/kernel";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -87,7 +86,7 @@ export async function runCliAgentCommand(params: {
   logo: string;
   opts: AgentCommandOptions;
   config: Config;
-  workspace: string;
+  kernel: NextclawKernel;
   providerManager: LlmProviderRuntime;
   extensionRegistry: NextclawExtensionRegistry;
   loadResolvedConfig: () => Config;
@@ -99,18 +98,15 @@ export async function runCliAgentCommand(params: {
   const {
     config,
     extensionRegistry,
+    kernel,
     loadResolvedConfig,
     logo,
     opts,
     providerManager,
     resolveMessageToolHints,
-    workspace,
   } = params;
-  const bus = new MessageBus();
-  const sessionManager = new SessionManager({
-    workspace,
-    homeDir: getDataDir(),
-  });
+  const bus = kernel.messageBus;
+  const sessionManager = kernel.sessions;
   const ncpAgent = await createUiNcpAgent({
     bus,
     providerManager,

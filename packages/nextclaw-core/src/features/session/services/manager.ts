@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { ensureDir, expandHome, getSessionsPath, safeFilename } from "../../../shared/lib/core-utils/utils/helpers.js";
+import { ensureDir, expandHome, safeFilename } from "../../../shared/lib/core-utils/utils/helpers.js";
 
 export type SessionMessage = {
   role: string;
@@ -28,9 +28,7 @@ export type Session = {
 };
 
 export type SessionManagerOptions = {
-  workspace?: string;
-  homeDir?: string;
-  sessionsDir?: string;
+  sessionsDir: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -267,25 +265,18 @@ function buildLoadedSession(params: {
 }
 
 function resolveSessionDirectory(options: SessionManagerOptions): string {
-  const { homeDir, sessionsDir } = options;
-  if (typeof sessionsDir === "string" && sessionsDir.trim().length > 0) {
-    return ensureDir(resolve(expandHome(sessionsDir.trim())));
-  }
-  if (typeof homeDir === "string" && homeDir.trim().length > 0) {
-    return ensureDir(resolve(expandHome(homeDir.trim()), "sessions"));
-  }
-  return getSessionsPath();
+  return ensureDir(resolve(expandHome(options.sessionsDir.trim())));
 }
 
 export class SessionManager {
   private sessionsDir: string;
   private cache: Map<string, Session> = new Map();
 
-  constructor(private readonly workspaceOrOptions?: string | SessionManagerOptions) {
+  constructor(private readonly sessionsDirOrOptions: string | SessionManagerOptions) {
     const options =
-      typeof workspaceOrOptions === "string"
-        ? { workspace: workspaceOrOptions }
-        : workspaceOrOptions ?? {};
+      typeof sessionsDirOrOptions === "string"
+        ? { sessionsDir: sessionsDirOrOptions }
+        : sessionsDirOrOptions;
     this.sessionsDir = resolveSessionDirectory(options);
   }
 

@@ -1,5 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
-import { nextclaw, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
+import { NextclawKernel, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
@@ -32,7 +32,7 @@ import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRu
 import { ServiceNcpSessionRealtimeBridge } from "@nextclaw-service/shared/services/session/service-ncp-session-realtime-bridge.service.js";
 import { createDeferredUiNcpAgent } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
 import { installPluginRuntimeBridge } from "@nextclaw-service/shared/services/plugin/utils/plugin-runtime-bridge.utils.js";
-import { createNpmRuntimeUpdateHost } from "@nextclaw-service/shared/services/ui/npm-runtime-update-host.service.js";
+import { NpmRuntimeUpdateHost } from "@nextclaw-service/shared/services/ui/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/shared/services/ui/runtime-control-host.service.js";
 import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
@@ -45,10 +45,8 @@ const {
   getConfigPath,
   getDataDir,
   loadConfig,
-  MessageBus,
   resolveConfigSecrets,
   saveConfig,
-  SessionManager,
 } = NextclawCore;
 
 function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "manual-process-restart" {
@@ -86,6 +84,7 @@ export type GatewayRuntimeDeps = {
 };
 
 export class NextclawGatewayRuntime {
+  readonly kernel: NextclawKernel;
   readonly appEventBus: EventBus;
   readonly messageBus: MessageBus;
   readonly sessionManager: SessionManager;
@@ -124,17 +123,21 @@ export class NextclawGatewayRuntime {
       config,
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
     });
-    this.appEventBus = nextclaw.eventBus;
-    this.ingress = nextclaw.ingress;
-    this.messageBus = new MessageBus();
-    this.sessionManager = measureStartupSync(
-      "service.gateway.session_manager",
-      () => new SessionManager({ workspace: this.workspaceManager.workspace, homeDir: getDataDir() })
+    this.kernel = measureStartupSync(
+      "service.gateway.kernel",
+      () => new NextclawKernel({
+        workspace: this.workspaceManager.workspace,
+        homeDir: getDataDir(),
+      }),
     );
+    this.appEventBus = this.kernel.eventBus;
+    this.ingress = this.kernel.ingress;
+    this.messageBus = this.kernel.messageBus;
+    this.sessionManager = this.kernel.sessions;
     this.cron = new CronService(join(getDataDir(), "cron", "jobs.json"));
     this.productVersion = getPackageVersion();
     this.plugins = new GatewayPluginManager(this);
-    this.providerManager = nextclaw.llmProviders;
+    this.providerManager = this.kernel.llmProviders;
     this.providerManager.load(config);
     this.configManager = new GatewayConfigManager({
       configPath,
@@ -165,7 +168,8 @@ export class NextclawGatewayRuntime {
     this.runtimeUpdate =
       process.env.NEXTCLAW_DISABLE_RUNTIME_UPDATE_HOST === "1"
         ? null
-        : createNpmRuntimeUpdateHost({
+        : new NpmRuntimeUpdateHost({
+            eventBus: this.appEventBus,
             applyRestartMode: resolveApplyRestartMode(this.configManager.uiConfig.port),
             requestRestart: this.deps.requestRestart,
             uiConfig: this.configManager.uiConfig,
@@ -284,6 +288,7 @@ export class NextclawGatewayRuntime {
     ...(this.runtimeUpdate ? { runtimeUpdate: this.runtimeUpdate } : {}),
     bootstrapStatus: this.bootstrapStatus,
     plugins: this.plugins,
+    providers: this.providerManager,
   });
 
   private runRuntimeLoop = async (): Promise<void> => {

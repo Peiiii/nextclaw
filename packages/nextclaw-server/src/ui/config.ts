@@ -17,13 +17,11 @@ import {
   hasSecretRef,
   isSensitiveConfigPath,
   type ProviderSpec,
-  SessionManager,
-  getWorkspacePathFromConfig,
   normalizeThinkingLevels,
   parseThinkingLevel,
   type ThinkingLevel
 } from "@nextclaw/core";
-import { nextclaw } from "@nextclaw/kernel";
+import type { LlmProviderManager } from "@nextclaw/kernel";
 import { createDefaultProviderConfig } from "./provider-config.factory.js";
 import {
   buildPluginChannelUiHints,
@@ -46,13 +44,8 @@ import type {
   ProviderConnectionTestResult,
   ProviderConfigView,
   SecretsConfigUpdate,
-  SecretsView,
-  SessionsListView,
-  SessionHistoryView,
-  SessionPatchUpdate
+  SecretsView
 } from "./types.js";
-import { applySessionPreferencePatch } from "./session-preference-patch.js";
-import { readSessionListMetadata } from "./session-list-metadata.js";
 export { updateSearch } from "./search-config.js";
 
 const MASK_MIN_LENGTH = 8;
@@ -962,7 +955,8 @@ function stringifyError(error: unknown): string {
 export async function testProviderConnection(
   configPath: string,
   providerName: string,
-  patch: ProviderConnectionTestRequest
+  patch: ProviderConnectionTestRequest,
+  providerManager?: LlmProviderManager
 ): Promise<ProviderConnectionTestResult | null> {
   const config = loadConfigOrDefault(configPath);
   const provider = ensureProviderConfig(config, providerName);
@@ -1014,8 +1008,17 @@ export async function testProviderConnection(
   }
 
   const startedAtMs = Date.now();
+  if (!providerManager) {
+    return {
+      success: false,
+      provider: providerName,
+      model,
+      latencyMs: Date.now() - startedAtMs,
+      message: "Provider manager is unavailable."
+    };
+  }
   try {
-    await nextclaw.llmProviders.testConnection({
+    await providerManager.testConnection({
       providerName,
       apiKey,
       apiBase,
@@ -1081,279 +1084,6 @@ export function updateChannel(
     `channels.${channelName}`,
     buildUiHints(next, normalizedOptions)
   );
-}
-
-function normalizeSessionKey(value: string): string {
-  return value.trim();
-}
-
-function createSessionManager(config: Config): SessionManager {
-  return new SessionManager(getWorkspacePathFromConfig(config));
-}
-
-export const DEFAULT_SESSION_TYPE = "native";
-const SESSION_TYPE_METADATA_KEY = "session_type";
-const RUNTIME_METADATA_KEY = "runtime";
-
-type SessionLike = {
-  messages: Array<{ role?: unknown }>;
-  metadata: Record<string, unknown>;
-};
-
-function normalizeSessionType(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-  const normalized = value.trim().toLowerCase();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function readSessionType(session: SessionLike): string {
-  const normalized = normalizeSessionType(session.metadata[RUNTIME_METADATA_KEY]) ?? normalizeSessionType(session.metadata[SESSION_TYPE_METADATA_KEY]);
-  return normalized ?? DEFAULT_SESSION_TYPE;
-}
-
-function countUserMessages(session: SessionLike): number {
-  return session.messages.reduce((total, message) => {
-    const role = typeof message.role === "string" ? message.role.trim().toLowerCase() : "";
-    return role === "user" ? total + 1 : total;
-  }, 0);
-}
-
-function isSessionTypeMutable(session: SessionLike): boolean {
-  const activeUiRunId =
-    typeof session.metadata.ui_active_run_id === "string" ? session.metadata.ui_active_run_id.trim() : "";
-  return countUserMessages(session) === 0 && activeUiRunId.length === 0;
-}
-
-export class SessionPatchValidationError extends Error {
-  constructor(
-    public readonly code:
-      | "SESSION_TYPE_INVALID"
-      | "SESSION_TYPE_IMMUTABLE"
-      | "SESSION_TYPE_UNAVAILABLE"
-      | "PREFERRED_THINKING_INVALID",
-    message: string
-  ) {
-    super(message);
-    this.name = "SessionPatchValidationError";
-  }
-}
-
-export function listSessions(
-  configPath: string,
-  query?: { q?: string; limit?: number; activeMinutes?: number }
-): SessionsListView {
-  const config = loadConfigOrDefault(configPath);
-  const sessionManager = createSessionManager(config);
-  const now = Date.now();
-  const activeMinutes = typeof query?.activeMinutes === "number" ? Math.max(0, Math.trunc(query.activeMinutes)) : 0;
-  const q = (query?.q ?? "").trim().toLowerCase();
-  const limit = typeof query?.limit === "number" ? Math.max(0, Math.trunc(query.limit)) : 0;
-
-  const entries = sessionManager
-    .listSessions()
-    .map((item) => {
-      const key = typeof item.key === "string" ? normalizeSessionKey(item.key) : "";
-      if (!key) {
-        return null;
-      }
-      const session = sessionManager.getIfExists(key);
-      const messages = session?.messages ?? [];
-      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
-      const metadata = item.metadata && typeof item.metadata === "object" ? (item.metadata as Record<string, unknown>) : {};
-      const { label, preferredModel, preferredThinking } = readSessionListMetadata(metadata);
-      const createdAt = typeof item.created_at === "string" ? item.created_at : new Date(0).toISOString();
-      const updatedAt = typeof item.updated_at === "string" ? item.updated_at : createdAt;
-      const sessionType = readSessionType({
-        metadata,
-        messages
-      });
-      const sessionTypeMutable = isSessionTypeMutable({
-        metadata,
-        messages
-      });
-      return {
-        key,
-        createdAt,
-        updatedAt,
-        label,
-        preferredModel,
-        preferredThinking,
-        sessionType,
-        sessionTypeMutable,
-        messageCount: messages.length,
-        lastRole: typeof lastMessage?.role === "string" ? lastMessage.role : undefined,
-        lastTimestamp: typeof lastMessage?.timestamp === "string" ? lastMessage.timestamp : undefined
-      };
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
-
-  const filtered = entries.filter((entry) => {
-    if (activeMinutes > 0) {
-      const ageMs = now - new Date(entry.updatedAt).getTime();
-      if (!Number.isFinite(ageMs) || ageMs > activeMinutes * 60_000) {
-        return false;
-      }
-    }
-    if (!q) {
-      return true;
-    }
-    return entry.key.toLowerCase().includes(q) || (entry.label ?? "").toLowerCase().includes(q);
-  });
-
-  filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-
-  const total = filtered.length;
-  const sessions = limit > 0 ? filtered.slice(0, limit) : filtered;
-  return { sessions, total };
-}
-
-export function getSessionHistory(configPath: string, key: string, limit?: number): SessionHistoryView | null {
-  const normalizedKey = normalizeSessionKey(key);
-  if (!normalizedKey) {
-    return null;
-  }
-  const config = loadConfigOrDefault(configPath);
-  const sessionManager = createSessionManager(config);
-  const session = sessionManager.getIfExists(normalizedKey);
-  if (!session) {
-    return null;
-  }
-
-  const safeLimit = typeof limit === "number" ? Math.min(500, Math.max(1, Math.trunc(limit))) : 200;
-  const allMessages = session.messages;
-  const messages = allMessages.length > safeLimit ? allMessages.slice(-safeLimit) : allMessages;
-  const safeEventLimit = Math.min(2000, Math.max(50, safeLimit * 4));
-  const allEvents = session.events ?? [];
-  const events = allEvents.length > safeEventLimit ? allEvents.slice(-safeEventLimit) : allEvents;
-  const sessionType = readSessionType(session);
-  const sessionTypeMutable = isSessionTypeMutable(session);
-  return {
-    key: normalizedKey,
-    totalMessages: allMessages.length,
-    totalEvents: allEvents.length,
-    sessionType,
-    sessionTypeMutable,
-    metadata: session.metadata,
-    messages: messages.map((message) => {
-      const entry: Record<string, unknown> = {
-        role: message.role,
-        content: message.content,
-        timestamp: message.timestamp
-      };
-      if (typeof message.name === "string") {
-        entry.name = message.name;
-      }
-      if (typeof message.tool_call_id === "string") {
-        entry.tool_call_id = message.tool_call_id;
-      }
-      if (Array.isArray(message.tool_calls)) {
-        entry.tool_calls = message.tool_calls;
-      }
-      if (typeof message.reasoning_content === "string") {
-        entry.reasoning_content = message.reasoning_content;
-      }
-      return entry as SessionHistoryView["messages"][number];
-    }),
-    events: events.map((event) => {
-      const entry: SessionHistoryView["events"][number] = {
-        seq: event.seq,
-        type: event.type,
-        timestamp: event.timestamp
-      };
-      const message = event.data?.message;
-      if (message && typeof message === "object" && !Array.isArray(message)) {
-        const typed = message as Record<string, unknown>;
-        if (typeof typed.role === "string" && typeof typed.timestamp === "string") {
-          entry.message = {
-            role: typed.role,
-            content: typed.content,
-            timestamp: typed.timestamp,
-            ...(typeof typed.name === "string" ? { name: typed.name } : {}),
-            ...(typeof typed.tool_call_id === "string" ? { tool_call_id: typed.tool_call_id } : {}),
-            ...(Array.isArray(typed.tool_calls) ? { tool_calls: typed.tool_calls as Array<Record<string, unknown>> } : {}),
-            ...(typeof typed.reasoning_content === "string" ? { reasoning_content: typed.reasoning_content } : {})
-          };
-        }
-      }
-      return entry;
-    })
-  };
-}
-
-export function patchSession(
-  configPath: string,
-  key: string,
-  patch: SessionPatchUpdate,
-  options?: { availableSessionTypes?: string[] }
-): SessionHistoryView | null {
-  const normalizedKey = normalizeSessionKey(key);
-  if (!normalizedKey) {
-    return null;
-  }
-  const config = loadConfigOrDefault(configPath);
-  const sessionManager = createSessionManager(config);
-  const session = sessionManager.getIfExists(normalizedKey);
-  if (!session) {
-    return null;
-  }
-
-  if (patch.clearHistory) {
-    sessionManager.clear(session);
-  }
-
-  applySessionPreferencePatch({
-    metadata: session.metadata,
-    patch,
-    createInvalidThinkingError: (message) =>
-      new SessionPatchValidationError("PREFERRED_THINKING_INVALID", message)
-  });
-
-  if (Object.prototype.hasOwnProperty.call(patch, "sessionType")) {
-    const normalizedSessionType = normalizeSessionType(patch.sessionType);
-    if (!normalizedSessionType) {
-      throw new SessionPatchValidationError(
-        "SESSION_TYPE_INVALID",
-        "sessionType must be a non-empty string"
-      );
-    }
-
-    if (!isSessionTypeMutable(session)) {
-      throw new SessionPatchValidationError(
-        "SESSION_TYPE_IMMUTABLE",
-        "sessionType cannot be changed after the first user message"
-      );
-    }
-
-    const availableSessionTypes = new Set<string>(
-      (options?.availableSessionTypes ?? [DEFAULT_SESSION_TYPE]).map((item) => normalizeSessionType(item)).filter((item): item is string => Boolean(item))
-    );
-    availableSessionTypes.add(DEFAULT_SESSION_TYPE);
-    if (!availableSessionTypes.has(normalizedSessionType)) {
-      throw new SessionPatchValidationError(
-        "SESSION_TYPE_UNAVAILABLE",
-        `sessionType is unavailable: ${normalizedSessionType}`
-      );
-    }
-
-    session.metadata[SESSION_TYPE_METADATA_KEY] = normalizedSessionType;
-    session.metadata[RUNTIME_METADATA_KEY] = normalizedSessionType;
-  }
-
-  session.updatedAt = new Date();
-  sessionManager.save(session);
-  return getSessionHistory(configPath, normalizedKey, 200);
-}
-
-export function deleteSession(configPath: string, key: string): boolean {
-  const normalizedKey = normalizeSessionKey(key);
-  if (!normalizedKey) {
-    return false;
-  }
-  const config = loadConfigOrDefault(configPath);
-  const sessionManager = createSessionManager(config);
-  return sessionManager.delete(normalizedKey);
 }
 
 type RuntimeAgentDefaultsPatch = NonNullable<NonNullable<RuntimeConfigUpdate["agents"]>["defaults"]>;
