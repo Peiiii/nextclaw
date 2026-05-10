@@ -1,6 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
 import { spawn } from "node:child_process";
-import { MissingProvider } from "@nextclaw-service/shared/providers/missing-provider.js";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
 import { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
@@ -11,17 +10,10 @@ import { createSkillsLoader } from "@nextclaw-service/shared/services/runtime/ut
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
 const {
-  getApiBase,
-  getConfigPath,
-  getProvider,
-  getProviderName,
   getWorkspacePath,
   loadConfig,
-  LiteLLMProvider,
 } = NextclawCore;
 type Config = NextclawCore.Config;
-type LLMProvider = NextclawCore.LLMProvider;
-type LiteLLMProvider = NextclawCore.LiteLLMProvider;
 
 export class RuntimeCommandService {
   private loggingInstalled = false;
@@ -37,15 +29,13 @@ export class RuntimeCommandService {
     initializeAgentHomeDirectory: (homeDirectory: string) => void;
   }) {}
 
-  startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}): Promise<void> => {
+  startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; uiStaticDir?: string | null } = {}): Promise<void> => {
     this.ensureRuntimeLoggingInstalled();
     await new NextclawGatewayRuntime({
       requestRestart: this.deps.requestRestart,
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
       startService: this.startService,
       stopService: this.stopService,
-      createProvider: this.createProvider,
-      createMissingProvider: this.createMissingProvider,
       runCliSubcommand: this.runCliSubcommand,
       installBuiltinMarketplaceSkill: this.installBuiltinMarketplaceSkill,
     }, options).start();
@@ -64,31 +54,6 @@ export class RuntimeCommandService {
     open: boolean;
   }): Promise<void> => {
     await this.managedServiceCommandService.runForeground(options);
-  };
-
-  createMissingProvider = (config: ReturnType<typeof loadConfig>): LLMProvider => {
-    return new MissingProvider(config.agents.defaults.model);
-  };
-
-  createProvider = (config: ReturnType<typeof loadConfig>, options?: { allowMissing?: boolean }): LiteLLMProvider | null => {
-    const provider = getProvider(config);
-    const model = config.agents.defaults.model;
-    if (!provider?.apiKey && !model.startsWith("bedrock/")) {
-      if (options?.allowMissing) {
-        return null;
-      }
-      console.error("Error: No API key configured.");
-      console.error(`Set one in ${getConfigPath()} under providers section`);
-      process.exit(1);
-    }
-    return new LiteLLMProvider({
-      apiKey: provider?.apiKey ?? null,
-      apiBase: getApiBase(config),
-      defaultModel: model,
-      extraHeaders: provider?.extraHeaders ?? null,
-      providerName: getProviderName(config),
-      wireApi: provider?.wireApi ?? null
-    });
   };
 
   private installBuiltinMarketplaceSkill = (slug: string, _force: boolean | undefined): { message: string; output?: string } | null => {

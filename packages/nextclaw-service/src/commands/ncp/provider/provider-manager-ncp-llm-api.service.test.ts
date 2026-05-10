@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LLMStreamEvent, ProviderManager } from "@nextclaw/core";
-import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.js";
+import { ProviderManagerNcpLLMApi } from "./provider-manager-ncp-llm-api.service.js";
 
 describe("ProviderManagerNcpLLMApi", () => {
   it("does not duplicate reasoning or tool call deltas in the final chunk", async () => {

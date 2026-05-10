@@ -20,10 +20,10 @@ import {
   type ExtensionRegistry,
   type GatewayController,
   type MessageBus,
-  type ProviderManager,
   type SearchConfig,
   type SessionManager,
 } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
 import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
 import { isRecord, normalizeString } from "./nextclaw-ncp-message-bridge.js";
@@ -34,7 +34,7 @@ import { SessionSpawnTool } from "./session-request/session-spawn.tool.js";
 
 type NextclawNcpToolRegistryOptions = {
   bus: MessageBus;
-  providerManager: ProviderManager;
+  providerManager: LlmProviderRuntime;
   sessionManager: SessionManager;
   cronService?: CronService | null;
   gatewayController?: GatewayController;

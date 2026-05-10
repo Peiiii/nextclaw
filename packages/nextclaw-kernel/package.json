@@ -28,6 +28,8 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/core": "workspace:*",
+    "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "@nextclaw/ncp": "workspace:*"
   },

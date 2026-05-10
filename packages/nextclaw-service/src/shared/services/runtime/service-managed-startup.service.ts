@@ -305,7 +305,7 @@ export class ManagedServiceCommandService {
   private readonly serviceLogger = this.loggingRuntime.getLogger("service");
 
   constructor(private readonly deps: {
-    startGateway: (options: { uiOverrides: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null }) => Promise<void>;
+    startGateway: (options: { uiOverrides: Partial<Config["ui"]>; uiStaticDir?: string | null }) => Promise<void>;
     printPublicUiUrls: (host: string, port: number) => Promise<void>;
     printServiceControlHints: () => void;
     checkUiPortPreflight: (params: { host: string; port: number; healthUrl: string }) => Promise<{ ok: true; reusedExistingHealthyTarget: boolean } | { ok: false; message: string }>;
@@ -325,7 +325,6 @@ export class ManagedServiceCommandService {
 
     await this.deps.startGateway({
       uiOverrides: options.uiOverrides,
-      allowMissingProvider: true,
       uiStaticDir: resolveUiStaticDir()
     });
   };

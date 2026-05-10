@@ -1,11 +1,5 @@
-import { EventBus, Ingress } from "@nextclaw/shared";
+import { NextclawKernel } from "@kernel/app/nextclaw-kernel.js";
 
-export type NextClawApp = {
-  readonly eventBus: EventBus;
-  readonly ingress: Ingress;
-};
+export type NextClawApp = NextclawKernel;
 
-export const nextclaw: NextClawApp = {
-  eventBus: new EventBus(),
-  ingress: new Ingress(),
-};
+export const nextclaw = new NextclawKernel();

@@ -5,7 +5,8 @@ import type {
   NcpLLMApiInput,
   NcpLLMApiOptions,
 } from "@nextclaw/ncp";
-import { parseThinkingLevel, type LLMResponse, type ProviderManager, type ThinkingLevel, type ToolCallRequest } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
+import { parseThinkingLevel, type LLMResponse, type ThinkingLevel, type ToolCallRequest } from "@nextclaw/core";
 
 function normalizeModel(value: string | undefined): string | null {
   if (typeof value !== "string") {
@@ -74,9 +75,13 @@ function toFinalChunk(
 }
 
 export class ProviderManagerNcpLLMApi implements NcpLLMApi {
-  constructor(private readonly providerManager: ProviderManager) {}
+  constructor(private readonly providerManager: LlmProviderRuntime) {}
 
-  async *generate(input: NcpLLMApiInput, options?: NcpLLMApiOptions): AsyncGenerator<OpenAIChatChunk> {
+  readonly generate = async function* (
+    this: ProviderManagerNcpLLMApi,
+    input: NcpLLMApiInput,
+    options?: NcpLLMApiOptions
+  ): AsyncGenerator<OpenAIChatChunk> {
     const model = normalizeModel(input.model) ?? this.providerManager.get(null).getDefaultModel();
     const thinkingLevel = normalizeThinkingLevel(input.thinkingLevel);
     let sawTextDelta = false;
@@ -139,5 +144,5 @@ export class ProviderManagerNcpLLMApi implements NcpLLMApi {
         includeToolCalls: !sawToolCallDelta,
       });
     }
-  }
+  };
 }

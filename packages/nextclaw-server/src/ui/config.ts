@@ -4,7 +4,6 @@ import {
   ConfigSchema,
   DEFAULT_WORKSPACE_PATH,
   probeFeishu,
-  LiteLLMProvider,
   type Config,
   type ConfigActionExecuteRequest,
   type ConfigActionExecuteResult,
@@ -24,6 +23,7 @@ import {
   parseThinkingLevel,
   type ThinkingLevel
 } from "@nextclaw/core";
+import { nextclaw } from "@nextclaw/kernel";
 import { createDefaultProviderConfig } from "./provider-config.factory.js";
 import {
   buildPluginChannelUiHints,
@@ -1013,19 +1013,15 @@ export async function testProviderConnection(
     };
   }
 
-  const probe = new LiteLLMProvider({
-    apiKey,
-    apiBase,
-    defaultModel: model,
-    extraHeaders,
-    providerName,
-    wireApi
-  });
-
   const startedAtMs = Date.now();
   try {
-    await probe.chat({
-      model,
+    await nextclaw.llmProviders.testConnection({
+      providerName,
+      apiKey,
+      apiBase,
+      defaultModel: model,
+      extraHeaders,
+      wireApi,
       messages: [{ role: "user", content: "ping" }],
       maxTokens: PROVIDER_TEST_MAX_TOKENS
     });

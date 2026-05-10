@@ -1,4 +1,5 @@
-import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, ProviderManager, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
+import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
+import { nextclaw, type LlmProviderRuntime } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
@@ -485,11 +486,9 @@ export class NextclawServiceRuntime {
     });
 
     try {
-      const provider =
-        this.runtimeCommandService.createProvider(config) ??
-        this.runtimeCommandService.createMissingProvider(config);
+      nextclaw.llmProviders.load(config);
       const providerManager = this.createObservedProviderManager(
-        new ProviderManager({ defaultProvider: provider, config }),
+        nextclaw.llmProviders,
         "cli-agent",
       );
 
@@ -531,7 +530,7 @@ export class NextclawServiceRuntime {
     }
   };
 
-  private createObservedProviderManager = (providerManager: ProviderManager, source: string): ProviderManager =>
+  private createObservedProviderManager = (providerManager: LlmProviderRuntime, source: string): LlmProviderRuntime =>
     new ObservedProviderManager(providerManager, new LlmUsageObserver(llmUsageRecorder, source));
 }
 

@@ -2,9 +2,9 @@ import {
   findEffectiveAgentProfile,
   resolveDefaultAgentProfileId,
   type Config,
-  type ProviderManager,
   type SessionManager,
 } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
 import type { NcpMessage } from "@nextclaw/ncp";
 import {
   normalizeString,
@@ -141,7 +141,7 @@ export class ContextCompactionPreflightService {
   constructor(
     private readonly options: {
       getConfig: () => Config;
-      providerManager?: ProviderManager;
+      providerManager?: LlmProviderRuntime;
       sessionManager: SessionManager;
     },
   ) {}

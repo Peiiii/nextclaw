@@ -1,4 +1,4 @@
-import type { AgentId, LlmProviderId, SessionId, SkillId, TaskId, ToolId } from "./entity-ids.types.js";
+import type { AgentId, SessionId, SkillId, TaskId, ToolId } from "./entity-ids.types.js";
 
 export type ContextRecord = {
   sessionId: SessionId;
@@ -8,6 +8,5 @@ export type ContextRecord = {
   memoryRefs: string[];
   selectedSkillIds: SkillId[];
   selectedToolIds: ToolId[];
-  selectedProviderId?: LlmProviderId | null;
   variables: Record<string, unknown>;
 };

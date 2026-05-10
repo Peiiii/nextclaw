@@ -61,8 +61,6 @@ export class GatewayConfigManager {
         bus: gateway.messageBus,
         sessionManager: gateway.sessionManager,
         providerManager: gateway.providerManager,
-        makeProvider: (nextConfig) =>
-          deps.createProvider(nextConfig, { allowMissing: true }) ?? deps.createMissingProvider(nextConfig),
         loadConfig: this.loadGatewayConfig,
         resolveChannelConfig: (nextConfig) => resolveChannelConfigView(nextConfig, gateway.plugins.getChannelBindings()),
         getExtensionChannels: () => gateway.plugins.getExtensionRegistry().channels,

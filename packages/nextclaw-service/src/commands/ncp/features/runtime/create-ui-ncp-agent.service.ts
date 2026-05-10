@@ -5,9 +5,9 @@ import {
   getDataDir,
   type GlobalTypedEventBus,
   type MessageBus,
-  type ProviderManager,
   type SessionManager,
 } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
 import { McpRegistryService, McpServerLifecycleManager, type McpServerWarmResult } from "@nextclaw/mcp";
 import { DefaultNcpAgentRuntime, LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import { McpNcpToolRegistryAdapter } from "@nextclaw/ncp-mcp";
@@ -29,7 +29,7 @@ import { createAssetTools } from "./ncp-asset-tools.js";
 import { NextclawNcpContextBuilder } from "@nextclaw-service/commands/ncp/nextclaw-ncp-context-builder.js";
 import { NextclawAgentSessionStore } from "@nextclaw-service/commands/ncp/nextclaw-agent-session-store.js";
 import { NextclawNcpToolRegistry } from "@nextclaw-service/commands/ncp/nextclaw-ncp-tool-registry.js";
-import { ProviderManagerNcpLLMApi } from "@nextclaw-service/commands/ncp/provider/provider-manager-ncp-llm-api.js";
+import { ProviderManagerNcpLLMApi } from "@nextclaw-service/commands/ncp/provider/provider-manager-ncp-llm-api.service.js";
 import { SessionCreationService } from "@nextclaw-service/commands/ncp/session-request/session-creation.service.js";
 import { SessionRequestBroker } from "@nextclaw-service/commands/ncp/session-request/session-request-broker.service.js";
 import { SessionRequestDeliveryService } from "@nextclaw-service/commands/ncp/session-request/session-request-delivery.service.js";
@@ -62,7 +62,7 @@ type MessageToolHintsResolver = (params: {
 
 export type CreateUiNcpAgentParams = {
   bus: MessageBus;
-  providerManager: ProviderManager;
+  providerManager: LlmProviderRuntime;
   sessionManager: SessionManager;
   cronService?: CronService | null;
   gatewayController?: GatewayController;
@@ -302,7 +302,7 @@ async function* publishPreflightResult(params: {
 
 function createResolveOpenAiToolsForRuntime(params: {
   bus: MessageBus;
-  providerManager: ProviderManager;
+  providerManager: LlmProviderRuntime;
   sessionManager: SessionManager;
   cronService?: CronService | null;
   gatewayController?: GatewayController;

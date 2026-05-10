@@ -3,10 +3,14 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, GatewayTool, type Config } from "@nextclaw/core";
-import { ConfigReloader } from "../services/config/config-reloader.service.js";
-import { RuntimeRestartRequestService } from "../services/restart/runtime-restart-request.service.js";
-import { pendingRestartStore } from "../stores/pending-restart.store.js";
-import { GatewayControllerImpl } from "./gateway.controller.js";
+import { GatewayControllerImpl } from "../../shared/controllers/gateway.controller.js";
+import { ConfigReloader } from "../../shared/services/config/config-reloader.service.js";
+import { RuntimeRestartRequestService } from "../../shared/services/restart/runtime-restart-request.service.js";
+import { pendingRestartStore } from "../../shared/stores/pending-restart.store.js";
+
+vi.mock("@nextclaw-service/launcher/npm-runtime-update-command.service.js", () => ({
+  NpmRuntimeUpdateCommandService: class {}
+}));
 
 describe("gateway manual restart contract", () => {
   let configDir = "";
@@ -39,7 +43,6 @@ describe("gateway manual restart contract", () => {
       bus: {} as never,
       sessionManager: {} as never,
       providerManager: null,
-      makeProvider: () => null,
       loadConfig: readConfig,
       applyAgentRuntimeConfig,
       onRestartRequired: (paths) => {

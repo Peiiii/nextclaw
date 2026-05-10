@@ -9,7 +9,7 @@ export {
 export {
   builtinProviderIds,
   findBuiltinProviderByName,
-  installBuiltinProviderRegistry,
   listBuiltinProviderPlugins,
   listBuiltinProviders
 } from "./providers/builtin-provider-registry.provider.js";
+export { BUILTIN_PROVIDER_PLUGINS } from "./providers/plugins/index.js";

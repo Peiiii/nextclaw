@@ -1,11 +1,8 @@
-import type { ProviderManager } from "@nextclaw/core";
-import { ProviderManager as ProviderManagerBase } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
 import type { LlmUsageRecord } from "@nextclaw-service/shared/stores/llm-usage-record.js";
 import type { LlmUsageRecorder } from "./llm-usage-recorder.service.js";
 
-type ProviderChatParams = Parameters<ProviderManager["chat"]>[0];
-type ProviderSetParam = Parameters<ProviderManager["set"]>[0];
-type ProviderConfigParam = Parameters<ProviderManager["setConfig"]>[0];
+type ProviderChatParams = Parameters<LlmProviderRuntime["chat"]>[0];
 
 export class LlmUsageObserver {
   constructor(
@@ -25,38 +22,31 @@ export class LlmUsageObserver {
   };
 }
 
-export class ObservedProviderManager extends ProviderManagerBase {
+export class ObservedProviderManager implements LlmProviderRuntime {
   constructor(
-    private readonly delegate: ProviderManager,
+    private readonly delegate: LlmProviderRuntime,
     private readonly observer: LlmUsageObserver
-  ) {
-    super(delegate.get(null));
-  }
+  ) {}
 
-  override get(model?: string | null) {
+  readonly get = (model?: string | null) => {
     return this.delegate.get(model);
-  }
+  };
 
-  override set(next: ProviderSetParam): void {
-    this.delegate.set(next);
-  }
-
-  override setConfig(nextConfig: ProviderConfigParam): void {
-    this.delegate.setConfig(nextConfig);
-  }
-
-  override async chat(params: ProviderChatParams) {
+  readonly chat = async (params: ProviderChatParams) => {
     const response = await this.delegate.chat(params);
     this.observer.observe({ model: params.model ?? null, usage: response.usage });
     return response;
-  }
+  };
 
-  override async *chatStream(params: ProviderChatParams) {
+  readonly chatStream = async function* (
+    this: ObservedProviderManager,
+    params: ProviderChatParams
+  ) {
     for await (const event of this.delegate.chatStream(params)) {
       if (event.type === "done") {
         this.observer.observe({ model: params.model ?? null, usage: event.response.usage });
       }
       yield event;
     }
-  }
+  };
 }

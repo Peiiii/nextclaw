@@ -8,6 +8,7 @@ import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { TaskManager } from "@kernel/managers/task.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
+import { EventBus, Ingress } from "@nextclaw/shared";
 
 type NextclawKernelRuntimeControl<
   TGatewayInput,
@@ -56,6 +57,9 @@ export class NextclawKernel<
   TUiInput = unknown,
   TStartInput = unknown,
 > {
+  readonly eventBus = new EventBus();
+  readonly ingress = new Ingress();
+  readonly llmProviders = new LlmProviderManager();
   readonly agents = new AgentManager();
   readonly tasks = new TaskManager();
   readonly sessions = new SessionManager();
@@ -67,7 +71,6 @@ export class NextclawKernel<
   >();
   readonly tools = new ToolManager();
   readonly skills = new SkillManager();
-  readonly llmProviders = new LlmProviderManager();
   readonly automation = new AutomationManager();
   readonly channels = new ChannelManager();
 

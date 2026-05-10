@@ -1,6 +1,5 @@
 import {
   ProviderRegistry,
-  setProviderRegistry,
   type ProviderCatalogPlugin,
   type ProviderSpec
 } from "@nextclaw/core";
@@ -11,12 +10,6 @@ let builtinProviderRegistry: ProviderRegistry | null = null;
 function getBuiltinProviderRegistry(): ProviderRegistry {
   builtinProviderRegistry ??= new ProviderRegistry(BUILTIN_PROVIDER_PLUGINS);
   return builtinProviderRegistry;
-}
-
-export function installBuiltinProviderRegistry(): ProviderRegistry {
-  const registry = getBuiltinProviderRegistry();
-  setProviderRegistry(registry);
-  return registry;
 }
 
 export function listBuiltinProviderPlugins(): ProviderCatalogPlugin[] {

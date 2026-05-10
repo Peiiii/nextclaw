@@ -1,9 +1,8 @@
 import * as NextclawCore from "@nextclaw/core";
-import { nextclaw, type EventBus, type Ingress } from "@nextclaw/kernel";
+import { nextclaw, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
-import { installBuiltinProviderRegistry } from "@nextclaw/runtime";
 import {
   startUiServer,
   type UiNcpAgent,
@@ -47,7 +46,6 @@ const {
   getDataDir,
   loadConfig,
   MessageBus,
-  ProviderManager,
   resolveConfigSecrets,
   saveConfig,
   SessionManager,
@@ -69,16 +67,12 @@ function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "m
 }
 
 type Config = NextclawCore.Config;
-type LLMProvider = NextclawCore.LLMProvider;
-type LiteLLMProvider = NextclawCore.LiteLLMProvider;
 type MessageBus = NextclawCore.MessageBus;
 type SessionManager = NextclawCore.SessionManager;
-type ProviderManager = NextclawCore.ProviderManager;
 type CronService = NextclawCore.CronService;
 
 type GatewayRuntimeOptions = {
   uiOverrides?: Partial<Config["ui"]>;
-  allowMissingProvider?: boolean;
   uiStaticDir?: string | null;
 };
 
@@ -87,8 +81,6 @@ export type GatewayRuntimeDeps = {
   initializeAgentHomeDirectory: (homeDirectory: string) => void;
   startService: (options: { uiOverrides: Record<string, unknown>; open: boolean }) => Promise<void>;
   stopService: () => Promise<void>;
-  createProvider: (config: Config, options?: { allowMissing?: boolean }) => LiteLLMProvider | null;
-  createMissingProvider: (config: Config) => LLMProvider;
   runCliSubcommand: (args: string[]) => Promise<string>;
   installBuiltinMarketplaceSkill: (slug: string, force: boolean | undefined) => { message: string; output?: string } | null;
 };
@@ -102,7 +94,7 @@ export class NextclawGatewayRuntime {
   readonly runtimeUpdate: UiRuntimeUpdateHost | null;
   readonly ingress: Ingress;
   readonly productVersion: string;
-  readonly providerManager: ProviderManager;
+  readonly providerManager: LlmProviderManager;
   readonly gatewayController: GatewayControllerImpl;
 
   readonly configManager: GatewayConfigManager;
@@ -142,7 +134,8 @@ export class NextclawGatewayRuntime {
     this.cron = new CronService(join(getDataDir(), "cron", "jobs.json"));
     this.productVersion = getPackageVersion();
     this.plugins = new GatewayPluginManager(this);
-    this.providerManager = this.createProviderManager(config);
+    this.providerManager = nextclaw.llmProviders;
+    this.providerManager.load(config);
     this.configManager = new GatewayConfigManager({
       configPath,
       config,
@@ -186,7 +179,6 @@ export class NextclawGatewayRuntime {
   }
 
   start = async (): Promise<void> => {
-    installBuiltinProviderRegistry();
     logStartupTrace("service.start_gateway.begin");
     await this.reset();
     this.configureIngressHandlers();
@@ -333,26 +325,6 @@ export class NextclawGatewayRuntime {
   private markUiRuntimeReady = async (): Promise<void> => {
     this.bootstrapStatus.markShellReady();
     await waitForNextTick();
-  };
-
-  private createProviderManager = (config: Config): ProviderManager => {
-    const provider =
-      this.options.allowMissingProvider === true
-        ? this.deps.createProvider(config, { allowMissing: true })
-        : this.deps.createProvider(config);
-    const manager = measureStartupSync(
-      "service.gateway.provider_manager",
-      () => new ProviderManager({
-        defaultProvider: provider ?? this.deps.createMissingProvider(config),
-        config,
-      })
-    );
-    if (!provider) {
-      console.warn(
-        "Warning: No API key configured. The gateway is running, but agent replies are disabled until provider config is set.",
-      );
-    }
-    return manager;
   };
 
   private createGatewayController = (): GatewayControllerImpl => {

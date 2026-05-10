@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LiteLLMProvider } from "./litellm_provider.js";
+import { LiteLLMProvider } from "./litellm.provider.js";
 import type { LLMResponse } from "./base.js";
 import { configureProviderCatalog } from "./registry.js";
 

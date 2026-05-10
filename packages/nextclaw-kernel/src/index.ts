@@ -17,7 +17,6 @@ export * from "@kernel/types/session.types.js";
 export * from "@kernel/types/context.types.js";
 export * from "@kernel/types/tool.types.js";
 export * from "@kernel/types/skill.types.js";
-export * from "@kernel/types/llm-provider.types.js";
 export * from "@kernel/types/automation.types.js";
 export * from "@kernel/types/channel.types.js";
 export * from "@kernel/types/nextclaw-kernel.types.js";

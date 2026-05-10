@@ -3,8 +3,8 @@ import {
   SessionManager,
   getDataDir,
   type Config,
-  type ProviderManager,
 } from "@nextclaw/core";
+import type { LlmProviderRuntime } from "@nextclaw/kernel";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
@@ -88,7 +88,7 @@ export async function runCliAgentCommand(params: {
   opts: AgentCommandOptions;
   config: Config;
   workspace: string;
-  providerManager: ProviderManager;
+  providerManager: LlmProviderRuntime;
   extensionRegistry: NextclawExtensionRegistry;
   loadResolvedConfig: () => Config;
   resolveMessageToolHints: (params: {

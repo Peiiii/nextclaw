@@ -1,14 +1,26 @@
 import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "./base.js";
 import { AnthropicMessagesProvider } from "../features/anthropic/providers/anthropic-messages.provider.js";
 import { OpenAICompatibleProvider } from "./openai_provider.js";
-import { findGateway, findProviderByModel, findProviderByName, type ProviderSpec } from "./registry.js";
+import {
+  findGateway,
+  findProviderByModel,
+  findProviderByName,
+  type ProviderRegistry,
+  type ProviderSpec
+} from "./registry.js";
 import type { ThinkingLevel } from "../../../shared/lib/core-utils/utils/thinking.js";
+
+type ProviderRegistryView = Pick<
+  ProviderRegistry,
+  "findGateway" | "findProviderByModel" | "findProviderByName"
+>;
 
 export type LiteLLMProviderOptions = {
   apiKey?: string | null;
   apiBase?: string | null;
   defaultModel: string;
   extraHeaders?: Record<string, string> | null;
+  providerRegistry?: ProviderRegistryView;
   providerName?: string | null;
   wireApi?: "auto" | "chat" | "responses" | null;
 };
@@ -16,6 +28,7 @@ export type LiteLLMProviderOptions = {
 export class LiteLLMProvider extends LLMProvider {
   private defaultModel: string;
   private providerName?: string | null;
+  private providerRegistry?: ProviderRegistryView;
   private gatewaySpec?: ProviderSpec;
   private client: LLMProvider;
 
@@ -25,14 +38,16 @@ export class LiteLLMProvider extends LLMProvider {
       apiKey,
       defaultModel,
       extraHeaders: optionExtraHeaders,
+      providerRegistry,
       providerName,
       wireApi: requestedWireApi
     } = options;
     super(apiKey, apiBase);
     this.defaultModel = defaultModel;
     this.providerName = providerName ?? null;
-    this.gatewaySpec = findGateway(this.providerName, apiKey ?? null, apiBase ?? null) ?? undefined;
-    const providerSpec = this.providerName ? findProviderByName(this.providerName) : undefined;
+    this.providerRegistry = providerRegistry;
+    this.gatewaySpec = this.findGateway(this.providerName, apiKey ?? null, apiBase ?? null);
+    const providerSpec = this.providerName ? this.findProviderByName(this.providerName) : undefined;
     const supportsWireApi = providerSpec?.supportsWireApi === true || !providerSpec;
     const wireApi = supportsWireApi
       ? requestedWireApi ?? providerSpec?.defaultWireApi ?? "auto"
@@ -174,13 +189,30 @@ export class LiteLLMProvider extends LLMProvider {
 
   private getStandardSpec = (model: string): ProviderSpec | undefined => {
     if (this.providerName) {
-      const explicit = findProviderByName(this.providerName);
+      const explicit = this.findProviderByName(this.providerName);
       if (explicit) {
         return explicit;
       }
       return undefined;
     }
-    return findProviderByModel(model);
+    return this.findProviderByModel(model);
+  };
+
+  private findGateway = (
+    providerName?: string | null,
+    apiKey?: string | null,
+    apiBase?: string | null
+  ): ProviderSpec | undefined => {
+    return this.providerRegistry?.findGateway(providerName, apiKey, apiBase)
+      ?? findGateway(providerName, apiKey, apiBase);
+  };
+
+  private findProviderByName = (name: string): ProviderSpec | undefined => {
+    return this.providerRegistry?.findProviderByName(name) ?? findProviderByName(name);
+  };
+
+  private findProviderByModel = (model: string): ProviderSpec | undefined => {
+    return this.providerRegistry?.findProviderByModel(model) ?? findProviderByModel(model);
   };
 
   private mergeExtraHeaders = (
@@ -202,7 +234,7 @@ export class LiteLLMProvider extends LLMProvider {
     if (!provider) {
       return model;
     }
-    if (findProviderByName(provider)) {
+    if (this.findProviderByName(provider)) {
       return model;
     }
     const prefix = `${provider}/`;

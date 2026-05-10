@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
-import { LLMProvider, ProviderManager, type LLMResponse, type LLMStreamEvent } from "@nextclaw/core";
+import { LLMProvider, type LLMResponse, type LLMStreamEvent } from "@nextclaw/core";
 import { LlmUsageObserver, ObservedProviderManager } from "./llm-usage-observer.service.js";
 import { LlmUsageRecorder } from "./llm-usage-recorder.service.js";
 import { LlmUsageHistoryStore } from "@nextclaw-service/shared/stores/llm-usage-history.store.js";
@@ -29,23 +29,30 @@ class StaticUsageProvider extends LLMProvider {
   };
 }
 
+const createProviderRuntime = (provider: StaticUsageProvider) => ({
+  get: () => provider,
+  chat: provider.chat,
+  chatStream: provider.chatStream
+});
+
 describe("ObservedProviderManager", () => {
   it("writes cache metrics after chat responses", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-observer-"));
     const snapshotStore = new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json"));
     const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
+    const provider = new StaticUsageProvider({
+      content: "ok",
+      toolCalls: [],
+      finishReason: "stop",
+      usage: {
+        prompt_tokens: 1200,
+        completion_tokens: 50,
+        total_tokens: 1250,
+        prompt_tokens_details_cached_tokens: 1024
+      }
+    });
     const manager = new ObservedProviderManager(
-      new ProviderManager(new StaticUsageProvider({
-        content: "ok",
-        toolCalls: [],
-        finishReason: "stop",
-        usage: {
-          prompt_tokens: 1200,
-          completion_tokens: 50,
-          total_tokens: 1250,
-          prompt_tokens_details_cached_tokens: 1024
-        }
-      })),
+      createProviderRuntime(provider),
       new LlmUsageObserver(new LlmUsageRecorder({ snapshotStore, historyStore }), "cli-agent")
     );
 
@@ -67,18 +74,19 @@ describe("ObservedProviderManager", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-observer-"));
     const snapshotStore = new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json"));
     const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
+    const provider = new StaticUsageProvider({
+      content: "ok",
+      toolCalls: [],
+      finishReason: "stop",
+      usage: {
+        input_tokens: 1000,
+        output_tokens: 40,
+        total_tokens: 1040,
+        input_tokens_details_cached_tokens: 768
+      }
+    });
     const manager = new ObservedProviderManager(
-      new ProviderManager(new StaticUsageProvider({
-        content: "ok",
-        toolCalls: [],
-        finishReason: "stop",
-        usage: {
-          input_tokens: 1000,
-          output_tokens: 40,
-          total_tokens: 1040,
-          input_tokens_details_cached_tokens: 768
-        }
-      })),
+      createProviderRuntime(provider),
       new LlmUsageObserver(new LlmUsageRecorder({ snapshotStore, historyStore }), "ui-ncp")
     );
 
@@ -103,13 +111,14 @@ describe("ObservedProviderManager", () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-observer-"));
     const snapshotStore = new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json"));
     const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
+    const provider = new StaticUsageProvider({
+      content: "ok",
+      toolCalls: [],
+      finishReason: "stop",
+      usage: {}
+    });
     const manager = new ObservedProviderManager(
-      new ProviderManager(new StaticUsageProvider({
-        content: "ok",
-        toolCalls: [],
-        finishReason: "stop",
-        usage: {}
-      })),
+      createProviderRuntime(provider),
       new LlmUsageObserver(new LlmUsageRecorder({ snapshotStore, historyStore }), "ui-ncp")
     );
 

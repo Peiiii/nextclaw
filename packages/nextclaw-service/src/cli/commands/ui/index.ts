@@ -21,7 +21,6 @@ export class UiCommands {
     }
     await this.deps.runtimeCommandService.startGateway({
       uiOverrides,
-      allowMissingProvider: true,
     });
   };
 }
