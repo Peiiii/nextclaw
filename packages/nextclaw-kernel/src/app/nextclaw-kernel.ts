@@ -1,9 +1,7 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
-import { ContextBuilder } from "@kernel/managers/context-builder.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
-import { TaskManager } from "@kernel/managers/task.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
 import { ChannelManager, ensureDir, expandHome, getDataDir, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
@@ -74,14 +72,12 @@ class NextclawKernelControlManager<
 }
 
 export class NextclawKernel {
-  readonly eventBus: EventBus;
-  readonly ingress: Ingress;
-  readonly messageBus: MessageBus;
-  readonly llmProviders: LlmProviderManager;
+  readonly eventBus: EventBus = new EventBus();
+  readonly ingress: Ingress = new Ingress();
+  readonly messageBus: MessageBus = new MessageBus();
+  readonly llmProviders: LlmProviderManager = new LlmProviderManager();
   readonly agents: AgentManager;
-  readonly tasks: TaskManager;
   readonly sessions: SessionManager;
-  readonly contextBuilder: ContextBuilder;
   readonly control: NextclawKernelControlManager<
     unknown,
     unknown,
@@ -93,10 +89,6 @@ export class NextclawKernel {
   readonly channels: ChannelManager;
 
   constructor(options: NextclawKernelOptions = {}) {
-    this.eventBus = new EventBus();
-    this.ingress = new Ingress();
-    this.messageBus = new MessageBus();
-    this.llmProviders = new LlmProviderManager();
     this.sessions = new SessionManager({
       sessionsDir: resolveKernelSessionsDir(options),
     });
@@ -104,8 +96,6 @@ export class NextclawKernel {
       storePath: resolveKernelAutomationStorePath(options),
     });
     this.agents = new AgentManager();
-    this.tasks = new TaskManager();
-    this.contextBuilder = new ContextBuilder(this.sessions);
     this.control = new NextclawKernelControlManager<
       unknown,
       unknown,

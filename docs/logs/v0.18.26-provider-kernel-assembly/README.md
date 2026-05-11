@@ -50,6 +50,12 @@
 - 删除只创建 marketplace config 的 `GatewayMarketplaceManager`，gateway runtime 直接创建 `marketplace` 配置对象。
 - 删除 kernel `ChannelRecord`/CRUD stub/type barrel，以及 core 旧 `services/manager.ts` 和旧 typing-control 测试文件；新增 core manager 定向测试覆盖 load/start/reload/control delivery。
 
+同批次继续清理 kernel 空心 owner：
+
+- 删除 kernel 内未实现的 `TaskManager` throw stub、`ContextBuilder` throw stub，以及对应 `TaskRecord`/`ContextRecord` 类型出口。
+- `NextclawKernel` 不再构造 `tasks` / `contextBuilder` 两个没有真实职责闭环的对象。
+- 保留 `TaskId` 等仍被 session/kernel run 类型使用的基础 id 类型，不做无关破坏性删除。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/core tsc`：通过。
@@ -57,6 +63,9 @@
 - `pnpm --filter @nextclaw/runtime tsc`：通过。
 - `pnpm --filter @nextclaw/server tsc`：通过。
 - `pnpm --filter @nextclaw/service tsc`：通过。
+- `pnpm --filter @nextclaw/kernel tsc`：通过。
+- `pnpm --filter @nextclaw/server tsc`：通过。
+- `pnpm --filter @nextclaw/kernel lint`：通过。
 - `pnpm --filter @nextclaw/core lint`：通过，有既有 warning。
 - `pnpm --filter @nextclaw/kernel lint`：通过。
 - `pnpm --filter @nextclaw/runtime lint`：通过。
@@ -75,6 +84,7 @@
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：当前触达范围非测试代码净减 287 行；触达 `packages/nextclaw-server/src/ui/config.ts` 红区，已补红区触达记录。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：automation/cron 整合继续删减后触达范围总计 +689/-732，非测试代码 +459/-502，净减 43 行；仅提示 server UI 目录既有文件数 warning。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：channel/gateway 整合触达范围总计 +401/-473，净减 72 行；非测试代码 +266/-345，净减 79 行；仅提示 runtime 目录既有预算豁免和 `nextclaw-ncp-dispatch.utils.ts` 接近文件预算。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：kernel task/context 空心 owner 清理触达范围总计 +1/-123，净减 122 行；非测试代码 +1/-123，净减 122 行；无维护性发现。
 
 路由测试 `pnpm --filter @nextclaw/server test -- src/ui/router.provider-test.test.ts` 当前被既有 `@core/*` alias 解析问题阻塞，未进入测试用例执行。
 路由测试 `pnpm --filter @nextclaw/server test -- src/ui/router.cron.test.ts` 当前同样被既有 `@core/*` alias 解析问题阻塞，未进入测试用例执行。
@@ -102,6 +112,8 @@
 automation/cron 继续沿用同一原则：保留 `AutomationManager` 这个语义 owner，但不迁移现有数据模型，不额外制造 wrapper/factory。gateway runtime 的 cron 装配入口收敛到 kernel；cron CLI 是离线数据命令，只直接持有 `AutomationManager`，不创建完整 kernel；core 的 `CronService` 仍作为可复用调度组件存在。
 
 channel 收敛继续沿用同一原则：core 只提供唯一可复用的 `ChannelManager` 组件；kernel 是唯一对象图装配点；service 生命周期层只把配置和 extension registry 装载进去，不再创建或包一层 channel owner。本次通过删除 kernel fake manager、类型 stub、service 散点实例化路径，以及 `GatewayChannelManager`/`GatewayWorkspaceManager`/`GatewayMarketplaceManager` 这类薄壳，让职责更集中且非测试代码净减。
+
+kernel task/context 清理继续沿用 `deletion-first` 和 `complete-owner`：未实现、无调用、只会在运行期 throw 的 `TaskManager` / `ContextBuilder` 不应留在 kernel 对象图里。本次直接删除这些空心 owner 和对应类型出口，没有新增兼容别名。
 
 当前保留债务：
 

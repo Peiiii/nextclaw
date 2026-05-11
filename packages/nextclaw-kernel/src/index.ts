@@ -1,8 +1,6 @@
 export * from "@kernel/app/nextclaw-kernel.js";
 export * from "@kernel/events/index.js";
 export * from "@kernel/managers/agent.manager.js";
-export * from "@kernel/managers/task.manager.js";
-export * from "@kernel/managers/context-builder.manager.js";
 export * from "@kernel/managers/tool.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
@@ -10,9 +8,7 @@ export * from "@kernel/managers/automation.manager.js";
 export { ChannelManager } from "@nextclaw/core";
 export * from "@kernel/types/entity-ids.types.js";
 export * from "@kernel/types/agent.types.js";
-export * from "@kernel/types/task.types.js";
 export * from "@kernel/types/session.types.js";
-export * from "@kernel/types/context.types.js";
 export * from "@kernel/types/tool.types.js";
 export * from "@kernel/types/skill.types.js";
 export * from "@kernel/types/nextclaw-kernel.types.js";
