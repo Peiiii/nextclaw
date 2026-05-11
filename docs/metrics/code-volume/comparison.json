@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-10T03:22:06.815Z",
+  "generatedAt": "2026-05-11T03:24:45.685Z",
   "base": {
     "name": "nextclaw",
     "projectRoot": "/home/runner/work/nextclaw/nextclaw",
@@ -19,6 +19,7 @@
         "apps/platform-console/src",
         "apps/public-roadmap-feedback-portal/src",
         "bridge/src",
+        "packages/extensions/nextclaw-channel-extension-weixin/src",
         "packages/extensions/nextclaw-channel-plugin-dingtalk/index.js",
         "packages/extensions/nextclaw-channel-plugin-discord/index.js",
         "packages/extensions/nextclaw-channel-plugin-email/index.js",
@@ -29,7 +30,6 @@
         "packages/extensions/nextclaw-channel-plugin-slack/index.js",
         "packages/extensions/nextclaw-channel-plugin-telegram/index.js",
         "packages/extensions/nextclaw-channel-plugin-wecom/index.js",
-        "packages/extensions/nextclaw-channel-plugin-weixin/src",
         "packages/extensions/nextclaw-channel-plugin-whatsapp/index.js",
         "packages/extensions/nextclaw-channel-runtime/src",
         "packages/extensions/nextclaw-feishu-core/src",
@@ -51,6 +51,7 @@
         "packages/nextclaw-app-sdk/src",
         "packages/nextclaw-client-sdk/src",
         "packages/nextclaw-core/src",
+        "packages/nextclaw-extension-sdk/src",
         "packages/nextclaw-hermes-acp-bridge/src",
         "packages/nextclaw-kernel/src",
         "packages/nextclaw-mcp/src",
@@ -94,11 +95,12 @@
       ]
     },
     "totals": {
-      "files": 1872,
-      "totalLines": 272649,
-      "blankLines": 25595,
-      "commentLines": 1549,
-      "codeLines": 245505
+      "files": 1890,
+      "totalLines": 273727,
+      "blankLines": 25705,
+      "commentLines": 1550,
+      "codeLines": 187155,
+      "testCodeLines": 59317
     }
   },
   "benchmark": {
@@ -135,17 +137,18 @@
       ]
     },
     "totals": {
-      "files": 13151,
-      "totalLines": 2885109,
-      "blankLines": 245921,
-      "commentLines": 43908,
-      "codeLines": 2595280
+      "files": 13201,
+      "totalLines": 2926567,
+      "blankLines": 250331,
+      "commentLines": 43499,
+      "codeLines": 1299582,
+      "testCodeLines": 1333155
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -2349775,
-    "basePercentOfBenchmark": 9.46,
-    "benchmarkMultipleOfBase": 10.57,
-    "baseIsLighterByPercent": 90.54
+    "baseMinusBenchmarkLines": -1112427,
+    "basePercentOfBenchmark": 14.4,
+    "benchmarkMultipleOfBase": 6.94,
+    "baseIsLighterByPercent": 85.6
   }
 }
