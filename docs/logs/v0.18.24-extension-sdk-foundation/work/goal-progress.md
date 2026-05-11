@@ -41,11 +41,12 @@
 - 真实微信最终冒烟通过：使用新版 extension dist 的 `HttpWeixinApiClient` 和现有账号向真实微信用户发送最终闭环验证文本，返回 `messageId=958206ea-adc6-47e5-9bfd-6cbfa1f18d89`。
 - 生产发现、CLI/UI binding、扫码登录配置回写、真实发送、旧包残留搜索、package lint/tsc/test/build、governance、maintainability guard 均已完成闭环。
 - 已补修 service/extension 边界漂移：service 仅通过 manifest 生成 channel binding / UI metadata；auth 动态能力走通用 app event bus + ingress 协议；`rg` 已确认 service 源码没有 `WeixinLoginService`、`WEIXIN_*` 或微信 extension 业务 import。
+- 新版 Weixin extension 目录已按角色收敛：业务 owner 进入 `services/`，持久状态进入 `stores/`，无状态解析/转换进入 `utils/`，纯类型进入 `types/`，测试统一进入 `tests/`；`auth/`、`media/`、`reply/`、`config/` 空领域目录已删除。
 
 ## 当前下一步
 
-当前下一步：完成最终验证复核和收尾汇报；无关 automation/cron 工作区改动继续隔离。
+当前下一步：继续围绕新版 Weixin extension 做最终结构和真实链路复核；无关 automation/cron 工作区改动继续隔离。
 
 ## 锚点计数器
 
-20/20
+5/20

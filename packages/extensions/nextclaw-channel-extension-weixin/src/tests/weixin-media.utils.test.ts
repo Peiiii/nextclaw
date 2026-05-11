@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { sendWeixinFileMessage, sendWeixinImageMessage } from "./weixin-media.utils.js";
+import { sendWeixinFileMessage, sendWeixinImageMessage } from "../utils/weixin-media.utils.js";
 
 const originalFetch = globalThis.fetch;
 

@@ -4,7 +4,7 @@ import type {
   WeixinChannelAdapter,
   WeixinChannelConfig,
   WeixinInboundMessage,
-} from "./weixin-extension.types.js";
+} from "../types/weixin-extension.types.js";
 
 export class WeixinExtensionRuntime {
   private unsubscribeConfig: (() => void) | null = null;

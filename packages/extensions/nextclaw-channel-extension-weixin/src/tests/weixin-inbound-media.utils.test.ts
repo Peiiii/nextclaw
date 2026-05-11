@@ -1,6 +1,6 @@
 import { createCipheriv } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveWeixinInboundAttachments } from "../weixin-inbound-media.utils.js";
+import { resolveWeixinInboundAttachments } from "../utils/weixin-inbound-media.utils.js";
 
 const originalFetch = globalThis.fetch;
 

@@ -1,4 +1,4 @@
-import type { WeixinAccountConfig, WeixinChannelConfig } from "../weixin-extension.types.js";
+import type { WeixinAccountConfig, WeixinChannelConfig } from "../types/weixin-extension.types.js";
 
 export const WEIXIN_EXTENSION_ID = "nextclaw-channel-extension-weixin";
 export const WEIXIN_CHANNEL_ID = "weixin";

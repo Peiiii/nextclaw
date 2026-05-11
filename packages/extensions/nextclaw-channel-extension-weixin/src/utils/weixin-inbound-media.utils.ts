@@ -7,7 +7,7 @@ import type {
   WeixinCdnMedia,
   WeixinMessage,
   WeixinMessageItem,
-} from "./weixin-api.service.js";
+} from "../services/weixin-api.service.js";
 
 type InboundAttachment = ChannelSubmittedAttachment;
 type WeixinImageItem = NonNullable<WeixinMessageItem["image_item"]>;

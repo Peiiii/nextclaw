@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { WeixinLoginService } from "../auth/weixin-login.service.js";
-import type { WeixinApiClient } from "../weixin-api.service.js";
-import type { StoredWeixinAccount, WeixinAccountStore } from "../weixin-account.store.js";
+import { WeixinLoginService } from "../services/weixin-login.service.js";
+import type { WeixinApiClient } from "../services/weixin-api.service.js";
+import type { StoredWeixinAccount, WeixinAccountStore } from "../stores/weixin-account.store.js";
 
 describe("WeixinLoginService", () => {
   it("persists authorized account and returns channel config for the UI auth route", async () => {

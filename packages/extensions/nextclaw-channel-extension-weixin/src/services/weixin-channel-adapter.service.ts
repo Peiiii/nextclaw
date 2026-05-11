@@ -1,21 +1,21 @@
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
 import { NcpReplyConsumer, type ChatTarget } from "@nextclaw/ncp-toolkit";
-import { FileWeixinAccountStore, type WeixinAccountStore } from "./weixin-account.store.js";
+import { FileWeixinAccountStore, type WeixinAccountStore } from "../stores/weixin-account.store.js";
 import { HttpWeixinApiClient, type WeixinApiClient, type WeixinMessage } from "./weixin-api.service.js";
 import {
   NcpEventQueue,
   TERMINAL_NCP_EVENT_TYPES,
   WeixinReplyChat,
   type WeixinReplySession,
-} from "./reply/weixin-reply-chat.service.js";
-import { resolveWeixinInboundAttachments } from "./weixin-inbound-media.utils.js";
-import { readWeixinEventSessionId, resolveWeixinSessionRoute } from "./weixin-session-route.utils.js";
+} from "./weixin-reply-chat.service.js";
+import { resolveWeixinInboundAttachments } from "../utils/weixin-inbound-media.utils.js";
+import { readWeixinEventSessionId, resolveWeixinSessionRoute } from "../utils/weixin-session-route.utils.js";
 import { WeixinTypingController } from "./weixin-typing-controller.service.js";
 import type {
   WeixinChannelConfig,
   WeixinInboundMessage,
   WeixinRuntimeAccount,
-} from "./weixin-extension.types.js";
+} from "../types/weixin-extension.types.js";
 
 type WeixinCanonicalRoute = {
   conversationId: string;

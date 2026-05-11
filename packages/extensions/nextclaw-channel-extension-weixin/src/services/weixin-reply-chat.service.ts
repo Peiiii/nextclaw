@@ -1,9 +1,9 @@
 import { NcpEventType, type NcpEndpointEvent, type NcpMessagePart } from "@nextclaw/ncp";
 import { type Chat, type ChatTarget } from "@nextclaw/ncp-toolkit";
-import { sendWeixinFileMessage, sendWeixinImageMessage } from "../media/weixin-media.utils.js";
-import { WeixinMediaPartReader } from "../media/weixin-media-part-reader.service.js";
-import type { WeixinTypingController } from "../weixin-typing-controller.service.js";
-import type { WeixinRuntimeAccount } from "../weixin-extension.types.js";
+import { sendWeixinFileMessage, sendWeixinImageMessage } from "../utils/weixin-media.utils.js";
+import { WeixinMediaPartReader } from "./weixin-media-part-reader.service.js";
+import type { WeixinTypingController } from "./weixin-typing-controller.service.js";
+import type { WeixinRuntimeAccount } from "../types/weixin-extension.types.js";
 
 export const TERMINAL_NCP_EVENT_TYPES = new Set<NcpEndpointEvent["type"]>([
   NcpEventType.MessageCompleted,

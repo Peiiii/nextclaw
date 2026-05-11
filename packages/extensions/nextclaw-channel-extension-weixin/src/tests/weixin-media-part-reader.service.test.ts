@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { WeixinMediaPartReader } from "./weixin-media-part-reader.service.js";
+import { WeixinMediaPartReader } from "../services/weixin-media-part-reader.service.js";
 
 const originalEndpoint = process.env.NEXTCLAW_EXTENSION_ENDPOINT;
 

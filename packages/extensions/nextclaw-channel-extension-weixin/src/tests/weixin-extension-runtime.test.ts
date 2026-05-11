@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { NcpEventType } from "@nextclaw/ncp";
 import type { ExtensionChannel } from "@nextclaw/extension-sdk";
-import { WeixinExtensionRuntime } from "../weixin-extension-runtime.service.js";
-import { WeixinChannelAdapter } from "../weixin-channel-adapter.service.js";
-import type { WeixinApiClient } from "../weixin-api.service.js";
-import type { StoredWeixinAccount, WeixinAccountStore } from "../weixin-account.store.js";
+import { WeixinExtensionRuntime } from "../services/weixin-extension-runtime.service.js";
+import { WeixinChannelAdapter } from "../services/weixin-channel-adapter.service.js";
+import type { WeixinApiClient } from "../services/weixin-api.service.js";
+import type { StoredWeixinAccount, WeixinAccountStore } from "../stores/weixin-account.store.js";
 
 function createChannel(config: Record<string, unknown>): ExtensionChannel {
   return {

@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
-import { FileWeixinAccountStore, type WeixinAccountStore } from "../weixin-account.store.js";
-import { HttpWeixinApiClient, type WeixinApiClient, type WeixinQrStatusResponse } from "../weixin-api.service.js";
+import { FileWeixinAccountStore, type WeixinAccountStore } from "../stores/weixin-account.store.js";
+import { HttpWeixinApiClient, type WeixinApiClient, type WeixinQrStatusResponse } from "./weixin-api.service.js";
 import {
   buildLoggedInWeixinChannelConfig,
   DEFAULT_WEIXIN_BASE_URL,
   normalizeWeixinChannelConfig,
   WEIXIN_CHANNEL_ID,
-} from "../config/weixin-config.utils.js";
-import type { WeixinChannelConfig } from "../weixin-extension.types.js";
+} from "../utils/weixin-config.utils.js";
+import type { WeixinChannelConfig } from "../types/weixin-extension.types.js";
 
 export type WeixinLoginParams = {
   pluginConfig?: Record<string, unknown>;

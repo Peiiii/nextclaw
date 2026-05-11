@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HttpWeixinApiClient } from "../weixin-api.service.js";
+import { HttpWeixinApiClient } from "../services/weixin-api.service.js";
 
 const originalFetch = globalThis.fetch;
 

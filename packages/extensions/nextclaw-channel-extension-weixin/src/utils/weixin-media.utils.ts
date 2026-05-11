@@ -10,8 +10,8 @@ import {
   fetchWeixinJson,
   normalizeWeixinBaseUrl,
   sendWeixinMessageItem,
-} from "../weixin-api.service.js";
-import type { WeixinMessageItem } from "../weixin-api.service.js";
+} from "../services/weixin-api.service.js";
+import type { WeixinMessageItem } from "../services/weixin-api.service.js";
 
 type WeixinUploadUrlResponse = {
   upload_param?: string;

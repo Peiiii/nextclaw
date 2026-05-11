@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { WeixinTypingController } from "../weixin-typing-controller.service.js";
+import { WeixinTypingController } from "../services/weixin-typing-controller.service.js";
 
 describe("WeixinTypingController", () => {
   beforeEach(() => {

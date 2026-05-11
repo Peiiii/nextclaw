@@ -1,7 +1,7 @@
 import { NextClawExtension, type ExtensionChannel, type ExtensionRequest } from "@nextclaw/extension-sdk";
-import { WeixinLoginService } from "./auth/weixin-login.service.js";
-import { WeixinChannelAdapter } from "./weixin-channel-adapter.service.js";
-import { WeixinExtensionRuntime } from "./weixin-extension-runtime.service.js";
+import { WeixinLoginService } from "./services/weixin-login.service.js";
+import { WeixinChannelAdapter } from "./services/weixin-channel-adapter.service.js";
+import { WeixinExtensionRuntime } from "./services/weixin-extension-runtime.service.js";
 
 const extension = new NextClawExtension();
 const weixin = extension.channels.use("weixin");
