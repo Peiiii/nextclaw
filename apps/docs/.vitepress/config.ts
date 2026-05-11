@@ -316,6 +316,7 @@ export default defineConfig({
           { text: 'Manuals', link: '/en/guide/configuration' },
           { text: 'Reference', link: '/en/guide/commands' },
           { text: 'Project', link: '/en/project/' },
+          { text: 'Release Notes', link: '/en/project/release-notes' },
         ],
         sidebar: {
           '/en/': enDocsSidebar
@@ -341,6 +342,7 @@ export default defineConfig({
           { text: '手册', link: '/zh/guide/configuration' },
           { text: '参考', link: '/zh/guide/commands' },
           { text: '项目', link: '/zh/project/' },
+          { text: '更新笔记', link: '/zh/project/release-notes' },
         ],
         sidebar: {
           '/zh/': zhDocsSidebar
