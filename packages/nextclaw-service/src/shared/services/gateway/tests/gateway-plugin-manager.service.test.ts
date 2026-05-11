@@ -66,6 +66,7 @@ const createGateway = (config: Record<string, unknown> = {
 }): NextclawGatewayRuntime => ({
   appEventBus: {
     emit: vi.fn(),
+    emitEnvelope: vi.fn(),
   },
   bootstrapStatus: {
     markChannelsPending: vi.fn(),
@@ -82,6 +83,12 @@ const createGateway = (config: Record<string, unknown> = {
     reloader: {
       rebuildChannels: vi.fn(async () => undefined),
     },
+  },
+  extensions: {
+    loadContributions: vi.fn(async () => ({
+      channelBindings: [],
+      uiMetadata: [],
+    })),
   },
 } as never);
 
@@ -124,6 +131,29 @@ describe("GatewayPluginManager", () => {
     expect(manager.getExtensionRegistry()).toBe(extensionRegistry);
     expect(manager.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));
     expect(manager.getUiMetadata()).toEqual(expect.arrayContaining(uiMetadata));
+  });
+
+  it("merges extension manifest contributions without direct extension package imports", async () => {
+    const gateway = createGateway();
+    const manager = new GatewayPluginManager(gateway);
+    const extensionContributions = {
+      channelBindings: [{
+        pluginId: "nextclaw-channel-extension-weixin",
+        channelId: "weixin",
+        channel: { id: "weixin" },
+      }],
+      uiMetadata: [{
+        id: "nextclaw-channel-extension-weixin",
+        configSchema: { type: "object" },
+      }],
+    };
+    mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [] });
+    (gateway.extensions.loadContributions as ReturnType<typeof vi.fn>).mockResolvedValue(extensionContributions);
+
+    await manager.load();
+
+    expect(manager.getChannelBindings()).toEqual(extensionContributions.channelBindings);
+    expect(manager.getUiMetadata()).toEqual(extensionContributions.uiMetadata);
   });
 
   it("owns plugin gateway handles", async () => {

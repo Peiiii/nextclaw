@@ -123,4 +123,69 @@ describe("@nextclaw/extension-sdk", () => {
       { enabled: true, token: "updated" },
     );
   });
+
+  it("handles extension requests and responds through ingress", async () => {
+    const sockets: Array<{
+      url: string;
+      onopen: (() => void) | null;
+      onmessage: ((event: { data: unknown }) => void) | null;
+      onerror: ((event: unknown) => void) | null;
+      onclose: (() => void) | null;
+      close: ReturnType<typeof vi.fn>;
+    }> = [];
+    const fetchImpl = vi.fn(async () =>
+      new Response(JSON.stringify({ ok: true, data: { accepted: true } }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const extension = new NextClawExtension({
+      endpoint: "http://127.0.0.1:55667",
+      extensionId: "fake-extension",
+      token: "secret",
+      fetch: fetchImpl,
+      webSocketFactory: (url) => {
+        const socket = {
+          url,
+          onopen: null,
+          onmessage: null,
+          onerror: null,
+          onclose: null,
+          close: vi.fn(),
+        };
+        sockets.push(socket);
+        return socket;
+      },
+    });
+
+    extension.onRequest(async (request) => ({
+      handled: request.kind,
+    }));
+    sockets[0]?.onmessage?.({
+      data: JSON.stringify({
+        type: "extension.request",
+        payload: {
+          requestId: "request-1",
+          extensionId: "fake-extension",
+          kind: "channel.auth.start",
+          payload: {
+            channelId: "fake",
+          },
+        },
+      }),
+    });
+    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalled());
+
+    const [, init] = fetchImpl.mock.calls[0] ?? [];
+    expect(JSON.parse(String(init?.body))).toEqual(expect.objectContaining({
+      type: "extension.response",
+      payload: {
+        requestId: "request-1",
+        ok: true,
+        data: {
+          handled: "channel.auth.start",
+        },
+      },
+    }));
+  });
 });

@@ -29,7 +29,6 @@ import {
   pluginGatewayLogger,
 } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
-import { builtinExtensionChannelBindings } from "@nextclaw-service/shared/services/extensions/builtin-extension-channel-bindings.service.js";
 
 type PluginSnapshot = {
   registry: PluginRegistry;
@@ -38,21 +37,27 @@ type PluginSnapshot = {
   uiMetadata: PluginUiMetadata[];
 };
 
-function buildSnapshot(registry: PluginRegistry): PluginSnapshot {
-  const builtinBindings = builtinExtensionChannelBindings.getChannelBindings();
-  const builtinUiMetadata = builtinExtensionChannelBindings.getUiMetadata();
-  const builtinChannelIds = new Set(builtinBindings.map((binding) => binding.channelId));
-  const builtinPluginIds = new Set(builtinUiMetadata.map((metadata) => metadata.id));
+type ExtensionContributions = {
+  channelBindings: PluginChannelBinding[];
+  uiMetadata: PluginUiMetadata[];
+};
+
+function buildSnapshot(
+  registry: PluginRegistry,
+  extensionContributions: ExtensionContributions,
+): PluginSnapshot {
+  const extensionChannelIds = new Set(extensionContributions.channelBindings.map((binding) => binding.channelId));
+  const extensionPluginIds = new Set(extensionContributions.uiMetadata.map((metadata) => metadata.id));
   return {
     registry,
     extensionRegistry: toExtensionRegistry(registry),
     channelBindings: [
-      ...getPluginChannelBindings(registry).filter((binding) => !builtinChannelIds.has(binding.channelId)),
-      ...builtinBindings,
+      ...getPluginChannelBindings(registry).filter((binding) => !extensionChannelIds.has(binding.channelId)),
+      ...extensionContributions.channelBindings,
     ],
     uiMetadata: [
-      ...getPluginUiMetadataFromRegistry(registry).filter((metadata) => !builtinPluginIds.has(metadata.id)),
-      ...builtinUiMetadata,
+      ...getPluginUiMetadataFromRegistry(registry).filter((metadata) => !extensionPluginIds.has(metadata.id)),
+      ...extensionContributions.uiMetadata,
     ],
   };
 }
@@ -62,7 +67,11 @@ function countEnabledPlugins(config: Config, workspaceDir: string): number {
 }
 
 export class GatewayPluginManager {
-  private snapshot: PluginSnapshot = buildSnapshot(createEmptyPluginRegistry());
+  private extensionContributions: ExtensionContributions = {
+    channelBindings: [],
+    uiMetadata: [],
+  };
+  private snapshot: PluginSnapshot = buildSnapshot(createEmptyPluginRegistry(), this.extensionContributions);
   private gatewayHandles: PluginChannelGatewayHandle[] = [];
 
   constructor(private readonly gateway: NextclawGatewayRuntime) {}
@@ -94,6 +103,7 @@ export class GatewayPluginManager {
           });
         },
       });
+      this.extensionContributions = await this.gateway.extensions.loadContributions();
       const shouldRebuildChannels = this.replaceSnapshot(registry, []);
       logPluginDiagnostics(registry);
 
@@ -118,6 +128,7 @@ export class GatewayPluginManager {
   }): Promise<{ restartChannels: boolean }> => {
     const workspace = getWorkspacePath(params.config.agents.defaults.workspace);
     const registry = await loadPluginRegistryProgressively(params.config, workspace);
+    this.extensionContributions = await this.gateway.extensions.loadContributions();
     const restartChannels = this.replaceSnapshot(registry, params.changedPaths);
     logPluginDiagnostics(registry);
     if (restartChannels) {
@@ -312,7 +323,7 @@ export class GatewayPluginManager {
     registry: PluginRegistry,
     changedPaths: string[],
   ): boolean => {
-    const nextSnapshot = buildSnapshot(registry);
+    const nextSnapshot = buildSnapshot(registry, this.extensionContributions);
     const shouldRestartChannels = shouldRestartChannelsForPluginReload({
       changedPaths,
       currentPluginChannelBindings: this.snapshot.channelBindings,

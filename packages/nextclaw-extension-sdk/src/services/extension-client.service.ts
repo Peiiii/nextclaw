@@ -1,6 +1,8 @@
 import { EventBus } from "@nextclaw/shared";
 import type {
   ExtensionChannels,
+  ExtensionRequest,
+  ExtensionRequestHandler,
   ExtensionTransportEnvelope,
   NextClawExtensionOptions,
 } from "../types/extension-sdk.types.js";
@@ -68,9 +70,65 @@ export class NextClawExtension {
     this.realtimeSubscription = null;
   };
 
+  readonly onRequest = (handler: ExtensionRequestHandler): (() => void) =>
+    this.eventBus.subscribeAll((event) => {
+      if (event.type !== "extension.request") {
+        return;
+      }
+      const request = this.readRequest(event.payload);
+      if (!request || request.extensionId !== this.extensionId) {
+        return;
+      }
+      void this.handleRequest(request, handler);
+    });
+
   private readonly toEventBusEnvelope = (event: ExtensionTransportEnvelope): ExtensionTransportEnvelope => ({
     ...event,
     emittedAt: event.emittedAt ?? new Date().toISOString(),
     source: event.source ?? "realtime",
   });
+
+  private readonly handleRequest = async (
+    request: ExtensionRequest,
+    handler: ExtensionRequestHandler,
+  ): Promise<void> => {
+    try {
+      const data = await handler(request);
+      await this.transport.respondToRequest({
+        requestId: request.requestId,
+        ok: true,
+        data,
+      });
+    } catch (error) {
+      await this.transport.respondToRequest({
+        requestId: request.requestId,
+        ok: false,
+        error: {
+          message: error instanceof Error ? error.message : String(error),
+        },
+      });
+    }
+  };
+
+  private readonly readRequest = (payload: unknown): ExtensionRequest | null => {
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return null;
+    }
+    const record = payload as Record<string, unknown>;
+    if (
+      typeof record.requestId !== "string" ||
+      typeof record.extensionId !== "string" ||
+      typeof record.kind !== "string"
+    ) {
+      return null;
+    }
+    return {
+      requestId: record.requestId,
+      extensionId: record.extensionId,
+      kind: record.kind,
+      payload: record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+        ? record.payload as Record<string, unknown>
+        : {},
+    };
+  };
 }

@@ -5,7 +5,6 @@ import { buildPluginStatusReport, enablePluginInConfig, getPluginChannelBindings
 import { loadPluginRegistry, mergePluginConfigView, toPluginConfigView } from "../plugin/index.js";
 import { resolveChannelConfigView } from "./channel-config-view.js";
 import type { ChannelsAddOptions, ChannelsLoginOptions, RequestRestartParams } from "../../shared/types/cli.types.js";
-import { builtinExtensionChannelBindings } from "../../shared/services/extensions/builtin-extension-channel-bindings.service.js";
 
 export { resolveChannelConfigView } from "./channel-config-view.js";
 
@@ -40,12 +39,7 @@ type PluginChannelContext = {
 };
 
 function resolveChannelBindings(pluginRegistry: ReturnType<typeof loadPluginRegistry>): PluginChannelBinding[] {
-  const builtinBindings = builtinExtensionChannelBindings.getChannelBindings();
-  const builtinChannelIds = new Set(builtinBindings.map((binding) => binding.channelId));
-  return [
-    ...getPluginChannelBindings(pluginRegistry).filter((binding) => !builtinChannelIds.has(binding.channelId)),
-    ...builtinBindings,
-  ];
+  return getPluginChannelBindings(pluginRegistry);
 }
 
 export class ChannelCommands {

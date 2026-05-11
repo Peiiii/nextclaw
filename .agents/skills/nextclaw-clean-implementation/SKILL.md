@@ -138,6 +138,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 有没有现成位置可以直接复用，而不是新增散点
 - 如果这是跨 workspace package 依赖，是否只通过对方 package 根公共入口导入，而不是 deep import 对方内部文件
 - 依赖方向是否符合产品分层：前端/UI 不得依赖 kernel、core、runtime、service 这类后端/内核包；跨端契约、事件 key、纯类型和 UI 可消费常量应放在 `@nextclaw/shared`、client SDK 或专门的浏览器安全契约入口
+- 如果 host/service 负责管理插件或 extension，包依赖只能服务分发、安装和 manifest 发现；host/service 禁止 import 具体插件/渠道的业务导出。静态能力读 manifest，动态能力走通用协议通信。
 - 如果只是为了拿一个事件 key、类型或常量而引入更底层 package，必须先停止；这通常是严重边界错误，不是可接受的“更窄 import”问题
 - 修复浏览器依赖错误时，禁止通过给前端补 Node polyfill、继续加 alias、或改成 kernel 子路径来绕过；应把契约移回真正共享层，或让前端使用已有 shared/client SDK
 - 调整导航、侧边栏、菜单或入口时，默认保留既有可用入口和用户已接受的命名；除非用户明确要求删除或改名，否则只能新增/合并入口，不能顺手移除顶栏入口或擅自换标签；改完必须核对同一组既有入口，避免只恢复一个入口却漏掉相邻入口。

@@ -64,9 +64,6 @@
       "@nextclaw/channel-runtime": [
         "../extensions/nextclaw-channel-runtime/src/index.ts"
       ],
-      "@nextclaw/channel-extension-weixin": [
-        "../extensions/nextclaw-channel-extension-weixin/src/index.ts"
-      ],
       "@nextclaw/nextclaw-ncp-runtime-http-client": [
         "../nextclaw-ncp-runtime-http-client/src/index.ts"
       ],

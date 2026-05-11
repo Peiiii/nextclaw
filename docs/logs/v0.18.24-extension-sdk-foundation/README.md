@@ -18,7 +18,9 @@
 
 本轮修正 `ncp.event` 语义：`ncp.event` payload 现在就是原始 `NcpEndpointEvent`，不再包装 `event/sessionId/channelId/conversationId/accountId/metadata`。channel 路由上下文不混入 NCP 协议事件本体。
 
-本轮完成新版 Weixin extension 闭环：`@nextclaw/service` 生产依赖新版 `@nextclaw/channel-extension-weixin`，service extension discovery 能解析新版 manifest root；Weixin 登录、扫码、账号保存、旧账号替换和配置回写回到 extension 包内的 `WeixinLoginService` owner；UI auth 与 CLI `channel login weixin` 复用同一 built-in extension binding；旧版 `nextclaw-channel-plugin-weixin` 包、root 命令入口、openclaw compat 旧依赖和 lockfile workspace 链接已删除。
+本轮完成新版 Weixin extension 闭环：`@nextclaw/service` 生产依赖新版 `@nextclaw/channel-extension-weixin`，service extension discovery 能解析新版 manifest root；Weixin 登录、扫码、账号保存、旧账号替换和配置回写回到 extension 包内的 `WeixinLoginService` owner；旧版 `nextclaw-channel-plugin-weixin` 包、root 命令入口、openclaw compat 旧依赖和 lockfile workspace 链接已删除。
+
+本轮补修 service/extension 边界漂移：service 不再 import Weixin schema、常量或登录业务类；静态 channel metadata 来自 `nextclaw.extension.json`，动态 auth 通过通用 `extension.request` / `extension.response` 协议在 service 和 extension 进程之间通信。
 
 ## 测试/验证/验收方式
 
@@ -42,12 +44,13 @@
 - NCP event 透传验证：`create-ui-ncp-agent` targeted test、extension SDK targeted test 与进程级 smoke 均已验证 `ncp.event` 使用原始 `NcpEndpointEvent` payload，不再依赖 extension 包装字段；空心 `NcpEventBridgeService` 已删除，订阅生命周期回到 NCP runtime owner。
 - Weixin extension 闭环验证：`pnpm --filter @nextclaw/channel-extension-weixin tsc`、`pnpm --filter @nextclaw/channel-extension-weixin test -- --run`、`pnpm --filter @nextclaw/channel-extension-weixin lint`、`pnpm --filter @nextclaw/channel-extension-weixin build` 均通过，覆盖 7 个测试文件、24 个测试。
 - service 集成验证：`pnpm --filter @nextclaw/service tsc` 通过；`pnpm --filter @nextclaw/service test -- --run src/commands/channel/channels.test.ts src/shared/services/extensions/service-extension-runtime.service.test.ts src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts` 通过，覆盖新版内置 extension 发现、CLI auth binding、gateway plugin binding 合并。
+- service/extension 边界补修验证：`rg "from \"@nextclaw/channel-extension-weixin\"|from '@nextclaw/channel-extension-weixin'|WeixinLoginService|WEIXIN_" packages/nextclaw-service/src -n` 无输出；service 侧 manifest contribution 和 request/response auth targeted test 通过。
 - service lint/build 验证：`pnpm --filter @nextclaw/service lint` 退出码为 0，只有既有 warning；`pnpm --filter @nextclaw/service build` 通过，build warning 来自既有第三方依赖。
 - server/openclaw 验证：`pnpm --filter @nextclaw/server tsc` 与 `pnpm --filter @nextclaw/openclaw-compat tsc` 通过。
 - 生产发现 smoke：基于构建后的 service dist 调用 `resolveExtensionManifestRoots`，确认返回 `packages/extensions/nextclaw-channel-extension-weixin` manifest root。
 - 真实 Weixin 最终冒烟：基于新版 extension dist 的 `HttpWeixinApiClient` 和现有账号向真实微信用户发送最终闭环验证文本，返回 `messageId=958206ea-adc6-47e5-9bfd-6cbfa1f18d89`。
 - 旧包残留验证：`rg "nextclaw-channel-plugin-weixin|@nextclaw/channel-plugin-weixin|packages/extensions/nextclaw-channel-plugin-weixin" package.json packages/nextclaw-openclaw-compat packages/nextclaw-service packages/nextclaw-server packages/nextclaw -n --glob '!**/CHANGELOG.md'` 无输出。
-- 收尾治理验证：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature` 通过；warning 只来自无关 dirty 工作区和既有目录热点。
+- 收尾治理验证：`pnpm lint:new-code:governance`、`pnpm check:governance-backlog-ratchet`、`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs` 通过；warning 只来自既有目录热点和 extension runtime 文件增长提示。
 - 未完成项说明：`pnpm --filter @nextclaw/server test -- --run src/ui/router.weixin-channel-auth.test.ts src/ui/server.weixin-channel.test.ts src/ui/router.weixin-channel-config.test.ts` 在进入目标测试前被既有 `@core/features/agent/features/tools/registry.js` alias 解析问题阻塞；本轮用 server `tsc`、service 集成测试和真实 Weixin 冒烟作为替代闭环。
 
 ## 发布/部署方式
@@ -60,7 +63,7 @@
 2. 启动 NextClaw service 后，service 能通过生产依赖发现新版 Weixin extension manifest，启动 extension 进程，并注入 `NEXTCLAW_EXTENSION_ENDPOINT`、`NEXTCLAW_EXTENSION_TOKEN`、`NEXTCLAW_EXTENSION_ID`。
 3. extension SDK 通过通用 `/webhook` 提交 channel message，通过现有 `/ws` 接收 `ncp.event` 与配置变更事件。
 4. 旧版 Weixin plugin 包不再被 root 命令、openclaw compat 或 service discovery 引入；存量用户的 `channels.weixin` 配置继续由新版 extension 读取。
-5. UI 与 CLI 的 Weixin 登录仍可走同一套扫码、账号保存和配置回写链路。
+5. UI 的 Weixin 登录通过通用 extension request/response 进入 extension 进程；service 只持有 pending request，不持有微信业务逻辑。
 
 ## 可维护性总结汇总
 
@@ -73,6 +76,8 @@ maintainability guard 通过，剩余 warning 为既有 `commands/ncp/features/r
 service 命名治理本身是非功能改动，脚本非测试代码净减 6 行：新增 AST class 检查的同时收敛重复目录规则表，并删除无实际产出的 warning 打印分支；规则更强但脚本体积没有继续膨胀。
 
 新版 Weixin 闭环本轮总 diff 为 `+1654 / -4750 / net -3096`，非测试代码为 `+1177 / -3446 / net -2269`。主要减债来自删除旧版 `nextclaw-channel-plugin-weixin` 包和旧引入入口；新增部分集中在新版 extension owner、扫码登录 owner、service 生产发现和 UI/CLI binding。
+
+service/extension 边界补修引入了通用 extension request/response 协议，因此按新增协议能力运行 maintainability guard；自动模式通过。若按纯非功能修正口径运行，当前非测试代码净增会被拦截，后续应继续把 request/response 协议拆成更小 owner 或合并到更通用的 extension transport owner。
 
 ## 红区触达与减债记录
 

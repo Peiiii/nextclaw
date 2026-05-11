@@ -9,7 +9,6 @@ const mocks = vi.hoisted(() => ({
   buildPluginStatusReportMock: vi.fn(),
   loadPluginRegistryMock: vi.fn(),
   resolveChannelConfigViewMock: vi.fn(),
-  weixinLoginMock: vi.fn()
 }));
 
 vi.mock("@nextclaw/core", () => ({
@@ -39,18 +38,6 @@ vi.mock("@nextclaw/openclaw-compat", () => ({
   buildPluginStatusReport: mocks.buildPluginStatusReportMock,
   enablePluginInConfig: vi.fn((config: Config) => config),
   getPluginChannelBindings: mocks.getPluginChannelBindingsMock,
-}));
-
-vi.mock("@nextclaw/channel-extension-weixin", () => ({
-  WEIXIN_CHANNEL_CONFIG_SCHEMA: { type: "object" },
-  WEIXIN_CHANNEL_CONFIG_UI_HINTS: {},
-  WEIXIN_CHANNEL_ID: "weixin",
-  WEIXIN_EXTENSION_ID: "nextclaw-channel-extension-weixin",
-  WeixinLoginService: class {
-    login = mocks.weixinLoginMock;
-    start = vi.fn();
-    poll = vi.fn();
-  },
 }));
 
 vi.mock("../plugin/index.js", () => ({
@@ -109,40 +96,4 @@ describe("ChannelCommands.status", () => {
     expect(logSpy.mock.calls.flat()).toContain("Weixin: ✗");
   });
 
-  it("logs into weixin through the built-in extension binding after the old plugin package is removed", async () => {
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const requestRestart = vi.fn(async () => undefined);
-    mocks.weixinLoginMock.mockResolvedValue({
-      pluginConfig: {
-        enabled: true,
-        defaultAccountId: "bot-1@im.bot",
-      },
-      accountId: "bot-1@im.bot",
-    });
-    const commands = new ChannelCommands({
-      logo: "nextclaw",
-      getBridgeDir: () => "/tmp/bridge",
-      requestRestart
-    });
-
-    await commands.login({ channel: "weixin" });
-
-    expect(mocks.weixinLoginMock).toHaveBeenCalledWith(expect.objectContaining({
-      pluginConfig: { enabled: false },
-      requestedAccountId: null,
-      baseUrl: null,
-    }));
-    expect(mocks.saveConfigMock).toHaveBeenCalledWith(expect.objectContaining({
-      channels: expect.objectContaining({
-        weixin: {
-          enabled: true,
-          defaultAccountId: "bot-1@im.bot",
-        },
-      }),
-    }));
-    expect(requestRestart).toHaveBeenCalledWith(expect.objectContaining({
-      reason: "channel login via plugin: nextclaw-channel-extension-weixin",
-    }));
-    logSpy.mockRestore();
-  });
 });

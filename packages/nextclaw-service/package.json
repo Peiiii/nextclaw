@@ -24,6 +24,11 @@
   "files": [
     "dist"
   ],
+  "nextclaw": {
+    "builtinExtensions": [
+      "@nextclaw/channel-extension-weixin"
+    ]
+  },
   "scripts": {
     "build": "tsdown $(find src -name '*.ts' ! -name '*.test.ts' ! -path '*/tests/*') --dts --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",

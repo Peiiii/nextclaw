@@ -1,4 +1,5 @@
 import type {
+  ExtensionRequestResponse,
   ExtensionTransportEnvelope,
   NextClawExtensionOptions,
   NextClawExtensionWebSocketLike,
@@ -73,6 +74,10 @@ export class ExtensionTransportService {
       throw new Error(this.readErrorMessage(body, `NextClaw ingress failed with ${response.status}`));
     }
     return this.readResponseData<TResponse>(body);
+  };
+
+  readonly respondToRequest = async (response: ExtensionRequestResponse): Promise<void> => {
+    await this.postIngress("extension.response", response);
   };
 
   readonly subscribe = (handler: RealtimeHandler): { close: () => void } => {

@@ -25,6 +25,27 @@ export type ExtensionTransportEnvelope<TPayload = unknown> = {
   source?: string;
 };
 
+export type ExtensionRequest = {
+  requestId: string;
+  extensionId: string;
+  kind: string;
+  payload?: Record<string, unknown>;
+};
+
+export type ExtensionRequestResponse =
+  | {
+      requestId: string;
+      ok: true;
+      data?: unknown;
+    }
+  | {
+      requestId: string;
+      ok: false;
+      error: {
+        message: string;
+      };
+    };
+
 export type ChannelTextContent = {
   type: "text";
   text: string;
@@ -98,3 +119,5 @@ export type ExtensionChannel = {
 export type ExtensionChannels = {
   use: (channelId: string) => ExtensionChannel;
 };
+
+export type ExtensionRequestHandler = (request: ExtensionRequest) => unknown | Promise<unknown>;

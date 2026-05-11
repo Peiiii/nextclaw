@@ -37,13 +37,14 @@
 - 已删除旧版 `packages/extensions/nextclaw-channel-plugin-weixin` 包源码、root build/lint/tsc 旧入口、openclaw compat 旧依赖和 lockfile 旧 workspace 链接；root build/lint/tsc 已改为覆盖新版 `nextclaw-channel-extension-weixin`。
 - 旧版微信删除验证通过：旧包 filter 已无匹配，新版 extension lint/tsc/build 通过，openclaw compat tsc/lint 通过，server tsc 与触达文件 ESLint 通过，governance 与 backlog ratchet 通过。
 - 生产闭环缺口已补齐：`@nextclaw/service` 直接依赖新版 `@nextclaw/channel-extension-weixin`，service extension discovery 能在生产安装中解析新版 manifest root。
-- 新版 Weixin 登录能力已回到 extension 包 owner：QR code start/poll/login、账号 token 保存、旧账号替换、配置回写均由 `WeixinLoginService` 负责；UI auth 与 CLI `channel login weixin` 复用同一 built-in extension binding。
+- 新版 Weixin 登录能力已回到 extension 包 owner：QR code start/poll/login、账号 token 保存、旧账号替换、配置回写均由 `WeixinLoginService` 负责；UI auth 通过通用 `extension.request` / `extension.response` 调用 extension 进程，不再由 service import 微信业务导出。
 - 真实微信最终冒烟通过：使用新版 extension dist 的 `HttpWeixinApiClient` 和现有账号向真实微信用户发送最终闭环验证文本，返回 `messageId=958206ea-adc6-47e5-9bfd-6cbfa1f18d89`。
 - 生产发现、CLI/UI binding、扫码登录配置回写、真实发送、旧包残留搜索、package lint/tsc/test/build、governance、maintainability guard 均已完成闭环。
+- 已补修 service/extension 边界漂移：service 仅通过 manifest 生成 channel binding / UI metadata；auth 动态能力走通用 app event bus + ingress 协议；`rg` 已确认 service 源码没有 `WeixinLoginService`、`WEIXIN_*` 或微信 extension 业务 import。
 
 ## 当前下一步
 
-目标闭环：新版 Weixin extension 已接管旧微信能力，旧版 Weixin plugin 已从提交范围删除，无关 automation/cron 工作区改动继续隔离。
+当前下一步：完成最终验证复核和收尾汇报；无关 automation/cron 工作区改动继续隔离。
 
 ## 锚点计数器
 

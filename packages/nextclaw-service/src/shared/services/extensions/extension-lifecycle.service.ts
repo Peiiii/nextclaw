@@ -19,7 +19,11 @@ export type ExtensionManifest = {
     channels?: Array<{
       id: string;
       name?: string;
+      description?: string;
+      meta?: Record<string, unknown>;
       configSchema?: Record<string, unknown>;
+      configUiHints?: Record<string, Record<string, unknown>>;
+      auth?: boolean | Record<string, unknown>;
     }>;
   };
 };

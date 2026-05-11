@@ -12,6 +12,17 @@
       {
         "id": "weixin",
         "name": "Weixin",
+        "description": "Weixin QR login + getupdates long-poll channel",
+        "auth": {
+          "type": "request-response"
+        },
+        "configUiHints": {
+          "enabled": { "label": "Enabled" },
+          "defaultAccountId": { "label": "Default Account ID" },
+          "baseUrl": { "label": "API Base URL" },
+          "pollTimeoutMs": { "label": "Long Poll Timeout (ms)", "advanced": true },
+          "allowFrom": { "label": "Allow From" }
+        },
         "configSchema": {
           "type": "object",
           "additionalProperties": false,
