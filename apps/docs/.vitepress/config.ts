@@ -239,7 +239,7 @@ const zhSidebar = [
 
 const zhProjectSidebar = [
   {
-    text: '项目信息',
+    text: '项目',
     items: [
       { text: '总览', link: '/zh/project/' },
       { text: 'Project Pulse', link: '/zh/project/project-pulse' },
@@ -315,6 +315,7 @@ export default defineConfig({
           { text: 'Tutorials', link: '/en/guide/tutorials' },
           { text: 'Manuals', link: '/en/guide/configuration' },
           { text: 'Reference', link: '/en/guide/commands' },
+          { text: 'Project', link: '/en/project/' },
         ],
         sidebar: {
           '/en/': enDocsSidebar
@@ -339,6 +340,7 @@ export default defineConfig({
           { text: '教程', link: '/zh/guide/tutorials' },
           { text: '手册', link: '/zh/guide/configuration' },
           { text: '参考', link: '/zh/guide/commands' },
+          { text: '项目', link: '/zh/project/' },
         ],
         sidebar: {
           '/zh/': zhDocsSidebar
