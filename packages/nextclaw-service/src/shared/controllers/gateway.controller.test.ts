@@ -14,6 +14,10 @@ vi.mock("../services/restart/restart-sentinel.service.js", () => ({
   writeRestartSentinel: (payload: unknown) => mocks.writeRestartSentinel(payload)
 }));
 
+vi.mock("@nextclaw-service/launcher/npm-runtime-update-command.service.js", () => ({
+  NpmRuntimeUpdateCommandService: class {}
+}));
+
 describe("GatewayControllerImpl", () => {
   let configDir = "";
   let configPath = "";
@@ -30,11 +34,11 @@ describe("GatewayControllerImpl", () => {
 
   const createController = (): GatewayControllerImpl => {
     return new GatewayControllerImpl({
-      reloader: {
-        getChannels: () => ({ enabledChannels: [] }) as never,
+      configManager: {
         applyReloadPlan,
         reloadConfig: vi.fn(async () => "Config reload triggered")
       },
+      channels: { enabledChannels: [] } as never,
       cron: { status: () => ({ jobs: [] }) } as never,
       getConfigPath: () => configPath,
       saveConfig: writeConfig,

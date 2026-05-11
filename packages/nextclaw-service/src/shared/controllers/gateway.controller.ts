@@ -21,14 +21,14 @@ import {
   writeRestartSentinel
 } from "../services/restart/restart-sentinel.service.js";
 
-type ConfigReloaderLike = {
-  getChannels: () => ChannelManager;
+type ConfigManagerLike = {
   applyReloadPlan: (nextConfig: Config) => Promise<void>;
   reloadConfig: (reason?: string) => Promise<string>;
 };
 
 type ControllerDeps = {
-  reloader: ConfigReloaderLike;
+  configManager: ConfigManagerLike;
+  channels: ChannelManager;
   cron: CronService;
   sessionManager?: SessionManager;
   getConfigPath: () => string;
@@ -240,39 +240,40 @@ export class GatewayControllerImpl implements GatewayController {
     nextConfig: Config;
     note?: string;
   }): Promise<Record<string, unknown>> => {
+    const { nextConfig, note } = params;
     const snapshot = readConfigSnapshot(this.deps.getConfigPath);
-    const changedPaths = diffConfigPaths(snapshot.config, params.nextConfig);
+    const changedPaths = diffConfigPaths(snapshot.config, nextConfig);
     const plan = buildReloadPlan(changedPaths);
 
     if (changedPaths.length === 0) {
       return this.createConfigMutationResult({
         changedPaths,
-        config: params.nextConfig,
-        note: params.note,
+        config: nextConfig,
+        note,
         plan
       });
     }
 
-    this.deps.saveConfig(params.nextConfig);
-    await this.deps.reloader.applyReloadPlan(params.nextConfig);
+    this.deps.saveConfig(nextConfig);
+    await this.deps.configManager.applyReloadPlan(nextConfig);
     return this.createConfigMutationResult({
       changedPaths,
-      config: params.nextConfig,
-      note: params.note,
+      config: nextConfig,
+      note,
       plan
     });
   };
 
   status = (): Record<string, unknown> => {
     return {
-      channels: this.deps.reloader.getChannels().enabledChannels,
+      channels: this.deps.channels.enabledChannels,
       cron: this.deps.cron.status(),
       configPath: this.deps.getConfigPath()
     };
   };
 
   reloadConfig = async (reason?: string): Promise<string> => {
-    return this.deps.reloader.reloadConfig(reason);
+    return this.deps.configManager.reloadConfig(reason);
   };
 
   restart = async (options?: { delayMs?: number; reason?: string; sessionKey?: string }): Promise<string> => {

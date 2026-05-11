@@ -1,7 +1,8 @@
 import type { UiRemoteAccessHost } from "@nextclaw/server";
+import type { ConfigManager } from "@nextclaw/kernel";
+import type { Config } from "@nextclaw/core";
 import { createManagedRemoteModuleForUi } from "@nextclaw-service/shared/services/runtime/service-remote-runtime.service.js";
 import { createRemoteAccessHost } from "@nextclaw-service/shared/services/ui/service-remote-access.service.js";
-import type { GatewayConfigManager } from "./gateway-config.manager.js";
 import type { GatewayRuntimeDeps } from "../nextclaw-gateway-runtime.service.js";
 
 type RemoteServiceModule = ReturnType<typeof createManagedRemoteModuleForUi>;
@@ -12,17 +13,18 @@ export class GatewayRemoteManager {
 
   constructor(params: {
     deps: GatewayRuntimeDeps;
-    configManager: GatewayConfigManager;
+    configManager: ConfigManager;
+    uiConfig: Config["ui"];
   }) {
-    const { configManager, deps } = params;
+    const { configManager, deps, uiConfig } = params;
     this.remoteModule = createManagedRemoteModuleForUi({
-      loadConfig: configManager.loadGatewayConfig,
-      uiConfig: configManager.uiConfig,
+      loadConfig: configManager.loadConfig,
+      uiConfig,
     });
     this.remoteAccess = createRemoteAccessHost({
       serviceCommands: deps,
       requestRestart: deps.requestRestart,
-      uiConfig: configManager.uiConfig,
+      uiConfig,
       remoteModule: this.remoteModule,
     });
   }

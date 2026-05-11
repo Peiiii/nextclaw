@@ -79,10 +79,8 @@ const createGateway = (config: Record<string, unknown> = {
     applyExtensionRegistry: vi.fn(),
   },
   configManager: {
-    loadGatewayConfig: () => config,
-    reloader: {
-      rebuildChannels: vi.fn(async () => undefined),
-    },
+    loadConfig: () => config,
+    rebuildChannels: vi.fn(async () => undefined),
   },
   extensions: {
     loadContributions: vi.fn(async () => ({
@@ -126,7 +124,7 @@ describe("GatewayPluginManager", () => {
 
     await manager.load();
 
-    expect(gateway.configManager.reloader.rebuildChannels).toHaveBeenCalledTimes(1);
+    expect(gateway.configManager.rebuildChannels).toHaveBeenCalledTimes(1);
     expect(manager.getRegistry()).toBe(registry);
     expect(manager.getExtensionRegistry()).toBe(extensionRegistry);
     expect(manager.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));

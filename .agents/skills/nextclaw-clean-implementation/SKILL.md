@@ -76,6 +76,7 @@ description: Use when implementing or refactoring code in this repository, espec
 默认倾向：
 
 - 业务主干进 class owner
+- 使用箭头函数 class field 表达实例方法时，不给函数属性额外加 `readonly`；`readonly` 保留给真实不可重绑定的数据字段，避免把方法签名写成噪音。
 - 普通函数只保留给纯工具、纯计算、纯无状态辅助
 - 字段和派生状态归属数据生成者或视图生成者，不能归属路过的装配层、bridge、router 或 callback
 - 领域 owner 要自己拥有创建、缓存、状态恢复、reload、dispose 等领域闭环；上层只传它无法自知的外部事实，例如配置快照、用户输入、路径、观测端口或明确策略

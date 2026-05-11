@@ -392,7 +392,7 @@ export class ServiceExtensionRuntime {
     const payload = readRecord(envelope.payload);
     const channelId = readRequiredString(payload.channelId, "channelId");
     return {
-      config: (this.gateway.configManager.loadGatewayConfig().channels as Record<string, unknown>)[channelId] ?? {},
+      config: (this.gateway.configManager.loadConfig().channels as Record<string, unknown>)[channelId] ?? {},
     };
   };
 
@@ -433,7 +433,7 @@ export class ServiceExtensionRuntime {
   private readonly discoverManifests = async (): Promise<ExtensionManifest[]> => {
     const discovery = new ExtensionManifestDiscoveryService();
     return await discovery.discover(resolveExtensionManifestRoots({
-      config: this.gateway.configManager.loadGatewayConfig(),
+      config: this.gateway.configManager.loadConfig(),
       workspace: this.gateway.workspace,
     }));
   };

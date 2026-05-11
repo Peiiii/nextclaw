@@ -2,36 +2,36 @@ import type { ToolId } from "@kernel/types/entity-ids.types.js";
 import type { ToolRecord } from "@kernel/types/tool.types.js";
 
 export class ToolManager {
-  readonly listTools = () => {
+  listTools = () => {
     throw new Error("ToolManager.listTools is not implemented.");
   };
 
-  readonly getTool = (toolId: ToolId) => {
+  getTool = (toolId: ToolId) => {
     void toolId;
     throw new Error("ToolManager.getTool is not implemented.");
   };
 
-  readonly requireTool = (toolId: ToolId) => {
+  requireTool = (toolId: ToolId) => {
     void toolId;
     throw new Error("ToolManager.requireTool is not implemented.");
   };
 
-  readonly saveTool = (tool: ToolRecord) => {
+  saveTool = (tool: ToolRecord) => {
     void tool;
     throw new Error("ToolManager.saveTool is not implemented.");
   };
 
-  readonly enableTool = (toolId: ToolId) => {
+  enableTool = (toolId: ToolId) => {
     void toolId;
     throw new Error("ToolManager.enableTool is not implemented.");
   };
 
-  readonly disableTool = (toolId: ToolId) => {
+  disableTool = (toolId: ToolId) => {
     void toolId;
     throw new Error("ToolManager.disableTool is not implemented.");
   };
 
-  readonly resolveTools = (toolIds: ToolId[]) => {
+  resolveTools = (toolIds: ToolId[]) => {
     void toolIds;
     throw new Error("ToolManager.resolveTools is not implemented.");
   };

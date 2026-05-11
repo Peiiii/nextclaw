@@ -33,13 +33,13 @@ export type DirectPromptDispatchParams = {
 };
 
 export type GatewayInboundLoopRuntime = {
+  kernel: {
+    channels: ChannelManager;
+  };
   messageBus: MessageBus;
   sessionManager: SessionManager;
   configManager: {
-    loadGatewayConfig: () => Config;
-    reloader: {
-      getChannels: () => ChannelManager;
-    };
+    loadConfig: () => Config;
   };
   liveUiNcpAgent: NcpRunnerAgent | null;
   appEventBus?: EventBus;
@@ -194,7 +194,7 @@ async function dispatchChannelReplyRouteMaybe(
   }
 
   const replyRoute = resolveChannelReplyRoute({
-    channel: runtime.configManager.reloader.getChannels().getChannel(message.channel),
+    channel: runtime.kernel.channels.getChannel(message.channel),
     message,
     route,
   });
@@ -318,7 +318,7 @@ export async function runGatewayInboundLoop(
       const forcedAgentId = normalizeOptionalString(
         message.metadata.target_agent_id,
       );
-      const route = new AgentRouteResolver(runtime.configManager.loadGatewayConfig()).resolveInbound({
+      const route = new AgentRouteResolver(runtime.configManager.loadConfig()).resolveInbound({
         message,
         forcedAgentId,
         sessionKeyOverride: explicitSessionKey,

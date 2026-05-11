@@ -85,7 +85,7 @@ export class GatewayPluginManager {
   getUiMetadata = (): PluginUiMetadata[] => this.snapshot.uiMetadata;
 
   load = async (): Promise<void> => {
-    const config = this.gateway.configManager.loadGatewayConfig();
+    const config = this.gateway.configManager.loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     const totalPluginCount = countEnabledPlugins(config, workspace);
     let loadedPluginCount = 0;
@@ -109,7 +109,7 @@ export class GatewayPluginManager {
 
       this.gateway.liveUiNcpAgent?.applyExtensionRegistry?.(this.snapshot.extensionRegistry);
       if (shouldRebuildChannels) {
-        await this.gateway.configManager.reloader.rebuildChannels(config, { start: false });
+        await this.gateway.configManager.rebuildChannels(config, { start: false });
       }
       this.publishConfigChanges();
       this.gateway.bootstrapStatus.markPluginHydrationReady({
@@ -140,18 +140,18 @@ export class GatewayPluginManager {
   };
 
   reloadForDevHotReload = async (changedPaths: string[]): Promise<void> => {
-    const config = this.gateway.configManager.loadGatewayConfig();
+    const config = this.gateway.configManager.loadConfig();
     const result = await this.reloadForConfigChange({
       config,
       changedPaths,
     });
     if (result.restartChannels) {
-      await this.gateway.configManager.reloader.rebuildChannels(config, { start: true });
+      await this.gateway.configManager.rebuildChannels(config, { start: true });
     }
   };
 
   startGateways = async (): Promise<void> => {
-    const config = this.gateway.configManager.loadGatewayConfig();
+    const config = this.gateway.configManager.loadConfig();
     const diagnostics: PluginDiagnostic[] = [];
     const handles: PluginChannelGatewayHandle[] = [];
     const configView = toPluginConfigView(config, this.snapshot.channelBindings);

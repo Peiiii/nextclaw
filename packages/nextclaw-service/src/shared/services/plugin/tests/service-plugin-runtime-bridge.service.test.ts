@@ -32,7 +32,7 @@ function createGateway(): NextclawGatewayRuntime {
   return {
     liveUiNcpAgent: null,
     configManager: {
-      loadGatewayConfig: () => ({}),
+      loadConfig: () => ({}),
     },
     plugins: {
       getChannelBindings: () => [],

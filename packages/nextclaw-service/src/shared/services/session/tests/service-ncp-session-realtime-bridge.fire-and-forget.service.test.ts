@@ -40,7 +40,9 @@ describe("ServiceNcpSessionRealtimeBridge", () => {
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     new ServiceNcpSessionRealtimeBridge({
-      loadGatewayConfig: () => ({} as never),
+      configManager: {
+        loadConfig: () => ({} as never),
+      },
       sessionManager: {} as never,
       appEventBus: new EventBus(),
     } as unknown as NextclawGatewayRuntime);

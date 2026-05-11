@@ -60,7 +60,7 @@ export class ServiceNcpSessionRealtimeBridge {
     let scheduleSessionChange = async (_sessionKey: string): Promise<void> => {};
 
     const contextWindowPreview = new ContextCompactionPreflightService({
-      getConfig: gateway.configManager.loadGatewayConfig,
+      getConfig: gateway.configManager.loadConfig,
       sessionManager: gateway.sessionManager,
     });
     const persistedSessionService = new UiSessionService(gateway.sessionManager, {

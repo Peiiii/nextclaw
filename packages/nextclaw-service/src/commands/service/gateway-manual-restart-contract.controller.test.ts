@@ -1,10 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, GatewayTool, type Config } from "@nextclaw/core";
+import { ConfigManager, LlmProviderManager } from "@nextclaw/kernel";
 import { GatewayControllerImpl } from "../../shared/controllers/gateway.controller.js";
-import { ConfigReloader } from "../../shared/services/config/config-reloader.service.js";
 import { RuntimeRestartRequestService } from "../../shared/services/restart/runtime-restart-request.service.js";
 import { pendingRestartStore } from "../../shared/stores/pending-restart.store.js";
 
@@ -25,24 +25,22 @@ describe("gateway manual restart contract", () => {
 
   const createBaseConfig = (): Config => ConfigSchema.parse({});
 
-  const readConfig = (): Config => {
-    return ConfigSchema.parse(JSON.parse(readFileSync(configPath, "utf-8")) as Record<string, unknown>);
-  };
-
   const writeConfig = (config: Config): void => {
     writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
   };
 
   const createTool = (): GatewayTool => {
-    const reloader = new ConfigReloader({
-      initialConfig: readConfig(),
-      channels: {
-        enabledChannels: [],
-        load: () => undefined,
-        reload: async () => undefined,
-      } as never,
-      providerManager: null,
-      loadConfig: readConfig,
+    const channels = {
+      enabledChannels: [],
+      load: () => undefined,
+      reload: async () => undefined,
+    } as never;
+    const configManager = new ConfigManager({
+      configPath,
+      channels,
+      providerManager: new LlmProviderManager(),
+    });
+    configManager.installRuntimeHooks({
       applyAgentRuntimeConfig,
       onRestartRequired: (paths) => {
         void restartRequestService.run({
@@ -55,7 +53,8 @@ describe("gateway manual restart contract", () => {
       }
     });
     const controller = new GatewayControllerImpl({
-      reloader,
+      configManager,
+      channels,
       cron: { status: () => ({ jobs: [] }) } as never,
       getConfigPath: () => configPath,
       saveConfig: writeConfig,

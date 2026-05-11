@@ -1,5 +1,6 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
+import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
@@ -9,8 +10,8 @@ import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
 export type NextclawKernelOptions = {
-  workspace?: string;
   homeDir?: string;
+  configPath?: string;
 };
 
 function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
@@ -53,7 +54,7 @@ class NextclawKernelControlManager<
     TStartInput
   > | null = null;
 
-  readonly installRuntimeControl = (
+  installRuntimeControl = (
     runtimeControl: NextclawKernelRuntimeControl<
       TGatewayInput,
       TUiInput,
@@ -63,7 +64,7 @@ class NextclawKernelControlManager<
     this.runtimeControl = runtimeControl;
   };
 
-  readonly requireRuntimeControl = () => {
+  requireRuntimeControl = () => {
     if (!this.runtimeControl) {
       throw new Error("Kernel runtime control is not installed.");
     }
@@ -76,6 +77,7 @@ export class NextclawKernel {
   readonly ingress: Ingress = new Ingress();
   readonly messageBus: MessageBus = new MessageBus();
   readonly llmProviders: LlmProviderManager = new LlmProviderManager();
+  readonly configManager: ConfigManager;
   readonly agents: AgentManager;
   readonly sessions: SessionManager;
   readonly control: NextclawKernelControlManager<
@@ -107,9 +109,14 @@ export class NextclawKernel {
       bus: this.messageBus,
       sessionManager: this.sessions,
     });
+    this.configManager = new ConfigManager({
+      configPath: options.configPath,
+      channels: this.channels,
+      providerManager: this.llmProviders,
+    });
   }
 
-  readonly run = (input: NextclawKernelRunInput): NextclawKernelRun => {
+  run = (input: NextclawKernelRunInput): NextclawKernelRun => {
     void input;
     throw new Error("NextclawKernel.run is not implemented.");
   };

@@ -5,6 +5,7 @@ export * from "@kernel/managers/tool.manager.js";
 export * from "@kernel/managers/skill.manager.js";
 export * from "@kernel/managers/llm-provider.manager.js";
 export * from "@kernel/managers/automation.manager.js";
+export * from "@kernel/managers/config.manager.js";
 export { ChannelManager } from "@nextclaw/core";
 export * from "@kernel/types/entity-ids.types.js";
 export * from "@kernel/types/agent.types.js";

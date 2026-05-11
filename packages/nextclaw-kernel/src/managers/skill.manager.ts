@@ -2,36 +2,36 @@ import type { SkillId } from "@kernel/types/entity-ids.types.js";
 import type { SkillRecord } from "@kernel/types/skill.types.js";
 
 export class SkillManager {
-  readonly listSkills = () => {
+  listSkills = () => {
     throw new Error("SkillManager.listSkills is not implemented.");
   };
 
-  readonly getSkill = (skillId: SkillId) => {
+  getSkill = (skillId: SkillId) => {
     void skillId;
     throw new Error("SkillManager.getSkill is not implemented.");
   };
 
-  readonly requireSkill = (skillId: SkillId) => {
+  requireSkill = (skillId: SkillId) => {
     void skillId;
     throw new Error("SkillManager.requireSkill is not implemented.");
   };
 
-  readonly saveSkill = (skill: SkillRecord) => {
+  saveSkill = (skill: SkillRecord) => {
     void skill;
     throw new Error("SkillManager.saveSkill is not implemented.");
   };
 
-  readonly enableSkill = (skillId: SkillId) => {
+  enableSkill = (skillId: SkillId) => {
     void skillId;
     throw new Error("SkillManager.enableSkill is not implemented.");
   };
 
-  readonly disableSkill = (skillId: SkillId) => {
+  disableSkill = (skillId: SkillId) => {
     void skillId;
     throw new Error("SkillManager.disableSkill is not implemented.");
   };
 
-  readonly resolveSkills = (skillIds: SkillId[]) => {
+  resolveSkills = (skillIds: SkillId[]) => {
     void skillIds;
     throw new Error("SkillManager.resolveSkills is not implemented.");
   };

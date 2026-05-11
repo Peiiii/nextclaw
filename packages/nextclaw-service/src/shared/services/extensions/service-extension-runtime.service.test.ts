@@ -32,7 +32,7 @@ function createGateway(params: {
       emitEnvelope: vi.fn(),
     },
     configManager: {
-      loadGatewayConfig: () => ({
+      loadConfig: () => ({
         channels: {
           weixin: {
             enabled: true,

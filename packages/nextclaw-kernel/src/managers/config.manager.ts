@@ -1,73 +1,66 @@
 import {
   buildReloadPlan,
   diffConfigPaths,
+  getConfigPath,
+  loadConfig,
+  resolveConfigSecrets,
+  type ChannelManager,
   type Config,
   type ExtensionRegistry,
 } from "@nextclaw/core";
-import type { ChannelManager, LlmProviderManager } from "@nextclaw/kernel";
+import type { LlmProviderManager } from "./llm-provider.manager.js";
 
-export class ConfigReloader {
+export type ConfigManagerRuntimeHooks = {
+  resolveChannelConfig?: (config: Config) => Config;
+  getExtensionChannels?: () => ExtensionRegistry["channels"];
+  applyAgentRuntimeConfig?: (config: Config) => void;
+  reloadCompanion?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
+  reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
+  reloadPlugins?: (
+    params: { config: Config; changedPaths: string[] },
+  ) => Promise<{ restartChannels?: boolean } | void> | { restartChannels?: boolean } | void;
+  onRestartRequired?: (paths: string[]) => void;
+};
+
+export type ConfigManagerOptions = {
+  configPath?: string;
+  channels: ChannelManager;
+  providerManager: LlmProviderManager;
+};
+
+export class ConfigManager {
+  readonly configPath: string;
   private currentConfig: Config;
-  private channels: ChannelManager;
+  private hooks: ConfigManagerRuntimeHooks = {};
   private reloadTask: Promise<void> | null = null;
   private providerReloadTask: Promise<void> | null = null;
   private reloadTimer: ReturnType<typeof setTimeout> | null = null;
   private reloadRunning = false;
   private reloadPending = false;
 
-  constructor(
-    private options: {
-      initialConfig: Config;
-      channels: ChannelManager;
-      providerManager: LlmProviderManager | null;
-      loadConfig: () => Config;
-      resolveChannelConfig?: (config: Config) => Config;
-      getExtensionChannels?: () => ExtensionRegistry["channels"];
-      applyAgentRuntimeConfig?: (config: Config) => void;
-      reloadCompanion?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
-      reloadMcp?: (params: { config: Config; changedPaths: string[] }) => Promise<void> | void;
-      reloadPlugins?: (params: { config: Config; changedPaths: string[] }) => Promise<{ restartChannels?: boolean } | void> | { restartChannels?: boolean } | void;
-      onRestartRequired: (paths: string[]) => void;
-    }
-  ) {
-    this.currentConfig = options.initialConfig;
-    this.channels = options.channels;
-    this.channels.load({
-      channelConfig: this.resolveChannelConfig(options.initialConfig),
+  constructor(private readonly options: ConfigManagerOptions) {
+    this.configPath = options.configPath ?? getConfigPath();
+    this.currentConfig = this.loadConfig();
+    this.options.providerManager.load(this.currentConfig);
+    this.options.channels.load({
+      channelConfig: this.resolveChannelConfig(this.currentConfig),
       extensionChannels: this.resolveExtensionChannels(),
     });
   }
 
-  getChannels = (): ChannelManager => {
-    return this.channels;
+  get config(): Config {
+    return this.currentConfig;
+  }
+
+  loadConfig = (): Config =>
+    resolveConfigSecrets(loadConfig(this.configPath), { configPath: this.configPath });
+
+  installRuntimeHooks = (hooks: ConfigManagerRuntimeHooks): void => {
+    this.hooks = hooks;
   };
 
-  setApplyAgentRuntimeConfig = (callback: ((config: Config) => void) | undefined): void => {
-    this.options.applyAgentRuntimeConfig = callback;
-  };
-
-  setReloadPlugins = (
-    callback:
-      | ((params: { config: Config; changedPaths: string[] }) => Promise<{ restartChannels?: boolean } | void> | { restartChannels?: boolean } | void)
-      | undefined
-  ): void => {
-    this.options.reloadPlugins = callback;
-  };
-
-  setReloadMcp = (
-    callback:
-      | ((params: { config: Config; changedPaths: string[] }) => Promise<void> | void)
-      | undefined
-  ): void => {
-    this.options.reloadMcp = callback;
-  };
-
-  setReloadCompanion = (
-    callback:
-      | ((params: { config: Config; changedPaths: string[] }) => Promise<void> | void)
-      | undefined
-  ): void => {
-    this.options.reloadCompanion = callback;
+  applyLiveConfigReload = async (): Promise<void> => {
+    await this.applyReloadPlan(this.loadConfig());
   };
 
   applyReloadPlan = async (nextConfig: Config): Promise<void> => {
@@ -82,26 +75,26 @@ export class ConfigReloader {
     if (plan.reloadPlugins) {
       reloadPluginsResult = await this.reloadPlugins({
         config: nextConfig,
-        changedPaths
+        changedPaths,
       });
       console.log("Config reload: plugins reloaded.");
     }
     if (plan.reloadMcp) {
       await this.reloadMcp({
         config: nextConfig,
-        changedPaths
+        changedPaths,
       });
       console.log("Config reload: MCP servers reloaded.");
     }
     if (plan.reloadCompanion) {
       await this.reloadCompanion({
         config: nextConfig,
-        changedPaths
+        changedPaths,
       });
       console.log("Config reload: companion setting applied.");
     }
     if (plan.restartChannels || reloadPluginsResult?.restartChannels) {
-      await this.reloadChannels(nextConfig, { start: true });
+      await this.rebuildChannels(nextConfig, { start: true });
       console.log("Config reload: channels restarted.");
     }
     if (plan.reloadProviders) {
@@ -109,11 +102,11 @@ export class ConfigReloader {
       console.log("Config reload: provider settings applied.");
     }
     if (plan.reloadAgent) {
-      this.options.applyAgentRuntimeConfig?.(nextConfig);
+      this.hooks.applyAgentRuntimeConfig?.(nextConfig);
       console.log("Config reload: agent defaults applied.");
     }
     if (plan.restartRequired.length > 0) {
-      this.options.onRestartRequired(plan.restartRequired);
+      this.hooks.onRestartRequired?.(plan.restartRequired);
     }
   };
 
@@ -137,8 +130,7 @@ export class ConfigReloader {
       this.reloadTimer = null;
     }
     try {
-      const nextConfig = this.options.loadConfig();
-      await this.applyReloadPlan(nextConfig);
+      await this.applyLiveConfigReload();
     } catch (error) {
       console.error(`Config reload failed (${reason}): ${String(error)}`);
     } finally {
@@ -156,19 +148,15 @@ export class ConfigReloader {
   };
 
   rebuildChannels = async (nextConfig: Config, options: { start?: boolean } = {}): Promise<void> => {
-    await this.reloadChannels(nextConfig, { start: options.start ?? true });
-  };
-
-  private readonly reloadChannels = async (nextConfig: Config, options: { start: boolean }): Promise<void> => {
     if (this.reloadTask) {
       await this.reloadTask;
       return;
     }
     this.reloadTask = (async () => {
-      await this.channels.reload({
+      await this.options.channels.reload({
         channelConfig: this.resolveChannelConfig(nextConfig),
         extensionChannels: this.resolveExtensionChannels(),
-        start: options.start,
+        start: options.start ?? true,
       });
     })();
     try {
@@ -178,22 +166,19 @@ export class ConfigReloader {
     }
   };
 
-  private readonly resolveChannelConfig = (config: Config): Config =>
-    this.options.resolveChannelConfig?.(config) ?? config;
+  private resolveChannelConfig = (config: Config): Config =>
+    this.hooks.resolveChannelConfig?.(config) ?? config;
 
-  private readonly resolveExtensionChannels = (): ExtensionRegistry["channels"] =>
-    this.options.getExtensionChannels?.() ?? [];
+  private resolveExtensionChannels = (): ExtensionRegistry["channels"] =>
+    this.hooks.getExtensionChannels?.() ?? [];
 
-  private readonly reloadProvider = async (nextConfig: Config): Promise<void> => {
-    if (!this.options.providerManager) {
-      return;
-    }
+  private reloadProvider = async (nextConfig: Config): Promise<void> => {
     if (this.providerReloadTask) {
       await this.providerReloadTask;
       return;
     }
     this.providerReloadTask = (async () => {
-      this.options.providerManager?.load(nextConfig);
+      this.options.providerManager.load(nextConfig);
     })();
     try {
       await this.providerReloadTask;
@@ -202,33 +187,24 @@ export class ConfigReloader {
     }
   };
 
-  private readonly reloadPlugins = async (params: {
+  private reloadPlugins = async (params: {
     config: Config;
     changedPaths: string[];
   }): Promise<{ restartChannels?: boolean } | void> => {
-    if (!this.options.reloadPlugins) {
-      return;
-    }
-    return await this.options.reloadPlugins(params);
+    return await this.hooks.reloadPlugins?.(params);
   };
 
-  private readonly reloadMcp = async (params: {
+  private reloadMcp = async (params: {
     config: Config;
     changedPaths: string[];
   }): Promise<void> => {
-    if (!this.options.reloadMcp) {
-      return;
-    }
-    await this.options.reloadMcp(params);
+    await this.hooks.reloadMcp?.(params);
   };
 
-  private readonly reloadCompanion = async (params: {
+  private reloadCompanion = async (params: {
     config: Config;
     changedPaths: string[];
   }): Promise<void> => {
-    if (!this.options.reloadCompanion) {
-      return;
-    }
-    await this.options.reloadCompanion(params);
+    await this.hooks.reloadCompanion?.(params);
   };
 }

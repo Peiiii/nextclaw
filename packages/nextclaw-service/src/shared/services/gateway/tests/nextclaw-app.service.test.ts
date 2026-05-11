@@ -66,10 +66,10 @@ function createGateway(params: {
       markNcpAgentError: params.markNcpAgentError ?? vi.fn(),
     },
     configManager: {
-      uiConfig: {
-        enabled: params.uiEnabled === true,
-      },
-      loadGatewayConfig: () => ({}),
+      loadConfig: () => ({}),
+    },
+    uiConfig: {
+      enabled: params.uiEnabled === true,
     },
     uiStartup: {
       deferredNcpAgent: {

@@ -26,7 +26,7 @@ type PluginRuntimeDispatchContext = {
 export function installPluginRuntimeBridge(gateway: NextclawGatewayRuntime): void {
   setPluginRuntimeBridge({
     loadConfig: () =>
-      toPluginConfigView(gateway.configManager.loadGatewayConfig(), gateway.plugins.getChannelBindings()),
+      toPluginConfigView(gateway.configManager.loadConfig(), gateway.plugins.getChannelBindings()),
     writeConfigFile: async (nextConfigView) => {
       if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
         throw new Error("plugin runtime writeConfigFile expects an object config");
@@ -44,7 +44,7 @@ export function installPluginRuntimeBridge(gateway: NextclawGatewayRuntime): voi
       try {
         await dispatcherOptions.onReplyStart?.();
         const response = await dispatchPromptOverNcp({
-          config: gateway.configManager.loadGatewayConfig(),
+          config: gateway.configManager.loadConfig(),
           sessionManager: gateway.sessionManager,
           resolveNcpAgent: () => gateway.liveUiNcpAgent,
           ...request,

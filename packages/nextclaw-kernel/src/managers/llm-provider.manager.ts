@@ -65,11 +65,11 @@ class MissingKernelProvider extends LLMProvider {
     super(null, null);
   }
 
-  readonly setDefaultModel = (model: string): void => {
+  setDefaultModel = (model: string): void => {
     this.defaultModel = model;
   };
 
-  readonly getDefaultModel = (): string => {
+  getDefaultModel = (): string => {
     return this.defaultModel;
   };
 
@@ -88,13 +88,13 @@ export class LlmProviderManager {
     this.providerRegistry = new ProviderRegistry(BUILTIN_PROVIDER_PLUGINS);
   }
 
-  readonly load = (config: Config): void => {
+  load = (config: Config): void => {
     this.config = config;
     this.providerPool.clear();
     this.missingProvider.setDefaultModel(config.agents.defaults.model);
   };
 
-  readonly get = (model?: string | null): LLMProvider => {
+  get = (model?: string | null): LLMProvider => {
     const route = this.resolveRoute(model);
     if (!route) {
       return this.missingProvider;
@@ -139,7 +139,7 @@ export class LlmProviderManager {
     });
   };
 
-  private readonly resolveRoute = (model?: string | null): ProviderRoute | null => {
+  private resolveRoute = (model?: string | null): ProviderRoute | null => {
     if (!this.config) {
       return null;
     }
@@ -155,7 +155,7 @@ export class LlmProviderManager {
     };
   };
 
-  private readonly resolveProvider = (model: string): {
+  private resolveProvider = (model: string): {
     provider: ProviderConfig | null;
     name: string | null;
   } => {
@@ -205,7 +205,7 @@ export class LlmProviderManager {
     return { provider: null, name: null };
   };
 
-  private readonly matchPrefixedProvider = (
+  private matchPrefixedProvider = (
     providers: Record<string, ProviderConfig>,
     modelPrefix: string
   ): { provider: ProviderConfig | null; name: string | null } | null => {
@@ -229,7 +229,7 @@ export class LlmProviderManager {
     return provider.enabled !== false ? { provider, name } : { provider: null, name: null };
   };
 
-  private readonly getOrCreateProvider = (route: ProviderRoute): LLMProvider => {
+  private getOrCreateProvider = (route: ProviderRoute): LLMProvider => {
     if (!route.provider?.apiKey && !route.model.startsWith("bedrock/")) {
       return this.missingProvider;
     }
@@ -245,7 +245,7 @@ export class LlmProviderManager {
     return created;
   };
 
-  private readonly createProvider = (route: ProviderRoute): LLMProvider => {
+  private createProvider = (route: ProviderRoute): LLMProvider => {
     return new LiteLLMProvider({
       apiKey: route.provider?.apiKey ?? null,
       apiBase: route.apiBase,
@@ -257,7 +257,7 @@ export class LlmProviderManager {
     });
   };
 
-  private readonly buildCacheKey = (route: ProviderRoute): string => {
+  private buildCacheKey = (route: ProviderRoute): string => {
     const routeProvider = route.provider;
     return [
       route.providerName ?? "",

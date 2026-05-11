@@ -106,15 +106,15 @@ function createGatewayInboundLoopRuntime(params: {
 }): GatewayInboundLoopRuntime {
   const { appEventBus, bus, channel, ncpAgent, workspace } = params;
   return {
+    kernel: {
+      channels: {
+        getChannel: vi.fn(() => channel ?? null),
+      } as never,
+    },
     messageBus: bus,
     sessionManager: new SessionManager(workspace),
     configManager: {
-      loadGatewayConfig: () => createConfig(workspace),
-      reloader: {
-        getChannels: () => ({
-          getChannel: vi.fn(() => channel ?? null),
-        }) as never,
-      },
+      loadConfig: () => createConfig(workspace),
     },
     liveUiNcpAgent: ncpAgent as never,
     ...(appEventBus ? { appEventBus } : {}),

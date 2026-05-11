@@ -452,7 +452,11 @@ export class NextclawServiceRuntime {
 
   agent = async (opts: AgentCommandOptions): Promise<void> => {
     const configPath = getConfigPath();
-    const config = resolveConfigSecrets(loadConfig(), { configPath });
+    const kernel = new NextclawKernel({
+      homeDir: getDataDir(),
+      configPath,
+    });
+    const config = kernel.configManager.config;
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = loadPluginRegistry(config, workspace);
     const extensionRegistry = toExtensionRegistry(pluginRegistry);
@@ -486,11 +490,6 @@ export class NextclawServiceRuntime {
     });
 
     try {
-      const kernel = new NextclawKernel({
-        workspace,
-        homeDir: getDataDir(),
-      });
-      kernel.llmProviders.load(config);
       const providerManager = this.createObservedProviderManager(
         kernel.llmProviders,
         "cli-agent",

@@ -36,7 +36,7 @@ export class NextclawApp {
         sessionManager: gateway.sessionManager,
         cronService: gateway.automation,
         gatewayController: gateway.gatewayController,
-        getConfig: gateway.configManager.loadGatewayConfig,
+        getConfig: gateway.configManager.loadConfig,
         getExtensionRegistry: () => gateway.plugins.getExtensionRegistry(),
         onSessionUpdated: gateway.sessions.publishSessionChange,
         onSessionRunStatusChanged: (payload) => {
@@ -55,7 +55,7 @@ export class NextclawApp {
           resolvePluginChannelMessageToolHints({
             registry: gateway.plugins.getRegistry(),
             channel,
-            cfg: gateway.configManager.loadGatewayConfig() as Config,
+            cfg: gateway.configManager.loadConfig() as Config,
             accountId,
           }),
       });
@@ -83,7 +83,7 @@ export class NextclawApp {
     );
     this.gateway.activateNcpAgent(ncpAgent);
     this.kernelReady = true;
-    if (this.gateway.configManager.uiConfig.enabled) {
+    if (this.gateway.uiConfig.enabled) {
       console.log("✓ UI NCP agent: ready");
       return;
     }
