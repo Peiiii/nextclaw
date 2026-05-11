@@ -1,5 +1,7 @@
 import { EventBus } from "@nextclaw/shared";
 import type {
+  ExtensionCapabilities,
+  ExtensionCapabilityHandler,
   ExtensionChannels,
   ExtensionRequest,
   ExtensionRequestHandler,
@@ -38,9 +40,109 @@ class ExtensionChannelRegistry implements ExtensionChannels {
   };
 }
 
+function readRequest(payload: unknown): ExtensionRequest | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const record = payload as Record<string, unknown>;
+  if (
+    typeof record.requestId !== "string" ||
+    typeof record.extensionId !== "string" ||
+    typeof record.kind !== "string"
+  ) {
+    return null;
+  }
+  return {
+    requestId: record.requestId,
+    extensionId: record.extensionId,
+    kind: record.kind,
+    payload: record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+      ? record.payload as Record<string, unknown>
+      : {},
+  };
+}
+
+function normalizeName(value: string, name: string): string {
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new Error(`${name} is required.`);
+  }
+  return normalized;
+}
+
+async function handleRequest(
+  transport: ExtensionTransportService,
+  request: ExtensionRequest,
+  handler: ExtensionRequestHandler,
+): Promise<void> {
+  try {
+    const data = await handler(request);
+    await transport.respondToRequest({
+      requestId: request.requestId,
+      ok: true,
+      data,
+    });
+  } catch (error) {
+    await transport.respondToRequest({
+      requestId: request.requestId,
+      ok: false,
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+      },
+    });
+  }
+}
+
+class ExtensionCapabilityRegistry implements ExtensionCapabilities {
+  constructor(
+    private readonly params: {
+      eventBus: EventBus;
+      extensionId: string;
+      transport: ExtensionTransportService;
+    },
+  ) {}
+
+  readonly provide = (namespace: string, capability: object): (() => void) => {
+    const normalizedNamespace = normalizeName(namespace, "namespace");
+    const unsubscribeHandlers = this.readHandlers(capability).map(([name, handler]) =>
+      this.provideHandler(`${normalizedNamespace}.${name}`, handler),
+    );
+    if (unsubscribeHandlers.length === 0) {
+      throw new Error(`capability '${normalizedNamespace}' has no callable methods.`);
+    }
+    return () => {
+      for (const unsubscribe of unsubscribeHandlers) {
+        unsubscribe();
+      }
+    };
+  };
+
+  readonly provideHandler = (kind: string, handler: ExtensionCapabilityHandler): (() => void) => {
+    const normalizedKind = normalizeName(kind, "kind");
+    return this.params.eventBus.subscribeAll((event) => {
+      if (event.type !== "extension.request") {
+        return;
+      }
+      const request = readRequest(event.payload);
+      if (!request || request.extensionId !== this.params.extensionId || request.kind !== normalizedKind) {
+        return;
+      }
+      void handleRequest(this.params.transport, request, async (matchedRequest) =>
+        await handler(matchedRequest.payload ?? {}, matchedRequest),
+      );
+    });
+  };
+
+  private readonly readHandlers = (capability: object): Array<[string, ExtensionCapabilityHandler]> =>
+    Object.entries(capability).filter(
+      (entry): entry is [string, ExtensionCapabilityHandler] => typeof entry[1] === "function",
+    );
+}
+
 export class NextClawExtension {
   readonly eventBus: EventBus;
   readonly channels: ExtensionChannels;
+  readonly capabilities: ExtensionCapabilities;
   readonly extensionId: string;
   private readonly transport: ExtensionTransportService;
   private realtimeSubscription: { close: () => void } | null = null;
@@ -63,6 +165,11 @@ export class NextClawExtension {
       eventBus: this.eventBus,
       transport: this.transport,
     });
+    this.capabilities = new ExtensionCapabilityRegistry({
+      eventBus: this.eventBus,
+      extensionId: this.extensionId,
+      transport: this.transport,
+    });
   }
 
   readonly close = (): void => {
@@ -75,11 +182,11 @@ export class NextClawExtension {
       if (event.type !== "extension.request") {
         return;
       }
-      const request = this.readRequest(event.payload);
+      const request = readRequest(event.payload);
       if (!request || request.extensionId !== this.extensionId) {
         return;
       }
-      void this.handleRequest(request, handler);
+      void handleRequest(this.transport, request, handler);
     });
 
   private readonly toEventBusEnvelope = (event: ExtensionTransportEnvelope): ExtensionTransportEnvelope => ({
@@ -88,47 +195,4 @@ export class NextClawExtension {
     source: event.source ?? "realtime",
   });
 
-  private readonly handleRequest = async (
-    request: ExtensionRequest,
-    handler: ExtensionRequestHandler,
-  ): Promise<void> => {
-    try {
-      const data = await handler(request);
-      await this.transport.respondToRequest({
-        requestId: request.requestId,
-        ok: true,
-        data,
-      });
-    } catch (error) {
-      await this.transport.respondToRequest({
-        requestId: request.requestId,
-        ok: false,
-        error: {
-          message: error instanceof Error ? error.message : String(error),
-        },
-      });
-    }
-  };
-
-  private readonly readRequest = (payload: unknown): ExtensionRequest | null => {
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      return null;
-    }
-    const record = payload as Record<string, unknown>;
-    if (
-      typeof record.requestId !== "string" ||
-      typeof record.extensionId !== "string" ||
-      typeof record.kind !== "string"
-    ) {
-      return null;
-    }
-    return {
-      requestId: record.requestId,
-      extensionId: record.extensionId,
-      kind: record.kind,
-      payload: record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
-        ? record.payload as Record<string, unknown>
-        : {},
-    };
-  };
 }

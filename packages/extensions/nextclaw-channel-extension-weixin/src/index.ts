@@ -1,4 +1,7 @@
 export {
+  WeixinAuthCapability,
+} from "./services/weixin-auth-capability.service.js";
+export {
   WeixinChannelAdapter,
 } from "./services/weixin-channel-adapter.service.js";
 export {

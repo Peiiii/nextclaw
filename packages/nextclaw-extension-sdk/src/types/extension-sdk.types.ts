@@ -121,3 +121,15 @@ export type ExtensionChannels = {
 };
 
 export type ExtensionRequestHandler = (request: ExtensionRequest) => unknown | Promise<unknown>;
+
+export type ExtensionCapabilityPayload = Record<string, unknown>;
+
+export type ExtensionCapabilityHandler<TPayload extends ExtensionCapabilityPayload = ExtensionCapabilityPayload> = (
+  payload: TPayload,
+  request: ExtensionRequest,
+) => unknown | Promise<unknown>;
+
+export type ExtensionCapabilities = {
+  provide: (namespace: string, capability: object) => Unsubscribe;
+  provideHandler: (kind: string, handler: ExtensionCapabilityHandler) => Unsubscribe;
+};
