@@ -113,7 +113,7 @@ export class NextclawApp {
       "service.deferred_startup.start_extensions",
       this.gateway.extensions.start,
     );
-    await measureStartupAsync("service.deferred_startup.start_channels", this.gateway.gatewayChannels.startDeferred);
+    await measureStartupAsync("service.deferred_startup.start_channels", this.gateway.startDeferredChannels);
     await measureStartupAsync(
       "service.deferred_startup.wake_restart_sentinel",
       this.gateway.restartWake.wakeFromRestartSentinel,

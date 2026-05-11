@@ -10,9 +10,9 @@ import {
   type Config,
   type GatewayController,
   type CronService,
-  type ChannelManager,
   type SessionManager
 } from "@nextclaw/core";
+import type { ChannelManager } from "@nextclaw/kernel";
 import { getPackageVersion } from "../utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
 import {

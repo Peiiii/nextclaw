@@ -1,5 +1,4 @@
 import {
-  ChannelManager,
   loadConfig,
   resolveConfigSecrets,
   type Config,
@@ -47,19 +46,11 @@ export class GatewayConfigManager {
     gateway: NextclawGatewayRuntime;
   }): ConfigReloader => {
     const { deps, gateway } = params;
-    const channels = new ChannelManager(
-      resolveChannelConfigView(this.config, gateway.plugins.getChannelBindings()),
-      gateway.messageBus,
-      gateway.sessionManager,
-      gateway.plugins.getExtensionRegistry().channels,
-    );
     return measureStartupSync(
       "service.gateway.config_reloader",
       () => new ConfigReloader({
         initialConfig: this.config,
-        channels,
-        bus: gateway.messageBus,
-        sessionManager: gateway.sessionManager,
+        channels: gateway.kernel.channels,
         providerManager: gateway.providerManager,
         loadConfig: this.loadGatewayConfig,
         resolveChannelConfig: (nextConfig) => resolveChannelConfigView(nextConfig, gateway.plugins.getChannelBindings()),

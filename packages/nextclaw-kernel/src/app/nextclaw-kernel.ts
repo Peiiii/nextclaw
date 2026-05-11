@@ -1,13 +1,12 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
-import { ChannelManager } from "@kernel/managers/channel.manager.js";
 import { ContextBuilder } from "@kernel/managers/context-builder.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { TaskManager } from "@kernel/managers/task.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
-import { ensureDir, expandHome, getDataDir, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
+import { ChannelManager, ensureDir, expandHome, getDataDir, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
@@ -114,7 +113,10 @@ export class NextclawKernel {
     >();
     this.tools = new ToolManager();
     this.skills = new SkillManager();
-    this.channels = new ChannelManager();
+    this.channels = new ChannelManager({
+      bus: this.messageBus,
+      sessionManager: this.sessions,
+    });
   }
 
   readonly run = (input: NextclawKernelRunInput): NextclawKernelRun => {

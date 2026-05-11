@@ -5,6 +5,7 @@ import {
 } from "@nextclaw/openclaw-compat";
 import {
   startUiServer,
+  type MarketplaceApiConfig,
   type UiNcpAgent,
   type UiRouterOptions,
   type UiRuntimeControlHost,
@@ -16,13 +17,10 @@ import type { UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/index.js";
 import { runGatewayInboundLoop } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js";
 import { GatewayControllerImpl } from "@nextclaw-service/shared/controllers/gateway.controller.js";
 import { ServiceExtensionRuntime } from "@nextclaw-service/shared/services/extensions/service-extension-runtime.service.js";
-import { GatewayChannelManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-channel.manager.js";
 import { GatewayConfigManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-config.manager.js";
-import { GatewayMarketplaceManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-marketplace.manager.js";
 import { GatewayPluginManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-plugin.manager.js";
 import { GatewayRemoteManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-remote.manager.js";
 import { GatewayRestartWakeService } from "@nextclaw-service/shared/services/gateway/gateway-restart-wake.service.js";
-import { GatewayWorkspaceManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-workspace.manager.js";
 import { createCronJobHandler } from "@nextclaw-service/shared/services/gateway/cron-job-handler.service.js";
 import { companionRuntimeService } from "@nextclaw-service/shared/services/ui/companion-runtime.service.js";
 import { handleGatewayDeferredStartupError } from "@nextclaw-service/shared/services/gateway/utils/gateway-runtime-lifecycle.utils.js";
@@ -32,6 +30,8 @@ import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRu
 import { ServiceNcpSessionRealtimeBridge } from "@nextclaw-service/shared/services/session/service-ncp-session-realtime-bridge.service.js";
 import { createDeferredUiNcpAgent } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
 import { installPluginRuntimeBridge } from "@nextclaw-service/shared/services/plugin/utils/plugin-runtime-bridge.utils.js";
+import { wrapStartChannelsWithDevPluginHotReload } from "@nextclaw-service/shared/services/plugin/utils/plugin-dev-hot-reload.utils.js";
+import { ServiceMarketplaceInstaller } from "@nextclaw-service/shared/services/marketplace/service-marketplace-installer.service.js";
 import { NpmRuntimeUpdateHost } from "@nextclaw-service/shared/services/ui/npm-runtime-update-host.service.js";
 import { createRuntimeControlHost } from "@nextclaw-service/shared/services/ui/runtime-control-host.service.js";
 import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
@@ -43,10 +43,13 @@ import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@nextc
 const {
   getConfigPath,
   getDataDir,
+  getWorkspacePath,
   loadConfig,
   resolveConfigSecrets,
   saveConfig,
 } = NextclawCore;
+
+const DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS = 5_000;
 
 function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "manual-process-restart" {
   const serviceState = managedServiceStateStore.read();
@@ -95,10 +98,9 @@ export class NextclawGatewayRuntime {
   readonly gatewayController: GatewayControllerImpl;
 
   readonly configManager: GatewayConfigManager;
-  readonly workspaceManager: GatewayWorkspaceManager;
+  readonly workspace: string;
   readonly remoteManager: GatewayRemoteManager;
-  readonly marketplaceManager: GatewayMarketplaceManager;
-  readonly gatewayChannels: GatewayChannelManager;
+  readonly marketplace: MarketplaceApiConfig;
   readonly plugins: GatewayPluginManager;
   readonly restartWake: GatewayRestartWakeService;
   bootstrapStatus: ServiceBootstrapStatusStore;
@@ -107,6 +109,7 @@ export class NextclawGatewayRuntime {
   readonly extensions: ServiceExtensionRuntime;
   liveUiNcpAgent: UiNcpAgentHandle | null = null;
   readonly fileWatchers = new ServiceFileWatcherRegistry();
+  private deferredChannelStarter: () => Promise<void>;
 
   constructor(
     private readonly deps: GatewayRuntimeDeps,
@@ -117,14 +120,11 @@ export class NextclawGatewayRuntime {
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
 
-    this.workspaceManager = new GatewayWorkspaceManager({
-      config,
-      initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
-    });
+    this.workspace = getWorkspacePath(config.agents.defaults.workspace);
     this.kernel = measureStartupSync(
       "service.gateway.kernel",
       () => new NextclawKernel({
-        workspace: this.workspaceManager.workspace,
+        workspace: this.workspace,
         homeDir: getDataDir(),
       }),
     );
@@ -154,10 +154,7 @@ export class NextclawGatewayRuntime {
       deps: this.deps,
       configManager: this.configManager,
     });
-    this.marketplaceManager = new GatewayMarketplaceManager({
-      deps: this.deps,
-      configManager: this.configManager,
-    });
+    this.marketplace = this.createMarketplace();
     this.runtimeControl = createRuntimeControlHost({
       serviceCommands: this.deps,
       requestRestart: this.deps.requestRestart,
@@ -173,7 +170,7 @@ export class NextclawGatewayRuntime {
             uiConfig: this.configManager.uiConfig,
           });
     this.gatewayController = this.createGatewayController();
-    this.gatewayChannels = new GatewayChannelManager(this);
+    this.deferredChannelStarter = this.startChannels;
     this.automation.onJob = createCronJobHandler({
       resolveNcpAgent: () => this.liveUiNcpAgent,
       bus: this.messageBus,
@@ -191,7 +188,7 @@ export class NextclawGatewayRuntime {
       await companionRuntimeService.applyConfig(nextConfig);
     });
     await this.startSupportServices();
-    this.gatewayChannels.installDevHotReload();
+    this.installChannelDevHotReload();
     await this.runRuntimeLoop();
     await companionRuntimeService.ensureStopped();
     logStartupTrace("service.start_gateway.end");
@@ -202,7 +199,7 @@ export class NextclawGatewayRuntime {
     this.bootstrapStatus = this.createBootstrapStatus();
     this.sessions.clear();
     this.uiStartup = this.createDisabledUiStartup();
-    this.gatewayChannels.reset();
+    this.deferredChannelStarter = this.startChannels;
     this.liveUiNcpAgent = null;
   };
 
@@ -276,8 +273,8 @@ export class NextclawGatewayRuntime {
     uiStaticDir: this.configManager.uiStaticDir,
     productVersion: this.productVersion,
     applyLiveConfigReload: this.configManager.applyLiveConfigReload,
-    initializeAgentHomeDirectory: this.workspaceManager.initializeAgentHomeDirectory,
-    marketplace: this.marketplaceManager.marketplace,
+    initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
+    marketplace: this.marketplace,
     cron: this.automation,
     ncpAgent: this.ncpAgent,
     sessions: this.sessions,
@@ -312,6 +309,45 @@ export class NextclawGatewayRuntime {
     const app = new NextclawApp(this);
     await app.start();
   };
+
+  readonly startDeferredChannels = async (): Promise<void> => {
+    await this.deferredChannelStarter();
+  };
+
+  private readonly installChannelDevHotReload = (): void => {
+    this.deferredChannelStarter = wrapStartChannelsWithDevPluginHotReload({
+      startChannels: this.startChannels,
+      watcherRegistry: this.fileWatchers,
+      isRuntimeActive: () => true,
+      reloadPlugins: async (pluginIds: string[]) => {
+        await this.plugins.reloadForDevHotReload(
+          pluginIds.map((pluginId) => `plugins.entries.${pluginId}.source`),
+        );
+      },
+      startupSettleMs: DEV_PLUGIN_HOT_RELOAD_STARTUP_SETTLE_MS,
+    });
+  };
+
+  private readonly startChannels = async (): Promise<void> => {
+    await this.kernel.channels.start();
+    const enabledChannels = this.kernel.channels.enabledChannels;
+    if (enabledChannels.length > 0) {
+      console.log(`✓ Channels enabled: ${enabledChannels.join(", ")}`);
+    } else {
+      console.log("Warning: No channels enabled");
+    }
+    this.bootstrapStatus.markChannelsReady(enabledChannels);
+    this.bootstrapStatus.markReady();
+  };
+
+  private readonly createMarketplace = (): MarketplaceApiConfig => ({
+    apiBaseUrl: process.env.NEXTCLAW_MARKETPLACE_API_BASE,
+    installer: new ServiceMarketplaceInstaller({
+      applyLiveConfigReload: this.configManager.applyLiveConfigReload,
+      runCliSubcommand: this.deps.runCliSubcommand,
+      installBuiltinSkill: this.deps.installBuiltinMarketplaceSkill,
+    }).createInstaller(),
+  });
 
   private cleanup = async (): Promise<void> => {
     localUiRuntimeStore.clearIfOwnedByProcess();

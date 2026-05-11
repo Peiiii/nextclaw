@@ -40,13 +40,23 @@
 - 删除 `AutomationManager` 中所有未实现 throw stub、未使用 automation CRUD 别名，以及 `AutomationTrigger/AutomationPayload/AutomationState/AutomationRecord` 这类只换名不建模的类型 alias；当前只保留真实可用的 cron 调用面。
 - `startGatewayRuntimeSupport` 不再接收 `cronJobs/startCron/cronStorePath/reloadCronStore` 等碎片参数，改为接收 `AutomationManager` owner 并直接调用其状态、启动和 reload 能力。
 
+同批次继续整合 channel 装配：
+
+- `core` 保留唯一真实 `ChannelManager` 实现，作为可复用 channel runtime 组件；不再保留 kernel fake CRUD manager，也不再出现 `CoreChannelManager`/`KernelChannelManager` 两层包装。
+- `NextclawKernel` 构造期直接创建并持有 `kernel.channels`，依赖同一个 `kernel.messageBus` 与 `kernel.sessions`。
+- `ConfigReloader` 不再接收 `bus/sessionManager` 并自行 `new ChannelManager(...)`，只负责把配置快照和 extension channel registry 装载到 kernel 持有的 channel owner。
+- 删除只负责转发 channel 启动的 `GatewayChannelManager`；gateway 延迟启动流程直接调用 runtime 上的 `startDeferredChannels()`，最终进入 `kernel.channels.start()`。
+- 删除只保存 workspace 字段的 `GatewayWorkspaceManager`，gateway runtime 直接持有 `workspace` 这个外部事实。
+- 删除只创建 marketplace config 的 `GatewayMarketplaceManager`，gateway runtime 直接创建 `marketplace` 配置对象。
+- 删除 kernel `ChannelRecord`/CRUD stub/type barrel，以及 core 旧 `services/manager.ts` 和旧 typing-control 测试文件；新增 core manager 定向测试覆盖 load/start/reload/control delivery。
+
 ## 测试/验证/验收方式
 
 - `pnpm --filter @nextclaw/core tsc`：通过。
 - `pnpm --filter @nextclaw/kernel tsc`：通过。
 - `pnpm --filter @nextclaw/runtime tsc`：通过。
 - `pnpm --filter @nextclaw/server tsc`：通过。
-- `pnpm --filter @nextclaw/service tsc`：此前通过；当前工作区因无关 weixin 包改名/删除链路报 `Cannot find module '@nextclaw/channel-extension-weixin'`，未进入 automation/cron 类型问题。
+- `pnpm --filter @nextclaw/service tsc`：通过。
 - `pnpm --filter @nextclaw/core lint`：通过，有既有 warning。
 - `pnpm --filter @nextclaw/kernel lint`：通过。
 - `pnpm --filter @nextclaw/runtime lint`：通过。
@@ -57,13 +67,14 @@
 - `pnpm --filter @nextclaw/core test -- src/features/llm-providers/providers/litellm.provider.test.ts`：通过。
 - `pnpm --filter @nextclaw/service test -- src/shared/services/telemetry/llm-usage-observer.service.test.ts src/commands/ncp/provider/provider-manager-ncp-llm-api.service.test.ts src/commands/service/gateway-manual-restart-contract.controller.test.ts`：通过。
 - `pnpm --filter @nextclaw/service test -- src/shared/services/ui/tests/npm-runtime-update-host.service.test.ts`：通过。
+- `pnpm --filter @nextclaw/core test -- src/features/channels/managers/channel.manager.test.ts`：通过，覆盖 core `ChannelManager` 装载、启动、control delivery 与 reload。
+- `pnpm --filter @nextclaw/service test -- src/commands/service/gateway-manual-restart-contract.controller.test.ts src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts src/shared/services/gateway/tests/nextclaw-app.service.test.ts`：通过。
 - `pnpm check:governance-backlog-ratchet`：通过。
 - `pnpm lint:new-code:package-public-imports`：通过。
-- `pnpm lint:new-code:governance`：此前被当前工作区既有 weixin 改动和迁移中的 provider 文件名阻塞；本轮已修正 provider 文件名和 shared 测试落点，收尾阶段重新执行。
-- `pnpm lint:new-code:governance`：当前工作区仍被无关文件 `packages/nextclaw-openclaw-compat/src/plugins/bundled-channel-plugin-packages.constants.ts` 的文件角色治理阻塞。
-- `pnpm lint:new-code:governance`：automation/cron 触达范围内治理问题已清理；当前仍被无关 weixin 触达文件的 context destructuring 阻塞。
+- `pnpm lint:new-code:governance`：通过；仅提示 `packages/nextclaw-service/src/shared/controllers/gateway.controller.ts` 是既有 legacy shared orchestration warning。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：当前触达范围非测试代码净减 287 行；触达 `packages/nextclaw-server/src/ui/config.ts` 红区，已补红区触达记录。
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：automation/cron 整合继续删减后触达范围总计 +689/-732，非测试代码 +459/-502，净减 43 行；仅提示 server UI 目录既有文件数 warning。
+- `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`：channel/gateway 整合触达范围总计 +401/-473，净减 72 行；非测试代码 +266/-345，净减 79 行；仅提示 runtime 目录既有预算豁免和 `nextclaw-ncp-dispatch.utils.ts` 接近文件预算。
 
 路由测试 `pnpm --filter @nextclaw/server test -- src/ui/router.provider-test.test.ts` 当前被既有 `@core/*` alias 解析问题阻塞，未进入测试用例执行。
 路由测试 `pnpm --filter @nextclaw/server test -- src/ui/router.cron.test.ts` 当前同样被既有 `@core/*` alias 解析问题阻塞，未进入测试用例执行。
@@ -89,6 +100,8 @@
 同批次继续删除 fake kernel session manager、gateway/CLI 的散点 session/messageBus 创建，以及 server config 里的 legacy session helper。kernel 现在负责构造同步对象图；gateway/CLI 只传入 workspace/homeDir 这类外部事实，生命周期层不再搬运这些 owner 的创建逻辑。
 
 automation/cron 继续沿用同一原则：保留 `AutomationManager` 这个语义 owner，但不迁移现有数据模型，不额外制造 wrapper/factory。gateway runtime 的 cron 装配入口收敛到 kernel；cron CLI 是离线数据命令，只直接持有 `AutomationManager`，不创建完整 kernel；core 的 `CronService` 仍作为可复用调度组件存在。
+
+channel 收敛继续沿用同一原则：core 只提供唯一可复用的 `ChannelManager` 组件；kernel 是唯一对象图装配点；service 生命周期层只把配置和 extension registry 装载进去，不再创建或包一层 channel owner。本次通过删除 kernel fake manager、类型 stub、service 散点实例化路径，以及 `GatewayChannelManager`/`GatewayWorkspaceManager`/`GatewayMarketplaceManager` 这类薄壳，让职责更集中且非测试代码净减。
 
 当前保留债务：
 

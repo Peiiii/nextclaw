@@ -38,10 +38,9 @@ describe("gateway manual restart contract", () => {
       initialConfig: readConfig(),
       channels: {
         enabledChannels: [],
-        stopAll: async () => undefined
+        load: () => undefined,
+        reload: async () => undefined,
       } as never,
-      bus: {} as never,
-      sessionManager: {} as never,
       providerManager: null,
       loadConfig: readConfig,
       applyAgentRuntimeConfig,

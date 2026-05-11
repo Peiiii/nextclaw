@@ -96,9 +96,7 @@ function createGateway(params: {
     extensions: {
       start: params.startExtensions ?? vi.fn(async () => undefined),
     },
-    gatewayChannels: {
-      startDeferred: params.startChannels ?? vi.fn(async () => undefined),
-    },
+    startDeferredChannels: params.startChannels ?? vi.fn(async () => undefined),
     restartWake: {
       wakeFromRestartSentinel: params.wakeFromRestartSentinel ?? vi.fn(async () => undefined),
     },

@@ -1,6 +1,5 @@
 import {
   AgentRouteResolver,
-  type ChannelManager,
   CommandRegistry,
   createAssistantStreamDeltaControlMessage,
   createAssistantStreamResetControlMessage,
@@ -12,7 +11,7 @@ import {
   type MessageBus,
   type SessionManager,
 } from "@nextclaw/core";
-import { eventKeys, type EventBus } from "@nextclaw/kernel";
+import { eventKeys, type ChannelManager, type EventBus } from "@nextclaw/kernel";
 import { runPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.js";
 import {
   dispatchChannelReplyRoute,

@@ -3,11 +3,8 @@ import {
   diffConfigPaths,
   type Config,
   type ExtensionRegistry,
-  ChannelManager,
-  type MessageBus,
-  type SessionManager
 } from "@nextclaw/core";
-import type { LlmProviderManager } from "@nextclaw/kernel";
+import type { ChannelManager, LlmProviderManager } from "@nextclaw/kernel";
 
 export class ConfigReloader {
   private currentConfig: Config;
@@ -22,8 +19,6 @@ export class ConfigReloader {
     private options: {
       initialConfig: Config;
       channels: ChannelManager;
-      bus: MessageBus;
-      sessionManager: SessionManager;
       providerManager: LlmProviderManager | null;
       loadConfig: () => Config;
       resolveChannelConfig?: (config: Config) => Config;
@@ -37,6 +32,10 @@ export class ConfigReloader {
   ) {
     this.currentConfig = options.initialConfig;
     this.channels = options.channels;
+    this.channels.load({
+      channelConfig: this.resolveChannelConfig(options.initialConfig),
+      extensionChannels: this.resolveExtensionChannels(),
+    });
   }
 
   getChannels = (): ChannelManager => {
@@ -166,17 +165,11 @@ export class ConfigReloader {
       return;
     }
     this.reloadTask = (async () => {
-      await this.channels.stopAll();
-      const channelConfig = this.options.resolveChannelConfig?.(nextConfig) ?? nextConfig;
-      this.channels = new ChannelManager(
-        channelConfig,
-        this.options.bus,
-        this.options.sessionManager,
-        this.options.getExtensionChannels?.() ?? []
-      );
-      if (options.start) {
-        await this.channels.startAll();
-      }
+      await this.channels.reload({
+        channelConfig: this.resolveChannelConfig(nextConfig),
+        extensionChannels: this.resolveExtensionChannels(),
+        start: options.start,
+      });
     })();
     try {
       await this.reloadTask;
@@ -184,6 +177,12 @@ export class ConfigReloader {
       this.reloadTask = null;
     }
   };
+
+  private readonly resolveChannelConfig = (config: Config): Config =>
+    this.options.resolveChannelConfig?.(config) ?? config;
+
+  private readonly resolveExtensionChannels = (): ExtensionRegistry["channels"] =>
+    this.options.getExtensionChannels?.() ?? [];
 
   private readonly reloadProvider = async (nextConfig: Config): Promise<void> => {
     if (!this.options.providerManager) {
