@@ -1,7 +1,6 @@
 import { loadConfig, saveConfig, type InboundAttachment } from "@nextclaw/core";
 import { setPluginRuntimeBridge } from "@nextclaw/openclaw-compat";
-import { dispatchPromptOverNcp } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js";
-import { mergePluginConfigView, toPluginConfigView } from "@nextclaw-service/commands/plugin/index.js";
+import { dispatchPromptOverNcp } from "@nextclaw/kernel";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 type PluginRuntimeDispatchContext = {
@@ -26,13 +25,13 @@ type PluginRuntimeDispatchContext = {
 export function installPluginRuntimeBridge(gateway: NextclawGatewayRuntime): void {
   setPluginRuntimeBridge({
     loadConfig: () =>
-      toPluginConfigView(gateway.configManager.loadConfig(), gateway.plugins.getChannelBindings()),
+      gateway.kernel.extensions.toConfigView(gateway.configManager.loadConfig()),
     writeConfigFile: async (nextConfigView) => {
       if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
         throw new Error("plugin runtime writeConfigFile expects an object config");
       }
       const current = loadConfig();
-      const next = mergePluginConfigView(current, nextConfigView, gateway.plugins.getChannelBindings());
+      const next = gateway.kernel.extensions.mergeConfigView(current, nextConfigView);
       saveConfig(next);
     },
     dispatchReplyWithBufferedBlockDispatcher: async ({ ctx, dispatcherOptions }) => {
@@ -46,7 +45,7 @@ export function installPluginRuntimeBridge(gateway: NextclawGatewayRuntime): voi
         const response = await dispatchPromptOverNcp({
           config: gateway.configManager.loadConfig(),
           sessionManager: gateway.sessionManager,
-          resolveNcpAgent: () => gateway.liveUiNcpAgent,
+          resolveNcpAgent: () => gateway.liveAgentRuntime,
           ...request,
         });
         const replyText = typeof response === "string" ? response : String(response ?? "");

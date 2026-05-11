@@ -1,5 +1,11 @@
 import type * as NextclawCore from "@nextclaw/core";
-import type { EventBus, Ingress, LlmProviderManager, UpdatePreferences, UpdateSnapshot } from "@nextclaw/kernel";
+import type { LlmProviderManager } from "@nextclaw/kernel";
+import type {
+  EventBus,
+  Ingress,
+  UpdatePreferences,
+  UpdateSnapshot,
+} from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type { UiAuthService } from "../auth.service.js";
 import type {

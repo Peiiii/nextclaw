@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { compress } from "hono/compress";
 import { serve } from "@hono/node-server";
-import type { AppEventEnvelope } from "@nextclaw/kernel";
+import type { AppEventEnvelope } from "@nextclaw/shared";
 import { WebSocketServer, WebSocket } from "ws";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";

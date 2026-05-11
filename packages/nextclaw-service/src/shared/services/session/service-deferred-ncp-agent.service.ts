@@ -1,6 +1,6 @@
 import type { UiNcpAgent } from "@nextclaw/server";
 import type { NcpAgentClientEndpoint } from "@nextclaw/ncp";
-import type { UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
+import type { AgentRuntimeHandle } from "@nextclaw/kernel";
 
 const DEFAULT_BASE_PATH = "/api/ncp/agent";
 const DEFERRED_NCP_AGENT_UNAVAILABLE = "ncp agent unavailable during startup";
@@ -11,7 +11,7 @@ function createUnavailableError(): Error {
 
 export type DeferredUiNcpAgentController = {
   agent: UiNcpAgent;
-  activate: (agent: UiNcpAgentHandle) => void;
+  activate: (agent: AgentRuntimeHandle) => void;
   clear: () => void;
   close: () => Promise<void>;
   isReady: () => boolean;
@@ -19,7 +19,7 @@ export type DeferredUiNcpAgentController = {
 
 class DeferredUiNcpAgentControllerOwner implements DeferredUiNcpAgentController {
   agent: UiNcpAgent;
-  private activeAgent: UiNcpAgentHandle | null = null;
+  private activeAgent: AgentRuntimeHandle | null = null;
 
   private readonly endpoint: NcpAgentClientEndpoint = {
     manifest: {
@@ -81,7 +81,7 @@ class DeferredUiNcpAgentControllerOwner implements DeferredUiNcpAgentController 
     };
   }
 
-  activate = (nextAgent: UiNcpAgentHandle): void => {
+  activate = (nextAgent: AgentRuntimeHandle): void => {
     this.activeAgent = nextAgent;
     this.agent.basePath = nextAgent.basePath ?? this.basePath;
     this.agent.streamProvider = nextAgent.streamProvider;

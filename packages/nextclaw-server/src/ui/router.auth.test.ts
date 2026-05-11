@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
 import { UiAuthService } from "./auth.service.js";
 import { createUiRouter } from "./router.js";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;

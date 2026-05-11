@@ -1,5 +1,11 @@
 import type { Config } from "@nextclaw/core";
-import { eventKeys, type EventBus, type UpdatePreferences, type UpdateProgress, type UpdateSnapshot } from "@nextclaw/kernel";
+import {
+  eventKeys,
+  type EventBus,
+  type UpdatePreferences,
+  type UpdateProgress,
+  type UpdateSnapshot,
+} from "@nextclaw/shared";
 import type { UiRuntimeUpdateHost } from "@nextclaw/server";
 import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/launcher/npm-runtime-bundle-layout.store.js";

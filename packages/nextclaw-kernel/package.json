@@ -29,6 +29,15 @@
   },
   "dependencies": {
     "@nextclaw/core": "workspace:*",
+    "@nextclaw/mcp": "workspace:*",
+    "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-http-agent-server": "workspace:*",
+    "@nextclaw/ncp-mcp": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*",
+    "@nextclaw/nextclaw-hermes-acp-bridge": "workspace:*",
+    "@nextclaw/nextclaw-ncp-runtime-http-client": "workspace:*",
+    "@nextclaw/nextclaw-ncp-runtime-stdio-client": "workspace:*",
+    "@nextclaw/openclaw-compat": "workspace:*",
     "@nextclaw/runtime": "workspace:*",
     "@nextclaw/shared": "workspace:*",
     "@nextclaw/ncp": "workspace:*"

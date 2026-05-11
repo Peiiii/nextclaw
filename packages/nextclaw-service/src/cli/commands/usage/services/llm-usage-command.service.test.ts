@@ -4,8 +4,7 @@ import { tmpdir } from "node:os";
 import { mkdtempSync } from "node:fs";
 import { LlmUsageCommandService } from "./llm-usage-command.service.js";
 import { LlmUsageQueryService } from "./llm-usage-query.service.js";
-import { LlmUsageHistoryStore } from "@nextclaw-service/shared/stores/llm-usage-history.store.js";
-import { LlmUsageSnapshotStore } from "@nextclaw-service/shared/stores/llm-usage-snapshot.store.js";
+import { LlmUsageStore } from "@nextclaw/kernel";
 
 describe("LlmUsageCommandService", () => {
   afterEach(() => {
@@ -16,8 +15,10 @@ describe("LlmUsageCommandService", () => {
   it("prints helpful guidance when no snapshot exists", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
     const queryService = new LlmUsageQueryService({
-      snapshotStore: new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json")),
-      historyStore: new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"))
+      store: new LlmUsageStore({
+        snapshotPath: join(tempDir, "llm-usage.json"),
+        historyPath: join(tempDir, "llm-usage.jsonl"),
+      })
     });
     const commands = new LlmUsageCommandService({ queryService });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -30,8 +31,11 @@ describe("LlmUsageCommandService", () => {
 
   it("renders the latest cache usage snapshot", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
-    const snapshotStore = new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json"));
-    snapshotStore.write({
+    const usageStore = new LlmUsageStore({
+      snapshotPath: join(tempDir, "llm-usage.json"),
+      historyPath: join(tempDir, "llm-usage.jsonl"),
+    });
+    usageStore.writeSnapshot({
       version: 1,
       observedAt: "2026-04-11T01:00:00.000Z",
       source: "cli-agent",
@@ -53,8 +57,7 @@ describe("LlmUsageCommandService", () => {
     });
     const commands = new LlmUsageCommandService({
       queryService: new LlmUsageQueryService({
-        snapshotStore,
-        historyStore: new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"))
+        store: usageStore
       })
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -68,8 +71,11 @@ describe("LlmUsageCommandService", () => {
 
   it("renders recent history records", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
-    const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
-    historyStore.append({
+    const usageStore = new LlmUsageStore({
+      snapshotPath: join(tempDir, "llm-usage.json"),
+      historyPath: join(tempDir, "llm-usage.jsonl"),
+    });
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T01:00:00.000Z",
       source: "cli-agent",
@@ -84,7 +90,7 @@ describe("LlmUsageCommandService", () => {
         cacheMetricKeys: []
       }
     });
-    historyStore.append({
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T02:00:00.000Z",
       source: "ui-ncp",
@@ -101,8 +107,7 @@ describe("LlmUsageCommandService", () => {
     });
     const commands = new LlmUsageCommandService({
       queryService: new LlmUsageQueryService({
-        snapshotStore: new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json")),
-        historyStore
+        store: usageStore
       })
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -117,8 +122,11 @@ describe("LlmUsageCommandService", () => {
 
   it("renders aggregated stats from history", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
-    const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
-    historyStore.append({
+    const usageStore = new LlmUsageStore({
+      snapshotPath: join(tempDir, "llm-usage.json"),
+      historyPath: join(tempDir, "llm-usage.jsonl"),
+    });
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T01:00:00.000Z",
       source: "cli-agent",
@@ -133,7 +141,7 @@ describe("LlmUsageCommandService", () => {
         cacheMetricKeys: []
       }
     });
-    historyStore.append({
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T02:00:00.000Z",
       source: "cli-agent",
@@ -150,8 +158,7 @@ describe("LlmUsageCommandService", () => {
     });
     const commands = new LlmUsageCommandService({
       queryService: new LlmUsageQueryService({
-        snapshotStore: new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json")),
-        historyStore
+        store: usageStore
       })
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
@@ -169,8 +176,11 @@ describe("LlmUsageCommandService", () => {
 
   it("separates empty usage records from prompt-bearing cache stats", async () => {
     const tempDir = mkdtempSync(join(tmpdir(), "nextclaw-usage-command-"));
-    const historyStore = new LlmUsageHistoryStore(join(tempDir, "llm-usage.jsonl"));
-    historyStore.append({
+    const usageStore = new LlmUsageStore({
+      snapshotPath: join(tempDir, "llm-usage.json"),
+      historyPath: join(tempDir, "llm-usage.jsonl"),
+    });
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T01:00:00.000Z",
       source: "ui-ncp",
@@ -185,7 +195,7 @@ describe("LlmUsageCommandService", () => {
         cacheMetricKeys: []
       }
     });
-    historyStore.append({
+    usageStore.appendHistory({
       version: 1,
       observedAt: "2026-04-11T02:00:00.000Z",
       source: "ui-ncp",
@@ -202,8 +212,7 @@ describe("LlmUsageCommandService", () => {
     });
     const commands = new LlmUsageCommandService({
       queryService: new LlmUsageQueryService({
-        snapshotStore: new LlmUsageSnapshotStore(join(tempDir, "llm-usage.json")),
-        historyStore
+        store: usageStore
       })
     });
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});

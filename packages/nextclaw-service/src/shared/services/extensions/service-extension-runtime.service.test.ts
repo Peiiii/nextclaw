@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Ingress } from "@nextclaw/kernel";
+import { Ingress } from "@nextclaw/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   resolveBuiltinExtensionManifestRoots,

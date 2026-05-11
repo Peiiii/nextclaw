@@ -1,5 +1,5 @@
 import { loadConfig, saveConfig, getConfigPath, getDataDir, getWorkspacePath, expandHome, resolveConfigSecrets, APP_NAME, DEFAULT_WORKSPACE_DIR, DEFAULT_WORKSPACE_PATH } from "@nextclaw/core";
-import { NextclawKernel, type LlmProviderRuntime } from "@nextclaw/kernel";
+import { NextclawKernel } from "@nextclaw/kernel";
 import { RemoteRuntimeActions } from "@nextclaw/remote";
 import {
   getPluginChannelBindings,
@@ -34,8 +34,6 @@ import { LogsCommands } from "@nextclaw-service/cli/commands/logs/index.js";
 import { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
 import { ServiceCommands } from "@nextclaw-service/commands/service/index.js";
 import { WorkspaceManager } from "@nextclaw-service/shared/services/workspace/workspace-manager.service.js";
-import { LlmUsageObserver, ObservedProviderManager } from "@nextclaw-service/shared/services/telemetry/llm-usage-observer.service.js";
-import { llmUsageRecorder } from "@nextclaw-service/shared/services/telemetry/llm-usage-recorder.service.js";
 import { RuntimeRestartRequestService } from "@nextclaw-service/shared/services/restart/runtime-restart-request.service.js";
 import { SkillsCommands } from "@nextclaw-service/cli/commands/skills/index.js";
 import { GatewayCommands } from "@nextclaw-service/cli/commands/gateway/index.js";
@@ -490,7 +488,7 @@ export class NextclawServiceRuntime {
     });
 
     try {
-      const providerManager = this.createObservedProviderManager(
+      const providerManager = kernel.llmUsage.observeProviderManager(
         kernel.llmProviders,
         "cli-agent",
       );
@@ -532,9 +530,6 @@ export class NextclawServiceRuntime {
       console.log(`Tip: restart ${APP_NAME} to apply the update.`);
     }
   };
-
-  private createObservedProviderManager = (providerManager: LlmProviderRuntime, source: string): LlmProviderRuntime =>
-    new ObservedProviderManager(providerManager, new LlmUsageObserver(llmUsageRecorder, source));
 }
 
 export const runNextclawNpmRuntimeLauncher = (

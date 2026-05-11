@@ -1,7 +1,9 @@
 import type { NcpSessionApi } from "@nextclaw/ncp";
-import { ContextCompactionPreflightService } from "@nextclaw-service/commands/ncp/context/context-compaction-preflight.service.js";
-import { createNcpSessionRealtimeChangePublisher } from "@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.utils.js";
-import { UiSessionService } from "@nextclaw-service/commands/ncp/ui-session-service.js";
+import {
+  ContextCompactionPreflightService,
+  UiSessionService,
+} from "@nextclaw/kernel";
+import { eventKeys, type Unsubscribe } from "@nextclaw/shared";
 import {
   createDeferredUiNcpSessionService,
   type DeferredUiNcpSessionServiceController
@@ -15,46 +17,11 @@ function formatBackgroundTaskError(error: unknown): string {
   return String(error);
 }
 
-export function createLatestOnlySessionChangePublisher(
-  publishSessionChange: (sessionKey: string) => Promise<void>,
-): (sessionKey: string) => Promise<void> {
-  const inFlightTasks = new Map<string, Promise<void>>();
-  const rerunKeys = new Set<string>();
-
-  const flushSessionChange = async (sessionKey: string): Promise<void> => {
-    do {
-      rerunKeys.delete(sessionKey);
-      await publishSessionChange(sessionKey);
-    } while (rerunKeys.has(sessionKey));
-  };
-
-  return async (sessionKey: string): Promise<void> => {
-    const normalizedSessionKey = sessionKey.trim();
-    if (!normalizedSessionKey) {
-      return;
-    }
-
-    const activeTask = inFlightTasks.get(normalizedSessionKey);
-    if (activeTask) {
-      rerunKeys.add(normalizedSessionKey);
-      await activeTask;
-      return;
-    }
-
-    const task = flushSessionChange(normalizedSessionKey).finally(() => {
-      if (inFlightTasks.get(normalizedSessionKey) === task) {
-        inFlightTasks.delete(normalizedSessionKey);
-      }
-    });
-    inFlightTasks.set(normalizedSessionKey, task);
-    await task;
-  };
-}
-
 export class ServiceNcpSessionRealtimeBridge {
   readonly sessionService: NcpSessionApi;
   readonly deferredSessionService: DeferredUiNcpSessionServiceController;
   readonly publishSessionChange: (sessionKey: string) => Promise<void>;
+  private readonly unsubscribeSessionUpdated: Unsubscribe;
 
   constructor(gateway: NextclawGatewayRuntime) {
     let scheduleSessionChange = async (_sessionKey: string): Promise<void> => {};
@@ -81,13 +48,24 @@ export class ServiceNcpSessionRealtimeBridge {
     });
     const deferredSessionService = createDeferredUiNcpSessionService(persistedSessionService);
 
-    const publishLatestSessionChange = async (sessionKey: string) => {
-      await createNcpSessionRealtimeChangePublisher({
-        sessionApi: deferredSessionService.service,
-        appEventBus: gateway.appEventBus
-      }).publishSessionChange(sessionKey);
+    const publishLatestSessionChange = async (sessionKey: string): Promise<void> => {
+      const normalizedSessionKey = sessionKey.trim();
+      if (!normalizedSessionKey) {
+        return;
+      }
+      const summary = await deferredSessionService.service.getSession(normalizedSessionKey);
+      gateway.appEventBus.emitEnvelope(summary
+        ? { type: "session.summary.upsert", payload: { summary } }
+        : { type: "session.summary.delete", payload: { sessionKey: normalizedSessionKey } });
     };
-    scheduleSessionChange = createLatestOnlySessionChangePublisher(publishLatestSessionChange);
+    scheduleSessionChange = publishLatestSessionChange;
+    this.unsubscribeSessionUpdated = gateway.appEventBus.on(eventKeys.sessionUpdated, ({ sessionKey }) => {
+      void scheduleSessionChange(sessionKey).catch((error) => {
+        console.error(
+          `[session-realtime] failed to publish session change for ${sessionKey}: ${formatBackgroundTaskError(error)}`
+        );
+      });
+    });
     this.sessionService = deferredSessionService.service;
     this.deferredSessionService = deferredSessionService;
     this.publishSessionChange = scheduleSessionChange;
@@ -95,5 +73,6 @@ export class ServiceNcpSessionRealtimeBridge {
 
   clear = (): void => {
     this.deferredSessionService.clear();
+    this.unsubscribeSessionUpdated();
   };
 }

@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import sonarjs from "eslint-plugin-sonarjs";
 import tsEslintPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import unusedImports from "eslint-plugin-unused-imports";
 import prettier from "eslint-config-prettier";
 import reactHooks from "eslint-plugin-react-hooks";
 import { FILE_DIRECTORY_BASENAME_COLLISION_ALLOWLIST } from "./scripts/governance/file-directory-basename-collision-shared.mjs";
@@ -123,7 +124,9 @@ const baseRules = {
   ...tsEslintPlugin.configs.recommended.rules,
   ...prettier.rules,
   "object-curly-spacing": ["error", "always"],
-  "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_" }],
+  "@typescript-eslint/no-unused-vars": "off",
+  "unused-imports/no-unused-imports": "error",
+  "unused-imports/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
   "@typescript-eslint/consistent-type-imports": "error",
   "max-lines": ["warn", { max: 800, skipBlankLines: true, skipComments: true }],
   "max-lines-per-function": [
@@ -234,6 +237,7 @@ export default [
     },
     plugins: {
       "@typescript-eslint": tsEslintPlugin,
+      "unused-imports": unusedImports,
       nextclaw: nextclawPlugin
     },
     rules: {
@@ -260,7 +264,7 @@ export default [
     rules: {
       "@typescript-eslint/consistent-type-imports": "off",
       "@typescript-eslint/no-explicit-any": "off",
-      "@typescript-eslint/no-unused-vars": [
+      "unused-imports/no-unused-vars": [
         "warn",
         {
           argsIgnorePattern: "^_",

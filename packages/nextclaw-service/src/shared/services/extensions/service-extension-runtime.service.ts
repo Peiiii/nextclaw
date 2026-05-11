@@ -1,6 +1,10 @@
 import type * as NextclawCore from "@nextclaw/core";
 import { getDataPath } from "@nextclaw/core";
-import type { Ingress, IngressContext, IngressEnvelope } from "@nextclaw/kernel";
+import type {
+  Ingress,
+  IngressContext,
+  IngressEnvelope,
+} from "@nextclaw/shared";
 import { randomUUID } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";

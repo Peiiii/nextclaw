@@ -75,8 +75,11 @@ const createGateway = (config: Record<string, unknown> = {
     markPluginHydrationReady: vi.fn(),
     markPluginHydrationRunning: vi.fn(),
   },
-  liveUiNcpAgent: {
-    applyExtensionRegistry: vi.fn(),
+  liveAgentRuntime: null,
+  kernel: {
+    extensions: {
+      loadContributions: vi.fn(),
+    },
   },
   configManager: {
     loadConfig: () => config,

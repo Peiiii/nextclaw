@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { AutomationManager, EventBus } from "@nextclaw/kernel";
+import { AutomationManager } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { startUiServer } from "./server.js";
 

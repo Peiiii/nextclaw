@@ -1,11 +1,23 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
+import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
+import { ExtensionManager } from "@kernel/managers/extension.manager.js";
+import { LearningLoopManager } from "@kernel/managers/learning-loop.manager.js";
 import { LlmProviderManager } from "@kernel/managers/llm-provider.manager.js";
+import { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
-import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
-import { ChannelManager, ensureDir, expandHome, getDataDir, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
+import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.config.js";
+import {
+  ChannelManager,
+  ensureDir,
+  expandHome,
+  getDataDir,
+  getSessionsPath,
+  MessageBus,
+  SessionManager,
+} from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
@@ -77,6 +89,7 @@ export class NextclawKernel {
   readonly ingress: Ingress = new Ingress();
   readonly messageBus: MessageBus = new MessageBus();
   readonly llmProviders: LlmProviderManager = new LlmProviderManager();
+  readonly llmUsage: LlmUsageManager = new LlmUsageManager();
   readonly configManager: ConfigManager;
   readonly agents: AgentManager;
   readonly sessions: SessionManager;
@@ -89,6 +102,10 @@ export class NextclawKernel {
   readonly skills: SkillManager;
   readonly automation: AutomationManager;
   readonly channels: ChannelManager;
+  readonly extensions: ExtensionManager;
+  readonly agentRuntimeManager: AgentRuntimeManager;
+  readonly learningLoop: LearningLoopManager;
+  private startPromise: Promise<void> | null = null;
 
   constructor(options: NextclawKernelOptions = {}) {
     this.sessions = new SessionManager({
@@ -105,6 +122,7 @@ export class NextclawKernel {
     >();
     this.tools = new ToolManager();
     this.skills = new SkillManager();
+    this.extensions = new ExtensionManager();
     this.channels = new ChannelManager({
       bus: this.messageBus,
       sessionManager: this.sessions,
@@ -114,10 +132,34 @@ export class NextclawKernel {
       channels: this.channels,
       providerManager: this.llmProviders,
     });
+    this.agentRuntimeManager = new AgentRuntimeManager({
+      bus: this.messageBus,
+      providerManager: this.llmProviders,
+      sessionManager: this.sessions,
+      cronService: this.automation,
+      configManager: this.configManager,
+      extensions: this.extensions,
+      eventBus: this.eventBus,
+      llmUsage: this.llmUsage,
+    });
+    this.learningLoop = new LearningLoopManager({
+      eventBus: this.eventBus,
+      sessionManager: this.sessions,
+      sessionRequester: this.agentRuntimeManager.sessionRequestBroker,
+      resolveLearningLoopConfig: () =>
+        readLearningLoopRuntimeConfig(this.configManager.loadConfig()),
+    });
   }
 
-  run = (input: NextclawKernelRunInput): NextclawKernelRun => {
-    void input;
-    throw new Error("NextclawKernel.run is not implemented.");
+  start = async (): Promise<void> => {
+    this.startPromise ??= this.agentRuntimeManager.bootstrap()
+      .then(() => {
+        this.learningLoop.start();
+      })
+      .catch((error: unknown) => {
+        this.startPromise = null;
+        throw error;
+      });
+    return this.startPromise;
   };
 }

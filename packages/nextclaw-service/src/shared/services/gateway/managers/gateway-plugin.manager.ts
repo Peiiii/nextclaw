@@ -2,7 +2,7 @@ import {
   getWorkspacePath,
   type Config,
 } from "@nextclaw/core";
-import { eventKeys } from "@nextclaw/kernel";
+import { eventKeys } from "@nextclaw/shared";
 import {
   getPluginChannelBindings,
   getPluginUiMetadataFromRegistry,
@@ -105,9 +105,9 @@ export class GatewayPluginManager {
       });
       this.extensionContributions = await this.gateway.extensions.loadContributions();
       const shouldRebuildChannels = this.replaceSnapshot(registry, []);
+      this.loadKernelExtensionContributions(registry);
       logPluginDiagnostics(registry);
 
-      this.gateway.liveUiNcpAgent?.applyExtensionRegistry?.(this.snapshot.extensionRegistry);
       if (shouldRebuildChannels) {
         await this.gateway.configManager.rebuildChannels(config, { start: false });
       }
@@ -130,11 +130,11 @@ export class GatewayPluginManager {
     const registry = await loadPluginRegistryProgressively(params.config, workspace);
     this.extensionContributions = await this.gateway.extensions.loadContributions();
     const restartChannels = this.replaceSnapshot(registry, params.changedPaths);
+    this.loadKernelExtensionContributions(registry);
     logPluginDiagnostics(registry);
     if (restartChannels) {
       await this.restartGateways();
     }
-    this.gateway.liveUiNcpAgent?.applyExtensionRegistry?.(this.snapshot.extensionRegistry);
     this.publishConfigChanges();
     return { restartChannels };
   };
@@ -333,5 +333,14 @@ export class GatewayPluginManager {
     });
     this.snapshot = nextSnapshot;
     return shouldRestartChannels;
+  };
+
+  private loadKernelExtensionContributions = (registry: PluginRegistry): void => {
+    this.gateway.kernel.extensions.loadContributions({
+      registry,
+      extensionRegistry: this.snapshot.extensionRegistry,
+      channelBindings: this.snapshot.channelBindings,
+      uiMetadata: this.snapshot.uiMetadata,
+    });
   };
 }

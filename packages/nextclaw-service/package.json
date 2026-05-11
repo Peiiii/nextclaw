@@ -44,6 +44,7 @@
     "@nextclaw/mcp": "workspace:*",
     "@nextclaw/ncp": "workspace:*",
     "@nextclaw/ncp-agent-runtime": "workspace:*",
+    "@nextclaw/ncp-http-agent-server": "workspace:*",
     "@nextclaw/ncp-mcp": "workspace:*",
     "@nextclaw/ncp-toolkit": "workspace:*",
     "@nextclaw/nextclaw-hermes-acp-bridge": "workspace:*",

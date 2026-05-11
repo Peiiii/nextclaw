@@ -31,6 +31,9 @@
       "@nextclaw/kernel/update-contract": [
         "../nextclaw-kernel/src/types/update-contract.types.ts"
       ],
+      "@nextclaw/agent-runtime/*": [
+        "../nextclaw-kernel/src/agent-runtime/*"
+      ],
       "@nextclaw/mcp": [
         "../nextclaw-mcp/src/index.ts"
       ],
@@ -45,6 +48,9 @@
       ],
       "@nextclaw/ncp": [
         "../ncp-packages/nextclaw-ncp/src/index.ts"
+      ],
+      "@nextclaw/ncp-http-agent-server": [
+        "../ncp-packages/nextclaw-ncp-http-agent-server/src/index.ts"
       ],
       "@nextclaw/ncp-toolkit": [
         "../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"

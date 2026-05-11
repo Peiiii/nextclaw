@@ -1,28 +1,29 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
+import type * as NextclawKernelModule from "@nextclaw/kernel";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 let capturedOnSessionUpdated: ((sessionKey: string) => void) | undefined;
 const publishSessionChangeMock = vi.fn<(sessionKey: string) => Promise<void>>();
 
-vi.mock("@nextclaw-service/commands/ncp/ui-session-service.js", () => ({
-  UiSessionService: class {
-    constructor(_sessionManager: unknown, options: { onSessionUpdated?: (sessionKey: string) => void } = {}) {
-      capturedOnSessionUpdated = options.onSessionUpdated;
-    }
-  }
-}));
+vi.mock("@nextclaw/kernel", async (importOriginal) => {
+  const actual = await importOriginal<typeof NextclawKernelModule>();
+  return {
+    ...actual,
+    UiSessionService: class {
+      constructor(_sessionManager: unknown, options: { onSessionUpdated?: (sessionKey: string) => void } = {}) {
+        capturedOnSessionUpdated = options.onSessionUpdated;
+      }
+    },
+  };
+});
 
 vi.mock("@nextclaw-service/shared/services/session/service-deferred-ncp-session-service.js", () => ({
   createDeferredUiNcpSessionService: () => ({
-    service: {},
+    service: {
+      getSession: publishSessionChangeMock,
+    },
     clear: vi.fn()
-  })
-}));
-
-vi.mock("@nextclaw-service/commands/ncp/session/ncp-session-realtime-change.utils.js", () => ({
-  createNcpSessionRealtimeChangePublisher: () => ({
-    publishSessionChange: publishSessionChangeMock
   })
 }));
 

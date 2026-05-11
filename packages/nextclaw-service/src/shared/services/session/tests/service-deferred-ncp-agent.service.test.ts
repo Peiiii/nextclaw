@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
+import type { AgentRuntimeHandle } from "@nextclaw/kernel";
 import { createDeferredUiNcpAgent } from "../service-deferred-ncp-agent.service.js";
 
-function createAgentHandle(): UiNcpAgentHandle {
+function createAgentHandle(): AgentRuntimeHandle {
   const stop = vi.fn(async () => undefined);
   const send = vi.fn(async () => undefined);
   const stream = vi.fn(async () => undefined);
@@ -73,7 +73,6 @@ function createAgentHandle(): UiNcpAgentHandle {
     },
     listSessionTypes,
     assetApi,
-    applyExtensionRegistry: vi.fn(),
     applyMcpConfig: vi.fn(async () => undefined),
   };
 }

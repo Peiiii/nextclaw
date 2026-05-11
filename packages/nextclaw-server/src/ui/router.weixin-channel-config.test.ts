@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { createUiRouter } from "./router.js";
 

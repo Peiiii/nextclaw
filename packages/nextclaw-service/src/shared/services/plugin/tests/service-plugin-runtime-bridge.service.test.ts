@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type * as NextclawCoreModule from "@nextclaw/core";
+import type * as NextclawKernelModule from "@nextclaw/kernel";
 import type { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
 
 const setPluginRuntimeBridgeMock = vi.hoisted(() => vi.fn());
@@ -12,9 +13,13 @@ vi.mock("@nextclaw/openclaw-compat", () => ({
   setPluginRuntimeBridge: setPluginRuntimeBridgeMock,
 }));
 
-vi.mock("@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js", () => ({
-  dispatchPromptOverNcp: dispatchPromptOverNcpMock,
-}));
+vi.mock("@nextclaw/kernel", async (importOriginal) => {
+  const actual = await importOriginal<typeof NextclawKernelModule>();
+  return {
+    ...actual,
+    dispatchPromptOverNcp: dispatchPromptOverNcpMock,
+  };
+});
 
 vi.mock("@nextclaw/core", async (importOriginal) => {
   const actual = await importOriginal<typeof NextclawCoreModule>();
@@ -30,12 +35,20 @@ import { installPluginRuntimeBridge } from "../utils/plugin-runtime-bridge.utils
 
 function createGateway(): NextclawGatewayRuntime {
   return {
-    liveUiNcpAgent: null,
-    configManager: {
-      loadConfig: () => ({}),
+    liveAgentRuntime: null,
+    kernel: {
+      extensions: {
+        toConfigView: (config: unknown) => config,
+        mergeConfigView: (_config: unknown, nextConfigView: unknown) => nextConfigView,
+      },
     },
-    plugins: {
-      getChannelBindings: () => [],
+    configManager: {
+      loadConfig: () => ({
+        agents: {
+          list: [{ id: "main" }],
+          defaults: { agent: "main" },
+        },
+      }),
     },
     sessionManager: {},
   } as unknown as NextclawGatewayRuntime;

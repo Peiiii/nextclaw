@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import type * as NextclawCoreModule from "@nextclaw/core";
 
 const tempDirs: string[] = [];

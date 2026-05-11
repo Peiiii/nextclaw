@@ -30,6 +30,7 @@ TypeScript source, type declarations, import/export boundaries, or runtime path:
 
 - `tsc` is required,
 - tests, eslint, and governance commands do not replace `tsc`.
+- If the reported issue is an editor/tsserver unused-symbol diagnostic such as `ts(6133)`, or a change removes/moves imports and exported types across package boundaries, first run ESLint autofix on the touched files or package so `unused-imports/no-unused-imports` can remove stale imports automatically. Then run a validation path that can surface unused locals for the touched package or touched files. If the stricter unused check is blocked by unrelated existing diagnostics, report those blockers and still prove the touched symbol no longer appears or is no longer unused.
 
 Source code, scripts, tests, or runtime-path config:
 

@@ -3,7 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { AutomationManager, EventBus } from "@nextclaw/kernel";
+import { AutomationManager } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import { startUiServer } from "./server.js";
 
 async function reservePort(): Promise<number> {

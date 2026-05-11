@@ -13,7 +13,7 @@ import {
 } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import { createUiRouter } from "./router.js";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
 const originalHome = process.env.NEXTCLAW_HOME;

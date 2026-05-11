@@ -7,7 +7,7 @@ import {
   updateAgentProfile,
   type EffectiveAgentProfile
 } from "@nextclaw/core";
-import { listAvailableAgentRuntimes } from "../agent-runtime.service.js";
+import { listAvailableAgentRuntimes } from "../agent-runtime.utils.js";
 import type { AgentsListCommandOptions, AgentsNewCommandOptions, AgentsRemoveCommandOptions, AgentsRuntimesCommandOptions, AgentsUpdateCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 
 export class AgentCommands {

@@ -1,4 +1,4 @@
-import { eventKeys } from "@nextclaw/kernel";
+import { eventKeys } from "@nextclaw/shared";
 import type { UiRouterOptions } from "./types.js";
 
 function appEventOptions() {

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
 import type { UiRemoteAccessHost } from "./ui-routes/types.js";
 import { createUiRouter } from "./router.js";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];
 

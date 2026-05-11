@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { mountNcpHttpAgentRoutes } from "@nextclaw/ncp-http-agent-server";
-import type { IngressEnvelope } from "@nextclaw/kernel";
+import type { IngressEnvelope } from "@nextclaw/shared";
 import { UiAuthService } from "./auth.service.js";
 import { AgentsRoutesController } from "./ui-routes/agents.controller.js";
 import { AppRoutesController } from "./ui-routes/app.controller.js";

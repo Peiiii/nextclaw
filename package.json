@@ -152,14 +152,15 @@
     "screenshots:refresh": "node scripts/docs/refresh-product-screenshots.mjs"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@eslint/js": "^9.39.3",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
-    "@changesets/cli": "^2.29.8",
     "eslint": "^9.39.3",
     "eslint-config-prettier": "^9.1.2",
-    "eslint-plugin-sonarjs": "^3.0.5",
     "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-sonarjs": "^3.0.5",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "playwright": "^1.52.0",
     "tsdown": "^0.21.7",
     "ws": "^8.18.0"

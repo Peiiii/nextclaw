@@ -1,8 +1,5 @@
-import { llmUsageHistoryStore } from "@nextclaw-service/shared/stores/llm-usage-history.store.js";
-import type { LlmUsageHistoryStore } from "@nextclaw-service/shared/stores/llm-usage-history.store.js";
-import type { LlmUsageRecord } from "@nextclaw-service/shared/stores/llm-usage-record.js";
-import { llmUsageSnapshotStore } from "@nextclaw-service/shared/stores/llm-usage-snapshot.store.js";
-import type { LlmUsageSnapshotStore } from "@nextclaw-service/shared/stores/llm-usage-snapshot.store.js";
+import type { LlmUsageRecord } from "@nextclaw/kernel";
+import { LlmUsageStore } from "@nextclaw/kernel";
 
 export type LlmUsageStats = {
   totalRecords: number;
@@ -23,33 +20,36 @@ export type LlmUsageStats = {
 };
 
 export class LlmUsageQueryService {
+  private readonly store: LlmUsageStore;
+
   constructor(
-    private readonly deps: {
-      snapshotStore?: LlmUsageSnapshotStore;
-      historyStore?: LlmUsageHistoryStore;
+    deps: {
+      store?: LlmUsageStore;
     } = {}
-  ) {}
+  ) {
+    this.store = deps.store ?? new LlmUsageStore();
+  }
 
   get snapshotPath(): string {
-    return this.snapshotStore.path;
+    return this.store.snapshotPath;
   }
 
   get historyPath(): string {
-    return this.historyStore.path;
+    return this.store.historyPath;
   }
 
   readonly getSnapshot = () => {
-    return this.snapshotStore.read();
+    return this.store.readSnapshot();
   };
 
   readonly getHistory = (limit?: string | number): LlmUsageRecord[] => {
-    const records = this.historyStore.list();
+    const records = this.store.listHistory();
     const resolvedLimit = this.resolveLimit(limit);
     return records.slice(-resolvedLimit).reverse();
   };
 
   readonly getStats = (): LlmUsageStats => {
-    const records = this.historyStore.list();
+    const records = this.store.listHistory();
     const sources = new Map<string, number>();
     const models = new Map<string, number>();
     let totalPromptTokens = 0;
@@ -97,15 +97,6 @@ export class LlmUsageQueryService {
       models: this.toSortedCounts(models),
     };
   };
-
-  private get snapshotStore(): LlmUsageSnapshotStore {
-    return this.deps.snapshotStore ?? llmUsageSnapshotStore;
-  }
-
-  private get historyStore(): LlmUsageHistoryStore {
-    return this.deps.historyStore ?? llmUsageHistoryStore;
-  }
-
   private readonly resolveLimit = (value?: string | number): number => {
     if (typeof value === "number" && Number.isFinite(value) && value > 0) {
       return Math.floor(value);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { EventBus } from "@nextclaw/kernel";
+import { EventBus } from "@nextclaw/shared";
 import { NextclawApp } from "../nextclaw-app.service.js";
 import type { NextclawGatewayRuntime } from "../nextclaw-gateway-runtime.service.js";
 
@@ -100,9 +100,9 @@ function createGateway(params: {
     restartWake: {
       wakeFromRestartSentinel: params.wakeFromRestartSentinel ?? vi.fn(async () => undefined),
     },
-    liveUiNcpAgent: null,
+    liveAgentRuntime: null,
   } as unknown as NextclawGatewayRuntime;
-  gateway.activateNcpAgent = vi.fn((agent) => {
+  gateway.activateAgentRuntime = vi.fn((agent) => {
     gateway.sessions.deferredSessionService.activate(agent.sessionApi);
     gateway.uiStartup.deferredNcpAgent.activate(agent);
     gateway.bootstrapStatus.markNcpAgentReady();
@@ -133,16 +133,15 @@ describe("NextclawApp", () => {
     const app = new NextclawApp(
       gateway,
       {
-        bootstrapKernel: vi.fn(async () => {
+        start: vi.fn(async () => {
           order.push("bootstrap-kernel");
-          return ncpAgent as never;
         }),
-        recoverDurableState: vi.fn(async () => {
-          order.push("recover-durable-state");
-        }),
-        warmDerivedCapabilities: vi.fn(async () => {
-          order.push("warm-derived-capabilities");
-        }),
+        agentRuntimeManager: {
+          currentHandle: ncpAgent,
+          warmDerivedCapabilities: vi.fn(async () => {
+            order.push("warm-derived-capabilities");
+          }),
+        },
       } as never,
     );
 
@@ -154,7 +153,6 @@ describe("NextclawApp", () => {
     expect(order).toEqual(
       expect.arrayContaining([
         "bootstrap-kernel",
-        "recover-durable-state",
         "start-plugin-gateways",
         "start-channels",
         "wake-restart-sentinel",
@@ -178,9 +176,11 @@ describe("NextclawApp", () => {
     const app = new NextclawApp(
       gateway,
       {
-        bootstrapKernel: vi.fn(async () => ncpAgent as never),
-        recoverDurableState: vi.fn(async () => undefined),
-        warmDerivedCapabilities,
+        start: vi.fn(async () => undefined),
+        agentRuntimeManager: {
+          currentHandle: ncpAgent,
+          warmDerivedCapabilities,
+        },
       } as never,
     );
 
@@ -213,11 +213,13 @@ describe("NextclawApp", () => {
     const app = new NextclawApp(
       gateway,
       {
-        bootstrapKernel: vi.fn(async () => {
+        start: vi.fn(async () => {
           throw new Error("kernel failed");
         }),
-        recoverDurableState: vi.fn(async () => undefined),
-        warmDerivedCapabilities: vi.fn(async () => undefined),
+        agentRuntimeManager: {
+          currentHandle: null,
+          warmDerivedCapabilities: vi.fn(async () => undefined),
+        },
       } as never,
     );
 

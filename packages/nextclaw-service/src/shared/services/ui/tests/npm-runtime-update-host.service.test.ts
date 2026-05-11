@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { eventKeys, NextclawKernel } from "@nextclaw/kernel";
+import { NextclawKernel } from "@nextclaw/kernel";
+import { eventKeys } from "@nextclaw/shared";
 import { NpmRuntimeUpdateHost } from "../npm-runtime-update-host.service.js";
 
 const mocks = vi.hoisted(() => {

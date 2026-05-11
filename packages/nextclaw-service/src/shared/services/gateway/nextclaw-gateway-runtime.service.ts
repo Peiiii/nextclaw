@@ -1,5 +1,13 @@
 import * as NextclawCore from "@nextclaw/core";
-import { NextclawKernel, type AutomationManager, type ConfigManager, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
+import {
+  NextclawKernel,
+  runGatewayInboundLoop,
+  type AgentRuntimeHandle,
+  type AutomationManager,
+  type ConfigManager,
+  type LlmProviderManager,
+} from "@nextclaw/kernel";
+import type { EventBus, Ingress } from "@nextclaw/shared";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
@@ -14,8 +22,6 @@ import {
 import { resolve } from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import { resolveChannelConfigView } from "@nextclaw-service/commands/channel/channel-config-view.js";
-import type { UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/index.js";
-import { runGatewayInboundLoop } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js";
 import { GatewayControllerImpl } from "@nextclaw-service/shared/controllers/gateway.controller.js";
 import { ServiceExtensionRuntime } from "@nextclaw-service/shared/services/extensions/service-extension-runtime.service.js";
 import { GatewayPluginManager } from "@nextclaw-service/shared/services/gateway/managers/gateway-plugin.manager.js";
@@ -107,7 +113,7 @@ export class NextclawGatewayRuntime {
   readonly sessions: ServiceNcpSessionRealtimeBridge;
   uiStartup: UiStartupHandle;
   readonly extensions: ServiceExtensionRuntime;
-  liveUiNcpAgent: UiNcpAgentHandle | null = null;
+  liveAgentRuntime: AgentRuntimeHandle | null = null;
   readonly fileWatchers = new ServiceFileWatcherRegistry();
   private deferredChannelStarter: () => Promise<void>;
 
@@ -163,9 +169,10 @@ export class NextclawGatewayRuntime {
             uiConfig: this.uiConfig,
           });
     this.gatewayController = this.createGatewayController();
+    this.kernel.agentRuntimeManager.connectGatewayController(this.gatewayController);
     this.deferredChannelStarter = this.startChannels;
     this.automation.onJob = createCronJobHandler({
-      resolveNcpAgent: () => this.liveUiNcpAgent,
+      resolveNcpAgent: () => this.liveAgentRuntime,
       bus: this.messageBus,
     });
   }
@@ -190,16 +197,16 @@ export class NextclawGatewayRuntime {
     this.sessions.clear();
     this.uiStartup = this.createDisabledUiStartup();
     this.deferredChannelStarter = this.startChannels;
-    this.liveUiNcpAgent = null;
+    this.liveAgentRuntime = null;
   };
 
   get ncpAgent(): UiNcpAgent {
     return this.uiStartup.deferredNcpAgent.agent;
   }
 
-  activateNcpAgent = (ncpAgent: UiNcpAgentHandle): void => {
+  activateAgentRuntime = (ncpAgent: AgentRuntimeHandle): void => {
     this.sessions.deferredSessionService.activate(ncpAgent.sessionApi);
-    this.liveUiNcpAgent = ncpAgent;
+    this.liveAgentRuntime = ncpAgent;
     if (this.uiConfig.enabled) {
       this.uiStartup.deferredNcpAgent.activate(ncpAgent);
     }
@@ -342,7 +349,7 @@ export class NextclawGatewayRuntime {
   private cleanup = async (): Promise<void> => {
     localUiRuntimeStore.clearIfOwnedByProcess();
     await this.fileWatchers.clear();
-    this.liveUiNcpAgent = null;
+    this.liveAgentRuntime = null;
     this.sessions.clear();
     await this.uiStartup.deferredNcpAgent.close();
     await this.extensions.stop();
@@ -402,8 +409,9 @@ export class NextclawGatewayRuntime {
 
   private installConfigRuntimeHooks = (): void => {
     this.configManager.installRuntimeHooks({
-      resolveChannelConfig: (nextConfig) => resolveChannelConfigView(nextConfig, this.plugins.getChannelBindings()),
-      getExtensionChannels: () => this.plugins.getExtensionRegistry().channels,
+      resolveChannelConfig: (nextConfig) =>
+        resolveChannelConfigView(nextConfig, this.kernel.extensions.getChannelBindings()),
+      getExtensionChannels: () => this.kernel.extensions.getExtensionRegistry().channels,
       reloadCompanion: async ({ config: nextConfig }) => {
         await companionRuntimeService.applyConfig(nextConfig);
       },
@@ -418,7 +426,7 @@ export class NextclawGatewayRuntime {
         return { restartChannels: result.restartChannels };
       },
       reloadMcp: async ({ config: nextConfig }) => {
-        await this.liveUiNcpAgent?.applyMcpConfig?.(nextConfig);
+        await this.liveAgentRuntime?.applyMcpConfig?.(nextConfig);
       },
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({

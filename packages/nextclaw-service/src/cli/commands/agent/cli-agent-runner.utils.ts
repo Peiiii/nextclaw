@@ -3,14 +3,17 @@ import {
   type Config,
   type SessionManager,
 } from "@nextclaw/core";
-import type { LlmProviderRuntime, NextclawKernel } from "@nextclaw/kernel";
+import {
+  dispatchPromptOverNcp,
+  type AgentRuntimeHandle,
+  type LlmProviderRuntime,
+  type NextclawKernel,
+} from "@nextclaw/kernel";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import type { AgentCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import { printAgentResponse, prompt } from "@nextclaw-service/shared/utils/cli.utils.js";
-import { createUiNcpAgent } from "@nextclaw-service/commands/ncp/features/runtime/create-ui-ncp-agent.service.js";
-import { dispatchPromptOverNcp } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js";
 import type { NextclawExtensionRegistry } from "@nextclaw-service/commands/plugin/index.js";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
@@ -50,7 +53,7 @@ async function runCliInteractiveLoop(params: {
   logo: string;
   config: Config;
   sessionManager: SessionManager;
-  ncpAgent: Awaited<ReturnType<typeof createUiNcpAgent>>;
+  ncpAgent: AgentRuntimeHandle;
   sessionKey: string;
   metadata: Record<string, unknown>;
 }): Promise<void> {
@@ -99,23 +102,16 @@ export async function runCliAgentCommand(params: {
     config,
     extensionRegistry,
     kernel,
-    loadResolvedConfig,
     logo,
     opts,
-    providerManager,
-    resolveMessageToolHints,
   } = params;
-  const bus = kernel.messageBus;
   const sessionManager = kernel.sessions;
-  const ncpAgent = await createUiNcpAgent({
-    bus,
-    providerManager,
-    sessionManager,
-    getConfig: loadResolvedConfig,
-    getExtensionRegistry: () => extensionRegistry,
-    resolveMessageToolHints: ({ channel, accountId }) =>
-      resolveMessageToolHints({ channel, accountId }),
-  });
+  kernel.extensions.loadExtensionRegistry(extensionRegistry);
+  await kernel.start();
+  const ncpAgent = kernel.agentRuntimeManager.currentHandle;
+  if (!ncpAgent) {
+    throw new Error("Kernel start completed without an agent runtime handle.");
+  }
 
   try {
     const sessionKey = opts.session ?? "cli:default";

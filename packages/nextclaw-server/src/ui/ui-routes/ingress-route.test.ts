@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
-import type { EventBus, Ingress } from "@nextclaw/kernel";
+import type { EventBus, Ingress } from "@nextclaw/shared";
 import { createUiRouter } from "../router.js";
 
 describe("ingress route", () => {

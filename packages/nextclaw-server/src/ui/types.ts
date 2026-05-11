@@ -1,5 +1,5 @@
 import type { ThinkingLevel } from "@nextclaw/core";
-import type { AppEvent } from "@nextclaw/kernel";
+import type { AppEvent } from "@nextclaw/shared";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
 import type { UiNcpStoredAssetRecord } from "./ncp-attachment.types.js";

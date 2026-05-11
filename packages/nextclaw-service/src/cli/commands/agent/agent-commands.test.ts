@@ -19,7 +19,7 @@ vi.mock("@nextclaw/core", () => ({
   removeAgentProfile: mocks.removeAgentProfileMock
 }));
 
-vi.mock("./agent-runtime.service.js", () => ({
+vi.mock("./agent-runtime.utils.js", () => ({
   listAvailableAgentRuntimes: mocks.listAvailableAgentRuntimesMock
 }));
 

@@ -4,6 +4,6 @@
   "rootPolicy": "legacy-frozen",
   "enforcement": "error",
   "allowedRootDirectories": ["services"],
-  "allowedRootFiles": ["index.ts", "agent-runtime.service.ts", "cli-agent-runner.utils.ts"],
+  "allowedRootFiles": ["index.ts", "agent-runtime.utils.ts", "cli-agent-runner.utils.ts"],
   "sharedDirectories": []
 }
