@@ -38,6 +38,7 @@ const ROLE_SUFFIX_ALLOWLIST = new Set([
   "service",
   "store",
   "test",
+  "tools",
   "types",
   "utils"
 ]);
@@ -58,6 +59,7 @@ const DIRECTORY_ROLE_RULES = {
   routes: roleRule("route", "*.route.ts(x)"),
   services: roleRule("service"),
   stores: roleRule("store"),
+  tools: roleRule("tools"),
   types: roleRule("types"),
   utils: roleRule("utils"),
   hooks: {

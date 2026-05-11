@@ -3,7 +3,7 @@ import {
   cloneMetadata,
   extractMessageMetadata,
   mergeSessionMetadata,
-} from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
+} from "@kernel/utils/ncp-message-bridge.utils.js";
 
 export function resolvePersistedSessionMetadata(params: {
   currentMetadata: Record<string, unknown>;

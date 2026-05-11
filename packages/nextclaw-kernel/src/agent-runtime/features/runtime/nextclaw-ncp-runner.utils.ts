@@ -8,7 +8,7 @@ import {
 } from "@nextclaw/ncp";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import { extractTextFromNcpMessage } from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
+import { extractTextFromNcpMessage } from "@kernel/utils/ncp-message-bridge.utils.js";
 
 type AssetApi = {
   put: (input: {

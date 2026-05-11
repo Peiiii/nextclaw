@@ -1,5 +1,4 @@
-import { normalizeString } from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
-import type { SessionSearchStoreService } from "./session-search-store.service.js";
+import type { SessionSearchStore } from "@core/features/session-search/stores/session-search.store.js";
 import {
   DEFAULT_SESSION_SEARCH_LIMIT,
   MAX_SESSION_SEARCH_LIMIT,
@@ -7,7 +6,10 @@ import {
   type SessionSearchRequest,
   type SessionSearchResult,
   type SessionSearchStoreHit,
-} from "./session-search.types.js";
+} from "@core/features/session-search/types/session-search.types.js";
+
+const normalizeString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 
 const SNIPPET_RADIUS = 80;
 const MAX_FULL_SNIPPET_LENGTH = 180;
@@ -88,7 +90,7 @@ function normalizeLimit(limit: number | undefined): number {
 }
 
 export class SessionSearchQueryService {
-  constructor(private readonly store: SessionSearchStoreService) {}
+  constructor(private readonly store: SessionSearchStore) {}
 
   search = async (request: SessionSearchRequest): Promise<SessionSearchResult> => {
     const query = normalizeString(request.query);

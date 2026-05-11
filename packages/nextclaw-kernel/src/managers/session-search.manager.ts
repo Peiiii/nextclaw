@@ -1,7 +1,6 @@
-import { getSessionsPath, type SessionManager } from "@nextclaw/core";
+import { SessionSearchWorkerController } from "@nextclaw/core";
 import type { NcpTool } from "@nextclaw/ncp";
-import { SessionSearchTool } from "./session-search-tool.service.js";
-import { SessionSearchWorkerController } from "./worker/session-search-worker.controller.js";
+import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -12,31 +11,26 @@ type SessionSearchWorkerControllerLike = Pick<
   "start" | "query" | "notifySessionUpdated" | "dispose" | "getState"
 >;
 
-export class SessionSearchRuntimeSupport {
+export type SessionSearchManagerOptions = {
+  databasePath: string;
+  onSessionUpdated?: (sessionKey: string) => void;
+  sessionsDir: string;
+  workerController?: SessionSearchWorkerControllerLike;
+};
+
+export class SessionSearchManager {
   private readonly workerController: SessionSearchWorkerControllerLike;
   private enabled = true;
   private ready = false;
 
-  constructor(
-    params: {
-      sessionManager: SessionManager;
-      onSessionUpdated?: (sessionKey: string) => void;
-      databasePath: string;
-      sessionsDir?: string;
-      workerController?: SessionSearchWorkerControllerLike;
-    },
-  ) {
-    const { databasePath, onSessionUpdated, sessionsDir, workerController } = params;
-    this.onSessionUpdated = onSessionUpdated;
+  constructor(private readonly options: SessionSearchManagerOptions) {
     this.workerController =
-      workerController ??
+      options.workerController ??
       new SessionSearchWorkerController({
-        databasePath,
-        sessionsDir: sessionsDir ?? getSessionsPath(),
+        databasePath: options.databasePath,
+        sessionsDir: options.sessionsDir,
       });
   }
-
-  private readonly onSessionUpdated?: (sessionKey: string) => void;
 
   initialize = async (): Promise<void> => {
     try {
@@ -48,13 +42,13 @@ export class SessionSearchRuntimeSupport {
     }
   };
 
-  createAdditionalTools = (params: { currentSessionId?: string }): NcpTool[] =>
+  createTools = (params: { currentSessionId?: string }): NcpTool[] =>
     this.isReady()
       ? [new SessionSearchTool({ search: this.workerController.query }, params)]
       : [];
 
   handleSessionUpdated = (sessionKey: string): void => {
-    this.onSessionUpdated?.(sessionKey);
+    this.options.onSessionUpdated?.(sessionKey);
     if (!this.enabled || !this.ready) {
       return;
     }

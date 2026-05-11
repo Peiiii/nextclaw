@@ -30,7 +30,7 @@ import type {
 import {
   normalizeString,
   toLegacyMessages,
-} from "./nextclaw-ncp-message-bridge.utils.js";
+} from "@kernel/utils/ncp-message-bridge.utils.js";
 import {
   resolveEffectiveModel,
   resolveSessionChannelContext,

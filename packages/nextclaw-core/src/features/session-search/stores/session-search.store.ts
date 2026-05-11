@@ -6,7 +6,7 @@ import type {
   SessionSearchStoreHit,
   SessionSearchStoreQuery,
   SessionSearchStoreResult,
-} from "./session-search.types.js";
+} from "@core/features/session-search/types/session-search.types.js";
 
 const SESSION_SEARCH_TABLE = "session_search_index";
 const SESSION_SEARCH_META_TABLE = "session_search_meta";
@@ -46,8 +46,9 @@ export class SessionSearchUnsupportedRuntimeError extends Error {
 
 async function loadSessionSearchDatabaseSync(): Promise<SessionSearchDatabaseSyncCtor> {
   try {
-    const module = await import("node:sqlite");
-    return module.DatabaseSync as SessionSearchDatabaseSyncCtor;
+    const moduleName = "node:sqlite";
+    const module = await import(moduleName) as { DatabaseSync: SessionSearchDatabaseSyncCtor };
+    return module.DatabaseSync;
   } catch (error) {
     if (isUnsupportedNodeSqliteError(error)) {
       throw new SessionSearchUnsupportedRuntimeError(
@@ -70,7 +71,7 @@ function isUnsupportedNodeSqliteError(error: unknown): boolean {
   );
 }
 
-export class SessionSearchStoreService {
+export class SessionSearchStore {
   private database: SessionSearchDatabase | null = null;
 
   constructor(

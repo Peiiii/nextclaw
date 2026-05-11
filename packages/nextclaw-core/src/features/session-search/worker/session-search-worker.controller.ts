@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
-import type { SessionSearchRequest, SessionSearchResult } from "@kernel/agent-runtime/session-search/session-search.types.js";
+import type { SessionSearchRequest, SessionSearchResult } from "@core/features/session-search/types/session-search.types.js";
 import type {
   SessionSearchWorkerEvent,
   SessionSearchWorkerProgress,
@@ -25,9 +25,7 @@ function createSessionSearchWorkerEntryUrl(): URL {
   if (import.meta.url.endsWith(".ts")) {
     return new URL("session-search-worker-host.utils.ts", import.meta.url);
   }
-  const candidates = [
-    new URL("session-search-worker-host.utils.js", import.meta.url),
-  ];
+  const candidates = [new URL("session-search-worker-host.utils.js", import.meta.url), new URL("features/session-search/worker/session-search-worker-host.utils.js", import.meta.url)];
   return candidates.find((candidate) => existsSync(fileURLToPath(candidate))) ?? (candidates[0] as URL);
 }
 

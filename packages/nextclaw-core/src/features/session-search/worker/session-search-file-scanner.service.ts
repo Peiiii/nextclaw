@@ -1,9 +1,8 @@
-import type { SessionMessage } from "@nextclaw/core";
-import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
+import type { SessionMessage } from "@core/features/session/index.js";
+import type { SessionSearchSessionRecord } from "@core/features/session-search/types/session-search.types.js";
 import { createHash } from "node:crypto";
 import { open, readdir, readFile, stat } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { toNcpMessages } from "@kernel/agent-runtime/session/nextclaw-agent-session-message-adapter.utils.js";
 
 const FIRST_LINE_CHUNK_SIZE = 4096;
 const MAX_FIRST_LINE_BYTES = 65536;
@@ -18,7 +17,6 @@ export type SessionSearchFileSummary = {
 type SessionSearchFileReadState = {
   messages: SessionMessage[];
   metadata: Record<string, unknown>;
-  agentId?: string;
   updatedAt: string;
 };
 
@@ -114,7 +112,7 @@ export class SessionSearchFileScannerService {
     return summaries;
   };
 
-  readSession = async (summary: SessionSearchFileSummary): Promise<AgentSessionRecord | null> => {
+  readSession = async (summary: SessionSearchFileSummary): Promise<SessionSearchSessionRecord | null> => {
     const raw = await readFile(summary.path, "utf8").catch(() => "");
     if (!raw) {
       return null;
@@ -137,8 +135,7 @@ export class SessionSearchFileScannerService {
 
     return {
       sessionId: summary.sessionId,
-      ...(state.agentId ? { agentId: state.agentId } : {}),
-      messages: toNcpMessages(summary.sessionId, state.messages),
+      messages: state.messages,
       updatedAt: state.updatedAt,
       metadata: state.metadata,
     };
@@ -203,7 +200,6 @@ export class SessionSearchFileScannerService {
     data: Record<string, unknown>,
   ): void => {
     state.metadata = isRecord(data.metadata) ? data.metadata : {};
-    state.agentId = toOptionalString(data.agent_id)?.toLowerCase();
     state.updatedAt = toIsoTimestamp(data.updated_at, state.updatedAt);
   };
 

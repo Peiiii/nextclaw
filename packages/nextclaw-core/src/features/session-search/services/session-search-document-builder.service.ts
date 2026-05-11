@@ -1,6 +1,7 @@
-import type { AgentSessionRecord } from "@nextclaw/ncp-toolkit";
-import { extractTextFromNcpMessage, normalizeString } from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
-import type { SessionSearchDocument } from "./session-search.types.js";
+import type {
+  SessionSearchDocument,
+  SessionSearchSessionRecord,
+} from "@core/features/session-search/types/session-search.types.js";
 
 const AUTO_LABEL_MAX_LENGTH = 64;
 
@@ -16,8 +17,11 @@ function truncateLabel(value: string): string {
   return `${characters.slice(0, AUTO_LABEL_MAX_LENGTH).join("")}...`;
 }
 
+const normalizeString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+
 export class SessionSearchDocumentBuilderService {
-  buildDocument = (session: AgentSessionRecord): SessionSearchDocument | null => {
+  buildDocument = (session: SessionSearchSessionRecord): SessionSearchDocument | null => {
     const label = this.resolveSessionLabel(session);
     const content = this.buildSearchableContent(session);
     if (!label && !content) {
@@ -32,7 +36,7 @@ export class SessionSearchDocumentBuilderService {
     };
   };
 
-  private resolveSessionLabel = (session: AgentSessionRecord): string => {
+  private resolveSessionLabel = (session: SessionSearchSessionRecord): string => {
     const metadataLabel =
       normalizeString(session.metadata?.label) ??
       normalizeString(session.metadata?.session_label);
@@ -44,7 +48,7 @@ export class SessionSearchDocumentBuilderService {
       if (message.role !== "user") {
         continue;
       }
-      const text = normalizeString(extractTextFromNcpMessage(message));
+      const text = normalizeString(message.content);
       if (text) {
         return truncateLabel(text);
       }
@@ -53,13 +57,13 @@ export class SessionSearchDocumentBuilderService {
     return "";
   };
 
-  private buildSearchableContent = (session: AgentSessionRecord): string => {
+  private buildSearchableContent = (session: SessionSearchSessionRecord): string => {
     const lines: string[] = [];
     for (const message of session.messages) {
       if (message.role !== "user" && message.role !== "assistant") {
         continue;
       }
-      const text = normalizeString(extractTextFromNcpMessage(message));
+      const text = normalizeString(message.content);
       if (!text) {
         continue;
       }

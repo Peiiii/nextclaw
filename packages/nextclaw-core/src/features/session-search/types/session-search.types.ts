@@ -1,5 +1,14 @@
+import type { SessionMessage } from "@core/features/session/index.js";
+
 export const DEFAULT_SESSION_SEARCH_LIMIT = 5;
 export const MAX_SESSION_SEARCH_LIMIT = 10;
+
+export type SessionSearchSessionRecord = {
+  sessionId: string;
+  messages: SessionMessage[];
+  updatedAt: string;
+  metadata: Record<string, unknown>;
+};
 
 export type SessionSearchDocument = {
   sessionId: string;

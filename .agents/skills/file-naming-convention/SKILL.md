@@ -47,13 +47,14 @@ For this repository specifically:
 - Use whitelist-only suffixes for this repository:
   - `.service.ts`, `.utils.ts`, `.types.ts`, `.test.ts`
   - `.manager.ts`, `.store.ts`, `.repository.ts`, `.config.ts`
-  - `.controller.ts`, `.provider.ts`
+  - `.controller.ts`, `.provider.ts`, `.tools.ts`
 - Directory and suffix must match when these directories are used:
   - `controllers/` -> `*.controller.ts`
   - `services/` -> `*.service.ts`
   - `providers/` -> `*.provider.ts`
   - `repositories/` -> `*.repository.ts`
   - `stores/` -> `*.store.ts`
+  - `tools/` -> `*.tools.ts`，仅用于 agent-facing tools；不要把它当作 `utils/` 或通用工具函数目录
   - `types/` -> `*.types.ts`
   - `utils/` -> `*.utils.ts`
 - React hook 模块例外：凡文件主职责是导出可复用 React hook，必须放在 `hooks/` 目录下，并命名为 `use-<domain>.ts` 或 `use-<domain>.tsx`；此类文件不使用 `.service.ts` 等角色后缀。

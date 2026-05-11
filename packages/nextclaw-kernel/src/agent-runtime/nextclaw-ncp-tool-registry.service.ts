@@ -26,7 +26,7 @@ import {
 import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
-import { isRecord, normalizeString } from "./nextclaw-ncp-message-bridge.utils.js";
+import { isRecord, normalizeString } from "@kernel/utils/ncp-message-bridge.utils.js";
 import type { SessionCreationService } from "./session-request/session-creation.service.js";
 import { SessionRequestTool } from "./session-request/session-request-tool.utils.js";
 import type { SessionRequestBroker } from "./session-request/session-request-broker.service.js";

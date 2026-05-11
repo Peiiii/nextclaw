@@ -4,7 +4,7 @@ import {
   type NcpRunnerAgent,
   type RunPromptOverNcpParams,
 } from "@kernel/agent-runtime/features/runtime/nextclaw-ncp-runner.utils.js";
-import { extractTextFromNcpMessage } from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
+import { extractTextFromNcpMessage } from "@kernel/utils/ncp-message-bridge.utils.js";
 
 export type StreamPromptOverNcpParams = Omit<
   RunPromptOverNcpParams,

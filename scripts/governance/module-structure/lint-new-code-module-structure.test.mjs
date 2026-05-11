@@ -69,6 +69,7 @@ test("finds the protocol declaration for nextclaw-kernel package root config", (
   assert.equal(contract?.modulePath, "packages/nextclaw-kernel/src");
   assert.equal(contract?.protocol, "app-l1");
   assert.equal(isProtocolContract(contract), true);
+  assert.equal(contract?.allowedRootDirectories.has("tools"), true);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
 });
 

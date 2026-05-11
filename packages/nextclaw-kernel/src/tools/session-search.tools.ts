@@ -1,11 +1,11 @@
 import type { NcpTool } from "@nextclaw/ncp";
-import { normalizeString } from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
 import {
   DEFAULT_SESSION_SEARCH_LIMIT,
   MAX_SESSION_SEARCH_LIMIT,
   type SessionSearchRequest,
   type SessionSearchResult,
-} from "./session-search.types.js";
+} from "@nextclaw/core";
+import { normalizeString } from "@kernel/utils/ncp-message-bridge.utils.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);

@@ -6,11 +6,12 @@
   "allowedRootDirectories": [
     "agent-runtime",
     "app",
-    "events",
-    "learning-loop",
+    "configs",
     "managers",
-    "telemetry",
-    "types"
+    "stores",
+    "tools",
+    "types",
+    "utils"
   ],
   "allowedRootFiles": [
     "index.ts"

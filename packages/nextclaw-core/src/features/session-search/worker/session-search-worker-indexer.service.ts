@@ -1,17 +1,17 @@
-import { SessionSearchDocumentBuilderService } from "@kernel/agent-runtime/session-search/session-search-document-builder.service.js";
+import { SessionSearchDocumentBuilderService } from "@core/features/session-search/services/session-search-document-builder.service.js";
 import type {
   SessionSearchFileScannerService,
   SessionSearchFileSummary,
 } from "./session-search-file-scanner.service.js";
-import type { SessionSearchStoreService } from "@kernel/agent-runtime/session-search/session-search-store.service.js";
-import type { SessionSearchIndexedMetadata } from "@kernel/agent-runtime/session-search/session-search.types.js";
+import type { SessionSearchStore } from "@core/features/session-search/stores/session-search.store.js";
+import type { SessionSearchIndexedMetadata } from "@core/features/session-search/types/session-search.types.js";
 import type { SessionSearchWorkerProgress } from "./session-search-worker-protocol.types.js";
 
 const YIELD_BATCH_SIZE = 25;
 
 type SessionSearchWorkerIndexerOptions = {
   scanner: SessionSearchFileScannerService;
-  store: SessionSearchStoreService;
+  store: SessionSearchStore;
   onProgress?: (progress: SessionSearchWorkerProgress) => void;
 };
 

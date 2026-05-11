@@ -244,6 +244,16 @@ test("blocks touched files when they still violate the directory mapping", () =>
   assert.match(violation.message, /touched file in 'providers\//);
 });
 
+test("requires tools suffix inside agent tools directories", () => {
+  const violation = inspectFileRoleBoundaryEntry({
+    filePath: "packages/demo/src/tools/session-search.tool.ts",
+    status: "A"
+  });
+
+  assert.ok(violation);
+  assert.match(violation.message, /tools\/' must match '\*\.tools\.ts/);
+});
+
 test("blocks touched files outside page naming rules too", () => {
   const violation = inspectFileRoleBoundaryEntry({
     filePath: "apps/platform-admin/src/pages/LoginPage.tsx",

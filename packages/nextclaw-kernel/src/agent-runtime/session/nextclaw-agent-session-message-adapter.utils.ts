@@ -3,7 +3,7 @@ import { type NcpMessage, type NcpMessagePart, sanitizeAssistantReplyTags } from
 import {
   ensureIsoTimestamp,
   normalizeString,
-} from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
+} from "@kernel/utils/ncp-message-bridge.utils.js";
 
 type LegacyToolCall = {
   id: string;

@@ -9,7 +9,7 @@ import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.j
 import {
   normalizeString,
   toLegacyMessages,
-} from "@kernel/agent-runtime/nextclaw-ncp-message-bridge.utils.js";
+} from "@kernel/utils/ncp-message-bridge.utils.js";
 import { toNcpMessages } from "@kernel/agent-runtime/session/nextclaw-agent-session-message-adapter.utils.js";
 import {
   type ContextCompactionCheckpoint,

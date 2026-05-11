@@ -1,7 +1,7 @@
 import type {
   SessionSearchRequest,
   SessionSearchResult,
-} from "@kernel/agent-runtime/session-search/session-search.types.js";
+} from "@core/features/session-search/types/session-search.types.js";
 
 export type SessionSearchWorkerState =
   | "stopped"

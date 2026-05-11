@@ -1,7 +1,7 @@
 import { parentPort } from "node:worker_threads";
 import { SessionSearchFileScannerService } from "./session-search-file-scanner.service.js";
-import { SessionSearchQueryService } from "@kernel/agent-runtime/session-search/session-search-query.service.js";
-import { SessionSearchStoreService } from "@kernel/agent-runtime/session-search/session-search-store.service.js";
+import { SessionSearchQueryService } from "@core/features/session-search/services/session-search-query.service.js";
+import { SessionSearchStore } from "@core/features/session-search/stores/session-search.store.js";
 import { SessionSearchWorkerIndexerService } from "./session-search-worker-indexer.service.js";
 import type {
   SessionSearchWorkerEvent,
@@ -12,7 +12,7 @@ import type {
 } from "./session-search-worker-protocol.types.js";
 
 type WorkerRuntime = {
-  store: SessionSearchStoreService;
+  store: SessionSearchStore;
   queryService: SessionSearchQueryService;
   indexer: SessionSearchWorkerIndexerService;
 };
@@ -55,7 +55,7 @@ async function startRuntime(payload: SessionSearchWorkerStartPayload): Promise<v
   }
 
   setState("starting");
-  const store = new SessionSearchStoreService(payload.databasePath);
+  const store = new SessionSearchStore(payload.databasePath);
   await store.initialize();
   const scanner = new SessionSearchFileScannerService(payload.sessionsDir);
   const indexer = new SessionSearchWorkerIndexerService({

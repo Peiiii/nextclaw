@@ -3,6 +3,7 @@ import {
   type CronService,
   type GatewayController,
   getDataDir,
+  getSessionsPath,
   type MessageBus,
   type SessionManager,
 } from "@nextclaw/core";
@@ -32,7 +33,6 @@ import { ProviderManagerNcpLLMApi } from "@kernel/agent-runtime/provider/provide
 import { SessionCreationService } from "@kernel/agent-runtime/session-request/session-creation.service.js";
 import { SessionRequestBroker } from "@kernel/agent-runtime/session-request/session-request-broker.service.js";
 import { SessionRequestDeliveryService } from "@kernel/agent-runtime/session-request/session-request-delivery.service.js";
-import { SessionSearchRuntimeSupport } from "@kernel/agent-runtime/session-search/session-search-runtime.service.js";
 import { AgentRuntimeRegistry } from "@kernel/agent-runtime/agent-runtime-registry.service.js";
 import {
   createAgentRuntimeHandle,
@@ -46,6 +46,7 @@ import { ContextCompactionPreflightService } from "@kernel/agent-runtime/context
 import type { ContextWindowSnapshot } from "@kernel/agent-runtime/context/context-window-snapshot.utils.js";
 import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/agent-runtime/mcp-runtime-support.service.js";
 import { NcpLifecycleEventBridge } from "@kernel/agent-runtime/shared/lifecycle-events/ncp-lifecycle-event-bridge.service.js";
+import { SessionSearchManager } from "@kernel/managers/session-search.manager.js";
 
 export type { AgentRuntimeHandle } from "@kernel/agent-runtime/features/runtime/agent-runtime-handle.utils.js";
 
@@ -105,7 +106,7 @@ function createNativeRuntimeFactory(
   assetStore: LocalAssetStore,
   sessionCreationService: SessionCreationService,
   sessionRequestBroker: SessionRequestBroker,
-  sessionSearchRuntimeSupport: SessionSearchRuntimeSupport,
+  sessionSearchManager: SessionSearchManager,
 ): RuntimeFactory {
   const observedProviderManager = params.llmUsage.observeProviderManager(
     params.providerManager,
@@ -149,7 +150,7 @@ function createNativeRuntimeFactory(
         ...mcpToolRegistryAdapter.listToolsForRun({
           agentId: context.agentId,
         }),
-        ...sessionSearchRuntimeSupport.createAdditionalTools({
+        ...sessionSearchManager.createTools({
           currentSessionId: context.sessionId,
         }),
       ],
@@ -266,7 +267,7 @@ function createResolveOpenAiToolsForRuntime(params: {
   toolRegistryAdapter: McpNcpToolRegistryAdapter;
   sessionCreationService: SessionCreationService;
   sessionRequestBroker: SessionRequestBroker;
-  sessionSearchRuntimeSupport: SessionSearchRuntimeSupport;
+  sessionSearchManager: SessionSearchManager;
 }) {
   const {
     assetStore,
@@ -279,7 +280,7 @@ function createResolveOpenAiToolsForRuntime(params: {
     sessionCreationService,
     sessionManager,
     sessionRequestBroker,
-    sessionSearchRuntimeSupport,
+    sessionSearchManager,
     toolRegistryAdapter,
   } = params;
   const toolRegistry = new NextclawNcpToolRegistry({
@@ -299,7 +300,7 @@ function createResolveOpenAiToolsForRuntime(params: {
       ...toolRegistryAdapter.listToolsForRun({
         agentId: context.agentId,
       }),
-      ...sessionSearchRuntimeSupport.createAdditionalTools({
+      ...sessionSearchManager.createTools({
         currentSessionId: context.sessionId,
       }),
     ],
@@ -321,7 +322,7 @@ function createResolveOpenAiToolsForRuntime(params: {
 }
 
 export class AgentRuntimeManager {
-  private readonly sessionSearchRuntimeSupport: SessionSearchRuntimeSupport;
+  private readonly sessionSearchManager: SessionSearchManager;
   private readonly sessionStore: NextclawAgentSessionStore;
   private readonly runtimeRegistry = new AgentRuntimeRegistry();
   private readonly mcpRuntimeSupport: McpRuntimeSupport;
@@ -351,13 +352,13 @@ export class AgentRuntimeManager {
   private disposed = false;
 
   constructor(private readonly params: AgentRuntimeManagerOptions) {
-    this.sessionSearchRuntimeSupport = new SessionSearchRuntimeSupport({
-      sessionManager: params.sessionManager,
+    this.sessionSearchManager = new SessionSearchManager({
       onSessionUpdated: this.publishSessionUpdated,
       databasePath: join(getDataDir(), "session-search.db"),
+      sessionsDir: getSessionsPath(),
     });
     this.sessionStore = new NextclawAgentSessionStore(params.sessionManager, {
-      onSessionUpdated: this.sessionSearchRuntimeSupport.handleSessionUpdated,
+      onSessionUpdated: this.sessionSearchManager.handleSessionUpdated,
     });
     this.mcpRuntimeSupport = new McpRuntimeSupportOwner(params.configManager.loadConfig);
     this.lifecycleEventBridge = new NcpLifecycleEventBridge(
@@ -367,14 +368,14 @@ export class AgentRuntimeManager {
     this.sessionCreationService = new SessionCreationService(
       params.sessionManager,
       params.configManager.loadConfig,
-      this.sessionSearchRuntimeSupport.handleSessionUpdated,
+      this.sessionSearchManager.handleSessionUpdated,
     );
     this.sessionRequestBroker = new SessionRequestBroker(
       params.sessionManager,
       this.sessionCreationService,
       new SessionRequestDeliveryService(() => this.backend),
       () => this.backend,
-      this.sessionSearchRuntimeSupport.handleSessionUpdated,
+      this.sessionSearchManager.handleSessionUpdated,
     );
     this.pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
       this.runtimeRegistry,
@@ -431,7 +432,7 @@ export class AgentRuntimeManager {
             toolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
             sessionCreationService: this.sessionCreationService,
             sessionRequestBroker: this.sessionRequestBroker,
-            sessionSearchRuntimeSupport: this.sessionSearchRuntimeSupport,
+            sessionSearchManager: this.sessionSearchManager,
           }),
         });
       },
@@ -471,7 +472,7 @@ export class AgentRuntimeManager {
     }
     this.pluginRuntimeRegistrationController.dispose();
     await this.backend?.stop();
-    await this.sessionSearchRuntimeSupport.dispose();
+    await this.sessionSearchManager.dispose();
     await this.mcpRuntimeSupport.dispose();
   };
 
@@ -490,7 +491,7 @@ export class AgentRuntimeManager {
         this.assetStore,
         this.sessionCreationService,
         this.sessionRequestBroker,
-        this.sessionSearchRuntimeSupport,
+        this.sessionSearchManager,
       ),
     });
     const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(
@@ -502,7 +503,7 @@ export class AgentRuntimeManager {
   };
 
   private runDerivedCapabilityWarmup = async (): Promise<void> => {
-    await this.sessionSearchRuntimeSupport.initialize();
+    await this.sessionSearchManager.initialize();
     const mcpWarmResults = await this.mcpRuntimeSupport.prewarmEnabledServers();
     for (const result of mcpWarmResults) {
       if (!result.ok) {

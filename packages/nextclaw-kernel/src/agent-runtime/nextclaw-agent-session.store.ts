@@ -4,7 +4,7 @@ import {
   ensureIsoTimestamp,
   normalizeString,
   toLegacyMessages,
-} from "./nextclaw-ncp-message-bridge.utils.js";
+} from "@kernel/utils/ncp-message-bridge.utils.js";
 import {
   resolveLegacyEventType,
   toNcpMessages,
