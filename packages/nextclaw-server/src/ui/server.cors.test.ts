@@ -3,8 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { CronService } from "@nextclaw/core";
-import { EventBus } from "@nextclaw/kernel";
+import { AutomationManager, EventBus } from "@nextclaw/kernel";
 import { startUiServer } from "./server.js";
 
 async function reservePort(): Promise<number> {
@@ -97,7 +96,7 @@ function createTestGateway(params: {
     applyLiveConfigReload: async () => {},
     initializeAgentHomeDirectory: () => {},
     marketplace: {},
-    cron: new CronService(`${configPath}.cron.json`),
+    cron: new AutomationManager({ storePath: `${configPath}.cron.json` }),
     ncpAgent: {
       agentClientEndpoint: {
         manifest: {

@@ -1,5 +1,4 @@
 export * from "@kernel/app/nextclaw-kernel.js";
-export * from "@kernel/app/nextclaw-app.js";
 export * from "@kernel/events/index.js";
 export * from "@kernel/managers/agent.manager.js";
 export * from "@kernel/managers/task.manager.js";
@@ -16,7 +15,6 @@ export * from "@kernel/types/session.types.js";
 export * from "@kernel/types/context.types.js";
 export * from "@kernel/types/tool.types.js";
 export * from "@kernel/types/skill.types.js";
-export * from "@kernel/types/automation.types.js";
 export * from "@kernel/types/channel.types.js";
 export * from "@kernel/types/nextclaw-kernel.types.js";
 export * from "@kernel/types/update.types.js";

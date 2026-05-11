@@ -1,5 +1,5 @@
 import * as NextclawCore from "@nextclaw/core";
-import { NextclawKernel, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
+import { NextclawKernel, type AutomationManager, type EventBus, type Ingress, type LlmProviderManager } from "@nextclaw/kernel";
 import {
   setPluginRuntimeBridge,
 } from "@nextclaw/openclaw-compat";
@@ -10,7 +10,7 @@ import {
   type UiRuntimeControlHost,
   type UiRuntimeUpdateHost,
 } from "@nextclaw/server";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { setImmediate as waitForNextTick } from "node:timers/promises";
 import type { UiNcpAgentHandle } from "@nextclaw-service/commands/ncp/index.js";
 import { runGatewayInboundLoop } from "@nextclaw-service/commands/ncp/features/runtime/nextclaw-ncp-dispatch.utils.js";
@@ -41,7 +41,6 @@ import { getPackageVersion, openBrowser, resolveUiConfig, resolveUiStaticDir } f
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
 
 const {
-  CronService,
   getConfigPath,
   getDataDir,
   loadConfig,
@@ -67,7 +66,6 @@ function resolveApplyRestartMode(uiPort: number): "managed-service-restart" | "m
 type Config = NextclawCore.Config;
 type MessageBus = NextclawCore.MessageBus;
 type SessionManager = NextclawCore.SessionManager;
-type CronService = NextclawCore.CronService;
 
 type GatewayRuntimeOptions = {
   uiOverrides?: Partial<Config["ui"]>;
@@ -88,7 +86,7 @@ export class NextclawGatewayRuntime {
   readonly appEventBus: EventBus;
   readonly messageBus: MessageBus;
   readonly sessionManager: SessionManager;
-  readonly cron: CronService;
+  readonly automation: AutomationManager;
   readonly runtimeControl: UiRuntimeControlHost;
   readonly runtimeUpdate: UiRuntimeUpdateHost | null;
   readonly ingress: Ingress;
@@ -134,7 +132,7 @@ export class NextclawGatewayRuntime {
     this.ingress = this.kernel.ingress;
     this.messageBus = this.kernel.messageBus;
     this.sessionManager = this.kernel.sessions;
-    this.cron = new CronService(join(getDataDir(), "cron", "jobs.json"));
+    this.automation = this.kernel.automation;
     this.productVersion = getPackageVersion();
     this.plugins = new GatewayPluginManager(this);
     this.providerManager = this.kernel.llmProviders;
@@ -176,7 +174,7 @@ export class NextclawGatewayRuntime {
           });
     this.gatewayController = this.createGatewayController();
     this.gatewayChannels = new GatewayChannelManager(this);
-    this.cron.onJob = createCronJobHandler({
+    this.automation.onJob = createCronJobHandler({
       resolveNcpAgent: () => this.liveUiNcpAgent,
       bus: this.messageBus,
     });
@@ -280,7 +278,7 @@ export class NextclawGatewayRuntime {
     applyLiveConfigReload: this.configManager.applyLiveConfigReload,
     initializeAgentHomeDirectory: this.workspaceManager.initializeAgentHomeDirectory,
     marketplace: this.marketplaceManager.marketplace,
-    cron: this.cron,
+    cron: this.automation,
     ncpAgent: this.ncpAgent,
     sessions: this.sessions,
     remoteAccess: this.remoteManager.remoteAccess,
@@ -337,7 +335,7 @@ export class NextclawGatewayRuntime {
       "service.gateway.gateway_controller",
       () => new GatewayControllerImpl({
         reloader: this.configManager.reloader,
-        cron: this.cron,
+        cron: this.automation,
         sessionManager: this.sessionManager,
         getConfigPath,
         saveConfig,
@@ -359,16 +357,13 @@ export class NextclawGatewayRuntime {
     this.configurePluginRuntime();
     await measureStartupAsync("service.start_gateway_support_services", async () =>
       await startGatewayRuntimeSupport({
-        cronJobs: this.cron.status().jobs,
+        automation: this.automation,
         remoteModule: this.remoteManager.remoteModule,
         watchConfigFile: () => watchServiceConfigFile({
           configPath: resolve(getConfigPath()),
           watcherRegistry: this.fileWatchers,
           scheduleReload: (reason) => this.configManager.reloader.scheduleReload(reason)
         }),
-        startCron: () => this.cron.start(),
-        cronStorePath: resolve(join(getDataDir(), "cron", "jobs.json")),
-        reloadCronStore: () => this.cron.reloadFromStore(),
         watcherRegistry: this.fileWatchers
       })
     );

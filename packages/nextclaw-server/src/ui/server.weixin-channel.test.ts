@@ -3,8 +3,8 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createServer } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { ConfigSchema, CronService, saveConfig } from "@nextclaw/core";
-import { EventBus } from "@nextclaw/kernel";
+import { ConfigSchema, saveConfig } from "@nextclaw/core";
+import { AutomationManager, EventBus } from "@nextclaw/kernel";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
 import { startUiServer } from "./server.js";
 
@@ -131,7 +131,7 @@ function createTestGateway(params: {
     applyLiveConfigReload: async () => {},
     initializeAgentHomeDirectory: () => {},
     marketplace: {},
-    cron: new CronService(`${configPath}.cron.json`),
+    cron: new AutomationManager({ storePath: `${configPath}.cron.json` }),
     ncpAgent: {
       agentClientEndpoint: {
         manifest: {

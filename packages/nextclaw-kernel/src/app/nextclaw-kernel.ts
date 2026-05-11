@@ -7,7 +7,7 @@ import { SkillManager } from "@kernel/managers/skill.manager.js";
 import { TaskManager } from "@kernel/managers/task.manager.js";
 import { ToolManager } from "@kernel/managers/tool.manager.js";
 import type { NextclawKernelRun, NextclawKernelRunInput } from "@kernel/types/nextclaw-kernel.types.js";
-import { ensureDir, expandHome, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
+import { ensureDir, expandHome, getDataDir, getSessionsPath, MessageBus, SessionManager } from "@nextclaw/core";
 import { EventBus, Ingress } from "@nextclaw/shared";
 import { resolve } from "node:path";
 
@@ -22,6 +22,14 @@ function resolveKernelSessionsDir(options: NextclawKernelOptions): string {
     return ensureDir(resolve(expandHome(homeDir), "sessions"));
   }
   return getSessionsPath();
+}
+
+function resolveKernelAutomationStorePath(options: NextclawKernelOptions): string {
+  const homeDir = options.homeDir?.trim();
+  if (homeDir) {
+    return resolve(expandHome(homeDir), "cron", "jobs.json");
+  }
+  return resolve(getDataDir(), "cron", "jobs.json");
 }
 
 type NextclawKernelRuntimeControl<
@@ -93,6 +101,9 @@ export class NextclawKernel {
     this.sessions = new SessionManager({
       sessionsDir: resolveKernelSessionsDir(options),
     });
+    this.automation = new AutomationManager({
+      storePath: resolveKernelAutomationStorePath(options),
+    });
     this.agents = new AgentManager();
     this.tasks = new TaskManager();
     this.contextBuilder = new ContextBuilder(this.sessions);
@@ -103,7 +114,6 @@ export class NextclawKernel {
     >();
     this.tools = new ToolManager();
     this.skills = new SkillManager();
-    this.automation = new AutomationManager();
     this.channels = new ChannelManager();
   }
 

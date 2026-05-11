@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
 import cronParser from "cron-parser";
-import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "../types/types.js";
+import type { CronJob, CronJobState, CronPayload, CronSchedule, CronStore } from "@core/features/cron/types/types.js";
 
 const nowMs = () => Date.now();
 
@@ -62,7 +62,7 @@ export class CronService {
   private storeExistsOnDisk = false;
   onJob?: (job: CronJob) => Promise<string | null>;
 
-  constructor(private storePath: string, onJob?: (job: CronJob) => Promise<string | null>) {
+  constructor(readonly storePath: string, onJob?: (job: CronJob) => Promise<string | null>) {
     this.onJob = onJob;
   }
 
@@ -292,29 +292,30 @@ export class CronService {
     accountId?: string;
     deleteAfterRun?: boolean;
   }): CronJob => {
+    const { accountId, agentId, channel, deleteAfterRun, deliver, message, name, schedule, sessionId, to } = params;
     const store = this.loadStore();
     const now = nowMs();
     const job: CronJob = {
       id: randomUUID().slice(0, 8),
-      name: params.name,
+      name,
       enabled: true,
-      schedule: params.schedule,
+      schedule,
       payload: {
         kind: "agent_turn",
-        message: params.message,
-        agentId: params.agentId,
-        sessionId: params.sessionId,
-        deliver: params.deliver ?? false,
-        channel: params.channel,
-        to: params.to,
-        accountId: params.accountId
+        message,
+        agentId,
+        sessionId,
+        deliver: deliver ?? false,
+        channel,
+        to,
+        accountId
       },
       state: {
-        nextRunAtMs: computeNextRun(params.schedule, now)
+        nextRunAtMs: computeNextRun(schedule, now)
       },
       createdAtMs: now,
       updatedAtMs: now,
-      deleteAfterRun: params.deleteAfterRun ?? false
+      deleteAfterRun: deleteAfterRun ?? false
     };
     store.jobs.push(job);
     this.saveStore();

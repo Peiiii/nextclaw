@@ -1,4 +1,5 @@
 import type { Config } from "@nextclaw/core";
+import type { AutomationManager } from "@nextclaw/kernel";
 import type { PluginDiagnostic } from "@nextclaw/openclaw-compat";
 import type { RemoteServiceModule } from "@nextclaw/remote";
 import chokidar, { type FSWatcher } from "chokidar";
@@ -27,25 +28,22 @@ export function logPluginGatewayDiagnostics(
 }
 
 export async function startGatewaySupportServices(params: {
-  cronJobs: number;
+  automation: AutomationManager;
   remoteModule: RemoteServiceModule | null;
   watchConfigFile: () => void;
-  startCron: () => Promise<void>;
 }): Promise<void> {
-  const { cronJobs, remoteModule, startCron, watchConfigFile } = params;
+  const { automation, remoteModule, watchConfigFile } = params;
+  const cronJobs = automation.status().jobs;
   if (cronJobs > 0) {
     console.log(`✓ Cron: ${cronJobs} scheduled jobs`);
   }
   remoteModule?.start();
   watchConfigFile();
-  await startCron();
+  await automation.start();
 }
 
-export function watchCronStoreFile(params: {
-  cronStorePath: string;
-  reloadCronStore: () => void;
-}): FSWatcher {
-  const cronStorePath = resolve(params.cronStorePath);
+export function watchCronStoreFile(automation: AutomationManager): FSWatcher {
+  const cronStorePath = resolve(automation.storePath);
   const watcher = chokidar.watch(cronStorePath, {
     ignoreInitial: true,
     awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
@@ -56,7 +54,7 @@ export function watchCronStoreFile(params: {
     }
     if (event === "add" || event === "change" || event === "unlink") {
       try {
-        params.reloadCronStore();
+        automation.reloadFromStore();
       } catch (error) {
         console.error(`Cron store reload failed (${event}): ${String(error)}`);
       }
@@ -124,33 +122,21 @@ export function markLocalUiRuntimeIfStarted(params: {
 }
 
 export async function startGatewayRuntimeSupport(params: {
-  cronJobs: number;
+  automation: AutomationManager;
   remoteModule: RemoteServiceModule | null;
   watchConfigFile: () => void;
-  startCron: () => Promise<void>;
-  cronStorePath: string;
-  reloadCronStore: () => void;
   watcherRegistry: ServiceFileWatcherRegistry;
 }): Promise<void> {
   const {
-    cronJobs,
-    cronStorePath,
-    reloadCronStore,
+    automation,
     remoteModule,
-    startCron,
     watchConfigFile,
     watcherRegistry
   } = params;
   await startGatewaySupportServices({
-    cronJobs,
+    automation,
     remoteModule,
-    watchConfigFile,
-    startCron
+    watchConfigFile
   });
-  watcherRegistry.remember(
-    watchCronStoreFile({
-      cronStorePath,
-      reloadCronStore
-    })
-  );
+  watcherRegistry.remember(watchCronStoreFile(automation));
 }

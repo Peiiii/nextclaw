@@ -1,4 +1,3 @@
-import type * as NextclawCore from "@nextclaw/core";
 import type { Context } from "hono";
 import type {
   CronActionResult,
@@ -9,7 +8,7 @@ import type {
   CronRunRequest
 } from "../types.js";
 import { err, ok, readJson, readNonEmptyString } from "./response.js";
-import type { CronJobEntry, UiRouterOptions } from "./types.js";
+import type { CronJobEntry, UiCronHost, UiRouterOptions } from "./types.js";
 
 function toIsoTime(value?: number | null): string | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -41,12 +40,12 @@ function buildCronJobView(job: CronJobEntry): CronJobView {
   };
 }
 
-function findCronJob(service: InstanceType<typeof NextclawCore.CronService>, id: string): CronJobEntry | null {
-  const jobs = service.listJobs(true) as CronJobEntry[];
+function findCronJob(service: UiCronHost, id: string): CronJobEntry | null {
+  const jobs = service.listJobs(true);
   return jobs.find((job) => job.id === id) ?? null;
 }
 
-type CronCreateParams = Parameters<InstanceType<typeof NextclawCore.CronService>["addJob"]>[0];
+type CronCreateParams = Parameters<UiCronHost["addJob"]>[0];
 
 function normalizeCronSchedule(schedule: CronCreateRequest["schedule"] | undefined): CronJobEntry["schedule"] | null {
   if (!schedule) {

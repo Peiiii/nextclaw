@@ -2,8 +2,8 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync }
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CronService } from "./service.js";
-import type { CronStore } from "../types/types.js";
+import { CronService } from "./cron.service.js";
+import type { CronStore } from "@core/features/cron/types/types.js";
 
 function createStorePath(rootDir: string): string {
   return join(rootDir, "cron", "jobs.json");

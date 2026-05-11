@@ -34,6 +34,25 @@ export type UiNcpSessionHost = {
   sessionService: UiNcpSessionService;
 };
 
+export type UiCronHost = {
+  listJobs: (includeDisabled?: boolean) => CronJobEntry[];
+  addJob: (params: {
+    name: string;
+    schedule: CronJobEntry["schedule"];
+    message: string;
+    agentId?: string;
+    sessionId?: string;
+    deliver?: boolean;
+    channel?: string;
+    to?: string;
+    accountId?: string;
+    deleteAfterRun?: boolean;
+  }) => CronJobEntry;
+  removeJob: (jobId: string) => boolean;
+  enableJob: (jobId: string, enabled?: boolean) => CronJobEntry | null;
+  runJob: (jobId: string, force?: boolean) => Promise<boolean>;
+};
+
 export type UiRouterOptions = {
   configPath: string;
   appEventBus: EventBus;
@@ -45,7 +64,7 @@ export type UiRouterOptions = {
   applyLiveConfigReload?: () => Promise<void>;
   initializeAgentHomeDirectory?: (homeDirectory: string) => void;
   marketplace?: MarketplaceApiConfig;
-  cron?: InstanceType<typeof NextclawCore.CronService>;
+  cron?: UiCronHost;
   ncpAgent?: UiNcpAgent;
   sessions?: UiNcpSessionHost;
   authService?: UiAuthService;

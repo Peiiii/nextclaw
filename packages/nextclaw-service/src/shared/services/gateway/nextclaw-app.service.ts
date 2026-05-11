@@ -34,7 +34,7 @@ export class NextclawApp {
         bus: gateway.messageBus,
         providerManager: gateway.providerManager,
         sessionManager: gateway.sessionManager,
-        cronService: gateway.cron,
+        cronService: gateway.automation,
         gatewayController: gateway.gatewayController,
         getConfig: gateway.configManager.loadGatewayConfig,
         getExtensionRegistry: () => gateway.plugins.getExtensionRegistry(),

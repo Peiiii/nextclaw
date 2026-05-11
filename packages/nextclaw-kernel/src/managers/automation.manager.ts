@@ -1,38 +1,11 @@
-import type { AutomationRecord } from "@kernel/types/automation.types.js";
-import type { AutomationId } from "@kernel/types/entity-ids.types.js";
+import { CronService } from "@nextclaw/core";
 
-export class AutomationManager {
-  readonly listAutomations = () => {
-    throw new Error("AutomationManager.listAutomations is not implemented.");
-  };
+export type AutomationManagerOptions = {
+  storePath: string;
+};
 
-  readonly getAutomation = (automationId: AutomationId) => {
-    void automationId;
-    throw new Error("AutomationManager.getAutomation is not implemented.");
-  };
-
-  readonly requireAutomation = (automationId: AutomationId) => {
-    void automationId;
-    throw new Error("AutomationManager.requireAutomation is not implemented.");
-  };
-
-  readonly saveAutomation = (automation: AutomationRecord) => {
-    void automation;
-    throw new Error("AutomationManager.saveAutomation is not implemented.");
-  };
-
-  readonly enableAutomation = (automationId: AutomationId) => {
-    void automationId;
-    throw new Error("AutomationManager.enableAutomation is not implemented.");
-  };
-
-  readonly disableAutomation = (automationId: AutomationId) => {
-    void automationId;
-    throw new Error("AutomationManager.disableAutomation is not implemented.");
-  };
-
-  readonly deleteAutomation = (automationId: AutomationId) => {
-    void automationId;
-    throw new Error("AutomationManager.deleteAutomation is not implemented.");
-  };
+export class AutomationManager extends CronService {
+  constructor(options: AutomationManagerOptions) {
+    super(options.storePath);
+  }
 }

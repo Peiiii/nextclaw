@@ -1,13 +1,9 @@
-import { CronService, getDataDir } from "@nextclaw/core";
+import { getDataDir } from "@nextclaw/core";
+import { AutomationManager } from "@nextclaw/kernel";
 import type { CronCreateRequest } from "@nextclaw/server";
-import { join } from "node:path";
 import type { CronAddOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import type { CronJobView } from "@nextclaw-service/cli/commands/cron/utils/cron-job.utils.js";
-
-function createCronService(): CronService {
-  const storePath = join(getDataDir(), "cron", "jobs.json");
-  return new CronService(storePath);
-}
+import { resolve } from "node:path";
 
 function readTrimmed(value: string | undefined): string | undefined {
   if (typeof value !== "string") {
@@ -68,14 +64,18 @@ export function createCronCreateRequest(opts: CronAddOptions): { request?: CronC
 }
 
 export class CronLocalService {
+  constructor(
+    private readonly automation = new AutomationManager({
+      storePath: resolve(getDataDir(), "cron", "jobs.json")
+    })
+  ) {}
+
   readonly list = (all: boolean): CronJobView[] => {
-    const service = createCronService();
-    return service.listJobs(all) as CronJobView[];
+    return this.automation.listJobs(all) as CronJobView[];
   };
 
   readonly addRequest = (request: CronCreateRequest): CronJobView => {
-    const service = createCronService();
-    return service.addJob({
+    return this.automation.addJob({
       name: request.name,
       schedule: request.schedule,
       message: request.message,
@@ -98,17 +98,14 @@ export class CronLocalService {
   };
 
   readonly remove = (jobId: string): boolean => {
-    const service = createCronService();
-    return service.removeJob(jobId);
+    return this.automation.removeJob(jobId);
   };
 
   readonly enable = (jobId: string, enabled: boolean): CronJobView | null => {
-    const service = createCronService();
-    return (service.enableJob(jobId, enabled) as CronJobView | null) ?? null;
+    return (this.automation.enableJob(jobId, enabled) as CronJobView | null) ?? null;
   };
 
   readonly run = async (jobId: string, force: boolean): Promise<boolean> => {
-    const service = createCronService();
-    return service.runJob(jobId, force);
+    return this.automation.runJob(jobId, force);
   };
 }

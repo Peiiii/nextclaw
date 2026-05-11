@@ -1,6 +1,5 @@
 import { Tool } from "./base.js";
-import type { CronService } from "../../../cron/services/service.js";
-import type { CronSchedule } from "../../../cron/types/types.js";
+import type { CronSchedule, CronService } from "@core/features/cron/index.js";
 
 export class CronTool extends Tool {
   private channel = "cli";
