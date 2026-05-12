@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.1.2
+
+### Patch Changes
+
+- Fix Claude Code NARP routing for MiniMax ChatCompletions providers so the Anthropic gateway keeps the original OpenAI-compatible `/v1` upstream instead of rewriting it to `/anthropic`.
+
 ## 0.1.1
 
 ### Patch Changes
