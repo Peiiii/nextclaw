@@ -8,14 +8,11 @@ import {
 } from "@nextclaw/shared";
 import type {
   SessionRequestDispatcher,
-  SessionRequestDispatchResult,
   SessionRequestRecord,
 } from "@nextclaw/core";
 
 export const AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE =
-  createTypedKey<AgentRuntimeSessionMessageRequest>(
-    "agent-runtime.session-message.request",
-  );
+  createTypedKey<AgentRuntimeSessionMessageRequest>("agent-runtime.session-message.request");
 
 export type AgentRuntimeSessionMessageRequest = {
   message: NcpMessage;
@@ -36,52 +33,7 @@ function extractSessionMessageText(message: NcpMessage): string | undefined {
   return parts.length > 0 ? parts.join("\n\n") : undefined;
 }
 
-function createUserMessage(input: {
-  request: SessionRequestRecord;
-  task: string;
-}): NcpMessage {
-  return {
-    id: `${input.request.targetSessionId}:user:session-request:${input.request.requestId}`,
-    sessionId: input.request.targetSessionId,
-    role: "user",
-    status: "final",
-    timestamp: new Date().toISOString(),
-    parts: [{ type: "text", text: input.task }],
-    metadata: { session_request_id: input.request.requestId },
-  };
-}
-
-export class AgentRuntimeSessionRequestDispatcher implements SessionRequestDispatcher {
-  constructor(private readonly options: AgentRuntimeSessionRequestDispatcherOptions) {}
-
-  dispatch = async (input: {
-    request: SessionRequestRecord;
-    task: string;
-    onAccepted: (messageId: string) => void;
-  }): Promise<SessionRequestDispatchResult> => {
-    const reply = waitForReply({
-      eventBus: this.options.eventBus,
-      onAccepted: input.onAccepted,
-      requestId: input.request.requestId,
-    });
-    try {
-      await this.options.ingress.handle({
-        type: AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
-        payload: {
-          message: createUserMessage(input),
-          requestId: input.request.requestId,
-          sessionId: input.request.targetSessionId,
-        },
-      }, { source: "session-request" });
-      return toDispatchResult(await reply.promise);
-    } catch (error) {
-      reply.dispose();
-      throw error;
-    }
-  };
-}
-
-function waitForReply(input: {
+export function waitForAgentRuntimeSessionReply(input: {
   eventBus: EventBus;
   onAccepted: (messageId: string) => void;
   requestId: string;
@@ -130,9 +82,54 @@ function waitForReply(input: {
   };
 }
 
-function toDispatchResult(message: NcpMessage): SessionRequestDispatchResult {
+export async function dispatchAgentRuntimeSessionRequest(input: {
+  ingress: Ingress;
+  request: SessionRequestRecord;
+  task: string;
+}): Promise<void> {
+  await input.ingress.handle({
+    type: AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
+    payload: {
+      message: {
+        id: `${input.request.targetSessionId}:user:session-request:${input.request.requestId}`,
+        sessionId: input.request.targetSessionId,
+        role: "user",
+        status: "final",
+        timestamp: new Date().toISOString(),
+        parts: [{ type: "text", text: input.task }],
+        metadata: { session_request_id: input.request.requestId },
+      },
+      requestId: input.request.requestId,
+      sessionId: input.request.targetSessionId,
+    },
+  }, { source: "session-request" });
+}
+
+export function createAgentRuntimeSessionRequestDispatcher(
+  options: AgentRuntimeSessionRequestDispatcherOptions,
+): SessionRequestDispatcher {
   return {
-    finalResponseMessageId: message.id,
-    finalResponseText: extractSessionMessageText(message),
+    dispatch: async (input) => {
+      const reply = waitForAgentRuntimeSessionReply({
+        eventBus: options.eventBus,
+        onAccepted: input.onAccepted,
+        requestId: input.request.requestId,
+      });
+      try {
+        await dispatchAgentRuntimeSessionRequest({
+          ingress: options.ingress,
+          request: input.request,
+          task: input.task,
+        });
+        const message = await reply.promise;
+        return {
+          finalResponseMessageId: message.id,
+          finalResponseText: extractSessionMessageText(message),
+        };
+      } catch (error) {
+        reply.dispose();
+        throw error;
+      }
+    },
   };
 }

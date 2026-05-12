@@ -1,1 +1,1 @@
-export * from "./services/agent-runtime-session-request-dispatcher.service.js";
+export * from "./utils/agent-runtime-session-request-dispatcher.utils.js";

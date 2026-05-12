@@ -12,7 +12,7 @@ import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.con
 import { NcpLifecycleEventBridge } from "@kernel/services/ncp-lifecycle-event-bridge.service.js";
 import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
-import { AgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request";
+import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request";
 import {
   ChannelManager,
   ensureDir,
@@ -135,7 +135,7 @@ export class NextclawKernel {
     });
     this.sessionRequests = new SessionRequestManager({
       sessions: this.sessions,
-      dispatcher: new AgentRuntimeSessionRequestDispatcher({
+      dispatcher: createAgentRuntimeSessionRequestDispatcher({
         eventBus: this.eventBus,
         ingress: this.ingress,
       }),
