@@ -4,16 +4,16 @@ import type {
   ClaudeCodeLoader,
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "./claude-code-sdk-types.js";
-import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime-utils.js";
+} from "@/claude-code-sdk-types.js";
+import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
-} from "./claude-code-process-resolution.js";
-import { probeClaudeCodeSdkExecution } from "./claude-code-execution-probe.js";
+} from "@/claude-code-process-resolution.js";
+import { probeClaudeCodeSdkExecution } from "./claude-code-execution-probe.utils.js";
 
 const require = createRequire(import.meta.url);
-const claudeCodeLoader = require("../claude-code-loader.cjs") as ClaudeCodeLoader;
+const claudeCodeLoader = require("../../claude-code-loader.cjs") as ClaudeCodeLoader;
 
 export type ClaudeCodeSdkCapabilityProbeConfig = Pick<
   ClaudeCodeSdkNcpAgentRuntimeConfig,
@@ -85,14 +85,15 @@ function normalizeRecommendedModel(params: {
   supportedModels?: string[];
   recommendedModel?: string | null;
 }): string | null {
-  const recommendedModel = readString(params.recommendedModel);
+  const { recommendedModel: rawRecommendedModel, supportedModels } = params;
+  const recommendedModel = readString(rawRecommendedModel);
   if (!recommendedModel) {
-    return params.supportedModels?.[0] ?? null;
+    return supportedModels?.[0] ?? null;
   }
-  if (!params.supportedModels || params.supportedModels.includes(recommendedModel)) {
+  if (!supportedModels || supportedModels.includes(recommendedModel)) {
     return recommendedModel;
   }
-  return params.supportedModels?.[0] ?? recommendedModel;
+  return supportedModels?.[0] ?? recommendedModel;
 }
 
 function buildConfiguredFallback(

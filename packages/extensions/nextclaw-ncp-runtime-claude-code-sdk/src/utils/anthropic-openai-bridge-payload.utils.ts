@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 type AnthropicMessageBlock =
   | { type: "text"; text: string }
+  | { type: "thinking"; thinking: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; tool_use_id: string; content?: unknown };
 
@@ -30,6 +33,8 @@ export type OpenAiChatCompletionsResponse = {
     finish_reason?: string | null;
     message?: {
       content?: unknown;
+      reasoning?: unknown;
+      reasoning_content?: unknown;
       tool_calls?: unknown;
     };
   }>;
@@ -126,6 +131,36 @@ function normalizeToolResultContent(value: unknown): string {
   }
 }
 
+function normalizeAnthropicBlock(entry: unknown): AnthropicMessageBlock | null {
+  const record = readRecord(entry);
+  if (!record) {
+    return null;
+  }
+  const type = readString(record.type);
+  if (type === "text") {
+    const text = readString(record.text);
+    return text ? { type: "text", text } : null;
+  }
+  if (type === "thinking") {
+    const thinking = readString(record.thinking) ?? readString(record.text);
+    return thinking ? { type: "thinking", thinking } : null;
+  }
+  if (type === "tool_use") {
+    const id = readString(record.id);
+    const name = readString(record.name);
+    return id && name
+      ? { type: "tool_use", id, name, input: readRecord(record.input) ?? {} }
+      : null;
+  }
+  if (type !== "tool_result") {
+    return null;
+  }
+  const toolUseId = readString(record.tool_use_id);
+  return toolUseId
+    ? { type: "tool_result", tool_use_id: toolUseId, content: record.content }
+    : null;
+}
+
 function normalizeAnthropicBlocks(content: unknown): AnthropicMessageBlock[] {
   if (typeof content === "string") {
     return content.trim() ? [{ type: "text", text: content }] : [];
@@ -136,32 +171,9 @@ function normalizeAnthropicBlocks(content: unknown): AnthropicMessageBlock[] {
 
   const blocks: AnthropicMessageBlock[] = [];
   for (const entry of content) {
-    const record = readRecord(entry);
-    if (!record) {
-      continue;
-    }
-    const type = readString(record.type);
-    if (type === "text") {
-      const text = readString(record.text);
-      if (text) {
-        blocks.push({ type: "text", text });
-      }
-      continue;
-    }
-    if (type === "tool_use") {
-      const id = readString(record.id);
-      const name = readString(record.name);
-      const input = readRecord(record.input) ?? {};
-      if (id && name) {
-        blocks.push({ type: "tool_use", id, name, input });
-      }
-      continue;
-    }
-    if (type === "tool_result") {
-      const toolUseId = readString(record.tool_use_id);
-      if (toolUseId) {
-        blocks.push({ type: "tool_result", tool_use_id: toolUseId, content: record.content });
-      }
+    const block = normalizeAnthropicBlock(entry);
+    if (block) {
+      blocks.push(block);
     }
   }
 
@@ -199,11 +211,16 @@ export function toOpenAiMessages(request: AnthropicMessagesRequest): Array<Recor
             arguments: JSON.stringify(block.input ?? {}),
           },
         }));
+      const reasoning = blocks
+        .filter((block): block is Extract<AnthropicMessageBlock, { type: "thinking" }> => block.type === "thinking")
+        .map((block) => block.thinking)
+        .join("");
 
-      if (text || toolCalls.length > 0) {
+      if (text || toolCalls.length > 0 || reasoning) {
         messages.push({
           role: "assistant",
           content: text || null,
+          ...(reasoning ? { reasoning_content: reasoning } : {}),
           ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
         });
       }
@@ -289,6 +306,13 @@ function normalizeOpenAiContent(content: unknown): string {
     .join("");
 }
 
+function normalizeOpenAiReasoningContent(message: {
+  reasoning?: unknown;
+  reasoning_content?: unknown;
+} | undefined): string {
+  return readString(message?.reasoning_content) ?? readString(message?.reasoning) ?? "";
+}
+
 function normalizeOpenAiToolCalls(value: unknown): OpenAiToolCall[] {
   return readArray(value)
     .map((entry, index) => {
@@ -323,8 +347,13 @@ export function buildAnthropicMessageResponse(params: {
   requestModel: string;
   openAiResponse: OpenAiChatCompletionsResponse;
 }): Record<string, unknown> {
-  const choice = params.openAiResponse.choices?.[0];
+  const { openAiResponse, requestModel } = params;
+  const choice = openAiResponse.choices?.[0];
   const content: Array<Record<string, unknown>> = [];
+  const reasoning = normalizeOpenAiReasoningContent(choice?.message);
+  if (reasoning) {
+    content.push({ type: "thinking", thinking: reasoning });
+  }
   const text = normalizeOpenAiContent(choice?.message?.content);
   if (text) {
     content.push({ type: "text", text });
@@ -342,15 +371,13 @@ export function buildAnthropicMessageResponse(params: {
     id: `msg_${randomUUID()}`,
     type: "message",
     role: "assistant",
-    model: params.requestModel,
+    model: requestModel,
     content,
     stop_reason: toAnthropicStopReason(choice?.finish_reason),
     stop_sequence: null,
     usage: {
-      input_tokens: Math.max(0, Math.trunc(params.openAiResponse.usage?.prompt_tokens ?? 0)),
-      output_tokens: Math.max(0, Math.trunc(params.openAiResponse.usage?.completion_tokens ?? 0)),
+      input_tokens: Math.max(0, Math.trunc(openAiResponse.usage?.prompt_tokens ?? 0)),
+      output_tokens: Math.max(0, Math.trunc(openAiResponse.usage?.completion_tokens ?? 0)),
     },
   };
 }
-
-import { randomUUID } from "node:crypto";

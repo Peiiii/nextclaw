@@ -35,17 +35,118 @@ function extractAssistantText(content: unknown): string {
     .join("");
 }
 
+type ReasoningExtraction = {
+  present: boolean;
+  text: string;
+};
+
+function readReasoningRecordText(value: unknown): string {
+  const record = readRecord(value);
+  if (!record) {
+    return "";
+  }
+  return (
+    readRawString(record.text) ??
+    readRawString(record.content) ??
+    readRawString(record.reasoning) ??
+    readRawString(record.reasoning_content) ??
+    readRawString(record.thinking) ??
+    ""
+  );
+}
+
+function extractReasoningDetailsText(value: unknown): ReasoningExtraction | undefined {
+  const rawString = readRawString(value);
+  if (rawString !== undefined) {
+    return {
+      present: true,
+      text: rawString,
+    };
+  }
+
+  const record = readRecord(value);
+  if (record) {
+    return {
+      present: true,
+      text: readReasoningRecordText(record),
+    };
+  }
+
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const text = readArray(value)
+    .map((entry) => readReasoningRecordText(entry))
+    .join("");
+  return {
+    present: true,
+    text,
+  };
+}
+
+function extractContentReasoningText(content: unknown): string {
+  if (!Array.isArray(content)) {
+    return "";
+  }
+  return content
+    .map((entry) => {
+      const record = readRecord(entry);
+      if (!record) {
+        return "";
+      }
+      const type = readString(record.type);
+      if (
+        type === "reasoning" ||
+        type === "reasoning_text" ||
+        type === "thinking" ||
+        type === "thinking_text"
+      ) {
+        return readReasoningRecordText(record);
+      }
+      return "";
+    })
+    .join("");
+}
+
+function extractExplicitReasoning(
+  message: OpenAiChatCompletionChoiceMessage | undefined,
+): ReasoningExtraction | undefined {
+  const candidates = [
+    message?.reasoning_content,
+    message?.reasoning,
+    message?.thinking,
+    message?.reasoning_details,
+  ];
+
+  for (const candidate of candidates) {
+    const extracted = extractReasoningDetailsText(candidate);
+    if (extracted) {
+      return extracted;
+    }
+  }
+
+  const contentReasoning = extractContentReasoningText(message?.content);
+  return contentReasoning
+    ? {
+        present: true,
+        text: contentReasoning,
+      }
+    : undefined;
+}
+
 function extractAssistantOutput(message: OpenAiChatCompletionChoiceMessage | undefined): {
   text: string;
   reasoning: string;
+  reasoningPresent: boolean;
 } {
   const rawText = extractAssistantText(message?.content);
   const normalized = normalizeAssistantText(rawText, "think-tags");
-  const explicitReasoning = readRawString(message?.reasoning_content);
-  const hasExplicitReasoning = explicitReasoning !== undefined;
-  const reasoning = explicitReasoning ?? readString(normalized.reasoning) ?? "";
+  const explicitReasoning = extractExplicitReasoning(message);
+  const reasoning = explicitReasoning?.text ?? readString(normalized.reasoning) ?? "";
+  const reasoningPresent = explicitReasoning?.present === true || Boolean(normalized.reasoning);
   const text =
-    hasExplicitReasoning
+    explicitReasoning?.present === true
       ? readString(normalized.text) ?? readString(rawText) ?? ""
       : normalized.reasoning
         ? readString(normalized.text) ?? ""
@@ -54,6 +155,7 @@ function extractAssistantOutput(message: OpenAiChatCompletionChoiceMessage | und
   return {
     text,
     reasoning,
+    reasoningPresent,
   };
 }
 
@@ -70,15 +172,19 @@ export function buildAssistantOutputItems(params: {
   message: OpenAiChatCompletionChoiceMessage | undefined;
   responseId: string;
 }): OpenResponsesOutputItem[] {
-  const { text, reasoning } = extractAssistantOutput(params.message);
+  const { reasoning, reasoningPresent, text } = extractAssistantOutput(params.message);
   const outputItems: OpenResponsesOutputItem[] = [];
-  const hasExplicitReasoning = typeof params.message?.reasoning_content === "string";
 
-  if (hasExplicitReasoning || reasoning) {
+  if (reasoningPresent) {
     outputItems.push({
       type: "reasoning",
       id: `${params.responseId}:reasoning:0`,
-      summary: [],
+      summary: [
+        {
+          type: "summary_text",
+          text: reasoning,
+        },
+      ],
       content: [
         {
           type: "reasoning_text",
@@ -118,6 +224,10 @@ export function writeReasoningOutputItemEvents(params: {
   const content = readArray(params.item.content);
   const textPart = content.find((entry) => readString(readRecord(entry)?.type) === "reasoning_text");
   const text = readString(readRecord(textPart)?.text) ?? "";
+  const summary = readArray(params.item.summary);
+  const summaryIndex = summary.findIndex((entry) => readString(readRecord(entry)?.type) === "summary_text");
+  const summaryText =
+    summaryIndex >= 0 ? readString(readRecord(summary[summaryIndex])?.text) ?? "" : "";
 
   writeSseEvent(params.response, "response.output_item.added", {
     type: "response.output_item.added",
@@ -125,6 +235,47 @@ export function writeReasoningOutputItemEvents(params: {
     output_index: params.outputIndex,
     item: buildInProgressReasoningItem(params.item),
   });
+
+  if (itemId && summaryText) {
+    writeSseEvent(params.response, "response.reasoning_summary_part.added", {
+      type: "response.reasoning_summary_part.added",
+      sequence_number: nextSequenceNumber(params.sequenceState),
+      output_index: params.outputIndex,
+      item_id: itemId,
+      summary_index: summaryIndex,
+      part: {
+        type: "summary_text",
+        text: "",
+      },
+    });
+    writeSseEvent(params.response, "response.reasoning_summary_text.delta", {
+      type: "response.reasoning_summary_text.delta",
+      sequence_number: nextSequenceNumber(params.sequenceState),
+      output_index: params.outputIndex,
+      item_id: itemId,
+      summary_index: summaryIndex,
+      delta: summaryText,
+    });
+    writeSseEvent(params.response, "response.reasoning_summary_text.done", {
+      type: "response.reasoning_summary_text.done",
+      sequence_number: nextSequenceNumber(params.sequenceState),
+      output_index: params.outputIndex,
+      item_id: itemId,
+      summary_index: summaryIndex,
+      text: summaryText,
+    });
+    writeSseEvent(params.response, "response.reasoning_summary_part.done", {
+      type: "response.reasoning_summary_part.done",
+      sequence_number: nextSequenceNumber(params.sequenceState),
+      output_index: params.outputIndex,
+      item_id: itemId,
+      summary_index: summaryIndex,
+      part: {
+        type: "summary_text",
+        text: summaryText,
+      },
+    });
+  }
 
   if (itemId && text) {
     writeSseEvent(params.response, "response.reasoning_text.delta", {

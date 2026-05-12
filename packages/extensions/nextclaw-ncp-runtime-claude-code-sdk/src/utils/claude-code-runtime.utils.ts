@@ -2,12 +2,12 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import type { NcpAgentRunInput } from "@nextclaw/ncp";
-import { ensureAnthropicOpenAiBridge } from "./anthropic-openai-bridge.js";
+import { ensureAnthropicOpenAiBridge } from "./anthropic-openai-bridge.utils.js";
 import type {
   ClaudeCodeMessage,
   ClaudeCodeSdkAnthropicGatewayConfig,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "./claude-code-sdk-types.js";
+} from "@/claude-code-sdk-types.js";
 
 const NEXTCLAW_HOME_ENV_KEY = "NEXTCLAW_HOME";
 const NEXTCLAW_DEFAULT_HOME_DIR = ".nextclaw";
@@ -115,18 +115,19 @@ export async function resolveClaudeGatewayAccess(params: {
   authToken?: string;
   apiBase?: string;
 }> {
-  if (!params.anthropicGateway) {
+  const { anthropicGateway, apiBase, apiKey, authToken } = params;
+  if (!anthropicGateway) {
     return {
-      apiKey: params.apiKey,
-      authToken: params.authToken,
-      apiBase: params.apiBase,
+      apiKey,
+      authToken,
+      apiBase,
     };
   }
 
-  const bridge = await ensureAnthropicOpenAiBridge(params.anthropicGateway);
+  const bridge = await ensureAnthropicOpenAiBridge(anthropicGateway);
   const fallbackCredential =
-    readEnvString(params.apiKey) ??
-    readEnvString(params.authToken) ??
+    readEnvString(apiKey) ??
+    readEnvString(authToken) ??
     "nextclaw-local-claude-gateway";
 
   return {

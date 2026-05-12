@@ -1,6 +1,6 @@
 import type { NcpAgentRunOptions } from "@nextclaw/ncp";
-import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "./claude-code-sdk-types.js";
-import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime-utils.js";
+import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@/claude-code-sdk-types.js";
+import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 
 export type ClaudePreparedGatewayAccess = {
   apiKey: string;
@@ -27,30 +27,38 @@ export function buildClaudeQueryOptions(params: {
   currentProcessExecutable?: string;
   sessionRuntimeId?: string | null;
 }): ClaudeCodeQueryOptions {
-  const baseQueryOptions = params.config.baseQueryOptions ?? {};
+  const {
+    abortController,
+    bundledCliPath,
+    config,
+    currentProcessExecutable,
+    preparedAccess,
+    sessionRuntimeId,
+  } = params;
+  const baseQueryOptions = config.baseQueryOptions ?? {};
   const resolvedCliPath =
     typeof baseQueryOptions.pathToClaudeCodeExecutable === "string"
       ? baseQueryOptions.pathToClaudeCodeExecutable
-      : params.bundledCliPath;
+      : bundledCliPath;
   const resolvedExecutable =
     typeof baseQueryOptions.executable === "string"
       ? baseQueryOptions.executable
-      : params.currentProcessExecutable;
+      : currentProcessExecutable;
 
   return {
     ...baseQueryOptions,
-    abortController: params.abortController,
-    cwd: params.config.workingDirectory,
-    model: params.config.model,
+    abortController,
+    cwd: config.workingDirectory,
+    model: config.model,
     env: buildQueryEnv({
-      ...params.config,
-      apiKey: params.preparedAccess.apiKey,
-      authToken: params.preparedAccess.authToken,
-      apiBase: params.preparedAccess.apiBase,
+      ...config,
+      apiKey: preparedAccess.apiKey,
+      authToken: preparedAccess.authToken,
+      apiBase: preparedAccess.apiBase,
     }),
     ...(resolvedCliPath ? { pathToClaudeCodeExecutable: resolvedCliPath } : {}),
     ...(resolvedExecutable ? { executable: resolvedExecutable } : {}),
-    ...(params.sessionRuntimeId ? { resume: params.sessionRuntimeId } : {}),
+    ...(sessionRuntimeId ? { resume: sessionRuntimeId } : {}),
   };
 }
 

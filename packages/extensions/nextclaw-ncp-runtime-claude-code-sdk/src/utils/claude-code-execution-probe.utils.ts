@@ -2,13 +2,13 @@ import type {
   ClaudeCodeMessage,
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "./claude-code-sdk-types.js";
+} from "@/claude-code-sdk-types.js";
 import {
   buildQueryEnv,
   DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS,
   extractAssistantSnapshot,
   extractFailureMessage,
-} from "./claude-code-runtime-utils.js";
+} from "./claude-code-runtime.utils.js";
 
 export type ClaudeCodeExecutionProbeConfig = Pick<
   ClaudeCodeSdkNcpAgentRuntimeConfig,
@@ -83,31 +83,32 @@ export async function probeClaudeCodeSdkExecution(params: {
   reason: string | null;
   reasonMessage: string | null;
 }> {
-  const query = params.sdk.query({
-    prompt: readString(params.config.executionProbePrompt) ?? "Reply with exactly: NEXTCLAW_CLAUDE_READY",
+  const { cliConfig, config, model, sdk, withTimeout } = params;
+  const query = sdk.query({
+    prompt: readString(config.executionProbePrompt) ?? "Reply with exactly: NEXTCLAW_CLAUDE_READY",
     options: {
-      cwd: params.config.workingDirectory,
-      model: params.model,
+      cwd: config.workingDirectory,
+      model,
       env: buildQueryEnv({
         sessionId: "claude-execution-probe",
-        apiKey: readString(params.config.apiKey) ?? "",
-        authToken: readString(params.config.authToken) ?? undefined,
-        apiBase: params.config.apiBase,
-        model: params.model,
-        workingDirectory: params.config.workingDirectory,
-        env: params.config.env,
-        baseQueryOptions: params.config.baseQueryOptions,
+        apiKey: readString(config.apiKey) ?? "",
+        authToken: readString(config.authToken) ?? undefined,
+        apiBase: config.apiBase,
+        model,
+        workingDirectory: config.workingDirectory,
+        env: config.env,
+        baseQueryOptions: config.baseQueryOptions,
       }),
-      pathToClaudeCodeExecutable: params.cliConfig.pathToClaudeCodeExecutable,
-      executable: params.cliConfig.executable,
-      executableArgs: params.cliConfig.executableArgs,
-      permissionMode: params.cliConfig.permissionMode,
-      allowedTools: params.cliConfig.allowedTools,
-      disallowedTools: params.cliConfig.disallowedTools,
+      pathToClaudeCodeExecutable: cliConfig.pathToClaudeCodeExecutable,
+      executable: cliConfig.executable,
+      executableArgs: cliConfig.executableArgs,
+      permissionMode: cliConfig.permissionMode,
+      allowedTools: cliConfig.allowedTools,
+      disallowedTools: cliConfig.disallowedTools,
       includePartialMessages: false,
       maxTurns: 1,
       persistSession: false,
-      ...(params.config.baseQueryOptions ?? {}),
+      ...(config.baseQueryOptions ?? {}),
     },
   });
 
@@ -154,9 +155,9 @@ export async function probeClaudeCodeSdkExecution(params: {
   try {
     const timeoutMs = Math.max(
       1000,
-      Math.trunc(params.config.executionProbeTimeoutMs ?? DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS),
+      Math.trunc(config.executionProbeTimeoutMs ?? DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS),
     );
-    return await params.withTimeout(executeProbe(), timeoutMs);
+    return await withTimeout(executeProbe(), timeoutMs);
   } catch (error) {
     const reasonMessage = error instanceof Error ? error.message : "claude execution probe failed";
     return {

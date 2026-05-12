@@ -24,14 +24,14 @@ import {
   extractFailureMessage,
   readUserText,
   toAbortError,
-} from "./claude-code-runtime-utils.js";
+} from "@/utils/claude-code-runtime.utils.js";
 import {
   buildClaudeQueryOptions,
   createAbortBridge,
   createRequestTimeout,
   prepareClaudeGatewayAccess,
   type ClaudePreparedGatewayAccess,
-} from "./claude-code-query-runtime.js";
+} from "@/utils/claude-code-query-runtime.utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
@@ -46,8 +46,8 @@ export {
   probeClaudeCodeSdkCapability,
   type ClaudeCodeSdkCapabilityProbeConfig,
   type ClaudeCodeSdkCapabilityProbeResult,
-} from "./claude-code-capability-probe.js";
-export { DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS } from "./claude-code-runtime-utils.js";
+} from "@/utils/claude-code-capability-probe.utils.js";
+export { DEFAULT_CLAUDE_EXECUTION_PROBE_TIMEOUT_MS } from "@/utils/claude-code-runtime.utils.js";
 
 export class ClaudeCodeSdkNcpAgentRuntime implements NcpAgentRuntime {
   private sdkModulePromise: Promise<ClaudeCodeSdkModule> | null = null;

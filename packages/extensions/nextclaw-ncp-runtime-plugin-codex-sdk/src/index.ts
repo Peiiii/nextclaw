@@ -28,6 +28,13 @@ import type {
   PluginDefinition,
 } from "./codex-runtime-plugin-types.js";
 
+export { buildCodexBridgeModelProviderId } from "./codex-model-provider.js";
+export { ensureCodexOpenAiResponsesBridge } from "./codex-openai-responses-bridge.utils.js";
+export type {
+  CodexOpenAiResponsesBridgeConfig,
+  CodexOpenAiResponsesBridgeResult,
+} from "./codex-openai-responses-bridge-shared.utils.js";
+
 const PLUGIN_ID = "nextclaw-ncp-runtime-plugin-codex-sdk";
 const CODEX_RUNTIME_KIND = "codex";
 
@@ -273,6 +280,7 @@ const plugin: PluginDefinition = {
               upstreamApiKey: apiKey,
               upstreamExtraHeaders: resolvedProviderRuntime.provider?.extraHeaders ?? undefined,
               defaultModel: resolvedProviderRuntime.providerLocalModel,
+              upstreamReasoningSplit: true,
               modelPrefixes: [
                 providerName ?? "",
                 externalModelProvider,

@@ -319,6 +319,7 @@ export async function callOpenAiCompatibleUpstream(params: {
       messages: buildOpenAiMessages(params.body.input, params.body.instructions),
       ...(tools ? { tools } : {}),
       ...(toolChoice ? { tool_choice: toolChoice } : {}),
+      ...(params.config.upstreamReasoningSplit ? { reasoning_split: true } : {}),
       ...(typeof params.body.max_output_tokens === "number"
         ? {
             max_tokens: Math.max(

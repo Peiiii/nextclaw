@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ClaudeCodeSdkAnthropicGatewayConfig } from "./claude-code-sdk-types.js";
+import type { ClaudeCodeSdkAnthropicGatewayConfig } from "@/claude-code-sdk-types.js";
 import {
   type AnthropicMessagesRequest,
   type OpenAiChatCompletionsResponse,
@@ -11,8 +11,8 @@ import {
   toOpenAiMessages,
   toOpenAiTools,
   withTrailingSlash,
-} from "./anthropic-openai-bridge-payload.js";
-import { writeAnthropicMessageStream } from "./anthropic-openai-bridge-stream.js";
+} from "./anthropic-openai-bridge-payload.utils.js";
+import { writeAnthropicMessageStream } from "./anthropic-openai-bridge-stream.utils.js";
 
 type AnthropicBridgeResult = {
   baseUrl: string;
@@ -53,23 +53,24 @@ async function callOpenAiCompatibleUpstream(params: {
   config: ClaudeCodeSdkAnthropicGatewayConfig;
   body: AnthropicMessagesRequest;
 }): Promise<OpenAiChatCompletionsResponse> {
-  const upstreamUrl = new URL("chat/completions", withTrailingSlash(params.config.upstreamApiBase));
-  const tools = toOpenAiTools(params.body.tools);
+  const { body, config } = params;
+  const upstreamUrl = new URL("chat/completions", withTrailingSlash(config.upstreamApiBase));
+  const tools = toOpenAiTools(body.tools);
   const response = await fetch(upstreamUrl.toString(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(readString(params.config.upstreamApiKey)
+      ...(readString(config.upstreamApiKey)
         ? {
-            Authorization: `Bearer ${params.config.upstreamApiKey!.trim()}`,
+            Authorization: `Bearer ${config.upstreamApiKey!.trim()}`,
           }
         : {}),
     },
     body: JSON.stringify({
-      model: readString(params.body.model) ?? "default",
-      messages: toOpenAiMessages(params.body),
+      model: readString(body.model) ?? "default",
+      messages: toOpenAiMessages(body),
       ...(tools ? { tools, tool_choice: "auto" } : {}),
-      max_tokens: Math.max(16, Math.trunc(readNumber(params.body.max_tokens) ?? 1024)),
+      max_tokens: Math.max(16, Math.trunc(readNumber(body.max_tokens) ?? 1024)),
     }),
   });
 
@@ -100,8 +101,7 @@ async function handleMessagesRequest(
 ): Promise<void> {
   const body = (await readJsonBody(request)) as AnthropicMessagesRequest | null;
   if (!body) {
-    response.statusCode = 400;
-    response.setHeader("content-type", "application/json");
+    response.writeHead(400, { "content-type": "application/json" });
     response.end(JSON.stringify(buildAnthropicError("Invalid JSON payload.")));
     return;
   }
@@ -116,21 +116,20 @@ async function handleMessagesRequest(
     });
 
     if (body.stream === true) {
-      response.statusCode = 200;
-      response.setHeader("content-type", "text/event-stream; charset=utf-8");
-      response.setHeader("cache-control", "no-cache, no-transform");
-      response.setHeader("connection", "keep-alive");
+      response.writeHead(200, {
+        "cache-control": "no-cache, no-transform",
+        "connection": "keep-alive",
+        "content-type": "text/event-stream; charset=utf-8",
+      });
       writeAnthropicMessageStream(response, anthropicMessage);
       response.end();
       return;
     }
 
-    response.statusCode = 200;
-    response.setHeader("content-type", "application/json");
+    response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify(anthropicMessage));
   } catch (error) {
-    response.statusCode = 400;
-    response.setHeader("content-type", "application/json");
+    response.writeHead(400, { "content-type": "application/json" });
     response.end(
       JSON.stringify(buildAnthropicError(error instanceof Error ? error.message : "Gateway request failed.")),
     );

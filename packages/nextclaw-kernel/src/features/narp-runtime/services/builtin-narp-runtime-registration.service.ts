@@ -2,10 +2,12 @@ import { access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { delimiter } from "node:path";
 import {
+  ProviderRegistry,
   resolveProviderRuntime,
   type Config,
   type Disposable,
 } from "@nextclaw/core";
+import { BUILTIN_PROVIDER_PLUGINS } from "@nextclaw/runtime";
 import type { NcpAgentRunInput, NcpProviderRuntimeRoute } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import {
@@ -32,6 +34,7 @@ import type {
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
 export const NARP_HTTP_RUNTIME_KIND = "narp-http";
 export const NARP_STDIO_RUNTIME_KIND = "narp-stdio";
+const BUILTIN_PROVIDER_REGISTRY = new ProviderRegistry(BUILTIN_PROVIDER_PLUGINS);
 
 type SessionTypeDescriptor = Omit<AgentRuntimeSessionTypeOption, "value" | "label">;
 
@@ -109,10 +112,15 @@ function buildProviderRoute(params: {
   if (!resolution.provider) {
     return undefined;
   }
+  const apiBase =
+    resolution.apiBase ??
+    (resolution.providerName
+      ? BUILTIN_PROVIDER_REGISTRY.findProviderByName(resolution.providerName)?.defaultApiBase ?? null
+      : null);
   return {
     model: resolution.providerLocalModel,
     apiKey: resolution.apiKey,
-    apiBase: resolution.apiBase,
+    apiBase,
     headers: {
       ...(resolution.provider.extraHeaders ?? {}),
       [NARP_API_MODE_HEADER]: resolveProviderApiMode(resolution),

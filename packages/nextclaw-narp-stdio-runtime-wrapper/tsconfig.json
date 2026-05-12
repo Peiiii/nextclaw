@@ -1,12 +1,12 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"]
+      "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },
   "include": ["src"]

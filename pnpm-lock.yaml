@@ -736,6 +736,53 @@ importers:
         specifier: ^4.1.2
         version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
+  packages/extensions/nextclaw-narp-runtime-claude-code-sdk:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+      '@nextclaw/nextclaw-narp-stdio-runtime-wrapper':
+        specifier: workspace:*
+        version: link:../../nextclaw-narp-stdio-runtime-wrapper
+      '@nextclaw/nextclaw-ncp-runtime-claude-code-sdk':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-claude-code-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
+  packages/extensions/nextclaw-narp-runtime-codex-sdk:
+    dependencies:
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../../ncp-packages/nextclaw-ncp
+      '@nextclaw/nextclaw-narp-stdio-runtime-wrapper':
+        specifier: workspace:*
+        version: link:../../nextclaw-narp-stdio-runtime-wrapper
+      '@nextclaw/nextclaw-ncp-runtime-codex-sdk':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-codex-sdk
+      '@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk':
+        specifier: workspace:*
+        version: link:../nextclaw-ncp-runtime-plugin-codex-sdk
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
+
   packages/extensions/nextclaw-ncp-runtime-claude-code-sdk:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
@@ -758,8 +805,8 @@ importers:
         specifier: workspace:*
         version: link:../../ncp-packages/nextclaw-ncp
       '@openai/codex-sdk':
-        specifier: ^0.107.0
-        version: 0.107.0
+        specifier: ^0.130.0
+        version: 0.130.0
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
@@ -1380,6 +1427,25 @@ importers:
       zod:
         specifier: ^4.3.6
         version: 4.3.6
+
+  packages/nextclaw-narp-stdio-runtime-wrapper:
+    dependencies:
+      '@agentclientprotocol/sdk':
+        specifier: ^0.19.0
+        version: 0.19.0(zod@4.3.6)
+      '@nextclaw/ncp':
+        specifier: workspace:*
+        version: link:../ncp-packages/nextclaw-ncp
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^4.1.2
+        version: 4.1.2(@types/node@20.19.33)(jsdom@25.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.33)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
 
   packages/nextclaw-ncp-runtime-adapter-hermes-http:
     dependencies:
@@ -3030,47 +3096,47 @@ packages:
     engines: {node: ^12.13.0 || ^14.15.0 || >=16.0.0}
     deprecated: This functionality has been moved to @npmcli/fs
 
-  '@openai/codex-sdk@0.107.0':
-    resolution: {integrity: sha512-/BAiTahJ6u8FBxHCgqtfPLamWNQ9dyOqhWjR8Vtre/uxSlNeCLdlJ2ufXOBfvIs0McdQHvsFDD583Q5HtuDa5Q==}
+  '@openai/codex-sdk@0.130.0':
+    resolution: {integrity: sha512-ICKaZ5zrIDg71AiQcsUToVoe5Icmrc3LwSM5+2z7Cf8F1x6nOaY7/ucpFlr4aH8oDe7t3dangc+MsWZTkdvDFw==}
     engines: {node: '>=18'}
 
-  '@openai/codex@0.107.0':
-    resolution: {integrity: sha512-bAHmp4I3YNEqeR5U+LA5yViecDTlLVAJ+EGo8h647f0DClEWxFtyKXzyBJQ/kcL1G3bzstOTcuVpTdjhvJoe6g==}
+  '@openai/codex@0.130.0':
+    resolution: {integrity: sha512-WGDj+RZ3TXWC/7MlwprgLWOqzpwatPIINPhP3IRzHA0ni+o3QZ4i4xrS2uWwGmHUJ395J5JHwoZAAZYyfJyz6w==}
     engines: {node: '>=16'}
     hasBin: true
 
-  '@openai/codex@0.107.0-darwin-arm64':
-    resolution: {integrity: sha512-g8u0nsns9JaHNYehVuw1eSL/83BSuBsmdOo2rrEU0D1rKI/QoIQSv6S6offZnQFerCHeqj0LabxYzqUTBzEh0g==}
+  '@openai/codex@0.130.0-darwin-arm64':
+    resolution: {integrity: sha512-R9pkGC7kwC8yQ8el5hvBlmugQlcsG/pHMEFgZluu03X9fD2TezGxdq3KqRDRCZuMYl07ILamVEoqknuJ0cq7MA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [darwin]
 
-  '@openai/codex@0.107.0-darwin-x64':
-    resolution: {integrity: sha512-uDCfszYS/9RL6fMBqnLyFloBCa/Lgvqjt/P2izrByRANlHZG4Nwn1Sayn7v2TugvOJ5fBPZMRcaloqfjowmdEQ==}
+  '@openai/codex@0.130.0-darwin-x64':
+    resolution: {integrity: sha512-gJ+7J8djevgtdra+NgDAiQQPW+O3KTsgGfE3E5dpDfww3zS5OCeV0V2dhxqnJdlOjOSDw99o0P2LqBv19mhpRw==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [darwin]
 
-  '@openai/codex@0.107.0-linux-arm64':
-    resolution: {integrity: sha512-iAPYuXfACBSjVf4DPkN8YFawFGXPORzm7hDJhkzqqQvXRSyeZDaVkdT81FhaNIjm1rcaMnMDGJn2M+tOwmGy0w==}
+  '@openai/codex@0.130.0-linux-arm64':
+    resolution: {integrity: sha512-tFtH0V9/hEI3d9y7zP92BXI9FM4Z3+STNQaOR52Czv18TRtCFUp7CbIUYaToopuq6UBfnE1VKr8RLhwT5FcbmA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [linux]
 
-  '@openai/codex@0.107.0-linux-x64':
-    resolution: {integrity: sha512-h9SG15CrNihjHwSiYBU3dxMWH2r9fQIBPxFIpWnSUnjE5/YaXusbJQEvC+5u+g6CzUXX40fFsm3gVWV9uzX7Og==}
+  '@openai/codex@0.130.0-linux-x64':
+    resolution: {integrity: sha512-3VcNlez99xdnEf+kB1IOpWv9fICYV9PiGj4sLCO4TCcShLnyxe+YBGa3poknkvXLnMG0qiN9SMnYS2FGrMxQcA==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [linux]
 
-  '@openai/codex@0.107.0-win32-arm64':
-    resolution: {integrity: sha512-LHGQA2h/L72NRFcdIjKN/+V2nFXfuHDSQcI1Qdt9/7fUdcpb/pqN1n7U5rujccuTCf0ihk4XhGywAwiwPsjmWA==}
+  '@openai/codex@0.130.0-win32-arm64':
+    resolution: {integrity: sha512-vdpmiNp57L/arZabltLXn8TyEtNa7W1meOEkr+3R6W/8ZyBt++wuqz1Orv134OT2grrcFJsIVCAIPiqUxCvBkA==}
     engines: {node: '>=16'}
     cpu: [arm64]
     os: [win32]
 
-  '@openai/codex@0.107.0-win32-x64':
-    resolution: {integrity: sha512-Iq1UOxj2El/syo8abN0/7Z6ICIVTW7tY9DJbdx01wjQYbi6Ecb8e66iTNFq65Mingq7vG7QWvYGyLycVztHFuw==}
+  '@openai/codex@0.130.0-win32-x64':
+    resolution: {integrity: sha512-FzMznm7fr5/nbjZgOujZ9Y9AbdGm7ji1FOoWiY3U+srqauvZaTgn6o6aCheSL7kuymu7nTLOO/cAyWV6NuesqQ==}
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
@@ -9814,35 +9880,35 @@ snapshots:
       mkdirp: 1.0.4
       rimraf: 3.0.2
 
-  '@openai/codex-sdk@0.107.0':
+  '@openai/codex-sdk@0.130.0':
     dependencies:
-      '@openai/codex': 0.107.0
+      '@openai/codex': 0.130.0
 
-  '@openai/codex@0.107.0':
+  '@openai/codex@0.130.0':
     optionalDependencies:
-      '@openai/codex-darwin-arm64': '@openai/codex@0.107.0-darwin-arm64'
-      '@openai/codex-darwin-x64': '@openai/codex@0.107.0-darwin-x64'
-      '@openai/codex-linux-arm64': '@openai/codex@0.107.0-linux-arm64'
-      '@openai/codex-linux-x64': '@openai/codex@0.107.0-linux-x64'
-      '@openai/codex-win32-arm64': '@openai/codex@0.107.0-win32-arm64'
-      '@openai/codex-win32-x64': '@openai/codex@0.107.0-win32-x64'
+      '@openai/codex-darwin-arm64': '@openai/codex@0.130.0-darwin-arm64'
+      '@openai/codex-darwin-x64': '@openai/codex@0.130.0-darwin-x64'
+      '@openai/codex-linux-arm64': '@openai/codex@0.130.0-linux-arm64'
+      '@openai/codex-linux-x64': '@openai/codex@0.130.0-linux-x64'
+      '@openai/codex-win32-arm64': '@openai/codex@0.130.0-win32-arm64'
+      '@openai/codex-win32-x64': '@openai/codex@0.130.0-win32-x64'
 
-  '@openai/codex@0.107.0-darwin-arm64':
+  '@openai/codex@0.130.0-darwin-arm64':
     optional: true
 
-  '@openai/codex@0.107.0-darwin-x64':
+  '@openai/codex@0.130.0-darwin-x64':
     optional: true
 
-  '@openai/codex@0.107.0-linux-arm64':
+  '@openai/codex@0.130.0-linux-arm64':
     optional: true
 
-  '@openai/codex@0.107.0-linux-x64':
+  '@openai/codex@0.130.0-linux-x64':
     optional: true
 
-  '@openai/codex@0.107.0-win32-arm64':
+  '@openai/codex@0.130.0-win32-arm64':
     optional: true
 
-  '@openai/codex@0.107.0-win32-x64':
+  '@openai/codex@0.130.0-win32-x64':
     optional: true
 
   '@oxc-project/types@0.122.0': {}

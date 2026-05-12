@@ -1,4 +1,4 @@
-import { readNumber, readRecord, readString } from "./anthropic-openai-bridge-payload.js";
+import { readNumber, readRecord, readString } from "./anthropic-openai-bridge-payload.utils.js";
 
 function readArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -44,6 +44,11 @@ export function writeAnthropicMessageStream(
               name: readString(block.name) ?? "tool",
               input: {},
             }
+          : blockType === "thinking"
+            ? {
+                type: "thinking",
+                thinking: "",
+              }
           : {
               type: "text",
               text: "",
@@ -59,6 +64,11 @@ export function writeAnthropicMessageStream(
               type: "input_json_delta",
               partial_json: JSON.stringify(readRecord(block.input) ?? {}),
             }
+          : blockType === "thinking"
+            ? {
+                type: "thinking_delta",
+                thinking: readString(block.thinking) ?? "",
+              }
           : {
               type: "text_delta",
               text: readString(block.text) ?? "",

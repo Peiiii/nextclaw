@@ -4,6 +4,7 @@ export type CodexOpenAiResponsesBridgeConfig = {
   upstreamExtraHeaders?: Record<string, string>;
   defaultModel?: string;
   modelPrefixes?: string[];
+  upstreamReasoningSplit?: boolean;
 };
 
 export type CodexOpenAiResponsesBridgeResult = {
@@ -18,7 +19,10 @@ export type OpenResponsesItemRecord = Record<string, unknown>;
 
 export type OpenAiChatCompletionChoiceMessage = {
   content?: unknown;
+  reasoning?: unknown;
   reasoning_content?: unknown;
+  reasoning_details?: unknown;
+  thinking?: unknown;
   tool_calls?: unknown;
 };
 

@@ -23,6 +23,7 @@ function toBridgeCacheKey(config: CodexOpenAiResponsesBridgeConfig): string {
     upstreamExtraHeaders: config.upstreamExtraHeaders ?? {},
     defaultModel: config.defaultModel ?? "",
     modelPrefixes: (config.modelPrefixes ?? []).map((prefix) => prefix.trim().toLowerCase()),
+    upstreamReasoningSplit: config.upstreamReasoningSplit === true,
   });
 }
 
