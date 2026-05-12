@@ -23,7 +23,5 @@ The skill format and metadata structure follow OpenClaw's conventions to maintai
 | `tmux` | Remote-control tmux sessions |
 | `skill-creator` | Create new skills |
 | `nextclaw-skill-resource-hub` | Curate NextClaw, OpenClaw, and community skill resources |
-| `codex-narp-runtime` | Set up Codex as a formal NextClaw runtime through narp-stdio |
-| `claude-code-narp-runtime` | Set up Claude Code as a formal NextClaw runtime through narp-stdio |
 | `qq-group-speaker-distinction` | Keep one QQ group session while preserving per-message speaker identity |
 | `qq-url-guard` | Avoid QQ outbound URL-like text blocks (e.g. xx.xx / USER.md / markdown links) |
