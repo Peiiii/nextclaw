@@ -1,24 +1,23 @@
 import { EventBus } from "@nextclaw/shared";
-import type { NextClawClient } from "../types/nextclaw-client.types.js";
-import type { NextClawClientOptions } from "../types/nextclaw-request.types.js";
-import type { NextClawRealtimeSubscription } from "../types/nextclaw-realtime.types.js";
-import { normalizeBaseUrl } from "../utils/url.utils.js";
-import { AgentsService } from "./agents.service.js";
-import { AppService } from "./app.service.js";
-import { AuthService } from "./auth.service.js";
-import { ChannelAuthService } from "./channel-auth.service.js";
-import { ConfigService } from "./config.service.js";
-import { MarketplaceService } from "./marketplace.service.js";
-import { McpMarketplaceService } from "./mcp-marketplace.service.js";
-import { RealtimeService } from "./realtime.service.js";
-import { RemoteService } from "./remote.service.js";
-import { RequestService } from "./request.service.js";
-import { RuntimeControlService } from "./runtime-control.service.js";
-import { RuntimeUpdateService } from "./runtime-update.service.js";
-import { ServerPathsService } from "./server-paths.service.js";
-import { SessionsService } from "./sessions.service.js";
+import type { NextClawClientOptions } from "./types/nextclaw-request.types.js";
+import type { NextClawRealtimeSubscription } from "./types/nextclaw-realtime.types.js";
+import { normalizeBaseUrl } from "./utils/url.utils.js";
+import { AgentsService } from "./services/agents.service.js";
+import { AppService } from "./services/app.service.js";
+import { AuthService } from "./services/auth.service.js";
+import { ChannelAuthService } from "./services/channel-auth.service.js";
+import { ConfigService } from "./services/config.service.js";
+import { MarketplaceService } from "./services/marketplace.service.js";
+import { McpMarketplaceService } from "./services/mcp-marketplace.service.js";
+import { RealtimeService } from "./services/realtime.service.js";
+import { RemoteService } from "./services/remote.service.js";
+import { RequestService } from "./services/request.service.js";
+import { RuntimeControlService } from "./services/runtime-control.service.js";
+import { RuntimeUpdateService } from "./services/runtime-update.service.js";
+import { ServerPathsService } from "./services/server-paths.service.js";
+import { SessionsService } from "./services/sessions.service.js";
 
-export class NextClawClientService implements NextClawClient {
+export class NextClawClient {
   readonly baseUrl: string;
   readonly app: AppService;
   readonly agents: AgentsService;
@@ -73,8 +72,4 @@ export class NextClawClientService implements NextClawClient {
     this.serverPaths = new ServerPathsService(requestService);
     this.sessions = new SessionsService(requestService, this.eventBus);
   }
-}
-
-export function createNextClawClient(options: NextClawClientOptions): NextClawClientService {
-  return new NextClawClientService(options);
 }

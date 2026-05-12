@@ -1,5 +1,5 @@
 import {
-  createNextClawClient,
+  NextClawClient,
   type NextClawRealtimeEvent,
   type NextClawTransport,
   type NextClawTransportRequestInput,
@@ -36,7 +36,7 @@ const nextclawUiTransport: NextClawTransport = {
   subscribe: (handler: (event: NextClawRealtimeEvent) => void) => appClient.subscribe(handler)
 };
 
-export const nextclawClient = createNextClawClient({
+export const nextclawClient = new NextClawClient({
   baseUrl: API_BASE,
   transport: nextclawUiTransport
 });

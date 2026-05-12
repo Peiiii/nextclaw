@@ -1,4 +1,4 @@
-import { nextclawClient } from './client.service';
+import { nextclawClient } from '../managers/client.manager';
 import type { RuntimeControlActionResult, RuntimeControlView } from '@/shared/lib/api/runtime-control.types';
 
 export async function fetchRuntimeControl(): Promise<RuntimeControlView> {

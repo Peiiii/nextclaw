@@ -50,6 +50,6 @@ export class CompanionRuntimeClientService {
       return;
     }
     const sdkModule = await import("@nextclaw/client-sdk");
-    this.client = sdkModule.createNextClawClient({ baseUrl: this.baseUrl }) as CompanionSdkClient;
+    this.client = new sdkModule.NextClawClient({ baseUrl: this.baseUrl }) as CompanionSdkClient;
   };
 }

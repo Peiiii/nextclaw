@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createNextClawClient, eventKeys, NextClawClientError } from "./index.js";
+import { eventKeys, NextClawClient, NextClawClientError } from "./index.js";
 
 describe("@nextclaw/client-sdk", () => {
   it("lists sessions from the existing ncp api", async () => {
@@ -15,7 +15,7 @@ describe("@nextclaw/client-sdk", () => {
         { status: 200, headers: { "Content-Type": "application/json" } }
       );
     });
-    const client = createNextClawClient({
+    const client = new NextClawClient({
       baseUrl: "http://127.0.0.1:55667/",
       fetchImpl
     });
@@ -30,7 +30,7 @@ describe("@nextclaw/client-sdk", () => {
   });
 
   it("builds agent avatar urls without adding new api shapes", () => {
-    const client = createNextClawClient({
+    const client = new NextClawClient({
       baseUrl: "http://127.0.0.1:55667"
     });
 
@@ -49,7 +49,7 @@ describe("@nextclaw/client-sdk", () => {
       onerror: ((event: unknown) => void) | null;
       onclose: ((event: unknown) => void) | null;
     }> = [];
-    const client = createNextClawClient({
+    const client = new NextClawClient({
       baseUrl: "http://127.0.0.1:55667",
       webSocketFactory: (url) => {
         const socket = {
@@ -95,7 +95,7 @@ describe("@nextclaw/client-sdk", () => {
   });
 
   it("throws a typed client error for api failures", async () => {
-    const client = createNextClawClient({
+    const client = new NextClawClient({
       baseUrl: "http://127.0.0.1:55667",
       fetchImpl: vi.fn(async () => {
         return new Response(

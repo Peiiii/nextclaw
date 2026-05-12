@@ -1,4 +1,4 @@
-import { nextclawClient } from './client.service';
+import { nextclawClient } from '../managers/client.manager';
 import type { ServerPathBrowseView, ServerPathReadView } from '@/shared/lib/api/types';
 
 export async function fetchServerPathBrowse(params?: {

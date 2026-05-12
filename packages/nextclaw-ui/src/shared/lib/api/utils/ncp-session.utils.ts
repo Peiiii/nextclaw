@@ -1,4 +1,4 @@
-import { nextclawClient } from './client.service';
+import { nextclawClient } from '../managers/client.manager';
 import type {
   NcpSessionMessagesView,
   NcpSessionSkillsView,

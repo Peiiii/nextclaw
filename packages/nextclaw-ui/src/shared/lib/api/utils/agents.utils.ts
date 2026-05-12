@@ -1,4 +1,4 @@
-import { nextclawClient } from "./client.service";
+import { nextclawClient } from "../managers/client.manager";
 import type { AgentCreateRequest, AgentDeleteResult, AgentProfileView, AgentUpdateRequest } from "@/shared/lib/api/types";
 
 export async function fetchAgents(): Promise<{ agents: AgentProfileView[] }> {

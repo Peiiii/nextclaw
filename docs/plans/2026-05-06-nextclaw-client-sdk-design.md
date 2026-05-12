@@ -210,6 +210,7 @@ ui / companion / desktop / other shells
 ```text
 packages/nextclaw-client-sdk/src/
   index.ts
+  nextclaw-client.manager.ts
   services/
     app.service.ts
     agents.service.ts
@@ -218,7 +219,6 @@ packages/nextclaw-client-sdk/src/
     config.service.ts
     marketplace.service.ts
     mcp-marketplace.service.ts
-    nextclaw-client.service.ts
     remote.service.ts
     request.service.ts
     realtime.service.ts
@@ -227,7 +227,6 @@ packages/nextclaw-client-sdk/src/
     server-paths.service.ts
     sessions.service.ts
   types/
-    nextclaw-client.types.ts
     nextclaw-request.types.ts
     nextclaw-realtime.types.ts
     nextclaw-transport.types.ts
@@ -241,13 +240,10 @@ packages/nextclaw-client-sdk/src/
 - 作为 `L1` library package，不额外引入 `features/`、`shared/`、`platforms/` 或新的顶层角色目录
 - 根目录只保留 package 边界文件，例如 `index.ts`
 - `services/` 放有状态编排、远程 IO 协调和协议实现 owner
-- `types/` 只放 SDK 自己拥有的 client 抽象类型
+- `types/` 只放 SDK 自己拥有的请求、实时与传输 contract
 - 后端 contract types 不复制进 `types/`
 
-这里要特别说明：
-
-- `nextclaw-client` 是领域名，不是角色名
-- 因此 `nextclaw-client.service.ts` 必须位于 `services/`，而不是根目录
+- `nextclaw-client.manager.ts` 是 SDK 公共 client 聚合面，放在 `src/` 下作为独立入口文件，不归入 `services/`
 - `transport` 是本 SDK 的核心抽象名，不是目录角色名
 - 在当前项目规范下，`transport` 相关实现应落到现有允许的角色目录里
 - 因此 transport contract 落在 `types/`
@@ -257,23 +253,25 @@ packages/nextclaw-client-sdk/src/
 
 ### 6.1 创建入口
 
-SDK 对外只暴露一个正式创建入口：
+SDK 对外只暴露一个正式 client 类：
 
 ```ts
-const client = createNextClawClient(options);
+const client = new NextClawClient(options);
 ```
 
-这个入口由根目录的 `index.ts` 作为 package public boundary 暴露，而不是把 service 实现文件直接挂在根目录。
+这个入口由根目录的 `index.ts` 作为 package public boundary 暴露，实际 SDK client 聚合实现位于 `nextclaw-client.manager.ts`。不再额外保留只包一层 `new NextClawClient(options)` 的 factory。
 
 ### 6.2 client 形态
 
 ```ts
-type NextClawClient = {
+class NextClawClient {
+  readonly baseUrl: string;
   readonly app: AppService;
   readonly agents: AgentsService;
   readonly auth: AuthService;
   readonly channelAuth: ChannelAuthService;
   readonly config: ConfigService;
+  readonly eventBus: EventBus;
   readonly marketplace: MarketplaceService;
   readonly mcpMarketplace: McpMarketplaceService;
   readonly remote: RemoteService;
@@ -282,7 +280,7 @@ type NextClawClient = {
   readonly serverPaths: ServerPathsService;
   readonly sessions: SessionsService;
   readonly realtime: RealtimeService;
-};
+}
 ```
 
 这里保留单独的 `realtime` service，是为了给“全局订阅”一个清晰 owner；但 session 相关的订阅能力仍然可以通过 `client.sessions` 暴露更贴近领域的入口。

@@ -1,7 +1,7 @@
-import { fetchNcpSessionSkills } from './services/ncp-session.service';
-import { nextclawClient } from './services/client.service';
+import { fetchNcpSessionSkills } from './utils/ncp-session.utils';
+import { nextclawClient } from './managers/client.manager';
 
-vi.mock('./services/client.service', () => ({
+vi.mock('./managers/client.manager', () => ({
   nextclawClient: {
     sessions: {
       listSkills: vi.fn()

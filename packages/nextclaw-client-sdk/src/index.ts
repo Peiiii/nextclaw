@@ -1,10 +1,7 @@
-export { createNextClawClient, NextClawClientService } from "./services/nextclaw-client.service.js";
+export { NextClawClient } from "./nextclaw-client.manager.js";
 export { NextClawClientError } from "./services/request.service.js";
 export { eventKeys } from "@nextclaw/shared";
 export type { AppEvent, AppEventEnvelope, AppEventKey } from "@nextclaw/shared";
-export type {
-  NextClawClient,
-} from "./types/nextclaw-client.types.js";
 export type {
   NextClawClientOptions,
   NextClawRealtimeHandler,

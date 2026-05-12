@@ -1,5 +1,5 @@
 import type { UpdatePreferences, UpdateSnapshot } from '@nextclaw/shared';
-import { nextclawClient } from './services/client.service';
+import { nextclawClient } from './managers/client.manager';
 
 export async function fetchRuntimeUpdate(): Promise<UpdateSnapshot> {
   return await nextclawClient.runtimeUpdate.fetch();
