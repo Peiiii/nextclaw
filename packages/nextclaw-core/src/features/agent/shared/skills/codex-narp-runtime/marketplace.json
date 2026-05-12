@@ -1,0 +1,27 @@
+{
+  "slug": "codex-narp-runtime",
+  "name": "Codex NARP Runtime",
+  "summary": "Set up Codex as a formal NextClaw runtime entry through narp-stdio(acp), with launcher install, stable shim, config repair, readiness checks, and real smoke.",
+  "summaryI18n": {
+    "en": "Set up Codex as a formal NextClaw runtime entry through narp-stdio(acp), with launcher install, stable shim, config repair, readiness checks, and real smoke.",
+    "zh": "把 Codex 通过 narp-stdio(acp) 接成正式 NextClaw runtime，覆盖 launcher 安装、稳定 shim、配置修复、就绪检查与真实冒烟。"
+  },
+  "description": "Use this skill when Codex or Codex CLI/SDK should become a pluggable NextClaw session type instead of a PATH prerequisite or core hardcoded provider branch. The skill owns cold-start setup, runtime entry repair, diagnostics, and first real reply validation.",
+  "descriptionI18n": {
+    "en": "Use this skill when Codex or Codex CLI/SDK should become a pluggable NextClaw session type instead of a PATH prerequisite or core hardcoded provider branch. The skill owns cold-start setup, runtime entry repair, diagnostics, and first real reply validation.",
+    "zh": "当需要把 Codex 或 Codex CLI/SDK 接成可插拔的 NextClaw 会话类型，而不是要求用户准备 PATH 或在核心系统硬编码 provider 分支时使用。该技能负责冷启动接入、runtime entry 修复、诊断和首次真实回复验证。"
+  },
+  "author": "NextClaw",
+  "tags": [
+    "skill",
+    "codex",
+    "runtime",
+    "narp-stdio",
+    "acp",
+    "external-runtime",
+    "onboarding",
+    "diagnostics"
+  ],
+  "sourceRepo": "https://github.com/Peiiii/nextclaw",
+  "homepage": "https://github.com/Peiiii/nextclaw"
+}
