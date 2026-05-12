@@ -29,15 +29,7 @@ export const MAINTAINABILITY_HOTSPOTS = [
   },
   {
     chain: "server-ui-backend",
-    path: "packages/nextclaw-server/src/ui/router/chat.controller.ts",
-    rationale: "controller 已混入 request normalization、业务决策、stream 组装与错误转换。",
-    allowedAdditions: ["路由协议层修复", "向 action executor / view builder 下沉逻辑时的最小适配"],
-    prohibitedAdditions: ["新增业务编排", "新增配置 patch 决策", "新增 SSE 流状态管理"],
-    nextSplitSeam: "先拆 request normalization、action executor、response view builder。"
-  },
-  {
-    chain: "server-ui-backend",
-    path: "packages/nextclaw-server/src/ui/config.ts",
+    path: "packages/nextclaw-server/src/features/config/stores/server-config.store.ts",
     rationale: "配置入口已成为多页面配置聚合与运行逻辑混杂的总对象。",
     allowedAdditions: ["配置结构修正", "向按页面/按域拆分配置模块时的最小导出适配"],
     prohibitedAdditions: ["新增页面业务逻辑", "新增运行时副作用", "继续堆积跨页面配置拼装"],

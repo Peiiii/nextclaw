@@ -1,0 +1,1193 @@
+import {
+  loadConfig,
+  saveConfig,
+  ConfigSchema,
+  DEFAULT_WORKSPACE_PATH,
+  probeFeishu,
+  type Config,
+  type ConfigActionExecuteRequest,
+  type ConfigActionExecuteResult,
+  type ConfigActionManifest,
+  type ConfigUiHint,
+  type ConfigUiHints,
+  type ProviderConfig,
+  buildConfigSchema,
+  getProviderName,
+  getPackageVersion,
+  hasSecretRef,
+  isSensitiveConfigPath,
+  type ProviderSpec,
+  normalizeThinkingLevels,
+  parseThinkingLevel,
+  type ThinkingLevel
+} from "@nextclaw/core";
+import type { LlmProviderManager } from "@nextclaw/kernel";
+import { createDefaultProviderConfig } from "@/features/config/utils/default-provider-config.utils.js";
+import {
+  buildPluginChannelUiHints,
+  buildProjectedChannelMeta,
+  getProjectedChannelConfig,
+  getProjectedChannelMap,
+  mergeProjectedPluginChannelConfig,
+  normalizePluginProjectionOptions,
+  type PluginConfigProjectionOptions
+} from "@/features/config/utils/plugin-channel-config-projection.utils.js";
+import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "@/features/config/providers/server-builtin-provider.provider.js";
+import { buildSearchView, SEARCH_PROVIDER_META } from "@/features/config/utils/search-config.utils.js";
+import type {
+  ConfigMetaView,
+  RuntimeConfigUpdate,
+  ConfigSchemaResponse,
+  ConfigView,
+  ProviderConfigUpdate,
+  ProviderConnectionTestRequest,
+  ProviderConnectionTestResult,
+  ProviderConfigView,
+  SecretsConfigUpdate,
+  SecretsView
+} from "@/shared/types/server-api.types.js";
+export { updateSearch } from "@/features/config/utils/search-config.utils.js";
+
+const MASK_MIN_LENGTH = 8;
+const EXTRA_SENSITIVE_PATH_PATTERNS = [/authorization/i, /cookie/i, /session/i, /bearer/i];
+const PREFERRED_PROVIDER_ORDER = [
+  "nextclaw",
+  "openai", "anthropic", "gemini", "openrouter", "dashscope-coding-plan", "dashscope", "deepseek", "minimax",
+  "moonshot", "kimi-coding",
+  "zhipu"
+] as const;
+
+const PREFERRED_PROVIDER_ORDER_INDEX: Map<string, number> = new Map(
+  PREFERRED_PROVIDER_ORDER.map((name, index) => [name, index])
+);
+const BUILTIN_PROVIDERS = listServerBuiltinProviders();
+const BUILTIN_PROVIDER_NAMES = new Set(BUILTIN_PROVIDERS.map((spec) => spec.name));
+const CUSTOM_PROVIDER_WIRE_API_OPTIONS: Array<"auto" | "chat" | "responses"> = ["auto", "chat", "responses"];
+const CUSTOM_PROVIDER_PREFIX = "custom-";
+const PROVIDER_TEST_MAX_TOKENS = 16;
+
+function normalizeOptionalDisplayName(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function isCustomProviderName(name: string): boolean {
+  return name.trim().length > 0 && !BUILTIN_PROVIDER_NAMES.has(name);
+}
+
+function resolveCustomProviderFallbackDisplayName(name: string): string {
+  if (name.startsWith(CUSTOM_PROVIDER_PREFIX)) {
+    const suffix = name.slice(CUSTOM_PROVIDER_PREFIX.length);
+    if (/^\d+$/.test(suffix)) {
+      return `Custom ${suffix}`;
+    }
+  }
+  return name;
+}
+
+function resolveProviderDisplayName(
+  providerName: string,
+  provider: ProviderConfig | undefined,
+  spec?: ProviderSpec
+): string | undefined {
+  const configDisplayName = normalizeOptionalDisplayName(provider?.displayName);
+  if (isCustomProviderName(providerName)) {
+    return configDisplayName ?? resolveCustomProviderFallbackDisplayName(providerName);
+  }
+  return spec?.displayName ?? configDisplayName ?? spec?.name;
+}
+
+function listCustomProviderNames(config: Config): string[] {
+  return Object.keys(config.providers).filter((name) => isCustomProviderName(name));
+}
+
+function findNextCustomProviderName(config: Config): string {
+  const providers = config.providers as Record<string, ProviderConfig>;
+  let index = 1;
+  while (providers[`${CUSTOM_PROVIDER_PREFIX}${index}`]) {
+    index += 1;
+  }
+  return `${CUSTOM_PROVIDER_PREFIX}${index}`;
+}
+
+function ensureProviderConfig(config: Config, providerName: string): ProviderConfig | null {
+  const providers = config.providers as Record<string, ProviderConfig>;
+  const existing = providers[providerName];
+  if (existing) {
+    return existing;
+  }
+  if (isCustomProviderName(providerName)) {
+    return null;
+  }
+  const spec = findServerBuiltinProviderByName(providerName);
+  if (!spec) {
+    return null;
+  }
+  const created = createDefaultProviderConfig(spec.defaultWireApi ?? "auto");
+  providers[providerName] = created;
+  return created;
+}
+
+function clearSecretRefsByPrefix(refs: Config["secrets"]["refs"], pathPrefix: string): Config["secrets"]["refs"] {
+  return Object.fromEntries(Object.entries(refs).filter(([key]) => key !== pathPrefix && !key.startsWith(`${pathPrefix}.`)));
+}
+type ExecuteActionResult =
+  | { ok: true; data: ConfigActionExecuteResult }
+  | { ok: false; code: string; message: string; details?: Record<string, unknown> };
+
+type ActionHandler = (
+  params: {
+    config: Config;
+    action: ConfigActionManifest;
+  }
+) => Promise<ConfigActionExecuteResult>;
+
+function matchesExtraSensitivePath(path: string): boolean {
+  if (path === "session" || path.startsWith("session.")) {
+    return false;
+  }
+  return EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
+}
+
+function matchHint(path: string, hints: ConfigUiHints): ConfigUiHint | undefined {
+  const direct = hints[path];
+  if (direct) {
+    return direct;
+  }
+  const segments = path.split(".");
+  for (const [hintKey, hint] of Object.entries(hints)) {
+    if (!hintKey.includes("*")) {
+      continue;
+    }
+    const hintSegments = hintKey.split(".");
+    if (hintSegments.length !== segments.length) {
+      continue;
+    }
+    let match = true;
+    for (let index = 0; index < segments.length; index += 1) {
+      if (hintSegments[index] !== "*" && hintSegments[index] !== segments[index]) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      return hint;
+    }
+  }
+  return undefined;
+}
+
+function isSensitivePath(path: string, hints?: ConfigUiHints): boolean {
+  if (hints) {
+    const hint = matchHint(path, hints);
+    if (hint?.sensitive !== undefined) {
+      return Boolean(hint.sensitive);
+    }
+  }
+  return isSensitiveConfigPath(path) || matchesExtraSensitivePath(path);
+}
+
+function sanitizePublicConfigValue<T>(value: T, prefix: string, hints?: ConfigUiHints): T {
+  if (Array.isArray(value)) {
+    const nextPath = prefix ? `${prefix}[]` : "[]";
+    return value.map((entry) => sanitizePublicConfigValue(entry, nextPath, hints)) as T;
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const output: Record<string, unknown> = {};
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    const nextPath = prefix ? `${prefix}.${key}` : key;
+    if (isSensitivePath(nextPath, hints)) {
+      continue;
+    }
+    output[key] = sanitizePublicConfigValue(val, nextPath, hints);
+  }
+  return output as T;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(base: unknown, patch: unknown): unknown {
+  if (!isObject(base) || !isObject(patch)) {
+    return patch;
+  }
+  const result: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const previous = result[key];
+    result[key] = deepMerge(previous, value);
+  }
+  return result;
+}
+
+function getPathValue(source: unknown, path: string): unknown {
+  if (!source || typeof source !== "object") {
+    return undefined;
+  }
+  const segments = path.split(".");
+  let current: unknown = source;
+  for (const segment of segments) {
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
+function setPathValue(target: Record<string, unknown>, path: string, value: unknown): void {
+  const segments = path.split(".");
+  if (segments.length === 0) {
+    return;
+  }
+  let current: Record<string, unknown> = target;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const segment = segments[index];
+    const next = current[segment];
+    if (!isObject(next)) {
+      current[segment] = {};
+    }
+    current = current[segment] as Record<string, unknown>;
+  }
+  current[segments[segments.length - 1]] = value;
+}
+
+function isMissingRequiredValue(value: unknown): boolean {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim().length === 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return false;
+}
+
+function resolveRuntimeConfig(config: Config, draftConfig?: Record<string, unknown>): Config {
+  if (!draftConfig || Object.keys(draftConfig).length === 0) {
+    return config;
+  }
+  const merged = deepMerge(config, draftConfig);
+  return ConfigSchema.parse(merged);
+}
+
+function getActionById(config: Config, actionId: string): ConfigActionManifest | null {
+  const actions = buildConfigSchemaView(config).actions;
+  return actions.find((item) => item.id === actionId) ?? null;
+}
+
+function messageOrDefault(
+  action: ConfigActionManifest,
+  kind: "success" | "failure",
+  fallback: string
+): string {
+  const text = kind === "success" ? action.success?.message : action.failure?.message;
+  return text?.trim() ? text : fallback;
+}
+
+async function runFeishuVerifyAction(params: {
+  config: Config;
+  action: ConfigActionManifest;
+}): Promise<ConfigActionExecuteResult> {
+  const { config, action } = params;
+  const appId = String(config.channels.feishu.appId ?? "").trim();
+  const appSecret = String(config.channels.feishu.appSecret ?? "").trim();
+  if (!appId || !appSecret) {
+    return {
+      ok: false,
+      status: "failed",
+      message: messageOrDefault(action, "failure", "Verification failed: missing credentials"),
+      data: {
+        error: "missing credentials (appId, appSecret)"
+      },
+      nextActions: []
+    };
+  }
+
+  const result = await probeFeishu(appId, appSecret);
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: "failed",
+      message: `${messageOrDefault(action, "failure", "Verification failed")}: ${result.error}`,
+      data: {
+        error: result.error,
+        appId: result.appId ?? appId
+      },
+      nextActions: []
+    };
+  }
+
+  const responseData: Record<string, unknown> = {
+    appId: result.appId,
+    botName: result.botName ?? null,
+    botOpenId: result.botOpenId ?? null
+  };
+
+  const patch: Record<string, unknown> = {};
+  for (const [targetPath, sourcePath] of Object.entries(action.resultMap ?? {})) {
+    const mappedValue = sourcePath.startsWith("response.data.")
+      ? responseData[sourcePath.slice("response.data.".length)]
+      : undefined;
+    if (mappedValue !== undefined) {
+      setPathValue(patch, targetPath, mappedValue);
+    }
+  }
+
+  return {
+    ok: true,
+    status: "success",
+    message: messageOrDefault(
+      action,
+      "success",
+      "Verified. Please finish Feishu event subscription and app publishing before using."
+    ),
+    data: responseData,
+    patch: Object.keys(patch).length > 0 ? patch : undefined,
+    nextActions: []
+  };
+}
+
+const ACTION_HANDLERS: Record<string, ActionHandler> = {
+  "channels.feishu.verifyConnection": runFeishuVerifyAction
+};
+
+function buildUiHints(config: Config, options?: PluginConfigProjectionOptions): ConfigUiHints {
+  return buildConfigSchemaView(config, options).uiHints;
+}
+
+function maskApiKey(value: string): { apiKeySet: boolean; apiKeyMasked?: string } {
+  if (!value) {
+    return { apiKeySet: false };
+  }
+  if (value.length < MASK_MIN_LENGTH) {
+    return { apiKeySet: true, apiKeyMasked: "****" };
+  }
+  return {
+    apiKeySet: true,
+    apiKeyMasked: `${value.slice(0, 2)}****${value.slice(-4)}`
+  };
+}
+
+function normalizeModelList(input: string[] | null | undefined): string[] {
+  if (!input || input.length === 0) {
+    return [];
+  }
+  const deduped = new Set<string>();
+  for (const item of input) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+    deduped.add(trimmed);
+  }
+  return [...deduped];
+}
+
+function normalizeModelThinkingConfig(
+  input: Record<string, { supported?: unknown; default?: unknown }> | null | undefined
+): Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }> {
+  if (!input || typeof input !== "object") {
+    return {};
+  }
+  const normalized: Record<string, { supported: ThinkingLevel[]; default?: ThinkingLevel | null }> = {};
+  for (const [rawModel, rawValue] of Object.entries(input)) {
+    const model = rawModel.trim();
+    if (!model || !rawValue || typeof rawValue !== "object") {
+      continue;
+    }
+    const supported = normalizeThinkingLevels(rawValue.supported);
+    if (supported.length === 0) {
+      continue;
+    }
+    const defaultLevel = parseThinkingLevel(rawValue.default);
+    if (defaultLevel && supported.includes(defaultLevel)) {
+      normalized[model] = { supported, default: defaultLevel };
+    } else {
+      normalized[model] = { supported };
+    }
+  }
+  return normalized;
+}
+
+function toProviderView(
+  config: Config,
+  provider: ProviderConfig,
+  providerName: string,
+  uiHints: ConfigUiHints,
+  spec?: ProviderSpec
+): ProviderConfigView {
+  const apiKeyPath = `providers.${providerName}.apiKey`;
+  const apiKeyRefSet = hasSecretRef(config, apiKeyPath);
+  const masked = maskApiKey(provider.apiKey);
+  const extraHeaders =
+    provider.extraHeaders && Object.keys(provider.extraHeaders).length > 0
+      ? (sanitizePublicConfigValue(
+          provider.extraHeaders,
+          `providers.${providerName}.extraHeaders`,
+          uiHints
+        ) as Record<string, string>)
+      : null;
+  const view: ProviderConfigView = {
+    enabled: provider.enabled !== false,
+    displayName: resolveProviderDisplayName(providerName, provider, spec),
+    apiKeySet: masked.apiKeySet || apiKeyRefSet,
+    apiKeyMasked: masked.apiKeyMasked ?? (apiKeyRefSet ? "****" : undefined),
+    apiBase: provider.apiBase ?? null,
+    extraHeaders: extraHeaders && Object.keys(extraHeaders).length > 0 ? extraHeaders : null,
+    models: normalizeModelList(provider.models ?? []),
+    modelThinking: normalizeModelThinkingConfig(provider.modelThinking ?? {})
+  };
+  const supportsWireApi = Boolean(spec?.supportsWireApi) || isCustomProviderName(providerName);
+  if (supportsWireApi) {
+    view.wireApi = provider.wireApi ?? spec?.defaultWireApi ?? "auto";
+  }
+  return view;
+}
+
+export function buildConfigView(config: Config, options?: PluginConfigProjectionOptions): ConfigView {
+  const uiHints = buildUiHints(config, options);
+  const projectedChannels = getProjectedChannelMap(config, options);
+  const providers: Record<string, ProviderConfigView> = {};
+  for (const [name, provider] of Object.entries(config.providers)) {
+    const spec = findServerBuiltinProviderByName(name);
+    providers[name] = toProviderView(config, provider as ProviderConfig, name, uiHints, spec);
+  }
+  return {
+    companion: sanitizePublicConfigValue(config.companion, "companion", uiHints),
+    agents: sanitizePublicConfigValue(config.agents, "agents", uiHints),
+    providers,
+    search: buildSearchView(config),
+    channels: sanitizePublicConfigValue(projectedChannels, "channels", uiHints),
+    bindings: sanitizePublicConfigValue(config.bindings, "bindings", uiHints),
+    session: sanitizePublicConfigValue(config.session, "session", uiHints),
+    tools: sanitizePublicConfigValue(config.tools, "tools", uiHints),
+    gateway: sanitizePublicConfigValue(config.gateway, "gateway", uiHints),
+    ui: sanitizePublicConfigValue(config.ui, "ui", uiHints),
+    secrets: {
+      enabled: config.secrets.enabled,
+      defaults: { ...config.secrets.defaults },
+      providers: { ...config.secrets.providers },
+      refs: { ...config.secrets.refs }
+    } satisfies SecretsView
+  };
+}
+
+function normalizeRuntimeEntries(
+  entries: Record<string, unknown> | null | undefined,
+): Config["agents"]["runtimes"]["entries"] {
+  if (!entries || typeof entries !== "object" || Array.isArray(entries)) {
+    return {};
+  }
+
+  const normalized: Config["agents"]["runtimes"]["entries"] = {};
+  for (const [rawId, rawEntry] of Object.entries(entries)) {
+    const id = rawId.trim();
+    if (!id || !rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
+      continue;
+    }
+    const entry = rawEntry as Record<string, unknown>;
+    const type = normalizeOptionalString(entry.type);
+    if (!type) {
+      continue;
+    }
+    const normalizedIcon = normalizeRuntimeEntryIcon(entry.icon);
+    normalized[id] = {
+      enabled: typeof entry.enabled === "boolean" ? entry.enabled : true,
+      ...(normalizeOptionalString(entry.label) ? { label: normalizeOptionalString(entry.label) ?? undefined } : {}),
+      ...(normalizedIcon ? { icon: normalizedIcon } : {}),
+      type,
+      config: normalizeRuntimeEntryConfig(
+        type,
+        entry.config && typeof entry.config === "object" && !Array.isArray(entry.config)
+          ? (entry.config as Record<string, unknown>)
+          : {},
+      ),
+    };
+  }
+  return normalized;
+}
+
+function normalizeRuntimeEntryIcon(
+  value: unknown,
+): { kind: "image"; src: string; alt?: string } | null {
+  if (typeof value === "string") {
+    const src = value.trim();
+    return src ? { kind: "image", src } : null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const src = normalizeOptionalString((value as Record<string, unknown>).src);
+  if (!src) {
+    return null;
+  }
+  const alt = normalizeOptionalString((value as Record<string, unknown>).alt);
+  return {
+    kind: "image",
+    src,
+    ...(alt ? { alt } : {}),
+  };
+}
+
+function normalizeRuntimeEntryConfig(
+  type: string,
+  config: Record<string, unknown>,
+): Record<string, unknown> {
+  if (type !== "narp-stdio") {
+    return { ...config };
+  }
+
+  const command = normalizeOptionalString(config.command);
+  const cwd = normalizeOptionalString(config.cwd);
+  const wireDialect = normalizeOptionalString(config.wireDialect) ?? "acp";
+  const processScope = normalizeOptionalString(config.processScope) ?? "per-session";
+
+  return {
+    wireDialect,
+    processScope,
+    ...(command ? { command } : {}),
+    ...(normalizeStringArray(config.args) ? { args: normalizeStringArray(config.args) } : {}),
+    env: normalizeUnknownStringRecord(config.env) ?? {},
+    ...(cwd ? { cwd } : {}),
+    startupTimeoutMs: normalizePositiveInteger(config.startupTimeoutMs) ?? 8000,
+    probeTimeoutMs: normalizePositiveInteger(config.probeTimeoutMs) ?? 3000,
+    requestTimeoutMs: normalizePositiveInteger(config.requestTimeoutMs) ?? 120000,
+  };
+}
+
+function clearSecretRef(refs: Config["secrets"]["refs"], path: string): Config["secrets"]["refs"] {
+  const { [path]: _removed, ...nextRefs } = refs;
+  void _removed;
+  return nextRefs;
+}
+
+export function buildConfigMeta(config: Config, options?: PluginConfigProjectionOptions): ConfigMetaView {
+  const configProviders = config.providers as Record<string, ProviderConfig>;
+  const builtinProviders = BUILTIN_PROVIDERS.map((spec) => {
+    const providerConfig = configProviders[spec.name];
+    return {
+      name: spec.name,
+      displayName: resolveProviderDisplayName(spec.name, providerConfig, spec),
+      isCustom: false,
+      modelPrefix: spec.modelPrefix,
+      keywords: spec.keywords,
+      envKey: spec.envKey,
+      isGateway: spec.isGateway,
+      isLocal: spec.isLocal,
+      defaultApiBase: spec.defaultApiBase,
+      logo: spec.logo,
+      apiBaseHelp: spec.apiBaseHelp,
+      auth: spec.auth
+        ? {
+            kind: spec.auth.kind,
+            displayName: spec.auth.displayName,
+            note: spec.auth.note,
+            methods: spec.auth.methods?.map((method) => ({
+              id: method.id,
+              label: method.label,
+              hint: method.hint
+            })),
+            defaultMethodId: spec.auth.defaultMethodId,
+            supportsCliImport: Boolean(spec.auth.cliCredential)
+          }
+        : undefined,
+      defaultModels: normalizeModelList(spec.defaultModels ?? []),
+      supportsWireApi: spec.supportsWireApi,
+      wireApiOptions: spec.wireApiOptions,
+      defaultWireApi: spec.defaultWireApi
+    };
+  }).sort((left, right) => {
+    const leftRank = PREFERRED_PROVIDER_ORDER_INDEX.get(left.name);
+    const rightRank = PREFERRED_PROVIDER_ORDER_INDEX.get(right.name);
+    if (leftRank !== undefined && rightRank !== undefined) {
+      return leftRank - rightRank;
+    }
+    if (leftRank !== undefined) {
+      return -1;
+    }
+    if (rightRank !== undefined) {
+      return 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
+
+  const customProviders = listCustomProviderNames(config)
+    .sort((left, right) => left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" }))
+    .map((name) => {
+      const providerConfig = configProviders[name];
+      const displayName = resolveProviderDisplayName(name, providerConfig);
+      return {
+        name,
+        displayName,
+        isCustom: true,
+        modelPrefix: name,
+        keywords: normalizeModelList([name, displayName ?? ""]),
+        envKey: "OPENAI_API_KEY",
+        isGateway: false,
+        isLocal: false,
+        defaultApiBase: undefined,
+        logo: undefined,
+        apiBaseHelp: undefined,
+        auth: undefined,
+        defaultModels: [],
+        supportsWireApi: true,
+        wireApiOptions: CUSTOM_PROVIDER_WIRE_API_OPTIONS,
+        defaultWireApi: "auto" as const
+      };
+    });
+  const providers = [...customProviders, ...builtinProviders];
+  const channels = buildProjectedChannelMeta(config, options);
+  return { providers, search: SEARCH_PROVIDER_META, channels };
+}
+
+export function buildConfigSchemaView(_config: Config, options?: PluginConfigProjectionOptions): ConfigSchemaResponse {
+  const base = buildConfigSchema({ version: getPackageVersion() });
+  const pluginUiHints = buildPluginChannelUiHints(options);
+  if (Object.keys(pluginUiHints).length === 0) {
+    return base;
+  }
+  return { ...base, uiHints: { ...base.uiHints, ...pluginUiHints } };
+}
+
+export async function executeConfigAction(
+  configPath: string,
+  actionId: string,
+  request: ConfigActionExecuteRequest
+): Promise<ExecuteActionResult> {
+  const baseConfig = loadConfigOrDefault(configPath);
+  const action = getActionById(baseConfig, actionId);
+  if (!action) {
+    return {
+      ok: false,
+      code: "ACTION_NOT_FOUND",
+      message: `unknown action: ${actionId}`
+    };
+  }
+
+  if (request.scope && request.scope !== action.scope) {
+    return {
+      ok: false,
+      code: "ACTION_SCOPE_MISMATCH",
+      message: `scope mismatch: expected ${action.scope}, got ${request.scope}`,
+      details: {
+        expectedScope: action.scope,
+        requestScope: request.scope
+      }
+    };
+  }
+
+  const runtimeConfig = resolveRuntimeConfig(baseConfig, request.draftConfig);
+
+  for (const requiredPath of action.requires ?? []) {
+    const requiredValue = getPathValue(runtimeConfig, requiredPath);
+    if (isMissingRequiredValue(requiredValue)) {
+      return {
+        ok: false,
+        code: "ACTION_PRECONDITION_FAILED",
+        message: `required field missing: ${requiredPath}`,
+        details: {
+          path: requiredPath
+        }
+      };
+    }
+  }
+
+  const handler = ACTION_HANDLERS[action.id];
+  if (!handler) {
+    return {
+      ok: false,
+      code: "ACTION_EXECUTION_FAILED",
+      message: `action handler not found for type ${action.type}`
+    };
+  }
+
+  const result = await handler({
+    config: runtimeConfig,
+    action
+  });
+
+  return {
+    ok: true,
+    data: result
+  };
+}
+
+export function loadConfigOrDefault(configPath: string): Config {
+  return loadConfig(configPath);
+}
+
+export function updateModel(configPath: string, patch: { model?: string; workspace?: string }): ConfigView {
+  const config = loadConfigOrDefault(configPath);
+
+  if (typeof patch.model === "string") config.agents.defaults.model = patch.model;
+  if (typeof patch.workspace === "string") {
+    config.agents.defaults.workspace = normalizeOptionalString(patch.workspace) ?? DEFAULT_WORKSPACE_PATH;
+  }
+
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return buildConfigView(next);
+}
+
+export function updateProvider(
+  configPath: string,
+  providerName: string,
+  patch: ProviderConfigUpdate
+): ProviderConfigView | null {
+  const config = loadConfigOrDefault(configPath);
+  const provider = ensureProviderConfig(config, providerName);
+  if (!provider) {
+    return null;
+  }
+  const spec = findServerBuiltinProviderByName(providerName);
+  const isCustom = isCustomProviderName(providerName);
+  if (Object.prototype.hasOwnProperty.call(patch, "displayName") && isCustom) {
+    provider.displayName = normalizeOptionalDisplayName(patch.displayName) ?? "";
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
+    provider.enabled = patch.enabled !== false;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "apiKey")) {
+    provider.apiKey = patch.apiKey ?? "";
+    config.secrets.refs = clearSecretRef(config.secrets.refs, `providers.${providerName}.apiKey`);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "apiBase")) {
+    provider.apiBase = patch.apiBase ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "extraHeaders")) {
+    provider.extraHeaders = patch.extraHeaders ?? null;
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "wireApi") && (spec?.supportsWireApi || isCustom)) {
+    provider.wireApi = patch.wireApi ?? spec?.defaultWireApi ?? "auto";
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "models")) {
+    provider.models = normalizeModelList(patch.models ?? []);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, "modelThinking")) {
+    provider.modelThinking = normalizeModelThinkingConfig(patch.modelThinking ?? {});
+  }
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  const uiHints = buildUiHints(next);
+  const updated = (next.providers as Record<string, ProviderConfig>)[providerName];
+  return toProviderView(next, updated, providerName, uiHints, spec ?? undefined);
+}
+
+export function createCustomProvider(
+  configPath: string,
+  patch: ProviderConfigUpdate = {}
+): { name: string; provider: ProviderConfigView } {
+  const config = loadConfigOrDefault(configPath);
+  const providerName = findNextCustomProviderName(config);
+  const providers = config.providers as Record<string, ProviderConfig>;
+  const generatedDisplayName = resolveCustomProviderFallbackDisplayName(providerName);
+  providers[providerName] = {
+    enabled: patch.enabled !== false,
+    displayName: normalizeOptionalDisplayName(patch.displayName) ?? generatedDisplayName,
+    apiKey: normalizeOptionalString(patch.apiKey) ?? "",
+    apiBase: normalizeOptionalString(patch.apiBase),
+    extraHeaders: normalizeHeaders(patch.extraHeaders ?? null),
+    wireApi: patch.wireApi ?? "auto",
+    models: normalizeModelList(patch.models ?? []),
+    modelThinking: normalizeModelThinkingConfig(patch.modelThinking ?? {})
+  };
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  const uiHints = buildUiHints(next);
+  const created = (next.providers as Record<string, ProviderConfig>)[providerName];
+  return {
+    name: providerName,
+    provider: toProviderView(next, created, providerName, uiHints)
+  };
+}
+
+export function deleteCustomProvider(configPath: string, providerName: string): boolean | null {
+  if (!isCustomProviderName(providerName)) {
+    return null;
+  }
+  const config = loadConfigOrDefault(configPath);
+  const providers = config.providers as Record<string, ProviderConfig>;
+  if (!providers[providerName]) {
+    return null;
+  }
+  delete providers[providerName];
+  config.secrets.refs = clearSecretRefsByPrefix(config.secrets.refs, `providers.${providerName}`);
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return true;
+}
+
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePositiveInteger(value: unknown): number | null {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+  if (!Number.isFinite(parsed)) {
+    return null;
+  }
+  const normalized = Math.trunc(parsed);
+  return normalized > 0 ? normalized : null;
+}
+
+function normalizeStringArray(value: unknown): string[] | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+  const entries = value
+    .map((entry) => normalizeOptionalString(entry))
+    .filter((entry): entry is string => Boolean(entry));
+  return entries.length > 0 ? entries : null;
+}
+
+function normalizeUnknownStringRecord(value: unknown): Record<string, string> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const entries = Object.entries(value)
+    .map(([key, entryValue]) => [key.trim(), normalizeOptionalString(entryValue)] as const)
+    .filter(([key, entryValue]) => key.length > 0 && Boolean(entryValue));
+  return entries.length > 0 ? Object.fromEntries(entries) as Record<string, string> : null;
+}
+
+function normalizeHeaders(input: Record<string, string> | null | undefined): Record<string, string> | null {
+  if (!input) {
+    return null;
+  }
+  const entries = Object.entries(input)
+    .map(([key, value]) => [key.trim(), String(value ?? "").trim()] as const)
+    .filter(([key, value]) => key.length > 0 && value.length > 0);
+  if (entries.length === 0) {
+    return null;
+  }
+  return Object.fromEntries(entries);
+}
+
+function buildScopedProviderModel(
+  providerName: string,
+  model: string,
+  spec?: ProviderSpec
+): string {
+  const trimmed = model.trim();
+  if (!trimmed) {
+    return "";
+  }
+  if (trimmed.includes("/")) {
+    return trimmed;
+  }
+  if (isCustomProviderName(providerName)) {
+    return trimmed;
+  }
+  const prefix = (spec?.modelPrefix ?? providerName).trim();
+  if (!prefix) {
+    return trimmed;
+  }
+  return `${prefix}/${trimmed}`;
+}
+
+function resolveTestModel(
+  config: Config,
+  providerName: string,
+  requestedModel: string | null,
+  provider: ProviderConfig,
+  spec?: ProviderSpec
+): string | null {
+  if (requestedModel) {
+    if (isCustomProviderName(providerName)) {
+      const prefix = `${providerName}/`;
+      if (requestedModel.startsWith(prefix)) {
+        return requestedModel.slice(prefix.length) || null;
+      }
+    }
+    return requestedModel;
+  }
+
+  const providerModels = normalizeModelList(provider.models ?? [])
+    .map((modelId) => buildScopedProviderModel(providerName, modelId, spec))
+    .filter((modelId) => modelId.length > 0);
+  if (providerModels.length > 0) {
+    return providerModels[0];
+  }
+
+  const defaultModel = normalizeOptionalString(config.agents.defaults.model);
+  if (defaultModel) {
+    const routedProvider = getProviderName(config, defaultModel);
+    if (!routedProvider || routedProvider === providerName) {
+      return defaultModel;
+    }
+  }
+
+  if (isCustomProviderName(providerName)) {
+    return null;
+  }
+  const specDefaultModel = normalizeModelList(spec?.defaultModels ?? [])[0] ?? null;
+  return specDefaultModel ?? defaultModel ?? null;
+}
+
+function stringifyError(error: unknown): string {
+  const raw = error instanceof Error ? error.message : String(error);
+  return raw.replace(/\s+/g, " ").trim();
+}
+
+export async function testProviderConnection(
+  configPath: string,
+  providerName: string,
+  patch: ProviderConnectionTestRequest,
+  providerManager?: LlmProviderManager
+): Promise<ProviderConnectionTestResult | null> {
+  const config = loadConfigOrDefault(configPath);
+  const provider = ensureProviderConfig(config, providerName);
+  if (!provider) {
+    return null;
+  }
+
+  const spec = findServerBuiltinProviderByName(providerName);
+  const hasApiKeyPatch = Object.prototype.hasOwnProperty.call(patch, "apiKey");
+  const providedApiKey = normalizeOptionalString(patch.apiKey);
+  const currentApiKey = normalizeOptionalString(provider.apiKey);
+  const apiKey = hasApiKeyPatch ? providedApiKey : currentApiKey;
+
+  const hasApiBasePatch = Object.prototype.hasOwnProperty.call(patch, "apiBase");
+  const patchedApiBase = normalizeOptionalString(patch.apiBase);
+  const currentApiBase = normalizeOptionalString(provider.apiBase);
+  const apiBase = hasApiBasePatch
+    ? patchedApiBase ?? spec?.defaultApiBase ?? null
+    : currentApiBase ?? spec?.defaultApiBase ?? null;
+
+  const hasHeadersPatch = Object.prototype.hasOwnProperty.call(patch, "extraHeaders");
+  const extraHeaders = hasHeadersPatch
+    ? normalizeHeaders(patch.extraHeaders ?? null)
+    : normalizeHeaders(provider.extraHeaders ?? null);
+
+  const isCustom = isCustomProviderName(providerName);
+  const wireApi = (spec?.supportsWireApi || isCustom)
+    ? patch.wireApi ?? provider.wireApi ?? spec?.defaultWireApi ?? "auto"
+    : null;
+
+  if (!apiKey && !spec?.isLocal) {
+    return {
+      success: false,
+      provider: providerName,
+      latencyMs: 0,
+      message: "API key is required before testing the connection."
+    };
+  }
+
+  const requestedModel = normalizeOptionalString(patch.model);
+  const model = resolveTestModel(config, providerName, requestedModel, provider, spec ?? undefined);
+  if (!model) {
+    return {
+      success: false,
+      provider: providerName,
+      latencyMs: 0,
+      message: "No test model found. Configure provider models or set a default model for this provider, then try again."
+    };
+  }
+
+  const startedAtMs = Date.now();
+  if (!providerManager) {
+    return {
+      success: false,
+      provider: providerName,
+      model,
+      latencyMs: Date.now() - startedAtMs,
+      message: "Provider manager is unavailable."
+    };
+  }
+  try {
+    await providerManager.testConnection({
+      providerName,
+      apiKey,
+      apiBase,
+      defaultModel: model,
+      extraHeaders,
+      wireApi,
+      messages: [{ role: "user", content: "ping" }],
+      maxTokens: PROVIDER_TEST_MAX_TOKENS
+    });
+    return {
+      success: true,
+      provider: providerName,
+      model,
+      latencyMs: Date.now() - startedAtMs,
+      message: "Connection test passed."
+    };
+  } catch (error) {
+    return {
+      success: false,
+      provider: providerName,
+      model,
+      latencyMs: Date.now() - startedAtMs,
+      message: stringifyError(error) || "Connection test failed."
+    };
+  }
+}
+
+export function updateChannel(
+  configPath: string,
+  channelName: string,
+  patch: Record<string, unknown>,
+  options?: PluginConfigProjectionOptions
+): Record<string, unknown> | null {
+  const config = loadConfigOrDefault(configPath);
+  const normalizedOptions = normalizePluginProjectionOptions(options);
+  const channel = getProjectedChannelConfig(config, channelName, normalizedOptions);
+  if (!channel) {
+    return null;
+  }
+  for (const key of Object.keys(patch)) {
+    const path = `channels.${channelName}.${key}`;
+    if (isSensitivePath(path)) {
+      config.secrets.refs = clearSecretRef(config.secrets.refs, path);
+    }
+  }
+  const mergedChannel = { ...channel, ...patch };
+  const mergedPluginConfig = mergeProjectedPluginChannelConfig(config, channelName, mergedChannel, normalizedOptions);
+  if (mergedPluginConfig) {
+    const next = ConfigSchema.parse(mergedPluginConfig);
+    saveConfig(next, configPath);
+    return sanitizePublicConfigValue(
+      getProjectedChannelConfig(next, channelName, normalizedOptions) ?? {},
+      `channels.${channelName}`,
+      buildUiHints(next, normalizedOptions)
+    );
+  }
+
+  (config.channels as Record<string, Record<string, unknown>>)[channelName] = mergedChannel;
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return sanitizePublicConfigValue(
+    getProjectedChannelConfig(next, channelName, normalizedOptions) ?? {},
+    `channels.${channelName}`,
+    buildUiHints(next, normalizedOptions)
+  );
+}
+
+type RuntimeAgentDefaultsPatch = NonNullable<NonNullable<RuntimeConfigUpdate["agents"]>["defaults"]>;
+
+function applyRuntimeAgentDefaultsPatch(defaults: Config["agents"]["defaults"], defaultsPatch: RuntimeAgentDefaultsPatch | undefined): Config["agents"]["defaults"] {
+  if (!defaultsPatch) return defaults;
+  let next = defaults;
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "contextTokens")) {
+    const nextContextTokens = defaultsPatch.contextTokens;
+    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) next = { ...next, contextTokens: Math.max(1000, Math.trunc(nextContextTokens)) };
+  }
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engine")) next = { ...next, engine: normalizeOptionalString(defaultsPatch.engine) ?? "native" };
+  if (Object.prototype.hasOwnProperty.call(defaultsPatch, "engineConfig")) {
+    const nextEngineConfig = defaultsPatch.engineConfig;
+    if (nextEngineConfig && typeof nextEngineConfig === "object" && !Array.isArray(nextEngineConfig)) next = { ...next, engineConfig: { ...nextEngineConfig } };
+  }
+  return next;
+}
+
+export function updateRuntime(configPath: string, patch: RuntimeConfigUpdate): Pick<ConfigView, "companion" | "agents" | "bindings" | "session"> {
+  const config = loadConfigOrDefault(configPath);
+  if (patch.companion && Object.prototype.hasOwnProperty.call(patch.companion, "enabled")) config.companion.enabled = Boolean(patch.companion.enabled);
+  config.agents.defaults = applyRuntimeAgentDefaultsPatch(config.agents.defaults, patch.agents?.defaults);
+  if (patch.agents && Object.prototype.hasOwnProperty.call(patch.agents, "list")) {
+    config.agents.list = (patch.agents.list ?? []).map((entry) => {
+      const normalizedEngine = normalizeOptionalString(entry.engine);
+      const hasEngineConfig =
+        entry.engineConfig &&
+        typeof entry.engineConfig === "object" &&
+        !Array.isArray(entry.engineConfig);
+      return {
+        ...entry,
+        default: Boolean(entry.default),
+        ...(normalizedEngine ? { engine: normalizedEngine } : {}),
+        ...(hasEngineConfig ? { engineConfig: { ...entry.engineConfig } } : {})
+      };
+    });
+  }
+
+  if (patch.agents?.runtimes && Object.prototype.hasOwnProperty.call(patch.agents.runtimes, "entries")) {
+    config.agents.runtimes.entries = normalizeRuntimeEntries(
+      patch.agents.runtimes.entries as Record<string, unknown> | null | undefined,
+    );
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "bindings")) {
+    config.bindings = patch.bindings ?? [];
+  }
+
+  if (patch.session) {
+    config.session = {
+      ...config.session,
+      ...patch.session
+    };
+  }
+
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  const view = buildConfigView(next);
+  return {
+    companion: view.companion,
+    agents: view.agents,
+    bindings: view.bindings ?? [],
+    session: view.session ?? {}
+  };
+}
+
+export function updateSecrets(
+  configPath: string,
+  patch: SecretsConfigUpdate
+): SecretsView {
+  const config = loadConfigOrDefault(configPath);
+
+  if (Object.prototype.hasOwnProperty.call(patch, "enabled")) {
+    config.secrets.enabled = Boolean(patch.enabled);
+  }
+
+  if (patch.defaults) {
+    const nextDefaults = { ...config.secrets.defaults };
+    for (const source of ["env", "file", "exec"] as const) {
+      if (!Object.prototype.hasOwnProperty.call(patch.defaults, source)) {
+        continue;
+      }
+      const value = patch.defaults[source];
+      if (typeof value === "string" && value.trim()) {
+        nextDefaults[source] = value.trim();
+      } else {
+        delete nextDefaults[source];
+      }
+    }
+    config.secrets.defaults = nextDefaults;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "providers")) {
+    config.secrets.providers = (patch.providers ?? {}) as Config["secrets"]["providers"];
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "refs")) {
+    config.secrets.refs = (patch.refs ?? {}) as Config["secrets"]["refs"];
+  }
+
+  const next = ConfigSchema.parse(config);
+  saveConfig(next, configPath);
+  return {
+    enabled: next.secrets.enabled,
+    defaults: { ...next.secrets.defaults },
+    providers: { ...next.secrets.providers },
+    refs: { ...next.secrets.refs }
+  };
+}

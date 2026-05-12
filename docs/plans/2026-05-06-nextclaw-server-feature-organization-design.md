@@ -4,11 +4,11 @@
 
 ## 这份文档解决什么问题
 
-这份文档定义 `packages/nextclaw-server` 的长期目录组织方向。
+这份文档定义 `packages/nextclaw-server` 的目录组织 contract。
 
-当前 `packages/nextclaw-server/src/ui` 是历史结构。它承载了本地 HTTP server、router、controller、配置、会话、runtime control、marketplace、remote、auth 等多类能力，但目录名 `ui` 描述的是消费方，不是 server 自己拥有的语义能力。
+此前 `packages/nextclaw-server/src/ui` 是历史结构。它承载了本地 HTTP server、router、controller、配置、会话、runtime control、marketplace、remote、auth 等多类能力，但目录名 `ui` 描述的是消费方，不是 server 自己拥有的语义能力。
 
-后续新增能力不应继续塞进 `src/ui`，也不应因为某个上层产品形态直接新增 `src/companion`、`src/desktop` 这类消费方目录。Server 应该提供通用、原子化、可复用的领域能力，上层 Desktop、Companion、Web UI、Client SDK 或未来远程客户端按需消费。
+当前 server 已迁移为 `app-l2`：`src/app` 承载 server/router 装配，`src/features` 承载 server 拥有的原子能力域，`src/shared` 只承载跨 feature 稳定复用的工具与类型。后续新增能力不得恢复 `src/ui`，也不应因为某个上层产品形态直接新增 `src/companion`、`src/desktop` 这类消费方目录。Server 应该提供通用、原子化、可复用的领域能力，上层 Desktop、Companion、Web UI、Client SDK 或未来远程客户端按需消费。
 
 ## 目标
 
@@ -87,68 +87,87 @@ readers/
 
 ## 目标结构
 
-长期目标结构：
+当前目标结构：
 
 ```text
 packages/nextclaw-server/src/
+  index.ts
+
   app/
     server.ts
     router.ts
-    route-registry.service.ts
+    controllers/
+    routes/
+    types/
 
   features/
     sessions/
+      index.ts
       controllers/
         sessions.controller.ts
-      services/
-        session-query.service.ts
-        session-action.service.ts
-        session-realtime.service.ts
       types/
-        session-api.types.ts
+        chat-session-type.types.ts
       utils/
+      services/
 
     agents/
+      index.ts
       controllers/
-      services/
+      stores/
       types/
 
     config/
+      index.ts
       controllers/
-      services/
+      stores/
+      providers/
       types/
+      utils/
 
     marketplace/
+      index.ts
       controllers/
+      configs/
+      routes/
       services/
       types/
       utils/
 
     remote-access/
+      index.ts
       controllers/
-      services/
       types/
 
     auth/
-      controllers/
-      services/
-      types/
-
-    attachments/
-      controllers/
-      services/
-      types/
-
-    server-path/
+      index.ts
       controllers/
       services/
       types/
       utils/
 
-    runtime-control/
+    attachments/
+      index.ts
       controllers/
-      services/
       types/
+
+    server-path/
+      index.ts
+      controllers/
+      types/
+      utils/
+
+    runtime-control/
+      index.ts
+      controllers/
+      types/
+
+    runtime-update/
+      index.ts
+      controllers/
+
+    cron/
+      index.ts
+      controllers/
 
   shared/
     types/
@@ -218,15 +237,15 @@ Server 侧 owner 不应跟随上层宿主或 SDK 命名。
 
 ## 迁移策略
 
-不要一次性做全量大搬家。Server 目录治理应按风险和新增能力顺序渐进迁移：
+`src/ui` 历史结构已经完成一次性迁移，后续不再保留新旧结构并行期。
 
-1. 新增能力不再落到 `src/ui` 顶层
-2. 先建立 `src/app` 与关键 `src/features/*` 结构
-3. 优先迁移会被 Client SDK 消费的 sessions、agents、realtime 相关 owner
-4. 保持旧 `src/ui` API 兼容，必要时由旧 router 转发到新 feature owner
-5. 后续按热点逐步迁移 config、marketplace、remote-access、auth、attachments、server-path
+后续治理重点不是恢复兼容目录，而是继续在新 feature root 内偿还更细的 owner 债务：
 
-迁移期间允许存在旧结构和新结构并行，但新能力必须落在新结构，不能继续扩大 `src/ui` 历史豁免区。
+1. `features/config/stores/server-config.store.ts` 仍是热点，应继续按 provider、channel、search、runtime、secrets 拆分。
+2. `features/marketplace` 已按 controller / route / utils / configs / types 分层，后续新增 marketplace 能力必须落入对应角色目录。
+3. `features/sessions` 是 Client SDK 和统一入口关键链路，后续 session query / action / realtime owner 应继续在该 feature 内收敛。
+4. `src/app` 只保留 server/router 装配、入口测试和 app 级类型，不承载领域业务逻辑。
+5. 若要新增 server 能力，先判断是否属于现有 feature；只有出现稳定新能力域时才新增 `features/<feature>/index.ts`。
 
 ## 与 Companion 的关系
 
