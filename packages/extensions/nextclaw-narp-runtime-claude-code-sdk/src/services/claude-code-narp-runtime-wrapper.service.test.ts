@@ -134,4 +134,43 @@ describe("ClaudeCodeNarpRuntimeWrapper", () => {
       },
     ]);
   });
+
+  it("keeps MiniMax ChatCompletions routes on the original OpenAI-compatible base for the gateway", () => {
+    vi.stubEnv("ANTHROPIC_AUTH_TOKEN", "");
+    vi.stubEnv("CLAUDE_CODE_OAUTH_TOKEN", "");
+
+    const capturedConfigs: unknown[] = [];
+    const wrapper = new ClaudeCodeNarpRuntimeWrapper((config) => {
+      capturedConfigs.push(config);
+      return new FakeRuntime();
+    });
+
+    wrapper.createClaudeCodeRuntime({
+      sessionId: "session-1",
+      cwd: "/tmp/workspace",
+      modelId: "minimax/MiniMax-M2.7",
+      promptMeta: {
+        providerRoute: {
+          model: "MiniMax-M2.7",
+          apiKey: "minimax-key",
+          apiBase: "https://api.minimaxi.com/v1",
+          headers: { "x-nextclaw-narp-api-mode": "chat_completions" },
+        },
+        sessionMetadata: {},
+      },
+    });
+
+    expect(capturedConfigs).toMatchObject([
+      {
+        apiKey: "minimax-key",
+        authToken: "minimax-key",
+        apiBase: "https://api.minimaxi.com/v1",
+        model: "MiniMax-M2.7",
+        anthropicGateway: {
+          upstreamApiBase: "https://api.minimaxi.com/v1",
+          upstreamApiKey: "minimax-key",
+        },
+      },
+    ]);
+  });
 });

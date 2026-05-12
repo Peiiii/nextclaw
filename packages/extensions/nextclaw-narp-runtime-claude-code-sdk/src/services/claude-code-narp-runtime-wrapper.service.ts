@@ -43,12 +43,12 @@ export class ClaudeCodeNarpRuntimeWrapper {
       readString(process.env.NEXTCLAW_API_KEY) ??
       readString(process.env.ANTHROPIC_API_KEY) ??
       "";
-    const routeApiBase = readString(providerRoute?.apiBase);
     const apiBase = resolveClaudeCompatibleApiBase(
-      routeApiBase ??
+      readString(providerRoute?.apiBase) ??
         readString(process.env.NEXTCLAW_API_BASE) ??
         readString(process.env.ANTHROPIC_BASE_URL) ??
         readString(process.env.ANTHROPIC_API_URL),
+      shouldUseAnthropicGateway(providerRoute?.headers),
     );
     const authToken =
       readString(process.env.ANTHROPIC_AUTH_TOKEN) ??
@@ -106,12 +106,12 @@ function normalizeApiBase(value: string | undefined): string | undefined {
   return readString(value)?.replace(/\/+$/, "");
 }
 
-function resolveClaudeCompatibleApiBase(value: string | undefined): string | undefined {
+function resolveClaudeCompatibleApiBase(
+  value: string | undefined,
+  shouldPreserveOpenAiBase = false,
+): string | undefined {
   const apiBase = normalizeApiBase(value);
-  if (!apiBase) {
-    return undefined;
-  }
-  if (!isMiniMaxApiBase(apiBase)) {
+  if (!apiBase || shouldPreserveOpenAiBase || !isMiniMaxApiBase(apiBase)) {
     return apiBase;
   }
   if (apiBase.endsWith("/anthropic")) {
