@@ -10,7 +10,7 @@ import {
   normalizeString,
   toLegacyMessages,
 } from "@kernel/utils/ncp-message-bridge.utils.js";
-import { toNcpMessages } from "@kernel/agent-runtime/session/nextclaw-agent-session-message-adapter.utils.js";
+import { toNcpMessages } from "@kernel/utils/ncp-session-message-adapter.utils.js";
 import {
   type ContextCompactionCheckpoint,
   type ContextCompactionPlan,

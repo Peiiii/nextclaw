@@ -36,9 +36,7 @@ export type UiPluginHost = {
   getUiMetadata: () => PluginUiMetadata[];
 };
 
-export type UiNcpSessionHost = {
-  sessionService: UiNcpSessionService;
-};
+export type UiNcpSessionHost = UiNcpSessionService;
 
 export type UiCronHost = {
   listJobs: (includeDisabled?: boolean) => CronJobEntry[];

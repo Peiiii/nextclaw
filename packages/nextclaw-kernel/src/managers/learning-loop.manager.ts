@@ -2,12 +2,12 @@ import {
   type Session,
   type SessionManager,
   type SessionMessage,
+  type SessionRequestToolResult,
+  type SpawnSessionAndRequestParams,
 } from "@nextclaw/core";
 import type { EventBus } from "@nextclaw/shared";
-import type { SpawnSessionAndRequestParams } from "@kernel/agent-runtime/session-request/session-request-broker.types.js";
-import type { SessionRequestToolResult } from "@kernel/agent-runtime/session-request/session-request.types.js";
-import { agentRunFinishedLifecycleEventKey } from "@kernel/agent-runtime/shared/lifecycle-events/ncp-lifecycle-event.config.js";
-import type { AgentRunFinishedLifecycleEvent } from "@kernel/agent-runtime/shared/lifecycle-events/ncp-lifecycle-event.types.js";
+import { agentRunFinishedLifecycleEventKey } from "@kernel/configs/ncp-lifecycle-event.config.js";
+import type { AgentRunFinishedLifecycleEvent } from "@kernel/types/ncp-lifecycle-event.types.js";
 import {
   DEFAULT_LEARNING_LOOP_TOOL_CALL_THRESHOLD,
   LEARNING_LOOP_DISABLED_METADATA_KEY,

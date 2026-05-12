@@ -14,7 +14,7 @@ export * from "./features/tools/cron-tool.service.js";
 export * from "./features/tools/filesystem.js";
 export * from "./features/tools/message.js";
 export * from "./features/tools/registry.js";
-export * from "./features/tools/sessions.js";
+export * from "./features/tools/sessions.tools.js";
 export * from "./features/tools/shell.js";
 export * from "./features/tools/spawn.service.js";
 export * from "./features/tools/subagents.service.js";

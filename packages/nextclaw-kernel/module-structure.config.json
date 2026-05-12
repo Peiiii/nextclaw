@@ -8,6 +8,7 @@
     "app",
     "configs",
     "managers",
+    "services",
     "stores",
     "tools",
     "types",

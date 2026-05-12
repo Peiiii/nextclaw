@@ -263,7 +263,7 @@ function createTestApp(): { app: ReturnType<typeof createUiRouter>; agent: StubN
     app: createUiRouter({
       configPath,
       appEventBus: new EventBus(),
-      sessions: { sessionService: agent },
+      sessions: agent,
       ncpAgent: {
         agentClientEndpoint: agent,
         streamProvider,
@@ -408,7 +408,7 @@ it("keeps session routes readable before the runtime agent is mounted", async ()
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: { sessionService }
+    sessions: sessionService
   });
 
   const sessionsResponse = await app.request("http://localhost/api/ncp/sessions");
@@ -650,7 +650,7 @@ it("exposes session-scoped skills for persisted and draft sessions", async () =>
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: { sessionService: agent },
+    sessions: agent,
     ncpAgent: {
       agentClientEndpoint: agent,
       streamProvider: {
@@ -724,7 +724,7 @@ it("exposes draft session skills without requiring an empty projectRoot override
   const app = createUiRouter({
     configPath,
     appEventBus: new EventBus(),
-    sessions: { sessionService: agent },
+    sessions: agent,
     ncpAgent: {
       agentClientEndpoint: agent,
       streamProvider: {

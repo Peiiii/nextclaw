@@ -5,7 +5,7 @@ import type { ExtensionRegistry } from "@core/features/extensions/index.js";
 import type { SessionManager } from "@core/features/session/index.js";
 import { sanitizeOutboundAssistantContent } from "@core/shared/lib/core-utils/index.js";
 import type { BaseChannel } from "@core/features/channels/services/base.js";
-import { ExtensionChannelAdapter } from "@core/features/channels/services/extension_channel.js";
+import { ExtensionChannelAdapter } from "@core/features/channels/services/extension-channel.service.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};

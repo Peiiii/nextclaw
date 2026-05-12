@@ -1,5 +1,14 @@
 export { EventBus } from "./services/event-bus.service.js";
 export { Ingress } from "./services/ingress.service.js";
+export {
+  DisposableOwner,
+  DisposableStore,
+  toDisposable,
+} from "./services/disposable.service.js";
+export type {
+  Cleanup,
+  Disposable,
+} from "./services/disposable.service.js";
 export type {
   IngressContext,
   IngressEnvelope,

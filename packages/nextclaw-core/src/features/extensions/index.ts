@@ -1,2 +1,2 @@
-export * from "./services/tool-adapter.js";
-export * from "./types/types.js";
+export * from "./services/tool-adapter.service.js";
+export * from "./types/extension.types.js";

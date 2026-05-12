@@ -77,9 +77,6 @@ function createGateway(params: {
       },
     },
     sessions: {
-      deferredSessionService: {
-        activate: vi.fn(() => order.push("activate-session-service")),
-      },
       publishSessionChange: vi.fn(),
     },
     messageBus: {},
@@ -103,7 +100,6 @@ function createGateway(params: {
     liveAgentRuntime: null,
   } as unknown as NextclawGatewayRuntime;
   gateway.activateAgentRuntime = vi.fn((agent) => {
-    gateway.sessions.deferredSessionService.activate(agent.sessionApi);
     gateway.uiStartup.deferredNcpAgent.activate(agent);
     gateway.bootstrapStatus.markNcpAgentReady();
   });

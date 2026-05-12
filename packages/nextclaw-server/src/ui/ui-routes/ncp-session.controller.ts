@@ -123,7 +123,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessions = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -139,7 +139,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSession = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -153,7 +153,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly listSessionMessages = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -178,7 +178,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly getSessionSkills = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -213,7 +213,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly patchSession = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }
@@ -259,7 +259,7 @@ export class NcpSessionRoutesController {
   };
 
   readonly deleteSession = async (c: Context) => {
-    const sessionApi = this.options.sessions?.sessionService;
+    const sessionApi = this.options.sessions;
     if (!sessionApi) {
       return c.json(err("NOT_AVAILABLE", "ncp session api unavailable"), 503);
     }

@@ -8,6 +8,7 @@ export * from "../features/extensions/index.js";
 export * from "../features/llm-providers/index.js";
 export * from "../features/runtime-context/index.js";
 export * from "../features/session/index.js";
+export * from "../features/session-request/index.js";
 export * from "../features/session-search/index.js";
 export * from "../shared/lib/core-utils/index.js";
 export * from "../shared/lib/logging/index.js";

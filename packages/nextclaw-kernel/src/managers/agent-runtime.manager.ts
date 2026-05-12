@@ -3,9 +3,10 @@ import {
   type CronService,
   type GatewayController,
   getDataDir,
-  getSessionsPath,
   type MessageBus,
   type SessionManager,
+  type SessionRequestManager,
+  type SessionSearchManager,
 } from "@nextclaw/core";
 import { eventKeys, type EventBus } from "@nextclaw/shared";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
@@ -16,23 +17,20 @@ import {
   type NcpAgentRunInput,
   type NcpAgentRuntime,
   type NcpMessage,
+  type NcpTool,
   readAssistantReasoningNormalizationMode,
   readAssistantReasoningNormalizationModeFromMetadata,
   writeAssistantReasoningNormalizationModeToMetadata,
   type NcpAssistantReasoningNormalizationMode,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { DefaultNcpAgentBackend, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
+import { DefaultNcpAgentBackend, type AgentSessionStore, type RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { join } from "node:path";
 import type { ExtensionManager } from "@kernel/managers/extension.manager.js";
 import { createAssetTools } from "@kernel/agent-runtime/features/runtime/ncp-asset-tools.utils.js";
 import { NextclawNcpContextBuilder } from "@kernel/agent-runtime/nextclaw-ncp-context-builder.service.js";
-import { NextclawAgentSessionStore } from "@kernel/agent-runtime/nextclaw-agent-session.store.js";
 import { NextclawNcpToolRegistry } from "@kernel/agent-runtime/nextclaw-ncp-tool-registry.service.js";
 import { ProviderManagerNcpLLMApi } from "@kernel/agent-runtime/provider/provider-manager-ncp-llm-api.service.js";
-import { SessionCreationService } from "@kernel/agent-runtime/session-request/session-creation.service.js";
-import { SessionRequestBroker } from "@kernel/agent-runtime/session-request/session-request-broker.service.js";
-import { SessionRequestDeliveryService } from "@kernel/agent-runtime/session-request/session-request-delivery.service.js";
 import { AgentRuntimeRegistry } from "@kernel/agent-runtime/agent-runtime-registry.service.js";
 import {
   createAgentRuntimeHandle,
@@ -45,20 +43,24 @@ import { resolveAgentRuntimeEntries } from "@kernel/agent-runtime/agent-runtime-
 import { ContextCompactionPreflightService } from "@kernel/agent-runtime/context/context-compaction-preflight.service.js";
 import type { ContextWindowSnapshot } from "@kernel/agent-runtime/context/context-window-snapshot.utils.js";
 import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/agent-runtime/mcp-runtime-support.service.js";
-import { NcpLifecycleEventBridge } from "@kernel/agent-runtime/shared/lifecycle-events/ncp-lifecycle-event-bridge.service.js";
-import { SessionSearchManager } from "@kernel/managers/session-search.manager.js";
+import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 
 export type { AgentRuntimeHandle } from "@kernel/agent-runtime/features/runtime/agent-runtime-handle.utils.js";
 
 export type AgentRuntimeManagerOptions = {
   bus: MessageBus;
   providerManager: LlmProviderRuntime;
-  sessionManager: SessionManager;
+  sessions: SessionManager;
+  sessionRequests: SessionRequestManager;
+  sessionSearch: SessionSearchManager;
+  ncpAgentSessionStore: AgentSessionStore;
   cronService?: CronService | null;
   configManager: { loadConfig: () => Config };
   extensions: ExtensionManager;
   eventBus: EventBus;
+  handleNcpEvent: (event: NcpEndpointEvent) => void;
   llmUsage: LlmUsageManager;
+  onSessionUpdated: (sessionKey: string) => void;
 };
 
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
@@ -99,14 +101,21 @@ function resolveNativeReasoningNormalizationMode(params: {
   );
 }
 
+function createSessionSearchTools(params: {
+  currentSessionId: string;
+  sessionSearch: SessionSearchManager;
+}): NcpTool[] {
+  const { currentSessionId, sessionSearch } = params;
+  return sessionSearch.isReady()
+    ? [new SessionSearchTool({ search: sessionSearch.search }, { currentSessionId })]
+    : [];
+}
+
 function createNativeRuntimeFactory(
   params: AgentRuntimeManagerOptions,
   resolveGatewayController: () => GatewayController | undefined,
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter,
   assetStore: LocalAssetStore,
-  sessionCreationService: SessionCreationService,
-  sessionRequestBroker: SessionRequestBroker,
-  sessionSearchManager: SessionSearchManager,
 ): RuntimeFactory {
   const observedProviderManager = params.llmUsage.observeProviderManager(
     params.providerManager,
@@ -136,13 +145,13 @@ function createNativeRuntimeFactory(
     const toolRegistry = new NextclawNcpToolRegistry({
       bus: params.bus,
       providerManager: observedProviderManager,
-      sessionManager: params.sessionManager,
+      sessionManager: params.sessions,
       cronService: params.cronService,
       gatewayController: resolveGatewayController(),
       getConfig: params.configManager.loadConfig,
       getExtensionRegistry: params.extensions.getExtensionRegistry,
-      sessionCreationService,
-      sessionRequestBroker,
+      onSessionUpdated: params.onSessionUpdated,
+      sessionRequestManager: params.sessionRequests,
       getAdditionalTools: (context) => [
         ...createAssetTools({
           assetStore,
@@ -150,14 +159,15 @@ function createNativeRuntimeFactory(
         ...mcpToolRegistryAdapter.listToolsForRun({
           agentId: context.agentId,
         }),
-        ...sessionSearchManager.createTools({
+        ...createSessionSearchTools({
+          sessionSearch: params.sessionSearch,
           currentSessionId: context.sessionId,
         }),
       ],
     });
     const runtime = new DefaultNcpAgentRuntime({
       contextBuilder: new NextclawNcpContextBuilder({
-        sessionManager: params.sessionManager,
+        sessionManager: params.sessions,
         toolRegistry,
         getConfig: params.configManager.loadConfig,
         resolveMessageToolHints: ({ channel, accountId }) =>
@@ -176,7 +186,7 @@ function createNativeRuntimeFactory(
     const contextCompactionPreflight = new ContextCompactionPreflightService({
       getConfig: params.configManager.loadConfig,
       providerManager: observedProviderManager,
-      sessionManager: params.sessionManager,
+      sessionManager: params.sessions,
     });
     return {
       run: async function* (input, options) {
@@ -189,10 +199,7 @@ function createNativeRuntimeFactory(
         });
         if (beginResult) {
           setSessionMetadata(beginResult.metadata);
-          params.eventBus.emit(eventKeys.sessionUpdated, { sessionKey: input.sessionId }, {
-            emittedAt: new Date().toISOString(),
-            source: "backend",
-          });
+          params.onSessionUpdated(input.sessionId);
           yield* publishPreflightResult({
             input,
             result: beginResult,
@@ -201,10 +208,7 @@ function createNativeRuntimeFactory(
           if (beginResult.pendingCompaction) {
             const finishResult = await contextCompactionPreflight.finish(beginResult.pendingCompaction);
             setSessionMetadata(finishResult.metadata);
-            params.eventBus.emit(eventKeys.sessionUpdated, { sessionKey: input.sessionId }, {
-              emittedAt: new Date().toISOString(),
-              source: "backend",
-            });
+            params.onSessionUpdated(input.sessionId);
             yield* publishPreflightResult({
               input,
               result: finishResult,
@@ -259,15 +263,15 @@ function createResolveOpenAiToolsForRuntime(params: {
   bus: MessageBus;
   providerManager: LlmProviderRuntime;
   sessionManager: SessionManager;
+  sessionRequests: SessionRequestManager;
+  sessionSearch: SessionSearchManager;
   cronService?: CronService | null;
   gatewayController?: GatewayController;
   getConfig: () => Config;
   extensions: ExtensionManager;
   assetStore: LocalAssetStore;
   toolRegistryAdapter: McpNcpToolRegistryAdapter;
-  sessionCreationService: SessionCreationService;
-  sessionRequestBroker: SessionRequestBroker;
-  sessionSearchManager: SessionSearchManager;
+  onSessionUpdated: (sessionKey: string) => void;
 }) {
   const {
     assetStore,
@@ -276,11 +280,11 @@ function createResolveOpenAiToolsForRuntime(params: {
     extensions,
     gatewayController,
     getConfig,
+    onSessionUpdated,
     providerManager,
-    sessionCreationService,
     sessionManager,
-    sessionRequestBroker,
-    sessionSearchManager,
+    sessionRequests,
+    sessionSearch,
     toolRegistryAdapter,
   } = params;
   const toolRegistry = new NextclawNcpToolRegistry({
@@ -291,8 +295,8 @@ function createResolveOpenAiToolsForRuntime(params: {
     gatewayController,
     getConfig,
     getExtensionRegistry: extensions.getExtensionRegistry,
-    sessionCreationService,
-    sessionRequestBroker,
+    onSessionUpdated,
+    sessionRequestManager: sessionRequests,
     getAdditionalTools: (context) => [
       ...createAssetTools({
         assetStore,
@@ -300,7 +304,8 @@ function createResolveOpenAiToolsForRuntime(params: {
       ...toolRegistryAdapter.listToolsForRun({
         agentId: context.agentId,
       }),
-      ...sessionSearchManager.createTools({
+      ...createSessionSearchTools({
+        sessionSearch,
         currentSessionId: context.sessionId,
       }),
     ],
@@ -322,16 +327,11 @@ function createResolveOpenAiToolsForRuntime(params: {
 }
 
 export class AgentRuntimeManager {
-  private readonly sessionSearchManager: SessionSearchManager;
-  private readonly sessionStore: NextclawAgentSessionStore;
   private readonly runtimeRegistry = new AgentRuntimeRegistry();
   private readonly mcpRuntimeSupport: McpRuntimeSupport;
-  private readonly lifecycleEventBridge: NcpLifecycleEventBridge;
   private readonly assetStore = new LocalAssetStore({
     rootDir: join(getDataDir(), "assets"),
   });
-  private readonly sessionCreationService: SessionCreationService;
-  readonly sessionRequestBroker: SessionRequestBroker;
   private readonly pluginRuntimeRegistrationController: PluginRuntimeRegistrationController;
   private readonly refreshConfiguredRuntimeEntries = () => {
     this.runtimeRegistry.applyEntries(
@@ -352,31 +352,7 @@ export class AgentRuntimeManager {
   private disposed = false;
 
   constructor(private readonly params: AgentRuntimeManagerOptions) {
-    this.sessionSearchManager = new SessionSearchManager({
-      onSessionUpdated: this.publishSessionUpdated,
-      databasePath: join(getDataDir(), "session-search.db"),
-      sessionsDir: getSessionsPath(),
-    });
-    this.sessionStore = new NextclawAgentSessionStore(params.sessionManager, {
-      onSessionUpdated: this.sessionSearchManager.handleSessionUpdated,
-    });
     this.mcpRuntimeSupport = new McpRuntimeSupportOwner(params.configManager.loadConfig);
-    this.lifecycleEventBridge = new NcpLifecycleEventBridge(
-      params.sessionManager,
-      params.eventBus,
-    );
-    this.sessionCreationService = new SessionCreationService(
-      params.sessionManager,
-      params.configManager.loadConfig,
-      this.sessionSearchManager.handleSessionUpdated,
-    );
-    this.sessionRequestBroker = new SessionRequestBroker(
-      params.sessionManager,
-      this.sessionCreationService,
-      new SessionRequestDeliveryService(() => this.backend),
-      () => this.backend,
-      this.sessionSearchManager.handleSessionUpdated,
-    );
     this.pluginRuntimeRegistrationController = new PluginRuntimeRegistrationController(
       this.runtimeRegistry,
       params.extensions,
@@ -385,6 +361,10 @@ export class AgentRuntimeManager {
 
   get currentHandle(): AgentRuntimeHandle | null {
     return this.handle;
+  }
+
+  get currentBackend(): DefaultNcpAgentBackend | null {
+    return this.backend;
   }
 
   connectGatewayController = (gatewayController: GatewayController): void => {
@@ -400,12 +380,12 @@ export class AgentRuntimeManager {
     this.registerCoreRuntimes();
     const contextWindowPreview = new ContextCompactionPreflightService({
       getConfig: this.params.configManager.loadConfig,
-      sessionManager: this.params.sessionManager,
+      sessionManager: this.params.sessions,
     });
 
     this.backend = new DefaultNcpAgentBackend({
       endpointId: "nextclaw-ui-agent",
-      sessionStore: this.sessionStore,
+      sessionStore: this.params.ncpAgentSessionStore,
       onSessionRunStatusChanged: this.publishSessionRunStatus,
       resolveSessionContextWindow: ({ messages, metadata, sessionId }) =>
         contextWindowPreview.preview({
@@ -423,16 +403,16 @@ export class AgentRuntimeManager {
           resolveTools: createResolveOpenAiToolsForRuntime({
             bus: this.params.bus,
             providerManager: this.params.providerManager,
-            sessionManager: this.params.sessionManager,
+            sessionManager: this.params.sessions,
+            sessionRequests: this.params.sessionRequests,
+            sessionSearch: this.params.sessionSearch,
             cronService: this.params.cronService,
             gatewayController: this.gatewayController,
             getConfig: this.params.configManager.loadConfig,
             extensions: this.params.extensions,
             assetStore: this.assetStore,
             toolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
-            sessionCreationService: this.sessionCreationService,
-            sessionRequestBroker: this.sessionRequestBroker,
-            sessionSearchManager: this.sessionSearchManager,
+            onSessionUpdated: this.params.onSessionUpdated,
           }),
         });
       },
@@ -472,7 +452,6 @@ export class AgentRuntimeManager {
     }
     this.pluginRuntimeRegistrationController.dispose();
     await this.backend?.stop();
-    await this.sessionSearchManager.dispose();
     await this.mcpRuntimeSupport.dispose();
   };
 
@@ -489,9 +468,6 @@ export class AgentRuntimeManager {
         () => this.gatewayController,
         this.mcpRuntimeSupport.toolRegistryAdapter,
         this.assetStore,
-        this.sessionCreationService,
-        this.sessionRequestBroker,
-        this.sessionSearchManager,
       ),
     });
     const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(
@@ -503,21 +479,12 @@ export class AgentRuntimeManager {
   };
 
   private runDerivedCapabilityWarmup = async (): Promise<void> => {
-    await this.sessionSearchManager.initialize();
     const mcpWarmResults = await this.mcpRuntimeSupport.prewarmEnabledServers();
     for (const result of mcpWarmResults) {
       if (!result.ok) {
         console.warn(`[mcp] Failed to warm ${result.name}: ${result.error}`);
       }
     }
-  };
-
-  private publishSessionUpdated = (sessionKey: string): void => {
-    this.lifecycleEventBridge.publishSessionUpdated(sessionKey);
-    this.params.eventBus.emit(eventKeys.sessionUpdated, { sessionKey }, {
-      emittedAt: new Date().toISOString(),
-      source: "backend",
-    });
   };
 
   private publishSessionRunStatus = (payload: {
@@ -535,7 +502,7 @@ export class AgentRuntimeManager {
       emittedAt: new Date().toISOString(),
       source: "backend",
     });
-    this.lifecycleEventBridge.handleEndpointEvent(event);
+    this.params.handleNcpEvent(event);
   };
 
   private readonly assertNotDisposed = (): void => {

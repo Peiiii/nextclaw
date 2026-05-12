@@ -12,7 +12,14 @@
 - 删除 service 内旧的 `commands/ncp`、`commands/learning-loop`、telemetry/store 副本，避免 runtime 职责双 owner。
 - 删除 kernel 内重复的 `events/` 转出口与 core `typed-event-bus`，事件契约直接来自 `@nextclaw/shared`。
 - 保留 `agentRuntimeManager` 完整命名，删除旧 `createAgentRuntime` / `createUiNcpAgent` 风格入口。
+- 将 session 主题收敛为 core 领域 owner + kernel 装配：`@nextclaw/core` 持有 `SessionManager`、`SessionRequestManager`、`SessionSearchManager` 与 `SessionStore`，kernel 只创建这些 manager 并连接 NCP dispatcher / event bridge / session store。
+- `AgentRuntimeManager` 不再实例化 `NextclawAgentSessionStore`、`SessionSearchManager`、`SessionCreationService`、`SessionRequestBroker`、`SessionRequestDeliveryService`、`NcpLifecycleEventBridge`，只连接自身拥有的 NCP backend 动态事实。
+- 删除 kernel 旧 `SessionManager` 聚合壳、`SessionCreationService`、`SessionRequestDeliveryService` 与旧 session run 类型；`SessionManager` 只接收 `sessionsDir` 并内部创建 `SessionStore`。
+- 删除 agent-runtime 下 `session/`、`session-request/`、`shared/lifecycle-events/` 假归属目录：store 进入 `stores/`，agent tools 进入 `tools/`，无状态转换进入 `utils/`，类型进入 `types/`，流程服务进入新增的 `services/` 角色目录。
+- 删除未使用的 child-session promotion/alias API，避免 session manager 收口后继续保留无调用的平行能力。
 - 将 unused import 清理接入 ESLint autofix：根 ESLint 现在使用 `eslint-plugin-unused-imports`，`unused-imports/no-unused-imports` 负责自动删除陈旧 import；验证 workflow 明确 `ts(6133)` 类问题先跑 ESLint autofix，再跑 unused 诊断验证。
+- 删除 service 侧 `UiSessionService` / deferred session service / realtime bridge 三段式链路，新增 kernel `NcpSessionApiService` 直接实现 `NcpSessionApi`，通过 kernel `SessionManager` 提供 UI session API 与实时 summary 发布，并由 `NextclawKernel.ncpSessionApi` 对外暴露。
+- `SessionManager.listSessions()` 不再暴露裸 `Record<string, unknown>`，core 现在导出 `SessionListRecord`，由 `SessionStore` 在磁盘 JSON 边界完成类型归一化。
 
 ## 测试/验证/验收方式
 
@@ -28,7 +35,17 @@
 - `pnpm --filter @nextclaw/service exec tsc -p tsconfig.json --noEmit --noUnusedLocals --noUnusedParameters false`（本次目标 `LlmProviderRuntime` 已不再报错；package-wide strict unused 仍被既有旧文件阻塞：`mochat.ts`、`memory-store.ts`、`manager.ts`、HTTP/STDIO runtime service、`plugin-capability-registration.ts`）
 - `pnpm --filter @nextclaw/service test -- src/cli/commands/usage/services/llm-usage-command.service.test.ts src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts src/shared/services/gateway/tests/nextclaw-app.service.test.ts src/shared/services/plugin/tests/service-plugin-runtime-bridge.service.test.ts src/shared/services/session/tests/service-deferred-ncp-agent.service.test.ts src/shared/services/session/tests/service-ncp-session-realtime-bridge.fire-and-forget.service.test.ts src/cli/commands/agent/agent-commands.test.ts`
 - `pnpm --filter @nextclaw/service test -- src/shared/services/gateway/tests/nextclaw-app.service.test.ts`
-- `pnpm dev start`（验证 backend、UI NCP agent、Vite frontend 启动成功；验证后已停止本次启动的 `18792/5174` 进程）
+- `pnpm exec eslint --fix packages/nextclaw-kernel/src/managers/agent-runtime.manager.ts packages/nextclaw-kernel/src/services/ui-session.service.ts`
+- `pnpm exec eslint packages/nextclaw-kernel/src/agent-runtime/context/context-compaction-preflight.service.ts packages/nextclaw-kernel/src/agent-runtime/nextclaw-ncp-tool-registry.service.ts packages/nextclaw-kernel/src/app/nextclaw-kernel.ts packages/nextclaw-kernel/src/configs/ncp-lifecycle-event.config.ts packages/nextclaw-kernel/src/index.ts packages/nextclaw-kernel/src/managers/agent-runtime.manager.ts packages/nextclaw-kernel/src/managers/learning-loop.manager.ts packages/nextclaw-kernel/src/managers/session.manager.ts packages/nextclaw-kernel/src/services/ncp-lifecycle-event-bridge.service.ts packages/nextclaw-kernel/src/services/session-creation.service.ts packages/nextclaw-kernel/src/services/session-request-broker.service.ts packages/nextclaw-kernel/src/services/session-request-delivery.service.ts packages/nextclaw-kernel/src/services/ui-session.service.ts packages/nextclaw-kernel/src/stores/ncp-agent-session.store.ts packages/nextclaw-kernel/src/tools/session-request.tools.ts packages/nextclaw-kernel/src/tools/session-spawn.tools.ts packages/nextclaw-kernel/src/utils/ncp-session-message-adapter.utils.ts packages/nextclaw-kernel/src/utils/ncp-session-metadata.utils.ts packages/nextclaw-kernel/src/utils/ncp-session-summary.utils.ts packages/nextclaw-kernel/src/utils/session-request-execution.utils.ts packages/nextclaw-kernel/src/utils/session-request-result.utils.ts packages/nextclaw-service/src/cli/commands/agent/cli-agent-runner.utils.ts packages/nextclaw-service/src/shared/services/gateway/nextclaw-gateway-runtime.service.ts packages/nextclaw-service/src/shared/services/session/service-ncp-session-realtime-bridge.service.ts packages/nextclaw-service/src/shared/services/session/tests/service-ncp-session-realtime-bridge.fire-and-forget.service.test.ts`
+- `pnpm --filter @nextclaw/service test -- src/shared/services/session/tests/service-ncp-session-realtime-bridge.fire-and-forget.service.test.ts --run`
+- `pnpm --filter @nextclaw/core exec vitest run src/features/agent/features/tools/sessions.tools.test.ts src/features/command-registry/services/registry.service.test.ts src/features/channels/managers/channel.manager.test.ts`
+- `pnpm --filter @nextclaw/service exec vitest run src/shared/services/session/tests/service-ncp-session-realtime-bridge.fire-and-forget.service.test.ts`
+- `pnpm -C packages/nextclaw-core tsc`
+- `pnpm -C packages/nextclaw-kernel tsc`
+- `pnpm -C packages/nextclaw-service tsc`
+- `pnpm -C packages/nextclaw-server tsc`
+- `pnpm -C packages/nextclaw-kernel exec vitest run src/services/ncp-session-api.service.test.ts`
+- `pnpm dev start`（默认端口已有旧实例占用，本次 fallback 到 `18793/5175`；验证 backend、UI NCP agent、Vite frontend 启动成功；验证后已停止本次启动进程）
 - `pnpm lint:new-code:governance`
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature`
@@ -43,6 +60,8 @@
 - 插件 runtime bridge、agent runtime list、session realtime bridge 仍应保持原有可用行为。
 - service 代码中不应再存在旧 NCP runtime 装配 owner。
 - `learning-loop` 不应再直接依赖 backend，也不应由 `AgentRuntimeManager` 持有。
+- `kernel.sessions` 应直接是 core `SessionManager`；session request/search 作为 kernel 顶层 sibling manager，由 kernel 统一装配和启动，不再挂 `records/requests/search` 子壳。
+- UI / service 的 session 列表、消息、更新、删除应通过 `kernel.ncpSessionApi` 进入 kernel 持有的 core `SessionManager`，不再切到 runtime `sessionApi`、deferred fallback、service manager 或 `{ sessionService }` 包装对象。
 
 ## 可维护性总结汇总
 
@@ -50,6 +69,8 @@
 - 总代码净增为 `-10307` 行，非测试代码净增为 `-258` 行，满足非功能改动门槛。
 - 正向减债动作：删除 + 职责收敛。删除 service 旧 runtime/learning-loop/telemetry 副本、core 重复 typed bus、kernel events 转出口，把生命周期与装配收敛到 kernel owner。
 - 仍需关注的后续拆分缝：`agentRuntimeManager` 与新迁入的 runtime 文件接近预算，后续如继续增长，应优先拆出更窄的子 owner。
+- Session manager core/kernel 边界 follow-up：maintainability guard 报告总代码 `+702 / -712 / 净增 -10`，非测试代码 `+681 / -692 / 净增 -11`；正向减债动作：删除 + 职责收敛。删除 kernel 旧聚合壳和 creation/delivery/run type 旧路径，将 session manager/request/search 沉淀到 core，kernel 仅负责装配与生命周期。
+- NCP session API follow-up：maintainability guard 报告总代码 `+1129 / -1083 / 净增 +46`，非测试代码 `+910 / -952 / 净增 -42`；正向减债动作：删除 UI session/deferred/realtime bridge 平行实现，去掉 service 侧 session manager 和 `{ sessionService }` 自代理包装，将 NCP session API owner 收敛到 kernel，并把 `listSessions()` 类型边界收紧到 core。
 
 ## NPM 包发布记录
 

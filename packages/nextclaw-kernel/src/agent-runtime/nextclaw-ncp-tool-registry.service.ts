@@ -22,15 +22,14 @@ import {
   type MessageBus,
   type SearchConfig,
   type SessionManager,
+  type SessionRequestManager,
 } from "@nextclaw/core";
 import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { isRecord, normalizeString } from "@kernel/utils/ncp-message-bridge.utils.js";
-import type { SessionCreationService } from "./session-request/session-creation.service.js";
-import { SessionRequestTool } from "./session-request/session-request-tool.utils.js";
-import type { SessionRequestBroker } from "./session-request/session-request-broker.service.js";
-import { SessionSpawnTool } from "./session-request/session-spawn-tool.utils.js";
+import { SessionRequestTool } from "@kernel/tools/session-request.tools.js";
+import { SessionSpawnTool } from "@kernel/tools/session-spawn.tools.js";
 
 type NextclawNcpToolRegistryOptions = {
   bus: MessageBus;
@@ -41,8 +40,8 @@ type NextclawNcpToolRegistryOptions = {
   getConfig: () => Config;
   getExtensionRegistry?: () => ExtensionRegistry | undefined;
   getAdditionalTools?: (context: PreparedRunContext) => ReadonlyArray<NcpTool>;
-  sessionCreationService: SessionCreationService;
-  sessionRequestBroker: SessionRequestBroker;
+  onSessionUpdated?: (sessionKey: string) => void;
+  sessionRequestManager: SessionRequestManager;
 };
 
 type PreparedRunContext = {
@@ -221,8 +220,9 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
     this.registerMessagingTools({ channel, chatId, metadata });
 
     const sessionsSpawnTool = new SessionSpawnTool(
-      this.options.sessionCreationService,
-      this.options.sessionRequestBroker,
+      this.options.sessionManager,
+      this.options.sessionRequestManager,
+      this.options.onSessionUpdated,
     );
     sessionsSpawnTool.setContext({
       sourceSessionId: sessionId,
@@ -232,7 +232,7 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
     this.registerTool(sessionsSpawnTool);
 
     const sessionsRequestTool = new SessionRequestTool(
-      this.options.sessionRequestBroker,
+      this.options.sessionRequestManager,
     );
     sessionsRequestTool.setContext({
       sourceSessionId: sessionId,

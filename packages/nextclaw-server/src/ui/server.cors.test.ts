@@ -121,13 +121,11 @@ function createTestGateway(params: {
       },
     },
     sessions: {
-      sessionService: {
         listSessions: async () => [],
         listSessionMessages: async () => [],
         getSession: async () => null,
         updateSession: async () => null,
         deleteSession: async () => {},
-      },
     },
     remoteAccess: {
       getStatus: unavailable,
