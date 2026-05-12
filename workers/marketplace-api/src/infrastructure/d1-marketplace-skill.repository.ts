@@ -29,14 +29,32 @@ import type {
   SceneRow,
   TableNames
 } from "./skills/d1-section-types";
+import type { MarketplaceSkillAutoApprovalMode } from "@/utils/marketplace-runtime-config.utils";
 
-type SkillUpsertContext = { existing: ExistingSkillRow | null; itemId: string; publishedAt: string; updatedAt: string; publishStatus: "pending" | "published"; publishedByType: "admin" | "user"; authorLabel: string; install: MarketplaceSkillInstallSpec; };
+type SkillUpsertContext = {
+  existing: ExistingSkillRow | null;
+  itemId: string;
+  publishedAt: string;
+  updatedAt: string;
+  publishStatus: "pending" | "published";
+  publishedByType: "admin" | "user";
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  authorLabel: string;
+  install: MarketplaceSkillInstallSpec;
+};
+
+const AUTO_APPROVED_REVIEW_NOTE = "Auto-approved by marketplace policy.";
 
 export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSourceBase {
   private readonly fileStore: MarketplaceSkillFileStore;
   private readonly adminSupport: D1MarketplaceSkillAdminSupport;
   private readonly ownerSupport: D1MarketplaceSkillOwnerSupport;
-  constructor(db: D1Database, filesBucket: R2Bucket) {
+  constructor(
+    db: D1Database,
+    filesBucket: R2Bucket,
+    private readonly autoApprovalMode: MarketplaceSkillAutoApprovalMode = "off"
+  ) {
     super(db);
     this.fileStore = new MarketplaceSkillFileStore(db, filesBucket, (raw, path) => this.decodeBase64(raw, path), (bytes) => this.sha256Hex(bytes));
     this.adminSupport = new D1MarketplaceSkillAdminSupport({
@@ -223,13 +241,17 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     const itemId = existing?.id ?? input.id ?? `skill-${identity.ownerScope}-${identity.skillName}`;
     const publishedAt = input.publishedAt ?? existing?.published_at ?? nowIso;
     const updatedAt = input.updatedAt ?? nowIso;
+    const shouldAutoApprove = identity.ownerScope === "nextclaw" || this.autoApprovalMode === "all";
+    const userAutoApproved = shouldAutoApprove && identity.ownerScope !== "nextclaw";
     return {
       existing: existing ?? null,
       itemId,
       publishedAt,
       updatedAt,
-      publishStatus: identity.ownerScope === "nextclaw" ? "published" : "pending",
+      publishStatus: shouldAutoApprove ? "published" : "pending",
       publishedByType: identity.ownerScope === "nextclaw" ? "admin" : "user",
+      reviewNote: userAutoApproved ? AUTO_APPROVED_REVIEW_NOTE : null,
+      reviewedAt: userAutoApproved ? updatedAt : null,
       authorLabel: identity.ownerScope === "nextclaw" ? "NextClaw" : (actor.username ?? "unknown"),
       install: {
         kind: "marketplace",
@@ -290,8 +312,8 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
         context.publishedByType,
         "public",
         null,
-        null,
-        null,
+        context.reviewNote,
+        context.reviewedAt,
         input.name,
         input.summary,
         JSON.stringify(input.summaryI18n),

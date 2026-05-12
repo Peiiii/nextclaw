@@ -1,4 +1,4 @@
-import type { MarketplaceSkillPublishActor } from "../../infrastructure/d1-data-source";
+import type { MarketplaceSkillPublishActor } from "../../infrastructure/skills/d1-section-types";
 
 const DEFAULT_PLATFORM_API_BASE = "https://ai-gateway-api.nextclaw.io";
 type MarketplaceAuthContext = {

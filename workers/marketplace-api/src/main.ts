@@ -10,24 +10,26 @@ import { ListSkillItemsUseCase } from "./application/skills/list-skill-items.use
 import { ListSkillRecommendationsUseCase } from "./application/skills/list-skill-recommendations.usecase";
 import { DomainValidationError, ResourceNotFoundError } from "./domain/errors";
 import { D1MarketplaceAppDataSource } from "./infrastructure/apps/d1-marketplace-app.repository";
-import {
-  D1MarketplacePluginDataSource,
-  D1MarketplaceSkillDataSource,
-} from "./infrastructure/d1-data-source";
+import { D1MarketplacePluginDataSource } from "./infrastructure/d1-marketplace-plugin.repository";
+import { D1MarketplaceSkillDataSource } from "./infrastructure/d1-marketplace-skill.repository";
 import { D1MarketplaceMcpDataSource } from "./infrastructure/d1-mcp-data-source";
 import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp.repository";
 import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin.repository";
 import { InMemorySkillRepository } from "./infrastructure/in-memory-skill.repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
-import { registerAdminAppRoutes } from "./presentation/http/admin-app-routes";
-import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes";
+import { registerAdminAppRoutes } from "./presentation/http/admin-app-routes.controller";
+import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes.controller";
 import { registerAppRoutes } from "./presentation/http/apps/app.controller";
 import { decodeUtf8, splitMarkdownFrontmatter } from "./presentation/http/marketplace-content";
-import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth";
+import { MarketplaceAuthError, resolvePublishActor } from "./presentation/http/marketplace-auth.utils";
 import { MarketplaceQueryParser } from "./presentation/http/query-parser";
 import { ApiResponseFactory } from "./presentation/http/response";
-import { registerUserAppRoutes } from "./presentation/http/user-app-routes";
-import { registerUserSkillRoutes } from "./presentation/http/user-skill-routes";
+import { registerUserAppRoutes } from "./presentation/http/user-app-routes.controller";
+import { registerUserSkillRoutes } from "./presentation/http/user-skill-routes.controller";
+import {
+  parseMarketplaceCacheTtlSeconds,
+  parseMarketplaceSkillAutoApprovalMode
+} from "./utils/marketplace-runtime-config.utils";
 
 type MarketplaceBindings = {
   MARKETPLACE_SKILLS_DB: D1Database;
@@ -35,6 +37,7 @@ type MarketplaceBindings = {
   MARKETPLACE_SKILLS_FILES: R2Bucket;
   MARKETPLACE_CACHE_TTL_SECONDS?: string;
   MARKETPLACE_ADMIN_TOKEN?: string;
+  MARKETPLACE_SKILL_AUTO_APPROVE?: string;
   NEXTCLAW_PLATFORM_API_BASE?: string;
 };
 
@@ -67,10 +70,14 @@ class MarketplaceRuntime {
 
   constructor(bindings: MarketplaceBindings) {
     this.pluginDataSource = new D1MarketplacePluginDataSource(bindings.MARKETPLACE_PLUGINS_DB);
-    this.skillDataSource = new D1MarketplaceSkillDataSource(bindings.MARKETPLACE_SKILLS_DB, bindings.MARKETPLACE_SKILLS_FILES);
+    this.skillDataSource = new D1MarketplaceSkillDataSource(
+      bindings.MARKETPLACE_SKILLS_DB,
+      bindings.MARKETPLACE_SKILLS_FILES,
+      parseMarketplaceSkillAutoApprovalMode(bindings.MARKETPLACE_SKILL_AUTO_APPROVE)
+    );
     this.mcpDataSource = new D1MarketplaceMcpDataSource(bindings.MARKETPLACE_PLUGINS_DB);
     this.appDataSource = new D1MarketplaceAppDataSource(bindings.MARKETPLACE_SKILLS_DB, bindings.MARKETPLACE_SKILLS_FILES);
-    const ttlSeconds = this.parseCacheTtlSeconds(bindings.MARKETPLACE_CACHE_TTL_SECONDS);
+    const ttlSeconds = parseMarketplaceCacheTtlSeconds(bindings.MARKETPLACE_CACHE_TTL_SECONDS);
 
     this.pluginRepository = new InMemoryPluginRepository(this.pluginDataSource, {
       cacheTtlMs: ttlSeconds * 1000
@@ -94,22 +101,11 @@ class MarketplaceRuntime {
     this.listMcpRecommendations = new ListMcpRecommendationsUseCase(this.mcpRepository);
   }
 
-  invalidateCache(): void {
+  invalidateCache = (): void => {
     this.pluginRepository.invalidateCache();
     this.skillRepository.invalidateCache();
     this.mcpRepository.invalidateCache();
-  }
-
-  private parseCacheTtlSeconds(raw: string | undefined): number {
-    if (!raw) {
-      return 5;
-    }
-    const parsed = Number.parseInt(raw, 10);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      return 5;
-    }
-    return parsed;
-  }
+  };
 }
 
 const responses = new ApiResponseFactory();

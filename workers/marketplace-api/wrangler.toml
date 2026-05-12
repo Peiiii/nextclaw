@@ -12,6 +12,7 @@ enabled = true
 
 [vars]
 MARKETPLACE_CACHE_TTL_SECONDS = "120"
+MARKETPLACE_SKILL_AUTO_APPROVE = "true"
 NEXTCLAW_PLATFORM_API_BASE = "https://ai-gateway-api.nextclaw.io"
 
 [[d1_databases]]

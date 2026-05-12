@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import { ResourceNotFoundError } from "../../domain/errors";
-import type { D1MarketplaceSkillDataSource } from "../../infrastructure/d1-data-source";
-import { requireMarketplaceAdminAccess } from "./marketplace-auth";
+import type { D1MarketplaceSkillDataSource } from "../../infrastructure/d1-marketplace-skill.repository";
+import { requireMarketplaceAdminAccess } from "./marketplace-auth.utils";
 import type { MarketplaceQueryParser } from "./query-parser";
 import { ApiResponseFactory } from "./response";
 

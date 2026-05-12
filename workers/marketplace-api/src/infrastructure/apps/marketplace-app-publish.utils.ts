@@ -1,5 +1,5 @@
 import { DomainValidationError } from "../../domain/errors";
-import type { MarketplaceSkillPublishActor } from "../d1-data-source";
+import type { MarketplaceSkillPublishActor } from "../skills/d1-section-types";
 import type {
   MarketplaceAdminAppReviewStatus,
   MarketplaceAppOwnerVisibility,
