@@ -1,5 +1,80 @@
 # @nextclaw/openclaw-compat
 
+## 1.0.14
+
+### Patch Changes
+
+- Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
+
+  Packages:
+
+  - @nextclaw/agent-chat
+  - @nextclaw/agent-chat-ui
+  - @nextclaw/app-runtime
+  - @nextclaw/app-sdk
+  - @nextclaw/channel-extension-weixin
+  - @nextclaw/channel-plugin-dingtalk
+  - @nextclaw/channel-plugin-discord
+  - @nextclaw/channel-plugin-email
+  - @nextclaw/channel-plugin-feishu
+  - @nextclaw/channel-plugin-mochat
+  - @nextclaw/channel-plugin-qq
+  - @nextclaw/channel-plugin-slack
+  - @nextclaw/channel-plugin-telegram
+  - @nextclaw/channel-plugin-wecom
+  - @nextclaw/channel-plugin-whatsapp
+  - @nextclaw/channel-runtime
+  - @nextclaw/client-sdk
+  - @nextclaw/companion
+  - @nextclaw/core
+  - @nextclaw/extension-sdk
+  - @nextclaw/feishu-core
+  - @nextclaw/kernel
+  - @nextclaw/mcp
+  - @nextclaw/ncp
+  - @nextclaw/ncp-agent-runtime
+  - @nextclaw/ncp-http-agent-client
+  - @nextclaw/ncp-http-agent-server
+  - @nextclaw/ncp-mcp
+  - @nextclaw/ncp-react
+  - @nextclaw/ncp-react-ui
+  - @nextclaw/ncp-toolkit
+  - @nextclaw/nextclaw-hermes-acp-bridge
+  - @nextclaw/nextclaw-narp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-narp-runtime-codex-sdk
+  - @nextclaw/nextclaw-narp-stdio-runtime-wrapper
+  - @nextclaw/nextclaw-ncp-runtime-adapter-hermes-http
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-http-client
+  - @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk
+  - @nextclaw/nextclaw-ncp-runtime-stdio-client
+  - @nextclaw/openclaw-compat
+  - @nextclaw/remote
+  - @nextclaw/runtime
+  - @nextclaw/server
+  - @nextclaw/service
+  - @nextclaw/shared
+  - @nextclaw/ui
+  - nextclaw
+
+- Updated dependencies
+  - @nextclaw/channel-plugin-dingtalk@0.2.45
+  - @nextclaw/channel-plugin-discord@0.2.45
+  - @nextclaw/channel-plugin-email@0.2.45
+  - @nextclaw/channel-plugin-feishu@0.2.30
+  - @nextclaw/channel-plugin-mochat@0.2.45
+  - @nextclaw/channel-plugin-qq@0.2.45
+  - @nextclaw/channel-plugin-slack@0.2.45
+  - @nextclaw/channel-plugin-telegram@0.2.45
+  - @nextclaw/channel-plugin-wecom@0.2.45
+  - @nextclaw/channel-plugin-whatsapp@0.2.45
+  - @nextclaw/channel-runtime@0.4.31
+  - @nextclaw/core@0.12.14
+  - @nextclaw/ncp@0.5.7
+  - @nextclaw/ncp-toolkit@0.5.12
+
 ## 1.0.13
 
 ### Patch Changes
@@ -7,6 +82,7 @@
 - a11f4fd: Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -43,6 +119,7 @@
 - 2418020: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -91,6 +168,7 @@
 - a5da9d6: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -139,6 +217,7 @@
 - 1600643: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -187,6 +266,7 @@
 - 223037c: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -263,6 +343,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -332,6 +413,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -401,6 +483,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -470,6 +553,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -556,6 +640,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -648,6 +733,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -711,6 +797,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -773,6 +860,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -853,6 +941,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -899,6 +988,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -959,6 +1049,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -1010,6 +1101,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-weixin
   - @nextclaw/core
@@ -1046,6 +1138,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -1097,6 +1190,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -1417,6 +1511,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends
@@ -1882,6 +1977,7 @@
 ### Patch Changes
 
 - Fix Codex chat startup and plugin resolution when running NextClaw from source in dev mode.
+
   - prefer repo-local first-party plugins from `packages/extensions` when `NEXTCLAW_DEV_FIRST_PARTY_PLUGIN_DIR` is unset
   - avoid loading stale installed Codex runtime plugins from `~/.nextclaw/extensions` during source-mode smoke tests
   - keep the release group for `@nextclaw/mcp`, `@nextclaw/server`, and `nextclaw` in sync while shipping the Codex chat fix
@@ -1996,6 +2092,7 @@
 ### Patch Changes
 
 - Unify the latest NCP native chat chain improvements into a single release batch:
+
   - fix NCP streaming/state-manager promotion so tool-first assistant streams do not lose parts
   - align session type handling to stay generic outside the built-in native type
   - remove runtime-specific default-model branching and use a generic session-scoped fallback strategy
@@ -2155,6 +2252,7 @@
 - Unified minor release for accumulated architecture, engine, and chat UX updates.
 
   Includes:
+
   - New pluggable engine runtime support (Codex SDK / Claude Agent SDK)
   - Skill-context propagation and chat interaction stability improvements
   - Main workspace routing and conversation UX refinements
@@ -2173,6 +2271,7 @@
 ### Patch Changes
 
 - Release runtime/session fixes and frontend configuration improvements together.
+
   - fix session persistence across non-streaming/runtime paths
   - stabilize Feishu conversation routing
   - include frontend max-token optimization and related config UX updates
@@ -2340,6 +2439,7 @@
 ### Patch Changes
 
 - feat: hot-apply plugin config changes without restarting the gateway process.
+
   - treat `plugins.*` as reloadable config paths
   - hot-reload plugin registry / plugin channel gateways / channel manager in-place
   - apply plugin extension registry updates to agent runtime pool
@@ -2355,6 +2455,7 @@
 ### Patch Changes
 
 - fix: prevent broken historical tool-call chains from causing provider 400 in long-running Discord multi-agent sessions.
+
   - sanitize stale `assistant(tool_calls)` + `tool` history pairs before provider requests
   - preserve active trailing tool-call chain semantics
   - reduce INVALID_ARGUMENT failures after context-budget pruning
@@ -2377,6 +2478,7 @@
 ### Patch Changes
 
 - Align input-context handling with an OpenClaw-style token-budget pruner.
+
   - add unified input budget pruning in agent and subagent loops
   - support `agents.defaults.contextTokens` and per-agent `contextTokens` overrides
   - hot-reload context token budget updates
@@ -2391,6 +2493,7 @@
 ### Patch Changes
 
 - Align Discord/Telegram typing lifecycle with OpenClaw-style run completion cleanup.
+
   - Add typing-stop control message in core bus for no-reply paths.
   - Route control messages through ChannelManager without normal outbound delivery.
   - Keep typing active during agent processing and stop via outbound/control events.
@@ -2405,6 +2508,7 @@
 ### Patch Changes
 
 - Align multi-agent gateway capabilities with OpenClaw:
+
   - add bindings-based route resolver and agent runtime pool
   - add agents.list multi-runtime support in gateway service
   - add session.dmScope based session key isolation (including per-account-channel-peer)
@@ -2420,6 +2524,7 @@
 ### Patch Changes
 
 - release: add WeCom channel support and harden dev runner port fallback.
+
   - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
   - add robust dev-runner port fallback to avoid API misrouting under port conflicts
   - publish linked package updates for runtime/plugin compatibility alignment
@@ -2512,6 +2617,7 @@
 ### Patch Changes
 
 - Restore OpenClaw-compatible plugin support in NextClaw with a NextClaw-only discovery policy.
+
   - Restore plugin CLI and runtime integration (`plugins *`, `channels add`, runtime loading bridge).
   - Restore `plugins.*` config schema and reload semantics.
   - Keep OpenClaw plugin compatibility while only scanning NextClaw plugin directories.
@@ -2542,6 +2648,7 @@
 ### Patch Changes
 
 - Align OpenClaw plugin compatibility for channel runtime behavior.
+
   - Add channel messageToolHints resolution and inject hints into agent system prompt messaging guidance.
   - Forward plugin AccountId context through runtime bridge so channel/account-specific hints can resolve.
   - Improve OpenClaw channel integration path for ClawBay-compatible plugins and update docs/logs.
@@ -2554,6 +2661,7 @@
 ### Patch Changes
 
 - Unify internal package names under the `@nextclaw` scope while keeping the CLI package name as `nextclaw`.
+
   - Rename packages to `@nextclaw/core`, `@nextclaw/server`, and `@nextclaw/openclaw-compat`.
   - Update all workspace imports, dependency declarations, and TypeScript path aliases.
   - Keep plugin compatibility behavior and CLI user experience unchanged.

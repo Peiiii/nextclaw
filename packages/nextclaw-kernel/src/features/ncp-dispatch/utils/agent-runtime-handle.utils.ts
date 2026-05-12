@@ -6,7 +6,7 @@ import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server
 import type {
   AgentRuntimeRegistry,
   AgentRuntimeSessionTypeDescribeParams,
-} from "@kernel/features/runtime-registry";
+} from "@kernel/features/runtime-registry/index.js";
 
 type AgentRuntimeSessionTypes = Awaited<ReturnType<AgentRuntimeRegistry["listSessionTypes"]>>;
 

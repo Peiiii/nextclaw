@@ -8,7 +8,13 @@ import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import type { UpdateCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import type { UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
 
+type NpmRuntimeUpdateCommandServiceOptions = {
+  launcherVersion?: string;
+};
+
 export class NpmRuntimeUpdateCommandService {
+  constructor(private readonly options: NpmRuntimeUpdateCommandServiceOptions = {}) {}
+
   run = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
     const snapshot = await this.runManaged(opts);
     if (opts.json) {
@@ -21,7 +27,7 @@ export class NpmRuntimeUpdateCommandService {
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
     const source = new NpmRuntimeUpdateSourceService();
-    const launcherVersion = getPackageVersion();
+    const launcherVersion = this.options.launcherVersion ?? getPackageVersion();
     const channel = source.resolveChannel(opts.channel, launcherVersion);
     const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
     const layout = new NpmRuntimeBundleLayoutStore();

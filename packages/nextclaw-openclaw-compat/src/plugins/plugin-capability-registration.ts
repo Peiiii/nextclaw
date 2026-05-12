@@ -2,7 +2,6 @@ import type {
   OpenClawPluginNcpAgentRuntimeRegistration,
   PluginDiagnostic,
   PluginRecord,
-  PluginRegistry,
 } from "./types.js";
 import type { PluginRegisterRuntime } from "./registry.js";
 

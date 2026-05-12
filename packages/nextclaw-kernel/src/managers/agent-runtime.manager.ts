@@ -27,25 +27,25 @@ import {
   AgentRuntimeRegistry,
   PluginRuntimeRegistrationController,
   resolveAgentRuntimeEntries,
-} from "@kernel/features/runtime-registry";
+} from "@kernel/features/runtime-registry/index.js";
 import {
   createAgentRuntimeHandle,
   type AgentRuntimeHandle,
-} from "@kernel/features/ncp-dispatch";
-import { BuiltinNarpRuntimeRegistrationService } from "@kernel/features/narp-runtime";
+} from "@kernel/features/ncp-dispatch/index.js";
+import { BuiltinNarpRuntimeRegistrationService } from "@kernel/features/narp-runtime/index.js";
 import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import {
   ContextCompactionPreflightService,
   NativeAgentRuntimeFactory,
   type UpdateToolCallResult,
-} from "@kernel/features/native-runtime";
-import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/features/mcp-runtime-support";
+} from "@kernel/features/native-runtime/index.js";
+import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/features/mcp-runtime-support/index.js";
 import {
   AGENT_RUNTIME_SESSION_MESSAGE_INGRESS_TYPE,
   type AgentRuntimeSessionMessageRequest,
-} from "@kernel/features/session-request";
+} from "@kernel/features/session-request/index.js";
 
-export type { AgentRuntimeHandle } from "@kernel/features/ncp-dispatch";
+export type { AgentRuntimeHandle } from "@kernel/features/ncp-dispatch/index.js";
 
 export type AgentRuntimeManagerOptions = {
   bus: MessageBus;

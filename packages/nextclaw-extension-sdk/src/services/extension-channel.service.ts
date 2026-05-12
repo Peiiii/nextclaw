@@ -1,4 +1,4 @@
-import { eventKeys, type EventBus, type Unsubscribe } from "@nextclaw/shared";
+import { eventKeys, getKeyId, type EventBus, type Unsubscribe } from "@nextclaw/shared";
 import type {
   ChannelConfigGetResponse,
   ChannelSubmittedMessage,
@@ -31,7 +31,7 @@ class ChannelConfig implements ExtensionChannelConfig {
     handler: (config: TConfig) => void | Promise<void>,
   ): Unsubscribe =>
     this.params.eventBus.subscribeAll((event) => {
-      if (event.type !== eventKeys.configUpdated.id) {
+      if (event.type !== getKeyId(eventKeys.configUpdated)) {
         return;
       }
       const payload = event.payload as { path?: unknown };

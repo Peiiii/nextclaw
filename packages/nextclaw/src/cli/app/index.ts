@@ -2,17 +2,21 @@
 import { Command } from "commander";
 import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
-import { NextclawServiceRuntime } from "@nextclaw-service";
+import { NextclawServiceRuntime } from "@nextclaw/service";
 import { registerAgentsCommands } from "./register-agents-commands.js";
 import { registerCompanionCommands } from "./register-companion-commands.js";
 import { registerLearningLoopCommands } from "./register-learning-loop-commands.js";
 import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.utils.js";
+import { readNextclawPackageVersion } from "../package-version.utils.js";
 
 const LOGO = "🤖";
 
 const program = new Command();
-const runtime = new NextclawServiceRuntime({ logo: LOGO });
+const runtime = new NextclawServiceRuntime({
+  logo: LOGO,
+  version: readNextclawPackageVersion(import.meta.url),
+});
 const withRepeatableTag = (value: string, previous: string[] = []) => [...previous, value];
 const registerRemoteCommandGroup = (target: Command, nextclaw: typeof runtime): void => {
   registerRemoteCommands(target, nextclaw.commands.remote);

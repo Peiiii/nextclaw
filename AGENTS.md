@@ -77,6 +77,7 @@
 - React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
 - 跨 workspace package 依赖默认只能导入对方 package 根公共入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。
+- 禁止为修复跨包编译或导入问题，在消费者包 `tsconfig` 中新增指向另一个包内部目录的子路径 alias；应收敛到根级 workspace paths owner、被依赖包公共入口或 package 自身 `exports`。
 - 禁止用结构性搬运替代语义建模：小字段、小状态或局部行为若需要多层透传、手写接口 proxy、原样转发方法，必须先回到真正的数据生成者或语义 owner。
 - 前端 UI 默认复用现有展示组件、图标和设计体系；同一骨架多变体优先配置驱动和组合式设计，避免复制 JSX 和样式。
 - 涉及 chat 链路演进时，默认只建设 NCP 主链路；legacy 只允许做阻塞迁移的必要修复、删除前兼容清理或用户明确要求的临时保障。

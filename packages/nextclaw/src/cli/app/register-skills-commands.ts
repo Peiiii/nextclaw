@@ -1,5 +1,5 @@
 import type { Command } from "commander";
-import type { NextclawServiceRuntime } from "@nextclaw-service";
+import type { NextclawServiceRuntime } from "@nextclaw/service";
 
 export function registerSkillsCommands(program: Command, nextclaw: NextclawServiceRuntime): void {
   const skillsCommands = nextclaw.commands.skills;

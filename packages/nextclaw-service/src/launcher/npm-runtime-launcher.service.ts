@@ -12,6 +12,8 @@ type NpmRuntimeLauncherOptions = {
   argv: string[];
   env?: NodeJS.ProcessEnv;
   layout?: NpmRuntimeBundleLayoutStore;
+  launcherVersion?: string;
+  packagedAppEntrypoint?: string;
 };
 
 export class NpmRuntimeLauncher {
@@ -36,23 +38,24 @@ export class NpmRuntimeLauncher {
   };
 
   private resolveRuntimeScriptPath = (): string => {
+    const launcherVersion = this.resolveLauncherVersion();
     if (this.env.NEXTCLAW_DISABLE_RUNTIME_BUNDLE_LAUNCHER === "1" || this.env.NEXTCLAW_RUNTIME_BUNDLE_CHILD === "1") {
       return this.resolvePackagedAppEntrypoint();
     }
     const stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
-      defaultChannel: inferDefaultNpmRuntimeReleaseChannel(getPackageVersion())
+      defaultChannel: inferDefaultNpmRuntimeReleaseChannel(launcherVersion)
     });
     const bundleService = new NpmRuntimeBundleService({
       layout: this.layout,
       stateStore,
-      launcherVersion: getPackageVersion()
+      launcherVersion
     });
     try {
       const currentBundle = bundleService.resolveCurrentBundle();
       if (
         currentBundle &&
         shouldPreferPackagedNpmRuntime({
-          launcherVersion: getPackageVersion(),
+          launcherVersion,
           currentBundleVersion: currentBundle.manifest.runtimeVersion ?? currentBundle.manifest.bundleVersion
         })
       ) {
@@ -66,7 +69,12 @@ export class NpmRuntimeLauncher {
     }
   };
 
+  private resolveLauncherVersion = (): string => this.options.launcherVersion ?? getPackageVersion();
+
   private resolvePackagedAppEntrypoint = (): string => {
+    if (this.options.packagedAppEntrypoint) {
+      return this.options.packagedAppEntrypoint;
+    }
     return resolve(dirname(fileURLToPath(import.meta.url)), "../app/index.js");
   };
 }

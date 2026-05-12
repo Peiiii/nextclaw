@@ -1,6 +1,6 @@
 import { loadConfig } from "@nextclaw/core";
 import type { Command } from "commander";
-import { readLearningLoopRuntimeConfig, type NextclawServiceRuntime } from "@nextclaw-service";
+import { readLearningLoopRuntimeConfig, type NextclawServiceRuntime } from "@nextclaw/service";
 
 function readLearningLoopThresholdOrExit(value: string): number {
   const threshold = Number.parseInt(value, 10);

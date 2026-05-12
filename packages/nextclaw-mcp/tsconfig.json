@@ -2,13 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"],
-    "baseUrl": ".",
-    "paths": {
-      "@core/features/typed-event-bus/*": ["../nextclaw-core/src/features/typed-event-bus/*"],
-      "@nextclaw/core": ["../nextclaw-core/src/index.ts"],
-      "@nextclaw/shared": ["../nextclaw-shared/src/index.ts"]
-    }
+    "types": ["node"]
   },
   "include": ["src", "tests"]
 }

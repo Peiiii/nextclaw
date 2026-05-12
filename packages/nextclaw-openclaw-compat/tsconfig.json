@@ -4,22 +4,7 @@
     "noEmit": true,
     "types": [
       "node"
-    ],
-    "baseUrl": ".",
-    "paths": {
-      "@core/*": [
-        "../nextclaw-core/src/*"
-      ],
-      "@nextclaw/core": [
-        "../nextclaw-core/src/index.ts"
-      ],
-      "@nextclaw/shared": [
-        "../nextclaw-shared/src/index.ts"
-      ],
-      "@nextclaw/channel-runtime": [
-        "../extensions/nextclaw-channel-runtime/src/index.ts"
-      ]
-    }
+    ]
   },
   "include": [
     "src"

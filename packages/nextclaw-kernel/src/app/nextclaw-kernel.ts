@@ -12,7 +12,7 @@ import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.con
 import { NcpLifecycleEventBridge } from "@kernel/services/ncp-lifecycle-event-bridge.service.js";
 import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
-import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request";
+import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
 import {
   ChannelManager,
   ensureDir,

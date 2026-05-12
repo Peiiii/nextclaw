@@ -138,6 +138,7 @@ description: Use when implementing or refactoring code in this repository, espec
 - 文件主职责是什么
 - 有没有现成位置可以直接复用，而不是新增散点
 - 如果这是跨 workspace package 依赖，是否只通过对方 package 根公共入口导入，而不是 deep import 对方内部文件
+- 如果这是跨包 TypeScript 编译/路径解析问题，是否先回到根级 workspace paths owner、被依赖包根公共入口或 package 自身 `exports`；禁止在消费者包 `tsconfig` 里新增指向另一个包内部目录的子路径 alias，例如 `@kernel/features/*`、`@core/*` 或把本包 `@/*` 指到别的包 `src/*`
 - 依赖方向是否符合产品分层：前端/UI 不得依赖 kernel、core、runtime、service 这类后端/内核包；跨端契约、事件 key、纯类型和 UI 可消费常量应放在 `@nextclaw/shared`、client SDK 或专门的浏览器安全契约入口
 - 如果 host/service 负责管理插件或 extension，包依赖只能服务分发、安装和 manifest 发现；host/service 禁止 import 具体插件/渠道的业务导出。静态能力读 manifest，动态能力走通用协议通信。
 - 如果只是为了拿一个事件 key、类型或常量而引入更底层 package，必须先停止；这通常是严重边界错误，不是可接受的“更窄 import”问题

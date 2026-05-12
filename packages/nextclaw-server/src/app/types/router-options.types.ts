@@ -27,6 +27,9 @@ import type {
 } from "@/shared/types/server-api.types.js";
 import type { RuntimeControlActionResult, RuntimeControlView } from "@/features/runtime-control/index.js";
 
+export type UiAppEventBus = Pick<EventBus, "emit" | "subscribeAll">;
+export type UiIngress = Pick<Ingress, "handle">;
+
 export type UiBootstrapStatusHost = {
   getStatus: () => BootstrapStatusView;
 };
@@ -59,8 +62,8 @@ export type UiCronHost = {
 
 export type UiRouterOptions = {
   configPath: string;
-  appEventBus: EventBus;
-  ingress?: Ingress;
+  appEventBus: UiAppEventBus;
+  ingress?: UiIngress;
   uiConfig?: Pick<NextclawCore.Config["ui"], "enabled" | "host" | "open" | "port">;
   uiStaticDir?: string | null;
   corsOrigins?: string[] | "*";

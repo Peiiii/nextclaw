@@ -7,77 +7,8 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@core/*": [
-        "../nextclaw-core/src/*"
-      ],
       "@/*": [
         "./src/*"
-      ],
-      "@nextclaw/core": [
-        "../nextclaw-core/src/index.ts"
-      ],
-      "@nextclaw/kernel": [
-        "../nextclaw-kernel/src/index.ts"
-      ],
-      "@nextclaw/shared": [
-        "../nextclaw-shared/src/index.ts"
-      ],
-      "@kernel/*": [
-        "../nextclaw-kernel/src/*"
-      ],
-      "@nextclaw/kernel/update-contract": [
-        "../nextclaw-kernel/src/types/update-contract.types.ts"
-      ],
-      "@nextclaw/feishu-core": [
-        "../extensions/nextclaw-feishu-core/src/index.ts"
-      ],
-      "@nextclaw/mcp": [
-        "../nextclaw-mcp/src/index.ts"
-      ],
-      "@nextclaw/runtime": [
-        "../nextclaw-runtime/src/index.ts"
-      ],
-      "@nextclaw-service": [
-        "../nextclaw-service/src/index.ts"
-      ],
-      "@nextclaw-service/*": [
-        "../nextclaw-service/src/*"
-      ],
-      "@nextclaw/remote": [
-        "../nextclaw-remote/src/index.ts"
-      ],
-      "@nextclaw/server": [
-        "../nextclaw-server/src/index.ts"
-      ],
-      "@nextclaw/ncp": [
-        "../ncp-packages/nextclaw-ncp/src/index.ts"
-      ],
-      "@nextclaw/ncp-toolkit": [
-        "../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"
-      ],
-      "@nextclaw/ncp-agent-runtime": [
-        "../ncp-packages/nextclaw-ncp-agent-runtime/src/index.ts"
-      ],
-      "@nextclaw/ncp-mcp": [
-        "../ncp-packages/nextclaw-ncp-mcp/src/index.ts"
-      ],
-      "@nextclaw/openclaw-compat": [
-        "../nextclaw-openclaw-compat/src/index.ts"
-      ],
-      "@nextclaw/nextclaw-hermes-acp-bridge": [
-        "../nextclaw-hermes-acp-bridge/src/index.ts"
-      ],
-      "@nextclaw/channel-runtime": [
-        "../extensions/nextclaw-channel-runtime/src/index.ts"
-      ],
-      "@nextclaw/nextclaw-ncp-runtime-http-client": [
-        "../nextclaw-ncp-runtime-http-client/src/index.ts"
-      ],
-      "@nextclaw/nextclaw-ncp-runtime-stdio-client": [
-        "../nextclaw-ncp-runtime-stdio-client/src/index.ts"
-      ],
-      "@nextclaw/nextclaw-ncp-runtime-codex-sdk": [
-        "../extensions/nextclaw-ncp-runtime-codex-sdk/src/index.ts"
       ]
     }
   },

@@ -4,7 +4,7 @@ import type { AgentRuntimeRegistry } from "@kernel/features/runtime-registry/ser
 import {
   NARP_HTTP_RUNTIME_KIND,
   NARP_STDIO_RUNTIME_KIND,
-} from "@kernel/features/narp-runtime";
+} from "@kernel/features/narp-runtime/index.js";
 
 const RESERVED_BUILTIN_RUNTIME_KINDS = new Set([
   NARP_HTTP_RUNTIME_KIND,
