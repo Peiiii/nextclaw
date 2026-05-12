@@ -38,6 +38,11 @@ export type RunPromptOverNcpParams = {
   runErrorMessage?: string;
 };
 
+export type StreamPromptOverNcpParams = Omit<
+  RunPromptOverNcpParams,
+  "onAssistantDelta" | "missingCompletedMessageError" | "runErrorMessage"
+>;
+
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
@@ -203,22 +208,16 @@ export async function buildNcpUserMessage(params: {
   };
 }
 
-export async function runPromptOverNcp(
-  params: RunPromptOverNcpParams,
-): Promise<{
-  text: string;
-  completedMessage: NcpMessage;
-}> {
+export async function* streamPromptOverNcp(
+  params: StreamPromptOverNcpParams,
+): AsyncGenerator<NcpEndpointEvent> {
   const {
     abortSignal,
     agent,
     attachments,
     content,
     metadata,
-    missingCompletedMessageError,
-    onAssistantDelta,
     onEvent,
-    runErrorMessage,
     sessionId,
   } = params;
   const message = await buildNcpUserMessage({
@@ -228,7 +227,6 @@ export async function runPromptOverNcp(
     metadata,
     assetApi: agent.assetApi,
   });
-  let completedMessage: NcpMessage | undefined;
 
   for await (const event of agent.runApi.send(
     {
@@ -241,9 +239,21 @@ export async function runPromptOverNcp(
     },
   )) {
     onEvent?.(event);
+    yield event;
+  }
+}
 
+export async function runPromptOverNcp(
+  params: RunPromptOverNcpParams,
+): Promise<{
+  text: string;
+  completedMessage: NcpMessage;
+}> {
+  let completedMessage: NcpMessage | undefined;
+
+  for await (const event of streamPromptOverNcp(params)) {
     if (event.type === NcpEventType.MessageTextDelta) {
-      onAssistantDelta?.(event.payload.delta);
+      params.onAssistantDelta?.(event.payload.delta);
       continue;
     }
 
@@ -252,7 +262,7 @@ export async function runPromptOverNcp(
     }
 
     if (event.type === NcpEventType.RunError) {
-      throw new Error(event.payload.error ?? runErrorMessage ?? "NCP run failed.");
+      throw new Error(event.payload.error ?? params.runErrorMessage ?? "NCP run failed.");
     }
 
     if (event.type === NcpEventType.MessageCompleted) {
@@ -262,7 +272,7 @@ export async function runPromptOverNcp(
 
   if (!completedMessage) {
     throw new Error(
-      missingCompletedMessageError ?? "NCP run completed without a final assistant message.",
+      params.missingCompletedMessageError ?? "NCP run completed without a final assistant message.",
     );
   }
 

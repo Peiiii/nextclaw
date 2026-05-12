@@ -28,12 +28,10 @@ import type {
   AgentRuntimeSessionTypeDescribeParams,
   AgentRuntimeSessionTypeOption,
 } from "@kernel/features/runtime-registry";
-import {
-  NARP_HTTP_RUNTIME_KIND,
-  NARP_STDIO_RUNTIME_KIND,
-} from "@kernel/features/narp-runtime/types/builtin-narp-runtime.types.js";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
+export const NARP_HTTP_RUNTIME_KIND = "narp-http";
+export const NARP_STDIO_RUNTIME_KIND = "narp-stdio";
 
 type SessionTypeDescriptor = Omit<AgentRuntimeSessionTypeOption, "value" | "label">;
 

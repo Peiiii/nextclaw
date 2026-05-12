@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { resolveAgentRuntimeEntries } from "./agent-runtime-entry-resolver.utils.js";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@nextclaw/core", () => ({
+  toDisposable: (dispose: () => void) => ({ dispose }),
+}));
+
+import { resolveAgentRuntimeEntries } from "./agent-runtime-registry.service.js";
 
 function createConfig(entries: Record<string, {
   enabled?: boolean;

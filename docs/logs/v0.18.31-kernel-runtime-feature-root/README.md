@@ -1,40 +1,51 @@
 # v0.18.31 Kernel Runtime Feature Root
 
-## 背景
+## 迭代完成说明
 
-`packages/nextclaw-kernel/src/agent-runtime` 作为顶层目录承载了 native runtime、NARP runtime、runtime registry、NCP dispatch、MCP support 等并列职责，目录本身不符合当前 role-first / feature-root 结构规范。
+本批次撤销 `packages/nextclaw-kernel/src/agent-runtime` 顶层目录，将 native runtime、NARP runtime、runtime registry、NCP dispatch、MCP support 等并列职责迁移到 `src/features/*` 下的可折叠 feature root。
 
-## 目标
+后续收敛继续删除过薄边界：
 
-- 撤销 `src/agent-runtime` 顶层目录。
-- 将并列职责迁移到 `src/features/*` 下的可折叠 feature root。
-- 抽出 `NativeAgentRuntimeFactory`，让 `AgentRuntimeManager` 不再内联 native runtime 的 context builder、tool registry、LLM API 与上下文压缩预检装配。
+- `NativeAgentRuntimeFactory` 承接 native runtime 的 context builder、tool registry、LLM API 与上下文压缩预检装配，让 `AgentRuntimeManager` 回到 runtime 注册、backend 接入、事件发布和生命周期 owner。
+- `ncp-event-stream.utils.ts` 合并进 `nextclaw-ncp-runner.utils.ts`，删除重复的 NCP send 循环。
+- `agent-runtime-entry-resolver.utils.ts` 合并进 `agent-runtime-registry.service.ts`，让 runtime entry 解析与 registry owner 保持同一职责面。
+- `builtin-narp-runtime.types.ts` 删除，两个 runtime kind 常量回到 NARP registration service。
+- `session-request` 保持 classless utils 形态，避免为了很薄的 dispatcher 工厂制造 service/class。
 
-## 改动
-
-- 新增 `features/native-runtime`、`features/runtime-registry`、`features/narp-runtime`、`features/ncp-dispatch`、`features/mcp-runtime-support`。
-- 为每个 feature root 增加 `index.ts`，外部导入统一走 feature 根入口。
-- `AgentRuntimeManager` 收敛为 runtime 注册、backend 接入、事件发布和生命周期 owner。
-- `module-structure.config.json` 移除 `agent-runtime`，允许 `features` 作为 kernel 顶层目录。
-- `tsconfig.json` 增加 feature root path 映射，保证治理要求的根入口导入可被 NodeNext 解析。
-
-## 验证
+## 测试/验证/验收方式
 
 - `pnpm -C packages/nextclaw-kernel tsc`
-- `pnpm -C packages/nextclaw-kernel test`
 - `pnpm -C packages/nextclaw-kernel lint`
+- `pnpm -C packages/nextclaw-kernel test`
 - `pnpm -C packages/nextclaw-kernel build`
-- `pnpm lint:new-code:module-structure`
-- `pnpm lint:new-code:file-names`
 - `pnpm lint:new-code:file-role-boundaries`
+- `pnpm lint:new-code:file-names`
 - `pnpm check:governance-backlog-ratchet`
 
-## 可维护性
+`pnpm lint:new-code:module-structure` 已运行，但当前工作区中无关的 `packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk/src/codex-openai-responses-bridge*.utils.ts` 根目录新增文件仍触发 module-structure 失败。
 
-- kernel 结构迁移子集已实现 `AgentRuntimeManager` 大幅减重。
-- 本次全仓 maintainability guard 受并行未完成 NARP wrapper 新增文件影响，`--non-feature` 口径仍显示全仓非测试净增长；本次 kernel 子集需要单独按 diff 复核。
+## 发布/部署方式
 
-## 后续
+不涉及发布或部署。
 
-- `features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts` 已接近 400 行预算，下一步可继续拆出 dispatch session/run 级 owner。
-- `native-runtime` 内部还可以继续拆分 context compaction owner 与 tool registry owner，但本轮先控制在最低风险的目录解耦和 factory 抽取。
+## 用户/产品视角的验收步骤
+
+1. 启动 kernel runtime 链路。
+2. 确认 native session 仍能创建 runtime 并执行 NCP run。
+3. 确认 session request 仍通过 ingress 进入 agent runtime，并通过 NCP event 回收 accepted/completed/failed 结果。
+4. 确认 runtime session type 列表仍包含 native 与配置中的 NARP runtime entries。
+
+## 可维护性总结汇总
+
+本轮遵循“不是越拆越好”的收敛原则：删除薄文件、合并重复 send 循环、复用已有 icon 归一化逻辑，并把常量放回真实 owner。
+
+本轮后续收敛相对 `HEAD` 的 kernel feature/app 子集统计为 `11 files changed, 150 insertions(+), 261 deletions(-)`；排除测试后约 `+143 / -259`，非测试净减少约 `116` 行。
+
+保留债务：
+
+- `features/runtime-registry/services/agent-runtime-registry.service.ts` 当前约 387 行，接近 400 行预算，但本轮合并后职责更集中，暂未越界。
+- `features/ncp-dispatch/utils/nextclaw-ncp-dispatch.utils.ts` 仍接近 400 行，下一步更适合按 dispatch session/run owner 继续拆。
+
+## NPM 包发布记录
+
+不涉及 NPM 包发布。

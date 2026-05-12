@@ -8,7 +8,7 @@ import type {
   NcpReplyInput,
 } from "@nextclaw/ncp-toolkit";
 import type { NcpEndpointEvent } from "@nextclaw/ncp";
-import { streamPromptOverNcp, type NcpRunnerAgent } from "./ncp-event-stream.utils.js";
+import { streamPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.utils.js";
 
 type ReplyCapableChannel = BaseChannel<Record<string, unknown>> & {
   consumeNcpReply(input: NcpReplyInput): Promise<void>;
