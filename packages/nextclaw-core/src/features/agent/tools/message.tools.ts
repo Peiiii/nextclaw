@@ -1,5 +1,5 @@
-import type { OutboundMessage } from "../../../bus/services/events.js";
-import { Tool } from "./base.js";
+import type { OutboundMessage } from "@core/features/bus/index.js";
+import { Tool } from "./base.tools.js";
 
 export class MessageTool extends Tool {
   private channel = "cli";

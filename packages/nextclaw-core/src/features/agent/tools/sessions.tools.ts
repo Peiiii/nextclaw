@@ -1,12 +1,12 @@
-import { Tool } from "./base.js";
-import type { SessionManager } from "../../../session/managers/session.manager.js";
-import type { Session } from "../../../session/stores/session.store.js";
+import { Tool } from "./base.tools.js";
+import type { SessionManager } from "@core/features/session/index.js";
+import type { Session } from "@core/features/session/index.js";
 import {
   normalizeOptionalRouteString,
   parseAgentSessionDeliveryRoute,
   parseSimpleSessionKey,
   resolveSessionDeliveryRoute,
-} from "../../services/route-resolver.js";
+} from "@core/features/agent/services/route-resolver.js";
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_MESSAGE_LIMIT = 0;
@@ -185,7 +185,7 @@ export class SessionsListTool extends Tool {
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
+  execute = async (params: Record<string, unknown>): Promise<string> => {
     const {
       accountId,
       activeMinutes: rawActiveMinutes,
@@ -293,7 +293,7 @@ export class SessionsListTool extends Tool {
         return base;
       });
     return JSON.stringify({ sessions }, null, 2);
-  }
+  };
 }
 
 export class SessionsHistoryTool extends Tool {
@@ -321,7 +321,7 @@ export class SessionsHistoryTool extends Tool {
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
+  execute = async (params: Record<string, unknown>): Promise<string> => {
     const { includeTools: rawIncludeTools, limit: rawLimit, sessionKey: rawSessionKey } = params;
     const sessionKey = String(rawSessionKey ?? "").trim();
     if (!sessionKey) {
@@ -358,5 +358,5 @@ export class SessionsHistoryTool extends Tool {
     const sanitized = recent.map((msg) => sanitizeHistoryMessage(msg).message);
     const capped = enforceHistoryHardCap(sanitized);
     return JSON.stringify({ sessionKey, messages: capped }, null, 2);
-  }
+  };
 }

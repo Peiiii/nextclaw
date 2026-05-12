@@ -1,36 +1,36 @@
-import type { Tool } from "./base.js";
+import { createToolExecutionContext, type Tool, type ToolExecutionContext } from "./base.tools.js";
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
 
-  register(tool: Tool): void {
+  register = (tool: Tool): void => {
     this.tools.set(tool.name, tool);
-  }
+  };
 
-  unregister(name: string): void {
+  unregister = (name: string): void => {
     this.tools.delete(name);
-  }
+  };
 
-  get(name: string): Tool | undefined {
+  get = (name: string): Tool | undefined => {
     return this.tools.get(name);
-  }
+  };
 
-  has(name: string): boolean {
+  has = (name: string): boolean => {
     return this.tools.has(name);
-  }
+  };
 
-  getDefinitions(): Array<Record<string, unknown>> {
+  getDefinitions = (): Array<Record<string, unknown>> => {
     return Array.from(this.tools.values())
       .filter((tool) => tool.isAvailable())
       .map((tool) => tool.toSchema());
-  }
+  };
 
-  execute = async (name: string, params: Record<string, unknown>, toolCallId?: string): Promise<string> => {
-    const result = await this.executeRaw(name, params, toolCallId);
+  execute = async (name: string, params: Record<string, unknown>, context: Partial<ToolExecutionContext> = {}): Promise<string> => {
+    const result = await this.executeRaw(name, params, context);
     return stringifyToolResult(result);
   };
 
-  executeRaw = async (name: string, params: Record<string, unknown>, toolCallId?: string): Promise<unknown> => {
+  executeRaw = async (name: string, params: Record<string, unknown>, context: Partial<ToolExecutionContext> = {}): Promise<unknown> => {
     const tool = this.tools.get(name);
     if (!tool) {
       return `Error: Tool '${name}' not found`;
@@ -43,7 +43,7 @@ export class ToolRegistry {
       if (errors.length) {
         return `Error: Invalid parameters for tool '${name}': ${errors.join("; ")}`;
       }
-      return await tool.execute(params, toolCallId);
+      return await tool.execute(params, createToolExecutionContext(context));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[tool-registry] tool "${name}" execution failed`, err);

@@ -1,4 +1,4 @@
-import { Tool, type SessionRequestManager } from "@nextclaw/core";
+import { Tool, type SessionRequestManager, type ToolExecutionContext } from "@nextclaw/core";
 
 function readRequiredString(params: Record<string, unknown>, key: string): string {
   const value = params[key];
@@ -76,7 +76,7 @@ export class SessionRequestTool extends Tool {
 
   execute = async (
     params: Record<string, unknown>,
-    toolCallId?: string,
+    context: ToolExecutionContext,
   ): Promise<unknown> => {
     const target = params.target;
     if (!target || typeof target !== "object" || Array.isArray(target)) {
@@ -87,10 +87,12 @@ export class SessionRequestTool extends Tool {
     if (notifyMode !== "none" && notifyMode !== "final_reply") {
       throw new Error('notify must be "none" or "final_reply".');
     }
+    const { toolCallId, updateToolCallResult } = context;
 
     return this.manager.requestSession({
       sourceSessionId: this.sourceSessionId,
-      sourceToolCallId: toolCallId,
+      ...(toolCallId ? { sourceToolCallId: toolCallId } : {}),
+      updateToolCallResult,
       targetSessionId: readRequiredString(target as Record<string, unknown>, "session_id"),
       task,
       title: readOptionalString(params, "title"),

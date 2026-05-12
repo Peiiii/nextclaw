@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import type { SubagentManager } from "../../managers/subagent.manager.js";
-import { SpawnTool } from "./spawn.service.js";
+import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
+import { createToolExecutionContext } from "./base.tools.js";
+import { SpawnTool } from "./spawn.tools.js";
 
 describe("SpawnTool", () => {
   it("forwards explicit model override and session model context", async () => {
@@ -12,7 +13,7 @@ describe("SpawnTool", () => {
       task: "draft release notes",
       label: "release-notes",
       model: "anthropic/claude-sonnet-4-5"
-    });
+    }, createToolExecutionContext());
 
     expect(spawn).toHaveBeenCalledWith({
       task: "draft release notes",
@@ -34,7 +35,7 @@ describe("SpawnTool", () => {
     await tool.execute({
       task: "collect bug reports",
       model: "   "
-    });
+    }, createToolExecutionContext());
 
     expect(spawn).toHaveBeenCalledWith({
       task: "collect bug reports",
@@ -55,7 +56,7 @@ describe("SpawnTool", () => {
 
     await tool.execute({
       task: "summarize changelog"
-    });
+    }, createToolExecutionContext());
 
     expect(spawn).toHaveBeenCalledWith({
       task: "summarize changelog",

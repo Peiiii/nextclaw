@@ -3,6 +3,7 @@ import {
   type SessionManager,
   type SessionRequestManager,
   type SessionRequestNotifyMode,
+  type ToolExecutionContext,
 } from "@nextclaw/core";
 
 function readRequiredString(value: unknown, key: string): string {
@@ -133,7 +134,7 @@ export class SessionSpawnTool extends Tool {
     this.handoffDepth = params.handoffDepth ?? 0;
   };
 
-  execute = async (params: Record<string, unknown>, toolCallId?: string): Promise<unknown> => {
+  execute = async (params: Record<string, unknown>, context: ToolExecutionContext): Promise<unknown> => {
     const {
       agentId: rawAgentId,
       model: rawModel,
@@ -147,11 +148,13 @@ export class SessionSpawnTool extends Tool {
     const scope = readSpawnScope(rawScope);
     const request = readSpawnRequestOptions(rawRequest);
     const parentSessionId = scope === "child" ? this.readParentSessionIdOrThrow() : undefined;
+    const { toolCallId, updateToolCallResult } = context;
 
     if (request) {
       return this.sessionRequestManager.spawnSessionAndRequest({
         sourceSessionId: this.sourceSessionId,
-        sourceToolCallId: toolCallId,
+        ...(toolCallId ? { sourceToolCallId: toolCallId } : {}),
+        updateToolCallResult,
         sourceSessionMetadata: this.sourceSessionMetadata,
         task,
         title: readOptionalString(rawTitle),

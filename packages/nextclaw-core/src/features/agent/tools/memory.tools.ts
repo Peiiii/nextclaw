@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { Tool } from "./base.js";
+import { Tool } from "./base.tools.js";
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_CONTEXT_LINES = 0;
@@ -62,7 +62,7 @@ export class MemorySearchTool extends Tool {
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
+  execute = async (params: Record<string, unknown>): Promise<string> => {
     const query = normalizeQuery(params.query);
     if (!query) {
       return "Error: query is required";
@@ -96,7 +96,7 @@ export class MemorySearchTool extends Tool {
       null,
       2
     );
-  }
+  };
 }
 
 export class MemoryGetTool extends Tool {
@@ -124,7 +124,7 @@ export class MemoryGetTool extends Tool {
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
+  execute = async (params: Record<string, unknown>): Promise<string> => {
     const pathParam = String(params.path ?? "").trim();
     if (!pathParam) {
       return "Error: path is required";
@@ -155,5 +155,5 @@ export class MemoryGetTool extends Tool {
       null,
       2
     );
-  }
+  };
 }

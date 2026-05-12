@@ -1,4 +1,4 @@
-import { Tool } from "./base.js";
+import { Tool } from "./base.tools.js";
 
 export type GatewayConfigSnapshot = {
   raw?: string | null;

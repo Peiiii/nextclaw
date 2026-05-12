@@ -153,6 +153,7 @@ export class LearningLoopManager {
     try {
       const reviewSession = await this.options.sessionRequester.spawnSessionAndRequest({
         sourceSessionId: event.sessionId,
+        updateToolCallResult: async () => undefined,
         sourceSessionMetadata: session.metadata,
         metadataOverrides: {
           requested_skills: LEARNING_LOOP_REQUESTED_SKILLS,

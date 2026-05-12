@@ -15,6 +15,7 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
+  createToolExecutionContext,
   type Config,
   type CronService,
   type ExtensionRegistry,
@@ -23,6 +24,7 @@ import {
   type SearchConfig,
   type SessionManager,
   type SessionRequestManager,
+  type ToolExecutionContext,
 } from "@nextclaw/core";
 import type { Tool } from "@nextclaw/core";
 import type { NcpTool, NcpToolDefinition, NcpToolRegistry } from "@nextclaw/ncp";
@@ -42,6 +44,11 @@ type NextclawNcpToolRegistryOptions = {
   getAdditionalTools?: (context: PreparedRunContext) => ReadonlyArray<NcpTool>;
   onSessionUpdated?: (sessionKey: string) => void;
   sessionRequestManager: SessionRequestManager;
+  updateToolCallResult: (params: {
+    sessionId: string;
+    toolCallId: string;
+    result: unknown;
+  }) => Promise<void>;
 };
 
 type PreparedRunContext = {
@@ -180,9 +187,26 @@ export class NextclawNcpToolRegistry implements NcpToolRegistry {
 
   execute = async (toolCallId: string, toolName: string, args: unknown): Promise<unknown> => {
     if (this.registry.has(toolName)) {
-      return this.registry.executeRaw(toolName, toToolParams(args), toolCallId);
+      return this.registry.executeRaw(toolName, toToolParams(args), this.buildToolExecutionContext(toolCallId));
     }
     return this.tools.get(toolName)?.execute(args);
+  };
+
+  private buildToolExecutionContext = (toolCallId: string): ToolExecutionContext => {
+    const sessionId = this.currentExtensionToolContext.sessionKey;
+    return createToolExecutionContext({
+      toolCallId,
+      updateToolCallResult: async (result: unknown) => {
+        if (!sessionId) {
+          return;
+        }
+        await this.options.updateToolCallResult({
+          sessionId,
+          toolCallId,
+          result,
+        });
+      },
+    });
   };
 
   private registerDefaultTools = (context: PreparedRunContext): void => {

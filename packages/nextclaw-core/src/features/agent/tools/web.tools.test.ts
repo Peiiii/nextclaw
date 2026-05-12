@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { WebSearchTool } from "./web.js";
-import type { SearchConfig } from "../../../config/configs/schema.js";
+import { WebSearchTool } from "./web.tools.js";
+import type { SearchConfig } from "@core/features/config/index.js";
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn()

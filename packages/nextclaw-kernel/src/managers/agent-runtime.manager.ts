@@ -65,6 +65,12 @@ export type AgentRuntimeManagerOptions = {
 
 type RuntimeFactory = (runtimeParams: RuntimeFactoryParams) => NcpAgentRuntime;
 
+type UpdateToolCallResult = (params: {
+  sessionId: string;
+  toolCallId: string;
+  result: unknown;
+}) => Promise<void>;
+
 function createContextWindowUpdatedEvent(params: {
   contextWindow: ContextWindowSnapshot;
   sessionId: string;
@@ -116,6 +122,7 @@ function createNativeRuntimeFactory(
   resolveGatewayController: () => GatewayController | undefined,
   mcpToolRegistryAdapter: McpNcpToolRegistryAdapter,
   assetStore: LocalAssetStore,
+  updateToolCallResult: UpdateToolCallResult,
 ): RuntimeFactory {
   const observedProviderManager = params.llmUsage.observeProviderManager(
     params.providerManager,
@@ -152,6 +159,7 @@ function createNativeRuntimeFactory(
       getExtensionRegistry: params.extensions.getExtensionRegistry,
       onSessionUpdated: params.onSessionUpdated,
       sessionRequestManager: params.sessionRequests,
+      updateToolCallResult,
       getAdditionalTools: (context) => [
         ...createAssetTools({
           assetStore,
@@ -272,6 +280,7 @@ function createResolveOpenAiToolsForRuntime(params: {
   assetStore: LocalAssetStore;
   toolRegistryAdapter: McpNcpToolRegistryAdapter;
   onSessionUpdated: (sessionKey: string) => void;
+  updateToolCallResult: UpdateToolCallResult;
 }) {
   const {
     assetStore,
@@ -286,6 +295,7 @@ function createResolveOpenAiToolsForRuntime(params: {
     sessionRequests,
     sessionSearch,
     toolRegistryAdapter,
+    updateToolCallResult,
   } = params;
   const toolRegistry = new NextclawNcpToolRegistry({
     bus,
@@ -297,6 +307,7 @@ function createResolveOpenAiToolsForRuntime(params: {
     getExtensionRegistry: extensions.getExtensionRegistry,
     onSessionUpdated,
     sessionRequestManager: sessionRequests,
+    updateToolCallResult,
     getAdditionalTools: (context) => [
       ...createAssetTools({
         assetStore,
@@ -413,6 +424,7 @@ export class AgentRuntimeManager {
             assetStore: this.assetStore,
             toolRegistryAdapter: this.mcpRuntimeSupport.toolRegistryAdapter,
             onSessionUpdated: this.params.onSessionUpdated,
+            updateToolCallResult: this.updateToolCallResult,
           }),
         });
       },
@@ -468,6 +480,7 @@ export class AgentRuntimeManager {
         () => this.gatewayController,
         this.mcpRuntimeSupport.toolRegistryAdapter,
         this.assetStore,
+        this.updateToolCallResult,
       ),
     });
     const builtinNarpRegistrationService = new BuiltinNarpRuntimeRegistrationService(
@@ -503,6 +516,18 @@ export class AgentRuntimeManager {
       source: "backend",
     });
     this.params.handleNcpEvent(event);
+  };
+
+  private updateToolCallResult: UpdateToolCallResult = async ({
+    sessionId,
+    toolCallId,
+    result,
+  }): Promise<void> => {
+    const backend = this.backend;
+    if (!backend) {
+      throw new Error("NCP backend is not ready for tool result updates.");
+    }
+    await backend.updateToolCallResult(sessionId, toolCallId, result);
   };
 
   private readonly assertNotDisposed = (): void => {

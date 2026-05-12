@@ -1,7 +1,7 @@
 import { fetch } from "undici";
-import { Tool } from "./base.js";
-import { APP_USER_AGENT } from "../../../config/configs/brand.js";
-import type { SearchConfig, SearchProviderName } from "../../../config/configs/schema.js";
+import { Tool } from "./base.tools.js";
+import { APP_USER_AGENT } from "@core/features/config/index.js";
+import type { SearchConfig, SearchProviderName } from "@core/features/config/index.js";
 
 type SearchResultItem = {
   title: string;
@@ -344,7 +344,7 @@ export class WebFetchTool extends Tool {
     };
   }
 
-  async execute(params: Record<string, unknown>): Promise<string> {
+  execute = async (params: Record<string, unknown>): Promise<string> => {
     const url = String(params.url ?? "");
     const response = await fetch(url, { headers: { "User-Agent": APP_USER_AGENT } });
     if (!response.ok) {
@@ -352,5 +352,5 @@ export class WebFetchTool extends Tool {
     }
     const text = await response.text();
     return text.slice(0, 12000);
-  }
+  };
 }

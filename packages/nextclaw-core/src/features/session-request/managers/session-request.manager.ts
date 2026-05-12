@@ -1,28 +1,28 @@
 import { randomUUID } from "node:crypto";
-import type { SessionManager } from "../../session/managers/session.manager.js";
+import type { SessionManager } from "@core/features/session/index.js";
 import {
   buildSessionRequestToolResult,
   readOptionalString,
   readParentSessionId,
   summarizeSessionRequestTask,
-} from "../utils/session-request-result.utils.js";
+} from "@core/features/session-request/utils/session-request-result.utils.js";
 import {
   createCompletedSessionRequest,
   createFailedSessionRequest,
   createRunningSessionRequest,
-} from "../utils/session-request-record.utils.js";
+} from "@core/features/session-request/utils/session-request-record.utils.js";
 import type {
   DispatchRequestParams,
-  PublishRequestOutcomeParams,
   RequestSessionParams,
   SessionRequestDispatcher,
-  SessionRequestExecutionParams,
+  SessionRequestPayload,
+  SessionRequestResultContext,
   SpawnSessionAndRequestParams,
-} from "../types/session-request-manager.types.js";
+} from "@core/features/session-request/types/session-request-manager.types.js";
 import type {
   SessionRequestRecord,
   SessionRequestToolResult,
-} from "../types/session-request.types.js";
+} from "@core/features/session-request/types/session-request.types.js";
 
 export type SessionRequestManagerOptions = {
   dispatcher: SessionRequestDispatcher;
@@ -39,6 +39,7 @@ export class SessionRequestManager {
     const {
       sourceSessionId,
       sourceToolCallId,
+      updateToolCallResult,
       sourceSessionMetadata,
       metadataOverrides,
       task,
@@ -75,6 +76,7 @@ export class SessionRequestManager {
       requestId,
       sourceSessionId,
       sourceToolCallId,
+      updateToolCallResult,
       targetSessionId: createdSession.sessionId,
       task,
       title: createdSession.title ?? summarizeSessionRequestTask(task),
@@ -93,6 +95,7 @@ export class SessionRequestManager {
     const {
       sourceSessionId,
       sourceToolCallId,
+      updateToolCallResult,
       targetSessionId,
       task,
       title,
@@ -104,25 +107,26 @@ export class SessionRequestManager {
     if (normalizedTargetSessionId === sourceSessionId.trim()) {
       throw new Error("sessions_request cannot target the current session.");
     }
-    const targetSummary = await this.options.dispatcher.getSession(normalizedTargetSessionId);
-    if (!targetSummary) {
+    const targetSession = this.options.sessions.getIfExists(normalizedTargetSessionId);
+    if (!targetSession) {
       throw new Error(`Target session not found: ${targetSessionId}`);
     }
-    const parentSessionId = readParentSessionId(targetSummary.metadata);
+    const parentSessionId = readParentSessionId(targetSession.metadata);
 
     return this.dispatchRequest({
       requestId: randomUUID(),
       sourceSessionId,
       sourceToolCallId,
+      updateToolCallResult,
       targetSessionId: normalizedTargetSessionId,
       task,
       title:
         readOptionalString(title) ??
-        readOptionalString(targetSummary.metadata?.label) ??
+        readOptionalString(targetSession.metadata.label) ??
         summarizeSessionRequestTask(task),
       handoffDepth: handoffDepth ?? 0,
       notify,
-      agentId: targetSummary.agentId,
+      agentId: targetSession.agentId,
       isChildSession: Boolean(parentSessionId),
       parentSessionId: parentSessionId ?? undefined,
       spawnedByRequestId: undefined,
@@ -136,6 +140,7 @@ export class SessionRequestManager {
       requestId,
       sourceSessionId,
       sourceToolCallId,
+      updateToolCallResult,
       targetSessionId,
       task,
       title,
@@ -158,32 +163,57 @@ export class SessionRequestManager {
       isChildSession,
       parentSessionId,
     });
-
-    void this.runRequest({
-      request,
+    const resultContext: SessionRequestResultContext = {
       task,
       title,
+      updateToolCallResult,
       agentId,
       isChildSession,
       parentSessionId,
       spawnedByRequestId,
-    }).catch((error) => {
-      console.error(
-        `[session-request] Background request ${requestId} crashed: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      );
-    });
+    };
+    const payload = this.toSessionRequestPayload(request, resultContext);
 
-    return buildSessionRequestToolResult({
-      request,
-      task,
-      title,
-      agentId,
-      isChildSession,
-      parentSessionId,
-      spawnedByRequestId,
+    if (notify === "final_reply") {
+      return await this.runRequest(payload);
+    }
+
+    void this.runRequestAndUpdateToolCallResult(payload);
+
+    return this.buildToolResult({
+      ...payload,
       message: `Session request started. You'll receive the final reply when it finishes.`,
+    });
+  };
+
+  private toSessionRequestPayload = (
+    request: SessionRequestRecord,
+    resultContext: SessionRequestResultContext,
+  ): SessionRequestPayload => ({
+    request,
+    resultContext,
+  });
+
+  private buildToolResult = (
+    payload: SessionRequestPayload & { message?: string },
+  ): SessionRequestToolResult => {
+    const {
+      task,
+      title,
+      agentId,
+      isChildSession,
+      parentSessionId,
+      spawnedByRequestId,
+    } = payload.resultContext;
+    return buildSessionRequestToolResult({
+      request: payload.request,
+      task,
+      title,
+      isChildSession,
+      ...(agentId ? { agentId } : {}),
+      ...(parentSessionId ? { parentSessionId } : {}),
+      ...(spawnedByRequestId ? { spawnedByRequestId } : {}),
+      ...(payload.message ? { message: payload.message } : {}),
     });
   };
 
@@ -195,49 +225,14 @@ export class SessionRequestManager {
     this.appendRequestEvent(request.targetSessionId, type, request);
   };
 
-  private publishRequestOutcome = async (
-    params: PublishRequestOutcomeParams,
-  ): Promise<void> => {
-    const {
-      request,
-      task,
-      title,
-      agentId,
-      isChildSession,
-      parentSessionId,
-      spawnedByRequestId,
-    } = params;
-    const result = buildSessionRequestToolResult({
-      request,
-      task,
-      title,
-      agentId,
-      isChildSession,
-      parentSessionId,
-      spawnedByRequestId,
-    });
-    await this.options.dispatcher.publishOutcome({
-      request,
-      result,
-    });
-  };
-
   private runRequest = async (
-    params: SessionRequestExecutionParams,
-  ): Promise<void> => {
-    const {
-      request,
-      task,
-      title,
-      agentId,
-      isChildSession,
-      parentSessionId,
-      spawnedByRequestId,
-    } = params;
+    payload: SessionRequestPayload,
+  ): Promise<SessionRequestToolResult> => {
+    const { request, resultContext } = payload;
     try {
       const dispatchResult = await this.options.dispatcher.dispatch({
         request,
-        task,
+        task: resultContext.task,
         onAccepted: (messageId) => {
           this.appendAcceptedRequestEvent(request, messageId);
         },
@@ -248,30 +243,31 @@ export class SessionRequestManager {
         finalResponseText: dispatchResult.finalResponseText,
       });
       this.appendRequestEvents(completedRequest, "session.request.completed");
-      await this.publishRequestOutcome({
-        request: completedRequest,
-        task,
-        title,
-        agentId,
-        isChildSession,
-        parentSessionId,
-        spawnedByRequestId,
-      });
+      const completedPayload = this.toSessionRequestPayload(completedRequest, resultContext);
+      return this.buildToolResult(completedPayload);
     } catch (error) {
       const failedRequest = createFailedSessionRequest({
         request,
         error,
       });
       this.appendRequestEvents(failedRequest, "session.request.failed");
-      await this.publishRequestOutcome({
-        request: failedRequest,
-        task,
-        title,
-        agentId,
-        isChildSession,
-        parentSessionId,
-        spawnedByRequestId,
-      });
+      const failedPayload = this.toSessionRequestPayload(failedRequest, resultContext);
+      return this.buildToolResult(failedPayload);
+    }
+  };
+
+  private runRequestAndUpdateToolCallResult = async (
+    payload: SessionRequestPayload,
+  ): Promise<void> => {
+    try {
+      const result = await this.runRequest(payload);
+      await payload.resultContext.updateToolCallResult(result);
+    } catch (error) {
+      console.error(
+        `[session-request] Background request ${payload.request.requestId} crashed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   };
 

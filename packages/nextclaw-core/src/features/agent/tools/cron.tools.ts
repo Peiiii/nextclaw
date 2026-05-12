@@ -1,4 +1,4 @@
-import { Tool } from "./base.js";
+import { Tool } from "./base.tools.js";
 import type { CronSchedule, CronService } from "@core/features/cron/index.js";
 
 export class CronTool extends Tool {

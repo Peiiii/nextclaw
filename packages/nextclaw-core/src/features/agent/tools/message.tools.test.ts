@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MessageTool } from "./message.js";
+import { MessageTool } from "./message.tools.js";
 
 describe("MessageTool", () => {
   it("treats missing content aliases as invalid parameters", async () => {

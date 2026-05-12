@@ -11,6 +11,20 @@ export type ToolSchema = {
   items?: ToolSchema;
 };
 
+export type ToolExecutionContext = {
+  toolCallId: string;
+  updateToolCallResult: (result: unknown) => Promise<void>;
+};
+
+export function createToolExecutionContext(
+  context: Partial<ToolExecutionContext> = {},
+): ToolExecutionContext {
+  return {
+    toolCallId: context.toolCallId ?? "",
+    updateToolCallResult: context.updateToolCallResult ?? (async () => undefined),
+  };
+}
+
 export abstract class Tool {
   private static typeMap: Record<string, (value: unknown) => boolean> = {
     string: (v) => typeof v === "string",
@@ -25,7 +39,7 @@ export abstract class Tool {
   abstract get description(): string;
   abstract get parameters(): Record<string, unknown>;
 
-  abstract execute(params: Record<string, unknown>, toolCallId?: string): Promise<unknown>;
+  abstract execute(params: Record<string, unknown>, context: ToolExecutionContext): Promise<unknown>;
 
   isAvailable = (): boolean => true;
 

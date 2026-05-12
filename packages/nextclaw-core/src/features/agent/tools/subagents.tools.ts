@@ -1,5 +1,5 @@
-import { Tool } from "./base.js";
-import type { SubagentManager } from "../../managers/subagent.manager.js";
+import { Tool } from "./base.tools.js";
+import type { SubagentManager } from "@core/features/agent/managers/subagent.manager.js";
 
 export class SubagentsTool extends Tool {
   constructor(private manager: SubagentManager) {

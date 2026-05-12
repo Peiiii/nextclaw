@@ -4,9 +4,14 @@ import type {
   SessionRequestToolResult,
 } from "./session-request.types.js";
 
+export type UpdateSessionRequestToolCallResult = (
+  result: SessionRequestToolResult,
+) => Promise<void>;
+
 export type SpawnSessionAndRequestParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
+  updateToolCallResult: UpdateSessionRequestToolCallResult;
   sourceSessionMetadata: Record<string, unknown>;
   metadataOverrides?: Record<string, unknown>;
   task: string;
@@ -25,6 +30,7 @@ export type SpawnSessionAndRequestParams = {
 export type RequestSessionParams = {
   sourceSessionId: string;
   sourceToolCallId?: string;
+  updateToolCallResult: UpdateSessionRequestToolCallResult;
   targetSessionId: string;
   task: string;
   title?: string;
@@ -36,6 +42,7 @@ export type DispatchRequestParams = {
   requestId: string;
   sourceSessionId: string;
   sourceToolCallId?: string;
+  updateToolCallResult: UpdateSessionRequestToolCallResult;
   targetSessionId: string;
   task: string;
   title: string;
@@ -47,19 +54,19 @@ export type DispatchRequestParams = {
   spawnedByRequestId?: string;
 };
 
-export type SessionRequestExecutionParams = {
-  request: SessionRequestRecord;
+export type SessionRequestResultContext = {
   task: string;
   title: string;
+  updateToolCallResult: UpdateSessionRequestToolCallResult;
   agentId?: string;
   isChildSession: boolean;
   parentSessionId?: string;
   spawnedByRequestId?: string;
 };
 
-export type SessionRequestTarget = {
-  agentId?: string;
-  metadata?: Record<string, unknown>;
+export type SessionRequestPayload = {
+  request: SessionRequestRecord;
+  resultContext: SessionRequestResultContext;
 };
 
 export type SessionRequestDispatchResult = {
@@ -68,16 +75,9 @@ export type SessionRequestDispatchResult = {
 };
 
 export type SessionRequestDispatcher = {
-  getSession: (sessionId: string) => Promise<SessionRequestTarget | null>;
   dispatch: (params: {
     request: SessionRequestRecord;
     task: string;
     onAccepted: (messageId: string) => void;
   }) => Promise<SessionRequestDispatchResult>;
-  publishOutcome: (params: {
-    request: SessionRequestRecord;
-    result: SessionRequestToolResult;
-  }) => Promise<void>;
 };
-
-export type PublishRequestOutcomeParams = SessionRequestExecutionParams;

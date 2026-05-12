@@ -1,11 +1,11 @@
-import { Tool } from "../../agent/features/tools/base.js";
-import type { Config } from "../../config/configs/schema.js";
+import { Tool, type ToolExecutionContext } from "@core/features/agent/index.js";
+import type { Config } from "@core/features/config/index.js";
 import type {
   ExtensionDiagnostic,
   ExtensionTool,
   ExtensionToolContext,
   ExtensionToolRegistration
-} from "../types/extension.types.js";
+} from "@core/features/extensions/index.js";
 
 function normalizeToolList(value: unknown): ExtensionTool[] {
   if (!value) {
@@ -96,7 +96,7 @@ export class ExtensionToolAdapter extends Tool {
 
   override isAvailable = (): boolean => this.resolveToolPreview() !== null;
 
-  override async execute(params: Record<string, unknown>, toolCallId?: string): Promise<string> {
+  override async execute(params: Record<string, unknown>, context: ToolExecutionContext): Promise<string> {
     const resolved = this.resolveToolRuntime();
     if (!resolved) {
       return `Error: Tool '${this.name}' not available in extension '${this.params.registration.extensionId}'`;
@@ -106,7 +106,7 @@ export class ExtensionToolAdapter extends Tool {
       const result =
         resolved.execute.length >= 2
           ? await (resolved.execute as (toolCallId: string, values: Record<string, unknown>) => Promise<unknown> | unknown)(
-              toolCallId ?? "",
+              context.toolCallId,
               params
             )
           : await (resolved.execute as (values: Record<string, unknown>) => Promise<unknown> | unknown)(params);
