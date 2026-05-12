@@ -6,6 +6,7 @@ import type {
   EventBusOptions,
   Unsubscribe,
 } from "../types/event-bus.types.js";
+import { getKeyId, type Key } from "../types/typed-key.types.js";
 
 export class EventBus {
   private readonly listeners = new Map<string, Set<AppEventHandler<unknown>>>();
@@ -22,12 +23,12 @@ export class EventBus {
   }
 
   emit = <T>(
-    key: AppEventKey<T>,
+    key: Key<T>,
     payload: T,
     options: AppEventEmitOptions = {},
   ): void => {
     const envelope: AppEventEnvelope<T> = {
-      type: key.id,
+      type: getKeyId(key),
       payload,
       ...(options.emittedAt ? { emittedAt: options.emittedAt } : {}),
       ...(options.source ? { source: options.source } : {}),
@@ -51,11 +52,12 @@ export class EventBus {
   };
 
   on = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): Unsubscribe => {
-    const listeners = this.listeners.get(key.id) ?? new Set<AppEventHandler<unknown>>();
+    const keyId = getKeyId(key);
+    const listeners = this.listeners.get(keyId) ?? new Set<AppEventHandler<unknown>>();
     const typedHandler = handler as AppEventHandler<unknown>;
     const added = !listeners.has(typedHandler);
     listeners.add(typedHandler);
-    this.listeners.set(key.id, listeners);
+    this.listeners.set(keyId, listeners);
     if (added) {
       this.registerSubscriber();
     }
@@ -65,13 +67,14 @@ export class EventBus {
   };
 
   off = <T>(key: AppEventKey<T>, handler: AppEventHandler<T>): void => {
-    const listeners = this.listeners.get(key.id);
+    const keyId = getKeyId(key);
+    const listeners = this.listeners.get(keyId);
     if (!listeners) {
       return;
     }
     const deleted = listeners.delete(handler as AppEventHandler<unknown>);
     if (listeners.size === 0) {
-      this.listeners.delete(key.id);
+      this.listeners.delete(keyId);
     }
     if (deleted) {
       this.unregisterSubscriber();

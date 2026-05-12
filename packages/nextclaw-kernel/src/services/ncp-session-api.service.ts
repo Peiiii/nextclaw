@@ -7,7 +7,7 @@ import type {
   NcpSessionSummary,
 } from "@nextclaw/ncp";
 import type { Config, SessionManager } from "@nextclaw/core";
-import { ContextCompactionPreflightService } from "@kernel/agent-runtime/context/context-compaction-preflight.service.js";
+import { ContextCompactionPreflightService } from "@kernel/features/native-runtime";
 import { toNcpMessages } from "@kernel/utils/ncp-session-message-adapter.utils.js";
 import { createNcpSessionSummary } from "@kernel/utils/ncp-session-summary.utils.js";
 import { eventKeys, type EventBus, type Unsubscribe } from "@nextclaw/shared";

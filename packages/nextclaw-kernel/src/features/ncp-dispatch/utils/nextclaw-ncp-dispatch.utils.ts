@@ -17,7 +17,7 @@ import { runPromptOverNcp, type NcpRunnerAgent } from "./nextclaw-ncp-runner.uti
 import {
   dispatchChannelReplyRoute,
   resolveChannelReplyRoute,
-} from "./runner/channel-reply.utils.js";
+} from "./channel-reply.utils.js";
 export type DirectPromptDispatchParams = {
   config: Config;
   sessionManager: SessionManager;

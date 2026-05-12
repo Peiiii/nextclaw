@@ -1,6 +1,5 @@
 import { AgentManager } from "@kernel/managers/agent.manager.js";
 import { AgentRuntimeManager } from "@kernel/managers/agent-runtime.manager.js";
-import { AgentRuntimeRequestManager } from "@kernel/managers/agent-runtime-request.manager.js";
 import { AutomationManager } from "@kernel/managers/automation.manager.js";
 import { ConfigManager } from "@kernel/managers/config.manager.js";
 import { ExtensionManager } from "@kernel/managers/extension.manager.js";
@@ -13,6 +12,7 @@ import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.con
 import { NcpLifecycleEventBridge } from "@kernel/services/ncp-lifecycle-event-bridge.service.js";
 import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
+import { AgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request";
 import {
   ChannelManager,
   ensureDir,
@@ -114,7 +114,6 @@ export class NextclawKernel {
   readonly ncpSessionApi: NcpSessionApiService;
   readonly extensions: ExtensionManager;
   readonly agentRuntimeManager: AgentRuntimeManager;
-  readonly agentRuntimeRequestManager: AgentRuntimeRequestManager;
   readonly learningLoop: LearningLoopManager;
   private readonly sessionLifecycleEvents: NcpLifecycleEventBridge;
   private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
@@ -134,10 +133,12 @@ export class NextclawKernel {
     this.ncpAgentSessionStore = new NcpAgentSessionStoreAdapter(this.sessions, {
       onSessionUpdated: this.sessionSearch.handleSessionUpdated,
     });
-    this.agentRuntimeRequestManager = new AgentRuntimeRequestManager();
     this.sessionRequests = new SessionRequestManager({
       sessions: this.sessions,
-      dispatcher: this.agentRuntimeRequestManager,
+      dispatcher: new AgentRuntimeSessionRequestDispatcher({
+        eventBus: this.eventBus,
+        ingress: this.ingress,
+      }),
       onSessionUpdated: this.sessionSearch.handleSessionUpdated,
     });
     this.automation = new AutomationManager({
@@ -170,6 +171,7 @@ export class NextclawKernel {
       bus: this.messageBus,
       providerManager: this.llmProviders,
       sessions: this.sessions,
+      ingress: this.ingress,
       sessionRequests: this.sessionRequests,
       sessionSearch: this.sessionSearch,
       ncpAgentSessionStore: this.ncpAgentSessionStore,
@@ -181,7 +183,6 @@ export class NextclawKernel {
       llmUsage: this.llmUsage,
       onSessionUpdated: this.publishSessionUpdated,
     });
-    this.agentRuntimeRequestManager.connectAgentRuntimeManager(this.agentRuntimeManager);
     this.learningLoop = new LearningLoopManager({
       eventBus: this.eventBus,
       sessionManager: this.sessions,
@@ -198,9 +199,6 @@ export class NextclawKernel {
       })
       .then(() => this.sessionSearch.start())
       .then(() => this.agentRuntimeManager.bootstrap())
-      .then(() => {
-        this.agentRuntimeRequestManager.start();
-      })
       .then(() => {
         this.learningLoop.start();
       })

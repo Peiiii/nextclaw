@@ -25,8 +25,8 @@ import {
   buildContextCompactionTimelineNcpMessage,
   isContextCompactionTimelineMessage,
   upsertContextCompactionTimelineMessage,
-} from "./context-compaction-timeline-message.utils.js";
-import { projectNcpMessagesWithContextCompaction } from "./context-compaction-projection.utils.js";
+} from "@kernel/features/native-runtime/utils/context-compaction-timeline-message.utils.js";
+import { projectNcpMessagesWithContextCompaction } from "@kernel/features/native-runtime/utils/context-compaction-projection.utils.js";
 
 export type ContextWindowOwner = "nextclaw" | "runtime";
 

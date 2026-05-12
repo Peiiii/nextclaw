@@ -30,6 +30,14 @@ export type {
   Unsubscribe,
 } from "./types/event-bus.types.js";
 export {
+  createTypedKey,
+  getKeyId,
+} from "./types/typed-key.types.js";
+export type {
+  Key,
+  TypedKey,
+} from "./types/typed-key.types.js";
+export {
   createAppEventKey,
   createEventKey,
   eventKeys,

@@ -1,13 +1,14 @@
 import type { NcpEndpointEvent, NcpSessionSummary } from "@nextclaw/ncp";
 import type { AppEventKey, EventKey } from "../types/event-bus.types.js";
+import { createTypedKey } from "../types/typed-key.types.js";
 import type { UpdateSnapshot } from "../types/update.types.js";
 
 export function createEventKey<T>(id: string): EventKey<T> {
-  return { id };
+  return createTypedKey<T>(id);
 }
 
 export function createAppEventKey<T>(id: string): AppEventKey<T> {
-  return createEventKey(id);
+  return createTypedKey<T>(id);
 }
 
 export const eventKeys = {

@@ -27,11 +27,11 @@ import type {
   AgentRuntimeRegistry,
   AgentRuntimeSessionTypeDescribeParams,
   AgentRuntimeSessionTypeOption,
-} from "./agent-runtime-registry.service.js";
+} from "@kernel/features/runtime-registry";
 import {
   NARP_HTTP_RUNTIME_KIND,
   NARP_STDIO_RUNTIME_KIND,
-} from "./builtin-narp-runtime.types.js";
+} from "@kernel/features/narp-runtime/types/builtin-narp-runtime.types.js";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
 

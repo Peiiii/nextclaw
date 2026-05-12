@@ -1,10 +1,10 @@
 import { DisposableStore } from "@nextclaw/core";
 import type { ExtensionManager, NextclawExtensionRegistry } from "@kernel/managers/extension.manager.js";
-import type { AgentRuntimeRegistry } from "./agent-runtime-registry.service.js";
+import type { AgentRuntimeRegistry } from "@kernel/features/runtime-registry/services/agent-runtime-registry.service.js";
 import {
   NARP_HTTP_RUNTIME_KIND,
   NARP_STDIO_RUNTIME_KIND,
-} from "./builtin-narp-runtime.types.js";
+} from "@kernel/features/narp-runtime";
 
 const RESERVED_BUILTIN_RUNTIME_KINDS = new Set([
   NARP_HTTP_RUNTIME_KIND,
@@ -21,30 +21,6 @@ function buildPluginRuntimeSnapshotKey(extensionRegistry?: NextclawExtensionRegi
       registration.source,
     ].join(":"))
     .join("|");
-}
-
-function createRuntimeFactory(
-  registration: NextclawExtensionRegistry["ncpAgentRuntimes"][number],
-): NextclawExtensionRegistry["ncpAgentRuntimes"][number]["createRuntime"] {
-  if (registration.kind !== "codex") {
-    return registration.createRuntime;
-  }
-  return (runtimeParams) =>
-    registration.createRuntime({
-      ...runtimeParams,
-      sessionMetadata: {
-        ...runtimeParams.sessionMetadata,
-        session_type: "codex",
-        codex_runtime_backend: "codex-sdk",
-      },
-      setSessionMetadata: (nextMetadata) => {
-        runtimeParams.setSessionMetadata({
-          ...nextMetadata,
-          session_type: "codex",
-          codex_runtime_backend: "codex-sdk",
-        });
-      },
-    });
 }
 
 export class PluginRuntimeRegistrationController {
@@ -91,7 +67,7 @@ export class PluginRuntimeRegistrationController {
       scope.add(this.runtimeRegistry.register({
         kind: registration.kind,
         label: registration.label,
-        createRuntime: createRuntimeFactory(registration),
+        createRuntime: registration.createRuntime,
         createRuntimeForEntry: createRuntimeForEntry
           ? ({ entry, runtimeParams }) =>
               createRuntimeForEntry({

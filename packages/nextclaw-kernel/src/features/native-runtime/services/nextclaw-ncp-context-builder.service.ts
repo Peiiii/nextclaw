@@ -36,9 +36,9 @@ import {
   resolveEffectiveModel,
   resolveSessionChannelContext,
   syncSessionThinkingPreference,
-} from "./context/nextclaw-ncp-session-preferences.utils.js";
-import { buildCurrentTurnState } from "./context/nextclaw-ncp-current-turn.utils.js";
-import { projectNcpMessagesWithContextCompaction } from "./context/context-compaction-projection.utils.js";
+} from "@kernel/features/native-runtime/utils/nextclaw-ncp-session-preferences.utils.js";
+import { buildCurrentTurnState } from "@kernel/features/native-runtime/utils/nextclaw-ncp-current-turn.utils.js";
+import { projectNcpMessagesWithContextCompaction } from "@kernel/features/native-runtime/utils/context-compaction-projection.utils.js";
 import {
   readAccountIdForHints,
   resolveAgentHandoffDepth,

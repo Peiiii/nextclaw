@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
 
-vi.mock("@kernel/agent-runtime/context/context-compaction-preflight.service.js", () => ({
+vi.mock("@kernel/features/native-runtime", () => ({
   ContextCompactionPreflightService: class {
     preview = () => null;
   },

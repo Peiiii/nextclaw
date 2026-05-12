@@ -1,7 +1,6 @@
-export type EventKey<T> = {
-  readonly id: string;
-  readonly _type?: T;
-};
+import type { Key, TypedKey } from "./typed-key.types.js";
+
+export type EventKey<T> = TypedKey<T>;
 
 export type EventSource = string;
 
@@ -31,7 +30,7 @@ export type EventBusOptions = {
   onNoSubscribers?: () => void;
 };
 
-export type AppEventKey<T> = EventKey<T>;
+export type AppEventKey<T> = Key<T>;
 export type AppEventSource = EventSource;
 export type AppEventEnvelope<T = unknown> = EventEnvelope<T>;
 export type AppEventEmitOptions = EventEmitOptions;

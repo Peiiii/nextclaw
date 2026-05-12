@@ -5,6 +5,13 @@
     "lib": ["ES2022"],
     "baseUrl": ".",
     "paths": {
+      "@kernel/features/mcp-runtime-support": ["./src/features/mcp-runtime-support/index.ts"],
+      "@kernel/features/narp-runtime": ["./src/features/narp-runtime/index.ts"],
+      "@kernel/features/native-runtime": ["./src/features/native-runtime/index.ts"],
+      "@kernel/features/ncp-dispatch": ["./src/features/ncp-dispatch/index.ts"],
+      "@kernel/features/runtime-registry": ["./src/features/runtime-registry/index.ts"],
+      "@kernel/features/session-request": ["./src/features/session-request/index.ts"],
+      "@kernel/features/session-request": ["./src/features/session-request/index.ts"],
       "@core/*": ["../nextclaw-core/src/*"],
       "@kernel/*": ["./src/*"],
       "@nextclaw/core": ["../nextclaw-core/src/index.ts"],

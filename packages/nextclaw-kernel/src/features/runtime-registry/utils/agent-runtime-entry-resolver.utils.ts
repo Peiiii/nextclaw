@@ -1,27 +1,32 @@
-import type { Config } from "@nextclaw/core";
-import {
-  normalizeAgentRuntimeSessionTypeIcon,
-  type AgentRuntimeSessionTypeIcon,
-  type AgentRuntimeEntry,
-} from "./agent-runtime-registry.service.js";
+import type {
+  AgentRuntimeSessionTypeIcon,
+  AgentRuntimeEntry,
+} from "@kernel/features/runtime-registry/services/agent-runtime-registry.service.js";
+
+type ConfigRuntimeEntry = {
+  enabled?: boolean;
+  label?: string;
+  icon?: unknown;
+  type?: string;
+  config?: Record<string, unknown>;
+};
+
+type AgentRuntimeResolverConfig = {
+  ui?: {
+    ncp?: {
+      runtimes?: {
+        native?: unknown;
+      };
+    };
+  };
+  agents: {
+    runtimes: {
+      entries?: Record<string, ConfigRuntimeEntry>;
+    };
+  };
+};
 
 const BUILTIN_RUNTIME_PRESENTATION = {
-  claude: {
-    label: "Claude",
-    icon: {
-      kind: "image",
-      src: "app://runtime-icons/claude.ico",
-      alt: "Claude",
-    },
-  },
-  codex: {
-    label: "Codex",
-    icon: {
-      kind: "image",
-      src: "app://runtime-icons/codex-openai.svg",
-      alt: "Codex",
-    },
-  },
   hermes: {
     label: "Hermes",
     icon: {
@@ -49,6 +54,32 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown>;
 }
 
+function normalizeAgentRuntimeSessionTypeIcon(
+  value: unknown,
+): AgentRuntimeSessionTypeIcon | null {
+  if (typeof value === "string") {
+    const src = value.trim();
+    return src ? { kind: "image", src } : null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const iconRecord = value as Record<string, unknown>;
+  const src = typeof iconRecord.src === "string" ? iconRecord.src.trim() : "";
+  if (!src) {
+    return null;
+  }
+  const alt =
+    typeof iconRecord.alt === "string" && iconRecord.alt.trim().length > 0
+      ? iconRecord.alt.trim()
+      : null;
+  return {
+    kind: "image",
+    src,
+    ...(alt ? { alt } : {}),
+  };
+}
+
 function resolveBuiltinRuntimePresentation(
   value: string | undefined,
 ): { label: string; icon?: AgentRuntimeSessionTypeIcon } | null {
@@ -62,7 +93,7 @@ function resolveBuiltinRuntimePresentation(
   return BUILTIN_RUNTIME_PRESENTATION[normalized as BuiltinRuntimePresentationKey] ?? null;
 }
 
-function buildNativeRuntimeEntry(config: Config): AgentRuntimeEntry {
+function buildNativeRuntimeEntry(config: AgentRuntimeResolverConfig): AgentRuntimeEntry {
   const nativeRuntimeConfig = readRecord(config.ui?.ncp?.runtimes?.native) ?? {};
   return {
     id: "native",
@@ -73,36 +104,16 @@ function buildNativeRuntimeEntry(config: Config): AgentRuntimeEntry {
   };
 }
 
-function buildBuiltinRuntimeEntry(kind: string, label: string): AgentRuntimeEntry {
-  const presentation = resolveBuiltinRuntimePresentation(kind);
-  return {
-    id: kind,
-    label: presentation?.label ?? label,
-    ...(presentation?.icon ? { icon: presentation.icon } : {}),
-    type: kind,
-    enabled: true,
-    config: {},
-  };
-}
-
 export function resolveAgentRuntimeEntries(params: {
-  config: Config;
+  config: AgentRuntimeResolverConfig;
   providerKinds: string[];
 }): {
   defaultEntryId: string;
   entries: AgentRuntimeEntry[];
 } {
-  const providerKindSet = new Set(params.providerKinds.map((kind) => kind.trim().toLowerCase()).filter(Boolean));
   const entries = new Map<string, AgentRuntimeEntry>();
 
   entries.set("native", buildNativeRuntimeEntry(params.config));
-
-  if (providerKindSet.has("codex")) {
-    entries.set("codex", buildBuiltinRuntimeEntry("codex", "Codex"));
-  }
-  if (providerKindSet.has("claude")) {
-    entries.set("claude", buildBuiltinRuntimeEntry("claude", "Claude"));
-  }
 
   for (const [rawId, rawEntry] of Object.entries(params.config.agents.runtimes.entries ?? {})) {
     const id = rawId.trim().toLowerCase();
