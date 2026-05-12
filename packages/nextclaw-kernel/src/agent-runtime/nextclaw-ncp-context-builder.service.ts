@@ -2,6 +2,7 @@ import {
   buildToolCatalogEntries,
   buildMinimalSystemExecutionPrompt,
   ContextBuilder,
+  ContextWindowBudgetService,
   findEffectiveAgentProfile,
   InputBudgetPruner,
   RequestedSkillsMetadataReader,
@@ -37,7 +38,6 @@ import {
   syncSessionThinkingPreference,
 } from "./context/nextclaw-ncp-session-preferences.utils.js";
 import { buildCurrentTurnState } from "./context/nextclaw-ncp-current-turn.utils.js";
-import { ContextWindowBudgetService } from "./context/context-window-budget.service.js";
 import { projectNcpMessagesWithContextCompaction } from "./context/context-compaction-projection.utils.js";
 import {
   readAccountIdForHints,

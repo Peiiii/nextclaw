@@ -1,4 +1,4 @@
-import { InputBudgetPruner } from "@nextclaw/core";
+import { InputBudgetPruner } from "@core/features/agent/index.js";
 
 type RuntimeMessage = Record<string, unknown>;
 type ContextCompactionSummaryGenerator = (params: {
@@ -71,34 +71,6 @@ export class ContextCompactionService {
       keptMessages,
       originalEstimatedTokens: originalEstimate.estimatedTokens,
     };
-  };
-
-  compactForModelInput = async (params: {
-    messages: RuntimeMessage[];
-    contextTokens: number;
-    compactionThresholdTokens?: number;
-    generateSummary: ContextCompactionSummaryGenerator;
-    now?: Date;
-  }): Promise<ContextCompactionResult> => {
-    const { compactionThresholdTokens, contextTokens, generateSummary, messages, now } = params;
-    const plan = this.prepareForModelInput({
-      messages,
-      contextTokens,
-      compactionThresholdTokens,
-    });
-    if (!plan) {
-      return {
-        messages,
-        checkpoint: null,
-      };
-    }
-
-    return await this.compactPreparedForModelInput({
-      contextTokens,
-      generateSummary,
-      now,
-      plan,
-    });
   };
 
   compactPreparedForModelInput = async (params: {

@@ -1,6 +1,6 @@
 import type { NcpMessage } from "@nextclaw/ncp";
+import { readCompressedContextCompactionCheckpoint } from "@nextclaw/core";
 import { CONTEXT_COMPACTION_TIMELINE_KIND, NEXTCLAW_TIMELINE_KIND_METADATA_KEY } from "./context-compaction-timeline-message.utils.js";
-import { readCompressedContextCompactionCheckpoint } from "./context-compaction.service.js";
 
 function readCompactionSummary(message: NcpMessage): string | null {
   const metadata = message.metadata;

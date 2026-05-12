@@ -1,4 +1,7 @@
-import { InputBudgetPruner, type InputBudgetPrepareResult } from "@nextclaw/core";
+import {
+  InputBudgetPruner,
+  type InputBudgetPrepareResult,
+} from "@core/features/agent/index.js";
 
 type RuntimeMessage = Record<string, unknown>;
 

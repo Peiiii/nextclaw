@@ -1,7 +1,17 @@
 import {
   findEffectiveAgentProfile,
+  type ContextCompactionCheckpoint,
+  type ContextCompactionPlan,
+  ContextCompactionService,
+  ContextWindowBudgetService,
+  type ContextWindowBudgetEvaluation,
+  buildContextWindowSnapshot,
+  buildCompressingCompactionCheckpoint,
+  CONTEXT_COMPACTION_METADATA_KEY,
+  readCompressedContextCompactionCheckpoint,
   resolveDefaultAgentProfileId,
   type Config,
+  type ContextWindowSnapshot,
   type SessionManager,
 } from "@nextclaw/core";
 import type { NcpMessage } from "@nextclaw/ncp";
@@ -12,24 +22,11 @@ import {
 } from "@kernel/utils/ncp-message-bridge.utils.js";
 import { toNcpMessages } from "@kernel/utils/ncp-session-message-adapter.utils.js";
 import {
-  type ContextCompactionCheckpoint,
-  type ContextCompactionPlan,
-  ContextCompactionService,
-  readCompressedContextCompactionCheckpoint,
-} from "./context-compaction.service.js";
-import {
   buildContextCompactionTimelineNcpMessage,
   isContextCompactionTimelineMessage,
   upsertContextCompactionTimelineMessage,
 } from "./context-compaction-timeline-message.utils.js";
-import {
-  buildContextWindowSnapshot,
-  buildCompressingCompactionCheckpoint,
-  CONTEXT_COMPACTION_METADATA_KEY,
-  type ContextWindowSnapshot,
-} from "./context-window-snapshot.utils.js";
 import { projectNcpMessagesWithContextCompaction } from "./context-compaction-projection.utils.js";
-import { ContextWindowBudgetService, type ContextWindowBudgetEvaluation } from "./context-window-budget.service.js";
 
 export type ContextWindowOwner = "nextclaw" | "runtime";
 

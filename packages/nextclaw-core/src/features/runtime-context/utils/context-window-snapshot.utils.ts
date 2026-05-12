@@ -1,7 +1,4 @@
-import {
-  CONTEXT_COMPACTION_METADATA_KEY,
-  type ContextCompactionCheckpoint,
-} from "./context-compaction.service.js";
+import type { ContextCompactionCheckpoint } from "@core/features/runtime-context/services/context-compaction.service.js";
 
 export type ContextWindowSnapshot = {
   version: 1;
@@ -67,29 +64,6 @@ export function buildContextWindowSnapshot(params: {
   };
 }
 
-export function buildPersistedCompactionCheckpoint(
-  checkpoint: ContextCompactionCheckpoint | null,
-  previousValue: unknown,
-): ContextCompactionCheckpoint | null {
-  if (!checkpoint) {
-    return null;
-  }
-  const previous =
-    previousValue && typeof previousValue === "object" && !Array.isArray(previousValue)
-      ? (previousValue as Partial<ContextCompactionCheckpoint>)
-      : null;
-  return {
-    ...checkpoint,
-    status: "compressed",
-    coveredSessionMessageCount:
-      typeof previous?.coveredSessionMessageCount === "number"
-        ? previous.coveredSessionMessageCount
-        : checkpoint.coveredSessionMessageCount,
-    createdAt: typeof previous?.createdAt === "string" ? previous.createdAt : checkpoint.createdAt,
-    updatedAt: checkpoint.updatedAt,
-  };
-}
-
 export function buildCompressingCompactionCheckpoint(previousValue: unknown): ContextCompactionCheckpoint {
   const previous =
     previousValue && typeof previousValue === "object" && !Array.isArray(previousValue)
@@ -115,5 +89,3 @@ export function buildCompressingCompactionCheckpoint(previousValue: unknown): Co
     updatedAt: now,
   };
 }
-
-export { CONTEXT_COMPACTION_METADATA_KEY };

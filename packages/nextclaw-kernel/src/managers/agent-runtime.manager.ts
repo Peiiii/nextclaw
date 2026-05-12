@@ -1,5 +1,6 @@
 import {
   type Config,
+  type ContextWindowSnapshot,
   type CronService,
   type GatewayController,
   getDataDir,
@@ -41,7 +42,6 @@ import { BuiltinNarpRuntimeRegistrationService } from "@kernel/agent-runtime/bui
 import type { LlmUsageManager } from "@kernel/managers/llm-usage.manager.js";
 import { resolveAgentRuntimeEntries } from "@kernel/agent-runtime/agent-runtime-entry-resolver.utils.js";
 import { ContextCompactionPreflightService } from "@kernel/agent-runtime/context/context-compaction-preflight.service.js";
-import type { ContextWindowSnapshot } from "@kernel/agent-runtime/context/context-window-snapshot.utils.js";
 import { McpRuntimeSupportOwner, type McpRuntimeSupport } from "@kernel/agent-runtime/mcp-runtime-support.service.js";
 import { SessionSearchTool } from "@kernel/tools/session-search.tools.js";
 
