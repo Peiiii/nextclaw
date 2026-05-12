@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.19.3
+
+### Patch Changes
+
+- Ensure published npm installs discover the packaged runtime update public key when running `nextclaw update`.
+- Updated dependencies
+  - @nextclaw/service@0.1.4
+
 ## 0.19.2
 
 ### Patch Changes

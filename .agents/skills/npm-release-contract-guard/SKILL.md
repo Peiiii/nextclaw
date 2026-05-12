@@ -68,6 +68,7 @@ Before publishing `nextclaw@beta`, run a blocker scan and resolve everything fou
 - workspace dependency closure: compare `nextclaw` imports against changed workspace packages; any package providing a new runtime API must get its own beta version and dist-tag,
 - packed API check: install the exact packed or published dependency closure in a temp prefix and verify critical APIs exist, especially recently added methods,
 - real install smoke: from a temp prefix, install `nextclaw@beta` or the candidate tarball and run at least `nextclaw --version` plus one minimal command path touching the changed runtime area,
+- for stable `nextclaw@latest` publishes, the real install smoke must include `nextclaw update --check` from an isolated `NEXTCLAW_HOME` without `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY` or `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH`; this proves the packaged public key is discoverable by the published package,
 - runtime update smoke: after channel publication, run check/download/apply/new-process from a temp `NEXTCLAW_HOME`.
 
 For the published beta install smoke, prefer the repo command:

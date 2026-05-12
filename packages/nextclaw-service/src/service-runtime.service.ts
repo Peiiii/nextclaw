@@ -50,6 +50,7 @@ const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 export type NextclawServiceRuntimeOptions = {
   logo?: string;
   version?: string;
+  packagedPublicKeyPath?: string;
 };
 
 export type NextclawServiceRuntimeAccount = {
@@ -86,6 +87,7 @@ export type NextclawServiceCommands = {
 export class NextclawServiceRuntime {
   private logo: string;
   private productVersion: string;
+  private packagedPublicKeyPath?: string;
   private restartCoordinator: RestartCoordinator;
   private serviceRestartTask: Promise<boolean> | null = null;
   private selfRelaunchArmed = false;
@@ -100,6 +102,7 @@ export class NextclawServiceRuntime {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? "🤖";
     this.productVersion = options.version ?? getPackageVersion();
+    this.packagedPublicKeyPath = options.packagedPublicKeyPath;
     this.workspaceManager = measureStartupSync("cli.runtime.workspace_manager", () => new WorkspaceManager(this.logo));
     this.runtimeCommandService = measureStartupSync("cli.runtime.runtime_command_service", () => new RuntimeCommandService({
       requestRestart: (params) => this.requestRestart(params),
@@ -525,6 +528,7 @@ export class NextclawServiceRuntime {
     }
     const snapshot = await new NpmRuntimeUpdateCommandService({
       launcherVersion: versionBefore,
+      packagedPublicKeyPath: this.packagedPublicKeyPath,
     }).run(opts);
     if (snapshot.status === "blocked" || snapshot.status === "failed") {
       process.exit(1);

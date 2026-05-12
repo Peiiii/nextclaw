@@ -11,3 +11,7 @@ export function readNextclawPackageVersion(importMetaUrl: string): string {
   const parsed = JSON.parse(readFileSync(packageJsonPath, "utf-8")) as PackageManifest;
   return typeof parsed.version === "string" ? parsed.version : "0.0.0";
 }
+
+export function resolveNextclawPackageResource(importMetaUrl: string, resourcePath: string): string {
+  return resolve(dirname(fileURLToPath(importMetaUrl)), "../../../resources", resourcePath);
+}

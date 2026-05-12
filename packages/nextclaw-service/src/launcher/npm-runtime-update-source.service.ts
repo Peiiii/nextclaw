@@ -10,6 +10,7 @@ type NpmRuntimeUpdateSourceServiceOptions = {
   env?: NodeJS.ProcessEnv;
   platform?: NodeJS.Platform;
   arch?: string;
+  packagedPublicKeyPath?: string;
 };
 
 function normalizeOptionalString(value: unknown): string | null {
@@ -42,11 +43,13 @@ export class NpmRuntimeUpdateSourceService {
   private readonly env: NodeJS.ProcessEnv;
   private readonly platform: NodeJS.Platform;
   private readonly arch: string;
+  private readonly packagedPublicKeyPath?: string;
 
   constructor(options: NpmRuntimeUpdateSourceServiceOptions = {}) {
     this.env = options.env ?? process.env;
     this.platform = options.platform ?? process.platform;
     this.arch = options.arch ?? process.arch;
+    this.packagedPublicKeyPath = options.packagedPublicKeyPath;
   }
 
   resolveChannel = (explicitChannel?: unknown, launcherVersion?: string | null): NpmRuntimeReleaseChannel => {
@@ -72,7 +75,7 @@ export class NpmRuntimeUpdateSourceService {
     }
     const publicKeyPath = normalizeOptionalString(this.env.NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH);
     if (!publicKeyPath || !existsSync(publicKeyPath)) {
-      const packagedPublicKeyPath = resolvePackagedPublicKeyPath();
+      const packagedPublicKeyPath = this.packagedPublicKeyPath ?? resolvePackagedPublicKeyPath();
       return existsSync(packagedPublicKeyPath) ? readFileSync(packagedPublicKeyPath, "utf8").trim() : null;
     }
     return readFileSync(publicKeyPath, "utf8").trim();

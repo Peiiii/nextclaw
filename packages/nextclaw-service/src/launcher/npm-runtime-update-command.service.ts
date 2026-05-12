@@ -6,10 +6,11 @@ import { NpmRuntimeUpdateSourceService } from "./npm-runtime-update-source.servi
 import { NpmRuntimeUpdateStateStore } from "./npm-runtime-update-state.store.js";
 import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import type { UpdateCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
-import type { UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import type { UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 
 type NpmRuntimeUpdateCommandServiceOptions = {
   launcherVersion?: string;
+  packagedPublicKeyPath?: string;
 };
 
 export class NpmRuntimeUpdateCommandService {
@@ -26,7 +27,9 @@ export class NpmRuntimeUpdateCommandService {
   };
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
-    const source = new NpmRuntimeUpdateSourceService();
+    const source = new NpmRuntimeUpdateSourceService({
+      packagedPublicKeyPath: this.options.packagedPublicKeyPath,
+    });
     const launcherVersion = this.options.launcherVersion ?? getPackageVersion();
     const channel = source.resolveChannel(opts.channel, launcherVersion);
     const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
