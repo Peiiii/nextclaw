@@ -15,32 +15,33 @@ import {
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
-import { AgentLiveSessionRegistry } from "./agent-live-session-registry.js";
+import { AgentLiveSessionRegistry } from "./agent-live-session-registry.service.js";
 import {
-  closeAgentBackendSessionExecution,
   finishAgentBackendSessionExecution,
   startAgentBackendSessionExecution,
-} from "./agent-backend-execution-utils.js";
-import { AgentRunExecutor } from "./agent-run-executor.js";
-import { AgentBackendSessionRealtime } from "./agent-backend-session-realtime.js";
+} from "./agent-backend-execution.utils.js";
+import { AgentRunExecutor } from "./agent-run-executor.service.js";
+import { AgentBackendSessionRealtime } from "./agent-backend-session-realtime.service.js";
 import type {
   AgentSessionStore,
   CreateRuntimeFn,
   LiveSessionExecution,
   LiveSessionState,
-} from "./agent-backend-types.js";
+} from "./agent-backend.types.js";
 import {
+  getBackendSessionSummary,
+  listBackendSessionMessages,
+  listBackendSessionSummaries,
   normalizeSendRunEvent,
   now,
-  readMessages,
-  readSessionActivityAt,
   type SessionContextWindowResolver,
-  toLiveSessionSummary,
-  toLiveSessionSummaryWithContextWindow,
-  toSessionSummary,
-  withSessionContextWindow,
-} from "./agent-backend-session-utils.js";
-import { buildPersistedLiveSessionRecord, buildUpdatedSessionRecord } from "./agent-backend-session-persistence.js";
+} from "./agent-backend-session.utils.js";
+import {
+  buildUpdatedSessionRecord,
+  persistLiveSession,
+  persistLiveSessionEvent,
+  shouldPersistRunEndSnapshot,
+} from "./agent-backend-session-persistence.utils.js";
 import { EventPublisher } from "./event-publisher.js";
 
 const DEFAULT_SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = ["text", "file", "source", "step-start", "reasoning", "tool-invocation", "card", "rich-text", "action", "extension"];
@@ -94,7 +95,20 @@ export class DefaultNcpAgentBackend
       sessionStore: this.sessionStore,
       publishEndpointEvent: (event) => this.publisher.publish(event),
       subscribeEndpointEvent: (listener) => this.publisher.subscribe(listener),
-      persistSession: (sessionId) => this.persistSession(sessionId),
+      persistSession: (sessionId) =>
+        persistLiveSession({
+          sessionStore: this.sessionStore,
+          session: this.sessionRegistry.getSession(sessionId),
+          sessionId,
+          updatedAt: now(),
+        }),
+      persistSessionEvent: (session, event) =>
+        persistLiveSessionEvent({
+          sessionStore: this.sessionStore,
+          session,
+          event,
+          updatedAt: now(),
+        }),
       getSessionSummary: (sessionId) => this.getSession(sessionId),
     });
     this.manifest = {
@@ -146,7 +160,17 @@ export class DefaultNcpAgentBackend
 
     switch (event.type) {
       case NcpEventType.MessageRequest:
-        for await (const emittedEvent of this.send(event.payload)) {
+        if (!event.payload.sessionId) {
+          throw new Error("MessageRequest requires a sessionId before it reaches the agent backend.");
+        }
+        for await (const emittedEvent of this.send({
+          ...event.payload,
+          sessionId: event.payload.sessionId,
+          message: {
+            ...event.payload.message,
+            sessionId: event.payload.sessionId,
+          },
+        })) {
           void emittedEvent;
         }
         return;
@@ -219,7 +243,14 @@ export class DefaultNcpAgentBackend
         }
       } finally {
         self.finishSessionExecution(session, execution);
-        await self.persistSession(session.sessionId);
+        if (shouldPersistRunEndSnapshot(self.sessionStore)) {
+          await persistLiveSession({
+            sessionStore: self.sessionStore,
+            session,
+            sessionId: session.sessionId,
+            updatedAt: now(),
+          });
+        }
       }
     })(this);
   };
@@ -235,49 +266,27 @@ export class DefaultNcpAgentBackend
     this.sessionRealtime.streamSessionEvents(payloadOrParams, opts);
 
   listSessions = async (): Promise<NcpSessionSummary[]> => {
-    const storedSessions = await this.sessionStore.listSessions();
-    const summaries = storedSessions.map((session) =>
-      toSessionSummary(session, this.sessionRegistry.getSession(session.sessionId)),
-    );
-
-    for (const liveSession of this.sessionRegistry.listSessions()) {
-      if (
-        summaries.some((session) => session.sessionId === liveSession.sessionId)
-      ) {
-        continue;
-      }
-      summaries.push(toLiveSessionSummary(liveSession));
-    }
-
-    return summaries.sort((left, right) =>
-      readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)),
-    );
+    return listBackendSessionSummaries({
+      sessionStore: this.sessionStore,
+      liveSessions: this.sessionRegistry.listSessions(),
+    });
   };
 
   listSessionMessages = async (sessionId: string): Promise<NcpMessage[]> => {
-    const liveSession = this.sessionRegistry.getSession(sessionId);
-    if (liveSession) return readMessages(liveSession.stateManager.getSnapshot());
-    const session = await this.sessionStore.getSession(sessionId);
-    return session
-      ? session.messages.map((message) => structuredClone(message))
-      : [];
+    return listBackendSessionMessages({
+      sessionStore: this.sessionStore,
+      liveSession: this.sessionRegistry.getSession(sessionId),
+      sessionId,
+    });
   };
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
-    const liveSession = this.sessionRegistry.getSession(sessionId);
-    const storedSession = await this.sessionStore.getSession(sessionId);
-    const liveMessages = liveSession
-      ? readMessages(liveSession.stateManager.getSnapshot())
-      : null;
-    return storedSession
-      ? withSessionContextWindow(
-          toSessionSummary(storedSession, liveSession),
-          liveMessages ?? storedSession.messages,
-          this.resolveSessionContextWindow,
-        )
-      : liveSession
-        ? toLiveSessionSummaryWithContextWindow(liveSession, this.resolveSessionContextWindow)
-        : null;
+    return getBackendSessionSummary({
+      sessionStore: this.sessionStore,
+      liveSession: this.sessionRegistry.getSession(sessionId),
+      sessionId,
+      resolveSessionContextWindow: this.resolveSessionContextWindow,
+    });
   };
 
   appendMessage = async (
@@ -326,7 +335,7 @@ export class DefaultNcpAgentBackend
     if (execution) {
       execution.abortHandled = true;
       execution.controller.abort();
-      closeAgentBackendSessionExecution(execution);
+      execution.closed = true;
     }
     liveSession?.publisher.close();
     await this.sessionStore.deleteSession(sessionId);
@@ -383,15 +392,4 @@ export class DefaultNcpAgentBackend
     this.finishSessionExecution(session, execution);
   };
 
-  private persistSession = async (sessionId: string): Promise<void> => {
-    const session = this.sessionRegistry.getSession(sessionId);
-    if (!session) return;
-    await this.sessionStore.saveSession(
-      buildPersistedLiveSessionRecord({
-        sessionId,
-        session,
-        updatedAt: now(),
-      }),
-    );
-  };
 }

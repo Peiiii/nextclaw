@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus, eventKeys } from "@nextclaw/shared";
+import type { AgentSessionRecord, AgentSessionStore } from "@nextclaw/ncp-toolkit";
 
 vi.mock("@kernel/features/native-runtime/index.js", () => ({
   ContextCompactionPreflightService: class {
@@ -131,6 +132,34 @@ class TestSessionManager {
     }));
 }
 
+class TestAgentSessionStore implements AgentSessionStore {
+  constructor(private record: AgentSessionRecord) {}
+
+  getSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
+    return sessionId === this.record.sessionId ? structuredClone(this.record) : null;
+  };
+
+  listSessions = async (): Promise<AgentSessionRecord[]> => [structuredClone(this.record)];
+
+  listSessionMessages = async (sessionId: string) => {
+    return sessionId === this.record.sessionId
+      ? this.record.messages.map((message) => structuredClone(message))
+      : [];
+  };
+
+  saveSession = async (record: AgentSessionRecord): Promise<void> => {
+    this.record = structuredClone(record);
+  };
+
+  replaceSession = async (record: AgentSessionRecord): Promise<void> => {
+    this.record = structuredClone(record);
+  };
+
+  deleteSession = async (sessionId: string): Promise<AgentSessionRecord | null> => {
+    return await this.getSession(sessionId);
+  };
+}
+
 function createServiceFixture(): {
   eventBus: EventBus;
   ncpSessionApi: NcpSessionApiService;
@@ -175,6 +204,43 @@ describe("NcpSessionApiService", () => {
       role: "user",
       sessionId: "session-1",
     });
+    fixture.ncpSessionApi.dispose();
+  });
+
+  it("prefers the NCP journal store when a legacy shell session also exists", async () => {
+    const fixture = createServiceFixture();
+    const legacySession = fixture.sessionManager.getOrCreate("session-1");
+    fixture.sessionManager.addMessage(legacySession, "user", "legacy");
+    fixture.sessionManager.save(legacySession);
+    const service = new NcpSessionApiService({
+      eventBus: fixture.eventBus,
+      getConfig: createConfig,
+      ncpAgentSessionStore: new TestAgentSessionStore({
+        sessionId: "session-1",
+        messages: [{
+          id: "journal:user",
+          sessionId: "session-1",
+          role: "user",
+          status: "final",
+          parts: [{ type: "text", text: "journal" }],
+          timestamp: "2026-05-12T00:00:00.000Z",
+        }],
+        createdAt: "2026-05-12T00:00:00.000Z",
+        updatedAt: "2026-05-12T00:00:00.000Z",
+        metadata: { label: "Journal" },
+      }),
+      sessionManager: fixture.sessionManager as never,
+    });
+
+    const messages = await service.listSessionMessages("session-1");
+    const summary = await service.getSession("session-1");
+
+    expect(messages[0]?.parts).toEqual([{ type: "text", text: "journal" }]);
+    expect(summary).toMatchObject({
+      messageCount: 1,
+      metadata: { label: "Journal" },
+    });
+    service.dispose();
     fixture.ncpSessionApi.dispose();
   });
 

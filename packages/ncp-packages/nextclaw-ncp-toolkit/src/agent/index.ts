@@ -8,6 +8,7 @@ export {
 } from "./agent-backend/index.js";
 export type {
   DefaultNcpAgentBackendConfig,
+  AgentSessionEventRecord,
   AgentSessionRecord,
   AgentSessionStore,
   CreateRuntimeFn,

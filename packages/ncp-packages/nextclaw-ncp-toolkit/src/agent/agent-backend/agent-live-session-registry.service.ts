@@ -4,7 +4,7 @@ import type {
   AgentSessionStore,
   CreateRuntimeFn,
   LiveSessionState,
-} from "./agent-backend-types.js";
+} from "./agent-backend.types.js";
 import { EventPublisher } from "./event-publisher.js";
 
 function readOptionalAgentId(value: unknown): string | undefined {

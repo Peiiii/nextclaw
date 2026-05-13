@@ -4,13 +4,15 @@ import {
   isHiddenNcpMessage,
 } from "@nextclaw/ncp";
 import { NcpEventType } from "@nextclaw/ncp";
-import type { LiveSessionState } from "./agent-backend-types.js";
+import type { LiveSessionState } from "./agent-backend.types.js";
 
 export class AgentRunExecutor {
-  async *executeRun(
+  executeRun = (
     session: LiveSessionState,
     envelope: NcpRequestEnvelope,
     controller: AbortController,
+  ): AsyncGenerator<NcpEndpointEvent> => (async function* (
+    self: AgentRunExecutor,
   ): AsyncGenerator<NcpEndpointEvent> {
     if (!isHiddenNcpMessage(envelope.message)) {
       const messageSent: NcpEndpointEvent = {
@@ -40,7 +42,7 @@ export class AgentRunExecutor {
       }
     } catch (error) {
       if (!controller.signal.aborted) {
-        const runErrorEvent = await this.publishFailure(
+        const runErrorEvent = await self.publishFailure(
           error,
           envelope,
           session,
@@ -48,13 +50,13 @@ export class AgentRunExecutor {
         yield structuredClone(runErrorEvent);
       }
     }
-  }
+  })(this);
 
-  private async publishFailure(
+  private publishFailure = async (
     error: unknown,
     envelope: NcpRequestEnvelope,
     session: LiveSessionState,
-  ): Promise<NcpEndpointEvent> {
+  ): Promise<NcpEndpointEvent> => {
     const message = error instanceof Error ? error.message : String(error);
     const runErrorEvent: NcpEndpointEvent = {
       type: NcpEventType.RunError,
@@ -67,7 +69,7 @@ export class AgentRunExecutor {
 
     await session.stateManager.dispatch(runErrorEvent);
     return runErrorEvent;
-  }
+  };
 }
 
 function normalizeRunEvent(

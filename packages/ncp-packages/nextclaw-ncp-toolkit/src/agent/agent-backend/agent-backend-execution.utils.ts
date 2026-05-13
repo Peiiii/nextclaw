@@ -3,7 +3,7 @@ import { NcpErrorException } from "../../errors/ncp-error-exception.js";
 import type {
   LiveSessionExecution,
   LiveSessionState,
-} from "./agent-backend-types.js";
+} from "./agent-backend.types.js";
 
 export function startAgentBackendSessionExecution(params: {
   session: LiveSessionState;
@@ -54,14 +54,4 @@ export function finishAgentBackendSessionExecution(params: {
     session.activeExecution = null;
     onStatusChanged?.({ sessionKey: session.sessionId, status: "idle" });
   }
-  closeAgentBackendSessionExecution(execution);
-}
-
-export function closeAgentBackendSessionExecution(
-  execution: LiveSessionExecution,
-): void {
-  if (execution.closed) {
-    return;
-  }
-  execution.closed = true;
 }

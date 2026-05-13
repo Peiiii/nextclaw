@@ -7,10 +7,16 @@ import type {
   NcpSessionSummary,
 } from "@nextclaw/ncp";
 import type { Config, SessionListRecord, SessionManager } from "@nextclaw/core";
+import type { AgentSessionStore } from "@nextclaw/ncp-toolkit";
 import { ContextCompactionPreflightService } from "@kernel/features/native-runtime/index.js";
 import { toNcpMessages } from "@kernel/utils/ncp-session-message-adapter.utils.js";
 import { createNcpSessionSummary } from "@kernel/utils/ncp-session-summary.utils.js";
 import { eventKeys, type EventBus, type Unsubscribe } from "@nextclaw/shared";
+
+type NcpAgentSessionReadableStore = AgentSessionStore & {
+  listSessionSummaries?: () => Promise<NcpSessionSummary[]>;
+  listSessionMessages?: (sessionId: string) => Promise<NcpMessage[]>;
+};
 
 function applyLimit<T>(items: T[], limit?: number): T[] {
   if (!Number.isFinite(limit) || typeof limit !== "number" || limit <= 0) {
@@ -74,6 +80,7 @@ function readSessionActivityAt(record: SessionListSummaryRecord): string {
 export type NcpSessionApiServiceOptions = {
   eventBus: EventBus;
   getConfig: () => Config;
+  ncpAgentSessionStore?: NcpAgentSessionReadableStore;
   sessionManager: SessionManager;
 };
 
@@ -122,6 +129,12 @@ export class NcpSessionApiService implements NcpSessionApi {
   };
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
+    if (this.options.ncpAgentSessionStore?.listSessionSummaries) {
+      return applyLimit(
+        await this.options.ncpAgentSessionStore.listSessionSummaries(),
+        options?.limit,
+      );
+    }
     const records = applyLimit(
       this.options.sessionManager.listSessions()
         .map(toSessionCandidate)
@@ -137,6 +150,12 @@ export class NcpSessionApiService implements NcpSessionApi {
     options?: ListMessagesOptions,
   ): Promise<NcpMessage[]> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
+    if (normalizedSessionId && this.options.ncpAgentSessionStore?.listSessionMessages) {
+      return applyLimit(
+        await this.options.ncpAgentSessionStore.listSessionMessages(normalizedSessionId),
+        options?.limit,
+      );
+    }
     const session = normalizedSessionId
       ? this.options.sessionManager.getIfExists(normalizedSessionId)
       : null;
@@ -153,6 +172,26 @@ export class NcpSessionApiService implements NcpSessionApi {
 
   getSession = async (sessionId: string): Promise<NcpSessionSummary | null> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
+    if (normalizedSessionId && this.options.ncpAgentSessionStore?.getSession) {
+      const record = await this.options.ncpAgentSessionStore.getSession(normalizedSessionId);
+      if (record) {
+        return createNcpSessionSummary({
+          sessionId: normalizedSessionId,
+          agentId: record.agentId,
+          messages: record.messages,
+          createdAt: record.createdAt ?? record.updatedAt,
+          updatedAt: record.updatedAt,
+          status: "idle",
+          metadata: record.metadata,
+          contextWindow: this.contextWindowPreview.preview({
+            contextWindowOwner: "nextclaw",
+            requestMetadata: record.metadata ?? {},
+            sessionId: normalizedSessionId,
+            sessionMessages: record.messages,
+          }),
+        });
+      }
+    }
     const session = normalizedSessionId
       ? this.options.sessionManager.getIfExists(normalizedSessionId)
       : null;
@@ -182,6 +221,21 @@ export class NcpSessionApiService implements NcpSessionApi {
     patch: NcpSessionPatch,
   ): Promise<NcpSessionSummary | null> => {
     const normalizedSessionId = normalizeSessionId(sessionId);
+    if (normalizedSessionId && this.options.ncpAgentSessionStore) {
+      const existing = await this.options.ncpAgentSessionStore.getSession(normalizedSessionId);
+      if (existing) {
+        await this.options.ncpAgentSessionStore.replaceSession({
+          ...existing,
+          metadata: buildUpdatedMetadata({
+            existingMetadata: existing.metadata,
+            patch,
+          }),
+          updatedAt: new Date().toISOString(),
+        });
+        await this.publishSessionChange(normalizedSessionId);
+        return await this.getSession(normalizedSessionId);
+      }
+    }
     const session = normalizedSessionId
       ? this.options.sessionManager.getIfExists(normalizedSessionId)
       : null;
@@ -202,6 +256,9 @@ export class NcpSessionApiService implements NcpSessionApi {
     const normalizedSessionId = normalizeSessionId(sessionId);
     if (!normalizedSessionId) {
       return;
+    }
+    if (this.options.ncpAgentSessionStore) {
+      await this.options.ncpAgentSessionStore.deleteSession(normalizedSessionId);
     }
     this.options.sessionManager.delete(normalizedSessionId);
     await this.publishSessionChange(normalizedSessionId);

@@ -12,6 +12,7 @@ import { readLearningLoopRuntimeConfig } from "@kernel/configs/learning-loop.con
 import { NcpLifecycleEventBridge } from "@kernel/services/ncp-lifecycle-event-bridge.service.js";
 import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.js";
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
+import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
 import {
   ChannelManager,
@@ -117,6 +118,7 @@ export class NextclawKernel {
   readonly learningLoop: LearningLoopManager;
   private readonly sessionLifecycleEvents: NcpLifecycleEventBridge;
   private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
+  private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
   private startPromise: Promise<void> | null = null;
 
   constructor(options: NextclawKernelOptions = {}) {
@@ -130,7 +132,11 @@ export class NextclawKernel {
       sessionsDir,
       onSessionUpdated: this.publishSessionUpdated,
     });
+    this.ncpAgentSessionJournalStore = new NcpAgentSessionJournalStore(
+      resolve(sessionsDir, ".ncp-agent-journal"),
+    );
     this.ncpAgentSessionStore = new NcpAgentSessionStoreAdapter(this.sessions, {
+      journalStore: this.ncpAgentSessionJournalStore,
       onSessionUpdated: this.sessionSearch.handleSessionUpdated,
     });
     this.sessionRequests = new SessionRequestManager({
@@ -165,6 +171,7 @@ export class NextclawKernel {
     this.ncpSessionApi = new NcpSessionApiService({
       eventBus: this.eventBus,
       getConfig: this.configManager.loadConfig,
+      ncpAgentSessionStore: this.ncpAgentSessionStore,
       sessionManager: this.sessions,
     });
     this.agentRuntimeManager = new AgentRuntimeManager({

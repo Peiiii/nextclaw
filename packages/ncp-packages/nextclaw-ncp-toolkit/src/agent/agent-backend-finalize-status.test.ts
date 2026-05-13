@@ -13,7 +13,7 @@ import {
   EchoNcpLLMApi,
 } from "@nextclaw/ncp-agent-runtime";
 import { DefaultNcpAgentBackend } from "./index.js";
-import type { AgentSessionRecord, AgentSessionStore } from "./agent-backend/agent-backend-types.js";
+import type { AgentSessionRecord, AgentSessionStore } from "./agent-backend/agent-backend.types.js";
 
 const now = "2026-03-15T00:00:00.000Z";
 

@@ -2,8 +2,10 @@ import type {
   NcpAgentConversationStateManager,
   NcpAgentRunInput,
   NcpAgentRuntime,
+  NcpEndpointEvent,
   NcpMessage,
   NcpRequestEnvelope,
+  NcpSessionSummary,
   OpenAITool,
 } from "@nextclaw/ncp";
 import type { EventPublisher } from "./event-publisher.js";
@@ -24,6 +26,14 @@ export type AgentSessionRecord = {
   sessionId: string;
   agentId?: string;
   messages: NcpMessage[];
+  createdAt?: string;
+  updatedAt: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type AgentSessionEventRecord = {
+  sessionId: string;
+  agentId?: string;
   createdAt?: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
@@ -50,6 +60,14 @@ export type LiveSessionState = {
 export interface AgentSessionStore {
   getSession(sessionId: string): Promise<AgentSessionRecord | null>;
   listSessions(): Promise<AgentSessionRecord[]>;
+  getSessionSummary?(sessionId: string): Promise<NcpSessionSummary | null>;
+  listSessionSummaries?(): Promise<NcpSessionSummary[]>;
+  listSessionMessages?(sessionId: string): Promise<NcpMessage[]>;
+  appendSessionEvent?(params: {
+    session: AgentSessionEventRecord;
+    event: NcpEndpointEvent;
+    updatedAt: string;
+  }): Promise<void>;
   saveSession(session: AgentSessionRecord): Promise<void>;
   replaceSession(session: AgentSessionRecord): Promise<void>;
   deleteSession(sessionId: string): Promise<AgentSessionRecord | null>;

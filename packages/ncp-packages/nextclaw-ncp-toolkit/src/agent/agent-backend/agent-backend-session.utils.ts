@@ -5,7 +5,11 @@ import {
   type NcpSessionSummary,
   NcpEventType,
 } from "@nextclaw/ncp";
-import type { AgentSessionRecord, LiveSessionState } from "./agent-backend-types.js";
+import type {
+  AgentSessionRecord,
+  AgentSessionStore,
+  LiveSessionState,
+} from "./agent-backend.types.js";
 
 const AUTO_SESSION_LABEL_MAX_LENGTH = 64;
 
@@ -122,6 +126,82 @@ export function toLiveSessionSummaryWithContextWindow(
 ): NcpSessionSummary {
   const messages = readMessages(session.stateManager.getSnapshot());
   return withSessionContextWindow(toLiveSessionSummary(session), messages, resolver);
+}
+
+export async function listBackendSessionSummaries(params: {
+  sessionStore: AgentSessionStore;
+  liveSessions: LiveSessionState[];
+}): Promise<NcpSessionSummary[]> {
+  const { liveSessions, sessionStore } = params;
+  const summaries = sessionStore.listSessionSummaries
+    ? await sessionStore.listSessionSummaries()
+    : (await sessionStore.listSessions()).map((session) =>
+        toSessionSummary(session, liveSessions.find((liveSession) => liveSession.sessionId === session.sessionId) ?? null),
+      );
+
+  for (const liveSession of liveSessions) {
+    const existingIndex = summaries.findIndex(
+      (session) => session.sessionId === liveSession.sessionId,
+    );
+    if (existingIndex >= 0) {
+      summaries[existingIndex] = {
+        ...summaries[existingIndex],
+        status: liveSession.activeExecution ? "running" : "idle",
+      };
+      continue;
+    }
+    summaries.push(toLiveSessionSummary(liveSession));
+  }
+
+  return summaries.sort((left, right) =>
+    readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)),
+  );
+}
+
+export async function listBackendSessionMessages(params: {
+  sessionStore: AgentSessionStore;
+  liveSession: LiveSessionState | null;
+  sessionId: string;
+}): Promise<NcpMessage[]> {
+  const { liveSession, sessionId, sessionStore } = params;
+  if (liveSession) return readMessages(liveSession.stateManager.getSnapshot());
+  if (sessionStore.listSessionMessages) {
+    return sessionStore.listSessionMessages(sessionId);
+  }
+  const session = await sessionStore.getSession(sessionId);
+  return session
+    ? session.messages.map((message) => structuredClone(message))
+    : [];
+}
+
+export async function getBackendSessionSummary(params: {
+  sessionStore: AgentSessionStore;
+  liveSession: LiveSessionState | null;
+  sessionId: string;
+  resolveSessionContextWindow?: SessionContextWindowResolver;
+}): Promise<NcpSessionSummary | null> {
+  const {
+    liveSession,
+    resolveSessionContextWindow,
+    sessionId,
+    sessionStore,
+  } = params;
+  if (!liveSession && sessionStore.getSessionSummary) {
+    return sessionStore.getSessionSummary(sessionId);
+  }
+  const storedSession = await sessionStore.getSession(sessionId);
+  const liveMessages = liveSession
+    ? readMessages(liveSession.stateManager.getSnapshot())
+    : null;
+  return storedSession
+    ? withSessionContextWindow(
+        toSessionSummary(storedSession, liveSession),
+        liveMessages ?? storedSession.messages,
+        resolveSessionContextWindow,
+      )
+    : liveSession
+      ? toLiveSessionSummaryWithContextWindow(liveSession, resolveSessionContextWindow)
+      : null;
 }
 
 export function now(): string {

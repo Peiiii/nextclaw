@@ -1,4 +1,4 @@
-import type { AgentSessionRecord, AgentSessionStore } from "./agent-backend-types.js";
+import type { AgentSessionRecord, AgentSessionStore } from "./agent-backend.types.js";
 
 export class InMemoryAgentSessionStore implements AgentSessionStore {
   private readonly sessions = new Map<string, AgentSessionRecord>();

@@ -10,8 +10,8 @@ import { NcpEventType } from "@nextclaw/ncp";
 import type {
   AgentSessionStore,
   LiveSessionState,
-} from "./agent-backend-types.js";
-import type { AgentLiveSessionRegistry } from "./agent-live-session-registry.js";
+} from "./agent-backend.types.js";
+import type { AgentLiveSessionRegistry } from "./agent-live-session-registry.service.js";
 import { createAsyncQueue } from "./async-queue.js";
 
 type PublishSessionEventOptions = {
@@ -25,6 +25,10 @@ type AgentBackendSessionRealtimeParams = {
   publishEndpointEvent: (event: NcpEndpointEvent) => void;
   subscribeEndpointEvent: (listener: NcpEndpointSubscriber) => () => void;
   persistSession: (sessionId: string) => Promise<void>;
+  persistSessionEvent: (
+    session: LiveSessionState,
+    event: NcpEndpointEvent,
+  ) => Promise<void>;
   getSessionSummary: (sessionId: string) => Promise<NcpSessionSummary | null>;
 };
 
@@ -52,7 +56,7 @@ export class AgentBackendSessionRealtime {
     this.params.publishEndpointEvent(event);
     session.publisher.publish(event);
     if (options.persistSession !== false) {
-      await this.params.persistSession(session.sessionId);
+      await this.params.persistSessionEvent(session, event);
     }
   };
 

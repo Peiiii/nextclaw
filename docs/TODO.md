@@ -20,6 +20,7 @@
 
 | Date | Idea | Source | Owner | Issue | Next Action |
 | --- | --- | --- | --- | --- | --- |
+| 2026-05-14 | 为 toolkit / library 类 package 设计 `lib` 类型 module-structure protocol，并将 `@nextclaw/ncp-toolkit` 从本次授权豁免迁回正式目录治理 | user-feedback | @owner | `TBD` | create issue: define lib protocol, migration plan, and remove authorized waiver |
 | 2026-03-30 | 排查发布链是否存在过度依赖与过宽联动发布，重点审视 `@nextclaw/channel-plugin-weixin`、Codex SDK 等是否应继续直接跟随 `@nextclaw/core` / release batch | user-feedback | @owner | `TBD` | create issue: map release dependency graph and propose narrower publish groups |
 | 2026-03-11 | Brave Search API 获取需绑卡，评估 Firecrawl / Tavily 作为默认或可选替代 | user-feedback | @owner | `TBD` | create issue: compare providers and decide default strategy |
 | 2026-04-11 | 为 LLM usage / prompt cache 观测补统一日志事件模块；当前已补 CLI 本地 history / stats，但仍缺项目级日志抽象、retention 与多出口复用能力 | user-feedback | @owner | `TBD` | create issue: design pluggable usage event logger and retention strategy |

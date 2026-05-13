@@ -23,7 +23,7 @@ import { DefaultNcpAgentBackend, InMemoryAgentSessionStore } from "./index.js";
 import type {
   AgentSessionRecord,
   AgentSessionStore,
-} from "./agent-backend/agent-backend-types.js";
+} from "./agent-backend/agent-backend.types.js";
 
 const now = "2026-03-15T00:00:00.000Z";
 
@@ -458,6 +458,7 @@ describe("DefaultNcpAgentBackend", () => {
       parts: [{ type: "text", text: "generic" }],
     });
   });
+
 });
 
 class SlowEchoNcpLLMApi implements NcpLLMApi {

@@ -1,6 +1,14 @@
 {
-  "contractKind": "protocol",
-  "protocol": "app-l1",
-  "rootPolicy": "contract-only",
+  "contractKind": "legacy",
+  "organizationModel": "legacy-ncp-toolkit-authorized-waiver",
+  "rootPolicy": "legacy-frozen",
+  "allowedRootDirectories": ["src"],
+  "authorizedWaiver": {
+    "authorizedBy": "user",
+    "authorizedAt": "2026-05-14",
+    "scope": "packages/ncp-packages/nextclaw-ncp-toolkit",
+    "reason": "用户明确豁免 agent-toolkit / nextclaw-ncp-toolkit 当前历史目录结构，以允许本次 journal-first 持久化落地；后续需要转为 lib 类型目录规范治理。",
+    "followUp": "将 toolkit 类包从 app-l1 转为 lib/package 类型 module-structure protocol，并重新收敛 agent/ 历史 root。"
+  },
   "enforcement": "error"
 }
