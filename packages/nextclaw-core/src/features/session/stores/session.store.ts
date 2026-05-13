@@ -1,7 +1,8 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { SessionListRecord } from "@core/features/session/types/session-list.types.js";
-import { ensureDir, expandHome, safeFilename } from "../../../shared/lib/core-utils/utils/helpers.js";
+import { ensureDir, expandHome, safeFilename } from "@core/shared/lib/core-utils/utils/helpers.js";
+import { SessionListIndexStore } from "./session-list-index.store.js";
 
 export type SessionMessage = {
   role: string;
@@ -68,6 +69,7 @@ type SessionLoadState = {
   updatedAt: Date;
   fallbackSeq: number;
 };
+
 
 function collectExpectedToolCallIds(message: SessionMessage): Set<string> {
   const expectedIds = new Set<string>();
@@ -271,9 +273,11 @@ function resolveSessionDirectory(options: SessionStoreOptions): string {
 export class SessionStore {
   private sessionsDir: string;
   private cache: Map<string, Session> = new Map();
+  private listIndex: SessionListIndexStore;
 
   constructor(options: SessionStoreOptions) {
     this.sessionsDir = resolveSessionDirectory(options);
+    this.listIndex = new SessionListIndexStore(this.sessionsDir);
   }
 
   private getSessionPath = (key: string): string => {
@@ -460,11 +464,14 @@ export class SessionStore {
 
   save = (session: Session): void => {
     const path = this.getSessionPath(session.key);
+    const lastMessageAt = session.messages.at(-1)?.timestamp;
     const metadataLine = {
       _type: "metadata",
       created_at: session.createdAt.toISOString(),
       updated_at: session.updatedAt.toISOString(),
       ...(session.agentId ? { agent_id: session.agentId } : {}),
+      message_count: session.messages.length,
+      ...(lastMessageAt ? { last_message_at: lastMessageAt } : {}),
       metadata: session.metadata
     };
     const eventLines = session.events.map((event) =>
@@ -479,6 +486,7 @@ export class SessionStore {
     const lines = [JSON.stringify(metadataLine), ...eventLines].join("\n");
     writeFileSync(path, `${lines}\n`);
     this.cache.set(session.key, session);
+    this.listIndex.upsertSession(session, path);
   };
 
   delete = (key: string): boolean => {
@@ -486,38 +494,13 @@ export class SessionStore {
     const path = this.getSessionPath(key);
     if (existsSync(path)) {
       unlinkSync(path);
+      this.listIndex.removeSession(key);
       return true;
     }
     return false;
   };
 
   listSessions = (): SessionListRecord[] => {
-    const sessions: SessionListRecord[] = [];
-    for (const entry of readdirSync(this.sessionsDir, { withFileTypes: true })) {
-      if (!entry.isFile() || !entry.name.endsWith(".jsonl")) {
-        continue;
-      }
-      const path = join(this.sessionsDir, entry.name);
-      const firstLine = readFileSync(path, "utf-8").split("\n")[0];
-      if (!firstLine) {
-        continue;
-      }
-      try {
-        const data = JSON.parse(firstLine) as Record<string, unknown>;
-        if (data._type === "metadata") {
-          sessions.push({
-            key: entry.name.replace(/\.jsonl$/, "").replace(/_/g, ":"),
-            created_at: toIsoString(data.created_at, new Date(0).toISOString()),
-            updated_at: toIsoString(data.updated_at, new Date(0).toISOString()),
-            path,
-            ...(toOptionalAgentId(data.agent_id) ? { agentId: toOptionalAgentId(data.agent_id) } : {}),
-            metadata: isRecord(data.metadata) ? data.metadata : {},
-          });
-        }
-      } catch {
-        continue;
-      }
-    }
-    return sessions;
+    return this.listIndex.listSessions();
   };
 }

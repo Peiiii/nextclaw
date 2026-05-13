@@ -77,6 +77,7 @@ function createConfig() {
 
 class TestSessionManager {
   private readonly sessions = new Map<string, TestSession>();
+  readonly loadedSessionKeys: string[] = [];
 
   getOrCreate = (key: string): TestSession => {
     const existing = this.sessions.get(key);
@@ -94,7 +95,10 @@ class TestSessionManager {
     return session;
   };
 
-  getIfExists = (key: string): TestSession | null => this.sessions.get(key) ?? null;
+  getIfExists = (key: string): TestSession | null => {
+    this.loadedSessionKeys.push(key);
+    return this.sessions.get(key) ?? null;
+  };
 
   addMessage = (session: TestSession, role: string, content: unknown): void => {
     session.messages.push({
@@ -117,6 +121,8 @@ class TestSessionManager {
       updated_at: session.updatedAt.toISOString(),
       path: session.key,
       ...(session.agentId ? { agentId: session.agentId } : {}),
+      messageCount: session.messages.length,
+      ...(session.messages.at(-1)?.timestamp ? { lastMessageAt: session.messages.at(-1)?.timestamp } : {}),
       metadata: session.metadata,
     }));
 }
@@ -165,6 +171,28 @@ describe("NcpSessionApiService", () => {
       role: "user",
       sessionId: "session-1",
     });
+    fixture.ncpSessionApi.dispose();
+  });
+
+  it("builds the limited session list from metadata without loading full records", async () => {
+    const fixture = createServiceFixture();
+    const oldSession = fixture.sessionManager.getOrCreate("old-session");
+    oldSession.updatedAt = new Date("2026-05-10T00:00:00.000Z");
+    fixture.sessionManager.save(oldSession);
+    const newestSession = fixture.sessionManager.getOrCreate("newest-session");
+    newestSession.updatedAt = new Date("2026-05-12T00:00:00.000Z");
+    fixture.sessionManager.addMessage(newestSession, "user", "hello");
+    fixture.sessionManager.save(newestSession);
+    const middleSession = fixture.sessionManager.getOrCreate("middle-session");
+    middleSession.updatedAt = new Date("2026-05-11T00:00:00.000Z");
+    fixture.sessionManager.save(middleSession);
+
+    const summaries = await fixture.ncpSessionApi.listSessions({ limit: 1 });
+
+    expect(summaries).toHaveLength(1);
+    expect(summaries[0]?.sessionId).toBe("newest-session");
+    expect(summaries[0]?.messageCount).toBe(1);
+    expect(fixture.sessionManager.loadedSessionKeys).toEqual([]);
     fixture.ncpSessionApi.dispose();
   });
 

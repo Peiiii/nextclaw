@@ -4,5 +4,7 @@ export type SessionListRecord = {
   updated_at: string;
   path: string;
   agentId?: string;
+  messageCount?: number;
+  lastMessageAt?: string;
   metadata: Record<string, unknown>;
 };

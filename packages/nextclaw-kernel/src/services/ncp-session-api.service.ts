@@ -6,7 +6,7 @@ import type {
   NcpSessionPatch,
   NcpSessionSummary,
 } from "@nextclaw/ncp";
-import type { Config, SessionManager } from "@nextclaw/core";
+import type { Config, SessionListRecord, SessionManager } from "@nextclaw/core";
 import { ContextCompactionPreflightService } from "@kernel/features/native-runtime/index.js";
 import { toNcpMessages } from "@kernel/utils/ncp-session-message-adapter.utils.js";
 import { createNcpSessionSummary } from "@kernel/utils/ncp-session-summary.utils.js";
@@ -42,6 +42,28 @@ function buildUpdatedMetadata(params: {
 
 function normalizeSessionId(sessionId: string): string {
   return sessionId.trim();
+}
+
+type SessionListSummaryRecord = SessionListRecord & {
+  messageCount?: number;
+  lastMessageAt?: string;
+};
+
+function toSessionCandidate(record: SessionListRecord): SessionListSummaryRecord & { sessionId: string } | null {
+  const sessionId = normalizeSessionId(record.key);
+  return sessionId ? { ...record, sessionId } : null;
+}
+
+function createSessionListSummary(record: SessionListSummaryRecord & { sessionId: string }): NcpSessionSummary {
+  return {
+    sessionId: record.sessionId,
+    ...(record.agentId ? { agentId: record.agentId } : {}),
+    messageCount: record.messageCount ?? 0,
+    updatedAt: record.updated_at,
+    lastMessageAt: record.lastMessageAt ?? record.updated_at,
+    status: "idle",
+    metadata: structuredClone(record.metadata),
+  };
 }
 
 export type NcpSessionApiServiceOptions = {
@@ -95,29 +117,14 @@ export class NcpSessionApiService implements NcpSessionApi {
   };
 
   listSessions = async (options?: ListSessionsOptions): Promise<NcpSessionSummary[]> => {
-    const summaries: NcpSessionSummary[] = [];
-    for (const record of this.options.sessionManager.listSessions()) {
-      const sessionId = normalizeSessionId(record.key);
-      if (!sessionId) {
-        continue;
-      }
-      const session = this.options.sessionManager.getIfExists(sessionId);
-      if (!session) {
-        continue;
-      }
-      summaries.push(
-        createNcpSessionSummary({
-          sessionId,
-          agentId: session.agentId,
-          messages: toNcpMessages(sessionId, session.messages),
-          updatedAt: session.updatedAt.toISOString(),
-          status: "idle",
-          metadata: session.metadata,
-        }),
-      );
-    }
-    summaries.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-    return applyLimit(summaries, options?.limit);
+    const records = applyLimit(
+      this.options.sessionManager.listSessions()
+        .map(toSessionCandidate)
+        .filter((record): record is SessionListSummaryRecord & { sessionId: string } => Boolean(record))
+        .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
+      options?.limit,
+    );
+    return records.map(createSessionListSummary);
   };
 
   listSessionMessages = async (

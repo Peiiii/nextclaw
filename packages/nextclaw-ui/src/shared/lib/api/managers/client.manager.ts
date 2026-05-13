@@ -1,6 +1,7 @@
 import {
   NextClawClient,
   type NextClawRealtimeEvent,
+  type NextClawQueryParams,
   type NextClawTransport,
   type NextClawTransportRequestInput,
   type NextClawTransportUploadInput
@@ -10,10 +11,10 @@ import { appClient } from '@/shared/lib/transport';
 import type { ApiResponse } from '@/shared/lib/api/types';
 
 const nextclawUiTransport: NextClawTransport = {
-  request: async <T>({ body, method, path, signal, timeoutMs }: NextClawTransportRequestInput): Promise<T> => {
+  request: async <T>({ body, method, path, query, signal, timeoutMs }: NextClawTransportRequestInput): Promise<T> => {
     return await appClient.request({
       method,
-      path,
+      path: appendQueryToPath(path, serializeQuery(query)),
       ...(body !== undefined ? { body } : {}),
       ...(signal ? { signal } : {}),
       ...(timeoutMs !== undefined ? { timeoutMs } : {})
@@ -103,6 +104,33 @@ function parseRequestBody(body: BodyInit | null | undefined): unknown {
     }
   }
   return body;
+}
+
+function serializeQuery(query?: NextClawQueryParams): URLSearchParams | undefined {
+  if (!query) {
+    return undefined;
+  }
+  if (query instanceof URLSearchParams) {
+    return query;
+  }
+  const params = new URLSearchParams();
+  for (const [key, rawValue] of Object.entries(query)) {
+    const values = Array.isArray(rawValue) ? rawValue : [rawValue];
+    for (const value of values) {
+      if (value !== null && value !== undefined) {
+        params.append(key, String(value));
+      }
+    }
+  }
+  return params;
+}
+
+function appendQueryToPath(path: string, query?: URLSearchParams): string {
+  const serialized = query?.toString();
+  if (!serialized) {
+    return path;
+  }
+  return `${path}${path.includes('?') ? '&' : '?'}${serialized}`;
 }
 
 function readApiErrorMessage(payload: ApiResponse<unknown>, fallback: string): string {
