@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/channel-plugin-dingtalk",
-  "version": "0.2.45",
+  "version": "0.2.46",
   "private": false,
   "description": "NextClaw DingTalk channel plugin (OpenClaw-compatible)",
   "type": "module",
