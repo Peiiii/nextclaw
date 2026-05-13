@@ -11,6 +11,7 @@
 - NARP 接入边界调整为：核心只识别通用 `narp-stdio` runtime type；`codex` / `claude` 只应来自外部 runtime entry 配置、安装/修复流程、marketplace metadata 或各自 NARP wrapper 包。
 - 更新 workspace build/lint/tsc 脚本与 lockfile，使新包进入工作区验证链路。
 - 保持旧 SDK 包与 `nextclaw-ncp-runtime-stdio-client` 不变，避免影响仍在使用的旧路径。
+- 后续修正：Codex/Claude Code NARP skill 的 runtime entry 模板补齐图标字段；根因是新 NARP stdio 路径改为通用 `narp-stdio` entry 后，不再走旧插件 descriptor 的 icon 声明，而模板又没有把已有 app resource 写入 entry。
 
 ## 测试/验证/验收方式
 
@@ -34,6 +35,12 @@
 - `pnpm lint:new-code:package-public-imports`
 - `pnpm check:governance-backlog-ratchet`
 - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <NARP wrapper files and runtime-entry integration files>`
+- `node -e '<parse ~/.nextclaw/config.json and print codex/claude entry icons>'`
+- `node packages/nextclaw/dist/cli/app/index.js agents runtimes --json`
+- `node packages/nextclaw/dist/cli/app/index.js skills update skills/codex-narp-runtime --meta skills/codex-narp-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`
+- `node packages/nextclaw/dist/cli/app/index.js skills update skills/claude-code-narp-runtime --meta skills/claude-code-narp-runtime/marketplace.json --api-base https://marketplace-api.nextclaw.io`
+- `/tmp` 临时目录安装冒烟：`codex-narp-runtime` 与 `claude-code-narp-runtime` 均可从 marketplace 安装，且安装后的 `SKILL.md` 包含对应 `icon` 字段。
+- `test -f packages/nextclaw-ui/public/runtime-icons/codex-openai.svg && test -f packages/nextclaw-ui/public/runtime-icons/claude.ico && test -f packages/nextclaw/ui-dist/runtime-icons/codex-openai.svg && test -f packages/nextclaw/ui-dist/runtime-icons/claude.ico`
 
 已知未通过项：
 
@@ -52,6 +59,7 @@
 - 检查新包命名确认体现 wrapper 职责，而不是把它伪装成 agent。
 - 检查旧 Codex/Claude Code SDK runtime 包和旧 stdio client 无改动。
 - 在显式配置 runtime entries 后，检查 runtime listing 中 `codex` 和 `claude` 的 entry type 为 `narp-stdio`，命令分别为 `nextclaw-codex-narp` 与 `nextclaw-claude-code-narp`。
+- 检查 runtime listing 中 `codex` 和 `claude` 的 entry icon 分别为 `app://runtime-icons/codex-openai.svg` 与 `app://runtime-icons/claude.ico`。
 - 构建新包后确认两个新 bin 入口存在：
   - `nextclaw-codex-narp`
   - `nextclaw-claude-code-narp`
@@ -65,10 +73,16 @@
 - 抽象边界：通用 stdio/ACP 到 NCP 的职责在 `nextclaw-narp-stdio-runtime-wrapper`，provider 配置映射分别留在 Codex 与 Claude Code wrapper 包。
 - 命名与目录：采用 `services/`、`controllers/`、`types/` 分层；package 和 bin 均使用 `narp` 命名。
 - 已使用 `post-edit-maintainability-guard` 和人工可维护性复核。
+- 后续图标修正没有新增源码复杂度；图标仍由 runtime entry / setup skill 持有，未把 Codex/Claude Code provider 身份硬编码回 core/kernel/service。
 
 ## NPM 包发布记录
 
 本轮未发布 NPM 包。
+
+Marketplace skill 已更新：
+
+- `@nextclaw/codex-narp-runtime`：`updatedAt=2026-05-13T17:28:54.162Z`
+- `@nextclaw/claude-code-narp-runtime`：`updatedAt=2026-05-13T17:28:54.150Z`
 
 待后续统一发布或接入配置落地后评估发布：
 

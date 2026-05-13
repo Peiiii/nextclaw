@@ -123,6 +123,11 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-claude-code-narp"
 {
   "enabled": true,
   "label": "Claude Code",
+  "icon": {
+    "kind": "image",
+    "src": "app://runtime-icons/claude.ico",
+    "alt": "Claude"
+  },
   "type": "narp-stdio",
   "config": {
     "wireDialect": "acp",

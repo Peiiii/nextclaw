@@ -122,6 +122,11 @@ chmod +x "$NEXTCLAW_HOME/bin/nextclaw-codex-narp"
 {
   "enabled": true,
   "label": "Codex",
+  "icon": {
+    "kind": "image",
+    "src": "app://runtime-icons/codex-openai.svg",
+    "alt": "Codex"
+  },
   "type": "narp-stdio",
   "config": {
     "wireDialect": "acp",
