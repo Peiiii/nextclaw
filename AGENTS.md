@@ -74,6 +74,7 @@
 - 业务层之间默认传递并依赖 owner 对象，而不是拆成一堆小参数；只有纯工具、纯计算或跨业务解耦边界才传最小小参数。
 - 使用 class 承载业务逻辑时，新增或触达的实例方法默认写成箭头函数 class field；`constructor`、`get/set`、`static`、`abstract`、`override`、decorator 方法按语义例外处理。
 - 普通函数、顶层 helper、对象字面量函数默认不得原地修改入参；优先返回新值或 patch。若需要状态和生命周期，收敛到 owner class。
+- 前端复杂业务逻辑、状态流或数据流默认收敛到 manager / store / presenter，优先由 manager 承载；组件和 hook 主要做连接、订阅、调用与轻量本地状态，合适时评估 RxJS 等显式数据流工具。
 - React `useEffect` / `useLayoutEffect` 默认只同步外部系统；业务编排、状态迁移、query/store 镜像应回到 query/view hook、store、manager 或 presenter。
 - 不允许同一功能、职责链路、数据变换、组件表面或交互结构出现平行重复实现；新增前先查找可复用实现。
 - 跨 workspace package 依赖默认只能导入对方 package 根公共入口；禁止从另一个 workspace 直接 deep import `shared/`、`commands/`、`src/` 等内部子路径。

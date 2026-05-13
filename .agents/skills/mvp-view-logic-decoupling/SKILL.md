@@ -1,6 +1,6 @@
 ---
 name: mvp-view-logic-decoupling
-description: Design or refactor frontend modules to a decoupled MVP architecture with Zustand stores, manager classes, and a global presenter. Use when requests mention MVP, presenter-manager-store, view-logic decoupling, reducing prop drilling, business orchestration layers, or multi-component state/action coordination.
+description: Design or refactor frontend modules to a decoupled MVP architecture with Zustand stores, manager classes, and a global presenter. Use when requests mention MVP, presenter-manager-store, view-logic decoupling, reducing prop drilling, business orchestration layers, multi-component state/action coordination, complex React hook/component state machines, streaming/data-flow coordination, or RxJS evaluation.
 ---
 
 # MVP View-Logic Decoupling
@@ -8,6 +8,13 @@ description: Design or refactor frontend modules to a decoupled MVP architecture
 ## Overview
 
 Apply a strict Presenter-Manager-Store structure that keeps UI components free of business logic and centralizes cross-module behavior.
+
+## State/Data Flow Ownership
+
+- Complex business logic, state machines, streaming flows, and cross-event ordering belong in manager/store/presenter, primarily manager.
+- Hooks and components should connect React to the owner: subscribe to stores or queries, call manager/presenter methods, and keep only lightweight local UI state.
+- When flows need cancellation, buffering, fan-in/fan-out, terminal event handling, retry control, or ordering guarantees, consider an explicit data-flow tool such as RxJS after confirming plain manager/store ownership is insufficient.
+- Do not introduce RxJS for simple local state, one-off effects, or view-only interaction details.
 
 ## Target Architecture
 
@@ -52,6 +59,7 @@ Apply a strict Presenter-Manager-Store structure that keeps UI components free o
 4. Prefer direct presenter/store access over deep business prop drilling.
 5. Remove duplicate data/action plumbing when presenter already provides the capability.
 6. Keep business-oriented `useEffect` logic out of business components; prefer manager/presenter action ownership.
+7. Keep complex state-flow and data-flow logic out of hooks/components; move it to manager/store/presenter before adding more React effects or local state.
 
 ## Implementation Workflow
 
@@ -157,6 +165,7 @@ Run this check before finishing:
 5. Verify manager/presenter classes do not declare constructors.
 6. Verify cross-domain communication goes through presenter-level APIs.
 7. Verify business components do not use `useEffect` to mirror query/store data or dispatch business actions.
+8. Verify complex async, streaming, or cross-event flows have an explicit owner, and evaluate RxJS only when it simplifies that owner instead of spreading logic.
 
 ## Anti-Patterns
 
@@ -166,3 +175,5 @@ Run this check before finishing:
 - Mix orchestration logic into low-level feature modules.
 - Use prototype methods (`foo() {}`) in manager/presenter classes.
 - Use `useEffect` as a business patch point for state repair, query-to-store mirroring, or post-render action dispatch.
+- Let hooks/components own long-lived business state machines, stream lifecycles, or cross-event coordination.
+- Add RxJS as a shortcut around unclear ownership.
