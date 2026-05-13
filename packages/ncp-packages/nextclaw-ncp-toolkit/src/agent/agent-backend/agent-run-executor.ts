@@ -18,6 +18,7 @@ export class AgentRunExecutor {
         payload: {
           sessionId: envelope.sessionId,
           message: structuredClone(envelope.message),
+          ...(envelope.correlationId ? { correlationId: envelope.correlationId } : {}),
           metadata: envelope.metadata,
         },
       };
@@ -35,7 +36,7 @@ export class AgentRunExecutor {
         },
         { signal: controller.signal },
       )) {
-        yield structuredClone(event);
+        yield normalizeRunEvent(event, envelope);
       }
     } catch (error) {
       if (!controller.signal.aborted) {
@@ -59,6 +60,7 @@ export class AgentRunExecutor {
       type: NcpEventType.RunError,
       payload: {
         sessionId: envelope.sessionId,
+        ...(envelope.correlationId ? { correlationId: envelope.correlationId } : {}),
         error: message,
       },
     };
@@ -66,4 +68,27 @@ export class AgentRunExecutor {
     await session.stateManager.dispatch(runErrorEvent);
     return runErrorEvent;
   }
+}
+
+function normalizeRunEvent(
+  event: NcpEndpointEvent,
+  envelope: NcpRequestEnvelope,
+): NcpEndpointEvent {
+  if (!("payload" in event) || !event.payload || typeof event.payload !== "object") {
+    return structuredClone(event);
+  }
+  return structuredClone({
+    ...event,
+    payload: {
+      ...event.payload,
+      sessionId:
+        "sessionId" in event.payload && typeof event.payload.sessionId === "string"
+          ? event.payload.sessionId
+          : envelope.sessionId,
+      ...(envelope.correlationId &&
+      (!("correlationId" in event.payload) || typeof event.payload.correlationId !== "string")
+        ? { correlationId: envelope.correlationId }
+        : {}),
+    },
+  } as NcpEndpointEvent);
 }

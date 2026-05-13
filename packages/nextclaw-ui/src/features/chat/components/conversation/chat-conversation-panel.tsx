@@ -273,8 +273,8 @@ export function ChatConversationPanel({
       resolveDraftAgent(snapshot.agentId ?? "main"),
       defaultSessionType,
     );
-    const sessionKey = presenter.chatSessionListManager.createSession(sessionType);
-    if (layoutMode === "mobile") presenter.chatUiManager.goToSession(sessionKey);
+    presenter.chatSessionListManager.createSession(sessionType);
+    if (layoutMode === "mobile") presenter.chatUiManager.goToChatRoot();
   };
   const selectDraftAgent = (agentId: string) => {
     presenter.chatSessionListManager.setSelectedAgentId(agentId);

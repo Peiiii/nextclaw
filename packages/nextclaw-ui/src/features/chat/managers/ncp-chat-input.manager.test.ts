@@ -77,7 +77,7 @@ describe('NcpChatInputManager', () => {
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      promoteRootDraftSessionRoute: vi.fn(),
+      materializeRootSessionRoute: vi.fn(),
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
@@ -95,14 +95,21 @@ describe('NcpChatInputManager', () => {
       }),
     );
     expect(sessionListManager.ensureDraftSession).not.toHaveBeenCalled();
-    expect(sessionListManager.promoteRootDraftSessionRoute).toHaveBeenCalledWith('current-route-session');
+    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 
-  it('keeps sending through the current root draft session while /chat is still in blank-draft mode', async () => {
+  it('sends without a session key while /chat is still in blank-draft mode', async () => {
     useChatThreadStore.setState({
       snapshot: {
         ...useChatThreadStore.getState().snapshot,
-        sessionKey: 'draft-root-session',
+        sessionKey: null,
+      },
+    });
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: null,
+        draftSessionKey: null,
       },
     });
     const streamActionsManager = {
@@ -111,7 +118,7 @@ describe('NcpChatInputManager', () => {
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'materialized-draft-session'),
-      promoteRootDraftSessionRoute: vi.fn(),
+      materializeRootSessionRoute: vi.fn(),
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
@@ -121,14 +128,18 @@ describe('NcpChatInputManager', () => {
 
     await manager.send();
 
-    expect(sessionListManager.ensureDraftSession).not.toHaveBeenCalled();
+    expect(sessionListManager.ensureDraftSession).toHaveBeenCalledWith('native');
+    expect(streamActionsManager.sendMessage).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        sessionKey: expect.any(String),
+      }),
+    );
     expect(streamActionsManager.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionKey: 'draft-root-session',
         message: 'hello from current thread',
       }),
     );
-    expect(sessionListManager.promoteRootDraftSessionRoute).toHaveBeenCalledWith('draft-root-session');
+    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 
   it('does not send while the runtime is still blocked during startup', async () => {
@@ -158,7 +169,7 @@ describe('NcpChatInputManager', () => {
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      promoteRootDraftSessionRoute: vi.fn(),
+      materializeRootSessionRoute: vi.fn(),
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
@@ -169,7 +180,7 @@ describe('NcpChatInputManager', () => {
     await manager.send();
 
     expect(streamActionsManager.sendMessage).not.toHaveBeenCalled();
-    expect(sessionListManager.promoteRootDraftSessionRoute).not.toHaveBeenCalled();
+    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 
   it('still attempts to send when provider metadata is stale or the session type is marked unavailable', async () => {
@@ -187,7 +198,7 @@ describe('NcpChatInputManager', () => {
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[1];
     const sessionListManager = {
       ensureDraftSession: vi.fn(() => 'draft-session'),
-      promoteRootDraftSessionRoute: vi.fn(),
+      materializeRootSessionRoute: vi.fn(),
     } as unknown as ConstructorParameters<typeof NcpChatInputManager>[2];
     const manager = new NcpChatInputManager(
       {} as ConstructorParameters<typeof NcpChatInputManager>[0],
@@ -198,6 +209,6 @@ describe('NcpChatInputManager', () => {
     await manager.send();
 
     expect(streamActionsManager.sendMessage).toHaveBeenCalledTimes(1);
-    expect(sessionListManager.promoteRootDraftSessionRoute).toHaveBeenCalledWith('current-route-session');
+    expect(sessionListManager.materializeRootSessionRoute).not.toHaveBeenCalled();
   });
 });

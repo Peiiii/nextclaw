@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type * as SharedApi from '@/shared/lib/api';
 import { ChatSessionListManager } from '@/features/chat/managers/chat-session-list.manager';
 import { useChatInputStore } from '@/features/chat/stores/chat-input.store';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
@@ -9,7 +10,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/shared/lib/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  const actual = await importOriginal<typeof SharedApi>();
   return {
     ...actual,
     updateNcpSession: mocks.updateNcpSession,
@@ -59,13 +60,13 @@ describe('ChatSessionListManager', () => {
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    const sessionKey = manager.createSession('codex');
+    manager.createSession('codex');
 
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
     expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBe(sessionKey);
-    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).not.toBe('draft-root-1');
+    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
@@ -82,14 +83,14 @@ describe('ChatSessionListManager', () => {
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    const sessionKey = manager.startAgentDraftChat('researcher', 'codex');
+    manager.startAgentDraftChat('researcher', 'codex');
 
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
     expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
     expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBe(sessionKey);
-    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe(sessionKey);
+    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
@@ -106,13 +107,13 @@ describe('ChatSessionListManager', () => {
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    const sessionKey = manager.createSession('native', '/tmp/project-alpha');
+    manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBe('/tmp/project-alpha');
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe(sessionKey);
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
-  it('reuses the current root draft when send flow needs a concrete session key', () => {
+  it('keeps the root draft key empty when send flow has no concrete session yet', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -132,7 +133,7 @@ describe('ChatSessionListManager', () => {
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
     const sessionKey = manager.ensureDraftSession('native');
 
-    expect(sessionKey).toBe('draft-root-2');
+    expect(sessionKey).toBeNull();
     expect(uiManager.goToChatRoot).not.toHaveBeenCalled();
     expect(uiManager.goToSession).not.toHaveBeenCalled();
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
@@ -149,10 +150,10 @@ describe('ChatSessionListManager', () => {
     } as unknown as ConstructorParameters<typeof ChatSessionListManager>[1];
 
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
-    const sessionKey = manager.createSession('native', '/tmp/project-alpha');
+    manager.createSession('native', '/tmp/project-alpha');
 
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBe(sessionKey);
+    expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
   });
 
   it('delegates existing-session selection to routing without eagerly mutating the selected session state', () => {
@@ -224,7 +225,7 @@ describe('ChatSessionListManager', () => {
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
   });
 
-  it('promotes the active root draft to a concrete session route after the draft has been sent successfully', () => {
+  it('routes to the backend-materialized root session after the first send starts', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
@@ -243,8 +244,10 @@ describe('ChatSessionListManager', () => {
     const manager = new ChatSessionListManager(uiManager, streamActionsManager);
 
     manager.ensureDraftSession('native');
-    manager.promoteRootDraftSessionRoute('draft-root-2');
+    manager.materializeRootSessionRoute('ncp-materialized-session');
 
-    expect(uiManager.goToSession).toHaveBeenCalledWith('draft-root-2', { replace: true });
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('ncp-materialized-session');
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe('ncp-materialized-session');
+    expect(uiManager.goToSession).toHaveBeenCalledWith('ncp-materialized-session', { replace: true });
   });
 });

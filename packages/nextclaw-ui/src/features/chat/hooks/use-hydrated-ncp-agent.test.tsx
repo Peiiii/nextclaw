@@ -7,6 +7,11 @@ const mocks = vi.hoisted(() => ({
   manager: {
     reset: vi.fn(),
     hydrate: vi.fn(),
+    getSnapshot: vi.fn(() => ({
+      messages: [],
+      streamingMessage: null,
+      activeRun: null,
+    })),
   },
   runtime: {
     snapshot: {
@@ -37,6 +42,7 @@ describe("useHydratedNcpAgent", () => {
   beforeEach(() => {
     mocks.manager.reset.mockReset();
     mocks.manager.hydrate.mockReset();
+    mocks.manager.getSnapshot.mockClear();
     mocks.runtime.send.mockReset();
     mocks.runtime.abort.mockReset();
     mocks.runtime.streamRun.mockReset();

@@ -1,5 +1,6 @@
 import {
   type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
   type NcpAgentServerEndpoint,
   type NcpEndpointEvent,
   type NcpEndpointSubscriber,
@@ -8,6 +9,14 @@ import {
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
+
+function assertMaterializedEnvelope(
+  envelope: NcpAgentSendEnvelope,
+): asserts envelope is NcpRequestEnvelope {
+  if (!envelope.sessionId?.trim() || !envelope.message.sessionId?.trim()) {
+    throw new Error("NCP request envelope must be materialized before server dispatch.");
+  }
+}
 
 /**
  * Creates an NcpAgentClientEndpoint that forwards to an in-process NcpAgentServerEndpoint.
@@ -29,6 +38,7 @@ export function createAgentClientFromServer(
     async emit(event: NcpEndpointEvent): Promise<void> {
       switch (event.type) {
         case NcpEventType.MessageRequest:
+          assertMaterializedEnvelope(event.payload);
           await consume(server.send(event.payload));
           return;
         case NcpEventType.MessageStreamRequest:
@@ -44,7 +54,8 @@ export function createAgentClientFromServer(
     subscribe(listener: NcpEndpointSubscriber) {
       return server.subscribe(listener);
     },
-    async send(envelope: NcpRequestEnvelope): Promise<void> {
+    async send(envelope: NcpAgentSendEnvelope): Promise<void> {
+      assertMaterializedEnvelope(envelope);
       await consume(server.send(envelope));
     },
     async stream(payload: NcpStreamRequestPayload): Promise<void> {

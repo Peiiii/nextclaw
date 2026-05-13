@@ -1,10 +1,9 @@
 import { create, type StateCreator } from 'zustand';
-import { createNcpSessionId } from '@/features/chat/utils/ncp-session-adapter.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 export type ChatSessionListMode = 'time-first' | 'project-first';
 export type ChatSessionListSnapshot = {
   selectedSessionKey: string | null;
-  draftSessionKey: string;
+  draftSessionKey: string | null;
   selectedAgentId: string;
   query: string;
   listMode: ChatSessionListMode;
@@ -50,7 +49,7 @@ type ChatSessionListStoreSet = Parameters<StateCreator<ChatSessionListStore>>[0]
 
 const initialSnapshot: ChatSessionListSnapshot = {
   selectedSessionKey: null,
-  draftSessionKey: createNcpSessionId(),
+  draftSessionKey: null,
   selectedAgentId: 'main',
   query: '',
   listMode: 'time-first'

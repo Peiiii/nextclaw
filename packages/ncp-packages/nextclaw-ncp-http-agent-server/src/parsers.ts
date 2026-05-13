@@ -1,6 +1,6 @@
 import type {
+  NcpAgentSendEnvelope,
   NcpMessageAbortPayload,
-  NcpRequestEnvelope,
   NcpStreamRequestPayload,
 } from "@nextclaw/ncp";
 import { DEFAULT_BASE_PATH } from "./types.js";
@@ -24,19 +24,22 @@ export function sanitizeTimeout(timeoutMs: number | null | undefined): number | 
   return Math.max(1_000, Math.trunc(timeoutMs));
 }
 
-export async function parseRequestEnvelope(request: Request): Promise<NcpRequestEnvelope | null> {
+export async function parseRequestEnvelope(request: Request): Promise<NcpAgentSendEnvelope | null> {
   try {
     const payload = (await request.json()) as unknown;
     if (!isRecord(payload)) {
       return null;
     }
-    if (typeof payload.sessionId !== "string" || !payload.sessionId.trim()) {
+    if (
+      Object.prototype.hasOwnProperty.call(payload, "sessionId") &&
+      (typeof payload.sessionId !== "string" || !payload.sessionId.trim())
+    ) {
       return null;
     }
     if (!isRecord(payload.message)) {
       return null;
     }
-    return payload as NcpRequestEnvelope;
+    return payload as NcpAgentSendEnvelope;
   } catch {
     return null;
   }

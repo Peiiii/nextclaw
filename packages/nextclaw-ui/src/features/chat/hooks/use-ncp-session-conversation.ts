@@ -93,7 +93,7 @@ function useSyncReadyRetryVersion(
 }
 
 export function useNcpSessionConversation(
-  sessionId: string,
+  sessionId: string | undefined,
   options: UseNcpSessionConversationOptions = {},
 ) {
   const [client] = useState(() => createNcpSessionConversationClient());
@@ -126,6 +126,7 @@ export function useNcpSessionConversation(
   const currentAgentError =
     agent.hydrateError?.message ?? agent.snapshot.error?.message ?? null;
   const readyRetrySignature =
+    sessionId &&
     systemStatus.phase === "ready" &&
     isNcpAgentStartupUnavailableErrorMessage(currentAgentError)
       ? `${sessionId}:${systemStatus.lastReadyAt ?? 0}`

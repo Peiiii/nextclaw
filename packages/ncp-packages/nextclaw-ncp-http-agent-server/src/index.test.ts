@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
   type NcpEndpointManifest,
   type NcpEndpointSubscriber,
@@ -43,6 +44,36 @@ describe("createNcpHttpAgentRouter", () => {
     await expect(response.json()).resolves.toEqual({ ok: true });
 
     expect(endpoint.emitted[0]?.type).toBe("message.request");
+  });
+
+  it("accepts a new-session /send stream request without session id", async () => {
+    const endpoint = new FakeAgentEndpoint();
+    const app = createNcpHttpAgentRouter({ agentClientEndpoint: endpoint });
+    const requestBody: NcpAgentSendEnvelope = {
+      message: {
+        id: "user-new-session",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "ping" }],
+        timestamp: now,
+      },
+      metadata: { session_type: "native", agent_id: "main" },
+    };
+
+    const response = await app.request("http://localhost/ncp/agent/send", {
+      method: "POST",
+      headers: {
+        accept: "text/event-stream",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    expect(response.status).toBe(200);
+    expect(endpoint.emitted[0]).toEqual({
+      type: NcpEventType.MessageRequest,
+      payload: requestBody,
+    });
   });
 
   it("returns 400 when stream query is missing required fields", async () => {

@@ -5,7 +5,6 @@ import type { ChatUiManager } from '@/features/chat/managers/chat-ui.manager';
 import type { SetStateAction } from 'react';
 import type { ChatStreamActionsManager } from '@/features/chat/managers/chat-stream-actions.manager';
 import { normalizeSessionProjectRootValue } from '@/shared/lib/session-project';
-import { createNcpSessionId } from '@/features/chat/utils/ncp-session-adapter.utils';
 import { updateNcpSession } from '@/shared/lib/api';
 export class ChatSessionListManager {
   constructor(
@@ -13,9 +12,9 @@ export class ChatSessionListManager {
     private streamActionsManager: ChatStreamActionsManager
   ) {}
 
-  private syncDraftThreadState = (sessionKey: string) => {
+  private syncDraftThreadState = () => {
     useChatThreadStore.getState().setSnapshot({
-      sessionKey,
+      sessionKey: null,
       sessionDisplayName: undefined,
       canDeleteSession: false,
       isHistoryLoading: false,
@@ -97,7 +96,7 @@ export class ChatSessionListManager {
     void updateNcpSession(normalizedSessionKey, { uiReadAt: normalizedReadAt }).catch(() => undefined);
   };
 
-  createSession = (sessionType?: string, projectRoot?: string | null): string => {
+  createSession = (sessionType?: string, projectRoot?: string | null): void => {
     const { snapshot } = useChatInputStore.getState();
     const { defaultSessionType: configuredDefaultSessionType } = snapshot;
     const defaultSessionType = configuredDefaultSessionType || 'native';
@@ -106,30 +105,27 @@ export class ChatSessionListManager {
         ? sessionType.trim()
         : defaultSessionType;
     const normalizedProjectRoot = normalizeSessionProjectRootValue(projectRoot);
-    const nextSessionKey = createNcpSessionId();
     this.streamActionsManager.resetStreamState();
     useChatSessionListStore.getState().setSnapshot({
       selectedSessionKey: null,
-      draftSessionKey: nextSessionKey
+      draftSessionKey: null
     });
-    this.syncDraftThreadState(nextSessionKey);
+    this.syncDraftThreadState();
     useChatInputStore.getState().setSnapshot({
       pendingSessionType: nextSessionType,
       pendingProjectRoot: normalizedProjectRoot,
-      pendingProjectRootSessionKey: normalizedProjectRoot ? nextSessionKey : null
+      pendingProjectRootSessionKey: null
     });
     this.uiManager.goToChatRoot();
-    return nextSessionKey;
   };
 
-  startAgentDraftChat = (agentId: string, sessionType: string): string => {
+  startAgentDraftChat = (agentId: string, sessionType: string): void => {
     const normalizedAgentId = agentId.trim() || 'main';
-    const nextSessionKey = this.createSession(sessionType);
+    this.createSession(sessionType);
     this.setSelectedAgentId(normalizedAgentId);
-    return nextSessionKey;
   };
 
-  ensureDraftSession = (sessionType?: string): string => {
+  ensureDraftSession = (sessionType?: string): string | null => {
     const { snapshot } = useChatSessionListStore.getState();
     if (snapshot.selectedSessionKey) {
       return snapshot.selectedSessionKey;
@@ -138,28 +134,28 @@ export class ChatSessionListManager {
       typeof sessionType === 'string' && sessionType.trim().length > 0
         ? sessionType.trim()
         : null;
-    this.syncDraftThreadState(snapshot.draftSessionKey);
+    this.syncDraftThreadState();
     if (normalizedSessionType) {
       useChatInputStore.getState().setSnapshot({ pendingSessionType: normalizedSessionType });
     }
-    return snapshot.draftSessionKey;
+    return null;
   };
 
-  promoteRootDraftSessionRoute = (sessionKey: string) => {
+  materializeRootSessionRoute = (sessionKey: string) => {
     const normalizedSessionKey = sessionKey.trim();
     if (!normalizedSessionKey) {
       return;
     }
-    const { snapshot } = useChatSessionListStore.getState();
-    const { sessionKey: currentThreadSessionKey } = useChatThreadStore.getState().snapshot;
-    if (
-      snapshot.selectedSessionKey !== null ||
-      snapshot.draftSessionKey !== normalizedSessionKey ||
-      currentThreadSessionKey !== normalizedSessionKey ||
-      !this.uiManager.isAtChatRoot()
-    ) {
+    if (!this.uiManager.isAtChatRoot()) {
       return;
     }
+    useChatSessionListStore.getState().setSnapshot({
+      selectedSessionKey: normalizedSessionKey,
+      draftSessionKey: null,
+    });
+    useChatThreadStore.getState().setSnapshot({
+      sessionKey: normalizedSessionKey,
+    });
     this.uiManager.goToSession(normalizedSessionKey, { replace: true });
   };
 

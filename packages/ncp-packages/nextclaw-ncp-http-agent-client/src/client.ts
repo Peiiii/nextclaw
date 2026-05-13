@@ -1,10 +1,10 @@
 import {
   type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
   type NcpEndpointManifest,
   type NcpEndpointSubscriber,
   type NcpMessageAbortPayload,
-  type NcpRequestEnvelope,
   type NcpStreamRequestPayload,
   NcpEventType,
 } from "@nextclaw/ncp";
@@ -46,12 +46,6 @@ export type NcpHttpAgentClientOptions = {
 type StreamRequestOptions = {
   path: string;
   method: "GET" | "POST";
-  body?: unknown;
-};
-
-type JsonRequestOptions = {
-  path: string;
-  method: "POST";
   body?: unknown;
 };
 
@@ -128,9 +122,9 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
     };
   }
 
-  async send(envelope: NcpRequestEnvelope): Promise<void> {
+  async send(envelope: NcpAgentSendEnvelope): Promise<void> {
     await this.ensureStarted();
-    await this.jsonRequest({
+    await this.streamRequest({
       path: "/send",
       method: "POST",
       body: envelope,
@@ -194,43 +188,6 @@ export class NcpHttpAgentClientEndpoint implements NcpAgentClientEndpoint {
 
   private resolveUrl(path: string): URL {
     return new URL(`${this.basePath}${path}`, this.baseUrl);
-  }
-
-  private async jsonRequest(options: JsonRequestOptions): Promise<void> {
-    const controller = new AbortController();
-    this.activeControllers.add(controller);
-
-    try {
-      const response = await this.fetchImpl(this.resolveUrl(options.path), {
-        method: options.method,
-        headers: {
-          ...this.defaultHeaders,
-          "content-type": "application/json",
-          accept: "application/json",
-        },
-        body:
-          options.body === undefined ? undefined : JSON.stringify(options.body),
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `NCP request failed with HTTP ${response.status}: ${await safeReadText(response)}`,
-        );
-      }
-    } catch (error) {
-      if (controller.signal.aborted) {
-        return;
-      }
-      if (isNcpHttpAgentClientError(error)) {
-        throw error;
-      }
-      const ncpError = toNcpError(error);
-      this.publish({ type: NcpEventType.EndpointError, payload: ncpError });
-      throw ncpErrorToError(ncpError);
-    } finally {
-      this.activeControllers.delete(controller);
-    }
   }
 
   private async streamRequest(options: StreamRequestOptions): Promise<void> {

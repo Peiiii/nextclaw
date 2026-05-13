@@ -23,7 +23,7 @@ export type { ChatModelOption } from '@/features/chat/types/chat-input.types';
 
 type UseNcpChatPageDataParams = {
   query: string;
-  sessionKey: string;
+  sessionKey: string | null;
   projectRootOverride?: string | null;
   currentSelectedModel: string;
   pendingSessionType: string;
@@ -76,7 +76,7 @@ function useNcpChatModelOptions(params: {
 
 function useRecentSessionPreferences(params: {
   sessions: SessionEntryView[];
-  sessionKey: string;
+  sessionKey: string | null;
   sessionType: string;
 }) {
   const { sessions, sessionKey, sessionType } = params;
@@ -84,7 +84,7 @@ function useRecentSessionPreferences(params: {
     () =>
       resolveRecentSessionPreferredValue<string>({
         sessions,
-        selectedSessionKey: sessionKey,
+        selectedSessionKey: sessionKey ?? '',
         sessionType,
         readPreference: (session) => session.preferredModel?.trim() || undefined
       }),
@@ -94,7 +94,7 @@ function useRecentSessionPreferences(params: {
     () =>
       resolveRecentSessionPreferredValue<ThinkingLevel>({
         sessions,
-        selectedSessionKey: sessionKey,
+        selectedSessionKey: sessionKey ?? '',
         sessionType,
         readPreference: (session) => session.preferredThinking ?? undefined
       }),
@@ -158,7 +158,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   const sessionsQuery = useNcpSessions({ limit: 200 });
   const sessionTypesQuery = useNcpChatSessionTypes();
   const sessionSkillsQuery = useNcpSessionSkills({
-    sessionId: sessionKey,
+    sessionId: sessionKey ?? null,
     ...(Object.prototype.hasOwnProperty.call(params, 'projectRootOverride')
       ? { projectRoot: projectRootOverride ?? null }
       : {})
@@ -219,7 +219,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
 
   useSyncSelectedModel({
     modelOptions: filteredModelOptions,
-    selectedSessionKey: sessionKey,
+    selectedSessionKey: sessionKey ?? '',
     selectedSessionExists: Boolean(selectedSession),
     selectedSessionPreferredModel: selectedSession?.preferredModel,
     fallbackPreferredModel: sessionTypeState.selectedSessionTypeOption?.recommendedModel ?? recentSessionPreferredModel,
@@ -228,7 +228,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   });
   useSyncSelectedThinking({
     supportedThinkingLevels,
-    selectedSessionKey: sessionKey,
+    selectedSessionKey: sessionKey ?? '',
     selectedSessionExists: Boolean(selectedSession),
     selectedSessionPreferredThinking: selectedSession?.preferredThinking ?? null,
     fallbackPreferredThinking: recentSessionPreferredThinking ?? null,

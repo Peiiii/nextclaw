@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
   type NcpRequestEnvelope,
   NcpEventType,
@@ -69,7 +70,7 @@ describe("createNcpHttpAgentClient stream behavior", () => {
     }
   });
 
-  it("sends request to /send and does not treat it as a realtime stream", async () => {
+  it("sends request to /send as a realtime stream", async () => {
     const calls: Array<{ input: URL | string | Request; init?: RequestInit }> =
       [];
     const fetchImpl = async (
@@ -77,10 +78,12 @@ describe("createNcpHttpAgentClient stream behavior", () => {
       init?: RequestInit,
     ): Promise<Response> => {
       calls.push({ input, init });
-      return new Response(JSON.stringify({ ok: true }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
+      return createSseResponse([
+        sseFrame("ncp-event", {
+          type: NcpEventType.RunStarted,
+          payload: { sessionId: "session-1", runId: "run-1" },
+        }),
+      ]);
     };
 
     const client = new NcpHttpAgentClientEndpoint({
@@ -116,12 +119,47 @@ describe("createNcpHttpAgentClient stream behavior", () => {
     expect(requestUrl.pathname).toBe("/ncp/agent/send");
     expect(calls[0]?.init?.method).toBe("POST");
     expect(calls[0]?.init?.headers).toMatchObject({
-      accept: "application/json",
+      accept: "text/event-stream",
       "content-type": "application/json",
     });
 
     const eventTypes = received.map((event) => event.type);
-    expect(eventTypes).toEqual(["endpoint.ready"]);
+    expect(eventTypes).toEqual(["endpoint.ready", NcpEventType.RunStarted]);
+  });
+
+  it("sends a new-session request without session id", async () => {
+    const calls: Array<{ input: URL | string | Request; init?: RequestInit }> =
+      [];
+    const fetchImpl = async (
+      input: URL | string | Request,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      calls.push({ input, init });
+      return createSseResponse([
+        sseFrame("ncp-event", {
+          type: NcpEventType.RunStarted,
+          payload: { sessionId: "session-created", runId: "run-1" },
+        }),
+      ]);
+    };
+    const client = new NcpHttpAgentClientEndpoint({
+      baseUrl: "https://api.example.com",
+      fetchImpl,
+    });
+    const envelope: NcpAgentSendEnvelope = {
+      message: {
+        id: "user-new-session",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "ping" }],
+        timestamp: now,
+      },
+      metadata: { session_type: "native", agent_id: "main" },
+    };
+
+    await client.send(envelope);
+
+    expect(calls[0]?.init?.body).toBe(JSON.stringify(envelope));
   });
 });
 

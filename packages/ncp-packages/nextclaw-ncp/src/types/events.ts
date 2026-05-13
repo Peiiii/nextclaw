@@ -23,6 +23,15 @@ export type NcpRequestEnvelope = {
   tools?: ReadonlyArray<OpenAITool>;
 };
 
+export type NcpOutboundMessageDraft = Omit<NcpMessage, "sessionId"> & {
+  sessionId?: string;
+};
+
+export type NcpAgentSendEnvelope = Omit<NcpRequestEnvelope, "sessionId" | "message"> & {
+  sessionId?: string;
+  message: NcpMessage | NcpOutboundMessageDraft;
+};
+
 export type NcpProviderRuntimeRoute = {
   model: string;
   apiKey?: string | null;
@@ -34,7 +43,6 @@ export type NcpProviderRuntimeRoute = {
 export type NcpResponseEnvelope = {
   sessionId: string;
   message: NcpMessage;
-  correlationId?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -81,6 +89,7 @@ export type NcpStreamRequestPayload = {
 export type NcpMessageSentPayload = {
   sessionId: string;
   message: NcpMessage;
+  correlationId?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -304,7 +313,7 @@ export enum NcpEventType {
 
 export type NcpEndpointEvent =
   | { type: NcpEventType.EndpointReady }
-  | { type: NcpEventType.MessageRequest; payload: NcpRequestEnvelope }
+  | { type: NcpEventType.MessageRequest; payload: NcpAgentSendEnvelope }
   | { type: NcpEventType.MessageStreamRequest; payload: NcpStreamRequestPayload }
   | { type: NcpEventType.MessageSent; payload: NcpMessageSentPayload }
   | { type: NcpEventType.MessageAccepted; payload: NcpMessageAcceptedPayload }

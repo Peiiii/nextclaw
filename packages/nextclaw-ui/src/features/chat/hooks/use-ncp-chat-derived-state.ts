@@ -113,7 +113,7 @@ export function useNcpChatSnapshotSync(params: {
   sessionTypeUnavailableMessage: string | null;
   currentSessionTypeLabel: string;
   currentSessionTypeIcon: ChatSessionTypeOption['icon'];
-  sessionKey: string;
+  sessionKey: string | null | undefined;
   currentAgentId: string;
   currentAgent: AgentProfileView | null;
   availableAgents: AgentProfileView[];
@@ -152,7 +152,7 @@ export function useNcpChatSnapshotSync(params: {
       sessionTypeUnavailableMessage: params.sessionTypeUnavailableMessage,
       sessionTypeLabel: params.currentSessionTypeLabel,
       sessionTypeIcon: params.currentSessionTypeIcon,
-      sessionKey: params.sessionKey,
+      sessionKey: params.sessionKey ?? null,
       agentId: params.currentAgentId,
       agentDisplayName: params.currentAgent?.displayName ?? null,
       agentAvatarUrl: params.currentAgent?.avatarUrl ?? null,

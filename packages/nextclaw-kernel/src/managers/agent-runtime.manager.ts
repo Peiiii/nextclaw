@@ -17,7 +17,12 @@ import {
 import type { LlmProviderRuntime } from "@kernel/managers/llm-provider.manager.js";
 import { LocalAssetStore } from "@nextclaw/ncp-agent-runtime";
 import {
+  type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
   type NcpEndpointEvent,
+  type NcpMessage,
+  type NcpOutboundMessageDraft,
+  type NcpRequestEnvelope,
   NcpEventType,
 } from "@nextclaw/ncp";
 import { DefaultNcpAgentBackend, type AgentSessionStore } from "@nextclaw/ncp-toolkit";
@@ -63,6 +68,47 @@ export type AgentRuntimeManagerOptions = {
   llmUsage: LlmUsageManager;
   onSessionUpdated: (sessionKey: string) => void;
 };
+
+type NcpOutboundMessageInput = NcpMessage | NcpOutboundMessageDraft;
+
+function readOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function readMessageTask(message: NcpOutboundMessageInput): string {
+  for (const part of message.parts) {
+    if (
+      (part.type === "text" || part.type === "rich-text" || part.type === "reasoning") &&
+      part.text.trim()
+    ) {
+      return part.text.trim();
+    }
+  }
+  return "Session";
+}
+
+function readSessionMetadataString(
+  metadata: Record<string, unknown> | undefined,
+  ...keys: string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = readOptionalString(metadata?.[key]);
+    if (value) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
+async function consumeAgentEvents(events: AsyncIterable<unknown>): Promise<void> {
+  for await (const event of events) {
+    void event;
+  }
+}
 
 export class AgentRuntimeManager {
   private readonly runtimeRegistry = new AgentRuntimeRegistry();
@@ -164,6 +210,7 @@ export class AgentRuntimeManager {
     await this.backend.start();
     this.handle = createAgentRuntimeHandle({
       backend: this.backend,
+      agentClientEndpoint: this.createMaterializingAgentClientEndpoint(this.backend),
       runtimeRegistry: this.runtimeRegistry,
       refreshPluginRuntimeRegistrations:
         this.pluginRuntimeRegistrationController.refreshPluginRuntimeRegistrations,
@@ -174,6 +221,85 @@ export class AgentRuntimeManager {
     });
     return this.handle;
   };
+
+  private readonly materializeAgentSendEnvelope = (
+    envelope: NcpAgentSendEnvelope,
+  ): NcpRequestEnvelope => {
+    const existingSessionId =
+      readOptionalString(envelope.sessionId) ??
+      readOptionalString(envelope.message.sessionId);
+    if (existingSessionId) {
+      return {
+        ...envelope,
+        sessionId: existingSessionId,
+        message: {
+          ...envelope.message,
+          sessionId: existingSessionId,
+        },
+      };
+    }
+
+    const metadata = envelope.metadata ?? {};
+    const createdSession = this.params.sessions.createSession({
+      task: readMessageTask(envelope.message),
+      title: readSessionMetadataString(metadata, "label", "title"),
+      sourceSessionMetadata: {},
+      metadataOverrides: metadata,
+      agentId: readSessionMetadataString(metadata, "agent_id", "agentId"),
+      model: readSessionMetadataString(metadata, "preferred_model", "model"),
+      runtime: readSessionMetadataString(metadata, "runtime", "session_type"),
+      sessionType: readSessionMetadataString(metadata, "session_type", "runtime"),
+      thinkingLevel: readSessionMetadataString(metadata, "preferred_thinking", "thinking"),
+      projectRoot: readSessionMetadataString(metadata, "project_root"),
+    });
+    this.params.onSessionUpdated(createdSession.sessionId);
+
+    return {
+      ...envelope,
+      sessionId: createdSession.sessionId,
+      message: {
+        ...envelope.message,
+        sessionId: createdSession.sessionId,
+      },
+    };
+  };
+
+  private readonly createMaterializingAgentClientEndpoint = (
+    backend: DefaultNcpAgentBackend,
+  ): NcpAgentClientEndpoint => ({
+    get manifest() {
+      return backend.manifest;
+    },
+    start: backend.start,
+    stop: backend.stop,
+    subscribe: backend.subscribe,
+    stream: async (payload) => {
+      await consumeAgentEvents(backend.stream(payload));
+    },
+    abort: backend.abort,
+    send: async (envelope) => {
+      await consumeAgentEvents(
+        backend.send(this.materializeAgentSendEnvelope(envelope)),
+      );
+    },
+    emit: async (event) => {
+      switch (event.type) {
+        case NcpEventType.MessageRequest:
+          await consumeAgentEvents(
+            backend.send(this.materializeAgentSendEnvelope(event.payload)),
+          );
+          return;
+        case NcpEventType.MessageStreamRequest:
+          await consumeAgentEvents(backend.stream(event.payload));
+          return;
+        case NcpEventType.MessageAbort:
+          await backend.abort(event.payload);
+          return;
+        default:
+          await backend.emit(event);
+      }
+    },
+  });
 
   warmDerivedCapabilities = async (): Promise<void> => {
     this.assertNotDisposed();

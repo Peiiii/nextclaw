@@ -5,7 +5,7 @@ import type { ThinkingLevel } from '@/shared/lib/api';
 
 export type SendMessageParams = {
   message: string;
-  sessionKey: string;
+  sessionKey?: string;
   agentId: string;
   sessionType?: string;
   model?: string;

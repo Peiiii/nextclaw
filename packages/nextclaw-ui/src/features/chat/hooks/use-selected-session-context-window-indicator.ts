@@ -6,15 +6,13 @@ import { buildChatContextWindowIndicator } from '@/features/chat/utils/chat-cont
 
 export function useSelectedSessionContextWindowIndicator(): ChatContextWindowIndicator | null {
   const selectedSessionKey = useChatSessionListStore((state) => state.snapshot.selectedSessionKey);
-  const draftSessionKey = useChatSessionListStore((state) => state.snapshot.draftSessionKey);
   const liveSessionKey = useChatThreadStore((state) => state.snapshot.sessionKey);
   const liveContextWindow = useChatThreadStore((state) => state.snapshot.contextWindow);
-  const currentSessionKey = selectedSessionKey ?? draftSessionKey;
 
   return useMemo(() => {
-    if (liveSessionKey === currentSessionKey && liveContextWindow) {
+    if (selectedSessionKey && liveSessionKey === selectedSessionKey && liveContextWindow) {
       return buildChatContextWindowIndicator(liveContextWindow);
     }
     return null;
-  }, [currentSessionKey, liveContextWindow, liveSessionKey]);
+  }, [liveContextWindow, liveSessionKey, selectedSessionKey]);
 }

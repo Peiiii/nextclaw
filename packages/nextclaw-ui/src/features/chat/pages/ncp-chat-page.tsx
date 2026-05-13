@@ -106,9 +106,6 @@ function useNcpChatPageBaseState(presenter: NcpChatPresenter) {
   const selectedSessionKey = useChatSessionListStore(
     (state) => state.snapshot.selectedSessionKey,
   );
-  const draftSessionKey = useChatSessionListStore(
-    (state) => state.snapshot.draftSessionKey,
-  );
   const selectedAgentId = useChatSessionListStore(
     (state) => state.snapshot.selectedAgentId,
   );
@@ -137,16 +134,16 @@ function useNcpChatPageBaseState(presenter: NcpChatPresenter) {
     () => parseSessionKeyFromRoute(routeSessionIdParam),
     [routeSessionIdParam],
   );
-  const sessionKey = routeSessionKey ?? selectedSessionKey ?? draftSessionKey;
+  const sessionKey = routeSessionKey ?? undefined;
   const hasSessionProjectRootOverride =
     pendingProjectRoot !== null &&
-    pendingProjectRootSessionKey === sessionKey;
+    (!sessionKey || pendingProjectRootSessionKey === sessionKey);
   const sessionProjectRootOverride = hasSessionProjectRootOverride
     ? pendingProjectRoot
     : undefined;
   const pageData = useNcpChatPageData({
     query,
-    sessionKey,
+    sessionKey: sessionKey ?? null,
     projectRootOverride: sessionProjectRootOverride,
     currentSelectedModel,
     pendingSessionType,
@@ -213,7 +210,7 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
     ? (agentsQuery.data?.agents ?? [])
     : [{ id: selectedSession?.agentId ?? selectedAgentId }];
   const derivedState = useNcpChatDerivedState({
-    sessionKey,
+    sessionKey: sessionKey ?? null,
     selectedSession,
     selectedAgentId,
     availableAgents,
@@ -251,14 +248,13 @@ function useNcpChatStreamBindings(params: ReturnType<typeof useNcpChatPageState>
     pendingProjectRootSessionKey,
     presenter,
     selectedSession,
-    selectedSessionKey,
     selectedSessionKeyRef,
     sessionKey,
   } = params;
   useEffect(() => {
     presenter.chatStreamActionsManager.bind({
       sendMessage: async (payload) => {
-        if (payload.sessionKey !== sessionKey) {
+        if ((payload.sessionKey ?? null) !== (sessionKey ?? null)) {
           return;
         }
         const metadata = buildNcpSendMetadata({
@@ -267,7 +263,7 @@ function useNcpChatStreamBindings(params: ReturnType<typeof useNcpChatPageState>
           thinkingLevel: payload.thinkingLevel,
           sessionType: payload.sessionType,
           projectRoot:
-            payload.sessionKey === pendingProjectRootSessionKey
+            !payload.sessionKey || payload.sessionKey === pendingProjectRootSessionKey
               ? pendingProjectRoot
               : (selectedSession?.projectRoot ?? null),
           requestedSkills: payload.requestedSkills,
@@ -322,7 +318,6 @@ function useNcpChatStreamBindings(params: ReturnType<typeof useNcpChatPageState>
     pendingProjectRoot,
     pendingProjectRootSessionKey,
     presenter,
-    selectedSessionKey,
     selectedSession?.projectRoot,
     selectedSessionKeyRef,
     sessionKey,
@@ -336,7 +331,6 @@ function usePendingProjectRootOverrideCleanup(
     pendingProjectRoot,
     pendingProjectRootSessionKey,
     selectedSession,
-    selectedSessionKey,
   } = params;
   useEffect(() => {
     if (
@@ -358,7 +352,6 @@ function usePendingProjectRootOverrideCleanup(
     pendingProjectRoot,
     pendingProjectRootSessionKey,
     selectedSession,
-    selectedSessionKey,
   ]);
 }
 
@@ -385,6 +378,22 @@ function useSelectedSessionAgentSync(params: ReturnType<typeof useNcpChatPageSta
   }, [presenter, selectedAgentId, selectedSession?.agentId]);
 }
 
+function useMaterializedRootSessionRouteSync(
+  params: ReturnType<typeof useNcpChatPageState>,
+) {
+  const { agent, presenter, routeSessionKey } = params;
+  const materializedSessionKey =
+    agent.snapshot.activeRun?.sessionId ??
+    agent.visibleMessages.find((message) => message.sessionId.trim())?.sessionId ??
+    null;
+  useEffect(() => {
+    if (routeSessionKey || !materializedSessionKey) {
+      return;
+    }
+    presenter.chatSessionListManager.materializeRootSessionRoute(materializedSessionKey);
+  }, [materializedSessionKey, presenter, routeSessionKey]);
+}
+
 export function NcpChatPage({ view }: ChatPageProps) {
   const [presenter] = useState(() => new NcpChatPresenter());
   const state = useNcpChatPageState(presenter);
@@ -392,6 +401,7 @@ export function NcpChatPage({ view }: ChatPageProps) {
   usePendingProjectRootOverrideCleanup(state);
   useNcpChatUiBindings(state);
   useSelectedSessionAgentSync(state);
+  useMaterializedRootSessionRouteSync(state);
   useChatSessionSync({
     view,
     routeSessionKey: state.routeSessionKey,

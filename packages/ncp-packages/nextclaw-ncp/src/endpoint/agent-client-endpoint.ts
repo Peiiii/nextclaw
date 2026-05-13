@@ -1,6 +1,6 @@
 import type {
   NcpMessageAbortPayload,
-  NcpRequestEnvelope,
+  NcpAgentSendEnvelope,
   NcpStreamRequestPayload,
 } from "../types/events.js";
 import type { NcpEndpoint } from "../types/endpoint.js";
@@ -13,7 +13,7 @@ import type { NcpEndpoint } from "../types/endpoint.js";
  */
 export interface NcpAgentClientEndpoint extends NcpEndpoint {
   /** Sends a new message request to the agent. Emits `message.request`. */
-  send(envelope: NcpRequestEnvelope): Promise<void>;
+  send(envelope: NcpAgentSendEnvelope): Promise<void>;
 
   /** Attaches to the live event stream of a session. Emits `message.stream-request`. */
   stream(payload: NcpStreamRequestPayload): Promise<void>;

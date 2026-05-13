@@ -197,11 +197,14 @@ export class NcpChatInputManager {
     const sessionKey =
       threadSnapshot.sessionKey ??
       sessionSnapshot.selectedSessionKey ??
+      null;
+    if (!sessionKey && inputSnapshot.selectedSessionType?.trim()) {
       this.sessionListManager.ensureDraftSession(inputSnapshot.selectedSessionType);
+    }
     this.setComposerNodes(createInitialChatComposerNodes());
     await this.streamActionsManager.sendMessage({
       message,
-      sessionKey,
+      ...(sessionKey ? { sessionKey } : {}),
       agentId: sessionSnapshot.selectedAgentId,
       sessionType: inputSnapshot.selectedSessionType,
       model: inputSnapshot.selectedModel || undefined,
@@ -213,7 +216,6 @@ export class NcpChatInputManager {
       restoreDraftOnError: true,
       composerNodes
     });
-    this.sessionListManager.promoteRootDraftSessionRoute(sessionKey);
   };
 
   stop = async () => {

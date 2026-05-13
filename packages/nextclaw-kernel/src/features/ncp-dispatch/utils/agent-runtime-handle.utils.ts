@@ -38,6 +38,7 @@ export type AgentRuntimeHandle = AgentRuntimeEndpoint & {
 
 export function createAgentRuntimeHandle(params: {
   backend: DefaultNcpAgentBackend;
+  agentClientEndpoint?: NcpAgentClientEndpoint;
   runtimeRegistry: AgentRuntimeRegistry;
   refreshPluginRuntimeRegistrations: () => void;
   refreshConfiguredRuntimeEntries: () => void;
@@ -46,6 +47,7 @@ export function createAgentRuntimeHandle(params: {
   assetStore: LocalAssetStore;
 }): AgentRuntimeHandle {
   const {
+    agentClientEndpoint,
     backend,
     runtimeRegistry,
     refreshPluginRuntimeRegistrations,
@@ -56,7 +58,7 @@ export function createAgentRuntimeHandle(params: {
   } = params;
   return {
     basePath: "/api/ncp/agent",
-    agentClientEndpoint: createAgentClientFromServer(backend),
+    agentClientEndpoint: agentClientEndpoint ?? createAgentClientFromServer(backend),
     streamProvider: backend,
     runApi: backend,
     sessionApi: backend,

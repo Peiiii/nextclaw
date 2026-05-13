@@ -1,4 +1,4 @@
-import type { NcpMessagePart, NcpRequestEnvelope } from "@nextclaw/ncp";
+import type { NcpAgentSendEnvelope, NcpMessagePart } from "@nextclaw/ncp";
 
 export const DEFAULT_NCP_IMAGE_ATTACHMENT_ACCEPT =
   "image/png,image/jpeg,image/webp,image/gif";
@@ -120,14 +120,14 @@ export function buildNcpImageAttachmentDataUrl(attachment: NcpDraftAttachment): 
 }
 
 export function buildNcpRequestEnvelope(params: {
-  sessionId: string;
+  sessionId?: string;
   text?: string;
   attachments?: readonly NcpDraftAttachment[];
   parts?: readonly NcpMessagePart[];
   metadata?: Record<string, unknown>;
   messageId?: string;
   timestamp?: string;
-}): NcpRequestEnvelope | null {
+}): NcpAgentSendEnvelope | null {
   const parts =
     params.parts && params.parts.length > 0
       ? params.parts.map((part) => structuredClone(part))
@@ -158,10 +158,10 @@ export function buildNcpRequestEnvelope(params: {
   const messageId = params.messageId ?? `user-${Date.now().toString(36)}`;
 
   return {
-    sessionId: params.sessionId,
+    ...(params.sessionId ? { sessionId: params.sessionId } : {}),
     message: {
       id: messageId,
-      sessionId: params.sessionId,
+      ...(params.sessionId ? { sessionId: params.sessionId } : {}),
       role: "user",
       status: "final",
       parts,

@@ -2,14 +2,15 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { DefaultNcpAgentConversationStateManager } from "@nextclaw/ncp-toolkit";
 import {
   type NcpAgentClientEndpoint,
+  type NcpAgentSendEnvelope,
   type NcpAgentConversationSnapshot,
   type NcpEndpointEvent,
   type NcpMessage,
-  type NcpRequestEnvelope,
+  type NcpOutboundMessageDraft,
   NcpEventType,
 } from "@nextclaw/ncp";
 
-export type NcpAgentSendInput = string | NcpRequestEnvelope;
+export type NcpAgentSendInput = string | NcpAgentSendEnvelope;
 
 export type UseNcpAgentResult = {
   snapshot: NcpAgentConversationSnapshot;
@@ -23,13 +24,13 @@ export type UseNcpAgentResult = {
 };
 
 type UseNcpAgentRuntimeOptions = {
-  sessionId: string;
+  sessionId?: string;
   client: NcpAgentClientEndpoint;
   manager: DefaultNcpAgentConversationStateManager;
 };
 
 type ScopedManagerRef = {
-  sessionId: string;
+  sessionId: string | null;
   manager: DefaultNcpAgentConversationStateManager;
 };
 
@@ -117,8 +118,11 @@ function dispatchEventsToManager(
 
 function shouldDispatchEventToSession(
   event: NcpEndpointEvent,
-  sessionId: string,
+  sessionId: string | undefined,
 ): boolean {
+  if (!sessionId) {
+    return true;
+  }
   const payload = "payload" in event ? event.payload : null;
   if (!payload || typeof payload !== "object") {
     return true;
@@ -129,7 +133,7 @@ function shouldDispatchEventToSession(
   return payload.sessionId === sessionId;
 }
 
-function hasMessageContent(message: NcpMessage): boolean {
+function hasMessageContent(message: NcpMessage | NcpOutboundMessageDraft): boolean {
   return message.parts.some((part) => {
     if (
       part.type === "text" ||
@@ -144,18 +148,18 @@ function hasMessageContent(message: NcpMessage): boolean {
 
 function normalizeSendEnvelope(
   input: NcpAgentSendInput,
-  sessionId: string,
-): NcpRequestEnvelope | null {
+  sessionId: string | undefined,
+): NcpAgentSendEnvelope | null {
   if (typeof input === "string") {
     const content = input.trim();
     if (!content) {
       return null;
     }
     return {
-      sessionId,
+      ...(sessionId ? { sessionId } : {}),
       message: {
         id: `user-${Date.now().toString(36)}`,
-        sessionId,
+        ...(sessionId ? { sessionId } : {}),
         role: "user",
         status: "final",
         parts: [{ type: "text", text: content }],
@@ -168,23 +172,33 @@ function normalizeSendEnvelope(
     return null;
   }
 
+  const targetSessionId = input.sessionId || input.message.sessionId || sessionId;
   return {
     ...input,
-    sessionId: input.sessionId,
+    ...(targetSessionId ? { sessionId: targetSessionId } : {}),
     message: {
       ...input.message,
-      sessionId: input.message.sessionId || input.sessionId,
+      ...(targetSessionId
+        ? { sessionId: targetSessionId }
+        : {}),
     },
   };
 }
 
 export function useScopedAgentManager(
-  sessionId: string,
+  sessionId: string | undefined,
 ): DefaultNcpAgentConversationStateManager {
   const managerRef = useRef<ScopedManagerRef>();
-  if (!managerRef.current || managerRef.current.sessionId !== sessionId) {
+  if (!managerRef.current) {
     managerRef.current = {
-      sessionId,
+      sessionId: sessionId ?? null,
+      manager: new DefaultNcpAgentConversationStateManager(),
+    };
+  } else if (sessionId && managerRef.current.sessionId === null) {
+    managerRef.current.sessionId = sessionId;
+  } else if (managerRef.current.sessionId !== (sessionId ?? null)) {
+    managerRef.current = {
+      sessionId: sessionId ?? null,
       manager: new DefaultNcpAgentConversationStateManager(),
     };
   }
@@ -196,12 +210,17 @@ export function useNcpAgentRuntime({
   client,
   manager,
 }: UseNcpAgentRuntimeOptions): UseNcpAgentResult {
+  const sessionIdRef = useRef<string | undefined>(sessionId);
   const snapshot = useSyncExternalStore(
     (onStoreChange) => manager.subscribe(() => onStoreChange()),
     () => manager.getSnapshot(),
     () => manager.getSnapshot(),
   );
   const [isSending, setIsSending] = useState(false);
+
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
 
   useEffect(() => {
     setIsSending(false);
@@ -212,7 +231,7 @@ export function useNcpAgentRuntime({
       dispatchEventsToManager(manager, events),
     );
     const unsubscribeClient = client.subscribe((event) => {
-      if (!shouldDispatchEventToSession(event, sessionId)) {
+      if (!shouldDispatchEventToSession(event, sessionIdRef.current)) {
         return;
       }
       eventBatcher.enqueue(event);
@@ -223,7 +242,7 @@ export function useNcpAgentRuntime({
       eventBatcher.dispose();
       void client.stop();
     };
-  }, [client, manager, sessionId]);
+  }, [client, manager]);
 
   const visibleMessages: readonly NcpMessage[] = snapshot.streamingMessage
     ? [...snapshot.messages, snapshot.streamingMessage]
@@ -242,14 +261,19 @@ export function useNcpAgentRuntime({
     }
 
     setIsSending(true);
-    await manager.dispatch({
-      type: NcpEventType.MessageSent,
-      payload: {
-        sessionId,
-        message: envelope.message,
-        metadata: envelope.metadata,
-      },
-    });
+    if (sessionId) {
+      await manager.dispatch({
+        type: NcpEventType.MessageSent,
+        payload: {
+          sessionId,
+          message: {
+            ...envelope.message,
+            sessionId,
+          },
+          metadata: envelope.metadata,
+        },
+      });
+    }
     try {
       await client.send(envelope);
     } finally {
@@ -258,7 +282,7 @@ export function useNcpAgentRuntime({
   };
 
   const abort = async () => {
-    if (!snapshot.activeRun) {
+    if (!snapshot.activeRun || !sessionId) {
       return;
     }
 
@@ -266,6 +290,9 @@ export function useNcpAgentRuntime({
   };
 
   const streamRun = async () => {
+    if (!sessionId) {
+      return;
+    }
     await client.stop();
     await client.stream({ sessionId });
   };

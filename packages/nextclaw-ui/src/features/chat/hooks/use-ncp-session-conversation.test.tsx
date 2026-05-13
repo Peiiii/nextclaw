@@ -146,6 +146,16 @@ describe("useNcpSessionConversation", () => {
     expect(mocks.hydratedCalls[1]?.client).toBe(mocks.clientInstances[1]);
   });
 
+  it("passes an empty session through without requesting a draft history seed", () => {
+    renderHook(() => useNcpSessionConversation(undefined));
+
+    expect(mocks.useHydratedNcpAgent).toHaveBeenCalledTimes(1);
+    expect(mocks.hydratedCalls[0]).toMatchObject({
+      sessionId: undefined,
+    });
+    expect(mocks.fetchNcpSessionMessages).not.toHaveBeenCalled();
+  });
+
   it("exposes the hydrated session context window without changing the generic ncp agent seed", async () => {
     const contextWindow = {
       usedContextTokens: 42,
