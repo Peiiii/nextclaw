@@ -31,6 +31,7 @@ import { createCronJobHandler } from "@nextclaw-service/shared/services/gateway/
 import { companionRuntimeService } from "@nextclaw-service/shared/services/ui/companion-runtime.service.js";
 import { handleGatewayDeferredStartupError } from "@nextclaw-service/shared/services/gateway/utils/gateway-runtime-lifecycle.utils.js";
 import { NextclawApp, type UiStartupHandle } from "@nextclaw-service/shared/services/gateway/nextclaw-app.service.js";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.service.js";
 import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import { createDeferredUiNcpAgent } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
@@ -42,7 +43,7 @@ import { createRuntimeControlHost } from "@nextclaw-service/shared/services/ui/r
 import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
-import { getPackageVersion, openBrowser, resolveUiConfig, resolveUiStaticDir } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { openBrowser, resolveUiConfig, resolveUiStaticDir } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { logStartupTrace, measureStartupAsync, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
 
 const {
@@ -96,6 +97,7 @@ export class NextclawGatewayRuntime {
   readonly runtimeControl: UiRuntimeControlHost;
   readonly runtimeUpdate: UiRuntimeUpdateHost | null;
   readonly ingress: Ingress;
+  readonly distribution = NextclawDistributionService.get();
   readonly productVersion: string;
   readonly providerManager: LlmProviderManager;
   readonly gatewayController: GatewayControllerImpl;
@@ -117,7 +119,7 @@ export class NextclawGatewayRuntime {
 
   constructor(
     private readonly deps: GatewayRuntimeDeps,
-    private readonly options: GatewayRuntimeOptions = {},
+    private readonly options: GatewayRuntimeOptions,
   ) {
     const configPath = getConfigPath();
     this.kernel = measureStartupSync(
@@ -130,14 +132,14 @@ export class NextclawGatewayRuntime {
     this.configManager = this.kernel.configManager;
     const config = this.configManager.config;
     this.uiConfig = resolveUiConfig(config, options.uiOverrides);
-    this.uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
+    this.uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir(this.distribution.uiDistDir) : options.uiStaticDir;
     this.workspace = getWorkspacePath(config.agents.defaults.workspace);
     this.appEventBus = this.kernel.eventBus;
     this.ingress = this.kernel.ingress;
     this.messageBus = this.kernel.messageBus;
     this.sessionManager = this.kernel.sessions;
     this.automation = this.kernel.automation;
-    this.productVersion = getPackageVersion();
+    this.productVersion = this.distribution.version;
     this.plugins = new GatewayPluginManager(this);
     this.providerManager = this.kernel.llmProviders;
     this.installConfigRuntimeHooks();

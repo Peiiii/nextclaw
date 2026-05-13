@@ -3,7 +3,6 @@ import { runtimeUpdateManager, useRuntimeUpdateStore } from '@/features/system-s
 import { useAppMeta } from '@/shared/hooks/use-config';
 import { type ReactNode, useState } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
-import { cn } from '@/shared/lib/utils';
 import { t } from '@/shared/lib/i18n';
 
 type BrandHeaderProps = {
@@ -74,10 +73,7 @@ function RuntimeUpdateInlineStatus() {
     return (
       <button
         type="button"
-        className={cn(
-          'inline-flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-semibold leading-none ring-1 transition-colors',
-          resolveInlineUpdateTone(snapshot.status)
-        )}
+        className="inline-flex h-5 shrink-0 items-center rounded-full bg-emerald-50 px-2 text-[11px] font-semibold leading-none text-emerald-700 ring-1 ring-emerald-100 transition-colors hover:bg-emerald-100 disabled:opacity-70"
         disabled={busyAction === 'applying'}
         onClick={() => void runtimeUpdateManager.applyDownloadedUpdate()}
       >
@@ -89,10 +85,7 @@ function RuntimeUpdateInlineStatus() {
     return (
       <button
         type="button"
-        className={cn(
-          'inline-flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-semibold leading-none ring-1 transition-colors',
-          resolveInlineUpdateTone(snapshot.status)
-        )}
+        className="inline-flex h-5 shrink-0 items-center rounded-full bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 disabled:opacity-70"
         disabled={busyAction === 'downloading'}
         onClick={() => void runtimeUpdateManager.downloadUpdate()}
       >
@@ -104,16 +97,22 @@ function RuntimeUpdateInlineStatus() {
 }
 
 function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
-  const label = resolveInlineUpdateLabel(snapshot);
+  if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
+    return <RuntimeUpdateIssueIcon snapshot={snapshot} />;
+  }
+  const label = snapshot.status === 'downloading'
+    ? resolveInlineDownloadLabel(snapshot)
+    : snapshot.status === 'downloaded'
+      ? t('desktopUpdatesInlineReady')
+      : snapshot.status === 'update-available'
+        ? t('desktopUpdatesInlineDownload')
+        : null;
   if (!label) {
     return null;
   }
   return (
     <span
-      className={cn(
-        'inline-flex h-5 shrink-0 items-center rounded-full px-2 text-[11px] font-semibold leading-none ring-1 transition-colors',
-        resolveInlineUpdateTone(snapshot.status)
-      )}
+      className="inline-flex h-5 shrink-0 items-center rounded-full bg-amber-50 px-2 text-[11px] font-semibold leading-none text-amber-700 ring-1 ring-amber-100 transition-colors hover:bg-amber-100 disabled:opacity-70"
       title={t('updates')}
     >
       {label}
@@ -121,31 +120,30 @@ function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
   );
 }
 
-function resolveInlineUpdateLabel(snapshot: UpdateSnapshot): string | null {
-  if (snapshot.status === 'downloading') {
-    const percent = snapshot.progress?.percent;
-    return percent === null || percent === undefined
-      ? t('desktopUpdatesInlineDownloading')
-      : t('desktopUpdatesInlineDownloadingPercent').replace('{percent}', String(percent));
-  }
-  if (snapshot.status === 'downloaded') {
-    return t('desktopUpdatesInlineReady');
-  }
-  if (snapshot.status === 'update-available') {
-    return t('desktopUpdatesInlineDownload');
-  }
-  if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
-    return t('desktopUpdatesInlineAttention');
-  }
-  return null;
+function RuntimeUpdateIssueIcon({ snapshot }: { snapshot: UpdateSnapshot }) {
+  const title = snapshot.status === 'failed' ? t('desktopUpdatesStatusFailed') : t('desktopUpdatesStatusBlocked');
+  const recoveryCommand = snapshot.recoveryCommand?.trim() || null;
+  const diagnostic = snapshot.errorMessage?.trim() || snapshot.blockReason?.trim() || null;
+  const rootCause = snapshot.status === 'blocked' && snapshot.blockReason
+    ? t(`desktopUpdatesBlockedRootCause.${snapshot.blockReason}`)
+    : null;
+  const tooltip = [title, rootCause, diagnostic, recoveryCommand].filter(Boolean).join('\n');
+  return (
+    <span
+      role="img"
+      aria-label={title}
+      title={tooltip}
+      tabIndex={0}
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-50 text-[13px] font-bold leading-none text-amber-700 ring-1 ring-amber-100"
+    >
+      !
+    </span>
+  );
 }
 
-function resolveInlineUpdateTone(status: UpdateSnapshot['status']): string {
-  if (status === 'downloaded') {
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-100 hover:bg-emerald-100 disabled:opacity-70';
-  }
-  if (status === 'blocked' || status === 'failed') {
-    return 'bg-red-50 text-red-700 ring-red-100';
-  }
-  return 'bg-amber-50 text-amber-700 ring-amber-100 hover:bg-amber-100 disabled:opacity-70';
+function resolveInlineDownloadLabel(snapshot: UpdateSnapshot): string {
+  const percent = snapshot.progress?.percent;
+  return percent === null || percent === undefined
+    ? t('desktopUpdatesInlineDownloading')
+    : t('desktopUpdatesInlineDownloadingPercent').replace('{percent}', String(percent));
 }

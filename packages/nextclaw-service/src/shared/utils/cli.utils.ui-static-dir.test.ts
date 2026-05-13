@@ -1,7 +1,6 @@
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { resolveUiStaticDir } from "./cli.utils.js";
 
@@ -47,12 +46,10 @@ describe("resolveUiStaticDir", () => {
     expect(resolveUiStaticDir()).toBeNull();
   });
 
-  it("resolves the bundled ui-dist when no explicit override is set", () => {
+  it("returns null when no packaged ui-dist is provided", () => {
     vi.stubEnv("NEXTCLAW_UI_STATIC_DIR", "");
 
-    const resolved = resolveUiStaticDir();
-    expect(resolved).toBeTruthy();
-    expect(resolved).toContain(`${join("packages", "nextclaw", "ui-dist")}`);
+    expect(resolveUiStaticDir()).toBeNull();
   });
 
   it("does not borrow the repo frontend dist from the current working directory", () => {
@@ -72,21 +69,16 @@ describe("resolveUiStaticDir", () => {
     }
   });
 
-  it("resolves the bundled ui-dist from the packaged dist entrypoint layout", () => {
+  it("resolves the packaged ui-dist provided by the distribution owner", () => {
     const packageRoot = createTempDir("nextclaw-packaged-root-");
     const bundledUiDir = join(packageRoot, "ui-dist");
     const bundledAssetsDir = join(bundledUiDir, "assets");
-    const bundledEntrypointDir = join(packageRoot, "dist", "cli", "app");
     mkdirSync(bundledAssetsDir, { recursive: true });
-    mkdirSync(bundledEntrypointDir, { recursive: true });
-    writeFileSync(join(packageRoot, "package.json"), JSON.stringify({ name: "nextclaw" }));
     writeFileSync(join(bundledUiDir, "index.html"), "<html>bundled dist</html>");
     writeFileSync(join(bundledAssetsDir, "index.js"), "console.log('ok');");
-    const bundledEntrypoint = join(bundledEntrypointDir, "index.js");
-    writeFileSync(join(bundledEntrypoint), "");
     vi.stubEnv("NEXTCLAW_UI_STATIC_DIR", "");
 
-    const resolved = resolveUiStaticDir(pathToFileURL(bundledEntrypoint).href);
+    const resolved = resolveUiStaticDir(bundledUiDir);
     expect(resolved).toBe(bundledUiDir);
   });
 });

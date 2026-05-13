@@ -3,9 +3,10 @@ import { spawn } from "node:child_process";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 import { ManagedServiceCommandService, type StartServiceOptions } from "@nextclaw-service/shared/services/runtime/service-managed-startup.service.js";
 import { NextclawGatewayRuntime } from "@nextclaw-service/shared/services/gateway/nextclaw-gateway-runtime.service.js";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { describeUnmanagedHealthyTargetMessage, inspectUiTarget } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
 import { resolveCliSubcommandEntry } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
-import { isLoopbackHost, resolvePublicIp } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { isLoopbackHost, resolvePublicIp, resolveUiStaticDir } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { createSkillsLoader } from "@nextclaw-service/shared/services/runtime/utils/skills-loader.utils.js";
 export { buildMarketplaceSkillInstallArgs, pickUserFacingCommandSummary } from "@nextclaw-service/shared/utils/marketplace/service-marketplace-helpers.utils.js";
 export { describeUnmanagedHealthyTargetMessage };
@@ -21,7 +22,8 @@ export class RuntimeCommandService {
     startGateway: async (options) => await this.startGateway(options),
     printPublicUiUrls: async (host, port) => await this.printPublicUiUrls(host, port),
     printServiceControlHints: () => this.printServiceControlHints(),
-    checkUiPortPreflight: async (params) => await this.checkUiPortPreflight(params)
+    checkUiPortPreflight: async (params) => await this.checkUiPortPreflight(params),
+    resolveUiStaticDir: () => resolveUiStaticDir(NextclawDistributionService.get().uiDistDir)
   });
 
   constructor(private deps: {
@@ -38,7 +40,9 @@ export class RuntimeCommandService {
       stopService: this.stopService,
       runCliSubcommand: this.runCliSubcommand,
       installBuiltinMarketplaceSkill: this.installBuiltinMarketplaceSkill,
-    }, options).start();
+    }, {
+      ...options
+    }).start();
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {

@@ -3,14 +3,12 @@ import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { isIP } from "node:net";
 import type { Interface } from "node:readline";
-import { fileURLToPath } from "node:url";
 import {
   createExternalCommandEnv,
   getLogsPath,
   resolveLocalUiBaseUrl,
   type Config
 } from "@nextclaw/core";
-import { findNearestPackageManifest } from "./package/package-manifest.utils.js";
 
 export { getPackageVersion } from "./package/package-manifest.utils.js";
 
@@ -60,11 +58,6 @@ export async function resolvePublicIp(timeoutMs = 1500): Promise<string | null> 
     }
   }
   return null;
-}
-
-export function buildServeArgs(options: { uiPort: number }): string[] {
-  const cliPath = fileURLToPath(new URL("../../app/index.js", import.meta.url));
-  return [cliPath, "serve", "--ui-port", String(options.uiPort)];
 }
 
 export function resolveServiceLogPath(): string {
@@ -214,7 +207,7 @@ export function findListeningProcessByPort(port: number): ListeningProcessInfo |
   };
 }
 
-export function resolveUiStaticDir(importMetaUrl = import.meta.url): string | null {
+export function resolveUiStaticDir(packagedUiDistDir?: string | null): string | null {
   if (process.env.NEXTCLAW_DISABLE_STATIC_UI === "1") {
     return null;
   }
@@ -224,13 +217,10 @@ export function resolveUiStaticDir(importMetaUrl = import.meta.url): string | nu
     return existsSync(join(envDir, "index.html")) ? envDir : null;
   }
 
-  const cliDir = resolve(fileURLToPath(new URL(".", importMetaUrl)));
-  const pkgRoot = findNearestPackageManifest(cliDir, "nextclaw")?.rootDir;
-  if (!pkgRoot) {
+  if (!packagedUiDistDir) {
     return null;
   }
-  const bundledDir = join(pkgRoot, "ui-dist");
-  return existsSync(join(bundledDir, "index.html")) ? bundledDir : null;
+  return existsSync(join(packagedUiDistDir, "index.html")) ? packagedUiDistDir : null;
 }
 
 export function openBrowser(url: string): boolean {

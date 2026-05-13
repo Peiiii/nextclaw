@@ -16,7 +16,7 @@ import { initializeConfigIfMissing } from "@nextclaw-service/shared/services/run
 import { writeRestartSentinel } from "@nextclaw-service/shared/services/restart/restart-sentinel.service.js";
 import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
 import { logStartupTrace, measureStartupSync } from "@nextclaw-service/shared/utils/startup-trace.js";
-import { getPackageVersion, isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { isProcessRunning } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeUpdateCommandService } from "@nextclaw-service/launcher/npm-runtime-update-command.service.js";
 import { NpmRuntimeLauncher } from "@nextclaw-service/launcher/npm-runtime-launcher.service.js";
 import { managedServiceStateStore } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
@@ -32,6 +32,7 @@ import { RemoteCommands, hasRunningNextclawManagedService } from "@nextclaw-serv
 import { DiagnosticsCommands } from "@nextclaw-service/cli/commands/diagnostics/index.js";
 import { LogsCommands } from "@nextclaw-service/cli/commands/logs/index.js";
 import { RuntimeCommandService } from "@nextclaw-service/shared/services/runtime/runtime-command.service.js";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { ServiceCommands } from "@nextclaw-service/commands/service/index.js";
 import { WorkspaceManager } from "@nextclaw-service/shared/services/workspace/workspace-manager.service.js";
 import { RuntimeRestartRequestService } from "@nextclaw-service/shared/services/restart/runtime-restart-request.service.js";
@@ -49,8 +50,6 @@ const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 
 export type NextclawServiceRuntimeOptions = {
   logo?: string;
-  version?: string;
-  packagedPublicKeyPath?: string;
 };
 
 export type NextclawServiceRuntimeAccount = {
@@ -86,8 +85,6 @@ export type NextclawServiceCommands = {
 
 export class NextclawServiceRuntime {
   private logo: string;
-  private productVersion: string;
-  private packagedPublicKeyPath?: string;
   private restartCoordinator: RestartCoordinator;
   private serviceRestartTask: Promise<boolean> | null = null;
   private selfRelaunchArmed = false;
@@ -98,11 +95,9 @@ export class NextclawServiceRuntime {
   private remoteCommands!: RemoteCommands;
   account: NextclawServiceRuntimeAccount;
   commands: NextclawServiceCommands;
-  constructor(options: NextclawServiceRuntimeOptions = {}) {
+  constructor(options: NextclawServiceRuntimeOptions) {
     logStartupTrace("cli.runtime.constructor.begin");
     this.logo = options.logo ?? "🤖";
-    this.productVersion = options.version ?? getPackageVersion();
-    this.packagedPublicKeyPath = options.packagedPublicKeyPath;
     this.workspaceManager = measureStartupSync("cli.runtime.workspace_manager", () => new WorkspaceManager(this.logo));
     this.runtimeCommandService = measureStartupSync("cli.runtime.runtime_command_service", () => new RuntimeCommandService({
       requestRestart: (params) => this.requestRestart(params),
@@ -206,7 +201,7 @@ export class NextclawServiceRuntime {
   };
 
   get version(): string {
-    return this.productVersion;
+    return NextclawDistributionService.get().version;
   }
 
   private scheduleProcessExit = (delayMs: number, reason: string): void => {
@@ -526,10 +521,7 @@ export class NextclawServiceRuntime {
     if (!opts.json) {
       console.log(`Current npm launcher version: ${versionBefore}`);
     }
-    const snapshot = await new NpmRuntimeUpdateCommandService({
-      launcherVersion: versionBefore,
-      packagedPublicKeyPath: this.packagedPublicKeyPath,
-    }).run(opts);
+    const snapshot = await new NpmRuntimeUpdateCommandService().run(opts);
     if (snapshot.status === "blocked" || snapshot.status === "failed") {
       process.exit(1);
     }
@@ -543,11 +535,11 @@ export class NextclawServiceRuntime {
 
 export const runNextclawNpmRuntimeLauncher = (
   argv: string[] = process.argv,
-  options: { launcherVersion?: string; packagedAppEntrypoint?: string } = {},
 ): void => {
+  const distribution = NextclawDistributionService.get();
   new NpmRuntimeLauncher({
     argv,
-    launcherVersion: options.launcherVersion,
-    packagedAppEntrypoint: options.packagedAppEntrypoint,
+    launcherVersion: distribution.version,
+    packagedAppEntrypoint: distribution.appEntrypoint,
   }).run();
 };

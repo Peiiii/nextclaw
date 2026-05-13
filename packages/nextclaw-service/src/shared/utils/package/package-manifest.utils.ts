@@ -10,26 +10,19 @@ type PackageManifestView = {
 
 function readPackageManifest(pkgPath: string): PackageManifestView | null {
   try {
-    const raw = readFileSync(pkgPath, "utf-8");
-    return JSON.parse(raw) as PackageManifestView;
+    return JSON.parse(readFileSync(pkgPath, "utf-8")) as PackageManifestView;
   } catch {
     return null;
   }
 }
 
-export function findNearestPackageManifest(
-  startDir: string,
-  expectedName?: string
-): { rootDir: string; version?: string } | null {
+function findNearestPackageVersion(startDir: string, expectedName?: string): string | undefined {
   let current = resolve(startDir);
   while (current.length > 0) {
     const parsed = readPackageManifest(join(current, "package.json"));
     const matchesExpectedName = parsed && (!expectedName || parsed.name === expectedName);
     if (matchesExpectedName) {
-      return {
-        rootDir: current,
-        version: typeof parsed.version === "string" ? parsed.version : undefined
-      };
+      return typeof parsed.version === "string" ? parsed.version : undefined;
     }
 
     const parent = resolve(current, "..");
@@ -38,22 +31,16 @@ export function findNearestPackageManifest(
     }
     current = parent;
   }
-  return null;
+  return undefined;
 }
 
-function findWorkspacePackageManifest(
-  startDir: string,
-  packageName: string
-): { rootDir: string; version?: string } | null {
+function findWorkspacePackageVersion(startDir: string, packageName: string): string | undefined {
   let current = resolve(startDir);
   while (current.length > 0) {
     const rootDir = join(current, "packages", packageName);
     const parsed = readPackageManifest(join(rootDir, "package.json"));
     if (parsed?.name === packageName) {
-      return {
-        rootDir,
-        version: typeof parsed.version === "string" ? parsed.version : undefined
-      };
+      return typeof parsed.version === "string" ? parsed.version : undefined;
     }
 
     const parent = resolve(current, "..");
@@ -62,14 +49,14 @@ function findWorkspacePackageManifest(
     }
     current = parent;
   }
-  return null;
+  return undefined;
 }
 
 export function getPackageVersion(importMetaUrl = import.meta.url): string {
   const cliDir = resolve(fileURLToPath(new URL(".", importMetaUrl)));
   const packageVersion =
-    findNearestPackageManifest(cliDir, "nextclaw")?.version ??
-    findWorkspacePackageManifest(cliDir, "nextclaw")?.version ??
-    findNearestPackageManifest(cliDir)?.version;
+    findNearestPackageVersion(cliDir, "nextclaw") ??
+    findWorkspacePackageVersion(cliDir, "nextclaw") ??
+    findNearestPackageVersion(cliDir);
   return packageVersion ?? getCorePackageVersion();
 }

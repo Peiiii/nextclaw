@@ -14,7 +14,6 @@ import {
   resolveServiceLogPath,
   resolveUiApiBase,
   resolveUiConfig,
-  resolveUiStaticDir,
   waitForExit
 } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { probeHealthEndpoint } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
@@ -309,6 +308,7 @@ export class ManagedServiceCommandService {
     printPublicUiUrls: (host: string, port: number) => Promise<void>;
     printServiceControlHints: () => void;
     checkUiPortPreflight: (params: { host: string; port: number; healthUrl: string }) => Promise<{ ok: true; reusedExistingHealthyTarget: boolean } | { ok: false; message: string }>;
+    resolveUiStaticDir: () => string | null;
   }) {}
 
   runForeground = async (options: {
@@ -325,7 +325,7 @@ export class ManagedServiceCommandService {
 
     await this.deps.startGateway({
       uiOverrides: options.uiOverrides,
-      uiStaticDir: resolveUiStaticDir()
+      uiStaticDir: this.deps.resolveUiStaticDir()
     });
   };
 
@@ -336,7 +336,7 @@ export class ManagedServiceCommandService {
     const uiConfig = resolveUiConfig(config, uiOverrides);
     const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
     const apiUrl = `${uiUrl}/api`;
-    const staticDir = resolveUiStaticDir();
+    const staticDir = this.deps.resolveUiStaticDir();
 
     const existing = managedServiceStateStore.read();
     if (existing && isProcessRunning(existing.pid)) {

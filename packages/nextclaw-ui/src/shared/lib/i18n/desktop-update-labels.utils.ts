@@ -75,7 +75,6 @@ export const DESKTOP_UPDATE_LABELS: Record<string, { zh: string; en: string }> =
   desktopUpdatesInlineDownloadingPercent: { zh: '下载 {percent}%', en: '{percent}%' },
   desktopUpdatesInlineReady: { zh: '更新', en: 'Update' },
   desktopUpdatesInlineApplying: { zh: '应用中', en: 'Applying' },
-  desktopUpdatesInlineAttention: { zh: '更新异常', en: 'Update Issue' },
   desktopUpdatesLauncherVersion: { zh: '桌面壳版本', en: 'Launcher Version' },
   desktopUpdatesCurrentBundleVersion: { zh: '当前内核版本', en: 'Current Kernel Version' },
   desktopUpdatesAvailableVersion: { zh: '可用版本', en: 'Available Version' },
@@ -102,6 +101,9 @@ export const DESKTOP_UPDATE_LABELS: Record<string, { zh: string; en: string }> =
     zh: '当前安装环境需要先处理阻塞项，之后才能继续更新。',
     en: 'Resolve the current installation requirement before continuing the update.'
   },
+  'desktopUpdatesBlockedRootCause.signature-verification-unavailable': { zh: '根因：缺少更新签名公钥，无法验证更新包来源；请安装包含正确更新配置的新版本，或由维护者配置更新公钥。', en: 'Root cause: missing update public key; install a configured build or ask the maintainer to set the key.' },
+  'desktopUpdatesBlockedRootCause.host-too-old': { zh: '根因：当前宿主版本太旧，不满足新运行包的最低宿主版本要求；请先升级 NextClaw 启动器。', en: 'Root cause: the host is too old for this runtime bundle; upgrade the NextClaw launcher first.' },
+  'desktopUpdatesBlockedRootCause.unsupported-installation': { zh: '根因：当前安装形态或更新源配置不支持自动更新；请安装支持自动更新的版本，或由维护者补齐更新源配置。', en: 'Root cause: this installation or update source does not support auto-update; use a configured build.' },
   desktopUpdatesPreferencesTitle: { zh: '更新偏好', en: 'Update Preferences' },
   desktopUpdatesPreferencesDescription: {
     zh: '默认自动检查更新，但是否后台下载由你决定。',

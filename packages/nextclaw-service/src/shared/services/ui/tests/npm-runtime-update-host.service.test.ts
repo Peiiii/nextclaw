@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextclawKernel } from "@nextclaw/kernel";
 import { eventKeys } from "@nextclaw/shared";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { NpmRuntimeUpdateHost } from "../npm-runtime-update-host.service.js";
 
 const mocks = vi.hoisted(() => {
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => {
   return {
     getPackageVersion: vi.fn(() => "0.18.12-beta.4"),
     requestManagedServiceRestart: vi.fn().mockResolvedValue(undefined),
+    sourceOptions: [] as Array<{ packagedPublicKeyPath?: string } | undefined>,
     stateStore: {
       read: vi.fn(() => state),
       update: vi.fn((updater: (current: typeof state) => typeof state) => {
@@ -109,6 +111,10 @@ vi.mock("@nextclaw-service/launcher/npm-runtime-update.service.js", () => ({
 
 vi.mock("@nextclaw-service/launcher/npm-runtime-update-source.service.js", () => ({
   NpmRuntimeUpdateSourceService: class {
+    constructor(options?: { packagedPublicKeyPath?: string }) {
+      mocks.sourceOptions.push(options);
+    }
+
     resolveChannel = () => "stable";
     resolveBundlePublicKey = () => "mock-public-key";
     resolveManifestUrl = () => "https://example.invalid/manifest.json";
@@ -122,9 +128,34 @@ vi.mock("@nextclaw-service/launcher/npm-runtime-update.manager.js", () => ({
   }
 }));
 
+const TEST_DISTRIBUTION = {
+  version: "0.18.12-beta.4",
+  packageRoot: "/pkg",
+  appEntrypoint: "/pkg/dist/cli/app/index.js",
+  uiDistDir: "/pkg/ui-dist",
+  runtimeUpdatePublicKeyPath: "/pkg/resources/update-bundle-public.pem"
+};
+
 describe("NpmRuntimeUpdateHost", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.sourceOptions.length = 0;
+    NextclawDistributionService.configure(TEST_DISTRIBUTION);
+  });
+
+  it("uses distribution metadata when creating the runtime update source", () => {
+    const eventBus = new NextclawKernel().eventBus;
+    new NpmRuntimeUpdateHost({
+      eventBus,
+      applyRestartMode: "manual-process-restart",
+      requestRestart: vi.fn(),
+      uiConfig: { port: 55667 }
+    });
+
+    expect(mocks.sourceOptions).toEqual([
+      { packagedPublicKeyPath: "/pkg/resources/update-bundle-public.pem" }
+    ]);
+    expect(mocks.getPackageVersion).not.toHaveBeenCalled();
   });
 
   it("keeps a foreground serve process alive after applying a downloaded runtime update", async () => {

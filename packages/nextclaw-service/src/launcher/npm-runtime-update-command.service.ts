@@ -4,18 +4,11 @@ import { NpmRuntimeUpdateManager } from "./npm-runtime-update.manager.js";
 import { NpmRuntimeUpdateService } from "./npm-runtime-update.service.js";
 import { NpmRuntimeUpdateSourceService } from "./npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateStateStore } from "./npm-runtime-update-state.store.js";
-import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import type { UpdateCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 import type { UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 
-type NpmRuntimeUpdateCommandServiceOptions = {
-  launcherVersion?: string;
-  packagedPublicKeyPath?: string;
-};
-
 export class NpmRuntimeUpdateCommandService {
-  constructor(private readonly options: NpmRuntimeUpdateCommandServiceOptions = {}) {}
-
   run = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
     const snapshot = await this.runManaged(opts);
     if (opts.json) {
@@ -27,10 +20,11 @@ export class NpmRuntimeUpdateCommandService {
   };
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
+    const distribution = NextclawDistributionService.get();
     const source = new NpmRuntimeUpdateSourceService({
-      packagedPublicKeyPath: this.options.packagedPublicKeyPath,
+      packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath,
     });
-    const launcherVersion = this.options.launcherVersion ?? getPackageVersion();
+    const launcherVersion = distribution.version;
     const channel = source.resolveChannel(opts.channel, launcherVersion);
     const manifestUrl = source.resolveManifestUrl(channel, opts.manifestUrl);
     const layout = new NpmRuntimeBundleLayoutStore();

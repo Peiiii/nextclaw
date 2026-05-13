@@ -1,10 +1,6 @@
 #!/usr/bin/env node
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { runNextclawNpmRuntimeLauncher } from "@nextclaw/service";
-import { readNextclawPackageVersion } from "@nextclaw-cli/cli/shared/lib/package-version/index.js";
+import { NextclawDistributionService, runNextclawNpmRuntimeLauncher } from "@nextclaw/service";
+import { createNextclawDistribution } from "@nextclaw-cli/cli/shared/lib/distribution/index.js";
 
-runNextclawNpmRuntimeLauncher(process.argv, {
-  launcherVersion: readNextclawPackageVersion(import.meta.url),
-  packagedAppEntrypoint: resolve(dirname(fileURLToPath(import.meta.url)), "../app/index.js"),
-});
+NextclawDistributionService.configure(createNextclawDistribution(import.meta.url));
+runNextclawNpmRuntimeLauncher(process.argv);

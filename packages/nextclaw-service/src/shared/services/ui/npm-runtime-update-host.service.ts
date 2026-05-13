@@ -7,13 +7,13 @@ import {
   type UpdateSnapshot,
 } from "@nextclaw/shared";
 import type { UiRuntimeUpdateHost } from "@nextclaw/server";
-import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { NpmRuntimeBundleLayoutStore } from "@nextclaw-service/launcher/npm-runtime-bundle-layout.store.js";
 import { NpmRuntimeBundleService } from "@nextclaw-service/launcher/npm-runtime-bundle.service.js";
 import { NpmRuntimeUpdateManager } from "@nextclaw-service/launcher/npm-runtime-update.manager.js";
 import { NpmRuntimeUpdateService } from "@nextclaw-service/launcher/npm-runtime-update.service.js";
 import { NpmRuntimeUpdateSourceService } from "@nextclaw-service/launcher/npm-runtime-update-source.service.js";
 import { NpmRuntimeUpdateStateStore } from "@nextclaw-service/launcher/npm-runtime-update-state.store.js";
+import { NextclawDistributionService } from "@nextclaw-service/shared/services/runtime/nextclaw-distribution.service.js";
 import { requestManagedServiceRestart } from "@nextclaw-service/shared/services/ui/service-remote-access.service.js";
 import type { RequestRestartParams } from "@nextclaw-service/shared/types/cli.types.js";
 
@@ -31,28 +31,37 @@ type NpmRuntimeUpdateHostDeps = {
 };
 
 export class NpmRuntimeUpdateHost implements UiRuntimeUpdateHost {
-  private readonly source = new NpmRuntimeUpdateSourceService();
-  private readonly layout = new NpmRuntimeBundleLayoutStore();
-  private readonly launcherVersion = getPackageVersion();
-  private readonly stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
-    defaultChannel: this.source.resolveChannel(undefined, this.launcherVersion)
-  });
-  private readonly bundleService = new NpmRuntimeBundleService({
-    layout: this.layout,
-    stateStore: this.stateStore,
-    launcherVersion: this.launcherVersion
-  });
-  private readonly updateService = new NpmRuntimeUpdateService({
-    layout: this.layout,
-    bundleService: this.bundleService,
-    launcherVersion: this.launcherVersion,
-    bundlePublicKey: this.source.resolveBundlePublicKey() ?? undefined
-  });
+  private readonly source: NpmRuntimeUpdateSourceService;
+  private readonly layout: NpmRuntimeBundleLayoutStore;
+  private readonly launcherVersion: string;
+  private readonly stateStore: NpmRuntimeUpdateStateStore;
+  private readonly bundleService: NpmRuntimeBundleService;
+  private readonly updateService: NpmRuntimeUpdateService;
   private snapshot: UpdateSnapshot;
   private activeTask: Promise<void> | null = null;
   private automaticSyncStarted = false;
 
   constructor(private readonly deps: NpmRuntimeUpdateHostDeps) {
+    const distribution = NextclawDistributionService.get();
+    this.source = new NpmRuntimeUpdateSourceService({
+      packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath
+    });
+    this.layout = new NpmRuntimeBundleLayoutStore();
+    this.launcherVersion = distribution.version;
+    this.stateStore = new NpmRuntimeUpdateStateStore(this.layout.getStatePath(), {
+      defaultChannel: this.source.resolveChannel(undefined, this.launcherVersion)
+    });
+    this.bundleService = new NpmRuntimeBundleService({
+      layout: this.layout,
+      stateStore: this.stateStore,
+      launcherVersion: this.launcherVersion
+    });
+    this.updateService = new NpmRuntimeUpdateService({
+      layout: this.layout,
+      bundleService: this.bundleService,
+      launcherVersion: this.launcherVersion,
+      bundlePublicKey: this.source.resolveBundlePublicKey() ?? undefined
+    });
     this.snapshot = this.createManager().getSnapshot();
     this.startAutomaticSync();
   }
