@@ -1,10 +1,10 @@
 export default {
-  "generatedAt": "2026-05-13T03:23:10.162Z",
+  "generatedAt": "2026-05-13T17:40:59.548Z",
   "hero": {
     "currentLoc": 188034,
     "testLoc": 51062,
     "trackedFiles": 1852,
-    "recentCommitCount": 479,
+    "recentCommitCount": 485,
     "activeDays30": 22,
     "recentReleaseCount": 65,
     "latestReleaseDate": "2026-05-13",
@@ -603,7 +603,7 @@ export default {
       {
         "key": "2026-05-13",
         "label": "05-13",
-        "value": 13
+        "value": 19
       }
     ],
     "commitWeekly": [
@@ -665,7 +665,7 @@ export default {
       {
         "key": "2026-05-11",
         "label": "05-11",
-        "value": 36
+        "value": 46
       }
     ],
     "releaseMonthly": [
@@ -799,11 +799,11 @@ export default {
     "recentReleaseBatches": [
       {
         "date": "2026-05-13",
-        "tagCount": 50,
+        "tagCount": 109,
         "sampleTags": [
-          "@nextclaw/agent-chat-ui@0.3.15",
-          "@nextclaw/agent-chat@0.1.13",
-          "@nextclaw/app-runtime@0.7.3"
+          "@nextclaw/channel-extension-weixin@0.1.1",
+          "@nextclaw/channel-plugin-dingtalk@0.2.45",
+          "@nextclaw/channel-plugin-discord@0.2.45"
         ]
       },
       {
@@ -843,11 +843,11 @@ export default {
       },
       {
         "date": "2026-04-25",
-        "tagCount": 7,
+        "tagCount": 5,
         "sampleTags": [
-          "@nextclaw/app-runtime@0.7.0",
-          "@nextclaw/app-sdk@0.1.0",
-          "@nextclaw/agent-chat-ui@0.3.10"
+          "@nextclaw/agent-chat-ui@0.3.10",
+          "@nextclaw/ui@0.12.15",
+          "nextclaw@0.18.7"
         ]
       }
     ]

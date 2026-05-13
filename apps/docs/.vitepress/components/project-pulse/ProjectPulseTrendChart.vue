@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 
 type DataPoint = {
   key: string
@@ -15,8 +15,6 @@ type TrendChartCopy = {
   hoverHint: string
 }
 
-type EChartsModule = typeof import('echarts')
-
 const props = defineProps<{
   series: DataPoint[]
   accentStart: string
@@ -28,11 +26,17 @@ const props = defineProps<{
   copy: TrendChartCopy
 }>()
 
-const chartElement = ref<HTMLElement | null>(null)
-
-let chart: import('echarts').ECharts | null = null
-let resizeObserver: ResizeObserver | null = null
-let echartsLoader: Promise<EChartsModule> | null = null
+const chartWidth = 640
+const chartHeight = 288
+const plot = {
+  top: 24,
+  right: 18,
+  bottom: 38,
+  left: 56
+}
+const plotWidth = chartWidth - plot.left - plot.right
+const plotHeight = chartHeight - plot.top - plot.bottom
+const hoveredPointIndex = ref<number | null>(null)
 
 const localeCode = computed(() => (props.locale === 'zh' ? 'zh-CN' : 'en-US'))
 
@@ -104,6 +108,98 @@ const chartAriaLabel = computed(() => {
   return `${props.windowLabel}, ${props.copy.latest} ${fullFormatter.value.format(latestPoint.value.value)} ${props.valueUnit}`
 })
 
+const valueRange = computed(() => {
+  if (props.series.length === 0) {
+    return {
+      min: 0,
+      max: 1
+    }
+  }
+
+  const values = props.series.map((item) => item.value)
+  const minValue = Math.min(...values)
+  const maxValue = Math.max(...values)
+  const range = maxValue - minValue
+  const padding = range === 0 ? Math.max(1, Math.round(maxValue * 0.12) || 1) : range * 0.16
+
+  return {
+    min: Math.max(0, minValue - padding),
+    max: maxValue + padding
+  }
+})
+
+const chartPoints = computed(() => {
+  const range = valueRange.value.max - valueRange.value.min || 1
+  const lastIndex = Math.max(1, props.series.length - 1)
+
+  return props.series.map((item, index) => {
+    const x = props.series.length === 1 ? plot.left + plotWidth / 2 : plot.left + (plotWidth * index) / lastIndex
+    const y = plot.top + (1 - (item.value - valueRange.value.min) / range) * plotHeight
+
+    return {
+      ...item,
+      x,
+      y
+    }
+  })
+})
+
+const hoveredPoint = computed(() => {
+  const index = hoveredPointIndex.value
+  return typeof index === 'number' ? chartPoints.value[index] ?? null : null
+})
+
+const trendPath = computed(() =>
+  chartPoints.value
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(' ')
+)
+
+const areaPath = computed(() => {
+  if (chartPoints.value.length === 0) {
+    return ''
+  }
+
+  const baseline = plot.top + plotHeight
+  const [first] = chartPoints.value
+  const last = chartPoints.value[chartPoints.value.length - 1]
+
+  return [
+    trendPath.value,
+    `L ${last.x.toFixed(2)} ${baseline.toFixed(2)}`,
+    `L ${first.x.toFixed(2)} ${baseline.toFixed(2)}`,
+    'Z'
+  ].join(' ')
+})
+
+const axisPoints = computed(() =>
+  chartPoints.value.filter((_, index) => visibleAxisIndices.value.has(index))
+)
+
+const gradientKey = computed(() =>
+  [props.windowLabel, props.accentStart, props.accentEnd]
+    .join('-')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+    .slice(0, 72)
+)
+
+const lineGradientId = computed(() => `trend-line-${gradientKey.value}`)
+const areaGradientId = computed(() => `trend-area-${gradientKey.value}`)
+
+const tooltipStyle = computed(() => {
+  if (!hoveredPoint.value) {
+    return {}
+  }
+
+  const leftPercent = Math.min(86, Math.max(14, (hoveredPoint.value.x / chartWidth) * 100))
+  const topPercent = (hoveredPoint.value.y / chartHeight) * 100
+
+  return {
+    left: `${leftPercent}%`,
+    top: `${topPercent}%`
+  }
+})
+
 const formatDelta = (value: number | null) => {
   if (value === null) {
     return 'N/A'
@@ -129,235 +225,31 @@ const formatTrendTone = (value: number | null) => {
   return 'trend-chart__pill-value--neutral'
 }
 
-const loadECharts = () => {
-  echartsLoader ??= import('echarts')
-  return echartsLoader
-}
-
-const renderChart = async () => {
-  if (!chartElement.value || props.series.length === 0) {
-    chart?.clear()
+const handleChartPointerMove = (event: PointerEvent) => {
+  if (chartPoints.value.length === 0) {
+    hoveredPointIndex.value = null
     return
   }
 
-  const echarts = await loadECharts()
+  const bounds = (event.currentTarget as SVGSVGElement).getBoundingClientRect()
+  const relativeX = ((event.clientX - bounds.left) / bounds.width) * chartWidth
+  let nearestIndex = 0
+  let nearestDistance = Number.POSITIVE_INFINITY
 
-  if (!chart) {
-    chart = echarts.init(chartElement.value, undefined, {
-      renderer: 'svg'
-    })
-  }
+  chartPoints.value.forEach((point, index) => {
+    const distance = Math.abs(point.x - relativeX)
+    if (distance < nearestDistance) {
+      nearestIndex = index
+      nearestDistance = distance
+    }
+  })
 
-  const values = props.series.map((item) => item.value)
-  const categories = props.series.map((item) => item.label)
-  const minValue = Math.min(...values)
-  const maxValue = Math.max(...values)
-  const range = maxValue - minValue
-  const padding = range === 0 ? Math.max(1, Math.round(maxValue * 0.12) || 1) : range * 0.16
-  const yMin = Math.max(0, minValue - padding)
-  const yMax = maxValue + padding
-  const latest = latestPoint.value
-
-  chart.setOption(
-    {
-      animationDuration: 560,
-      animationEasing: 'cubicOut',
-      aria: {
-        enabled: true
-      },
-      grid: {
-        left: 12,
-        right: 12,
-        top: 20,
-        bottom: 26,
-        containLabel: true
-      },
-      tooltip: {
-        trigger: 'axis',
-        triggerOn: 'mousemove|click',
-        confine: true,
-        appendToBody: false,
-        borderWidth: 0,
-        padding: [10, 12],
-        backgroundColor: 'rgba(8, 15, 28, 0.92)',
-        textStyle: {
-          color: '#f8fafc',
-          fontSize: 12
-        },
-        extraCssText: 'border-radius: 16px; box-shadow: 0 22px 40px rgba(2, 6, 23, 0.28);',
-        axisPointer: {
-          type: 'line',
-          lineStyle: {
-            color: 'rgba(16, 34, 52, 0.22)',
-            width: 1
-          },
-          label: {
-            show: false
-          }
-        },
-        formatter: (params: unknown) => {
-          const point = Array.isArray(params) ? params[0] : params
-
-          if (!point || typeof point !== 'object' || !('dataIndex' in point)) {
-            return ''
-          }
-
-          const dataIndex = typeof point.dataIndex === 'number' ? point.dataIndex : 0
-          const item = props.series[dataIndex]
-
-          if (!item) {
-            return ''
-          }
-
-          return [
-            '<div style="display:grid;gap:4px;min-width:132px;">',
-            `<span style="font-size:11px;color:rgba(226,232,240,0.72);">${item.label}</span>`,
-            `<strong style="font-size:18px;letter-spacing:-0.04em;">${fullFormatter.value.format(item.value)}</strong>`,
-            `<span style="font-size:11px;color:rgba(226,232,240,0.78);">${props.valueUnit}</span>`,
-            '</div>'
-          ].join('')
-        }
-      },
-      xAxis: {
-        type: 'category',
-        boundaryGap: false,
-        data: categories,
-        axisLine: {
-          show: false
-        },
-        axisTick: {
-          show: false
-        },
-        axisLabel: {
-          color: 'rgba(16, 34, 52, 0.56)',
-          margin: 14,
-          hideOverlap: true,
-          formatter: (value: string, index: number) =>
-            visibleAxisIndices.value.has(index) ? value : ''
-        },
-        splitLine: {
-          show: false
-        }
-      },
-      yAxis: {
-        type: 'value',
-        min: yMin,
-        max: yMax,
-        splitNumber: 2,
-        axisLine: {
-          show: false
-        },
-        axisTick: {
-          show: false
-        },
-        axisLabel: {
-          color: 'rgba(16, 34, 52, 0.56)',
-          margin: 12,
-          formatter: (value: number) => compactFormatter.value.format(value)
-        },
-        splitLine: {
-          lineStyle: {
-            color: 'rgba(16, 34, 52, 0.1)'
-          }
-        }
-      },
-      series: [
-        {
-          type: 'line',
-          smooth: 0.28,
-          data: values,
-          symbol: 'circle',
-          symbolSize: 7,
-          showSymbol: false,
-          lineStyle: {
-            width: 3,
-            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-              { offset: 0, color: props.accentStart },
-              { offset: 1, color: props.accentEnd }
-            ])
-          },
-          areaStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: `${props.accentStart}66` },
-              { offset: 1, color: `${props.accentEnd}08` }
-            ])
-          },
-          itemStyle: {
-            color: props.accentStart,
-            borderWidth: 2,
-            borderColor: '#ffffff'
-          },
-          emphasis: {
-            focus: 'series',
-            scale: true
-          },
-          markPoint: latest
-            ? {
-                animation: false,
-                symbol: 'circle',
-                symbolSize: 13,
-                label: {
-                  show: false
-                },
-                itemStyle: {
-                  color: props.accentStart,
-                  borderColor: '#ffffff',
-                  borderWidth: 3,
-                  shadowBlur: 16,
-                  shadowColor: `${props.accentStart}55`
-                },
-                data: [
-                  {
-                    coord: [latest.label, latest.value]
-                  }
-                ]
-              }
-            : undefined
-        }
-      ]
-    },
-    true
-  )
+  hoveredPointIndex.value = nearestIndex
 }
 
-onMounted(async () => {
-  await renderChart()
-
-  if (chartElement.value && typeof ResizeObserver !== 'undefined') {
-    resizeObserver = new ResizeObserver(() => {
-      chart?.resize()
-    })
-    resizeObserver.observe(chartElement.value)
-  }
-})
-
-watch(
-  () => [
-    props.series,
-    props.locale,
-    props.accentStart,
-    props.accentEnd,
-    props.valueUnit,
-    props.deltaLabel,
-    props.windowLabel,
-    props.copy.latest,
-    props.copy.total,
-    props.copy.peak,
-    props.copy.low,
-    props.copy.hoverHint
-  ],
-  () => {
-    void renderChart()
-  },
-  { deep: true }
-)
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect()
-  resizeObserver = null
-  chart?.dispose()
-  chart = null
-})
+const clearHoveredPoint = () => {
+  hoveredPointIndex.value = null
+}
 </script>
 
 <template>
@@ -396,13 +288,70 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div class="trend-chart__frame">
-      <div
-        ref="chartElement"
-        class="trend-chart__canvas"
+    <div class="trend-chart__frame" :style="{ '--trend-accent': accentStart }">
+      <svg
+        class="trend-chart__svg"
+        :viewBox="`0 0 ${chartWidth} ${chartHeight}`"
         role="img"
         :aria-label="chartAriaLabel"
-      />
+        @pointermove="handleChartPointerMove"
+        @pointerleave="clearHoveredPoint"
+      >
+        <defs>
+          <linearGradient :id="lineGradientId" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" :stop-color="accentStart" />
+            <stop offset="100%" :stop-color="accentEnd" />
+          </linearGradient>
+          <linearGradient :id="areaGradientId" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" :stop-color="accentStart" stop-opacity="0.28" />
+            <stop offset="100%" :stop-color="accentEnd" stop-opacity="0.04" />
+          </linearGradient>
+        </defs>
+
+        <path v-if="areaPath" class="trend-chart__area" :d="areaPath" :fill="`url(#${areaGradientId})`" />
+        <path v-if="trendPath" class="trend-chart__line" :d="trendPath" :stroke="`url(#${lineGradientId})`" />
+
+        <g v-if="hoveredPoint" class="trend-chart__hover-guide" aria-hidden="true">
+          <line
+            :x1="hoveredPoint.x"
+            :x2="hoveredPoint.x"
+            :y1="plot.top"
+            :y2="plot.top + plotHeight"
+          />
+          <circle :cx="hoveredPoint.x" :cy="hoveredPoint.y" r="8" />
+        </g>
+
+        <circle
+          v-if="chartPoints.length > 0"
+          class="trend-chart__latest-point"
+          :cx="chartPoints[chartPoints.length - 1].x"
+          :cy="chartPoints[chartPoints.length - 1].y"
+          r="7"
+        />
+
+        <g class="trend-chart__x-axis" aria-hidden="true">
+          <text
+            v-for="point in axisPoints"
+            :key="`axis-${point.key}`"
+            :x="point.x"
+            :y="chartHeight - 12"
+            text-anchor="middle"
+          >
+            {{ point.label }}
+          </text>
+        </g>
+      </svg>
+
+      <div
+        v-if="hoveredPoint"
+        class="trend-chart__tooltip"
+        :style="tooltipStyle"
+        role="status"
+      >
+        <span>{{ hoveredPoint.label }}</span>
+        <strong>{{ fullFormatter.format(hoveredPoint.value) }}</strong>
+        <em>{{ valueUnit }}</em>
+      </div>
     </div>
 
     <div class="trend-chart__footer">
@@ -454,7 +403,7 @@ onBeforeUnmount(() => {
 .trend-chart__summary-value strong {
   font-size: clamp(2rem, 4vw, 2.8rem);
   line-height: 0.95;
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
 }
 
 .trend-chart__summary-value span {
@@ -514,9 +463,81 @@ onBeforeUnmount(() => {
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(245, 249, 252, 0.94));
 }
 
-.trend-chart__canvas {
+.trend-chart__svg {
+  display: block;
   width: 100%;
   height: 18rem;
+}
+
+.trend-chart__x-axis text {
+  fill: rgba(16, 34, 52, 0.56);
+  font-size: 0.72rem;
+}
+
+.trend-chart__area {
+  pointer-events: none;
+}
+
+.trend-chart__line {
+  fill: none;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.trend-chart__hover-guide {
+  pointer-events: none;
+}
+
+.trend-chart__hover-guide line {
+  stroke: rgba(16, 34, 52, 0.24);
+  stroke-dasharray: 5 7;
+  stroke-width: 1.4;
+}
+
+.trend-chart__hover-guide circle {
+  fill: var(--trend-accent);
+  stroke: #ffffff;
+  stroke-width: 3;
+  filter: drop-shadow(0 8px 14px rgba(16, 34, 52, 0.24));
+}
+
+.trend-chart__latest-point {
+  fill: var(--trend-accent);
+  stroke: #ffffff;
+  stroke-width: 3;
+  filter: drop-shadow(0 6px 10px rgba(16, 34, 52, 0.24));
+  pointer-events: none;
+}
+
+.trend-chart__tooltip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  min-width: 9rem;
+  gap: 0.18rem;
+  padding: 0.72rem 0.82rem;
+  border-radius: 12px;
+  color: #f8fafc;
+  background: rgba(8, 15, 28, 0.94);
+  box-shadow: 0 18px 34px rgba(2, 6, 23, 0.24);
+  transform: translate(-50%, calc(-100% - 0.75rem));
+  pointer-events: none;
+}
+
+.trend-chart__tooltip span,
+.trend-chart__tooltip em {
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 0.74rem;
+  font-style: normal;
+}
+
+.trend-chart__tooltip strong {
+  font-size: 1.28rem;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .trend-chart__footer {
@@ -532,7 +553,7 @@ onBeforeUnmount(() => {
     grid-template-columns: 1fr;
   }
 
-  .trend-chart__canvas {
+  .trend-chart__svg {
     height: 15rem;
   }
 
