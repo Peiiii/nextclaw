@@ -186,17 +186,7 @@ export async function* mapCodexItemEvent(params: {
   }
 
   if (item.type === "reasoning") {
-    yield* mapTextSnapshotDelta({
-      currentText: item.text ?? "",
-      deltaType: NcpEventType.MessageReasoningDelta,
-      endType: NcpEventType.MessageReasoningEnd,
-      eventType: event.type,
-      itemId: item.id,
-      itemTextById,
-      messageId,
-      sessionId,
-      startType: NcpEventType.MessageReasoningStart,
-    });
+    itemTextById.delete(item.id);
     return;
   }
 

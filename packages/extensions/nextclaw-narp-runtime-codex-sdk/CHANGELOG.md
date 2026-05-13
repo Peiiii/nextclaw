@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.1.5
+
+### Patch Changes
+
+- Stop exposing Codex SDK raw reasoning summaries as user-visible NCP thinking while preserving streamed assistant text and tool-call events.
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.28
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.62
+
 ## 0.1.4
 
 ### Patch Changes
@@ -7,7 +16,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -81,7 +89,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -146,7 +153,6 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime

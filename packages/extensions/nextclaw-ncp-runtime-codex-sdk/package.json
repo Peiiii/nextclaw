@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-codex-sdk",
-  "version": "0.1.27",
+  "version": "0.1.28",
   "private": false,
   "description": "Optional NCP runtime adapter backed by OpenAI Codex SDK.",
   "type": "module",
@@ -14,6 +14,7 @@
     "build": "tsdown src/index.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
     "prepack": "pnpm run build",
     "lint": "eslint .",
+    "test": "vitest run src/utils/codex-sdk-ncp-event-mapper.utils.test.ts",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
   }
 }

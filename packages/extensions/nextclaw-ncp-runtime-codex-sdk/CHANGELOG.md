@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.28
+
+### Patch Changes
+
+- Stop exposing Codex SDK raw reasoning summaries as user-visible NCP thinking while preserving streamed assistant text and tool-call events.
+
 ## 0.1.27
 
 ### Patch Changes
@@ -7,7 +13,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -75,7 +80,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -137,7 +141,6 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -199,7 +202,6 @@
 - a11f4fd: Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -236,7 +238,6 @@
 - 2418020: Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -285,7 +286,6 @@
 - a5da9d6: Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -334,7 +334,6 @@
 - 1600643: Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -383,7 +382,6 @@
 - 223037c: Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -443,7 +441,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -499,7 +496,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -555,7 +551,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -611,7 +606,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -667,7 +661,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -715,7 +708,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -765,7 +757,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -814,7 +805,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -870,7 +860,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -917,7 +906,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -954,7 +942,6 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
-
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-weixin
   - @nextclaw/core
