@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import * as utils from "../../../shared/utils/cli.utils.js";
 import { localUiRuntimeStore } from "../../../shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore } from "../../../shared/stores/managed-service-state.store.js";
-import { readCurrentNextclawRemoteRuntimeState } from "./remote-runtime-support.service.js";
+import { readCurrentNextclawRemoteRuntimeState } from "./remote-runtime-support.utils.js";
 
 describe("readCurrentNextclawRemoteRuntimeState", () => {
   afterEach(() => {

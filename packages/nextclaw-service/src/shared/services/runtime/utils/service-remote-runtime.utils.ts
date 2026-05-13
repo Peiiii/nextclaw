@@ -1,5 +1,5 @@
 import type { Config } from "@nextclaw/core";
-import { RemoteServiceModule } from "@nextclaw/remote";
+import { RemoteServiceModule, type RemoteRuntimeState } from "@nextclaw/remote";
 import {
   closeSync,
   existsSync,
@@ -21,7 +21,7 @@ import {
   buildNextclawConfiguredRemoteState,
   createNextclawRemoteConnector,
   createNextclawRemoteStatusStore
-} from "@nextclaw-service/commands/remote/services/remote-runtime-support.service.js";
+} from "@nextclaw-service/commands/remote/utils/remote-runtime-support.utils.js";
 
 type ManagedServiceSnapshot = {
   pid: number;
@@ -219,6 +219,7 @@ export function createManagedRemoteModule(params: {
   loadConfig: () => Config;
   uiEnabled: boolean;
   localOrigin: string;
+  onRemoteStateChange?: (state: RemoteRuntimeState) => void;
 }): RemoteServiceModule | null {
   if (!params.uiEnabled) {
     return null;
@@ -227,7 +228,7 @@ export function createManagedRemoteModule(params: {
     loadConfig: params.loadConfig,
     uiEnabled: params.uiEnabled,
     localOrigin: params.localOrigin,
-    statusStore: createNextclawRemoteStatusStore("service"),
+    statusStore: createNextclawRemoteStatusStore("service", params.onRemoteStateChange),
     createConnector: (logger) => createNextclawRemoteConnector({ logger }),
     claimOwnership: () => claimManagedRemoteRuntimeOwnership({ localOrigin: params.localOrigin }),
     logger: {
@@ -241,12 +242,13 @@ export function createManagedRemoteModule(params: {
 export function createManagedRemoteModuleForUi(params: {
   loadConfig: () => Config;
   uiConfig: Pick<Config["ui"], "enabled" | "host" | "port">;
-  localOriginOverride?: string;
+  localOriginOverride?: string; onRemoteStateChange?: (state: RemoteRuntimeState) => void;
 }): RemoteServiceModule | null {
   const explicitLocalOrigin = params.localOriginOverride?.trim() ?? process.env.NEXTCLAW_REMOTE_LOCAL_ORIGIN?.trim();
   return createManagedRemoteModule({
     loadConfig: params.loadConfig,
     uiEnabled: params.uiConfig.enabled,
+    onRemoteStateChange: params.onRemoteStateChange,
     localOrigin:
       explicitLocalOrigin && explicitLocalOrigin.length > 0
         ? explicitLocalOrigin.replace(/\/+$/, "")

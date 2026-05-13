@@ -1,4 +1,4 @@
-import type { ServiceBootstrapStatusStore } from "../service-bootstrap-status.js";
+import type { ServiceBootstrapStatusStore } from "../service-bootstrap-status.service.js";
 
 export function handleGatewayDeferredStartupError(params: {
   bootstrapStatus: ServiceBootstrapStatusStore;

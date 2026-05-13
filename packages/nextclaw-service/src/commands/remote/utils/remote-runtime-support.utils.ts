@@ -57,10 +57,13 @@ export function createNextclawRemoteConnector(params: {
   });
 }
 
-export function createNextclawRemoteStatusStore(mode: RemoteRuntimeState["mode"]): RemoteStatusStore {
+export function createNextclawRemoteStatusStore(
+  mode: RemoteRuntimeState["mode"], onChange?: (next: RemoteRuntimeState) => void
+): RemoteStatusStore {
   return new RemoteStatusStore(mode, {
     writeRemoteState: (next) => {
       currentProcessRemoteRuntimeState = next;
+      onChange?.(next);
       const uiRuntimeState = localUiRuntimeStore.read();
       if (uiRuntimeState?.pid === process.pid) {
         localUiRuntimeStore.update((state) => ({

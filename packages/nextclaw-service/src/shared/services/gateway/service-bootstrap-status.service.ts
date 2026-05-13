@@ -1,4 +1,5 @@
 import type { BootstrapRemoteState, BootstrapStatusView } from "@nextclaw/server";
+import type { RemoteRuntimeState } from "@nextclaw/remote";
 
 function now(): string {
   return new Date().toISOString();
@@ -42,12 +43,6 @@ export class ServiceBootstrapStatusStore {
     this.state.shellReadyAt = this.state.shellReadyAt ?? now();
   }
 
-  markNcpAgentPending(): void {
-    this.state.ncpAgent = {
-      state: "pending",
-    };
-  }
-
   markNcpAgentRunning(): void {
     this.state.ncpAgent = {
       state: "running",
@@ -72,15 +67,6 @@ export class ServiceBootstrapStatusStore {
       startedAt: this.state.ncpAgent.startedAt ?? now(),
       completedAt: now(),
       error
-    };
-  }
-
-  markPluginHydrationPending(): void {
-    this.state.pluginHydration = {
-      ...this.state.pluginHydration,
-      state: "pending",
-      loadedPluginCount: 0,
-      totalPluginCount: 0
     };
   }
 
@@ -171,9 +157,15 @@ export class ServiceBootstrapStatusStore {
     };
   }
 
-  markReady(): void {
-    this.state.phase = "ready";
-    this.state.lastError = undefined;
+  syncRemoteRuntimeState(runtime: RemoteRuntimeState): void {
+    const message = runtime.lastError?.trim() || undefined;
+    const state =
+      runtime.state === "connected" ? "ready"
+        : runtime.state === "disabled" ? "disabled"
+          : runtime.state === "error" && message?.includes("already owned") ? "conflict"
+            : runtime.state === "error" ? "error"
+              : "pending";
+    this.setRemoteState(state, message);
   }
 
   markError(error: string): void {

@@ -9,7 +9,7 @@ import {
 } from "@nextclaw/remote";
 import { hostname } from "node:os";
 import { localUiDiscoveryService } from "@nextclaw-service/shared/services/ui/local-ui-discovery.service.js";
-import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./services/remote-runtime-support.service.js";
+import { createNextclawRemoteConnector, resolveNextclawRemoteStatusSnapshot } from "./utils/remote-runtime-support.utils.js";
 
 export {
   buildNextclawConfiguredRemoteState,
@@ -17,7 +17,7 @@ export {
   createNextclawRemoteStatusStore,
   hasRunningNextclawManagedService,
   resolveNextclawRemoteStatusSnapshot
-} from "./services/remote-runtime-support.service.js";
+} from "./utils/remote-runtime-support.utils.js";
 export {
   buildPlatformApiBaseErrorMessage,
   resolvePlatformApiBase

@@ -6,7 +6,7 @@ import type { ManagedServiceState } from "@nextclaw-service/shared/stores/manage
 import {
   claimManagedRemoteRuntimeOwnership,
   createManagedRemoteModuleForUi
-} from "../service-remote-runtime.service.js";
+} from "./service-remote-runtime.utils.js";
 
 describe("claimManagedRemoteRuntimeOwnership", () => {
   afterEach(() => {
@@ -132,6 +132,65 @@ describe("createManagedRemoteModuleForUi", () => {
     module.start();
     await vi.waitFor(() => {
       expect(runCalls).toEqual([{ localOrigin: "http://127.0.0.1:5174" }]);
+    });
+  });
+
+  it("notifies the gateway when the managed remote state changes", async () => {
+    const stateChanges: unknown[] = [];
+    const module = createManagedRemoteModuleForUi({
+      loadConfig: () =>
+        ({
+          remote: {
+            enabled: true,
+            autoReconnect: false,
+            deviceName: "dev-box",
+            platformApiBase: "https://platform.example.com"
+          }
+        }) as never,
+      uiConfig: {
+        enabled: true,
+        host: "127.0.0.1",
+        port: 18792
+      },
+      onRemoteStateChange: (state) => stateChanges.push(state)
+    });
+
+    expect(module).not.toBeNull();
+    if (!module) {
+      return;
+    }
+
+    (module as unknown as {
+      deps: {
+        createConnector: () => {
+          run: (options: { statusStore?: { write: (state: { enabled: boolean; state: string; localOrigin: string }) => void } }) => Promise<void>;
+        };
+        claimOwnership?: () => { ok: true; release: () => void };
+      };
+    }).deps.createConnector = () => ({
+      run: async (options) => {
+        options.statusStore?.write({
+          enabled: true,
+          state: "connected",
+          localOrigin: "http://127.0.0.1:18792"
+        });
+      }
+    });
+    (module as unknown as {
+      deps: {
+        claimOwnership?: () => { ok: true; release: () => void };
+      };
+    }).deps.claimOwnership = () => ({ ok: true, release: () => undefined });
+
+    module.start();
+    await vi.waitFor(() => {
+      expect(stateChanges).toMatchObject([
+        {
+          mode: "service",
+          state: "connected",
+          localOrigin: "http://127.0.0.1:18792"
+        }
+      ]);
     });
   });
 });

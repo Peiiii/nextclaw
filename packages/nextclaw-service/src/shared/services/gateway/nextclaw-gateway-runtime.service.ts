@@ -31,7 +31,7 @@ import { createCronJobHandler } from "@nextclaw-service/shared/services/gateway/
 import { companionRuntimeService } from "@nextclaw-service/shared/services/ui/companion-runtime.service.js";
 import { handleGatewayDeferredStartupError } from "@nextclaw-service/shared/services/gateway/utils/gateway-runtime-lifecycle.utils.js";
 import { NextclawApp, type UiStartupHandle } from "@nextclaw-service/shared/services/gateway/nextclaw-app.service.js";
-import { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.js";
+import { ServiceBootstrapStatusStore } from "@nextclaw-service/shared/services/gateway/service-bootstrap-status.service.js";
 import { ServiceFileWatcherRegistry, markLocalUiRuntimeIfStarted, startGatewayRuntimeSupport, watchServiceConfigFile } from "@nextclaw-service/shared/services/gateway/service-startup-support.service.js";
 import { createDeferredUiNcpAgent } from "@nextclaw-service/shared/services/session/service-deferred-ncp-agent.service.js";
 import { installPluginRuntimeBridge } from "@nextclaw-service/shared/services/plugin/utils/plugin-runtime-bridge.utils.js";
@@ -149,6 +149,7 @@ export class NextclawGatewayRuntime {
       deps: this.deps,
       configManager: this.configManager,
       uiConfig: this.uiConfig,
+      onRemoteStateChange: (state) => this.bootstrapStatus.syncRemoteRuntimeState(state),
     });
     this.marketplace = this.createMarketplace();
     this.runtimeControl = createRuntimeControlHost({
@@ -210,8 +211,6 @@ export class NextclawGatewayRuntime {
 
   private createBootstrapStatus = (): ServiceBootstrapStatusStore => {
     const bootstrapStatus = new ServiceBootstrapStatusStore();
-    bootstrapStatus.markNcpAgentPending();
-    bootstrapStatus.markPluginHydrationPending();
     bootstrapStatus.markChannelsPending();
     bootstrapStatus.setRemoteState(this.configManager.config.remote.enabled ? "pending" : "disabled");
     return bootstrapStatus;
@@ -329,7 +328,6 @@ export class NextclawGatewayRuntime {
       console.log("Warning: No channels enabled");
     }
     this.bootstrapStatus.markChannelsReady(enabledChannels);
-    this.bootstrapStatus.markReady();
   };
 
   private createMarketplace = (): MarketplaceApiConfig => ({

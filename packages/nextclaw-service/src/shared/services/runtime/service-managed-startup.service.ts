@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-runtime.store.js";
 import { managedServiceStateStore, type ManagedServiceState } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
-import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@nextclaw-service/shared/services/runtime/service-remote-runtime.service.js";
+import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@nextclaw-service/shared/services/runtime/utils/service-remote-runtime.utils.js";
 import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
 import {
   isProcessRunning,

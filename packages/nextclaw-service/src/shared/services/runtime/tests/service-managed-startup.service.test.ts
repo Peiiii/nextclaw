@@ -15,7 +15,7 @@ vi.mock("node:child_process", async (importOriginal) => {
   };
 });
 
-vi.mock("../service-remote-runtime.service.js", () => ({
+vi.mock("../utils/service-remote-runtime.utils.js", () => ({
   writeInitialManagedServiceState: writeInitialManagedServiceStateMock
 }));
 
