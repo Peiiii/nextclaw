@@ -47,4 +47,11 @@
 
 ## NPM 包发布记录
 
-- 不涉及 NPM 包发布。
+- 2026-05-13 发布 stable patch：
+  - `nextclaw@0.19.5`，dist-tag `latest`
+  - `@nextclaw/service@0.1.6`，dist-tag `latest`
+  - `@nextclaw/ui@0.12.23`，dist-tag `latest`
+- 发布命令：`pnpm release:publish`。
+- 发布后 registry 验证：`pnpm release:verify:published` 通过；`npm view nextclaw version dist-tags --json`、`npm view @nextclaw/service version dist-tags --json`、`npm view @nextclaw/ui version dist-tags --json` 均确认 `latest` 指向本次版本。
+- 用户侧安装烟测：在 `/tmp/nextclaw-patch-smoke-*` 临时目录安装 `nextclaw@0.19.5`，确认 `nextclaw --version` 输出 `0.19.5`，且不设置 `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY` / `NEXTCLAW_UPDATE_BUNDLE_PUBLIC_KEY_PATH` 时 `nextclaw update --check --json` 返回 `status: "up-to-date"`、`blockReason: null`。
+- Git：版本提交 `f7c951e2` 已推送到 `origin/master`；tags `nextclaw@0.19.5`、`@nextclaw/service@0.1.6`、`@nextclaw/ui@0.12.23` 已推送。
