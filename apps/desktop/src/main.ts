@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import desktopPackageJson from "../package.json";
@@ -21,6 +21,13 @@ import {
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
+import {
+  DESKTOP_WINDOW_CLOSE_CHANNEL,
+  DESKTOP_WINDOW_MINIMIZE_CHANNEL,
+  DESKTOP_WINDOW_MAXIMIZE_CHANNEL,
+  DESKTOP_WINDOW_IS_MAXIMIZED_CHANNEL,
+  DESKTOP_WINDOW_MAXIMIZED_CHANGED_CHANNEL
+} from "./utils/desktop-ipc.utils";
 const logger = createDesktopLogger();
 installDesktopProcessErrorLogging(logger);
 logDesktopMainEntryLoaded(logger);
@@ -73,6 +80,7 @@ class DesktopApplication {
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
+    this.registerWindowControlIpcHandlers();
     this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
@@ -374,6 +382,12 @@ class DesktopApplication {
       height: 920,
       minWidth: 1080,
       minHeight: 720,
+      frame: false,
+      roundedCorners: true,
+      thickFrame: true,
+      hasShadow: true,
+      backgroundMaterial: process.platform === "win32" ? "acrylic" : "none",
+      backgroundColor: "#00000000",
       title: "NextClaw Desktop",
       webPreferences: {
         preload: join(__dirname, "preload.js"),
@@ -389,7 +403,38 @@ class DesktopApplication {
     window.on("closed", () => {
       this.window = null;
     });
+    window.on("maximize", () => {
+      this.window?.webContents.send(DESKTOP_WINDOW_MAXIMIZED_CHANGED_CHANNEL, true);
+    });
+    window.on("unmaximize", () => {
+      this.window?.webContents.send(DESKTOP_WINDOW_MAXIMIZED_CHANGED_CHANNEL, false);
+    });
     return window;
+  };
+
+  private registerWindowControlIpcHandlers = (): void => {
+    ipcMain.on(DESKTOP_WINDOW_CLOSE_CHANNEL, () => {
+      if (this.window) {
+        this.window.close();
+      }
+    });
+    ipcMain.on(DESKTOP_WINDOW_MINIMIZE_CHANNEL, () => {
+      if (this.window) {
+        this.window.minimize();
+      }
+    });
+    ipcMain.on(DESKTOP_WINDOW_MAXIMIZE_CHANNEL, () => {
+      if (this.window) {
+        if (this.window.isMaximized()) {
+          this.window.unmaximize();
+        } else {
+          this.window.maximize();
+        }
+      }
+    });
+    ipcMain.handle(DESKTOP_WINDOW_IS_MAXIMIZED_CHANNEL, () => {
+      return this.window ? this.window.isMaximized() : false;
+    });
   };
 }
 const desktop = new DesktopApplication();

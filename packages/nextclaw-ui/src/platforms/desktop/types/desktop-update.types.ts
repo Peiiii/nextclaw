@@ -48,9 +48,18 @@ export type DesktopPresenceSnapshot = DesktopPresencePreferences & {
 
 export type DesktopUiLanguagePreference = 'en' | 'zh';
 
+export type DesktopWindowApi = {
+  close: () => void;
+  minimize: () => void;
+  maximize: () => void;
+  isMaximized: () => Promise<boolean>;
+  onMaximizedChanged: (listener: (maximized: boolean) => void) => () => void;
+};
+
 export type NextClawDesktopBridge = {
   platform: string;
   version: string;
+  window: DesktopWindowApi;
   localePreference?: DesktopUiLanguagePreference | null;
   getUpdateState: () => Promise<DesktopUpdateSnapshot>;
   checkForUpdates: () => Promise<DesktopUpdateSnapshot>;

@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import { FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
-import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
 
@@ -27,7 +25,6 @@ export function ChatSessionHeaderActions({
   onDeleteSession,
 }: ChatSessionHeaderActionsProps) {
   const updateSessionProject = useChatSessionProject();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isProjectPending, setIsProjectPending] = useState(false);
   const isBusy = isDeletePending || isProjectPending;
@@ -42,7 +39,6 @@ export function ChatSessionHeaderActions({
         persistToServer,
       });
       setIsDialogOpen(false);
-      setIsMenuOpen(false);
     } finally {
       setIsProjectPending(false);
     }
@@ -64,42 +60,6 @@ export function ChatSessionHeaderActions({
           <GitBranch className="h-4 w-4" />
         </Button>
       ) : null}
-      <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-lg shrink-0 text-gray-400 hover:text-gray-700"
-            aria-label={t('chatSessionMoreActions')}
-            disabled={isBusy}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="end" className="w-56 p-2">
-          <div className="space-y-1">
-            <ChatSessionHeaderMenuItem
-              icon={FolderOpen}
-              label={t('chatSessionSetProject')}
-              onClick={() => {
-                setIsMenuOpen(false);
-                setIsDialogOpen(true);
-              }}
-              disabled={isBusy}
-            />
-            <ChatSessionHeaderMenuItem
-              icon={Trash2}
-              label={t('chatDeleteSession')}
-              onClick={() => {
-                setIsMenuOpen(false);
-                onDeleteSession();
-              }}
-              disabled={!canDeleteSession || isBusy}
-              destructive
-            />
-          </div>
-        </PopoverContent>
-      </Popover>
 
       <ChatSessionProjectDialog
         open={isDialogOpen}
