@@ -48,7 +48,7 @@
 ## 发布/部署方式
 
 - 本次只修改源码与本地构建产物验证，不涉及线上服务部署。
-- NPM 包发布：待统一发布。
+- NPM 包发布：已通过 `pnpm release:publish` 发布并完成 registry verification。
 - Marketplace skill 发布：不涉及，本次未修改 marketplace skill 包内容。
 
 ## 用户/产品视角的验收步骤
@@ -69,8 +69,10 @@
 
 ## NPM 包发布记录
 
-- `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk`：待统一发布。
-- `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk`：待统一发布。
-- `@nextclaw/nextclaw-ncp-runtime-codex-sdk`：待统一发布。
-- `@nextclaw/nextclaw-narp-runtime-codex-sdk`：受上游依赖影响，待统一发布。
-- `@nextclaw/nextclaw-narp-runtime-claude-code-sdk`：受上游依赖影响，待统一发布。
+- `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.60`：已发布。
+- `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.60`：已发布，随 Claude SDK runtime 依赖闭包补发。
+- `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.29`：已发布。
+- `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.26`：已发布。
+- `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.3`：已发布，随 Codex runtime/plugin 依赖闭包补发。
+- `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.4`：已发布，随 Claude SDK runtime 依赖闭包补发。
+- Registry verification：`pnpm release:verify:published` 已确认 6/6 包版本可见。
