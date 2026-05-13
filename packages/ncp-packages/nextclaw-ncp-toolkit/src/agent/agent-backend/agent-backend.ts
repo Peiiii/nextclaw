@@ -33,6 +33,7 @@ import {
   normalizeSendRunEvent,
   now,
   readMessages,
+  readSessionActivityAt,
   type SessionContextWindowResolver,
   toLiveSessionSummary,
   toLiveSessionSummaryWithContextWindow,
@@ -249,7 +250,7 @@ export class DefaultNcpAgentBackend
     }
 
     return summaries.sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt),
+      readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)),
     );
   };
 

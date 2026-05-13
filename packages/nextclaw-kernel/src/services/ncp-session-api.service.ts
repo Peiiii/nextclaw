@@ -59,11 +59,16 @@ function createSessionListSummary(record: SessionListSummaryRecord & { sessionId
     sessionId: record.sessionId,
     ...(record.agentId ? { agentId: record.agentId } : {}),
     messageCount: record.messageCount ?? 0,
+    createdAt: record.created_at,
     updatedAt: record.updated_at,
-    lastMessageAt: record.lastMessageAt ?? record.updated_at,
+    ...(record.lastMessageAt ? { lastMessageAt: record.lastMessageAt } : {}),
     status: "idle",
     metadata: structuredClone(record.metadata),
   };
+}
+
+function readSessionActivityAt(record: SessionListSummaryRecord): string {
+  return record.lastMessageAt ?? record.created_at;
 }
 
 export type NcpSessionApiServiceOptions = {
@@ -121,7 +126,7 @@ export class NcpSessionApiService implements NcpSessionApi {
       this.options.sessionManager.listSessions()
         .map(toSessionCandidate)
         .filter((record): record is SessionListSummaryRecord & { sessionId: string } => Boolean(record))
-        .sort((left, right) => right.updated_at.localeCompare(left.updated_at)),
+        .sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left))),
       options?.limit,
     );
     return records.map(createSessionListSummary);
@@ -159,6 +164,7 @@ export class NcpSessionApiService implements NcpSessionApi {
       sessionId: normalizedSessionId,
       agentId: session.agentId,
       messages,
+      createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       status: "idle",
       metadata: session.metadata,

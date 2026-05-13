@@ -19,6 +19,10 @@ function resolveSessionRecordAgentId(record: AgentSessionRecord): string | undef
   return normalizeString(record.agentId)?.toLowerCase() ?? readAgentIdFromMetadata(record.metadata);
 }
 
+function readSessionActivityAt(record: AgentSessionRecord): string {
+  return record.messages.at(-1)?.timestamp ?? record.createdAt ?? record.updatedAt;
+}
+
 export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
   constructor(
     private readonly sessionManager: SessionManager,
@@ -37,6 +41,7 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
       sessionId,
       ...(session.agentId ? { agentId: session.agentId } : {}),
       messages: toNcpMessages(sessionId, session.messages),
+      createdAt: session.createdAt.toISOString(),
       updatedAt: session.updatedAt.toISOString(),
       metadata: structuredClone(session.metadata)
     };
@@ -58,12 +63,13 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
         sessionId,
         ...(session.agentId ? { agentId: session.agentId } : {}),
         messages: toNcpMessages(sessionId, session.messages),
+        createdAt: session.createdAt.toISOString(),
         updatedAt: session.updatedAt.toISOString(),
         metadata: structuredClone(session.metadata)
       });
     }
 
-    sessions.sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+    sessions.sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)));
     return sessions;
   };
 
@@ -81,6 +87,9 @@ export class NcpAgentSessionStoreAdapter implements AgentSessionStore {
     const nextAgentId = resolveSessionRecordAgentId(sessionRecord);
     if (nextAgentId) {
       session.agentId = nextAgentId;
+    }
+    if (sessionRecord.createdAt) {
+      session.createdAt = new Date(ensureIsoTimestamp(sessionRecord.createdAt, session.createdAt.toISOString()));
     }
     session.metadata = resolvePersistedSessionMetadata({
       currentMetadata: session.metadata,

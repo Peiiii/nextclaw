@@ -60,6 +60,7 @@ export function buildUpdatedSessionRecord(params: {
     messages: params.liveSession
       ? readMessages(params.liveSession.stateManager.getSnapshot())
       : params.storedSession?.messages.map((message) => structuredClone(message)) ?? [],
+    createdAt: params.storedSession?.createdAt ?? params.liveSession?.createdAt ?? params.updatedAt,
     updatedAt: params.updatedAt,
     metadata: nextMetadata,
   };
@@ -93,6 +94,7 @@ export function buildPersistedLiveSessionRecord(params: {
         }
       : {}),
     messages,
+    createdAt: params.session.createdAt,
     updatedAt: params.updatedAt,
     metadata,
   };

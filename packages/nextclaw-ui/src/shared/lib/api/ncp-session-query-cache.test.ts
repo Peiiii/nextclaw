@@ -14,14 +14,18 @@ function createSessionsList(): NcpSessionsListView {
       {
         sessionId: 'session-1',
         messageCount: 1,
+        createdAt: '2026-03-29T08:00:00.000Z',
         updatedAt: '2026-03-29T10:00:00.000Z',
+        lastMessageAt: '2026-03-29T10:00:00.000Z',
         status: 'idle',
         metadata: {}
       },
       {
         sessionId: 'session-2',
         messageCount: 2,
+        createdAt: '2026-03-29T07:00:00.000Z',
         updatedAt: '2026-03-29T09:00:00.000Z',
+        lastMessageAt: '2026-03-29T09:00:00.000Z',
         status: 'idle',
         metadata: {}
       }
@@ -31,11 +35,13 @@ function createSessionsList(): NcpSessionsListView {
 }
 
 describe('ncp-session-query-cache', () => {
-  it('upserts summaries and keeps the list sorted by updatedAt descending', () => {
+  it('upserts summaries and keeps the list sorted by last message time descending', () => {
     const updated = upsertNcpSessionSummaryList(createSessionsList(), {
       sessionId: 'session-2',
       messageCount: 3,
+      createdAt: '2026-03-29T07:00:00.000Z',
       updatedAt: '2026-03-29T11:00:00.000Z',
+      lastMessageAt: '2026-03-29T11:00:00.000Z',
       status: 'running',
       metadata: { label: 'Latest' }
     });
@@ -45,6 +51,23 @@ describe('ncp-session-query-cache', () => {
       sessionId: 'session-2',
       messageCount: 3,
       status: 'running'
+    });
+  });
+
+  it('does not reorder when only session metadata updatedAt changes', () => {
+    const updated = upsertNcpSessionSummaryList(createSessionsList(), {
+      sessionId: 'session-2',
+      messageCount: 2,
+      createdAt: '2026-03-29T07:00:00.000Z',
+      updatedAt: '2026-03-29T12:00:00.000Z',
+      lastMessageAt: '2026-03-29T09:00:00.000Z',
+      status: 'idle',
+      metadata: { ui_last_read_at: '2026-03-29T09:00:00.000Z' }
+    });
+
+    expect(updated?.sessions.map((session) => session.sessionId)).toEqual(['session-1', 'session-2']);
+    expect(updated?.sessions[1]?.metadata).toEqual({
+      ui_last_read_at: '2026-03-29T09:00:00.000Z'
     });
   });
 
@@ -128,7 +151,9 @@ describe('ncp-session-query-cache', () => {
         summary: {
           sessionId: 'session-3',
           messageCount: 1,
+          createdAt: '2026-03-29T12:00:00.000Z',
           updatedAt: '2026-03-29T12:00:00.000Z',
+          lastMessageAt: '2026-03-29T12:00:00.000Z',
           status: 'running',
           metadata: {}
         }

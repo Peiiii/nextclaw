@@ -1,8 +1,12 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { NcpSessionSummaryView, NcpSessionsListView, WsEvent } from '@/shared/lib/api';
 
+function readSessionActivityAt(summary: NcpSessionSummaryView): string {
+  return summary.lastMessageAt ?? summary.createdAt ?? summary.updatedAt;
+}
+
 function sortSessionSummaries(summaries: readonly NcpSessionSummaryView[]): NcpSessionSummaryView[] {
-  return [...summaries].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  return [...summaries].sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left)));
 }
 
 function shouldReplaceSessionSummary(

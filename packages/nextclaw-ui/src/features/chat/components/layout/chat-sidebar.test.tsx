@@ -341,6 +341,80 @@ describe('ChatSidebar create and list basics', () => {
   });
 });
 
+describe('ChatSidebar activity ordering', () => {
+  beforeEach(resetSidebarTestState);
+
+  it('orders sessions by last message time and ignores metadata updatedAt changes', () => {
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:message-newer',
+        createdAt: '2026-03-19T08:00:00.000Z',
+        updatedAt: '2026-03-19T09:00:00.000Z',
+        lastMessageAt: '2026-03-19T09:00:00.000Z',
+        label: 'Message Newer',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1
+      }),
+      createSessionItem({
+        key: 'session:metadata-newer',
+        createdAt: '2026-03-19T07:00:00.000Z',
+        updatedAt: '2026-03-19T12:00:00.000Z',
+        lastMessageAt: '2026-03-19T08:00:00.000Z',
+        label: 'Metadata Newer',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 1
+      })
+    ];
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    const messageNewer = screen.getByText('Message Newer');
+    const metadataNewer = screen.getByText('Metadata Newer');
+
+    expect(messageNewer.compareDocumentPosition(metadataNewer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('uses createdAt for sorting sessions without messages', () => {
+    mocks.sessionItems = [
+      createSessionItem({
+        key: 'session:created-older',
+        createdAt: '2026-03-19T08:00:00.000Z',
+        updatedAt: '2026-03-19T12:00:00.000Z',
+        label: 'Created Older',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 0
+      }),
+      createSessionItem({
+        key: 'session:created-newer',
+        createdAt: '2026-03-19T09:00:00.000Z',
+        updatedAt: '2026-03-19T10:00:00.000Z',
+        label: 'Created Newer',
+        sessionType: 'native',
+        sessionTypeMutable: false,
+        messageCount: 0
+      })
+    ];
+
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    const createdNewer = screen.getByText('Created Newer');
+    const createdOlder = screen.getByText('Created Older');
+
+    expect(createdNewer.compareDocumentPosition(createdOlder) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+});
+
 describe('ChatSidebar project-first mode', () => {
   beforeEach(resetSidebarTestState);
 

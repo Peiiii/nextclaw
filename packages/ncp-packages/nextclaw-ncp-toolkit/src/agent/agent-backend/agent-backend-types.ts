@@ -24,6 +24,7 @@ export type AgentSessionRecord = {
   sessionId: string;
   agentId?: string;
   messages: NcpMessage[];
+  createdAt?: string;
   updatedAt: string;
   metadata?: Record<string, unknown>;
 };
@@ -38,6 +39,7 @@ export type LiveSessionExecution = {
 export type LiveSessionState = {
   sessionId: string;
   agentId?: string;
+  createdAt: string;
   runtime: NcpAgentRuntime;
   stateManager: NcpAgentConversationStateManager;
   metadata: Record<string, unknown>;

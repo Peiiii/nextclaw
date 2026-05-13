@@ -165,7 +165,7 @@ function ChatSidebarSessionDisplayView({
               className="ml-auto h-2 w-2 shrink-0 rounded-full bg-primary"
             />
           ) : (
-            <span className="ml-auto shrink-0">{formatDateShort(session.updatedAt)}</span>
+            <span className="ml-auto shrink-0">{formatDateShort(session.lastMessageAt ?? session.createdAt)}</span>
           )}
         </div>
       </button>

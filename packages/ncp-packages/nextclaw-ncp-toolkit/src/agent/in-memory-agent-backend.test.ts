@@ -634,6 +634,49 @@ class SemanticInvalidArgsThenAnswerNcpLLMApi implements NcpLLMApi {
   };
 }
 
+describe("DefaultNcpAgentBackend session ordering", () => {
+  it("orders sessions by last message time with createdAt as the empty-session fallback", async () => {
+    const sessionStore = new RecordingSessionStore();
+    await sessionStore.saveSession({
+      sessionId: "empty-newer",
+      messages: [],
+      createdAt: "2026-03-15T10:00:00.000Z",
+      updatedAt: "2026-03-15T10:00:00.000Z",
+      metadata: {},
+    });
+    await sessionStore.saveSession({
+      sessionId: "metadata-newer",
+      messages: [],
+      createdAt: "2026-03-15T09:00:00.000Z",
+      updatedAt: "2026-03-15T12:00:00.000Z",
+      metadata: { ui_last_read_at: "2026-03-15T09:00:00.000Z" },
+    });
+    await sessionStore.saveSession({
+      sessionId: "message-newer",
+      messages: [{
+        id: "message-newer:user",
+        sessionId: "message-newer",
+        role: "user",
+        status: "final",
+        parts: [{ type: "text", text: "latest message" }],
+        timestamp: "2026-03-15T11:00:00.000Z",
+      }],
+      createdAt: "2026-03-15T08:00:00.000Z",
+      updatedAt: "2026-03-15T08:00:00.000Z",
+      metadata: {},
+    });
+    const backend = createBackend(new EchoNcpLLMApi(), { sessionStore });
+
+    const sessions = await backend.listSessions();
+
+    expect(sessions.map((session) => session.sessionId)).toEqual([
+      "message-newer",
+      "empty-newer",
+      "metadata-newer",
+    ]);
+  });
+});
+
 class RecordingSchemaToolRegistry implements NcpToolRegistry {
   readonly executeCalls: Array<{
     toolCallId: string;

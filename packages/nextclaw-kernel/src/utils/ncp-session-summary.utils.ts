@@ -4,16 +4,18 @@ export function createNcpSessionSummary(params: {
   sessionId: string;
   agentId?: string;
   messages: readonly NcpMessage[];
+  createdAt: string;
   updatedAt: string;
   status: NcpSessionStatus;
   metadata?: Record<string, unknown>;
   contextWindow?: Record<string, unknown> | null;
 }): NcpSessionSummary {
-  const { sessionId, agentId, messages, updatedAt, status, metadata, contextWindow } = params;
+  const { sessionId, agentId, messages, createdAt, updatedAt, status, metadata, contextWindow } = params;
   return {
     sessionId,
     ...(agentId ? { agentId } : {}),
     messageCount: messages.length,
+    createdAt,
     updatedAt,
     ...(messages.length > 0
       ? {

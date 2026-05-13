@@ -288,7 +288,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const isPromotedChildSession = readPromotedChildSession(summary);
   return {
     key: summary.sessionId,
-    createdAt: summary.updatedAt,
+    createdAt: summary.createdAt ?? summary.updatedAt,
     updatedAt: summary.updatedAt,
     ...(lastMessageAt ? { lastMessageAt } : {}),
     ...(readAt ? { readAt } : {}),

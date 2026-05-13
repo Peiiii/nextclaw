@@ -64,6 +64,7 @@ export class AgentLiveSessionRegistry {
     const session: LiveSessionState = {
       sessionId,
       ...(sessionAgentId ? { agentId: sessionAgentId } : {}),
+      createdAt: storedSession?.createdAt ?? new Date().toISOString(),
       stateManager,
       metadata: sessionMetadata,
       runtime: null as unknown as NcpAgentRuntime,

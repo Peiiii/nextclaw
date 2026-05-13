@@ -28,12 +28,14 @@ vi.mock("@kernel/utils/ncp-session-summary.utils.js", () => ({
     metadata?: Record<string, unknown>;
     sessionId: string;
     status: string;
+    createdAt: string;
     updatedAt: string;
   }) => {
-    const { agentId, messages, metadata, sessionId, status, updatedAt } = params;
+    const { agentId, messages, metadata, sessionId, status, createdAt, updatedAt } = params;
     return {
       ...(agentId ? { agentId } : {}),
       messageCount: messages.length,
+      createdAt,
       metadata,
       sessionId,
       status,
@@ -54,6 +56,7 @@ type TestSession = {
     timestamp: string;
   }>;
   metadata: Record<string, unknown>;
+  createdAt: Date;
   updatedAt: Date;
 };
 
@@ -89,6 +92,7 @@ class TestSessionManager {
       key,
       messages: [],
       metadata: {},
+      createdAt: new Date("2026-05-12T00:00:00.000Z"),
       updatedAt: new Date("2026-05-12T00:00:00.000Z"),
     };
     this.sessions.set(key, session);
@@ -117,7 +121,7 @@ class TestSessionManager {
   listSessions = () =>
     [...this.sessions.values()].map((session) => ({
       key: session.key,
-      created_at: "2026-05-12T00:00:00.000Z",
+      created_at: session.createdAt.toISOString(),
       updated_at: session.updatedAt.toISOString(),
       path: session.key,
       ...(session.agentId ? { agentId: session.agentId } : {}),
@@ -177,13 +181,16 @@ describe("NcpSessionApiService", () => {
   it("builds the limited session list from metadata without loading full records", async () => {
     const fixture = createServiceFixture();
     const oldSession = fixture.sessionManager.getOrCreate("old-session");
+    oldSession.createdAt = new Date("2026-05-10T00:00:00.000Z");
     oldSession.updatedAt = new Date("2026-05-10T00:00:00.000Z");
     fixture.sessionManager.save(oldSession);
     const newestSession = fixture.sessionManager.getOrCreate("newest-session");
+    newestSession.createdAt = new Date("2026-05-09T00:00:00.000Z");
     newestSession.updatedAt = new Date("2026-05-12T00:00:00.000Z");
     fixture.sessionManager.addMessage(newestSession, "user", "hello");
     fixture.sessionManager.save(newestSession);
     const middleSession = fixture.sessionManager.getOrCreate("middle-session");
+    middleSession.createdAt = new Date("2026-05-11T00:00:00.000Z");
     middleSession.updatedAt = new Date("2026-05-11T00:00:00.000Z");
     fixture.sessionManager.save(middleSession);
 
@@ -193,6 +200,29 @@ describe("NcpSessionApiService", () => {
     expect(summaries[0]?.sessionId).toBe("newest-session");
     expect(summaries[0]?.messageCount).toBe(1);
     expect(fixture.sessionManager.loadedSessionKeys).toEqual([]);
+    fixture.ncpSessionApi.dispose();
+  });
+
+  it("keeps metadata-only session updates out of the list ordering clock", async () => {
+    const fixture = createServiceFixture();
+    const firstSession = fixture.sessionManager.getOrCreate("first-session");
+    firstSession.createdAt = new Date("2026-05-12T10:00:00.000Z");
+    firstSession.updatedAt = new Date("2026-05-12T10:00:00.000Z");
+    fixture.sessionManager.save(firstSession);
+    const secondSession = fixture.sessionManager.getOrCreate("second-session");
+    secondSession.createdAt = new Date("2026-05-12T09:00:00.000Z");
+    secondSession.updatedAt = new Date("2026-05-12T09:00:00.000Z");
+    fixture.sessionManager.save(secondSession);
+
+    await fixture.ncpSessionApi.updateSession("second-session", {
+      metadata: { ui_last_read_at: "2026-05-12T09:00:00.000Z" },
+    });
+    const summaries = await fixture.ncpSessionApi.listSessions();
+
+    expect(summaries.map((summary) => summary.sessionId)).toEqual(["first-session", "second-session"]);
+    expect(summaries[1]?.metadata).toEqual({
+      ui_last_read_at: "2026-05-12T09:00:00.000Z",
+    });
     fixture.ncpSessionApi.dispose();
   });
 

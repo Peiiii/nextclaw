@@ -37,6 +37,10 @@ export function readMessages(
   return messages;
 }
 
+export function readSessionActivityAt(summary: NcpSessionSummary): string {
+  return summary.lastMessageAt ?? summary.createdAt ?? summary.updatedAt;
+}
+
 export function toSessionSummary(
   session: AgentSessionRecord,
   liveSession: LiveSessionState | null,
@@ -56,6 +60,7 @@ export function toSessionSummary(
     sessionId: session.sessionId,
     ...(readOptionalAgentId(session.agentId) ? { agentId: readOptionalAgentId(session.agentId) } : {}),
     messageCount: session.messages.length,
+    ...(session.createdAt ? { createdAt: session.createdAt } : {}),
     updatedAt: session.updatedAt,
     ...(session.messages.length > 0
       ? {
@@ -86,6 +91,7 @@ export function toLiveSessionSummary(session: LiveSessionState): NcpSessionSumma
     sessionId: session.sessionId,
     ...(readOptionalAgentId(session.agentId) ? { agentId: readOptionalAgentId(session.agentId) } : {}),
     messageCount: messages.length,
+    createdAt: session.createdAt,
     updatedAt,
     ...(messages.length > 0
       ? {

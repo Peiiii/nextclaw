@@ -40,12 +40,12 @@ type DateGroup = {
   items: NcpSessionListItemView[];
 };
 
-function getSessionUpdatedAtTimestamp(item: NcpSessionListItemView): number {
-  return new Date(item.session.updatedAt).getTime();
+function getSessionActivityAtTimestamp(item: NcpSessionListItemView): number {
+  return new Date(item.session.lastMessageAt ?? item.session.createdAt).getTime();
 }
 
-function sortSessionItemsByUpdatedAtDesc(items: NcpSessionListItemView[]): NcpSessionListItemView[] {
-  return [...items].sort((left, right) => getSessionUpdatedAtTimestamp(right) - getSessionUpdatedAtTimestamp(left));
+function sortSessionItemsByActivityAtDesc(items: NcpSessionListItemView[]): NcpSessionListItemView[] {
+  return [...items].sort((left, right) => getSessionActivityAtTimestamp(right) - getSessionActivityAtTimestamp(left));
 }
 
 function groupSessionsByDate(items: NcpSessionListItemView[]): DateGroup[] {
@@ -60,8 +60,7 @@ function groupSessionsByDate(items: NcpSessionListItemView[]): DateGroup[] {
   const older: NcpSessionListItemView[] = [];
 
   for (const item of items) {
-    const { session } = item;
-    const ts = new Date(session.updatedAt).getTime();
+    const ts = getSessionActivityAtTimestamp(item);
     if (ts >= todayStart) {
       today.push(item);
     } else if (ts >= yesterdayStart) {
@@ -90,7 +89,7 @@ function groupSessionsByProject(items: NcpSessionListItemView[]): ChatSidebarPro
       continue;
     }
     const existingGroup = grouped.get(projectRoot);
-    const updatedAt = getSessionUpdatedAtTimestamp(item);
+    const updatedAt = getSessionActivityAtTimestamp(item);
     if (existingGroup) {
       existingGroup.items.push(item);
       existingGroup.latestUpdatedAt = Math.max(existingGroup.latestUpdatedAt, updatedAt);
@@ -107,9 +106,26 @@ function groupSessionsByProject(items: NcpSessionListItemView[]): ChatSidebarPro
   return [...grouped.values()]
     .map((group) => ({
       ...group,
-      items: sortSessionItemsByUpdatedAtDesc(group.items)
+      items: sortSessionItemsByActivityAtDesc(group.items)
     }))
     .sort((left, right) => right.latestUpdatedAt - left.latestUpdatedAt);
+}
+
+function groupChildSessionsByParentKey(items: NcpSessionListItemView[]): Map<string, NcpSessionListItemView[]> {
+  const grouped = new Map<string, NcpSessionListItemView[]>();
+  for (const item of items) {
+    const parentSessionKey = item.session.parentSessionId?.trim();
+    if (!parentSessionKey) {
+      continue;
+    }
+    const bucket = grouped.get(parentSessionKey) ?? [];
+    bucket.push(item);
+    grouped.set(parentSessionKey, bucket);
+  }
+  for (const bucket of grouped.values()) {
+    bucket.sort((left, right) => getSessionActivityAtTimestamp(right) - getSessionActivityAtTimestamp(left));
+  }
+  return grouped;
 }
 
 function sessionTitle(session: SessionEntryView): string {
@@ -183,23 +199,8 @@ export function ChatSidebar({
     () => new Map((agentsQuery.data?.agents ?? []).map((agent) => [agent.id, agent])),
     [agentsQuery.data?.agents]
   );
-  const sortedItems = useMemo(() => sortSessionItemsByUpdatedAtDesc(items), [items]);
-  const childSessionsByParentKey = useMemo(() => {
-    const grouped = new Map<string, NcpSessionListItemView[]>();
-    for (const item of items) {
-      const parentSessionKey = item.session.parentSessionId?.trim();
-      if (!parentSessionKey) {
-        continue;
-      }
-      const bucket = grouped.get(parentSessionKey) ?? [];
-      bucket.push(item);
-      grouped.set(parentSessionKey, bucket);
-    }
-    for (const bucket of grouped.values()) {
-      bucket.sort((left, right) => getSessionUpdatedAtTimestamp(right) - getSessionUpdatedAtTimestamp(left));
-    }
-    return grouped;
-  }, [items]);
+  const sortedItems = useMemo(() => sortSessionItemsByActivityAtDesc(items), [items]);
+  const childSessionsByParentKey = useMemo(() => groupChildSessionsByParentKey(items), [items]);
   const groups = useMemo(() => groupSessionsByDate(sortedItems), [sortedItems]);
   const projectGroups = useMemo(() => groupSessionsByProject(sortedItems), [sortedItems]);
   const defaultSessionType = inputSnapshot.defaultSessionType || 'native';
