@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.1.4
+
+### Patch Changes
+
+- Fix Codex and Claude Code NARP stdio streaming for OpenAI-compatible providers by forwarding upstream SSE in real time, preserving visible NCP text deltas, splitting MiniMax reasoning, and republishing the launcher dependency closure.
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.29
+
 ## 0.1.3
 
 ### Patch Changes
@@ -7,6 +15,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -76,6 +85,7 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime

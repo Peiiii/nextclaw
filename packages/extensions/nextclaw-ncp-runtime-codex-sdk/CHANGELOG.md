@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.26
+
+### Patch Changes
+
+- Fix Codex and Claude Code NARP stdio streaming for OpenAI-compatible providers by forwarding upstream SSE in real time, preserving visible NCP text deltas, splitting MiniMax reasoning, and republishing the launcher dependency closure.
+
 ## 0.1.25
 
 ### Patch Changes
@@ -7,6 +13,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -68,6 +75,7 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -129,6 +137,7 @@
 - a11f4fd: Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -165,6 +174,7 @@
 - 2418020: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -213,6 +223,7 @@
 - a5da9d6: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -261,6 +272,7 @@
 - 1600643: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -309,6 +321,7 @@
 - 223037c: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -368,6 +381,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -423,6 +437,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -478,6 +493,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -533,6 +549,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -588,6 +605,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -635,6 +653,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -684,6 +703,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -732,6 +752,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -787,6 +808,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -833,6 +855,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -869,6 +892,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-weixin
   - @nextclaw/core

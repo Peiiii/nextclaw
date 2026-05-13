@@ -1,18 +1,21 @@
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { callOpenAiCompatibleUpstream } from "./codex-openai-responses-bridge-request.utils.js";
+import {
+  buildOpenAiCompatibleUpstreamRequest,
+  callOpenAiCompatibleUpstream,
+} from "./codex-openai-responses-bridge-request.utils.js";
 import {
   buildBridgeResponsePayload,
-  writeResponsesStream,
   writeStreamError,
 } from "./codex-openai-responses-bridge-stream.utils.js";
+import { writeResponsesUpstreamStream } from "./codex-openai-responses-stream-writer.utils.js";
 import {
   readBoolean,
   readRecord,
   type BridgeEntry,
   type CodexOpenAiResponsesBridgeConfig,
   type CodexOpenAiResponsesBridgeResult,
-} from "./codex-openai-responses-bridge-shared.utils.js";
+} from "@codex-plugin-sdk/codex-openai-responses-bridge-shared.utils.js";
 
 const bridgeCache = new Map<string, BridgeEntry>();
 
@@ -48,64 +51,95 @@ async function handleResponsesRequest(
   response: ServerResponse,
   config: CodexOpenAiResponsesBridgeConfig,
 ): Promise<void> {
-  const body = await readJsonBody(request);
-  if (!body) {
-    response.statusCode = 400;
-    response.setHeader("content-type", "application/json");
-    response.end(
-      JSON.stringify({
-        error: {
-          message: "Invalid JSON payload.",
-        },
-      }),
-    );
-    return;
+  await new CodexResponsesBridgeRequestHandler(request, response, config).handle();
+}
+
+class JsonResponseWriter {
+  constructor(private readonly response: ServerResponse) {}
+
+  write = (statusCode: number, body: Record<string, unknown>): void => {
+    this.response.statusCode = statusCode;
+    this.response.setHeader("content-type", "application/json");
+    this.response.end(JSON.stringify(body));
+  };
+}
+
+class CodexResponsesBridgeRequestHandler {
+  private readonly jsonWriter: JsonResponseWriter;
+
+  constructor(
+    private readonly request: IncomingMessage,
+    private readonly response: ServerResponse,
+    private readonly config: CodexOpenAiResponsesBridgeConfig,
+  ) {
+    this.jsonWriter = new JsonResponseWriter(response);
   }
 
-  try {
+  handle = async (): Promise<void> => {
+    const body = await readJsonBody(this.request);
+    if (!body) {
+      this.writeErrorJson(400, "Invalid JSON payload.");
+      return;
+    }
+
+    try {
+      if (readBoolean(body.stream) !== false) {
+        await this.writeStreamingResponse(body);
+        return;
+      }
+      await this.writeJsonResponse(body);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Codex OpenAI bridge request failed.";
+      if (readBoolean(body.stream) !== false) {
+        writeStreamError(this.response, message);
+        return;
+      }
+      this.writeErrorJson(400, message);
+    }
+  };
+
+  private writeStreamingResponse = async (body: Record<string, unknown>): Promise<void> => {
+    const responseId = randomUUID();
+    const upstream = buildOpenAiCompatibleUpstreamRequest({
+      config: this.config,
+      body,
+      stream: true,
+    });
+    const upstreamResponse = await fetch(upstream.request.url, upstream.request.init);
+    if (!upstreamResponse.ok) {
+      throw new Error((await upstreamResponse.text()).slice(0, 240));
+    }
+    await writeResponsesUpstreamStream({
+      response: this.response,
+      responseId,
+      model: upstream.model,
+      upstreamResponse,
+    });
+  };
+
+  private writeJsonResponse = async (body: Record<string, unknown>): Promise<void> => {
+    const responseId = randomUUID();
     const upstream = await callOpenAiCompatibleUpstream({
-      config,
+      config: this.config,
       body,
     });
-    const responseId = randomUUID();
-    const { outputItems, responseResource } = buildBridgeResponsePayload({
+    const { responseResource } = buildBridgeResponsePayload({
       responseId,
       model: upstream.model,
       response: upstream.response,
     });
-    const wantsStream = readBoolean(body.stream) !== false;
 
-    if (wantsStream) {
-      writeResponsesStream({
-        response,
-        responseId,
-        model: upstream.model,
-        outputItems,
-        responseResource,
-      });
-      return;
-    }
+    this.jsonWriter.write(200, responseResource);
+  };
 
-    response.statusCode = 200;
-    response.setHeader("content-type", "application/json");
-    response.end(JSON.stringify(responseResource));
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Codex OpenAI bridge request failed.";
-    if (readBoolean(body.stream) !== false) {
-      writeStreamError(response, message);
-      return;
-    }
-    response.statusCode = 400;
-    response.setHeader("content-type", "application/json");
-    response.end(
-      JSON.stringify({
-        error: {
-          message,
-        },
-      }),
-    );
-  }
+  private writeErrorJson = (statusCode: number, message: string): void => {
+    this.jsonWriter.write(statusCode, {
+      error: {
+        message,
+      },
+    });
+  };
 }
 
 async function createCodexOpenAiResponsesBridge(
@@ -123,15 +157,11 @@ async function createCodexOpenAiResponsesBridge(
       return;
     }
 
-    response.statusCode = 404;
-    response.setHeader("content-type", "application/json");
-    response.end(
-      JSON.stringify({
-        error: {
-          message: `Unsupported Codex bridge path: ${pathname}`,
-        },
-      }),
-    );
+    new JsonResponseWriter(response).write(404, {
+      error: {
+        message: `Unsupported Codex bridge path: ${pathname}`,
+      },
+    });
   });
 
   await new Promise<void>((resolve, reject) => {

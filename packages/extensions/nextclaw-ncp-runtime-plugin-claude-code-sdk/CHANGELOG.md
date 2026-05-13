@@ -1,5 +1,12 @@
 # @nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk
 
+## 0.1.60
+
+### Patch Changes
+
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.29
+
 ## 0.1.59
 
 ### Patch Changes
@@ -7,6 +14,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -71,6 +79,7 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -135,6 +144,7 @@
 - a11f4fd: Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -171,6 +181,7 @@
 - 2418020: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -219,6 +230,7 @@
 - a5da9d6: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -267,6 +279,7 @@
 - 1600643: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -315,6 +328,7 @@
 - 223037c: Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -378,6 +392,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -436,6 +451,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -494,6 +510,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -552,6 +569,7 @@
 - Auto-generated full public beta release batch.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -610,6 +628,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/app-runtime
   - @nextclaw/app-sdk
@@ -671,6 +690,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -723,6 +743,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -774,6 +795,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -832,6 +854,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -867,6 +890,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -916,6 +940,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -966,6 +991,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/channel-plugin-dingtalk
@@ -1006,6 +1032,7 @@
 - Auto-generated patch release for packages with meaningful drift after their latest version commit.
 
   Packages:
+
   - @nextclaw/agent-chat
   - @nextclaw/channel-plugin-dingtalk
   - @nextclaw/channel-plugin-discord
@@ -1182,6 +1209,7 @@
 ### Patch Changes
 
 - Release the current cross-channel routing fixes as one aligned patch batch.
+
   - expose built-in skill descriptions so the agent can discover `cross-channel-messaging` at the right time
   - let `sessions_list` filter by resolved route fields such as `channel`, `to`, `accountId`, and `sessionKey`
   - fail fast when `message` tries to send to another channel without an explicit target, preventing false-success Feishu sends

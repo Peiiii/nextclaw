@@ -1,5 +1,5 @@
 import { type NcpEndpointEvent } from "@nextclaw/ncp";
-import type { ClaudeCodeMessage } from "./claude-code-sdk-types.js";
+import type { ClaudeCodeMessage } from "@claude-code-sdk/claude-code-sdk-types.js";
 import {
   emitTextDelta,
   emitToolCallArgs,
@@ -11,7 +11,7 @@ import {
   readString,
   stringifyToolArgs,
   type ClaudeSdkEventMapperState,
-} from "./claude-sdk-event-mapper-shared.js";
+} from "./claude-sdk-event-mapper-shared.utils.js";
 
 type ClaudeToolCallSnapshot = {
   id: string;

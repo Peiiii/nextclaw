@@ -1,18 +1,18 @@
 import { type NcpEndpointEvent } from "@nextclaw/ncp";
-import type { ClaudeCodeMessage } from "./claude-code-sdk-types.js";
+import type { ClaudeCodeMessage } from "@claude-code-sdk/claude-code-sdk-types.js";
 import {
   createClaudeSdkEventMapperState,
   type ClaudeSdkEventMapperState,
-} from "./claude-sdk-event-mapper-shared.js";
+} from "./claude-sdk-event-mapper-shared.utils.js";
 import {
   mapClaudeAssistantSnapshotMessage,
   mapClaudeToolProgressMessage,
   mapClaudeUserToolResultMessage,
-} from "./claude-sdk-event-mapper-snapshots.js";
+} from "./claude-sdk-event-mapper-snapshots.utils.js";
 import {
   flushClaudeSdkMessageEventState,
   mapClaudeStreamEventMessage,
-} from "./claude-sdk-event-mapper-stream.js";
+} from "./claude-sdk-event-mapper-stream.utils.js";
 
 export { createClaudeSdkEventMapperState, flushClaudeSdkMessageEventState };
 export type { ClaudeSdkEventMapperState };

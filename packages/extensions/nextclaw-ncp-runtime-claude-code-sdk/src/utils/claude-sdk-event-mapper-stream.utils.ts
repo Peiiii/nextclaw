@@ -1,5 +1,5 @@
 import { type NcpEndpointEvent, NcpEventType } from "@nextclaw/ncp";
-import type { ClaudeCodeMessage } from "./claude-code-sdk-types.js";
+import type { ClaudeCodeMessage } from "@claude-code-sdk/claude-code-sdk-types.js";
 import {
   emitTextDelta,
   emitTextEnd,
@@ -14,7 +14,7 @@ import {
   readThinkingText,
   stringifyToolArgs,
   type ClaudeSdkEventMapperState,
-} from "./claude-sdk-event-mapper-shared.js";
+} from "./claude-sdk-event-mapper-shared.utils.js";
 
 function emitReasoningStart(sessionId: string, messageId: string): NcpEndpointEvent {
   return {

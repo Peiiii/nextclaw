@@ -6,6 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@codex-narp/*": ["src/*"],
+      "@codex-plugin-sdk/*": ["../nextclaw-ncp-runtime-plugin-codex-sdk/src/*"],
       "@narp-stdio-wrapper/*": ["../../nextclaw-narp-stdio-runtime-wrapper/src/*"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": ["../../nextclaw-narp-stdio-runtime-wrapper/src/index.ts"],

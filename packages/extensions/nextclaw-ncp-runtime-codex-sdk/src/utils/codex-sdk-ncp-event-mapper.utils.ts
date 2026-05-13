@@ -17,6 +17,8 @@ export type ToolSnapshot = {
   ended: boolean;
 };
 
+const TEXT_DELTA_CHUNK_SIZE = 32;
+
 function buildToolDescriptor(item: ToolLikeItem): { toolName: string; args: unknown } {
   switch (item.type) {
     case "mcp_tool_call":
@@ -110,6 +112,54 @@ function isToolLikeItem(item: ThreadItem): item is ToolLikeItem {
   );
 }
 
+function splitTextDelta(delta: string): string[] {
+  if (delta.length <= TEXT_DELTA_CHUNK_SIZE) {
+    return delta ? [delta] : [];
+  }
+  const chunks: string[] = [];
+  for (let index = 0; index < delta.length; index += TEXT_DELTA_CHUNK_SIZE) {
+    chunks.push(delta.slice(index, index + TEXT_DELTA_CHUNK_SIZE));
+  }
+  return chunks;
+}
+
+function* mapTextSnapshotDelta(params: {
+  currentText: string;
+  deltaType: typeof NcpEventType.MessageTextDelta | typeof NcpEventType.MessageReasoningDelta;
+  endType: typeof NcpEventType.MessageTextEnd | typeof NcpEventType.MessageReasoningEnd;
+  eventType: "item.started" | "item.updated" | "item.completed";
+  itemId: string;
+  itemTextById: Map<string, ItemTextSnapshot>;
+  messageId: string;
+  sessionId: string;
+  startType: typeof NcpEventType.MessageTextStart | typeof NcpEventType.MessageReasoningStart;
+}): Generator<NcpEndpointEvent> {
+  const { currentText, itemId, itemTextById, messageId, sessionId } = params;
+  const previous = itemTextById.get(itemId) ?? { text: "", started: false };
+  if (!previous.started) {
+    yield {
+      type: params.startType,
+      payload: { sessionId, messageId },
+    };
+  }
+  if (currentText.length > previous.text.length) {
+    const delta = currentText.slice(previous.text.length);
+    for (const chunk of splitTextDelta(delta)) {
+      yield {
+        type: params.deltaType,
+        payload: { sessionId, messageId, delta: chunk },
+      };
+    }
+  }
+  itemTextById.set(itemId, { text: currentText, started: true });
+  if (params.eventType === "item.completed") {
+    yield {
+      type: params.endType,
+      payload: { sessionId, messageId },
+    };
+  }
+}
+
 export async function* mapCodexItemEvent(params: {
   sessionId: string;
   messageId: string;
@@ -121,80 +171,32 @@ export async function* mapCodexItemEvent(params: {
   const { item } = event;
 
   if (item.type === "agent_message") {
-    const currentText = item.text ?? "";
-    const previous = itemTextById.get(item.id) ?? { text: "", started: false };
-    if (!previous.started) {
-      yield {
-        type: NcpEventType.MessageTextStart,
-        payload: {
-          sessionId,
-          messageId,
-        },
-      };
-    }
-    if (currentText.length > previous.text.length) {
-      const delta = currentText.slice(previous.text.length);
-      yield {
-        type: NcpEventType.MessageTextDelta,
-        payload: {
-          sessionId,
-          messageId,
-          delta,
-        },
-      };
-    }
-    itemTextById.set(item.id, {
-      text: currentText,
-      started: true,
+    yield* mapTextSnapshotDelta({
+      currentText: item.text ?? "",
+      deltaType: NcpEventType.MessageTextDelta,
+      endType: NcpEventType.MessageTextEnd,
+      eventType: event.type,
+      itemId: item.id,
+      itemTextById,
+      messageId,
+      sessionId,
+      startType: NcpEventType.MessageTextStart,
     });
-    if (event.type === "item.completed") {
-      yield {
-        type: NcpEventType.MessageTextEnd,
-        payload: {
-          sessionId,
-          messageId,
-        },
-      };
-    }
     return;
   }
 
   if (item.type === "reasoning") {
-    const currentText = item.text ?? "";
-    const previous = itemTextById.get(item.id) ?? { text: "", started: false };
-    if (!previous.started) {
-      yield {
-        type: NcpEventType.MessageReasoningStart,
-        payload: {
-          sessionId,
-          messageId,
-        },
-      };
-    }
-    if (currentText.length > previous.text.length) {
-      const delta = currentText.slice(previous.text.length);
-      yield {
-        type: NcpEventType.MessageReasoningDelta,
-        payload: {
-          sessionId,
-          messageId,
-          delta,
-        },
-      };
-    }
-    itemTextById.set(item.id, {
-      text: currentText,
-      started: true,
+    yield* mapTextSnapshotDelta({
+      currentText: item.text ?? "",
+      deltaType: NcpEventType.MessageReasoningDelta,
+      endType: NcpEventType.MessageReasoningEnd,
+      eventType: event.type,
+      itemId: item.id,
+      itemTextById,
+      messageId,
+      sessionId,
+      startType: NcpEventType.MessageReasoningStart,
     });
-    if (event.type === "item.completed") {
-      yield {
-        type: NcpEventType.MessageReasoningEnd,
-        payload: {
-          sessionId,
-          messageId,
-        },
-      };
-    }
     return;
   }
 

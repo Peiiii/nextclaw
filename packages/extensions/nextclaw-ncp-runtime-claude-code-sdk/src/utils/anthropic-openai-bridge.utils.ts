@@ -5,14 +5,14 @@ import {
   type OpenAiChatCompletionsResponse,
   buildAnthropicError,
   buildAnthropicMessageResponse,
-  readNumber,
   readRecord,
   readString,
-  toOpenAiMessages,
-  toOpenAiTools,
-  withTrailingSlash,
 } from "./anthropic-openai-bridge-payload.utils.js";
-import { writeAnthropicMessageStream } from "./anthropic-openai-bridge-stream.utils.js";
+import {
+  writeAnthropicOpenAiUpstreamStream,
+  writeAnthropicStreamError,
+} from "./anthropic-openai-bridge-stream.utils.js";
+import { buildOpenAiCompatibleUpstreamRequest } from "./anthropic-openai-upstream-request.utils.js";
 
 type AnthropicBridgeResult = {
   baseUrl: string;
@@ -53,26 +53,12 @@ async function callOpenAiCompatibleUpstream(params: {
   config: ClaudeCodeSdkAnthropicGatewayConfig;
   body: AnthropicMessagesRequest;
 }): Promise<OpenAiChatCompletionsResponse> {
-  const { body, config } = params;
-  const upstreamUrl = new URL("chat/completions", withTrailingSlash(config.upstreamApiBase));
-  const tools = toOpenAiTools(body.tools);
-  const response = await fetch(upstreamUrl.toString(), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(readString(config.upstreamApiKey)
-        ? {
-            Authorization: `Bearer ${config.upstreamApiKey!.trim()}`,
-          }
-        : {}),
-    },
-    body: JSON.stringify({
-      model: readString(body.model) ?? "default",
-      messages: toOpenAiMessages(body),
-      ...(tools ? { tools, tool_choice: "auto" } : {}),
-      max_tokens: Math.max(16, Math.trunc(readNumber(body.max_tokens) ?? 1024)),
-    }),
+  const { request } = buildOpenAiCompatibleUpstreamRequest({
+    body: params.body,
+    config: params.config,
+    stream: false,
   });
+  const response = await fetch(request.url, request.init);
 
   const rawText = await response.text();
   let parsed: OpenAiChatCompletionsResponse;
@@ -107,6 +93,24 @@ async function handleMessagesRequest(
   }
 
   try {
+    if (body.stream === true) {
+      const { request } = buildOpenAiCompatibleUpstreamRequest({
+        config,
+        body,
+        stream: true,
+      });
+      const upstreamResponse = await fetch(request.url, request.init);
+      if (!upstreamResponse.ok) {
+        throw new Error((await upstreamResponse.text()).slice(0, 240));
+      }
+      await writeAnthropicOpenAiUpstreamStream({
+        response,
+        requestModel: readString(body.model) ?? "default",
+        upstreamResponse,
+      });
+      return;
+    }
+
     const anthropicMessage = buildAnthropicMessageResponse({
       requestModel: readString(body.model) ?? "default",
       openAiResponse: await callOpenAiCompatibleUpstream({
@@ -115,20 +119,16 @@ async function handleMessagesRequest(
       }),
     });
 
-    if (body.stream === true) {
-      response.writeHead(200, {
-        "cache-control": "no-cache, no-transform",
-        "connection": "keep-alive",
-        "content-type": "text/event-stream; charset=utf-8",
-      });
-      writeAnthropicMessageStream(response, anthropicMessage);
-      response.end();
-      return;
-    }
-
     response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify(anthropicMessage));
   } catch (error) {
+    if (body.stream === true) {
+      writeAnthropicStreamError(
+        response,
+        error instanceof Error ? error.message : "Gateway request failed.",
+      );
+      return;
+    }
     response.writeHead(400, { "content-type": "application/json" });
     response.end(
       JSON.stringify(buildAnthropicError(error instanceof Error ? error.message : "Gateway request failed.")),

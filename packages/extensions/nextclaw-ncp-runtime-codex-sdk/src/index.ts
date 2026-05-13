@@ -13,10 +13,9 @@ import {
   type ItemTextSnapshot,
   mapCodexItemEvent,
   type ToolSnapshot,
-} from "./codex-sdk-ncp-event-mapper.js";
+} from "./utils/codex-sdk-ncp-event-mapper.utils.js";
 import { buildCodexCliEnv } from "./codex-cli-env.js";
 import {
-  buildCodexInputBuilder,
   buildCodexTurnInputFromRunInput,
   type CodexAssetContentPathResolver,
   type CodexThreadInput,

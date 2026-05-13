@@ -19,7 +19,7 @@ import {
   mapAccessModeToSandboxMode,
   resolveCodexAccessMode,
 } from "./codex-access-mode.js";
-import { ensureCodexOpenAiResponsesBridge } from "./codex-openai-responses-bridge.utils.js";
+import { ensureCodexOpenAiResponsesBridge } from "@codex-plugin-sdk/utils/codex-openai-responses-bridge.utils.js";
 import { resolveCodexResponsesApiSupport } from "./codex-responses-capability.utils.js";
 import { createDescribeCodexSessionType } from "./codex-session-type.js";
 import type {
@@ -29,7 +29,7 @@ import type {
 } from "./codex-runtime-plugin-types.js";
 
 export { buildCodexBridgeModelProviderId } from "./codex-model-provider.js";
-export { ensureCodexOpenAiResponsesBridge } from "./codex-openai-responses-bridge.utils.js";
+export { ensureCodexOpenAiResponsesBridge } from "@codex-plugin-sdk/utils/codex-openai-responses-bridge.utils.js";
 export type {
   CodexOpenAiResponsesBridgeConfig,
   CodexOpenAiResponsesBridgeResult,

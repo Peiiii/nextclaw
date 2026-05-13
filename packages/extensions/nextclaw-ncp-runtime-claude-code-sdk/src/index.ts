@@ -18,7 +18,7 @@ import {
   flushClaudeSdkMessageEventState,
   mapClaudeMessageEvent,
   type ClaudeSdkEventMapperState,
-} from "./claude-sdk-ncp-event-mapper.js";
+} from "@claude-code-sdk/utils/claude-sdk-ncp-event-mapper.utils.js";
 import {
   createId,
   extractFailureMessage,
