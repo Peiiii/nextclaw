@@ -49,11 +49,13 @@ User-visible or runnable behavior:
 
 - run a smoke test close to the real workflow,
 - use a non-repo isolated location for smoke data when possible.
+- If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
 
 Bugfix or abnormal behavior fix:
 
 - define the observable success condition before closing,
 - verify with the most realistic available path.
+- When the real path fails, treat that failure as the current reproduction result and continue fixing the chain until the same path passes or a concrete external blocker is identified.
 
 ## Maintainability Closure
 

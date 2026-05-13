@@ -7,10 +7,10 @@ import type {
   MarketplaceSkillInstallResult,
   MarketplaceSkillManageRequest,
   MarketplaceSkillManageResult
-} from "@/shared/types/server-api.types.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
-import { emitConfigUpdated } from "@/shared/utils/app-events.utils.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+import { emitConfigUpdated } from "@nextclaw-server/shared/utils/app-events.utils.js";
 import {
   fetchAllSkillMarketplaceItems,
   fetchMarketplaceData,
@@ -18,13 +18,13 @@ import {
   sanitizeMarketplaceItemView,
   sanitizeMarketplaceListItems,
   toPositiveInt
-} from "@/features/marketplace/utils/marketplace-catalog.utils.js";
+} from "@nextclaw-server/features/marketplace/utils/marketplace-catalog.utils.js";
 import {
   collectKnownSkillNames,
   collectSkillMarketplaceInstalledView,
   findUnsupportedSkillInstallKind,
   isSupportedMarketplaceSkillItem
-} from "@/features/marketplace/utils/marketplace-installed.utils.js";
+} from "@nextclaw-server/features/marketplace/utils/marketplace-installed.utils.js";
 
 async function installMarketplaceSkill(params: {
   options: UiRouterOptions;

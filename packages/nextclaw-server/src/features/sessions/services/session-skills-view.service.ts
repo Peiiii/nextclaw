@@ -1,9 +1,9 @@
 import * as NextclawCore from "@nextclaw/core";
-import type { NcpSessionSkillsView, SessionSkillEntryView } from "@/shared/types/server-api.types.js";
-import { loadConfigOrDefault } from "@/features/config/index.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
-import { readNonEmptyString } from "@/shared/utils/http-response.utils.js";
-import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@/features/marketplace/index.js";
+import type { NcpSessionSkillsView, SessionSkillEntryView } from "@nextclaw-server/shared/types/server-api.types.js";
+import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+import { readNonEmptyString } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@nextclaw-server/features/marketplace/index.js";
 
 type SkillInfo = NextclawCore.SkillInfo;
 type SkillsLoaderInstance = InstanceType<typeof NextclawCore.SkillsLoader>;

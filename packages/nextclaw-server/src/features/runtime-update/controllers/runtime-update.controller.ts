@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import type { UpdatePreferences, UpdateSnapshot } from "@nextclaw/shared";
-import { err, formatUserFacingError, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import type { UiRuntimeUpdateHost } from "@/app/types/router-options.types.js";
+import { err, formatUserFacingError, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRuntimeUpdateHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 type RuntimeUpdatePreferencesRequest = Partial<UpdatePreferences>;
 type RuntimeUpdateChannelRequest = {

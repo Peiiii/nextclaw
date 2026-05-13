@@ -1,1 +1,1 @@
-export * from "@/features/remote-access/controllers/remote.controller.js";
+export * from "@nextclaw-server/features/remote-access/controllers/remote.controller.js";

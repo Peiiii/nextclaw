@@ -1,5 +1,5 @@
 import type { NcpAgentRunOptions } from "@nextclaw/ncp";
-import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@/claude-code-sdk-types.js";
+import type { ClaudeCodeQueryOptions, ClaudeCodeSdkNcpAgentRuntimeConfig } from "@claude-code-sdk/claude-code-sdk-types.js";
 import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 
 export type ClaudePreparedGatewayAccess = {

@@ -1,5 +1,5 @@
 import { parseThinkingLevel } from "@nextclaw/core";
-import type { SessionPatchUpdate } from "@/shared/types/server-api.types.js";
+import type { SessionPatchUpdate } from "@nextclaw-server/shared/types/server-api.types.js";
 
 export function applySessionPreferencePatch(params: {
   metadata: Record<string, unknown>;

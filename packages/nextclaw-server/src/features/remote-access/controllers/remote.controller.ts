@@ -6,9 +6,9 @@ import type {
   RemoteLoginRequest,
   RemoteServiceAction,
   RemoteSettingsUpdateRequest
-} from "@/shared/types/server-api.types.js";
-import { err, formatUserFacingError, ok, readJson, readNonEmptyString } from "@/shared/utils/http-response.utils.js";
-import type { UiRemoteAccessHost } from "@/app/types/router-options.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, formatUserFacingError, ok, readJson, readNonEmptyString } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRemoteAccessHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 const REMOTE_SERVICE_ACTIONS = new Set<RemoteServiceAction>(["start", "restart", "stop"]);
 

@@ -5,8 +5,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@/types/*": ["src/types/*", "../../nextclaw-narp-stdio-runtime-wrapper/src/types/*"],
-      "@/*": ["src/*"],
+      "@codex-narp/*": ["src/*"],
+      "@narp-stdio-wrapper/*": ["../../nextclaw-narp-stdio-runtime-wrapper/src/*"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": ["../../nextclaw-narp-stdio-runtime-wrapper/src/index.ts"],
       "@nextclaw/nextclaw-ncp-runtime-codex-sdk": ["../nextclaw-ncp-runtime-codex-sdk/src/index.ts"],

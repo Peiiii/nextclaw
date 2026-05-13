@@ -13,7 +13,7 @@ import type {
   SearchConfigUpdate,
   SearchProviderName,
   TavilySearchDepthValue
-} from "@/shared/types/server-api.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
 
 const MASK_MIN_LENGTH = 8;
 const BOCHA_OPEN_URL = "https://open.bocha.cn";

@@ -22,7 +22,7 @@ import {
   type ThinkingLevel
 } from "@nextclaw/core";
 import type { LlmProviderManager } from "@nextclaw/kernel";
-import { createDefaultProviderConfig } from "@/features/config/utils/default-provider-config.utils.js";
+import { createDefaultProviderConfig } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
 import {
   buildPluginChannelUiHints,
   buildProjectedChannelMeta,
@@ -31,9 +31,9 @@ import {
   mergeProjectedPluginChannelConfig,
   normalizePluginProjectionOptions,
   type PluginConfigProjectionOptions
-} from "@/features/config/utils/plugin-channel-config-projection.utils.js";
-import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "@/features/config/providers/server-builtin-provider.provider.js";
-import { buildSearchView, SEARCH_PROVIDER_META } from "@/features/config/utils/search-config.utils.js";
+} from "@nextclaw-server/features/config/utils/plugin-channel-config-projection.utils.js";
+import { findServerBuiltinProviderByName, listServerBuiltinProviders } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
+import { buildSearchView, SEARCH_PROVIDER_META } from "@nextclaw-server/features/config/utils/search-config.utils.js";
 import type {
   ConfigMetaView,
   RuntimeConfigUpdate,
@@ -45,8 +45,8 @@ import type {
   ProviderConfigView,
   SecretsConfigUpdate,
   SecretsView
-} from "@/shared/types/server-api.types.js";
-export { updateSearch } from "@/features/config/utils/search-config.utils.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+export { updateSearch } from "@nextclaw-server/features/config/utils/search-config.utils.js";
 
 const MASK_MIN_LENGTH = 8;
 const EXTRA_SENSITIVE_PATH_PATTERNS = [/authorization/i, /cookie/i, /session/i, /bearer/i];

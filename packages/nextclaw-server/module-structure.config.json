@@ -2,5 +2,6 @@
   "contractKind": "protocol",
   "protocol": "app-l2",
   "rootPolicy": "contract-only",
-  "enforcement": "error"
+  "enforcement": "error",
+  "importAliasPrefixes": ["@nextclaw-server/"]
 }

@@ -3,15 +3,15 @@ import type {
   ChatSessionTypesView,
   SessionPatchUpdate,
   UiNcpSessionListView
-} from "@/shared/types/server-api.types.js";
-import { applySessionPreferencePatch } from "@/features/sessions/utils/session-preference-patch.utils.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { applySessionPreferencePatch } from "@nextclaw-server/features/sessions/utils/session-preference-patch.utils.js";
 import {
   isSessionProjectRootValidationError,
   normalizeSessionProjectRoot,
-} from "@/features/sessions/utils/session-project-root.utils.js";
-import { SessionSkillsViewBuilder } from "@/features/sessions/services/session-skills-view.service.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+} from "@nextclaw-server/features/sessions/utils/session-project-root.utils.js";
+import { SessionSkillsViewBuilder } from "@nextclaw-server/features/sessions/services/session-skills-view.service.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 function readPositiveInt(value: string | undefined): number | undefined {
   if (typeof value !== "string") {

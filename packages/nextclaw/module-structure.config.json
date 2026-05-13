@@ -3,5 +3,5 @@
   "protocol": "cli-command-first",
   "rootPolicy": "contract-only",
   "enforcement": "error",
-  "importAliasPrefixes": ["@/"]
+  "importAliasPrefixes": ["@nextclaw-cli/"]
 }

@@ -5,7 +5,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
+      "@narp-stdio-wrapper/*": ["src/*"],
       "@nextclaw/ncp": ["../ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },

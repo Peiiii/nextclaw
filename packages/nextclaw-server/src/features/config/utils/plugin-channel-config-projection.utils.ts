@@ -1,6 +1,6 @@
 import type { Config, ConfigUiHints } from "@nextclaw/core";
 import { mergePluginConfigView, toPluginConfigView, type PluginChannelBinding, type PluginUiMetadata } from "@nextclaw/openclaw-compat";
-import type { ConfigMetaView } from "@/shared/types/server-api.types.js";
+import type { ConfigMetaView } from "@nextclaw-server/shared/types/server-api.types.js";
 
 export type PluginConfigProjectionOptions = {
   pluginChannelBindings?: PluginChannelBinding[];

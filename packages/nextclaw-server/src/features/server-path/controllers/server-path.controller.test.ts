@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, saveConfig } from "@nextclaw/core";
-import { createUiRouter } from "@/app/router.js";
+import { createUiRouter } from "@nextclaw-server/app/router.js";
 import { EventBus } from "@nextclaw/shared";
 
 const tempDirs: string[] = [];

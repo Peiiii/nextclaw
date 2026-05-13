@@ -7,7 +7,7 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/*": [
+      "@nextclaw-cli/*": [
         "./src/*"
       ]
     }

@@ -1,12 +1,12 @@
-import type { MarketplaceItemView, MarketplaceListView } from "@/shared/types/server-api.types.js";
-import { readErrorMessage } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+import type { MarketplaceItemView, MarketplaceListView } from "@nextclaw-server/shared/types/server-api.types.js";
+import { readErrorMessage } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 import {
   DEFAULT_MARKETPLACE_API_BASE,
   MARKETPLACE_REMOTE_MAX_PAGES,
   MARKETPLACE_REMOTE_PAGE_SIZE,
   MARKETPLACE_ZH_COPY_BY_SLUG
-} from "@/features/marketplace/index.js";
+} from "@nextclaw-server/features/marketplace/index.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.utils.js";
 
 export function normalizeMarketplaceBaseUrl(options: UiRouterOptions): string {

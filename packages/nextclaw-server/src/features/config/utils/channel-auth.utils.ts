@@ -5,13 +5,13 @@ import {
   type OpenClawChannelAuthStartResult,
   type PluginChannelBinding
 } from "@nextclaw/openclaw-compat";
-import { loadConfigOrDefault } from "@/features/config/index.js";
+import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
 import { getProjectedConfigView } from "./plugin-channel-config-projection.utils.js";
 import type {
   ChannelAuthPollResult,
   ChannelAuthStartRequest,
   ChannelAuthStartResult
-} from "@/shared/types/server-api.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
 
 function clonePluginConfig(value: unknown): Record<string, unknown> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

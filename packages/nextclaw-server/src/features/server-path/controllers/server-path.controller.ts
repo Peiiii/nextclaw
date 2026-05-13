@@ -1,14 +1,14 @@
 import type { Context } from "hono";
-import type { ServerPathBrowseView, ServerPathReadView } from "@/shared/types/server-api.types.js";
+import type { ServerPathBrowseView, ServerPathReadView } from "@nextclaw-server/shared/types/server-api.types.js";
 import {
   browseServerPath,
   isServerPathBrowseError,
-} from "@/features/server-path/utils/server-path-browse.utils.js";
+} from "@nextclaw-server/features/server-path/utils/server-path-browse.utils.js";
 import {
   isServerPathReadError,
   readServerPath,
-} from "@/features/server-path/utils/server-path-read.utils.js";
-import { err, ok } from "@/shared/utils/http-response.utils.js";
+} from "@nextclaw-server/features/server-path/utils/server-path-read.utils.js";
+import { err, ok } from "@nextclaw-server/shared/utils/http-response.utils.js";
 
 function readIncludeFilesFlag(value: string | undefined): boolean {
   return value === "1" || value === "true";

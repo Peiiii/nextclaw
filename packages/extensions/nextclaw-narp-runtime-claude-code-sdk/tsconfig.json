@@ -5,11 +5,9 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@/types/*": ["src/types/*", "../../nextclaw-narp-stdio-runtime-wrapper/src/types/*"],
-      "@/utils/*": ["../nextclaw-ncp-runtime-claude-code-sdk/src/utils/*"],
-      "@/claude-code-process-resolution.js": ["../nextclaw-ncp-runtime-claude-code-sdk/src/claude-code-process-resolution.ts"],
-      "@/claude-code-sdk-types.js": ["../nextclaw-ncp-runtime-claude-code-sdk/src/claude-code-sdk-types.ts"],
-      "@/*": ["src/*"],
+      "@claude-code-narp/*": ["src/*"],
+      "@claude-code-sdk/*": ["../nextclaw-ncp-runtime-claude-code-sdk/src/*"],
+      "@narp-stdio-wrapper/*": ["../../nextclaw-narp-stdio-runtime-wrapper/src/*"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": ["../../nextclaw-narp-stdio-runtime-wrapper/src/index.ts"],
       "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk": ["../nextclaw-ncp-runtime-claude-code-sdk/src/index.ts"]

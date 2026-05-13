@@ -13,7 +13,7 @@ import {
 import type {
   NarpStdioPromptMeta,
   NarpStdioRuntimeWrapperConfig,
-} from "@/types/narp-stdio-runtime-wrapper.types.js";
+} from "@narp-stdio-wrapper/types/narp-stdio-runtime-wrapper.types.js";
 
 export const NARP_STDIO_PROMPT_META_KEY = "nextclaw_narp";
 

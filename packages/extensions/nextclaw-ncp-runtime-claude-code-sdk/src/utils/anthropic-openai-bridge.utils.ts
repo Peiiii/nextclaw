@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import type { ClaudeCodeSdkAnthropicGatewayConfig } from "@/claude-code-sdk-types.js";
+import type { ClaudeCodeSdkAnthropicGatewayConfig } from "@claude-code-sdk/claude-code-sdk-types.js";
 import {
   type AnthropicMessagesRequest,
   type OpenAiChatCompletionsResponse,

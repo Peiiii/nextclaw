@@ -14,9 +14,9 @@ import {
   testProviderConnection,
   updateSecrets,
   updateRuntime
-} from "@/features/config/index.js";
-import { pollChannelAuth, startChannelAuth } from "@/features/config/utils/channel-auth.utils.js";
-import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "@/features/config/utils/provider-auth.utils.js";
+} from "@nextclaw-server/features/config/index.js";
+import { pollChannelAuth, startChannelAuth } from "@nextclaw-server/features/config/utils/channel-auth.utils.js";
+import { importProviderAuthFromCli, pollProviderAuth, startProviderAuth } from "@nextclaw-server/features/config/utils/provider-auth.utils.js";
 import type {
   ChannelAuthPollResult,
   ChannelAuthStartRequest,
@@ -34,10 +34,10 @@ import type {
   SearchConfigUpdate,
   SecretsConfigUpdate,
   RuntimeConfigUpdate
-} from "@/shared/types/server-api.types.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
-import { emitChannelConfigApplyStatus, emitConfigUpdated, emitUiError } from "@/shared/utils/app-events.utils.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+import { emitChannelConfigApplyStatus, emitConfigUpdated, emitUiError } from "@nextclaw-server/shared/utils/app-events.utils.js";
 
 export class ConfigRoutesController {
   private readonly channelConfigApplyTasks = new Map<string, Promise<void>>();

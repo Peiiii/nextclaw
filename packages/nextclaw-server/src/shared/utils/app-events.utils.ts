@@ -1,5 +1,5 @@
 import { eventKeys } from "@nextclaw/shared";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 function appEventOptions() {
   return {

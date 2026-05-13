@@ -1,7 +1,7 @@
 import type { Context } from "hono";
-import type { AppMetaView, BootstrapStatusView } from "@/shared/types/server-api.types.js";
-import { ok } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+import type { AppMetaView, BootstrapStatusView } from "@nextclaw-server/shared/types/server-api.types.js";
+import { ok } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 function buildAppMetaView(options: UiRouterOptions): AppMetaView {
   const productVersion = options.productVersion?.trim();

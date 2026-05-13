@@ -11,7 +11,7 @@ import {
   NARP_STDIO_PROMPT_META_KEY,
   NarpStdioRuntimeWrapperAgent,
 } from "./narp-stdio-runtime-wrapper.service.js";
-import type { NarpStdioRuntimeWrapperContext } from "@/types/narp-stdio-runtime-wrapper.types.js";
+import type { NarpStdioRuntimeWrapperContext } from "@narp-stdio-wrapper/types/narp-stdio-runtime-wrapper.types.js";
 
 class FakeRuntime implements NcpAgentRuntime {
   readonly inputs: NcpAgentRunInput[] = [];

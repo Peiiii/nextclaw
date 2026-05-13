@@ -1,0 +1,45 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "types": ["node"],
+    "paths": {
+      "@claude-code-narp/*": ["packages/extensions/nextclaw-narp-runtime-claude-code-sdk/src/*"],
+      "@claude-code-sdk/*": ["packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/*"],
+      "@core/*": ["packages/nextclaw-core/src/*"],
+      "@codex-narp/*": ["packages/extensions/nextclaw-narp-runtime-codex-sdk/src/*"],
+      "@kernel/*": ["packages/nextclaw-kernel/src/*"],
+      "@narp-stdio-wrapper/*": ["packages/nextclaw-narp-stdio-runtime-wrapper/src/*"],
+      "@nextclaw/channel-extension-weixin": ["packages/extensions/nextclaw-channel-extension-weixin/src/index.ts"],
+      "@nextclaw/channel-runtime": ["packages/extensions/nextclaw-channel-runtime/src/index.ts"],
+      "@nextclaw/core": ["packages/nextclaw-core/src/index.ts"],
+      "@nextclaw-cli/*": ["packages/nextclaw/src/*"],
+      "@nextclaw/kernel": ["packages/nextclaw-kernel/src/index.ts"],
+      "@nextclaw/kernel/update-contract": ["packages/nextclaw-kernel/src/types/update-contract.types.ts"],
+      "@nextclaw/mcp": ["packages/nextclaw-mcp/src/index.ts"],
+      "@nextclaw/ncp": ["packages/ncp-packages/nextclaw-ncp/src/index.ts"],
+      "@nextclaw/ncp-agent-runtime": ["packages/ncp-packages/nextclaw-ncp-agent-runtime/src/index.ts"],
+      "@nextclaw/ncp-http-agent-client": ["packages/ncp-packages/nextclaw-ncp-http-agent-client/src/index.ts"],
+      "@nextclaw/ncp-http-agent-server": ["packages/ncp-packages/nextclaw-ncp-http-agent-server/src/index.ts"],
+      "@nextclaw/ncp-mcp": ["packages/ncp-packages/nextclaw-ncp-mcp/src/index.ts"],
+      "@nextclaw/ncp-toolkit": ["packages/ncp-packages/nextclaw-ncp-toolkit/src/index.ts"],
+      "@nextclaw/nextclaw-hermes-acp-bridge": ["packages/nextclaw-hermes-acp-bridge/src/index.ts"],
+      "@nextclaw/nextclaw-narp-stdio-runtime-wrapper": ["packages/nextclaw-narp-stdio-runtime-wrapper/src/index.ts"],
+      "@nextclaw/nextclaw-ncp-runtime-claude-code-sdk": [
+        "packages/extensions/nextclaw-ncp-runtime-claude-code-sdk/src/index.ts"
+      ],
+      "@nextclaw/nextclaw-ncp-runtime-http-client": ["packages/nextclaw-ncp-runtime-http-client/src/index.ts"],
+      "@nextclaw/nextclaw-ncp-runtime-stdio-client": ["packages/nextclaw-ncp-runtime-stdio-client/src/index.ts"],
+      "@nextclaw/openclaw-compat": ["packages/nextclaw-openclaw-compat/src/index.ts"],
+      "@nextclaw/remote": ["packages/nextclaw-remote/src/index.ts"],
+      "@nextclaw/runtime": ["packages/nextclaw-runtime/src/index.ts"],
+      "@nextclaw/server": ["packages/nextclaw-server/src/index.ts"],
+      "@nextclaw-server/*": ["packages/nextclaw-server/src/*"],
+      "@nextclaw/service": ["packages/nextclaw-service/src/index.ts"],
+      "@nextclaw-service": ["packages/nextclaw-service/src/index.ts"],
+      "@nextclaw-service/*": ["packages/nextclaw-service/src/*"],
+      "@nextclaw/shared": ["packages/nextclaw-shared/src/index.ts"]
+    }
+  },
+  "include": ["../../packages/**/*.ts", "../../scripts/dev/**/*.mjs"]
+}

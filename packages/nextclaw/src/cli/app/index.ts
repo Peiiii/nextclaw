@@ -8,7 +8,7 @@ import { registerCompanionCommands } from "./register-companion-commands.js";
 import { registerLearningLoopCommands } from "./register-learning-loop-commands.js";
 import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.utils.js";
-import { readNextclawPackageVersion, resolveNextclawPackageResource } from "@/cli/shared/lib/package-version/index.js";
+import { readNextclawPackageVersion, resolveNextclawPackageResource } from "@nextclaw-cli/cli/shared/lib/package-version/index.js";
 
 const LOGO = "🤖";
 

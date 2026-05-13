@@ -2,9 +2,9 @@ import type { ThinkingLevel } from "@nextclaw/core";
 import type { AppEvent } from "@nextclaw/shared";
 import type { NcpAgentClientEndpoint, NcpMessage, NcpSessionApi, NcpSessionStatus, NcpSessionSummary } from "@nextclaw/ncp";
 import type { NcpHttpAgentStreamProvider } from "@nextclaw/ncp-http-agent-server";
-import type { UiNcpStoredAssetRecord } from "@/features/attachments/index.js";
-export type * from "@/features/marketplace/types/marketplace.types.js";
-export type * from "@/features/attachments/index.js";
+import type { UiNcpStoredAssetRecord } from "@nextclaw-server/features/attachments/index.js";
+export type * from "@nextclaw-server/features/marketplace/types/marketplace.types.js";
+export type * from "@nextclaw-server/features/attachments/index.js";
 export type ApiError = {
   code: string;
   message: string;
@@ -433,13 +433,13 @@ export type RuntimeEntryView = {
   config?: Record<string, unknown>;
 };
 
-import type { ChatSessionTypesView } from "@/features/sessions/index.js";
+import type { ChatSessionTypesView } from "@nextclaw-server/features/sessions/index.js";
 
 export type {
   ChatSessionTypeCtaView,
   ChatSessionTypeOptionView,
   ChatSessionTypesView,
-} from "@/features/sessions/index.js";
+} from "@nextclaw-server/features/sessions/index.js";
 
 export type SessionEntryView = {
   key: string;

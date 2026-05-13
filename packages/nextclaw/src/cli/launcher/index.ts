@@ -2,7 +2,7 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runNextclawNpmRuntimeLauncher } from "@nextclaw/service";
-import { readNextclawPackageVersion } from "@/cli/shared/lib/package-version/index.js";
+import { readNextclawPackageVersion } from "@nextclaw-cli/cli/shared/lib/package-version/index.js";
 
 runNextclawNpmRuntimeLauncher(process.argv, {
   launcherVersion: readNextclawPackageVersion(import.meta.url),

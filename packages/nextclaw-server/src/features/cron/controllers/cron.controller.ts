@@ -6,9 +6,9 @@ import type {
   CronEnableRequest,
   CronJobView,
   CronRunRequest
-} from "@/shared/types/server-api.types.js";
-import { err, ok, readJson, readNonEmptyString } from "@/shared/utils/http-response.utils.js";
-import type { CronJobEntry, UiCronHost, UiRouterOptions } from "@/app/types/router-options.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok, readJson, readNonEmptyString } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { CronJobEntry, UiCronHost, UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 function toIsoTime(value?: number | null): string | null {
   if (typeof value !== "number" || !Number.isFinite(value)) {

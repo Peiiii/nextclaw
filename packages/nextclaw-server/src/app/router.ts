@@ -1,26 +1,26 @@
 import { Hono, type Handler } from "hono";
 import { mountNcpHttpAgentRoutes } from "@nextclaw/ncp-http-agent-server";
 import type { IngressEnvelope } from "@nextclaw/shared";
-import { AgentsRoutesController } from "@/features/agents/index.js";
-import { AppRoutesController } from "@/app/controllers/app.controller.js";
-import { AuthRoutesController, UiAuthService } from "@/features/auth/index.js";
-import { ConfigRoutesController } from "@/features/config/index.js";
-import { CronRoutesController } from "@/features/cron/index.js";
-import { NcpAssetRoutesController } from "@/features/attachments/index.js";
-import { NcpSessionRoutesController } from "@/features/sessions/index.js";
+import { AgentsRoutesController } from "@nextclaw-server/features/agents/index.js";
+import { AppRoutesController } from "@nextclaw-server/app/controllers/app.controller.js";
+import { AuthRoutesController, UiAuthService } from "@nextclaw-server/features/auth/index.js";
+import { ConfigRoutesController } from "@nextclaw-server/features/config/index.js";
+import { CronRoutesController } from "@nextclaw-server/features/cron/index.js";
+import { NcpAssetRoutesController } from "@nextclaw-server/features/attachments/index.js";
+import { NcpSessionRoutesController } from "@nextclaw-server/features/sessions/index.js";
 import {
   McpMarketplaceController,
   mountMarketplaceRoutes,
   normalizeMarketplaceBaseUrl,
   PluginMarketplaceController,
   SkillMarketplaceController
-} from "@/features/marketplace/index.js";
-import { RemoteRoutesController } from "@/features/remote-access/index.js";
-import { RuntimeControlRoutesController } from "@/features/runtime-control/index.js";
-import { RuntimeUpdateRoutesController } from "@/features/runtime-update/index.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import { ServerPathRoutesController } from "@/features/server-path/index.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+} from "@nextclaw-server/features/marketplace/index.js";
+import { RemoteRoutesController } from "@nextclaw-server/features/remote-access/index.js";
+import { RuntimeControlRoutesController } from "@nextclaw-server/features/runtime-control/index.js";
+import { RuntimeUpdateRoutesController } from "@nextclaw-server/features/runtime-update/index.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import { ServerPathRoutesController } from "@nextclaw-server/features/server-path/index.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 function readBearerToken(request: Request): string | null {
   const authorization = request.headers.get("authorization")?.trim() ?? "";

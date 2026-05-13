@@ -7,7 +7,7 @@ import type {
   UpdateSnapshot,
 } from "@nextclaw/shared";
 import type { PluginChannelBinding, PluginUiMetadata } from "@nextclaw/openclaw-compat";
-import type { UiAuthService } from "@/features/auth/index.js";
+import type { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import type {
   BootstrapStatusView,
   MarketplaceApiConfig,
@@ -24,8 +24,8 @@ import type {
   RemoteSettingsUpdateRequest,
   UiNcpAgent,
   UiNcpSessionService
-} from "@/shared/types/server-api.types.js";
-import type { RuntimeControlActionResult, RuntimeControlView } from "@/features/runtime-control/index.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import type { RuntimeControlActionResult, RuntimeControlView } from "@nextclaw-server/features/runtime-control/index.js";
 
 export type UiAppEventBus = Pick<EventBus, "emit" | "subscribeAll">;
 export type UiIngress = Pick<Ingress, "handle">;

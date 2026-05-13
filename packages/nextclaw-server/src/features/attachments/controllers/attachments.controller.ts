@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import type { Context } from "hono";
-import type { UiNcpAssetPutView, UiNcpAssetView } from "@/shared/types/server-api.types.js";
-import { err, ok } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+import type { UiNcpAssetPutView, UiNcpAssetView } from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 
 const ASSET_CONTENT_BASE_PATH = "/api/ncp/assets/content";
 

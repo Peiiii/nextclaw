@@ -1,6 +1,6 @@
 import type { Context } from "hono";
-import { err, formatUserFacingError, ok } from "@/shared/utils/http-response.utils.js";
-import type { UiRuntimeControlHost } from "@/app/types/router-options.types.js";
+import { err, formatUserFacingError, ok } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRuntimeControlHost } from "@nextclaw-server/app/types/router-options.types.js";
 
 export class RuntimeControlRoutesController {
   constructor(private readonly host: UiRuntimeControlHost) {}

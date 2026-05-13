@@ -1,9 +1,9 @@
 import type { Context } from "hono";
-import { createAgent, deleteAgent, listAgents, readAgentAvatar, updateAgent } from "@/features/agents/stores/agents.store.js";
-import type { AgentCreateRequest, AgentUpdateRequest } from "@/shared/types/server-api.types.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
-import { emitConfigUpdated } from "@/shared/utils/app-events.utils.js";
+import { createAgent, deleteAgent, listAgents, readAgentAvatar, updateAgent } from "@nextclaw-server/features/agents/stores/agents.store.js";
+import type { AgentCreateRequest, AgentUpdateRequest } from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+import { emitConfigUpdated } from "@nextclaw-server/shared/utils/app-events.utils.js";
 
 export class AgentsRoutesController {
   constructor(private readonly options: UiRouterOptions) {}

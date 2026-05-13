@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import type { EventBus, Ingress } from "@nextclaw/shared";
-import { createUiRouter } from "@/app/router.js";
+import { createUiRouter } from "@nextclaw-server/app/router.js";
 
 describe("ingress route", () => {
   it("passes webhook envelopes to the shared ingress", async () => {

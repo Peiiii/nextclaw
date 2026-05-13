@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
 import { ConfigSchema, loadConfig, saveConfig } from "@nextclaw/core";
-import { UiAuthService } from "@/features/auth/index.js";
+import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
 import { EventBus } from "@nextclaw/shared";
 

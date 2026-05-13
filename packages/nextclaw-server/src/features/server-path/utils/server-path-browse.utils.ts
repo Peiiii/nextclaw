@@ -6,7 +6,7 @@ import type {
   ServerPathBreadcrumbView,
   ServerPathBrowseView,
   ServerPathEntryView,
-} from "@/shared/types/server-api.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
 
 type BrowseServerPathOptions = {
   path?: string | null;

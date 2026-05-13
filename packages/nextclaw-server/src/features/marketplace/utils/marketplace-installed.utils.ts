@@ -1,15 +1,15 @@
 import * as NextclawCore from "@nextclaw/core";
 import { discoverPluginStatusReport } from "@nextclaw/openclaw-compat";
-import { loadConfigOrDefault } from "@/features/config/index.js";
+import { loadConfigOrDefault } from "@nextclaw-server/features/config/index.js";
 import type {
   MarketplaceInstalledRecord,
   MarketplaceInstalledView,
   MarketplaceItemView,
   MarketplaceListView
-} from "@/shared/types/server-api.types.js";
-import { readNonEmptyString } from "@/shared/utils/http-response.utils.js";
-import type { SkillsLoaderConstructor, SkillsLoaderInstance, UiRouterOptions } from "@/app/types/router-options.types.js";
-import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@/features/marketplace/index.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { readNonEmptyString } from "@nextclaw-server/shared/utils/http-response.utils.js";
+import type { SkillsLoaderConstructor, SkillsLoaderInstance, UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
+import { MARKETPLACE_ZH_COPY_BY_SLUG } from "@nextclaw-server/features/marketplace/index.js";
 import {
   dedupeInstalledPluginRecordsByCanonicalSpec,
   isSupportedMarketplacePluginSpec,

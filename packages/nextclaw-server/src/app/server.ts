@@ -7,9 +7,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { Server } from "node:http";
-import { UiAuthService } from "@/features/auth/index.js";
+import { UiAuthService } from "@nextclaw-server/features/auth/index.js";
 import { createUiRouter } from "./router.js";
-import type { UiRouterOptions } from "@/app/types/router-options.types.js";
+import type { UiRouterOptions } from "@nextclaw-server/app/types/router-options.types.js";
 import { serveStatic } from "hono/serve-static";
 
 export type UiServerHandle = {

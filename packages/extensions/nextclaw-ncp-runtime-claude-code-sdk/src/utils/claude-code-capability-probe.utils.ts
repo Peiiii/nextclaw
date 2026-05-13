@@ -4,12 +4,12 @@ import type {
   ClaudeCodeLoader,
   ClaudeCodeSdkModule,
   ClaudeCodeSdkNcpAgentRuntimeConfig,
-} from "@/claude-code-sdk-types.js";
+} from "@claude-code-sdk/claude-code-sdk-types.js";
 import { buildQueryEnv, resolveClaudeGatewayAccess } from "./claude-code-runtime.utils.js";
 import {
   resolveBundledClaudeAgentSdkCliPath,
   resolveCurrentProcessExecutable,
-} from "@/claude-code-process-resolution.js";
+} from "@claude-code-sdk/claude-code-process-resolution.js";
 import { probeClaudeCodeSdkExecution } from "./claude-code-execution-probe.utils.js";
 
 const require = createRequire(import.meta.url);

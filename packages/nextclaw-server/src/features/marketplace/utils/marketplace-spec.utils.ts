@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { MarketplaceInstalledRecord } from "@/shared/types/server-api.types.js";
+import type { MarketplaceInstalledRecord } from "@nextclaw-server/shared/types/server-api.types.js";
 import {
   BUILTIN_CHANNEL_PLUGIN_ID_PREFIX,
   NEXTCLAW_PLUGIN_NPM_PREFIX
-} from "@/features/marketplace/index.js";
+} from "@nextclaw-server/features/marketplace/index.js";
 
 function readPluginPackageNameFromSource(source: string | undefined): string | undefined {
   const trimmed = source?.trim();

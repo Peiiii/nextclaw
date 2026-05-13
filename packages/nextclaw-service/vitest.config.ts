@@ -7,7 +7,7 @@ export default defineConfig({
       "@core": new URL("../nextclaw-core/src", import.meta.url).pathname,
       "@kernel/": new URL("../nextclaw-kernel/src/", import.meta.url).pathname,
       "@kernel": new URL("../nextclaw-kernel/src", import.meta.url).pathname,
-      "@/": new URL("../nextclaw-server/src/", import.meta.url).pathname,
+      "@nextclaw-server/": new URL("../nextclaw-server/src/", import.meta.url).pathname,
       "@nextclaw/core": new URL("../nextclaw-core/src/index.ts", import.meta.url).pathname,
       "@nextclaw/kernel": new URL("../nextclaw-kernel/src/index.ts", import.meta.url).pathname,
       "@nextclaw/server": new URL("../nextclaw-server/src/index.ts", import.meta.url).pathname,

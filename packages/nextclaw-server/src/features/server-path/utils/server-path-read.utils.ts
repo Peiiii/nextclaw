@@ -2,7 +2,7 @@ import { open, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { extname, resolve } from "node:path";
 import { expandHome } from "@nextclaw/core";
-import type { ServerPathReadView } from "@/shared/types/server-api.types.js";
+import type { ServerPathReadView } from "@nextclaw-server/shared/types/server-api.types.js";
 
 type ReadServerPathOptions = {
   path?: string | null;

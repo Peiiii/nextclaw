@@ -1,1 +1,1 @@
-export * from "@/features/agents/controllers/agents.controller.js";
+export * from "@nextclaw-server/features/agents/controllers/agents.controller.js";

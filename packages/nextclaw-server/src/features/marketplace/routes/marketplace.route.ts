@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
-import type { McpMarketplaceController } from "@/features/marketplace/controllers/mcp-marketplace.controller.js";
-import type { PluginMarketplaceController } from "@/features/marketplace/controllers/plugin-marketplace.controller.js";
-import type { SkillMarketplaceController } from "@/features/marketplace/controllers/skill-marketplace.controller.js";
+import type { McpMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/mcp-marketplace.controller.js";
+import type { PluginMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/plugin-marketplace.controller.js";
+import type { SkillMarketplaceController } from "@nextclaw-server/features/marketplace/controllers/skill-marketplace.controller.js";
 
 export function mountMarketplaceRoutes(
   app: Hono,

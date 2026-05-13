@@ -378,7 +378,7 @@ const backendProcess = spawnProcess(
       ? ["watch", ...tsxWatchExcludeGlobs.flatMap((glob) => ["--exclude", glob])]
       : []),
     "--tsconfig",
-    "tsconfig.json",
+    resolve(rootDir, "scripts/dev/dev-runtime.tsconfig.json"),
     "src/cli/app/index.ts",
     "serve",
     "--ui-port",

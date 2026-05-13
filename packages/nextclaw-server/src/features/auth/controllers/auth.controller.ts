@@ -1,13 +1,13 @@
 import type { Context } from "hono";
-import type { UiAuthService } from "@/features/auth/index.js";
-import { ensureUiBridgeSecret } from "@/features/auth/utils/auth-bridge.utils.js";
+import type { UiAuthService } from "@nextclaw-server/features/auth/index.js";
+import { ensureUiBridgeSecret } from "@nextclaw-server/features/auth/utils/auth-bridge.utils.js";
 import type {
   AuthEnabledUpdateRequest,
   AuthLoginRequest,
   AuthPasswordUpdateRequest,
   AuthSetupRequest
-} from "@/shared/types/server-api.types.js";
-import { err, ok, readJson } from "@/shared/utils/http-response.utils.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
+import { err, ok, readJson } from "@nextclaw-server/shared/utils/http-response.utils.js";
 
 function isAuthenticationRequiredError(message: string): boolean {
   return message === "Authentication required.";

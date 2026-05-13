@@ -8,7 +8,7 @@ import {
   updateAgentProfile,
   type Config
 } from "@nextclaw/core";
-import type { AgentCreateRequest, AgentDeleteResult, AgentProfileView, AgentUpdateRequest } from "@/shared/types/server-api.types.js";
+import type { AgentCreateRequest, AgentDeleteResult, AgentProfileView, AgentUpdateRequest } from "@nextclaw-server/shared/types/server-api.types.js";
 
 export function listAgents(configPath: string): AgentProfileView[] {
   const config = loadConfig(configPath);

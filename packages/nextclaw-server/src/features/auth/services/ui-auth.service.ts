@@ -7,7 +7,7 @@ import type {
   AuthPasswordUpdateRequest,
   AuthSetupRequest,
   AuthStatusView
-} from "@/shared/types/server-api.types.js";
+} from "@nextclaw-server/shared/types/server-api.types.js";
 
 const SESSION_COOKIE_NAME = "nextclaw_ui_session";
 const PASSWORD_MIN_LENGTH = 8;

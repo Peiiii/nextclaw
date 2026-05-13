@@ -11,9 +11,9 @@ import {
   type ProviderDeviceCodeAuthProtocol,
   type ProviderDeviceCodeAuthSpec
 } from "@nextclaw/core";
-import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "@/shared/types/server-api.types.js";
+import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "@nextclaw-server/shared/types/server-api.types.js";
 import { createDefaultProviderConfig } from "./default-provider-config.utils.js";
-import { findServerBuiltinProviderByName } from "@/features/config/providers/server-builtin-provider.provider.js";
+import { findServerBuiltinProviderByName } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
 
 type DeviceCodeSession = {
   sessionId: string;
