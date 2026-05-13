@@ -10,6 +10,8 @@
 
 兼容修正：历史 legacy 会话没有 journal 文件时，`listSessionMessages` 必须回落到 legacy session store；历史会话第一次写入 journal 前，会先把 legacy 历史消息一次性 seed 到 journal，避免继续对话后新 journal 读模型遮住旧消息。
 
+结构收敛修正：旧 `SessionManager` 兼容读写已集中收纳到 `NcpAgentLegacySessionStore`，核心 `NcpAgentSessionStoreAdapter` 只保留 journal 优先路由、legacy fallback 编排和新旧 summary 合并，避免不再重要的旧逻辑继续占据核心文件注意力。
+
 本次还记录了用户明确授权的 `@nextclaw/ncp-toolkit` module-structure 临时豁免，并把后续 toolkit/lib 类型目录协议迁移写入 TODO。
 
 ## 测试/验证/验收方式
@@ -42,6 +44,8 @@
 ## 可维护性总结汇总
 
 已使用 `post-edit-maintainability-review` 的检查问题清单进行结构收敛：backend 主文件降回预算内，kernel journal store 拆出 pure utils，toolkit 触达文件统一补 role suffix，并把 toolkit 当前历史目录结构作为用户授权豁免记录在 module config。追加减债：append-only contract 从完整 `AgentSessionRecord` 收窄到无 `messages` 的 `AgentSessionEventRecord`，旧 snapshot 构造只留在 legacy fallback。仍保留的债务：`agent-backend` 目录本身处在目录文件数预算边缘，后续应通过 lib protocol 迁移和子目录拆分解决。
+
+补充减债：legacy session 兼容路径已从核心 adapter 中剥离为集中 owner，adapter 文件从旧读写细节回到路由职责；这保持历史会话可读，同时把后续删除 legacy 的入口收束到单文件。
 
 ## NPM 包发布记录
 
