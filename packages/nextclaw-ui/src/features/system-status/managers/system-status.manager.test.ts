@@ -1,10 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BootstrapStatusView } from '@/shared/lib/api';
 import { appQueryClient } from '@/app-query-client';
-import {
-  isTransientRuntimeConnectionErrorMessage,
-  systemStatusManager,
-} from './system-status.manager';
+import { systemStatusManager } from './system-status.manager';
+import { isTransientRuntimeConnectionErrorMessage } from '@/shared/lib/transport';
 import { useSystemStatusStore } from '@/features/system-status/stores/system-status.store';
 
 const readyBootstrapStatus: BootstrapStatusView = {
@@ -76,9 +74,6 @@ describe('systemStatusManager', () => {
   });
 
   it('enters recovering only after the page has previously reached ready', async () => {
-    const invalidateQueriesSpy = vi
-      .spyOn(appQueryClient, 'invalidateQueries')
-      .mockResolvedValue(undefined as never);
     const refetchQueriesSpy = vi
       .spyOn(appQueryClient, 'refetchQueries')
       .mockResolvedValue(undefined as never);
@@ -93,7 +88,6 @@ describe('systemStatusManager', () => {
     systemStatusManager.reportBootstrapStatus(readyBootstrapStatus);
 
     expect(useSystemStatusStore.getState().state.lifecyclePhase).toBe('ready');
-    expect(invalidateQueriesSpy).toHaveBeenCalled();
     expect(refetchQueriesSpy).toHaveBeenCalledWith({ type: 'active' });
   });
 

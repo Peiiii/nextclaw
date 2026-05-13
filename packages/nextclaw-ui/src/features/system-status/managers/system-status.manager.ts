@@ -21,8 +21,14 @@ import {
   initialSystemStatusState,
   useSystemStatusStore,
 } from '@/features/system-status/stores/system-status.store';
+import { isTransientRuntimeConnectionErrorMessage } from '@/shared/lib/transport';
 
 const RECOVERY_TIMEOUT_MS = 30_000;
+const RUNTIME_BOOTSTRAP_PROBE_POLICY = {
+  activePollIntervalMs: 1_000,
+  errorPollIntervalMs: 2_000,
+  maxErrorPollIntervalMs: 5_000,
+} as const;
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -53,46 +59,34 @@ function resolveActionHelp(action: RuntimeControlAction): string {
   return t('runtimeControlRestartingAppHelp');
 }
 
-export function isTransientRuntimeConnectionErrorMessage(
-  message: string
-): boolean {
-  const normalized = message.trim().toLowerCase();
-  if (!normalized) {
-    return false;
-  }
-  return (
-    normalized.includes('failed to fetch') ||
-    normalized.includes('networkerror') ||
-    normalized.includes('network request failed') ||
-    normalized.includes('load failed') ||
-    normalized.includes('request timed out') ||
-    normalized.includes('timed out waiting for remote request response') ||
-    normalized.includes('remote transport connection closed') ||
-    normalized.includes('websocket error') ||
-    normalized.includes('fetch failed on ') ||
-    normalized.includes('stream request failed for ') ||
-    normalized.includes('ncp fetch failed for ')
-  );
-}
-
 export class SystemStatusManager {
   private recoveryTimeoutId: number | null = null;
 
   getRuntimeBootstrapPollInterval = (
-    status: BootstrapStatusView | null | undefined
+    status: BootstrapStatusView | null | undefined,
+    fetchFailureCount = 0
   ): number | false => {
     const { lifecyclePhase, activeSystemAction } = this.getState();
+    if (fetchFailureCount > 0) {
+      return Math.min(
+        RUNTIME_BOOTSTRAP_PROBE_POLICY.maxErrorPollIntervalMs,
+        RUNTIME_BOOTSTRAP_PROBE_POLICY.errorPollIntervalMs * fetchFailureCount
+      );
+    }
     if (
       lifecyclePhase === 'recovering' ||
       lifecyclePhase === 'stalled' ||
       activeSystemAction?.lifecycle === 'recovering'
     ) {
-      return 500;
+      return RUNTIME_BOOTSTRAP_PROBE_POLICY.activePollIntervalMs;
     }
     if (status?.ncpAgent.state === 'ready') {
       return false;
     }
-    return 500;
+    if (status?.ncpAgent.state === 'error' || status?.phase === 'error') {
+      return RUNTIME_BOOTSTRAP_PROBE_POLICY.errorPollIntervalMs;
+    }
+    return RUNTIME_BOOTSTRAP_PROBE_POLICY.activePollIntervalMs;
   };
 
   getRuntimeControl = async (): Promise<RuntimeControlView> => {
@@ -343,10 +337,7 @@ export class SystemStatusManager {
     });
 
     if (shouldRefreshQueries) {
-      void Promise.all([
-        appQueryClient.invalidateQueries(),
-        appQueryClient.refetchQueries({ type: 'active' }),
-      ]);
+      void appQueryClient.refetchQueries({ type: 'active' });
     }
   };
 
@@ -413,7 +404,6 @@ export class SystemStatusManager {
       const view = await this.getRuntimeControl();
       this.syncRuntimeControlQueryCache(view);
       this.reportRuntimeControlView(view);
-      await appQueryClient.invalidateQueries({ queryKey: ['runtime-control'] });
     } catch (error) {
       this.reportRuntimeControlError(error);
     }

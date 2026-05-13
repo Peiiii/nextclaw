@@ -46,3 +46,23 @@ export type RemoteRuntimeInfo = {
   protocolVersion: 1;
   wsPath: string;
 };
+
+export function isTransientRuntimeConnectionErrorMessage(message: string): boolean {
+  const normalized = message.trim().toLowerCase();
+  if (!normalized) {
+    return false;
+  }
+  return [
+    'failed to fetch',
+    'networkerror',
+    'network request failed',
+    'load failed',
+    'request timed out',
+    'timed out waiting for remote request response',
+    'remote transport connection closed',
+    'websocket error',
+    'fetch failed on ',
+    'stream request failed for ',
+    'ncp fetch failed for ',
+  ].some((snippet) => normalized.includes(snippet));
+}

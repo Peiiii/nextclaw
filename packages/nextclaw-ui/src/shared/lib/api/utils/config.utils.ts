@@ -1,4 +1,4 @@
-import { nextclawClient } from '../managers/client.manager';
+import { nextclawClient } from '@/shared/lib/api/managers/client.manager';
 import type {
   AuthEnabledUpdateRequest,
   AuthLoginRequest,
@@ -38,7 +38,9 @@ import type {
 } from '@/shared/lib/api/types';
 
 export async function fetchAuthStatus(options: { timeoutMs?: number } = {}): Promise<AuthStatusView> {
-  return await nextclawClient.auth.fetchStatus({ timeoutMs: options.timeoutMs ?? 5_000 });
+  return await nextclawClient.auth.fetchStatus({
+    timeoutMs: options.timeoutMs ?? 5_000,
+  });
 }
 
 export async function setupAuth(data: AuthSetupRequest): Promise<AuthStatusView> {
@@ -65,8 +67,8 @@ export async function fetchAppMeta(): Promise<AppMetaView> {
   return await nextclawClient.app.fetchMeta();
 }
 
-export async function fetchBootstrapStatus(): Promise<BootstrapStatusView> {
-  return await nextclawClient.app.fetchBootstrapStatus();
+export async function fetchBootstrapStatus(options: { timeoutMs?: number } = {}): Promise<BootstrapStatusView> {
+  return await nextclawClient.app.fetchBootstrapStatus(options);
 }
 
 export async function fetchConfig(): Promise<ConfigView> {

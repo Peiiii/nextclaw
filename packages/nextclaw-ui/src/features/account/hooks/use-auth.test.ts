@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  AUTH_STATUS_BOOTSTRAP_RETRY_DELAY_MS,
   isTransientAuthStatusBootstrapError,
+  resolveAuthStatusBootstrapRetryDelay,
   shouldRetryAuthStatusBootstrap
 } from './use-auth';
 
@@ -23,11 +23,13 @@ describe('auth status bootstrap retry policy', () => {
   });
 
   it('stops retrying after the bootstrap retry budget is exhausted', () => {
-    expect(shouldRetryAuthStatusBootstrap(39, new Error('Failed to fetch'))).toBe(true);
-    expect(shouldRetryAuthStatusBootstrap(40, new Error('Failed to fetch'))).toBe(false);
+    expect(shouldRetryAuthStatusBootstrap(7, new Error('Failed to fetch'))).toBe(true);
+    expect(shouldRetryAuthStatusBootstrap(8, new Error('Failed to fetch'))).toBe(false);
   });
 
-  it('keeps the retry delay short and predictable', () => {
-    expect(AUTH_STATUS_BOOTSTRAP_RETRY_DELAY_MS).toBe(250);
+  it('backs off retry delay without becoming sluggish', () => {
+    expect(resolveAuthStatusBootstrapRetryDelay(1)).toBe(500);
+    expect(resolveAuthStatusBootstrapRetryDelay(2)).toBe(1000);
+    expect(resolveAuthStatusBootstrapRetryDelay(4)).toBe(3000);
   });
 });

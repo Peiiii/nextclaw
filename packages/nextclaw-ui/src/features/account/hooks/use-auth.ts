@@ -11,46 +11,49 @@ import {
 import type { AuthStatusView } from '@/shared/lib/api';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
+import { isTransientRuntimeConnectionErrorMessage } from '@/shared/lib/transport';
 
-const AUTH_STATUS_BOOTSTRAP_MAX_RETRIES = 40;
-const AUTH_STATUS_BOOTSTRAP_TIMEOUT_MS = 400;
-export const AUTH_STATUS_BOOTSTRAP_RETRY_DELAY_MS = 250;
+const AUTH_STATUS_BOOTSTRAP_PROBE_POLICY = {
+  maxRetries: 8,
+  startupTimeoutMs: 2_000,
+  settledTimeoutMs: 5_000,
+  retryBaseDelayMs: 500,
+  retryMaxDelayMs: 3_000,
+} as const;
 
 export function isTransientAuthStatusBootstrapError(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
-  const message = error.message.trim().toLowerCase();
-  if (!message) {
-    return false;
-  }
-  return (
-    message.includes('failed to fetch') ||
-    message.includes('networkerror') ||
-    message.includes('network request failed') ||
-    message.includes('load failed') ||
-    message.includes('request timed out') ||
-    message.includes('timed out waiting for remote request response') ||
-    message.includes('remote transport connection closed')
-  );
+  return isTransientRuntimeConnectionErrorMessage(error.message);
 }
 
 export function shouldRetryAuthStatusBootstrap(failureCount: number, error: unknown): boolean {
-  if (failureCount >= AUTH_STATUS_BOOTSTRAP_MAX_RETRIES) {
+  if (failureCount >= AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.maxRetries) {
     return false;
   }
   return isTransientAuthStatusBootstrapError(error);
+}
+
+export function resolveAuthStatusBootstrapRetryDelay(failureCount: number): number {
+  return Math.min(
+    AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.retryMaxDelayMs,
+    AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.retryBaseDelayMs * 2 ** Math.max(0, failureCount - 1)
+  );
 }
 
 export function useAuthStatus() {
   const [bootstrapSettled, setBootstrapSettled] = useState(false);
   const query = useQuery<AuthStatusView>({
     queryKey: ['auth-status'],
-    queryFn: () => fetchAuthStatus({ timeoutMs: bootstrapSettled ? 5_000 : AUTH_STATUS_BOOTSTRAP_TIMEOUT_MS }),
+    queryFn: () => fetchAuthStatus({
+      timeoutMs: bootstrapSettled
+        ? AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.settledTimeoutMs
+        : AUTH_STATUS_BOOTSTRAP_PROBE_POLICY.startupTimeoutMs,
+    }),
     staleTime: 5_000,
     retry: shouldRetryAuthStatusBootstrap,
-    retryDelay: AUTH_STATUS_BOOTSTRAP_RETRY_DELAY_MS,
-    refetchOnWindowFocus: true
+    retryDelay: resolveAuthStatusBootstrapRetryDelay
   });
 
   useEffect(() => {

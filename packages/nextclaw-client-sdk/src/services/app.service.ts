@@ -8,7 +8,12 @@ export class AppService {
     return await this.requestService.get<AppMetaView>("/api/app/meta");
   };
 
-  readonly fetchBootstrapStatus = async (): Promise<BootstrapStatusView> => {
-    return await this.requestService.get<BootstrapStatusView>("/api/runtime/bootstrap-status");
+  readonly fetchBootstrapStatus = async (
+    options: { timeoutMs?: number } = {}
+  ): Promise<BootstrapStatusView> => {
+    return await this.requestService.get<BootstrapStatusView>(
+      "/api/runtime/bootstrap-status",
+      options
+    );
   };
 }

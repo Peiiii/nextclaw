@@ -10,46 +10,24 @@ import {
 import { systemStatusManager } from '@/features/system-status/managers/system-status.manager';
 import { useSystemStatusStore } from '@/features/system-status/stores/system-status.store';
 
-function createPendingBootstrapStatus(): BootstrapStatusView {
-  return {
-    phase: 'kernel-starting',
-    ncpAgent: {
-      state: 'pending',
-    },
-    pluginHydration: {
-      state: 'pending',
-      loadedPluginCount: 0,
-      totalPluginCount: 0,
-    },
-    channels: {
-      state: 'pending',
-      enabled: [],
-    },
-    remote: {
-      state: 'pending',
-    },
-  };
-}
-
 export function useSystemStatusSources() {
-  const runtimeBootstrapStatus = useQuery({
+  const runtimeBootstrapStatus = useQuery<BootstrapStatusView>({
     queryKey: ['runtime-bootstrap-status'],
-    queryFn: fetchBootstrapStatus,
-    placeholderData: createPendingBootstrapStatus,
+    queryFn: () => fetchBootstrapStatus({
+      timeoutMs: 5_000,
+    }),
     refetchInterval: (query) => {
       return systemStatusManager.getRuntimeBootstrapPollInterval(
-        query.state.data
+        query.state.data,
+        query.state.fetchFailureCount
       );
     },
-    refetchIntervalInBackground: true,
     retry: false,
-    refetchOnWindowFocus: true,
   });
   const runtimeControl = useQuery({
     queryKey: ['runtime-control'],
     queryFn: async () => await systemStatusManager.getRuntimeControl(),
     staleTime: 5_000,
-    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {

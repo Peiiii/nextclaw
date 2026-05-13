@@ -16,7 +16,7 @@ describe('getRuntimeBootstrapPollInterval', () => {
 
   it('keeps polling while bootstrap status is missing', () => {
     expect(systemStatusManager.getRuntimeBootstrapPollInterval(undefined)).toBe(
-      500
+      1000
     );
   });
 
@@ -40,7 +40,7 @@ describe('getRuntimeBootstrapPollInterval', () => {
           state: 'pending',
         },
       })
-    ).toBe(500);
+    ).toBe(1000);
   });
 
   it('continues polling even when bootstrap status reports an ncp agent error', () => {
@@ -65,7 +65,7 @@ describe('getRuntimeBootstrapPollInterval', () => {
         },
         lastError: 'startup failed',
       })
-    ).toBe(500);
+    ).toBe(2000);
   });
 
   it('stops polling once the ncp agent is ready', () => {
@@ -121,6 +121,16 @@ describe('getRuntimeBootstrapPollInterval', () => {
           state: 'disabled',
         },
       })
-    ).toBe(500);
+    ).toBe(1000);
   });
+
+  it('backs off polling after transport failures', () => {
+    expect(
+      systemStatusManager.getRuntimeBootstrapPollInterval(undefined, 1)
+    ).toBe(2000);
+    expect(
+      systemStatusManager.getRuntimeBootstrapPollInterval(undefined, 3)
+    ).toBe(5000);
+  });
+
 });
