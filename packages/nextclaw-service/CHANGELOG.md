@@ -1,5 +1,11 @@
 # @nextclaw/service
 
+## 0.1.6
+
+### Patch Changes
+
+- Fix runtime update status messaging and centralize packaged distribution metadata for npm runtime updates.
+
 ## 0.1.5
 
 ### Patch Changes

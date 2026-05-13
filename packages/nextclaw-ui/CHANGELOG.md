@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.12.23
+
+### Patch Changes
+
+- Fix runtime update status messaging and centralize packaged distribution metadata for npm runtime updates.
+
 ## 0.12.22
 
 ### Patch Changes
