@@ -189,11 +189,9 @@ export function buildProviderModelCatalog(params: {
     const providerConfig = config?.providers?.[spec.name];
     const prefix = (spec.modelPrefix || spec.name || '').trim();
     const aliases = normalizeStringList([spec.modelPrefix || '', spec.name || '']);
-    const defaultModels = normalizeStringList((spec.defaultModels ?? []).map((model) => toProviderLocalModel(model, aliases)));
-    const customModels = normalizeStringList(
+    const models = normalizeStringList(
       (providerConfig?.models ?? []).map((model) => toProviderLocalModel(model, aliases))
     );
-    const models = normalizeStringList([...defaultModels, ...customModels]);
     const modelThinking = normalizeModelThinkingMap(providerConfig?.modelThinking, aliases);
     const configDisplayName = providerConfig?.displayName?.trim();
     const configured = isProviderConfigured(providerConfig);

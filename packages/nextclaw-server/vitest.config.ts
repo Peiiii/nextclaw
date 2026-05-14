@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   resolve: {
     alias: {
+      "@nextclaw-server/": new URL("./src/", import.meta.url).pathname,
       "@/": new URL("./src/", import.meta.url).pathname,
       "@core/": new URL("../nextclaw-core/src/", import.meta.url).pathname,
       "@core": new URL("../nextclaw-core/src", import.meta.url).pathname,

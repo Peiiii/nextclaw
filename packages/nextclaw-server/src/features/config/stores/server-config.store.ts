@@ -22,7 +22,7 @@ import {
   type ThinkingLevel
 } from "@nextclaw/core";
 import type { LlmProviderManager } from "@nextclaw/kernel";
-import { createDefaultProviderConfig } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
+import { createDefaultProviderConfigFromSpec } from "@nextclaw-server/features/config/utils/default-provider-config.utils.js";
 import {
   buildPluginChannelUiHints,
   buildProjectedChannelMeta,
@@ -126,7 +126,7 @@ function ensureProviderConfig(config: Config, providerName: string): ProviderCon
   if (!spec) {
     return null;
   }
-  const created = createDefaultProviderConfig(spec.defaultWireApi ?? "auto");
+  const created = createDefaultProviderConfigFromSpec(spec);
   providers[providerName] = created;
   return created;
 }

@@ -104,31 +104,11 @@ function modelListsEqual(left: string[], right: string[]): boolean {
   return left.every((item, index) => item === right[index]);
 }
 
-function mergeModelLists(base: string[], extra: string[]): string[] {
-  const merged = [...base];
-  for (const item of extra) {
-    if (!merged.includes(item)) {
-      merged.push(item);
-    }
-  }
-  return merged;
-}
-
-function resolveEditableModels(defaultModels: string[], savedModels: string[]): string[] {
-  if (savedModels.length === 0) {
-    return defaultModels;
-  }
-  const looksLikeLegacyCustomList = savedModels.every((model) => !defaultModels.includes(model));
-  if (looksLikeLegacyCustomList) {
-    return mergeModelLists(defaultModels, savedModels);
-  }
+function resolveEditableModels(_defaultModels: string[], savedModels: string[]): string[] {
   return savedModels;
 }
 
-function serializeModelsForSave(models: string[], defaultModels: string[]): string[] {
-  if (modelListsEqual(models, defaultModels)) {
-    return [];
-  }
+function serializeModelsForSave(models: string[], _defaultModels: string[]): string[] {
   return models;
 }
 

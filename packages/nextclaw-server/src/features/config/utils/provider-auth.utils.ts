@@ -12,7 +12,7 @@ import {
   type ProviderDeviceCodeAuthSpec
 } from "@nextclaw/core";
 import type { ProviderAuthImportResult, ProviderAuthPollResult, ProviderAuthStartResult } from "@nextclaw-server/shared/types/server-api.types.js";
-import { createDefaultProviderConfig } from "./default-provider-config.utils.js";
+import { createDefaultProviderConfigFromSpec } from "./default-provider-config.utils.js";
 import { findServerBuiltinProviderByName } from "@nextclaw-server/features/config/providers/server-builtin-provider.provider.js";
 
 type DeviceCodeSession = {
@@ -326,7 +326,7 @@ function setProviderApiKey({ configPath, provider, accessToken, defaultApiBase }
   const config = loadConfig(configPath);
   const providers = config.providers as Record<string, ProviderConfig>;
   if (!providers[provider]) {
-    providers[provider] = createDefaultProviderConfig();
+    providers[provider] = createDefaultProviderConfigFromSpec(findServerBuiltinProviderByName(provider));
   }
 
   const target = providers[provider];

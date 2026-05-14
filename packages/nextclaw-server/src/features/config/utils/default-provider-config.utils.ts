@@ -1,6 +1,9 @@
-import type { ProviderConfig } from "@nextclaw/core";
+import type { ProviderConfig, ProviderSpec } from "@nextclaw/core";
 
-export function createDefaultProviderConfig(defaultWireApi: "auto" | "chat" | "responses" = "auto"): ProviderConfig {
+export function createDefaultProviderConfig(
+  defaultWireApi: "auto" | "chat" | "responses" = "auto",
+  defaultModels: string[] = []
+): ProviderConfig {
   return {
     enabled: true,
     displayName: "",
@@ -8,7 +11,11 @@ export function createDefaultProviderConfig(defaultWireApi: "auto" | "chat" | "r
     apiBase: null,
     extraHeaders: null,
     wireApi: defaultWireApi,
-    models: [],
+    models: [...defaultModels],
     modelThinking: {}
   };
+}
+
+export function createDefaultProviderConfigFromSpec(spec: ProviderSpec | undefined): ProviderConfig {
+  return createDefaultProviderConfig(spec?.defaultWireApi ?? "auto", spec?.defaultModels ?? []);
 }
