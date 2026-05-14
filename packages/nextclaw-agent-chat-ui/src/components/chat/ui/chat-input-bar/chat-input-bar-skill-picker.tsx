@@ -1,8 +1,8 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
-import { useActiveItemScroll } from '@/components/chat/hooks/use-active-item-scroll';
-import { ChatUiPrimitives } from '@/components/chat/ui/primitives/chat-ui-primitives';
-import type { ChatSkillPickerOption, ChatSkillPickerOptionGroup, ChatSkillPickerProps } from '@/components/chat/view-models/chat-ui.types';
 import { BrainCircuit, Check, ExternalLink, Puzzle, Search } from 'lucide-react';
+import { useActiveItemScroll } from '@agent-chat-ui/components/chat/hooks/use-active-item-scroll';
+import { ChatUiPrimitives } from '@agent-chat-ui/components/chat/ui/primitives/chat-ui-primitives';
+import type { ChatSkillPickerOption, ChatSkillPickerOptionGroup, ChatSkillPickerProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSkillPickerOption[] {
   const keyword = query.trim().toLowerCase();

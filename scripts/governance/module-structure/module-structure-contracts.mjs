@@ -208,10 +208,11 @@ const defineProtocolDeclaration = (declaration) => {
       ...(protocol.sharedDirectories ?? []),
       ...(declaration.sharedDirectories ?? [])
     ]),
-    importAliasPrefixes: new Set([
-      ...(declaration.importAliasPrefixes ?? []),
-      ...(protocol.importAliasPrefixes ?? [])
-    ]),
+    importAliasPrefixes: new Set(
+      declaration.importAliasPrefixesConfigured
+        ? declaration.importAliasPrefixes
+        : protocol.importAliasPrefixes
+    ),
     enforcement: declaration.enforcement ?? "error"
   };
 };
@@ -324,7 +325,8 @@ const buildContractFromConfigFile = (configRepoPath) => {
       requiredRootFiles: normalizeStringArrayField(config.requiredRootFiles, "requiredRootFiles", configRepoPath),
       requiredRootDirectories: normalizeStringArrayField(config.requiredRootDirectories, "requiredRootDirectories", configRepoPath),
       sharedDirectories: normalizeStringArrayField(config.sharedDirectories, "sharedDirectories", configRepoPath),
-      importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath)
+      importAliasPrefixes: normalizeStringArrayField(config.importAliasPrefixes, "importAliasPrefixes", configRepoPath),
+      importAliasPrefixesConfigured: Object.hasOwn(config, "importAliasPrefixes")
     });
   } else if (contractKind === "legacy") {
     if (!organizationModel) {

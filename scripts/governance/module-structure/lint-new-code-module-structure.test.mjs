@@ -106,10 +106,10 @@ test("finds the protocol declaration for desktop electron shell config", () => {
   assert.equal(contract?.allowedRootFiles.has("runtime-service.ts"), true);
 });
 
-test("finds the strict package L1 declaration for former explicit src configs", () => {
+test("finds the strict package L2 declaration for nextclaw-server", () => {
   const contract = findModuleStructureContract("packages/nextclaw-server/src/index.ts");
   assert.equal(contract?.modulePath, "packages/nextclaw-server/src");
-  assert.equal(contract?.protocol, "app-l1");
+  assert.equal(contract?.protocol, "app-l2");
   assert.equal(isProtocolContract(contract), true);
   assert.equal(contract?.allowedRootDirectories.has("ui"), false);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
@@ -705,6 +705,45 @@ test("prefers explicit config import alias over protocol default alias", () => {
   }
 });
 
+test("allows package contracts to replace protocol default import aliases", () => {
+  const repoFixtureRoot = path.join("packages", ".tmp-test-workspaces", "package-alias-imports");
+  const absoluteFixtureRoot = path.resolve(process.cwd(), repoFixtureRoot);
+  const filePath = `${repoFixtureRoot}/src/components/chat/ui/chat-input-bar/chat-input-bar-skill-picker.tsx`;
+  rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "components", "chat", "ui", "chat-input-bar"), { recursive: true });
+  mkdirSync(path.join(absoluteFixtureRoot, "src", "components", "chat", "hooks"), { recursive: true });
+  writeFileSync(path.join(absoluteFixtureRoot, "package.json"), "{\n  \"name\": \"@tmp/disabled-alias-imports\"\n}\n");
+  writeFileSync(path.join(absoluteFixtureRoot, "module-structure.config.json"), `${JSON.stringify({
+    contractKind: "protocol",
+    protocol: "app-l1",
+    rootPolicy: "contract-only",
+    importAliasPrefixes: ["@package-ui/"]
+  }, null, 2)}\n`);
+  writeFileSync(path.join(absoluteFixtureRoot, "src", "components", "chat", "hooks", "use-active-item-scroll.ts"), "export const example = true;\n");
+
+  try {
+    const contract = findModuleStructureContract(filePath);
+    const aliasFindings = evaluateProtocolImportBoundaryFindings({
+      filePath,
+      contract,
+      source: `import { useActiveItemScroll } from "@package-ui/components/chat/hooks/use-active-item-scroll";\n`,
+      addedLines: new Set([1])
+    });
+    const relativeFindings = evaluateProtocolImportBoundaryFindings({
+      filePath,
+      contract,
+      source: `import { useActiveItemScroll } from "../../hooks/use-active-item-scroll";\n`,
+      addedLines: new Set([1])
+    });
+
+    assert.equal(aliasFindings.length, 0);
+    assert.equal(relativeFindings.length, 1);
+    assert.match(relativeFindings[0].message, /cross-directory imports must use '@package-ui\/'/);
+  } finally {
+    rmSync(absoluteFixtureRoot, { recursive: true, force: true });
+  }
+});
+
 test("allows same-directory relative imports when alias imports are configured", () => {
   const contract = findModuleStructureContract("packages/nextclaw/src/cli/shared/services/self-update.service.test.ts");
   const findings = evaluateProtocolImportBoundaryFindings({
@@ -801,7 +840,7 @@ test("blocks new deep imports into another command", () => {
   const findings = evaluateProtocolImportBoundaryFindings({
     filePath: "packages/nextclaw/src/cli/app/bootstrap.ts",
     contract,
-    source: `import { runServiceCommand } from "@/commands/service/services/service-runner.service";\n`,
+    source: `import { runServiceCommand } from "@nextclaw-cli/commands/service/services/service-runner.service";\n`,
     addedLines: new Set([1])
   });
 

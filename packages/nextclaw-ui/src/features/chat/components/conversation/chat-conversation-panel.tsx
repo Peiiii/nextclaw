@@ -175,6 +175,8 @@ function ChatConversationContent({
 }: ChatConversationContentProps) {
   const isAwaitingAssistantOutput =
     snapshot.isSending && snapshot.isAwaitingAssistantOutput;
+  const shouldShowMessages =
+    snapshot.messages.length > 0 || isAwaitingAssistantOutput;
 
   return (
     <div
@@ -189,11 +191,7 @@ function ChatConversationContent({
           selectedAgentId={snapshot.agentId ?? "main"}
           onSelectAgent={onSelectAgent}
         />
-      ) : hideEmptyHint ? null : snapshot.messages.length === 0 && !isAwaitingAssistantOutput ? (
-        <div className="px-4 py-4 text-sm text-gray-500 sm:px-5 sm:py-5">
-          {t("chatNoMessages")}
-        </div>
-      ) : (
+      ) : hideEmptyHint || !shouldShowMessages ? null : (
         <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
           <ChatMessageListContainer
             messages={snapshot.messages}

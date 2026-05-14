@@ -383,7 +383,7 @@ describe("ChatConversationPanel", () => {
     render(<ChatConversationPanel />);
 
     expect(screen.queryByTestId("chat-welcome")).toBeNull();
-    expect(screen.getByText("No messages yet. Send one to start.")).toBeTruthy();
+    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
   });
 
   it("does not render runtime lifecycle copy in the conversation alert strip", () => {

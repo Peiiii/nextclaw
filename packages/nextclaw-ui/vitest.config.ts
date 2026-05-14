@@ -26,6 +26,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@nextclaw/agent-chat': path.resolve(__dirname, '../nextclaw-agent-chat/src/index.ts'),
       '@nextclaw/agent-chat-ui': path.resolve(__dirname, '../nextclaw-agent-chat-ui/src/index.ts'),
+      '@agent-chat-ui': path.resolve(__dirname, '../nextclaw-agent-chat-ui/src'),
       '@nextclaw/client-sdk': path.resolve(__dirname, '../nextclaw-client-sdk/src/index.ts'),
       '@nextclaw/shared': path.resolve(__dirname, '../nextclaw-shared/src/index.ts')
     }

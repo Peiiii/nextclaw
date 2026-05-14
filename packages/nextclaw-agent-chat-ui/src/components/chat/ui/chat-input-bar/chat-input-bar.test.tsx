@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatInputBar, type ChatInputBarHandle } from './chat-input-bar';
-import type { ChatComposerNode, ChatInputBarProps } from '@/components/chat/view-models/chat-ui.types';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from './chat-composer.utils';
 import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from './lexical/chat-composer-lexical-adapter';
 import { handleLexicalComposerKeyboardCommand } from './lexical/chat-composer-lexical-controller';
+import type { ChatComposerNode, ChatInputBarProps } from '@agent-chat-ui/components/chat/view-models/chat-ui.types';
 
 Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   value: vi.fn(),
