@@ -1,6 +1,7 @@
 ---
 name: automation-setup
 description: Turn a user request into a scheduled automation by configuring cron jobs, including session-bound follow-ups and periodic checks.
+description_zh: 将用户的提醒、定期检查或持续跟进需求转成 NextClaw 定时自动化任务，覆盖一次性任务、周期任务和绑定会话的后续跟进。
 ---
 
 # Automation Setup

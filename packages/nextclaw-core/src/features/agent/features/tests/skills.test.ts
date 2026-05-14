@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { SkillsLoader } from "../../services/skills-loader.js";
+import { SkillsLoader } from "@core/features/agent/services/skills-loader.js";
 
 const tempWorkspaces: string[] = [];
 
@@ -36,6 +36,38 @@ describe("SkillsLoader builtin skills", () => {
         scope: "builtin",
       }),
     );
+  });
+
+  it("loads the NextClaw autostart builtin skill", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+
+    const skill = loader.listSkills(false).find((entry) => entry.name === "nextclaw-autostart");
+
+    expect(skill).toEqual(
+      expect.objectContaining({
+        name: "nextclaw-autostart",
+        source: "builtin",
+        scope: "builtin",
+      }),
+    );
+    expect(loader.loadSkill("nextclaw-autostart")).toContain("nextclaw service autostart status");
+  });
+
+  it("keeps builtin skill descriptions bilingual", () => {
+    const workspace = createWorkspace();
+    const loader = new SkillsLoader(workspace);
+    const builtinSkills = loader.listSkills(false).filter((entry) => entry.source === "builtin");
+
+    expect(builtinSkills.length).toBeGreaterThan(0);
+    for (const skill of builtinSkills) {
+      const metadata = loader.getSkillMetadata(skill) ?? {};
+      expect(metadata.description?.trim(), skill.name).toBeTruthy();
+      expect(
+        (metadata.description_zh ?? metadata.descriptionZh)?.trim(),
+        skill.name,
+      ).toBeTruthy();
+    }
   });
 
   it("does not let a workspace copy shadow a builtin skill with the same name", () => {

@@ -9,6 +9,8 @@ description: Use when evaluating, adapting, or creating a new skill for the Next
 
 Use this skill when the task is about adding a skill to the NextClaw skill marketplace.
 
+If the user says the product needs to support a skill, or asks to add a NextClaw built-in/user-facing skill, first distinguish product skills from repo-local agent governance skills. Product built-in skills live under `packages/nextclaw-core/src/features/agent/shared/skills/`; do not satisfy that request by adding `.agents/skills/*`, which only affects repository development agents.
+
 Core product principle:
 
 - The user installs a skill, not a pile of prerequisites.

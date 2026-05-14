@@ -158,7 +158,7 @@ export function useNcpChatPageData(params: UseNcpChatPageDataParams) {
   const sessionsQuery = useNcpSessions({ limit: 200 });
   const sessionTypesQuery = useNcpChatSessionTypes();
   const sessionSkillsQuery = useNcpSessionSkills({
-    sessionId: sessionKey ?? null,
+    sessionId: sessionKey?.trim() || 'draft-session',
     ...(Object.prototype.hasOwnProperty.call(params, 'projectRootOverride')
       ? { projectRoot: projectRootOverride ?? null }
       : {})

@@ -1,6 +1,7 @@
 ---
 name: cross-channel-messaging
 description: Use when the user wants the AI to send, relay, or notify through another NextClaw session or chat channel, especially after work completes, including deciding between a normal reply and message, and resolving route/account details without guessing.
+description_zh: 当用户希望 AI 通过另一个 NextClaw 会话或聊天渠道发送、转发、通知结果时使用，包含目标路由、账号和是否需要跨渠道发送的判断。
 ---
 
 # Cross-Channel Messaging

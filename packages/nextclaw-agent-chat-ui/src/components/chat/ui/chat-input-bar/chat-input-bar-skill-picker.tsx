@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEventHandler } from 'react';
-import { useActiveItemScroll } from '../../hooks/use-active-item-scroll';
-import type { ChatSkillPickerOption, ChatSkillPickerOptionGroup, ChatSkillPickerProps } from '../../view-models/chat-ui.types';
-import { ChatUiPrimitives } from '../primitives/chat-ui-primitives';
+import { useActiveItemScroll } from '@/components/chat/hooks/use-active-item-scroll';
+import { ChatUiPrimitives } from '@/components/chat/ui/primitives/chat-ui-primitives';
+import type { ChatSkillPickerOption, ChatSkillPickerOptionGroup, ChatSkillPickerProps } from '@/components/chat/view-models/chat-ui.types';
 import { BrainCircuit, Check, ExternalLink, Puzzle, Search } from 'lucide-react';
 
 function filterOptions(options: ChatSkillPickerOption[], query: string): ChatSkillPickerOption[] {
@@ -164,14 +164,12 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                       const isSelected = selectedSet.has(option.key);
                       const isActive = index === activeIndex;
                       return (
-                        <button
+                        <div
                           key={option.key}
-                          type="button"
                           id={`${listId}-option-${index}`}
                           role="option"
                           aria-selected={isSelected}
                           data-skill-index={index}
-                          onClick={() => onToggleOption(option.key)}
                           onMouseEnter={() => setActiveIndex(index)}
                           className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                             isActive ? 'bg-gray-50' : 'hover:bg-gray-50'
@@ -180,7 +178,7 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
                             <Puzzle className="h-4 w-4" />
                           </div>
-                          <div className="min-w-0 flex-1">
+                          <div className="min-w-0 flex-1 select-text">
                             <div className="flex items-center gap-1.5">
                               <span className="truncate text-sm text-gray-900">{option.label}</span>
                               {option.badgeLabel ? (
@@ -192,7 +190,10 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                             <div className="mt-0.5 truncate text-xs text-gray-500">{option.description || option.key}</div>
                           </div>
                           <div className="ml-3 shrink-0">
-                            <span
+                            <button
+                              type="button"
+                              aria-label={`${isSelected ? 'Remove' : 'Add'} ${option.label}`}
+                              onClick={() => onToggleOption(option.key)}
                               className={
                                 isSelected
                                   ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-white'
@@ -200,9 +201,9 @@ export function ChatInputBarSkillPicker(props: { picker: ChatSkillPickerProps })
                               }
                             >
                               {isSelected ? <Check className="h-3 w-3" /> : null}
-                            </span>
+                            </button>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>

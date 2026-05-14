@@ -1,6 +1,7 @@
 ---
 name: weather
 description: Get current weather and forecasts (no API key required).
+description_zh: 查询当前天气和天气预报，不需要 API key，优先使用 wttr.in 和 Open-Meteo 等免费服务。
 homepage: https://wttr.in/:help
 metadata: {"nextclaw":{"emoji":"🌤️","requires":{"bins":["curl"]}}}
 ---

@@ -1,6 +1,7 @@
 ---
 name: hermes-runtime
 description: Use when Hermes needs to become a formal NextClaw runtime entry, especially for setup, doctor, repair, readiness checks, and first-message smoke on the preferred narp-stdio(acp) path.
+description_zh: 用于将 Hermes 接入为正式的 NextClaw runtime，覆盖安装配置、诊断修复、就绪检查和首条消息冒烟验证。
 metadata: {"nextclaw":{"emoji":"🧠"}}
 ---
 

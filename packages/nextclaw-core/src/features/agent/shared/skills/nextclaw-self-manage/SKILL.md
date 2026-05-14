@@ -1,6 +1,7 @@
 ---
 name: nextclaw-self-manage
 description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/service/plugins/channels/config/agents/cron/remote/update operations.
+description_zh: 通过 NextClaw CLI 管理 NextClaw 自身，覆盖安装、启动、状态、诊断、服务、插件、渠道、配置、Agent、定时任务、远程访问和更新。
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 

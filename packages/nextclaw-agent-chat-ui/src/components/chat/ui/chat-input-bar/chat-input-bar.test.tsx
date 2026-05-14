@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ChatInputBar, type ChatInputBarHandle } from './chat-input-bar';
-import type { ChatComposerNode, ChatInputBarProps } from '../../view-models/chat-ui.types';
+import type { ChatComposerNode, ChatInputBarProps } from '@/components/chat/view-models/chat-ui.types';
 import { createChatComposerTextNode, createChatComposerTokenNode, resolveChatComposerSlashTrigger } from './chat-composer.utils';
 import { insertFileTokenIntoChatComposer, insertSkillTokenIntoChatComposer } from './lexical/chat-composer-lexical-adapter';
 import { handleLexicalComposerKeyboardCommand } from './lexical/chat-composer-lexical-controller';
@@ -10,40 +10,6 @@ Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
   value: vi.fn(),
   writable: true,
 });
-
-function setCursorToEnd(element: HTMLElement, text: string) {
-  const textNode = element.firstChild;
-  if (!textNode) {
-    return;
-  }
-  const selection = window.getSelection();
-  const range = document.createRange();
-  const offset = Math.min(text.length, textNode.textContent?.length ?? 0);
-  range.setStart(textNode, offset);
-  range.setEnd(textNode, offset);
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-function setCursorOffset(element: HTMLElement, offset: number) {
-  const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-  const textNode = walker.nextNode();
-  if (!textNode) {
-    return;
-  }
-  const selection = window.getSelection();
-  const range = document.createRange();
-  const boundedOffset = Math.min(offset, textNode.textContent?.length ?? 0);
-  range.setStart(textNode, boundedOffset);
-  range.setEnd(textNode, boundedOffset);
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-}
-
-async function syncSelectionChange() {
-  document.dispatchEvent(new Event('selectionchange'));
-  await Promise.resolve();
-}
 
 async function insertText(textbox: HTMLElement, text: string) {
   await act(async () => {
@@ -99,85 +65,6 @@ function createInputBarProps(overrides?: Partial<ChatInputBarProps>): ChatInputB
     },
     ...overrides
   };
-}
-
-function SlashMenuHarness() {
-  const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('')]);
-
-  return (
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes,
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: setNodes
-        },
-        slashMenu: {
-          isLoading: false,
-          items: [
-            {
-              key: 'web-search',
-              title: 'Web Search',
-              subtitle: 'Skill',
-              description: 'Search the web',
-              detailLines: [],
-              value: 'web-search'
-            }
-          ],
-          texts: {
-            slashLoadingLabel: 'Loading',
-            slashSectionLabel: 'Skills',
-            slashEmptyLabel: 'No result',
-            slashHintLabel: 'Type /',
-            slashSkillHintLabel: 'Enter to add'
-          }
-        }
-      })}
-    />
-  );
-}
-
-function SlashMenuSelectionHarness(props: { onSelectItem: (value: string) => void }) {
-  const [nodes, setNodes] = useState<ChatComposerNode[]>([createChatComposerTextNode('')]);
-
-  return (
-    <ChatInputBar
-      {...createInputBarProps({
-        composer: {
-          nodes,
-          placeholder: 'Type a message',
-          disabled: false,
-          onNodesChange: setNodes
-        },
-        slashMenu: {
-          isLoading: false,
-          onSelectItem: (item) => {
-            if (item.value) {
-              props.onSelectItem(item.value);
-            }
-          },
-          items: [
-            {
-              key: 'web-search',
-              title: 'Web Search',
-              subtitle: 'Skill',
-              description: 'Search the web',
-              detailLines: [],
-              value: 'web-search'
-            }
-          ],
-          texts: {
-            slashLoadingLabel: 'Loading',
-            slashSectionLabel: 'Skills',
-            slashEmptyLabel: 'No result',
-            slashHintLabel: 'Type /',
-            slashSkillHintLabel: 'Enter to add'
-          }
-        }
-      })}
-    />
-  );
 }
 
 function ExistingSkillTokenHarness() {
@@ -409,10 +296,20 @@ it('shows a selected skill inside the composer after choosing it from the skill 
   render(<SkillPickerInsertionHarness />);
 
   fireEvent.click(screen.getByRole('button', { name: /skills/i }));
-  fireEvent.click(await screen.findByRole('option', { name: /web search/i }));
+  fireEvent.click(await screen.findByRole('button', { name: /add web search/i }));
 
   await waitFor(() => expect(screen.getByText('Web Search')).toBeTruthy());
   expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeTruthy();
+});
+
+it('keeps skill option text selectable without toggling the skill', async () => {
+  render(<SkillPickerInsertionHarness />);
+
+  fireEvent.click(screen.getByRole('button', { name: /skills/i }));
+  fireEvent.click(await screen.findByText('Search the web'));
+
+  expect(screen.getByText('Search the web')).toBeTruthy();
+  expect(screen.getByRole('textbox').querySelector('[data-composer-token-key="web-search"]')).toBeNull();
 });
 
 it('keeps an existing skill token when typing plain text after it', async () => {

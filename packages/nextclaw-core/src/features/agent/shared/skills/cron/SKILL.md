@@ -1,6 +1,7 @@
 ---
 name: cron
 description: Schedule reminders and recurring tasks.
+description_zh: 创建和管理提醒、定时任务与周期性自动化，是 NextClaw 内置的 cron 调度能力说明。
 ---
 
 # Cron
