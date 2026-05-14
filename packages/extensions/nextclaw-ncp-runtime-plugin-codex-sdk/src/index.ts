@@ -6,6 +6,7 @@ import type {
 } from "@nextclaw/ncp";
 import {
   buildCodexInputBuilder,
+  CodexLiveOutputStream,
   CodexSdkNcpAgentRuntime,
   type CodexSdkNcpAgentRuntimeConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
@@ -30,6 +31,7 @@ import type {
 
 export { buildCodexBridgeModelProviderId } from "./codex-model-provider.js";
 export { ensureCodexOpenAiResponsesBridge } from "@codex-plugin-sdk/utils/codex-openai-responses-bridge.utils.js";
+export type { CodexOpenAiResponsesBridgeRuntimeConfig } from "@codex-plugin-sdk/utils/codex-openai-responses-bridge.utils.js";
 export type {
   CodexOpenAiResponsesBridgeConfig,
   CodexOpenAiResponsesBridgeResult,
@@ -274,12 +276,14 @@ const plugin: PluginDefinition = {
             extraHeaders: resolvedProviderRuntime.provider?.extraHeaders ?? null,
             model: resolvedProviderRuntime.providerLocalModel,
           });
+          const liveOutputStream = new CodexLiveOutputStream();
           if (!supportsResponsesApi) {
             const bridge = await ensureCodexOpenAiResponsesBridge({
               upstreamApiBase,
               upstreamApiKey: apiKey,
               upstreamExtraHeaders: resolvedProviderRuntime.provider?.extraHeaders ?? undefined,
               defaultModel: resolvedProviderRuntime.providerLocalModel,
+              outputObserver: liveOutputStream,
               upstreamReasoningSplit: true,
               modelPrefixes: [
                 providerName ?? "",
@@ -333,6 +337,7 @@ const plugin: PluginDefinition = {
                 resolveAssetContentPath: runtimeParams.resolveAssetContentPath,
               },
             ),
+            liveOutputStream: !supportsResponsesApi ? liveOutputStream : undefined,
             resolveAssetContentPath: runtimeParams.resolveAssetContentPath,
             threadOptions: {
               model,

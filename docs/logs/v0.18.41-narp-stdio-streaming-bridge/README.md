@@ -38,6 +38,18 @@
   - Codex SDK NCP mapper 撤销摘要化 workaround，只负责原样协议映射。
   - `integrating-narp-stdio-runtime` skill 增补规则：遇到无空格 reasoning 必须定位第一个错误 hop，禁止在 mapper 统一改写成高层摘要。
 
+### 2026-05-14 Codex bridge live output 修正
+
+- 修复 Codex + OpenAI-compatible bridge 下 thinking 与普通正文仍然非实时流式的问题。
+- 根因确认：
+  - 延迟上游每 450ms 返回一次 `reasoning_content` / `content` delta。
+  - bridge 自身实时写出 Responses SSE，但 Codex SDK 对 bridged `reasoning` 和 `message` item 暴露的是完成态快照，NCP runtime 因此在约 2.1s 后一次性收到完整 thinking/text。
+  - 这不是 UI 渲染问题，也不是只影响 reasoning；普通正文同样被 Codex SDK 聚合。
+- 修复方式：
+  - 新增 `CodexLiveOutputStream`，由 bridge 在同进程内把上游 reasoning/text delta 旁路推给 Codex NCP runtime。
+  - NCP runtime 同时消费 Codex SDK 事件与 live output stream；live 通道开始后，抑制 Codex SDK 完成态 reasoning/text item，避免重复输出。
+  - Codex NARP stdio wrapper 与 Codex plugin bridge 路径都接入同一 live output stream。
+
 ## 测试/验证/验收方式
 
 - TypeScript:
@@ -80,6 +92,13 @@
   - MiniMax 真实模型 NCP runtime：`message.reasoning-delta` 非空且保留空白，最终文本 `391`。
   - 发布后安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.6`，依赖闭包解析到 SDK `0.1.29`、插件 `0.1.63`。
   - 发布后 MiniMax NCP runtime 冒烟：`message.reasoning-delta` 非空且保留空白，最终文本 `391`。
+- 2026-05-14 Codex bridge live output 修正验证：
+  - 复现：延迟 fake upstream 每 450ms 输出三段 reasoning 和三段 text；修复前 NCP runtime 在约 `2169ms` 一次性输出完整 `message.reasoning-delta` 与 `message.text-delta`。
+  - 修复后 runtime 层验收：reasoning delta 分别在约 `452ms / 902ms / 1354ms` 到达；text delta 分别在约 `1806ms / 2258ms / 2711ms` 按 `3`、`9`、`1` 到达。
+  - Unit：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk test`，新增 live output stream 顺序测试，并覆盖 Codex event iterator 先结束时 live text 不被截断。
+  - TypeScript：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk tsc`。
+  - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk build`。
+  - MiniMax 真实模型 live 冒烟：NCP runtime 收到多段 live `message.reasoning-delta` 与最终 `message.text-delta`，内容包含 `391`。
 - Governance:
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
@@ -112,6 +131,7 @@
 - 剩余 warning 主要是若干文件接近 400 行预算，以及 Claude/Codex stream writer 属于协议状态机集中承载点；后续若继续扩展 tool/reasoning 事件，应优先拆成更小的 writer/parser 子 owner。
 - 2026-05-14 raw reasoning 修正属于非功能 bugfix：生产代码通过删除 Codex raw reasoning 映射分支净减 10 行，用户可见行为更可预测，测试增量集中在 mapper owner，没有增加新的 runtime fallback 或 provider 特判。
 - 2026-05-14 空白保留修正属于非功能 bugfix：生产代码删除 mapper 摘要 workaround，并把真正修复收敛到 bridge delta 解析 owner；非测试代码 `+45 / -65 / net -20`，没有新增 provider 特判或 runtime fallback。
+- 2026-05-14 live output 修正属于用户可见运行链路 bugfix：新增 live output stream owner，把 bridge 已有实时 SSE 转化为 NCP runtime 的实时用户表面事件；没有修改通用 NARP stdio client，也没有在 UI 层做假流式。
 
 ## NPM 包发布记录
 
@@ -132,3 +152,7 @@
   - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.63`：已发布。
   - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.6`：已发布。
   - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
+- 2026-05-14 Codex bridge live output 修正：
+  - `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.30`：待发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.64`：待发布。
+  - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`：待发布。

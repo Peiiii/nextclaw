@@ -40,10 +40,19 @@ type ToolCallStreamState = {
   argumentsText: string;
 };
 
+export type CodexOpenAiResponsesOutputObserver = {
+  onDone: () => void;
+  onReasoningDelta: (delta: string) => void;
+  onReasoningDone: () => void;
+  onTextDelta: (delta: string) => void;
+  onTextDone: () => void;
+};
+
 export async function writeResponsesUpstreamStream(params: {
   response: ServerResponse;
   responseId: string;
   model: string;
+  outputObserver?: CodexOpenAiResponsesOutputObserver;
   upstreamResponse: Response;
 }): Promise<void> {
   await new CodexResponsesOpenAiStreamWriter(params).write();
@@ -63,6 +72,7 @@ class CodexResponsesOpenAiStreamWriter {
       response: ServerResponse;
       responseId: string;
       model: string;
+      outputObserver?: CodexOpenAiResponsesOutputObserver;
       upstreamResponse: Response;
     },
   ) {}
@@ -77,6 +87,7 @@ class CodexResponsesOpenAiStreamWriter {
     this.finishText();
     this.finishToolCalls();
     this.writeCompletedEvent();
+    this.params.outputObserver?.onDone();
     this.params.response.end();
   };
 
@@ -221,6 +232,7 @@ class CodexResponsesOpenAiStreamWriter {
     }
     const state = this.ensureReasoningState();
     state.text += reasoningDelta;
+    this.params.outputObserver?.onReasoningDelta(reasoningDelta);
     this.writeEvent("response.reasoning_summary_text.delta", {
       type: "response.reasoning_summary_text.delta",
       output_index: state.outputIndex,
@@ -243,6 +255,7 @@ class CodexResponsesOpenAiStreamWriter {
     }
     const state = this.ensureTextState();
     state.text += textDelta;
+    this.params.outputObserver?.onTextDelta(textDelta);
     this.writeEvent("response.output_text.delta", {
       type: "response.output_text.delta",
       output_index: state.outputIndex,
@@ -308,6 +321,7 @@ class CodexResponsesOpenAiStreamWriter {
       output_index: this.reasoningState.outputIndex,
       item,
     });
+    this.params.outputObserver?.onReasoningDone();
   };
 
   private finishText = (): void => {
@@ -341,6 +355,7 @@ class CodexResponsesOpenAiStreamWriter {
       output_index: this.textState.outputIndex,
       item,
     });
+    this.params.outputObserver?.onTextDone();
   };
 
   private finishToolCalls = (): void => {

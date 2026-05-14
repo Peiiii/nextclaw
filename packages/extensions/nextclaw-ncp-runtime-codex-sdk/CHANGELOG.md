@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.30
+
+### Patch Changes
+
+- Stream bridged Codex reasoning and assistant text deltas live from the OpenAI-compatible bridge instead of waiting for Codex SDK completed item snapshots.
+
 ## 0.1.29
 
 ### Patch Changes

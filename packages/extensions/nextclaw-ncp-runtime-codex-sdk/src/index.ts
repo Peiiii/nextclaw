@@ -6,9 +6,13 @@ import {
   type NcpAgentRunOptions,
   type NcpAgentRuntime,
   type NcpEndpointEvent,
-  NcpEventType,
 } from "@nextclaw/ncp";
-import { buildCompletedAssistantMessage } from "./completed-assistant-message.utils.js";
+import type {
+  CodexLiveOutputChannel,
+  CodexLiveOutputStream,
+} from "./services/codex-live-output-stream.service.js";
+import { CodexLiveOutputEventMergeService } from "./services/codex-live-output-event-merge.service.js";
+import { CodexNcpRunEventEmitter } from "./services/codex-ncp-run-event-emitter.service.js";
 import {
   type ItemTextSnapshot,
   mapCodexItemEvent,
@@ -22,6 +26,11 @@ import {
 } from "./codex-input.utils.js";
 export { buildCodexInputBuilder } from "./codex-input.utils.js";
 export type { CodexAssetContentPathResolver } from "./codex-input.utils.js";
+export { CodexLiveOutputStream } from "./services/codex-live-output-stream.service.js";
+export type {
+  CodexLiveOutputChannel,
+  CodexLiveOutputEvent,
+} from "./services/codex-live-output-stream.service.js";
 
 type CodexCtor = new (options: CodexOptions) => CodexClient;
 
@@ -45,6 +54,7 @@ export type CodexSdkNcpAgentRuntimeConfig = {
   sessionMetadata?: Record<string, unknown>;
   setSessionMetadata?: (nextMetadata: Record<string, unknown>) => void;
   inputBuilder?: (input: NcpAgentRunInput) => Promise<CodexThreadInput> | CodexThreadInput;
+  liveOutputStream?: CodexLiveOutputStream;
   resolveAssetContentPath?: CodexAssetContentPathResolver;
   stateManager?: NcpAgentConversationStateManager;
 };
@@ -82,11 +92,14 @@ function isItemLifecycleEvent(
 
 export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
   private codexPromise: Promise<CodexClient> | null = null;
+  private readonly eventEmitter: CodexNcpRunEventEmitter;
+  private readonly liveOutputEventMergeService = new CodexLiveOutputEventMergeService();
   private thread: Thread | null = null;
   private threadId: string | null;
   private readonly sessionMetadata: Record<string, unknown>;
 
   constructor(private readonly config: CodexSdkNcpAgentRuntimeConfig) {
+    this.eventEmitter = new CodexNcpRunEventEmitter(config.stateManager);
     this.threadId = config.threadId?.trim() || null;
     this.sessionMetadata = {
       ...(config.sessionMetadata ? structuredClone(config.sessionMetadata) : {}),
@@ -98,18 +111,20 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     input: NcpAgentRunInput,
     options?: NcpAgentRunOptions,
   ): AsyncGenerator<NcpEndpointEvent> {
+    const signal = options?.signal;
     const messageId = createId("codex-message");
     const runId = createId("codex-run");
     const itemTextById = new Map<string, ItemTextSnapshot>();
     const toolStateById = new Map<string, ToolSnapshot>();
 
-    yield* this.emitRunStarted(input.sessionId, messageId, runId);
-    yield* this.emitReadyMetadata(input.sessionId, messageId, runId);
+    yield* this.eventEmitter.emitRunStarted(input.sessionId, messageId, runId);
+    yield* this.eventEmitter.emitReadyMetadata(input.sessionId, messageId, runId);
 
     const thread = await this.resolveThread();
     const turnInput = await this.buildTurnInput(input);
+    this.config.liveOutputStream?.reset();
     const streamed = await thread.runStreamed(turnInput, {
-      ...(options?.signal ? { signal: options.signal } : {}),
+      ...(signal ? { signal } : {}),
     });
 
     try {
@@ -118,13 +133,13 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
         messageId,
         runId,
         streamed,
-        signal: options?.signal,
+        signal,
         itemTextById,
         toolStateById,
       });
     } catch (error) {
-      if (options?.signal?.aborted) {
-        throw toAbortError(options.signal.reason);
+      if (signal?.aborted) {
+        throw toAbortError(signal.reason);
       }
       throw error;
     }
@@ -169,109 +184,6 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     });
   };
 
-  private emitEvent = async function* (
-    this: CodexSdkNcpAgentRuntime,
-    event: NcpEndpointEvent,
-  ): AsyncGenerator<NcpEndpointEvent> {
-    await this.config.stateManager?.dispatch(event);
-    yield event;
-  };
-
-  private emitRunStarted = async function* (
-    this: CodexSdkNcpAgentRuntime,
-    sessionId: string,
-    messageId: string,
-    runId: string,
-  ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
-      type: NcpEventType.RunStarted,
-      payload: {
-        sessionId,
-        messageId,
-        runId,
-      },
-    });
-  };
-
-  private emitReadyMetadata = async function* (
-    this: CodexSdkNcpAgentRuntime,
-    sessionId: string,
-    messageId: string,
-    runId: string,
-  ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
-      type: NcpEventType.RunMetadata,
-      payload: {
-        sessionId,
-        messageId,
-        runId,
-        metadata: {
-          kind: "ready",
-          runId,
-          sessionId,
-          supportsAbort: true,
-        },
-      },
-    });
-  };
-
-  private emitRunError = async function* (
-    this: CodexSdkNcpAgentRuntime,
-    sessionId: string,
-    messageId: string,
-    runId: string,
-    error: string,
-  ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
-      type: NcpEventType.RunError,
-      payload: {
-        sessionId,
-        messageId,
-        runId,
-        error,
-      },
-    });
-  };
-
-  private emitRunCompleted = async function* (
-    this: CodexSdkNcpAgentRuntime,
-    sessionId: string,
-    messageId: string,
-    runId: string,
-  ): AsyncGenerator<NcpEndpointEvent> {
-    yield* this.emitEvent({
-      type: NcpEventType.RunMetadata,
-      payload: {
-        sessionId,
-        messageId,
-        runId,
-        metadata: {
-          kind: "final",
-          sessionId,
-        },
-      },
-    });
-    yield* this.emitEvent({
-      type: NcpEventType.MessageCompleted,
-      payload: {
-        sessionId,
-        message: buildCompletedAssistantMessage({
-          stateManager: this.config.stateManager,
-          sessionId,
-          messageId,
-        }),
-      },
-    });
-    yield* this.emitEvent({
-      type: NcpEventType.RunFinished,
-      payload: {
-        sessionId,
-        messageId,
-        runId,
-      },
-    });
-  };
-
   private streamTurnEvents = async function* (
     this: CodexSdkNcpAgentRuntime,
     params: {
@@ -284,16 +196,31 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       toolStateById: Map<string, ToolSnapshot>;
     },
   ): AsyncGenerator<NcpEndpointEvent> {
+    const { itemTextById, messageId, runId, sessionId, signal, streamed, toolStateById } =
+      params;
+    const liveOutputStream = this.config.liveOutputStream;
+    if (liveOutputStream) {
+      yield* this.liveOutputEventMergeService.stream({
+        ...params,
+        liveOutputStream,
+        emitEvent: (event) => this.eventEmitter.emitEvent(event),
+        emitRunCompleted: (sessionId, messageId, runId) =>
+          this.eventEmitter.emitRunCompleted(sessionId, messageId, runId),
+        handleThreadEvent: (handlerParams) => this.handleThreadEvent(handlerParams),
+      });
+      return;
+    }
+
     let finished = false;
-    for await (const event of params.streamed.events) {
+    for await (const event of streamed.events) {
       const shouldFinish = yield* this.handleThreadEvent({
-        sessionId: params.sessionId,
-        messageId: params.messageId,
-        runId: params.runId,
+        sessionId,
+        messageId,
+        runId,
         event,
-        signal: params.signal,
-        itemTextById: params.itemTextById,
-        toolStateById: params.toolStateById,
+        signal,
+        itemTextById,
+        toolStateById,
       });
       if (shouldFinish) {
         finished = true;
@@ -302,7 +229,7 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
     }
 
     if (!finished) {
-      yield* this.emitRunCompleted(params.sessionId, params.messageId, params.runId);
+      yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
     }
   };
 
@@ -315,53 +242,73 @@ export class CodexSdkNcpAgentRuntime implements NcpAgentRuntime {
       event: Awaited<ReturnType<Thread["runStreamed"]>>["events"] extends AsyncGenerator<infer T> ? T : never;
       signal?: AbortSignal;
       itemTextById: Map<string, ItemTextSnapshot>;
+      suppressLiveChannels?: Set<CodexLiveOutputChannel>;
       toolStateById: Map<string, ToolSnapshot>;
     },
   ): AsyncGenerator<NcpEndpointEvent, boolean> {
-    if (params.signal?.aborted) {
-      throw toAbortError(params.signal.reason);
+    const {
+      event,
+      itemTextById,
+      messageId,
+      runId,
+      sessionId,
+      signal,
+      suppressLiveChannels,
+      toolStateById,
+    } = params;
+    if (signal?.aborted) {
+      throw toAbortError(signal.reason);
     }
 
-    if (params.event.type === "thread.started") {
-      this.updateThreadId(params.event.thread_id);
+    if (event.type === "thread.started") {
+      this.updateThreadId(event.thread_id);
       return false;
     }
 
-    if (params.event.type === "turn.failed") {
-      yield* this.emitRunError(
-        params.sessionId,
-        params.messageId,
-        params.runId,
-        params.event.error.message,
+    if (event.type === "turn.failed") {
+      yield* this.eventEmitter.emitRunError(
+        sessionId,
+        messageId,
+        runId,
+        event.error.message,
       );
       return true;
     }
 
-    if (params.event.type === "error") {
-      yield* this.emitRunError(
-        params.sessionId,
-        params.messageId,
-        params.runId,
-        params.event.message,
+    if (event.type === "error") {
+      yield* this.eventEmitter.emitRunError(
+        sessionId,
+        messageId,
+        runId,
+        event.message,
       );
       return true;
     }
 
-    if (isItemLifecycleEvent(params.event)) {
+    if (isItemLifecycleEvent(event)) {
+      const suppressedChannel =
+        event.item.type === "agent_message"
+          ? "text"
+          : event.item.type === "reasoning"
+            ? "reasoning"
+            : null;
+      if (suppressedChannel && suppressLiveChannels?.has(suppressedChannel)) {
+        return false;
+      }
       for await (const mappedEvent of mapCodexItemEvent({
-        sessionId: params.sessionId,
-        messageId: params.messageId,
-        event: params.event,
-        itemTextById: params.itemTextById,
-        toolStateById: params.toolStateById,
+        sessionId,
+        messageId,
+        event,
+        itemTextById,
+        toolStateById,
       })) {
-        yield* this.emitEvent(mappedEvent);
+        yield* this.eventEmitter.emitEvent(mappedEvent);
       }
       return false;
     }
 
-    if (params.event.type === "turn.completed") {
-      yield* this.emitRunCompleted(params.sessionId, params.messageId, params.runId);
+    if (event.type === "turn.completed") {
+      yield* this.eventEmitter.emitRunCompleted(sessionId, messageId, runId);
       return true;
     }
 

@@ -5,6 +5,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"]
     }
   },

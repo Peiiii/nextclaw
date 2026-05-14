@@ -16,8 +16,13 @@ import {
   type CodexOpenAiResponsesBridgeConfig,
   type CodexOpenAiResponsesBridgeResult,
 } from "@codex-plugin-sdk/codex-openai-responses-bridge-shared.utils.js";
+import type { CodexOpenAiResponsesOutputObserver } from "./codex-openai-responses-stream-writer.utils.js";
 
 const bridgeCache = new Map<string, BridgeEntry>();
+
+export type CodexOpenAiResponsesBridgeRuntimeConfig = CodexOpenAiResponsesBridgeConfig & {
+  outputObserver?: CodexOpenAiResponsesOutputObserver;
+};
 
 function toBridgeCacheKey(config: CodexOpenAiResponsesBridgeConfig): string {
   return JSON.stringify({
@@ -49,7 +54,7 @@ async function readJsonBody(request: IncomingMessage): Promise<Record<string, un
 async function handleResponsesRequest(
   request: IncomingMessage,
   response: ServerResponse,
-  config: CodexOpenAiResponsesBridgeConfig,
+  config: CodexOpenAiResponsesBridgeRuntimeConfig,
 ): Promise<void> {
   await new CodexResponsesBridgeRequestHandler(request, response, config).handle();
 }
@@ -70,7 +75,7 @@ class CodexResponsesBridgeRequestHandler {
   constructor(
     private readonly request: IncomingMessage,
     private readonly response: ServerResponse,
-    private readonly config: CodexOpenAiResponsesBridgeConfig,
+    private readonly config: CodexOpenAiResponsesBridgeRuntimeConfig,
   ) {
     this.jsonWriter = new JsonResponseWriter(response);
   }
@@ -114,6 +119,7 @@ class CodexResponsesBridgeRequestHandler {
       response: this.response,
       responseId,
       model: upstream.model,
+      outputObserver: this.config.outputObserver,
       upstreamResponse,
     });
   };
@@ -143,7 +149,7 @@ class CodexResponsesBridgeRequestHandler {
 }
 
 async function createCodexOpenAiResponsesBridge(
-  config: CodexOpenAiResponsesBridgeConfig,
+  config: CodexOpenAiResponsesBridgeRuntimeConfig,
 ): Promise<CodexOpenAiResponsesBridgeResult> {
   const server = createServer((request, response) => {
     const pathname = request.url
@@ -180,8 +186,12 @@ async function createCodexOpenAiResponsesBridge(
 }
 
 export async function ensureCodexOpenAiResponsesBridge(
-  config: CodexOpenAiResponsesBridgeConfig,
+  config: CodexOpenAiResponsesBridgeRuntimeConfig,
 ): Promise<CodexOpenAiResponsesBridgeResult> {
+  if (config.outputObserver) {
+    return await createCodexOpenAiResponsesBridge(config);
+  }
+
   const key = toBridgeCacheKey(config);
   const existing = bridgeCache.get(key);
   if (existing) {

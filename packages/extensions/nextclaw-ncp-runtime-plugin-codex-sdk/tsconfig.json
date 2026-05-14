@@ -5,6 +5,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
+      "@/*": ["../nextclaw-ncp-runtime-codex-sdk/src/*"],
       "@codex-plugin-sdk/*": ["src/*"],
       "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
       "@nextclaw/ncp-toolkit": ["../../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"],

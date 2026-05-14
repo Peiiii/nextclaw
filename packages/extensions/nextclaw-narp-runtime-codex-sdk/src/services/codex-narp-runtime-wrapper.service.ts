@@ -9,14 +9,15 @@ import {
   type NarpStdioRuntimeWrapperContext,
 } from "@nextclaw/nextclaw-narp-stdio-runtime-wrapper";
 import {
+  CodexLiveOutputStream,
   CodexSdkNcpAgentRuntime,
   type CodexSdkNcpAgentRuntimeConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-codex-sdk";
 import {
   buildCodexBridgeModelProviderId,
   ensureCodexOpenAiResponsesBridge,
-  type CodexOpenAiResponsesBridgeConfig,
   type CodexOpenAiResponsesBridgeResult,
+  type CodexOpenAiResponsesBridgeRuntimeConfig,
 } from "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk";
 
 const NARP_API_MODE_HEADER = "x-nextclaw-narp-api-mode";
@@ -26,7 +27,7 @@ export type CodexNarpRuntimeFactory = (
 ) => NcpAgentRuntime;
 
 export type CodexResponsesBridgeFactory = (
-  config: CodexOpenAiResponsesBridgeConfig,
+  config: CodexOpenAiResponsesBridgeRuntimeConfig,
 ) => Promise<CodexOpenAiResponsesBridgeResult>;
 
 type CodexReasoningEffort = "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -140,12 +141,14 @@ export class CodexNarpRuntimeWrapper {
       })
         ? buildCodexBridgeModelProviderId(externalModelProvider ?? "chat")
         : undefined;
+    const liveOutputStream = new CodexLiveOutputStream();
     const bridge = bridgeModelProvider
       ? await this.ensureResponsesBridge({
           upstreamApiBase: upstreamApiBase ?? "",
           upstreamApiKey: apiKey,
           upstreamExtraHeaders: stripInternalRouteHeaders(upstreamExtraHeaders),
           defaultModel: providerLocalModel,
+          outputObserver: liveOutputStream,
           upstreamReasoningSplit: isMiniMaxApiBase(upstreamApiBase ?? ""),
           modelPrefixes: [
             externalModelProvider ?? "",
@@ -176,6 +179,7 @@ export class CodexNarpRuntimeWrapper {
       threadId: readString(sessionMetadata.codex_thread_id) ?? null,
       ...(codexPathOverride ? { codexPathOverride } : {}),
       sessionMetadata,
+      liveOutputStream: bridge ? liveOutputStream : undefined,
       cliConfig: buildCodexCliConfig({
         apiBase,
         modelProvider,
