@@ -13,6 +13,7 @@ import { DesktopRuntimeControlService } from "./services/desktop-runtime-control
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
+import { DesktopShellThemeService } from "./services/desktop-shell-theme.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
   createDesktopLogger,
@@ -20,8 +21,10 @@ import {
   logDesktopMainEntryLoaded
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
+import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
 const logger = createDesktopLogger();
+
 installDesktopProcessErrorLogging(logger);
 logDesktopMainEntryLoaded(logger);
 class DesktopApplication {
@@ -73,6 +76,7 @@ class DesktopApplication {
     await app.whenReady();
     await this.ensureUpdateSourceService().ensureStateChannelInitialized();
     this.ensureDesktopRuntimeControlService().registerIpcHandlers();
+    new DesktopShellThemeService({ getWindow: () => this.window }).registerIpcHandlers();
     this.ensureDesktopPresenceService().registerIpcHandlers();
     this.ensureDesktopUpdateShell().registerIpcHandlers();
     this.ensureDesktopUpdateShell().installApplicationMenu();
@@ -369,19 +373,7 @@ class DesktopApplication {
   };
 
   private createWindow = (): BrowserWindow => {
-    const window = new BrowserWindow({
-      width: 1360,
-      height: 920,
-      minWidth: 1080,
-      minHeight: 720,
-      title: "NextClaw Desktop",
-      webPreferences: {
-        preload: join(__dirname, "preload.js"),
-        nodeIntegration: false,
-        contextIsolation: true,
-        sandbox: false
-      }
-    });
+    const window = new BrowserWindow(createDesktopWindowOptions(join(__dirname, "preload.js")));
     attachWindowDiagnostics(window, logger);
     window.on("close", (event) => {
       this.ensureDesktopPresenceService().handleWindowClose(event);

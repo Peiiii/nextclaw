@@ -38,6 +38,7 @@ const PRUNE_BASENAMES = new Set([
   "readme.md"
 ]);
 const PRUNE_DIR_NAMES = new Set(["__tests__", "__mocks__", "benchmark", "benchmarks", "coverage", "docs", "doc", "example", "examples", "test", "tests", "website"]);
+const PRUNE_PACKAGE_NAMES = new Set(["electron"]);
 
 function parseArgs(argv) {
   const args = {};
@@ -175,6 +176,9 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
   const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
   const entryName = entry.name.toLowerCase();
   if (entry.isDirectory()) {
+    if (pathSegments.length === 1 && PRUNE_PACKAGE_NAMES.has(entryName)) {
+      return true;
+    }
     if (!PRUNE_DIR_NAMES.has(entryName)) {
       return false;
     }
@@ -184,6 +188,9 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
     return pathSegments.length === 2;
   }
   if (PRUNE_BASENAMES.has(entryName)) {
+    return true;
+  }
+  if (pathSegments[0] === ".bin" && entryName.startsWith("electron")) {
     return true;
   }
   return PRUNE_SUFFIXES.some((suffix) => entryName.endsWith(suffix));

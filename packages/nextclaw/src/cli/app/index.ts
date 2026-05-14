@@ -4,7 +4,6 @@ import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { registerRemoteCommands } from "@nextclaw/remote";
 import { NextclawDistributionService, NextclawServiceRuntime } from "@nextclaw/service";
 import { registerAgentsCommands } from "./register-agents-commands.js";
-import { registerCompanionCommands } from "./register-companion-commands.js";
 import { registerLearningLoopCommands } from "./register-learning-loop-commands.js";
 import { registerSkillsCommands } from "./register-skills-commands.js";
 import { registerHostServiceControls } from "./service-command-registration.utils.js";
@@ -109,8 +108,6 @@ program
   .command("stop")
   .description(`Stop the ${APP_NAME} background service`)
   .action(async () => runtime.commands.stop.run());
-
-registerCompanionCommands(program, runtime);
 
 registerHostServiceControls({
   program,

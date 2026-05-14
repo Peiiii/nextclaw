@@ -61,6 +61,7 @@ const RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES = new Set([
   "tests",
   "website"
 ]);
+const RUNTIME_NODE_MODULES_PRUNE_PACKAGE_NAMES = new Set(["electron"]);
 
 function parseArgs(argv) {
   const args = {};
@@ -151,6 +152,9 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
   const pathSegments = normalizedRelativePath.split("/").filter(Boolean);
   const basename = entry.name.toLowerCase();
   if (entry.isDirectory()) {
+    if (pathSegments.length === 1 && RUNTIME_NODE_MODULES_PRUNE_PACKAGE_NAMES.has(basename)) {
+      return true;
+    }
     if (!RUNTIME_NODE_MODULES_PRUNE_DIR_NAMES.has(basename)) {
       return false;
     }
@@ -160,6 +164,9 @@ function shouldPruneRuntimeNodeModulesEntry(relativePath, entry) {
     return pathSegments.length === 2;
   }
   if (RUNTIME_NODE_MODULES_PRUNE_BASENAMES.has(basename)) {
+    return true;
+  }
+  if (pathSegments[0] === ".bin" && basename.startsWith("electron")) {
     return true;
   }
   if (RUNTIME_NODE_MODULES_PRUNE_SUFFIXES.some((suffix) => basename.endsWith(suffix))) {

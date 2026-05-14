@@ -12,6 +12,7 @@ import {
   DESKTOP_LOCALE_SET_CHANNEL,
   DESKTOP_RUNTIME_RESTART_APP_CHANNEL,
   DESKTOP_RUNTIME_RESTART_SERVICE_CHANNEL,
+  DESKTOP_SHELL_THEME_SET_CHANNEL,
   DESKTOP_UPDATES_APPLY_CHANNEL,
   DESKTOP_UPDATES_CHECK_CHANNEL,
   DESKTOP_UPDATES_DOWNLOAD_CHANNEL,
@@ -61,6 +62,9 @@ contextBridge.exposeInMainWorld("nextclawDesktop", {
     await ipcRenderer.invoke(DESKTOP_PRESENCE_UPDATE_PREFERENCES_CHANNEL, preferences),
   setLocalePreference: async (language: DesktopUiLanguagePreference | null): Promise<DesktopUiLanguagePreference | null> =>
     await ipcRenderer.invoke(DESKTOP_LOCALE_SET_CHANNEL, language),
+  setShellTheme: async (theme: "warm" | "cool"): Promise<void> => {
+    await ipcRenderer.invoke(DESKTOP_SHELL_THEME_SET_CHANNEL, theme);
+  },
   onUpdateStateChanged: (listener: (snapshot: DesktopUpdateSnapshot) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, snapshot: DesktopUpdateSnapshot) => {
       listener(snapshot);

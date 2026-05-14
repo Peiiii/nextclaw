@@ -14,6 +14,17 @@ import {
 
 const require = createRequire(import.meta.url);
 
+class CompanionUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CompanionUnavailableError";
+  }
+}
+
+function isCompanionUnavailableError(error: unknown): error is CompanionUnavailableError {
+  return error instanceof CompanionUnavailableError;
+}
+
 export class CompanionRuntimeService {
   constructor(
     private readonly runtimeStore: CompanionRuntimeStore = companionRuntimeStore,
@@ -36,12 +47,24 @@ export class CompanionRuntimeService {
     return this.uiDiscoveryService.resolveApiBase();
   };
 
+  readonly isAvailable = (): boolean => {
+    try {
+      this.resolveLaunchSpec();
+      return true;
+    } catch (error) {
+      if (isCompanionUnavailableError(error)) {
+        return false;
+      }
+      throw error;
+    }
+  };
+
   readonly applyConfig = async (config: Config): Promise<void> => {
     if (!config.companion.enabled) {
       await this.ensureStopped();
       return;
     }
-    await this.ensureStarted({
+    await this.ensureStartedIfAvailable({
       baseUrl: this.uiDiscoveryService.resolveLocalOrigin(config)
     });
   };
@@ -60,12 +83,12 @@ export class CompanionRuntimeService {
     if (enabled) {
       const explicitBaseUrl = options.baseUrl?.trim();
       if (explicitBaseUrl) {
-        await this.ensureStarted({ baseUrl: explicitBaseUrl });
+        await this.ensureStartedIfAvailable({ baseUrl: explicitBaseUrl });
         return next;
       }
       const discoveredBaseUrl = this.uiDiscoveryService.resolveApiBase();
       if (discoveredBaseUrl) {
-        await this.ensureStarted({ baseUrl: discoveredBaseUrl });
+        await this.ensureStartedIfAvailable({ baseUrl: discoveredBaseUrl });
       }
       return next;
     }
@@ -151,12 +174,35 @@ export class CompanionRuntimeService {
     process.kill(pid, force ? "SIGKILL" : "SIGTERM");
   };
 
+  private readonly ensureStartedIfAvailable = async (
+    options: { baseUrl: string }
+  ): Promise<CompanionRuntimeState | null> => {
+    try {
+      return await this.ensureStarted(options);
+    } catch (error) {
+      if (!isCompanionUnavailableError(error)) {
+        throw error;
+      }
+      console.warn(error.message);
+      return null;
+    }
+  };
+
   private readonly resolveLaunchSpec = (): { command: string; args: string[] } => {
-    const packageJsonPath = require.resolve("@nextclaw/companion/package.json");
+    let packageJsonPath: string;
+    try {
+      packageJsonPath = require.resolve("@nextclaw/companion/package.json");
+    } catch {
+      throw new CompanionUnavailableError(
+        "@nextclaw/companion is not installed. Install it separately to use the companion shell."
+      );
+    }
     const packageRoot = dirname(packageJsonPath);
     const mainPath = resolve(packageRoot, "dist", "src", "main.js");
     if (!existsSync(mainPath)) {
-      throw new Error(`Companion app build is missing at ${mainPath}. Build @nextclaw/companion first.`);
+      throw new CompanionUnavailableError(
+        `Companion app build is missing at ${mainPath}. Install or build @nextclaw/companion separately to use the companion shell.`
+      );
     }
     const companionRequire = createRequire(packageJsonPath);
     const electronBinary = companionRequire("electron") as string;

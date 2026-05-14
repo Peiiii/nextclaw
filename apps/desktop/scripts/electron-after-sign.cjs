@@ -1,8 +1,32 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFile } = require("node:child_process");
+const { promisify } = require("node:util");
 const { notarize } = require("@electron/notarize");
+const { signAsync } = require("@electron/osx-sign");
+
+const execFileAsync = promisify(execFile);
+
+function collectNestedAppPaths(rootPath) {
+  const results = [];
+  const visit = (currentPath) => {
+    const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const entryPath = path.join(currentPath, entry.name);
+      if (entry.name.endsWith(".app")) {
+        results.push(entryPath);
+        continue;
+      }
+      visit(entryPath);
+    }
+  };
+  visit(rootPath);
+  return results.sort((left, right) => right.split(path.sep).length - left.split(path.sep).length);
+}
 
 function resolveAppleApiKeyFile() {
   const keyPathFromEnv = (process.env.APPLE_API_KEY_PATH || "").trim();
@@ -32,24 +56,9 @@ function resolveAppleApiKeyFile() {
   return { keyPath: rawValue, cleanup: null };
 }
 
-function readCodesignDetails(appPath) {
+async function verifyBundleSignature(appPath) {
   try {
-    return execFileSync("codesign", ["-dv", "--verbose=4", appPath], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-  } catch (error) {
-    const stdout = typeof error?.stdout === "string" ? error.stdout : "";
-    const stderr = typeof error?.stderr === "string" ? error.stderr : "";
-    return `${stdout}${stderr}`.trim();
-  }
-}
-
-function verifyBundleSignature(appPath) {
-  try {
-    execFileSync("codesign", ["--verify", "--deep", "--strict", "--verbose=4", appPath], {
-      stdio: ["ignore", "pipe", "pipe"]
-    });
+    await execFileAsync("codesign", ["--verify", "--deep", "--strict", "--verbose=4", appPath]);
     return { ok: true, output: "" };
   } catch (error) {
     const stdout = typeof error?.stdout === "string" ? error.stdout : "";
@@ -61,35 +70,56 @@ function verifyBundleSignature(appPath) {
   }
 }
 
-function ensureUsableMacBundleSignature(appPath) {
-  const verification = verifyBundleSignature(appPath);
-  const details = readCodesignDetails(appPath);
-  const looksIncompleteAdhoc =
-    details.includes("Signature=adhoc")
-    || details.includes("TeamIdentifier=not set")
-    || details.includes("Sealed Resources=none")
-    || details.includes("Info.plist=not bound");
+async function ensureUsableMacBundleSignature(appPath) {
+  const verification = await verifyBundleSignature(appPath);
 
-  if (verification.ok && !looksIncompleteAdhoc) {
+  if (verification.ok) {
     console.log("[desktop-after-sign] keeping existing macOS bundle signature.");
     return;
   }
 
-  if (!verification.ok) {
-    console.warn(
-      `[desktop-after-sign] bundle signature verification failed; rebuilding adhoc signature.\n${verification.output}`
-    );
-  } else {
-    console.warn(
-      "[desktop-after-sign] bundle only has a partial/adhoc executable signature; rebuilding full adhoc bundle signature."
-    );
-  }
+  console.warn(
+    `[desktop-after-sign] bundle signature verification failed; rebuilding Electron adhoc signature.\n${verification.output}`
+  );
 
-  execFileSync("codesign", ["--force", "--deep", "--sign", "-", "--timestamp=none", appPath], {
-    stdio: "inherit"
+  const identity = "-";
+  console.warn(`[desktop-after-sign] signing macOS bundle with identity: ${identity}`);
+
+  await signAsync({
+    app: appPath,
+    identity,
+    identityValidation: false,
+    platform: "darwin",
+    type: "development",
+    hardenedRuntime: false,
+    preAutoEntitlements: false,
+    preEmbedProvisioningProfile: false
   });
 
-  const repaired = verifyBundleSignature(appPath);
+  const entitlementsPath = path.join(__dirname, "../build/entitlements.mac.plist");
+  const inheritEntitlementsPath = path.join(__dirname, "../build/entitlements.mac.inherit.plist");
+  for (const nestedAppPath of collectNestedAppPaths(path.join(appPath, "Contents", "Frameworks"))) {
+    await execFileAsync("codesign", [
+      "--force",
+      "--sign",
+      identity,
+      "--timestamp=none",
+      "--entitlements",
+      inheritEntitlementsPath,
+      nestedAppPath
+    ]);
+  }
+  await execFileAsync("codesign", [
+    "--force",
+    "--sign",
+    identity,
+    "--timestamp=none",
+    "--entitlements",
+    entitlementsPath,
+    appPath
+  ]);
+
+  const repaired = await verifyBundleSignature(appPath);
   if (!repaired.ok) {
     throw new Error(`failed to prepare usable macOS bundle signature:\n${repaired.output}`);
   }
@@ -114,7 +144,7 @@ module.exports = async (context) => {
     return;
   }
 
-  ensureUsableMacBundleSignature(appPath);
+  await ensureUsableMacBundleSignature(appPath);
 
   if (!appleApiKeyId || !appleApiIssuer || !appleApiKey) {
     console.warn(
