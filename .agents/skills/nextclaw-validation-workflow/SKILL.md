@@ -49,6 +49,7 @@ User-visible or runnable behavior:
 
 - run a smoke test close to the real workflow,
 - use a non-repo isolated location for smoke data when possible.
+- If a workspace UI/runtime package is consumed from source by another local app, package-level `tsc`/tests are not enough. Verify the consuming app path too, either by loading the app in the dev server or by directly requesting the transformed Vite `@fs` module for the touched source file. This catches alias/import-resolution failures that the edited package can miss.
 - If the user reported a specific local command, URL, endpoint, port, or desktop/dev entrypoint, run that exact path after the fix whenever it is safe; package tests or route-level substitutes are not enough to claim the user-visible issue is fixed.
 - If local dev falls back to a different port because the user's reported port is occupied, do not treat the fallback port as proof for the reported issue. Verify the reported port directly, or restart the stale local dev process and re-run the same user-facing path on the original port.
 

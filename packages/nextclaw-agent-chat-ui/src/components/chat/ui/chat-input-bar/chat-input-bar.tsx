@@ -51,12 +51,15 @@ export type ChatInputBarHandle = {
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(function ChatInputBar(props, ref) {
   const composerRef = useRef<ChatInputBarTokenizedComposerHandle | null>(null);
-  const [slashQuery, setSlashQuery] = useState<string | null>(null);
+  const isSlashMenuInteractionRef = useRef(false);
   const [activeSlashIndex, setActiveSlashIndex] = useState(0);
   const [activeSlashTriggerStart, setActiveSlashTriggerStart] = useState<number | null>(null);
   const [dismissedSlashTriggerStart, setDismissedSlashTriggerStart] = useState<number | null>(null);
   const isSlashPanelOpen = activeSlashTriggerStart !== null && dismissedSlashTriggerStart !== activeSlashTriggerStart;
   const activeSlashItem = props.slashMenu.items[activeSlashIndex] ?? null;
+  const dismissSlashTrigger = () => activeSlashTriggerStart !== null && !isSlashMenuInteractionRef.current
+    ? setDismissedSlashTriggerStart(activeSlashTriggerStart)
+    : undefined;
 
   useEffect(() => {
     setActiveSlashIndex((current) => {
@@ -66,12 +69,6 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
       return Math.min(current, props.slashMenu.items.length - 1);
     });
   }, [props.slashMenu.items.length]);
-
-  useEffect(() => {
-    if (slashQuery !== null) {
-      setActiveSlashIndex(0);
-    }
-  }, [slashQuery]);
 
   useEffect(() => {
     if (activeSlashTriggerStart === null && dismissedSlashTriggerStart !== null) {
@@ -118,16 +115,15 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
               onNodesChange={props.composer.onNodesChange}
               onFilesAdd={props.composer.onFilesAdd}
               onSlashQueryChange={(query) => {
-                setSlashQuery(query);
+                if (query === null && isSlashMenuInteractionRef.current) return;
+                if (query !== null) setActiveSlashIndex(0);
                 props.composer.onSlashQueryChange?.(query);
               }}
               onSlashTriggerChange={(trigger) => {
                 setActiveSlashTriggerStart(trigger?.start ?? null);
               }}
               onSlashOpenChange={(open) => {
-                if (!open && activeSlashTriggerStart !== null) {
-                  setDismissedSlashTriggerStart(activeSlashTriggerStart);
-                }
+                if (!open) dismissSlashTrigger();
               }}
               onSlashActiveIndexChange={setActiveSlashIndex}
             />
@@ -143,9 +139,11 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, ChatInputBarProps>(fu
                 composerRef.current?.insertSlashItem(item);
               }}
               onOpenChange={(open) => {
-                if (!open && activeSlashTriggerStart !== null) {
-                  setDismissedSlashTriggerStart(activeSlashTriggerStart);
-                }
+                if (!open) dismissSlashTrigger();
+              }}
+              onDetailsPointerDown={() => {
+                isSlashMenuInteractionRef.current = true;
+                requestAnimationFrame(() => { isSlashMenuInteractionRef.current = false; });
               }}
               onSetActiveIndex={setActiveSlashIndex}
             />

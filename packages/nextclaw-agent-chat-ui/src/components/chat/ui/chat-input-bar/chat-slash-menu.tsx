@@ -21,6 +21,7 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
     texts,
     onSelectItem,
     onOpenChange,
+    onDetailsPointerDown,
     onSetActiveIndex
   } = props;
 
@@ -98,7 +99,7 @@ export function ChatSlashMenu(props: ChatSlashMenuProps) {
               </>
             )}
           </div>
-          <div className="min-w-0 p-2.5">
+          <div className="min-w-0 p-2.5" onPointerDown={onDetailsPointerDown}>
             {activeItem ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2">

@@ -168,6 +168,7 @@ export type ChatSlashMenuProps = {
   >;
   onSelectItem: (item: ChatSlashItem) => void;
   onOpenChange: (open: boolean) => void;
+  onDetailsPointerDown?: () => void;
   onSetActiveIndex: (index: number) => void;
 };
 

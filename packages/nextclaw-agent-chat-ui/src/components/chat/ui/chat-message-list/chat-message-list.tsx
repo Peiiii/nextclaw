@@ -6,6 +6,48 @@ import { ChatMessageMeta } from './chat-message-meta';
 import { ChatMessageActionCopy } from './chat-message-action-copy';
 
 const INVISIBLE_ONLY_TEXT_PATTERN = /\u200B|\u200C|\u200D|\u2060|\uFEFF/g;
+const TYPING_TEXT_SHEEN_CSS = `
+@keyframes nextclaw-chat-typing-text-sheen {
+  0% {
+    background-position: 160% 0;
+  }
+  64% {
+    background-position: -60% 0;
+  }
+  100% {
+    background-position: -60% 0;
+  }
+}
+
+.nextclaw-chat-typing-indicator__text {
+  background-image: linear-gradient(
+    100deg,
+    #6b7280 0%,
+    #6b7280 34%,
+    #a6adba 43%,
+    #f8fafc 50%,
+    #a6adba 57%,
+    #6b7280 66%,
+    #6b7280 100%
+  );
+  background-size: 240% 100%;
+  background-position: 160% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: nextclaw-chat-typing-text-sheen 4.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nextclaw-chat-typing-indicator__text {
+    animation: none;
+    background-image: none;
+    color: #6b7280;
+    -webkit-text-fill-color: currentColor;
+  }
+}
+`;
 
 function hasRenderableText(value: string): boolean {
   const trimmed = value.trim();
@@ -32,6 +74,15 @@ function ChatMessageTypingFooter() {
         <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:200ms]"></div>
         <div className="h-1.5 w-1.5 rounded-full bg-gray-400 animate-pulse [animation-delay:400ms]"></div>
       </div>
+    </div>
+  );
+}
+
+function ChatTypingIndicator({ label }: { label: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
+      <style>{TYPING_TEXT_SHEEN_CSS}</style>
+      <span className="nextclaw-chat-typing-indicator__text">{label}</span>
     </div>
   );
 }
@@ -80,9 +131,7 @@ export function ChatMessageList(props: ChatMessageListProps) {
       {props.isSending && !hasRenderableAssistantDraft ? (
         <div className="flex justify-start gap-3">
           <ChatMessageAvatar role="assistant" />
-          <div className="rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
-            {props.texts.typingLabel}
-          </div>
+          <ChatTypingIndicator label={props.texts.typingLabel} />
         </div>
       ) : null}
     </div>
