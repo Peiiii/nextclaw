@@ -1,5 +1,13 @@
 # @nextclaw/nextclaw-narp-runtime-claude-code-sdk
 
+## 0.1.6
+
+### Patch Changes
+
+- Preserve raw whitespace in Claude Code OpenAI-compatible bridge reasoning, text, and tool argument stream deltas.
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.31
+
 ## 0.1.5
 
 ### Patch Changes
@@ -7,7 +15,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -79,7 +86,6 @@
 - Auto-generated full public beta release batch.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime
@@ -149,7 +155,6 @@
 - Stable minor release for the NextClaw npm package, with patch releases for the workspace dependency closure.
 
   Packages:
-
   - @nextclaw/agent-chat
   - @nextclaw/agent-chat-ui
   - @nextclaw/app-runtime

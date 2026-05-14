@@ -50,6 +50,18 @@
   - NCP runtime 同时消费 Codex SDK 事件与 live output stream；live 通道开始后，抑制 Codex SDK 完成态 reasoning/text item，避免重复输出。
   - Codex NARP stdio wrapper 与 Codex plugin bridge 路径都接入同一 live output stream。
 
+### 2026-05-14 Claude bridge raw whitespace 同步修正
+
+- 修复 Claude Code + OpenAI-compatible bridge 下 thinking 出现 `Theseemstobe...` 这类无空格英文的问题。
+- 根因确认：
+  - Claude bridge 的 stream writer 使用会 `.trim()` 的 `readString()` 读取上游 `reasoning_content`、`content` 和 tool arguments delta。
+  - 当上游按 `These seem `、`to be ` 这类分片输出时，每个 delta 的尾部或头部空白被吞掉，最终拼成不可读文本。
+  - Codex bridge 之前已修同类问题，但 Claude bridge 未做横向同步。
+- 修复方式：
+  - 在 Claude OpenAI bridge payload owner 中新增 `readRawString()`，只给模型生成内容字段使用。
+  - `readString()` 继续用于 id、name、role、model 等结构字段，避免结构字段行为漂移。
+  - `integrating-narp-stdio-runtime` skill 增补横向同步规则：修 Codex / Claude Code 同构 bridge 内容字段 bug 后，必须搜索 sibling runtime。
+
 ## 测试/验证/验收方式
 
 - TypeScript:
@@ -100,6 +112,11 @@
   - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk build`。
   - MiniMax 真实模型 live 冒烟：NCP runtime 收到多段 live `message.reasoning-delta` 与最终 `message.text-delta`，内容包含 `391`。
   - 发布后安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`，依赖闭包解析到 SDK `0.1.30`、插件 `0.1.64`；发布后 runtime 层 smoke 输出 `452ms / 903ms / 1354ms` reasoning delta 与 `1804ms / 2255ms / 2706ms` text delta。
+- 2026-05-14 Claude bridge raw whitespace 同步修正验证：
+  - Unit：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk test`，覆盖 reasoning/text/tool argument delta 的 raw whitespace 保留。
+  - TypeScript：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk tsc`、`pnpm -C packages/extensions/nextclaw-narp-runtime-claude-code-sdk tsc`。
+  - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-claude-code-sdk build`。
+  - Lint：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk lint`。
 - Governance:
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
@@ -133,6 +150,7 @@
 - 2026-05-14 raw reasoning 修正属于非功能 bugfix：生产代码通过删除 Codex raw reasoning 映射分支净减 10 行，用户可见行为更可预测，测试增量集中在 mapper owner，没有增加新的 runtime fallback 或 provider 特判。
 - 2026-05-14 空白保留修正属于非功能 bugfix：生产代码删除 mapper 摘要 workaround，并把真正修复收敛到 bridge delta 解析 owner；非测试代码 `+45 / -65 / net -20`，没有新增 provider 特判或 runtime fallback。
 - 2026-05-14 live output 修正属于用户可见运行链路 bugfix：新增 live output stream owner，把 bridge 已有实时 SSE 转化为 NCP runtime 的实时用户表面事件；没有修改通用 NARP stdio client，也没有在 UI 层做假流式。
+- 2026-05-14 Claude bridge raw whitespace 同步修正属于同类 bug 横向补齐：修复点收敛在 Claude OpenAI bridge 内容字段 reader，结构字段继续使用原有 reader；新增测试防止 reasoning/text/tool argument delta 再次被 trim。
 
 ## NPM 包发布记录
 
@@ -158,3 +176,7 @@
   - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.64`：已发布。
   - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`：已发布。
   - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
+- 2026-05-14 Claude bridge raw whitespace 同步修正：
+  - `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.31`：待发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.62`：待发布。
+  - `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.6`：待发布。

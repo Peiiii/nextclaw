@@ -48,13 +48,12 @@ export type OpenAiChatCompletionsResponse = {
 };
 
 export function readString(value: unknown): string | undefined {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const trimmed = value.trim();
-  return trimmed || undefined;
+  return typeof value === "string" ? value.trim() || undefined : undefined;
 }
 
+export function readRawString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
 export function readNumber(value: unknown): number | undefined {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return undefined;
@@ -101,7 +100,7 @@ function readTextContent(value: unknown): string {
       if (!record || readString(record.type) !== "text") {
         return "";
       }
-      return readString(record.text) ?? "";
+      return readRawString(record.text) ?? "";
     })
     .join("");
 }
@@ -117,7 +116,7 @@ function normalizeToolResultContent(value: unknown): string {
         if (!record || readString(record.type) !== "text") {
           return "";
         }
-        return readString(record.text) ?? "";
+        return readRawString(record.text) ?? "";
       })
       .join("");
     if (text) {
@@ -138,11 +137,11 @@ function normalizeAnthropicBlock(entry: unknown): AnthropicMessageBlock | null {
   }
   const type = readString(record.type);
   if (type === "text") {
-    const text = readString(record.text);
+    const text = readRawString(record.text);
     return text ? { type: "text", text } : null;
   }
   if (type === "thinking") {
-    const thinking = readString(record.thinking) ?? readString(record.text);
+    const thinking = readRawString(record.thinking) ?? readRawString(record.text);
     return thinking ? { type: "thinking", thinking } : null;
   }
   if (type === "tool_use") {
@@ -301,7 +300,7 @@ function normalizeOpenAiContent(content: unknown): string {
   return content
     .map((entry) => {
       const record = readRecord(entry);
-      return readString(record?.text) ?? readString(record?.content) ?? "";
+      return readRawString(record?.text) ?? readRawString(record?.content) ?? "";
     })
     .join("");
 }
@@ -310,7 +309,7 @@ function normalizeOpenAiReasoningContent(message: {
   reasoning?: unknown;
   reasoning_content?: unknown;
 } | undefined): string {
-  return readString(message?.reasoning_content) ?? readString(message?.reasoning) ?? "";
+  return readRawString(message?.reasoning_content) ?? readRawString(message?.reasoning) ?? "";
 }
 
 function normalizeOpenAiToolCalls(value: unknown): OpenAiToolCall[] {
@@ -326,7 +325,7 @@ function normalizeOpenAiToolCalls(value: unknown): OpenAiToolCall[] {
         id: readString(record.id) ?? `tool-${index}`,
         function: {
           name,
-          arguments: readString(fn.arguments) ?? "{}",
+          arguments: readRawString(fn.arguments) ?? "{}",
         },
       };
     })

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { readNumber, readRecord, readString } from "./anthropic-openai-bridge-payload.utils.js";
+import { readNumber, readRawString, readRecord, readString } from "./anthropic-openai-bridge-payload.utils.js";
 
 type OpenAiStreamChunk = {
   choices?: Array<{
@@ -48,16 +48,16 @@ function extractContentText(content: unknown): string {
   return readArray(content)
     .map((entry) => {
       const record = readRecord(entry);
-      return readString(record?.text) ?? readString(record?.content) ?? "";
+      return readRawString(record?.text) ?? readRawString(record?.content) ?? "";
     })
     .join("");
 }
 
 function extractThinkingText(delta: Record<string, unknown> | undefined): string {
   return (
-    readString(delta?.reasoning_content) ??
-    readString(delta?.reasoning) ??
-    readString(delta?.thinking) ??
+    readRawString(delta?.reasoning_content) ??
+    readRawString(delta?.reasoning) ??
+    readRawString(delta?.thinking) ??
     ""
   );
 }
@@ -273,7 +273,7 @@ class AnthropicOpenAiStreamWriter {
     const state = this.ensureToolUse(toolIndex, toolCall ?? {});
     const fn = readRecord(toolCall?.function);
     state.name = readString(fn?.name) ?? state.name;
-    const argumentsDelta = readString(fn?.arguments) ?? "";
+    const argumentsDelta = readRawString(fn?.arguments) ?? "";
     state.inputJson += argumentsDelta;
     if (!argumentsDelta) {
       return;
