@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   deleteSession: vi.fn(),
   goToProviders: vi.fn(),
   createSession: vi.fn(() => "draft-session-2"),
+  goToChatRoot: vi.fn(),
   goToSession: vi.fn(),
   setSelectedAgentId: vi.fn(),
   setPendingSessionType: vi.fn(),
@@ -81,6 +82,7 @@ vi.mock("@/features/chat/components/chat-welcome", () => ({
 vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
   usePresenter: () => ({
     chatUiManager: {
+      goToChatRoot: mocks.goToChatRoot,
       goToSession: mocks.goToSession,
     },
     chatThreadManager: {
@@ -163,6 +165,7 @@ describe("ChatConversationPanel", () => {
     mocks.goToProviders.mockReset();
     mocks.createSession.mockReset();
     mocks.createSession.mockReturnValue("draft-session-2");
+    mocks.goToChatRoot.mockReset();
     mocks.goToSession.mockReset();
     mocks.setSelectedAgentId.mockReset();
     mocks.setPendingSessionType.mockReset();
@@ -247,7 +250,7 @@ describe("ChatConversationPanel", () => {
     await user.click(screen.getByRole("button", { name: "create draft session" }));
 
     expect(mocks.createSession).toHaveBeenCalledWith("native");
-    expect(mocks.goToSession).toHaveBeenCalledWith("draft-session-2");
+    expect(mocks.goToChatRoot).toHaveBeenCalledTimes(1);
   });
 
   it("shows the selected session project badge and more actions trigger", () => {

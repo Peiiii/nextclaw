@@ -55,7 +55,7 @@ export function ChatSessionHeaderActions({
           type="button"
           variant="ghost"
           size="icon"
-          className="rounded-lg shrink-0 text-gray-400 hover:text-gray-700"
+          className="h-5 w-5 rounded-md shrink-0 text-gray-400 hover:text-gray-700"
           aria-label={t('chatSessionOpenChildSessions')}
           title={t('chatSessionOpenChildSessions')}
           onClick={onOpenChildSessions}
@@ -69,7 +69,7 @@ export function ChatSessionHeaderActions({
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-lg shrink-0 text-gray-400 hover:text-gray-700"
+            className="h-5 w-5 rounded-md shrink-0 text-gray-400 hover:text-gray-700"
             aria-label={t('chatSessionMoreActions')}
             disabled={isBusy}
           >
