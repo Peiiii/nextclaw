@@ -47,9 +47,6 @@ const DesktopUpdateConfigPage = lazy(async () => ({
 const SecurityConfigPage = lazy(async () => ({
   default: (await import("@/components/config/security-config")).SecurityConfig,
 }));
-const SessionsConfigPage = lazy(async () => ({
-  default: (await import("@/components/config/SessionsConfig")).SessionsConfig,
-}));
 const SecretsConfigPage = lazy(async () => ({
   default: (await import("@/components/config/SecretsConfig")).SecretsConfig,
 }));
@@ -144,10 +141,6 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
   {
     path: "/security",
     element: createLazyElement(<SecurityConfigPage />),
-  },
-  {
-    path: "/sessions",
-    element: createLazyElement(<SessionsConfigPage />),
   },
   {
     path: "/secrets",

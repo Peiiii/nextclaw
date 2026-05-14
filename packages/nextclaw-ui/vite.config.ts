@@ -19,7 +19,6 @@ export default defineConfig({
       '@/components/config/SearchConfig': path.resolve(__dirname, './src/shared/components/search-config.tsx'),
       '@/components/config/SecretsConfig': path.resolve(__dirname, './src/shared/components/config/secrets-config.tsx'),
       '@/components/config/security-config': path.resolve(__dirname, './src/features/system-status/components/security-config.tsx'),
-      '@/components/config/SessionsConfig': path.resolve(__dirname, './src/features/chat/pages/sessions-config-page.tsx'),
       '@/components/layout/AppLayout': path.resolve(__dirname, './src/app/components/layout/app-layout.tsx'),
       '@/components/marketplace/marketplace-page': path.resolve(__dirname, './src/features/marketplace/components/marketplace-page.tsx'),
       '@/components/marketplace/mcp/mcp-marketplace-page': path.resolve(__dirname, './src/features/marketplace/components/mcp/mcp-marketplace-page.tsx'),

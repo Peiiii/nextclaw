@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { Sidebar } from '@/app/components/layout/sidebar';
+import type * as RemoteFeature from '@/features/remote';
 
 const mocks = vi.hoisted(() => ({
   openAccountPanel: vi.fn(),
@@ -31,9 +32,7 @@ vi.mock('@/app/components/app-manager-provider', () => ({
 }));
 
 vi.mock('@/features/remote', async () => {
-  const actual = await vi.importActual<typeof import('@/features/remote')>(
-    '@/features/remote'
-  );
+  const actual = await vi.importActual<typeof RemoteFeature>('@/features/remote');
   return {
     ...actual,
     useRemoteStatus: () => mocks.remoteStatus
@@ -116,7 +115,6 @@ describe('Sidebar', () => {
       'Updates',
       'Remote Access',
       'Security',
-      'Sessions',
       'Secrets',
       'Cron Jobs',
       'Plugins',

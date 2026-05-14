@@ -19,7 +19,6 @@ const ROUTE_TITLE_KEYS: Array<{ prefix: string; key: string }> = [
   { prefix: '/updates', key: 'runtimeUpdatesPageTitle' },
   { prefix: '/remote', key: 'remotePageTitle' },
   { prefix: '/security', key: 'authSecurityTitle' },
-  { prefix: '/sessions', key: 'sessionsPageTitle' },
   { prefix: '/secrets', key: 'secretsPageTitle' }
 ];
 

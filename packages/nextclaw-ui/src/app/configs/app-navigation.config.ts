@@ -5,7 +5,6 @@ import {
   BrainCircuit,
   Cpu,
   Download,
-  History,
   KeyRound,
   Languages,
   MessageCircle,
@@ -125,11 +124,6 @@ export function getSettingsNavItems(
       target: "/security",
       label: translate("security"),
       icon: Shield,
-    },
-    {
-      target: "/sessions",
-      label: translate("sessions"),
-      icon: History,
     },
     {
       target: "/secrets",
