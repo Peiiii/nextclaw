@@ -178,6 +178,17 @@ describe("createExternalCommandEnv", () => {
       expect(pathEntries).toContain(dirname(process.execPath));
       expect(pathEntries).toContain(nestedNodeModulesBin);
       expect(pathEntries).toContain(rootNodeModulesBin);
+      expect(pathEntries.indexOf(dirname(process.execPath))).toBeLessThan(
+        pathEntries.indexOf("/usr/bin"),
+      );
+      if (process.argv[1]) {
+        expect(pathEntries.indexOf(dirname(process.argv[1]))).toBeLessThan(
+          pathEntries.indexOf("/usr/bin"),
+        );
+      }
+      expect(pathEntries.indexOf(nestedNodeModulesBin)).toBeLessThan(
+        pathEntries.indexOf("/usr/bin"),
+      );
       expect(pathEntries.indexOf(nestedNodeModulesBin)).toBeLessThan(
         pathEntries.indexOf(rootNodeModulesBin),
       );
