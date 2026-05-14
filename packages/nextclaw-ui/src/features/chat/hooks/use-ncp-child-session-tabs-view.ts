@@ -49,16 +49,10 @@ export function useNcpChildSessionTabsView(
     return new Map(sessions.map((session) => [session.key, session]));
   }, [summaries]);
 
-  const summaryByKey = useMemo(
-    () => new Map(summaries.map((summary) => [summary.sessionId, summary])),
-    [summaries],
-  );
-
   return useMemo(
     () =>
       tabs.map((tab) => {
         const session = sessionByKey.get(tab.sessionKey) ?? null;
-        const summary = summaryByKey.get(tab.sessionKey) ?? null;
         const agentId = tab.agentId?.trim() || session?.agentId || null;
         return {
           sessionKey: tab.sessionKey,
@@ -68,7 +62,7 @@ export function useNcpChildSessionTabsView(
           updatedAt: session?.updatedAt ?? null,
           lastMessageAt: session?.lastMessageAt ?? null,
           readAt: session?.readAt ?? null,
-          runStatus: summary?.status === "running" ? "running" : undefined,
+          runStatus: session?.status === "running" ? "running" : undefined,
           sessionTypeLabel: session?.sessionType
             ? resolveSessionTypeLabel(session.sessionType)
             : null,
@@ -77,6 +71,6 @@ export function useNcpChildSessionTabsView(
           projectRoot: session?.projectRoot?.trim() || null,
         };
       }),
-    [sessionByKey, summaryByKey, tabs],
+    [sessionByKey, tabs],
   );
 }

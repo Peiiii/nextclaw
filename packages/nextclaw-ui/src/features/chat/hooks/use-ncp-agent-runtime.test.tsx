@@ -176,4 +176,18 @@ describe("useNcpAgentRuntime", () => {
       "assistant-1",
     ]);
   });
+
+  it("aborts by session id even before a hydrated active run reaches local state", async () => {
+    const client = new DeferredSendClient();
+    const manager = new DefaultNcpAgentConversationStateManager();
+    const { result } = renderHook(() =>
+      useNcpAgentRuntime({ sessionId: "session-running", client, manager: manager as never }),
+    );
+
+    await act(async () => {
+      await result.current.abort();
+    });
+
+    expect(client.abort).toHaveBeenCalledWith({ sessionId: "session-running" });
+  });
 });

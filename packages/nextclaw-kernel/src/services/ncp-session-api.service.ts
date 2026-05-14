@@ -55,11 +55,6 @@ type SessionListSummaryRecord = SessionListRecord & {
   lastMessageAt?: string;
 };
 
-function toSessionCandidate(record: SessionListRecord): SessionListSummaryRecord & { sessionId: string } | null {
-  const sessionId = normalizeSessionId(record.key);
-  return sessionId ? { ...record, sessionId } : null;
-}
-
 function createSessionListSummary(record: SessionListSummaryRecord & { sessionId: string }): NcpSessionSummary {
   return {
     sessionId: record.sessionId,
@@ -73,13 +68,10 @@ function createSessionListSummary(record: SessionListSummaryRecord & { sessionId
   };
 }
 
-function readSessionActivityAt(record: SessionListSummaryRecord): string {
-  return record.lastMessageAt ?? record.created_at;
-}
-
 export type NcpSessionApiServiceOptions = {
   eventBus: EventBus;
   getConfig: () => Config;
+  isLiveSessionRunning?: (sessionId: string) => boolean;
   ncpAgentSessionStore?: NcpAgentSessionReadableStore;
   sessionManager: SessionManager;
 };
@@ -133,16 +125,16 @@ export class NcpSessionApiService implements NcpSessionApi {
       return applyLimit(
         await this.options.ncpAgentSessionStore.listSessionSummaries(),
         options?.limit,
-      );
+      ).map(this.withLiveSessionStatus);
     }
     const records = applyLimit(
       this.options.sessionManager.listSessions()
-        .map(toSessionCandidate)
+        .map((record) => ({ ...record, sessionId: normalizeSessionId(record.key) }))
         .filter((record): record is SessionListSummaryRecord & { sessionId: string } => Boolean(record))
-        .sort((left, right) => readSessionActivityAt(right).localeCompare(readSessionActivityAt(left))),
+        .sort((left, right) => (right.lastMessageAt ?? right.created_at).localeCompare(left.lastMessageAt ?? left.created_at)),
       options?.limit,
     );
-    return records.map(createSessionListSummary);
+    return records.map(createSessionListSummary).map(this.withLiveSessionStatus);
   };
 
   listSessionMessages = async (
@@ -175,7 +167,7 @@ export class NcpSessionApiService implements NcpSessionApi {
     if (normalizedSessionId && this.options.ncpAgentSessionStore?.getSession) {
       const record = await this.options.ncpAgentSessionStore.getSession(normalizedSessionId);
       if (record) {
-        return createNcpSessionSummary({
+        return this.withLiveSessionStatus(createNcpSessionSummary({
           sessionId: normalizedSessionId,
           agentId: record.agentId,
           messages: record.messages,
@@ -189,7 +181,7 @@ export class NcpSessionApiService implements NcpSessionApi {
             sessionId: normalizedSessionId,
             sessionMessages: record.messages,
           }),
-        });
+        }));
       }
     }
     const session = normalizedSessionId
@@ -199,7 +191,7 @@ export class NcpSessionApiService implements NcpSessionApi {
       return null;
     }
     const messages = toNcpMessages(normalizedSessionId, session.messages);
-    return createNcpSessionSummary({
+    return this.withLiveSessionStatus(createNcpSessionSummary({
       sessionId: normalizedSessionId,
       agentId: session.agentId,
       messages,
@@ -213,7 +205,7 @@ export class NcpSessionApiService implements NcpSessionApi {
         sessionId: normalizedSessionId,
         sessionMessages: messages,
       }),
-    });
+    }));
   };
 
   updateSession = async (
@@ -263,4 +255,6 @@ export class NcpSessionApiService implements NcpSessionApi {
     this.options.sessionManager.delete(normalizedSessionId);
     await this.publishSessionChange(normalizedSessionId);
   };
+
+  private withLiveSessionStatus = (summary: NcpSessionSummary): NcpSessionSummary => this.options.isLiveSessionRunning?.(summary.sessionId) ? { ...summary, status: "running" } : summary;
 }

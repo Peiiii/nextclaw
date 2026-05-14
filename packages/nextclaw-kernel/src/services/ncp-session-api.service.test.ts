@@ -207,6 +207,34 @@ describe("NcpSessionApiService", () => {
     fixture.ncpSessionApi.dispose();
   });
 
+  it("overlays live runtime status without loading full session lists", async () => {
+    const fixture = createServiceFixture();
+    const session = fixture.sessionManager.getOrCreate("session-1");
+    fixture.sessionManager.addMessage(session, "user", "hello");
+    fixture.sessionManager.save(session);
+    const service = new NcpSessionApiService({
+      eventBus: fixture.eventBus,
+      getConfig: createConfig,
+      isLiveSessionRunning: (sessionId) => sessionId === "session-1",
+      sessionManager: fixture.sessionManager as never,
+    });
+
+    const summaries = await service.listSessions();
+    const summary = await service.getSession("session-1");
+
+    expect(summaries[0]).toMatchObject({
+      sessionId: "session-1",
+      status: "running",
+    });
+    expect(summary).toMatchObject({
+      sessionId: "session-1",
+      status: "running",
+    });
+    expect(fixture.sessionManager.loadedSessionKeys).toEqual(["session-1"]);
+    service.dispose();
+    fixture.ncpSessionApi.dispose();
+  });
+
   it("prefers the NCP journal store when a legacy shell session also exists", async () => {
     const fixture = createServiceFixture();
     const legacySession = fixture.sessionManager.getOrCreate("session-1");

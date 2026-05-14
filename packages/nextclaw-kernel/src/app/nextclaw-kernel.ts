@@ -168,12 +168,6 @@ export class NextclawKernel {
       channels: this.channels,
       providerManager: this.llmProviders,
     });
-    this.ncpSessionApi = new NcpSessionApiService({
-      eventBus: this.eventBus,
-      getConfig: this.configManager.loadConfig,
-      ncpAgentSessionStore: this.ncpAgentSessionStore,
-      sessionManager: this.sessions,
-    });
     this.agentRuntimeManager = new AgentRuntimeManager({
       bus: this.messageBus,
       providerManager: this.llmProviders,
@@ -189,6 +183,13 @@ export class NextclawKernel {
       handleNcpEvent: this.handleNcpEvent,
       llmUsage: this.llmUsage,
       onSessionUpdated: this.publishSessionUpdated,
+    });
+    this.ncpSessionApi = new NcpSessionApiService({
+      eventBus: this.eventBus,
+      getConfig: this.configManager.loadConfig,
+      isLiveSessionRunning: this.agentRuntimeManager.isLiveSessionRunning,
+      ncpAgentSessionStore: this.ncpAgentSessionStore,
+      sessionManager: this.sessions,
     });
     this.learningLoop = new LearningLoopManager({
       eventBus: this.eventBus,

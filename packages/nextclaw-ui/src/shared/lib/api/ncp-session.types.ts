@@ -55,6 +55,7 @@ export type SessionEntryView = {
   messageCount: number;
   lastRole?: string;
   lastTimestamp?: string;
+  status?: NcpSessionStatus;
 };
 
 export type SessionMessageView = {

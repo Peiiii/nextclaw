@@ -282,7 +282,7 @@ export function useNcpAgentRuntime({
   };
 
   const abort = async () => {
-    if (!snapshot.activeRun || !sessionId) {
+    if (!sessionId) {
       return;
     }
 

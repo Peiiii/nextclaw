@@ -32,11 +32,10 @@ export function useNcpSessionListView(params: { limit?: number } = {}) {
       shouldShowSessionInSidebar,
     );
     const filteredSessions = filterSessionsByQuery(sessions, query);
-    const summaryBySessionId = new Map(summaries.map((summary) => [summary.sessionId, summary]));
 
     return filteredSessions.map((session) => ({
       session,
-      runStatus: summaryBySessionId.get(session.key)?.status === 'running' ? 'running' : undefined
+      runStatus: session.status === 'running' ? 'running' : undefined
     }));
   }, [query, sessionsQuery.data?.sessions]);
 

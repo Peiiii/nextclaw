@@ -272,6 +272,8 @@ export class DefaultNcpAgentBackend
     });
   };
 
+  isLiveSessionRunning = (sessionId: string): boolean => Boolean(this.sessionRegistry.getSession(sessionId)?.activeExecution);
+
   listSessionMessages = async (sessionId: string): Promise<NcpMessage[]> => {
     return listBackendSessionMessages({
       sessionStore: this.sessionStore,

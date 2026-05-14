@@ -219,15 +219,16 @@ function useNcpChatPageState(presenter: NcpChatPresenter) {
     selectedSessionType,
     sessionTypeOptions,
   });
+  const currentSessionRunning = agent.isRunning || selectedSession?.status === "running";
   return {
     ...baseState,
     availableAgents,
     effectiveSessionProjectRoot,
     effectiveSessionProjectName,
-    isSending: agent.isSending || agent.isRunning,
-    isAwaitingAssistantOutput: agent.isRunning,
-    canStopCurrentRun: agent.isRunning,
-    stopDisabledReason: agent.isRunning ? null : "__preparing__",
+    isSending: agent.isSending || currentSessionRunning,
+    isAwaitingAssistantOutput: currentSessionRunning,
+    canStopCurrentRun: currentSessionRunning,
+    stopDisabledReason: currentSessionRunning ? null : "__preparing__",
     lastSendError:
       isRuntimeBlocked
         ? null

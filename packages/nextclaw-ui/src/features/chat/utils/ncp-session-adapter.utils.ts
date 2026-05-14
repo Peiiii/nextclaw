@@ -301,6 +301,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(projectName ? { projectName } : {}),
     sessionType: readNcpSessionType(summary),
     sessionTypeMutable: false,
+    status: summary.status ?? 'idle',
     isChildSession: Boolean(parentSessionId),
     ...(isPromotedChildSession ? { isPromotedChildSession } : {}),
     ...(parentSessionId ? { parentSessionId } : {}),

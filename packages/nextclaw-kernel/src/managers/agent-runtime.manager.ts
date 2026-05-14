@@ -148,6 +148,8 @@ export class AgentRuntimeManager {
     return this.handle;
   }
 
+  isLiveSessionRunning = (sessionId: string): boolean => this.backend?.isLiveSessionRunning(sessionId) ?? false;
+
   connectGatewayController = (gatewayController: GatewayController): void => {
     this.assertNotDisposed();
     this.gatewayController = gatewayController;
