@@ -3,6 +3,7 @@ import { appQueryClient } from '@/app-query-client';
 import { NcpChatThreadManager } from '@/features/chat/managers/ncp-chat-thread.manager';
 import { useChatSessionListStore } from '@/features/chat/stores/chat-session-list.store';
 import { useChatThreadStore } from '@/features/chat/stores/chat-thread.store';
+import type * as SharedApi from '@/shared/lib/api';
 
 const { deleteNcpSessionMock, deleteSummaryMock } = vi.hoisted(() => ({
   deleteNcpSessionMock: vi.fn(async () => ({ deleted: true, sessionId: 'parent-session-1' })),
@@ -10,7 +11,7 @@ const { deleteNcpSessionMock, deleteSummaryMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/shared/lib/api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/shared/lib/api')>();
+  const actual = await importOriginal<typeof SharedApi>();
   return {
     ...actual,
     deleteNcpSession: deleteNcpSessionMock,
@@ -93,6 +94,56 @@ describe('NcpChatThreadManager', () => {
       parentSessionKey: 'parent-session-1',
       activeChildSessionKey: 'child-session-1',
     });
+
+    expect(uiManager.goToSession).toHaveBeenCalledWith('parent-session-1');
+  });
+
+  it('opens the session cron panel without changing route when already selected', () => {
+    const uiManager = {
+      goToSession: vi.fn(),
+      goToChatRoot: vi.fn(),
+      goToProviders: vi.fn(),
+      confirm: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+
+    const manager = new NcpChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openSessionCronPanel('parent-session-1');
+
+    expect(useChatThreadStore.getState().snapshot).toMatchObject({
+      workspacePanelParentKey: 'parent-session-1',
+      activeWorkspacePanelKind: 'cron',
+      activeChildSessionKey: null,
+      activeWorkspaceFileKey: null,
+    });
+    expect(uiManager.goToSession).not.toHaveBeenCalled();
+  });
+
+  it('routes to the session before opening its cron panel when needed', () => {
+    useChatSessionListStore.setState({
+      snapshot: {
+        ...useChatSessionListStore.getState().snapshot,
+        selectedSessionKey: 'another-session',
+      },
+    });
+    const uiManager = {
+      goToSession: vi.fn(),
+      goToChatRoot: vi.fn(),
+      goToProviders: vi.fn(),
+      confirm: vi.fn(),
+    } as unknown as ConstructorParameters<typeof NcpChatThreadManager>[0];
+
+    const manager = new NcpChatThreadManager(
+      uiManager,
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[1],
+      {} as ConstructorParameters<typeof NcpChatThreadManager>[2],
+    );
+
+    manager.openSessionCronPanel('parent-session-1');
 
     expect(uiManager.goToSession).toHaveBeenCalledWith('parent-session-1');
   });

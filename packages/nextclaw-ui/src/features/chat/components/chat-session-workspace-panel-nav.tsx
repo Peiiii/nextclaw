@@ -1,4 +1,4 @@
-import { FileCode2, MessageSquareText, X } from "lucide-react";
+import { AlarmClock, FileCode2, MessageSquareText, X } from "lucide-react";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
 import type { ChatWorkspaceFileTab } from "@/features/chat/stores/chat-thread.store";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
@@ -14,11 +14,14 @@ export type WorkspaceSelection =
   | {
       kind: "file";
       file: ChatWorkspaceFileTab;
+    }
+  | {
+      kind: "cron";
     };
 
 export type WorkspaceTabViewModel = {
   key: string;
-  kind: "child-session" | "file";
+  kind: "child-session" | "file" | "cron";
   title: string;
   tooltip: string;
   active: boolean;
@@ -38,19 +41,27 @@ export function readWorkspaceFileTitle(file: ChatWorkspaceFileTab): string {
 }
 
 export function resolveWorkspaceSelection(params: {
+  activePanelKind?: "child-session" | "file" | "cron" | null;
   activeChildSessionKey: string | null;
   activeWorkspaceFileKey: string | null;
   childSessionTabs: ResolvedChildSessionTab[];
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
+  sessionCronJobCount: number;
 }): WorkspaceSelection | null {
   const {
+    activePanelKind,
     activeChildSessionKey,
     activeWorkspaceFileKey,
     childSessionTabs,
     workspaceFileTabs,
+    sessionCronJobCount,
   } = params;
 
-  if (activeWorkspaceFileKey) {
+  if (activePanelKind === "cron" && sessionCronJobCount > 0) {
+    return { kind: "cron" };
+  }
+
+  if (activePanelKind !== "child-session" && activeWorkspaceFileKey) {
     const activeFile = workspaceFileTabs.find(
       (file) => file.key === activeWorkspaceFileKey,
     );
@@ -62,7 +73,7 @@ export function resolveWorkspaceSelection(params: {
     }
   }
 
-  if (activeChildSessionKey) {
+  if (activePanelKind !== "file" && activeChildSessionKey) {
     const activeChild = childSessionTabs.find(
       (tab) => tab.sessionKey === activeChildSessionKey,
     );
@@ -88,10 +99,18 @@ export function resolveWorkspaceSelection(params: {
     };
   }
 
+  if (sessionCronJobCount > 0) {
+    return { kind: "cron" };
+  }
+
   return null;
 }
 
 function WorkspaceTabIcon({ agentId, kind }: Pick<WorkspaceTabViewModel, "agentId" | "kind">) {
+  if (kind === "cron") {
+    return <AlarmClock className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
+  }
+
   if (kind === "file") {
     return <FileCode2 className="h-3.5 w-3.5 shrink-0 text-gray-400" />;
   }

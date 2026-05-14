@@ -31,6 +31,7 @@ function renderHeader(
       <ChatConversationHeader
         snapshot={snapshot}
         childSessionCount={0}
+        sessionCronJobCount={0}
         layoutMode="desktop"
         normalizedAgentId={snapshot.agentId ?? ""}
         sessionHeaderTitle={snapshot.sessionDisplayName ?? "New Task"}
@@ -39,6 +40,7 @@ function renderHeader(
           snapshot.sessionKey || snapshot.sessionTypeLabel,
         )}
         onOpenChildSessions={vi.fn()}
+        onOpenSessionCronJobs={vi.fn()}
         onDeleteSession={vi.fn()}
       />
     </QueryClientProvider>,
@@ -54,7 +56,7 @@ describe("ChatConversationHeader", () => {
     expect(header?.className).not.toContain("min-h-");
   });
 
-  it("uses compact action buttons after the session is materialized", () => {
+  it("uses the standard session-header action button density after the session is materialized", () => {
     renderHeader({
       sessionKey: "session-1",
       canDeleteSession: true,
@@ -63,7 +65,7 @@ describe("ChatConversationHeader", () => {
 
     const moreActions = screen.getByRole("button", { name: "More actions" });
 
-    expect(moreActions.className).toContain("h-5");
-    expect(moreActions.className).toContain("w-5");
+    expect(moreActions.className).toContain("h-7");
+    expect(moreActions.className).toContain("w-7");
   });
 });

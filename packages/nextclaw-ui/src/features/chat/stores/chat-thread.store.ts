@@ -59,6 +59,7 @@ export type ChatThreadSnapshot = {
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
   workspacePanelParentKey?: string | null;
+  activeWorkspacePanelKind?: "child-session" | "file" | "cron" | null;
   childSessionTabs: ChatChildSessionTab[];
   activeChildSessionKey?: string | null;
   workspaceFileTabs: ChatWorkspaceFileTab[];
@@ -97,6 +98,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   parentSessionKey: null,
   parentSessionLabel: null,
   workspacePanelParentKey: null,
+  activeWorkspacePanelKind: null,
   childSessionTabs: [],
   activeChildSessionKey: null,
   workspaceFileTabs: [],

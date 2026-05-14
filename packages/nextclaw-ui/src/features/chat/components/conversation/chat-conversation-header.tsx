@@ -44,6 +44,7 @@ export function ChatParentSessionBanner({
 export function ChatConversationHeader({
   snapshot,
   childSessionCount,
+  sessionCronJobCount,
   layoutMode,
   normalizedAgentId,
   sessionHeaderTitle,
@@ -51,10 +52,12 @@ export function ChatConversationHeader({
   shouldShowSessionHeader,
   onBackToList,
   onOpenChildSessions,
+  onOpenSessionCronJobs,
   onDeleteSession,
 }: {
   snapshot: ChatThreadSnapshot;
   childSessionCount: number;
+  sessionCronJobCount: number;
   layoutMode: "desktop" | "mobile";
   normalizedAgentId: string;
   sessionHeaderTitle: string;
@@ -62,6 +65,7 @@ export function ChatConversationHeader({
   shouldShowSessionHeader: boolean;
   onBackToList?: () => void;
   onOpenChildSessions: () => void;
+  onOpenSessionCronJobs: () => void;
   onDeleteSession: ChatHeaderDeleteHandler;
 }) {
   const isMobileLayout = layoutMode === "mobile";
@@ -137,7 +141,9 @@ export function ChatConversationHeader({
           isDeletePending={snapshot.isDeletePending}
           projectRoot={snapshot.sessionProjectRoot}
           childSessionCount={childSessionCount}
+          sessionCronJobCount={sessionCronJobCount}
           onOpenChildSessions={onOpenChildSessions}
+          onOpenSessionCronJobs={onOpenSessionCronJobs}
           onDeleteSession={onDeleteSession}
         />
       ) : null}

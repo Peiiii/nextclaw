@@ -4,6 +4,7 @@ import type {
   ChatFileOpenActionViewModel,
   ChatToolActionViewModel,
 } from "@nextclaw/agent-chat-ui";
+import type { CronJobView } from "@/shared/lib/api";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import { ChatMessageListContainer } from "@/features/chat/components/conversation/chat-message-list.container";
 import {
@@ -28,6 +29,7 @@ import {
 import { usePresenter } from "@/features/chat/components/providers/chat-presenter.provider";
 import { ChatSessionWorkspaceFilePreview } from "./chat-session-workspace-file-preview";
 import { AgentIdentityAvatar } from "@/shared/components/common/agent-identity";
+import { SessionCronJobContent } from "@/features/chat/components/workspace/session-cron-job-content";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
 
@@ -36,11 +38,14 @@ type ChatSessionWorkspacePanelProps = {
   activeChildSessionKey: string | null;
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
   activeWorkspaceFileKey: string | null;
+  activePanelKind?: "child-session" | "file" | "cron" | null;
+  sessionCronJobs?: readonly CronJobView[];
   sessionProjectRoot: string | null;
   displayMode?: "docked" | "overlay";
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onCloseFile: (fileKey: string) => void;
+  onSelectCronJobs?: () => void;
   onClose: () => void;
   onBackToParent: () => void;
   onToolAction?: (action: ChatToolActionViewModel) => void;
@@ -167,20 +172,24 @@ function WorkspaceActiveChildHeader({
 function buildWorkspaceTabsViewModel(params: {
   resolvedChildTabs: ResolvedChildSessionTab[];
   workspaceFileTabs: readonly ChatWorkspaceFileTab[];
+  sessionCronJobCount: number;
   activeSelection: ReturnType<typeof resolveWorkspaceSelection>;
   optimisticReadAtBySessionKey: Record<string, string>;
   onSelectSession: (sessionKey: string) => void;
   onSelectFile: (fileKey: string) => void;
   onCloseFile: (fileKey: string) => void;
+  onSelectCronJobs: () => void;
 }): WorkspaceTabViewModel[] {
   const {
     resolvedChildTabs,
     workspaceFileTabs,
+    sessionCronJobCount,
     activeSelection,
     optimisticReadAtBySessionKey,
     onSelectSession,
     onSelectFile,
     onCloseFile,
+    onSelectCronJobs,
   } = params;
 
   const childTabs = resolvedChildTabs.map((tab) => {
@@ -225,7 +234,19 @@ function buildWorkspaceTabsViewModel(params: {
     onClose: () => onCloseFile(file.key),
   }));
 
-  return [...childTabs, ...fileTabs];
+  const cronTab =
+    sessionCronJobCount > 0
+      ? [{
+          key: "cron:session",
+          kind: "cron" as const,
+          title: t("chatWorkspaceSessionCronJobs"),
+          tooltip: t("chatWorkspaceSessionCronJobs"),
+          active: activeSelection?.kind === "cron",
+          onSelect: onSelectCronJobs,
+        }]
+      : [];
+
+  return [...childTabs, ...fileTabs, ...cronTab];
 }
 
 export function ChatSessionWorkspacePanel({
@@ -233,11 +254,14 @@ export function ChatSessionWorkspacePanel({
   activeChildSessionKey,
   workspaceFileTabs,
   activeWorkspaceFileKey,
+  activePanelKind,
+  sessionCronJobs = [],
   sessionProjectRoot,
   displayMode = "docked",
   onSelectSession,
   onSelectFile,
   onCloseFile,
+  onSelectCronJobs = () => {},
   onClose,
   onBackToParent,
   onToolAction,
@@ -251,8 +275,10 @@ export function ChatSessionWorkspacePanel({
   const activeSelection = resolveWorkspaceSelection({
     activeChildSessionKey,
     activeWorkspaceFileKey,
+    activePanelKind,
     childSessionTabs: resolvedChildTabs,
     workspaceFileTabs,
+    sessionCronJobCount: sessionCronJobs.length,
   });
   const hasParentSession = resolvedChildTabs.some((tab) =>
     Boolean(tab.parentSessionKey),
@@ -278,20 +304,24 @@ export function ChatSessionWorkspacePanel({
       buildWorkspaceTabsViewModel({
         resolvedChildTabs,
         workspaceFileTabs,
+        sessionCronJobCount: sessionCronJobs.length,
         activeSelection,
         optimisticReadAtBySessionKey,
         onSelectSession,
         onSelectFile,
         onCloseFile,
+        onSelectCronJobs,
       }),
     [
       activeSelection,
       onCloseFile,
+      onSelectCronJobs,
       onSelectFile,
       onSelectSession,
       optimisticReadAtBySessionKey,
       resolvedChildTabs,
       workspaceFileTabs,
+      sessionCronJobs.length,
     ],
   );
 
@@ -344,12 +374,14 @@ export function ChatSessionWorkspacePanel({
                 />
               </div>
             </>
-          ) : (
+          ) : activeSelection.kind === "file" ? (
             <ChatSessionWorkspaceFilePreview
               file={activeSelection.file}
               sessionProjectRoot={sessionProjectRoot}
               onFileOpen={onFileOpen}
             />
+          ) : (
+            <SessionCronJobContent jobs={sessionCronJobs} />
           )}
         </div>
       </div>

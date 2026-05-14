@@ -25,6 +25,7 @@ export class ChatSessionListManager {
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
@@ -155,6 +156,7 @@ export class ChatSessionListManager {
   selectSession = (sessionKey: string) => {
     useChatThreadStore.getState().setSnapshot({
       workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
     });
