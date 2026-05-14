@@ -117,6 +117,8 @@
   - TypeScript：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk tsc`、`pnpm -C packages/extensions/nextclaw-narp-runtime-claude-code-sdk tsc`。
   - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-claude-code-sdk build`。
   - Lint：`pnpm -C packages/extensions/nextclaw-ncp-runtime-claude-code-sdk lint`。
+  - 发布后 NARP 安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.6`，依赖闭包解析到 SDK `0.1.31`；发布包 bridge smoke 输出 `thinking: "These seem "`、`thinking: "to be "`、`text: "Hello "`、`partial_json: " -la"`。
+  - 发布后 plugin 安装验证：`/tmp` npm install `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.62`，依赖闭包解析到 SDK `0.1.31`。
 - Governance:
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
@@ -177,6 +179,7 @@
   - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`：已发布。
   - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
 - 2026-05-14 Claude bridge raw whitespace 同步修正：
-  - `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.31`：待发布。
-  - `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.62`：待发布。
-  - `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.6`：待发布。
+  - `@nextclaw/nextclaw-ncp-runtime-claude-code-sdk@0.1.31`：已发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-claude-code-sdk@0.1.62`：已发布。
+  - `@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.6`：已发布。
+  - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
