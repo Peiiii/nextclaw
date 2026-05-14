@@ -1,9 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
-import type { ConfigUiHints, ConfigView, RuntimeConfigUpdate } from '@/shared/lib/api';
+import type { ConfigView, RuntimeConfigUpdate } from '@/shared/lib/api';
 import { Button } from '@/shared/components/ui/button';
 import { PageLayout } from '@/app/components/layout/page-layout';
-import { hintForPath } from '@/shared/lib/config-hints';
 import { t } from '@/shared/lib/i18n';
 import { RuntimeConfigOverview } from '@/features/system-status/components/config/runtime-config-overview';
 import { RuntimeAgentListCard } from '@/features/system-status/components/config/runtime-agent-list-card';
@@ -27,7 +26,6 @@ type UpdateRuntimeMutation = {
 
 export function RuntimeConfigEditor(props: {
   config: ConfigView;
-  uiHints?: ConfigUiHints;
   updateRuntime: UpdateRuntimeMutation;
 }) {
   const initialState = useMemo(() => createRuntimeConfigEditorState(props.config), [props.config]);
@@ -88,22 +86,12 @@ export function RuntimeConfigEditor(props: {
         onDmScopeChange={setDmScope}
         onDefaultContextTokensChange={setDefaultContextTokens}
         onDefaultEngineChange={setDefaultEngine}
-        companionEnabledLabel={hintForPath('companion.enabled', props.uiHints)?.label}
-        companionEnabledHelp={hintForPath('companion.enabled', props.uiHints)?.help}
-        dmScopeLabel={hintForPath('session.dmScope', props.uiHints)?.label}
-        dmScopeHelp={hintForPath('session.dmScope', props.uiHints)?.help}
-        defaultContextTokensLabel={hintForPath('agents.defaults.contextTokens', props.uiHints)?.label}
-        defaultContextTokensHelp={hintForPath('agents.defaults.contextTokens', props.uiHints)?.help}
-        defaultEngineLabel={hintForPath('agents.defaults.engine', props.uiHints)?.label}
-        defaultEngineHelp={hintForPath('agents.defaults.engine', props.uiHints)?.help}
       />
       <RuntimeEntryListCard
         entries={runtimeEntries}
         onUpdateEntry={updateRuntimeEntry}
         onRemoveEntry={(index) => setRuntimeEntries((previous) => previous.filter((_, cursor) => cursor !== index))}
         onAddEntry={() => setRuntimeEntries((previous) => [...previous, createEmptyRuntimeEntry()])}
-        label={hintForPath('agents.runtimes.entries', props.uiHints)?.label}
-        help={hintForPath('agents.runtimes.entries', props.uiHints)?.help}
       />
       <RuntimeAgentListCard
         agents={agents}
@@ -113,18 +101,12 @@ export function RuntimeConfigEditor(props: {
         onSetDefaultAgent={(index, checked) =>
           setAgents((previous) => checked ? previous.map((entry, cursor) => ({ ...entry, default: cursor === index })) : previous.map((entry, cursor) => (cursor === index ? { ...entry, default: false } : entry)))
         }
-        label={hintForPath('agents.list', props.uiHints)?.label}
-        help={hintForPath('agents.list', props.uiHints)?.help}
-        contextTokensLabel={hintForPath('agents.list.*.contextTokens', props.uiHints)?.label}
-        engineLabel={hintForPath('agents.list.*.engine', props.uiHints)?.label}
       />
       <RuntimeBindingListCard
         bindings={bindings}
         onUpdateBinding={updateBinding}
         onRemoveBinding={(index) => setBindings((previous) => previous.filter((_, cursor) => cursor !== index))}
         onAddBinding={() => setBindings((previous) => [...previous, createEmptyRuntimeBinding()])}
-        label={hintForPath('bindings', props.uiHints)?.label}
-        help={hintForPath('bindings', props.uiHints)?.help}
       />
       <div className="flex justify-end">
         <Button type="button" onClick={handleSave} disabled={props.updateRuntime.isPending}>

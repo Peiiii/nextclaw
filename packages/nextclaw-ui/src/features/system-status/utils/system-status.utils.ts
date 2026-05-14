@@ -13,6 +13,21 @@ import type {
   SystemStatusView,
 } from '@/features/system-status/types/system-status.types';
 
+const RUNTIME_CONTROL_MESSAGE_LABELS: Record<string, string> = {
+  'Use this page to manage the local NextClaw service. Closing the browser does not stop the service.': 'runtimeControlManagedLocalMessage',
+  'This page is served by the running local service. Closing the browser does not stop it.': 'runtimeControlManagedLocalHint',
+  'This page is served by the running local service.': 'runtimeControlManagedLocalHintShort',
+  'This page is already hosted by the running local service.': 'runtimeControlStartUnavailableHosted',
+  'App restart is only available in the desktop shell.': 'runtimeControlRestartAppDesktopOnly',
+  'The local service is not running.': 'runtimeControlServiceNotRunning',
+  'The local service is already stopped.': 'runtimeControlServiceAlreadyStopped',
+  'Managed service started.': 'runtimeControlManagedServiceStarted',
+  'Managed service start scheduled.': 'runtimeControlManagedServiceStartScheduled',
+  'Restart scheduled. This page may disconnect for a few seconds.': 'runtimeControlRestartScheduled',
+  'Stop scheduled. This page will disconnect shortly.': 'runtimeControlStopScheduled',
+  'runtime healthy': 'runtimeControlHealthy'
+};
+
 function resolveSystemStatusPhase(state: SystemStatusState): SystemStatusPhase {
   return state.activeSystemAction ? 'service-transitioning' : state.lifecyclePhase;
 }
@@ -70,6 +85,14 @@ function resolveActionServiceState(
   return null;
 }
 
+export function localizeRuntimeControlMessage(message: string | null | undefined): string | null {
+  if (!message) {
+    return null;
+  }
+  const labelKey = RUNTIME_CONTROL_MESSAGE_LABELS[message.trim()];
+  return labelKey ? t(labelKey) : message;
+}
+
 export function buildActiveSystemActionState(params: {
   action: RuntimeControlAction;
   message: string | null;
@@ -113,8 +136,8 @@ export function toRuntimeStatusBadgeView(
       tone: 'attention',
       title: t('runtimeControlTitle'),
       description:
-        state.activeSystemAction.message ||
-        state.runtimeControlView.message ||
+        localizeRuntimeControlMessage(state.activeSystemAction.message) ||
+        localizeRuntimeControlMessage(state.runtimeControlView.message) ||
         t('runtimeControlDescription'),
       reasonLines: [],
       actionLabel: null,
@@ -161,9 +184,9 @@ export function toRuntimeControlPanelView(
   const visibleServiceState =
     action?.serviceState ?? controlView?.serviceState ?? 'unknown';
   const visibleMessage =
-    action?.message ||
-    state.lastSystemActionError ||
-    controlView?.message ||
+    localizeRuntimeControlMessage(action?.message) ||
+    localizeRuntimeControlMessage(state.lastSystemActionError) ||
+    localizeRuntimeControlMessage(controlView?.message) ||
     t('runtimeControlDescription');
 
   return {
@@ -175,6 +198,8 @@ export function toRuntimeControlPanelView(
     busy: Boolean(action),
     pendingRestart: controlView?.pendingRestart ?? null,
     errorMessage:
-      state.lastSystemActionError || state.runtimeControlError || null,
+      localizeRuntimeControlMessage(state.lastSystemActionError) ||
+      localizeRuntimeControlMessage(state.runtimeControlError) ||
+      null,
   };
 }

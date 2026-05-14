@@ -12,14 +12,12 @@ export function RuntimeBindingListCard(props: {
   onUpdateBinding: (index: number, next: AgentBindingView) => void;
   onRemoveBinding: (index: number) => void;
   onAddBinding: () => void;
-  label?: string;
-  help?: string;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{props.label ?? t('bindings')}</CardTitle>
-        <CardDescription>{props.help ?? t('bindingsHelp')}</CardDescription>
+        <CardTitle>{t('bindings')}</CardTitle>
+        <CardDescription>{t('bindingsHelp')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {props.bindings.map((binding, index) => {
@@ -47,9 +45,9 @@ export function RuntimeBindingListCard(props: {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">{t('peerKindOptional')}</SelectItem>
-                    <SelectItem value="direct">direct</SelectItem>
-                    <SelectItem value="group">group</SelectItem>
-                    <SelectItem value="channel">channel</SelectItem>
+                    <SelectItem value="direct">{t('peerKindDirect')}</SelectItem>
+                    <SelectItem value="group">{t('peerKindGroup')}</SelectItem>
+                    <SelectItem value="channel">{t('peerKindChannel')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Input

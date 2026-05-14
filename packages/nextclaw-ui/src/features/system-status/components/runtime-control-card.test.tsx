@@ -15,7 +15,7 @@ const baseControlView = {
     available: false,
     requiresConfirmation: false,
     impact: 'brief-ui-disconnect' as const,
-    reasonIfUnavailable: '当前页面已经由运行中的本地服务托管。'
+    reasonIfUnavailable: 'This page is already hosted by the running local service.'
   },
   canRestartService: {
     available: true,
@@ -31,9 +31,9 @@ const baseControlView = {
     available: false,
     requiresConfirmation: true,
     impact: 'full-app-relaunch' as const,
-    reasonIfUnavailable: 'desktop only'
+    reasonIfUnavailable: 'App restart is only available in the desktop shell.'
   },
-  managementHint: 'This page is served by the running local service.'
+  managementHint: 'This page is served by the running local service. Closing the browser does not stop it.'
 };
 
 const mocks = vi.hoisted(() => ({
@@ -87,7 +87,9 @@ describe('RuntimeControlCard', () => {
     expect(screen.getByRole('button', { name: '停止服务' })).toBeTruthy();
     expect(startButton.disabled).toBe(true);
     expect(restartAppButton.disabled).toBe(true);
-    expect(screen.getByText('desktop only')).toBeTruthy();
+    expect(screen.getByText('运行时正常')).toBeTruthy();
+    expect(screen.getByText('此页面由正在运行的本地服务提供。关闭浏览器不会停止它。')).toBeTruthy();
+    expect(screen.getByText('只有桌面壳环境支持重启整个应用。')).toBeTruthy();
   });
 
   it('runs the restart service flow through the system status manager', async () => {
@@ -106,7 +108,7 @@ describe('RuntimeControlCard', () => {
     await waitFor(() => {
       expect(mocks.runRuntimeControlAction).toHaveBeenCalledWith('restart-service');
     });
-    expect(toast.success).toHaveBeenCalledWith('Restart scheduled. This page may disconnect for a few seconds.');
+    expect(toast.success).toHaveBeenCalledWith('重启已安排。此页面可能会短暂断开。');
   });
 
   it('runs the stop service flow after confirmation', async () => {
@@ -127,7 +129,7 @@ describe('RuntimeControlCard', () => {
       expect(confirmSpy).toHaveBeenCalledTimes(1);
       expect(mocks.runRuntimeControlAction).toHaveBeenCalledWith('stop-service');
     });
-    expect(toast.success).toHaveBeenCalledWith('Stop scheduled. This page will disconnect shortly.');
+    expect(toast.success).toHaveBeenCalledWith('停止已安排。此页面即将断开。');
   });
 
   it('runs the desktop restart app flow after confirmation', async () => {

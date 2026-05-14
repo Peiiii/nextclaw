@@ -13,16 +13,12 @@ export function RuntimeAgentListCard(props: {
   onRemoveAgent: (index: number) => void;
   onAddAgent: () => void;
   onSetDefaultAgent: (index: number, checked: boolean) => void;
-  label?: string;
-  help?: string;
-  contextTokensLabel?: string;
-  engineLabel?: string;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{props.label ?? t('agentList')}</CardTitle>
-        <CardDescription>{props.help ?? t('agentListHelp')}</CardDescription>
+        <CardTitle>{t('agentList')}</CardTitle>
+        <CardDescription>{t('agentListHelp')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {props.agents.map((agent, index) => (
@@ -31,7 +27,7 @@ export function RuntimeAgentListCard(props: {
               <Input value={agent.id} onChange={(event) => props.onUpdateAgent(index, { id: event.target.value })} placeholder={t('agentIdPlaceholder')} />
               <Input value={agent.workspace ?? ''} onChange={(event) => props.onUpdateAgent(index, { workspace: event.target.value })} placeholder={t('workspaceOverridePlaceholder')} />
               <Input value={agent.model ?? ''} onChange={(event) => props.onUpdateAgent(index, { model: event.target.value })} placeholder={t('modelOverridePlaceholder')} />
-              <Input value={agent.runtime ?? agent.engine ?? ''} onChange={(event) => props.onUpdateAgent(index, { runtime: event.target.value })} placeholder={props.engineLabel ?? t('engineOverridePlaceholder')} />
+              <Input value={agent.runtime ?? agent.engine ?? ''} onChange={(event) => props.onUpdateAgent(index, { runtime: event.target.value })} placeholder={t('engineOverridePlaceholder')} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <Input
                   type="number"
@@ -39,7 +35,7 @@ export function RuntimeAgentListCard(props: {
                   step={1000}
                   value={agent.contextTokens ?? ''}
                   onChange={(event) => props.onUpdateAgent(index, { contextTokens: parseOptionalInt(event.target.value) })}
-                  placeholder={props.contextTokensLabel ?? t('contextTokensPlaceholder')}
+                  placeholder={t('contextTokensPlaceholder')}
                 />
                 <Input
                   type="number"

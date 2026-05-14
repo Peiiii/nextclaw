@@ -122,11 +122,11 @@ export function createRuntimeConfigUpdatePayload(input: {
   const normalizedRuntimeEntries = input.runtimeEntries.reduce<Record<string, RuntimeEntryView>>((entries, entry, index) => {
     const id = entry.id.trim();
     const type = entry.type.trim();
-    if (!id) throw new Error(`Runtime entry id is required at index ${index}.`);
-    if (!type) throw new Error(`Runtime entry type is required for "${id}".`);
-    if (entries[id]) throw new Error(`Duplicate runtime entry id: ${id}`);
+    if (!id) throw new Error(t('runtimeEntryIdRequired').replace('{index}', String(index)));
+    if (!type) throw new Error(t('runtimeEntryTypeRequired').replace('{id}', id));
+    if (entries[id]) throw new Error(`${t('runtimeEntryDuplicate')}: ${id}`);
     const configValue = entry.configText.trim() ? JSON.parse(entry.configText) : {};
-    if (configValue && (typeof configValue !== 'object' || Array.isArray(configValue))) throw new Error(`Runtime entry config for "${id}" must be a JSON object.`);
+    if (configValue && (typeof configValue !== 'object' || Array.isArray(configValue))) throw new Error(t('runtimeEntryConfigObjectRequired').replace('{id}', id));
     entries[id] = {
       enabled: entry.enabled !== false,
       ...(entry.label?.trim() ? { label: entry.label.trim() } : {}),

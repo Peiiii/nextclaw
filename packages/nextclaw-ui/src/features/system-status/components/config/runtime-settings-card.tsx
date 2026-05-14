@@ -5,11 +5,11 @@ import { Switch } from '@/shared/components/ui/switch';
 import { t } from '@/shared/lib/i18n';
 import type { DmScope } from '@/features/system-status/utils/runtime-config-agent.utils';
 
-const DM_SCOPE_OPTIONS: Array<{ value: DmScope; label: string }> = [
-  { value: 'main', label: 'main' },
-  { value: 'per-peer', label: 'per-peer' },
-  { value: 'per-channel-peer', label: 'per-channel-peer' },
-  { value: 'per-account-channel-peer', label: 'per-account-channel-peer' }
+const DM_SCOPE_OPTIONS: Array<{ value: DmScope; labelKey: string }> = [
+  { value: 'main', labelKey: 'dmScopeMain' },
+  { value: 'per-peer', labelKey: 'dmScopePerPeer' },
+  { value: 'per-channel-peer', labelKey: 'dmScopePerChannelPeer' },
+  { value: 'per-account-channel-peer', labelKey: 'dmScopePerAccountChannelPeer' }
 ];
 
 export function RuntimeSettingsCard(props: {
@@ -21,31 +21,23 @@ export function RuntimeSettingsCard(props: {
   onDmScopeChange: (value: DmScope) => void;
   onDefaultContextTokensChange: (value: number) => void;
   onDefaultEngineChange: (value: string) => void;
-  companionEnabledLabel?: string;
-  companionEnabledHelp?: string;
-  dmScopeLabel?: string;
-  dmScopeHelp?: string;
-  defaultContextTokensLabel?: string;
-  defaultContextTokensHelp?: string;
-  defaultEngineLabel?: string;
-  defaultEngineHelp?: string;
 }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{props.dmScopeLabel ?? t('dmScope')}</CardTitle>
-        <CardDescription>{props.dmScopeHelp ?? t('dmScopeHelp')}</CardDescription>
+        <CardTitle>{t('dmScope')}</CardTitle>
+        <CardDescription>{t('dmScopeHelp')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-start justify-between gap-4 rounded-md border border-gray-200 px-4 py-3">
           <div className="space-y-1">
-            <div className="text-sm font-medium text-gray-800">{props.companionEnabledLabel ?? t('runtimeCompanionEnabled')}</div>
-            <p className="text-xs text-gray-500">{props.companionEnabledHelp ?? t('runtimeCompanionEnabledHelp')}</p>
+            <div className="text-sm font-medium text-gray-800">{t('runtimeCompanionEnabled')}</div>
+            <p className="text-xs text-gray-500">{t('runtimeCompanionEnabledHelp')}</p>
           </div>
           <Switch checked={props.companionEnabled} onCheckedChange={props.onCompanionEnabledChange} />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-800">{props.defaultContextTokensLabel ?? t('defaultContextTokens')}</label>
+          <label className="text-sm font-medium text-gray-800">{t('defaultContextTokens')}</label>
           <Input
             type="number"
             min={1000}
@@ -53,19 +45,19 @@ export function RuntimeSettingsCard(props: {
             value={props.defaultContextTokens}
             onChange={(event) => props.onDefaultContextTokensChange(Math.max(1000, Number.parseInt(event.target.value, 10) || 1000))}
           />
-          <p className="text-xs text-gray-500">{props.defaultContextTokensHelp ?? t('defaultContextTokensHelp')}</p>
+          <p className="text-xs text-gray-500">{t('defaultContextTokensHelp')}</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-800">{props.defaultEngineLabel ?? t('defaultEngine')}</label>
+          <label className="text-sm font-medium text-gray-800">{t('defaultEngine')}</label>
           <Input
             value={props.defaultEngine}
             onChange={(event) => props.onDefaultEngineChange(event.target.value)}
             placeholder={t('defaultEnginePlaceholder')}
           />
-          <p className="text-xs text-gray-500">{props.defaultEngineHelp ?? t('defaultEngineHelp')}</p>
+          <p className="text-xs text-gray-500">{t('defaultEngineHelp')}</p>
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-800">{props.dmScopeLabel ?? t('dmScope')}</label>
+          <label className="text-sm font-medium text-gray-800">{t('dmScope')}</label>
           <Select value={props.dmScope} onValueChange={(value) => props.onDmScopeChange(value as DmScope)}>
             <SelectTrigger>
               <SelectValue />
@@ -73,7 +65,7 @@ export function RuntimeSettingsCard(props: {
             <SelectContent>
               {DM_SCOPE_OPTIONS.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </SelectItem>
               ))}
             </SelectContent>

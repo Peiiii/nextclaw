@@ -8,6 +8,7 @@ import type {
 import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/components/ui/card';
 import { useRuntimeControlPanelView, systemStatusManager } from '@/features/system-status';
+import { localizeRuntimeControlMessage } from '@/features/system-status/utils/system-status.utils';
 import { t } from '@/shared/lib/i18n';
 import { Loader2, Play, RotateCw, Square } from 'lucide-react';
 import { toast } from 'sonner';
@@ -140,7 +141,7 @@ export function RuntimeControlCard() {
     const capability = resolveActionCapability(controlView, action);
 
     if (!capability?.available) {
-      toast.error(capability?.reasonIfUnavailable ?? t('runtimeControlLoadFailed'));
+      toast.error(localizeRuntimeControlMessage(capability?.reasonIfUnavailable) ?? t('runtimeControlLoadFailed'));
       return;
     }
     if (
@@ -153,7 +154,7 @@ export function RuntimeControlCard() {
 
     try {
       const result = await systemStatusManager.runRuntimeControlAction(action);
-      toast.success(result.message);
+      toast.success(localizeRuntimeControlMessage(result.message) ?? result.message);
     } catch (error) {
       const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
       toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
@@ -162,7 +163,7 @@ export function RuntimeControlCard() {
 
   const handleRestartApp = async () => {
     if (!controlView?.canRestartApp.available) {
-      toast.error(controlView?.canRestartApp.reasonIfUnavailable ?? t('runtimeRestartAppUnavailable'));
+      toast.error(localizeRuntimeControlMessage(controlView?.canRestartApp.reasonIfUnavailable) ?? t('runtimeRestartAppUnavailable'));
       return;
     }
     if (!window.confirm(t('runtimeControlRestartAppConfirm'))) {
@@ -171,7 +172,7 @@ export function RuntimeControlCard() {
 
     try {
       const result = await systemStatusManager.runRuntimeControlAction('restart-app');
-      toast.success(result.message);
+      toast.success(localizeRuntimeControlMessage(result.message) ?? result.message);
     } catch (error) {
       const message = error instanceof Error ? error.message : t('runtimeControlActionFailed');
       toast.error(`${t('runtimeControlActionFailed')}: ${message}`);
@@ -194,7 +195,7 @@ export function RuntimeControlCard() {
           </div>
           <p className="text-sm text-gray-600">{displayedMessage}</p>
           <div className="text-xs text-gray-500">{resolveLifecycleLabel(displayedLifecycle)}</div>
-          {controlView?.managementHint ? <p className="text-xs text-gray-500">{controlView.managementHint}</p> : null}
+          {controlView?.managementHint ? <p className="text-xs text-gray-500">{localizeRuntimeControlMessage(controlView.managementHint)}</p> : null}
           {errorMessage && !busy ? <p className="text-sm text-amber-700">{errorMessage}</p> : null}
         </div>
 
@@ -251,7 +252,7 @@ export function RuntimeControlCard() {
           .filter((item) => !item.capability.available && item.capability.reasonIfUnavailable)
           .map((item) => (
             <p key={`${item.action}-reason`} className="text-xs text-gray-500">
-              {item.capability.reasonIfUnavailable}
+              {localizeRuntimeControlMessage(item.capability.reasonIfUnavailable)}
             </p>
           ))}
       </CardContent>

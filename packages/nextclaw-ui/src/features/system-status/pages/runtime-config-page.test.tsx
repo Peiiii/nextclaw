@@ -9,15 +9,11 @@ const mocks = vi.hoisted(() => ({
   useConfigResult: null as unknown as {
     data: Record<string, unknown> | null;
     isLoading: boolean;
-  },
-  useConfigSchemaResult: null as unknown as {
-    data: Record<string, unknown> | null;
   }
 }));
 
 vi.mock('@/shared/hooks/use-config', () => ({
   useConfig: () => mocks.useConfigResult,
-  useConfigSchema: () => mocks.useConfigSchemaResult,
   useUpdateRuntime: () => ({
     mutate: mocks.mutate,
     isPending: false
@@ -68,14 +64,12 @@ describe('RuntimeConfig', () => {
             }
           }
         ],
+        companion: {
+          enabled: false
+        },
         session: {
           dmScope: 'per-peer'
         }
-      }
-    };
-    mocks.useConfigSchemaResult = {
-      data: {
-        uiHints: {}
       }
     };
   });
@@ -131,10 +125,26 @@ describe('RuntimeConfig', () => {
             }
           }
         ],
+        companion: {
+          enabled: false
+        },
         session: {
           dmScope: 'per-peer'
         }
       }
     });
+  });
+
+  it('renders runtime settings labels in Chinese when the UI language is Chinese', () => {
+    setLanguage('zh');
+
+    render(<RuntimeConfig />);
+
+    expect(screen.getByText('保存运行时设置')).toBeTruthy();
+    expect(screen.getByText('运行时入口')).toBeTruthy();
+    expect(screen.getByText('启用')).toBeTruthy();
+    expect(screen.getByText('配置 JSON')).toBeTruthy();
+    expect(screen.getByPlaceholderText('默认运行时（如 native 或 codex）')).toBeTruthy();
+    expect(screen.getByPlaceholderText('入口 ID，例如 hermes')).toBeTruthy();
   });
 });

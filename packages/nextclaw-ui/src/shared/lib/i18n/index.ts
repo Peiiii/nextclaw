@@ -17,7 +17,7 @@ import { MARKETPLACE_LABELS } from './marketplace';
 import { PATH_PICKER_LABELS } from './runtime/i18n.path-picker';
 import { PWA_LABELS } from './pwa';
 import { REMOTE_LABELS } from './remote';
-import { RUNTIME_CONTROL_LABELS } from './runtime-control';
+import { RUNTIME_CONTROL_LABELS } from './runtime-control-labels.utils';
 import { SEARCH_LABELS } from './search';
 export type { I18nLanguage };
 export { getLanguage, getLocale, initializeI18n, LANGUAGE_OPTIONS, resolveInitialLanguage, setLanguage, subscribeLanguageChange };
@@ -113,7 +113,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
     en: 'If the model is not listed, type a custom model ID directly.'
   },
   modelIdentifierHelp: {
-    zh: 'Agent 默认模型标识，使用带 provider 前缀的格式。例如：openai/gpt-5.1、anthropic/claude-opus-4-1、deepseek/deepseek-chat、minimax/MiniMax-M2.5、openrouter/openai/gpt-5.3-codex。',
+    zh: '智能体默认模型标识，使用带提供商前缀的格式。例如：openai/gpt-5.1、anthropic/claude-opus-4-1、deepseek/deepseek-chat、minimax/MiniMax-M2.5、openrouter/openai/gpt-5.3-codex。',
     en: 'Default model identifier used by the agent. Use provider-prefixed format. Examples: openai/gpt-5.1 · anthropic/claude-opus-4-1 · deepseek/deepseek-chat · minimax/MiniMax-M2.5 · openrouter/openai/gpt-5.3-codex.'
   },
   maxToolIterations: { zh: '最大工具迭代次数', en: 'Max Tool Iterations' },
@@ -132,7 +132,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   providersSelectPlaceholder: { zh: '选择提供商', en: 'Select Provider' },
   providersSelectTitle: { zh: '选择左侧提供商开始配置', en: 'Select a provider from the left to configure' },
   providersSelectDescription: { zh: '你可以连续切换多个提供商并逐个保存配置。', en: 'Switch between providers continuously and save each configuration.' },
-  providersDefaultDescription: { zh: '为你的 Agent 配置 AI 服务', en: 'Configure AI services for your agents' },
+  providersDefaultDescription: { zh: '为你的智能体配置 AI 服务', en: 'Configure AI services for your agents' },
   providersEmptyTitle: { zh: '尚未配置提供商', en: 'No providers configured' },
   providersEmptyDescription: { zh: '添加一个 AI 提供商后即可开始使用。', en: 'Add an AI provider to start using the platform.' },
   apiKey: { zh: 'API 密钥', en: 'API Key' },
@@ -346,32 +346,32 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   authSessionMemoryNotice: { zh: '当前版本的会话只保存在服务端内存里。NextClaw UI 进程重启后，需要重新登录。', en: 'Sessions are stored only in server memory for now. You will need to sign in again after the NextClaw UI process restarts.' },
   dmScope: { zh: '私聊范围', en: 'DM Scope' },
   dmScopeHelp: { zh: '控制私聊会话如何隔离。', en: 'Control how direct-message sessions are isolated.' },
-  defaultContextTokens: { zh: '默认上下文 Token', en: 'Default Context Tokens' },
-  defaultContextTokensHelp: { zh: '当 Agent 未设置单独值时使用该上下文预算。', en: 'Input context budget for agents when no per-agent override is set.' },
+  defaultContextTokens: { zh: '默认上下文额度', en: 'Default Context Tokens' },
+  defaultContextTokensHelp: { zh: '当智能体未设置单独值时使用该上下文预算。', en: 'Input context budget for agents when no per-agent override is set.' },
   runtimeCompanionEnabled: { zh: '桌宠 Companion', en: 'Companion' },
   runtimeCompanionEnabledHelp: { zh: '开启后会自动拉起悬浮 Companion；关闭后会立即停止，并在下次启动时保持关闭。', en: 'When enabled, NextClaw auto-starts the floating companion. When disabled, it stops immediately and stays off after restart.' },
-  defaultEngine: { zh: '默认 Runtime', en: 'Default Runtime' },
-  defaultEngineHelp: { zh: '默认使用的 Agent Runtime，例如 native、codex 或 claude。', en: 'Default agent runtime, for example native, codex, or claude.' },
-  agentList: { zh: 'Agent 列表', en: 'Agent List' },
-  agentListHelp: { zh: '在同一个网关进程中运行多个固定角色 Agent。', en: 'Run multiple fixed-role agents in one gateway process.' },
+  defaultEngine: { zh: '默认运行时', en: 'Default Runtime' },
+  defaultEngineHelp: { zh: '默认使用的智能体运行时，例如 native、codex 或 claude。', en: 'Default agent runtime, for example native, codex, or claude.' },
+  agentList: { zh: '智能体列表', en: 'Agent List' },
+  agentListHelp: { zh: '在同一个网关进程中运行多个固定角色智能体。', en: 'Run multiple fixed-role agents in one gateway process.' },
   bindings: { zh: '绑定规则', en: 'Bindings' },
-  bindingsHelp: { zh: '根据渠道 + 账号 + 对端将入站消息路由到目标 Agent。', en: 'Route inbound message by channel + account + peer to target agent.' },
+  bindingsHelp: { zh: '根据渠道 + 账号 + 对端将入站消息路由到目标智能体。', en: 'Route inbound message by channel + account + peer to target agent.' },
   agentIdRequiredError: { zh: 'agents.list[{index}].id 必填', en: 'agents.list[{index}].id is required' },
-  duplicateAgentId: { zh: '重复的 agent id', en: 'Duplicate agent id' },
+  duplicateAgentId: { zh: '重复的智能体 ID', en: 'Duplicate agent id' },
   bindingAgentIdRequired: { zh: 'bindings[{index}].agentId 必填', en: 'bindings[{index}].agentId is required' },
   bindingAgentIdNotFound: { zh: 'bindings[{index}].agentId 未在 agents.list/main 中找到', en: "bindings[{index}].agentId not found in agents.list/main" },
   bindingChannelRequired: { zh: 'bindings[{index}].match.channel 必填', en: 'bindings[{index}].match.channel is required' },
   bindingPeerIdRequired: { zh: '设置 peer.kind 时，bindings[{index}].match.peer.id 必填', en: 'bindings[{index}].match.peer.id is required when peer.kind is set' },
-  agentIdPlaceholder: { zh: 'Agent ID（例如 engineer）', en: 'Agent ID (e.g. engineer)' },
+  agentIdPlaceholder: { zh: '智能体 ID（例如 engineer）', en: 'Agent ID (e.g. engineer)' },
   workspaceOverridePlaceholder: { zh: '工作空间覆盖（可选）', en: 'Workspace override (optional)' },
   modelOverridePlaceholder: { zh: '模型覆盖（可选）', en: 'Model override (optional)' },
-  defaultEnginePlaceholder: { zh: '默认 Runtime（如 native 或 codex）', en: 'Default runtime (e.g. native or codex)' },
-  engineOverridePlaceholder: { zh: 'Runtime 覆盖（可选）', en: 'Runtime override (optional)' },
-  contextTokensPlaceholder: { zh: '上下文 tokens', en: 'Context tokens' },
+  defaultEnginePlaceholder: { zh: '默认运行时（如 native 或 codex）', en: 'Default runtime (e.g. native or codex)' },
+  engineOverridePlaceholder: { zh: '运行时覆盖（可选）', en: 'Runtime override (optional)' },
+  contextTokensPlaceholder: { zh: '上下文额度', en: 'Context tokens' },
   maxToolsPlaceholder: { zh: '最大工具次数', en: 'Max tools' },
-  defaultAgent: { zh: '默认 Agent', en: 'Default agent' },
-  addAgent: { zh: '添加 Agent', en: 'Add Agent' },
-  targetAgentIdPlaceholder: { zh: '目标 Agent ID', en: 'Target agent ID' },
+  defaultAgent: { zh: '默认智能体', en: 'Default agent' },
+  addAgent: { zh: '添加智能体', en: 'Add Agent' },
+  targetAgentIdPlaceholder: { zh: '目标智能体 ID', en: 'Target agent ID' },
   channelPlaceholder: { zh: '渠道（例如 discord）', en: 'Channel (e.g. discord)' },
   accountIdOptionalPlaceholder: { zh: '账号 ID（可选）', en: 'Account ID (optional)' },
   peerKindOptional: { zh: '对端类型（可选）', en: 'Peer kind (optional)' },
