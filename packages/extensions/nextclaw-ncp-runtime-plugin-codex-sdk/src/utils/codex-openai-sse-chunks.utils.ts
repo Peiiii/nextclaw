@@ -1,7 +1,7 @@
 import {
   readArray,
+  readRawString,
   readRecord,
-  readString,
 } from "@codex-plugin-sdk/codex-openai-responses-bridge-shared.utils.js";
 
 export type OpenAiStreamChoiceDelta = Record<string, unknown> & {
@@ -23,16 +23,16 @@ export function extractContentText(content: unknown): string {
   return readArray(content)
     .map((entry) => {
       const record = readRecord(entry);
-      return readString(record?.text) ?? readString(record?.content) ?? "";
+      return readRawString(record?.text) ?? readRawString(record?.content) ?? "";
     })
     .join("");
 }
 
 export function extractReasoningText(delta: OpenAiStreamChoiceDelta | undefined): string {
   return (
-    readString(delta?.reasoning_content) ??
-    readString(delta?.reasoning) ??
-    readString(delta?.thinking) ??
+    readRawString(delta?.reasoning_content) ??
+    readRawString(delta?.reasoning) ??
+    readRawString(delta?.thinking) ??
     ""
   );
 }

@@ -1,5 +1,11 @@
 # @nextclaw/nextclaw-ncp-runtime-codex-sdk
 
+## 0.1.29
+
+### Patch Changes
+
+- Restore Codex NARP reasoning events without rewriting SDK reasoning text in the NCP mapper.
+
 ## 0.1.28
 
 ### Patch Changes

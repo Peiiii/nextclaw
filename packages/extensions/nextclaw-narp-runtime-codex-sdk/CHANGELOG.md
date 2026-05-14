@@ -1,5 +1,14 @@
 # @nextclaw/nextclaw-narp-runtime-codex-sdk
 
+## 0.1.6
+
+### Patch Changes
+
+- Restore Codex NARP reasoning events by preserving raw whitespace in OpenAI-compatible reasoning stream deltas.
+- Updated dependencies
+  - @nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.29
+  - @nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.63
+
 ## 0.1.5
 
 ### Patch Changes

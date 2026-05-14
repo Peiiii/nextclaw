@@ -26,17 +26,56 @@ async function collectMappedEvents(event: ItemUpdatedEvent) {
 }
 
 describe("mapCodexItemEvent", () => {
-  it("does not expose Codex raw reasoning summaries as user-visible thinking", async () => {
+  it("streams normal reasoning text", async () => {
     const events = await collectMappedEvents({
       type: "item.updated",
       item: {
         id: "reasoning-1",
         type: "reasoning",
-        text: 'OK,Ithinkthetoolcall`"cmd"`valueisbeinginvokedasinternalrepair.',
+        text: "先分析用户意图，再选择下一步。",
       },
     });
 
-    expect(events).toEqual([]);
+    expect(events).toEqual([
+      {
+        type: NcpEventType.MessageReasoningStart,
+        payload: { sessionId: "session-1", messageId: "message-1" },
+      },
+      {
+        type: NcpEventType.MessageReasoningDelta,
+        payload: {
+          sessionId: "session-1",
+          messageId: "message-1",
+          delta: "先分析用户意图，再选择下一步。",
+        },
+      },
+    ]);
+  });
+
+  it("does not rewrite reasoning text in the NCP mapper", async () => {
+    const events = await collectMappedEvents({
+      type: "item.updated",
+      item: {
+        id: "reasoning-2",
+        type: "reasoning",
+        text: "Bridge keeps spaces.",
+      },
+    });
+
+    expect(events).toEqual([
+      {
+        type: NcpEventType.MessageReasoningStart,
+        payload: { sessionId: "session-1", messageId: "message-1" },
+      },
+      {
+        type: NcpEventType.MessageReasoningDelta,
+        payload: {
+          sessionId: "session-1",
+          messageId: "message-1",
+          delta: "Bridge keeps spaces.",
+        },
+      },
+    ]);
   });
 
   it("continues to stream assistant text", async () => {

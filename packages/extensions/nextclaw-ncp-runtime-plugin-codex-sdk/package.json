@@ -1,6 +1,6 @@
 {
   "name": "@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk",
-  "version": "0.1.62",
+  "version": "0.1.63",
   "private": false,
   "description": "NextClaw plugin that registers Codex SDK as an optional NCP runtime.",
   "type": "module",
@@ -15,6 +15,7 @@
     "dev:build": "tsdown src/index.ts --dts --target es2022 --no-fixedExtension --unbundle --no-clean --watch",
     "prepack": "pnpm run build",
     "lint": "eslint .",
+    "test": "vitest run src/utils/codex-openai-sse-chunks.utils.test.ts",
     "tsc": "tsc -p tsconfig.json",
     "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
   },
@@ -40,6 +41,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
   }
 }

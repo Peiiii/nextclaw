@@ -18,6 +18,13 @@ export type ToolSnapshot = {
 };
 
 const TEXT_DELTA_CHUNK_SIZE = 32;
+const TOOL_LIKE_ITEM_TYPES = new Set<ThreadItem["type"]>([
+  "mcp_tool_call",
+  "command_execution",
+  "web_search",
+  "file_change",
+  "todo_list",
+]);
 
 function buildToolDescriptor(item: ToolLikeItem): { toolName: string; args: unknown } {
   switch (item.type) {
@@ -27,33 +34,13 @@ function buildToolDescriptor(item: ToolLikeItem): { toolName: string; args: unkn
         args: item.arguments,
       };
     case "command_execution":
-      return {
-        toolName: "command_execution",
-        args: {
-          command: item.command,
-        },
-      };
+      return { toolName: "command_execution", args: { command: item.command } };
     case "web_search":
-      return {
-        toolName: "web_search",
-        args: {
-          query: item.query,
-        },
-      };
+      return { toolName: "web_search", args: { query: item.query } };
     case "file_change":
-      return {
-        toolName: "file_change",
-        args: {
-          changes: item.changes,
-        },
-      };
+      return { toolName: "file_change", args: { changes: item.changes } };
     case "todo_list":
-      return {
-        toolName: "todo_list",
-        args: {
-          items: item.items,
-        },
-      };
+      return { toolName: "todo_list", args: { items: item.items } };
   }
 }
 
@@ -75,20 +62,11 @@ function buildToolResult(item: ToolLikeItem): unknown {
         ...(typeof item.exit_code === "number" ? { exit_code: item.exit_code } : {}),
       };
     case "web_search":
-      return {
-        status: "completed",
-        query: item.query,
-      };
+      return { status: "completed", query: item.query };
     case "file_change":
-      return {
-        status: item.status,
-        changes: item.changes,
-      };
+      return { status: item.status, changes: item.changes };
     case "todo_list":
-      return {
-        status: "completed",
-        items: item.items,
-      };
+      return { status: "completed", items: item.items };
   }
 }
 
@@ -103,24 +81,15 @@ function stringifyToolArgs(args: unknown): string {
 }
 
 function isToolLikeItem(item: ThreadItem): item is ToolLikeItem {
-  return (
-    item.type === "mcp_tool_call" ||
-    item.type === "command_execution" ||
-    item.type === "web_search" ||
-    item.type === "file_change" ||
-    item.type === "todo_list"
-  );
+  return TOOL_LIKE_ITEM_TYPES.has(item.type);
 }
 
 function splitTextDelta(delta: string): string[] {
-  if (delta.length <= TEXT_DELTA_CHUNK_SIZE) {
-    return delta ? [delta] : [];
-  }
-  const chunks: string[] = [];
-  for (let index = 0; index < delta.length; index += TEXT_DELTA_CHUNK_SIZE) {
-    chunks.push(delta.slice(index, index + TEXT_DELTA_CHUNK_SIZE));
-  }
-  return chunks;
+  return Array.from(
+    { length: Math.ceil(delta.length / TEXT_DELTA_CHUNK_SIZE) },
+    (_, index) =>
+      delta.slice(index * TEXT_DELTA_CHUNK_SIZE, (index + 1) * TEXT_DELTA_CHUNK_SIZE),
+  );
 }
 
 function* mapTextSnapshotDelta(params: {
@@ -170,23 +139,23 @@ export async function* mapCodexItemEvent(params: {
   const { sessionId, messageId, event, itemTextById, toolStateById } = params;
   const { item } = event;
 
-  if (item.type === "agent_message") {
+  if (item.type === "agent_message" || item.type === "reasoning") {
+    const isReasoning = item.type === "reasoning";
     yield* mapTextSnapshotDelta({
       currentText: item.text ?? "",
-      deltaType: NcpEventType.MessageTextDelta,
-      endType: NcpEventType.MessageTextEnd,
+      deltaType: isReasoning
+        ? NcpEventType.MessageReasoningDelta
+        : NcpEventType.MessageTextDelta,
+      endType: isReasoning ? NcpEventType.MessageReasoningEnd : NcpEventType.MessageTextEnd,
       eventType: event.type,
       itemId: item.id,
       itemTextById,
       messageId,
       sessionId,
-      startType: NcpEventType.MessageTextStart,
+      startType: isReasoning
+        ? NcpEventType.MessageReasoningStart
+        : NcpEventType.MessageTextStart,
     });
-    return;
-  }
-
-  if (item.type === "reasoning") {
-    itemTextById.delete(item.id);
     return;
   }
 

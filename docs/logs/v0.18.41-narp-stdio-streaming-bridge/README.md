@@ -26,6 +26,18 @@
   - `message.text-*` 与 `message.tool-call-*` 仍保持流式输出。
   - 新增 mapper 回归测试，确保 raw reasoning 被抑制、assistant text 仍正常流式映射。
 
+### 2026-05-14 Codex reasoning 空白保留修正
+
+- 上一版 raw reasoning 修正把 Codex reasoning 整体丢弃，导致 DeepSeek / MiniMax 这类真实 provider 的 thinking 也消失；这是错误修复，已撤销。
+- 根因重新确认：
+  - DeepSeek 上游原始 `reasoning_content` 是带空格的可读英文。
+  - 进入 Codex SDK raw event 后变成 `Theuserwants...`，第一处错误来自 bridge 解析 OpenAI-compatible SSE 时对每个 delta 使用会 `.trim()` 的通用 `readString()`。
+  - 流式 delta 的前导空格被 bridge 删除后，下游无法再恢复。
+- 修复方式：
+  - `codex-openai-sse-chunks` 对 reasoning/text delta 改用 raw string reader，保留模型输出的原始空白。
+  - Codex SDK NCP mapper 撤销摘要化 workaround，只负责原样协议映射。
+  - `integrating-narp-stdio-runtime` skill 增补规则：遇到无空格 reasoning 必须定位第一个错误 hop，禁止在 mapper 统一改写成高层摘要。
+
 ## 测试/验证/验收方式
 
 - TypeScript:
@@ -57,6 +69,17 @@
   - 发布后安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.5`，依赖闭包解析到 SDK `0.1.28`、插件 `0.1.62`。
   - 发布后 DeepSeek 冒烟：`reasoningDeltaCount: 0`，仍有 `message.tool-call-*` 事件。
   - 发布后 MiniMax 冒烟：`reasoningDeltaCount: 0`，仍有 `message.text-delta`，文本包含 `收到`。
+- 2026-05-14 Codex reasoning 空白保留修正验证：
+  - DeepSeek 分层复现：上游 reasoning sample 为 `The user wants...`，Codex SDK raw sample 变为 `Theuserwants...`，确认第一处错误在 bridge delta 空白处理；修复后 DeepSeek 账号返回 `Insufficient Balance`，无法继续真实模型闭环。
+  - Unit：`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk test`，验证 reasoning/text delta 保留前导空白。
+  - Unit：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk test`，验证 NCP mapper 不再改写 reasoning 文本。
+  - TypeScript：`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk tsc`。
+  - Lint：`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk lint`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk lint`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk lint`，0 error，仅既有 context-destructuring warning。
+  - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk build`。
+  - MiniMax 真实模型 Codex SDK raw event：`minimax/MiniMax-M2.7` reasoning 非空且保留空白，最终文本 `391`。
+  - MiniMax 真实模型 NCP runtime：`message.reasoning-delta` 非空且保留空白，最终文本 `391`。
+  - 发布后安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.6`，依赖闭包解析到 SDK `0.1.29`、插件 `0.1.63`。
+  - 发布后 MiniMax NCP runtime 冒烟：`message.reasoning-delta` 非空且保留空白，最终文本 `391`。
 - Governance:
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
@@ -88,6 +111,7 @@
 - `post-edit-maintainability-guard` 结果：本次相关路径总代码 `+1796 / -189 / net +1607`，非测试代码 `+1796 / -189 / net +1607`；这是用户可见运行链路修复，净增主要来自真正流式状态机、协议转换和治理要求下的 owner class 收敛。
 - 剩余 warning 主要是若干文件接近 400 行预算，以及 Claude/Codex stream writer 属于协议状态机集中承载点；后续若继续扩展 tool/reasoning 事件，应优先拆成更小的 writer/parser 子 owner。
 - 2026-05-14 raw reasoning 修正属于非功能 bugfix：生产代码通过删除 Codex raw reasoning 映射分支净减 10 行，用户可见行为更可预测，测试增量集中在 mapper owner，没有增加新的 runtime fallback 或 provider 特判。
+- 2026-05-14 空白保留修正属于非功能 bugfix：生产代码删除 mapper 摘要 workaround，并把真正修复收敛到 bridge delta 解析 owner；非测试代码 `+45 / -65 / net -20`，没有新增 provider 特判或 runtime fallback。
 
 ## NPM 包发布记录
 
@@ -102,4 +126,9 @@
   - `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.28`：已发布。
   - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.62`：已发布，依赖 SDK `0.1.28`。
   - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.5`：已发布，依赖 SDK `0.1.28` 与插件 `0.1.62`。
+  - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
+- 2026-05-14 Codex reasoning 空白保留修正：
+  - `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.29`：已发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.63`：已发布。
+  - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.6`：已发布。
   - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
