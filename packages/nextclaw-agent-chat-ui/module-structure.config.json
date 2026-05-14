@@ -2,6 +2,5 @@
   "contractKind": "protocol",
   "protocol": "app-l1",
   "rootPolicy": "contract-only",
-  "enforcement": "error",
-  "importAliasPrefixes": ["@agent-chat-ui/"]
+  "enforcement": "error"
 }

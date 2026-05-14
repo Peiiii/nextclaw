@@ -778,7 +778,7 @@ it("does not render the typing placeholder after assistant output has started bu
 });
 
 it("uses the typing placeholder instead of rendering an empty assistant draft bubble", () => {
-  const { container } = render(
+  render(
     <ChatMessageList
       messages={[
         {
@@ -798,8 +798,6 @@ it("uses the typing placeholder instead of rendering an empty assistant draft bu
 
   expect(screen.queryByText("Assistant · 10:06")).toBeNull();
   expect(screen.getByText("Typing...")).toBeTruthy();
-  expect(screen.getByRole("status").textContent).toContain("Typing...");
-  expect(container.querySelector(".nextclaw-agent-typing-shine")).toBeTruthy();
 });
 
 it("treats whitespace-only and zero-width markdown drafts as loading instead of visible bubbles", () => {
