@@ -8,7 +8,11 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "types": ["node", "vite/client", "vitest/globals"]
+    "types": ["node", "vite/client", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@agent-chat-ui/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }
