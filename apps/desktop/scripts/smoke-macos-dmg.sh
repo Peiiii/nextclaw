@@ -3,6 +3,7 @@ set -eo pipefail
 
 DMG_PATH="${1:-}"
 STARTUP_TIMEOUT_SEC="${2:-120}"
+MAX_READY_SEC="${DESKTOP_SMOKE_MAX_READY_SEC:-45}"
 
 if [[ -z "${DMG_PATH}" ]]; then
   echo "[desktop-smoke] usage: smoke-macos-dmg.sh <dmg-path> [startup-timeout-sec]" >&2
@@ -19,14 +20,20 @@ if ! [[ "${STARTUP_TIMEOUT_SEC}" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+if ! [[ "${MAX_READY_SEC}" =~ ^[0-9]+$ ]]; then
+  echo "[desktop-smoke] invalid max ready timeout: ${MAX_READY_SEC}" >&2
+  exit 1
+fi
+
 TEMP_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 SMOKE_HOME="${TEMP_ROOT}/nextclaw-desktop-smoke-home"
 MOUNT_POINT=""
-INSTALL_ROOT="${TEMP_ROOT}/nextclaw-desktop-installed"
+INSTALL_ROOT="${NEXTCLAW_DESKTOP_SMOKE_INSTALL_ROOT:-${HOME}/Applications/.nextclaw-desktop-smoke-${$}}"
 INSTALLED_APP="${INSTALL_ROOT}/NextClaw Desktop.app"
 LOG_ROOT="${TEMP_ROOT}/nextclaw-desktop-smoke-logs"
 APP_STDOUT_LOG="${LOG_ROOT}/app-stdout.log"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
+APP_MAIN_LOG="${SMOKE_HOME}/launcher/main.log"
 RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
 RUNTIME_FALLBACK_HOME="${TEMP_ROOT}/nextclaw-desktop-runtime-fallback-home"
 DEFAULT_UI_PORT=55667
@@ -35,6 +42,36 @@ RUNTIME_FALLBACK_PORT_END=55716
 SMOKE_UI_PORT=""
 
 mkdir -p "${LOG_ROOT}"
+
+now_ms() {
+  node -e "process.stdout.write(String(Date.now()))"
+}
+
+print_file_tail() {
+  local label="$1"
+  local file_path="$2"
+  if [[ ! -f "${file_path}" ]]; then
+    echo "[desktop-smoke] ${label}: ${file_path} (missing)"
+    return
+  fi
+  echo "[desktop-smoke] ${label}: ${file_path}"
+  tail -n 120 "${file_path}" || true
+}
+
+print_desktop_diagnostics() {
+  print_file_tail "app stdout log" "${APP_STDOUT_LOG}"
+  print_file_tail "main log" "${APP_MAIN_LOG}"
+  print_file_tail "runtime fallback log" "${RUNTIME_STDOUT_LOG}"
+}
+
+main_log_has() {
+  local pattern="$1"
+  [[ -f "${APP_MAIN_LOG}" ]] && grep -q "${pattern}" "${APP_MAIN_LOG}"
+}
+
+desktop_window_ready() {
+  main_log_has "ready-to-show" && main_log_has "did-finish-load"
+}
 
 contains_value() {
   local target="$1"
@@ -321,6 +358,15 @@ run_runtime_fallback() {
   done
 }
 
+run_runtime_fallback_diagnostic() {
+  if run_runtime_fallback; then
+    echo "[desktop-smoke] runtime fallback diagnostic passed, but GUI smoke still fails." >&2
+    return 0
+  fi
+  echo "[desktop-smoke] runtime fallback diagnostic failed." >&2
+  return 1
+}
+
 cleanup() {
   local status=$?
 
@@ -346,6 +392,8 @@ trap cleanup EXIT INT TERM
 echo "[desktop-smoke] dmg: ${DMG_PATH}"
 echo "[desktop-smoke] temp root: ${TEMP_ROOT}"
 echo "[desktop-smoke] smoke home: ${SMOKE_HOME}"
+echo "[desktop-smoke] startup timeout: ${STARTUP_TIMEOUT_SEC}s"
+echo "[desktop-smoke] max GUI ready time: ${MAX_READY_SEC}s"
 
 rm -rf "${SMOKE_HOME}" "${INSTALL_ROOT}" >/dev/null 2>&1 || true
 mkdir -p "${SMOKE_HOME}" "${INSTALL_ROOT}"
@@ -384,29 +432,35 @@ echo "[desktop-smoke] launching desktop app"
 "${APP_BIN}" >"${APP_STDOUT_LOG}" 2>&1 &
 APP_PID="$!"
 
+START_MS="$(now_ms)"
 START_TIME="$(date +%s)"
+HEALTH_URL=""
 while true; do
   if ! kill -0 "${APP_PID}" 2>/dev/null; then
     RECOVERED_PID="$(find_running_app_pid "${APP_BIN}" || true)"
     if [[ -n "${RECOVERED_PID}" ]]; then
       APP_PID="${RECOVERED_PID}"
     else
-      echo "[desktop-smoke] desktop app exited early. trying runtime fallback." >&2
-      if run_runtime_fallback; then
-        exit 0
-      fi
-      echo "[desktop-smoke] desktop app fallback failed. See ${APP_STDOUT_LOG} and ${RUNTIME_STDOUT_LOG}" >&2
+      echo "[desktop-smoke] desktop app exited early." >&2
+      run_runtime_fallback_diagnostic || true
+      print_desktop_diagnostics
       exit 1
     fi
   fi
 
+  ELAPSED_MS="$(($(now_ms) - START_MS))"
+  if ((ELAPSED_MS > MAX_READY_SEC * 1000)); then
+    echo "[desktop-smoke] desktop GUI not ready within ${MAX_READY_SEC}s." >&2
+    run_runtime_fallback_diagnostic || true
+    print_desktop_diagnostics
+    exit 1
+  fi
+
   NOW="$(date +%s)"
   if ((NOW - START_TIME >= STARTUP_TIMEOUT_SEC)); then
-    echo "[desktop-smoke] health API not ready within ${STARTUP_TIMEOUT_SEC}s. trying runtime fallback." >&2
-    if run_runtime_fallback; then
-      exit 0
-    fi
-    echo "[desktop-smoke] desktop app fallback failed. See ${APP_STDOUT_LOG} and ${RUNTIME_STDOUT_LOG}" >&2
+    echo "[desktop-smoke] health API not ready within ${STARTUP_TIMEOUT_SEC}s." >&2
+    run_runtime_fallback_diagnostic || true
+    print_desktop_diagnostics
     exit 1
   fi
 
@@ -427,8 +481,15 @@ while true; do
   for port in "${PORT_LIST[@]}"; do
     if curl -fsS --max-time 2 "http://127.0.0.1:${port}/api/health" >"${APP_HEALTH_LOG}" 2>/dev/null; then
       if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -q '"status":"ok"' "${APP_HEALTH_LOG}"; then
-        echo "[desktop-smoke] health check passed: http://127.0.0.1:${port}/api/health"
-        exit 0
+        HEALTH_URL="http://127.0.0.1:${port}/api/health"
+        if desktop_window_ready; then
+          READY_MS="$(($(now_ms) - START_MS))"
+          echo "[desktop-smoke] GUI smoke passed in ${READY_MS}ms"
+          echo "[desktop-smoke] health check passed: ${HEALTH_URL}"
+          echo "[desktop-smoke] main log: ${APP_MAIN_LOG}"
+          tail -n 80 "${APP_MAIN_LOG}" || true
+          exit 0
+        fi
       fi
     fi
   done

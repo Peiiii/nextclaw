@@ -43,7 +43,6 @@ import { StartCommands } from "@nextclaw-service/cli/commands/start/index.js";
 import { RestartCommands } from "@nextclaw-service/cli/commands/restart/index.js";
 import { ServeCommands } from "@nextclaw-service/cli/commands/serve/index.js";
 import { StopCommands } from "@nextclaw-service/cli/commands/stop/index.js";
-import { CompanionCommands } from "@nextclaw-service/cli/commands/companion/index.js";
 import { LlmUsageCommandService } from "@nextclaw-service/cli/commands/usage/index.js";
 import type { AgentCommandOptions, LoginCommandOptions, RequestRestartParams, UpdateCommandOptions } from "@nextclaw-service/shared/types/cli.types.js";
 const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
@@ -79,7 +78,6 @@ export type NextclawServiceCommands = {
   restart: RestartCommands;
   serve: ServeCommands;
   stop: StopCommands;
-  companion: CompanionCommands;
   usage: LlmUsageCommandService;
 };
 
@@ -195,7 +193,6 @@ export class NextclawServiceRuntime {
       stop: measureStartupSync("cli.runtime.stop_commands", () => new StopCommands({
         runtimeCommandService: this.runtimeCommandService
       })),
-      companion: measureStartupSync("cli.runtime.companion_commands", () => new CompanionCommands()),
       usage: measureStartupSync("cli.runtime.usage_commands", () => new LlmUsageCommandService()),
     };
   };

@@ -71,10 +71,14 @@ export class DesktopUpdateShellService {
   };
 
   installApplicationMenu = (): void => {
+    if (process.platform !== "darwin") {
+      Menu.setApplicationMenu(null);
+      return;
+    }
+
     const snapshot = this.coordinator?.getSnapshot();
     const template: MenuItemConstructorOptions[] = [
-      ...(process.platform === "darwin" ? [this.createDarwinAppMenu(snapshot)] : []),
-      { role: "fileMenu" },
+      this.createDarwinAppMenu(snapshot),
       { role: "editMenu" },
       { role: "viewMenu" },
       { role: "windowMenu" },

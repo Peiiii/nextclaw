@@ -1,4 +1,4 @@
-import { fork, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -28,6 +28,13 @@ type RuntimeCommandFailureParams = {
   signal: NodeJS.Signals | null;
   outputLines: string[];
 };
+
+function spawnRuntimeScript(scriptPath: string, args: string[], env: NodeJS.ProcessEnv): ChildProcess {
+  return spawn(process.execPath, [scriptPath, ...args], {
+    env,
+    stdio: "pipe"
+  });
+}
 
 export class RuntimeServiceProcess {
   private readonly startupTimeoutMs: number;
@@ -60,10 +67,7 @@ export class RuntimeServiceProcess {
   private startEmbeddedServe = async (port: number): Promise<{ port: number; baseUrl: string }> => {
     await this.ensureInitialized();
     this.options.logger.info(`[runtime] launching embedded serve with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
-    const child = fork(this.options.scriptPath, ["serve", "--ui-port", String(port)], {
-      env: this.options.runtimeEnv,
-      stdio: "pipe"
-    });
+    const child = spawnRuntimeScript(this.options.scriptPath, ["serve", "--ui-port", String(port)], this.options.runtimeEnv);
 
     child.stdout?.on("data", (chunk) => {
       this.options.logger.info(`[runtime] ${String(chunk).trimEnd()}`);
@@ -107,10 +111,7 @@ export class RuntimeServiceProcess {
   private runCliCommand = async (args: string[], label: string): Promise<void> => {
     await new Promise<void>((resolve, reject) => {
       let outputLines: string[] = [];
-      const child = fork(this.options.scriptPath, args, {
-        env: this.options.runtimeEnv,
-        stdio: "pipe"
-      });
+      const child = spawnRuntimeScript(this.options.scriptPath, args, this.options.runtimeEnv);
 
       child.stdout?.on("data", (chunk) => {
         const message = String(chunk).trimEnd();

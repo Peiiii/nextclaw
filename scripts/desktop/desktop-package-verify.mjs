@@ -132,6 +132,38 @@ function assertSeedBundleVersion(seedBundlePath) {
   console.log(`[desktop-verify] seed bundle version verified: ${actualVersion}`);
 }
 
+function assertSeedBundleExcludesElectron(seedBundlePath) {
+  const script = [
+    "const JSZip=require('jszip');",
+    "const fs=require('fs');",
+    "const zipPath=process.argv[1];",
+    "JSZip.loadAsync(fs.readFileSync(zipPath))",
+    "  .then((zip) => {",
+    "    const forbidden = Object.keys(zip.files).filter((name) => name.startsWith('bundle/runtime/node_modules/electron/'));",
+    "    if (forbidden.length > 0) {",
+    "      throw new Error(`seed bundle contains electron runtime (${forbidden.length} entries): ${zipPath}`);",
+    "    }",
+    "  })",
+    "  .catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exit(1); });"
+  ].join(" ");
+  const result = spawnSync(binName("pnpm"), ["-C", "apps/desktop", "exec", "node", "-e", script, seedBundlePath], {
+    cwd: rootDir,
+    encoding: "utf8"
+  });
+  if (result.status !== 0) {
+    throw new Error(`Packaged seed bundle embeds Electron: ${result.stderr || result.stdout}`);
+  }
+  console.log(`[desktop-verify] seed bundle excludes Electron runtime: ${seedBundlePath}`);
+}
+
+function assertDesktopPackageExcludesNestedElectron(appRoot) {
+  const nestedElectronPath = resolve(appRoot, "Contents/Resources/app.asar.unpacked/node_modules/electron");
+  if (existsSync(nestedElectronPath)) {
+    throw new Error(`Packaged desktop app embeds nested Electron runtime: ${nestedElectronPath}`);
+  }
+  console.log(`[desktop-verify] desktop app excludes nested Electron runtime: ${appRoot}`);
+}
+
 function verifySeedBundleRuntimeInit(seedBundlePath) {
   const tempRoot = mkdtempSync(join(tmpdir(), "nextclaw-seed-runtime-verify-"));
   const extractRoot = resolve(tempRoot, "extract");
@@ -219,7 +251,9 @@ function verifyMacDesktopPackage() {
     packagedPublicKeyPath,
     `https://Peiiii.github.io/nextclaw/desktop-updates/stable/manifest-stable-darwin-${arch}.json`
   );
+  assertDesktopPackageExcludesNestedElectron(mountedAppRoot);
   assertSeedBundleVersion(seedBundlePath);
+  assertSeedBundleExcludesElectron(seedBundlePath);
   verifySeedBundleRuntimeInit(seedBundlePath);
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
   console.log(`[desktop-verify] macOS package verified: ${dmgPath}`);

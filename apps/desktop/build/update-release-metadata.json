@@ -2,11 +2,11 @@
   "channel": "stable",
   "releaseTag": null,
   "seedBundle": {
-    "version": "0.18.4",
-    "sha256": "78ce6f5c98e38147d459a1a46c0b4255d2562ff2bd46e68a6d656115ba5ab5a1",
-    "archiveBytes": 20640637,
-    "fileCount": 12727,
-    "directoryCount": 2002,
-    "uncompressedBytes": 71902100
+    "version": "0.19.6",
+    "sha256": "c5f004c4459f3dd8c953de6f890765010c4ace1376e2ed565cb821097749f27c",
+    "archiveBytes": 21318653,
+    "fileCount": 13023,
+    "directoryCount": 2117,
+    "uncompressedBytes": 73865791
   }
 }

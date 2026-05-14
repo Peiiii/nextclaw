@@ -105,6 +105,22 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - If a capability depends on a newer Node builtin than the packaged Electron runtime, gate that capability explicitly and keep desktop startup alive instead of crashing the whole launcher.
 - If macOS DMG smoke falls back from GUI launch to `ELECTRON_RUN_AS_NODE`, run that fallback against an isolated temp home so a failed GUI bootstrap does not contaminate the fallback validation state.
 
+## Unsigned macOS Local Gate
+- Do not treat `codesign --verify --deep --strict` as proof that a local unsigned macOS app opens.
+- Always classify a macOS launch failure before handing off an artifact:
+  - broken bundle signature or missing nested signing material: fix packaging;
+  - packaged runtime child process cannot boot: fix the launcher/runtime process owner, not Gatekeeper instructions;
+  - `spctl` / AMFI / AppleSystemPolicy rejects ad-hoc or unknown certificate chain: this is unsigned trust policy and requires user approval, a trusted local certificate, or Developer ID notarization.
+- For Electron apps, avoid using raw `codesign --deep` as the primary repair path. Sign nested Electron helpers/frameworks with Electron-aware signing, then apply project entitlements only to the owners that need them.
+- If the project intentionally ships unsigned macOS builds, final handoff must say whether local launch was truly smoke-tested, blocked by unsigned trust policy, or requires the documented `Open Anyway` flow.
+- For intentional unsigned macOS builds, do not ask the user to import, trust, or unlock a local signing certificate unless they explicitly choose to change the product policy to signed builds. The normal no-password path is the documented unsigned-app approval flow, not Keychain trust changes.
+- A GUI desktop smoke must prove more than "the process stayed alive":
+  - a visible-window lifecycle signal such as `ready-to-show` must be logged;
+  - renderer load completion such as `did-finish-load` must be logged;
+  - runtime health must pass through the GUI-launched app process;
+  - startup elapsed time must be printed and bounded by an explicit threshold.
+- Runtime fallback checks are diagnostics only. They must never turn a failed GUI launch smoke into a passing desktop package verification.
+
 ## Common Traps
 - `gh release create` succeeded:
   - Meaning: the release object exists
