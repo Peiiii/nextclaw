@@ -55,6 +55,7 @@ export type ChatThreadSnapshot = {
   messages: readonly NcpMessage[];
   isSending: boolean;
   isAwaitingAssistantOutput: boolean;
+  hasSubmittedDraftMessage: boolean;
   parentSessionKey?: string | null;
   parentSessionLabel?: string | null;
   workspacePanelParentKey?: string | null;
@@ -92,6 +93,7 @@ const initialSnapshot: ChatThreadSnapshot = {
   messages: [],
   isSending: false,
   isAwaitingAssistantOutput: false,
+  hasSubmittedDraftMessage: false,
   parentSessionKey: null,
   parentSessionLabel: null,
   workspacePanelParentKey: null,

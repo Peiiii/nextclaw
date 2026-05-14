@@ -12,7 +12,7 @@ export class ChatSessionListManager {
     private streamActionsManager: ChatStreamActionsManager
   ) {}
 
-  private syncDraftThreadState = () => {
+  private syncDraftThreadState = (hasSubmittedDraftMessage = false) => {
     useChatThreadStore.getState().setSnapshot({
       sessionKey: null,
       sessionDisplayName: undefined,
@@ -21,6 +21,7 @@ export class ChatSessionListManager {
       messages: [],
       isSending: false,
       isAwaitingAssistantOutput: false,
+      hasSubmittedDraftMessage,
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
@@ -108,7 +109,6 @@ export class ChatSessionListManager {
     this.streamActionsManager.resetStreamState();
     useChatSessionListStore.getState().setSnapshot({
       selectedSessionKey: null,
-      draftSessionKey: null
     });
     this.syncDraftThreadState();
     useChatInputStore.getState().setSnapshot({
@@ -134,7 +134,7 @@ export class ChatSessionListManager {
       typeof sessionType === 'string' && sessionType.trim().length > 0
         ? sessionType.trim()
         : null;
-    this.syncDraftThreadState();
+    this.syncDraftThreadState(true);
     if (normalizedSessionType) {
       useChatInputStore.getState().setSnapshot({ pendingSessionType: normalizedSessionType });
     }
@@ -149,13 +149,6 @@ export class ChatSessionListManager {
     if (!this.uiManager.isAtChatRoot()) {
       return;
     }
-    useChatSessionListStore.getState().setSnapshot({
-      selectedSessionKey: normalizedSessionKey,
-      draftSessionKey: null,
-    });
-    useChatThreadStore.getState().setSnapshot({
-      sessionKey: normalizedSessionKey,
-    });
     this.uiManager.goToSession(normalizedSessionKey, { replace: true });
   };
 

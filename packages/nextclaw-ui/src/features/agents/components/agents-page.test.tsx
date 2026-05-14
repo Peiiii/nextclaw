@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentsPage } from "@/features/agents";
+import type * as ChatFeature from "@/features/chat";
 import {
   ChatPresenterProvider,
   NcpChatPresenter,
@@ -112,7 +113,7 @@ vi.mock("@/shared/hooks/use-config", () => ({
 }));
 
 vi.mock("@/features/chat", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/features/chat")>();
+  const actual = await importOriginal<typeof ChatFeature>();
   return {
     ...actual,
     useNcpChatSessionTypes: () => mocks.sessionTypesQuery,
@@ -158,7 +159,6 @@ describe("AgentsPage", () => {
         ...useChatSessionListStore.getState().snapshot,
         selectedAgentId: "main",
         selectedSessionKey: "session-1",
-        draftSessionKey: "stale-draft-session",
       },
     });
     useChatThreadStore.setState({
@@ -241,10 +241,7 @@ describe("AgentsPage", () => {
       "researcher",
     );
     expect(sessionListSnapshot.selectedSessionKey).toBeNull();
-    expect(sessionListSnapshot.draftSessionKey).not.toBe("stale-draft-session");
-    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe(
-      sessionListSnapshot.draftSessionKey,
-    );
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe(
       "codex",
     );

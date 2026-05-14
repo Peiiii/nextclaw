@@ -35,7 +35,6 @@ describe('ChatSessionListManager', () => {
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: 'session-1',
-        draftSessionKey: 'draft-root-1',
         listMode: 'time-first'
       }
     });
@@ -65,8 +64,8 @@ describe('ChatSessionListManager', () => {
     expect(streamActionsManager.resetStreamState).toHaveBeenCalledTimes(1);
     expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(false);
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
@@ -89,8 +88,8 @@ describe('ChatSessionListManager', () => {
     expect(uiManager.goToChatRoot).toHaveBeenCalledTimes(1);
     expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe('researcher');
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
-    expect(useChatSessionListStore.getState().snapshot.draftSessionKey).toBeNull();
     expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(false);
     expect(useChatInputStore.getState().snapshot.pendingSessionType).toBe('codex');
     expect(useChatInputStore.getState().snapshot.pendingProjectRoot).toBeNull();
     expect(useChatInputStore.getState().snapshot.pendingProjectRootSessionKey).toBeNull();
@@ -117,8 +116,7 @@ describe('ChatSessionListManager', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
-        selectedSessionKey: null,
-        draftSessionKey: 'draft-root-2'
+        selectedSessionKey: null
       }
     });
     const uiManager = {
@@ -137,6 +135,7 @@ describe('ChatSessionListManager', () => {
     expect(uiManager.goToChatRoot).not.toHaveBeenCalled();
     expect(uiManager.goToSession).not.toHaveBeenCalled();
     expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.hasSubmittedDraftMessage).toBe(true);
   });
 
   it('does not eagerly replace the old selected session before the route finishes switching', () => {
@@ -225,12 +224,11 @@ describe('ChatSessionListManager', () => {
     expect(mocks.updateNcpSession).not.toHaveBeenCalled();
   });
 
-  it('routes to the backend-materialized root session after the first send starts', () => {
+  it('routes to the backend-materialized root session without duplicating route-owned selection state', () => {
     useChatSessionListStore.setState({
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: null,
-        draftSessionKey: 'draft-root-2',
       }
     });
     const uiManager = {
@@ -246,8 +244,8 @@ describe('ChatSessionListManager', () => {
     manager.ensureDraftSession('native');
     manager.materializeRootSessionRoute('ncp-materialized-session');
 
-    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBe('ncp-materialized-session');
-    expect(useChatThreadStore.getState().snapshot.sessionKey).toBe('ncp-materialized-session');
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
     expect(uiManager.goToSession).toHaveBeenCalledWith('ncp-materialized-session', { replace: true });
   });
 });

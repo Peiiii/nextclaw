@@ -173,6 +173,9 @@ function ChatConversationContent({
   onToolAction,
   onFileOpen,
 }: ChatConversationContentProps) {
+  const isAwaitingAssistantOutput =
+    snapshot.isSending && snapshot.isAwaitingAssistantOutput;
+
   return (
     <div
       ref={threadRef}
@@ -186,16 +189,15 @@ function ChatConversationContent({
           selectedAgentId={snapshot.agentId ?? "main"}
           onSelectAgent={onSelectAgent}
         />
-      ) : hideEmptyHint ? null : snapshot.messages.length === 0 ? (
+      ) : hideEmptyHint ? null : snapshot.messages.length === 0 && !isAwaitingAssistantOutput ? (
         <div className="px-4 py-4 text-sm text-gray-500 sm:px-5 sm:py-5">
           {t("chatNoMessages")}
         </div>
       ) : (
         <div className="mx-auto w-full max-w-[min(1120px,100%)] px-4 py-4 sm:px-6 sm:py-5">
           <ChatMessageListContainer
-            key={snapshot.sessionKey ?? "draft"}
             messages={snapshot.messages}
-            isSending={snapshot.isSending && snapshot.isAwaitingAssistantOutput}
+            isSending={isAwaitingAssistantOutput}
             onToolAction={onToolAction}
             onFileOpen={onFileOpen}
           />
@@ -255,6 +257,7 @@ export function ChatConversationPanel({
 
   const showWelcome =
     !snapshot.canDeleteSession &&
+    !snapshot.hasSubmittedDraftMessage &&
     snapshot.messages.length === 0 &&
     !snapshot.isSending;
   const hasConfiguredModel = snapshot.modelOptions.length > 0;

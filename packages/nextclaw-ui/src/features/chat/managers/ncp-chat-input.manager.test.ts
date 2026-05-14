@@ -58,7 +58,6 @@ describe('NcpChatInputManager', () => {
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: 'stale-selected-session',
-        draftSessionKey: 'draft-root-session',
         selectedAgentId: 'main',
       },
     });
@@ -109,7 +108,6 @@ describe('NcpChatInputManager', () => {
       snapshot: {
         ...useChatSessionListStore.getState().snapshot,
         selectedSessionKey: null,
-        draftSessionKey: null,
       },
     });
     const streamActionsManager = {

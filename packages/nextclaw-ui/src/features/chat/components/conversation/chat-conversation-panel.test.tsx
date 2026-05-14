@@ -49,7 +49,19 @@ vi.mock("@/features/chat/components/conversation/chat-input-bar.container", () =
 }));
 
 vi.mock("@/features/chat/components/conversation/chat-message-list.container", () => ({
-  ChatMessageListContainer: () => <div data-testid="chat-message-list" />,
+  ChatMessageListContainer: ({
+    isSending,
+    messages,
+  }: {
+    isSending: boolean;
+    messages: readonly unknown[];
+  }) => (
+    <div
+      data-testid="chat-message-list"
+      data-message-count={String(messages.length)}
+      data-sending={String(isSending)}
+    />
+  ),
 }));
 
 vi.mock("@/features/chat/components/chat-session-workspace-file-preview", () => ({
@@ -159,67 +171,70 @@ vi.mock("@/shared/components/common/agent-identity", () => ({
   ),
 }));
 
-describe("ChatConversationPanel", () => {
-  beforeEach(() => {
-    mocks.deleteSession.mockReset();
-    mocks.goToProviders.mockReset();
-    mocks.createSession.mockReset();
-    mocks.createSession.mockReturnValue("draft-session-2");
-    mocks.goToChatRoot.mockReset();
-    mocks.goToSession.mockReset();
-    mocks.setSelectedAgentId.mockReset();
-    mocks.setPendingSessionType.mockReset();
-    mocks.stickyBottomScroll.mockClear();
-    useChatInputStore.setState({
-      snapshot: {
-        ...useChatInputStore.getState().snapshot,
-        defaultSessionType: "native",
-      },
-    });
-    useChatThreadStore.setState({
-      snapshot: {
-        ...useChatThreadStore.getState().snapshot,
-        isProviderStateResolved: true,
-        modelOptions: [
-          {
-            value: "openai/gpt-5.1",
-            modelLabel: "gpt-5.1",
-            providerLabel: "OpenAI",
-          } as never,
-        ],
-        sessionTypeLabel: "Codex",
-        sessionKey: "draft-session-1",
-        sessionDisplayName: undefined,
-        agentId: null,
-        agentDisplayName: null,
-        sessionProjectRoot: null,
-        sessionProjectName: null,
-        canDeleteSession: false,
-        isDeletePending: false,
-        isHistoryLoading: false,
-        messages: [],
-        isSending: false,
-        isAwaitingAssistantOutput: false,
-        parentSessionKey: null,
-        parentSessionLabel: null,
-        workspacePanelParentKey: null,
-        availableAgents: [
-          { id: "main", displayName: "Main", runtime: "native" },
-          { id: "engineer", displayName: "Engineer", runtime: "codex" },
-        ],
-        childSessionTabs: [],
-        activeChildSessionKey: null,
-        workspaceFileTabs: [],
-        activeWorkspaceFileKey: null,
-      },
-    });
-    useChatSessionListStore.setState({
-      optimisticReadAtBySessionKey: {},
-      snapshot: {
-        ...useChatSessionListStore.getState().snapshot,
-      },
-    });
+function resetChatConversationPanelTestState() {
+  mocks.deleteSession.mockReset();
+  mocks.goToProviders.mockReset();
+  mocks.createSession.mockReset();
+  mocks.createSession.mockReturnValue("draft-session-2");
+  mocks.goToChatRoot.mockReset();
+  mocks.goToSession.mockReset();
+  mocks.setSelectedAgentId.mockReset();
+  mocks.setPendingSessionType.mockReset();
+  mocks.stickyBottomScroll.mockClear();
+  useChatInputStore.setState({
+    snapshot: {
+      ...useChatInputStore.getState().snapshot,
+      defaultSessionType: "native",
+    },
   });
+  useChatThreadStore.setState({
+    snapshot: {
+      ...useChatThreadStore.getState().snapshot,
+      isProviderStateResolved: true,
+      modelOptions: [
+        {
+          value: "openai/gpt-5.1",
+          modelLabel: "gpt-5.1",
+          providerLabel: "OpenAI",
+        } as never,
+      ],
+      sessionTypeLabel: "Codex",
+      sessionKey: "draft-session-1",
+      sessionDisplayName: undefined,
+      agentId: null,
+      agentDisplayName: null,
+      sessionProjectRoot: null,
+      sessionProjectName: null,
+      canDeleteSession: false,
+      isDeletePending: false,
+      isHistoryLoading: false,
+      messages: [],
+      isSending: false,
+      isAwaitingAssistantOutput: false,
+      hasSubmittedDraftMessage: false,
+      parentSessionKey: null,
+      parentSessionLabel: null,
+      workspacePanelParentKey: null,
+      availableAgents: [
+        { id: "main", displayName: "Main", runtime: "native" },
+        { id: "engineer", displayName: "Engineer", runtime: "codex" },
+      ],
+      childSessionTabs: [],
+      activeChildSessionKey: null,
+      workspaceFileTabs: [],
+      activeWorkspaceFileKey: null,
+    },
+  });
+  useChatSessionListStore.setState({
+    optimisticReadAtBySessionKey: {},
+    snapshot: {
+      ...useChatSessionListStore.getState().snapshot,
+    },
+  });
+}
+
+describe("ChatConversationPanel", () => {
+  beforeEach(resetChatConversationPanelTestState);
 
   it("shows the draft session type in the conversation header", () => {
     render(<ChatConversationPanel />);
@@ -335,6 +350,40 @@ describe("ChatConversationPanel", () => {
       screen.queryByRole("status", { name: "Loading session history..." }),
     ).toBeNull();
     expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+  });
+
+  it("keeps the message list mounted while waiting for the first assistant token", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        messages: [],
+        isSending: true,
+        isAwaitingAssistantOutput: true,
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.getByTestId("chat-message-list").dataset).toMatchObject({ messageCount: "0", sending: "true" });
+    expect(screen.queryByText("No messages yet. Send one to start.")).toBeNull();
+  });
+
+  it("does not reopen the welcome panel after a root draft send fails", () => {
+    useChatThreadStore.setState({
+      snapshot: {
+        ...useChatThreadStore.getState().snapshot,
+        sessionKey: null,
+        messages: [],
+        isSending: false,
+        isAwaitingAssistantOutput: false,
+        hasSubmittedDraftMessage: true,
+      },
+    });
+
+    render(<ChatConversationPanel />);
+
+    expect(screen.queryByTestId("chat-welcome")).toBeNull();
+    expect(screen.getByText("No messages yet. Send one to start.")).toBeTruthy();
   });
 
   it("does not render runtime lifecycle copy in the conversation alert strip", () => {

@@ -3,7 +3,6 @@ import type { SessionRunStatus } from '@/features/chat/types/session-run-status.
 export type ChatSessionListMode = 'time-first' | 'project-first';
 export type ChatSessionListSnapshot = {
   selectedSessionKey: string | null;
-  draftSessionKey: string | null;
   selectedAgentId: string;
   query: string;
   listMode: ChatSessionListMode;
@@ -49,7 +48,6 @@ type ChatSessionListStoreSet = Parameters<StateCreator<ChatSessionListStore>>[0]
 
 const initialSnapshot: ChatSessionListSnapshot = {
   selectedSessionKey: null,
-  draftSessionKey: null,
   selectedAgentId: 'main',
   query: '',
   listMode: 'time-first'
