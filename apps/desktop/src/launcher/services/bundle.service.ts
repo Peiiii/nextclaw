@@ -29,6 +29,15 @@ function shouldRetryInstallWithCopy(error: unknown): boolean {
   return code === "EXDEV" || code === "EPERM";
 }
 
+async function removeBundleDirectory(targetDirectory: string): Promise<void> {
+  await rm(targetDirectory, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 100
+  });
+}
+
 type DesktopBundleServiceOptions = {
   layout: DesktopBundleLayoutStore;
   stateStore?: DesktopLauncherStateStore;
@@ -97,12 +106,16 @@ export class DesktopBundleService {
     const sourceBundle = this.verifyBundle(sourceDirectory);
     const version = sourceBundle.manifest.bundleVersion;
     const targetDirectory = this.options.layout.getVersionDir(version);
-    if (existsSync(targetDirectory)) {
+    if (resolve(sourceDirectory) === resolve(targetDirectory)) {
       return this.verifyBundle(targetDirectory);
     }
 
-    if (resolve(sourceDirectory) === resolve(targetDirectory)) {
-      return this.verifyBundle(targetDirectory);
+    if (existsSync(targetDirectory)) {
+      try {
+        return this.verifyBundle(targetDirectory);
+      } catch {
+        await removeBundleDirectory(targetDirectory);
+      }
     }
 
     try {
@@ -115,20 +128,20 @@ export class DesktopBundleService {
     }
 
     const stagingDirectory = join(this.options.layout.getStagingDir(), `${version}-${this.now()}`);
-    await rm(stagingDirectory, { recursive: true, force: true });
+    await removeBundleDirectory(stagingDirectory);
 
     try {
       await cp(sourceDirectory, stagingDirectory, { recursive: true });
       await rename(stagingDirectory, targetDirectory);
       return this.verifyBundle(targetDirectory);
     } catch (error) {
-      await rm(stagingDirectory, { recursive: true, force: true });
+      await removeBundleDirectory(stagingDirectory);
       throw error;
     }
   };
 
   removeVersion = async (version: string): Promise<void> => {
-    await rm(this.options.layout.getVersionDir(version), { recursive: true, force: true });
+    await removeBundleDirectory(this.options.layout.getVersionDir(version));
   };
 
   pruneRetainedArtifacts = async (): Promise<DesktopBundlePruneResult> => {
@@ -205,7 +218,7 @@ export class DesktopBundleService {
       if (!entry.isDirectory() || retainedVersions.has(entry.name)) {
         continue;
       }
-      await rm(join(this.options.layout.getVersionsDir(), entry.name), { recursive: true, force: true });
+      await removeBundleDirectory(join(this.options.layout.getVersionsDir(), entry.name));
       removedVersions.push(entry.name);
     }
 
@@ -217,7 +230,7 @@ export class DesktopBundleService {
     const entries = await readdir(this.options.layout.getStagingDir(), { withFileTypes: true });
 
     for (const entry of entries) {
-      await rm(join(this.options.layout.getStagingDir(), entry.name), { recursive: true, force: true });
+      await removeBundleDirectory(join(this.options.layout.getStagingDir(), entry.name));
       removedEntries.push(entry.name);
     }
 
