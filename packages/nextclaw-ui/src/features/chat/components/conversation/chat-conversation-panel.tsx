@@ -1,4 +1,4 @@
-import { type ComponentProps, useRef } from "react";
+import { type ComponentProps, useMemo, useRef } from "react";
 import { useStickyBottomScroll } from "@nextclaw/agent-chat-ui";
 import type { ChatFileOpenActionViewModel } from "@nextclaw/agent-chat-ui";
 import { ChatInputBarContainer } from "@/features/chat/components/conversation/chat-input-bar.container";
@@ -13,6 +13,8 @@ import { usePresenter } from "@/features/chat/components/providers/chat-presente
 import { resolveAgentRuntimeSessionType } from "@/features/chat/hooks/use-chat-session-type-state";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
+import { useCronJobs } from "@/shared/hooks/use-config";
+import { isCronJobForSession } from "@/shared/lib/cron";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
@@ -209,11 +211,39 @@ function shouldShowWorkspacePanel(
   snapshot: ChatThreadSnapshot,
   childSessionTabs: ChatThreadSnapshot["childSessionTabs"],
   workspaceFileTabs: ChatThreadSnapshot["workspaceFileTabs"],
+  sessionCronJobCount: number,
 ) {
   if (snapshot.workspacePanelParentKey !== snapshot.sessionKey) {
     return false;
   }
-  return childSessionTabs.length > 0 || workspaceFileTabs.length > 0;
+  return childSessionTabs.length > 0 || workspaceFileTabs.length > 0 || sessionCronJobCount > 0;
+}
+
+function useSessionWorkspaceState(snapshot: ChatThreadSnapshot) {
+  const childSessionTabs = useMemo(
+    () => snapshot.childSessionTabs.filter((tab) => tab.parentSessionKey === snapshot.sessionKey),
+    [snapshot.childSessionTabs, snapshot.sessionKey],
+  );
+  const workspaceFileTabs = useMemo(
+    () => snapshot.workspaceFileTabs.filter((tab) => tab.parentSessionKey === snapshot.sessionKey),
+    [snapshot.sessionKey, snapshot.workspaceFileTabs],
+  );
+  const cronQuery = useCronJobs({ all: true });
+  const sessionCronJobs = useMemo(
+    () => (cronQuery.data?.jobs ?? []).filter((job) => isCronJobForSession(job, snapshot.sessionKey)),
+    [cronQuery.data?.jobs, snapshot.sessionKey],
+  );
+  return {
+    childSessionTabs,
+    workspaceFileTabs,
+    sessionCronJobs,
+    showWorkspacePanel: shouldShowWorkspacePanel(
+      snapshot,
+      childSessionTabs,
+      workspaceFileTabs,
+      sessionCronJobs.length,
+    ),
+  };
 }
 
 export function ChatConversationPanel({
@@ -224,23 +254,12 @@ export function ChatConversationPanel({
   onBackToList?: () => void;
 }) {
   const presenter = usePresenter();
-  const defaultSessionType = useChatInputStore(
-    (state) => state.snapshot.defaultSessionType,
-  );
+  const defaultSessionType = useChatInputStore((state) => state.snapshot.defaultSessionType);
   const snapshot = useChatThreadStore((state) => state.snapshot);
   const fallbackThreadRef = useRef<HTMLDivElement | null>(null);
   const threadRef = snapshot.threadRef ?? fallbackThreadRef;
-  const childSessionTabs = snapshot.childSessionTabs.filter(
-    (tab) => tab.parentSessionKey === snapshot.sessionKey,
-  );
-  const workspaceFileTabs = snapshot.workspaceFileTabs.filter(
-    (tab) => tab.parentSessionKey === snapshot.sessionKey,
-  );
-  const showWorkspacePanel = shouldShowWorkspacePanel(
-    snapshot,
-    childSessionTabs,
-    workspaceFileTabs,
-  );
+  const { childSessionTabs, workspaceFileTabs, sessionCronJobs, showWorkspacePanel } =
+    useSessionWorkspaceState(snapshot);
   const shouldShowSessionHeader = Boolean(
     snapshot.sessionKey || snapshot.sessionTypeLabel,
   );
@@ -295,6 +314,12 @@ export function ChatConversationPanel({
       activeChildSessionKey: childSessionTabs[0]?.sessionKey ?? null,
     });
   };
+  const openSessionCronJobs = () => {
+    if (!snapshot.sessionKey || sessionCronJobs.length === 0) {
+      return;
+    }
+    presenter.chatThreadManager.openSessionCronPanel(snapshot.sessionKey);
+  };
 
   const { onScroll: handleScroll } = useStickyBottomScroll({
     scrollRef: threadRef,
@@ -320,6 +345,7 @@ export function ChatConversationPanel({
         <ChatConversationHeader
           snapshot={snapshot}
           childSessionCount={childSessionTabs.length}
+          sessionCronJobCount={sessionCronJobs.length}
           layoutMode={layoutMode}
           normalizedAgentId={normalizedAgentId}
           sessionHeaderTitle={sessionHeaderTitle}
@@ -327,6 +353,7 @@ export function ChatConversationPanel({
           shouldShowSessionHeader={shouldShowSessionHeader}
           onBackToList={onBackToList}
           onOpenChildSessions={openChildSessions}
+          onOpenSessionCronJobs={openSessionCronJobs}
           onDeleteSession={presenter.chatThreadManager.deleteSession}
         />
         <ChatConversationAlerts
@@ -357,11 +384,14 @@ export function ChatConversationPanel({
           activeChildSessionKey={snapshot.activeChildSessionKey ?? null}
           workspaceFileTabs={workspaceFileTabs}
           activeWorkspaceFileKey={snapshot.activeWorkspaceFileKey ?? null}
+          activePanelKind={snapshot.activeWorkspacePanelKind ?? null}
+          sessionCronJobs={sessionCronJobs}
           sessionProjectRoot={snapshot.sessionProjectRoot ?? null}
           displayMode={layoutMode === "mobile" ? "overlay" : "docked"}
           onSelectSession={presenter.chatThreadManager.selectChildSessionDetail}
           onSelectFile={presenter.chatThreadManager.selectWorkspaceFile}
           onCloseFile={presenter.chatThreadManager.closeWorkspaceFile}
+          onSelectCronJobs={() => snapshot.sessionKey ? presenter.chatThreadManager.openSessionCronPanel(snapshot.sessionKey) : undefined}
           onClose={presenter.chatThreadManager.closeWorkspacePanel}
           onBackToParent={presenter.chatThreadManager.goToParentSession}
           onToolAction={presenter.chatThreadManager.openSessionFromToolAction}

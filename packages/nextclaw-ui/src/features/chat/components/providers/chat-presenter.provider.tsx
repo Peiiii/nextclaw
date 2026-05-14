@@ -33,6 +33,7 @@ export type ChatThreadManagerLike = {
   createSession: () => void;
   goToProviders: () => void;
   openChildSessionPanel: (params: { parentSessionKey: string; activeChildSessionKey?: string | null }) => void;
+  openSessionCronPanel: (sessionKey: string) => void;
   openFilePreview: (action: ChatFileOpenActionViewModel) => void;
   openSessionFromToolAction: (action: ChatToolActionViewModel) => void;
   selectChildSessionDetail: (sessionKey: string) => void;

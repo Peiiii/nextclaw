@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
+import { AlarmClock, FolderOpen, GitBranch, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/shared/components/ui/popover';
 import { useChatSessionProject } from '@/features/chat/hooks/use-chat-session-project';
@@ -7,13 +7,18 @@ import { ChatSessionHeaderMenuItem } from './chat-session-header-menu-item';
 import { ChatSessionProjectDialog } from './chat-session-project-dialog';
 import { t } from '@/shared/lib/i18n';
 
+const SESSION_HEADER_ACTION_GROUP_CLASS = 'flex shrink-0 items-center gap-1.5';
+const SESSION_HEADER_ACTION_BUTTON_CLASS = 'h-7 w-7 rounded-lg shrink-0 text-gray-400 hover:text-gray-700';
+
 type ChatSessionHeaderActionsProps = {
   sessionKey: string;
   canDeleteSession: boolean;
   isDeletePending: boolean;
   projectRoot?: string | null;
   childSessionCount?: number;
+  sessionCronJobCount?: number;
   onOpenChildSessions?: () => void;
+  onOpenSessionCronJobs?: () => void;
   onDeleteSession: () => void;
 };
 
@@ -23,7 +28,9 @@ export function ChatSessionHeaderActions({
   isDeletePending,
   projectRoot,
   childSessionCount = 0,
+  sessionCronJobCount = 0,
   onOpenChildSessions,
+  onOpenSessionCronJobs,
   onDeleteSession,
 }: ChatSessionHeaderActionsProps) {
   const updateSessionProject = useChatSessionProject();
@@ -49,13 +56,13 @@ export function ChatSessionHeaderActions({
   };
 
   return (
-    <>
+    <div className={SESSION_HEADER_ACTION_GROUP_CLASS}>
       {childSessionCount > 0 && onOpenChildSessions ? (
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="h-5 w-5 rounded-md shrink-0 text-gray-400 hover:text-gray-700"
+          className={SESSION_HEADER_ACTION_BUTTON_CLASS}
           aria-label={t('chatSessionOpenChildSessions')}
           title={t('chatSessionOpenChildSessions')}
           onClick={onOpenChildSessions}
@@ -64,12 +71,26 @@ export function ChatSessionHeaderActions({
           <GitBranch className="h-4 w-4" />
         </Button>
       ) : null}
+      {sessionCronJobCount > 0 && onOpenSessionCronJobs ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={SESSION_HEADER_ACTION_BUTTON_CLASS}
+          aria-label={t('chatSessionOpenCronJobs')}
+          title={t('chatSessionOpenCronJobs')}
+          onClick={onOpenSessionCronJobs}
+          disabled={isBusy}
+        >
+          <AlarmClock className="h-4 w-4" />
+        </Button>
+      ) : null}
       <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            className="h-5 w-5 rounded-md shrink-0 text-gray-400 hover:text-gray-700"
+            className={SESSION_HEADER_ACTION_BUTTON_CLASS}
             aria-label={t('chatSessionMoreActions')}
             disabled={isBusy}
           >
@@ -108,6 +129,6 @@ export function ChatSessionHeaderActions({
         onOpenChange={setIsDialogOpen}
         onSave={runProjectUpdate}
       />
-    </>
+    </div>
   );
 }

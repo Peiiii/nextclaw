@@ -6,64 +6,18 @@ import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Card, CardContent } from '@/shared/components/ui/card';
+import {
+  describeCronDelivery,
+  describeCronSchedule,
+  describeCronSession,
+  formatCronDate,
+} from '@/shared/lib/cron';
 import { cn } from '@/shared/lib/utils';
-import { formatDateTime, t } from '@/shared/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { PageLayout, PageHeader } from '@/app/components/layout/page-layout';
 import { AlarmClock, RefreshCw, Trash2, Play, Power } from 'lucide-react';
 
 type StatusFilter = 'all' | 'enabled' | 'disabled';
-
-function formatDate(value?: string | null): string {
-  return formatDateTime(value ?? undefined);
-}
-
-function formatDateFromMs(value?: number | null): string {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return '-';
-  }
-  return formatDateTime(new Date(value));
-}
-
-function formatEveryDuration(ms?: number | null): string {
-  if (typeof ms !== 'number' || !Number.isFinite(ms)) {
-    return '-';
-  }
-  const seconds = Math.round(ms / 1000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.round(hours / 24);
-  return `${days}d`;
-}
-
-function describeSchedule(job: CronJobView): string {
-  const { schedule } = job;
-  if (schedule.kind === 'cron') {
-    return schedule.expr ? `cron ${schedule.expr}` : 'cron';
-  }
-  if (schedule.kind === 'every') {
-    return `every ${formatEveryDuration(schedule.everyMs)}`;
-  }
-  if (schedule.kind === 'at') {
-    return `at ${formatDateFromMs(schedule.atMs)}`;
-  }
-  return '-';
-}
-
-function describeDelivery(job: CronJobView): string {
-  if (!job.payload.deliver) {
-    return '-';
-  }
-  const channel = job.payload.channel ?? '-';
-  const target = job.payload.to ?? '-';
-  return `${channel}:${target}`;
-}
-
-function describeSession(job: CronJobView): string {
-  return job.payload.sessionId?.trim() || `cron:${job.id}`;
-}
 
 function matchQuery(job: CronJobView, query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -107,14 +61,14 @@ function CronJobCard(props: {
                 <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{t('cronOneShot')}</span>
               ) : null}
             </div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeSchedule(job)}</div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronScheduleLabel')}: {describeCronSchedule(job)}</div>
             <div className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{job.payload.message}</div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronSessionLabel')}: {describeSession(job)}</div>
-            <div className="mt-2 text-xs text-gray-500">{t('cronDeliverTo')}: {describeDelivery(job)}</div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronSessionLabel')}: {describeCronSession(job)}</div>
+            <div className="mt-2 text-xs text-gray-500">{t('cronDeliverTo')}: {describeCronDelivery(job)}</div>
           </div>
           <div className="min-w-[220px] space-y-2 text-xs text-gray-500">
-            <div><span className="font-medium text-gray-700">{t('cronNextRun')}:</span> {formatDate(job.state.nextRunAt)}</div>
-            <div><span className="font-medium text-gray-700">{t('cronLastRun')}:</span> {formatDate(job.state.lastRunAt)}</div>
+            <div><span className="font-medium text-gray-700">{t('cronNextRun')}:</span> {formatCronDate(job.state.nextRunAt)}</div>
+            <div><span className="font-medium text-gray-700">{t('cronLastRun')}:</span> {formatCronDate(job.state.lastRunAt)}</div>
             <div><span className="font-medium text-gray-700">{t('cronLastStatus')}:</span> {job.state.lastStatus ?? '-'}</div>
             {job.state.lastError ? <div className="break-words text-[11px] text-red-500">{job.state.lastError}</div> : null}
           </div>

@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatConversationPanel } from "@/features/chat/components/conversation/chat-conversation-panel";
 import { ChatSessionWorkspacePanel } from "@/features/chat";
 import type { ResolvedChildSessionTab } from "@/features/chat/hooks/use-ncp-child-session-tabs-view";
+import type { CronJobView } from "@/shared/lib/api";
 import { useChatInputStore } from "@/features/chat/stores/chat-input.store";
 import { useChatSessionListStore } from "@/features/chat/stores/chat-session-list.store";
 import { useChatThreadStore } from "@/features/chat/stores/chat-thread.store";
@@ -14,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   createSession: vi.fn(() => "draft-session-2"),
   goToChatRoot: vi.fn(),
   goToSession: vi.fn(),
+  openSessionCronPanel: vi.fn(),
+  deleteCronJob: vi.fn(),
+  cronJobs: [] as CronJobView[],
   setSelectedAgentId: vi.fn(),
   setPendingSessionType: vi.fn(),
   stickyBottomScroll: vi.fn(() => ({
@@ -101,6 +105,7 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
       deleteSession: mocks.deleteSession,
       goToProviders: mocks.goToProviders,
       openChildSessionPanel: vi.fn(),
+      openSessionCronPanel: mocks.openSessionCronPanel,
       openFilePreview: vi.fn(),
       openSessionFromToolAction: vi.fn(),
       selectChildSessionDetail: vi.fn(),
@@ -127,6 +132,14 @@ vi.mock("@/features/chat/components/providers/chat-presenter.provider", () => ({
     chatInputManager: {
       setPendingSessionType: mocks.setPendingSessionType,
     },
+  }),
+}));
+
+vi.mock("@/shared/hooks/use-config", () => ({
+  useCronJobs: () => ({ data: { jobs: mocks.cronJobs, total: mocks.cronJobs.length } }),
+  useDeleteCronJob: () => ({
+    mutate: mocks.deleteCronJob,
+    isPending: false,
   }),
 }));
 
@@ -178,6 +191,9 @@ function resetChatConversationPanelTestState() {
   mocks.createSession.mockReturnValue("draft-session-2");
   mocks.goToChatRoot.mockReset();
   mocks.goToSession.mockReset();
+  mocks.openSessionCronPanel.mockReset();
+  mocks.deleteCronJob.mockReset();
+  mocks.cronJobs = [];
   mocks.setSelectedAgentId.mockReset();
   mocks.setPendingSessionType.mockReset();
   mocks.stickyBottomScroll.mockClear();
@@ -606,5 +622,57 @@ describe("ChatSessionWorkspacePanel", () => {
     expect(screen.getByTestId("workspace-tabs-bar").className).toContain(
       "workspace-horizontal-scrollbar",
     );
+  });
+
+  it("renders session cron jobs in the workspace sidebar and deletes with a neutral confirmation", async () => {
+    const user = userEvent.setup();
+    const job: CronJobView = {
+      id: "job-1",
+      name: "Follow up",
+      enabled: true,
+      schedule: { kind: "every", everyMs: 3600000 },
+      payload: {
+        kind: "agent_turn",
+        message: "Continue this session later",
+        sessionId: "parent-session-1",
+      },
+      state: {
+        nextRunAt: "2026-05-15T10:00:00.000Z",
+        lastRunAt: null,
+        lastStatus: null,
+        lastError: null,
+      },
+      createdAt: "2026-05-15T09:00:00.000Z",
+      updatedAt: "2026-05-15T09:00:00.000Z",
+      deleteAfterRun: false,
+    };
+
+    render(
+      <ChatSessionWorkspacePanel
+        childSessionTabs={[]}
+        activeChildSessionKey={null}
+        workspaceFileTabs={[]}
+        activeWorkspaceFileKey={null}
+        activePanelKind="cron"
+        sessionCronJobs={[job]}
+        sessionProjectRoot="/Users/demo/project-alpha"
+        onSelectSession={vi.fn()}
+        onSelectFile={vi.fn()}
+        onCloseFile={vi.fn()}
+        onClose={vi.fn()}
+        onBackToParent={vi.fn()}
+        onFileOpen={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText("Session cron jobs").length).toBeGreaterThan(0);
+    expect(screen.getByText("Follow up")).toBeTruthy();
+    expect(screen.getByText("Continue this session later")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(screen.getByText("Delete cron job?")).toBeTruthy();
+    await user.click(screen.getAllByRole("button", { name: "Delete" }).at(-1)!);
+
+    expect(mocks.deleteCronJob).toHaveBeenCalledWith({ id: "job-1" });
   });
 });

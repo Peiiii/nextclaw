@@ -41,6 +41,7 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatHistoryLoading: { zh: '加载会话历史中...', en: 'Loading session history...' },
   chatBackToParent: { zh: '返回父会话', en: 'Back to parent' },
   chatSessionOpenChildSessions: { zh: '查看子会话', en: 'View child sessions' },
+  chatSessionOpenCronJobs: { zh: '查看本会话定时任务', en: 'View session cron jobs' },
   chatChildSessionLoading: { zh: '正在加载子会话…', en: 'Loading child session…' },
   chatChildSessionEmpty: { zh: '子会话还没有消息。', en: 'No child session messages yet.' },
   chatWorkspaceClosePanel: { zh: '关闭工作区侧栏', en: 'Close workspace panel' },
@@ -54,6 +55,8 @@ export const CHAT_LABELS: Record<string, { zh: string; en: string }> = {
   chatWorkspacePreviewEmpty: { zh: '当前没有可显示的文件内容。', en: 'No file content is available for preview.' },
   chatWorkspaceDiffEmpty: { zh: '当前没有可显示的 diff 内容。', en: 'No diff content is available.' },
   chatWorkspacePreviewTruncated: { zh: '内容已截断', en: 'Preview truncated' },
+  chatWorkspaceSessionCronJobs: { zh: '本会话定时任务', en: 'Session cron jobs' },
+  chatWorkspaceCronJobEmpty: { zh: '这个会话暂无定时任务。', en: 'This session has no cron jobs.' },
   chatSessionUnread: { zh: '会话有未读更新', en: 'Session has unread updates' },
   chatTyping: { zh: 'Agent 正在思考...', en: 'Agent is thinking...' },
   chatRuntimeInitializing: {

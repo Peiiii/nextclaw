@@ -62,6 +62,7 @@ export class NcpChatThreadManager {
       parentSessionKey: null,
       parentSessionLabel: null,
       workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
       childSessionTabs: [],
       activeChildSessionKey: null,
       workspaceFileTabs: [],
@@ -156,6 +157,7 @@ export class NcpChatThreadManager {
     const activeChildSessionKey = params.activeChildSessionKey?.trim() || null;
     useChatThreadStore.getState().setSnapshot({
       workspacePanelParentKey: parentSessionKey,
+      activeWorkspacePanelKind: 'child-session',
       activeChildSessionKey,
       activeWorkspaceFileKey: null,
     });
@@ -170,6 +172,7 @@ export class NcpChatThreadManager {
     }
     useChatThreadStore.getState().setSnapshot({
       workspacePanelParentKey: parentSessionKey,
+      activeWorkspacePanelKind: 'file',
       workspaceFileTabs: this.upsertWorkspaceFileTab(nextTab),
       activeWorkspaceFileKey: nextTab.key,
       activeChildSessionKey: null,
@@ -196,6 +199,7 @@ export class NcpChatThreadManager {
     }
     useChatThreadStore.getState().setSnapshot({
       workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
     });
@@ -214,6 +218,7 @@ export class NcpChatThreadManager {
     useChatThreadStore.getState().setSnapshot({
       activeChildSessionKey: normalizedSessionKey,
       activeWorkspaceFileKey: null,
+      activeWorkspacePanelKind: 'child-session',
     });
   };
 
@@ -229,6 +234,7 @@ export class NcpChatThreadManager {
     useChatThreadStore.getState().setSnapshot({
       activeWorkspaceFileKey: normalizedFileKey,
       activeChildSessionKey: null,
+      activeWorkspacePanelKind: 'file',
     });
   };
 
@@ -254,9 +260,24 @@ export class NcpChatThreadManager {
   closeWorkspacePanel = () => {
     useChatThreadStore.getState().setSnapshot({
       workspacePanelParentKey: null,
+      activeWorkspacePanelKind: null,
       activeChildSessionKey: null,
       activeWorkspaceFileKey: null,
     });
+  };
+
+  openSessionCronPanel = (sessionKey: string) => {
+    const parentSessionKey = sessionKey.trim();
+    if (!parentSessionKey) {
+      return;
+    }
+    useChatThreadStore.getState().setSnapshot({
+      workspacePanelParentKey: parentSessionKey,
+      activeWorkspacePanelKind: 'cron',
+      activeChildSessionKey: null,
+      activeWorkspaceFileKey: null,
+    });
+    this.ensureWorkspaceParentRoute(parentSessionKey);
   };
 
   closeChildSessionDetail = () => {

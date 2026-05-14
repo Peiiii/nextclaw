@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   updateSessionProject: vi.fn(),
   onDeleteSession: vi.fn(),
   onOpenChildSessions: vi.fn(),
+  onOpenSessionCronJobs: vi.fn(),
 }));
 
 vi.mock('@/features/chat/hooks/use-chat-session-project', () => ({
@@ -22,6 +23,7 @@ describe('ChatSessionHeaderActions', () => {
     mocks.updateSessionProject.mockReset();
     mocks.onDeleteSession.mockReset();
     mocks.onOpenChildSessions.mockReset();
+    mocks.onOpenSessionCronJobs.mockReset();
   });
 
   it('keeps only the set-project action in the more-actions menu when a project is already attached', async () => {
@@ -85,5 +87,27 @@ describe('ChatSessionHeaderActions', () => {
     await user.click(screen.getByRole('button', { name: 'View child sessions' }));
 
     expect(mocks.onOpenChildSessions).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a shared spaced action group for child, cron, and menu buttons', () => {
+    render(
+      <ChatSessionHeaderActions
+        sessionKey="session-actions"
+        canDeleteSession
+        isDeletePending={false}
+        projectRoot={null}
+        childSessionCount={1}
+        sessionCronJobCount={1}
+        onOpenChildSessions={mocks.onOpenChildSessions}
+        onOpenSessionCronJobs={mocks.onOpenSessionCronJobs}
+        onDeleteSession={mocks.onDeleteSession}
+      />
+    );
+
+    const actionGroup = screen.getByRole('button', { name: 'More actions' }).parentElement;
+
+    expect(actionGroup?.className).toContain('gap-1.5');
+    expect(screen.getByRole('button', { name: 'View child sessions' }).className).toContain('h-7');
+    expect(screen.getByRole('button', { name: 'View session cron jobs' }).className).toContain('w-7');
   });
 });
