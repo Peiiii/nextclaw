@@ -99,6 +99,7 @@
   - TypeScript：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk tsc`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk tsc`。
   - Build：`pnpm -C packages/extensions/nextclaw-ncp-runtime-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-ncp-runtime-plugin-codex-sdk build`、`pnpm -C packages/extensions/nextclaw-narp-runtime-codex-sdk build`。
   - MiniMax 真实模型 live 冒烟：NCP runtime 收到多段 live `message.reasoning-delta` 与最终 `message.text-delta`，内容包含 `391`。
+  - 发布后安装验证：`/tmp` npm install `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`，依赖闭包解析到 SDK `0.1.30`、插件 `0.1.64`；发布后 runtime 层 smoke 输出 `452ms / 903ms / 1354ms` reasoning delta 与 `1804ms / 2255ms / 2706ms` text delta。
 - Governance:
   - `pnpm lint:new-code:governance`
   - `pnpm check:governance-backlog-ratchet`
@@ -153,6 +154,7 @@
   - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.6`：已发布。
   - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
 - 2026-05-14 Codex bridge live output 修正：
-  - `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.30`：待发布。
-  - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.64`：待发布。
-  - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`：待发布。
+  - `@nextclaw/nextclaw-ncp-runtime-codex-sdk@0.1.30`：已发布。
+  - `@nextclaw/nextclaw-ncp-runtime-plugin-codex-sdk@0.1.64`：已发布。
+  - `@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.7`：已发布。
+  - Registry verification：`pnpm release:verify:published` 已确认 3/3 包版本可见。
