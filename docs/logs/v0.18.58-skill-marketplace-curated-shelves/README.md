@@ -89,6 +89,22 @@
     - 结果：通过；仅提示 `packages/nextclaw-ui/src/shared/lib/api/utils` 仍是历史 flat mixed-responsibility 目录 warning。
   - `pnpm check:governance-backlog-ratchet`
     - 结果：通过。
+- 本次详情预览暖色与 Markdown 语义渲染补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/detail-doc/marketplace-detail-doc.test.ts src/features/marketplace/components/marketplace-page-detail.test.tsx`
+    - 结果：通过，`5` 个测试通过；覆盖 metadata key-value 渲染、Markdown 标题/列表/行内代码/代码块渲染，以及 HTML escape。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-detail-doc.ts src/features/marketplace/components/detail-doc/marketplace-detail-doc-renderer.ts src/features/marketplace/components/detail-doc/marketplace-detail-doc.test.ts src/shared/components/doc-browser/doc-browser.tsx`
+    - 结果：无错误；保留 `DocBrowser` 既有 `max-lines-per-function` warning。
+  - Playwright 冒烟：
+    - 打开 `http://127.0.0.1:5174/marketplace/skills`，拦截 skill content 返回 Markdown + key-value metadata 后点击技能。
+    - 结果：右侧详情 metadata 显示为 `<dl>`，正文显示 `<h1>`、`<strong>`、`<code>`、`<li>` 与代码块，不再把 Markdown 标题作为裸 `<pre>` 展示；详情页与 active tab 均无蓝色残留，使用项目 warm 色系。截图路径：`/tmp/nextclaw-marketplace-detail-markdown-rendered-split.png`、`/tmp/nextclaw-marketplace-detail-warm-tab.png`。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/marketplace/components/marketplace-detail-doc.ts packages/nextclaw-ui/src/features/marketplace/components/detail-doc/marketplace-detail-doc-renderer.ts packages/nextclaw-ui/src/features/marketplace/components/detail-doc/marketplace-detail-doc.test.ts packages/nextclaw-ui/src/shared/components/doc-browser/doc-browser.tsx`
+    - 结果：通过；保留 `DocBrowser` 接近文件预算与既有超长函数 warning。解析逻辑已收敛到 `components/detail-doc/` 子目录，避免继续挤压 `components/` 根目录预算。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
 - 本次详情预览视觉与加载态补充验证：
   - `pnpm -C packages/nextclaw-ui tsc --noEmit`
     - 结果：通过。
@@ -230,15 +246,16 @@
 6. 返回后继续向下应看到“最近更新”和完整技能列表，原安装、已安装状态和详情打开行为保持可用。
 7. “最近更新”卡片的 header 应为图标 + 右侧两行信息：第一行技能名称，第二行 slug，不再在右上角留下单独来源标签空白。
 8. 普通技能列表卡默认应只显示裸状态图标；hover 后出现安装/启用/卸载等高频操作，简介最多两行展示。
-9. 点击普通技能卡片后，右侧详情应先显示整页骨架屏，不再出现零散 `Loading` 文案；加载完成后详情页应采用白底、中性色、细边框风格，不再使用蓝色渐变卡片。
-10. Installed tab 应继续保持管理列表，不混入发现货架。
+9. 点击普通技能卡片后，右侧详情应先显示整页骨架屏，不再出现零散 `Loading` 文案；加载完成后详情页应采用项目 warm 色系、细边框、纸面感风格，不再使用蓝色渐变卡片。
+10. 右侧详情 tab 激活态应使用 warm/amber 风格，而不是蓝色 tab；Skill 正文 Markdown 应语义化渲染，metadata 应优先解析为 key-value 信息块。
+11. Installed tab 应继续保持管理列表，不混入发现货架。
 
 ## 可维护性总结汇总
 
 - **本次是否已尽最大努力优化可维护性**：阶段性是。第一版先写出可视化草案后，已将单组件拆成 `curated-shelves/` 下的主展示、配置、卡片和模块状态文件，避免一个新大文件承载全部配置、渲染和状态；随后又删除页内冗余标题区，减少首屏 UI 噪音。
 - **是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则**：部分满足。本次是新增用户可见能力，因此存在必要代码增长；实现上复用现有列表卡片的安装/详情动作和已有 marketplace 数据，不改变业务链路。
-- **是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化**：总代码和文件数因新增用户可见能力增长；父级 `components/` 直接文件数通过 `curated-shelves/` 子目录收敛，未越过目录预算。`MarketplacePage` 复杂度 warning 未继续恶化，但文件接近预算，后续若继续推进应优先拆页面 owner/hook。
-- **抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰**：页面只装配数据和传递已有动作；`curated-shelves` 子目录负责精选货架展示、场景配置、货架卡片与场景页展示；`use-marketplace-curated-scene-route` 负责子路由派生数据，边界更清楚。
+- **是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化**：总代码和文件数因新增用户可见能力增长；父级 `components/` 直接文件数通过 `curated-shelves/` 与 `detail-doc/` 子目录收敛，未越过目录预算。`MarketplacePage` 复杂度 warning 未继续恶化，但文件接近预算，后续若继续推进应优先拆页面 owner/hook；`DocBrowser` 仍有既有超长函数债务。
+- **抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰**：页面只装配数据和传递已有动作；`curated-shelves` 子目录负责精选货架展示、场景配置、货架卡片与场景页展示；`detail-doc` 子目录负责详情 Markdown / metadata 渲染；`use-marketplace-curated-scene-route` 负责子路由派生数据，边界更清楚。
 - **目录结构与文件组织是否满足当前项目治理要求**：满足。新增文件为同 feature 的展示组件与配置文件，命名符合 kebab-case 与角色后缀。
 - **是否基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写**：是，基于 guard、ESLint warning 和代码体量做了二次复核；本轮仍保留 `MarketplacePage` 既有复杂度债务，后续正式化应拆分页面。
 
