@@ -149,6 +149,7 @@ describe("AgentsPage", () => {
     useChatInputStore.setState({
       snapshot: {
         ...useChatInputStore.getState().snapshot,
+        draft: "",
         pendingSessionType: "native",
         pendingProjectRoot: "/tmp/demo-project",
         pendingProjectRootSessionKey: "draft-session",
@@ -184,6 +185,19 @@ describe("AgentsPage", () => {
       screen.queryByText("专属 Agent 身份，可沉淀自己的记忆、技能与角色风格。"),
     ).toBeNull();
     expect(screen.queryByText("Agent Gallery")).toBeNull();
+
+    await user.click(screen.getByRole("button", { name: "新增 Agent" }));
+
+    expect(useChatSessionListStore.getState().snapshot.selectedAgentId).toBe(
+      "main",
+    );
+    expect(useChatSessionListStore.getState().snapshot.selectedSessionKey).toBeNull();
+    expect(useChatThreadStore.getState().snapshot.sessionKey).toBeNull();
+    expect(useChatInputStore.getState().snapshot.draft).toContain(
+      "请帮我创建一个新的 Agent",
+    );
+    expect(mocks.createAgent).not.toHaveBeenCalled();
+    expect(screen.queryByText("创建新的 Agent 身份")).toBeNull();
 
     await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
     await user.click(screen.getByRole("button", { name: "编辑" }));

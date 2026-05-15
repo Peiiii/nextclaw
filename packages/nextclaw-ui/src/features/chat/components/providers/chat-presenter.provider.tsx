@@ -49,6 +49,7 @@ export type ChatPresenterLike = {
   chatInputManager: ChatInputManagerLike;
   chatSessionListManager: ChatSessionListManager;
   chatThreadManager: ChatThreadManagerLike;
+  startAgentCreationDraft: (prompt: string) => void;
 };
 
 const ChatPresenterContext = createContext<ChatPresenterLike | null>(null);

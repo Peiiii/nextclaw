@@ -18,4 +18,10 @@ export class NcpChatPresenter {
     this.chatSessionListManager,
     this.chatStreamActionsManager
   );
+
+  startAgentCreationDraft = (prompt: string) => {
+    this.chatSessionListManager.createSession();
+    this.chatSessionListManager.setSelectedAgentId('main');
+    this.chatInputManager.setDraft(prompt);
+  };
 }

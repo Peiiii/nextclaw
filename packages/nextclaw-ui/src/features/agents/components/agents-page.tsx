@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-  useCreateAgent,
   useDeleteAgent,
   useAgents,
   useUpdateAgent,
@@ -8,9 +7,7 @@ import {
 import { useConfig, useConfigMeta } from "@/shared/hooks/use-config";
 import type { AgentProfileView } from "@/shared/lib/api";
 import {
-  AgentCreateDialog,
   AgentEditDialog,
-  type AgentCreateFormState,
   type AgentEditFormState,
 } from "@/features/agents/components/agent-dialogs";
 import {
@@ -45,6 +42,9 @@ import {
   Sparkles,
   Trash2,
 } from "lucide-react";
+
+const AGENT_CREATION_PROMPT =
+  "请帮我创建一个新的 Agent。先问我这个 Agent 的用途、名称、工作目录、默认 Runtime / 模型和需要的技能；信息足够后，请用 NextClaw 的 Agent 管理能力完成创建。";
 
 function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
   const { agentCount, onCreate } = props;
@@ -239,10 +239,8 @@ export function AgentsPage() {
   const configQuery = useConfig();
   const configMetaQuery = useConfigMeta();
   const sessionTypesQuery = useNcpChatSessionTypes();
-  const createAgent = useCreateAgent();
   const updateAgent = useUpdateAgent();
   const deleteAgent = useDeleteAgent();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentProfileView | null>(
     null,
   );
@@ -283,25 +281,6 @@ export function AgentsPage() {
     [defaultRuntime, runtimeOptions],
   );
 
-  const handleCreate = async (form: AgentCreateFormState) => {
-    await createAgent.mutateAsync({
-      data: {
-        id: form.id,
-        ...(form.displayName.trim()
-          ? { displayName: form.displayName.trim() }
-          : {}),
-        ...(form.description.trim()
-          ? { description: form.description.trim() }
-          : {}),
-        ...(form.avatar.trim() ? { avatar: form.avatar.trim() } : {}),
-        ...(form.home.trim() ? { home: form.home.trim() } : {}),
-        ...(form.model.trim() ? { model: form.model.trim() } : {}),
-        ...(form.runtime.trim() ? { runtime: form.runtime.trim() } : {}),
-      },
-    });
-    setIsCreateDialogOpen(false);
-  };
-
   const handleStartEdit = (agent: AgentProfileView) => {
     setEditingAgent(agent);
   };
@@ -333,7 +312,9 @@ export function AgentsPage() {
     <PageLayout className="space-y-5">
       <AgentsHero
         agentCount={agents.length}
-        onCreate={() => setIsCreateDialogOpen(true)}
+        onCreate={() =>
+          presenter.startAgentCreationDraft(AGENT_CREATION_PROMPT)
+        }
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -359,7 +340,9 @@ export function AgentsPage() {
                 type="button"
                 variant="primary"
                 className="mt-5 rounded-2xl px-5"
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={() =>
+                  presenter.startAgentCreationDraft(AGENT_CREATION_PROMPT)
+                }
               >
                 <Plus className="mr-2 h-4 w-4" />
                 {t("agentsCreateButton")}
@@ -382,16 +365,6 @@ export function AgentsPage() {
           ))
         )}
       </div>
-
-      <AgentCreateDialog
-        open={isCreateDialogOpen}
-        pending={createAgent.isPending}
-        providerCatalog={providerCatalog}
-        runtimeOptions={runtimeOptions}
-        defaultRuntime={defaultRuntime}
-        onOpenChange={setIsCreateDialogOpen}
-        onSubmit={handleCreate}
-      />
 
       <AgentEditDialog
         agent={editingAgent}
