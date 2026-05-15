@@ -12,6 +12,8 @@
 
 旧插件入口清理补充：之前只从 bundled channel plugin 列表注释掉 `@nextclaw/channel-plugin-feishu`，但 dev first-party plugin loader 仍会从 `packages/extensions` 和已安装 first-party plugin 映射中发现旧 Feishu plugin，所以启动日志仍出现 `[plugins:feishu] feishu_doc...`。本次进一步在 first-party dev load path resolver 中禁止 legacy `@nextclaw/channel-plugin-feishu` 映射进运行时 load paths，并移除 `@nextclaw/openclaw-compat` 对旧 Feishu plugin 包的 workspace dependency；旧插件源码仍保留，但运行时不再引入。
 
+等待反馈补充：对齐 Hermes Feishu/Lark 的 processing status reaction 思路。新 Feishu extension 在消息通过白名单、群策略与 @ 提及过滤后，会立即对原消息添加 `Typing` reaction；NCP 成功终态会移除 `Typing`，失败终态会移除 `Typing` 并补充 `CrossMark`。reaction 添加或清理失败只记录 warning，不阻断后续 NCP 回复链路，避免用户因无反馈产生等待焦虑。
+
 ## 测试/验证/验收方式
 
 - `pnpm -C packages/extensions/nextclaw-channel-extension-feishu tsc`
@@ -41,6 +43,7 @@
 - 真实外发烟测：使用本地已扫码 Feishu 账号向最近真实 chatId 发送“NextClaw 飞书通道修复冒烟测试：发送链路已连通。”，Lark SDK 返回成功。
 - 本地服务重启后健康检查：`curl -fsS http://127.0.0.1:18792/api/health` 返回 `{"status":"ok","services":{"ncpAgent":"ready","cronService":"ready"}}`。
 - 旧 Feishu plugin 入口清理后重启本地 dev，当前启动批次不再出现 `[plugins:feishu] feishu_doc...`，只剩新 Feishu extension 启动与重复 manifest 发现导致的 `Extension channel ignored because id already exists: feishu` 提示。
+- `pnpm -C packages/extensions/nextclaw-channel-extension-feishu exec vitest run src/tests/feishu-channel-adapter.service.test.ts src/tests/feishu-extension-runtime.service.test.ts`
 
 `pnpm lint:new-code:governance` 在回复链路修复后已通过。此前触达 `packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts` 时暴露的 alias import 与 class field 规则问题已同步修正。
 

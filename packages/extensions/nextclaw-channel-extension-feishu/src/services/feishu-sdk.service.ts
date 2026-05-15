@@ -9,6 +9,15 @@ type FeishuMessageClient = {
         data: { receive_id: string; content: string; msg_type: "text" };
       }) => Promise<{ code?: number; msg?: string; data?: { message_id?: string } }>;
     };
+    messageReaction: {
+      create: (params: {
+        path: { message_id: string };
+        data: { reaction_type: { emoji_type: string } };
+      }) => Promise<{ code?: number; msg?: string; data?: { reaction_id?: string } }>;
+      delete: (params: {
+        path: { message_id: string; reaction_id: string };
+      }) => Promise<{ code?: number; msg?: string }>;
+    };
   };
 };
 
@@ -57,5 +66,34 @@ export class FeishuSdkService {
       },
     });
     assertFeishuSuccess(response, "Feishu send failed");
+  };
+
+  readonly addReaction = async (params: {
+    account: FeishuRuntimeAccount;
+    messageId: string;
+    emojiType: string;
+  }): Promise<string | null> => {
+    const response = await this.createClient(params.account).im.messageReaction.create({
+      path: { message_id: params.messageId },
+      data: {
+        reaction_type: { emoji_type: params.emojiType },
+      },
+    });
+    assertFeishuSuccess(response, "Feishu reaction failed");
+    return response.data?.reaction_id ?? null;
+  };
+
+  readonly deleteReaction = async (params: {
+    account: FeishuRuntimeAccount;
+    messageId: string;
+    reactionId: string;
+  }): Promise<void> => {
+    const response = await this.createClient(params.account).im.messageReaction.delete({
+      path: {
+        message_id: params.messageId,
+        reaction_id: params.reactionId,
+      },
+    });
+    assertFeishuSuccess(response, "Feishu reaction delete failed");
   };
 }
