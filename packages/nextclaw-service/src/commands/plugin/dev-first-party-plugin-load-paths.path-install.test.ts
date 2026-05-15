@@ -6,7 +6,7 @@ import { ConfigSchema, ENV_HOME_KEY } from "@nextclaw/core";
 import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginInstallRoots,
-} from "./development-source/first-party-plugin-load-paths.js";
+} from "./development-source/first-party-plugin-load-paths.utils.js";
 
 const tempDirs: string[] = [];
 const originalHomeDir = process.env[ENV_HOME_KEY];

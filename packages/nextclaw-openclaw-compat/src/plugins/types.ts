@@ -279,6 +279,7 @@ export type OpenClawChannelAuth = {
     pluginConfig?: Record<string, unknown>;
     accountId?: string | null;
     baseUrl?: string | null;
+    domain?: string | null;
   }) =>
     | Promise<OpenClawChannelAuthStartResult>
     | OpenClawChannelAuthStartResult;

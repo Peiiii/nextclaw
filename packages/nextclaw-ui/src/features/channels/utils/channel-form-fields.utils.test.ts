@@ -25,4 +25,30 @@ describe('buildChannelFormDefinitions', () => {
       }
     ]);
   });
+
+  it('declares feishu as a QR-first extension channel layout', () => {
+    const definitions = buildChannelFormDefinitions();
+
+    expect(definitions.feishu?.fields.map((field) => field.name)).toEqual([
+      'enabled',
+      'defaultAccountId',
+      'domain',
+      'allowFrom',
+      'groupPolicy',
+      'requireMention',
+      'accounts'
+    ]);
+    expect(definitions.feishu?.layout).toEqual([
+      { type: 'fields', section: 'primary' },
+      { type: 'custom', sectionId: 'feishu-auth' },
+      {
+        type: 'fields',
+        section: 'advanced',
+        collapsible: {
+          title: 'Advanced settings',
+          description: 'Expand these fields only when you need to switch Feishu/Lark domains, choose a default account, or adjust allowlist and group policies.'
+        }
+      }
+    ]);
+  });
 });

@@ -9,7 +9,7 @@ import {
 import {
   applyDevFirstPartyPluginLoadPaths,
   resolveDevFirstPartyPluginInstallRoots,
-} from "./first-party-plugin-load-paths.js";
+} from "./first-party-plugin-load-paths.utils.js";
 
 export const DEV_PLUGIN_OVERRIDES_ENV = "NEXTCLAW_DEV_PLUGIN_OVERRIDES";
 type PluginEntrySource = "production" | "development";

@@ -83,7 +83,8 @@ export async function startChannelAuth(params: {
     channelId: binding.channelId,
     pluginConfig: clonePluginConfig(configView.channels?.[binding.channelId]),
     accountId: request.accountId?.trim() || null,
-    baseUrl: request.baseUrl?.trim() || null
+    baseUrl: request.baseUrl?.trim() || null,
+    domain: request.domain?.trim() || null
   });
 
   return result satisfies OpenClawChannelAuthStartResult;

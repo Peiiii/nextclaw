@@ -64,6 +64,7 @@ vi.mock('@/shared/lib/transport', () => ({
 }));
 
 vi.mock('@/features/channels/components/config/weixin-channel-auth-section', () => ({
+  QrChannelAuthSection: () => null,
   WeixinChannelAuthSection: () => null
 }));
 

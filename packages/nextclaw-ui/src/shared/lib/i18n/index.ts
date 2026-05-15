@@ -1,6 +1,6 @@
 import { AGENT_LABELS } from './agents';
 import { CHANNEL_LABELS } from './channels';
-import { CHANNEL_AUTH_LABELS } from './channel-auth';
+import { CHANNEL_AUTH_LABELS } from './channel-auth.constants';
 import { CHAT_LABELS } from './chat-labels.utils';
 import {
   getLanguage,

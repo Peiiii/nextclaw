@@ -17,7 +17,7 @@ import type {
   PluginChannelBinding,
   PluginUiMetadata,
 } from "@nextclaw/openclaw-compat";
-import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.js";
+import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.utils.js";
 import {
   ExtensionLifecycleService,
   ExtensionManifestDiscoveryService,
@@ -91,14 +91,15 @@ class ExtensionChannelAuthClient implements PluginChannelAuth {
       },
     });
 
-  readonly start: PluginChannelAuth["start"] = async ({ accountId, baseUrl }) =>
+  readonly start: PluginChannelAuth["start"] = async (params) =>
     await this.params.request<OpenClawChannelAuthStartResult>({
       extensionId: this.params.extensionId,
       kind: "channel.auth.start",
       payload: {
         channelId: this.params.channelId,
-        accountId,
-        baseUrl,
+        accountId: params.accountId,
+        baseUrl: params.baseUrl,
+        domain: (params as { domain?: string | null }).domain,
       },
     });
 

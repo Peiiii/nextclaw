@@ -10,7 +10,7 @@ import { nextclawClient } from '@/shared/lib/api';
 import { useConfig, useConfigMeta, useConfigSchema, useExecuteConfigAction, useUpdateChannel } from '@/shared/hooks/use-config';
 import type { ConfigActionManifest, ConfigUiHints } from '@/shared/lib/api';
 import { ChannelFormFieldsSection } from '@/features/channels/components/channel-form-fields-section';
-import { WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
+import { QrChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
 import { buildChannelFormDefinitions, type ChannelField, type ChannelFormBlock, type ChannelFormFieldSection } from '@/features/channels/utils/channel-form-fields.utils';
 import { ConfigSplitDetailPane, ConfigSplitEmptyPane, ConfigSplitPaneBody, ConfigSplitPaneFooter, ConfigSplitPaneHeader } from '@/shared/components/config-split-page';
 import { hintForPath } from '@/shared/lib/config-hints';
@@ -205,11 +205,12 @@ function ChannelFormBlocks(props: {
             </details>
           );
         }
-        return block.sectionId === 'weixin-auth' ? (
-          <WeixinChannelAuthSection
+        return block.sectionId === 'weixin-auth' || block.sectionId === 'feishu-auth' ? (
+          <QrChannelAuthSection
             key={`${block.type}-${block.sectionId}-${index}`}
             channelConfig={props.channelConfig}
             formData={props.formData}
+            channelName={props.channelName === 'feishu' ? 'feishu' : 'weixin'}
             channelEnabled={props.enabled}
             disabled={props.disabled}
           />

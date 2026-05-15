@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type * as ReactQueryModule from '@tanstack/react-query';
-import { WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
+import { QrChannelAuthSection, WeixinChannelAuthSection } from '@/features/channels/components/config/weixin-channel-auth-section';
 
 const mocks = vi.hoisted(() => ({
   startChannelAuthMutateAsync: vi.fn(),
@@ -116,5 +116,42 @@ describe('WeixinChannelAuthSection', () => {
       screen.getByText('This account is connected, but the channel is inactive. Turn on Enabled before it can send or receive messages.')
     ).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Reconnect with QR' })).toBeTruthy();
+  });
+
+  it('starts feishu QR auth with the selected domain', async () => {
+    const user = userEvent.setup();
+    mocks.startChannelAuthMutateAsync.mockResolvedValue({
+      channel: 'feishu',
+      kind: 'qr_code',
+      sessionId: 'session-1',
+      qrCode: 'qr-token',
+      qrCodeUrl: 'https://accounts.feishu.cn/qr',
+      expiresAt: '2026-03-24T10:00:00.000Z',
+      intervalMs: 60_000,
+      note: '请扫码'
+    });
+    mocks.pollChannelAuthMutateAsync.mockImplementation(() => new Promise(() => {}));
+
+    render(
+      <QrChannelAuthSection
+        channelName="feishu"
+        channelConfig={{ enabled: false, domain: 'feishu' }}
+        formData={{ domain: 'lark', defaultAccountId: 'primary' }}
+        channelEnabled={false}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Scan QR to connect Feishu' }));
+
+    await waitFor(() => {
+      expect(mocks.startChannelAuthMutateAsync).toHaveBeenCalledWith({
+        channel: 'feishu',
+        data: {
+          accountId: 'primary',
+          baseUrl: undefined,
+          domain: 'lark'
+        }
+      });
+    });
   });
 });

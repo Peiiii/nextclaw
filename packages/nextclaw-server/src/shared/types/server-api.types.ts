@@ -200,6 +200,7 @@ export type ProviderAuthImportResult = {
 export type ChannelAuthStartRequest = {
   accountId?: string;
   baseUrl?: string;
+  domain?: string;
 };
 
 export type ChannelAuthStartResult = {

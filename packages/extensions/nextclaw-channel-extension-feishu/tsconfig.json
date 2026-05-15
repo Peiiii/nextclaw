@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["ES2022", "DOM"],
+    "baseUrl": ".",
+    "paths": {
+      "@nextclaw/extension-sdk": ["../../nextclaw-extension-sdk/src/index.ts"],
+      "@nextclaw/ncp": ["../../ncp-packages/nextclaw-ncp/src/index.ts"],
+      "@nextclaw/ncp-toolkit": ["../../ncp-packages/nextclaw-ncp-toolkit/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/tests"]
+}

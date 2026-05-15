@@ -326,7 +326,8 @@ export class ConfigRoutesController {
         channelId: channel,
         request: {
           accountId: typeof payload.accountId === "string" ? payload.accountId : undefined,
-          baseUrl: typeof payload.baseUrl === "string" ? payload.baseUrl : undefined
+          baseUrl: typeof payload.baseUrl === "string" ? payload.baseUrl : undefined,
+          domain: typeof payload.domain === "string" ? payload.domain : undefined
         } satisfies ChannelAuthStartRequest,
         bindings: this.options.plugins?.getChannelBindings() ?? []
       });
