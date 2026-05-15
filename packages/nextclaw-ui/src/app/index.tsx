@@ -107,6 +107,10 @@ const protectedRouteDefinitions: ProtectedRouteDefinition[] = [
     element: createLazyElement(<ChatPage view="skills" />),
   },
   {
+    path: "/skills/scenes/:scene",
+    element: createLazyElement(<ChatPage view="skills" />),
+  },
+  {
     path: "/cron",
     element: createLazyElement(<ChatPage view="cron" />),
   },

@@ -1,4 +1,5 @@
 export * from "@nextclaw-server/features/marketplace/configs/marketplace.constants.config.js";
+export * from "@nextclaw-server/features/marketplace/configs/skill-marketplace-scenes.config.js";
 export * from "@nextclaw-server/features/marketplace/controllers/mcp-marketplace.controller.js";
 export * from "@nextclaw-server/features/marketplace/controllers/plugin-marketplace.controller.js";
 export * from "@nextclaw-server/features/marketplace/controllers/skill-marketplace.controller.js";

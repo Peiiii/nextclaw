@@ -1,0 +1,185 @@
+# v0.18.58-skill-marketplace-curated-shelves
+
+## 迭代完成说明
+
+本轮为 Skill Marketplace 精选货架式展示的第一版可视化草案，不是最终交付闭环。实现重点是把 Marketplace tab 从纯平铺列表推进为更有发现感的入口，同时保持 NextClaw 当前工作台风格。
+
+本次完成：
+
+1. 新增 `curated-shelves/MarketplaceCuratedShelves` 展示组件，用于渲染“场景”“最近更新”两组货架。
+2. 新增 `curated-shelves/marketplace-curated-shelves.config.ts`，把场景定义和 tone 样式从渲染组件中拆出，避免组件文件膨胀。
+3. 在 Skill Marketplace 的 `Marketplace` tab 中按条件展示货架：只在技能市场、无搜索、非 loading/error、已加载至少 4 个技能时展示。
+4. 保留原完整技能列表、安装按钮、已安装状态、详情打开和无限滚动链路，不改变安装/管理业务行为。
+5. 根据方案讨论稿统一命名为 `NextClaw 官方`，不再使用 `NextClaw 维护`。
+6. 根据用户反馈移除 Skill Marketplace 页内冗余标题区，避免重复标题占据首屏空间。
+7. 将第一版过强的 demo 风格 bento 收敛为更紧凑的白底弱边框卡片，降低彩色块和展示感，提高工作台信息密度。
+8. 将场景卡片点击从“写入搜索框”改为进入子路由模块页：`/skills/scenes/:scene`，模块内只显示相关技能，搜索框保持不变，并在左上角提供返回上一级。
+9. 场景模块页去掉外层大卡片包裹，改为左上角返回箭头 + 标题信息 + 自适应网格。
+10. 为货架后的完整列表补齐独立标题，形成“场景 / 最近更新 / 全部技能”的完整层级。
+11. 将二级场景页顶部压缩为两行：第一行返回、图标、标题、技能数量；第二行摘要和少量标签，避免顶部信息过高。
+12. 将卡片视觉继续收敛：去掉卡片内部 tag 胶囊、作者胶囊和强色安装块，统一场景 icon 色彩为中性灰，降低小块状元素之间的视觉冲突。
+13. 将精选货架拆入 `components/curated-shelves/` 子目录，避免 marketplace `components/` 父目录直接文件数越过治理预算。
+14. 按用户要求创建视觉实验前检查点：`stash@{0}`，名称为 `checkpoint-skill-marketplace-before-visual-cleanup`。
+15. 新增 `GET /api/marketplace/skills/scenes`，返回 `{ scenes: [{ scene, title, description? }] }`，不再给 scenes 列表附加 `type: "skill"`。
+16. 在 `GET /api/marketplace/skills/items` 支持 `scene` 查询，由 server 负责把 scene 映射到 tags；未知 scene 返回空列表。
+17. 前端场景页通过 `items?scene=<scene>` 获取数据，不再基于当前分页结果做本地 tag 过滤。
+18. 删除前端“基础能力”启发式评分货架，避免在没有后端契约时写死伪策展逻辑。
+19. 修复进入具体 scene 页面时先闪现旧目录数据的问题：`useMarketplaceItems` 不再跨 `scene/q/tag/sort/pageSize` 复用 placeholder data，scene 首次请求期间展示模块内骨架加载态。
+20. 将 scene 数量加回正式契约：`GET /api/marketplace/skills/scenes` 现在返回每个 scene 的 `count`，由 server 基于完整 skill 列表和 scene 映射计算，前端不再用当前分页结果凑数。
+21. 压缩“场景”卡片：去掉每张卡重复的 `Explore / View matching skills` 文案，改为紧凑图标、标题、数量和一行描述，降低首屏占用。
+22. 压缩“最近更新”货架卡片 header：参考普通 skill 列表卡的信息结构，把技能名称和 `slug` 收到图标右侧两行，移除原先右上角单独来源标签造成的空白。
+
+## 测试/验证/验收方式
+
+- 定向测试：`pnpm -C packages/nextclaw-ui test src/features/marketplace/components/marketplace-page.test.tsx`
+  - 结果：通过。
+- 定向测试：`pnpm -C packages/nextclaw-ui test src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx`
+  - 结果：通过，`7` 个测试通过；覆盖“点击目标卡片进入子路由、不污染搜索、场景页无搜索/目录外壳、返回上一级”。
+- TypeScript：`pnpm -C packages/nextclaw-ui tsc`
+  - 结果：通过。
+- 定向 ESLint：`pnpm -C packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-page.tsx src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.config.ts src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-module-state.ts`
+  - 结果：无错误；保留既有 `MarketplacePage` `max-statements` warning，数值未继续恶化。
+- Playwright 冒烟：
+  - 打开 `http://127.0.0.1:5174/skills`。
+  - 概览截图通过，`Skill Catalog` 标题出现 1 次；点击 `Development` 后进入 `http://127.0.0.1:5174/skills/scenes/development-debugging`，`Back` 可见，场景页搜索框不可见。
+  - 最新截图路径：`/tmp/nextclaw-marketplace-all-title.png`、`/tmp/nextclaw-marketplace-scene-route.png` 与 `/tmp/nextclaw-marketplace-scene-route-mobile.png`。
+- Playwright 二级场景页顶部冒烟：
+  - 打开 `http://127.0.0.1:5174/skills/scenes/development-debugging`。
+  - 结果：返回按钮可见，搜索框不可见；桌面与窄屏截图通过。
+  - 最新截图路径：`/tmp/nextclaw-marketplace-scene-header-two-line.png` 与 `/tmp/nextclaw-marketplace-scene-header-two-line-mobile.png`。
+- Playwright 清爽版视觉冒烟：
+  - 打开 `http://127.0.0.1:5174/skills` 与 `http://127.0.0.1:5174/skills/scenes/development-debugging`。
+  - 结果：返回按钮可见，场景页搜索框不可见；概览、场景页、窄屏场景页截图通过。
+  - 最新截图路径：`/tmp/nextclaw-marketplace-clean-overview.png`、`/tmp/nextclaw-marketplace-clean-scene.png` 与 `/tmp/nextclaw-marketplace-clean-scene-mobile.png`。
+- Maintainability guard：
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/marketplace/components/marketplace-page.tsx packages/nextclaw-ui/src/features/marketplace/components/marketplace-page.test.tsx packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.tsx packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.config.ts packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-curated-module-state.ts`
+  - 结果：无错误；保留 `MarketplacePage` 接近文件预算、既有函数复杂度 warning，以及货架主文件接近预算 warning。
+- Governance ratchet：`pnpm check:governance-backlog-ratchet`
+  - 结果：通过。
+- Governance full suite：`pnpm lint:new-code:governance`
+  - 结果：此前通过；本次视觉清理后重跑被当前工作区其它已改文件阻塞，阻塞项在 `packages/nextclaw-core/src/features/channels/services/extension-channel.service.ts` 的 module-structure-drift，与 Skill Marketplace 改动无关。
+- 本次视觉清理相关定向检查：
+  - `pnpm -C packages/nextclaw-ui exec eslint src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.config.ts`
+  - `node scripts/governance/lint-new-code-context-destructuring.mjs -- <本次视觉清理触达文件>`
+  - 结果：通过。
+- 本次相关 context destructuring 定向检查：
+  - `node scripts/governance/lint-new-code-context-destructuring.mjs -- <本次触达的 marketplace 文件>`
+  - 结果：通过。
+- 本次 scene 契约化改造补充验证：
+  - `pnpm -C packages/nextclaw-server build`
+    - 结果：通过；用于刷新本地 `@nextclaw/server` 类型产物，build 保留第三方依赖 warning。
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm -C packages/nextclaw-server tsc --noEmit`
+    - 结果：通过。
+  - `pnpm -C packages/nextclaw-client-sdk tsc`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`7` 个测试通过。
+  - `pnpm --dir packages/nextclaw-server exec vitest run src/app/router.marketplace-manage.test.ts`
+    - 结果：通过，`6` 个测试通过。
+  - 定向 ESLint：
+    - UI 触达文件：通过；保留 `MarketplacePage` 既有 `max-statements` warning，指标维持 `42`，未继续恶化。
+    - Server / client-sdk 触达文件：通过。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过；仅提示 `packages/nextclaw-ui/src/shared/lib/api/utils` 仍是历史 flat mixed-responsibility 目录 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次触达文件>`
+    - 结果：无错误；保留 `MarketplacePage` 既有超长函数 warning、API types 接近预算 warning、部分历史目录预算 warning。
+  - 本地路由 smoke：
+    - `curl -I http://127.0.0.1:5174/skills`
+    - `curl -I http://127.0.0.1:5174/skills/scenes/development-debugging`
+    - 结果：均返回 `200 OK`；Vite 源码模块可加载最新 `marketplace-page.tsx`。
+  - 浏览器截图 smoke：
+    - 本轮尝试使用 Chrome DevTools MCP 打开 `http://127.0.0.1:5174/skills`，但该 MCP profile 已被占用，工具返回 “browser is already running”；因此改用上述 HTTP smoke 和定向 UI 测试作为替代证明。
+- 本次 scene 加载态修复补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过；新增覆盖“场景页加载中显示 skeleton，不显示旧目录项”。
+  - `pnpm -C packages/nextclaw-ui exec eslint <本次触达 UI 文件>`
+    - 结果：无错误；保留 `MarketplacePage` 既有 `max-statements` warning，指标维持 `42`。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过；保留 `shared/lib/api/utils` 历史 flat mixed-responsibility 目录 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次加载态修复触达文件>`
+    - 结果：无错误；保留 `MarketplacePage` 接近预算和既有超长函数 warning。
+- 本次 scene 数量与紧凑卡片补充验证：
+  - `pnpm -C packages/nextclaw-server tsc --noEmit`
+    - 结果：通过。
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-server exec vitest run src/app/router.marketplace-manage.test.ts`
+    - 结果：通过，`6` 个测试通过；覆盖 scenes 返回 `count` 且不返回 `type`。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过。
+  - `pnpm -C packages/nextclaw-server build`
+    - 结果：通过；用于刷新本地 `@nextclaw/server` 类型产物，build 保留第三方依赖 warning。
+  - `pnpm -C packages/nextclaw-client-sdk tsc`
+    - 结果：通过。
+  - 定向 ESLint：
+    - UI / Server 触达文件：通过。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过；保留 `shared/lib/api/utils` 历史 flat mixed-responsibility 目录 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次 scene count 与紧凑卡片触达文件>`
+    - 结果：无错误；保留历史目录预算 warning 与 API types 接近预算 warning。
+- 本次“最近更新”卡片 header 补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过；保留 `shared/lib/api/utils` 历史 flat mixed-responsibility 目录 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx`
+    - 结果：未通过；该文件在当前工作区相对 `HEAD` 仍是本批次新增文件，guard 按非功能新增文件统计为非测试净增 `+140` 行。此次 header 微调本身已删除旧 `SourceLabel` 渲染路径并复用同一 `SkillShelfCard` owner，没有新增并行组件。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx`
+    - 结果：通过；作为整个精选货架新增能力批次的 scoped guard，未发现可维护性问题。
+  - Playwright 冒烟：
+    - 打开 `http://127.0.0.1:5174/skills`。
+    - 结果：页面返回 `200 OK`，正文可见 `Recently updated`；卡片文本呈现为 `Codex NARP Runtime` / `codex-narp-runtime` 这类两行 header 信息。截图路径：`/tmp/nextclaw-skill-marketplace-shelf-card.png`。
+    - 备注：Chrome DevTools MCP 因 profile 已被占用无法新开页面，已用 Playwright headless 作为替代视觉冒烟。
+
+## 发布/部署方式
+
+本次不涉及发布或部署。若继续推进到正式版本，按正常前端构建与桌面资源打包链路发布即可。
+
+## 用户/产品视角的验收步骤
+
+1. 进入 Skill Marketplace 的 Marketplace tab。
+2. 在无搜索条件且技能数据加载成功时，应先看到“场景”货架。
+3. 货架之后应看到完整列表自己的标题，例如 `Skill Catalog` / `全部技能`，而不是直接接一组无标题卡片。
+4. 点击任一场景卡片后，应进入 `/skills/scenes/:scene` 子路由，而不是把关键词写进搜索框。
+5. 场景页应左上角返回、旁边显示标题信息；顶部控制在两行左右，内容直接以自适应网格平铺，不再包一层大卡片。
+6. 返回后继续向下应看到“最近更新”和完整技能列表，原安装、已安装状态和详情打开行为保持可用。
+7. “最近更新”卡片的 header 应为图标 + 右侧两行信息：第一行技能名称，第二行 slug，不再在右上角留下单独来源标签空白。
+8. Installed tab 应继续保持管理列表，不混入发现货架。
+
+## 可维护性总结汇总
+
+- **本次是否已尽最大努力优化可维护性**：阶段性是。第一版先写出可视化草案后，已将单组件拆成 `curated-shelves/` 下的主展示、配置、卡片和模块状态文件，避免一个新大文件承载全部配置、渲染和状态；随后又删除页内冗余标题区，减少首屏 UI 噪音。
+- **是否优先遵循“删减优先、简化优先、代码更少更好、复杂度更低更好、清晰度更高更好”的原则**：部分满足。本次是新增用户可见能力，因此存在必要代码增长；实现上复用现有列表卡片的安装/详情动作和已有 marketplace 数据，不改变业务链路。
+- **是否让总代码量、分支数、函数数、文件数或目录平铺度下降，或至少没有继续恶化**：总代码和文件数因新增用户可见能力增长；父级 `components/` 直接文件数通过 `curated-shelves/` 子目录收敛，未越过目录预算。`MarketplacePage` 复杂度 warning 未继续恶化，但文件接近预算，后续若继续推进应优先拆页面 owner/hook。
+- **抽象、模块边界、class / helper / service / store 等职责划分是否更合适、更清晰**：页面只装配数据和传递已有动作；`curated-shelves` 子目录负责精选货架展示、场景配置、货架卡片与场景页展示；`use-marketplace-curated-scene-route` 负责子路由派生数据，边界更清楚。
+- **目录结构与文件组织是否满足当前项目治理要求**：满足。新增文件为同 feature 的展示组件与配置文件，命名符合 kebab-case 与角色后缀。
+- **是否基于一次独立于实现阶段的 `post-edit-maintainability-review` 填写**：是，基于 guard、ESLint warning 和代码体量做了二次复核；本轮仍保留 `MarketplacePage` 既有复杂度债务，后续正式化应拆分页面。
+
+### 反馈复盘
+
+- 学习来源：用户指出第一版过于机械复刻参考 demo，且页面标题与大卡片造成空间浪费。
+- 学习来源补充：用户指出场景卡片点击变成搜索不是应用商店式体验，应该进入一个模块并能返回上一级。
+- 学习来源补充：用户指出模块页应该是子路由、左上角返回、内容自适应平铺，并且完整列表区需要独立标题。
+- 学习来源补充：用户指出卡片内部重复小胶囊、强色块和多色系统让界面不够清爽优雅。
+- 通用模式：工作台型页面参考外部设计时，只应吸收信息节奏和结构启发，不能复制展示型视觉表皮；场景入口应表达清晰路由层级，而不是伪装成搜索或筛选；内容区优先直接、自适应、无多余包裹；卡片内部不要叠加太多小块状 UI，优先使用文字、间距、细线和少量中性色建立层级；紧凑、效率和项目风格优先。
+- 现有规则判断：项目已有前端指导要求 SaaS/工作台界面避免营销化和装饰化，本次问题属于执行偏航，不是规则缺失。因此暂不修改 AGENTS 或 skill，当前代码和迭代记录已修正并留痕。
+
+## NPM 包发布记录
+
+不涉及 NPM 包发布。

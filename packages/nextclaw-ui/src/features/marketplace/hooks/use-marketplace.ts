@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { t } from '@/shared/lib/i18n';
 import {
@@ -10,6 +10,7 @@ import {
   fetchMarketplaceInstalled,
   fetchMarketplaceItems,
   fetchMarketplaceRecommendations,
+  fetchMarketplaceSkillScenes,
   installMarketplaceItem,
   manageMarketplaceItem,
   type MarketplaceListParams
@@ -18,7 +19,8 @@ import type {
   MarketplaceInstallRequest,
   MarketplaceInstalledView,
   MarketplaceItemType,
-  MarketplaceManageRequest
+  MarketplaceManageRequest,
+  MarketplaceSceneView
 } from '@/shared/lib/api';
 import { collapseMarketplaceListPages } from '@/features/marketplace/utils/marketplace-list-pages.utils';
 import { useMemo } from 'react';
@@ -36,7 +38,12 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
       }
 
       const previousType = 'type' in previousParams ? previousParams.type : undefined;
-      return previousType === params.type ? previousData : undefined;
+      return previousType === params.type && hasSameMarketplaceListIdentity(
+        previousParams as MarketplaceListParams,
+        params
+      )
+        ? previousData
+        : undefined;
     },
     staleTime: 15_000
   });
@@ -49,12 +56,61 @@ export function useMarketplaceItems(params: MarketplaceListParams) {
   };
 }
 
+function hasSameMarketplaceListIdentity(
+  previousParams: MarketplaceListParams,
+  nextParams: MarketplaceListParams
+): boolean {
+  return previousParams.q === nextParams.q
+    && previousParams.tag === nextParams.tag
+    && previousParams.scene === nextParams.scene
+    && previousParams.sort === nextParams.sort
+    && previousParams.pageSize === nextParams.pageSize;
+}
+
 export function useMarketplaceRecommendations(type: MarketplaceItemType, params: { scene?: string; limit?: number }) {
   return useQuery({
     queryKey: ['marketplace-recommendations', type, params],
     queryFn: () => fetchMarketplaceRecommendations(type, params),
     staleTime: 30_000
   });
+}
+
+export function useMarketplaceSkillScenes(enabled = true) {
+  return useQuery({
+    queryKey: ['marketplace-skill-scenes'],
+    queryFn: fetchMarketplaceSkillScenes,
+    enabled,
+    staleTime: 60_000
+  });
+}
+
+export function useMarketplaceSkillSceneCounts(
+  scenes: MarketplaceSceneView[],
+  enabled = true
+) {
+  const queries = useQueries({
+    queries: scenes.map((scene) => ({
+      queryKey: ['marketplace-skill-scene-count', scene.scene],
+      queryFn: () => fetchMarketplaceItems({
+        type: 'skill',
+        scene: scene.scene,
+        pageSize: 1
+      }),
+      enabled: enabled && typeof scene.count !== 'number',
+      staleTime: 60_000
+    }))
+  });
+
+  return useMemo(() => {
+    const counts = new Map<string, number>();
+    scenes.forEach((scene, index) => {
+      const knownCount = typeof scene.count === 'number' ? scene.count : queries[index]?.data?.total;
+      if (typeof knownCount === 'number') {
+        counts.set(scene.scene, knownCount);
+      }
+    });
+    return counts;
+  }, [queries, scenes]);
 }
 
 export function useMarketplaceItem(slug: string | null, type?: MarketplaceItemType) {

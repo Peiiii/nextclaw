@@ -20,6 +20,7 @@ export function mountMarketplaceRoutes(
   app.get("/api/marketplace/plugins/recommendations", controllers.plugin.getRecommendations);
 
   app.get("/api/marketplace/skills/installed", controllers.skill.getInstalled);
+  app.get("/api/marketplace/skills/scenes", controllers.skill.listScenes);
   app.get("/api/marketplace/skills/items", controllers.skill.listItems);
   app.get("/api/marketplace/skills/items/:slug", controllers.skill.getItem);
   app.get("/api/marketplace/skills/items/:slug/content", controllers.skill.getItemContent);

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   docOpen: vi.fn(),
   confirm: vi.fn(),
+  routeParams: {} as { type?: string; scene?: string },
   itemsQuery: null as unknown as ItemsQueryState,
   installedQuery: null as unknown as InstalledQueryState,
   installMutation: {
@@ -48,7 +49,7 @@ vi.mock("react-router-dom", async () => {
   return {
     ...(actual as object),
     useNavigate: () => mocks.navigate,
-    useParams: () => ({}),
+    useParams: () => mocks.routeParams,
   };
 });
 
@@ -73,6 +74,23 @@ vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
 
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
   useMarketplaceItems: () => mocks.itemsQuery,
+  useMarketplaceSkillScenes: () => ({
+    data: {
+      scenes: [
+        {
+          scene: "development-debugging",
+          title: "Development",
+          description: "Review, debug, analyze, and verify delivery work.",
+          count: 2,
+        },
+      ],
+    },
+    isLoading: false,
+    isFetching: false,
+    isError: false,
+    error: null,
+  }),
+  useMarketplaceSkillSceneCounts: () => new Map([["development-debugging", 2]]),
   useMarketplaceInstalled: () => mocks.installedQuery,
   useInstallMarketplaceItem: () => mocks.installMutation,
   useManageMarketplaceItem: () => mocks.manageMutation,
@@ -169,6 +187,7 @@ describe("MarketplacePage", () => {
     mocks.navigate.mockReset();
     mocks.docOpen.mockReset();
     mocks.confirm.mockReset();
+    mocks.routeParams = {};
     mocks.installMutation.mutateAsync.mockReset();
     mocks.manageMutation.mutate.mockReset();
     mocks.manageMutation.mutateAsync.mockReset();

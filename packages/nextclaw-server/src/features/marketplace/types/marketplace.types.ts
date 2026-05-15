@@ -111,6 +111,17 @@ export type MarketplaceRecommendationView = {
   items: MarketplaceItemSummary[];
 };
 
+export type MarketplaceSceneView = {
+  scene: string;
+  title: string;
+  description?: string;
+  count?: number;
+};
+
+export type MarketplaceScenesView = {
+  scenes: MarketplaceSceneView[];
+};
+
 export type MarketplaceInstalledRecord = {
   type: MarketplaceItemType;
   id?: string;

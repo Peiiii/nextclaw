@@ -9,6 +9,7 @@ import type {
   MarketplaceManageResult,
   MarketplacePluginContentView,
   MarketplaceRecommendationView,
+  MarketplaceScenesView,
   MarketplaceSkillContentView,
   MarketplaceSort
 } from "@nextclaw/server";
@@ -18,6 +19,7 @@ export type MarketplaceListParams = {
   type: MarketplaceItemType;
   q?: string;
   tag?: string;
+  scene?: string;
   sort?: MarketplaceSort;
   page?: number;
   pageSize?: number;
@@ -67,6 +69,10 @@ export class MarketplaceService {
     );
   };
 
+  readonly fetchSkillScenes = async (): Promise<MarketplaceScenesView> => {
+    return await this.requestService.get<MarketplaceScenesView>("/api/marketplace/skills/scenes");
+  };
+
   readonly install = async (request: MarketplaceInstallRequest): Promise<MarketplaceInstallResult> => {
     return await this.requestService.post<MarketplaceInstallResult>(
       `${toMarketplaceBasePath(resolveRequiredMarketplaceType(request.type))}/install`,
@@ -97,13 +103,16 @@ function toMarketplaceBasePath(type: MarketplaceItemType): string {
 }
 
 function toListQuery(params: MarketplaceListParams): Record<string, string | number> | undefined {
-  const { page, pageSize, q, sort, tag } = params;
+  const { page, pageSize, q, scene, sort, tag } = params;
   const query: Record<string, string | number> = {};
   if (q?.trim()) {
     query.q = q.trim();
   }
   if (tag?.trim()) {
     query.tag = tag.trim();
+  }
+  if (scene?.trim()) {
+    query.scene = scene.trim();
   }
   if (sort) {
     query.sort = sort;

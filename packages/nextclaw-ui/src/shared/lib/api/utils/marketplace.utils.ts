@@ -1,4 +1,4 @@
-import { nextclawClient } from '../managers/client.manager';
+import { nextclawClient } from '@/shared/lib/api/managers/client.manager';
 import type {
   MarketplaceInstallRequest,
   MarketplaceInstallResult,
@@ -11,6 +11,7 @@ import type {
   MarketplaceItemView,
   MarketplaceListView,
   MarketplaceRecommendationView,
+  MarketplaceScenesView,
   MarketplaceSort
 } from '@/shared/lib/api/types';
 
@@ -18,6 +19,7 @@ export type MarketplaceListParams = {
   type: MarketplaceItemType;
   q?: string;
   tag?: string;
+  scene?: string;
   sort?: MarketplaceSort;
   page?: number;
   pageSize?: number;
@@ -47,6 +49,10 @@ export async function fetchMarketplaceRecommendations(
   } = {}
 ): Promise<MarketplaceRecommendationView> {
   return await nextclawClient.marketplace.fetchRecommendations(type, params);
+}
+
+export async function fetchMarketplaceSkillScenes(): Promise<MarketplaceScenesView> {
+  return await nextclawClient.marketplace.fetchSkillScenes();
 }
 
 export async function installMarketplaceItem(request: MarketplaceInstallRequest): Promise<MarketplaceInstallResult> {
