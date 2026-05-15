@@ -4,13 +4,13 @@
 
 本次新增轻量级 `@nextclaw/channel-extension-feishu`，按现有 extension 机制接入 `feishu` channel，并参考 Hermes 的 Feishu/Lark scan-to-create 流程实现二维码注册自建应用、保存应用凭证、WebSocket 收消息与 NCP 回复消费。
 
-旧 `@nextclaw/channel-plugin-feishu` 未删除，继续作为 legacy 包保留；新 extension 使用同一个 `feishu` channel id，依赖 gateway 现有 extension 优先级覆盖旧插件绑定，降低一次性迁移风险。
+旧 Feishu channel plugin 已删除；新 extension 使用同一个 `feishu` channel id，作为内置飞书渠道的唯一运行 owner。
 
-后续补充：为进一步避免双路径冲突，已从内置 bundled channel plugin 加载列表中注释掉 legacy `@nextclaw/channel-plugin-feishu`，由 QR-first Feishu extension 独占内置 `feishu` 运行路径。
+后续补充：为进一步避免双路径冲突，已从内置 bundled channel plugin 加载列表中移除 legacy Feishu plugin，由 QR-first Feishu extension 独占内置 `feishu` 运行路径。
 
 回复链路修复补充：用户扫码接入后发送“你好”无回复，经日志与 session journal 排查，消息已进入 NCP 并生成回复，断点在回飞书投递。根因是 kernel 侧 extension registry 只继承旧 plugin registry，未合并 manifest extension 的 channel contribution，导致旧 Feishu plugin 仍可能成为 `feishu` channel 的发送 owner；同时飞书私聊入站使用 sender open_id 生成 direct session，但真正发送接口需要 chat_id，微信没有这层 ID 差异。修复后 manifest extension channel 会覆盖同 channelId 的 legacy plugin channel，Feishu 入站把 chat_id 写入 `peer_id` / `peer_kind` 供 NCP session route 使用，同时保留 sender open_id 做权限与上下文。
 
-旧插件入口清理补充：之前只从 bundled channel plugin 列表注释掉 `@nextclaw/channel-plugin-feishu`，但 dev first-party plugin loader 仍会从 `packages/extensions` 和已安装 first-party plugin 映射中发现旧 Feishu plugin，所以启动日志仍出现 `[plugins:feishu] feishu_doc...`。本次进一步在 first-party dev load path resolver 中禁止 legacy `@nextclaw/channel-plugin-feishu` 映射进运行时 load paths，并移除 `@nextclaw/openclaw-compat` 对旧 Feishu plugin 包的 workspace dependency；旧插件源码仍保留，但运行时不再引入。
+旧插件清理补充：之前只从 bundled channel plugin 列表注释掉 legacy Feishu plugin，但 dev first-party plugin loader 仍会从 `packages/extensions` 和已安装 first-party plugin 映射中发现旧 Feishu plugin，所以启动日志仍出现 `[plugins:feishu] feishu_doc...`。本次已进一步删除旧插件 workspace 包、移除 root build/lint 与 desktop dependency、更新 lockfile，并从 marketplace seed 中移除旧 Feishu plugin 条目。
 
 等待反馈补充：对齐 Hermes Feishu/Lark 的 processing status reaction 思路。新 Feishu extension 在消息通过白名单、群策略与 @ 提及过滤后，会立即对原消息添加 `Typing` reaction；NCP 成功终态会移除 `Typing`，失败终态会移除 `Typing` 并补充 `CrossMark`。reaction 添加或清理失败只记录 warning，不阻断后续 NCP 回复链路，避免用户因无反馈产生等待焦虑。
 
@@ -22,7 +22,7 @@
 - `pnpm -C packages/nextclaw-core tsc`
 - `pnpm -C packages/nextclaw-core build`
 - `pnpm -C packages/nextclaw-service exec vitest run src/shared/services/gateway/tests/gateway-plugin-manager.service.test.ts`
-- `pnpm -C packages/nextclaw-service exec vitest run src/commands/plugin/dev-first-party-plugin-load-paths.test.ts src/commands/plugin/dev-first-party-plugin-legacy-feishu-load-paths.test.ts src/commands/plugin/dev-first-party-plugin-load-paths.path-install.test.ts`
+- `pnpm -C packages/nextclaw-service exec vitest run src/commands/plugin/dev-first-party-plugin-load-paths.test.ts src/commands/plugin/dev-first-party-plugin-load-paths.path-install.test.ts`
 - `pnpm -C packages/nextclaw-service tsc`
 - `pnpm -C packages/nextclaw-service build`
 - `pnpm -C packages/nextclaw-openclaw-compat tsc`
