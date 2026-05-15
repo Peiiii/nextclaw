@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import JSZip from "jszip";
@@ -42,23 +42,13 @@ function runCommand(command, args) {
   const result = spawnSync(command, args, {
     cwd: workspaceRoot,
     env: process.env,
-    stdio: "pipe",
+    stdio: "inherit",
     encoding: "utf8",
     shell: process.platform === "win32"
   });
   if (result.status !== 0) {
-    if (result.stdout) {
-      process.stdout.write(result.stdout);
-    }
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
     process.exit(result.status ?? 1);
   }
-  if (result.stderr) {
-    process.stderr.write(result.stderr);
-  }
-  return result.stdout;
 }
 
 async function buildSeedBundleMetadata(seedBundlePath, bundleVersion) {
@@ -137,10 +127,7 @@ async function main() {
   }
 
   rmSync(targetPath, { force: true });
-  const buildResult = runCommand("pnpm", buildArgs);
-  if (buildResult.trim()) {
-    process.stdout.write(buildResult);
-  }
+  runCommand("pnpm", buildArgs);
   renameSync(sourcePath, targetPath);
   const seedBundleMetadata = await buildSeedBundleMetadata(targetPath, bundleVersion);
   updateReleaseMetadata(seedBundleMetadata);
