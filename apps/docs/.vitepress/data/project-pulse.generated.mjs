@@ -1,18 +1,18 @@
 export default {
-  "generatedAt": "2026-05-14T03:22:35.479Z",
+  "generatedAt": "2026-05-15T03:23:50.330Z",
   "hero": {
-    "currentLoc": 189949,
-    "testLoc": 52068,
-    "trackedFiles": 1867,
-    "recentCommitCount": 462,
+    "currentLoc": 189831,
+    "testLoc": 52287,
+    "trackedFiles": 1872,
+    "recentCommitCount": 463,
     "activeDays30": 22,
-    "recentReleaseCount": 65,
+    "recentReleaseCount": 64,
     "latestReleaseDate": "2026-05-14",
     "latestNoteDate": "2026-05-06",
     "benchmarkName": "openclaw",
-    "benchmarkCodeLines": 1323942,
-    "basePercentOfBenchmark": 14.35,
-    "lighterByPercent": 85.65
+    "benchmarkCodeLines": 1333314,
+    "basePercentOfBenchmark": 14.24,
+    "lighterByPercent": 85.76
   },
   "trends": {
     "locDaily": [
@@ -440,6 +440,11 @@ export default {
         "key": "2026-05-14",
         "label": "05-14",
         "value": 189949
+      },
+      {
+        "key": "2026-05-15",
+        "label": "05-15",
+        "value": 189831
       }
     ],
     "testLocDaily": [
@@ -462,14 +467,14 @@ export default {
         "key": "2026-05-14",
         "label": "05-14",
         "value": 52068
+      },
+      {
+        "key": "2026-05-15",
+        "label": "05-15",
+        "value": 52287
       }
     ],
     "commitDaily": [
-      {
-        "key": "2026-04-15",
-        "label": "04-15",
-        "value": 17
-      },
       {
         "key": "2026-04-16",
         "label": "04-16",
@@ -613,7 +618,12 @@ export default {
       {
         "key": "2026-05-14",
         "label": "05-14",
-        "value": 12
+        "value": 29
+      },
+      {
+        "key": "2026-05-15",
+        "label": "05-15",
+        "value": 1
       }
     ],
     "commitWeekly": [
@@ -675,7 +685,7 @@ export default {
       {
         "key": "2026-05-11",
         "label": "05-11",
-        "value": 54
+        "value": 72
       }
     ],
     "releaseMonthly": [
@@ -745,17 +755,17 @@ export default {
     "topScopes": [
       {
         "name": "packages/nextclaw-ui",
-        "codeLines": 34447,
-        "testCodeLines": 11838,
+        "codeLines": 33944,
+        "testCodeLines": 11915,
         "files": 400,
-        "sharePercent": 18.1
+        "sharePercent": 17.9
       },
       {
         "name": "packages/nextclaw-service",
         "codeLines": 17564,
         "testCodeLines": 6692,
         "files": 177,
-        "sharePercent": 9.2
+        "sharePercent": 9.3
       },
       {
         "name": "packages/extensions/nextclaw-channel-plugin-feishu",
@@ -767,7 +777,7 @@ export default {
       {
         "name": "packages/nextclaw-core",
         "codeLines": 16028,
-        "testCodeLines": 3940,
+        "testCodeLines": 3978,
         "files": 159,
         "sharePercent": 8.4
       },
@@ -780,36 +790,36 @@ export default {
       },
       {
         "name": "packages/nextclaw-server",
-        "codeLines": 8475,
-        "testCodeLines": 5299,
+        "codeLines": 8481,
+        "testCodeLines": 5310,
         "files": 80,
         "sharePercent": 4.5
       },
       {
         "name": "packages/nextclaw-kernel",
-        "codeLines": 8030,
-        "testCodeLines": 544,
+        "codeLines": 8027,
+        "testCodeLines": 569,
         "files": 67,
         "sharePercent": 4.2
       },
       {
         "name": "packages/nextclaw-agent-chat-ui",
-        "codeLines": 6182,
-        "testCodeLines": 2939,
+        "codeLines": 6230,
+        "testCodeLines": 2848,
         "files": 67,
         "sharePercent": 3.3
       }
     ],
     "benchmark": {
       "name": "openclaw",
-      "benchmarkCodeLines": 1323942,
-      "basePercentOfBenchmark": 14.35,
-      "lighterByPercent": 85.65
+      "benchmarkCodeLines": 1333314,
+      "basePercentOfBenchmark": 14.24,
+      "lighterByPercent": 85.76
     },
     "recentReleaseBatches": [
       {
         "date": "2026-05-14",
-        "tagCount": 9,
+        "tagCount": 15,
         "sampleTags": [
           "@nextclaw/nextclaw-narp-runtime-claude-code-sdk@0.1.4",
           "@nextclaw/nextclaw-narp-runtime-codex-sdk@0.1.3",
@@ -1042,7 +1052,7 @@ export default {
   },
   "meta": {
     "locProfile": "source",
-    "locGeneratedAt": "2026-05-14T03:22:34.328Z",
+    "locGeneratedAt": "2026-05-15T03:23:49.146Z",
     "sourceCount": {
       "notes": 5,
       "scopes": 8
