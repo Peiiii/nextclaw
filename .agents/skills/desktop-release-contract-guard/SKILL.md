@@ -42,14 +42,19 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 ## Required Commands
 1. Default verification command from repo root:
    - `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:verify`
-2. Inspect the governed channel floor before release:
+   - This verifies the package contract and isolated GUI smoke. It is not enough for handing a clickable local macOS artifact to a maintainer.
+2. Local handoff verification command before giving a clickable macOS artifact to a human:
+   - `PATH=/opt/homebrew/bin:$PATH pnpm desktop:package:handoff:verify`
+   - This must run the normal package contract plus real-profile GUI smoke against the maintainer machine's desktop data dir.
+   - If the user's existing desktop app is already running, quit it first or treat a single-instance-lock failure as a real failed handoff verification.
+3. Inspect the governed channel floor before release:
    - `pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel stable`
    - `pnpm -C apps/desktop bundle:minimum-launcher-version -- --channel beta`
-3. Direct packaging path only after the public-key contract is ensured:
+4. Direct packaging path only after the public-key contract is ensured:
    - `pnpm -C apps/desktop bundle:public-key:ensure`
    - then `pnpm -C apps/desktop dist ...` or `pnpm -C apps/desktop pack ...`
-4. If handing a local installer to a human, point them to `apps/desktop/release/...` and state the exact artifact path.
-5. After creating a GitHub prerelease/tag, verify workflow and assets instead of stopping at `gh release create`:
+5. If handing a local installer to a human, point them to `apps/desktop/release/...` only after handoff verification passes and state the exact artifact path.
+6. After creating a GitHub prerelease/tag, verify workflow and assets instead of stopping at `gh release create`:
    - `gh run view <run-id> --repo <owner/repo> --json status,conclusion,jobs`
    - `gh release view <tag> --repo <owner/repo> --json assets,isPrerelease,url`
 
@@ -124,6 +129,19 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - When the runtime reaches API readiness and provider credentials are available, run `pnpm smoke:ncp-chat` against the desktop-started runtime and require a non-empty assistant reply. A health endpoint alone is not enough to claim the desktop runtime is usable.
 - Runtime fallback checks are diagnostics only. They must never turn a failed GUI launch smoke into a passing desktop package verification.
 
+## Directly Usable Package Contract
+- A local desktop package is "directly usable" only if the exact artifact path has passed the handoff ladder or the failure is explicitly classified as unsigned macOS trust policy with documented user approval steps.
+- For maintainer handoff on macOS, use `pnpm desktop:package:handoff:verify`, not only `pnpm desktop:package:verify`.
+- The handoff result must include:
+  - artifact path and size;
+  - seed bundle path and size;
+  - isolated GUI smoke elapsed time;
+  - real-profile GUI smoke elapsed time;
+  - current-launch log evidence for `Desktop main entry loaded`, runtime startup, `ready-to-show`, `did-finish-load`, and core API health;
+  - explicit statement that no known startup blocker appeared in the current launch window.
+- Startup is not acceptable just because it eventually appears. Treat a visible-window ready time above the configured `DESKTOP_SMOKE_MAX_READY_SEC` as a failed candidate, then diagnose slow startup before handoff.
+- If the same class of failure recurs, improve the smoke or diagnostic script before trying another blind package iteration.
+
 ## Local Handoff Validation Ladder
 Use this ladder before telling a human that a local DMG / `.app` is ready:
 
@@ -154,6 +172,9 @@ Use this ladder before telling a human that a local DMG / `.app` is ready:
   - Inspect the current launcher log window first and record whether a new `Desktop main entry loaded` line exists.
   - If there is no new JS log, inspect AMFI / AppleSystemPolicy / Gatekeeper logs and treat this as a system admission failure, not a renderer/runtime bug.
   - If JS starts but no window is ready, inspect `ready-to-show`, `did-finish-load`, `render-process-gone`, and renderer console/fetch logs.
+- Same app keeps bouncing but no new window appears:
+  - Check for `Another desktop instance is already running`.
+  - Quit the existing installed app before handoff smoke; do not confuse a single-instance-lock exit with a passing package launch.
 - Native module or helper killed by macOS policy:
   - Look for `Library load denied by system policy`, `has no CMS blob`, helper process death, or `.node` paths in the system log.
   - Separate app executable admission from runtime native-module admission; they have different owners and fixes.

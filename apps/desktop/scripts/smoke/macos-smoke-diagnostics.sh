@@ -29,8 +29,20 @@ print_desktop_diagnostics() {
   print_macos_policy_diagnostics
 }
 
+current_main_log() {
+  if [[ ! -f "${APP_MAIN_LOG}" ]]; then
+    return
+  fi
+  tail -n +"${MAIN_LOG_START_LINE}" "${APP_MAIN_LOG}" || true
+}
+
 main_log_has() {
-  [[ -f "${APP_MAIN_LOG}" ]] && tail -n +"${MAIN_LOG_START_LINE}" "${APP_MAIN_LOG}" | grep -q "$1"
+  current_main_log | grep -q "$1"
+}
+
+desktop_startup_blocker() {
+  current_main_log | grep -E -m 1 \
+    "ENAMETOOLONG|ENOTEMPTY|ERR_FAILED|render-process-gone|Failed to bootstrap runtime|Library load denied|AppleSystemPolicy|AMFI|Another desktop instance is already running" || true
 }
 
 desktop_window_ready() {
