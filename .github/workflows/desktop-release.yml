@@ -29,7 +29,7 @@ jobs:
           - os: macos-14
             platform: darwin
             arch: arm64
-          - os: macos-14
+          - os: macos-15-intel
             platform: darwin
             arch: x64
           - os: ubuntu-latest
@@ -128,6 +128,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           pnpm -r --filter @nextclaw/desktop... build
           pnpm -C apps/desktop bundle:seed -- --channel $env:DESKTOP_UPDATE_CHANNEL --platform ${{ matrix.platform }} --arch ${{ matrix.arch }}
@@ -229,6 +230,7 @@ jobs:
           NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY: ${{ secrets.NEXTCLAW_DESKTOP_BUNDLE_PRIVATE_KEY }}
         run: |
           $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $bundleVersion = node -p "require('./packages/nextclaw/package.json').version"
           $minimumLauncherVersion = node apps/desktop/scripts/update/services/print-minimum-launcher-version.service.mjs --channel $env:DESKTOP_UPDATE_CHANNEL
 
@@ -302,6 +304,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           $env:CSC_IDENTITY_AUTO_DISCOVERY = "false"
           pnpm -C apps/desktop exec electron-builder --win nsis --x64 --publish never
 

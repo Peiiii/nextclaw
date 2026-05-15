@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { cp, lstat, mkdir, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,24 +98,17 @@ function runCommand(command, args, cwd) {
   const result = spawnSync(command, args, {
     cwd,
     env: process.env,
-    stdio: "pipe",
+    stdio: "inherit",
     encoding: "utf8",
     shell: process.platform === "win32"
   });
   if (result.status !== 0) {
-    if (result.stdout) {
-      process.stderr.write(result.stdout);
-    }
-    if (result.stderr) {
-      process.stderr.write(result.stderr);
-    }
     throw new Error(`${command} ${args.join(" ")} failed with exit code ${result.status ?? 1}`);
   }
 }
 
 function ensureFreshRuntimeArtifacts() {
-  runCommand("pnpm", ["-C", "packages/nextclaw-ui", "build"], workspaceRoot);
-  runCommand("pnpm", ["-C", "packages/nextclaw", "build"], workspaceRoot);
+  runCommand("pnpm", ["--filter", "nextclaw...", "build"], workspaceRoot);
 }
 
 function createWorkspaceTempRoot() {
@@ -244,14 +237,27 @@ async function prepareBundleWorkspace(workspace) {
   await mkdir(workspace.bundleRoot, { recursive: true });
   runCommand(
     "pnpm",
-    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath],
+    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "--offline", "deploy", workspace.runtimeDeployPath],
     workspaceRoot
   );
+  assertRuntimeBundleContract(workspace.runtimeRoot);
   const pruneResult = await pruneRuntimeNodeModules(workspace.runtimeRoot);
   await cp(join(workspace.runtimeRoot, "ui-dist"), workspace.uiRoot, { recursive: true });
   await mkdir(workspace.pluginsRoot, { recursive: true });
   await writeFile(join(workspace.pluginsRoot, ".keep"), "\n", "utf8");
   return pruneResult;
+}
+
+function assertRuntimeBundleContract(runtimeRoot) {
+  const requiredFiles = [
+    "dist/cli/app/index.js",
+    "node_modules/@nextclaw/service/dist/index.js",
+    "ui-dist/index.html"
+  ];
+  const missingFiles = requiredFiles.filter((relativePath) => !existsSync(join(runtimeRoot, relativePath)));
+  if (missingFiles.length > 0) {
+    throw new Error(`Runtime deploy is missing required packaged files: ${missingFiles.join(", ")}`);
+  }
 }
 
 async function writeBundleManifest(bundleRoot, options) {
