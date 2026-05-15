@@ -4,6 +4,7 @@ import { useAppMeta } from '@/shared/hooks/use-config';
 import { type ReactNode, useState } from 'react';
 import { RuntimeStatusEntry } from '@/app/components/layout/runtime-status-entry';
 import { t } from '@/shared/lib/i18n';
+import { cn } from '@/shared/lib/utils';
 
 type BrandHeaderProps = {
   className?: string;
@@ -16,15 +17,16 @@ export function BrandHeader({ className, suffix }: BrandHeaderProps) {
   const productVersion = data?.productVersion?.trim();
   const versionLabel = productVersion ? `v${productVersion}` : null;
   const resolvedSuffix = suffix ?? <RuntimeStatusEntry />;
+  const shouldReserveMacWindowControls = typeof window !== 'undefined' && window.nextclawDesktop?.platform === 'darwin';
 
   return (
-    <div className={className ?? 'flex items-center gap-2.5'}>
-      <div className="h-7 w-7 rounded-lg overflow-hidden flex items-center justify-center">
+    <div className={cn(className ?? 'flex min-w-0 items-center gap-2', shouldReserveMacWindowControls && 'pl-[58px]')}>
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md">
         <img src="/logo.svg" alt={productName} className="h-full w-full object-contain" />
       </div>
-      <div className="flex min-w-0 items-baseline gap-2">
-        <div className="flex min-w-0 flex-1 items-baseline gap-2">
-          <span className="shrink-0 text-[15px] font-semibold tracking-[-0.01em] text-gray-800">{productName}</span>
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span className="shrink-0 text-[14px] font-semibold text-gray-800">{productName}</span>
           {versionLabel ? <BrandVersionLabel versionLabel={versionLabel} /> : null}
         </div>
         <RuntimeUpdateInlineStatus />
@@ -48,7 +50,7 @@ function BrandVersionLabel({ versionLabel }: { versionLabel: string }) {
       <span
         tabIndex={0}
         aria-label={versionLabel}
-        className="block min-w-0 truncate text-[13px] font-medium text-gray-500 outline-none"
+        className="block min-w-0 truncate text-[12px] font-medium text-gray-500 outline-none"
       >
         {versionLabel}
       </span>
@@ -100,13 +102,7 @@ function RuntimeUpdateInlineBadge({ snapshot }: { snapshot: UpdateSnapshot }) {
   if (snapshot.status === 'blocked' || snapshot.status === 'failed') {
     return <RuntimeUpdateIssueIcon snapshot={snapshot} />;
   }
-  const label = snapshot.status === 'downloading'
-    ? resolveInlineDownloadLabel(snapshot)
-    : snapshot.status === 'downloaded'
-      ? t('desktopUpdatesInlineReady')
-      : snapshot.status === 'update-available'
-        ? t('desktopUpdatesInlineDownload')
-        : null;
+  const label = snapshot.status === 'downloading' ? resolveInlineDownloadLabel(snapshot) : null;
   if (!label) {
     return null;
   }

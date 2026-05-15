@@ -131,25 +131,33 @@ Use this ladder before telling a human that a local DMG / `.app` is ready:
    - Print exact artifact paths and sizes.
    - Compare DMG, mac zip, packaged seed bundle, and app contents against the last known good build when size changed unexpectedly.
    - If the size jump is not explained by a known feature, inspect dependencies and embedded runtime contents before handoff.
-2. Run isolated GUI smoke.
+2. Establish the launch surface before handing off a clickable path.
+   - A new unsigned macOS `.app` copy has a fresh cdhash/trust state. Do not present it as directly clickable until that exact path has passed GUI smoke or been approved through macOS UI.
+   - For fast visual/UI iteration on a maintainer machine, prefer the already system-approved installed app plus an explicitly updated runtime/UI bundle, then validate through current launcher logs.
+   - Keep package validation and visual-preview validation separate in the report; a system-approved preview path does not make a new unsigned DMG approved.
+3. Run isolated GUI smoke.
    - Use a clean temp home to catch broken packaging and first-run failures.
    - Require visible window, renderer load, GUI-launched health, and bounded ready time.
-3. Run real-profile GUI smoke on the maintainer machine.
+4. Run real-profile GUI smoke on the maintainer machine.
    - Use the existing desktop data dir, not a clean substitute.
    - Start log inspection at the current launch line so old errors do not pollute the result and new errors cannot hide in a long log.
    - Confirm staging leftovers, bad-version state, and existing same-version bundles do not break startup.
-4. Run AI capability smoke from the GUI-launched runtime.
+5. Run AI capability smoke from the GUI-launched runtime.
    - Discover the runtime port from the current desktop log or process tree.
    - Hit `/api/health` on that port.
    - If provider credentials are available, run `pnpm smoke:ncp-chat` and require the expected assistant text.
-5. Only then hand off the artifact.
+6. Only then hand off the artifact.
    - If any rung fails, classify the failure and keep debugging. Do not replace the failed rung with a weaker proof.
 
 ## Failure Triage Playbook
 - Dock bounce or no visible window:
-  - Inspect the current launcher log window first.
-  - If there is no new JS log, inspect AMFI / AppleSystemPolicy / Gatekeeper logs.
+  - Inspect the current launcher log window first and record whether a new `Desktop main entry loaded` line exists.
+  - If there is no new JS log, inspect AMFI / AppleSystemPolicy / Gatekeeper logs and treat this as a system admission failure, not a renderer/runtime bug.
   - If JS starts but no window is ready, inspect `ready-to-show`, `did-finish-load`, `render-process-gone`, and renderer console/fetch logs.
+- Native module or helper killed by macOS policy:
+  - Look for `Library load denied by system policy`, `has no CMS blob`, helper process death, or `.node` paths in the system log.
+  - Separate app executable admission from runtime native-module admission; they have different owners and fixes.
+  - Do not continue random packaging retries until the first denied path is identified.
 - `ERR_FAILED (-2)`:
   - Treat it as renderer could not load the runtime URL, not as a generic network hiccup.
   - Check whether the GUI-launched runtime API ever became ready and whether a renderer helper was killed by macOS policy.
