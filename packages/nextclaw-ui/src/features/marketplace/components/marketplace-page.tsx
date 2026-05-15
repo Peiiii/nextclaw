@@ -55,7 +55,7 @@ import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-load
 import { Tabs } from "@/shared/components/ui/tabs-custom";
 
 const PAGE_SIZE = 12;
-const SKELETON_CARD_COUNT = PAGE_SIZE;
+const SKELETON_CARD_COUNT = 36;
 
 type ScopeType = "all" | "installed";
 
@@ -431,11 +431,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
         title,
         typeLabel: detailConfig.typeLabel,
         spec: item.install.spec,
-        summary,
-        metadataRaw: t("loading"),
-        contentRaw: t("loading"),
-        tags: item.tags,
-        author: item.author,
+        loading: true,
       }),
       openOptions,
     );

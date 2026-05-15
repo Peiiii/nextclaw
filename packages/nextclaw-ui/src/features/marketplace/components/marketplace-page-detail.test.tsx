@@ -63,6 +63,11 @@ vi.mock("@/shared/hooks/use-confirm-dialog", () => ({
 vi.mock("@/features/marketplace/hooks/use-marketplace", () => ({
   useMarketplaceItems: () => mocks.itemsQuery,
   useMarketplaceInstalled: () => mocks.installedQuery,
+  useMarketplaceSkillScenes: () => ({
+    data: { scenes: [] },
+    isLoading: false,
+  }),
+  useMarketplaceSkillSceneCounts: () => new Map(),
   useInstallMarketplaceItem: () => ({
     mutateAsync: vi.fn(),
     isPending: false,
@@ -162,7 +167,9 @@ describe("MarketplacePage detail loading", () => {
     await user.click(screen.getByText("Web Search"));
 
     expect(mocks.docOpen).toHaveBeenCalledTimes(1);
-    expect(String(mocks.docOpen.mock.calls[0]?.[0])).toContain("Loading");
+    const loadingDetailHtml = decodeURIComponent(String(mocks.docOpen.mock.calls[0]?.[0]));
+    expect(loadingDetailHtml).toContain('aria-busy="true"');
+    expect(loadingDetailHtml).not.toContain("Loading");
     expect(mocks.docOpen.mock.calls[0]?.[1]).toMatchObject({
       dedupeKey: "marketplace:skill:web-search",
       kind: "content",

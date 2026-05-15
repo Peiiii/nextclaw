@@ -3,6 +3,7 @@ import type {
   MarketplaceItemSummary,
 } from "@/shared/lib/api";
 import type { InstallState } from "@/features/marketplace/components/marketplace-list-card";
+import { MarketplaceItemIcon } from "@/features/marketplace/components/marketplace-item-icon";
 import { pickLocalizedText } from "@/features/marketplace/components/marketplace-localization";
 import { t } from "@/shared/lib/i18n";
 import { cn } from "@/shared/lib/utils";
@@ -47,7 +48,7 @@ export function SkillShelfCard(props: {
     >
       <div>
         <div className="mb-2.5 flex min-w-0 items-start gap-2.5">
-          <ItemIcon name={item.name} fallback={item.install.spec} />
+          <MarketplaceItemIcon name={item.name} fallback={item.install.spec} />
           <div className="min-w-0 flex-1 pt-0.5">
             <div className="truncate text-[13px] font-semibold leading-tight text-gray-950">
               {item.name}
@@ -103,15 +104,6 @@ function TagLine({ tags }: { tags: string[] }) {
   return (
     <div className="mt-2 truncate text-[11px] font-medium text-gray-400">
       {visibleTags.join(" / ")}
-    </div>
-  );
-}
-
-function ItemIcon({ name, fallback }: { name: string; fallback: string }) {
-  const source = name || fallback;
-  return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-[13px] font-semibold text-gray-500">
-      {source.substring(0, 2).toUpperCase()}
     </div>
   );
 }

@@ -212,7 +212,7 @@ describe("MarketplacePage", () => {
       container.querySelectorAll(
         '[data-testid="marketplace-list-skeleton"] > article',
       ),
-    ).toHaveLength(12);
+    ).toHaveLength(36);
   });
 
   it("keeps loaded cards visible during background refresh", () => {

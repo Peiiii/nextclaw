@@ -13,6 +13,7 @@ import {
   findInstalledRecordForItem,
   type InstalledRenderEntry,
 } from "@/features/marketplace/components/marketplace-page-data";
+import { cn } from "@/shared/lib/utils";
 
 type MarketplaceCatalogGridProps = {
   scope: "all" | "installed";
@@ -55,7 +56,7 @@ export function MarketplaceCatalogGrid(props: MarketplaceCatalogGridProps) {
   } = props;
 
   return (
-    <section className={showTitle ? "space-y-3" : ""}>
+    <section className={cn("flex min-h-full flex-col", showTitle && "gap-3")}>
       {showTitle && (
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[14px] font-semibold text-gray-950">{title}</h3>
@@ -65,7 +66,10 @@ export function MarketplaceCatalogGrid(props: MarketplaceCatalogGridProps) {
 
       <div
         data-testid={showListSkeleton ? "marketplace-list-skeleton" : undefined}
-        className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+        className={cn(
+          "grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3",
+          showListSkeleton && "min-h-0 flex-1 auto-rows-[104px] content-start",
+        )}
       >
         {showListSkeleton && (
           <MarketplaceListSkeleton count={skeletonCardCount} />

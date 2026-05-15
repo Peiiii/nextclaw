@@ -28,6 +28,10 @@
 20. 将 scene 数量加回正式契约：`GET /api/marketplace/skills/scenes` 现在返回每个 scene 的 `count`，由 server 基于完整 skill 列表和 scene 映射计算，前端不再用当前分页结果凑数。
 21. 压缩“场景”卡片：去掉每张卡重复的 `Explore / View matching skills` 文案，改为紧凑图标、标题、数量和一行描述，降低首屏占用。
 22. 压缩“最近更新”货架卡片 header：参考普通 skill 列表卡的信息结构，把技能名称和 `slug` 收到图标右侧两行，移除原先右上角单独来源标签造成的空白。
+23. 为“最近更新”和场景二级页 skill 卡片补充稳定识别色，并与下方普通技能列表共用 `MarketplaceItemIcon`：同样代表 skill 的头像区域使用同一套按名称 hash 的颜色逻辑和样式。
+24. 优化 marketplace 骨架屏高度：骨架数量不再绑定分页条数，列表加载态和场景二级页加载态使用可填满滚动容器的 grid，尽量覆盖不同屏幕高度，避免高屏 loading 态下方大片空白。
+25. 为“场景”入口图标恢复轻量颜色：每个场景沿用已有 tone 配置，仅图标块使用实色识别色，卡片背景仍保持白底弱边框，避免界面再次变得花哨。
+26. 优化普通 skill 列表卡操作区：默认用图标展示已安装/已禁用状态，安装、启用/禁用、卸载等高频操作在 hover / focus 时直接浮现，不收进更多菜单。
 
 ## 测试/验证/验收方式
 
@@ -83,6 +87,22 @@
     - Server / client-sdk 触达文件：通过。
   - `pnpm lint:new-code:governance`
     - 结果：通过；仅提示 `packages/nextclaw-ui/src/shared/lib/api/utils` 仍是历史 flat mixed-responsibility 目录 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+- 本次详情预览视觉与加载态补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/marketplace-page-detail.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过；覆盖点击技能后先打开骨架态详情，且初始详情不再包含 `Loading` 文案。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-detail-doc.ts src/features/marketplace/components/marketplace-page.tsx src/features/marketplace/components/marketplace-page-detail.test.tsx`
+    - 结果：无错误；保留 `MarketplacePage` 既有 `max-statements` warning，数值仍为 `42`。
+  - Playwright 冒烟：
+    - 拦截 `http://127.0.0.1:5174/marketplace/skills` 的 skill content 请求后点击技能。
+    - 结果：初始右侧详情 iframe 包含 `aria-busy="true"` 骨架态，不包含 `Loading` 文案；接口返回后 `aria-busy` 消失，页面不再包含旧蓝色渐变样式，使用中性背景并显示真实内容。截图路径：`/tmp/nextclaw-marketplace-detail-skeleton.png`、`/tmp/nextclaw-marketplace-detail-loaded-neutral.png`。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/marketplace/components/marketplace-detail-doc.ts packages/nextclaw-ui/src/features/marketplace/components/marketplace-page.tsx packages/nextclaw-ui/src/features/marketplace/components/marketplace-page-detail.test.tsx`
+    - 结果：通过；保留 `MarketplacePage` 接近文件预算和既有超长函数 warning。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过。
   - `pnpm check:governance-backlog-ratchet`
     - 结果：通过。
   - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths <本次触达文件>`
@@ -146,6 +166,55 @@
     - 打开 `http://127.0.0.1:5174/skills`。
     - 结果：页面返回 `200 OK`，正文可见 `Recently updated`；卡片文本呈现为 `Codex NARP Runtime` / `codex-narp-runtime` 这类两行 header 信息。截图路径：`/tmp/nextclaw-skill-marketplace-shelf-card.png`。
     - 备注：Chrome DevTools MCP 因 profile 已被占用无法新开页面，已用 Playwright headless 作为替代视觉冒烟。
+- 本次“最近更新”卡片轻量配色补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过。
+  - Playwright 冒烟：
+    - 打开 `http://127.0.0.1:5174/skills`。
+    - 结果：`Recently updated` 区域仍显示 slug 与 tag 行；skill 头像与下方普通技能列表共用同一套实色识别色。截图路径：`/tmp/nextclaw-skill-marketplace-shelf-card-color.png`。
+- 本次骨架屏高度补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-page.tsx src/features/marketplace/components/marketplace-page.test.tsx src/features/marketplace/components/marketplace-catalog-grid.tsx src/features/marketplace/components/marketplace-page-parts.tsx src/features/marketplace/components/curated-shelves/marketplace-curated-shelves.tsx src/features/marketplace/components/curated-shelves/marketplace-shelf-card.tsx`
+    - 结果：无错误；保留 `MarketplacePage` 既有 `max-statements` warning，数值仍为 `42`。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过；列表页骨架数量更新为 `36`。
+  - Playwright 挂起 `items` 请求冒烟：
+    - `http://127.0.0.1:5174/skills` 桌面视口 `1366x900`：骨架 `36` 张，grid 高度约 `2076px`。截图路径：`/tmp/nextclaw-marketplace-skeleton-fill-desktop.png`。
+    - `http://127.0.0.1:5174/skills` 移动视口 `390x844`：骨架 `36` 张，grid 高度约 `4164px`。截图路径：`/tmp/nextclaw-marketplace-skeleton-fill-mobile.png`。
+    - `http://127.0.0.1:5174/skills/scenes/development-debugging` 桌面视口 `1366x900`：骨架 `24` 张，grid 高度约 `1412px`。截图路径：`/tmp/nextclaw-marketplace-scene-skeleton-fill-desktop.png`。
+- 本次列表卡操作区补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint <本次 marketplace 触达文件>`
+    - 结果：无错误；保留 `MarketplacePage` 既有 `max-statements` warning，数值仍为 `42`。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/curated-shelves/marketplace-curated-scene-route.test.tsx src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`8` 个测试通过。
+  - Playwright 冒烟：
+    - 使用 mock marketplace 数据打开 `http://127.0.0.1:5174/skills`。
+    - 结果：已安装卡片默认存在 `Installed` 状态图标；`Uninstall` 动作默认 opacity 为 `0` 且 pointer events 为 `none`，hover 后 opacity 为 `1` 且 pointer events 为 `auto`。截图路径：`/tmp/nextclaw-marketplace-list-hover-actions.png`。
+- 本次列表卡状态与简介截断补充验证：
+  - `pnpm -C packages/nextclaw-ui tsc --noEmit`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec eslint src/features/marketplace/components/marketplace-list-card.tsx`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-ui exec vitest run src/features/marketplace/components/marketplace-page.test.tsx`
+    - 结果：通过，`5` 个测试通过。
+  - Playwright 冒烟：
+    - 打开 `http://127.0.0.1:5174/marketplace/skills`。
+    - 结果：已安装状态为裸 `CheckCircle2` / `PowerOff` 图标，无背景色；列表卡操作区默认不再占用大宽度，hover 后操作按钮显示；简介从强制单行调整为最多两行。截图路径：`/tmp/nextclaw-marketplace-list-card-status-clean-v2.png`。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths packages/nextclaw-ui/src/features/marketplace/components/marketplace-list-card.tsx`
+    - 结果：未通过；guard 按整个未提交 diff 统计该文件，包含前面列表卡 hover 操作区的用户可见改造，非测试净增 `+93` 行。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths packages/nextclaw-ui/src/features/marketplace/components/marketplace-list-card.tsx`
+    - 结果：通过；作为本批 UI 体验改造的 scoped guard，未发现可维护性问题。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
 
 ## 发布/部署方式
 
@@ -160,7 +229,9 @@
 5. 场景页应左上角返回、旁边显示标题信息；顶部控制在两行左右，内容直接以自适应网格平铺，不再包一层大卡片。
 6. 返回后继续向下应看到“最近更新”和完整技能列表，原安装、已安装状态和详情打开行为保持可用。
 7. “最近更新”卡片的 header 应为图标 + 右侧两行信息：第一行技能名称，第二行 slug，不再在右上角留下单独来源标签空白。
-8. Installed tab 应继续保持管理列表，不混入发现货架。
+8. 普通技能列表卡默认应只显示裸状态图标；hover 后出现安装/启用/卸载等高频操作，简介最多两行展示。
+9. 点击普通技能卡片后，右侧详情应先显示整页骨架屏，不再出现零散 `Loading` 文案；加载完成后详情页应采用白底、中性色、细边框风格，不再使用蓝色渐变卡片。
+10. Installed tab 应继续保持管理列表，不混入发现货架。
 
 ## 可维护性总结汇总
 
