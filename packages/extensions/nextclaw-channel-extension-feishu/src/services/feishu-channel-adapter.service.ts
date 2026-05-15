@@ -1,5 +1,5 @@
 import type * as Lark from "@larksuiteoapi/node-sdk";
-import type { NcpEndpointEvent } from "@nextclaw/ncp";
+import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import { NcpReplyConsumer, type ChatTarget } from "@nextclaw/ncp-toolkit";
 import {
   FileFeishuAccountStore,
@@ -32,6 +32,19 @@ type FeishuCanonicalRoute = {
   conversationId: string;
   accountId?: string;
 };
+
+type FeishuProcessingReactionState = {
+  accountId: string;
+  messageId: string;
+  reactionId: string | null;
+};
+
+const FEISHU_PROCESSING_REACTION = "Typing";
+const FEISHU_FAILED_REACTION = "CrossMark";
+const FAILED_NCP_EVENT_TYPES = new Set<NcpEndpointEvent["type"]>([
+  NcpEventType.MessageFailed,
+  NcpEventType.RunError,
+]);
 
 type FeishuAdapterDeps = {
   sdk?: FeishuSdkService;
@@ -71,6 +84,7 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
   private readonly wsClients = new Map<string, FeishuWsHandle>();
   private readonly replySessions = new Map<string, FeishuReplySession>();
   private readonly canonicalRoutes = new Map<string, FeishuCanonicalRoute>();
+  private readonly processingReactions = new Map<string, FeishuProcessingReactionState>();
   private running = false;
   private config: FeishuChannelConfig = {};
 
@@ -122,6 +136,7 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
       session.queue.close();
     }
     this.replySessions.clear();
+    this.processingReactions.clear();
   };
 
   readonly onMessage = (
@@ -147,12 +162,14 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
     if (!sessionId) {
       return;
     }
-    const session = this.resolveReplySession(sessionId, this.resolveCanonicalRoute(route));
+    const canonicalRoute = this.resolveCanonicalRoute(route);
+    const session = this.resolveReplySession(sessionId, canonicalRoute);
     session.queue.push(event);
     if (TERMINAL_NCP_EVENT_TYPES.has(event.type)) {
       session.queue.close();
       this.replySessions.delete(sessionId);
       await session.consuming;
+      await this.finalizeProcessingReaction(canonicalRoute, FAILED_NCP_EVENT_TYPES.has(event.type));
     }
   };
 
@@ -286,6 +303,7 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
       accountId: account.accountId,
       conversationId: parsed.chatId,
     });
+    await this.startProcessingReaction(account, parsed.messageId, parsed.chatId);
     await this.messageHandler?.({
       conversationId: parsed.chatId,
       senderId: parsed.senderOpenId,
@@ -295,6 +313,90 @@ export class FeishuChannelAdapter implements FeishuChannelAdapterContract {
       messageId: parsed.messageId,
       raw: rawEvent,
     });
+  };
+
+  private readonly startProcessingReaction = async (
+    account: FeishuRuntimeAccount,
+    messageId: string | undefined,
+    conversationId: string,
+  ): Promise<void> => {
+    if (!messageId) {
+      return;
+    }
+    const routeKey = normalizeRouteKey(conversationId);
+    try {
+      const reactionId = await this.sdk.addReaction({
+        account,
+        messageId,
+        emojiType: FEISHU_PROCESSING_REACTION,
+      });
+      this.processingReactions.set(routeKey, {
+        accountId: account.accountId,
+        messageId,
+        reactionId,
+      });
+    } catch (error) {
+      this.logger.warn?.(
+        `[feishu] failed to add processing reaction for ${messageId}: ${String(error)}`,
+      );
+    }
+  };
+
+  private readonly finalizeProcessingReaction = async (
+    route: FeishuCanonicalRoute,
+    failed: boolean,
+  ): Promise<void> => {
+    const routeKey = normalizeRouteKey(route.conversationId);
+    const state = this.processingReactions.get(routeKey);
+    if (!state) {
+      return;
+    }
+    this.processingReactions.delete(routeKey);
+    const account = this.resolveRuntimeAccount(state.accountId);
+    if (!account?.enabled) {
+      return;
+    }
+    await this.deleteProcessingReaction(account, state);
+    if (failed) {
+      await this.addFailedReaction(account, state.messageId);
+    }
+  };
+
+  private readonly deleteProcessingReaction = async (
+    account: FeishuRuntimeAccount,
+    state: FeishuProcessingReactionState,
+  ): Promise<void> => {
+    if (!state.reactionId) {
+      return;
+    }
+    try {
+      await this.sdk.deleteReaction({
+        account,
+        messageId: state.messageId,
+        reactionId: state.reactionId,
+      });
+    } catch (error) {
+      this.logger.warn?.(
+        `[feishu] failed to remove processing reaction for ${state.messageId}: ${String(error)}`,
+      );
+    }
+  };
+
+  private readonly addFailedReaction = async (
+    account: FeishuRuntimeAccount,
+    messageId: string,
+  ): Promise<void> => {
+    try {
+      await this.sdk.addReaction({
+        account,
+        messageId,
+        emojiType: FEISHU_FAILED_REACTION,
+      });
+    } catch (error) {
+      this.logger.warn?.(
+        `[feishu] failed to add failure reaction for ${messageId}: ${String(error)}`,
+      );
+    }
   };
 
   private readonly sendText = async (params: {
