@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog } from "electron";
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import desktopPackageJson from "../package.json";
 import { DesktopBundleLifecycleService } from "./launcher/services/bundle-lifecycle.service";
@@ -230,7 +231,8 @@ class DesktopApplication {
       resolveManifestUrl: async () => await this.ensureUpdateSourceService().resolveManifestUrl(),
       bundlePublicKey: this.getBundlePublicKey() ?? null,
       seedBundlePath: this.getSeedBundlePath() ?? null,
-      seedBundleMetadata: this.ensureUpdateSourceService().resolvePackagedSeedBundleMetadata()
+      seedBundleMetadata: this.ensureUpdateSourceService().resolvePackagedSeedBundleMetadata(),
+      launcherBuildFingerprint: this.resolveLauncherBuildFingerprint()
     });
     return this.bundleBootstrap;
   };
@@ -333,6 +335,14 @@ class DesktopApplication {
       return undefined;
     }
     return seedBundlePath;
+  };
+
+  private resolveLauncherBuildFingerprint = (): string => {
+    const appPath = app.getAppPath();
+    if (existsSync(appPath) && statSync(appPath).isFile()) {
+      return createHash("sha256").update(readFileSync(appPath)).digest("hex");
+    }
+    return `${app.getVersion()}:${appPath}`;
   };
 
   private getGitHubPublishTarget = (): { owner: string; repo: string } | null => {

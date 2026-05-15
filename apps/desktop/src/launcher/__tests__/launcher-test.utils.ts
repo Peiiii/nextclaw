@@ -48,6 +48,7 @@ export function createLauncherState(overrides: Partial<DesktopLauncherState> = {
     badVersions: [],
     lastAttemptedPackagedSeedVersion: null,
     lastAttemptedPackagedSeedSha256: null,
+    lastAttemptedPackagedSeedLauncherFingerprint: null,
     lastUpdateCheckAt: null,
     downloadedVersion: null,
     downloadedReleaseNotesUrl: null,

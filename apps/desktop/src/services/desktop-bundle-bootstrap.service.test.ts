@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import test from "node:test";
@@ -21,7 +22,11 @@ async function writeSeedArchive(rootDir: string, version: string, marker: string
   };
 }
 
-function createBootstrapService(layout: DesktopBundleLayoutStore, seedBundlePath: string): DesktopBundleBootstrapService {
+function createBootstrapService(
+  layout: DesktopBundleLayoutStore,
+  seedBundlePath: string,
+  launcherBuildFingerprint = "launcher-a"
+): DesktopBundleBootstrapService {
   return new DesktopBundleBootstrapService({
     logger: {
       info: () => {},
@@ -32,7 +37,8 @@ function createBootstrapService(layout: DesktopBundleLayoutStore, seedBundlePath
     channel: "stable",
     resolveManifestUrl: async () => null,
     bundlePublicKey: null,
-    seedBundlePath
+    seedBundlePath,
+    launcherBuildFingerprint
   });
 }
 
@@ -53,7 +59,8 @@ test("retries a quarantined packaged seed when the packaged archive fingerprint 
         lastKnownGoodVersion: "0.17.7",
         badVersions: ["0.17.10"],
         lastAttemptedPackagedSeedVersion: "0.17.10",
-        lastAttemptedPackagedSeedSha256: "stale-sha256"
+        lastAttemptedPackagedSeedSha256: "stale-sha256",
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
       })
     );
 
@@ -64,6 +71,7 @@ test("retries a quarantined packaged seed when the packaged archive fingerprint 
     assert.equal(stateStore.read().candidateVersion, "0.17.10");
     assert.equal(stateStore.read().lastAttemptedPackagedSeedVersion, "0.17.10");
     assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedLauncherFingerprint, "launcher-a");
   }));
 
 test("does not retry the same quarantined packaged seed fingerprint again", async () =>
@@ -83,7 +91,8 @@ test("does not retry the same quarantined packaged seed fingerprint again", asyn
         lastKnownGoodVersion: "0.17.7",
         badVersions: ["0.17.10"],
         lastAttemptedPackagedSeedVersion: "0.17.10",
-        lastAttemptedPackagedSeedSha256: sha256
+        lastAttemptedPackagedSeedSha256: sha256,
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
       })
     );
 
@@ -92,6 +101,67 @@ test("does not retry the same quarantined packaged seed fingerprint again", asyn
     assert.deepEqual(layout.readCurrentPointer(), { version: "0.17.7" });
     assert.equal(stateStore.read().currentVersion, "0.17.7");
     assert.equal(stateStore.read().candidateVersion, null);
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+  }));
+
+test("retries a quarantined packaged seed when the launcher fingerprint changed", async () =>
+  await withTempDir("nextclaw-desktop-packaged-seed-launcher-retry-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.17.7"
+    });
+    await layout.writeCurrentPointer({ version: "0.17.7" });
+    const { archivePath, sha256 } = await writeSeedArchive(rootDir, "0.17.10", "same-seed-new-launcher");
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.17.7",
+        lastKnownGoodVersion: "0.17.7",
+        badVersions: ["0.17.10"],
+        lastAttemptedPackagedSeedVersion: "0.17.10",
+        lastAttemptedPackagedSeedSha256: sha256,
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
+      })
+    );
+
+    await createBootstrapService(layout, archivePath, "launcher-b").ensureInitialBundleAvailability();
+
+    assert.deepEqual(layout.readCurrentPointer(), { version: "0.17.10" });
+    assert.equal(stateStore.read().currentVersion, "0.17.10");
+    assert.equal(stateStore.read().candidateVersion, "0.17.10");
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
+    assert.equal(stateStore.read().lastAttemptedPackagedSeedLauncherFingerprint, "launcher-b");
+  }));
+
+test("replaces an existing same-version bundle when retrying a quarantined packaged seed", async () =>
+  await withTempDir("nextclaw-desktop-packaged-seed-replace-quarantined-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    await layout.ensureLauncherDirs();
+    const existingBundleDir = writeBundleFixture({
+      rootDir: layout.getVersionsDir(),
+      version: "0.17.10"
+    });
+    await writeFile(join(existingBundleDir, "runtime", "old-runtime-marker.txt"), "old\n");
+    await layout.writeCurrentPointer({ version: "0.17.7" });
+    const { archivePath, sha256 } = await writeSeedArchive(rootDir, "0.17.10", "replacement");
+    const stateStore = new DesktopLauncherStateStore(layout.getLauncherStatePath());
+    await stateStore.write(
+      createLauncherState({
+        currentVersion: "0.17.7",
+        lastKnownGoodVersion: "0.17.7",
+        badVersions: ["0.17.10"],
+        lastAttemptedPackagedSeedVersion: "0.17.10",
+        lastAttemptedPackagedSeedSha256: "stale-sha256",
+        lastAttemptedPackagedSeedLauncherFingerprint: "launcher-a"
+      })
+    );
+
+    await createBootstrapService(layout, archivePath, "launcher-b").ensureInitialBundleAvailability();
+
+    assert.deepEqual(layout.readCurrentPointer(), { version: "0.17.10" });
+    assert.equal(existsSync(join(layout.getVersionDir("0.17.10"), "runtime", "old-runtime-marker.txt")), false);
     assert.equal(stateStore.read().lastAttemptedPackagedSeedSha256, sha256);
   }));
 

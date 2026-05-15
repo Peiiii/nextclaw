@@ -12,6 +12,7 @@ export type DesktopLauncherState = {
   badVersions: string[];
   lastAttemptedPackagedSeedVersion: string | null;
   lastAttemptedPackagedSeedSha256: string | null;
+  lastAttemptedPackagedSeedLauncherFingerprint: string | null;
   lastUpdateCheckAt: string | null;
   downloadedVersion: string | null;
   downloadedReleaseNotesUrl: string | null;
@@ -36,6 +37,7 @@ const DEFAULT_LAUNCHER_STATE: DesktopLauncherState = {
   badVersions: [],
   lastAttemptedPackagedSeedVersion: null,
   lastAttemptedPackagedSeedSha256: null,
+  lastAttemptedPackagedSeedLauncherFingerprint: null,
   lastUpdateCheckAt: null,
   downloadedVersion: null,
   downloadedReleaseNotesUrl: null,
@@ -93,6 +95,7 @@ function normalizeState(parsed: unknown): DesktopLauncherState {
     badVersions,
     lastAttemptedPackagedSeedVersion: normalizeOptionalString(record.lastAttemptedPackagedSeedVersion),
     lastAttemptedPackagedSeedSha256: normalizeOptionalString(record.lastAttemptedPackagedSeedSha256),
+    lastAttemptedPackagedSeedLauncherFingerprint: normalizeOptionalString(record.lastAttemptedPackagedSeedLauncherFingerprint),
     lastUpdateCheckAt: normalizeOptionalString(record.lastUpdateCheckAt),
     downloadedVersion: normalizeOptionalString(record.downloadedVersion),
     downloadedReleaseNotesUrl: normalizeOptionalString(record.downloadedReleaseNotesUrl),

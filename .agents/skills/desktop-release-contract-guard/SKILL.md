@@ -103,7 +103,7 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Do not accept a desktop candidate if a CLI/runtime path only works under the developer's local `node` but fails under the packaged app binary.
 - Be especially careful with new built-in Node modules such as `node:sqlite`: optional capabilities must not import them at module load time if Electron's bundled Node does not provide them.
 - If a capability depends on a newer Node builtin than the packaged Electron runtime, gate that capability explicitly and keep desktop startup alive instead of crashing the whole launcher.
-- If macOS DMG smoke falls back from GUI launch to `ELECTRON_RUN_AS_NODE`, run that fallback against an isolated temp home so a failed GUI bootstrap does not contaminate the fallback validation state.
+- `ELECTRON_RUN_AS_NODE` checks are compatibility diagnostics only. They are useful for isolating packaged-runtime issues, but they do not count as desktop GUI smoke and must not be used to pass a failed app-window launch.
 
 ## Unsigned macOS Local Gate
 - Do not treat `codesign --verify --deep --strict` as proof that a local unsigned macOS app opens.
@@ -119,7 +119,53 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - renderer load completion such as `did-finish-load` must be logged;
   - runtime health must pass through the GUI-launched app process;
   - startup elapsed time must be printed and bounded by an explicit threshold.
+- A desktop handoff smoke must also inspect the launcher log for the current launch window and fail on known startup blockers such as `ENAMETOOLONG`, `ENOTEMPTY`, `ERR_FAILED`, `render-process-gone`, or `Failed to bootstrap runtime`; absence of log inspection is not a valid pass.
+- When validating a build for a machine that already has desktop state, run a real-profile check against that machine's existing desktop data dir in addition to any isolated smoke. The real-profile check must prove stale staging, bad-version state, and existing bundles do not break startup.
+- When the runtime reaches API readiness and provider credentials are available, run `pnpm smoke:ncp-chat` against the desktop-started runtime and require a non-empty assistant reply. A health endpoint alone is not enough to claim the desktop runtime is usable.
 - Runtime fallback checks are diagnostics only. They must never turn a failed GUI launch smoke into a passing desktop package verification.
+
+## Local Handoff Validation Ladder
+Use this ladder before telling a human that a local DMG / `.app` is ready:
+
+1. Build and inspect artifacts.
+   - Print exact artifact paths and sizes.
+   - Compare DMG, mac zip, packaged seed bundle, and app contents against the last known good build when size changed unexpectedly.
+   - If the size jump is not explained by a known feature, inspect dependencies and embedded runtime contents before handoff.
+2. Run isolated GUI smoke.
+   - Use a clean temp home to catch broken packaging and first-run failures.
+   - Require visible window, renderer load, GUI-launched health, and bounded ready time.
+3. Run real-profile GUI smoke on the maintainer machine.
+   - Use the existing desktop data dir, not a clean substitute.
+   - Start log inspection at the current launch line so old errors do not pollute the result and new errors cannot hide in a long log.
+   - Confirm staging leftovers, bad-version state, and existing same-version bundles do not break startup.
+4. Run AI capability smoke from the GUI-launched runtime.
+   - Discover the runtime port from the current desktop log or process tree.
+   - Hit `/api/health` on that port.
+   - If provider credentials are available, run `pnpm smoke:ncp-chat` and require the expected assistant text.
+5. Only then hand off the artifact.
+   - If any rung fails, classify the failure and keep debugging. Do not replace the failed rung with a weaker proof.
+
+## Failure Triage Playbook
+- Dock bounce or no visible window:
+  - Inspect the current launcher log window first.
+  - If there is no new JS log, inspect AMFI / AppleSystemPolicy / Gatekeeper logs.
+  - If JS starts but no window is ready, inspect `ready-to-show`, `did-finish-load`, `render-process-gone`, and renderer console/fetch logs.
+- `ERR_FAILED (-2)`:
+  - Treat it as renderer could not load the runtime URL, not as a generic network hiccup.
+  - Check whether the GUI-launched runtime API ever became ready and whether a renderer helper was killed by macOS policy.
+- `ENOTEMPTY`, partial same-version bundle, or slow first boot:
+  - Inspect the real version store under the desktop data dir.
+  - Same-version seed retry must replace invalid existing bundles before boot; synchronous deletion of large runtime trees on the startup path is a bug.
+- `ENAMETOOLONG` under `staging/.trash-*`:
+  - Look for recursive trash naming.
+  - Cleanup of staging trash must delete directly instead of trashing the trash again.
+- Repeated "same seed already failed" after launcher fixes:
+  - Quarantine decisions must include the launcher/app-shell fingerprint, not only the packaged seed archive hash.
+  - A fixed launcher may need to retry the same seed archive that an older launcher marked bad.
+- Suspicious DMG size increase:
+  - Compare artifact sizes before debugging runtime behavior.
+  - Use `du -sh` and dependency inspection to find accidentally embedded companions, duplicate runtimes, or stale release contents.
+  - Removing an obsolete companion dependency is valid only after confirming the shipped runtime no longer depends on it.
 
 ## Common Traps
 - `gh release create` succeeded:
@@ -135,6 +181,9 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - Do not jump to product-code changes if build, smoke, bundle, and manifest steps already passed
 - local `node` works but desktop app fails:
   - Trust the packaged Electron runtime, not the developer shell
+- isolated smoke passed but the user's app still fails:
+  - Run real-profile smoke against the user's existing desktop data dir and inspect the current launch log window.
+  - Do not claim fixed until the same class of user-visible path passes.
 - public manifest still shows previous version:
   - Check `gh-pages` branch before diagnosing workflow failure
   - If branch is new and public URL is old, wait for propagation and re-check
@@ -144,6 +193,9 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - Do not "fix" missing packaged public key by skipping manifest signature verification in runtime.
 - Do not accept "works with local node" as evidence that the packaged runtime is healthy.
 - Do not claim validation passed if only unit tests passed.
+- Do not claim validation passed if only process liveness, `codesign`, or isolated smoke passed.
+- Do not present runtime fallback success as GUI success.
+- Do not ignore user-provided local errors just because they are absent from a clean smoke environment.
 - Do not derive `minimumLauncherVersion` from `apps/desktop/package.json` current version.
 - Do not treat "tag already exists" or "release page exists" as proof that assets or update-channel manifests are published.
 

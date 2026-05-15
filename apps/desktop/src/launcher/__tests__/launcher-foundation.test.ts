@@ -471,7 +471,7 @@ test("resolves the runtime script from the active bundle", async () =>
     const resolved = bundleManager.resolveCurrentBundle();
     assert.ok(resolved);
     assert.equal(resolved?.manifest.bundleVersion, "0.18.0");
-    assert.equal(resolved?.runtimeScriptPath, join(bundleDir, "runtime", "dist", "cli", "index.js"));
+    assert.equal(resolved?.runtimeScriptPath, join(bundleDir, "runtime", "dist", "cli", "app", "index.js"));
     assert.equal(resolved?.uiDirectory, join(bundleDir, "ui"));
     assert.equal(resolved?.pluginsDirectory, join(bundleDir, "plugins"));
   }));
@@ -519,6 +519,38 @@ test("installer copies a verified bundle into the version store", async () =>
     assert.equal(layout.readCurrentPointer(), null);
   }));
 
+test("installer replaces a partial existing bundle for the same version", async () =>
+  await withTempDir("nextclaw-bundle-installer-partial-", async (rootDir) => {
+    const layout = new DesktopBundleLayoutStore(rootDir);
+    const sourceRoot = join(rootDir, "source");
+    const sourceBundleDir = writeBundleFixture({
+      rootDir: sourceRoot,
+      version: "0.18.2"
+    });
+    const partialBundleDir = join(layout.getVersionsDir(), "0.18.2");
+    mkdirSync(join(partialBundleDir, "runtime", "node_modules", "electron", "dist", "Electron.app", "Contents", "Resources"), {
+      recursive: true
+    });
+    writeFileSync(
+      join(partialBundleDir, "runtime", "node_modules", "electron", "dist", "Electron.app", "Contents", "Resources", "stale.txt"),
+      "stale\n"
+    );
+
+    const bundleManager = new DesktopBundleService({
+      layout,
+      launcherVersion: "0.1.0",
+      now: () => 123
+    });
+    const installedBundle = await bundleManager.installFromDirectory(sourceBundleDir);
+
+    assert.equal(installedBundle.bundleDirectory, layout.getVersionDir("0.18.2"));
+    assert.equal(existsSync(join(partialBundleDir, "manifest.json")), true);
+    assert.equal(
+      existsSync(join(partialBundleDir, "runtime", "node_modules", "electron", "dist", "Electron.app", "Contents", "Resources", "stale.txt")),
+      false
+    );
+  }));
+
 test("bundle storage pruning keeps only retained versions and clears staging leftovers", async () =>
   await withTempDir("nextclaw-bundle-prune-", async (rootDir) => {
     const layout = new DesktopBundleLayoutStore(rootDir);
@@ -552,6 +584,9 @@ test("bundle storage pruning keeps only retained versions and clears staging lef
     await layout.writePreviousPointer({ version: "0.18.1" });
     mkdirSync(join(layout.getStagingDir(), "leftover"), { recursive: true });
     writeFileSync(join(layout.getStagingDir(), "leftover", "temp.txt"), "stale\n");
+    const previousTrashName = ".trash-staging-.trash-invalid-0.18.0-123-456";
+    mkdirSync(join(layout.getStagingDir(), previousTrashName), { recursive: true });
+    writeFileSync(join(layout.getStagingDir(), previousTrashName, "temp.txt"), "stale trash\n");
 
     const bundleService = new DesktopBundleService({
       layout,
@@ -562,11 +597,13 @@ test("bundle storage pruning keeps only retained versions and clears staging lef
 
     assert.deepEqual(pruneResult.keptVersions, ["0.18.1", "0.18.2", "0.18.3"]);
     assert.deepEqual(pruneResult.removedVersions, ["0.18.0"]);
-    assert.deepEqual(pruneResult.removedStagingEntries, ["leftover"]);
+    assert.deepEqual(pruneResult.removedStagingEntries, [previousTrashName, "leftover"]);
     assert.equal(existsSync(layout.getVersionDir("0.18.0")), false);
     assert.equal(existsSync(layout.getVersionDir("0.18.1")), true);
     assert.equal(existsSync(layout.getVersionDir("0.18.2")), true);
     assert.equal(existsSync(layout.getVersionDir("0.18.3")), true);
+    assert.equal(existsSync(join(layout.getStagingDir(), previousTrashName)), false);
+    assert.equal(existsSync(join(layout.getStagingDir(), `.trash-staging-${previousTrashName}-123`)), false);
   }));
 
 test("installer rejects a bundle that is missing the ui directory", async () =>
