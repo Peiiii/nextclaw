@@ -38,6 +38,10 @@ async function removeBundleDirectory(targetDirectory: string): Promise<void> {
   });
 }
 
+function scheduleBundleDirectoryRemoval(targetDirectory: string): void {
+  void removeBundleDirectory(targetDirectory).catch(() => undefined);
+}
+
 type DesktopBundleServiceOptions = {
   layout: DesktopBundleLayoutStore;
   stateStore?: DesktopLauncherStateStore;
@@ -114,7 +118,7 @@ export class DesktopBundleService {
       try {
         return this.verifyBundle(targetDirectory);
       } catch {
-        await removeBundleDirectory(targetDirectory);
+        await this.discardDirectory(targetDirectory, `invalid-${version}`);
       }
     }
 
@@ -141,16 +145,16 @@ export class DesktopBundleService {
   };
 
   removeVersion = async (version: string): Promise<void> => {
-    await removeBundleDirectory(this.options.layout.getVersionDir(version));
+    await this.discardDirectory(this.options.layout.getVersionDir(version), `version-${version}`);
   };
 
   pruneRetainedArtifacts = async (): Promise<DesktopBundlePruneResult> => {
     await this.options.layout.ensureLauncherDirs();
 
     const retainedVersions = [...this.collectRetainedVersions()].sort(compareDesktopVersions);
+    const removedStagingEntries = await this.clearStagingDirectory();
     const removedVersions =
       retainedVersions.length > 0 ? await this.removeUnretainedVersions(new Set(retainedVersions)) : [];
-    const removedStagingEntries = await this.clearStagingDirectory();
 
     return {
       keptVersions: retainedVersions,
@@ -218,7 +222,7 @@ export class DesktopBundleService {
       if (!entry.isDirectory() || retainedVersions.has(entry.name)) {
         continue;
       }
-      await removeBundleDirectory(join(this.options.layout.getVersionsDir(), entry.name));
+      await this.discardDirectory(join(this.options.layout.getVersionsDir(), entry.name), `version-${entry.name}`);
       removedVersions.push(entry.name);
     }
 
@@ -256,5 +260,29 @@ export class DesktopBundleService {
       throw new Error("bundle manager requires stateStore for current bundle resolution");
     }
     return this.options.stateStore;
+  };
+
+  private discardDirectory = async (targetDirectory: string, label: string): Promise<void> => {
+    if (!existsSync(targetDirectory)) {
+      return;
+    }
+
+    const safeLabel = label.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const trashDirectory = join(this.options.layout.getStagingDir(), `.trash-${safeLabel}-${this.now()}`);
+    await removeBundleDirectory(trashDirectory);
+
+    try {
+      await rename(targetDirectory, trashDirectory);
+      scheduleBundleDirectoryRemoval(trashDirectory);
+    } catch (error) {
+      if (!existsSync(targetDirectory)) {
+        return;
+      }
+      if (shouldRetryInstallWithCopy(error)) {
+        await removeBundleDirectory(targetDirectory);
+        return;
+      }
+      throw error;
+    }
   };
 }

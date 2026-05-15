@@ -50,7 +50,6 @@
   },
   "devDependencies": {
     "@electron/notarize": "^2.5.0",
-    "@electron/osx-sign": "^1.3.1",
     "@types/node": "^20.17.6",
     "electron": "^32.2.1",
     "electron-builder": "^25.1.8",

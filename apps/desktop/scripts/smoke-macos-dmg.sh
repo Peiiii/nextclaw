@@ -4,6 +4,7 @@ set -eo pipefail
 DMG_PATH="${1:-}"
 STARTUP_TIMEOUT_SEC="${2:-120}"
 MAX_READY_SEC="${DESKTOP_SMOKE_MAX_READY_SEC:-45}"
+SMOKE_PROFILE="${NEXTCLAW_DESKTOP_SMOKE_PROFILE:-isolated}"
 
 if [[ -z "${DMG_PATH}" ]]; then
   echo "[desktop-smoke] usage: smoke-macos-dmg.sh <dmg-path> [startup-timeout-sec]" >&2
@@ -25,8 +26,14 @@ if ! [[ "${MAX_READY_SEC}" =~ ^[0-9]+$ ]]; then
   exit 1
 fi
 
+if [[ "${SMOKE_PROFILE}" != "isolated" && "${SMOKE_PROFILE}" != "real" ]]; then
+  echo "[desktop-smoke] invalid smoke profile: ${SMOKE_PROFILE}" >&2
+  exit 1
+fi
+
 TEMP_ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
 SMOKE_HOME="${TEMP_ROOT}/nextclaw-desktop-smoke-home"
+REAL_DESKTOP_DATA_DIR="${NEXTCLAW_DESKTOP_SMOKE_DATA_DIR:-${HOME}/Library/Application Support/@nextclaw/desktop}"
 MOUNT_POINT=""
 INSTALL_ROOT="${NEXTCLAW_DESKTOP_SMOKE_INSTALL_ROOT:-${HOME}/Applications/.nextclaw-desktop-smoke-${$}}"
 INSTALLED_APP="${INSTALL_ROOT}/NextClaw Desktop.app"
@@ -34,73 +41,18 @@ LOG_ROOT="${TEMP_ROOT}/nextclaw-desktop-smoke-logs"
 APP_STDOUT_LOG="${LOG_ROOT}/app-stdout.log"
 APP_HEALTH_LOG="${LOG_ROOT}/health.json"
 APP_MAIN_LOG="${SMOKE_HOME}/launcher/main.log"
-RUNTIME_STDOUT_LOG="${LOG_ROOT}/runtime-stdout.log"
-RUNTIME_FALLBACK_HOME="${TEMP_ROOT}/nextclaw-desktop-runtime-fallback-home"
+if [[ "${SMOKE_PROFILE}" == "real" ]]; then
+  APP_MAIN_LOG="${REAL_DESKTOP_DATA_DIR}/launcher/main.log"
+fi
 DEFAULT_UI_PORT=55667
 RUNTIME_FALLBACK_PORT_START=55667
 RUNTIME_FALLBACK_PORT_END=55716
 SMOKE_UI_PORT=""
+MAIN_LOG_START_LINE=1
+
+source "$(dirname "$0")/smoke/macos-smoke-diagnostics.sh"
 
 mkdir -p "${LOG_ROOT}"
-
-now_ms() {
-  node -e "process.stdout.write(String(Date.now()))"
-}
-
-print_file_tail() {
-  local label="$1"
-  local file_path="$2"
-  if [[ ! -f "${file_path}" ]]; then
-    echo "[desktop-smoke] ${label}: ${file_path} (missing)"
-    return
-  fi
-  echo "[desktop-smoke] ${label}: ${file_path}"
-  tail -n 120 "${file_path}" || true
-}
-
-print_desktop_diagnostics() {
-  print_file_tail "app stdout log" "${APP_STDOUT_LOG}"
-  print_file_tail "main log" "${APP_MAIN_LOG}"
-  print_file_tail "runtime fallback log" "${RUNTIME_STDOUT_LOG}"
-}
-
-main_log_has() {
-  local pattern="$1"
-  [[ -f "${APP_MAIN_LOG}" ]] && grep -q "${pattern}" "${APP_MAIN_LOG}"
-}
-
-desktop_window_ready() {
-  main_log_has "ready-to-show" && main_log_has "did-finish-load"
-}
-
-contains_value() {
-  local target="$1"
-  shift
-  local item
-  for item in "$@"; do
-    if [[ "${item}" == "${target}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-dedupe_ports() {
-  local unique=()
-  local port
-  for port in "$@"; do
-    if [[ -z "${port}" ]]; then
-      continue
-    fi
-    if ! [[ "${port}" =~ ^[0-9]+$ ]]; then
-      continue
-    fi
-    if ! contains_value "${port}" "${unique[@]}"; then
-      unique+=("${port}")
-    fi
-  done
-  printf '%s\n' "${unique[@]}"
-}
 
 collect_descendant_pids() {
   local root_pid="$1"
@@ -214,7 +166,7 @@ fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf8");
 NODE
   then
-    echo "[desktop-smoke] failed to write isolated runtime config. See ${RUNTIME_STDOUT_LOG}" >&2
+    echo "[desktop-smoke] failed to write isolated runtime config." >&2
     return 1
   fi
 }
@@ -258,33 +210,6 @@ find_running_app_pid() {
   return 1
 }
 
-find_runtime_script() {
-  local candidates=(
-    "${INSTALLED_APP}/Contents/Resources/app.asar/node_modules/nextclaw/dist/cli/app/index.js"
-    "${INSTALLED_APP}/Contents/Resources/app.asar/node_modules/nextclaw/dist/cli/index.js"
-    "${INSTALLED_APP}/Contents/Resources/app/node_modules/nextclaw/dist/cli/app/index.js"
-    "${INSTALLED_APP}/Contents/Resources/app/node_modules/nextclaw/dist/cli/index.js"
-    "${INSTALLED_APP}/Contents/Resources/node_modules/nextclaw/dist/cli/app/index.js"
-    "${INSTALLED_APP}/Contents/Resources/node_modules/nextclaw/dist/cli/index.js"
-  )
-  local candidate
-  local asar_base
-  for candidate in "${candidates[@]}"; do
-    if [[ "${candidate}" == *"/app.asar/"* ]]; then
-      asar_base="${candidate%%/node_modules/*}"
-      if [[ -f "${asar_base}" ]]; then
-        echo "${candidate}"
-        return 0
-      fi
-    fi
-    if [[ -f "${candidate}" ]]; then
-      echo "${candidate}"
-      return 0
-    fi
-  done
-  return 1
-}
-
 pick_runtime_port() {
   local port
 
@@ -298,83 +223,11 @@ pick_runtime_port() {
   return 1
 }
 
-run_runtime_fallback() {
-  local runtime_script
-  runtime_script="$(find_runtime_script || true)"
-  if [[ -z "${runtime_script}" ]]; then
-    echo "[desktop-smoke] runtime fallback failed: nextclaw cli not found in installed app." >&2
-    return 1
-  fi
-
-  local runtime_port
-  runtime_port="$(pick_runtime_port || true)"
-  if [[ -z "${runtime_port}" ]]; then
-    echo "[desktop-smoke] runtime fallback failed: no available port in ${RUNTIME_FALLBACK_PORT_START}-${RUNTIME_FALLBACK_PORT_END}." >&2
-    return 1
-  fi
-
-  rm -rf "${RUNTIME_FALLBACK_HOME}" >/dev/null 2>&1 || true
-  echo "[desktop-smoke] runtime fallback: init"
-  if ! env \
-    -u NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE \
-    -u NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE \
-    NEXTCLAW_HOME="${RUNTIME_FALLBACK_HOME}" \
-    ELECTRON_RUN_AS_NODE=1 \
-    "${APP_BIN}" "${runtime_script}" init >"${RUNTIME_STDOUT_LOG}" 2>&1; then
-    echo "[desktop-smoke] runtime fallback init failed. See ${RUNTIME_STDOUT_LOG}" >&2
-    return 1
-  fi
-
-  echo "[desktop-smoke] runtime fallback: serve on ${runtime_port}"
-  env \
-    -u NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE \
-    -u NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE \
-    NEXTCLAW_HOME="${RUNTIME_FALLBACK_HOME}" \
-    ELECTRON_RUN_AS_NODE=1 \
-    "${APP_BIN}" "${runtime_script}" serve --ui-port "${runtime_port}" >>"${RUNTIME_STDOUT_LOG}" 2>&1 &
-  RUNTIME_PID="$!"
-
-  local started_at now
-  started_at="$(date +%s)"
-  while true; do
-    if [[ -n "${RUNTIME_PID:-}" ]] && ! kill -0 "${RUNTIME_PID}" 2>/dev/null; then
-      echo "[desktop-smoke] runtime fallback exited early. See ${RUNTIME_STDOUT_LOG}" >&2
-      return 1
-    fi
-
-    if curl -fsS --max-time 2 "http://127.0.0.1:${runtime_port}/api/health" >"${APP_HEALTH_LOG}" 2>/dev/null; then
-      if grep -q '"ok":true' "${APP_HEALTH_LOG}" && grep -q '"status":"ok"' "${APP_HEALTH_LOG}"; then
-        echo "[desktop-smoke] runtime fallback health check passed: http://127.0.0.1:${runtime_port}/api/health"
-        return 0
-      fi
-    fi
-
-    now="$(date +%s)"
-    if ((now - started_at >= STARTUP_TIMEOUT_SEC)); then
-      echo "[desktop-smoke] runtime fallback health timeout within ${STARTUP_TIMEOUT_SEC}s. See ${RUNTIME_STDOUT_LOG}" >&2
-      return 1
-    fi
-    sleep 2
-  done
-}
-
-run_runtime_fallback_diagnostic() {
-  if run_runtime_fallback; then
-    echo "[desktop-smoke] runtime fallback diagnostic passed, but GUI smoke still fails." >&2
-    return 0
-  fi
-  echo "[desktop-smoke] runtime fallback diagnostic failed." >&2
-  return 1
-}
-
 cleanup() {
   local status=$?
 
   if [[ -n "${APP_PID:-}" ]] && kill -0 "${APP_PID}" 2>/dev/null; then
     stop_process_tree "${APP_PID}"
-  fi
-  if [[ -n "${RUNTIME_PID:-}" ]] && kill -0 "${RUNTIME_PID}" 2>/dev/null; then
-    stop_process_tree "${RUNTIME_PID}"
   fi
 
   if [[ -n "${MOUNT_POINT}" ]] && mount | grep -q "on ${MOUNT_POINT} "; then
@@ -392,14 +245,27 @@ trap cleanup EXIT INT TERM
 echo "[desktop-smoke] dmg: ${DMG_PATH}"
 echo "[desktop-smoke] temp root: ${TEMP_ROOT}"
 echo "[desktop-smoke] smoke home: ${SMOKE_HOME}"
+echo "[desktop-smoke] profile: ${SMOKE_PROFILE}"
+if [[ "${SMOKE_PROFILE}" == "real" ]]; then
+  echo "[desktop-smoke] real desktop data dir: ${REAL_DESKTOP_DATA_DIR}"
+fi
 echo "[desktop-smoke] startup timeout: ${STARTUP_TIMEOUT_SEC}s"
 echo "[desktop-smoke] max GUI ready time: ${MAX_READY_SEC}s"
 
-rm -rf "${SMOKE_HOME}" "${INSTALL_ROOT}" >/dev/null 2>&1 || true
-mkdir -p "${SMOKE_HOME}" "${INSTALL_ROOT}"
-export NEXTCLAW_HOME="${SMOKE_HOME}"
-export NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE="${SMOKE_HOME}"
-export NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE="${SMOKE_HOME}"
+rm -rf "${INSTALL_ROOT}" >/dev/null 2>&1 || true
+mkdir -p "${INSTALL_ROOT}"
+if [[ "${SMOKE_PROFILE}" == "isolated" ]]; then
+  rm -rf "${SMOKE_HOME}" >/dev/null 2>&1 || true
+  mkdir -p "${SMOKE_HOME}"
+  export NEXTCLAW_HOME="${SMOKE_HOME}"
+  export NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE="${SMOKE_HOME}"
+  export NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE="${SMOKE_HOME}"
+else
+  unset NEXTCLAW_HOME
+  unset NEXTCLAW_UI_PORT
+  unset NEXTCLAW_DESKTOP_RUNTIME_HOME_OVERRIDE
+  unset NEXTCLAW_DESKTOP_DATA_DIR_OVERRIDE
+fi
 
 echo "[desktop-smoke] mounting dmg"
 ATTACH_OUTPUT="$(hdiutil attach "${DMG_PATH}" -nobrowse -noverify -noautoopen)"
@@ -426,9 +292,16 @@ if [[ ! -x "${APP_BIN}" ]]; then
   exit 1
 fi
 
-prepare_isolated_runtime_config
+if [[ "${SMOKE_PROFILE}" == "isolated" ]]; then
+  prepare_isolated_runtime_config
+fi
 
 echo "[desktop-smoke] launching desktop app"
+if [[ -f "${APP_MAIN_LOG}" ]]; then
+  MAIN_LOG_START_LINE="$(( $(wc -l < "${APP_MAIN_LOG}") + 1 ))"
+else
+  MAIN_LOG_START_LINE=1
+fi
 "${APP_BIN}" >"${APP_STDOUT_LOG}" 2>&1 &
 APP_PID="$!"
 
@@ -442,7 +315,6 @@ while true; do
       APP_PID="${RECOVERED_PID}"
     else
       echo "[desktop-smoke] desktop app exited early." >&2
-      run_runtime_fallback_diagnostic || true
       print_desktop_diagnostics
       exit 1
     fi
@@ -451,7 +323,6 @@ while true; do
   ELAPSED_MS="$(($(now_ms) - START_MS))"
   if ((ELAPSED_MS > MAX_READY_SEC * 1000)); then
     echo "[desktop-smoke] desktop GUI not ready within ${MAX_READY_SEC}s." >&2
-    run_runtime_fallback_diagnostic || true
     print_desktop_diagnostics
     exit 1
   fi
@@ -459,7 +330,6 @@ while true; do
   NOW="$(date +%s)"
   if ((NOW - START_TIME >= STARTUP_TIMEOUT_SEC)); then
     echo "[desktop-smoke] health API not ready within ${STARTUP_TIMEOUT_SEC}s." >&2
-    run_runtime_fallback_diagnostic || true
     print_desktop_diagnostics
     exit 1
   fi
