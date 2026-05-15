@@ -140,6 +140,10 @@ const navItems = [
 
 type ChatSidebarVariant = 'desktop' | 'mobile';
 
+function isMacDesktopHost(): boolean {
+  return typeof window !== 'undefined' && window.nextclawDesktop?.platform === 'darwin';
+}
+
 function useChatSessionUnreadState(
   items: readonly NcpSessionListItemView[],
   selectedSessionKey: string | null,
@@ -268,9 +272,9 @@ export function ChatSidebar({
       )}
     >
       {!isMobileVariant ? (
-        <div className="px-5 pt-5 pb-3">
+        <div className={cn('px-5 pb-3', isMacDesktopHost() ? 'pt-1.5' : 'pt-5')}>
           <BrandHeader
-            className="flex items-center gap-2.5 min-w-0"
+            className="flex min-w-0 items-center gap-2"
             suffix={<StatusBadge status={systemStatus.connectionStatus} />}
           />
         </div>
