@@ -237,7 +237,7 @@ async function prepareBundleWorkspace(workspace) {
   await mkdir(workspace.bundleRoot, { recursive: true });
   runCommand(
     "pnpm",
-    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "--offline", "deploy", workspace.runtimeDeployPath],
+    ["--config.node-linker=hoisted", "--filter", "nextclaw", "--prod", "deploy", workspace.runtimeDeployPath],
     workspaceRoot
   );
   assertRuntimeBundleContract(workspace.runtimeRoot);
