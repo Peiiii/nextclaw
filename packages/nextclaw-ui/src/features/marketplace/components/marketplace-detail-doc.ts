@@ -1,11 +1,8 @@
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+import {
+  escapeHtml,
+  renderDetailMarkdown,
+  renderDetailMetadata,
+} from "@/features/marketplace/components/detail-doc/marketplace-detail-doc-renderer";
 
 export function buildGenericDetailDataUrl(params: {
   title: string;
@@ -40,6 +37,8 @@ export function buildGenericDetailDataUrl(params: {
   const summary = rawSummary?.trim();
   const description = rawDescription?.trim();
   const shouldShowDescription = Boolean(description) && description !== summary;
+  const renderedMetadata = renderDetailMetadata(metadata);
+  const renderedContent = renderDetailMarkdown(content);
 
   const html = `<!doctype html>
 <html>
@@ -49,21 +48,46 @@ export function buildGenericDetailDataUrl(params: {
     <title>${escapeHtml(title)}</title>
     <style>
       :root { color-scheme: light; }
-      body { margin: 0; background: #f7f8fa; color: #111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+      body { margin: 0; background: #f9f8f5; color: #2f2212; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
       .wrap { max-width: 940px; margin: 0 auto; padding: 24px 20px 36px; }
-      .hero { border: 1px solid #e5e7eb; border-radius: 14px; background: #ffffff; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+      .hero { border: 1px solid #f0e2c8; border-radius: 14px; background: linear-gradient(180deg, #fff9f1 0%, #ffffff 28%); padding: 18px; box-shadow: 0 1px 3px rgba(30, 20, 10, 0.05); }
       .hero h1 { margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: 0; }
-      .meta { margin-top: 7px; color: #6b7280; font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
-      .summary { margin: 12px 0 0; font-size: 13px; line-height: 1.65; color: #4b5563; }
+      .meta { margin-top: 7px; color: #78644d; font-size: 12px; overflow-wrap: anywhere; word-break: break-word; }
+      .summary { margin: 12px 0 0; font-size: 13px; line-height: 1.65; color: #5f5142; }
       .grid { display: grid; grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
-      .card { border: 1px solid #e5e7eb; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
-      .card h2 { margin: 0; padding: 11px 13px; font-size: 12px; font-weight: 650; color: #111827; border-bottom: 1px solid #f1f2f4; background: #ffffff; }
-      .card .body { padding: 12px 13px; font-size: 12px; color: #374151; line-height: 1.65; }
+      .card { border: 1px solid #eee3d1; background: #fffdf9; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgba(30, 20, 10, 0.035); }
+      .card h2 { margin: 0; padding: 11px 13px; font-size: 12px; font-weight: 650; color: #3f472f; border-bottom: 1px solid #f1e7d4; background: #fffaf2; }
+      .card .body { padding: 12px 13px; font-size: 12px; color: #4e463d; line-height: 1.65; }
       .code { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; line-height: 1.55; margin: 0; }
+      .metadata-list { margin: 0; }
+      .metadata-list div { display: grid; grid-template-columns: minmax(72px, 0.36fr) minmax(0, 1fr); gap: 10px; padding: 8px 0; border-bottom: 1px solid #f2eadc; }
+      .metadata-list div:last-child { border-bottom: 0; }
+      .metadata-list dt { color: #7a5a24; font-weight: 650; overflow-wrap: anywhere; }
+      .metadata-list dd { margin: 0; color: #4e463d; overflow-wrap: anywhere; }
+      .markdown { font-size: 13px; line-height: 1.68; }
+      .markdown > *:first-child { margin-top: 0; }
+      .markdown > *:last-child { margin-bottom: 0; }
+      .markdown h1, .markdown h2, .markdown h3, .markdown h4 { margin: 18px 0 8px; color: #2f2212; line-height: 1.25; letter-spacing: 0; }
+      .markdown h1 { font-size: 20px; }
+      .markdown h2 { font-size: 17px; }
+      .markdown h3 { font-size: 15px; }
+      .markdown h4 { font-size: 13px; }
+      .markdown p { margin: 10px 0; }
+      .markdown ul, .markdown ol { margin: 10px 0; padding-left: 20px; }
+      .markdown li { margin: 5px 0; }
+      .markdown blockquote { margin: 12px 0; padding: 8px 12px; border-left: 3px solid #d9b56f; border-radius: 8px; background: #fff7ea; color: #6d5841; }
+      .markdown code { border: 1px solid #eadcc6; border-radius: 5px; background: #fff7ea; padding: 1px 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #6b4b16; }
+      .markdown a { color: #5f6b45; text-decoration: none; font-weight: 600; }
+      .markdown a:hover { text-decoration: underline; }
+      .code-block { position: relative; margin: 12px 0; overflow: hidden; border: 1px solid #eadcc6; border-radius: 10px; background: #2f2a24; }
+      .code-block pre { margin: 0; overflow-x: auto; padding: 13px; }
+      .code-block code { border: 0; border-radius: 0; background: transparent; padding: 0; color: #f7efe3; }
+      .code-language { position: absolute; right: 10px; top: 8px; color: #d8c3a0; font-size: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
       .tags { margin-top: 10px; }
-      .tag { display: inline-block; margin: 0 6px 6px 0; padding: 4px 8px; border-radius: 999px; background: #f3f4f6; color: #4b5563; font-size: 11px; }
-      .source { color: #2563eb; text-decoration: none; overflow-wrap: anywhere; word-break: break-all; }
-      .skeleton { display: block; border-radius: 8px; background: linear-gradient(90deg, #eef0f3 0%, #f7f8fa 42%, #eef0f3 78%); background-size: 220% 100%; animation: shimmer 1.35s ease-in-out infinite; }
+      .tag { display: inline-block; margin: 0 6px 6px 0; padding: 4px 8px; border: 1px solid #ecd9b5; border-radius: 999px; background: #fff7ea; color: #7a5a24; font-size: 11px; }
+      .source { color: #5f6b45; text-decoration: none; overflow-wrap: anywhere; word-break: break-all; }
+      .source:hover { text-decoration: underline; }
+      .skeleton { display: block; border-radius: 8px; background: linear-gradient(90deg, #f0e6d6 0%, #fffaf2 42%, #f0e6d6 78%); background-size: 220% 100%; animation: shimmer 1.35s ease-in-out infinite; }
       .detail-skeleton .hero { padding: 18px; }
       .sk-title { width: 52%; height: 24px; }
       .sk-meta { width: 78%; height: 12px; margin-top: 12px; }
@@ -102,11 +126,11 @@ export function buildGenericDetailDataUrl(params: {
       <section class="grid">
         <article class="card">
           <h2>Metadata</h2>
-          <div class="body"><pre class="code">${escapeHtml(metadata)}</pre></div>
+          <div class="body">${renderedMetadata}</div>
         </article>
         <article class="card">
           <h2>Content</h2>
-          <div class="body"><pre class="code">${escapeHtml(content)}</pre></div>
+          <div class="body markdown">${renderedContent}</div>
         </article>
       </section>
       `}

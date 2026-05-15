@@ -320,7 +320,7 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 px-2.5 py-2 bg-white border-b border-gray-100 overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1.5 px-2.5 py-2 bg-background border-b border-[#f1e7d4] overflow-x-auto custom-scrollbar">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           return (
@@ -329,8 +329,8 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
               className={cn(
                 'inline-flex items-center gap-1 h-7 px-1.5 rounded-lg text-xs border max-w-[220px] shrink-0 transition-colors',
                 isActive
-                  ? 'bg-blue-50 border-blue-300 text-blue-700'
-                  : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
+                  ? 'bg-amber-50/80 border-amber-200 text-amber-900 shadow-[0_1px_2px_rgba(30,20,10,0.04)]'
+                  : 'bg-[#f9f8f5] border-[#eee3d1] text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212]'
               )}
             >
               <button
@@ -357,7 +357,7 @@ export function DocBrowser({ displayMode = 'desktop' }: DocBrowserProps) {
         })}
         <button
           onClick={() => openNewTab(undefined, { kind: 'docs', title: 'Docs' })}
-          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 shrink-0"
+          className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-[#eee3d1] bg-white text-[#78644d] hover:bg-[#fff7ea] hover:text-[#2f2212] shrink-0"
           title={t('docBrowserNewTab')}
         >
           <Plus className="w-3.5 h-3.5" />
