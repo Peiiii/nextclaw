@@ -24,7 +24,11 @@ import {
 import { AgentAvatar } from "@/shared/components/common/agent-avatar";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent } from "@/shared/components/ui/card";
-import { NoticeCard } from "@/shared/components/ui/notice-card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/shared/components/ui/popover";
 import { TagChip } from "@/shared/components/ui/tag-chip";
 import { PageLayout } from "@/app/components/layout/page-layout";
 import { t } from "@/shared/lib/i18n";
@@ -34,6 +38,7 @@ import {
   Bot,
   House,
   MessageCircle,
+  MoreHorizontal,
   Pencil,
   Plus,
   ShieldCheck,
@@ -41,86 +46,72 @@ import {
   Trash2,
 } from "lucide-react";
 
-const CARD_TONES = [
-  {
-    strip: "bg-[#efc37a]",
-    chip: "border-[#f2d7a7] bg-[#fff8eb] text-[#8d5a18]",
-  },
-  {
-    strip: "bg-[#8fd4c0]",
-    chip: "border-[#bde6da] bg-[#effbf7] text-[#156653]",
-  },
-  {
-    strip: "bg-[#b7c9fb]",
-    chip: "border-[#d7e2ff] bg-[#f4f7ff] text-[#2d4d8f]",
-  },
-] as const;
-
-function resolveAgentTone(index: number, builtIn: boolean) {
-  if (builtIn) {
-    return {
-      strip: "bg-[#e6b765]",
-      chip: "border-[#f2d19c] bg-[#fff8ec] text-[#90550d]",
-    };
-  }
-  return CARD_TONES[index % CARD_TONES.length];
-}
-
 function AgentsHero(props: { agentCount: number; onCreate: () => void }) {
   const { agentCount, onCreate } = props;
 
   return (
-    <section className="relative overflow-hidden rounded-[28px] border border-[#f0d6aa] bg-[linear-gradient(135deg,#fff7ea_0%,#fff9f1_32%,#f2fbff_100%)] px-5 py-5 sm:px-6">
-      <div className="absolute inset-y-0 right-0 w-[46%] bg-[radial-gradient(circle_at_top_right,rgba(255,215,163,0.52),transparent_54%)]" />
-      <div className="absolute -bottom-10 left-8 h-32 w-32 rounded-full bg-[#ffe6c0]/55 blur-3xl" />
-      <div className="relative grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-center">
-        <div className="max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold tracking-[0.16em] text-[#9b6118]">
-            <Sparkles className="h-3.5 w-3.5" />
+    <section className="flex flex-col gap-3 border-b border-gray-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-xl font-semibold text-gray-950">
             {t("agentsHeroEyebrow")}
-          </div>
-          <div className="space-y-2">
-            <h1 className="max-w-2xl text-[30px] font-semibold leading-tight tracking-[-0.05em] text-[#2f2212] sm:text-[38px]">
-              {t("agentsHeroTitle")}
-            </h1>
-            <p className="max-w-2xl text-sm leading-6 text-[#6d5841] sm:text-[15px] sm:leading-7">
-              {t("agentsHeroDescription")}
-            </p>
-          </div>
-          <div className="pt-1">
-            <div className="inline-flex items-center gap-3 rounded-2xl border border-[#f2d5a4] bg-white/82 px-3 py-2 text-[#7a4d12] shadow-[0_14px_30px_rgba(167,117,47,0.07)]">
-              <span className="text-[11px] font-semibold tracking-[0.14em]">
-                {t("agentsOverviewTotal")}
-              </span>
-              <span className="text-xl font-semibold tracking-[-0.04em] text-[#1f2937]">
-                {agentCount}
-              </span>
-            </div>
-          </div>
+          </h1>
+          <span className="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-500">
+            {agentCount}
+          </span>
         </div>
-        <div className="flex shrink-0 flex-col gap-3">
-          <Button
-            type="button"
-            variant="primary"
-            className="h-10 rounded-2xl px-5 text-sm font-semibold"
-            onClick={onCreate}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            {t("agentsCreateButton")}
-          </Button>
-          <NoticeCard
-            title={t("agentsCreateDialogHint")}
-            className="border-white/70 bg-white/72 text-xs leading-6 shadow-[0_18px_40px_rgba(167,117,47,0.08)]"
-          />
-        </div>
+        <p className="max-w-2xl text-sm leading-6 text-gray-500">
+          {t("agentsHeroDescription")}
+        </p>
       </div>
+      <Button
+        type="button"
+        variant="primary"
+        className="h-9 shrink-0 rounded-xl px-4 text-sm font-semibold"
+        onClick={onCreate}
+      >
+        <Plus className="mr-2 h-4 w-4" />
+        {t("agentsCreateButton")}
+      </Button>
     </section>
+  );
+}
+
+function AgentActionMenuItem(props: {
+  icon: typeof Pencil;
+  label: string;
+  disabled?: boolean;
+  destructive?: boolean;
+  onClick: () => void;
+}) {
+  const {
+    icon: Icon,
+    label,
+    disabled = false,
+    destructive = false,
+    onClick,
+  } = props;
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        destructive
+          ? "text-destructive hover:bg-destructive/10"
+          : "text-gray-700 hover:bg-gray-100",
+      )}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      <Icon className="h-4 w-4 shrink-0" />
+      <span>{label}</span>
+    </button>
   );
 }
 
 function AgentListCard(props: {
   agent: AgentProfileView;
-  index: number;
   runtimeOptions: { value: string; label: string }[];
   defaultRuntimeLabel: string;
   updatePending: boolean;
@@ -131,7 +122,6 @@ function AgentListCard(props: {
 }) {
   const {
     agent,
-    index,
     runtimeOptions,
     defaultRuntimeLabel,
     updatePending,
@@ -140,7 +130,6 @@ function AgentListCard(props: {
     onEdit,
     onDelete,
   } = props;
-  const tone = resolveAgentTone(index, Boolean(agent.builtIn));
   const runtimeValue = agent.runtime?.trim() || agent.engine?.trim() || "";
   const runtimeLabel = runtimeValue
     ? (runtimeOptions.find(
@@ -149,94 +138,94 @@ function AgentListCard(props: {
     : defaultRuntimeLabel;
 
   return (
-    <Card className="overflow-hidden border border-gray-200 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md">
-      <div className={cn("h-1.5 w-full", tone.strip)} />
-      <CardContent className="flex h-full flex-col gap-4 px-4 py-4">
-        <div className="flex items-start gap-3">
+    <Card className="group overflow-hidden border border-gray-200 bg-white shadow-none transition-colors duration-200 hover:border-gray-300">
+      <CardContent className="relative flex h-full flex-col gap-3 px-3.5 py-3.5">
+        <div className="flex items-start gap-2.5 pr-16">
           <AgentAvatar
             agentId={agent.id}
             displayName={agent.displayName}
             avatarUrl={agent.avatarUrl}
-            className="h-11 w-11 shrink-0"
+            className="h-9 w-9 shrink-0"
           />
-          <div className="min-w-0 flex-1 space-y-1 pt-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="truncate text-lg font-semibold tracking-[-0.03em] text-[#1f2937]">
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="truncate text-sm font-semibold text-gray-950">
                 {agent.displayName?.trim() || agent.id}
               </div>
               {agent.builtIn ? (
-                <TagChip tone="warning" className={cn("gap-1", tone.chip)}>
+                <TagChip
+                  tone="warning"
+                  className="h-5 gap-1 border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700"
+                >
                   <ShieldCheck className="h-3 w-3" />
                   {t("agentsCardBuiltInTag")}
                 </TagChip>
               ) : null}
             </div>
-            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-[#94a3b8]">
-              @{agent.id}
-            </div>
+            <div className="truncate text-xs text-gray-400">@{agent.id}</div>
           </div>
         </div>
 
-        <p className="text-sm leading-6 text-[#64748b]">
+        <div className="absolute right-2.5 top-2.5 flex items-center gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-800"
+            aria-label={t("agentsCardStartChat")}
+            title={t("agentsCardStartChat")}
+            onClick={onStartChat}
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-800"
+                aria-label={t("chatSessionMoreActions")}
+                title={t("chatSessionMoreActions")}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-44 p-1.5">
+              <AgentActionMenuItem
+                icon={Pencil}
+                label={t("agentsEditAction")}
+                onClick={onEdit}
+                disabled={updatePending}
+              />
+              {!agent.builtIn ? (
+                <AgentActionMenuItem
+                  icon={Trash2}
+                  label={t("agentsRemoveAction")}
+                  onClick={onDelete}
+                  disabled={deletePending}
+                  destructive
+                />
+              ) : null}
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <p className="line-clamp-2 min-h-10 text-sm leading-5 text-gray-600">
           {agent.description?.trim() ||
             (agent.builtIn
               ? t("agentsCardBuiltInSummary")
               : t("agentsCardCustomSummary"))}
         </p>
 
-        <div className="mt-auto flex flex-col gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94a3b8]">
-              <Sparkles className="h-3.5 w-3.5" />
-              {t("agentsCardRuntimeLabel")}
-            </div>
-            <div className="mt-1.5 text-sm leading-6 text-[#475569]">
-              {runtimeLabel}
-            </div>
+        <div className="mt-auto grid gap-2 border-t border-gray-100 pt-2 text-xs text-gray-500">
+          <div className="flex min-w-0 items-center gap-2">
+            <Sparkles className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+            <span className="truncate">{runtimeLabel}</span>
           </div>
-
-          <div className="border-t border-gray-100 pt-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#94a3b8]">
-              <House className="h-3.5 w-3.5" />
-              {t("agentsCardHomeLabel")}
-            </div>
-            <div className="mt-1.5 break-all text-sm leading-6 text-[#475569]">
-              {agent.workspace ?? "-"}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="primary"
-              className="h-9 rounded-xl px-4"
-              onClick={onStartChat}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              {t("agentsCardStartChat")}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="h-8 rounded-xl px-3 text-xs text-[#7b8794] hover:bg-[#f3f4f6] hover:text-[#475569]"
-              onClick={onEdit}
-              disabled={updatePending}
-            >
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              {t("agentsEditAction")}
-            </Button>
-            {!agent.builtIn ? (
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-8 rounded-xl px-3 text-xs text-[#7b8794] hover:bg-[#f3f4f6] hover:text-[#475569]"
-                onClick={onDelete}
-                disabled={deletePending}
-              >
-                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                {t("agentsRemoveAction")}
-              </Button>
-            ) : null}
+          <div className="flex min-w-0 items-center gap-2">
+            <House className="h-3.5 w-3.5 shrink-0 text-gray-300" />
+            <span className="truncate">{agent.workspace ?? "-"}</span>
           </div>
         </div>
       </CardContent>
@@ -378,11 +367,10 @@ export function AgentsPage() {
             </CardContent>
           </Card>
         ) : (
-          sortedAgents.map((agent, index) => (
+          sortedAgents.map((agent) => (
             <AgentListCard
               key={agent.id}
               agent={agent}
-              index={index}
               runtimeOptions={runtimeOptions}
               defaultRuntimeLabel={defaultRuntimeLabel}
               updatePending={updateAgent.isPending}

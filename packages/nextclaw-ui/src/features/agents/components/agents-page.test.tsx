@@ -169,26 +169,24 @@ describe("AgentsPage", () => {
     });
   });
 
-  it("renders the agents workspace in Chinese and keeps core actions visible", async () => {
+  it("renders the agents workspace in Chinese and keeps management actions in a compact menu", async () => {
     const user = userEvent.setup();
 
     renderAgentsPage();
 
     expect(screen.getByText("Agent 管理台")).toBeTruthy();
-    expect(
-      screen.getByText("让每个 Agent 都像真正的协作者一样存在"),
-    ).toBeTruthy();
-    expect(screen.getByText("全部 Agent")).toBeTruthy();
-    expect(screen.getAllByText("主目录").length).toBeGreaterThan(0);
+    expect(screen.getByText("~/.nextclaw/workspace")).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "开始对话" })).toHaveLength(2);
-    expect(screen.getAllByRole("button", { name: "编辑" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "更多操作" })).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "编辑" })).toBeNull();
     expect(screen.getByText("负责调研、信息筛选与结论提炼。")).toBeTruthy();
     expect(
       screen.queryByText("专属 Agent 身份，可沉淀自己的记忆、技能与角色风格。"),
     ).toBeNull();
     expect(screen.queryByText("Agent Gallery")).toBeNull();
 
-    await user.click(screen.getAllByRole("button", { name: "编辑" })[1]);
+    await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
+    await user.click(screen.getByRole("button", { name: "编辑" }));
 
     expect(screen.getByText("编辑 Agent 身份")).toBeTruthy();
     expect(screen.getByText("主目录保持不变")).toBeTruthy();
@@ -204,7 +202,8 @@ describe("AgentsPage", () => {
 
     renderAgentsPage();
 
-    await user.click(screen.getAllByRole("button", { name: "编辑" })[1]);
+    await user.click(screen.getAllByRole("button", { name: "更多操作" })[1]);
+    await user.click(screen.getByRole("button", { name: "编辑" }));
 
     const runtimeTrigger = screen.getByRole("combobox", { name: "Runtime" });
     expect(
