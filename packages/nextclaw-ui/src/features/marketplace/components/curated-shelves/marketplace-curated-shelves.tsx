@@ -26,6 +26,7 @@ import {
 
 const SCENE_CARD_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(240px,320px))] justify-start gap-3";
+const SCENE_SKELETON_CARD_COUNT = 24;
 
 export type MarketplaceShelfEntry = {
   item: MarketplaceItemSummary;
@@ -177,7 +178,7 @@ export function MarketplaceCuratedSceneView(props: {
   const tone = MARKETPLACE_SHELF_TONE_STYLES[visual.tone];
 
   return (
-    <section className="min-h-0 flex-1">
+    <section className="flex min-h-full flex-col">
       <div className="mb-4 flex min-w-0 items-start gap-2.5">
         <button
           type="button"
@@ -220,9 +221,12 @@ export function MarketplaceCuratedSceneView(props: {
       {isLoading ? (
         <div
           data-testid="marketplace-scene-skeleton"
-          className={SCENE_CARD_GRID_CLASS}
+          className={cn(
+            SCENE_CARD_GRID_CLASS,
+            "min-h-0 flex-1 auto-rows-[166px] content-start",
+          )}
         >
-          <MarketplaceListSkeleton count={6} />
+          <MarketplaceListSkeleton count={SCENE_SKELETON_CARD_COUNT} />
         </div>
       ) : entries.length > 0 ? (
         <div className={SCENE_CARD_GRID_CLASS}>

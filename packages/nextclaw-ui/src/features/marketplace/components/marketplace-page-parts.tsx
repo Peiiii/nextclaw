@@ -70,7 +70,7 @@ export function MarketplaceListSkeleton({ count }: {
       {Array.from({ length: count }, (_, index) => (
         <article
           key={`marketplace-skeleton-${index}`}
-          className="rounded-2xl border border-gray-200/40 bg-white px-5 py-4 shadow-sm"
+          className="h-full rounded-2xl border border-gray-200/40 bg-white px-5 py-4 shadow-sm"
         >
           <div className="flex items-start justify-between gap-3.5">
             <div className="flex min-w-0 flex-1 gap-3">
