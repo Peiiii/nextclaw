@@ -1546,9 +1546,6 @@ importers:
       '@nextclaw/channel-plugin-email':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-email
-      '@nextclaw/channel-plugin-feishu':
-        specifier: workspace:*
-        version: link:../extensions/nextclaw-channel-plugin-feishu
       '@nextclaw/channel-plugin-mochat':
         specifier: workspace:*
         version: link:../extensions/nextclaw-channel-plugin-mochat

@@ -41,12 +41,43 @@ const GROUP_POLICY_OPTIONS: ChannelOption[] = [
   { value: 'disabled', label: 'disabled' }
 ];
 
+const FEISHU_DOMAIN_OPTIONS: ChannelOption[] = [
+  { value: 'feishu', label: 'feishu' },
+  { value: 'lark', label: 'lark' }
+];
+
 const STREAMING_MODE_OPTIONS: ChannelOption[] = [
   { value: 'off', label: 'off' },
   { value: 'partial', label: 'partial' },
   { value: 'block', label: 'block' },
   { value: 'progress', label: 'progress' }
 ];
+
+function buildFeishuFormDefinition(): ChannelFormDefinition {
+  return {
+    fields: [
+      { name: 'enabled', type: 'boolean', label: t('enabled'), section: 'primary' },
+      { name: 'defaultAccountId', type: 'text', label: t('defaultAccountId') },
+      { name: 'domain', type: 'select', label: t('feishuAuthDomain'), options: FEISHU_DOMAIN_OPTIONS },
+      { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
+      { name: 'groupPolicy', type: 'select', label: t('groupPolicy'), options: GROUP_POLICY_OPTIONS },
+      { name: 'requireMention', type: 'boolean', label: t('requireMention') },
+      { name: 'accounts', type: 'json', label: t('accountsJson') }
+    ],
+    layout: [
+      { type: 'fields', section: 'primary' },
+      { type: 'custom', sectionId: 'feishu-auth' },
+      {
+        type: 'fields',
+        section: 'advanced',
+        collapsible: {
+          title: t('feishuAuthAdvancedTitle'),
+          description: t('feishuAuthAdvancedDescription')
+        }
+      }
+    ]
+  };
+}
 
 export function buildChannelFormDefinitions(): Record<string, ChannelFormDefinition> {
   return {
@@ -94,24 +125,7 @@ export function buildChannelFormDefinitions(): Record<string, ChannelFormDefinit
       { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
       ]
     },
-    feishu: {
-      fields: [
-      { name: 'enabled', type: 'boolean', label: t('enabled') },
-      { name: 'appId', type: 'text', label: t('appId') },
-      { name: 'appSecret', type: 'password', label: t('appSecret') },
-      { name: 'encryptKey', type: 'password', label: t('encryptKey') },
-      { name: 'verificationToken', type: 'password', label: t('verificationToken') },
-      { name: 'domain', type: 'text', label: 'Domain' },
-      { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
-      { name: 'dmPolicy', type: 'select', label: t('dmPolicy'), options: DM_POLICY_OPTIONS },
-      { name: 'groupPolicy', type: 'select', label: t('groupPolicy'), options: GROUP_POLICY_OPTIONS },
-      { name: 'groupAllowFrom', type: 'tags', label: t('groupAllowFrom') },
-      { name: 'requireMention', type: 'boolean', label: t('requireMention') },
-      { name: 'mentionPatterns', type: 'tags', label: t('mentionPatterns') },
-      { name: 'groups', type: 'json', label: t('groupRulesJson') },
-      { name: 'accounts', type: 'json', label: t('accountsJson') }
-      ]
-    },
+    feishu: buildFeishuFormDefinition(),
     dingtalk: {
       fields: [
       { name: 'enabled', type: 'boolean', label: t('enabled') },

@@ -1,7 +1,6 @@
-import type { MessageBus } from "../../bus/services/queue.js";
-import type { OutboundMessage } from "../../bus/services/events.js";
-import type { Config } from "../../config/configs/schema.js";
-import type { ExtensionChannelRegistration } from "../../extensions/types/extension.types.js";
+import type { MessageBus, OutboundMessage } from "@core/features/bus/index.js";
+import type { Config } from "@core/features/config/index.js";
+import type { ExtensionChannelRegistration } from "@core/features/extensions/index.js";
 import { BaseChannel } from "./base.js";
 
 export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>> {
@@ -17,18 +16,18 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
     return this.registration.channel.id;
   }
 
-  async start(): Promise<void> {
+  start = async (): Promise<void> => {
     this.running = true;
-  }
+  };
 
-  async stop(): Promise<void> {
+  stop = async (): Promise<void> => {
     this.running = false;
-  }
+  };
 
-  async send(msg: OutboundMessage): Promise<void> {
+  send = async (msg: OutboundMessage): Promise<void> => {
     const outbound = this.registration.channel.outbound;
     if (!outbound) {
-      throw new Error(`extension channel '${this.name}' has no outbound adapter`);
+      return;
     }
 
     const to = msg.chatId;
@@ -60,5 +59,5 @@ export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>
     }
 
     throw new Error(`extension channel '${this.name}' outbound handler is not configured`);
-  }
+  };
 }

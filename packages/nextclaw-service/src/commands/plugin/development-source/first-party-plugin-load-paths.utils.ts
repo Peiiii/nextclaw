@@ -16,6 +16,10 @@ type InstalledFirstPartyPluginMatch = {
   installPath: string;
 };
 
+const DISABLED_FIRST_PARTY_PLUGIN_PACKAGE_NAMES = new Set([
+  "@nextclaw/channel-plugin-feishu",
+]);
+
 const readJsonFile = (filePath: string): Record<string, unknown> | null => {
   try {
     const raw = fs.readFileSync(filePath, "utf-8");
@@ -129,6 +133,9 @@ const readWorkspacePluginPackages = (
     }
     const packageName = readString(pkg.name);
     if (!packageName?.startsWith("@nextclaw/")) {
+      continue;
+    }
+    if (DISABLED_FIRST_PARTY_PLUGIN_PACKAGE_NAMES.has(packageName)) {
       continue;
     }
     packages.push({

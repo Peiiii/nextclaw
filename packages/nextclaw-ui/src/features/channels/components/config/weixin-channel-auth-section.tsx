@@ -9,11 +9,62 @@ import { formatDateTime, t } from '@/shared/lib/i18n';
 import { cn } from '@/shared/lib/utils';
 import type { ChannelAuthPollResult, ChannelAuthStartResult } from '@/shared/lib/api';
 
-type WeixinChannelAuthSectionProps = {
+type QrChannelAuthSectionProps = {
   channelConfig: Record<string, unknown>;
   formData: Record<string, unknown>;
+  channelName: 'weixin' | 'feishu';
   channelEnabled: boolean;
   disabled?: boolean;
+};
+
+type WeixinChannelAuthSectionProps = Omit<QrChannelAuthSectionProps, 'channelName'>;
+
+type QrChannelAuthCopy = {
+  title: string;
+  description: string;
+  hint: string;
+  capabilityHint: string;
+  disabledHint: string;
+  connect: string;
+  qrAlt: string;
+  scanPrompt: string;
+  readyTitle: string;
+  readyDescription: string;
+  advancedTitle: string;
+  advancedDescription: string;
+  domainLabel?: string;
+};
+
+const QR_AUTH_COPY: Record<QrChannelAuthSectionProps['channelName'], QrChannelAuthCopy> = {
+  weixin: {
+    title: 'weixinAuthTitle',
+    description: 'weixinAuthDescription',
+    hint: 'weixinAuthHint',
+    capabilityHint: 'weixinAuthCapabilityHint',
+    disabledHint: 'weixinAuthDisabledHint',
+    connect: 'weixinAuthConnect',
+    qrAlt: 'weixinAuthQrAlt',
+    scanPrompt: 'weixinAuthScanPrompt',
+    readyTitle: 'weixinAuthReadyTitle',
+    readyDescription: 'weixinAuthReadyDescription',
+    advancedTitle: 'weixinAuthAdvancedTitle',
+    advancedDescription: 'weixinAuthAdvancedDescription'
+  },
+  feishu: {
+    title: 'feishuAuthTitle',
+    description: 'feishuAuthDescription',
+    hint: 'feishuAuthHint',
+    capabilityHint: 'feishuAuthCapabilityHint',
+    disabledHint: 'feishuAuthDisabledHint',
+    connect: 'feishuAuthConnect',
+    qrAlt: 'feishuAuthQrAlt',
+    scanPrompt: 'feishuAuthScanPrompt',
+    readyTitle: 'feishuAuthReadyTitle',
+    readyDescription: 'feishuAuthReadyDescription',
+    advancedTitle: 'feishuAuthAdvancedTitle',
+    advancedDescription: 'feishuAuthAdvancedDescription',
+    domainLabel: 'feishuAuthDomain'
+  }
 };
 
 function resolveConnectedAccountIds(channelConfig: Record<string, unknown>): string[] {
@@ -43,21 +94,45 @@ function resolveBaseUrl(formData: Record<string, unknown>, channelConfig: Record
   return undefined;
 }
 
-function useWeixinQrDataUrl(qrCodeUrl: string | undefined) {
+function resolveDomain(formData: Record<string, unknown>, channelConfig: Record<string, unknown>): string | undefined {
+  const formDomain = typeof formData.domain === 'string' ? formData.domain.trim() : '';
+  if (formDomain) {
+    return formDomain;
+  }
+  const configDomain = typeof channelConfig.domain === 'string' ? channelConfig.domain.trim() : '';
+  return configDomain || undefined;
+}
+
+function useQrDataUrl(channelName: string, qrCodeUrl: string | undefined) {
   return useQuery({
-    queryKey: ['weixin-channel-qr', qrCodeUrl],
+    queryKey: ['channel-qr', channelName, qrCodeUrl],
     enabled: Boolean(qrCodeUrl),
     queryFn: () => toDataURL(qrCodeUrl!, { errorCorrectionLevel: 'M', margin: 1, width: 480 })
   }).data ?? null;
 }
 
-function WeixinAuthSummary(props: {
+function QrAuthSummary({
+  activeSession,
+  baseUrl,
+  channelEnabled,
+  copy,
+  connectButtonLabel,
+  connectedAccountIds,
+  disabled,
+  domain,
+  handleStartAuth,
+  hasConnectedAccount,
+  primaryAccountId,
+  statusLabel
+}: {
   activeSession: ChannelAuthStartResult | null;
   baseUrl?: string;
   channelEnabled: boolean;
+  copy: QrChannelAuthCopy;
   connectButtonLabel: string;
   connectedAccountIds: string[];
   disabled: boolean;
+  domain?: string;
   handleStartAuth: () => Promise<void>;
   hasConnectedAccount: boolean;
   primaryAccountId?: string;
@@ -67,46 +142,53 @@ function WeixinAuthSummary(props: {
     <div className="space-y-3">
       <div className="inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-primary shadow-sm">
         <QrCode className="h-3.5 w-3.5" />
-        {t('weixinAuthTitle')}
+        {t(copy.title)}
       </div>
       <div>
-        <h4 className="text-base font-semibold text-gray-900">{t('weixinAuthDescription')}</h4>
-        <p className="mt-1 text-sm text-gray-600">{t('weixinAuthHint')}</p>
+        <h4 className="text-base font-semibold text-gray-900">{t(copy.description)}</h4>
+        <p className="mt-1 text-sm text-gray-600">{t(copy.hint)}</p>
       </div>
       <div
         className={cn(
           'inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs font-medium',
-          props.activeSession ? 'bg-amber-50 text-amber-700' : props.hasConnectedAccount ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
+          activeSession ? 'bg-amber-50 text-amber-700' : hasConnectedAccount ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-600'
         )}
       >
-        {props.activeSession ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircleMore className="h-3.5 w-3.5" />}
-        {props.statusLabel}
+        {activeSession ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircleMore className="h-3.5 w-3.5" />}
+        {statusLabel}
       </div>
       <div className="space-y-1 text-sm text-gray-600">
-        <p>{props.channelEnabled || !props.hasConnectedAccount ? t('weixinAuthCapabilityHint') : t('weixinAuthDisabledHint')}</p>
-        {props.primaryAccountId ? <p>{t('weixinAuthPrimaryAccount')}: <span className="font-mono text-xs text-gray-900">{props.primaryAccountId}</span></p> : null}
-        {props.connectedAccountIds.length > 1 ? <p>{t('weixinAuthConnectedAccounts')}: <span className="font-mono text-xs text-gray-900">{props.connectedAccountIds.join(', ')}</span></p> : null}
-        {props.baseUrl ? <p>{t('weixinAuthBaseUrl')}: <span className="font-mono text-xs text-gray-900">{props.baseUrl}</span></p> : null}
+        <p>{channelEnabled || !hasConnectedAccount ? t(copy.capabilityHint) : t(copy.disabledHint)}</p>
+        {primaryAccountId ? <p>{t('weixinAuthPrimaryAccount')}: <span className="font-mono text-xs text-gray-900">{primaryAccountId}</span></p> : null}
+        {connectedAccountIds.length > 1 ? <p>{t('weixinAuthConnectedAccounts')}: <span className="font-mono text-xs text-gray-900">{connectedAccountIds.join(', ')}</span></p> : null}
+        {baseUrl ? <p>{t('weixinAuthBaseUrl')}: <span className="font-mono text-xs text-gray-900">{baseUrl}</span></p> : null}
+        {domain && copy.domainLabel ? <p>{t(copy.domainLabel)}: <span className="font-mono text-xs text-gray-900">{domain}</span></p> : null}
       </div>
-      <Button type="button" onClick={() => void props.handleStartAuth()} disabled={props.disabled} className="rounded-xl">
-        {props.connectButtonLabel}
+      <Button type="button" onClick={() => void handleStartAuth()} disabled={disabled} className="rounded-xl">
+        {connectButtonLabel}
       </Button>
     </div>
   );
 }
 
-function WeixinAuthQrPanel(props: {
+function QrAuthPanel({
+  activeSession,
+  authMessage,
+  copy,
+  qrDataUrl
+}: {
   activeSession: ChannelAuthStartResult | null;
   authMessage?: string;
+  copy: QrChannelAuthCopy;
   qrDataUrl: string | null;
 }) {
   return (
     <div className="w-full max-w-sm rounded-2xl border border-dashed border-primary/25 bg-white/85 p-4 shadow-sm">
-      {props.activeSession ? (
+      {activeSession ? (
         <div className="space-y-3">
           <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-3">
-            {props.qrDataUrl ? (
-              <img src={props.qrDataUrl} alt={t('weixinAuthQrAlt')} className="mx-auto aspect-square w-full max-w-[240px] object-contain" />
+            {qrDataUrl ? (
+              <img src={qrDataUrl} alt={t(copy.qrAlt)} className="mx-auto aspect-square w-full max-w-[240px] object-contain" />
             ) : (
               <div className="flex aspect-square w-full items-center justify-center rounded-xl bg-gray-50 text-gray-500">
                 <div className="flex flex-col items-center gap-2 text-center">
@@ -117,10 +199,10 @@ function WeixinAuthQrPanel(props: {
             )}
           </div>
           <div className="space-y-1 text-xs text-gray-500">
-            <p>{props.authMessage || props.activeSession.note || t('weixinAuthScanPrompt')}</p>
-            <p>{t('weixinAuthExpiresAt')}: {formatDateTime(props.activeSession.expiresAt)}</p>
+            <p>{authMessage || activeSession.note || t(copy.scanPrompt)}</p>
+            <p>{t('weixinAuthExpiresAt')}: {formatDateTime(activeSession.expiresAt)}</p>
           </div>
-          <a href={props.activeSession.qrCodeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
+          <a href={activeSession.qrCodeUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary transition-colors hover:text-primary-hover">
             <ExternalLink className="h-3.5 w-3.5" />
             {t('weixinAuthOpenQr')}
           </a>
@@ -128,27 +210,35 @@ function WeixinAuthQrPanel(props: {
       ) : (
         <div className="flex min-h-[280px] flex-col items-center justify-center rounded-2xl bg-gray-50/80 px-6 text-center">
           <QrCode className="h-9 w-9 text-gray-300" />
-          <p className="mt-3 text-sm font-medium text-gray-700">{t('weixinAuthReadyTitle')}</p>
-          <p className="mt-1 text-xs leading-5 text-gray-500">{t('weixinAuthReadyDescription')}</p>
+          <p className="mt-3 text-sm font-medium text-gray-700">{t(copy.readyTitle)}</p>
+          <p className="mt-1 text-xs leading-5 text-gray-500">{t(copy.readyDescription)}</p>
         </div>
       )}
     </div>
   );
 }
 
-export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
+export function QrChannelAuthSection({
+  channelConfig,
+  channelEnabled,
+  channelName,
+  disabled,
+  formData
+}: QrChannelAuthSectionProps) {
   const queryClient = useQueryClient();
   const startChannelAuth = useStartChannelAuth();
   const pollChannelAuth = usePollChannelAuth();
   const [activeSession, setActiveSession] = useState<ChannelAuthStartResult | null>(null);
   const [authState, setAuthState] = useState<ChannelAuthPollResult | null>(null);
   const [sessionStartedWhileConnected, setSessionStartedWhileConnected] = useState(false);
-  const connectedAccountIds = useMemo(() => resolveConnectedAccountIds(props.channelConfig), [props.channelConfig]);
+  const connectedAccountIds = useMemo(() => resolveConnectedAccountIds(channelConfig), [channelConfig]);
   const primaryAccountId = connectedAccountIds[0];
-  const baseUrl = resolveBaseUrl(props.formData, props.channelConfig);
+  const baseUrl = resolveBaseUrl(formData, channelConfig);
+  const domain = channelName === 'feishu' ? resolveDomain(formData, channelConfig) : undefined;
   const hasConnectedAccount = connectedAccountIds.length > 0;
   const effectiveActiveSession = hasConnectedAccount && !sessionStartedWhileConnected ? null : activeSession;
-  const qrDataUrl = useWeixinQrDataUrl(effectiveActiveSession?.qrCodeUrl);
+  const qrDataUrl = useQrDataUrl(channelName, effectiveActiveSession?.qrCodeUrl);
+  const copy = QR_AUTH_COPY[channelName];
 
   useEffect(() => {
     if (!effectiveActiveSession) {
@@ -158,7 +248,7 @@ export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const runPoll = async () => {
       try {
-        const result = await pollChannelAuth.mutateAsync({ channel: 'weixin', data: { sessionId: effectiveActiveSession.sessionId } });
+        const result = await pollChannelAuth.mutateAsync({ channel: channelName, data: { sessionId: effectiveActiveSession.sessionId } });
         if (cancelled) {
           return;
         }
@@ -190,20 +280,21 @@ export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
         clearTimeout(timer);
       }
     };
-  }, [effectiveActiveSession, pollChannelAuth, queryClient]);
+  }, [channelName, effectiveActiveSession, pollChannelAuth, queryClient]);
 
   const handleStartAuth = async () => {
     try {
       const result = await startChannelAuth.mutateAsync({
-        channel: 'weixin',
+        channel: channelName,
         data: {
           baseUrl,
-          accountId: typeof props.formData.defaultAccountId === 'string' && props.formData.defaultAccountId.trim() ? props.formData.defaultAccountId.trim() : undefined
+          domain,
+          accountId: typeof formData.defaultAccountId === 'string' && formData.defaultAccountId.trim() ? formData.defaultAccountId.trim() : undefined
         }
       });
       setSessionStartedWhileConnected(hasConnectedAccount);
       setActiveSession(result);
-      setAuthState({ channel: 'weixin', status: 'pending', message: result.note, nextPollMs: result.intervalMs });
+      setAuthState({ channel: channelName, status: 'pending', message: result.note, nextPollMs: result.intervalMs });
     } catch (error) {
       toast.error(`${t('error')}: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -212,7 +303,7 @@ export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
   const statusLabel = effectiveActiveSession
     ? authState?.status === 'scanned' ? t('weixinAuthScanned') : t('weixinAuthWaiting')
     : hasConnectedAccount
-      ? props.channelEnabled ? t('weixinAuthAuthorized') : t('weixinAuthConnectedDisabled')
+      ? channelEnabled ? t('weixinAuthAuthorized') : t('weixinAuthConnectedDisabled')
       : t('weixinAuthNotConnected');
   const connectButtonLabel = startChannelAuth.isPending
     ? t('weixinAuthStarting')
@@ -220,26 +311,32 @@ export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
       ? t('weixinAuthWaiting')
       : hasConnectedAccount
         ? t('weixinAuthReconnect')
-        : t('weixinAuthConnect');
+        : t(copy.connect);
   const authMessage = hasConnectedAccount ? t('weixinAuthAuthorized') : authState?.message;
 
   return (
     <section className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary-50/70 via-white to-emerald-50/60 p-5">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <WeixinAuthSummary
+        <QrAuthSummary
           activeSession={effectiveActiveSession}
           baseUrl={baseUrl}
-          channelEnabled={props.channelEnabled}
+          channelEnabled={channelEnabled}
+          copy={copy}
           connectButtonLabel={connectButtonLabel}
           connectedAccountIds={connectedAccountIds}
-          disabled={props.disabled || startChannelAuth.isPending || Boolean(effectiveActiveSession)}
+          disabled={disabled || startChannelAuth.isPending || Boolean(effectiveActiveSession)}
+          domain={domain}
           handleStartAuth={handleStartAuth}
           hasConnectedAccount={hasConnectedAccount}
           primaryAccountId={primaryAccountId}
           statusLabel={statusLabel}
         />
-        <WeixinAuthQrPanel activeSession={effectiveActiveSession} authMessage={authMessage} qrDataUrl={qrDataUrl} />
+        <QrAuthPanel activeSession={effectiveActiveSession} authMessage={authMessage} copy={copy} qrDataUrl={qrDataUrl} />
       </div>
     </section>
   );
+}
+
+export function WeixinChannelAuthSection(props: WeixinChannelAuthSectionProps) {
+  return <QrChannelAuthSection {...props} channelName="weixin" />;
 }

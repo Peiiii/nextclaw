@@ -33,7 +33,7 @@ vi.mock("@nextclaw/openclaw-compat", async (importOriginal) => {
   };
 });
 
-vi.mock("@nextclaw-service/commands/plugin/plugin-registry-loader.js", () => ({
+vi.mock("@nextclaw-service/commands/plugin/plugin-registry-loader.utils.js", () => ({
   discoverPluginRegistryStatus: mocks.discoverPluginRegistryStatusMock,
   loadPluginRegistryProgressively: mocks.loadPluginRegistryProgressivelyMock,
 }));
@@ -129,7 +129,7 @@ describe("GatewayPluginManager", () => {
 
     expect(gateway.configManager.rebuildChannels).toHaveBeenCalledTimes(1);
     expect(manager.getRegistry()).toBe(registry);
-    expect(manager.getExtensionRegistry()).toBe(extensionRegistry);
+    expect(manager.getExtensionRegistry()).toEqual(extensionRegistry);
     expect(manager.getChannelBindings()).toEqual(expect.arrayContaining(channelBindings));
     expect(manager.getUiMetadata()).toEqual(expect.arrayContaining(uiMetadata));
   });
@@ -137,6 +137,11 @@ describe("GatewayPluginManager", () => {
   it("merges extension manifest contributions without direct extension package imports", async () => {
     const gateway = createGateway();
     const manager = new GatewayPluginManager(gateway);
+    const legacyWeixinBinding = {
+      pluginId: "nextclaw-channel-plugin-weixin",
+      channelId: "weixin",
+      channel: { id: "weixin" },
+    };
     const extensionContributions = {
       channelBindings: [{
         pluginId: "nextclaw-channel-extension-weixin",
@@ -149,11 +154,27 @@ describe("GatewayPluginManager", () => {
       }],
     };
     mocks.loadPluginRegistryProgressivelyMock.mockResolvedValue({ plugins: [] });
+    mocks.getPluginChannelBindingsMock.mockReturnValue([legacyWeixinBinding]);
+    mocks.toExtensionRegistryMock.mockReturnValue({
+      channels: [{
+        extensionId: "nextclaw-channel-plugin-weixin",
+        channel: { id: "weixin" },
+        source: "plugin",
+      }],
+      tools: [],
+      diagnostics: [],
+      ncpAgentRuntimes: [],
+    });
     (gateway.extensions.loadContributions as ReturnType<typeof vi.fn>).mockResolvedValue(extensionContributions);
 
     await manager.load();
 
     expect(manager.getChannelBindings()).toEqual(extensionContributions.channelBindings);
+    expect(manager.getExtensionRegistry().channels).toEqual([{
+      extensionId: "nextclaw-channel-extension-weixin",
+      channel: { id: "weixin" },
+      source: "extension-manifest",
+    }]);
     expect(manager.getUiMetadata()).toEqual(extensionContributions.uiMetadata);
   });
 

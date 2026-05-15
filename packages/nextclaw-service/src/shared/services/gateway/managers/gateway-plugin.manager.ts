@@ -23,7 +23,7 @@ import { shouldRestartChannelsForPluginReload } from "@nextclaw-service/commands
 import {
   discoverPluginRegistryStatus,
   loadPluginRegistryProgressively,
-} from "@nextclaw-service/commands/plugin/plugin-registry-loader.js";
+} from "@nextclaw-service/commands/plugin/plugin-registry-loader.utils.js";
 import {
   logPluginGatewayDiagnostics,
   pluginGatewayLogger,
@@ -42,15 +42,35 @@ type ExtensionContributions = {
   uiMetadata: PluginUiMetadata[];
 };
 
+function toManifestChannelRegistrations(
+  channelBindings: PluginChannelBinding[],
+): NextclawExtensionRegistry["channels"] {
+  return channelBindings.map((binding) => ({
+    extensionId: binding.pluginId,
+    channel: binding.channel,
+    source: "extension-manifest",
+  }));
+}
+
 function buildSnapshot(
   registry: PluginRegistry,
   extensionContributions: ExtensionContributions,
 ): PluginSnapshot {
   const extensionChannelIds = new Set(extensionContributions.channelBindings.map((binding) => binding.channelId));
   const extensionPluginIds = new Set(extensionContributions.uiMetadata.map((metadata) => metadata.id));
+  const registryExtensionRegistry = toExtensionRegistry(registry);
   return {
     registry,
-    extensionRegistry: toExtensionRegistry(registry),
+    extensionRegistry: {
+      ...registryExtensionRegistry,
+      channels: [
+        ...registryExtensionRegistry.channels.filter((registration) => {
+          const channelId = registration.channel.id?.trim();
+          return !channelId || !extensionChannelIds.has(channelId);
+        }),
+        ...toManifestChannelRegistrations(extensionContributions.channelBindings),
+      ],
+    },
     channelBindings: [
       ...getPluginChannelBindings(registry).filter((binding) => !extensionChannelIds.has(binding.channelId)),
       ...extensionContributions.channelBindings,

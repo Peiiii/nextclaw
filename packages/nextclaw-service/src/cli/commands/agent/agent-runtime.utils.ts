@@ -4,7 +4,7 @@ import type { NcpAgentRuntime } from "@nextclaw/ncp";
 import type { RuntimeFactoryParams } from "@nextclaw/ncp-toolkit";
 import { buildReservedPluginLoadOptions } from "@nextclaw-service/commands/plugin/plugin-command-utils.js";
 import { resolveDevPluginLoadingContext } from "@nextclaw-service/commands/plugin/development-source/dev-plugin-overrides.utils.js";
-import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.js";
+import { resolveDevFirstPartyPluginDir } from "@nextclaw-service/commands/plugin/development-source/first-party-plugin-load-paths.utils.js";
 import {
   AgentRuntimeRegistry,
   BuiltinNarpRuntimeRegistrationService,

@@ -1,0 +1,39 @@
+{
+  "name": "@nextclaw/channel-extension-feishu",
+  "version": "0.1.0",
+  "private": false,
+  "description": "NextClaw Feishu/Lark lightweight channel extension process.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "development": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "nextclaw.extension.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown src/index.ts src/main.ts --dts --clean --target es2022 --no-fixedExtension --unbundle",
+    "prepack": "pnpm run build",
+    "lint": "eslint src --max-warnings=0",
+    "test": "vitest run",
+    "tsc": "tsc -p tsconfig.json",
+    "prepublishOnly": "node ../../../scripts/release/ensure-pnpm-publish.mjs"
+  },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.59.0",
+    "@nextclaw/extension-sdk": "workspace:*",
+    "@nextclaw/ncp": "workspace:*",
+    "@nextclaw/ncp-toolkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "typescript": "^5.6.3",
+    "vitest": "^4.1.2"
+  }
+}

@@ -11,7 +11,7 @@ import {
 import {
   resolveDevPluginLoadingContext,
 } from "./development-source/dev-plugin-overrides.utils.js";
-import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.js";
+import { resolveDevFirstPartyPluginDir } from "./development-source/first-party-plugin-load-paths.utils.js";
 import {
   loadConfig,
   type Config,
@@ -32,7 +32,7 @@ import {
   uninstallPluginMutation,
 } from "./plugin-mutation-actions.js";
 export { type NextclawExtensionRegistry, toExtensionRegistry } from "./plugin-extension-registry.js";
-export { createEmptyPluginRegistry } from "./plugin-registry-loader.js";
+export { createEmptyPluginRegistry } from "./plugin-registry-loader.utils.js";
 export { mergePluginConfigView, toPluginConfigView } from "@nextclaw/openclaw-compat";
 
 type PluginStatusReport = ReturnType<typeof buildPluginStatusReport>;

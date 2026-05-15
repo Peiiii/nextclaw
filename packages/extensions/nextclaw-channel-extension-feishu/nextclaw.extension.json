@@ -1,0 +1,69 @@
+{
+  "id": "nextclaw-channel-extension-feishu",
+  "name": "NextClaw Feishu Channel Extension",
+  "version": "0.1.0",
+  "server": {
+    "type": "stdio",
+    "command": "node",
+    "args": ["dist/main.js"]
+  },
+  "contributes": {
+    "channels": [
+      {
+        "id": "feishu",
+        "name": "Feishu/Lark",
+        "description": "Feishu/Lark QR scan-to-create bot with WebSocket messaging",
+        "auth": {
+          "type": "request-response"
+        },
+        "configUiHints": {
+          "enabled": { "label": "Enabled" },
+          "defaultAccountId": { "label": "Default Account ID" },
+          "domain": { "label": "Domain" },
+          "allowFrom": { "label": "Allow From" },
+          "groupPolicy": { "label": "Group Policy", "advanced": true },
+          "requireMention": { "label": "Require Mention", "advanced": true }
+        },
+        "configSchema": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "defaultAccountId": { "type": "string" },
+            "domain": { "type": "string", "enum": ["feishu", "lark"] },
+            "allowFrom": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "groupPolicy": {
+              "type": "string",
+              "enum": ["open", "allowlist", "disabled"]
+            },
+            "requireMention": { "type": "boolean" },
+            "accounts": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                  "enabled": { "type": "boolean" },
+                  "name": { "type": "string" },
+                  "domain": { "type": "string", "enum": ["feishu", "lark"] },
+                  "allowFrom": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "groupPolicy": {
+                    "type": "string",
+                    "enum": ["open", "allowlist", "disabled"]
+                  },
+                  "requireMention": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

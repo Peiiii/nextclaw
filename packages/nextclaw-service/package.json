@@ -26,6 +26,7 @@
   ],
   "nextclaw": {
     "builtinExtensions": [
+      "@nextclaw/channel-extension-feishu",
       "@nextclaw/channel-extension-weixin"
     ]
   },
@@ -38,6 +39,7 @@
     "prepublishOnly": "node ../../scripts/release/ensure-pnpm-publish.mjs"
   },
   "dependencies": {
+    "@nextclaw/channel-extension-feishu": "workspace:*",
     "@nextclaw/channel-extension-weixin": "workspace:*",
     "@nextclaw/core": "workspace:*",
     "@nextclaw/kernel": "workspace:*",
