@@ -320,6 +320,13 @@ while true; do
     fi
   fi
 
+  BLOCKER_LINE="$(desktop_startup_blocker)"
+  if [[ -n "${BLOCKER_LINE}" ]]; then
+    echo "[desktop-smoke] desktop startup blocker detected: ${BLOCKER_LINE}" >&2
+    print_desktop_diagnostics
+    exit 1
+  fi
+
   ELAPSED_MS="$(($(now_ms) - START_MS))"
   if ((ELAPSED_MS > MAX_READY_SEC * 1000)); then
     echo "[desktop-smoke] desktop GUI not ready within ${MAX_READY_SEC}s." >&2

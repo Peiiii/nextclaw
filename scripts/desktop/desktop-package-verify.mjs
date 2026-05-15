@@ -9,6 +9,7 @@ import { resolveRepoPath } from "../shared/repo-paths.mjs";
 const rootDir = resolveRepoPath(import.meta.url);
 const releaseDir = resolve(rootDir, "apps/desktop/release");
 const nextclawPackageJsonPath = resolve(rootDir, "packages/nextclaw/package.json");
+const isHandoffVerify = process.argv.includes("--handoff");
 
 function binName(name) {
   return process.platform === "win32" ? `${name}.cmd` : name;
@@ -16,14 +17,17 @@ function binName(name) {
 
 function run(command, args, options = {}) {
   console.log(`[desktop-verify] run: ${command} ${args.join(" ")}`);
+  const startMs = Date.now();
   const result = spawnSync(command, args, {
     cwd: rootDir,
     stdio: "inherit",
     env: { ...process.env, ...(options.env ?? {}) }
   });
+  const elapsedMs = Date.now() - startMs;
   if (result.status !== 0) {
-    throw new Error(`Command failed: ${command} ${args.join(" ")}`);
+    throw new Error(`Command failed after ${elapsedMs}ms: ${command} ${args.join(" ")}`);
   }
+  console.log(`[desktop-verify] completed in ${elapsedMs}ms: ${command} ${args.join(" ")}`);
 }
 
 function commandExists(command, args = ["--version"]) {
@@ -50,6 +54,25 @@ function findLatestReleaseFile(matcher) {
     .filter((entry) => matcher(entry.name))
     .sort((a, b) => b.mtimeMs - a.mtimeMs);
   return entries[0]?.fullPath ?? "";
+}
+
+function formatBytes(bytes) {
+  const units = ["B", "KB", "MB", "GB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  return `${value.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function printArtifactSize(label, artifactPath) {
+  if (!existsSync(artifactPath)) {
+    throw new Error(`Cannot inspect missing artifact: ${artifactPath}`);
+  }
+  const size = statSync(artifactPath).size;
+  console.log(`[desktop-verify] artifact ${label}: ${artifactPath} (${formatBytes(size)})`);
 }
 
 function cleanReleaseDir() {
@@ -246,6 +269,8 @@ function verifyMacDesktopPackage() {
   if (!existsSync(packagedPublicKeyPath)) {
     throw new Error(`Packaged update public key missing: ${packagedPublicKeyPath}`);
   }
+  printArtifactSize("dmg", dmgPath);
+  printArtifactSize("seed bundle", seedBundlePath);
   parsePublicKey(readFileSync(packagedPublicKeyPath, "utf8"), packagedPublicKeyPath);
   assertManifestSignatureCanBeVerified(
     packagedPublicKeyPath,
@@ -256,6 +281,13 @@ function verifyMacDesktopPackage() {
   assertSeedBundleExcludesElectron(seedBundlePath);
   verifySeedBundleRuntimeInit(seedBundlePath);
   run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"]);
+  if (isHandoffVerify) {
+    run("bash", ["apps/desktop/scripts/smoke-macos-dmg.sh", dmgPath, "120"], {
+      env: { NEXTCLAW_DESKTOP_SMOKE_PROFILE: "real" }
+    });
+  } else {
+    console.log("[desktop-verify] real-profile handoff smoke skipped. Run `pnpm desktop:package:handoff:verify` before giving a clickable local macOS artifact to a human.");
+  }
   console.log(`[desktop-verify] macOS package verified: ${dmgPath}`);
 }
 
@@ -385,6 +417,7 @@ function verifyLinuxDesktopPackage() {
 
 function main() {
   console.log(`[desktop-verify] platform=${process.platform} arch=${process.arch}`);
+  console.log(`[desktop-verify] mode=${isHandoffVerify ? "handoff" : "package"}`);
   runCommonBuildSteps();
 
   if (process.platform === "darwin") {
