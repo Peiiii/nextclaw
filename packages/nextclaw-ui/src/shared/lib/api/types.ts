@@ -1,5 +1,5 @@
 import type { NcpSessionStatus } from '@nextclaw/ncp';
-import type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView } from './ncp-session.types';
+import type { RuntimeEntryView, NcpSessionSummaryView } from './ncp-session.types';
 export type { SessionEntryView, RuntimeEntryView, SessionTypeIconView, SessionMessageView, SessionEventView, NcpSessionSummaryView, NcpSessionsListView, NcpMessageView, NcpSessionMessagesView, SessionContextWindowView } from './ncp-session.types';
 
 // API Types - matching backend response format
@@ -774,6 +774,17 @@ export type MarketplaceRecommendationView = {
   description?: string;
   total: number;
   items: MarketplaceItemSummary[];
+};
+
+export type MarketplaceSceneView = {
+  scene: string;
+  title: string;
+  description?: string;
+  count?: number;
+};
+
+export type MarketplaceScenesView = {
+  scenes: MarketplaceSceneView[];
 };
 
 export type MarketplaceInstalledRecord = {

@@ -66,6 +66,8 @@ export type {
   MarketplaceMcpManageResult,
   MarketplacePluginContentView,
   MarketplaceRecommendationView,
+  MarketplaceSceneView,
+  MarketplaceScenesView,
   MarketplaceSkillContentView,
   MarketplaceSort,
   NcpSessionSkillsView,

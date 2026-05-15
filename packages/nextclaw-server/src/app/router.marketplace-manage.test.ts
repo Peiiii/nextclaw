@@ -207,4 +207,184 @@ describe("marketplace manage plugin id resolution", () => {
     expect(url).toContain("/api/v1/plugins/recommendations");
     expect(url).not.toContain("/api/v1/recommendations?");
   });
+
 });
+
+describe("skill marketplace scenes", () => {
+  it("exposes skill marketplace scenes without item type coupling", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          entries: {}
+        }
+      }),
+      configPath
+    );
+
+    const app = createUiRouter({
+      configPath,
+      appEventBus: new EventBus()
+    });
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 2,
+            page: 1,
+            pageSize: 100,
+            totalPages: 1,
+            sort: "relevance",
+            items: [
+              createMarketplaceSkillItem({
+                id: "skill-code-review",
+                slug: "code-review",
+                name: "Code Review",
+                tags: ["code", "review"]
+              }),
+              createMarketplaceSkillItem({
+                id: "skill-calendar-sync",
+                slug: "calendar-sync",
+                name: "Calendar Sync",
+                tags: ["calendar"]
+              })
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    ));
+
+    const response = await app.request("http://localhost/api/marketplace/skills/scenes");
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        scenes: Array<{
+          scene: string;
+          title: string;
+          count?: number;
+          type?: string;
+        }>;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.data.scenes[0]).toMatchObject({
+      scene: "development-debugging",
+      title: "Development",
+      count: 1
+    });
+    expect(payload.data.scenes[0]?.type).toBeUndefined();
+  });
+
+  it("filters skill marketplace items by scene", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          entries: {}
+        }
+      }),
+      configPath
+    );
+
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 3,
+            page: 1,
+            pageSize: 100,
+            totalPages: 1,
+            sort: "relevance",
+            items: [
+              createMarketplaceSkillItem({
+                id: "skill-code-review",
+                slug: "code-review",
+                name: "Code Review",
+                tags: ["code", "review"]
+              }),
+              createMarketplaceSkillItem({
+                id: "skill-calendar-sync",
+                slug: "calendar-sync",
+                name: "Calendar Sync",
+                tags: ["calendar"]
+              }),
+              createMarketplaceSkillItem({
+                id: "skill-writing-room",
+                slug: "writing-room",
+                name: "Writing Room",
+                tags: ["writing"]
+              })
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = createUiRouter({
+      configPath,
+      appEventBus: new EventBus(),
+      marketplace: {
+        apiBaseUrl: "http://marketplace.example"
+      }
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/skills/items?scene=development-debugging");
+    expect(response.status).toBe(200);
+    const payload = await response.json() as {
+      ok: boolean;
+      data: {
+        total: number;
+        items: Array<{
+          slug: string;
+        }>;
+      };
+    };
+
+    expect(payload.ok).toBe(true);
+    expect(payload.data.total).toBe(1);
+    expect(payload.data.items.map((item) => item.slug)).toEqual(["code-review"]);
+  });
+});
+
+function createMarketplaceSkillItem(overrides: {
+  id: string;
+  slug: string;
+  name: string;
+  tags: string[];
+}) {
+  return {
+    id: overrides.id,
+    slug: overrides.slug,
+    type: "skill",
+    name: overrides.name,
+    summary: `${overrides.name} summary`,
+    summaryI18n: {
+      en: `${overrides.name} summary`
+    },
+    tags: overrides.tags,
+    author: "NextClaw",
+    install: {
+      kind: "marketplace",
+      spec: `@nextclaw/${overrides.slug}`,
+      command: `nextclaw skills install @nextclaw/${overrides.slug}`
+    },
+    updatedAt: "2026-03-17T00:00:00.000Z"
+  };
+}

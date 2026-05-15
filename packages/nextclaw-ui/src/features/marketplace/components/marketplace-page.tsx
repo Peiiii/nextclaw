@@ -23,7 +23,6 @@ import {
 } from "@/features/marketplace/hooks/use-marketplace";
 import {
   FilterPanel,
-  MarketplaceListSkeleton,
   MarketplaceInfiniteScrollStatus,
 } from "@/features/marketplace/components/marketplace-page-parts";
 import {
@@ -34,18 +33,22 @@ import {
   buildCatalogLookup,
   buildInstalledRecordLookup,
   findCatalogItemForRecord,
-  findInstalledRecordForItem,
   matchInstalledSearch,
   type InstalledRenderEntry,
 } from "@/features/marketplace/components/marketplace-page-data";
 import { buildGenericDetailDataUrl } from "@/features/marketplace/components/marketplace-detail-doc";
-import {
-  MarketplaceListCard,
-  type InstallState,
-  type ManageState,
+import type {
+  InstallState,
+  ManageState,
 } from "@/features/marketplace/components/marketplace-list-card";
+import { MarketplaceCatalogGrid } from "@/features/marketplace/components/marketplace-catalog-grid";
+import {
+  MarketplaceCuratedSceneView,
+  MarketplaceCuratedShelves,
+} from "@/features/marketplace/components/curated-shelves/marketplace-curated-shelves";
+import { useMarketplaceCuratedSceneRoute } from "@/features/marketplace/hooks/use-marketplace-curated-scene-route";
 import { t } from "@/shared/lib/i18n";
-import { PageHeader, PageLayout } from "@/app/components/layout/page-layout";
+import { PageLayout } from "@/app/components/layout/page-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
@@ -61,10 +64,43 @@ type MarketplacePageProps = {
   forcedType?: MarketplaceRouteType;
 };
 
+function getMarketplaceCopyKeys(typeFilter: MarketplaceItemType) {
+  if (typeFilter === "plugin") {
+    return {
+      pageTitle: "marketplacePluginsPageTitle",
+      pageDescription: "marketplacePluginsPageDescription",
+      tabMarketplace: "marketplaceTabMarketplacePlugins",
+      tabInstalled: "marketplaceTabInstalledPlugins",
+      searchPlaceholder: "marketplaceSearchPlaceholderPlugins",
+      sectionCatalog: "marketplaceSectionPlugins",
+      sectionInstalled: "marketplaceSectionInstalledPlugins",
+      errorLoadData: "marketplaceErrorLoadingPluginsData",
+      errorLoadInstalled: "marketplaceErrorLoadingInstalledPlugins",
+      emptyData: "marketplaceNoPlugins",
+      emptyInstalled: "marketplaceNoInstalledPlugins",
+      installedCountSuffix: "marketplaceInstalledPluginsCountSuffix",
+    };
+  }
+  return {
+    pageTitle: "marketplaceSkillsPageTitle",
+    pageDescription: "marketplaceSkillsPageDescription",
+    tabMarketplace: "marketplaceTabMarketplaceSkills",
+    tabInstalled: "marketplaceTabInstalledSkills",
+    searchPlaceholder: "marketplaceSearchPlaceholderSkills",
+    sectionCatalog: "marketplaceSectionSkills",
+    sectionInstalled: "marketplaceSectionInstalledSkills",
+    errorLoadData: "marketplaceErrorLoadingSkillsData",
+    errorLoadInstalled: "marketplaceErrorLoadingInstalledSkills",
+    emptyData: "marketplaceNoSkills",
+    emptyInstalled: "marketplaceNoInstalledSkills",
+    installedCountSuffix: "marketplaceInstalledSkillsCountSuffix",
+  };
+}
+
 export function MarketplacePage(props: MarketplacePageProps = {}) {
   const { forcedType } = props;
   const navigate = useNavigate();
-  const params = useParams<{ type?: string }>();
+  const params = useParams<{ type?: string; scene?: string }>();
   const { language } = useI18n();
   const docBrowser = useDocBrowser();
 
@@ -94,36 +130,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     [language],
   );
 
-  const isPluginModule = typeFilter === "plugin";
-  const copyKeys = isPluginModule
-    ? {
-        pageTitle: "marketplacePluginsPageTitle",
-        pageDescription: "marketplacePluginsPageDescription",
-        tabMarketplace: "marketplaceTabMarketplacePlugins",
-        tabInstalled: "marketplaceTabInstalledPlugins",
-        searchPlaceholder: "marketplaceSearchPlaceholderPlugins",
-        sectionCatalog: "marketplaceSectionPlugins",
-        sectionInstalled: "marketplaceSectionInstalledPlugins",
-        errorLoadData: "marketplaceErrorLoadingPluginsData",
-        errorLoadInstalled: "marketplaceErrorLoadingInstalledPlugins",
-        emptyData: "marketplaceNoPlugins",
-        emptyInstalled: "marketplaceNoInstalledPlugins",
-        installedCountSuffix: "marketplaceInstalledPluginsCountSuffix",
-      }
-    : {
-        pageTitle: "marketplaceSkillsPageTitle",
-        pageDescription: "marketplaceSkillsPageDescription",
-        tabMarketplace: "marketplaceTabMarketplaceSkills",
-        tabInstalled: "marketplaceTabInstalledSkills",
-        searchPlaceholder: "marketplaceSearchPlaceholderSkills",
-        sectionCatalog: "marketplaceSectionSkills",
-        sectionInstalled: "marketplaceSectionInstalledSkills",
-        errorLoadData: "marketplaceErrorLoadingSkillsData",
-        errorLoadInstalled: "marketplaceErrorLoadingInstalledSkills",
-        emptyData: "marketplaceNoSkills",
-        emptyInstalled: "marketplaceNoInstalledSkills",
-        installedCountSuffix: "marketplaceInstalledSkillsCountSuffix",
-      };
+  const copyKeys = getMarketplaceCopyKeys(typeFilter);
 
   const [searchText, setSearchText] = useState("");
   const [query, setQuery] = useState("");
@@ -145,9 +152,11 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   }, [searchText]);
 
   const installedQuery = useMarketplaceInstalled(typeFilter);
+  const sceneParam = typeFilter === "skill" ? params.scene?.trim() : undefined;
 
   const itemsQuery = useMarketplaceItems({
-    q: query || undefined,
+    q: sceneParam ? undefined : query || undefined,
+    scene: sceneParam,
     type: typeFilter,
     sort,
     pageSize: PAGE_SIZE,
@@ -160,7 +169,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
       !itemsQuery.hasNextPage ||
       itemsQuery.isFetchingNextPage,
     onLoadMore: () => itemsQuery.fetchNextPage(),
-    watchValue: `${typeFilter}:${scope}:${query}:${sort}:${itemsQuery.data?.loadedItems ?? 0}:${itemsQuery.data?.loadedPages ?? 0}`,
+    watchValue: `${typeFilter}:${scope}:${query}:${sceneParam ?? ""}:${sort}:${itemsQuery.data?.loadedItems ?? 0}:${itemsQuery.data?.loadedPages ?? 0}`,
   });
 
   useEffect(() => {
@@ -168,7 +177,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
     if (container && typeof container.scrollTo === "function") {
       container.scrollTo({ top: 0 });
     }
-  }, [infiniteScroll.containerRef, query, scope, sort, typeFilter]);
+  }, [infiniteScroll.containerRef, query, sceneParam, scope, sort, typeFilter]);
 
   const installMutation = useInstallMarketplaceItem();
   const manageMutation = useManageMarketplaceItem();
@@ -263,15 +272,18 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
   const manageState: ManageState = {
     actionsByTarget: managingTargets,
   };
-
-  const scopeTabs = [
-    { id: "all", label: t(copyKeys.tabMarketplace) },
-    {
-      id: "installed",
-      label: t(copyKeys.tabInstalled),
-      count: installedQuery.data?.total ?? 0,
-    },
-  ];
+  const curatedSceneRoute = useMarketplaceCuratedSceneRoute({
+    items: allItems,
+    installedRecordLookup,
+    scene: sceneParam,
+    forcedType,
+    typeFilter,
+    scope,
+    searchText,
+    query,
+    showListSkeleton,
+    hasCatalogError: itemsQuery.isError,
+  });
 
   const handleInstall = async (item: MarketplaceItemSummary) => {
     const installSpec = item.install.spec;
@@ -468,36 +480,44 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
 
   return (
     <PageLayout className="flex h-full min-h-0 flex-col pb-0">
-      <PageHeader
-        title={t(copyKeys.pageTitle)}
-        description={t(copyKeys.pageDescription)}
-      />
+      {!curatedSceneRoute.isSceneRoute && (
+        <>
+          <Tabs
+            tabs={[
+              { id: "all", label: t(copyKeys.tabMarketplace) },
+              {
+                id: "installed",
+                label: t(copyKeys.tabInstalled),
+                count: installedQuery.data?.total ?? 0,
+              },
+            ]}
+            activeTab={scope}
+            onChange={(value) => setScope(value as ScopeType)}
+            className="mb-3"
+          />
 
-      <Tabs
-        tabs={scopeTabs}
-        activeTab={scope}
-        onChange={(value) => setScope(value as ScopeType)}
-        className="mb-4"
-      />
-
-      <FilterPanel
-        scope={scope}
-        searchText={searchText}
-        searchPlaceholder={t(copyKeys.searchPlaceholder)}
-        sort={sort}
-        onSearchTextChange={setSearchText}
-        onSortChange={setSort}
-      />
+          <FilterPanel
+            scope={scope}
+            searchText={searchText}
+            searchPlaceholder={t(copyKeys.searchPlaceholder)}
+            sort={sort}
+            onSearchTextChange={setSearchText}
+            onSortChange={setSort}
+          />
+        </>
+      )}
 
       <section className="flex min-h-0 flex-1 flex-col">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-[14px] font-semibold text-gray-900">
-            {scope === "installed"
-              ? t(copyKeys.sectionInstalled)
-              : t(copyKeys.sectionCatalog)}
-          </h3>
-          <span className="text-[12px] text-gray-500">{listSummary}</span>
-        </div>
+        {!curatedSceneRoute.isSceneRoute && !curatedSceneRoute.showShelves && (
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-[14px] font-semibold text-gray-900">
+              {scope === "installed"
+                ? t(copyKeys.sectionInstalled)
+                : t(copyKeys.sectionCatalog)}
+            </h3>
+            <span className="text-[12px] text-gray-500">{listSummary}</span>
+          </div>
+        )}
 
         {scope === "all" && itemsQuery.isError && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
@@ -515,55 +535,60 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
           className="min-h-0 flex-1 overflow-y-auto custom-scrollbar pr-1"
           aria-busy={showListSkeleton || itemsQuery.isFetchingNextPage}
         >
-          <div
-            data-testid={
-              showListSkeleton ? "marketplace-list-skeleton" : undefined
-            }
-            className="grid grid-cols-1 gap-3 lg:grid-cols-2 2xl:grid-cols-3"
-          >
-            {showListSkeleton && (
-              <MarketplaceListSkeleton count={SKELETON_CARD_COUNT} />
-            )}
+          {curatedSceneRoute.isSceneRoute && curatedSceneRoute.selectedScene && (
+            <MarketplaceCuratedSceneView
+              scene={curatedSceneRoute.selectedScene}
+              entries={curatedSceneRoute.sceneEntries}
+              isLoading={showListSkeleton}
+              language={language}
+              localeFallbacks={localeFallbacks}
+              installState={installState}
+              onBack={() => navigate(curatedSceneRoute.backPath)}
+              onOpen={(entry) => void openItemDetail(entry.item, entry.record)}
+              onInstall={handleInstall}
+            />
+          )}
 
-            {!showListSkeleton &&
-              scope === "all" &&
-              allItems.map((item) => (
-                <MarketplaceListCard
-                  key={item.id}
-                  item={item}
-                  record={findInstalledRecordForItem(item, installedRecordLookup)}
-                  language={language}
-                  installState={installState}
-                  manageState={manageState}
-                  onOpen={() =>
-                    void openItemDetail(
-                      item,
-                      findInstalledRecordForItem(item, installedRecordLookup),
-                    )
-                  }
-                  onInstall={handleInstall}
-                  onManage={handleManage}
-                />
-              ))}
+          {curatedSceneRoute.showShelves && (
+            <MarketplaceCuratedShelves
+              entries={curatedSceneRoute.entries}
+              scenes={curatedSceneRoute.scenes}
+              language={language}
+              installState={installState}
+              onOpen={(entry) => void openItemDetail(entry.item, entry.record)}
+              onInstall={handleInstall}
+              onOpenScene={(scene) =>
+                navigate(`${curatedSceneRoute.pathPrefix}/${scene}`)
+              }
+            />
+          )}
 
-            {!showListSkeleton &&
-              scope === "installed" &&
-              installedEntries.map((entry) => (
-                <MarketplaceListCard
-                  key={entry.key}
-                  item={entry.item}
-                  record={entry.record}
-                  language={language}
-                  installState={installState}
-                  manageState={manageState}
-                  onOpen={() => void openItemDetail(entry.item, entry.record)}
-                  onInstall={handleInstall}
-                  onManage={handleManage}
-                />
-              ))}
-          </div>
+          {!curatedSceneRoute.isSceneRoute && (
+            <MarketplaceCatalogGrid
+              scope={scope}
+              title={
+                scope === "installed"
+                  ? t(copyKeys.sectionInstalled)
+                  : t(copyKeys.sectionCatalog)
+              }
+              summary={listSummary}
+              showTitle={curatedSceneRoute.showShelves}
+              showListSkeleton={showListSkeleton}
+              skeletonCardCount={SKELETON_CARD_COUNT}
+              allItems={allItems}
+              installedEntries={installedEntries}
+              installedRecordLookup={installedRecordLookup}
+              language={language}
+              installState={installState}
+              manageState={manageState}
+              onOpen={(item, record) => void openItemDetail(item, record)}
+              onInstall={handleInstall}
+              onManage={handleManage}
+            />
+          )}
 
           {scope === "all" &&
+            !curatedSceneRoute.isSceneRoute &&
             !showListSkeleton &&
             !itemsQuery.isError &&
             allItems.length === 0 && (
@@ -572,6 +597,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
               </div>
             )}
           {scope === "installed" &&
+            !curatedSceneRoute.isSceneRoute &&
             !showListSkeleton &&
             !installedQuery.isError &&
             installedEntries.length === 0 && (
@@ -581,6 +607,7 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             )}
 
           {scope === "all" &&
+            !curatedSceneRoute.isSceneRoute &&
             !skeletonState.showCatalog &&
             !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus

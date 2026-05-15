@@ -1,7 +1,9 @@
 import type { Context } from "hono";
 import type {
   MarketplaceItemView,
+  MarketplaceListView,
   MarketplaceRecommendationView,
+  MarketplaceScenesView,
   MarketplaceSkillContentView,
   MarketplaceSkillInstallRequest,
   MarketplaceSkillInstallResult,
@@ -19,6 +21,12 @@ import {
   sanitizeMarketplaceListItems,
   toPositiveInt
 } from "@nextclaw-server/features/marketplace/utils/marketplace-catalog.utils.js";
+import {
+  countSkillMarketplaceScenes,
+  findSkillMarketplaceScene,
+  listSkillMarketplaceScenes,
+  matchesSkillMarketplaceScene
+} from "@nextclaw-server/features/marketplace/configs/skill-marketplace-scenes.config.js";
 import {
   collectKnownSkillNames,
   collectSkillMarketplaceInstalledView,
@@ -107,49 +115,90 @@ export class SkillMarketplaceController {
     return c.json(ok(collectSkillMarketplaceInstalledView(this.options)));
   };
 
-  readonly listItems = async (c: Context) => {
-    const query = c.req.query();
+  private readonly loadSupportedItems = async (query?: Record<string, string | undefined>): Promise<
+    | { ok: true; data: { sort: MarketplaceListView["sort"]; query?: string; items: MarketplaceListView["items"] } }
+    | { ok: false; status: number; code: "MARKETPLACE_UNAVAILABLE" | "MARKETPLACE_CONTRACT_MISMATCH"; message: string }
+  > => {
     const result = await fetchAllSkillMarketplaceItems({
       baseUrl: this.marketplaceBaseUrl,
-      query: {
-        q: query.q,
-        tag: query.tag,
-        sort: query.sort,
-        page: query.page,
-        pageSize: query.pageSize
-      }
+      query
     });
 
     if (!result.ok) {
-      return c.json(err("MARKETPLACE_UNAVAILABLE", result.message), result.status as 500);
+      return {
+        ...result,
+        code: "MARKETPLACE_UNAVAILABLE"
+      };
     }
 
     const normalizedItems = sanitizeMarketplaceListItems(result.data.items)
       .map((item) => normalizeMarketplaceItemForUi(item));
     const unsupportedKind = findUnsupportedSkillInstallKind(normalizedItems);
     if (unsupportedKind) {
-      return c.json(
-        err("MARKETPLACE_CONTRACT_MISMATCH", `unsupported skill install kind from marketplace api: ${unsupportedKind}`),
-        502
-      );
+      return {
+        ok: false,
+        code: "MARKETPLACE_CONTRACT_MISMATCH",
+        status: 502,
+        message: `unsupported skill install kind from marketplace api: ${unsupportedKind}`
+      };
     }
 
     const knownSkillNames = collectKnownSkillNames(this.options);
-    const filteredItems = normalizedItems.filter((item) => isSupportedMarketplaceSkillItem(item, knownSkillNames));
+    return {
+      ok: true,
+      data: {
+        sort: result.data.sort,
+        ...(typeof result.data.query === "string" ? { query: result.data.query } : {}),
+        items: normalizedItems.filter((item) => isSupportedMarketplaceSkillItem(item, knownSkillNames))
+      }
+    };
+  };
+
+  readonly listScenes = async (c: Context) => {
+    const result = await this.loadSupportedItems();
+    if (!result.ok) {
+      return c.json(err(result.code, result.message), result.status as 500);
+    }
+
+    return c.json(ok<MarketplaceScenesView>({
+      scenes: listSkillMarketplaceScenes(countSkillMarketplaceScenes(result.data.items))
+    }));
+  };
+
+  readonly listItems = async (c: Context) => {
+    const query = c.req.query();
+    const result = await this.loadSupportedItems({
+      q: query.q,
+      tag: query.tag,
+      sort: query.sort,
+      page: query.page,
+      pageSize: query.pageSize
+    });
+
+    if (!result.ok) {
+      return c.json(err(result.code, result.message), result.status as 500);
+    }
+
+    const scene = findSkillMarketplaceScene(query.scene);
+    const sceneFilteredItems = query.scene?.trim()
+      ? scene
+        ? result.data.items.filter((item) => matchesSkillMarketplaceScene(item, scene))
+        : []
+      : result.data.items;
 
     const pageSize = Math.min(100, toPositiveInt(query.pageSize, 20));
     const requestedPage = toPositiveInt(query.page, 1);
-    const totalPages = filteredItems.length === 0 ? 0 : Math.ceil(filteredItems.length / pageSize);
+    const totalPages = sceneFilteredItems.length === 0 ? 0 : Math.ceil(sceneFilteredItems.length / pageSize);
     const currentPage = totalPages === 0 ? 1 : Math.min(requestedPage, totalPages);
 
     return c.json(ok({
-      total: filteredItems.length,
+      total: sceneFilteredItems.length,
       page: currentPage,
       pageSize,
       totalPages,
       sort: result.data.sort,
       query: result.data.query,
-      items: filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+      items: sceneFilteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize)
     }));
   };
 
