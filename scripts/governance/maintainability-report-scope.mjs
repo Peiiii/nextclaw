@@ -1,11 +1,6 @@
 import path from "node:path";
 
-export const MAINTAINABILITY_REPORT_DEFERRED_WORKSPACES = [
-  {
-    workspace: "packages/extensions/nextclaw-channel-plugin-feishu",
-    reason: "非核心渠道插件，近期更新频率较低；当前先把治理注意力集中在核心运行链路。"
-  }
-];
+export const MAINTAINABILITY_REPORT_DEFERRED_WORKSPACES = [];
 
 function normalizeScopePath(pathText) {
   const normalized = `${pathText ?? ""}`.trim();

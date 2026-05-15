@@ -33,7 +33,6 @@
     "@nextclaw/channel-plugin-dingtalk": "workspace:*",
     "@nextclaw/channel-plugin-discord": "workspace:*",
     "@nextclaw/channel-plugin-email": "workspace:*",
-    "@nextclaw/channel-plugin-feishu": "workspace:*",
     "@nextclaw/channel-plugin-mochat": "workspace:*",
     "@nextclaw/channel-plugin-qq": "workspace:*",
     "@nextclaw/channel-plugin-slack": "workspace:*",
