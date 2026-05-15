@@ -2,7 +2,7 @@
 import { existsSync, realpathSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
 import { join, relative, resolve } from "node:path";
-import { createServer as createNetServer, Socket } from "node:net";
+import { createServer as createNetServer } from "node:net";
 import { homedir } from "node:os";
 import {
   createPluginOverrideValue,
@@ -190,40 +190,10 @@ function isPortAvailable(port, host) {
   });
 }
 
-function isPortOccupied(port, host) {
-  return new Promise((resolveOccupied) => {
-    const socket = new Socket();
-    let settled = false;
-
-    const finalize = (value) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      socket.destroy();
-      resolveOccupied(value);
-    };
-
-    socket.setTimeout(250, () => finalize(false));
-    socket.once("connect", () => finalize(true));
-    socket.once("error", (error) => {
-      const code = typeof error?.code === "string" ? error.code : "";
-      if (code === "ECONNREFUSED" || code === "EHOSTUNREACH" || code === "ENETUNREACH") {
-        finalize(false);
-        return;
-      }
-      finalize(true);
-    });
-
-    socket.connect(port, host);
-  });
-}
-
 async function resolveFreePort(startPort, host) {
   let current = startPort;
   for (let index = 0; index < PORT_SCAN_LIMIT; index += 1) {
-    const occupied = await isPortOccupied(current, "127.0.0.1");
-    if (!occupied && (await isPortAvailable(current, host))) {
+    if (await isPortAvailable(current, host)) {
       return current;
     }
     current += 1;
@@ -249,8 +219,6 @@ if (backendPort !== preferredBackendPort || frontendPort !== preferredFrontendPo
   );
 }
 
-console.log(`[dev] API base: http://127.0.0.1:${backendPort}`);
-console.log(`[dev] Frontend: http://127.0.0.1:${frontendPort}`);
 console.log(
   `[dev] Companion: ${devStartOptions.companionEnabled ? "enabled" : "disabled (pass --companion or set NEXTCLAW_DEV_ENABLE_COMPANION=1 to enable)"}`
 );
@@ -310,6 +278,18 @@ const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
 
   children.push(child);
 
+  child.on("error", (error) => {
+    if (requestedStop || shuttingDown) {
+      return;
+    }
+    console.error(`[dev:${label}] failed to start: ${error instanceof Error ? error.message : String(error)}`);
+    if (critical) {
+      shuttingDown = true;
+      exitCode = 1;
+      terminateChildren(child, "SIGTERM");
+    }
+  });
+
   child.on("exit", (code, signal) => {
     if (requestedStop || shuttingDown) {
       return;
@@ -331,14 +311,38 @@ const spawnProcess = (label, cmd, args, cwd, extraEnv = {}, options = {}) => {
       console.error(`[dev:${label}] exited with signal ${signal}`);
     }
 
-    for (const proc of children) {
-      if (proc !== child && proc.exitCode === null && !proc.killed) {
-        proc.kill("SIGTERM");
-      }
-    }
+    terminateChildren(child, "SIGTERM");
   });
 
   return child;
+};
+
+const terminateChildren = (exceptChild, signal) => {
+  for (const child of children) {
+    if (child !== exceptChild && child.exitCode === null && !child.killed) {
+      child.kill(signal);
+    }
+  }
+};
+
+const stopAll = (signal) => {
+  if (shuttingDown) {
+    return;
+  }
+  requestedStop = true;
+  shuttingDown = true;
+  exitCode = 0;
+  terminateChildren(null, signal);
+};
+
+const failStartup = (error) => {
+  if (shuttingDown) {
+    return;
+  }
+  console.error(error instanceof Error ? error.message : String(error));
+  shuttingDown = true;
+  exitCode = 1;
+  terminateChildren(null, "SIGTERM");
 };
 
 function startPluginBuildWatchers(pluginPaths) {
@@ -360,10 +364,10 @@ async function waitForBackendReady(child, port, timeoutMs) {
     if (typeof child.exitCode === "number") {
       throw new Error(`[dev:backend] exited before accepting connections on port ${port}.`);
     }
-    if (await isPortOccupied(port, "127.0.0.1")) {
+    try {
+      await fetch(`http://127.0.0.1:${port}/api/app/meta`, { signal: globalThis.AbortSignal.timeout(250) });
       return;
-    }
-    await new Promise((resolveDelay) => setTimeout(resolveDelay, BACKEND_READY_POLL_MS));
+    } catch { await new Promise((resolveDelay) => setTimeout(resolveDelay, BACKEND_READY_POLL_MS)); }
   }
   throw new Error(`[dev:backend] timed out waiting for port ${port} to accept connections after ${timeoutMs}ms.`);
 }
@@ -401,11 +405,20 @@ const backendProcess = spawnProcess(
   }
 );
 
-await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
+console.log(`[dev] Waiting for backend to accept connections on http://127.0.0.1:${backendPort}...`);
+try {
+  await waitForBackendReady(backendProcess, backendPort, BACKEND_READY_TIMEOUT_MS);
+} catch (error) {
+  failStartup(error);
+}
+if (shuttingDown) {
+  process.exit(exitCode);
+}
 if (devStartOptions.pluginWatchEnabled) {
   startPluginBuildWatchers(workspaceWatchablePluginPaths);
 }
 
+console.log(`[dev] Backend ready; starting frontend: http://127.0.0.1:${frontendPort}`);
 spawnProcess(
   "frontend",
   frontendBin,
@@ -424,20 +437,6 @@ if (devStartOptions.companionEnabled) {
     { critical: false }
   );
 }
-
-const stopAll = (signal) => {
-  if (shuttingDown) {
-    return;
-  }
-  requestedStop = true;
-  shuttingDown = true;
-  exitCode = 0;
-  for (const child of children) {
-    if (child.exitCode === null && !child.killed) {
-      child.kill(signal);
-    }
-  }
-};
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
   process.on(signal, () => stopAll(signal));
