@@ -9,11 +9,14 @@ import { useChatSessionListStore } from '@/features/chat/stores/chat-session-lis
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(() => 'draft-session-key'),
   goToSession: vi.fn(),
+  goToChatRoot: vi.fn(),
   setQuery: vi.fn(),
   setListMode: vi.fn(),
   selectSession: vi.fn(),
   openChildSessionPanel: vi.fn(),
   docOpen: vi.fn(),
+  setLanguage: vi.fn(),
+  setTheme: vi.fn(),
   updateNcpSession: vi.fn(),
   agents: [] as Array<{ id: string; displayName?: string; avatarUrl?: string | null }>,
   sessionItems: [] as NcpSessionListItemView[],
@@ -31,6 +34,7 @@ vi.mock('@/features/chat/components/providers/chat-presenter.provider', () => ({
   usePresenter: () => ({
     chatUiManager: {
       goToSession: mocks.goToSession,
+      goToChatRoot: mocks.goToChatRoot,
     },
     chatSessionListManager: {
       createSession: mocks.createSession,
@@ -100,14 +104,14 @@ vi.mock('@/shared/hooks/use-agents', () => ({
 vi.mock('@/app/components/i18n-provider', () => ({
   useI18n: () => ({
     language: 'en',
-    setLanguage: vi.fn()
+    setLanguage: mocks.setLanguage
   })
 }));
 
 vi.mock('@/app/components/theme-provider', () => ({
   useTheme: () => ({
     theme: 'warm',
-    setTheme: vi.fn()
+    setTheme: mocks.setTheme
   })
 }));
 
@@ -121,11 +125,14 @@ function resetSidebarTestState() {
   mocks.createSession.mockReset();
   mocks.createSession.mockReturnValue('draft-session-key');
   mocks.goToSession.mockReset();
+  mocks.goToChatRoot.mockReset();
   mocks.setQuery.mockReset();
   mocks.setListMode.mockReset();
   mocks.selectSession.mockReset();
   mocks.openChildSessionPanel.mockReset();
   mocks.docOpen.mockReset();
+  mocks.setLanguage.mockReset();
+  mocks.setTheme.mockReset();
   mocks.updateNcpSession.mockReset();
   mocks.updateNcpSession.mockResolvedValue({});
   mocks.agents = [];
@@ -166,7 +173,7 @@ describe('ChatSidebar create and list basics', () => {
     fireEvent.click(screen.getByLabelText('Session Type'));
     fireEvent.click(screen.getByText('Codex'));
 
-    expect(mocks.createSession).toHaveBeenCalledWith('codex');
+    expect(mocks.createSession).toHaveBeenCalledWith('codex', undefined);
     await waitFor(() => {
       expect(screen.queryByText('Codex')).toBeNull();
     });
@@ -233,8 +240,38 @@ describe('ChatSidebar create and list basics', () => {
     fireEvent.click(screen.getByText('Codex'));
 
     expect(mocks.setQuery).toHaveBeenCalledWith('release notes');
-    expect(mocks.createSession).toHaveBeenCalledWith('codex');
-    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
+    expect(mocks.createSession).toHaveBeenCalledWith('codex', undefined);
+    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
+  });
+
+  it('keeps low-frequency utility choices behind nested selectors', () => {
+    render(
+      <MemoryRouter>
+        <ChatSidebar />
+      </MemoryRouter>
+    );
+
+    expect(screen.queryByRole('button', { name: 'Help Docs' })).toBeNull();
+    expect(screen.queryByText('Language')).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Cool' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings menu' }));
+    expect(screen.getByText('Theme')).not.toBeNull();
+    expect(screen.queryByRole('option', { name: 'Cool' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Help Docs' }));
+
+    expect(mocks.docOpen).toHaveBeenCalledWith(undefined, {
+      kind: 'docs',
+      newTab: true,
+      title: 'Docs',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings menu' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Theme' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Cool' }));
+
+    expect(mocks.setTheme).toHaveBeenCalledWith('cool');
   });
 
   it('creates the default session directly from the compact mobile add button when no menu is needed', () => {
@@ -254,8 +291,8 @@ describe('ChatSidebar create and list basics', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
 
-    expect(mocks.createSession).toHaveBeenCalledWith('native');
-    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
+    expect(mocks.createSession).toHaveBeenCalledWith('native', undefined);
+    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
   });
 
   it('shows a session type badge for non-native sessions in the list', () => {
@@ -564,7 +601,7 @@ describe('ChatSidebar project-first mode', () => {
     fireEvent.click(screen.getByText('Codex'));
 
     expect(mocks.createSession).toHaveBeenCalledWith('codex', '/tmp/project-mobile');
-    expect(mocks.goToSession).toHaveBeenCalledWith('draft-session-key');
+    expect(mocks.goToChatRoot).toHaveBeenCalledWith();
   });
 });
 

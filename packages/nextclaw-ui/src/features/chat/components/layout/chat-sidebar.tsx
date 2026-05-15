@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import type { SessionEntryView } from '@/shared/lib/api';
 import { BrandHeader } from '@/shared/components/common/brand-header';
 import { StatusBadge } from '@/shared/components/common/status-badge';
-import { SelectItem } from '@/shared/components/ui/select';
 import { ChatSidebarListModeSwitch, ChatSidebarProjectGroups, type ChatSidebarProjectGroup } from '@/features/chat';
 import { useChatSidebarSessionLabelEditor } from '@/features/chat/hooks/use-chat-sidebar-session-label-editor';
 import { useNcpSessionListView, type NcpSessionListItemView } from '@/features/chat/hooks/use-ncp-session-list-view';
@@ -14,26 +13,23 @@ import { useAgents } from '@/shared/hooks/use-agents';
 import { getSessionProjectName } from '@/shared/lib/session-project';
 import { cn } from '@/shared/lib/utils';
 import { LANGUAGE_OPTIONS, t, type I18nLanguage } from '@/shared/lib/i18n';
-import { THEME_OPTIONS, type UiTheme } from '@/shared/lib/theme';
+import { THEME_OPTIONS } from '@/shared/lib/theme';
 import { useI18n } from '@/app/components/i18n-provider';
 import { useTheme } from '@/app/components/theme-provider';
 import { useDocBrowser } from '@/shared/components/doc-browser';
-import { SidebarActionItem, SidebarNavLinkItem, SidebarSelectItem } from '@/app/components/layout/sidebar-items';
+import { SidebarNavLinkItem } from '@/app/components/layout/sidebar-items';
 import {
   AlarmClock,
   Bot,
-  BookOpen,
   BrainCircuit,
-  Languages,
   MessageSquareText,
-  Palette,
-  Settings
 } from 'lucide-react';
 import { ChatSidebarSessionEntry } from '@/features/chat/components/layout/chat-sidebar-session-entry';
 import {
   ChatSidebarDesktopToolbar,
   ChatSidebarMobileToolbar,
 } from '@/features/chat/components/layout/chat-sidebar-toolbar';
+import { ChatSidebarUtilityMenu } from '@/features/chat/components/layout/chat-sidebar-utility-menu';
 
 type DateGroup = {
   label: string;
@@ -186,6 +182,7 @@ export function ChatSidebar({
   const presenter = usePresenter();
   const docBrowser = useDocBrowser();
   const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
+  const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
   const inputSnapshot = useChatInputStore((state) => state.snapshot);
   const listSnapshot = useChatSessionListStore((state) => state.snapshot);
   const systemStatus = useSystemStatus();
@@ -195,6 +192,14 @@ export function ChatSidebar({
   const { theme, setTheme } = useTheme();
   const currentThemeLabel = t(THEME_OPTIONS.find((o) => o.value === theme)?.labelKey ?? 'themeWarm');
   const currentLanguageLabel = LANGUAGE_OPTIONS.find((o) => o.value === language)?.label ?? language;
+  const utilityThemeOptions = useMemo(
+    () => THEME_OPTIONS.map((option) => ({ value: option.value, label: t(option.labelKey) })),
+    [],
+  );
+  const utilityLanguageOptions = useMemo(
+    () => LANGUAGE_OPTIONS.map((option) => ({ value: option.value, label: option.label })),
+    [],
+  );
   const agentsById = useMemo(
     () => new Map((agentsQuery.data?.agents ?? []).map((agent) => [agent.id, agent])),
     [agentsQuery.data?.agents]
@@ -361,43 +366,20 @@ export function ChatSidebar({
       </div>
 
       {!isMobileVariant ? (
-        <div className="px-3 py-3 border-t border-gray-200/60 space-y-0.5">
-          <SidebarNavLinkItem
-            to="/settings"
-            label={t('settings')}
-            icon={Settings}
-            density="compact"
+        <div className="px-3 py-3 border-t border-gray-200/60">
+          <ChatSidebarUtilityMenu
+            isOpen={isUtilityMenuOpen}
+            onOpenChange={setIsUtilityMenuOpen}
+            currentTheme={theme}
+            currentThemeLabel={currentThemeLabel}
+            themeOptions={utilityThemeOptions}
+            onSelectTheme={setTheme}
+            currentLanguage={language}
+            currentLanguageLabel={currentLanguageLabel}
+            languageOptions={utilityLanguageOptions}
+            onSelectLanguage={handleLanguageSwitch}
+            onOpenDocs={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
           />
-          <SidebarActionItem
-            onClick={() => docBrowser.open(undefined, { kind: 'docs', newTab: true, title: 'Docs' })}
-            icon={BookOpen}
-            label={t('docBrowserHelp')}
-            density="compact"
-          />
-          <SidebarSelectItem
-            value={theme}
-            onValueChange={(value) => setTheme(value as UiTheme)}
-            icon={Palette}
-            label={t('theme')}
-            valueLabel={currentThemeLabel}
-            density="compact"
-          >
-            {THEME_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="text-xs">{t(option.labelKey)}</SelectItem>
-            ))}
-          </SidebarSelectItem>
-          <SidebarSelectItem
-            value={language}
-            onValueChange={(value) => handleLanguageSwitch(value as I18nLanguage)}
-            icon={Languages}
-            label={t('language')}
-            valueLabel={currentLanguageLabel}
-            density="compact"
-          >
-            {LANGUAGE_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value} className="text-xs">{option.label}</SelectItem>
-            ))}
-          </SidebarSelectItem>
         </div>
       ) : null}
     </aside>
