@@ -110,6 +110,17 @@ description: Use when building, verifying, or releasing NextClaw desktop install
 - If a capability depends on a newer Node builtin than the packaged Electron runtime, gate that capability explicitly and keep desktop startup alive instead of crashing the whole launcher.
 - `ELECTRON_RUN_AS_NODE` checks are compatibility diagnostics only. They are useful for isolating packaged-runtime issues, but they do not count as desktop GUI smoke and must not be used to pass a failed app-window launch.
 
+## Cross-Platform Build Contract
+- Desktop release builds must treat Windows, macOS, and Linux shells as different execution environments.
+- Package build scripts used by the desktop runtime must not depend on POSIX-only expansion such as `$(find ...)`, shell glob expansion, or Unix-only utilities unless the command explicitly runs inside a known compatible shell on every release runner.
+- Prefer tool-native globs, Node scripts, or existing workspace package commands over shell-expanded file lists.
+- Windows PowerShell release steps must fail on native command errors instead of silently continuing after a broken package build.
+- Product bundle creation must assert required runtime files before publishing, including:
+  - `runtime/dist/cli/app/index.js`
+  - `runtime/node_modules/@nextclaw/service/dist/index.js`
+  - `runtime/ui-dist/index.html`
+- If a runtime package is missing from the bundle, fix the package build/deploy contract first; do not debug it as an app startup problem until the packaged files are present.
+
 ## Unsigned macOS Local Gate
 - Do not treat `codesign --verify --deep --strict` as proof that a local unsigned macOS app opens.
 - Always classify a macOS launch failure before handing off an artifact:
@@ -225,6 +236,7 @@ Use this ladder before telling a human that a local DMG / `.app` is ready:
 - Do not claim validation passed if only process liveness, `codesign`, or isolated smoke passed.
 - Do not present runtime fallback success as GUI success.
 - Do not ignore user-provided local errors just because they are absent from a clean smoke environment.
+- Do not use POSIX-only shell expansion in runtime package build scripts that run in Windows desktop release jobs.
 - Do not derive `minimumLauncherVersion` from `apps/desktop/package.json` current version.
 - Do not treat "tag already exists" or "release page exists" as proof that assets or update-channel manifests are published.
 
