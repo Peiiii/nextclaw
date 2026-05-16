@@ -5,8 +5,9 @@ export function buildSpawnFailureMessage(params: {
   cwd?: string;
   error: Error;
 }): string {
-  const cwdSuffix = params.cwd ? ` (cwd: ${params.cwd})` : "";
-  return `[narp-stdio] failed to start stdio runtime command "${params.command}"${cwdSuffix}: ${params.error.message}`;
+  const { command, cwd, error } = params;
+  const cwdSuffix = cwd ? ` (cwd: ${cwd})` : "";
+  return `[narp-stdio] failed to start stdio runtime command "${command}"${cwdSuffix}: ${error.message}`;
 }
 
 export function normalizeRuntimeError(error: unknown): NcpError {

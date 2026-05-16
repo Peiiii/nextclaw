@@ -104,28 +104,37 @@ class PromptUpdateCollector {
         });
         return;
       case NcpEventType.MessageToolCallArgs:
-        this.upsertTool({
-          toolCallId: event.payload.toolCallId,
-          toolName: this.readToolName(event.payload.toolCallId),
-          args: event.payload.args,
-          state: "partial-call",
-        });
+        {
+          const tool = this.readTool(event.payload.toolCallId);
+          this.upsertTool({
+            toolCallId: event.payload.toolCallId,
+            toolName: tool.toolName,
+            args: event.payload.args,
+            state: "partial-call",
+          });
+        }
         return;
       case NcpEventType.MessageToolCallArgsDelta:
-        this.upsertTool({
-          toolCallId: event.payload.toolCallId,
-          toolName: this.readToolName(event.payload.toolCallId),
-          args: `${this.readToolArgs(event.payload.toolCallId)}${event.payload.delta}`,
-          state: "partial-call",
-        });
+        {
+          const tool = this.readTool(event.payload.toolCallId);
+          this.upsertTool({
+            toolCallId: event.payload.toolCallId,
+            toolName: tool.toolName,
+            args: `${tool.args}${event.payload.delta}`,
+            state: "partial-call",
+          });
+        }
         return;
       case NcpEventType.MessageToolCallEnd:
-        this.upsertTool({
-          toolCallId: event.payload.toolCallId,
-          toolName: this.readToolName(event.payload.toolCallId),
-          args: this.readToolArgs(event.payload.toolCallId),
-          state: "call",
-        });
+        {
+          const tool = this.readTool(event.payload.toolCallId);
+          this.upsertTool({
+            toolCallId: event.payload.toolCallId,
+            toolName: tool.toolName,
+            args: tool.args,
+            state: "call",
+          });
+        }
         return;
       default:
         return;
@@ -174,25 +183,13 @@ class PromptUpdateCollector {
     });
   };
 
-  private readToolArgs = (toolCallId: string): string => {
-    const part = this.findTool(toolCallId);
-    return part?.args ?? "";
-  };
-
-  private readToolName = (toolCallId: string): string => {
-    const part = this.findTool(toolCallId);
-    return part?.toolName ?? "unknown";
-  };
-
-  private findTool = (
-    toolCallId: string,
-  ): Extract<(typeof this.parts)[number], { type: "tool-invocation" }> | null => {
+  private readTool = (toolCallId: string): { toolName: string; args: string } => {
     const index = this.toolIndex.get(toolCallId);
-    if (typeof index !== "number") {
-      return null;
+    const part = typeof index === "number" ? this.parts[index] : null;
+    if (part?.type !== "tool-invocation") {
+      return { toolName: "unknown", args: "" };
     }
-    const part = this.parts[index];
-    return part?.type === "tool-invocation" ? part : null;
+    return { toolName: part.toolName, args: part.args };
   };
 }
 
@@ -401,6 +398,25 @@ class StdioRuntimeSession {
   };
 
   readStderr = (): string => this.stderr;
+
+  dispose = async (): Promise<void> => {
+    await this.cancel();
+    const child = this.child;
+    this.connection = null;
+    this.remoteSessionId = null;
+    this.child = null;
+    if (!child || child.killed || child.exitCode !== null || child.signalCode !== null) {
+      return;
+    }
+
+    const forceKill = setTimeout(() => {
+      child.kill("SIGKILL");
+    }, 3_000);
+    child.once("exit", () => {
+      clearTimeout(forceKill);
+    });
+    child.kill("SIGTERM");
+  };
 }
 
 class StdioRuntimeRunController {
@@ -618,44 +634,48 @@ class StdioRuntimeRunController {
   private emitTextDelta = (
     content: { type: string; text?: string },
     messageId: string,
-  ): NcpEndpointEvent[] => {
-    if (content.type !== "text" || !content.text) {
-      return [];
-    }
-    const events: NcpEndpointEvent[] = [];
-    if (!this.textStarted) {
+  ): NcpEndpointEvent[] => this.emitContentDelta({
+    content,
+    messageId,
+    started: this.textStarted,
+    markStarted: () => {
       this.textStarted = true;
-      events.push({
-        type: NcpEventType.MessageTextStart,
-        payload: {
-          sessionId: this.input.sessionId,
-          messageId,
-        },
-      });
-    }
-    events.push({
-      type: NcpEventType.MessageTextDelta,
-      payload: {
-        sessionId: this.input.sessionId,
-        messageId,
-        delta: content.text,
-      },
-    });
-    return events;
-  };
+    },
+    startType: NcpEventType.MessageTextStart,
+    deltaType: NcpEventType.MessageTextDelta,
+  });
 
   private emitReasoningDelta = (
     content: { type: string; text?: string },
     messageId: string,
-  ): NcpEndpointEvent[] => {
+  ): NcpEndpointEvent[] => this.emitContentDelta({
+    content,
+    messageId,
+    started: this.reasoningStarted,
+    markStarted: () => {
+      this.reasoningStarted = true;
+    },
+    startType: NcpEventType.MessageReasoningStart,
+    deltaType: NcpEventType.MessageReasoningDelta,
+  });
+
+  private emitContentDelta = (params: {
+    content: { type: string; text?: string };
+    messageId: string;
+    started: boolean;
+    markStarted: () => void;
+    startType: NcpEventType.MessageTextStart | NcpEventType.MessageReasoningStart;
+    deltaType: NcpEventType.MessageTextDelta | NcpEventType.MessageReasoningDelta;
+  }): NcpEndpointEvent[] => {
+    const { content, deltaType, markStarted, messageId, started, startType } = params;
     if (content.type !== "text" || !content.text) {
       return [];
     }
     const events: NcpEndpointEvent[] = [];
-    if (!this.reasoningStarted) {
-      this.reasoningStarted = true;
+    if (!started) {
+      markStarted();
       events.push({
-        type: NcpEventType.MessageReasoningStart,
+        type: startType,
         payload: {
           sessionId: this.input.sessionId,
           messageId,
@@ -663,7 +683,7 @@ class StdioRuntimeRunController {
       });
     }
     events.push({
-      type: NcpEventType.MessageReasoningDelta,
+      type: deltaType,
       payload: {
         sessionId: this.input.sessionId,
         messageId,
@@ -815,6 +835,10 @@ export class StdioRuntimeNcpAgentRuntime implements NcpAgentRuntime {
       this.config.resolveProviderRoute,
     );
     yield* controller.execute(options);
+  };
+
+  dispose = async (): Promise<void> => {
+    await this.session.dispose();
   };
 }
 

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
-import { type NcpAgentConversationStateManager, NcpEventType, type NcpRequestEnvelope } from "@nextclaw/ncp";
+import {
+  type NcpAgentConversationStateManager,
+  type NcpAgentRuntime,
+  type NcpEndpointEvent,
+  NcpEventType,
+  type NcpRequestEnvelope,
+} from "@nextclaw/ncp";
 import {
   DefaultNcpContextBuilder,
   DefaultNcpAgentRuntime,
@@ -56,4 +62,53 @@ describe("DefaultNcpAgentBackend run-status events", () => {
       status: "idle",
     });
   });
+
+  it("disposes live session runtimes when the backend stops", async () => {
+    const runtime = new DisposableEchoRuntime();
+    const backend = new DefaultNcpAgentBackend({
+      createRuntime: () => runtime,
+      sessionStore: new InMemoryAgentSessionStore(),
+    });
+
+    await backend.emit({
+      type: NcpEventType.MessageRequest,
+      payload: createEnvelope("dispose"),
+    });
+    await backend.stop();
+
+    expect(runtime.disposeCallCount).toBe(1);
+  });
 });
+
+class DisposableEchoRuntime implements NcpAgentRuntime {
+  disposeCallCount = 0;
+
+  async *run(): AsyncGenerator<NcpEndpointEvent> {
+    yield {
+      type: NcpEventType.MessageCompleted,
+      payload: {
+        sessionId: "session-1",
+        message: {
+          id: "assistant-disposable",
+          sessionId: "session-1",
+          role: "assistant",
+          status: "final",
+          parts: [{ type: "text", text: "disposed" }],
+          timestamp: now,
+        },
+      },
+    };
+    yield {
+      type: NcpEventType.RunFinished,
+      payload: {
+        sessionId: "session-1",
+        messageId: "assistant-disposable",
+        runId: "run-disposable",
+      },
+    };
+  }
+
+  dispose = (): void => {
+    this.disposeCallCount += 1;
+  };
+}
