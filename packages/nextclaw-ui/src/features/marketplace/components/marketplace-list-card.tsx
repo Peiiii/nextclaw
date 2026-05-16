@@ -86,18 +86,9 @@ function MarketplaceListCardMeta({
         ) : null}
       </div>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <p className="line-clamp-2 text-left text-[12px] leading-relaxed text-gray-500/90">
-            {summary}
-          </p>
-        </TooltipTrigger>
-        {summary ? (
-          <TooltipContent className="max-w-[400px] text-xs leading-relaxed">
-            {summary}
-          </TooltipContent>
-        ) : null}
-      </Tooltip>
+      <p className="line-clamp-2 text-left text-[12px] leading-relaxed text-gray-500/90">
+        {summary}
+      </p>
     </TooltipProvider>
   );
 }
