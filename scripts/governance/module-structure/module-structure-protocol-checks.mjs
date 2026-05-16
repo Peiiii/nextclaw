@@ -36,13 +36,12 @@ const getProtocolViolationLevel = (contract, existedInComparisonRef) => (
     ? "error"
     : existedInComparisonRef ? "warn" : "error"
 );
-const getBusinessRootConfig = (contract) => contract.protocol === "cli-command-first"
-  ? { rootDirectoryName: "commands", label: "command", localDirectoryNames: COMMAND_LOCAL_DIRECTORY_NAMES }
-  : { rootDirectoryName: "features", label: "feature", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES };
-const getPreferredImportAliasPrefix = (contract) => {
-  const prefixes = [...(contract.importAliasPrefixes ?? [])].filter(Boolean);
-  return prefixes[0] ?? null;
-};
+const getBusinessRootConfig = (contract, rootDirectoryName) => rootDirectoryName === "contributions"
+  ? { rootDirectoryName, label: "contribution", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES }
+  : contract.protocol === "cli-command-first"
+    ? { rootDirectoryName: "commands", label: "command", localDirectoryNames: COMMAND_LOCAL_DIRECTORY_NAMES }
+    : { rootDirectoryName: "features", label: "feature", localDirectoryNames: FEATURE_LOCAL_DIRECTORY_NAMES };
+const getPreferredImportAliasPrefix = (contract) => [...(contract.importAliasPrefixes ?? [])].filter(Boolean)[0] ?? null;
 
 const hasIndexEntry = (repoDirectoryPath, repoPathExists = repoPathExistsInWorkspace) => {
   for (const indexFileName of INDEX_FILE_NAMES) {
@@ -58,7 +57,7 @@ const getBusinessBoundaryKey = (relativePath) => {
   if (!parts[1] || looksLikeFileSegment(parts[1])) {
     return null;
   }
-  return (parts[0] === "features" || parts[0] === "commands")
+  return (parts[0] === "features" || parts[0] === "commands" || parts[0] === "contributions")
     ? `${parts[0]}/${parts[1]}`
     : null;
 };
@@ -135,7 +134,7 @@ const evaluateBusinessProtocolFindings = ({
   existedInComparisonRef,
   repoPathExists
 }) => {
-  const { rootDirectoryName, label, localDirectoryNames } = getBusinessRootConfig(contract);
+  const { rootDirectoryName, label, localDirectoryNames } = getBusinessRootConfig(contract, segments[0]);
   const childEntry = segments[2];
   const findings = evaluateNamedProtocolRootFindings({
     filePath,
@@ -315,7 +314,7 @@ export const evaluateProtocolStructureFindings = ({
     return [];
   }
 
-  if (segments[0] === "features" || segments[0] === "commands") {
+  if (segments[0] === "features" || segments[0] === "commands" || segments[0] === "contributions") {
     return evaluateBusinessProtocolFindings({ filePath, contract, segments, existedInComparisonRef, repoPathExists });
   }
   if (segments[0] === "shared") {
@@ -382,14 +381,16 @@ const evaluateProtocolImportTarget = ({ currentRelativePath, targetRelativePath 
   const currentSharedLibBoundary = getSharedLibBoundaryKey(currentRelativePath);
   const targetSegments = targetRelativePath.split("/").filter(Boolean);
 
-  if ((targetSegments[0] === "features" || targetSegments[0] === "commands") && targetSegments[1]) {
+  if ((targetSegments[0] === "features" || targetSegments[0] === "commands" || targetSegments[0] === "contributions") && targetSegments[1]) {
     return getDeepImportBoundaryMessage({
       currentBoundary: currentBusinessBoundary,
       targetBoundary: `${targetSegments[0]}/${targetSegments[1]}`,
       targetSegments,
       boundaryIndex: 2,
       targetRelativePath,
-      label: targetSegments[0] === "commands" ? "command" : "feature"
+      label: targetSegments[0] === "commands"
+        ? "command"
+        : targetSegments[0] === "contributions" ? "contribution" : "feature"
     });
   }
 

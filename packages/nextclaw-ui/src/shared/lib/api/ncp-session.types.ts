@@ -31,6 +31,13 @@ export type SessionContextWindowView = {
   updatedAt: string;
 };
 
+export type SessionActivityPreviewView = {
+  state: "running" | "completed" | "failed" | "idle";
+  timestamp: string;
+  statusText?: string;
+  replyText?: string;
+};
+
 export type SessionEntryView = {
   key: string;
   createdAt: string;
@@ -52,6 +59,7 @@ export type SessionEntryView = {
   parentSessionId?: string | null;
   spawnedByRequestId?: string | null;
   contextWindow?: SessionContextWindowView | null;
+  activityPreview?: SessionActivityPreviewView;
   messageCount: number;
   lastRole?: string;
   lastTimestamp?: string;

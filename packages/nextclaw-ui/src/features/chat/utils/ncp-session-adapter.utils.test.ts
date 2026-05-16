@@ -70,6 +70,28 @@ describe('adaptNcpSessionSummary', () => {
     });
   });
 
+  it('maps session activity preview metadata into the session entry', () => {
+    const adapted = adaptNcpSessionSummary(
+      createSummary({
+        metadata: {
+          last_activity_preview: {
+            state: 'completed',
+            replyText: '已经整理好方案',
+            statusText: '工具调用完成',
+            timestamp: '2026-05-16T01:00:00.000Z',
+          },
+        },
+      }),
+    );
+
+    expect(adapted.activityPreview).toEqual({
+      state: 'completed',
+      replyText: '已经整理好方案',
+      statusText: '工具调用完成',
+      timestamp: '2026-05-16T01:00:00.000Z',
+    });
+  });
+
   it('does not hydrate context window metadata from persisted session summaries', () => {
     const adapted = adaptNcpSessionSummary(
       createSummary({

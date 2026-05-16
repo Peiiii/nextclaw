@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionEntryView } from '@/shared/lib/api';
-import { sessionDisplayName, sessionMatchesQuery } from './chat-session-display.utils';
+import {
+  sessionActivityPreviewText,
+  sessionDisplayName,
+  sessionMatchesQuery
+} from './chat-session-display.utils';
 
 function createSession(overrides: Partial<SessionEntryView> = {}): SessionEntryView {
   return {
@@ -51,5 +55,35 @@ describe('chat-session-display', () => {
 
   it('treats an empty query as a match', () => {
     expect(sessionMatchesQuery(createSession({ label: 'Anything' }), '   ')).toBe(true);
+  });
+
+  it('shows running activity before the previous reply preview', () => {
+    expect(
+      sessionActivityPreviewText(
+        createSession({
+          activityPreview: {
+            state: 'running',
+            statusText: '正在调用工具：shell',
+            replyText: '之前的回复',
+            timestamp: '2026-05-16T01:00:00.000Z'
+          }
+        })
+      )
+    ).toBe('正在调用工具：shell');
+  });
+
+  it('shows the final assistant reply after completion', () => {
+    expect(
+      sessionActivityPreviewText(
+        createSession({
+          activityPreview: {
+            state: 'completed',
+            statusText: '工具调用完成',
+            replyText: '最终回复内容',
+            timestamp: '2026-05-16T01:00:00.000Z'
+          }
+        })
+      )
+    ).toBe('最终回复内容');
   });
 });

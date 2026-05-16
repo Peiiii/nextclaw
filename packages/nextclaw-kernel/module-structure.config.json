@@ -6,6 +6,7 @@
   "allowedRootDirectories": [
     "app",
     "configs",
+    "contributions",
     "features",
     "managers",
     "services",
