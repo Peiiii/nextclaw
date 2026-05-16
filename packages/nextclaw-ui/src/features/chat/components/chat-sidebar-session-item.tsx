@@ -5,10 +5,13 @@ import { SessionRunBadge } from '@/features/chat/components/session/session-run-
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
-import { sessionActivityPreviewText } from '@/features/chat/utils/chat-session-display.utils';
+import {
+  formatSessionListTime,
+  sessionActivityPreviewText
+} from '@/features/chat/utils/chat-session-display.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
-import { formatDateShort, t } from '@/shared/lib/i18n';
+import { t } from '@/shared/lib/i18n';
 import { Check, GitBranch, Pencil, X } from 'lucide-react';
 
 type ChatSidebarSessionItemProps = {
@@ -168,7 +171,7 @@ function ChatSidebarSessionDisplayView({
               className="ml-auto h-2 w-2 shrink-0 rounded-full bg-primary"
             />
           ) : (
-            <span className="ml-auto shrink-0">{formatDateShort(session.lastMessageAt ?? session.createdAt)}</span>
+            <span className="ml-auto shrink-0">{formatSessionListTime(session.lastMessageAt ?? session.createdAt)}</span>
           )}
         </div>
       </button>

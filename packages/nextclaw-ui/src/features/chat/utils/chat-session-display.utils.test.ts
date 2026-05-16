@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SessionEntryView } from '@/shared/lib/api';
 import {
+  formatSessionListTime,
   sessionActivityPreviewText,
   sessionDisplayName,
   sessionMatchesQuery
@@ -85,5 +86,52 @@ describe('chat-session-display', () => {
         })
       )
     ).toBe('最终回复内容');
+  });
+
+  it('formats today activity as time like WeChat session lists', () => {
+    expect(
+      formatSessionListTime(
+        new Date(2026, 4, 16, 9, 5),
+        'zh',
+        new Date(2026, 4, 16, 12, 0)
+      )
+    ).toBe('09:05');
+  });
+
+  it('formats yesterday activity as yesterday like WeChat session lists', () => {
+    expect(
+      formatSessionListTime(
+        new Date(2026, 4, 15, 23, 30),
+        'zh',
+        new Date(2026, 4, 16, 12, 0)
+      )
+    ).toBe('昨天');
+  });
+
+  it('formats recent activity within a week as weekday', () => {
+    expect(
+      formatSessionListTime(
+        new Date(2026, 4, 12, 18, 30),
+        'zh',
+        new Date(2026, 4, 16, 12, 0)
+      )
+    ).toBe('星期二');
+  });
+
+  it('formats older activity as date and keeps year only across years', () => {
+    expect(
+      formatSessionListTime(
+        new Date(2026, 4, 1, 18, 30),
+        'zh',
+        new Date(2026, 4, 16, 12, 0)
+      )
+    ).toBe('5月1日');
+    expect(
+      formatSessionListTime(
+        new Date(2025, 11, 31, 18, 30),
+        'zh',
+        new Date(2026, 4, 16, 12, 0)
+      )
+    ).toBe('2025年12月31日');
   });
 });
