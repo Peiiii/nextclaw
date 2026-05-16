@@ -38,6 +38,14 @@
 
 @layer utilities {
 
+  .desktop-window-drag {
+    -webkit-app-region: drag;
+  }
+
+  .desktop-window-no-drag {
+    -webkit-app-region: no-drag;
+  }
+
   /* ========================================
      SCROLLBAR
      ======================================== */
