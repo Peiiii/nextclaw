@@ -14,6 +14,8 @@ import { NcpSessionApiService } from "@kernel/services/ncp-session-api.service.j
 import { NcpAgentSessionStoreAdapter } from "@kernel/services/ncp-agent-session-store-adapter.service.js";
 import { NcpAgentSessionJournalStore } from "@kernel/stores/ncp-agent-session-journal.store.js";
 import { createAgentRuntimeSessionRequestDispatcher } from "@kernel/features/session-request/index.js";
+import { SessionActivityPreviewContribution } from "@kernel/contributions/session-activity-preview/index.js";
+import type { KernelContribution } from "@kernel/types/kernel-contribution.types.js";
 import {
   ChannelManager,
   ensureDir,
@@ -119,7 +121,7 @@ export class NextclawKernel {
   private readonly sessionLifecycleEvents: NcpLifecycleEventBridge;
   private readonly ncpAgentSessionStore: NcpAgentSessionStoreAdapter;
   private readonly ncpAgentSessionJournalStore: NcpAgentSessionJournalStore;
-  private startPromise: Promise<void> | null = null;
+  private readonly contributions: KernelContribution[];
 
   constructor(options: NextclawKernelOptions = {}) {
     const sessionsDir = resolveKernelSessionsDir(options);
@@ -198,31 +200,29 @@ export class NextclawKernel {
       resolveLearningLoopConfig: () =>
         readLearningLoopRuntimeConfig(this.configManager.loadConfig()),
     });
+    this.contributions = [
+      new SessionActivityPreviewContribution(this),
+    ];
   }
 
   start = async (): Promise<void> => {
-    this.startPromise ??= Promise.resolve()
-      .then(() => {
-        this.ncpSessionApi.start();
-      })
-      .then(() => this.sessionSearch.start())
-      .then(() => this.agentRuntimeManager.bootstrap())
-      .then(() => {
-        this.learningLoop.start();
-      })
-      .catch((error: unknown) => {
-        this.startPromise = null;
-        throw error;
-      });
-    return this.startPromise;
+    this.ncpSessionApi.start();
+    void this.sessionSearch.start();
+    for (const contribution of this.contributions) {
+      contribution.start();
+    }
+    void this.agentRuntimeManager.bootstrap();
+    this.learningLoop.start();
   };
 
   dispose = async (): Promise<void> => {
     this.learningLoop.dispose();
+    for (const contribution of this.contributions) {
+      contribution.dispose();
+    }
     this.ncpSessionApi.dispose();
     await this.agentRuntimeManager.dispose();
     await this.sessionSearch.dispose();
-    this.startPromise = null;
   };
 
   private publishSessionUpdated = (sessionKey: string): void => {

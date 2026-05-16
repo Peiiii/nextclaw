@@ -5,6 +5,7 @@ import { SessionRunBadge } from '@/features/chat/components/session/session-run-
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { type SessionContextView } from '@/features/chat/utils/session-context.utils';
+import { sessionActivityPreviewText } from '@/features/chat/utils/chat-session-display.utils';
 import type { SessionRunStatus } from '@/features/chat/types/session-run-status.types';
 import { cn } from '@/shared/lib/utils';
 import { formatDateShort, t } from '@/shared/lib/i18n';
@@ -116,6 +117,8 @@ function ChatSidebarSessionDisplayView({
   onStartEditing
 }: ChatSidebarSessionDisplayViewProps) {
   const trailingControlsClassName = childSessionCount > 0 && onOpenChildSessions ? 'pr-14' : 'pr-6';
+  const previewText = sessionActivityPreviewText(session);
+  const fallbackPreviewText = `${agentLabel?.trim() ? `${agentLabel} · ` : ''}${session.messageCount}`;
 
   return (
     <div className="group/session relative">
@@ -157,7 +160,7 @@ function ChatSidebarSessionDisplayView({
         </div>
         <div className="mt-1 flex items-center gap-2 text-[11px] text-gray-400">
           <span className="min-w-0 truncate">
-            {agentLabel?.trim() ? `${agentLabel} · ` : ''}{session.messageCount}
+            {previewText ?? fallbackPreviewText}
           </span>
           {showUnreadDot ? (
             <span

@@ -208,6 +208,19 @@ src/
 
 如果只是把文件按技术层重新分组，而没有形成新的业务边界，就不要称之为子 feature。
 
+### 什么时候引入 `contributions/`
+
+`contributions/` 是 kernel 内部旁路能力的顶层组织角色，不是 `features/` 的别名，也不是通用插件目录。
+
+只有同时满足以下条件时，才允许引入 `contributions/`：
+
+- 当前 package 本身是 kernel / runtime 级装配作用域，而不是普通业务 feature 或 UI feature。
+- 该能力不属于主链路 owner，只是监听已有事实、投影派生状态、写回已有 owner 或补充内部体验。
+- kernel 只需要管理该能力的生命周期，不需要理解它的内部业务逻辑。
+- contribution 内部不应成为其他模块复用的公共实现来源；外部默认只依赖它的 contribution class。
+
+`contributions/<name>/` 是一个独立 contribution root。该 root 默认只暴露 `index.ts` 作为唯一入口，内部实现按角色进入 `utils/`、`types/`、`services/` 等子目录。不要把 contribution root 当成平铺文件夹，也不要把 contribution 的内部工具通过入口重新导出。
+
 ### 什么时候允许 `shared/`
 
 `shared/` 是可选目录，而且默认应当偏少。

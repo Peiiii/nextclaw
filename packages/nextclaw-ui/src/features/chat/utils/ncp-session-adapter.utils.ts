@@ -3,6 +3,7 @@ import type { NcpMessagePart } from '@nextclaw/ncp';
 import type {
   NcpMessageView,
   NcpSessionSummaryView,
+  SessionActivityPreviewView,
   SessionEntryView,
   ThinkingLevel
 } from '@/shared/lib/api';
@@ -13,6 +14,12 @@ import {
 } from '@/shared/lib/session-project';
 
 const THINKING_LEVEL_SET = new Set<string>(['off', 'minimal', 'low', 'medium', 'high', 'adaptive', 'xhigh']);
+const SESSION_ACTIVITY_PREVIEW_STATE_SET = new Set<SessionActivityPreviewView['state']>([
+  'running',
+  'completed',
+  'failed',
+  'idle'
+]);
 
 function stringifyUnknown(value: unknown): string {
   if (typeof value === 'string') {
@@ -44,6 +51,28 @@ function readMetadata(summary: NcpSessionSummaryView): Record<string, unknown> |
     return null;
   }
   return metadata as Record<string, unknown>;
+}
+
+function readNcpSessionActivityPreview(summary: NcpSessionSummaryView): SessionActivityPreviewView | null {
+  const metadata = readMetadata(summary);
+  const preview = metadata?.last_activity_preview;
+  if (!preview || typeof preview !== 'object' || Array.isArray(preview)) {
+    return null;
+  }
+  const previewRecord = preview as Record<string, unknown>;
+  const { state } = previewRecord;
+  const timestamp = readOptionalString(previewRecord.timestamp);
+  if (!SESSION_ACTIVITY_PREVIEW_STATE_SET.has(state as SessionActivityPreviewView['state']) || !timestamp) {
+    return null;
+  }
+  const statusText = readOptionalString(previewRecord.statusText);
+  const replyText = readOptionalString(previewRecord.replyText);
+  return {
+    state: state as SessionActivityPreviewView['state'],
+    timestamp,
+    ...(statusText ? { statusText } : {}),
+    ...(replyText ? { replyText } : {})
+  };
 }
 
 export function readNcpSessionPreferredModel(summary: NcpSessionSummaryView): string | null {
@@ -286,6 +315,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
   const parentSessionId = readNcpParentSessionId(summary);
   const spawnedByRequestId = readNcpSpawnedByRequestId(summary);
   const isPromotedChildSession = readPromotedChildSession(summary);
+  const activityPreview = readNcpSessionActivityPreview(summary);
   return {
     key: summary.sessionId,
     createdAt: summary.createdAt ?? summary.updatedAt,
@@ -306,6 +336,7 @@ export function adaptNcpSessionSummary(summary: NcpSessionSummaryView): SessionE
     ...(isPromotedChildSession ? { isPromotedChildSession } : {}),
     ...(parentSessionId ? { parentSessionId } : {}),
     ...(spawnedByRequestId ? { spawnedByRequestId } : {}),
+    ...(activityPreview ? { activityPreview } : {}),
     messageCount: summary.messageCount
   };
 }

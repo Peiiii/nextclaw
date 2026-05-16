@@ -9,6 +9,20 @@ export function sessionDisplayName(session: SessionEntryView): string {
   return chunks[chunks.length - 1] || session.key;
 }
 
+export function sessionActivityPreviewText(session: SessionEntryView): string | null {
+  const preview = session.activityPreview;
+  if (!preview) {
+    return null;
+  }
+  if (preview.state === 'failed' || preview.state === 'running') {
+    return preview.statusText ?? preview.replyText ?? null;
+  }
+  if (preview.state === 'completed') {
+    return preview.replyText ?? preview.statusText ?? null;
+  }
+  return preview.statusText ?? preview.replyText ?? null;
+}
+
 function normalizeSessionSearchValue(value: string): string {
   return value.trim().toLowerCase();
 }

@@ -9,6 +9,7 @@ import {
   evaluateModuleStructureFindings,
   evaluateProtocolImportBoundaryFindings
 } from "./lint-new-code-module-structure.mjs";
+import "./lint-new-code-contribution-structure.test.mjs";
 
 const withTemporaryModuleFixture = (fixtureName, config, run) => {
   const repoFixtureRoot = path.join("scripts/governance/module-structure/.tmp-test-fixtures", fixtureName);
@@ -70,6 +71,7 @@ test("finds the protocol declaration for nextclaw-kernel package root config", (
   assert.equal(contract?.protocol, "app-l1");
   assert.equal(isProtocolContract(contract), true);
   assert.equal(contract?.allowedRootDirectories.has("tools"), true);
+  assert.equal(contract?.allowedRootDirectories.has("contributions"), true);
   assert.equal(contract?.allowedRootFiles.has("index.ts"), true);
 });
 
