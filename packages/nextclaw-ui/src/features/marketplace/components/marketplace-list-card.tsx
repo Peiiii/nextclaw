@@ -183,7 +183,7 @@ function MarketplaceListCardActions(props: MarketplaceListCardActionProps) {
               event.stopPropagation();
               onManage("uninstall", record);
             }}
-            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-rose-100 bg-white px-3 text-xs font-medium text-rose-500 transition-colors hover:border-rose-200 hover:bg-rose-50 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-xl border border-gray-200/80 bg-white px-3 text-xs font-medium text-gray-500 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {busyAction === "uninstall"
