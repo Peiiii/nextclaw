@@ -220,7 +220,7 @@ describe("MarketplacePage", () => {
       data: {
         total: 1,
         page: 1,
-        pageSize: 12,
+        pageSize: 20,
         totalPages: 1,
         sort: "relevance",
         items: [createMarketplaceItem()],
@@ -239,7 +239,7 @@ describe("MarketplacePage", () => {
       data: {
         total: 1,
         page: 1,
-        pageSize: 12,
+        pageSize: 20,
         totalPages: 1,
         sort: "relevance",
         items: [
@@ -275,7 +275,7 @@ describe("MarketplacePage", () => {
       data: {
         total: 1,
         page: 1,
-        pageSize: 12,
+        pageSize: 20,
         totalPages: 1,
         sort: "relevance",
         items: [createPluginMarketplaceItem()],
@@ -296,7 +296,7 @@ describe("MarketplacePage", () => {
       data: {
         total: 2,
         page: 1,
-        pageSize: 12,
+        pageSize: 20,
         totalPages: 1,
         sort: "relevance",
         items: [

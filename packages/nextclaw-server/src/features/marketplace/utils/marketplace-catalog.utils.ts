@@ -9,6 +9,8 @@ import {
 } from "@nextclaw-server/features/marketplace/index.js";
 import { runWithMarketplaceNetworkRetry } from "./marketplace-network-retry.utils.js";
 
+const MARKETPLACE_FETCH_TIMEOUT_MS = 12_000;
+
 export function normalizeMarketplaceBaseUrl(options: UiRouterOptions): string {
   const configured = options.marketplace?.apiBaseUrl?.trim();
   if (!configured) {
@@ -40,7 +42,8 @@ export async function fetchMarketplaceData<T>(params: {
         method: "GET",
         headers: {
           Accept: "application/json"
-        }
+        },
+        signal: AbortSignal.timeout(MARKETPLACE_FETCH_TIMEOUT_MS)
       })
     );
   } catch (error) {

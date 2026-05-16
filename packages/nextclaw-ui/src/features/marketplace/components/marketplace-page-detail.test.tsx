@@ -108,7 +108,7 @@ function createItemsQuery(items: MarketplaceItemSummary[]): ItemsQueryState {
     data: {
       total: items.length,
       page: 1,
-      pageSize: 12,
+      pageSize: 20,
       totalPages: 1,
       sort: "relevance",
       items,

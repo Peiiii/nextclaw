@@ -12,6 +12,7 @@ Cloudflare Worker + Hono 的 Marketplace API：
   - `GET /api/v1/plugins/items/:slug`
   - `GET /api/v1/plugins/recommendations`
   - `GET /api/v1/skills/items`
+  - `GET /api/v1/skills/scenes`
   - `GET /api/v1/skills/items/:slug`
   - `GET /api/v1/skills/items/:slug/content`
   - `GET /api/v1/skills/items/:slug/files`
@@ -72,11 +73,13 @@ pnpm -C workers/marketplace-api run deploy
 ```bash
 curl -sS https://marketplace-api.nextclaw.io/health
 curl -sS 'https://marketplace-api.nextclaw.io/api/v1/skills/items?page=1&pageSize=50'
+curl -sS 'https://marketplace-api.nextclaw.io/api/v1/skills/scenes'
 ```
 
 预期：
 - `/health` 返回 `storage: "d1+r2"`。
 - `skills/items` 里应包含历史技能（例如 `pdf/docx/pptx/xlsx/bird/cloudflare-deploy`）。
+- `skills/scenes` 返回场景列表与每个场景的 skill 数量。
 - `skills/items` 的 skill `install.kind` 只会是 `builtin` 或 `marketplace`（不应再出现 `git`）。
 
 ## 凭证与变量

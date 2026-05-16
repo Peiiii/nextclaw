@@ -12,8 +12,10 @@ type ItemsQueryState = {
   isLoading: boolean;
   isFetching: boolean;
   isFetchingNextPage?: boolean;
+  hasNextPage?: boolean;
   isError: boolean;
   error: Error | null;
+  fetchNextPage?: () => Promise<unknown>;
 };
 
 const mocks = vi.hoisted(() => ({
@@ -149,7 +151,7 @@ function createItemsQuery(items: MarketplaceItemSummary[]) {
     data: {
       total: items.length,
       page: 1,
-      pageSize: 12,
+      pageSize: 20,
       totalPages: 1,
       sort: "relevance",
       items,
@@ -158,6 +160,8 @@ function createItemsQuery(items: MarketplaceItemSummary[]) {
     isFetching: false,
     isError: false,
     error: null,
+    hasNextPage: false,
+    fetchNextPage: vi.fn(),
   };
 }
 
@@ -214,5 +218,18 @@ describe("Marketplace curated scene routes", () => {
     expect(screen.getByTestId("marketplace-scene-skeleton")).toBeTruthy();
     expect(screen.queryByText("Calendar Sync")).toBeNull();
     expect(screen.queryByPlaceholderText("Search skills...")).toBeNull();
+  });
+
+  it("keeps infinite loading available inside scene routes", () => {
+    mocks.routeParams = { scene: "development-debugging" };
+    mocks.itemsQuery = {
+      ...createItemsQuery(createSceneItems().slice(0, 2)),
+      hasNextPage: true,
+      isFetchingNextPage: true,
+    };
+
+    render(<MarketplacePage forcedType="skills" />);
+
+    expect(screen.getByTestId("marketplace-loading-more")).toBeTruthy();
   });
 });

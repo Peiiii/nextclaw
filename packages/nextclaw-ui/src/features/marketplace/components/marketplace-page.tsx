@@ -54,7 +54,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useInfiniteScrollLoader } from "@/shared/hooks/use-infinite-scroll-loader";
 import { Tabs } from "@/shared/components/ui/tabs-custom";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 20;
 const SKELETON_CARD_COUNT = 36;
 
 type ScopeType = "all" | "installed";
@@ -603,7 +603,6 @@ export function MarketplacePage(props: MarketplacePageProps = {}) {
             )}
 
           {scope === "all" &&
-            !curatedSceneRoute.isSceneRoute &&
             !skeletonState.showCatalog &&
             !itemsQuery.isError && (
               <MarketplaceInfiniteScrollStatus

@@ -5,9 +5,6 @@ import { ListMcpRecommendationsUseCase } from "./application/mcp/list-mcp-recomm
 import { GetPluginItemUseCase } from "./application/plugins/get-plugin-item.usecase";
 import { ListPluginItemsUseCase } from "./application/plugins/list-plugin-items.usecase";
 import { ListPluginRecommendationsUseCase } from "./application/plugins/list-plugin-recommendations.usecase";
-import { GetSkillItemUseCase } from "./application/skills/get-skill-item.usecase";
-import { ListSkillItemsUseCase } from "./application/skills/list-skill-items.usecase";
-import { ListSkillRecommendationsUseCase } from "./application/skills/list-skill-recommendations.usecase";
 import { DomainValidationError, ResourceNotFoundError } from "./domain/errors";
 import { D1MarketplaceAppDataSource } from "./infrastructure/apps/d1-marketplace-app.repository";
 import { D1MarketplacePluginDataSource } from "./infrastructure/d1-marketplace-plugin.repository";
@@ -15,7 +12,6 @@ import { D1MarketplaceSkillDataSource } from "./infrastructure/d1-marketplace-sk
 import { D1MarketplaceMcpDataSource } from "./infrastructure/d1-mcp-data-source";
 import { InMemoryMcpRepository } from "./infrastructure/in-memory-mcp.repository";
 import { InMemoryPluginRepository } from "./infrastructure/in-memory-plugin.repository";
-import { InMemorySkillRepository } from "./infrastructure/in-memory-skill.repository";
 import { ensureMcpItem, ensureSkillItem } from "./presentation/http/marketplace-assertions";
 import { registerAdminAppRoutes } from "./presentation/http/admin-app-routes.controller";
 import { registerAdminSkillRoutes } from "./presentation/http/admin-skill-routes.controller";
@@ -58,11 +54,6 @@ class MarketplaceRuntime {
   readonly getPluginItem: GetPluginItemUseCase;
   readonly listPluginRecommendations: ListPluginRecommendationsUseCase;
 
-  readonly skillRepository: InMemorySkillRepository;
-  readonly listSkillItems: ListSkillItemsUseCase;
-  readonly getSkillItem: GetSkillItemUseCase;
-  readonly listSkillRecommendations: ListSkillRecommendationsUseCase;
-
   readonly mcpRepository: InMemoryMcpRepository;
   readonly listMcpItems: ListMcpItemsUseCase;
   readonly getMcpItem: GetMcpItemUseCase;
@@ -86,13 +77,6 @@ class MarketplaceRuntime {
     this.getPluginItem = new GetPluginItemUseCase(this.pluginRepository);
     this.listPluginRecommendations = new ListPluginRecommendationsUseCase(this.pluginRepository);
 
-    this.skillRepository = new InMemorySkillRepository(this.skillDataSource, {
-      cacheTtlMs: ttlSeconds * 1000
-    });
-    this.listSkillItems = new ListSkillItemsUseCase(this.skillRepository);
-    this.getSkillItem = new GetSkillItemUseCase(this.skillRepository);
-    this.listSkillRecommendations = new ListSkillRecommendationsUseCase(this.skillRepository);
-
     this.mcpRepository = new InMemoryMcpRepository(this.mcpDataSource, {
       cacheTtlMs: ttlSeconds * 1000
     });
@@ -103,7 +87,6 @@ class MarketplaceRuntime {
 
   invalidateCache = (): void => {
     this.pluginRepository.invalidateCache();
-    this.skillRepository.invalidateCache();
     this.mcpRepository.invalidateCache();
   };
 }
@@ -228,13 +211,27 @@ app.get("/api/v1/plugins/recommendations", async (c) => {
 app.get("/api/v1/skills/items", async (c) => {
   const runtime = getRuntime(c.env);
   const query = runtime.parser.parseListQuery(c);
-  const data = await runtime.listSkillItems.execute(query);
+  const scene = runtime.parser.parseRecommendationScene(c);
+  const data = await runtime.skillDataSource.listPublicSkills({
+    ...query,
+    ...(scene ? { scene } : {})
+  });
+  return runtime.responses.ok(c, data);
+});
+
+app.get("/api/v1/skills/scenes", async (c) => {
+  const runtime = getRuntime(c.env);
+  const data = await runtime.skillDataSource.listSkillScenes();
   return runtime.responses.ok(c, data);
 });
 
 app.get("/api/v1/skills/items/:slug", async (c) => {
   const runtime = getRuntime(c.env);
-  const data = await runtime.getSkillItem.execute(c.req.param("slug"));
+  const slug = c.req.param("slug");
+  const data = await runtime.skillDataSource.getPublicSkillBySelector(slug);
+  if (!data) {
+    throw new ResourceNotFoundError(`skill item not found: ${slug}`);
+  }
   return runtime.responses.ok(c, data);
 });
 
@@ -315,7 +312,7 @@ app.get("/api/v1/skills/recommendations", async (c) => {
   const runtime = getRuntime(c.env);
   const sceneId = runtime.parser.parseRecommendationScene(c);
   const limit = runtime.parser.parseRecommendationLimit(c);
-  const data = await runtime.listSkillRecommendations.execute(sceneId, limit);
+  const data = await runtime.skillDataSource.listSkillRecommendations(sceneId, limit);
   return runtime.responses.ok(c, data);
 });
 

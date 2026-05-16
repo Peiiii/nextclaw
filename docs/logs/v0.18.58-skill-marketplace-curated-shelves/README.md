@@ -32,6 +32,9 @@
 24. 优化 marketplace 骨架屏高度：骨架数量不再绑定分页条数，列表加载态和场景二级页加载态使用可填满滚动容器的 grid，尽量覆盖不同屏幕高度，避免高屏 loading 态下方大片空白。
 25. 为“场景”入口图标恢复轻量颜色：每个场景沿用已有 tone 配置，仅图标块使用实色识别色，卡片背景仍保持白底弱边框，避免界面再次变得花哨。
 26. 优化普通 skill 列表卡操作区：默认用图标展示已安装/已禁用状态，安装、启用/禁用、卸载等高频操作在 hover / focus 时直接浮现，不收进更多菜单。
+27. 修复 skill marketplace 首页接口冷启动和并发加载不稳定：普通 `items?page/pageSize` 不再完整拉取全量 catalog，而是只请求远端当前页；`scene` 过滤、`scenes` 列表、skill 详情和 recommendations 下沉到 marketplace API worker 的 D1 原生查询，NextClaw server 只透传远端契约，不再在 BFF 本地用 tag 规则全量过滤；远端 marketplace fetch 增加明确超时，避免上游网络卡住时前端无限 loading。
+28. 修复 skill 场景二级页无限滚动失效：场景页原本复用 infinite query，但底部加载 sentinel 被 `isSceneRoute` 条件挡掉，导致接近底部不会自动请求下一页；现在场景页也渲染同一个无限滚动状态，并补充回归测试。
+29. 将 skill/plugin marketplace 普通列表默认分页从 `12` 调整为 `20`，减少用户滚动到列表底部时的加载频率；MCP marketplace 保持独立分页策略不变。
 
 ## 测试/验证/验收方式
 
@@ -231,6 +234,27 @@
     - 结果：通过。
   - `pnpm check:governance-backlog-ratchet`
     - 结果：通过。
+- 本次 skill marketplace 接口不返回问题补充验证：
+  - 根因：场景货架加入后，NextClaw server 曾在 BFF 层把远端 skill catalog 全量拉回本地，再用本地 scene -> tag 规则过滤和计数；冷启动或并发请求时，本地 Node `fetch` 到远端 marketplace 的 HTTPS 路径偶发慢请求会被放大成前端长时间 loading。
+  - 修复：普通 `items` 只透传当前页；`scene` 查询、`scenes` 计数、skill 详情和 recommendations 改由 marketplace API worker 原生 D1 查询支持。缓存已移除，避免掩盖真实链路问题。
+  - `pnpm -C packages/nextclaw-server tsc --noEmit`
+    - 结果：通过。
+  - `pnpm -C workers/marketplace-api tsc`
+    - 结果：通过。
+  - `pnpm -C workers/marketplace-api lint`
+    - 结果：通过。
+  - `pnpm --dir packages/nextclaw-server exec vitest run src/app/router.marketplace-manage.test.ts src/app/router.marketplace-content.test.ts`
+    - 结果：通过，`15` 个测试通过；覆盖普通 `items` 保留 `page/pageSize` 透传，`scene` 查询透传到远端 marketplace API。
+  - `pnpm --dir packages/nextclaw-server exec eslint src/features/marketplace/controllers/skill-marketplace.controller.ts src/features/marketplace/utils/marketplace-catalog.utils.ts src/features/marketplace/index.ts src/app/router.marketplace-manage.test.ts`
+    - 结果：通过。
+  - `node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --paths ...`
+    - 结果：无错误；保留 `packages/nextclaw-server/src/app` 历史目录预算 warning，以及 worker `main.ts` / `d1-marketplace-skill.repository.ts` 接近文件预算 warning。
+  - `pnpm check:governance-backlog-ratchet`
+    - 结果：通过。
+  - `pnpm lint:new-code:governance`
+    - 结果：通过。
+  - 远端契约状态：
+    - 当前线上 `https://marketplace-api.nextclaw.io/api/v1/skills/scenes` 仍返回 `404`，说明 worker 代码需要发布后，NextClaw server 的 `scenes` 代理才能在线上闭环。
 
 ## 发布/部署方式
 
