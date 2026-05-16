@@ -68,6 +68,15 @@ export class RuntimeServiceProcess {
     await this.ensureInitialized();
     this.options.logger.info(`[runtime] launching embedded serve with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
     const child = spawnRuntimeScript(this.options.scriptPath, ["serve", "--ui-port", String(port)], this.options.runtimeEnv);
+    this.options.logger.info(
+      [
+        "runtime.process.started",
+        "runtimeKind=desktop-embedded-runtime",
+        `childPid=${String(child.pid ?? "unknown")}`,
+        `uiPort=${port}`,
+        `uiUrl=http://127.0.0.1:${port}`
+      ].join(" ")
+    );
 
     child.stdout?.on("data", (chunk) => {
       this.options.logger.info(`[runtime] ${String(chunk).trimEnd()}`);
@@ -91,6 +100,15 @@ export class RuntimeServiceProcess {
     try {
       await waitForHealth(`${baseUrl}${this.healthPath}`, this.startupTimeoutMs);
       this.restartAttempt = 0;
+      this.options.logger.info(
+        [
+          "runtime.process.ready",
+          "runtimeKind=desktop-embedded-runtime",
+          `childPid=${String(child.pid ?? "unknown")}`,
+          `uiPort=${port}`,
+          `uiUrl=${baseUrl}`
+        ].join(" ")
+      );
       return { port, baseUrl };
     } catch (error) {
       this.suppressedRestartChild = child;
@@ -183,9 +201,28 @@ export class RuntimeServiceProcess {
       };
 
       child.once("exit", () => settle());
+      this.options.logger.info(
+        [
+          "runtime.process.stop_requested",
+          "runtimeKind=desktop-embedded-runtime",
+          `childPid=${String(child.pid ?? "unknown")}`,
+          "reason=desktop-runtime-stop",
+          `uiPort=${String(this.port ?? "")}`
+        ].join(" ")
+      );
       child.kill("SIGTERM");
       setTimeout(() => {
         if (!settled) {
+          this.options.logger.warn(
+            [
+              "runtime.process.stop_requested",
+              "runtimeKind=desktop-embedded-runtime",
+              `childPid=${String(child.pid ?? "unknown")}`,
+              "reason=desktop-runtime-stop-force",
+              "signal=SIGKILL",
+              `uiPort=${String(this.port ?? "")}`
+            ].join(" ")
+          );
           child.kill("SIGKILL");
           settle();
         }
@@ -194,6 +231,7 @@ export class RuntimeServiceProcess {
   };
 
   private handleChildExit = async (child: ChildProcess, info: RuntimeProcessExitInfo): Promise<void> => {
+    const exitedPort = this.port;
     if (this.child === child) {
       this.child = null;
       this.port = null;
@@ -205,10 +243,33 @@ export class RuntimeServiceProcess {
     const outputSummary = formatRecentRuntimeOutput(info.outputLines);
     if (outputSummary) {
       this.options.logger.warn(
-        `[runtime] exited (code=${String(info.code)}, signal=${String(info.signal)}). Recent output:\n${outputSummary}`
+        [
+          "runtime.process.exited",
+          "runtimeKind=desktop-embedded-runtime",
+          `childPid=${String(child.pid ?? "unknown")}`,
+          `code=${String(info.code)}`,
+          `signal=${String(info.signal)}`,
+          `expected=${String(this.stopping)}`,
+          `suppressRestart=${String(suppressRestart)}`,
+          `uiPort=${String(exitedPort ?? "")}`,
+          `uiUrl=${exitedPort ? `http://127.0.0.1:${exitedPort}` : ""}`,
+          `Recent output:\n${outputSummary}`
+        ].join(" ")
       );
     } else {
-      this.options.logger.warn(`[runtime] exited (code=${String(info.code)}, signal=${String(info.signal)})`);
+      this.options.logger.warn(
+        [
+          "runtime.process.exited",
+          "runtimeKind=desktop-embedded-runtime",
+          `childPid=${String(child.pid ?? "unknown")}`,
+          `code=${String(info.code)}`,
+          `signal=${String(info.signal)}`,
+          `expected=${String(this.stopping)}`,
+          `suppressRestart=${String(suppressRestart)}`,
+          `uiPort=${String(exitedPort ?? "")}`,
+          `uiUrl=${exitedPort ? `http://127.0.0.1:${exitedPort}` : ""}`
+        ].join(" ")
+      );
     }
     if (this.stopping) {
       return;
