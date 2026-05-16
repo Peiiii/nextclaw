@@ -28,10 +28,10 @@ pnpm smoke:codex-plugin:local
 
 ```bash
 pnpm smoke:codex-plugin:local
-pnpm smoke:codex-plugin:local -- --model openai/gpt-5.4
-pnpm smoke:codex-plugin:local -- --prompt "Reply exactly OK"
-pnpm smoke:codex-plugin:local -- --no-keep-running
-pnpm smoke:codex-plugin:local -- --json
+pnpm smoke:codex-plugin:local --model openai/gpt-5.4
+pnpm smoke:codex-plugin:local --prompt "Reply exactly OK"
+pnpm smoke:codex-plugin:local --no-keep-running
+pnpm smoke:codex-plugin:local --json
 ```
 
 ## What It Does
