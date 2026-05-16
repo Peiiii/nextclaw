@@ -1,4 +1,6 @@
 import { join } from "node:path";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { NcpEventType, type NcpEndpointEvent } from "@nextclaw/ncp";
 import {
@@ -13,6 +15,12 @@ const FIXTURE_PATH = join(
   "echo-agent.mjs",
 );
 
+const DISPOSE_FIXTURE_PATH = join(
+  import.meta.dirname,
+  "test-fixtures",
+  "dispose-agent.utils.mjs",
+);
+
 const HERMES_TOOL_TITLE_FIXTURE_PATH = join(
   import.meta.dirname,
   "test-fixtures",
@@ -24,6 +32,28 @@ const FAILING_FIXTURE_PATH = join(
   "test-fixtures",
   "failing-agent.mjs",
 );
+
+async function waitUntilProcessStops(pid: number): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    if (!isProcessRunning(pid)) {
+      return;
+    }
+    await new Promise((resolve) => {
+      setTimeout(resolve, 50);
+    });
+  }
+  throw new Error(`process ${pid} did not stop`);
+}
+
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 describe("StdioRuntimeConfigResolver", () => {
   it("reads command and args from explicit config", () => {
@@ -199,6 +229,52 @@ describe("StdioRuntimeNcpAgentRuntime event bridging", () => {
         }
       })(),
     ).rejects.toThrow(/failed to start stdio runtime command/);
+  });
+
+  it("terminates the stdio child process when disposed", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "nextclaw-stdio-runtime-"));
+    const pidFile = join(tempDir, "agent.pid");
+    const runtime = new StdioRuntimeNcpAgentRuntime({
+      sessionId: "session-stdio-runtime-dispose",
+      wireDialect: "acp",
+      processScope: "per-session",
+      command: process.execPath,
+      args: [DISPOSE_FIXTURE_PATH],
+      env: {
+        NEXTCLAW_STDIO_PID_FILE: pidFile,
+      },
+      startupTimeoutMs: 10_000,
+      probeTimeoutMs: 3_000,
+      requestTimeoutMs: 30_000,
+    });
+
+    try {
+      for await (const event of runtime.run({
+        sessionId: "session-stdio-runtime-dispose",
+        messages: [
+          {
+            id: "user-dispose",
+            sessionId: "session-stdio-runtime-dispose",
+            role: "user",
+            status: "final",
+            timestamp: "2026-04-17T00:00:00.000Z",
+            parts: [{ type: "text", text: "dispose child" }],
+          },
+        ],
+      })) {
+        void event;
+      }
+
+      const childPid = Number(await readFile(pidFile, "utf8"));
+      expect(isProcessRunning(childPid)).toBe(true);
+
+      await runtime.dispose();
+
+      await waitUntilProcessStops(childPid);
+    } finally {
+      await runtime.dispose();
+      await rm(tempDir, { recursive: true, force: true });
+    }
   });
 });
 

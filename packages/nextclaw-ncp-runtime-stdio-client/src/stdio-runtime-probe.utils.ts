@@ -5,6 +5,7 @@ import {
   buildStdioRuntimeLaunchEnv,
   type StdioRuntimeResolvedConfig,
 } from "./stdio-runtime-config.utils.js";
+import { buildSpawnFailureMessage } from "./stdio-runtime-error.utils.js";
 
 type ProbeClientBridge = {
   sessionUpdate: (params: { sessionId: string; update: unknown }) => Promise<void>;
@@ -30,12 +31,7 @@ export async function probeStdioRuntime(config: StdioRuntimeResolvedConfig): Pro
   });
   const spawnErrorPromise = new Promise<never>((_, reject) => {
     child.once("error", (error) => {
-      const cwdSuffix = config.cwd ? ` (cwd: ${config.cwd})` : "";
-      reject(
-        new Error(
-          `[narp-stdio] failed to start stdio runtime command "${config.command}"${cwdSuffix}: ${error.message}`,
-        ),
-      );
+      reject(new Error(buildSpawnFailureMessage({ command: config.command, cwd: config.cwd, error })));
     });
   });
 

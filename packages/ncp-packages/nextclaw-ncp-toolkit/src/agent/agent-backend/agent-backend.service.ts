@@ -46,6 +46,12 @@ import { EventPublisher } from "./event-publisher.js";
 
 const DEFAULT_SUPPORTED_PART_TYPES: NcpEndpointManifest["supportedPartTypes"] = ["text", "file", "source", "step-start", "reasoning", "tool-invocation", "card", "rich-text", "action", "extension"];
 
+type DisposableRuntime = { dispose?: () => Promise<void> | void };
+
+const disposeRuntime = async (runtime: LiveSessionState["runtime"]): Promise<void> => {
+  await (runtime as DisposableRuntime).dispose?.();
+};
+
 export type DefaultNcpAgentBackendConfig = {
   createRuntime: CreateRuntimeFn;
   sessionStore: AgentSessionStore;
@@ -145,12 +151,14 @@ export class DefaultNcpAgentBackend
       const execution = session.activeExecution;
       if (!execution) {
         session.publisher.close();
+        await disposeRuntime(session.runtime);
         continue;
       }
       execution.abortHandled = true;
       execution.controller.abort();
       this.finishSessionExecution(session, execution);
       session.publisher.close();
+      await disposeRuntime(session.runtime);
     }
     this.sessionRegistry.clear();
   };
@@ -340,6 +348,9 @@ export class DefaultNcpAgentBackend
       execution.closed = true;
     }
     liveSession?.publisher.close();
+    if (liveSession) {
+      await disposeRuntime(liveSession.runtime);
+    }
     await this.sessionStore.deleteSession(sessionId);
   };
 
