@@ -1,5 +1,12 @@
-import { DomainValidationError } from "../domain/errors";
-import type { MarketplaceCatalogSection, MarketplaceItem, MarketplaceItemType, MarketplaceSkillInstallSpec } from "../domain/model";
+import { DomainValidationError } from "@/domain/errors";
+import type {
+  MarketplaceItem,
+  MarketplaceItemType,
+  MarketplaceListQuery,
+  MarketplaceListResult,
+  MarketplaceRecommendationResult,
+  MarketplaceSkillInstallSpec
+} from "@/domain/model";
 import { D1MarketplaceSectionDataSourceBase } from "./d1-section-data-source-base";
 import { MarketplaceSkillFileStore } from "./skills/marketplace-skill-file-store";
 import {
@@ -21,12 +28,12 @@ import {
   type ExistingSkillRow,
   type MarketplaceResolvedSkillIdentity
 } from "./skills/marketplace-skill-payload";
+import { D1MarketplaceSkillPublicQueryService } from "./skills/d1-marketplace-skill-public-query.service";
+import type { MarketplaceSceneView } from "./skills/skill-scenes.config";
 import type {
-  ItemRow,
   MarketplaceSkillFile,
   MarketplaceSkillPublishActor,
   MarketplaceSkillUpsertInput,
-  SceneRow,
   TableNames
 } from "./skills/d1-section-types";
 import type { MarketplaceSkillAutoApprovalMode } from "@/utils/marketplace-runtime-config.utils";
@@ -50,6 +57,7 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
   private readonly fileStore: MarketplaceSkillFileStore;
   private readonly adminSupport: D1MarketplaceSkillAdminSupport;
   private readonly ownerSupport: D1MarketplaceSkillOwnerSupport;
+  private readonly publicQuerySupport: D1MarketplaceSkillPublicQueryService;
   constructor(
     db: D1Database,
     filesBucket: R2Bucket,
@@ -76,6 +84,10 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
       readSkillPublishedByType: this.readSkillPublishedByType,
       readSkillOwnerVisibility: this.readSkillOwnerVisibility
     });
+    this.publicQuerySupport = new D1MarketplaceSkillPublicQueryService({
+      db,
+      mapItemRow: this.mapItemRow
+    });
   }
 
   protected getItemType = (): MarketplaceItemType => {
@@ -90,61 +102,16 @@ export class D1MarketplaceSkillDataSource extends D1MarketplaceSectionDataSource
     };
   };
 
-  override loadSection = async (): Promise<MarketplaceCatalogSection> => {
-    const itemsResult = await this.db
-      .prepare(`
-        SELECT
-          id,
-          slug,
-          package_name,
-          owner_scope,
-          owner_user_id,
-          owner_visibility,
-          owner_deleted_at,
-          skill_name,
-          publish_status,
-          published_by_type,
-          name,
-          summary,
-          summary_i18n,
-          description,
-          description_i18n,
-          tags,
-          author,
-          source_repo,
-          homepage,
-          install_kind,
-          install_spec,
-          install_command,
-          published_at,
-          updated_at
-        FROM marketplace_skill_items
-        WHERE publish_status = 'published'
-          AND COALESCE(owner_visibility, 'public') = 'public'
-          AND owner_deleted_at IS NULL
-      `)
-      .all<ItemRow>();
+  listPublicSkills = async (query: MarketplaceListQuery & { scene?: string }): Promise<MarketplaceListResult> => await this.publicQuerySupport.listPublicSkills(query);
 
-    const sceneResult = await this.db
-      .prepare(`
-        SELECT
-          s.id AS scene_id,
-          s.title,
-          s.description,
-          i.item_id
-        FROM marketplace_skill_recommendation_scenes s
-        LEFT JOIN marketplace_skill_recommendation_items i ON i.scene_id = s.id
-        ORDER BY s.id ASC, i.sort_order ASC
-      `)
-      .all<SceneRow>();
+  listSkillScenes = async (): Promise<{ scenes: MarketplaceSceneView[] }> => await this.publicQuerySupport.listSkillScenes();
 
-    const items = (itemsResult.results ?? []).map((row) => this.mapItemRow(row));
-    const recommendations = this.mapScenes(sceneResult.results ?? [], items);
+  getPublicSkillBySelector = async (selector: string): Promise<MarketplaceItem | null> => {
+    return await this.publicQuerySupport.getPublicSkillBySelector(selector);
+  };
 
-    return {
-      items,
-      recommendations
-    };
+  listSkillRecommendations = async (sceneId: string | undefined, limit: number): Promise<MarketplaceRecommendationResult> => {
+    return await this.publicQuerySupport.listSkillRecommendations(sceneId, limit);
   };
 
   getSkillFilesBySlug = async (selector: string): Promise<{

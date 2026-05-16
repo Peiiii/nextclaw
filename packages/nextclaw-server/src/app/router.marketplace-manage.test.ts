@@ -231,24 +231,13 @@ describe("skill marketplace scenes", () => {
         JSON.stringify({
           ok: true,
           data: {
-            total: 2,
-            page: 1,
-            pageSize: 100,
-            totalPages: 1,
-            sort: "relevance",
-            items: [
-              createMarketplaceSkillItem({
-                id: "skill-code-review",
-                slug: "code-review",
-                name: "Code Review",
-                tags: ["code", "review"]
-              }),
-              createMarketplaceSkillItem({
-                id: "skill-calendar-sync",
-                slug: "calendar-sync",
-                name: "Calendar Sync",
-                tags: ["calendar"]
-              })
+            scenes: [
+              {
+                scene: "development-debugging",
+                title: "Development",
+                description: "Review, debug, analyze, and verify delivery work.",
+                count: 1
+              }
             ]
           }
         }),
@@ -300,9 +289,9 @@ describe("skill marketplace scenes", () => {
         JSON.stringify({
           ok: true,
           data: {
-            total: 3,
+            total: 1,
             page: 1,
-            pageSize: 100,
+            pageSize: 20,
             totalPages: 1,
             sort: "relevance",
             items: [
@@ -312,18 +301,6 @@ describe("skill marketplace scenes", () => {
                 name: "Code Review",
                 tags: ["code", "review"]
               }),
-              createMarketplaceSkillItem({
-                id: "skill-calendar-sync",
-                slug: "calendar-sync",
-                name: "Calendar Sync",
-                tags: ["calendar"]
-              }),
-              createMarketplaceSkillItem({
-                id: "skill-writing-room",
-                slug: "writing-room",
-                name: "Writing Room",
-                tags: ["writing"]
-              })
             ]
           }
         }),
@@ -360,7 +337,69 @@ describe("skill marketplace scenes", () => {
     expect(payload.ok).toBe(true);
     expect(payload.data.total).toBe(1);
     expect(payload.data.items.map((item) => item.slug)).toEqual(["code-review"]);
+    const [target] = fetchMock.mock.calls[0] as unknown as [Request | string];
+    const url = typeof target === "string" ? target : target.url;
+    expect(url).toContain("scene=development-debugging");
   });
+
+  it("uses requested marketplace page for plain skill item lists", async () => {
+    const configPath = createTempConfigPath();
+    saveConfig(
+      ConfigSchema.parse({
+        plugins: {
+          entries: {}
+        }
+      }),
+      configPath
+    );
+
+    const fetchMock = vi.fn(async () => {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          data: {
+            total: 2,
+            page: 2,
+            pageSize: 12,
+            totalPages: 3,
+            sort: "relevance",
+            items: [
+              createMarketplaceSkillItem({
+                id: "skill-calendar-sync",
+                slug: "calendar-sync",
+                name: "Calendar Sync",
+                tags: ["calendar"]
+              })
+            ]
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const app = createUiRouter({
+      configPath,
+      appEventBus: new EventBus(),
+      marketplace: {
+        apiBaseUrl: "http://marketplace.example"
+      }
+    });
+
+    const response = await app.request("http://localhost/api/marketplace/skills/items?sort=relevance&page=2&pageSize=12");
+    expect(response.status).toBe(200);
+
+    const [target] = fetchMock.mock.calls[0] as unknown as [Request | string];
+    const url = typeof target === "string" ? target : target.url;
+    expect(url).toContain("page=2");
+    expect(url).toContain("pageSize=12");
+  });
+
 });
 
 function createMarketplaceSkillItem(overrides: {
