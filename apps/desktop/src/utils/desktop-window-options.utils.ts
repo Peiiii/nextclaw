@@ -7,9 +7,10 @@ const desktopWindowHeight = 920;
 const desktopWindowMinWidth = 1080;
 const desktopWindowMinHeight = 720;
 const windowsTitleBarHeight = 40;
+const windowsShellBackgroundColor = "#F9F8F5";
 const desktopTitleBarThemes: Record<DesktopShellTheme, Required<TitleBarOverlay>> = {
   warm: {
-    color: "#F9F8F5",
+    color: windowsShellBackgroundColor,
     symbolColor: "#33332F",
     height: windowsTitleBarHeight
   },
@@ -41,6 +42,7 @@ function createPlatformWindowChromeOptions(): BrowserWindowConstructorOptions {
   if (process.platform === "win32") {
     return {
       autoHideMenuBar: true,
+      backgroundColor: windowsShellBackgroundColor,
       titleBarStyle: "hidden",
       titleBarOverlay: {
         ...createDesktopTitleBarOverlay("warm")

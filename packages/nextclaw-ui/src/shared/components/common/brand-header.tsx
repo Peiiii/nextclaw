@@ -8,26 +8,40 @@ import { cn } from '@/shared/lib/utils';
 
 type BrandHeaderProps = {
   className?: string;
+  density?: 'sidebar' | 'chrome';
   suffix?: ReactNode;
 };
 
-export function BrandHeader({ className, suffix }: BrandHeaderProps) {
+export function BrandHeader({ className, density = 'sidebar', suffix }: BrandHeaderProps) {
   const { data } = useAppMeta();
   const productName = data?.name ?? 'NextClaw';
   const productVersion = data?.productVersion?.trim();
   const versionLabel = productVersion ? `v${productVersion}` : null;
   const resolvedSuffix = suffix ?? <RuntimeStatusEntry />;
   const shouldReserveMacWindowControls = typeof window !== 'undefined' && window.nextclawDesktop?.platform === 'darwin';
+  const isChromeDensity = density === 'chrome';
 
   return (
     <div className={cn(className ?? 'flex min-w-0 items-center gap-2', shouldReserveMacWindowControls && 'pl-[58px]')}>
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-md">
+      <div
+        className={cn(
+          'flex shrink-0 items-center justify-center overflow-hidden',
+        isChromeDensity ? 'h-6 w-6 rounded-md' : 'h-6 w-6 rounded-md',
+        )}
+      >
         <img src="/logo.svg" alt={productName} className="h-full w-full object-contain" />
       </div>
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 flex-1 items-baseline gap-1.5">
-          <span className="shrink-0 text-[14px] font-semibold text-gray-800">{productName}</span>
-          {versionLabel ? <BrandVersionLabel versionLabel={versionLabel} /> : null}
+          <span
+            className={cn(
+              'shrink-0 font-semibold text-gray-800',
+              isChromeDensity ? 'text-[15px]' : 'text-[14px]',
+            )}
+          >
+            {productName}
+          </span>
+          {versionLabel ? <BrandVersionLabel versionLabel={versionLabel} density={density} /> : null}
         </div>
         <RuntimeUpdateInlineStatus />
         {resolvedSuffix ? <span className="inline-flex items-center shrink-0">{resolvedSuffix}</span> : null}
@@ -36,8 +50,15 @@ export function BrandHeader({ className, suffix }: BrandHeaderProps) {
   );
 }
 
-function BrandVersionLabel({ versionLabel }: { versionLabel: string }) {
+function BrandVersionLabel({
+  versionLabel,
+  density,
+}: {
+  versionLabel: string;
+  density: BrandHeaderProps['density'];
+}) {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const isChromeDensity = density === 'chrome';
 
   return (
     <span
@@ -50,7 +71,10 @@ function BrandVersionLabel({ versionLabel }: { versionLabel: string }) {
       <span
         tabIndex={0}
         aria-label={versionLabel}
-        className="block min-w-0 truncate text-[12px] font-medium text-gray-500 outline-none"
+        className={cn(
+          'block min-w-0 truncate font-medium text-gray-500 outline-none',
+          isChromeDensity ? 'text-[12px]' : 'text-[12px]',
+        )}
       >
         {versionLabel}
       </span>

@@ -30,6 +30,7 @@ import {
   ChatSidebarMobileToolbar,
 } from '@/features/chat/components/layout/chat-sidebar-toolbar';
 import { ChatSidebarUtilityMenu } from '@/features/chat/components/layout/chat-sidebar-utility-menu';
+import { isMacDesktopHost, isWindowsDesktopHost } from '@/platforms/desktop';
 
 type DateGroup = {
   label: string;
@@ -139,10 +140,6 @@ const navItems = [
 ];
 
 type ChatSidebarVariant = 'desktop' | 'mobile';
-
-function isMacDesktopHost(): boolean {
-  return typeof window !== 'undefined' && window.nextclawDesktop?.platform === 'darwin';
-}
 
 function useChatSessionUnreadState(
   items: readonly NcpSessionListItemView[],
@@ -271,7 +268,7 @@ export function ChatSidebar({
           : 'w-[280px] shrink-0 border-r border-gray-200/60',
       )}
     >
-      {!isMobileVariant ? (
+      {!isMobileVariant && !isWindowsDesktopHost() ? (
         <div className={cn('px-5 pb-3', isMacDesktopHost() ? 'pt-1.5' : 'pt-5')}>
           <BrandHeader
             className="flex min-w-0 items-center gap-2"
