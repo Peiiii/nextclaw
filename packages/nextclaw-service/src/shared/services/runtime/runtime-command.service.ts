@@ -18,6 +18,8 @@ type Config = NextclawCore.Config;
 
 export class RuntimeCommandService {
   private loggingInstalled = false;
+  private processExitLoggingInstalled = false;
+  private readonly runtimeLogger = NextclawCore.getAppLogger("service.runtime");
   private readonly managedServiceCommandService = new ManagedServiceCommandService({
     startGateway: async (options) => await this.startGateway(options),
     printPublicUiUrls: async (host, port) => await this.printPublicUiUrls(host, port),
@@ -33,6 +35,12 @@ export class RuntimeCommandService {
 
   startGateway = async (options: { uiOverrides?: Partial<Config["ui"]>; uiStaticDir?: string | null } = {}): Promise<void> => {
     this.ensureRuntimeLoggingInstalled();
+    this.installProcessExitLogging();
+    this.runtimeLogger.info("runtime.process.started", {
+      runtimeKind: "serve-process",
+      pid: process.pid,
+      source: "RuntimeCommandService.startGateway"
+    });
     await new NextclawGatewayRuntime({
       requestRestart: this.deps.requestRestart,
       initializeAgentHomeDirectory: this.deps.initializeAgentHomeDirectory,
@@ -43,6 +51,11 @@ export class RuntimeCommandService {
     }, {
       ...options
     }).start();
+    this.runtimeLogger.info("runtime.process.ready", {
+      runtimeKind: "serve-process",
+      pid: process.pid,
+      source: "RuntimeCommandService.startGateway"
+    });
   };
 
   startService = async (options: StartServiceOptions): Promise<void> => {
@@ -139,6 +152,20 @@ export class RuntimeCommandService {
       installProcessCrashMonitor: true
     });
     this.loggingInstalled = true;
+  };
+
+  private installProcessExitLogging = (): void => {
+    if (this.processExitLoggingInstalled) {
+      return;
+    }
+    this.processExitLoggingInstalled = true;
+    process.once("exit", (code) => {
+      this.runtimeLogger.warn("runtime.process.exited", {
+        runtimeKind: "serve-process",
+        pid: process.pid,
+        code
+      });
+    });
   };
 
   private checkUiPortPreflight = async (params: {

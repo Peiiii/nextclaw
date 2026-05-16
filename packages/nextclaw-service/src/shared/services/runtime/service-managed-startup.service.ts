@@ -7,6 +7,12 @@ import { localUiRuntimeStore } from "@nextclaw-service/shared/stores/local-ui-ru
 import { managedServiceStateStore, type ManagedServiceState } from "@nextclaw-service/shared/stores/managed-service-state.store.js";
 import { resolveCliSubcommandLaunch } from "@nextclaw-service/shared/utils/marketplace/cli-subcommand-launch.utils.js";
 import { writeInitialManagedServiceState, writeReadyManagedServiceState } from "@nextclaw-service/shared/services/runtime/utils/service-remote-runtime.utils.js";
+import {
+  resolveManagedServiceReadySnapshot,
+  resolveManagedServiceUiBinding,
+  resolveSessionRouteCandidate,
+  type ManagedServiceSnapshot
+} from "@nextclaw-service/shared/services/runtime/utils/managed-service-routing.utils.js";
 import { createTopLevelNextclawCommandEnv } from "@nextclaw-service/shared/utils/top-level-nextclaw-command-env.utils.js";
 import {
   isProcessRunning,
@@ -19,6 +25,7 @@ import {
 import { probeHealthEndpoint } from "@nextclaw-service/shared/utils/service-port-probe.utils.js";
 
 const { APP_NAME, loadConfig } = NextclawCore;
+const serviceStartupLogger = NextclawCore.getAppLogger("service.startup");
 
 type Config = NextclawCore.Config;
 
@@ -28,102 +35,7 @@ export type StartServiceOptions = {
   startupTimeoutMs?: number;
 };
 
-export type ManagedServiceSnapshot = {
-  pid: number;
-  uiUrl: string;
-  apiUrl: string;
-  uiHost: string;
-  uiPort: number;
-  logPath: string;
-};
-
-export function resolveManagedServiceReadySnapshot(params: {
-  snapshot: ManagedServiceSnapshot;
-  readLocalUiRuntimeState?: typeof localUiRuntimeStore.read;
-  isProcessRunningFn?: (pid: number) => boolean;
-}): ManagedServiceSnapshot {
-  const { snapshot, readLocalUiRuntimeState, isProcessRunningFn: providedIsProcessRunningFn } = params;
-  const localUiRuntimeState = (readLocalUiRuntimeState ?? localUiRuntimeStore.read)();
-  const isProcessRunningFn = providedIsProcessRunningFn ?? isProcessRunning;
-  if (
-    !localUiRuntimeState
-    || typeof localUiRuntimeState.pid !== "number"
-    || !Number.isFinite(localUiRuntimeState.pid)
-    || localUiRuntimeState.uiPort !== snapshot.uiPort
-    || !isProcessRunningFn(localUiRuntimeState.pid)
-  ) {
-    return snapshot;
-  }
-  return {
-    ...snapshot,
-    pid: localUiRuntimeState.pid,
-    uiUrl: localUiRuntimeState.uiUrl,
-    apiUrl: localUiRuntimeState.apiUrl,
-    uiHost: localUiRuntimeState.uiHost ?? snapshot.uiHost,
-    uiPort: localUiRuntimeState.uiPort ?? snapshot.uiPort
-  };
-}
-
-function toObjectRecord(value: unknown): Record<string, unknown> | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function hasSessionRoutingMetadata(params: {
-  metadata: Record<string, unknown>;
-  normalizeOptionalString: (value: unknown) => string | undefined;
-}): boolean {
-  const context = toObjectRecord(params.metadata.last_delivery_context) ?? {};
-  const hasPrimaryRoute =
-    Boolean(params.normalizeOptionalString(context.channel)) &&
-    Boolean(params.normalizeOptionalString(context.chatId));
-  const hasFallbackRoute =
-    Boolean(params.normalizeOptionalString(params.metadata.last_channel)) &&
-    Boolean(params.normalizeOptionalString(params.metadata.last_to));
-  return hasPrimaryRoute || hasFallbackRoute;
-}
-
-export function resolveManagedServiceUiBinding(state: ManagedServiceState): {
-  host: string;
-  port: number;
-} {
-  try {
-    const parsed = new URL(state.uiUrl);
-    const parsedPort = Number(parsed.port || 80);
-    return {
-      host: state.uiHost ?? parsed.hostname,
-      port: Number.isFinite(parsedPort) ? parsedPort : state.uiPort ?? 55667
-    };
-  } catch {
-    return {
-      host: state.uiHost ?? "127.0.0.1",
-      port: state.uiPort ?? 55667
-    };
-  }
-}
-
-export function resolveSessionRouteCandidate(params: {
-  session: unknown;
-  normalizeOptionalString: (value: unknown) => string | undefined;
-}): { key: string; updatedAt: number } | null {
-  const sessionRecord = toObjectRecord(params.session);
-  const key = params.normalizeOptionalString(sessionRecord?.key);
-  if (!key || key.startsWith("cli:")) {
-    return null;
-  }
-  const metadata = toObjectRecord(sessionRecord?.metadata) ?? {};
-  if (!hasSessionRoutingMetadata({ metadata, normalizeOptionalString: params.normalizeOptionalString })) {
-    return null;
-  }
-  const updatedAtRaw = params.normalizeOptionalString(sessionRecord?.updated_at);
-  const updatedAt = updatedAtRaw ? Date.parse(updatedAtRaw) : Number.NaN;
-  return {
-    key,
-    updatedAt: Number.isFinite(updatedAt) ? updatedAt : 0
-  };
-}
+export { resolveManagedServiceReadySnapshot, resolveManagedServiceUiBinding, resolveSessionRouteCandidate };
 
 export function spawnManagedService(params: {
   appName: string;
@@ -217,6 +129,22 @@ export function spawnManagedService(params: {
     readinessTimeoutMs,
     snapshot
   });
+  serviceStartupLogger.info("runtime.process.started", {
+    runtimeKind: "managed-service",
+    childPid: child.pid,
+    uiUrl,
+    apiUrl,
+    uiHost: uiConfig.host,
+    uiPort: uiConfig.port,
+    entrypoint: `${cliLaunch.command} ${childArgs.join(" ")}`
+  });
+  serviceStartupLogger.info("service_state.written", {
+    runtimeKind: "managed-service",
+    childPid: child.pid,
+    statePath: managedServiceStateStore.path,
+    uiUrl,
+    apiUrl
+  });
   return {
     child,
     logPath,
@@ -302,6 +230,7 @@ export async function reportManagedServiceStart(params: {
 export class ManagedServiceCommandService {
   private readonly loggingRuntime = NextclawCore.getLoggingRuntime();
   private readonly serviceLogger = this.loggingRuntime.getLogger("service");
+  private readonly startupLogger = this.serviceLogger.child("startup");
 
   constructor(private readonly deps: {
     startGateway: (options: { uiOverrides: Partial<Config["ui"]>; uiStaticDir?: string | null }) => Promise<void>;
@@ -395,6 +324,13 @@ export class ManagedServiceCommandService {
     }
 
     console.log(`Stopping ${APP_NAME} (PID ${state.pid})...`);
+    this.serviceLogger.info("runtime.process.stop_requested", {
+      runtimeKind: "managed-service",
+      pid: state.pid,
+      reason: "nextclaw-stop-command",
+      uiUrl: state.uiUrl,
+      apiUrl: state.apiUrl
+    });
     try {
       process.kill(state.pid, "SIGTERM");
     } catch (error) {
@@ -404,6 +340,14 @@ export class ManagedServiceCommandService {
 
     const stopped = await waitForExit(state.pid, 3000);
     if (!stopped) {
+      this.serviceLogger.warn("runtime.process.stop_requested", {
+        runtimeKind: "managed-service",
+        pid: state.pid,
+        reason: "nextclaw-stop-command-force",
+        signal: "SIGKILL",
+        uiUrl: state.uiUrl,
+        apiUrl: state.apiUrl
+      });
       try {
         process.kill(state.pid, "SIGKILL");
       } catch (error) {
@@ -415,6 +359,13 @@ export class ManagedServiceCommandService {
 
     managedServiceStateStore.clear();
     localUiRuntimeStore.clearIfOwnedByProcess(state.pid);
+    this.serviceLogger.info("service_state.cleared", {
+      runtimeKind: "managed-service",
+      pid: state.pid,
+      statePath: managedServiceStateStore.path,
+      uiUrl: state.uiUrl,
+      apiUrl: state.apiUrl
+    });
     console.log(`✓ ${APP_NAME} stopped`);
   };
 
@@ -547,6 +498,14 @@ export class ManagedServiceCommandService {
       readiness,
       snapshot: readySnapshot
     });
+    this.startupLogger.info("runtime.process.ready", {
+      runtimeKind: "managed-service",
+      pid: state.pid,
+      uiUrl: state.uiUrl,
+      apiUrl: state.apiUrl,
+      startupState: state.startupState,
+      readinessTimeoutMs: startup.readinessTimeoutMs
+    });
     await reportManagedServiceStart({
       appName: APP_NAME,
       state,
@@ -597,7 +556,7 @@ export class ManagedServiceCommandService {
 
   private appendStartupStage = (logPath: string, message: string): void => {
     try {
-      this.serviceLogger.child("startup").info(message, { logPath });
+      this.startupLogger.info(message, { logPath });
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       console.error(`Warning: failed to write startup diagnostics log (${logPath}): ${detail}`);
