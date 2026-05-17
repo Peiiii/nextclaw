@@ -1,5 +1,12 @@
 # nextclaw
 
+## 0.19.9
+
+### Patch Changes
+
+- Fix desktop first-run readiness by starting from the packaged runtime before seed bundle preparation.
+- Tighten Windows desktop smoke to require the real runtime URL and core API probes.
+
 ## 0.19.8
 
 ### Patch Changes

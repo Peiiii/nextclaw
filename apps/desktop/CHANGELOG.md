@@ -1,5 +1,13 @@
 # @nextclaw/desktop
 
+## 0.0.165
+
+### Patch Changes
+
+- Fix desktop first-run runtime readiness and Windows startup smoke validation.
+- Updated dependencies
+  - nextclaw@0.19.9
+
 ## 0.0.164
 
 ### Patch Changes
