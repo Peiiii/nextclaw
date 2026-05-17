@@ -22,6 +22,8 @@ import {
   logDesktopMainEntryLoaded
 } from "./utils/desktop-logging.utils";
 import { createDesktopRuntimeEnv, resolveDesktopDataDir, resolveDesktopRuntimeHome } from "./utils/desktop-paths.utils";
+import { resolveDesktopGitHubPublishTarget } from "./utils/desktop-publish-target.utils";
+import { createStartupLoadingUrl } from "./utils/desktop-startup-loading.utils";
 import { createDesktopWindowOptions } from "./utils/desktop-window-options.utils";
 import { attachWindowDiagnostics } from "./utils/window-diagnostics.utils";
 const logger = createDesktopLogger();
@@ -102,6 +104,7 @@ class DesktopApplication {
         `resolvedRuntimeHome=${resolveDesktopRuntimeHome()}`
       ].join(" ")
     );
+    await this.showStartupWindow();
     const loaded = await this.bootstrapRuntimeAndWindow();
     if (!loaded) {
       logger.warn("Desktop bootstrap returned false. Quitting launcher.");
@@ -158,9 +161,20 @@ class DesktopApplication {
     this.runtime = runtime;
     this.runtimeBaseUrl = baseUrl;
     this.ensureDesktopUpdateShell();
-    this.window = this.createWindow();
+    this.window ??= this.createWindow();
     logger.info(`Loading desktop window URL: ${baseUrl}`);
     await this.window.loadURL(baseUrl);
+  };
+
+  private showStartupWindow = async (): Promise<void> => {
+    if (this.window) {
+      return;
+    }
+    const startedAt = Date.now();
+    this.window = this.createWindow();
+    logger.info(`Desktop startup shell window created in ${Date.now() - startedAt}ms.`);
+    await this.window.loadURL(createStartupLoadingUrl());
+    logger.info(`Desktop startup shell window loaded in ${Date.now() - startedAt}ms.`);
   };
   private handleBootstrapFailure = async (error: unknown): Promise<boolean> => {
     logger.error(`Failed to bootstrap runtime: ${String(error)}`);
@@ -183,7 +197,7 @@ class DesktopApplication {
   private openBootstrapLogsWindow = async (): Promise<void> => {
     await app.whenReady();
     const logPath = join(app.getPath("logs"), "main.log");
-    this.window = this.createWindow();
+    this.window ??= this.createWindow();
     await this.window.loadURL(`data:text/plain,${encodeURIComponent(`Check logs at: ${logPath}`)}`);
   };
   private createUpdateService = (): DesktopUpdateService => {
@@ -304,7 +318,7 @@ class DesktopApplication {
       isPackaged: app.isPackaged,
       appPath: app.getAppPath(),
       resourcesPath: process.resourcesPath,
-      publishTarget: this.getGitHubPublishTarget(),
+      publishTarget: resolveDesktopGitHubPublishTarget(desktopPackageJson),
       stateStore: this.createLauncherStateStore()
     });
     return this.updateSourceService;
@@ -343,21 +357,6 @@ class DesktopApplication {
       return createHash("sha256").update(readFileSync(appPath)).digest("hex");
     }
     return `${app.getVersion()}:${appPath}`;
-  };
-
-  private getGitHubPublishTarget = (): { owner: string; repo: string } | null => {
-    const publish = (desktopPackageJson as { build?: { publish?: unknown } }).build?.publish;
-    const publishTargets = Array.isArray(publish) ? publish : [];
-    const githubTarget = publishTargets.find((entry) => {
-      const provider = (entry as { provider?: unknown }).provider;
-      return provider === "github";
-    }) as { owner?: unknown; repo?: unknown } | undefined;
-    const owner = typeof githubTarget?.owner === "string" ? githubTarget.owner.trim() : "";
-    const repo = typeof githubTarget?.repo === "string" ? githubTarget.repo.trim() : "";
-    if (!owner || !repo) {
-      return null;
-    }
-    return { owner, repo };
   };
 
   private stopRuntime = async (): Promise<void> => {
