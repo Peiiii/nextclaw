@@ -7,23 +7,37 @@
   - runtime `init` / `serve` 子进程由 Electron GUI 启动时没有设置 `windowsHide: true`，Windows 会短暂显示控制台窗口。
   - launcher 之前等 bundle bootstrap、seed 处理、runtime health 都完成后才创建 `BrowserWindow`，首次启动的慢路径会让用户长期看不到任何窗口。
   - Windows smoke 过去主要接受 `/api/health`，没有把当前 `main.log` 的 `ready-to-show`、`did-finish-load` 和启动 blocker 作为通过条件，因此 CI 可能漏掉“进程活着但窗口体验不可用”的候选包。
+  - 后续验证发现，上述 smoke 仍把 `data:` startup shell 的窗口事件误判为真实 app ready，导致真实 runtime URL 超过 20 秒才加载也能通过；同时只验 health 端点会漏掉“窗口壳出来但主 UI/API 链路没真正可用”的候选包。
 - 修复：
   - runtime 子进程 spawn 选项统一包含 `windowsHide: true`，并增加回归测试。
   - Electron `app.whenReady()` 后立即展示轻量 startup shell，再继续 bootstrap runtime；runtime ready 后复用同一个窗口加载真实 UI。
   - Windows desktop / installer smoke 增加 `MaxReadySec`，要求当前启动日志内 20 秒可见窗口就绪，并删除 runtime fallback 作为通过条件的路径。
   - 本地 package verify 与 GitHub desktop validate/release workflow 显式传递 `-MaxReadySec 20`。
+  - 真实 readiness 契约收紧为：当前日志必须出现真实 `http://127.0.0.1:<port>` runtime URL，窗口必须加载这个 URL，且 `/api/health`、`/api/auth/status`、`/api/config`、`/api/ncp/sessions` 必须全部从这个 URL 打通；`data:` startup shell 不再计入成功。
+  - 首启路径优先使用包内 runtime 启动，把 seed bundle 安装/替换挪到 runtime 启动后的后台准备；只有包内 runtime 不存在时才回退到同步 seed 安装，避免首次打开被大目录解压或清理阻塞。
+  - Electron GUI 到 runtime 的 `init` 子进程被移除，`serve` 直接依赖 runtime 自身懒初始化；相关服务/remote/autostart/launcher 子进程统一补 `windowsHide: true`，避免 Windows 控制台闪窗继续从旁路出现。
 - 机制沉淀：
   - `desktop-release-contract-guard` 已补充 Windows GUI smoke、启动 blocker、runtime fallback 禁止通过、`windowsHide` 回归测试要求。
+  - `desktop-release-contract-guard` 已追加：startup shell 只能作为感知反馈，不能作为 app readiness；固定默认端口或 stale health 不能作为当前 GUI 启动的通过证据。
 
 ## 测试/验证/验收方式
 
 - 已通过：`pnpm -C apps/desktop tsc`
 - 已通过：`pnpm -C apps/desktop build:main && node --test $(find apps/desktop/dist/src -name '*.test.js' | sort)`
-- 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/main.ts apps/desktop/src/runtime-service.ts apps/desktop/src/services/runtime-process.service.test.ts apps/desktop/src/utils/desktop-startup-loading.utils.ts apps/desktop/src/utils/desktop-publish-target.utils.ts apps/desktop/scripts/smoke-windows-desktop.ps1 apps/desktop/scripts/smoke-windows-installer.ps1 scripts/desktop/desktop-package-verify.mjs .github/workflows/desktop-release.yml .github/workflows/desktop-validate.yml .agents/skills/desktop-release-contract-guard/SKILL.md`
+- 已通过：`pnpm -C packages/nextclaw-service tsc`
+- 已通过：`pnpm -C packages/nextclaw-service build`
+- 已通过：`pnpm -C apps/desktop lint`
+- 已通过：`pnpm -C packages/nextclaw-service lint`（0 errors，已有 warning 未扩大）
+- 已通过：`pnpm -C packages/nextclaw-service test -- --run src/shared/services/runtime/tests/service-managed-startup.service.test.ts`
+- 已通过：`pnpm -C packages/nextclaw-service test -- --run src/launcher/npm-runtime-update.manager.test.ts`
+- 已通过：`pnpm lint:new-code:governance -- apps/desktop/src/main.ts apps/desktop/src/runtime-config.ts apps/desktop/src/runtime-service.ts apps/desktop/src/services/runtime.service.test.ts apps/desktop/src/services/desktop-runtime-command.service.ts apps/desktop/src/services/desktop-runtime-command.service.test.ts apps/desktop/scripts/smoke-windows-desktop.ps1 packages/nextclaw-service/src/shared/services/runtime/service-managed-startup.service.ts packages/nextclaw-service/src/shared/services/runtime/tests/service-managed-startup.service.test.ts packages/nextclaw-service/src/shared/services/runtime/runtime-command.service.ts packages/nextclaw-service/src/service-runtime.service.ts packages/nextclaw-service/src/shared/services/ui/companion-runtime.service.ts packages/nextclaw-service/src/shared/utils/cli.utils.ts packages/nextclaw-service/src/commands/service/services/autostart/windows-task-autostart.service.ts packages/nextclaw-service/src/launcher/npm-runtime-launcher.service.ts`
 - 已通过：`pnpm check:governance-backlog-ratchet`
+- 已通过：`node .agents/skills/post-edit-maintainability-guard/scripts/check-maintainability.mjs --non-feature --paths ...`，非测试代码净增 `-4`
+- 已通过：`pnpm desktop:package:verify`，macOS DMG package verify 成功，isolated GUI smoke `4557ms`，日志显示 `Runtime source: packaged-runtime` 与 `Desktop runtime startup finished in 1116ms`
+- 已通过：对本地打出的 `.app` 独立执行真实 API probe，当前日志解析 runtime base URL 后 `/api/health`、`/api/auth/status`、`/api/config`、`/api/ncp/sessions` 全部 2xx，真实窗口加载 `http://127.0.0.1:<port>/`，runtime startup `1115ms`
 - 已通过：`git diff --check`
-- 已通过：Windows PowerShell smoke 脚本的本地静态检查，确认括号平衡、包含 `MaxReadySec`、不再包含 runtime fallback。
-- 未在本机完成：真实 Windows GUI smoke。本机是 macOS，最终仍需发布后由 GitHub Windows runner 和用户 Windows 真机验证控制台闪窗与首次启动耗时。
+- 未在本机完成：Windows PowerShell 语法本地静态检查，因为本机没有 `pwsh`/`powershell`；真实 Windows GUI/API smoke 需要发布后由 GitHub Windows runner 执行。
+- 未在本机完成：真实 Windows 控制台闪窗视觉验证。本机是 macOS，最终仍需 GitHub Windows runner 和用户 Windows 真机验证控制台闪窗与首次启动耗时。
 
 ## 发布/部署方式
 

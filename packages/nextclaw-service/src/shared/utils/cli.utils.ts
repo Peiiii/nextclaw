@@ -244,7 +244,8 @@ export function openBrowser(url: string): boolean {
     const child = spawn(command, args, {
       stdio: "ignore",
       detached: true,
-      env: createExternalCommandEnv(process.env)
+      env: createExternalCommandEnv(process.env),
+      windowsHide: true
     });
     child.unref();
     return true;

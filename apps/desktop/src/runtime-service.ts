@@ -22,13 +22,6 @@ type RuntimeProcessExitInfo = {
   outputLines: string[];
 };
 
-type RuntimeCommandFailureParams = {
-  label: string;
-  code: number | null;
-  signal: NodeJS.Signals | null;
-  outputLines: string[];
-};
-
 export function createRuntimeScriptSpawnOptions(env: NodeJS.ProcessEnv): SpawnOptions {
   return {
     env,
@@ -70,7 +63,6 @@ export class RuntimeServiceProcess {
   };
 
   private startEmbeddedServe = async (port: number): Promise<{ port: number; baseUrl: string }> => {
-    await this.ensureInitialized();
     this.options.logger.info(`[runtime] launching embedded serve with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
     const child = spawnRuntimeScript(this.options.scriptPath, ["serve", "--ui-port", String(port)], this.options.runtimeEnv);
     this.options.logger.info(
@@ -124,53 +116,6 @@ export class RuntimeServiceProcess {
       }
       throw error;
     }
-  };
-
-  private ensureInitialized = async (): Promise<void> => {
-    this.options.logger.info(`[runtime] running bootstrap init with NEXTCLAW_HOME=${this.options.runtimeEnv.NEXTCLAW_HOME ?? ""}`);
-    await this.runCliCommand(["init"], "init");
-  };
-
-  private runCliCommand = async (args: string[], label: string): Promise<void> => {
-    await new Promise<void>((resolve, reject) => {
-      let outputLines: string[] = [];
-      const child = spawnRuntimeScript(this.options.scriptPath, args, this.options.runtimeEnv);
-
-      child.stdout?.on("data", (chunk) => {
-        const message = String(chunk).trimEnd();
-        if (message) {
-          this.options.logger.info(`[runtime:${label}] ${message}`);
-          outputLines = rememberRuntimeCommandOutput(outputLines, message);
-        }
-      });
-      child.stderr?.on("data", (chunk) => {
-        const message = String(chunk).trimEnd();
-        if (message) {
-          this.options.logger.warn(`[runtime:${label}] ${message}`);
-          outputLines = rememberRuntimeCommandOutput(outputLines, message);
-        }
-      });
-
-      child.once("error", (error) => {
-        reject(error);
-      });
-      child.once("exit", (code, signal) => {
-        if (code === 0) {
-          resolve();
-          return;
-        }
-        reject(
-          new Error(
-            formatRuntimeCommandFailureMessage({
-              label,
-              code,
-              signal,
-              outputLines
-            })
-          )
-        );
-      });
-    });
   };
 
   stop = async (): Promise<void> => {
@@ -319,15 +264,6 @@ export class RuntimeServiceProcess {
       });
     }
   };
-}
-
-export function formatRuntimeCommandFailureMessage(params: RuntimeCommandFailureParams): string {
-  const { code, label, outputLines, signal } = params;
-  const header = `Runtime command failed: ${label} exited with code=${String(code)}, signal=${String(signal)}`;
-  if (outputLines.length === 0) {
-    return header;
-  }
-  return `${header}\n${outputLines.join("\n")}`;
 }
 
 function rememberRuntimeCommandOutput(outputLines: string[], chunk: string): string[] {

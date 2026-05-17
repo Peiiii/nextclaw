@@ -136,10 +136,15 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - runtime health must pass through the GUI-launched app process;
   - startup elapsed time must be printed and bounded by an explicit threshold.
 - Windows GUI smoke must enforce the same visible-window contract:
-  - require `ready-to-show` and `did-finish-load` from the current `main.log` launch window within the configured `MaxReadySec` threshold;
-  - fail on startup blockers from the current log window instead of accepting a later health check;
+  - require the real desktop runtime URL from the current `main.log` launch window, for example `runtime.process.ready ... uiUrl=http://127.0.0.1:<port>` or `Loading desktop window URL: http://127.0.0.1:<port>`;
+  - require `did-finish-load` or renderer diagnostics for that real runtime URL within the configured `MaxReadySec` threshold;
+  - never count the startup shell `data:` page as app readiness, even if it emits `ready-to-show` or `did-finish-load`;
+  - require current-launch API probes against the discovered runtime URL, including `/api/health`, `/api/auth/status`, `/api/config`, and `/api/ncp/sessions`;
+  - fail on startup blockers from the current log window instead of accepting a later or stale health check;
   - never use an `ELECTRON_RUN_AS_NODE` runtime fallback as a passing GUI result.
+- If a smoke script accepts a fixed default port such as `55667` without proving the current GUI launch owns or loaded that port, treat the result as invalid because it can pass against a stale background service.
 - Windows desktop runtime child processes launched from the Electron GUI must be hidden (`windowsHide: true`) and covered by a regression test, because visible `init` / `serve` console flashes are release-blocking UX defects.
+- Desktop startup speed must be measured on the real app/API readiness path, not merely on a placeholder window. Showing a startup shell improves perceived feedback, but does not satisfy the release gate until the real UI and API are both ready.
 - A desktop handoff smoke must also inspect the launcher log for the current launch window and fail on known startup blockers such as `ENAMETOOLONG`, `ENOTEMPTY`, `ERR_FAILED`, `render-process-gone`, or `Failed to bootstrap runtime`; absence of log inspection is not a valid pass.
 - When validating a build for a machine that already has desktop state, run a real-profile check against that machine's existing desktop data dir in addition to any isolated smoke. The real-profile check must prove stale staging, bad-version state, and existing bundles do not break startup.
 - When the runtime reaches API readiness and provider credentials are available, run `pnpm smoke:ncp-chat` against the desktop-started runtime and require a non-empty assistant reply. A health endpoint alone is not enough to claim the desktop runtime is usable.

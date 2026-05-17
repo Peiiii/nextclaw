@@ -8,12 +8,13 @@ import { DesktopBundleService } from "./launcher/services/bundle.service";
 import { DesktopUpdateService } from "./launcher/services/update.service";
 import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
-import { RuntimeConfigResolver } from "./runtime-config";
+import type { RuntimeCommand } from "./runtime-config";
 import { DesktopPresenceService } from "./services/desktop-presence.service";
 import { DesktopRuntimeControlService } from "./services/desktop-runtime-control.service";
 import { DesktopUpdateSourceService } from "./services/desktop-update-source.service";
 import { RuntimeServiceProcess } from "./runtime-service";
 import { DesktopBundleBootstrapService } from "./services/desktop-bundle-bootstrap.service";
+import { DesktopRuntimeCommandService } from "./services/desktop-runtime-command.service";
 import { DesktopShellThemeService } from "./services/desktop-shell-theme.service";
 import { DesktopUpdateShellService } from "./services/desktop-update-shell.service";
 import {
@@ -38,6 +39,7 @@ class DesktopApplication {
   private desktopPresenceService: DesktopPresenceService | null = null;
   private desktopUpdateShell: DesktopUpdateShellService | null = null;
   private bundleBootstrap: DesktopBundleBootstrapService | null = null;
+  private runtimeCommandService: DesktopRuntimeCommandService | null = null;
   private updateSourceService: DesktopUpdateSourceService | null = null;
   private runtimeBaseUrl: string | null = null;
 
@@ -113,22 +115,21 @@ class DesktopApplication {
     }
   };
   private bootstrapRuntimeAndWindow = async (allowPackagedSeedRepair = true): Promise<boolean> => {
-    let runtimeCommand: ReturnType<RuntimeConfigResolver["resolveCommand"]> | null = null;
+    let runtimeCommand: RuntimeCommand | null = null;
     try {
       logger.info("Bootstrapping runtime and desktop window.");
       const bundleBootstrap = this.ensureBundleBootstrap();
       const bundleBootstrapStartedAt = Date.now();
-      await bundleBootstrap.ensureInitialBundleAvailability();
       await bundleBootstrap.recoverPendingBundleCandidate();
       await bundleBootstrap.pruneRetainedBundleArtifacts();
       logger.info(`Desktop bundle bootstrap finished in ${Date.now() - bundleBootstrapStartedAt}ms.`);
-      runtimeCommand = new RuntimeConfigResolver().resolveCommand();
+      runtimeCommand = await this.ensureRuntimeCommandService().resolve(bundleBootstrap);
       logger.info(`Runtime source: ${runtimeCommand.source}`);
-      this.logResolvedRuntimeCommand(runtimeCommand);
       await this.startRuntimeAndLoadWindow(runtimeCommand.scriptPath);
       if (runtimeCommand.source === "bundle" && runtimeCommand.bundleVersion) {
         await bundleBootstrap.markBundleHealthy(runtimeCommand.bundleVersion);
       }
+      this.ensureRuntimeCommandService().prepareBundleAfterRuntimeStart(runtimeCommand, bundleBootstrap);
       void this.ensureDesktopUpdateShell().runStartupCheck();
       return true;
     } catch (error) {
@@ -142,12 +143,6 @@ class DesktopApplication {
       }
       return await this.handleBootstrapFailure(error);
     }
-  };
-  private logResolvedRuntimeCommand = (runtimeCommand: ReturnType<RuntimeConfigResolver["resolveCommand"]>): void => {
-    if (runtimeCommand.source !== "bundle") {
-      return;
-    }
-    logger.info(`Bundle version: ${runtimeCommand.bundleVersion ?? "unknown"}`);
   };
   private startRuntimeAndLoadWindow = async (scriptPath: string): Promise<void> => {
     const runtime = new RuntimeServiceProcess({
@@ -249,6 +244,10 @@ class DesktopApplication {
       launcherBuildFingerprint: this.resolveLauncherBuildFingerprint()
     });
     return this.bundleBootstrap;
+  };
+  private ensureRuntimeCommandService = (): DesktopRuntimeCommandService => {
+    this.runtimeCommandService ??= new DesktopRuntimeCommandService(logger);
+    return this.runtimeCommandService;
   };
   private ensureDesktopUpdateShell = (): DesktopUpdateShellService => {
     if (this.desktopUpdateShell) {

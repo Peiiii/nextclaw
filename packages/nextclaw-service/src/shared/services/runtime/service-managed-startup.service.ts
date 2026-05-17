@@ -100,7 +100,8 @@ export function spawnManagedService(params: {
   const child = spawn(cliLaunch.command, childArgs, {
     env: createTopLevelNextclawCommandEnv(process.env),
     stdio: "ignore",
-    detached: true
+    detached: true,
+    windowsHide: true
   });
   appendStartupStage(logPath, `spawned background process pid=${child.pid ?? "unknown"}`);
   if (!child.pid) {

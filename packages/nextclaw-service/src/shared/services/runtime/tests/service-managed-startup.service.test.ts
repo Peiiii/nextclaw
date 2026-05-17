@@ -82,7 +82,8 @@ describe("spawnManagedService", () => {
           PATH: expect.any(String)
         }),
         stdio: "ignore",
-        detached: true
+        detached: true,
+        windowsHide: true
       })
     );
     expect((options.env as NodeJS.ProcessEnv).NEXTCLAW_RUNTIME_BUNDLE_CHILD).toBeUndefined();

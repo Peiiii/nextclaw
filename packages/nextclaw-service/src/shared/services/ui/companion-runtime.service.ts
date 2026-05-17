@@ -112,6 +112,7 @@ export class CompanionRuntimeService {
     const child = spawn(launchSpec.command, [...launchSpec.args, "--base-url", baseUrl], {
       detached: true,
       stdio: "ignore",
+      windowsHide: true,
       env: {
         ...process.env,
         NEXTCLAW_COMPANION_RUNTIME_STATE_PATH: this.runtimeStore.path

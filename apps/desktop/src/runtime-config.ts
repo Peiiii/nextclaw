@@ -1,11 +1,13 @@
 import { app } from "electron";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { DesktopBundleService } from "./launcher/services/bundle.service";
 import { DesktopBundleLayoutStore } from "./launcher/stores/bundle-layout.store";
 import { DesktopLauncherStateStore } from "./launcher/stores/launcher-state.store";
 
 export type RuntimeCommand = {
   scriptPath: string;
-  source: "bundle" | "environment-override";
+  source: "bundle" | "environment-override" | "packaged-runtime";
   bundleVersion?: string;
   bundleDirectory?: string;
 };
@@ -23,6 +25,11 @@ export class RuntimeConfigResolver {
     const bundleRuntime = this.resolveBundleRuntime();
     if (bundleRuntime) {
       return bundleRuntime;
+    }
+
+    const packagedRuntime = this.resolvePackagedRuntime();
+    if (packagedRuntime) {
+      return packagedRuntime;
     }
 
     throw new Error(
@@ -50,6 +57,19 @@ export class RuntimeConfigResolver {
       source: "bundle",
       bundleVersion: resolvedBundle.manifest.bundleVersion,
       bundleDirectory: resolvedBundle.bundleDirectory
+    };
+  };
+
+  private resolvePackagedRuntime = (): RuntimeCommand | null => {
+    const scriptPath = app.isPackaged
+      ? join(process.resourcesPath, "app.asar", "node_modules", "nextclaw", "dist", "cli", "app", "index.js")
+      : "";
+    if (!scriptPath || !existsSync(scriptPath)) {
+      return null;
+    }
+    return {
+      scriptPath,
+      source: "packaged-runtime"
     };
   };
 }

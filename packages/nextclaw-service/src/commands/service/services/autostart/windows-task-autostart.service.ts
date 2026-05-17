@@ -490,6 +490,7 @@ const defaultRunCommand = async (command: string, args: string[]): Promise<HostA
     const child = spawn(command, args, {
       env: process.env,
       stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
     });
 
     let stdout = "";

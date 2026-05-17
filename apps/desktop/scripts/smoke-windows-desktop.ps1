@@ -6,41 +6,15 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$DefaultUiPort = 55667
-
-function Get-DescendantPids {
-  param([int]$RootPid)
-
-  $allPids = New-Object System.Collections.Generic.List[int]
-  $queue = New-Object System.Collections.Generic.Queue[int]
-  $allPids.Add($RootPid)
-  $queue.Enqueue($RootPid)
-
-  while ($queue.Count -gt 0) {
-    $currentPid = $queue.Dequeue()
-    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $currentPid" | Select-Object -ExpandProperty ProcessId)
-    foreach ($childPid in $children) {
-      if (-not $allPids.Contains($childPid)) {
-        $allPids.Add($childPid)
-        $queue.Enqueue($childPid)
-      }
-    }
-  }
-
-  return @($allPids)
-}
-
 function Stop-ProcessTree {
   param([int]$RootPid)
 
-  $pids = @(Get-DescendantPids -RootPid $RootPid | Sort-Object -Descending)
-  foreach ($targetPid in $pids) {
-    try {
-      Stop-Process -Id $targetPid -Force -ErrorAction Stop
-    } catch {
-      # Ignore already-exited processes.
-    }
+  $taskkill = Join-Path $env:SystemRoot "System32\taskkill.exe"
+  if (Test-Path $taskkill) {
+    & $taskkill /PID $RootPid /T /F | Out-Null
+    return
   }
+  Stop-Process -Id $RootPid -Force -ErrorAction SilentlyContinue
 }
 
 function Get-SmokeTempRoot {
@@ -58,19 +32,41 @@ function Get-CurrentMainLogLines {
   return @(Get-Content -Path $script:MainLog | Select-Object -Skip ($script:MainLogStartLine - 1))
 }
 
-function Test-DesktopWindowReady {
+function Get-DesktopRuntimeBaseUrlFromLog {
   $lines = @(Get-CurrentMainLogLines)
-  $readyToShow = $false
-  $didFinishLoad = $false
+  $runtimeBaseUrl = $null
   foreach ($line in $lines) {
-    if ($line -match "ready-to-show") {
-      $readyToShow = $true
+    if ($line -match "runtime\.process\.ready .*uiUrl=(http://127\.0\.0\.1:\d+)") {
+      $runtimeBaseUrl = $Matches[1]
     }
-    if ($line -match "did-finish-load") {
-      $didFinishLoad = $true
+    if ($line -match "Loading desktop window URL: (http://127\.0\.0\.1:\d+)") {
+      $runtimeBaseUrl = $Matches[1]
     }
   }
-  return $readyToShow -and $didFinishLoad
+  return $runtimeBaseUrl
+}
+
+function Test-DesktopRuntimeWindowLoaded {
+  param([string]$RuntimeBaseUrl)
+
+  if ([string]::IsNullOrWhiteSpace($RuntimeBaseUrl)) {
+    return $false
+  }
+
+  $escapedBaseUrl = [regex]::Escape($RuntimeBaseUrl)
+  $sawRuntimeLoad = $false
+  foreach ($line in @(Get-CurrentMainLogLines)) {
+    if ($line -match "did-finish-load url=data:") {
+      continue
+    }
+    if ($line -match "did-finish-load url=$escapedBaseUrl(/|\s|$)") {
+      $sawRuntimeLoad = $true
+    }
+    if ($line -match "renderer-debug-installed.*$escapedBaseUrl/") {
+      $sawRuntimeLoad = $true
+    }
+  }
+  return $sawRuntimeLoad
 }
 
 function Get-DesktopStartupBlocker {
@@ -96,41 +92,56 @@ function Write-SmokeDiagnostics {
   if (Test-Path $script:MainLog) {
     Get-Content -Path $script:MainLog -Tail 160
   }
-  Write-Host "[desktop-smoke] runtime log: $runtimeStdoutLog"
-  if (Test-Path $runtimeStdoutLog) {
-    Get-Content -Path $runtimeStdoutLog -Tail 120
+  Write-Host "[desktop-smoke] API probes: $apiProbeLog"
+  if (Test-Path $apiProbeLog) {
+    Get-Content -Path $apiProbeLog -Tail 120
   }
 }
 
-function Get-CandidatePorts {
-  param([int[]]$ProcessIds)
+function Invoke-DesktopApiProbe {
+  param([string]$RuntimeBaseUrl)
 
-  # The packaged desktop app starts the runtime on the default UI port even when
-  # the runtime process detaches from the launcher process tree.
-  $ports = New-Object System.Collections.Generic.List[int]
-  $ports.Add($DefaultUiPort)
-  foreach ($name in @("NEXTCLAW_UI_PORT", "NEXTCLAW_PORT", "PORT")) {
-    $raw = [Environment]::GetEnvironmentVariable($name)
-    $parsed = 0
-    if ([int]::TryParse($raw, [ref]$parsed) -and $parsed -gt 0 -and -not $ports.Contains($parsed)) {
-      $ports.Add($parsed)
-    }
+  if ([string]::IsNullOrWhiteSpace($RuntimeBaseUrl)) {
+    return $false
   }
 
-  try {
-    $runtimePorts = @(Get-NetTCPConnection -State Listen -ErrorAction Stop |
-      Where-Object { $ProcessIds -contains $_.OwningProcess } |
-      Select-Object -ExpandProperty LocalPort -Unique)
-    foreach ($port in $runtimePorts) {
-      if (-not $ports.Contains($port)) {
-        $ports.Add($port)
+  $endpoints = @(
+    "/api/health",
+    "/api/auth/status",
+    "/api/config",
+    "/api/ncp/sessions"
+  )
+  $results = New-Object System.Collections.Generic.List[object]
+  $allPassed = $true
+
+  foreach ($endpoint in $endpoints) {
+    $url = "$RuntimeBaseUrl$endpoint"
+    try {
+      $payload = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 3
+      $passed = $true
+      if ($endpoint -eq "/api/health") {
+        $passed = ($payload.ok -eq $true -and $payload.data.status -eq "ok")
       }
+      $results.Add([pscustomobject]@{
+        endpoint = $endpoint
+        ok = $passed
+        response = $payload
+      })
+      if (-not $passed) {
+        $allPassed = $false
+      }
+    } catch {
+      $allPassed = $false
+      $results.Add([pscustomobject]@{
+        endpoint = $endpoint
+        ok = $false
+        error = $_.Exception.Message
+      })
     }
-  } catch {
-    Write-Host "[desktop-smoke] Get-NetTCPConnection unavailable, fallback to env ports only."
   }
 
-  return @($ports)
+  $results | ConvertTo-Json -Depth 20 | Set-Content -Path $apiProbeLog
+  return $allPassed
 }
 
 $resolvedExe = (Resolve-Path $DesktopExePath).Path
@@ -139,8 +150,7 @@ $smokeHome = Join-Path $tempRoot "nextclaw-desktop-smoke-home"
 $logRoot = Join-Path $tempRoot "nextclaw-desktop-smoke-logs"
 $appStdoutLog = Join-Path $logRoot "app-stdout.log"
 $appStderrLog = Join-Path $logRoot "app-stderr.log"
-$runtimeStdoutLog = Join-Path $logRoot "runtime-stdout.log"
-$healthLog = Join-Path $logRoot "health.json"
+$apiProbeLog = Join-Path $logRoot "api-probes.json"
 $script:MainLog = Join-Path $smokeHome "launcher\\main.log"
 $script:MainLogStartLine = 1
 
@@ -168,7 +178,8 @@ try {
   $deadline = (Get-Date).AddSeconds($StartupTimeoutSec)
   $readyDeadline = (Get-Date).AddSeconds($MaxReadySec)
   $startedAt = Get-Date
-  $healthUrl = $null
+  $runtimeBaseUrl = $null
+  $apiReady = $false
 
   while ((Get-Date) -lt $deadline) {
     if ($appProc.HasExited) {
@@ -180,34 +191,23 @@ try {
       throw "Desktop startup blocker detected: $blockerLine"
     }
 
-    $windowReady = Test-DesktopWindowReady
-    if (-not $windowReady -and (Get-Date) -gt $readyDeadline) {
-      throw "Desktop GUI not ready within ${MaxReadySec}s."
+    if (-not $runtimeBaseUrl) {
+      $runtimeBaseUrl = Get-DesktopRuntimeBaseUrlFromLog
     }
 
-    $candidatePids = @(Get-DescendantPids -RootPid $appProc.Id)
-    $ports = @(Get-CandidatePorts -ProcessIds $candidatePids)
-
-    if (-not $healthUrl) {
-      foreach ($port in $ports) {
-        $url = "http://127.0.0.1:$port/api/health"
-        try {
-          $payload = Invoke-RestMethod -Uri $url -Method Get -TimeoutSec 2
-          if ($payload.ok -eq $true -and $payload.data.status -eq "ok") {
-            $payload | ConvertTo-Json -Depth 10 | Set-Content -Path $healthLog
-            $healthUrl = $url
-            break
-          }
-        } catch {
-          # Continue polling.
-        }
-      }
+    if ($runtimeBaseUrl -and -not $apiReady) {
+      $apiReady = Invoke-DesktopApiProbe -RuntimeBaseUrl $runtimeBaseUrl
     }
 
-    if ($healthUrl -and $windowReady) {
+    $windowReady = Test-DesktopRuntimeWindowLoaded -RuntimeBaseUrl $runtimeBaseUrl
+    if ((-not $runtimeBaseUrl -or -not $apiReady -or -not $windowReady) -and (Get-Date) -gt $readyDeadline) {
+      throw "Desktop real app not ready within ${MaxReadySec}s. runtimeBaseUrl=$runtimeBaseUrl apiReady=$apiReady windowReady=$windowReady"
+    }
+
+    if ($runtimeBaseUrl -and $apiReady -and $windowReady) {
       $elapsedMs = [int]((Get-Date) - $startedAt).TotalMilliseconds
       Write-Host "[desktop-smoke] GUI smoke passed in ${elapsedMs}ms"
-      Write-Host "[desktop-smoke] health check passed: $healthUrl"
+      Write-Host "[desktop-smoke] API probes passed: $runtimeBaseUrl"
       Write-Host "[desktop-smoke] main log: $script:MainLog"
       if (Test-Path $script:MainLog) {
         Get-Content -Path $script:MainLog -Tail 80
@@ -218,8 +218,8 @@ try {
     Start-Sleep -Seconds 2
   }
 
-  if (-not $healthUrl) {
-    throw "Health API did not become ready within ${StartupTimeoutSec}s."
+  if (-not $runtimeBaseUrl -or -not $apiReady) {
+    throw "Desktop runtime API did not become ready within ${StartupTimeoutSec}s. runtimeBaseUrl=$runtimeBaseUrl apiReady=$apiReady"
   }
 } catch {
   Write-SmokeDiagnostics

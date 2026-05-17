@@ -32,7 +32,8 @@ export class NpmRuntimeLauncher {
       env: {
         ...createExternalCommandEnv(this.env),
         NEXTCLAW_RUNTIME_BUNDLE_CHILD: "1"
-      }
+      },
+      windowsHide: true
     });
     process.exit(typeof result.status === "number" ? result.status : 1);
   };

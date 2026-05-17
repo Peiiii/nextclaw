@@ -315,7 +315,8 @@ export class NextclawServiceRuntime {
       "  spawnSync(nodePath, startArgs, {",
       '    stdio: "ignore",',
       "    env: process.env,",
-      "    timeout: startTimeoutMs",
+      "    timeout: startTimeoutMs,",
+      "    windowsHide: true",
       "  });",
       "}",
       "setTimeout(() => {",
@@ -345,6 +346,7 @@ export class NextclawServiceRuntime {
         detached: true,
         stdio: "ignore",
         env: createTopLevelNextclawCommandEnv(process.env),
+        windowsHide: true
       });
       helper.unref();
       this.selfRelaunchArmed = true;
