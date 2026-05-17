@@ -125,9 +125,10 @@ program
 
 program
   .command("update")
-  .description(`Check, download, or apply ${APP_NAME} runtime updates`)
+  .description(`Update the ${APP_NAME} runtime`)
   .option("--check", "Only check for a runtime update", false)
-  .option("--download", "Download an available runtime update without applying it")
+  .option("--download-only", "Download an available runtime update without applying it", false)
+  .option("--download", "Alias for --download-only")
   .option("--apply", "Apply the downloaded runtime update", false)
   .option("--channel <channel>", "Update channel (stable or beta)")
   .option("--manifest-url <url>", "Explicit runtime update manifest URL")

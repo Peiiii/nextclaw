@@ -8,7 +8,7 @@ import {
   serializeUnsignedUpdateManifest,
   UpdateManifestReader,
   type UpdateManifest
-} from "@nextclaw/kernel/update-contract";
+} from "@nextclaw/kernel";
 import type { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
 import { compareNpmRuntimeVersions, type NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
 import type {

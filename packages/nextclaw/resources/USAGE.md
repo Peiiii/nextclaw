@@ -689,9 +689,10 @@ nextclaw update
 Behavior:
 
 - If `NEXTCLAW_UPDATE_COMMAND` is set, the CLI executes it (useful for custom update flows).
-- Otherwise it falls back to `npm i -g nextclaw`.
-- `nextclaw update` now prints version progress explicitly: `Current version: x.y.z`, then either `Version updated: x.y.z -> a.b.c` or `Version unchanged: x.y.z`.
-- If the background service is running, restart it after the update to apply changes.
+- Otherwise `nextclaw update` checks the runtime update channel, downloads the latest compatible runtime bundle, and applies it.
+- Use `nextclaw update --check` to check without downloading or applying.
+- Use `nextclaw update --download-only` to stage an update without switching the active runtime. `nextclaw update --apply` applies an already staged runtime update.
+- If the background service is running, restart it after `nextclaw update` reports that the runtime update was applied.
 - When update is triggered from the running gateway (agent `update.run`), NextClaw arms a self-relaunch helper before exiting, so the service comes back automatically (like an OS reboot flow).
 - After restart, NextClaw automatically pings the last active session with restart/update status (including note when provided).
 

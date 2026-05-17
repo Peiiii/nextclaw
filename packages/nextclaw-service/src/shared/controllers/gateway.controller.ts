@@ -383,13 +383,10 @@ export class GatewayControllerImpl implements GatewayController {
     timeoutMs?: number;
     sessionKey?: string;
   }): Promise<Record<string, unknown>> => {
+    const { note, restartDelayMs, sessionKey, timeoutMs } = params;
     const versionBefore = getPackageVersion();
-    void params.timeoutMs;
-    const updateCommand = new NpmRuntimeUpdateCommandService();
-    const downloadedSnapshot = await updateCommand.runManaged({ download: true });
-    const snapshot = downloadedSnapshot.status === "downloaded"
-      ? await updateCommand.runManaged({ apply: true })
-      : downloadedSnapshot;
+    void timeoutMs;
+    const snapshot = await new NpmRuntimeUpdateCommandService().runManaged({});
     if (snapshot.status === "blocked" || snapshot.status === "failed") {
       return {
         ok: false,
@@ -404,19 +401,19 @@ export class GatewayControllerImpl implements GatewayController {
     }
 
     const versionAfter = getPackageVersion();
-    const delayMs = params.restartDelayMs ?? 0;
+    const delayMs = restartDelayMs ?? 0;
     const sentinelPath = await this.writeRestartSentinelPayload({
       kind: "update.run",
       status: "ok",
-      sessionKey: params.sessionKey,
-      note: params.note,
+      sessionKey,
+      note,
       reason: "update.run",
       strategy: "runtime-bundle"
     });
     await this.requestRestart({ delayMs, reason: "update.run" });
     return {
       ok: true,
-      note: params.note ?? null,
+      note: note ?? null,
       restart: { scheduled: true, delayMs },
       strategy: "runtime-bundle",
       snapshot,

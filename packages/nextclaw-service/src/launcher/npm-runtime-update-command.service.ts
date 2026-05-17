@@ -20,6 +20,7 @@ export class NpmRuntimeUpdateCommandService {
   };
 
   runManaged = async (opts: UpdateCommandOptions): Promise<UpdateSnapshot> => {
+    const downloadOnly = Boolean(opts.downloadOnly || opts.download);
     const distribution = NextclawDistributionService.get();
     const source = new NpmRuntimeUpdateSourceService({
       packagedPublicKeyPath: distribution.runtimeUpdatePublicKeyPath,
@@ -55,7 +56,7 @@ export class NpmRuntimeUpdateCommandService {
     return await manager.run({
       apply: Boolean(opts.apply),
       checkOnly: Boolean(opts.check),
-      download: opts.download === undefined ? true : Boolean(opts.download),
+      applyAfterDownload: !downloadOnly,
       onProgress: opts.json ? undefined : this.printProgress
     });
   };

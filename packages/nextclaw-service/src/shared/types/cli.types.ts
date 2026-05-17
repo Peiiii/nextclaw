@@ -71,6 +71,7 @@ export type MarketplaceSkillsRecommendCommandOptions = {
 export type UpdateCommandOptions = {
   check?: boolean;
   download?: boolean;
+  downloadOnly?: boolean;
   apply?: boolean;
   channel?: string;
   manifestUrl?: string;

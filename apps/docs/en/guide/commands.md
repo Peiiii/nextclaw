@@ -13,7 +13,7 @@ If you are installing and starting NextClaw for the first time, use [Quickstart]
 | `nextclaw serve` | Run in the foreground for debugging |
 | `nextclaw status` | Inspect runtime status |
 | `nextclaw doctor` | Run diagnostics |
-| `nextclaw update` | Update the CLI |
+| `nextclaw update` | Update the runtime |
 | `nextclaw usage` | View usage snapshots |
 
 ## Host management

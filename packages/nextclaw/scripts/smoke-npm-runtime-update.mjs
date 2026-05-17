@@ -161,6 +161,7 @@ async function main() {
   }
 
   run("pnpm", ["-C", "packages/nextclaw-kernel", "build"]);
+  run("pnpm", ["-C", "packages/nextclaw-service", "build"]);
   run("pnpm", ["-C", "packages/nextclaw", "build"]);
 
   const fixture = await createUpdateFixture();
@@ -235,14 +236,9 @@ async function verifyRuntimeUpdateFlow(fixture) {
   assert(checkSnapshot.availableVersion === runtimeVersion, `expected available version ${runtimeVersion}`);
   assert(!existsSync(join(nextclawHome, "launcher/runtime-bundles/current.json")), "check unexpectedly changed current pointer");
 
-  const downloadSnapshot = parseLauncherJson(["update", "--json"], env);
-  assert(downloadSnapshot.status === "downloaded", `expected downloaded, got ${downloadSnapshot.status}`);
-  assert(downloadSnapshot.downloadedVersion === runtimeVersion, `expected downloaded version ${runtimeVersion}`);
-  assert(!existsSync(join(nextclawHome, "launcher/runtime-bundles/current.json")), "download unexpectedly changed current pointer");
-
-  const applySnapshot = parseLauncherJson(["update", "--apply", "--json"], env);
-  assert(applySnapshot.status === "restart-required", `expected restart-required, got ${applySnapshot.status}`);
-  assert(applySnapshot.currentVersion === runtimeVersion, `expected current version ${runtimeVersion}`);
+  const updateSnapshot = parseLauncherJson(["update", "--json"], env);
+  assert(updateSnapshot.status === "restart-required", `expected restart-required, got ${updateSnapshot.status}`);
+  assert(updateSnapshot.currentVersion === runtimeVersion, `expected current version ${runtimeVersion}`);
   await assertLauncherUsesAppliedRuntime(env, nextclawHome);
 }
 
@@ -316,16 +312,12 @@ nextclaw update --check
 nextclaw --version
 nextclaw update
 nextclaw --version
-nextclaw update --apply
-nextclaw --version
 
 Expected user-facing behavior:
 1. The first nextclaw --version prints the packaged npm launcher runtime version.
 2. nextclaw update --check reports runtime update ${runtimeVersion} without downloading or switching.
-3. nextclaw update downloads runtime update ${runtimeVersion} and asks you to run nextclaw update --apply.
-4. The next nextclaw --version is still the old packaged runtime, proving download did not apply.
-5. nextclaw update --apply switches the current runtime pointer and asks for a restart/new process.
-6. The final nextclaw --version prints smoke-runtime-${runtimeVersion}.
+3. nextclaw update downloads and applies runtime update ${runtimeVersion}, then asks for a restart/new process.
+4. The final nextclaw --version prints smoke-runtime-${runtimeVersion}.
 
 Useful files:
 - NEXTCLAW_HOME: ${fixture.nextclawHome}

@@ -46,8 +46,9 @@ After publishing a beta package, trigger the `npm-runtime-update-release` workfl
 ```bash
 npm install -g nextclaw@beta
 nextclaw update --channel beta --check
-nextclaw update --channel beta
+nextclaw update --channel beta --download-only
 nextclaw update --apply
+nextclaw update --channel beta
 nextclaw --version
 ```
 

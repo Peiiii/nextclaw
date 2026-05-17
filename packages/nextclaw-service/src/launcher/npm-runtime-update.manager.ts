@@ -1,4 +1,4 @@
-import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 import { getPackageVersion } from "@nextclaw-service/shared/utils/cli.utils.js";
 import { resolveEffectiveNpmRuntimeVersion } from "./npm-runtime-bundle.service.js";
 import type { NpmRuntimeBundleService } from "./npm-runtime-bundle.service.js";
@@ -20,8 +20,8 @@ type NpmRuntimeUpdateManagerOptions = {
 };
 
 type NpmRuntimeUpdateActionOptions = {
-  download?: boolean;
   apply?: boolean;
+  applyAfterDownload?: boolean;
   checkOnly?: boolean;
   onProgress?: (progress: UpdateProgress) => void;
 };
@@ -47,14 +47,22 @@ export class NpmRuntimeUpdateManager {
       return this.applyDownloadedUpdate();
     }
 
+    const applyAfterDownload = options.applyAfterDownload ?? true;
     const checkedSnapshot = await this.checkForUpdate();
-    if (options.checkOnly || checkedSnapshot.status !== "update-available") {
+    if (options.checkOnly) {
       return checkedSnapshot;
     }
-    if (options.download === false) {
+    if (applyAfterDownload && checkedSnapshot.status === "downloaded") {
+      return this.applyDownloadedUpdate();
+    }
+    if (checkedSnapshot.status !== "update-available") {
       return checkedSnapshot;
     }
-    return await this.downloadUpdate(options.onProgress);
+    const downloadedSnapshot = await this.downloadUpdate(options.onProgress);
+    if (!applyAfterDownload || downloadedSnapshot.status !== "downloaded") {
+      return downloadedSnapshot;
+    }
+    return this.applyDownloadedUpdate();
   };
 
   checkForUpdate = async (): Promise<UpdateSnapshot> => {

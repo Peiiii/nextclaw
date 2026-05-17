@@ -1,4 +1,4 @@
-import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel/update-contract";
+import type { UpdateManifest, UpdateProgress, UpdateSnapshot } from "@nextclaw/kernel";
 
 export type NpmRuntimeBundleManifest = {
   bundleVersion: string;

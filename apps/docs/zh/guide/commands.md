@@ -13,7 +13,7 @@
 | `nextclaw serve` | 前台运行，适合调试 |
 | `nextclaw status` | 查看运行状态 |
 | `nextclaw doctor` | 运行诊断 |
-| `nextclaw update` | 更新 CLI |
+| `nextclaw update` | 更新运行时 |
 | `nextclaw usage` | 查看使用快照 |
 
 ## 宿主托管

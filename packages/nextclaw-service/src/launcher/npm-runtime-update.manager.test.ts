@@ -9,7 +9,7 @@ import {
   serializeUnsignedUpdateManifest,
   type UpdateManifest,
   type UnsignedUpdateManifest
-} from "@nextclaw/kernel/update-contract";
+} from "@nextclaw/kernel";
 import { NpmRuntimeBundleLayoutStore } from "./npm-runtime-bundle-layout.store.js";
 import {
   NpmRuntimeBundleService,
@@ -147,7 +147,7 @@ function createManager(params: {
 }
 
 describe("NpmRuntimeUpdateManager", () => {
-  it("downloads a runtime bundle without changing current, then applies by switching current pointer", async () =>
+  it("updates by downloading and applying the runtime bundle in one default run", async () =>
     await withTempDir(async (rootDir) => {
       const initialLayout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
       const initialStateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
@@ -168,7 +168,36 @@ describe("NpmRuntimeUpdateManager", () => {
       });
       const { layout, manager, stateStore } = createManager({ rootDir, manifest, archiveBytes });
 
-      const downloaded = await manager.run();
+      const applied = await manager.run();
+      expect(applied.status).toBe("restart-required");
+      expect(layout.readPreviousPointer()).toEqual({ version: "0.18.0" });
+      expect(layout.readCurrentPointer()).toEqual({ version: "0.18.1" });
+      expect(stateStore.read().downloadedVersion).toBeNull();
+      expect(stateStore.read().candidateVersion).toBe("0.18.1");
+    }));
+
+  it("keeps download-only runtime updates staged until apply is requested", async () =>
+    await withTempDir(async (rootDir) => {
+      const initialLayout = new NpmRuntimeBundleLayoutStore(join(rootDir, "runtime-bundles"));
+      const initialStateStore = new NpmRuntimeUpdateStateStore(join(rootDir, "state.json"));
+      initialLayout.ensureLauncherDirs();
+      writeBundleFixture(initialLayout.getVersionsDir(), "0.18.0");
+      initialLayout.writeCurrentPointer({ version: "0.18.0" });
+      initialStateStore.write({
+        ...initialStateStore.read(),
+        currentVersion: "0.18.0",
+        lastKnownGoodVersion: "0.18.0"
+      });
+
+      const archiveBytes = await createBundleArchive(join(rootDir, "source"), "0.18.1");
+      const manifest = createManifest({
+        latestVersion: "0.18.1",
+        bundleSha256: createHash("sha256").update(archiveBytes).digest("hex"),
+        bundleSignature: sign(null, archiveBytes, keyPair.privateKey).toString("base64")
+      });
+      const { layout, manager, stateStore } = createManager({ rootDir, manifest, archiveBytes });
+
+      const downloaded = await manager.run({ applyAfterDownload: false });
       expect(downloaded.status).toBe("downloaded");
       expect(downloaded.downloadedVersion).toBe("0.18.1");
       expect(layout.readCurrentPointer()).toEqual({ version: "0.18.0" });
