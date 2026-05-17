@@ -269,7 +269,7 @@ jobs:
             throw "Windows desktop executable not found in apps/desktop/release/win-unpacked"
           }
           $desktopExe = (Resolve-Path "apps/desktop/release/win-unpacked/NextClaw Desktop.exe").Path
-          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 120
+          & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $desktopExe -StartupTimeoutSec 120 -MaxReadySec 20
 
       - name: Stage Windows smoke logs
         if: always()
@@ -378,7 +378,7 @@ jobs:
           if ($null -eq $installerPath) {
             throw "Windows desktop installer not found in apps/desktop/release"
           }
-          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 120
+          & "apps/desktop/scripts/smoke-windows-installer.ps1" -InstallerPath $installerPath.FullName -StartupTimeoutSec 120 -MaxReadySec 20
 
       - name: Stage Windows installer smoke logs
         if: always()

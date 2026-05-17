@@ -1,7 +1,8 @@
 param(
   [Parameter(Mandatory = $true)]
   [string]$InstallerPath,
-  [int]$StartupTimeoutSec = 90
+  [int]$StartupTimeoutSec = 90,
+  [int]$MaxReadySec = 20
 )
 
 $ErrorActionPreference = "Stop"
@@ -43,7 +44,7 @@ try {
     throw "Installed desktop executable not found: $installedExePath"
   }
 
-  & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec
+  & "apps/desktop/scripts/smoke-windows-desktop.ps1" -DesktopExePath $installedExePath -StartupTimeoutSec $StartupTimeoutSec -MaxReadySec $MaxReadySec
 } finally {
   Invoke-SilentUninstall -InstallDir $installDir
 }

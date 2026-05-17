@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { createServer } from "node:net";
 import { setTimeout as sleep } from "node:timers/promises";
 
@@ -29,11 +29,16 @@ type RuntimeCommandFailureParams = {
   outputLines: string[];
 };
 
-function spawnRuntimeScript(scriptPath: string, args: string[], env: NodeJS.ProcessEnv): ChildProcess {
-  return spawn(process.execPath, [scriptPath, ...args], {
+export function createRuntimeScriptSpawnOptions(env: NodeJS.ProcessEnv): SpawnOptions {
+  return {
     env,
-    stdio: "pipe"
-  });
+    stdio: "pipe",
+    windowsHide: true
+  };
+}
+
+function spawnRuntimeScript(scriptPath: string, args: string[], env: NodeJS.ProcessEnv): ChildProcess {
+  return spawn(process.execPath, [scriptPath, ...args], createRuntimeScriptSpawnOptions(env));
 }
 
 export class RuntimeServiceProcess {

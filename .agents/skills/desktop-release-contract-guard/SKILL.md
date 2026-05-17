@@ -135,6 +135,11 @@ description: Use when building, verifying, or releasing NextClaw desktop install
   - renderer load completion such as `did-finish-load` must be logged;
   - runtime health must pass through the GUI-launched app process;
   - startup elapsed time must be printed and bounded by an explicit threshold.
+- Windows GUI smoke must enforce the same visible-window contract:
+  - require `ready-to-show` and `did-finish-load` from the current `main.log` launch window within the configured `MaxReadySec` threshold;
+  - fail on startup blockers from the current log window instead of accepting a later health check;
+  - never use an `ELECTRON_RUN_AS_NODE` runtime fallback as a passing GUI result.
+- Windows desktop runtime child processes launched from the Electron GUI must be hidden (`windowsHide: true`) and covered by a regression test, because visible `init` / `serve` console flashes are release-blocking UX defects.
 - A desktop handoff smoke must also inspect the launcher log for the current launch window and fail on known startup blockers such as `ENAMETOOLONG`, `ENOTEMPTY`, `ERR_FAILED`, `render-process-gone`, or `Failed to bootstrap runtime`; absence of log inspection is not a valid pass.
 - When validating a build for a machine that already has desktop state, run a real-profile check against that machine's existing desktop data dir in addition to any isolated smoke. The real-profile check must prove stale staging, bad-version state, and existing bundles do not break startup.
 - When the runtime reaches API readiness and provider credentials are available, run `pnpm smoke:ncp-chat` against the desktop-started runtime and require a non-empty assistant reply. A health endpoint alone is not enough to claim the desktop runtime is usable.

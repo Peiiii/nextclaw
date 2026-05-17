@@ -321,7 +321,9 @@ function verifyWindowsDesktopPackage() {
     "-DesktopExePath",
     desktopExePath,
     "-StartupTimeoutSec",
-    "120"
+    "120",
+    "-MaxReadySec",
+    "20"
   ];
   if (commandExists("pwsh")) {
     run("pwsh", psArgs);
@@ -357,7 +359,9 @@ function verifyWindowsDesktopPackage() {
     "-InstallerPath",
     installerPath,
     "-StartupTimeoutSec",
-    "120"
+    "120",
+    "-MaxReadySec",
+    "20"
   ];
   if (commandExists("pwsh")) {
     run("pwsh", installerPsArgs);
