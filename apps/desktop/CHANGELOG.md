@@ -1,5 +1,13 @@
 # @nextclaw/desktop
 
+## 0.0.164
+
+### Patch Changes
+
+- Fix Windows first-launch visibility and hide runtime child-process console windows.
+- Updated dependencies
+  - nextclaw@0.19.8
+
 ## 0.0.162
 
 ### Patch Changes

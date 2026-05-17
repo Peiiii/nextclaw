@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.19.8
+
+### Patch Changes
+
+- Fix Windows desktop first-launch visibility and strengthen desktop startup smoke validation.
+
 ## 0.19.6
 
 ### Patch Changes
